@@ -22,7 +22,7 @@ use crate::nfs::nfs::*;
 use crc::crc32;
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_tx_logging_is_filtered(state: &mut NFSState,
+pub extern "C" fn SCNfsTxLoggingIsFiltered(state: &mut NFSState,
                                                 tx: &NFSTransaction)
                                                 -> u8
 {
@@ -110,21 +110,6 @@ fn nfs_common_header(state: &NFSState, tx: &NFSTransaction, js: &mut JsonBuilder
     Ok(())
 }
 
-fn nfs_log_request(state: &NFSState, tx: &NFSTransaction, js: &mut JsonBuilder)
-    -> Result<(), JsonError>
-{
-    nfs_common_header(state, tx, js)?;
-    js.set_string("type", "request")?;
-    Ok(())
-}
-
-#[no_mangle]
-pub extern "C" fn rs_nfs_log_json_request(state: &mut NFSState, tx: &NFSTransaction,
-        js: &mut JsonBuilder) -> bool
-{
-    nfs_log_request(state, tx, js).is_ok()
-}
-
 fn nfs_log_response(state: &NFSState, tx: &NFSTransaction, js: &mut JsonBuilder)
     -> Result<(), JsonError>
 {
@@ -152,7 +137,7 @@ fn nfs_log_response(state: &NFSState, tx: &NFSTransaction, js: &mut JsonBuilder)
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_log_json_response(state: &mut NFSState, tx: &NFSTransaction,
+pub extern "C" fn SCNfsLogJsonResponse(state: &mut NFSState, tx: &NFSTransaction,
         js: &mut JsonBuilder) -> bool
 {
     nfs_log_response(state, tx, js).is_ok()
@@ -173,7 +158,7 @@ fn rpc_log_response(tx: &NFSTransaction, js: &mut JsonBuilder)
 }
 
 #[no_mangle]
-pub extern "C" fn rs_rpc_log_json_response(tx: &NFSTransaction,
+pub extern "C" fn SCNfsRpcLogJsonResponse(tx: &NFSTransaction,
         js: &mut JsonBuilder) -> bool
 {
     rpc_log_response(tx, js).is_ok()

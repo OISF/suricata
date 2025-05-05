@@ -51,7 +51,7 @@ void RegisterNFSTCPParsers(void)
      * the configuration file then it will be enabled by default. */
     if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
 
-        rs_nfs_init(&sfc);
-        rs_nfs_register_parser();
+        SCNfsInit(&sfc);
+        SCRegisterNfsParser();
     }
 }

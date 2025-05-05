@@ -162,8 +162,7 @@ impl NFSTransactionFile {
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_nfs_gettxfiles(tx: *mut std::ffi::c_void, direction: u8) -> AppLayerGetFileState {
+unsafe extern "C" fn nfs_gettxfiles(tx: *mut std::ffi::c_void, direction: u8) -> AppLayerGetFileState {
     let tx = cast_pointer!(tx, NFSTransaction);
     if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
         let tx_dir : u8 = tdf.direction.into();
@@ -1544,8 +1543,7 @@ impl NFSState {
 }
 
 /// Returns *mut NFSState
-#[no_mangle]
-pub extern "C" fn rs_nfs_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
+extern "C" fn nfs_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
     let state = NFSState::new();
     let boxed = Box::new(state);
     SCLogDebug!("allocating state");
@@ -1554,16 +1552,14 @@ pub extern "C" fn rs_nfs_state_new(_orig_state: *mut std::os::raw::c_void, _orig
 
 /// Params:
 /// - state: *mut NFSState as void pointer
-#[no_mangle]
-pub extern "C" fn rs_nfs_state_free(state: *mut std::os::raw::c_void) {
+extern "C" fn nfs_state_free(state: *mut std::os::raw::c_void) {
     // Just unbox...
     SCLogDebug!("freeing state");
     std::mem::drop(unsafe { Box::from_raw(state as *mut NFSState) });
 }
 
 /// C binding parse a NFS TCP request. Returns 1 on success, -1 on failure.
-#[no_mangle]
-pub unsafe extern "C" fn rs_nfs_parse_request(flow: *const Flow,
+unsafe extern "C" fn nfs_parse_request(flow: *const Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
                                        stream_slice: StreamSlice,
@@ -1574,7 +1570,7 @@ pub unsafe extern "C" fn rs_nfs_parse_request(flow: *const Flow,
     let flow = cast_pointer!(flow, Flow);
 
     if stream_slice.is_gap() {
-        return rs_nfs_parse_request_tcp_gap(state, stream_slice.gap_size());
+        return nfs_parse_request_tcp_gap(state, stream_slice.gap_size());
     }
     SCLogDebug!("parsing {} bytes of request data", stream_slice.len());
 
@@ -1582,8 +1578,7 @@ pub unsafe extern "C" fn rs_nfs_parse_request(flow: *const Flow,
     state.parse_tcp_data_ts(flow, &stream_slice)
 }
 
-#[no_mangle]
-pub extern "C" fn rs_nfs_parse_request_tcp_gap(
+extern "C" fn nfs_parse_request_tcp_gap(
                                         state: &mut NFSState,
                                         input_len: u32)
                                         -> AppLayerResult
@@ -1591,8 +1586,7 @@ pub extern "C" fn rs_nfs_parse_request_tcp_gap(
     state.parse_tcp_data_ts_gap(input_len)
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_nfs_parse_response(flow: *const Flow,
+unsafe extern "C" fn nfs_parse_response(flow: *const Flow,
                                         state: *mut std::os::raw::c_void,
                                         _pstate: *mut std::os::raw::c_void,
                                         stream_slice: StreamSlice,
@@ -1603,7 +1597,7 @@ pub unsafe extern "C" fn rs_nfs_parse_response(flow: *const Flow,
     let flow = cast_pointer!(flow, Flow);
 
     if stream_slice.is_gap() {
-        return rs_nfs_parse_response_tcp_gap(state, stream_slice.gap_size());
+        return nfs_parse_response_tcp_gap(state, stream_slice.gap_size());
     }
     SCLogDebug!("parsing {} bytes of response data", stream_slice.len());
 
@@ -1611,8 +1605,7 @@ pub unsafe extern "C" fn rs_nfs_parse_response(flow: *const Flow,
     state.parse_tcp_data_tc(flow, &stream_slice)
 }
 
-#[no_mangle]
-pub extern "C" fn rs_nfs_parse_response_tcp_gap(
+extern "C" fn nfs_parse_response_tcp_gap(
                                         state: &mut NFSState,
                                         input_len: u32)
                                         -> AppLayerResult
@@ -1621,8 +1614,7 @@ pub extern "C" fn rs_nfs_parse_response_tcp_gap(
 }
 
 /// C binding to parse an NFS/UDP request. Returns 1 on success, -1 on failure.
-#[no_mangle]
-pub unsafe extern "C" fn rs_nfs_parse_request_udp(f: *const Flow,
+unsafe extern "C" fn nfs_parse_request_udp(f: *const Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
                                        stream_slice: StreamSlice,
@@ -1635,8 +1627,7 @@ pub unsafe extern "C" fn rs_nfs_parse_request_udp(f: *const Flow,
     state.parse_udp_ts(f, &stream_slice)
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_nfs_parse_response_udp(f: *const Flow,
+unsafe extern "C" fn nfs_parse_response_udp(f: *const Flow,
                                         state: *mut std::os::raw::c_void,
                                         _pstate: *mut std::os::raw::c_void,
                                         stream_slice: StreamSlice,
@@ -1648,17 +1639,15 @@ pub unsafe extern "C" fn rs_nfs_parse_response_udp(f: *const Flow,
     state.parse_udp_tc(f, &stream_slice)
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_nfs_state_get_tx_count(state: *mut std::os::raw::c_void)
+pub unsafe extern "C" fn nfs_state_get_tx_count(state: *mut std::os::raw::c_void)
                                             -> u64
 {
     let state = cast_pointer!(state, NFSState);
-    SCLogDebug!("rs_nfs_state_get_tx_count: returning {}", state.tx_id);
+    SCLogDebug!("nfs_state_get_tx_count: returning {}", state.tx_id);
     return state.tx_id;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_nfs_state_get_tx(state: *mut std::os::raw::c_void,
+unsafe extern "C" fn nfs_state_get_tx(state: *mut std::os::raw::c_void,
                                       tx_id: u64)
                                       -> *mut std::os::raw::c_void
 {
@@ -1673,16 +1662,14 @@ pub unsafe extern "C" fn rs_nfs_state_get_tx(state: *mut std::os::raw::c_void,
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_nfs_state_tx_free(state: *mut std::os::raw::c_void,
+unsafe extern "C" fn nfs_state_tx_free(state: *mut std::os::raw::c_void,
                                        tx_id: u64)
 {
     let state = cast_pointer!(state, NFSState);
     state.free_tx(tx_id);
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_nfs_tx_get_alstate_progress(tx: *mut std::os::raw::c_void,
+unsafe extern "C" fn nfs_tx_get_alstate_progress(tx: *mut std::os::raw::c_void,
                                                   direction: u8)
                                                   -> std::os::raw::c_int
 {
@@ -1699,8 +1686,7 @@ pub unsafe extern "C" fn rs_nfs_tx_get_alstate_progress(tx: *mut std::os::raw::c
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_nfs_get_tx_data(
+unsafe extern "C" fn nfs_get_tx_data(
     tx: *mut std::os::raw::c_void)
     -> *mut AppLayerTxData
 {
@@ -1708,13 +1694,13 @@ pub unsafe extern "C" fn rs_nfs_get_tx_data(
     return &mut tx.tx_data;
 }
 
-export_state_data_get!(rs_nfs_get_state_data, NFSState);
+export_state_data_get!(nfs_get_state_data, NFSState);
 
 /// return procedure(s) in the tx. At 0 return the main proc,
 /// otherwise get procs from the 'file_additional_procs'.
 /// Keep calling until 0 is returned.
 #[no_mangle]
-pub unsafe extern "C" fn rs_nfs_tx_get_procedures(tx: &mut NFSTransaction,
+pub unsafe extern "C" fn SCNfsTxGetProcedures(tx: &mut NFSTransaction,
                                            i: u16,
                                            procedure: *mut u32)
                                            -> u8
@@ -1742,14 +1728,14 @@ pub unsafe extern "C" fn rs_nfs_tx_get_procedures(tx: &mut NFSTransaction,
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_nfs_tx_get_version(tx: &mut NFSTransaction,
+pub unsafe extern "C" fn SCNfsTxGetVersion(tx: &mut NFSTransaction,
                                         version: *mut u32)
 {
     *version = tx.nfs_version as u32;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_nfs_init(context: &'static mut SuricataFileContext)
+pub unsafe extern "C" fn SCNfsInit(context: &'static mut SuricataFileContext)
 {
     SURICATA_NFS_FILE_CONFIG = Some(context);
 }
@@ -1865,8 +1851,7 @@ pub fn nfs_probe_udp(i: &[u8], direction: Direction) -> i32 {
 }
 
 /// MIDSTREAM
-#[no_mangle]
-pub unsafe extern "C" fn rs_nfs_probe_ms(
+unsafe extern "C" fn nfs_probe_ms(
         _flow: *const Flow,
         direction: u8, input: *const u8,
         len: u32, rdir: *mut u8) -> AppProto
@@ -1875,7 +1860,7 @@ pub unsafe extern "C" fn rs_nfs_probe_ms(
         return ALPROTO_UNKNOWN;
     }
     let slice: &[u8] = build_slice!(input, len as usize);
-    SCLogDebug!("rs_nfs_probe_ms: probing direction {:02x}", direction);
+    SCLogDebug!("nfs_probe_ms: probing direction {:02x}", direction);
     let mut adirection : u8 = 0;
     match nfs_probe_dir(slice, &mut adirection) {
         1 => {
@@ -1905,8 +1890,7 @@ pub unsafe extern "C" fn rs_nfs_probe_ms(
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_nfs_probe(_f: *const Flow,
+unsafe extern "C" fn ffi_nfs_probe(_f: *const Flow,
                                direction: u8,
                                input: *const u8,
                                len: u32,
@@ -1917,7 +1901,7 @@ pub unsafe extern "C" fn rs_nfs_probe(_f: *const Flow,
         return ALPROTO_UNKNOWN;
     }
     let slice: &[u8] = build_slice!(input, len as usize);
-    SCLogDebug!("rs_nfs_probe: running probe");
+    SCLogDebug!("ffi_nfs_probe: running probe");
     match nfs_probe(slice, direction.into()) {
         1 => { ALPROTO_NFS },
         -1 => { ALPROTO_FAILED },
@@ -1926,8 +1910,7 @@ pub unsafe extern "C" fn rs_nfs_probe(_f: *const Flow,
 }
 
 /// TOSERVER probe function
-#[no_mangle]
-pub unsafe extern "C" fn rs_nfs_probe_udp_ts(_f: *const Flow,
+unsafe extern "C" fn nfs_probe_udp_ts(_f: *const Flow,
                                _direction: u8,
                                input: *const u8,
                                len: u32,
@@ -1946,8 +1929,7 @@ pub unsafe extern "C" fn rs_nfs_probe_udp_ts(_f: *const Flow,
 }
 
 /// TOCLIENT probe function
-#[no_mangle]
-pub unsafe extern "C" fn rs_nfs_probe_udp_tc(_f: *const Flow,
+unsafe extern "C" fn nfs_probe_udp_tc(_f: *const Flow,
                                _direction: u8,
                                input: *const u8,
                                len: u32,
@@ -1969,7 +1951,7 @@ pub unsafe extern "C" fn rs_nfs_probe_udp_tc(_f: *const Flow,
 const PARSER_NAME: &[u8] = b"nfs\0";
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_nfs_register_parser() {
+pub unsafe extern "C" fn SCRegisterNfsParser() {
     let default_port = CString::new("[2049]").unwrap();
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
@@ -1979,24 +1961,24 @@ pub unsafe extern "C" fn rs_nfs_register_parser() {
         probe_tc: None,
         min_depth: 0,
         max_depth: 16,
-        state_new: rs_nfs_state_new,
-        state_free: rs_nfs_state_free,
-        tx_free: rs_nfs_state_tx_free,
-        parse_ts: rs_nfs_parse_request,
-        parse_tc: rs_nfs_parse_response,
-        get_tx_count: rs_nfs_state_get_tx_count,
-        get_tx: rs_nfs_state_get_tx,
+        state_new: nfs_state_new,
+        state_free: nfs_state_free,
+        tx_free: nfs_state_tx_free,
+        parse_ts: nfs_parse_request,
+        parse_tc: nfs_parse_response,
+        get_tx_count: nfs_state_get_tx_count,
+        get_tx: nfs_state_get_tx,
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
-        tx_get_progress: rs_nfs_tx_get_alstate_progress,
+        tx_get_progress: nfs_tx_get_alstate_progress,
         get_eventinfo: Some(NFSEvent::get_event_info),
         get_eventinfo_byid : Some(NFSEvent::get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
-        get_tx_files: Some(rs_nfs_gettxfiles),
+        get_tx_files: Some(nfs_gettxfiles),
         get_tx_iterator: Some(applayer::state_get_tx_iterator::<NFSState, NFSTransaction>),
-        get_tx_data: rs_nfs_get_tx_data,
-        get_state_data: rs_nfs_get_state_data,
+        get_tx_data: nfs_get_tx_data,
+        get_state_data: nfs_get_state_data,
         apply_tx_config: None,
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
         get_frame_id_by_name: Some(NFSFrameType::ffi_id_from_name),
@@ -2019,20 +2001,20 @@ pub unsafe extern "C" fn rs_nfs_register_parser() {
         if midstream {
             if AppLayerProtoDetectPPParseConfPorts(ip_proto_str.as_ptr(), IPPROTO_TCP,
                     parser.name, ALPROTO_NFS, 0, NFS_MIN_FRAME_LEN,
-                    rs_nfs_probe_ms, rs_nfs_probe_ms) == 0 {
+                    nfs_probe_ms, nfs_probe_ms) == 0 {
                 SCLogDebug!("No NFSTCP app-layer configuration, enabling NFSTCP detection TCP detection on port {:?}.",
                             default_port);
                 /* register 'midstream' probing parsers if midstream is enabled. */
                 AppLayerProtoDetectPPRegister(IPPROTO_TCP,
                     default_port.as_ptr(), ALPROTO_NFS, 0,
                     NFS_MIN_FRAME_LEN, Direction::ToServer.into(),
-                    rs_nfs_probe_ms, rs_nfs_probe_ms);
+                    nfs_probe_ms, nfs_probe_ms);
             }
         } else {
             AppLayerProtoDetectPPRegister(IPPROTO_TCP,
                 default_port.as_ptr(), ALPROTO_NFS, 0,
                 NFS_MIN_FRAME_LEN, Direction::ToServer.into(),
-                rs_nfs_probe, rs_nfs_probe);
+                ffi_nfs_probe, ffi_nfs_probe);
         }
         if AppLayerParserConfParserEnabled(
             ip_proto_str.as_ptr(),
@@ -2048,7 +2030,7 @@ pub unsafe extern "C" fn rs_nfs_register_parser() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_nfs_udp_register_parser() {
+pub unsafe extern "C" fn SCRegisterNfsUdpParser() {
     let default_port = CString::new("[2049]").unwrap();
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
@@ -2058,24 +2040,24 @@ pub unsafe extern "C" fn rs_nfs_udp_register_parser() {
         probe_tc: None,
         min_depth: 0,
         max_depth: 16,
-        state_new: rs_nfs_state_new,
-        state_free: rs_nfs_state_free,
-        tx_free: rs_nfs_state_tx_free,
-        parse_ts: rs_nfs_parse_request_udp,
-        parse_tc: rs_nfs_parse_response_udp,
-        get_tx_count: rs_nfs_state_get_tx_count,
-        get_tx: rs_nfs_state_get_tx,
+        state_new: nfs_state_new,
+        state_free: nfs_state_free,
+        tx_free: nfs_state_tx_free,
+        parse_ts: nfs_parse_request_udp,
+        parse_tc: nfs_parse_response_udp,
+        get_tx_count: nfs_state_get_tx_count,
+        get_tx: nfs_state_get_tx,
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
-        tx_get_progress: rs_nfs_tx_get_alstate_progress,
+        tx_get_progress: nfs_tx_get_alstate_progress,
         get_eventinfo: Some(NFSEvent::get_event_info),
         get_eventinfo_byid : Some(NFSEvent::get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
-        get_tx_files: Some(rs_nfs_gettxfiles),
+        get_tx_files: Some(nfs_gettxfiles),
         get_tx_iterator: Some(applayer::state_get_tx_iterator::<NFSState, NFSTransaction>),
-        get_tx_data: rs_nfs_get_tx_data,
-        get_state_data: rs_nfs_get_state_data,
+        get_tx_data: nfs_get_tx_data,
+        get_state_data: nfs_get_state_data,
         apply_tx_config: None,
         flags: 0,
         get_frame_id_by_name: Some(NFSFrameType::ffi_id_from_name),
@@ -2096,13 +2078,13 @@ pub unsafe extern "C" fn rs_nfs_udp_register_parser() {
 
         if AppLayerProtoDetectPPParseConfPorts(ip_proto_str.as_ptr(), IPPROTO_UDP,
                 parser.name, ALPROTO_NFS, 0, NFS_MIN_FRAME_LEN,
-                rs_nfs_probe_udp_ts, rs_nfs_probe_udp_tc) == 0 {
+                nfs_probe_udp_ts, nfs_probe_udp_tc) == 0 {
             SCLogDebug!("No NFSUDP app-layer configuration, enabling NFSUDP detection UDP detection on port {:?}.",
                         default_port);
             AppLayerProtoDetectPPRegister(IPPROTO_UDP,
                 default_port.as_ptr(), ALPROTO_NFS, 0,
                 NFS_MIN_FRAME_LEN, Direction::ToServer.into(),
-                rs_nfs_probe_udp_ts, rs_nfs_probe_udp_tc);
+                nfs_probe_udp_ts, nfs_probe_udp_tc);
         }
         if AppLayerParserConfParserEnabled(
             ip_proto_str.as_ptr(),

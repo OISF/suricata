@@ -100,7 +100,7 @@ static int DetectNfsVersionMatch (DetectEngineThreadCtx *det_ctx,
 
     const DetectU32Data *dd = (const DetectU32Data *)ctx;
     uint32_t version;
-    rs_nfs_tx_get_version(txv, &version);
+    SCNfsTxGetVersion(txv, &version);
     SCLogDebug("version %u mode %u lo %u hi %u", version, dd->mode, dd->arg1, dd->arg2);
     if (DetectU32Match(version, dd))
         SCReturnInt(1);
