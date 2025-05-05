@@ -17,7 +17,7 @@
 
 //! Nom parsers for NFSv4 records
 use nom7::bytes::streaming::{tag, take};
-use nom7::combinator::{complete, cond, map, peek, verify, rest};
+use nom7::combinator::{complete, cond, map, peek, rest, verify};
 use nom7::error::{make_error, ErrorKind};
 use nom7::multi::{count, many_till};
 use nom7::number::streaming::{be_u32, be_u64};
@@ -26,9 +26,9 @@ use nom7::{Err, IResult};
 use crate::nfs::types::*;
 
 /*https://datatracker.ietf.org/doc/html/rfc7530 - section 16.16 File Delegation Types */
-const OPEN_DELEGATE_NONE:    u32 = 0;
-const OPEN_DELEGATE_READ:    u32 = 1;
-const OPEN_DELEGATE_WRITE:   u32 = 2;
+const OPEN_DELEGATE_NONE: u32 = 0;
+const OPEN_DELEGATE_READ: u32 = 1;
+const OPEN_DELEGATE_WRITE: u32 = 2;
 
 const RPCSEC_GSS: u32 = 6;
 
@@ -36,7 +36,7 @@ const RPCSEC_GSS: u32 = 6;
 // Linux defines NFSD_MAX_OPS_PER_COMPOUND to 16 (tested in Linux 5.15.1).
 const NFSD_MAX_OPS_PER_COMPOUND: usize = 64;
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Nfs4RequestContent<'a> {
     PutFH(Nfs4Handle<'a>),
     GetFH,
@@ -56,7 +56,7 @@ pub enum Nfs4RequestContent<'a> {
     GetAttr(Nfs4Attr),
     SetAttr(Nfs4RequestSetAttr<'a>),
     Renew(u64),
-    Remove(&'a[u8]),
+    Remove(&'a [u8]),
     DelegReturn(Nfs4StateId<'a>),
     SetClientId(Nfs4RequestSetClientId<'a>),
     SetClientIdConfirm,
@@ -68,11 +68,11 @@ pub enum Nfs4RequestContent<'a> {
     LayoutGet(Nfs4RequestLayoutGet<'a>),
     GetDevInfo(Nfs4RequestGetDevInfo<'a>),
     LayoutReturn(Nfs4RequestLayoutReturn<'a>),
-    DestroySession(&'a[u8]),
-    DestroyClientID(&'a[u8]),
+    DestroySession(&'a [u8]),
+    DestroyClientID(&'a [u8]),
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4Attr {
     attr_mask: u64,
 }
@@ -106,10 +106,10 @@ fn nfs4_parse_attrbits(i: &[u8]) -> IResult<&[u8], Nfs4Attr> {
     Ok((i, attr))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4StateId<'a> {
     pub seqid: u32,
-    pub data: &'a[u8],
+    pub data: &'a [u8],
 }
 
 fn nfs4_parse_stateid(i: &[u8]) -> IResult<&[u8], Nfs4StateId> {
@@ -119,10 +119,10 @@ fn nfs4_parse_stateid(i: &[u8]) -> IResult<&[u8], Nfs4StateId> {
     Ok((i, state))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4Handle<'a> {
     pub len: u32,
-    pub value: &'a[u8],
+    pub value: &'a [u8],
 }
 
 fn nfs4_parse_handle(i: &[u8]) -> IResult<&[u8], Nfs4Handle> {
@@ -145,7 +145,7 @@ pub struct Nfs4RequestLayoutReturn<'a> {
     pub return_type: u32,
     pub length: u64,
     pub stateid: Nfs4StateId<'a>,
-    pub lrf_data: &'a[u8],
+    pub lrf_data: &'a [u8],
 }
 
 fn nfs4_req_layoutreturn(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
@@ -169,7 +169,7 @@ fn nfs4_req_layoutreturn(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4RequestGetDevInfo<'a> {
-    pub device_id: &'a[u8],
+    pub device_id: &'a [u8],
     pub layout_type: u32,
     pub maxcount: u32,
     pub notify_mask: u32,
@@ -192,9 +192,9 @@ fn nfs4_req_getdevinfo(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4RequestCreateSession<'a> {
-    pub client_id: &'a[u8],
+    pub client_id: &'a [u8],
     pub seqid: u32,
-    pub machine_name: &'a[u8],
+    pub machine_name: &'a [u8],
 }
 
 fn nfs4_req_create_session(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
@@ -222,11 +222,11 @@ fn nfs4_req_putfh(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
     map(nfs4_parse_handle, Nfs4RequestContent::PutFH)(i)
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4RequestSetClientId<'a> {
-    pub client_id: &'a[u8],
-    pub r_netid: &'a[u8],
-    pub r_addr: &'a[u8],
+    pub client_id: &'a [u8],
+    pub r_netid: &'a [u8],
+    pub r_addr: &'a [u8],
 }
 
 fn nfs4_req_setclientid(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
@@ -239,7 +239,7 @@ fn nfs4_req_setclientid(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
     let req = Nfs4RequestContent::SetClientId(Nfs4RequestSetClientId {
         client_id,
         r_netid,
-        r_addr
+        r_addr,
     });
     Ok((i, req))
 }
@@ -250,11 +250,11 @@ fn nfs4_req_setclientid_confirm(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> 
     Ok((i, Nfs4RequestContent::SetClientIdConfirm))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4RequestCreate<'a> {
     pub ftype4: u32,
-    pub filename: &'a[u8],
-    pub link_content: &'a[u8],
+    pub filename: &'a [u8],
+    pub link_content: &'a [u8],
 }
 
 fn nfs4_req_create(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
@@ -270,9 +270,9 @@ fn nfs4_req_create(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
     Ok((i, req))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Nfs4OpenRequestContent<'a> {
-    Exclusive4(&'a[u8]),
+    Exclusive4(&'a [u8]),
     Unchecked4(Nfs4Attr),
     Guarded4(Nfs4Attr),
 }
@@ -295,15 +295,17 @@ fn nfs4_req_open_type(i: &[u8]) -> IResult<&[u8], Nfs4OpenRequestContent> {
         0 => nfs4_req_open_unchecked4(i)?,
         1 => nfs4_req_open_guarded4(i)?,
         2 => nfs4_req_open_exclusive4(i)?,
-        _ => { return Err(Err::Error(make_error(i, ErrorKind::Switch))); }
+        _ => {
+            return Err(Err::Error(make_error(i, ErrorKind::Switch)));
+        }
     };
     Ok((i, data))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4RequestOpen<'a> {
     pub open_type: u32,
-    pub filename: &'a[u8],
+    pub filename: &'a [u8],
     pub open_data: Option<Nfs4OpenRequestContent<'a>>,
 }
 
@@ -321,7 +323,7 @@ fn nfs4_req_open(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
     let req = Nfs4RequestContent::Open(Nfs4RequestOpen {
         open_type,
         filename,
-        open_data
+        open_data,
     });
     Ok((i, req))
 }
@@ -335,25 +337,22 @@ fn nfs4_req_readdir(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
     Ok((i, Nfs4RequestContent::ReadDir))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4RequestRename<'a> {
-    pub oldname: &'a[u8],
-    pub newname: &'a[u8],
+    pub oldname: &'a [u8],
+    pub newname: &'a [u8],
 }
 
 fn nfs4_req_rename(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
     let (i, oldname) = nfs4_parse_nfsstring(i)?;
     let (i, newname) = nfs4_parse_nfsstring(i)?;
-    let req = Nfs4RequestContent::Rename(Nfs4RequestRename {
-        oldname,
-        newname
-    });
+    let req = Nfs4RequestContent::Rename(Nfs4RequestRename { oldname, newname });
     Ok((i, req))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4RequestLookup<'a> {
-    pub filename: &'a[u8],
+    pub filename: &'a [u8],
 }
 
 fn nfs4_req_destroy_session(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
@@ -372,10 +371,10 @@ fn nfs4_req_remove(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
 }
 
 fn nfs4_req_secinfo_no_name(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
-    map(be_u32, Nfs4RequestContent::SecInfoNoName) (i)
+    map(be_u32, Nfs4RequestContent::SecInfoNoName)(i)
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4RequestSetAttr<'a> {
     pub stateid: Nfs4StateId<'a>,
 }
@@ -391,13 +390,13 @@ fn nfs4_req_getattr(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
     map(nfs4_parse_attrbits, Nfs4RequestContent::GetAttr)(i)
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4RequestWrite<'a> {
     pub stateid: Nfs4StateId<'a>,
     pub offset: u64,
     pub stable: u32,
     pub write_len: u32,
-    pub data: &'a[u8],
+    pub data: &'a [u8],
 }
 
 fn nfs4_req_write(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
@@ -417,7 +416,7 @@ fn nfs4_req_write(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
     Ok((i, req))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4RequestRead<'a> {
     pub stateid: Nfs4StateId<'a>,
     pub offset: u64,
@@ -442,7 +441,7 @@ fn nfs4_req_close(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
     Ok((i, Nfs4RequestContent::Close(stateid)))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4RequestOpenConfirm<'a> {
     pub stateid: Nfs4StateId<'a>,
 }
@@ -450,9 +449,7 @@ pub struct Nfs4RequestOpenConfirm<'a> {
 fn nfs4_req_open_confirm(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
     let (i, _seq_id) = be_u32(i)?;
     let (i, stateid) = nfs4_parse_stateid(i)?;
-    let req = Nfs4RequestContent::OpenConfirm(Nfs4RequestOpenConfirm {
-        stateid
-    });
+    let req = Nfs4RequestContent::OpenConfirm(Nfs4RequestOpenConfirm { stateid });
     Ok((i, req))
 }
 
@@ -487,7 +484,10 @@ fn nfs4_req_commit(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
 }
 
 fn nfs4_req_reclaim_complete(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
-    map(verify(be_u32, |&v| v <= 1), Nfs4RequestContent::ReclaimComplete) (i)
+    map(
+        verify(be_u32, |&v| v <= 1),
+        Nfs4RequestContent::ReclaimComplete,
+    )(i)
 }
 
 fn nfs4_req_destroy_clientid(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
@@ -521,11 +521,11 @@ fn nfs4_req_layoutget(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
     Ok((i, req))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4RequestExchangeId<'a> {
-    pub client_string: &'a[u8],
-    pub nii_domain: &'a[u8],
-    pub nii_name: &'a[u8],
+    pub client_string: &'a [u8],
+    pub nii_domain: &'a [u8],
+    pub nii_name: &'a [u8],
 }
 
 fn nfs4_req_exchangeid(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
@@ -541,14 +541,14 @@ fn nfs4_req_exchangeid(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
     let req = Nfs4RequestContent::ExchangeId(Nfs4RequestExchangeId {
         client_string: eia_clientstring,
         nii_domain,
-        nii_name
+        nii_name,
     });
     Ok((i, req))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4RequestSequence<'a> {
-    pub ssn_id: &'a[u8],
+    pub ssn_id: &'a [u8],
 }
 
 fn nfs4_req_sequence(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
@@ -557,9 +557,7 @@ fn nfs4_req_sequence(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent> {
     let (i, _slot_id) = be_u32(i)?;
     let (i, _high_slot_id) = be_u32(i)?;
     let (i, _cache_this) = be_u32(i)?;
-    let req = Nfs4RequestContent::Sequence(Nfs4RequestSequence {
-        ssn_id
-    });
+    let req = Nfs4RequestContent::Sequence(Nfs4RequestSequence { ssn_id });
     Ok((i, req))
 }
 
@@ -598,12 +596,14 @@ fn parse_request_compound_command(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent
         NFSPROC4_LAYOUTRETURN => nfs4_req_layoutreturn(i)?,
         NFSPROC4_DESTROY_SESSION => nfs4_req_destroy_session(i)?,
         NFSPROC4_DESTROY_CLIENTID => nfs4_req_destroy_clientid(i)?,
-        _ => { return Err(Err::Error(make_error(i, ErrorKind::Switch))); }
+        _ => {
+            return Err(Err::Error(make_error(i, ErrorKind::Switch)));
+        }
     };
     Ok((i, cmd_data))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4RequestCompoundRecord<'a> {
     pub commands: Vec<Nfs4RequestContent<'a>>,
 }
@@ -620,7 +620,7 @@ pub fn parse_nfs4_request_compound(i: &[u8]) -> IResult<&[u8], Nfs4RequestCompou
     Ok((i, Nfs4RequestCompoundRecord { commands }))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Nfs4ResponseContent<'a> {
     PutFH(u32),
     PutRootFH(u32),
@@ -657,7 +657,7 @@ pub enum Nfs4ResponseContent<'a> {
 }
 
 // might need improvement with a stateid_present = yes case
-fn nfs4_res_layoutreturn(i:&[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
+fn nfs4_res_layoutreturn(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
     let (i, status) = be_u32(i)?;
     let (i, _stateid_present) = verify(be_u32, |&v| v <= 1)(i)?;
     Ok((i, Nfs4ResponseContent::LayoutReturn(status)))
@@ -665,7 +665,7 @@ fn nfs4_res_layoutreturn(i:&[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4ResponseCreateSession<'a> {
-    pub ssn_id: &'a[u8],
+    pub ssn_id: &'a [u8],
     pub seq_id: u32,
 }
 
@@ -675,25 +675,25 @@ fn nfs4_parse_res_create_session(i: &[u8]) -> IResult<&[u8], Nfs4ResponseCreateS
     let (i, _flags) = be_u32(i)?;
     let (i, _fore_chan_attrs) = take(28_usize)(i)?;
     let (i, _back_chan_attrs) = take(28_usize)(i)?;
-    Ok((i, Nfs4ResponseCreateSession {
-        ssn_id,
-        seq_id
-    }))
+    Ok((i, Nfs4ResponseCreateSession { ssn_id, seq_id }))
 }
 
 fn nfs4_res_create_session(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
     let (i, status) = be_u32(i)?;
     let (i, create_ssn_data) = cond(status == 0, nfs4_parse_res_create_session)(i)?;
-    Ok((i, Nfs4ResponseContent::CreateSession( status, create_ssn_data )))
+    Ok((
+        i,
+        Nfs4ResponseContent::CreateSession(status, create_ssn_data),
+    ))
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4ResponseExchangeId<'a> {
-    pub client_id: &'a[u8],
+    pub client_id: &'a [u8],
     pub eir_minorid: u64,
-    pub eir_majorid: &'a[u8],
-    pub nii_domain: &'a[u8],
-    pub nii_name: &'a[u8],
+    pub eir_majorid: &'a [u8],
+    pub nii_domain: &'a [u8],
+    pub nii_name: &'a [u8],
 }
 
 fn nfs4_parse_res_exchangeid(i: &[u8]) -> IResult<&[u8], Nfs4ResponseExchangeId> {
@@ -709,26 +709,29 @@ fn nfs4_parse_res_exchangeid(i: &[u8]) -> IResult<&[u8], Nfs4ResponseExchangeId>
     let (i, nii_name) = nfs4_parse_nfsstring(i)?;
     let (i, _nii_date_sec) = be_u64(i)?;
     let (i, _nii_date_nsec) = be_u32(i)?;
-    Ok((i, Nfs4ResponseExchangeId {
-        client_id,
-        eir_minorid,
-        eir_majorid,
-        nii_domain,
-        nii_name,
-    }))
+    Ok((
+        i,
+        Nfs4ResponseExchangeId {
+            client_id,
+            eir_minorid,
+            eir_majorid,
+            nii_domain,
+            nii_name,
+        },
+    ))
 }
 
 fn nfs4_res_reclaim_complete(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
-    map(be_u32, Nfs4ResponseContent::ReclaimComplete) (i)
+    map(be_u32, Nfs4ResponseContent::ReclaimComplete)(i)
 }
 
 fn nfs4_res_exchangeid(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
     let (i, status) = be_u32(i)?;
     let (i, xchngid_data) = cond(status == 0, nfs4_parse_res_exchangeid)(i)?;
-    Ok((i, Nfs4ResponseContent::ExchangeId( status, xchngid_data)))
+    Ok((i, Nfs4ResponseContent::ExchangeId(status, xchngid_data)))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4ResponseWrite {
     pub count: u32,
     pub committed: u32,
@@ -747,11 +750,11 @@ fn nfs4_res_write(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
     Ok((i, Nfs4ResponseContent::Write(status, wd)))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4ResponseRead<'a> {
     pub eof: bool,
     pub count: u32,
-    pub data: &'a[u8],
+    pub data: &'a [u8],
 }
 
 fn nfs4_res_read_ok(i: &[u8]) -> IResult<&[u8], Nfs4ResponseRead> {
@@ -759,7 +762,7 @@ fn nfs4_res_read_ok(i: &[u8]) -> IResult<&[u8], Nfs4ResponseRead> {
     let (i, read_len) = be_u32(i)?;
     let (i, read_data) = take(read_len as usize)(i)?;
     let resp = Nfs4ResponseRead {
-        eof: eof==1,
+        eof: eof == 1,
         count: read_len,
         data: read_data,
     };
@@ -772,7 +775,7 @@ fn nfs4_res_read(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
     Ok((i, Nfs4ResponseContent::Read(status, rd)))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4ResponseOpen<'a> {
     pub stateid: Nfs4StateId<'a>,
     pub result_flags: u32,
@@ -789,7 +792,7 @@ pub enum Nfs4ResponseFileDelegation<'a> {
 #[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4ResponseOpenDelegateWrite<'a> {
     pub stateid: Nfs4StateId<'a>,
-    pub who: &'a[u8],
+    pub who: &'a [u8],
 }
 
 fn nfs4_res_open_ok_delegate_write(i: &[u8]) -> IResult<&[u8], Nfs4ResponseFileDelegation> {
@@ -801,13 +804,13 @@ fn nfs4_res_open_ok_delegate_write(i: &[u8]) -> IResult<&[u8], Nfs4ResponseFileD
     let (i, _ace_flags) = be_u32(i)?;
     let (i, _ace_mask) = be_u32(i)?;
     let (i, who) = nfs4_parse_nfsstring(i)?;
-    Ok((i, Nfs4ResponseFileDelegation::DelegateWrite(Nfs4ResponseOpenDelegateWrite {
-        stateid,
-        who,
-    })))
+    Ok((
+        i,
+        Nfs4ResponseFileDelegation::DelegateWrite(Nfs4ResponseOpenDelegateWrite { stateid, who }),
+    ))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4ResponseOpenDelegateRead<'a> {
     pub stateid: Nfs4StateId<'a>,
 }
@@ -820,9 +823,10 @@ fn nfs4_res_open_ok_delegate_read(i: &[u8]) -> IResult<&[u8], Nfs4ResponseFileDe
     let (i, _ace_mask) = be_u32(i)?;
     let (i, who_len) = be_u32(i)?;
     let (i, _who) = take(who_len as usize)(i)?;
-    Ok((i, Nfs4ResponseFileDelegation::DelegateRead(Nfs4ResponseOpenDelegateRead {
-        stateid,
-    })))
+    Ok((
+        i,
+        Nfs4ResponseFileDelegation::DelegateRead(Nfs4ResponseOpenDelegateRead { stateid }),
+    ))
 }
 
 fn nfs4_parse_file_delegation(i: &[u8]) -> IResult<&[u8], Nfs4ResponseFileDelegation> {
@@ -830,8 +834,13 @@ fn nfs4_parse_file_delegation(i: &[u8]) -> IResult<&[u8], Nfs4ResponseFileDelega
     let (i, file_delegation) = match delegation_type {
         OPEN_DELEGATE_READ => nfs4_res_open_ok_delegate_read(i)?,
         OPEN_DELEGATE_WRITE => nfs4_res_open_ok_delegate_write(i)?,
-        OPEN_DELEGATE_NONE => (i, Nfs4ResponseFileDelegation::DelegateNone(OPEN_DELEGATE_NONE)),
-        _ => { return Err(Err::Error(make_error(i, ErrorKind::Switch))); }
+        OPEN_DELEGATE_NONE => (
+            i,
+            Nfs4ResponseFileDelegation::DelegateNone(OPEN_DELEGATE_NONE),
+        ),
+        _ => {
+            return Err(Err::Error(make_error(i, ErrorKind::Switch)));
+        }
     };
     Ok((i, file_delegation))
 }
@@ -859,8 +868,8 @@ fn nfs4_res_open(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
 #[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4ResponseGetDevInfo<'a> {
     pub layout_type: u32,
-    pub r_netid: &'a[u8],
-    pub r_addr: &'a[u8],
+    pub r_netid: &'a [u8],
+    pub r_addr: &'a [u8],
     pub notify_mask: u32,
 }
 
@@ -872,18 +881,21 @@ fn nfs4_parse_res_getdevinfo(i: &[u8]) -> IResult<&[u8], Nfs4ResponseGetDevInfo>
     let (i, r_netid) = nfs4_parse_nfsstring(i)?;
     let (i, r_addr) = nfs4_parse_nfsstring(i)?;
     let (i, notify_mask) = be_u32(i)?;
-    Ok((i, Nfs4ResponseGetDevInfo {
-        layout_type,
-        r_netid,
-        r_addr,
-        notify_mask,
-    }))
+    Ok((
+        i,
+        Nfs4ResponseGetDevInfo {
+            layout_type,
+            r_netid,
+            r_addr,
+            notify_mask,
+        },
+    ))
 }
 
 fn nfs4_res_getdevinfo(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
     let (i, status) = be_u32(i)?;
     let (i, getdevinfo) = cond(status == 0, nfs4_parse_res_getdevinfo)(i)?;
-    Ok((i, Nfs4ResponseContent::GetDevInfo( status, getdevinfo )))
+    Ok((i, Nfs4ResponseContent::GetDevInfo(status, getdevinfo)))
 }
 
 /*https://datatracker.ietf.org/doc/html/rfc5661#section-13.1*/
@@ -893,12 +905,12 @@ pub struct Nfs4ResponseLayoutGet<'a> {
     pub stateid: Nfs4StateId<'a>,
     pub length: u64,
     pub layout_type: u32,
-    pub device_id: &'a[u8],
+    pub device_id: &'a [u8],
     pub file_handles: Vec<Nfs4Handle<'a>>,
 }
 
 fn nfs4_parse_res_layoutget(i: &[u8]) -> IResult<&[u8], Nfs4ResponseLayoutGet> {
-    let (i, _return_on_close) =  verify(be_u32, |&v| v <= 1)(i)?;
+    let (i, _return_on_close) = verify(be_u32, |&v| v <= 1)(i)?;
     let (i, stateid) = nfs4_parse_stateid(i)?;
     let (i, _layout_seg) = be_u32(i)?;
     let (i, _offset) = be_u64(i)?;
@@ -917,19 +929,22 @@ fn nfs4_parse_res_layoutget(i: &[u8]) -> IResult<&[u8], Nfs4ResponseLayoutGet> {
         return Err(Err::Error(make_error(i, ErrorKind::Count)));
     }
     let (i, file_handles) = count(nfs4_parse_handle, fh_handles as usize)(i)?;
-    Ok((i, Nfs4ResponseLayoutGet {
-        stateid,
-        length,
-        layout_type,
-        device_id,
-        file_handles,
-    }))
+    Ok((
+        i,
+        Nfs4ResponseLayoutGet {
+            stateid,
+            length,
+            layout_type,
+            device_id,
+            file_handles,
+        },
+    ))
 }
 
 fn nfs4_res_layoutget(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
     let (i, status) = be_u32(i)?;
     let (i, lyg_data) = cond(status == 0, nfs4_parse_res_layoutget)(i)?;
-    Ok((i, Nfs4ResponseContent::LayoutGet( status, lyg_data )))
+    Ok((i, Nfs4ResponseContent::LayoutGet(status, lyg_data)))
 }
 
 // #[derive(Debug, PartialEq)]
@@ -965,12 +980,12 @@ fn nfs4_res_secinfo_no_name(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
     Ok((i, Nfs4ResponseContent::SecInfoNoName(status)))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4ResponseReaddirEntry<'a> {
-    pub name: &'a[u8],
+    pub name: &'a [u8],
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4ResponseReaddir<'a> {
     pub eof: bool,
     pub listing: Vec<Option<Nfs4ResponseReaddirEntry<'a>>>,
@@ -1114,7 +1129,7 @@ fn nfs4_res_commit(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
     Ok((i, Nfs4ResponseContent::Commit(status)))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4ResponseAccess {
     pub supported_types: u32,
     pub access_rights: u32,
@@ -1125,7 +1140,7 @@ fn nfs4_res_access_ok(i: &[u8]) -> IResult<&[u8], Nfs4ResponseAccess> {
     let (i, access_rights) = be_u32(i)?;
     let resp = Nfs4ResponseAccess {
         supported_types,
-        access_rights
+        access_rights,
     };
     Ok((i, resp))
 }
@@ -1136,9 +1151,9 @@ fn nfs4_res_access(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
     Ok((i, Nfs4ResponseContent::Access(status, ad)))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4ResponseSequence<'a> {
-    pub ssn_id: &'a[u8],
+    pub ssn_id: &'a [u8],
 }
 
 fn nfs4_res_sequence_ok(i: &[u8]) -> IResult<&[u8], Nfs4ResponseSequence> {
@@ -1156,11 +1171,11 @@ fn nfs4_res_sequence(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
 }
 
 fn nfs4_res_destroy_session(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
-    map(be_u32, Nfs4ResponseContent::DestroySession) (i)
+    map(be_u32, Nfs4ResponseContent::DestroySession)(i)
 }
 
 fn nfs4_res_destroy_clientid(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
-    map(be_u32, Nfs4ResponseContent::DestroyClientID) (i)
+    map(be_u32, Nfs4ResponseContent::DestroyClientID)(i)
 }
 
 fn nfs4_res_compound_command(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
@@ -1198,12 +1213,14 @@ fn nfs4_res_compound_command(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
         NFSPROC4_LAYOUTRETURN => nfs4_res_layoutreturn(i)?,
         NFSPROC4_DESTROY_SESSION => nfs4_res_destroy_session(i)?,
         NFSPROC4_DESTROY_CLIENTID => nfs4_res_destroy_clientid(i)?,
-        _ => { return Err(Err::Error(make_error(i, ErrorKind::Switch))); }
+        _ => {
+            return Err(Err::Error(make_error(i, ErrorKind::Switch)));
+        }
     };
     Ok((i, cmd_data))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4ResponseCompoundRecord<'a> {
     pub status: u32,
     pub commands: Vec<Nfs4ResponseContent<'a>>,
@@ -1227,7 +1244,7 @@ mod tests {
 
     #[test]
     fn test_nfs4_request_compound() {
-    // Operations: SEQUENCE, PUTFH, CLOSE
+        // Operations: SEQUENCE, PUTFH, CLOSE
         #[rustfmt::skip]
         let buf: &[u8] = &[
             0x00, 0x00, 0x00, 0x00, /*Tag*/
@@ -1289,17 +1306,19 @@ mod tests {
         ];
 
         let (_, req_client_id) = nfs4_parse_nfsstring(&buf[12..64]).unwrap();
-        let (_, req_r_netid) = nfs4_parse_nfsstring(&buf[68 ..76]).unwrap();
+        let (_, req_r_netid) = nfs4_parse_nfsstring(&buf[68..76]).unwrap();
         let (_, req_r_adrr) = nfs4_parse_nfsstring(&buf[76..100]).unwrap();
 
         let (_, resquest) = nfs4_req_setclientid(&buf[4..]).unwrap();
         match resquest {
-            Nfs4RequestContent::SetClientId( req_setclientid ) => {
+            Nfs4RequestContent::SetClientId(req_setclientid) => {
                 assert_eq!(req_setclientid.client_id, req_client_id);
                 assert_eq!(req_setclientid.r_netid, req_r_netid);
                 assert_eq!(req_setclientid.r_addr, req_r_adrr);
             }
-            _ => { panic!("Failure"); }
+            _ => {
+                panic!("Failure");
+            }
         }
     }
 
@@ -1336,10 +1355,15 @@ mod tests {
         match request {
             Nfs4RequestContent::Open(req_open) => {
                 assert_eq!(req_open.open_type, 1);
-                assert_eq!(req_open.open_data, Some(Nfs4OpenRequestContent::Unchecked4(attr_buf)));
+                assert_eq!(
+                    req_open.open_data,
+                    Some(Nfs4OpenRequestContent::Unchecked4(attr_buf))
+                );
                 assert_eq!(req_open.filename, filename_buf);
             }
-            _ => { panic!("Failure, {:?}", request); }
+            _ => {
+                panic!("Failure, {:?}", request);
+            }
         }
     }
 
@@ -1368,7 +1392,9 @@ mod tests {
                 assert_eq!(req_write.write_len, 5);
                 assert_eq!(req_write.data, "test\n".as_bytes());
             }
-            _ => { panic!("Failure, {:?}", request); }
+            _ => {
+                panic!("Failure, {:?}", request);
+            }
         }
     }
 
@@ -1417,7 +1443,9 @@ mod tests {
                 assert_eq!(req_exchangeid.nii_domain, nii_domain_buf);
                 assert_eq!(req_exchangeid.nii_name, nii_name_buf);
             }
-            _ => { panic!("Failure, {:?}", request); }
+            _ => {
+                panic!("Failure, {:?}", request);
+            }
         }
     }
 
@@ -1438,7 +1466,9 @@ mod tests {
             Nfs4RequestContent::Close(req_stateid) => {
                 assert_eq!(req_stateid, stateid_buf);
             }
-            _ => { panic!("Failure, {:?}", request); }
+            _ => {
+                panic!("Failure, {:?}", request);
+            }
         }
     }
 
@@ -1460,7 +1490,9 @@ mod tests {
             Nfs4RequestContent::Sequence(seq_buf) => {
                 assert_eq!(seq_buf.ssn_id, &buf[4..20]);
             }
-            _ => { panic!("Failure, {:?}", req_sequence); }
+            _ => {
+                panic!("Failure, {:?}", req_sequence);
+            }
         }
     }
 
@@ -1479,7 +1511,9 @@ mod tests {
             Nfs4RequestContent::Lookup(req_lookup) => {
                 assert_eq!(req_lookup.filename, filename_buf);
             }
-            _ => { panic!("Failure, {:?}", request); }
+            _ => {
+                panic!("Failure, {:?}", request);
+            }
         }
     }
 
@@ -1503,7 +1537,9 @@ mod tests {
                 assert_eq!(putfh_handle.value, handle_buf.value);
                 assert_eq!(putfh_handle.len, handle_buf.len);
             }
-            _ => { panic!("Failure, {:?}", result); }
+            _ => {
+                panic!("Failure, {:?}", result);
+            }
         }
     }
 
@@ -1512,30 +1548,26 @@ mod tests {
         let buf: &[u8] = &[
             0x00, 0x00, 0x00, 0x2b, /*opcode*/
             0xe0, 0x14, 0x82, 0x00, 0x00, 0x00, 0x02, 0xd2, // create_session
-            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x03,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x04, 0x14,
-            0x00, 0x10, 0x03, 0x88, 0x00, 0x00, 0x0d, 0x64,
-            0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x40,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x10, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02,
-            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
-            0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
-            0x00, 0x00, 0x00, 0x01, 0x0c, 0x09, 0x5e, 0x92,
-            0x00, 0x00, 0x00, 0x09, 0x6e, 0x65, 0x74, 0x61,
-            0x70, 0x70, 0x2d, 0x32, 0x36, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10,
+            0x04, 0x14, 0x00, 0x10, 0x03, 0x88, 0x00, 0x00, 0x0d, 0x64, 0x00, 0x00, 0x00, 0x08,
+            0x00, 0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x10, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02,
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x0c, 0x09, 0x5e, 0x92, 0x00, 0x00, 0x00, 0x09,
+            0x6e, 0x65, 0x74, 0x61, 0x70, 0x70, 0x2d, 0x32, 0x36, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         ];
 
         let (_, request) = nfs4_req_create_session(&buf[4..]).unwrap();
         match request {
-            Nfs4RequestContent::CreateSession( create_ssn ) => {
+            Nfs4RequestContent::CreateSession(create_ssn) => {
                 assert_eq!(create_ssn.client_id, &buf[4..12]);
                 assert_eq!(create_ssn.seqid, 1);
                 assert_eq!(create_ssn.machine_name, b"netapp-26");
             }
-            _ => { panic!("Failure"); }
+            _ => {
+                panic!("Failure");
+            }
         }
     }
 
@@ -1544,12 +1576,10 @@ mod tests {
         let buf: &[u8] = &[
             0x00, 0x00, 0x00, 0x32, /*opcode*/
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, // layoutget
-            0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff,
-            0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x02, 0x82, 0x14, 0xe0, 0x5b, 0x00, 0x89, 0xd9,
-            0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00,
+            0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff,
+            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x02, 0x82, 0x14, 0xe0, 0x5b, 0x00, 0x89, 0xd9, 0x04, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x10, 0x00,
         ];
 
         let (_, stateid_buf) = nfs4_parse_stateid(&buf[40..56]).unwrap();
@@ -1557,12 +1587,14 @@ mod tests {
 
         let (_, request) = nfs4_req_layoutget(&buf[4..]).unwrap();
         match request {
-            Nfs4RequestContent::LayoutGet( lyg_data ) => {
+            Nfs4RequestContent::LayoutGet(lyg_data) => {
                 assert_eq!(lyg_data.layout_type, 1);
                 assert_eq!(lyg_data.min_length, 4096);
                 assert_eq!(lyg_data.stateid, stateid_buf);
             }
-            _ => { panic!("Failure"); }
+            _ => {
+                panic!("Failure");
+            }
         }
     }
 
@@ -1571,20 +1603,21 @@ mod tests {
         let buf: &[u8] = &[
             0x00, 0x00, 0x00, 0x2f, /*opcode*/
             0x01, 0x01, 0x00, 0x00, 0x00, 0xf2, 0xfa, 0x80, // getdevinfo
-            0x00, 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x3e, 0x20,
-            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x06,
+            0x00, 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01,
+            0x3e, 0x20, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x06,
         ];
 
         let (_, request) = nfs4_req_getdevinfo(&buf[4..]).unwrap();
         match request {
-            Nfs4RequestContent::GetDevInfo( getdevifo ) => {
+            Nfs4RequestContent::GetDevInfo(getdevifo) => {
                 assert_eq!(getdevifo.device_id, &buf[4..20]);
                 assert_eq!(getdevifo.layout_type, 1);
                 assert_eq!(getdevifo.maxcount, 81440);
                 assert_eq!(getdevifo.notify_mask, 6);
             }
-            _ => { panic!("Failure"); }
+            _ => {
+                panic!("Failure");
+            }
         }
     }
 
@@ -1593,12 +1626,10 @@ mod tests {
         let buf: &[u8] = &[
             0x00, 0x00, 0x00, 0x33, /*opcode*/
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, // layoutreturn
-            0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-            0x00, 0x00, 0x00, 0x01, 0x03, 0x82, 0x14, 0xe0,
-            0x5b, 0x00, 0x89, 0xd9, 0x04, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x01,
+            0x03, 0x82, 0x14, 0xe0, 0x5b, 0x00, 0x89, 0xd9, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00,
         ];
 
         let (_, stateid_buf) = nfs4_parse_stateid(&buf[36..52]).unwrap();
@@ -1606,12 +1637,14 @@ mod tests {
 
         let (_, request) = nfs4_req_layoutreturn(&buf[4..]).unwrap();
         match request {
-            Nfs4RequestContent::LayoutReturn( layoutreturn ) => {
+            Nfs4RequestContent::LayoutReturn(layoutreturn) => {
                 assert_eq!(layoutreturn.layout_type, 1);
                 assert_eq!(layoutreturn.return_type, 1);
                 assert_eq!(layoutreturn.stateid, stateid_buf);
             }
-            _ => { panic!("Failure"); }
+            _ => {
+                panic!("Failure");
+            }
         }
     }
 
@@ -1625,10 +1658,12 @@ mod tests {
 
         let (_, request) = nfs4_req_destroy_session(&buf[4..]).unwrap();
         match request {
-            Nfs4RequestContent::DestroySession( ssn_id ) => {
+            Nfs4RequestContent::DestroySession(ssn_id) => {
                 assert_eq!(ssn_id, &buf[4..]);
             }
-            _ => { panic!("Failure"); }
+            _ => {
+                panic!("Failure");
+            }
         }
     }
 
@@ -1650,7 +1685,7 @@ mod tests {
     }
     #[test]
     fn test_nfs4_response_compound() {
-    // Operations: SEQUENCE, PUTFH, CLOSE
+        // Operations: SEQUENCE, PUTFH, CLOSE
         #[rustfmt::skip]
         let buf: &[u8] = &[
             0x00, 0x00, 0x00, 0x00, /*status*/
@@ -1732,7 +1767,9 @@ mod tests {
                 assert_eq!(status, 0);
                 assert_eq!(open_data, Some(res_open_data));
             }
-            _ => { panic!("Failure, {:?}", response); }
+            _ => {
+                panic!("Failure, {:?}", response);
+            }
         }
     }
 
@@ -1756,7 +1793,9 @@ mod tests {
                 assert_eq!(status, 0);
                 assert_eq!(wd, Some(wd_buf));
             }
-            _ => { panic!("Failure, {:?}", result); }
+            _ => {
+                panic!("Failure, {:?}", result);
+            }
         }
     }
 
@@ -1779,7 +1818,9 @@ mod tests {
                 assert_eq!(status, 0);
                 assert_eq!(ad, Some(ad_buf));
             }
-            _ => { panic!("Failure, {:?}", result); }
+            _ => {
+                panic!("Failure, {:?}", result);
+            }
         }
     }
 
@@ -1804,7 +1845,9 @@ mod tests {
                 assert_eq!(status, 0);
                 assert_eq!(fh, Some(fh_buf));
             }
-            _ => { panic!("Failure, {:?}", result); }
+            _ => {
+                panic!("Failure, {:?}", result);
+            }
         }
     }
 
@@ -1837,7 +1880,9 @@ mod tests {
                 assert_eq!(status, 0);
                 assert_eq!(attrs, Some(attrs_buf));
             }
-            _ => { panic!("Failure, {:?}", result); }
+            _ => {
+                panic!("Failure, {:?}", result);
+            }
         }
     }
 
@@ -1909,7 +1954,9 @@ mod tests {
                 assert_eq!(status, 0);
                 assert_eq!(rd, Some(res_rd));
             }
-            _ => { panic!("Failure!"); }
+            _ => {
+                panic!("Failure!");
+            }
         }
     }
 
@@ -1928,7 +1975,9 @@ mod tests {
             Nfs4ResponseContent::SetClientId(status) => {
                 assert_eq!(status, 0);
             }
-            _ => { panic!("Failure"); }
+            _ => {
+                panic!("Failure");
+            }
         }
     }
 
@@ -1937,25 +1986,17 @@ mod tests {
         let buf: &[u8] = &[
             0x00, 0x00, 0x00, 0x2a, /*opcode*/
             0x00, 0x00, 0x00, 0x00, /*status*/
-        // exchange_id
-            0xe0, 0x14, 0x82, 0x00, 0x00, 0x00, 0x02, 0xd2,
-            0x00, 0x00, 0x00, 0x01, 0x00, 0x06, 0x01, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x98, 0x3b, 0xa3, 0x1e,
-            0xd7, 0xa9, 0x11, 0xe8, 0x00, 0x00, 0x00, 0x10,
-            0x98, 0x3b, 0xa3, 0x1e, 0xd7, 0xa9, 0x11, 0xe8,
-            0xbc, 0x0c, 0x00, 0x0c, 0x29, 0xe9, 0x13, 0x93,
-            0x00, 0x00, 0x00, 0x10, 0x84, 0x8b, 0x93, 0x12,
-            0xd7, 0xa9, 0x11, 0xe8, 0xbc, 0x0c, 0x00, 0x0c,
-            0x29, 0xe9, 0x13, 0x93, 0x00, 0x00, 0x00, 0x01,
-            0x00, 0x00, 0x00, 0x0c, 0x6e, 0x65, 0x74, 0x61,
-            0x70, 0x70, 0x2e, 0x63, 0x6f, 0x6d, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x24, 0x4e, 0x65, 0x74, 0x41,
-            0x70, 0x70, 0x20, 0x52, 0x65, 0x6c, 0x65, 0x61,
-            0x73, 0x65, 0x20, 0x56, 0x6f, 0x6f, 0x64, 0x6f,
-            0x6f, 0x72, 0x61, 0x6e, 0x67, 0x65, 0x72, 0x5f,
-            0x5f, 0x39, 0x2e, 0x36, 0x2e, 0x30, 0x00, 0x00,
-            0x26, 0x0d, 0xcf, 0x5b, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00,
+            // exchange_id
+            0xe0, 0x14, 0x82, 0x00, 0x00, 0x00, 0x02, 0xd2, 0x00, 0x00, 0x00, 0x01, 0x00, 0x06,
+            0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x98, 0x3b, 0xa3, 0x1e, 0xd7, 0xa9, 0x11, 0xe8,
+            0x00, 0x00, 0x00, 0x10, 0x98, 0x3b, 0xa3, 0x1e, 0xd7, 0xa9, 0x11, 0xe8, 0xbc, 0x0c,
+            0x00, 0x0c, 0x29, 0xe9, 0x13, 0x93, 0x00, 0x00, 0x00, 0x10, 0x84, 0x8b, 0x93, 0x12,
+            0xd7, 0xa9, 0x11, 0xe8, 0xbc, 0x0c, 0x00, 0x0c, 0x29, 0xe9, 0x13, 0x93, 0x00, 0x00,
+            0x00, 0x01, 0x00, 0x00, 0x00, 0x0c, 0x6e, 0x65, 0x74, 0x61, 0x70, 0x70, 0x2e, 0x63,
+            0x6f, 0x6d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x24, 0x4e, 0x65, 0x74, 0x41, 0x70, 0x70,
+            0x20, 0x52, 0x65, 0x6c, 0x65, 0x61, 0x73, 0x65, 0x20, 0x56, 0x6f, 0x6f, 0x64, 0x6f,
+            0x6f, 0x72, 0x61, 0x6e, 0x67, 0x65, 0x72, 0x5f, 0x5f, 0x39, 0x2e, 0x36, 0x2e, 0x30,
+            0x00, 0x00, 0x26, 0x0d, 0xcf, 0x5b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         ];
 
         let (_, xchangeid) = nfs4_parse_res_exchangeid(&buf[8..]).unwrap();
@@ -1966,7 +2007,9 @@ mod tests {
                 assert_eq!(status, 0);
                 assert_eq!(xchngid_data, Some(xchangeid));
             }
-            _ => { panic!("Failure"); }
+            _ => {
+                panic!("Failure");
+            }
         }
     }
 
@@ -1975,28 +2018,26 @@ mod tests {
         let buf: &[u8] = &[
             0x00, 0x00, 0x00, 0x2b, /*opcode*/
             0x00, 0x00, 0x00, 0x00, /*status*/
-        // create_session
-            0x00, 0x00, 0x02, 0xd2, 0xe0, 0x14, 0x82, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x02,
-            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x03,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x18, 0x00,
-            0x00, 0x01, 0x40, 0x00, 0x00, 0x00, 0x02, 0x80,
-            0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x40,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x10, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02,
-            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+            // create_session
+            0x00, 0x00, 0x02, 0xd2, 0xe0, 0x14, 0x82, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x04, 0x02, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x01, 0x18, 0x00, 0x00, 0x01, 0x40, 0x00, 0x00, 0x00, 0x02, 0x80, 0x00, 0x00,
+            0x00, 0x08, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
         ];
 
         let (_, create_ssn) = nfs4_parse_res_create_session(&buf[8..]).unwrap();
 
         let (_, response) = nfs4_res_create_session(&buf[4..]).unwrap();
         match response {
-            Nfs4ResponseContent::CreateSession( status, create_ssn_data) => {
+            Nfs4ResponseContent::CreateSession(status, create_ssn_data) => {
                 assert_eq!(status, 0);
                 assert_eq!(create_ssn_data, Some(create_ssn));
             }
-            _ => { panic!("Failure"); }
+            _ => {
+                panic!("Failure");
+            }
         }
     }
 
@@ -2005,25 +2046,17 @@ mod tests {
         let buf: &[u8] = &[
             0x00, 0x00, 0x00, 0x32, /*opcode*/
             0x00, 0x00, 0x00, 0x00, /*status*/
-        // layoutget
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
-            0x03, 0x82, 0x14, 0xe0, 0x5b, 0x00, 0x89, 0xd9,
-            0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-            0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01,
-            0x00, 0x00, 0x00, 0x58, 0x01, 0x01, 0x00, 0x00,
-            0x00, 0xf2, 0xfa, 0x80, 0x00, 0x00, 0x00, 0x00,
-            0x20, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
-            0x00, 0x00, 0x00, 0x30, 0x01, 0x03, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x84, 0x72, 0x00, 0x00, 0x23, 0xa6, 0xc0, 0x12,
-            0x00, 0xf2, 0xfa, 0x80, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x00, 0x00,
-            0x00, 0xf2, 0xfa, 0x80, 0x00, 0x00, 0x00, 0x00,
-            0x20, 0x00, 0x00, 0x00,
+            // layoutget
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x03, 0x82, 0x14, 0xe0, 0x5b, 0x00,
+            0x89, 0xd9, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00,
+            0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x58, 0x01, 0x01, 0x00, 0x00,
+            0x00, 0xf2, 0xfa, 0x80, 0x00, 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x01,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x30, 0x01, 0x03, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x84, 0x72, 0x00, 0x00, 0x23, 0xa6, 0xc0, 0x12,
+            0x00, 0xf2, 0xfa, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01,
+            0x00, 0x00, 0x00, 0xf2, 0xfa, 0x80, 0x00, 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00,
         ];
 
         let (_, stateid) = nfs4_parse_stateid(&buf[12..28]).unwrap();
@@ -2035,11 +2068,13 @@ mod tests {
 
         let (_, response) = nfs4_res_layoutget(&buf[4..]).unwrap();
         match response {
-            Nfs4ResponseContent::LayoutGet( status, lyg ) => {
+            Nfs4ResponseContent::LayoutGet(status, lyg) => {
                 assert_eq!(status, 0);
                 assert_eq!(lyg, Some(lyg_data));
             }
-            _ => { panic!("Failure"); }
+            _ => {
+                panic!("Failure");
+            }
         }
     }
 
@@ -2049,12 +2084,10 @@ mod tests {
             0x00, 0x00, 0x00, 0x2f, /*opcode*/
             0x00, 0x00, 0x00, 0x00, /*status*/
             0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x2c, // getdevinfo
-            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
-            0x00, 0x00, 0x00, 0x03, 0x74, 0x63, 0x70, 0x00,
-            0x00, 0x00, 0x00, 0x10, 0x31, 0x39, 0x32, 0x2e,
-            0x31, 0x36, 0x38, 0x2e, 0x30, 0x2e, 0x36, 0x31,
-            0x2e, 0x38, 0x2e, 0x31, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
+            0x00, 0x01, 0x00, 0x00, 0x00, 0x03, 0x74, 0x63, 0x70, 0x00, 0x00, 0x00, 0x00, 0x10,
+            0x31, 0x39, 0x32, 0x2e, 0x31, 0x36, 0x38, 0x2e, 0x30, 0x2e, 0x36, 0x31, 0x2e, 0x38,
+            0x2e, 0x31, 0x00, 0x00, 0x00, 0x00,
         ];
 
         let (_, getdevinfo) = nfs4_parse_res_getdevinfo(&buf[8..]).unwrap();
@@ -2068,7 +2101,9 @@ mod tests {
                 assert_eq!(status, 0);
                 assert_eq!(getdevinfo_data, Some(getdevinfo))
             }
-            _ => { panic!("Failure"); }
+            _ => {
+                panic!("Failure");
+            }
         }
     }
 }
