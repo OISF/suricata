@@ -467,7 +467,7 @@ unsafe extern "C" fn krb5_parse_request_tcp(
             // sanity check to avoid memory exhaustion
             if state.defrag_buf_ts.len() + buf.len() > 100000 {
                 SCLogDebug!(
-                    "rs_krb5_parse_request_tcp: TCP buffer exploded {} {}",
+                    "krb5_parse_request_tcp: TCP buffer exploded {} {}",
                     state.defrag_buf_ts.len(),
                     buf.len()
                 );
@@ -491,7 +491,7 @@ unsafe extern "C" fn krb5_parse_request_tcp(
                     return AppLayerResult::ok();
                 }
                 _ => {
-                    SCLogDebug!("rs_krb5_parse_request_tcp: reading record mark failed!");
+                    SCLogDebug!("krb5_parse_request_tcp: reading record mark failed!");
                     return AppLayerResult::err();
                 }
             }
@@ -525,7 +525,7 @@ unsafe extern "C" fn krb5_parse_response_tcp(
             // sanity check to avoid memory exhaustion
             if state.defrag_buf_tc.len() + buf.len() > 100000 {
                 SCLogDebug!(
-                    "rs_krb5_parse_response_tcp: TCP buffer exploded {} {}",
+                    "krb5_parse_response_tcp: TCP buffer exploded {} {}",
                     state.defrag_buf_tc.len(),
                     buf.len()
                 );

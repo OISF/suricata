@@ -365,7 +365,7 @@ export_tx_data_get!(ike_get_tx_data, IKETransaction);
 export_state_data_get!(ike_get_state_data, IKEState);
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ike_register_parser() {
+pub unsafe extern "C" fn SCRegisterIkeParser() {
     let default_port = CString::new("500").unwrap();
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,

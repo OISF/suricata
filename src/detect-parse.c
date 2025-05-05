@@ -1828,7 +1828,7 @@ static int SigParse(DetectEngineCtx *de_ctx, Signature *s, const char *sigstr,
 {
     SCEnter();
 
-    if (!rs_check_utf8(sigstr)) {
+    if (!SCCheckUtf8(sigstr)) {
         SCLogError("rule is not valid UTF-8");
         SCReturnInt(-1);
     }

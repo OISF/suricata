@@ -254,7 +254,7 @@ export_state_data_get!(ntp_get_state_data, NTPState);
 const PARSER_NAME: &[u8] = b"ntp\0";
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_register_ntp_parser() {
+pub unsafe extern "C" fn SCRegisterNtpParser() {
     let default_port = CString::new("123").unwrap();
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,

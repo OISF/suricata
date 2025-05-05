@@ -255,5 +255,5 @@ const char *PrintInet(int af, const void *src, char *dst, socklen_t size)
 void PrintHexString(char *str, size_t size, uint8_t *buf, size_t buf_len)
 {
     DEBUG_VALIDATE_BUG_ON(size < 2 * buf_len);
-    rs_to_hex((uint8_t *)str, size, buf, buf_len);
+    SCToHex((uint8_t *)str, size, buf, buf_len);
 }

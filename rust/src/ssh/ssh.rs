@@ -441,7 +441,7 @@ extern "C" fn ssh_state_tx_free(_state: *mut std::os::raw::c_void, _tx_id: u64) 
     //do nothing
 }
 
-unsafe extern "C" fn rs_ssh_parse_request(
+unsafe extern "C" fn ssh_parse_request(
     flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -535,7 +535,7 @@ pub unsafe extern "C" fn SCRegisterSshParser() {
         state_new: ssh_state_new,
         state_free: ssh_state_free,
         tx_free: ssh_state_tx_free,
-        parse_ts: rs_ssh_parse_request,
+        parse_ts: ssh_parse_request,
         parse_tc: ssh_parse_response,
         get_tx_count: ssh_state_get_tx_count,
         get_tx: SCSshStateGetTx,
