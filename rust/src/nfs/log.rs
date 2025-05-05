@@ -15,17 +15,14 @@
  * 02110-1301, USA.
  */
 
-use std::string::String;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
-use crate::nfs::types::*;
 use crate::nfs::nfs::*;
+use crate::nfs::types::*;
 use crc::crc32;
+use std::string::String;
 
 #[no_mangle]
-pub extern "C" fn SCNfsTxLoggingIsFiltered(state: &mut NFSState,
-                                                tx: &NFSTransaction)
-                                                -> u8
-{
+pub extern "C" fn SCNfsTxLoggingIsFiltered(state: &mut NFSState, tx: &NFSTransaction) -> u8 {
     // TODO probably best to make this configurable
 
     if state.nfs_version <= 3 && tx.procedure == NFSPROC3_GETATTR {
@@ -35,15 +32,13 @@ pub extern "C" fn SCNfsTxLoggingIsFiltered(state: &mut NFSState,
     return 0;
 }
 
-fn nfs_rename_object(tx: &NFSTransaction, js: &mut JsonBuilder)
-    -> Result<(), JsonError>
-{
+fn nfs_rename_object(tx: &NFSTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
     let from_str = String::from_utf8_lossy(&tx.file_name);
     js.set_string("from", &from_str)?;
 
     let to_vec = match tx.type_data {
-        Some(NFSTransactionTypeData::RENAME(ref x)) => { x.to_vec() },
-        _ => { Vec::new() }
+        Some(NFSTransactionTypeData::RENAME(ref x)) => x.to_vec(),
+        _ => Vec::new(),
     };
 
     let to_str = String::from_utf8_lossy(&to_vec);
@@ -51,9 +46,7 @@ fn nfs_rename_object(tx: &NFSTransaction, js: &mut JsonBuilder)
     Ok(())
 }
 
-fn nfs_creds_object(tx: &NFSTransaction, js: &mut JsonBuilder)
-    -> Result<(), JsonError>
-{
+fn nfs_creds_object(tx: &NFSTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
     let mach_name = String::from_utf8_lossy(&tx.request_machine_name);
     js.set_string("machine_name", &mach_name)?;
     js.set_uint("uid", tx.request_uid as u64)?;
@@ -61,9 +54,7 @@ fn nfs_creds_object(tx: &NFSTransaction, js: &mut JsonBuilder)
     Ok(())
 }
 
-fn nfs_file_object(tx: &NFSTransaction, js: &mut JsonBuilder)
-    -> Result<(), JsonError>
-{
+fn nfs_file_object(tx: &NFSTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
     js.set_bool("first", tx.is_first)?;
     js.set_bool("last", tx.is_last)?;
 
@@ -86,9 +77,9 @@ fn nfs_handle2crc(bytes: &[u8]) -> u32 {
     c
 }
 
-fn nfs_common_header(state: &NFSState, tx: &NFSTransaction, js: &mut JsonBuilder)
-    -> Result<(), JsonError>
-{
+fn nfs_common_header(
+    state: &NFSState, tx: &NFSTransaction, js: &mut JsonBuilder,
+) -> Result<(), JsonError> {
     js.set_uint("version", state.nfs_version as u64)?;
     let proc_string = if state.nfs_version < 4 {
         nfs3_procedure_string(tx.procedure)
@@ -110,9 +101,9 @@ fn nfs_common_header(state: &NFSState, tx: &NFSTransaction, js: &mut JsonBuilder
     Ok(())
 }
 
-fn nfs_log_response(state: &NFSState, tx: &NFSTransaction, js: &mut JsonBuilder)
-    -> Result<(), JsonError>
-{
+fn nfs_log_response(
+    state: &NFSState, tx: &NFSTransaction, js: &mut JsonBuilder,
+) -> Result<(), JsonError> {
     nfs_common_header(state, tx, js)?;
     js.set_string("type", "response")?;
 
@@ -137,15 +128,13 @@ fn nfs_log_response(state: &NFSState, tx: &NFSTransaction, js: &mut JsonBuilder)
 }
 
 #[no_mangle]
-pub extern "C" fn SCNfsLogJsonResponse(state: &mut NFSState, tx: &NFSTransaction,
-        js: &mut JsonBuilder) -> bool
-{
+pub extern "C" fn SCNfsLogJsonResponse(
+    state: &mut NFSState, tx: &NFSTransaction, js: &mut JsonBuilder,
+) -> bool {
     nfs_log_response(state, tx, js).is_ok()
 }
 
-fn rpc_log_response(tx: &NFSTransaction, js: &mut JsonBuilder)
-    -> Result<(), JsonError>
-{
+fn rpc_log_response(tx: &NFSTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
     js.set_uint("xid", tx.xid as u64)?;
     js.set_string("status", &rpc_status_string(tx.rpc_response_status))?;
     js.set_string("auth_type", &rpc_auth_type_string(tx.auth_type))?;
@@ -158,8 +147,6 @@ fn rpc_log_response(tx: &NFSTransaction, js: &mut JsonBuilder)
 }
 
 #[no_mangle]
-pub extern "C" fn SCNfsRpcLogJsonResponse(tx: &NFSTransaction,
-        js: &mut JsonBuilder) -> bool
-{
+pub extern "C" fn SCNfsRpcLogJsonResponse(tx: &NFSTransaction, js: &mut JsonBuilder) -> bool {
     rpc_log_response(tx, js).is_ok()
 }
