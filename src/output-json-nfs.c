@@ -53,7 +53,7 @@ bool EveNFSAddMetadataRPC(const Flow *f, uint64_t tx_id, SCJsonBuilder *jb)
     if (state) {
         NFSTransaction *tx = AppLayerParserGetTx(f->proto, ALPROTO_NFS, state, tx_id);
         if (tx) {
-            return rs_rpc_log_json_response(tx, jb);
+            return SCNfsRpcLogJsonResponse(tx, jb);
         }
     }
     return false;
@@ -65,7 +65,7 @@ bool EveNFSAddMetadata(const Flow *f, uint64_t tx_id, SCJsonBuilder *jb)
     if (state) {
         NFSTransaction *tx = AppLayerParserGetTx(f->proto, ALPROTO_NFS, state, tx_id);
         if (tx) {
-            return rs_nfs_log_json_response(state, tx, jb);
+            return SCNfsLogJsonResponse(state, tx, jb);
         }
     }
     return false;
@@ -77,7 +77,7 @@ static int JsonNFSLogger(ThreadVars *tv, void *thread_data,
     NFSTransaction *nfstx = tx;
     OutputJsonThreadCtx *thread = thread_data;
 
-    if (rs_nfs_tx_logging_is_filtered(state, nfstx))
+    if (SCNfsTxLoggingIsFiltered(state, nfstx))
         return TM_ECODE_OK;
 
     SCJsonBuilder *jb = CreateEveHeader(p, LOG_DIR_PACKET, "nfs", NULL, thread->ctx);
@@ -86,11 +86,11 @@ static int JsonNFSLogger(ThreadVars *tv, void *thread_data,
     }
 
     SCJbOpenObject(jb, "rpc");
-    rs_rpc_log_json_response(tx, jb);
+    SCNfsRpcLogJsonResponse(tx, jb);
     SCJbClose(jb);
 
     SCJbOpenObject(jb, "nfs");
-    rs_nfs_log_json_response(state, tx, jb);
+    SCNfsLogJsonResponse(state, tx, jb);
     SCJbClose(jb);
 
     MemBufferReset(thread->buffer);

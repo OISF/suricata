@@ -62,8 +62,8 @@ static SuricataFileContext sfc = { &sbcfg };
 
 void RegisterNFSUDPParsers(void)
 {
-    rs_nfs_init(&sfc);
-    rs_nfs_udp_register_parser();
+    SCNfsInit(&sfc);
+    SCRegisterNfsUdpParser();
 
 #ifdef UNITTESTS
     AppLayerParserRegisterProtocolUnittests(IPPROTO_UDP, ALPROTO_NFS,
