@@ -928,7 +928,7 @@ void OutputRegisterRootLoggers(void)
             ALPROTO_LDAP, (EveJsonSimpleTxLogFunc)rs_ldap_logger_log, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_DOH2, (EveJsonSimpleTxLogFunc)AlertJsonDoh2, NULL);
     RegisterSimpleJsonApplayerLogger(
-            ALPROTO_TEMPLATE, (EveJsonSimpleTxLogFunc)rs_template_logger_log, NULL);
+            ALPROTO_TEMPLATE, (EveJsonSimpleTxLogFunc)SCTemplateLoggerLog, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_RDP, (EveJsonSimpleTxLogFunc)SCRdpToJson, NULL);
     // special case : http2 is logged in http object
     RegisterSimpleJsonApplayerLogger(ALPROTO_HTTP2, (EveJsonSimpleTxLogFunc)SCHttp2LogJson, "http");
