@@ -39,7 +39,7 @@
 
 void RegisterIKEParsers(void)
 {
-    rs_ike_register_parser();
+    SCRegisterIkeParser();
 #ifdef UNITTESTS
     AppLayerParserRegisterProtocolUnittests(IPPROTO_UDP, ALPROTO_IKE, IKEParserRegisterTests);
 #endif

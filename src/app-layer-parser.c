@@ -1787,7 +1787,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     RegisterDNP3Parsers();
     RegisterNFSTCPParsers();
     RegisterNFSUDPParsers();
-    rs_register_ntp_parser();
+    SCRegisterNtpParser();
     RegisterTFTPParsers();
     RegisterIKEParsers();
     SCRegisterKrb5Parser();

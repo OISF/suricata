@@ -205,7 +205,7 @@ pub fn init_ffi(context: &'static SuricataContext)
 }
 
 #[no_mangle]
-pub extern "C" fn rs_init(context: &'static SuricataContext)
+pub extern "C" fn SCRustInit(context: &'static SuricataContext)
 {
     init_ffi(context);
 }
