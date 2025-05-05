@@ -306,8 +306,7 @@ impl WebSocketState {
 
 // C exports.
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_websocket_probing_parser(
+unsafe extern "C" fn websocket_probing_parser(
     _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
     if !input.is_null() {
@@ -324,7 +323,7 @@ pub unsafe extern "C" fn rs_websocket_probing_parser(
     return ALPROTO_UNKNOWN;
 }
 
-extern "C" fn rs_websocket_state_new(
+extern "C" fn websocket_state_new(
     _orig_state: *mut c_void, _orig_proto: AppProto,
 ) -> *mut c_void {
     let state = WebSocketState::new();
@@ -332,16 +331,16 @@ extern "C" fn rs_websocket_state_new(
     return Box::into_raw(boxed) as *mut c_void;
 }
 
-unsafe extern "C" fn rs_websocket_state_free(state: *mut c_void) {
+unsafe extern "C" fn websocket_state_free(state: *mut c_void) {
     std::mem::drop(Box::from_raw(state as *mut WebSocketState));
 }
 
-unsafe extern "C" fn rs_websocket_state_tx_free(state: *mut c_void, tx_id: u64) {
+unsafe extern "C" fn websocket_state_tx_free(state: *mut c_void, tx_id: u64) {
     let state = cast_pointer!(state, WebSocketState);
     state.free_tx(tx_id);
 }
 
-unsafe extern "C" fn rs_websocket_parse_request(
+unsafe extern "C" fn websocket_parse_request(
     flow: *const Flow, state: *mut c_void, _pstate: *mut c_void, stream_slice: StreamSlice,
     _data: *const c_void,
 ) -> AppLayerResult {
@@ -349,7 +348,7 @@ unsafe extern "C" fn rs_websocket_parse_request(
     state.parse(stream_slice, Direction::ToServer, flow)
 }
 
-unsafe extern "C" fn rs_websocket_parse_response(
+unsafe extern "C" fn websocket_parse_response(
     flow: *const Flow, state: *mut c_void, _pstate: *mut c_void, stream_slice: StreamSlice,
     _data: *const c_void,
 ) -> AppLayerResult {
@@ -357,7 +356,7 @@ unsafe extern "C" fn rs_websocket_parse_response(
     state.parse(stream_slice, Direction::ToClient, flow)
 }
 
-unsafe extern "C" fn rs_websocket_state_get_tx(state: *mut c_void, tx_id: u64) -> *mut c_void {
+unsafe extern "C" fn websocket_state_get_tx(state: *mut c_void, tx_id: u64) -> *mut c_void {
     let state = cast_pointer!(state, WebSocketState);
     match state.get_tx(tx_id) {
         Some(tx) => {
@@ -369,12 +368,12 @@ unsafe extern "C" fn rs_websocket_state_get_tx(state: *mut c_void, tx_id: u64) -
     }
 }
 
-unsafe extern "C" fn rs_websocket_state_get_tx_count(state: *mut c_void) -> u64 {
+unsafe extern "C" fn websocket_state_get_tx_count(state: *mut c_void) -> u64 {
     let state = cast_pointer!(state, WebSocketState);
     return state.tx_id;
 }
 
-unsafe extern "C" fn rs_websocket_tx_get_alstate_progress(
+unsafe extern "C" fn websocket_tx_get_alstate_progress(
     _tx: *mut c_void, _direction: u8,
 ) -> c_int {
     return 1;
@@ -387,25 +386,25 @@ export_state_data_get!(websocket_get_state_data, WebSocketState);
 const PARSER_NAME: &[u8] = b"websocket\0";
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_websocket_register_parser() {
+pub unsafe extern "C" fn SCRegisterWebSocketParser() {
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const c_char,
         default_port: std::ptr::null(),
         ipproto: IPPROTO_TCP,
-        probe_ts: Some(rs_websocket_probing_parser),
-        probe_tc: Some(rs_websocket_probing_parser),
+        probe_ts: Some(websocket_probing_parser),
+        probe_tc: Some(websocket_probing_parser),
         min_depth: 0,
         max_depth: 16,
-        state_new: rs_websocket_state_new,
-        state_free: rs_websocket_state_free,
-        tx_free: rs_websocket_state_tx_free,
-        parse_ts: rs_websocket_parse_request,
-        parse_tc: rs_websocket_parse_response,
-        get_tx_count: rs_websocket_state_get_tx_count,
-        get_tx: rs_websocket_state_get_tx,
+        state_new: websocket_state_new,
+        state_free: websocket_state_free,
+        tx_free: websocket_state_tx_free,
+        parse_ts: websocket_parse_request,
+        parse_tc: websocket_parse_response,
+        get_tx_count: websocket_state_get_tx_count,
+        get_tx: websocket_state_get_tx,
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
-        tx_get_progress: rs_websocket_tx_get_alstate_progress,
+        tx_get_progress: websocket_tx_get_alstate_progress,
         get_eventinfo: Some(WebSocketEvent::get_event_info),
         get_eventinfo_byid: Some(WebSocketEvent::get_event_info_by_id),
         localstorage_new: None,
