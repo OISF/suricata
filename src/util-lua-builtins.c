@@ -24,6 +24,7 @@
 #include "util-lua-flowvarlib.h"
 #include "util-lua-http.h"
 #include "util-lua-dns.h"
+#include "util-lua-smtp.h"
 #include "util-lua-ssh.h"
 #include "util-lua-flowlib.h"
 #include "util-lua-hashlib.h"
@@ -44,6 +45,7 @@ static const luaL_Reg builtins[] = {
     { "suricata.http", SCLuaLoadHttpLib },
     { "suricata.packet", LuaLoadPacketLib },
     { "suricata.rule", SCLuaLoadRuleLib },
+    { "suricata.smtp", SCLuaLoadSmtpLib },
     { "suricata.ssh", SCLuaLoadSshLib },
     { NULL, NULL },
 };
