@@ -98,13 +98,13 @@ documentation).
 The possible values for the exception policies, and the resulting behaviors,
 are:
 
-- ``drop-flow``: disable inspection for the whole flow (packets, payload,
+- ``drop-flow``: disable decoding and parsing for the whole flow (packets, payload,
   application layer protocol), drop the packet and all future packets in the
   flow.
 - ``drop-packet``: drop the packet.
 - ``reject``: same as ``drop-flow``, but reject the current packet as well (see
   ``reject`` action in Rule's :ref:`actions`).
-- ``bypass``: bypass the flow. No further inspection is done. :ref:`Bypass
+- ``bypass``: bypass the flow. No further decoding or parsing is done. :ref:`Bypass
   <bypass>` may be offloaded.
 - ``pass-flow``: disable payload and packet detection; stream reassembly,
   app-layer parsing and logging still happen.
@@ -131,8 +131,8 @@ midstream pick-ups enabled or not and the various exception policy values:
      - Midstream pick-up sessions ENABLED (stream.midstream=true)
      - Midstream pick-up sessions DISABLED (stream.midstream=false)
    * - Ignore
-     - Session tracket and parsed.
-     - Session not tracked. No app-layer inspection or logging. No detection. No stream reassembly.
+     - Session and app-layer traffic tracked and parsed, log app-layer traffic, do detection.
+     - Session not tracked. No app-layer parsing or logging. No detection. No stream reassembly.
    * - Drop-flow
      - Not valid.*
      - Not valid.*
@@ -143,14 +143,14 @@ midstream pick-ups enabled or not and the various exception policy values:
      - Not valid.*
      - Session not tracked, flow REJECTED.
    * - Pass-flow
-     - Track session, inspect and log app-layer traffic, no detection.
-     - Session not tracked. No app-layer inspection or logging. No detection. No stream reassembly.
+     - Session and app-layer traffic tracked and parsed, log app-layer traffic, no detection.
+     - Session not tracked. No app-layer parsing or logging. No detection. No stream reassembly.
    * - Pass-packet
      - Not valid.*
      - Not valid.*
    * - Bypass
      - Not valid.*
-     - Session not tracked. No app-layer inspection or logging. No detection. No stream reassembly.
+     - Session not tracked. No app-layer parsing or logging. No detection. No stream reassembly.
    * - Auto
      - Midstream policy applied: "ignore". Same behavior.
      - Midstream policy applied: "ignore". Same behavior.
@@ -169,11 +169,11 @@ whole flow.
      - Midstream pick-up sessions ENABLED (stream.midstream=true)
      - Midstream pick-up sessions DISABLED (stream.midstream=false)
    * - Ignore
-     - Session tracket and parsed.
-     - Session not tracked. No app-layer inspection or logging. No detection. No stream reassembly.
+     - Session and app-layer traffic tracked and parsed, log app-layer traffic, do detection.
+     - Session not tracked. No app-layer parsing or logging. No detection. No stream reassembly.
    * - Drop-flow
      - Not valid.*
-     - Session not tracked. No app-layer inspection or logging. No detection. No stream reassembly.
+     - Session not tracked. No app-layer parsing or logging. No detection. No stream reassembly.
        Flow DROPPED.
    * - Drop-packet
      - Not valid.*
@@ -182,14 +182,14 @@ whole flow.
      - Not valid.*
      - Session not tracked, flow DROPPED and REJECTED.
    * - Pass-flow
-     - Track session, inspect and log app-layer traffic, no detection.
-     - Session not tracked. No app-layer inspection or logging. No detection. No stream reassembly.
+     - Track session, parse and log app-layer traffic, no detection.
+     - Session not tracked. No app-layer parsing or logging. No detection. No stream reassembly.
    * - Pass-packet
      - Not valid.*
      - Not valid.*
    * - Bypass
      - Not valid.*
-     - Session not tracked. No app-layer inspection or logging. No detection. No stream reassembly.
+     - Session not tracked. No app-layer parsing or logging. No detection. No stream reassembly.
        Packets ALLOWED.
    * - Auto
      - Midstream policy applied: "ignore". Same behavior.
@@ -224,6 +224,15 @@ The available command-line options are:
   defragmenting specified packet.
 - ``simulate-alert-queue-realloc-failure``: prevent the engine from dynamically
   growing the temporary alert queue, during alerts processing.
+
+Glossary
+========
+
+- **decoding**: traffic parsing on the packet level;
+- **[app-layer] parsing**: traffic is parsed on the application layer level for
+  events, anomalies and logging;
+- **detection**: evaluate traffic against loaded rules to generate alerts and/ or
+  block or allow traffic.
 
 Common abbreviations
 --------------------
