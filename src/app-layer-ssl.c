@@ -186,7 +186,9 @@ enum {
 
 /* JA3 and JA4 fingerprints are disabled by default */
 #define SSL_CONFIG_DEFAULT_JA3 0
+#ifdef HAVE_JA4
 #define SSL_CONFIG_DEFAULT_JA4 0
+#endif
 
 enum SslConfigEncryptHandling {
     SSL_CNF_ENC_HANDLE_TRACK_ONLY = 0, /**< disable raw content, continue tracking */
@@ -3366,6 +3368,7 @@ void SSLEnableJA3(void)
  */
 void SSLEnableJA4(void)
 {
+    // only caller has #ifdef HAVE_JA4
     if (g_disable_hashing || ssl_config.disable_ja4) {
         return;
     }
