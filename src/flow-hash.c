@@ -658,7 +658,7 @@ static void FlowExceptionPolicyStatsIncr(
         ThreadVars *tv, FlowLookupStruct *fls, enum ExceptionPolicy policy)
 {
 #ifdef UNITTESTS
-    if (tv == NULL) {
+    if (tv == NULL || fls->dtv == NULL) {
         return;
     }
 #endif
