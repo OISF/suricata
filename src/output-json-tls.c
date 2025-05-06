@@ -83,6 +83,7 @@ TlsFields tls_fields[] = {
     { "client", LOG_TLS_FIELD_CLIENT },
     { "client_certificate", LOG_TLS_FIELD_CLIENT_CERT },
     { "client_chain", LOG_TLS_FIELD_CLIENT_CHAIN },
+    // accept if as nop if we do not HAVE_JA4
     { "ja4", LOG_TLS_FIELD_JA4 },
     { "subjectaltname", LOG_TLS_FIELD_SUBJECTALTNAME },
     { "client_alpns", LOG_TLS_FIELD_CLIENT_ALPNS },
