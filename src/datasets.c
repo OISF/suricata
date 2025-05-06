@@ -1502,12 +1502,12 @@ static int DatasetAddIPv6(Dataset *set, const uint8_t *data, const uint32_t data
         return -1;
     }
 
-    if (data_len != 16) {
+    if (data_len != 16 && data_len != 4) {
         return -2;
     }
 
     IPv6Type lookup = { .rep.value = 0 };
-    memcpy(lookup.ipv6, data, 16);
+    memcpy(lookup.ipv6, data, data_len);
     struct THashDataGetResult res = THashGetFromHash(set->hash, &lookup);
     if (res.data) {
         DatasetUnlockData(res.data);
