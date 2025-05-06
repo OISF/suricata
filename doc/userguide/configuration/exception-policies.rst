@@ -1,7 +1,7 @@
 .. _exception policies:
 
 Exception Policies
-==================
+##################
 
 Suricata has a set of configuration variables to indicate what should the engine
 do when certain exception conditions, such as hitting a memcap, are reached.
@@ -16,13 +16,10 @@ For developers or for researching purposes, there are also simulation options
 exposed in debug mode and passed via command-line. These exist to force or
 simulate failures or errors and understand Suricata behavior under such conditions.
 
-Exception Policies
-------------------
-
 .. _master-switch:
 
 Master Switch
-~~~~~~~~~~~~~
+*************
 
 It is possible to set all configuration policies via what we call "master
 switch". This offers a quick way to define what the engine should do in case of
@@ -46,7 +43,7 @@ This value will be overwritten by specific exception policies whose settings are
 also defined in the yaml file.
 
 Auto
-''''
+====
 
 **In IPS mode**, the default behavior for most of the exception policies is to
 fail close. This means dropping the flow, or the packet, when the flow action is
@@ -66,7 +63,7 @@ It is possible to disable this default, by setting the exception policies'
 .. _eps_settings:
 
 Specific settings
-~~~~~~~~~~~~~~~~~
+*****************
 
 Exception policies are implemented for:
 
@@ -132,7 +129,7 @@ The *drop*, *pass* and *reject* are similar to the rule actions described in :re
 actions<suricata-yaml-action-order>`.
 
 Exception Policies and Midstream Pick-up Sessions
--------------------------------------------------
+*************************************************
 
 Suricata behavior can be difficult to track in case of midstream session
 pick-ups. Consider this matrix illustrating the different interactions for
@@ -214,17 +211,18 @@ whole flow.
 Notes:
 
    * Not valid means that Suricata will error out and won't start.
-   * ``REJECT`` will make Suricata send a Reset-packet unreach error to the sender of the matching packet.
+   * ``REJECT`` will make Suricata send a Reset-packet unreach error to the sender
+     of the matching packet.
 
 .. _eps_output:
 
 Log Output
-----------
+**********
 
 .. _eps_flow_event:
 
 Flow Event
-~~~~~~~~~~
+==========
 
 When an Exception Policy is triggered, this will be indicated in the flow log
 event for the associated flow, also indicating which target triggered that, and
@@ -266,7 +264,7 @@ exception policy, but that is set up to ``ignore``::
 .. _eps_stats:
 
 Available Stats
-~~~~~~~~~~~~~~~
+===============
 
 There are stats counters for each supported exception policy scenario that will
 be logged when exception policies are enabled:
@@ -303,7 +301,7 @@ temporarily (for more, read :ref:`stats configuration<suricata_yaml_outputs>`).
 
 
 Command-line Options for Simulating Exceptions
-----------------------------------------------
+==============================================
 
 It is also possible to force specific exception scenarios, to check engine
 behavior under failure or error conditions.
