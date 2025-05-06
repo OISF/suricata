@@ -325,6 +325,13 @@ The available command-line options are:
 - ``simulate-alert-queue-realloc-failure``: prevent the engine from dynamically
   growing the temporary alert queue, during alerts processing.
 
+Glossary
+========
+
+- **inspection**: traffic is inspected for events, anomalies and logging;
+- **detection**: evaluate traffic against loaded rules to generate alerts and/ or
+  block or approve traffic.
+
 Common abbreviations
 --------------------
 
