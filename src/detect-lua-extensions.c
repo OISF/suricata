@@ -121,6 +121,5 @@ int LuaRegisterExtensions(lua_State *lua_state)
 
     LuaRegisterFunctions(lua_state);
     LuaRegisterTlsFunctions(lua_state);
-    LuaRegisterSmtpFunctions(lua_state);
     return 0;
 }

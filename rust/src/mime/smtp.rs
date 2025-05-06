@@ -677,8 +677,11 @@ pub unsafe extern "C" fn SCMimeSmtpGetHeader(
     buffer_len: *mut u32,
 ) -> bool {
     let name: &CStr = CStr::from_ptr(str); //unsafe
+
+    // Convert to lowercase, mime::slice_equals_lowercase expects it.
+    let name: Vec<u8> = name.to_bytes().iter().map(|b| b.to_ascii_lowercase()).collect();
     for h in &ctx.headers[ctx.main_headers_nb..] {
-        if mime::slice_equals_lowercase(&h.name, name.to_bytes()) {
+        if mime::slice_equals_lowercase(&h.name, &name) {
             *buffer = h.value.as_ptr();
             *buffer_len = h.value.len() as u32;
             return true;
