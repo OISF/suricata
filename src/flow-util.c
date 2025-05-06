@@ -153,6 +153,9 @@ void FlowInit(ThreadVars *tv, Flow *f, const Packet *p)
     f->recursion_level = p->recursion_level;
     memcpy(&f->vlan_id[0], &p->vlan_id[0], sizeof(f->vlan_id));
     f->vlan_idx = p->vlan_idx;
+
+    f->thread_id[0] = (FlowThreadId)tv->id;
+
     f->livedev = p->livedev;
 
     if (PacketIsIPv4(p)) {

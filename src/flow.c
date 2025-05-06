@@ -482,6 +482,9 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
             FlowUpdateTtlTC(f, IPV6_GET_RAW_HLIM(ip6h));
         }
     }
+    if (f->thread_id[pkt_dir] == 0) {
+        f->thread_id[pkt_dir] = (FlowThreadId)tv->id;
+    }
 
     if (f->flow_state == FLOW_STATE_ESTABLISHED) {
         SCLogDebug("pkt %p FLOW_PKT_ESTABLISHED", p);
