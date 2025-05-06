@@ -24,14 +24,12 @@ fn get_attr_strip_prefix(attr: &syn::Attribute) -> String {
     let meta = attr.parse_meta().unwrap();
     if let syn::Meta::List(l) = meta {
         for n in l.nested {
-            if let syn::NestedMeta::Meta(m2) = n {
-                if let syn::Meta::NameValue(nv) = m2 {
-                    if nv.path.is_ident("alstate_strip_prefix") {
-                        if let syn::Lit::Str(s) = nv.lit {
-                            return s.value();
-                        }
-                        panic!("strip_prefix invalid syntax");
+            if let syn::NestedMeta::Meta(syn::Meta::NameValue(nv)) = n {
+                if nv.path.is_ident("alstate_strip_prefix") {
+                    if let syn::Lit::Str(s) = nv.lit {
+                        return s.value();
                     }
+                    panic!("strip_prefix invalid syntax");
                 }
             }
         }

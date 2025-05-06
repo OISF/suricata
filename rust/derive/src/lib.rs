@@ -15,6 +15,7 @@
  * 02110-1301, USA.
  */
 
+#![deny(warnings)]
 #![allow(clippy::uninlined_format_args)]
 
 extern crate proc_macro;
