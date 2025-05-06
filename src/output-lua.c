@@ -588,7 +588,6 @@ static lua_State *LuaScriptSetup(const char *filename, LogLuaMasterCtx *ctx)
     /* register functions common to all */
     LuaRegisterFunctions(luastate);
     LuaRegisterTlsFunctions(luastate);
-    LuaRegisterSmtpFunctions(luastate);
 
     if (lua_pcall(luastate, 0, 0, 0) != 0) {
         SCLogError("couldn't run script 'setup' function: %s", lua_tostring(luastate, -1));

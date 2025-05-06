@@ -1,4 +1,4 @@
-/* Copyright (C) 2014 Open Information Security Foundation
+/* Copyright (C) 2014-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -26,306 +26,149 @@
  */
 
 #include "suricata-common.h"
-
-#include "conf.h"
-
-#include "threads.h"
-#include "threadvars.h"
-#include "tm-threads.h"
-#include "output.h"
-
 #include "app-layer-smtp.h"
-
-#include "lua.h"
-#include "lualib.h"
 
 #include "util-lua.h"
 #include "util-lua-common.h"
 #include "util-lua-smtp.h"
-#include "util-file.h"
 
-/*
- * \brief internal function used by SMTPGetMimeField
- *
- * \param luastate luastate stack to use and push attributes to
- * \param flow network flow of SMTP packets
- * \param name name of the attribute to extract from MimeDecField
- *
- * \retval 1 if success mimefield found and pushed to stack. Returns error
- * int and msg pushed to luastate stack if error occurs.
- */
+#include "lua.h"
+#include "lauxlib.h"
 
-static int GetMimeDecField(lua_State *luastate, Flow *flow, const char *name)
+static const char smtp_tx_mt[] = "suricata:smtp:tx";
+
+struct LuaSmtpTx {
+    SMTPTransaction *tx;
+};
+
+static int LuaSmtpGetTx(lua_State *L)
 {
-    /* extract state from flow */
-    SMTPState *state = (SMTPState *) FlowGetAppState(flow);
-    /* check that state exists */
-    if(state == NULL) {
-        return LuaCallbackError(luastate, "Internal error: no state in flow");
+    if (!(LuaStateNeedProto(L, ALPROTO_SMTP))) {
+        return LuaCallbackError(L, "error: protocol not SMTP");
     }
-    /* pointer to current transaction in state */
-    SMTPTransaction *smtp_tx = state->curr_tx;
-    if(smtp_tx == NULL) {
-        return LuaCallbackError(luastate, "Transaction ending or not found");
-    }
-    /* pointer to tail of msg list of MimeStateSMTP in current transaction. */
-    MimeStateSMTP *mime = smtp_tx->mime_state;
-    /* check if msg_tail was hit */
-    if(mime == NULL){
-        return LuaCallbackError(luastate, "Internal error: no fields in transaction");
-    }
-    /* extract MIME field based on specific field name. */
-    const uint8_t *field_value;
-    uint32_t field_len;
-    /* check MIME field */
-    if (!SCMimeSmtpGetHeader(mime, name, &field_value, &field_len)) {
-        return LuaCallbackError(luastate, "Error: mimefield not found");
-    }
-    if (field_len == 0) {
-        return LuaCallbackError(luastate, "Error, pointer error");
-    }
-    return LuaPushStringBuffer(luastate, field_value, field_len);
-}
 
-/**
- * \brief Function extracts specific MIME field based on argument from luastate
- * stack then pushing the attribute onto the luastate stack.
- *
- * \param luastate luastate stack to pop and push attributes for I/O to lua
- *
- * \retval 1 if success mimefield found and pushed to stack. Returns error
- * int and msg pushed to luastate stack if error occurs.
- */
-
-static int SMTPGetMimeField(lua_State *luastate)
-{
-    if(!(LuaStateNeedProto(luastate, ALPROTO_SMTP))) {
-        return LuaCallbackError(luastate, "error: protocol not SMTP");
+    Flow *flow = LuaStateGetFlow(L);
+    if (flow == NULL) {
+        return LuaCallbackError(L, "error: no flow found");
     }
-    Flow *flow = LuaStateGetFlow(luastate);
-    /* check that flow exist */
-    if(flow == NULL) {
-        return LuaCallbackError(luastate, "Error: no flow found");
-    }
-    const char *name = LuaGetStringArgument(luastate, 1);
-    if (name == NULL)
-        return LuaCallbackError(luastate, "1st argument missing, empty or wrong type");
 
-    GetMimeDecField(luastate, flow, name);
+    SMTPState *state = (SMTPState *)FlowGetAppState(flow);
+    if (state == NULL) {
+        return LuaCallbackError(L, "error: no SMTP state");
+    }
+
+    SMTPTransaction *tx = state->curr_tx;
+    if (tx == NULL) {
+        return LuaCallbackError(L, "error: no SMTP transaction found");
+    }
+
+    struct LuaSmtpTx *lua_tx = (struct LuaSmtpTx *)lua_newuserdata(L, sizeof(*lua_tx));
+    if (lua_tx == NULL) {
+        return LuaCallbackError(L, "error: fail to allocate user data");
+    }
+    lua_tx->tx = tx;
+
+    luaL_getmetatable(L, smtp_tx_mt);
+    lua_setmetatable(L, -2);
 
     return 1;
 }
 
-/**
- * \brief Internal function used by SMTPGetMimeList
- *
- * \param luastate luastate stack to pop and push attributes for I/O to lua
- * \param flow network flow of SMTP packets
- *
- * \retval 1 if the mimelist table is pushed to luastate stack.
- * Returns error int and msg pushed to luastate stack if error occurs.
-*/
-
-static int GetMimeList(lua_State *luastate, Flow *flow)
+static int LuaSmtpTxGetMimeField(lua_State *L)
 {
+    struct LuaSmtpTx *tx = luaL_checkudata(L, 1, smtp_tx_mt);
 
-    SMTPState *state = (SMTPState *) FlowGetAppState(flow);
-    if(state == NULL) {
-        return LuaCallbackError(luastate, "Error: no SMTP state");
+    if (tx->tx->mime_state == NULL) {
+        return LuaCallbackError(L, "no mime state");
     }
-    /* Create a pointer to the current SMTPtransaction */
-    SMTPTransaction *smtp_tx = state->curr_tx;
-    if(smtp_tx == NULL) {
-        return LuaCallbackError(luastate, "Error: no SMTP transaction found");
+
+    const char *name = luaL_checkstring(L, 2);
+    if (name == NULL) {
+        return LuaCallbackError(L, "2nd argument missing, empty or wrong type");
     }
-    /* Create a pointer to the tail of MimeStateSMTP list */
-    MimeStateSMTP *mime = smtp_tx->mime_state;
-    if(mime == NULL) {
-        return LuaCallbackError(luastate, "Error: no mime entity found");
+
+    const uint8_t *field_value;
+    uint32_t field_len;
+    if (SCMimeSmtpGetHeader(tx->tx->mime_state, name, &field_value, &field_len)) {
+        return LuaPushStringBuffer(L, field_value, field_len);
     }
+
+    return LuaCallbackError(L, "request mime field not found");
+}
+
+static int LuaSmtpTxGetMimeList(lua_State *L)
+{
+    struct LuaSmtpTx *tx = luaL_checkudata(L, 1, smtp_tx_mt);
+
+    if (tx->tx->mime_state == NULL) {
+        return LuaCallbackError(L, "no mime state");
+    }
+
     const uint8_t *field_name;
     uint32_t field_len;
-    /* Counter of MIME fields found */
     int num = 1;
-    /* loop trough the list of mimeFields, printing each name found */
-    lua_newtable(luastate);
-    while (SCMimeSmtpGetHeaderName(mime, &field_name, &field_len, (uint32_t)num)) {
+    lua_newtable(L);
+    while (SCMimeSmtpGetHeaderName(tx->tx->mime_state, &field_name, &field_len, (uint32_t)num)) {
         if (field_len != 0) {
-            lua_pushinteger(luastate,num++);
-            LuaPushStringBuffer(luastate, field_name, field_len);
-            lua_settable(luastate,-3);
+            lua_pushinteger(L, num++);
+            LuaPushStringBuffer(L, field_name, field_len);
+            lua_settable(L, -3);
         }
     }
     return 1;
 }
 
-/**
- * \brief Lists name and value to all MIME fields which
- * is included in a SMTP transaction.
- *
- * \param luastate luastate stack to pop and push attributes for I/O to lua.
- *
- * \retval 1 if the table is pushed to lua.
- * Returns error int and msg pushed to luastate stack if error occurs
- *
- */
-
-static int SMTPGetMimeList(lua_State *luastate)
+static int LuaSmtpTxGetMailFrom(lua_State *L)
 {
-    /* Check if right protocol */
-    if(!(LuaStateNeedProto(luastate, ALPROTO_SMTP))) {
-        return LuaCallbackError(luastate, "Error: protocol not SMTP");
-    }
-    /* Extract network flow */
-    Flow *flow = LuaStateGetFlow(luastate);
-    if(flow == NULL) {
-        return LuaCallbackError(luastate, "Error: no flow found");
+    struct LuaSmtpTx *tx = luaL_checkudata(L, 1, smtp_tx_mt);
+
+    if (tx->tx->mail_from == NULL || tx->tx->mail_from_len == 0) {
+        lua_pushnil(L);
+        return 1;
     }
 
-    GetMimeList(luastate, flow);
-
-    return 1;
+    return LuaPushStringBuffer(L, tx->tx->mail_from, tx->tx->mail_from_len);
 }
 
-/**
- * \brief internal function used by SMTPGetMailFrom
- *
- * \param luastate luastate stack to pop and push attributes for I/O to lua.
- * \param flow flow to get state for SMTP
- *
- * \retval 1 if mailfrom field found.
- * Returns error int and msg pushed to luastate stack if error occurs
- */
-
-static int GetMailFrom(lua_State *luastate, Flow *flow)
+static int LuaSmtpTxGetRcptList(lua_State *L)
 {
-    /* Extract SMTPstate from current flow */
-    SMTPState *state = (SMTPState *) FlowGetAppState(flow);
-
-    if(state == NULL) {
-        return LuaCallbackError(luastate, "Internal Error: no state");
-    }
-    SMTPTransaction *smtp_tx = state->curr_tx;
-    if(smtp_tx == NULL) {
-        return LuaCallbackError(luastate, "Internal Error: no SMTP transaction");
-    }
-    if(smtp_tx->mail_from == NULL || smtp_tx->mail_from_len == 0) {
-        return LuaCallbackError(luastate, "MailFrom not found");
-    }
-    return LuaPushStringBuffer(luastate, smtp_tx->mail_from, smtp_tx->mail_from_len);
-    /* Returns 1 because we never push more then 1 item to the lua stack */
-}
-
-/**
- * \brief Extracts mail_from parameter from SMTPState.
- * Attribute may also be available from mimefields, although there is no
- * guarantee of it existing as mime.
- *
- * \param luastate luastate stack to pop and push attributes for I/O to lua.
- *
- * \retval 1 if mailfrom field found.
- * Returns error int and msg pushed to luastate stack if error occurs
- */
-
-static int SMTPGetMailFrom(lua_State *luastate)
-{
-    /* check protocol */
-    if(!(LuaStateNeedProto(luastate, ALPROTO_SMTP))) {
-        return LuaCallbackError(luastate, "Error: protocol not SMTP");
-    }
-    /* Extract flow, with lockhint to check mutexlocking */
-    Flow *flow = LuaStateGetFlow(luastate);
-    if(flow == NULL) {
-        return LuaCallbackError(luastate, "Internal Error: no flow");
-    }
-
-    GetMailFrom(luastate, flow);
-
-    return 1;
-}
-
-/**
- * \brief intern function used by SMTPGetRcpList
- *
- * \param luastate luastate stack for internal communication with Lua.
- * Used to hand over data to the receiving luascript.
- *
- * \retval 1 if the table is pushed to lua.
- * Returns error int and msg pushed to luastate stack if error occurs
- */
-
-static int GetRcptList(lua_State *luastate, Flow *flow)
-{
-
-    SMTPState *state = (SMTPState *) FlowGetAppState(flow);
-    if(state == NULL) {
-        return LuaCallbackError(luastate, "Internal error, no state");
-    }
-
-    SMTPTransaction *smtp_tx = state->curr_tx;
-    if(smtp_tx == NULL) {
-        return LuaCallbackError(luastate, "No more tx, or tx not found");
-    }
+    struct LuaSmtpTx *tx = luaL_checkudata(L, 1, smtp_tx_mt);
 
     /* Create a new table in luastate for rcpt list */
-    lua_newtable(luastate);
+    lua_newtable(L);
     /* rcpt var for iterator */
     int u = 1;
     SMTPString *rcpt;
 
-    TAILQ_FOREACH(rcpt, &smtp_tx->rcpt_to_list, next) {
-        lua_pushinteger(luastate, u++);
-        LuaPushStringBuffer(luastate, rcpt->str, rcpt->len);
-        lua_settable(luastate, -3);
+    TAILQ_FOREACH (rcpt, &tx->tx->rcpt_to_list, next) {
+        lua_pushinteger(L, u++);
+        LuaPushStringBuffer(L, rcpt->str, rcpt->len);
+        lua_settable(L, -3);
     }
-    /* return 1 since we always push one table to luastate */
+
     return 1;
 }
 
-/**
- * \brief function loops through rcpt-list located in
- * flow->SMTPState->SMTPTransaction, adding all items to a table.
- * Then pushing it to the luastate stack.
- *
- * \param luastate luastate stack for internal communication with Lua.
- * Used to hand over data to the receiving luascript.
- *
- * \retval 1 if the table is pushed to lua.
- * Returns error int and msg pushed to luastate stack if error occurs
- */
+static const struct luaL_Reg smtptxlib[] = {
+    { "get_mime_field", LuaSmtpTxGetMimeField },
+    { "get_mime_list", LuaSmtpTxGetMimeList },
+    { "get_mail_from", LuaSmtpTxGetMailFrom },
+    { "get_rcpt_list", LuaSmtpTxGetRcptList },
+    { NULL, NULL },
+};
 
-static int SMTPGetRcptList(lua_State *luastate)
+static const struct luaL_Reg smtplib[] = {
+    { "get_tx", LuaSmtpGetTx },
+    { NULL, NULL },
+};
+
+int SCLuaLoadSmtpLib(lua_State *L)
 {
-    /* check protocol */
-    if(!(LuaStateNeedProto(luastate, ALPROTO_SMTP))) {
-        return LuaCallbackError(luastate, "Error: protocol not SMTP");
-    }
-    /* Extract flow, with lockhint to check mutexlocking */
-    Flow *flow = LuaStateGetFlow(luastate);
-    if(flow == NULL) {
-        return LuaCallbackError(luastate, "Internal error: no flow");
-    }
+    luaL_newmetatable(L, smtp_tx_mt);
+    lua_pushvalue(L, -1);
+    lua_setfield(L, -2, "__index");
+    luaL_setfuncs(L, smtptxlib, 0);
 
-    GetRcptList(luastate, flow);
-
-    /* return 1 since we always push one table to luastate */
+    luaL_newlib(L, smtplib);
     return 1;
-}
-
-int LuaRegisterSmtpFunctions(lua_State *luastate)
-{
-
-    lua_pushcfunction(luastate, SMTPGetMimeField);
-    lua_setglobal(luastate, "SMTPGetMimeField");
-
-    lua_pushcfunction(luastate, SMTPGetMimeList);
-    lua_setglobal(luastate, "SMTPGetMimeList");
-
-    lua_pushcfunction(luastate, SMTPGetMailFrom);
-    lua_setglobal(luastate, "SMTPGetMailFrom");
-
-    lua_pushcfunction(luastate, SMTPGetRcptList);
-    lua_setglobal(luastate, "SMTPGetRcptList");
-
-    return 0;
 }
