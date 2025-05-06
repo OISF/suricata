@@ -1052,6 +1052,22 @@ You can use it to set string
          SCFlowvarSet(0, a, #a)
      end 
 
+
+.. note::
+
+   During detection, the following steps happen, in that ordem:
+    - pattern matching
+    - lua script execution
+    - setting flow variables as part of post match
+
+   Due to that, depending on the use case, two rules may be necessary:
+    - one that does pattern matching and flow var setting,
+    - a second rule that has the Lua script.
+
+   For more details, see RedMine ticket
+   https://redmine.openinfosecfoundation.org/issues/2094 and Suricata-verify test
+   https://github.com/OISF/suricata-verify/tree/master/tests/pre8/lua-scflowvarget.
+
 Misc
 ----
 
