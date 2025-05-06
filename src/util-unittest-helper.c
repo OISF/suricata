@@ -894,6 +894,8 @@ uint32_t UTHBuildPacketOfFlows(uint32_t start, uint32_t end, uint8_t dir)
 {
     FlowLookupStruct fls;
     memset(&fls, 0, sizeof(fls));
+    ThreadVars tv;
+    memset(&tv, 0, sizeof(tv));
 
     uint32_t i = start;
     uint8_t payload[] = "Payload";
@@ -906,7 +908,7 @@ uint32_t UTHBuildPacketOfFlows(uint32_t start, uint32_t end, uint8_t dir)
             p->src.addr_data32[0] = i + 1;
             p->dst.addr_data32[0] = i;
         }
-        FlowHandlePacket(NULL, &fls, p);
+        FlowHandlePacket(&tv, &fls, p);
         if (p->flow != NULL) {
             FLOWLOCK_UNLOCK(p->flow);
         }
