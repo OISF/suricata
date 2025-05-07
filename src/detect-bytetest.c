@@ -324,7 +324,7 @@ static DetectBytetestData *DetectBytetestParse(
     int res = 0;
     size_t pcre2_len;
     int i;
-    uint32_t nbytes;
+    uint32_t nbytes = 0;
     const char *str_ptr = NULL;
     pcre2_match_data *match = NULL;
 
