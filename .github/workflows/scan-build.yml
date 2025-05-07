@@ -18,7 +18,7 @@ jobs:
   scan-build:
     name: Scan-build
     runs-on: ubuntu-latest
-    container: ubuntu:24.04
+    container: ubuntu:25.04
     steps:
       - name: Cache scan-build
         uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
@@ -36,8 +36,8 @@ jobs:
                 automake \
                 cargo \
                 cbindgen \
-                clang-18 \
-                clang-tools-18 \
+                clang-20 \
+                clang-tools-20 \
                 dpdk-dev \
                 git \
                 libtool \
@@ -60,7 +60,7 @@ jobs:
                 libevent-dev \
                 libevent-pthreads-2.1-7 \
                 liblz4-dev \
-                llvm-18-dev \
+                llvm-20-dev \
                 make \
                 python3-yaml \
                 rustc \
@@ -71,13 +71,13 @@ jobs:
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - run: ./scripts/bundle.sh
       - run: ./autogen.sh
-      - run: scan-build-18 ./configure --enable-warnings --enable-dpdk --enable-nfqueue --enable-nflog
+      - run: scan-build-20 ./configure --enable-warnings --enable-dpdk --enable-nfqueue --enable-nflog
         env:
-          CC: clang-18
+          CC: clang-20
       # disable security.insecureAPI.DeprecatedOrUnsafeBufferHandling explicitly as
       # this will require significant effort to address.
       - run: |
-          scan-build-18 --status-bugs --exclude rust \
+          scan-build-20 --status-bugs --exclude rust \
                 -enable-checker valist.Uninitialized \
                 -enable-checker valist.CopyToSelf \
                 -enable-checker valist.Unterminated \
@@ -94,9 +94,14 @@ jobs:
                 -enable-checker nullability.NullablePassedToNonnull \
                 -enable-checker nullability.NullableDereferenced \
                 -enable-checker optin.performance.Padding \
+                -enable-checker security.MmapWriteExec \
+                -enable-checker security.PointerSub \
+                -enable-checker security.PutenvStackArray \
+                -enable-checker security.SetgidSetuidOrder \
+                -enable-checker security.cert.env.InvalidPtr \
                 \
                 -disable-checker security.insecureAPI.DeprecatedOrUnsafeBufferHandling \
                 \
                 make
         env:
-          CC: clang-18
+          CC: clang-20
