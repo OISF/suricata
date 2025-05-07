@@ -11,6 +11,7 @@ in with pkgs;
       rustc
       rust-cbindgen
       clang
+      libclang.python
       libllvm
       automake
       autoconf
