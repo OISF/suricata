@@ -305,7 +305,8 @@ static inline PacketAlert PacketAlertSet(
         for (size_t i = 0; i < det_ctx->json_content_len; i++) {
             if (s == det_ctx->json_content[i].id) {
                 if (current_json->json_string != NULL) {
-                    struct ExtraDataJsonList *next_json = SCCalloc(1, sizeof(struct ExtraDataJsonList));
+                    struct ExtraDataJsonList *next_json =
+                            SCCalloc(1, sizeof(struct ExtraDataJsonList));
                     if (next_json) {
                         current_json->next = next_json;
                         current_json = next_json;
