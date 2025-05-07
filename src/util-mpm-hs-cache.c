@@ -79,7 +79,14 @@ static char *HSReadStream(const char *file_path, size_t *buffer_sz)
     }
 
     // Rewind file pointer and read the file into the buffer
+    errno = 0;
     rewind(file);
+    if (errno != 0) {
+        SCLogDebug("Failed to rewind file %s: %s", file_path, strerror(errno));
+        SCFree(buffer);
+        fclose(file);
+        return NULL;
+    }
     size_t bytes_read = fread(buffer, 1, file_sz, file);
     if (bytes_read != (size_t)file_sz) {
         SCLogDebug("Failed to read the entire file %s: %s", file_path, strerror(errno));
