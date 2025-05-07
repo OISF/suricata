@@ -40,6 +40,13 @@ in with pkgs;
       "zerocallusedregs"
     ];
 
+    packages = [
+      (pkgs.python3.withPackages (python-pkgs: [
+        python-pkgs.pyyaml
+        python-pkgs.requests
+      ]))
+    ];
+
     #shellHook = ''
     #    cargo install cbindgen
     #'';
