@@ -82,7 +82,7 @@ void ThresholdDestroy(void)
 typedef struct ThresholdEntry_ {
     uint32_t key[5];
 
-    uint32_t tv_timeout;    /**< Timeout for new_action (for rate_filter)
+    uint64_t tv_timeout;    /**< Timeout for new_action (for rate_filter)
                                  its not "seconds", that define the time interval */
     uint32_t seconds;       /**< Event seconds */
     uint32_t current_count; /**< Var for count control */
