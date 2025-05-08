@@ -1298,7 +1298,7 @@ TmEcode UnixSocketHostbitAdd(json_t *cmd, json_t* answer, void *data_usused)
             HostRelease(host);
             return TM_ECODE_FAILED;
         }
-        HostBitSet(host, idx, (uint32_t)(SCTIME_SECS(current_time) + expire));
+        HostBitSet(host, idx, SCTIME_ADD_SECS(current_time, expire));
         HostRelease(host);
 
         json_object_set_new(answer, "message", json_string("hostbit added"));
@@ -1428,7 +1428,7 @@ TmEcode UnixSocketHostbitList(json_t *cmd, json_t* answer, void *data_unused)
 
     struct Bit {
         uint32_t id;
-        uint32_t expire;
+        SCTime_t expire;
     } bits[256];
     memset(&bits, 0, sizeof(bits));
     int i = 0, use = 0;
@@ -1463,15 +1463,15 @@ TmEcode UnixSocketHostbitList(json_t *cmd, json_t* answer, void *data_unused)
         json_t *bitobject = json_object();
         if (bitobject == NULL)
             continue;
-        uint32_t expire = 0;
-        if ((uint32_t)SCTIME_SECS(ts) < bits[i].expire)
-            expire = bits[i].expire - (uint32_t)SCTIME_SECS(ts);
+        uint64_t expire = 0;
+        if (SCTIME_CMP_LT(ts, bits[i].expire))
+            expire = SCTIME_SECS(bits[i].expire) - SCTIME_SECS(ts);
 
         const char *name = VarNameStoreLookupById(bits[i].id, VAR_TYPE_HOST_BIT);
         if (name == NULL)
             continue;
         json_object_set_new(bitobject, "name", json_string(name));
-        SCLogDebug("xbit %s expire %u", name, expire);
+        SCLogDebug("xbit %s expire %" PRIu64, name, expire);
         json_object_set_new(bitobject, "expire", json_integer(expire));
         json_array_append_new(jarray, bitobject);
     }

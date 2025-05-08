@@ -79,8 +79,8 @@ typedef struct DetectTagDataEntry_ {
         uint32_t packets;               /**< number of packets (metric packets) */
         uint32_t bytes;                 /**< number of bytes (metric bytes) */
     };
-    uint32_t first_ts;                  /**< First time seen (for metric = seconds) */
-    uint32_t last_ts;                   /**< Last time seen (to prune old sessions) */
+    SCTime_t first_ts; /**< First time seen (for metric = seconds) */
+    SCTime_t last_ts;  /**< Last time seen (to prune old sessions) */
 #if __WORDSIZE == 64
     uint32_t pad1;
 #endif
