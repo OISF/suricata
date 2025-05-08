@@ -54,6 +54,10 @@
         "in_iface": {
             "type": "string"
         },
+        "ip_v": {
+            "type": "integer",
+            "description": "IP version of the packet or flow"
+        },
         "log_level": {
             "type": "string"
         },

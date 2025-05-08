@@ -143,6 +143,13 @@ static SCJsonBuilder *CreateEveHeaderFromFlow(const Flow *f)
             break;
     }
 
+    /* ip version */
+    if (FLOW_IS_IPV4(f)) {
+        SCJbSetUint(jb, "ip_v", 4);
+    } else if (FLOW_IS_IPV6(f)) {
+        SCJbSetUint(jb, "ip_v", 6);
+    }
+
     if (SCProtoNameValid(f->proto)) {
         SCJbSetString(jb, "proto", known_proto[f->proto]);
     } else {
