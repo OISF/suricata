@@ -19,20 +19,17 @@ use super::constant::{EnipCommand, EnipStatus};
 use super::parser;
 use crate::applayer::{self, *};
 use crate::conf::conf_get;
-use crate::core::{
-    ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP, IPPROTO_UDP,
-    STREAM_TOCLIENT, STREAM_TOSERVER,
-};
+use crate::core::*;
 use crate::detect::EnumString;
 use crate::direction::Direction;
 use crate::flow::Flow;
 use crate::frames::Frame;
 use nom7 as nom;
-use suricata_sys::sys::AppProto;
 use std;
 use std::collections::VecDeque;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_int, c_void};
+use suricata_sys::sys::AppProto;
 
 pub(super) static mut ALPROTO_ENIP: AppProto = ALPROTO_UNKNOWN;
 
@@ -299,6 +296,10 @@ impl EnipState {
                                 tx.tx_data.set_event(EnipEvent::InvalidPdu as u8);
                             }
                             tx.response = Some(pdu);
+                            sc_app_layer_parser_trigger_raw_stream_reassembly(
+                                flow,
+                                Direction::ToClient as i32,
+                            );
                             start = rem;
                             continue;
                         }
@@ -314,8 +315,10 @@ impl EnipState {
                         }
                         if request {
                             tx.request = Some(pdu);
+                            sc_app_layer_parser_trigger_raw_stream_reassembly(flow, Direction::ToServer as i32);
                         } else {
                             tx.response = Some(pdu);
+                            sc_app_layer_parser_trigger_raw_stream_reassembly(flow, Direction::ToClient as i32);
                         }
                         self.transactions.push_back(tx);
                     }
