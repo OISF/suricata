@@ -21,6 +21,8 @@ use nom7::bytes::complete::is_not;
 use nom7::character::complete::multispace0;
 use nom7::sequence::preceded;
 use nom7::IResult;
+use std::ffi::CString;
+use std::os::raw::c_char;
 
 #[derive(Debug)]
 pub enum ResultValue {
@@ -50,4 +52,32 @@ pub fn parse_var(input: &str) -> IResult<&str, ResultValue, RuleParseError<&str>
 pub fn parse_token(input: &str) -> IResult<&str, &str, RuleParseError<&str>> {
     let terminators = "\n\r\t,;: ";
     preceded(multispace0, is_not(terminators))(input)
+}
+
+#[no_mangle]
+/// Trim whitespace from a single-token value, e.g.,
+/// "      some-value    " --> returns "somevalue"
+pub unsafe extern "C" fn SCParseToken(c_arg: *const c_char, len: usize) -> *mut c_char {
+    if c_arg.is_null() || len == 0 {
+        return std::ptr::null_mut();
+    }
+
+    let bytes = std::slice::from_raw_parts(c_arg as *const u8, len);
+
+    if let Ok(s) = std::str::from_utf8(bytes) {
+        let trimmed = s.trim();
+        match CString::new(trimmed) {
+            Ok(c_string) => return c_string.into_raw(),
+            Err(_) => return std::ptr::null_mut(),
+        }
+    }
+
+    std::ptr::null_mut()
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCFreeToken(s: *mut c_char) {
+    if !s.is_null() {
+        let _ = CString::from_raw(s);
+    }
 }
