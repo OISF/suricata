@@ -348,39 +348,6 @@ Example:
       end
   end
 
-Files
------
-
-To use the file logging API, the script's init() function needs to look like:
-
-::
-
-  function init (args)
-      local needs = {}
-      needs['type'] = 'file'
-      return needs
-  end
-
-SCFileInfo
-~~~~~~~~~~
-
-::
-
-
-  fileid, txid, name, size, magic, md5, sha1, sha256 = SCFileInfo()
-
-returns fileid (number), txid (number), name (string), size (number),
-magic (string), md5 in hex (string), sha1 (string), sha256 (string)
-
-SCFileState
-~~~~~~~~~~~
-
-::
-
-  state, stored = SCFileState()
-
-returns state (string), stored (bool)
-
 Streaming Data
 --------------
 
