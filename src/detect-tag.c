@@ -106,7 +106,7 @@ static int DetectTagMatch(DetectEngineThreadCtx *det_ctx, Packet *p,
 
             tde.sid = s->id;
             tde.gid = s->gid;
-            tde.last_ts = tde.first_ts = SCTIME_SECS(p->ts);
+            tde.last_ts = tde.first_ts = p->ts;
             tde.metric = td->metric;
             tde.count = td->count;
             if (td->direction == DETECT_TAG_DIR_SRC)
@@ -123,12 +123,12 @@ static int DetectTagMatch(DetectEngineThreadCtx *det_ctx, Packet *p,
                 /* If it already exists it will be updated */
                 tde.sid = s->id;
                 tde.gid = s->gid;
-                tde.last_ts = tde.first_ts = SCTIME_SECS(p->ts);
+                tde.last_ts = tde.first_ts = p->ts;
                 tde.metric = td->metric;
                 tde.count = td->count;
 
-                SCLogDebug("Adding to or updating flow; first_ts %u count %u",
-                    tde.first_ts, tde.count);
+                SCLogDebug("Adding to or updating flow; first_ts %" PRIu64 " count %u",
+                        (uint64_t)tde.first_ts.secs, tde.count);
                 TagFlowAdd(p, &tde);
             } else {
                 SCLogDebug("No flow to append the session tag");
