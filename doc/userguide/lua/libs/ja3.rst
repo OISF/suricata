@@ -1,8 +1,8 @@
 JA3
 ---
 
-JA3 details are exposes to Lua scripts with the
-``suricata.ja3`` library, For example::
+JA3 details are exposed to Lua scripts with the
+``suricata.ja3`` library. For example::
 
   local ja3 = require("suricata.ja3")
 
@@ -17,11 +17,11 @@ by calling ``ja3.enable_ja3()``::
   end
 
 ``ja3.enable_ja3()`` will not enable ja3 if they are explicitly
-disabled, so you should add ``requires: feature ja3;`` to your rule.
+disabled, so you should add ``requires: feature ja3;``
+(see :ref:`keyword_requires`) to your rule.
 
-For use in rule matching, the rule may **hook** into a TLS or QUIC
-transaction state if you want to match on only one of these protocols.
-Or you should use need ``ja3`` or ``ja3s`` in your init script::
+For use in rule matching, the rule should use need ``ja3`` or
+``ja3s`` in your init script::
 
   function init (args)
     ja3.enable_ja3()
