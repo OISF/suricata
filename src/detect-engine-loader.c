@@ -136,7 +136,14 @@ static int DetectLoadSigFile(DetectEngineCtx *de_ctx, const char *sig_file, int 
         return -1;
     }
 
-    while (fgets(line + offset, (int)(sizeof(line) - offset), fp) != NULL) {
+    while (1) {
+        /* help clang to understand offset can't get > sizeof(line), so the argument to
+         * fgets can't get negative. */
+        BUG_ON(offset >= sizeof(line));
+        char *res = fgets(line + offset, (int)(sizeof(line) - offset), fp);
+        if (res == NULL)
+            break;
+
         lineno++;
         size_t len = strlen(line);
 
