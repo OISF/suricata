@@ -902,6 +902,13 @@ SCJsonBuilder *CreateEveHeader(const Packet *p, enum SCOutputJsonLogDirection di
         SCJbSetString(js, "proto", addr->proto);
     }
 
+    /* ip version */
+    if (PacketIsIPv4(p)) {
+        SCJbSetUint(js, "ip_v", 4);
+    } else if (PacketIsIPv6(p)) {
+        SCJbSetUint(js, "ip_v", 6);
+    }
+
     /* icmp */
     switch (p->proto) {
         case IPPROTO_ICMP:
