@@ -10,6 +10,7 @@ environment without access to additional modules.
 
    base64
    dns
+   file
    flowlib
    flowint
    flowvar
