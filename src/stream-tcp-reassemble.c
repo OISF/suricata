@@ -1804,14 +1804,10 @@ static int StreamReassembleRawInline(TcpSession *ssn, const Packet *p,
  *  \param[out] progress_out absolute progress value of the data this
  *                           call handled.
  *  \param eof we're wrapping up so inspect all data we have, incl unACKd
- *  \param respect_inspect_depth use Stream::min_inspect_depth if set
- *
- *  `respect_inspect_depth` is used to avoid useless inspection of too
- *  much data.
  */
 static int StreamReassembleRawDo(const TcpSession *ssn, const TcpStream *stream,
         StreamReassembleRawFunc Callback, void *cb_data, const uint64_t progress_in,
-        const uint64_t re, uint64_t *progress_out, bool eof, bool respect_inspect_depth)
+        const uint64_t re, uint64_t *progress_out, bool eof)
 {
     SCEnter();
     int r = 0;
@@ -1903,7 +1899,7 @@ int StreamReassembleForFrame(TcpSession *ssn, TcpStream *stream, StreamReassembl
 
     uint64_t unused = 0;
     return StreamReassembleRawDo(
-            ssn, stream, Callback, cb_data, offset, app_progress, &unused, eof, false);
+            ssn, stream, Callback, cb_data, offset, app_progress, &unused, eof);
 }
 
 int StreamReassembleRaw(TcpSession *ssn, const Packet *p,
@@ -1968,7 +1964,7 @@ int StreamReassembleRaw(TcpSession *ssn, const Packet *p,
     SCLogDebug("last_ack_abs %" PRIu64, last_ack_abs);
 
     return StreamReassembleRawDo(ssn, stream, Callback, cb_data, progress, last_ack_abs,
-            progress_out, (p->flags & PKT_PSEUDO_STREAM_END), respect_inspect_depth);
+            progress_out, (p->flags & PKT_PSEUDO_STREAM_END));
 }
 
 int StreamReassembleLog(const TcpSession *ssn, const TcpStream *stream,
@@ -1983,7 +1979,7 @@ int StreamReassembleLog(const TcpSession *ssn, const TcpStream *stream,
     SCLogDebug("last_ack_abs %" PRIu64, last_ack_abs);
 
     return StreamReassembleRawDo(
-            ssn, stream, Callback, cb_data, progress_in, last_ack_abs, progress_out, eof, false);
+            ssn, stream, Callback, cb_data, progress_in, last_ack_abs, progress_out, eof);
 }
 
 /** \internal
