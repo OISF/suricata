@@ -1259,7 +1259,8 @@ jobs:
         env:
           LLVM_PROFILE_FILE: "/tmp/dumpconfig.profraw"
       - run: llvm-profdata-19 merge -o dumpconfig.profdata /tmp/dumpconfig.profraw
-      - run: llvm-cov-19 show ./src/suricata -instr-profile=ut.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
+      - run: llvm-profdata-19 merge -o combined.profdata $(find /tmp/ -name '*.profraw')
+      - run: llvm-cov-19 show ./src/suricata -instr-profile=combined.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
       - run: |
           cd rust
           cargo test --no-run
