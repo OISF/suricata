@@ -979,24 +979,24 @@ static void PopulateMpmHelperAddPattern(MpmCtx *mpm_ctx, const DetectContentData
             MpmAddPatternCI(mpm_ctx,
                             cd->content + cd->fp_chop_offset, cd->fp_chop_len,
                             pat_offset, pat_depth,
-                            cd->id, s->num, flags|MPM_PATTERN_CTX_OWNS_ID);
+                            cd->id, s->iid, flags|MPM_PATTERN_CTX_OWNS_ID);
         } else {
             MpmAddPatternCI(mpm_ctx,
                             cd->content, cd->content_len,
                             pat_offset, pat_depth,
-                            cd->id, s->num, flags|MPM_PATTERN_CTX_OWNS_ID);
+                            cd->id, s->iid, flags|MPM_PATTERN_CTX_OWNS_ID);
         }
     } else {
         if (chop) {
             MpmAddPatternCS(mpm_ctx,
                             cd->content + cd->fp_chop_offset, cd->fp_chop_len,
                             pat_offset, pat_depth,
-                            cd->id, s->num, flags|MPM_PATTERN_CTX_OWNS_ID);
+                            cd->id, s->iid, flags|MPM_PATTERN_CTX_OWNS_ID);
         } else {
             MpmAddPatternCS(mpm_ctx,
                             cd->content, cd->content_len,
                             pat_offset, pat_depth,
-                            cd->id, s->num, flags|MPM_PATTERN_CTX_OWNS_ID);
+                            cd->id, s->iid, flags|MPM_PATTERN_CTX_OWNS_ID);
         }
     }
 }
@@ -1750,7 +1750,7 @@ MpmStore *MpmStorePrepareBuffer(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
             case MPMB_TCP_PKT_TC:
                 if (SignatureHasPacketContent(s) == 1)
                 {
-                    sids_array[s->num / 8] |= 1 << (s->num % 8);
+                    sids_array[s->iid / 8] |= 1 << (s->iid % 8);
                     cnt++;
                 }
                 break;
@@ -1758,17 +1758,17 @@ MpmStore *MpmStorePrepareBuffer(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
             case MPMB_TCP_STREAM_TC:
                 if (SignatureHasStreamContent(s) == 1)
                 {
-                    sids_array[s->num / 8] |= 1 << (s->num % 8);
+                    sids_array[s->iid / 8] |= 1 << (s->iid % 8);
                     cnt++;
                 }
                 break;
             case MPMB_UDP_TS:
             case MPMB_UDP_TC:
-                sids_array[s->num / 8] |= 1 << (s->num % 8);
+                sids_array[s->iid / 8] |= 1 << (s->iid % 8);
                 cnt++;
                 break;
             case MPMB_OTHERIP:
-                sids_array[s->num / 8] |= 1 << (s->num % 8);
+                sids_array[s->iid / 8] |= 1 << (s->iid % 8);
                 cnt++;
                 break;
             default:
@@ -2116,8 +2116,8 @@ static void PrepareMpms(DetectEngineCtx *de_ctx, SigGroupHead *sh)
                                 sa->sids_array_size = max_sid;
                                 BUG_ON(sa->sids_array == NULL); // TODO
                             }
-                            sa->sids_array[s->num / 8] |= 1 << (s->num % 8);
-                            SCLogDebug("instance %p: stored %u/%u ts", instance, s->id, s->num);
+                            sa->sids_array[s->iid / 8] |= 1 << (s->iid % 8);
+                            SCLogDebug("instance %p: stored %u/%u ts", instance, s->id, s->iid);
                         }
                     }
                     if (s->flags & SIG_FLAG_TOCLIENT) {
@@ -2128,8 +2128,8 @@ static void PrepareMpms(DetectEngineCtx *de_ctx, SigGroupHead *sh)
                                 sa->sids_array_size = max_sid;
                                 BUG_ON(sa->sids_array == NULL); // TODO
                             }
-                            sa->sids_array[s->num / 8] |= 1 << (s->num % 8);
-                            SCLogDebug("instance %p: stored %u/%u tc", instance, s->id, s->num);
+                            sa->sids_array[s->iid / 8] |= 1 << (s->iid % 8);
+                            SCLogDebug("instance %p: stored %u/%u tc", instance, s->id, s->iid);
                         }
                     }
                 }
@@ -2148,7 +2148,7 @@ static void PrepareMpms(DetectEngineCtx *de_ctx, SigGroupHead *sh)
                         sa->sids_array_size = max_sid;
                         BUG_ON(sa->sids_array == NULL); // TODO
                     }
-                    sa->sids_array[s->num / 8] |= 1 << (s->num % 8);
+                    sa->sids_array[s->iid / 8] |= 1 << (s->iid % 8);
                 }
                 break;
             }

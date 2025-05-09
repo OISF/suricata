@@ -725,9 +725,9 @@ static int SCSigOrderByPriorityCompare(SCSigSignatureWrapper *sw1,
 
 static int SCSigOrderByIId(SCSigSignatureWrapper *sw1, SCSigSignatureWrapper *sw2)
 {
-    if (sw1->sig->num > sw2->sig->num) {
+    if (sw1->sig->iid > sw2->sig->iid) {
         return -1;
-    } else if (sw1->sig->num < sw2->sig->num) {
+    } else if (sw1->sig->iid < sw2->sig->iid) {
         return 1;
     }
     return 0;
@@ -759,9 +759,9 @@ static int SCSigOrderByAppFirewall(SCSigSignatureWrapper *sw1, SCSigSignatureWra
         return 1;
     }
 
-    if (sw1->sig->num > sw2->sig->num) {
+    if (sw1->sig->iid > sw2->sig->iid) {
         return -1;
-    } else if (sw1->sig->num < sw2->sig->num) {
+    } else if (sw1->sig->iid < sw2->sig->iid) {
         return 1;
     }
     return 0;
