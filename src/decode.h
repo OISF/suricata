@@ -1245,8 +1245,9 @@ void DecodeUnregisterCounters(void);
 #define PKT_STREAM_ADD BIT_U32(5)
 /** Packet is part of established stream */
 #define PKT_STREAM_EST BIT_U32(6)
-/** Stream is in eof state */
-#define PKT_STREAM_EOF BIT_U32(7)
+
+// vacancy
+
 #define PKT_HAS_FLOW   BIT_U32(8)
 /** Pseudo packet to end the stream */
 #define PKT_PSEUDO_STREAM_END BIT_U32(9)
