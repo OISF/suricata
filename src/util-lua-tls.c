@@ -55,7 +55,33 @@
 #include "util-lua-common.h"
 #include "util-lua-tls.h"
 
-static int GetCertNotBefore(lua_State *luastate, const Flow *f, int direction)
+static const char tls_flow[] = "suricata:tls";
+
+struct LuaTls {
+    Flow *f; // flow
+};
+
+static int LuaTlsFlowGet(lua_State *luastate)
+{
+    if (!LuaStateNeedProto(luastate, ALPROTO_TLS)) {
+        return LuaCallbackError(luastate, "error: protocol not tls");
+    }
+    Flow *f = LuaStateGetFlow(luastate);
+    if (f == NULL) {
+        LUA_ERROR("failed to get flow");
+    }
+
+    struct LuaTls *s = (struct LuaTls *)lua_newuserdata(luastate, sizeof(*s));
+    if (s == NULL) {
+        LUA_ERROR("failed to allocate userdata");
+    }
+    s->f = f;
+    luaL_getmetatable(luastate, tls_flow);
+    lua_setmetatable(luastate, -2);
+    return 1;
+}
+
+static int GetCertNotBefore(lua_State *luastate, const Flow *f)
 {
     void *state = FlowGetAppState(f);
     if (state == NULL)
@@ -64,6 +90,7 @@ static int GetCertNotBefore(lua_State *luastate, const Flow *f, int direction)
     SSLState *ssl_state = (SSLState *)state;
     SSLStateConnp *connp = NULL;
 
+    int direction = LuaStateGetDirection(luastate);
     if (direction) {
         connp = &ssl_state->client_connp;
     } else {
@@ -73,30 +100,20 @@ static int GetCertNotBefore(lua_State *luastate, const Flow *f, int direction)
     if (connp->cert0_not_before == 0)
         return LuaCallbackError(luastate, "error: no certificate NotBefore");
 
-    int r = LuaPushInteger(luastate, connp->cert0_not_before);
-
-    return r;
+    return LuaPushInteger(luastate, connp->cert0_not_before);
 }
 
-static int TlsGetCertNotBefore(lua_State *luastate)
+static int LuaTlsGetCertNotBefore(lua_State *luastate)
 {
-    int r;
+    struct LuaTls *s = (struct LuaTls *)lua_touserdata(luastate, 1);
+    if (s == NULL || s->f == NULL) {
+        LUA_ERROR("failed to get flow");
+    }
 
-    if (!(LuaStateNeedProto(luastate, ALPROTO_TLS)))
-        return LuaCallbackError(luastate, "error: protocol not tls");
-
-    int direction = LuaStateGetDirection(luastate);
-
-    Flow *f = LuaStateGetFlow(luastate);
-    if (f == NULL)
-        return LuaCallbackError(luastate, "internal error: no flow");
-
-    r = GetCertNotBefore(luastate, f, direction);
-
-    return r;
+    return GetCertNotBefore(luastate, s->f);
 }
 
-static int GetCertNotAfter(lua_State *luastate, const Flow *f, int direction)
+static int GetCertNotAfter(lua_State *luastate, const Flow *f)
 {
     void *state = FlowGetAppState(f);
     if (state == NULL)
@@ -105,6 +122,7 @@ static int GetCertNotAfter(lua_State *luastate, const Flow *f, int direction)
     SSLState *ssl_state = (SSLState *)state;
     SSLStateConnp *connp = NULL;
 
+    int direction = LuaStateGetDirection(luastate);
     if (direction) {
         connp = &ssl_state->client_connp;
     } else {
@@ -114,30 +132,20 @@ static int GetCertNotAfter(lua_State *luastate, const Flow *f, int direction)
     if (connp->cert0_not_after == 0)
         return LuaCallbackError(luastate, "error: no certificate NotAfter");
 
-    int r = LuaPushInteger(luastate, connp->cert0_not_after);
-
-    return r;
+    return LuaPushInteger(luastate, connp->cert0_not_after);
 }
 
-static int TlsGetCertNotAfter(lua_State *luastate)
+static int LuaTlsGetCertNotAfter(lua_State *luastate)
 {
-    int r;
+    struct LuaTls *s = (struct LuaTls *)lua_touserdata(luastate, 1);
+    if (s == NULL || s->f == NULL) {
+        LUA_ERROR("failed to get flow");
+    }
 
-    if (!(LuaStateNeedProto(luastate, ALPROTO_TLS)))
-        return LuaCallbackError(luastate, "error: protocol not tls");
-
-    int direction = LuaStateGetDirection(luastate);
-
-    Flow *f = LuaStateGetFlow(luastate);
-    if (f == NULL)
-        return LuaCallbackError(luastate, "internal error: no flow");
-
-    r = GetCertNotAfter(luastate, f, direction);
-
-    return r;
+    return GetCertNotAfter(luastate, s->f);
 }
 
-static int GetCertInfo(lua_State *luastate, const Flow *f, int direction)
+static int GetCertInfo(lua_State *luastate, const Flow *f)
 {
     void *state = FlowGetAppState(f);
     if (state == NULL)
@@ -146,6 +154,7 @@ static int GetCertInfo(lua_State *luastate, const Flow *f, int direction)
     SSLState *ssl_state = (SSLState *)state;
     SSLStateConnp *connp = NULL;
 
+    int direction = LuaStateGetDirection(luastate);
     if (direction) {
         connp = &ssl_state->client_connp;
     } else {
@@ -166,53 +175,14 @@ static int GetCertInfo(lua_State *luastate, const Flow *f, int direction)
     return r;
 }
 
-static int TlsGetCertInfo(lua_State *luastate)
+static int LuaTlsGetCertInfo(lua_State *luastate)
 {
-    int r;
+    struct LuaTls *s = (struct LuaTls *)lua_touserdata(luastate, 1);
+    if (s == NULL || s->f == NULL) {
+        LUA_ERROR("failed to get flow");
+    }
 
-    if (!(LuaStateNeedProto(luastate, ALPROTO_TLS)))
-        return LuaCallbackError(luastate, "error: protocol not tls");
-
-    int direction = LuaStateGetDirection(luastate);
-
-    Flow *f = LuaStateGetFlow(luastate);
-    if (f == NULL)
-        return LuaCallbackError(luastate, "internal error: no flow");
-
-    r = GetCertInfo(luastate, f, direction);
-
-    return r;
-}
-
-static int GetAgreedVersion(lua_State *luastate, const Flow *f)
-{
-    void *state = FlowGetAppState(f);
-    if (state == NULL)
-        return LuaCallbackError(luastate, "error: no app layer state");
-
-    SSLState *ssl_state = (SSLState *)state;
-
-    char ssl_version[SSL_VERSION_MAX_STRLEN];
-    SSLVersionToString(ssl_state->server_connp.version, ssl_version);
-
-    return LuaPushStringBuffer(luastate, (uint8_t *)ssl_version,
-                               strlen(ssl_version));
-}
-
-static int TlsGetVersion(lua_State *luastate)
-{
-    int r;
-
-    if (!(LuaStateNeedProto(luastate, ALPROTO_TLS)))
-        return LuaCallbackError(luastate, "error: protocol not tls");
-
-    Flow *f = LuaStateGetFlow(luastate);
-    if (f == NULL)
-        return LuaCallbackError(luastate, "internal error: no flow");
-
-    r = GetAgreedVersion(luastate, f);
-
-    return r;
+    return GetCertInfo(luastate, s->f);
 }
 
 static int GetSNI(lua_State *luastate, const Flow *f)
@@ -222,7 +192,6 @@ static int GetSNI(lua_State *luastate, const Flow *f)
         return LuaCallbackError(luastate, "error: no app layer state");
 
     SSLState *ssl_state = (SSLState *)state;
-
     if (ssl_state->client_connp.sni == NULL)
         return LuaCallbackError(luastate, "error: no server name indication");
 
@@ -230,55 +199,20 @@ static int GetSNI(lua_State *luastate, const Flow *f)
                                strlen(ssl_state->client_connp.sni));
 }
 
-static int TlsGetSNI(lua_State *luastate)
+static int LuaTlsGetSNI(lua_State *luastate)
 {
-    int r;
+    struct LuaTls *s = (struct LuaTls *)lua_touserdata(luastate, 1);
+    if (s == NULL || s->f == NULL) {
+        LUA_ERROR("failed to get flow");
+    }
 
     if (!(LuaStateNeedProto(luastate, ALPROTO_TLS)))
         return LuaCallbackError(luastate, "error: protocol not tls");
 
-    Flow *f = LuaStateGetFlow(luastate);
-    if (f == NULL)
-        return LuaCallbackError(luastate, "internal error: no flow");
-
-    r = GetSNI(luastate, f);
-
-    return r;
+    return GetSNI(luastate, s->f);
 }
 
-static int GetCertSerial(lua_State *luastate, const Flow *f)
-{
-    void *state = FlowGetAppState(f);
-    if (state == NULL)
-        return LuaCallbackError(luastate, "error: no app layer state");
-
-    SSLState *ssl_state = (SSLState *)state;
-
-    if (ssl_state->server_connp.cert0_serial == NULL)
-        return LuaCallbackError(luastate, "error: no certificate serial");
-
-    return LuaPushStringBuffer(luastate,
-                               (uint8_t *)ssl_state->server_connp.cert0_serial,
-                               strlen(ssl_state->server_connp.cert0_serial));
-}
-
-static int TlsGetCertSerial(lua_State *luastate)
-{
-    int r;
-
-    if (!(LuaStateNeedProto(luastate, ALPROTO_TLS)))
-        return LuaCallbackError(luastate, "error: protocol not tls");
-
-    Flow *f = LuaStateGetFlow(luastate);
-    if (f == NULL)
-        return LuaCallbackError(luastate, "internal error: no flow");
-
-    r = GetCertSerial(luastate, f);
-
-    return r;
-}
-
-static int GetCertChain(lua_State *luastate, const Flow *f, int direction)
+static int GetCertChain(lua_State *luastate, const Flow *f)
 {
     void *state = FlowGetAppState(f);
     if (state == NULL)
@@ -287,6 +221,7 @@ static int GetCertChain(lua_State *luastate, const Flow *f, int direction)
     SSLState *ssl_state = (SSLState *)state;
     SSLStateConnp *connp = NULL;
 
+    int direction = LuaStateGetDirection(luastate);
     if (direction) {
         connp = &ssl_state->client_connp;
     } else {
@@ -296,6 +231,7 @@ static int GetCertChain(lua_State *luastate, const Flow *f, int direction)
     uint32_t u = 0;
     lua_newtable(luastate);
     SSLCertsChain *cert = NULL;
+
     TAILQ_FOREACH(cert, &connp->certs, next)
     {
         lua_pushinteger(luastate, u++);
@@ -316,48 +252,112 @@ static int GetCertChain(lua_State *luastate, const Flow *f, int direction)
     return 1;
 }
 
-static int TlsGetCertChain(lua_State *luastate)
+static int LuaTlsGetCertChain(lua_State *luastate)
 {
-    int r;
+    struct LuaTls *s = (struct LuaTls *)lua_touserdata(luastate, 1);
+    if (s == NULL || s->f == NULL) {
+        LUA_ERROR("failed to get flow");
+    }
 
     if (!(LuaStateNeedProto(luastate, ALPROTO_TLS)))
         return LuaCallbackError(luastate, "error: protocol not tls");
 
-    int direction = LuaStateGetDirection(luastate);
-
-    Flow *f = LuaStateGetFlow(luastate);
-    if (f == NULL)
-        return LuaCallbackError(luastate, "internal error: no flow");
-
-    r = GetCertChain(luastate, f, direction);
-
-    return r;
+    return GetCertChain(luastate, s->f);
 }
 
-/** \brief register tls lua extensions in a luastate */
-int LuaRegisterTlsFunctions(lua_State *luastate)
+static int GetCertSerial(lua_State *luastate, const Flow *f)
 {
-    /* registration of the callbacks */
-    lua_pushcfunction(luastate, TlsGetCertNotBefore);
-    lua_setglobal(luastate, "TlsGetCertNotBefore");
+    void *state = FlowGetAppState(f);
+    if (state == NULL)
+        return LuaCallbackError(luastate, "error: no app layer state");
 
-    lua_pushcfunction(luastate, TlsGetCertNotAfter);
-    lua_setglobal(luastate, "TlsGetCertNotAfter");
+    SSLState *ssl_state = (SSLState *)state;
+    SSLStateConnp *connp = NULL;
 
-    lua_pushcfunction(luastate, TlsGetVersion);
-    lua_setglobal(luastate, "TlsGetVersion");
+    int direction = LuaStateGetDirection(luastate);
+    if (direction) {
+        connp = &ssl_state->client_connp;
+    } else {
+        connp = &ssl_state->server_connp;
+    }
+    if (connp->cert0_serial == NULL)
+        return LuaCallbackError(luastate, "error: no certificate serial");
 
-    lua_pushcfunction(luastate, TlsGetCertInfo);
-    lua_setglobal(luastate, "TlsGetCertInfo");
+    return LuaPushStringBuffer(
+            luastate, (uint8_t *)connp->cert0_serial, strlen(connp->cert0_serial));
+}
 
-    lua_pushcfunction(luastate, TlsGetSNI);
-    lua_setglobal(luastate, "TlsGetSNI");
+static int LuaTlsGetCertSerial(lua_State *luastate)
+{
+    struct LuaTls *s = (struct LuaTls *)lua_touserdata(luastate, 1);
+    if (s == NULL || s->f == NULL) {
+        LUA_ERROR("failed to get flow");
+    }
 
-    lua_pushcfunction(luastate, TlsGetCertSerial);
-    lua_setglobal(luastate, "TlsGetCertSerial");
+    return GetCertSerial(luastate, s->f);
+}
 
-    lua_pushcfunction(luastate, TlsGetCertChain);
-    lua_setglobal(luastate, "TlsGetCertChain");
+static int GetAgreedVersion(lua_State *luastate, Flow *f)
+{
+    void *state = FlowGetAppState(f);
+    if (state == NULL)
+        return LuaCallbackError(luastate, "error: no app layer state");
 
-    return 0;
+    SSLState *ssl_state = (SSLState *)state;
+
+    int direction = LuaStateGetDirection(luastate);
+
+    int version;
+    if (direction) {
+        version = ssl_state->client_connp.version;
+    } else {
+        version = ssl_state->server_connp.version;
+    }
+
+    char ssl_version[SSL_VERSION_MAX_STRLEN];
+    SSLVersionToString(version, ssl_version);
+
+    lua_pushstring(luastate, (const char *)&ssl_version);
+    return 1;
+}
+
+static int LuaTlsGetVersion(lua_State *luastate)
+{
+    struct LuaTls *s = (struct LuaTls *)lua_touserdata(luastate, 1);
+    if (s == NULL || s->f == NULL) {
+        LUA_ERROR("failed to get flow");
+    }
+
+    return GetAgreedVersion(luastate, s->f);
+}
+
+static const struct luaL_Reg tlslib_meta[] = {
+    // clang-format off
+    { "get_cert_not_before", LuaTlsGetCertNotBefore },
+    { "get_cert_not_after", LuaTlsGetCertNotAfter },
+    { "get_version", LuaTlsGetVersion },
+    { "get_serial", LuaTlsGetCertSerial },
+    { "get_cert_info", LuaTlsGetCertInfo },
+    { "get_sni", LuaTlsGetSNI },
+    { "get_cert_chain", LuaTlsGetCertChain },
+    { NULL, NULL, }
+    // clang-format on
+};
+
+static const struct luaL_Reg tlslib[] = {
+    // clang-format off
+    { "get", LuaTlsFlowGet },
+    { NULL, NULL,},
+    // clang-format on
+};
+
+int SCLuaLoadTlsLib(lua_State *L)
+{
+    luaL_newmetatable(L, tls_flow);
+    lua_pushvalue(L, -1);
+    lua_setfield(L, -2, "__index");
+    luaL_setfuncs(L, tlslib_meta, 0);
+
+    luaL_newlib(L, tlslib);
+    return 1;
 }

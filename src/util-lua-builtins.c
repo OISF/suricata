@@ -28,6 +28,7 @@
 #include "util-lua-ssh.h"
 #include "util-lua-flowlib.h"
 #include "util-lua-hashlib.h"
+#include "util-lua-tls.h"
 #include "util-lua-packetlib.h"
 #include "util-lua-rule.h"
 #include "util-lua-ja3.h"
@@ -49,6 +50,7 @@ static const luaL_Reg builtins[] = {
     { "suricata.rule", SCLuaLoadRuleLib },
     { "suricata.smtp", SCLuaLoadSmtpLib },
     { "suricata.ssh", SCLuaLoadSshLib },
+    { "suricata.tls", SCLuaLoadTlsLib },
     { NULL, NULL },
 };
 

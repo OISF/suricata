@@ -120,6 +120,5 @@ int LuaRegisterExtensions(lua_State *lua_state)
     lua_setglobal(lua_state, "SCByteVarGet");
 
     LuaRegisterFunctions(lua_state);
-    LuaRegisterTlsFunctions(lua_state);
     return 0;
 }
