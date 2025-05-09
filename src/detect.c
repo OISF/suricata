@@ -911,7 +911,7 @@ static DetectRunScratchpad DetectRunSetup(
         }
         SCLogDebug("p->flowflags 0x%02x", p->flowflags);
 
-        if (p->flags & PKT_STREAM_EOF) {
+        if (p->flags & PKT_PSEUDO_STREAM_END) {
             flow_flags |= STREAM_EOF;
             SCLogDebug("STREAM_EOF set");
         }
