@@ -1223,6 +1223,10 @@ jobs:
           RUSTFLAGS: "-C instrument-coverage"
           CFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0"
           CXXFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0"
+      - run: ./src/suricata -h
+        env:
+          LLVM_PROFILE_FILE: "/tmp/help.profraw"
+      - run: llvm-profdata-19 merge -o help.profdata /tmp/help.profraw
       - run: ./src/suricata -u -l /tmp/
         env:
           LLVM_PROFILE_FILE: "/tmp/ut.profraw"
