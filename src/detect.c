@@ -1863,8 +1863,8 @@ static void DetectRunTx(ThreadVars *tv,
                 /* threat detect rules will be inspected */
             }
 
-            SCLogDebug("%p/%"PRIu64" inspecting: sid %u (%u), flags %08x",
-                    tx.tx_ptr, tx.tx_id, s->id, s->iid, inspect_flags ? *inspect_flags : 0);
+            SCLogDebug("%p/%" PRIu64 " inspecting: sid %u (%u), flags %08x", tx.tx_ptr, tx.tx_id,
+                    s->id, s->iid, inspect_flags ? *inspect_flags : 0);
 
             if (inspect_flags) {
                 if (*inspect_flags & DE_STATE_FLAG_FULL_INSPECT) {
@@ -1933,7 +1933,8 @@ static void DetectRunTx(ThreadVars *tv,
                     alert_flags |= PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET;
                 }
 
-                SCLogDebug("%p/%"PRIu64" sig %u (%u) matched", tx.tx_ptr, tx.tx_id, s->id, s->iid);
+                SCLogDebug(
+                        "%p/%" PRIu64 " sig %u (%u) matched", tx.tx_ptr, tx.tx_id, s->id, s->iid);
                 AlertQueueAppend(det_ctx, s, p, tx.tx_id, alert_flags);
 
                 if ((s->flags & SIG_FLAG_FIREWALL) && (s->action & ACTION_ACCEPT)) {

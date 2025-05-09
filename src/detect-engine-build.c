@@ -1750,7 +1750,8 @@ int SigPrepareStage1(DetectEngineCtx *de_ctx)
     for (Signature *s = de_ctx->sig_list; s != NULL; s = s->next) {
         de_ctx->sig_array[s->iid] = s;
 
-        SCLogDebug("Signature %" PRIu32 ", internal id %" PRIu32 ", ptrs %p %p ", s->id, s->iid, s, de_ctx->sig_array[s->iid]);
+        SCLogDebug("Signature %" PRIu32 ", internal id %" PRIu32 ", ptrs %p %p ", s->id, s->iid, s,
+                de_ctx->sig_array[s->iid]);
 
         if (s->type == SIG_TYPE_PDONLY) {
             SCLogDebug("Signature %"PRIu32" is considered \"PD only\"", s->id);

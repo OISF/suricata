@@ -241,7 +241,7 @@ typedef uint16_t Port;
 /* structure to store the sids/gids/etc the detection engine
  * found in this packet */
 typedef struct PacketAlert_ {
-    SigIntId iid; /* Internal ID, used for sorting */
+    SigIntId iid;   /* Internal ID, used for sorting */
     uint8_t action; /* Internal num, used for thresholding */
     uint8_t flags;
     const struct Signature_ *s;
