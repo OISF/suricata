@@ -1413,9 +1413,9 @@ void IPOnlyAddSignature(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx,
     if (!(s->type == SIG_TYPE_IPONLY))
         return;
 
-    SigIntId mapped_signum = IPOnlyTrackSigNum(io_ctx, s->num);
+    SigIntId mapped_signum = IPOnlyTrackSigNum(io_ctx, s->iid);
     SCLogDebug("Adding IPs from rule: %" PRIu32 " (%s) as %" PRIu32 " mapped to %" PRIu32 "\n",
-            s->id, s->msg, s->num, mapped_signum);
+            s->id, s->msg, s->iid, mapped_signum);
     /* Set the internal signum to the list before merging */
     IPOnlyCIDRListSetSigNum(s->init_data->cidr_src, mapped_signum);
 

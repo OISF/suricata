@@ -1748,9 +1748,9 @@ int SigPrepareStage1(DetectEngineCtx *de_ctx)
 
     /* now for every rule add the source group */
     for (Signature *s = de_ctx->sig_list; s != NULL; s = s->next) {
-        de_ctx->sig_array[s->num] = s;
+        de_ctx->sig_array[s->iid] = s;
 
-        SCLogDebug("Signature %" PRIu32 ", internal id %" PRIu32 ", ptrs %p %p ", s->id, s->num, s, de_ctx->sig_array[s->num]);
+        SCLogDebug("Signature %" PRIu32 ", internal id %" PRIu32 ", ptrs %p %p ", s->id, s->iid, s, de_ctx->sig_array[s->iid]);
 
         if (s->type == SIG_TYPE_PDONLY) {
             SCLogDebug("Signature %"PRIu32" is considered \"PD only\"", s->id);
@@ -2137,7 +2137,7 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
      * signums. */
     de_ctx->signum = 0;
     while (s != NULL) {
-        s->num = de_ctx->signum++;
+        s->iid = de_ctx->signum++;
 
         s = s->next;
     }

@@ -502,13 +502,13 @@ static int DetectFlowbitsAnalyzeSignature(const Signature *s, struct FBAnalyzer 
             if (fb->cmd == DETECT_FLOWBITS_CMD_ISSET) {
                 if (!CheckExpand(fa->isset_sids_idx, &fa->isset_sids, &fa->isset_sids_size))
                     return -1;
-                fa->isset_sids[fa->isset_sids_idx] = s->num;
+                fa->isset_sids[fa->isset_sids_idx] = s->iid;
                 fa->isset_sids_idx++;
             } else if (fb->cmd == DETECT_FLOWBITS_CMD_ISNOTSET) {
                 if (!CheckExpand(
                             fa->isnotset_sids_idx, &fa->isnotset_sids, &fa->isnotset_sids_size))
                     return -1;
-                fa->isnotset_sids[fa->isnotset_sids_idx] = s->num;
+                fa->isnotset_sids[fa->isnotset_sids_idx] = s->iid;
                 fa->isnotset_sids_idx++;
             }
         }
@@ -520,13 +520,13 @@ static int DetectFlowbitsAnalyzeSignature(const Signature *s, struct FBAnalyzer 
             if (fb->cmd == DETECT_FLOWBITS_CMD_ISSET) {
                 if (!CheckExpand(fa->isset_sids_idx, &fa->isset_sids, &fa->isset_sids_size))
                     return -1;
-                fa->isset_sids[fa->isset_sids_idx] = s->num;
+                fa->isset_sids[fa->isset_sids_idx] = s->iid;
                 fa->isset_sids_idx++;
             } else if (fb->cmd == DETECT_FLOWBITS_CMD_ISNOTSET) {
                 if (!CheckExpand(
                             fa->isnotset_sids_idx, &fa->isnotset_sids, &fa->isnotset_sids_size))
                     return -1;
-                fa->isnotset_sids[fa->isnotset_sids_idx] = s->num;
+                fa->isnotset_sids[fa->isnotset_sids_idx] = s->iid;
                 fa->isnotset_sids_idx++;
             }
         }
@@ -544,17 +544,17 @@ static int DetectFlowbitsAnalyzeSignature(const Signature *s, struct FBAnalyzer 
         if (fb->cmd == DETECT_FLOWBITS_CMD_SET) {
             if (!CheckExpand(fa->set_sids_idx, &fa->set_sids, &fa->set_sids_size))
                 return -1;
-            fa->set_sids[fa->set_sids_idx] = s->num;
+            fa->set_sids[fa->set_sids_idx] = s->iid;
             fa->set_sids_idx++;
         } else if (fb->cmd == DETECT_FLOWBITS_CMD_UNSET) {
             if (!CheckExpand(fa->unset_sids_idx, &fa->unset_sids, &fa->unset_sids_size))
                 return -1;
-            fa->unset_sids[fa->unset_sids_idx] = s->num;
+            fa->unset_sids[fa->unset_sids_idx] = s->iid;
             fa->unset_sids_idx++;
         } else if (fb->cmd == DETECT_FLOWBITS_CMD_TOGGLE) {
             if (!CheckExpand(fa->toggle_sids_idx, &fa->toggle_sids, &fa->toggle_sids_size))
                 return -1;
-            fa->toggle_sids[fa->toggle_sids_idx] = s->num;
+            fa->toggle_sids[fa->toggle_sids_idx] = s->iid;
             fa->toggle_sids_idx++;
         }
     }
@@ -1059,7 +1059,7 @@ static int AddBitAndSid(
         }
         add->rule_id_size = BLOCK_SIZE;
         add->rule_id_cnt = 1;
-        add->rule_id[0] = s->num;
+        add->rule_id[0] = s->iid;
 
         PrefilterFlowbit *res = PFB_RB_INSERT(&ctx->fb_tree, add);
         SCLogDebug("not found, so added (res %p)", res);
@@ -1072,7 +1072,7 @@ static int AddBitAndSid(
         SCLogDebug("found! pfb %p id %u", pfb, pfb->id);
 
         if (pfb->rule_id_cnt < pfb->rule_id_size) {
-            pfb->rule_id[pfb->rule_id_cnt++] = s->num;
+            pfb->rule_id[pfb->rule_id_cnt++] = s->iid;
         } else {
             uint32_t *ptr =
                     SCRealloc(pfb->rule_id, (pfb->rule_id_size + BLOCK_SIZE) * sizeof(uint32_t));
@@ -1082,7 +1082,7 @@ static int AddBitAndSid(
             }
             pfb->rule_id = ptr;
             pfb->rule_id_size += BLOCK_SIZE;
-            pfb->rule_id[pfb->rule_id_cnt++] = s->num;
+            pfb->rule_id[pfb->rule_id_cnt++] = s->iid;
         }
     }
     return 0;
@@ -1123,7 +1123,7 @@ static int AddIssetSidsForBit(const DetectEngineCtx *de_ctx, const struct FBAnal
     for (uint32_t i = 0; i < fba->array[fb->idx].isset_sids_idx; i++) {
         const uint32_t sig_iid = fba->array[fb->idx].isset_sids[i];
         const Signature *s = de_ctx->sig_array[sig_iid];
-        SCLogDebug("flowbit: %u => considering sid %u (iid:%u)", fb->idx, s->id, s->num);
+        SCLogDebug("flowbit: %u => considering sid %u (iid:%u)", fb->idx, s->id, s->iid);
 
         /* Skip sids that aren't prefilter. These would just run all the time. */
         if (s->init_data->prefilter_sm == NULL ||

@@ -48,7 +48,7 @@ void PacketAlertTagInit(void)
 
     g_tag_signature.id = TAG_SIG_ID;
     g_tag_signature.gid = TAG_SIG_GEN;
-    g_tag_signature.num = TAG_SIG_ID;
+    g_tag_signature.iid = TAG_SIG_ID;
     g_tag_signature.rev = 1;
     g_tag_signature.prio = 2;
 
@@ -199,7 +199,7 @@ static void PacketApplySignatureActions(Packet *p, const Signature *s, const Pac
         SCLogDebug("[packet %p][DROP sid %u]", p, s->id);
 
         if (p->alerts.drop.action == 0) {
-            p->alerts.drop.num = s->num;
+            p->alerts.drop.iid = s->iid;
             p->alerts.drop.action = pa->action;
             p->alerts.drop.s = (Signature *)s;
         }
@@ -282,7 +282,7 @@ static inline PacketAlert PacketAlertSet(
         DetectEngineThreadCtx *det_ctx, const Signature *s, uint64_t tx_id, uint8_t alert_flags)
 {
     PacketAlert pa;
-    pa.num = s->num;
+    pa.iid = s->iid;
     pa.action = s->action;
     pa.s = (Signature *)s;
     pa.flags = alert_flags;
@@ -302,7 +302,7 @@ void AlertQueueAppend(DetectEngineThreadCtx *det_ctx, const Signature *s, Packet
     /* we do that even before inserting into the queue, so we save it even if appending fails */
     if (p->alerts.drop.action == 0 && s->action & ACTION_DROP) {
         p->alerts.drop = PacketAlertSet(det_ctx, s, tx_id, alert_flags);
-        SCLogDebug("Set PacketAlert drop action. s->num %" PRIu32 "", s->num);
+        SCLogDebug("Set PacketAlert drop action. s->iid %" PRIu32 "", s->iid);
     }
 
     uint16_t pos = det_ctx->alert_queue_size;
@@ -316,7 +316,7 @@ void AlertQueueAppend(DetectEngineThreadCtx *det_ctx, const Signature *s, Packet
     }
     det_ctx->alert_queue[pos] = PacketAlertSet(det_ctx, s, tx_id, alert_flags);
 
-    SCLogDebug("Appending sid %" PRIu32 ", s->num %" PRIu32 " to alert queue", s->id, s->num);
+    SCLogDebug("Appending sid %" PRIu32 ", s->iid %" PRIu32 " to alert queue", s->id, s->iid);
     det_ctx->alert_queue_size++;
 }
 
@@ -332,7 +332,7 @@ static int AlertQueueSortHelper(const void *a, const void *b)
     const PacketAlert *pa0 = a;
     const PacketAlert *pa1 = b;
     if (pa0->s->firewall_table == pa1->s->firewall_table) {
-        if (pa1->num == pa0->num) {
+        if (pa1->iid == pa0->iid) {
             if (pa1->tx_id == PACKET_ALERT_NOTX) {
                 return -1;
             } else if (pa0->tx_id == PACKET_ALERT_NOTX) {
@@ -340,7 +340,7 @@ static int AlertQueueSortHelper(const void *a, const void *b)
             }
             return pa0->tx_id < pa1->tx_id ? 1 : -1;
         } else {
-            return pa0->num < pa1->num ? -1 : 1;
+            return pa0->iid < pa1->iid ? -1 : 1;
         }
     }
     return pa0->s->firewall_table < pa1->s->firewall_table ? -1 : 1;
