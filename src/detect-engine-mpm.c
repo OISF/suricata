@@ -976,27 +976,19 @@ static void PopulateMpmHelperAddPattern(MpmCtx *mpm_ctx, const DetectContentData
 
     if (cd->flags & DETECT_CONTENT_NOCASE) {
         if (chop) {
-            MpmAddPatternCI(mpm_ctx,
-                            cd->content + cd->fp_chop_offset, cd->fp_chop_len,
-                            pat_offset, pat_depth,
-                            cd->id, s->iid, flags|MPM_PATTERN_CTX_OWNS_ID);
+            MpmAddPatternCI(mpm_ctx, cd->content + cd->fp_chop_offset, cd->fp_chop_len, pat_offset,
+                    pat_depth, cd->id, s->iid, flags | MPM_PATTERN_CTX_OWNS_ID);
         } else {
-            MpmAddPatternCI(mpm_ctx,
-                            cd->content, cd->content_len,
-                            pat_offset, pat_depth,
-                            cd->id, s->iid, flags|MPM_PATTERN_CTX_OWNS_ID);
+            MpmAddPatternCI(mpm_ctx, cd->content, cd->content_len, pat_offset, pat_depth, cd->id,
+                    s->iid, flags | MPM_PATTERN_CTX_OWNS_ID);
         }
     } else {
         if (chop) {
-            MpmAddPatternCS(mpm_ctx,
-                            cd->content + cd->fp_chop_offset, cd->fp_chop_len,
-                            pat_offset, pat_depth,
-                            cd->id, s->iid, flags|MPM_PATTERN_CTX_OWNS_ID);
+            MpmAddPatternCS(mpm_ctx, cd->content + cd->fp_chop_offset, cd->fp_chop_len, pat_offset,
+                    pat_depth, cd->id, s->iid, flags | MPM_PATTERN_CTX_OWNS_ID);
         } else {
-            MpmAddPatternCS(mpm_ctx,
-                            cd->content, cd->content_len,
-                            pat_offset, pat_depth,
-                            cd->id, s->iid, flags|MPM_PATTERN_CTX_OWNS_ID);
+            MpmAddPatternCS(mpm_ctx, cd->content, cd->content_len, pat_offset, pat_depth, cd->id,
+                    s->iid, flags | MPM_PATTERN_CTX_OWNS_ID);
         }
     }
 }
