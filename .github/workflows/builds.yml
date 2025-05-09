@@ -2405,7 +2405,7 @@ jobs:
       - name: Run
         run: |
           ./src/suricata --build-info
-          ./src/suricata -u -l /tmp/
+          ./src/suricata -u -l .
           # need cwd in path due to npcap dlls (see above)
           PATH="$PATH:$(pwd)" python3 ./suricata-verify/run.py -q --debug-failed
       - run: make install
@@ -2450,7 +2450,7 @@ jobs:
       - name: Run
         run: |
           ./src/suricata --build-info
-          ./src/suricata -u -l /tmp/
+          ./src/suricata -u -l .
           python3 ./suricata-verify/run.py -q --debug-failed
       - run: make install
       - run: suricata-update -V
