@@ -87,7 +87,6 @@ static inline Packet *FlowPseudoPacketSetup(
     p->proto = IPPROTO_TCP;
     FlowReference(&p->flow, f);
     p->flags |= PKT_STREAM_EST;
-    p->flags |= PKT_STREAM_EOF;
     p->flags |= PKT_HAS_FLOW;
     p->flags |= PKT_PSEUDO_STREAM_END;
     memcpy(&p->vlan_id[0], &f->vlan_id[0], sizeof(p->vlan_id));
