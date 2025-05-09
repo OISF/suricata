@@ -1901,7 +1901,12 @@
                     "type": "string"
                 },
                 "age": {
-                    "type": "integer"
+                    "type": "integer",
+                    "suricata": {
+                        "keywords" : [
+                            "flow.age"
+                        ]
+                    }
                 },
                 "alerted": {
                     "type": "boolean"
@@ -1931,10 +1936,22 @@
                     "additionalProperties": false
                 },
                 "bytes_toclient": {
-                    "type": "integer"
+                    "type": "integer",
+                    "suricata": {
+                        "keywords": [
+                            "flow.bytes",
+                            "flow.bytes_toclient"
+                        ]
+                    }
                 },
                 "bytes_toserver": {
-                    "type": "integer"
+                    "type": "integer",
+                    "suricata": {
+                        "keywords": [
+                            "flow.bytes",
+                            "flow.bytes_toserver"
+                        ]
+                    }
                 },
                 "dest_ip": {
                     "type": "string"
@@ -1964,10 +1981,22 @@
                     }
                 },
                 "pkts_toclient": {
-                    "type": "integer"
+                    "type": "integer",
+                    "suricata": {
+                        "keywords": [
+                            "flow.pkts",
+                            "flow.pkts_toclient"
+                        ]
+                    }
                 },
                 "pkts_toserver": {
-                    "type": "integer"
+                    "type": "integer",
+                    "suricata": {
+                        "keywords": [
+                            "flow.pkts",
+                            "flow.pkts_toserver"
+                        ]
+                    }
                 },
                 "reason": {
                     "type": "string"
@@ -1982,7 +2011,12 @@
                     "type": "string"
                 },
                 "state": {
-                    "type": "string"
+                    "type": "string",
+                    "suricata": {
+                        "keywords": [
+                            "flow"
+                        ]
+                    }
                 },
                 "wrong_thread": {
                     "type": "boolean"
@@ -2872,6 +2906,11 @@
                     "minItems": 1,
                     "items": {
                         "type": "string"
+                    },
+                    "suricata": {
+                        "keywords": [
+                            "flowbits"
+                        ]
                     }
                 },
                 "flowvars": {
@@ -2911,7 +2950,12 @@
                 },
                 "flowints": {
                     "type": "object",
-                    "additionalProperties": true
+                    "additionalProperties": true,
+                    "suricata": {
+                        "keywords": [
+                            "flowint"
+                        ]
+                    }
                 }
             },
             "additionalProperties": false
