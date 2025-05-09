@@ -309,6 +309,7 @@ jobs:
       - run: ./scripts/setup-app-layer.py --parser --logger --detect FooBar payload
       - run: make -j ${{ env.CPUS }}
       - run: ./src/suricata --list-app-layer-protos | grep foobar
+      - run: ./src/suricata --list-app-layer-hooks | grep "foobar:request_started"
       - name: Verify rustfmt
         run: rustfmt -v --check src/applayerfoobar/*.rs
         working-directory: rust
@@ -953,6 +954,9 @@ jobs:
       - run: sudo -u suricata -s python3 ./suricata-verify/run.py -q --debug-failed
         working-directory: /home/suricata/suricata
 
+      - run: src/suricata -h | grep '\-\-list\-app\-layer\-hooks' &> /dev/null
+        working-directory: /home/suricata/suricata
+
   # Test that ./configure fails out of libjansson is not available.
   almalinux-9-no-jansson:
     name: AlmaLinux 9 (no jansson)
@@ -1243,6 +1247,10 @@ jobs:
         env:
           LLVM_PROFILE_FILE: "/tmp/la.profraw"
       - run: llvm-profdata-19 merge -o la.profdata /tmp/la.profraw
+      - run: ./src/suricata --list-app-layer-hooks -l /tmp
+        env:
+          LLVM_PROFILE_FILE: "/tmp/lah.profraw"
+      - run: llvm-profdata-19 merge -o lah.profdata /tmp/lah.profraw
       - run: ./src/suricata --dump-features -c suricata.yaml -l /tmp
         env:
           LLVM_PROFILE_FILE: "/tmp/dumpfeatures.profraw"
