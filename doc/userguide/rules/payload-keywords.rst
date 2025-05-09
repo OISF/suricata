@@ -838,6 +838,67 @@ qualities of pcre as well.  These are:
 .. note:: The following characters must be escaped inside the content:
              ``;`` ``\`` ``"``
 
+PCRE extraction
+~~~~~~~~~~~~~~~
+
+It is possible to capture groups from the regular expression and log them into the
+alert events.
+
+There is 3 capabilities:
+
+* pkt: the extracted group is logged as pkt variable in ``metadata.pktvars``
+* alert: the extracted group is logged to the ``alert.extra`` subobject
+* flow: the extracted group is stored in a flow variable and end up in the ``metadata.flowvars``
+
+To use the feature, parameters of pcre keyword need to be updated.
+After the regular pcre regex and options, a comma separated lists of variable names.
+The prefix here is ``flow:``, ``pkt:`` or ``alert:`` and the names can contain special
+characters now. The names map to the capturing substring expressions in order ::
+
+  pcre:"/([a-z]+)\/[a-z]+\/(.+)\/(.+)\/changelog$/GUR, \
+      flow:ua/ubuntu/repo,flow:ua/ubuntu/pkg/base,     \
+      flow:ua/ubuntu/pkg/version";
+
+This would result in the alert event has something like ::
+
+  "metadata": {
+    "flowvars": [
+       {"ua/ubuntu/repo": "fr"},
+       {"ua/ubuntu/pkg/base": "curl"},
+       {"ua/ubuntu/pkg/version": "2.2.1"}
+    ]
+  }
+
+The other events on the same flow such as the ``flow`` one will
+also have the flow vars.
+
+If this is not wanted, you can use the ``alert:`` construct to only
+get the event in the alert ::
+
+  pcre:"/([a-z]+)\/[a-z]+\/(.+)\/(.+)\/changelog$/GUR, \
+      alert:ua/ubuntu/repo,alert:ua/ubuntu/pkg/base,     \
+      alert:ua/ubuntu/pkg/version";
+
+With that syntax, the result of the extraction will appear like ::
+
+  "alert": {
+    "extra": {
+       "ua/ubuntu/repo": "fr",
+       "ua/ubuntu/pkg/base": "curl",
+       "ua/ubuntu/pkg/version": "2.2.1"
+    ]
+  }
+
+A combination of the extraction scopes can be combined.
+
+It is also possible to extract key/value pair in the ``pkt`` scope.
+One capture would be the key, the second the value. The notation is similar to the last ::
+
+  pcre:"^/([A-Z]+) (.*)\r\n/, pkt:key,pkt:value";
+
+``key`` and ``value`` are simply hardcoded names to trigger the key/value extraction.
+As a consequence, they can't be used as name for the variables.
+
 Suricata's modifiers
 ~~~~~~~~~~~~~~~~~~~~
 

@@ -226,6 +226,11 @@
                 "xff": {
                     "type": "string"
                 },
+                "context": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "Extra context data created by keywords such as dataset with JSON"
+                },
                 "metadata": {
                     "type": "object",
                     "properties": {
@@ -2902,7 +2907,7 @@
                                 "type": "string"
                             }
                         },
-                        "additionalProperties": false
+                        "additionalProperties": true
                     }
                 },
                 "flowints": {

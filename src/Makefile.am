@@ -55,6 +55,7 @@ noinst_HEADERS = \
 	conf-yaml-loader.h \
 	counters.h \
 	datasets.h \
+	datasets-context-json.h \
 	datasets-ipv4.h \
 	datasets-ipv6.h \
 	datasets-md5.h \
@@ -643,6 +644,7 @@ libsuricata_c_a_SOURCES = \
 	conf-yaml-loader.c \
 	counters.c \
 	datasets.c \
+	datasets-context-json.c \
 	datasets-ipv4.c \
 	datasets-ipv6.c \
 	datasets-md5.c \

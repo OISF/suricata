@@ -32,7 +32,9 @@
 #include "datasets-md5.h"
 #include "datasets-sha256.h"
 #include "datasets-reputation.h"
+#include "datasets-context-json.h"
 #include "util-conf.h"
+#include "util-mem.h"
 #include "util-thash.h"
 #include "util-print.h"
 #include "util-byte.h"
@@ -50,6 +52,7 @@ uint32_t dataset_max_total_hashsize = 16777216;
 uint32_t dataset_used_hashsize = 0;
 
 int DatasetAddwRep(Dataset *set, const uint8_t *data, const uint32_t data_len, DataRepType *rep);
+static void DatasetUpdateHashsize(const char *name, uint32_t hash_size);
 
 static inline void DatasetUnlockData(THashData *d)
 {
@@ -57,7 +60,6 @@ static inline void DatasetUnlockData(THashData *d)
     THashDataUnlock(d);
 }
 static bool DatasetIsStatic(const char *save, const char *load);
-static void GetDefaultMemcap(uint64_t *memcap, uint32_t *hashsize);
 
 enum DatasetTypes DatasetGetTypeFromString(const char *s)
 {
@@ -74,7 +76,41 @@ enum DatasetTypes DatasetGetTypeFromString(const char *s)
     return DATASET_TYPE_NOTSET;
 }
 
-static Dataset *DatasetAlloc(const char *name)
+int DatasetAppendSet(Dataset *set)
+{
+
+    if (set->hash == NULL) {
+        return -1;
+    }
+
+    if (SC_ATOMIC_GET(set->hash->memcap_reached)) {
+        SCLogError("dataset too large for set memcap");
+        return -1;
+    }
+
+    SCLogDebug(
+            "set %p/%s type %u save %s load %s", set, set->name, set->type, set->save, set->load);
+
+    set->next = sets;
+    sets = set;
+
+    /* hash size accounting */
+    DEBUG_VALIDATE_BUG_ON(set->hash->config.hash_size != hashsize);
+    DatasetUpdateHashsize(set->name, set->hash->config.hash_size);
+    return 0;
+}
+
+void DatasetLock(void)
+{
+    SCMutexLock(&sets_lock);
+}
+
+void DatasetUnlock(void)
+{
+    SCMutexUnlock(&sets_lock);
+}
+
+Dataset *DatasetAlloc(const char *name)
 {
     Dataset *set = SCCalloc(1, sizeof(*set));
     if (set) {
@@ -83,7 +119,7 @@ static Dataset *DatasetAlloc(const char *name)
     return set;
 }
 
-static Dataset *DatasetSearchByName(const char *name)
+Dataset *DatasetSearchByName(const char *name)
 {
     Dataset *set = sets;
     while (set) {
@@ -93,36 +129,6 @@ static Dataset *DatasetSearchByName(const char *name)
         set = set->next;
     }
     return NULL;
-}
-
-static int HexToRaw(const uint8_t *in, size_t ins, uint8_t *out, size_t outs)
-{
-    if (ins < 2)
-        return -1;
-    if (ins % 2 != 0)
-        return -1;
-    if (outs != ins / 2)
-        return -1;
-
-    uint8_t hash[outs];
-    memset(hash, 0, outs);
-    size_t i, x;
-    for (x = 0, i = 0; i < ins; i+=2, x++) {
-        char buf[3] = { 0, 0, 0 };
-        buf[0] = in[i];
-        buf[1] = in[i+1];
-
-        long value = strtol(buf, NULL, 16);
-        if (value >= 0 && value <= 255)
-            hash[x] = (uint8_t)value;
-        else {
-            SCLogError("hash byte out of range %ld", value);
-            return -1;
-        }
-    }
-
-    memcpy(out, hash, outs);
-    return 0;
 }
 
 static int DatasetLoadIPv4(Dataset *set)
@@ -148,7 +154,7 @@ static int DatasetLoadIPv4(Dataset *set)
     return 0;
 }
 
-static int ParseIpv6String(Dataset *set, const char *line, struct in6_addr *in6)
+int DatasetParseIpv6String(Dataset *set, const char *line, struct in6_addr *in6)
 {
     /* Checking IPv6 case */
     char *got_colon = strchr(line, ':');
@@ -279,8 +285,8 @@ enum DatasetGetPathType {
     TYPE_LOAD,
 };
 
-static void DatasetGetPath(const char *in_path,
-        char *out_path, size_t out_size, enum DatasetGetPathType type)
+static void DatasetGetPath(
+        const char *in_path, char *out_path, size_t out_size, enum DatasetGetPathType type)
 {
     char path[PATH_MAX];
     struct stat st;
@@ -354,24 +360,31 @@ static void DatasetUpdateHashsize(const char *name, uint32_t hash_size)
     }
 }
 
-Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, const char *load,
-        uint64_t memcap, uint32_t hashsize)
+/**
+ * \return -1 on error
+ * \return 0 on successful creation
+ * \return 1 if the dataset already exists
+ *
+ * dataset global lock is held after return if set is found or created
+ */
+int DatasetCreateOrGet(const char *name, enum DatasetTypes type, const char *save, const char *load,
+        uint64_t *memcap, uint32_t *hashsize, Dataset **ret_set)
 {
     uint64_t default_memcap = 0;
     uint32_t default_hashsize = 0;
     if (strlen(name) > DATASET_NAME_MAX_LEN) {
-        return NULL;
+        return -1;
     }
 
-    SCMutexLock(&sets_lock);
+    DatasetLock();
     Dataset *set = DatasetSearchByName(name);
     if (set) {
         if (type != DATASET_TYPE_NOTSET && set->type != type) {
             SCLogError("dataset %s already "
                        "exists and is of type %u",
                     set->name, set->type);
-            SCMutexUnlock(&sets_lock);
-            return NULL;
+            DatasetUnlock();
+            return -1;
         }
 
         if ((save == NULL || strlen(save) == 0) &&
@@ -382,32 +395,35 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
             if ((save == NULL && strlen(set->save) > 0) ||
                     (save != NULL && strcmp(set->save, save) != 0)) {
                 SCLogError("dataset %s save mismatch: %s != %s", set->name, set->save, save);
-                SCMutexUnlock(&sets_lock);
-                return NULL;
+                DatasetUnlock();
+                return -1;
             }
             if ((load == NULL && strlen(set->load) > 0) ||
                     (load != NULL && strcmp(set->load, load) != 0)) {
                 SCLogError("dataset %s load mismatch: %s != %s", set->name, set->load, load);
-                SCMutexUnlock(&sets_lock);
-                return NULL;
+                DatasetUnlock();
+                return -1;
             }
         }
 
-        SCMutexUnlock(&sets_lock);
-        return set;
-    } else {
-        if (type == DATASET_TYPE_NOTSET) {
-            SCLogError("dataset %s not defined", name);
-            goto out_err;
-        }
+        *ret_set = set;
+        return 1;
     }
 
-    GetDefaultMemcap(&default_memcap, &default_hashsize);
-    if (hashsize == 0) {
-        hashsize = default_hashsize;
+    if (type == DATASET_TYPE_NOTSET) {
+        SCLogError("dataset %s not defined", name);
+        goto out_err;
     }
 
-    if (!DatasetCheckHashsize(name, hashsize)) {
+    DatasetGetDefaultMemcap(&default_memcap, &default_hashsize);
+    if (*hashsize == 0) {
+        *hashsize = default_hashsize;
+    }
+    if (*memcap == 0) {
+        *memcap = default_memcap;
+    }
+
+    if (!DatasetCheckHashsize(name, *hashsize)) {
         goto out_err;
     }
 
@@ -427,14 +443,41 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
         SCLogDebug("set \'%s\' loading \'%s\' from \'%s\'", set->name, load, set->load);
     }
 
+    *ret_set = set;
+    return 0;
+out_err:
+    if (set) {
+        if (set->hash) {
+            THashShutdown(set->hash);
+        }
+        SCFree(set);
+    }
+    DatasetUnlock();
+    return -1;
+}
+
+Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, const char *load,
+        uint64_t memcap, uint32_t hashsize)
+{
+    Dataset *set = NULL;
+
+    int ret = DatasetCreateOrGet(name, type, save, load, &memcap, &hashsize, &set);
+    if (ret < 0) {
+        SCLogError("dataset %s creation failed", name);
+        return NULL;
+    }
+    if (ret == 1) {
+        SCLogDebug("dataset %s already exists", name);
+        DatasetUnlock();
+        return set;
+    }
+
     char cnf_name[128];
     snprintf(cnf_name, sizeof(cnf_name), "datasets.%s.hash", name);
-
     switch (type) {
         case DATASET_TYPE_MD5:
             set->hash = THashInit(cnf_name, sizeof(Md5Type), Md5StrSet, Md5StrFree, Md5StrHash,
-                    Md5StrCompare, NULL, NULL, load != NULL ? 1 : 0,
-                    memcap > 0 ? memcap : default_memcap, hashsize);
+                    Md5StrCompare, NULL, NULL, load != NULL ? 1 : 0, memcap, hashsize);
             if (set->hash == NULL)
                 goto out_err;
             if (DatasetLoadMd5(set) < 0)
@@ -442,8 +485,7 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
             break;
         case DATASET_TYPE_STRING:
             set->hash = THashInit(cnf_name, sizeof(StringType), StringSet, StringFree, StringHash,
-                    StringCompare, NULL, StringGetLength, load != NULL ? 1 : 0,
-                    memcap > 0 ? memcap : default_memcap, hashsize);
+                    StringCompare, NULL, StringGetLength, load != NULL ? 1 : 0, memcap, hashsize);
             if (set->hash == NULL)
                 goto out_err;
             if (DatasetLoadString(set) < 0)
@@ -451,8 +493,8 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
             break;
         case DATASET_TYPE_SHA256:
             set->hash = THashInit(cnf_name, sizeof(Sha256Type), Sha256StrSet, Sha256StrFree,
-                    Sha256StrHash, Sha256StrCompare, NULL, NULL, load != NULL ? 1 : 0,
-                    memcap > 0 ? memcap : default_memcap, hashsize);
+                    Sha256StrHash, Sha256StrCompare, NULL, NULL, load != NULL ? 1 : 0, memcap,
+                    hashsize);
             if (set->hash == NULL)
                 goto out_err;
             if (DatasetLoadSha256(set) < 0)
@@ -460,8 +502,7 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
             break;
         case DATASET_TYPE_IPV4:
             set->hash = THashInit(cnf_name, sizeof(IPv4Type), IPv4Set, IPv4Free, IPv4Hash,
-                    IPv4Compare, NULL, NULL, load != NULL ? 1 : 0,
-                    memcap > 0 ? memcap : default_memcap, hashsize);
+                    IPv4Compare, NULL, NULL, load != NULL ? 1 : 0, memcap, hashsize);
             if (set->hash == NULL)
                 goto out_err;
             if (DatasetLoadIPv4(set) < 0)
@@ -469,34 +510,20 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
             break;
         case DATASET_TYPE_IPV6:
             set->hash = THashInit(cnf_name, sizeof(IPv6Type), IPv6Set, IPv6Free, IPv6Hash,
-                    IPv6Compare, NULL, NULL, load != NULL ? 1 : 0,
-                    memcap > 0 ? memcap : default_memcap, hashsize);
+                    IPv6Compare, NULL, NULL, load != NULL ? 1 : 0, memcap, hashsize);
             if (set->hash == NULL)
                 goto out_err;
             if (DatasetLoadIPv6(set) < 0)
                 goto out_err;
             break;
     }
-    if (set->hash == NULL) {
+
+    if (DatasetAppendSet(set) < 0) {
+        SCLogError("dataset %s append failed", name);
         goto out_err;
     }
 
-    if (SC_ATOMIC_GET(set->hash->memcap_reached)) {
-        SCLogError("dataset too large for set memcap");
-        goto out_err;
-    }
-
-    SCLogDebug("set %p/%s type %u save %s load %s",
-            set, set->name, set->type, set->save, set->load);
-
-    set->next = sets;
-    sets = set;
-
-    /* hash size accounting */
-    DEBUG_VALIDATE_BUG_ON(set->hash->config.hash_size != hashsize);
-    DatasetUpdateHashsize(set->name, set->hash->config.hash_size);
-
-    SCMutexUnlock(&sets_lock);
+    DatasetUnlock();
     return set;
 out_err:
     if (set) {
@@ -505,7 +532,7 @@ out_err:
         }
         SCFree(set);
     }
-    SCMutexUnlock(&sets_lock);
+    DatasetUnlock();
     return NULL;
 }
 
@@ -577,7 +604,7 @@ void DatasetPostReloadCleanup(void)
  * despite 2048 commented out in the default yaml. */
 #define DATASETS_HASHSIZE_DEFAULT 4096
 
-static void GetDefaultMemcap(uint64_t *memcap, uint32_t *hashsize)
+void DatasetGetDefaultMemcap(uint64_t *memcap, uint32_t *hashsize)
 {
     const char *str = NULL;
     if (SCConfGet("datasets.defaults.memcap", &str) == 1) {
@@ -606,7 +633,7 @@ int DatasetsInit(void)
     SCConfNode *datasets = SCConfGetNode("datasets");
     uint64_t default_memcap = 0;
     uint32_t default_hashsize = 0;
-    GetDefaultMemcap(&default_memcap, &default_hashsize);
+    DatasetGetDefaultMemcap(&default_memcap, &default_hashsize);
     if (datasets != NULL) {
         const char *str = NULL;
         if (SCConfGet("datasets.limits.total-hashsizes", &str) == 1) {
@@ -1408,7 +1435,7 @@ static int DatasetOpSerialized(Dataset *set, const char *string, DatasetOpFunc D
         }
         case DATASET_TYPE_IPV6: {
             struct in6_addr in6;
-            if (ParseIpv6String(set, string, &in6) != 0) {
+            if (DatasetParseIpv6String(set, string, &in6) != 0) {
                 SCLogError("Dataset failed to import %s as IPv6", string);
                 return -2;
             }
