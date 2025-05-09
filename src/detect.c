@@ -603,9 +603,9 @@ static int SortHelper(const void *a, const void *b)
 {
     const Signature *sa = *(const Signature **)a;
     const Signature *sb = *(const Signature **)b;
-    if (sa->num == sb->num)
+    if (sa->iid == sb->iid)
         return 0;
-    return sa->num > sb->num ? 1 : -1;
+    return sa->iid > sb->iid ? 1 : -1;
 }
 
 static inline uint8_t DetectRulePacketRules(ThreadVars *const tv, DetectEngineCtx *const de_ctx,
@@ -1462,7 +1462,7 @@ static inline void RuleMatchCandidateMergeStateRules(
         if (j > 0) {
             // j > 0 means there is still at least one element in tx_candidates to merge
             const RuleMatchCandidateTx *s0 = &det_ctx->tx_candidates[j - 1];
-            if (s->num <= s0->id) {
+            if (s->iid <= s0->id) {
                 // get next element from previous tx_candidates
                 j--;
                 // take the element from tx_candidates before merge
@@ -1477,7 +1477,7 @@ static inline void RuleMatchCandidateMergeStateRules(
         i--;
         // take the element from match_array
         det_ctx->tx_candidates[k].s = s;
-        det_ctx->tx_candidates[k].id = s->num;
+        det_ctx->tx_candidates[k].id = s->iid;
         det_ctx->tx_candidates[k].flags = NULL;
         det_ctx->tx_candidates[k].stream_reset = 0;
     }
@@ -1573,7 +1573,7 @@ static inline void DetectRunAppendDefaultAccept(DetectEngineThreadCtx *det_ctx, 
         memset(&default_accept, 0, sizeof(default_accept));
         default_accept.action = ACTION_ACCEPT;
         default_accept.action_scope = ACTION_SCOPE_PACKET;
-        default_accept.num = UINT32_MAX;
+        default_accept.iid = UINT32_MAX;
         default_accept.type = SIG_TYPE_PKT;
         default_accept.flags = SIG_FLAG_FIREWALL;
         AlertQueueAppend(det_ctx, &default_accept, p, 0, PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET);
@@ -1719,7 +1719,7 @@ static void DetectRunTx(ThreadVars *tv,
 
             for (uint32_t i = 0; i < det_ctx->pmq.rule_id_array_cnt; i++) {
                 const Signature *s = de_ctx->sig_array[det_ctx->pmq.rule_id_array[i]];
-                const SigIntId id = s->num;
+                const SigIntId id = s->iid;
                 det_ctx->tx_candidates[array_idx].s = s;
                 det_ctx->tx_candidates[array_idx].id = id;
                 det_ctx->tx_candidates[array_idx].flags = NULL;
@@ -1838,7 +1838,7 @@ static void DetectRunTx(ThreadVars *tv,
             while ((i + 1) < array_idx &&
                     det_ctx->tx_candidates[i].s == det_ctx->tx_candidates[i + 1].s) {
                 SCLogDebug("%p/%" PRIu64 " inspecting SKIP NEXT: sid %u (%u), flags %08x",
-                        tx.tx_ptr, tx.tx_id, s->id, s->num, inspect_flags ? *inspect_flags : 0);
+                        tx.tx_ptr, tx.tx_id, s->id, s->iid, inspect_flags ? *inspect_flags : 0);
                 i++;
             }
 
@@ -1864,13 +1864,13 @@ static void DetectRunTx(ThreadVars *tv,
             }
 
             SCLogDebug("%p/%"PRIu64" inspecting: sid %u (%u), flags %08x",
-                    tx.tx_ptr, tx.tx_id, s->id, s->num, inspect_flags ? *inspect_flags : 0);
+                    tx.tx_ptr, tx.tx_id, s->id, s->iid, inspect_flags ? *inspect_flags : 0);
 
             if (inspect_flags) {
                 if (*inspect_flags & DE_STATE_FLAG_FULL_INSPECT) {
                     SCLogDebug("%p/%" PRIu64
                                " inspecting: sid %u (%u), flags %08x DE_STATE_FLAG_FULL_INSPECT",
-                            tx.tx_ptr, tx.tx_id, s->id, s->num, *inspect_flags);
+                            tx.tx_ptr, tx.tx_id, s->id, s->iid, *inspect_flags);
 
                     /* if we're still in the same progress state as an earlier full
                      * match, we need to apply the same accept */
@@ -1890,7 +1890,7 @@ static void DetectRunTx(ThreadVars *tv,
                 if (*inspect_flags & DE_STATE_FLAG_SIG_CANT_MATCH) {
                     SCLogDebug("%p/%" PRIu64
                                " inspecting: sid %u (%u), flags %08x DE_STATE_FLAG_SIG_CANT_MATCH",
-                            tx.tx_ptr, tx.tx_id, s->id, s->num, *inspect_flags);
+                            tx.tx_ptr, tx.tx_id, s->id, s->iid, *inspect_flags);
                     continue;
                 }
             }
@@ -1933,7 +1933,7 @@ static void DetectRunTx(ThreadVars *tv,
                     alert_flags |= PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET;
                 }
 
-                SCLogDebug("%p/%"PRIu64" sig %u (%u) matched", tx.tx_ptr, tx.tx_id, s->id, s->num);
+                SCLogDebug("%p/%"PRIu64" sig %u (%u) matched", tx.tx_ptr, tx.tx_id, s->id, s->iid);
                 AlertQueueAppend(det_ctx, s, p, tx.tx_id, alert_flags);
 
                 if ((s->flags & SIG_FLAG_FIREWALL) && (s->action & ACTION_ACCEPT)) {
@@ -1969,7 +1969,7 @@ static void DetectRunTx(ThreadVars *tv,
                 for (uint32_t j = 0; j < det_ctx->pmq.rule_id_array_cnt; j++) {
                     const Signature *ts = de_ctx->sig_array[det_ctx->pmq.rule_id_array[j]];
                     if (ts->app_inspect != NULL) {
-                        const SigIntId id = ts->num;
+                        const SigIntId id = ts->iid;
                         det_ctx->tx_candidates[array_idx].s = ts;
                         det_ctx->tx_candidates[array_idx].id = id;
                         det_ctx->tx_candidates[array_idx].flags = NULL;
@@ -2104,7 +2104,7 @@ static void DetectRunFrames(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngin
 
             for (uint32_t i = 0; i < det_ctx->pmq.rule_id_array_cnt; i++) {
                 const Signature *s = de_ctx->sig_array[det_ctx->pmq.rule_id_array[i]];
-                const SigIntId id = s->num;
+                const SigIntId id = s->iid;
                 det_ctx->tx_candidates[array_idx].s = s;
                 det_ctx->tx_candidates[array_idx].id = id;
                 det_ctx->tx_candidates[array_idx].flags = NULL;
@@ -2118,7 +2118,7 @@ static void DetectRunFrames(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngin
         for (uint32_t i = 0; i < det_ctx->match_array_cnt; i++) {
             const Signature *s = det_ctx->match_array[i];
             if (s->frame_inspect != NULL) {
-                const SigIntId id = s->num;
+                const SigIntId id = s->iid;
                 det_ctx->tx_candidates[array_idx].s = s;
                 det_ctx->tx_candidates[array_idx].id = id;
                 det_ctx->tx_candidates[array_idx].flags = NULL;
@@ -2145,7 +2145,7 @@ static void DetectRunFrames(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngin
                     det_ctx->tx_candidates[i].s == det_ctx->tx_candidates[i + 1].s) {
                 i++;
             }
-            SCLogDebug("%p/%" PRIi64 " inspecting: sid %u (%u)", frame, frame->id, s->id, s->num);
+            SCLogDebug("%p/%" PRIi64 " inspecting: sid %u (%u)", frame, frame->id, s->id, s->iid);
 
             /* start new inspection */
             SCLogDebug("%p/%" PRIi64 " Start sid %u", frame, frame->id, s->id);
@@ -2162,7 +2162,7 @@ static void DetectRunFrames(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngin
                     uint8_t alert_flags = (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_FRAME);
                     det_ctx->frame_id = frame->id;
                     SCLogDebug(
-                            "%p/%" PRIi64 " sig %u (%u) matched", frame, frame->id, s->id, s->num);
+                            "%p/%" PRIi64 " sig %u (%u) matched", frame, frame->id, s->id, s->iid);
                     if (frame->flags & FRAME_FLAG_TX_ID_SET) {
                         alert_flags |= PACKET_ALERT_FLAG_TX;
                     }

@@ -330,8 +330,8 @@ int SigGroupHeadAppendSig(const DetectEngineCtx *de_ctx, SigGroupHead **sgh,
     }
 
     /* enable the sig in the bitarray */
-    (*sgh)->init->sig_array[s->num / 8] |= 1 << (s->num % 8);
-    (*sgh)->init->max_sig_id = MAX(s->num, (*sgh)->init->max_sig_id);
+    (*sgh)->init->sig_array[s->iid / 8] |= 1 << (s->iid % 8);
+    (*sgh)->init->max_sig_id = MAX(s->iid, (*sgh)->init->max_sig_id);
     return 0;
 
 error:
@@ -514,7 +514,7 @@ void SigGroupHeadPrintSigs(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     for (u = 0; u < (sgh->init->sig_size * 8); u++) {
         if (sgh->init->sig_array[u / 8] & (1 << (u % 8))) {
             SCLogDebug("%" PRIu32, u);
-            printf("s->num %"PRIu32" ", u);
+            printf("s->iid %"PRIu32" ", u);
         }
     }
 

@@ -124,7 +124,7 @@ static void DeStateSignatureAppend(DetectEngineState *state,
             &state->dir_state[(direction & STREAM_TOSERVER) ? 0 : 1];
 
 #ifdef DEBUG_VALIDATION
-    BUG_ON(DeStateSearchState(state, direction, s->num));
+    BUG_ON(DeStateSearchState(state, direction, s->iid));
 #endif
     DeStateStore *store = dir_state->tail;
     if (store == NULL) {
@@ -146,7 +146,7 @@ static void DeStateSignatureAppend(DetectEngineState *state,
         SCReturn;
 
     SigIntId idx = dir_state->cnt % DE_STATE_CHUNK_SIZE;
-    store->store[idx].sid = s->num;
+    store->store[idx].sid = s->iid;
     store->store[idx].flags = inspect_flags;
     dir_state->cnt++;
     /* if current chunk is full, progress cur */
@@ -307,38 +307,38 @@ static int DeStateTest02(void)
     Signature s;
     memset(&s, 0x00, sizeof(s));
 
-    s.num = 0;
+    s.iid = 0;
     DeStateSignatureAppend(state, &s, 0, direction);
-    s.num = 11;
+    s.iid = 11;
     DeStateSignatureAppend(state, &s, 0, direction);
-    s.num = 22;
+    s.iid = 22;
     DeStateSignatureAppend(state, &s, 0, direction);
-    s.num = 33;
+    s.iid = 33;
     DeStateSignatureAppend(state, &s, 0, direction);
-    s.num = 44;
+    s.iid = 44;
     DeStateSignatureAppend(state, &s, 0, direction);
-    s.num = 55;
+    s.iid = 55;
     DeStateSignatureAppend(state, &s, 0, direction);
-    s.num = 66;
+    s.iid = 66;
     DeStateSignatureAppend(state, &s, 0, direction);
-    s.num = 77;
+    s.iid = 77;
     DeStateSignatureAppend(state, &s, 0, direction);
-    s.num = 88;
+    s.iid = 88;
     DeStateSignatureAppend(state, &s, 0, direction);
-    s.num = 99;
+    s.iid = 99;
     DeStateSignatureAppend(state, &s, 0, direction);
-    s.num = 100;
+    s.iid = 100;
     DeStateSignatureAppend(state, &s, 0, direction);
-    s.num = 111;
+    s.iid = 111;
     DeStateSignatureAppend(state, &s, 0, direction);
-    s.num = 122;
+    s.iid = 122;
     DeStateSignatureAppend(state, &s, 0, direction);
-    s.num = 133;
+    s.iid = 133;
     DeStateSignatureAppend(state, &s, 0, direction);
     FAIL_IF_NOT(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head ==
                 state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].cur);
 
-    s.num = 144;
+    s.iid = 144;
     DeStateSignatureAppend(state, &s, 0, direction);
 
     FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head->store[14].sid != 144);
@@ -346,13 +346,13 @@ static int DeStateTest02(void)
             state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].cur);
     FAIL_IF_NOT(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].cur == NULL);
 
-    s.num = 155;
+    s.iid = 155;
     DeStateSignatureAppend(state, &s, 0, direction);
 
     FAIL_IF_NOT(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].tail ==
                 state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].cur);
 
-    s.num = 166;
+    s.iid = 166;
     DeStateSignatureAppend(state, &s, 0, direction);
 
     FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head == NULL);
@@ -368,46 +368,46 @@ static int DeStateTest02(void)
     FAIL_IF_NOT(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head ==
                 state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].cur);
 
-    s.num = 0;
+    s.iid = 0;
     DeStateSignatureAppend(state, &s, 0, direction);
-    s.num = 11;
+    s.iid = 11;
     DeStateSignatureAppend(state, &s, 0, direction);
-    s.num = 22;
+    s.iid = 22;
     DeStateSignatureAppend(state, &s, 0, direction);
-    s.num = 33;
+    s.iid = 33;
     DeStateSignatureAppend(state, &s, 0, direction);
-    s.num = 44;
+    s.iid = 44;
     DeStateSignatureAppend(state, &s, 0, direction);
-    s.num = 55;
+    s.iid = 55;
     DeStateSignatureAppend(state, &s, 0, direction);
-    s.num = 66;
+    s.iid = 66;
     DeStateSignatureAppend(state, &s, 0, direction);
-    s.num = 77;
+    s.iid = 77;
     DeStateSignatureAppend(state, &s, 0, direction);
-    s.num = 88;
+    s.iid = 88;
     DeStateSignatureAppend(state, &s, 0, direction);
-    s.num = 99;
+    s.iid = 99;
     DeStateSignatureAppend(state, &s, 0, direction);
-    s.num = 100;
+    s.iid = 100;
     DeStateSignatureAppend(state, &s, 0, direction);
-    s.num = 111;
+    s.iid = 111;
     DeStateSignatureAppend(state, &s, 0, direction);
-    s.num = 122;
+    s.iid = 122;
     DeStateSignatureAppend(state, &s, 0, direction);
-    s.num = 133;
+    s.iid = 133;
     DeStateSignatureAppend(state, &s, 0, direction);
     FAIL_IF_NOT(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head ==
                 state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].cur);
-    s.num = 144;
+    s.iid = 144;
     DeStateSignatureAppend(state, &s, 0, direction);
     FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head->store[14].sid != 144);
     FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head ==
             state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].cur);
     FAIL_IF_NOT(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].tail ==
                 state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].cur);
-    s.num = 155;
+    s.iid = 155;
     DeStateSignatureAppend(state, &s, 0, direction);
-    s.num = 166;
+    s.iid = 166;
     DeStateSignatureAppend(state, &s, 0, direction);
 
     FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head == NULL);
@@ -432,9 +432,9 @@ static int DeStateTest03(void)
 
     uint8_t direction = STREAM_TOSERVER;
 
-    s.num = 11;
+    s.iid = 11;
     DeStateSignatureAppend(state, &s, 0, direction);
-    s.num = 22;
+    s.iid = 22;
     DeStateSignatureAppend(state, &s, BIT_U32(DE_STATE_FLAG_BASE), direction);
 
     FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head == NULL);

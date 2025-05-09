@@ -2908,7 +2908,7 @@ static Signature *SigInitHelper(
     if (sig->prio == -1)
         sig->prio = DETECT_DEFAULT_PRIO;
 
-    sig->num = de_ctx->signum;
+    sig->iid = de_ctx->signum;
     de_ctx->signum++;
 
     if (sig->alproto != ALPROTO_UNKNOWN) {

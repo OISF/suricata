@@ -1688,7 +1688,7 @@ static int SCThresholdConfTest10(void)
     FAIL_IF(PacketAlertCheck(p1, 10) != 1);
 #if 0
     /* Ensure that a Threshold entry was installed at the sig */
-    FAIL_IF_NULL(de_ctx->ths_ctx.th_entry[s->num]);
+    FAIL_IF_NULL(de_ctx->ths_ctx.th_entry[s->iid]);
 #endif
     UTHFreePacket(p1);
     UTHFreePacket(p2);

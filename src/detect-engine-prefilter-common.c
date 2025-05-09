@@ -132,7 +132,7 @@ static int SetupEngineForPacketHeader(DetectEngineCtx *de_ctx, SigGroupHead *sgh
             ctx->type == type && ctx->value == value)
         {
             SCLogDebug("appending sid %u on %u", s->id, sig_offset);
-            ctx->sigs_array[sig_offset] = s->num;
+            ctx->sigs_array[sig_offset] = s->iid;
             sig_offset++;
 
             s->flags |= SIG_FLAG_PREFILTER;
@@ -156,7 +156,7 @@ static void ApplyToU8Hash(PrefilterPacketU8HashCtx *ctx, PrefilterPacketHeaderVa
         case PREFILTER_U8HASH_MODE_EQ:
             {
                 SigsArray *sa = ctx->array[v.u8[1]];
-                sa->sigs[sa->offset++] = s->num;
+                sa->sigs[sa->offset++] = s->iid;
                 break;
             }
         case PREFILTER_U8HASH_MODE_LT:
@@ -164,7 +164,7 @@ static void ApplyToU8Hash(PrefilterPacketU8HashCtx *ctx, PrefilterPacketHeaderVa
                 uint8_t x = v.u8[1] - 1;
                 do {
                     SigsArray *sa = ctx->array[x];
-                    sa->sigs[sa->offset++] = s->num;
+                    sa->sigs[sa->offset++] = s->iid;
                 } while (x--);
 
                 break;
@@ -174,7 +174,7 @@ static void ApplyToU8Hash(PrefilterPacketU8HashCtx *ctx, PrefilterPacketHeaderVa
                 int x = v.u8[1] + 1;
                 do {
                     SigsArray *sa = ctx->array[x];
-                    sa->sigs[sa->offset++] = s->num;
+                    sa->sigs[sa->offset++] = s->iid;
                 } while (++x < 256);
 
                 break;
@@ -184,7 +184,7 @@ static void ApplyToU8Hash(PrefilterPacketU8HashCtx *ctx, PrefilterPacketHeaderVa
                 int x = v.u8[1] + 1;
                 do {
                     SigsArray *sa = ctx->array[x];
-                    sa->sigs[sa->offset++] = s->num;
+                    sa->sigs[sa->offset++] = s->iid;
                 } while (++x < v.u8[2]);
 
                 break;

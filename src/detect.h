@@ -679,7 +679,7 @@ typedef struct Signature_ {
     uint8_t dsize_mode;
 
     SignatureMask mask;
-    SigIntId num; /**< signature number, internal id */
+    SigIntId iid; /**< signature internal id */
 
     /** inline -- action */
     uint8_t action;
