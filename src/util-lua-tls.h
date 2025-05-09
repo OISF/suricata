@@ -1,4 +1,4 @@
-/* Copyright (C) 2015 Open Information Security Foundation
+/* Copyright (C) 2015-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -24,6 +24,8 @@
 #ifndef SURICATA_UTIL_LUA_TLS_H
 #define SURICATA_UTIL_LUA_TLS_H
 
-int LuaRegisterTlsFunctions(lua_State *luastate);
+#include "lua.h"
+
+int SCLuaLoadTlsLib(lua_State *L);
 
 #endif /* SURICATA_UTIL_LUA_TLS_H */
