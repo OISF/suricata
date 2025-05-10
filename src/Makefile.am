@@ -535,6 +535,7 @@ noinst_HEADERS = \
 	util-lua-dnp3-objects.h \
 	util-lua-dnp3.h \
 	util-lua-dns.h \
+	util-lua-filelib.h \
 	util-lua-flowintlib.h \
 	util-lua-flowlib.h \
 	util-lua-flowvarlib.h \
@@ -1105,6 +1106,7 @@ libsuricata_c_a_SOURCES = \
 	util-lua-dnp3-objects.c \
 	util-lua-dnp3.c \
 	util-lua-dns.c \
+	util-lua-filelib.c \
 	util-lua-flowintlib.c \
 	util-lua-flowlib.c \
 	util-lua-flowvarlib.c \
