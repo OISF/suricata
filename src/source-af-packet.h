@@ -119,6 +119,8 @@ typedef struct AFPIfaceConfig_
     uint8_t xdp_mode;
     const char *out_iface;
 #ifdef HAVE_PACKET_EBPF
+    bool xdp_bypass_erspan2;
+    bool xdp_bypass_vxlan;
     struct ebpf_timeout_config ebpf_t_config;
 #endif
     SC_ATOMIC_DECLARE(unsigned int, ref);
@@ -161,6 +163,8 @@ typedef struct AFPPacketVars_
     uint8_t copy_mode;
     uint16_t vlan_tci;
 #ifdef HAVE_PACKET_EBPF
+    bool xdp_bypass_erspan2;
+    bool xdp_bypass_vxlan;
     int v4_map_fd;
     int v6_map_fd;
     unsigned int nr_cpus;
@@ -202,5 +206,12 @@ void AFPPeersListClean(void);
 int AFPGetLinkType(const char *ifname);
 
 int AFPIsFanoutSupported(uint16_t cluster_id);
+
+#ifdef HAVE_AF_PACKET
+typedef struct Packet_ Packet;
+void AFPReadCopyBypass(Packet *dst, Packet *src);
+#else
+#define AFPReadCopyBypass(dst, src)
+#endif
 
 #endif /* SURICATA_SOURCE_AFP_H */

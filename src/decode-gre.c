@@ -36,6 +36,8 @@
 #include "decode-events.h"
 #include "decode-gre.h"
 
+#include "source-af-packet.h"
+
 #include "util-validate.h"
 #include "util-unittest.h"
 #include "util-debug.h"
@@ -258,6 +260,7 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
                     GRE_FLAG_ISSET_SQ(greh) == 0 ? DECODE_TUNNEL_ERSPANI : DECODE_TUNNEL_ERSPANII);
             if (tp != NULL) {
                 PKT_SET_SRC(tp, PKT_SRC_DECODER_GRE);
+                AFPReadCopyBypass(tp, p);
                 PacketEnqueueNoLock(&tv->decode_pq,tp);
             }
             break;
