@@ -70,7 +70,7 @@ int IPPairBitsTimedoutCheck(IPPair *h, SCTime_t ts)
     for ( ; gv != NULL; gv = gv->next) {
         if (gv->type == DETECT_XBITS) {
             XBit *xb = (XBit *)gv;
-            if (xb->expire > (uint32_t)SCTIME_SECS(ts))
+            if (SCTIME_CMP_GT(xb->expire, ts))
                 return 0;
         }
     }
@@ -91,7 +91,7 @@ static XBit *IPPairBitGet(IPPair *h, uint32_t idx)
 }
 
 /* add a flowbit to the flow */
-static void IPPairBitAdd(IPPair *h, uint32_t idx, uint32_t expire)
+static void IPPairBitAdd(IPPair *h, uint32_t idx, SCTime_t expire)
 {
     XBit *fb = IPPairBitGet(h, idx);
     if (fb == NULL) {
@@ -128,7 +128,7 @@ static void IPPairBitRemove(IPPair *h, uint32_t idx)
     }
 }
 
-void IPPairBitSet(IPPair *h, uint32_t idx, uint32_t expire)
+void IPPairBitSet(IPPair *h, uint32_t idx, SCTime_t expire)
 {
     XBit *fb = IPPairBitGet(h, idx);
     if (fb == NULL) {
@@ -144,7 +144,7 @@ void IPPairBitUnset(IPPair *h, uint32_t idx)
     }
 }
 
-void IPPairBitToggle(IPPair *h, uint32_t idx, uint32_t expire)
+void IPPairBitToggle(IPPair *h, uint32_t idx, SCTime_t expire)
 {
     XBit *fb = IPPairBitGet(h, idx);
     if (fb != NULL) {
@@ -154,11 +154,11 @@ void IPPairBitToggle(IPPair *h, uint32_t idx, uint32_t expire)
     }
 }
 
-int IPPairBitIsset(IPPair *h, uint32_t idx, uint32_t ts)
+int IPPairBitIsset(IPPair *h, uint32_t idx, SCTime_t ts)
 {
     XBit *fb = IPPairBitGet(h, idx);
     if (fb != NULL) {
-        if (fb->expire < ts) {
+        if (SCTIME_CMP_LT(fb->expire, ts)) {
             IPPairBitRemove(h, idx);
             return 0;
         }
@@ -168,14 +168,14 @@ int IPPairBitIsset(IPPair *h, uint32_t idx, uint32_t ts)
     return 0;
 }
 
-int IPPairBitIsnotset(IPPair *h, uint32_t idx, uint32_t ts)
+int IPPairBitIsnotset(IPPair *h, uint32_t idx, SCTime_t ts)
 {
     XBit *fb = IPPairBitGet(h, idx);
     if (fb == NULL) {
         return 1;
     }
 
-    if (fb->expire < ts) {
+    if (SCTIME_CMP_LT(fb->expire, ts)) {
         IPPairBitRemove(h, idx);
         return 1;
     }
@@ -195,7 +195,7 @@ static int IPPairBitTest01 (void)
     if (h == NULL)
         goto end;
 
-    IPPairBitAdd(h, 0, 0);
+    IPPairBitAdd(h, 0, SCTIME_FROM_SECS(0));
 
     XBit *fb = IPPairBitGet(h,0);
     if (fb != NULL)
@@ -235,7 +235,7 @@ static int IPPairBitTest03 (void)
     if (h == NULL)
         goto end;
 
-    IPPairBitAdd(h, 0, 30);
+    IPPairBitAdd(h, 0, SCTIME_FROM_SECS(30));
 
     XBit *fb = IPPairBitGet(h,0);
     if (fb == NULL) {
@@ -268,10 +268,10 @@ static int IPPairBitTest04 (void)
     if (h == NULL)
         goto end;
 
-    IPPairBitAdd(h, 0,30);
-    IPPairBitAdd(h, 1,30);
-    IPPairBitAdd(h, 2,30);
-    IPPairBitAdd(h, 3,30);
+    IPPairBitAdd(h, 0, SCTIME_FROM_SECS(30));
+    IPPairBitAdd(h, 1, SCTIME_FROM_SECS(30));
+    IPPairBitAdd(h, 2, SCTIME_FROM_SECS(30));
+    IPPairBitAdd(h, 3, SCTIME_FROM_SECS(30));
 
     XBit *fb = IPPairBitGet(h,0);
     if (fb != NULL)
@@ -292,10 +292,10 @@ static int IPPairBitTest05 (void)
     if (h == NULL)
         goto end;
 
-    IPPairBitAdd(h, 0,90);
-    IPPairBitAdd(h, 1,90);
-    IPPairBitAdd(h, 2,90);
-    IPPairBitAdd(h, 3,90);
+    IPPairBitAdd(h, 0, SCTIME_FROM_SECS(90));
+    IPPairBitAdd(h, 1, SCTIME_FROM_SECS(90));
+    IPPairBitAdd(h, 2, SCTIME_FROM_SECS(90));
+    IPPairBitAdd(h, 3, SCTIME_FROM_SECS(90));
 
     XBit *fb = IPPairBitGet(h,1);
     if (fb != NULL)
@@ -316,10 +316,10 @@ static int IPPairBitTest06 (void)
     if (h == NULL)
         goto end;
 
-    IPPairBitAdd(h, 0,90);
-    IPPairBitAdd(h, 1,90);
-    IPPairBitAdd(h, 2,90);
-    IPPairBitAdd(h, 3,90);
+    IPPairBitAdd(h, 0, SCTIME_FROM_SECS(90));
+    IPPairBitAdd(h, 1, SCTIME_FROM_SECS(90));
+    IPPairBitAdd(h, 2, SCTIME_FROM_SECS(90));
+    IPPairBitAdd(h, 3, SCTIME_FROM_SECS(90));
 
     XBit *fb = IPPairBitGet(h,2);
     if (fb != NULL)
@@ -340,10 +340,10 @@ static int IPPairBitTest07 (void)
     if (h == NULL)
         goto end;
 
-    IPPairBitAdd(h, 0,90);
-    IPPairBitAdd(h, 1,90);
-    IPPairBitAdd(h, 2,90);
-    IPPairBitAdd(h, 3,90);
+    IPPairBitAdd(h, 0, SCTIME_FROM_SECS(90));
+    IPPairBitAdd(h, 1, SCTIME_FROM_SECS(90));
+    IPPairBitAdd(h, 2, SCTIME_FROM_SECS(90));
+    IPPairBitAdd(h, 3, SCTIME_FROM_SECS(90));
 
     XBit *fb = IPPairBitGet(h,3);
     if (fb != NULL)
@@ -364,10 +364,10 @@ static int IPPairBitTest08 (void)
     if (h == NULL)
         goto end;
 
-    IPPairBitAdd(h, 0,90);
-    IPPairBitAdd(h, 1,90);
-    IPPairBitAdd(h, 2,90);
-    IPPairBitAdd(h, 3,90);
+    IPPairBitAdd(h, 0, SCTIME_FROM_SECS(90));
+    IPPairBitAdd(h, 1, SCTIME_FROM_SECS(90));
+    IPPairBitAdd(h, 2, SCTIME_FROM_SECS(90));
+    IPPairBitAdd(h, 3, SCTIME_FROM_SECS(90));
 
     XBit *fb = IPPairBitGet(h,0);
     if (fb == NULL)
@@ -397,10 +397,10 @@ static int IPPairBitTest09 (void)
     if (h == NULL)
         goto end;
 
-    IPPairBitAdd(h, 0,90);
-    IPPairBitAdd(h, 1,90);
-    IPPairBitAdd(h, 2,90);
-    IPPairBitAdd(h, 3,90);
+    IPPairBitAdd(h, 0, SCTIME_FROM_SECS(90));
+    IPPairBitAdd(h, 1, SCTIME_FROM_SECS(90));
+    IPPairBitAdd(h, 2, SCTIME_FROM_SECS(90));
+    IPPairBitAdd(h, 3, SCTIME_FROM_SECS(90));
 
     XBit *fb = IPPairBitGet(h,1);
     if (fb == NULL)
@@ -430,10 +430,10 @@ static int IPPairBitTest10 (void)
     if (h == NULL)
         goto end;
 
-    IPPairBitAdd(h, 0,90);
-    IPPairBitAdd(h, 1,90);
-    IPPairBitAdd(h, 2,90);
-    IPPairBitAdd(h, 3,90);
+    IPPairBitAdd(h, 0, SCTIME_FROM_SECS(90));
+    IPPairBitAdd(h, 1, SCTIME_FROM_SECS(90));
+    IPPairBitAdd(h, 2, SCTIME_FROM_SECS(90));
+    IPPairBitAdd(h, 3, SCTIME_FROM_SECS(90));
 
     XBit *fb = IPPairBitGet(h,2);
     if (fb == NULL)
@@ -463,10 +463,10 @@ static int IPPairBitTest11 (void)
     if (h == NULL)
         goto end;
 
-    IPPairBitAdd(h, 0,90);
-    IPPairBitAdd(h, 1,90);
-    IPPairBitAdd(h, 2,90);
-    IPPairBitAdd(h, 3,90);
+    IPPairBitAdd(h, 0, SCTIME_FROM_SECS(90));
+    IPPairBitAdd(h, 1, SCTIME_FROM_SECS(90));
+    IPPairBitAdd(h, 2, SCTIME_FROM_SECS(90));
+    IPPairBitAdd(h, 3, SCTIME_FROM_SECS(90));
 
     XBit *fb = IPPairBitGet(h,3);
     if (fb == NULL)

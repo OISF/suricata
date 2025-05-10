@@ -150,7 +150,7 @@ int TagFlowAdd(Packet *p, DetectTagDataEntry *tde)
         if (new_tde != NULL) {
             new_tde->next = FlowGetStorageById(p->flow, flow_tag_id);
             FlowSetStorageById(p->flow, flow_tag_id, new_tde);
-            SCLogDebug("adding tag with first_ts %u", new_tde->first_ts);
+            SCLogDebug("adding tag with first_ts %" PRIu64, new_tde->first_ts.secs);
             (void) SC_ATOMIC_ADD(num_tags, 1);
         }
     } else if (tag_cnt == DETECT_TAG_MAX_TAGS) {
@@ -254,7 +254,7 @@ static void TagHandlePacketFlow(Flow *f, Packet *p)
 
     while (iter != NULL) {
         /* update counters */
-        iter->last_ts = SCTIME_SECS(p->ts);
+        iter->last_ts = p->ts;
         switch (iter->metric) {
             case DETECT_TAG_METRIC_PACKET:
                 iter->packets++;
@@ -329,10 +329,10 @@ static void TagHandlePacketFlow(Flow *f, Packet *p)
                 case DETECT_TAG_METRIC_SECONDS:
                     /* last_ts handles this metric, but also a generic time based
                      * expiration to prevent dead sessions/hosts */
-                    if (iter->last_ts - iter->first_ts > iter->count) {
-                        SCLogDebug("flow tag expired: %u - %u = %u > %u",
-                            iter->last_ts, iter->first_ts,
-                            (iter->last_ts - iter->first_ts), iter->count);
+                    if (iter->last_ts.secs - iter->first_ts.secs > iter->count) {
+                        SCLogDebug("flow tag expired: %" PRIu64 " - %" PRIu64 " = %" PRIu64 " > %u",
+                                iter->last_ts.secs, iter->first_ts.secs,
+                                (iter->last_ts.secs - iter->first_ts.secs), iter->count);
                         /* tag expired */
                         if (prev != NULL) {
                             tde = iter;
@@ -376,7 +376,7 @@ static void TagHandlePacketHost(Host *host, Packet *p)
     prev = NULL;
     while (iter != NULL) {
         /* update counters */
-        iter->last_ts = SCTIME_SECS(p->ts);
+        iter->last_ts = p->ts;
         switch (iter->metric) {
             case DETECT_TAG_METRIC_PACKET:
                 iter->packets++;
@@ -448,10 +448,10 @@ static void TagHandlePacketHost(Host *host, Packet *p)
                 case DETECT_TAG_METRIC_SECONDS:
                     /* last_ts handles this metric, but also a generic time based
                      * expiration to prevent dead sessions/hosts */
-                    if (iter->last_ts - iter->first_ts > iter->count) {
-                        SCLogDebug("host tag expired: %u - %u = %u > %u",
-                            iter->last_ts, iter->first_ts,
-                            (iter->last_ts - iter->first_ts), iter->count);
+                    if (iter->last_ts.secs - iter->first_ts.secs > iter->count) {
+                        SCLogDebug("host tag expired: %" PRIu64 " - %" PRIu64 " = %" PRIu64 " > %u",
+                                iter->last_ts.secs, iter->first_ts.secs,
+                                (iter->last_ts.secs - iter->first_ts.secs), iter->count);
                         /* tag expired */
                         if (prev != NULL) {
                             tde = iter;
@@ -568,7 +568,7 @@ int TagTimeoutCheck(Host *host, SCTime_t ts)
 
     prev = NULL;
     while (tmp != NULL) {
-        SCTime_t timeout_at = SCTIME_FROM_SECS(tmp->last_ts + TAG_MAX_LAST_TIME_SEEN);
+        SCTime_t timeout_at = SCTIME_ADD_SECS(tmp->last_ts, TAG_MAX_LAST_TIME_SEEN);
         if (SCTIME_CMP_GTE(timeout_at, ts)) {
             prev = tmp;
             tmp = tmp->next;
