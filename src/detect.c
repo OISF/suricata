@@ -199,9 +199,8 @@ end:
     SCReturn;
 }
 
-static void DetectRunPostMatch(ThreadVars *tv,
-                               DetectEngineThreadCtx *det_ctx, Packet *p,
-                               const Signature *s)
+static void DetectRunPostMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p,
+        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv)
 {
     /* run the packet match functions */
     const SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_POSTMATCH];
@@ -212,6 +211,10 @@ static void DetectRunPostMatch(ThreadVars *tv,
 
         while (1) {
             KEYWORD_PROFILING_START;
+            if (sigmatch_table[smd->type].AppLayerTxMatch != NULL) {
+                sigmatch_table[smd->type].AppLayerTxMatch(
+                        det_ctx, f, flags, alstate, txv, s, smd->ctx);
+            }
             (void)sigmatch_table[smd->type].Match(det_ctx, p, s, smd->ctx);
             KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
             if (smd->is_last)
@@ -715,7 +718,7 @@ static inline uint8_t DetectRulePacketRules(ThreadVars *const tv, DetectEngineCt
 #ifdef PROFILE_RULES
         smatch = true;
 #endif
-        DetectRunPostMatch(tv, det_ctx, p, s);
+        DetectRunPostMatch(tv, det_ctx, p, s, NULL, 0, NULL, NULL);
 
         uint64_t txid = PACKET_ALERT_NOTX;
         if (pflow && pflow->alstate) {
@@ -1920,7 +1923,7 @@ static void DetectRunTx(ThreadVars *tv,
                     alstate, &tx, s, inspect_flags, can, scratch);
             if (r == 1) {
                 /* match */
-                DetectRunPostMatch(tv, det_ctx, p, s);
+                DetectRunPostMatch(tv, det_ctx, p, s, f, flow_flags, alstate, tx.tx_ptr);
 
                 /* see if we need to apply tx/hook accept to the packet. This can be needed when
                  * we've completed the inspection so far for an incomplete tx, and an accept:tx or
@@ -2158,7 +2161,7 @@ static void DetectRunFrames(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngin
                 r = DetectRunFrameInspectRule(tv, det_ctx, s, f, p, frames, frame);
                 if (r) {
                     /* match */
-                    DetectRunPostMatch(tv, det_ctx, p, s);
+                    DetectRunPostMatch(tv, det_ctx, p, s, NULL, 0, NULL, NULL);
 
                     uint8_t alert_flags = (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_FRAME);
                     det_ctx->frame_id = frame->id;
