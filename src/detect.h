@@ -401,6 +401,9 @@ typedef InspectionBuffer *(*InspectionBufferGetDataPtr)(
         Flow *f, const uint8_t flow_flags,
         void *txv, const int list_id);
 
+typedef bool (*DetectTxGetBufferPtr)(
+        const void *txv, const uint8_t flow_flags, const uint8_t **buf, uint32_t *buf_len);
+
 typedef bool (*InspectionMultiBufferGetDataPtr)(struct DetectEngineThreadCtx_ *det_ctx,
         const void *txv, const uint8_t flow_flags, uint32_t local_id, const uint8_t **buf,
         uint32_t *buf_len);
@@ -426,6 +429,7 @@ typedef struct DetectEngineAppInspectionEngine_ {
     struct {
         union {
             InspectionBufferGetDataPtr GetData;
+            DetectTxGetBufferPtr GetDataSimple;
             InspectionMultiBufferGetDataPtr GetMultiData;
         };
         InspectEngineFuncPtr Callback;
@@ -758,6 +762,7 @@ typedef struct DetectBufferMpmRegistry_ {
         struct {
             union {
                 InspectionBufferGetDataPtr GetData;
+                DetectTxGetBufferPtr GetDataSimple;
                 InspectionMultiBufferGetDataPtr GetMultiData;
             };
             AppProto alproto;

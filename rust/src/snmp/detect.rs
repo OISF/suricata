@@ -22,9 +22,8 @@ use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{DetectUintData, SCDetectU32Free, SCDetectU32Match, SCDetectU32Parse};
 use crate::detect::{
     helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister,
-    DetectHelperBufferRegister, DetectHelperGetData, DetectHelperKeywordRegister,
-    DetectSignatureSetAppProto, SCSigTableAppLiteElmt, SigMatchAppendSMToList,
-    SigTableElmtStickyBuffer,
+    DetectHelperBufferRegister, DetectHelperKeywordRegister, DetectSignatureSetAppProto,
+    SCSigTableAppLiteElmt, SigMatchAppendSMToList, SigTableElmtStickyBuffer,
 };
 use std::os::raw::{c_int, c_void};
 use suricata_sys::sys::{DetectEngineCtx, SCDetectBufferSetActiveList, Signature};
@@ -118,7 +117,7 @@ unsafe extern "C" fn snmp_detect_usm_setup(
     return 0;
 }
 
-unsafe extern "C" fn snmp_detect_usm_get(
+unsafe extern "C" fn snmp_detect_usm_get_data(
     tx: *const c_void, _flow_flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, SNMPTransaction);
@@ -128,21 +127,6 @@ unsafe extern "C" fn snmp_detect_usm_get(
         return true;
     }
     return false;
-}
-
-unsafe extern "C" fn snmp_detect_usm_get_data(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int,
-) -> *mut c_void {
-    return DetectHelperGetData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        snmp_detect_usm_get,
-    );
 }
 
 unsafe extern "C" fn snmp_detect_community_setup(
@@ -157,7 +141,7 @@ unsafe extern "C" fn snmp_detect_community_setup(
     return 0;
 }
 
-unsafe extern "C" fn snmp_detect_community_get(
+unsafe extern "C" fn snmp_detect_community_get_data(
     tx: *const c_void, _flow_flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, SNMPTransaction);
@@ -167,21 +151,6 @@ unsafe extern "C" fn snmp_detect_community_get(
         return true;
     }
     return false;
-}
-
-unsafe extern "C" fn snmp_detect_community_get_data(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int,
-) -> *mut c_void {
-    return DetectHelperGetData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        snmp_detect_community_get,
-    );
 }
 
 pub(super) unsafe extern "C" fn detect_snmp_register() {

@@ -19,7 +19,7 @@
 
 use crate::core::{DetectEngineThreadCtx, STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::{
-    helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister, DetectHelperGetData,
+    helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister,
     DetectHelperMultiBufferMpmRegister, DetectSignatureSetAppProto, SigTableElmtStickyBuffer,
 };
 use crate::direction::Direction;
@@ -91,21 +91,6 @@ unsafe extern "C" fn sip_protocol_setup(
 }
 
 unsafe extern "C" fn sip_protocol_get(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int,
-) -> *mut c_void {
-    return DetectHelperGetData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        sip_protocol_get_data,
-    );
-}
-
-unsafe extern "C" fn sip_protocol_get_data(
     tx: *const c_void, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, SIPTransaction);
@@ -149,21 +134,6 @@ unsafe extern "C" fn sip_stat_code_setup(
 }
 
 unsafe extern "C" fn sip_stat_code_get(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int,
-) -> *mut c_void {
-    return DetectHelperGetData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        sip_stat_code_get_data,
-    );
-}
-
-unsafe extern "C" fn sip_stat_code_get_data(
     tx: *const c_void, _flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, SIPTransaction);
@@ -193,20 +163,6 @@ unsafe extern "C" fn sip_stat_msg_setup(
 }
 
 unsafe extern "C" fn sip_stat_msg_get(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int,
-) -> *mut c_void {
-    return DetectHelperGetData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        sip_stat_msg_get_data,
-    );
-}
-unsafe extern "C" fn sip_stat_msg_get_data(
     tx: *const c_void, _flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, SIPTransaction);
@@ -236,21 +192,6 @@ unsafe extern "C" fn sip_request_line_setup(
 }
 
 unsafe extern "C" fn sip_request_line_get(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int,
-) -> *mut c_void {
-    return DetectHelperGetData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        sip_request_line_get_data,
-    );
-}
-
-unsafe extern "C" fn sip_request_line_get_data(
     tx: *const c_void, _flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, SIPTransaction);
@@ -279,21 +220,6 @@ unsafe extern "C" fn sip_response_line_setup(
 }
 
 unsafe extern "C" fn sip_response_line_get(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int,
-) -> *mut c_void {
-    return DetectHelperGetData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        sip_response_line_get_data,
-    );
-}
-
-unsafe extern "C" fn sip_response_line_get_data(
     tx: *const c_void, _flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, SIPTransaction);

@@ -23,9 +23,8 @@ use crate::detect::uint::{
 };
 use crate::detect::{
     helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister,
-    DetectHelperBufferRegister, DetectHelperGetData, DetectHelperKeywordRegister,
-    DetectSignatureSetAppProto, SCSigTableAppLiteElmt, SigMatchAppendSMToList,
-    SigTableElmtStickyBuffer,
+    DetectHelperBufferRegister, DetectHelperKeywordRegister, DetectSignatureSetAppProto,
+    SCSigTableAppLiteElmt, SigMatchAppendSMToList, SigTableElmtStickyBuffer,
 };
 use crate::websocket::parser::WebSocketOpcode;
 use suricata_sys::sys::{DetectEngineCtx, SCDetectBufferSetActiveList, Signature};
@@ -255,28 +254,13 @@ pub unsafe extern "C" fn websocket_detect_payload_setup(
     return 0;
 }
 
-pub unsafe extern "C" fn websocket_detect_payload_get(
+pub unsafe extern "C" fn websocket_detect_payload_get_data(
     tx: *const c_void, _flow_flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, WebSocketTransaction);
     *buffer = tx.pdu.payload.as_ptr();
     *buffer_len = tx.pdu.payload.len() as u32;
     return true;
-}
-
-pub unsafe extern "C" fn websocket_detect_payload_get_data(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int,
-) -> *mut c_void {
-    return DetectHelperGetData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        websocket_detect_payload_get,
-    );
 }
 
 #[no_mangle]

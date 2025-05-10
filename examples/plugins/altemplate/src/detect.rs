@@ -24,7 +24,7 @@ use super::template::{TemplateTransaction, ALPROTO_TEMPLATE};
 use std::os::raw::{c_int, c_void};
 use suricata::cast_pointer;
 use suricata::detect::{
-    helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister, DetectHelperGetData,
+    helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister,
     DetectSignatureSetAppProto, SigTableElmtStickyBuffer,
 };
 use suricata::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
@@ -46,7 +46,7 @@ unsafe extern "C" fn template_buffer_setup(
 }
 
 /// Get the request/response buffer for a transaction from C.
-unsafe extern "C" fn template_buffer_get_data(
+unsafe extern "C" fn template_buffer_get(
     tx: *const c_void, flags: u8, buf: *mut *const u8, len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, TemplateTransaction);
@@ -62,21 +62,6 @@ unsafe extern "C" fn template_buffer_get_data(
         return true;
     }
     return false;
-}
-
-unsafe extern "C" fn template_buffer_get(
-    de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
-    tx: *const c_void, list_id: c_int,
-) -> *mut c_void {
-    return DetectHelperGetData(
-        de,
-        transforms,
-        flow,
-        flow_flags,
-        tx,
-        list_id,
-        template_buffer_get_data,
-    );
 }
 
 pub(super) unsafe extern "C" fn detect_template_register() {
