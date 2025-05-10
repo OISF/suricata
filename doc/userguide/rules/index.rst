@@ -53,5 +53,6 @@ Suricata Rules
    tag
    vlan-keywords
    ldap-keywords
-   rule-types
    email-keywords
+   rule-types
+.. please leave 'rule-types' as last item when adding keyword items

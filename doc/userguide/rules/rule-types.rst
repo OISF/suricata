@@ -290,7 +290,7 @@ for one or more of rule(s) shown.
 Decoder Events Only
 ^^^^^^^^^^^^^^^^^^^
 
-Signatures the inspect broken or invalid packets. They expose Suricata decoding
+Signatures that inspect broken or invalid packets. They expose Suricata decoding
 events.
 
 For more examples check https://github.com/OISF/suricata/blob/master/rules/decoder-events.rules.
