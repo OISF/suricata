@@ -128,13 +128,18 @@ bool EveFTPLogCommand(void *vtx, SCJsonBuilder *jb)
         SCJbSetUint(jb, "dynamic_port", tx->dyn_port);
     }
 
-    if (tx->command_descriptor.command_code == FTP_COMMAND_PORT ||
-            tx->command_descriptor.command_code == FTP_COMMAND_EPRT) {
-        if (tx->active) {
-            JB_SET_STRING(jb, "mode", "active");
-        } else {
-            JB_SET_STRING(jb, "mode", "passive");
-        }
+    switch (tx->command_descriptor.command_code) {
+        case FTP_COMMAND_PORT:
+        case FTP_COMMAND_EPRT:
+        case FTP_COMMAND_PASV:
+        case FTP_COMMAND_EPSV:
+            if (tx->active) {
+                JB_SET_STRING(jb, "mode", "active");
+            } else {
+                JB_SET_STRING(jb, "mode", "passive");
+            }
+        default:
+            break;
     }
 
     if (tx->done) {
