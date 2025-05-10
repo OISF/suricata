@@ -15,7 +15,7 @@
 * 02110-1301, USA.
 */
 use crate::applayer::{self, *};
-use crate::core::{ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP};
+use crate::core::*;
 use crate::flow::Flow;
 
 use std::ffi::CString;
@@ -180,7 +180,9 @@ impl ModbusState {
         }
     }
 
-    pub fn parse(&mut self, input: &[u8], direction: Direction) -> AppLayerResult {
+    pub fn parse(
+        &mut self, flow: *const Flow, input: &[u8], direction: Direction,
+    ) -> AppLayerResult {
         let mut rest = input;
         while !rest.is_empty() {
             match MODBUS_PARSER.parse(rest, direction.clone()) {
@@ -193,6 +195,12 @@ impl ModbusState {
                                     tx.tx_data.updated_tc = true;
                                     tx.tx_data.updated_ts = true;
                                     tx.request = Some(msg);
+                                    if !flow.is_null() {
+                                        sc_app_layer_parser_trigger_raw_stream_reassembly(
+                                            flow,
+                                            Direction::ToServer as i32,
+                                        );
+                                    }
                                 }
                                 None => {
                                     let mut tx = match self.new_tx() {
@@ -202,6 +210,12 @@ impl ModbusState {
                                     tx.set_events_from_flags(&msg.error_flags);
                                     tx.request = Some(msg);
                                     self.transactions.push(tx);
+                                    if !flow.is_null() {
+                                        sc_app_layer_parser_trigger_raw_stream_reassembly(
+                                            flow,
+                                            Direction::ToServer as i32,
+                                        );
+                                    }
                                 }
                             }
                         }
@@ -221,6 +235,12 @@ impl ModbusState {
                                 tx.tx_data.updated_tc = true;
                                 tx.tx_data.updated_ts = true;
                                 tx.response = Some(msg);
+                                if !flow.is_null() {
+                                    sc_app_layer_parser_trigger_raw_stream_reassembly(
+                                        flow,
+                                        Direction::ToClient as i32,
+                                    );
+                                }
                             }
                             None => {
                                 let mut tx = match self.new_tx() {
@@ -241,6 +261,12 @@ impl ModbusState {
                                 tx.response = Some(msg);
                                 tx.set_event(ModbusEvent::UnsolicitedResponse);
                                 self.transactions.push(tx);
+                                if !flow.is_null() {
+                                    sc_app_layer_parser_trigger_raw_stream_reassembly(
+                                        flow,
+                                        Direction::ToClient as i32,
+                                    );
+                                }
                             }
                         },
                     }
@@ -310,9 +336,8 @@ unsafe extern "C" fn modbus_state_tx_free(state: *mut std::os::raw::c_void, tx_i
 }
 
 unsafe extern "C" fn modbus_parse_request(
-    _flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
-    stream_slice: StreamSlice,
-    _data: *const std::os::raw::c_void,
+    flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let buf = stream_slice.as_slice();
     if buf.is_empty() {
@@ -324,13 +349,12 @@ unsafe extern "C" fn modbus_parse_request(
     }
 
     let state = cast_pointer!(state, ModbusState);
-    state.parse(buf, Direction::ToServer)
+    state.parse(flow, buf, Direction::ToServer)
 }
 
 unsafe extern "C" fn modbus_parse_response(
-    _flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
-    stream_slice: StreamSlice,
-    _data: *const std::os::raw::c_void,
+    flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let buf = stream_slice.as_slice();
     if buf.is_empty() {
@@ -342,7 +366,7 @@ unsafe extern "C" fn modbus_parse_response(
     }
 
     let state = cast_pointer!(state, ModbusState);
-    state.parse(buf, Direction::ToClient)
+    state.parse(flow, buf, Direction::ToClient)
 }
 
 #[no_mangle]
@@ -415,7 +439,12 @@ pub unsafe extern "C" fn SCRegisterModbusParser() {
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();
-    if AppLayerProtoDetectConfProtoDetectionEnabledDefault(ip_proto_str.as_ptr(), parser.name, false) != 0 {
+    if AppLayerProtoDetectConfProtoDetectionEnabledDefault(
+        ip_proto_str.as_ptr(),
+        parser.name,
+        false,
+    ) != 0
+    {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_MODBUS = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
@@ -963,7 +992,7 @@ mod tests {
         let mut state = ModbusState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(RD_COILS_REQ, Direction::ToServer)
+            state.parse(std::ptr::null(), RD_COILS_REQ, Direction::ToServer)
         );
         assert_eq!(state.transactions.len(), 1);
 
@@ -980,7 +1009,7 @@ mod tests {
 
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(RD_COILS_RESP, Direction::ToClient)
+            state.parse(std::ptr::null(), RD_COILS_RESP, Direction::ToClient)
         );
         assert_eq!(state.transactions.len(), 1);
 
@@ -995,7 +1024,7 @@ mod tests {
         let mut state = ModbusState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(WR_MULT_REG_REQ, Direction::ToServer)
+            state.parse(std::ptr::null(), WR_MULT_REG_REQ, Direction::ToServer)
         );
         assert_eq!(state.transactions.len(), 1);
 
@@ -1013,7 +1042,7 @@ mod tests {
 
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(WR_MULT_REG_RESP, Direction::ToClient)
+            state.parse(std::ptr::null(), WR_MULT_REG_RESP, Direction::ToClient)
         );
         assert_eq!(state.transactions.len(), 1);
 
@@ -1034,7 +1063,7 @@ mod tests {
         let mut state = ModbusState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(RD_WR_MULT_REG_REQ, Direction::ToServer)
+            state.parse(std::ptr::null(), RD_WR_MULT_REG_REQ, Direction::ToServer)
         );
         assert_eq!(state.transactions.len(), 1);
 
@@ -1058,7 +1087,7 @@ mod tests {
 
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(RD_WR_MULT_REG_RESP, Direction::ToClient)
+            state.parse(std::ptr::null(), RD_WR_MULT_REG_RESP, Direction::ToClient)
         );
         assert_eq!(state.transactions.len(), 1);
 
@@ -1078,7 +1107,11 @@ mod tests {
         let mut state = ModbusState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(FORCE_LISTEN_ONLY_MODE, Direction::ToServer)
+            state.parse(
+                std::ptr::null(),
+                FORCE_LISTEN_ONLY_MODE,
+                Direction::ToServer
+            )
         );
         assert_eq!(state.transactions.len(), 1);
 
@@ -1102,7 +1135,7 @@ mod tests {
         let mut state = ModbusState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(INVALID_PROTO_REQ, Direction::ToServer)
+            state.parse(std::ptr::null(), INVALID_PROTO_REQ, Direction::ToServer)
         );
 
         assert_eq!(state.transactions.len(), 1);
@@ -1116,7 +1149,7 @@ mod tests {
         let mut state = ModbusState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(RD_COILS_RESP, Direction::ToClient)
+            state.parse(std::ptr::null(), RD_COILS_RESP, Direction::ToClient)
         );
         assert_eq!(state.transactions.len(), 1);
 
@@ -1131,7 +1164,11 @@ mod tests {
         let mut state = ModbusState::new();
         assert_eq!(
             AppLayerResult::incomplete(15, 4),
-            state.parse(INVALID_LEN_WR_MULT_REG_REQ, Direction::ToServer)
+            state.parse(
+                std::ptr::null(),
+                INVALID_LEN_WR_MULT_REG_REQ,
+                Direction::ToServer
+            )
         );
         assert_eq!(state.transactions.len(), 1);
 
@@ -1154,7 +1191,7 @@ mod tests {
         let mut state = ModbusState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(RD_COILS_REQ, Direction::ToServer)
+            state.parse(std::ptr::null(), RD_COILS_REQ, Direction::ToServer)
         );
         assert_eq!(state.transactions.len(), 1);
 
@@ -1171,7 +1208,7 @@ mod tests {
 
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(RD_COILS_ERR_RESP, Direction::ToClient)
+            state.parse(std::ptr::null(), RD_COILS_ERR_RESP, Direction::ToClient)
         );
         assert_eq!(state.transactions.len(), 1);
 
@@ -1193,6 +1230,7 @@ mod tests {
         assert_eq!(
             AppLayerResult::incomplete(0, 12),
             state.parse(
+                std::ptr::null(),
                 &RD_COILS_REQ[0..(RD_COILS_REQ.len() - 3)],
                 Direction::ToServer
             )
@@ -1200,7 +1238,7 @@ mod tests {
         assert_eq!(state.transactions.len(), 0);
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(RD_COILS_REQ, Direction::ToServer)
+            state.parse(std::ptr::null(), RD_COILS_REQ, Direction::ToServer)
         );
         assert_eq!(state.transactions.len(), 1);
 
@@ -1223,7 +1261,10 @@ mod tests {
         let resp = [RD_COILS_RESP, WR_MULT_REG_RESP].concat();
 
         let mut state = ModbusState::new();
-        assert_eq!(AppLayerResult::ok(), state.parse(&req, Direction::ToServer));
+        assert_eq!(
+            AppLayerResult::ok(),
+            state.parse(std::ptr::null(), &req, Direction::ToServer)
+        );
         assert_eq!(state.transactions.len(), 2);
 
         let tx = &state.transactions[0];
@@ -1251,7 +1292,7 @@ mod tests {
 
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(&resp, Direction::ToClient)
+            state.parse(std::ptr::null(), &resp, Direction::ToClient)
         );
         assert_eq!(state.transactions.len(), 2);
 
@@ -1277,7 +1318,11 @@ mod tests {
         let mut state = ModbusState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(EXCEEDED_LEN_WR_MULT_REG_REQ, Direction::ToServer)
+            state.parse(
+                std::ptr::null(),
+                EXCEEDED_LEN_WR_MULT_REG_REQ,
+                Direction::ToServer
+            )
         );
 
         assert_eq!(state.transactions.len(), 1);
@@ -1291,7 +1336,11 @@ mod tests {
         let mut state = ModbusState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(INVALID_PDU_WR_MULT_REG_REQ, Direction::ToServer)
+            state.parse(
+                std::ptr::null(),
+                INVALID_PDU_WR_MULT_REG_REQ,
+                Direction::ToServer
+            )
         );
 
         assert_eq!(state.transactions.len(), 1);
@@ -1307,7 +1356,7 @@ mod tests {
         let mut state = ModbusState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(MASK_WR_REG_REQ, Direction::ToServer)
+            state.parse(std::ptr::null(), MASK_WR_REG_REQ, Direction::ToServer)
         );
         assert_eq!(state.transactions.len(), 1);
 
@@ -1325,7 +1374,7 @@ mod tests {
 
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(MASK_WR_REG_RESP, Direction::ToClient)
+            state.parse(std::ptr::null(), MASK_WR_REG_RESP, Direction::ToClient)
         );
         assert_eq!(state.transactions.len(), 1);
 
@@ -1347,7 +1396,7 @@ mod tests {
         let mut state = ModbusState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(WR_SINGLE_REG_REQ, Direction::ToServer)
+            state.parse(std::ptr::null(), WR_SINGLE_REG_REQ, Direction::ToServer)
         );
         assert_eq!(state.transactions.len(), 1);
 
@@ -1364,7 +1413,7 @@ mod tests {
 
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(WR_SINGLE_REG_RESP, Direction::ToClient)
+            state.parse(std::ptr::null(), WR_SINGLE_REG_RESP, Direction::ToClient)
         );
         assert_eq!(state.transactions.len(), 1);
 
@@ -1385,7 +1434,11 @@ mod tests {
         let mut state = ModbusState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(INVALID_MASK_WR_REG_REQ, Direction::ToServer)
+            state.parse(
+                std::ptr::null(),
+                INVALID_MASK_WR_REG_REQ,
+                Direction::ToServer
+            )
         );
         assert_eq!(state.transactions.len(), 1);
 
@@ -1397,7 +1450,7 @@ mod tests {
 
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(MASK_WR_REG_RESP, Direction::ToClient)
+            state.parse(std::ptr::null(), MASK_WR_REG_RESP, Direction::ToClient)
         );
         assert_eq!(state.transactions.len(), 1);
 
@@ -1419,7 +1472,11 @@ mod tests {
         let mut state = ModbusState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(INVALID_WR_SINGLE_REG_REQ, Direction::ToServer)
+            state.parse(
+                std::ptr::null(),
+                INVALID_WR_SINGLE_REG_REQ,
+                Direction::ToServer
+            )
         );
         assert_eq!(state.transactions.len(), 1);
 
@@ -1431,7 +1488,7 @@ mod tests {
 
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(WR_SINGLE_REG_RESP, Direction::ToClient)
+            state.parse(std::ptr::null(), WR_SINGLE_REG_RESP, Direction::ToClient)
         );
         assert_eq!(state.transactions.len(), 1);
 
@@ -1452,7 +1509,7 @@ mod tests {
         let mut state = ModbusState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(INVALID_FUNC_CODE, Direction::ToServer)
+            state.parse(std::ptr::null(), INVALID_FUNC_CODE, Direction::ToServer)
         );
         assert_eq!(state.transactions.len(), 1);
 

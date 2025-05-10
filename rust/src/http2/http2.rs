@@ -32,12 +32,12 @@ use crate::frames::Frame;
 use crate::dns::dns::{dns_parse_request, dns_parse_response, DNSTransaction};
 
 use nom7::Err;
-use suricata_sys::sys::AppProto;
 use std;
 use std::collections::VecDeque;
 use std::ffi::CString;
 use std::fmt;
 use std::io;
+use suricata_sys::sys::AppProto;
 
 static mut ALPROTO_HTTP2: AppProto = ALPROTO_UNKNOWN;
 static mut ALPROTO_DOH2: AppProto = ALPROTO_UNKNOWN;
@@ -1282,6 +1282,7 @@ impl HTTP2State {
                             None => panic!("no SURICATA_HTTP2_FILE_CONFIG"),
                         }
                     }
+                    sc_app_layer_parser_trigger_raw_stream_reassembly(flow, dir as i32);
                     input = &rem[hlsafe..];
                 }
                 Err(Err::Incomplete(_)) => {
@@ -1491,9 +1492,7 @@ unsafe extern "C" fn http2_state_get_tx_count(state: *mut std::os::raw::c_void) 
     return state.tx_id;
 }
 
-unsafe extern "C" fn http2_tx_get_state(
-    tx: *mut std::os::raw::c_void,
-) -> HTTP2TransactionState {
+unsafe extern "C" fn http2_tx_get_state(tx: *mut std::os::raw::c_void) -> HTTP2TransactionState {
     let tx = cast_pointer!(tx, HTTP2Transaction);
     return tx.state;
 }

@@ -237,6 +237,10 @@ impl LdapState {
                     tx.complete |= tx_is_complete(&request.protocol_op, Direction::ToServer);
                     tx.request = Some(request);
                     self.transactions.push_back(tx);
+                    sc_app_layer_parser_trigger_raw_stream_reassembly(
+                        flow,
+                        Direction::ToServer as i32,
+                    );
                     let consumed = start.len() - rem.len();
                     start = rem;
                     self.set_frame_ts(flow, tx_id, consumed as i64);
@@ -304,6 +308,10 @@ impl LdapState {
                         let tx_id = tx.id();
                         tx.tx_data.updated_tc = true;
                         tx.responses.push_back(response);
+                        sc_app_layer_parser_trigger_raw_stream_reassembly(
+                            flow,
+                            Direction::ToClient as i32,
+                        );
                         let consumed = start.len() - rem.len();
                         self.set_frame_tc(flow, tx_id, consumed as i64);
                     } else if let ProtocolOp::ExtendedResponse(_) = response.protocol_op {
@@ -318,6 +326,10 @@ impl LdapState {
                         tx.complete = true;
                         tx.responses.push_back(response);
                         self.transactions.push_back(tx);
+                        sc_app_layer_parser_trigger_raw_stream_reassembly(
+                            flow,
+                            Direction::ToClient as i32,
+                        );
                         let consumed = start.len() - rem.len();
                         self.set_frame_tc(flow, tx_id, consumed as i64);
                     } else {
@@ -330,6 +342,10 @@ impl LdapState {
                         let tx_id = tx.id();
                         tx.responses.push_back(response);
                         self.transactions.push_back(tx);
+                        sc_app_layer_parser_trigger_raw_stream_reassembly(
+                            flow,
+                            Direction::ToClient as i32,
+                        );
                         self.set_event(LdapEvent::RequestNotFound);
                         let consumed = start.len() - rem.len();
                         self.set_frame_tc(flow, tx_id, consumed as i64);
