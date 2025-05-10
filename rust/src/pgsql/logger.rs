@@ -29,8 +29,15 @@ pub const PGSQL_LOG_PASSWORDS: u32 = BIT_U32!(0);
 fn log_pgsql(tx: &PgsqlTransaction, flags: u32, js: &mut JsonBuilder) -> Result<(), JsonError> {
     js.open_object("pgsql")?;
     js.set_uint("tx_id", tx.tx_id)?;
-    if let Some(request) = &tx.request {
-        js.set_object("request", &log_request(request, flags)?)?;
+    if !tx.requests.is_empty() {
+        // For now, even if 'requests' is an array, we don't need to log it as such, as
+        // there are no duplicated messages
+        js.open_object("request")?;
+        for request in &tx.requests {
+            SCLogNotice!("Suricata requests length: {}", tx.requests.len());
+            log_request(request, flags, js)?;
+        }
+        js.close()?;
     } else if tx.responses.is_empty() {
         SCLogDebug!("Suricata created an empty PGSQL transaction");
         // TODO Log anomaly event?
@@ -48,8 +55,7 @@ fn log_pgsql(tx: &PgsqlTransaction, flags: u32, js: &mut JsonBuilder) -> Result<
     Ok(())
 }
 
-fn log_request(req: &PgsqlFEMessage, flags: u32) -> Result<JsonBuilder, JsonError> {
-    let mut js = JsonBuilder::try_new_object()?;
+fn log_request(req: &PgsqlFEMessage, flags: u32, js: &mut JsonBuilder) -> Result<(), JsonError> {
     match req {
         PgsqlFEMessage::StartupMessage(StartupPacket {
             length: _,
@@ -94,6 +100,11 @@ fn log_request(req: &PgsqlFEMessage, flags: u32) -> Result<JsonBuilder, JsonErro
             identifier: _,
             length: _,
             payload,
+        })
+        | PgsqlFEMessage::CopyFail(RegularPacket {
+            identifier: _,
+            length: _,
+            payload,
         }) => {
             js.set_string_from_bytes(req.to_str(), payload)?;
         }
@@ -102,10 +113,18 @@ fn log_request(req: &PgsqlFEMessage, flags: u32) -> Result<JsonBuilder, JsonErro
             js.set_uint("process_id", *pid)?;
             js.set_uint("secret_key", *backend_key)?;
         }
-        PgsqlFEMessage::Terminate(NoPayloadMessage {
+        PgsqlFEMessage::ConsolidatedCopyDataIn(ConsolidatedDataRowPacket {
             identifier: _,
-            length: _,
+            row_cnt,
+            data_size,
         }) => {
+            js.open_object(req.to_str())?;
+            js.set_uint("msg_count", *row_cnt)?;
+            js.set_uint("data_size", *data_size)?;
+            js.close()?;
+        }
+        PgsqlFEMessage::CopyDone(_)
+        | PgsqlFEMessage::Terminate(_) => {
             js.set_string("message", req.to_str())?;
         }
         PgsqlFEMessage::UnknownMessageType(RegularPacket {
@@ -116,8 +135,7 @@ fn log_request(req: &PgsqlFEMessage, flags: u32) -> Result<JsonBuilder, JsonErro
             // We don't want to log these, for now. Cf redmine: #6576
         }
     }
-    js.close()?;
-    Ok(js)
+    Ok(())
 }
 
 fn log_response_object(tx: &PgsqlTransaction) -> Result<JsonBuilder, JsonError> {
@@ -209,7 +227,12 @@ fn log_response(res: &PgsqlBEMessage, jb: &mut JsonBuilder) -> Result<(), JsonEr
         }) => {
             // We take care of these elsewhere
         }
-        PgsqlBEMessage::CopyOutResponse(CopyOutResponse {
+        PgsqlBEMessage::CopyOutResponse(CopyResponse {
+            identifier: _,
+            length: _,
+            column_cnt,
+        })
+        | PgsqlBEMessage::CopyInResponse(CopyResponse {
             identifier: _,
             length: _,
             column_cnt,
