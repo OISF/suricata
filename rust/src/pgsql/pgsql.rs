@@ -635,14 +635,14 @@ impl PgsqlState {
                                 && tx.get_row_cnt() > 0
                             {
                                 // let's summarize the info from the data_rows in one response
-                                let dummy_resp = PgsqlBEMessage::ConsolidatedDataRow(
+                                let consolidated_data_row = PgsqlBEMessage::ConsolidatedDataRow(
                                     ConsolidatedDataRowPacket {
                                         identifier: b'D',
                                         row_cnt: tx.get_row_cnt(),
                                         data_size: tx.data_size, // total byte count of all data_row messages combined
                                     },
                                 );
-                                tx.responses.push(dummy_resp);
+                                tx.responses.push(consolidated_data_row);
                                 tx.responses.push(response);
                                 // reset values
                                 tx.data_row_cnt = 0;
@@ -651,14 +651,14 @@ impl PgsqlState {
                                 tx.incr_row_cnt();
                             } else if state == PgsqlStateProgress::CopyDoneReceived && tx.get_row_cnt() > 0 {
                                 // let's summarize the info from the data_rows in one response
-                                let dummy_resp = PgsqlBEMessage::ConsolidatedCopyDataOut(
+                                let consolidated_copy_data = PgsqlBEMessage::ConsolidatedCopyDataOut(
                                     ConsolidatedDataRowPacket {
                                         identifier: b'd',
                                         row_cnt: tx.get_row_cnt(),
                                         data_size: tx.data_size, // total byte count of all data_row messages combined
                                     },
                                 );
-                                tx.responses.push(dummy_resp);
+                                tx.responses.push(consolidated_copy_data);
                                 tx.responses.push(response);
                                 // reset values
                                 tx.data_row_cnt = 0;
