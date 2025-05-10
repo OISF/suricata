@@ -461,6 +461,11 @@ typedef struct DetectEngineAppInspectionEngine_ {
     struct DetectEngineAppInspectionEngine_ *next;
 } DetectEngineAppInspectionEngine;
 
+typedef struct TransformIdData_ {
+    uint8_t *id_data;
+    uint32_t id_data_len;
+} TransformIdData;
+
 typedef struct DetectBufferType_ {
     char name[64];
     char description[128];
@@ -475,6 +480,7 @@ typedef struct DetectBufferType_ {
     bool (*ValidateCallback)(
             const struct Signature_ *, const char **sigerror, const struct DetectBufferType_ *);
     DetectEngineTransforms transforms;
+    TransformIdData xform_id[DETECT_TRANSFORMS_MAX];
 } DetectBufferType;
 
 struct DetectEnginePktInspectionEngine;
@@ -1408,6 +1414,9 @@ typedef struct SigTableElmt_ {
     /** InspectionBuffer transformation callback */
     void (*Transform)(DetectEngineThreadCtx *, InspectionBuffer *, void *context);
     bool (*TransformValidate)(const uint8_t *content, uint16_t content_len, void *context);
+
+    /** Transform identity callback */
+    void (*TransformId)(uint8_t **data, uint32_t *length, const void *context);
 
     /** keyword setup function pointer */
     int (*Setup)(DetectEngineCtx *, Signature *, const char *);
