@@ -522,7 +522,6 @@ noinst_HEADERS = \
 	util-ioctl.h \
 	util-ip.h \
 	util-ja3.h \
-	util-ja4.h \
 	util-landlock.h \
 	util-logopenfile.h \
 	util-log-redis.h \

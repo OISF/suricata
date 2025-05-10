@@ -124,7 +124,7 @@ fn log_quic(tx: &QuicTransaction, js: &mut JsonBuilder) -> Result<(), JsonError>
     }
 
     if let Some(ref ja4) = &tx.ja4 {
-        js.set_string("ja4", ja4)?;
+        js.set_string("ja4", ja4.as_ref())?;
     }
 
     if !tx.extv.is_empty() {

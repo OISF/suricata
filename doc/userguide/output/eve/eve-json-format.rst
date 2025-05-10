@@ -1053,6 +1053,11 @@ In addition to this, custom logging also allows the following fields:
 
 * "certificate": The TLS certificate base64 encoded
 * "chain": The entire TLS certificate chain base64 encoded
+* "client_handshake": structure containing "version", "ciphers" ([u16]), "exts" ([u16]), "sig_algs" ([u16]),
+  for client hello supported cipher suites, extensions, and signature algorithms,
+  respectively, in the order that they're mentioned (ie. unsorted)
+* "server_handshake": structure containing "version", "chosen cipher", "exts" ([u16]), for server hello
+  in the order that they're mentioned (ie. unsorted)
 
 Examples
 ~~~~~~~~
