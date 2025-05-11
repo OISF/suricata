@@ -244,6 +244,16 @@ pub struct SigMatchCtx_ {
     _unused: [u8; 0],
 }
 pub type SigMatchCtx = SigMatchCtx_;
+pub type InspectionMultiBufferGetDataPtr = ::std::option::Option<
+    unsafe extern "C" fn(
+        det_ctx: *mut DetectEngineThreadCtx_,
+        txv: *const ::std::os::raw::c_void,
+        flow_flags: u8,
+        local_id: u32,
+        buf: *mut *const u8,
+        buf_len: *mut u32,
+    ) -> bool,
+>;
 #[doc = " App-layer light version of SigTableElmt"]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -315,6 +325,13 @@ pub struct SCTransformTableElmt {
 }
 extern "C" {
     pub fn SCDetectHelperNewKeywordId() -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCDetectHelperMultiBufferProgressMpmRegister(
+        name: *const ::std::os::raw::c_char, desc: *const ::std::os::raw::c_char,
+        alproto: AppProto, direction: u8, GetData: InspectionMultiBufferGetDataPtr,
+        progress: ::std::os::raw::c_int,
+    ) -> ::std::os::raw::c_int;
 }
 extern "C" {
     pub fn SCDetectHelperTransformRegister(
