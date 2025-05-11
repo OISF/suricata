@@ -23,14 +23,16 @@ use crate::detect::uint::{
 };
 use crate::detect::{
     helper_keyword_register_sticky_buffer, DetectHelperBufferRegister,
-    DetectHelperKeywordAliasRegister, DetectHelperKeywordRegister,
-    DetectHelperMultiBufferProgressMpmRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
-    SigMatchAppendSMToList, SigTableElmtStickyBuffer,
+    DetectHelperKeywordAliasRegister, DetectHelperKeywordRegister, DetectSignatureSetAppProto,
+    SCSigTableAppLiteElmt, SigMatchAppendSMToList, SigTableElmtStickyBuffer,
 };
 use crate::direction::Direction;
 use std::ffi::CStr;
 use std::os::raw::{c_int, c_void};
-use suricata_sys::sys::{DetectEngineCtx, SCDetectBufferSetActiveList, Signature};
+use suricata_sys::sys::{
+    DetectEngineCtx, SCDetectBufferSetActiveList, SCDetectHelperMultiBufferProgressMpmRegister,
+    Signature,
+};
 
 /// Perform the DNS opcode match.
 ///
@@ -330,14 +332,14 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         setup: dns_detect_answer_name_setup,
     };
     let _g_dns_answer_name_kw_id = helper_keyword_register_sticky_buffer(&kw);
-    G_DNS_ANSWER_NAME_BUFFER_ID = DetectHelperMultiBufferProgressMpmRegister(
+    G_DNS_ANSWER_NAME_BUFFER_ID = SCDetectHelperMultiBufferProgressMpmRegister(
         b"dns.answer.name\0".as_ptr() as *const libc::c_char,
         b"dns answer name\0".as_ptr() as *const libc::c_char,
         ALPROTO_DNS,
         STREAM_TOSERVER | STREAM_TOCLIENT,
         /* Register also in the TO_SERVER direction, even though this is not
         normal, it could be provided as part of a request. */
-        dns_tx_get_answer_name,
+        Some(dns_tx_get_answer_name),
         1, // response complete
     );
     let kw = SCSigTableAppLiteElmt {
@@ -362,14 +364,14 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         setup: dns_detect_query_name_setup,
     };
     let _g_dns_query_name_kw_id = helper_keyword_register_sticky_buffer(&kw);
-    G_DNS_QUERY_NAME_BUFFER_ID = DetectHelperMultiBufferProgressMpmRegister(
+    G_DNS_QUERY_NAME_BUFFER_ID = SCDetectHelperMultiBufferProgressMpmRegister(
         b"dns.query.name\0".as_ptr() as *const libc::c_char,
         b"dns query name\0".as_ptr() as *const libc::c_char,
         ALPROTO_DNS,
         STREAM_TOSERVER | STREAM_TOCLIENT,
         /* Register in both directions as the query is usually echoed back
         in the response. */
-        dns_tx_get_query_name,
+        Some(dns_tx_get_query_name),
         1, // request or response complete
     );
     let kw = SCSigTableAppLiteElmt {
@@ -413,13 +415,13 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         g_dns_query_name_kw_id,
         b"dns_query\0".as_ptr() as *const libc::c_char,
     );
-    G_DNS_QUERY_BUFFER_ID = DetectHelperMultiBufferProgressMpmRegister(
+    G_DNS_QUERY_BUFFER_ID = SCDetectHelperMultiBufferProgressMpmRegister(
         b"dns_query\0".as_ptr() as *const libc::c_char,
         b"dns request query\0".as_ptr() as *const libc::c_char,
         ALPROTO_DNS,
         STREAM_TOSERVER,
-        dns_tx_get_query, // reuse, will be called only toserver
-        1,                // request complete
+        Some(dns_tx_get_query), // reuse, will be called only toserver
+        1,                      // request complete
     );
 }
 
