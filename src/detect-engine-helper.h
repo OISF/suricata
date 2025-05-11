@@ -88,7 +88,7 @@ int DetectHelperBufferMpmRegister(const char *name, const char *desc, AppProto a
         uint8_t direction, InspectionBufferGetDataPtr GetData);
 int DetectHelperMultiBufferMpmRegister(const char *name, const char *desc, AppProto alproto,
         uint8_t direction, InspectionMultiBufferGetDataPtr GetData);
-int DetectHelperMultiBufferProgressMpmRegister(const char *name, const char *desc, AppProto alproto,
+int SCDetectHelperMultiBufferProgressMpmRegister(const char *name, const char *desc, AppProto alproto,
         uint8_t direction, InspectionMultiBufferGetDataPtr GetData, int progress);
 
 int SCDetectHelperTransformRegister(const SCTransformTableElmt *kw);

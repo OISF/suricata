@@ -190,18 +190,6 @@ extern "C" {
             *mut u32,
         ) -> bool,
     ) -> c_int;
-    pub fn DetectHelperMultiBufferProgressMpmRegister(
-        name: *const libc::c_char, desc: *const libc::c_char, alproto: AppProto, dir: u8,
-        get_multi_data: unsafe extern "C" fn(
-            *mut DetectEngineThreadCtx,
-            *const c_void,
-            u8,
-            u32,
-            *mut *const u8,
-            *mut u32,
-        ) -> bool,
-        progress: c_int,
-    ) -> c_int;
 }
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
