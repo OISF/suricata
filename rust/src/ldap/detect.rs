@@ -23,13 +23,13 @@ use crate::detect::uint::{
 };
 use crate::detect::{
     helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister, DetectHelperGetData,
-    DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
-    SigMatchAppendSMToList, SigTableElmtStickyBuffer,
+    DetectSignatureSetAppProto, SigMatchAppendSMToList, SigTableElmtStickyBuffer,
 };
 use crate::ldap::types::{LdapMessage, LdapResultCode, ProtocolOp, ProtocolOpCode};
 use suricata_sys::sys::{
-    DetectEngineCtx, DetectEngineThreadCtx, SCDetectBufferSetActiveList,
-    SCDetectHelperBufferRegister, SCDetectHelperMultiBufferMpmRegister, Signature,
+    DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
+    SCDetectHelperBufferRegister, SCDetectHelperKeywordRegister,
+    SCDetectHelperMultiBufferMpmRegister, SCSigTableAppLiteElmt, SigMatchCtx, Signature,
 };
 
 use std::collections::VecDeque;
@@ -116,8 +116,8 @@ unsafe extern "C" fn ldap_detect_request_operation_setup(
 }
 
 unsafe extern "C" fn ldap_detect_request_operation_match(
-    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
-    _sig: *const c_void, ctx: *const c_void,
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, LdapTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u8>);
@@ -128,7 +128,7 @@ unsafe extern "C" fn ldap_detect_request_operation_match(
     return 0;
 }
 
-unsafe extern "C" fn ldap_detect_request_free(_de: *mut c_void, ctx: *mut c_void) {
+unsafe extern "C" fn ldap_detect_request_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u8>);
     SCDetectU8Free(ctx);
@@ -244,8 +244,8 @@ fn match_at_index<T, U>(
 }
 
 unsafe extern "C" fn ldap_detect_responses_operation_match(
-    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
-    _sig: *const c_void, ctx: *const c_void,
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, LdapTransaction);
     let ctx = cast_pointer!(ctx, DetectLdapRespOpData);
@@ -259,7 +259,7 @@ unsafe extern "C" fn ldap_detect_responses_operation_match(
     );
 }
 
-unsafe extern "C" fn ldap_detect_responses_free(_de: *mut c_void, ctx: *mut c_void) {
+unsafe extern "C" fn ldap_detect_responses_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectLdapRespOpData);
     std::mem::drop(Box::from_raw(ctx));
@@ -291,8 +291,8 @@ unsafe extern "C" fn ldap_detect_responses_count_setup(
 }
 
 unsafe extern "C" fn ldap_detect_responses_count_match(
-    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
-    _sig: *const c_void, ctx: *const c_void,
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, LdapTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u32>);
@@ -300,7 +300,7 @@ unsafe extern "C" fn ldap_detect_responses_count_match(
     return detect_match_uint(ctx, len) as c_int;
 }
 
-unsafe extern "C" fn ldap_detect_responses_count_free(_de: *mut c_void, ctx: *mut c_void) {
+unsafe extern "C" fn ldap_detect_responses_count_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u32>);
     SCDetectU32Free(ctx);
@@ -470,8 +470,8 @@ fn get_ldap_result_code(response: &LdapMessage) -> Option<u32> {
 }
 
 unsafe extern "C" fn ldap_detect_responses_result_code_match(
-    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
-    _sig: *const c_void, ctx: *const c_void,
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, LdapTransaction);
     let ctx = cast_pointer!(ctx, DetectLdapRespResultData);
@@ -485,7 +485,9 @@ unsafe extern "C" fn ldap_detect_responses_result_code_match(
     );
 }
 
-unsafe extern "C" fn ldap_detect_responses_result_code_free(_de: *mut c_void, ctx: *mut c_void) {
+unsafe extern "C" fn ldap_detect_responses_result_code_free(
+    _de: *mut DetectEngineCtx, ctx: *mut c_void,
+) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectLdapRespResultData);
     std::mem::drop(Box::from_raw(ctx));
@@ -640,11 +642,11 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         desc: b"match LDAP request operation\0".as_ptr() as *const libc::c_char,
         url: b"/rules/ldap-keywords.html#ldap.request.operation\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(ldap_detect_request_operation_match),
-        Setup: ldap_detect_request_operation_setup,
+        Setup: Some(ldap_detect_request_operation_setup),
         Free: Some(ldap_detect_request_free),
         flags: 0,
     };
-    G_LDAP_REQUEST_OPERATION_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_LDAP_REQUEST_OPERATION_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_LDAP_REQUEST_OPERATION_BUFFER_ID = SCDetectHelperBufferRegister(
         b"ldap.request.operation\0".as_ptr() as *const libc::c_char,
         ALPROTO_LDAP,
@@ -656,11 +658,11 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         url: b"/rules/ldap-keywords.html#ldap.responses.operation\0".as_ptr()
             as *const libc::c_char,
         AppLayerTxMatch: Some(ldap_detect_responses_operation_match),
-        Setup: ldap_detect_responses_operation_setup,
+        Setup: Some(ldap_detect_responses_operation_setup),
         Free: Some(ldap_detect_responses_free),
         flags: 0,
     };
-    G_LDAP_RESPONSES_OPERATION_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_LDAP_RESPONSES_OPERATION_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_LDAP_RESPONSES_OPERATION_BUFFER_ID = SCDetectHelperBufferRegister(
         b"ldap.responses.operation\0".as_ptr() as *const libc::c_char,
         ALPROTO_LDAP,
@@ -671,11 +673,11 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         desc: b"match number of LDAP responses\0".as_ptr() as *const libc::c_char,
         url: b"/rules/ldap-keywords.html#ldap.responses.count\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(ldap_detect_responses_count_match),
-        Setup: ldap_detect_responses_count_setup,
+        Setup: Some(ldap_detect_responses_count_setup),
         Free: Some(ldap_detect_responses_count_free),
         flags: 0,
     };
-    G_LDAP_RESPONSES_COUNT_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_LDAP_RESPONSES_COUNT_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_LDAP_RESPONSES_COUNT_BUFFER_ID = SCDetectHelperBufferRegister(
         b"ldap.responses.count\0".as_ptr() as *const libc::c_char,
         ALPROTO_LDAP,
@@ -715,11 +717,11 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         url: b"/rules/ldap-keywords.html#ldap.responses.result_code\0".as_ptr()
             as *const libc::c_char,
         AppLayerTxMatch: Some(ldap_detect_responses_result_code_match),
-        Setup: ldap_detect_responses_result_code_setup,
+        Setup: Some(ldap_detect_responses_result_code_setup),
         Free: Some(ldap_detect_responses_result_code_free),
         flags: 0,
     };
-    G_LDAP_RESPONSES_RESULT_CODE_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_LDAP_RESPONSES_RESULT_CODE_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_LDAP_RESPONSES_RESULT_CODE_BUFFER_ID = SCDetectHelperBufferRegister(
         b"ldap.responses.result_code\0".as_ptr() as *const libc::c_char,
         ALPROTO_LDAP,

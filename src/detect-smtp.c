@@ -136,7 +136,7 @@ void SCDetectSMTPRegister(void)
     kw.url = "/rules/smtp-keywords.html#smtp-helo";
     kw.Setup = DetectSmtpHeloSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
-    DetectHelperKeywordRegister(&kw);
+    SCDetectHelperKeywordRegister(&kw);
     g_smtp_helo_buffer_id = DetectHelperBufferMpmRegister(
             "smtp.helo", "SMTP helo", ALPROTO_SMTP, STREAM_TOSERVER, GetSmtpHeloData);
 
@@ -145,7 +145,7 @@ void SCDetectSMTPRegister(void)
     kw.url = "/rules/smtp-keywords.html#smtp-mail-from";
     kw.Setup = DetectSmtpMailFromSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
-    DetectHelperKeywordRegister(&kw);
+    SCDetectHelperKeywordRegister(&kw);
     g_smtp_mail_from_buffer_id = DetectHelperBufferMpmRegister(
             "smtp.mail_from", "SMTP MAIL FROM", ALPROTO_SMTP, STREAM_TOSERVER, GetSmtpMailFromData);
 
@@ -154,7 +154,7 @@ void SCDetectSMTPRegister(void)
     kw.url = "/rules/smtp-keywords.html#smtp-rcpt-to";
     kw.Setup = DetectSmtpRcptToSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
-    DetectHelperKeywordRegister(&kw);
+    SCDetectHelperKeywordRegister(&kw);
     g_smtp_rcpt_to_buffer_id = SCDetectHelperMultiBufferMpmRegister(
             "smtp.rcpt_to", "SMTP RCPT TO", ALPROTO_SMTP, STREAM_TOSERVER, GetSmtpRcptToData);
 }

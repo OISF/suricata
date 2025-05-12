@@ -37,11 +37,12 @@ use crate::detect::uint::{
 };
 use crate::detect::{
     helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister, DetectHelperGetData,
-    DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
-    SigMatchAppendSMToList, SigTableElmtStickyBuffer,
+    DetectSignatureSetAppProto, SigMatchAppendSMToList, SigTableElmtStickyBuffer,
 };
 use suricata_sys::sys::{
-    DetectEngineCtx, SCDetectBufferSetActiveList, SCDetectHelperBufferRegister, Signature,
+    DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
+    SCDetectHelperBufferRegister, SCDetectHelperKeywordRegister, SCSigTableAppLiteElmt,
+    SigMatchCtx, Signature,
 };
 
 use crate::direction::Direction;
@@ -475,13 +476,13 @@ unsafe extern "C" fn cipservice_setup(
     return 0;
 }
 
-unsafe extern "C" fn cipservice_free(_de: *mut c_void, ctx: *mut c_void) {
+unsafe extern "C" fn cipservice_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     std::mem::drop(Box::from_raw(ctx as *mut DetectCipServiceData));
 }
 
 unsafe extern "C" fn cipservice_match(
-    _de: *mut c_void, _f: *mut c_void, flags: u8, _state: *mut c_void, tx: *mut c_void,
-    _sig: *const c_void, ctx: *const c_void,
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, EnipTransaction);
     let ctx = cast_pointer!(ctx, DetectCipServiceData);
@@ -527,8 +528,8 @@ fn tx_get_capabilities(tx: &EnipTransaction) -> Option<u16> {
 }
 
 unsafe extern "C" fn capabilities_match(
-    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
-    _sig: *const c_void, ctx: *const c_void,
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, EnipTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u16>);
@@ -538,7 +539,7 @@ unsafe extern "C" fn capabilities_match(
     return 0;
 }
 
-unsafe extern "C" fn capabilities_free(_de: *mut c_void, ctx: *mut c_void) {
+unsafe extern "C" fn capabilities_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u16>);
     SCDetectU16Free(ctx);
@@ -570,15 +571,15 @@ unsafe extern "C" fn cip_attribute_setup(
 }
 
 unsafe extern "C" fn cip_attribute_match(
-    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
-    _sig: *const c_void, ctx: *const c_void,
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, EnipTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u32>);
     return enip_tx_has_cip_attribute(tx, ctx);
 }
 
-unsafe extern "C" fn cip_attribute_free(_de: *mut c_void, ctx: *mut c_void) {
+unsafe extern "C" fn cip_attribute_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u32>);
     SCDetectU32Free(ctx);
@@ -610,15 +611,15 @@ unsafe extern "C" fn cip_class_setup(
 }
 
 unsafe extern "C" fn cip_class_match(
-    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
-    _sig: *const c_void, ctx: *const c_void,
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, EnipTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u32>);
     return enip_tx_has_cip_segment(tx, ctx, 8);
 }
 
-unsafe extern "C" fn cip_class_free(_de: *mut c_void, ctx: *mut c_void) {
+unsafe extern "C" fn cip_class_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u32>);
     SCDetectU32Free(ctx);
@@ -663,8 +664,8 @@ fn tx_get_vendor_id(tx: &EnipTransaction) -> Option<u16> {
 }
 
 unsafe extern "C" fn vendor_id_match(
-    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
-    _sig: *const c_void, ctx: *const c_void,
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, EnipTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u16>);
@@ -674,7 +675,7 @@ unsafe extern "C" fn vendor_id_match(
     return 0;
 }
 
-unsafe extern "C" fn vendor_id_free(_de: *mut c_void, ctx: *mut c_void) {
+unsafe extern "C" fn vendor_id_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u16>);
     SCDetectU16Free(ctx);
@@ -698,8 +699,8 @@ unsafe extern "C" fn status_setup(
 }
 
 unsafe extern "C" fn status_match(
-    _de: *mut c_void, _f: *mut c_void, flags: u8, _state: *mut c_void, tx: *mut c_void,
-    _sig: *const c_void, ctx: *const c_void,
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, EnipTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u32>);
@@ -709,7 +710,7 @@ unsafe extern "C" fn status_match(
     return 0;
 }
 
-unsafe extern "C" fn status_free(_de: *mut c_void, ctx: *mut c_void) {
+unsafe extern "C" fn status_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u32>);
     SCDetectU32Free(ctx);
@@ -746,8 +747,8 @@ fn tx_get_state(tx: &EnipTransaction) -> Option<u8> {
 }
 
 unsafe extern "C" fn state_match(
-    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
-    _sig: *const c_void, ctx: *const c_void,
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, EnipTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u8>);
@@ -757,7 +758,7 @@ unsafe extern "C" fn state_match(
     return 0;
 }
 
-unsafe extern "C" fn state_free(_de: *mut c_void, ctx: *mut c_void) {
+unsafe extern "C" fn state_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u8>);
     SCDetectU8Free(ctx);
@@ -794,8 +795,8 @@ fn tx_get_serial(tx: &EnipTransaction) -> Option<u32> {
 }
 
 unsafe extern "C" fn serial_match(
-    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
-    _sig: *const c_void, ctx: *const c_void,
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, EnipTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u32>);
@@ -805,7 +806,7 @@ unsafe extern "C" fn serial_match(
     return 0;
 }
 
-unsafe extern "C" fn serial_free(_de: *mut c_void, ctx: *mut c_void) {
+unsafe extern "C" fn serial_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u32>);
     SCDetectU32Free(ctx);
@@ -844,8 +845,8 @@ fn tx_get_revision(tx: &EnipTransaction) -> Option<u16> {
 }
 
 unsafe extern "C" fn revision_match(
-    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
-    _sig: *const c_void, ctx: *const c_void,
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, EnipTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u16>);
@@ -855,7 +856,7 @@ unsafe extern "C" fn revision_match(
     return 0;
 }
 
-unsafe extern "C" fn revision_free(_de: *mut c_void, ctx: *mut c_void) {
+unsafe extern "C" fn revision_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u16>);
     SCDetectU16Free(ctx);
@@ -887,8 +888,8 @@ unsafe extern "C" fn protocol_version_setup(
 }
 
 unsafe extern "C" fn protocol_version_match(
-    _de: *mut c_void, _f: *mut c_void, flags: u8, _state: *mut c_void, tx: *mut c_void,
-    _sig: *const c_void, ctx: *const c_void,
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, EnipTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u16>);
@@ -898,7 +899,7 @@ unsafe extern "C" fn protocol_version_match(
     return 0;
 }
 
-unsafe extern "C" fn protocol_version_free(_de: *mut c_void, ctx: *mut c_void) {
+unsafe extern "C" fn protocol_version_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u16>);
     SCDetectU16Free(ctx);
@@ -943,8 +944,8 @@ fn tx_get_product_code(tx: &EnipTransaction) -> Option<u16> {
 }
 
 unsafe extern "C" fn product_code_match(
-    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
-    _sig: *const c_void, ctx: *const c_void,
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, EnipTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u16>);
@@ -954,7 +955,7 @@ unsafe extern "C" fn product_code_match(
     return 0;
 }
 
-unsafe extern "C" fn product_code_free(_de: *mut c_void, ctx: *mut c_void) {
+unsafe extern "C" fn product_code_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u16>);
     SCDetectU16Free(ctx);
@@ -999,8 +1000,8 @@ fn tx_get_identity_status(tx: &EnipTransaction) -> Option<u16> {
 }
 
 unsafe extern "C" fn identity_status_match(
-    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
-    _sig: *const c_void, ctx: *const c_void,
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, EnipTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u16>);
@@ -1010,7 +1011,7 @@ unsafe extern "C" fn identity_status_match(
     return 0;
 }
 
-unsafe extern "C" fn identity_status_free(_de: *mut c_void, ctx: *mut c_void) {
+unsafe extern "C" fn identity_status_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u16>);
     SCDetectU16Free(ctx);
@@ -1055,8 +1056,8 @@ fn tx_get_device_type(tx: &EnipTransaction) -> Option<u16> {
 }
 
 unsafe extern "C" fn device_type_match(
-    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
-    _sig: *const c_void, ctx: *const c_void,
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, EnipTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u16>);
@@ -1066,7 +1067,7 @@ unsafe extern "C" fn device_type_match(
     return 0;
 }
 
-unsafe extern "C" fn device_type_free(_de: *mut c_void, ctx: *mut c_void) {
+unsafe extern "C" fn device_type_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u16>);
     SCDetectU16Free(ctx);
@@ -1103,8 +1104,8 @@ fn tx_get_command(tx: &EnipTransaction, direction: u8) -> Option<u16> {
 }
 
 unsafe extern "C" fn command_match(
-    _de: *mut c_void, _f: *mut c_void, flags: u8, _state: *mut c_void, tx: *mut c_void,
-    _sig: *const c_void, ctx: *const c_void,
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, EnipTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u16>);
@@ -1114,7 +1115,7 @@ unsafe extern "C" fn command_match(
     return 0;
 }
 
-unsafe extern "C" fn command_free(_de: *mut c_void, ctx: *mut c_void) {
+unsafe extern "C" fn command_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u16>);
     SCDetectU16Free(ctx);
@@ -1146,15 +1147,15 @@ unsafe extern "C" fn cip_status_setup(
 }
 
 unsafe extern "C" fn cip_status_match(
-    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
-    _sig: *const c_void, ctx: *const c_void,
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, EnipTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u8>);
     return enip_tx_has_cip_status(tx, ctx);
 }
 
-unsafe extern "C" fn cip_status_free(_de: *mut c_void, ctx: *mut c_void) {
+unsafe extern "C" fn cip_status_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u8>);
     SCDetectU8Free(ctx);
@@ -1186,15 +1187,15 @@ unsafe extern "C" fn cip_instance_setup(
 }
 
 unsafe extern "C" fn cip_instance_match(
-    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
-    _sig: *const c_void, ctx: *const c_void,
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, EnipTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u32>);
     return enip_tx_has_cip_segment(tx, ctx, 9);
 }
 
-unsafe extern "C" fn cip_instance_free(_de: *mut c_void, ctx: *mut c_void) {
+unsafe extern "C" fn cip_instance_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u32>);
     SCDetectU32Free(ctx);
@@ -1226,15 +1227,15 @@ unsafe extern "C" fn cip_extendedstatus_setup(
 }
 
 unsafe extern "C" fn cip_extendedstatus_match(
-    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
-    _sig: *const c_void, ctx: *const c_void,
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, EnipTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u16>);
     return enip_tx_has_cip_extendedstatus(tx, ctx);
 }
 
-unsafe extern "C" fn cip_extendedstatus_free(_de: *mut c_void, ctx: *mut c_void) {
+unsafe extern "C" fn cip_extendedstatus_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u16>);
     SCDetectU16Free(ctx);
@@ -1341,11 +1342,11 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
             as *const libc::c_char,
         url: b"/rules/enip-keyword.html#cip_service\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(cipservice_match),
-        Setup: cipservice_setup,
+        Setup: Some(cipservice_setup),
         Free: Some(cipservice_free),
         flags: 0,
     };
-    G_ENIP_CIPSERVICE_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_ENIP_CIPSERVICE_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_ENIP_CIPSERVICE_BUFFER_ID = SCDetectHelperBufferRegister(
         b"cip\0".as_ptr() as *const libc::c_char,
         ALPROTO_ENIP,
@@ -1356,11 +1357,11 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         desc: b"rules for detecting EtherNet/IP capabilities\0".as_ptr() as *const libc::c_char,
         url: b"/rules/enip-keyword.html#enip-capabilities\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(capabilities_match),
-        Setup: capabilities_setup,
+        Setup: Some(capabilities_setup),
         Free: Some(capabilities_free),
         flags: 0,
     };
-    G_ENIP_CAPABILITIES_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_ENIP_CAPABILITIES_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_ENIP_CAPABILITIES_BUFFER_ID = SCDetectHelperBufferRegister(
         b"enip.capabilities\0".as_ptr() as *const libc::c_char,
         ALPROTO_ENIP,
@@ -1371,11 +1372,11 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         desc: b"rules for detecting EtherNet/IP cip_attribute\0".as_ptr() as *const libc::c_char,
         url: b"/rules/enip-keyword.html#enip-cip-attribute\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(cip_attribute_match),
-        Setup: cip_attribute_setup,
+        Setup: Some(cip_attribute_setup),
         Free: Some(cip_attribute_free),
         flags: 0,
     };
-    G_ENIP_CIP_ATTRIBUTE_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_ENIP_CIP_ATTRIBUTE_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_ENIP_CIP_ATTRIBUTE_BUFFER_ID = SCDetectHelperBufferRegister(
         b"enip.cip_attribute\0".as_ptr() as *const libc::c_char,
         ALPROTO_ENIP,
@@ -1386,11 +1387,11 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         desc: b"rules for detecting EtherNet/IP cip_class\0".as_ptr() as *const libc::c_char,
         url: b"/rules/enip-keyword.html#enip-cip-class\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(cip_class_match),
-        Setup: cip_class_setup,
+        Setup: Some(cip_class_setup),
         Free: Some(cip_class_free),
         flags: 0,
     };
-    G_ENIP_CIP_CLASS_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_ENIP_CIP_CLASS_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_ENIP_CIP_CLASS_BUFFER_ID = SCDetectHelperBufferRegister(
         b"enip.cip_class\0".as_ptr() as *const libc::c_char,
         ALPROTO_ENIP,
@@ -1401,11 +1402,11 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         desc: b"rules for detecting EtherNet/IP vendor_id\0".as_ptr() as *const libc::c_char,
         url: b"/rules/enip-keyword.html#enip-vendor-id\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(vendor_id_match),
-        Setup: vendor_id_setup,
+        Setup: Some(vendor_id_setup),
         Free: Some(vendor_id_free),
         flags: 0,
     };
-    G_ENIP_VENDOR_ID_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_ENIP_VENDOR_ID_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_ENIP_VENDOR_ID_BUFFER_ID = SCDetectHelperBufferRegister(
         b"enip.vendor_id\0".as_ptr() as *const libc::c_char,
         ALPROTO_ENIP,
@@ -1416,11 +1417,11 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         desc: b"rules for detecting EtherNet/IP status\0".as_ptr() as *const libc::c_char,
         url: b"/rules/enip-keyword.html#enip-status\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(status_match),
-        Setup: status_setup,
+        Setup: Some(status_setup),
         Free: Some(status_free),
         flags: 0,
     };
-    G_ENIP_STATUS_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_ENIP_STATUS_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_ENIP_STATUS_BUFFER_ID = SCDetectHelperBufferRegister(
         b"enip.status\0".as_ptr() as *const libc::c_char,
         ALPROTO_ENIP,
@@ -1431,11 +1432,11 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         desc: b"rules for detecting EtherNet/IP state\0".as_ptr() as *const libc::c_char,
         url: b"/rules/enip-keyword.html#enip-state\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(state_match),
-        Setup: state_setup,
+        Setup: Some(state_setup),
         Free: Some(state_free),
         flags: 0,
     };
-    G_ENIP_STATE_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_ENIP_STATE_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_ENIP_STATE_BUFFER_ID = SCDetectHelperBufferRegister(
         b"enip.state\0".as_ptr() as *const libc::c_char,
         ALPROTO_ENIP,
@@ -1446,11 +1447,11 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         desc: b"rules for detecting EtherNet/IP serial\0".as_ptr() as *const libc::c_char,
         url: b"/rules/enip-keyword.html#enip-serial\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(serial_match),
-        Setup: serial_setup,
+        Setup: Some(serial_setup),
         Free: Some(serial_free),
         flags: 0,
     };
-    G_ENIP_SERIAL_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_ENIP_SERIAL_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_ENIP_SERIAL_BUFFER_ID = SCDetectHelperBufferRegister(
         b"enip.serial\0".as_ptr() as *const libc::c_char,
         ALPROTO_ENIP,
@@ -1461,11 +1462,11 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         desc: b"rules for detecting EtherNet/IP revision\0".as_ptr() as *const libc::c_char,
         url: b"/rules/enip-keyword.html#enip-revision\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(revision_match),
-        Setup: revision_setup,
+        Setup: Some(revision_setup),
         Free: Some(revision_free),
         flags: 0,
     };
-    G_ENIP_REVISION_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_ENIP_REVISION_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_ENIP_REVISION_BUFFER_ID = SCDetectHelperBufferRegister(
         b"enip.revision\0".as_ptr() as *const libc::c_char,
         ALPROTO_ENIP,
@@ -1476,11 +1477,11 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         desc: b"rules for detecting EtherNet/IP protocol_version\0".as_ptr() as *const libc::c_char,
         url: b"/rules/enip-keyword.html#enip-protocol-version\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(protocol_version_match),
-        Setup: protocol_version_setup,
+        Setup: Some(protocol_version_setup),
         Free: Some(protocol_version_free),
         flags: 0,
     };
-    G_ENIP_PROTOCOL_VERSION_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_ENIP_PROTOCOL_VERSION_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_ENIP_PROTOCOL_VERSION_BUFFER_ID = SCDetectHelperBufferRegister(
         b"enip.protocol_version\0".as_ptr() as *const libc::c_char,
         ALPROTO_ENIP,
@@ -1491,11 +1492,11 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         desc: b"rules for detecting EtherNet/IP product_code\0".as_ptr() as *const libc::c_char,
         url: b"/rules/enip-keyword.html#enip-product-code\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(product_code_match),
-        Setup: product_code_setup,
+        Setup: Some(product_code_setup),
         Free: Some(product_code_free),
         flags: 0,
     };
-    G_ENIP_PRODUCT_CODE_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_ENIP_PRODUCT_CODE_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_ENIP_PRODUCT_CODE_BUFFER_ID = SCDetectHelperBufferRegister(
         b"enip.product_code\0".as_ptr() as *const libc::c_char,
         ALPROTO_ENIP,
@@ -1506,11 +1507,11 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         desc: b"rules for detecting EtherNet/IP command\0".as_ptr() as *const libc::c_char,
         url: b"/rules/enip-keyword.html#enip_command\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(command_match),
-        Setup: command_setup,
+        Setup: Some(command_setup),
         Free: Some(command_free),
         flags: 0,
     };
-    G_ENIP_COMMAND_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_ENIP_COMMAND_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_ENIP_COMMAND_BUFFER_ID = SCDetectHelperBufferRegister(
         b"enip.command\0".as_ptr() as *const libc::c_char,
         ALPROTO_ENIP,
@@ -1521,11 +1522,11 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         desc: b"rules for detecting EtherNet/IP identity_status\0".as_ptr() as *const libc::c_char,
         url: b"/rules/enip-keyword.html#enip-identity-status\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(identity_status_match),
-        Setup: identity_status_setup,
+        Setup: Some(identity_status_setup),
         Free: Some(identity_status_free),
         flags: 0,
     };
-    G_ENIP_IDENTITY_STATUS_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_ENIP_IDENTITY_STATUS_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_ENIP_IDENTITY_STATUS_BUFFER_ID = SCDetectHelperBufferRegister(
         b"enip.identity_status\0".as_ptr() as *const libc::c_char,
         ALPROTO_ENIP,
@@ -1536,11 +1537,11 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         desc: b"rules for detecting EtherNet/IP device_type\0".as_ptr() as *const libc::c_char,
         url: b"/rules/enip-keyword.html#enip-device-type\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(device_type_match),
-        Setup: device_type_setup,
+        Setup: Some(device_type_setup),
         Free: Some(device_type_free),
         flags: 0,
     };
-    G_ENIP_DEVICE_TYPE_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_ENIP_DEVICE_TYPE_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_ENIP_DEVICE_TYPE_BUFFER_ID = SCDetectHelperBufferRegister(
         b"enip.device_type\0".as_ptr() as *const libc::c_char,
         ALPROTO_ENIP,
@@ -1551,11 +1552,11 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         desc: b"rules for detecting EtherNet/IP cip_status\0".as_ptr() as *const libc::c_char,
         url: b"/rules/enip-keyword.html#enip-cip-status\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(cip_status_match),
-        Setup: cip_status_setup,
+        Setup: Some(cip_status_setup),
         Free: Some(cip_status_free),
         flags: 0,
     };
-    G_ENIP_CIP_STATUS_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_ENIP_CIP_STATUS_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_ENIP_CIP_STATUS_BUFFER_ID = SCDetectHelperBufferRegister(
         b"enip.cip_status\0".as_ptr() as *const libc::c_char,
         ALPROTO_ENIP,
@@ -1566,11 +1567,11 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         desc: b"rules for detecting EtherNet/IP cip_instance\0".as_ptr() as *const libc::c_char,
         url: b"/rules/enip-keyword.html#enip-cip-instance\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(cip_instance_match),
-        Setup: cip_instance_setup,
+        Setup: Some(cip_instance_setup),
         Free: Some(cip_instance_free),
         flags: 0,
     };
-    G_ENIP_CIP_INSTANCE_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_ENIP_CIP_INSTANCE_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_ENIP_CIP_INSTANCE_BUFFER_ID = SCDetectHelperBufferRegister(
         b"enip.cip_instance\0".as_ptr() as *const libc::c_char,
         ALPROTO_ENIP,
@@ -1582,11 +1583,11 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
             as *const libc::c_char,
         url: b"/rules/enip-keyword.html#enip-cip-extendedstatus\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(cip_extendedstatus_match),
-        Setup: cip_extendedstatus_setup,
+        Setup: Some(cip_extendedstatus_setup),
         Free: Some(cip_extendedstatus_free),
         flags: 0,
     };
-    G_ENIP_CIP_EXTENDEDSTATUS_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_ENIP_CIP_EXTENDEDSTATUS_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_ENIP_CIP_EXTENDEDSTATUS_BUFFER_ID = SCDetectHelperBufferRegister(
         b"enip.cip_extendedstatus\0".as_ptr() as *const libc::c_char,
         ALPROTO_ENIP,

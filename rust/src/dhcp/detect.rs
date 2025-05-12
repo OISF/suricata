@@ -22,12 +22,12 @@ use super::dhcp::{
 use super::parser::DHCPOptionWrapper;
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{DetectUintData, SCDetectU64Free, SCDetectU64Match, SCDetectU64Parse};
-use crate::detect::{
-    DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
-    SigMatchAppendSMToList,
-};
+use crate::detect::{DetectSignatureSetAppProto, SigMatchAppendSMToList};
 use std::os::raw::{c_int, c_void};
-use suricata_sys::sys::{DetectEngineCtx, SCDetectHelperBufferRegister, Signature};
+use suricata_sys::sys::{
+    DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectHelperBufferRegister,
+    SCDetectHelperKeywordRegister, SCSigTableAppLiteElmt, SigMatchCtx, Signature,
+};
 
 fn dhcp_tx_get_time(tx: &DHCPTransaction, code: u8) -> Option<u64> {
     for option in &tx.message.options {
@@ -73,8 +73,8 @@ unsafe extern "C" fn dhcp_detect_leasetime_setup(
 }
 
 unsafe extern "C" fn dhcp_detect_leasetime_match(
-    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
-    _sig: *const c_void, ctx: *const c_void,
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, DHCPTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u64>);
@@ -84,7 +84,7 @@ unsafe extern "C" fn dhcp_detect_leasetime_match(
     return 0;
 }
 
-unsafe extern "C" fn dhcp_detect_time_free(_de: *mut c_void, ctx: *mut c_void) {
+unsafe extern "C" fn dhcp_detect_time_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u64>);
     SCDetectU64Free(ctx);
@@ -116,8 +116,8 @@ unsafe extern "C" fn dhcp_detect_rebindingtime_setup(
 }
 
 unsafe extern "C" fn dhcp_detect_rebindingtime_match(
-    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
-    _sig: *const c_void, ctx: *const c_void,
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, DHCPTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u64>);
@@ -153,8 +153,8 @@ unsafe extern "C" fn dhcp_detect_renewaltime_setup(
 }
 
 unsafe extern "C" fn dhcp_detect_renewaltime_match(
-    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
-    _sig: *const c_void, ctx: *const c_void,
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, DHCPTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u64>);
@@ -171,11 +171,11 @@ pub unsafe extern "C" fn SCDetectDHCPRegister() {
         desc: b"match DHCP leasetime\0".as_ptr() as *const libc::c_char,
         url: b"/rules/dhcp-keywords.html#dhcp-leasetime\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(dhcp_detect_leasetime_match),
-        Setup: dhcp_detect_leasetime_setup,
+        Setup: Some(dhcp_detect_leasetime_setup),
         Free: Some(dhcp_detect_time_free),
         flags: 0,
     };
-    G_DHCP_LEASE_TIME_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_DHCP_LEASE_TIME_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_DHCP_LEASE_TIME_BUFFER_ID = SCDetectHelperBufferRegister(
         b"dhcp.leasetime\0".as_ptr() as *const libc::c_char,
         ALPROTO_DHCP,
@@ -186,11 +186,11 @@ pub unsafe extern "C" fn SCDetectDHCPRegister() {
         desc: b"match DHCP rebinding time\0".as_ptr() as *const libc::c_char,
         url: b"/rules/dhcp-keywords.html#dhcp-rebinding-time\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(dhcp_detect_rebindingtime_match),
-        Setup: dhcp_detect_rebindingtime_setup,
+        Setup: Some(dhcp_detect_rebindingtime_setup),
         Free: Some(dhcp_detect_time_free),
         flags: 0,
     };
-    G_DHCP_REBINDING_TIME_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_DHCP_REBINDING_TIME_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_DHCP_REBINDING_TIME_BUFFER_ID = SCDetectHelperBufferRegister(
         b"dhcp.rebinding-time\0".as_ptr() as *const libc::c_char,
         ALPROTO_DHCP,
@@ -201,11 +201,11 @@ pub unsafe extern "C" fn SCDetectDHCPRegister() {
         desc: b"match DHCP renewal time\0".as_ptr() as *const libc::c_char,
         url: b"/rules/dhcp-keywords.html#dhcp-renewal-time\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(dhcp_detect_renewaltime_match),
-        Setup: dhcp_detect_renewaltime_setup,
+        Setup: Some(dhcp_detect_renewaltime_setup),
         Free: Some(dhcp_detect_time_free),
         flags: 0,
     };
-    G_DHCP_RENEWAL_TIME_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_DHCP_RENEWAL_TIME_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_DHCP_RENEWAL_TIME_BUFFER_ID = SCDetectHelperBufferRegister(
         b"dhcp.renewal-time\0".as_ptr() as *const libc::c_char,
         ALPROTO_DHCP,

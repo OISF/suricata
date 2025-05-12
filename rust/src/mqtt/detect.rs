@@ -24,12 +24,12 @@ use crate::detect::uint::{
 };
 use crate::detect::{
     helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister, DetectHelperGetData,
-    DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
-    SigMatchAppendSMToList, SigTableElmtStickyBuffer,
+    DetectSignatureSetAppProto, SigMatchAppendSMToList, SigTableElmtStickyBuffer,
 };
 use suricata_sys::sys::{
-    DetectEngineCtx, DetectEngineThreadCtx, SCDetectBufferSetActiveList,
-    SCDetectHelperBufferRegister, SCDetectHelperMultiBufferMpmRegister, Signature,
+    DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
+    SCDetectHelperBufferRegister, SCDetectHelperKeywordRegister,
+    SCDetectHelperMultiBufferMpmRegister, SCSigTableAppLiteElmt, SigMatchCtx, Signature,
 };
 
 use nom7::branch::alt;
@@ -413,15 +413,15 @@ unsafe extern "C" fn mqtt_type_setup(
 }
 
 unsafe extern "C" fn mqtt_type_match(
-    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
-    _sig: *const c_void, ctx: *const c_void,
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, MQTTTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u8>);
     return mqtt_tx_has_type(tx, ctx);
 }
 
-unsafe extern "C" fn mqtt_type_free(_de: *mut c_void, ctx: *mut c_void) {
+unsafe extern "C" fn mqtt_type_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u8>);
     SCDetectU8Free(ctx);
@@ -453,8 +453,8 @@ unsafe extern "C" fn mqtt_reason_code_setup(
 }
 
 unsafe extern "C" fn mqtt_reason_code_match(
-    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
-    _sig: *const c_void, ctx: *const c_void,
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, MQTTTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u8>);
@@ -466,7 +466,7 @@ unsafe extern "C" fn mqtt_reason_code_match(
     return mqtt_tx_suback_unsuback_has_reason_code(tx, ctx);
 }
 
-unsafe extern "C" fn mqtt_reason_code_free(_de: *mut c_void, ctx: *mut c_void) {
+unsafe extern "C" fn mqtt_reason_code_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u8>);
     SCDetectU8Free(ctx);
@@ -512,15 +512,15 @@ fn mqtt_tx_has_qos(tx: &MQTTTransaction, qos: u8) -> c_int {
 }
 
 unsafe extern "C" fn mqtt_qos_match(
-    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
-    _sig: *const c_void, ctx: *const c_void,
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, MQTTTransaction);
     let ctx = cast_pointer!(ctx, u8);
     return mqtt_tx_has_qos(tx, *ctx);
 }
 
-unsafe extern "C" fn mqtt_qos_free(_de: *mut c_void, ctx: *mut c_void) {
+unsafe extern "C" fn mqtt_qos_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     std::mem::drop(Box::from_raw(ctx as *mut u8));
 }
 
@@ -574,15 +574,15 @@ fn mqtt_tx_get_connack_sessionpresent(tx: &MQTTTransaction, session_present: boo
 }
 
 unsafe extern "C" fn mqtt_connack_sessionpresent_match(
-    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
-    _sig: *const c_void, ctx: *const c_void,
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, MQTTTransaction);
     let ctx = cast_pointer!(ctx, bool);
     return mqtt_tx_get_connack_sessionpresent(tx, *ctx);
 }
 
-unsafe extern "C" fn mqtt_connack_sessionpresent_free(_de: *mut c_void, ctx: *mut c_void) {
+unsafe extern "C" fn mqtt_connack_sessionpresent_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     std::mem::drop(Box::from_raw(ctx as *mut bool));
 }
 
@@ -666,8 +666,8 @@ unsafe extern "C" fn mqtt_protocol_version_setup(
 }
 
 unsafe extern "C" fn mqtt_protocol_version_match(
-    _de: *mut c_void, _f: *mut c_void, _flags: u8, state: *mut c_void, _tx: *mut c_void,
-    _sig: *const c_void, ctx: *const c_void,
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, state: *mut c_void,
+    _tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let state = cast_pointer!(state, MQTTState);
     let ctx = cast_pointer!(ctx, DetectUintData<u8>);
@@ -677,7 +677,7 @@ unsafe extern "C" fn mqtt_protocol_version_match(
     return 0;
 }
 
-unsafe extern "C" fn mqtt_protocol_version_free(_de: *mut c_void, ctx: *mut c_void) {
+unsafe extern "C" fn mqtt_protocol_version_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     let ctx = cast_pointer!(ctx, DetectUintData<u8>);
     SCDetectU8Free(ctx);
 }
@@ -781,15 +781,15 @@ fn mqtt_tx_has_flags(tx: &MQTTTransaction, ctx: &DetectUintData<u8>) -> c_int {
 }
 
 unsafe extern "C" fn mqtt_flags_match(
-    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
-    _sig: *const c_void, ctx: *const c_void,
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, MQTTTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u8>);
     return mqtt_tx_has_flags(tx, ctx);
 }
 
-unsafe extern "C" fn mqtt_flags_free(_de: *mut c_void, ctx: *mut c_void) {
+unsafe extern "C" fn mqtt_flags_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     let ctx = cast_pointer!(ctx, DetectUintData<u8>);
     SCDetectU8Free(ctx);
 }
@@ -897,15 +897,15 @@ fn mqtt_tx_has_conn_flags(tx: &MQTTTransaction, ctx: &DetectUintData<u8>) -> c_i
 }
 
 unsafe extern "C" fn mqtt_conn_flags_match(
-    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
-    _sig: *const c_void, ctx: *const c_void,
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, MQTTTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u8>);
     return mqtt_tx_has_conn_flags(tx, ctx);
 }
 
-unsafe extern "C" fn mqtt_conn_flags_free(_de: *mut c_void, ctx: *mut c_void) {
+unsafe extern "C" fn mqtt_conn_flags_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     let ctx = cast_pointer!(ctx, DetectUintData<u8>);
     SCDetectU8Free(ctx);
 }
@@ -1102,11 +1102,11 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         desc: b"match MQTT control packet type\0".as_ptr() as *const libc::c_char,
         url: b"/rules/mqtt-keywords.html#mqtt-type\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(mqtt_type_match),
-        Setup: mqtt_type_setup,
+        Setup: Some(mqtt_type_setup),
         Free: Some(mqtt_type_free),
         flags: 0,
     };
-    G_MQTT_TYPE_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_MQTT_TYPE_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_MQTT_TYPE_BUFFER_ID = SCDetectHelperBufferRegister(
         b"mqtt.type\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
@@ -1142,11 +1142,11 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         //TODO alias "mqtt.connack.return_code"
         url: b"/rules/mqtt-keywords.html#mqtt-reason-code\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(mqtt_reason_code_match),
-        Setup: mqtt_reason_code_setup,
+        Setup: Some(mqtt_reason_code_setup),
         Free: Some(mqtt_reason_code_free),
         flags: 0,
     };
-    G_MQTT_REASON_CODE_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_MQTT_REASON_CODE_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_MQTT_REASON_CODE_BUFFER_ID = SCDetectHelperBufferRegister(
         b"mqtt.reason_code\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
@@ -1158,11 +1158,11 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         url: b"/rules/mqtt-keywords.html#mqtt-connack-session-present\0".as_ptr()
             as *const libc::c_char,
         AppLayerTxMatch: Some(mqtt_connack_sessionpresent_match),
-        Setup: mqtt_connack_sessionpresent_setup,
+        Setup: Some(mqtt_connack_sessionpresent_setup),
         Free: Some(mqtt_connack_sessionpresent_free),
         flags: 0,
     };
-    G_MQTT_CONNACK_SESSIONPRESENT_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_MQTT_CONNACK_SESSIONPRESENT_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_MQTT_CONNACK_SESSIONPRESENT_BUFFER_ID = SCDetectHelperBufferRegister(
         b"mqtt.connack.session_present\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
@@ -1174,11 +1174,11 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         //TODO alias "mqtt.connack.return_code"
         url: b"/rules/mqtt-keywords.html#mqtt-qos\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(mqtt_qos_match),
-        Setup: mqtt_qos_setup,
+        Setup: Some(mqtt_qos_setup),
         Free: Some(mqtt_qos_free),
         flags: 0,
     };
-    G_MQTT_QOS_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_MQTT_QOS_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_MQTT_QOS_BUFFER_ID = SCDetectHelperBufferRegister(
         b"mqtt.qos\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
@@ -1217,11 +1217,11 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         desc: b"match MQTT protocol version\0".as_ptr() as *const libc::c_char,
         url: b"/rules/mqtt-keywords.html#mqtt-protocol-version\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(mqtt_protocol_version_match),
-        Setup: mqtt_protocol_version_setup,
+        Setup: Some(mqtt_protocol_version_setup),
         Free: Some(mqtt_protocol_version_free),
         flags: 0,
     };
-    G_MQTT_PROTOCOL_VERSION_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_MQTT_PROTOCOL_VERSION_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_MQTT_PROTOCOL_VERSION_BUFFER_ID = SCDetectHelperBufferRegister(
         b"mqtt.protocol_version\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
@@ -1232,11 +1232,11 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         desc: b"match MQTT fixed header flags\0".as_ptr() as *const libc::c_char,
         url: b"/rules/mqtt-keywords.html#mqtt-flags\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(mqtt_flags_match),
-        Setup: mqtt_flags_setup,
+        Setup: Some(mqtt_flags_setup),
         Free: Some(mqtt_flags_free),
         flags: 0,
     };
-    G_MQTT_FLAGS_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_MQTT_FLAGS_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_MQTT_FLAGS_BUFFER_ID = SCDetectHelperBufferRegister(
         b"mqtt.flags\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
@@ -1247,11 +1247,11 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         desc: b"match MQTT CONNECT variable header flags\0".as_ptr() as *const libc::c_char,
         url: b"/rules/mqtt-keywords.html#mqtt-connect-flags\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(mqtt_conn_flags_match),
-        Setup: mqtt_conn_flags_setup,
+        Setup: Some(mqtt_conn_flags_setup),
         Free: Some(mqtt_conn_flags_free),
         flags: 0,
     };
-    G_MQTT_CONN_FLAGS_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_MQTT_CONN_FLAGS_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_MQTT_CONN_FLAGS_BUFFER_ID = SCDetectHelperBufferRegister(
         b"mqtt.connect.flags\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
