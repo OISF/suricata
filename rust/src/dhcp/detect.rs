@@ -23,11 +23,11 @@ use super::parser::DHCPOptionWrapper;
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{DetectUintData, SCDetectU64Free, SCDetectU64Match, SCDetectU64Parse};
 use crate::detect::{
-    DetectHelperBufferRegister, DetectHelperKeywordRegister, DetectSignatureSetAppProto,
-    SCSigTableAppLiteElmt, SigMatchAppendSMToList,
+    DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
+    SigMatchAppendSMToList,
 };
-use suricata_sys::sys::{DetectEngineCtx, Signature};
 use std::os::raw::{c_int, c_void};
+use suricata_sys::sys::{DetectEngineCtx, SCDetectHelperBufferRegister, Signature};
 
 fn dhcp_tx_get_time(tx: &DHCPTransaction, code: u8) -> Option<u64> {
     for option in &tx.message.options {
@@ -176,7 +176,7 @@ pub unsafe extern "C" fn SCDetectDHCPRegister() {
         flags: 0,
     };
     G_DHCP_LEASE_TIME_KW_ID = DetectHelperKeywordRegister(&kw);
-    G_DHCP_LEASE_TIME_BUFFER_ID = DetectHelperBufferRegister(
+    G_DHCP_LEASE_TIME_BUFFER_ID = SCDetectHelperBufferRegister(
         b"dhcp.leasetime\0".as_ptr() as *const libc::c_char,
         ALPROTO_DHCP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
@@ -191,7 +191,7 @@ pub unsafe extern "C" fn SCDetectDHCPRegister() {
         flags: 0,
     };
     G_DHCP_REBINDING_TIME_KW_ID = DetectHelperKeywordRegister(&kw);
-    G_DHCP_REBINDING_TIME_BUFFER_ID = DetectHelperBufferRegister(
+    G_DHCP_REBINDING_TIME_BUFFER_ID = SCDetectHelperBufferRegister(
         b"dhcp.rebinding-time\0".as_ptr() as *const libc::c_char,
         ALPROTO_DHCP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
@@ -206,7 +206,7 @@ pub unsafe extern "C" fn SCDetectDHCPRegister() {
         flags: 0,
     };
     G_DHCP_RENEWAL_TIME_KW_ID = DetectHelperKeywordRegister(&kw);
-    G_DHCP_RENEWAL_TIME_BUFFER_ID = DetectHelperBufferRegister(
+    G_DHCP_RENEWAL_TIME_BUFFER_ID = SCDetectHelperBufferRegister(
         b"dhcp.renewal-time\0".as_ptr() as *const libc::c_char,
         ALPROTO_DHCP,
         STREAM_TOSERVER | STREAM_TOCLIENT,

@@ -23,14 +23,13 @@ use crate::detect::uint::{
     SCDetectU8Free, SCDetectU8Parse,
 };
 use crate::detect::{
-    helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister,
-    DetectHelperBufferRegister, DetectHelperGetData, DetectHelperKeywordRegister,
-    DetectSignatureSetAppProto, SCSigTableAppLiteElmt, SigMatchAppendSMToList,
-    SigTableElmtStickyBuffer,
+    helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister, DetectHelperGetData,
+    DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
+    SigMatchAppendSMToList, SigTableElmtStickyBuffer,
 };
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, SCDetectBufferSetActiveList,
-    SCDetectHelperMultiBufferMpmRegister, Signature,
+    SCDetectHelperBufferRegister, SCDetectHelperMultiBufferMpmRegister, Signature,
 };
 
 use nom7::branch::alt;
@@ -1108,7 +1107,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         flags: 0,
     };
     G_MQTT_TYPE_KW_ID = DetectHelperKeywordRegister(&kw);
-    G_MQTT_TYPE_BUFFER_ID = DetectHelperBufferRegister(
+    G_MQTT_TYPE_BUFFER_ID = SCDetectHelperBufferRegister(
         b"mqtt.type\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
         STREAM_TOSERVER | STREAM_TOCLIENT,
@@ -1148,7 +1147,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         flags: 0,
     };
     G_MQTT_REASON_CODE_KW_ID = DetectHelperKeywordRegister(&kw);
-    G_MQTT_REASON_CODE_BUFFER_ID = DetectHelperBufferRegister(
+    G_MQTT_REASON_CODE_BUFFER_ID = SCDetectHelperBufferRegister(
         b"mqtt.reason_code\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
         STREAM_TOSERVER | STREAM_TOCLIENT,
@@ -1164,7 +1163,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         flags: 0,
     };
     G_MQTT_CONNACK_SESSIONPRESENT_KW_ID = DetectHelperKeywordRegister(&kw);
-    G_MQTT_CONNACK_SESSIONPRESENT_BUFFER_ID = DetectHelperBufferRegister(
+    G_MQTT_CONNACK_SESSIONPRESENT_BUFFER_ID = SCDetectHelperBufferRegister(
         b"mqtt.connack.session_present\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
         STREAM_TOCLIENT,
@@ -1180,7 +1179,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         flags: 0,
     };
     G_MQTT_QOS_KW_ID = DetectHelperKeywordRegister(&kw);
-    G_MQTT_QOS_BUFFER_ID = DetectHelperBufferRegister(
+    G_MQTT_QOS_BUFFER_ID = SCDetectHelperBufferRegister(
         b"mqtt.qos\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
         STREAM_TOSERVER,
@@ -1223,7 +1222,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         flags: 0,
     };
     G_MQTT_PROTOCOL_VERSION_KW_ID = DetectHelperKeywordRegister(&kw);
-    G_MQTT_PROTOCOL_VERSION_BUFFER_ID = DetectHelperBufferRegister(
+    G_MQTT_PROTOCOL_VERSION_BUFFER_ID = SCDetectHelperBufferRegister(
         b"mqtt.protocol_version\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
         STREAM_TOSERVER,
@@ -1238,7 +1237,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         flags: 0,
     };
     G_MQTT_FLAGS_KW_ID = DetectHelperKeywordRegister(&kw);
-    G_MQTT_FLAGS_BUFFER_ID = DetectHelperBufferRegister(
+    G_MQTT_FLAGS_BUFFER_ID = SCDetectHelperBufferRegister(
         b"mqtt.flags\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
         STREAM_TOSERVER,
@@ -1253,7 +1252,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         flags: 0,
     };
     G_MQTT_CONN_FLAGS_KW_ID = DetectHelperKeywordRegister(&kw);
-    G_MQTT_CONN_FLAGS_BUFFER_ID = DetectHelperBufferRegister(
+    G_MQTT_CONN_FLAGS_BUFFER_ID = SCDetectHelperBufferRegister(
         b"mqtt.connect.flags\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
         STREAM_TOSERVER,
