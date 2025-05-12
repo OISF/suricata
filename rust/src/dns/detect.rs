@@ -22,16 +22,16 @@ use crate::detect::uint::{
     SCDetectU8Parse,
 };
 use crate::detect::{
-    helper_keyword_register_sticky_buffer, DetectHelperBufferRegister,
-    DetectHelperKeywordAliasRegister, DetectHelperKeywordRegister, DetectSignatureSetAppProto,
-    SCSigTableAppLiteElmt, SigMatchAppendSMToList, SigTableElmtStickyBuffer,
+    helper_keyword_register_sticky_buffer, DetectHelperKeywordAliasRegister,
+    DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
+    SigMatchAppendSMToList, SigTableElmtStickyBuffer,
 };
 use crate::direction::Direction;
 use std::ffi::CStr;
 use std::os::raw::{c_int, c_void};
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, SCDetectBufferSetActiveList,
-    SCDetectHelperMultiBufferProgressMpmRegister, Signature,
+    SCDetectHelperBufferRegister, SCDetectHelperMultiBufferProgressMpmRegister, Signature,
 };
 
 /// Perform the DNS opcode match.
@@ -352,7 +352,7 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         flags: 0,
     };
     G_DNS_OPCODE_KW_ID = DetectHelperKeywordRegister(&kw);
-    G_DNS_OPCODE_BUFFER_ID = DetectHelperBufferRegister(
+    G_DNS_OPCODE_BUFFER_ID = SCDetectHelperBufferRegister(
         b"dns.opcode\0".as_ptr() as *const libc::c_char,
         ALPROTO_DNS,
         STREAM_TOSERVER | STREAM_TOCLIENT,
@@ -384,7 +384,7 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         flags: 0,
     };
     G_DNS_RCODE_KW_ID = DetectHelperKeywordRegister(&kw);
-    G_DNS_RCODE_BUFFER_ID = DetectHelperBufferRegister(
+    G_DNS_RCODE_BUFFER_ID = SCDetectHelperBufferRegister(
         b"dns.rcode\0".as_ptr() as *const libc::c_char,
         ALPROTO_DNS,
         STREAM_TOSERVER | STREAM_TOCLIENT,
@@ -399,7 +399,7 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         flags: 0,
     };
     G_DNS_RRTYPE_KW_ID = DetectHelperKeywordRegister(&kw);
-    G_DNS_RRTYPE_BUFFER_ID = DetectHelperBufferRegister(
+    G_DNS_RRTYPE_BUFFER_ID = SCDetectHelperBufferRegister(
         b"dns.rrtype\0".as_ptr() as *const libc::c_char,
         ALPROTO_DNS,
         STREAM_TOSERVER | STREAM_TOCLIENT,

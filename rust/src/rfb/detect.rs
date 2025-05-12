@@ -24,15 +24,16 @@ use crate::detect::uint::{
     detect_match_uint, detect_parse_uint_enum, DetectUintData, SCDetectU32Free, SCDetectU32Parse,
 };
 use crate::detect::{
-    helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister,
-    DetectHelperBufferRegister, DetectHelperGetData, DetectHelperKeywordRegister,
-    DetectSignatureSetAppProto, SCSigTableAppLiteElmt, SigMatchAppendSMToList,
-    SigTableElmtStickyBuffer,
+    helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister, DetectHelperGetData,
+    DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
+    SigMatchAppendSMToList, SigTableElmtStickyBuffer,
 };
 use std::ffi::CStr;
 use std::os::raw::{c_int, c_void};
 use std::ptr;
-use suricata_sys::sys::{DetectEngineCtx, SCDetectBufferSetActiveList, Signature};
+use suricata_sys::sys::{
+    DetectEngineCtx, SCDetectBufferSetActiveList, SCDetectHelperBufferRegister, Signature,
+};
 
 unsafe extern "C" fn rfb_name_get_data(
     tx: *const c_void, _flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
@@ -214,7 +215,7 @@ pub unsafe extern "C" fn SCDetectRfbRegister() {
         flags: 0,
     };
     G_RFB_SEC_TYPE_KW_ID = DetectHelperKeywordRegister(&kw);
-    G_RFB_SEC_TYPE_BUFFER_ID = DetectHelperBufferRegister(
+    G_RFB_SEC_TYPE_BUFFER_ID = SCDetectHelperBufferRegister(
         b"rfb.sectype\0".as_ptr() as *const libc::c_char,
         ALPROTO_RFB,
         STREAM_TOSERVER,
@@ -229,7 +230,7 @@ pub unsafe extern "C" fn SCDetectRfbRegister() {
         flags: 0,
     };
     G_RFB_SEC_RESULT_KW_ID = DetectHelperKeywordRegister(&kw);
-    G_RFB_SEC_RESULT_BUFFER_ID = DetectHelperBufferRegister(
+    G_RFB_SEC_RESULT_BUFFER_ID = SCDetectHelperBufferRegister(
         b"rfb.secresult\0".as_ptr() as *const libc::c_char,
         ALPROTO_RFB,
         STREAM_TOCLIENT,

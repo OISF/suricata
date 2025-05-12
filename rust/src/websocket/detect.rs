@@ -22,13 +22,14 @@ use crate::detect::uint::{
     SCDetectU32Match, SCDetectU32Parse, SCDetectU8Free, SCDetectU8Match,
 };
 use crate::detect::{
-    helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister,
-    DetectHelperBufferRegister, DetectHelperGetData, DetectHelperKeywordRegister,
-    DetectSignatureSetAppProto, SCSigTableAppLiteElmt, SigMatchAppendSMToList,
-    SigTableElmtStickyBuffer,
+    helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister, DetectHelperGetData,
+    DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
+    SigMatchAppendSMToList, SigTableElmtStickyBuffer,
 };
 use crate::websocket::parser::WebSocketOpcode;
-use suricata_sys::sys::{DetectEngineCtx, SCDetectBufferSetActiveList, Signature};
+use suricata_sys::sys::{
+    DetectEngineCtx, SCDetectBufferSetActiveList, SCDetectHelperBufferRegister, Signature,
+};
 
 use nom7::branch::alt;
 use nom7::bytes::complete::{is_a, tag};
@@ -291,7 +292,7 @@ pub unsafe extern "C" fn SCDetectWebsocketRegister() {
         flags: 0,
     };
     G_WEBSOCKET_OPCODE_KW_ID = DetectHelperKeywordRegister(&kw);
-    G_WEBSOCKET_OPCODE_BUFFER_ID = DetectHelperBufferRegister(
+    G_WEBSOCKET_OPCODE_BUFFER_ID = SCDetectHelperBufferRegister(
         b"websocket.opcode\0".as_ptr() as *const libc::c_char,
         ALPROTO_WEBSOCKET,
         STREAM_TOSERVER | STREAM_TOCLIENT,
@@ -306,7 +307,7 @@ pub unsafe extern "C" fn SCDetectWebsocketRegister() {
         flags: 0,
     };
     G_WEBSOCKET_MASK_KW_ID = DetectHelperKeywordRegister(&kw);
-    G_WEBSOCKET_MASK_BUFFER_ID = DetectHelperBufferRegister(
+    G_WEBSOCKET_MASK_BUFFER_ID = SCDetectHelperBufferRegister(
         b"websocket.mask\0".as_ptr() as *const libc::c_char,
         ALPROTO_WEBSOCKET,
         STREAM_TOSERVER | STREAM_TOCLIENT,
@@ -321,7 +322,7 @@ pub unsafe extern "C" fn SCDetectWebsocketRegister() {
         flags: 0,
     };
     G_WEBSOCKET_FLAGS_KW_ID = DetectHelperKeywordRegister(&kw);
-    G_WEBSOCKET_FLAGS_BUFFER_ID = DetectHelperBufferRegister(
+    G_WEBSOCKET_FLAGS_BUFFER_ID = SCDetectHelperBufferRegister(
         b"websocket.flags\0".as_ptr() as *const libc::c_char,
         ALPROTO_WEBSOCKET,
         STREAM_TOSERVER | STREAM_TOCLIENT,

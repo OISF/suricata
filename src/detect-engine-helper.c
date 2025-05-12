@@ -31,7 +31,7 @@
 #include "detect-engine-content-inspection.h"
 #include "rust.h"
 
-int DetectHelperBufferRegister(const char *name, AppProto alproto, uint8_t direction)
+int SCDetectHelperBufferRegister(const char *name, AppProto alproto, uint8_t direction)
 {
     if (direction & STREAM_TOSERVER) {
         DetectAppLayerInspectEngineRegister(
