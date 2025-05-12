@@ -337,7 +337,7 @@ void DetectEmailRegister(void)
     kw.url = "/rules/email-keywords.html#email.from";
     kw.Setup = DetectMimeEmailFromSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
-    DetectHelperKeywordRegister(&kw);
+    SCDetectHelperKeywordRegister(&kw);
     g_mime_email_from_buffer_id = DetectHelperBufferMpmRegister(
             "email.from", "MIME EMAIL FROM", ALPROTO_SMTP, STREAM_TOSERVER, GetMimeEmailFromData);
 
@@ -346,7 +346,7 @@ void DetectEmailRegister(void)
     kw.url = "/rules/email-keywords.html#email.subject";
     kw.Setup = DetectMimeEmailSubjectSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
-    DetectHelperKeywordRegister(&kw);
+    SCDetectHelperKeywordRegister(&kw);
     g_mime_email_subject_buffer_id = DetectHelperBufferMpmRegister("email.subject",
             "MIME EMAIL SUBJECT", ALPROTO_SMTP, STREAM_TOSERVER, GetMimeEmailSubjectData);
 
@@ -355,7 +355,7 @@ void DetectEmailRegister(void)
     kw.url = "/rules/email-keywords.html#email.to";
     kw.Setup = DetectMimeEmailToSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
-    DetectHelperKeywordRegister(&kw);
+    SCDetectHelperKeywordRegister(&kw);
     g_mime_email_to_buffer_id = DetectHelperBufferMpmRegister(
             "email.to", "MIME EMAIL TO", ALPROTO_SMTP, STREAM_TOSERVER, GetMimeEmailToData);
 
@@ -364,7 +364,7 @@ void DetectEmailRegister(void)
     kw.url = "/rules/email-keywords.html#email.cc";
     kw.Setup = DetectMimeEmailCcSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
-    DetectHelperKeywordRegister(&kw);
+    SCDetectHelperKeywordRegister(&kw);
     g_mime_email_cc_buffer_id = DetectHelperBufferMpmRegister(
             "email.cc", "MIME EMAIL CC", ALPROTO_SMTP, STREAM_TOSERVER, GetMimeEmailCcData);
 
@@ -373,7 +373,7 @@ void DetectEmailRegister(void)
     kw.url = "/rules/email-keywords.html#email.date";
     kw.Setup = DetectMimeEmailDateSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
-    DetectHelperKeywordRegister(&kw);
+    SCDetectHelperKeywordRegister(&kw);
     g_mime_email_date_buffer_id = DetectHelperBufferMpmRegister(
             "email.date", "MIME EMAIL DATE", ALPROTO_SMTP, STREAM_TOSERVER, GetMimeEmailDateData);
 
@@ -382,7 +382,7 @@ void DetectEmailRegister(void)
     kw.url = "/rules/email-keywords.html#email.message_id";
     kw.Setup = DetectMimeEmailMessageIdSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
-    DetectHelperKeywordRegister(&kw);
+    SCDetectHelperKeywordRegister(&kw);
     g_mime_email_message_id_buffer_id = DetectHelperBufferMpmRegister("email.message_id",
             "MIME EMAIL Message-Id", ALPROTO_SMTP, STREAM_TOSERVER, GetMimeEmailMessageIdData);
 
@@ -391,7 +391,7 @@ void DetectEmailRegister(void)
     kw.url = "/rules/email-keywords.html#email.x_mailer";
     kw.Setup = DetectMimeEmailXMailerSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
-    DetectHelperKeywordRegister(&kw);
+    SCDetectHelperKeywordRegister(&kw);
     g_mime_email_x_mailer_buffer_id = DetectHelperBufferMpmRegister("email.x_mailer",
             "MIME EMAIL X-Mailer", ALPROTO_SMTP, STREAM_TOSERVER, GetMimeEmailXMailerData);
 
@@ -400,7 +400,7 @@ void DetectEmailRegister(void)
     kw.url = "/rules/email-keywords.html#email.url";
     kw.Setup = DetectMimeEmailUrlSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
-    DetectHelperKeywordRegister(&kw);
+    SCDetectHelperKeywordRegister(&kw);
     g_mime_email_url_buffer_id = SCDetectHelperMultiBufferMpmRegister(
             "email.url", "MIME EMAIL URL", ALPROTO_SMTP, STREAM_TOSERVER, GetMimeEmailUrlData);
 
@@ -409,7 +409,7 @@ void DetectEmailRegister(void)
     kw.url = "/rules/email-keywords.html#email.received";
     kw.Setup = DetectMimeEmailReceivedSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
-    DetectHelperKeywordRegister(&kw);
+    SCDetectHelperKeywordRegister(&kw);
     g_mime_email_received_buffer_id = SCDetectHelperMultiBufferMpmRegister("email.received",
             "MIME EMAIL RECEIVED", ALPROTO_SMTP, STREAM_TOSERVER, GetMimeEmailReceivedData);
 }

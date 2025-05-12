@@ -327,6 +327,10 @@ extern "C" {
     pub fn SCDetectHelperNewKeywordId() -> ::std::os::raw::c_int;
 }
 extern "C" {
+    pub fn SCDetectHelperKeywordRegister(kw: *const SCSigTableAppLiteElmt)
+        -> ::std::os::raw::c_int;
+}
+extern "C" {
     pub fn SCDetectHelperKeywordAliasRegister(
         kwid: ::std::os::raw::c_int, alias: *const ::std::os::raw::c_char,
     );

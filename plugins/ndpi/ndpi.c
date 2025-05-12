@@ -467,7 +467,7 @@ static void EveCallback(ThreadVars *tv, const Packet *p, Flow *f, SCJsonBuilder 
 
 static void NdpInitRiskKeyword(void)
 {
-    /* SCSigTableAppLiteElmt and DetectHelperKeywordRegister don't yet
+    /* SCSigTableAppLiteElmt and SCDetectHelperKeywordRegister don't yet
      * support all the fields required to register the nDPI keywords,
      * missing the (packet) Match callback,
      * so we'll just register with an empty keyword specifier to get

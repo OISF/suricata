@@ -22,12 +22,13 @@ use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{DetectUintData, SCDetectU32Free, SCDetectU32Match, SCDetectU32Parse};
 use crate::detect::{
     helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister, DetectHelperGetData,
-    DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
-    SigMatchAppendSMToList, SigTableElmtStickyBuffer,
+    DetectSignatureSetAppProto, SigMatchAppendSMToList, SigTableElmtStickyBuffer,
 };
 use std::os::raw::{c_int, c_void};
 use suricata_sys::sys::{
-    DetectEngineCtx, SCDetectBufferSetActiveList, SCDetectHelperBufferRegister, Signature,
+    DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
+    SCDetectHelperBufferRegister, SCDetectHelperKeywordRegister, SCSigTableAppLiteElmt,
+    SigMatchCtx, Signature,
 };
 
 static mut G_SNMP_VERSION_KW_ID: c_int = 0;
@@ -56,15 +57,15 @@ unsafe extern "C" fn snmp_detect_version_setup(
 }
 
 unsafe extern "C" fn snmp_detect_version_match(
-    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
-    _sig: *const c_void, ctx: *const c_void,
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, SNMPTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u32>);
     return SCDetectU32Match(tx.version, ctx);
 }
 
-unsafe extern "C" fn snmp_detect_version_free(_de: *mut c_void, ctx: *mut c_void) {
+unsafe extern "C" fn snmp_detect_version_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u32>);
     SCDetectU32Free(ctx);
@@ -89,8 +90,8 @@ unsafe extern "C" fn snmp_detect_pdutype_setup(
 }
 
 unsafe extern "C" fn snmp_detect_pdutype_match(
-    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
-    _sig: *const c_void, ctx: *const c_void,
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, SNMPTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u32>);
@@ -101,7 +102,7 @@ unsafe extern "C" fn snmp_detect_pdutype_match(
     return 0;
 }
 
-unsafe extern "C" fn snmp_detect_pdutype_free(_de: *mut c_void, ctx: *mut c_void) {
+unsafe extern "C" fn snmp_detect_pdutype_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u32>);
     SCDetectU32Free(ctx);
@@ -191,11 +192,11 @@ pub(super) unsafe extern "C" fn detect_snmp_register() {
         desc: b"match SNMP version\0".as_ptr() as *const libc::c_char,
         url: b"/rules/snmp-keywords.html#snmp-version\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(snmp_detect_version_match),
-        Setup: snmp_detect_version_setup,
+        Setup: Some(snmp_detect_version_setup),
         Free: Some(snmp_detect_version_free),
         flags: 0,
     };
-    G_SNMP_VERSION_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_SNMP_VERSION_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_SNMP_VERSION_BUFFER_ID = SCDetectHelperBufferRegister(
         b"snmp.version\0".as_ptr() as *const libc::c_char,
         ALPROTO_SNMP,
@@ -207,11 +208,11 @@ pub(super) unsafe extern "C" fn detect_snmp_register() {
         desc: b"match SNMP PDU type\0".as_ptr() as *const libc::c_char,
         url: b"/rules/snmp-keywords.html#snmp-pdu-type\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(snmp_detect_pdutype_match),
-        Setup: snmp_detect_pdutype_setup,
+        Setup: Some(snmp_detect_pdutype_setup),
         Free: Some(snmp_detect_pdutype_free),
         flags: 0,
     };
-    G_SNMP_PDUTYPE_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_SNMP_PDUTYPE_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_SNMP_PDUTYPE_BUFFER_ID = SCDetectHelperBufferRegister(
         b"snmp.pdu_type\0".as_ptr() as *const libc::c_char,
         ALPROTO_SNMP,
