@@ -17,8 +17,8 @@
 
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
-use crate::core::DetectEngineThreadCtx;
 use crate::krb::krb5::{test_weak_encryption, KRB5Transaction};
+use suricata_sys::sys::DetectEngineThreadCtx;
 
 use kerberos_parser::krb5::EncryptionType;
 

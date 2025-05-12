@@ -18,11 +18,11 @@
 // Author: Frank Honza <frank.honza@dcso.de>
 
 use super::ipsec_parser::IkeV2Transform;
-use crate::core::DetectEngineThreadCtx;
 use crate::ike::ike::*;
 use std::ffi::CStr;
 use std::os::raw::c_void;
 use std::ptr;
+use suricata_sys::sys::DetectEngineThreadCtx;
 
 #[no_mangle]
 pub extern "C" fn SCIkeStateGetExchType(tx: &IKETransaction, exch_type: *mut u8) -> u8 {

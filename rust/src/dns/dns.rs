@@ -31,7 +31,7 @@ use crate::frames::Frame;
 
 use nom7::number::streaming::be_u16;
 use nom7::{Err, IResult};
-use suricata_sys::sys::AppProto;
+use suricata_sys::sys::{AppProto, DetectEngineThreadCtx};
 
 /// DNS record types.
 /// DNS error codes.

@@ -15,10 +15,11 @@
  * 02110-1301, USA.
  */
 
-use crate::core::{DetectEngineThreadCtx, STREAM_TOCLIENT, STREAM_TOSERVER};
+use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::quic::quic::QuicTransaction;
 use std::os::raw::c_void;
 use std::ptr;
+use suricata_sys::sys::DetectEngineThreadCtx;
 
 #[no_mangle]
 pub unsafe extern "C" fn SCQuicTxGetUa(
