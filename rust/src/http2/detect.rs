@@ -19,7 +19,6 @@ use super::http2::{
     HTTP2Event, HTTP2Frame, HTTP2FrameTypeData, HTTP2State, HTTP2Transaction, HTTP2TransactionState,
 };
 use super::parser;
-use crate::core::DetectEngineThreadCtx;
 use crate::detect::uint::{detect_match_uint, DetectUintData};
 use crate::direction::Direction;
 use base64::{engine::general_purpose::STANDARD, Engine};
@@ -27,6 +26,7 @@ use std::ffi::CStr;
 use std::os::raw::c_void;
 use std::rc::Rc;
 use std::str::FromStr;
+use suricata_sys::sys::DetectEngineThreadCtx;
 
 fn http2_tx_has_frametype(
     tx: &HTTP2Transaction, direction: Direction, value: u8,

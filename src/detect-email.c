@@ -401,7 +401,7 @@ void DetectEmailRegister(void)
     kw.Setup = DetectMimeEmailUrlSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
     DetectHelperKeywordRegister(&kw);
-    g_mime_email_url_buffer_id = DetectHelperMultiBufferMpmRegister(
+    g_mime_email_url_buffer_id = SCDetectHelperMultiBufferMpmRegister(
             "email.url", "MIME EMAIL URL", ALPROTO_SMTP, STREAM_TOSERVER, GetMimeEmailUrlData);
 
     kw.name = "email.received";
@@ -410,6 +410,6 @@ void DetectEmailRegister(void)
     kw.Setup = DetectMimeEmailReceivedSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
     DetectHelperKeywordRegister(&kw);
-    g_mime_email_received_buffer_id = DetectHelperMultiBufferMpmRegister("email.received",
+    g_mime_email_received_buffer_id = SCDetectHelperMultiBufferMpmRegister("email.received",
             "MIME EMAIL RECEIVED", ALPROTO_SMTP, STREAM_TOSERVER, GetMimeEmailReceivedData);
 }

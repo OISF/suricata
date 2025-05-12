@@ -17,16 +17,16 @@
 
 // written by Giuseppe Longo <giuseppe@glongo.it>
 
-use crate::core::{DetectEngineThreadCtx, STREAM_TOCLIENT, STREAM_TOSERVER};
+use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::{
     helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister, DetectHelperGetData,
-    DetectHelperMultiBufferMpmRegister, DetectSignatureSetAppProto, SigTableElmtStickyBuffer,
+    DetectSignatureSetAppProto, SigTableElmtStickyBuffer,
 };
 use crate::direction::Direction;
 use crate::sip::sip::{SIPTransaction, ALPROTO_SIP};
 use std::os::raw::{c_int, c_void};
 use std::ptr;
-use suricata_sys::sys::{DetectEngineCtx, SCDetectBufferSetActiveList, Signature};
+use suricata_sys::sys::{DetectEngineCtx, SCDetectBufferSetActiveList, Signature, SCDetectHelperMultiBufferMpmRegister, DetectEngineThreadCtx};
 
 static mut G_SIP_PROTOCOL_BUFFER_ID: c_int = 0;
 static mut G_SIP_STAT_CODE_BUFFER_ID: c_int = 0;
@@ -567,12 +567,12 @@ pub unsafe extern "C" fn SCDetectSipRegister() {
         setup: sip_from_hdr_setup,
     };
     let _g_sip_from_hdr_kw_id = helper_keyword_register_sticky_buffer(&kw);
-    G_SIP_FROM_HDR_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
+    G_SIP_FROM_HDR_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         b"sip.from\0".as_ptr() as *const libc::c_char,
         b"sip.from\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
-        sip_from_hdr_get_data,
+        Some(sip_from_hdr_get_data),
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sip.to"),
@@ -581,12 +581,12 @@ pub unsafe extern "C" fn SCDetectSipRegister() {
         setup: sip_to_hdr_setup,
     };
     let _g_sip_to_hdr_kw_id = helper_keyword_register_sticky_buffer(&kw);
-    G_SIP_TO_HDR_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
+    G_SIP_TO_HDR_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         b"sip.to\0".as_ptr() as *const libc::c_char,
         b"sip.to\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
-        sip_to_hdr_get_data,
+        Some(sip_to_hdr_get_data),
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sip.via"),
@@ -595,12 +595,12 @@ pub unsafe extern "C" fn SCDetectSipRegister() {
         setup: sip_via_hdr_setup,
     };
     let _g_sip_via_hdr_kw_id = helper_keyword_register_sticky_buffer(&kw);
-    G_SIP_VIA_HDR_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
+    G_SIP_VIA_HDR_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         b"sip.via\0".as_ptr() as *const libc::c_char,
         b"sip.via\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
-        sip_via_hdr_get_data,
+        Some(sip_via_hdr_get_data),
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sip.user_agent"),
@@ -609,12 +609,12 @@ pub unsafe extern "C" fn SCDetectSipRegister() {
         setup: sip_ua_hdr_setup,
     };
     let _g_sip_ua_hdr_kw_id = helper_keyword_register_sticky_buffer(&kw);
-    G_SIP_UA_HDR_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
+    G_SIP_UA_HDR_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         b"sip.ua\0".as_ptr() as *const libc::c_char,
         b"sip.ua\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
-        sip_ua_hdr_get_data,
+        Some(sip_ua_hdr_get_data),
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sip.content_type"),
@@ -623,12 +623,12 @@ pub unsafe extern "C" fn SCDetectSipRegister() {
         setup: sip_content_type_hdr_setup,
     };
     let _g_sip_content_type_hdr_kw_id = helper_keyword_register_sticky_buffer(&kw);
-    G_SIP_CONTENT_TYPE_HDR_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
+    G_SIP_CONTENT_TYPE_HDR_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         b"sip.content_type\0".as_ptr() as *const libc::c_char,
         b"sip.content_type\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
-        sip_content_type_hdr_get_data,
+        Some(sip_content_type_hdr_get_data),
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sip.content_length"),
@@ -637,11 +637,11 @@ pub unsafe extern "C" fn SCDetectSipRegister() {
         setup: sip_content_length_hdr_setup,
     };
     let _g_sip_content_length_hdr_kw_id = helper_keyword_register_sticky_buffer(&kw);
-    G_SIP_CONTENT_LENGTH_HDR_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
+    G_SIP_CONTENT_LENGTH_HDR_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         b"sip.content_length\0".as_ptr() as *const libc::c_char,
         b"sip.content_length\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
-        sip_content_length_hdr_get_data,
+        Some(sip_content_length_hdr_get_data),
     );
 }

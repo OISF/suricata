@@ -86,10 +86,10 @@ InspectionBuffer *DetectHelperGetData(struct DetectEngineThreadCtx_ *det_ctx,
         const int list_id, SimpleGetTxBuffer GetBuf);
 int DetectHelperBufferMpmRegister(const char *name, const char *desc, AppProto alproto,
         uint8_t direction, InspectionBufferGetDataPtr GetData);
-int DetectHelperMultiBufferMpmRegister(const char *name, const char *desc, AppProto alproto,
+int SCDetectHelperMultiBufferMpmRegister(const char *name, const char *desc, AppProto alproto,
         uint8_t direction, InspectionMultiBufferGetDataPtr GetData);
-int SCDetectHelperMultiBufferProgressMpmRegister(const char *name, const char *desc, AppProto alproto,
-        uint8_t direction, InspectionMultiBufferGetDataPtr GetData, int progress);
+int SCDetectHelperMultiBufferProgressMpmRegister(const char *name, const char *desc,
+        AppProto alproto, uint8_t direction, InspectionMultiBufferGetDataPtr GetData, int progress);
 
 int SCDetectHelperTransformRegister(const SCTransformTableElmt *kw);
 
