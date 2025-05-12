@@ -20,4 +20,5 @@ environment without access to additional modules.
    rule
    smtp
    ssh
+   tls
    ja3
