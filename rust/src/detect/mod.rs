@@ -38,7 +38,7 @@ pub mod datasets;
 use std::os::raw::{c_int, c_void};
 use std::ffi::CString;
 
-use suricata_sys::sys::{AppProto, DetectEngineCtx, Signature};
+use suricata_sys::sys::{AppProto, DetectEngineCtx, Signature, SCDetectHelperKeywordRegister, SCSigTableAppLiteElmt};
 
 /// EnumString trait that will be implemented on enums that
 /// derive StringEnum.
@@ -80,13 +80,13 @@ pub fn helper_keyword_register_sticky_buffer(kw: &SigTableElmtStickyBuffer) -> c
         name,
         desc,
         url,
-        Setup: kw.setup,
+        Setup: Some(kw.setup),
         flags: SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER,
         AppLayerTxMatch: None,
         Free: None,
     };
     unsafe {
-        let r = DetectHelperKeywordRegister(&st);
+        let r = SCDetectHelperKeywordRegister(&st);
         DetectHelperKeywordSetCleanCString(r);
         return r;
     }
@@ -109,40 +109,6 @@ pub unsafe extern "C" fn SCDetectSigMatchNamesFree(kw: &mut SCSigTableNamesElmt)
     let _ = CString::from_raw(kw.name);
     let _ = CString::from_raw(kw.desc);
     let _ = CString::from_raw(kw.url);
-}
-
-#[repr(C)]
-#[allow(non_snake_case)]
-/// App-layer light version of SigTableElmt
-pub struct SCSigTableAppLiteElmt {
-    /// keyword name
-    pub name: *const libc::c_char,
-    /// keyword description
-    pub desc: *const libc::c_char,
-    /// keyword documentation url
-    pub url: *const libc::c_char,
-    /// flags SIGMATCH_*
-    pub flags: u16,
-    /// function callback to parse and setup keyword in rule
-    pub Setup: unsafe extern "C" fn(
-        de: *mut DetectEngineCtx,
-        s: *mut Signature,
-        raw: *const std::os::raw::c_char,
-    ) -> c_int,
-    /// function callback to free structure allocated by setup if any
-    pub Free: Option<unsafe extern "C" fn(de: *mut c_void, ptr: *mut c_void)>,
-    /// function callback to match on an app-layer transaction
-    pub AppLayerTxMatch: Option<
-        unsafe extern "C" fn(
-            de: *mut c_void,
-            f: *mut c_void,
-            flags: u8,
-            state: *mut c_void,
-            tx: *mut c_void,
-            sig: *const c_void,
-            ctx: *const c_void,
-        ) -> c_int,
-    >,
 }
 
 pub const SIGMATCH_NOOPT: u16 = 1; // BIT_U16(0) in detect.h
@@ -168,7 +134,7 @@ extern "C" {
             i32,
         ) -> *mut c_void,
     ) -> c_int;
-    pub fn DetectHelperKeywordRegister(kw: *const SCSigTableAppLiteElmt) -> c_int;
+    // from detect-parse.h
     pub fn DetectSignatureSetAppProto(s: *mut Signature, alproto: AppProto) -> c_int;
     pub fn SigMatchAppendSMToList(
         de: *mut DetectEngineCtx, s: *mut Signature, kwid: c_int, ctx: *const c_void, bufid: c_int,

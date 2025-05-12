@@ -23,12 +23,13 @@ use crate::detect::uint::{
 };
 use crate::detect::{
     helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister, DetectHelperGetData,
-    DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
-    SigMatchAppendSMToList, SigTableElmtStickyBuffer,
+    DetectSignatureSetAppProto, SigMatchAppendSMToList, SigTableElmtStickyBuffer,
 };
 use crate::websocket::parser::WebSocketOpcode;
 use suricata_sys::sys::{
-    DetectEngineCtx, SCDetectBufferSetActiveList, SCDetectHelperBufferRegister, Signature,
+    DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
+    SCDetectHelperBufferRegister, SCDetectHelperKeywordRegister, SCSigTableAppLiteElmt,
+    SigMatchCtx, Signature,
 };
 
 use nom7::branch::alt;
@@ -147,15 +148,15 @@ unsafe extern "C" fn websocket_detect_opcode_setup(
 }
 
 unsafe extern "C" fn websocket_detect_opcode_match(
-    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
-    _sig: *const c_void, ctx: *const c_void,
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, WebSocketTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u8>);
     return SCDetectU8Match(tx.pdu.opcode, ctx);
 }
 
-unsafe extern "C" fn websocket_detect_opcode_free(_de: *mut c_void, ctx: *mut c_void) {
+unsafe extern "C" fn websocket_detect_opcode_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u8>);
     SCDetectU8Free(ctx);
@@ -187,8 +188,8 @@ unsafe extern "C" fn websocket_detect_mask_setup(
 }
 
 unsafe extern "C" fn websocket_detect_mask_match(
-    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
-    _sig: *const c_void, ctx: *const c_void,
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, WebSocketTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u32>);
@@ -198,7 +199,7 @@ unsafe extern "C" fn websocket_detect_mask_match(
     return 0;
 }
 
-unsafe extern "C" fn websocket_detect_mask_free(_de: *mut c_void, ctx: *mut c_void) {
+unsafe extern "C" fn websocket_detect_mask_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u32>);
     SCDetectU32Free(ctx);
@@ -230,15 +231,15 @@ unsafe extern "C" fn websocket_detect_flags_setup(
 }
 
 unsafe extern "C" fn websocket_detect_flags_match(
-    _de: *mut c_void, _f: *mut c_void, _flags: u8, _state: *mut c_void, tx: *mut c_void,
-    _sig: *const c_void, ctx: *const c_void,
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, WebSocketTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u8>);
     return SCDetectU8Match(tx.pdu.flags, ctx);
 }
 
-unsafe extern "C" fn websocket_detect_flags_free(_de: *mut c_void, ctx: *mut c_void) {
+unsafe extern "C" fn websocket_detect_flags_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u8>);
     SCDetectU8Free(ctx);
@@ -287,11 +288,11 @@ pub unsafe extern "C" fn SCDetectWebsocketRegister() {
         desc: b"match WebSocket opcode\0".as_ptr() as *const libc::c_char,
         url: b"/rules/websocket-keywords.html#websocket-opcode\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(websocket_detect_opcode_match),
-        Setup: websocket_detect_opcode_setup,
+        Setup: Some(websocket_detect_opcode_setup),
         Free: Some(websocket_detect_opcode_free),
         flags: 0,
     };
-    G_WEBSOCKET_OPCODE_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_WEBSOCKET_OPCODE_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_WEBSOCKET_OPCODE_BUFFER_ID = SCDetectHelperBufferRegister(
         b"websocket.opcode\0".as_ptr() as *const libc::c_char,
         ALPROTO_WEBSOCKET,
@@ -302,11 +303,11 @@ pub unsafe extern "C" fn SCDetectWebsocketRegister() {
         desc: b"match WebSocket mask\0".as_ptr() as *const libc::c_char,
         url: b"/rules/websocket-keywords.html#websocket-mask\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(websocket_detect_mask_match),
-        Setup: websocket_detect_mask_setup,
+        Setup: Some(websocket_detect_mask_setup),
         Free: Some(websocket_detect_mask_free),
         flags: 0,
     };
-    G_WEBSOCKET_MASK_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_WEBSOCKET_MASK_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_WEBSOCKET_MASK_BUFFER_ID = SCDetectHelperBufferRegister(
         b"websocket.mask\0".as_ptr() as *const libc::c_char,
         ALPROTO_WEBSOCKET,
@@ -317,11 +318,11 @@ pub unsafe extern "C" fn SCDetectWebsocketRegister() {
         desc: b"match WebSocket flags\0".as_ptr() as *const libc::c_char,
         url: b"/rules/websocket-keywords.html#websocket-flags\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(websocket_detect_flags_match),
-        Setup: websocket_detect_flags_setup,
+        Setup: Some(websocket_detect_flags_setup),
         Free: Some(websocket_detect_flags_free),
         flags: 0,
     };
-    G_WEBSOCKET_FLAGS_KW_ID = DetectHelperKeywordRegister(&kw);
+    G_WEBSOCKET_FLAGS_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_WEBSOCKET_FLAGS_BUFFER_ID = SCDetectHelperBufferRegister(
         b"websocket.flags\0".as_ptr() as *const libc::c_char,
         ALPROTO_WEBSOCKET,

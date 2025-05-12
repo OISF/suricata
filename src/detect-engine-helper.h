@@ -75,7 +75,7 @@ typedef struct SCTransformTableElmt {
 
 int SCDetectHelperNewKeywordId(void);
 
-int DetectHelperKeywordRegister(const SCSigTableAppLiteElmt *kw);
+int SCDetectHelperKeywordRegister(const SCSigTableAppLiteElmt *kw);
 void SCDetectHelperKeywordAliasRegister(int kwid, const char *alias);
 int SCDetectHelperBufferRegister(const char *name, AppProto alproto, uint8_t direction);
 
