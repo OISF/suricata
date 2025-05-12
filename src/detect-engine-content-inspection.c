@@ -107,7 +107,7 @@ struct DetectEngineContentInspectionCtx {
 static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
         struct DetectEngineContentInspectionCtx *ctx, const Signature *s, const SigMatchData *smd,
         Packet *p, Flow *f, const uint8_t *buffer, const uint32_t buffer_len,
-        const uint32_t stream_start_offset, const uint8_t flags,
+        const uint64_t stream_start_offset, const uint8_t flags,
         const enum DetectContentInspectionType inspection_mode)
 {
     SCEnter();
@@ -732,7 +732,7 @@ final_match:
  */
 bool DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const Signature *s, const SigMatchData *smd, Packet *p, Flow *f, const uint8_t *buffer,
-        const uint32_t buffer_len, const uint32_t stream_start_offset, const uint8_t flags,
+        const uint32_t buffer_len, const uint64_t stream_start_offset, const uint8_t flags,
         const enum DetectContentInspectionType inspection_mode)
 {
     struct DetectEngineContentInspectionCtx ctx = { .recursion.count = 0,
