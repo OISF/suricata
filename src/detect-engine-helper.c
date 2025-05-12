@@ -139,7 +139,7 @@ int DetectHelperKeywordRegister(const SCSigTableAppLiteElmt *kw)
     return keyword_id;
 }
 
-void DetectHelperKeywordAliasRegister(int kwid, const char *alias)
+void SCDetectHelperKeywordAliasRegister(int kwid, const char *alias)
 {
     sigmatch_table[kwid].alias = alias;
 }

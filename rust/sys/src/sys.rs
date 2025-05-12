@@ -327,6 +327,11 @@ extern "C" {
     pub fn SCDetectHelperNewKeywordId() -> ::std::os::raw::c_int;
 }
 extern "C" {
+    pub fn SCDetectHelperKeywordAliasRegister(
+        kwid: ::std::os::raw::c_int, alias: *const ::std::os::raw::c_char,
+    );
+}
+extern "C" {
     pub fn SCDetectHelperBufferRegister(
         name: *const ::std::os::raw::c_char, alproto: AppProto, direction: u8,
     ) -> ::std::os::raw::c_int;
