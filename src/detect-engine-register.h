@@ -350,6 +350,6 @@ void SigTableSetup(void);
 int SCSigTablePreRegister(void (*KeywordsRegister)(void));
 void SigTableRegisterTests(void);
 bool SigTableHasKeyword(const char *keyword);
-void DetectHelperKeywordSetCleanCString(int id);
+void SCDetectHelperKeywordSetCleanCString(int id);
 
 #endif /* SURICATA_DETECT_ENGINE_REGISTER_H */

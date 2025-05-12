@@ -458,7 +458,7 @@ static void SigCleanCString(SigTableElmt *base)
     SCDetectSigMatchNamesFree(&kw);
 }
 
-void DetectHelperKeywordSetCleanCString(int id)
+void SCDetectHelperKeywordSetCleanCString(int id)
 {
     sigmatch_table[id].Cleanup = SigCleanCString;
 }

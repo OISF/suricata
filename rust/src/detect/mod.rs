@@ -38,7 +38,10 @@ pub mod datasets;
 use std::os::raw::{c_int, c_void};
 use std::ffi::CString;
 
-use suricata_sys::sys::{AppProto, DetectEngineCtx, Signature, SCDetectHelperKeywordRegister, SCSigTableAppLiteElmt};
+use suricata_sys::sys::{
+    AppProto, DetectEngineCtx, SCDetectHelperKeywordRegister, SCDetectHelperKeywordSetCleanCString,
+    SCSigTableAppLiteElmt, Signature,
+};
 
 /// EnumString trait that will be implemented on enums that
 /// derive StringEnum.
@@ -87,7 +90,7 @@ pub fn helper_keyword_register_sticky_buffer(kw: &SigTableElmtStickyBuffer) -> c
     };
     unsafe {
         let r = SCDetectHelperKeywordRegister(&st);
-        DetectHelperKeywordSetCleanCString(r);
+        SCDetectHelperKeywordSetCleanCString(r);
         return r;
     }
 }
@@ -117,7 +120,6 @@ pub const SIGMATCH_INFO_STICKY_BUFFER: u16 = 0x200; // BIT_U16(9)
 
 /// cbindgen:ignore
 extern "C" {
-    pub fn DetectHelperKeywordSetCleanCString(id: c_int);
     pub fn DetectHelperGetData(
         de: *mut c_void, transforms: *const c_void, flow: *const c_void, flow_flags: u8,
         tx: *const c_void, list_id: c_int,
