@@ -35,7 +35,7 @@ pub mod tojson;
 pub mod vlan;
 pub mod datasets;
 
-use std::os::raw::{c_char, c_int, c_void};
+use std::os::raw::{c_int, c_void};
 use std::ffi::CString;
 
 use suricata_sys::sys::{AppProto, DetectEngineCtx, Signature};
@@ -169,7 +169,6 @@ extern "C" {
         ) -> *mut c_void,
     ) -> c_int;
     pub fn DetectHelperKeywordRegister(kw: *const SCSigTableAppLiteElmt) -> c_int;
-    pub fn DetectHelperKeywordAliasRegister(kwid: c_int, alias: *const c_char);
     pub fn DetectSignatureSetAppProto(s: *mut Signature, alproto: AppProto) -> c_int;
     pub fn SigMatchAppendSMToList(
         de: *mut DetectEngineCtx, s: *mut Signature, kwid: c_int, ctx: *const c_void, bufid: c_int,

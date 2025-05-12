@@ -22,16 +22,16 @@ use crate::detect::uint::{
     SCDetectU8Parse,
 };
 use crate::detect::{
-    helper_keyword_register_sticky_buffer, DetectHelperKeywordAliasRegister,
-    DetectHelperKeywordRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
-    SigMatchAppendSMToList, SigTableElmtStickyBuffer,
+    helper_keyword_register_sticky_buffer, DetectHelperKeywordRegister, DetectSignatureSetAppProto,
+    SCSigTableAppLiteElmt, SigMatchAppendSMToList, SigTableElmtStickyBuffer,
 };
 use crate::direction::Direction;
 use std::ffi::CStr;
 use std::os::raw::{c_int, c_void};
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, SCDetectBufferSetActiveList,
-    SCDetectHelperBufferRegister, SCDetectHelperMultiBufferProgressMpmRegister, Signature,
+    SCDetectHelperBufferRegister, SCDetectHelperKeywordAliasRegister,
+    SCDetectHelperMultiBufferProgressMpmRegister, Signature,
 };
 
 /// Perform the DNS opcode match.
@@ -411,7 +411,7 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         setup: dns_detect_query_setup,
     };
     let g_dns_query_name_kw_id = helper_keyword_register_sticky_buffer(&kw);
-    DetectHelperKeywordAliasRegister(
+    SCDetectHelperKeywordAliasRegister(
         g_dns_query_name_kw_id,
         b"dns_query\0".as_ptr() as *const libc::c_char,
     );
