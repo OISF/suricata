@@ -17,16 +17,19 @@
 
 // written by Giuseppe Longo <giuseppe@glongo.it>
 
-use crate::core::{DetectEngineThreadCtx, STREAM_TOCLIENT, STREAM_TOSERVER};
+use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::{
     helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister, DetectHelperGetData,
-    DetectHelperMultiBufferMpmRegister, DetectSignatureSetAppProto, SigTableElmtStickyBuffer,
+    DetectSignatureSetAppProto, SigTableElmtStickyBuffer,
 };
 use crate::direction::Direction;
 use crate::sip::sip::{SIPTransaction, ALPROTO_SIP};
 use std::os::raw::{c_int, c_void};
 use std::ptr;
-use suricata_sys::sys::{DetectEngineCtx, SCDetectBufferSetActiveList, Signature};
+use suricata_sys::sys::{
+    DetectEngineCtx, DetectEngineThreadCtx, SCDetectBufferSetActiveList,
+    SCDetectHelperMultiBufferMpmRegister, Signature,
+};
 
 static mut G_SDP_ORIGIN_BUFFER_ID: c_int = 0;
 static mut G_SDP_SESSION_NAME_BUFFER_ID: c_int = 0;
@@ -875,12 +878,12 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         setup: sdp_bandwidth_setup,
     };
     let _ = helper_keyword_register_sticky_buffer(&kw);
-    G_SDP_BANDWIDTH_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
+    G_SDP_BANDWIDTH_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         b"sdp.bandwidth\0".as_ptr() as *const libc::c_char,
         b"sdp.bandwidth\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
-        sip_bandwidth_get_data,
+        Some(sip_bandwidth_get_data),
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sdp.time"),
@@ -889,12 +892,12 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         setup: sdp_time_setup,
     };
     let _ = helper_keyword_register_sticky_buffer(&kw);
-    G_SDP_TIME_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
+    G_SDP_TIME_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         b"sdp.time\0".as_ptr() as *const libc::c_char,
         b"sdp.time\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
-        sdp_time_get_data,
+        Some(sdp_time_get_data),
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sdp.repeat_time"),
@@ -903,12 +906,12 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         setup: sdp_repeat_time_setup,
     };
     let _ = helper_keyword_register_sticky_buffer(&kw);
-    G_SDP_REPEAT_TIME_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
+    G_SDP_REPEAT_TIME_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         b"sdp.repeat_time\0".as_ptr() as *const libc::c_char,
         b"sdp.repeat_time\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
-        sdp_repeat_time_get_data,
+        Some(sdp_repeat_time_get_data),
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sdp.timezone"),
@@ -945,12 +948,12 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         setup: sdp_attribute_setup,
     };
     let _ = helper_keyword_register_sticky_buffer(&kw);
-    G_SDP_ATTRIBUTE_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
+    G_SDP_ATTRIBUTE_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         b"sdp.attribute\0".as_ptr() as *const libc::c_char,
         b"sdp.attribute\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
-        sip_attribute_get_data,
+        Some(sip_attribute_get_data),
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sdp.media.media"),
@@ -961,12 +964,12 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         setup: sdp_media_desc_media_setup,
     };
     let _ = helper_keyword_register_sticky_buffer(&kw);
-    G_SDP_MEDIA_DESC_MEDIA_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
+    G_SDP_MEDIA_DESC_MEDIA_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         b"sdp.media.media\0".as_ptr() as *const libc::c_char,
         b"sdp.media.media\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
-        sip_media_desc_media_get_data,
+        Some(sip_media_desc_media_get_data),
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sdp.media.media_info"),
@@ -975,12 +978,12 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         setup: sdp_media_desc_session_info_setup,
     };
     let _ = helper_keyword_register_sticky_buffer(&kw);
-    G_SDP_MEDIA_DESC_SESSION_INFO_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
+    G_SDP_MEDIA_DESC_SESSION_INFO_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         b"sdp.media.media_info\0".as_ptr() as *const libc::c_char,
         b"sdp.media.media_info\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
-        sip_media_desc_session_info_get_data,
+        Some(sip_media_desc_session_info_get_data),
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sdp.media.connection_data"),
@@ -989,12 +992,12 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         setup: sdp_media_desc_connection_data_setup,
     };
     let _ = helper_keyword_register_sticky_buffer(&kw);
-    G_SDP_MEDIA_DESC_CONNECTION_DATA_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
+    G_SDP_MEDIA_DESC_CONNECTION_DATA_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         b"sdp.media.connection_data\0".as_ptr() as *const libc::c_char,
         b"sdp.media.connection_data\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
-        sip_media_desc_connection_data_get_data,
+        Some(sip_media_desc_connection_data_get_data),
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sdp.media.encryption_key"),
@@ -1003,11 +1006,11 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         setup: sdp_media_desc_encryption_key_setup,
     };
     let _ = helper_keyword_register_sticky_buffer(&kw);
-    G_SDP_MEDIA_DESC_ENCRYPTION_KEY_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
+    G_SDP_MEDIA_DESC_ENCRYPTION_KEY_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         b"sdp.media.encryption_key\0".as_ptr() as *const libc::c_char,
         b"sdp.media.encryption_key\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
-        sip_media_desc_encryption_key_get_data,
+        Some(sip_media_desc_encryption_key_get_data),
     );
 }

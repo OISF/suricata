@@ -38,7 +38,6 @@ pub mod datasets;
 use std::os::raw::{c_char, c_int, c_void};
 use std::ffi::CString;
 
-use crate::core::DetectEngineThreadCtx;
 use suricata_sys::sys::{AppProto, DetectEngineCtx, Signature};
 
 /// EnumString trait that will be implemented on enums that
@@ -178,18 +177,6 @@ extern "C" {
     pub fn SigMatchAppendSMToList(
         de: *mut DetectEngineCtx, s: *mut Signature, kwid: c_int, ctx: *const c_void, bufid: c_int,
     ) -> *mut c_void;
-    // in detect-engine-helper.h
-    pub fn DetectHelperMultiBufferMpmRegister(
-        name: *const libc::c_char, desc: *const libc::c_char, alproto: AppProto, dir: u8,
-        get_multi_data: unsafe extern "C" fn(
-            *mut DetectEngineThreadCtx,
-            *const c_void,
-            u8,
-            u32,
-            *mut *const u8,
-            *mut u32,
-        ) -> bool,
-    ) -> c_int;
 }
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

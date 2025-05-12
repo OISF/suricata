@@ -28,7 +28,6 @@ use crate::flow::Flow;
 pub enum DetectEngineState {}
 pub enum AppLayerDecoderEvents {}
 pub enum GenericVar {}
-pub(crate) use suricata_sys::sys::DetectEngineThreadCtx;
 
 #[repr(C)]
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]

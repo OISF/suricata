@@ -17,7 +17,7 @@
 
 // written by Sascha Steinbiss <sascha@steinbiss.name>
 
-use crate::core::{DetectEngineThreadCtx, STREAM_TOCLIENT, STREAM_TOSERVER};
+use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{
     detect_match_uint, detect_parse_uint, detect_parse_uint_enum, DetectUintData, DetectUintMode,
     SCDetectU8Free, SCDetectU8Parse,
@@ -25,10 +25,13 @@ use crate::detect::uint::{
 use crate::detect::{
     helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister,
     DetectHelperBufferRegister, DetectHelperGetData, DetectHelperKeywordRegister,
-    DetectHelperMultiBufferMpmRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
-    SigMatchAppendSMToList, SigTableElmtStickyBuffer,
+    DetectSignatureSetAppProto, SCSigTableAppLiteElmt, SigMatchAppendSMToList,
+    SigTableElmtStickyBuffer,
 };
-use suricata_sys::sys::{DetectEngineCtx, SCDetectBufferSetActiveList, Signature};
+use suricata_sys::sys::{
+    DetectEngineCtx, DetectEngineThreadCtx, SCDetectBufferSetActiveList,
+    SCDetectHelperMultiBufferMpmRegister, Signature,
+};
 
 use nom7::branch::alt;
 use nom7::bytes::complete::{is_a, tag};
@@ -1087,12 +1090,12 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         }
     }
     let _g_mqtt_unsub_topic_kw_id = helper_keyword_register_sticky_buffer(&kw);
-    G_MQTT_UNSUB_TOPIC_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
+    G_MQTT_UNSUB_TOPIC_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         keyword_name,
         b"unsubscribe topic query\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
         STREAM_TOSERVER,
-        unsub_topic_get_data,
+        Some(unsub_topic_get_data),
     );
 
     let kw = SCSigTableAppLiteElmt {
@@ -1126,12 +1129,12 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         }
     }
     let _g_mqtt_sub_topic_kw_id = helper_keyword_register_sticky_buffer(&kw);
-    G_MQTT_SUB_TOPIC_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
+    G_MQTT_SUB_TOPIC_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         keyword_name,
         b"subscribe topic query\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
         STREAM_TOSERVER,
-        sub_topic_get_data,
+        Some(sub_topic_get_data),
     );
 
     let kw = SCSigTableAppLiteElmt {

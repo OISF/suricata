@@ -16,7 +16,7 @@
  */
 
 use super::ldap::{LdapTransaction, ALPROTO_LDAP};
-use crate::core::{DetectEngineThreadCtx, STREAM_TOCLIENT, STREAM_TOSERVER};
+use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{
     detect_match_uint, detect_parse_uint_enum, DetectUintData, SCDetectU32Free, SCDetectU32Parse,
     SCDetectU8Free,
@@ -24,11 +24,14 @@ use crate::detect::uint::{
 use crate::detect::{
     helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister,
     DetectHelperBufferRegister, DetectHelperGetData, DetectHelperKeywordRegister,
-    DetectHelperMultiBufferMpmRegister, DetectSignatureSetAppProto, SCSigTableAppLiteElmt,
-    SigMatchAppendSMToList, SigTableElmtStickyBuffer,
+    DetectSignatureSetAppProto, SCSigTableAppLiteElmt, SigMatchAppendSMToList,
+    SigTableElmtStickyBuffer,
 };
 use crate::ldap::types::{LdapMessage, LdapResultCode, ProtocolOp, ProtocolOpCode};
-use suricata_sys::sys::{DetectEngineCtx, SCDetectBufferSetActiveList, Signature};
+use suricata_sys::sys::{
+    DetectEngineCtx, DetectEngineThreadCtx, SCDetectBufferSetActiveList,
+    SCDetectHelperMultiBufferMpmRegister, Signature,
+};
 
 use std::collections::VecDeque;
 use std::ffi::CStr;
@@ -700,12 +703,12 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         setup: ldap_detect_responses_dn_setup,
     };
     let _g_ldap_responses_dn_kw_id = helper_keyword_register_sticky_buffer(&kw);
-    G_LDAP_RESPONSES_DN_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
+    G_LDAP_RESPONSES_DN_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         b"ldap.responses.dn\0".as_ptr() as *const libc::c_char,
         b"LDAP RESPONSES DISTINGUISHED_NAME\0".as_ptr() as *const libc::c_char,
         ALPROTO_LDAP,
         STREAM_TOCLIENT,
-        ldap_tx_get_responses_dn,
+        Some(ldap_tx_get_responses_dn),
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"ldap.responses.result_code\0".as_ptr() as *const libc::c_char,
@@ -730,12 +733,12 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         setup: ldap_detect_responses_msg_setup,
     };
     let _g_ldap_responses_dn_kw_id = helper_keyword_register_sticky_buffer(&kw);
-    G_LDAP_RESPONSES_MSG_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
+    G_LDAP_RESPONSES_MSG_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         b"ldap.responses.message\0".as_ptr() as *const libc::c_char,
         b"LDAP RESPONSES DISTINGUISHED_NAME\0".as_ptr() as *const libc::c_char,
         ALPROTO_LDAP,
         STREAM_TOCLIENT,
-        ldap_tx_get_responses_msg,
+        Some(ldap_tx_get_responses_msg),
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("ldap.request.attribute_type"),
@@ -744,12 +747,12 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         setup: ldap_detect_request_attibute_type_setup,
     };
     let _g_ldap_request_attribute_type_kw_id = helper_keyword_register_sticky_buffer(&kw);
-    G_LDAP_REQUEST_ATTRIBUTE_TYPE_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
+    G_LDAP_REQUEST_ATTRIBUTE_TYPE_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         b"ldap.request.attribute_type\0".as_ptr() as *const libc::c_char,
         b"LDAP REQUEST ATTRIBUTE TYPE\0".as_ptr() as *const libc::c_char,
         ALPROTO_LDAP,
         STREAM_TOSERVER,
-        ldap_tx_get_req_attribute_type,
+        Some(ldap_tx_get_req_attribute_type),
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("ldap.responses.attribute_type"),
@@ -758,11 +761,11 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         setup: ldap_detect_responses_attibute_type_setup,
     };
     let _g_ldap_responses_attribute_type_kw_id = helper_keyword_register_sticky_buffer(&kw);
-    G_LDAP_RESPONSES_ATTRIBUTE_TYPE_BUFFER_ID = DetectHelperMultiBufferMpmRegister(
+    G_LDAP_RESPONSES_ATTRIBUTE_TYPE_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         b"ldap.responses.attribute_type\0".as_ptr() as *const libc::c_char,
         b"LDAP RESPONSES ATTRIBUTE TYPE\0".as_ptr() as *const libc::c_char,
         ALPROTO_LDAP,
         STREAM_TOCLIENT,
-        ldap_tx_get_resp_attribute_type,
+        Some(ldap_tx_get_resp_attribute_type),
     );
 }

@@ -16,7 +16,7 @@
  */
 
 use super::dns::{DNSRcode, DNSRecordType, DNSTransaction, ALPROTO_DNS};
-use crate::core::{DetectEngineThreadCtx, STREAM_TOCLIENT, STREAM_TOSERVER};
+use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{
     detect_match_uint, detect_parse_uint_enum, DetectUintData, SCDetectU16Free, SCDetectU8Free,
     SCDetectU8Parse,
@@ -30,8 +30,8 @@ use crate::direction::Direction;
 use std::ffi::CStr;
 use std::os::raw::{c_int, c_void};
 use suricata_sys::sys::{
-    DetectEngineCtx, SCDetectBufferSetActiveList, SCDetectHelperMultiBufferProgressMpmRegister,
-    Signature,
+    DetectEngineCtx, DetectEngineThreadCtx, SCDetectBufferSetActiveList,
+    SCDetectHelperMultiBufferProgressMpmRegister, Signature,
 };
 
 /// Perform the DNS opcode match.
