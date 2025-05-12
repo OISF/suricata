@@ -176,6 +176,9 @@ extern "C" {
         KeywordsRegister: ::std::option::Option<unsafe extern "C" fn()>,
     ) -> ::std::os::raw::c_int;
 }
+extern "C" {
+    pub fn SCDetectHelperKeywordSetCleanCString(id: ::std::os::raw::c_int);
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct DetectEngineCtx_ {
