@@ -170,9 +170,6 @@ extern "C" {
     ) -> c_int;
     pub fn DetectHelperKeywordRegister(kw: *const SCSigTableAppLiteElmt) -> c_int;
     pub fn DetectHelperKeywordAliasRegister(kwid: c_int, alias: *const c_char);
-    pub fn DetectHelperBufferRegister(
-        name: *const libc::c_char, alproto: AppProto, dir: u8,
-    ) -> c_int;
     pub fn DetectSignatureSetAppProto(s: *mut Signature, alproto: AppProto) -> c_int;
     pub fn SigMatchAppendSMToList(
         de: *mut DetectEngineCtx, s: *mut Signature, kwid: c_int, ctx: *const c_void, bufid: c_int,
