@@ -1,4 +1,4 @@
-/* Copyright (C) 2024 Open Information Security Foundation
+/* Copyright (C) 2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -70,7 +70,7 @@ void DetectEntropyRegister(void)
 {
     sigmatch_table[DETECT_ENTROPY].name = "entropy";
     sigmatch_table[DETECT_ENTROPY].desc = "calculate entropy";
-    sigmatch_table[DETECT_BYTE_EXTRACT].url = "/rules/payload-keywords.html#entropy";
+    sigmatch_table[DETECT_ENTROPY].url = "/rules/payload-keywords.html#entropy";
     sigmatch_table[DETECT_ENTROPY].Free = DetectEntropyFree;
     sigmatch_table[DETECT_ENTROPY].Setup = DetectEntropySetup;
 }
