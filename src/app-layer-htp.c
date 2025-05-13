@@ -536,11 +536,7 @@ static void HTPStateTransactionFree(void *state, uint64_t id)
     HtpState *s = (HtpState *)state;
 
     SCLogDebug("state %p, id %"PRIu64, s, id);
-
-    htp_tx_t *tx = HTPStateGetTx(s, id);
-    if (tx != NULL) {
-        htp_tx_destroy(s->connp, tx);
-    }
+    htp_tx_destroy(s->connp, id);
 }
 
 /**

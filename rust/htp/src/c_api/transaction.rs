@@ -8,9 +8,9 @@ use std::convert::{TryFrom, TryInto};
 /// # Safety
 /// When calling this method, you have to ensure that tx is either properly initialized or NULL
 #[no_mangle]
-pub unsafe extern "C" fn htp_tx_destroy(connp: *mut ConnectionParser, tx: *const Transaction) {
-    if let (Some(connp), Some(tx)) = (connp.as_mut(), tx.as_ref()) {
-        connp.remove_tx(tx.index)
+pub unsafe extern "C" fn htp_tx_destroy(connp: *mut ConnectionParser, index: usize) {
+    if let Some(connp) = connp.as_mut() {
+        connp.remove_tx(index)
     }
 }
 
