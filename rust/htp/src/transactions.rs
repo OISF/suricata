@@ -142,30 +142,3 @@ impl Transactions {
         self.transactions.get_mut(&index)
     }
 }
-
-/// An iterator over Transactions
-pub(crate) struct TransactionsIterator<'a> {
-    iter: std::collections::btree_map::IterMut<'a, usize, Transaction>,
-}
-
-impl<'a> Iterator for TransactionsIterator<'a> {
-    type Item = &'a mut Transaction;
-    fn next(&mut self) -> Option<Self::Item> {
-        if let Some((_index, tx)) = self.iter.next() {
-            Some(tx)
-        } else {
-            None
-        }
-    }
-}
-
-impl<'a> IntoIterator for &'a mut Transactions {
-    type Item = &'a mut Transaction;
-    type IntoIter = TransactionsIterator<'a>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        TransactionsIterator {
-            iter: self.transactions.iter_mut(),
-        }
-    }
-}
