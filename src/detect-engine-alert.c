@@ -398,14 +398,22 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
                 }
             }
 
-            /* set actions on the flow */
-            FlowApplySignatureActions(p, pa, s, pa->flags);
+            bool skip_action_set = false;
+            if (p->action & ACTION_DROP) {
+                if (pa->action & ACTION_PASS) {
+                    skip_action_set = true;
+                }
+            }
+            if (!skip_action_set) {
+                /* set actions on the flow */
+                FlowApplySignatureActions(p, pa, s, pa->flags);
 
-            SCLogDebug("det_ctx->alert_queue[i].action %02x (DROP %s, PASS %s)", pa->action,
-                    BOOL2STR(pa->action & ACTION_DROP), BOOL2STR(pa->action & ACTION_PASS));
+                SCLogDebug("det_ctx->alert_queue[i].action %02x (DROP %s, PASS %s)", pa->action,
+                        BOOL2STR(pa->action & ACTION_DROP), BOOL2STR(pa->action & ACTION_PASS));
 
-            /* set actions on packet */
-            PacketApplySignatureActions(p, s, pa);
+                /* set actions on packet */
+                PacketApplySignatureActions(p, s, pa);
+            }
         }
 
         /* Thresholding removes this alert */
