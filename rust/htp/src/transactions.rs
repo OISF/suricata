@@ -1,6 +1,5 @@
 use crate::{config::Config, log::Logger, transaction::Transaction};
-use std::collections::btree_map::Entry;
-use std::collections::BTreeMap;
+use std::collections::VecDeque;
 
 /// Transaction is a structure which tracks request and response
 /// transactions, and guarantees that the current request or
@@ -10,7 +9,7 @@ pub(crate) struct Transactions {
     logger: Logger,
     request: usize,
     response: usize,
-    transactions: BTreeMap<usize, Transaction>,
+    transactions: VecDeque<Transaction>,
 }
 
 impl Transactions {
@@ -21,7 +20,7 @@ impl Transactions {
             logger: logger.clone(),
             request: 0,
             response: 0,
-            transactions: BTreeMap::default(),
+            transactions: VecDeque::new(),
         }
     }
 
@@ -34,7 +33,7 @@ impl Transactions {
         // that transaction is started), or zero if neither
         // request or response transaction exist yet
         let tx_to_check = std::cmp::max(self.request, self.response);
-        match self.transactions.get(&tx_to_check) {
+        match self.transactions.get(tx_to_check) {
             // Transaction is created, check if it is started
             Some(tx) => tx.index.wrapping_add(tx.is_started() as usize),
             // Transaction doesn't exist yet, so the index is the size
@@ -57,23 +56,24 @@ impl Transactions {
 
     /// Get the current request transaction
     pub(crate) fn request_mut(&mut self) -> Option<&mut Transaction> {
-        let cfg = &self.config;
-        let logger = &self.logger;
-        let request = self.request;
         let nbtx = self.transactions.len();
-        match self.transactions.entry(request) {
-            Entry::Occupied(entry) => Some(entry.into_mut()),
-            Entry::Vacant(entry) => {
-                if nbtx >= cfg.max_tx as usize {
-                    return None;
-                }
-                let tx = Transaction::new(cfg, logger, request, true);
-                if let Some(tx) = tx {
-                    return Some(entry.insert(tx));
-                }
-                None
-            }
+        // use rposition as the current request is rather the tx at the back of VecDeque
+        if let Some(pos) = self
+            .transactions
+            .iter()
+            .rposition(|tx| tx.index == self.request)
+        {
+            return Some(&mut self.transactions[pos]);
         }
+        if nbtx >= self.config.max_tx as usize {
+            return None;
+        }
+        let tx = Transaction::new(self.config, &self.logger, self.request, true);
+        if let Some(tx) = tx {
+            self.transactions.push_back(tx);
+            return self.transactions.back_mut();
+        }
+        None
     }
 
     /// Get the current response transaction index
@@ -91,23 +91,22 @@ impl Transactions {
 
     /// Get the current response transaction
     pub(crate) fn response_mut(&mut self) -> Option<&mut Transaction> {
-        let cfg = &self.config;
-        let logger = &self.logger;
-        let response = self.response;
-        let nbtx = self.transactions.len();
-        match self.transactions.entry(response) {
-            Entry::Occupied(entry) => Some(entry.into_mut()),
-            Entry::Vacant(entry) => {
-                if nbtx >= cfg.max_tx as usize {
-                    return None;
-                }
-                let tx = Transaction::new(cfg, logger, response, false);
-                if let Some(tx) = tx {
-                    return Some(entry.insert(tx));
-                }
-                None
-            }
+        if let Some(pos) = self
+            .transactions
+            .iter()
+            .position(|tx| tx.index == self.response)
+        {
+            return Some(&mut self.transactions[pos]);
         }
+        if self.transactions.len() >= self.config.max_tx as usize {
+            return None;
+        }
+        let tx = Transaction::new(self.config, &self.logger, self.response, false);
+        if let Some(tx) = tx {
+            self.transactions.push_back(tx);
+            return self.transactions.back_mut();
+        }
+        None
     }
 
     /// Increment the request transaction number.
@@ -128,17 +127,25 @@ impl Transactions {
 
     /// Remove the transaction at the given index. If the transaction
     /// existed, it is returned.
-    pub(crate) fn remove(&mut self, index: usize) -> Option<Transaction> {
-        self.transactions.remove(&index)
+    pub(crate) fn remove(&mut self, index: usize) {
+        if let Some(pos) = self.transactions.iter().position(|tx| tx.index == index) {
+            self.transactions.remove(pos);
+        }
     }
 
     /// Get the given transaction by index number
     pub(crate) fn get(&self, index: usize) -> Option<&Transaction> {
-        self.transactions.get(&index)
+        if let Some(pos) = self.transactions.iter().position(|tx| tx.index == index) {
+            return Some(&self.transactions[pos]);
+        }
+        None
     }
 
     /// Get the given transaction by index number
     pub(crate) fn get_mut(&mut self, index: usize) -> Option<&mut Transaction> {
-        self.transactions.get_mut(&index)
+        if let Some(pos) = self.transactions.iter().position(|tx| tx.index == index) {
+            return Some(&mut self.transactions[pos]);
+        }
+        None
     }
 }
