@@ -240,7 +240,7 @@ fn log_response(res: &PgsqlBEMessage, jb: &mut JsonBuilder) -> Result<(), JsonEr
             column_cnt,
         }) => {
             jb.open_object(res.to_str())?;
-            jb.set_uint("copy_column_count", *column_cnt)?;
+            jb.set_uint("columns", *column_cnt)?;
             jb.close()?;
         }
         PgsqlBEMessage::BackendKeyData(BackendKeyDataMessage {

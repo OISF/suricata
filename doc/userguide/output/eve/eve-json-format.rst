@@ -2576,9 +2576,9 @@ pgsql flow. Some of the possible request messages are:
   total size in bytes of the data returned
 * "command_completed": string. Informs the command just completed by the backend
 * "copy_in_response": object. Indicates the beginning of a CopyIn mode, shows
-  how many columns will be copied from STDIN (``copy_column_cnt`` field)
+  how many columns will be copied from STDIN (``columns`` field)
 * "copy_out_response": object. Indicates the beginning of a CopyTo mode, shows
-  how many columns will be copied to STDOUT (``copy_column_cnt`` field)
+  how many columns will be copied to STDOUT (``columns`` field)
 * "copy_data_out": object. Consolidated data on the CopyData sent by the backend
   in a CopyOut transaction
 * "copy_done": string. Similar to ``command_completed`` but sent after the
