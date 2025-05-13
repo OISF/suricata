@@ -3702,7 +3702,7 @@
                             "type": "object",
                             "description": "Backend/server response accepting CopyIn mode",
                             "properties": {
-                                "copy_column_count": {
+                                "columns": {
                                     "type": "integer",
                                     "description": "Number of columns that will be copied in the CopyData message"
                                 }
@@ -3712,7 +3712,7 @@
                             "type": "object",
                             "description": "Backend/server response accepting CopyOut mode",
                             "properties": {
-                                "copy_column_count": {
+                                "columns": {
                                     "type": "integer",
                                     "description": "Number of columns that will be copied in the CopyData message"
                                 }
