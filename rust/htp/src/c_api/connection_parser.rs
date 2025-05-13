@@ -219,6 +219,21 @@ pub unsafe extern "C" fn htp_connp_tx_size(connp: *const ConnectionParser) -> is
         .unwrap_or(-1)
 }
 
+/// Get a transaction by its index for the iterator.
+/// # Safety
+/// When calling this method, you have to ensure that connp is either properly initialized or NULL
+#[no_mangle]
+pub unsafe extern "C" fn htp_connp_tx_index(
+    connp: *mut ConnectionParser, index: usize,
+) -> *mut Transaction {
+    if let Some(tx) = connp.as_mut().unwrap().tx_index(index) {
+        if tx.is_started() {
+            return tx as *mut Transaction;
+        }
+    }
+    std::ptr::null_mut()
+}
+
 /// Get a transaction.
 ///
 /// Returns the transaction or NULL on error.

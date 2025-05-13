@@ -148,4 +148,12 @@ impl Transactions {
         }
         None
     }
+
+    /// Get the given transaction by index number
+    pub(crate) fn get_index(&mut self, index: usize) -> Option<&mut Transaction> {
+        if index < self.transactions.len() {
+            return Some(&mut self.transactions[index]);
+        }
+        None
+    }
 }
