@@ -462,6 +462,11 @@ impl ConnectionParser {
         self.transactions.get(index)
     }
 
+    /// Get a specific transaction by its index
+    pub(crate) fn tx_index(&mut self, index: usize) -> Option<&mut Transaction> {
+        self.transactions.get_index(index)
+    }
+
     /// Get a specific transaction
     pub(crate) fn tx_mut(&mut self, index: usize) -> Option<&mut Transaction> {
         self.transactions.get_mut(index)
