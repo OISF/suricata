@@ -437,6 +437,14 @@ pub unsafe extern "C" fn htp_tx_flags(tx: *const Transaction) -> u64 {
     tx.as_ref().map(|tx| tx.flags).unwrap_or(0)
 }
 
+/// Get the transaction's index.
+///
+/// tx: Transaction pointer.
+#[no_mangle]
+pub unsafe extern "C" fn htp_tx_index(tx: *const Transaction) -> usize {
+    tx.as_ref().map(|tx| tx.index).unwrap_or(0)
+}
+
 /// Get the transaction's request progress.
 ///
 /// tx: Transaction pointer.

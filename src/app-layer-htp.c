@@ -2482,6 +2482,34 @@ static void *HTPStateGetTx(void *alstate, uint64_t tx_id)
         return NULL;
 }
 
+static AppLayerGetTxIterTuple HTPGetTxIterator(const uint8_t ipproto, const AppProto alproto,
+        void *alstate, uint64_t min_tx_id, uint64_t max_tx_id, AppLayerGetTxIterState *state)
+{
+    HtpState *http_state = (HtpState *)alstate;
+    uint64_t size = HTPStateGetTxCnt(alstate);
+    AppLayerGetTxIterTuple no_tuple = { NULL, 0, false };
+    if (http_state) {
+        while (state->un.u64 < size) {
+            htp_tx_t *tx = htp_connp_tx_index(http_state->connp, state->un.u64);
+            if (!tx) {
+                return no_tuple;
+            }
+            uint64_t tx_id = htp_tx_index(tx);
+            if (tx_id < min_tx_id) {
+                state->un.u64++;
+                continue;
+            }
+            AppLayerGetTxIterTuple tuple = {
+                .tx_ptr = tx,
+                .tx_id = tx_id,
+                .has_next = state->un.u64 < size,
+            };
+            return tuple;
+        }
+    }
+    return no_tuple;
+}
+
 void *HtpGetTxForH2(void *alstate)
 {
     // gets last transaction
@@ -2612,7 +2640,7 @@ void RegisterHTPParsers(void)
                 IPPROTO_TCP, ALPROTO_HTTP1, HTPStateGetAlstateProgress);
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_HTTP1, HTPStateGetTxCnt);
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_HTTP1, HTPStateGetTx);
-
+        AppLayerParserRegisterGetTxIterator(IPPROTO_TCP, ALPROTO_HTTP1, HTPGetTxIterator);
         AppLayerParserRegisterStateProgressCompletionStatus(
                 ALPROTO_HTTP1, HTP_REQUEST_PROGRESS_COMPLETE, HTP_RESPONSE_PROGRESS_COMPLETE);
         AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_HTTP1, HTPStateGetEventInfo);
