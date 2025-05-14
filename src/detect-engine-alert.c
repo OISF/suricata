@@ -191,11 +191,16 @@ static void PacketApplySignatureActions(Packet *p, const Signature *s, const Pac
 
     /* REJECT also sets ACTION_DROP, just make it more visible with this check */
     if (pa->action & ACTION_DROP_REJECT) {
+        const uint8_t drop_reason = ((s->flags & SIG_FLAG_FIREWALL) &&
+                                            s->firewall_table == FIREWALL_TABLE_PACKET_PRE_STREAM)
+                                            ? PKT_DROP_REASON_STREAM_PRE_HOOK
+                                            : PKT_DROP_REASON_RULES;
+
         /* PacketDrop will update the packet action, too */
         PacketDrop(p, pa->action,
                 (pa->flags & PACKET_ALERT_FLAG_RATE_FILTER_MODIFIED)
                         ? PKT_DROP_REASON_RULES_THRESHOLD
-                        : PKT_DROP_REASON_RULES);
+                        : drop_reason);
         SCLogDebug("[packet %p][DROP sid %u]", p, s->id);
 
         if (p->alerts.drop.action == 0) {
