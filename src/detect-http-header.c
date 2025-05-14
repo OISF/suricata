@@ -462,7 +462,7 @@ static int g_response_header_thread_id = 0;
 
 typedef struct HttpMultiBufItem {
     uint8_t *buffer;
-    size_t len;
+    uint32_t len;
 } HttpMultiBufItem;
 
 typedef struct HttpMultiBufHeaderThreadData {
@@ -539,9 +539,9 @@ static bool GetHttp1HeaderData(DetectEngineThreadCtx *det_ctx, const void *txv, 
         }
         for (size_t i = 0; i < no_of_headers; i++) {
             const htp_header_t *h = htp_headers_get_index(headers, i);
-            size_t size1 = htp_header_name_len(h);
-            size_t size2 = htp_header_value_len(h);
-            size_t size = size1 + size2 + 2;
+            uint32_t size1 = (uint32_t)htp_header_name_len(h);
+            uint32_t size2 = (uint32_t)htp_header_value_len(h);
+            uint32_t size = size1 + size2 + 2;
             if (hdr_td->items[i].len < size) {
                 // Use realloc, as this pointer is not freed until HttpMultiBufHeaderThreadDataFree
                 void *tmp = SCRealloc(hdr_td->items[i].buffer, size);
