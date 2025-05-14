@@ -75,7 +75,7 @@ static bool DetectFTPReplyGetData(DetectEngineThreadCtx *_det_ctx, const void *t
             DEBUG_VALIDATE_BUG_ON(wrapper->response == NULL);
             if (index == count) {
                 *buffer = (const uint8_t *)wrapper->response->response;
-                *buffer_len = wrapper->response->length;
+                *buffer_len = (uint32_t)wrapper->response->length;
                 return true;
             }
             count++;
