@@ -257,6 +257,14 @@ pub type InspectionMultiBufferGetDataPtr = ::std::option::Option<
         buf_len: *mut u32,
     ) -> bool,
 >;
+pub type InspectionSingleBufferGetDataPtr = ::std::option::Option<
+    unsafe extern "C" fn(
+        txv: *const ::std::os::raw::c_void,
+        flow_flags: u8,
+        buf: *mut *const u8,
+        buf_len: *mut u32,
+    ) -> bool,
+>;
 #[doc = " App-layer light version of SigTableElmt"]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -341,6 +349,12 @@ extern "C" {
 extern "C" {
     pub fn SCDetectHelperBufferRegister(
         name: *const ::std::os::raw::c_char, alproto: AppProto, direction: u8,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCDetectHelperBufferMpmRegister(
+        name: *const ::std::os::raw::c_char, desc: *const ::std::os::raw::c_char,
+        alproto: AppProto, direction: u8, GetData: InspectionSingleBufferGetDataPtr,
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {

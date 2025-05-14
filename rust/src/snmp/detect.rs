@@ -21,14 +21,14 @@ use super::snmp::{SNMPTransaction, ALPROTO_SNMP};
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{DetectUintData, SCDetectU32Free, SCDetectU32Match, SCDetectU32Parse};
 use crate::detect::{
-    helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister,
-    DetectSignatureSetAppProto, SigMatchAppendSMToList, SigTableElmtStickyBuffer,
+    helper_keyword_register_sticky_buffer, DetectSignatureSetAppProto, SigMatchAppendSMToList,
+    SigTableElmtStickyBuffer,
 };
 use std::os::raw::{c_int, c_void};
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
-    SCDetectHelperBufferRegister, SCDetectHelperKeywordRegister, SCSigTableAppLiteElmt,
-    SigMatchCtx, Signature,
+    SCDetectHelperBufferMpmRegister, SCDetectHelperBufferRegister, SCDetectHelperKeywordRegister,
+    SCSigTableAppLiteElmt, SigMatchCtx, Signature,
 };
 
 static mut G_SNMP_VERSION_KW_ID: c_int = 0;
@@ -196,12 +196,12 @@ pub(super) unsafe extern "C" fn detect_snmp_register() {
         setup: snmp_detect_usm_setup,
     };
     let _g_snmp_usm_kw_id = helper_keyword_register_sticky_buffer(&kw);
-    G_SNMP_USM_BUFFER_ID = DetectHelperBufferMpmRegister(
+    G_SNMP_USM_BUFFER_ID = SCDetectHelperBufferMpmRegister(
         b"snmp.usm\0".as_ptr() as *const libc::c_char,
         b"SNMP USM\0".as_ptr() as *const libc::c_char,
         ALPROTO_SNMP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
-        snmp_detect_usm_get_data,
+        Some(snmp_detect_usm_get_data),
     );
 
     let kw = SigTableElmtStickyBuffer {
@@ -211,11 +211,11 @@ pub(super) unsafe extern "C" fn detect_snmp_register() {
         setup: snmp_detect_community_setup,
     };
     let _g_snmp_community_kw_id = helper_keyword_register_sticky_buffer(&kw);
-    G_SNMP_COMMUNITY_BUFFER_ID = DetectHelperBufferMpmRegister(
+    G_SNMP_COMMUNITY_BUFFER_ID = SCDetectHelperBufferMpmRegister(
         b"snmp.community\0".as_ptr() as *const libc::c_char,
         b"SNMP Community identifier\0".as_ptr() as *const libc::c_char,
         ALPROTO_SNMP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
-        snmp_detect_community_get_data,
+        Some(snmp_detect_community_get_data),
     );
 }

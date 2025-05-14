@@ -19,8 +19,7 @@
 
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::{
-    helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister,
-    DetectSignatureSetAppProto, SigTableElmtStickyBuffer,
+    helper_keyword_register_sticky_buffer, DetectSignatureSetAppProto, SigTableElmtStickyBuffer,
 };
 use crate::direction::Direction;
 use crate::sip::sip::{SIPTransaction, ALPROTO_SIP};
@@ -28,7 +27,7 @@ use std::os::raw::{c_int, c_void};
 use std::ptr;
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, SCDetectBufferSetActiveList,
-    SCDetectHelperMultiBufferMpmRegister, Signature,
+    SCDetectHelperBufferMpmRegister, SCDetectHelperMultiBufferMpmRegister, Signature,
 };
 
 static mut G_SIP_PROTOCOL_BUFFER_ID: c_int = 0;
@@ -426,12 +425,12 @@ pub unsafe extern "C" fn SCDetectSipRegister() {
         setup: sip_protocol_setup,
     };
     let _g_sip_protocol_kw_id = helper_keyword_register_sticky_buffer(&kw);
-    G_SIP_PROTOCOL_BUFFER_ID = DetectHelperBufferMpmRegister(
+    G_SIP_PROTOCOL_BUFFER_ID = SCDetectHelperBufferMpmRegister(
         b"sip.protocol\0".as_ptr() as *const libc::c_char,
         b"sip.protocol\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
-        sip_protocol_get,
+        Some(sip_protocol_get),
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sip.stat_code"),
@@ -440,12 +439,12 @@ pub unsafe extern "C" fn SCDetectSipRegister() {
         setup: sip_stat_code_setup,
     };
     let _g_sip_stat_code_kw_id = helper_keyword_register_sticky_buffer(&kw);
-    G_SIP_STAT_CODE_BUFFER_ID = DetectHelperBufferMpmRegister(
+    G_SIP_STAT_CODE_BUFFER_ID = SCDetectHelperBufferMpmRegister(
         b"sip.stat_code\0".as_ptr() as *const libc::c_char,
         b"sip.stat_code\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
         STREAM_TOCLIENT,
-        sip_stat_code_get,
+        Some(sip_stat_code_get),
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sip.stat_msg"),
@@ -454,12 +453,12 @@ pub unsafe extern "C" fn SCDetectSipRegister() {
         setup: sip_stat_msg_setup,
     };
     let _g_sip_stat_msg_kw_id = helper_keyword_register_sticky_buffer(&kw);
-    G_SIP_STAT_MSG_BUFFER_ID = DetectHelperBufferMpmRegister(
+    G_SIP_STAT_MSG_BUFFER_ID = SCDetectHelperBufferMpmRegister(
         b"sip.stat_msg\0".as_ptr() as *const libc::c_char,
         b"sip.stat_msg\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
         STREAM_TOCLIENT,
-        sip_stat_msg_get,
+        Some(sip_stat_msg_get),
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sip.request_line"),
@@ -468,12 +467,12 @@ pub unsafe extern "C" fn SCDetectSipRegister() {
         setup: sip_request_line_setup,
     };
     let _g_sip_request_line_kw_id = helper_keyword_register_sticky_buffer(&kw);
-    G_SIP_REQUEST_LINE_BUFFER_ID = DetectHelperBufferMpmRegister(
+    G_SIP_REQUEST_LINE_BUFFER_ID = SCDetectHelperBufferMpmRegister(
         b"sip.request_line\0".as_ptr() as *const libc::c_char,
         b"sip.request_line\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
         STREAM_TOSERVER,
-        sip_request_line_get,
+        Some(sip_request_line_get),
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sip.response_line"),
@@ -482,12 +481,12 @@ pub unsafe extern "C" fn SCDetectSipRegister() {
         setup: sip_response_line_setup,
     };
     let _g_sip_response_line_kw_id = helper_keyword_register_sticky_buffer(&kw);
-    G_SIP_RESPONSE_LINE_BUFFER_ID = DetectHelperBufferMpmRegister(
+    G_SIP_RESPONSE_LINE_BUFFER_ID = SCDetectHelperBufferMpmRegister(
         b"sip.response_line\0".as_ptr() as *const libc::c_char,
         b"sip.response_line\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
         STREAM_TOCLIENT,
-        sip_response_line_get,
+        Some(sip_response_line_get),
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sip.from"),
