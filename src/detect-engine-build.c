@@ -37,6 +37,7 @@
 #include "detect-flow.h"
 #include "detect-config.h"
 #include "detect-flowbits.h"
+
 #include "app-layer-events.h"
 
 #include "util-port-interval-tree.h"
@@ -1853,6 +1854,21 @@ static void DetectEngineAddDecoderEventSig(DetectEngineCtx *de_ctx, Signature *s
     SigGroupHeadAppendSig(de_ctx, &de_ctx->decoder_event_sgh, s);
 }
 
+static void DetectEngineAddSigToPreStreamHook(DetectEngineCtx *de_ctx, Signature *s)
+{
+    SCLogDebug("adding signature %" PRIu32 " to the pre_stream hook sgh", s->id);
+
+    if ((s->flags & (SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT)) ==
+            (SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT)) {
+        SigGroupHeadAppendSig(de_ctx, &de_ctx->pre_stream_sgh[0], s);
+        SigGroupHeadAppendSig(de_ctx, &de_ctx->pre_stream_sgh[1], s);
+    } else if (s->flags & SIG_FLAG_TOSERVER) {
+        SigGroupHeadAppendSig(de_ctx, &de_ctx->pre_stream_sgh[0], s);
+    } else if (s->flags & SIG_FLAG_TOCLIENT) {
+        SigGroupHeadAppendSig(de_ctx, &de_ctx->pre_stream_sgh[1], s);
+    }
+}
+
 /**
  * \brief Fill the global src group head, with the sigs included
  *
@@ -1884,6 +1900,9 @@ int SigPrepareStage2(DetectEngineCtx *de_ctx)
             IPOnlyAddSignature(de_ctx, &de_ctx->io_ctx, s);
         } else if (s->type == SIG_TYPE_DEONLY) {
             DetectEngineAddDecoderEventSig(de_ctx, s);
+        } else if (s->type == SIG_TYPE_PKT && s->init_data->hook.type == SIGNATURE_HOOK_TYPE_PKT &&
+                   s->init_data->hook.t.pkt.ph == SIGNATURE_HOOK_PKT_PRE_STREAM) {
+            DetectEngineAddSigToPreStreamHook(de_ctx, s);
         }
     }
 
@@ -1902,10 +1921,33 @@ static void DetectEngineBuildDecoderEventSgh(DetectEngineCtx *de_ctx)
     SigGroupHeadBuildMatchArray(de_ctx, de_ctx->decoder_event_sgh, max_idx);
 }
 
+static void DetectEngineBuildPreStreamHookSghs(DetectEngineCtx *de_ctx)
+{
+    uint32_t max_idx = DetectEngineGetMaxSigId(de_ctx);
+    if (de_ctx->pre_stream_sgh[0] != NULL) {
+        SigGroupHeadSetSigCnt(de_ctx->pre_stream_sgh[0], max_idx);
+        SigGroupHeadBuildMatchArray(de_ctx, de_ctx->pre_stream_sgh[0], max_idx);
+        PrefilterSetupRuleGroup(de_ctx, de_ctx->pre_stream_sgh[0]);
+    }
+    if (de_ctx->pre_stream_sgh[1] != NULL) {
+        SigGroupHeadSetSigCnt(de_ctx->pre_stream_sgh[1], max_idx);
+        SigGroupHeadBuildMatchArray(de_ctx, de_ctx->pre_stream_sgh[1], max_idx);
+        PrefilterSetupRuleGroup(de_ctx, de_ctx->pre_stream_sgh[1]);
+    }
+
+    if (de_ctx->pre_stream_sgh[0] != NULL || de_ctx->pre_stream_sgh[1] != NULL) {
+        de_ctx->PreStreamHook = DetectPreStream;
+    }
+}
+
 int SigPrepareStage3(DetectEngineCtx *de_ctx)
 {
     /* prepare the decoder event sgh */
     DetectEngineBuildDecoderEventSgh(de_ctx);
+
+    /* pre_stream hook sghs */
+    DetectEngineBuildPreStreamHookSghs(de_ctx);
+
     return 0;
 }
 
@@ -1918,6 +1960,12 @@ int SigAddressCleanupStage1(DetectEngineCtx *de_ctx)
     if (de_ctx->decoder_event_sgh)
         SigGroupHeadFree(de_ctx, de_ctx->decoder_event_sgh);
     de_ctx->decoder_event_sgh = NULL;
+    if (de_ctx->pre_stream_sgh[0])
+        SigGroupHeadFree(de_ctx, de_ctx->pre_stream_sgh[0]);
+    de_ctx->pre_stream_sgh[0] = NULL;
+    if (de_ctx->pre_stream_sgh[1])
+        SigGroupHeadFree(de_ctx, de_ctx->pre_stream_sgh[1]);
+    de_ctx->pre_stream_sgh[1] = NULL;
 
     for (int f = 0; f < FLOW_STATES; f++) {
         for (int p = 0; p < 256; p++) {

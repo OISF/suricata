@@ -390,6 +390,7 @@ enum PacketDropReason {
     PKT_DROP_REASON_INNER_PACKET,          /**< drop issued by inner (tunnel) packet */
     PKT_DROP_REASON_DEFAULT_PACKET_POLICY, /**< drop issued by default packet policy */
     PKT_DROP_REASON_DEFAULT_APP_POLICY,    /**< drop issued by default app policy */
+    PKT_DROP_REASON_STREAM_PRE_HOOK,       /**< drop issued in the pre_stream hook */
     PKT_DROP_REASON_MAX,
 };
 
