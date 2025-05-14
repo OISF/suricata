@@ -282,9 +282,7 @@ unsafe extern "C" fn template_probing_parser(
     return ALPROTO_UNKNOWN;
 }
 
-extern "C" fn template_state_new(
-    _orig_state: *mut c_void, _orig_proto: AppProto,
-) -> *mut c_void {
+extern "C" fn template_state_new(_orig_state: *mut c_void, _orig_proto: AppProto) -> *mut c_void {
     let state = TemplateState::new();
     let boxed = Box::new(state);
     return Box::into_raw(boxed) as *mut c_void;
