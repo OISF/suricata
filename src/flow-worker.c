@@ -366,6 +366,14 @@ static inline void UpdateCounters(ThreadVars *tv,
 static inline void FlowWorkerStreamTCPUpdate(ThreadVars *tv, FlowWorkerThreadData *fw, Packet *p,
         DetectEngineThreadCtx *det_ctx, const bool timeout)
 {
+    if (det_ctx != NULL && det_ctx->de_ctx->PreStreamHook != NULL) {
+        const uint8_t action = det_ctx->de_ctx->PreStreamHook(tv, det_ctx, p);
+        if (action & ACTION_DROP) {
+            PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_STREAM_PRE_HOOK);
+            return;
+        }
+    }
+
     FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_STREAM);
     StreamTcp(tv, p, fw->stream_thread, &fw->pq);
     FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_STREAM);

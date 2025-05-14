@@ -539,6 +539,7 @@ typedef struct SignatureInitDataBuffer_ {
 enum SignatureHookPkt {
     SIGNATURE_HOOK_PKT_NOT_SET,
     SIGNATURE_HOOK_PKT_FLOW_START,
+    SIGNATURE_HOOK_PKT_PRE_STREAM,
     SIGNATURE_HOOK_PKT_ALL, /**< match each packet */
 };
 
@@ -549,6 +550,7 @@ enum SignatureHookType {
 };
 
 enum FirewallTable {
+    FIREWALL_TABLE_PACKET_PRE_STREAM,
     FIREWALL_TABLE_PACKET_FILTER,
     FIREWALL_TABLE_PACKET_TD,
     FIREWALL_TABLE_APP_FILTER,
@@ -905,6 +907,8 @@ typedef struct {
     uint32_t content_inspect_min_size;
 } DetectFileDataCfg;
 
+typedef uint8_t (*DetectPacketHookFunc)(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p);
+
 /**
  * \brief Function type for rate filter callback.
  *
@@ -1135,6 +1139,12 @@ typedef struct DetectEngineCtx_ {
 
     /* use provided data to be passed to rate_filter_callback. */
     void *rate_filter_callback_arg;
+
+    /* Hook for pre_stream engine if it is used. */
+    DetectPacketHookFunc PreStreamHook;
+    /** TCP pre_stream hook rule groups. One per direction. */
+    struct SigGroupHead_ *pre_stream_sgh[2];
+
 } DetectEngineCtx;
 
 /**
@@ -1698,6 +1708,7 @@ extern SigTableElmt *sigmatch_table;
 
 /* detection api */
 TmEcode Detect(ThreadVars *tv, Packet *p, void *data);
+uint8_t DetectPreStream(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p);
 
 SigMatch *SigMatchAlloc(void);
 Signature *SigFindSignatureBySidGid(DetectEngineCtx *, uint32_t, uint32_t);
