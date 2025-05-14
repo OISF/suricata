@@ -82,7 +82,7 @@ void ThresholdDestroy(void)
 typedef struct ThresholdEntry_ {
     uint32_t key[5];
 
-    uint32_t tv_timeout;    /**< Timeout for new_action (for rate_filter)
+    SCTime_t tv_timeout;    /**< Timeout for new_action (for rate_filter)
                                  its not "seconds", that define the time interval */
     uint32_t seconds;       /**< Event seconds */
     uint32_t current_count; /**< Var for count control */
@@ -683,7 +683,7 @@ static int ThresholdSetup(const DetectThresholdData *td, ThresholdEntry *te,
             break;
         default:
             te->tv1 = packet_time;
-            te->tv_timeout = 0;
+            te->tv_timeout = SCTIME_INITIALIZER;
             break;
     }
 
@@ -800,10 +800,10 @@ static int ThresholdCheckUpdate(const DetectEngineCtx *de_ctx, const DetectThres
             ret = 1;
             /* Check if we have a timeout enabled, if so,
              * we still matching (and enabling the new_action) */
-            if (te->tv_timeout != 0) {
-                if ((SCTIME_SECS(packet_time) - te->tv_timeout) > td->timeout) {
+            if (SCTIME_CMP_NEQ(te->tv_timeout, SCTIME_INITIALIZER)) {
+                if ((SCTIME_SECS(packet_time) - SCTIME_SECS(te->tv_timeout)) > td->timeout) {
                     /* Ok, we are done, timeout reached */
-                    te->tv_timeout = 0;
+                    te->tv_timeout = SCTIME_INITIALIZER;
                 } else {
                     /* Already matching */
                     RateFilterSetAction(pa, td->new_action);
@@ -815,7 +815,7 @@ static int ThresholdCheckUpdate(const DetectEngineCtx *de_ctx, const DetectThres
                     if (te->current_count > td->count) {
                         /* Then we must enable the new action by setting a
                          * timeout */
-                        te->tv_timeout = SCTIME_SECS(packet_time);
+                        te->tv_timeout = packet_time;
                         RateFilterSetAction(pa, td->new_action);
                     }
                 } else {
