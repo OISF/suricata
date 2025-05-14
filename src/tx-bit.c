@@ -58,7 +58,7 @@ static int TxBitAdd(AppLayerTxData *txd, uint32_t idx)
         xb->type = DETECT_XBITS;
         xb->idx = idx;
         xb->next = NULL;
-        xb->expire = 0; // not used by tx bits
+        SCTIME_INIT(xb->expire); // not used by tx bits
 
         GenericVarAppend(&txd->txbits, (GenericVar *)xb);
         return 1;
