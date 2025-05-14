@@ -95,6 +95,7 @@ pub mod detect;
 pub mod utils;
 
 pub mod ja4;
+pub mod tls_version;
 pub mod handshake;
 
 pub mod lua;
