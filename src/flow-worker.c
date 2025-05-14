@@ -56,6 +56,13 @@
 #include "flow-spare-pool.h"
 #include "flow-worker.h"
 
+static PreStreamHookPtr PreStreamHook = NULL;
+
+void FlowWorkerRegisterPreStreamHook(PreStreamHookPtr Hook)
+{
+    PreStreamHook = Hook;
+}
+
 typedef DetectEngineThreadCtx *DetectEngineThreadCtxPtr;
 
 typedef struct FlowTimeoutCounters {
@@ -366,6 +373,14 @@ static inline void UpdateCounters(ThreadVars *tv,
 static inline void FlowWorkerStreamTCPUpdate(ThreadVars *tv, FlowWorkerThreadData *fw, Packet *p,
         void *detect_thread, const bool timeout)
 {
+    if (PreStreamHook != NULL) {
+        const uint8_t action = PreStreamHook(tv, detect_thread, p);
+        if (action & ACTION_DROP) {
+            PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_STREAM_PRE_HOOK);
+            return;
+        }
+    }
+
     FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_STREAM);
     StreamTcp(tv, p, fw->stream_thread, &fw->pq);
     FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_STREAM);

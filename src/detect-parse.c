@@ -1316,6 +1316,8 @@ static enum SignatureHookPkt HookPktFromString(const char *str)
 {
     if (strcmp(str, "flow_start") == 0) {
         return SIGNATURE_HOOK_PKT_FLOW_START;
+    } else if (strcmp(str, "pre_stream") == 0) {
+        return SIGNATURE_HOOK_PKT_PRE_STREAM;
     } else if (strcmp(str, "all") == 0) {
         return SIGNATURE_HOOK_PKT_ALL;
     }
@@ -1330,6 +1332,8 @@ static const char *HookPktToString(const enum SignatureHookPkt ph)
             return "not set";
         case SIGNATURE_HOOK_PKT_FLOW_START:
             return "flow_start";
+        case SIGNATURE_HOOK_PKT_PRE_STREAM:
+            return "pre_stream";
         case SIGNATURE_HOOK_PKT_ALL:
             return "all";
     }
@@ -2530,7 +2534,11 @@ static void DetectFirewallRuleSetTable(Signature *s)
     enum FirewallTable table;
     if (s->flags & SIG_FLAG_FIREWALL) {
         if (s->type == SIG_TYPE_PKT) {
-            table = FIREWALL_TABLE_PACKET_FILTER;
+            if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_PKT &&
+                    s->init_data->hook.t.pkt.ph == SIGNATURE_HOOK_PKT_PRE_STREAM)
+                table = FIREWALL_TABLE_PACKET_PRE_STREAM;
+            else
+                table = FIREWALL_TABLE_PACKET_FILTER;
         } else if (s->type == SIG_TYPE_APP_TX) {
             table = FIREWALL_TABLE_APP_FILTER;
         } else {

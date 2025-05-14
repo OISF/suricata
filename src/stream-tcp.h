@@ -87,6 +87,7 @@ typedef struct TcpStreamCnf_ {
     bool liberal_timestamps;
 
     StreamingBufferConfig sbcnf;
+
 } TcpStreamCnf;
 
 typedef struct StreamTcpThread_ {

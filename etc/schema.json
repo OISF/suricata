@@ -1903,7 +1903,7 @@
                 "age": {
                     "type": "integer",
                     "suricata": {
-                        "keywords" : [
+                        "keywords": [
                             "flow.age"
                         ]
                     }
@@ -3662,7 +3662,8 @@
                         },
                         "password_redacted": {
                             "type": "boolean",
-                            "description": "indicates if a password message was received but not logged due to Suricata settings"
+                            "description":
+                                    "indicates if a password message was received but not logged due to Suricata settings"
                         },
                         "process_id": {
                             "type": "integer"
@@ -5427,6 +5428,11 @@
                                 "default_app_policy": {
                                     "description":
                                             "Number of packets dropped due to default app policy",
+                                    "type": "integer"
+                                },
+                                "pre_stream_hook": {
+                                    "description":
+                                            "Number of packets dropped in the pre_stream hook ",
                                     "type": "integer"
                                 }
                             },

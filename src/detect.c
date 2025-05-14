@@ -198,6 +198,49 @@ end:
     SCReturn;
 }
 
+/** \internal
+ */
+static void DetectRunPacketHook(ThreadVars *th_v, const DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh, Packet *p)
+{
+    SCEnter();
+    SCLogDebug("p->pcap_cnt %" PRIu64 " direction %s pkt_src %s", p->pcap_cnt,
+            p->flow ? (FlowGetPacketDirection(p->flow, p) == TOSERVER ? "toserver" : "toclient")
+                    : "noflow",
+            PktSrcToString(p->pkt_src));
+
+    /* Load the Packet's flow early, even though it might not be needed.
+     * Mark as a constant pointer, although the flow itself can change. */
+    Flow *const pflow = p->flow;
+
+    DetectRunScratchpad scratch = DetectRunSetup(de_ctx, det_ctx, p, pflow);
+    scratch.sgh = sgh;
+
+    /* if we didn't get a sig group head, we
+     * have nothing to do.... */
+    if (scratch.sgh == NULL) {
+        SCLogDebug("no sgh for this packet, nothing to match against");
+        goto end;
+    }
+
+    /* run the prefilters for packets */
+    DetectRunPrefilterPkt(th_v, de_ctx, det_ctx, p, &scratch);
+
+    //    PACKET_PROFILING_DETECT_START(p, PROF_DETECT_RULES); // TODO
+    /* inspect the rules against the packet */
+    const uint8_t pkt_policy = DetectRulePacketRules(th_v, de_ctx, det_ctx, p, pflow, &scratch);
+    //    PACKET_PROFILING_DETECT_END(p, PROF_DETECT_RULES);
+    if (pkt_policy & (ACTION_DROP | ACTION_ACCEPT)) {
+        goto end;
+    }
+
+end:
+    DetectRunPostRules(th_v, de_ctx, det_ctx, p, pflow, &scratch);
+
+    DetectRunCleanup(det_ctx, p, pflow);
+    SCReturn;
+}
+
 static void DetectRunPostMatch(ThreadVars *tv,
                                DetectEngineThreadCtx *det_ctx, Packet *p,
                                const Signature *s)
@@ -2249,6 +2292,17 @@ static void DetectNoFlow(ThreadVars *tv,
 
     /* see if the packet matches one or more of the sigs */
     DetectRun(tv, de_ctx, det_ctx, p);
+}
+
+uint8_t DetectPreStream(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p)
+{
+    const DetectEngineCtx *de_ctx = det_ctx->de_ctx;
+    const int direction = (PKT_IS_TOCLIENT(p) != 0);
+    const SigGroupHead *sgh = de_ctx->pre_stream_sgh[direction];
+
+    SCLogDebug("thread id: %u, packet %" PRIu64 ", sgh %p", tv->id, p->pcap_cnt, sgh);
+    DetectRunPacketHook(tv, de_ctx, det_ctx, sgh, p);
+    return p->action;
 }
 
 /** \brief Detection engine thread wrapper.

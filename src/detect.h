@@ -539,6 +539,7 @@ typedef struct SignatureInitDataBuffer_ {
 enum SignatureHookPkt {
     SIGNATURE_HOOK_PKT_NOT_SET,
     SIGNATURE_HOOK_PKT_FLOW_START,
+    SIGNATURE_HOOK_PKT_PRE_STREAM,
     SIGNATURE_HOOK_PKT_ALL, /**< match each packet */
 };
 
@@ -549,6 +550,7 @@ enum SignatureHookType {
 };
 
 enum FirewallTable {
+    FIREWALL_TABLE_PACKET_PRE_STREAM,
     FIREWALL_TABLE_PACKET_FILTER,
     FIREWALL_TABLE_PACKET_TD,
     FIREWALL_TABLE_APP_FILTER,
@@ -1002,6 +1004,9 @@ typedef struct DetectEngineCtx_ {
     /** sgh for signatures that match against invalid packets. In those cases
      *  we can't lookup by proto, address, port as we don't have these */
     struct SigGroupHead_ *decoder_event_sgh;
+
+    /** TCP pre_stream hook rule groups. One per direction. */
+    struct SigGroupHead_ *pre_stream_sgh[2];
 
     /* Maximum size of the buffer for decoded base64 data. */
     uint16_t base64_decode_max_len;
@@ -1698,6 +1703,7 @@ extern SigTableElmt *sigmatch_table;
 
 /* detection api */
 TmEcode Detect(ThreadVars *tv, Packet *p, void *data);
+uint8_t DetectPreStream(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p);
 
 SigMatch *SigMatchAlloc(void);
 Signature *SigFindSignatureBySidGid(DetectEngineCtx *, uint32_t, uint32_t);

@@ -38,4 +38,8 @@ void FlowWorkerSetFlushAck(void *flow_worker);
 
 void TmModuleFlowWorkerRegister (void);
 
+typedef uint8_t (*PreStreamHookPtr)(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p);
+
+void FlowWorkerRegisterPreStreamHook(PreStreamHookPtr Hook);
+
 #endif /* SURICATA_FLOW_WORKER_H */
