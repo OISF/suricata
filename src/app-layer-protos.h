@@ -69,6 +69,7 @@ enum AppProtoEnum {
     ALPROTO_HTTP2,
     ALPROTO_BITTORRENT_DHT,
     ALPROTO_POP3,
+    ALPROTO_MDNS,
 
     // signature-only (ie not seen in flow)
     // HTTP for any version (ALPROTO_HTTP1 (version 1) or ALPROTO_HTTP2)

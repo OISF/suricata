@@ -1040,6 +1040,10 @@
             },
             "additionalProperties": false
         },
+        "mdns": {
+            "description": "mDNS requests and responses (in DNS v3 format)",
+            "$ref": "#/properties/dns"
+        },
         "dns": {
             "type": "object",
             "required": [
@@ -4832,6 +4836,10 @@
                                     "description": "Errors encountered parsing DNS/UDP protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
+                                "mdns": {
+                                    "description": "Errors encountered parsing mDNS",
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
                                 "doh2": {
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
@@ -4999,6 +5007,10 @@
                                 },
                                 "dns_udp": {
                                     "description": "Number of flows for DNS/UDP protocol",
+                                    "type": "integer"
+                                },
+                                "mdns": {
+                                    "description": "Number of flows for mDNS",
                                     "type": "integer"
                                 },
                                 "doh2": {
@@ -5175,6 +5187,10 @@
                                 },
                                 "dns_udp": {
                                     "description": "Number of transactions for DNS/UDP protocol",
+                                    "type": "integer"
+                                },
+                                "mdns": {
+                                    "description": "Number of transactions for mDNS",
                                     "type": "integer"
                                 },
                                 "doh2": {
