@@ -24,6 +24,17 @@
 #ifndef SURICATA_OUTPUT_JSON_DNS_H
 #define SURICATA_OUTPUT_JSON_DNS_H
 
+typedef struct SCDnsLogFileCtx_ {
+    uint64_t flags; /** Store mode */
+    OutputJsonCtx *eve_ctx;
+    uint8_t version;
+} SCDnsLogFileCtx;
+
+typedef struct SCDnsLogThread_ {
+    SCDnsLogFileCtx *dnslog_ctx;
+    OutputJsonThreadCtx *ctx;
+} SCDnsLogThread;
+
 void JsonDnsLogRegister(void);
 void JsonDoh2LogRegister(void);
 

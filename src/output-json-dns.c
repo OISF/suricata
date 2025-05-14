@@ -237,21 +237,10 @@ static struct {
     // clang-format on
 };
 
-typedef struct LogDnsFileCtx_ {
-    uint64_t flags; /** Store mode */
-    OutputJsonCtx *eve_ctx;
-    uint8_t version;
-} LogDnsFileCtx;
-
-typedef struct LogDnsLogThread_ {
-    LogDnsFileCtx *dnslog_ctx;
-    OutputJsonThreadCtx *ctx;
-} LogDnsLogThread;
-
 bool AlertJsonDns(void *txptr, SCJsonBuilder *js)
 {
     return SCDnsLogJson(
-            txptr, LOG_FORMAT_DETAILED | LOG_QUERIES | LOG_ANSWERS | LOG_ALL_RRTYPES, js);
+            txptr, LOG_FORMAT_DETAILED | LOG_QUERIES | LOG_ANSWERS | LOG_ALL_RRTYPES, js, "dns");
 }
 
 bool AlertJsonDoh2(void *txptr, SCJsonBuilder *js)
@@ -283,8 +272,8 @@ bool AlertJsonDoh2(void *txptr, SCJsonBuilder *js)
 static int JsonDoh2Logger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f,
         void *alstate, void *txptr, uint64_t tx_id)
 {
-    LogDnsLogThread *td = (LogDnsLogThread *)thread_data;
-    LogDnsFileCtx *dnslog_ctx = td->dnslog_ctx;
+    SCDnsLogThread *td = (SCDnsLogThread *)thread_data;
+    SCDnsLogFileCtx *dnslog_ctx = td->dnslog_ctx;
 
     SCJsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL, dnslog_ctx->eve_ctx);
 
@@ -324,7 +313,7 @@ static int JsonDoh2Logger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
 
         SCJbGetMark(jb, &mark);
         // log DOH2 with DNS config
-        r2 = SCDnsLogJson(tx_dns, td->dnslog_ctx->flags, jb);
+        r2 = SCDnsLogJson(tx_dns, td->dnslog_ctx->flags, jb, "dns");
         if (!r2) {
             SCJbRestoreMark(jb, &mark);
         }
@@ -342,8 +331,8 @@ static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
 {
     SCEnter();
 
-    LogDnsLogThread *td = (LogDnsLogThread *)thread_data;
-    LogDnsFileCtx *dnslog_ctx = td->dnslog_ctx;
+    SCDnsLogThread *td = (SCDnsLogThread *)thread_data;
+    SCDnsLogFileCtx *dnslog_ctx = td->dnslog_ctx;
 
     if (unlikely(dnslog_ctx->flags & LOG_QUERIES) == 0) {
         return TM_ECODE_OK;
@@ -375,8 +364,8 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
 {
     SCEnter();
 
-    LogDnsLogThread *td = (LogDnsLogThread *)thread_data;
-    LogDnsFileCtx *dnslog_ctx = td->dnslog_ctx;
+    SCDnsLogThread *td = (SCDnsLogThread *)thread_data;
+    SCDnsLogFileCtx *dnslog_ctx = td->dnslog_ctx;
 
     if (unlikely(dnslog_ctx->flags & LOG_ANSWERS) == 0) {
         return TM_ECODE_OK;
@@ -402,8 +391,8 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
 static int JsonDnsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *alstate,
         void *txptr, uint64_t tx_id)
 {
-    LogDnsLogThread *td = (LogDnsLogThread *)thread_data;
-    LogDnsFileCtx *dnslog_ctx = td->dnslog_ctx;
+    SCDnsLogThread *td = (SCDnsLogThread *)thread_data;
+    SCDnsLogFileCtx *dnslog_ctx = td->dnslog_ctx;
 
     if (dnslog_ctx->version == DNS_LOG_VERSION_2) {
         if (SCDnsTxIsRequest(txptr)) {
@@ -431,7 +420,7 @@ static int JsonDnsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flo
             return TM_ECODE_OK;
         }
 
-        if (SCDnsLogJson(txptr, td->dnslog_ctx->flags, jb)) {
+        if (SCDnsLogJson(txptr, td->dnslog_ctx->flags, jb, "dns")) {
             OutputJsonBuilderBuffer(tv, p, p->flow, jb, td->ctx);
         }
         SCJbFree(jb);
@@ -439,9 +428,9 @@ static int JsonDnsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flo
     return TM_ECODE_OK;
 }
 
-static TmEcode LogDnsLogThreadInit(ThreadVars *t, const void *initdata, void **data)
+static TmEcode SCDnsLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
-    LogDnsLogThread *aft = SCCalloc(1, sizeof(LogDnsLogThread));
+    SCDnsLogThread *aft = SCCalloc(1, sizeof(SCDnsLogThread));
     if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
 
@@ -466,30 +455,30 @@ error_exit:
     return TM_ECODE_FAILED;
 }
 
-static TmEcode LogDnsLogThreadDeinit(ThreadVars *t, void *data)
+static TmEcode SCDnsLogThreadDeinit(ThreadVars *t, void *data)
 {
-    LogDnsLogThread *aft = (LogDnsLogThread *)data;
+    SCDnsLogThread *aft = (SCDnsLogThread *)data;
     if (aft == NULL) {
         return TM_ECODE_OK;
     }
     FreeEveThreadCtx(aft->ctx);
 
     /* clear memory */
-    memset(aft, 0, sizeof(LogDnsLogThread));
+    memset(aft, 0, sizeof(SCDnsLogThread));
 
     SCFree(aft);
     return TM_ECODE_OK;
 }
 
-static void LogDnsLogDeInitCtxSub(OutputCtx *output_ctx)
+static void DnsLogDeInitCtxSub(OutputCtx *output_ctx)
 {
     SCLogDebug("cleaning up sub output_ctx %p", output_ctx);
-    LogDnsFileCtx *dnslog_ctx = (LogDnsFileCtx *)output_ctx->data;
+    SCDnsLogFileCtx *dnslog_ctx = (SCDnsLogFileCtx *)output_ctx->data;
     SCFree(dnslog_ctx);
     SCFree(output_ctx);
 }
 
-static void JsonDnsLogParseConfig(LogDnsFileCtx *dnslog_ctx, SCConfNode *conf,
+static void JsonDnsLogParseConfig(SCDnsLogFileCtx *dnslog_ctx, SCConfNode *conf,
         const char *query_key, const char *answer_key, const char *answer_types_key)
 {
     const char *query = SCConfNodeLookupChildValue(conf, query_key);
@@ -592,7 +581,7 @@ static uint8_t JsonDnsCheckVersion(SCConfNode *conf)
     return default_version;
 }
 
-static void JsonDnsLogInitFilters(LogDnsFileCtx *dnslog_ctx, SCConfNode *conf)
+static void JsonDnsLogInitFilters(SCDnsLogFileCtx *dnslog_ctx, SCConfNode *conf)
 {
     dnslog_ctx->flags = ~0ULL;
 
@@ -625,7 +614,7 @@ static void JsonDnsLogInitFilters(LogDnsFileCtx *dnslog_ctx, SCConfNode *conf)
     }
 }
 
-static OutputInitResult JsonDnsLogInitCtxSub(SCConfNode *conf, OutputCtx *parent_ctx)
+static OutputInitResult DnsLogInitCtxSub(SCConfNode *conf, OutputCtx *parent_ctx)
 {
     OutputInitResult result = { NULL, false };
     const char *enabled = SCConfNodeLookupChildValue(conf, "enabled");
@@ -636,7 +625,7 @@ static OutputInitResult JsonDnsLogInitCtxSub(SCConfNode *conf, OutputCtx *parent
 
     OutputJsonCtx *ojc = parent_ctx->data;
 
-    LogDnsFileCtx *dnslog_ctx = SCCalloc(1, sizeof(LogDnsFileCtx));
+    SCDnsLogFileCtx *dnslog_ctx = SCCalloc(1, sizeof(SCDnsLogFileCtx));
     if (unlikely(dnslog_ctx == NULL)) {
         return result;
     }
@@ -651,7 +640,7 @@ static OutputInitResult JsonDnsLogInitCtxSub(SCConfNode *conf, OutputCtx *parent
     }
 
     output_ctx->data = dnslog_ctx;
-    output_ctx->DeInit = LogDnsLogDeInitCtxSub;
+    output_ctx->DeInit = DnsLogDeInitCtxSub;
 
     JsonDnsLogInitFilters(dnslog_ctx, conf);
 
@@ -670,13 +659,11 @@ static OutputInitResult JsonDnsLogInitCtxSub(SCConfNode *conf, OutputCtx *parent
 void JsonDnsLogRegister (void)
 {
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", MODULE_NAME, "eve-log.dns",
-            JsonDnsLogInitCtxSub, ALPROTO_DNS, JsonDnsLogger, LogDnsLogThreadInit,
-            LogDnsLogThreadDeinit);
+            DnsLogInitCtxSub, ALPROTO_DNS, JsonDnsLogger, SCDnsLogThreadInit, SCDnsLogThreadDeinit);
 }
 
 void JsonDoh2LogRegister(void)
 {
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonDoH2Log", "eve-log.doh2",
-            JsonDnsLogInitCtxSub, ALPROTO_DOH2, JsonDoh2Logger, LogDnsLogThreadInit,
-            LogDnsLogThreadDeinit);
+            DnsLogInitCtxSub, ALPROTO_DOH2, JsonDoh2Logger, SCDnsLogThreadInit, SCDnsLogThreadDeinit);
 }

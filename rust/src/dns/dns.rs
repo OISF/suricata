@@ -127,7 +127,7 @@ pub enum DNSRcode {
 pub(super) static mut ALPROTO_DNS: AppProto = ALPROTO_UNKNOWN;
 
 #[derive(AppLayerFrameType)]
-enum DnsFrameType {
+pub(crate) enum DnsFrameType {
     /// DNS PDU frame. For UDP DNS this is the complete UDP payload, for TCP
     /// this is the DNS payload not including the leading length field allowing
     /// this frame to be used for UDP and TCP DNS.
@@ -290,7 +290,7 @@ impl Transaction for DNSTransaction {
 }
 
 impl DNSTransaction {
-    fn new(direction: Direction) -> Self {
+    pub(crate) fn new(direction: Direction) -> Self {
         Self {
             tx_data: AppLayerTxData::for_direction(direction),
             ..Default::default()
@@ -355,8 +355,24 @@ impl ConfigTracker {
     }
 }
 
-#[derive(Default)]
+pub(crate) enum DnsVariant {
+    Dns,
+    MulticastDns,
+}
+
+impl DnsVariant {
+    pub fn is_dns(&self) -> bool {
+        matches!(self, DnsVariant::Dns)
+    }
+
+    pub fn is_mdns(&self) -> bool {
+        matches!(self, DnsVariant::MulticastDns)
+    }
+}
+
+//#[derive(Default)]
 pub struct DNSState {
+    variant: DnsVariant,
     state_data: AppLayerStateData,
 
     // Internal transaction ID.
@@ -397,7 +413,7 @@ pub(crate) enum DNSParseError {
     OtherError,
 }
 
-pub(crate) fn dns_parse_request(input: &[u8]) -> Result<DNSTransaction, DNSParseError> {
+pub(crate) fn dns_parse_request(input: &[u8], variant: &DnsVariant) -> Result<DNSTransaction, DNSParseError> {
     let (body, header) = if let Some((body, header)) = dns_validate_header(input) {
         (body, header)
     } else {
@@ -406,7 +422,7 @@ pub(crate) fn dns_parse_request(input: &[u8]) -> Result<DNSTransaction, DNSParse
 
     match parser::dns_parse_body(body, input, header) {
         Ok((_, (request, parse_flags))) => {
-            if request.header.flags & 0x8000 != 0 {
+            if variant.is_dns() && request.header.flags & 0x8000 != 0 {
                 SCLogDebug!("DNS message is not a request");
                 return Err(DNSParseError::NotRequest);
             }
@@ -421,7 +437,12 @@ pub(crate) fn dns_parse_request(input: &[u8]) -> Result<DNSTransaction, DNSParse
             if request.invalid_authorities {
                 tx.set_event(DNSEvent::InvalidAuthorities);
             }
-            tx.request = Some(request);
+
+            if variant.is_mdns() && request.header.flags & 0x8000 != 0 {
+                tx.response = Some(request);
+            } else {
+                tx.request = Some(request);
+            }
 
             if z_flag {
                 SCLogDebug!("Z-flag set on DNS request");
@@ -525,7 +546,25 @@ pub(crate) fn dns_parse_response(input: &[u8]) -> Result<DNSTransaction, DNSPars
 
 impl DNSState {
     fn new() -> Self {
-        Default::default()
+        Self {
+            variant: DnsVariant::Dns,
+            state_data: AppLayerStateData::default(),
+            tx_id: 0,
+            transactions: VecDeque::default(),
+            config: None,
+            gap: false,
+        }
+    }
+
+    pub(crate) fn new_variant(variant: DnsVariant) -> Self {
+        Self {
+            variant,
+            state_data: AppLayerStateData::default(),
+            tx_id: 0,
+            transactions: VecDeque::default(),
+            config: None,
+            gap: false,
+        }
     }
 
     fn free_tx(&mut self, tx_id: u64) {
@@ -563,7 +602,7 @@ impl DNSState {
     fn parse_request(
         &mut self, input: &[u8], is_tcp: bool, frame: Option<Frame>, flow: *const Flow,
     ) -> bool {
-        match dns_parse_request(input) {
+        match dns_parse_request(input, &self.variant) {
             Ok(mut tx) => {
                 self.tx_id += 1;
                 tx.id = self.tx_id;
@@ -593,7 +632,7 @@ impl DNSState {
         }
     }
 
-    fn parse_request_udp(&mut self, flow: *const Flow, stream_slice: StreamSlice) -> bool {
+    pub(crate) fn parse_request_udp(&mut self, flow: *const Flow, stream_slice: StreamSlice) -> bool {
         let input = stream_slice.as_slice();
         let frame = Frame::new(
             flow,
@@ -797,7 +836,7 @@ impl DNSState {
 
 const DNS_HEADER_SIZE: usize = 12;
 
-fn probe_header_validity(header: &DNSHeader, rlen: usize) -> (bool, bool, bool) {
+pub(crate) fn probe_header_validity(header: &DNSHeader, rlen: usize) -> (bool, bool, bool) {
     let nb_records = header.additional_rr as usize
         + header.answer_rr as usize
         + header.authority_rr as usize
@@ -869,7 +908,7 @@ fn probe_tcp(input: &[u8]) -> (bool, bool, bool) {
 }
 
 /// Returns *mut DNSState
-extern "C" fn state_new(
+pub(crate) extern "C" fn state_new(
     _orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
 ) -> *mut std::os::raw::c_void {
     let state = DNSState::new();
@@ -879,18 +918,18 @@ extern "C" fn state_new(
 
 /// Params:
 /// - state: *mut DNSState as void pointer
-extern "C" fn state_free(state: *mut std::os::raw::c_void) {
+pub(crate) extern "C" fn state_free(state: *mut std::os::raw::c_void) {
     // Just unbox...
     std::mem::drop(unsafe { Box::from_raw(state as *mut DNSState) });
 }
 
-unsafe extern "C" fn state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+pub(crate) unsafe extern "C" fn state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
     let state = cast_pointer!(state, DNSState);
     state.free_tx(tx_id);
 }
 
 /// C binding parse a DNS request. Returns 1 on success, -1 on failure.
-unsafe extern "C" fn parse_request(
+pub(crate) unsafe extern "C" fn parse_request(
     flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -935,7 +974,7 @@ unsafe extern "C" fn parse_response_tcp(
     AppLayerResult::ok()
 }
 
-extern "C" fn tx_get_alstate_progress(
+pub(crate) extern "C" fn tx_get_alstate_progress(
     _tx: *mut std::os::raw::c_void, _direction: u8,
 ) -> std::os::raw::c_int {
     // This is a stateless parser, just the existence of a transaction
@@ -944,13 +983,13 @@ extern "C" fn tx_get_alstate_progress(
     return 1;
 }
 
-unsafe extern "C" fn state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+pub(crate) unsafe extern "C" fn state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, DNSState);
     SCLogDebug!("state_get_tx_count: returning {}", state.tx_id);
     return state.tx_id;
 }
 
-unsafe extern "C" fn state_get_tx(
+pub(crate) unsafe extern "C" fn state_get_tx(
     state: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let state = cast_pointer!(state, DNSState);
@@ -974,12 +1013,17 @@ pub extern "C" fn SCDnsTxIsResponse(tx: &mut DNSTransaction) -> bool {
     tx.response.is_some()
 }
 
-unsafe extern "C" fn state_get_tx_data(tx: *mut std::os::raw::c_void) -> *mut AppLayerTxData {
+pub(crate) unsafe extern "C" fn state_get_tx_data(tx: *mut std::os::raw::c_void) -> *mut AppLayerTxData {
     let tx = cast_pointer!(tx, DNSTransaction);
     return &mut tx.tx_data;
 }
 
-export_state_data_get!(dns_get_state_data, DNSState);
+pub(crate) unsafe extern "C" fn dns_get_state_data(
+    state: *mut std::os::raw::c_void,
+) -> *mut AppLayerStateData {
+    let state = cast_pointer!(state, DNSState);
+    return &mut state.state_data;
+}
 
 /// Get the DNS query name at index i.
 #[no_mangle]
@@ -1161,7 +1205,7 @@ pub extern "C" fn SCDnsTxGetResponseFlags(tx: &mut DNSTransaction) -> u16 {
     return tx.rcode();
 }
 
-unsafe extern "C" fn probe_udp(
+pub(crate) unsafe extern "C" fn probe_udp(
     _flow: *const Flow, _dir: u8, input: *const u8, len: u32, rdir: *mut u8,
 ) -> AppProto {
     if input.is_null() || len < std::mem::size_of::<DNSHeader>() as u32 {
