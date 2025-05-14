@@ -155,75 +155,8 @@ enum TlsStateServer {
 /* SNI types */
 #define SSL_SNI_TYPE_HOST_NAME                  0
 
-/* Max string length of the TLS version string */
-#define SSL_VERSION_MAX_STRLEN 20
-
 /* TLS random bytes for the sticky buffer */
 #define TLS_RANDOM_LEN 32
-
-/* SSL versions.  We'll use a unified format for all, with the top byte
- * holding the major version and the lower byte the minor version */
-enum {
-    TLS_VERSION_UNKNOWN = 0x0000,
-    SSL_VERSION_2 = 0x0200,
-    SSL_VERSION_3 = 0x0300,
-    TLS_VERSION_10 = 0x0301,
-    TLS_VERSION_11 = 0x0302,
-    TLS_VERSION_12 = 0x0303,
-    TLS_VERSION_13 = 0x0304,
-    TLS_VERSION_13_DRAFT28 = 0x7f1c,
-    TLS_VERSION_13_DRAFT27 = 0x7f1b,
-    TLS_VERSION_13_DRAFT26 = 0x7f1a,
-    TLS_VERSION_13_DRAFT25 = 0x7f19,
-    TLS_VERSION_13_DRAFT24 = 0x7f18,
-    TLS_VERSION_13_DRAFT23 = 0x7f17,
-    TLS_VERSION_13_DRAFT22 = 0x7f16,
-    TLS_VERSION_13_DRAFT21 = 0x7f15,
-    TLS_VERSION_13_DRAFT20 = 0x7f14,
-    TLS_VERSION_13_DRAFT19 = 0x7f13,
-    TLS_VERSION_13_DRAFT18 = 0x7f12,
-    TLS_VERSION_13_DRAFT17 = 0x7f11,
-    TLS_VERSION_13_DRAFT16 = 0x7f10,
-    TLS_VERSION_13_PRE_DRAFT16 = 0x7f01,
-    TLS_VERSION_13_DRAFT20_FB = 0xfb14,
-    TLS_VERSION_13_DRAFT21_FB = 0xfb15,
-    TLS_VERSION_13_DRAFT22_FB = 0xfb16,
-    TLS_VERSION_13_DRAFT23_FB = 0xfb17,
-    TLS_VERSION_13_DRAFT26_FB = 0xfb1a,
-};
-
-static inline bool TLSVersionValid(const uint16_t version)
-{
-    switch (version) {
-        case TLS_VERSION_13:
-        case TLS_VERSION_12:
-        case TLS_VERSION_11:
-        case TLS_VERSION_10:
-        case SSL_VERSION_3:
-
-        case TLS_VERSION_13_DRAFT28:
-        case TLS_VERSION_13_DRAFT27:
-        case TLS_VERSION_13_DRAFT26:
-        case TLS_VERSION_13_DRAFT25:
-        case TLS_VERSION_13_DRAFT24:
-        case TLS_VERSION_13_DRAFT23:
-        case TLS_VERSION_13_DRAFT22:
-        case TLS_VERSION_13_DRAFT21:
-        case TLS_VERSION_13_DRAFT20:
-        case TLS_VERSION_13_DRAFT19:
-        case TLS_VERSION_13_DRAFT18:
-        case TLS_VERSION_13_DRAFT17:
-        case TLS_VERSION_13_DRAFT16:
-        case TLS_VERSION_13_PRE_DRAFT16:
-        case TLS_VERSION_13_DRAFT20_FB:
-        case TLS_VERSION_13_DRAFT21_FB:
-        case TLS_VERSION_13_DRAFT22_FB:
-        case TLS_VERSION_13_DRAFT23_FB:
-        case TLS_VERSION_13_DRAFT26_FB:
-            return true;
-    }
-    return false;
-}
 
 typedef struct SSLCertsChain_ {
     uint8_t *cert_data;
@@ -317,7 +250,6 @@ typedef struct SSLState_ {
 } SSLState;
 
 void RegisterSSLParsers(void);
-void SSLVersionToString(uint16_t, char *);
 void SSLEnableJA3(void);
 bool SSLJA3IsEnabled(void);
 void SSLEnableJA4(void);
