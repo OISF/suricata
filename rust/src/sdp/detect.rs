@@ -19,8 +19,7 @@
 
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::{
-    helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister,
-    DetectSignatureSetAppProto, SigTableElmtStickyBuffer,
+    helper_keyword_register_sticky_buffer, DetectSignatureSetAppProto, SigTableElmtStickyBuffer,
 };
 use crate::direction::Direction;
 use crate::sip::sip::{SIPTransaction, ALPROTO_SIP};
@@ -28,7 +27,7 @@ use std::os::raw::{c_int, c_void};
 use std::ptr;
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, SCDetectBufferSetActiveList,
-    SCDetectHelperMultiBufferMpmRegister, Signature,
+    SCDetectHelperBufferMpmRegister, SCDetectHelperMultiBufferMpmRegister, Signature,
 };
 
 static mut G_SDP_ORIGIN_BUFFER_ID: c_int = 0;
@@ -645,12 +644,12 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         setup: sdp_session_name_setup,
     };
     let _ = helper_keyword_register_sticky_buffer(&kw);
-    G_SDP_SESSION_NAME_BUFFER_ID = DetectHelperBufferMpmRegister(
+    G_SDP_SESSION_NAME_BUFFER_ID = SCDetectHelperBufferMpmRegister(
         b"sdp.session_name\0".as_ptr() as *const libc::c_char,
         b"sdp.session_name\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
-        sdp_session_name_get,
+        Some(sdp_session_name_get),
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sdp.session_info"),
@@ -659,12 +658,12 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         setup: sdp_session_info_setup,
     };
     let _ = helper_keyword_register_sticky_buffer(&kw);
-    G_SDP_SESSION_INFO_BUFFER_ID = DetectHelperBufferMpmRegister(
+    G_SDP_SESSION_INFO_BUFFER_ID = SCDetectHelperBufferMpmRegister(
         b"sdp.session_info\0".as_ptr() as *const libc::c_char,
         b"sdp.session_info\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
-        sdp_session_info_get,
+        Some(sdp_session_info_get),
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sdp.origin"),
@@ -673,12 +672,12 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         setup: sdp_origin_setup,
     };
     let _ = helper_keyword_register_sticky_buffer(&kw);
-    G_SDP_ORIGIN_BUFFER_ID = DetectHelperBufferMpmRegister(
+    G_SDP_ORIGIN_BUFFER_ID = SCDetectHelperBufferMpmRegister(
         b"sdp.origin\0".as_ptr() as *const libc::c_char,
         b"sdp.origin\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
-        sdp_origin_get,
+        Some(sdp_origin_get),
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sdp.uri"),
@@ -687,12 +686,12 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         setup: sdp_uri_setup,
     };
     let _ = helper_keyword_register_sticky_buffer(&kw);
-    G_SDP_URI_BUFFER_ID = DetectHelperBufferMpmRegister(
+    G_SDP_URI_BUFFER_ID = SCDetectHelperBufferMpmRegister(
         b"sdp.uri\0".as_ptr() as *const libc::c_char,
         b"sdp.uri\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
-        sdp_uri_get,
+        Some(sdp_uri_get),
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sdp.email"),
@@ -701,12 +700,12 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         setup: sdp_email_setup,
     };
     let _ = helper_keyword_register_sticky_buffer(&kw);
-    G_SDP_EMAIL_BUFFER_ID = DetectHelperBufferMpmRegister(
+    G_SDP_EMAIL_BUFFER_ID = SCDetectHelperBufferMpmRegister(
         b"sdp.email\0".as_ptr() as *const libc::c_char,
         b"sdp.email\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
-        sdp_email_get,
+        Some(sdp_email_get),
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sdp.phone_number"),
@@ -715,12 +714,12 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         setup: sdp_phone_number_setup,
     };
     let _ = helper_keyword_register_sticky_buffer(&kw);
-    G_SDP_PHONE_NUMBER_BUFFER_ID = DetectHelperBufferMpmRegister(
+    G_SDP_PHONE_NUMBER_BUFFER_ID = SCDetectHelperBufferMpmRegister(
         b"sdp.phone_number\0".as_ptr() as *const libc::c_char,
         b"sdp.phone_number\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
-        sdp_phone_number_get,
+        Some(sdp_phone_number_get),
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sdp.connection_data"),
@@ -729,12 +728,12 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         setup: sdp_conn_data_setup,
     };
     let _ = helper_keyword_register_sticky_buffer(&kw);
-    G_SDP_CONNECTION_DATA_BUFFER_ID = DetectHelperBufferMpmRegister(
+    G_SDP_CONNECTION_DATA_BUFFER_ID = SCDetectHelperBufferMpmRegister(
         b"sdp.connection_data\0".as_ptr() as *const libc::c_char,
         b"sdp.connection_data\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
-        sdp_conn_data_get,
+        Some(sdp_conn_data_get),
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sdp.bandwidth"),
@@ -785,12 +784,12 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         setup: sdp_timezone_setup,
     };
     let _ = helper_keyword_register_sticky_buffer(&kw);
-    G_SDP_TIMEZONE_BUFFER_ID = DetectHelperBufferMpmRegister(
+    G_SDP_TIMEZONE_BUFFER_ID = SCDetectHelperBufferMpmRegister(
         b"sdp.timezone\0".as_ptr() as *const libc::c_char,
         b"sdp.timezone\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
-        sdp_timezone_get,
+        Some(sdp_timezone_get),
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sdp.encryption_key"),
@@ -799,12 +798,12 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         setup: sdp_encryption_key_setup,
     };
     let _ = helper_keyword_register_sticky_buffer(&kw);
-    G_SDP_ENCRYPTION_KEY_BUFFER_ID = DetectHelperBufferMpmRegister(
+    G_SDP_ENCRYPTION_KEY_BUFFER_ID = SCDetectHelperBufferMpmRegister(
         b"sdp.encryption_key\0".as_ptr() as *const libc::c_char,
         b"sdp.encription_key\0".as_ptr() as *const libc::c_char,
         ALPROTO_SIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
-        sdp_encryption_key_get,
+        Some(sdp_encryption_key_get),
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sdp.attribute"),

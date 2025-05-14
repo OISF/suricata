@@ -36,13 +36,13 @@ use crate::detect::uint::{
     SCDetectU8Match, SCDetectU8Parse,
 };
 use crate::detect::{
-    helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister,
-    DetectSignatureSetAppProto, SigMatchAppendSMToList, SigTableElmtStickyBuffer,
+    helper_keyword_register_sticky_buffer, DetectSignatureSetAppProto, SigMatchAppendSMToList,
+    SigTableElmtStickyBuffer,
 };
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
-    SCDetectHelperBufferRegister, SCDetectHelperKeywordRegister, SCSigTableAppLiteElmt,
-    SigMatchCtx, Signature,
+    SCDetectHelperBufferMpmRegister, SCDetectHelperBufferRegister, SCDetectHelperKeywordRegister,
+    SCSigTableAppLiteElmt, SigMatchCtx, Signature,
 };
 
 use crate::direction::Direction;
@@ -1571,12 +1571,12 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         setup: product_name_setup,
     };
     let _g_enip_product_name_kw_id = helper_keyword_register_sticky_buffer(&kw);
-    G_ENIP_PRODUCT_NAME_BUFFER_ID = DetectHelperBufferMpmRegister(
+    G_ENIP_PRODUCT_NAME_BUFFER_ID = SCDetectHelperBufferMpmRegister(
         b"enip.product_name\0".as_ptr() as *const libc::c_char,
         b"ENIP product name\0".as_ptr() as *const libc::c_char,
         ALPROTO_ENIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
-        product_name_get_data,
+        Some(product_name_get_data),
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("enip.service_name"),
@@ -1585,12 +1585,12 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         setup: service_name_setup,
     };
     let _g_enip_service_name_kw_id = helper_keyword_register_sticky_buffer(&kw);
-    G_ENIP_SERVICE_NAME_BUFFER_ID = DetectHelperBufferMpmRegister(
+    G_ENIP_SERVICE_NAME_BUFFER_ID = SCDetectHelperBufferMpmRegister(
         b"enip.service_name\0".as_ptr() as *const libc::c_char,
         b"ENIP service name\0".as_ptr() as *const libc::c_char,
         ALPROTO_ENIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
-        service_name_get_data,
+        Some(service_name_get_data),
     );
 }
 

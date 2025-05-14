@@ -147,7 +147,7 @@ void SCDetectSMTPRegister(void)
     kw.Setup = DetectSmtpMailFromSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
     SCDetectHelperKeywordRegister(&kw);
-    g_smtp_mail_from_buffer_id = DetectHelperBufferMpmRegister(
+    g_smtp_mail_from_buffer_id = SCDetectHelperBufferMpmRegister(
             "smtp.mail_from", "SMTP MAIL FROM", ALPROTO_SMTP, STREAM_TOSERVER, GetSmtpMailFromData);
 
     kw.name = "smtp.rcpt_to";

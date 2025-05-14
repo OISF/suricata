@@ -21,12 +21,13 @@ use crate::conf::conf_get_node;
 /* TEMPLATE_END_REMOVE */
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::{
-    helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister,
-    DetectSignatureSetAppProto, SigTableElmtStickyBuffer,
+    helper_keyword_register_sticky_buffer, DetectSignatureSetAppProto, SigTableElmtStickyBuffer,
 };
 use crate::direction::Direction;
 use std::os::raw::{c_int, c_void};
-use suricata_sys::sys::{DetectEngineCtx, SCDetectBufferSetActiveList, Signature};
+use suricata_sys::sys::{
+    DetectEngineCtx, SCDetectBufferSetActiveList, SCDetectHelperBufferMpmRegister, Signature,
+};
 
 static mut G_TEMPLATE_BUFFER_BUFFER_ID: c_int = 0;
 
@@ -78,11 +79,11 @@ pub unsafe extern "C" fn SCDetectTemplateRegister() {
         setup: template_buffer_setup,
     };
     let _g_template_buffer_kw_id = helper_keyword_register_sticky_buffer(&kw);
-    G_TEMPLATE_BUFFER_BUFFER_ID = DetectHelperBufferMpmRegister(
+    G_TEMPLATE_BUFFER_BUFFER_ID = SCDetectHelperBufferMpmRegister(
         b"template.buffer\0".as_ptr() as *const libc::c_char,
         b"template.buffer intern description\0".as_ptr() as *const libc::c_char,
         ALPROTO_TEMPLATE,
         STREAM_TOSERVER | STREAM_TOCLIENT,
-        template_buffer_get,
+        Some(template_buffer_get),
     );
 }

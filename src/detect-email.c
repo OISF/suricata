@@ -235,7 +235,7 @@ void DetectEmailRegister(void)
     kw.Setup = DetectMimeEmailFromSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
     SCDetectHelperKeywordRegister(&kw);
-    g_mime_email_from_buffer_id = DetectHelperBufferMpmRegister(
+    g_mime_email_from_buffer_id = SCDetectHelperBufferMpmRegister(
             "email.from", "MIME EMAIL FROM", ALPROTO_SMTP, STREAM_TOSERVER, GetMimeEmailFromData);
 
     kw.name = "email.subject";
@@ -244,7 +244,7 @@ void DetectEmailRegister(void)
     kw.Setup = DetectMimeEmailSubjectSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
     SCDetectHelperKeywordRegister(&kw);
-    g_mime_email_subject_buffer_id = DetectHelperBufferMpmRegister("email.subject",
+    g_mime_email_subject_buffer_id = SCDetectHelperBufferMpmRegister("email.subject",
             "MIME EMAIL SUBJECT", ALPROTO_SMTP, STREAM_TOSERVER, GetMimeEmailSubjectData);
 
     kw.name = "email.to";
@@ -253,7 +253,7 @@ void DetectEmailRegister(void)
     kw.Setup = DetectMimeEmailToSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
     SCDetectHelperKeywordRegister(&kw);
-    g_mime_email_to_buffer_id = DetectHelperBufferMpmRegister(
+    g_mime_email_to_buffer_id = SCDetectHelperBufferMpmRegister(
             "email.to", "MIME EMAIL TO", ALPROTO_SMTP, STREAM_TOSERVER, GetMimeEmailToData);
 
     kw.name = "email.cc";
@@ -262,7 +262,7 @@ void DetectEmailRegister(void)
     kw.Setup = DetectMimeEmailCcSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
     SCDetectHelperKeywordRegister(&kw);
-    g_mime_email_cc_buffer_id = DetectHelperBufferMpmRegister(
+    g_mime_email_cc_buffer_id = SCDetectHelperBufferMpmRegister(
             "email.cc", "MIME EMAIL CC", ALPROTO_SMTP, STREAM_TOSERVER, GetMimeEmailCcData);
 
     kw.name = "email.date";
@@ -271,7 +271,7 @@ void DetectEmailRegister(void)
     kw.Setup = DetectMimeEmailDateSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
     SCDetectHelperKeywordRegister(&kw);
-    g_mime_email_date_buffer_id = DetectHelperBufferMpmRegister(
+    g_mime_email_date_buffer_id = SCDetectHelperBufferMpmRegister(
             "email.date", "MIME EMAIL DATE", ALPROTO_SMTP, STREAM_TOSERVER, GetMimeEmailDateData);
 
     kw.name = "email.message_id";
@@ -280,7 +280,7 @@ void DetectEmailRegister(void)
     kw.Setup = DetectMimeEmailMessageIdSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
     SCDetectHelperKeywordRegister(&kw);
-    g_mime_email_message_id_buffer_id = DetectHelperBufferMpmRegister("email.message_id",
+    g_mime_email_message_id_buffer_id = SCDetectHelperBufferMpmRegister("email.message_id",
             "MIME EMAIL Message-Id", ALPROTO_SMTP, STREAM_TOSERVER, GetMimeEmailMessageIdData);
 
     kw.name = "email.x_mailer";
@@ -289,7 +289,7 @@ void DetectEmailRegister(void)
     kw.Setup = DetectMimeEmailXMailerSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
     SCDetectHelperKeywordRegister(&kw);
-    g_mime_email_x_mailer_buffer_id = DetectHelperBufferMpmRegister("email.x_mailer",
+    g_mime_email_x_mailer_buffer_id = SCDetectHelperBufferMpmRegister("email.x_mailer",
             "MIME EMAIL X-Mailer", ALPROTO_SMTP, STREAM_TOSERVER, GetMimeEmailXMailerData);
 
     kw.name = "email.url";
