@@ -96,7 +96,7 @@ void DetectFtpCommandDataRegister(void)
     sigmatch_table[DETECT_FTP_COMMAND_DATA].Setup = DetectFtpCommandDataSetup;
     sigmatch_table[DETECT_FTP_COMMAND_DATA].flags |= SIGMATCH_NOOPT;
 
-    DetectHelperBufferMpmRegister(
+    SCDetectHelperBufferMpmRegister(
             BUFFER_NAME, BUFFER_DESC, ALPROTO_FTP, STREAM_TOSERVER, DetectFTPCommandDataGetData);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);

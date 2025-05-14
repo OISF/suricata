@@ -22,14 +22,14 @@ use crate::detect::uint::{
     SCDetectU32Match, SCDetectU32Parse, SCDetectU8Free, SCDetectU8Match,
 };
 use crate::detect::{
-    helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister,
-    DetectSignatureSetAppProto, SigMatchAppendSMToList, SigTableElmtStickyBuffer,
+    helper_keyword_register_sticky_buffer, DetectSignatureSetAppProto, SigMatchAppendSMToList,
+    SigTableElmtStickyBuffer,
 };
 use crate::websocket::parser::WebSocketOpcode;
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
-    SCDetectHelperBufferRegister, SCDetectHelperKeywordRegister, SCSigTableAppLiteElmt,
-    SigMatchCtx, Signature,
+    SCDetectHelperBufferMpmRegister, SCDetectHelperBufferRegister, SCDetectHelperKeywordRegister,
+    SCSigTableAppLiteElmt, SigMatchCtx, Signature,
 };
 
 use nom7::branch::alt;
@@ -320,11 +320,11 @@ pub unsafe extern "C" fn SCDetectWebsocketRegister() {
         setup: websocket_detect_payload_setup,
     };
     let _g_ws_payload_kw_id = helper_keyword_register_sticky_buffer(&kw);
-    G_WEBSOCKET_PAYLOAD_BUFFER_ID = DetectHelperBufferMpmRegister(
+    G_WEBSOCKET_PAYLOAD_BUFFER_ID = SCDetectHelperBufferMpmRegister(
         b"websocket.payload\0".as_ptr() as *const libc::c_char,
         b"WebSocket payload\0".as_ptr() as *const libc::c_char,
         ALPROTO_WEBSOCKET,
         STREAM_TOSERVER | STREAM_TOCLIENT,
-        websocket_detect_payload_get_data,
+        Some(websocket_detect_payload_get_data),
     );
 }

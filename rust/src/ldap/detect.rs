@@ -22,13 +22,13 @@ use crate::detect::uint::{
     SCDetectU8Free,
 };
 use crate::detect::{
-    helper_keyword_register_sticky_buffer, DetectHelperBufferMpmRegister,
-    DetectSignatureSetAppProto, SigMatchAppendSMToList, SigTableElmtStickyBuffer,
+    helper_keyword_register_sticky_buffer, DetectSignatureSetAppProto, SigMatchAppendSMToList,
+    SigTableElmtStickyBuffer,
 };
 use crate::ldap::types::{LdapMessage, LdapResultCode, ProtocolOp, ProtocolOpCode};
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
-    SCDetectHelperBufferRegister, SCDetectHelperKeywordRegister,
+    SCDetectHelperBufferMpmRegister, SCDetectHelperBufferRegister, SCDetectHelperKeywordRegister,
     SCDetectHelperMultiBufferMpmRegister, SCSigTableAppLiteElmt, SigMatchCtx, Signature,
 };
 
@@ -675,12 +675,12 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         setup: ldap_detect_request_dn_setup,
     };
     let _g_ldap_request_dn_kw_id = helper_keyword_register_sticky_buffer(&kw);
-    G_LDAP_REQUEST_DN_BUFFER_ID = DetectHelperBufferMpmRegister(
+    G_LDAP_REQUEST_DN_BUFFER_ID = SCDetectHelperBufferMpmRegister(
         b"ldap.request.dn\0".as_ptr() as *const libc::c_char,
         b"LDAP REQUEST DISTINGUISHED_NAME\0".as_ptr() as *const libc::c_char,
         ALPROTO_LDAP,
         STREAM_TOSERVER,
-        ldap_detect_request_dn_get_data,
+        Some(ldap_detect_request_dn_get_data),
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("ldap.responses.dn"),

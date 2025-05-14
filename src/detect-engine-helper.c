@@ -44,7 +44,7 @@ int SCDetectHelperBufferRegister(const char *name, AppProto alproto, uint8_t dir
     return DetectBufferTypeRegister(name);
 }
 
-int DetectHelperBufferMpmRegister(const char *name, const char *desc, AppProto alproto,
+int SCDetectHelperBufferMpmRegister(const char *name, const char *desc, AppProto alproto,
         uint8_t direction, InspectionSingleBufferGetDataPtr GetData)
 {
     if (direction & STREAM_TOSERVER) {
