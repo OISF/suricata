@@ -1079,12 +1079,13 @@ pub unsafe extern "C" fn SCDnsTxGetAdditionalName(
     false
 }
 
-fn get_rdata_name(data: &DNSRData) -> Option<&DNSName> {
+fn get_rdata_name(data: &DNSRData) -> Option<&[u8]> {
     match data {
         DNSRData::CNAME(name) | DNSRData::PTR(name) | DNSRData::MX(name) | DNSRData::NS(name) => {
-            Some(name)
+            Some(&name.value)
         }
-        DNSRData::SOA(soa) => Some(&soa.mname),
+        DNSRData::SOA(soa) => Some(&soa.mname.value),
+        DNSRData::TXT(txt) => Some(txt),
         _ => None,
     }
 }
@@ -1099,9 +1100,9 @@ pub unsafe extern "C" fn SCDnsTxGetAnswerRdata(
     if let Some(response) = &tx.response {
         if let Some(record) = response.answers.get(index) {
             if let Some(name) = get_rdata_name(&record.data) {
-                if !name.value.is_empty() {
-                    *buf = name.value.as_ptr();
-                    *len = name.value.len() as u32;
+                if !name.is_empty() {
+                    *buf = name.as_ptr();
+                    *len = name.len() as u32;
                     return true;
                 }
             }
@@ -1121,9 +1122,9 @@ pub unsafe extern "C" fn SCDnsTxGetAuthorityRdata(
     if let Some(response) = &tx.response {
         if let Some(record) = response.authorities.get(index) {
             if let Some(name) = get_rdata_name(&record.data) {
-                if !name.value.is_empty() {
-                    *buf = name.value.as_ptr();
-                    *len = name.value.len() as u32;
+                if !name.is_empty() {
+                    *buf = name.as_ptr();
+                    *len = name.len() as u32;
                     return true;
                 }
             }
@@ -1143,9 +1144,9 @@ pub unsafe extern "C" fn SCDnsTxGetAdditionalRdata(
     if let Some(response) = &tx.response {
         if let Some(record) = response.additionals.get(index) {
             if let Some(name) = get_rdata_name(&record.data) {
-                if !name.value.is_empty() {
-                    *buf = name.value.as_ptr();
-                    *len = name.value.len() as u32;
+                if !name.is_empty() {
+                    *buf = name.as_ptr();
+                    *len = name.len() as u32;
                     return true;
                 }
             }
