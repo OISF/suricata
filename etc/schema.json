@@ -6792,6 +6792,11 @@
                                     "type": "integer",
                                     "description": "Number of packets dropped due to no NFQ verdict"
                                 },
+                                "pre_stream_hook": {
+                                    "description":
+                                            "Number of packets dropped in the pre_stream hook ",
+                                    "type": "integer"
+                                },
                                 "rules": {
                                     "type": "integer",
                                     "description": "Number of packets dropped due to rule actions"
