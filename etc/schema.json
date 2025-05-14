@@ -868,6 +868,10 @@
                 }
             }
         },
+        "mdns": {
+            "description": "mDNS requests and responses (in DNS v3 format)",
+            "$ref": "#/properties/dns"
+        },
         "dns": {
             "type": "object",
             "additionalProperties": false,
@@ -4746,6 +4750,10 @@
                                     "description": "Errors encountered parsing DNS/UDP protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
+                                "mdns": {
+                                    "description": "Errors encountered parsing mDNS",
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
                                 "doh2": {
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
@@ -4916,6 +4924,10 @@
                                 "dns_udp": {
                                     "type": "integer",
                                     "description": "Number of flows for DNS/UDP protocol"
+                                },
+                                "mdns": {
+                                    "description": "Number of flows for mDNS",
+                                    "type": "integer"
                                 },
                                 "doh2": {
                                     "type": "integer"
@@ -5091,6 +5103,10 @@
                                 "dns_udp": {
                                     "type": "integer",
                                     "description": "Number of transactions for DNS/UDP protocol"
+                                },
+                                "mdns": {
+                                    "description": "Number of transactions for mDNS",
+                                    "type": "integer"
                                 },
                                 "doh2": {
                                     "type": "integer"

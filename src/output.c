@@ -55,6 +55,7 @@
 #include "log-httplog.h"
 #include "output-json-http.h"
 #include "output-json-dns.h"
+#include "output-json-mdns.h"
 #include "log-tlslog.h"
 #include "log-tlsstore.h"
 #include "output-json-tls.h"
@@ -900,6 +901,7 @@ void OutputRegisterRootLoggers(void)
     // ALPROTO_SMB special: uses state
     // ALPROTO_DCERPC special: uses state
     RegisterSimpleJsonApplayerLogger(ALPROTO_DNS, (EveJsonSimpleTxLogFunc)AlertJsonDns, NULL);
+    RegisterSimpleJsonApplayerLogger(ALPROTO_MDNS, (EveJsonSimpleTxLogFunc)AlertJsonMdns, NULL);
     // either need a cast here or in rust for ModbusTransaction, done here
     RegisterSimpleJsonApplayerLogger(ALPROTO_MODBUS, (EveJsonSimpleTxLogFunc)SCModbusToJson, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_ENIP, (EveJsonSimpleTxLogFunc)SCEnipLoggerLog, NULL);
@@ -1059,6 +1061,8 @@ void OutputRegisterLoggers(void)
     OutputFilestoreRegister();
     /* dns */
     JsonDnsLogRegister();
+    /* mdns */
+    JsonMdnsLogRegister();
     /* modbus */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonModbusLog", "eve-log.modbus",
             OutputJsonLogInitSub, ALPROTO_MODBUS, JsonGenericDirFlowLogger, JsonLogThreadInit,
@@ -1149,6 +1153,10 @@ void OutputRegisterLoggers(void)
     /* POP3 JSON logger */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonPop3Log", "eve-log.pop3",
             OutputJsonLogInitSub, ALPROTO_POP3, JsonGenericDirFlowLogger, JsonLogThreadInit,
+            JsonLogThreadDeinit);
+    /* Mdns JSON logger. */
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonMdnsLog", "eve-log.template",
+            OutputJsonLogInitSub, ALPROTO_MDNS, JsonGenericDirPacketLogger, JsonLogThreadInit,
             JsonLogThreadDeinit);
     /* Template JSON logger. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonTemplateLog", "eve-log.template",

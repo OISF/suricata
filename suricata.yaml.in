@@ -281,6 +281,7 @@ outputs:
             # DNS record types to log, based on the query type.
             # Default: all.
             #types: [a, aaaa, cname, mx, ns, ptr, txt]
+        - mdns:
         - tls:
             extended: yes     # enable this for extended logging information
             # output TLS transaction where the session is resumed using a
@@ -1245,6 +1246,9 @@ app-layer:
           dp: 389, 3268
       # Maximum number of live LDAP transactions per flow
       # max-tx: 1024
+
+    mdns:
+      enabled: yes
 
 # Limit for the maximum number of asn1 frames to decode (default 256)
 asn1-max-frames: 256

@@ -101,6 +101,7 @@ pub mod handshake;
 pub mod lua;
 
 pub mod dns;
+pub mod mdns;
 pub mod nfs;
 pub mod ftp;
 pub mod smb;
