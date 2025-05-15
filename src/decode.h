@@ -484,6 +484,8 @@ struct PacketL4 {
     } vars;
 };
 
+#define PKT_TUNNEL_UNKNOWN UINT16_MAX
+
 /* sizes of the members:
  * src: 17 bytes
  * dst: 17 bytes
@@ -527,6 +529,11 @@ typedef struct Packet_
     /* make sure we can't be attacked on when the tunneled packet
      * has the exact same tuple as the lower levels */
     uint8_t recursion_level;
+
+    /* tunnel id if any, PKT_TUNNEL_UNKNOWN if unknown, 0 if none
+     * tunnel ids are configured in suricata.yaml decoder.tunnels section
+     */
+    uint16_t tunnel_id;
 
     uint16_t vlan_id[VLAN_MAX_LAYERS];
     uint8_t vlan_idx;
@@ -1100,6 +1107,7 @@ static inline void PacketTunnelSetVerdicted(Packet *p)
 
 Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *parent,
         const uint8_t *pkt, uint32_t len, enum PacketTunnelType proto);
+uint16_t PacketGetTunnelId(Packet *p, uint32_t session);
 Packet *PacketDefragPktSetup(Packet *parent, const uint8_t *pkt, uint32_t len, uint8_t proto);
 void PacketDefragPktSetupParent(Packet *parent);
 void DecodeRegisterPerfCounters(DecodeThreadVars *, ThreadVars *);

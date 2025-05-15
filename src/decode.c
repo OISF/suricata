@@ -356,6 +356,20 @@ inline int PacketCopyData(Packet *p, const uint8_t *pktdata, uint32_t pktlen)
     return PacketCopyDataOffset(p, 0, pktdata, pktlen);
 }
 
+static void *decode_tunnels_map;
+
+uint16_t PacketGetTunnelId(Packet *p, uint32_t session) {
+    if (!PacketIsIPv4(p)) {
+        return PKT_TUNNEL_UNKNOWN;
+    }
+    struct flowtunnel_keys k = {};
+    k.src = htonl(GET_IPV4_SRC_ADDR_U32(p));
+    k.dst = htonl(GET_IPV4_DST_ADDR_U32(p));
+    k.session = session;
+    k.tunnel_type = (uint8_t) p->ttype;
+    return DecodeTunnelsId(decode_tunnels_map, k);
+}
+
 /**
  *  \brief Setup a pseudo packet (tunnel)
  *
@@ -583,6 +597,7 @@ void DecodeUnregisterCounters(void)
         g_counter_table = NULL;
     }
     SCMutexUnlock(&g_counter_table_mutex);
+    DecodeTunnelsFree(decode_tunnels_map);
 }
 
 static bool IsDefragMemcapExceptionPolicyStatsValid(enum ExceptionPolicy policy)
@@ -1018,6 +1033,7 @@ void DecodeGlobalConfig(void)
     DecodeGeneveConfig();
     DecodeVXLANConfig();
     DecodeERSPANConfig();
+    decode_tunnels_map = DecodeTunnelsConfig();
     intmax_t value = 0;
     if (SCConfGetInt("decoder.max-layers", &value) == 1) {
         if (value < 0 || value > UINT8_MAX) {

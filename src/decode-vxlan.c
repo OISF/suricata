@@ -138,8 +138,8 @@ int DecodeVXLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     if ((vxlanh->flags[0] & 0x08) == 0 || vxlanh->res != 0)
         return TM_ECODE_FAILED;
 
-#if DEBUG
     uint32_t vni = (vxlanh->vni[0] << 16) + (vxlanh->vni[1] << 8) + (vxlanh->vni[2]);
+#if DEBUG
     SCLogDebug("VXLAN vni %u", vni);
 #endif
 
@@ -181,6 +181,7 @@ int DecodeVXLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         Packet *tp = PacketTunnelPktSetup(
                 tv, dtv, p, pkt + VXLAN_HEADER_LEN, len - VXLAN_HEADER_LEN, DECODE_TUNNEL_VXLAN);
         if (tp != NULL) {
+            tp->tunnel_id = PacketGetTunnelId(p, vni);
             PKT_SET_SRC(tp, PKT_SRC_DECODER_VXLAN);
             PacketEnqueueNoLock(&tv->decode_pq, tp);
         }

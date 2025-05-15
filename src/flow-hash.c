@@ -93,7 +93,7 @@ typedef struct FlowHashKey4_ {
             uint8_t recur;
             uint16_t livedev;
             uint16_t vlan_id[VLAN_MAX_LAYERS];
-            uint16_t pad[1];
+            uint16_t tunnel_id;
         };
         const uint32_t u32[6];
     };
@@ -108,7 +108,7 @@ typedef struct FlowHashKey6_ {
             uint8_t recur;
             uint16_t livedev;
             uint16_t vlan_id[VLAN_MAX_LAYERS];
-            uint16_t pad[1];
+            uint16_t tunnel_id;
         };
         const uint32_t u32[12];
     };
@@ -118,9 +118,7 @@ uint32_t FlowGetIpPairProtoHash(const Packet *p)
 {
     uint32_t hash = 0;
     if (PacketIsIPv4(p)) {
-        FlowHashKey4 fhk = {
-            .pad[0] = 0,
-        };
+        FlowHashKey4 fhk = {};
 
         int ai = (p->src.addr_data32[0] > p->dst.addr_data32[0]);
         fhk.addrs[1 - ai] = p->src.addr_data32[0];
@@ -139,12 +137,11 @@ uint32_t FlowGetIpPairProtoHash(const Packet *p)
         fhk.vlan_id[0] = p->vlan_id[0] & g_vlan_mask;
         fhk.vlan_id[1] = p->vlan_id[1] & g_vlan_mask;
         fhk.vlan_id[2] = p->vlan_id[2] & g_vlan_mask;
+        fhk.tunnel_id = p->tunnel_id;
 
         hash = hashword(fhk.u32, ARRAY_SIZE(fhk.u32), flow_config.hash_rand);
     } else if (PacketIsIPv6(p)) {
-        FlowHashKey6 fhk = {
-            .pad[0] = 0,
-        };
+        FlowHashKey6 fhk = {};
         if (FlowHashRawAddressIPv6GtU32(p->src.addr_data32, p->dst.addr_data32)) {
             fhk.src[0] = p->src.addr_data32[0];
             fhk.src[1] = p->src.addr_data32[1];
@@ -172,6 +169,7 @@ uint32_t FlowGetIpPairProtoHash(const Packet *p)
         fhk.vlan_id[0] = p->vlan_id[0] & g_vlan_mask;
         fhk.vlan_id[1] = p->vlan_id[1] & g_vlan_mask;
         fhk.vlan_id[2] = p->vlan_id[2] & g_vlan_mask;
+        fhk.tunnel_id = p->tunnel_id;
 
         hash = hashword(fhk.u32, ARRAY_SIZE(fhk.u32), flow_config.hash_rand);
     }
@@ -197,7 +195,7 @@ static inline uint32_t FlowGetHash(const Packet *p)
 
     if (PacketIsIPv4(p)) {
         if (PacketIsTCP(p) || PacketIsUDP(p)) {
-            FlowHashKey4 fhk = { .pad[0] = 0 };
+            FlowHashKey4 fhk = {};
 
             int ai = (p->src.addr_data32[0] > p->dst.addr_data32[0]);
             fhk.addrs[1-ai] = p->src.addr_data32[0];
@@ -221,13 +219,14 @@ static inline uint32_t FlowGetHash(const Packet *p)
             fhk.vlan_id[0] = p->vlan_id[0] & g_vlan_mask;
             fhk.vlan_id[1] = p->vlan_id[1] & g_vlan_mask;
             fhk.vlan_id[2] = p->vlan_id[2] & g_vlan_mask;
+            fhk.tunnel_id = p->tunnel_id;
 
             hash = hashword(fhk.u32, ARRAY_SIZE(fhk.u32), flow_config.hash_rand);
 
         } else if (ICMPV4_DEST_UNREACH_IS_VALID(p)) {
             uint32_t psrc = IPV4_GET_RAW_IPSRC_U32(PacketGetICMPv4EmbIPv4(p));
             uint32_t pdst = IPV4_GET_RAW_IPDST_U32(PacketGetICMPv4EmbIPv4(p));
-            FlowHashKey4 fhk = { .pad[0] = 0 };
+            FlowHashKey4 fhk = {};
 
             const int ai = (psrc > pdst);
             fhk.addrs[1-ai] = psrc;
@@ -244,11 +243,12 @@ static inline uint32_t FlowGetHash(const Packet *p)
             fhk.vlan_id[0] = p->vlan_id[0] & g_vlan_mask;
             fhk.vlan_id[1] = p->vlan_id[1] & g_vlan_mask;
             fhk.vlan_id[2] = p->vlan_id[2] & g_vlan_mask;
+            fhk.tunnel_id = p->tunnel_id;
 
             hash = hashword(fhk.u32, ARRAY_SIZE(fhk.u32), flow_config.hash_rand);
 
         } else {
-            FlowHashKey4 fhk = { .pad[0] = 0 };
+            FlowHashKey4 fhk = { };
             const int ai = (p->src.addr_data32[0] > p->dst.addr_data32[0]);
             fhk.addrs[1-ai] = p->src.addr_data32[0];
             fhk.addrs[ai] = p->dst.addr_data32[0];
@@ -261,11 +261,12 @@ static inline uint32_t FlowGetHash(const Packet *p)
             fhk.vlan_id[0] = p->vlan_id[0] & g_vlan_mask;
             fhk.vlan_id[1] = p->vlan_id[1] & g_vlan_mask;
             fhk.vlan_id[2] = p->vlan_id[2] & g_vlan_mask;
+            fhk.tunnel_id = p->tunnel_id;
 
             hash = hashword(fhk.u32, ARRAY_SIZE(fhk.u32), flow_config.hash_rand);
         }
     } else if (PacketIsIPv6(p)) {
-        FlowHashKey6 fhk = { .pad[0] = 0 };
+        FlowHashKey6 fhk = { };
         if (FlowHashRawAddressIPv6GtU32(p->src.addr_data32, p->dst.addr_data32)) {
             fhk.src[0] = p->src.addr_data32[0];
             fhk.src[1] = p->src.addr_data32[1];
@@ -296,6 +297,7 @@ static inline uint32_t FlowGetHash(const Packet *p)
         fhk.vlan_id[0] = p->vlan_id[0] & g_vlan_mask;
         fhk.vlan_id[1] = p->vlan_id[1] & g_vlan_mask;
         fhk.vlan_id[2] = p->vlan_id[2] & g_vlan_mask;
+        fhk.tunnel_id = p->tunnel_id;
 
         hash = hashword(fhk.u32, ARRAY_SIZE(fhk.u32), flow_config.hash_rand);
     }
@@ -317,7 +319,6 @@ uint32_t FlowKeyGetHash(FlowKey *fk)
 
     if (fk->src.family == AF_INET) {
         FlowHashKey4 fhk = {
-            .pad[0] = 0,
         };
         int ai = (fk->src.address.address_un_data32[0] > fk->dst.address.address_un_data32[0]);
         fhk.addrs[1-ai] = fk->src.address.address_un_data32[0];
@@ -333,11 +334,11 @@ uint32_t FlowKeyGetHash(FlowKey *fk)
         fhk.vlan_id[0] = fk->vlan_id[0] & g_vlan_mask;
         fhk.vlan_id[1] = fk->vlan_id[1] & g_vlan_mask;
         fhk.vlan_id[2] = fk->vlan_id[2] & g_vlan_mask;
+        fhk.tunnel_id = fk->tunnel_id;
 
         hash = hashword(fhk.u32, ARRAY_SIZE(fhk.u32), flow_config.hash_rand);
     } else {
         FlowHashKey6 fhk = {
-            .pad[0] = 0,
         };
         if (FlowHashRawAddressIPv6GtU32(fk->src.address.address_un_data32,
                     fk->dst.address.address_un_data32)) {
@@ -369,6 +370,7 @@ uint32_t FlowKeyGetHash(FlowKey *fk)
         fhk.vlan_id[0] = fk->vlan_id[0] & g_vlan_mask;
         fhk.vlan_id[1] = fk->vlan_id[1] & g_vlan_mask;
         fhk.vlan_id[2] = fk->vlan_id[2] & g_vlan_mask;
+        fhk.tunnel_id = fk->tunnel_id;
 
         hash = hashword(fhk.u32, ARRAY_SIZE(fhk.u32), flow_config.hash_rand);
     }
@@ -418,7 +420,7 @@ static inline bool CmpFlowPacket(const Flow *f, const Packet *p)
     const uint32_t *p_src = p->src.address.address_un_data32;
     const uint32_t *p_dst = p->dst.address.address_un_data32;
     return CmpAddrsAndPorts(f_src, f_dst, f->sp, f->dp, p_src, p_dst, p->sp, p->dp) &&
-           f->proto == p->proto &&
+           f->proto == p->proto && f->tunnel_id == p->tunnel_id &&
            (f->recursion_level == p->recursion_level || g_recurlvl_mask == 0) &&
            CmpVlanIds(f->vlan_id, p->vlan_id) && (f->livedev == p->livedev || g_livedev_mask == 0);
 }
@@ -430,7 +432,7 @@ static inline bool CmpFlowKey(const Flow *f, const FlowKey *k)
     const uint32_t *k_src = k->src.address.address_un_data32;
     const uint32_t *k_dst = k->dst.address.address_un_data32;
     return CmpAddrsAndPorts(f_src, f_dst, f->sp, f->dp, k_src, k_dst, k->sp, k->dp) &&
-           f->proto == k->proto &&
+           f->proto == k->proto && f->tunnel_id == k->tunnel_id &&
            (f->recursion_level == k->recursion_level || g_recurlvl_mask == 0) &&
            CmpVlanIds(f->vlan_id, k->vlan_id) && CmpLiveDevIds(f->livedev, k->livedev_id);
 }
@@ -457,7 +459,7 @@ static inline bool CmpFlowICMPPacket(const Flow *f, const Packet *p)
     const uint32_t *p_dst = p->dst.address.address_un_data32;
     return CmpAddrsAndICMPTypes(f_src, f_dst, f->icmp_s.type, f->icmp_d.type, p_src, p_dst,
                    p->icmp_s.type, p->icmp_d.type) &&
-           f->proto == p->proto &&
+           f->proto == p->proto && f->tunnel_id == p->tunnel_id &&
            (f->recursion_level == p->recursion_level || g_recurlvl_mask == 0) &&
            CmpVlanIds(f->vlan_id, p->vlan_id) && (f->livedev == p->livedev || g_livedev_mask == 0);
 }
@@ -483,7 +485,7 @@ static inline int FlowCompareICMPv4(Flow *f, const Packet *p)
                 f->sp == p->l4.vars.icmpv4.emb_sport && f->dp == p->l4.vars.icmpv4.emb_dport &&
                 f->proto == ICMPV4_GET_EMB_PROTO(p) &&
                 (f->recursion_level == p->recursion_level || g_recurlvl_mask == 0) &&
-                CmpVlanIds(f->vlan_id, p->vlan_id) &&
+                CmpVlanIds(f->vlan_id, p->vlan_id) && f->tunnel_id == p->tunnel_id &&
                 (f->livedev == p->livedev || g_livedev_mask == 0)) {
             return 1;
 
@@ -494,7 +496,7 @@ static inline int FlowCompareICMPv4(Flow *f, const Packet *p)
                    f->dp == p->l4.vars.icmpv4.emb_sport && f->sp == p->l4.vars.icmpv4.emb_dport &&
                    f->proto == ICMPV4_GET_EMB_PROTO(p) &&
                    (f->recursion_level == p->recursion_level || g_recurlvl_mask == 0) &&
-                   CmpVlanIds(f->vlan_id, p->vlan_id) &&
+                   CmpVlanIds(f->vlan_id, p->vlan_id) && f->tunnel_id == p->tunnel_id &&
                    (f->livedev == p->livedev || g_livedev_mask == 0)) {
             return 1;
         }
@@ -526,7 +528,7 @@ static inline int FlowCompareESP(Flow *f, const Packet *p)
 
     return CmpAddrs(f_src, p_src) && CmpAddrs(f_dst, p_dst) && f->proto == p->proto &&
            (f->recursion_level == p->recursion_level || g_recurlvl_mask == 0) &&
-           CmpVlanIds(f->vlan_id, p->vlan_id) && f->esp.spi == ESP_GET_SPI(PacketGetESP(p)) &&
+           CmpVlanIds(f->vlan_id, p->vlan_id) && f->tunnel_id == p->tunnel_id && f->esp.spi == ESP_GET_SPI(PacketGetESP(p)) &&
            (f->livedev == p->livedev || g_livedev_mask == 0);
 }
 

@@ -29,6 +29,7 @@ use std::os::raw::c_char;
 use std::os::raw::c_int;
 use std::ptr;
 use std::str;
+use std::str::FromStr;
 use suricata_sys::sys::SCConfGet;
 use suricata_sys::sys::SCConfGetChildValue;
 use suricata_sys::sys::SCConfGetChildValueBool;
@@ -94,6 +95,16 @@ pub struct ConfNode {
 impl ConfNode {
     pub fn wrap(conf: *const SCConfNode) -> Self {
         return Self { conf };
+    }
+
+    // Return the value of key as T like u16.
+    pub(crate) fn get_child_from<T:FromStr>(&self, key: &str) -> Option<T> {
+        if let Some(n) = self.get_child_node(key) {
+            if let Ok(r) = T::from_str(n.value()) {
+                return Some(r);
+            }
+        }
+        return None;
     }
 
     pub fn get_child_node(&self, key: &str) -> Option<ConfNode> {
