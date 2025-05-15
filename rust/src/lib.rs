@@ -78,6 +78,8 @@ pub mod core;
 #[macro_use]
 pub mod debug;
 
+pub mod decode;
+
 pub mod common;
 pub mod conf;
 pub mod jsonbuilder;
