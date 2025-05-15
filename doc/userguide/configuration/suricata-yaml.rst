@@ -3245,6 +3245,10 @@ Only IPv4 addresses are supported for now.
 
 These tunnel identifiers can be used for multi-tenancy.
 
+It is also possible to define ``decoder.tunnel-ifaces`` list of interfaces
+receiving tunneled traffic. The traffic received on these interfaces that do
+not belong to a defined tunnel will be skipped.
+
 Advanced Options
 ----------------
 
