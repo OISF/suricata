@@ -86,6 +86,7 @@ typedef struct DefragTracker_ {
                            * this tracker. */
 
     uint16_t vlan_id[VLAN_MAX_LAYERS]; /**< VLAN ID tracker applies to. */
+    uint16_t tunnel_id;                /**< Tunnel identifier. */
     uint16_t ip_hdr_offset;            /**< Offset in the packet where the IP
                                         * header starts. */
 
