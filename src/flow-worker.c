@@ -564,6 +564,9 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
 
     SCLogDebug("packet %"PRIu64, p->pcap_cnt);
 
+    if (p->flags & PKT_SKIP_WORK) {
+        return TM_ECODE_OK;
+    }
     if ((PKT_IS_FLUSHPKT(p))) {
         SCLogDebug("thread %s flushing", tv->printable_name);
         OutputLoggerFlush(tv, p, fw->output_thread);
