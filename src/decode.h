@@ -1171,6 +1171,7 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *, ThreadVars *);
 Packet *PacketGetFromQueueOrAlloc(void);
 Packet *PacketGetFromAlloc(void);
 void PacketDecodeFinalize(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p);
+void PacketDefragFinalize(Packet *p);
 void PacketUpdateEngineEventCounters(ThreadVars *tv,
         DecodeThreadVars *dtv, Packet *p);
 void PacketFree(Packet *p);
@@ -1315,7 +1316,8 @@ void DecodeGlobalConfigDeinit(void);
 /** Packet is part of established stream */
 #define PKT_STREAM_EST BIT_U32(6)
 
-// vacancy
+/** Flow worker will skip the packet */
+#define PKT_SKIP_WORK BIT_U32(7)
 
 #define PKT_HAS_FLOW   BIT_U32(8)
 /** Pseudo packet to end the stream */
