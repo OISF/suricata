@@ -29,6 +29,7 @@ use std::os::raw::c_char;
 use std::os::raw::c_int;
 use std::ptr;
 use std::str;
+use std::str::FromStr;
 use suricata_sys::sys::SCConfGet;
 use suricata_sys::sys::SCConfGetChildValue;
 use suricata_sys::sys::SCConfGetChildValueBool;
@@ -87,13 +88,47 @@ pub fn conf_get_bool(key: &str) -> bool {
 
 /// Wrap a Suricata ConfNode and expose some of its methods with a
 /// Rust friendly interface.
+#[derive(Copy, Clone)]
 pub struct ConfNode {
     pub conf: *const SCConfNode,
+}
+
+pub(crate) struct ConfNodeIter {
+    node: ConfNode,
+    start: bool,
+}
+
+impl Iterator for ConfNodeIter {
+    type Item = ConfNode;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let r = if self.start {
+            self.start = false;
+            self.node.first()
+        } else {
+            self.node.next()
+        };
+        if let Some(n) = r {
+            self.node = n;
+            return Some(self.node);
+        }
+        r
+    }
 }
 
 impl ConfNode {
     pub fn wrap(conf: *const SCConfNode) -> Self {
         return Self { conf };
+    }
+
+    // Return the value of key as T like u16.
+    pub(crate) fn get_child_from<T: FromStr>(&self, key: &str) -> Option<T> {
+        if let Some(n) = self.get_child_node(key) {
+            if let Ok(r) = T::from_str(n.value()) {
+                return Some(r);
+            }
+        }
+        return None;
     }
 
     pub fn get_child_node(&self, key: &str) -> Option<ConfNode> {
@@ -105,6 +140,13 @@ impl ConfNode {
             None
         } else {
             Some(ConfNode::wrap(node))
+        }
+    }
+
+    pub(crate) fn iter(&self) -> ConfNodeIter {
+        ConfNodeIter {
+            node: *self,
+            start: true,
         }
     }
 

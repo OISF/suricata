@@ -998,6 +998,23 @@ extern "C" {
 extern "C" {
     pub fn SCLogGetLogLevel() -> SCLogLevel;
 }
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub enum SCPacketTunnelProto {
+    DECODE_TUNNEL_ETHERNET = 0,
+    DECODE_TUNNEL_ERSPANII = 1,
+    DECODE_TUNNEL_ERSPANI = 2,
+    DECODE_TUNNEL_VXLAN = 3,
+    DECODE_TUNNEL_VLAN = 4,
+    DECODE_TUNNEL_IPV4 = 5,
+    DECODE_TUNNEL_IPV6 = 6,
+    #[doc = "< separate protocol for stricter error handling"]
+    DECODE_TUNNEL_IPV6_TEREDO = 7,
+    DECODE_TUNNEL_PPP = 8,
+    DECODE_TUNNEL_NSH = 9,
+    DECODE_TUNNEL_ARP = 10,
+    DECODE_TUNNEL_UNSET = 11,
+}
 pub type ProbingParserFPtr = ::std::option::Option<
     unsafe extern "C" fn(
         f: *const Flow,
