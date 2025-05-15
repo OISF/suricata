@@ -2964,6 +2964,9 @@ This section is a list of tunnels with the following parameters:
       dst: 192.168.1.3
       session: 123 # erspan span id or vxlan vni
 
+You can also make suricata skip early the traffic that is not part of the
+configured tunnels with the ``decoder.tunnels-skip_other`` option set to true.
+
 Advanced Options
 ----------------
 

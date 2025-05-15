@@ -1243,7 +1243,8 @@ void DecodeUnregisterCounters(void);
 
 /** Flag to indicate that packet contents should not be inspected */
 #define PKT_NOPAYLOAD_INSPECTION BIT_U32(2)
-// vacancy
+/** Flag to indicate that worker to skip the packet */
+#define PKT_SKIP_WORK BIT_U32(3)
 
 /** Packet has matched a tag */
 #define PKT_HAS_TAG BIT_U32(4)
