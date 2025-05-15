@@ -93,6 +93,7 @@ static inline Packet *FlowPseudoPacketSetup(
     p->flags |= PKT_PSEUDO_STREAM_END;
     memcpy(&p->vlan_id[0], &f->vlan_id[0], sizeof(p->vlan_id));
     p->vlan_idx = f->vlan_idx;
+    p->tunnel_id = f->tunnel_id;
     p->livedev_id = f->livedev_id;
 
     if (f->flags & FLOW_NOPAYLOAD_INSPECTION) {
