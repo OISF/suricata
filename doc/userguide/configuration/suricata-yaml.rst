@@ -2944,6 +2944,26 @@ default.
 Using this default setting, flows will be associated only if the compared packet
 headers are encapsulated in the same number of headers.
 
+Tunnels
+~~~~~~~
+
+If your packets sources are multiple tunnels encapsulating the traffic,
+you can configure the ``decoder.tunnels`` section to assign a tunnel
+identifier to each of these tunnels.
+
+These tunnel identifiers are used in flow hashing to be able to distinguish
+the same-looking flow (same 5-tuple) from different tunnels, meaning it
+is in fact a different subnetwork (like a VLAN identifier).
+
+This section is a list of tunnels with the following parameters:
+::
+
+    - id: 1
+      type: erspan2 # or vxlan
+      src: 192.168.1.1
+      dst: 192.168.1.3
+      session: 123 # erspan span id or vxlan vni
+
 Advanced Options
 ----------------
 
