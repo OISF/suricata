@@ -71,6 +71,7 @@
 #include "util-profiling.h"
 #include "util-validate.h"
 #include "util-debug.h"
+#include "util-device-private.h"
 #include "util-exception-policy.h"
 #include "action-globals.h"
 
@@ -228,6 +229,13 @@ void PacketFree(Packet *p)
     SCFree(p);
 }
 
+static bool PacketIsInTunnelIface(Packet *p)
+{
+    if (p->livedev) {
+        return p->livedev->skip_non_tunnel;
+    }
+    return false;
+}
 /**
  * \brief Finalize decoding of a packet
  *
@@ -239,6 +247,10 @@ void PacketDecodeFinalize(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
 {
     if (p->flags & PKT_IS_INVALID) {
         StatsIncr(tv, dtv->counter_invalid);
+    }
+    if (p->tunnel_id == 0 && PacketIsInTunnelIface(p)) {
+        // skips non-tunnel packets
+        p->flags |= PKT_SKIP_WORK;
     }
 }
 
@@ -390,8 +402,12 @@ static void *decode_tunnels_map;
 
 void PacketGetTunnelId(Packet *p, uint32_t session)
 {
+    bool packet_in_tunnel_iface = PacketIsInTunnelIface(p);
     if (decode_tunnels_map == NULL || p->root == NULL || !PacketIsIPv4(p->root)) {
         p->tunnel_id = PKT_TUNNEL_UNKNOWN;
+        if (packet_in_tunnel_iface) {
+            p->flags |= PKT_SKIP_WORK;
+        }
         return;
     }
     struct flowtunnel_keys k = {};
@@ -400,6 +416,9 @@ void PacketGetTunnelId(Packet *p, uint32_t session)
     k.session = session;
     k.tunnel_proto = (uint8_t)p->tproto;
     p->tunnel_id = DecodeTunnelsId(decode_tunnels_map, k);
+    if (packet_in_tunnel_iface && p->tunnel_id == PKT_TUNNEL_UNKNOWN) {
+        p->flags |= PKT_SKIP_WORK;
+    }
 }
 
 void *DecodeTunnelsGetMapIter(void)
@@ -1087,6 +1106,20 @@ void DecodeGlobalConfig(void)
     DecodeVXLANConfig();
     DecodeERSPANConfig();
     decode_tunnels_map = DecodeTunnelsConfig();
+    SCConfNode *tunnel_ifaces_node = SCConfGetNode("decoder.tunnel-ifaces");
+    if (tunnel_ifaces_node != NULL) {
+        SCConfNode *child = NULL;
+        TAILQ_FOREACH (child, &tunnel_ifaces_node->head, next) {
+            if (child->val != NULL) {
+                LiveDevice *ld = LiveGetDevice(child->val);
+                if (ld != NULL) {
+                    ld->skip_non_tunnel = true;
+                } else {
+                    SCLogWarning("%s is not a registered device", child->val);
+                }
+            }
+        }
+    }
     intmax_t value = 0;
     if (SCConfGetInt("decoder.max-layers", &value) == 1) {
         if (value < 0 || value > UINT8_MAX) {
