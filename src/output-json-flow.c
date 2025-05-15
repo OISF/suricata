@@ -154,6 +154,9 @@ static SCJsonBuilder *CreateEveHeaderFromFlow(const Flow *f, OutputJsonCommonSet
         SCJbSetUint(jb, "ip_v", 6);
     }
 
+    if (f->tunnel_id > 0 && f->tunnel_id != PKT_TUNNEL_UNKNOWN) {
+        SCJbSetUint(jb, "tunnel_id", f->tunnel_id);
+    }
     if (SCProtoNameValid(f->proto)) {
         SCJbSetString(jb, "proto", known_proto[f->proto]);
     } else {
