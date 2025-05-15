@@ -453,6 +453,7 @@ void GlobalsDestroy(void)
     TmModuleRunDeInit();
     ParseSizeDeinit();
     DatalinkTableDeinit();
+    DecodeGlobalConfigDeinit();
 
 #ifdef HAVE_DPDK
     DPDKCleanupEAL();
