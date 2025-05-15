@@ -120,6 +120,8 @@ Other Changes
   like `alert ip`.
 - ``ldap`` has bound the maximum number of responses per transaction
   to 1024 by default.
+- VXLAN packets now contain the 8-byte VXLAN header.
+  Note that for other tunnels such as ERSPAN2, packets already contained the ERSPAN2 header.
 
 Changes for Library Users and Plugin Developers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
