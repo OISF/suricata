@@ -24,6 +24,25 @@
 #ifndef SURICATA_DECODE_H
 #define SURICATA_DECODE_H
 
+enum SCPacketTunnelType {
+    PacketTunnelNone,
+    PacketTunnelRoot,
+    PacketTunnelChild,
+    DECODE_TUNNEL_ETHERNET,
+    DECODE_TUNNEL_ERSPANII,
+    DECODE_TUNNEL_ERSPANI,
+    DECODE_TUNNEL_VXLAN,
+    DECODE_TUNNEL_VLAN,
+    DECODE_TUNNEL_IPV4,
+    DECODE_TUNNEL_IPV6,
+    DECODE_TUNNEL_IPV6_TEREDO, /**< separate protocol for stricter error handling */
+    DECODE_TUNNEL_PPP,
+    DECODE_TUNNEL_NSH,
+    DECODE_TUNNEL_ARP,
+    DECODE_TUNNEL_UNSET
+};
+
+#ifndef SURICATA_BINDGEN_H
 //#define DBG_THREADS
 #define COUNTERS
 
@@ -393,24 +412,6 @@ enum PacketDropReason {
     PKT_DROP_REASON_MAX,
 };
 
-enum PacketTunnelType {
-    PacketTunnelNone,
-    PacketTunnelRoot,
-    PacketTunnelChild,
-    DECODE_TUNNEL_ETHERNET,
-    DECODE_TUNNEL_ERSPANII,
-    DECODE_TUNNEL_ERSPANI,
-    DECODE_TUNNEL_VXLAN,
-    DECODE_TUNNEL_VLAN,
-    DECODE_TUNNEL_IPV4,
-    DECODE_TUNNEL_IPV6,
-    DECODE_TUNNEL_IPV6_TEREDO, /**< separate protocol for stricter error handling */
-    DECODE_TUNNEL_PPP,
-    DECODE_TUNNEL_NSH,
-    DECODE_TUNNEL_ARP,
-    DECODE_TUNNEL_UNSET
-};
-
 /* forward declaration since Packet struct definition requires this */
 struct PacketQueue_;
 
@@ -528,6 +529,11 @@ typedef struct Packet_
      * has the exact same tuple as the lower levels */
     uint8_t recursion_level;
 
+    /* tunnel id if any, PKT_TUNNEL_UNKNOWN if unknown, 0 if none
+     * tunnel ids are configured in suricata.yaml decoder.tunnels section
+     */
+    uint16_t tunnel_id;
+
     uint16_t vlan_id[VLAN_MAX_LAYERS];
     uint8_t vlan_idx;
 
@@ -553,7 +559,7 @@ typedef struct Packet_
     uint32_t flow_hash;
 
     /* tunnel type: none, root or child */
-    enum PacketTunnelType ttype;
+    enum SCPacketTunnelType ttype;
 
     SCTime_t ts;
 
@@ -1099,7 +1105,8 @@ static inline void PacketTunnelSetVerdicted(Packet *p)
 }
 
 Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *parent,
-        const uint8_t *pkt, uint32_t len, enum PacketTunnelType proto);
+        const uint8_t *pkt, uint32_t len, enum SCPacketTunnelType proto);
+void PacketGetTunnelId(Packet *p, uint32_t session);
 Packet *PacketDefragPktSetup(Packet *parent, const uint8_t *pkt, uint32_t len, uint8_t proto);
 void PacketDefragPktSetupParent(Packet *parent);
 void DecodeRegisterPerfCounters(DecodeThreadVars *, ThreadVars *);
@@ -1146,6 +1153,7 @@ int DecodeVNTag(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uin
 int DecodeIEEE8021ah(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeGeneve(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeVXLAN(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
+int DecodeVXLANtunnel(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeMPLS(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeERSPAN(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeERSPANTypeI(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
@@ -1493,5 +1501,6 @@ static inline bool DecodeNetworkLayer(ThreadVars *tv, DecodeThreadVars *dtv,
     }
     return true;
 }
+#endif // SURICATA_BINDGEN_H
 
 #endif /* SURICATA_DECODE_H */

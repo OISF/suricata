@@ -116,6 +116,18 @@ void DecodeVXLANConfig(void)
     }
 }
 
+// Just get the tunnel id (for the flow hash)
+// Then pass on to ethernet decoder on next layer
+
+int DecodeVXLANtunnel(
+        ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len)
+{
+    const VXLANHeader *vxlanh = (const VXLANHeader *)pkt;
+    uint32_t vni = (vxlanh->vni[0] << 16) + (vxlanh->vni[1] << 8) + (vxlanh->vni[2]);
+    PacketGetTunnelId(p, vni);
+    return DecodeEthernet(tv, dtv, p, pkt + VXLAN_HEADER_LEN, len - VXLAN_HEADER_LEN);
+}
+
 /** \param pkt payload data directly above UDP header
  *  \param len length in bytes of pkt
  */
@@ -179,8 +191,9 @@ int DecodeVXLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
     /* Set-up and process inner packet if it is a supported ethertype */
     if (eth_ok) {
-        Packet *tp = PacketTunnelPktSetup(
-                tv, dtv, p, pkt + VXLAN_HEADER_LEN, len - VXLAN_HEADER_LEN, DECODE_TUNNEL_VXLAN);
+        // do not advance in packet, as we will need child packet to read vxlan header
+        // to compute its tunnel_id before computing its hash
+        Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt, len, DECODE_TUNNEL_VXLAN);
         if (tp != NULL) {
             PKT_SET_SRC(tp, PKT_SRC_DECODER_VXLAN);
             PacketEnqueueNoLock(&tv->decode_pq, tp);

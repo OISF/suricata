@@ -42,6 +42,8 @@
 #include "detect-engine-helper.h"
 #include "detect-parse.h"
 
+#include "decode.h"
+
 #include "conf.h"
 
 #endif
