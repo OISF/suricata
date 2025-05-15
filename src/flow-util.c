@@ -151,6 +151,7 @@ void FlowInit(ThreadVars *tv, Flow *f, const Packet *p)
 
     f->proto = p->proto;
     f->recursion_level = p->recursion_level;
+    f->tunnel_id = p->tunnel_id;
     memcpy(&f->vlan_id[0], &p->vlan_id[0], sizeof(f->vlan_id));
     f->vlan_idx = p->vlan_idx;
 
