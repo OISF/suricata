@@ -80,6 +80,7 @@ extern const char *stats_decoder_events_prefix;
 extern bool stats_stream_events;
 uint8_t decoder_max_layers = PKT_DEFAULT_MAX_DECODED_LAYERS;
 uint16_t packet_alert_max = PACKET_ALERT_MAX;
+bool decoder_skip_non_tunnels = false;
 
 /* Settings order as in the enum */
 // clang-format off
@@ -235,6 +236,9 @@ void PacketDecodeFinalize(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
 {
     if (p->flags & PKT_IS_INVALID) {
         StatsIncr(tv, dtv->counter_invalid);
+    }
+    if (decoder_skip_non_tunnels && (p->tunnel_id == 0 || p->tunnel_id == PKT_TUNNEL_UNKNOWN)) {
+        p->flags |= PKT_SKIP_WORK;
     }
 }
 
@@ -1071,6 +1075,10 @@ void DecodeGlobalConfig(void)
     DecodeVXLANConfig();
     DecodeERSPANConfig();
     decode_tunnels_map = DecodeTunnelsConfig();
+    int skip;
+    if (SCConfGetBool("decoder.tunnels-skip-other", &skip) == 1) {
+        decoder_skip_non_tunnels = skip;
+    }
     intmax_t value = 0;
     if (SCConfGetInt("decoder.max-layers", &value) == 1) {
         if (value < 0 || value > UINT8_MAX) {

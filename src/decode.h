@@ -1265,7 +1265,8 @@ void DecodeUnregisterCounters(void);
 /** Packet is part of established stream */
 #define PKT_STREAM_EST BIT_U32(6)
 
-// vacancy
+/** Flag to indicate that worker to skip the packet */
+#define PKT_SKIP_WORK BIT_U32(7)
 
 #define PKT_HAS_FLOW   BIT_U32(8)
 /** Pseudo packet to end the stream */
