@@ -1106,6 +1106,7 @@ Defrag(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
             TmqhOutputPacketpool(tv, rp);
             rp = NULL;
         } else {
+            PacketDefragFinalize(rp);
             PacketDefragPktSetupParent(p);
         }
     }

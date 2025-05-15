@@ -569,6 +569,12 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
 
     SCLogDebug("packet %" PRIu64, PcapPacketCntGet(p));
 
+    if (p->flags & PKT_SKIP_WORK) {
+        // fully skip the packet
+        // Use case is to skip packets such as ARP on interfaces
+        // receiving tunneled traffic
+        goto housekeeping;
+    }
     /* handle Flow */
     if (det_ctx != NULL && det_ctx->de_ctx->PreFlowHook != NULL) {
         const uint8_t action = det_ctx->de_ctx->PreFlowHook(tv, det_ctx, p);

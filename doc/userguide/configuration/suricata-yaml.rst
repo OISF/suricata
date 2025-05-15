@@ -3216,6 +3216,10 @@ This section is a list of tunnels with the following parameters:
 
 These tunnel identifiers can be used for multi-tenancy.
 
+It is also recommended to define ``decoder.tunnel-ifaces`` list of interfaces
+receiving tunneled traffic. The traffic received on these interfaces that do
+not belong to a defined tunnel will be skipped.
+
 Advanced Options
 ----------------
 

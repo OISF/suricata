@@ -34,6 +34,9 @@ typedef struct LiveDevice_ {
     char dev_short[MAX_DEVNAME + 1];
     int mtu; /* MTU of the device */
     bool tenant_id_set;
+    // flag to indicate this interface receives tunneled traffic
+    // as we may want to skip packets that are not part on a tunnel for this interface
+    bool skip_non_tunnel;
 
     uint16_t id;
 
