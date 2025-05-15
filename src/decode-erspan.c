@@ -35,6 +35,7 @@
 #include "decode.h"
 #include "decode-events.h"
 #include "decode-erspan.h"
+#include "rust.h"
 
 #include "util-validate.h"
 #include "util-debug.h"
@@ -107,6 +108,9 @@ int DecodeERSPAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
         p->vlan_idx++;
     }
     PacketSetTunnelId(p, SCNtohs(ehdr->flags_spanid) & 0x03ff);
+    if (p->tunnel_id != PKT_TUNNEL_UNKNOWN && p->root) {
+        p->root->tunnel_id = p->tunnel_id;
+    }
     return DecodeEthernet(tv, dtv, p, pkt + sizeof(ErspanHdr), len - sizeof(ErspanHdr));
 }
 

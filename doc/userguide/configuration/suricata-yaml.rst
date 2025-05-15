@@ -3245,6 +3245,20 @@ Only IPv4 addresses are supported for now.
 
 These tunnel identifiers can be used for multi-tenancy.
 
+It is also possible to define a ``decoder.tunnel-ifaces`` list of interfaces
+receiving tunneled traffic. The traffic received on these interfaces that does
+not belong to a defined tunnel will be skipped.
+"Skipped" means no flow tracking, detection or logging.
+By default, this list is empty.
+Example configuration looks like:
+
+::
+
+    decoder:
+      tunnel-ifaces:
+        - eth0
+        - eth1
+
 Advanced Options
 ----------------
 
