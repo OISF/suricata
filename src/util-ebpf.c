@@ -762,7 +762,13 @@ static int EBPFForEachFlowV4Table(ThreadVars *th_v, LiveDevice *dev, const char 
         flow_key.dst.addr_data32[2] = 0;
         flow_key.dst.addr_data32[3] = 0;
         flow_key.vlan_id[0] = next_key.vlan0;
-        flow_key.vlan_id[1] = next_key.vlan1;
+        if (next_key.vlan1 & 0x8000) {
+            flow_key.tunnel_id = next_key.vlan1 & 0x7FFF;
+            flow_key.vlan_id[1] = 0;
+        } else {
+            flow_key.vlan_id[1] = next_key.vlan1;
+            flow_key.tunnel_id = 0;
+        }
         if (next_key.ip_proto == 1) {
             flow_key.proto = IPPROTO_TCP;
         } else {
@@ -881,6 +887,13 @@ static int EBPFForEachFlowV6Table(ThreadVars *th_v,
         }
         flow_key.vlan_id[0] = next_key.vlan0;
         flow_key.vlan_id[1] = next_key.vlan1;
+        if (next_key.vlan1 & 0x8000) {
+            flow_key.tunnel_id = next_key.vlan1 & 0x7FFF;
+            flow_key.vlan_id[1] = 0;
+        } else {
+            flow_key.vlan_id[1] = next_key.vlan1;
+            flow_key.tunnel_id = 0;
+        }
         if (next_key.ip_proto == 1) {
             flow_key.proto = IPPROTO_TCP;
         } else {
