@@ -7699,8 +7699,16 @@
                 },
                 "src_port": {
                     "type": "integer"
+                },
+                "tunnel_id": {
+                    "type": "integer",
+                    "description": "If any, the tunnel identifier defined in suricata.yaml decoder.tunnels section"
                 }
             }
+        },
+        "tunnel_id": {
+            "type": "integer",
+            "description": "if any, the tunnel identifier defined in suricata.yaml decoder.tunnels section"
         },
         "tx_guessed": {
             "type": "boolean",
