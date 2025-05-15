@@ -770,6 +770,7 @@ static int EBPFForEachFlowV4Table(ThreadVars *th_v, LiveDevice *dev, const char 
         }
         flow_key.recursion_level = 0;
         flow_key.livedev_id = dev->id;
+        flow_key.tunnel_id = next_key.tunnel_id;
         dead_flow = EBPFOpFlowForKey(&flowstats, dev, &next_key, sizeof(next_key), &flow_key,
                                      ctime, pkts_cnt, bytes_cnt,
                                      mapfd, tcfg->cpus_count);
@@ -888,6 +889,7 @@ static int EBPFForEachFlowV6Table(ThreadVars *th_v,
         }
         flow_key.recursion_level = 0;
         flow_key.livedev_id = dev->id;
+        flow_key.tunnel_id = next_key.tunnel_id;
         pkts_cnt = EBPFOpFlowForKey(&flowstats, dev, &next_key, sizeof(next_key), &flow_key,
                                     ctime, pkts_cnt, bytes_cnt,
                                     mapfd, tcfg->cpus_count);
