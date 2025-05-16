@@ -31,15 +31,15 @@ use nom7::number::streaming::{be_u16, be_u32, be_u8};
 use nom7::sequence::terminated;
 use nom7::{Err, IResult, ToUsize};
 
-pub const PGSQL_LENGTH_FIELD: u32 = 4;
+const PGSQL_LENGTH_FIELD: u32 = 4;
 
-pub const PGSQL_DUMMY_PROTO_MAJOR: u16 = 1234; // 0x04d2
-pub const PGSQL_DUMMY_PROTO_CANCEL_REQUEST: u16 = 5678; // 0x162e
-pub const PGSQL_DUMMY_PROTO_MINOR_SSL: u16 = 5679; //0x162f
-pub const _PGSQL_DUMMY_PROTO_MINOR_GSSAPI: u16 = 5680; // 0x1630
+const PGSQL_DUMMY_PROTO_MAJOR: u16 = 1234; // 0x04d2
+const PGSQL_DUMMY_PROTO_CANCEL_REQUEST: u16 = 5678; // 0x162e
+const PGSQL_DUMMY_PROTO_MINOR_SSL: u16 = 5679; //0x162f
+const _PGSQL_DUMMY_PROTO_MINOR_GSSAPI: u16 = 5680; // 0x1630
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum PgsqlParseError<I> {
+pub(crate) enum PgsqlParseError<I> {
     InvalidLength,
 
     NomError(I, ErrorKind),
@@ -80,7 +80,7 @@ fn parse_exact_length(
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum PgsqlParameters {
+pub(crate) enum PgsqlParameters {
     // startup parameters
     User,
     Database,
@@ -104,7 +104,7 @@ pub enum PgsqlParameters {
 }
 
 impl PgsqlParameters {
-    pub fn to_str(&self) -> &str {
+    pub(crate) fn to_str(&self) -> &str {
         match self {
             PgsqlParameters::User => "user",
             PgsqlParameters::Database => "database",
@@ -156,54 +156,54 @@ impl From<&[u8]> for PgsqlParameters {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct PgsqlParameter {
-    pub name: PgsqlParameters,
-    pub value: Vec<u8>,
+pub(crate) struct PgsqlParameter {
+    pub(crate) name: PgsqlParameters,
+    pub(crate) value: Vec<u8>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct PgsqlStartupParameters {
-    pub user: PgsqlParameter,
-    pub optional_params: Option<Vec<PgsqlParameter>>,
+pub(crate) struct PgsqlStartupParameters {
+    pub(crate) user: PgsqlParameter,
+    pub(crate) optional_params: Option<Vec<PgsqlParameter>>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct DummyStartupPacket {
+pub(crate) struct DummyStartupPacket {
     length: u32,
     proto_major: u16,
     proto_minor: u16,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct StartupPacket {
-    pub length: u32,
-    pub proto_major: u16,
-    pub proto_minor: u16,
-    pub params: PgsqlStartupParameters,
+pub(crate) struct StartupPacket {
+    pub(crate) length: u32,
+    pub(crate) proto_major: u16,
+    pub(crate) proto_minor: u16,
+    pub(crate) params: PgsqlStartupParameters,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct RegularPacket {
-    pub identifier: u8,
-    pub length: u32,
-    pub payload: Vec<u8>,
+pub(crate) struct RegularPacket {
+    pub(crate) identifier: u8,
+    pub(crate) length: u32,
+    pub(crate) payload: Vec<u8>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct PgsqlErrorNoticeMessageField {
-    pub field_type: PgsqlErrorNoticeFieldType,
-    pub field_value: Vec<u8>,
+pub(crate) struct PgsqlErrorNoticeMessageField {
+    pub(crate) field_type: PgsqlErrorNoticeFieldType,
+    pub(crate) field_value: Vec<u8>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct ErrorNoticeMessage {
-    pub identifier: u8,
-    pub length: u32,
-    pub message_body: Vec<PgsqlErrorNoticeMessageField>,
+pub(crate) struct ErrorNoticeMessage {
+    pub(crate) identifier: u8,
+    pub(crate) length: u32,
+    pub(crate) message_body: Vec<PgsqlErrorNoticeMessageField>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum SSLResponseMessage {
+pub(crate) enum SSLResponseMessage {
     SSLAccepted,
     SSLRejected,
     InvalidResponse,
@@ -230,61 +230,61 @@ impl From<char> for SSLResponseMessage {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct ParameterStatusMessage {
-    pub identifier: u8,
-    pub length: u32,
-    pub param: PgsqlParameter,
+pub(crate) struct ParameterStatusMessage {
+    pub(crate) identifier: u8,
+    pub(crate) length: u32,
+    pub(crate) param: PgsqlParameter,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct BackendKeyDataMessage {
-    pub identifier: u8,
-    pub length: u32,
-    pub backend_pid: u32,
-    pub secret_key: u32,
+pub(crate) struct BackendKeyDataMessage {
+    pub(crate) identifier: u8,
+    pub(crate) length: u32,
+    pub(crate) backend_pid: u32,
+    pub(crate) secret_key: u32,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct ConsolidatedDataRowPacket {
-    pub identifier: u8,
-    pub row_cnt: u64, // row or msg cnt
-    pub data_size: u64,
+pub(crate) struct ConsolidatedDataRowPacket {
+    pub(crate) identifier: u8,
+    pub(crate) row_cnt: u64, // row or msg cnt
+    pub(crate) data_size: u64,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct ReadyForQueryMessage {
-    pub identifier: u8,
-    pub length: u32,
-    pub transaction_status: u8,
+pub(crate) struct ReadyForQueryMessage {
+    pub(crate) identifier: u8,
+    pub(crate) length: u32,
+    pub(crate) transaction_status: u8,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct NotificationResponse {
-    pub identifier: u8,
-    pub length: u32,
-    pub pid: u32,
+pub(crate) struct NotificationResponse {
+    pub(crate) identifier: u8,
+    pub(crate) length: u32,
+    pub(crate) pid: u32,
     // two str fields, one right after the other
-    pub channel_name: Vec<u8>,
-    pub payload: Vec<u8>,
+    pub(crate) channel_name: Vec<u8>,
+    pub(crate) payload: Vec<u8>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct CopyResponse {
-    pub identifier: u8,
-    pub length: u32,
-    pub column_cnt: u16,
+pub(crate) struct CopyResponse {
+    pub(crate) identifier: u8,
+    pub(crate) length: u32,
+    pub(crate) column_cnt: u16,
     // for each column, there are column_cnt u16 format codes received
     // for now, we're not storing those
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct NoPayloadMessage {
-    pub identifier: u8,
-    pub length: u32,
+pub(crate) struct NoPayloadMessage {
+    pub(crate) identifier: u8,
+    pub(crate) length: u32,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum PgsqlBEMessage {
+pub(crate) enum PgsqlBEMessage {
     SSLResponse(SSLResponseMessage),
     ErrorResponse(ErrorNoticeMessage),
     NoticeResponse(ErrorNoticeMessage),
@@ -310,7 +310,7 @@ pub enum PgsqlBEMessage {
 }
 
 impl PgsqlBEMessage {
-    pub fn to_str(&self) -> &'static str {
+    pub(crate) fn to_str(&self) -> &'static str {
         match self {
             PgsqlBEMessage::SSLResponse(SSLResponseMessage::SSLAccepted) => "ssl_accepted",
             PgsqlBEMessage::SSLResponse(SSLResponseMessage::SSLRejected) => "ssl_rejected",
@@ -343,7 +343,7 @@ impl PgsqlBEMessage {
         }
     }
 
-    pub fn get_backendkey_info(&self) -> (u32, u32) {
+    pub(crate) fn get_backendkey_info(&self) -> (u32, u32) {
         match self {
             PgsqlBEMessage::BackendKeyData(message) => {
                 return (message.backend_pid, message.secret_key);
@@ -354,14 +354,14 @@ impl PgsqlBEMessage {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum SASLAuthenticationMechanism {
+pub(crate) enum SASLAuthenticationMechanism {
     ScramSha256,
     ScramSha256Plus,
     // UnknownMechanism,
 }
 
 impl SASLAuthenticationMechanism {
-    pub fn to_str(&self) -> &'static str {
+    pub(crate) fn to_str(&self) -> &'static str {
         match self {
             SASLAuthenticationMechanism::ScramSha256 => "scram_SHA256",
             SASLAuthenticationMechanism::ScramSha256Plus => "scram_SHA256_plus",
@@ -372,13 +372,13 @@ impl SASLAuthenticationMechanism {
 type SASLInitialResponse = (SASLAuthenticationMechanism, u32, Vec<u8>);
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct CancelRequestMessage {
-    pub pid: u32,
-    pub backend_key: u32,
+pub(crate) struct CancelRequestMessage {
+    pub(crate) pid: u32,
+    pub(crate) backend_key: u32,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum PgsqlFEMessage {
+pub(crate) enum PgsqlFEMessage {
     SSLRequest(DummyStartupPacket),
     StartupMessage(StartupPacket),
     PasswordMessage(RegularPacket),
@@ -394,7 +394,7 @@ pub enum PgsqlFEMessage {
 }
 
 impl PgsqlFEMessage {
-    pub fn to_str(&self) -> &'static str {
+    pub(crate) fn to_str(&self) -> &'static str {
         match self {
             PgsqlFEMessage::StartupMessage(_) => "startup_message",
             PgsqlFEMessage::SSLRequest(_) => "ssl_request",
@@ -413,61 +413,61 @@ impl PgsqlFEMessage {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct AuthenticationMessage {
-    pub identifier: u8,
-    pub length: u32,
-    pub auth_type: u32,
-    pub payload: Vec<u8>,
+pub(crate) struct AuthenticationMessage {
+    pub(crate) identifier: u8,
+    pub(crate) length: u32,
+    pub(crate) auth_type: u32,
+    pub(crate) payload: Vec<u8>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct SASLInitialResponsePacket {
-    pub identifier: u8,
-    pub length: u32,
-    pub auth_mechanism: SASLAuthenticationMechanism,
-    pub param_length: u32,
-    pub sasl_param: Vec<u8>,
+pub(crate) struct SASLInitialResponsePacket {
+    pub(crate) identifier: u8,
+    pub(crate) length: u32,
+    pub(crate) auth_mechanism: SASLAuthenticationMechanism,
+    pub(crate) param_length: u32,
+    pub(crate) sasl_param: Vec<u8>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct AuthenticationSASLMechanismMessage {
-    identifier: u8,
-    length: u32,
-    auth_type: u32,
-    auth_mechanisms: Vec<SASLAuthenticationMechanism>,
+pub(crate) struct AuthenticationSASLMechanismMessage {
+    pub(crate) identifier: u8,
+    pub(crate) length: u32,
+    pub(crate) auth_type: u32,
+    pub(crate) auth_mechanisms: Vec<SASLAuthenticationMechanism>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct RowField {
-    pub field_name: Vec<u8>,
-    pub table_oid: u32,
-    pub column_index: u16,
-    pub data_type_oid: u32,
+pub(crate) struct RowField {
+    pub(crate) field_name: Vec<u8>,
+    pub(crate) table_oid: u32,
+    pub(crate) column_index: u16,
+    pub(crate) data_type_oid: u32,
     // "see pg_type.typlen. Note that negative values denote variable-width types"
-    pub data_type_size: i16,
+    pub(crate) data_type_size: i16,
     // "The value will generally be -1 for types that do not need pg_attribute.atttypmod."
-    pub type_modifier: i32,
+    pub(crate) type_modifier: i32,
     // "The format code being used for the field. Currently will be zero (text) or one (binary). In a RowDescription returned from the variant of Describe, will always be zero"
-    pub format_code: u16,
+    pub(crate) format_code: u16,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct RowDescriptionMessage {
-    pub identifier: u8,
-    pub length: u32,
-    pub field_count: u16,
-    pub fields: Vec<RowField>,
+pub(crate) struct RowDescriptionMessage {
+    pub(crate) identifier: u8,
+    pub(crate) length: u32,
+    pub(crate) field_count: u16,
+    pub(crate) fields: Vec<RowField>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct ColumnFieldValue {
+pub(crate) struct ColumnFieldValue {
     // Can be 0, or -1 as a special NULL column value
-    pub value_length: i32,
-    pub value: Vec<u8>,
+    pub(crate) value_length: i32,
+    pub(crate) value: Vec<u8>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum PgsqlErrorNoticeFieldType {
+pub(crate) enum PgsqlErrorNoticeFieldType {
     SeverityLocalizable,
     SeverityNonLocalizable,
     CodeSqlStateCode,
@@ -493,7 +493,7 @@ pub enum PgsqlErrorNoticeFieldType {
 }
 
 impl PgsqlErrorNoticeFieldType {
-    pub fn to_str(&self) -> &'static str {
+    pub(crate) fn to_str(&self) -> &'static str {
         match self {
             PgsqlErrorNoticeFieldType::SeverityLocalizable => "severity_localizable",
             PgsqlErrorNoticeFieldType::SeverityNonLocalizable => "severity_non_localizable",
@@ -607,7 +607,7 @@ fn pgsql_parse_generic_parameter(
     ))
 }
 
-pub fn pgsql_parse_startup_parameters(
+fn pgsql_parse_startup_parameters(
     i: &[u8],
 ) -> IResult<&[u8], PgsqlStartupParameters, PgsqlParseError<&[u8]>> {
     let (i, mut optional) = opt(terminated(
@@ -652,7 +652,7 @@ fn parse_sasl_initial_response_payload(
     Ok((i, (sasl_mechanism, param_length, param.to_vec())))
 }
 
-pub fn parse_sasl_initial_response(
+pub(crate) fn parse_sasl_initial_response(
     i: &[u8],
 ) -> IResult<&[u8], PgsqlFEMessage, PgsqlParseError<&[u8]>> {
     let (i, identifier) = verify(be_u8, |&x| x == b'p')(i)?;
@@ -673,7 +673,7 @@ pub fn parse_sasl_initial_response(
     ))
 }
 
-pub fn parse_sasl_response(i: &[u8]) -> IResult<&[u8], PgsqlFEMessage, PgsqlParseError<&[u8]>> {
+pub(crate) fn parse_sasl_response(i: &[u8]) -> IResult<&[u8], PgsqlFEMessage, PgsqlParseError<&[u8]>> {
     let (i, identifier) = verify(be_u8, |&x| x == b'p')(i)?;
     let (i, length) = parse_gte_length(i, PGSQL_LENGTH_FIELD)?;
     let (i, payload) = take(length - PGSQL_LENGTH_FIELD)(i)?;
@@ -685,7 +685,7 @@ pub fn parse_sasl_response(i: &[u8]) -> IResult<&[u8], PgsqlFEMessage, PgsqlPars
     Ok((i, resp))
 }
 
-pub fn pgsql_parse_startup_packet(
+fn pgsql_parse_startup_packet(
     i: &[u8],
 ) -> IResult<&[u8], PgsqlFEMessage, PgsqlParseError<&[u8]>> {
     let (i, length) = parse_gte_length(i, 8)?;
@@ -742,7 +742,7 @@ pub fn pgsql_parse_startup_packet(
 // Source: https://www.postgresql.org/docs/13/protocol-flow.html#id-1.10.5.7.11, GSSAPI Session Encryption
 
 // Password can be encrypted or in cleartext
-pub fn parse_password_message(i: &[u8]) -> IResult<&[u8], PgsqlFEMessage, PgsqlParseError<&[u8]>> {
+pub(crate) fn parse_password_message(i: &[u8]) -> IResult<&[u8], PgsqlFEMessage, PgsqlParseError<&[u8]>> {
     let (i, identifier) = verify(be_u8, |&x| x == b'p')(i)?;
     let (i, length) = parse_gte_length(i, PGSQL_LENGTH_FIELD)?;
     let (i, password) = map_parser(take(length - PGSQL_LENGTH_FIELD), take_until1("\x00"))(i)?;
@@ -789,7 +789,7 @@ fn parse_terminate_message(i: &[u8]) -> IResult<&[u8], PgsqlFEMessage, PgsqlPars
 }
 
 // Messages that begin with 'p' but are not password ones are not parsed here
-pub fn parse_request(i: &[u8]) -> IResult<&[u8], PgsqlFEMessage, PgsqlParseError<&[u8]>> {
+pub(crate) fn parse_request(i: &[u8]) -> IResult<&[u8], PgsqlFEMessage, PgsqlParseError<&[u8]>> {
     let (i, tag) = peek(be_u8)(i)?;
     let (i, message) = match tag {
         b'\0' => pgsql_parse_startup_packet(i)?,
@@ -918,7 +918,7 @@ fn parse_parameter_status_message(
     ))
 }
 
-pub fn parse_ssl_response(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, PgsqlParseError<&[u8]>> {
+pub(crate) fn parse_ssl_response(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, PgsqlParseError<&[u8]>> {
     let (i, tag) = alt((char('N'), char('S')))(i)?;
     Ok((
         i,
@@ -995,7 +995,7 @@ fn parse_row_field(i: &[u8]) -> IResult<&[u8], RowField, PgsqlParseError<&[u8]>>
     ))
 }
 
-pub fn parse_row_description(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, PgsqlParseError<&[u8]>> {
+fn parse_row_description(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, PgsqlParseError<&[u8]>> {
     let (i, identifier) = verify(be_u8, |&x| x == b'T')(i)?;
     let (i, length) = parse_gte_length(i, 7)?;
     let (i, field_count) = be_u16(i)?;
@@ -1043,7 +1043,7 @@ fn add_up_data_size(columns: Vec<ColumnFieldValue>) -> u64 {
     data_size
 }
 
-pub fn parse_copy_out_response(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, PgsqlParseError<&[u8]>> {
+fn parse_copy_out_response(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, PgsqlParseError<&[u8]>> {
     let (i, identifier) = verify(be_u8, |&x| x == b'H')(i)?;
     // copy out message : identifier (u8), length (u32), format (u8), cols (u16), formats (u16*cols)
     let (i, length) = parse_gte_length(i, 8)?;
@@ -1060,7 +1060,7 @@ pub fn parse_copy_out_response(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, Pgsql
     ))
 }
 
-pub fn parse_copy_in_response(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, PgsqlParseError<&[u8]>> {
+fn parse_copy_in_response(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, PgsqlParseError<&[u8]>> {
     let (i, identifier) = verify(be_u8, |&x| x == b'G')(i)?;
     let (i, length) = parse_gte_length(i, 8)?;
     let (i, _format) = be_u8(i)?;
@@ -1076,7 +1076,7 @@ pub fn parse_copy_in_response(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, PgsqlP
     ))
 }
 
-pub fn parse_consolidated_copy_data_out(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, PgsqlParseError<&[u8]>> {
+fn parse_consolidated_copy_data_out(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, PgsqlParseError<&[u8]>> {
     let (i, identifier) = verify(be_u8, |&x| x == b'd')(i)?;
     let (i, length) = parse_gte_length(i, 5)?;
     let (i, _data) = take(length - PGSQL_LENGTH_FIELD)(i)?;
@@ -1089,7 +1089,7 @@ pub fn parse_consolidated_copy_data_out(i: &[u8]) -> IResult<&[u8], PgsqlBEMessa
     ))
 }
 
-pub fn parse_consolidated_copy_data_in(i: &[u8]) -> IResult<&[u8], PgsqlFEMessage, PgsqlParseError<&[u8]>> {
+fn parse_consolidated_copy_data_in(i: &[u8]) -> IResult<&[u8], PgsqlFEMessage, PgsqlParseError<&[u8]>> {
     let (i, identifier) = verify(be_u8, |&x| x == b'd')(i)?;
     let (i, length) = parse_gte_length(i, 5)?;
     let (i, _data) = take(length - PGSQL_LENGTH_FIELD)(i)?;
@@ -1140,7 +1140,7 @@ fn parse_copy_fail(i: &[u8]) -> IResult<&[u8], PgsqlFEMessage, PgsqlParseError<&
 // Currently, we don't store the actual DataRow messages, as those could easily become a burden, memory-wise
 // We use ConsolidatedDataRow to store info we still want to log: message size.
 // Later on, we calculate the number of lines the command actually returned by counting ConsolidatedDataRow messages
-pub fn parse_consolidated_data_row(
+fn parse_consolidated_data_row(
     i: &[u8],
 ) -> IResult<&[u8], PgsqlBEMessage, PgsqlParseError<&[u8]>> {
     let (i, identifier) = verify(be_u8, |&x| x == b'D')(i)?;
@@ -1181,7 +1181,7 @@ fn parse_sasl_mechanisms(
     terminated(many1(parse_sasl_mechanism), tag("\x00"))(i)
 }
 
-pub fn parse_error_response_code(
+fn parse_error_response_code(
     i: &[u8],
 ) -> IResult<&[u8], PgsqlErrorNoticeMessageField, PgsqlParseError<&[u8]>> {
     let (i, _field_type) = char('C')(i)?;
@@ -1197,7 +1197,7 @@ pub fn parse_error_response_code(
 
 // Parse an error response with non-localizeable severity message.
 // Possible values: ERROR, FATAL, or PANIC
-pub fn parse_error_response_severity(
+fn parse_error_response_severity(
     i: &[u8],
 ) -> IResult<&[u8], PgsqlErrorNoticeMessageField, PgsqlParseError<&[u8]>> {
     let (i, field_type) = char('V')(i)?;
@@ -1214,7 +1214,7 @@ pub fn parse_error_response_severity(
 
 // The non-localizable version of Severity field has different values,
 // in case of a notice: 'WARNING', 'NOTICE', 'DEBUG', 'INFO' or 'LOG'
-pub fn parse_notice_response_severity(
+fn parse_notice_response_severity(
     i: &[u8],
 ) -> IResult<&[u8], PgsqlErrorNoticeMessageField, PgsqlParseError<&[u8]>> {
     let (i, field_type) = char('V')(i)?;
@@ -1235,7 +1235,7 @@ pub fn parse_notice_response_severity(
     ))
 }
 
-pub fn parse_error_response_field(
+fn parse_error_response_field(
     i: &[u8], is_err_msg: bool,
 ) -> IResult<&[u8], PgsqlErrorNoticeMessageField, PgsqlParseError<&[u8]>> {
     let (i, field_type) = peek(be_u8)(i)?;
@@ -1262,7 +1262,7 @@ pub fn parse_error_response_field(
     Ok((i, data))
 }
 
-pub fn parse_error_notice_fields(
+fn parse_error_notice_fields(
     i: &[u8], is_err_msg: bool,
 ) -> IResult<&[u8], Vec<PgsqlErrorNoticeMessageField>, PgsqlParseError<&[u8]>> {
     let (i, data) = many_till(|b| parse_error_response_field(b, is_err_msg), tag("\x00"))(i)?;
@@ -1322,7 +1322,7 @@ fn parse_notification_response(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, Pgsql
     Ok((i, msg))
 }
 
-pub fn pgsql_parse_response(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, PgsqlParseError<&[u8]>> {
+pub(crate) fn pgsql_parse_response(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, PgsqlParseError<&[u8]>> {
     let (i, tag) = peek(be_u8)(i)?;
     let (i, message) = match tag {
         b'E' => pgsql_parse_error_response(i)?,
@@ -1362,7 +1362,7 @@ mod tests {
     use nom7::Needed;
 
     impl ErrorNoticeMessage {
-        pub fn new(identifier: u8, length: u32) -> Self {
+        fn new(identifier: u8, length: u32) -> Self {
             ErrorNoticeMessage {
                 identifier,
                 length,

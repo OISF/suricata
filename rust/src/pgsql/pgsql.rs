@@ -32,14 +32,14 @@ use std::collections::VecDeque;
 use std::ffi::CString;
 use suricata_sys::sys::AppProto;
 
-pub const PGSQL_CONFIG_DEFAULT_STREAM_DEPTH: u32 = 0;
+const PGSQL_CONFIG_DEFAULT_STREAM_DEPTH: u32 = 0;
 
 static mut ALPROTO_PGSQL: AppProto = ALPROTO_UNKNOWN;
 
 static mut PGSQL_MAX_TX: usize = 1024;
 
 #[derive(AppLayerEvent, Debug, PartialEq, Eq)]
-pub enum PgsqlEvent {
+enum PgsqlEvent {
     InvalidLength,     // Can't parse the length field
     MalformedRequest,  // Enough data, but unexpected request format
     MalformedResponse, // Enough data, but unexpected response format
@@ -48,7 +48,7 @@ pub enum PgsqlEvent {
 
 #[repr(u8)]
 #[derive(Copy, Clone, PartialOrd, PartialEq, Eq, Debug)]
-pub enum PgsqlTxProgress {
+pub(crate) enum PgsqlTxProgress {
     TxInit = 0,
     TxReceived,
     TxDone,
@@ -56,15 +56,15 @@ pub enum PgsqlTxProgress {
 }
 
 #[derive(Debug)]
-pub struct PgsqlTransaction {
-    pub tx_id: u64,
-    pub tx_req_state: PgsqlTxProgress,
-    pub tx_res_state: PgsqlTxProgress,
-    pub requests: Vec<PgsqlFEMessage>,
-    pub responses: Vec<PgsqlBEMessage>,
+pub(crate) struct PgsqlTransaction {
+    pub(crate) tx_id: u64,
+    pub(crate) tx_req_state: PgsqlTxProgress,
+    pub(crate) tx_res_state: PgsqlTxProgress,
+    pub(crate) requests: Vec<PgsqlFEMessage>,
+    pub(crate) responses: Vec<PgsqlBEMessage>,
 
-    pub data_row_cnt: u64,
-    pub data_size: u64,
+    pub(crate) data_row_cnt: u64,
+    pub(crate) data_size: u64,
 
     tx_data: AppLayerTxData,
 }
@@ -82,7 +82,7 @@ impl Default for PgsqlTransaction {
 }
 
 impl PgsqlTransaction {
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self {
             tx_id: 0,
             tx_req_state: PgsqlTxProgress::TxInit,
@@ -95,21 +95,21 @@ impl PgsqlTransaction {
         }
     }
 
-    pub fn incr_row_cnt(&mut self) {
+    fn incr_row_cnt(&mut self) {
         self.data_row_cnt = self.data_row_cnt.saturating_add(1);
     }
 
-    pub fn get_row_cnt(&self) -> u64 {
+    fn get_row_cnt(&self) -> u64 {
         self.data_row_cnt
     }
 
-    pub fn sum_data_size(&mut self, row_size: u64) {
+    fn sum_data_size(&mut self, row_size: u64) {
         self.data_size += row_size;
     }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum PgsqlStateProgress {
+enum PgsqlStateProgress {
     IdleState,
     // Related to Frontend-received messages //
     SSLRequestReceived,
@@ -148,7 +148,7 @@ pub enum PgsqlStateProgress {
 }
 
 #[derive(Debug)]
-pub struct PgsqlState {
+struct PgsqlState {
     state_data: AppLayerStateData,
     tx_id: u64,
     transactions: VecDeque<PgsqlTransaction>,
@@ -177,7 +177,7 @@ impl Default for PgsqlState {
 }
 
 impl PgsqlState {
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self {
             state_data: AppLayerStateData::new(),
             tx_id: 0,
@@ -210,7 +210,7 @@ impl PgsqlState {
         }
     }
 
-    pub fn get_tx(&mut self, tx_id: u64) -> Option<&PgsqlTransaction> {
+    fn get_tx(&mut self, tx_id: u64) -> Option<&PgsqlTransaction> {
         self.transactions.iter().find(|tx| tx.tx_id == tx_id + 1)
     }
 
