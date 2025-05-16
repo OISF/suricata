@@ -283,7 +283,7 @@ jobs:
                 sudo \
                 which \
                 zlib-devel
-      - run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain stable -y
+      - run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.85.0 -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: rustup component add rustfmt
       - run: rustup component add clippy
