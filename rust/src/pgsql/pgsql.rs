@@ -121,13 +121,13 @@ pub enum PgsqlStateProgress {
     CancelRequestReceived,
     ConnectionTerminated,
     // Related to Backend-received messages //
+    CopyDoneReceived, // BE and FE
+    CopyFailReceived, // BE and FE
     CopyOutResponseReceived,
     CopyDataOutReceived,
     CopyInResponseReceived,
     FirstCopyDataInReceived,
     ConsolidatingCopyDataIn,
-    CopyDoneReceived,
-    CopyFailReceived,
     SSLRejectedReceived,
     // SSPIAuthenticationReceived, // TODO implement
     SASLAuthenticationReceived,
