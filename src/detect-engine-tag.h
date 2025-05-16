@@ -44,7 +44,7 @@
 int TagHashAddTag(DetectTagDataEntry *, Packet *);
 int TagFlowAdd(Packet *, DetectTagDataEntry *);
 
-void TagHandlePacket(DetectEngineCtx *, DetectEngineThreadCtx *, Packet *);
+void TagHandlePacket(const DetectEngineCtx *, DetectEngineThreadCtx *, Packet *);
 
 void TagInitCtx(void);
 void TagDestroyCtx(void);
