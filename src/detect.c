@@ -80,19 +80,18 @@ static void DetectRunInspectIPOnly(ThreadVars *tv, const DetectEngineCtx *de_ctx
         DetectEngineThreadCtx *det_ctx, Flow * const pflow, Packet * const p);
 static inline void DetectRunGetRuleGroup(const DetectEngineCtx *de_ctx,
         Packet * const p, Flow * const pflow, DetectRunScratchpad *scratch);
-static inline void DetectRunPrefilterPkt(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p,
-        DetectRunScratchpad *scratch);
-static inline uint8_t DetectRulePacketRules(ThreadVars *const tv, DetectEngineCtx *const de_ctx,
-        DetectEngineThreadCtx *const det_ctx, Packet *const p, Flow *const pflow,
-        const DetectRunScratchpad *scratch);
+static inline void DetectRunPrefilterPkt(ThreadVars *tv, const DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, Packet *p, DetectRunScratchpad *scratch);
+static inline uint8_t DetectRulePacketRules(ThreadVars *const tv,
+        const DetectEngineCtx *const de_ctx, DetectEngineThreadCtx *const det_ctx, Packet *const p,
+        Flow *const pflow, const DetectRunScratchpad *scratch);
 static void DetectRunTx(ThreadVars *tv, DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, Packet *p,
         Flow *f, DetectRunScratchpad *scratch);
 static void DetectRunFrames(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         Packet *p, Flow *f, DetectRunScratchpad *scratch);
-static inline void DetectRunPostRules(ThreadVars *tv, DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, Packet * const p, Flow * const pflow,
+static inline void DetectRunPostRules(ThreadVars *tv, const DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, Packet *const p, Flow *const pflow,
         DetectRunScratchpad *scratch);
 static void DetectRunCleanup(DetectEngineThreadCtx *det_ctx,
         Packet *p, Flow * const pflow);
@@ -276,7 +275,8 @@ const SigGroupHead *SigMatchSignaturesGetSgh(const DetectEngineCtx *de_ctx,
     SCReturnPtr(sgh, "SigGroupHead");
 }
 
-static inline void DetectPrefilterCopyDeDup(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx)
+static inline void DetectPrefilterCopyDeDup(
+        const DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx)
 {
     SigIntId *pf_ptr = det_ctx->pmq.rule_id_array;
     uint32_t final_cnt = det_ctx->pmq.rule_id_array_cnt;
@@ -542,13 +542,8 @@ static inline bool DetectRunInspectRuleHeader(const Packet *p, const Flow *f, co
 /** \internal
  *  \brief run packet/stream prefilter engines
  */
-static inline void DetectRunPrefilterPkt(
-    ThreadVars *tv,
-    DetectEngineCtx *de_ctx,
-    DetectEngineThreadCtx *det_ctx,
-    Packet *p,
-    DetectRunScratchpad *scratch
-)
+static inline void DetectRunPrefilterPkt(ThreadVars *tv, const DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, Packet *p, DetectRunScratchpad *scratch)
 {
     /* create our prefilter mask */
     PacketCreateMask(p, &p->sig_mask, scratch->alproto, scratch->app_decoder_events);
@@ -608,9 +603,9 @@ static int SortHelper(const void *a, const void *b)
     return sa->iid > sb->iid ? 1 : -1;
 }
 
-static inline uint8_t DetectRulePacketRules(ThreadVars *const tv, DetectEngineCtx *const de_ctx,
-        DetectEngineThreadCtx *const det_ctx, Packet *const p, Flow *const pflow,
-        const DetectRunScratchpad *scratch)
+static inline uint8_t DetectRulePacketRules(ThreadVars *const tv,
+        const DetectEngineCtx *const de_ctx, DetectEngineThreadCtx *const det_ctx, Packet *const p,
+        Flow *const pflow, const DetectRunScratchpad *scratch)
 {
     uint8_t action = 0;
     bool fw_verdict = false;
@@ -966,13 +961,9 @@ static DetectRunScratchpad DetectRunSetup(
     return pad;
 }
 
-static inline void DetectRunPostRules(
-    ThreadVars *tv,
-    DetectEngineCtx *de_ctx,
-    DetectEngineThreadCtx *det_ctx,
-    Packet * const p,
-    Flow * const pflow,
-    DetectRunScratchpad *scratch)
+static inline void DetectRunPostRules(ThreadVars *tv, const DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, Packet *const p, Flow *const pflow,
+        DetectRunScratchpad *scratch)
 {
     /* so now let's iterate the alerts and remove the ones after a pass rule
      * matched (if any). This is done inside PacketAlertFinalize() */
