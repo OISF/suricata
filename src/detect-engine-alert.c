@@ -504,7 +504,7 @@ static inline void PacketAlertFinalizeProcessQueue(
  * \param det_ctx detection engine thread context
  * \param p pointer to the packet
  */
-void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p)
+void PacketAlertFinalize(const DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p)
 {
     SCEnter();
 
