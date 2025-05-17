@@ -17,6 +17,7 @@
 
 // written by Victor Julien
 
+use crate::flow::Flow;
 use crate::nfs::nfs::*;
 use crate::nfs::nfs2_records::*;
 use crate::nfs::rpc_records::*;
@@ -102,7 +103,7 @@ impl NFSState {
         self.requestmap.insert(r.hdr.xid, xidmap);
     }
 
-    pub fn process_reply_record_v2(&mut self, r: &RpcReplyPacket, xidmap: &NFSRequestXidMap) {
+    pub fn process_reply_record_v2(&mut self, flow: *const Flow, r: &RpcReplyPacket, xidmap: &NFSRequestXidMap) {
         let mut nfs_status = 0;
         let resp_handle = Vec::new();
 
@@ -110,7 +111,7 @@ impl NFSState {
             match parse_nfs2_reply_read(r.prog_data) {
                 Ok((_, ref reply)) => {
                     SCLogDebug!("NFSv2: READ reply record");
-                    self.process_read_record(r, reply, Some(xidmap));
+                    self.process_read_record(flow, r, reply, Some(xidmap));
                     nfs_status = reply.status;
                 }
                 _ => {
@@ -131,6 +132,6 @@ impl NFSState {
             r.prog_data.len()
         );
 
-        self.mark_response_tx_done(r.hdr.xid, r.reply_state, nfs_status, &resp_handle);
+        self.mark_response_tx_done(flow, r.hdr.xid, r.reply_state, nfs_status, &resp_handle);
     }
 }

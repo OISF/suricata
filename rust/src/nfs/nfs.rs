@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2021 Open Information Security Foundation
+/* Copyright (C) 2017-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -508,7 +508,7 @@ impl NFSState {
 
     // TODO maybe not enough users to justify a func
     pub fn mark_response_tx_done(
-        &mut self, xid: u32, rpc_status: u32, nfs_status: u32, resp_handle: &[u8],
+        &mut self, flow: *const Flow, xid: u32, rpc_status: u32, nfs_status: u32, resp_handle: &[u8],
     ) {
         if let Some(mytx) = self.get_tx_by_xid(xid) {
             mytx.tx_data.updated_tc = true;
@@ -527,6 +527,7 @@ impl NFSState {
                 mytx.request_done,
                 mytx.response_done
             );
+            sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
         } else {
             //SCLogNotice!("process_reply_record: not TX found for XID {}", r.hdr.xid);
         }
@@ -895,7 +896,7 @@ impl NFSState {
             }
             3 => {
                 self.add_nfs_ts_frame(flow, stream_slice, r.prog_data, r.prog_data_size as i64);
-                self.process_request_record_v3(r)
+                self.process_request_record_v3(flow, r)
             }
             2 => {
                 self.add_nfs_ts_frame(flow, stream_slice, r.prog_data, r.prog_data_size as i64);
@@ -960,7 +961,7 @@ impl NFSState {
         return None;
     }
 
-    pub fn process_write_record<'b>(&mut self, r: &RpcPacket<'b>, w: &Nfs3RequestWrite<'b>) -> u32 {
+    pub fn process_write_record<'b>(&mut self, flow: *const Flow, r: &RpcPacket<'b>, w: &Nfs3RequestWrite<'b>) -> u32 {
         let mut fill_bytes = 0;
         let pad = w.count % 4;
         if pad != 0 {
@@ -1002,6 +1003,7 @@ impl NFSState {
                         tx.is_last = true;
                         tx.response_done = true;
                         tx.is_file_closed = true;
+                        sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
                     }
                     true
                 } else {
@@ -1032,6 +1034,7 @@ impl NFSState {
                     tx.is_last = true;
                     tx.request_done = true;
                     tx.is_file_closed = true;
+                    sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
                 }
             }
         }
@@ -1050,7 +1053,7 @@ impl NFSState {
     }
 
     fn process_partial_write_request_record<'b>(
-        &mut self, r: &RpcPacket<'b>, w: &Nfs3RequestWrite<'b>,
+        &mut self, flow: *const Flow, r: &RpcPacket<'b>, w: &Nfs3RequestWrite<'b>,
     ) -> u32 {
         SCLogDebug!(
             "REQUEST {} procedure {} blob size {}",
@@ -1063,7 +1066,7 @@ impl NFSState {
         xidmap.file_handle = w.handle.value.to_vec();
         self.requestmap.insert(r.hdr.xid, xidmap);
 
-        return self.process_write_record(r, w);
+        return self.process_write_record(flow, r, w);
     }
 
     fn process_reply_record(
@@ -1100,19 +1103,19 @@ impl NFSState {
             2 => {
                 SCLogDebug!("NFSv2 reply record");
                 self.add_nfs_tc_frames(flow, stream_slice, r.prog_data, r.prog_data_size as i64);
-                self.process_reply_record_v2(r, &xidmap);
+                self.process_reply_record_v2(flow, r, &xidmap);
                 return 0;
             }
             3 => {
                 SCLogDebug!("NFSv3 reply record");
                 self.add_nfs_tc_frames(flow, stream_slice, r.prog_data, r.prog_data_size as i64);
-                self.process_reply_record_v3(r, &mut xidmap);
+                self.process_reply_record_v3(flow, r, &mut xidmap);
                 return 0;
             }
             4 => {
                 SCLogDebug!("NFSv4 reply record");
                 self.add_nfs4_tc_frames(flow, stream_slice, r.prog_data, r.prog_data_size as i64);
-                self.process_reply_record_v4(r, &mut xidmap);
+                self.process_reply_record_v4(flow, r, &mut xidmap);
                 return 0;
             }
             _ => {
@@ -1125,7 +1128,7 @@ impl NFSState {
 
     // update in progress chunks for file transfers
     // return how much data we consumed
-    fn filetracker_update(&mut self, direction: Direction, data: &[u8], gap_size: u32) -> u32 {
+    fn filetracker_update(&mut self, flow: *const Flow, direction: Direction, data: &[u8], gap_size: u32) -> u32 {
         let mut chunk_left = if direction == Direction::ToServer {
             self.ts_chunk_left
         } else {
@@ -1227,6 +1230,9 @@ impl NFSState {
                                 "TX {} response is done now that the file track is ready",
                                 tx.id
                             );
+                            if !flow.is_null() {
+                                sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
+                            }
                         } else {
                             tx.request_done = true;
                             tx.is_file_closed = true;
@@ -1234,6 +1240,9 @@ impl NFSState {
                                 "TX {} request is done now that the file track is ready",
                                 tx.id
                             );
+                            if !flow.is_null() {
+                                sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
+                            }
                         }
                     }
                     cs
@@ -1249,7 +1258,7 @@ impl NFSState {
     /// xidmapr is an Option as it's already removed from the map if we
     /// have a complete record. Otherwise we do a lookup ourselves.
     pub fn process_read_record<'b>(
-        &mut self, r: &RpcReplyPacket<'b>, reply: &NfsReplyRead<'b>,
+        &mut self, flow: *const Flow, r: &RpcReplyPacket<'b>, reply: &NfsReplyRead<'b>,
         xidmapr: Option<&NFSRequestXidMap>,
     ) -> u32 {
         let file_name;
@@ -1341,12 +1350,14 @@ impl NFSState {
                         tx.nfs_response_status = reply.status;
                         tx.is_last = true;
                         tx.request_done = true;
+                        sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
 
                         /* if this is a partial record we will close the tx
                          * when we've received the final data */
                         if !is_partial {
                             tx.response_done = true;
                             SCLogDebug!("TX {} is DONE", tx.id);
+                            sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
                         }
                     }
                     true
@@ -1382,12 +1393,14 @@ impl NFSState {
                     tx.nfs_response_status = reply.status;
                     tx.is_last = true;
                     tx.request_done = true;
+                    sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
 
                     /* if this is a partial record we will close the tx
                      * when we've received the final data */
                     if !is_partial {
                         tx.response_done = true;
                         SCLogDebug!("TX {} is DONE", tx.id);
+                        sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
                     }
                 }
             }
@@ -1412,7 +1425,7 @@ impl NFSState {
     }
 
     fn process_partial_read_reply_record<'b>(
-        &mut self, r: &RpcReplyPacket<'b>, reply: &NfsReplyRead<'b>,
+        &mut self, flow: *const Flow, r: &RpcReplyPacket<'b>, reply: &NfsReplyRead<'b>,
     ) -> u32 {
         SCLogDebug!(
             "REPLY {} to procedure READ blob size {} / {}",
@@ -1421,7 +1434,7 @@ impl NFSState {
             reply.count
         );
 
-        return self.process_read_record(r, reply, None);
+        return self.process_read_record(flow, r, reply, None);
     }
 
     fn peek_reply_record(&mut self, r: &RpcPacketHeader) -> u32 {
@@ -1436,7 +1449,7 @@ impl NFSState {
     pub fn parse_tcp_data_ts_gap(&mut self, gap_size: u32) -> AppLayerResult {
         SCLogDebug!("parse_tcp_data_ts_gap ({})", gap_size);
         let gap = vec![0; gap_size as usize];
-        let consumed = self.filetracker_update(Direction::ToServer, &gap, gap_size);
+        let consumed = self.filetracker_update(std::ptr::null(), Direction::ToServer, &gap, gap_size);
         if consumed > gap_size {
             SCLogDebug!("consumed more than GAP size: {} > {}", consumed, gap_size);
             return AppLayerResult::ok();
@@ -1450,7 +1463,7 @@ impl NFSState {
     pub fn parse_tcp_data_tc_gap(&mut self, gap_size: u32) -> AppLayerResult {
         SCLogDebug!("parse_tcp_data_tc_gap ({})", gap_size);
         let gap = vec![0; gap_size as usize];
-        let consumed = self.filetracker_update(Direction::ToClient, &gap, gap_size);
+        let consumed = self.filetracker_update(std::ptr::null(), Direction::ToClient, &gap, gap_size);
         if consumed > gap_size {
             SCLogDebug!("consumed more than GAP size: {} > {}", consumed, gap_size);
             return AppLayerResult::ok();
@@ -1463,7 +1476,7 @@ impl NFSState {
 
     /// Handle partial records
     fn parse_tcp_partial_data_ts<'b>(
-        &mut self, base_input: &'b [u8], cur_i: &'b [u8], phdr: &RpcRequestPacketPartial,
+        &mut self, flow: *const Flow, base_input: &'b [u8], cur_i: &'b [u8], phdr: &RpcRequestPacketPartial,
         rec_size: usize,
     ) -> AppLayerResult {
         // special case: avoid buffering file write blobs
@@ -1489,7 +1502,7 @@ impl NFSState {
                         match parse_nfs3_request_write(hdr.prog_data, false) {
                             Ok((_, ref w)) => {
                                 // deal with the partial nfs write data
-                                self.process_partial_write_request_record(hdr, w);
+                                self.process_partial_write_request_record(flow, hdr, w);
                                 return AppLayerResult::ok();
                             }
                             Err(Err::Error(_e)) | Err(Err::Failure(_e)) => {
@@ -1529,7 +1542,7 @@ impl NFSState {
         let mut cur_i = stream_slice.as_slice();
         // take care of in progress file chunk transfers
         // and skip buffer beyond it
-        let consumed = self.filetracker_update(Direction::ToServer, cur_i, 0);
+        let consumed = self.filetracker_update(flow, Direction::ToServer, cur_i, 0);
         if consumed > 0 {
             if consumed > cur_i.len() as u32 {
                 return AppLayerResult::err();
@@ -1586,6 +1599,7 @@ impl NFSState {
                     // Handle partial records
                     if rec_size > cur_i.len() {
                         return self.parse_tcp_partial_data_ts(
+                            flow,
                             stream_slice.as_slice(),
                             cur_i,
                             rpc_phdr,
@@ -1652,7 +1666,7 @@ impl NFSState {
 
     /// Handle partial records
     fn parse_tcp_partial_data_tc<'b>(
-        &mut self, base_input: &'b [u8], cur_i: &'b [u8], phdr: &RpcPacketHeader, rec_size: usize,
+        &mut self, flow: *const Flow, base_input: &'b [u8], cur_i: &'b [u8], phdr: &RpcPacketHeader, rec_size: usize,
     ) -> AppLayerResult {
         // special case: avoid buffering file read blobs
         // as these can be large.
@@ -1678,7 +1692,7 @@ impl NFSState {
                         match parse_nfs3_reply_read(hdr.prog_data, false) {
                             Ok((_, ref r)) => {
                                 // deal with the partial nfs read data
-                                self.process_partial_read_reply_record(hdr, r);
+                                self.process_partial_read_reply_record(flow, hdr, r);
                                 return AppLayerResult::ok();
                             }
                             Err(Err::Error(_e)) | Err(Err::Failure(_e)) => {
@@ -1718,7 +1732,7 @@ impl NFSState {
         let mut cur_i = stream_slice.as_slice();
         // take care of in progress file chunk transfers
         // and skip buffer beyond it
-        let consumed = self.filetracker_update(Direction::ToClient, cur_i, 0);
+        let consumed = self.filetracker_update(flow, Direction::ToClient, cur_i, 0);
         if consumed > 0 {
             if consumed > cur_i.len() as u32 {
                 return AppLayerResult::err();
@@ -1773,6 +1787,7 @@ impl NFSState {
                     // see if we have all data available
                     if rec_size > cur_i.len() {
                         return self.parse_tcp_partial_data_tc(
+                            flow,
                             stream_slice.as_slice(),
                             cur_i,
                             rpc_phdr,
