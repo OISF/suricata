@@ -36,7 +36,6 @@
 #include "util-lua.h"
 #include "util-lua-common.h"
 #include "util-lua-http.h"
-#include "util-lua-tls.h"
 #include "util-lua-smtp.h"
 
 #define MODULE_NAME "LuaLog"
@@ -587,7 +586,6 @@ static lua_State *LuaScriptSetup(const char *filename, LogLuaMasterCtx *ctx)
 
     /* register functions common to all */
     LuaRegisterFunctions(luastate);
-    LuaRegisterTlsFunctions(luastate);
 
     if (lua_pcall(luastate, 0, 0, 0) != 0) {
         SCLogError("couldn't run script 'setup' function: %s", lua_tostring(luastate, -1));
