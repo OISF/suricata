@@ -107,6 +107,7 @@ int DecodeERSPAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
         p->vlan_id[p->vlan_idx] = vlan_id;
         p->vlan_idx++;
     }
+    p->tunnel_id = PacketGetTunnelId(p->root, SCNtohs(ehdr->flags_spanid) & 0x03ff);
 
     return DecodeEthernet(tv, dtv, p, pkt + sizeof(ErspanHdr), len - sizeof(ErspanHdr));
 }
