@@ -251,7 +251,7 @@ typedef struct LogDnsLogThread_ {
 bool AlertJsonDns(void *txptr, SCJsonBuilder *js)
 {
     return SCDnsLogJson(
-            txptr, LOG_FORMAT_DETAILED | LOG_QUERIES | LOG_ANSWERS | LOG_ALL_RRTYPES, js);
+            txptr, LOG_FORMAT_DETAILED | LOG_QUERIES | LOG_ANSWERS | LOG_ALL_RRTYPES, js, "dns");
 }
 
 bool AlertJsonDoh2(void *txptr, SCJsonBuilder *js)
@@ -324,7 +324,7 @@ static int JsonDoh2Logger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
 
         SCJbGetMark(jb, &mark);
         // log DOH2 with DNS config
-        r2 = SCDnsLogJson(tx_dns, td->dnslog_ctx->flags, jb);
+        r2 = SCDnsLogJson(tx_dns, td->dnslog_ctx->flags, jb, "dns");
         if (!r2) {
             SCJbRestoreMark(jb, &mark);
         }
@@ -431,7 +431,7 @@ static int JsonDnsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flo
             return TM_ECODE_OK;
         }
 
-        if (SCDnsLogJson(txptr, td->dnslog_ctx->flags, jb)) {
+        if (SCDnsLogJson(txptr, td->dnslog_ctx->flags, jb, "dns")) {
             OutputJsonBuilderBuffer(tv, p, p->flow, jb, td->ctx);
         }
         SCJbFree(jb);

@@ -19,6 +19,8 @@ use std;
 use std::collections::HashMap;
 use std::string::String;
 
+use libc::c_char;
+
 use crate::detect::EnumString;
 use crate::dns::dns::*;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
@@ -743,8 +745,8 @@ pub extern "C" fn SCDnsLogJsonQuery(
 /// "dns" object.
 ///
 /// This logger implements V3 style DNS logging.
-fn log_json(tx: &DNSTransaction, flags: u64, jb: &mut JsonBuilder) -> Result<(), JsonError> {
-    jb.open_object("dns")?;
+fn log_json(tx: &DNSTransaction, flags: u64, jb: &mut JsonBuilder, name: &str) -> Result<(), JsonError> {
+    jb.open_object(name)?;
     jb.set_int("version", 3)?;
 
     let message = if let Some(request) = &tx.request {
@@ -843,9 +845,15 @@ fn log_json(tx: &DNSTransaction, flags: u64, jb: &mut JsonBuilder) -> Result<(),
 }
 
 /// FFI wrapper around the common V3 style DNS logger.
+///
+/// # Safety
+///
+/// The caller must ensure the name parameter is a valid C and UTF-8
+/// string.
 #[no_mangle]
-pub extern "C" fn SCDnsLogJson(tx: &DNSTransaction, flags: u64, jb: &mut JsonBuilder) -> bool {
-    log_json(tx, flags, jb).is_ok()
+pub unsafe extern "C" fn SCDnsLogJson(tx: &DNSTransaction, flags: u64, jb: &mut JsonBuilder, name: *const c_char) -> bool {
+    let name = std::ffi::CStr::from_ptr(name).to_str().unwrap();
+    log_json(tx, flags, jb, name).is_ok()
 }
 
 /// Check if a DNS transaction should be logged based on the
