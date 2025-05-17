@@ -298,6 +298,7 @@ noinst_HEADERS = \
 	detect-tcp-flags.h \
 	detect-tcp-seq.h \
 	detect-tcp-window.h \
+	detect-tcp-wscale.h \
 	detect-tcphdr.h \
 	detect-tcpmss.h \
 	detect-template.h \
@@ -890,6 +891,7 @@ libsuricata_c_a_SOURCES = \
 	detect-tcp-flags.c \
 	detect-tcp-seq.c \
 	detect-tcp-window.c \
+	detect-tcp-wscale.c \
 	detect-tcphdr.c \
 	detect-tcpmss.c \
 	detect-template.c \
