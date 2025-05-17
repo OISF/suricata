@@ -7,6 +7,7 @@ Differences between `output` and `detect`:
 ------------------------------------------
 
 Currently, the ``needs`` key initialization varies, depending on what is the goal of the script: output or detection.
+The Lua script for the ``luaxform`` transform **does not use ``needs``**.
 
 If the script is for detection, the ``needs`` initialization should be as seen in the example below (see :ref:`lua-detection` for a complete example of a detection script):
 
@@ -422,7 +423,7 @@ index so in our case we need to use 0.
          SCFlowintSet(0, a + 1)
      else
          SCFlowintSet(0, 1)
-     end 
+     end
 
 SCFlowintGet
 ~~~~~~~~~~~~

@@ -2993,8 +2993,9 @@ Lua
 ~~~
 
 Suricata 8.0 sandboxes Lua rules by default. The restrictions on the sandbox for Lua rules can be
-modified in the ``security.lua`` section of the configuration file.  Additionally, Lua rules 
-can be completely disabled the same as the Suricata 7.0 default:
+modified in the ``security.lua`` section of the configuration file. This section also applies to
+Lua transforms. Additionally, Lua rules can be completely disabled in the same way as for as the
+Suricata 7.0 default:
 
 ::
 
