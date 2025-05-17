@@ -19,6 +19,7 @@
 
 use crate::direction::Direction;
 use crate::nfs::nfs::*;
+use crate::flow::Flow;
 use crate::nfs::nfs3_records::*;
 use crate::nfs::rpc_records::*;
 use crate::nfs::types::*;
@@ -28,7 +29,7 @@ use nom7::IResult;
 
 impl NFSState {
     /// complete NFS3 request record
-    pub fn process_request_record_v3(&mut self, r: &RpcPacket) {
+    pub fn process_request_record_v3(&mut self, flow: *const Flow, r: &RpcPacket) {
         SCLogDebug!(
             "REQUEST {} procedure {} ({}) blob size {}",
             r.hdr.xid,
@@ -77,7 +78,7 @@ impl NFSState {
             };
         } else if r.procedure == NFSPROC3_WRITE {
             if let Ok((_, rd)) = parse_nfs3_request_write(r.prog_data, true) {
-                self.process_write_record(r, &rd);
+                self.process_write_record(flow, r, &rd);
             } else {
                 self.set_event(NFSEvent::MalformedData);
             }
@@ -195,7 +196,7 @@ impl NFSState {
         self.requestmap.insert(r.hdr.xid, xidmap);
     }
 
-    pub fn process_reply_record_v3(&mut self, r: &RpcReplyPacket, xidmap: &mut NFSRequestXidMap) {
+    pub fn process_reply_record_v3(&mut self, flow: *const Flow, r: &RpcReplyPacket, xidmap: &mut NFSRequestXidMap) {
         let mut nfs_status = 0;
         let mut resp_handle = Vec::new();
 
@@ -230,7 +231,7 @@ impl NFSState {
             };
         } else if xidmap.procedure == NFSPROC3_READ {
             if let Ok((_, rd)) = parse_nfs3_reply_read(r.prog_data, true) {
-                self.process_read_record(r, &rd, Some(xidmap));
+                self.process_read_record(flow, r, &rd, Some(xidmap));
                 nfs_status = rd.status;
             } else {
                 self.set_event(NFSEvent::MalformedData);
@@ -282,7 +283,7 @@ impl NFSState {
         );
 
         if xidmap.procedure != NFSPROC3_READ {
-            self.mark_response_tx_done(r.hdr.xid, r.reply_state, nfs_status, &resp_handle);
+            self.mark_response_tx_done(flow, r.hdr.xid, r.reply_state, nfs_status, &resp_handle);
         }
     }
 }

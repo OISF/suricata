@@ -23,6 +23,7 @@ use nom7::{Err, IResult};
 
 use crate::direction::Direction;
 use crate::nfs::nfs::*;
+use crate::flow::Flow;
 use crate::nfs::nfs4_records::*;
 use crate::nfs::nfs_records::*;
 use crate::nfs::rpc_records::*;
@@ -320,7 +321,7 @@ impl NFSState {
     }
 
     fn compound_response<'b>(
-        &mut self, r: &RpcReplyPacket<'b>, cr: &Nfs4ResponseCompoundRecord<'b>,
+        &mut self, flow: *const Flow, r: &RpcReplyPacket<'b>, cr: &Nfs4ResponseCompoundRecord<'b>,
         xidmap: &mut NFSRequestXidMap,
     ) {
         let mut insert_filename_with_getfh = false;
@@ -367,7 +368,7 @@ impl NFSState {
                         data_len: rd.data.len() as u32,
                         data: rd.data,
                     };
-                    self.process_read_record(r, &reply, Some(xidmap));
+                    self.process_read_record(flow, r, &reply, Some(xidmap));
                 }
                 Nfs4ResponseContent::Open(_s, Some(ref _rd)) => {
                     SCLogDebug!("OPENv4: status {} opendata {:?}", _s, _rd);
@@ -391,11 +392,11 @@ impl NFSState {
 
         if main_opcode_status_set {
             let resp_handle = Vec::new();
-            self.mark_response_tx_done(r.hdr.xid, r.reply_state, main_opcode_status, &resp_handle);
+            self.mark_response_tx_done(flow, r.hdr.xid, r.reply_state, main_opcode_status, &resp_handle);
         }
     }
 
-    pub fn process_reply_record_v4(&mut self, r: &RpcReplyPacket, xidmap: &mut NFSRequestXidMap) {
+    pub fn process_reply_record_v4(&mut self, flow: *const Flow, r: &RpcReplyPacket, xidmap: &mut NFSRequestXidMap) {
         if xidmap.procedure == NFSPROC4_COMPOUND {
             let mut data = r.prog_data;
 
@@ -421,7 +422,7 @@ impl NFSState {
             match parse_nfs4_response_compound(data) {
                 Ok((_, rd)) => {
                     SCLogDebug!("COMPOUNDv4: {:?}", rd);
-                    self.compound_response(r, &rd, xidmap);
+                    self.compound_response(flow, r, &rd, xidmap);
                 }
                 Err(Err::Incomplete(_)) => {
                     self.set_event(NFSEvent::MalformedData);
