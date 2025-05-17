@@ -875,9 +875,11 @@ static DetectRunScratchpad DetectRunSetup(
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_SETUP);
 
 #ifdef UNITTESTS
-    p->alerts.cnt = 0;
-    p->alerts.discarded = 0;
-    p->alerts.suppressed = 0;
+    if (RunmodeIsUnittests()) {
+        p->alerts.cnt = 0;
+        p->alerts.discarded = 0;
+        p->alerts.suppressed = 0;
+    }
 #endif
     det_ctx->filestore_cnt = 0;
     det_ctx->base64_decoded_len = 0;
