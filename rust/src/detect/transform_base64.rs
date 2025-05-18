@@ -47,11 +47,16 @@ pub struct SCDetectTransformFromBase64Data {
     offset: u32,
     offset_str: *const c_char,
     mode: SCBase64Mode,
+
+    // serialized data for hashing
+    serialized: *const u8,
+    serialized_len: u32,
 }
 
 impl Drop for SCDetectTransformFromBase64Data {
     fn drop(&mut self) {
         unsafe {
+            let _ = Box::from_raw(self.serialized as *mut c_char);
             if !self.offset_str.is_null() {
                 let _ = CString::from_raw(self.offset_str as *mut c_char);
             }
@@ -70,6 +75,8 @@ impl Default for SCDetectTransformFromBase64Data {
             offset: 0,
             offset_str: std::ptr::null_mut(),
             mode: TRANSFORM_FROM_BASE64_MODE_DEFAULT,
+            serialized: std::ptr::null_mut(),
+            serialized_len: 0,
         }
     }
 }
@@ -79,6 +86,19 @@ impl SCDetectTransformFromBase64Data {
         Self {
             ..Default::default()
         }
+    }
+
+    pub fn serialize(&mut self, nbytes: &str, offset: &str) {
+        let mut r = Vec::new();
+        r.push(self.flags);
+        r.push(self.mode as u8);
+        r.extend_from_slice(&self.nbytes.to_le_bytes());
+        r.extend_from_slice(&self.offset.to_le_bytes());
+        r.push(nbytes.len() as u8);
+        r.extend_from_slice(nbytes.as_bytes());
+        r.push(offset.len() as u8);
+        r.extend_from_slice(offset.as_bytes());
+        self.serialized_len = r.len() as u32;
     }
 }
 
@@ -117,6 +137,8 @@ fn parse_transform_base64(
             DETECT_TRANSFORM_BASE64_MAX_PARAM_COUNT, input)));
     }
 
+    let mut nbytes_str = String::new();
+    let mut offset_str = String::new();
     for value in values {
         let (mut val, mut name) = take_until_whitespace(value)?;
         val = val.trim();
@@ -152,16 +174,9 @@ fn parse_transform_base64(
                             )));
                         }
                     }
-                    ResultValue::String(val) => match CString::new(val) {
-                        Ok(newval) => {
-                            transform_base64.offset_str = newval.into_raw();
-                            transform_base64.flags |= DETECT_TRANSFORM_BASE64_FLAG_OFFSET_VAR;
-                        }
-                        _ => {
-                            return Err(make_error(
-                                "parse string not safely convertible to C".to_string(),
-                            ))
-                        }
+                    ResultValue::String(val) => {
+                        offset_str = val.clone();
+                        transform_base64.flags |= DETECT_TRANSFORM_BASE64_FLAG_OFFSET_VAR;
                     },
                 }
 
@@ -186,16 +201,9 @@ fn parse_transform_base64(
                             )));
                         }
                     }
-                    ResultValue::String(val) => match CString::new(val) {
-                        Ok(newval) => {
-                            transform_base64.nbytes_str = newval.into_raw();
-                            transform_base64.flags |= DETECT_TRANSFORM_BASE64_FLAG_NBYTES_VAR;
-                        }
-                        _ => {
-                            return Err(make_error(
-                                "parse string not safely convertible to C".to_string(),
-                            ))
-                        }
+                    ResultValue::String(val) => {
+                        nbytes_str = val.clone();
+                        transform_base64.flags |= DETECT_TRANSFORM_BASE64_FLAG_NBYTES_VAR;
                     },
                 }
                 transform_base64.flags |= DETECT_TRANSFORM_BASE64_FLAG_NBYTES;
@@ -206,6 +214,21 @@ fn parse_transform_base64(
         };
     }
 
+    transform_base64.serialize(&nbytes_str, &offset_str);
+    if (transform_base64.flags & DETECT_TRANSFORM_BASE64_FLAG_NBYTES_VAR) != 0 {
+        if let Ok(newval) = CString::new(nbytes_str) {
+            transform_base64.nbytes_str = newval.into_raw();
+        } else {
+            return Err(make_error("parse string not safely convertible to C".to_string()));
+        }
+    }
+    if (transform_base64.flags & DETECT_TRANSFORM_BASE64_FLAG_OFFSET_VAR) != 0 {
+        if let Ok(newval) = CString::new(offset_str) {
+            transform_base64.offset_str = newval.into_raw();
+        } else {
+            return Err(make_error("parse string not safely convertible to C".to_string()));
+        }
+    }
     Ok((input, transform_base64))
 }
 
