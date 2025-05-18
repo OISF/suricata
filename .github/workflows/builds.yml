@@ -66,7 +66,7 @@ jobs:
           path: .
 
   almalinux-9:
-    name: AlmaLinux 9
+    name: AlmaLinux 9 (schema)
     runs-on: ubuntu-latest
     container: almalinux:9
     needs: [prepare-deps, prepare-cbindgen]
@@ -229,6 +229,9 @@ jobs:
 
           # And build.
           PATH=/usr/local/bin:$PATH make clean all
+
+      - name: Check EVE schema ordering
+        run: ./scripts/schema-sort.py --check ./etc/schema.json
 
   almalinux-9-templates:
     name: AlmaLinux 9 Test Templates
