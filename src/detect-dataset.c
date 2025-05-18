@@ -76,7 +76,7 @@ static int DetectDatajsonBufferMatch(DetectEngineThreadCtx *det_ctx, const Detec
         case DETECT_DATASET_CMD_ISSET: {
             // PrintRawDataFp(stdout, data, data_len);
             DataJsonResultType r = DatajsonLookup(sd->set, data, data_len);
-            SCLogDebug("r found: %d, len: %zu", r.found, r.json.len);
+            SCLogDebug("r found: %d, len: %u", r.found, r.json.len);
             if (!r.found)
                 return 0;
             if (r.json.len > 0) {
@@ -96,7 +96,7 @@ static int DetectDatajsonBufferMatch(DetectEngineThreadCtx *det_ctx, const Detec
         case DETECT_DATASET_CMD_ISNOTSET: {
             // PrintRawDataFp(stdout, data, data_len);
             DataJsonResultType r = DatajsonLookup(sd->set, data, data_len);
-            SCLogDebug("r found: %d, len: %zu", r.found, r.json.len);
+            SCLogDebug("r found: %d, len: %u", r.found, r.json.len);
             if (r.found)
                 return 0;
             return 1;
