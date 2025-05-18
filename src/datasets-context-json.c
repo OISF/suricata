@@ -653,7 +653,7 @@ Dataset *DatajsonGet(const char *name, enum DatasetTypes type, const char *load,
     if (ret == 1) {
         SCLogDebug("dataset %s already exists", name);
         if (set->remove_key != remove_key) {
-            SCLogError("dataset %s remove_key mismatch: %b != %b", set->name, set->remove_key,
+            SCLogError("dataset %s remove_key mismatch: %d != %d", set->name, set->remove_key,
                     remove_key);
             DatasetUnlock();
             return NULL;
