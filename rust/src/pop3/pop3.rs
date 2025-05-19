@@ -21,7 +21,7 @@
 
 use crate::applayer::*;
 use crate::conf::{conf_get, get_memval};
-use crate::core::{ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP};
+use crate::core::{ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP, sc_app_layer_parser_trigger_raw_stream_inspection};
 use crate::flow::Flow;
 use crate::direction;
 use std;
@@ -169,7 +169,7 @@ impl POP3State {
             .find(|tx| tx.response.is_none())
     }
 
-    fn parse_request(&mut self, input: &[u8]) -> AppLayerResult {
+    fn parse_request(&mut self, flow: *const Flow, input: &[u8]) -> AppLayerResult {
         // We're not interested in empty requests.
         if input.is_empty() {
             return AppLayerResult::ok();
@@ -203,6 +203,7 @@ impl POP3State {
                         tx.error_flags_to_events(msg.error_flags);
                         tx.request = Some(command);
                         self.transactions.push_back(tx);
+                        sc_app_layer_parser_trigger_raw_stream_inspection(flow, direction::Direction::ToServer as i32);
                     }
 
                     start = rem;
@@ -278,6 +279,7 @@ impl POP3State {
 
                         tx.error_flags_to_events(msg.error_flags);
                         tx.complete = true;
+                        sc_app_layer_parser_trigger_raw_stream_inspection(flow, direction::Direction::ToClient as i32);
 
                         if response.status == sawp_pop3::Status::OK && tx.request.is_some() {
                             let command = tx.request.as_ref().unwrap();
@@ -397,7 +399,7 @@ unsafe extern "C" fn pop3_state_tx_free(state: *mut c_void, tx_id: u64) {
 }
 
 unsafe extern "C" fn pop3_parse_request(
-    _flow: *const Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
+    flow: *const Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
     _data: *const c_void,
 ) -> AppLayerResult {
     let eof = AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0;
@@ -416,7 +418,7 @@ unsafe extern "C" fn pop3_parse_request(
         AppLayerResult::ok()
     } else {
         let buf = stream_slice.as_slice();
-        state.parse_request(buf)
+        state.parse_request(flow, buf)
     }
 }
 
