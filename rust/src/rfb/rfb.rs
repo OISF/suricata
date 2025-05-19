@@ -1,4 +1,4 @@
-/* Copyright (C) 2020-2023 Open Information Security Foundation
+/* Copyright (C) 2020-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -21,7 +21,7 @@
 use super::parser;
 use crate::applayer;
 use crate::applayer::*;
-use crate::core::{ALPROTO_UNKNOWN, IPPROTO_TCP};
+use crate::core::{ALPROTO_UNKNOWN, IPPROTO_TCP, sc_app_layer_parser_trigger_raw_stream_inspection};
 use crate::direction::Direction;
 use crate::flow::Flow;
 use crate::frames::*;
@@ -218,6 +218,7 @@ impl RFBState {
 
                             if let Some(current_transaction) = self.get_current_tx() {
                                 current_transaction.ts_client_protocol_version = Some(request);
+                                sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
                             } else {
                                 debug_validate_fail!(
                                     "no transaction set at protocol selection stage"
@@ -257,6 +258,7 @@ impl RFBState {
                                 current_transaction.ts_security_type_selection = Some(request);
                                 current_transaction.chosen_security_type =
                                     Some(chosen_security_type as u32);
+                                sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
                             } else {
                                 debug_validate_fail!("no transaction set at security type stage");
                             }
@@ -314,6 +316,7 @@ impl RFBState {
 
                         if let Some(current_transaction) = self.get_current_tx() {
                             current_transaction.ts_vnc_response = Some(request);
+                            sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
                         } else {
                             debug_validate_fail!("no transaction set at security result stage");
                         }
@@ -352,6 +355,7 @@ impl RFBState {
 
                         if let Some(current_transaction) = self.get_current_tx() {
                             current_transaction.ts_client_init = Some(request);
+                            sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
                         } else {
                             debug_validate_fail!("no transaction set at client init stage");
                         }
@@ -438,6 +442,7 @@ impl RFBState {
 
                             if let Some(current_transaction) = self.get_current_tx() {
                                 current_transaction.tc_server_protocol_version = Some(request);
+                                sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
                             } else {
                                 debug_validate_fail!("no transaction set but we just set one");
                             }
@@ -487,6 +492,7 @@ impl RFBState {
 
                             if let Some(current_transaction) = self.get_current_tx() {
                                 current_transaction.tc_supported_security_types = Some(request);
+                                sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
                             } else {
                                 debug_validate_fail!("no transaction set at security type stage");
                             }
@@ -553,6 +559,7 @@ impl RFBState {
                                 current_transaction.tc_server_security_type = Some(request);
                                 current_transaction.chosen_security_type =
                                     Some(chosen_security_type);
+                                sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
                             } else {
                                 debug_validate_fail!("no transaction set at security type stage");
                             }
@@ -592,6 +599,7 @@ impl RFBState {
 
                         if let Some(current_transaction) = self.get_current_tx() {
                             current_transaction.tc_vnc_challenge = Some(request);
+                            sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
                         } else {
                             debug_validate_fail!("no transaction set at auth stage");
                         }
@@ -632,6 +640,7 @@ impl RFBState {
 
                                 if let Some(current_transaction) = self.get_current_tx() {
                                     current_transaction.tc_security_result = Some(request);
+                                    sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
                                 } else {
                                     debug_validate_fail!(
                                         "no transaction set at security result stage"
@@ -671,6 +680,7 @@ impl RFBState {
                         Ok((_rem, request)) => {
                             if let Some(current_transaction) = self.get_current_tx() {
                                 current_transaction.tc_failure_reason = Some(request);
+                                sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
                             } else {
                                 debug_validate_fail!("no transaction set at failure reason stage");
                             }
@@ -712,6 +722,7 @@ impl RFBState {
 
                             if let Some(current_transaction) = self.get_current_tx() {
                                 current_transaction.tc_server_init = Some(request);
+                                sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
                                 // connection initialization is complete and parsed
                                 current_transaction.complete = true;
                             } else {
