@@ -19,7 +19,7 @@
 
 use crate::applayer::{self, *};
 use crate::core;
-use crate::core::{ALPROTO_UNKNOWN, IPPROTO_TCP, IPPROTO_UDP};
+use crate::core::{ALPROTO_UNKNOWN, IPPROTO_TCP, IPPROTO_UDP, sc_app_layer_parser_trigger_raw_stream_inspection};
 use crate::direction::Direction;
 use crate::flow::Flow;
 use crate::frames::*;
@@ -182,6 +182,7 @@ impl SIPState {
                         tx.request_line = req_line;
                     }
                     self.transactions.push_back(tx);
+                    sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
                     let consumed = start.len() - rem.len();
                     start = rem;
 
@@ -277,6 +278,7 @@ impl SIPState {
                         tx.response_line = resp_line;
                     }
                     self.transactions.push_back(tx);
+                    sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
                     let consumed = start.len() - rem.len();
                     start = rem;
 
