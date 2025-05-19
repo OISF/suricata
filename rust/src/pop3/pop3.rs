@@ -23,6 +23,7 @@ use crate::applayer::*;
 use crate::conf::{conf_get, get_memval};
 use crate::core::{ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP};
 use crate::flow::Flow;
+use crate::direction;
 use std;
 use std::collections::VecDeque;
 use std::ffi::CString;
@@ -456,7 +457,7 @@ unsafe extern "C" fn pop3_state_get_tx_count(state: *mut c_void) -> u64 {
 
 unsafe extern "C" fn pop3_tx_get_alstate_progress(tx: *mut c_void, direction: u8) -> c_int {
     let tx = cast_pointer!(tx, POP3Transaction);
-    if direction == Direction::ToServer as u8 {
+    if direction == u8::from(direction::Direction::ToServer) {
         (tx.request.is_some() || tx.complete) as c_int
     } else {
         (tx.response.is_some() || tx.complete) as c_int
