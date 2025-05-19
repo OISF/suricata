@@ -20,9 +20,10 @@
 //! RDP application layer
 
 use crate::applayer::{self, *};
-use crate::core::{ALPROTO_UNKNOWN, IPPROTO_TCP};
+use crate::core::{ALPROTO_UNKNOWN, IPPROTO_TCP, sc_app_layer_parser_trigger_raw_stream_inspection};
 use crate::flow::Flow;
 use crate::rdp::parser::*;
+use crate::direction::Direction;
 use nom7::Err;
 use suricata_sys::sys::AppProto;
 use std;
@@ -162,7 +163,7 @@ impl RdpState {
     }
 
     /// parse buffer captures from client to server
-    fn parse_ts(&mut self, input: &[u8]) -> AppLayerResult {
+    fn parse_ts(&mut self, flow: *const Flow, input: &[u8]) -> AppLayerResult {
         // no need to process input buffer
         if self.bypass_parsing {
             return AppLayerResult::ok();
@@ -206,6 +207,7 @@ impl RdpState {
                                 let tx =
                                     self.new_tx(RdpTransactionItem::X224ConnectionRequest(x224));
                                 self.transactions.push_back(tx);
+                                sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
                             }
 
                             // X.223 data packet, evaluate what it encapsulates
@@ -216,6 +218,7 @@ impl RdpState {
                                         let tx =
                                             self.new_tx(RdpTransactionItem::McsConnectRequest(mcs));
                                         self.transactions.push_back(tx);
+                                        sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
                                     }
                                     // unknown message in X.223, skip
                                     _ => (),
@@ -238,7 +241,7 @@ impl RdpState {
                     Err(Err::Failure(_)) | Err(Err::Error(_)) => {
                         if probe_tls_handshake(available) {
                             self.tls_parsing = true;
-                            let r = self.parse_ts(available);
+                            let r = self.parse_ts(flow, available);
                             if r.status == 1 {
                                 //adds bytes already consumed to incomplete result
                                 let consumed = (input.len() - available.len()) as u32;
@@ -256,7 +259,7 @@ impl RdpState {
     }
 
     /// parse buffer captures from server to client
-    fn parse_tc(&mut self, input: &[u8]) -> AppLayerResult {
+    fn parse_tc(&mut self, flow: *const Flow, input: &[u8]) -> AppLayerResult {
         // no need to process input buffer
         if self.bypass_parsing {
             return AppLayerResult::ok();
@@ -287,6 +290,7 @@ impl RdpState {
                                     let tx =
                                         self.new_tx(RdpTransactionItem::TlsCertificateChain(chain));
                                     self.transactions.push_back(tx);
+                                    sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
                                     self.bypass_parsing = true;
                                 }
                                 _ => {}
@@ -320,6 +324,7 @@ impl RdpState {
                                 let tx =
                                     self.new_tx(RdpTransactionItem::X224ConnectionConfirm(x224));
                                 self.transactions.push_back(tx);
+                                sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
                             }
 
                             // X.223 data packet, evaluate what it encapsulates
@@ -330,6 +335,7 @@ impl RdpState {
                                         let tx = self
                                             .new_tx(RdpTransactionItem::McsConnectResponse(mcs));
                                         self.transactions.push_back(tx);
+                                        sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
                                         self.bypass_parsing = true;
                                         return AppLayerResult::ok();
                                     }
@@ -355,7 +361,7 @@ impl RdpState {
                     Err(Err::Failure(_)) | Err(Err::Error(_)) => {
                         if probe_tls_handshake(available) {
                             self.tls_parsing = true;
-                            let r = self.parse_tc(available);
+                            let r = self.parse_tc(flow, available);
                             if r.status == 1 {
                                 //adds bytes already consumed to incomplete result
                                 let consumed = (input.len() - available.len()) as u32;
@@ -425,25 +431,25 @@ fn probe_tls_handshake(input: &[u8]) -> bool {
 //
 
 unsafe extern "C" fn rdp_parse_ts(
-    _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void
 ) -> AppLayerResult {
     let state = cast_pointer!(state, RdpState);
     let buf = stream_slice.as_slice();
     // attempt to parse bytes as `rdp` protocol
-    return state.parse_ts(buf);
+    return state.parse_ts(flow, buf);
 }
 
 unsafe extern "C" fn rdp_parse_tc(
-    _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void
 ) -> AppLayerResult {
     let state = cast_pointer!(state, RdpState);
     let buf = stream_slice.as_slice();
     // attempt to parse bytes as `rdp` protocol
-    return state.parse_tc(buf);
+    return state.parse_tc(flow, buf);
 }
 
 export_tx_data_get!(rdp_get_tx_data, RdpTransaction);
