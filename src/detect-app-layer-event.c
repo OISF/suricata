@@ -274,7 +274,7 @@ static int DetectAppLayerEventSetup(DetectEngineCtx *de_ctx, Signature *s, const
     SCLogDebug("data->event_id %u", data->event_id);
 
     if (event_type == APP_LAYER_EVENT_TYPE_PACKET) {
-        if (SigMatchAppendSMToList(de_ctx, s, DETECT_APP_LAYER_EVENT, (SigMatchCtx *)data,
+        if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_APP_LAYER_EVENT, (SigMatchCtx *)data,
                     DETECT_SM_LIST_MATCH) == NULL) {
             goto error;
         }
@@ -282,7 +282,7 @@ static int DetectAppLayerEventSetup(DetectEngineCtx *de_ctx, Signature *s, const
         if (SCDetectSignatureSetAppProto(s, data->alproto) != 0)
             goto error;
 
-        if (SigMatchAppendSMToList(de_ctx, s, DETECT_APP_LAYER_EVENT, (SigMatchCtx *)data,
+        if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_APP_LAYER_EVENT, (SigMatchCtx *)data,
                     g_applayer_events_list_id) == NULL) {
             goto error;
         }

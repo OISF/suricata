@@ -152,7 +152,7 @@ static int DetectNfsVersionSetup (DetectEngineCtx *de_ctx, Signature *s,
      * and put it in the Signature. */
 
     SCLogDebug("low %u hi %u", dd->arg1, dd->arg2);
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_NFS_VERSION, (SigMatchCtx *)dd,
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_NFS_VERSION, (SigMatchCtx *)dd,
                 g_nfs_request_buffer_id) == NULL) {
         goto error;
     }

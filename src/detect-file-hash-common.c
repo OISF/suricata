@@ -327,7 +327,7 @@ int DetectFileHashSetup(
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
 
-    if (SigMatchAppendSMToList(de_ctx, s, type, (SigMatchCtx *)filehash, list) == NULL) {
+    if (SCSigMatchAppendSMToList(de_ctx, s, type, (SigMatchCtx *)filehash, list) == NULL) {
         goto error;
     }
 

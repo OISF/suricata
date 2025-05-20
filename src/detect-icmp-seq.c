@@ -245,7 +245,7 @@ static int DetectIcmpSeqSetup (DetectEngineCtx *de_ctx, Signature *s, const char
     iseq = DetectIcmpSeqParse(de_ctx, icmpseqstr);
     if (iseq == NULL) goto error;
 
-    if (SigMatchAppendSMToList(
+    if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_ICMP_SEQ, (SigMatchCtx *)iseq, DETECT_SM_LIST_MATCH) == NULL) {
         goto error;
     }

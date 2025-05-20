@@ -135,7 +135,7 @@ static int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
-    SigMatch *sm = SigMatchAppendSMToList(
+    SigMatch *sm = SCSigMatchAppendSMToList(
             de_ctx, s, DETECT_DSIZE, (SigMatchCtx *)dd, DETECT_SM_LIST_MATCH);
     if (sm == NULL) {
         SCDetectU16Free(dd);

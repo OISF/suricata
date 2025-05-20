@@ -412,7 +412,7 @@ static int DetectGeoipSetup(DetectEngineCtx *de_ctx, Signature *s, const char *o
 
     /* Get this into a SigMatch and put it in the Signature. */
 
-    if (SigMatchAppendSMToList(
+    if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_GEOIP, (SigMatchCtx *)geoipdata, DETECT_SM_LIST_MATCH) == NULL) {
         goto error;
     }

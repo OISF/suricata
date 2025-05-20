@@ -41,7 +41,7 @@ static int DetectEntropySetup(DetectEngineCtx *de_ctx, Signature *s, const char 
         sm_list = s->init_data->list;
     }
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_ENTROPY, (SigMatchCtx *)ded, sm_list) != NULL) {
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_ENTROPY, (SigMatchCtx *)ded, sm_list) != NULL) {
         SCReturnInt(0);
     }
 

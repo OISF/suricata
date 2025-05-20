@@ -101,8 +101,8 @@ static int DetectAsn1Setup(DetectEngineCtx *de_ctx, Signature *s, const char *as
     if (ad == NULL)
         return -1;
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_ASN1, (SigMatchCtx *)ad, DETECT_SM_LIST_PMATCH) ==
-            NULL) {
+    if (SCSigMatchAppendSMToList(
+                de_ctx, s, DETECT_ASN1, (SigMatchCtx *)ad, DETECT_SM_LIST_PMATCH) == NULL) {
         DetectAsn1Free(de_ctx, ad);
         return -1;
     }

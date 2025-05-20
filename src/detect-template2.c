@@ -110,7 +110,7 @@ static int DetectTemplate2Setup (DetectEngineCtx *de_ctx, Signature *s, const ch
     if (template2d == NULL)
         return -1;
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_TEMPLATE2, (SigMatchCtx *)template2d,
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_TEMPLATE2, (SigMatchCtx *)template2d,
                 DETECT_SM_LIST_MATCH) == NULL) {
         DetectTemplate2Free(de_ctx, template2d);
         return -1;

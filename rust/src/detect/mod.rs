@@ -35,7 +35,7 @@ pub mod tojson;
 pub mod vlan;
 pub mod datasets;
 
-use std::os::raw::{c_int, c_void};
+use std::os::raw::c_int;
 use std::ffi::CString;
 
 use suricata_sys::sys::{
@@ -75,7 +75,7 @@ pub struct SigTableElmtStickyBuffer {
     ) -> c_int,
 }
 
-pub fn helper_keyword_register_sticky_buffer(kw: &SigTableElmtStickyBuffer) -> c_int {
+pub fn helper_keyword_register_sticky_buffer(kw: &SigTableElmtStickyBuffer) -> u16 {
     let name = CString::new(kw.name.as_bytes()).unwrap().into_raw();
     let desc = CString::new(kw.desc.as_bytes()).unwrap().into_raw();
     let url = CString::new(kw.url.as_bytes()).unwrap().into_raw();
@@ -118,13 +118,6 @@ pub const SIGMATCH_NOOPT: u16 = 1; // BIT_U16(0) in detect.h
 pub(crate) const SIGMATCH_QUOTES_MANDATORY: u16 = 0x40; // BIT_U16(6) in detect.h
 pub const SIGMATCH_INFO_STICKY_BUFFER: u16 = 0x200; // BIT_U16(9)
 
-/// cbindgen:ignore
-extern "C" {
-    // from detect-parse.h
-    pub fn SigMatchAppendSMToList(
-        de: *mut DetectEngineCtx, s: *mut Signature, kwid: c_int, ctx: *const c_void, bufid: c_int,
-    ) -> *mut c_void;
-}
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 // endian <big|little|dce>

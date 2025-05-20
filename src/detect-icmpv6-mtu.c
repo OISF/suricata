@@ -116,7 +116,7 @@ static int DetectICMPv6mtuSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
     if (icmpv6mtud == NULL)
         return -1;
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_ICMPV6MTU, (SigMatchCtx *)icmpv6mtud,
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_ICMPV6MTU, (SigMatchCtx *)icmpv6mtud,
                 DETECT_SM_LIST_MATCH) == NULL) {
         DetectICMPv6mtuFree(de_ctx, icmpv6mtud);
         return -1;

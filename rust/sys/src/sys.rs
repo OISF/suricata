@@ -177,7 +177,7 @@ extern "C" {
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {
-    pub fn SCDetectHelperKeywordSetCleanCString(id: ::std::os::raw::c_int);
+    pub fn SCDetectHelperKeywordSetCleanCString(id: u16);
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -191,6 +191,12 @@ pub struct Signature_ {
     _unused: [u8; 0],
 }
 pub type Signature = Signature_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct SigMatch_ {
+    _unused: [u8; 0],
+}
+pub type SigMatch = SigMatch_;
 extern "C" {
     pub fn SCDetectBufferSetActiveList(
         de_ctx: *mut DetectEngineCtx, s: *mut Signature, list: ::std::os::raw::c_int,
@@ -345,13 +351,10 @@ extern "C" {
     pub fn SCDetectHelperNewKeywordId() -> ::std::os::raw::c_int;
 }
 extern "C" {
-    pub fn SCDetectHelperKeywordRegister(kw: *const SCSigTableAppLiteElmt)
-        -> ::std::os::raw::c_int;
+    pub fn SCDetectHelperKeywordRegister(kw: *const SCSigTableAppLiteElmt) -> u16;
 }
 extern "C" {
-    pub fn SCDetectHelperKeywordAliasRegister(
-        kwid: ::std::os::raw::c_int, alias: *const ::std::os::raw::c_char,
-    );
+    pub fn SCDetectHelperKeywordAliasRegister(kwid: u16, alias: *const ::std::os::raw::c_char);
 }
 extern "C" {
     pub fn SCDetectHelperBufferRegister(
@@ -381,6 +384,12 @@ extern "C" {
     pub fn SCDetectHelperTransformRegister(
         kw: *const SCTransformTableElmt,
     ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCSigMatchAppendSMToList(
+        arg1: *mut DetectEngineCtx, arg2: *mut Signature, arg3: u16, arg4: *mut SigMatchCtx,
+        arg5: ::std::os::raw::c_int,
+    ) -> *mut SigMatch;
 }
 extern "C" {
     pub fn SCDetectSignatureSetAppProto(

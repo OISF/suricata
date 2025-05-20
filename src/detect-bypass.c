@@ -76,7 +76,8 @@ static int DetectBypassSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
     }
     s->flags |= SIG_FLAG_BYPASS;
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_BYPASS, NULL, DETECT_SM_LIST_POSTMATCH) == NULL) {
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_BYPASS, NULL, DETECT_SM_LIST_POSTMATCH) ==
+            NULL) {
         return -1;
     }
 

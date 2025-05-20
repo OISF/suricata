@@ -240,7 +240,7 @@ static int DetectDetectionFilterSetup(DetectEngineCtx *de_ctx, Signature *s, con
     if (df == NULL)
         goto error;
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_DETECTION_FILTER, (SigMatchCtx *)df,
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_DETECTION_FILTER, (SigMatchCtx *)df,
                 DETECT_SM_LIST_THRESHOLD) == NULL) {
         goto error;
     }

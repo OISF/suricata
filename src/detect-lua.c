@@ -788,7 +788,7 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, const char *st
         }
     }
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_LUA, (SigMatchCtx *)lua, list) == NULL) {
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_LUA, (SigMatchCtx *)lua, list) == NULL) {
         goto error;
     }
 

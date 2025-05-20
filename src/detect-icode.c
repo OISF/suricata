@@ -123,8 +123,8 @@ static int DetectICodeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *i
     if (icd == NULL)
         return -1;
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_ICODE, (SigMatchCtx *)icd, DETECT_SM_LIST_MATCH) ==
-            NULL) {
+    if (SCSigMatchAppendSMToList(
+                de_ctx, s, DETECT_ICODE, (SigMatchCtx *)icd, DETECT_SM_LIST_MATCH) == NULL) {
         SCDetectU8Free(icd);
         return -1;
     }

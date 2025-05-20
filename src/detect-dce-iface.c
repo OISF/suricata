@@ -148,7 +148,7 @@ static int DetectDceIfaceSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         return -1;
     }
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_DCE_IFACE, did, g_dce_generic_list_id) == NULL) {
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_DCE_IFACE, did, g_dce_generic_list_id) == NULL) {
         DetectDceIfaceFree(de_ctx, did);
         return -1;
     }

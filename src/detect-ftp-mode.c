@@ -109,7 +109,7 @@ static int DetectFtpModeSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
     if (ftpmoded == NULL)
         return -1;
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_FTP_MODE, (SigMatchCtx *)ftpmoded,
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_FTP_MODE, (SigMatchCtx *)ftpmoded,
                 g_ftp_mode_buffer_id) == NULL) {
         DetectFtpModeFree(de_ctx, ftpmoded);
         return -1;

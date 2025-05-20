@@ -686,7 +686,8 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         nbytes = NULL;
     }
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_BYTETEST, (SigMatchCtx *)data, sm_list) == NULL) {
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_BYTETEST, (SigMatchCtx *)data, sm_list) ==
+            NULL) {
         goto error;
     }
 

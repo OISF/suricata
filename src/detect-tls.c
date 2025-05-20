@@ -311,7 +311,7 @@ static int DetectTlsSubjectSetup (DetectEngineCtx *de_ctx, Signature *s, const c
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
 
-    if (SigMatchAppendSMToList(
+    if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_TLS_SUBJECT, (SigMatchCtx *)tls, g_tls_cert_list_id) == NULL) {
         goto error;
     }
@@ -501,7 +501,7 @@ static int DetectTlsIssuerDNSetup (DetectEngineCtx *de_ctx, Signature *s, const 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
 
-    if (SigMatchAppendSMToList(
+    if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_TLS_ISSUERDN, (SigMatchCtx *)tls, g_tls_cert_list_id) == NULL) {
         goto error;
     }
@@ -590,7 +590,7 @@ static int DetectTlsStoreSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
 
     s->flags |= SIG_FLAG_TLSSTORE;
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_TLS_STORE, NULL, DETECT_SM_LIST_POSTMATCH) ==
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_TLS_STORE, NULL, DETECT_SM_LIST_POSTMATCH) ==
             NULL) {
         return -1;
     }

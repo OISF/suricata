@@ -146,7 +146,7 @@ static int DetectStreamSizeSetup (DetectEngineCtx *de_ctx, Signature *s, const c
     if (sd == NULL)
         return -1;
 
-    if (SigMatchAppendSMToList(
+    if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_STREAM_SIZE, (SigMatchCtx *)sd, DETECT_SM_LIST_MATCH) == NULL) {
         DetectStreamSizeFree(de_ctx, sd);
         return -1;

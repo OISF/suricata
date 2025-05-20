@@ -430,7 +430,7 @@ int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, const char *flowstr)
     }
 
     if (appendsm) {
-        if (SigMatchAppendSMToList(
+        if (SCSigMatchAppendSMToList(
                     de_ctx, s, DETECT_FLOW, (SigMatchCtx *)fd, DETECT_SM_LIST_MATCH) == NULL) {
             goto error;
         }

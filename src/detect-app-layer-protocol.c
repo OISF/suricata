@@ -263,7 +263,7 @@ static int DetectAppLayerProtocolSetup(DetectEngineCtx *de_ctx,
         }
     }
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_APP_LAYER_PROTOCOL, (SigMatchCtx *)data,
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_APP_LAYER_PROTOCOL, (SigMatchCtx *)data,
                 DETECT_SM_LIST_MATCH) == NULL) {
         goto error;
     }

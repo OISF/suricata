@@ -213,7 +213,7 @@ static int DetectAppLayerStateSetup(DetectEngineCtx *de_ctx, Signature *s, const
     data->progress = (uint8_t)progress;
     data->mode = (int8_t)mode;
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_APP_LAYER_STATE, (SigMatchCtx *)data,
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_APP_LAYER_STATE, (SigMatchCtx *)data,
                 g_applayer_state_list_id) == NULL) {
         SCFree(data);
         return -1;

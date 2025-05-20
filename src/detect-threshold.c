@@ -307,7 +307,7 @@ static int DetectThresholdSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     if (de == NULL)
         goto error;
 
-    if (SigMatchAppendSMToList(
+    if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_THRESHOLD, (SigMatchCtx *)de, DETECT_SM_LIST_THRESHOLD) == NULL) {
         goto error;
     }

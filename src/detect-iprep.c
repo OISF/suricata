@@ -268,8 +268,8 @@ int DetectIPRepSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_IPREP, (SigMatchCtx *)cd, DETECT_SM_LIST_MATCH) ==
-            NULL) {
+    if (SCSigMatchAppendSMToList(
+                de_ctx, s, DETECT_IPREP, (SigMatchCtx *)cd, DETECT_SM_LIST_MATCH) == NULL) {
         goto error;
     }
 
