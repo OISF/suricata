@@ -61,6 +61,7 @@ CARGO_ENV +=	LOCALSTATEDIR=$(e_localstatedir)
 all-local: Cargo.toml
 	mkdir -p $(abs_top_builddir)/rust/gen
 	cd $(abs_top_srcdir)/rust && \
+		CC="$(CC)" AR="$(AR)" RANLIB="$(RANLIB)"\
 		$(CARGO_ENV) \
 		$(CARGO) build $(RELEASE) $(NIGHTLY_ARGS) \
 			--features "$(RUST_FEATURES)" $(RUST_TARGET)
