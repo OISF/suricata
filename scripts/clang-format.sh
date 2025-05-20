@@ -341,7 +341,8 @@ function HelpCommand {
 # on master. If our branch has not been rebased on the latest master, this
 # would result in including all new commits on master!
 function FirstCommitOfBranch {
-    local first_commit=$(git rev-list origin/master..HEAD | tail -n 1)
+    start="${SURICATA_BRANCH:-origin/master}"
+    local first_commit=$(git rev-list $start..HEAD | tail -n 1)
     echo $first_commit
 }
 
