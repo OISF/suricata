@@ -804,7 +804,7 @@ static int SMTPProcessCommandDATA(
                         depth = (uint32_t)(smtp_config.content_inspect_min_size +
                                            (state->toserver_data_count -
                                                    state->toserver_last_data_stamp));
-                        AppLayerParserTriggerRawStreamReassembly(f, STREAM_TOSERVER);
+                        AppLayerParserTriggerRawStreamInspection(f, STREAM_TOSERVER);
                         SCLogDebug(
                                 "StreamTcpReassemblySetMinInspectDepth STREAM_TOSERVER %u", depth);
                         StreamTcpReassemblySetMinInspectDepth(f->protoctx, STREAM_TOSERVER, depth);
@@ -832,7 +832,7 @@ static int SMTPProcessCommandDATA(
                     }
                     depth = (uint32_t)(state->toserver_data_count -
                                        state->toserver_last_data_stamp);
-                    AppLayerParserTriggerRawStreamReassembly(f, STREAM_TOSERVER);
+                    AppLayerParserTriggerRawStreamInspection(f, STREAM_TOSERVER);
                     SCLogDebug("StreamTcpReassemblySetMinInspectDepth STREAM_TOSERVER %u", depth);
                     StreamTcpReassemblySetMinInspectDepth(f->protoctx, STREAM_TOSERVER, depth);
             }

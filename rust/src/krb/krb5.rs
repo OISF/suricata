@@ -143,7 +143,7 @@ impl KRB5State {
                             tx.sname = kdc_req.req_body.sname;
                             tx.etype = None;
                             self.transactions.push(tx);
-                            sc_app_layer_parser_trigger_raw_stream_reassembly(
+                            sc_app_layer_parser_trigger_raw_stream_inspection(
                                 flow,
                                 direction as i32,
                             );
@@ -166,7 +166,7 @@ impl KRB5State {
                             tx.ticket_etype = Some(kdc_rep.ticket.enc_part.etype);
                             tx.etype = Some(kdc_rep.enc_part.etype);
                             self.transactions.push(tx);
-                            sc_app_layer_parser_trigger_raw_stream_reassembly(
+                            sc_app_layer_parser_trigger_raw_stream_inspection(
                                 flow,
                                 direction as i32,
                             );
@@ -186,7 +186,7 @@ impl KRB5State {
                             tx.sname = kdc_req.req_body.sname;
                             tx.etype = None;
                             self.transactions.push(tx);
-                            sc_app_layer_parser_trigger_raw_stream_reassembly(
+                            sc_app_layer_parser_trigger_raw_stream_inspection(
                                 flow,
                                 direction as i32,
                             );
@@ -209,7 +209,7 @@ impl KRB5State {
                             tx.sname = Some(kdc_rep.ticket.sname);
                             tx.etype = Some(kdc_rep.enc_part.etype);
                             self.transactions.push(tx);
-                            sc_app_layer_parser_trigger_raw_stream_reassembly(
+                            sc_app_layer_parser_trigger_raw_stream_inspection(
                                 flow,
                                 direction as i32,
                             );
@@ -240,7 +240,7 @@ impl KRB5State {
                             tx.sname = Some(error.sname);
                             tx.error_code = Some(error.error_code);
                             self.transactions.push(tx);
-                            sc_app_layer_parser_trigger_raw_stream_reassembly(
+                            sc_app_layer_parser_trigger_raw_stream_inspection(
                                 flow,
                                 direction as i32,
                             );

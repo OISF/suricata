@@ -99,7 +99,7 @@ pub type SCLogMessageFunc =
 pub type DetectEngineStateFreeFunc =
     extern "C" fn(state: *mut DetectEngineState);
 
-pub type AppLayerParserTriggerRawStreamReassemblyFunc =
+pub type AppLayerParserTriggerRawStreamInspectionFunc =
     extern "C" fn (flow: *const Flow, direction: i32);
 pub type AppLayerDecoderEventsSetEventRawFunc =
     extern "C" fn (events: *mut *mut AppLayerDecoderEvents,
@@ -166,7 +166,7 @@ pub struct SuricataContext {
     DetectEngineStateFree: DetectEngineStateFreeFunc,
     AppLayerDecoderEventsSetEventRaw: AppLayerDecoderEventsSetEventRawFunc,
     AppLayerDecoderEventsFreeEvents: AppLayerDecoderEventsFreeEventsFunc,
-    pub AppLayerParserTriggerRawStreamReassembly: AppLayerParserTriggerRawStreamReassemblyFunc,
+    pub AppLayerParserTriggerRawStreamInspection: AppLayerParserTriggerRawStreamInspectionFunc,
 
     pub HttpRangeFreeBlock: SCHttpRangeFreeBlock,
     pub HTPFileCloseHandleRange: SCHTPFileCloseHandleRange,
@@ -226,11 +226,11 @@ pub fn sc_generic_var_free(gvar: *mut GenericVar)
     }
 }
 
-/// AppLayerParserTriggerRawStreamReassembly wrapper
-pub fn sc_app_layer_parser_trigger_raw_stream_reassembly(flow: *const Flow, direction: i32) {
+/// AppLayerParserTriggerRawStreamInspection wrapper
+pub fn sc_app_layer_parser_trigger_raw_stream_inspection(flow: *const Flow, direction: i32) {
     unsafe {
         if let Some(c) = SC {
-            (c.AppLayerParserTriggerRawStreamReassembly)(flow, direction);
+            (c.AppLayerParserTriggerRawStreamInspection)(flow, direction);
         }
     }
 }

@@ -523,7 +523,7 @@ impl DCERPCState {
                 }
                 tx.req_done = true;
                 if let Some(flow) = self.flow {
-                    sc_app_layer_parser_trigger_raw_stream_reassembly(flow, dir as i32);
+                    sc_app_layer_parser_trigger_raw_stream_inspection(flow, dir as i32);
                 }
             }
         } else if self.tc_ssn_gap && dir == Direction::ToClient {
@@ -541,7 +541,7 @@ impl DCERPCState {
                 tx.req_done = true;
                 tx.resp_done = true;
                 if let Some(flow) = self.flow {
-                    sc_app_layer_parser_trigger_raw_stream_reassembly(flow, dir as i32);
+                    sc_app_layer_parser_trigger_raw_stream_inspection(flow, dir as i32);
                 }
             }
         }
@@ -656,7 +656,7 @@ impl DCERPCState {
                 tx.req_cmd = self.get_hdr_type().unwrap_or(0);
                 tx.req_done = true;
                 if let Some(flow) = self.flow {
-                    sc_app_layer_parser_trigger_raw_stream_reassembly(flow, Direction::ToServer as i32);
+                    sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
                 }
                 tx.frag_cnt_ts = 1;
                 self.transactions.push_back(tx);
@@ -739,7 +739,7 @@ impl DCERPCState {
                     tx.req_done = true;
                     tx.frag_cnt_ts = 1;
                     if let Some(flow) = self.flow {
-                        sc_app_layer_parser_trigger_raw_stream_reassembly(flow, Direction::ToServer as i32);
+                        sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
                     }
                 }
                 DCERPC_TYPE_RESPONSE => {
@@ -754,7 +754,7 @@ impl DCERPCState {
                     tx.resp_done = true;
                     tx.frag_cnt_tc = 1;
                     if let Some(flow) = self.flow {
-                        sc_app_layer_parser_trigger_raw_stream_reassembly(flow, Direction::ToClient as i32);
+                        sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
                     }
                 }
                 _ => {
@@ -951,7 +951,7 @@ impl DCERPCState {
                     tx.resp_done = true;
                     tx.frag_cnt_tc = 1;
                     if let Some(flow) = self.flow {
-                        sc_app_layer_parser_trigger_raw_stream_reassembly(flow, Direction::ToClient as i32);
+                        sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
                     }
                 }
                 DCERPC_TYPE_REQUEST => {

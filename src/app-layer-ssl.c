@@ -2628,7 +2628,7 @@ static struct SSLDecoderResult SSLv3Decode(uint8_t direction, SSLState *ssl_stat
     if (ssl_state->curr_connp->bytes_processed >=
             ssl_state->curr_connp->record_length + SSLV3_RECORD_HDR_LEN) {
         SCLogDebug("record complete, trigger RAW");
-        AppLayerParserTriggerRawStreamReassembly(
+        AppLayerParserTriggerRawStreamInspection(
                 ssl_state->f, direction == 0 ? STREAM_TOSERVER : STREAM_TOCLIENT);
         SSLParserReset(ssl_state);
         ValidateRecordState(ssl_state->curr_connp);

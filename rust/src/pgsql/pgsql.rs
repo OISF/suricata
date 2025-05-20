@@ -391,7 +391,7 @@ impl PgsqlState {
                                     /* The server won't send any responses to such requests, so transaction should be over */
                                     tx.tx_res_state = PgsqlTxProgress::TxDone;
                                 }
-                                sc_app_layer_parser_trigger_raw_stream_reassembly(
+                                sc_app_layer_parser_trigger_raw_stream_inspection(
                                     flow,
                                     Direction::ToServer as i32,
                                 );
@@ -618,7 +618,7 @@ impl PgsqlState {
                                 if Self::response_is_complete(state) {
                                     tx.tx_req_state = PgsqlTxProgress::TxDone;
                                     tx.tx_res_state = PgsqlTxProgress::TxDone;
-                                    sc_app_layer_parser_trigger_raw_stream_reassembly(
+                                    sc_app_layer_parser_trigger_raw_stream_inspection(
                                         flow,
                                         Direction::ToClient as i32,
                                     );

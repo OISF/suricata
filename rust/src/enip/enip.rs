@@ -296,7 +296,7 @@ impl EnipState {
                                 tx.tx_data.set_event(EnipEvent::InvalidPdu as u8);
                             }
                             tx.response = Some(pdu);
-                            sc_app_layer_parser_trigger_raw_stream_reassembly(
+                            sc_app_layer_parser_trigger_raw_stream_inspection(
                                 flow,
                                 Direction::ToClient as i32,
                             );
@@ -315,10 +315,10 @@ impl EnipState {
                         }
                         if request {
                             tx.request = Some(pdu);
-                            sc_app_layer_parser_trigger_raw_stream_reassembly(flow, Direction::ToServer as i32);
+                            sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
                         } else {
                             tx.response = Some(pdu);
-                            sc_app_layer_parser_trigger_raw_stream_reassembly(flow, Direction::ToClient as i32);
+                            sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
                         }
                         self.transactions.push_back(tx);
                     }
