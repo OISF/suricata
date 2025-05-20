@@ -1471,7 +1471,7 @@ end:
 
                 /* body still in progress, but due to min inspect size we need to inspect now */
                 StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOSERVER, depth);
-                AppLayerParserTriggerRawStreamReassembly(hstate->f, STREAM_TOSERVER);
+                AppLayerParserTriggerRawStreamInspection(hstate->f, STREAM_TOSERVER);
             }
         /* after the start of the body, disable the depth logic */
         } else if (tx_ud->request_body.body_inspected > 0) {
@@ -1563,7 +1563,7 @@ static int HTPCallbackResponseBodyData(const htp_connp_t *connp, htp_tx_data_t *
 
                 /* body still in progress, but due to min inspect size we need to inspect now */
                 StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOCLIENT, depth);
-                AppLayerParserTriggerRawStreamReassembly(hstate->f, STREAM_TOCLIENT);
+                AppLayerParserTriggerRawStreamInspection(hstate->f, STREAM_TOCLIENT);
             }
         /* after the start of the body, disable the depth logic */
         } else if (tx_ud->response_body.body_inspected > 0) {
@@ -1769,7 +1769,7 @@ static int HTPCallbackRequestComplete(const htp_connp_t *connp, htp_tx_t *tx)
     hstate->last_request_data_stamp = abs_right_edge;
     /* request done, do raw reassembly now to inspect state and stream
      * at the same time. */
-    AppLayerParserTriggerRawStreamReassembly(hstate->f, STREAM_TOSERVER);
+    AppLayerParserTriggerRawStreamInspection(hstate->f, STREAM_TOSERVER);
     SCReturnInt(HTP_STATUS_OK);
 }
 
@@ -1818,7 +1818,7 @@ static int HTPCallbackResponseComplete(const htp_connp_t *connp, htp_tx_t *tx)
 
     /* response done, do raw reassembly now to inspect state and stream
      * at the same time. */
-    AppLayerParserTriggerRawStreamReassembly(hstate->f, STREAM_TOCLIENT);
+    AppLayerParserTriggerRawStreamInspection(hstate->f, STREAM_TOCLIENT);
 
     /* handle HTTP CONNECT */
     if (htp_tx_request_method_number(tx) == HTP_METHOD_CONNECT) {

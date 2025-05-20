@@ -28,7 +28,7 @@ const SuricataContext suricata_context = {
     DetectEngineStateFree,
     AppLayerDecoderEventsSetEventRaw,
     AppLayerDecoderEventsFreeEvents,
-    AppLayerParserTriggerRawStreamReassembly,
+    AppLayerParserTriggerRawStreamInspection,
 
     HttpRangeFreeBlock,
     HTPFileCloseHandleRange,

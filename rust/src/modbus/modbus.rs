@@ -196,7 +196,7 @@ impl ModbusState {
                                     tx.tx_data.updated_ts = true;
                                     tx.request = Some(msg);
                                     if !flow.is_null() {
-                                        sc_app_layer_parser_trigger_raw_stream_reassembly(
+                                        sc_app_layer_parser_trigger_raw_stream_inspection(
                                             flow,
                                             Direction::ToServer as i32,
                                         );
@@ -211,7 +211,7 @@ impl ModbusState {
                                     tx.request = Some(msg);
                                     self.transactions.push(tx);
                                     if !flow.is_null() {
-                                        sc_app_layer_parser_trigger_raw_stream_reassembly(
+                                        sc_app_layer_parser_trigger_raw_stream_inspection(
                                             flow,
                                             Direction::ToServer as i32,
                                         );
@@ -236,7 +236,7 @@ impl ModbusState {
                                 tx.tx_data.updated_ts = true;
                                 tx.response = Some(msg);
                                 if !flow.is_null() {
-                                    sc_app_layer_parser_trigger_raw_stream_reassembly(
+                                    sc_app_layer_parser_trigger_raw_stream_inspection(
                                         flow,
                                         Direction::ToClient as i32,
                                     );
@@ -262,7 +262,7 @@ impl ModbusState {
                                 tx.set_event(ModbusEvent::UnsolicitedResponse);
                                 self.transactions.push(tx);
                                 if !flow.is_null() {
-                                    sc_app_layer_parser_trigger_raw_stream_reassembly(
+                                    sc_app_layer_parser_trigger_raw_stream_inspection(
                                         flow,
                                         Direction::ToClient as i32,
                                     );

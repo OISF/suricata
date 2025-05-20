@@ -406,7 +406,7 @@ impl MQTTState {
             } else {
                 Direction::ToServer
             };
-            sc_app_layer_parser_trigger_raw_stream_reassembly(flow, dir as i32);
+            sc_app_layer_parser_trigger_raw_stream_inspection(flow, dir as i32);
         }
     }
 
