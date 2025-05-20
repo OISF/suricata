@@ -105,7 +105,7 @@ bool EveFTPLogCommand(void *vtx, SCJsonBuilder *jb)
                     is_cc_array_open = true;
                 }
                 SCJbAppendStringFromBytes(
-                        jb, (const uint8_t *)response->code, response->code_length);
+                        jb, (const uint8_t *)response->code, (uint32_t)response->code_length);
             }
             if (response->length) {
                 SCJbAppendStringFromBytes(js_resplist, (const uint8_t *)response->response,
