@@ -72,7 +72,7 @@ static bool TlsAlpnGetData(DetectEngineThreadCtx *det_ctx, const void *txv, cons
 
     if (SCTLSHandshakeGetALPN(connp->hs, idx, &d)) {
         *buf = d.data;
-        *buf_len = d.len;
+        *buf_len = (uint32_t)d.len;
         return true;
     } else {
         return false;
