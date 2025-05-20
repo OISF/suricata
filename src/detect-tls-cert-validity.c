@@ -414,7 +414,7 @@ static int DetectTlsExpiredSetup (DetectEngineCtx *de_ctx, Signature *s,
 
     SCLogDebug("\'%s\'", rawstr);
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
         return -1;
 
     dd = SCCalloc(1, sizeof(DetectTlsValidityData));
@@ -459,7 +459,7 @@ static int DetectTlsValidSetup (DetectEngineCtx *de_ctx, Signature *s,
 
     SCLogDebug("\'%s\'", rawstr);
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
         return -1;
 
     dd = SCCalloc(1, sizeof(DetectTlsValidityData));
@@ -543,7 +543,7 @@ static int DetectTlsValiditySetup (DetectEngineCtx *de_ctx, Signature *s,
 
     SCLogDebug("\'%s\'", rawstr);
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
         return -1;
 
     dd = DetectTlsValidityParse(rawstr);

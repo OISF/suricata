@@ -301,7 +301,7 @@ static int DetectTlsSubjectSetup (DetectEngineCtx *de_ctx, Signature *s, const c
 {
     DetectTlsData *tls = NULL;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
         return -1;
 
     tls = DetectTlsSubjectParse(de_ctx, str, s->init_data->negated);
@@ -491,7 +491,7 @@ static int DetectTlsIssuerDNSetup (DetectEngineCtx *de_ctx, Signature *s, const 
 {
     DetectTlsData *tls = NULL;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
         return -1;
 
     tls = DetectTlsIssuerDNParse(de_ctx, str, s->init_data->negated);
@@ -585,7 +585,7 @@ static void DetectTlsFingerprintFree(DetectEngineCtx *de_ctx, void *ptr)
 static int DetectTlsStoreSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
         return -1;
 
     s->flags |= SIG_FLAG_TLSSTORE;

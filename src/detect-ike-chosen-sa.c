@@ -199,7 +199,7 @@ error:
  */
 static int DetectIkeChosenSaSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
-    if (DetectSignatureSetAppProto(s, ALPROTO_IKE) != 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_IKE) != 0)
         return -1;
 
     DetectIkeChosenSaData *dd = DetectIkeChosenSaParse(rawstr);

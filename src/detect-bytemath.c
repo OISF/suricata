@@ -325,7 +325,7 @@ static int DetectByteMathSetup(DetectEngineCtx *de_ctx, Signature *s, const char
             sm_list = DETECT_SM_LIST_PMATCH;
         }
 
-        if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0)
+        if (SCDetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0)
             goto error;
 
     } else if (data->flags & DETECT_BYTEMATH_FLAG_RELATIVE) {
@@ -346,7 +346,7 @@ static int DetectByteMathSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     }
 
     if (data->endian == EndianDCE) {
-        if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) != 0)
+        if (SCDetectSignatureSetAppProto(s, ALPROTO_DCERPC) != 0)
             goto error;
 
         if ((data->flags & DETECT_BYTEMATH_FLAG_STRING) || (data->base == BaseDec) ||

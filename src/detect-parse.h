@@ -84,7 +84,7 @@ SigMatch *DetectGetLastSMFromLists(const Signature *s, ...);
 SigMatch *DetectGetLastSMByListPtr(const Signature *s, SigMatch *sm_list, ...);
 SigMatch *DetectGetLastSMByListId(const Signature *s, int list_id, ...);
 
-int WARN_UNUSED DetectSignatureSetAppProto(Signature *s, AppProto alproto);
+int WARN_UNUSED SCDetectSignatureSetAppProto(Signature *s, AppProto alproto);
 int WARN_UNUSED DetectSignatureSetMultiAppProto(Signature *s, const AppProto *alprotos);
 
 /* parse regex setup and free util funcs */

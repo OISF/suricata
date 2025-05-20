@@ -153,7 +153,7 @@ static int DetectTlsRandomTimeSetup(DetectEngineCtx *de_ctx, Signature *s, const
     if (SCDetectBufferSetActiveList(de_ctx, s, g_tls_random_time_buffer_id) < 0)
         return -1;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_TLS) < 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_TLS) < 0)
         return -1;
 
     return 0;
@@ -174,7 +174,7 @@ static int DetectTlsRandomBytesSetup(DetectEngineCtx *de_ctx, Signature *s, cons
     if (SCDetectBufferSetActiveList(de_ctx, s, g_tls_random_bytes_buffer_id) < 0)
         return -1;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_TLS) < 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_TLS) < 0)
         return -1;
 
     return 0;
@@ -195,7 +195,7 @@ static int DetectTlsRandomSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     if (SCDetectBufferSetActiveList(de_ctx, s, g_tls_random_buffer_id) < 0)
         return -1;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_TLS) < 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_TLS) < 0)
         return -1;
 
     return 0;

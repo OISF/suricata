@@ -45,7 +45,7 @@ static int DetectKrb5TicketEncryptionSetup(
 {
     DetectKrb5TicketEncryptionData *krb5d = NULL;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_KRB5) != 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_KRB5) != 0)
         return -1;
 
     krb5d = SCKrb5DetectEncryptionParse(krb5str);

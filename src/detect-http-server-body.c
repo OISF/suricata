@@ -124,7 +124,7 @@ static int DetectHttpServerBodySetupSticky(DetectEngineCtx *de_ctx, Signature *s
 {
     if (SCDetectBufferSetActiveList(de_ctx, s, g_buffer_id) < 0)
         return -1;
-    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
         return -1;
     // file data is on both directions, but we only take the one to client here
     s->flags |= SIG_FLAG_TOCLIENT;

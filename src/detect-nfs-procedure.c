@@ -156,7 +156,7 @@ static int DetectNfsProcedureSetup (DetectEngineCtx *de_ctx, Signature *s,
 
     SCLogDebug("\'%s\'", rawstr);
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_NFS) != 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_NFS) != 0)
         return -1;
 
     dd = DetectNfsProcedureParse(rawstr);

@@ -106,7 +106,7 @@ static int DetectIkeNoncePayloadLengthMatch(DetectEngineThreadCtx *det_ctx, Flow
 static int DetectIkeNoncePayloadLengthSetup(
         DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
-    if (DetectSignatureSetAppProto(s, ALPROTO_IKE) != 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_IKE) != 0)
         return -1;
 
     DetectU32Data *nonce_payload_length = DetectU32Parse(rawstr);

@@ -167,7 +167,7 @@ static int DetectHttpClientBodySetupSticky(DetectEngineCtx *de_ctx, Signature *s
 {
     if (SCDetectBufferSetActiveList(de_ctx, s, g_http_client_body_buffer_id) < 0)
         return -1;
-    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
         return -1;
     // we cannot use a transactional rule with a fast pattern to client and this
     if (s->init_data->init_flags & SIG_FLAG_INIT_TXDIR_FAST_TOCLIENT) {

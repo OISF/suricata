@@ -279,7 +279,7 @@ static int DetectAppLayerEventSetup(DetectEngineCtx *de_ctx, Signature *s, const
             goto error;
         }
     } else {
-        if (DetectSignatureSetAppProto(s, data->alproto) != 0)
+        if (SCDetectSignatureSetAppProto(s, data->alproto) != 0)
             goto error;
 
         if (SigMatchAppendSMToList(de_ctx, s, DETECT_APP_LAYER_EVENT, (SigMatchCtx *)data,

@@ -87,7 +87,7 @@ static int DetectFtpReplyReceivedSetup(DetectEngineCtx *de_ctx, Signature *s, co
     if (frrd == NULL)
         return -1;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_FTP) != 0) {
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_FTP) != 0) {
         DetectFtpReplyReceivedFree(de_ctx, frrd);
         return -1;
     }

@@ -104,7 +104,7 @@ static int DetectQuicSniSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
     if (SCDetectBufferSetActiveList(de_ctx, s, quic_sni_id) < 0)
         return -1;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_QUIC) < 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_QUIC) < 0)
         return -1;
 
     return 0;

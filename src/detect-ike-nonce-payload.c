@@ -63,7 +63,7 @@ static int DetectNonceSetup(DetectEngineCtx *de_ctx, Signature *s, const char *s
     if (SCDetectBufferSetActiveList(de_ctx, s, g_buffer_nonce_id) < 0)
         return -1;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_IKE) < 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_IKE) < 0)
         return -1;
 
     return 0;

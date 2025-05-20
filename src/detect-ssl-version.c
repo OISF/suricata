@@ -291,7 +291,7 @@ static int DetectSslVersionSetup (DetectEngineCtx *de_ctx, Signature *s, const c
 {
     DetectSslVersionData *ssl = NULL;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
         return -1;
 
     ssl = DetectSslVersionParse(de_ctx, str);

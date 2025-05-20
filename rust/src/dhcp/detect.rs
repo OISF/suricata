@@ -22,11 +22,12 @@ use super::dhcp::{
 use super::parser::DHCPOptionWrapper;
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{DetectUintData, SCDetectU64Free, SCDetectU64Match, SCDetectU64Parse};
-use crate::detect::{DetectSignatureSetAppProto, SigMatchAppendSMToList};
+use crate::detect::SigMatchAppendSMToList;
 use std::os::raw::{c_int, c_void};
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectHelperBufferRegister,
-    SCDetectHelperKeywordRegister, SCSigTableAppLiteElmt, SigMatchCtx, Signature,
+    SCDetectHelperKeywordRegister, SCDetectSignatureSetAppProto, SCSigTableAppLiteElmt,
+    SigMatchCtx, Signature,
 };
 
 fn dhcp_tx_get_time(tx: &DHCPTransaction, code: u8) -> Option<u64> {
@@ -50,7 +51,7 @@ static mut G_DHCP_RENEWAL_TIME_BUFFER_ID: c_int = 0;
 unsafe extern "C" fn dhcp_detect_leasetime_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_DHCP) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_DHCP) != 0 {
         return -1;
     }
     let ctx = SCDetectU64Parse(raw) as *mut c_void;
@@ -93,7 +94,7 @@ unsafe extern "C" fn dhcp_detect_time_free(_de: *mut DetectEngineCtx, ctx: *mut 
 unsafe extern "C" fn dhcp_detect_rebindingtime_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_DHCP) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_DHCP) != 0 {
         return -1;
     }
     let ctx = SCDetectU64Parse(raw) as *mut c_void;
@@ -130,7 +131,7 @@ unsafe extern "C" fn dhcp_detect_rebindingtime_match(
 unsafe extern "C" fn dhcp_detect_renewaltime_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_DHCP) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_DHCP) != 0 {
         return -1;
     }
     let ctx = SCDetectU64Parse(raw) as *mut c_void;
