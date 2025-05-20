@@ -539,6 +539,7 @@ typedef struct SignatureInitDataBuffer_ {
 enum SignatureHookPkt {
     SIGNATURE_HOOK_PKT_NOT_SET,
     SIGNATURE_HOOK_PKT_FLOW_START,
+    SIGNATURE_HOOK_PKT_PRE_FLOW,
     SIGNATURE_HOOK_PKT_PRE_STREAM,
     SIGNATURE_HOOK_PKT_ALL, /**< match each packet */
 };
@@ -550,6 +551,7 @@ enum SignatureHookType {
 };
 
 enum FirewallTable {
+    FIREWALL_TABLE_PACKET_PRE_FLOW,
     FIREWALL_TABLE_PACKET_PRE_STREAM,
     FIREWALL_TABLE_PACKET_FILTER,
     FIREWALL_TABLE_PACKET_TD,
@@ -1145,6 +1147,10 @@ typedef struct DetectEngineCtx_ {
     /** TCP pre_stream hook rule groups. One per direction. */
     struct SigGroupHead_ *pre_stream_sgh[2];
 
+    /* Hook for pre_flow engine if it is used. */
+    DetectPacketHookFunc PreFlowHook;
+    /** pre_flow hook rule groups. Before flow we don't know a direction yet. */
+    struct SigGroupHead_ *pre_flow_sgh;
 } DetectEngineCtx;
 
 /**
@@ -1708,6 +1714,7 @@ extern SigTableElmt *sigmatch_table;
 
 /* detection api */
 TmEcode Detect(ThreadVars *tv, Packet *p, void *data);
+uint8_t DetectPreFlow(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p);
 uint8_t DetectPreStream(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p);
 
 SigMatch *SigMatchAlloc(void);
