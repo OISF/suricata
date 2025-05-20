@@ -234,7 +234,7 @@ static int DetectFragOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, const c
     fragoff = DetectFragOffsetParse(de_ctx, fragoffsetstr);
     if (fragoff == NULL) goto error;
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_FRAGOFFSET, (SigMatchCtx *)fragoff,
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_FRAGOFFSET, (SigMatchCtx *)fragoff,
                 DETECT_SM_LIST_MATCH) == NULL) {
         goto error;
     }

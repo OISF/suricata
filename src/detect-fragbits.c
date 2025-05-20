@@ -292,7 +292,7 @@ static int DetectFragBitsSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
     if (de == NULL)
         return -1;
 
-    if (SigMatchAppendSMToList(
+    if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_FRAGBITS, (SigMatchCtx *)de, DETECT_SM_LIST_MATCH) == NULL) {
         goto error;
     }

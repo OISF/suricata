@@ -100,7 +100,7 @@ int SCDetectHelperNewKeywordId(void)
     return DETECT_TBLSIZE_IDX - 1;
 }
 
-int SCDetectHelperKeywordRegister(const SCSigTableAppLiteElmt *kw)
+uint16_t SCDetectHelperKeywordRegister(const SCSigTableAppLiteElmt *kw)
 {
     int keyword_id = SCDetectHelperNewKeywordId();
     if (keyword_id < 0) {
@@ -118,10 +118,10 @@ int SCDetectHelperKeywordRegister(const SCSigTableAppLiteElmt *kw)
             (int (*)(DetectEngineCtx * de, Signature * s, const char *raw)) kw->Setup;
     sigmatch_table[keyword_id].Free = (void (*)(DetectEngineCtx * de, void *ptr)) kw->Free;
 
-    return keyword_id;
+    return (uint16_t)keyword_id;
 }
 
-void SCDetectHelperKeywordAliasRegister(int kwid, const char *alias)
+void SCDetectHelperKeywordAliasRegister(uint16_t kwid, const char *alias)
 {
     sigmatch_table[kwid].alias = alias;
 }

@@ -352,7 +352,7 @@ static int DetectDatarepSetup (DetectEngineCtx *de_ctx, Signature *s, const char
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_DATAREP, (SigMatchCtx *)cd, list) == NULL) {
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_DATAREP, (SigMatchCtx *)cd, list) == NULL) {
         goto error;
     }
     return 0;

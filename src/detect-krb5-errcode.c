@@ -183,7 +183,7 @@ static int DetectKrb5ErrCodeSetup (DetectEngineCtx *de_ctx, Signature *s, const 
     if (krb5d == NULL)
         goto error;
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_KRB5_ERRCODE, (SigMatchCtx *)krb5d,
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_KRB5_ERRCODE, (SigMatchCtx *)krb5d,
                 g_krb5_err_code_list_id) == NULL) {
         goto error;
     }

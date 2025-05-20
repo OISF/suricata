@@ -413,7 +413,7 @@ int DetectHostbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
         case DETECT_XBITS_CMD_ISNOTSET:
         case DETECT_XBITS_CMD_ISSET:
             /* checks, so packet list */
-            if (SigMatchAppendSMToList(de_ctx, s, DETECT_HOSTBITS, (SigMatchCtx *)cd,
+            if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_HOSTBITS, (SigMatchCtx *)cd,
                         DETECT_SM_LIST_MATCH) == NULL) {
                 goto error;
             }
@@ -423,7 +423,7 @@ int DetectHostbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
         case DETECT_XBITS_CMD_UNSET:
         case DETECT_XBITS_CMD_TOGGLE:
             /* modifiers, only run when entire sig has matched */
-            if (SigMatchAppendSMToList(de_ctx, s, DETECT_HOSTBITS, (SigMatchCtx *)cd,
+            if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_HOSTBITS, (SigMatchCtx *)cd,
                         DETECT_SM_LIST_POSTMATCH) == NULL) {
                 goto error;
             }

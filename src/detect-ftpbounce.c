@@ -217,7 +217,8 @@ int DetectFtpbounceSetup(DetectEngineCtx *de_ctx, Signature *s, const char *ftpb
      * with a flow flag set lookup in the Match function.
      */
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_FTPBOUNCE, NULL, g_ftp_request_list_id) == NULL) {
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_FTPBOUNCE, NULL, g_ftp_request_list_id) ==
+            NULL) {
         return -1;
     }
     SCReturnInt(0);

@@ -183,7 +183,7 @@ static int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
 
-    if (SigMatchAppendSMToList(
+    if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_FLOWVAR, (SigMatchCtx *)fd, DETECT_SM_LIST_MATCH) == NULL) {
         goto error;
     }
@@ -266,7 +266,7 @@ int DetectFlowvarPostMatchSetup(DetectEngineCtx *de_ctx, Signature *s, uint32_t 
     fv->idx = idx;
     fv->post_match = true;
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_FLOWVAR_POSTMATCH, (SigMatchCtx *)fv,
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_FLOWVAR_POSTMATCH, (SigMatchCtx *)fv,
                 DETECT_SM_LIST_POSTMATCH) == NULL) {
         goto error;
     }

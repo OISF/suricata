@@ -468,14 +468,14 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
         AppLayerHtpNeedFileInspection();
     }
 
-    if (SigMatchAppendSMToList(
+    if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_FILESTORE, (SigMatchCtx *)fd, g_file_match_list_id) == NULL) {
         DetectFilestoreFree(de_ctx, fd);
         goto error;
     }
     s->filestore_ctx = fd;
 
-    if (SigMatchAppendSMToList(
+    if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_FILESTORE_POSTMATCH, NULL, DETECT_SM_LIST_POSTMATCH) == NULL) {
         goto error;
     }

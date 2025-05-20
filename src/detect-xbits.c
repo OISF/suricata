@@ -430,7 +430,8 @@ int DetectXbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 
             SCLogDebug("adding match/txmatch");
             /* checks, so packet list */
-            if (SigMatchAppendSMToList(de_ctx, s, DETECT_XBITS, (SigMatchCtx *)cd, list) == NULL) {
+            if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_XBITS, (SigMatchCtx *)cd, list) ==
+                    NULL) {
                 SCFree(cd);
                 return -1;
             }
@@ -441,7 +442,7 @@ int DetectXbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
         default:
             SCLogDebug("adding post-match");
             /* modifiers, only run when entire sig has matched */
-            if (SigMatchAppendSMToList(de_ctx, s, DETECT_XBITS, (SigMatchCtx *)cd,
+            if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_XBITS, (SigMatchCtx *)cd,
                         DETECT_SM_LIST_POSTMATCH) == NULL) {
                 SCFree(cd);
                 return -1;

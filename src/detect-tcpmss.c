@@ -104,7 +104,7 @@ static int DetectTcpmssSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     if (tcpmssd == NULL)
         return -1;
 
-    if (SigMatchAppendSMToList(
+    if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_TCPMSS, (SigMatchCtx *)tcpmssd, DETECT_SM_LIST_MATCH) == NULL) {
         DetectTcpmssFree(de_ctx, tcpmssd);
         return -1;

@@ -268,7 +268,7 @@ static int SetupSuppressRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid,
             if (unlikely(de == NULL))
                 goto error;
 
-            if (SigMatchAppendSMToList(de_ctx, s, DETECT_THRESHOLD, (SigMatchCtx *)de,
+            if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_THRESHOLD, (SigMatchCtx *)de,
                         DETECT_SM_LIST_SUPPRESS) == NULL) {
                 goto error;
             }
@@ -292,7 +292,7 @@ static int SetupSuppressRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid,
             if (unlikely(de == NULL))
                 goto error;
 
-            if (SigMatchAppendSMToList(de_ctx, s, DETECT_THRESHOLD, (SigMatchCtx *)de,
+            if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_THRESHOLD, (SigMatchCtx *)de,
                         DETECT_SM_LIST_SUPPRESS) == NULL) {
                 goto error;
             }
@@ -318,7 +318,7 @@ static int SetupSuppressRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid,
             if (unlikely(de == NULL))
                 goto error;
 
-            if (SigMatchAppendSMToList(de_ctx, s, DETECT_THRESHOLD, (SigMatchCtx *)de,
+            if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_THRESHOLD, (SigMatchCtx *)de,
                         DETECT_SM_LIST_SUPPRESS) == NULL) {
                 goto error;
             }
@@ -397,7 +397,7 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
             if (parsed_type == TYPE_RATE)
                 smtype = DETECT_DETECTION_FILTER;
 
-            if (SigMatchAppendSMToList(
+            if (SCSigMatchAppendSMToList(
                         de_ctx, s, smtype, (SigMatchCtx *)de, DETECT_SM_LIST_THRESHOLD) == NULL) {
                 goto error;
             }
@@ -432,7 +432,7 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
                 if (parsed_type == TYPE_RATE)
                     smtype = DETECT_DETECTION_FILTER;
 
-                if (SigMatchAppendSMToList(de_ctx, s, smtype, (SigMatchCtx *)de,
+                if (SCSigMatchAppendSMToList(de_ctx, s, smtype, (SigMatchCtx *)de,
                             DETECT_SM_LIST_THRESHOLD) == NULL) {
                     goto error;
                 }
@@ -499,7 +499,7 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
             if (parsed_type == TYPE_RATE)
                 smtype = DETECT_DETECTION_FILTER;
 
-            if (SigMatchAppendSMToList(
+            if (SCSigMatchAppendSMToList(
                         de_ctx, s, smtype, (SigMatchCtx *)de, DETECT_SM_LIST_THRESHOLD) == NULL) {
                 goto error;
             }

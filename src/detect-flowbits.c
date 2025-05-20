@@ -360,7 +360,7 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
         case DETECT_FLOWBITS_CMD_ISNOTSET:
         case DETECT_FLOWBITS_CMD_ISSET:
             /* checks, so packet list */
-            if (SigMatchAppendSMToList(de_ctx, s, DETECT_FLOWBITS, (SigMatchCtx *)cd,
+            if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_FLOWBITS, (SigMatchCtx *)cd,
                         DETECT_SM_LIST_MATCH) == NULL) {
                 goto error;
             }
@@ -370,7 +370,7 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
         case DETECT_FLOWBITS_CMD_UNSET:
         case DETECT_FLOWBITS_CMD_TOGGLE:
             /* modifiers, only run when entire sig has matched */
-            if (SigMatchAppendSMToList(de_ctx, s, DETECT_FLOWBITS, (SigMatchCtx *)cd,
+            if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_FLOWBITS, (SigMatchCtx *)cd,
                         DETECT_SM_LIST_POSTMATCH) == NULL) {
                 goto error;
             }

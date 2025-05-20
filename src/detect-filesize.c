@@ -127,7 +127,7 @@ static int DetectFilesizeSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
     if (fsd == NULL)
         SCReturnInt(-1);
 
-    if (SigMatchAppendSMToList(
+    if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_FILESIZE, (SigMatchCtx *)fsd, g_file_match_list_id) == NULL) {
         DetectFilesizeFree(de_ctx, fsd);
         SCReturnInt(-1);

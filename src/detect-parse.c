@@ -385,7 +385,7 @@ void SigTableApplyStrictCommandLineOption(const char *str)
  * \param new  The sig match to append.
  * \param list The list to append to.
  */
-SigMatch *SigMatchAppendSMToList(
+SigMatch *SCSigMatchAppendSMToList(
         DetectEngineCtx *de_ctx, Signature *s, uint16_t type, SigMatchCtx *ctx, const int list)
 {
     SigMatch *new = SigMatchAlloc();

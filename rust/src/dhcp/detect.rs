@@ -22,12 +22,11 @@ use super::dhcp::{
 use super::parser::DHCPOptionWrapper;
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{DetectUintData, SCDetectU64Free, SCDetectU64Match, SCDetectU64Parse};
-use crate::detect::SigMatchAppendSMToList;
 use std::os::raw::{c_int, c_void};
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectHelperBufferRegister,
-    SCDetectHelperKeywordRegister, SCDetectSignatureSetAppProto, SCSigTableAppLiteElmt,
-    SigMatchCtx, Signature,
+    SCDetectHelperKeywordRegister, SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList,
+    SCSigTableAppLiteElmt, SigMatchCtx, Signature,
 };
 
 fn dhcp_tx_get_time(tx: &DHCPTransaction, code: u8) -> Option<u64> {
@@ -41,11 +40,11 @@ fn dhcp_tx_get_time(tx: &DHCPTransaction, code: u8) -> Option<u64> {
     return None;
 }
 
-static mut G_DHCP_LEASE_TIME_KW_ID: c_int = 0;
+static mut G_DHCP_LEASE_TIME_KW_ID: u16 = 0;
 static mut G_DHCP_LEASE_TIME_BUFFER_ID: c_int = 0;
-static mut G_DHCP_REBINDING_TIME_KW_ID: c_int = 0;
+static mut G_DHCP_REBINDING_TIME_KW_ID: u16 = 0;
 static mut G_DHCP_REBINDING_TIME_BUFFER_ID: c_int = 0;
-static mut G_DHCP_RENEWAL_TIME_KW_ID: c_int = 0;
+static mut G_DHCP_RENEWAL_TIME_KW_ID: u16 = 0;
 static mut G_DHCP_RENEWAL_TIME_BUFFER_ID: c_int = 0;
 
 unsafe extern "C" fn dhcp_detect_leasetime_setup(
@@ -58,11 +57,11 @@ unsafe extern "C" fn dhcp_detect_leasetime_setup(
     if ctx.is_null() {
         return -1;
     }
-    if SigMatchAppendSMToList(
+    if SCSigMatchAppendSMToList(
         de,
         s,
         G_DHCP_LEASE_TIME_KW_ID,
-        ctx,
+        ctx as *mut SigMatchCtx,
         G_DHCP_LEASE_TIME_BUFFER_ID,
     )
     .is_null()
@@ -101,11 +100,11 @@ unsafe extern "C" fn dhcp_detect_rebindingtime_setup(
     if ctx.is_null() {
         return -1;
     }
-    if SigMatchAppendSMToList(
+    if SCSigMatchAppendSMToList(
         de,
         s,
         G_DHCP_REBINDING_TIME_KW_ID,
-        ctx,
+        ctx as *mut SigMatchCtx,
         G_DHCP_REBINDING_TIME_BUFFER_ID,
     )
     .is_null()
@@ -138,11 +137,11 @@ unsafe extern "C" fn dhcp_detect_renewaltime_setup(
     if ctx.is_null() {
         return -1;
     }
-    if SigMatchAppendSMToList(
+    if SCSigMatchAppendSMToList(
         de,
         s,
         G_DHCP_RENEWAL_TIME_KW_ID,
-        ctx,
+        ctx as *mut SigMatchCtx,
         G_DHCP_RENEWAL_TIME_BUFFER_ID,
     )
     .is_null()

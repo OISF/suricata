@@ -21,15 +21,13 @@ use crate::detect::uint::{
     detect_match_uint, detect_parse_uint_enum, DetectUintData, SCDetectU32Free, SCDetectU32Parse,
     SCDetectU8Free,
 };
-use crate::detect::{
-    helper_keyword_register_sticky_buffer, SigMatchAppendSMToList, SigTableElmtStickyBuffer,
-};
+use crate::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
 use crate::ldap::types::{LdapMessage, LdapResultCode, ProtocolOp, ProtocolOpCode};
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
     SCDetectHelperBufferMpmRegister, SCDetectHelperBufferRegister, SCDetectHelperKeywordRegister,
-    SCDetectHelperMultiBufferMpmRegister, SCDetectSignatureSetAppProto, SCSigTableAppLiteElmt,
-    SigMatchCtx, Signature,
+    SCDetectHelperMultiBufferMpmRegister, SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList,
+    SCSigTableAppLiteElmt, SigMatchCtx, Signature,
 };
 
 use std::collections::VecDeque;
@@ -63,15 +61,15 @@ struct DetectLdapRespResultData {
     pub index: LdapIndex,
 }
 
-static mut G_LDAP_REQUEST_OPERATION_KW_ID: c_int = 0;
+static mut G_LDAP_REQUEST_OPERATION_KW_ID: u16 = 0;
 static mut G_LDAP_REQUEST_OPERATION_BUFFER_ID: c_int = 0;
-static mut G_LDAP_RESPONSES_OPERATION_KW_ID: c_int = 0;
+static mut G_LDAP_RESPONSES_OPERATION_KW_ID: u16 = 0;
 static mut G_LDAP_RESPONSES_OPERATION_BUFFER_ID: c_int = 0;
-static mut G_LDAP_RESPONSES_COUNT_KW_ID: c_int = 0;
+static mut G_LDAP_RESPONSES_COUNT_KW_ID: u16 = 0;
 static mut G_LDAP_RESPONSES_COUNT_BUFFER_ID: c_int = 0;
 static mut G_LDAP_REQUEST_DN_BUFFER_ID: c_int = 0;
 static mut G_LDAP_RESPONSES_DN_BUFFER_ID: c_int = 0;
-static mut G_LDAP_RESPONSES_RESULT_CODE_KW_ID: c_int = 0;
+static mut G_LDAP_RESPONSES_RESULT_CODE_KW_ID: u16 = 0;
 static mut G_LDAP_RESPONSES_RESULT_CODE_BUFFER_ID: c_int = 0;
 static mut G_LDAP_RESPONSES_MSG_BUFFER_ID: c_int = 0;
 static mut G_LDAP_REQUEST_ATTRIBUTE_TYPE_BUFFER_ID: c_int = 0;
@@ -100,11 +98,11 @@ unsafe extern "C" fn ldap_detect_request_operation_setup(
     if ctx.is_null() {
         return -1;
     }
-    if SigMatchAppendSMToList(
+    if SCSigMatchAppendSMToList(
         de,
         s,
         G_LDAP_REQUEST_OPERATION_KW_ID,
-        ctx,
+        ctx as *mut SigMatchCtx,
         G_LDAP_REQUEST_OPERATION_BUFFER_ID,
     )
     .is_null()
@@ -185,11 +183,11 @@ unsafe extern "C" fn ldap_detect_responses_operation_setup(
     if ctx.is_null() {
         return -1;
     }
-    if SigMatchAppendSMToList(
+    if SCSigMatchAppendSMToList(
         de,
         s,
         G_LDAP_RESPONSES_OPERATION_KW_ID,
-        ctx,
+        ctx as *mut SigMatchCtx,
         G_LDAP_RESPONSES_OPERATION_BUFFER_ID,
     )
     .is_null()
@@ -275,11 +273,11 @@ unsafe extern "C" fn ldap_detect_responses_count_setup(
     if ctx.is_null() {
         return -1;
     }
-    if SigMatchAppendSMToList(
+    if SCSigMatchAppendSMToList(
         de,
         s,
         G_LDAP_RESPONSES_COUNT_KW_ID,
-        ctx,
+        ctx as *mut SigMatchCtx,
         G_LDAP_RESPONSES_COUNT_BUFFER_ID,
     )
     .is_null()
@@ -425,11 +423,11 @@ unsafe extern "C" fn ldap_detect_responses_result_code_setup(
     if ctx.is_null() {
         return -1;
     }
-    if SigMatchAppendSMToList(
+    if SCSigMatchAppendSMToList(
         de,
         s,
         G_LDAP_RESPONSES_RESULT_CODE_KW_ID,
-        ctx,
+        ctx as *mut SigMatchCtx,
         G_LDAP_RESPONSES_RESULT_CODE_BUFFER_ID,
     )
     .is_null()

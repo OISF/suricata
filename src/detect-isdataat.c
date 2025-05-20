@@ -107,8 +107,8 @@ static int DetectAbsentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
 
     dad->or_else = or_else;
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_ABSENT, (SigMatchCtx *)dad, s->init_data->list) ==
-            NULL) {
+    if (SCSigMatchAppendSMToList(
+                de_ctx, s, DETECT_ABSENT, (SigMatchCtx *)dad, s->init_data->list) == NULL) {
         DetectAbsentFree(de_ctx, dad);
         return -1;
     }
@@ -372,7 +372,8 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, const char *isda
         goto end;
     }
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_ISDATAAT, (SigMatchCtx *)idad, sm_list) == NULL) {
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_ISDATAAT, (SigMatchCtx *)idad, sm_list) ==
+            NULL) {
         goto end;
     }
 

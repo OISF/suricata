@@ -180,7 +180,7 @@ static int DetectKrb5MsgTypeSetup (DetectEngineCtx *de_ctx, Signature *s, const 
     if (krb5d == NULL)
         goto error;
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_KRB5_MSGTYPE, (SigMatchCtx *)krb5d,
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_KRB5_MSGTYPE, (SigMatchCtx *)krb5d,
                 g_krb5_msg_type_list_id) == NULL) {
         goto error;
     }

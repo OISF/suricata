@@ -226,7 +226,7 @@ static int DetectTLSCertChainLenSetup(DetectEngineCtx *de_ctx, Signature *s, con
         return -1;
     }
 
-    if (SigMatchAppendSMToList(de_ctx, s, KEYWORD_ID, (SigMatchCtx *)dd, g_tls_cert_buffer_id) ==
+    if (SCSigMatchAppendSMToList(de_ctx, s, KEYWORD_ID, (SigMatchCtx *)dd, g_tls_cert_buffer_id) ==
             NULL) {
         SCDetectU32Free(dd);
         return -1;

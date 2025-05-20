@@ -287,7 +287,7 @@ static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
         s->flags |= SIG_FLAG_APPLAYER;
     }
 
-    if (SigMatchAppendSMToList(
+    if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_CONFIG, (SigMatchCtx *)fd, DETECT_SM_LIST_POSTMATCH) == NULL) {
         goto error;
     }

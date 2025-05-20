@@ -58,7 +58,7 @@ void SigParseRegisterTests(void);
 Signature *DetectEngineAppendSig(DetectEngineCtx *, const char *);
 Signature *DetectFirewallRuleAppendNew(DetectEngineCtx *, const char *);
 
-SigMatch *SigMatchAppendSMToList(DetectEngineCtx *, Signature *, uint16_t, SigMatchCtx *, int);
+SigMatch *SCSigMatchAppendSMToList(DetectEngineCtx *, Signature *, uint16_t, SigMatchCtx *, int);
 void SigMatchRemoveSMFromList(Signature *, SigMatch *, int);
 int SigMatchListSMBelongsTo(const Signature *, const SigMatch *);
 

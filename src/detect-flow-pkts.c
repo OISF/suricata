@@ -58,7 +58,7 @@ static int DetectFlowPktsToServerSetup(DetectEngineCtx *de_ctx, Signature *s, co
         return -1;
     }
 
-    if (SigMatchAppendSMToList(
+    if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_FLOW_PKTS, (SigMatchCtx *)df, DETECT_SM_LIST_MATCH) == NULL) {
         DetectFlowPktsFree(de_ctx, df);
         return -1;
@@ -74,7 +74,7 @@ static int DetectFlowPktsToClientSetup(DetectEngineCtx *de_ctx, Signature *s, co
     if (df == NULL) {
         return -1;
     }
-    if (SigMatchAppendSMToList(
+    if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_FLOW_PKTS, (SigMatchCtx *)df, DETECT_SM_LIST_MATCH) == NULL) {
         DetectFlowPktsFree(de_ctx, df);
         return -1;
@@ -90,7 +90,7 @@ static int DetectFlowPktsSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     if (df == NULL) {
         return -1;
     }
-    if (SigMatchAppendSMToList(
+    if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_FLOW_PKTS, (SigMatchCtx *)df, DETECT_SM_LIST_MATCH) == NULL) {
         DetectFlowPktsFree(de_ctx, df);
         return -1;
@@ -225,7 +225,7 @@ static int DetectFlowBytesToServerSetup(DetectEngineCtx *de_ctx, Signature *s, c
         return -1;
     }
 
-    if (SigMatchAppendSMToList(
+    if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_FLOW_BYTES, (SigMatchCtx *)df, DETECT_SM_LIST_MATCH) == NULL) {
         DetectFlowBytesFree(de_ctx, df);
         return -1;
@@ -242,7 +242,7 @@ static int DetectFlowBytesToClientSetup(DetectEngineCtx *de_ctx, Signature *s, c
         return -1;
     }
 
-    if (SigMatchAppendSMToList(
+    if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_FLOW_BYTES, (SigMatchCtx *)df, DETECT_SM_LIST_MATCH) == NULL) {
         DetectFlowBytesFree(de_ctx, df);
         return -1;
@@ -258,7 +258,7 @@ static int DetectFlowBytesSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     if (df == NULL) {
         return -1;
     }
-    if (SigMatchAppendSMToList(
+    if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_FLOW_BYTES, (SigMatchCtx *)df, DETECT_SM_LIST_MATCH) == NULL) {
         DetectFlowBytesFree(de_ctx, df);
         return -1;

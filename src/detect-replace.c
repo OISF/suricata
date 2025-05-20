@@ -144,7 +144,8 @@ int DetectReplaceSetup(DetectEngineCtx *de_ctx, Signature *s, const char *replac
     SCFree(content);
     content = NULL;
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_REPLACE, NULL, DETECT_SM_LIST_POSTMATCH) == NULL) {
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_REPLACE, NULL, DETECT_SM_LIST_POSTMATCH) ==
+            NULL) {
         goto error;
     }
     return 0;

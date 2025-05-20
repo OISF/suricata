@@ -71,7 +71,7 @@ static int DetectFtpDynamicPortSetup(DetectEngineCtx *de_ctx, Signature *s, cons
     }
 
     SCLogDebug("low %u hi %u", fdp->arg1, fdp->arg2);
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_FTP_DYNPORT, (SigMatchCtx *)fdp,
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_FTP_DYNPORT, (SigMatchCtx *)fdp,
                 g_ftp_dynport_buffer_id) == NULL) {
         DetectFtpDynamicPortFree(de_ctx, fdp);
         return -1;

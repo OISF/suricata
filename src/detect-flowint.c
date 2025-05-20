@@ -384,7 +384,7 @@ static int DetectFlowintSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
         case FLOWINT_MODIFIER_SET:
         case FLOWINT_MODIFIER_ADD:
         case FLOWINT_MODIFIER_SUB:
-            if (SigMatchAppendSMToList(de_ctx, s, DETECT_FLOWINT, (SigMatchCtx *)sfd,
+            if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_FLOWINT, (SigMatchCtx *)sfd,
                         DETECT_SM_LIST_POSTMATCH) == NULL) {
                 goto error;
             }
@@ -398,7 +398,7 @@ static int DetectFlowintSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
         case FLOWINT_MODIFIER_GT:
         case FLOWINT_MODIFIER_ISSET:
         case FLOWINT_MODIFIER_ISNOTSET:
-            if (SigMatchAppendSMToList(de_ctx, s, DETECT_FLOWINT, (SigMatchCtx *)sfd,
+            if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_FLOWINT, (SigMatchCtx *)sfd,
                         DETECT_SM_LIST_MATCH) == NULL) {
                 goto error;
             }

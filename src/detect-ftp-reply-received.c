@@ -92,7 +92,7 @@ static int DetectFtpReplyReceivedSetup(DetectEngineCtx *de_ctx, Signature *s, co
         return -1;
     }
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_FTP_REPLY_RECEIVED, (SigMatchCtx *)frrd,
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_FTP_REPLY_RECEIVED, (SigMatchCtx *)frrd,
                 g_ftp_reply_received_buffer_id) == NULL) {
         DetectFtpReplyReceivedFree(de_ctx, frrd);
         return -1;

@@ -488,8 +488,8 @@ static int DetectFlagsSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
     if (de == NULL)
         goto error;
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_FLAGS, (SigMatchCtx *)de, DETECT_SM_LIST_MATCH) ==
-            NULL) {
+    if (SCSigMatchAppendSMToList(
+                de_ctx, s, DETECT_FLAGS, (SigMatchCtx *)de, DETECT_SM_LIST_MATCH) == NULL) {
         goto error;
     }
     s->flags |= SIG_FLAG_REQUIRE_PACKET;

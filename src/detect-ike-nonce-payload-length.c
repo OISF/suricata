@@ -116,7 +116,7 @@ static int DetectIkeNoncePayloadLengthSetup(
     /* okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_IKE_NONCE_PAYLOAD_LENGTH,
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_IKE_NONCE_PAYLOAD_LENGTH,
                 (SigMatchCtx *)nonce_payload_length,
                 g_ike_nonce_payload_length_buffer_id) == NULL) {
         goto error;

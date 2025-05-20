@@ -21,9 +21,7 @@ use crate::detect::uint::{
     detect_match_uint, detect_parse_uint_enum, DetectUintData, SCDetectU16Free, SCDetectU8Free,
     SCDetectU8Parse,
 };
-use crate::detect::{
-    helper_keyword_register_sticky_buffer, SigMatchAppendSMToList, SigTableElmtStickyBuffer,
-};
+use crate::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
 use crate::direction::Direction;
 use std::ffi::CStr;
 use std::os::raw::{c_int, c_void};
@@ -31,7 +29,8 @@ use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
     SCDetectHelperBufferRegister, SCDetectHelperKeywordAliasRegister,
     SCDetectHelperKeywordRegister, SCDetectHelperMultiBufferProgressMpmRegister,
-    SCDetectSignatureSetAppProto, SCSigTableAppLiteElmt, SigMatchCtx, Signature,
+    SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList, SCSigTableAppLiteElmt, SigMatchCtx,
+    Signature,
 };
 
 /// Perform the DNS opcode match.
@@ -128,11 +127,11 @@ unsafe extern "C" fn dns_rrtype_match(
 static mut G_DNS_ANSWER_NAME_BUFFER_ID: c_int = 0;
 static mut G_DNS_QUERY_NAME_BUFFER_ID: c_int = 0;
 static mut G_DNS_QUERY_BUFFER_ID: c_int = 0;
-static mut G_DNS_OPCODE_KW_ID: c_int = 0;
+static mut G_DNS_OPCODE_KW_ID: u16 = 0;
 static mut G_DNS_OPCODE_BUFFER_ID: c_int = 0;
-static mut G_DNS_RCODE_KW_ID: c_int = 0;
+static mut G_DNS_RCODE_KW_ID: u16 = 0;
 static mut G_DNS_RCODE_BUFFER_ID: c_int = 0;
-static mut G_DNS_RRTYPE_KW_ID: c_int = 0;
+static mut G_DNS_RRTYPE_KW_ID: u16 = 0;
 static mut G_DNS_RRTYPE_BUFFER_ID: c_int = 0;
 
 unsafe extern "C" fn dns_opcode_setup(
@@ -145,7 +144,15 @@ unsafe extern "C" fn dns_opcode_setup(
     if ctx.is_null() {
         return -1;
     }
-    if SigMatchAppendSMToList(de, s, G_DNS_OPCODE_KW_ID, ctx, G_DNS_OPCODE_BUFFER_ID).is_null() {
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_DNS_OPCODE_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_DNS_OPCODE_BUFFER_ID,
+    )
+    .is_null()
+    {
         dns_opcode_free(std::ptr::null_mut(), ctx);
         return -1;
     }
@@ -179,7 +186,15 @@ unsafe extern "C" fn dns_rcode_setup(
     if ctx.is_null() {
         return -1;
     }
-    if SigMatchAppendSMToList(de, s, G_DNS_RCODE_KW_ID, ctx, G_DNS_RCODE_BUFFER_ID).is_null() {
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_DNS_RCODE_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_DNS_RCODE_BUFFER_ID,
+    )
+    .is_null()
+    {
         dns_rcode_free(std::ptr::null_mut(), ctx);
         return -1;
     }
@@ -215,7 +230,15 @@ unsafe extern "C" fn dns_rrtype_setup(
     if ctx.is_null() {
         return -1;
     }
-    if SigMatchAppendSMToList(de, s, G_DNS_RRTYPE_KW_ID, ctx, G_DNS_RRTYPE_BUFFER_ID).is_null() {
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_DNS_RRTYPE_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_DNS_RRTYPE_BUFFER_ID,
+    )
+    .is_null()
+    {
         dns_rrtype_free(std::ptr::null_mut(), ctx);
         return -1;
     }

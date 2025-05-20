@@ -242,7 +242,7 @@ static int DetectIcmpIdSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     iid = DetectIcmpIdParse(de_ctx, icmpidstr);
     if (iid == NULL) goto error;
 
-    if (SigMatchAppendSMToList(
+    if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_ICMP_ID, (SigMatchCtx *)iid, DETECT_SM_LIST_MATCH) == NULL) {
         goto error;
     }

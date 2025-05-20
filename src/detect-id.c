@@ -200,7 +200,7 @@ int DetectIdSetup (DetectEngineCtx *de_ctx, Signature *s, const char *idstr)
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_ID, (SigMatchCtx *)id_d, DETECT_SM_LIST_MATCH) ==
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_ID, (SigMatchCtx *)id_d, DETECT_SM_LIST_MATCH) ==
             NULL) {
         DetectIdFree(de_ctx, id_d);
         return -1;

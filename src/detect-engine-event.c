@@ -280,7 +280,7 @@ static int DetectEngineEventSetupDo(
 
     SCLogDebug("rawstr %s %u", rawstr, de->event);
 
-    if (SigMatchAppendSMToList(de_ctx, s, smtype, (SigMatchCtx *)de, DETECT_SM_LIST_MATCH) ==
+    if (SCSigMatchAppendSMToList(de_ctx, s, smtype, (SigMatchCtx *)de, DETECT_SM_LIST_MATCH) ==
             NULL) {
         SCFree(de);
         return -1;

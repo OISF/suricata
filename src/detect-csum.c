@@ -279,7 +279,7 @@ static int DetectIPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
 
-    if (SigMatchAppendSMToList(
+    if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_IPV4_CSUM, (SigMatchCtx *)cd, DETECT_SM_LIST_MATCH) == NULL) {
         goto error;
     }
@@ -359,7 +359,7 @@ static int DetectTCPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
 
-    if (SigMatchAppendSMToList(
+    if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_TCPV4_CSUM, (SigMatchCtx *)cd, DETECT_SM_LIST_MATCH) == NULL) {
         goto error;
     }
@@ -440,7 +440,7 @@ static int DetectTCPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
 
-    if (SigMatchAppendSMToList(
+    if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_TCPV6_CSUM, (SigMatchCtx *)cd, DETECT_SM_LIST_MATCH) == NULL) {
         goto error;
     }
@@ -523,7 +523,7 @@ static int DetectUDPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
 
-    if (SigMatchAppendSMToList(
+    if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_UDPV4_CSUM, (SigMatchCtx *)cd, DETECT_SM_LIST_MATCH) == NULL) {
         goto error;
     }
@@ -603,7 +603,7 @@ static int DetectUDPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
 
-    if (SigMatchAppendSMToList(
+    if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_UDPV6_CSUM, (SigMatchCtx *)cd, DETECT_SM_LIST_MATCH) == NULL) {
         goto error;
     }
@@ -686,7 +686,7 @@ static int DetectICMPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
 
-    if (SigMatchAppendSMToList(
+    if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_ICMPV4_CSUM, (SigMatchCtx *)cd, DETECT_SM_LIST_MATCH) == NULL) {
         goto error;
     }
@@ -772,7 +772,7 @@ static int DetectICMPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
 
-    if (SigMatchAppendSMToList(
+    if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_ICMPV6_CSUM, (SigMatchCtx *)cd, DETECT_SM_LIST_MATCH) == NULL) {
         goto error;
     }
