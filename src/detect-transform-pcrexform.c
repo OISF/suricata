@@ -146,7 +146,7 @@ static int DetectTransformPcrexformSetup (DetectEngineCtx *de_ctx, Signature *s,
         DetectTransformPcrexformFree(de_ctx, pxd);
         SCReturnInt(-1);
     }
-    pxd->id_data_len = strlen(regexstr);
+    pxd->id_data_len = (uint32_t)strlen(regexstr);
 
     int r = SCDetectSignatureAddTransform(s, DETECT_TRANSFORM_PCREXFORM, pxd);
     if (r != 0) {
