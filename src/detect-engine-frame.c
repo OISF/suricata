@@ -258,12 +258,12 @@ static void BufferSetupUdp(DetectEngineThreadCtx *det_ctx, InspectionBuffer *buf
     uint8_t ci_flags = DETECT_CI_FLAGS_START;
     uint32_t frame_len;
     if (frame->len == -1) {
-        frame_len = p->payload_len - frame->offset;
+        frame_len = (uint32_t)(p->payload_len - frame->offset);
     } else {
         frame_len = (uint32_t)frame->len;
     }
     if (frame->offset + frame_len > p->payload_len) {
-        frame_len = p->payload_len - frame->offset;
+        frame_len = (uint32_t)(p->payload_len - frame->offset);
     } else {
         ci_flags |= DETECT_CI_FLAGS_END;
     }
@@ -341,7 +341,7 @@ static bool BufferSetup(struct FrameStreamData *fsd, InspectionBuffer *buffer, c
         SCLogDebug("have frame data start");
 
         if (frame->len >= 0) {
-            data_len = MIN(input_len, frame->len);
+            data_len = MIN(input_len, (uint32_t)frame->len);
             if (data_len == frame->len) {
                 ci_flags |= DETECT_CI_FLAGS_END;
                 SCLogDebug("have frame data end");
@@ -368,20 +368,23 @@ static bool BufferSetup(struct FrameStreamData *fsd, InspectionBuffer *buffer, c
 
             /* in: relative to start of input data */
             BUG_ON(so_inspect_offset < input_offset);
-            const uint32_t in_data_offset = so_inspect_offset - input_offset;
+            DEBUG_VALIDATE_BUG_ON(so_inspect_offset - input_offset > UINT32_MAX);
+            const uint32_t in_data_offset = (uint32_t)(so_inspect_offset - input_offset);
             data += in_data_offset;
 
             uint32_t in_data_excess = 0;
             if (so_input_re >= so_frame_re) {
                 ci_flags |= DETECT_CI_FLAGS_END;
                 SCLogDebug("have frame data end");
-                in_data_excess = so_input_re - so_frame_re;
+                DEBUG_VALIDATE_BUG_ON(so_input_re - so_frame_re > UINT32_MAX);
+                in_data_excess = (uint32_t)(so_input_re - so_frame_re);
             }
             data_len = input_len - in_data_offset - in_data_excess;
         } else {
             /* in: relative to start of input data */
             BUG_ON(so_inspect_offset < input_offset);
-            const uint32_t in_data_offset = so_inspect_offset - input_offset;
+            DEBUG_VALIDATE_BUG_ON(so_inspect_offset - input_offset > UINT32_MAX);
+            const uint32_t in_data_offset = (uint32_t)(so_inspect_offset - input_offset);
             data += in_data_offset;
             data_len = input_len - in_data_offset;
         }
