@@ -2295,6 +2295,16 @@ static void DetectNoFlow(ThreadVars *tv,
     DetectRun(tv, de_ctx, det_ctx, p);
 }
 
+uint8_t DetectPreFlow(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p)
+{
+    const DetectEngineCtx *de_ctx = det_ctx->de_ctx;
+    const SigGroupHead *sgh = de_ctx->pre_flow_sgh;
+
+    SCLogDebug("thread id: %u, packet %" PRIu64 ", sgh %p", tv->id, p->pcap_cnt, sgh);
+    DetectRunPacketHook(tv, de_ctx, det_ctx, sgh, p);
+    return p->action;
+}
+
 uint8_t DetectPreStream(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p)
 {
     const DetectEngineCtx *de_ctx = det_ctx->de_ctx;

@@ -574,6 +574,14 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
     }
 
     /* handle Flow */
+    if (det_ctx != NULL && det_ctx->de_ctx->PreFlowHook != NULL) {
+        const uint8_t action = det_ctx->de_ctx->PreFlowHook(tv, det_ctx, p);
+        if (action & ACTION_DROP) {
+            PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_FLOW_PRE_HOOK);
+            goto pre_flow_drop;
+        }
+    }
+
     if (p->flags & PKT_WANTS_FLOW) {
         FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_FLOW);
 
@@ -660,6 +668,7 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
         FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_DETECT);
     }
 
+pre_flow_drop:
     // Outputs.
     OutputLoggerLog(tv, p, fw->output_thread);
 
