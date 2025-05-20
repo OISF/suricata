@@ -40,6 +40,7 @@
 #include "detect-engine-register.h"
 #include "detect-engine-buffer.h"
 #include "detect-engine-helper.h"
+#include "detect-parse.h"
 
 #include "conf.h"
 
