@@ -27,6 +27,23 @@
 /* prototypes */
 void DetectFiledataRegister (void);
 
+/* File handler registration */
+#define MAX_DETECT_ALPROTO_CNT 10
+typedef struct DetectFileHandlerTableElmt_ {
+    const char *name;
+    int priority;
+    PrefilterRegisterFunc PrefilterFn;
+    InspectEngineFuncPtr Callback;
+    InspectionBufferGetDataPtr GetData;
+    int al_protocols[MAX_DETECT_ALPROTO_CNT];
+    int tx_progress;
+    int progress;
+} DetectFileHandlerTableElmt;
+void DetectFileRegisterFileProtocols(DetectFileHandlerTableElmt *entry);
+
+/* File registration table */
+extern DetectFileHandlerTableElmt filehandler_table[DETECT_TBLSIZE_STATIC];
+
 typedef struct PrefilterMpmFiledata {
     int list_id;
     int base_list_id;

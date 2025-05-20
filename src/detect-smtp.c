@@ -28,6 +28,7 @@
 #include "detect-engine-buffer.h"
 #include "detect-engine-content-inspection.h"
 #include "detect-engine-helper.h"
+#include "detect-engine-mpm.h"
 #include "detect-engine-prefilter.h"
 #include "detect-parse.h"
 #include "app-layer-smtp.h"
