@@ -72,7 +72,7 @@ static bool DetectFTPCompletionCodeGetData(DetectEngineThreadCtx *_det_ctx, cons
             DEBUG_VALIDATE_BUG_ON(wrapper->response == NULL);
             if (index == count) {
                 *buffer = (const uint8_t *)wrapper->response->code;
-                *buffer_len = wrapper->response->code_length;
+                *buffer_len = (uint32_t)wrapper->response->code_length;
                 return true;
             }
             count++;
