@@ -211,7 +211,7 @@ static int DetectIkeChosenSaSetup(DetectEngineCtx *de_ctx, Signature *s, const c
     /* okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_IKE_CHOSEN_SA, (SigMatchCtx *)dd,
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_IKE_CHOSEN_SA, (SigMatchCtx *)dd,
                 g_ike_chosen_sa_buffer_id) == NULL) {
         goto error;
     }

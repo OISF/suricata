@@ -355,7 +355,7 @@ int DetectContentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *conten
         }
     }
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_CONTENT, (SigMatchCtx *)cd, sm_list) == NULL) {
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_CONTENT, (SigMatchCtx *)cd, sm_list) == NULL) {
         goto error;
     }
 

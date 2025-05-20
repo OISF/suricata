@@ -95,7 +95,7 @@ static int DetectSameipSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
 
     /* Get this into a SigMatch and put it in the Signature. */
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_SAMEIP, NULL, DETECT_SM_LIST_MATCH) == NULL) {
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_SAMEIP, NULL, DETECT_SM_LIST_MATCH) == NULL) {
         goto error;
     }
     s->flags |= SIG_FLAG_REQUIRE_PACKET;

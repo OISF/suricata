@@ -206,7 +206,7 @@ static int DetectMarkSetup (DetectEngineCtx *de_ctx, Signature *s, const char *r
 
     /* Append it to the list of post match, so the mark is set if the
      * full signature matches. */
-    if (SigMatchAppendSMToList(
+    if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_MARK, (SigMatchCtx *)data, DETECT_SM_LIST_POSTMATCH) == NULL) {
         DetectMarkDataFree(de_ctx, data);
         return -1;

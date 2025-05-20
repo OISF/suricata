@@ -35,13 +35,12 @@ use crate::detect::uint::{
     SCDetectU16Parse, SCDetectU32Free, SCDetectU32Match, SCDetectU32Parse, SCDetectU8Free,
     SCDetectU8Match, SCDetectU8Parse,
 };
-use crate::detect::{
-    helper_keyword_register_sticky_buffer, SigMatchAppendSMToList, SigTableElmtStickyBuffer,
-};
+use crate::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
     SCDetectHelperBufferMpmRegister, SCDetectHelperBufferRegister, SCDetectHelperKeywordRegister,
-    SCDetectSignatureSetAppProto, SCSigTableAppLiteElmt, SigMatchCtx, Signature,
+    SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList, SCSigTableAppLiteElmt, SigMatchCtx,
+    Signature,
 };
 
 use crate::direction::Direction;
@@ -402,39 +401,39 @@ fn tx_get_protocol_version(tx: &EnipTransaction, direction: Direction) -> Option
     return None;
 }
 
-static mut G_ENIP_CIPSERVICE_KW_ID: c_int = 0;
+static mut G_ENIP_CIPSERVICE_KW_ID: u16 = 0;
 static mut G_ENIP_CIPSERVICE_BUFFER_ID: c_int = 0;
-static mut G_ENIP_CAPABILITIES_KW_ID: c_int = 0;
+static mut G_ENIP_CAPABILITIES_KW_ID: u16 = 0;
 static mut G_ENIP_CAPABILITIES_BUFFER_ID: c_int = 0;
-static mut G_ENIP_CIP_ATTRIBUTE_KW_ID: c_int = 0;
+static mut G_ENIP_CIP_ATTRIBUTE_KW_ID: u16 = 0;
 static mut G_ENIP_CIP_ATTRIBUTE_BUFFER_ID: c_int = 0;
-static mut G_ENIP_CIP_CLASS_KW_ID: c_int = 0;
+static mut G_ENIP_CIP_CLASS_KW_ID: u16 = 0;
 static mut G_ENIP_CIP_CLASS_BUFFER_ID: c_int = 0;
-static mut G_ENIP_VENDOR_ID_KW_ID: c_int = 0;
+static mut G_ENIP_VENDOR_ID_KW_ID: u16 = 0;
 static mut G_ENIP_VENDOR_ID_BUFFER_ID: c_int = 0;
-static mut G_ENIP_STATUS_KW_ID: c_int = 0;
+static mut G_ENIP_STATUS_KW_ID: u16 = 0;
 static mut G_ENIP_STATUS_BUFFER_ID: c_int = 0;
-static mut G_ENIP_STATE_KW_ID: c_int = 0;
+static mut G_ENIP_STATE_KW_ID: u16 = 0;
 static mut G_ENIP_STATE_BUFFER_ID: c_int = 0;
-static mut G_ENIP_SERIAL_KW_ID: c_int = 0;
+static mut G_ENIP_SERIAL_KW_ID: u16 = 0;
 static mut G_ENIP_SERIAL_BUFFER_ID: c_int = 0;
-static mut G_ENIP_REVISION_KW_ID: c_int = 0;
+static mut G_ENIP_REVISION_KW_ID: u16 = 0;
 static mut G_ENIP_REVISION_BUFFER_ID: c_int = 0;
-static mut G_ENIP_PROTOCOL_VERSION_KW_ID: c_int = 0;
+static mut G_ENIP_PROTOCOL_VERSION_KW_ID: u16 = 0;
 static mut G_ENIP_PROTOCOL_VERSION_BUFFER_ID: c_int = 0;
-static mut G_ENIP_PRODUCT_CODE_KW_ID: c_int = 0;
+static mut G_ENIP_PRODUCT_CODE_KW_ID: u16 = 0;
 static mut G_ENIP_PRODUCT_CODE_BUFFER_ID: c_int = 0;
-static mut G_ENIP_IDENTITY_STATUS_KW_ID: c_int = 0;
+static mut G_ENIP_IDENTITY_STATUS_KW_ID: u16 = 0;
 static mut G_ENIP_IDENTITY_STATUS_BUFFER_ID: c_int = 0;
-static mut G_ENIP_DEVICE_TYPE_KW_ID: c_int = 0;
+static mut G_ENIP_DEVICE_TYPE_KW_ID: u16 = 0;
 static mut G_ENIP_DEVICE_TYPE_BUFFER_ID: c_int = 0;
-static mut G_ENIP_COMMAND_KW_ID: c_int = 0;
+static mut G_ENIP_COMMAND_KW_ID: u16 = 0;
 static mut G_ENIP_COMMAND_BUFFER_ID: c_int = 0;
-static mut G_ENIP_CIP_STATUS_KW_ID: c_int = 0;
+static mut G_ENIP_CIP_STATUS_KW_ID: u16 = 0;
 static mut G_ENIP_CIP_STATUS_BUFFER_ID: c_int = 0;
-static mut G_ENIP_CIP_INSTANCE_KW_ID: c_int = 0;
+static mut G_ENIP_CIP_INSTANCE_KW_ID: u16 = 0;
 static mut G_ENIP_CIP_INSTANCE_BUFFER_ID: c_int = 0;
-static mut G_ENIP_CIP_EXTENDEDSTATUS_KW_ID: c_int = 0;
+static mut G_ENIP_CIP_EXTENDEDSTATUS_KW_ID: u16 = 0;
 static mut G_ENIP_CIP_EXTENDEDSTATUS_BUFFER_ID: c_int = 0;
 static mut G_ENIP_PRODUCT_NAME_BUFFER_ID: c_int = 0;
 static mut G_ENIP_SERVICE_NAME_BUFFER_ID: c_int = 0;
@@ -460,11 +459,11 @@ unsafe extern "C" fn cipservice_setup(
     if ctx.is_null() {
         return -1;
     }
-    if SigMatchAppendSMToList(
+    if SCSigMatchAppendSMToList(
         de,
         s,
         G_ENIP_CIPSERVICE_KW_ID,
-        ctx,
+        ctx as *mut SigMatchCtx,
         G_ENIP_CIPSERVICE_BUFFER_ID,
     )
     .is_null()
@@ -498,11 +497,11 @@ unsafe extern "C" fn capabilities_setup(
     if ctx.is_null() {
         return -1;
     }
-    if SigMatchAppendSMToList(
+    if SCSigMatchAppendSMToList(
         de,
         s,
         G_ENIP_CAPABILITIES_KW_ID,
-        ctx,
+        ctx as *mut SigMatchCtx,
         G_ENIP_CAPABILITIES_BUFFER_ID,
     )
     .is_null()
@@ -554,11 +553,11 @@ unsafe extern "C" fn cip_attribute_setup(
     if ctx.is_null() {
         return -1;
     }
-    if SigMatchAppendSMToList(
+    if SCSigMatchAppendSMToList(
         de,
         s,
         G_ENIP_CIP_ATTRIBUTE_KW_ID,
-        ctx,
+        ctx as *mut SigMatchCtx,
         G_ENIP_CIP_ATTRIBUTE_BUFFER_ID,
     )
     .is_null()
@@ -594,11 +593,11 @@ unsafe extern "C" fn cip_class_setup(
     if ctx.is_null() {
         return -1;
     }
-    if SigMatchAppendSMToList(
+    if SCSigMatchAppendSMToList(
         de,
         s,
         G_ENIP_CIP_CLASS_KW_ID,
-        ctx,
+        ctx as *mut SigMatchCtx,
         G_ENIP_CIP_CLASS_BUFFER_ID,
     )
     .is_null()
@@ -634,11 +633,11 @@ unsafe extern "C" fn vendor_id_setup(
     if ctx.is_null() {
         return -1;
     }
-    if SigMatchAppendSMToList(
+    if SCSigMatchAppendSMToList(
         de,
         s,
         G_ENIP_VENDOR_ID_KW_ID,
-        ctx,
+        ctx as *mut SigMatchCtx,
         G_ENIP_VENDOR_ID_BUFFER_ID,
     )
     .is_null()
@@ -690,7 +689,15 @@ unsafe extern "C" fn status_setup(
     if ctx.is_null() {
         return -1;
     }
-    if SigMatchAppendSMToList(de, s, G_ENIP_STATUS_KW_ID, ctx, G_ENIP_STATUS_BUFFER_ID).is_null() {
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_ENIP_STATUS_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_ENIP_STATUS_BUFFER_ID,
+    )
+    .is_null()
+    {
         status_free(std::ptr::null_mut(), ctx);
         return -1;
     }
@@ -725,7 +732,15 @@ unsafe extern "C" fn state_setup(
     if ctx.is_null() {
         return -1;
     }
-    if SigMatchAppendSMToList(de, s, G_ENIP_STATE_KW_ID, ctx, G_ENIP_STATE_BUFFER_ID).is_null() {
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_ENIP_STATE_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_ENIP_STATE_BUFFER_ID,
+    )
+    .is_null()
+    {
         state_free(std::ptr::null_mut(), ctx);
         return -1;
     }
@@ -773,7 +788,15 @@ unsafe extern "C" fn serial_setup(
     if ctx.is_null() {
         return -1;
     }
-    if SigMatchAppendSMToList(de, s, G_ENIP_SERIAL_KW_ID, ctx, G_ENIP_SERIAL_BUFFER_ID).is_null() {
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_ENIP_SERIAL_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_ENIP_SERIAL_BUFFER_ID,
+    )
+    .is_null()
+    {
         serial_free(std::ptr::null_mut(), ctx);
         return -1;
     }
@@ -821,8 +844,14 @@ unsafe extern "C" fn revision_setup(
     if ctx.is_null() {
         return -1;
     }
-    if SigMatchAppendSMToList(de, s, G_ENIP_REVISION_KW_ID, ctx, G_ENIP_REVISION_BUFFER_ID)
-        .is_null()
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_ENIP_REVISION_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_ENIP_REVISION_BUFFER_ID,
+    )
+    .is_null()
     {
         revision_free(std::ptr::null_mut(), ctx);
         return -1;
@@ -871,11 +900,11 @@ unsafe extern "C" fn protocol_version_setup(
     if ctx.is_null() {
         return -1;
     }
-    if SigMatchAppendSMToList(
+    if SCSigMatchAppendSMToList(
         de,
         s,
         G_ENIP_PROTOCOL_VERSION_KW_ID,
-        ctx,
+        ctx as *mut SigMatchCtx,
         G_ENIP_PROTOCOL_VERSION_BUFFER_ID,
     )
     .is_null()
@@ -914,11 +943,11 @@ unsafe extern "C" fn product_code_setup(
     if ctx.is_null() {
         return -1;
     }
-    if SigMatchAppendSMToList(
+    if SCSigMatchAppendSMToList(
         de,
         s,
         G_ENIP_PRODUCT_CODE_KW_ID,
-        ctx,
+        ctx as *mut SigMatchCtx,
         G_ENIP_PRODUCT_CODE_BUFFER_ID,
     )
     .is_null()
@@ -970,11 +999,11 @@ unsafe extern "C" fn identity_status_setup(
     if ctx.is_null() {
         return -1;
     }
-    if SigMatchAppendSMToList(
+    if SCSigMatchAppendSMToList(
         de,
         s,
         G_ENIP_IDENTITY_STATUS_KW_ID,
-        ctx,
+        ctx as *mut SigMatchCtx,
         G_ENIP_IDENTITY_STATUS_BUFFER_ID,
     )
     .is_null()
@@ -1026,11 +1055,11 @@ unsafe extern "C" fn device_type_setup(
     if ctx.is_null() {
         return -1;
     }
-    if SigMatchAppendSMToList(
+    if SCSigMatchAppendSMToList(
         de,
         s,
         G_ENIP_DEVICE_TYPE_KW_ID,
-        ctx,
+        ctx as *mut SigMatchCtx,
         G_ENIP_DEVICE_TYPE_BUFFER_ID,
     )
     .is_null()
@@ -1082,7 +1111,14 @@ unsafe extern "C" fn command_setup(
     if ctx.is_null() {
         return -1;
     }
-    if SigMatchAppendSMToList(de, s, G_ENIP_COMMAND_KW_ID, ctx, G_ENIP_COMMAND_BUFFER_ID).is_null()
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_ENIP_COMMAND_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_ENIP_COMMAND_BUFFER_ID,
+    )
+    .is_null()
     {
         command_free(std::ptr::null_mut(), ctx);
         return -1;
@@ -1130,11 +1166,11 @@ unsafe extern "C" fn cip_status_setup(
     if ctx.is_null() {
         return -1;
     }
-    if SigMatchAppendSMToList(
+    if SCSigMatchAppendSMToList(
         de,
         s,
         G_ENIP_CIP_STATUS_KW_ID,
-        ctx,
+        ctx as *mut SigMatchCtx,
         G_ENIP_CIP_STATUS_BUFFER_ID,
     )
     .is_null()
@@ -1170,11 +1206,11 @@ unsafe extern "C" fn cip_instance_setup(
     if ctx.is_null() {
         return -1;
     }
-    if SigMatchAppendSMToList(
+    if SCSigMatchAppendSMToList(
         de,
         s,
         G_ENIP_CIP_INSTANCE_KW_ID,
-        ctx,
+        ctx as *mut SigMatchCtx,
         G_ENIP_CIP_INSTANCE_BUFFER_ID,
     )
     .is_null()
@@ -1210,11 +1246,11 @@ unsafe extern "C" fn cip_extendedstatus_setup(
     if ctx.is_null() {
         return -1;
     }
-    if SigMatchAppendSMToList(
+    if SCSigMatchAppendSMToList(
         de,
         s,
         G_ENIP_CIP_EXTENDEDSTATUS_KW_ID,
-        ctx,
+        ctx as *mut SigMatchCtx,
         G_ENIP_CIP_EXTENDEDSTATUS_BUFFER_ID,
     )
     .is_null()

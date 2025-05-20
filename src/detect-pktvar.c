@@ -152,8 +152,8 @@ static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_PKTVAR, (SigMatchCtx *)cd, DETECT_SM_LIST_MATCH) ==
-            NULL) {
+    if (SCSigMatchAppendSMToList(
+                de_ctx, s, DETECT_PKTVAR, (SigMatchCtx *)cd, DETECT_SM_LIST_MATCH) == NULL) {
         goto error;
     }
 

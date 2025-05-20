@@ -22,14 +22,12 @@ use crate::detect::uint::{
     detect_match_uint, detect_parse_uint, detect_parse_uint_enum, DetectUintData, DetectUintMode,
     SCDetectU8Free, SCDetectU8Parse,
 };
-use crate::detect::{
-    helper_keyword_register_sticky_buffer, SigMatchAppendSMToList, SigTableElmtStickyBuffer,
-};
+use crate::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
     SCDetectHelperBufferMpmRegister, SCDetectHelperBufferRegister, SCDetectHelperKeywordRegister,
-    SCDetectHelperMultiBufferMpmRegister, SCDetectSignatureSetAppProto, SCSigTableAppLiteElmt,
-    SigMatchCtx, Signature,
+    SCDetectHelperMultiBufferMpmRegister, SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList,
+    SCSigTableAppLiteElmt, SigMatchCtx, Signature,
 };
 
 use nom7::branch::alt;
@@ -277,19 +275,19 @@ fn mqtt_tx_suback_unsuback_has_reason_code(
 
 static mut UNSUB_TOPIC_MATCH_LIMIT: isize = 100;
 static mut G_MQTT_UNSUB_TOPIC_BUFFER_ID: c_int = 0;
-static mut G_MQTT_TYPE_KW_ID: c_int = 0;
+static mut G_MQTT_TYPE_KW_ID: u16 = 0;
 static mut G_MQTT_TYPE_BUFFER_ID: c_int = 0;
 static mut SUB_TOPIC_MATCH_LIMIT: isize = 100;
 static mut G_MQTT_SUB_TOPIC_BUFFER_ID: c_int = 0;
-static mut G_MQTT_REASON_CODE_KW_ID: c_int = 0;
+static mut G_MQTT_REASON_CODE_KW_ID: u16 = 0;
 static mut G_MQTT_REASON_CODE_BUFFER_ID: c_int = 0;
-static mut G_MQTT_QOS_KW_ID: c_int = 0;
+static mut G_MQTT_QOS_KW_ID: u16 = 0;
 static mut G_MQTT_QOS_BUFFER_ID: c_int = 0;
 static mut G_MQTT_PUB_TOPIC_BUFFER_ID: c_int = 0;
 static mut G_MQTT_PUB_MSG_BUFFER_ID: c_int = 0;
-static mut G_MQTT_PROTOCOL_VERSION_KW_ID: c_int = 0;
+static mut G_MQTT_PROTOCOL_VERSION_KW_ID: u16 = 0;
 static mut G_MQTT_PROTOCOL_VERSION_BUFFER_ID: c_int = 0;
-static mut G_MQTT_FLAGS_KW_ID: c_int = 0;
+static mut G_MQTT_FLAGS_KW_ID: u16 = 0;
 static mut G_MQTT_FLAGS_BUFFER_ID: c_int = 0;
 static mut G_MQTT_CONN_WILLTOPIC_BUFFER_ID: c_int = 0;
 static mut G_MQTT_CONN_WILLMSG_BUFFER_ID: c_int = 0;
@@ -297,9 +295,9 @@ static mut G_MQTT_CONN_USERNAME_BUFFER_ID: c_int = 0;
 static mut G_MQTT_CONN_PROTOCOLSTRING_BUFFER_ID: c_int = 0;
 static mut G_MQTT_CONN_PASSWORD_BUFFER_ID: c_int = 0;
 static mut G_MQTT_CONN_CLIENTID_BUFFER_ID: c_int = 0;
-static mut G_MQTT_CONNACK_SESSIONPRESENT_KW_ID: c_int = 0;
+static mut G_MQTT_CONNACK_SESSIONPRESENT_KW_ID: u16 = 0;
 static mut G_MQTT_CONNACK_SESSIONPRESENT_BUFFER_ID: c_int = 0;
-static mut G_MQTT_CONN_FLAGS_KW_ID: c_int = 0;
+static mut G_MQTT_CONN_FLAGS_KW_ID: u16 = 0;
 static mut G_MQTT_CONN_FLAGS_BUFFER_ID: c_int = 0;
 
 unsafe extern "C" fn unsub_topic_get_data(
@@ -405,7 +403,15 @@ unsafe extern "C" fn mqtt_type_setup(
     if ctx.is_null() {
         return -1;
     }
-    if SigMatchAppendSMToList(de, s, G_MQTT_TYPE_KW_ID, ctx, G_MQTT_TYPE_BUFFER_ID).is_null() {
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_MQTT_TYPE_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_MQTT_TYPE_BUFFER_ID,
+    )
+    .is_null()
+    {
         mqtt_type_free(std::ptr::null_mut(), ctx);
         return -1;
     }
@@ -437,11 +443,11 @@ unsafe extern "C" fn mqtt_reason_code_setup(
     if ctx.is_null() {
         return -1;
     }
-    if SigMatchAppendSMToList(
+    if SCSigMatchAppendSMToList(
         de,
         s,
         G_MQTT_REASON_CODE_KW_ID,
-        ctx,
+        ctx as *mut SigMatchCtx,
         G_MQTT_REASON_CODE_BUFFER_ID,
     )
     .is_null()
@@ -495,7 +501,15 @@ unsafe extern "C" fn mqtt_qos_setup(
     if ctx.is_null() {
         return -1;
     }
-    if SigMatchAppendSMToList(de, s, G_MQTT_QOS_KW_ID, ctx, G_MQTT_QOS_BUFFER_ID).is_null() {
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_MQTT_QOS_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_MQTT_QOS_BUFFER_ID,
+    )
+    .is_null()
+    {
         mqtt_qos_free(std::ptr::null_mut(), ctx);
         return -1;
     }
@@ -547,11 +561,11 @@ unsafe extern "C" fn mqtt_connack_sessionpresent_setup(
     if ctx.is_null() {
         return -1;
     }
-    if SigMatchAppendSMToList(
+    if SCSigMatchAppendSMToList(
         de,
         s,
         G_MQTT_CONNACK_SESSIONPRESENT_KW_ID,
-        ctx,
+        ctx as *mut SigMatchCtx,
         G_MQTT_CONNACK_SESSIONPRESENT_BUFFER_ID,
     )
     .is_null()
@@ -620,11 +634,11 @@ unsafe extern "C" fn mqtt_protocol_version_setup(
     if ctx.is_null() {
         return -1;
     }
-    if SigMatchAppendSMToList(
+    if SCSigMatchAppendSMToList(
         de,
         s,
         G_MQTT_PROTOCOL_VERSION_KW_ID,
-        ctx,
+        ctx as *mut SigMatchCtx,
         G_MQTT_PROTOCOL_VERSION_BUFFER_ID,
     )
     .is_null()
@@ -727,7 +741,15 @@ unsafe extern "C" fn mqtt_flags_setup(
     if ctx.is_null() {
         return -1;
     }
-    if SigMatchAppendSMToList(de, s, G_MQTT_FLAGS_KW_ID, ctx, G_MQTT_FLAGS_BUFFER_ID).is_null() {
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_MQTT_FLAGS_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_MQTT_FLAGS_BUFFER_ID,
+    )
+    .is_null()
+    {
         mqtt_flags_free(std::ptr::null_mut(), ctx);
         return -1;
     }
@@ -840,11 +862,11 @@ unsafe extern "C" fn mqtt_conn_flags_setup(
     if ctx.is_null() {
         return -1;
     }
-    if SigMatchAppendSMToList(
+    if SCSigMatchAppendSMToList(
         de,
         s,
         G_MQTT_CONN_FLAGS_KW_ID,
-        ctx,
+        ctx as *mut SigMatchCtx,
         G_MQTT_CONN_FLAGS_BUFFER_ID,
     )
     .is_null()

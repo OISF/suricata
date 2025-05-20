@@ -392,7 +392,8 @@ static int DetectByteMathSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         de_ctx->byte_extract_max_local_id = data->local_id;
     }
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_BYTEMATH, (SigMatchCtx *)data, sm_list) == NULL) {
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_BYTEMATH, (SigMatchCtx *)data, sm_list) ==
+            NULL) {
         goto error;
     }
 

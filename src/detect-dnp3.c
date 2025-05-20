@@ -222,7 +222,7 @@ static int DetectDNP3FuncSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     }
     dnp3->function_code = function_code;
 
-    if (SigMatchAppendSMToList(
+    if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_DNP3FUNC, (SigMatchCtx *)dnp3, g_dnp3_match_buffer_id) == NULL) {
         goto error;
     }
@@ -300,7 +300,7 @@ static int DetectDNP3IndSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
     }
     detect->ind_flags = flags;
 
-    if (SigMatchAppendSMToList(
+    if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_DNP3IND, (SigMatchCtx *)detect, g_dnp3_match_buffer_id) == NULL) {
         goto error;
     }
@@ -367,7 +367,7 @@ static int DetectDNP3ObjSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
     detect->obj_group = group;
     detect->obj_variation = variation;
 
-    if (SigMatchAppendSMToList(
+    if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_DNP3OBJ, (SigMatchCtx *)detect, g_dnp3_match_buffer_id) == NULL) {
         goto fail;
     }

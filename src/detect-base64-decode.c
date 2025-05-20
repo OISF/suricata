@@ -224,7 +224,7 @@ static int DetectBase64DecodeSetup(DetectEngineCtx *de_ctx, Signature *s,
         }
     }
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_BASE64_DECODE, (SigMatchCtx *)data, sm_list) ==
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_BASE64_DECODE, (SigMatchCtx *)data, sm_list) ==
             NULL) {
         goto error;
     }

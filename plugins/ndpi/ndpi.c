@@ -291,7 +291,7 @@ static int DetectnDPIProtocolSetup(DetectEngineCtx *de_ctx, Signature *s, const 
         }
     }
 
-    if (SigMatchAppendSMToList(de_ctx, s, ndpi_protocol_keyword_id, (SigMatchCtx *)data,
+    if (SCSigMatchAppendSMToList(de_ctx, s, ndpi_protocol_keyword_id, (SigMatchCtx *)data,
                 DETECT_SM_LIST_MATCH) == NULL) {
         goto error;
     }
@@ -420,7 +420,7 @@ static int DetectnDPIRiskSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         }
     }
 
-    if (SigMatchAppendSMToList(de_ctx, s, ndpi_risk_keyword_id, (SigMatchCtx *)data,
+    if (SCSigMatchAppendSMToList(de_ctx, s, ndpi_risk_keyword_id, (SigMatchCtx *)data,
                 DETECT_SM_LIST_MATCH) == NULL) {
         goto error;
     }

@@ -72,7 +72,7 @@ static int DetectVlanIdSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
         return -1;
     }
 
-    if (SigMatchAppendSMToList(
+    if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_VLAN_ID, (SigMatchCtx *)vdata, DETECT_SM_LIST_MATCH) == NULL) {
         DetectVlanIdFree(de_ctx, vdata);
         return -1;
@@ -169,7 +169,7 @@ static int DetectVlanLayersSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
         return -1;
     }
 
-    if (SigMatchAppendSMToList(
+    if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_VLAN_LAYERS, (SigMatchCtx *)du8, DETECT_SM_LIST_MATCH) == NULL) {
         DetectVlanLayersFree(de_ctx, du8);
         return -1;

@@ -52,7 +52,7 @@ static int DetectKrb5TicketEncryptionSetup(
     if (krb5d == NULL)
         goto error;
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_KRB5_TICKET_ENCRYPTION, (SigMatchCtx *)krb5d,
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_KRB5_TICKET_ENCRYPTION, (SigMatchCtx *)krb5d,
                 g_krb5_ticket_encryption_list_id) == NULL) {
         goto error;
     }

@@ -311,7 +311,7 @@ static int DetectSslStateSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     if (ssd == NULL)
         goto error;
 
-    if (SigMatchAppendSMToList(
+    if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_SSL_STATE, (SigMatchCtx *)ssd, g_tls_generic_list_id) == NULL) {
         goto error;
     }

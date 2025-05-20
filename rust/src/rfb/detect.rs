@@ -23,16 +23,15 @@ use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{
     detect_match_uint, detect_parse_uint_enum, DetectUintData, SCDetectU32Free, SCDetectU32Parse,
 };
-use crate::detect::{
-    helper_keyword_register_sticky_buffer, SigMatchAppendSMToList, SigTableElmtStickyBuffer,
-};
+use crate::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
 use std::ffi::CStr;
 use std::os::raw::{c_int, c_void};
 use std::ptr;
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
     SCDetectHelperBufferMpmRegister, SCDetectHelperBufferRegister, SCDetectHelperKeywordRegister,
-    SCDetectSignatureSetAppProto, SCSigTableAppLiteElmt, SigMatchCtx, Signature,
+    SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList, SCSigTableAppLiteElmt, SigMatchCtx,
+    Signature,
 };
 
 unsafe extern "C" fn rfb_name_get(
@@ -54,9 +53,9 @@ unsafe extern "C" fn rfb_name_get(
 }
 
 static mut G_RFB_NAME_BUFFER_ID: c_int = 0;
-static mut G_RFB_SEC_TYPE_KW_ID: c_int = 0;
+static mut G_RFB_SEC_TYPE_KW_ID: u16 = 0;
 static mut G_RFB_SEC_TYPE_BUFFER_ID: c_int = 0;
-static mut G_RFB_SEC_RESULT_KW_ID: c_int = 0;
+static mut G_RFB_SEC_RESULT_KW_ID: u16 = 0;
 static mut G_RFB_SEC_RESULT_BUFFER_ID: c_int = 0;
 
 unsafe extern "C" fn rfb_name_setup(
@@ -81,7 +80,14 @@ unsafe extern "C" fn rfb_sec_type_setup(
     if ctx.is_null() {
         return -1;
     }
-    if SigMatchAppendSMToList(de, s, G_RFB_SEC_TYPE_KW_ID, ctx, G_RFB_SEC_TYPE_BUFFER_ID).is_null()
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_RFB_SEC_TYPE_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_RFB_SEC_TYPE_BUFFER_ID,
+    )
+    .is_null()
     {
         rfb_sec_type_free(std::ptr::null_mut(), ctx);
         return -1;
@@ -135,11 +141,11 @@ unsafe extern "C" fn rfb_sec_result_setup(
     if ctx.is_null() {
         return -1;
     }
-    if SigMatchAppendSMToList(
+    if SCSigMatchAppendSMToList(
         de,
         s,
         G_RFB_SEC_RESULT_KW_ID,
-        ctx,
+        ctx as *mut SigMatchCtx,
         G_RFB_SEC_RESULT_BUFFER_ID,
     )
     .is_null()

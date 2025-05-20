@@ -327,7 +327,7 @@ static int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, const c
     if (data->local_id > de_ctx->byte_extract_max_local_id)
         de_ctx->byte_extract_max_local_id = data->local_id;
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_BYTE_EXTRACT, (SigMatchCtx *)data, sm_list) ==
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_BYTE_EXTRACT, (SigMatchCtx *)data, sm_list) ==
             NULL) {
         goto error;
     }

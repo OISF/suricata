@@ -304,7 +304,7 @@ int DetectTagSetup(DetectEngineCtx *de_ctx, Signature *s, const char *tagstr)
         return -1;
 
     /* Append it to the list of tags */
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_TAG, (SigMatchCtx *)td, DETECT_SM_LIST_TMATCH) ==
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_TAG, (SigMatchCtx *)td, DETECT_SM_LIST_TMATCH) ==
             NULL) {
         DetectTagDataFree(de_ctx, td);
         return -1;

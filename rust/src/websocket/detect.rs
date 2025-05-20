@@ -21,14 +21,13 @@ use crate::detect::uint::{
     detect_parse_uint, detect_parse_uint_enum, DetectUintData, DetectUintMode, SCDetectU32Free,
     SCDetectU32Match, SCDetectU32Parse, SCDetectU8Free, SCDetectU8Match,
 };
-use crate::detect::{
-    helper_keyword_register_sticky_buffer, SigMatchAppendSMToList, SigTableElmtStickyBuffer,
-};
+use crate::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
 use crate::websocket::parser::WebSocketOpcode;
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
     SCDetectHelperBufferMpmRegister, SCDetectHelperBufferRegister, SCDetectHelperKeywordRegister,
-    SCDetectSignatureSetAppProto, SCSigTableAppLiteElmt, SigMatchCtx, Signature,
+    SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList, SCSigTableAppLiteElmt, SigMatchCtx,
+    Signature,
 };
 
 use nom7::branch::alt;
@@ -113,11 +112,11 @@ unsafe extern "C" fn websocket_parse_flags(
     return std::ptr::null_mut();
 }
 
-static mut G_WEBSOCKET_OPCODE_KW_ID: c_int = 0;
+static mut G_WEBSOCKET_OPCODE_KW_ID: u16 = 0;
 static mut G_WEBSOCKET_OPCODE_BUFFER_ID: c_int = 0;
-static mut G_WEBSOCKET_MASK_KW_ID: c_int = 0;
+static mut G_WEBSOCKET_MASK_KW_ID: u16 = 0;
 static mut G_WEBSOCKET_MASK_BUFFER_ID: c_int = 0;
-static mut G_WEBSOCKET_FLAGS_KW_ID: c_int = 0;
+static mut G_WEBSOCKET_FLAGS_KW_ID: u16 = 0;
 static mut G_WEBSOCKET_FLAGS_BUFFER_ID: c_int = 0;
 static mut G_WEBSOCKET_PAYLOAD_BUFFER_ID: c_int = 0;
 
@@ -131,11 +130,11 @@ unsafe extern "C" fn websocket_detect_opcode_setup(
     if ctx.is_null() {
         return -1;
     }
-    if SigMatchAppendSMToList(
+    if SCSigMatchAppendSMToList(
         de,
         s,
         G_WEBSOCKET_OPCODE_KW_ID,
-        ctx,
+        ctx as *mut SigMatchCtx,
         G_WEBSOCKET_OPCODE_BUFFER_ID,
     )
     .is_null()
@@ -171,11 +170,11 @@ unsafe extern "C" fn websocket_detect_mask_setup(
     if ctx.is_null() {
         return -1;
     }
-    if SigMatchAppendSMToList(
+    if SCSigMatchAppendSMToList(
         de,
         s,
         G_WEBSOCKET_MASK_KW_ID,
-        ctx,
+        ctx as *mut SigMatchCtx,
         G_WEBSOCKET_MASK_BUFFER_ID,
     )
     .is_null()
@@ -214,11 +213,11 @@ unsafe extern "C" fn websocket_detect_flags_setup(
     if ctx.is_null() {
         return -1;
     }
-    if SigMatchAppendSMToList(
+    if SCSigMatchAppendSMToList(
         de,
         s,
         G_WEBSOCKET_FLAGS_KW_ID,
-        ctx,
+        ctx as *mut SigMatchCtx,
         G_WEBSOCKET_FLAGS_BUFFER_ID,
     )
     .is_null()

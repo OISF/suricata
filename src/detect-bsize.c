@@ -202,7 +202,7 @@ static int DetectBsizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
     if (bsz == NULL)
         SCReturnInt(-1);
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_BSIZE, (SigMatchCtx *)bsz, list) == NULL) {
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_BSIZE, (SigMatchCtx *)bsz, list) == NULL) {
         goto error;
     }
 

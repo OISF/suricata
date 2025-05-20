@@ -413,7 +413,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
             break;
     }
 
-    if (SigMatchAppendSMToList(
+    if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_IPPROTO, (SigMatchCtx *)data, DETECT_SM_LIST_MATCH) == NULL) {
         goto error;
     }

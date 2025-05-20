@@ -270,7 +270,7 @@ int DetectRpcSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rpcstr)
     rd = DetectRpcParse(de_ctx, rpcstr);
     if (rd == NULL) goto error;
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_RPC, (SigMatchCtx *)rd, DETECT_SM_LIST_MATCH) ==
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_RPC, (SigMatchCtx *)rd, DETECT_SM_LIST_MATCH) ==
             NULL) {
         goto error;
     }

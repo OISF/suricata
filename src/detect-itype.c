@@ -121,8 +121,8 @@ static int DetectITypeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *i
     if (itd == NULL)
         return -1;
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_ITYPE, (SigMatchCtx *)itd, DETECT_SM_LIST_MATCH) ==
-            NULL) {
+    if (SCSigMatchAppendSMToList(
+                de_ctx, s, DETECT_ITYPE, (SigMatchCtx *)itd, DETECT_SM_LIST_MATCH) == NULL) {
         DetectITypeFree(de_ctx, itd);
         return -1;
     }

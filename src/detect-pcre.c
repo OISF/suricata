@@ -915,7 +915,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, const char *r
     if (sm_list == -1)
         goto error;
 
-    SigMatch *sm = SigMatchAppendSMToList(de_ctx, s, DETECT_PCRE, (SigMatchCtx *)pd, sm_list);
+    SigMatch *sm = SCSigMatchAppendSMToList(de_ctx, s, DETECT_PCRE, (SigMatchCtx *)pd, sm_list);
     if (sm == NULL) {
         goto error;
     }

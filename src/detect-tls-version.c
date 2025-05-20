@@ -249,7 +249,7 @@ static int DetectTlsVersionSetup (DetectEngineCtx *de_ctx, Signature *s, const c
         list = s->init_data->hook.sm_list;
     }
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_TLS_VERSION, (SigMatchCtx *)tls, list) == NULL) {
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_TLS_VERSION, (SigMatchCtx *)tls, list) == NULL) {
         goto error;
     }
 
