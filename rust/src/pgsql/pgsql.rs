@@ -415,7 +415,7 @@ impl PgsqlState {
                             || state == PgsqlStateProgress::ConsolidatingCopyDataIn {
                                 // here we're actually only counting how many messages were received.
                                 // frontends are not forced to send one row per message
-                                if let PgsqlFEMessage::ConsolidatedCopyDataIn(msg) = request {
+                                if let PgsqlFEMessage::ConsolidatedCopyDataIn(ref msg) = request {
                                     tx.sum_data_size(msg.data_size);
                                     tx.incr_row_cnt();
                                 }
@@ -428,11 +428,9 @@ impl PgsqlState {
                                     },
                                 );
                                 tx.requests.push(consolidated_copy_data);
-                                tx.requests.push(request);
-                                // reset values
-                                tx.data_row_cnt = 0;
-                                tx.data_size = 0;
-                            } else if Self::request_is_complete(state) {
+                            }
+
+                            if Self::request_is_complete(state) {
                                 tx.requests.push(request);
                                 // The request is complete at this point
                                 tx.tx_req_state = PgsqlTxProgress::TxDone;
