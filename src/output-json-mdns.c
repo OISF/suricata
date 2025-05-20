@@ -26,6 +26,7 @@
 
 #include "output-json.h"
 #include "output-json-mdns.h"
+#include "output-json-dns.h"
 #include "rust.h"
 
 typedef struct LogDnsFileCtx_ {
@@ -49,6 +50,15 @@ static int JsonMdnsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
 {
     LogDnsLogThread *td = (LogDnsLogThread *)thread_data;
     LogDnsFileCtx *dnslog_ctx = td->dnslog_ctx;
+
+    if (SCDnsTxIsRequest(txptr) && (dnslog_ctx->flags & DNS_LOG_QUERIES) == 0) {
+        return TM_ECODE_OK;
+    }
+
+    if (SCDnsTxIsResponse(txptr) && (dnslog_ctx->flags & DNS_LOG_ANSWERS) == 0) {
+        return TM_ECODE_OK;
+    }
+
     SCJsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "mdns", NULL, dnslog_ctx->eve_ctx);
     if (unlikely(jb == NULL)) {
         return TM_ECODE_OK;
@@ -129,11 +139,23 @@ static OutputInitResult JsonDnsLogInitCtxSub(SCConfNode *conf, OutputCtx *parent
     dnslog_ctx->eve_ctx = ojc;
     dnslog_ctx->version = DNS_LOG_VERSION_3;
 
-    /* For mDNS, log everything.
-     *
-     * TODO: Maybe add flags for request and/or response only.
-     */
-    dnslog_ctx->flags = ~0ULL;
+    /* For mDNS, log everything, except grouped. */
+    dnslog_ctx->flags = ~0ULL & ~DNS_LOG_FORMAT_GROUPED;
+
+    const char *requests = SCConfNodeLookupChildValue(conf, "requests");
+    if (requests && SCConfValIsFalse(requests)) {
+        dnslog_ctx->flags &= ~DNS_LOG_QUERIES;
+    }
+
+    const char *responses = SCConfNodeLookupChildValue(conf, "responses");
+    if (responses && SCConfValIsFalse(responses)) {
+        dnslog_ctx->flags &= ~DNS_LOG_ANSWERS;
+    }
+
+    const char *grouped = SCConfNodeLookupChildValue(conf, "grouped");
+    if (grouped && SCConfValIsTrue(grouped)) {
+        dnslog_ctx->flags |= DNS_LOG_FORMAT_GROUPED;
+    }
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
