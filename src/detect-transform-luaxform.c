@@ -148,7 +148,7 @@ static DetectLuaxformData *DetectLuaxformParse(DetectEngineCtx *de_ctx, const ch
         FatalError("unable to allocate memory for Lua transform: %s", optsstr);
     }
 
-    lua->id_data_len = strlen(lua->id_data);
+    lua->id_data_len = (uint32_t)strlen(lua->id_data);
 
     int count = 0;
     char *saveptr = NULL;
@@ -352,10 +352,10 @@ static void TransformLuaxform(
 
         if (lua_isstring(tlua->luastate, -2)) {
             const char *transformed_buffer = lua_tostring(tlua->luastate, -2);
-            int transformed_buffer_byte_count = lua_tointeger(tlua->luastate, -1);
+            lua_Integer transformed_buffer_byte_count = lua_tointeger(tlua->luastate, -1);
             if (transformed_buffer != NULL && transformed_buffer_byte_count > 0)
-                InspectionBufferCopy(
-                        buffer, (uint8_t *)transformed_buffer, transformed_buffer_byte_count);
+                InspectionBufferCopy(buffer, (uint8_t *)transformed_buffer,
+                        (uint32_t)transformed_buffer_byte_count);
             SCLogDebug("transform returns [nbytes %d] \"%p\"", transformed_buffer_byte_count,
                     transformed_buffer);
         }
