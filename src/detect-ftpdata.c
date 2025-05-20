@@ -184,7 +184,7 @@ error:
  */
 static int DetectFtpdataSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    if (DetectSignatureSetAppProto(s, ALPROTO_FTPDATA) != 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_FTPDATA) != 0)
         return -1;
 
     DetectFtpdataData *ftpcommandd = DetectFtpdataParse(str);

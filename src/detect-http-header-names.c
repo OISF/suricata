@@ -199,7 +199,7 @@ static int DetectHttpHeaderNamesSetup(DetectEngineCtx *de_ctx, Signature *s, con
     if (SCDetectBufferSetActiveList(de_ctx, s, g_buffer_id) < 0)
         return -1;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
         return -1;
 
     return 0;

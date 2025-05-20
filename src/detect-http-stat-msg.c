@@ -158,7 +158,7 @@ static int DetectHttpStatMsgSetupSticky(DetectEngineCtx *de_ctx, Signature *s, c
 {
     if (SCDetectBufferSetActiveList(de_ctx, s, g_http_stat_msg_buffer_id) < 0)
         return -1;
-    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
         return -1;
     return 0;
 }

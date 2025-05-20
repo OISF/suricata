@@ -176,7 +176,7 @@ static int DetectKrb5ErrCodeSetup (DetectEngineCtx *de_ctx, Signature *s, const 
 {
     DetectKrb5ErrCodeData *krb5d = NULL;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_KRB5) != 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_KRB5) != 0)
         return -1;
 
     krb5d = DetectKrb5ErrCodeParse(krb5str);

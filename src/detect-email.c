@@ -39,7 +39,7 @@ static int DetectMimeEmailFromSetup(DetectEngineCtx *de_ctx, Signature *s, const
     if (SCDetectBufferSetActiveList(de_ctx, s, g_mime_email_from_buffer_id) < 0)
         return -1;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
         return -1;
 
     return 0;
@@ -59,7 +59,7 @@ static int DetectMimeEmailSubjectSetup(DetectEngineCtx *de_ctx, Signature *s, co
     if (SCDetectBufferSetActiveList(de_ctx, s, g_mime_email_subject_buffer_id) < 0)
         return -1;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
         return -1;
 
     return 0;
@@ -79,7 +79,7 @@ static int DetectMimeEmailToSetup(DetectEngineCtx *de_ctx, Signature *s, const c
     if (SCDetectBufferSetActiveList(de_ctx, s, g_mime_email_to_buffer_id) < 0)
         return -1;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
         return -1;
 
     return 0;
@@ -99,7 +99,7 @@ static int DetectMimeEmailCcSetup(DetectEngineCtx *de_ctx, Signature *s, const c
     if (SCDetectBufferSetActiveList(de_ctx, s, g_mime_email_cc_buffer_id) < 0)
         return -1;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
         return -1;
 
     return 0;
@@ -119,7 +119,7 @@ static int DetectMimeEmailDateSetup(DetectEngineCtx *de_ctx, Signature *s, const
     if (SCDetectBufferSetActiveList(de_ctx, s, g_mime_email_date_buffer_id) < 0)
         return -1;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
         return -1;
 
     return 0;
@@ -139,7 +139,7 @@ static int DetectMimeEmailMessageIdSetup(DetectEngineCtx *de_ctx, Signature *s, 
     if (SCDetectBufferSetActiveList(de_ctx, s, g_mime_email_message_id_buffer_id) < 0)
         return -1;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
         return -1;
 
     return 0;
@@ -159,7 +159,7 @@ static int DetectMimeEmailXMailerSetup(DetectEngineCtx *de_ctx, Signature *s, co
     if (SCDetectBufferSetActiveList(de_ctx, s, g_mime_email_x_mailer_buffer_id) < 0)
         return -1;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
         return -1;
 
     return 0;
@@ -179,7 +179,7 @@ static int DetectMimeEmailUrlSetup(DetectEngineCtx *de_ctx, Signature *s, const 
     if (SCDetectBufferSetActiveList(de_ctx, s, g_mime_email_url_buffer_id) < 0)
         return -1;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
         return -1;
 
     return 0;
@@ -204,7 +204,7 @@ static int DetectMimeEmailReceivedSetup(DetectEngineCtx *de_ctx, Signature *s, c
     if (SCDetectBufferSetActiveList(de_ctx, s, g_mime_email_received_buffer_id) < 0)
         return -1;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
         return -1;
 
     return 0;

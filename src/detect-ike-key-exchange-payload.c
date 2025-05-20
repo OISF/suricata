@@ -63,7 +63,7 @@ static int DetectKeyExchangeSetup(DetectEngineCtx *de_ctx, Signature *s, const c
     if (SCDetectBufferSetActiveList(de_ctx, s, g_buffer_key_exchange_id) < 0)
         return -1;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_IKE) < 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_IKE) < 0)
         return -1;
 
     return 0;

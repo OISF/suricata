@@ -18,16 +18,15 @@
 // written by Giuseppe Longo <giuseppe@glongo.it>
 
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
-use crate::detect::{
-    helper_keyword_register_sticky_buffer, DetectSignatureSetAppProto, SigTableElmtStickyBuffer,
-};
+use crate::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
 use crate::direction::Direction;
 use crate::sip::sip::{SIPTransaction, ALPROTO_SIP};
 use std::os::raw::{c_int, c_void};
 use std::ptr;
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, SCDetectBufferSetActiveList,
-    SCDetectHelperBufferMpmRegister, SCDetectHelperMultiBufferMpmRegister, Signature,
+    SCDetectHelperBufferMpmRegister, SCDetectHelperMultiBufferMpmRegister,
+    SCDetectSignatureSetAppProto, Signature,
 };
 
 static mut G_SDP_ORIGIN_BUFFER_ID: c_int = 0;
@@ -51,7 +50,7 @@ static mut G_SDP_MEDIA_DESC_ENCRYPTION_KEY_BUFFER_ID: c_int = 0;
 unsafe extern "C" fn sdp_session_name_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
         return -1;
     }
     if SCDetectBufferSetActiveList(de, s, G_SDP_SESSION_NAME_BUFFER_ID) < 0 {
@@ -84,7 +83,7 @@ unsafe extern "C" fn sdp_session_name_get(
 unsafe extern "C" fn sdp_session_info_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
         return -1;
     }
     if SCDetectBufferSetActiveList(de, s, G_SDP_SESSION_INFO_BUFFER_ID) < 0 {
@@ -116,7 +115,7 @@ unsafe extern "C" fn sdp_session_info_get(
 unsafe extern "C" fn sdp_origin_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
         return -1;
     }
     if SCDetectBufferSetActiveList(de, s, G_SDP_ORIGIN_BUFFER_ID) < 0 {
@@ -149,7 +148,7 @@ unsafe extern "C" fn sdp_origin_get(
 unsafe extern "C" fn sdp_uri_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
         return -1;
     }
     if SCDetectBufferSetActiveList(de, s, G_SDP_URI_BUFFER_ID) < 0 {
@@ -181,7 +180,7 @@ unsafe extern "C" fn sdp_uri_get(
 unsafe extern "C" fn sdp_email_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
         return -1;
     }
     if SCDetectBufferSetActiveList(de, s, G_SDP_EMAIL_BUFFER_ID) < 0 {
@@ -213,7 +212,7 @@ unsafe extern "C" fn sdp_email_get(
 unsafe extern "C" fn sdp_phone_number_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
         return -1;
     }
     if SCDetectBufferSetActiveList(de, s, G_SDP_PHONE_NUMBER_BUFFER_ID) < 0 {
@@ -245,7 +244,7 @@ unsafe extern "C" fn sdp_phone_number_get(
 unsafe extern "C" fn sdp_conn_data_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
         return -1;
     }
     if SCDetectBufferSetActiveList(de, s, G_SDP_CONNECTION_DATA_BUFFER_ID) < 0 {
@@ -277,7 +276,7 @@ unsafe extern "C" fn sdp_conn_data_get(
 unsafe extern "C" fn sdp_bandwidth_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
         return -1;
     }
     if SCDetectBufferSetActiveList(de, s, G_SDP_BANDWIDTH_BUFFER_ID) < 0 {
@@ -314,7 +313,7 @@ unsafe extern "C" fn sip_bandwidth_get_data(
 unsafe extern "C" fn sdp_time_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
         return -1;
     }
     if SCDetectBufferSetActiveList(de, s, G_SDP_TIME_BUFFER_ID) < 0 {
@@ -349,7 +348,7 @@ unsafe extern "C" fn sdp_time_get_data(
 unsafe extern "C" fn sdp_repeat_time_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
         return -1;
     }
     if SCDetectBufferSetActiveList(de, s, G_SDP_REPEAT_TIME_BUFFER_ID) < 0 {
@@ -386,7 +385,7 @@ unsafe extern "C" fn sdp_repeat_time_get_data(
 unsafe extern "C" fn sdp_timezone_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
         return -1;
     }
     if SCDetectBufferSetActiveList(de, s, G_SDP_TIMEZONE_BUFFER_ID) < 0 {
@@ -418,7 +417,7 @@ unsafe extern "C" fn sdp_timezone_get(
 unsafe extern "C" fn sdp_encryption_key_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
         return -1;
     }
     if SCDetectBufferSetActiveList(de, s, G_SDP_ENCRYPTION_KEY_BUFFER_ID) < 0 {
@@ -450,7 +449,7 @@ unsafe extern "C" fn sdp_encryption_key_get(
 unsafe extern "C" fn sdp_attribute_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
         return -1;
     }
     if SCDetectBufferSetActiveList(de, s, G_SDP_ATTRIBUTE_BUFFER_ID) < 0 {
@@ -487,7 +486,7 @@ unsafe extern "C" fn sip_attribute_get_data(
 unsafe extern "C" fn sdp_media_desc_media_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
         return -1;
     }
     if SCDetectBufferSetActiveList(de, s, G_SDP_MEDIA_DESC_MEDIA_BUFFER_ID) < 0 {
@@ -524,7 +523,7 @@ unsafe extern "C" fn sip_media_desc_media_get_data(
 unsafe extern "C" fn sdp_media_desc_session_info_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
         return -1;
     }
     if SCDetectBufferSetActiveList(de, s, G_SDP_MEDIA_DESC_SESSION_INFO_BUFFER_ID) < 0 {
@@ -562,7 +561,7 @@ unsafe extern "C" fn sip_media_desc_session_info_get_data(
 unsafe extern "C" fn sdp_media_desc_connection_data_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
         return -1;
     }
     if SCDetectBufferSetActiveList(de, s, G_SDP_MEDIA_DESC_CONNECTION_DATA_BUFFER_ID) < 0 {
@@ -600,7 +599,7 @@ unsafe extern "C" fn sip_media_desc_connection_data_get_data(
 unsafe extern "C" fn sdp_media_desc_encryption_key_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_SIP) != 0 {
         return -1;
     }
     if SCDetectBufferSetActiveList(de, s, G_SDP_MEDIA_DESC_ENCRYPTION_KEY_BUFFER_ID) < 0 {

@@ -86,7 +86,7 @@ static int DetectModbusSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
     SCEnter();
     DetectModbusRust *modbus = NULL;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_MODBUS) != 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_MODBUS) != 0)
         return -1;
 
     if ((modbus = SCModbusParse(str)) == NULL) {

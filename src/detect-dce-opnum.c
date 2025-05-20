@@ -132,7 +132,7 @@ static int DetectDceOpnumSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         return -1;
     }
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0)
         return -1;
 
     void *dod = SCDcerpcOpnumParse(arg);

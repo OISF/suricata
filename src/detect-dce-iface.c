@@ -138,7 +138,7 @@ static int DetectDceIfaceSetup(DetectEngineCtx *de_ctx, Signature *s, const char
 {
     SCEnter();
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0)
         return -1;
 
     void *did = SCDcerpcIfaceParse(arg);

@@ -204,7 +204,7 @@ int DetectFtpbounceSetup(DetectEngineCtx *de_ctx, Signature *s, const char *ftpb
 {
     SCEnter();
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_FTP) != 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_FTP) != 0)
         return -1;
 
     /* We don't need to allocate any data for ftpbounce here.

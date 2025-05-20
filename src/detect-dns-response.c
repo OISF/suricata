@@ -60,7 +60,7 @@ static int DetectSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
     if (SCDetectBufferSetActiveList(de_ctx, s, detect_buffer_id) < 0) {
         return -1;
     }
-    if (DetectSignatureSetAppProto(s, ALPROTO_DNS) < 0) {
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_DNS) < 0) {
         return -1;
     }
 

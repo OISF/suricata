@@ -611,7 +611,7 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
             sm_list = DETECT_SM_LIST_PMATCH;
         }
 
-        if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) != 0)
+        if (SCDetectSignatureSetAppProto(s, ALPROTO_DCERPC) != 0)
             goto error;
 
     } else if (data->flags & DETECT_BYTETEST_RELATIVE) {
@@ -1053,7 +1053,7 @@ static int DetectBytetestTestParse19(void)
     Signature *s = SigAlloc();
     FAIL_IF_NULL(s);
 
-    FAIL_IF(DetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0);
+    FAIL_IF(SCDetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0);
 
     FAIL_IF_NOT(DetectBytetestSetup(NULL, s, "1,=,1,6,dce") == 0);
     FAIL_IF_NOT(DetectBytetestSetup(NULL, s, "1,=,1,6,string,dce") == -1);

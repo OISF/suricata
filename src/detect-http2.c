@@ -239,7 +239,7 @@ static int DetectHTTP2frametypeSetup (DetectEngineCtx *de_ctx, Signature *s, con
 {
     uint8_t frame_type;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
         return -1;
 
     if (!DetectHTTP2FuncParseFrameType(str, &frame_type)) {
@@ -319,7 +319,7 @@ static int DetectHTTP2errorcodeSetup (DetectEngineCtx *de_ctx, Signature *s, con
 {
     uint32_t error_code;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
         return -1;
 
     if (!DetectHTTP2FuncParseErrorCode(str, &error_code)) {
@@ -387,7 +387,7 @@ static int DetectHTTP2priorityMatch(DetectEngineThreadCtx *det_ctx,
  */
 static int DetectHTTP2prioritySetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
         return -1;
 
     DetectU8Data *prio = DetectU8Parse(str);
@@ -449,7 +449,7 @@ static int DetectHTTP2windowMatch(DetectEngineThreadCtx *det_ctx,
  */
 static int DetectHTTP2windowSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
         return -1;
 
     DetectU32Data *wu = DetectU32Parse(str);
@@ -501,7 +501,7 @@ static int DetectHTTP2sizeUpdateMatch(DetectEngineThreadCtx *det_ctx,
  */
 static int DetectHTTP2sizeUpdateSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
         return -1;
 
     void *su = SCDetectU64Parse(str);
@@ -553,7 +553,7 @@ static int DetectHTTP2settingsMatch(DetectEngineThreadCtx *det_ctx,
  */
 static int DetectHTTP2settingsSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
         return -1;
 
     void *http2set = SCHttp2DetectSettingsCtxParse(str);
@@ -584,7 +584,7 @@ static int DetectHTTP2headerNameSetup(DetectEngineCtx *de_ctx, Signature *s, con
     if (SCDetectBufferSetActiveList(de_ctx, s, g_http2_header_name_buffer_id) < 0)
         return -1;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
         return -1;
 
     return 0;

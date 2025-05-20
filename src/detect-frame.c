@@ -98,7 +98,7 @@ static int DetectFrameSetup(DetectEngineCtx *de_ctx, Signature *s, const char *s
         SCLogError("rule protocol unknown, can't use shorthand notation for frame '%s'", str);
         return -1;
     } else if (rule_alproto == ALPROTO_UNKNOWN) {
-        if (DetectSignatureSetAppProto(s, keyword_alproto) < 0)
+        if (SCDetectSignatureSetAppProto(s, keyword_alproto) < 0)
             return -1;
     } else if (!AppProtoEquals(rule_alproto, keyword_alproto)) {
         SCLogError("frame '%s' protocol '%s' mismatch with rule protocol '%s'", str,

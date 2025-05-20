@@ -106,7 +106,7 @@ static int DetectIkeExchTypeMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8
  */
 static int DetectIkeExchTypeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
-    if (DetectSignatureSetAppProto(s, ALPROTO_IKE) != 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_IKE) != 0)
         return -1;
 
     DetectU8Data *ike_exch_type = DetectU8Parse(rawstr);

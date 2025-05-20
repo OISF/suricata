@@ -39,7 +39,7 @@ use std::os::raw::{c_int, c_void};
 use std::ffi::CString;
 
 use suricata_sys::sys::{
-    AppProto, DetectEngineCtx, SCDetectHelperKeywordRegister, SCDetectHelperKeywordSetCleanCString,
+    DetectEngineCtx, SCDetectHelperKeywordRegister, SCDetectHelperKeywordSetCleanCString,
     SCSigTableAppLiteElmt, Signature,
 };
 
@@ -121,7 +121,6 @@ pub const SIGMATCH_INFO_STICKY_BUFFER: u16 = 0x200; // BIT_U16(9)
 /// cbindgen:ignore
 extern "C" {
     // from detect-parse.h
-    pub fn DetectSignatureSetAppProto(s: *mut Signature, alproto: AppProto) -> c_int;
     pub fn SigMatchAppendSMToList(
         de: *mut DetectEngineCtx, s: *mut Signature, kwid: c_int, ctx: *const c_void, bufid: c_int,
     ) -> *mut c_void;
