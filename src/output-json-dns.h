@@ -24,8 +24,8 @@
 #ifndef SURICATA_OUTPUT_JSON_DNS_H
 #define SURICATA_OUTPUT_JSON_DNS_H
 
-#define DNS_LOG_QUERIES BIT_U64(0)
-#define DNS_LOG_ANSWERS BIT_U64(1)
+#define DNS_LOG_REQUESTS  BIT_U64(0)
+#define DNS_LOG_RESPONSES BIT_U64(1)
 
 #define DNS_LOG_A          BIT_U64(2)
 #define DNS_LOG_NS         BIT_U64(3)
@@ -92,7 +92,7 @@
 
 #define DNS_LOG_FORMAT_ALL (DNS_LOG_FORMAT_GROUPED | DNS_LOG_FORMAT_DETAILED)
 #define DNS_LOG_ALL_RRTYPES                                                                        \
-    (~(uint64_t)(DNS_LOG_QUERIES | DNS_LOG_ANSWERS | DNS_LOG_FORMAT_DETAILED |                     \
+    (~(uint64_t)(DNS_LOG_REQUESTS | DNS_LOG_RESPONSES | DNS_LOG_FORMAT_DETAILED |                  \
                  DNS_LOG_FORMAT_GROUPED))
 
 typedef struct SCDnsLogFileCtx_ {

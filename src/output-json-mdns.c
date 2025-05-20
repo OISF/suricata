@@ -42,11 +42,11 @@ static int JsonMdnsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     SCDnsLogThread *td = (SCDnsLogThread *)thread_data;
     SCDnsLogFileCtx *dnslog_ctx = td->dnslog_ctx;
 
-    if (SCDnsTxIsRequest(txptr) && (dnslog_ctx->flags & DNS_LOG_QUERIES) == 0) {
+    if (SCDnsTxIsRequest(txptr) && (dnslog_ctx->flags & DNS_LOG_REQUESTS) == 0) {
         return TM_ECODE_OK;
     }
 
-    if (SCDnsTxIsResponse(txptr) && (dnslog_ctx->flags & DNS_LOG_ANSWERS) == 0) {
+    if (SCDnsTxIsResponse(txptr) && (dnslog_ctx->flags & DNS_LOG_RESPONSES) == 0) {
         return TM_ECODE_OK;
     }
 
@@ -135,12 +135,12 @@ static OutputInitResult DnsLogInitCtxSub(SCConfNode *conf, OutputCtx *parent_ctx
 
     const char *requests = SCConfNodeLookupChildValue(conf, "requests");
     if (requests && SCConfValIsFalse(requests)) {
-        dnslog_ctx->flags &= ~DNS_LOG_QUERIES;
+        dnslog_ctx->flags &= ~DNS_LOG_REQUESTS;
     }
 
     const char *responses = SCConfNodeLookupChildValue(conf, "responses");
     if (responses && SCConfValIsFalse(responses)) {
-        dnslog_ctx->flags &= ~DNS_LOG_ANSWERS;
+        dnslog_ctx->flags &= ~DNS_LOG_RESPONSES;
     }
 
     const char *grouped = SCConfNodeLookupChildValue(conf, "grouped");
