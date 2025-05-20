@@ -500,7 +500,7 @@ static int DetectIsdataatTestParse04(void)
     Signature *s = SigAlloc();
     FAIL_IF_NULL(s);
 
-    FAIL_IF(DetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0);
+    FAIL_IF(SCDetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0);
 
     FAIL_IF_NOT(DetectIsdataatSetup(NULL, s, "30") == 0);
     SigMatch *sm = DetectBufferGetFirstSigMatch(s, g_dce_stub_data_buffer_id);
@@ -510,7 +510,7 @@ static int DetectIsdataatTestParse04(void)
 
     s = SigAlloc();
     FAIL_IF_NULL(s);
-    FAIL_IF(DetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0);
+    FAIL_IF(SCDetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0);
     /* relative w/o preceeding match defaults to "pmatch" */
     FAIL_IF_NOT(DetectIsdataatSetup(NULL, s, "30,relative") == 0);
     sm = DetectBufferGetFirstSigMatch(s, g_dce_stub_data_buffer_id);

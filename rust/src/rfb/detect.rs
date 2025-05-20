@@ -24,8 +24,7 @@ use crate::detect::uint::{
     detect_match_uint, detect_parse_uint_enum, DetectUintData, SCDetectU32Free, SCDetectU32Parse,
 };
 use crate::detect::{
-    helper_keyword_register_sticky_buffer, DetectSignatureSetAppProto, SigMatchAppendSMToList,
-    SigTableElmtStickyBuffer,
+    helper_keyword_register_sticky_buffer, SigMatchAppendSMToList, SigTableElmtStickyBuffer,
 };
 use std::ffi::CStr;
 use std::os::raw::{c_int, c_void};
@@ -33,7 +32,7 @@ use std::ptr;
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
     SCDetectHelperBufferMpmRegister, SCDetectHelperBufferRegister, SCDetectHelperKeywordRegister,
-    SCSigTableAppLiteElmt, SigMatchCtx, Signature,
+    SCDetectSignatureSetAppProto, SCSigTableAppLiteElmt, SigMatchCtx, Signature,
 };
 
 unsafe extern "C" fn rfb_name_get(
@@ -63,7 +62,7 @@ static mut G_RFB_SEC_RESULT_BUFFER_ID: c_int = 0;
 unsafe extern "C" fn rfb_name_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_RFB) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_RFB) != 0 {
         return -1;
     }
     if SCDetectBufferSetActiveList(de, s, G_RFB_NAME_BUFFER_ID) < 0 {
@@ -75,7 +74,7 @@ unsafe extern "C" fn rfb_name_setup(
 unsafe extern "C" fn rfb_sec_type_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_RFB) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_RFB) != 0 {
         return -1;
     }
     let ctx = SCDetectU32Parse(raw) as *mut c_void;
@@ -129,7 +128,7 @@ unsafe extern "C" fn rfb_parse_sec_result(
 unsafe extern "C" fn rfb_sec_result_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_RFB) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_RFB) != 0 {
         return -1;
     }
     let ctx = rfb_parse_sec_result(raw) as *mut c_void;

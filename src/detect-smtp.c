@@ -43,7 +43,7 @@ static int DetectSmtpHeloSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     if (SCDetectBufferSetActiveList(de_ctx, s, g_smtp_helo_buffer_id) < 0)
         return -1;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
         return -1;
 
     return 0;
@@ -71,7 +71,7 @@ static int DetectSmtpMailFromSetup(DetectEngineCtx *de_ctx, Signature *s, const 
     if (SCDetectBufferSetActiveList(de_ctx, s, g_smtp_mail_from_buffer_id) < 0)
         return -1;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
         return -1;
 
     return 0;
@@ -93,7 +93,7 @@ static int DetectSmtpRcptToSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
     if (SCDetectBufferSetActiveList(de_ctx, s, g_smtp_rcpt_to_buffer_id) < 0)
         return -1;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
         return -1;
 
     return 0;

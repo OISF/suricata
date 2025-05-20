@@ -173,7 +173,7 @@ static int DetectKrb5MsgTypeSetup (DetectEngineCtx *de_ctx, Signature *s, const 
 {
     DetectKrb5MsgTypeData *krb5d = NULL;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_KRB5) != 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_KRB5) != 0)
         return -1;
 
     krb5d = DetectKrb5MsgTypeParse(krb5str);

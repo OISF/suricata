@@ -36,13 +36,12 @@ use crate::detect::uint::{
     SCDetectU8Match, SCDetectU8Parse,
 };
 use crate::detect::{
-    helper_keyword_register_sticky_buffer, DetectSignatureSetAppProto, SigMatchAppendSMToList,
-    SigTableElmtStickyBuffer,
+    helper_keyword_register_sticky_buffer, SigMatchAppendSMToList, SigTableElmtStickyBuffer,
 };
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
     SCDetectHelperBufferMpmRegister, SCDetectHelperBufferRegister, SCDetectHelperKeywordRegister,
-    SCSigTableAppLiteElmt, SigMatchCtx, Signature,
+    SCDetectSignatureSetAppProto, SCSigTableAppLiteElmt, SigMatchCtx, Signature,
 };
 
 use crate::direction::Direction;
@@ -454,7 +453,7 @@ unsafe fn parse_cip_service(raw: *const std::os::raw::c_char) -> *mut c_void {
 unsafe extern "C" fn cipservice_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
         return -1;
     }
     let ctx = parse_cip_service(raw);
@@ -492,7 +491,7 @@ unsafe extern "C" fn cipservice_match(
 unsafe extern "C" fn capabilities_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
         return -1;
     }
     let ctx = SCDetectU16Parse(raw) as *mut c_void;
@@ -548,7 +547,7 @@ unsafe extern "C" fn capabilities_free(_de: *mut DetectEngineCtx, ctx: *mut c_vo
 unsafe extern "C" fn cip_attribute_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
         return -1;
     }
     let ctx = SCDetectU32Parse(raw) as *mut c_void;
@@ -588,7 +587,7 @@ unsafe extern "C" fn cip_attribute_free(_de: *mut DetectEngineCtx, ctx: *mut c_v
 unsafe extern "C" fn cip_class_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
         return -1;
     }
     let ctx = SCDetectU32Parse(raw) as *mut c_void;
@@ -628,7 +627,7 @@ unsafe extern "C" fn cip_class_free(_de: *mut DetectEngineCtx, ctx: *mut c_void)
 unsafe extern "C" fn vendor_id_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
         return -1;
     }
     let ctx = SCDetectU16Parse(raw) as *mut c_void;
@@ -684,7 +683,7 @@ unsafe extern "C" fn vendor_id_free(_de: *mut DetectEngineCtx, ctx: *mut c_void)
 unsafe extern "C" fn status_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
         return -1;
     }
     let ctx = parse_status(raw) as *mut c_void;
@@ -719,7 +718,7 @@ unsafe extern "C" fn status_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
 unsafe extern "C" fn state_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
         return -1;
     }
     let ctx = SCDetectU8Parse(raw) as *mut c_void;
@@ -767,7 +766,7 @@ unsafe extern "C" fn state_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
 unsafe extern "C" fn serial_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
         return -1;
     }
     let ctx = SCDetectU32Parse(raw) as *mut c_void;
@@ -815,7 +814,7 @@ unsafe extern "C" fn serial_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
 unsafe extern "C" fn revision_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
         return -1;
     }
     let ctx = SCDetectU16Parse(raw) as *mut c_void;
@@ -865,7 +864,7 @@ unsafe extern "C" fn revision_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) 
 unsafe extern "C" fn protocol_version_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
         return -1;
     }
     let ctx = SCDetectU16Parse(raw) as *mut c_void;
@@ -908,7 +907,7 @@ unsafe extern "C" fn protocol_version_free(_de: *mut DetectEngineCtx, ctx: *mut 
 unsafe extern "C" fn product_code_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
         return -1;
     }
     let ctx = SCDetectU16Parse(raw) as *mut c_void;
@@ -964,7 +963,7 @@ unsafe extern "C" fn product_code_free(_de: *mut DetectEngineCtx, ctx: *mut c_vo
 unsafe extern "C" fn identity_status_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
         return -1;
     }
     let ctx = SCDetectU16Parse(raw) as *mut c_void;
@@ -1020,7 +1019,7 @@ unsafe extern "C" fn identity_status_free(_de: *mut DetectEngineCtx, ctx: *mut c
 unsafe extern "C" fn device_type_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
         return -1;
     }
     let ctx = SCDetectU16Parse(raw) as *mut c_void;
@@ -1076,7 +1075,7 @@ unsafe extern "C" fn device_type_free(_de: *mut DetectEngineCtx, ctx: *mut c_voi
 unsafe extern "C" fn command_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
         return -1;
     }
     let ctx = parse_command(raw) as *mut c_void;
@@ -1124,7 +1123,7 @@ unsafe extern "C" fn command_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
 unsafe extern "C" fn cip_status_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
         return -1;
     }
     let ctx = SCDetectU8Parse(raw) as *mut c_void;
@@ -1164,7 +1163,7 @@ unsafe extern "C" fn cip_status_free(_de: *mut DetectEngineCtx, ctx: *mut c_void
 unsafe extern "C" fn cip_instance_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
         return -1;
     }
     let ctx = SCDetectU32Parse(raw) as *mut c_void;
@@ -1204,7 +1203,7 @@ unsafe extern "C" fn cip_instance_free(_de: *mut DetectEngineCtx, ctx: *mut c_vo
 unsafe extern "C" fn cip_extendedstatus_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
         return -1;
     }
     let ctx = SCDetectU16Parse(raw) as *mut c_void;
@@ -1244,7 +1243,7 @@ unsafe extern "C" fn cip_extendedstatus_free(_de: *mut DetectEngineCtx, ctx: *mu
 pub unsafe extern "C" fn product_name_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
         return -1;
     }
     if SCDetectBufferSetActiveList(de, s, G_ENIP_PRODUCT_NAME_BUFFER_ID) < 0 {
@@ -1276,7 +1275,7 @@ unsafe extern "C" fn product_name_get_data(
 pub unsafe extern "C" fn service_name_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
         return -1;
     }
     if SCDetectBufferSetActiveList(de, s, G_ENIP_SERVICE_NAME_BUFFER_ID) < 0 {

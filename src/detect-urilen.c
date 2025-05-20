@@ -103,7 +103,7 @@ static int DetectUrilenSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     SCEnter();
     DetectUrilenData *urilend = NULL;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) != 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_HTTP) != 0)
         return -1;
 
     urilend = DetectUrilenParse(urilenstr);

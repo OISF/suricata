@@ -61,7 +61,7 @@ static void DetectFtpDynamicPortFree(DetectEngineCtx *de_ctx, void *ptr)
 
 static int DetectFtpDynamicPortSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    if (DetectSignatureSetAppProto(s, ALPROTO_FTP) < 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_FTP) < 0)
         return -1;
 
     DetectU16Data *fdp = DetectFtpDynamicPortParse(str);

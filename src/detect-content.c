@@ -1463,7 +1463,7 @@ static int DetectContentParseTest18(void)
 
     Signature *s = SigAlloc();
     FAIL_IF_NULL(s);
-    FAIL_IF(DetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0);
+    FAIL_IF(SCDetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0);
     FAIL_IF_NOT(DetectContentSetup(de_ctx, s, "one") == 0);
     FAIL_IF(DetectBufferIsPresent(s, g_dce_stub_data_buffer_id));
     FAIL_IF_NOT(s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL);

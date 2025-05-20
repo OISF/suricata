@@ -102,7 +102,7 @@ static DetectFtpModeData *DetectFtpModeParse(const char *optstr)
 
 static int DetectFtpModeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    if (DetectSignatureSetAppProto(s, ALPROTO_FTP) != 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_FTP) != 0)
         return -1;
 
     DetectFtpModeData *ftpmoded = DetectFtpModeParse(str);

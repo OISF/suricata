@@ -111,7 +111,7 @@ static int DetectIkeKeyExchangePayloadLengthMatch(DetectEngineThreadCtx *det_ctx
 static int DetectIkeKeyExchangePayloadLengthSetup(
         DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
-    if (DetectSignatureSetAppProto(s, ALPROTO_IKE) != 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_IKE) != 0)
         return -1;
 
     DetectU32Data *key_exchange_payload_length = DetectU32Parse(rawstr);

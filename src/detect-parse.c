@@ -2183,7 +2183,7 @@ int DetectSignatureSetMultiAppProto(Signature *s, const AppProto *alprotos)
                         // intersection is singleton, set it as usual
                         AppProto alproto = s->init_data->alprotos[0];
                         s->init_data->alprotos[0] = ALPROTO_UNKNOWN;
-                        return DetectSignatureSetAppProto(s, alproto);
+                        return SCDetectSignatureSetAppProto(s, alproto);
                     }
                     break;
                 }
@@ -2196,7 +2196,7 @@ int DetectSignatureSetMultiAppProto(Signature *s, const AppProto *alprotos)
         }
         if (alprotos[1] == ALPROTO_UNKNOWN) {
             // allow singleton, but call traditional setter
-            return DetectSignatureSetAppProto(s, alprotos[0]);
+            return SCDetectSignatureSetAppProto(s, alprotos[0]);
         }
         // first time we enforce alprotos
         for (AppProto i = 0; i < SIG_ALPROTO_MAX; i++) {
@@ -2209,7 +2209,7 @@ int DetectSignatureSetMultiAppProto(Signature *s, const AppProto *alprotos)
     return 0;
 }
 
-int DetectSignatureSetAppProto(Signature *s, AppProto alproto)
+int SCDetectSignatureSetAppProto(Signature *s, AppProto alproto)
 {
     if (!AppProtoIsValid(alproto)) {
         SCLogError("invalid alproto %u", alproto);
@@ -5203,7 +5203,7 @@ static int SigSetMultiAppProto(void)
     FAIL_IF(s->init_data->alprotos[2] != ALPROTO_UNKNOWN);
 
     // check single after multiple
-    FAIL_IF(DetectSignatureSetAppProto(s, 3) < 0);
+    FAIL_IF(SCDetectSignatureSetAppProto(s, 3) < 0);
     FAIL_IF(s->init_data->alprotos[0] != ALPROTO_UNKNOWN);
     FAIL_IF(s->alproto != 3);
     alprotos[0] = 4;
@@ -5221,7 +5221,7 @@ static int SigSetMultiAppProto(void)
     alprotos[3] = ALPROTO_UNKNOWN;
     FAIL_IF(DetectSignatureSetMultiAppProto(s, alprotos) < 0);
     // fail if set single not in multiple
-    FAIL_IF(DetectSignatureSetAppProto(s, 4) >= 0);
+    FAIL_IF(SCDetectSignatureSetAppProto(s, 4) >= 0);
 
     s->init_data->alprotos[0] = ALPROTO_UNKNOWN;
     s->alproto = ALPROTO_UNKNOWN;

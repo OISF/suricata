@@ -382,6 +382,11 @@ extern "C" {
         kw: *const SCTransformTableElmt,
     ) -> ::std::os::raw::c_int;
 }
+extern "C" {
+    pub fn SCDetectSignatureSetAppProto(
+        s: *mut Signature, alproto: AppProto,
+    ) -> ::std::os::raw::c_int;
+}
 #[doc = " Structure of a configuration parameter."]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]

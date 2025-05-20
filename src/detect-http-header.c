@@ -392,7 +392,7 @@ static int DetectHttpHeaderSetupSticky(DetectEngineCtx *de_ctx, Signature *s, co
 {
     if (SCDetectBufferSetActiveList(de_ctx, s, g_http_header_buffer_id) < 0)
         return -1;
-    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
         return -1;
     return 0;
 }
@@ -575,7 +575,7 @@ static int DetectHTTPRequestHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, c
     if (SCDetectBufferSetActiveList(de_ctx, s, g_http_request_header_buffer_id) < 0)
         return -1;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) != 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_HTTP) != 0)
         return -1;
 
     return 0;
@@ -608,7 +608,7 @@ static int DetectHTTPResponseHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, 
     if (SCDetectBufferSetActiveList(de_ctx, s, g_http_response_header_buffer_id) < 0)
         return -1;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) != 0)
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_HTTP) != 0)
         return -1;
 
     return 0;

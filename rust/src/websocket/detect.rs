@@ -22,14 +22,13 @@ use crate::detect::uint::{
     SCDetectU32Match, SCDetectU32Parse, SCDetectU8Free, SCDetectU8Match,
 };
 use crate::detect::{
-    helper_keyword_register_sticky_buffer, DetectSignatureSetAppProto, SigMatchAppendSMToList,
-    SigTableElmtStickyBuffer,
+    helper_keyword_register_sticky_buffer, SigMatchAppendSMToList, SigTableElmtStickyBuffer,
 };
 use crate::websocket::parser::WebSocketOpcode;
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
     SCDetectHelperBufferMpmRegister, SCDetectHelperBufferRegister, SCDetectHelperKeywordRegister,
-    SCSigTableAppLiteElmt, SigMatchCtx, Signature,
+    SCDetectSignatureSetAppProto, SCSigTableAppLiteElmt, SigMatchCtx, Signature,
 };
 
 use nom7::branch::alt;
@@ -125,7 +124,7 @@ static mut G_WEBSOCKET_PAYLOAD_BUFFER_ID: c_int = 0;
 unsafe extern "C" fn websocket_detect_opcode_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_WEBSOCKET) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_WEBSOCKET) != 0 {
         return -1;
     }
     let ctx = websocket_parse_opcode(raw) as *mut c_void;
@@ -165,7 +164,7 @@ unsafe extern "C" fn websocket_detect_opcode_free(_de: *mut DetectEngineCtx, ctx
 unsafe extern "C" fn websocket_detect_mask_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_WEBSOCKET) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_WEBSOCKET) != 0 {
         return -1;
     }
     let ctx = SCDetectU32Parse(raw) as *mut c_void;
@@ -208,7 +207,7 @@ unsafe extern "C" fn websocket_detect_mask_free(_de: *mut DetectEngineCtx, ctx: 
 unsafe extern "C" fn websocket_detect_flags_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_WEBSOCKET) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_WEBSOCKET) != 0 {
         return -1;
     }
     let ctx = websocket_parse_flags(raw) as *mut c_void;
@@ -248,7 +247,7 @@ unsafe extern "C" fn websocket_detect_flags_free(_de: *mut DetectEngineCtx, ctx:
 pub unsafe extern "C" fn websocket_detect_payload_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
-    if DetectSignatureSetAppProto(s, ALPROTO_WEBSOCKET) != 0 {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_WEBSOCKET) != 0 {
         return -1;
     }
     if SCDetectBufferSetActiveList(de, s, G_WEBSOCKET_PAYLOAD_BUFFER_ID) < 0 {
