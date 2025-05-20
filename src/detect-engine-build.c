@@ -1869,6 +1869,12 @@ static void DetectEngineAddSigToPreStreamHook(DetectEngineCtx *de_ctx, Signature
     }
 }
 
+static void DetectEngineAddSigToPreFlowHook(DetectEngineCtx *de_ctx, Signature *s)
+{
+    SCLogDebug("adding signature %" PRIu32 " to the pre_flow hook sgh", s->id);
+    SigGroupHeadAppendSig(de_ctx, &de_ctx->pre_flow_sgh, s);
+}
+
 /**
  * \brief Fill the global src group head, with the sigs included
  *
@@ -1903,6 +1909,9 @@ int SigPrepareStage2(DetectEngineCtx *de_ctx)
         } else if (s->type == SIG_TYPE_PKT && s->init_data->hook.type == SIGNATURE_HOOK_TYPE_PKT &&
                    s->init_data->hook.t.pkt.ph == SIGNATURE_HOOK_PKT_PRE_STREAM) {
             DetectEngineAddSigToPreStreamHook(de_ctx, s);
+        } else if (s->type == SIG_TYPE_PKT && s->init_data->hook.type == SIGNATURE_HOOK_TYPE_PKT &&
+                   s->init_data->hook.t.pkt.ph == SIGNATURE_HOOK_PKT_PRE_FLOW) {
+            DetectEngineAddSigToPreFlowHook(de_ctx, s);
         }
     }
 
@@ -1940,10 +1949,24 @@ static void DetectEngineBuildPreStreamHookSghs(DetectEngineCtx *de_ctx)
     }
 }
 
+static void DetectEngineBuildPreFlowHookSghs(DetectEngineCtx *de_ctx)
+{
+    if (de_ctx->pre_flow_sgh != NULL) {
+        uint32_t max_idx = DetectEngineGetMaxSigId(de_ctx);
+        SigGroupHeadSetSigCnt(de_ctx->pre_flow_sgh, max_idx);
+        SigGroupHeadBuildMatchArray(de_ctx, de_ctx->pre_flow_sgh, max_idx);
+        PrefilterSetupRuleGroup(de_ctx, de_ctx->pre_flow_sgh);
+        de_ctx->PreFlowHook = DetectPreFlow;
+    }
+}
+
 int SigPrepareStage3(DetectEngineCtx *de_ctx)
 {
     /* prepare the decoder event sgh */
     DetectEngineBuildDecoderEventSgh(de_ctx);
+
+    /* pre_flow hook sgh */
+    DetectEngineBuildPreFlowHookSghs(de_ctx);
 
     /* pre_stream hook sghs */
     DetectEngineBuildPreStreamHookSghs(de_ctx);
@@ -1960,6 +1983,9 @@ int SigAddressCleanupStage1(DetectEngineCtx *de_ctx)
     if (de_ctx->decoder_event_sgh)
         SigGroupHeadFree(de_ctx, de_ctx->decoder_event_sgh);
     de_ctx->decoder_event_sgh = NULL;
+    if (de_ctx->pre_flow_sgh)
+        SigGroupHeadFree(de_ctx, de_ctx->pre_flow_sgh);
+    de_ctx->pre_flow_sgh = NULL;
     if (de_ctx->pre_stream_sgh[0])
         SigGroupHeadFree(de_ctx, de_ctx->pre_stream_sgh[0]);
     de_ctx->pre_stream_sgh[0] = NULL;

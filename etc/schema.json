@@ -6618,6 +6618,11 @@
                                     "type": "integer",
                                     "description": "Number of packets dropped due to no NFQ verdict"
                                 },
+                                "pre_flow_hook": {
+                                    "description":
+                                            "Number of packets dropped in the pre_flow hook ",
+                                    "type": "integer"
+                                },
                                 "pre_stream_hook": {
                                     "description":
                                             "Number of packets dropped in the pre_stream hook ",
