@@ -173,23 +173,6 @@ void FileForceHashParseCfg(SCConfNode *conf)
 
     SCConfNode *forcehash_node = NULL;
 
-    /* legacy option */
-    const char *force_md5 = SCConfNodeLookupChildValue(conf, "force-md5");
-    if (force_md5 != NULL) {
-        SCLogWarning("deprecated 'force-md5' option "
-                     "found. Please use 'force-hash: [md5]' instead");
-
-        if (SCConfValIsTrue(force_md5)) {
-            if (g_disable_hashing) {
-                SCLogInfo(
-                        "not forcing md5 calculation for logged files: hashing globally disabled");
-            } else {
-                FileForceMd5Enable();
-                SCLogInfo("forcing md5 calculation for logged files");
-            }
-        }
-    }
-
     if (conf != NULL)
         forcehash_node = SCConfNodeLookupChild(conf, "force-hash");
 
