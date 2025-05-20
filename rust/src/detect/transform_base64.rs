@@ -56,7 +56,9 @@ pub struct SCDetectTransformFromBase64Data {
 impl Drop for SCDetectTransformFromBase64Data {
     fn drop(&mut self) {
         unsafe {
-            let _ = Box::from_raw(self.serialized as *mut c_char);
+            if !self.serialized.is_null() {
+                let _ = Box::from_raw(self.serialized as *mut c_char);
+            }
             if !self.offset_str.is_null() {
                 let _ = CString::from_raw(self.offset_str as *mut c_char);
             }
