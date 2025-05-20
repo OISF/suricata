@@ -31,12 +31,10 @@ fn log_pgsql(tx: &PgsqlTransaction, flags: u32, js: &mut JsonBuilder) -> Result<
     js.set_uint("tx_id", tx.tx_id)?;
     if !tx.requests.is_empty() {
         // For now, even if 'requests' is an array, we don't need to log it as such, as
-        // there are no duplicated messages
+        // there should be no duplicated messages, and there should be no more than 2 requests per tx
+        debug_validate_bug_on!(tx.requests.len() > 2);
         js.open_object("request")?;
-        for request in &tx.requests {
-            SCLogNotice!("Suricata requests length: {}", tx.requests.len());
-            log_request(request, flags, js)?;
-        }
+        log_request(tx, flags, js)?;
         js.close()?;
     } else if tx.responses.is_empty() {
         SCLogDebug!("Suricata created an empty PGSQL transaction");
@@ -55,86 +53,101 @@ fn log_pgsql(tx: &PgsqlTransaction, flags: u32, js: &mut JsonBuilder) -> Result<
     Ok(())
 }
 
-fn log_request(req: &PgsqlFEMessage, flags: u32, js: &mut JsonBuilder) -> Result<(), JsonError> {
-    match req {
-        PgsqlFEMessage::StartupMessage(StartupPacket {
-            length: _,
-            proto_major,
-            proto_minor,
-            params,
-        }) => {
-            let proto = format!("{}.{}", proto_major, proto_minor);
-            js.set_string("protocol_version", &proto)?;
-            js.set_object("startup_parameters", &log_startup_parameters(params)?)?;
-        }
-        PgsqlFEMessage::SSLRequest(_) => {
-            js.set_string("message", "SSL Request")?;
-        }
-        PgsqlFEMessage::SASLInitialResponse(SASLInitialResponsePacket {
-            identifier: _,
-            length: _,
-            auth_mechanism,
-            param_length: _,
-            sasl_param,
-        }) => {
-            js.set_string("sasl_authentication_mechanism", auth_mechanism.to_str())?;
-            js.set_string_from_bytes("sasl_param", sasl_param)?;
-        }
-        PgsqlFEMessage::PasswordMessage(RegularPacket {
-            identifier: _,
-            length: _,
-            payload,
-        }) => {
-            if flags & PGSQL_LOG_PASSWORDS != 0 {
-                js.set_string_from_bytes(req.to_str(), payload)?;
-            } else {
-                js.set_bool("password_redacted", true)?;
+fn log_request(tx: &PgsqlTransaction, flags: u32, js: &mut JsonBuilder) -> Result<(), JsonError> {
+    // CopyFail, ConsolidatedCopyDataIn, CopyDone
+    let mut duplicated_messages: [u8; 3] = [0, 0, 0];
+    for req in &tx.requests {
+        SCLogDebug!("Suricata requests length: {}", tx.requests.len());
+        match req {
+            PgsqlFEMessage::StartupMessage(StartupPacket {
+                length: _,
+                proto_major,
+                proto_minor,
+                params,
+            }) => {
+                let proto = format!("{}.{}", proto_major, proto_minor);
+                js.set_string("protocol_version", &proto)?;
+                js.set_object("startup_parameters", &log_startup_parameters(params)?)?;
             }
-        }
-        PgsqlFEMessage::SASLResponse(RegularPacket {
-            identifier: _,
-            length: _,
-            payload,
-        }) => {
-            js.set_string_from_bytes("sasl_response", payload)?;
-        }
-        PgsqlFEMessage::SimpleQuery(RegularPacket {
-            identifier: _,
-            length: _,
-            payload,
-        })
-        | PgsqlFEMessage::CopyFail(RegularPacket {
-            identifier: _,
-            length: _,
-            payload,
-        }) => {
-            js.set_string_from_bytes(req.to_str(), payload)?;
-        }
-        PgsqlFEMessage::CancelRequest(CancelRequestMessage { pid, backend_key }) => {
-            js.set_string("message", "cancel_request")?;
-            js.set_uint("process_id", *pid)?;
-            js.set_uint("secret_key", *backend_key)?;
-        }
-        PgsqlFEMessage::ConsolidatedCopyDataIn(ConsolidatedDataRowPacket {
-            identifier: _,
-            row_cnt,
-            data_size,
-        }) => {
-            js.open_object(req.to_str())?;
-            js.set_uint("msg_count", *row_cnt)?;
-            js.set_uint("data_size", *data_size)?;
-            js.close()?;
-        }
-        PgsqlFEMessage::CopyDone(_)
-        | PgsqlFEMessage::Terminate(_) => {
-            js.set_string("message", req.to_str())?;
-        }
-        PgsqlFEMessage::UnknownMessageType(RegularPacket {
-            identifier: _,
-            length: _,
-            payload: _,
-        }) => {
-            // We don't want to log these, for now. Cf redmine: #6576
+            PgsqlFEMessage::SSLRequest(_) => {
+                js.set_string("message", "SSL Request")?;
+            }
+            PgsqlFEMessage::SASLInitialResponse(SASLInitialResponsePacket {
+                identifier: _,
+                length: _,
+                auth_mechanism,
+                param_length: _,
+                sasl_param,
+            }) => {
+                js.set_string("sasl_authentication_mechanism", auth_mechanism.to_str())?;
+                js.set_string_from_bytes("sasl_param", sasl_param)?;
+            }
+            PgsqlFEMessage::PasswordMessage(RegularPacket {
+                identifier: _,
+                length: _,
+                payload,
+            }) => {
+                if flags & PGSQL_LOG_PASSWORDS != 0 {
+                    js.set_string_from_bytes(req.to_str(), payload)?;
+                } else {
+                    js.set_bool("password_redacted", true)?;
+                }
+            }
+            PgsqlFEMessage::SASLResponse(RegularPacket {
+                identifier: _,
+                length: _,
+                payload,
+            }) => {
+                js.set_string_from_bytes("sasl_response", payload)?;
+            }
+            PgsqlFEMessage::SimpleQuery(RegularPacket {
+                identifier: _,
+                length: _,
+                payload,
+            }) => {
+                js.set_string_from_bytes(req.to_str(), payload)?;
+            }
+            PgsqlFEMessage::CopyFail(RegularPacket {
+                identifier: _,
+                length: _,
+                payload,
+            }) => {
+                js.set_string_from_bytes(req.to_str(), payload)?;
+                duplicated_messages[0] += 1;
+                debug_validate_bug_on!(duplicated_messages[0] > 1);
+            }
+            PgsqlFEMessage::CancelRequest(CancelRequestMessage { pid, backend_key }) => {
+                js.set_string("message", "cancel_request")?;
+                js.set_uint("process_id", *pid)?;
+                js.set_uint("secret_key", *backend_key)?;
+            }
+            PgsqlFEMessage::ConsolidatedCopyDataIn(ConsolidatedDataRowPacket {
+                identifier: _,
+                row_cnt,
+                data_size,
+            }) => {
+                js.open_object(req.to_str())?;
+                js.set_uint("msg_count", *row_cnt)?;
+                js.set_uint("data_size", *data_size)?;
+                js.close()?;
+                duplicated_messages[1] += 1;
+                debug_validate_bug_on!(duplicated_messages[1] > 1);
+            }
+            PgsqlFEMessage::CopyDone(_) => {
+                js.set_string("message", req.to_str())?;
+                duplicated_messages[2] += 1;
+                debug_validate_bug_on!(duplicated_messages[2] > 1);
+            }
+            PgsqlFEMessage::Terminate(_) => {
+                js.set_string("message", req.to_str())?;
+            }
+            PgsqlFEMessage::UnknownMessageType(RegularPacket {
+                identifier: _,
+                length: _,
+                payload: _,
+            }) => {
+                // We don't want to log these, for now. Cf redmine: #6576
+            }
         }
     }
     Ok(())
