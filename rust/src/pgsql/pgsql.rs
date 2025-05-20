@@ -447,7 +447,7 @@ impl PgsqlState {
                             }
                         }
                     } else {
-                        // If there isn't a new transaction, we'll consider Suri should move on
+                        // If there isn't a transaction, we'll consider Suri should move on
                         return AppLayerResult::ok();
                     };
                 }
@@ -677,7 +677,7 @@ impl PgsqlState {
                             }
                         }
                     } else {
-                        // If there isn't a new transaction, we'll consider Suri should move on
+                        // If there isn't a transaction, we'll consider Suri should move on
                         return AppLayerResult::ok();
                     };
                 }
