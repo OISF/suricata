@@ -282,6 +282,9 @@ outputs:
             # Default: all.
             #types: [a, aaaa, cname, mx, ns, ptr, txt]
         - mdns:
+            #requests: true
+            #responses: true
+            #grouped: false
         - tls:
             extended: yes     # enable this for extended logging information
             # output TLS transaction where the session is resumed using a
