@@ -96,11 +96,11 @@
                  DNS_LOG_FORMAT_GROUPED))
 
 typedef struct SCDnsLogFileCtx_ {
-    uint64_t flags; /** Store mode */
     OutputJsonCtx *eve_ctx;
-    uint8_t version;
+    SCDnsLogConfig config;
 } SCDnsLogFileCtx;
 
+// bindgen: ignore
 typedef struct SCDnsLogThread_ {
     SCDnsLogFileCtx *dnslog_ctx;
     OutputJsonThreadCtx *ctx;

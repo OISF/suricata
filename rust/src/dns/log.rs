@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2024 Open Information Security Foundation
+/* Copyright (C) 2017-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -24,6 +24,8 @@ use libc::c_char;
 use crate::detect::EnumString;
 use crate::dns::dns::*;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
+
+use super::config::SCDnsLogConfig;
 
 pub const LOG_A: u64 = BIT_U64!(2);
 pub const LOG_NS: u64 = BIT_U64!(3);
@@ -745,12 +747,16 @@ pub extern "C" fn SCDnsLogJsonQuery(
 /// "dns" object.
 ///
 /// This logger implements V3 style DNS logging.
-fn log_json(tx: &DNSTransaction, flags: u64, jb: &mut JsonBuilder, name: &str) -> Result<(), JsonError> {
+fn log_json(
+    tx: &DNSTransaction, config: &SCDnsLogConfig, jb: &mut JsonBuilder, name: &str,
+) -> Result<(), JsonError> {
     jb.open_object(name)?;
     jb.set_int("version", 3)?;
 
+    let mut is_request = false;
     let message = if let Some(request) = &tx.request {
         jb.set_string("type", "request")?;
+        is_request = true;
         request
     } else if let Some(response) = &tx.response {
         jb.set_string("type", "response")?;
@@ -794,7 +800,7 @@ fn log_json(tx: &DNSTransaction, flags: u64, jb: &mut JsonBuilder, name: &str) -
     if !message.queries.is_empty() {
         jb.open_array("queries")?;
         for query in &message.queries {
-            if dns_log_rrtype_enabled(query.rrtype, flags) {
+            if dns_log_rrtype_enabled(query.rrtype, config.flags) {
                 jb.start_object()?
                     .set_string_from_bytes("rrname", &query.name.value)?
                     .set_string("rrtype", &dns_rrtype_string(query.rrtype))?;
@@ -807,11 +813,14 @@ fn log_json(tx: &DNSTransaction, flags: u64, jb: &mut JsonBuilder, name: &str) -
         jb.close()?;
     }
 
-    if !message.answers.is_empty() {
-        dns_log_json_answers(jb, message, flags)?;
+    // Only log answers if this is a response or if answers_in_request
+    // is true for requests
+    if !message.answers.is_empty() && (!is_request || config.answers_in_request) {
+        dns_log_json_answers(jb, message, config.flags)?;
     }
 
-    if !message.authorities.is_empty() {
+    // Only log authorities if enabled
+    if !message.authorities.is_empty() && config.log_authorities {
         jb.open_array("authorities")?;
         for auth in &message.authorities {
             let auth_detail = dns_log_json_answer_detail(auth)?;
@@ -820,7 +829,8 @@ fn log_json(tx: &DNSTransaction, flags: u64, jb: &mut JsonBuilder, name: &str) -
         jb.close()?;
     }
 
-    if !message.additionals.is_empty() {
+    // Only log additionals if enabled
+    if !message.additionals.is_empty() && config.log_additionals {
         let mut is_jb_open = false;
         for add in &message.additionals {
             if let DNSRData::OPT(rdata) = &add.data {
@@ -851,9 +861,11 @@ fn log_json(tx: &DNSTransaction, flags: u64, jb: &mut JsonBuilder, name: &str) -
 /// The caller must ensure the name parameter is a valid C and UTF-8
 /// string.
 #[no_mangle]
-pub unsafe extern "C" fn SCDnsLogJson(tx: &DNSTransaction, flags: u64, jb: &mut JsonBuilder, name: *const c_char) -> bool {
+pub unsafe extern "C" fn SCDnsLogJson(
+    tx: &DNSTransaction, config: &SCDnsLogConfig, jb: &mut JsonBuilder, name: *const c_char,
+) -> bool {
     let name = std::ffi::CStr::from_ptr(name).to_str().unwrap();
-    log_json(tx, flags, jb, name).is_ok()
+    log_json(tx, config, jb, name).is_ok()
 }
 
 /// Check if a DNS transaction should be logged based on the

@@ -285,6 +285,12 @@ outputs:
             #requests: true
             #responses: true
             #grouped: false
+            #additionals: false
+            #authorities: false
+            # Don't log queries in responses.
+            #queries-in-response: false
+            # Don't log answers in requests
+            #answers-in-request: false
         - tls:
             extended: yes     # enable this for extended logging information
             # output TLS transaction where the session is resumed using a

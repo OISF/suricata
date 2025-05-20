@@ -33,7 +33,15 @@
 
 bool AlertJsonMdns(void *txptr, SCJsonBuilder *js)
 {
-    return SCDnsLogJson(txptr, ~0ULL, js, "mdns");
+    SCDnsLogConfig config = {
+        .version = DNS_LOG_VERSION_DEFAULT,
+        .flags = DNS_LOG_FORMAT_DETAILED | DNS_LOG_REQUESTS | DNS_LOG_RESPONSES | DNS_LOG_ALL_RRTYPES,
+        .log_additionals = true,
+        .log_authorities = true,
+        .answers_in_request = true,
+    };
+    /* For alerts, we output everything for better visibility */
+    return SCDnsLogJson(txptr, &config, js, "mdns");
 }
 
 static int JsonMdnsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f,
@@ -42,12 +50,28 @@ static int JsonMdnsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     SCDnsLogThread *td = (SCDnsLogThread *)thread_data;
     SCDnsLogFileCtx *dnslog_ctx = td->dnslog_ctx;
 
-    if (SCDnsTxIsRequest(txptr) && (dnslog_ctx->flags & DNS_LOG_REQUESTS) == 0) {
-        return TM_ECODE_OK;
+    if (SCDnsTxIsRequest(txptr)) {
+        /* Request logging disabled. */
+        if ((dnslog_ctx->config.flags & DNS_LOG_REQUESTS) == 0) {
+            return TM_ECODE_OK;
+        }
+
+        /* Don't log requests with no queries. */
+        if (!SCDnsTxHasQueries(txptr, false)) {
+            return TM_ECODE_OK;
+        }
     }
 
-    if (SCDnsTxIsResponse(txptr) && (dnslog_ctx->flags & DNS_LOG_RESPONSES) == 0) {
-        return TM_ECODE_OK;
+    if (SCDnsTxIsResponse(txptr)) {
+        /* Response logging disabled. */
+        if ((dnslog_ctx->config.flags & DNS_LOG_RESPONSES) == 0) {
+            return TM_ECODE_OK;
+        }
+
+        /* Don't log responses with no answers. */
+        if (!SCDnsTxHasAnswers(txptr, true)) {
+            return TM_ECODE_OK;
+        }
     }
 
     SCJsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "mdns", NULL, dnslog_ctx->eve_ctx);
@@ -55,7 +79,7 @@ static int JsonMdnsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
         return TM_ECODE_OK;
     }
 
-    if (SCDnsLogJson(txptr, td->dnslog_ctx->flags, jb, "mdns")) {
+    if (SCDnsLogJson(txptr, &dnslog_ctx->config, jb, "mdns")) {
         OutputJsonBuilderBuffer(tv, p, p->flow, jb, td->ctx);
     }
     SCJbFree(jb);
@@ -128,24 +152,39 @@ static OutputInitResult DnsLogInitCtxSub(SCConfNode *conf, OutputCtx *parent_ctx
     }
 
     dnslog_ctx->eve_ctx = ojc;
-    dnslog_ctx->version = DNS_LOG_VERSION_3;
+    dnslog_ctx->config.version = DNS_LOG_VERSION_3;
 
     /* For mDNS, log everything, except grouped. */
-    dnslog_ctx->flags = ~0ULL & ~DNS_LOG_FORMAT_GROUPED;
+    dnslog_ctx->config.flags = ~0ULL & ~DNS_LOG_FORMAT_GROUPED;
 
     const char *requests = SCConfNodeLookupChildValue(conf, "requests");
     if (requests && SCConfValIsFalse(requests)) {
-        dnslog_ctx->flags &= ~DNS_LOG_REQUESTS;
+        dnslog_ctx->config.flags &= ~DNS_LOG_REQUESTS;
     }
 
     const char *responses = SCConfNodeLookupChildValue(conf, "responses");
     if (responses && SCConfValIsFalse(responses)) {
-        dnslog_ctx->flags &= ~DNS_LOG_RESPONSES;
+        dnslog_ctx->config.flags &= ~DNS_LOG_RESPONSES;
     }
 
     const char *grouped = SCConfNodeLookupChildValue(conf, "grouped");
     if (grouped && SCConfValIsTrue(grouped)) {
-        dnslog_ctx->flags |= DNS_LOG_FORMAT_GROUPED;
+        dnslog_ctx->config.flags |= DNS_LOG_FORMAT_GROUPED;
+    }
+
+    const char *log_additionals = SCConfNodeLookupChildValue(conf, "log-additionals");
+    if (log_additionals && SCConfValIsTrue(log_additionals)) {
+        dnslog_ctx->config.log_additionals = true;
+    }
+
+    const char *log_authorities = SCConfNodeLookupChildValue(conf, "log-authorities");
+    if (log_authorities && SCConfValIsTrue(log_authorities)) {
+        dnslog_ctx->config.log_authorities = true;
+    }
+
+    const char *answers_in_request = SCConfNodeLookupChildValue(conf, "answers-in-request");
+    if (answers_in_request && SCConfValIsTrue(answers_in_request)) {
+        dnslog_ctx->config.answers_in_request = true;
     }
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
@@ -167,5 +206,6 @@ static OutputInitResult DnsLogInitCtxSub(SCConfNode *conf, OutputCtx *parent_ctx
 void JsonMdnsLogRegister(void)
 {
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonMdnsLog", "eve-log.mdns",
-            DnsLogInitCtxSub, ALPROTO_MDNS, JsonMdnsLogger, SCDnsLogThreadInit, SCDnsLogThreadDeinit);
+            DnsLogInitCtxSub, ALPROTO_MDNS, JsonMdnsLogger, SCDnsLogThreadInit,
+            SCDnsLogThreadDeinit);
 }

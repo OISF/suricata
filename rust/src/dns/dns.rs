@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2022 Open Information Security Foundation
+/* Copyright (C) 2017-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1011,6 +1011,32 @@ pub extern "C" fn SCDnsTxIsRequest(tx: &mut DNSTransaction) -> bool {
 #[no_mangle]
 pub extern "C" fn SCDnsTxIsResponse(tx: &mut DNSTransaction) -> bool {
     tx.response.is_some()
+}
+
+#[no_mangle]
+pub extern "C" fn SCDnsTxHasQueries(tx: &mut DNSTransaction, response: bool) -> bool {
+    if response {
+        tx.response
+            .as_ref()
+            .map_or(false, |response| !response.queries.is_empty())
+    } else {
+        tx.request
+            .as_ref()
+            .map_or(false, |request| !request.queries.is_empty())
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn SCDnsTxHasAnswers(tx: &mut DNSTransaction, response: bool) -> bool {
+    if response {
+        tx.response
+            .as_ref()
+            .map_or(false, |response| !response.answers.is_empty())
+    } else {
+        tx.request
+            .as_ref()
+            .map_or(false, |request| !request.answers.is_empty())
+    }
 }
 
 pub(crate) unsafe extern "C" fn state_get_tx_data(tx: *mut std::os::raw::c_void) -> *mut AppLayerTxData {

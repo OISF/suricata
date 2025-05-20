@@ -90,6 +90,7 @@ include = [
     "FtpDataStateValues",
     "HTTP2TransactionState",
     "DataRepType",
+    "SCDnsLogConfig",
 ]
 
 # A list of items to not include in the generated bindings
