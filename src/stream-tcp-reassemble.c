@@ -2143,10 +2143,10 @@ TcpSegment *StreamTcpGetSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx)
 }
 
 /**
- *  \brief Trigger RAW stream reassembly
+ *  \brief Trigger RAW stream inspection
  *
- *  Used by AppLayerTriggerRawStreamReassembly to trigger RAW stream
- *  reassembly from the applayer, for example upon completion of a
+ *  Used by AppLayerTriggerRawStreamInspection to trigger RAW stream
+ *  inspection from the applayer, for example upon completion of a
  *  HTTP request.
  *
  *  It sets a flag in the stream so that the next Raw call will return
@@ -2154,7 +2154,7 @@ TcpSegment *StreamTcpGetSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx)
  *
  *  \param ssn TcpSession
  */
-void StreamTcpReassembleTriggerRawReassembly(TcpSession *ssn, int direction)
+void StreamTcpReassembleTriggerRawInspection(TcpSession *ssn, int direction)
 {
 #ifdef DEBUG
     BUG_ON(ssn == NULL);

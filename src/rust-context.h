@@ -41,7 +41,7 @@ typedef struct SuricataContext_ {
     void (*AppLayerDecoderEventsSetEventRaw)(AppLayerDecoderEvents **,
             uint8_t);
     void (*AppLayerDecoderEventsFreeEvents)(AppLayerDecoderEvents **);
-    void (*AppLayerParserTriggerRawStreamReassembly)(Flow *, int direction);
+    void (*AppLayerParserTriggerRawStreamInspection)(Flow *, int direction);
 
     void (*HttpRangeFreeBlock)(HttpRangeContainerBlock *);
     bool (*HTPFileCloseHandleRange)(const StreamingBufferConfig *sbcfg, FileContainer *,

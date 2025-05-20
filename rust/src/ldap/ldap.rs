@@ -237,7 +237,7 @@ impl LdapState {
                     tx.complete |= tx_is_complete(&request.protocol_op, Direction::ToServer);
                     tx.request = Some(request);
                     self.transactions.push_back(tx);
-                    sc_app_layer_parser_trigger_raw_stream_reassembly(
+                    sc_app_layer_parser_trigger_raw_stream_inspection(
                         flow,
                         Direction::ToServer as i32,
                     );
@@ -308,7 +308,7 @@ impl LdapState {
                         let tx_id = tx.id();
                         tx.tx_data.updated_tc = true;
                         tx.responses.push_back(response);
-                        sc_app_layer_parser_trigger_raw_stream_reassembly(
+                        sc_app_layer_parser_trigger_raw_stream_inspection(
                             flow,
                             Direction::ToClient as i32,
                         );
@@ -326,7 +326,7 @@ impl LdapState {
                         tx.complete = true;
                         tx.responses.push_back(response);
                         self.transactions.push_back(tx);
-                        sc_app_layer_parser_trigger_raw_stream_reassembly(
+                        sc_app_layer_parser_trigger_raw_stream_inspection(
                             flow,
                             Direction::ToClient as i32,
                         );
@@ -342,7 +342,7 @@ impl LdapState {
                         let tx_id = tx.id();
                         tx.responses.push_back(response);
                         self.transactions.push_back(tx);
-                        sc_app_layer_parser_trigger_raw_stream_reassembly(
+                        sc_app_layer_parser_trigger_raw_stream_inspection(
                             flow,
                             Direction::ToClient as i32,
                         );
