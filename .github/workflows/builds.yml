@@ -2826,11 +2826,10 @@ jobs:
           path: prep
       - run: tar xf prep/suricata-update.tar.gz
       - name: Npcap DLL
-        run: |
-          curl -sL -O https://nmap.org/npcap/dist/npcap-1.00.exe
-          7z -y x -o/npcap-bin npcap-1.00.exe
-          # hack: place dlls in cwd
-          cp /npcap-bin/*.dll .
+        run: curl -sL -O https://nmap.org/npcap/dist/npcap-1.00.exe
+      - run: 7z -y x -o/npcap-bin npcap-1.00.exe
+      - name: Place NPcap dll's in curent directory 
+        run: cp /npcap-bin/*.dll .
       - name: Npcap SDK
         run: |
           curl -sL -O https://nmap.org/npcap/dist/npcap-sdk-1.06.zip
