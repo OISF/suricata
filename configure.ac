@@ -2296,6 +2296,27 @@ fi
                 AC_MSG_RESULT([yes]),
                 [AC_MSG_RESULT([no])
                 CFLAGS="$OCFLAGS"])
+        # Following warnings are not respected by unit tests
+        if test "$enable_unittests" != "yes"; then
+            # check if our compiler supports -Wimplicit-int-conversion
+            AC_MSG_CHECKING(for -Wimplicit-int-conversion support)
+            OCFLAGS=$CFLAGS
+            CFLAGS="$CFLAGS -Wimplicit-int-conversion"
+            AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]],
+                        [[]])],
+                    AC_MSG_RESULT([yes]),
+                    [AC_MSG_RESULT([no])
+                    CFLAGS="$OCFLAGS"])
+            # check if our compiler supports -Wshorten-64-to-32
+            AC_MSG_CHECKING(for -Wshorten-64-to-32 support)
+            OCFLAGS=$CFLAGS
+            CFLAGS="$CFLAGS -Wshorten-64-to-32"
+            AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]],
+                        [[]])],
+                    AC_MSG_RESULT([yes]),
+                    [AC_MSG_RESULT([no])
+                    CFLAGS="$OCFLAGS"])
+        fi
     ])
 
     AC_CHECK_LIB(fuzzpcap, FPC_IsFuzzPacketCapture, HAS_FUZZPCAP="yes")
