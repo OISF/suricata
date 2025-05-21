@@ -1,4 +1,4 @@
-/* Copyright (C) 2020 Open Information Security Foundation
+/* Copyright (C) 2020-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -344,6 +344,12 @@ impl SSHState {
                     if r.is_incomplete() {
                         //adds bytes consumed by banner to incomplete result
                         r.consumed += (input.len() - rem.len()) as u32;
+                    } else if r.is_ok() {
+                        let mut dir = Direction::ToServer as i32;
+                        if resp {
+                            dir = Direction::ToClient as i32;
+                        }
+                        sc_app_layer_parser_trigger_raw_stream_inspection(flow, dir);
                     }
                     return r;
                 }
@@ -384,6 +390,12 @@ impl SSHState {
                 if r.is_incomplete() {
                     //adds bytes consumed by banner to incomplete result
                     r.consumed += (input.len() - rem.len()) as u32;
+                } else if r.is_ok() {
+                    let mut dir = Direction::ToServer as i32;
+                    if resp {
+                        dir = Direction::ToClient as i32;
+                    }
+                    sc_app_layer_parser_trigger_raw_stream_inspection(flow, dir);
                 }
                 return r;
             }
