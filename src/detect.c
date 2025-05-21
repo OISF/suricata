@@ -70,12 +70,20 @@ typedef struct DetectRunScratchpad {
     const AppProto alproto;
     const uint8_t flow_flags; /* flow/state flags: STREAM_* */
     const bool app_decoder_events;
+    /**
+     *  Either ACTION_DROP (drop:packet) or ACTION_ACCEPT (accept:hook)
+     *
+     *  ACTION_DROP means the default policy of drop:packet is applied
+     *  ACTION_ACCEPT means the default policy of accept:hook is applied
+     */
+    const uint8_t default_action;
     const SigGroupHead *sgh;
 } DetectRunScratchpad;
 
 /* prototypes */
 static DetectRunScratchpad DetectRunSetup(const DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, Packet * const p, Flow * const pflow);
+        DetectEngineThreadCtx *det_ctx, Packet *const p, Flow *const pflow,
+        const uint8_t default_action);
 static void DetectRunInspectIPOnly(ThreadVars *tv, const DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, Flow * const pflow, Packet * const p);
 static inline void DetectRunGetRuleGroup(const DetectEngineCtx *de_ctx,
@@ -113,7 +121,7 @@ static void DetectRun(ThreadVars *th_v,
      * Mark as a constant pointer, although the flow itself can change. */
     Flow * const pflow = p->flow;
 
-    DetectRunScratchpad scratch = DetectRunSetup(de_ctx, det_ctx, p, pflow);
+    DetectRunScratchpad scratch = DetectRunSetup(de_ctx, det_ctx, p, pflow, ACTION_DROP);
 
     /* run the IPonly engine */
     DetectRunInspectIPOnly(th_v, de_ctx, det_ctx, pflow, p);
@@ -213,7 +221,7 @@ static void DetectRunPacketHook(ThreadVars *th_v, const DetectEngineCtx *de_ctx,
      * Mark as a constant pointer, although the flow itself can change. */
     Flow *const pflow = p->flow;
 
-    DetectRunScratchpad scratch = DetectRunSetup(de_ctx, det_ctx, p, pflow);
+    DetectRunScratchpad scratch = DetectRunSetup(de_ctx, det_ctx, p, pflow, ACTION_ACCEPT);
     scratch.sgh = sgh;
 
     /* if we didn't get a sig group head, we
@@ -893,7 +901,7 @@ next:
     /* if no rule told us to accept, and no rule explicitly dropped, we invoke the default drop
      * policy
      */
-    if (have_fw_rules) {
+    if (have_fw_rules && scratch->default_action == ACTION_DROP) {
         if (!fw_verdict) {
             DEBUG_VALIDATE_BUG_ON(action & ACTION_DROP);
             PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_DEFAULT_PACKET_POLICY);
@@ -906,10 +914,15 @@ next:
     return action;
 }
 
-static DetectRunScratchpad DetectRunSetup(
-    const DetectEngineCtx *de_ctx,
-    DetectEngineThreadCtx *det_ctx,
-    Packet * const p, Flow * const pflow)
+/** \internal
+ *  \param default_action either ACTION_DROP (drop:packet) or ACTION_ACCEPT (accept:hook)
+ *
+ *  ACTION_DROP means the default policy of drop:packet is applied
+ *  ACTION_ACCEPT means the default policy of accept:hook is applied
+ */
+static DetectRunScratchpad DetectRunSetup(const DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, Packet *const p, Flow *const pflow,
+        const uint8_t default_action)
 {
     AppProto alproto = ALPROTO_UNKNOWN;
     uint8_t flow_flags = 0; /* flow/state flags */
@@ -1001,7 +1014,7 @@ static DetectRunScratchpad DetectRunSetup(
         app_decoder_events = AppLayerParserHasDecoderEvents(pflow->alparser);
     }
 
-    DetectRunScratchpad pad = { alproto, flow_flags, app_decoder_events, NULL };
+    DetectRunScratchpad pad = { alproto, flow_flags, app_decoder_events, default_action, NULL };
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_SETUP);
     return pad;
 }
@@ -1031,7 +1044,7 @@ static inline void DetectRunPostRules(ThreadVars *tv, const DetectEngineCtx *de_
      * if there was no rule group. */
     // TODO review packet src types here
     if (de_ctx->flags & DE_HAS_FIREWALL && !(p->action & ACTION_ACCEPT) &&
-            p->pkt_src == PKT_SRC_WIRE) {
+            p->pkt_src == PKT_SRC_WIRE && scratch->default_action == ACTION_DROP) {
         SCLogDebug("packet %" PRIu64 ": droppit as no ACCEPT set %02x (pkt %s)", p->pcap_cnt,
                 p->action, PktSrcToString(p->pkt_src));
         PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_DEFAULT_PACKET_POLICY);
