@@ -35,11 +35,13 @@ enum ConfigSubsys {
 enum ConfigType {
     CONFIG_TYPE_TX = 0,     /* transaction logging */
     CONFIG_TYPE_FLOW,       /* flow logging */
+#if 0
     CONFIG_TYPE_ALERT,      /* alert logging */
     CONFIG_TYPE_ANOMALY,    /* anomaly logging */
     CONFIG_TYPE_FILE,       /* file logging */
     CONFIG_TYPE_PCAP,       /* pcap logging */
     CONFIG_TYPE_DROP,       /* drop logging */
+#endif
 #define CONFIG_TYPE_DEFAULT CONFIG_TYPE_TX
 };
 
