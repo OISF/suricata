@@ -529,6 +529,10 @@ static OutputInitResult JsonFrameLogInitCtxSub(SCConfNode *conf, OutputCtx *pare
             if (ParseSizeStringU32(payload_buffer_value, &value) < 0) {
                 SCLogError("Error parsing payload-buffer-size \"%s\"", payload_buffer_value);
                 goto error;
+            } else if (value == 0) {
+                // you should not ask for payload if you want 0 of it
+                SCLogError("Error payload-buffer-size should not be 0");
+                goto error;
             }
             payload_buffer_size = value;
         }

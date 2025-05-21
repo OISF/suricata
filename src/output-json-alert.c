@@ -1010,6 +1010,10 @@ static void JsonAlertLogSetupMetadata(AlertJsonOutputCtx *json_output_ctx, SCCon
                            "payload-buffer-size - %s. Killing engine",
                         payload_buffer_value);
                 exit(EXIT_FAILURE);
+            } else if (value == 0) {
+                // you should not ask for payload if you want 0 of it
+                SCLogError("Error payload-buffer-size should not be 0");
+                exit(EXIT_FAILURE);
             } else {
                 payload_buffer_size = value;
             }
