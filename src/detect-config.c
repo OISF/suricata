@@ -112,16 +112,41 @@ static void ConfigApplyTx(Flow *f,
     }
 }
 
+static void ConfigApplyPacket(Packet *p, const DetectConfigData *config)
+{
+    DEBUG_VALIDATE_BUG_ON(config->scope != CONFIG_SCOPE_PACKET);
+
+    switch (config->subsys) {
+        case CONFIG_SUBSYS_TRACKING:
+            switch (config->type) {
+                case CONFIG_TYPE_FLOW:
+                    if (p->flags & PKT_WANTS_FLOW) {
+                        p->flags &= ~PKT_WANTS_FLOW;
+                    }
+                    break;
+                case CONFIG_TYPE_TX:
+                    break;
+            }
+            break;
+        case CONFIG_SUBSYS_LOGGING:
+            break;
+    }
+}
+
 /**
  *  \brief apply the post match filestore with options
  */
 static int ConfigApply(DetectEngineThreadCtx *det_ctx,
         Packet *p, const DetectConfigData *config)
 {
+    bool this_packet = false;
     bool this_tx = false;
     bool this_flow = false;
 
     switch (config->scope) {
+        case CONFIG_SCOPE_PACKET:
+            this_packet = true;
+            break;
         case CONFIG_SCOPE_TX:
             this_tx = true;
             break;
@@ -130,7 +155,10 @@ static int ConfigApply(DetectEngineThreadCtx *det_ctx,
             break;
     }
 
-    if (this_tx) {
+    if (this_packet) {
+        SCLogDebug("packet logic here: %" PRIu64, p->pcap_cnt);
+        ConfigApplyPacket(p, config);
+    } else if (this_tx) {
         SCLogDebug("tx logic here: tx_id %"PRIu64, det_ctx->tx_id);
         ConfigApplyTx(p->flow, det_ctx->tx_id, config);
     } else if (this_flow) {
@@ -228,8 +256,11 @@ static bool ParseValues(const struct ConfigStrings *c, enum ConfigType *type,
     SCLogDebug("subsys %s", c->subsys);
     if (strcmp(c->subsys, "logging") == 0) {
         *subsys = CONFIG_SUBSYS_LOGGING;
+    } else if (strcmp(c->subsys, "tracking") == 0) {
+        *subsys = CONFIG_SUBSYS_TRACKING;
     } else {
-        SCLogError("subsys %s not supported: only 'logging' supported at this time", c->subsys);
+        SCLogError("invalid subsys '%s': only 'logging' and 'tracking' supported at this time",
+                c->subsys);
         return false;
     }
 
@@ -265,8 +296,11 @@ static bool ParseValues(const struct ConfigStrings *c, enum ConfigType *type,
         *scope = CONFIG_SCOPE_TX;
     } else if (strcmp(c->scopeval, "flow") == 0) {
         *scope = CONFIG_SCOPE_FLOW;
+    } else if (strcmp(c->scopeval, "packet") == 0) {
+        *scope = CONFIG_SCOPE_PACKET;
     } else {
-        SCLogError("only 'tx' and 'flow' supported at this time");
+        SCLogError("invalid scope '%s': only 'tx', 'flow' and 'packet' supported at this time",
+                c->scopeval);
         return false;
     }
     SCLogDebug("scopeval %s", c->scopeval);
@@ -300,6 +334,16 @@ static int DetectConfigSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
 
     if (ParseValues(&c, &type, &subsys, &scope) == false) {
         SCReturnInt(-1);
+    }
+
+    /* TODO table is not yet set here */
+    if (scope == CONFIG_SCOPE_PACKET && subsys == CONFIG_SUBSYS_TRACKING &&
+            type == CONFIG_TYPE_FLOW) {
+        if (s->init_data->hook.type != SIGNATURE_HOOK_TYPE_PKT &&
+                s->init_data->hook.t.pkt.ph != SIGNATURE_HOOK_PKT_PRE_FLOW) {
+            SCLogError("disabling flow tracking is only supported in 'pre_flow' hook");
+            SCReturnInt(-1);
+        }
     }
 
     DetectConfigData *fd = SCCalloc(1, sizeof(DetectConfigData));

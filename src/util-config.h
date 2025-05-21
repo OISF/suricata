@@ -30,6 +30,7 @@ enum ConfigAction {
 
 enum ConfigSubsys {
     CONFIG_SUBSYS_LOGGING = 0,
+    CONFIG_SUBSYS_TRACKING, /* tracking like flow, stream tracking */
 };
 
 enum ConfigType {
@@ -46,8 +47,9 @@ enum ConfigType {
 };
 
 enum ConfigScope {
-    CONFIG_SCOPE_TX = 0,    /* per transaction */
-    CONFIG_SCOPE_FLOW,      /* per flow */
+    CONFIG_SCOPE_TX = 0, /* per transaction */
+    CONFIG_SCOPE_FLOW,   /* per flow */
+    CONFIG_SCOPE_PACKET, /* per packet */
 #define CONFIG_SCOPE_DEFAULT CONFIG_SCOPE_TX
 };
 
