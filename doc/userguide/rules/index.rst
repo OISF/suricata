@@ -15,6 +15,7 @@ Suricata Rules
    http-keywords
    file-keywords
    dns-keywords
+   mdns-keywords
    tls-keywords
    ssh-keywords
    ja-keywords
