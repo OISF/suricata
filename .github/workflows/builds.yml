@@ -1805,6 +1805,7 @@ jobs:
           CC: "clang-15"
           CXX: "clang++-15"
           RUSTFLAGS: "-C instrument-coverage"
+          SURICATA_LUA_SYS_CFLAGS: "-fsanitize=address"
       - run: ./qa/run-ossfuzz-corpus.sh
       - run: llvm-profdata-15 merge -o default.profdata $(find /tmp/ -name '*.profraw')
       - run: llvm-cov-15 show ./src/suricata -instr-profile=default.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
