@@ -22,4 +22,10 @@ pub struct SCDnsLogConfig {
     pub log_additionals: bool,
     pub log_authorities: bool,
     pub answers_in_request: bool,
+    pub log_opcode: bool,
+    pub log_flags: bool,
+    pub log_id: bool,
+    pub log_tx_id: bool,
+    pub log_ttl: bool,
+    pub log_rcode: bool,
 }

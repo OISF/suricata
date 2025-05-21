@@ -389,7 +389,9 @@ fn dns_log_srv(srv: &DNSRDataSRV) -> Result<JsonBuilder, JsonError> {
     return Ok(js);
 }
 
-fn dns_log_json_answer_detail(answer: &DNSAnswerEntry) -> Result<JsonBuilder, JsonError> {
+fn dns_log_json_answer_detail(
+    answer: &DNSAnswerEntry, log_ttl: bool,
+) -> Result<JsonBuilder, JsonError> {
     let mut jsa = JsonBuilder::try_new_object()?;
 
     jsa.set_string_from_bytes("rrname", &answer.name.value)?;
@@ -397,7 +399,9 @@ fn dns_log_json_answer_detail(answer: &DNSAnswerEntry) -> Result<JsonBuilder, Js
         jsa.set_bool("rrname_truncated", true)?;
     }
     jsa.set_string("rrtype", &dns_rrtype_string(answer.rrtype))?;
-    jsa.set_uint("ttl", answer.ttl as u64)?;
+    if log_ttl {
+        jsa.set_uint("ttl", answer.ttl as u64)?;
+    }
 
     match &answer.data {
         DNSRData::A(addr) | DNSRData::AAAA(addr) => {
@@ -547,7 +551,7 @@ fn dns_log_json_answer(
             }
 
             if flags & LOG_FORMAT_DETAILED != 0 {
-                js_answers.append_object(&dns_log_json_answer_detail(answer)?)?;
+                js_answers.append_object(&dns_log_json_answer_detail(answer, true)?)?;
             }
         }
 
@@ -570,7 +574,7 @@ fn dns_log_json_answer(
     if !response.authorities.is_empty() {
         js.open_array("authorities")?;
         for auth in &response.authorities {
-            let auth_detail = dns_log_json_answer_detail(auth)?;
+            let auth_detail = dns_log_json_answer_detail(auth, true)?;
             js.append_object(&auth_detail)?;
         }
         js.close()?;
@@ -588,7 +592,7 @@ fn dns_log_json_answer(
                 js.open_array("additionals")?;
                 is_js_open = true;
             }
-            let add_detail = dns_log_json_answer_detail(add)?;
+            let add_detail = dns_log_json_answer_detail(add, true)?;
             js.append_object(&add_detail)?;
         }
         if is_js_open {
@@ -601,7 +605,7 @@ fn dns_log_json_answer(
 
 /// V3 style answer logging.
 fn dns_log_json_answers(
-    jb: &mut JsonBuilder, response: &DNSMessage, flags: u64,
+    jb: &mut JsonBuilder, response: &DNSMessage, flags: u64, log_ttl: bool,
 ) -> Result<(), JsonError> {
     if !response.answers.is_empty() {
         let mut js_answers = JsonBuilder::try_new_array()?;
@@ -675,7 +679,7 @@ fn dns_log_json_answers(
             }
 
             if flags & LOG_FORMAT_DETAILED != 0 {
-                js_answers.append_object(&dns_log_json_answer_detail(answer)?)?;
+                js_answers.append_object(&dns_log_json_answer_detail(answer, log_ttl)?)?;
             }
         }
 
@@ -767,35 +771,46 @@ fn log_json(
     };
 
     // The internal Suricata transaction ID.
-    jb.set_uint("tx_id", tx.id - 1)?;
+    if config.log_tx_id {
+        jb.set_uint("tx_id", tx.id - 1)?;
+    }
 
     // The on the wire DNS transaction ID.
-    jb.set_uint("id", tx.tx_id() as u64)?;
+    if config.log_id {
+        jb.set_uint("id", tx.tx_id() as u64)?;
+    }
 
     // Log header fields. Should this be a sub-object?
     let header = &message.header;
-    jb.set_string("flags", format!("{:x}", header.flags).as_str())?;
-    if header.flags & 0x8000 != 0 {
-        jb.set_bool("qr", true)?;
+    if config.log_flags {
+        jb.set_string("flags", format!("{:x}", header.flags).as_str())?;
+        if header.flags & 0x8000 != 0 {
+            jb.set_bool("qr", true)?;
+        }
+        if header.flags & 0x0400 != 0 {
+            jb.set_bool("aa", true)?;
+        }
+        if header.flags & 0x0200 != 0 {
+            jb.set_bool("tc", true)?;
+        }
+        if header.flags & 0x0100 != 0 {
+            jb.set_bool("rd", true)?;
+        }
+        if header.flags & 0x0080 != 0 {
+            jb.set_bool("ra", true)?;
+        }
+        if header.flags & 0x0040 != 0 {
+            jb.set_bool("z", true)?;
+        }
     }
-    if header.flags & 0x0400 != 0 {
-        jb.set_bool("aa", true)?;
-    }
-    if header.flags & 0x0200 != 0 {
-        jb.set_bool("tc", true)?;
-    }
-    if header.flags & 0x0100 != 0 {
-        jb.set_bool("rd", true)?;
-    }
-    if header.flags & 0x0080 != 0 {
-        jb.set_bool("ra", true)?;
-    }
-    if header.flags & 0x0040 != 0 {
-        jb.set_bool("z", true)?;
-    }
+
     let opcode = ((header.flags >> 11) & 0xf) as u8;
-    jb.set_uint("opcode", opcode as u64)?;
-    jb.set_string("rcode", &dns_rcode_string(header.flags))?;
+    if config.log_opcode {
+        jb.set_uint("opcode", opcode as u64)?;
+    }
+    if config.log_rcode {
+        jb.set_string("rcode", &dns_rcode_string(header.flags))?;
+    }
 
     if !message.queries.is_empty() {
         jb.open_array("queries")?;
@@ -816,14 +831,14 @@ fn log_json(
     // Only log answers if this is a response or if answers_in_request
     // is true for requests
     if !message.answers.is_empty() && (!is_request || config.answers_in_request) {
-        dns_log_json_answers(jb, message, config.flags)?;
+        dns_log_json_answers(jb, message, config.flags, config.log_ttl)?;
     }
 
     // Only log authorities if enabled
     if !message.authorities.is_empty() && config.log_authorities {
         jb.open_array("authorities")?;
         for auth in &message.authorities {
-            let auth_detail = dns_log_json_answer_detail(auth)?;
+            let auth_detail = dns_log_json_answer_detail(auth, config.log_ttl)?;
             jb.append_object(&auth_detail)?;
         }
         jb.close()?;
@@ -842,7 +857,7 @@ fn log_json(
                 jb.open_array("additionals")?;
                 is_jb_open = true;
             }
-            let add_detail = dns_log_json_answer_detail(add)?;
+            let add_detail = dns_log_json_answer_detail(add, config.log_ttl)?;
             jb.append_object(&add_detail)?;
         }
         if is_jb_open {

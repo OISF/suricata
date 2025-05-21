@@ -172,10 +172,17 @@ bool AlertJsonDns(void *txptr, SCJsonBuilder *js)
 {
     SCDnsLogConfig config = {
         .version = DNS_LOG_VERSION_DEFAULT,
-        .flags = DNS_LOG_FORMAT_DETAILED | DNS_LOG_REQUESTS | DNS_LOG_RESPONSES | DNS_LOG_ALL_RRTYPES,
+        .flags = DNS_LOG_FORMAT_DETAILED | DNS_LOG_REQUESTS | DNS_LOG_RESPONSES |
+                 DNS_LOG_ALL_RRTYPES,
         .log_additionals = true,
         .log_authorities = true,
         .answers_in_request = true,
+        .log_opcode = true,
+        .log_flags = true,
+        .log_id = true,
+        .log_tx_id = true,
+        .log_ttl = true,
+        .log_rcode = true,
     };
     /* For alerts, we want to see everything */
     return SCDnsLogJson(txptr, &config, js, "dns");
@@ -527,6 +534,12 @@ static void JsonDnsLogInitFilters(SCDnsLogFileCtx *dnslog_ctx, SCConfNode *conf)
     dnslog_ctx->config.answers_in_request = true;
     dnslog_ctx->config.log_additionals = true;
     dnslog_ctx->config.log_authorities = true;
+    dnslog_ctx->config.log_opcode = true;
+    dnslog_ctx->config.log_flags = true;
+    dnslog_ctx->config.log_id = true;
+    dnslog_ctx->config.log_tx_id = true;
+    dnslog_ctx->config.log_ttl = true;
+    dnslog_ctx->config.log_rcode = true;
 
     if (conf) {
         JsonDnsLogParseConfig(dnslog_ctx, conf, "requests", "responses", "types");

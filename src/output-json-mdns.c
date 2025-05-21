@@ -35,7 +35,8 @@ bool AlertJsonMdns(void *txptr, SCJsonBuilder *js)
 {
     SCDnsLogConfig config = {
         .version = DNS_LOG_VERSION_DEFAULT,
-        .flags = DNS_LOG_FORMAT_DETAILED | DNS_LOG_REQUESTS | DNS_LOG_RESPONSES | DNS_LOG_ALL_RRTYPES,
+        .flags = DNS_LOG_FORMAT_DETAILED | DNS_LOG_REQUESTS | DNS_LOG_RESPONSES |
+                 DNS_LOG_ALL_RRTYPES,
         .log_additionals = true,
         .log_authorities = true,
         .answers_in_request = true,
