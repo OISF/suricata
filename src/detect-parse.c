@@ -1608,6 +1608,15 @@ static int SigParseAction(Signature *s, const char *action_in)
                 return -1;
             }
             s->action_scope = scope_flags;
+        } else if (flags & (ACTION_CONFIG)) {
+            if (strcmp(o, "packet") == 0) {
+                scope_flags = (uint8_t)ACTION_SCOPE_PACKET;
+            } else {
+                SCLogError("invalid action scope '%s' in action '%s': only 'packet' allowed", o,
+                        action_in);
+                return -1;
+            }
+            s->action_scope = scope_flags;
         } else {
             SCLogError("invalid action scope '%s' in action '%s': scope only supported for actions "
                        "'drop', 'pass' and 'reject'",
