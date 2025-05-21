@@ -58,6 +58,9 @@ endif
 
 CARGO_ENV +=	LOCALSTATEDIR=$(e_localstatedir)
 
+# To pass specific CFLAGS to Lua.
+CARGO_ENV +=	SURICATA_LUA_SYS_CFLAGS="$(SURICATA_LUA_SYS_CFLAGS)"
+
 all-local: Cargo.toml
 	mkdir -p $(abs_top_builddir)/rust/gen
 	cd $(abs_top_srcdir)/rust && \
