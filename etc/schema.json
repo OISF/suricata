@@ -989,7 +989,8 @@
                                         "type": "integer"
                                     }
                                 },
-                                "description": "A Secure Shell fingerprint, used to verify the system\u2019s authenticity"
+                                "description":
+                                        "A Secure Shell fingerprint, used to verify the system\u2019s authenticity"
                             },
                             "ttl": {
                                 "type": "integer"
@@ -1087,7 +1088,8 @@
                         },
                         "SSHFP": {
                             "type": "array",
-                            "description": "A Secure Shell fingerprint is used to verify the system\u2019s authenticity",
+                            "description":
+                                    "A Secure Shell fingerprint is used to verify the system\u2019s authenticity",
                             "minItems": 1,
                             "items": {
                                 "type": "object",
@@ -1113,7 +1115,8 @@
                             }
                         }
                     },
-                    "desription": "DNS fields grouped by type: alternative format, no direct keywords",
+                    "desription":
+                            "DNS fields grouped by type: alternative format, no direct keywords",
                     "suricata": {
                         "keywords": false
                     }
@@ -1159,7 +1162,8 @@
                             },
                             "rrname_truncated": {
                                 "type": "boolean",
-                                "description": "Set to true if the rrname was too long and truncated by Suricata"
+                                "description":
+                                        "Set to true if the rrname was too long and truncated by Suricata"
                             },
                             "rrtype": {
                                 "type": "string",
@@ -1183,7 +1187,8 @@
                 },
                 "query": {
                     "type": "array",
-                    "$comment": "EVE DNS v2 style query logging; as of Suricata 8 only used in DNS records when v2 logging is enabled, not used for DNS records logged as part of an event.",
+                    "$comment":
+                            "EVE DNS v2 style query logging; as of Suricata 8 only used in DNS records when v2 logging is enabled, not used for DNS records logged as part of an event.",
                     "minItems": 1,
                     "items": {
                         "type": "object",
@@ -1864,7 +1869,8 @@
                             "description": "What triggered the exception"
                         }
                     },
-                    "description": "The exception policy(ies) triggered by the flow. Not logged if none was triggered"
+                    "description":
+                            "The exception policy(ies) triggered by the flow. Not logged if none was triggered"
                 },
                 "pkts_toclient": {
                     "type": "integer",
@@ -2003,7 +2009,8 @@
         },
         "host": {
             "type": "string",
-            "$comment": "May change to sensor_name in the future, or become user configurable: https://redmine.openinfosecfoundation.org/issues/4919",
+            "$comment":
+                    "May change to sensor_name in the future, or become user configurable: https://redmine.openinfosecfoundation.org/issues/4919",
             "description": "the sensor-name, if configured"
         },
         "http": {
@@ -3590,7 +3597,8 @@
                         },
                         "password_redacted": {
                             "type": "boolean",
-                            "description": "indicates if a password message was received but not logged due to Suricata settings"
+                            "description":
+                                    "indicates if a password message was received but not logged due to Suricata settings"
                         },
                         "process_id": {
                             "type": "integer"
@@ -3833,7 +3841,8 @@
             "properties": {
                 "cyu": {
                     "type": "array",
-                    "description": "ja3-like fingerprint for versions of QUIC before standardization",
+                    "description":
+                            "ja3-like fingerprint for versions of QUIC before standardization",
                     "minItems": 1,
                     "items": {
                         "type": "object",
@@ -4198,12 +4207,14 @@
                         "email": {
                             "type": "string",
                             "optional": true,
-                            "description": "Email address for the person responsible for the conference"
+                            "description":
+                                    "Email address for the person responsible for the conference"
                         },
                         "encryption_key": {
                             "type": "string",
                             "optional": true,
-                            "description": "Field used to convey encryption keys if SDP is used over a secure channel"
+                            "description":
+                                    "Field used to convey encryption keys if SDP is used over a secure channel"
                         },
                         "media_descriptions": {
                             "type": "array",
@@ -4215,7 +4226,8 @@
                                 "properties": {
                                     "attributes": {
                                         "type": "array",
-                                        "description": "A list of attributes specified for a media description",
+                                        "description":
+                                                "A list of attributes specified for a media description",
                                         "optional": true,
                                         "minItems": 1,
                                         "items": {
@@ -4240,7 +4252,8 @@
                                     "encryption_key": {
                                         "type": "string",
                                         "optional": true,
-                                        "description": "Field used to convey encryption keys if SDP is used over a secure channel"
+                                        "description":
+                                                "Field used to convey encryption keys if SDP is used over a secure channel"
                                     },
                                     "media": {
                                         "type": "string",
@@ -4249,7 +4262,8 @@
                                     "media_info": {
                                         "type": "string",
                                         "optional": true,
-                                        "description": "Media information primarily intended for labelling media streams"
+                                        "description":
+                                                "Media information primarily intended for labelling media streams"
                                     }
                                 },
                                 "optional": true
@@ -4262,7 +4276,8 @@
                         "phone_number": {
                             "type": "string",
                             "optional": true,
-                            "description": "Phone number for the person responsible for the conference"
+                            "description":
+                                    "Phone number for the person responsible for the conference"
                         },
                         "session_info": {
                             "type": "string",
@@ -4298,7 +4313,8 @@
                         "timezone": {
                             "type": "string",
                             "optional": true,
-                            "description": "Timezone to specify adjustments for times and offsets from the base time"
+                            "description":
+                                    "Timezone to specify adjustments for times and offsets from the base time"
                         },
                         "uri": {
                             "type": "string",
@@ -4719,7 +4735,8 @@
                             "additionalProperties": false,
                             "properties": {
                                 "bittorrent-dht": {
-                                    "description": "Errors encountered parsing BitTorrent DHT protocol",
+                                    "description":
+                                            "Errors encountered parsing BitTorrent DHT protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "dcerpc_tcp": {
@@ -4786,11 +4803,13 @@
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "krb5_tcp": {
-                                    "description": "Errors encountered parsing Kerberos v5/TCP protocol",
+                                    "description":
+                                            "Errors encountered parsing Kerberos v5/TCP protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "krb5_udp": {
-                                    "description": "Errors encountered parsing Kerberos v5/UDP protocol",
+                                    "description":
+                                            "Errors encountered parsing Kerberos v5/UDP protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "ldap_tcp": {
@@ -5066,7 +5085,8 @@
                             "properties": {
                                 "bittorrent-dht": {
                                     "type": "integer",
-                                    "description": "Number of transactions for BitTorrent DHT protocol"
+                                    "description":
+                                            "Number of transactions for BitTorrent DHT protocol"
                                 },
                                 "dcerpc_tcp": {
                                     "type": "integer",
@@ -5133,11 +5153,13 @@
                                 },
                                 "krb5_tcp": {
                                     "type": "integer",
-                                    "description": "Number of transactions for Kerberos v5/TCP protocol"
+                                    "description":
+                                            "Number of transactions for Kerberos v5/TCP protocol"
                                 },
                                 "krb5_udp": {
                                     "type": "integer",
-                                    "description": "Number of transactions for Kerberos v5/UDP protocol"
+                                    "description":
+                                            "Number of transactions for Kerberos v5/UDP protocol"
                                 },
                                 "ldap_tcp": {
                                     "type": "integer",
@@ -5278,7 +5300,8 @@
                                     "properties": {
                                         "trunc_pkt": {
                                             "type": "integer",
-                                            "description": "Number of packets truncated by AF_PACKET"
+                                            "description":
+                                                    "Number of packets truncated by AF_PACKET"
                                         }
                                     }
                                 },
@@ -5973,11 +5996,13 @@
                         },
                         "max_frags_reached": {
                             "type": "integer",
-                            "description": "How many times a fragment wasn't stored due to max-frags limit being reached"
+                            "description":
+                                    "How many times a fragment wasn't stored due to max-frags limit being reached"
                         },
                         "max_trackers_reached": {
                             "type": "integer",
-                            "description": "How many times a packet wasn't reassembled due to max-trackers limit being reached"
+                            "description":
+                                    "How many times a packet wasn't reassembled due to max-trackers limit being reached"
                         },
                         "memuse": {
                             "type": "integer",
@@ -5994,11 +6019,13 @@
                         },
                         "tracker_hard_reuse": {
                             "type": "integer",
-                            "description": "Active tracker force closed before completion and reused for new tracker"
+                            "description":
+                                    "Active tracker force closed before completion and reused for new tracker"
                         },
                         "tracker_soft_reuse": {
                             "type": "integer",
-                            "description": "Finished tracker re-used from hash table before being moved to spare pool"
+                            "description":
+                                    "Finished tracker re-used from hash table before being moved to spare pool"
                         },
                         "wrk": {
                             "type": "object",
@@ -6058,7 +6085,8 @@
                             "properties": {
                                 "blocked_function_errors": {
                                     "type": "integer",
-                                    "description": "Counter for Lua scripts failing due to blocked functions being called"
+                                    "description":
+                                            "Counter for Lua scripts failing due to blocked functions being called"
                                 },
                                 "errors": {
                                     "type": "integer",
@@ -6066,7 +6094,8 @@
                                 },
                                 "instruction_limit_errors": {
                                     "type": "integer",
-                                    "description": "Count of Lua rules exceeding the instruction limit"
+                                    "description":
+                                            "Count of Lua rules exceeding the instruction limit"
                                 },
                                 "memory_limit_errors": {
                                     "type": "integer",
@@ -6091,36 +6120,42 @@
                         "app_layer": {
                             "type": "object",
                             "error": {
-                                "description": "Consolidated stats on how many times app-layer error exception policy was applied, and which one",
+                                "description":
+                                        "Consolidated stats on how many times app-layer error exception policy was applied, and which one",
                                 "$ref": "#/$defs/exceptionPolicy"
                             }
                         },
                         "defrag": {
                             "type": "object",
                             "memcap": {
-                                "description": "How many times defrag memcap exception policy was applied, and which one",
+                                "description":
+                                        "How many times defrag memcap exception policy was applied, and which one",
                                 "$ref": "#/$defs/exceptionPolicy"
                             }
                         },
                         "flow": {
                             "type": "object",
                             "memcap": {
-                                "description": "How many times flow memcap exception policy was applied, and which one",
+                                "description":
+                                        "How many times flow memcap exception policy was applied, and which one",
                                 "$ref": "#/$defs/exceptionPolicy"
                             }
                         },
                         "tcp": {
                             "type": "object",
                             "midstream": {
-                                "description": "How many times midstream exception policy was applied, and which one",
+                                "description":
+                                        "How many times midstream exception policy was applied, and which one",
                                 "$ref": "#/$defs/exceptionPolicy"
                             },
                             "ssn_memcap": {
-                                "description": "How many times session memcap exception policy was applied, and which one",
+                                "description":
+                                        "How many times session memcap exception policy was applied, and which one",
                                 "$ref": "#/$defs/exceptionPolicy"
                             },
                             "reassembly": {
-                                "description": "How many times reassembly memcap exception policy was applied, and which one",
+                                "description":
+                                        "How many times reassembly memcap exception policy was applied, and which one",
                                 "$ref": "#/$defs/exceptionPolicy"
                             }
                         }
@@ -6232,23 +6267,28 @@
                         },
                         "get_used": {
                             "type": "integer",
-                            "description": "Number of reused flows from the hash table in case memcap was reached and spare pool was empty"
+                            "description":
+                                    "Number of reused flows from the hash table in case memcap was reached and spare pool was empty"
                         },
                         "get_used_eval": {
                             "type": "integer",
-                            "description": "Number of attempts at getting a flow directly from the hash"
+                            "description":
+                                    "Number of attempts at getting a flow directly from the hash"
                         },
                         "get_used_eval_busy": {
                             "type": "integer",
-                            "description": "Number of times a flow was found in the hash but the lock for hash bucket could not be obtained"
+                            "description":
+                                    "Number of times a flow was found in the hash but the lock for hash bucket could not be obtained"
                         },
                         "get_used_eval_reject": {
                             "type": "integer",
-                            "description": "Number of flows that were evaluated but rejected from reuse as they were still alive/active"
+                            "description":
+                                    "Number of flows that were evaluated but rejected from reuse as they were still alive/active"
                         },
                         "get_used_failed": {
                             "type": "integer",
-                            "description": "Number of times retrieval of flow from hash was attempted but was unsuccessful"
+                            "description":
+                                    "Number of times retrieval of flow from hash was attempted but was unsuccessful"
                         },
                         "icmpv4": {
                             "type": "integer",
@@ -6272,7 +6312,8 @@
                             "properties": {
                                 "flows_checked": {
                                     "type": "integer",
-                                    "description": "number of flows checked for timeout in the last pass"
+                                    "description":
+                                            "number of flows checked for timeout in the last pass"
                                 },
                                 "flows_evicted": {
                                     "type": "integer",
@@ -6280,7 +6321,8 @@
                                 },
                                 "flows_evicted_needs_work": {
                                     "type": "integer",
-                                    "description": "number of TCP flows that were returned to the workers in case reassembly, detection, logging still needs work"
+                                    "description":
+                                            "number of TCP flows that were returned to the workers in case reassembly, detection, logging still needs work"
                                 },
                                 "flows_notimeout": {
                                     "type": "integer",
@@ -6292,7 +6334,8 @@
                                 },
                                 "full_hash_pass": {
                                     "type": "integer",
-                                    "description": "number of times a full pass of the hash table was done"
+                                    "description":
+                                            "number of times a full pass of the hash table was done"
                                 },
                                 "rows_maxlen": {
                                     "type": "integer",
@@ -6300,7 +6343,8 @@
                                 },
                                 "rows_per_sec": {
                                     "type": "integer",
-                                    "description": "number of rows to be scanned every second by a worker"
+                                    "description":
+                                            "number of rows to be scanned every second by a worker"
                                 }
                             }
                         },
@@ -6332,7 +6376,8 @@
                         },
                         "tcp_reuse": {
                             "type": "integer",
-                            "description": "Number of TCP flows that were reused as they seemed to share the same flow tuple"
+                            "description":
+                                    "Number of TCP flows that were reused as they seemed to share the same flow tuple"
                         },
                         "total": {
                             "type": "integer",
@@ -6527,31 +6572,38 @@
                             "properties": {
                                 "applayer_error": {
                                     "type": "integer",
-                                    "description": "Number of packets dropped due to app-layer error exception policy"
+                                    "description":
+                                            "Number of packets dropped due to app-layer error exception policy"
                                 },
                                 "applayer_memcap": {
                                     "type": "integer",
-                                    "description": "Number of packets dropped due to applayer memcap"
+                                    "description":
+                                            "Number of packets dropped due to applayer memcap"
                                 },
                                 "decode_error": {
                                     "type": "integer",
-                                    "description": "Number of packets dropped due to decoding errors"
+                                    "description":
+                                            "Number of packets dropped due to decoding errors"
                                 },
                                 "default_app_policy": {
                                     "type": "integer",
-                                    "description": "Number of packets dropped due to default app policy"
+                                    "description":
+                                            "Number of packets dropped due to default app policy"
                                 },
                                 "default_packet_policy": {
                                     "type": "integer",
-                                    "description": "Number of packets dropped due to default packet policy"
+                                    "description":
+                                            "Number of packets dropped due to default packet policy"
                                 },
                                 "defrag_error": {
                                     "type": "integer",
-                                    "description": "Number of packets dropped due to defragmentation errors"
+                                    "description":
+                                            "Number of packets dropped due to defragmentation errors"
                                 },
                                 "defrag_memcap": {
                                     "type": "integer",
-                                    "description": "Number of packets dropped due to defrag memcap exception policy"
+                                    "description":
+                                            "Number of packets dropped due to defrag memcap exception policy"
                                 },
                                 "flow_drop": {
                                     "type": "integer",
@@ -6559,7 +6611,8 @@
                                 },
                                 "flow_memcap": {
                                     "type": "integer",
-                                    "description": "Number of packets dropped due to flow memcap exception policy"
+                                    "description":
+                                            "Number of packets dropped due to flow memcap exception policy"
                                 },
                                 "nfq_error": {
                                     "type": "integer",
@@ -6571,31 +6624,38 @@
                                 },
                                 "stream_error": {
                                     "type": "integer",
-                                    "description": "Number of packets dropped due to invalid TCP stream"
+                                    "description":
+                                            "Number of packets dropped due to invalid TCP stream"
                                 },
                                 "stream_memcap": {
                                     "type": "integer",
-                                    "description": "Number of packets dropped due to stream memcap exception policy"
+                                    "description":
+                                            "Number of packets dropped due to stream memcap exception policy"
                                 },
                                 "stream_midstream": {
                                     "type": "integer",
-                                    "description": "Number of packets dropped due to stream midstream exception policy"
+                                    "description":
+                                            "Number of packets dropped due to stream midstream exception policy"
                                 },
                                 "stream_reassembly": {
                                     "type": "integer",
-                                    "description": "Number of packets dropped due to stream reassembly exception policy"
+                                    "description":
+                                            "Number of packets dropped due to stream reassembly exception policy"
                                 },
                                 "stream_urgent": {
                                     "type": "integer",
-                                    "description": "Number of packets dropped due to TCP urgent flag"
+                                    "description":
+                                            "Number of packets dropped due to TCP urgent flag"
                                 },
                                 "threshold_detection_filter": {
                                     "type": "integer",
-                                    "description": "Number of packets dropped due to threshold detection filter"
+                                    "description":
+                                            "Number of packets dropped due to threshold detection filter"
                                 },
                                 "tunnel_packet_drop": {
                                     "type": "integer",
-                                    "description": "Number of packets dropped due to inner tunnel packet being dropped"
+                                    "description":
+                                            "Number of packets dropped due to inner tunnel packet being dropped"
                                 }
                             },
                             "description": "Number of dropped packets, grouped by drop reason"
@@ -6616,7 +6676,8 @@
                     "properties": {
                         "pressure": {
                             "type": "integer",
-                            "description": "Percentage of memcaps used by flow, stream, stream-reassembly and app-layer-http"
+                            "description":
+                                    "Percentage of memcaps used by flow, stream, stream-reassembly and app-layer-http"
                         },
                         "pressure_max": {
                             "type": "integer",
@@ -6787,7 +6848,8 @@
                 },
                 "tc_urgent_oob_data": {
                     "type": "integer",
-                    "description": "Number of Out-of-Band bytes sent by server using TCP urgent packets"
+                    "description":
+                            "Number of Out-of-Band bytes sent by server using TCP urgent packets"
                 },
                 "tcp_flags": {
                     "type": "string"
@@ -6806,7 +6868,8 @@
                 },
                 "ts_urgent_oob_data": {
                     "type": "integer",
-                    "description": "Number of Out-of-Band bytes sent by client using TCP urgent packets"
+                    "description":
+                            "Number of Out-of-Band bytes sent by client using TCP urgent packets"
                 },
                 "urg": {
                     "type": "boolean"
@@ -7239,7 +7302,8 @@
         },
         "tx_guessed": {
             "type": "boolean",
-            "description": "the signature that triggered this alert didn't tie to a transaction, so the transaction (and metadata) logged is a forced estimation and may not be the one you expect"
+            "description":
+                    "the signature that triggered this alert didn't tie to a transaction, so the transaction (and metadata) logged is a forced estimation and may not be the one you expect"
         },
         "tx_id": {
             "type": "integer"
@@ -7325,7 +7389,8 @@
                     },
                     "rdata_truncated": {
                         "type": "boolean",
-                        "description": "Set to true if the rdata was too long and truncated by Suricata"
+                        "description":
+                                "Set to true if the rdata was too long and truncated by Suricata"
                     },
                     "rrname": {
                         "type": "string",
@@ -7338,7 +7403,8 @@
                     },
                     "rrname_truncated": {
                         "type": "boolean",
-                        "description": "Set to true if the rrname was too long and truncated by Suricata"
+                        "description":
+                                "Set to true if the rrname was too long and truncated by Suricata"
                     },
                     "rrtype": {
                         "type": "string"
@@ -7410,7 +7476,8 @@
                     "description": "Number of errors allocating memory"
                 },
                 "exception_policy": {
-                    "description": "How many times app-layer error exception policy was applied, and which one",
+                    "description":
+                            "How many times app-layer error exception policy was applied, and which one",
                     "$ref": "#/$defs/exceptionPolicy"
                 },
                 "gap": {
