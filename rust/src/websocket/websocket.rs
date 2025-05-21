@@ -1,4 +1,4 @@
-/* Copyright (C) 2023 Open Information Security Foundation
+/* Copyright (C) 2023-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,7 +18,7 @@
 use super::parser;
 use crate::applayer::{self, *};
 use crate::conf::conf_get;
-use crate::core::{ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP};
+use crate::core::{ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP, sc_app_layer_parser_trigger_raw_stream_inspection};
 use crate::direction::Direction;
 use crate::flow::Flow;
 use crate::frames::Frame;
@@ -281,6 +281,9 @@ impl WebSocketState {
                                 std::mem::swap(&mut tx.pdu.payload, &mut v);
                             }
                         }
+                    }
+                    if tx.pdu.fin {
+                        sc_app_layer_parser_trigger_raw_stream_inspection(flow, direction as i32);
                     }
                     self.transactions.push_back(tx);
                 }
