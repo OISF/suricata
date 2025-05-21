@@ -347,6 +347,14 @@ impl AppLayerResult {
         };
     }
 
+    pub fn is_ok(self) -> bool {
+        self.status == 0
+    }
+
+    pub fn is_err(self) -> bool {
+        self.status == -1
+    }
+
     pub fn is_incomplete(self) -> bool {
         self.status == 1
     }
