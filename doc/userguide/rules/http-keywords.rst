@@ -107,12 +107,16 @@ If there are multiple values for the same header name, they are concatenated
 with a comma and space (", ") between each value. More information can be
 found in RFC 2616 `<https://www.rfc-editor.org/rfc/rfc2616.html#section-4.2>`_
 
+In the example below, notice that the User-Agent header, regardless of the 
+letter casing is evaluated as the same header. The normalized header evaluation
+leads to the concatenated header values as described in the RFC above.
+
 Example Duplicate HTTP Header::
 
   GET / HTTP/1.1
   Host: suricata.io
   User-Agent: Mozilla/5.0
-  User-Agent: Chrome/121.0.0
+  User-agent: Chrome/121.0.0
 
 .. container:: example-rule
 
@@ -1210,6 +1214,9 @@ after ``User-Agent`` but not necessarily directly after.
   classtype:bad-unknown; sid:114; rev:1;)
 
 .. note:: ``http.header_names`` starts with a \\r\\n and ends with an extra \\r\\n.
+
+.. note:: ``http.header_names`` can have additional formatting/normalization applied
+  to buffer contents, see :ref:`http.normalization` for additional details.
 
 .. _http.protocol:
 
