@@ -326,8 +326,10 @@ static uint8_t DetectEngineInspectFilemagic(DetectEngineCtx *de_ctx, DetectEngin
     for (File *file = ffc->head; file != NULL; file = file->next) {
         InspectionBuffer *buffer = FilemagicGetDataCallback(
                 det_ctx, transforms, f, flags, file, engine->sm_list, local_file_id);
-        if (buffer == NULL)
+        if (buffer == NULL) {
+            local_file_id++;
             continue;
+        }
 
         const bool match = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd, NULL, f,
                 buffer->inspect, buffer->inspect_len, buffer->inspect_offset,

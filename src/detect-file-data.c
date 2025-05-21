@@ -430,8 +430,10 @@ uint8_t DetectEngineInspectFiledata(DetectEngineCtx *de_ctx, DetectEngineThreadC
     for (; file != NULL; file = file->next) {
         InspectionBuffer *buffer = FiledataGetDataCallback(det_ctx, transforms, f, flags, file,
                 engine->sm_list, engine->sm_list_base, local_file_id, txv);
-        if (buffer == NULL)
+        if (buffer == NULL) {
+            local_file_id++;
             continue;
+        }
 
         bool eof = (file->state == FILE_STATE_CLOSED);
         uint8_t ciflags = eof ? DETECT_CI_FLAGS_END : 0;
@@ -479,8 +481,10 @@ static void PrefilterTxFiledata(DetectEngineThreadCtx *det_ctx, const void *pect
         for (File *file = ffc->head; file != NULL; file = file->next) {
             InspectionBuffer *buffer = FiledataGetDataCallback(det_ctx, ctx->transforms, f, flags,
                     file, list_id, ctx->base_list_id, local_file_id, txv);
-            if (buffer == NULL)
+            if (buffer == NULL) {
+                local_file_id++;
                 continue;
+            }
             SCLogDebug("[%" PRIu64 "] buffer size %u", p->pcap_cnt, buffer->inspect_len);
 
             if (buffer->inspect_len >= mpm_ctx->minlen) {
