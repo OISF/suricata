@@ -263,8 +263,10 @@ static uint8_t DetectEngineInspectFilename(DetectEngineCtx *de_ctx, DetectEngine
     for (File *file = ffc->head; file != NULL; file = file->next) {
         InspectionBuffer *buffer = FilenameGetDataCallback(
                 det_ctx, transforms, f, flags, file, engine->sm_list, local_file_id);
-        if (buffer == NULL)
+        if (buffer == NULL) {
+            local_file_id++;
             continue;
+        }
 
         const bool match = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd, NULL, f,
                 buffer->inspect, buffer->inspect_len, buffer->inspect_offset,
