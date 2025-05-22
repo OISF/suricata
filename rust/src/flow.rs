@@ -28,28 +28,25 @@ extern "C" {
 pub const FLOW_DIR_REVERSED: u32 = BIT_U32!(26);
 
 /// Opaque flow type (defined in C)
-pub enum Flow {}
+pub use suricata_sys::sys::Flow;
 
-/// Rust implementation of Flow.
-impl Flow {
-    /// Return the time of the last flow update as a `Duration`
-    /// since the epoch.
-    pub fn get_last_time(&mut self) -> std::time::Duration {
-        unsafe {
-            let mut secs: u64 = 0;
-            let mut usecs: u64 = 0;
-            FlowGetLastTimeAsParts(self, &mut secs, &mut usecs);
-            std::time::Duration::new(secs, usecs as u32 * 1000)
-        }
+/// Return the time of the last flow update as a `Duration`
+/// since the epoch.
+pub fn flow_get_last_time(flow: &Flow) -> std::time::Duration {
+    unsafe {
+        let mut secs: u64 = 0;
+        let mut usecs: u64 = 0;
+        FlowGetLastTimeAsParts(flow, &mut secs, &mut usecs);
+        std::time::Duration::new(secs, usecs as u32 * 1000)
     }
+}
 
-    /// Return the flow flags.
-    pub fn get_flags(&self) -> u32 {
-        unsafe { FlowGetFlags(self) }
-    }
+/// Return the flow flags.
+pub fn flow_get_flags(flow: &Flow) -> u32 {
+    unsafe { FlowGetFlags(flow) }
+}
 
-    /// Return flow ports
-    pub fn get_ports(&self) -> (u16, u16) {
-        unsafe { (FlowGetSourcePort(self), FlowGetDestinationPort(self)) }
-    }
+/// Return flow ports
+pub fn flow_get_ports(flow: &Flow) -> (u16, u16) {
+    unsafe { (FlowGetSourcePort(flow), FlowGetDestinationPort(flow)) }
 }
