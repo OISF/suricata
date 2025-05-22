@@ -3785,13 +3785,13 @@
                             "type": "object",
                             "description": "CopyData message from CopyOut mode",
                             "properties": {
-                                "row_count": {
-                                    "type": "integer",
-                                    "description": "Number of rows sent in CopyData messages"
-                                },
                                 "data_size": {
                                     "type": "integer",
                                     "description": "Accumulated data size of all CopyData messages sent"
+                                },
+                                "row_count": {
+                                    "type": "integer",
+                                    "description": "Number of rows sent in CopyData messages"
                                 }
                             }
                         },
