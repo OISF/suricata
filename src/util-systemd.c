@@ -74,7 +74,8 @@ static int Notify(const char *message)
     if (fd < 0)
         return -errno;
 
-    if (connect(fd, &socket_addr.sa, offsetof(struct sockaddr_un, sun_path) + path_length) != 0)
+    if (connect(fd, &socket_addr.sa,
+                offsetof(struct sockaddr_un, sun_path) + (uint32_t)path_length) != 0)
         return -errno;
 
     ssize_t written = write(fd, message, message_length);
