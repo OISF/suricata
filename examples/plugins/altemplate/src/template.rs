@@ -36,11 +36,10 @@ use suricata::applayer::{
 };
 use suricata::conf::conf_get;
 use suricata::core::{ALPROTO_UNKNOWN, IPPROTO_TCP};
-use suricata::flow::Flow;
 use suricata::{
     build_slice, cast_pointer, export_state_data_get, export_tx_data_get, SCLogError, SCLogNotice,
 };
-use suricata_sys::sys::AppProto;
+use suricata_sys::sys::{AppProto, Flow};
 
 static mut TEMPLATE_MAX_TX: usize = 256;
 
