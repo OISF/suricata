@@ -240,7 +240,7 @@ impl Write for BlockingCursor {
             }
             Ok(_n) => {}
         }
-        return r;
+        r
     }
 
     fn flush(&mut self) -> std::io::Result<()> {
