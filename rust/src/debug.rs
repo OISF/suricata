@@ -20,42 +20,17 @@
 use std::{ffi::CString, path::Path};
 
 use crate::core::SC;
-use std::os::raw::c_char;
 
-/// cbindgen:ignore
-extern "C" {
-    pub fn SCLogGetLogLevel() -> i32;
-}
+use suricata_sys::sys::{SCFatalErrorOnInitStatic, SCLogLevel};
 
-// Defined in util-debug.c
-/// cbindgen:ignore
-extern "C" {
-    pub fn SCFatalErrorOnInitStatic(arg: *const c_char);
-}
-
-#[derive(Debug)]
-#[repr(C)]
-pub enum Level {
-    NotSet = -1,
-    _None = 0,
-    Error,
-    Warning,
-    Notice,
-    Info,
-    _Perf,
-    Config,
-    #[cfg(feature = "debug")]
-    Debug,
-}
-
-pub static mut LEVEL: i32 = Level::NotSet as i32;
+pub static mut LEVEL: SCLogLevel = SCLogLevel::SC_LOG_NOTSET;
 
 /// Set the Rust context's idea of the log level.
 ///
 /// This will be called during Suricata initialization with the
 /// runtime log level.
 #[no_mangle]
-pub unsafe extern "C" fn SCSetRustLogLevel(level: i32) {
+pub unsafe extern "C" fn SCSetRustLogLevel(level: SCLogLevel) {
     LEVEL = level;
 }
 
@@ -75,7 +50,7 @@ pub fn fatalerror(message: &str) {
     }
 }
 
-pub fn sclog(level: Level, file: &str, line: u32, function: &str, message: &str) {
+pub fn sclog(level: SCLogLevel, file: &str, line: u32, function: &str, message: &str) {
     let filename = basename(file);
     let noext = &filename[0..filename.len() - 3];
     sc_log_message(level, filename, line, function, noext, message);
@@ -85,13 +60,13 @@ pub fn sclog(level: Level, file: &str, line: u32, function: &str, message: &str)
 /// a more basic log format will be used (for example, when running
 /// Rust unit tests).
 pub fn sc_log_message(
-    level: Level, filename: &str, line: std::os::raw::c_uint, function: &str, module: &str,
+    level: SCLogLevel, filename: &str, line: std::os::raw::c_uint, function: &str, module: &str,
     message: &str,
 ) -> std::os::raw::c_int {
     unsafe {
         if let Some(c) = SC {
             return (c.SCLogMessage)(
-                level as i32,
+                level,
                 to_safe_cstring(filename).as_ptr(),
                 line,
                 to_safe_cstring(function).as_ptr(),
@@ -148,7 +123,7 @@ macro_rules! function {
 macro_rules!do_log {
     ($level:expr, $($arg:tt)*) => {
         #[allow(unused_unsafe)]
-        if unsafe { $crate::debug::LEVEL } >= $level as i32 {
+        if unsafe { $crate::debug::LEVEL as i32 } >= $level as i32 {
             $crate::debug::sclog($level, file!(), line!(), $crate::function!(),
                   &(format!($($arg)*)));
         }
@@ -158,42 +133,42 @@ macro_rules!do_log {
 #[macro_export]
 macro_rules!SCLogError {
     ($($arg:tt)*) => {
-        $crate::do_log!($crate::debug::Level::Error, $($arg)*);
+        $crate::do_log!(suricata_sys::sys::SCLogLevel::SC_LOG_ERROR, $($arg)*);
     };
 }
 
 #[macro_export]
 macro_rules!SCLogWarning {
     ($($arg:tt)*) => {
-        $crate::do_log!($crate::debug::Level::Warning, $($arg)*);
+        $crate::do_log!(suricata_sys::sys::SCLogLevel::SC_LOG_WARNING, $($arg)*);
     };
 }
 
 #[macro_export]
 macro_rules!SCLogNotice {
     ($($arg:tt)*) => {
-        $crate::do_log!($crate::debug::Level::Notice, $($arg)*);
+        $crate::do_log!(suricata_sys::sys::SCLogLevel::SC_LOG_NOTICE, $($arg)*);
     }
 }
 
 #[macro_export]
 macro_rules!SCLogInfo {
     ($($arg:tt)*) => {
-        $crate::do_log!($crate::debug::Level::Info, $($arg)*);
+        $crate::do_log!(suricata_sys::sys::SCLogLevel::SC_LOG_INFO, $($arg)*);
     }
 }
 
 #[macro_export]
 macro_rules!SCLogPerf {
     ($($arg:tt)*) => {
-        $crate::do_log!($crate::debug::Level::Perf, $($arg)*);
+        $crate::do_log!(suricata_sys::sys::SCLogLevel::SC_LOG_PERF, $($arg)*);
     }
 }
 
 #[macro_export]
 macro_rules!SCLogConfig {
     ($($arg:tt)*) => {
-        $crate::do_log!($crate::debug::Level::Config, $($arg)*);
+        $crate::do_log!(suricata_sys::sys::SCLogLevel::SC_LOG_CONFIG, $($arg)*);
     }
 }
 
@@ -202,7 +177,7 @@ macro_rules!SCLogConfig {
 #[macro_export]
 macro_rules!SCLogDebug {
     ($($arg:tt)*) => {
-        do_log!($crate::debug::Level::Debug, $($arg)*);
+        do_log!(suricata_sys::sys::SCLogLevel::SC_LOG_DEBUG, $($arg)*);
     }
 }
 

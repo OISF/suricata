@@ -396,6 +396,27 @@ extern "C" {
         s: *mut Signature, alproto: AppProto,
     ) -> ::std::os::raw::c_int;
 }
+#[repr(i32)]
+#[doc = " \\brief The various log levels\n NOTE: when adding new level, don't forget to update SCLogMapLogLevelToSyslogLevel()\n      or it may result in logging to syslog with LOG_EMERG priority."]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub enum SCLogLevel {
+    SC_LOG_NOTSET = -1,
+    SC_LOG_NONE = 0,
+    SC_LOG_ERROR = 1,
+    SC_LOG_WARNING = 2,
+    SC_LOG_NOTICE = 3,
+    SC_LOG_INFO = 4,
+    SC_LOG_PERF = 5,
+    SC_LOG_CONFIG = 6,
+    SC_LOG_DEBUG = 7,
+    SC_LOG_LEVEL_MAX = 8,
+}
+extern "C" {
+    pub fn SCFatalErrorOnInitStatic(arg1: *const ::std::os::raw::c_char);
+}
+extern "C" {
+    pub fn SCLogGetLogLevel() -> SCLogLevel;
+}
 #[doc = " Structure of a configuration parameter."]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
