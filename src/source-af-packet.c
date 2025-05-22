@@ -2744,7 +2744,7 @@ static void UpdateRawDataForVLANHdr(Packet *p)
 {
     if (p->afp_v.vlan_tci != 0) {
         uint8_t *pstart = GET_PKT_DATA(p) - VLAN_HEADER_LEN;
-        size_t plen = GET_PKT_LEN(p) + VLAN_HEADER_LEN;
+        uint32_t plen = GET_PKT_LEN(p) + VLAN_HEADER_LEN;
         /* move ethernet addresses */
         memmove(pstart, GET_PKT_DATA(p), 2 * ETH_ALEN);
         /* write vlan info */
