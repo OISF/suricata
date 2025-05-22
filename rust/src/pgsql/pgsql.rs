@@ -32,14 +32,14 @@ use std::collections::VecDeque;
 use std::ffi::CString;
 use suricata_sys::sys::AppProto;
 
-pub const PGSQL_CONFIG_DEFAULT_STREAM_DEPTH: u32 = 0;
+const PGSQL_CONFIG_DEFAULT_STREAM_DEPTH: u32 = 0;
 
 static mut ALPROTO_PGSQL: AppProto = ALPROTO_UNKNOWN;
 
 static mut PGSQL_MAX_TX: usize = 1024;
 
 #[derive(AppLayerEvent, Debug, PartialEq, Eq)]
-pub enum PgsqlEvent {
+enum PgsqlEvent {
     InvalidLength,     // Can't parse the length field
     MalformedRequest,  // Enough data, but unexpected request format
     MalformedResponse, // Enough data, but unexpected response format
@@ -48,19 +48,19 @@ pub enum PgsqlEvent {
 
 #[repr(u8)]
 #[derive(Copy, Clone, PartialOrd, PartialEq, Eq, Debug)]
-pub enum PgsqlTxProgress {
-    TxInit = 0,
-    TxReceived,
-    TxDone,
-    TxFlushedOut,
+pub(crate) enum PgsqlTxProgress {
+    Init = 0,
+    Received,
+    Done,
+    FlushedOut,
 }
 
 #[derive(Debug)]
-pub struct PgsqlTransaction {
+pub(crate) struct PgsqlTransaction {
     pub tx_id: u64,
     pub tx_req_state: PgsqlTxProgress,
     pub tx_res_state: PgsqlTxProgress,
-    pub request: Option<PgsqlFEMessage>,
+    pub requests: Vec<PgsqlFEMessage>,
     pub responses: Vec<PgsqlBEMessage>,
 
     pub data_row_cnt: u64,
@@ -82,12 +82,12 @@ impl Default for PgsqlTransaction {
 }
 
 impl PgsqlTransaction {
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self {
             tx_id: 0,
-            tx_req_state: PgsqlTxProgress::TxInit,
-            tx_res_state: PgsqlTxProgress::TxInit,
-            request: None,
+            tx_req_state: PgsqlTxProgress::Init,
+            tx_res_state: PgsqlTxProgress::Init,
+            requests: Vec::<PgsqlFEMessage>::new(),
             responses: Vec::<PgsqlBEMessage>::new(),
             data_row_cnt: 0,
             data_size: 0,
@@ -95,21 +95,21 @@ impl PgsqlTransaction {
         }
     }
 
-    pub fn incr_row_cnt(&mut self) {
+    fn incr_row_cnt(&mut self) {
         self.data_row_cnt = self.data_row_cnt.saturating_add(1);
     }
 
-    pub fn get_row_cnt(&self) -> u64 {
+    fn get_row_cnt(&self) -> u64 {
         self.data_row_cnt
     }
 
-    pub fn sum_data_size(&mut self, row_size: u64) {
+    fn sum_data_size(&mut self, row_size: u64) {
         self.data_size += row_size;
     }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum PgsqlStateProgress {
+enum PgsqlStateProgress {
     IdleState,
     // Related to Frontend-received messages //
     SSLRequestReceived,
@@ -121,9 +121,13 @@ pub enum PgsqlStateProgress {
     CancelRequestReceived,
     ConnectionTerminated,
     // Related to Backend-received messages //
+    CopyDoneReceived, // BE and FE
+    CopyFailReceived, // BE and FE
     CopyOutResponseReceived,
     CopyDataOutReceived,
-    CopyDoneReceived,
+    CopyInResponseReceived,
+    FirstCopyDataInReceived,
+    ConsolidatingCopyDataIn,
     SSLRejectedReceived,
     // SSPIAuthenticationReceived, // TODO implement
     SASLAuthenticationReceived,
@@ -144,7 +148,7 @@ pub enum PgsqlStateProgress {
 }
 
 #[derive(Debug)]
-pub struct PgsqlState {
+struct PgsqlState {
     state_data: AppLayerStateData,
     tx_id: u64,
     transactions: VecDeque<PgsqlTransaction>,
@@ -173,7 +177,7 @@ impl Default for PgsqlState {
 }
 
 impl PgsqlState {
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self {
             state_data: AppLayerStateData::new(),
             tx_id: 0,
@@ -206,7 +210,7 @@ impl PgsqlState {
         }
     }
 
-    pub fn get_tx(&mut self, tx_id: u64) -> Option<&PgsqlTransaction> {
+    fn get_tx(&mut self, tx_id: u64) -> Option<&PgsqlTransaction> {
         self.transactions.iter().find(|tx| tx.tx_id == tx_id + 1)
     }
 
@@ -222,13 +226,13 @@ impl PgsqlState {
             let mut index = self.tx_index_completed;
             for tx_old in &mut self.transactions.range_mut(self.tx_index_completed..) {
                 index += 1;
-                if tx_old.tx_res_state < PgsqlTxProgress::TxDone {
+                if tx_old.tx_res_state < PgsqlTxProgress::Done {
                     tx_old.tx_data.updated_tc = true;
                     tx_old.tx_data.updated_ts = true;
                     // we don't check for TxReqDone for the majority of requests are basically completed
                     // when they're parsed, as of now
-                    tx_old.tx_req_state = PgsqlTxProgress::TxFlushedOut;
-                    tx_old.tx_res_state = PgsqlTxProgress::TxFlushedOut;
+                    tx_old.tx_req_state = PgsqlTxProgress::FlushedOut;
+                    tx_old.tx_res_state = PgsqlTxProgress::FlushedOut;
                     tx_old
                         .tx_data
                         .set_event(PgsqlEvent::TooManyTransactions as u8);
@@ -257,6 +261,7 @@ impl PgsqlState {
             || self.state_progress == PgsqlStateProgress::SSLRequestReceived
             || self.state_progress == PgsqlStateProgress::ConnectionTerminated
             || self.state_progress == PgsqlStateProgress::CancelRequestReceived
+            || self.state_progress == PgsqlStateProgress::FirstCopyDataInReceived
         {
             let tx = self.new_tx();
             self.transactions.push_back(tx);
@@ -266,13 +271,17 @@ impl PgsqlState {
         return self.transactions.back_mut();
     }
 
+    fn get_curr_state(&mut self) -> PgsqlStateProgress {
+        self.state_progress
+    }
+
     /// Define PgsqlState progression, based on the request received
     ///
     /// As PostgreSQL transactions can have multiple messages, State progression
     /// is what helps us keep track of the PgsqlTransactions - when one finished
     /// when the other starts.
     /// State isn't directly updated to avoid reference borrowing conflicts.
-    fn request_next_state(request: &PgsqlFEMessage) -> Option<PgsqlStateProgress> {
+    fn request_next_state(&mut self, request: &PgsqlFEMessage) -> Option<PgsqlStateProgress> {
         match request {
             PgsqlFEMessage::SSLRequest(_) => Some(PgsqlStateProgress::SSLRequestReceived),
             PgsqlFEMessage::StartupMessage(_) => Some(PgsqlStateProgress::StartupMessageReceived),
@@ -288,6 +297,25 @@ impl PgsqlState {
 
                 // Important to keep in mind that: "In simple Query mode, the format of retrieved values is always text, except when the given command is a FETCH from a cursor declared with the BINARY option. In that case, the retrieved values are in binary format. The format codes given in the RowDescription message tell which format is being used." (from pgsql official documentation)
             }
+            PgsqlFEMessage::ConsolidatedCopyDataIn(_) => {
+                match self.get_curr_state() {
+                    PgsqlStateProgress::CopyInResponseReceived => {
+                        return Some(PgsqlStateProgress::FirstCopyDataInReceived);
+                    }
+                    PgsqlStateProgress::FirstCopyDataInReceived
+                    | PgsqlStateProgress::ConsolidatingCopyDataIn => {
+                        // We are in CopyInResponseReceived state, and we received a CopyDataIn message
+                        // We can either be in the first CopyDataIn message or in the middle
+                        // of consolidating CopyDataIn messages
+                        return Some(PgsqlStateProgress::ConsolidatingCopyDataIn);
+                    }
+                    _ => {
+                        return None;
+                    }
+                }
+            }
+            PgsqlFEMessage::CopyDone(_) => Some(PgsqlStateProgress::CopyDoneReceived),
+            PgsqlFEMessage::CopyFail(_) => Some(PgsqlStateProgress::CopyFailReceived),
             PgsqlFEMessage::CancelRequest(_) => Some(PgsqlStateProgress::CancelRequestReceived),
             PgsqlFEMessage::Terminate(_) => {
                 SCLogDebug!("Match: Terminate message");
@@ -330,6 +358,8 @@ impl PgsqlState {
             | PgsqlStateProgress::SASLInitialResponseReceived
             | PgsqlStateProgress::SASLResponseReceived
             | PgsqlStateProgress::CancelRequestReceived
+            | PgsqlStateProgress::CopyDoneReceived
+            | PgsqlStateProgress::CopyFailReceived
             | PgsqlStateProgress::ConnectionTerminated => true,
             _ => false,
         }
@@ -364,7 +394,7 @@ impl PgsqlState {
             match PgsqlState::state_based_req_parsing(self.state_progress, start) {
                 Ok((rem, request)) => {
                     start = rem;
-                    let new_state = PgsqlState::request_next_state(&request);
+                    let new_state = self.request_next_state(&request);
 
                     if let Some(state) = new_state {
                         self.state_progress = state;
@@ -380,16 +410,35 @@ impl PgsqlState {
                     // https://samadhiweb.com/blog/2013.04.28.graphviz.postgresv3.html
                     if let Some(tx) = self.find_or_create_tx() {
                         tx.tx_data.updated_ts = true;
-                        tx.request = Some(request);
                         if let Some(state) = new_state {
+                            if state == PgsqlStateProgress::FirstCopyDataInReceived
+                            || state == PgsqlStateProgress::ConsolidatingCopyDataIn {
+                                // here we're actually only counting how many messages were received.
+                                // frontends are not forced to send one row per message
+                                if let PgsqlFEMessage::ConsolidatedCopyDataIn(ref msg) = request {
+                                    tx.sum_data_size(msg.data_size);
+                                    tx.incr_row_cnt();
+                                }
+                            } else if (state == PgsqlStateProgress::CopyDoneReceived || state == PgsqlStateProgress::CopyFailReceived) && tx.get_row_cnt() > 0 {
+                                let consolidated_copy_data = PgsqlFEMessage::ConsolidatedCopyDataIn(
+                                    ConsolidatedDataRowPacket {
+                                        identifier: b'd',
+                                        row_cnt: tx.get_row_cnt(),
+                                        data_size: tx.data_size, // total byte count of all copy_data messages combined
+                                    },
+                                );
+                                tx.requests.push(consolidated_copy_data);
+                            }
+
                             if Self::request_is_complete(state) {
-                                // The request is always complete at this point
-                                tx.tx_req_state = PgsqlTxProgress::TxDone;
+                                tx.requests.push(request);
+                                // The request is complete at this point
+                                tx.tx_req_state = PgsqlTxProgress::Done;
                                 if state == PgsqlStateProgress::ConnectionTerminated
                                     || state == PgsqlStateProgress::CancelRequestReceived
                                 {
                                     /* The server won't send any responses to such requests, so transaction should be over */
-                                    tx.tx_res_state = PgsqlTxProgress::TxDone;
+                                    tx.tx_res_state = PgsqlTxProgress::Done;
                                 }
                                 sc_app_layer_parser_trigger_raw_stream_inspection(
                                     flow,
@@ -398,7 +447,7 @@ impl PgsqlState {
                             }
                         }
                     } else {
-                        // If there isn't a new transaction, we'll consider Suri should move on
+                        // If there isn't a transaction, we'll consider Suri should move on
                         return AppLayerResult::ok();
                     };
                 }
@@ -491,6 +540,7 @@ impl PgsqlState {
             }
             PgsqlBEMessage::RowDescription(_) => Some(PgsqlStateProgress::RowDescriptionReceived),
             PgsqlBEMessage::CopyOutResponse(_) => Some(PgsqlStateProgress::CopyOutResponseReceived),
+            PgsqlBEMessage::CopyInResponse(_) => Some(PgsqlStateProgress::CopyInResponseReceived),
             PgsqlBEMessage::ConsolidatedDataRow(msg) => {
                 // Increment tx.data_size here, since we know msg type, so that we can later on log that info
                 self.transactions.back_mut()?.sum_data_size(msg.data_size);
@@ -541,6 +591,7 @@ impl PgsqlState {
             | PgsqlStateProgress::SASLAuthenticationReceived
             | PgsqlStateProgress::SASLAuthenticationContinueReceived
             | PgsqlStateProgress::SASLAuthenticationFinalReceived
+            | PgsqlStateProgress::CopyInResponseReceived
             | PgsqlStateProgress::Finished => true,
             _ => false,
         }
@@ -575,8 +626,8 @@ impl PgsqlState {
                     }
                     if let Some(tx) = self.find_or_create_tx() {
                         tx.tx_data.updated_tc = true;
-                        if tx.tx_res_state == PgsqlTxProgress::TxInit {
-                            tx.tx_res_state = PgsqlTxProgress::TxReceived;
+                        if tx.tx_res_state == PgsqlTxProgress::Init {
+                            tx.tx_res_state = PgsqlTxProgress::Received;
                         }
                         if let Some(state) = new_state {
                             if state == PgsqlStateProgress::DataRowReceived {
@@ -585,14 +636,14 @@ impl PgsqlState {
                                 && tx.get_row_cnt() > 0
                             {
                                 // let's summarize the info from the data_rows in one response
-                                let dummy_resp = PgsqlBEMessage::ConsolidatedDataRow(
+                                let consolidated_data_row = PgsqlBEMessage::ConsolidatedDataRow(
                                     ConsolidatedDataRowPacket {
                                         identifier: b'D',
                                         row_cnt: tx.get_row_cnt(),
                                         data_size: tx.data_size, // total byte count of all data_row messages combined
                                     },
                                 );
-                                tx.responses.push(dummy_resp);
+                                tx.responses.push(consolidated_data_row);
                                 tx.responses.push(response);
                                 // reset values
                                 tx.data_row_cnt = 0;
@@ -601,14 +652,14 @@ impl PgsqlState {
                                 tx.incr_row_cnt();
                             } else if state == PgsqlStateProgress::CopyDoneReceived && tx.get_row_cnt() > 0 {
                                 // let's summarize the info from the data_rows in one response
-                                let dummy_resp = PgsqlBEMessage::ConsolidatedCopyDataOut(
+                                let consolidated_copy_data = PgsqlBEMessage::ConsolidatedCopyDataOut(
                                     ConsolidatedDataRowPacket {
                                         identifier: b'd',
                                         row_cnt: tx.get_row_cnt(),
                                         data_size: tx.data_size, // total byte count of all data_row messages combined
                                     },
                                 );
-                                tx.responses.push(dummy_resp);
+                                tx.responses.push(consolidated_copy_data);
                                 tx.responses.push(response);
                                 // reset values
                                 tx.data_row_cnt = 0;
@@ -616,8 +667,8 @@ impl PgsqlState {
                             } else {
                                 tx.responses.push(response);
                                 if Self::response_is_complete(state) {
-                                    tx.tx_req_state = PgsqlTxProgress::TxDone;
-                                    tx.tx_res_state = PgsqlTxProgress::TxDone;
+                                    tx.tx_req_state = PgsqlTxProgress::Done;
+                                    tx.tx_res_state = PgsqlTxProgress::Done;
                                     sc_app_layer_parser_trigger_raw_stream_inspection(
                                         flow,
                                         Direction::ToClient as i32,
@@ -626,7 +677,7 @@ impl PgsqlState {
                             }
                         }
                     } else {
-                        // If there isn't a new transaction, we'll consider Suri should move on
+                        // If there isn't a transaction, we'll consider Suri should move on
                         return AppLayerResult::ok();
                     };
                 }
@@ -879,8 +930,8 @@ pub unsafe extern "C" fn SCRegisterPgsqlParser() {
         parse_tc: parse_response,
         get_tx_count: state_get_tx_count,
         get_tx: state_get_tx,
-        tx_comp_st_ts: PgsqlTxProgress::TxDone as i32,
-        tx_comp_st_tc: PgsqlTxProgress::TxDone as i32,
+        tx_comp_st_ts: PgsqlTxProgress::Done as i32,
+        tx_comp_st_tc: PgsqlTxProgress::Done as i32,
         tx_get_progress: tx_get_al_state_progress,
         get_eventinfo: Some(PgsqlEvent::get_event_info),
         get_eventinfo_byid: Some(PgsqlEvent::get_event_info_by_id),
