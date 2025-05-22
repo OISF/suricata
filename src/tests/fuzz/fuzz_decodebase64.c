@@ -16,7 +16,7 @@ static int initialized = 0;
 
 static void Base64FuzzTest(const uint8_t *src, size_t len)
 {
-    uint32_t decoded_len = SCBase64DecodeBufferSize(len);
+    uint32_t decoded_len = SCBase64DecodeBufferSize((uint32_t)len);
     uint8_t *decoded = SCCalloc(decoded_len, sizeof(uint8_t));
 
     for (uint8_t mode = SCBase64ModeRFC2045; mode <= SCBase64ModeStrict; mode++) {
