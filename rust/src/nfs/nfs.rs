@@ -33,7 +33,7 @@ use crate::direction::Direction;
 use crate::direction::DIR_BOTH;
 use crate::filecontainer::*;
 use crate::filetracker::*;
-use crate::flow::Flow;
+use crate::flow::{Flow, flow_get_last_time};
 use crate::frames::*;
 
 use crate::nfs::nfs2_records::*;
@@ -1931,7 +1931,7 @@ unsafe extern "C" fn nfs_parse_request(
     }
     SCLogDebug!("parsing {} bytes of request data", stream_slice.len());
 
-    state.update_ts(flow.get_last_time().as_secs());
+    state.update_ts(flow_get_last_time(flow).as_secs());
     state.parse_tcp_data_ts(flow, &stream_slice)
 }
 
@@ -1951,7 +1951,7 @@ unsafe extern "C" fn nfs_parse_response(
     }
     SCLogDebug!("parsing {} bytes of response data", stream_slice.len());
 
-    state.update_ts(flow.get_last_time().as_secs());
+    state.update_ts(flow_get_last_time(flow).as_secs());
     state.parse_tcp_data_tc(flow, &stream_slice)
 }
 
