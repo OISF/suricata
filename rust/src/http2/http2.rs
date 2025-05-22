@@ -24,6 +24,7 @@ use crate::applayer::{self, *};
 use crate::conf::conf_get;
 use crate::core::*;
 use crate::direction::Direction;
+use crate::dns::dns::DnsVariant;
 use crate::filecontainer::*;
 use crate::filetracker::*;
 use crate::flow::Flow;
@@ -479,7 +480,7 @@ impl HTTP2Transaction {
                             AppLayerForceProtocolChange(flow, ALPROTO_DOH2);
                         }
                     }
-                } else if let Ok(mut dtx) = dns_parse_request(&doh.data_buf[dir.index()]) {
+                } else if let Ok(mut dtx) = dns_parse_request(&doh.data_buf[dir.index()], &DnsVariant::Dns) {
                     dtx.id = 1;
                     doh.dns_request_tx = Some(dtx);
                     unsafe {
@@ -1206,7 +1207,7 @@ impl HTTP2State {
                         frame.set_tx(flow, tx.tx_id);
                     }
                     if let Some(doh_req_buf) = tx.handle_frame(&head, &txdata, dir) {
-                        if let Ok(mut dtx) = dns_parse_request(&doh_req_buf) {
+                        if let Ok(mut dtx) = dns_parse_request(&doh_req_buf, &DnsVariant::Dns) {
                             dtx.id = 1;
                             unsafe {
                                 AppLayerForceProtocolChange(flow, ALPROTO_DOH2);

@@ -28,11 +28,14 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-prefilter.h"
 #include "detect-engine-content-inspection.h"
+#include "detect-engine-helper.h"
 #include "detect-dns-response.h"
 #include "util-profiling.h"
 #include "rust.h"
 
 static int detect_buffer_id = 0;
+static int mdns_detect_buffer_id = 0;
+
 typedef struct PrefilterMpm {
     int list_id;
     const MpmCtx *mpm_ctx;
@@ -61,6 +64,18 @@ static int DetectSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
         return -1;
     }
     if (SCDetectSignatureSetAppProto(s, ALPROTO_DNS) < 0) {
+        return -1;
+    }
+
+    return 0;
+}
+
+static int MdnsDetectSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
+{
+    if (SCDetectBufferSetActiveList(de_ctx, s, mdns_detect_buffer_id) < 0) {
+        return -1;
+    }
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_MDNS) < 0) {
         return -1;
     }
 
@@ -311,6 +326,29 @@ static int DetectDnsResponsePrefilterMpmRegister(DetectEngineCtx *de_ctx, SigGro
             DetectDnsResponsePrefilterMpmFree, mpm_reg->pname);
 }
 
+static void SCDetectMdnsResponseRrnameRegister(void)
+{
+    static const char *keyword = "mdns.response.rrname";
+    int keyword_id = SCDetectHelperNewKeywordId();
+    sigmatch_table[keyword_id].name = keyword;
+    sigmatch_table[keyword_id].desc = "mDNS response rrname buffer";
+    sigmatch_table[keyword_id].url = "/rules/mdns-keywords.html#mdns-response-rrname";
+    sigmatch_table[keyword_id].Setup = MdnsDetectSetup;
+    sigmatch_table[keyword_id].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[keyword_id].flags |= SIGMATCH_INFO_STICKY_BUFFER;
+
+    /* Register in the TO_SERVER direction, as all mDNS is toserver. */
+    DetectAppLayerInspectEngineRegister(
+            keyword, ALPROTO_MDNS, SIG_FLAG_TOSERVER, 1, DetectEngineInspectCb, NULL);
+    DetectAppLayerMpmRegister(keyword, SIG_FLAG_TOSERVER, 2, DetectDnsResponsePrefilterMpmRegister,
+            NULL, ALPROTO_MDNS, 1);
+
+    DetectBufferTypeSetDescriptionByName(keyword, "mdns response rdata");
+    DetectBufferTypeSupportsMultiInstance(keyword);
+
+    mdns_detect_buffer_id = DetectBufferTypeGetByName(keyword);
+}
+
 void DetectDnsResponseRegister(void)
 {
     static const char *keyword = "dns.response.rrname";
@@ -331,4 +369,6 @@ void DetectDnsResponseRegister(void)
     DetectBufferTypeSupportsMultiInstance(keyword);
 
     detect_buffer_id = DetectBufferTypeGetByName(keyword);
+
+    SCDetectMdnsResponseRrnameRegister();
 }

@@ -2806,6 +2806,10 @@
         "log_level": {
             "type": "string"
         },
+        "mdns": {
+            "description": "mDNS requests and responses (in DNS v3 format)",
+            "$ref": "#/properties/dns"
+        },
         "metadata": {
             "type": "object",
             "additionalProperties": false,
@@ -4801,6 +4805,10 @@
                                     "description": "Errors encountered parsing LDAP/UDP protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
+                                "mdns": {
+                                    "description": "Errors encountered parsing mDNS",
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
                                 "modbus": {
                                     "description": "Errors encountered parsing Modbus protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
@@ -4980,6 +4988,10 @@
                                     "type": "integer",
                                     "description": "Number of flows LDAP/UDP protocol"
                                 },
+                                "mdns": {
+                                    "description": "Number of flows for mDNS",
+                                    "type": "integer"
+                                },
                                 "modbus": {
                                     "type": "integer",
                                     "description": "Number of flows for Modbus protocol"
@@ -5146,6 +5158,10 @@
                                 "ldap_udp": {
                                     "type": "integer",
                                     "description": "Number of transactions for LDAP/UDP protocol"
+                                },
+                                "mdns": {
+                                    "description": "Number of transactions for mDNS",
+                                    "type": "integer"
                                 },
                                 "modbus": {
                                     "type": "integer",

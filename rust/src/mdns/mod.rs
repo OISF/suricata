@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2025 Open Information Security Foundation
+/* Copyright (C) 2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,11 +15,6 @@
  * 02110-1301, USA.
  */
 
-//! DNS parser, detection, logger and application layer module.
+//! mDNS parser, detection, logger and application layer module.
 
-pub mod config;
-pub mod detect;
-pub mod dns;
-pub mod log;
-pub mod lua;
-pub mod parser;
+pub mod mdns;

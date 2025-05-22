@@ -949,6 +949,78 @@ Example of a DNS answer with "grouped" format::
       }
   }
 
+Event type: mDNS
+----------------
+
+The mDNS format is similar to the DNS format with a few differences in
+the configuration.
+
+mDNS uses the same fields as DNS for data representation. See the DNS
+section above for field descriptions.
+
+The default logging format differs from DNS to provide a smaller
+record by default, as mDNS can be verbose and repetitive:
+
+* Both requests and responses are logged (just like DNS)
+* Grouped formatting is disabled by default
+* Answers are not logged for request messages, these are used in mDNS
+  for answer suppression and will be very repetitive
+* Queries, if found in a response will not be logged
+* Additionals and authorities are not logged by default
+* Flags, opcode, rcode and identifiers are not logged by
+  default. These have little or no meaning in mDNS.
+
+Configuration::
+
+    - eve-log:
+        types:
+          - mdns:
+              # Control logging of requests and responses:
+              # - requests: enable logging of mDNS queries
+              # - responses: enable logging of mDNS answers
+              # By default both requests and responses are logged.
+              #requests: true
+              #responses: true
+              # Log answers in grouped format (similar to DNS logging)
+              # Default: false
+              #grouped: false
+              # Log additional records
+              # Default: false
+              #additionals: false
+              # Log authority records
+              # Default: false
+              #authorities: false
+              # Log answers included in request packets
+              # Default: false 
+              #answers-in-request: false
+
+Example of a mDNS request::
+
+  "mdns": {
+      "version": 3,
+      "type": "request",
+      "queries": [
+        {
+          "rrname": "printer.local",
+          "rrtype": "A"
+        }
+      ]
+  }
+
+Example of a mDNS response::
+
+  "mdns": {
+      "version": 3,
+      "type": "response",
+      "answers": [
+        {
+          "rrname": "printer.local",
+          "rrtype": "A",
+          "rdata": "192.168.1.10"
+        }
+      ]
+  }
+
 Event type: FTP
 ---------------
 
