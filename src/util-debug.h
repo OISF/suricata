@@ -24,22 +24,6 @@
 #ifndef SURICATA_UTIL_DEBUG_H
 #define SURICATA_UTIL_DEBUG_H
 
-#include "suricata-common.h"
-
-#include "threads.h"
-#include "util-error.h"
-#include "util-debug-filters.h"
-
-/**
- * \brief ENV vars that can be used to set the properties for the logging module
- */
-#define SC_LOG_ENV_LOG_LEVEL        "SC_LOG_LEVEL"
-#define SC_LOG_ENV_LOG_OP_IFACE     "SC_LOG_OP_IFACE"
-#define SC_LOG_ENV_LOG_FILE         "SC_LOG_FILE"
-#define SC_LOG_ENV_LOG_FACILITY     "SC_LOG_FACILITY"
-#define SC_LOG_ENV_LOG_FORMAT       "SC_LOG_FORMAT"
-#define SC_LOG_ENV_LOG_OP_FILTER    "SC_LOG_OP_FILTER"
-
 /**
  * \brief The various log levels
  * NOTE: when adding new level, don't forget to update SCLogMapLogLevelToSyslogLevel()
@@ -57,6 +41,23 @@ typedef enum {
     SC_LOG_DEBUG,
     SC_LOG_LEVEL_MAX,
 } SCLogLevel;
+
+#ifndef SURICATA_BINDGEN_H
+#include "suricata-common.h"
+
+#include "threads.h"
+#include "util-error.h"
+#include "util-debug-filters.h"
+
+/**
+ * \brief ENV vars that can be used to set the properties for the logging module
+ */
+#define SC_LOG_ENV_LOG_LEVEL     "SC_LOG_LEVEL"
+#define SC_LOG_ENV_LOG_OP_IFACE  "SC_LOG_OP_IFACE"
+#define SC_LOG_ENV_LOG_FILE      "SC_LOG_FILE"
+#define SC_LOG_ENV_LOG_FACILITY  "SC_LOG_FACILITY"
+#define SC_LOG_ENV_LOG_FORMAT    "SC_LOG_FORMAT"
+#define SC_LOG_ENV_LOG_OP_FILTER "SC_LOG_OP_FILTER"
 
 /**
  * \brief The various output interfaces supported
@@ -530,8 +531,6 @@ SCLogInitData *SCLogAllocLogInitData(void);
 
 void SCLogAppendOPIfaceCtx(SCLogOPIfaceCtx *, SCLogInitData *);
 
-void SCFatalErrorOnInitStatic(const char *);
-
 void SCLogInitLogModule(SCLogInitData *);
 
 void SCLogDeInitLogModule(void);
@@ -546,6 +545,9 @@ int SCLogDebugEnabled(void);
 void SCLogRegisterTests(void);
 
 void SCLogLoadConfig(int daemon, int verbose, uint32_t userid, uint32_t groupid);
+#endif // #ifndef SURICATA_BINDGEN_H
+
+void SCFatalErrorOnInitStatic(const char *);
 
 SCLogLevel SCLogGetLogLevel(void);
 
