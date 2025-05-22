@@ -252,12 +252,13 @@ enum {
 })
 
 #else
-#define SCGetThreadIdLong(...) ({ \
-   pid_t tmpthid; \
-   tmpthid = syscall(SYS_gettid); \
-   unsigned long _scgetthread_tid = (unsigned long)tmpthid; \
-   _scgetthread_tid; \
-})
+#define SCGetThreadIdLong(...)                                                                     \
+    ({                                                                                             \
+        pid_t tmpthid;                                                                             \
+        tmpthid = (pid_t)syscall(SYS_gettid);                                                      \
+        unsigned long _scgetthread_tid = (unsigned long)tmpthid;                                   \
+        _scgetthread_tid;                                                                          \
+    })
 #endif /* OS FREEBSD */
 
 extern thread_local char t_thread_name[THREAD_NAME_LEN + 1];
