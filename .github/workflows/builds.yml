@@ -1805,6 +1805,7 @@ jobs:
           CC: "clang-15"
           CXX: "clang++-15"
           RUSTFLAGS: "-C instrument-coverage"
+          SURICATA_LUA_SYS_CFLAGS: "-fsanitize=address"
       - run: ./qa/run-ossfuzz-corpus.sh
       - run: llvm-profdata-15 merge -o default.profdata $(find /tmp/ -name '*.profraw')
       - run: llvm-cov-15 show ./src/suricata -instr-profile=default.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
@@ -2780,9 +2781,9 @@ jobs:
           . ./testenv/bin/activate
           pip install pyyaml
       - run: ./autogen.sh
-      - run: CPATH="$HOMEBREW_PREFIX/include:$CPATH" LIBRARY_PATH="$HOMEBREW_PREFIX/lib:$LIBRARY_PATH" PATH="/opt/homebrew/opt/libtool/libexec/gnubin:$PATH" CFLAGS="${DEFAULT_CFLAGS}" ./configure  --enable-warnings --enable-unittests --prefix="$HOME/.local/"
-      - run: CPATH="$HOMEBREW_PREFIX/include:$CPATH" LIBRARY_PATH="$HOMEBREW_PREFIX/lib:$LIBRARY_PATH" PATH="/opt/homebrew/opt/libtool/libexec/gnubin:$PATH" CFLAGS="${DEFAULT_CFLAGS}" make -j2
-      - run: CPATH="$HOMEBREW_PREFIX/include:$CPATH" LIBRARY_PATH="$HOMEBREW_PREFIX/lib:$LIBRARY_PATH" PATH="/opt/homebrew/opt/libtool/libexec/gnubin:$PATH" CFLAGS="${DEFAULT_CFLAGS}" make check
+      - run: CPATH="$HOMEBREW_PREFIX/include:$CPATH" LIBRARY_PATH="$HOMEBREW_PREFIX/lib:$LIBRARY_PATH" PATH="/opt/homebrew/opt/libtool/libexec/gnubin:$PATH" CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-warnings --enable-unittests --prefix="$HOME/.local/"
+      - run: CPATH="$HOMEBREW_PREFIX/include:$CPATH" LIBRARY_PATH="$HOMEBREW_PREFIX/lib:$LIBRARY_PATH" PATH="/opt/homebrew/opt/libtool/libexec/gnubin:$PATH" make -j2
+      - run: CPATH="$HOMEBREW_PREFIX/include:$CPATH" LIBRARY_PATH="$HOMEBREW_PREFIX/lib:$LIBRARY_PATH" PATH="/opt/homebrew/opt/libtool/libexec/gnubin:$PATH" make check
       - run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
         run: |
@@ -2809,6 +2810,11 @@ jobs:
         with:
           path: ~/.cargo/registry
           key: cargo-registry
+      - name: Cache npcap
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+        with:
+          path: /npcap-bin
+          key: npcap-bin-100
       - uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
@@ -2827,10 +2833,12 @@ jobs:
       - run: tar xf prep/suricata-update.tar.gz
       - name: Npcap DLL
         run: |
-          curl -sL -O https://nmap.org/npcap/dist/npcap-1.00.exe
-          7z -y x -o/npcap-bin npcap-1.00.exe
-          # hack: place dlls in cwd
-          cp /npcap-bin/*.dll .
+          if ! test -e /npcap-bin; then
+              curl -sL -O https://nmap.org/npcap/dist/npcap-1.00.exe
+              7z -y x -o/npcap-bin npcap-1.00.exe
+          fi
+      - name: Place NPcap dll's in curent directory 
+        run: cp /npcap-bin/*.dll .
       - name: Npcap SDK
         run: |
           curl -sL -O https://nmap.org/npcap/dist/npcap-sdk-1.06.zip

@@ -597,12 +597,12 @@ static void *ParseAFPConfig(const char *iface)
     }
 
     if ((SCConfGetChildValueIntWithDefault(if_root, if_default, "buffer-size", &value)) == 1) {
-        aconf->buffer_size = value;
+        aconf->buffer_size = (int)value;
     } else {
         aconf->buffer_size = 0;
     }
     if ((SCConfGetChildValueIntWithDefault(if_root, if_default, "ring-size", &value)) == 1) {
-        aconf->ring_size = value;
+        aconf->ring_size = (int)value;
     }
 
     if ((SCConfGetChildValueIntWithDefault(if_root, if_default, "block-size", &value)) == 1) {
@@ -610,12 +610,12 @@ static void *ParseAFPConfig(const char *iface)
             SCLogWarning("%s: block-size %" PRIuMAX " must be a multiple of pagesize (%u).", iface,
                     value, getpagesize());
         } else {
-            aconf->block_size = value;
+            aconf->block_size = (int)value;
         }
     }
 
     if ((SCConfGetChildValueIntWithDefault(if_root, if_default, "block-timeout", &value)) == 1) {
-        aconf->block_timeout = value;
+        aconf->block_timeout = (int)value;
     } else {
         aconf->block_timeout = 10;
     }
@@ -625,7 +625,7 @@ static void *ParseAFPConfig(const char *iface)
             SCLogWarning("%s: v2-block-size %" PRIuMAX " must be a multiple of pagesize (%u).",
                     iface, value, getpagesize());
         } else {
-            aconf->v2_block_size = value;
+            aconf->v2_block_size = (int)value;
         }
     }
 
