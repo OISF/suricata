@@ -454,6 +454,26 @@ Example rule:
 
     alert tcp $EXTERNAL_NET any -> $HOME_NET any (flow:stateless; flags:S,12; :example-rule-emphasis:`tcp.mss:<536;` sid:1234; rev:5;)
 
+tcp.wscale
+^^^^^^^^^^
+
+Match on the TCP window scaling option value. Will not match if the option is not
+present.
+
+``tcp.wscale`` uses an :ref:`unsigned 8-bit integer <rules-integer-keywords>`.
+
+The format of the keyword is::
+
+  tcp.wscale:<min>-<max>;
+  tcp.wscale:[<|>]<number>;
+  tcp.wscale:<value>;
+
+Example rule:
+
+.. container:: example-rule
+
+    alert tcp $EXTERNAL_NET any -> $HOME_NET any (flow:stateless; flags:S,12; :example-rule-emphasis:`tcp.wscale:>10;` sid:1234; rev:5;)
+
 tcp.hdr
 ^^^^^^^
 

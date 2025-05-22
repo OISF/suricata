@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2019 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -21,22 +21,9 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef SURICATA_DETECT_ENGINE_ALERT_H
-#define SURICATA_DETECT_ENGINE_ALERT_H
+#ifndef SURICARA_DETECT_TCP_WSCALE_H
+#define SURICARA_DETECT_TCP_WSCALE_H
 
-#include "suricata-common.h"
-#include "decode.h"
-#include "detect.h"
+void DetectTcpWscaleRegister(void);
 
-void AlertQueueInit(DetectEngineThreadCtx *det_ctx);
-void AlertQueueFree(DetectEngineThreadCtx *det_ctx);
-void AlertQueueAppend(DetectEngineThreadCtx *det_ctx, const Signature *s, Packet *p, uint64_t tx_id,
-        uint8_t alert_flags);
-void PacketAlertFinalize(const DetectEngineCtx *, DetectEngineThreadCtx *, Packet *);
-#ifdef UNITTESTS
-int PacketAlertCheck(Packet *, uint32_t);
-#endif
-void PacketAlertTagInit(void);
-void DetectEngineAlertRegisterTests(void);
-
-#endif /* SURICATA_DETECT_ENGINE_ALERT_H */
+#endif /* SURICARA_DETECT_TCP_WSCALE_H */

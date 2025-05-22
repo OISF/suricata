@@ -123,6 +123,7 @@
 #include "detect-flow-pkts.h"
 #include "detect-requires.h"
 #include "detect-tcp-window.h"
+#include "detect-tcp-wscale.h"
 #include "detect-ftpbounce.h"
 #include "detect-ftp-dynamic-port.h"
 #include "detect-isdataat.h"
@@ -708,6 +709,7 @@ void SigTableSetup(void)
     DetectTcphdrRegister();
     DetectUdphdrRegister();
     DetectTcpmssRegister();
+    DetectTcpWscaleRegister();
     DetectICMPv6hdrRegister();
     DetectICMPv6mtuRegister();
     DetectIPAddrBufferRegister();

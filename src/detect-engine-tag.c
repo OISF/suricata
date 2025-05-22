@@ -520,8 +520,7 @@ static Host *GetLockedDstHost(Packet *p)
  * \param p packet
  *
  */
-void TagHandlePacket(DetectEngineCtx *de_ctx,
-                     DetectEngineThreadCtx *det_ctx, Packet *p)
+void TagHandlePacket(const DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p)
 {
     SCEnter();
 
