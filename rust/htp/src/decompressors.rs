@@ -212,13 +212,13 @@ impl BlockingCursor {
         }
     }
     pub fn set_position(&mut self, pos: u64) {
-        return self.cursor.set_position(pos);
+        self.cursor.set_position(pos)
     }
     fn position(&self) -> u64 {
         self.cursor.position()
     }
     pub fn get_ref(&self) -> &Vec<u8> {
-        return self.cursor.get_ref();
+        self.cursor.get_ref()
     }
 }
 
