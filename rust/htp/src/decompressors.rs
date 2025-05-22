@@ -199,6 +199,55 @@ pub(crate) enum HtpContentEncoding {
     Brotli,
 }
 
+//a cursor turning EOF into blocking errors
+#[derive(Debug)]
+struct BlockingCursor {
+    pub cursor: Cursor<Vec<u8>>,
+}
+
+impl BlockingCursor {
+    fn new() -> BlockingCursor {
+        BlockingCursor {
+            cursor: Cursor::new(Vec::with_capacity(ENCODING_CHUNK_SIZE)),
+        }
+    }
+    pub fn set_position(&mut self, pos: u64) {
+        self.cursor.set_position(pos)
+    }
+    fn position(&self) -> u64 {
+        self.cursor.position()
+    }
+    pub fn get_ref(&self) -> &Vec<u8> {
+        self.cursor.get_ref()
+    }
+}
+
+// we need to implement this as flate2 and brotli crates
+// will read from this object
+impl Write for BlockingCursor {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        //use the cursor, except it turns eof into blocking error
+        let r = self.cursor.write(buf);
+        match r {
+            Err(ref err) => {
+                if err.kind() == std::io::ErrorKind::UnexpectedEof {
+                    return Err(std::io::ErrorKind::WouldBlock.into());
+                }
+            }
+            Ok(0) => {
+                //regular EOF turned into blocking error
+                return Err(std::io::ErrorKind::WouldBlock.into());
+            }
+            Ok(_n) => {}
+        }
+        r
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
 /// The outer decompressor tracks the number of callbacks and time spent
 /// decompressing.
 pub(crate) struct Decompressor {
@@ -327,11 +376,11 @@ impl std::fmt::Debug for Decompressor {
 
 /// Trait that represents the decompression writers (gzip, deflate, etc.) and
 /// methods needed to write to a temporary buffer.
-pub(crate) trait BufWriter: Write {
+trait BufWriter: Write {
     /// Get a mutable reference to the buffer.
-    fn get_mut(&mut self) -> Option<&mut Cursor<Box<[u8]>>>;
+    fn get_mut(&mut self) -> Option<&mut BlockingCursor>;
     /// Notify end of data.
-    fn finish(self: Box<Self>) -> std::io::Result<Cursor<Box<[u8]>>>;
+    fn finish(self: Box<Self>) -> std::io::Result<BlockingCursor>;
     /// Attempt to finish this output stream, writing out final chunks of data.
     fn try_finish(&mut self) -> std::io::Result<()>;
 }
@@ -339,7 +388,7 @@ pub(crate) trait BufWriter: Write {
 /// A BufWriter that doesn't consume any data.
 ///
 /// This should be used exclusively with passthrough mode.
-struct NullBufWriter(Cursor<Box<[u8]>>);
+struct NullBufWriter(BlockingCursor);
 
 impl Write for NullBufWriter {
     fn write(&mut self, _: &[u8]) -> std::io::Result<usize> {
@@ -352,11 +401,11 @@ impl Write for NullBufWriter {
 }
 
 impl BufWriter for NullBufWriter {
-    fn get_mut(&mut self) -> Option<&mut Cursor<Box<[u8]>>> {
+    fn get_mut(&mut self) -> Option<&mut BlockingCursor> {
         Some(&mut self.0)
     }
 
-    fn finish(self: Box<Self>) -> std::io::Result<Cursor<Box<[u8]>>> {
+    fn finish(self: Box<Self>) -> std::io::Result<BlockingCursor> {
         Ok(self.0)
     }
 
@@ -388,12 +437,12 @@ struct GzipBufWriter {
     buffer: Vec<u8>,
     flags: u8,
     xlen: u16,
-    inner: flate2::write::DeflateDecoder<Cursor<Box<[u8]>>>,
+    inner: flate2::write::DeflateDecoder<BlockingCursor>,
     state: GzState,
 }
 
 impl GzipBufWriter {
-    fn new(buf: Cursor<Box<[u8]>>) -> Self {
+    fn new(buf: BlockingCursor) -> Self {
         GzipBufWriter {
             buffer: Vec::with_capacity(10),
             flags: 0,
@@ -562,11 +611,11 @@ impl Write for GzipBufWriter {
 }
 
 impl BufWriter for GzipBufWriter {
-    fn get_mut(&mut self) -> Option<&mut Cursor<Box<[u8]>>> {
+    fn get_mut(&mut self) -> Option<&mut BlockingCursor> {
         Some(self.inner.get_mut())
     }
 
-    fn finish(self: Box<Self>) -> std::io::Result<Cursor<Box<[u8]>>> {
+    fn finish(self: Box<Self>) -> std::io::Result<BlockingCursor> {
         self.inner.finish()
     }
 
@@ -576,7 +625,7 @@ impl BufWriter for GzipBufWriter {
 }
 
 /// Simple wrapper around a deflate implementation
-struct DeflateBufWriter(flate2::write::DeflateDecoder<Cursor<Box<[u8]>>>);
+struct DeflateBufWriter(flate2::write::DeflateDecoder<BlockingCursor>);
 
 impl Write for DeflateBufWriter {
     fn write(&mut self, data: &[u8]) -> std::io::Result<usize> {
@@ -589,11 +638,11 @@ impl Write for DeflateBufWriter {
 }
 
 impl BufWriter for DeflateBufWriter {
-    fn get_mut(&mut self) -> Option<&mut Cursor<Box<[u8]>>> {
+    fn get_mut(&mut self) -> Option<&mut BlockingCursor> {
         Some(self.0.get_mut())
     }
 
-    fn finish(self: Box<Self>) -> std::io::Result<Cursor<Box<[u8]>>> {
+    fn finish(self: Box<Self>) -> std::io::Result<BlockingCursor> {
         self.0.finish()
     }
 
@@ -603,7 +652,7 @@ impl BufWriter for DeflateBufWriter {
 }
 
 /// Simple wrapper around a zlib implementation
-struct ZlibBufWriter(flate2::write::ZlibDecoder<Cursor<Box<[u8]>>>);
+struct ZlibBufWriter(flate2::write::ZlibDecoder<BlockingCursor>);
 
 impl Write for ZlibBufWriter {
     fn write(&mut self, data: &[u8]) -> std::io::Result<usize> {
@@ -616,11 +665,11 @@ impl Write for ZlibBufWriter {
 }
 
 impl BufWriter for ZlibBufWriter {
-    fn get_mut(&mut self) -> Option<&mut Cursor<Box<[u8]>>> {
+    fn get_mut(&mut self) -> Option<&mut BlockingCursor> {
         Some(self.0.get_mut())
     }
 
-    fn finish(self: Box<Self>) -> std::io::Result<Cursor<Box<[u8]>>> {
+    fn finish(self: Box<Self>) -> std::io::Result<BlockingCursor> {
         self.0.finish()
     }
 
@@ -630,7 +679,7 @@ impl BufWriter for ZlibBufWriter {
 }
 
 /// Simple wrapper around an lzma implementation
-struct LzmaBufWriter(lzma_rs::decompress::Stream<Cursor<Box<[u8]>>>);
+struct LzmaBufWriter(lzma_rs::decompress::Stream<BlockingCursor>);
 
 impl Write for LzmaBufWriter {
     fn write(&mut self, data: &[u8]) -> std::io::Result<usize> {
@@ -643,11 +692,11 @@ impl Write for LzmaBufWriter {
 }
 
 impl BufWriter for LzmaBufWriter {
-    fn get_mut(&mut self) -> Option<&mut Cursor<Box<[u8]>>> {
+    fn get_mut(&mut self) -> Option<&mut BlockingCursor> {
         self.0.get_output_mut()
     }
 
-    fn finish(self: Box<Self>) -> std::io::Result<Cursor<Box<[u8]>>> {
+    fn finish(self: Box<Self>) -> std::io::Result<BlockingCursor> {
         self.0.finish().map_err(|e| match e {
             lzma_rs::error::Error::IoError(e) => e,
             lzma_rs::error::Error::HeaderTooShort(e) => {
@@ -665,7 +714,7 @@ impl BufWriter for LzmaBufWriter {
 }
 
 /// Simple wrapper around an lzma implementation
-struct BrotliBufWriter(brotli::DecompressorWriter<Cursor<Box<[u8]>>>);
+struct BrotliBufWriter(brotli::DecompressorWriter<BlockingCursor>);
 
 impl Write for BrotliBufWriter {
     fn write(&mut self, data: &[u8]) -> std::io::Result<usize> {
@@ -678,11 +727,11 @@ impl Write for BrotliBufWriter {
 }
 
 impl BufWriter for BrotliBufWriter {
-    fn get_mut(&mut self) -> Option<&mut Cursor<Box<[u8]>>> {
+    fn get_mut(&mut self) -> Option<&mut BlockingCursor> {
         Some(self.0.get_mut())
     }
 
-    fn finish(self: Box<Self>) -> std::io::Result<Cursor<Box<[u8]>>> {
+    fn finish(self: Box<Self>) -> std::io::Result<BlockingCursor> {
         self.0
             .into_inner()
             .map_err(|_e| std::io::Error::new(std::io::ErrorKind::Other, "brotli"))
@@ -714,7 +763,7 @@ impl InnerDecompressor {
     fn writer(
         encoding: HtpContentEncoding, options: &Options,
     ) -> std::io::Result<(Box<dyn BufWriter>, bool)> {
-        let buf = Cursor::new(Box::new([0u8; ENCODING_CHUNK_SIZE]) as Box<[u8]>);
+        let buf = BlockingCursor::new();
 
         match encoding {
             HtpContentEncoding::Gzip => Ok((Box::new(GzipBufWriter::new(buf)), false)),
@@ -994,56 +1043,56 @@ impl Decompress for InnerDecompressor {
 fn test_gz_header() {
     // No flags or other bits
     let input = b"\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x00";
-    let buf = Cursor::new(Box::new([0u8; ENCODING_CHUNK_SIZE]) as Box<[u8]>);
+    let buf = BlockingCursor::new();
     let mut gzw = GzipBufWriter::new(buf);
     assert_eq!(gzw.write(input).unwrap(), input.len());
     assert_eq!(gzw.state, GzState::AfterHeader);
 
     // Just CRC
     let input = b"\x1f\x8b\x08\x02\x00\x00\x00\x00\x00\x00\x11\x22";
-    let buf = Cursor::new(Box::new([0u8; ENCODING_CHUNK_SIZE]) as Box<[u8]>);
+    let buf = BlockingCursor::new();
     let mut gzw = GzipBufWriter::new(buf);
     assert_eq!(gzw.write(input).unwrap(), input.len());
     assert_eq!(gzw.state, GzState::AfterHeader);
 
     // Just extra
     let input = b"\x1f\x8b\x08\x04\x00\x00\x00\x00\x00\x00\x04\x00abcd";
-    let buf = Cursor::new(Box::new([0u8; ENCODING_CHUNK_SIZE]) as Box<[u8]>);
+    let buf = BlockingCursor::new();
     let mut gzw = GzipBufWriter::new(buf);
     assert_eq!(gzw.write(input).unwrap(), input.len());
     assert_eq!(gzw.state, GzState::AfterHeader);
 
     // Just filename
     let input = b"\x1f\x8b\x08\x08\x00\x00\x00\x00\x00\x00variable\x00";
-    let buf = Cursor::new(Box::new([0u8; ENCODING_CHUNK_SIZE]) as Box<[u8]>);
+    let buf = BlockingCursor::new();
     let mut gzw = GzipBufWriter::new(buf);
     assert_eq!(gzw.write(input).unwrap(), input.len());
     assert_eq!(gzw.state, GzState::AfterHeader);
 
     // Just comment
     let input = b"\x1f\x8b\x08\x10\x00\x00\x00\x00\x00\x00also variable\x00";
-    let buf = Cursor::new(Box::new([0u8; ENCODING_CHUNK_SIZE]) as Box<[u8]>);
+    let buf = BlockingCursor::new();
     let mut gzw = GzipBufWriter::new(buf);
     assert_eq!(gzw.write(input).unwrap(), input.len());
     assert_eq!(gzw.state, GzState::AfterHeader);
 
     // Extra and Filename
     let input = b"\x1f\x8b\x08\x0c\x00\x00\x00\x00\x00\x00\x05\x00extrafilename\x00";
-    let buf = Cursor::new(Box::new([0u8; ENCODING_CHUNK_SIZE]) as Box<[u8]>);
+    let buf = BlockingCursor::new();
     let mut gzw = GzipBufWriter::new(buf);
     assert_eq!(gzw.write(input).unwrap(), input.len());
     assert_eq!(gzw.state, GzState::AfterHeader);
 
     // Extra and Comment and CRC
     let input = b"\x1f\x8b\x08\x16\x00\x00\x00\x00\x00\x00\x05\x00extracomment\x00\x34\x12";
-    let buf = Cursor::new(Box::new([0u8; ENCODING_CHUNK_SIZE]) as Box<[u8]>);
+    let buf = BlockingCursor::new();
     let mut gzw = GzipBufWriter::new(buf);
     assert_eq!(gzw.write(input).unwrap(), input.len());
     assert_eq!(gzw.state, GzState::AfterHeader);
 
     // Filename and Comment
     let input = b"\x1f\x8b\x08\x18\x00\x00\x00\x00\x00\x00filename\x00comment\x00";
-    let buf = Cursor::new(Box::new([0u8; ENCODING_CHUNK_SIZE]) as Box<[u8]>);
+    let buf = BlockingCursor::new();
     let mut gzw = GzipBufWriter::new(buf);
     assert_eq!(gzw.write(input).unwrap(), input.len());
     assert_eq!(gzw.state, GzState::AfterHeader);
@@ -1051,14 +1100,14 @@ fn test_gz_header() {
     // Extra Filename and Comment and CRC
     let input =
         b"\x1f\x8b\x08\x1e\x00\x00\x00\x00\x00\x00\x05\x00extrafilename\x00comment\x00\x34\x12";
-    let buf = Cursor::new(Box::new([0u8; ENCODING_CHUNK_SIZE]) as Box<[u8]>);
+    let buf = BlockingCursor::new();
     let mut gzw = GzipBufWriter::new(buf);
     assert_eq!(gzw.write(input).unwrap(), input.len());
     assert_eq!(gzw.state, GzState::AfterHeader);
 
     // Too short
     let input = b"\x1f\x8b\x08\x1e\x00\x00\x00\x00\x00\x00\x05\x00extrafilename\x00comment\x00\x34";
-    let buf = Cursor::new(Box::new([0u8; ENCODING_CHUNK_SIZE]) as Box<[u8]>);
+    let buf = BlockingCursor::new();
     let mut gzw = GzipBufWriter::new(buf);
     assert_eq!(gzw.write(input).unwrap(), input.len() - 1);
     assert_eq!(gzw.state, GzState::Crc);
@@ -1067,7 +1116,7 @@ fn test_gz_header() {
     assert_eq!(gzw.write(input).unwrap(), input.len());
     assert_eq!(gzw.state, GzState::AfterHeader);
     let input = b"\x1f\x8b\x08\x01\x00\x00\x00\x00\x00";
-    let buf = Cursor::new(Box::new([0u8; ENCODING_CHUNK_SIZE]) as Box<[u8]>);
+    let buf = BlockingCursor::new();
     let mut gzw = GzipBufWriter::new(buf);
     assert_eq!(gzw.write(input).unwrap(), input.len());
     assert_eq!(gzw.state, GzState::Start);
