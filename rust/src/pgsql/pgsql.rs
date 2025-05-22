@@ -49,10 +49,10 @@ enum PgsqlEvent {
 #[repr(u8)]
 #[derive(Copy, Clone, PartialOrd, PartialEq, Eq, Debug)]
 pub(crate) enum PgsqlTxProgress {
-    TxInit = 0,
-    TxReceived,
-    TxDone,
-    TxFlushedOut,
+    Init = 0,
+    Received,
+    Done,
+    FlushedOut,
 }
 
 #[derive(Debug)]
@@ -85,8 +85,8 @@ impl PgsqlTransaction {
     fn new() -> Self {
         Self {
             tx_id: 0,
-            tx_req_state: PgsqlTxProgress::TxInit,
-            tx_res_state: PgsqlTxProgress::TxInit,
+            tx_req_state: PgsqlTxProgress::Init,
+            tx_res_state: PgsqlTxProgress::Init,
             requests: Vec::<PgsqlFEMessage>::new(),
             responses: Vec::<PgsqlBEMessage>::new(),
             data_row_cnt: 0,
@@ -226,13 +226,13 @@ impl PgsqlState {
             let mut index = self.tx_index_completed;
             for tx_old in &mut self.transactions.range_mut(self.tx_index_completed..) {
                 index += 1;
-                if tx_old.tx_res_state < PgsqlTxProgress::TxDone {
+                if tx_old.tx_res_state < PgsqlTxProgress::Done {
                     tx_old.tx_data.updated_tc = true;
                     tx_old.tx_data.updated_ts = true;
                     // we don't check for TxReqDone for the majority of requests are basically completed
                     // when they're parsed, as of now
-                    tx_old.tx_req_state = PgsqlTxProgress::TxFlushedOut;
-                    tx_old.tx_res_state = PgsqlTxProgress::TxFlushedOut;
+                    tx_old.tx_req_state = PgsqlTxProgress::FlushedOut;
+                    tx_old.tx_res_state = PgsqlTxProgress::FlushedOut;
                     tx_old
                         .tx_data
                         .set_event(PgsqlEvent::TooManyTransactions as u8);
@@ -433,12 +433,12 @@ impl PgsqlState {
                             if Self::request_is_complete(state) {
                                 tx.requests.push(request);
                                 // The request is complete at this point
-                                tx.tx_req_state = PgsqlTxProgress::TxDone;
+                                tx.tx_req_state = PgsqlTxProgress::Done;
                                 if state == PgsqlStateProgress::ConnectionTerminated
                                     || state == PgsqlStateProgress::CancelRequestReceived
                                 {
                                     /* The server won't send any responses to such requests, so transaction should be over */
-                                    tx.tx_res_state = PgsqlTxProgress::TxDone;
+                                    tx.tx_res_state = PgsqlTxProgress::Done;
                                 }
                                 sc_app_layer_parser_trigger_raw_stream_inspection(
                                     flow,
@@ -626,8 +626,8 @@ impl PgsqlState {
                     }
                     if let Some(tx) = self.find_or_create_tx() {
                         tx.tx_data.updated_tc = true;
-                        if tx.tx_res_state == PgsqlTxProgress::TxInit {
-                            tx.tx_res_state = PgsqlTxProgress::TxReceived;
+                        if tx.tx_res_state == PgsqlTxProgress::Init {
+                            tx.tx_res_state = PgsqlTxProgress::Received;
                         }
                         if let Some(state) = new_state {
                             if state == PgsqlStateProgress::DataRowReceived {
@@ -667,8 +667,8 @@ impl PgsqlState {
                             } else {
                                 tx.responses.push(response);
                                 if Self::response_is_complete(state) {
-                                    tx.tx_req_state = PgsqlTxProgress::TxDone;
-                                    tx.tx_res_state = PgsqlTxProgress::TxDone;
+                                    tx.tx_req_state = PgsqlTxProgress::Done;
+                                    tx.tx_res_state = PgsqlTxProgress::Done;
                                     sc_app_layer_parser_trigger_raw_stream_inspection(
                                         flow,
                                         Direction::ToClient as i32,
@@ -930,8 +930,8 @@ pub unsafe extern "C" fn SCRegisterPgsqlParser() {
         parse_tc: parse_response,
         get_tx_count: state_get_tx_count,
         get_tx: state_get_tx,
-        tx_comp_st_ts: PgsqlTxProgress::TxDone as i32,
-        tx_comp_st_tc: PgsqlTxProgress::TxDone as i32,
+        tx_comp_st_ts: PgsqlTxProgress::Done as i32,
+        tx_comp_st_tc: PgsqlTxProgress::Done as i32,
         tx_get_progress: tx_get_al_state_progress,
         get_eventinfo: Some(PgsqlEvent::get_event_info),
         get_eventinfo_byid: Some(PgsqlEvent::get_event_info_by_id),
