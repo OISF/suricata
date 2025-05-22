@@ -47,6 +47,10 @@
  *  indicate that one of the files matched, but that there are still
  *  more files that have ongoing inspection. */
 #define DETECT_ENGINE_INSPECT_SIG_MATCH_MORE_FILES 4
+/** Indicates that we matched on an occurence of a multi-buffer
+ *  but we want to try all occurences, for example,
+ *  to see which should go into a dataset */
+#define DETECT_ENGINE_INSPECT_SIG_MATCH_MORE_BUF 5
 
 /** number of DeStateStoreItem's in one DeStateStore object */
 #define DE_STATE_CHUNK_SIZE             15
