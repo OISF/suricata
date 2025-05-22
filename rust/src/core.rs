@@ -19,7 +19,7 @@
 
 use std;
 use std::os::raw::{c_int, c_void};
-use suricata_sys::sys::{AppProto, AppProtoEnum};
+use suricata_sys::sys::{AppProto, AppProtoEnum, SCLogLevel};
 
 use crate::filecontainer::*;
 use crate::flow::Flow;
@@ -89,7 +89,7 @@ extern "C" {
 
 #[allow(non_snake_case)]
 pub type SCLogMessageFunc =
-    extern "C" fn(level: std::os::raw::c_int,
+    extern "C" fn(level: SCLogLevel,
                   filename: *const std::os::raw::c_char,
                   line: std::os::raw::c_uint,
                   function: *const std::os::raw::c_char,
