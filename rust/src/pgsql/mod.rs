@@ -21,5 +21,5 @@
 
 pub mod detect;
 pub mod logger;
-pub mod parser;
+mod parser;
 pub mod pgsql;
