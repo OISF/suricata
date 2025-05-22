@@ -41,7 +41,7 @@ use crate::core::*;
 use crate::applayer;
 use crate::applayer::*;
 use crate::direction::Direction;
-use crate::flow::{Flow, FLOW_DIR_REVERSED};
+use crate::flow::{Flow, FLOW_DIR_REVERSED, flow_get_flags, flow_get_last_time, flow_get_ports};
 use crate::frames::*;
 use crate::conf::*;
 use crate::applayer::{AppLayerResult, AppLayerTxData, AppLayerEvent};
@@ -2025,7 +2025,7 @@ unsafe extern "C" fn smb_parse_request_tcp(flow: *const Flow,
         state.ts_gap = true;
     }
 
-    state.update_ts(flow.get_last_time().as_secs());
+    state.update_ts(flow_get_last_time(flow).as_secs());
     state.parse_tcp_data_ts(flow, &stream_slice)
 }
 
@@ -2058,7 +2058,7 @@ unsafe extern "C" fn smb_parse_response_tcp(flow: *const Flow,
         state.tc_gap = true;
     }
 
-    state.update_ts(flow.get_last_time().as_secs());
+    state.update_ts(flow_get_last_time(flow).as_secs());
     state.parse_tcp_data_tc(flow, &stream_slice)
 }
 
@@ -2273,8 +2273,8 @@ unsafe extern "C" fn smb3_probe_tcp(f: *const Flow, dir: u8, input: *const u8, l
     if retval != ALPROTO_SMB {
         return retval;
     }
-    let (sp, dp) = f.get_ports();
-    let flags = f.get_flags();
+    let (sp, dp) = flow_get_ports(f);
+    let flags = flow_get_flags(f);
     let fsp = if (flags & FLOW_DIR_REVERSED) != 0 { dp } else { sp };
     let fdp = if (flags & FLOW_DIR_REVERSED) != 0 { sp } else { dp };
     if fsp == 445 && fdp != 445 {
