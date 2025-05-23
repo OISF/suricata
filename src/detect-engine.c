@@ -101,6 +101,7 @@ static DetectEngineMasterCtx g_master_de_ctx = { SCMUTEX_INITIALIZER,
 static uint32_t TenantIdHash(HashTable *h, void *data, uint16_t data_len);
 static char TenantIdCompare(void *d1, uint16_t d1_len, void *d2, uint16_t d2_len);
 static void TenantIdFree(void *d);
+static uint32_t DetectEngineTenantGetIdFromTunnel(const void *ctx, const Packet *p);
 static uint32_t DetectEngineTenantGetIdFromLivedev(const void *ctx, const Packet *p);
 static uint32_t DetectEngineTenantGetIdFromVlanId(const void *ctx, const Packet *p);
 static uint32_t DetectEngineTenantGetIdFromPcap(const void *ctx, const Packet *p);
@@ -3232,6 +3233,10 @@ static TmEcode DetectEngineThreadCtxInitForMT(ThreadVars *tv, DetectEngineThread
             det_ctx->TenantGetId = DetectEngineTenantGetIdFromLivedev;
             SCLogDebug("TENANT_SELECTOR_LIVEDEV");
             break;
+        case TENANT_SELECTOR_TUNNEL:
+            det_ctx->TenantGetId = DetectEngineTenantGetIdFromTunnel;
+            SCLogDebug("TENANT_SELECTOR_TUNNEL");
+            break;
         case TENANT_SELECTOR_DIRECT:
             det_ctx->TenantGetId = DetectEngineTenantGetIdFromPcap;
             SCLogDebug("TENANT_SELECTOR_DIRECT");
@@ -4139,6 +4144,57 @@ int DetectEngineReloadTenantsBlocking(const int reload_cnt)
     return 0;
 }
 
+static int DetectEngineMultiTenantSetupLoadTunnelMappings(
+        const SCConfNode *mappings_root_node, bool failure_fatal)
+{
+    SCConfNode *mapping_node = NULL;
+
+    int mapping_cnt = 0;
+    if (mappings_root_node != NULL) {
+        TAILQ_FOREACH (mapping_node, &mappings_root_node->head, next) {
+            SCConfNode *tenant_id_node = SCConfNodeLookupChild(mapping_node, "tenant-id");
+            if (tenant_id_node == NULL)
+                goto bad_mapping;
+            SCConfNode *tunnel_id_node = SCConfNodeLookupChild(mapping_node, "tunnel-id");
+            if (tunnel_id_node == NULL)
+                goto bad_mapping;
+
+            uint32_t tenant_id = 0;
+            if (StringParseUint32(&tenant_id, 10, (uint16_t)strlen(tenant_id_node->val),
+                        tenant_id_node->val) < 0) {
+                SCLogError("tenant-id  "
+                           "of %s is invalid",
+                        tenant_id_node->val);
+                goto bad_mapping;
+            }
+
+            uint16_t tunnel_id = 0;
+            if (StringParseUint16(&tunnel_id, 10, (uint16_t)strlen(tunnel_id_node->val),
+                        tunnel_id_node->val) < 0) {
+                SCLogError("tunnel id  "
+                           "of %s is invalid",
+                        tunnel_id_node->val);
+                goto bad_mapping;
+            }
+
+            if (DetectEngineTenantRegisterTunnel(tunnel_id, tunnel_id) != 0) {
+                goto error;
+            }
+            SCLogConfig("tunnel %u connected to tenant-id %u", tunnel_id, tenant_id);
+            mapping_cnt++;
+            continue;
+
+        bad_mapping:
+            if (failure_fatal)
+                goto error;
+        }
+    }
+    return mapping_cnt;
+
+error:
+    return 0;
+}
+
 static int DetectEngineMultiTenantSetupLoadLivedevMappings(
         const SCConfNode *mappings_root_node, bool failure_fatal)
 {
@@ -4297,6 +4353,8 @@ int DetectEngineMultiTenantSetup(const bool unix_socket)
 
             } else if (strcmp(handler, "direct") == 0) {
                 tenant_selector = master->tenant_selector = TENANT_SELECTOR_DIRECT;
+            } else if (strcmp(handler, "tunnel") == 0) {
+                tenant_selector = master->tenant_selector = TENANT_SELECTOR_TUNNEL;
             } else if (strcmp(handler, "device") == 0) {
                 tenant_selector = master->tenant_selector = TENANT_SELECTOR_LIVEDEV;
                 if (EngineModeIsIPS()) {
@@ -4337,6 +4395,17 @@ int DetectEngineMultiTenantSetup(const bool unix_socket)
                     } else {
                         SCLogWarning("no multi-detect mappings defined");
                     }
+                }
+            }
+        } else if (tenant_selector == TENANT_SELECTOR_TUNNEL) {
+            int mapping_cnt = DetectEngineMultiTenantSetupLoadTunnelMappings(
+                    mappings_root_node, failure_fatal);
+            if (mapping_cnt == 0) {
+                if (failure_fatal) {
+                    SCLogError("no multi-detect mappings defined");
+                    goto error;
+                } else {
+                    SCLogWarning("no multi-detect mappings defined");
                 }
             }
         } else if (tenant_selector == TENANT_SELECTOR_LIVEDEV) {
@@ -4465,6 +4534,26 @@ static uint32_t DetectEngineTenantGetIdFromLivedev(const void *ctx, const Packet
     return ld->tenant_id;
 }
 
+static uint32_t DetectEngineTenantGetIdFromTunnel(const void *ctx, const Packet *p)
+{
+    const DetectEngineThreadCtx *det_ctx = ctx;
+
+    if (p->tunnel_id == 0 || p->tunnel_id == PKT_TUNNEL_UNKNOWN)
+        return 0;
+
+    if (det_ctx == NULL || det_ctx->tenant_array == NULL || det_ctx->tenant_array_size == 0)
+        return 0;
+
+    /* not very efficient, but for now we're targeting only limited amounts.
+     * Can use hash/tree approach later. */
+    for (uint32_t x = 0; x < det_ctx->tenant_array_size; x++) {
+        if (det_ctx->tenant_array[x].traffic_id == p->tunnel_id)
+            return det_ctx->tenant_array[x].tenant_id;
+    }
+
+    return 0;
+}
+
 static int DetectEngineTenantRegisterSelector(
         enum DetectEngineTenantSelectors selector, uint32_t tenant_id, uint32_t traffic_id)
 {
@@ -4546,6 +4635,12 @@ int DetectEngineTenantRegisterLivedev(uint32_t tenant_id, int device_id)
 {
     return DetectEngineTenantRegisterSelector(
             TENANT_SELECTOR_LIVEDEV, tenant_id, (uint32_t)device_id);
+}
+
+int DetectEngineTenantRegisterTunnel(uint32_t tenant_id, uint16_t tunnel_id)
+{
+    return DetectEngineTenantRegisterSelector(
+            TENANT_SELECTOR_TUNNEL, tenant_id, (uint32_t)tunnel_id);
 }
 
 int DetectEngineTenantRegisterVlanId(uint32_t tenant_id, uint16_t vlan_id)

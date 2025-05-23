@@ -118,6 +118,7 @@ int DetectEngineReloadTenantBlocking(uint32_t tenant_id, const char *yaml, int r
 int DetectEngineReloadTenantsBlocking(const int reload_cnt);
 
 int DetectEngineTenantRegisterLivedev(uint32_t tenant_id, int device_id);
+int DetectEngineTenantRegisterTunnel(uint32_t tenant_id, uint16_t tunnel_id);
 int DetectEngineTenantRegisterVlanId(uint32_t tenant_id, uint16_t vlan_id);
 int DetectEngineTenantUnregisterVlanId(uint32_t tenant_id, uint16_t vlan_id);
 int DetectEngineTenantRegisterPcapFile(uint32_t tenant_id);
