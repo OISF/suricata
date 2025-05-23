@@ -554,6 +554,7 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
             ftpi.consumed = ftpi.len + 1;
             break;
         }
+        AppLayerParserTriggerRawStreamInspection(f, STREAM_TOSERVER);
     }
 
     SCReturnStruct(APP_LAYER_OK);
@@ -725,6 +726,7 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
         }
     tx_complete:
         tx->done = true;
+        AppLayerParserTriggerRawStreamInspection(f, STREAM_TOCLIENT);
 
         if (line.len >= ftp_max_line_len) {
             ftpi.consumed = ftpi.len + 1;
