@@ -154,6 +154,9 @@
                         }
                     }
                 },
+                "tenant_id": {
+                    "type": "integer"
+                },
                 "xff": {
                     "type": "string"
                 }
@@ -9203,6 +9206,9 @@
                     "type": "string"
                 }
             }
+        },
+        "tenant_id": {
+            "type": "integer"
         },
         "tftp": {
             "type": "object",

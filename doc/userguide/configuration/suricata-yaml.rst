@@ -3185,6 +3185,8 @@ default.
 Using this default setting, flows will be associated only if the compared packet
 headers are encapsulated in the same number of headers.
 
+.. _tunnels:
+
 Tunnels
 ~~~~~~~
 
@@ -3217,6 +3219,8 @@ This section is a list of tunnels with the following parameters:
       session: 123 # erspan span id or vxlan vni
 
 Only IPv4 addresses are supported for now.
+
+These tunnel identifiers can be used for multi-tenancy.
 
 Advanced Options
 ----------------
