@@ -2232,6 +2232,13 @@ static int AFPSetFlowStorage(Packet *p, int map_fd, void *key0, void* key1,
     return 1;
 }
 
+#define FlowKeyIpFill(k, p)                                                                        \
+    {                                                                                              \
+        (k)->ip_proto = ((p)->proto == IPPROTO_TCP) ? 1 : 0;                                       \
+        (k)->vlan0 = (p)->vlan_id[0];                                                              \
+        (k)->vlan1 = (p)->vlan_id[1];                                                              \
+    }
+
 /**
  * Bypass function for AF_PACKET capture in eBPF mode
  *
@@ -2278,16 +2285,9 @@ static int AFPBypassCallback(Packet *p)
         }
         keys[0]->src = htonl(GET_IPV4_SRC_ADDR_U32(p));
         keys[0]->dst = htonl(GET_IPV4_DST_ADDR_U32(p));
+        FlowKeyIpFill(keys[0], p);
         keys[0]->port16[0] = p->sp;
         keys[0]->port16[1] = p->dp;
-        keys[0]->vlan0 = p->vlan_id[0];
-        keys[0]->vlan1 = p->vlan_id[1];
-
-        if (p->proto == IPPROTO_TCP) {
-            keys[0]->ip_proto = 1;
-        } else {
-            keys[0]->ip_proto = 0;
-        }
         if (AFPInsertHalfFlow(p->afp_v.v4_map_fd, keys[0],
                               p->afp_v.nr_cpus) == 0) {
             LiveDevAddBypassFail(p->livedev, 1, AF_INET);
@@ -2305,10 +2305,7 @@ static int AFPBypassCallback(Packet *p)
         keys[1]->dst = htonl(GET_IPV4_SRC_ADDR_U32(p));
         keys[1]->port16[0] = p->dp;
         keys[1]->port16[1] = p->sp;
-        keys[1]->vlan0 = p->vlan_id[0];
-        keys[1]->vlan1 = p->vlan_id[1];
-
-        keys[1]->ip_proto = keys[0]->ip_proto;
+        FlowKeyIpFill(keys[1], p);
         if (AFPInsertHalfFlow(p->afp_v.v4_map_fd, keys[1],
                               p->afp_v.nr_cpus) == 0) {
             EBPFDeleteKey(p->afp_v.v4_map_fd, keys[0]);
@@ -2339,14 +2336,7 @@ static int AFPBypassCallback(Packet *p)
         }
         keys[0]->port16[0] = p->sp;
         keys[0]->port16[1] = p->dp;
-        keys[0]->vlan0 = p->vlan_id[0];
-        keys[0]->vlan1 = p->vlan_id[1];
-
-        if (p->proto == IPPROTO_TCP) {
-            keys[0]->ip_proto = 1;
-        } else {
-            keys[0]->ip_proto = 0;
-        }
+        FlowKeyIpFill(keys[0], p);
         if (AFPInsertHalfFlow(p->afp_v.v6_map_fd, keys[0],
                               p->afp_v.nr_cpus) == 0) {
             LiveDevAddBypassFail(p->livedev, 1, AF_INET6);
@@ -2366,10 +2356,7 @@ static int AFPBypassCallback(Packet *p)
         }
         keys[1]->port16[0] = p->dp;
         keys[1]->port16[1] = p->sp;
-        keys[1]->vlan0 = p->vlan_id[0];
-        keys[1]->vlan1 = p->vlan_id[1];
-
-        keys[1]->ip_proto = keys[0]->ip_proto;
+        FlowKeyIpFill(keys[1], p);
         if (AFPInsertHalfFlow(p->afp_v.v6_map_fd, keys[1],
                               p->afp_v.nr_cpus) == 0) {
             EBPFDeleteKey(p->afp_v.v6_map_fd, keys[0]);
@@ -2433,13 +2420,7 @@ static int AFPXDPBypassCallback(Packet *p)
          * (as in eBPF filter) so we need to pass from host to network order */
         keys[0]->port16[0] = htons(p->sp);
         keys[0]->port16[1] = htons(p->dp);
-        keys[0]->vlan0 = p->vlan_id[0];
-        keys[0]->vlan1 = p->vlan_id[1];
-        if (p->proto == IPPROTO_TCP) {
-            keys[0]->ip_proto = 1;
-        } else {
-            keys[0]->ip_proto = 0;
-        }
+        FlowKeyIpFill(keys[0], p);
         if (AFPInsertHalfFlow(p->afp_v.v4_map_fd, keys[0],
                               p->afp_v.nr_cpus) == 0) {
             LiveDevAddBypassFail(p->livedev, 1, AF_INET);
@@ -2457,9 +2438,7 @@ static int AFPXDPBypassCallback(Packet *p)
         keys[1]->dst = p->src.addr_data32[0];
         keys[1]->port16[0] = htons(p->dp);
         keys[1]->port16[1] = htons(p->sp);
-        keys[1]->vlan0 = p->vlan_id[0];
-        keys[1]->vlan1 = p->vlan_id[1];
-        keys[1]->ip_proto = keys[0]->ip_proto;
+        FlowKeyIpFill(keys[1], p);
         if (AFPInsertHalfFlow(p->afp_v.v4_map_fd, keys[1],
                               p->afp_v.nr_cpus) == 0) {
             EBPFDeleteKey(p->afp_v.v4_map_fd, keys[0]);
@@ -2489,13 +2468,7 @@ static int AFPXDPBypassCallback(Packet *p)
         }
         keys[0]->port16[0] = htons(p->sp);
         keys[0]->port16[1] = htons(p->dp);
-        keys[0]->vlan0 = p->vlan_id[0];
-        keys[0]->vlan1 = p->vlan_id[1];
-        if (p->proto == IPPROTO_TCP) {
-            keys[0]->ip_proto = 1;
-        } else {
-            keys[0]->ip_proto = 0;
-        }
+        FlowKeyIpFill(keys[0], p);
         if (AFPInsertHalfFlow(p->afp_v.v6_map_fd, keys[0],
                               p->afp_v.nr_cpus) == 0) {
             LiveDevAddBypassFail(p->livedev, 1, AF_INET6);
@@ -2515,9 +2488,7 @@ static int AFPXDPBypassCallback(Packet *p)
         }
         keys[1]->port16[0] = htons(p->dp);
         keys[1]->port16[1] = htons(p->sp);
-        keys[1]->vlan0 = p->vlan_id[0];
-        keys[1]->vlan1 = p->vlan_id[1];
-        keys[1]->ip_proto = keys[0]->ip_proto;
+        FlowKeyIpFill(keys[1], p);
         if (AFPInsertHalfFlow(p->afp_v.v6_map_fd, keys[1],
                               p->afp_v.nr_cpus) == 0) {
             EBPFDeleteKey(p->afp_v.v6_map_fd, keys[0]);
