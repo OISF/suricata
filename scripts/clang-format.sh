@@ -544,7 +544,7 @@ function ReformatCommitsOnBranch {
         local first_commit=$(FirstCommitOfBranch)
         echo "First commit on branch: $first_commit"
         # Use --force in case it's run a second time on the same branch
-        git filter-branch --force --tree-filter "$GIT_CLANG_FORMAT $first_commit^" -- $first_commit..HEAD
+        git filter-branch --force --tree-filter "$GIT_CLANG_FORMAT --extensions c,h $first_commit^" -- $first_commit..HEAD
         if [ $? -ne 0 ]; then
             Die "Cannot rewrite branch. git filter-branch failed"
         fi
