@@ -1,4 +1,4 @@
-/* Copyright (C) 2015-2024 Open Information Security Foundation
+/* Copyright (C) 2015-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -848,8 +848,8 @@ done:
  * \param input pointer to the DNP3 frame (starting with link header)
  * \param input_len length of the input frame
  */
-static void DNP3HandleUserDataRequest(DNP3State *dnp3, const uint8_t *input,
-    uint32_t input_len)
+static void DNP3HandleUserDataRequest(
+        Flow *f, DNP3State *dnp3, const uint8_t *input, uint32_t input_len)
 {
     DNP3LinkHeader *lh;
     DNP3TransportHeader th;
@@ -923,10 +923,13 @@ static void DNP3HandleUserDataRequest(DNP3State *dnp3, const uint8_t *input,
                 tx->buffer_len - sizeof(DNP3ApplicationHeader), &tx->objects)) {
         tx->complete = 1;
     }
+    if (f != NULL) {
+        AppLayerParserTriggerRawStreamInspection(f, STREAM_TOSERVER);
+    }
 }
 
-static void DNP3HandleUserDataResponse(DNP3State *dnp3, const uint8_t *input,
-    uint32_t input_len)
+static void DNP3HandleUserDataResponse(
+        Flow *f, DNP3State *dnp3, const uint8_t *input, uint32_t input_len)
 {
     DNP3LinkHeader *lh;
     DNP3TransportHeader th;
@@ -997,6 +1000,9 @@ static void DNP3HandleUserDataResponse(DNP3State *dnp3, const uint8_t *input,
                 tx, tx->buffer + offset, tx->buffer_len - offset, &tx->objects)) {
         tx->complete = 1;
     }
+    if (f != NULL) {
+        AppLayerParserTriggerRawStreamInspection(f, STREAM_TOCLIENT);
+    }
 }
 
 /**
@@ -1005,8 +1011,8 @@ static void DNP3HandleUserDataResponse(DNP3State *dnp3, const uint8_t *input,
  * \retval number of bytes processed or -1 if the data stream does not look
  *     like DNP3.
  */
-static int DNP3HandleRequestLinkLayer(DNP3State *dnp3, const uint8_t *input,
-    uint32_t input_len)
+static int DNP3HandleRequestLinkLayer(
+        Flow *f, DNP3State *dnp3, const uint8_t *input, uint32_t input_len)
 {
     SCEnter();
     uint32_t processed = 0;
@@ -1057,7 +1063,7 @@ static int DNP3HandleRequestLinkLayer(DNP3State *dnp3, const uint8_t *input,
             goto next;
         }
 
-        DNP3HandleUserDataRequest(dnp3, input, frame_len);
+        DNP3HandleUserDataRequest(f, dnp3, input, frame_len);
 
     next:
         /* Advance the input buffer. */
@@ -1100,9 +1106,8 @@ static AppLayerResult DNP3ParseRequest(Flow *f, void *state, AppLayerParserState
         if (!DNP3BufferAdd(buffer, input, input_len)) {
             goto error;
         }
-        processed = DNP3HandleRequestLinkLayer(dnp3,
-            buffer->buffer + buffer->offset,
-            buffer->len - buffer->offset);
+        processed = DNP3HandleRequestLinkLayer(
+                f, dnp3, buffer->buffer + buffer->offset, buffer->len - buffer->offset);
         if (processed < 0) {
             goto error;
         }
@@ -1110,7 +1115,7 @@ static AppLayerResult DNP3ParseRequest(Flow *f, void *state, AppLayerParserState
         DNP3BufferTrim(buffer);
     }
     else {
-        processed = DNP3HandleRequestLinkLayer(dnp3, input, input_len);
+        processed = DNP3HandleRequestLinkLayer(f, dnp3, input, input_len);
         if (processed < 0) {
             SCLogDebug("Failed to process request link layer.");
             goto error;
@@ -1141,8 +1146,8 @@ error:
  * \retval number of bytes processed or -1 if the data stream does not
  *     like look DNP3.
  */
-static int DNP3HandleResponseLinkLayer(DNP3State *dnp3, const uint8_t *input,
-    uint32_t input_len)
+static int DNP3HandleResponseLinkLayer(
+        Flow *f, DNP3State *dnp3, const uint8_t *input, uint32_t input_len)
 {
     SCEnter();
     uint32_t processed = 0;
@@ -1194,7 +1199,7 @@ static int DNP3HandleResponseLinkLayer(DNP3State *dnp3, const uint8_t *input,
             goto next;
         }
 
-        DNP3HandleUserDataResponse(dnp3, input, frame_len);
+        DNP3HandleUserDataResponse(f, dnp3, input, frame_len);
 
     next:
         /* Advance the input buffer. */
@@ -1235,9 +1240,8 @@ static AppLayerResult DNP3ParseResponse(Flow *f, void *state, AppLayerParserStat
         if (!DNP3BufferAdd(buffer, input, input_len)) {
             goto error;
         }
-        processed = DNP3HandleResponseLinkLayer(dnp3,
-            buffer->buffer + buffer->offset,
-            buffer->len - buffer->offset);
+        processed = DNP3HandleResponseLinkLayer(
+                f, dnp3, buffer->buffer + buffer->offset, buffer->len - buffer->offset);
         if (processed < 0) {
             goto error;
         }
@@ -1251,7 +1255,7 @@ static AppLayerResult DNP3ParseResponse(Flow *f, void *state, AppLayerParserStat
             goto done;
         }
 
-        processed = DNP3HandleResponseLinkLayer(dnp3, input, input_len);
+        processed = DNP3HandleResponseLinkLayer(f, dnp3, input, input_len);
         if (processed < 0) {
             goto error;
         }
@@ -2464,7 +2468,7 @@ static int DNP3ParserTestParsePDU01(void)
     };
 
     DNP3State *dnp3state = DNP3StateAlloc(NULL, ALPROTO_UNKNOWN);
-    int pdus = DNP3HandleRequestLinkLayer(dnp3state, pkt, sizeof(pkt));
+    int pdus = DNP3HandleRequestLinkLayer(NULL, dnp3state, pkt, sizeof(pkt));
     FAIL_IF(pdus < 1);
     DNP3Transaction *dnp3tx = DNP3GetTx(dnp3state, 0);
     FAIL_IF_NULL(dnp3tx);
@@ -2504,7 +2508,7 @@ static int DNP3ParserDecodeG70V3Test(void)
 
     DNP3State *dnp3state = DNP3StateAlloc(NULL, ALPROTO_UNKNOWN);
     FAIL_IF_NULL(dnp3state);
-    int bytes = DNP3HandleRequestLinkLayer(dnp3state, pkt, sizeof(pkt));
+    int bytes = DNP3HandleRequestLinkLayer(NULL, dnp3state, pkt, sizeof(pkt));
     FAIL_IF(bytes != sizeof(pkt));
     DNP3Transaction *tx = DNP3GetTx(dnp3state, 0);
     FAIL_IF_NULL(tx);
@@ -2565,7 +2569,7 @@ static int DNP3ParserUnknownEventAlertTest(void)
 
     DNP3State *dnp3state = DNP3StateAlloc(NULL, ALPROTO_UNKNOWN);
     FAIL_IF_NULL(dnp3state);
-    int bytes = DNP3HandleRequestLinkLayer(dnp3state, pkt, sizeof(pkt));
+    int bytes = DNP3HandleRequestLinkLayer(NULL, dnp3state, pkt, sizeof(pkt));
     FAIL_IF(bytes != sizeof(pkt));
 
     DNP3StateFree(dnp3state);
