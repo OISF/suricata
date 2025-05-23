@@ -135,6 +135,21 @@ Note: Not currently supported for IPS.
 Note: support depends on a capture method using the 'livedev' API. Currently
 these are: pcap, AF_PACKET, PF_RING and Netmap.
 
+tunnel
+~~~~~~
+
+Assign tenants to tunnels. A single tenant can be assigned to a tunnel, see :ref:`tunnels`.
+Multiple tunnels can have the same tenant id.
+
+Example of tunnel mapping::
+
+    mappings:
+    - tunnel-id: 1
+      tenant-id: 1
+    - tunnel-id: 2
+      tenant-id: 3
+
+
 Per tenant settings
 -------------------
 
