@@ -206,18 +206,8 @@ fn dns_parse_answer<'a>(
     for _ in 0..count {
         match subparser(input, message, flags) {
             Ok((rem, val)) => {
-                let n = if val.rrtype == DNSRecordType::TXT as u16 {
-                    // For TXT records we need to run the parser
-                    // multiple times. Set n high, to the maximum
-                    // value based on a max txt side of 65535, but
-                    // taking into considering that strings need
-                    // to be quoted, so half that.
-                    32767
-                } else {
-                    // For all other types we only want to run the
-                    // parser once, so set n to 1.
-                    1
-                };
+                // For all record types we now only run the parser once
+                let n = 1;
                 // edge case for additional section of type=OPT
                 // with empty data (data length = 0x0000)
                 if val.data.is_empty() && val.rrtype == DNSRecordType::OPT as u16 {
@@ -366,8 +356,22 @@ fn dns_parse_rdata_srv<'a>(
 }
 
 fn dns_parse_rdata_txt(input: &[u8]) -> IResult<&[u8], DNSRData> {
-    let (i, txt) = length_data(be_u8)(input)?;
-    Ok((i, DNSRData::TXT(txt.to_vec())))
+    let mut txt_strings = Vec::new();
+    let mut i = input;
+    
+    // TXT records can contain multiple strings
+    // If the input is empty, return an empty vector (valid for TXT records)
+    if i.is_empty() {
+        return Ok((i, DNSRData::TXT(txt_strings)));
+    }
+    
+    while !i.is_empty() {
+        let (j, txt) = length_data(be_u8)(i)?;
+        txt_strings.push(txt.to_vec());
+        i = j;
+    }
+    
+    Ok((i, DNSRData::TXT(txt_strings)))
 }
 
 fn dns_parse_rdata_null(input: &[u8]) -> IResult<&[u8], DNSRData> {

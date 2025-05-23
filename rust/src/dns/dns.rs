@@ -244,7 +244,7 @@ pub enum DNSRData {
     MX(DNSName),
     NS(DNSName),
     // RData is text
-    TXT(Vec<u8>),
+    TXT(Vec<Vec<u8>>),
     NULL(Vec<u8>),
     // RData has several fields
     SOA(DNSRDataSOA),

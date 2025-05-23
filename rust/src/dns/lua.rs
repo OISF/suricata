@@ -162,8 +162,20 @@ pub extern "C" fn SCDnsLuaGetAnswerTable(clua: &mut CLuaState, tx: &mut DNSTrans
                         lua.settable(-3);
                     }
                 }
-                DNSRData::TXT(ref bytes)
-                | DNSRData::NULL(ref bytes)
+                DNSRData::TXT(ref txt_strings) => {
+                    if !txt_strings.is_empty() {
+                        lua.pushstring("addr");
+                        // For Lua, concatenate all TXT strings with spaces
+                        let combined = txt_strings
+                            .iter()
+                            .map(|s| String::from_utf8_lossy(s))
+                            .collect::<Vec<_>>()
+                            .join(" ");
+                        lua.pushstring(&combined);
+                        lua.settable(-3);
+                    }
+                }
+                DNSRData::NULL(ref bytes)
                 | DNSRData::Unknown(ref bytes) => {
                     if !bytes.is_empty() {
                         lua.pushstring("addr");

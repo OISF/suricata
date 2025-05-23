@@ -405,7 +405,20 @@ fn dns_log_json_answer_detail(answer: &DNSAnswerEntry) -> Result<JsonBuilder, Js
                 jsa.set_bool("rdata_truncated", true)?;
             }
         }
-        DNSRData::TXT(bytes) | DNSRData::NULL(bytes) => {
+        DNSRData::TXT(txt_strings) => {
+            if txt_strings.len() == 1 {
+                // Single string - use rdata field for backward compatibility
+                jsa.set_string_from_bytes("rdata", &txt_strings[0])?;
+            } else {
+                // Multiple strings - use txt array field
+                jsa.open_array("txt")?;
+                for txt in txt_strings {
+                    jsa.append_string_from_bytes(txt)?;
+                }
+                jsa.close()?;
+            }
+        }
+        DNSRData::NULL(bytes) => {
             jsa.set_string_from_bytes("rdata", bytes)?;
         }
         DNSRData::SOA(soa) => {
@@ -502,7 +515,19 @@ fn dns_log_json_answer(
                             a.append_string_from_bytes(&name.value)?;
                         }
                     }
-                    DNSRData::TXT(bytes) | DNSRData::NULL(bytes) => {
+                    DNSRData::TXT(txt_strings) => {
+                        if !answer_types.contains_key(&type_string) {
+                            answer_types
+                                .insert(type_string.to_string(), JsonBuilder::try_new_array()?);
+                        }
+                        if let Some(a) = answer_types.get_mut(&type_string) {
+                            // For grouped format, flatten all strings from all TXT records
+                            for txt in txt_strings {
+                                a.append_string_from_bytes(txt)?;
+                            }
+                        }
+                    }
+                    DNSRData::NULL(bytes) => {
                         if !answer_types.contains_key(&type_string) {
                             answer_types
                                 .insert(type_string.to_string(), JsonBuilder::try_new_array()?);
@@ -630,7 +655,19 @@ fn dns_log_json_answers(
                             a.append_string_from_bytes(&name.value)?;
                         }
                     }
-                    DNSRData::TXT(bytes) | DNSRData::NULL(bytes) => {
+                    DNSRData::TXT(txt_strings) => {
+                        if !answer_types.contains_key(&type_string) {
+                            answer_types
+                                .insert(type_string.to_string(), JsonBuilder::try_new_array()?);
+                        }
+                        if let Some(a) = answer_types.get_mut(&type_string) {
+                            // For grouped format, flatten all strings from all TXT records
+                            for txt in txt_strings {
+                                a.append_string_from_bytes(txt)?;
+                            }
+                        }
+                    }
+                    DNSRData::NULL(bytes) => {
                         if !answer_types.contains_key(&type_string) {
                             answer_types
                                 .insert(type_string.to_string(), JsonBuilder::try_new_array()?);
