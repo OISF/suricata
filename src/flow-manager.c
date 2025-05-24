@@ -246,7 +246,7 @@ static inline bool FlowBypassedTimeout(Flow *f, SCTime_t ts, FlowTimeoutCounters
         uint64_t bytes_todst = fc->todstbytecnt;
         bool update = fc->BypassUpdate(f, fc->bypass_data, SCTIME_SECS(ts));
         if (update) {
-            SCLogDebug("Updated flow: %"PRId64"", FlowGetId(f));
+            SCLogDebug("Updated flow: %" PRIu64 "", FlowGetId(f));
             pkts_tosrc = fc->tosrcpktcnt - pkts_tosrc;
             bytes_tosrc = fc->tosrcbytecnt - bytes_tosrc;
             pkts_todst = fc->todstpktcnt - pkts_todst;
@@ -259,7 +259,7 @@ static inline bool FlowBypassedTimeout(Flow *f, SCTime_t ts, FlowTimeoutCounters
             counters->bypassed_bytes += bytes_tosrc + bytes_todst;
             return false;
         }
-        SCLogDebug("No new packet, dead flow %" PRId64 "", FlowGetId(f));
+        SCLogDebug("No new packet, dead flow %" PRIu64 "", FlowGetId(f));
         if (f->livedev) {
             if (FLOW_IS_IPV4(f)) {
                 LiveDevSubBypassStats(f->livedev, 1, AF_INET);
