@@ -47,6 +47,7 @@
 #define LINKTYPE_NULL      DLT_NULL
 #define LINKTYPE_ETHERNET  DLT_EN10MB
 #define LINKTYPE_LINUX_SLL 113
+#define LINKTYPE_LINUX_SLL2 276
 #define LINKTYPE_PPP       9
 #define LINKTYPE_RAW       DLT_RAW
 /* http://www.tcpdump.org/linktypes.html defines DLT_RAW as 101, yet others don't.

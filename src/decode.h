@@ -981,6 +981,7 @@ typedef struct DecodeThreadVars_
     uint16_t counter_ethertype_unknown;
 
     uint16_t counter_sll;
+    uint16_t counter_sll2;
     uint16_t counter_raw;
     uint16_t counter_null;
     uint16_t counter_sctp;
@@ -1129,6 +1130,7 @@ const char *PacketDropReasonToString(enum PacketDropReason r);
 /* decoder functions */
 int DecodeEthernet(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeSll(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
+int DecodeSll2(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodePPP(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodePPPOESession(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodePPPOEDiscovery(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
@@ -1410,6 +1412,9 @@ static inline void DecodeLinkLayer(ThreadVars *tv, DecodeThreadVars *dtv,
             break;
         case LINKTYPE_LINUX_SLL:
             DecodeSll(tv, dtv, p, data, len);
+            break;
+        case LINKTYPE_LINUX_SLL2:
+            DecodeSll2(tv, dtv, p, data, len);
             break;
         case LINKTYPE_PPP:
             DecodePPP(tv, dtv, p, data, len);

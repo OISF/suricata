@@ -80,6 +80,7 @@ noinst_HEADERS = \
 	decode-raw.h \
 	decode-sctp.h \
 	decode-sll.h \
+	decode-sll2.h \
 	decode-tcp.h \
 	decode-template.h \
 	decode-teredo.h \
@@ -673,6 +674,7 @@ libsuricata_c_a_SOURCES = \
 	decode-raw.c \
 	decode-sctp.c \
 	decode-sll.c \
+	decode-sll2.c \
 	decode-tcp.c \
 	decode-template.c \
 	decode-teredo.c \
