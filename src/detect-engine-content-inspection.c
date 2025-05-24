@@ -146,6 +146,7 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
         uint32_t prev_offset = 0; /**< used in recursive searching */
         uint32_t prev_buffer_offset = det_ctx->buffer_offset;
 
+        bool distance_var_included = false;
         do {
             uint32_t depth = buffer_len;
             uint32_t offset = 0;
@@ -161,8 +162,11 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
                     }
                     if (distance < 0 && (uint32_t)(abs(distance)) > offset)
                         offset = 0;
-                    else
+                    else {
+                        if (cd->flags & DETECT_CONTENT_DISTANCE_VAR)
+                            distance_var_included = true;
                         offset += distance;
+                    }
 
                     SCLogDebug("cd->distance %"PRIi32", offset %"PRIu32", depth %"PRIu32,
                                distance, offset, depth);
@@ -195,12 +199,14 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
 
                 if (cd->flags & DETECT_CONTENT_DEPTH_VAR) {
                     if ((det_ctx->byte_values[cd->depth] + prev_buffer_offset) < depth) {
+                        distance_var_included = false;
                         depth = prev_buffer_offset + det_ctx->byte_values[cd->depth];
                     }
                 } else {
                     if (cd->depth != 0) {
                         if ((cd->depth + prev_buffer_offset) < depth) {
                             depth = prev_buffer_offset + cd->depth;
+                            distance_var_included = false;
                         }
 
                         SCLogDebug("cd->depth %"PRIu32", depth %"PRIu32, cd->depth, depth);
@@ -247,8 +253,13 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
             /* If the value came from a variable, make sure to adjust the depth so it's relative
              * to the offset value.
              */
-            if (cd->flags & (DETECT_CONTENT_DISTANCE_VAR|DETECT_CONTENT_OFFSET_VAR|DETECT_CONTENT_DEPTH_VAR)) {
-                 depth += offset;
+            int cmp_flags = DETECT_CONTENT_DISTANCE_VAR | DETECT_CONTENT_OFFSET_VAR |
+                            DETECT_CONTENT_DEPTH_VAR;
+            if (distance_var_included) {
+                cmp_flags &= ~DETECT_CONTENT_DISTANCE_VAR;
+            }
+            if (cd->flags & cmp_flags) {
+                depth += offset;
             }
 
             /* update offset with prev_offset if we're searching for
