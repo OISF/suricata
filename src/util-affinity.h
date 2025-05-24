@@ -112,7 +112,11 @@ uint16_t UtilAffinityCpusOverlap(ThreadsAffinityType *taf1, ThreadsAffinityType 
 void UtilAffinityCpusExclude(ThreadsAffinityType *mod_taf, ThreadsAffinityType *static_taf);
 #endif /* HAVE_DPDK */
 
-void BuildCpusetWithCallback(
+int BuildCpusetWithCallback(
         const char *name, SCConfNode *node, void (*Callback)(int i, void *data), void *data);
+
+#ifdef UNITTESTS
+void ThreadingAffinityRegisterTests(void);
+#endif
 
 #endif /* SURICATA_UTIL_AFFINITY_H */
