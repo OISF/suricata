@@ -111,6 +111,9 @@ enum {
     /* SLL EVENTS */
     SLL_PKT_TOO_SMALL, /**< sll packet smaller than minimum size */
 
+    /* SLL2 EVENTS */
+    SLL2_PKT_TOO_SMALL, /**< sll2 packet smaller than minimum size */
+
     /* ETHERNET EVENTS */
     ETHERNET_PKT_TOO_SMALL,     /**< ethernet packet smaller than minimum size */
     ETHERNET_UNKNOWN_ETHERTYPE, /**< ethertype unknown/unhandled*/
