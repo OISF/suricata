@@ -251,6 +251,9 @@ TmEcode InitPcapFile(PcapFileFileVars *pfv)
 TmEcode ValidateLinkType(int datalink, DecoderFunc *DecoderFn)
 {
     switch (datalink) {
+        case LINKTYPE_LINUX_SLL2:
+            *DecoderFn = DecodeSll2;
+            break;
         case LINKTYPE_LINUX_SLL:
             *DecoderFn = DecodeSll;
             break;

@@ -286,6 +286,12 @@ const struct DecodeEvents_ DEvents[] = {
             SLL_PKT_TOO_SMALL,
     },
 
+    /* SLL2 EVENTS */
+    {
+            "decoder.sll2.pkt_too_small",
+            SLL2_PKT_TOO_SMALL,
+    },
+
     /* ETHERNET EVENTS */
     {
             "decoder.ethernet.pkt_too_small",

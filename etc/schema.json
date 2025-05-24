@@ -5762,6 +5762,16 @@
                                         }
                                     }
                                 },
+                                "sll2": {
+                                    "type": "object",
+                                    "description": "The number of times the SLL2 header was too small to be valid",
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "pkt_too_small": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                },
                                 "tcp": {
                                     "type": "object",
                                     "additionalProperties": false,
@@ -5904,6 +5914,10 @@
                         },
                         "sll": {
                             "type": "integer"
+                        },
+                        "sll2": {
+                            "type": "integer",
+                            "description": "The number of SLL2 frames encountered"
                         },
                         "tcp": {
                             "type": "integer"

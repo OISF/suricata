@@ -52,6 +52,7 @@ void DatalinkTableInit(void)
     SCDatalinkValueNameInsert(datalink_value_map, LINKTYPE_NULL, "NULL");
     SCDatalinkValueNameInsert(datalink_value_map, LINKTYPE_ETHERNET, "EN10MB");
     SCDatalinkValueNameInsert(datalink_value_map, LINKTYPE_LINUX_SLL, "LINUX_SLL");
+    SCDatalinkValueNameInsert(datalink_value_map, LINKTYPE_LINUX_SLL2, "LINUX_SLL2");
     SCDatalinkValueNameInsert(datalink_value_map, LINKTYPE_PPP, "PPP");
     SCDatalinkValueNameInsert(datalink_value_map, LINKTYPE_RAW, "RAW");
     SCDatalinkValueNameInsert(datalink_value_map, LINKTYPE_RAW2, "RAW2");
