@@ -222,7 +222,7 @@ static void AffinitySetupInit(void)
     }
 }
 
-void BuildCpusetWithCallback(
+int BuildCpusetWithCallback(
         const char *name, SCConfNode *node, void (*Callback)(int i, void *data), void *data)
 {
     SCConfNode *lnode;
@@ -242,15 +242,15 @@ void BuildCpusetWithCallback(
             char *sep = strchr(lnode->val, '-');
             if (StringParseUint32(&a, 10, sep - lnode->val, lnode->val) < 0) {
                 SCLogError("%s: invalid cpu range (start invalid): \"%s\"", name, lnode->val);
-                exit(EXIT_FAILURE);
+                return -1;
             }
             if (StringParseUint32(&b, 10, strlen(sep) - 1, sep + 1) < 0) {
                 SCLogError("%s: invalid cpu range (end invalid): \"%s\"", name, lnode->val);
-                exit(EXIT_FAILURE);
+                return -1;
             }
             if (a > b) {
                 SCLogError("%s: invalid cpu range (bad order): \"%s\"", name, lnode->val);
-                exit(EXIT_FAILURE);
+                return -1;
             }
             if (b > max) {
                 SCLogError("%s: upper bound (%d) of cpu set is too high, only %d cpu(s)", name, b,
@@ -259,7 +259,7 @@ void BuildCpusetWithCallback(
         } else {
             if (StringParseUint32(&a, 10, strlen(lnode->val), lnode->val) < 0) {
                 SCLogError("%s: invalid cpu range (not an integer): \"%s\"", name, lnode->val);
-                exit(EXIT_FAILURE);
+                return -1;
             }
             b = a;
         }
@@ -270,6 +270,7 @@ void BuildCpusetWithCallback(
             break;
         }
     }
+    return 0;
 }
 
 static void AffinityCallback(int i, void *data)
@@ -277,9 +278,9 @@ static void AffinityCallback(int i, void *data)
     CPU_SET(i, (cpu_set_t *)data);
 }
 
-static void BuildCpuset(const char *name, SCConfNode *node, cpu_set_t *cpu)
+static int BuildCpuset(const char *name, SCConfNode *node, cpu_set_t *cpu)
 {
-    BuildCpusetWithCallback(name, node, AffinityCallback, (void *) cpu);
+    return BuildCpusetWithCallback(name, node, AffinityCallback, (void *)cpu);
 }
 
 /**
@@ -303,7 +304,9 @@ static void SetupCpuSets(ThreadsAffinityType *taf, SCConfNode *affinity, const c
     CPU_ZERO(&taf->cpu_set);
     SCConfNode *cpu_node = SCConfNodeLookupChild(affinity, "cpu");
     if (cpu_node != NULL) {
-        BuildCpuset(setname, cpu_node, &taf->cpu_set);
+        if (BuildCpuset(setname, cpu_node, &taf->cpu_set) < 0) {
+            SCLogWarning("Failed to parse CPU set for %s", setname);
+        }
     } else {
         SCLogWarning("Unable to find 'cpu' node for set %s", setname);
     }
@@ -317,7 +320,9 @@ static void BuildPriorityCpuset(ThreadsAffinityType *taf, SCConfNode *prio_node,
 {
     SCConfNode *node = SCConfNodeLookupChild(prio_node, priority);
     if (node != NULL) {
-        BuildCpuset(setname, node, cpuset);
+        if (BuildCpuset(setname, node, cpuset) < 0) {
+            SCLogWarning("Failed to parse %s priority CPU set for %s", priority, setname);
+        }
     } else {
         SCLogDebug("Unable to find '%s' priority for set %s", priority, setname);
     }
