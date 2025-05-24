@@ -56,7 +56,7 @@
 #include "output.h"
 
 /**
- * \brief Regex for parsing our flow options
+ * \brief Regex for parsing our config keyword options
  */
 #define PARSE_REGEX  "^\\s*([A-z_]+)\\s*\\s*([A-z_]+)\\s*(?:,\\s*([A-z_]+)\\s+([A-z_]+))?\\s*(?:,\\s*([A-z_]+)\\s+([A-z_]+))?$"
 
@@ -71,7 +71,7 @@ static void DetectConfigRegisterTests(void);
 #endif
 
 /**
- * \brief Registration function for keyword: filestore
+ * \brief Registers the "config" keyword for detection.
  */
 void DetectConfigRegister(void)
 {
@@ -134,7 +134,7 @@ static void ConfigApplyPacket(Packet *p, const DetectConfigData *config)
 }
 
 /**
- *  \brief apply the post match filestore with options
+ *  \brief apply the post match config with options
  */
 static int ConfigApply(DetectEngineThreadCtx *det_ctx,
         Packet *p, const DetectConfigData *config)
@@ -374,11 +374,6 @@ static void DetectConfigFree(DetectEngineCtx *de_ctx, void *ptr)
 }
 
 #ifdef UNITTESTS
-/*
- * The purpose of this test is to confirm that
- * filestore and bypass keywords can't
- * can't work together
- */
 static int DetectConfigTest01(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
