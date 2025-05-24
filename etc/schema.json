@@ -5762,6 +5762,15 @@
                                         }
                                     }
                                 },
+                                "sll2": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "pkt_too_small": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                },
                                 "tcp": {
                                     "type": "object",
                                     "additionalProperties": false,
@@ -5903,6 +5912,9 @@
                             "type": "integer"
                         },
                         "sll": {
+                            "type": "integer"
+                        },
+                        "sll2": {
                             "type": "integer"
                         },
                         "tcp": {
