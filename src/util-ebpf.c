@@ -654,7 +654,7 @@ bool EBPFBypassUpdate(Flow *f, void *data, time_t tsec)
     bool activity = EBPFBypassCheckHalfFlow(f, fc, eb, eb->key[0], 0);
     activity |= EBPFBypassCheckHalfFlow(f, fc, eb, eb->key[1], 1);
     if (!activity) {
-        SCLogDebug("Delete entry: %u (%ld)", FLOW_IS_IPV6(f), FlowGetId(f));
+        SCLogDebug("Delete entry: %u (%" PRIu64 ")", FLOW_IS_IPV6(f), FlowGetId(f));
         /* delete the entries if no time update */
         EBPFDeleteKey(eb->mapfd, eb->key[0]);
         EBPFDeleteKey(eb->mapfd, eb->key[1]);
