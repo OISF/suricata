@@ -2440,12 +2440,10 @@ retry:
 
 bool DetectEngineMpmCachingEnabled(void)
 {
-    const char *strval = NULL;
-    if (SCConfGet("detect.sgh-mpm-caching", &strval) != 1)
-        return false;
-
     int sgh_mpm_caching = 0;
-    (void)SCConfGetBool("detect.sgh-mpm-caching", &sgh_mpm_caching);
+    if (SCConfGetBool("detect.sgh-mpm-caching", &sgh_mpm_caching) != 1) {
+        return false;
+    }
     return (bool)sgh_mpm_caching;
 }
 
@@ -2457,9 +2455,7 @@ const char *DetectEngineMpmCachingGetPath(void)
 
     char yamlpath[] = "detect.sgh-mpm-caching-path";
     const char *strval = NULL;
-    (void)SCConfGet(yamlpath, &strval);
-
-    if (strval != NULL) {
+    if (SCConfGet(yamlpath, &strval) == 1 && strval != NULL) {
         return strval;
     }
 

@@ -67,7 +67,7 @@ static int LuaFlowId(lua_State *luastate)
 
     Flow *f = s->f;
 
-    int64_t id = FlowGetId(f);
+    int64_t id = (int64_t)FlowGetId(f);
     lua_pushinteger(luastate, id);
     return 1;
 }
