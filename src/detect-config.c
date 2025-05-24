@@ -85,6 +85,16 @@ void DetectConfigRegister(void)
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
+/**
+ * \brief Apply configuration settings to a transaction based on the provided DetectConfigData.
+ *
+ * This function applies specific configurations to a transaction. The configurations are
+ * determined by the subsystems and types specified in the DetectConfigData structure.
+ *
+ * \param f Pointer to the Flow structure that will be configured.
+ * \param tx_id Transaction ID within the flow.
+ * \param config Pointer to the DetectConfigData structure containing configuration settings.
+ */
 static void ConfigApplyTx(Flow *f,
         const uint64_t tx_id, const DetectConfigData *config)
 {
@@ -112,6 +122,15 @@ static void ConfigApplyTx(Flow *f,
     }
 }
 
+/**
+ * \brief Apply configuration settings to a packet based on the provided DetectConfigData.
+ *
+ * This function applies specific configurations to a packet. The configurations are
+ * determined by the subsystems and types specified in the DetectConfigData structure.
+ *
+ * \param p Pointer to the Packet structure that will be configured.
+ * \param config Pointer to the DetectConfigData structure containing configuration settings.
+ */
 static void ConfigApplyPacket(Packet *p, const DetectConfigData *config)
 {
     DEBUG_VALIDATE_BUG_ON(config->scope != CONFIG_SCOPE_PACKET);
@@ -134,7 +153,17 @@ static void ConfigApplyPacket(Packet *p, const DetectConfigData *config)
 }
 
 /**
- *  \brief apply the post match config with options
+ * \brief Apply configuration settings based on the scope.
+ *
+ * This function applies post-match configurations with options. It
+ * determines which logic to apply based on the scope of the configuration,
+ * whether it is packet, transaction (tx), or flow level.
+ *
+ * \param det_ctx Pointer to the detection engine thread context.
+ * \param p Pointer to the current packet being processed.
+ * \param config Pointer to the configuration data structure.
+ *
+ * \retval 0 on success.
  */
 static int ConfigApply(DetectEngineThreadCtx *det_ctx,
         Packet *p, const DetectConfigData *config)
@@ -168,6 +197,19 @@ static int ConfigApply(DetectEngineThreadCtx *det_ctx,
     SCReturnInt(0);
 }
 
+/**
+ * \brief Post-match configuration detection function.
+ *
+ * This function is called after a match has been detected. It applies the
+ * configuration settings to the packet and returns 1 indicating that the
+ * configuration was successfully applied.
+ *
+ * \param det_ctx Pointer to the detection engine thread context.
+ * \param p Pointer to the packet being processed.
+ * \param s Pointer to the signature that matched.
+ * \param ctx Pointer to the match context, which contains the configuration data.
+ * \return 1 indicating the configuration was successfully applied
+ */
 static int DetectConfigPostMatch(DetectEngineThreadCtx *det_ctx,
         Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
