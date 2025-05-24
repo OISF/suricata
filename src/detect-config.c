@@ -34,8 +34,6 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-state.h"
 
-#include "feature.h"
-
 #include "flow.h"
 #include "flow-var.h"
 #include "flow-util.h"
