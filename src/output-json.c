@@ -702,7 +702,7 @@ void CreateEveFlowId(SCJsonBuilder *js, const Flow *f)
     if (f == NULL) {
         return;
     }
-    int64_t flow_id = FlowGetId(f);
+    uint64_t flow_id = FlowGetId(f);
     SCJbSetUint(js, "flow_id", flow_id);
     if (f->parent_id) {
         SCJbSetUint(js, "parent_id", f->parent_id);
