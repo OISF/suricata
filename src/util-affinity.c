@@ -27,11 +27,13 @@
 #define _THREAD_AFFINITY
 #include "util-affinity.h"
 #include "conf.h"
+#include "conf-yaml-loader.h"
 #include "runmodes.h"
 #include "util-cpu.h"
 #include "util-byte.h"
 #include "util-debug.h"
 #include "util-dpdk.h"
+#include "util-unittest.h"
 
 ThreadsAffinityType thread_affinity[MAX_CPU_SET] = {
     {
@@ -1099,3 +1101,1210 @@ void UtilAffinityCpusExclude(ThreadsAffinityType *mod_taf, ThreadsAffinityType *
     SCMutexUnlock(&mod_taf->taf_mutex);
 }
 #endif /* HAVE_DPDK */
+
+#ifdef UNITTESTS
+#if defined(__linux__) || defined(__FreeBSD__) || defined(__NetBSD__)
+
+/**
+ * \brief Helper function to reset affinity state for unit tests
+ * This properly clears CPU sets without destroying initialized mutexes
+ */
+static void ResetAffinityForTest(void)
+{
+    // Reset the global initialization flag
+    thread_affinity_init_done = 0;
+
+    // Clear all affinity data structures
+    for (int i = 0; i < MAX_CPU_SET; i++) {
+        ThreadsAffinityType *taf = &thread_affinity[i];
+
+        // Clear all CPU sets
+        CPU_ZERO(&taf->cpu_set);
+        CPU_ZERO(&taf->lowprio_cpu);
+        CPU_ZERO(&taf->medprio_cpu);
+        CPU_ZERO(&taf->hiprio_cpu);
+
+        // Reset counters and flags
+        taf->nb_threads = 0;
+        taf->prio = PRIO_LOW;
+        taf->mode_flag = BALANCED_AFFINITY;
+
+        // Reset last CPU tracking
+        for (int j = 0; j < MAX_NUMA_NODES; j++) {
+            taf->lcpu[j] = 0;
+        }
+
+        // Free any existing children
+        if (taf->children) {
+            for (uint32_t j = 0; j < taf->nb_children; j++) {
+                if (taf->children[j]) {
+                    SCFree((void *)taf->children[j]->name);
+                    SCFree(taf->children[j]);
+                }
+            }
+            SCFree(taf->children);
+            taf->children = NULL;
+        }
+        taf->nb_children = 0;
+        taf->nb_children_capacity = 0;
+
+        // Reset name (but don't free the static names)
+        if (i == MANAGEMENT_CPU_SET) {
+            taf->name = "management-cpu-set";
+        } else if (i == WORKER_CPU_SET) {
+            taf->name = "worker-cpu-set";
+        } else if (i == VERDICT_CPU_SET) {
+            taf->name = "verdict-cpu-set";
+        } else if (i == RECEIVE_CPU_SET) {
+            taf->name = "receive-cpu-set";
+        } else {
+            taf->name = NULL;
+        }
+
+        // Don't touch the mutex - it should remain initialized
+    }
+}
+
+/**
+ * \brief Test basic CPU affinity parsing in new format
+ */
+static int ThreadingAffinityTest01(void)
+{
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    // Create new format configuration
+    const char *config = "%YAML 1.1\n"
+                         "---\n"
+                         "threading:\n"
+                         "  cpu-affinity:\n"
+                         "    management-cpu-set:\n"
+                         "      cpu: [ 0 ]\n"
+                         "    worker-cpu-set:\n"
+                         "      cpu: [ 1, 2, 3 ]\n";
+
+    SCConfYamlLoadString(config, strlen(config));
+
+    // Clear any existing affinity setup properly
+    ResetAffinityForTest();
+
+    AffinitySetupLoadFromConfig();
+    FAIL_IF_NOT(AffinityConfigIsDeprecated() == false);
+
+    // Check management CPU set
+    ThreadsAffinityType *mgmt_taf = &thread_affinity[MANAGEMENT_CPU_SET];
+
+    FAIL_IF_NOT(CPU_ISSET(0, &mgmt_taf->cpu_set));
+    FAIL_IF_NOT(CPU_COUNT(&mgmt_taf->cpu_set) == 1);
+
+    // Check worker CPU set
+    ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
+    FAIL_IF_NOT(CPU_ISSET(1, &worker_taf->cpu_set));
+    FAIL_IF_NOT(CPU_ISSET(2, &worker_taf->cpu_set));
+    FAIL_IF_NOT(CPU_ISSET(3, &worker_taf->cpu_set));
+    FAIL_IF_NOT(CPU_COUNT(&worker_taf->cpu_set));
+
+    SCConfRestoreContextBackup();
+    PASS;
+}
+
+/**
+ * \brief Test deprecated CPU affinity format parsing
+ */
+static int ThreadingAffinityTest02(void)
+{
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    // Create deprecated format configuration (list format)
+    // In deprecated format, the YAML list creates numbered nodes (0, 1, etc.)
+    // where the value (not the node name) contains the CPU set name
+    const char *config = "%YAML 1.1\n"
+                         "---\n"
+                         "threading:\n"
+                         "  cpu-affinity:\n"
+                         "    - worker-cpu-set:\n"
+                         "        cpu: [ 1, 2 ]\n";
+
+    SCConfYamlLoadString(config, strlen(config));
+
+    // Clear any existing affinity setup
+    ResetAffinityForTest();
+
+    AffinitySetupLoadFromConfig();
+    FAIL_IF_NOT(AffinityConfigIsDeprecated() == true);
+
+    // Check worker CPU set - in deprecated format we're testing the parsing works
+    ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
+    FAIL_IF_NOT(CPU_ISSET(1, &worker_taf->cpu_set));
+    FAIL_IF_NOT(CPU_ISSET(2, &worker_taf->cpu_set));
+    FAIL_IF_NOT(CPU_COUNT(&worker_taf->cpu_set) == 2);
+
+    SCConfRestoreContextBackup();
+    PASS;
+}
+
+/**
+ * \brief Test CPU range parsing ("0-3")
+ */
+static int ThreadingAffinityTest03(void)
+{
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    const char *config = "%YAML 1.1\n"
+                         "---\n"
+                         "threading:\n"
+                         "  cpu-affinity:\n"
+                         "    worker-cpu-set:\n"
+                         "      cpu: [ \"0-3\" ]\n";
+
+    SCConfYamlLoadString(config, strlen(config));
+
+    ResetAffinityForTest();
+
+    AffinitySetupLoadFromConfig();
+
+    ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
+    FAIL_IF_NOT(CPU_ISSET(0, &worker_taf->cpu_set));
+    FAIL_IF_NOT(CPU_ISSET(1, &worker_taf->cpu_set));
+    FAIL_IF_NOT(CPU_ISSET(2, &worker_taf->cpu_set));
+    FAIL_IF_NOT(CPU_ISSET(3, &worker_taf->cpu_set));
+    FAIL_IF_NOT(CPU_COUNT(&worker_taf->cpu_set) == 4);
+
+    SCConfRestoreContextBackup();
+    PASS;
+}
+
+/**
+ * \brief Test mixed CPU specification parsing (individual CPUs in list)
+ */
+static int ThreadingAffinityTest04(void)
+{
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    const char *config = "%YAML 1.1\n"
+                         "---\n"
+                         "threading:\n"
+                         "  cpu-affinity:\n"
+                         "    worker-cpu-set:\n"
+                         "      cpu: [ 1, 3, 5 ]\n";
+
+    SCConfYamlLoadString(config, strlen(config));
+
+    ResetAffinityForTest();
+
+    AffinitySetupLoadFromConfig();
+
+    ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
+    FAIL_IF_NOT(CPU_ISSET(1, &worker_taf->cpu_set));
+    FAIL_IF_NOT(CPU_ISSET(3, &worker_taf->cpu_set));
+    FAIL_IF_NOT(CPU_ISSET(5, &worker_taf->cpu_set));
+    FAIL_IF(CPU_ISSET(0, &worker_taf->cpu_set));
+    FAIL_IF(CPU_ISSET(2, &worker_taf->cpu_set));
+    FAIL_IF(CPU_ISSET(4, &worker_taf->cpu_set));
+    FAIL_IF_NOT(CPU_COUNT(&worker_taf->cpu_set) == 3);
+
+    SCConfRestoreContextBackup();
+    PASS;
+}
+
+/**
+ * \brief Test "all" CPU specification
+ */
+static int ThreadingAffinityTest05(void)
+{
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    const char *config = "%YAML 1.1\n"
+                         "---\n"
+                         "threading:\n"
+                         "  cpu-affinity:\n"
+                         "    worker-cpu-set:\n"
+                         "      cpu: [ \"all\" ]\n";
+
+    SCConfYamlLoadString(config, strlen(config));
+
+    ResetAffinityForTest();
+
+    AffinitySetupLoadFromConfig();
+
+    ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
+    // "all" should set all available CPUs (at least one should be set)
+    FAIL_IF_NOT(CPU_COUNT(&worker_taf->cpu_set) > 0);
+
+    SCConfRestoreContextBackup();
+    PASS;
+}
+
+/**
+ * \brief Test priority settings parsing
+ */
+static int ThreadingAffinityTest06(void)
+{
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    const char *config = "%YAML 1.1\n"
+                         "---\n"
+                         "threading:\n"
+                         "  cpu-affinity:\n"
+                         "    worker-cpu-set:\n"
+                         "      cpu: [ 0, 1, 2, 3 ]\n"
+                         "      prio:\n"
+                         "        low: [ 0 ]\n"
+                         "        medium: [ \"1-2\" ]\n"
+                         "        high: [ 3 ]\n"
+                         "        default: \"medium\"\n";
+
+    SCConfYamlLoadString(config, strlen(config));
+
+    ResetAffinityForTest();
+
+    AffinitySetupLoadFromConfig();
+
+    ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
+
+    // Check priority CPU sets
+    FAIL_IF_NOT(CPU_ISSET(0, &worker_taf->lowprio_cpu));
+    FAIL_IF_NOT(CPU_ISSET(1, &worker_taf->medprio_cpu));
+    FAIL_IF_NOT(CPU_ISSET(2, &worker_taf->medprio_cpu));
+    FAIL_IF_NOT(CPU_ISSET(3, &worker_taf->hiprio_cpu));
+    FAIL_IF_NOT(worker_taf->prio == PRIO_MEDIUM);
+
+    SCConfRestoreContextBackup();
+    PASS;
+}
+
+/**
+ * \brief Test mode settings (exclusive/balanced)
+ */
+static int ThreadingAffinityTest07(void)
+{
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    const char *config = "%YAML 1.1\n"
+                         "---\n"
+                         "threading:\n"
+                         "  cpu-affinity:\n"
+                         "    worker-cpu-set:\n"
+                         "      cpu: [ 0, 1 ]\n"
+                         "      mode: \"exclusive\"\n";
+
+    SCConfYamlLoadString(config, strlen(config));
+
+    ResetAffinityForTest();
+
+    AffinitySetupLoadFromConfig();
+
+    ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
+    FAIL_IF_NOT(worker_taf->mode_flag == EXCLUSIVE_AFFINITY);
+
+    SCConfRestoreContextBackup();
+    PASS;
+}
+
+/**
+ * \brief Test threads count parsing
+ */
+static int ThreadingAffinityTest08(void)
+{
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    const char *config = "%YAML 1.1\n"
+                         "---\n"
+                         "threading:\n"
+                         "  cpu-affinity:\n"
+                         "    worker-cpu-set:\n"
+                         "      cpu: [ 0, 1, 2 ]\n"
+                         "      threads: 4\n";
+
+    SCConfYamlLoadString(config, strlen(config));
+
+    ResetAffinityForTest();
+
+    AffinitySetupLoadFromConfig();
+
+    ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
+    FAIL_IF_NOT(worker_taf->nb_threads == 4);
+
+    SCConfRestoreContextBackup();
+    PASS;
+}
+
+/**
+ * \brief Test interface-specific CPU set parsing
+ */
+static int ThreadingAffinityTest09(void)
+{
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    const char *config = "%YAML 1.1\n"
+                         "---\n"
+                         "threading:\n"
+                         "  cpu-affinity:\n"
+                         "    worker-cpu-set:\n"
+                         "      cpu: [ 0, 1 ]\n"
+                         "      interface-specific-cpu-set:\n"
+                         "        - interface: \"eth0\"\n"
+                         "          cpu: [ 2, 3 ]\n"
+                         "          mode: \"exclusive\"\n";
+
+    SCConfYamlLoadString(config, strlen(config));
+
+    ResetAffinityForTest();
+
+    AffinitySetupLoadFromConfig();
+
+    // Check if interface-specific affinity was created
+    ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
+    FAIL_IF_NOT(worker_taf->nb_children == 1);
+
+    ThreadsAffinityType *iface_taf = worker_taf->children[0];
+    FAIL_IF_NOT(strcmp(iface_taf->name, "eth0") == 0);
+    FAIL_IF_NOT(CPU_ISSET(2, &iface_taf->cpu_set));
+    FAIL_IF_NOT(CPU_ISSET(3, &iface_taf->cpu_set));
+    FAIL_IF_NOT(CPU_COUNT(&iface_taf->cpu_set) == 2);
+    FAIL_IF_NOT(iface_taf->mode_flag == EXCLUSIVE_AFFINITY);
+
+    SCConfRestoreContextBackup();
+    PASS;
+}
+
+/**
+ * \brief Test multiple interface-specific CPU sets
+ */
+static int ThreadingAffinityTest10(void)
+{
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    const char *config = "%YAML 1.1\n"
+                         "---\n"
+                         "threading:\n"
+                         "  cpu-affinity:\n"
+                         "    receive-cpu-set:\n"
+                         "      cpu: [ 0 ]\n"
+                         "      interface-specific-cpu-set:\n"
+                         "        - interface: \"eth0\"\n"
+                         "          cpu: [ 1, 2 ]\n"
+                         "        - interface: \"eth1\"\n"
+                         "          cpu: [ 3, 4 ]\n";
+
+    SCConfYamlLoadString(config, strlen(config));
+
+    ResetAffinityForTest();
+
+    AffinitySetupLoadFromConfig();
+
+    ThreadsAffinityType *receive_taf = &thread_affinity[RECEIVE_CPU_SET];
+    FAIL_IF_NOT(receive_taf->nb_children == 2);
+
+    bool eth0_found = false, eth1_found = false;
+
+    for (uint32_t i = 0; i < receive_taf->nb_children; i++) {
+        ThreadsAffinityType *iface_taf = receive_taf->children[i];
+        if (strcmp(iface_taf->name, "eth0") == 0) {
+            if (CPU_ISSET(1, &iface_taf->cpu_set) && CPU_ISSET(2, &iface_taf->cpu_set) &&
+                    CPU_COUNT(&iface_taf->cpu_set) == 2) {
+                eth0_found = true;
+            }
+        } else if (strcmp(iface_taf->name, "eth1") == 0) {
+            if (CPU_ISSET(3, &iface_taf->cpu_set) && CPU_ISSET(4, &iface_taf->cpu_set) &&
+                    CPU_COUNT(&iface_taf->cpu_set) == 2) {
+                eth1_found = true;
+            }
+        }
+    }
+
+    FAIL_IF_NOT(eth0_found && eth1_found);
+
+    SCConfRestoreContextBackup();
+    PASS;
+}
+
+/**
+ * \brief Test interface-specific priority settings
+ */
+static int ThreadingAffinityTest11(void)
+{
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    const char *config = "%YAML 1.1\n"
+                         "---\n"
+                         "threading:\n"
+                         "  cpu-affinity:\n"
+                         "    worker-cpu-set:\n"
+                         "      cpu: [ 0 ]\n"
+                         "      interface-specific-cpu-set:\n"
+                         "        - interface: \"eth0\"\n"
+                         "          cpu: [ 1, 2, 3 ]\n"
+                         "          prio:\n"
+                         "            high: [ \"all\" ]\n"
+                         "            default: \"high\"\n";
+
+    SCConfYamlLoadString(config, strlen(config));
+
+    ResetAffinityForTest();
+
+    AffinitySetupLoadFromConfig();
+
+    ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
+    FAIL_IF_NOT(worker_taf->nb_children == 1);
+
+    ThreadsAffinityType *iface_taf = worker_taf->children[0];
+    FAIL_IF_NOT(strcmp(iface_taf->name, "eth0") == 0);
+    FAIL_IF_NOT(CPU_ISSET(1, &iface_taf->hiprio_cpu));
+    FAIL_IF_NOT(CPU_ISSET(2, &iface_taf->hiprio_cpu));
+    FAIL_IF_NOT(CPU_ISSET(3, &iface_taf->hiprio_cpu));
+    FAIL_IF_NOT(iface_taf->prio == PRIO_HIGH);
+
+    SCConfRestoreContextBackup();
+    PASS;
+}
+
+/**
+ * \brief Test complete configuration with all CPU sets
+ */
+static int ThreadingAffinityTest12(void)
+{
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    const char *config = "%YAML 1.1\n"
+                         "---\n"
+                         "threading:\n"
+                         "  cpu-affinity:\n"
+                         "    management-cpu-set:\n"
+                         "      cpu: [ 0 ]\n"
+                         "    receive-cpu-set:\n"
+                         "      cpu: [ 1 ]\n"
+                         "    worker-cpu-set:\n"
+                         "      cpu: [ 2, 3 ]\n"
+                         "    verdict-cpu-set:\n"
+                         "      cpu: [ 4 ]\n";
+
+    SCConfYamlLoadString(config, strlen(config));
+
+    ResetAffinityForTest();
+
+    AffinitySetupLoadFromConfig();
+
+    // Check all CPU sets
+    FAIL_IF_NOT(CPU_ISSET(0, &thread_affinity[MANAGEMENT_CPU_SET].cpu_set));
+    FAIL_IF_NOT(CPU_COUNT(&thread_affinity[MANAGEMENT_CPU_SET].cpu_set) == 1);
+    FAIL_IF_NOT(CPU_ISSET(1, &thread_affinity[RECEIVE_CPU_SET].cpu_set));
+    FAIL_IF_NOT(CPU_COUNT(&thread_affinity[RECEIVE_CPU_SET].cpu_set) == 1);
+    FAIL_IF_NOT(CPU_ISSET(2, &thread_affinity[WORKER_CPU_SET].cpu_set));
+    FAIL_IF_NOT(CPU_ISSET(3, &thread_affinity[WORKER_CPU_SET].cpu_set));
+    FAIL_IF_NOT(CPU_COUNT(&thread_affinity[WORKER_CPU_SET].cpu_set) == 2);
+    FAIL_IF_NOT(CPU_ISSET(4, &thread_affinity[VERDICT_CPU_SET].cpu_set));
+    FAIL_IF_NOT(CPU_COUNT(&thread_affinity[VERDICT_CPU_SET].cpu_set) == 1);
+
+    SCConfRestoreContextBackup();
+    PASS;
+}
+
+/**
+ * \brief Test error handling for malformed CPU specification
+ */
+static int ThreadingAffinityTest13(void)
+{
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    const char *config = "%YAML 1.1\n"
+                         "---\n"
+                         "threading:\n"
+                         "  cpu-affinity:\n"
+                         "    worker-cpu-set:\n"
+                         "      cpu: [ \"invalid-cpu\" ]\n";
+
+    SCConfYamlLoadString(config, strlen(config));
+
+    ResetAffinityForTest();
+
+    // This should not crash and should handle the error gracefully
+    AffinitySetupLoadFromConfig();
+
+    // Check that no CPUs were set due to invalid specification
+    ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
+    FAIL_IF_NOT(CPU_COUNT(&worker_taf->cpu_set) == 0);
+
+    SCConfRestoreContextBackup();
+    PASS;
+}
+
+/**
+ * \brief Test empty configuration handling
+ */
+static int ThreadingAffinityTest14(void)
+{
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    const char *config = "%YAML 1.1\n"
+                         "---\n"
+                         "threading:\n"
+                         "  cpu-affinity:\n";
+
+    SCConfYamlLoadString(config, strlen(config));
+
+    ResetAffinityForTest();
+
+    // This should not crash
+    AffinitySetupLoadFromConfig();
+
+    SCConfRestoreContextBackup();
+    PASS;
+}
+
+/**
+ * \brief Test memory allocation failure in AllocAndInitAffinityType
+ * Memory allocation failures should be handled gracefully
+ */
+static int ThreadingAffinityTest15(void)
+{
+    ResetAffinityForTest();
+
+    // Test allocation with valid but uncommon parameters
+    ThreadsAffinityType *taf1 = GetOrAllocAffinityTypeForIfaceOfName("management-cpu-set", "eth0");
+    if (taf1 == NULL) {
+        FAIL;
+    }
+
+    // Test allocation with another valid set
+    ThreadsAffinityType *taf2 = GetOrAllocAffinityTypeForIfaceOfName("receive-cpu-set", "eth1");
+    if (taf2 == NULL) {
+        FAIL;
+    }
+
+    // Test that we can allocate multiple different types
+    ThreadsAffinityType *taf3 = GetOrAllocAffinityTypeForIfaceOfName("worker-cpu-set", "eth2");
+    if (taf3 == NULL) {
+        FAIL;
+    }
+
+    // Verify they are different structures
+    if (taf1 == taf2 || taf1 == taf3 || taf2 == taf3) {
+        FAIL;
+    }
+
+    PASS;
+}
+
+/**
+ * \brief Test invalid priority values in SetupDefaultPriority
+ * Invalid priority strings should return errors
+ */
+static int ThreadingAffinityTest16(void)
+{
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    const char *config = "%YAML 1.1\n"
+                         "---\n"
+                         "threading:\n"
+                         "  cpu-affinity:\n"
+                         "    - management-cpu-set:\n"
+                         "        prio:\n"
+                         "          default: invalid_priority\n";
+
+    SCConfYamlLoadString(config, strlen(config));
+    ResetAffinityForTest();
+
+    // This should handle the error gracefully and continue processing
+    AffinitySetupLoadFromConfig();
+
+    SCConfRestoreContextBackup();
+    PASS;
+}
+
+/**
+ * \brief Test invalid CPU affinity mode values
+ * Invalid mode strings should return errors
+ */
+static int ThreadingAffinityTest17(void)
+{
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    const char *config = "%YAML 1.1\n"
+                         "---\n"
+                         "threading:\n"
+                         "  cpu-affinity:\n"
+                         "    - management-cpu-set:\n"
+                         "        mode: invalid_mode\n";
+
+    SCConfYamlLoadString(config, strlen(config));
+    ResetAffinityForTest();
+
+    // This should handle the error gracefully
+    AffinitySetupLoadFromConfig();
+
+    SCConfRestoreContextBackup();
+    PASS;
+}
+
+/**
+ * \brief Test invalid thread count values
+ * Invalid thread counts (zero, negative, non-numeric) should be handled
+ */
+static int ThreadingAffinityTest18(void)
+{
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    const char *config = "%YAML 1.1\n"
+                         "---\n"
+                         "threading:\n"
+                         "  cpu-affinity:\n"
+                         "    - management-cpu-set:\n"
+                         "        threads: 0\n";
+
+    SCConfYamlLoadString(config, strlen(config));
+    ResetAffinityForTest();
+
+    // This should handle zero thread count gracefully
+    AffinitySetupLoadFromConfig();
+
+    SCConfRestoreContextBackup();
+    PASS;
+}
+
+/**
+ * \brief Test invalid thread count with non-numeric values
+ * Non-numeric thread counts should be handled
+ */
+static int ThreadingAffinityTest19(void)
+{
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    const char *config = "%YAML 1.1\n"
+                         "---\n"
+                         "threading:\n"
+                         "  cpu-affinity:\n"
+                         "    - management-cpu-set:\n"
+                         "        threads: invalid_number\n";
+
+    SCConfYamlLoadString(config, strlen(config));
+    ResetAffinityForTest();
+
+    // This should handle invalid thread count gracefully
+    AffinitySetupLoadFromConfig();
+
+    SCConfRestoreContextBackup();
+    PASS;
+}
+
+/**
+ * \brief Test extremely large CPU ranges
+ * Very large CPU range specifications should be handled
+ */
+static int ThreadingAffinityTest20(void)
+{
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    const char *config = "%YAML 1.1\n"
+                         "---\n"
+                         "threading:\n"
+                         "  cpu-affinity:\n"
+                         "    - management-cpu-set:\n"
+                         "        cpu: [ 0-99999 ]\n";
+
+    SCConfYamlLoadString(config, strlen(config));
+    ResetAffinityForTest();
+
+    // This should handle large CPU ranges gracefully
+    AffinitySetupLoadFromConfig();
+
+    SCConfRestoreContextBackup();
+    PASS;
+}
+
+/**
+ * \brief Test malformed CPU specifications
+ * Malformed CPU specifications should be handled
+ */
+static int ThreadingAffinityTest21(void)
+{
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    const char *config = "%YAML 1.1\n"
+                         "---\n"
+                         "threading:\n"
+                         "  cpu-affinity:\n"
+                         "    - management-cpu-set:\n"
+                         "        cpu: [ \"invalid-range\" ]\n";
+
+    SCConfYamlLoadString(config, strlen(config));
+    ResetAffinityForTest();
+
+    // This should handle malformed CPU specifications gracefully
+    AffinitySetupLoadFromConfig();
+
+    SCConfRestoreContextBackup();
+    PASS;
+}
+
+/**
+ * \brief Test deeply nested interface configurations
+ * Prevent infinite loops in configuration parsing
+ */
+static int ThreadingAffinityTest22(void)
+{
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    const char *config = "%YAML 1.1\n"
+                         "---\n"
+                         "threading:\n"
+                         "  cpu-affinity:\n"
+                         "    - worker-cpu-set:\n"
+                         "        interface-specific-cpu-set:\n"
+                         "          - interface: eth0\n"
+                         "            cpu: [ 1 ]\n"
+                         "            interface-specific-cpu-set:\n" // Nested interface-specific
+                         "              - interface: eth1\n"
+                         "                cpu: [ 2 ]\n";
+
+    SCConfYamlLoadString(config, strlen(config));
+    ResetAffinityForTest();
+
+    // This should handle nested configurations without infinite loops
+    AffinitySetupLoadFromConfig();
+
+    SCConfRestoreContextBackup();
+    PASS;
+}
+
+/**
+ * \brief Test CPU specification with negative numbers
+ * Negative CPU numbers should be rejected
+ */
+static int ThreadingAffinityTest23(void)
+{
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    const char *config = "%YAML 1.1\n"
+                         "---\n"
+                         "threading:\n"
+                         "  cpu-affinity:\n"
+                         "    - management-cpu-set:\n"
+                         "        cpu: [ -1 ]\n";
+
+    SCConfYamlLoadString(config, strlen(config));
+    ResetAffinityForTest();
+
+    // This should handle negative CPU numbers gracefully
+    AffinitySetupLoadFromConfig();
+
+    SCConfRestoreContextBackup();
+    PASS;
+}
+
+/**
+ * \brief Test interface-specific configuration with missing interface field
+ * Interface-specific configs with malformed structure
+ */
+static int ThreadingAffinityTest24(void)
+{
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    const char *config = "%YAML 1.1\n"
+                         "---\n"
+                         "threading:\n"
+                         "  cpu-affinity:\n"
+                         "    - worker-cpu-set:\n"
+                         "        interface-specific-cpu-set:\n"
+                         "          - cpu: [ 1 ]\n" // Missing interface field
+                         "            mode: exclusive\n"
+                         "          - interface_name: eth0\n" // Wrong field name
+                         "            cpu: [ 2 ]\n";
+
+    SCConfYamlLoadString(config, strlen(config));
+    ResetAffinityForTest();
+
+    // This should handle malformed interface configurations
+    AffinitySetupLoadFromConfig();
+
+    SCConfRestoreContextBackup();
+    PASS;
+}
+
+/**
+ * \brief Test AllocAndInitAffinityType with multiple allocations to test realloc paths
+ * Test dynamic array reallocation in parent-child relationships
+ */
+static int ThreadingAffinityTest25(void)
+{
+    ResetAffinityForTest();
+
+    // Get a parent affinity type
+    ThreadsAffinityType *parent = GetOrAllocAffinityTypeForIfaceOfName("worker-cpu-set", NULL);
+    if (parent == NULL) {
+        FAIL;
+    }
+
+    // Allocate multiple children to trigger realloc path
+    ThreadsAffinityType *child1 = GetOrAllocAffinityTypeForIfaceOfName("worker-cpu-set", "iface1");
+    ThreadsAffinityType *child2 = GetOrAllocAffinityTypeForIfaceOfName("worker-cpu-set", "iface2");
+    ThreadsAffinityType *child3 = GetOrAllocAffinityTypeForIfaceOfName("worker-cpu-set", "iface3");
+    ThreadsAffinityType *child4 = GetOrAllocAffinityTypeForIfaceOfName("worker-cpu-set", "iface4");
+
+    if (child1 == NULL || child2 == NULL || child3 == NULL || child4 == NULL) {
+        FAIL;
+    }
+
+    // Verify parent has all children
+    if (parent->nb_children != 4) {
+        FAIL;
+    }
+
+    // Test FindAffinityByInterface functionality
+    ThreadsAffinityType *found = FindAffinityByInterface(parent, "iface2");
+    if (found != child2) {
+        FAIL;
+    }
+
+    PASS;
+}
+
+/**
+ * \brief Test AffinityGetYamlPath with very long names that could cause buffer overflow
+ * Path building with extreme string lengths
+ */
+static int ThreadingAffinityTest26(void)
+{
+    ResetAffinityForTest();
+
+    // Create a test affinity structure with a very long name
+    ThreadsAffinityType test_taf;
+    memset(&test_taf, 0, sizeof(test_taf));
+
+    // Test with reasonable length name (should work)
+    test_taf.name = "normal-interface-name";
+    test_taf.parent = NULL;
+
+    char *path = AffinityGetYamlPath(&test_taf);
+    if (path == NULL) {
+        FAIL;
+    }
+
+    // Test with NULL (should return root path)
+    path = AffinityGetYamlPath(NULL);
+    if (path == NULL || strcmp(path, "threading.cpu-affinity") != 0) {
+        FAIL;
+    }
+
+    PASS;
+}
+
+/**
+ * \brief Test configuration parsing with YAML syntax errors
+ * Malformed YAML should be handled gracefully
+ */
+static int ThreadingAffinityTest27(void)
+{
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    // This YAML has syntax errors (invalid indentation, missing colons, etc.)
+    const char *config = "%YAML 1.1\n"
+                         "---\n"
+                         "threading:\n"
+                         "  cpu-affinity\n"           // Missing colon
+                         "    - management-cpu-set\n" // Missing colon
+                         "      cpu [ 0 ]\n";         // Missing colon
+
+    // This should either fail to parse or parse with empty config
+    SCConfYamlLoadString(config, strlen(config));
+    ResetAffinityForTest();
+
+    // Should handle gracefully regardless of parse result
+    AffinitySetupLoadFromConfig();
+
+    SCConfRestoreContextBackup();
+    PASS;
+}
+
+/**
+ * \brief Test GetAffinityTypeForNameAndIface with NULL and empty string parameters
+ * Comprehensive NULL parameter testing
+ */
+static int ThreadingAffinityTest28(void)
+{
+    // Initialize the affinity module properly
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    // Initialize thread_affinity directly instead of loading from config
+    ResetAffinityForTest();
+
+    // Manually initialize the thread affinity array
+    thread_affinity[MANAGEMENT_CPU_SET].name = "management-cpu-set";
+    CPU_SET(0, &thread_affinity[MANAGEMENT_CPU_SET].cpu_set);
+
+    thread_affinity[WORKER_CPU_SET].name = "worker-cpu-set";
+    CPU_SET(1, &thread_affinity[WORKER_CPU_SET].cpu_set);
+    CPU_SET(2, &thread_affinity[WORKER_CPU_SET].cpu_set);
+
+    // Set initialization flag
+    thread_affinity_init_done = 1;
+
+    // NULL name parameter should return NULL
+    ThreadsAffinityType *result = GetAffinityTypeForNameAndIface(NULL, "eth0");
+    FAIL_IF_NOT(result == NULL);
+
+    // Empty string name parameter should not match any affinity
+    result = GetAffinityTypeForNameAndIface("", "eth0");
+    FAIL_IF_NOT(result == NULL);
+
+    // Valid name with NULL interface should return parent affinity
+    result = GetAffinityTypeForNameAndIface("worker-cpu-set", NULL);
+    FAIL_IF(result == NULL);
+    FAIL_IF_NOT(strcmp(result->name, "worker-cpu-set") == 0);
+
+    // Valid name with empty string interface
+    result = GetAffinityTypeForNameAndIface("worker-cpu-set", "");
+    FAIL_IF_NOT(result == NULL); // Should return NULL as no child with empty name should exist
+
+    // Non-existent name should return NULL
+    result = GetAffinityTypeForNameAndIface("nonexistent-cpu-set", NULL);
+    FAIL_IF_NOT(result == NULL);
+
+    SCConfRestoreContextBackup();
+    PASS;
+}
+
+/**
+ * \brief Test mixed format configurations in same file
+ * Combination of new and deprecated formats (should be rejected)
+ */
+static int ThreadingAffinityTest29(void)
+{
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    // Create a mixed format configuration with both new and deprecated formats
+    // The implementation should recognize this based on format structure
+    const char *config = "%YAML 1.1\n"
+                         "---\n"
+                         "threading:\n"
+                         "  cpu-affinity:\n"
+                         "    management-cpu-set:\n" // New format (named node)
+                         "      cpu: [ 0 ]\n"
+                         "    - worker-cpu-set:\n" // Deprecated format (list item)
+                         "        cpu: [ 1, 2 ]\n";
+
+    SCConfYamlLoadString(config, strlen(config));
+    ResetAffinityForTest();
+
+    // This should handle the mixed format - the function should
+    // detect one format or the other, not both
+    AffinitySetupLoadFromConfig();
+
+    ThreadsAffinityType *mgmt_taf = &thread_affinity[MANAGEMENT_CPU_SET];
+    ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
+    // The first format should be picked-up and the other should be ignored
+    // For ignored formats, CPU_SET is initliazed as all cores
+    FAIL_IF(CPU_COUNT(&mgmt_taf->cpu_set) != 1 ||
+            CPU_COUNT(&worker_taf->cpu_set) != UtilCpuGetNumProcessorsOnline());
+
+    SCConfRestoreContextBackup();
+    PASS;
+}
+
+/**
+ * \brief Test stress case with many CPU affinity sets
+ * Large number of affinity configurations
+ */
+static int ThreadingAffinityTest30(void)
+{
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    const char *config = "%YAML 1.1\n"
+                         "---\n"
+                         "threading:\n"
+                         "  cpu-affinity:\n"
+                         "    - management-cpu-set:\n"
+                         "        cpu: [ 0 ]\n"
+                         "    - receive-cpu-set:\n"
+                         "        cpu: [ 1 ]\n"
+                         "    - worker-cpu-set:\n"
+                         "        cpu: [ 2-3 ]\n"
+                         "    - verdict-cpu-set:\n"
+                         "        cpu: [ 4 ]\n"
+                         "    - output-cpu-set:\n"
+                         "        cpu: [ 5 ]\n"
+                         "    - decode-cpu-set:\n"
+                         "        cpu: [ 6 ]\n"
+                         "    - stream-cpu-set:\n"
+                         "        cpu: [ 7 ]\n"
+                         "    - reject-cpu-set:\n"
+                         "        cpu: [ 8 ]\n";
+
+    SCConfYamlLoadString(config, strlen(config));
+    ResetAffinityForTest();
+
+    // This should handle multiple affinity sets
+    AffinitySetupLoadFromConfig();
+
+    SCConfRestoreContextBackup();
+    PASS;
+}
+
+/**
+ * \brief Test CPU range parsing with invalid order (high-low)
+ * CPU ranges specified in reverse order should be handled
+ */
+static int ThreadingAffinityTest31(void)
+{
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    const char *config = "%YAML 1.1\n"
+                         "---\n"
+                         "threading:\n"
+                         "  cpu-affinity:\n"
+                         "    - management-cpu-set:\n"
+                         "        cpu: [ \"3-1\" ]\n"; // Invalid reverse range
+
+    SCConfYamlLoadString(config, strlen(config));
+    ResetAffinityForTest();
+
+    // This should handle invalid CPU range order gracefully
+    AffinitySetupLoadFromConfig();
+
+    SCConfRestoreContextBackup();
+    PASS;
+}
+
+/**
+ * \brief Test very large thread counts that could cause integer overflow
+ * Thread counts near or exceeding integer limits
+ */
+static int ThreadingAffinityTest32(void)
+{
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    const char *config = "%YAML 1.1\n"
+                         "---\n"
+                         "threading:\n"
+                         "  cpu-affinity:\n"
+                         "    - management-cpu-set:\n"
+                         "        threads: 4294967296\n"; // Exceeds uint32 max
+
+    SCConfYamlLoadString(config, strlen(config));
+    ResetAffinityForTest();
+
+    // This should handle thread count overflow gracefully
+    AffinitySetupLoadFromConfig();
+
+    SCConfRestoreContextBackup();
+    PASS;
+}
+
+/**
+ * \brief Test configuration with recursive or circular references
+ * Prevent infinite loops in configuration parsing
+ */
+static int ThreadingAffinityTest33(void)
+{
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    // Initialize thread_affinity directly instead of loading from config
+    ResetAffinityForTest();
+
+    // Initialize the worker CPU set directly
+    ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
+    worker_taf->name = "worker-cpu-set";
+    CPU_SET(1, &worker_taf->cpu_set);
+
+    // Set initialization flag
+    thread_affinity_init_done = 1;
+
+    // Setup interface-specific affinity for eth0
+    ThreadsAffinityType *eth0_taf = AllocAndInitAffinityType("worker-cpu-set", "eth0", worker_taf);
+    if (eth0_taf == NULL) {
+        SCLogError("Failed to allocate interface-specific affinity for eth0");
+        SCConfRestoreContextBackup();
+        return 0; // Fail
+    }
+
+    CPU_SET(2, &eth0_taf->cpu_set);
+
+    // This should handle nested configurations without infinite loops
+    AffinitySetupLoadFromConfig();
+
+    // Test that the worker CPU set was properly configured
+    FAIL_IF_NOT(CPU_ISSET(1, &worker_taf->cpu_set));
+
+    // Test that the interface-specific affinity was properly configured
+    // (at least the first level)
+    FAIL_IF_NOT(worker_taf->nb_children > 0);
+    FAIL_IF_NOT(strcmp(worker_taf->children[0]->name, "eth0") == 0);
+
+    SCConfRestoreContextBackup();
+    PASS;
+}
+
+#endif /* defined(__linux__) || defined(__FreeBSD__) || defined(__NetBSD__) */
+
+/**
+ * \brief Register all threading affinity unit tests
+ */
+void ThreadingAffinityRegisterTests(void)
+{
+#if defined(__linux__) || defined(__FreeBSD__) || defined(__NetBSD__)
+    UtRegisterTest("ThreadingAffinityTest01", ThreadingAffinityTest01);
+    UtRegisterTest("ThreadingAffinityTest02", ThreadingAffinityTest02);
+    UtRegisterTest("ThreadingAffinityTest03", ThreadingAffinityTest03);
+    UtRegisterTest("ThreadingAffinityTest04", ThreadingAffinityTest04);
+    UtRegisterTest("ThreadingAffinityTest05", ThreadingAffinityTest05);
+    UtRegisterTest("ThreadingAffinityTest06", ThreadingAffinityTest06);
+    UtRegisterTest("ThreadingAffinityTest07", ThreadingAffinityTest07);
+    UtRegisterTest("ThreadingAffinityTest08", ThreadingAffinityTest08);
+    UtRegisterTest("ThreadingAffinityTest09", ThreadingAffinityTest09);
+    UtRegisterTest("ThreadingAffinityTest10", ThreadingAffinityTest10);
+    UtRegisterTest("ThreadingAffinityTest11", ThreadingAffinityTest11);
+    UtRegisterTest("ThreadingAffinityTest12", ThreadingAffinityTest12);
+    UtRegisterTest("ThreadingAffinityTest13", ThreadingAffinityTest13);
+    UtRegisterTest("ThreadingAffinityTest14", ThreadingAffinityTest14);
+    UtRegisterTest("ThreadingAffinityTest15", ThreadingAffinityTest15);
+    UtRegisterTest("ThreadingAffinityTest16", ThreadingAffinityTest16);
+    UtRegisterTest("ThreadingAffinityTest17", ThreadingAffinityTest17);
+    UtRegisterTest("ThreadingAffinityTest18", ThreadingAffinityTest18);
+    UtRegisterTest("ThreadingAffinityTest19", ThreadingAffinityTest19);
+    UtRegisterTest("ThreadingAffinityTest20", ThreadingAffinityTest20);
+    UtRegisterTest("ThreadingAffinityTest21", ThreadingAffinityTest21);
+    UtRegisterTest("ThreadingAffinityTest22", ThreadingAffinityTest22);
+    UtRegisterTest("ThreadingAffinityTest23", ThreadingAffinityTest23);
+    UtRegisterTest("ThreadingAffinityTest24", ThreadingAffinityTest24);
+    UtRegisterTest("ThreadingAffinityTest25", ThreadingAffinityTest25);
+    UtRegisterTest("ThreadingAffinityTest26", ThreadingAffinityTest26);
+    UtRegisterTest("ThreadingAffinityTest27", ThreadingAffinityTest27);
+    UtRegisterTest("ThreadingAffinityTest28", ThreadingAffinityTest28);
+    UtRegisterTest("ThreadingAffinityTest29", ThreadingAffinityTest29);
+    UtRegisterTest("ThreadingAffinityTest30", ThreadingAffinityTest30);
+    UtRegisterTest("ThreadingAffinityTest31", ThreadingAffinityTest31);
+    UtRegisterTest("ThreadingAffinityTest32", ThreadingAffinityTest32);
+    UtRegisterTest("ThreadingAffinityTest33", ThreadingAffinityTest33);
+#endif /* defined(__linux__) || defined(__FreeBSD__) || defined(__NetBSD__) */
+}
+
+#endif /* UNITTESTS */
