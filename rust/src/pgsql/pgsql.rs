@@ -34,7 +34,7 @@ use suricata_sys::sys::AppProto;
 
 pub const PGSQL_CONFIG_DEFAULT_STREAM_DEPTH: u32 = 0;
 
-static mut ALPROTO_PGSQL: AppProto = ALPROTO_UNKNOWN;
+pub(crate) static mut ALPROTO_PGSQL: AppProto = ALPROTO_UNKNOWN;
 
 static mut PGSQL_MAX_TX: usize = 1024;
 
