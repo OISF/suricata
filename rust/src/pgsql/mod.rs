@@ -1,4 +1,4 @@
-/* Copyright (C) 2022 Open Information Security Foundation
+/* Copyright (C) 2022-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,6 +19,7 @@
 //!
 //! written by Juliana Fajardini <jufajardini@oisf.net>
 
+pub mod detect;
 pub mod logger;
 pub mod parser;
 pub mod pgsql;
