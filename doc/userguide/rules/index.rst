@@ -53,5 +53,6 @@ Suricata Rules
    tag
    vlan-keywords
    ldap-keywords
+   pgsql-keywords
    rule-types
    email-keywords
