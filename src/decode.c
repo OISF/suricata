@@ -80,6 +80,7 @@ extern const char *stats_decoder_events_prefix;
 extern bool stats_stream_events;
 uint8_t decoder_max_layers = PKT_DEFAULT_MAX_DECODED_LAYERS;
 uint16_t packet_alert_max = PACKET_ALERT_MAX;
+bool decoder_skip_non_tunnels = false;
 
 /* Settings order as in the enum */
 // clang-format off
@@ -153,10 +154,10 @@ void PacketAlertFree(PacketAlert *pa)
 }
 
 static int DecodeTunnel(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t,
-        enum DecodeTunnelProto) WARN_UNUSED;
+        enum SCPacketTunnelType) WARN_UNUSED;
 
 static int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt,
-        uint32_t len, enum DecodeTunnelProto proto)
+        uint32_t len, enum SCPacketTunnelType proto)
 {
     switch (proto) {
         case DECODE_TUNNEL_PPP:
@@ -176,6 +177,8 @@ static int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const 
             return DecodeERSPAN(tv, dtv, p, pkt, len);
         case DECODE_TUNNEL_ERSPANI:
             return DecodeERSPANTypeI(tv, dtv, p, pkt, len);
+        case DECODE_TUNNEL_VXLAN:
+            return DecodeVXLANtunnel(tv, dtv, p, pkt, len);
         case DECODE_TUNNEL_NSH:
             return DecodeNSH(tv, dtv, p, pkt, len);
         case DECODE_TUNNEL_ARP:
@@ -207,6 +210,9 @@ void PacketDecodeFinalize(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
 {
     if (p->flags & PKT_IS_INVALID) {
         StatsIncr(tv, dtv->counter_invalid);
+    }
+    if (decoder_skip_non_tunnels && (p->tunnel_id == 0 || p->tunnel_id == PKT_TUNNEL_UNKNOWN)) {
+        p->flags |= PKT_SKIP_WORK;
     }
 }
 
@@ -354,6 +360,27 @@ inline int PacketCopyData(Packet *p, const uint8_t *pktdata, uint32_t pktlen)
     return PacketCopyDataOffset(p, 0, pktdata, pktlen);
 }
 
+static void *decode_tunnels_map;
+
+void PacketGetTunnelId(Packet *p, uint32_t session)
+{
+    if (decode_tunnels_map == NULL || p->root == NULL || !PacketIsIPv4(p->root)) {
+        p->tunnel_id = PKT_TUNNEL_UNKNOWN;
+        return;
+    }
+    struct flowtunnel_keys k = {};
+    k.src = htonl(GET_IPV4_SRC_ADDR_U32(p->root));
+    k.dst = htonl(GET_IPV4_DST_ADDR_U32(p->root));
+    k.session = session;
+    k.tunnel_type = (uint8_t)p->ttype;
+    p->tunnel_id = DecodeTunnelsId(decode_tunnels_map, k);
+}
+
+void *DecodeTunnelsGetMapIter(void)
+{
+    return DecodeTunnelsIterStart(decode_tunnels_map);
+}
+
 /**
  *  \brief Setup a pseudo packet (tunnel)
  *
@@ -365,7 +392,7 @@ inline int PacketCopyData(Packet *p, const uint8_t *pktdata, uint32_t pktlen)
  *  \retval p the pseudo packet or NULL if out of memory
  */
 Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *parent,
-                             const uint8_t *pkt, uint32_t len, enum DecodeTunnelProto proto)
+        const uint8_t *pkt, uint32_t len, enum SCPacketTunnelType proto)
 {
     int ret;
 
@@ -392,17 +419,20 @@ Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *pare
     p->datalink = DLT_RAW;
     p->tenant_id = parent->tenant_id;
     p->livedev = parent->livedev;
-
+#ifdef HAVE_PACKET_EBPF
+    // need to copy BypassPacketsFlow callback and such
+    AFPReadCopyBypass(p, parent);
+#endif
     /* set the root ptr to the lowest layer */
     if (parent->root != NULL) {
         p->root = parent->root;
-        BUG_ON(parent->ttype != PacketTunnelChild);
+        BUG_ON(!PacketIsTunnelChild(parent));
     } else {
         p->root = parent;
         parent->ttype = PacketTunnelRoot;
     }
     /* tell new packet it's part of a tunnel */
-    p->ttype = PacketTunnelChild;
+    p->ttype = proto;
 
     ret = DecodeTunnel(tv, dtv, p, GET_PKT_DATA(p),
                        GET_PKT_LEN(p), proto);
@@ -457,7 +487,7 @@ Packet *PacketDefragPktSetup(Packet *parent, const uint8_t *pkt, uint32_t len, u
     /* set the root ptr to the lowest layer */
     if (parent->root != NULL) {
         p->root = parent->root;
-        BUG_ON(parent->ttype != PacketTunnelChild);
+        BUG_ON(!PacketIsTunnelChild(parent));
     } else {
         p->root = parent;
         // we set parent->ttype later
@@ -581,6 +611,7 @@ void DecodeUnregisterCounters(void)
         g_counter_table = NULL;
     }
     SCMutexUnlock(&g_counter_table_mutex);
+    DecodeTunnelsFree(decode_tunnels_map);
 }
 
 static bool IsDefragMemcapExceptionPolicyStatsValid(enum ExceptionPolicy policy)
@@ -1016,6 +1047,11 @@ void DecodeGlobalConfig(void)
     DecodeGeneveConfig();
     DecodeVXLANConfig();
     DecodeERSPANConfig();
+    decode_tunnels_map = DecodeTunnelsConfig();
+    int skip;
+    if (SCConfGetBool("decoder.tunnels-skip-other", &skip) == 1) {
+        decoder_skip_non_tunnels = skip;
+    }
     intmax_t value = 0;
     if (SCConfGetInt("decoder.max-layers", &value) == 1) {
         if (value < 0 || value > UINT8_MAX) {
