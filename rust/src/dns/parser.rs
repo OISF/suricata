@@ -17,11 +17,11 @@
 
 //! Nom parsers for DNS.
 
-use crate::dns::dns::*;
 use crate::detect::EnumString;
-use nom7::combinator::{complete, rest};
+use crate::dns::dns::*;
+use nom7::combinator::rest;
 use nom7::error::ErrorKind;
-use nom7::multi::{count, length_data, many_m_n};
+use nom7::multi::{count, length_data};
 use nom7::number::streaming::{be_u16, be_u32, be_u8};
 use nom7::{error_position, Err, IResult};
 
@@ -206,18 +206,6 @@ fn dns_parse_answer<'a>(
     for _ in 0..count {
         match subparser(input, message, flags) {
             Ok((rem, val)) => {
-                let n = if val.rrtype == DNSRecordType::TXT as u16 {
-                    // For TXT records we need to run the parser
-                    // multiple times. Set n high, to the maximum
-                    // value based on a max txt side of 65535, but
-                    // taking into considering that strings need
-                    // to be quoted, so half that.
-                    32767
-                } else {
-                    // For all other types we only want to run the
-                    // parser once, so set n to 1.
-                    1
-                };
                 // edge case for additional section of type=OPT
                 // with empty data (data length = 0x0000)
                 if val.data.is_empty() && val.rrtype == DNSRecordType::OPT as u16 {
@@ -231,27 +219,14 @@ fn dns_parse_answer<'a>(
                     input = rem;
                     continue;
                 }
-                let result: IResult<&'a [u8], Vec<DNSRData>> = many_m_n(
-                    1,
-                    n,
-                    complete(|b| dns_parse_rdata(b, message, val.rrtype, flags)),
-                )(val.data);
-                match result {
-                    Ok((_, rdatas)) => {
-                        for rdata in rdatas {
-                            answers.push(DNSAnswerEntry {
-                                name: val.name.clone(),
-                                rrtype: val.rrtype,
-                                rrclass: val.rrclass,
-                                ttl: val.ttl,
-                                data: rdata,
-                            });
-                        }
-                    }
-                    Err(e) => {
-                        return Err(e);
-                    }
-                }
+                let (_, rdata) = dns_parse_rdata(val.data, message, val.rrtype, flags)?;
+                answers.push(DNSAnswerEntry {
+                    name: val.name.clone(),
+                    rrtype: val.rrtype,
+                    rrclass: val.rrclass,
+                    ttl: val.ttl,
+                    data: rdata,
+                });
                 input = rem;
             }
             Err(e) => {
@@ -366,8 +341,16 @@ fn dns_parse_rdata_srv<'a>(
 }
 
 fn dns_parse_rdata_txt(input: &[u8]) -> IResult<&[u8], DNSRData> {
-    let (i, txt) = length_data(be_u8)(input)?;
-    Ok((i, DNSRData::TXT(txt.to_vec())))
+    let mut txt_strings = Vec::new();
+    let mut i = input;
+
+    while !i.is_empty() {
+        let (j, txt) = length_data(be_u8)(i)?;
+        txt_strings.push(txt.to_vec());
+        i = j;
+    }
+
+    Ok((i, DNSRData::TXT(txt_strings)))
 }
 
 fn dns_parse_rdata_null(input: &[u8]) -> IResult<&[u8], DNSRData> {
@@ -474,13 +457,14 @@ pub fn dns_parse_body<'a>(
     let mut invalid_additionals = false;
     let mut additionals = Vec::new();
     if !invalid_authorities {
-        let additionals_parsed = dns_parse_answer(i_next, message, header.additional_rr as usize, &mut flags);
+        let additionals_parsed =
+            dns_parse_answer(i_next, message, header.additional_rr as usize, &mut flags);
         if let Ok((i, additionals_ok)) = additionals_parsed {
-                additionals = additionals_ok;
-                i_next = i;
-            } else {
-                invalid_additionals = true;
-            }
+            additionals = additionals_ok;
+            i_next = i;
+        } else {
+            invalid_additionals = true;
+        }
     }
     Ok((
         i_next,

@@ -385,7 +385,11 @@ fn dns_log_srv(srv: &DNSRDataSRV) -> Result<JsonBuilder, JsonError> {
     return Ok(js);
 }
 
-fn dns_log_json_answer_detail(answer: &DNSAnswerEntry) -> Result<JsonBuilder, JsonError> {
+/// Log a single DNS answer entry.
+///
+/// For items that may be array, such as TXT records, i will designate
+/// which entry to log.
+fn dns_log_json_answer_detail(answer: &DNSAnswerEntry, i: usize) -> Result<JsonBuilder, JsonError> {
     let mut jsa = JsonBuilder::try_new_object()?;
 
     jsa.set_string_from_bytes("rrname", &answer.name.value)?;
@@ -405,7 +409,14 @@ fn dns_log_json_answer_detail(answer: &DNSAnswerEntry) -> Result<JsonBuilder, Js
                 jsa.set_bool("rdata_truncated", true)?;
             }
         }
-        DNSRData::TXT(bytes) | DNSRData::NULL(bytes) => {
+        DNSRData::TXT(txt) => {
+            if let Some(txt) = txt.get(i) {
+                jsa.set_string_from_bytes("rdata", txt)?;
+            } else {
+                debug_validate_fail!("txt entry does not exist");
+            }
+        }
+        DNSRData::NULL(bytes) => {
             jsa.set_string_from_bytes("rdata", bytes)?;
         }
         DNSRData::SOA(soa) => {
@@ -502,7 +513,18 @@ fn dns_log_json_answer(
                             a.append_string_from_bytes(&name.value)?;
                         }
                     }
-                    DNSRData::TXT(bytes) | DNSRData::NULL(bytes) => {
+                    DNSRData::TXT(txt_strings) => {
+                        if !answer_types.contains_key(&type_string) {
+                            answer_types
+                                .insert(type_string.to_string(), JsonBuilder::try_new_array()?);
+                        }
+                        if let Some(a) = answer_types.get_mut(&type_string) {
+                            for txt in txt_strings {
+                                a.append_string_from_bytes(txt)?;
+                            }
+                        }
+                    }
+                    DNSRData::NULL(bytes) => {
                         if !answer_types.contains_key(&type_string) {
                             answer_types
                                 .insert(type_string.to_string(), JsonBuilder::try_new_array()?);
@@ -543,7 +565,16 @@ fn dns_log_json_answer(
             }
 
             if flags & LOG_FORMAT_DETAILED != 0 {
-                js_answers.append_object(&dns_log_json_answer_detail(answer)?)?;
+                match &answer.data {
+                    DNSRData::TXT(asdf) => {
+                        for i in 0..asdf.len() {
+                            js_answers.append_object(&dns_log_json_answer_detail(answer, i)?)?;
+                        }
+                    }
+                    _ => {
+                        js_answers.append_object(&dns_log_json_answer_detail(answer, 0)?)?;
+                    }
+                }
             }
         }
 
@@ -566,8 +597,18 @@ fn dns_log_json_answer(
     if !response.authorities.is_empty() {
         js.open_array("authorities")?;
         for auth in &response.authorities {
-            let auth_detail = dns_log_json_answer_detail(auth)?;
-            js.append_object(&auth_detail)?;
+            match &auth.data {
+                DNSRData::TXT(txt) => {
+                    for i in 0..txt.len() {
+                        let auth_detail = dns_log_json_answer_detail(auth, i)?;
+                        js.append_object(&auth_detail)?;
+                    }
+                }
+                _ => {
+                    let auth_detail = dns_log_json_answer_detail(auth, 0)?;
+                    js.append_object(&auth_detail)?;
+                }
+            }
         }
         js.close()?;
     }
@@ -584,8 +625,18 @@ fn dns_log_json_answer(
                 js.open_array("additionals")?;
                 is_js_open = true;
             }
-            let add_detail = dns_log_json_answer_detail(add)?;
-            js.append_object(&add_detail)?;
+            match &add.data {
+                DNSRData::TXT(txt) => {
+                    for i in 0..txt.len() {
+                        let add_detail = dns_log_json_answer_detail(add, i)?;
+                        js.append_object(&add_detail)?;
+                    }
+                }
+                _ => {
+                    let add_detail = dns_log_json_answer_detail(add, 0)?;
+                    js.append_object(&add_detail)?;
+                }
+            }
         }
         if is_js_open {
             js.close()?;
@@ -630,7 +681,18 @@ fn dns_log_json_answers(
                             a.append_string_from_bytes(&name.value)?;
                         }
                     }
-                    DNSRData::TXT(bytes) | DNSRData::NULL(bytes) => {
+                    DNSRData::TXT(txt) => {
+                        if !answer_types.contains_key(&type_string) {
+                            answer_types
+                                .insert(type_string.to_string(), JsonBuilder::try_new_array()?);
+                        }
+                        if let Some(a) = answer_types.get_mut(&type_string) {
+                            for txt in txt {
+                                a.append_string_from_bytes(txt)?;
+                            }
+                        }
+                    }
+                    DNSRData::NULL(bytes) => {
                         if !answer_types.contains_key(&type_string) {
                             answer_types
                                 .insert(type_string.to_string(), JsonBuilder::try_new_array()?);
@@ -671,7 +733,16 @@ fn dns_log_json_answers(
             }
 
             if flags & LOG_FORMAT_DETAILED != 0 {
-                js_answers.append_object(&dns_log_json_answer_detail(answer)?)?;
+                match &answer.data {
+                    DNSRData::TXT(txt) => {
+                        for i in 0..txt.len() {
+                            js_answers.append_object(&dns_log_json_answer_detail(answer, i)?)?;
+                        }
+                    }
+                    _ => {
+                        js_answers.append_object(&dns_log_json_answer_detail(answer, 0)?)?;
+                    }
+                }
             }
         }
 
@@ -812,8 +883,18 @@ fn log_json(tx: &DNSTransaction, flags: u64, jb: &mut JsonBuilder) -> Result<(),
     if !message.authorities.is_empty() {
         jb.open_array("authorities")?;
         for auth in &message.authorities {
-            let auth_detail = dns_log_json_answer_detail(auth)?;
-            jb.append_object(&auth_detail)?;
+            match &auth.data {
+                DNSRData::TXT(txt) => {
+                    for i in 0..txt.len() {
+                        let auth_detail = dns_log_json_answer_detail(auth, i)?;
+                        jb.append_object(&auth_detail)?;
+                    }
+                }
+                _ => {
+                    let auth_detail = dns_log_json_answer_detail(auth, 0)?;
+                    jb.append_object(&auth_detail)?;
+                }
+            }
         }
         jb.close()?;
     }
@@ -830,8 +911,18 @@ fn log_json(tx: &DNSTransaction, flags: u64, jb: &mut JsonBuilder) -> Result<(),
                 jb.open_array("additionals")?;
                 is_jb_open = true;
             }
-            let add_detail = dns_log_json_answer_detail(add)?;
-            jb.append_object(&add_detail)?;
+            match &add.data {
+                DNSRData::TXT(txt) => {
+                    for i in 0..txt.len() {
+                        let add_detail = dns_log_json_answer_detail(add, i)?;
+                        jb.append_object(&add_detail)?;
+                    }
+                }
+                _ => {
+                    let add_detail = dns_log_json_answer_detail(add, 0)?;
+                    jb.append_object(&add_detail)?;
+                }
+            }
         }
         if is_jb_open {
             jb.close()?;
