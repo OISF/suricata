@@ -166,6 +166,7 @@ static int DetectVlanLayersSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
 
     if (du8->arg1 > VLAN_MAX_LAYERS || du8->arg2 > VLAN_MAX_LAYERS) {
         SCLogError("number of layers out of range %s", rawstr);
+        DetectVlanLayersFree(de_ctx, du8);
         return -1;
     }
 
