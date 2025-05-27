@@ -367,6 +367,7 @@ static uint32_t DatajsonAddStringElement(Dataset *set, json_t *value, char *json
     int add_ret = DatajsonAdd(set, (const uint8_t *)val, strlen(val), &elt);
     if (add_ret < 0) {
         FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
+        SCFree(elt.value);
         return 0;
     }
     if (add_ret == 0) {
@@ -429,6 +430,7 @@ static uint32_t DatajsonAddMd5Element(Dataset *set, json_t *value, char *json_ke
     int add_ret = DatajsonAdd(set, (const uint8_t *)hash, SC_MD5_LEN, &elt);
     if (add_ret < 0) {
         FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
+        SCFree(elt.value);
         return 0;
     }
     if (add_ret == 0) {
@@ -491,6 +493,7 @@ static uint32_t DatajsonAddSha256Element(Dataset *set, json_t *value, char *json
     int add_ret = DatajsonAdd(set, (const uint8_t *)hash, SC_SHA256_LEN, &elt);
     if (add_ret < 0) {
         FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
+        SCFree(elt.value);
         return 0;
     }
     if (add_ret == 0) {
@@ -548,6 +551,7 @@ static uint32_t DatajsonAddIpv4Element(Dataset *set, json_t *value, char *json_k
     int add_ret = DatajsonAdd(set, (const uint8_t *)&in.s_addr, SC_IPV4_LEN, &elt);
     if (add_ret < 0) {
         FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
+        SCFree(elt.value);
         return 0;
     }
 
@@ -607,6 +611,7 @@ static uint32_t DatajsonAddIPv6Element(Dataset *set, json_t *value, char *json_k
     int add_ret = DatajsonAdd(set, (const uint8_t *)&in6.s6_addr, SC_IPV6_LEN, &elt);
     if (add_ret < 0) {
         FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
+        SCFree(elt.value);
         return 0;
     }
     if (add_ret == 0) {
