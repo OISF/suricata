@@ -913,7 +913,7 @@ int DatajsonAddSerialized(Dataset *set, const char *value, const char *json)
                     (const uint8_t *)value, strlen(value), SCBase64ModeStrict, decoded);
             if (num_decoded == 0)
                 goto operror;
-            ret = DatajsonAddString(set, decoded, num_decoded, &jvalue);
+            ret = DatajsonAdd(set, decoded, num_decoded, &jvalue);
             if (ret <= 0) {
                 SCFree(jvalue.value);
             }
@@ -925,7 +925,7 @@ int DatajsonAddSerialized(Dataset *set, const char *value, const char *json)
             uint8_t hash[SC_MD5_LEN];
             if (HexToRaw((const uint8_t *)value, SC_MD5_HEX_LEN, hash, sizeof(hash)) < 0)
                 goto operror;
-            ret = DatajsonAddMd5(set, hash, SC_MD5_LEN, &jvalue);
+            ret = DatajsonAdd(set, hash, SC_MD5_LEN, &jvalue);
             if (ret <= 0) {
                 SCFree(jvalue.value);
             }
@@ -937,7 +937,7 @@ int DatajsonAddSerialized(Dataset *set, const char *value, const char *json)
             uint8_t hash[SC_SHA256_LEN];
             if (HexToRaw((const uint8_t *)value, SC_SHA256_HEX_LEN, hash, sizeof(hash)) < 0)
                 goto operror;
-            ret = DatajsonAddSha256(set, hash, SC_SHA256_LEN, &jvalue);
+            ret = DatajsonAdd(set, hash, SC_SHA256_LEN, &jvalue);
             if (ret <= 0) {
                 SCFree(jvalue.value);
             }
@@ -947,7 +947,7 @@ int DatajsonAddSerialized(Dataset *set, const char *value, const char *json)
             struct in_addr in;
             if (inet_pton(AF_INET, value, &in) != 1)
                 goto operror;
-            ret = DatajsonAddIPv4(set, (uint8_t *)&in.s_addr, SC_IPV4_LEN, &jvalue);
+            ret = DatajsonAdd(set, (uint8_t *)&in.s_addr, SC_IPV4_LEN, &jvalue);
             if (ret <= 0) {
                 SCFree(jvalue.value);
             }
@@ -959,7 +959,7 @@ int DatajsonAddSerialized(Dataset *set, const char *value, const char *json)
                 SCLogError("Dataset failed to import %s as IPv6", value);
                 goto operror;
             }
-            ret = DatajsonAddIPv6(set, (uint8_t *)&in6.s6_addr, SC_IPV6_LEN, &jvalue);
+            ret = DatajsonAdd(set, (uint8_t *)&in6.s6_addr, SC_IPV6_LEN, &jvalue);
             if (ret <= 0) {
                 SCFree(jvalue.value);
             }
