@@ -61,8 +61,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     if (data[0] & STREAM_TOSERVER) {
         flags = STREAM_TOSERVER;
     }
-    AppLayerProtoDetectGetProto(
-            alpd_tctx, f, data + HEADER_LEN, size - HEADER_LEN, f->proto, flags, &reverse);
+    AppLayerProtoDetectGetProto(alpd_tctx, f, data + HEADER_LEN, (uint32_t)(size - HEADER_LEN),
+            f->proto, flags, &reverse);
     FlowFree(f);
 
     return 0;
