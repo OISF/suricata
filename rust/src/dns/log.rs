@@ -323,7 +323,7 @@ pub fn dns_print_addr(addr: &[u8]) -> std::string::String {
 }
 
 /// Log OPT section fields
-fn dns_log_opt(opt: &DNSRDataOPT) -> Result<JsonBuilder, JsonError> {
+pub(crate) fn dns_log_opt(opt: &DNSRDataOPT) -> Result<JsonBuilder, JsonError> {
     let mut js = JsonBuilder::try_new_object()?;
 
     js.set_uint("code", opt.code as u64)?;
@@ -334,7 +334,7 @@ fn dns_log_opt(opt: &DNSRDataOPT) -> Result<JsonBuilder, JsonError> {
 }
 
 /// Log SOA section fields.
-fn dns_log_soa(soa: &DNSRDataSOA) -> Result<JsonBuilder, JsonError> {
+pub(crate) fn dns_log_soa(soa: &DNSRDataSOA) -> Result<JsonBuilder, JsonError> {
     let mut js = JsonBuilder::try_new_object()?;
 
     js.set_string_from_bytes("mname", &soa.mname.value)?;
@@ -356,7 +356,7 @@ fn dns_log_soa(soa: &DNSRDataSOA) -> Result<JsonBuilder, JsonError> {
 }
 
 /// Log SSHFP section fields.
-fn dns_log_sshfp(sshfp: &DNSRDataSSHFP) -> Result<JsonBuilder, JsonError> {
+pub(crate) fn dns_log_sshfp(sshfp: &DNSRDataSSHFP) -> Result<JsonBuilder, JsonError> {
     let mut js = JsonBuilder::try_new_object()?;
 
     let mut hex = Vec::new();
@@ -373,7 +373,7 @@ fn dns_log_sshfp(sshfp: &DNSRDataSSHFP) -> Result<JsonBuilder, JsonError> {
 }
 
 /// Log SRV section fields.
-fn dns_log_srv(srv: &DNSRDataSRV) -> Result<JsonBuilder, JsonError> {
+pub(crate) fn dns_log_srv(srv: &DNSRDataSRV) -> Result<JsonBuilder, JsonError> {
     let mut js = JsonBuilder::try_new_object()?;
 
     js.set_uint("priority", srv.priority as u64)?;
