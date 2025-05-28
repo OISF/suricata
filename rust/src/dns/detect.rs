@@ -264,7 +264,7 @@ unsafe extern "C" fn dns_detect_answer_name_setup(
 }
 
 /// Get the DNS response answer name and index i.
-unsafe extern "C" fn dns_tx_get_answer_name(
+pub(crate) unsafe extern "C" fn dns_tx_get_answer_name(
     _de: *mut DetectEngineThreadCtx, tx: *const c_void, flags: u8, i: u32, buf: *mut *const u8,
     len: *mut u32,
 ) -> bool {
@@ -302,7 +302,7 @@ unsafe extern "C" fn dns_detect_query_name_setup(
 }
 
 /// Get the DNS response answer name and index i.
-unsafe extern "C" fn dns_tx_get_query_name(
+pub(crate) unsafe extern "C" fn dns_tx_get_query_name(
     _de: *mut DetectEngineThreadCtx, tx: *const c_void, flags: u8, i: u32, buf: *mut *const u8,
     len: *mut u32,
 ) -> bool {

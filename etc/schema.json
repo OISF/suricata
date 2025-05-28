@@ -2806,6 +2806,117 @@
         "log_level": {
             "type": "string"
         },
+        "mdns": {
+            "description": "mDNS requests and responses",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "additionals": {
+                    "description": "mDNS additional records",
+                    "type": "array",
+                    "minItems": 1
+                },
+                "answers": {
+                    "description": "mDNS answer records",
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "ptr": {
+                                "type": "string"
+                            },
+                            "rrname": {
+                                "type": "string"
+                            },
+                            "txt": {
+                                "type": "array",
+                                "minItems": 1
+                            }
+                        }
+                    }
+                },
+                "authorities": {
+                    "description": "mDNS authority records",
+                    "type": "array",
+                    "minItems": 1
+                },
+                "flags": {
+                    "description": "mDNS message flags",
+                    "type": "array",
+                    "items": {
+                        "oneOf": [
+                            {
+                                "const": "aa",
+                                "title": "Authoritative Answer"
+                            },
+                            {
+                                "const": "tc",
+                                "title": "Truncated"
+                            },
+                            {
+                                "const": "rd",
+                                "title": "Recursion Desired"
+                            },
+                            {
+                                "const": "ra",
+                                "title": "Recursion Available"
+                            },
+                            {
+                                "const": "z",
+                                "title": "Z (reserved)"
+                            },
+                            {
+                                "const": "ad",
+                                "title": "Authentic Data"
+                            },
+                            {
+                                "const": "cd",
+                                "title": "Checking Disabled"
+                            }
+                        ]
+                    }
+                },
+                "id": {
+                    "description": "mDNS transaction ID",
+                    "type": "integer"
+                },
+                "opcode": {
+                    "description": "mDNS opcode value",
+                    "type": "integer"
+                },
+                "queries": {
+                    "description": "mDNS query records",
+                    "type": "array",
+                    "additionalProperties": false,
+                    "minItems": 1,
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "rrname": {
+                                "type": "string"
+                            },
+                            "rrtype": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "rcode": {
+                    "description": "mDNS reply (error) code",
+                    "type": "integer"
+                },
+                "type": {
+                    "description": "Type of message, either a request or response",
+                    "type": "string",
+                    "enum": [
+                        "request",
+                        "response"
+                    ]
+                }
+            }
+        },
         "metadata": {
             "type": "object",
             "additionalProperties": false,
@@ -4801,6 +4912,10 @@
                                     "description": "Errors encountered parsing LDAP/UDP protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
+                                "mdns": {
+                                    "description": "Errors encountered parsing mDNS",
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
                                 "modbus": {
                                     "description": "Errors encountered parsing Modbus protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
@@ -4980,6 +5095,10 @@
                                     "type": "integer",
                                     "description": "Number of flows LDAP/UDP protocol"
                                 },
+                                "mdns": {
+                                    "description": "Number of flows for mDNS",
+                                    "type": "integer"
+                                },
                                 "modbus": {
                                     "type": "integer",
                                     "description": "Number of flows for Modbus protocol"
@@ -5146,6 +5265,10 @@
                                 "ldap_udp": {
                                     "type": "integer",
                                     "description": "Number of transactions for LDAP/UDP protocol"
+                                },
+                                "mdns": {
+                                    "description": "Number of transactions for mDNS",
+                                    "type": "integer"
                                 },
                                 "modbus": {
                                     "type": "integer",
