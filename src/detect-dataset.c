@@ -64,7 +64,6 @@ void DetectDatasetRegister (void)
 /*
     1 match
     0 no match
-    -1 can't match
  */
 static int DetectDatajsonBufferMatch(DetectEngineThreadCtx *det_ctx, const DetectDatasetData *sd,
         const uint8_t *data, const uint32_t data_len)
@@ -110,7 +109,6 @@ static int DetectDatajsonBufferMatch(DetectEngineThreadCtx *det_ctx, const Detec
 /*
     1 match
     0 no match
-    -1 can't match
  */
 int DetectDatasetBufferMatch(DetectEngineThreadCtx *det_ctx,
     const DetectDatasetData *sd,
