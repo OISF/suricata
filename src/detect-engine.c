@@ -126,6 +126,28 @@ const struct SignatureProperties signature_properties[SIG_TYPE_MAX] = {
 // rule types documentation tag end: SignatureProperties
 // clang-format on
 
+const char *DetectTableToString(enum FirewallTable table)
+{
+    switch (table) {
+        case FIREWALL_TABLE_NOT_SET:
+            return "not_set";
+        case FIREWALL_TABLE_PACKET_PRE_FLOW:
+            return "pre_flow";
+        case FIREWALL_TABLE_PACKET_PRE_STREAM:
+            return "pre_stream";
+        case FIREWALL_TABLE_PACKET_FILTER:
+            return "packet_filter";
+        case FIREWALL_TABLE_PACKET_TD:
+            return "packet_td";
+        case FIREWALL_TABLE_APP_FILTER:
+            return "app_filter";
+        case FIREWALL_TABLE_APP_TD:
+            return "app_td";
+        default:
+            return "unknown";
+    }
+}
+
 /** \brief register inspect engine at start up time
  *
  *  \note errors are fatal */
