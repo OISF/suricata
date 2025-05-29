@@ -744,12 +744,12 @@ static void DumpMatches(RuleAnalyzer *ctx, SCJsonBuilder *js, const SigMatchData
                                               "is interpreted as regular 'fast_pattern'");
                 }
                 if (LooksLikeHTTPMethod(cd->content, cd->content_len)) {
-                    AnalyzerWarning(ctx,
+                    AnalyzerNote(ctx,
                             (char *)"pattern looks like it inspects HTTP, use http.request_line or "
                                     "http.method and http.uri instead for improved performance");
                 }
                 if (LooksLikeHTTPUA(cd->content, cd->content_len)) {
-                    AnalyzerWarning(ctx,
+                    AnalyzerNote(ctx,
                             (char *)"pattern looks like it inspects HTTP, use http.user_agent "
                                     "or http.header for improved performance");
                 }
