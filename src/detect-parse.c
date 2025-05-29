@@ -2446,6 +2446,27 @@ static void SigSetupPrefilter(DetectEngineCtx *de_ctx, Signature *s)
     SCReturn;
 }
 
+/** \internal
+ *  \brief check if signature's table requirement is supported by each of the keywords it uses.
+ */
+static bool DetectRuleValidateTable(const Signature *s)
+{
+    if (s->firewall_table == 0)
+        return true;
+
+    const uint8_t table_as_flag = BIT_U8(s->firewall_table);
+
+    for (SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
+        const uint8_t kw_tables_supported = sigmatch_table[sm->type].tables;
+        if (kw_tables_supported != 0 && (kw_tables_supported & table_as_flag) == 0) {
+            SCLogError("rule %u uses hook \"%s\", but keyword \"%s\" doesn't support this hook",
+                    s->id, DetectTableToString(s->firewall_table), sigmatch_table[sm->type].name);
+            return false;
+        }
+    }
+    return true;
+}
+
 static bool DetectFirewallRuleValidate(const DetectEngineCtx *de_ctx, const Signature *s)
 {
     if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_NOT_SET) {
@@ -2906,6 +2927,9 @@ static Signature *SigInitHelper(
 
     if (de_ctx->flags & DE_HAS_FIREWALL) {
         DetectFirewallRuleSetTable(sig);
+    }
+    if (DetectRuleValidateTable(sig) == false) {
+        goto error;
     }
 
     if (sig->type == SIG_TYPE_IPONLY) {
