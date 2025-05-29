@@ -83,6 +83,10 @@ void DetectFlowbitsRegister (void)
 
     sigmatch_table[DETECT_FLOWBITS].SupportsPrefilter = PrefilterFlowbitIsPrefilterable;
     sigmatch_table[DETECT_FLOWBITS].SetupPrefilter = PrefilterSetupFlowbits;
+    /* all but pre_flow */
+    sigmatch_table[DETECT_FLOWBITS].tables =
+            DETECT_TABLE_PACKET_PRE_STREAM_FLAG | DETECT_TABLE_PACKET_FILTER_FLAG |
+            DETECT_TABLE_PACKET_TD_FLAG | DETECT_TABLE_APP_FILTER_FLAG | DETECT_TABLE_APP_TD_FLAG;
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 

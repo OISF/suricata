@@ -27,6 +27,8 @@
 #include "detect.h"
 #include "suricata.h"
 
+const char *DetectTableToString(enum FirewallTable table);
+
 /* start up registry funcs */
 
 int DetectBufferTypeRegister(const char *name);

@@ -550,13 +550,22 @@ enum SignatureHookType {
     SIGNATURE_HOOK_TYPE_APP,
 };
 
+// TODO should probably be renamed to DetectTable, similar for values
 enum FirewallTable {
+    FIREWALL_TABLE_NOT_SET = 0,
     FIREWALL_TABLE_PACKET_PRE_FLOW,
     FIREWALL_TABLE_PACKET_PRE_STREAM,
     FIREWALL_TABLE_PACKET_FILTER,
     FIREWALL_TABLE_PACKET_TD,
     FIREWALL_TABLE_APP_FILTER,
     FIREWALL_TABLE_APP_TD,
+
+#define DETECT_TABLE_PACKET_PRE_FLOW_FLAG   BIT_U8(FIREWALL_TABLE_PACKET_PRE_FLOW)
+#define DETECT_TABLE_PACKET_PRE_STREAM_FLAG BIT_U8(FIREWALL_TABLE_PACKET_PRE_STREAM)
+#define DETECT_TABLE_PACKET_FILTER_FLAG     BIT_U8(FIREWALL_TABLE_PACKET_FILTER)
+#define DETECT_TABLE_PACKET_TD_FLAG         BIT_U8(FIREWALL_TABLE_PACKET_TD)
+#define DETECT_TABLE_APP_FILTER_FLAG        BIT_U8(FIREWALL_TABLE_APP_FILTER)
+#define DETECT_TABLE_APP_TD_FLAG            BIT_U8(FIREWALL_TABLE_APP_TD)
 };
 
 // dns:request_complete should add DetectBufferTypeGetByName("dns:request_complete");
@@ -1428,6 +1437,9 @@ typedef struct SigTableElmt_ {
 #endif
     uint16_t flags;
     /* coccinelle: SigTableElmt:flags:SIGMATCH_ */
+
+    /** bitfield of tables supported by this rule: used by DETECT_TABLE_*_FLAG flags. */
+    uint8_t tables;
 
     /** better keyword to replace the current one */
     uint16_t alternative;
