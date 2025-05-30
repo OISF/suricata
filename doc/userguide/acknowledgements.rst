@@ -18,6 +18,7 @@ contributions that have made this user guide possible:
 - Ignacio Sanchez
 - Jason Ish
 - Jason Taylor
+- Jeff Lucovsky
 - Josh Smith
 - Juliana Fajardini
 - Ken Steele
