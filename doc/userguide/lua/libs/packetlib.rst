@@ -160,6 +160,8 @@ If it is found, issue a notice log with packet details.
 
 ::
 
+    local logger = require("suricata.log")
+
     function match (args)
         p = packet.get()
         payload = p:payload()
@@ -168,7 +170,7 @@ If it is found, issue a notice log with packet details.
         for line in payload:gmatch("([^\r\n]*)[\r\n]+") do
             if line == "GET /index.html HTTP/1.0" then
                 ipver, srcip, dstip, proto, sp, dp = p:tuple()
-                SCLogNotice(string.format("%s %s->%s %d->%d (pcap_cnt:%d) match! %s", ts, srcip, dstip, sp, dp, p:pcap_cnt(), line));
+                logger.notice(string.format("%s %s->%s %d->%d (pcap_cnt:%d) match! %s", ts, srcip, dstip, sp, dp, p:pcap_cnt(), line));
                 return 1
             end
         end

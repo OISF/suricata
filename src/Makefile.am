@@ -547,6 +547,7 @@ noinst_HEADERS = \
 	util-lua-hashlib.h \
 	util-lua-http.h \
 	util-lua-ja3.h \
+	util-lua-log.h \
 	util-lua-packetlib.h \
 	util-lua-rule.h \
 	util-lua-sandbox.h \
@@ -1124,6 +1125,7 @@ libsuricata_c_a_SOURCES = \
 	util-lua-hashlib.c \
 	util-lua-http.c \
 	util-lua-ja3.c \
+	util-lua-log.c \
 	util-lua-packetlib.c \
 	util-lua-rule.c \
 	util-lua-sandbox.c \
