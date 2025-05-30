@@ -4,40 +4,128 @@ Acknowledgements
 Thank you to the following for their Wiki and documentation
 contributions that have made this user guide possible:
 
+- Aaron Bungay
+- Abbed
+- Alex Savage
+- Alexandre Iooss
+- Alfredo Cardigliano
+- Alice Akaki
+- AlirezaPourchali
+- Andi
+- Andreas Dolp
 - Andreas Herz
 - Andreas Moe
 - Anne-Fleur Koolstra
+- Bazzan Don
+- Benjamin Wilkins
+- Bill Meeks
+- Brandon Sterne
+- brandonlattin
+- Bryant Smith
+- Carl Smith
+- Chris Speidel
 - Christophe Vandeplas
+- Cole Dishington
+- Comfort Amaechi
+- Daisu
+- Dana Helwig
+- Daniel Olatunji
+- Danny Browning
 - Darren Spruell
 - David Cannings
 - David Diallo
 - David Wharton
+- Dean Balandin
+- Eloy Pérez González
+- Eloïse Brocas
+- EmilienCourt
+- Emmanuel Thompson
 - Eric Leblond
+- fooinha
+- Frank Honza
+- Gaurav Singh
+- Giuseppe Longo
 - god lol
+- Hadiqa Alamdar Bukhari
+- Haleema Khan
 - Haris Haq
+- Hilko Bengen
 - Ignacio Sanchez
+- Jacob Masen-Smith
+- James
+- James Dutrisac
 - Jason Ish
 - Jason Taylor
+- Jason Williams
+- Jeff Lucovsky
+- Jeremy MountainJohnson
+- Jo Johnson
+- John Dewey
+- Jon Zeolla
 - Josh Smith
+- Josh Stroschein
+- Joshua Lumb
+- Joyce Yu
+- Julian
 - Juliana Fajardini
+- Justin Ossevoort
 - Ken Steele
+- Kirby Kuehl
+- Kirjan Kohuladas
+- Konstantin Klinger
+- kwong
+- Lancer Cheng
 - Les Syv
+- liaozhiyuan
 - Lukas Sismis
 - Mark Solaris
 - Martin Holste
+- Martin Natano
 - Mats Klepsland
 - Matt Jonkman
+- Maurizio Abba
+- Max Fillinger
 - Michael Bentley
 - Michael Hrishenko
+- Morris Chan
+- myr463
 - Nathan Jimerson
+- Nathan Scrivens
+- Nick Price
 - Nicolas Merle
+- Nicolas Thill
+- Odin Jenseg
+- Pascal Delalande
 - Peter Manev
+- Peter Sanders
+- Phil Young
 - Philipp Buehler
 - Philippe Antoine
+- Pierre Chifflier
+- Rafael Girão
 - Ralph Broenink
+- Ralph Eastwood
+- Ray Ruvinskiy
+- Richard McConnell
+- Richard Sailer
 - Rob MacGregor
+- Ruslan Usmanov
 - Russel Fulton
+- Sascha Steinbiss
+- Sebastian Garcia
+- Selivanov Pavel
 - Shivani Bhardwaj
+- showipintbri
+- Simon Dugas
+- Steven Hostetler
+- Todd Mortimer
+- Travis Green
+- Tristan Fletcher
+- Vadym Malakhatko
 - Victor Julien
 - Vincent Fang
+- Vinjar Hillestad
+- Wes Hurd
+- William Harding
+- Zach Kelly
 - Zach Rasmor
