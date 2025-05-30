@@ -24,37 +24,17 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
-#include "pkt-var.h"
-#include "conf.h"
 
 #include "threads.h"
 #include "threadvars.h"
-#include "tm-threads.h"
-
-#include "util-print.h"
-#include "util-unittest.h"
-
-#include "util-debug.h"
 
 #include "output.h"
-#include "app-layer-htp.h"
-#include "app-layer.h"
-#include "app-layer-parser.h"
-#include "util-privs.h"
-#include "util-buffer.h"
-#include "util-proto-name.h"
-#include "util-logopenfile.h"
-#include "util-time.h"
 #include "util-conf.h"
 
 #include "lua.h"
-#include "lualib.h"
-#include "lauxlib.h"
 
 #include "util-lua.h"
 #include "util-lua-common.h"
-#include "action-globals.h"
 
 int LuaCallbackError(lua_State *luastate, const char *msg)
 {
@@ -142,70 +122,6 @@ static int LuaCallbackLogPath(lua_State *luastate)
     return LuaPushStringBuffer(luastate, (const uint8_t *)ld, strlen(ld));
 }
 
-static int LuaCallbackLogDebug(lua_State *luastate)
-{
-    const char *msg = LuaGetStringArgument(luastate, 1);
-    if (msg == NULL)
-        return LuaCallbackError(luastate, "1st argument missing, empty or wrong type");
-    SCLogDebug("%s", msg);
-    return 0;
-}
-
-static int LuaCallbackLogInfo(lua_State *luastate)
-{
-    const char *msg = LuaGetStringArgument(luastate, 1);
-    if (msg == NULL)
-        return LuaCallbackError(luastate, "1st argument missing, empty or wrong type");
-
-    lua_Debug ar;
-    lua_getstack(luastate, 1, &ar);
-    lua_getinfo(luastate, "nSl", &ar);
-    const char *funcname = ar.name ? ar.name : ar.what;
-    SCLogInfoRaw(ar.short_src, funcname, ar.currentline, "%s", msg);
-    return 0;
-}
-
-static int LuaCallbackLogNotice(lua_State *luastate)
-{
-    const char *msg = LuaGetStringArgument(luastate, 1);
-    if (msg == NULL)
-        return LuaCallbackError(luastate, "1st argument missing, empty or wrong type");
-
-    lua_Debug ar;
-    lua_getstack(luastate, 1, &ar);
-    lua_getinfo(luastate, "nSl", &ar);
-    const char *funcname = ar.name ? ar.name : ar.what;
-    SCLogNoticeRaw(ar.short_src, funcname, ar.currentline, "%s", msg);
-    return 0;
-}
-
-static int LuaCallbackLogWarning(lua_State *luastate)
-{
-    const char *msg = LuaGetStringArgument(luastate, 1);
-    if (msg == NULL)
-        return LuaCallbackError(luastate, "1st argument missing, empty or wrong type");
-
-    lua_Debug ar;
-    lua_getstack(luastate, 1, &ar);
-    lua_getinfo(luastate, "nSl", &ar);
-    const char *funcname = ar.name ? ar.name : ar.what;
-    SCLogWarningRaw(ar.short_src, funcname, ar.currentline, "%s", msg);
-    return 0;
-}
-
-static int LuaCallbackLogError(lua_State *luastate)
-{
-    const char *msg = LuaGetStringArgument(luastate, 1);
-    if (msg == NULL)
-        return LuaCallbackError(luastate, "1st argument missing, empty or wrong type");
-    lua_Debug ar;
-    lua_getstack(luastate, 1, &ar);
-    lua_getinfo(luastate, "nSl", &ar);
-    const char *funcname = ar.name ? ar.name : ar.what;
-    SCLogErrorRaw(ar.short_src, funcname, ar.currentline, "%s", msg);
-    return 0;
-}
-
 /** \internal
  *  \brief fill lua stack with thread info
  *  \param luastate the lua state
@@ -244,17 +160,6 @@ int LuaRegisterFunctions(lua_State *luastate)
 
     lua_pushcfunction(luastate, LuaCallbackLogPath);
     lua_setglobal(luastate, "SCLogPath");
-
-    lua_pushcfunction(luastate, LuaCallbackLogDebug);
-    lua_setglobal(luastate, "SCLogDebug");
-    lua_pushcfunction(luastate, LuaCallbackLogInfo);
-    lua_setglobal(luastate, "SCLogInfo");
-    lua_pushcfunction(luastate, LuaCallbackLogNotice);
-    lua_setglobal(luastate, "SCLogNotice");
-    lua_pushcfunction(luastate, LuaCallbackLogWarning);
-    lua_setglobal(luastate, "SCLogWarning");
-    lua_pushcfunction(luastate, LuaCallbackLogError);
-    lua_setglobal(luastate, "SCLogError");
 
     lua_pushcfunction(luastate, LuaCallbackThreadInfo);
     lua_setglobal(luastate, "SCThreadInfo");

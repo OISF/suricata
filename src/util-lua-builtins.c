@@ -33,6 +33,7 @@
 #include "util-lua-rule.h"
 #include "util-lua-ja3.h"
 #include "util-lua-filelib.h"
+#include "util-lua-log.h"
 
 #include "lauxlib.h"
 
@@ -48,6 +49,7 @@ static const luaL_Reg builtins[] = {
     { "suricata.hashlib", SCLuaLoadHashlib },
     { "suricata.http", SCLuaLoadHttpLib },
     { "suricata.ja3", SCLuaLoadJa3Lib },
+    { "suricata.log", SCLuaLoadLogLib },
     { "suricata.packet", LuaLoadPacketLib },
     { "suricata.rule", SCLuaLoadRuleLib },
     { "suricata.smtp", SCLuaLoadSmtpLib },

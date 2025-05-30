@@ -27,6 +27,8 @@ Example:
 
 ::
 
+  local logger = require("suricata.log")
+
   function init (args)
       local needs = {}
       needs["protocol"] = "http"
@@ -36,7 +38,7 @@ Example:
   function setup (args)
       filename = SCLogPath() .. "/" .. name
       file = assert(io.open(filename, "a"))
-      SCLogInfo("HTTP Log Filename " .. filename)
+      logger.info("HTTP Log Filename " .. filename)
       http = 0
   end
 
@@ -71,7 +73,7 @@ Example:
   end
 
   function deinit (args)
-      SCLogInfo ("HTTP transactions logged: " .. http);
+      logger.info ("HTTP transactions logged: " .. http);
       file:close(file)
   end
 

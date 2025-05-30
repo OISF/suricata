@@ -314,17 +314,6 @@ SCThreadInfo
 
 It gives: tid (integer), tname (string), tgroup (string)
 
-SCLogError, SCLogWarning, SCLogNotice, SCLogInfo, SCLogDebug
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Print a message. It will go into the outputs defined in the
-yaml. Whether it will be printed depends on the log level.
-
-Example:
-
-::
-
-  SCLogError("some error message")
 
 SCLogPath
 ~~~~~~~~~
