@@ -16,6 +16,7 @@ environment without access to additional modules.
    flowvar
    hashlib
    http
+   log
    packetlib
    rule
    smtp
