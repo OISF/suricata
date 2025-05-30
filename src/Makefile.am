@@ -536,6 +536,7 @@ noinst_HEADERS = \
 	util-lua-base64lib.h \
 	util-lua-builtins.h \
 	util-lua-common.h \
+	util-lua-config.h \
 	util-lua-dataset.h \
 	util-lua-dnp3-objects.h \
 	util-lua-dnp3.h \
@@ -1114,6 +1115,7 @@ libsuricata_c_a_SOURCES = \
 	util-lua-base64lib.c \
 	util-lua-builtins.c \
 	util-lua-common.c \
+	util-lua-config.c \
 	util-lua-dataset.c \
 	util-lua-dnp3-objects.c \
 	util-lua-dnp3.c \

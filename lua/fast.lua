@@ -18,6 +18,7 @@
 
 local packet = require("suricata.packet")
 local rule = require("suricata.rule")
+local config = require("suricata.config")
 
 function init()
     local needs     = {}
@@ -27,7 +28,7 @@ function init()
 end
 
 function setup()
-    filename = SCLogPath() .. "/fast.log"
+    filename = config.log_path() .. "/fast.log"
     file = assert(io.open(filename, "a"))
     alert_count = 0
 end

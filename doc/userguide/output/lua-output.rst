@@ -27,6 +27,7 @@ Example:
 
 ::
 
+  local config = require("suricata.config")
   local logger = require("suricata.log")
 
   function init (args)
@@ -36,7 +37,7 @@ Example:
   end
 
   function setup (args)
-      filename = SCLogPath() .. "/" .. name
+      filename = config.log_path() .. "/" .. name
       file = assert(io.open(filename, "a"))
       logger.info("HTTP Log Filename " .. filename)
       http = 0

@@ -113,15 +113,6 @@ static int LuaCallbackStreamingBuffer(lua_State *luastate)
     return LuaCallbackStreamingBufferPushToStack(luastate, b);
 }
 
-static int LuaCallbackLogPath(lua_State *luastate)
-{
-    const char *ld = SCConfigGetLogDirectory();
-    if (ld == NULL)
-        return LuaCallbackError(luastate, "internal error: no log dir");
-
-    return LuaPushStringBuffer(luastate, (const uint8_t *)ld, strlen(ld));
-}
-
 /** \internal
  *  \brief fill lua stack with thread info
  *  \param luastate the lua state
@@ -157,9 +148,6 @@ int LuaRegisterFunctions(lua_State *luastate)
     /* registration of the callbacks */
     lua_pushcfunction(luastate, LuaCallbackStreamingBuffer);
     lua_setglobal(luastate, "SCStreamingBuffer");
-
-    lua_pushcfunction(luastate, LuaCallbackLogPath);
-    lua_setglobal(luastate, "SCLogPath");
 
     lua_pushcfunction(luastate, LuaCallbackThreadInfo);
     lua_setglobal(luastate, "SCThreadInfo");
