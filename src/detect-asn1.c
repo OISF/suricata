@@ -140,6 +140,7 @@ static int DetectAsn1Setup(DetectEngineCtx *de_ctx, Signature *s, const char *as
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
 
+    s->flags |= SIG_FLAG_REQUIRE_PACKET;
     return 0;
 }
 
