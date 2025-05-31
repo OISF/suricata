@@ -2933,6 +2933,14 @@
                         ]
                     }
                 },
+                "flowfloats": {
+                    "type": "object",
+                    "suricata": {
+                        "keywords": [
+                            "flowfloats"
+                        ]
+                    }
+                },
                 "flowints": {
                     "type": "object",
                     "suricata": {

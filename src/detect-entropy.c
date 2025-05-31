@@ -23,6 +23,8 @@
 #include "detect-engine-buffer.h"
 
 #include "detect-entropy.h"
+#include "util-var-name.h"
+#include "flow-var.h"
 
 #include "rust.h"
 
@@ -32,6 +34,8 @@ static int DetectEntropySetup(DetectEngineCtx *de_ctx, Signature *s, const char 
     if (ded == NULL) {
         goto error;
     }
+
+    ded->fv_idx = VarNameStoreRegister("entropy", VAR_TYPE_FLOW_FLOAT);
 
     int sm_list = DETECT_SM_LIST_PMATCH;
     if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
@@ -57,13 +61,25 @@ error:
 
 static void DetectEntropyFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    SCDetectEntropyFree(ptr);
+    if (ptr) {
+        DetectEntropyData *ded = (DetectEntropyData *)ptr;
+        VarNameStoreUnregister(ded->fv_idx, VAR_TYPE_FLOW_FLOAT);
+        SCDetectEntropyFree(ptr);
+    }
 }
 
 bool DetectEntropyDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
         const SigMatchCtx *ctx, const uint8_t *buffer, const uint32_t buffer_len)
 {
-    return SCDetectEntropyMatch(buffer, buffer_len, (const DetectEntropyData *)ctx);
+    double entropy = -1.0;
+    bool rc = SCDetectEntropyMatch(buffer, buffer_len, (const DetectEntropyData *)ctx, &entropy);
+
+    if (entropy != -1.0) {
+        DetectEntropyData *ded = (DetectEntropyData *)ctx;
+        FlowVarAddFloat(det_ctx->p->flow, ded->fv_idx, entropy);
+    }
+
+    return rc;
 }
 
 void DetectEntropyRegister(void)
