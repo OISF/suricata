@@ -911,6 +911,10 @@ const char *PacketDropReasonToString(enum PacketDropReason r)
             return "default packet policy";
         case PKT_DROP_REASON_DEFAULT_APP_POLICY:
             return "default app policy";
+        case PKT_DROP_REASON_STREAM_PRE_HOOK:
+            return "pre stream hook";
+        case PKT_DROP_REASON_FLOW_PRE_HOOK:
+            return "pre flow hook";
         case PKT_DROP_REASON_NOT_SET:
         case PKT_DROP_REASON_MAX:
             return NULL;
@@ -957,6 +961,10 @@ static const char *PacketDropReasonToJsonString(enum PacketDropReason r)
             return "ips.drop_reason.default_packet_policy";
         case PKT_DROP_REASON_DEFAULT_APP_POLICY:
             return "ips.drop_reason.default_app_policy";
+        case PKT_DROP_REASON_STREAM_PRE_HOOK:
+            return "ips.drop_reason.pre_stream_hook";
+        case PKT_DROP_REASON_FLOW_PRE_HOOK:
+            return "ips.drop_reason.pre_flow_hook";
         case PKT_DROP_REASON_NOT_SET:
         case PKT_DROP_REASON_MAX:
             return NULL;
