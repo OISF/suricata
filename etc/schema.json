@@ -2921,6 +2921,14 @@
             "type": "object",
             "additionalProperties": false,
             "properties": {
+                "entropy": {
+                    "type": "object",
+                    "suricata": {
+                        "keywords": [
+                            "entropy"
+                        ]
+                    }
+                },
                 "flowbits": {
                     "type": "array",
                     "minItems": 1,
