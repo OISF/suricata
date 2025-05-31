@@ -3693,6 +3693,20 @@
                     "type": "object",
                     "additionalProperties": false,
                     "properties": {
+                        "copy_data_in": {
+                            "type": "object",
+                            "description": "CopyData message from CopyIn mode",
+                            "properties": {
+                                "data_size": {
+                                    "type": "integer",
+                                    "description": "Accumulated data size of all CopyData messages sent"
+                                },
+                                "msg_count": {
+                                    "type": "integer",
+                                    "description": "How many CopyData messages were sent (does not necessarily match number of rows from the query)"
+                                }
+                            }
+                        },
                         "message": {
                             "type": "string"
                         },
@@ -3783,20 +3797,35 @@
                         },
                         "copy_data_out": {
                             "type": "object",
+                            "description": "CopyData message from CopyOut mode",
                             "properties": {
                                 "data_size": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "description": "Accumulated data size of all CopyData messages sent"
                                 },
                                 "row_count": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "description": "Number of rows sent in CopyData messages"
+                                }
+                            }
+                        },
+                        "copy_in_response": {
+                            "type": "object",
+                            "description": "Backend/server response accepting CopyIn mode",
+                            "properties": {
+                                "columns": {
+                                    "type": "integer",
+                                    "description": "Number of columns that will be copied in the CopyData message"
                                 }
                             }
                         },
                         "copy_out_response": {
                             "type": "object",
+                            "description": "Backend/server response accepting CopyOut mode",
                             "properties": {
-                                "copy_column_count": {
-                                    "type": "integer"
+                                "columns": {
+                                    "type": "integer",
+                                    "description": "Number of columns that will be copied in the CopyData message"
                                 }
                             }
                         },
