@@ -326,19 +326,6 @@ Example:
 
   SCLogError("some error message")
 
-SCLogPath
-~~~~~~~~~
-
-Expose the log path.
-
-::
-
-
-  name = "fast_lua.log"
-  function setup (args)
-      filename = SCLogPath() .. "/" .. name
-      file = assert(io.open(filename, "a"))
-  end
 
 SCByteVarGet
 ~~~~~~~~~~~~

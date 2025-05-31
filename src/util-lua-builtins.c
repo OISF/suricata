@@ -18,6 +18,7 @@
 #include "suricata-common.h"
 #include "util-lua-builtins.h"
 #include "util-lua-base64lib.h"
+#include "util-lua-config.h"
 #include "util-lua-dataset.h"
 #include "util-lua-dnp3.h"
 #include "util-lua-flowintlib.h"
@@ -38,6 +39,7 @@
 
 static const luaL_Reg builtins[] = {
     { "suricata.base64", SCLuaLoadBase64Lib },
+    { "suricata.config", SCLuaLoadConfigLib },
     { "suricata.dataset", LuaLoadDatasetLib },
     { "suricata.dnp3", SCLuaLoadDnp3Lib },
     { "suricata.dns", SCLuaLoadDnsLib },

@@ -27,6 +27,8 @@ Example:
 
 ::
 
+  local config = require("suricata.config")
+
   function init (args)
       local needs = {}
       needs["protocol"] = "http"
@@ -34,7 +36,8 @@ Example:
   end
 
   function setup (args)
-      filename = SCLogPath() .. "/" .. name
+      local config = require("suricata.config")
+      filename = config.log_path() .. "/" .. name
       file = assert(io.open(filename, "a"))
       SCLogInfo("HTTP Log Filename " .. filename)
       http = 0
