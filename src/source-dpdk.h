@@ -55,8 +55,7 @@ typedef struct DPDKIfaceConfig_ {
     char iface[RTE_ETH_NAME_MAX_LEN];
     uint16_t port_id;
     int32_t socket_id;
-    /* number of threads - zero means all available */
-    int threads;
+    uint16_t threads;
     /* IPS mode */
     DpdkCopyModeEnum copy_mode;
     const char *out_iface;
@@ -76,7 +75,7 @@ typedef struct DPDKIfaceConfig_ {
     uint32_t mempool_cache_size;
     DPDKDeviceResources *pkt_mempools;
     uint16_t linkup_timeout; // in seconds how long to wait for link to come up
-    SC_ATOMIC_DECLARE(unsigned int, ref);
+    SC_ATOMIC_DECLARE(uint16_t, ref);
     /* threads bind queue id one by one */
     SC_ATOMIC_DECLARE(uint16_t, queue_id);
     SC_ATOMIC_DECLARE(uint16_t, inconsistent_numa_cnt);
@@ -96,7 +95,7 @@ typedef struct DPDKPacketVars_ {
     struct rte_mbuf *mbuf;
     uint16_t out_port_id;
     uint16_t out_queue_id;
-    uint8_t copy_mode;
+    DpdkCopyModeEnum copy_mode;
 } DPDKPacketVars;
 
 void TmModuleReceiveDPDKRegister(void);

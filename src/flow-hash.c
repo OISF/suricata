@@ -1030,7 +1030,7 @@ static inline bool FlowCompareKey(Flow *f, FlowKey *key)
  *  \param flow_id Flow ID of the flow to look for
  *  \retval f *LOCKED* flow or NULL
  */
-Flow *FlowGetExistingFlowFromFlowId(int64_t flow_id)
+Flow *FlowGetExistingFlowFromFlowId(uint64_t flow_id)
 {
     uint32_t hash = flow_id & 0x0000FFFF;
     FlowBucket *fb = &flow_hash[hash % flow_config.hash_size];
