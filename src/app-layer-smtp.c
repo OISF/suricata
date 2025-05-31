@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2024 Open Information Security Foundation
+/* Copyright (C) 2007-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -976,6 +976,7 @@ static int SMTPProcessReply(
         state->cmds_cnt = 0;
         state->cmds_idx = 0;
     }
+    AppLayerParserTriggerRawStreamInspection(f, STREAM_TOCLIENT);
 
     return 0;
 }
@@ -1256,6 +1257,7 @@ static int SMTPProcessRequest(
             SCReturnInt(-1);
         }
 
+        AppLayerParserTriggerRawStreamInspection(f, STREAM_TOSERVER);
         SCReturnInt(r);
     }
 

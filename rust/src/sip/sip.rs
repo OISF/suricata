@@ -278,7 +278,7 @@ impl SIPState {
                         tx.response_line = resp_line;
                     }
                     self.transactions.push_back(tx);
-                    sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
+                    sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
                     let consumed = start.len() - rem.len();
                     start = rem;
 
