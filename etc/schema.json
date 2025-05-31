@@ -2933,6 +2933,14 @@
                         ]
                     }
                 },
+                "entropy": {
+                    "type": "object",
+                    "suricata": {
+                        "keywords": [
+                            "entropy"
+                        ]
+                    }
+                },
                 "flowints": {
                     "type": "object",
                     "suricata": {
