@@ -46,11 +46,8 @@ static void DetectTransformFromBase64Id(const uint8_t **data, uint32_t *length, 
 {
     if (context) {
         SCDetectTransformFromBase64Data *b64d = (SCDetectTransformFromBase64Data *)context;
-        /* Since the context structure contains the unique values for the keyword usage,
-         * a pointer to the context structure is returned.
-         */
-        *data = (const uint8_t *)b64d;
-        *length = sizeof(*b64d);
+        *data = b64d->serialized;
+        *length = b64d->serialized_len;
     }
 }
 
