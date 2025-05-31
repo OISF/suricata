@@ -27,13 +27,15 @@ use nom7::sequence::preceded;
 use nom7::{Err, IResult};
 
 use std::ffi::CStr;
-use std::os::raw::{c_char, c_void};
+use std::os::raw::{c_double, c_char, c_void};
 use std::slice;
 
+#[repr(C)]
 #[derive(Debug)]
 pub struct DetectEntropyData {
     offset: i32,
     nbytes: i32,
+    fv_idx: i32,
     value: DetectFloatData<f64>,
 }
 
@@ -42,6 +44,7 @@ impl Default for DetectEntropyData {
         DetectEntropyData {
             offset: 0,
             nbytes: 0,
+            fv_idx: 0,
             value: DetectFloatData::<f64>::default(),
         }
     }
@@ -166,6 +169,7 @@ fn calculate_entropy(data: &[u8]) -> f64 {
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectEntropyMatch(
     c_data: *const c_void, length: i32, ctx: &DetectEntropyData,
+    calculated_entropy: *mut c_double,
 ) -> bool {
     if c_data.is_null() {
         return false;
@@ -200,7 +204,11 @@ pub unsafe extern "C" fn SCDetectEntropyMatch(
     let entropy = calculate_entropy(data_slice);
     SCLogDebug!("entropy is {}", entropy);
 
-    // Use a hypothetical `detect_entropy_match` function to check entropy
+    // Return entropy on request
+    if !calculated_entropy.is_null() {
+        *calculated_entropy = entropy;
+    }
+
     detect_match_float::<f64>(&ctx.value, entropy)
 }
 
@@ -250,6 +258,7 @@ mod tests {
         let ded = DetectEntropyData {
             offset,
             nbytes,
+            fv_idx: 0,
             value: ctx,
         };
 

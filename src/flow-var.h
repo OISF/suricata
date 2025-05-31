@@ -32,6 +32,7 @@
 
 #define FLOWVAR_TYPE_STR 1
 #define FLOWVAR_TYPE_INT 2
+#define FLOWVAR_TYPE_FLOAT 3
 
 typedef uint8_t FlowVarKeyLenType;
 /** Struct used to hold the string data type for flowvars */
@@ -45,6 +46,11 @@ typedef struct FlowVarTypeInt_ {
     uint32_t value;
 } FlowVarTypeInt;
 
+/** Struct used to hold the integer data type for flowvars */
+typedef struct FlowVarTypeFloat_ {
+    double value;
+} FlowVarTypeFloat;
+
 /** Generic Flowvar Structure */
 typedef struct FlowVar_ {
     uint16_t type; /* type, DETECT_FLOWVAR in this case */
@@ -57,6 +63,7 @@ typedef struct FlowVar_ {
     union {
         FlowVarTypeStr fv_str;
         FlowVarTypeInt fv_int;
+        FlowVarTypeFloat fv_float;
     } data;
     uint8_t *key;
 } FlowVar;
@@ -69,6 +76,7 @@ void FlowVarAddKeyValue(
 
 void FlowVarAddIntNoLock(Flow *, uint32_t, uint32_t);
 void FlowVarAddInt(Flow *, uint32_t, uint32_t);
+void FlowVarAddFloat(Flow *, uint32_t, double);
 FlowVar *FlowVarGet(Flow *, uint32_t);
 FlowVar *FlowVarGetByKey(Flow *f, const uint8_t *key, FlowVarKeyLenType keylen);
 void FlowVarFree(FlowVar *);
