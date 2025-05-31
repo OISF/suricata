@@ -155,6 +155,36 @@ Major changes
 - Spaces are accepted in HTTP1 URIs instead of in the protocol version. That is:
   `GET /a b HTTP/1.1` gets now URI as `/a b` and protocol as `HTTP/1.1` when
   it used to be URI as `/a` and protocol as `b HTTP/1.1`
+- The configuration structure of ``threading.cpu-affinity`` has been changed
+  from a list format to a dictionary format. Additionally, member properties of
+  `*-cpu-set` nodes have been moved one level up.
+  The support for list items such as `- worker-cpu-set`, `- management-cpu-set`,
+  etc. is deprecated and will be removed in Suricata 9.0.
+  Convert to the new configuration format as shown in the example below or as
+  described in :ref:`suricata-yaml-threading`.
+
+  .. code-block:: diff
+
+      threading:
+        cpu-affinity:
+    -     - worker-cpu-set:
+    -         cpu: [0, 1]
+    +     worker-cpu-set:
+    +       cpu: [0, 1]
+
+  - The `threading.cpu-affinity` configuration has been extended to support
+    interface-specific CPU affinity settings. This allows you to specify
+    CPU affinity settings for individual interfaces.
+    The new configuration format is described in :ref:`suricata-yaml-threading`.
+    The old configuration format does not support this extension and will be
+    removed in Suricata 9.0.
+  - The `threading.cpu-affinity` configuration now supports autopinning
+    worker or receive threads to the same NUMA node as the network capture
+    interface is located on.
+    This can be enabled by setting `threading.autopin` to `yes`.
+    See :ref:`suricata-yaml-threading` for more information.
+    This requires the hwloc dependency to be installed and `--enable-hwloc`
+    to be passed to configure script.
 
 Removals
 ~~~~~~~~
