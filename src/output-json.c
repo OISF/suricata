@@ -247,6 +247,7 @@ static void EveAddFlowVars(const Flow *f, SCJsonBuilder *js_root, SCJsonBuilder 
     SCJsonBuilder *js_traffic_id = NULL;
     SCJsonBuilder *js_traffic_label = NULL;
     SCJsonBuilder *js_flowints = NULL;
+    SCJsonBuilder *js_flowfloats = NULL;
     SCJsonBuilder *js_flowbits = NULL;
     GenericVar *gv = f->flowvar;
     while (gv != NULL) {
@@ -292,6 +293,17 @@ static void EveAddFlowVars(const Flow *f, SCJsonBuilder *js_root, SCJsonBuilder 
                 SCJbStartObject(js_flowvars);
                 SCJbSetString(js_flowvars, (const char *)keybuf, (char *)printable_buf);
                 SCJbClose(js_flowvars);
+            } else if (fv->datatype == FLOWVAR_TYPE_FLOAT) {
+                const char *varname = VarNameStoreLookupById(fv->idx, VAR_TYPE_FLOW_FLOAT);
+                if (varname) {
+                    if (js_flowfloats == NULL) {
+                        js_flowfloats = SCJbNewObject();
+                        if (js_flowfloats == NULL)
+                            break;
+                    }
+                    SCJbSetFloat(js_flowfloats, varname, fv->data.fv_float.value);
+                }
+
             } else if (fv->datatype == FLOWVAR_TYPE_INT) {
                 const char *varname = VarNameStoreLookupById(fv->idx,
                         VAR_TYPE_FLOW_INT);
@@ -303,7 +315,6 @@ static void EveAddFlowVars(const Flow *f, SCJsonBuilder *js_root, SCJsonBuilder 
                     }
                     SCJbSetUint(js_flowints, varname, fv->data.fv_int.value);
                 }
-
             }
         } else if (gv->type == DETECT_FLOWBITS) {
             FlowBit *fb = (FlowBit *)gv;
@@ -347,6 +358,11 @@ static void EveAddFlowVars(const Flow *f, SCJsonBuilder *js_root, SCJsonBuilder 
         SCJbClose(js_flowints);
         SCJbSetObject(js_root, "flowints", js_flowints);
         SCJbFree(js_flowints);
+    }
+    if (js_flowfloats) {
+        SCJbClose(js_flowfloats);
+        SCJbSetObject(js_root, "flowfloats", js_flowfloats);
+        SCJbFree(js_flowfloats);
     }
     if (js_flowvars) {
         SCJbClose(js_flowvars);

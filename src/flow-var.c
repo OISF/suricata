@@ -47,6 +47,12 @@ static void FlowVarUpdateInt(FlowVar *fv, uint32_t value)
     fv->data.fv_int.value = value;
 }
 
+/* puts a new value into a flowvar */
+static void FlowVarUpdateFloat(FlowVar *fv, double value)
+{
+    fv->data.fv_float.value = value;
+}
+
 /** \brief get the flowvar with index 'idx' from the flow
  *  \note flow is not locked by this function, caller is
  *        responsible
@@ -132,6 +138,26 @@ void FlowVarAddIdValue(Flow *f, uint32_t idx, uint8_t *value, uint16_t size)
     }
 }
 
+/* add a flowvar to the flow, or update it */
+void FlowVarAddFloat(Flow *f, uint32_t idx, double value)
+{
+    FlowVar *fv = FlowVarGet(f, idx);
+    if (fv == NULL) {
+        fv = SCMalloc(sizeof(FlowVar));
+        if (unlikely(fv == NULL))
+            return;
+
+        fv->type = DETECT_FLOWVAR;
+        fv->datatype = FLOWVAR_TYPE_FLOAT;
+        fv->idx = idx;
+        fv->data.fv_float.value = value;
+        fv->next = NULL;
+
+        GenericVarAppend(&f->flowvar, (GenericVar *)fv);
+    } else {
+        FlowVarUpdateFloat(fv, value);
+    }
+}
 /* add a flowvar to the flow, or update it */
 void FlowVarAddIntNoLock(Flow *f, uint32_t idx, uint32_t value)
 {
