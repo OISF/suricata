@@ -228,7 +228,12 @@ void SCLogErr(int x, const char *file, const char *func, const int line, const c
 
 #define SCLogConfig(...)                                                                           \
     SCLog(SC_LOG_CONFIG, __FILE__, __FUNCTION__, __LINE__, _sc_module, __VA_ARGS__)
+#define SCLogConfigRaw(file, func, line, ...)                                                      \
+    SCLog(SC_LOG_CONFIG, (file), (func), (line), _sc_module, __VA_ARGS__)
+
 #define SCLogPerf(...) SCLog(SC_LOG_PERF, __FILE__, __FUNCTION__, __LINE__, _sc_module, __VA_ARGS__)
+#define SCLogPerfRaw(file, func, line, ...)                                                        \
+    SCLog(SC_LOG_PERF, (file), (func), (line), _sc_module, __VA_ARGS__)
 
 /**
  * \brief Macro used to log NOTICE messages.
@@ -303,6 +308,8 @@ void SCLogErr(int x, const char *file, const char *func, const int line, const c
  */
 #define SCLogDebug(...)                                                                            \
     SCLog(SC_LOG_DEBUG, __FILE__, __FUNCTION__, __LINE__, _sc_module, __VA_ARGS__)
+#define SCLogDebugRaw(file, func, line, ...)                                                       \
+    SCLog(SC_LOG_DEBUG, (file), (func), (line), _sc_module, __VA_ARGS__)
 
 /**
  * \brief Macro used to log debug messages on function entry.  Comes under the
