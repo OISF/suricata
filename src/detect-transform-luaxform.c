@@ -202,8 +202,6 @@ static void *DetectLuaxformThreadInit(void *data)
         SCLuaSbLoadLibs(t->luastate);
     }
 
-    LuaRegisterExtensions(t->luastate);
-
     int status = luaL_loadfile(t->luastate, lua->filename);
     if (status) {
         SCLogError("couldn't load file: %s", lua_tostring(t->luastate, -1));

@@ -25,3 +25,4 @@ environment without access to additional modules.
    ssh
    tls
    ja3
+   util
