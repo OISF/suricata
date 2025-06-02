@@ -36,6 +36,11 @@ typedef struct DetectLuaThreadData {
 #define DETECT_LUA_MAX_FLOWINTS 15
 #define DETECT_LUA_MAX_BYTEVARS 15
 
+typedef struct DetectLuaDataBytevarEntry_ {
+    char *name;
+    uint32_t id;
+} DetectLuaDataBytevarEntry;
+
 typedef struct DetectLuaData {
     int thread_ctx_id;
     int negated;
@@ -47,7 +52,7 @@ typedef struct DetectLuaData {
     uint16_t flowvars;
     uint32_t flowvar[DETECT_LUA_MAX_FLOWVARS];
     uint16_t bytevars;
-    uint32_t bytevar[DETECT_LUA_MAX_BYTEVARS];
+    DetectLuaDataBytevarEntry bytevar[DETECT_LUA_MAX_BYTEVARS];
     uint64_t alloc_limit;
     uint64_t instruction_limit;
     int allow_restricted_functions;
