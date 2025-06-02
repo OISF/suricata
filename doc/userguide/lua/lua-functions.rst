@@ -313,28 +313,3 @@ SCThreadInfo
   tid, tname, tgroup = SCThreadInfo()
 
 It gives: tid (integer), tname (string), tgroup (string)
-
-
-
-SCByteVarGet
-~~~~~~~~~~~~
-
-Get the ByteVar at index given by the parameter. These variables are defined by
-`byte_extract` or `byte_math` in Suricata rules. Only callable from match scripts.
-
-::
-
- function init(args)
-     local needs = {}
-     needs["bytevar"] = {"var1", "var2"}
-     return needs
- end
-
-Here we define a register that we will be using variables `var1` and `var2`.
-The access to the Byte variables is done by index.
-
-::
-
- function match(args)
-     var1 = SCByteVarGet(0)
-     var2 = SCByteVarGet(1)

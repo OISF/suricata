@@ -566,7 +566,11 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
         goto error;
     }
 
-    if (lua_pcall(luastate, 0, 1, 0) != 0) {
+    /* Pass the signature as the first argument, setting up bytevars depends on
+     * access to the signature. */
+    lua_pushlightuserdata(luastate, (void *)s);
+
+    if (lua_pcall(luastate, 1, 1, 0) != 0) {
         SCLogError("couldn't run script 'init' function: %s", lua_tostring(luastate, -1));
         goto error;
     }
@@ -629,34 +633,6 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
                     uint32_t idx = VarNameStoreRegister(value, VAR_TYPE_FLOW_INT);
                     ld->flowint[ld->flowints++] = idx;
                     SCLogDebug("script uses flowint %u with script id %u", idx, ld->flowints - 1);
-                }
-            }
-            lua_pop(luastate, 1);
-            continue;
-        } else if (strcmp(k, "bytevar") == 0) {
-            if (lua_istable(luastate, -1)) {
-                lua_pushnil(luastate);
-                while (lua_next(luastate, -2) != 0) {
-                    /* value at -1, key is at -2 which we ignore */
-                    const char *value = lua_tostring(luastate, -1);
-                    SCLogDebug("value %s", value);
-                    /* removes 'value'; keeps 'key' for next iteration */
-                    lua_pop(luastate, 1);
-
-                    if (ld->bytevars == DETECT_LUA_MAX_BYTEVARS) {
-                        SCLogError("too many bytevars registered");
-                        goto error;
-                    }
-
-                    DetectByteIndexType idx;
-                    if (!DetectByteRetrieveSMVar(value, s, &idx)) {
-                        SCLogError("Unknown byte_extract or byte_math var "
-                                   "requested by lua script - %s",
-                                value);
-                        goto error;
-                    }
-                    ld->bytevar[ld->bytevars++] = idx;
-                    SCLogDebug("script uses bytevar %u with script id %u", idx, ld->bytevars - 1);
                 }
             }
             lua_pop(luastate, 1);
