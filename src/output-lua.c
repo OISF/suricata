@@ -126,23 +126,37 @@ static int LuaStreamingLogger(ThreadVars *tv, void *thread_data, const Flow *f,
     }
 
     LogLuaThreadCtx *td = (LogLuaThreadCtx *)thread_data;
+    lua_State *luastate = td->lua_ctx->luastate;
 
     SCMutexLock(&td->lua_ctx->m);
 
-    LuaStateSetThreadVars(td->lua_ctx->luastate, tv);
+    LuaStateSetThreadVars(luastate, tv);
     if (flags & OUTPUT_STREAMING_FLAG_TRANSACTION)
-        LuaStateSetTX(td->lua_ctx->luastate, txptr, tx_id);
-    LuaStateSetFlow(td->lua_ctx->luastate, (Flow *)f);
-    LuaStateSetStreamingBuffer(td->lua_ctx->luastate, &b);
+        LuaStateSetTX(luastate, txptr, tx_id);
+    LuaStateSetFlow(luastate, (Flow *)f);
+    LuaStateSetStreamingBuffer(luastate, &b);
 
     /* prepare data to pass to script */
-    lua_getglobal(td->lua_ctx->luastate, "log");
-    lua_newtable(td->lua_ctx->luastate);
+    lua_getglobal(luastate, "log");
+    lua_newtable(luastate);
 
     if (flags & OUTPUT_STREAMING_FLAG_TRANSACTION)
-        LuaPushTableKeyValueInt(td->lua_ctx->luastate, "tx_id", (int)(tx_id));
+        LuaPushTableKeyValueInt(luastate, "tx_id", (int)(tx_id));
 
-    int retval = lua_pcall(td->lua_ctx->luastate, 1, 0, 0);
+    /* create the "stream" subtable */
+    lua_pushstring(luastate, "stream");
+    lua_newtable(luastate);
+
+    LuaPushTableKeyValueLString(luastate, "data", (const char *)data, data_len);
+    LuaPushTableKeyValueBoolean(luastate, "open", flags & OUTPUT_STREAMING_FLAG_OPEN);
+    LuaPushTableKeyValueBoolean(luastate, "close", flags & OUTPUT_STREAMING_FLAG_CLOSE);
+    LuaPushTableKeyValueBoolean(luastate, "to_server", flags & OUTPUT_STREAMING_FLAG_TOSERVER);
+    LuaPushTableKeyValueBoolean(luastate, "to_client", flags & OUTPUT_STREAMING_FLAG_TOCLIENT);
+
+    /* set the "stream" subtable into the main args table */
+    lua_settable(luastate, -3);
+
+    int retval = lua_pcall(luastate, 1, 0, 0);
     if (retval != 0) {
         SCLogInfo("failed to run script: %s", lua_tostring(td->lua_ctx->luastate, -1));
     }
