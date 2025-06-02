@@ -545,6 +545,7 @@ noinst_HEADERS = \
 	util-lua-flowintlib.h \
 	util-lua-flowlib.h \
 	util-lua-flowvarlib.h \
+	util-lua-bytevarlib.h \
 	util-lua-hashlib.h \
 	util-lua-http.h \
 	util-lua-ja3.h \
@@ -1124,6 +1125,7 @@ libsuricata_c_a_SOURCES = \
 	util-lua-flowintlib.c \
 	util-lua-flowlib.c \
 	util-lua-flowvarlib.c \
+	util-lua-bytevarlib.c \
 	util-lua-hashlib.c \
 	util-lua-http.c \
 	util-lua-ja3.c \
