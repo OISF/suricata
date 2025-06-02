@@ -31,6 +31,7 @@
 #include "util-debug.h"
 #include "util-lua-sandbox.h"
 #include "util-lua-builtins.h"
+#include "util-validate.h"
 
 #define SANDBOX_CTX "SANDBOX_CTX"
 
@@ -101,13 +102,13 @@ static int LuaBlockedFunction(lua_State *L)
     SCLuaSbState *context = SCLuaSbGetContext(L);
     context->blocked_function_error = true;
     lua_Debug ar;
-    lua_getstack(L, 0, &ar);
-    lua_getinfo(L, "n", &ar);
-    if (ar.name) {
+    if (lua_getstack(L, 0, &ar) && lua_getinfo(L, "n", &ar) && ar.name) {
         luaL_error(L, "Blocked Lua function called: %s", ar.name);
     } else {
         luaL_error(L, "Blocked Lua function: name not available");
     }
+    /* never reached */
+    DEBUG_VALIDATE_BUG_ON(1);
     return -1;
 }
 
