@@ -176,7 +176,8 @@ pub fn parse_dcerpc_bindack_record(i: &[u8]) -> IResult<&[u8], DceRpcBindAckReco
     let (i, _assoc_group) = take(4_usize)(i)?;
     let (i, sec_addr_len) = le_u16(i)?;
     let (i, _) = take(sec_addr_len)(i)?;
-    let (i, _) = cond((sec_addr_len+2) % 4 != 0, take(4 - (sec_addr_len+2) % 4))(i)?;
+    let topad = sec_addr_len.wrapping_add(2) % 4;
+    let (i, _) = cond(topad != 0, take(4 - topad))(i)?;
     let (i, num_results) = le_u8(i)?;
     let (i, _) = take(3_usize)(i)?; // padding
     let (i, results) = count(parse_dcerpc_bindack_result, num_results as usize)(i)?;
