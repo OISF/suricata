@@ -63,6 +63,13 @@ void LuaPushTableKeyValueInt(lua_State *luastate, const char *key, int value)
     lua_settable(luastate, -3);
 }
 
+void LuaPushTableKeyValueBoolean(lua_State *luastate, const char *key, bool value)
+{
+    lua_pushstring(luastate, key);
+    lua_pushboolean(luastate, value);
+    lua_settable(luastate, -3);
+}
+
 /** \brief Push a key plus string value to the stack
  *
  *  If value is NULL, string "(null")" will be put on the stack.
@@ -74,43 +81,22 @@ void LuaPushTableKeyValueString(lua_State *luastate, const char *key, const char
     lua_settable(luastate, -3);
 }
 
-void LuaPushTableKeyValueArray(lua_State *luastate, const char *key, const uint8_t *value, size_t len)
+/** \brief Push a key plus string value with length to the stack.
+ */
+void LuaPushTableKeyValueLString(
+        lua_State *luastate, const char *key, const char *value, size_t len)
+{
+    lua_pushstring(luastate, key);
+    lua_pushlstring(luastate, value, len);
+    lua_settable(luastate, -3);
+}
+
+void LuaPushTableKeyValueArray(
+        lua_State *luastate, const char *key, const uint8_t *value, size_t len)
 {
     lua_pushstring(luastate, key);
     LuaPushStringBuffer(luastate, value, len);
     lua_settable(luastate, -3);
-}
-
-/** \internal
- *  \brief fill lua stack with payload
- *  \param luastate the lua state
- *  \param p packet
- *  \retval cnt number of data items placed on the stack
- *
- *  Places: payload (string), open (bool), close (bool), toserver (bool), toclient (bool)
- */
-static int LuaCallbackStreamingBufferPushToStack(lua_State *luastate, const LuaStreamingBuffer *b)
-{
-    //PrintRawDataFp(stdout, (uint8_t *)b->data, b->data_len);
-    lua_pushlstring (luastate, (const char *)b->data, b->data_len);
-    lua_pushboolean (luastate, (b->flags & OUTPUT_STREAMING_FLAG_OPEN));
-    lua_pushboolean (luastate, (b->flags & OUTPUT_STREAMING_FLAG_CLOSE));
-    lua_pushboolean (luastate, (b->flags & OUTPUT_STREAMING_FLAG_TOSERVER));
-    lua_pushboolean (luastate, (b->flags & OUTPUT_STREAMING_FLAG_TOCLIENT));
-    return 5;
-}
-
-/** \internal
- *  \brief Wrapper for getting payload into a lua script
- *  \retval cnt number of items placed on the stack
- */
-static int LuaCallbackStreamingBuffer(lua_State *luastate)
-{
-    const LuaStreamingBuffer *b = LuaStateGetStreamingBuffer(luastate);
-    if (b == NULL)
-        return LuaCallbackError(luastate, "internal error: no buffer");
-
-    return LuaCallbackStreamingBufferPushToStack(luastate, b);
 }
 
 /** \internal
@@ -145,10 +131,6 @@ static int LuaCallbackThreadInfo(lua_State *luastate)
 
 int LuaRegisterFunctions(lua_State *luastate)
 {
-    /* registration of the callbacks */
-    lua_pushcfunction(luastate, LuaCallbackStreamingBuffer);
-    lua_setglobal(luastate, "SCStreamingBuffer");
-
     lua_pushcfunction(luastate, LuaCallbackThreadInfo);
     lua_setglobal(luastate, "SCThreadInfo");
     return 0;
