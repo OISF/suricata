@@ -256,7 +256,7 @@ isdataat
 The purpose of the isdataat keyword is to look if there is still data
 at a specific part of the payload.  The keyword starts with a number
 (the position) and then optional followed by 'relative' separated by a
-comma and the option rawbytes.  You use the word 'relative' to know if
+comma and the option rawbytes. You use the word 'relative' to know if
 there is still data at a specific part of the payload relative to the
 last match.
 
@@ -293,7 +293,7 @@ It can take an argument "or_else" to match on absent buffer or on what comes nex
 
    alert http any any -> any any (msg:"HTTP request without referer";  :example-rule-emphasis:`http.referer; absent: or_else;` content: !"abc"; sid:1; rev:1;)
 
-For files (ie ``file.data``), absent means there are no files in the transaction.
+For files (i.e ``file.data``), absent means there are no files in the transaction.
 
 bsize
 -----
@@ -676,7 +676,7 @@ entropy
 
 The ``entropy`` keyword calculates the Shannon entropy value for content and compares it with
 an entropy value. When there is a match, rule processing will continue. Entropy values
-are between 0.0 and 8.0, inclusive. Internally, entropy is representing as a 64-bit
+are between 0.0 and 8.0, inclusive. Internally, entropy is represented as a 64-bit
 floating point value.
 
 The ``entropy`` keyword syntax is the keyword entropy followed by options
@@ -760,7 +760,7 @@ Example of the rpc keyword in a rule:
 replace
 -------
 
-The replace content modifier can only be used in ips. It adjusts
+The replace content modifier can only be used in IPS. It adjusts
 network traffic.  It changes the content it follows ('abc') into
 another ('def'), see example:
 
@@ -828,7 +828,7 @@ you should add them to pcre, behind regex. Like this::
 *Pcre compatible modifiers*
 
 There are a few pcre compatible modifiers which can change the
-qualities of pcre as well.  These are:
+qualities of pcre as well. These are:
 
 * ``A``: A pattern has to match at the beginning of a buffer. (In pcre
   ^ is similar to A.)
@@ -859,7 +859,7 @@ Suricata has its own specific pcre modifiers. These are:
 .. image:: pcre/pcre6.png
 
 * ``I``: Makes pcre match on the HTTP-raw-uri. It matches on the same
-  buffer as http_raw_uri.  I can be combined with /R. Note that R is
+  buffer as http_raw_uri. I can be combined with /R. Note that R is
   relative to the previous match so both matches have to be in the
   HTTP-raw-uri buffer. Read more about :ref:`HTTP URI Normalization <rules-http-uri-normalization>`.
 
@@ -873,12 +873,12 @@ Suricata has its own specific pcre modifiers. These are:
   /R. Note that R is relative to the previous match so both matches
   have to be in the HTTP-response body.
 
-* ``H``: Makes pcre match on the HTTP-header.  H can be combined with
+* ``H``: Makes pcre match on the HTTP-header. H can be combined with
   /R. Note that R is relative to the previous match so both matches have
   to be in the HTTP-header body.
 
 * ``D``: Makes pcre match on the unnormalized header. So, it matches
-  on the same buffer as http_raw_header.  D can be combined with
+  on the same buffer as http_raw_header. D can be combined with
   /R. Note that R is relative to the previous match so both matches
   have to be in the HTTP-raw-header.
 
