@@ -22,31 +22,64 @@
 
 #include "lauxlib.h"
 
+static bool LuaGetAr(lua_State *L, lua_Debug *ar)
+{
+    if (lua_getstack(L, 1, ar) && lua_getinfo(L, "nSl", ar)) {
+        return true;
+    }
+    return false;
+}
+
 static int LuaLogInfo(lua_State *L)
 {
     const char *msg = luaL_checkstring(L, 1);
-    SCLogInfo("%s", msg);
+    lua_Debug ar;
+    if (LuaGetAr(L, &ar)) {
+        const char *funcname = ar.name ? ar.name : ar.what;
+        SCLogInfoRaw(ar.short_src, funcname, ar.currentline, "%s", msg);
+    } else {
+        SCLogInfo("%s", msg);
+    }
     return 0;
 }
 
 static int LuaLogNotice(lua_State *L)
 {
     const char *msg = luaL_checkstring(L, 1);
-    SCLogNotice("%s", msg);
+    lua_Debug ar;
+    if (LuaGetAr(L, &ar)) {
+        const char *funcname = ar.name ? ar.name : ar.what;
+        SCLogNoticeRaw(ar.short_src, funcname, ar.currentline, "%s", msg);
+    } else {
+        SCLogNotice("%s", msg);
+    }
+
     return 0;
 }
 
 static int LuaLogWarning(lua_State *L)
 {
     const char *msg = luaL_checkstring(L, 1);
-    SCLogWarning("%s", msg);
+    lua_Debug ar;
+    if (LuaGetAr(L, &ar)) {
+        const char *funcname = ar.name ? ar.name : ar.what;
+        SCLogWarningRaw(ar.short_src, funcname, ar.currentline, "%s", msg);
+    } else {
+        SCLogWarning("%s", msg);
+    }
     return 0;
 }
 
 static int LuaLogError(lua_State *L)
 {
     const char *msg = luaL_checkstring(L, 1);
-    SCLogError("%s", msg);
+    lua_Debug ar;
+    if (LuaGetAr(L, &ar)) {
+        const char *funcname = ar.name ? ar.name : ar.what;
+        SCLogErrorRaw(ar.short_src, funcname, ar.currentline, "%s", msg);
+    } else {
+        SCLogError("%s", msg);
+    }
     return 0;
 }
 
@@ -54,7 +87,13 @@ static int LuaLogDebug(lua_State *L)
 {
 #ifdef DEBUG
     const char *msg = luaL_checkstring(L, 1);
-    SCLogDebug("%s", msg);
+    lua_Debug ar;
+    if (LuaGetAr(L, &ar)) {
+        const char *funcname = ar.name ? ar.name : ar.what;
+        SCLogDebugRaw(ar.short_src, funcname, ar.currentline, "%s", msg);
+    } else {
+        SCLogDebug("%s", msg);
+    }
 #endif
     return 0;
 }
@@ -62,14 +101,26 @@ static int LuaLogDebug(lua_State *L)
 static int LuaLogConfig(lua_State *L)
 {
     const char *msg = luaL_checkstring(L, 1);
-    SCLogConfig("%s", msg);
+    lua_Debug ar;
+    if (LuaGetAr(L, &ar)) {
+        const char *funcname = ar.name ? ar.name : ar.what;
+        SCLogConfigRaw(ar.short_src, funcname, ar.currentline, "%s", msg);
+    } else {
+        SCLogConfig("%s", msg);
+    }
     return 0;
 }
 
 static int LuaLogPerf(lua_State *L)
 {
     const char *msg = luaL_checkstring(L, 1);
-    SCLogPerf("%s", msg);
+    lua_Debug ar;
+    if (LuaGetAr(L, &ar)) {
+        const char *funcname = ar.name ? ar.name : ar.what;
+        SCLogPerfRaw(ar.short_src, funcname, ar.currentline, "%s", msg);
+    } else {
+        SCLogPerf("%s", msg);
+    }
     return 0;
 }
 
