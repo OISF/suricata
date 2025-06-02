@@ -36,6 +36,7 @@
 #include "util-lua-ja3.h"
 #include "util-lua-filelib.h"
 #include "util-lua-log.h"
+#include "util-lua-util.h"
 
 #include "lauxlib.h"
 
@@ -59,6 +60,7 @@ static const luaL_Reg builtins[] = {
     { "suricata.smtp", SCLuaLoadSmtpLib },
     { "suricata.ssh", SCLuaLoadSshLib },
     { "suricata.tls", SCLuaLoadTlsLib },
+    { "suricata.util", SCLuaLoadUtilLib },
     { NULL, NULL },
 };
 

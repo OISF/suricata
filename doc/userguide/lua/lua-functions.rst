@@ -299,15 +299,3 @@ SCFlowintDecr
 ~~~~~~~~~~~~~
 
 Decrement Flowint at index given by the first parameter.
-
-Misc
-----
-
-SCThreadInfo
-~~~~~~~~~~~~
-
-::
-
-  tid, tname, tgroup = SCThreadInfo()
-
-It gives: tid (integer), tname (string), tgroup (string)

@@ -66,12 +66,3 @@ void LuaExtensionsMatchSetup(lua_State *lua_state, DetectLuaData *ld,
 
     LuaStateSetDirection(lua_state, (flags & STREAM_TOSERVER));
 }
-
-/**
- *  \brief Register Suricata Lua functions
- */
-int LuaRegisterExtensions(lua_State *lua_state)
-{
-    LuaRegisterFunctions(lua_state);
-    return 0;
-}
