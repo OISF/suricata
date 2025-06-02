@@ -505,7 +505,17 @@ static int LuaScriptInit(const char *filename, LogLuaScriptOptions *options, Log
 
         SCLogDebug("k='%s', v='%s'", k, v);
 
-        if (strcmp(k,"protocol") == 0 && strcmp(v, "http") == 0)
+        if (strcmp(k, "streaming") == 0) {
+            options->streaming = 1;
+            if (strcmp(v, "http") == 0) {
+                options->alproto = ALPROTO_HTTP1;
+            } else if (strcmp(v, "tcp") == 0) {
+                options->tcp_data = 1;
+            } else {
+                SCLogError("unsupported streaming argument: %s", v);
+                goto error;
+            }
+        } else if (strcmp(k, "protocol") == 0 && strcmp(v, "http") == 0)
             options->alproto = ALPROTO_HTTP1;
         else if (strcmp(k,"protocol") == 0 && strcmp(v, "dns") == 0)
             options->alproto = ALPROTO_DNS;
