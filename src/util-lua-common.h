@@ -37,8 +37,6 @@ void LuaPushTableKeyValueLString(
         lua_State *luastate, const char *key, const char *value, size_t len);
 void LuaPushTableKeyValueArray(lua_State *luastate, const char *key, const uint8_t *value, size_t len);
 
-int LuaRegisterFunctions(lua_State *luastate);
-
 int LuaStateNeedProto(lua_State *luastate, AppProto alproto);
 
 /* hack to please scan-build. Even though LuaCallbackError *always*

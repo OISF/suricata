@@ -424,7 +424,6 @@ static void *DetectLuaThreadInit(void *data)
         SCLuaSbLoadLibs(t->luastate);
     }
 
-    LuaRegisterExtensions(t->luastate);
     LuaStateSetDetectLuaData(t->luastate, lua);
 
     /* hackish, needed to allow unittests to pass buffers as scripts instead of files */

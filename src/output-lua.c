@@ -608,9 +608,6 @@ static lua_State *LuaScriptSetup(const char *filename, LogLuaMasterCtx *ctx)
 
     lua_getglobal(luastate, "setup");
 
-    /* register functions common to all */
-    LuaRegisterFunctions(luastate);
-
     if (lua_pcall(luastate, 0, 0, 0) != 0) {
         SCLogError("couldn't run script 'setup' function: %s", lua_tostring(luastate, -1));
         goto error;
