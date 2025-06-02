@@ -101,13 +101,12 @@ static int LuaBlockedFunction(lua_State *L)
     SCLuaSbState *context = SCLuaSbGetContext(L);
     context->blocked_function_error = true;
     lua_Debug ar;
-    lua_getstack(L, 0, &ar);
-    lua_getinfo(L, "n", &ar);
-    if (ar.name) {
+    if (lua_getstack(L, 0, &ar) && lua_getinfo(L, "n", &ar) && ar.name) {
         luaL_error(L, "Blocked Lua function called: %s", ar.name);
     } else {
         luaL_error(L, "Blocked Lua function: name not available");
     }
+    /* never reached */
     return -1;
 }
 
