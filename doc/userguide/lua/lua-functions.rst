@@ -219,10 +219,7 @@ according to the host OS settings.
 ::
 
   function init (args)
-      local needs = {}
-      needs["type"] = "streaming"
-      needs["filter"] = "tcp"
-      return needs
+      return {streaming = "tcp"}
   end
 
 In case of HTTP body data, the bodies are unzipped and dechunked if applicable.
@@ -230,10 +227,7 @@ In case of HTTP body data, the bodies are unzipped and dechunked if applicable.
 ::
 
   function init (args)
-      local needs = {}
-      needs["type"] = "streaming"
-      needs["protocol"] = "http"
-      return needs
+      return {streaming = "http"}
   end
 
 The streaming data will be provided in the ``args`` to the log
