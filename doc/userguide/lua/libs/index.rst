@@ -9,6 +9,7 @@ environment without access to additional modules.
 .. toctree::
 
    base64
+   bytevar
    config
    dns
    file

@@ -38,53 +38,10 @@
 
 #include "util-lua.h"
 #include "util-lua-common.h"
-#include "util-lua-smtp.h"
-#include "util-lua-dnp3.h"
 #include "detect-lua-extensions.h"
 
 /* Lua registry key for DetectLuaData. */
 const char luaext_key_ld[] = "suricata:luadata";
-
-static int GetLuaData(lua_State *luastate, DetectLuaData **ret_ld)
-{
-    *ret_ld = NULL;
-
-    DetectLuaData *ld;
-    lua_pushlightuserdata(luastate, (void *)&luaext_key_ld);
-    lua_gettable(luastate, LUA_REGISTRYINDEX);
-    ld = lua_touserdata(luastate, -1);
-    if (ld == NULL) {
-        LUA_ERROR("internal error: no ld");
-    }
-    *ret_ld = ld;
-    return 0;
-}
-
-static int LuaGetByteVar(lua_State *luastate)
-{
-    DetectLuaData *ld = NULL;
-    DetectEngineThreadCtx *det_ctx = LuaStateGetDetCtx(luastate);
-
-    if (det_ctx == NULL)
-        return LuaCallbackError(luastate, "internal error: no ldet_ctx");
-
-    int ret = GetLuaData(luastate, &ld);
-    if (ret != 0)
-        return ret;
-
-    if (!lua_isnumber(luastate, 1)) {
-        LUA_ERROR("bytevar id not a number");
-    }
-    int id = lua_tonumber(luastate, 1);
-    if (id < 0 || id >= DETECT_LUA_MAX_BYTEVARS) {
-        LUA_ERROR("bytevar id out of range");
-    }
-    uint32_t idx = ld->bytevar[id];
-
-    lua_pushinteger(luastate, det_ctx->byte_values[idx]);
-
-    return 1;
-}
 
 void LuaExtensionsMatchSetup(lua_State *lua_state, DetectLuaData *ld,
         DetectEngineThreadCtx *det_ctx, Flow *f, Packet *p, const Signature *s, uint8_t flags)
@@ -115,9 +72,6 @@ void LuaExtensionsMatchSetup(lua_State *lua_state, DetectLuaData *ld,
  */
 int LuaRegisterExtensions(lua_State *lua_state)
 {
-    lua_pushcfunction(lua_state, LuaGetByteVar);
-    lua_setglobal(lua_state, "SCByteVarGet");
-
     LuaRegisterFunctions(lua_state);
     return 0;
 }
