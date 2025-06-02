@@ -236,20 +236,24 @@ In case of HTTP body data, the bodies are unzipped and dechunked if applicable.
       return needs
   end
 
-SCStreamingBuffer
-~~~~~~~~~~~~~~~~~
-
-::
+The streaming data will be provided in the ``args`` to the log
+function within a ``stream`` subtable::
 
   function log(args)
-      -- sb_ts and sb_tc are bools indicating the direction of the data
-      data, sb_open, sb_close, sb_ts, sb_tc = SCStreamingBuffer()
-      if sb_ts then
-        print("->")
-      else
-        print("<-")
-      end
-      hex_dump(data)
+    -- The data (buffer)
+    local data = args["stream"]["data"]
+
+    -- Buffer open?
+    local open = args["stream"]["open"]
+
+    -- Buffer closed?
+    local close = args["stream"]["close"]
+
+    -- To server?
+    local ts = args["stream"]["toserver"]
+
+    -- To client?
+    local tc = args["stream"]["toclient"]
   end
 
 Flow variables
