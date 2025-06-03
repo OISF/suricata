@@ -17,6 +17,7 @@
 
 //! Module for transforms
 
+pub mod base64;
 pub mod casechange;
 pub mod compress_whitespace;
 pub mod domain;

@@ -26,7 +26,6 @@ pub mod iprep;
 pub mod parser;
 pub mod requires;
 pub mod stream_size;
-pub mod transform_base64;
 pub mod transforms;
 pub mod uint;
 pub mod float;
