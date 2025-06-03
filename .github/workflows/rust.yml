@@ -108,5 +108,5 @@ jobs:
               exit 1
           fi
       # does not work in other subdirectories for now
-      - run: cargo fmt
+      - run: cargo fmt --check
         working-directory: rust/htp
