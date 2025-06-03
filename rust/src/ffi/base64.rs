@@ -31,7 +31,7 @@ pub enum SCBase64ReturnCode {
     SC_BASE64_OVERFLOW,
 }
 
-#[repr(C)]
+#[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum SCBase64Mode {
     /* If the following strings were to be passed to the decoder with RFC2045 mode,
