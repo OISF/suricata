@@ -21,7 +21,7 @@ use std::convert::From;
 use std::fmt;
 use std::fmt::{Display, Formatter};
 
-use asn1_rs::{FromBer, ParseResult};
+use ldap_parser::asn1_rs::{FromBer, ParseResult};
 use ldap_parser::error::LdapError;
 
 use crate::ldap::filters::*;
