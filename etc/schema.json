@@ -1348,6 +1348,11 @@
                     "minItems": 1,
                     "items": {
                         "type": "string"
+                    },
+                    "suricata": {
+                        "keywords": [
+                            "file.name"
+                        ]
                     }
                 },
                 "body_md5": {
