@@ -22,7 +22,8 @@ use crate::detect::uint::{
     SCDetectU8Free,
 };
 use crate::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
-use crate::ldap::types::{LdapMessage, LdapResultCode, ProtocolOp, ProtocolOpCode};
+use crate::ldap::types::*;
+use ldap_parser::ldap::{LdapMessage, ProtocolOp};
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
     SCDetectHelperBufferMpmRegister, SCDetectHelperBufferRegister, SCDetectHelperKeywordRegister,
@@ -120,7 +121,7 @@ unsafe extern "C" fn ldap_detect_request_operation_match(
     let tx = cast_pointer!(tx, LdapTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u8>);
     if let Some(request) = &tx.request {
-        let option = request.protocol_op.to_u8();
+        let option = request.protocol_op.tag().0 as u8;
         return detect_match_uint(ctx, option) as c_int;
     }
     return 0;
@@ -251,7 +252,7 @@ unsafe extern "C" fn ldap_detect_responses_operation_match(
     return match_at_index::<LdapMessage, u8>(
         &tx.responses,
         &ctx.du8,
-        |response| Some(response.protocol_op.to_u8()),
+        |response| Some(response.protocol_op.tag().0 as u8),
         |code, ctx_value| detect_match_uint(ctx_value, code) as c_int,
         &ctx.index,
     );
@@ -326,13 +327,13 @@ unsafe extern "C" fn ldap_detect_request_dn_get_data(
 
     if let Some(request) = &tx.request {
         let str_buffer: &str = match &request.protocol_op {
-            ProtocolOp::BindRequest(req) => req.name.0.as_str(),
-            ProtocolOp::AddRequest(req) => req.entry.0.as_str(),
-            ProtocolOp::SearchRequest(req) => req.base_object.0.as_str(),
-            ProtocolOp::ModifyRequest(req) => req.object.0.as_str(),
-            ProtocolOp::DelRequest(req) => req.0.as_str(),
-            ProtocolOp::ModDnRequest(req) => req.entry.0.as_str(),
-            ProtocolOp::CompareRequest(req) => req.entry.0.as_str(),
+            ProtocolOp::BindRequest(req) => req.name.0.as_ref(),
+            ProtocolOp::AddRequest(req) => req.entry.0.as_ref(),
+            ProtocolOp::SearchRequest(req) => req.base_object.0.as_ref(),
+            ProtocolOp::ModifyRequest(req) => req.object.0.as_ref(),
+            ProtocolOp::DelRequest(req) => req.0.as_ref(),
+            ProtocolOp::ModDnRequest(req) => req.entry.0.as_ref(),
+            ProtocolOp::CompareRequest(req) => req.entry.0.as_ref(),
             _ => return false,
         };
         *buffer = str_buffer.as_ptr();
@@ -369,15 +370,15 @@ unsafe extern "C" fn ldap_tx_get_responses_dn(
     let response = &tx.responses[local_id as usize];
     // We expect every response in one tx to be the same protocol_op
     let str_buffer: &str = match &response.protocol_op {
-        ProtocolOp::SearchResultEntry(resp) => resp.object_name.0.as_str(),
-        ProtocolOp::BindResponse(resp) => resp.result.matched_dn.0.as_str(),
-        ProtocolOp::SearchResultDone(resp) => resp.matched_dn.0.as_str(),
-        ProtocolOp::ModifyResponse(resp) => resp.result.matched_dn.0.as_str(),
-        ProtocolOp::AddResponse(resp) => resp.matched_dn.0.as_str(),
-        ProtocolOp::DelResponse(resp) => resp.matched_dn.0.as_str(),
-        ProtocolOp::ModDnResponse(resp) => resp.matched_dn.0.as_str(),
-        ProtocolOp::CompareResponse(resp) => resp.matched_dn.0.as_str(),
-        ProtocolOp::ExtendedResponse(resp) => resp.result.matched_dn.0.as_str(),
+        ProtocolOp::SearchResultEntry(resp) => resp.object_name.0.as_ref(),
+        ProtocolOp::BindResponse(resp) => resp.result.matched_dn.0.as_ref(),
+        ProtocolOp::SearchResultDone(resp) => resp.matched_dn.0.as_ref(),
+        ProtocolOp::ModifyResponse(resp) => resp.result.matched_dn.0.as_ref(),
+        ProtocolOp::AddResponse(resp) => resp.matched_dn.0.as_ref(),
+        ProtocolOp::DelResponse(resp) => resp.matched_dn.0.as_ref(),
+        ProtocolOp::ModDnResponse(resp) => resp.matched_dn.0.as_ref(),
+        ProtocolOp::CompareResponse(resp) => resp.matched_dn.0.as_ref(),
+        ProtocolOp::ExtendedResponse(resp) => resp.result.matched_dn.0.as_ref(),
         _ => "",
         // This ensures that the iteration continues,
         // allowing other responses in the transaction to be processed correctly
@@ -503,14 +504,14 @@ unsafe extern "C" fn ldap_tx_get_responses_msg(
     let response = &tx.responses[local_id as usize];
     // We expect every response in one tx to be the same protocol_op
     let str_buffer: &str = match &response.protocol_op {
-        ProtocolOp::BindResponse(resp) => resp.result.diagnostic_message.0.as_str(),
-        ProtocolOp::SearchResultDone(resp) => resp.diagnostic_message.0.as_str(),
-        ProtocolOp::ModifyResponse(resp) => resp.result.diagnostic_message.0.as_str(),
-        ProtocolOp::AddResponse(resp) => resp.diagnostic_message.0.as_str(),
-        ProtocolOp::DelResponse(resp) => resp.diagnostic_message.0.as_str(),
-        ProtocolOp::ModDnResponse(resp) => resp.diagnostic_message.0.as_str(),
-        ProtocolOp::CompareResponse(resp) => resp.diagnostic_message.0.as_str(),
-        ProtocolOp::ExtendedResponse(resp) => resp.result.diagnostic_message.0.as_str(),
+        ProtocolOp::BindResponse(resp) => resp.result.diagnostic_message.0.as_ref(),
+        ProtocolOp::SearchResultDone(resp) => resp.diagnostic_message.0.as_ref(),
+        ProtocolOp::ModifyResponse(resp) => resp.result.diagnostic_message.0.as_ref(),
+        ProtocolOp::AddResponse(resp) => resp.diagnostic_message.0.as_ref(),
+        ProtocolOp::DelResponse(resp) => resp.diagnostic_message.0.as_ref(),
+        ProtocolOp::ModDnResponse(resp) => resp.diagnostic_message.0.as_ref(),
+        ProtocolOp::CompareResponse(resp) => resp.diagnostic_message.0.as_ref(),
+        ProtocolOp::ExtendedResponse(resp) => resp.result.diagnostic_message.0.as_ref(),
         _ => "",
         // This ensures that the iteration continues,
         // allowing other responses in the transaction to be processed correctly
@@ -547,7 +548,7 @@ unsafe extern "C" fn ldap_tx_get_req_attribute_type(
                 if local_id as usize >= req.attributes.len() {
                     return false;
                 }
-                req.attributes[local_id as usize].0.as_str()
+                req.attributes[local_id as usize].0.as_ref()
             }
             ProtocolOp::ModifyRequest(req) => {
                 if local_id as usize >= req.changes.len() {
@@ -557,19 +558,19 @@ unsafe extern "C" fn ldap_tx_get_req_attribute_type(
                     .modification
                     .attr_type
                     .0
-                    .as_str()
+                    .as_ref()
             }
             ProtocolOp::AddRequest(req) => {
                 if local_id as usize >= req.attributes.len() {
                     return false;
                 }
-                req.attributes[local_id as usize].attr_type.0.as_str()
+                req.attributes[local_id as usize].attr_type.0.as_ref()
             }
             ProtocolOp::CompareRequest(req) => {
                 if local_id > 0 {
                     return false;
                 }
-                req.ava.attribute_desc.0.as_str()
+                req.ava.attribute_desc.0.as_ref()
             }
             _ => return false,
         };
