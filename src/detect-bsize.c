@@ -46,7 +46,7 @@ static int SigParseGetMaxBsize(const DetectU64Data *bsz, uint64_t *bsize);
 static void DetectBsizeRegisterTests (void);
 #endif
 
-bool DetectBsizeValidateContentCallback(Signature *s, const SignatureInitDataBuffer *b)
+bool DetectBsizeValidateContentCallback(const Signature *s, const SignatureInitDataBuffer *b)
 {
     uint64_t bsize;
     int retval = -1;
