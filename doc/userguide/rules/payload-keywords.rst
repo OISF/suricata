@@ -733,6 +733,20 @@ a Shannon entropy value of 4 or higher::
 
 	alert http any any -> any any (msg:"entropy simple test"; file.data; entropy: value >= 4; sid:1;)
 
+Logging
+~~~~~~~
+
+When the ``entropy`` rule keyword is provide and the rule is evaluated, the calculated entropy
+value is logged within the ``metadata`` section of an output log. If the alert matched, it will
+be included there; here's an example that shows the calculated entropy value with the buffer
+on which the value was computed::
+
+     "metadata": {
+        "entropy": {
+          "file_data": 4.265743301617466
+        }
+      }
+
 rpc
 ---
 
