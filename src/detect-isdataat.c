@@ -115,7 +115,7 @@ static int DetectAbsentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
     return 0;
 }
 
-bool DetectAbsentValidateContentCallback(Signature *s, const SignatureInitDataBuffer *b)
+bool DetectAbsentValidateContentCallback(const Signature *s, const SignatureInitDataBuffer *b)
 {
     bool has_other = false;
     bool only_absent = false;
