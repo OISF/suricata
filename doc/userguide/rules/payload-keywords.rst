@@ -733,6 +733,32 @@ a Shannon entropy value of 4 or higher::
 
 	alert http any any -> any any (msg:"entropy simple test"; file.data; entropy: value >= 4; sid:1;)
 
+Logging
+~~~~~~~
+
+When the ``entropy`` rule keyword is provided and the rule is evaluated, the
+`calculated entropy` value is logged within the ``metadata`` section of an
+output log. If the alert matched, it will be included there; here's an example
+that shows the calculated entropy value with the buffer on which the value was
+computed::
+
+     "metadata": {
+        "entropy": {
+          "file_data": 4.265743301617466
+        }
+      }
+
+The events where entropy is logged will depend largely on how it's used within a
+rule and the rule's protocol.
+
+For example -- this rule -- when evaluated by Suricata -- will result in the
+`calculated entropy` being included in the ``alert, flow`` and ``http`` events.
+Depending on the traffic and Suricata configuration, other event types may
+include the entropy value::
+
+    alert http any any -> any any (flow:established; file.data; entropy: value > 4.4; sid: 1;)
+
+
 rpc
 ---
 
