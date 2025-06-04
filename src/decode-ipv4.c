@@ -585,6 +585,16 @@ int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         case IPPROTO_ESP:
             DecodeESP(tv, dtv, p, data, data_len);
             break;
+        case IPPROTO_IPIP: {
+            /* spawn off tunnel packet */
+            Packet *tp = PacketTunnelPktSetup(tv, dtv, p, data, data_len, DECODE_TUNNEL_IPV4);
+            if (tp != NULL) {
+                PKT_SET_SRC(tp, PKT_SRC_DECODER_IPV4);
+                PacketEnqueueNoLock(&tv->decode_pq, tp);
+            }
+            FlowSetupPacket(p);
+            break;
+        }
         case IPPROTO_IPV6:
             {
                 /* spawn off tunnel packet */
