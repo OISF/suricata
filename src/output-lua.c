@@ -126,9 +126,8 @@ static int LuaStreamingLogger(ThreadVars *tv, void *thread_data, const Flow *f,
     }
 
     LogLuaThreadCtx *td = (LogLuaThreadCtx *)thread_data;
-    lua_State *luastate = td->lua_ctx->luastate;
-
     SCMutexLock(&td->lua_ctx->m);
+    lua_State *luastate = td->lua_ctx->luastate;
 
     LuaStateSetThreadVars(luastate, tv);
     if (flags & OUTPUT_STREAMING_FLAG_TRANSACTION)
