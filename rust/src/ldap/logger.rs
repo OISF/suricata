@@ -19,18 +19,19 @@
 
 use crate::detect::EnumString;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
-use crate::ldap::filters::*;
 use crate::ldap::ldap::LdapTransaction;
 use crate::ldap::types::*;
+use ldap_parser::filter::*;
+use ldap_parser::ldap::*;
 
 fn log_ldap(tx: &LdapTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
     js.open_object("ldap")?;
 
     if let Some(req) = &tx.request {
-        let protocol_op_str = req.protocol_op.to_string();
+        let protocol_op_str = ldap_protocol_op_as_str(&req.protocol_op);
         js.open_object("request")?;
         js.set_uint("message_id", req.message_id.0)?;
-        js.set_string("operation", &protocol_op_str)?;
+        js.set_string("operation", protocol_op_str)?;
 
         match &req.protocol_op {
             ProtocolOp::SearchRequest(msg) => log_search_request(msg, js)?,
@@ -56,8 +57,8 @@ fn log_ldap(tx: &LdapTransaction, js: &mut JsonBuilder) -> Result<(), JsonError>
         for response in &tx.responses {
             js.start_object()?;
 
-            let protocol_op_str = response.protocol_op.to_string();
-            js.set_string("operation", &protocol_op_str)?;
+            let protocol_op_str = ldap_protocol_op_as_str(&response.protocol_op);
+            js.set_string("operation", protocol_op_str)?;
 
             if tx.request.is_none() {
                 js.set_uint("message_id", response.message_id.0)?;
@@ -97,7 +98,7 @@ fn log_search_request(msg: &SearchRequest, js: &mut JsonBuilder) -> Result<(), J
     if let Filter::Present(val) = &msg.filter {
         js.open_object("filter")?;
         js.set_string("type", "present")?;
-        js.set_string("value", &val.0.to_string())?;
+        js.set_string("value", &val.0)?;
         js.close()?;
     }
     if !msg.attributes.is_empty() {
@@ -135,7 +136,10 @@ fn log_modify_request(msg: &ModifyRequest, js: &mut JsonBuilder) -> Result<(), J
         js.open_array("changes")?;
         for change in &msg.changes {
             js.start_object()?;
-            js.set_string("operation", &change.operation.to_string())?;
+            js.set_string(
+                "operation",
+                ldap_operation_to_string(&change.operation).as_str(),
+            )?;
             js.open_object("modification")?;
             js.set_string("attribute_type", &change.modification.attr_type.0)?;
             if !change.modification.attr_vals.is_empty() {

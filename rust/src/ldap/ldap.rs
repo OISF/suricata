@@ -15,7 +15,8 @@
  * 02110-1301, USA.
  */
 
-// written by Giuseppe Longo <giuseppe@glongo.it>
+// Author: Giuseppe Longo <giuseppe@glongo.it>
+// Author: Pierre Chifflier <chifflier@wzdftpd.net>
 
 use crate::applayer::{self, *};
 use crate::conf::conf_get;
@@ -23,6 +24,7 @@ use crate::core::*;
 use crate::direction::Direction;
 use crate::flow::Flow;
 use crate::frames::*;
+use ldap_parser::asn1_rs::ToStatic;
 use nom7 as nom;
 use std;
 use std::collections::VecDeque;
@@ -32,7 +34,8 @@ use suricata_sys::sys::{
     AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled, SCAppLayerRequestProtocolTLSUpgrade,
 };
 
-use crate::ldap::types::*;
+use super::types::*;
+use ldap_parser::ldap::*;
 
 static LDAP_MAX_TX_DEFAULT: usize = 256;
 
@@ -58,8 +61,8 @@ enum LdapEvent {
 #[derive(Debug)]
 pub struct LdapTransaction {
     pub tx_id: u64,
-    pub request: Option<LdapMessage>,
-    pub responses: VecDeque<LdapMessage>,
+    pub request: Option<LdapMessage<'static>>,
+    pub responses: VecDeque<LdapMessage<'static>>,
     complete: bool,
 
     tx_data: AppLayerTxData,
@@ -237,7 +240,7 @@ impl LdapState {
                         }
                     }
                     tx.complete |= tx_is_complete(&request.protocol_op, Direction::ToServer);
-                    tx.request = Some(request);
+                    tx.request = Some(request.to_static());
                     self.transactions.push_back(tx);
                     sc_app_layer_parser_trigger_raw_stream_inspection(
                         flow,
@@ -309,7 +312,7 @@ impl LdapState {
                         tx.complete |= tx_is_complete(&response.protocol_op, Direction::ToClient);
                         let tx_id = tx.id();
                         tx.tx_data.updated_tc = true;
-                        tx.responses.push_back(response);
+                        tx.responses.push_back(response.to_static());
                         sc_app_layer_parser_trigger_raw_stream_inspection(
                             flow,
                             Direction::ToClient as i32,
@@ -326,7 +329,7 @@ impl LdapState {
                         let mut tx = tx.unwrap();
                         let tx_id = tx.id();
                         tx.complete = true;
-                        tx.responses.push_back(response);
+                        tx.responses.push_back(response.to_static());
                         self.transactions.push_back(tx);
                         sc_app_layer_parser_trigger_raw_stream_inspection(
                             flow,
@@ -342,7 +345,7 @@ impl LdapState {
                         let mut tx = tx.unwrap();
                         tx.complete = true;
                         let tx_id = tx.id();
-                        tx.responses.push_back(response);
+                        tx.responses.push_back(response.to_static());
                         self.transactions.push_back(tx);
                         sc_app_layer_parser_trigger_raw_stream_inspection(
                             flow,
@@ -392,7 +395,7 @@ impl LdapState {
                 let mut tx = tx.unwrap();
                 let request = LdapMessage::from(msg);
                 tx.complete |= tx_is_complete(&request.protocol_op, Direction::ToServer);
-                tx.request = Some(request);
+                tx.request = Some(request.to_static());
                 self.transactions.push_back(tx);
             }
             Err(nom::Err::Incomplete(_)) => {
@@ -435,7 +438,7 @@ impl LdapState {
                     if let Some(tx) = self.find_request(response.message_id) {
                         tx.complete |= tx_is_complete(&response.protocol_op, Direction::ToClient);
                         let tx_id = tx.id();
-                        tx.responses.push_back(response);
+                        tx.responses.push_back(response.to_static());
                         let consumed = start.len() - rem.len();
                         self.set_frame_tc(flow, tx_id, consumed as i64);
                     } else if let ProtocolOp::ExtendedResponse(_) = response.protocol_op {
@@ -448,7 +451,7 @@ impl LdapState {
                         let mut tx = tx.unwrap();
                         tx.complete = true;
                         let tx_id = tx.id();
-                        tx.responses.push_back(response);
+                        tx.responses.push_back(response.to_static());
                         self.transactions.push_back(tx);
                         let consumed = start.len() - rem.len();
                         self.set_frame_tc(flow, tx_id, consumed as i64);
@@ -460,7 +463,7 @@ impl LdapState {
                         let mut tx = tx.unwrap();
                         tx.complete = true;
                         let tx_id = tx.id();
-                        tx.responses.push_back(response);
+                        tx.responses.push_back(response.to_static());
                         self.transactions.push_back(tx);
                         self.set_event(LdapEvent::RequestNotFound);
                         let consumed = start.len() - rem.len();
@@ -531,12 +534,12 @@ fn probe(input: &[u8], direction: Direction, rdir: *mut u8) -> AppProto {
     match ldap_parse_msg(input) {
         Ok((_, msg)) => {
             let ldap_msg = LdapMessage::from(msg);
-            if direction == Direction::ToServer && !ldap_msg.is_request() {
+            if direction == Direction::ToServer && !ldap_is_request(&ldap_msg) {
                 unsafe {
                     *rdir = Direction::ToClient.into();
                 }
             }
-            if direction == Direction::ToClient && !ldap_msg.is_response() {
+            if direction == Direction::ToClient && !ldap_is_response(&ldap_msg) {
                 unsafe {
                     *rdir = Direction::ToServer.into();
                 }
