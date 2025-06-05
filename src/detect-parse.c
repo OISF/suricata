@@ -2460,16 +2460,16 @@ static void SigSetupPrefilter(DetectEngineCtx *de_ctx, Signature *s)
  */
 static bool DetectRuleValidateTable(const Signature *s)
 {
-    if (s->firewall_table == 0)
+    if (s->detect_table == 0)
         return true;
 
-    const uint8_t table_as_flag = BIT_U8(s->firewall_table);
+    const uint8_t table_as_flag = BIT_U8(s->detect_table);
 
     for (SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
         const uint8_t kw_tables_supported = sigmatch_table[sm->type].tables;
         if (kw_tables_supported != 0 && (kw_tables_supported & table_as_flag) == 0) {
             SCLogError("rule %u uses hook \"%s\", but keyword \"%s\" doesn't support this hook",
-                    s->id, DetectTableToString(s->firewall_table), sigmatch_table[sm->type].name);
+                    s->id, DetectTableToString(s->detect_table), sigmatch_table[sm->type].name);
             return false;
         }
     }
@@ -2487,33 +2487,34 @@ static bool DetectFirewallRuleValidate(const DetectEngineCtx *de_ctx, const Sign
     return true;
 }
 
-static void DetectFirewallRuleSetTable(Signature *s)
+static void DetectRuleSetTable(Signature *s)
 {
-    enum FirewallTable table;
+    enum DetectTable table;
     if (s->flags & SIG_FLAG_FIREWALL) {
         if (s->type == SIG_TYPE_PKT) {
             if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_PKT &&
                     s->init_data->hook.t.pkt.ph == SIGNATURE_HOOK_PKT_PRE_STREAM)
-                table = FIREWALL_TABLE_PACKET_PRE_STREAM;
+                table = DETECT_TABLE_PACKET_PRE_STREAM;
             else if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_PKT &&
                      s->init_data->hook.t.pkt.ph == SIGNATURE_HOOK_PKT_PRE_FLOW)
-                table = FIREWALL_TABLE_PACKET_PRE_FLOW;
+                table = DETECT_TABLE_PACKET_PRE_FLOW;
             else
-                table = FIREWALL_TABLE_PACKET_FILTER;
+                table = DETECT_TABLE_PACKET_FILTER;
         } else if (s->type == SIG_TYPE_APP_TX) {
-            table = FIREWALL_TABLE_APP_FILTER;
+            table = DETECT_TABLE_APP_FILTER;
         } else {
             BUG_ON(1);
         }
     } else {
+        // TODO pre_flow/pre_stream
         if (s->type != SIG_TYPE_APP_TX) {
-            table = FIREWALL_TABLE_PACKET_TD;
+            table = DETECT_TABLE_PACKET_TD;
         } else {
-            table = FIREWALL_TABLE_APP_TD;
+            table = DETECT_TABLE_APP_TD;
         }
     }
 
-    s->firewall_table = (uint8_t)table;
+    s->detect_table = (uint8_t)table;
 }
 
 static int SigValidateFirewall(const DetectEngineCtx *de_ctx, const Signature *s)
@@ -2829,9 +2830,7 @@ static int SigValidateConsolidate(
     SigConsolidateTcpBuffer(s);
 
     SignatureSetType(de_ctx, s);
-    if (de_ctx->flags & DE_HAS_FIREWALL) {
-        DetectFirewallRuleSetTable(s);
-    }
+    DetectRuleSetTable(s);
 
     int r = SigValidateFileHandling(s);
     if (r == 0) {
