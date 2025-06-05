@@ -9,7 +9,7 @@ description = "Suricata control tools"
 name = "suricatactl"
 
 [dependencies]
-regex = "~1.5.5"
+regex = "~1.5.6"
 tracing = "0.1"
 tracing-subscriber = "0.3"
 once_cell = { version = "1.21.3" }
