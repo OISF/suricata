@@ -28,37 +28,37 @@
 
 static int IMAPRegisterPatternsForProtocolDetection(void)
 {
-    if (AppLayerProtoDetectPMRegisterPatternCI(
+    if (SCAppLayerProtoDetectPMRegisterPatternCI(
                 IPPROTO_TCP, ALPROTO_IMAP, "* OK ", 5, 0, STREAM_TOCLIENT) < 0) {
         return -1;
     }
 
-    if (AppLayerProtoDetectPMRegisterPatternCI(
+    if (SCAppLayerProtoDetectPMRegisterPatternCI(
                 IPPROTO_TCP, ALPROTO_IMAP, "* NO ", 5, 0, STREAM_TOCLIENT) < 0) {
         return -1;
     }
 
-    if (AppLayerProtoDetectPMRegisterPatternCI(
+    if (SCAppLayerProtoDetectPMRegisterPatternCI(
                 IPPROTO_TCP, ALPROTO_IMAP, "* BAD ", 6, 0, STREAM_TOCLIENT) < 0) {
         return -1;
     }
 
-    if (AppLayerProtoDetectPMRegisterPatternCI(
+    if (SCAppLayerProtoDetectPMRegisterPatternCI(
                 IPPROTO_TCP, ALPROTO_IMAP, "* LIST ", 7, 0, STREAM_TOCLIENT) < 0) {
         return -1;
     }
 
-    if (AppLayerProtoDetectPMRegisterPatternCI(
+    if (SCAppLayerProtoDetectPMRegisterPatternCI(
                 IPPROTO_TCP, ALPROTO_IMAP, "* ESEARCH ", 10, 0, STREAM_TOCLIENT) < 0) {
         return -1;
     }
 
-    if (AppLayerProtoDetectPMRegisterPatternCI(
+    if (SCAppLayerProtoDetectPMRegisterPatternCI(
                 IPPROTO_TCP, ALPROTO_IMAP, "* STATUS ", 9, 0, STREAM_TOCLIENT) < 0) {
         return -1;
     }
 
-    if (AppLayerProtoDetectPMRegisterPatternCI(
+    if (SCAppLayerProtoDetectPMRegisterPatternCI(
                 IPPROTO_TCP, ALPROTO_IMAP, "* FLAGS ", 8, 0, STREAM_TOCLIENT) < 0) {
         return -1;
     }
@@ -73,7 +73,7 @@ static int IMAPRegisterPatternsForProtocolDetection(void)
      * AppLayerTest10 fails because it expects protocol detection to be completed with only 17 bytes
      * as input, and with this new pattern, we would need more bytes to finish protocol detection.
      */
-    if (AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_IMAP, " CAPABILITY",
+    if (SCAppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_IMAP, " CAPABILITY",
                 17 /*6 for max tag len + space + len(CAPABILITY)*/, 0, STREAM_TOSERVER) < 0) {
         return -1;
     }
@@ -85,7 +85,7 @@ void RegisterIMAPParsers(void)
 {
     const char *proto_name = "imap";
 
-    if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
+    if (SCAppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
         SCLogDebug("IMAP protocol detection is enabled.");
         AppLayerProtoDetectRegisterProtocol(ALPROTO_IMAP, proto_name);
         if (IMAPRegisterPatternsForProtocolDetection() < 0)

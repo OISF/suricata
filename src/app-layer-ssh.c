@@ -60,14 +60,12 @@
 
 static int SSHRegisterPatternsForProtocolDetection(void)
 {
-    if (AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_SSH,
-                                               "SSH-", 4, 0, STREAM_TOSERVER) < 0)
-    {
+    if (SCAppLayerProtoDetectPMRegisterPatternCI(
+                IPPROTO_TCP, ALPROTO_SSH, "SSH-", 4, 0, STREAM_TOSERVER) < 0) {
         return -1;
     }
-    if (AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_SSH,
-                                               "SSH-", 4, 0, STREAM_TOCLIENT) < 0)
-    {
+    if (SCAppLayerProtoDetectPMRegisterPatternCI(
+                IPPROTO_TCP, ALPROTO_SSH, "SSH-", 4, 0, STREAM_TOCLIENT) < 0) {
         return -1;
     }
     return 0;
@@ -84,7 +82,7 @@ void RegisterSSHParsers(void)
 {
     const char *proto_name = "ssh";
 
-    if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
+    if (SCAppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
         AppLayerProtoDetectRegisterProtocol(ALPROTO_SSH, proto_name);
         if (SSHRegisterPatternsForProtocolDetection() < 0)
             return;

@@ -24,7 +24,10 @@ use crate::frames::*;
 use nom7::error::{Error, ErrorKind};
 use nom7::number::Endianness;
 use nom7::{Err, IResult, Needed};
-use suricata_sys::sys::AppProto;
+use suricata_sys::sys::{
+    AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled,
+    SCAppLayerProtoDetectPMRegisterPatternCSwPP,
+};
 use std;
 use std::cmp;
 use std::ffi::CString;
@@ -1021,7 +1024,7 @@ fn evaluate_stub_params(
 }
 
 unsafe extern "C" fn parse_request(
-    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -1045,7 +1048,7 @@ unsafe extern "C" fn parse_request(
 }
 
 unsafe extern "C" fn parse_response(
-    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -1179,16 +1182,16 @@ unsafe extern "C" fn probe_tcp(_f: *const Flow, direction: u8, input: *const u8,
 
 fn register_pattern_probe() -> i8 {
     unsafe {
-        if AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_DCERPC,
+        if SCAppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_DCERPC,
                                                      b"|05 00|\0".as_ptr() as *const std::os::raw::c_char, 2, 0,
-                                                     Direction::ToServer.into(), probe_tcp, 0, 0) < 0 {
-            SCLogDebug!("TOSERVER => AppLayerProtoDetectPMRegisterPatternCSwPP FAILED");
+                                                     Direction::ToServer.into(), Some(probe_tcp), 0, 0) < 0 {
+            SCLogDebug!("TOSERVER => SCAppLayerProtoDetectPMRegisterPatternCSwPP FAILED");
             return -1;
         }
-        if AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_DCERPC,
+        if SCAppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_DCERPC,
                                                      b"|05 00|\0".as_ptr() as *const std::os::raw::c_char, 2, 0,
-                                                     Direction::ToClient.into(), probe_tcp, 0, 0) < 0 {
-            SCLogDebug!("TOCLIENT => AppLayerProtoDetectPMRegisterPatternCSwPP FAILED");
+                                                     Direction::ToClient.into(), Some(probe_tcp), 0, 0) < 0 {
+            SCLogDebug!("TOCLIENT => SCAppLayerProtoDetectPMRegisterPatternCSwPP FAILED");
             return -1;
         }
     }
@@ -1239,7 +1242,7 @@ pub unsafe extern "C" fn SCRegisterDcerpcParser() {
 
     let ip_proto_str = CString::new("tcp").unwrap();
 
-    if AppLayerProtoDetectConfProtoDetectionEnabled(
+    if SCAppLayerProtoDetectConfProtoDetectionEnabled(
         ip_proto_str.as_ptr(),
         parser.name,
     ) != 0

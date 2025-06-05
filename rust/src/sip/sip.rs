@@ -25,7 +25,10 @@ use crate::flow::Flow;
 use crate::frames::*;
 use crate::sip::parser::*;
 use nom7::Err;
-use suricata_sys::sys::AppProto;
+use suricata_sys::sys::{
+    AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled,
+    SCAppLayerProtoDetectPMRegisterPatternCS,
+};
 use std;
 use std::collections::VecDeque;
 use std::ffi::CString;
@@ -437,7 +440,7 @@ extern "C" fn sip_tx_get_alstate_progress(
 pub static mut ALPROTO_SIP: AppProto = ALPROTO_UNKNOWN;
 
 unsafe extern "C" fn sip_parse_request(
-    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, SIPState);
@@ -445,7 +448,7 @@ unsafe extern "C" fn sip_parse_request(
 }
 
 unsafe extern "C" fn sip_parse_request_tcp(
-    flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     if stream_slice.is_empty() {
@@ -461,7 +464,7 @@ unsafe extern "C" fn sip_parse_request_tcp(
 }
 
 unsafe extern "C" fn sip_parse_response(
-    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, SIPState);
@@ -469,7 +472,7 @@ unsafe extern "C" fn sip_parse_response(
 }
 
 unsafe extern "C" fn sip_parse_response_tcp(
-    flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     if stream_slice.is_empty() {
@@ -503,7 +506,7 @@ fn register_pattern_probe(proto: u8) -> i8 {
     unsafe {
         for method in methods {
             let depth = (method.len() - 1) as u16;
-            r |= AppLayerProtoDetectPMRegisterPatternCS(
+            r |= SCAppLayerProtoDetectPMRegisterPatternCS(
                 proto,
                 ALPROTO_SIP,
                 method.as_ptr() as *const std::os::raw::c_char,
@@ -512,7 +515,7 @@ fn register_pattern_probe(proto: u8) -> i8 {
                 Direction::ToServer as u8,
             );
         }
-        r |= AppLayerProtoDetectPMRegisterPatternCS(
+        r |= SCAppLayerProtoDetectPMRegisterPatternCS(
             proto,
             ALPROTO_SIP,
             b"SIP/2.0\0".as_ptr() as *const std::os::raw::c_char,
@@ -521,7 +524,7 @@ fn register_pattern_probe(proto: u8) -> i8 {
             Direction::ToClient as u8,
         );
         if proto == core::IPPROTO_UDP {
-            r |= AppLayerProtoDetectPMRegisterPatternCS(
+            r |= SCAppLayerProtoDetectPMRegisterPatternCS(
                 proto,
                 ALPROTO_SIP,
                 "UPDATE\0".as_ptr() as *const std::os::raw::c_char,
@@ -581,7 +584,7 @@ pub unsafe extern "C" fn SCRegisterSipParser() {
     };
 
     let ip_proto_str = CString::new("udp").unwrap();
-    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+    if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_SIP = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
@@ -603,7 +606,7 @@ pub unsafe extern "C" fn SCRegisterSipParser() {
     parser.parse_tc = sip_parse_response_tcp;
 
     let ip_proto_str = CString::new("tcp").unwrap();
-    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+    if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_SIP = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {

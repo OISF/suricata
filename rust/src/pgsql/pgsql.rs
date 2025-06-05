@@ -30,7 +30,9 @@ use nom7::{Err, IResult};
 use std;
 use std::collections::VecDeque;
 use std::ffi::CString;
-use suricata_sys::sys::AppProto;
+use suricata_sys::sys::{
+    AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled, SCAppLayerRequestProtocolTLSUpgrade,
+};
 
 const PGSQL_CONFIG_DEFAULT_STREAM_DEPTH: u32 = 0;
 
@@ -498,13 +500,13 @@ impl PgsqlState {
     /// If there is data from the backend message that Suri should store separately in the State or
     /// Transaction, that is also done here
     fn response_process_next_state(
-        &mut self, response: &PgsqlBEMessage, f: *const Flow,
+        &mut self, response: &PgsqlBEMessage, f: *mut Flow,
     ) -> Option<PgsqlStateProgress> {
         match response {
             PgsqlBEMessage::SSLResponse(parser::SSLResponseMessage::SSLAccepted) => {
                 SCLogDebug!("SSL Request accepted");
                 unsafe {
-                    AppLayerRequestProtocolTLSUpgrade(f);
+                    SCAppLayerRequestProtocolTLSUpgrade(f);
                 }
                 Some(PgsqlStateProgress::Finished)
             }
@@ -597,7 +599,7 @@ impl PgsqlState {
         }
     }
 
-    fn parse_response(&mut self, flow: *const Flow, input: &[u8]) -> AppLayerResult {
+    fn parse_response(&mut self, flow: *mut Flow, input: &[u8]) -> AppLayerResult {
         // We're not interested in empty responses.
         if input.is_empty() {
             return AppLayerResult::ok();
@@ -650,7 +652,9 @@ impl PgsqlState {
                                 tx.data_size = 0;
                             } else if state == PgsqlStateProgress::CopyDataOutReceived {
                                 tx.incr_row_cnt();
-                            } else if state == PgsqlStateProgress::CopyDoneReceived && tx.get_row_cnt() > 0 {
+                            } else if state == PgsqlStateProgress::CopyDoneReceived
+                                && tx.get_row_cnt() > 0
+                            {
                                 // let's summarize the info from the data_rows in one response
                                 let consolidated_copy_data = PgsqlBEMessage::ConsolidatedCopyDataOut(
                                     ConsolidatedDataRowPacket {
@@ -831,7 +835,7 @@ unsafe extern "C" fn state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64)
 }
 
 unsafe extern "C" fn parse_request(
-    flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     if stream_slice.is_empty() {
@@ -854,7 +858,7 @@ unsafe extern "C" fn parse_request(
 }
 
 unsafe extern "C" fn parse_response(
-    flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     if stream_slice.is_empty() {
@@ -953,7 +957,7 @@ pub unsafe extern "C" fn SCRegisterPgsqlParser() {
 
     let ip_proto_str = CString::new("tcp").unwrap();
 
-    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+    if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_PGSQL = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {

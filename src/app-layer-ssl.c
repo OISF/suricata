@@ -2934,8 +2934,8 @@ static void SSLStateTransactionFree(void *state, uint64_t tx_id)
     /* do nothing */
 }
 
-static AppProto SSLProbingParser(Flow *f, uint8_t direction,
-        const uint8_t *input, uint32_t ilen, uint8_t *rdir)
+static AppProto SSLProbingParser(
+        const Flow *f, uint8_t direction, const uint8_t *input, uint32_t ilen, uint8_t *rdir)
 {
     /* probably a rst/fin sending an eof */
     if (ilen < 3)
@@ -3014,125 +3014,105 @@ static int SSLStateGetEventInfoById(
 
 static int SSLRegisterPatternsForProtocolDetection(void)
 {
-    if (AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_TLS, "|01 00 02|", 5, 2,
+    if (SCAppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_TLS, "|01 00 02|", 5, 2,
                 STREAM_TOSERVER, SSLProbingParser, 0, 3) < 0) {
         return -1;
     }
 
     /** SSLv3 */
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
-                                               "|01 03 00|", 3, 0, STREAM_TOSERVER) < 0)
-    {
+    if (SCAppLayerProtoDetectPMRegisterPatternCS(
+                IPPROTO_TCP, ALPROTO_TLS, "|01 03 00|", 3, 0, STREAM_TOSERVER) < 0) {
         return -1;
     }
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
-                                               "|16 03 00|", 3, 0, STREAM_TOSERVER) < 0)
-    {
+    if (SCAppLayerProtoDetectPMRegisterPatternCS(
+                IPPROTO_TCP, ALPROTO_TLS, "|16 03 00|", 3, 0, STREAM_TOSERVER) < 0) {
         return -1;
     }
 
     /** TLSv1 */
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
-                                               "|01 03 01|", 3, 0, STREAM_TOSERVER) < 0)
-    {
+    if (SCAppLayerProtoDetectPMRegisterPatternCS(
+                IPPROTO_TCP, ALPROTO_TLS, "|01 03 01|", 3, 0, STREAM_TOSERVER) < 0) {
         return -1;
     }
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
-                                               "|16 03 01|", 3, 0, STREAM_TOSERVER) < 0)
-    {
+    if (SCAppLayerProtoDetectPMRegisterPatternCS(
+                IPPROTO_TCP, ALPROTO_TLS, "|16 03 01|", 3, 0, STREAM_TOSERVER) < 0) {
         return -1;
     }
 
     /** TLSv1.1 */
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
-                                               "|01 03 02|", 3, 0, STREAM_TOSERVER) < 0)
-    {
+    if (SCAppLayerProtoDetectPMRegisterPatternCS(
+                IPPROTO_TCP, ALPROTO_TLS, "|01 03 02|", 3, 0, STREAM_TOSERVER) < 0) {
         return -1;
     }
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
-                                               "|16 03 02|", 3, 0, STREAM_TOSERVER) < 0)
-    {
+    if (SCAppLayerProtoDetectPMRegisterPatternCS(
+                IPPROTO_TCP, ALPROTO_TLS, "|16 03 02|", 3, 0, STREAM_TOSERVER) < 0) {
         return -1;
     }
 
     /** TLSv1.2 */
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
-                                               "|01 03 03|", 3, 0, STREAM_TOSERVER) < 0)
-    {
+    if (SCAppLayerProtoDetectPMRegisterPatternCS(
+                IPPROTO_TCP, ALPROTO_TLS, "|01 03 03|", 3, 0, STREAM_TOSERVER) < 0) {
         return -1;
     }
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
-                                               "|16 03 03|", 3, 0, STREAM_TOSERVER) < 0)
-    {
+    if (SCAppLayerProtoDetectPMRegisterPatternCS(
+                IPPROTO_TCP, ALPROTO_TLS, "|16 03 03|", 3, 0, STREAM_TOSERVER) < 0) {
         return -1;
     }
 
     /***** toclient direction *****/
 
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
-                                               "|15 03 00|", 3, 0, STREAM_TOCLIENT) < 0)
-    {
+    if (SCAppLayerProtoDetectPMRegisterPatternCS(
+                IPPROTO_TCP, ALPROTO_TLS, "|15 03 00|", 3, 0, STREAM_TOCLIENT) < 0) {
         return -1;
     }
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
-                                               "|16 03 00|", 3, 0, STREAM_TOCLIENT) < 0)
-    {
+    if (SCAppLayerProtoDetectPMRegisterPatternCS(
+                IPPROTO_TCP, ALPROTO_TLS, "|16 03 00|", 3, 0, STREAM_TOCLIENT) < 0) {
         return -1;
     }
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
-                                               "|17 03 00|", 3, 0, STREAM_TOCLIENT) < 0)
-    {
+    if (SCAppLayerProtoDetectPMRegisterPatternCS(
+                IPPROTO_TCP, ALPROTO_TLS, "|17 03 00|", 3, 0, STREAM_TOCLIENT) < 0) {
         return -1;
     }
 
     /** TLSv1 */
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
-                                               "|15 03 01|", 3, 0, STREAM_TOCLIENT) < 0)
-    {
+    if (SCAppLayerProtoDetectPMRegisterPatternCS(
+                IPPROTO_TCP, ALPROTO_TLS, "|15 03 01|", 3, 0, STREAM_TOCLIENT) < 0) {
         return -1;
     }
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
-                                               "|16 03 01|", 3, 0, STREAM_TOCLIENT) < 0)
-    {
+    if (SCAppLayerProtoDetectPMRegisterPatternCS(
+                IPPROTO_TCP, ALPROTO_TLS, "|16 03 01|", 3, 0, STREAM_TOCLIENT) < 0) {
         return -1;
     }
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
-                                               "|17 03 01|", 3, 0, STREAM_TOCLIENT) < 0)
-    {
+    if (SCAppLayerProtoDetectPMRegisterPatternCS(
+                IPPROTO_TCP, ALPROTO_TLS, "|17 03 01|", 3, 0, STREAM_TOCLIENT) < 0) {
         return -1;
     }
 
     /** TLSv1.1 */
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
-                                               "|15 03 02|", 3, 0, STREAM_TOCLIENT) < 0)
-    {
+    if (SCAppLayerProtoDetectPMRegisterPatternCS(
+                IPPROTO_TCP, ALPROTO_TLS, "|15 03 02|", 3, 0, STREAM_TOCLIENT) < 0) {
         return -1;
     }
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
-                                               "|16 03 02|", 3, 0, STREAM_TOCLIENT) < 0)
-    {
+    if (SCAppLayerProtoDetectPMRegisterPatternCS(
+                IPPROTO_TCP, ALPROTO_TLS, "|16 03 02|", 3, 0, STREAM_TOCLIENT) < 0) {
         return -1;
     }
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
-                                               "|17 03 02|", 3, 0, STREAM_TOCLIENT) < 0)
-    {
+    if (SCAppLayerProtoDetectPMRegisterPatternCS(
+                IPPROTO_TCP, ALPROTO_TLS, "|17 03 02|", 3, 0, STREAM_TOCLIENT) < 0) {
         return -1;
     }
 
     /** TLSv1.2 */
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
-                                               "|15 03 03|", 3, 0, STREAM_TOCLIENT) < 0)
-    {
+    if (SCAppLayerProtoDetectPMRegisterPatternCS(
+                IPPROTO_TCP, ALPROTO_TLS, "|15 03 03|", 3, 0, STREAM_TOCLIENT) < 0) {
         return -1;
     }
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
-                                               "|16 03 03|", 3, 0, STREAM_TOCLIENT) < 0)
-    {
+    if (SCAppLayerProtoDetectPMRegisterPatternCS(
+                IPPROTO_TCP, ALPROTO_TLS, "|16 03 03|", 3, 0, STREAM_TOCLIENT) < 0) {
         return -1;
     }
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
-                                               "|17 03 03|", 3, 0, STREAM_TOCLIENT) < 0)
-    {
+    if (SCAppLayerProtoDetectPMRegisterPatternCS(
+                IPPROTO_TCP, ALPROTO_TLS, "|17 03 03|", 3, 0, STREAM_TOCLIENT) < 0) {
         return -1;
     }
 
@@ -3141,12 +3121,12 @@ static int SSLRegisterPatternsForProtocolDetection(void)
      * Updated by Anoop Saldanha.  Disabled it for now.  We'll get back to
      * it after some tests */
 #if 0
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
+    if (SCAppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
                                                "|01 03 00|", 5, 2, STREAM_TOSERVER) < 0)
     {
         return -1;
     }
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
+    if (SCAppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
                                                "|00 02|", 7, 5, STREAM_TOCLIENT) < 0)
     {
         return -1;
@@ -3216,32 +3196,22 @@ void RegisterSSLParsers(void)
     SC_ATOMIC_INIT(ssl_config.enable_ja3);
 
     /** SSLv2  and SSLv23*/
-    if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
+    if (SCAppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
         AppLayerProtoDetectRegisterProtocol(ALPROTO_TLS, proto_name);
 
         if (SSLRegisterPatternsForProtocolDetection() < 0)
             return;
 
         if (RunmodeIsUnittests()) {
-            AppLayerProtoDetectPPRegister(IPPROTO_TCP,
-                                          "443",
-                                          ALPROTO_TLS,
-                                          0, 3,
-                                          STREAM_TOSERVER,
-                                          SSLProbingParser, NULL);
+            SCAppLayerProtoDetectPPRegister(
+                    IPPROTO_TCP, "443", ALPROTO_TLS, 0, 3, STREAM_TOSERVER, SSLProbingParser, NULL);
         } else {
-            if (AppLayerProtoDetectPPParseConfPorts("tcp", IPPROTO_TCP,
-                                                    proto_name, ALPROTO_TLS,
-                                                    0, 3,
-                                                    SSLProbingParser, NULL) == 0) {
+            if (SCAppLayerProtoDetectPPParseConfPorts("tcp", IPPROTO_TCP, proto_name, ALPROTO_TLS,
+                        0, 3, SSLProbingParser, NULL) == 0) {
                 SCLogConfig("no TLS config found, "
                             "enabling TLS detection on port 443.");
-                AppLayerProtoDetectPPRegister(IPPROTO_TCP,
-                                              "443",
-                                              ALPROTO_TLS,
-                                              0, 3,
-                                              STREAM_TOSERVER,
-                                              SSLProbingParser, NULL);
+                SCAppLayerProtoDetectPPRegister(IPPROTO_TCP, "443", ALPROTO_TLS, 0, 3,
+                        STREAM_TOSERVER, SSLProbingParser, NULL);
             }
         }
     } else {

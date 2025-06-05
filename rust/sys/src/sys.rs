@@ -624,3 +624,68 @@ extern "C" {
 extern "C" {
     pub fn SCConfGetValueNode(node: *const SCConfNode) -> *const ::std::os::raw::c_char;
 }
+pub type ProbingParserFPtr = ::std::option::Option<
+    unsafe extern "C" fn(
+        f: *const Flow,
+        flags: u8,
+        input: *const u8,
+        input_len: u32,
+        rdir: *mut u8,
+    ) -> AppProto,
+>;
+extern "C" {
+    #[doc = " PP registration"]
+    pub fn SCAppLayerProtoDetectPPRegister(
+        ipproto: u8, portstr: *const ::std::os::raw::c_char, alproto: AppProto, min_depth: u16,
+        max_depth: u16, direction: u8, ProbingParser1: ProbingParserFPtr,
+        ProbingParser2: ProbingParserFPtr,
+    );
+}
+extern "C" {
+    #[doc = "  \\retval bool 0 if no config was found, 1 if config was found"]
+    pub fn SCAppLayerProtoDetectPPParseConfPorts(
+        ipproto_name: *const ::std::os::raw::c_char, ipproto: u8,
+        alproto_name: *const ::std::os::raw::c_char, alproto: AppProto, min_depth: u16,
+        max_depth: u16, ProbingParserTs: ProbingParserFPtr, ProbingParserTc: ProbingParserFPtr,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    #[doc = " \\brief Registers a case-sensitive pattern for protocol detection."]
+    pub fn SCAppLayerProtoDetectPMRegisterPatternCS(
+        ipproto: u8, alproto: AppProto, pattern: *const ::std::os::raw::c_char, depth: u16,
+        offset: u16, direction: u8,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCAppLayerProtoDetectPMRegisterPatternCSwPP(
+        ipproto: u8, alproto: AppProto, pattern: *const ::std::os::raw::c_char, depth: u16,
+        offset: u16, direction: u8, PPFunc: ProbingParserFPtr, pp_min_depth: u16,
+        pp_max_depth: u16,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    #[doc = " \\brief Registers a case-insensitive pattern for protocol detection."]
+    pub fn SCAppLayerProtoDetectPMRegisterPatternCI(
+        ipproto: u8, alproto: AppProto, pattern: *const ::std::os::raw::c_char, depth: u16,
+        offset: u16, direction: u8,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCAppLayerRequestProtocolTLSUpgrade(f: *mut Flow) -> bool;
+}
+extern "C" {
+    pub fn SCAppLayerForceProtocolChange(f: *mut Flow, new_proto: AppProto);
+}
+extern "C" {
+    #[doc = " \\brief Given a protocol name, checks if proto detection is enabled in\n        the conf file.\n\n \\param alproto Name of the app layer protocol.\n\n \\retval 1 If enabled.\n \\retval 0 If disabled."]
+    pub fn SCAppLayerProtoDetectConfProtoDetectionEnabled(
+        ipproto: *const ::std::os::raw::c_char, alproto: *const ::std::os::raw::c_char,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    #[doc = " \\brief Given a protocol name, checks if proto detection is enabled in\n        the conf file.\n\n \\param alproto Name of the app layer protocol.\n \\param default_enabled enable by default if not in the configuration file\n\n \\retval 1 If enabled.\n \\retval 0 If disabled."]
+    pub fn SCAppLayerProtoDetectConfProtoDetectionEnabledDefault(
+        ipproto: *const ::std::os::raw::c_char, alproto: *const ::std::os::raw::c_char,
+        default_enabled: bool,
+    ) -> ::std::os::raw::c_int;
+}
