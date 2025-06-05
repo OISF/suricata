@@ -37,20 +37,20 @@ ja3 = []
 ja4 = []
 
 [dependencies]
-nom7 = { version="7.0", package="nom" }
+nom7 = { version="7.1", package="nom" }
 bitflags = "~1.3.2"
-byteorder = "~1.4.2"
+byteorder = "~1.4.3"
 uuid = "~0.8.2"
 crc = "~1.8.1"
 lzma-rs = { version = "~0.2.0", features = ["stream"] }
-memchr = "~2.4.1"
+memchr = "~2.7.4"
 num = "~0.2.1"
 num-derive = "~0.4.2"
-num-traits = "~0.2.14"
+num-traits = "~0.2.19"
 widestring = "~0.4.3"
-flate2 = { version = "~1.0.19", features = ["zlib"] }
+flate2 = { version = "~1.0.35", features = ["zlib"] }
 brotli = "~8.0.1"
-hkdf = "~0.12.3"
+hkdf = "~0.12.4"
 aes = "~0.7.5"
 aes-gcm = "~0.9.4"
 lru = "~0.12.5"
@@ -66,21 +66,21 @@ ipsec-parser = "~0.7.0"
 snmp-parser = "~0.10.0"
 tls-parser = "~0.11.0"
 x509-parser = "~0.16.0"
-libc = "~0.2.82"
-sha2 = "~0.10.2"
-digest = "~0.10.3"
-sha1 = "~0.10.5"
-md-5 = "~0.10.1"
-regex = "~1.5.5"
-lazy_static = "~1.4.0"
+libc = "~0.2.172"
+sha2 = "~0.10.9"
+digest = "~0.10.7"
+sha1 = "~0.10.6"
+md-5 = "~0.10.6"
+regex = "~1.5.6"
+lazy_static = "~1.5.0"
 base64 = "~0.22.1"
 bendy = { version = "~0.3.3", default-features = false }
-asn1-rs = { version = "~0.6.1" }
+asn1-rs = { version = "~0.6.2" }
 ldap-parser = { version = "~0.4.1" }
 hex = "~0.4.3"
 psl = "2"
 
-time = "~0.3.36"
+time = "~0.3.41"
 
 suricata-derive = { path = "./derive", version = "@PACKAGE_VERSION@" }
 suricata-sys = { path = "./sys", version = "@PACKAGE_VERSION@" }

@@ -18,10 +18,10 @@ once_cell = { version = "1.21.3" }
 rustyline = { version = "14.0.0" }
 rustyline-derive = { version = "~0.11.1" }
 
-thiserror = { version = "1.0.40" }
+thiserror = { version = "1.0.69" }
 
-serde = { version = "1.0.216", default-features = false, features = ["derive"] }
-serde_json = { version = "1.0.133", default-features = false, features = ["preserve_order"] }
+serde = { version = "1.0.219", default-features = false, features = ["derive"] }
+serde_json = { version = "1.0.140", default-features = false, features = ["preserve_order"] }
 
 # Pinned back to support Rust 1.75.0. Not used directly by us, but by rustyline.
 home = { version = "=0.5.9" }
