@@ -2507,25 +2507,23 @@ static void DetectFirewallRuleSetTable(Signature *s)
     s->firewall_table = (uint8_t)table;
 }
 
-/**
- *  \internal
- *  \brief validate a just parsed signature for internal inconsistencies
- *
- *  \param s just parsed signature
- *
- *  \retval 0 invalid
- *  \retval 1 valid
- */
-static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
+static int SigValidateFirewall(const DetectEngineCtx *de_ctx, const Signature *s)
 {
-    SCEnter();
-
     if (s->init_data->firewall_rule) {
         if (!DetectFirewallRuleValidate(de_ctx, s))
             SCReturnInt(0);
     }
+    SCReturnInt(1);
+}
 
-    uint32_t sig_flags = 0;
+static int SigValidateCheckBuffers(
+        DetectEngineCtx *de_ctx, const Signature *s, int *ts_excl, int *tc_excl, int *dir_amb)
+{
+    bool has_frame = false;
+    bool has_app = false;
+    bool has_pkt = false;
+    bool has_pmatch = false;
+
     int nlists = 0;
     for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
         nlists = MAX(nlists, (int)s->init_data->buffers[x].id);
@@ -2538,11 +2536,6 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
                 DetectEngineBufferTypeGetNameById(de_ctx, s->init_data->curbuf->id));
         SCReturnInt(0);
     }
-
-    bool has_frame = false;
-    bool has_app = false;
-    bool has_pkt = false;
-    bool has_pmatch = false;
 
     /* run buffer type validation callbacks if any */
     if (s->init_data->smlists[DETECT_SM_LIST_PMATCH]) {
@@ -2558,9 +2551,6 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
     } bufdir[nlists + 1];
     memset(&bufdir, 0, (nlists + 1) * sizeof(struct BufferVsDir));
 
-    int ts_excl = 0;
-    int tc_excl = 0;
-
     for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
         SignatureInitDataBuffer *b = &s->init_data->buffers[x];
         const DetectBufferType *bt = DetectEngineBufferTypeGetById(de_ctx, b->id);
@@ -2569,7 +2559,7 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
             continue;
         }
         SCLogDebug("x %u b->id %u name %s", x, b->id, bt->name);
-        for (SigMatch *sm = b->head; sm != NULL; sm = sm->next) {
+        for (const SigMatch *sm = b->head; sm != NULL; sm = sm->next) {
             SCLogDebug("sm %u %s", sm->type, sigmatch_table[sm->type].name);
         }
 
@@ -2601,10 +2591,10 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
 
                 if (b->only_tc) {
                     if (app->dir == 1)
-                        tc_excl++;
+                        (*tc_excl)++;
                 } else if (b->only_ts) {
                     if (app->dir == 0)
-                        ts_excl++;
+                        (*ts_excl)++;
                 } else {
                     bufdir[b->id].ts += (app->dir == 0);
                     bufdir[b->id].tc += (app->dir == 1);
@@ -2640,17 +2630,46 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         }
     }
 
-    int dir_amb = 0;
+    if (has_pmatch && has_frame) {
+        SCLogError("can't mix pure content and frame inspection");
+        SCReturnInt(0);
+    }
+    if (has_app && has_frame) {
+        SCLogError("can't mix app-layer buffer and frame inspection");
+        SCReturnInt(0);
+    }
+    if (has_pkt && has_frame) {
+        SCLogError("can't mix pkt buffer and frame inspection");
+        SCReturnInt(0);
+    }
+
     for (int x = 0; x < nlists; x++) {
         if (bufdir[x].ts == 0 && bufdir[x].tc == 0)
             continue;
-        ts_excl += (bufdir[x].ts > 0 && bufdir[x].tc == 0);
-        tc_excl += (bufdir[x].ts == 0 && bufdir[x].tc > 0);
-        dir_amb += (bufdir[x].ts > 0 && bufdir[x].tc > 0);
+        (*ts_excl) += (bufdir[x].ts > 0 && bufdir[x].tc == 0);
+        (*tc_excl) += (bufdir[x].ts == 0 && bufdir[x].tc > 0);
+        (*dir_amb) += (bufdir[x].ts > 0 && bufdir[x].tc > 0);
 
         SCLogDebug("%s/%d: %d/%d", DetectEngineBufferTypeGetNameById(de_ctx, x), x, bufdir[x].ts,
                 bufdir[x].tc);
     }
+
+    SCReturnInt(1);
+}
+
+static int SigValidatePacketStream(const Signature *s)
+{
+    if ((s->flags & SIG_FLAG_REQUIRE_PACKET) && (s->flags & SIG_FLAG_REQUIRE_STREAM)) {
+        SCLogError("can't mix packet keywords with "
+                   "tcp-stream or flow:only_stream.  Invalidating signature.");
+        SCReturnInt(0);
+    }
+    SCReturnInt(1);
+}
+
+static int SigConsolidateDirection(
+        Signature *s, const int ts_excl, const int tc_excl, const int dir_amb)
+{
     if (s->flags & SIG_FLAG_TXBOTHDIR) {
         if (!ts_excl || !tc_excl) {
             SCLogError("rule %u should use both directions, but does not", s->id);
@@ -2683,34 +2702,11 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
     } else if (dir_amb) {
         SCLogDebug("%u: rule direction cannot be deduced from keywords", s->id);
     }
+    SCReturnInt(1);
+}
 
-    if ((s->flags & SIG_FLAG_REQUIRE_PACKET) &&
-        (s->flags & SIG_FLAG_REQUIRE_STREAM)) {
-        SCLogError("can't mix packet keywords with "
-                   "tcp-stream or flow:only_stream.  Invalidating signature.");
-        SCReturnInt(0);
-    }
-
-    if ((sig_flags & (SIG_FLAG_TOCLIENT | SIG_FLAG_TOSERVER)) == (SIG_FLAG_TOCLIENT | SIG_FLAG_TOSERVER)) {
-        SCLogError("You seem to have mixed keywords "
-                   "that require inspection in both directions.  Atm we only "
-                   "support keywords in one direction within a rule.");
-        SCReturnInt(0);
-    }
-
-    if (has_pmatch && has_frame) {
-        SCLogError("can't mix pure content and frame inspection");
-        SCReturnInt(0);
-    }
-    if (has_app && has_frame) {
-        SCLogError("can't mix app-layer buffer and frame inspection");
-        SCReturnInt(0);
-    }
-    if (has_pkt && has_frame) {
-        SCLogError("can't mix pkt buffer and frame inspection");
-        SCReturnInt(0);
-    }
-
+static void SigConsolidateTcpBuffer(Signature *s)
+{
     /* TCP: corner cases:
      * - pkt vs stream vs depth/offset
      * - pkt vs stream vs stream_size
@@ -2719,7 +2715,7 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         if (s->init_data->smlists[DETECT_SM_LIST_PMATCH]) {
             if (!(s->flags & (SIG_FLAG_REQUIRE_PACKET | SIG_FLAG_REQUIRE_STREAM))) {
                 s->flags |= SIG_FLAG_REQUIRE_STREAM;
-                for (SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH]; sm != NULL;
+                for (const SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH]; sm != NULL;
                         sm = sm->next) {
                     if (sm->type == DETECT_CONTENT &&
                             (((DetectContentData *)(sm->ctx))->flags &
@@ -2729,7 +2725,7 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
                     }
                 }
                 /* if stream_size is in use, also inspect packets */
-                for (SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL;
+                for (const SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL;
                         sm = sm->next) {
                     if (sm->type == DETECT_STREAM_SIZE) {
                         s->flags |= SIG_FLAG_REQUIRE_PACKET;
@@ -2739,42 +2735,116 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
             }
         }
     }
+}
 
-    if ((s->flags & SIG_FLAG_FILESTORE) || s->file_flags != 0 ||
-        (s->init_data->init_flags & SIG_FLAG_INIT_FILEDATA)) {
-        if (s->alproto != ALPROTO_UNKNOWN &&
-                !AppLayerParserSupportsFiles(IPPROTO_TCP, s->alproto))
-        {
-            SCLogError("protocol %s doesn't "
-                       "support file matching",
-                    AppProtoToString(s->alproto));
-            SCReturnInt(0);
-        } else if (s->init_data->alprotos[0] != ALPROTO_UNKNOWN) {
-            bool found = false;
-            for (AppProto i = 0; i < SIG_ALPROTO_MAX; i++) {
-                if (s->init_data->alprotos[i] == ALPROTO_UNKNOWN) {
-                    break;
-                }
-                if (AppLayerParserSupportsFiles(IPPROTO_TCP, s->init_data->alprotos[i])) {
-                    found = true;
-                    break;
-                }
+static bool SigInspectsFiles(const Signature *s)
+{
+    return ((s->flags & SIG_FLAG_FILESTORE) || s->file_flags != 0 ||
+            (s->init_data->init_flags & SIG_FLAG_INIT_FILEDATA));
+}
+
+/** \internal
+ *  \brief validate file handling
+ *  \retval 1 good signature
+ *  \retval 0 bad signature
+ */
+static int SigValidateFileHandling(const Signature *s)
+{
+    if (!SigInspectsFiles(s)) {
+        SCReturnInt(1);
+    }
+
+    if (s->alproto != ALPROTO_UNKNOWN && !AppLayerParserSupportsFiles(IPPROTO_TCP, s->alproto)) {
+        SCLogError("protocol %s doesn't "
+                   "support file matching",
+                AppProtoToString(s->alproto));
+        SCReturnInt(0);
+    }
+    if (s->init_data->alprotos[0] != ALPROTO_UNKNOWN) {
+        bool found = false;
+        for (AppProto i = 0; i < SIG_ALPROTO_MAX; i++) {
+            if (s->init_data->alprotos[i] == ALPROTO_UNKNOWN) {
+                break;
             }
-            if (!found) {
-                SCLogError("No protocol support file matching");
-                SCReturnInt(0);
+            if (AppLayerParserSupportsFiles(IPPROTO_TCP, s->init_data->alprotos[i])) {
+                found = true;
+                break;
             }
         }
-        if (s->alproto == ALPROTO_HTTP2 && (s->file_flags & FILE_SIG_NEED_FILENAME)) {
-            SCLogError("protocol HTTP2 doesn't support file name matching");
+        if (!found) {
+            SCLogError("No protocol support file matching");
             SCReturnInt(0);
         }
+    }
+    if (s->alproto == ALPROTO_HTTP2 && (s->file_flags & FILE_SIG_NEED_FILENAME)) {
+        SCLogError("protocol HTTP2 doesn't support file name matching");
+        SCReturnInt(0);
+    }
+    SCReturnInt(1);
+}
 
+/**
+ *  \internal
+ *  \brief validate and consolidate parsed signature
+ *
+ *  \param de_ctx detect engine
+ *  \param s signature to validate and consolidate
+ *
+ *  \retval 0 invalid
+ *  \retval 1 valid
+ */
+static int SigValidateConsolidate(
+        DetectEngineCtx *de_ctx, Signature *s, const SignatureParser *parser, const uint8_t dir)
+{
+    SCEnter();
+
+    if (SigValidateFirewall(de_ctx, s) == 0)
+        SCReturnInt(0);
+
+    if (SigValidatePacketStream(s) == 0) {
+        SCReturnInt(0);
+    }
+
+    int ts_excl = 0;
+    int tc_excl = 0;
+    int dir_amb = 0;
+
+    if (SigValidateCheckBuffers(de_ctx, s, &ts_excl, &tc_excl, &dir_amb) == 0) {
+        SCReturnInt(0);
+    }
+
+    if (SigConsolidateDirection(s, ts_excl, tc_excl, dir_amb) == 0) {
+        SCReturnInt(0);
+    }
+
+    SigConsolidateTcpBuffer(s);
+
+    SignatureSetType(de_ctx, s);
+    if (de_ctx->flags & DE_HAS_FIREWALL) {
+        DetectFirewallRuleSetTable(s);
+    }
+
+    int r = SigValidateFileHandling(s);
+    if (r == 0) {
+        SCReturnInt(0);
+    }
+    if (SigInspectsFiles(s)) {
         if (s->alproto == ALPROTO_HTTP1 || s->alproto == ALPROTO_HTTP) {
             AppLayerHtpNeedFileInspection();
         }
     }
+    if (DetectRuleValidateTable(s) == false) {
+        SCReturnInt(0);
+    }
 
+    if (s->type == SIG_TYPE_IPONLY) {
+        /* For IPOnly */
+        if (IPOnlySigParseAddress(de_ctx, s, parser->src, SIG_DIREC_SRC ^ dir) < 0)
+            SCReturnInt(0);
+
+        if (IPOnlySigParseAddress(de_ctx, s, parser->dst, SIG_DIREC_DST ^ dir) < 0)
+            SCReturnInt(0);
+    }
     SCReturnInt(1);
 }
 
@@ -2918,28 +2988,10 @@ static Signature *SigInitHelper(
     SigSetupPrefilter(de_ctx, sig);
 
     /* validate signature, SigValidate will report the error reason */
-    if (SigValidate(de_ctx, sig) == 0) {
+    if (SigValidateConsolidate(de_ctx, sig, &parser, dir) == 0) {
         goto error;
     }
 
-    /* check what the type of this sig is */
-    SignatureSetType(de_ctx, sig);
-
-    if (de_ctx->flags & DE_HAS_FIREWALL) {
-        DetectFirewallRuleSetTable(sig);
-    }
-    if (DetectRuleValidateTable(sig) == false) {
-        goto error;
-    }
-
-    if (sig->type == SIG_TYPE_IPONLY) {
-        /* For IPOnly */
-        if (IPOnlySigParseAddress(de_ctx, sig, parser.src, SIG_DIREC_SRC ^ dir) < 0)
-            goto error;
-
-        if (IPOnlySigParseAddress(de_ctx, sig, parser.dst, SIG_DIREC_DST ^ dir) < 0)
-            goto error;
-    }
     return sig;
 
 error:
