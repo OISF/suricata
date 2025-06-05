@@ -194,4 +194,14 @@ Example::
   http_response_body = tx:response_body()
   print(http_response_body)
 
+``request_host()``
+^^^^^^^^^^^^^^^^^^
+
+Get the HTTP request host.
+
+Example::
+
+  local tx = http.get_tx()
+  http_host = tx:request_host()
+  print(http_host)
 
