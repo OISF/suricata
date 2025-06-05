@@ -132,6 +132,28 @@ static SCMutex output_file_rotation_mutex = SCMUTEX_INITIALIZER;
 TAILQ_HEAD(, OutputFileRolloverFlag_) output_file_rotation_flags =
     TAILQ_HEAD_INITIALIZER(output_file_rotation_flags);
 
+/**
+ * Callback function to be called when logging is ready.
+ */
+typedef void (*SCOnLoggingReadyCallback)(void *arg);
+
+/**
+ * List entries for callbacks registered to be called when the logging system is
+ * ready. This is useful for both plugins and library users who need to register
+ * application transaction loggers after logging initialization is complete.
+ */
+typedef struct OnLoggingReadyCallbackNode_ {
+    SCOnLoggingReadyCallback callback;
+    void *arg;
+    TAILQ_ENTRY(OnLoggingReadyCallbackNode_) entries;
+} OnLoggingReadyCallbackNode;
+
+/**
+ * The list of callbacks to be called when logging is ready.
+ */
+static TAILQ_HEAD(, OnLoggingReadyCallbackNode_)
+        on_logging_ready_callbacks = TAILQ_HEAD_INITIALIZER(on_logging_ready_callbacks);
+
 void OutputRegisterRootLoggers(void);
 void OutputRegisterLoggers(void);
 
@@ -718,6 +740,49 @@ void OutputNotifyFileRotation(void) {
         *(flag->flag) = 1;
     }
     SCMutexUnlock(&output_file_rotation_mutex);
+}
+
+/**
+ * \brief Register a callback to be called when logging is ready.
+ *
+ * This function registers a callback that will be invoked when the logging
+ * system has been fully initialized. This is useful for both plugins and
+ * library users who need to register application transaction loggers after
+ * logging initialization is complete.
+ *
+ * \param callback The callback function to be called
+ * \param arg An argument to be passed to the callback function
+ * \return 0 on success, -1 on failure
+ */
+int SCRegisterOnLoggingReady(SCOnLoggingReadyCallback callback, void *arg)
+{
+    OnLoggingReadyCallbackNode *node = SCCalloc(1, sizeof(*node));
+    if (node == NULL) {
+        SCLogError("Failed to allocate memory for callback node");
+        return -1;
+    }
+
+    node->callback = callback;
+    node->arg = arg;
+    TAILQ_INSERT_TAIL(&on_logging_ready_callbacks, node, entries);
+
+    return 0;
+}
+
+/**
+ * \brief Invokes all registered logging ready callbacks.
+ *
+ * This function should be called after the logging system has been fully
+ * initialized to notify all registered callbacks that logging is ready.
+ */
+void SCOnLoggingReady(void)
+{
+    OnLoggingReadyCallbackNode *node = NULL;
+    TAILQ_FOREACH (node, &on_logging_ready_callbacks, entries) {
+        if (node->callback) {
+            (*node->callback)(node->arg);
+        }
+    }
 }
 
 TmEcode OutputLoggerFlush(ThreadVars *tv, Packet *p, void *thread_data)

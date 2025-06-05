@@ -159,6 +159,10 @@ void OutputRegisterFileRotationFlag(int *flag);
 void OutputUnregisterFileRotationFlag(int *flag);
 void OutputNotifyFileRotation(void);
 
+typedef void (*SCOnLoggingReadyCallback)(void *arg);
+int SCRegisterOnLoggingReady(SCOnLoggingReadyCallback callback, void *arg);
+void SCOnLoggingReady(void);
+
 void OutputRegisterRootLogger(ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
         OutputLogFunc LogFunc, OutputGetActiveCountFunc ActiveCntFunc);
 void TmModuleLoggerRegister(void);
