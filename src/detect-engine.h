@@ -27,7 +27,7 @@
 #include "detect.h"
 #include "suricata.h"
 
-const char *DetectTableToString(enum FirewallTable table);
+const char *DetectTableToString(enum DetectTable table);
 
 /* start up registry funcs */
 

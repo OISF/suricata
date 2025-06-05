@@ -550,22 +550,21 @@ enum SignatureHookType {
     SIGNATURE_HOOK_TYPE_APP,
 };
 
-// TODO should probably be renamed to DetectTable, similar for values
-enum FirewallTable {
-    FIREWALL_TABLE_NOT_SET = 0,
-    FIREWALL_TABLE_PACKET_PRE_FLOW,
-    FIREWALL_TABLE_PACKET_PRE_STREAM,
-    FIREWALL_TABLE_PACKET_FILTER,
-    FIREWALL_TABLE_PACKET_TD,
-    FIREWALL_TABLE_APP_FILTER,
-    FIREWALL_TABLE_APP_TD,
+enum DetectTable {
+    DETECT_TABLE_NOT_SET = 0,
+    DETECT_TABLE_PACKET_PRE_FLOW,
+    DETECT_TABLE_PACKET_PRE_STREAM,
+    DETECT_TABLE_PACKET_FILTER,
+    DETECT_TABLE_PACKET_TD,
+    DETECT_TABLE_APP_FILTER,
+    DETECT_TABLE_APP_TD,
 
-#define DETECT_TABLE_PACKET_PRE_FLOW_FLAG   BIT_U8(FIREWALL_TABLE_PACKET_PRE_FLOW)
-#define DETECT_TABLE_PACKET_PRE_STREAM_FLAG BIT_U8(FIREWALL_TABLE_PACKET_PRE_STREAM)
-#define DETECT_TABLE_PACKET_FILTER_FLAG     BIT_U8(FIREWALL_TABLE_PACKET_FILTER)
-#define DETECT_TABLE_PACKET_TD_FLAG         BIT_U8(FIREWALL_TABLE_PACKET_TD)
-#define DETECT_TABLE_APP_FILTER_FLAG        BIT_U8(FIREWALL_TABLE_APP_FILTER)
-#define DETECT_TABLE_APP_TD_FLAG            BIT_U8(FIREWALL_TABLE_APP_TD)
+#define DETECT_TABLE_PACKET_PRE_FLOW_FLAG   BIT_U8(DETECT_TABLE_PACKET_PRE_FLOW)
+#define DETECT_TABLE_PACKET_PRE_STREAM_FLAG BIT_U8(DETECT_TABLE_PACKET_PRE_STREAM)
+#define DETECT_TABLE_PACKET_FILTER_FLAG     BIT_U8(DETECT_TABLE_PACKET_FILTER)
+#define DETECT_TABLE_PACKET_TD_FLAG         BIT_U8(DETECT_TABLE_PACKET_TD)
+#define DETECT_TABLE_APP_FILTER_FLAG        BIT_U8(DETECT_TABLE_APP_FILTER)
+#define DETECT_TABLE_APP_TD_FLAG            BIT_U8(DETECT_TABLE_APP_TD)
 };
 
 // dns:request_complete should add DetectBufferTypeGetByName("dns:request_complete");
@@ -700,8 +699,8 @@ typedef struct Signature_ {
     /** classification id **/
     uint16_t class_id;
 
-    /** firewall: pseudo table this rule is part of (enum FirewallTable) */
-    uint8_t firewall_table;
+    /** detect: pseudo table this rule is part of (enum DetectTable) */
+    uint8_t detect_table;
 
     /** firewall: progress value for this signature */
     uint8_t app_progress_hook;
