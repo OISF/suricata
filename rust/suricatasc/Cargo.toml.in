@@ -10,16 +10,18 @@ readme = "README.md"
 name = "suricatasc"
 
 [dependencies]
-# 4.0 is the newest version that builds with Rust 1.67.1.
-clap = { version = "=4.2.0", default-features = false, features = ["std", "derive", "help", "usage"] }
+clap = { version = "4.5.39", default-features = false, features = ["std", "derive", "help", "usage"] }
 
 once_cell = { version = "1.21.3" }
 
-# Need to pin back for Rust 1.67.1
-rustyline = { version = "=11.0.0" }
-rustyline-derive = { version = "0.9.0" }
+# Held at 14 to support Rust 1.75.0.
+rustyline = { version = "14.0.0" }
+rustyline-derive = { version = "~0.11.1" }
 
 thiserror = { version = "1.0.40" }
 
 serde = { version = "1.0.216", default-features = false, features = ["derive"] }
 serde_json = { version = "1.0.133", default-features = false, features = ["preserve_order"] }
+
+# Pinned back to support Rust 1.75.0. Not used directly by us, but by rustyline.
+home = { version = "=0.5.9" }
