@@ -79,14 +79,12 @@ static int CustomFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
     return 0;
 }
 
-#if 0
 static int CustomDnsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state,
         void *tx, uint64_t tx_id)
 {
     SCLogNotice("We have a DNS transaction");
     return 0;
 }
-#endif
 
 static TmEcode ThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
@@ -102,19 +100,16 @@ static TmEcode ThreadDeinit(ThreadVars *tv, void *data)
 
 static void Init(void)
 {
+}
+
+static void RegisterLoggers(void)
+{
     SCOutputRegisterPacketLogger(LOGGER_USER, "custom-packet-logger", CustomPacketLogger,
             CustomPacketLoggerCondition, NULL, ThreadInit, ThreadDeinit);
     SCOutputRegisterFlowLogger(
             "custom-flow-logger", CustomFlowLogger, NULL, ThreadInit, ThreadDeinit);
-
-    /* Register a custom DNS transaction logger.
-     *
-     * Currently disabled due to https://redmine.openinfosecfoundation.org/issues/7236.
-     */
-#if 0
-    OutputRegisterTxLogger(LOGGER_USER, "custom-dns-logger", ALPROTO_DNS, CustomDnsLogger, NULL, -1,
-            -1, NULL, ThreadInit, ThreadDeinit);
-#endif
+    SCOutputRegisterTxLogger(LOGGER_USER, "custom-dns-logger", ALPROTO_DNS, CustomDnsLogger, NULL,
+            -1, -1, NULL, ThreadInit, ThreadDeinit);
 }
 
 const SCPlugin PluginRegistration = {
@@ -125,6 +120,7 @@ const SCPlugin PluginRegistration = {
     .author = "Firstname Lastname",
     .license = "GPLv2",
     .Init = Init,
+    .RegisterLoggers = RegisterLoggers,
 };
 
 const SCPlugin *SCPluginRegister(void)

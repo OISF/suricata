@@ -40,6 +40,7 @@ extern "C" fn SCPluginRegister() -> *const SCPlugin {
         license: b"MIT\0".as_ptr() as *const libc::c_char,
         author: b"Philippe Antoine\0".as_ptr() as *const libc::c_char,
         Init: Some(altemplate_plugin_init),
+        RegisterLoggers: None,
     };
     Box::into_raw(Box::new(plugin))
 }

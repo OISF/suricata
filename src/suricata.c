@@ -2793,6 +2793,9 @@ int PostConfLoadedSetup(SCInstance *suri)
     }
 
     RegisterAllModules();
+
+    SCInitPluginLoggers();
+
     AppLayerHtpNeedFileInspection();
 
     StorageFinalize();
