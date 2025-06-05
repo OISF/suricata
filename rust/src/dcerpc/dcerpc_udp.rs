@@ -24,7 +24,10 @@ use crate::dcerpc::dcerpc::{
 use crate::direction::{Direction, DIR_BOTH};
 use crate::flow::Flow;
 use nom7::Err;
-use suricata_sys::sys::AppProto;
+use suricata_sys::sys::{
+    AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled,
+    SCAppLayerProtoDetectPMRegisterPatternCSwPP,
+};
 use std;
 use std::ffi::CString;
 use std::collections::VecDeque;
@@ -234,7 +237,7 @@ impl DCERPCUDPState {
 }
 
 unsafe extern "C" fn parse(
-    _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -333,10 +336,10 @@ unsafe extern "C" fn probe_udp(_f: *const Flow, direction: u8, input: *const u8,
 
 fn register_pattern_probe() -> i8 {
     unsafe {
-        if AppLayerProtoDetectPMRegisterPatternCSwPP(core::IPPROTO_UDP, ALPROTO_DCERPC,
+        if SCAppLayerProtoDetectPMRegisterPatternCSwPP(core::IPPROTO_UDP, ALPROTO_DCERPC,
                                                      b"|04 00|\0".as_ptr() as *const std::os::raw::c_char, 2, 0,
-                                                     Direction::ToServer.into(), probe_udp, 0, 0) < 0 {
-            SCLogDebug!("TOSERVER => AppLayerProtoDetectPMRegisterPatternCSwPP FAILED");
+                                                     Direction::ToServer.into(), Some(probe_udp), 0, 0) < 0 {
+            SCLogDebug!("TOSERVER => SCAppLayerProtoDetectPMRegisterPatternCSwPP FAILED");
             return -1;
         }
     }
@@ -382,7 +385,7 @@ pub unsafe extern "C" fn SCRegisterDcerpcUdpParser() {
     };
 
     let ip_proto_str = CString::new("udp").unwrap();
-    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+    if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_DCERPC = alproto;
         if register_pattern_probe() < 0 {

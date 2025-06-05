@@ -29,7 +29,7 @@ use std;
 use std::collections::VecDeque;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_int, c_void};
-use suricata_sys::sys::AppProto;
+use suricata_sys::sys::{AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled};
 
 pub(super) static mut ALPROTO_ENIP: AppProto = ALPROTO_UNKNOWN;
 
@@ -315,10 +315,16 @@ impl EnipState {
                         }
                         if request {
                             tx.request = Some(pdu);
-                            sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
+                            sc_app_layer_parser_trigger_raw_stream_inspection(
+                                flow,
+                                Direction::ToServer as i32,
+                            );
                         } else {
                             tx.response = Some(pdu);
-                            sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
+                            sc_app_layer_parser_trigger_raw_stream_inspection(
+                                flow,
+                                Direction::ToClient as i32,
+                            );
                         }
                         self.transactions.push_back(tx);
                     }
@@ -487,7 +493,7 @@ unsafe extern "C" fn enip_state_tx_free(state: *mut c_void, tx_id: u64) {
 }
 
 unsafe extern "C" fn enip_parse_request_udp(
-    flow: *const Flow, state: *mut c_void, _pstate: *mut c_void, stream_slice: StreamSlice,
+    flow: *mut Flow, state: *mut c_void, _pstate: *mut c_void, stream_slice: StreamSlice,
     _data: *const c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, EnipState);
@@ -495,7 +501,7 @@ unsafe extern "C" fn enip_parse_request_udp(
 }
 
 unsafe extern "C" fn enip_parse_response_udp(
-    flow: *const Flow, state: *mut c_void, _pstate: *mut c_void, stream_slice: StreamSlice,
+    flow: *mut Flow, state: *mut c_void, _pstate: *mut c_void, stream_slice: StreamSlice,
     _data: *const c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, EnipState);
@@ -503,7 +509,7 @@ unsafe extern "C" fn enip_parse_response_udp(
 }
 
 unsafe extern "C" fn enip_parse_request_tcp(
-    flow: *const Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
+    flow: *mut Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
     _data: *const c_void,
 ) -> AppLayerResult {
     let eof = AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0;
@@ -522,7 +528,7 @@ unsafe extern "C" fn enip_parse_request_tcp(
 }
 
 unsafe extern "C" fn enip_parse_response_tcp(
-    flow: *const Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
+    flow: *mut Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
     _data: *const c_void,
 ) -> AppLayerResult {
     let eof = AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0;
@@ -637,7 +643,7 @@ pub unsafe extern "C" fn SCEnipRegisterParsers() {
         }
     }
 
-    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+    if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_ENIP = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
@@ -662,7 +668,7 @@ pub unsafe extern "C" fn SCEnipRegisterParsers() {
     parser.flags = APP_LAYER_PARSER_OPT_ACCEPT_GAPS;
 
     let ip_proto_str = CString::new("tcp").unwrap();
-    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+    if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_ENIP = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {

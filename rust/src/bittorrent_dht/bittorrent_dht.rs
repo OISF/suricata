@@ -15,7 +15,10 @@
  * 02110-1301, USA.
  */
 
-use suricata_sys::sys::AppProto;
+ use suricata_sys::sys::{
+    AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled,
+    SCAppLayerProtoDetectPMRegisterPatternCS,
+};
 
 use crate::applayer::{self, *};
 use crate::bittorrent_dht::parser::{
@@ -165,7 +168,7 @@ unsafe extern "C" fn state_tx_free(
 }
 
 unsafe extern "C" fn parse_ts(
-    _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     return parse(
@@ -174,7 +177,7 @@ unsafe extern "C" fn parse_ts(
 }
 
 unsafe extern "C" fn parse_tc(
-    _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     return parse(
@@ -183,7 +186,7 @@ unsafe extern "C" fn parse_tc(
 }
 
 unsafe extern "C" fn parse(
-    _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
     direction: Direction,
 ) -> AppLayerResult {
@@ -284,14 +287,14 @@ pub unsafe extern "C" fn SCRegisterBittorrentDhtUdpParser() {
 
     let ip_proto_str = CString::new("udp").unwrap();
 
-    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+    if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_BITTORRENT_DHT = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
 
-        if AppLayerProtoDetectPMRegisterPatternCS(
+        if SCAppLayerProtoDetectPMRegisterPatternCS(
             IPPROTO_UDP,
             ALPROTO_BITTORRENT_DHT,
             BITTORRENT_DHT_PAYLOAD_PREFIX.as_ptr() as *const c_char,
@@ -302,7 +305,7 @@ pub unsafe extern "C" fn SCRegisterBittorrentDhtUdpParser() {
         {
             SCLogDebug!("Failed to register protocol detection pattern for direction TOSERVER");
         };
-        if AppLayerProtoDetectPMRegisterPatternCS(
+        if SCAppLayerProtoDetectPMRegisterPatternCS(
             IPPROTO_UDP,
             ALPROTO_BITTORRENT_DHT,
             BITTORRENT_DHT_PAYLOAD_PREFIX.as_ptr() as *const c_char,

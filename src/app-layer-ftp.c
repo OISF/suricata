@@ -654,7 +654,7 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
         switch (state->command) {
             case FTP_COMMAND_AUTH_TLS:
                 if (line.len >= 4 && SCMemcmp("234 ", line.buf, 4) == 0) {
-                    AppLayerRequestProtocolTLSUpgrade(f);
+                    SCAppLayerRequestProtocolTLSUpgrade(f);
                 }
                 break;
 
@@ -901,7 +901,7 @@ static int FTPGetAlstateProgress(void *vtx, uint8_t direction)
 }
 
 static AppProto FTPUserProbingParser(
-        Flow *f, uint8_t direction, const uint8_t *input, uint32_t len, uint8_t *rdir)
+        const Flow *f, uint8_t direction, const uint8_t *input, uint32_t len, uint8_t *rdir)
 {
     if (f->alproto_tc == ALPROTO_POP3) {
         // POP traffic begins by same "USER" pattern as FTP
@@ -911,7 +911,7 @@ static AppProto FTPUserProbingParser(
 }
 
 static AppProto FTPServerProbingParser(
-        Flow *f, uint8_t direction, const uint8_t *input, uint32_t len, uint8_t *rdir)
+        const Flow *f, uint8_t direction, const uint8_t *input, uint32_t len, uint8_t *rdir)
 {
     // another check for minimum length
     if (len < 5) {
@@ -937,33 +937,33 @@ static AppProto FTPServerProbingParser(
 
 static int FTPRegisterPatternsForProtocolDetection(void)
 {
-    if (AppLayerProtoDetectPMRegisterPatternCI(
+    if (SCAppLayerProtoDetectPMRegisterPatternCI(
                 IPPROTO_TCP, ALPROTO_FTP, "220 (", 5, 0, STREAM_TOCLIENT) < 0) {
         return -1;
     }
-    if (AppLayerProtoDetectPMRegisterPatternCI(
+    if (SCAppLayerProtoDetectPMRegisterPatternCI(
                 IPPROTO_TCP, ALPROTO_FTP, "FEAT", 4, 0, STREAM_TOSERVER) < 0) {
         return -1;
     }
-    if (AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_FTP, "USER ", 5, 0,
+    if (SCAppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_FTP, "USER ", 5, 0,
                 STREAM_TOSERVER, FTPUserProbingParser, 5, 5) < 0) {
         return -1;
     }
-    if (AppLayerProtoDetectPMRegisterPatternCI(
+    if (SCAppLayerProtoDetectPMRegisterPatternCI(
                 IPPROTO_TCP, ALPROTO_FTP, "PASS ", 5, 0, STREAM_TOSERVER) < 0) {
         return -1;
     }
-    if (AppLayerProtoDetectPMRegisterPatternCI(
+    if (SCAppLayerProtoDetectPMRegisterPatternCI(
                 IPPROTO_TCP, ALPROTO_FTP, "PORT ", 5, 0, STREAM_TOSERVER) < 0) {
         return -1;
     }
     // Only check FTP on known ports as the banner has nothing special beyond
     // the response code shared with SMTP.
-    if (!AppLayerProtoDetectPPParseConfPorts(
+    if (!SCAppLayerProtoDetectPPParseConfPorts(
                 "tcp", IPPROTO_TCP, "ftp", ALPROTO_FTP, 0, 5, NULL, FTPServerProbingParser)) {
         // STREAM_TOSERVER here means use 21 as flow destination port
         // and NULL, FTPServerProbingParser means use probing parser to client
-        AppLayerProtoDetectPPRegister(IPPROTO_TCP, "21", ALPROTO_FTP, 0, 5, STREAM_TOSERVER, NULL,
+        SCAppLayerProtoDetectPPRegister(IPPROTO_TCP, "21", ALPROTO_FTP, 0, 5, STREAM_TOSERVER, NULL,
                 FTPServerProbingParser);
     }
     return 0;
@@ -1273,7 +1273,7 @@ void RegisterFTPParsers(void)
     const char *proto_data_name = "ftp-data";
 
     /** FTP */
-    if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
+    if (SCAppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
         AppLayerProtoDetectRegisterProtocol(ALPROTO_FTP, proto_name);
         if (FTPRegisterPatternsForProtocolDetection() < 0 )
             return;

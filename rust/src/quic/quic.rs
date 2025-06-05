@@ -33,7 +33,7 @@ use crate::{
 };
 use std::collections::VecDeque;
 use std::ffi::CString;
-use suricata_sys::sys::AppProto;
+use suricata_sys::sys::{AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled};
 use tls_parser::TlsExtensionType;
 
 static mut ALPROTO_QUIC: AppProto = ALPROTO_UNKNOWN;
@@ -464,7 +464,7 @@ unsafe extern "C" fn quic_probing_parser(
 }
 
 unsafe extern "C" fn quic_parse_tc(
-    _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, QuicState);
@@ -478,7 +478,7 @@ unsafe extern "C" fn quic_parse_tc(
 }
 
 unsafe extern "C" fn quic_parse_ts(
-    _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, QuicState);
@@ -579,7 +579,7 @@ pub unsafe extern "C" fn SCRegisterQuicParser() {
 
     let ip_proto_str = CString::new("udp").unwrap();
 
-    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+    if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_QUIC = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {

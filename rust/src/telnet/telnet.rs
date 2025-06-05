@@ -22,7 +22,7 @@ use crate::flow::Flow;
 use crate::frames::*;
 use std::ffi::CString;
 use nom7::IResult;
-use suricata_sys::sys::AppProto;
+use suricata_sys::sys::{AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled};
 use super::parser;
 
 static mut ALPROTO_TELNET: AppProto = ALPROTO_UNKNOWN;
@@ -415,7 +415,7 @@ unsafe extern "C" fn telnet_state_tx_free(
 }
 
 unsafe extern "C" fn telnet_parse_request(
-    flow: *const Flow,
+    flow: *mut Flow,
     state: *mut std::os::raw::c_void,
     pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice,
@@ -442,7 +442,7 @@ unsafe extern "C" fn telnet_parse_request(
 }
 
 unsafe extern "C" fn telnet_parse_response(
-    flow: *const Flow,
+    flow: *mut Flow,
     state: *mut std::os::raw::c_void,
     pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice,
@@ -539,7 +539,7 @@ pub unsafe extern "C" fn SCRegisterTelnetParser() {
 
     let ip_proto_str = CString::new("tcp").unwrap();
 
-    if AppLayerProtoDetectConfProtoDetectionEnabled(
+    if SCAppLayerProtoDetectConfProtoDetectionEnabled(
         ip_proto_str.as_ptr(),
         parser.name,
     ) != 0

@@ -1524,13 +1524,9 @@ int AppLayerProtoDetectPrepareState(void)
  *
  *  \param direction STREAM_TOSERVER or STREAM_TOCLIENT for dp or sp
  */
-void AppLayerProtoDetectPPRegister(uint8_t ipproto,
-                                   const char *portstr,
-                                   AppProto alproto,
-                                   uint16_t min_depth, uint16_t max_depth,
-                                   uint8_t direction,
-                                   ProbingParserFPtr ProbingParser1,
-                                   ProbingParserFPtr ProbingParser2)
+void SCAppLayerProtoDetectPPRegister(uint8_t ipproto, const char *portstr, AppProto alproto,
+        uint16_t min_depth, uint16_t max_depth, uint8_t direction, ProbingParserFPtr ProbingParser1,
+        ProbingParserFPtr ProbingParser2)
 {
     SCEnter();
 
@@ -1564,13 +1560,9 @@ void AppLayerProtoDetectPPRegister(uint8_t ipproto,
     SCReturn;
 }
 
-int AppLayerProtoDetectPPParseConfPorts(const char *ipproto_name,
-                                         uint8_t ipproto,
-                                         const char *alproto_name,
-                                         AppProto alproto,
-                                         uint16_t min_depth, uint16_t max_depth,
-                                         ProbingParserFPtr ProbingParserTs,
-                                         ProbingParserFPtr ProbingParserTc)
+int SCAppLayerProtoDetectPPParseConfPorts(const char *ipproto_name, uint8_t ipproto,
+        const char *alproto_name, AppProto alproto, uint16_t min_depth, uint16_t max_depth,
+        ProbingParserFPtr ProbingParserTs, ProbingParserFPtr ProbingParserTc)
 {
     SCEnter();
 
@@ -1608,12 +1600,9 @@ int AppLayerProtoDetectPPParseConfPorts(const char *ipproto_name,
         port_node = SCConfNodeLookupChild(node, "toserver");
 
     if (port_node != NULL && port_node->val != NULL) {
-        AppLayerProtoDetectPPRegister(ipproto,
-                                      port_node->val,
-                                      alproto,
-                                      min_depth, max_depth,
-                                      STREAM_TOSERVER, /* to indicate dp */
-                                      ProbingParserTs, ProbingParserTc);
+        SCAppLayerProtoDetectPPRegister(ipproto, port_node->val, alproto, min_depth, max_depth,
+                STREAM_TOSERVER, /* to indicate dp */
+                ProbingParserTs, ProbingParserTc);
     }
 
     /* detect by source port of flow */
@@ -1622,13 +1611,9 @@ int AppLayerProtoDetectPPParseConfPorts(const char *ipproto_name,
         port_node = SCConfNodeLookupChild(node, "toclient");
 
     if (port_node != NULL && port_node->val != NULL) {
-        AppLayerProtoDetectPPRegister(ipproto,
-                                      port_node->val,
-                                      alproto,
-                                      min_depth, max_depth,
-                                      STREAM_TOCLIENT, /* to indicate sp */
-                                      ProbingParserTc, ProbingParserTs);
-
+        SCAppLayerProtoDetectPPRegister(ipproto, port_node->val, alproto, min_depth, max_depth,
+                STREAM_TOCLIENT, /* to indicate sp */
+                ProbingParserTc, ProbingParserTs);
     }
 
     config = 1;
@@ -1638,10 +1623,8 @@ int AppLayerProtoDetectPPParseConfPorts(const char *ipproto_name,
 
 /***** PM registration *****/
 
-int AppLayerProtoDetectPMRegisterPatternCS(uint8_t ipproto, AppProto alproto,
-                                           const char *pattern,
-                                           uint16_t depth, uint16_t offset,
-                                           uint8_t direction)
+int SCAppLayerProtoDetectPMRegisterPatternCS(uint8_t ipproto, AppProto alproto, const char *pattern,
+        uint16_t depth, uint16_t offset, uint8_t direction)
 {
     SCEnter();
     int r = AppLayerProtoDetectPMRegisterPattern(ipproto, alproto,
@@ -1651,11 +1634,9 @@ int AppLayerProtoDetectPMRegisterPatternCS(uint8_t ipproto, AppProto alproto,
     SCReturnInt(r);
 }
 
-int AppLayerProtoDetectPMRegisterPatternCSwPP(uint8_t ipproto, AppProto alproto,
-        const char *pattern, uint16_t depth, uint16_t offset,
-        uint8_t direction,
-        ProbingParserFPtr PPFunc,
-        uint16_t pp_min_depth, uint16_t pp_max_depth)
+int SCAppLayerProtoDetectPMRegisterPatternCSwPP(uint8_t ipproto, AppProto alproto,
+        const char *pattern, uint16_t depth, uint16_t offset, uint8_t direction,
+        ProbingParserFPtr PPFunc, uint16_t pp_min_depth, uint16_t pp_max_depth)
 {
     SCEnter();
     int r = AppLayerProtoDetectPMRegisterPattern(ipproto, alproto,
@@ -1665,10 +1646,8 @@ int AppLayerProtoDetectPMRegisterPatternCSwPP(uint8_t ipproto, AppProto alproto,
     SCReturnInt(r);
 }
 
-int AppLayerProtoDetectPMRegisterPatternCI(uint8_t ipproto, AppProto alproto,
-                                           const char *pattern,
-                                           uint16_t depth, uint16_t offset,
-                                           uint8_t direction)
+int SCAppLayerProtoDetectPMRegisterPatternCI(uint8_t ipproto, AppProto alproto, const char *pattern,
+        uint16_t depth, uint16_t offset, uint8_t direction)
 {
     SCEnter();
     int r = AppLayerProtoDetectPMRegisterPattern(ipproto, alproto,
@@ -1851,7 +1830,7 @@ bool AppLayerRequestProtocolChange(Flow *f, uint16_t dp, AppProto expect_proto)
  *
  *  \param f flow to act on
  */
-bool AppLayerRequestProtocolTLSUpgrade(Flow *f)
+bool SCAppLayerRequestProtocolTLSUpgrade(Flow *f)
 {
     return AppLayerRequestProtocolChange(f, 443, ALPROTO_TLS);
 }
@@ -1862,7 +1841,7 @@ bool AppLayerRequestProtocolTLSUpgrade(Flow *f)
  *  \param f flow to act on
  *  \param new_proto new app-layer protocol
  */
-void AppLayerForceProtocolChange(Flow *f, AppProto new_proto)
+void SCAppLayerForceProtocolChange(Flow *f, AppProto new_proto)
 {
     if (new_proto != f->alproto) {
         f->alproto_orig = f->alproto;
@@ -1891,7 +1870,7 @@ void AppLayerProtoDetectReset(Flow *f)
     f->alproto_tc = ALPROTO_UNKNOWN;
 }
 
-int AppLayerProtoDetectConfProtoDetectionEnabledDefault(
+int SCAppLayerProtoDetectConfProtoDetectionEnabledDefault(
         const char *ipproto, const char *alproto, bool default_enabled)
 {
     SCEnter();
@@ -1961,9 +1940,9 @@ int AppLayerProtoDetectConfProtoDetectionEnabledDefault(
     SCReturnInt(enabled);
 }
 
-int AppLayerProtoDetectConfProtoDetectionEnabled(const char *ipproto, const char *alproto)
+int SCAppLayerProtoDetectConfProtoDetectionEnabled(const char *ipproto, const char *alproto)
 {
-    return AppLayerProtoDetectConfProtoDetectionEnabledDefault(ipproto, alproto, true);
+    return SCAppLayerProtoDetectConfProtoDetectionEnabledDefault(ipproto, alproto, true);
 }
 
 AppLayerProtoDetectThreadCtx *AppLayerProtoDetectGetCtxThread(void)
@@ -2178,9 +2157,11 @@ static int AppLayerProtoDetectTest01(void)
     AppLayerProtoDetectSetup();
 
     const char *buf = "HTTP";
-    AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP1, buf, 4, 0, STREAM_TOCLIENT);
+    SCAppLayerProtoDetectPMRegisterPatternCS(
+            IPPROTO_TCP, ALPROTO_HTTP1, buf, 4, 0, STREAM_TOCLIENT);
     buf = "GET";
-    AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP1, buf, 4, 0, STREAM_TOSERVER);
+    SCAppLayerProtoDetectPMRegisterPatternCS(
+            IPPROTO_TCP, ALPROTO_HTTP1, buf, 4, 0, STREAM_TOSERVER);
 
     AppLayerProtoDetectPrepareState();
     FAIL_IF(alpd_ctx.ctx_ipp[FLOW_PROTO_TCP].ctx_pm[0].max_pat_id != 1);
@@ -2197,9 +2178,10 @@ static int AppLayerProtoDetectTest02(void)
     AppLayerProtoDetectSetup();
 
     const char *buf = "HTTP";
-    AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP1, buf, 4, 0, STREAM_TOCLIENT);
+    SCAppLayerProtoDetectPMRegisterPatternCS(
+            IPPROTO_TCP, ALPROTO_HTTP1, buf, 4, 0, STREAM_TOCLIENT);
     buf = "ftp";
-    AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_FTP, buf, 4, 0, STREAM_TOCLIENT);
+    SCAppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_FTP, buf, 4, 0, STREAM_TOCLIENT);
 
     AppLayerProtoDetectPrepareState();
     FAIL_IF(alpd_ctx.ctx_ipp[FLOW_PROTO_TCP].ctx_pm[0].max_pat_id != 0);
@@ -2230,9 +2212,10 @@ static int AppLayerProtoDetectTest03(void)
 
 
     const char *buf = "HTTP";
-    AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP1, buf, 4, 0, STREAM_TOCLIENT);
+    SCAppLayerProtoDetectPMRegisterPatternCS(
+            IPPROTO_TCP, ALPROTO_HTTP1, buf, 4, 0, STREAM_TOCLIENT);
     buf = "220 ";
-    AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_FTP, buf, 4, 0, STREAM_TOCLIENT);
+    SCAppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_FTP, buf, 4, 0, STREAM_TOCLIENT);
 
     AppLayerProtoDetectPrepareState();
     /* AppLayerProtoDetectGetCtxThread() should be called post AppLayerProtoDetectPrepareState(), since
@@ -2274,7 +2257,8 @@ static int AppLayerProtoDetectTest04(void)
     f.protomap = FlowGetProtoMapping(IPPROTO_TCP);
 
     const char *buf = "200 ";
-    AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP1, buf, 13, 0, STREAM_TOCLIENT);
+    SCAppLayerProtoDetectPMRegisterPatternCS(
+            IPPROTO_TCP, ALPROTO_HTTP1, buf, 13, 0, STREAM_TOCLIENT);
 
     AppLayerProtoDetectPrepareState();
     /* AppLayerProtoDetectGetCtxThread() should be called post AppLayerProtoDetectPrepareState(), since
@@ -2314,9 +2298,10 @@ static int AppLayerProtoDetectTest05(void)
     f.protomap = FlowGetProtoMapping(IPPROTO_TCP);
 
     const char *buf = "HTTP";
-    AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP1, buf, 4, 0, STREAM_TOCLIENT);
+    SCAppLayerProtoDetectPMRegisterPatternCS(
+            IPPROTO_TCP, ALPROTO_HTTP1, buf, 4, 0, STREAM_TOCLIENT);
     buf = "220 ";
-    AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_FTP, buf, 4, 0, STREAM_TOCLIENT);
+    SCAppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_FTP, buf, 4, 0, STREAM_TOCLIENT);
 
     AppLayerProtoDetectPrepareState();
     /* AppLayerProtoDetectGetCtxThread() should be called post AppLayerProtoDetectPrepareState(), since
@@ -2358,9 +2343,10 @@ static int AppLayerProtoDetectTest06(void)
     f.protomap = FlowGetProtoMapping(IPPROTO_TCP);
 
     const char *buf = "HTTP";
-    AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP1, buf, 4, 0, STREAM_TOCLIENT);
+    SCAppLayerProtoDetectPMRegisterPatternCS(
+            IPPROTO_TCP, ALPROTO_HTTP1, buf, 4, 0, STREAM_TOCLIENT);
     buf = "220 ";
-    AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_FTP, buf, 4, 0, STREAM_TOCLIENT);
+    SCAppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_FTP, buf, 4, 0, STREAM_TOCLIENT);
 
     AppLayerProtoDetectPrepareState();
     /* AppLayerProtoDetectGetCtxThread() should be called post AppLayerProtoDetectPrepareState(), since
@@ -2401,7 +2387,8 @@ static int AppLayerProtoDetectTest07(void)
     memset(pm_results, 0, sizeof(pm_results));
 
     const char *buf = "HTTP";
-    AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP1, buf, 4, 0, STREAM_TOCLIENT);
+    SCAppLayerProtoDetectPMRegisterPatternCS(
+            IPPROTO_TCP, ALPROTO_HTTP1, buf, 4, 0, STREAM_TOCLIENT);
 
     AppLayerProtoDetectPrepareState();
     /* AppLayerProtoDetectGetCtxThread() should be called post AppLayerProtoDetectPrepareState(), since
@@ -2458,7 +2445,7 @@ static int AppLayerProtoDetectTest08(void)
     f.protomap = FlowGetProtoMapping(IPPROTO_TCP);
 
     const char *buf = "|ff|SMB";
-    AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_SMB, buf, 8, 4, STREAM_TOCLIENT);
+    SCAppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_SMB, buf, 8, 4, STREAM_TOCLIENT);
 
     AppLayerProtoDetectPrepareState();
     /* AppLayerProtoDetectGetCtxThread() should be called post AppLayerProtoDetectPrepareState(), since
@@ -2513,7 +2500,7 @@ static int AppLayerProtoDetectTest09(void)
     f.protomap = FlowGetProtoMapping(IPPROTO_TCP);
 
     const char *buf = "|fe|SMB";
-    AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_SMB, buf, 8, 4, STREAM_TOCLIENT);
+    SCAppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_SMB, buf, 8, 4, STREAM_TOCLIENT);
 
     AppLayerProtoDetectPrepareState();
     /* AppLayerProtoDetectGetCtxThread() should be called post AppLayerProtoDetectPrepareState(), since
@@ -2563,7 +2550,8 @@ static int AppLayerProtoDetectTest10(void)
     f.protomap = FlowGetProtoMapping(IPPROTO_TCP);
 
     const char *buf = "|05 00|";
-    AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_DCERPC, buf, 4, 0, STREAM_TOCLIENT);
+    SCAppLayerProtoDetectPMRegisterPatternCS(
+            IPPROTO_TCP, ALPROTO_DCERPC, buf, 4, 0, STREAM_TOCLIENT);
 
     AppLayerProtoDetectPrepareState();
     /* AppLayerProtoDetectGetCtxThread() should be called post AppLayerProtoDetectPrepareState(), since
@@ -2607,21 +2595,21 @@ static int AppLayerProtoDetectTest11(void)
     memset(&f, 0x00, sizeof(f));
     f.protomap = FlowGetProtoMapping(IPPROTO_TCP);
 
-    AppLayerProtoDetectPMRegisterPatternCS(
+    SCAppLayerProtoDetectPMRegisterPatternCS(
             IPPROTO_TCP, ALPROTO_HTTP1, "HTTP", 4, 0, STREAM_TOSERVER);
-    AppLayerProtoDetectPMRegisterPatternCS(
+    SCAppLayerProtoDetectPMRegisterPatternCS(
             IPPROTO_TCP, ALPROTO_HTTP1, "GET", 3, 0, STREAM_TOSERVER);
-    AppLayerProtoDetectPMRegisterPatternCS(
+    SCAppLayerProtoDetectPMRegisterPatternCS(
             IPPROTO_TCP, ALPROTO_HTTP1, "PUT", 3, 0, STREAM_TOSERVER);
-    AppLayerProtoDetectPMRegisterPatternCS(
+    SCAppLayerProtoDetectPMRegisterPatternCS(
             IPPROTO_TCP, ALPROTO_HTTP1, "POST", 4, 0, STREAM_TOSERVER);
-    AppLayerProtoDetectPMRegisterPatternCS(
+    SCAppLayerProtoDetectPMRegisterPatternCS(
             IPPROTO_TCP, ALPROTO_HTTP1, "TRACE", 5, 0, STREAM_TOSERVER);
-    AppLayerProtoDetectPMRegisterPatternCS(
+    SCAppLayerProtoDetectPMRegisterPatternCS(
             IPPROTO_TCP, ALPROTO_HTTP1, "OPTIONS", 7, 0, STREAM_TOSERVER);
-    AppLayerProtoDetectPMRegisterPatternCS(
+    SCAppLayerProtoDetectPMRegisterPatternCS(
             IPPROTO_TCP, ALPROTO_HTTP1, "CONNECT", 7, 0, STREAM_TOSERVER);
-    AppLayerProtoDetectPMRegisterPatternCS(
+    SCAppLayerProtoDetectPMRegisterPatternCS(
             IPPROTO_TCP, ALPROTO_HTTP1, "HTTP", 4, 0, STREAM_TOCLIENT);
 
     AppLayerProtoDetectPrepareState();
@@ -2674,7 +2662,7 @@ static int AppLayerProtoDetectTest12(void)
 
     int r = 0;
 
-    AppLayerProtoDetectPMRegisterPatternCS(
+    SCAppLayerProtoDetectPMRegisterPatternCS(
             IPPROTO_TCP, ALPROTO_HTTP1, "HTTP", 4, 0, STREAM_TOSERVER);
     if (alpd_ctx.ctx_ipp[FLOW_PROTO_TCP].ctx_pm[0].head == NULL ||
         alpd_ctx.ctx_ipp[FLOW_PROTO_TCP].ctx_pm[0].map != NULL)
@@ -2732,21 +2720,21 @@ static int AppLayerProtoDetectTest13(void)
     memset(&f, 0x00, sizeof(f));
     f.protomap = FlowGetProtoMapping(IPPROTO_TCP);
 
-    AppLayerProtoDetectPMRegisterPatternCS(
+    SCAppLayerProtoDetectPMRegisterPatternCS(
             IPPROTO_UDP, ALPROTO_HTTP1, "HTTP", 4, 0, STREAM_TOSERVER);
-    AppLayerProtoDetectPMRegisterPatternCS(
+    SCAppLayerProtoDetectPMRegisterPatternCS(
             IPPROTO_UDP, ALPROTO_HTTP1, "GET", 3, 0, STREAM_TOSERVER);
-    AppLayerProtoDetectPMRegisterPatternCS(
+    SCAppLayerProtoDetectPMRegisterPatternCS(
             IPPROTO_UDP, ALPROTO_HTTP1, "PUT", 3, 0, STREAM_TOSERVER);
-    AppLayerProtoDetectPMRegisterPatternCS(
+    SCAppLayerProtoDetectPMRegisterPatternCS(
             IPPROTO_UDP, ALPROTO_HTTP1, "POST", 4, 0, STREAM_TOSERVER);
-    AppLayerProtoDetectPMRegisterPatternCS(
+    SCAppLayerProtoDetectPMRegisterPatternCS(
             IPPROTO_UDP, ALPROTO_HTTP1, "TRACE", 5, 0, STREAM_TOSERVER);
-    AppLayerProtoDetectPMRegisterPatternCS(
+    SCAppLayerProtoDetectPMRegisterPatternCS(
             IPPROTO_UDP, ALPROTO_HTTP1, "OPTIONS", 7, 0, STREAM_TOSERVER);
-    AppLayerProtoDetectPMRegisterPatternCS(
+    SCAppLayerProtoDetectPMRegisterPatternCS(
             IPPROTO_UDP, ALPROTO_HTTP1, "CONNECT", 7, 0, STREAM_TOSERVER);
-    AppLayerProtoDetectPMRegisterPatternCS(
+    SCAppLayerProtoDetectPMRegisterPatternCS(
             IPPROTO_UDP, ALPROTO_HTTP1, "HTTP", 4, 0, STREAM_TOCLIENT);
 
     AppLayerProtoDetectPrepareState();
@@ -2803,21 +2791,21 @@ static int AppLayerProtoDetectTest14(void)
     memset(&f, 0x00, sizeof(f));
     f.protomap = FlowGetProtoMapping(IPPROTO_UDP);
 
-    AppLayerProtoDetectPMRegisterPatternCS(
+    SCAppLayerProtoDetectPMRegisterPatternCS(
             IPPROTO_UDP, ALPROTO_HTTP1, "HTTP", 4, 0, STREAM_TOSERVER);
-    AppLayerProtoDetectPMRegisterPatternCS(
+    SCAppLayerProtoDetectPMRegisterPatternCS(
             IPPROTO_UDP, ALPROTO_HTTP1, "GET", 3, 0, STREAM_TOSERVER);
-    AppLayerProtoDetectPMRegisterPatternCS(
+    SCAppLayerProtoDetectPMRegisterPatternCS(
             IPPROTO_UDP, ALPROTO_HTTP1, "PUT", 3, 0, STREAM_TOSERVER);
-    AppLayerProtoDetectPMRegisterPatternCS(
+    SCAppLayerProtoDetectPMRegisterPatternCS(
             IPPROTO_UDP, ALPROTO_HTTP1, "POST", 4, 0, STREAM_TOSERVER);
-    AppLayerProtoDetectPMRegisterPatternCS(
+    SCAppLayerProtoDetectPMRegisterPatternCS(
             IPPROTO_UDP, ALPROTO_HTTP1, "TRACE", 5, 0, STREAM_TOSERVER);
-    AppLayerProtoDetectPMRegisterPatternCS(
+    SCAppLayerProtoDetectPMRegisterPatternCS(
             IPPROTO_UDP, ALPROTO_HTTP1, "OPTIONS", 7, 0, STREAM_TOSERVER);
-    AppLayerProtoDetectPMRegisterPatternCS(
+    SCAppLayerProtoDetectPMRegisterPatternCS(
             IPPROTO_UDP, ALPROTO_HTTP1, "CONNECT", 7, 0, STREAM_TOSERVER);
-    AppLayerProtoDetectPMRegisterPatternCS(
+    SCAppLayerProtoDetectPMRegisterPatternCS(
             IPPROTO_UDP, ALPROTO_HTTP1, "HTTP", 4, 0, STREAM_TOCLIENT);
 
     AppLayerProtoDetectPrepareState();
@@ -2974,137 +2962,57 @@ static int AppLayerProtoDetectTest15(void)
 
     int result = 0;
 
-    AppLayerProtoDetectPPRegister(IPPROTO_TCP, "80", ALPROTO_HTTP1, 5, 8, STREAM_TOSERVER,
+    SCAppLayerProtoDetectPPRegister(IPPROTO_TCP, "80", ALPROTO_HTTP1, 5, 8, STREAM_TOSERVER,
             ProbingParserDummyForTesting, NULL);
-    AppLayerProtoDetectPPRegister(IPPROTO_TCP,
-                                  "80",
-                                  ALPROTO_SMB,
-                                  5, 6,
-                                  STREAM_TOSERVER,
-                                  ProbingParserDummyForTesting, NULL);
-    AppLayerProtoDetectPPRegister(IPPROTO_TCP,
-                                  "80",
-                                  ALPROTO_FTP,
-                                  7, 10,
-                                  STREAM_TOSERVER,
-                                  ProbingParserDummyForTesting, NULL);
+    SCAppLayerProtoDetectPPRegister(IPPROTO_TCP, "80", ALPROTO_SMB, 5, 6, STREAM_TOSERVER,
+            ProbingParserDummyForTesting, NULL);
+    SCAppLayerProtoDetectPPRegister(IPPROTO_TCP, "80", ALPROTO_FTP, 7, 10, STREAM_TOSERVER,
+            ProbingParserDummyForTesting, NULL);
 
-    AppLayerProtoDetectPPRegister(IPPROTO_TCP,
-                                  "81",
-                                  ALPROTO_DCERPC,
-                                  9, 10,
-                                  STREAM_TOSERVER,
-                                  ProbingParserDummyForTesting, NULL);
-    AppLayerProtoDetectPPRegister(IPPROTO_TCP,
-                                  "81",
-                                  ALPROTO_FTP,
-                                  7, 15,
-                                  STREAM_TOSERVER,
-                                  ProbingParserDummyForTesting, NULL);
-    AppLayerProtoDetectPPRegister(IPPROTO_TCP,
-                                  "0",
-                                  ALPROTO_SMTP,
-                                  12, 0,
-                                  STREAM_TOSERVER,
-                                  ProbingParserDummyForTesting, NULL);
-    AppLayerProtoDetectPPRegister(IPPROTO_TCP,
-                                  "0",
-                                  ALPROTO_TLS,
-                                  12, 18,
-                                  STREAM_TOSERVER,
-                                  ProbingParserDummyForTesting, NULL);
+    SCAppLayerProtoDetectPPRegister(IPPROTO_TCP, "81", ALPROTO_DCERPC, 9, 10, STREAM_TOSERVER,
+            ProbingParserDummyForTesting, NULL);
+    SCAppLayerProtoDetectPPRegister(IPPROTO_TCP, "81", ALPROTO_FTP, 7, 15, STREAM_TOSERVER,
+            ProbingParserDummyForTesting, NULL);
+    SCAppLayerProtoDetectPPRegister(IPPROTO_TCP, "0", ALPROTO_SMTP, 12, 0, STREAM_TOSERVER,
+            ProbingParserDummyForTesting, NULL);
+    SCAppLayerProtoDetectPPRegister(IPPROTO_TCP, "0", ALPROTO_TLS, 12, 18, STREAM_TOSERVER,
+            ProbingParserDummyForTesting, NULL);
 
-    AppLayerProtoDetectPPRegister(IPPROTO_TCP,
-                                  "85",
-                                  ALPROTO_DCERPC,
-                                  9, 10,
-                                  STREAM_TOSERVER,
-                                  ProbingParserDummyForTesting, NULL);
-    AppLayerProtoDetectPPRegister(IPPROTO_TCP,
-                                  "85",
-                                  ALPROTO_FTP,
-                                  7, 15,
-                                  STREAM_TOSERVER,
-                                  ProbingParserDummyForTesting, NULL);
+    SCAppLayerProtoDetectPPRegister(IPPROTO_TCP, "85", ALPROTO_DCERPC, 9, 10, STREAM_TOSERVER,
+            ProbingParserDummyForTesting, NULL);
+    SCAppLayerProtoDetectPPRegister(IPPROTO_TCP, "85", ALPROTO_FTP, 7, 15, STREAM_TOSERVER,
+            ProbingParserDummyForTesting, NULL);
     result = 1;
 
-    AppLayerProtoDetectPPRegister(IPPROTO_UDP,
-                                  "85",
-                                  ALPROTO_IMAP,
-                                  12, 23,
-                                  STREAM_TOSERVER,
-                                  ProbingParserDummyForTesting, NULL);
+    SCAppLayerProtoDetectPPRegister(IPPROTO_UDP, "85", ALPROTO_IMAP, 12, 23, STREAM_TOSERVER,
+            ProbingParserDummyForTesting, NULL);
 
     /* toclient */
-    AppLayerProtoDetectPPRegister(IPPROTO_TCP,
-                                  "0",
-                                  ALPROTO_JABBER,
-                                  12, 23,
-                                  STREAM_TOCLIENT,
-                                  ProbingParserDummyForTesting, NULL);
-    AppLayerProtoDetectPPRegister(IPPROTO_TCP,
-                                  "0",
-                                  ALPROTO_IRC,
-                                  12, 14,
-                                  STREAM_TOCLIENT,
-                                  ProbingParserDummyForTesting, NULL);
-
-    AppLayerProtoDetectPPRegister(IPPROTO_TCP,
-                                  "85",
-                                  ALPROTO_DCERPC,
-                                  9, 10,
-                                  STREAM_TOCLIENT,
-                                  ProbingParserDummyForTesting, NULL);
-    AppLayerProtoDetectPPRegister(IPPROTO_TCP,
-                                  "81",
-                                  ALPROTO_FTP,
-                                  7, 15,
-                                  STREAM_TOCLIENT,
-                                  ProbingParserDummyForTesting, NULL);
-    AppLayerProtoDetectPPRegister(IPPROTO_TCP,
-                                  "0",
-                                  ALPROTO_TLS,
-                                  12, 18,
-                                  STREAM_TOCLIENT,
-                                  ProbingParserDummyForTesting, NULL);
-    AppLayerProtoDetectPPRegister(IPPROTO_TCP, "80", ALPROTO_HTTP1, 5, 8, STREAM_TOCLIENT,
+    SCAppLayerProtoDetectPPRegister(IPPROTO_TCP, "0", ALPROTO_JABBER, 12, 23, STREAM_TOCLIENT,
             ProbingParserDummyForTesting, NULL);
-    AppLayerProtoDetectPPRegister(IPPROTO_TCP,
-                                  "81",
-                                  ALPROTO_DCERPC,
-                                  9, 10,
-                                  STREAM_TOCLIENT,
-                                  ProbingParserDummyForTesting, NULL);
-    AppLayerProtoDetectPPRegister(IPPROTO_TCP,
-                                  "90",
-                                  ALPROTO_FTP,
-                                  7, 15,
-                                  STREAM_TOCLIENT,
-                                  ProbingParserDummyForTesting, NULL);
-    AppLayerProtoDetectPPRegister(IPPROTO_TCP,
-                                  "80",
-                                  ALPROTO_SMB,
-                                  5, 6,
-                                  STREAM_TOCLIENT,
-                                  ProbingParserDummyForTesting, NULL);
-    AppLayerProtoDetectPPRegister(IPPROTO_UDP,
-                                  "85",
-                                  ALPROTO_IMAP,
-                                  12, 23,
-                                  STREAM_TOCLIENT,
-                                  ProbingParserDummyForTesting, NULL);
-    AppLayerProtoDetectPPRegister(IPPROTO_TCP,
-                                  "0",
-                                  ALPROTO_SMTP,
-                                  12, 17,
-                                  STREAM_TOCLIENT,
-                                  ProbingParserDummyForTesting, NULL);
-    AppLayerProtoDetectPPRegister(IPPROTO_TCP,
-                                  "80",
-                                  ALPROTO_FTP,
-                                  7, 10,
-                                  STREAM_TOCLIENT,
-                                  ProbingParserDummyForTesting, NULL);
+    SCAppLayerProtoDetectPPRegister(IPPROTO_TCP, "0", ALPROTO_IRC, 12, 14, STREAM_TOCLIENT,
+            ProbingParserDummyForTesting, NULL);
+
+    SCAppLayerProtoDetectPPRegister(IPPROTO_TCP, "85", ALPROTO_DCERPC, 9, 10, STREAM_TOCLIENT,
+            ProbingParserDummyForTesting, NULL);
+    SCAppLayerProtoDetectPPRegister(IPPROTO_TCP, "81", ALPROTO_FTP, 7, 15, STREAM_TOCLIENT,
+            ProbingParserDummyForTesting, NULL);
+    SCAppLayerProtoDetectPPRegister(IPPROTO_TCP, "0", ALPROTO_TLS, 12, 18, STREAM_TOCLIENT,
+            ProbingParserDummyForTesting, NULL);
+    SCAppLayerProtoDetectPPRegister(IPPROTO_TCP, "80", ALPROTO_HTTP1, 5, 8, STREAM_TOCLIENT,
+            ProbingParserDummyForTesting, NULL);
+    SCAppLayerProtoDetectPPRegister(IPPROTO_TCP, "81", ALPROTO_DCERPC, 9, 10, STREAM_TOCLIENT,
+            ProbingParserDummyForTesting, NULL);
+    SCAppLayerProtoDetectPPRegister(IPPROTO_TCP, "90", ALPROTO_FTP, 7, 15, STREAM_TOCLIENT,
+            ProbingParserDummyForTesting, NULL);
+    SCAppLayerProtoDetectPPRegister(IPPROTO_TCP, "80", ALPROTO_SMB, 5, 6, STREAM_TOCLIENT,
+            ProbingParserDummyForTesting, NULL);
+    SCAppLayerProtoDetectPPRegister(IPPROTO_UDP, "85", ALPROTO_IMAP, 12, 23, STREAM_TOCLIENT,
+            ProbingParserDummyForTesting, NULL);
+    SCAppLayerProtoDetectPPRegister(IPPROTO_TCP, "0", ALPROTO_SMTP, 12, 17, STREAM_TOCLIENT,
+            ProbingParserDummyForTesting, NULL);
+    SCAppLayerProtoDetectPPRegister(IPPROTO_TCP, "80", ALPROTO_FTP, 7, 10, STREAM_TOCLIENT,
+            ProbingParserDummyForTesting, NULL);
 
     AppLayerProtoDetectPPTestDataElement element_ts_80[] = {
         { "http", ALPROTO_HTTP1, 80, 5, 8 },

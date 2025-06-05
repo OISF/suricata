@@ -30,7 +30,7 @@ use nom7::Err;
 use std;
 use std::collections::VecDeque;
 use std::ffi::CString;
-use suricata_sys::sys::AppProto;
+use suricata_sys::sys::{AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled};
 
 // Used as a special pseudo packet identifier to denote the first CONNECT
 // packet in a connection. Note that there is no risk of collision with a
@@ -679,7 +679,7 @@ unsafe extern "C" fn mqtt_state_tx_free(state: *mut std::os::raw::c_void, tx_id:
 }
 
 unsafe extern "C" fn mqtt_parse_request(
-    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, MQTTState);
@@ -687,7 +687,7 @@ unsafe extern "C" fn mqtt_parse_request(
 }
 
 unsafe extern "C" fn mqtt_parse_response(
-    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, MQTTState);
@@ -785,7 +785,7 @@ pub unsafe extern "C" fn SCMqttRegisterParser() {
 
     let ip_proto_str = CString::new("tcp").unwrap();
 
-    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+    if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_MQTT = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {

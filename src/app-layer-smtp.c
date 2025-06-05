@@ -927,7 +927,7 @@ static int SMTPProcessReply(
         if (reply_code == SMTP_REPLY_220) {
             /* we are entering STARTTLS data mode */
             state->parser_state |= SMTP_PARSER_STATE_COMMAND_DATA_MODE;
-            if (!AppLayerRequestProtocolTLSUpgrade(f)) {
+            if (!SCAppLayerRequestProtocolTLSUpgrade(f)) {
                 SMTPSetEvent(state, SMTP_DECODER_EVENT_FAILED_PROTOCOL_CHANGE);
             }
             if (state->curr_tx) {
@@ -1670,7 +1670,7 @@ static int SMTPStateGetEventInfoById(
 }
 
 static AppProto SMTPServerProbingParser(
-        Flow *f, uint8_t direction, const uint8_t *input, uint32_t len, uint8_t *rdir)
+        const Flow *f, uint8_t direction, const uint8_t *input, uint32_t len, uint8_t *rdir)
 {
     // another check for minimum length
     if (len < 5) {
@@ -1711,25 +1711,22 @@ static AppProto SMTPServerProbingParser(
 
 static int SMTPRegisterPatternsForProtocolDetection(void)
 {
-    if (AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_SMTP,
-                                               "EHLO", 4, 0, STREAM_TOSERVER) < 0)
-    {
+    if (SCAppLayerProtoDetectPMRegisterPatternCI(
+                IPPROTO_TCP, ALPROTO_SMTP, "EHLO", 4, 0, STREAM_TOSERVER) < 0) {
         return -1;
     }
-    if (AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_SMTP,
-                                               "HELO", 4, 0, STREAM_TOSERVER) < 0)
-    {
+    if (SCAppLayerProtoDetectPMRegisterPatternCI(
+                IPPROTO_TCP, ALPROTO_SMTP, "HELO", 4, 0, STREAM_TOSERVER) < 0) {
         return -1;
     }
-    if (AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_SMTP,
-                                               "QUIT", 4, 0, STREAM_TOSERVER) < 0)
-    {
+    if (SCAppLayerProtoDetectPMRegisterPatternCI(
+                IPPROTO_TCP, ALPROTO_SMTP, "QUIT", 4, 0, STREAM_TOSERVER) < 0) {
         return -1;
     }
-    if (!AppLayerProtoDetectPPParseConfPorts(
+    if (!SCAppLayerProtoDetectPPParseConfPorts(
                 "tcp", IPPROTO_TCP, "smtp", ALPROTO_SMTP, 0, 5, NULL, SMTPServerProbingParser)) {
         // STREAM_TOSERVER means here use 25 as flow destination port
-        AppLayerProtoDetectPPRegister(IPPROTO_TCP, "25,465", ALPROTO_SMTP, 0, 5, STREAM_TOSERVER,
+        SCAppLayerProtoDetectPPRegister(IPPROTO_TCP, "25,465", ALPROTO_SMTP, 0, 5, STREAM_TOSERVER,
                 NULL, SMTPServerProbingParser);
     }
 
@@ -1861,7 +1858,7 @@ void RegisterSMTPParsers(void)
 {
     const char *proto_name = "smtp";
 
-    if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
+    if (SCAppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
         AppLayerProtoDetectRegisterProtocol(ALPROTO_SMTP, proto_name);
         if (SMTPRegisterPatternsForProtocolDetection() < 0 )
             return;

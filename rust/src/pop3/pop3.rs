@@ -28,7 +28,9 @@ use std;
 use std::collections::VecDeque;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_int, c_void};
-use suricata_sys::sys::AppProto;
+use suricata_sys::sys::{
+    AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled, SCAppLayerRequestProtocolTLSUpgrade,
+};
 
 use sawp::error::Error as SawpError;
 use sawp::error::ErrorKind as SawpErrorKind;
@@ -239,7 +241,7 @@ impl POP3State {
         return AppLayerResult::ok();
     }
 
-    fn parse_response(&mut self, input: &[u8], flow: *const Flow) -> AppLayerResult {
+    fn parse_response(&mut self, input: &[u8], flow: *mut Flow) -> AppLayerResult {
         // We're not interested in empty responses.
         if input.is_empty() {
             return AppLayerResult::ok();
@@ -286,7 +288,7 @@ impl POP3State {
                             match &command.keyword {
                                 sawp_pop3::Keyword::STLS => {
                                     unsafe {
-                                        AppLayerRequestProtocolTLSUpgrade(flow);
+                                        SCAppLayerRequestProtocolTLSUpgrade(flow);
                                     };
                                 }
                                 sawp_pop3::Keyword::RETR => {
@@ -399,7 +401,7 @@ unsafe extern "C" fn pop3_state_tx_free(state: *mut c_void, tx_id: u64) {
 }
 
 unsafe extern "C" fn pop3_parse_request(
-    flow: *const Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
+    flow: *mut Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
     _data: *const c_void,
 ) -> AppLayerResult {
     let eof = AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0;
@@ -423,7 +425,7 @@ unsafe extern "C" fn pop3_parse_request(
 }
 
 unsafe extern "C" fn pop3_parse_response(
-    flow: *const Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
+    flow: *mut Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
     _data: *const c_void,
 ) -> AppLayerResult {
     let _eof = AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0;
@@ -511,7 +513,7 @@ pub unsafe extern "C" fn SCRegisterPop3Parser() {
 
     let ip_proto_str = CString::new("tcp").unwrap();
 
-    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+    if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_POP3 = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {

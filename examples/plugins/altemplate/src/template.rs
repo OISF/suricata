@@ -28,8 +28,7 @@ use std::ffi::CString;
 use std::os::raw::{c_char, c_int, c_void};
 use suricata::applayer::{
     state_get_tx_iterator, AppLayerEvent, AppLayerParserConfParserEnabled,
-    AppLayerParserRegisterLogger, AppLayerParserStateIssetFlag,
-    AppLayerProtoDetectConfProtoDetectionEnabled, AppLayerRegisterParser,
+    AppLayerParserRegisterLogger, AppLayerParserStateIssetFlag, AppLayerRegisterParser,
     AppLayerRegisterProtocolDetection, AppLayerResult, AppLayerStateData, AppLayerTxData,
     RustParser, State, StreamSlice, Transaction, APP_LAYER_PARSER_EOF_TC, APP_LAYER_PARSER_EOF_TS,
     APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
@@ -39,7 +38,7 @@ use suricata::core::{ALPROTO_UNKNOWN, IPPROTO_TCP};
 use suricata::{
     build_slice, cast_pointer, export_state_data_get, export_tx_data_get, SCLogError, SCLogNotice,
 };
-use suricata_sys::sys::{AppProto, Flow};
+use suricata_sys::sys::{AppProto, Flow, SCAppLayerProtoDetectConfProtoDetectionEnabled};
 
 static mut TEMPLATE_MAX_TX: usize = 256;
 
@@ -297,7 +296,7 @@ unsafe extern "C" fn template_state_tx_free(state: *mut c_void, tx_id: u64) {
 }
 
 unsafe extern "C" fn template_parse_request(
-    _flow: *const Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
+    _flow: *mut Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
     _data: *const c_void,
 ) -> AppLayerResult {
     let eof = AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0;
@@ -321,7 +320,7 @@ unsafe extern "C" fn template_parse_request(
 }
 
 unsafe extern "C" fn template_parse_response(
-    _flow: *const Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
+    _flow: *mut Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
     _data: *const c_void,
 ) -> AppLayerResult {
     let _eof = AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0;
@@ -409,7 +408,7 @@ pub(super) unsafe extern "C" fn template_register_parser() {
 
     let ip_proto_str = CString::new("tcp").unwrap();
 
-    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+    if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_TEMPLATE = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {

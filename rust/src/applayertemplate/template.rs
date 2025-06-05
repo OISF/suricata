@@ -25,7 +25,7 @@ use std;
 use std::collections::VecDeque;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_int, c_void};
-use suricata_sys::sys::AppProto;
+use suricata_sys::sys::{AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled};
 
 static mut TEMPLATE_MAX_TX: usize = 256;
 
@@ -267,9 +267,7 @@ unsafe extern "C" fn template_probing_parser(
     return ALPROTO_UNKNOWN;
 }
 
-extern "C" fn template_state_new(
-    _orig_state: *mut c_void, _orig_proto: AppProto,
-) -> *mut c_void {
+extern "C" fn template_state_new(_orig_state: *mut c_void, _orig_proto: AppProto) -> *mut c_void {
     let state = TemplateState::new();
     let boxed = Box::new(state);
     return Box::into_raw(boxed) as *mut c_void;
@@ -285,7 +283,7 @@ unsafe extern "C" fn template_state_tx_free(state: *mut c_void, tx_id: u64) {
 }
 
 unsafe extern "C" fn template_parse_request(
-    _flow: *const Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
+    _flow: *mut Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
     _data: *const c_void,
 ) -> AppLayerResult {
     let eof = AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0;
@@ -309,7 +307,7 @@ unsafe extern "C" fn template_parse_request(
 }
 
 unsafe extern "C" fn template_parse_response(
-    _flow: *const Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
+    _flow: *mut Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
     _data: *const c_void,
 ) -> AppLayerResult {
     let _eof = AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0;
@@ -404,7 +402,7 @@ pub unsafe extern "C" fn SCRegisterTemplateParser() {
 
     let ip_proto_str = CString::new("tcp").unwrap();
 
-    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+    if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_TEMPLATE = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {

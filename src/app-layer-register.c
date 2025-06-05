@@ -65,30 +65,25 @@ AppProto AppLayerRegisterProtocolDetection(const struct AppLayerParser *p, int e
     if (RunmodeIsUnittests()) {
 
         SCLogDebug("Unittest mode, registering default configuration.");
-        AppLayerProtoDetectPPRegister(p->ip_proto, p->default_port,
-                alproto, p->min_depth, p->max_depth, STREAM_TOSERVER,
-                p->ProbeTS, p->ProbeTC);
+        SCAppLayerProtoDetectPPRegister(p->ip_proto, p->default_port, alproto, p->min_depth,
+                p->max_depth, STREAM_TOSERVER, p->ProbeTS, p->ProbeTC);
 
     }
     else {
 
-        if (!AppLayerProtoDetectPPParseConfPorts(ip_proto_str, p->ip_proto,
-                    p->name, alproto, p->min_depth, p->max_depth,
-                    p->ProbeTS, p->ProbeTC)) {
+        if (!SCAppLayerProtoDetectPPParseConfPorts(ip_proto_str, p->ip_proto, p->name, alproto,
+                    p->min_depth, p->max_depth, p->ProbeTS, p->ProbeTC)) {
             if (enable_default != 0) {
                 SCLogDebug("No %s app-layer configuration, enabling %s"
                         " detection %s detection on port %s.",
                         p->name, p->name, ip_proto_str, p->default_port);
-                AppLayerProtoDetectPPRegister(p->ip_proto,
-                        p->default_port, alproto,
-                        p->min_depth, p->max_depth, STREAM_TOSERVER,
-                        p->ProbeTS, p->ProbeTC);
+                SCAppLayerProtoDetectPPRegister(p->ip_proto, p->default_port, alproto, p->min_depth,
+                        p->max_depth, STREAM_TOSERVER, p->ProbeTS, p->ProbeTC);
             } else {
                 SCLogDebug("No %s app-layer configuration for detection port (%s).",
                         p->name, ip_proto_str);
             }
         }
-
     }
 
     return alproto;
