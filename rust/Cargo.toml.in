@@ -85,7 +85,7 @@ time = "~0.3.41"
 suricata-derive = { path = "./derive", version = "@PACKAGE_VERSION@" }
 suricata-sys = { path = "./sys", version = "@PACKAGE_VERSION@" }
 
-suricata-lua-sys = { version = "0.1.0-alpha.9" }
+suricata-lua-sys = { version = "5.4.8000" }
 
 htp = { package = "suricata-htp", path = "./htp", version = "2.0.0" }
 
