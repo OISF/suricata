@@ -49,7 +49,7 @@ static TAILQ_HEAD(, PluginListNode_) plugins = TAILQ_HEAD_INITIALIZER(plugins);
 
 static TAILQ_HEAD(, SCCapturePlugin_) capture_plugins = TAILQ_HEAD_INITIALIZER(capture_plugins);
 
-bool RegisterPlugin(SCPlugin *plugin, void *lib)
+static bool SCRegisterPlugin(SCPlugin *plugin, void *lib)
 {
     if (plugin->version != SC_API_VERSION) {
         SCLogError("Suricata and plugin versions differ: plugin has %" PRIx64
@@ -73,11 +73,23 @@ bool RegisterPlugin(SCPlugin *plugin, void *lib)
     SCLogNotice("Initializing plugin %s; version= %s; author=%s; license=%s; built from %s",
             plugin->name, plugin->plugin_version, plugin->author, plugin->license,
             plugin->suricata_version);
-    (*plugin->Init)();
+    //(*plugin->Init)();
     return true;
 }
 
-static void InitPlugin(char *path)
+/**
+ * \brief Initialize registered plugins.
+ */
+void SCInitPlugins(void)
+{
+    PluginListNode *node = NULL;
+    TAILQ_FOREACH (node, &plugins, entries) {
+        SCLogNotice("Initializing %s", node->plugin->name);
+        (*node->plugin->Init)();
+    }
+}
+
+static void SCLoadPlugin(char *path)
 {
     void *lib = dlopen(path, RTLD_NOW);
     if (lib == NULL) {
@@ -92,7 +104,7 @@ static void InitPlugin(char *path)
             return;
         }
 
-        if (!RegisterPlugin(plugin_register(), lib)) {
+        if (!SCRegisterPlugin(plugin_register(), lib)) {
             SCLogError("Plugin registration failed: %s", path);
             dlclose(lib);
             return;
@@ -125,12 +137,12 @@ void SCPluginsLoad(const char *capture_plugin_name, const char *capture_plugin_a
             while ((entry = readdir(dir)) != NULL) {
                 if (strstr(entry->d_name, ".so") != NULL) {
                     snprintf(path, sizeof(path), "%s/%s", plugin->val, entry->d_name);
-                    InitPlugin(path);
+                    SCLoadPlugin(path);
                 }
             }
             closedir(dir);
         } else {
-            InitPlugin(plugin->val);
+            SCLoadPlugin(plugin->val);
         }
     }
 
