@@ -35,7 +35,6 @@ pub struct DetectFtpReplyReceivedData {
     pub received: bool,
 }
 
-/// cbindgen:ignore
 #[repr(C)]
 pub struct FtpCommand {
     command_name: CString,
