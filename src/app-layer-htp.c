@@ -1593,9 +1593,8 @@ void HTPFreeConfig(void)
 {
     SCEnter();
 
-    if (!AppLayerProtoDetectConfProtoDetectionEnabled("tcp", "http") ||
-        !AppLayerParserConfParserEnabled("tcp", "http"))
-    {
+    if (!SCAppLayerProtoDetectConfProtoDetectionEnabled("tcp", "http") ||
+            !AppLayerParserConfParserEnabled("tcp", "http")) {
         SCReturn;
     }
 
@@ -2590,7 +2589,7 @@ static int HTPRegisterPatternsForProtocolDetection(void)
              * 3 is subtracted from the length since the spacing is hex typed as |xx|
              * but the pattern matching should only be one char
             */
-            register_result = AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_HTTP1,
+            register_result = SCAppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_HTTP1,
                     method_buffer, (uint16_t)strlen(method_buffer) - 3, 0, STREAM_TOSERVER);
             if (register_result < 0) {
                 return -1;
@@ -2600,7 +2599,7 @@ static int HTPRegisterPatternsForProtocolDetection(void)
 
     /* Loop through all the http version patterns that are TO_CLIENT */
     for (versions_pos = 0; versions[versions_pos]; versions_pos++) {
-        register_result = AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_HTTP1,
+        register_result = SCAppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_HTTP1,
                 versions[versions_pos], (uint16_t)strlen(versions[versions_pos]), 0,
                 STREAM_TOCLIENT);
         if (register_result < 0) {
@@ -2622,7 +2621,7 @@ void RegisterHTPParsers(void)
     const char *proto_name = "http";
 
     /** HTTP */
-    if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
+    if (SCAppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
         AppLayerProtoDetectRegisterProtocol(ALPROTO_HTTP1, proto_name);
         if (HTPRegisterPatternsForProtocolDetection() < 0)
             return;

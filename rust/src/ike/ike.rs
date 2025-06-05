@@ -29,7 +29,7 @@ use crate::ike::ikev1::{handle_ikev1, IkeV1Header, Ikev1Container};
 use crate::ike::ikev2::{handle_ikev2, Ikev2Container};
 use crate::ike::parser::*;
 use nom7::Err;
-use suricata_sys::sys::AppProto;
+use suricata_sys::sys::{AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled};
 use std;
 use std::collections::HashSet;
 use std::ffi::CString;
@@ -315,7 +315,7 @@ unsafe extern "C" fn ike_state_tx_free(state: *mut std::os::raw::c_void, tx_id: 
 }
 
 unsafe extern "C" fn ike_parse_request(
-    _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, IKEState);
@@ -323,7 +323,7 @@ unsafe extern "C" fn ike_parse_request(
 }
 
 unsafe extern "C" fn ike_parse_response(
-    _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, IKEState);
@@ -403,7 +403,7 @@ pub unsafe extern "C" fn SCRegisterIkeParser() {
 
     let ip_proto_str = CString::new("udp").unwrap();
 
-    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+    if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_IKE = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {

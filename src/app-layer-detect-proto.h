@@ -25,13 +25,14 @@
 #ifndef SURICATA_APP_LAYER_DETECT_PROTO__H
 #define SURICATA_APP_LAYER_DETECT_PROTO__H
 
-#include "flow.h"
+// only forward declaration for bindgen
+typedef struct Flow_ Flow;
 #include "app-layer-protos.h"
 
 typedef struct AppLayerProtoDetectThreadCtx_ AppLayerProtoDetectThreadCtx;
 
 typedef AppProto (*ProbingParserFPtr)(
-        Flow *f, uint8_t flags, const uint8_t *input, uint32_t input_len, uint8_t *rdir);
+        const Flow *f, uint8_t flags, const uint8_t *input, uint32_t input_len, uint8_t *rdir);
 
 /***** Protocol Retrieval *****/
 
@@ -62,45 +63,32 @@ int AppLayerProtoDetectPrepareState(void);
 
 /***** PP registration *****/
 
-void AppLayerProtoDetectPPRegister(uint8_t ipproto,
-                                   const char *portstr,
-                                   AppProto alproto,
-                                   uint16_t min_depth, uint16_t max_depth,
-                                   uint8_t direction,
-                                   ProbingParserFPtr ProbingParser1,
-                                   ProbingParserFPtr ProbingParser2);
+void SCAppLayerProtoDetectPPRegister(uint8_t ipproto, const char *portstr, AppProto alproto,
+        uint16_t min_depth, uint16_t max_depth, uint8_t direction, ProbingParserFPtr ProbingParser1,
+        ProbingParserFPtr ProbingParser2);
 /**
  *  \retval bool 0 if no config was found, 1 if config was found
  */
-int AppLayerProtoDetectPPParseConfPorts(const char *ipproto_name,
-                                         uint8_t ipproto,
-                                         const char *alproto_name,
-                                         AppProto alproto,
-                                         uint16_t min_depth, uint16_t max_depth,
-                                         ProbingParserFPtr ProbingParserTs,
-                                         ProbingParserFPtr ProbingParserTc);
+int SCAppLayerProtoDetectPPParseConfPorts(const char *ipproto_name, uint8_t ipproto,
+        const char *alproto_name, AppProto alproto, uint16_t min_depth, uint16_t max_depth,
+        ProbingParserFPtr ProbingParserTs, ProbingParserFPtr ProbingParserTc);
 
 /***** PM registration *****/
 
 /**
  * \brief Registers a case-sensitive pattern for protocol detection.
  */
-int AppLayerProtoDetectPMRegisterPatternCS(uint8_t ipproto, AppProto alproto,
-        const char *pattern, uint16_t depth, uint16_t offset,
-        uint8_t direction);
-int AppLayerProtoDetectPMRegisterPatternCSwPP(uint8_t ipproto, AppProto alproto,
-        const char *pattern, uint16_t depth, uint16_t offset,
-        uint8_t direction,
-        ProbingParserFPtr PPFunc,
-        uint16_t pp_min_depth, uint16_t pp_max_depth);
+int SCAppLayerProtoDetectPMRegisterPatternCS(uint8_t ipproto, AppProto alproto, const char *pattern,
+        uint16_t depth, uint16_t offset, uint8_t direction);
+int SCAppLayerProtoDetectPMRegisterPatternCSwPP(uint8_t ipproto, AppProto alproto,
+        const char *pattern, uint16_t depth, uint16_t offset, uint8_t direction,
+        ProbingParserFPtr PPFunc, uint16_t pp_min_depth, uint16_t pp_max_depth);
 
 /**
  * \brief Registers a case-insensitive pattern for protocol detection.
  */
-int AppLayerProtoDetectPMRegisterPatternCI(uint8_t ipproto, AppProto alproto,
-                                           const char *pattern,
-                                           uint16_t depth, uint16_t offset,
-                                           uint8_t direction);
+int SCAppLayerProtoDetectPMRegisterPatternCI(uint8_t ipproto, AppProto alproto, const char *pattern,
+        uint16_t depth, uint16_t offset, uint8_t direction);
 
 /***** Setup/General Registration *****/
 
@@ -119,9 +107,9 @@ int AppLayerProtoDetectSetup(void);
 void AppLayerProtoDetectReset(Flow *);
 
 bool AppLayerRequestProtocolChange(Flow *f, uint16_t dp, AppProto expect_proto);
-bool AppLayerRequestProtocolTLSUpgrade(Flow *f);
+bool SCAppLayerRequestProtocolTLSUpgrade(Flow *f);
 
-void AppLayerForceProtocolChange(Flow *f, AppProto new_proto);
+void SCAppLayerForceProtocolChange(Flow *f, AppProto new_proto);
 
 /**
  * \brief Cleans up the app layer protocol detection phase.
@@ -164,8 +152,7 @@ void AppLayerProtoDetectRegisterAlias(const char *proto_name, const char *proto_
  * \retval 1 If enabled.
  * \retval 0 If disabled.
  */
-int AppLayerProtoDetectConfProtoDetectionEnabled(const char *ipproto,
-                                                 const char *alproto);
+int SCAppLayerProtoDetectConfProtoDetectionEnabled(const char *ipproto, const char *alproto);
 
 /**
  * \brief Given a protocol name, checks if proto detection is enabled in
@@ -177,7 +164,7 @@ int AppLayerProtoDetectConfProtoDetectionEnabled(const char *ipproto,
  * \retval 1 If enabled.
  * \retval 0 If disabled.
  */
-int AppLayerProtoDetectConfProtoDetectionEnabledDefault(
+int SCAppLayerProtoDetectConfProtoDetectionEnabledDefault(
         const char *ipproto, const char *alproto, bool default_enabled);
 
 /**
