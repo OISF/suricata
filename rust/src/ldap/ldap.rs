@@ -232,7 +232,7 @@ impl LdapState {
                     }
                     let mut tx = tx.unwrap();
                     let tx_id = tx.id();
-                    let request = LdapMessage::from(msg);
+                    let request = msg;
                     // check if STARTTLS was requested
                     if let ProtocolOp::ExtendedRequest(request) = &request.protocol_op {
                         if request.request_name.0 == STARTTLS_OID {
@@ -297,7 +297,7 @@ impl LdapState {
             }
             match ldap_parse_msg(start) {
                 Ok((rem, msg)) => {
-                    let response = LdapMessage::from(msg);
+                    let response = msg;
                     // check if STARTTLS was requested
                     if self.request_tls {
                         if let ProtocolOp::ExtendedResponse(response) = &response.protocol_op {
@@ -393,7 +393,7 @@ impl LdapState {
                     return AppLayerResult::err();
                 }
                 let mut tx = tx.unwrap();
-                let request = LdapMessage::from(msg);
+                let request = msg;
                 tx.complete |= tx_is_complete(&request.protocol_op, Direction::ToServer);
                 tx.request = Some(request.to_static());
                 self.transactions.push_back(tx);
@@ -434,7 +434,7 @@ impl LdapState {
             }
             match ldap_parse_msg(start) {
                 Ok((rem, msg)) => {
-                    let response = LdapMessage::from(msg);
+                    let response = msg;
                     if let Some(tx) = self.find_request(response.message_id) {
                         tx.complete |= tx_is_complete(&response.protocol_op, Direction::ToClient);
                         let tx_id = tx.id();
@@ -533,7 +533,7 @@ fn tx_is_complete(op: &ProtocolOp, dir: Direction) -> bool {
 fn probe(input: &[u8], direction: Direction, rdir: *mut u8) -> AppProto {
     match ldap_parse_msg(input) {
         Ok((_, msg)) => {
-            let ldap_msg = LdapMessage::from(msg);
+            let ldap_msg = msg;
             if direction == Direction::ToServer && !ldap_is_request(&ldap_msg) {
                 unsafe {
                     *rdir = Direction::ToClient.into();
