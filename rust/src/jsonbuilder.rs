@@ -809,7 +809,7 @@ impl JsonBuilder {
     }
 
     fn encode_base64(&mut self, val: &[u8]) -> Result<&mut Self, JsonError> {
-        let encoded_len = 4 * ((val.len() + 2) / 3);
+        let encoded_len = 4 * val.len().div_ceil(3);
         if self.buf.capacity() < self.buf.len() + encoded_len {
             self.buf.try_reserve(encoded_len)?;
         }

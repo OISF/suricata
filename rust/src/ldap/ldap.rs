@@ -176,8 +176,7 @@ impl LdapState {
     fn find_request(&mut self, message_id: MessageID) -> Option<&mut LdapTransaction> {
         self.transactions.iter_mut().find(|tx| {
             tx.request
-                .as_ref()
-                .map_or(false, |req| req.message_id == message_id)
+                .as_ref().is_some_and(|req| req.message_id == message_id)
         })
     }
 

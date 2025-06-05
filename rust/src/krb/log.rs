@@ -61,7 +61,7 @@ fn krb5_log_response(jsb: &mut JsonBuilder, tx: &KRB5Transaction) -> Result<(), 
     jsb.set_string("encryption", &encryption)?;
     jsb.set_bool(
         "weak_encryption",
-        tx.etype.map_or(false, test_weak_encryption),
+        tx.etype.is_some_and(test_weak_encryption),
     )?;
     if let Some(x) = tx.ticket_etype {
         let refs = format!("{:?}", x);
