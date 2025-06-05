@@ -17,6 +17,7 @@ modbus-events.rules \
 mqtt-events.rules \
 nfs-events.rules \
 ntp-events.rules \
+pop3-events.rules \
 quic-events.rules \
 rfb-events.rules \
 smb-events.rules \
