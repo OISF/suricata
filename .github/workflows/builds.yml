@@ -1348,7 +1348,7 @@ jobs:
                 wget
       # specific version to match up to the llvm version in ubuntu below
       - name: Install Rust
-        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.67.1 -y
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.75.0 -y
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
@@ -1453,7 +1453,7 @@ jobs:
                 dpdk-dev
       # specific version to match up to the llvm version in ubuntu below
       - name: Install Rust
-        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.67.1 -y
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.75.0 -y
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
@@ -1776,7 +1776,7 @@ jobs:
                 dpdk-dev
       # packaged Rust version is too old for coverage, so get from rustup
       - name: Install Rust
-        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.67.1 -y
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.75.0 -y
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
