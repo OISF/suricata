@@ -5,5 +5,5 @@
 alert pop3 any any -> any any (msg:"SURICATA POP3 Too many transactions"; app-layer-event:pop3.too_many_transactions; sid:2236000; rev:1;)
 alert pop3 any any -> any any (msg:"SURICATA POP3 Request Too Long"; app-layer-event:pop3.request_too_long; flow:to_server; sid:2236001; rev:1;)
 alert pop3 any any -> any any (msg:"SURICATA POP3 Incorrect Argument Count"; app-layer-event:pop3.incorrect_argument_count; flow:to_server; sid:2236002; rev:1;)
-alert pop3 any any -> any any (msg:"SURICATA POP3 Unknown Command"; app-layer-event:pop3.unknown_command; flow:to_server, sid:2236003; rev:1;)
+alert pop3 any any -> any any (msg:"SURICATA POP3 Unknown Command"; app-layer-event:pop3.unknown_command; flow:to_server; sid:2236003; rev:1;)
 alert pop3 any any -> any any (msg:"SURICATA POP3 Response Too Long"; app-layer-event:pop3.response_too_long; flow:to_client; sid:2236004; rev:1;)
