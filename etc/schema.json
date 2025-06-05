@@ -1343,7 +1343,8 @@
                     "minItems": 1,
                     "items": {
                         "type": "string"
-                    }
+                    },
+                    "$comment": "The log fields email.attachment and file.name refer to the same value and are functionally equivalent"
                 },
                 "body_md5": {
                     "type": "string"
