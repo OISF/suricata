@@ -68,11 +68,6 @@ macro_rules!BIT_U64 {
     ($x:expr) => (1 << $x);
 }
 
-// Defined in app-layer-protos.h
-/// cbindgen:ignore
-extern "C" {
-    pub fn StringToAppProto(proto_name: *const u8) -> AppProto;
-}
 
 /// cbindgen:ignore
 extern "C" {
