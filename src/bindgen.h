@@ -46,4 +46,6 @@
 
 #include "conf.h"
 
+#include "app-layer-detect-proto.h"
+
 #endif

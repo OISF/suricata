@@ -18,7 +18,9 @@
 use super::parser;
 use crate::applayer::{self, *};
 use crate::conf::conf_get;
-use crate::core::{ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP, sc_app_layer_parser_trigger_raw_stream_inspection};
+use crate::core::{
+    sc_app_layer_parser_trigger_raw_stream_inspection, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP,
+};
 use crate::direction::Direction;
 use crate::flow::Flow;
 use crate::frames::Frame;
@@ -28,7 +30,7 @@ use nom7::Needed;
 
 use flate2::Decompress;
 use flate2::FlushDecompress;
-use suricata_sys::sys::AppProto;
+use suricata_sys::sys::{AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled};
 
 use std;
 use std::collections::VecDeque;
@@ -326,9 +328,7 @@ unsafe extern "C" fn websocket_probing_parser(
     return ALPROTO_UNKNOWN;
 }
 
-extern "C" fn websocket_state_new(
-    _orig_state: *mut c_void, _orig_proto: AppProto,
-) -> *mut c_void {
+extern "C" fn websocket_state_new(_orig_state: *mut c_void, _orig_proto: AppProto) -> *mut c_void {
     let state = WebSocketState::new();
     let boxed = Box::new(state);
     return Box::into_raw(boxed) as *mut c_void;
@@ -344,7 +344,7 @@ unsafe extern "C" fn websocket_state_tx_free(state: *mut c_void, tx_id: u64) {
 }
 
 unsafe extern "C" fn websocket_parse_request(
-    flow: *const Flow, state: *mut c_void, _pstate: *mut c_void, stream_slice: StreamSlice,
+    flow: *mut Flow, state: *mut c_void, _pstate: *mut c_void, stream_slice: StreamSlice,
     _data: *const c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, WebSocketState);
@@ -352,7 +352,7 @@ unsafe extern "C" fn websocket_parse_request(
 }
 
 unsafe extern "C" fn websocket_parse_response(
-    flow: *const Flow, state: *mut c_void, _pstate: *mut c_void, stream_slice: StreamSlice,
+    flow: *mut Flow, state: *mut c_void, _pstate: *mut c_void, stream_slice: StreamSlice,
     _data: *const c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, WebSocketState);
@@ -376,9 +376,7 @@ unsafe extern "C" fn websocket_state_get_tx_count(state: *mut c_void) -> u64 {
     return state.tx_id;
 }
 
-unsafe extern "C" fn websocket_tx_get_alstate_progress(
-    _tx: *mut c_void, _direction: u8,
-) -> c_int {
+unsafe extern "C" fn websocket_tx_get_alstate_progress(_tx: *mut c_void, _direction: u8) -> c_int {
     return 1;
 }
 
@@ -428,7 +426,7 @@ pub unsafe extern "C" fn SCRegisterWebSocketParser() {
 
     let ip_proto_str = CString::new("tcp").unwrap();
 
-    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+    if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_WEBSOCKET = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {

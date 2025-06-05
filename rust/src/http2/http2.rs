@@ -38,7 +38,9 @@ use std::collections::VecDeque;
 use std::ffi::CString;
 use std::fmt;
 use std::io;
-use suricata_sys::sys::AppProto;
+use suricata_sys::sys::{
+    AppProto, SCAppLayerForceProtocolChange, SCAppLayerProtoDetectConfProtoDetectionEnabled,
+};
 
 static mut ALPROTO_HTTP2: AppProto = ALPROTO_UNKNOWN;
 static mut ALPROTO_DOH2: AppProto = ALPROTO_UNKNOWN;
@@ -469,7 +471,7 @@ impl HTTP2Transaction {
         return r;
     }
 
-    fn handle_dns_data(&mut self, dir: Direction, flow: *const Flow) {
+    fn handle_dns_data(&mut self, dir: Direction, flow: *mut Flow) {
         if let Some(doh) = &mut self.doh {
             if !doh.data_buf[dir.index()].is_empty() {
                 if dir.is_to_client() {
@@ -477,14 +479,16 @@ impl HTTP2Transaction {
                         dtx.id = 1;
                         doh.dns_response_tx = Some(dtx);
                         unsafe {
-                            AppLayerForceProtocolChange(flow, ALPROTO_DOH2);
+                            SCAppLayerForceProtocolChange(flow, ALPROTO_DOH2);
                         }
                     }
-                } else if let Ok(mut dtx) = dns_parse_request(&doh.data_buf[dir.index()], &DnsVariant::Dns) {
+                } else if let Ok(mut dtx) =
+                    dns_parse_request(&doh.data_buf[dir.index()], &DnsVariant::Dns)
+                {
                     dtx.id = 1;
                     doh.dns_request_tx = Some(dtx);
                     unsafe {
-                        AppLayerForceProtocolChange(flow, ALPROTO_DOH2);
+                        SCAppLayerForceProtocolChange(flow, ALPROTO_DOH2);
                     }
                 }
             }
@@ -1121,7 +1125,7 @@ impl HTTP2State {
     }
 
     fn parse_frames(
-        &mut self, mut input: &[u8], il: usize, dir: Direction, flow: *const Flow,
+        &mut self, mut input: &[u8], il: usize, dir: Direction, flow: *mut Flow,
         stream_slice: &StreamSlice,
     ) -> AppLayerResult {
         while !input.is_empty() {
@@ -1210,7 +1214,7 @@ impl HTTP2State {
                         if let Ok(mut dtx) = dns_parse_request(&doh_req_buf, &DnsVariant::Dns) {
                             dtx.id = 1;
                             unsafe {
-                                AppLayerForceProtocolChange(flow, ALPROTO_DOH2);
+                                SCAppLayerForceProtocolChange(flow, ALPROTO_DOH2);
                             }
                             if let Some(doh) = &mut tx.doh {
                                 doh.dns_request_tx = Some(dtx);
@@ -1302,7 +1306,7 @@ impl HTTP2State {
         return AppLayerResult::ok();
     }
 
-    fn parse_ts(&mut self, flow: *const Flow, stream_slice: StreamSlice) -> AppLayerResult {
+    fn parse_ts(&mut self, flow: *mut Flow, stream_slice: StreamSlice) -> AppLayerResult {
         //very first : skip magic
         let mut input = stream_slice.as_slice();
         let mut magic_consumed = 0;
@@ -1352,7 +1356,7 @@ impl HTTP2State {
         }
     }
 
-    fn parse_tc(&mut self, flow: *const Flow, stream_slice: StreamSlice) -> AppLayerResult {
+    fn parse_tc(&mut self, flow: *mut Flow, stream_slice: StreamSlice) -> AppLayerResult {
         //first consume frame bytes
         let mut input = stream_slice.as_slice();
         let il = input.len();
@@ -1459,7 +1463,7 @@ unsafe extern "C" fn http2_state_tx_free(state: *mut std::os::raw::c_void, tx_id
 }
 
 unsafe extern "C" fn http2_parse_ts(
-    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, HTTP2State);
@@ -1467,7 +1471,7 @@ unsafe extern "C" fn http2_parse_ts(
 }
 
 unsafe extern "C" fn http2_parse_tc(
-    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, HTTP2State);
@@ -1566,7 +1570,7 @@ pub unsafe extern "C" fn SCRegisterHttp2Parser() {
 
     let ip_proto_str = CString::new("tcp").unwrap();
 
-    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+    if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_HTTP2 = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
@@ -1603,7 +1607,7 @@ pub unsafe extern "C" fn SCRegisterHttp2Parser() {
     parser.name = b"doh2\0".as_ptr() as *const std::os::raw::c_char;
     parser.probe_tc = None;
     parser.default_port = std::ptr::null();
-    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+    if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_DOH2 = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {

@@ -23,7 +23,10 @@ use std::collections::HashMap;
 use std::ffi::CString;
 
 use nom7::{Err, Needed};
-use suricata_sys::sys::AppProto;
+use suricata_sys::sys::{
+    AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled,
+    SCAppLayerProtoDetectPPParseConfPorts, SCAppLayerProtoDetectPPRegister,
+};
 
 use crate::applayer;
 use crate::applayer::*;
@@ -1935,7 +1938,7 @@ extern "C" fn nfs_state_free(state: *mut std::os::raw::c_void) {
 
 /// C binding parse a NFS TCP request. Returns 1 on success, -1 on failure.
 unsafe extern "C" fn nfs_parse_request(
-    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, NFSState);
@@ -1955,7 +1958,7 @@ extern "C" fn nfs_parse_request_tcp_gap(state: &mut NFSState, input_len: u32) ->
 }
 
 unsafe extern "C" fn nfs_parse_response(
-    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, NFSState);
@@ -1976,7 +1979,7 @@ extern "C" fn nfs_parse_response_tcp_gap(state: &mut NFSState, input_len: u32) -
 
 /// C binding to parse an NFS/UDP request. Returns 1 on success, -1 on failure.
 unsafe extern "C" fn nfs_parse_request_udp(
-    f: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    f: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, NFSState);
@@ -1986,7 +1989,7 @@ unsafe extern "C" fn nfs_parse_request_udp(
 }
 
 unsafe extern "C" fn nfs_parse_response_udp(
-    f: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    f: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, NFSState);
@@ -2352,47 +2355,47 @@ pub unsafe extern "C" fn SCRegisterNfsParser() {
 
     let ip_proto_str = CString::new("tcp").unwrap();
 
-    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+    if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_NFS = alproto;
 
         let midstream = conf_get_bool("stream.midstream");
         if midstream {
-            if AppLayerProtoDetectPPParseConfPorts(
+            if SCAppLayerProtoDetectPPParseConfPorts(
                 ip_proto_str.as_ptr(),
                 IPPROTO_TCP,
                 parser.name,
                 ALPROTO_NFS,
                 0,
                 NFS_MIN_FRAME_LEN,
-                nfs_probe_ms,
-                nfs_probe_ms,
+                Some(nfs_probe_ms),
+                Some(nfs_probe_ms),
             ) == 0
             {
                 SCLogDebug!("No NFSTCP app-layer configuration, enabling NFSTCP detection TCP detection on port {:?}.",
                             default_port);
                 /* register 'midstream' probing parsers if midstream is enabled. */
-                AppLayerProtoDetectPPRegister(
+                SCAppLayerProtoDetectPPRegister(
                     IPPROTO_TCP,
                     default_port.as_ptr(),
                     ALPROTO_NFS,
                     0,
                     NFS_MIN_FRAME_LEN,
                     Direction::ToServer.into(),
-                    nfs_probe_ms,
-                    nfs_probe_ms,
+                    Some(nfs_probe_ms),
+                    Some(nfs_probe_ms),
                 );
             }
         } else {
-            AppLayerProtoDetectPPRegister(
+            SCAppLayerProtoDetectPPRegister(
                 IPPROTO_TCP,
                 default_port.as_ptr(),
                 ALPROTO_NFS,
                 0,
                 NFS_MIN_FRAME_LEN,
                 Direction::ToServer.into(),
-                ffi_nfs_probe,
-                ffi_nfs_probe,
+                Some(ffi_nfs_probe),
+                Some(ffi_nfs_probe),
             );
         }
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
@@ -2443,32 +2446,32 @@ pub unsafe extern "C" fn SCRegisterNfsUdpParser() {
 
     let ip_proto_str = CString::new("udp").unwrap();
 
-    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+    if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_NFS = alproto;
 
-        if AppLayerProtoDetectPPParseConfPorts(
+        if SCAppLayerProtoDetectPPParseConfPorts(
             ip_proto_str.as_ptr(),
             IPPROTO_UDP,
             parser.name,
             ALPROTO_NFS,
             0,
             NFS_MIN_FRAME_LEN,
-            nfs_probe_udp_ts,
-            nfs_probe_udp_tc,
+            Some(nfs_probe_udp_ts),
+            Some(nfs_probe_udp_tc),
         ) == 0
         {
             SCLogDebug!("No NFSUDP app-layer configuration, enabling NFSUDP detection UDP detection on port {:?}.",
                         default_port);
-            AppLayerProtoDetectPPRegister(
+            SCAppLayerProtoDetectPPRegister(
                 IPPROTO_UDP,
                 default_port.as_ptr(),
                 ALPROTO_NFS,
                 0,
                 NFS_MIN_FRAME_LEN,
                 Direction::ToServer.into(),
-                nfs_probe_udp_ts,
-                nfs_probe_udp_tc,
+                Some(nfs_probe_udp_ts),
+                Some(nfs_probe_udp_tc),
             );
         }
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {

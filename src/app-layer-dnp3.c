@@ -262,9 +262,8 @@ static int DNP3ContainsBanner(const uint8_t *input, uint32_t len)
 /**
  * \brief DNP3 probing parser.
  */
-static uint16_t DNP3ProbingParser(Flow *f, uint8_t direction,
-        const uint8_t *input, uint32_t len,
-        uint8_t *rdir)
+static uint16_t DNP3ProbingParser(
+        const Flow *f, uint8_t direction, const uint8_t *input, uint32_t len, uint8_t *rdir)
 {
     const DNP3LinkHeader *const hdr = (const DNP3LinkHeader *)input;
     const bool toserver = (direction & STREAM_TOSERVER) != 0;
@@ -1533,18 +1532,16 @@ void RegisterDNP3Parsers(void)
 
     const char *proto_name = "dnp3";
 
-    if (AppLayerProtoDetectConfProtoDetectionEnabledDefault("tcp", proto_name, false)) {
+    if (SCAppLayerProtoDetectConfProtoDetectionEnabledDefault("tcp", proto_name, false)) {
         AppLayerProtoDetectRegisterProtocol(ALPROTO_DNP3, proto_name);
 
         if (RunmodeIsUnittests()) {
-            AppLayerProtoDetectPPRegister(IPPROTO_TCP, DNP3_DEFAULT_PORT,
-                ALPROTO_DNP3, 0, sizeof(DNP3LinkHeader), STREAM_TOSERVER,
-                DNP3ProbingParser, DNP3ProbingParser);
+            SCAppLayerProtoDetectPPRegister(IPPROTO_TCP, DNP3_DEFAULT_PORT, ALPROTO_DNP3, 0,
+                    sizeof(DNP3LinkHeader), STREAM_TOSERVER, DNP3ProbingParser, DNP3ProbingParser);
         }
         else {
-            if (!AppLayerProtoDetectPPParseConfPorts("tcp", IPPROTO_TCP,
-                    proto_name, ALPROTO_DNP3, 0, sizeof(DNP3LinkHeader),
-                    DNP3ProbingParser, DNP3ProbingParser)) {
+            if (!SCAppLayerProtoDetectPPParseConfPorts("tcp", IPPROTO_TCP, proto_name, ALPROTO_DNP3,
+                        0, sizeof(DNP3LinkHeader), DNP3ProbingParser, DNP3ProbingParser)) {
                 return;
             }
         }

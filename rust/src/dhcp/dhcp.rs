@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-use suricata_sys::sys::AppProto;
+use suricata_sys::sys::{AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled};
 
 use crate::applayer::{self, *};
 use crate::core::{ALPROTO_UNKNOWN, IPPROTO_UDP};
@@ -224,7 +224,7 @@ unsafe extern "C" fn dhcp_state_get_tx_count(state: *mut std::os::raw::c_void) -
 }
 
 unsafe extern "C" fn dhcp_parse(
-    _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, DHCPState);
@@ -296,7 +296,7 @@ pub unsafe extern "C" fn SCRegisterDhcpParser() {
 
     let ip_proto_str = CString::new("udp").unwrap();
 
-    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+    if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_DHCP = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {

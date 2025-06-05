@@ -479,7 +479,7 @@ impl AppLayerGetFileState {
     }
 }
 
-pub type ParseFn      = unsafe extern "C" fn (flow: *const Flow,
+pub type ParseFn      = unsafe extern "C" fn (flow: *mut Flow,
                                        state: *mut c_void,
                                        pstate: *mut c_void,
                                        stream_slice: StreamSlice,
@@ -518,32 +518,6 @@ extern "C" {
     pub fn AppLayerRegisterParser(parser: *const RustParser, alproto: AppProto) -> c_int;
 }
 
-
-// Defined in app-layer-detect-proto.h
-/// cbindgen:ignore
-extern "C" {
-    pub fn AppLayerForceProtocolChange(f: *const Flow, new_proto: AppProto);
-    pub fn AppLayerProtoDetectPPRegister(ipproto: u8, portstr: *const c_char, alproto: AppProto,
-                                         min_depth: u16, max_depth: u16, dir: u8,
-                                         pparser1: ProbeFn, pparser2: ProbeFn);
-    pub fn AppLayerProtoDetectPPParseConfPorts(ipproto_name: *const c_char, ipproto: u8,
-                                               alproto_name: *const c_char, alproto: AppProto,
-                                               min_depth: u16, max_depth: u16,
-                                               pparser_ts: ProbeFn, pparser_tc: ProbeFn) -> i32;
-    pub fn AppLayerProtoDetectPMRegisterPatternCI(ipproto: u8, alproto: AppProto,
-                                                pattern: *const c_char, depth: u16,
-                                                offset: u16, direction: u8) -> c_int;
-    pub fn AppLayerProtoDetectPMRegisterPatternCS(ipproto: u8, alproto: AppProto,
-                                                  pattern: *const c_char, depth: u16,
-                                                  offset: u16, direction: u8) -> c_int;
-    pub fn AppLayerProtoDetectPMRegisterPatternCSwPP(ipproto: u8, alproto: AppProto,
-                                                     pattern: *const c_char, depth: u16,
-                                                     offset: u16, direction: u8, ppfn: ProbeFn,
-                                                     pp_min_depth: u16, pp_max_depth: u16) -> c_int;
-    pub fn AppLayerProtoDetectConfProtoDetectionEnabled(ipproto: *const c_char, proto: *const c_char) -> c_int;
-    pub fn AppLayerProtoDetectConfProtoDetectionEnabledDefault(ipproto: *const c_char, proto: *const c_char, default: bool) -> c_int;
-    pub fn AppLayerRequestProtocolTLSUpgrade(flow: *const Flow) -> bool;
-}
 
 // Defined in app-layer-parser.h
 pub const APP_LAYER_PARSER_NO_INSPECTION : u16 = BIT_U16!(1);

@@ -74,8 +74,8 @@ static int TFTPStateGetEventInfo(
  * \retval ALPROTO_TFTP if it looks like tftp, otherwise
  *     ALPROTO_UNKNOWN.
  */
-static AppProto TFTPProbingParser(Flow *f, uint8_t direction,
-        const uint8_t *input, uint32_t input_len, uint8_t *rdir)
+static AppProto TFTPProbingParser(
+        const Flow *f, uint8_t direction, const uint8_t *input, uint32_t input_len, uint8_t *rdir)
 {
     /* Very simple test - if there is input, this is tftp.
      * Also check if it's starting by a zero */
@@ -158,7 +158,7 @@ void RegisterTFTPParsers(void)
 
     /* Check if TFTP UDP detection is enabled. If it does not exist in
      * the configuration file then it will be enabled by default. */
-    if (AppLayerProtoDetectConfProtoDetectionEnabled("udp", proto_name)) {
+    if (SCAppLayerProtoDetectConfProtoDetectionEnabled("udp", proto_name)) {
 
         SCLogDebug("TFTP UDP protocol detection enabled.");
 
@@ -166,23 +166,16 @@ void RegisterTFTPParsers(void)
 
         if (RunmodeIsUnittests()) {
             SCLogDebug("Unittest mode, registering default configuration.");
-            AppLayerProtoDetectPPRegister(IPPROTO_UDP, TFTP_DEFAULT_PORT,
-                                          ALPROTO_TFTP, 0, TFTP_MIN_FRAME_LEN,
-                                          STREAM_TOSERVER, TFTPProbingParser,
-                                          TFTPProbingParser);
+            SCAppLayerProtoDetectPPRegister(IPPROTO_UDP, TFTP_DEFAULT_PORT, ALPROTO_TFTP, 0,
+                    TFTP_MIN_FRAME_LEN, STREAM_TOSERVER, TFTPProbingParser, TFTPProbingParser);
         } else {
-            if (!AppLayerProtoDetectPPParseConfPorts("udp", IPPROTO_UDP,
-                                                     proto_name, ALPROTO_TFTP,
-                                                     0, TFTP_MIN_FRAME_LEN,
-                                                     TFTPProbingParser, TFTPProbingParser)) {
+            if (!SCAppLayerProtoDetectPPParseConfPorts("udp", IPPROTO_UDP, proto_name, ALPROTO_TFTP,
+                        0, TFTP_MIN_FRAME_LEN, TFTPProbingParser, TFTPProbingParser)) {
                 SCLogDebug("No tftp app-layer configuration, enabling tftp"
                            " detection UDP detection on port %s.",
                         TFTP_DEFAULT_PORT);
-                AppLayerProtoDetectPPRegister(IPPROTO_UDP,
-                                              TFTP_DEFAULT_PORT, ALPROTO_TFTP,
-                                              0, TFTP_MIN_FRAME_LEN,
-                                              STREAM_TOSERVER,TFTPProbingParser,
-                                              TFTPProbingParser);
+                SCAppLayerProtoDetectPPRegister(IPPROTO_UDP, TFTP_DEFAULT_PORT, ALPROTO_TFTP, 0,
+                        TFTP_MIN_FRAME_LEN, STREAM_TOSERVER, TFTPProbingParser, TFTPProbingParser);
             }
         }
         AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_TFTP);

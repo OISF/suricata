@@ -32,7 +32,7 @@ use nom7::number::streaming::be_u32;
 use nom7::{Err, IResult};
 use std;
 use std::ffi::CString;
-use suricata_sys::sys::AppProto;
+use suricata_sys::sys::{AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled};
 
 #[derive(AppLayerEvent)]
 pub enum KRB5Event {
@@ -449,7 +449,7 @@ unsafe extern "C" fn krb5_probing_parser_tcp(
 }
 
 unsafe extern "C" fn krb5_parse_request(
-    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let buf = stream_slice.as_slice();
@@ -461,7 +461,7 @@ unsafe extern "C" fn krb5_parse_request(
 }
 
 unsafe extern "C" fn krb5_parse_response(
-    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let buf = stream_slice.as_slice();
@@ -473,7 +473,7 @@ unsafe extern "C" fn krb5_parse_response(
 }
 
 unsafe extern "C" fn krb5_parse_request_tcp(
-    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, KRB5State);
@@ -531,7 +531,7 @@ unsafe extern "C" fn krb5_parse_request_tcp(
 }
 
 unsafe extern "C" fn krb5_parse_response_tcp(
-    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, KRB5State);
@@ -631,7 +631,7 @@ pub unsafe extern "C" fn SCRegisterKrb5Parser() {
     };
     // register UDP parser
     let ip_proto_str = CString::new("udp").unwrap();
-    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+    if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         // store the allocated ID for the probe function
         ALPROTO_KRB5 = alproto;
@@ -649,7 +649,7 @@ pub unsafe extern "C" fn SCRegisterKrb5Parser() {
     parser.parse_ts = krb5_parse_request_tcp;
     parser.parse_tc = krb5_parse_response_tcp;
     let ip_proto_str = CString::new("tcp").unwrap();
-    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+    if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         // store the allocated ID for the probe function
         ALPROTO_KRB5 = alproto;

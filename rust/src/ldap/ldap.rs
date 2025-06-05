@@ -28,7 +28,9 @@ use std;
 use std::collections::VecDeque;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_int, c_void};
-use suricata_sys::sys::AppProto;
+use suricata_sys::sys::{
+    AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled, SCAppLayerRequestProtocolTLSUpgrade,
+};
 
 use crate::ldap::types::*;
 
@@ -181,7 +183,7 @@ impl LdapState {
         })
     }
 
-    fn parse_request(&mut self, flow: *const Flow, stream_slice: StreamSlice) -> AppLayerResult {
+    fn parse_request(&mut self, flow: *mut Flow, stream_slice: StreamSlice) -> AppLayerResult {
         let input = stream_slice.as_slice();
         if input.is_empty() {
             return AppLayerResult::ok();
@@ -189,7 +191,7 @@ impl LdapState {
 
         if self.has_starttls {
             unsafe {
-                AppLayerRequestProtocolTLSUpgrade(flow);
+                SCAppLayerRequestProtocolTLSUpgrade(flow);
             }
             return AppLayerResult::ok();
         }
@@ -576,7 +578,7 @@ unsafe extern "C" fn ldap_state_tx_free(state: *mut c_void, tx_id: u64) {
 }
 
 unsafe extern "C" fn ldap_parse_request(
-    flow: *const Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
+    flow: *mut Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
     _data: *const c_void,
 ) -> AppLayerResult {
     if stream_slice.is_empty() {
@@ -597,7 +599,7 @@ unsafe extern "C" fn ldap_parse_request(
 }
 
 unsafe extern "C" fn ldap_parse_response(
-    flow: *const Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
+    flow: *mut Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
     _data: *const c_void,
 ) -> AppLayerResult {
     if stream_slice.is_empty() {
@@ -617,7 +619,7 @@ unsafe extern "C" fn ldap_parse_response(
 }
 
 unsafe extern "C" fn ldap_parse_request_udp(
-    flow: *const Flow, state: *mut c_void, _pstate: *mut c_void, stream_slice: StreamSlice,
+    flow: *mut Flow, state: *mut c_void, _pstate: *mut c_void, stream_slice: StreamSlice,
     _data: *const c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, LdapState);
@@ -625,7 +627,7 @@ unsafe extern "C" fn ldap_parse_request_udp(
 }
 
 unsafe extern "C" fn ldap_parse_response_udp(
-    flow: *const Flow, state: *mut c_void, _pstate: *mut c_void, stream_slice: StreamSlice,
+    flow: *mut Flow, state: *mut c_void, _pstate: *mut c_void, stream_slice: StreamSlice,
     _data: *const c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, LdapState);
@@ -700,7 +702,7 @@ pub unsafe extern "C" fn SCRegisterLdapTcpParser() {
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();
-    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+    if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_LDAP = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
@@ -759,7 +761,7 @@ pub unsafe extern "C" fn SCRegisterLdapUdpParser() {
     };
 
     let ip_proto_str = CString::new("udp").unwrap();
-    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+    if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_LDAP = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {

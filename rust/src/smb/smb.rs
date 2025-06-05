@@ -34,7 +34,11 @@ use nom7::{Err, Needed};
 use nom7::error::{make_error, ErrorKind};
 
 use lru::LruCache;
-use suricata_sys::sys::AppProto;
+use suricata_sys::sys::{
+    AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled,
+    SCAppLayerProtoDetectPMRegisterPatternCSwPP, SCAppLayerProtoDetectPPParseConfPorts,
+    SCAppLayerProtoDetectPPRegister,
+};
 use std::num::NonZeroUsize;
 
 use crate::core::*;
@@ -2003,7 +2007,7 @@ extern "C" fn smb_state_free(state: *mut std::os::raw::c_void) {
 }
 
 /// C binding parse a SMB request. Returns 1 on success, -1 on failure.
-unsafe extern "C" fn smb_parse_request_tcp(flow: *const Flow,
+unsafe extern "C" fn smb_parse_request_tcp(flow: *mut Flow,
                                        state: *mut ffi::c_void,
                                        _pstate: *mut std::os::raw::c_void,
                                        stream_slice: StreamSlice,
@@ -2038,7 +2042,7 @@ extern "C" fn smb_parse_request_tcp_gap(
 }
 
 
-unsafe extern "C" fn smb_parse_response_tcp(flow: *const Flow,
+unsafe extern "C" fn smb_parse_response_tcp(flow: *mut Flow,
                                         state: *mut ffi::c_void,
                                         _pstate: *mut std::os::raw::c_void,
                                         stream_slice: StreamSlice,
@@ -2294,26 +2298,26 @@ fn register_pattern_probe() -> i8 {
     let mut r = 0;
     unsafe {
         // SMB1
-        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
+        r |= SCAppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
                                                      b"|ff|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
-                                                     Direction::ToServer as u8, smb_probe_begins_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
-        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
+                                                     Direction::ToServer as u8, Some(smb_probe_begins_tcp), MIN_REC_SIZE, MIN_REC_SIZE);
+        r |= SCAppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
                                                      b"|ff|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
-                                                     Direction::ToClient as u8, smb_probe_begins_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
+                                                     Direction::ToClient as u8, Some(smb_probe_begins_tcp), MIN_REC_SIZE, MIN_REC_SIZE);
         // SMB2/3
-        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
+        r |= SCAppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
                                                      b"|fe|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
-                                                     Direction::ToServer as u8, smb_probe_begins_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
-        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
+                                                     Direction::ToServer as u8, Some(smb_probe_begins_tcp), MIN_REC_SIZE, MIN_REC_SIZE);
+        r |= SCAppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
                                                      b"|fe|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
-                                                     Direction::ToClient as u8, smb_probe_begins_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
+                                                     Direction::ToClient as u8, Some(smb_probe_begins_tcp), MIN_REC_SIZE, MIN_REC_SIZE);
         // SMB3 encrypted records
-        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
+        r |= SCAppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
                                                      b"|fd|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
-                                                     Direction::ToServer as u8, smb3_probe_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
-        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
+                                                     Direction::ToServer as u8, Some(smb3_probe_tcp), MIN_REC_SIZE, MIN_REC_SIZE);
+        r |= SCAppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
                                                      b"|fd|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
-                                                     Direction::ToClient as u8, smb3_probe_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
+                                                     Direction::ToClient as u8, Some(smb3_probe_tcp), MIN_REC_SIZE, MIN_REC_SIZE);
     }
 
     if r == 0 {
@@ -2366,7 +2370,7 @@ pub unsafe extern "C" fn SCRegisterSmbParser() {
 
     let ip_proto_str = CString::new("tcp").unwrap();
 
-    if AppLayerProtoDetectConfProtoDetectionEnabled(
+    if SCAppLayerProtoDetectConfProtoDetectionEnabled(
         ip_proto_str.as_ptr(),
         parser.name,
     ) != 0
@@ -2377,13 +2381,13 @@ pub unsafe extern "C" fn SCRegisterSmbParser() {
             return;
         }
 
-        let have_cfg = AppLayerProtoDetectPPParseConfPorts(ip_proto_str.as_ptr(),
+        let have_cfg = SCAppLayerProtoDetectPPParseConfPorts(ip_proto_str.as_ptr(),
                     IPPROTO_TCP, parser.name, ALPROTO_SMB, 0,
-                    MIN_REC_SIZE, c_smb_probe_tcp, c_smb_probe_tcp);
+                    MIN_REC_SIZE, Some(c_smb_probe_tcp), Some(c_smb_probe_tcp));
 
         if have_cfg == 0 {
-            AppLayerProtoDetectPPRegister(IPPROTO_TCP, default_port.as_ptr(), ALPROTO_SMB,
-                                          0, MIN_REC_SIZE, Direction::ToServer as u8, c_smb_probe_tcp, c_smb_probe_tcp);
+            SCAppLayerProtoDetectPPRegister(IPPROTO_TCP, default_port.as_ptr(), ALPROTO_SMB,
+                                          0, MIN_REC_SIZE, Direction::ToServer as u8, Some(c_smb_probe_tcp), Some(c_smb_probe_tcp));
         }
 
         if AppLayerParserConfParserEnabled(

@@ -41,10 +41,8 @@ static int HTTP2RegisterPatternsForProtocolDetection(void)
     /* Using the 24 bytes pattern makes AppLayerTest09 fail/leak
      * The complete pattern is "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n"
      */
-    if (AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_HTTP2,
-                                               "PRI * HTTP/2.0\r\n",
-                                               16, 0, STREAM_TOSERVER) < 0)
-    {
+    if (SCAppLayerProtoDetectPMRegisterPatternCI(
+                IPPROTO_TCP, ALPROTO_HTTP2, "PRI * HTTP/2.0\r\n", 16, 0, STREAM_TOSERVER) < 0) {
         return -1;
     }
     return 0;
@@ -57,7 +55,7 @@ void RegisterHTTP2Parsers(void)
 {
     const char *proto_name = "http2";
 
-    if (AppLayerProtoDetectConfProtoDetectionEnabledDefault("tcp", proto_name, true)) {
+    if (SCAppLayerProtoDetectConfProtoDetectionEnabledDefault("tcp", proto_name, true)) {
         AppLayerProtoDetectRegisterProtocol(ALPROTO_HTTP2, proto_name);
         if (HTTP2RegisterPatternsForProtocolDetection() < 0)
             return;

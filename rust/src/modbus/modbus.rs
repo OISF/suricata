@@ -25,7 +25,7 @@ use sawp::error::ErrorKind as SawpErrorKind;
 use sawp::parser::{Direction, Parse};
 use sawp::probe::{Probe, Status};
 use sawp_modbus::{self, AccessType, ErrorFlags, Flags, Message};
-use suricata_sys::sys::AppProto;
+use suricata_sys::sys::{AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabledDefault};
 
 pub const REQUEST_FLOOD: usize = 500; // Default unreplied Modbus requests are considered a flood
 pub const MODBUS_PARSER: sawp_modbus::Modbus = sawp_modbus::Modbus { probe_strict: true };
@@ -336,7 +336,7 @@ unsafe extern "C" fn modbus_state_tx_free(state: *mut std::os::raw::c_void, tx_i
 }
 
 unsafe extern "C" fn modbus_parse_request(
-    flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let buf = stream_slice.as_slice();
@@ -353,7 +353,7 @@ unsafe extern "C" fn modbus_parse_request(
 }
 
 unsafe extern "C" fn modbus_parse_response(
-    flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let buf = stream_slice.as_slice();
@@ -439,7 +439,7 @@ pub unsafe extern "C" fn SCRegisterModbusParser() {
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();
-    if AppLayerProtoDetectConfProtoDetectionEnabledDefault(
+    if SCAppLayerProtoDetectConfProtoDetectionEnabledDefault(
         ip_proto_str.as_ptr(),
         parser.name,
         false,

@@ -25,7 +25,7 @@ use crate::flow::Flow;
 use crate::rdp::parser::*;
 use crate::direction::Direction;
 use nom7::Err;
-use suricata_sys::sys::AppProto;
+use suricata_sys::sys::{AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled};
 use std;
 use std::collections::VecDeque;
 use tls_parser::{parse_tls_plaintext, TlsMessage, TlsMessageHandshake, TlsRecordType};
@@ -441,7 +441,7 @@ fn probe_tls_handshake(input: &[u8]) -> bool {
 //
 
 unsafe extern "C" fn rdp_parse_ts(
-    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void
 ) -> AppLayerResult {
@@ -452,7 +452,7 @@ unsafe extern "C" fn rdp_parse_ts(
 }
 
 unsafe extern "C" fn rdp_parse_tc(
-    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void
 ) -> AppLayerResult {
@@ -510,7 +510,7 @@ pub unsafe extern "C" fn SCRegisterRdpParser() {
 
     let ip_proto_str = std::ffi::CString::new("tcp").unwrap();
 
-    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+    if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_RDP = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {

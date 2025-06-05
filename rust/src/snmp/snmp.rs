@@ -34,7 +34,8 @@ use nom7::{Err, IResult};
 use nom7::error::{ErrorKind, make_error};
 use suricata_sys::sys::{
     AppProto, AppProtoNewProtoFromString, EveJsonTxLoggerRegistrationData,
-    SCOutputJsonLogDirection, SCOutputEvePreRegisterLogger, SCSigTablePreRegister,
+    SCAppLayerProtoDetectConfProtoDetectionEnabled, SCOutputEvePreRegisterLogger,
+    SCOutputJsonLogDirection, SCSigTablePreRegister,
 };
 
 #[derive(AppLayerEvent)]
@@ -270,7 +271,7 @@ extern "C" fn snmp_state_free(state: *mut std::os::raw::c_void) {
     snmp_state.free();
 }
 
-unsafe extern "C" fn snmp_parse_request(_flow: *const Flow,
+unsafe extern "C" fn snmp_parse_request(_flow: *mut Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
                                        stream_slice: StreamSlice,
@@ -280,7 +281,7 @@ unsafe extern "C" fn snmp_parse_request(_flow: *const Flow,
     state.parse(stream_slice.as_slice(), Direction::ToServer).into()
 }
 
-unsafe extern "C" fn snmp_parse_response(_flow: *const Flow,
+unsafe extern "C" fn snmp_parse_response(_flow: *mut Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
                                        stream_slice: StreamSlice,
@@ -421,7 +422,7 @@ pub unsafe extern "C" fn SCRegisterSnmpParser() {
     };
     SCOutputEvePreRegisterLogger(reg_data);
     SCSigTablePreRegister(Some(detect_snmp_register));
-    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+    if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         // port 161
         _ = AppLayerRegisterProtocolDetection(&parser, 1);
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {

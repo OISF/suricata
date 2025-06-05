@@ -28,7 +28,7 @@ use std;
 use std::ffi::CString;
 
 use nom7::Err;
-use suricata_sys::sys::AppProto;
+use suricata_sys::sys::{AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled};
 
 #[derive(AppLayerEvent)]
 pub enum NTPEvent {
@@ -177,7 +177,7 @@ extern "C" fn ntp_state_free(state: *mut std::os::raw::c_void) {
 }
 
 unsafe extern "C" fn ntp_parse_request(
-    _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, NTPState);
@@ -188,7 +188,7 @@ unsafe extern "C" fn ntp_parse_request(
 }
 
 unsafe extern "C" fn ntp_parse_response(
-    _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, NTPState);
@@ -291,7 +291,7 @@ pub unsafe extern "C" fn SCRegisterNtpParser() {
     };
 
     let ip_proto_str = CString::new("udp").unwrap();
-    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+    if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         // store the allocated ID for the probe function
         ALPROTO_NTP = alproto;

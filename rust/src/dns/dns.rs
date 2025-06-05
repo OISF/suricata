@@ -31,7 +31,9 @@ use crate::frames::Frame;
 
 use nom7::number::streaming::be_u16;
 use nom7::{Err, IResult};
-use suricata_sys::sys::{AppProto, DetectEngineThreadCtx};
+use suricata_sys::sys::{
+    AppProto, DetectEngineThreadCtx, SCAppLayerProtoDetectConfProtoDetectionEnabled,
+};
 
 /// DNS record types.
 /// DNS error codes.
@@ -413,7 +415,9 @@ pub(crate) enum DNSParseError {
     OtherError,
 }
 
-pub(crate) fn dns_parse_request(input: &[u8], variant: &DnsVariant) -> Result<DNSTransaction, DNSParseError> {
+pub(crate) fn dns_parse_request(
+    input: &[u8], variant: &DnsVariant,
+) -> Result<DNSTransaction, DNSParseError> {
     let (body, header) = if let Some((body, header)) = dns_validate_header(input) {
         (body, header)
     } else {
@@ -632,7 +636,9 @@ impl DNSState {
         }
     }
 
-    pub(crate) fn parse_request_udp(&mut self, flow: *const Flow, stream_slice: StreamSlice) -> bool {
+    pub(crate) fn parse_request_udp(
+        &mut self, flow: *const Flow, stream_slice: StreamSlice,
+    ) -> bool {
         let input = stream_slice.as_slice();
         let frame = Frame::new(
             flow,
@@ -930,7 +936,7 @@ pub(crate) unsafe extern "C" fn state_tx_free(state: *mut std::os::raw::c_void, 
 
 /// C binding parse a DNS request. Returns 1 on success, -1 on failure.
 pub(crate) unsafe extern "C" fn parse_request(
-    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);
@@ -939,7 +945,7 @@ pub(crate) unsafe extern "C" fn parse_request(
 }
 
 unsafe extern "C" fn parse_response(
-    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);
@@ -949,7 +955,7 @@ unsafe extern "C" fn parse_response(
 
 /// C binding parse a DNS request. Returns 1 on success, -1 on failure.
 unsafe extern "C" fn parse_request_tcp(
-    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);
@@ -962,7 +968,7 @@ unsafe extern "C" fn parse_request_tcp(
 }
 
 unsafe extern "C" fn parse_response_tcp(
-    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);
@@ -1013,7 +1019,9 @@ pub extern "C" fn SCDnsTxIsResponse(tx: &mut DNSTransaction) -> bool {
     tx.response.is_some()
 }
 
-pub(crate) unsafe extern "C" fn state_get_tx_data(tx: *mut std::os::raw::c_void) -> *mut AppLayerTxData {
+pub(crate) unsafe extern "C" fn state_get_tx_data(
+    tx: *mut std::os::raw::c_void,
+) -> *mut AppLayerTxData {
     let tx = cast_pointer!(tx, DNSTransaction);
     return &mut tx.tx_data;
 }
@@ -1302,7 +1310,7 @@ pub unsafe extern "C" fn SCRegisterDnsUdpParser() {
     };
 
     let ip_proto_str = CString::new("udp").unwrap();
-    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+    if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_DNS = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
@@ -1349,7 +1357,7 @@ pub unsafe extern "C" fn SCRegisterDnsTcpParser() {
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();
-    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+    if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_DNS = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
