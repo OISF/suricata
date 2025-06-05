@@ -192,12 +192,10 @@ static void PacketApplySignatureActions(Packet *p, const Signature *s, const Pac
     /* REJECT also sets ACTION_DROP, just make it more visible with this check */
     if (pa->action & ACTION_DROP_REJECT) {
         uint8_t drop_reason = PKT_DROP_REASON_RULES;
-        if (s->flags & SIG_FLAG_FIREWALL) {
-            if (s->firewall_table == FIREWALL_TABLE_PACKET_PRE_STREAM) {
-                drop_reason = PKT_DROP_REASON_STREAM_PRE_HOOK;
-            } else if (s->firewall_table == FIREWALL_TABLE_PACKET_PRE_FLOW) {
-                drop_reason = PKT_DROP_REASON_FLOW_PRE_HOOK;
-            }
+        if (s->detect_table == DETECT_TABLE_PACKET_PRE_STREAM) {
+            drop_reason = PKT_DROP_REASON_STREAM_PRE_HOOK;
+        } else if (s->detect_table == DETECT_TABLE_PACKET_PRE_FLOW) {
+            drop_reason = PKT_DROP_REASON_FLOW_PRE_HOOK;
         }
 
         /* PacketDrop will update the packet action, too */
@@ -336,11 +334,11 @@ void AlertQueueAppend(DetectEngineThreadCtx *det_ctx, const Signature *s, Packet
  * The Signature::num field is set based on internal priority. Higher priority
  * rules have lower nums.
  */
-static int AlertQueueSortHelper(const void *a, const void *b)
+static int AlertQueueSortHelperFirewall(const void *a, const void *b)
 {
     const PacketAlert *pa0 = a;
     const PacketAlert *pa1 = b;
-    if (pa0->s->firewall_table == pa1->s->firewall_table) {
+    if (pa0->s->detect_table == pa1->s->detect_table) {
         if (pa1->iid == pa0->iid) {
             if (pa1->tx_id == PACKET_ALERT_NOTX) {
                 return -1;
@@ -352,7 +350,23 @@ static int AlertQueueSortHelper(const void *a, const void *b)
             return pa0->iid < pa1->iid ? -1 : 1;
         }
     }
-    return pa0->s->firewall_table < pa1->s->firewall_table ? -1 : 1;
+    return pa0->s->detect_table < pa1->s->detect_table ? -1 : 1;
+}
+
+static int AlertQueueSortHelper(const void *a, const void *b)
+{
+    const PacketAlert *pa0 = a;
+    const PacketAlert *pa1 = b;
+    if (pa1->iid == pa0->iid) {
+        if (pa1->tx_id == PACKET_ALERT_NOTX) {
+            return -1;
+        } else if (pa0->tx_id == PACKET_ALERT_NOTX) {
+            return 1;
+        }
+        return pa0->tx_id < pa1->tx_id ? 1 : -1;
+    } else {
+        return pa0->iid < pa1->iid ? -1 : 1;
+    }
 }
 
 /** \internal
@@ -400,7 +414,8 @@ static inline void PacketAlertFinalizeProcessQueue(
     if (det_ctx->alert_queue_size > 1) {
         /* sort the alert queue before thresholding and appending to Packet */
         qsort(det_ctx->alert_queue, det_ctx->alert_queue_size, sizeof(PacketAlert),
-                AlertQueueSortHelper);
+                (de_ctx->flags & DE_HAS_FIREWALL) ? AlertQueueSortHelperFirewall
+                                                  : AlertQueueSortHelper);
     }
 
     bool dropped = false;
