@@ -255,6 +255,7 @@ int BuildCpusetWithCallback(
             if (b > max) {
                 SCLogError("%s: upper bound (%d) of cpu set is too high, only %d cpu(s)", name, b,
                         max + 1);
+                return -1;
             }
         } else {
             if (StringParseUint32(&a, 10, strlen(lnode->val), lnode->val) < 0) {
