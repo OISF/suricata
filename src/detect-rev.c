@@ -25,11 +25,18 @@
 
 #include "suricata-common.h"
 #include "detect.h"
+#include "detect-engine.h"
+#include "detect-parse.h"
 #include "detect-rev.h"
+#include "util-byte.h"
 #include "util-debug.h"
 #include "util-error.h"
+#include "util-unittest.h"
 
 static int DetectRevSetup (DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
+static void DetectRevRegisterTests(void);
+#endif
 
 void DetectRevRegister (void)
 {
@@ -37,21 +44,16 @@ void DetectRevRegister (void)
     sigmatch_table[DETECT_REV].desc = "set version of the rule";
     sigmatch_table[DETECT_REV].url = "/rules/meta.html#rev-revision";
     sigmatch_table[DETECT_REV].Setup = DetectRevSetup;
+#ifdef UNITTESTS
+    sigmatch_table[DETECT_REV].RegisterTests = DetectRevRegisterTests;
+#endif
 }
 
 static int DetectRevSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
-    unsigned long rev = 0;
-    char *endptr = NULL;
-    errno = 0;
-    rev = strtoul(rawstr, &endptr, 10);
-    if (errno == ERANGE || endptr == NULL || *endptr != '\0') {
-        SCLogError("invalid character as arg "
-                   "to rev keyword");
-        goto error;
-    }
-    if (rev >= UINT_MAX) {
-        SCLogError("rev value to high, max %u", UINT_MAX);
+    uint32_t rev = 0;
+    if (ByteExtractStringUint32(&rev, 10, strlen(rawstr), rawstr) <= 0) {
+        SCLogError("invalid input as arg to rev keyword");
         goto error;
     }
     if (rev == 0) {
@@ -63,10 +65,85 @@ static int DetectRevSetup (DetectEngineCtx *de_ctx, Signature *s, const char *ra
         goto error;
     }
 
-    s->rev = (uint32_t)rev;
-
+    s->rev = rev;
     return 0;
 
- error:
+error:
     return -1;
- }
+}
+
+#ifdef UNITTESTS
+/**
+ * \test RevTestParse01 is a test for a valid rev value
+ */
+static int RevTestParse01(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+
+    Signature *s =
+            DetectEngineAppendSig(de_ctx, "alert tcp 1.2.3.4 any -> any any (sid:1; rev:1;)");
+
+    FAIL_IF_NULL(s);
+    FAIL_IF(s->rev != 1);
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
+/**
+ * \test RevTestParse02 is a test for a invalid rev value
+ */
+static int RevTestParse02(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+
+    FAIL_IF_NOT_NULL(
+            DetectEngineAppendSig(de_ctx, "alert tcp 1.2.3.4 any -> any any (sid:1; rev:a;)"));
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
+/**
+ * \test RevTestParse03 is a test for a rev containing of a single quote.
+ */
+static int RevTestParse03(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+
+    FAIL_IF_NOT_NULL(DetectEngineAppendSig(
+            de_ctx, "alert tcp any any -> any any (content:\"ABC\"; rev:\";)"));
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
+/**
+ * \test RevTestParse04 is a test for a rev value of 0
+ */
+static int RevTestParse04(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+
+    FAIL_IF_NOT_NULL(DetectEngineAppendSig(
+            de_ctx, "alert tcp any any -> any any (content:\"ABC\"; rev:0;)"));
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
+/**
+ * \brief this function registers unit tests for Rev
+ */
+static void DetectRevRegisterTests(void)
+{
+    UtRegisterTest("RevTestParse01", RevTestParse01);
+    UtRegisterTest("RevTestParse02", RevTestParse02);
+    UtRegisterTest("RevTestParse03", RevTestParse03);
+    UtRegisterTest("RevTestParse04", RevTestParse04);
+}
+#endif /* UNITTESTS */

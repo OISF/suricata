@@ -32,6 +32,7 @@
 #ifdef HAVE_SYS_PRCTL_H
 #include <sys/prctl.h>
 #endif
+#include "util-byte.h"
 #include "util-debug.h"
 
 #ifdef OS_WIN32
@@ -43,6 +44,10 @@ int32_t CoredumpLoadConfig(void) {
     /* todo: use the registry to get/set dump configuration */
     SCLogInfo("Configuring core dump is not yet supported on Windows.");
     return 0;
+}
+
+void CoredumpConfigRegisterTests(void)
+{
 }
 
 #else
@@ -91,6 +96,7 @@ int32_t CoredumpLoadConfig (void)
 {
 #ifdef HAVE_SYS_RESOURCE_H
     /* get core dump configuration settings for suricata */
+    int ret = 0;
     const char *dump_size_config = NULL;
     size_t rlim_size = sizeof(rlim_t);
 
@@ -116,14 +122,15 @@ int32_t CoredumpLoadConfig (void)
             SCLogInfo ("Unexpected type for rlim_t");
             return 0;
         }
-        errno = 0;
         if (rlim_size == 8) {
-            max_dump = (rlim_t) strtoull (dump_size_config, NULL, 10);
+            ret = ByteExtractStringUint64(
+                    (uint64_t *)&max_dump, 10, strlen(dump_size_config), dump_size_config);
         }
         else if (rlim_size == 4) {
-            max_dump = (rlim_t) strtoul (dump_size_config, NULL, 10);
+            ret = ByteExtractStringUint32(
+                    (uint32_t *)&max_dump, 10, strlen(dump_size_config), dump_size_config);
         }
-        if ((errno == ERANGE) || (errno != 0 && max_dump == 0)) {
+        if ((ret <= 0) || (max_dump == 0)) {
             SCLogInfo ("Illegal core dump size: %s.", dump_size_config);
             return 0;
         }
@@ -236,6 +243,139 @@ int32_t CoredumpLoadConfig (void)
     SCLogInfo("Couldn't set coredump size to %s.", dump_size_config);
 #endif /* HAVE_SYS_RESOURCE_H */
     return 0;
+}
+
+#if defined UNITTESTS && defined HAVE_SYS_RESOURCE_H
+#include "conf-yaml-loader.h"
+
+static void ResetCoredumpConfig(void)
+{
+    unlimited = false;
+    max_dump = 0;
+}
+
+/**
+ * \test CoredumpConfigTest01 is a test for the coredump configuration
+ *        with unlimited coredump size.
+ */
+static int CoredumpConfigTest01(void)
+{
+    char config[] = "\
+%YAML 1.1\n\
+---\n\
+coredump:\n\
+  max-dump: unlimited\n\
+";
+
+    ResetCoredumpConfig();
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    SCConfYamlLoadString(config, strlen(config));
+    CoredumpLoadConfig();
+
+    FAIL_IF(unlimited != true);
+    FAIL_IF(max_dump != 0);
+
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
+    PASS;
+}
+
+/**
+ * \test CoredumpConfigTest02 is a test for the coredump configuration
+ *        with a specific coredump size.
+ */
+static int CoredumpConfigTest02(void)
+{
+    char config[] = "\
+%YAML 1.1\n\
+---\n\
+coredump:\n\
+  max-dump: 1000000\n\
+";
+
+    ResetCoredumpConfig();
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    SCConfYamlLoadString(config, strlen(config));
+    CoredumpLoadConfig();
+
+    FAIL_IF(unlimited != false);
+    FAIL_IF(max_dump != 1000000);
+
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
+    PASS;
+}
+
+/**
+ * \test CoredumpConfigTest03 is a test for the coredump configuration
+ *        with an invalid coredump size.
+ */
+static int CoredumpConfigTest03(void)
+{
+    char config[] = "\
+%YAML 1.1\n\
+---\n\
+coredump:\n\
+  max-dump: -1000000\n\
+";
+
+    ResetCoredumpConfig();
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    SCConfYamlLoadString(config, strlen(config));
+    CoredumpLoadConfig();
+
+    FAIL_IF(unlimited != false);
+    FAIL_IF(max_dump != 0);
+
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
+    PASS;
+}
+
+/**
+ * \test CoredumpConfigTest04 is a test for the coredump configuration
+ *        with a non-numeric coredump size.
+ */
+static int CoredumpConfigTest04(void)
+{
+    char config[] = "\
+%YAML 1.1\n\
+---\n\
+coredump:\n\
+  max-dump: a\n\
+";
+
+    ResetCoredumpConfig();
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    SCConfYamlLoadString(config, strlen(config));
+    CoredumpLoadConfig();
+
+    FAIL_IF(unlimited != false);
+    FAIL_IF(max_dump != 0);
+
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
+    PASS;
+}
+
+#endif /* UNITTESTS */
+
+void CoredumpConfigRegisterTests(void)
+{
+#if defined UNITTESTS && defined HAVE_SYS_RESOURCE_H
+    UtRegisterTest("CoredumpConfigTest01", CoredumpConfigTest01);
+    UtRegisterTest("CoredumpConfigTest02", CoredumpConfigTest02);
+    UtRegisterTest("CoredumpConfigTest03", CoredumpConfigTest03);
+    UtRegisterTest("CoredumpConfigTest04", CoredumpConfigTest04);
+#endif /* UNITTESTS */
 }
 
 #endif /* OS_WIN32 */
