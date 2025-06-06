@@ -173,7 +173,7 @@ dataset with JSON
 Dataset with JSON allows matching data against a set and output data attached to the matching
 value in the event.
 
-There is two format supported: ``json`` and ``ndjson``. The difference is that
+There are two formats supported: ``json`` and ``ndjson``. The difference is that
 ``json`` format is a single JSON object, while ``ndjson`` is handling file with
 one JSON object per line. The ``ndjson`` format is useful for large files
 as the parsing is done line by line.
