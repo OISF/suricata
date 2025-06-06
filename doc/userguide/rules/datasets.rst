@@ -173,7 +173,7 @@ dataset with JSON
 Dataset with JSON allows matching data against a set and output data attached to the matching
 value in the event.
 
-There is two format supported: ``json`` and ``ndjson``. The difference is that
+There are two formats supported: ``json`` and ``ndjson``. The difference is that
 ``json`` format is a single JSON object, while ``ndjson`` is handling file with
 one JSON object per line. The ``ndjson`` format is useful for large files
 as the parsing is done line by line.
@@ -196,7 +196,7 @@ data associated to the value (``bad_ones`` coming from ``enrichment_key`` option
 
 When format is ``json`` or ``ndjson``, the ``value_key`` is used to get
 the value in the line (``ndjson`` format) or in the array (``json`` format).
-At least one single element needs to be have the ``value_key`` present in the data file to
+At least one single element needs to have the ``value_key`` present in the data file to
 have a successful load.
 If ``array_key`` is present, Suricata will extract the corresponding subobject that has to be
 a JSON array and search for element to add to the set in this array. This is only valid for ``json`` format.
