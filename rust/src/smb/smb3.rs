@@ -26,7 +26,7 @@ pub struct Smb3TransformRecord<'a> {
     pub enc_data: &'a[u8],
 }
 
-pub fn parse_smb3_transform_record(i: &[u8]) -> IResult<&[u8], Smb3TransformRecord> {
+pub fn parse_smb3_transform_record(i: &[u8]) -> IResult<&[u8], Smb3TransformRecord<'_>> {
     let (i, _) = tag(b"\xfdSMB")(i)?;
     let (i, _signature) = take(16_usize)(i)?;
     let (i, _nonce) = take(16_usize)(i)?;

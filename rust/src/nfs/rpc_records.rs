@@ -53,7 +53,7 @@ pub struct RpcRequestCredsUnix<'a> {
 //    many0!(be_u32)
 //);
 
-fn parse_rpc_request_creds_unix(i: &[u8]) -> IResult<&[u8], RpcRequestCreds> {
+fn parse_rpc_request_creds_unix(i: &[u8]) -> IResult<&[u8], RpcRequestCreds<'_>> {
     let (i, stamp) = be_u32(i)?;
     let (i, machine_name_len) = verify(be_u32, |&size| size < RPC_MAX_MACHINE_SIZE)(i)?;
     let (i, machine_name_buf) = take(machine_name_len as usize)(i)?;
@@ -81,7 +81,7 @@ pub struct RpcRequestCredsGssApi<'a> {
     pub ctx: &'a [u8],
 }
 
-fn parse_rpc_request_creds_gssapi(i: &[u8]) -> IResult<&[u8], RpcRequestCreds> {
+fn parse_rpc_request_creds_gssapi(i: &[u8]) -> IResult<&[u8], RpcRequestCreds<'_>> {
     let (i, version) = be_u32(i)?;
     let (i, procedure) = be_u32(i)?;
     let (i, seq_num) = be_u32(i)?;
@@ -97,7 +97,7 @@ fn parse_rpc_request_creds_gssapi(i: &[u8]) -> IResult<&[u8], RpcRequestCreds> {
     Ok((i, creds))
 }
 
-fn parse_rpc_request_creds_unknown(i: &[u8]) -> IResult<&[u8], RpcRequestCreds> {
+fn parse_rpc_request_creds_unknown(i: &[u8]) -> IResult<&[u8], RpcRequestCreds<'_>> {
     Ok((&[], RpcRequestCreds::Unknown(i)))
 }
 
@@ -109,7 +109,7 @@ pub struct RpcGssApiIntegrity<'a> {
 
 // Parse the GSSAPI Integrity envelope to get to the
 // data we care about.
-pub fn parse_rpc_gssapi_integrity(i: &[u8]) -> IResult<&[u8], RpcGssApiIntegrity> {
+pub fn parse_rpc_gssapi_integrity(i: &[u8]) -> IResult<&[u8], RpcGssApiIntegrity<'_>> {
     let (i, len) = verify(be_u32, |&size| size < RPC_MAX_CREDS_SIZE)(i)?;
     let (i, seq_num) = be_u32(i)?;
     let (i, data) = take(len as usize)(i)?;
@@ -217,7 +217,7 @@ pub struct RpcPacket<'a> {
 /// Arguments:
 /// * `complete`: do full parsing, including of `prog_data`
 ///
-pub fn parse_rpc(start_i: &[u8], complete: bool) -> IResult<&[u8], RpcPacket> {
+pub fn parse_rpc(start_i: &[u8], complete: bool) -> IResult<&[u8], RpcPacket<'_>> {
     let (i, hdr) = parse_rpc_packet_header(start_i)?;
     let rec_size = hdr.frag_len as usize + 4;
 
@@ -282,7 +282,7 @@ pub fn parse_rpc(start_i: &[u8], complete: bool) -> IResult<&[u8], RpcPacket> {
 /// Arguments:
 /// * `complete`: do full parsing, including of `prog_data`
 ///
-pub fn parse_rpc_reply(start_i: &[u8], complete: bool) -> IResult<&[u8], RpcReplyPacket> {
+pub fn parse_rpc_reply(start_i: &[u8], complete: bool) -> IResult<&[u8], RpcReplyPacket<'_>> {
     let (i, hdr) = parse_rpc_packet_header(start_i)?;
     let rec_size = hdr.frag_len + 4;
 
@@ -334,7 +334,7 @@ pub fn parse_rpc_udp_packet_header(i: &[u8]) -> IResult<&[u8], RpcPacketHeader> 
     Ok((i, hdr))
 }
 
-pub fn parse_rpc_udp_request(i: &[u8]) -> IResult<&[u8], RpcPacket> {
+pub fn parse_rpc_udp_request(i: &[u8]) -> IResult<&[u8], RpcPacket<'_>> {
     let (i, hdr) = parse_rpc_udp_packet_header(i)?;
 
     let (i, rpcver) = be_u32(i)?;
@@ -379,7 +379,7 @@ pub fn parse_rpc_udp_request(i: &[u8]) -> IResult<&[u8], RpcPacket> {
     Ok((i, packet))
 }
 
-pub fn parse_rpc_udp_reply(i: &[u8]) -> IResult<&[u8], RpcReplyPacket> {
+pub fn parse_rpc_udp_reply(i: &[u8]) -> IResult<&[u8], RpcReplyPacket<'_>> {
     let (i, hdr) = parse_rpc_udp_packet_header(i)?;
 
     let (i, verifier_flavor) = be_u32(i)?;

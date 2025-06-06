@@ -275,7 +275,7 @@ pub fn parse_isakmp_header(i: &[u8]) -> IResult<&[u8], IsakmpHeader> {
     Ok((i, hdr))
 }
 
-pub fn parse_security_association(i: &[u8]) -> IResult<&[u8], SecurityAssociationPayload> {
+pub fn parse_security_association(i: &[u8]) -> IResult<&[u8], SecurityAssociationPayload<'_>> {
     let start_i = i;
     let (i, domain_of_interpretation) = be_u32(i)?;
     let (i, situation) = cond(domain_of_interpretation == 1, take(4_usize))(i)?;
@@ -292,12 +292,12 @@ pub fn parse_security_association(i: &[u8]) -> IResult<&[u8], SecurityAssociatio
     ))
 }
 
-pub fn parse_key_exchange(i: &[u8], length: u16) -> IResult<&[u8], KeyExchangePayload> {
+pub fn parse_key_exchange(i: &[u8], length: u16) -> IResult<&[u8], KeyExchangePayload<'_>> {
     let (i, key_exchange_data) = take(length as usize)(i)?;
     Ok((i, KeyExchangePayload { key_exchange_data }))
 }
 
-pub fn parse_proposal(i: &[u8]) -> IResult<&[u8], ProposalPayload> {
+pub fn parse_proposal(i: &[u8]) -> IResult<&[u8], ProposalPayload<'_>> {
     let start_i = i;
     let (i, proposal_number) = be_u8(i)?;
     let (i, proposal_type) = be_u8(i)?;
@@ -318,7 +318,7 @@ pub fn parse_proposal(i: &[u8]) -> IResult<&[u8], ProposalPayload> {
     Ok((i, payload))
 }
 
-pub fn parse_transform(i: &[u8], length: u16) -> IResult<&[u8], TransformPayload> {
+pub fn parse_transform(i: &[u8], length: u16) -> IResult<&[u8], TransformPayload<'_>> {
     let (i, transform_number) = be_u8(i)?;
     let (i, transform_type) = be_u8(i)?;
     let (i, _) = be_u16(i)?;
@@ -333,7 +333,7 @@ pub fn parse_transform(i: &[u8], length: u16) -> IResult<&[u8], TransformPayload
     ))
 }
 
-pub fn parse_vendor_id(i: &[u8], length: u16) -> IResult<&[u8], VendorPayload> {
+pub fn parse_vendor_id(i: &[u8], length: u16) -> IResult<&[u8], VendorPayload<'_>> {
     map(take(length), |v| VendorPayload { vendor_id: v })(i)
 }
 
@@ -480,12 +480,12 @@ pub fn parse_sa_attribute(i: &[u8]) -> IResult<&[u8], Vec<SaAttribute>> {
     many0(complete(parse_attribute))(i)
 }
 
-pub fn parse_nonce(i: &[u8], length: u16) -> IResult<&[u8], NoncePayload> {
+pub fn parse_nonce(i: &[u8], length: u16) -> IResult<&[u8], NoncePayload<'_>> {
     map(take(length), |v| NoncePayload { nonce_data: v })(i)
 }
 
-pub fn parse_ikev1_payload_list(i: &[u8]) -> IResult<&[u8], Vec<IsakmpPayload>> {
-    fn parse_payload(i: &[u8]) -> IResult<&[u8], IsakmpPayload> {
+pub fn parse_ikev1_payload_list(i: &[u8]) -> IResult<&[u8], Vec<IsakmpPayload<'_>>> {
+    fn parse_payload(i: &[u8]) -> IResult<&[u8], IsakmpPayload<'_>> {
         let (i, next_payload) = be_u8(i)?;
         let (i, reserved) = be_u8(i)?;
         let (i, payload_length) = be_u16(i)?;

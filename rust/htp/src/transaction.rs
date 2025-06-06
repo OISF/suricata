@@ -56,7 +56,7 @@ impl<'a> Data<'a> {
     }
 
     /// Returns a reference to the internal ParserData struct.
-    pub(crate) fn parser_data(&self) -> &ParserData {
+    pub(crate) fn parser_data(&self) -> &ParserData<'_> {
         self.data
     }
 }
