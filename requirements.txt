@@ -3,4 +3,5 @@
 # Format:
 #
 #   name {repo} {branch|tag}
-suricata-update https://github.com/OISF/suricata-update master
+#suricata-update https://github.com/OISF/suricata-update master
+suricata-update https://github.com/jasonish/suricata-update 1.3.5/v1
