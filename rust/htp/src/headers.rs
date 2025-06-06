@@ -472,14 +472,14 @@ impl Parser {
 }
 
 /// Parse one null character and return it and the NULL_TERMINATED flag
-fn null(input: &[u8]) -> IResult<&[u8], ParsedBytes> {
+fn null(input: &[u8]) -> IResult<&[u8], ParsedBytes<'_>> {
     map(complete_tag("\0"), |null| {
         (null, HeaderFlags::NULL_TERMINATED)
     })(input)
 }
 
 /// Extracts folding lws (whitespace only)
-fn folding_lws(input: &[u8]) -> IResult<&[u8], ParsedBytes> {
+fn folding_lws(input: &[u8]) -> IResult<&[u8], ParsedBytes<'_>> {
     map(alt((tag(" "), tag("\t"), tag("\0"))), |fold| {
         (fold, HeaderFlags::FOLDING)
     })(input)
@@ -492,7 +492,7 @@ fn separator_regular(input: &[u8]) -> IResult<&[u8], (&[u8], &[u8])> {
 
 type leading_token_trailing<'a> = (&'a [u8], &'a [u8], &'a [u8]);
 /// Parse token characters with leading and trailing whitespace
-fn token_chars(input: &[u8]) -> IResult<&[u8], leading_token_trailing> {
+fn token_chars(input: &[u8]) -> IResult<&[u8], leading_token_trailing<'_>> {
     tuple((space0, take_while(is_token), space0))(input)
 }
 

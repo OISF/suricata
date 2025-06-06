@@ -220,7 +220,7 @@ type parsed_hostport<'a> = (&'a [u8], parsed_port<'a>, bool);
 ///
 /// Returns a remaining unparsed data, parsed hostname, parsed port, converted port number,
 /// and a flag indicating whether the parsed data is valid.
-pub(crate) fn parse_hostport(input: &[u8]) -> IResult<&[u8], parsed_hostport> {
+pub(crate) fn parse_hostport(input: &[u8]) -> IResult<&[u8], parsed_hostport<'_>> {
     let (input, host) = hostname()(input)?;
     let mut valid = validate_hostname(host);
     if let Ok((_, p)) = port()(input) {

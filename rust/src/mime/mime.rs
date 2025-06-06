@@ -65,7 +65,7 @@ fn is_mime_space(ch: u8) -> bool {
     ch == 0x20 || ch == 0x09 || ch == 0x0a || ch == 0x0d
 }
 
-pub fn mime_parse_header_token(input: &[u8]) -> IResult<&[u8], (&[u8], &[u8])> {
+pub fn mime_parse_header_token(input: &[u8]) -> IResult<&[u8], (&'_ [u8], &'_ [u8])> {
     // from RFC2047 : like ch.is_ascii_whitespace but without 0x0c FORM-FEED
     let (input, _) = take_while(is_mime_space)(input)?;
     let (input, name) = take_until("=")(input)?;
@@ -77,7 +77,7 @@ pub fn mime_parse_header_token(input: &[u8]) -> IResult<&[u8], (&[u8], &[u8])> {
     return Ok((input, (name, value)));
 }
 
-fn mime_parse_header_tokens(input: &[u8]) -> IResult<&[u8], HeaderTokens> {
+fn mime_parse_header_tokens(input: &[u8]) -> IResult<&[u8], HeaderTokens<'_>> {
     let (mut input, _) = take_until_and_consume(b";")(input)?;
     let mut tokens = HashMap::new();
     while !input.is_empty() {

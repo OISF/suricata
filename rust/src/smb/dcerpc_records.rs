@@ -34,7 +34,7 @@ pub struct DceRpcResponseRecord<'a> {
 /// parse a packet type 'response' DCERPC record. Implemented
 /// as function to be able to pass the fraglen in.
 pub fn parse_dcerpc_response_record(i:&[u8], frag_len: u16 )
-    -> IResult<&[u8], DceRpcResponseRecord, SmbError>
+    -> IResult<&[u8], DceRpcResponseRecord<'_>, SmbError>
 {
     if frag_len < 24 {
         return Err(Err::Error(SmbError::RecordTooSmall));
@@ -55,7 +55,7 @@ pub struct DceRpcRequestRecord<'a> {
 /// parse a packet type 'request' DCERPC record. Implemented
 /// as function to be able to pass the fraglen in.
 pub fn parse_dcerpc_request_record(i:&[u8], frag_len: u16, little: bool)
-    -> IResult<&[u8], DceRpcRequestRecord, SmbError>
+    -> IResult<&[u8], DceRpcRequestRecord<'_>, SmbError>
 {
     if frag_len < 24 {
         return Err(Err::Error(SmbError::RecordTooSmall));
@@ -76,7 +76,7 @@ pub struct DceRpcBindIface<'a> {
     pub ver_min: u16,
 }
 
-pub fn parse_dcerpc_bind_iface(i: &[u8]) -> IResult<&[u8], DceRpcBindIface> {
+pub fn parse_dcerpc_bind_iface(i: &[u8]) -> IResult<&[u8], DceRpcBindIface<'_>> {
     let (i, _ctx_id) = le_u16(i)?;
     let (i, _num_trans_items) = le_u8(i)?;
     let (i, _) = take(1_usize)(i)?; // reserved
@@ -92,7 +92,7 @@ pub fn parse_dcerpc_bind_iface(i: &[u8]) -> IResult<&[u8], DceRpcBindIface> {
     Ok((i, res))
 }
 
-pub fn parse_dcerpc_bind_iface_big(i: &[u8]) -> IResult<&[u8], DceRpcBindIface> {
+pub fn parse_dcerpc_bind_iface_big(i: &[u8]) -> IResult<&[u8], DceRpcBindIface<'_>> {
     let (i, _ctx_id) = le_u16(i)?;
     let (i, _num_trans_items) = le_u8(i)?;
     let (i, _) = take(1_usize)(i)?; // reserved
@@ -114,7 +114,7 @@ pub struct DceRpcBindRecord<'a> {
     pub ifaces: Vec<DceRpcBindIface<'a>>,
 }
 
-pub fn parse_dcerpc_bind_record(i: &[u8]) -> IResult<&[u8], DceRpcBindRecord> {
+pub fn parse_dcerpc_bind_record(i: &[u8]) -> IResult<&[u8], DceRpcBindRecord<'_>> {
     let (i, _max_xmit_frag) = le_u16(i)?;
     let (i, _max_recv_frag) = le_u16(i)?;
     let (i, _assoc_group) = take(4_usize)(i)?;
@@ -128,7 +128,7 @@ pub fn parse_dcerpc_bind_record(i: &[u8]) -> IResult<&[u8], DceRpcBindRecord> {
     Ok((i, record))
 }
 
-pub fn parse_dcerpc_bind_record_big(i: &[u8]) -> IResult<&[u8], DceRpcBindRecord> {
+pub fn parse_dcerpc_bind_record_big(i: &[u8]) -> IResult<&[u8], DceRpcBindRecord<'_>> {
     let (i, _max_xmit_frag) = be_u16(i)?;
     let (i, _max_recv_frag) = be_u16(i)?;
     let (i, _assoc_group) = take(4_usize)(i)?;
@@ -150,7 +150,7 @@ pub struct DceRpcBindAckResult<'a> {
     pub syntax_version: u32,
 }
 
-pub fn parse_dcerpc_bindack_result(i: &[u8]) -> IResult<&[u8], DceRpcBindAckResult> {
+pub fn parse_dcerpc_bindack_result(i: &[u8]) -> IResult<&[u8], DceRpcBindAckResult<'_>> {
     let (i, ack_result) = le_u16(i)?;
     let (i, ack_reason) = le_u16(i)?;
     let (i, transfer_syntax) = take(16_usize)(i)?;
@@ -170,7 +170,7 @@ pub struct DceRpcBindAckRecord<'a> {
     pub results: Vec<DceRpcBindAckResult<'a>>,
 }
 
-pub fn parse_dcerpc_bindack_record(i: &[u8]) -> IResult<&[u8], DceRpcBindAckRecord> {
+pub fn parse_dcerpc_bindack_record(i: &[u8]) -> IResult<&[u8], DceRpcBindAckRecord<'_>> {
     let (i, _max_xmit_frag) = le_u16(i)?;
     let (i, _max_recv_frag) = le_u16(i)?;
     let (i, _assoc_group) = take(4_usize)(i)?;
@@ -222,7 +222,7 @@ fn parse_dcerpc_flags2(i:&[u8]) -> IResult<&[u8],(u32,u32,u32)> {
     )))(i)
 }
 
-pub fn parse_dcerpc_record(i: &[u8]) -> IResult<&[u8], DceRpcRecord> {
+pub fn parse_dcerpc_record(i: &[u8]) -> IResult<&[u8], DceRpcRecord<'_>> {
     let (i, version_major) = le_u8(i)?;
     let (i, version_minor) = le_u8(i)?;
     let (i, packet_type) = le_u8(i)?;

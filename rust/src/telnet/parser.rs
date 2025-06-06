@@ -53,7 +53,7 @@ pub fn parse_ctl_message(oi: &[u8]) -> IResult<&[u8], &[u8]> {
     Ok((i, d))
 }
 
-pub fn parse_message(i: &[u8]) -> IResult<&[u8], TelnetMessageType> {
+pub fn parse_message(i: &[u8]) -> IResult<&[u8], TelnetMessageType<'_>> {
     let (i, v) = peek(le_u8)(i)?;
     if v == b'\xff' {
         let (i, c) = parse_ctl_message(i)?;
@@ -65,7 +65,7 @@ pub fn parse_message(i: &[u8]) -> IResult<&[u8], TelnetMessageType> {
 }
 
 // 'login: ', 'Password: ', possibly with leading ctls
-pub fn parse_welcome_message(i: &[u8]) -> IResult<&[u8], TelnetMessageType> {
+pub fn parse_welcome_message(i: &[u8]) -> IResult<&[u8], TelnetMessageType<'_>> {
     let (i, v) = peek(le_u8)(i)?;
     if v == b'\xff' {
         let (i, c) = parse_ctl_message(i)?;

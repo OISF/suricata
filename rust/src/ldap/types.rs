@@ -680,6 +680,6 @@ impl LdapMessage {
     }
 }
 
-pub fn ldap_parse_msg(input: &[u8]) -> ParseResult<ldap_parser::ldap::LdapMessage, LdapError> {
+pub fn ldap_parse_msg(input: &[u8]) -> ParseResult<'_, ldap_parser::ldap::LdapMessage<'_>, LdapError> {
     ldap_parser::ldap::LdapMessage::from_ber(input)
 }

@@ -97,7 +97,7 @@ pub struct MimeStateSMTP<'a> {
 
 pub fn mime_smtp_state_init(
     files: &mut FileContainer, sbcfg: *const StreamingBufferConfig,
-) -> Option<MimeStateSMTP> {
+) -> Option<MimeStateSMTP<'_>> {
     let r = MimeStateSMTP {
         state_flag: MimeSmtpParserState::MimeSmtpStart,
         headers: Vec::new(),
@@ -124,7 +124,7 @@ pub fn mime_smtp_state_init(
 #[no_mangle]
 pub unsafe extern "C" fn SCMimeSmtpStateInit(
     files: &mut FileContainer, sbcfg: *const StreamingBufferConfig,
-) -> *mut MimeStateSMTP {
+) -> *mut MimeStateSMTP<'_> {
     if let Some(ctx) = mime_smtp_state_init(files, sbcfg) {
         let boxed = Box::new(ctx);
         return Box::into_raw(boxed) as *mut _;
