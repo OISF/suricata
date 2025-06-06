@@ -18,7 +18,6 @@
 // written by Giuseppe Longo <giuseppe@glongo.it>
 
 pub mod detect;
-pub mod filters;
 pub mod ldap;
 pub mod logger;
 pub mod types;
