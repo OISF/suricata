@@ -33,6 +33,7 @@
 #include "util-mem.h"
 #include "app-layer-parser.h"
 #include "output.h"
+#include "decode.h"
 
 #include "output-json.h"
 #include "output-json-dns.h"
@@ -286,6 +287,8 @@ static int JsonDoh2Logger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     LogDnsLogThread *td = (LogDnsLogThread *)thread_data;
     LogDnsFileCtx *dnslog_ctx = td->dnslog_ctx;
 
+    /* DOH2 is always logged in flow direction, as its driven by the scope of an
+     * HTTP transation */
     SCJsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL, dnslog_ctx->eve_ctx);
 
     if (unlikely(jb == NULL)) {
@@ -426,7 +429,20 @@ static int JsonDnsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flo
             return TM_ECODE_OK;
         }
 
-        SCJsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL, dnslog_ctx->eve_ctx);
+        /* If UDP we can rely on the packet direction. */
+        enum SCOutputJsonLogDirection dir = LOG_DIR_PACKET;
+
+        /* If not UDP we have to query the transaction for direction, which
+         * could be wrong - this is a bit of a hack. */
+        if (PacketIsTCP(p)) {
+            if (SCDnsTxIsRequest(txptr)) {
+                dir = LOG_DIR_FLOW_TOSERVER;
+            } else {
+                dir = LOG_DIR_FLOW_TOCLIENT;
+            }
+        }
+
+        SCJsonBuilder *jb = CreateEveHeader(p, dir, "dns", NULL, dnslog_ctx->eve_ctx);
         if (unlikely(jb == NULL)) {
             return TM_ECODE_OK;
         }
