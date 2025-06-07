@@ -347,7 +347,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, const char *isda
 
     if (offset != NULL) {
         DetectByteIndexType index;
-        if (!DetectByteRetrieveSMVar(offset, s, &index)) {
+        if (!DetectByteRetrieveSMVar(offset, s, -1, &index)) {
             SCLogError("Unknown byte_extract var "
                        "seen in isdataat - %s\n",
                     offset);

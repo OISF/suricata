@@ -108,7 +108,7 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
     }
     if (str[0] != '-' && isalpha((unsigned char)str[0])) {
         DetectByteIndexType index;
-        if (!DetectByteRetrieveSMVar(str, s, &index)) {
+        if (!DetectByteRetrieveSMVar(str, s, -1, &index)) {
             SCLogError("unknown byte_ keyword var "
                        "seen in distance - %s",
                     str);

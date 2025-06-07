@@ -532,12 +532,15 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
 
         if (bjflags & DETECT_BYTEJUMP_OFFSET_VAR) {
             offset = det_ctx->byte_values[offset];
+            SCLogDebug("[BJ] using offset value %d", offset);
         }
 
         if (bjflags & DETECT_BYTEJUMP_NBYTES_VAR) {
             nbytes = det_ctx->byte_values[bjd->nbytes];
+            SCLogDebug("[BJ] using nbytes value %d [index %d]", nbytes, bjd->nbytes);
         } else {
             nbytes = bjd->nbytes;
+            SCLogDebug("[BJ] using nbytes value %d [index n/a]", nbytes);
         }
 
         /* if we have dce enabled we will have to use the endianness
