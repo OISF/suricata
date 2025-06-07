@@ -43,8 +43,10 @@ int Sha256StrJsonSet(void *dst, void *src)
     Sha256Type *src_s = src;
     Sha256Type *dst_s = dst;
     memcpy(dst_s->sha256, src_s->sha256, sizeof(dst_s->sha256));
-    dst_s->json.value = src_s->json.value;
-    dst_s->json.len = src_s->json.len;
+
+    if (DatajsonCopyJson(&dst_s->json, &src_s->json) < 0)
+        return -1;
+
     return 0;
 }
 

@@ -51,6 +51,17 @@ void DatajsonUnlockElt(DataJsonResultType *r)
     }
 }
 
+int DatajsonCopyJson(DataJsonType *dst, DataJsonType *src)
+{
+    dst->len = src->len;
+    dst->value = SCMalloc(dst->len + 1);
+    if (dst->value == NULL)
+        return -1;
+    memcpy(dst->value, src->value, dst->len);
+    dst->value[dst->len] = '\0'; // Ensure null-termination
+    return 0;
+}
+
 /* return true if number is a float or an integer */
 static bool IsFloat(const char *in, size_t ins)
 {
@@ -281,16 +292,9 @@ static int DatajsonAdd(
             break;
     }
 
-    if (add_ret == 1) {
-        /* data was added to the hash, we take ownership */
-        json->value = NULL;
-        return 1;
-    }
+    SCFree(json->value);
+    json->value = NULL;
 
-    if (json->value != NULL) {
-        SCFree(json->value);
-        json->value = NULL;
-    }
     return add_ret;
 }
 
