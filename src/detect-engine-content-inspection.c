@@ -157,7 +157,10 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
                 int distance = cd->distance;
                 if (cd->flags & DETECT_CONTENT_DISTANCE) {
                     if (cd->flags & DETECT_CONTENT_DISTANCE_VAR) {
-                        distance = det_ctx->byte_values[cd->distance];
+                        if (det_ctx->byte_values[cd->distance] > UINT32_MAX) {
+                            SCReturnInt(0);
+                        }
+                        distance = (uint32_t)det_ctx->byte_values[cd->distance];
                     }
                     if (distance < 0 && (uint32_t)(abs(distance)) > offset)
                         offset = 0;
@@ -171,7 +174,8 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
                 if (cd->flags & DETECT_CONTENT_WITHIN) {
                     if (cd->flags & DETECT_CONTENT_WITHIN_VAR) {
                         if ((int32_t)depth > (int32_t)(prev_buffer_offset + det_ctx->byte_values[cd->within] + distance)) {
-                            depth = prev_buffer_offset + det_ctx->byte_values[cd->within] + distance;
+                            depth = prev_buffer_offset +
+                                    (uint32_t)det_ctx->byte_values[cd->within] + distance;
                         }
                     } else {
                         if ((int32_t)depth > (int32_t)(prev_buffer_offset + cd->within + distance)) {
@@ -188,14 +192,14 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
                         } else if (depth >= (stream_start_offset + buffer_len)) {
                             ;
                         } else {
-                            depth = depth - stream_start_offset;
+                            depth = depth - (uint32_t)stream_start_offset;
                         }
                     }
                 }
 
                 if (cd->flags & DETECT_CONTENT_DEPTH_VAR) {
                     if ((det_ctx->byte_values[cd->depth] + prev_buffer_offset) < depth) {
-                        depth = prev_buffer_offset + det_ctx->byte_values[cd->depth];
+                        depth = prev_buffer_offset + (uint32_t)det_ctx->byte_values[cd->depth];
                     }
                 } else {
                     if (cd->depth != 0) {
@@ -208,8 +212,12 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
                 }
 
                 if (cd->flags & DETECT_CONTENT_OFFSET_VAR) {
-                    if (det_ctx->byte_values[cd->offset] > offset)
-                        offset = det_ctx->byte_values[cd->offset];
+                    if (det_ctx->byte_values[cd->offset] > offset) {
+                        if (det_ctx->byte_values[cd->offset] > UINT32_MAX) {
+                            SCReturnInt(0);
+                        }
+                        offset = (uint32_t)det_ctx->byte_values[cd->offset];
+                    }
                 } else {
                     if (cd->offset > offset) {
                         offset = cd->offset;
@@ -219,7 +227,10 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
             } else { /* implied no relative matches */
                 /* set depth */
                 if (cd->flags & DETECT_CONTENT_DEPTH_VAR) {
-                    depth = det_ctx->byte_values[cd->depth];
+                    if (det_ctx->byte_values[cd->depth] > UINT32_MAX) {
+                        SCReturnInt(0);
+                    }
+                    depth = (uint32_t)det_ctx->byte_values[cd->depth];
                 } else {
                     if (cd->depth != 0) {
                         depth = cd->depth;
@@ -232,15 +243,19 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
                     } else if (depth >= (stream_start_offset + buffer_len)) {
                         ;
                     } else {
-                        depth = depth - stream_start_offset;
+                        depth = (uint32_t)(depth - stream_start_offset);
                     }
                 }
 
                 /* set offset */
-                if (cd->flags & DETECT_CONTENT_OFFSET_VAR)
-                    offset = det_ctx->byte_values[cd->offset];
-                else
+                if (cd->flags & DETECT_CONTENT_OFFSET_VAR) {
+                    if (det_ctx->byte_values[cd->offset] > UINT32_MAX) {
+                        SCReturnInt(0);
+                    }
+                    offset = (uint32_t)det_ctx->byte_values[cd->offset];
+                } else {
                     offset = cd->offset;
+                }
                 prev_buffer_offset = 0;
             }
 
@@ -499,13 +514,19 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
         uint64_t value = btd->value;
         int32_t nbytes = btd->nbytes;
         if (btflags & DETECT_BYTETEST_OFFSET_VAR) {
-            offset = det_ctx->byte_values[offset];
+            if (det_ctx->byte_values[offset] > INT32_MAX) {
+                goto no_match;
+            }
+            offset = (int32_t)det_ctx->byte_values[offset];
         }
         if (btflags & DETECT_BYTETEST_VALUE_VAR) {
             value = det_ctx->byte_values[value];
         }
         if (btflags & DETECT_BYTETEST_NBYTES_VAR) {
-            nbytes = det_ctx->byte_values[nbytes];
+            if (det_ctx->byte_values[nbytes] > INT32_MAX) {
+                goto no_match;
+            }
+            nbytes = (int32_t)det_ctx->byte_values[nbytes];
         }
 
         /* if we have dce enabled we will have to use the endianness
@@ -531,11 +552,17 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
         int32_t nbytes;
 
         if (bjflags & DETECT_BYTEJUMP_OFFSET_VAR) {
-            offset = det_ctx->byte_values[offset];
+            if (det_ctx->byte_values[offset] > INT32_MAX) {
+                goto no_match;
+            }
+            offset = (int32_t)det_ctx->byte_values[offset];
         }
 
         if (bjflags & DETECT_BYTEJUMP_NBYTES_VAR) {
-            nbytes = det_ctx->byte_values[bjd->nbytes];
+            if (det_ctx->byte_values[bjd->nbytes] > INT32_MAX) {
+                goto no_match;
+            }
+            nbytes = (int32_t)det_ctx->byte_values[bjd->nbytes];
         } else {
             nbytes = bjd->nbytes;
         }

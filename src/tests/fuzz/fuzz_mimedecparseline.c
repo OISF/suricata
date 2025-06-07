@@ -33,10 +33,10 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         uint8_t * next = memchr(buffer, '\n', size);
         if (next == NULL) {
             if (SCMimeSmtpGetState(state) >= MimeSmtpBody)
-                (void)SCSmtpMimeParseLine(buffer, size, 0, &events, state);
+                (void)SCSmtpMimeParseLine(buffer, (uint32_t)size, 0, &events, state);
             break;
         } else {
-            (void)SCSmtpMimeParseLine(buffer, next - buffer, 1, &events, state);
+            (void)SCSmtpMimeParseLine(buffer, (uint32_t)(next - buffer), 1, &events, state);
             if (buffer + size < next + 1) {
                 break;
             }
