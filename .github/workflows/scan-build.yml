@@ -78,6 +78,7 @@ jobs:
       # this will require significant effort to address.
       - run: |
           scan-build-20 --status-bugs --exclude rust \
+                -o scan-build-report/ \
                 -enable-checker valist.Uninitialized \
                 -enable-checker valist.CopyToSelf \
                 -enable-checker valist.Unterminated \
@@ -105,3 +106,10 @@ jobs:
                 make
         env:
           CC: clang-20
+      - name: 'Upload Scan Build Results'
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: scan-build-results
+          path: scan-build-report/
+          retention-days: 5
