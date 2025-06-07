@@ -38,6 +38,18 @@ int IPv4Set(void *dst, void *src)
     return 0;
 }
 
+int IPv4JsonSet(void *dst, void *src)
+{
+    IPv4Type *src_s = src;
+    IPv4Type *dst_s = dst;
+    memcpy(dst_s->ipv4, src_s->ipv4, sizeof(dst_s->ipv4));
+
+    if (DatajsonCopyJson(&dst_s->json, &src_s->json) < 0)
+        return -1;
+
+    return 0;
+}
+
 bool IPv4Compare(void *a, void *b)
 {
     const IPv4Type *as = a;
@@ -55,4 +67,18 @@ uint32_t IPv4Hash(uint32_t hash_seed, void *s)
 // data stays in hash
 void IPv4Free(void *s)
 {
+}
+
+void IPv4JsonFree(void *s)
+{
+    const IPv4Type *as = s;
+    if (as->json.value) {
+        SCFree(as->json.value);
+    }
+}
+
+uint32_t IPv4JsonGetLength(void *s)
+{
+    const IPv4Type *as = s;
+    return as->json.len;
 }

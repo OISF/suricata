@@ -16,6 +16,11 @@
                 "category": {
                     "type": "string"
                 },
+                "context": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "Extra context data created by keywords such as dataset with JSON"
+                },
                 "gid": {
                     "type": "integer"
                 },
@@ -2980,7 +2985,8 @@
                             "username": {
                                 "type": "string"
                             }
-                        }
+                        },
+                        "additionalProperties": true
                     }
                 }
             },

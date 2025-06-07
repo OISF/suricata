@@ -71,12 +71,11 @@ impl<'a> CommandParser<'a> {
     }
 
     pub fn parse(&self, input: &str) -> Result<serde_json::Value, CommandParseError> {
-        let parts: Vec<&str> = input.split(' ').map(|s| s.trim()).collect();
+        let mut parts: Vec<&str> = input.split(' ').map(|s| s.trim()).collect();
         if parts.is_empty() {
             return Err(CommandParseError::Other("No command provided".to_string()));
         }
         let command = parts[0];
-        let args = &parts[1..];
 
         let spec = self
             .commands
@@ -91,6 +90,13 @@ impl<'a> CommandParser<'a> {
 
         // Calculate the number of required arguments for better error reporting.
         let required = spec.iter().filter(|e| e.required).count();
+        let optional = spec.iter().filter(|e| !e.required).count();
+        // Handle the case where the command has only required arguments and allow
+        // last one to contain spaces.
+        if optional == 0 {
+            parts = input.splitn(required + 1, ' ').collect();
+        }
+        let args = &parts[1..];
 
         let mut json_args = HashMap::new();
 
@@ -382,6 +388,28 @@ fn command_defs() -> Result<HashMap<String, Vec<Argument>>, serde_json::Error> {
             },
             {
 		"name": "datavalue",
+		"required": true,
+		"type": "string",
+            },
+	],
+	"dataset-add-json": [
+            {
+		"name": "setname",
+		"required": true,
+		"type": "string",
+            },
+            {
+		"name": "settype",
+		"required": true,
+		"type": "string",
+            },
+            {
+		"name": "datavalue",
+		"required": true,
+		"type": "string",
+            },
+            {
+		"name": "datajson",
 		"required": true,
 		"type": "string",
             },
