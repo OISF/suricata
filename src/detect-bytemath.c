@@ -359,7 +359,7 @@ static int DetectByteMathSetup(DetectEngineCtx *de_ctx, Signature *s, const char
 
     if (nbytes != NULL) {
         DetectByteIndexType index;
-        if (!DetectByteRetrieveSMVar(nbytes, s, &index)) {
+        if (!DetectByteRetrieveSMVar(nbytes, s, sm_list, &index)) {
             SCLogError("unknown byte_ keyword var seen in byte_math - %s", nbytes);
             goto error;
         }
@@ -371,7 +371,7 @@ static int DetectByteMathSetup(DetectEngineCtx *de_ctx, Signature *s, const char
 
     if (rvalue != NULL) {
         DetectByteIndexType index;
-        if (!DetectByteRetrieveSMVar(rvalue, s, &index)) {
+        if (!DetectByteRetrieveSMVar(rvalue, s, sm_list, &index)) {
             SCLogError("unknown byte_ keyword var seen in byte_math - %s", rvalue);
             goto error;
         }
@@ -441,7 +441,7 @@ static void DetectByteMathFree(DetectEngineCtx *de_ctx, void *ptr)
  *
  * \retval A pointer to the SigMatch if found, otherwise NULL.
  */
-SigMatch *DetectByteMathRetrieveSMVar(const char *arg, const Signature *s)
+SigMatch *DetectByteMathRetrieveSMVar(const char *arg, int sm_list, const Signature *s)
 {
     for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
         SigMatch *sm = s->init_data->buffers[x].head;
@@ -460,7 +460,8 @@ SigMatch *DetectByteMathRetrieveSMVar(const char *arg, const Signature *s)
     for (int list = 0; list < DETECT_SM_LIST_MAX; list++) {
         SigMatch *sm = s->init_data->smlists[list];
         while (sm != NULL) {
-            if (sm->type == DETECT_BYTEMATH) {
+            // Make sure that the linked buffers ore on the same list
+            if (sm->type == DETECT_BYTEMATH && (sm_list == -1 || sm_list == list)) {
                 const DetectByteMathData *bmd = (const DetectByteMathData *)sm->ctx;
                 if (strcmp(bmd->result, arg) == 0) {
                     SCLogDebug("Retrieved SM for \"%s\"", arg);
