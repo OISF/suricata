@@ -2991,6 +2991,8 @@ void SuricataInit(void)
 
     PreRunPostPrivsDropInit(suricata.run_mode);
 
+    SCOnLoggingReady();
+
     LandlockSandboxing(&suricata);
 
     PostConfLoadedDetectSetup(&suricata);
