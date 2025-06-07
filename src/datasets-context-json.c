@@ -282,6 +282,8 @@ static int DatajsonAdd(
     }
 
     if (add_ret == 1) {
+        /* data was added to the hash, we take ownership */
+        json->value = NULL;
         return 1;
     }
 
@@ -895,6 +897,7 @@ int DatajsonAddSerialized(Dataset *set, const char *value, const char *json)
         }
     }
 
+    int ret = -1;
     switch (set->type) {
         case DATASET_TYPE_STRING: {
             uint32_t decoded_size = SCBase64DecodeBufferSize(strlen(value));
@@ -903,7 +906,8 @@ int DatajsonAddSerialized(Dataset *set, const char *value, const char *json)
                     (const uint8_t *)value, strlen(value), SCBase64ModeStrict, decoded);
             if (num_decoded == 0)
                 goto operror;
-            return DatajsonAdd(set, decoded, num_decoded, &jvalue);
+            ret = DatajsonAdd(set, decoded, num_decoded, &jvalue);
+            break;
         }
         case DATASET_TYPE_MD5: {
             if (strlen(value) != SC_MD5_HEX_LEN)
@@ -911,7 +915,8 @@ int DatajsonAddSerialized(Dataset *set, const char *value, const char *json)
             uint8_t hash[SC_MD5_LEN];
             if (HexToRaw((const uint8_t *)value, SC_MD5_HEX_LEN, hash, sizeof(hash)) < 0)
                 goto operror;
-            return DatajsonAdd(set, hash, SC_MD5_LEN, &jvalue);
+            ret = DatajsonAdd(set, hash, SC_MD5_LEN, &jvalue);
+            break;
         }
         case DATASET_TYPE_SHA256: {
             if (strlen(value) != SC_SHA256_HEX_LEN)
@@ -919,13 +924,15 @@ int DatajsonAddSerialized(Dataset *set, const char *value, const char *json)
             uint8_t hash[SC_SHA256_LEN];
             if (HexToRaw((const uint8_t *)value, SC_SHA256_HEX_LEN, hash, sizeof(hash)) < 0)
                 goto operror;
-            return DatajsonAdd(set, hash, SC_SHA256_LEN, &jvalue);
+            ret = DatajsonAdd(set, hash, SC_SHA256_LEN, &jvalue);
+            break;
         }
         case DATASET_TYPE_IPV4: {
             struct in_addr in;
             if (inet_pton(AF_INET, value, &in) != 1)
                 goto operror;
-            return DatajsonAdd(set, (uint8_t *)&in.s_addr, SC_IPV4_LEN, &jvalue);
+            ret = DatajsonAdd(set, (uint8_t *)&in.s_addr, SC_IPV4_LEN, &jvalue);
+            break;
         }
         case DATASET_TYPE_IPV6: {
             struct in6_addr in6;
@@ -933,11 +940,12 @@ int DatajsonAddSerialized(Dataset *set, const char *value, const char *json)
                 SCLogError("Dataset failed to import %s as IPv6", value);
                 goto operror;
             }
-            return DatajsonAdd(set, (uint8_t *)&in6.s6_addr, SC_IPV6_LEN, &jvalue);
+            ret = DatajsonAdd(set, (uint8_t *)&in6.s6_addr, SC_IPV6_LEN, &jvalue);
+            break;
         }
     }
     SCFree(jvalue.value);
-    return -1;
+    return ret;
 operror:
     SCFree(jvalue.value);
     return -2;
