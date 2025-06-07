@@ -201,6 +201,16 @@ char *RunmodeGetActive(void)
     return active_runmode;
 }
 
+bool RunmodeIsWorkers(void)
+{
+    return RunmodeGetActive() && (strcmp(RunmodeGetActive(), "workers") == 0);
+}
+
+bool RunmodeIsAutofp(void)
+{
+    return RunmodeGetActive() && (strcmp(RunmodeGetActive(), "autofp") == 0);
+}
+
 /**
  * Return the running mode
  *
