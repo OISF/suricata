@@ -99,7 +99,7 @@ typedef struct FlowWorkerThreadData_ {
 } FlowWorkerThreadData;
 
 static void FlowWorkerFlowTimeout(
-        ThreadVars *tv, Packet *p, FlowWorkerThreadData *fw, void *detect_thread);
+        ThreadVars *tv, Packet *p, FlowWorkerThreadData *fw, DetectEngineThreadCtx *det_ctx);
 
 /**
  * \internal
@@ -364,8 +364,16 @@ static inline void UpdateCounters(ThreadVars *tv,
  *  on, so IPS logic stays valid.
  */
 static inline void FlowWorkerStreamTCPUpdate(ThreadVars *tv, FlowWorkerThreadData *fw, Packet *p,
-        void *detect_thread, const bool timeout)
+        DetectEngineThreadCtx *det_ctx, const bool timeout)
 {
+    if (det_ctx != NULL && det_ctx->de_ctx->PreStreamHook != NULL) {
+        const uint8_t action = det_ctx->de_ctx->PreStreamHook(tv, det_ctx, p);
+        if (action & ACTION_DROP) {
+            PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_STREAM_PRE_HOOK);
+            return;
+        }
+    }
+
     FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_STREAM);
     StreamTcp(tv, p, fw->stream_thread, &fw->pq);
     FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_STREAM);
@@ -390,9 +398,9 @@ static inline void FlowWorkerStreamTCPUpdate(ThreadVars *tv, FlowWorkerThreadDat
     while ((x = PacketDequeueNoLock(&fw->pq))) {
         SCLogDebug("packet %"PRIu64" extra packet %p", p->pcap_cnt, x);
 
-        if (detect_thread != NULL) {
+        if (det_ctx != NULL) {
             FLOWWORKER_PROFILING_START(x, PROFILE_FLOWWORKER_DETECT);
-            Detect(tv, x, detect_thread);
+            Detect(tv, x, det_ctx);
             FLOWWORKER_PROFILING_END(x, PROFILE_FLOWWORKER_DETECT);
         }
 
@@ -423,8 +431,8 @@ static inline void FlowWorkerStreamTCPUpdate(ThreadVars *tv, FlowWorkerThreadDat
     }
 }
 
-static void FlowWorkerFlowTimeout(ThreadVars *tv, Packet *p, FlowWorkerThreadData *fw,
-        void *detect_thread)
+static void FlowWorkerFlowTimeout(
+        ThreadVars *tv, Packet *p, FlowWorkerThreadData *fw, DetectEngineThreadCtx *det_ctx)
 {
     DEBUG_VALIDATE_BUG_ON(p->pkt_src != PKT_SRC_FFR);
 
@@ -433,15 +441,15 @@ static void FlowWorkerFlowTimeout(ThreadVars *tv, Packet *p, FlowWorkerThreadDat
     DEBUG_ASSERT_FLOW_LOCKED(p->flow);
 
     /* handle TCP and app layer */
-    FlowWorkerStreamTCPUpdate(tv, fw, p, detect_thread, true);
+    FlowWorkerStreamTCPUpdate(tv, fw, p, det_ctx, true);
 
     PacketUpdateEngineEventCounters(tv, fw->dtv, p);
 
     /* handle Detect */
     SCLogDebug("packet %"PRIu64" calling Detect", p->pcap_cnt);
-    if (detect_thread != NULL) {
+    if (det_ctx != NULL) {
         FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_DETECT);
-        Detect(tv, p, detect_thread);
+        Detect(tv, p, det_ctx);
         FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_DETECT);
     }
 
@@ -549,7 +557,7 @@ static void PacketAppUpdate2FlowFlags(Packet *p)
 static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
 {
     FlowWorkerThreadData *fw = data;
-    void *detect_thread = SC_ATOMIC_GET(fw->detect_thread);
+    DetectEngineThreadCtx *det_ctx = SC_ATOMIC_GET(fw->detect_thread);
 
     DEBUG_VALIDATE_BUG_ON(p == NULL);
     DEBUG_VALIDATE_BUG_ON(tv->flow_queue == NULL);
@@ -566,6 +574,14 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
     }
 
     /* handle Flow */
+    if (det_ctx != NULL && det_ctx->de_ctx->PreFlowHook != NULL) {
+        const uint8_t action = det_ctx->de_ctx->PreFlowHook(tv, det_ctx, p);
+        if (action & ACTION_DROP) {
+            PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_FLOW_PRE_HOOK);
+            goto pre_flow_drop;
+        }
+    }
+
     if (p->flags & PKT_WANTS_FLOW) {
         FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_FLOW);
 
@@ -623,13 +639,13 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
 
             /* if detect is disabled, we need to apply file flags to the flow
              * here on the first packet. */
-            if (detect_thread == NULL &&
+            if (det_ctx == NULL &&
                     ((PKT_IS_TOSERVER(p) && (p->flowflags & FLOW_PKT_TOSERVER_FIRST)) ||
                             (PKT_IS_TOCLIENT(p) && (p->flowflags & FLOW_PKT_TOCLIENT_FIRST)))) {
                 DisableDetectFlowFileFlags(p->flow);
             }
 
-            FlowWorkerStreamTCPUpdate(tv, fw, p, detect_thread, false);
+            FlowWorkerStreamTCPUpdate(tv, fw, p, det_ctx, false);
             PacketAppUpdate2FlowFlags(p);
 
             /* handle the app layer part of the UDP packet payload */
@@ -646,12 +662,13 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
     /* handle Detect */
     DEBUG_ASSERT_FLOW_LOCKED(p->flow);
     SCLogDebug("packet %"PRIu64" calling Detect", p->pcap_cnt);
-    if (detect_thread != NULL) {
+    if (det_ctx != NULL) {
         FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_DETECT);
-        Detect(tv, p, detect_thread);
+        Detect(tv, p, det_ctx);
         FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_DETECT);
     }
 
+pre_flow_drop:
     // Outputs.
     OutputLoggerLog(tv, p, fw->output_thread);
 

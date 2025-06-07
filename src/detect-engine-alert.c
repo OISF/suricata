@@ -191,11 +191,20 @@ static void PacketApplySignatureActions(Packet *p, const Signature *s, const Pac
 
     /* REJECT also sets ACTION_DROP, just make it more visible with this check */
     if (pa->action & ACTION_DROP_REJECT) {
+        uint8_t drop_reason = PKT_DROP_REASON_RULES;
+        if (s->flags & SIG_FLAG_FIREWALL) {
+            if (s->firewall_table == FIREWALL_TABLE_PACKET_PRE_STREAM) {
+                drop_reason = PKT_DROP_REASON_STREAM_PRE_HOOK;
+            } else if (s->firewall_table == FIREWALL_TABLE_PACKET_PRE_FLOW) {
+                drop_reason = PKT_DROP_REASON_FLOW_PRE_HOOK;
+            }
+        }
+
         /* PacketDrop will update the packet action, too */
         PacketDrop(p, pa->action,
                 (pa->flags & PACKET_ALERT_FLAG_RATE_FILTER_MODIFIED)
                         ? PKT_DROP_REASON_RULES_THRESHOLD
-                        : PKT_DROP_REASON_RULES);
+                        : drop_reason);
         SCLogDebug("[packet %p][DROP sid %u]", p, s->id);
 
         if (p->alerts.drop.action == 0) {
@@ -504,7 +513,7 @@ static inline void PacketAlertFinalizeProcessQueue(
  * \param det_ctx detection engine thread context
  * \param p pointer to the packet
  */
-void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p)
+void PacketAlertFinalize(const DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p)
 {
     SCEnter();
 

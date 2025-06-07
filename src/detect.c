@@ -70,29 +70,36 @@ typedef struct DetectRunScratchpad {
     const AppProto alproto;
     const uint8_t flow_flags; /* flow/state flags: STREAM_* */
     const bool app_decoder_events;
+    /**
+     *  Either ACTION_DROP (drop:packet) or ACTION_ACCEPT (accept:hook)
+     *
+     *  ACTION_DROP means the default policy of drop:packet is applied
+     *  ACTION_ACCEPT means the default policy of accept:hook is applied
+     */
+    const uint8_t default_action;
     const SigGroupHead *sgh;
 } DetectRunScratchpad;
 
 /* prototypes */
 static DetectRunScratchpad DetectRunSetup(const DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, Packet * const p, Flow * const pflow);
+        DetectEngineThreadCtx *det_ctx, Packet *const p, Flow *const pflow,
+        const uint8_t default_action);
 static void DetectRunInspectIPOnly(ThreadVars *tv, const DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, Flow * const pflow, Packet * const p);
 static inline void DetectRunGetRuleGroup(const DetectEngineCtx *de_ctx,
         Packet * const p, Flow * const pflow, DetectRunScratchpad *scratch);
-static inline void DetectRunPrefilterPkt(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p,
-        DetectRunScratchpad *scratch);
-static inline uint8_t DetectRulePacketRules(ThreadVars *const tv, DetectEngineCtx *const de_ctx,
-        DetectEngineThreadCtx *const det_ctx, Packet *const p, Flow *const pflow,
-        const DetectRunScratchpad *scratch);
+static inline void DetectRunPrefilterPkt(ThreadVars *tv, const DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, Packet *p, DetectRunScratchpad *scratch);
+static inline uint8_t DetectRulePacketRules(ThreadVars *const tv,
+        const DetectEngineCtx *const de_ctx, DetectEngineThreadCtx *const det_ctx, Packet *const p,
+        Flow *const pflow, const DetectRunScratchpad *scratch);
 static void DetectRunTx(ThreadVars *tv, DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, Packet *p,
         Flow *f, DetectRunScratchpad *scratch);
 static void DetectRunFrames(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         Packet *p, Flow *f, DetectRunScratchpad *scratch);
-static inline void DetectRunPostRules(ThreadVars *tv, DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, Packet * const p, Flow * const pflow,
+static inline void DetectRunPostRules(ThreadVars *tv, const DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, Packet *const p, Flow *const pflow,
         DetectRunScratchpad *scratch);
 static void DetectRunCleanup(DetectEngineThreadCtx *det_ctx,
         Packet *p, Flow * const pflow);
@@ -114,7 +121,7 @@ static void DetectRun(ThreadVars *th_v,
      * Mark as a constant pointer, although the flow itself can change. */
     Flow * const pflow = p->flow;
 
-    DetectRunScratchpad scratch = DetectRunSetup(de_ctx, det_ctx, p, pflow);
+    DetectRunScratchpad scratch = DetectRunSetup(de_ctx, det_ctx, p, pflow, ACTION_DROP);
 
     /* run the IPonly engine */
     DetectRunInspectIPOnly(th_v, de_ctx, det_ctx, pflow, p);
@@ -190,6 +197,49 @@ static void DetectRun(ThreadVars *th_v,
     } else {
         SCLogDebug("packet %" PRIu64 ": no flow / app-layer", p->pcap_cnt);
         DetectRunAppendDefaultAccept(det_ctx, p);
+    }
+
+end:
+    DetectRunPostRules(th_v, de_ctx, det_ctx, p, pflow, &scratch);
+
+    DetectRunCleanup(det_ctx, p, pflow);
+    SCReturn;
+}
+
+/** \internal
+ */
+static void DetectRunPacketHook(ThreadVars *th_v, const DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh, Packet *p)
+{
+    SCEnter();
+    SCLogDebug("p->pcap_cnt %" PRIu64 " direction %s pkt_src %s", p->pcap_cnt,
+            p->flow ? (FlowGetPacketDirection(p->flow, p) == TOSERVER ? "toserver" : "toclient")
+                    : "noflow",
+            PktSrcToString(p->pkt_src));
+
+    /* Load the Packet's flow early, even though it might not be needed.
+     * Mark as a constant pointer, although the flow itself can change. */
+    Flow *const pflow = p->flow;
+
+    DetectRunScratchpad scratch = DetectRunSetup(de_ctx, det_ctx, p, pflow, ACTION_ACCEPT);
+    scratch.sgh = sgh;
+
+    /* if we didn't get a sig group head, we
+     * have nothing to do.... */
+    if (scratch.sgh == NULL) {
+        SCLogDebug("no sgh for this packet, nothing to match against");
+        goto end;
+    }
+
+    /* run the prefilters for packets */
+    DetectRunPrefilterPkt(th_v, de_ctx, det_ctx, p, &scratch);
+
+    //    PACKET_PROFILING_DETECT_START(p, PROF_DETECT_RULES); // TODO
+    /* inspect the rules against the packet */
+    const uint8_t pkt_policy = DetectRulePacketRules(th_v, de_ctx, det_ctx, p, pflow, &scratch);
+    //    PACKET_PROFILING_DETECT_END(p, PROF_DETECT_RULES);
+    if (pkt_policy & (ACTION_DROP | ACTION_ACCEPT)) {
+        goto end;
     }
 
 end:
@@ -276,7 +326,8 @@ const SigGroupHead *SigMatchSignaturesGetSgh(const DetectEngineCtx *de_ctx,
     SCReturnPtr(sgh, "SigGroupHead");
 }
 
-static inline void DetectPrefilterCopyDeDup(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx)
+static inline void DetectPrefilterCopyDeDup(
+        const DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx)
 {
     SigIntId *pf_ptr = det_ctx->pmq.rule_id_array;
     uint32_t final_cnt = det_ctx->pmq.rule_id_array_cnt;
@@ -542,13 +593,8 @@ static inline bool DetectRunInspectRuleHeader(const Packet *p, const Flow *f, co
 /** \internal
  *  \brief run packet/stream prefilter engines
  */
-static inline void DetectRunPrefilterPkt(
-    ThreadVars *tv,
-    DetectEngineCtx *de_ctx,
-    DetectEngineThreadCtx *det_ctx,
-    Packet *p,
-    DetectRunScratchpad *scratch
-)
+static inline void DetectRunPrefilterPkt(ThreadVars *tv, const DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, Packet *p, DetectRunScratchpad *scratch)
 {
     /* create our prefilter mask */
     PacketCreateMask(p, &p->sig_mask, scratch->alproto, scratch->app_decoder_events);
@@ -608,9 +654,9 @@ static int SortHelper(const void *a, const void *b)
     return sa->iid > sb->iid ? 1 : -1;
 }
 
-static inline uint8_t DetectRulePacketRules(ThreadVars *const tv, DetectEngineCtx *const de_ctx,
-        DetectEngineThreadCtx *const det_ctx, Packet *const p, Flow *const pflow,
-        const DetectRunScratchpad *scratch)
+static inline uint8_t DetectRulePacketRules(ThreadVars *const tv,
+        const DetectEngineCtx *const de_ctx, DetectEngineThreadCtx *const det_ctx, Packet *const p,
+        Flow *const pflow, const DetectRunScratchpad *scratch)
 {
     uint8_t action = 0;
     bool fw_verdict = false;
@@ -855,7 +901,7 @@ next:
     /* if no rule told us to accept, and no rule explicitly dropped, we invoke the default drop
      * policy
      */
-    if (have_fw_rules) {
+    if (have_fw_rules && scratch->default_action == ACTION_DROP) {
         if (!fw_verdict) {
             DEBUG_VALIDATE_BUG_ON(action & ACTION_DROP);
             PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_DEFAULT_PACKET_POLICY);
@@ -868,10 +914,15 @@ next:
     return action;
 }
 
-static DetectRunScratchpad DetectRunSetup(
-    const DetectEngineCtx *de_ctx,
-    DetectEngineThreadCtx *det_ctx,
-    Packet * const p, Flow * const pflow)
+/** \internal
+ *  \param default_action either ACTION_DROP (drop:packet) or ACTION_ACCEPT (accept:hook)
+ *
+ *  ACTION_DROP means the default policy of drop:packet is applied
+ *  ACTION_ACCEPT means the default policy of accept:hook is applied
+ */
+static DetectRunScratchpad DetectRunSetup(const DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, Packet *const p, Flow *const pflow,
+        const uint8_t default_action)
 {
     AppProto alproto = ALPROTO_UNKNOWN;
     uint8_t flow_flags = 0; /* flow/state flags */
@@ -880,9 +931,11 @@ static DetectRunScratchpad DetectRunSetup(
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_SETUP);
 
 #ifdef UNITTESTS
-    p->alerts.cnt = 0;
-    p->alerts.discarded = 0;
-    p->alerts.suppressed = 0;
+    if (RunmodeIsUnittests()) {
+        p->alerts.cnt = 0;
+        p->alerts.discarded = 0;
+        p->alerts.suppressed = 0;
+    }
 #endif
     det_ctx->filestore_cnt = 0;
     det_ctx->base64_decoded_len = 0;
@@ -961,18 +1014,14 @@ static DetectRunScratchpad DetectRunSetup(
         app_decoder_events = AppLayerParserHasDecoderEvents(pflow->alparser);
     }
 
-    DetectRunScratchpad pad = { alproto, flow_flags, app_decoder_events, NULL };
+    DetectRunScratchpad pad = { alproto, flow_flags, app_decoder_events, default_action, NULL };
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_SETUP);
     return pad;
 }
 
-static inline void DetectRunPostRules(
-    ThreadVars *tv,
-    DetectEngineCtx *de_ctx,
-    DetectEngineThreadCtx *det_ctx,
-    Packet * const p,
-    Flow * const pflow,
-    DetectRunScratchpad *scratch)
+static inline void DetectRunPostRules(ThreadVars *tv, const DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, Packet *const p, Flow *const pflow,
+        DetectRunScratchpad *scratch)
 {
     /* so now let's iterate the alerts and remove the ones after a pass rule
      * matched (if any). This is done inside PacketAlertFinalize() */
@@ -995,7 +1044,7 @@ static inline void DetectRunPostRules(
      * if there was no rule group. */
     // TODO review packet src types here
     if (de_ctx->flags & DE_HAS_FIREWALL && !(p->action & ACTION_ACCEPT) &&
-            p->pkt_src == PKT_SRC_WIRE) {
+            p->pkt_src == PKT_SRC_WIRE && scratch->default_action == ACTION_DROP) {
         SCLogDebug("packet %" PRIu64 ": droppit as no ACCEPT set %02x (pkt %s)", p->pcap_cnt,
                 p->action, PktSrcToString(p->pkt_src));
         PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_DEFAULT_PACKET_POLICY);
@@ -2257,6 +2306,27 @@ static void DetectNoFlow(ThreadVars *tv,
 
     /* see if the packet matches one or more of the sigs */
     DetectRun(tv, de_ctx, det_ctx, p);
+}
+
+uint8_t DetectPreFlow(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p)
+{
+    const DetectEngineCtx *de_ctx = det_ctx->de_ctx;
+    const SigGroupHead *sgh = de_ctx->pre_flow_sgh;
+
+    SCLogDebug("thread id: %u, packet %" PRIu64 ", sgh %p", tv->id, p->pcap_cnt, sgh);
+    DetectRunPacketHook(tv, de_ctx, det_ctx, sgh, p);
+    return p->action;
+}
+
+uint8_t DetectPreStream(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p)
+{
+    const DetectEngineCtx *de_ctx = det_ctx->de_ctx;
+    const int direction = (PKT_IS_TOCLIENT(p) != 0);
+    const SigGroupHead *sgh = de_ctx->pre_stream_sgh[direction];
+
+    SCLogDebug("thread id: %u, packet %" PRIu64 ", sgh %p", tv->id, p->pcap_cnt, sgh);
+    DetectRunPacketHook(tv, de_ctx, det_ctx, sgh, p);
+    return p->action;
 }
 
 /** \brief Detection engine thread wrapper.
