@@ -52,4 +52,6 @@ int DatajsonAddSerialized(Dataset *set, const char *value, const char *json);
 
 void DatajsonUnlockElt(DataJsonResultType *r);
 
+int DatajsonCopyJson(DataJsonType *dst, DataJsonType *src);
+
 #endif /* SURICATA_DATAJSON_H*/

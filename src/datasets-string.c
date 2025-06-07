@@ -84,8 +84,10 @@ int StringJsonSet(void *dst, void *src)
     BUG_ON(dst_s->ptr == NULL);
     memcpy(dst_s->ptr, src_s->ptr, dst_s->len);
 
-    dst_s->json.value = src_s->json.value;
-    dst_s->json.len = src_s->json.len;
+    if (DatajsonCopyJson(&dst_s->json, &src_s->json) < 0) {
+        SCFree(dst_s->ptr);
+        return -1;
+    }
 
     SCLogDebug("dst %p src %p, dst_s->ptr %p dst_s->len %u", dst, src, dst_s->ptr, dst_s->len);
     return 0;
