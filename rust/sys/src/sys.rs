@@ -72,6 +72,7 @@ pub struct SCPlugin_ {
     pub license: *const ::std::os::raw::c_char,
     pub author: *const ::std::os::raw::c_char,
     pub Init: ::std::option::Option<unsafe extern "C" fn()>,
+    pub RegisterLoggers: ::std::option::Option<unsafe extern "C" fn()>,
 }
 #[doc = " Structure to define a Suricata plugin."]
 pub type SCPlugin = SCPlugin_;

@@ -47,6 +47,7 @@ typedef struct SCPlugin_ {
     const char *license;
     const char *author;
     void (*Init)(void);
+    void (*RegisterLoggers)(void);
 } SCPlugin;
 
 typedef SCPlugin *(*SCPluginRegisterFunc)(void);
