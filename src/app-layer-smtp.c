@@ -705,11 +705,13 @@ static void SetMimeEvents(SMTPState *state, uint32_t events)
     }
 }
 
-static inline void SMTPTransactionComplete(SMTPState *state)
+static inline void SMTPTransactionComplete(SMTPState *state, Flow *f, uint16_t dir)
 {
     DEBUG_VALIDATE_BUG_ON(state->curr_tx == NULL);
-    if (state->curr_tx)
+    if (state->curr_tx) {
         state->curr_tx->done = true;
+        AppLayerParserTriggerRawStreamInspection(f, dir);
+    }
 }
 
 /**
@@ -746,7 +748,7 @@ static int SMTPProcessCommandDATA(
                         FileFlowToFlags(f, STREAM_TOSERVER));
             }
         }
-        SMTPTransactionComplete(state);
+        SMTPTransactionComplete(state, f, STREAM_TOSERVER);
         SCLogDebug("marked tx as done");
     } else if (smtp_config.raw_extraction) {
         // message not over, store the line. This is a substitution of
@@ -931,7 +933,7 @@ static int SMTPProcessReply(
                 SMTPSetEvent(state, SMTP_DECODER_EVENT_FAILED_PROTOCOL_CHANGE);
             }
             if (state->curr_tx) {
-                SMTPTransactionComplete(state);
+                SMTPTransactionComplete(state, f, STREAM_TOCLIENT);
             }
         } else {
             /* decoder event */
@@ -952,7 +954,7 @@ static int SMTPProcessReply(
     } else if (IsReplyToCommand(state, SMTP_COMMAND_RSET)) {
         if (reply_code == SMTP_REPLY_250 && state->curr_tx &&
                 !(state->parser_state & SMTP_PARSER_STATE_PARSING_MULTILINE_REPLY)) {
-            SMTPTransactionComplete(state);
+            SMTPTransactionComplete(state, f, STREAM_TOCLIENT);
         }
     } else {
         /* we don't care for any other command for now */
@@ -1093,12 +1095,14 @@ static int SMTPParseCommandRCPTTO(SMTPState *state, const SMTPLine *line)
 }
 
 /* consider 'rset' and 'quit' to be part of the existing state */
-static int NoNewTx(SMTPState *state, const SMTPLine *line)
+static int NoNewTx(SMTPState *state, Flow *f, const SMTPLine *line)
 {
     if (!(state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
         if (line->len >= 4 && SCMemcmpLowercase("rset", line->buf, 4) == 0) {
+            AppLayerParserTriggerRawStreamInspection(f, STREAM_TOSERVER);
             return 1;
         } else if (line->len >= 4 && SCMemcmpLowercase("quit", line->buf, 4) == 0) {
+            AppLayerParserTriggerRawStreamInspection(f, STREAM_TOSERVER);
             return 1;
         }
     }
@@ -1149,7 +1153,7 @@ static int SMTPProcessRequest(
     if (line->len == 0 && line->delim_len == 0) {
         return 0;
     }
-    if (state->curr_tx == NULL || (state->curr_tx->done && !NoNewTx(state, line))) {
+    if (state->curr_tx == NULL || (state->curr_tx->done && !NoNewTx(state, f, line))) {
         tx = SMTPTransactionCreate(state);
         if (tx == NULL)
             return -1;

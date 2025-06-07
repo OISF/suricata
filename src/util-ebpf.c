@@ -980,9 +980,10 @@ void EBPFBuildCPUSet(SCConfNode *node, char *iface)
                         BPF_ANY);
         return;
     }
-    BuildCpusetWithCallback("xdp-cpu-redirect", node,
-            EBPFRedirectMapAddCPU,
-            iface);
+    if (BuildCpusetWithCallback("xdp-cpu-redirect", node, EBPFRedirectMapAddCPU, iface) < 0) {
+        SCLogWarning("Failed to parse XDP CPU redirect configuration");
+        return;
+    }
     bpf_map_update_elem(mapfd, &key0, &g_redirect_iface_cpu_counter,
                         BPF_ANY);
 }

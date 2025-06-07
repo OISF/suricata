@@ -79,6 +79,7 @@
 #include "util-memcmp.h"
 #include "util-misc.h"
 #include "util-signal.h"
+#include "util-affinity.h"
 
 #include "reputation.h"
 #include "util-atomic.h"
@@ -197,6 +198,7 @@ static void RegisterUnittests(void)
     SCLogRegisterTests();
     MagicRegisterTests();
     UtilMiscRegisterTests();
+    ThreadingAffinityRegisterTests();
     DetectAddressTests();
     DetectProtoTests();
     DetectPortTests();
