@@ -80,6 +80,11 @@ static bool IsFloat(const char *in, size_t ins)
 
 static int ParseJsonLine(const char *in, size_t ins, DataJsonType *rep_out)
 {
+    if (ins > DATAJSON_JSON_LENGTH) {
+        SCLogError("dataset: json string too long: %s", in);
+        return -1;
+    }
+
     json_error_t jerror;
     json_t *msg = json_loads(in, 0, &jerror);
     if (msg == NULL) {
@@ -92,7 +97,7 @@ static int ParseJsonLine(const char *in, size_t ins, DataJsonType *rep_out)
     } else {
         json_decref(msg);
     }
-    rep_out->len = ins;
+    rep_out->len = (uint16_t)ins;
     rep_out->value = SCStrndup(in, ins);
     if (rep_out->value == NULL) {
         return -1;
