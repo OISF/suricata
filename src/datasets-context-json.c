@@ -420,11 +420,21 @@ static uint32_t DatajsonAddStringElement(Dataset *set, json_t *value, char *json
 
     *found = true;
 
-    uint8_t val[DATAJSON_JSON_LENGTH];
     const char *val_key = json_string_value(key);
-    strlcpy((char *)val, val_key, DATAJSON_JSON_LENGTH - 1);
+    if (val_key == NULL) {
+        FatalErrorOnInit("dataset: %s failed to get value for key '%s'", set->name, json_key);
+        return 0;
+    }
+    size_t val_len = strlen(val_key);
 
-    return DatajsonSetValue(set, val, strlen(val_key), value, json_key);
+    json_incref(key);
+    int ret = DatajsonSetValue(set, (const uint8_t *)val_key, (uint16_t)val_len, value, json_key);
+    json_decref(key);
+    if (ret < 0) {
+        FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
+        return 0;
+    }
+    return ret;
 }
 
 static int DatajsonLoadString(Dataset *set, char *json_key, char *array_key, DatasetFormats format)
