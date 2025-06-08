@@ -506,6 +506,10 @@ int DetectDatasetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
             SCLogError("json format needs a 'context_key' parameter");
             return -1;
         }
+        if (strlen(value_key) == 0) {
+            SCLogError("json format needs a 'value_key' parameter");
+            return -1;
+        }
     }
 
     /* if just 'load' is set, we load data from the same dir as the
