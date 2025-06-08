@@ -287,7 +287,7 @@ static int DetectDatasetParse(const char *str, char *cmd, int cmd_len, char *nam
                     return -1;
                 }
                 strlcpy(array_key, val, array_key_size);
-            } else if (strcmp(key, "enrichment_key") == 0) {
+            } else if (strcmp(key, "context_key") == 0) {
                 if (strlen(val) > enrichment_key_size) {
                     SCLogWarning("'key' value too long (limit is %zu)", enrichment_key_size);
                     return -1;
@@ -503,7 +503,7 @@ int DetectDatasetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
             return -1;
         }
         if (strlen(enrichment_key) == 0) {
-            SCLogError("json format needs an 'enrichment_key' parameter");
+            SCLogError("json format needs a 'context_key' parameter");
             return -1;
         }
     }
