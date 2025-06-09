@@ -40,9 +40,11 @@ int Sha256StrSet(void *dst, void *src)
 
 int Sha256StrJsonSet(void *dst, void *src)
 {
+    if (Sha256StrSet(dst, src) < 0)
+        return -1;
+
     Sha256Type *src_s = src;
     Sha256Type *dst_s = dst;
-    memcpy(dst_s->sha256, src_s->sha256, sizeof(dst_s->sha256));
 
     if (DatajsonCopyJson(&dst_s->json, &src_s->json) < 0)
         return -1;
