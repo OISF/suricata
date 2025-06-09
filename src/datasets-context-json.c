@@ -634,7 +634,7 @@ Dataset *DatajsonGet(const char *name, enum DatasetTypes type, const char *load,
 {
     Dataset *set = NULL;
 
-    int ret = DatasetCreateOrGet(name, type, NULL, load, &memcap, &hashsize, &set);
+    int ret = DatasetGetOrCreate(name, type, NULL, load, &memcap, &hashsize, &set);
     if (ret < 0) {
         SCLogError("dataset with JSON %s creation failed", name);
         return NULL;
