@@ -1235,7 +1235,7 @@ typedef struct PostRuleMatchWorkQueue {
 
 /** structure to store the json content with info on sig that triggered it */
 typedef struct SigJsonContent {
-    void *id;
+    void *id; /**< pointer to the sig that triggered this json content */
     char json_content[SIG_JSON_CONTENT_ITEM_LEN];
 } SigJsonContent;
 

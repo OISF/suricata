@@ -33,7 +33,7 @@ typedef struct DetectDatasetData_ {
     DatasetFormats format;
     DataJsonType json;
     char json_key[SIG_JSON_CONTENT_KEY_LEN];
-    void *id;
+    void *id; /* pointer to the triggering signature */
 } DetectDatasetData;
 
 int DetectDatasetBufferMatch(DetectEngineThreadCtx *det_ctx,
