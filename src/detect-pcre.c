@@ -180,6 +180,13 @@ static void DetectAlertStoreMatch(DetectEngineThreadCtx *det_ctx, const Signatur
         if (js_len > SIG_JSON_CONTENT_ITEM_LEN) {
             SCLogDebug("Captured length is too long for JSON.");
             SCFree(str_ptr);
+            SCJbFree(js);
+            return;
+        }
+        if (js_len == 0) {
+            SCLogDebug("Captured length is zero for JSON.");
+            SCFree(str_ptr);
+            SCJbFree(js);
             return;
         }
         /* Copy js but skip the starting curly bracket to just get the inner data */
