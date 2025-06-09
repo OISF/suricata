@@ -288,13 +288,9 @@ static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc Mod
             FatalError("TmThreadsCreate failed");
         }
         tv->printable_name = printable_threadname;
-        if (live_dev) {
-            tv->iface_name = SCStrdup(live_dev);
-            if (tv->iface_name == NULL) {
-                FatalError("Failed to allocate memory for iface name");
-            }
-        } else {
-            tv->iface_name = NULL;
+        tv->iface_name = SCStrdup(live_dev);
+        if (tv->iface_name == NULL) {
+            FatalError("Failed to allocate memory for iface name");
         }
 
         tm_module = TmModuleGetByName(recv_mod_name);
