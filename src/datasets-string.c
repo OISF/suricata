@@ -75,21 +75,17 @@ int StringSet(void *dst, void *src)
 
 int StringJsonSet(void *dst, void *src)
 {
+    if (StringSet(dst, src) < 0)
+        return -1;
+
     StringType *src_s = src;
     StringType *dst_s = dst;
-    SCLogDebug("dst %p src %p, src_s->ptr %p src_s->len %u", dst, src, src_s->ptr, src_s->len);
-
-    dst_s->len = src_s->len;
-    dst_s->ptr = SCMalloc(dst_s->len);
-    BUG_ON(dst_s->ptr == NULL);
-    memcpy(dst_s->ptr, src_s->ptr, dst_s->len);
 
     if (DatajsonCopyJson(&dst_s->json, &src_s->json) < 0) {
         SCFree(dst_s->ptr);
         return -1;
     }
 
-    SCLogDebug("dst %p src %p, dst_s->ptr %p dst_s->len %u", dst, src, dst_s->ptr, dst_s->len);
     return 0;
 }
 
