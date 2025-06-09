@@ -364,7 +364,7 @@ static void DatasetUpdateHashsize(const char *name, uint32_t hash_size)
  * \return 0 on successful creation
  * \return 1 if the dataset already exists
  *
- * dataset global lock is held after return if set is found or created
+ * Calling function is responsible for locking via DatasetLock()
  */
 int DatasetGetOrCreate(const char *name, enum DatasetTypes type, const char *save, const char *load,
         uint64_t *memcap, uint32_t *hashsize, Dataset **ret_set)
@@ -375,14 +375,12 @@ int DatasetGetOrCreate(const char *name, enum DatasetTypes type, const char *sav
         return -1;
     }
 
-    DatasetLock();
     Dataset *set = DatasetSearchByName(name);
     if (set) {
         if (type != DATASET_TYPE_NOTSET && set->type != type) {
             SCLogError("dataset %s already "
                        "exists and is of type %u",
                     set->name, set->type);
-            DatasetUnlock();
             return -1;
         }
 
@@ -400,7 +398,6 @@ int DatasetGetOrCreate(const char *name, enum DatasetTypes type, const char *sav
             if ((load == NULL && strlen(set->load) > 0) ||
                     (load != NULL && strcmp(set->load, load) != 0)) {
                 SCLogError("dataset %s load mismatch: %s != %s", set->name, set->load, load);
-                DatasetUnlock();
                 return -1;
             }
         }
@@ -451,7 +448,6 @@ out_err:
         }
         SCFree(set);
     }
-    DatasetUnlock();
     return -1;
 }
 
@@ -460,9 +456,11 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
 {
     Dataset *set = NULL;
 
+    DatasetLock();
     int ret = DatasetGetOrCreate(name, type, save, load, &memcap, &hashsize, &set);
     if (ret < 0) {
         SCLogError("dataset %s creation failed", name);
+        DatasetUnlock();
         return NULL;
     }
     if (ret == 1) {
