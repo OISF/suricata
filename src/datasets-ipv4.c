@@ -40,9 +40,11 @@ int IPv4Set(void *dst, void *src)
 
 int IPv4JsonSet(void *dst, void *src)
 {
+    if (IPv4Set(dst, src) < 0)
+        return -1;
+
     IPv4Type *src_s = src;
     IPv4Type *dst_s = dst;
-    memcpy(dst_s->ipv4, src_s->ipv4, sizeof(dst_s->ipv4));
 
     if (DatajsonCopyJson(&dst_s->json, &src_s->json) < 0)
         return -1;
