@@ -65,7 +65,10 @@ int StringSet(void *dst, void *src)
 
     dst_s->len = src_s->len;
     dst_s->ptr = SCMalloc(dst_s->len);
-    BUG_ON(dst_s->ptr == NULL);
+    if (dst_s->ptr == NULL) {
+        SCLogError("Failed to allocate memory for string of length %u", dst_s->len);
+        return -1;
+    }
     memcpy(dst_s->ptr, src_s->ptr, dst_s->len);
 
     dst_s->rep = src_s->rep;
