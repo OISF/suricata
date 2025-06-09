@@ -947,10 +947,13 @@ static uint16_t CPUSelectDefault(ThreadsAffinityType *taf)
 {
     uint16_t cpu = taf->lcpu[0];
     int attempts = 0;
-    while (!CPU_ISSET(cpu, &taf->cpu_set) && attempts < 2) {
-        cpu = (cpu + 1) % UtilCpuGetNumProcessorsOnline();
-        if (cpu == 0) {
-            attempts++;
+    uint16_t num_procs = UtilCpuGetNumProcessorsOnline();
+    if (num_procs > 0) {
+        while (!CPU_ISSET(cpu, &taf->cpu_set) && attempts < 2) {
+            cpu = (cpu + 1) % num_procs;
+            if (cpu == 0) {
+                attempts++;
+            }
         }
     }
 
