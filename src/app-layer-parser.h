@@ -33,6 +33,7 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 typedef struct AppLayerDecoderEvents_ AppLayerDecoderEvents;
 typedef struct ThreadVars_ ThreadVars;
 typedef struct File_ File;
+typedef enum LoggerId LoggerId;
 // Forward declarations from rust
 typedef struct StreamSlice StreamSlice;
 typedef struct AppLayerResult AppLayerResult;
@@ -301,7 +302,7 @@ void AppLayerParserStateCleanup(const Flow *f, void *alstate, AppLayerParserStat
 
 void AppLayerParserRegisterProtocolParsers(void);
 
-void AppLayerParserStateSetFlag(AppLayerParserState *pstate, uint16_t flag);
+void SCAppLayerParserStateSetFlag(AppLayerParserState *pstate, uint16_t flag);
 uint16_t AppLayerParserStateIssetFlag(AppLayerParserState *pstate, uint16_t flag);
 
 AppLayerParserState *AppLayerParserStateAlloc(void);

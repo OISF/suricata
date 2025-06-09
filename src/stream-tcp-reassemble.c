@@ -454,8 +454,8 @@ void StreamTcpDisableAppLayer(Flow *f)
     StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
     StreamTcpDisableAppLayerReassembly(ssn);
     if (f->alparser) {
-        AppLayerParserStateSetFlag(f->alparser,
-                (APP_LAYER_PARSER_EOF_TS|APP_LAYER_PARSER_EOF_TC));
+        SCAppLayerParserStateSetFlag(
+                f->alparser, (APP_LAYER_PARSER_EOF_TS | APP_LAYER_PARSER_EOF_TC));
     }
 }
 

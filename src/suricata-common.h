@@ -474,7 +474,7 @@ typedef enum PacketProfileDetectId_ {
 } PacketProfileDetectId;
 
 /** \note update PacketProfileLoggerIdToString if you change anything here */
-typedef enum {
+typedef enum LoggerId {
     LOGGER_UNDEFINED,
 
     /* TX loggers first for low logger IDs */
