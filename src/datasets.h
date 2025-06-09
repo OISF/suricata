@@ -30,8 +30,8 @@ void DatasetPostReloadCleanup(void);
 
 typedef enum {
     DATASET_FORMAT_CSV = 0,
-    DATASET_FORMAT_JSON,
-    DATASET_FORMAT_NDJSON,
+    DATASET_FORMAT_JSON,   /* File contains one single JSON object */
+    DATASET_FORMAT_NDJSON, /* Newline Delimited JSON */
 } DatasetFormats;
 
 enum DatasetTypes {
