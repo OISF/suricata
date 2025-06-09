@@ -2334,13 +2334,12 @@ static struct SSLDecoderResult SSLv2Decode(uint8_t direction, SSLState *ssl_stat
                     (ssl_state->flags & SSL_AL_FLAG_SSL_SERVER_SSN_ENCRYPTED))
                 {
                     if (ssl_config.encrypt_mode != SSL_CNF_ENC_HANDLE_FULL) {
-                        AppLayerParserStateSetFlag(pstate,
-                                APP_LAYER_PARSER_NO_INSPECTION);
+                        SCAppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_INSPECTION);
                     }
 
                     if (ssl_config.encrypt_mode == SSL_CNF_ENC_HANDLE_BYPASS) {
-                        AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_REASSEMBLY);
-                        AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_BYPASS_READY);
+                        SCAppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_REASSEMBLY);
+                        SCAppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_BYPASS_READY);
                     }
                     SCLogDebug("SSLv2 No reassembly & inspection has been set");
                 }
@@ -2554,20 +2553,16 @@ static struct SSLDecoderResult SSLv3Decode(uint8_t direction, SSLState *ssl_stat
 
             if (ssl_config.encrypt_mode != SSL_CNF_ENC_HANDLE_FULL) {
                 SCLogDebug("setting APP_LAYER_PARSER_NO_INSPECTION_PAYLOAD");
-                AppLayerParserStateSetFlag(pstate,
-                        APP_LAYER_PARSER_NO_INSPECTION_PAYLOAD);
+                SCAppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_INSPECTION_PAYLOAD);
             }
 
             /* Encrypted data, reassembly not asked, bypass asked, let's sacrifice
              * heartbeat lke inspection to be able to be able to bypass the flow */
             if (ssl_config.encrypt_mode == SSL_CNF_ENC_HANDLE_BYPASS) {
                 SCLogDebug("setting APP_LAYER_PARSER_NO_REASSEMBLY");
-                AppLayerParserStateSetFlag(pstate,
-                        APP_LAYER_PARSER_NO_REASSEMBLY);
-                AppLayerParserStateSetFlag(pstate,
-                        APP_LAYER_PARSER_NO_INSPECTION);
-                AppLayerParserStateSetFlag(pstate,
-                        APP_LAYER_PARSER_BYPASS_READY);
+                SCAppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_REASSEMBLY);
+                SCAppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_INSPECTION);
+                SCAppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_BYPASS_READY);
             }
             break;
 

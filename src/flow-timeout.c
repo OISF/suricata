@@ -246,11 +246,11 @@ static inline Packet *FlowPseudoPacketSetup(
 
     if (direction == 0) {
         if (f->alparser && !STREAM_HAS_SEEN_DATA(&ssn->client)) {
-            AppLayerParserStateSetFlag(f->alparser, APP_LAYER_PARSER_EOF_TS);
+            SCAppLayerParserStateSetFlag(f->alparser, APP_LAYER_PARSER_EOF_TS);
         }
     } else {
         if (f->alparser && !STREAM_HAS_SEEN_DATA(&ssn->server)) {
-            AppLayerParserStateSetFlag(f->alparser, APP_LAYER_PARSER_EOF_TC);
+            SCAppLayerParserStateSetFlag(f->alparser, APP_LAYER_PARSER_EOF_TC);
         }
     }
 
