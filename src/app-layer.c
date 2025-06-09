@@ -34,6 +34,7 @@
 #include "app-layer-htp-range.h"
 #include "app-layer-detect-proto.h"
 #include "app-layer-frames.h"
+#include "app-layer-events.h"
 #include "stream-tcp-reassemble.h"
 #include "stream-tcp-private.h"
 #include "stream-tcp-inline.h"

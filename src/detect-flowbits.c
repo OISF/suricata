@@ -34,6 +34,7 @@
 #include "flow-util.h"
 #include "detect-flowbits.h"
 #include "util-spm.h"
+#include "rust.h"
 
 #include "app-layer-parser.h"
 

@@ -57,6 +57,7 @@
 
 #include "util-debug.h"
 
+#include "rust.h"
 #include "app-layer-parser.h"
 #include "app-layer-expectation.h"
 

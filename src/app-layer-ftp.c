@@ -31,6 +31,7 @@
 #include "app-layer-parser.h"
 #include "app-layer-expectation.h"
 #include "app-layer-detect-proto.h"
+#include "app-layer-events.h"
 
 #include "rust.h"
 

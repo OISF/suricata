@@ -18,6 +18,7 @@
 #include "suricata-common.h"
 #include "rust-context.h"
 #include "app-layer-parser.h"
+#include "app-layer-events.h"
 #include "app-layer-register.h"
 #include "app-layer-htp-range.h"
 #include "app-layer-htp-file.h"
