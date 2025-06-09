@@ -41,9 +41,11 @@ int IPv6Set(void *dst, void *src)
 
 int IPv6JsonSet(void *dst, void *src)
 {
+    if (IPv6Set(dst, src) < 0)
+        return -1;
+
     IPv6Type *src_s = src;
     IPv6Type *dst_s = dst;
-    memcpy(dst_s->ipv6, src_s->ipv6, sizeof(dst_s->ipv6));
 
     if (DatajsonCopyJson(&dst_s->json, &src_s->json) < 0)
         return -1;

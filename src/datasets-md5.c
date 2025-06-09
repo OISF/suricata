@@ -42,9 +42,11 @@ int Md5StrSet(void *dst, void *src)
 
 int Md5StrJsonSet(void *dst, void *src)
 {
+    if (Md5StrSet(dst, src) < 0)
+        return -1;
+
     Md5Type *src_s = src;
     Md5Type *dst_s = dst;
-    memcpy(dst_s->md5, src_s->md5, sizeof(dst_s->md5));
 
     if (DatajsonCopyJson(&dst_s->json, &src_s->json) < 0)
         return -1;
