@@ -252,7 +252,7 @@ typedef struct PacketAlert_ {
     const struct Signature_ *s;
     uint64_t tx_id; /* Used for sorting */
     int64_t frame_id;
-    struct PacketContextData json_info;
+    struct PacketContextData *json_info;
 } PacketAlert;
 
 /**
