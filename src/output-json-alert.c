@@ -255,7 +255,7 @@ void AlertJsonHeader(const Packet *p, const PacketAlert *pa, SCJsonBuilder *js, 
 
     if (pa->json_info.json_string != NULL) {
         SCJbOpenObject(js, "context");
-        const struct ExtraDataJsonList *json_info = &pa->json_info;
+        const struct PacketContextData *json_info = &pa->json_info;
         while (json_info) {
             SCJbSetFormatted(js, json_info->json_string);
             json_info = json_info->next;

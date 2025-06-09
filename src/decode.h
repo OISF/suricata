@@ -238,9 +238,9 @@ typedef uint16_t Port;
 #define PKT_IS_TOSERVER(p)  (((p)->flowflags & FLOW_PKT_TOSERVER))
 #define PKT_IS_TOCLIENT(p)  (((p)->flowflags & FLOW_PKT_TOCLIENT))
 
-struct ExtraDataJsonList {
+struct PacketContextData {
     char *json_string;
-    struct ExtraDataJsonList *next;
+    struct PacketContextData *next;
 };
 
 /* structure to store the sids/gids/etc the detection engine
@@ -252,7 +252,7 @@ typedef struct PacketAlert_ {
     const struct Signature_ *s;
     uint64_t tx_id; /* Used for sorting */
     int64_t frame_id;
-    struct ExtraDataJsonList json_info;
+    struct PacketContextData json_info;
 } PacketAlert;
 
 /**
