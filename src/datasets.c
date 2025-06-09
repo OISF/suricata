@@ -366,7 +366,7 @@ static void DatasetUpdateHashsize(const char *name, uint32_t hash_size)
  *
  * dataset global lock is held after return if set is found or created
  */
-int DatasetCreateOrGet(const char *name, enum DatasetTypes type, const char *save, const char *load,
+int DatasetGetOrCreate(const char *name, enum DatasetTypes type, const char *save, const char *load,
         uint64_t *memcap, uint32_t *hashsize, Dataset **ret_set)
 {
     uint64_t default_memcap = 0;
@@ -460,7 +460,7 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
 {
     Dataset *set = NULL;
 
-    int ret = DatasetCreateOrGet(name, type, save, load, &memcap, &hashsize, &set);
+    int ret = DatasetGetOrCreate(name, type, save, load, &memcap, &hashsize, &set);
     if (ret < 0) {
         SCLogError("dataset %s creation failed", name);
         return NULL;
