@@ -21,8 +21,8 @@
  * \author Eric Leblond <el@stamus-networks.com>
  */
 
-#ifndef SURICATA_DATAJSON_H
-#define SURICATA_DATAJSON_H
+#ifndef SURICATA_DATASETS_CONTEXT_JSON_H
+#define SURICATA_DATASETS_CONTEXT_JSON_H
 
 #include <suricata-common.h>
 #include "datasets.h"
@@ -54,4 +54,4 @@ void DatajsonUnlockElt(DataJsonResultType *r);
 
 int DatajsonCopyJson(DataJsonType *dst, DataJsonType *src);
 
-#endif /* SURICATA_DATAJSON_H*/
+#endif /* SURICATA_DATASETS_CONTEXT_JSON_H */
