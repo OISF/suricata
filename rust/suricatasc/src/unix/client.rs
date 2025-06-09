@@ -19,6 +19,7 @@ pub enum ClientError {
 }
 
 pub struct Client {
+    filename: String,
     socket: UnixStream,
 
     // If set, the client will print to stdout the messages sent and
@@ -30,10 +31,23 @@ pub struct Client {
 impl Client {
     pub fn connect<T: AsRef<str>>(filename: T, verbose: bool) -> Result<Self, ClientError> {
         let filename = filename.as_ref().to_string();
-        let socket = UnixStream::connect(filename)?;
-        let mut client = Self { socket, verbose };
+        let socket = UnixStream::connect(&filename)?;
+        let mut client = Self {
+            filename,
+            socket,
+            verbose,
+        };
         client.handshake()?;
         Ok(client)
+    }
+
+    pub fn reconnect(&mut self) -> Result<(), ClientError> {
+        if self.verbose {
+            println!("Reconnecting to socket: {}", self.filename);
+        }
+        self.socket = UnixStream::connect(&self.filename)?;
+        self.handshake()?;
+        Ok(())
     }
 
     fn handshake(&mut self) -> Result<(), ClientError> {
