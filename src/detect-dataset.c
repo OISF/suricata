@@ -88,16 +88,18 @@ static int DetectDatajsonBufferMatch(DetectEngineThreadCtx *det_ctx, const Detec
                     det_ctx->json_content[det_ctx->json_content_len].id = sd->id;
                     det_ctx->json_content_len++;
                 }
-                DatajsonUnlockElt(&r);
             }
+            DatajsonUnlockElt(&r);
             return 1;
         }
         case DETECT_DATASET_CMD_ISNOTSET: {
             // PrintRawDataFp(stdout, data, data_len);
             DataJsonResultType r = DatajsonLookup(sd->set, data, data_len);
             SCLogDebug("r found: %d, len: %u", r.found, r.json.len);
-            if (r.found)
+            if (r.found) {
+                DatajsonUnlockElt(&r);
                 return 0;
+            }
             return 1;
         }
         default:
