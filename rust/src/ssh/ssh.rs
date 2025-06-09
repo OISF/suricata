@@ -24,7 +24,10 @@ use crate::frames::Frame;
 use nom7::Err;
 use std::ffi::CString;
 use std::sync::atomic::{AtomicBool, Ordering};
-use suricata_sys::sys::{AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled};
+use suricata_sys::sys::{
+    AppLayerParserState_, AppProto, SCAppLayerParserStateSetFlag,
+    SCAppLayerProtoDetectConfProtoDetectionEnabled,
+};
 
 #[repr(C)]
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -236,7 +239,11 @@ impl SSHState {
 
                                 if flags != 0 {
                                     unsafe {
-                                        AppLayerParserStateSetFlag(pstate, flags);
+                                        // TODO a later bindgen should prove that this cast is useless
+                                        SCAppLayerParserStateSetFlag(
+                                            pstate as *mut AppLayerParserState_,
+                                            flags,
+                                        );
                                     }
                                 }
                             }

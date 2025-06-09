@@ -689,3 +689,12 @@ extern "C" {
         default_enabled: bool,
     ) -> ::std::os::raw::c_int;
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct AppLayerParserState_ {
+    _unused: [u8; 0],
+}
+pub type AppLayerParserState = AppLayerParserState_;
+extern "C" {
+    pub fn SCAppLayerParserStateSetFlag(pstate: *mut AppLayerParserState, flag: u16);
+}

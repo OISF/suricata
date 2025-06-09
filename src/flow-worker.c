@@ -388,8 +388,8 @@ static inline void FlowWorkerStreamTCPUpdate(ThreadVars *tv, FlowWorkerThreadDat
         if (setting_nopayload) {
             FlowSetNoPayloadInspectionFlag(p->flow);
         }
-        AppLayerParserStateSetFlag(p->flow->alparser, APP_LAYER_PARSER_EOF_TS);
-        AppLayerParserStateSetFlag(p->flow->alparser, APP_LAYER_PARSER_EOF_TC);
+        SCAppLayerParserStateSetFlag(p->flow->alparser, APP_LAYER_PARSER_EOF_TS);
+        SCAppLayerParserStateSetFlag(p->flow->alparser, APP_LAYER_PARSER_EOF_TC);
     }
 
     /* Packets here can safely access p->flow as it's locked */

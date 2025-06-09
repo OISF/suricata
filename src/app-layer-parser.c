@@ -1216,10 +1216,10 @@ static inline void SetEOFFlags(AppLayerParserState *pstate, const uint8_t flags)
 {
     if ((flags & (STREAM_EOF|STREAM_TOSERVER)) == (STREAM_EOF|STREAM_TOSERVER)) {
         SCLogDebug("setting APP_LAYER_PARSER_EOF_TS");
-        AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_EOF_TS);
+        SCAppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_EOF_TS);
     } else if ((flags & (STREAM_EOF|STREAM_TOCLIENT)) == (STREAM_EOF|STREAM_TOCLIENT)) {
         SCLogDebug("setting APP_LAYER_PARSER_EOF_TC");
-        AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_EOF_TC);
+        SCAppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_EOF_TC);
     }
 }
 
@@ -1503,7 +1503,7 @@ void AppLayerParserSetEOF(AppLayerParserState *pstate)
         goto end;
 
     SCLogDebug("setting APP_LAYER_PARSER_EOF_TC and APP_LAYER_PARSER_EOF_TS");
-    AppLayerParserStateSetFlag(pstate, (APP_LAYER_PARSER_EOF_TS|APP_LAYER_PARSER_EOF_TC));
+    SCAppLayerParserStateSetFlag(pstate, (APP_LAYER_PARSER_EOF_TS | APP_LAYER_PARSER_EOF_TC));
 
  end:
     SCReturn;
@@ -1818,9 +1818,8 @@ void AppLayerParserRegisterProtocolParsers(void)
     ValidateParsers();
 }
 
-
-/* coccinelle: AppLayerParserStateSetFlag():2,2:APP_LAYER_PARSER_ */
-void AppLayerParserStateSetFlag(AppLayerParserState *pstate, uint16_t flag)
+/* coccinelle: SCAppLayerParserStateSetFlag():2,2:APP_LAYER_PARSER_ */
+void SCAppLayerParserStateSetFlag(AppLayerParserState *pstate, uint16_t flag)
 {
     SCEnter();
     pstate->flags |= flag;
