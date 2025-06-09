@@ -27,6 +27,7 @@
 #include "suricata.h"
 #include "stream.h"
 #include "conf.h"
+#include "rust.h"
 
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"

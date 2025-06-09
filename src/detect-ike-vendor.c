@@ -30,10 +30,10 @@
 #include "detect-engine-content-inspection.h"
 #include "detect-engine-mpm.h"
 #include "detect-ike-vendor.h"
+#include "rust.h"
 #include "app-layer-parser.h"
 #include "util-byte.h"
 
-#include "rust-bindings.h"
 #include "util-profiling.h"
 
 static int DetectIkeVendorSetup(DetectEngineCtx *, Signature *, const char *);

@@ -25,10 +25,23 @@
 #ifndef SURICATA_APP_LAYER_PARSER_H
 #define SURICATA_APP_LAYER_PARSER_H
 
-#include "app-layer-events.h"
-#include "util-file.h"
-#include "rust.h"
-#include "util-config.h"
+#include "app-layer-protos.h"
+// Forward declarations for bindgen
+enum ConfigAction;
+typedef struct Flow_ Flow;
+typedef struct AppLayerParserState_ AppLayerParserState;
+typedef struct AppLayerDecoderEvents_ AppLayerDecoderEvents;
+typedef struct ThreadVars_ ThreadVars;
+typedef struct File_ File;
+// Forward declarations from rust
+typedef struct StreamSlice StreamSlice;
+typedef struct AppLayerResult AppLayerResult;
+typedef struct AppLayerGetTxIterTuple AppLayerGetTxIterTuple;
+typedef struct AppLayerGetFileState AppLayerGetFileState;
+typedef struct AppLayerTxData AppLayerTxData;
+typedef enum AppLayerEventType AppLayerEventType;
+typedef struct AppLayerStateData AppLayerStateData;
+typedef struct AppLayerTxConfig AppLayerTxConfig;
 
 /* Flags for AppLayerParserState. */
 // flag available                               BIT_U16(0)
@@ -248,27 +261,9 @@ AppLayerStateData *AppLayerParserGetStateData(uint8_t ipproto, AppProto alproto,
 void AppLayerParserApplyTxConfig(uint8_t ipproto, AppProto alproto,
         void *state, void *tx, enum ConfigAction mode, AppLayerTxConfig);
 
-static inline bool AppLayerParserIsFileTx(const AppLayerTxData *txd)
-{
-    if (txd->file_tx != 0) {
-        return true;
-    }
-    return false;
-}
-
-static inline bool AppLayerParserIsFileTxInDir(const AppLayerTxData *txd, const uint8_t direction)
-{
-    if ((txd->file_tx & direction) != 0) {
-        return true;
-    }
-    return false;
-}
-
 /** \brief check if tx (possibly) has files in this tx for the direction */
-static inline bool AppLayerParserHasFilesInDir(const AppLayerTxData *txd, const uint8_t direction)
-{
-    return (txd->files_opened && AppLayerParserIsFileTxInDir(txd, direction));
-}
+#define AppLayerParserHasFilesInDir(txd, direction)                                                \
+    ((txd)->files_opened && ((txd)->file_tx & (direction)) != 0)
 
 /***** General *****/
 

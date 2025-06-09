@@ -55,6 +55,7 @@
 #include "app-layer-htp-xff.h"
 #include "app-layer-htp-range.h"
 #include "app-layer-htp-mem.h"
+#include "app-layer-events.h"
 
 #include "util-debug.h"
 #include "util-misc.h"

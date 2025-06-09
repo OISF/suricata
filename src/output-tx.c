@@ -29,6 +29,7 @@
 #include "stream.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
+#include "util-config.h"
 #include "util-profiling.h"
 #include "util-validate.h"
 
@@ -427,8 +428,8 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
                 op_thread_data->filedata);
 
         if (file_logging_active) {
-            if (AppLayerParserIsFileTx(txd)) { // need to process each tx that might be a file tx,
-                                               // even if there are not files (yet)
+            if (txd->file_tx != 0) { // need to process each tx that might be a file tx,
+                                     // even if there are not files (yet)
                 const bool ts_ready = (tx_progress_ts == complete_ts);
                 const bool tc_ready = (tx_progress_tc == complete_tc);
                 SCLogDebug("ts_ready %d tc_ready %d", ts_ready, tc_ready);
@@ -444,7 +445,7 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
                 /* call only for the correct direction, except when it looks anything like a end of
                  * transaction or end of stream. Since OutputTxLogFiles has complicated logic around
                  * that, we just leave it to that function to sort things out for now. */
-                if (eval_files || AppLayerParserIsFileTxInDir(txd, pkt_dir)) {
+                if (eval_files || ((txd->file_tx & pkt_dir) != 0)) {
                     OutputTxLogFiles(tv, op_thread_data->file, op_thread_data->filedata, p, f, tx,
                             tx_id, txd, tx_complete, ts_ready, tc_ready, ts_eof, tc_eof, eof);
                 }

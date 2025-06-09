@@ -34,6 +34,7 @@
 
 #include "detect-lua.h"
 
+#include "rust.h"
 #include "app-layer-parser.h"
 
 #include "util-lua.h"
