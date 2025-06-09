@@ -33,6 +33,7 @@
 #include "datasets.h"
 
 #include "app-layer-parser.h"
+#include "app-layer-events.h"
 #include "app-layer-htp.h"
 
 #include "detect-parse.h"

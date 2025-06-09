@@ -29,6 +29,7 @@
 #include "threads.h"
 #include "decode.h"
 
+#include "rust.h"
 #include "app-layer-parser.h"
 #include "app-layer-protos.h"
 
@@ -39,8 +40,6 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-state.h"
 #include "detect-engine-build.h"
-
-#include "rust-bindings.h"
 
 #include "detect-content.h"
 #include "detect-pcre.h"

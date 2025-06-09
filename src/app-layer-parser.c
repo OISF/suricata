@@ -31,10 +31,12 @@
 #include "flow-util.h"
 
 #include "app-layer-frames.h"
+#include "app-layer-events.h"
 
 #include "stream-tcp.h"
 
 #include "util-validate.h"
+#include "util-config.h"
 
 #include "app-layer.h"
 #include "app-layer-detect-proto.h"

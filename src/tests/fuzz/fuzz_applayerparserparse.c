@@ -13,6 +13,7 @@
 #include "util-byte.h"
 #include "conf-yaml-loader.h"
 #include "util-conf.h"
+#include "rust.h"
 
 #define HEADER_LEN 6
 

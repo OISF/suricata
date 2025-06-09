@@ -40,6 +40,7 @@
 
 #include "app-layer-parser.h"
 #include "app-layer-modbus.h"
+#include "rust.h"
 
 void ModbusParserRegisterTests(void);
 
