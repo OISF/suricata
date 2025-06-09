@@ -235,7 +235,7 @@ static int DetectDatasetParse(const char *str, char *cmd, int cmd_len, char *nam
 
             } else if (strcmp(key, "save") == 0) {
                 if (save_set) {
-                    SCLogWarning("'save' can only appear once");
+                    SCLogError("'save' can only appear once");
                     return -1;
                 }
                 SCLogDebug("save %s", val);
@@ -243,7 +243,7 @@ static int DetectDatasetParse(const char *str, char *cmd, int cmd_len, char *nam
                 save_set = true;
             } else if (strcmp(key, "load") == 0) {
                 if (load_set) {
-                    SCLogWarning("'load' can only appear once");
+                    SCLogError("'load' can only appear once");
                     return -1;
                 }
                 SCLogDebug("load %s", val);
@@ -251,7 +251,7 @@ static int DetectDatasetParse(const char *str, char *cmd, int cmd_len, char *nam
                 load_set = true;
             } else if (strcmp(key, "state") == 0) {
                 if (state_set) {
-                    SCLogWarning("'state' can only appear once");
+                    SCLogError("'state' can only appear once");
                     return -1;
                 }
                 SCLogDebug("state %s", val);
@@ -260,7 +260,7 @@ static int DetectDatasetParse(const char *str, char *cmd, int cmd_len, char *nam
                 state_set = true;
             } else if (strcmp(key, "format") == 0) {
                 if (format_set) {
-                    SCLogWarning("'format' can only appear once");
+                    SCLogError("'format' can only appear once");
                     return -1;
                 }
                 SCLogDebug("format %s", val);
@@ -271,25 +271,25 @@ static int DetectDatasetParse(const char *str, char *cmd, int cmd_len, char *nam
                 } else if (strcmp(val, "json") == 0) {
                     *format = DATASET_FORMAT_JSON;
                 } else {
-                    SCLogWarning("unknown format %s", val);
+                    SCLogError("unknown format %s", val);
                     return -1;
                 }
                 format_set = true;
             } else if (strcmp(key, "value_key") == 0) {
                 if (strlen(val) > value_key_size) {
-                    SCLogWarning("'key' value too long (limit is %zu)", value_key_size);
+                    SCLogError("'key' value too long (limit is %zu)", value_key_size);
                     return -1;
                 }
                 strlcpy(value_key, val, value_key_size);
             } else if (strcmp(key, "array_key") == 0) {
                 if (strlen(val) > array_key_size) {
-                    SCLogWarning("'key' value too long (limit is %zu)", array_key_size);
+                    SCLogError("'key' value too long (limit is %zu)", array_key_size);
                     return -1;
                 }
                 strlcpy(array_key, val, array_key_size);
             } else if (strcmp(key, "context_key") == 0) {
                 if (strlen(val) > enrichment_key_size) {
-                    SCLogWarning("'key' value too long (limit is %zu)", enrichment_key_size);
+                    SCLogError("'key' value too long (limit is %zu)", enrichment_key_size);
                     return -1;
                 }
                 strlcpy(enrichment_key, val, enrichment_key_size);
@@ -320,7 +320,7 @@ static int DetectDatasetParse(const char *str, char *cmd, int cmd_len, char *nam
     }
 
     if ((load_set || save_set) && state_set) {
-        SCLogWarning("'state' can not be mixed with 'load' and 'save'");
+        SCLogError("'state' can not be mixed with 'load' and 'save'");
         return -1;
     }
 
