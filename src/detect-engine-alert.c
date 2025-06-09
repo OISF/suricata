@@ -283,6 +283,44 @@ static uint16_t AlertQueueExpand(DetectEngineThreadCtx *det_ctx)
     return new_cap;
 }
 
+static inline int PacketAlertSetContext(
+        DetectEngineThreadCtx *det_ctx, PacketAlert *pa, const Signature *s)
+{
+    pa->json_info = NULL;
+    if (det_ctx->json_content_len) {
+        /* We have some JSON attached in the current detection so let's try
+           to see if some need to be used for current signature. */
+        struct PacketContextData *current_json = pa->json_info;
+        if (current_json == NULL) {
+            current_json = SCCalloc(1, sizeof(struct PacketContextData));
+            if (current_json == NULL) {
+                /* Allocation error, let's return now */
+                return -1;
+            }
+            pa->json_info = current_json;
+        }
+        for (size_t i = 0; i < det_ctx->json_content_len; i++) {
+            if (s == det_ctx->json_content[i].id) {
+                if (current_json->json_string != NULL) {
+                    struct PacketContextData *next_json =
+                            SCCalloc(1, sizeof(struct PacketContextData));
+                    if (next_json) {
+                        current_json->next = next_json;
+                        current_json = next_json;
+                        current_json->next = NULL;
+                    } else {
+                        /* Allocation error, let's return now */
+                        return -1;
+                    }
+                }
+                current_json->json_string = det_ctx->json_content[i].json_content;
+            }
+        }
+    }
+
+    return 0;
+}
+
 /** \internal
  */
 static inline PacketAlert PacketAlertSet(
@@ -296,37 +334,7 @@ static inline PacketAlert PacketAlertSet(
     /* Set tx_id if the frame has it */
     pa.tx_id = tx_id;
     pa.frame_id = (alert_flags & PACKET_ALERT_FLAG_FRAME) ? det_ctx->frame_id : 0;
-    pa.json_info = NULL;
-    if (det_ctx->json_content_len) {
-        /* We have some JSON attached in the current detection so let's try
-           to see if some need to be used for current signature. */
-        struct PacketContextData *current_json = pa.json_info;
-        if (current_json == NULL) {
-            current_json = SCCalloc(1, sizeof(struct PacketContextData));
-            if (current_json == NULL) {
-                /* Allocation error, let's return now */
-                return pa;
-            }
-            pa.json_info = current_json;
-        }
-        for (size_t i = 0; i < det_ctx->json_content_len; i++) {
-            if (s == det_ctx->json_content[i].id) {
-                if (current_json->json_string != NULL) {
-                    struct PacketContextData *next_json =
-                            SCCalloc(1, sizeof(struct PacketContextData));
-                    if (next_json) {
-                        current_json->next = next_json;
-                        current_json = next_json;
-                        current_json->next = NULL;
-                    } else {
-                        /* Allocation error, let's return now */
-                        return pa;
-                    }
-                }
-                current_json->json_string = det_ctx->json_content[i].json_content;
-            }
-        }
-    }
+    PacketAlertSetContext(det_ctx, &pa, s);
     return pa;
 }
 
