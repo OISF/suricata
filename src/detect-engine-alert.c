@@ -296,12 +296,19 @@ static inline PacketAlert PacketAlertSet(
     /* Set tx_id if the frame has it */
     pa.tx_id = tx_id;
     pa.frame_id = (alert_flags & PACKET_ALERT_FLAG_FRAME) ? det_ctx->frame_id : 0;
-    pa.json_info.json_string = NULL;
-    pa.json_info.next = NULL;
+    pa.json_info = NULL;
     if (det_ctx->json_content_len) {
         /* We have some JSON attached in the current detection so let's try
            to see if some need to be used for current signature. */
-        struct PacketContextData *current_json = &pa.json_info;
+        struct PacketContextData *current_json = pa.json_info;
+        if (current_json == NULL) {
+            current_json = SCCalloc(1, sizeof(struct PacketContextData));
+            if (current_json == NULL) {
+                /* Allocation error, let's return now */
+                return pa;
+            }
+            pa.json_info = current_json;
+        }
         for (size_t i = 0; i < det_ctx->json_content_len; i++) {
             if (s == det_ctx->json_content[i].id) {
                 if (current_json->json_string != NULL) {

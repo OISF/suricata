@@ -149,16 +149,13 @@ void PacketAlertRecycle(PacketAlert *pa_array)
 {
     if (pa_array != NULL) {
         for (int i = 0; i < packet_alert_max; i++) {
-            if (pa_array[i].json_info.next != NULL) {
-                struct PacketContextData *current_json = pa_array[i].json_info.next;
-                while (current_json) {
-                    struct PacketContextData *next_json = current_json->next;
-                    SCFree(current_json);
-                    current_json = next_json;
-                }
+            struct PacketContextData *current_json = pa_array[i].json_info;
+            while (current_json) {
+                struct PacketContextData *next_json = current_json->next;
+                SCFree(current_json);
+                current_json = next_json;
             }
-            pa_array[i].json_info.json_string = NULL;
-            pa_array[i].json_info.next = NULL;
+            pa_array[i].json_info = NULL;
         }
     }
 }
@@ -167,14 +164,11 @@ void PacketAlertFree(PacketAlert *pa)
 {
     if (pa != NULL) {
         for (int i = 0; i < packet_alert_max; i++) {
-            /* first item is not allocated so start at second one */
-            if (pa[i].json_info.next != NULL) {
-                struct PacketContextData *allocated_json = pa[i].json_info.next;
-                while (allocated_json) {
-                    struct PacketContextData *next_json = allocated_json->next;
-                    SCFree(allocated_json);
-                    allocated_json = next_json;
-                }
+            struct PacketContextData *allocated_json = pa[i].json_info;
+            while (allocated_json) {
+                struct PacketContextData *next_json = allocated_json->next;
+                SCFree(allocated_json);
+                allocated_json = next_json;
             }
         }
         SCFree(pa);
