@@ -71,27 +71,42 @@ fn run_interactive(mut client: Client) -> Result<(), Box<dyn std::error::Error>>
         if line.starts_with("quit") {
             break;
         }
-        match command_parser.parse(&line) {
-            Ok(command) => match interactive_request_response(&mut client, &command) {
-                Ok(response) => {
-                    let response: Response = serde_json::from_value(response).unwrap();
-                    if response.status == "OK" {
-                        println!("Success:");
-                        println!(
-                            "{}",
-                            serde_json::to_string_pretty(&response.message).unwrap()
-                        );
-                    } else {
-                        println!("Error:");
-                        println!("{}", serde_json::to_string(&response.message).unwrap());
+        let mut retry = false;
+        loop {
+            match command_parser.parse(&line) {
+                Ok(command) => match interactive_request_response(&mut client, &command) {
+                    Ok(response) => {
+                        let response: Response = serde_json::from_value(response).unwrap();
+                        if response.status == "OK" {
+                            println!("Success:");
+                            println!(
+                                "{}",
+                                serde_json::to_string_pretty(&response.message).unwrap()
+                            );
+                        } else {
+                            println!("Error:");
+                            println!("{}", serde_json::to_string(&response.message).unwrap());
+                        }
+                        break;
                     }
-                }
+                    Err(err) => {
+                        println!("Error: {}", err);
+                        if retry {
+                            break;
+                        }
+                        if let Err(err) = client.reconnect() {
+                            println!("Error: {}", &err);
+                            break;
+                        } else {
+                            retry = true;
+                            continue;
+                        }
+                    }
+                },
                 Err(err) => {
                     println!("{}", err);
+                    break;
                 }
-            },
-            Err(err) => {
-                println!("{}", err);
             }
         }
     }
