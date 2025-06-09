@@ -288,6 +288,13 @@ static int DetectDatasetParse(const char *str, char *cmd, int cmd_len, char *nam
                 }
                 strlcpy(array_key, val, array_key_size);
             } else if (strcmp(key, "context_key") == 0) {
+                for (size_t i = 0; i < strlen(val); i++) {
+                    if (!isalnum(val[i]) && val[i] != '_') {
+                        SCLogError("context_key can only contain alphanumeric characters and "
+                                   "underscores");
+                        return -1;
+                    }
+                }
                 if (strlen(val) > enrichment_key_size) {
                     SCLogError("'key' value too long (limit is %zu)", enrichment_key_size);
                     return -1;
