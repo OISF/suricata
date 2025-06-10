@@ -50,4 +50,6 @@
 #include "app-layer-parser.h"
 #include "app-layer-register.h"
 
+#include "util-mpm.h"
+
 #endif

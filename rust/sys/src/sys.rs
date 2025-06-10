@@ -723,3 +723,41 @@ extern "C" {
         proto_name: *const ::std::os::raw::c_char, proto_alias: *const ::std::os::raw::c_char,
     ) -> ::std::os::raw::c_int;
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct MpmPattern_ {
+    pub len: u16,
+    pub flags: u8,
+    pub offset: u16,
+    pub depth: u16,
+    pub original_pat: *mut u8,
+    pub cs: *mut u8,
+    pub ci: *mut u8,
+    pub id: u32,
+    pub sids_size: u32,
+    pub sids: *mut u32,
+    pub next: *mut MpmPattern_,
+}
+pub type MpmPattern = MpmPattern_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct MpmCtx_ {
+    pub ctx: *mut ::std::os::raw::c_void,
+    pub mpm_type: u8,
+    pub flags: u8,
+    pub maxdepth: u16,
+    pub pattern_cnt: u32,
+    pub minlen: u16,
+    pub maxlen: u16,
+    pub memory_cnt: u32,
+    pub memory_size: u32,
+    pub max_pat_id: u32,
+    pub init_hash: *mut *mut MpmPattern,
+}
+pub type MpmCtx = MpmCtx_;
+extern "C" {
+    pub fn SCMpmAddPatternCI(
+        mpm_ctx: *mut MpmCtx, pat: *const u8, patlen: u16, offset: u16, depth: u16, pid: u32,
+        sid: u32, flags: u8,
+    ) -> ::std::os::raw::c_int;
+}

@@ -255,7 +255,7 @@ int MpmAddPatternCS(struct MpmCtx_ *mpm_ctx, uint8_t *pat, uint16_t patlen,
                                                    pid, sid, flags);
 }
 
-int MpmAddPatternCI(MpmCtx *mpm_ctx, const uint8_t *pat, uint16_t patlen, uint16_t offset,
+int SCMpmAddPatternCI(MpmCtx *mpm_ctx, const uint8_t *pat, uint16_t patlen, uint16_t offset,
         uint16_t depth, uint32_t pid, SigIntId sid, uint8_t flags)
 {
     return mpm_table[mpm_ctx->mpm_type].AddPatternNocase(mpm_ctx, pat, patlen,
