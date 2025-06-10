@@ -145,7 +145,7 @@ static OutputInitResult DnsLogInitCtxSub(SCConfNode *conf, OutputCtx *parent_ctx
     output_ctx->data = dnslog_ctx;
     output_ctx->DeInit = DnsLogDeInitCtxSub;
 
-    AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_MDNS);
+    SCAppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_MDNS);
 
     result.ctx = output_ctx;
     result.ok = true;

@@ -135,7 +135,7 @@ static OutputInitResult OutputIKELogInitSub(SCConfNode *conf, OutputCtx *parent_
     output_ctx->data = ikelog_ctx;
     output_ctx->DeInit = OutputIKELogDeInitCtxSub;
 
-    AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_IKE);
+    SCAppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_IKE);
 
     result.ctx = output_ctx;
     result.ok = true;

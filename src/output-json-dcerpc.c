@@ -59,8 +59,8 @@ error:
 
 static OutputInitResult DCERPCLogInitSub(SCConfNode *conf, OutputCtx *parent_ctx)
 {
-    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_DCERPC);
-    AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_DCERPC);
+    SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_DCERPC);
+    SCAppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_DCERPC);
     return OutputJsonLogInitSub(conf, parent_ctx);
 }
 

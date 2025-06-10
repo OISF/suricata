@@ -178,7 +178,7 @@ void RegisterTFTPParsers(void)
                         TFTP_MIN_FRAME_LEN, STREAM_TOSERVER, TFTPProbingParser, TFTPProbingParser);
             }
         }
-        AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_TFTP);
+        SCAppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_TFTP);
     } else {
         SCLogDebug("Protocol detector and parser disabled for TFTP.");
         return;

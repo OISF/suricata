@@ -317,7 +317,7 @@ static OutputInitResult OutputDNP3LogInitSub(SCConfNode *conf, OutputCtx *parent
 
     SCLogInfo("DNP3 log sub-module initialized.");
 
-    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_DNP3);
+    SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_DNP3);
 
     result.ctx = output_ctx;
     result.ok = true;

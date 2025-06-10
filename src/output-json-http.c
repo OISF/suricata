@@ -590,7 +590,7 @@ static OutputInitResult OutputHttpLogInitSub(SCConfNode *conf, OutputCtx *parent
     output_ctx->DeInit = OutputHttpLogDeinitSub;
 
     /* enable the logger for the app layer */
-    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_HTTP1);
+    SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_HTTP1);
 
     result.ctx = output_ctx;
     result.ok = true;

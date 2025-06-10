@@ -95,8 +95,8 @@ static void LogSmbLogDeInitCtxSub(OutputCtx *output_ctx)
 
 static OutputInitResult SMBLogInitSub(SCConfNode *conf, OutputCtx *parent_ctx)
 {
-    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_SMB);
-    AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_SMB);
+    SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_SMB);
+    SCAppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_SMB);
     OutputInitResult r = OutputJsonLogInitSub(conf, parent_ctx);
     if (r.ok) {
         // generic init is ok, try smb-specific one

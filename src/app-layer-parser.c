@@ -489,7 +489,7 @@ void AppLayerParserRegisterLoggerBits(uint8_t ipproto, AppProto alproto, LoggerI
     SCReturn;
 }
 
-void AppLayerParserRegisterLogger(uint8_t ipproto, AppProto alproto)
+void SCAppLayerParserRegisterLogger(uint8_t ipproto, AppProto alproto)
 {
     SCEnter();
 

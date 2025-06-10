@@ -33,7 +33,8 @@ use nom7::{Err, IResult};
 use std;
 use std::ffi::CString;
 use suricata_sys::sys::{
-    AppLayerParserState, AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled,
+    AppLayerParserState, AppProto, SCAppLayerParserRegisterLogger,
+    SCAppLayerProtoDetectConfProtoDetectionEnabled,
 };
 
 #[derive(AppLayerEvent)]
@@ -640,7 +641,7 @@ pub unsafe extern "C" fn SCRegisterKrb5Parser() {
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
-        AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_KRB5);
+        SCAppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_KRB5);
     } else {
         SCLogDebug!("Protocol detector and parser disabled for KRB5/UDP.");
     }
@@ -658,7 +659,7 @@ pub unsafe extern "C" fn SCRegisterKrb5Parser() {
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
-        AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_KRB5);
+        SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_KRB5);
     } else {
         SCLogDebug!("Protocol detector and parser disabled for KRB5/TCP.");
     }
