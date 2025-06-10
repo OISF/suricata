@@ -30,8 +30,8 @@ use std::collections::VecDeque;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_int, c_void};
 use suricata_sys::sys::{
-    AppLayerParserState, AppProto, SCAppLayerParserStateIssetFlag,
-    SCAppLayerProtoDetectConfProtoDetectionEnabled,
+    AppLayerParserState, AppProto, SCAppLayerParserRegisterParserAcceptableDataDirection,
+    SCAppLayerParserStateIssetFlag, SCAppLayerProtoDetectConfProtoDetectionEnabled,
 };
 
 pub(super) static mut ALPROTO_ENIP: AppProto = ALPROTO_UNKNOWN;
@@ -653,7 +653,7 @@ pub unsafe extern "C" fn SCEnipRegisterParsers() {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
         SCLogDebug!("Rust enip parser registered for UDP.");
-        AppLayerParserRegisterParserAcceptableDataDirection(
+        SCAppLayerParserRegisterParserAcceptableDataDirection(
             IPPROTO_UDP,
             ALPROTO_ENIP,
             STREAM_TOSERVER | STREAM_TOCLIENT,
@@ -678,7 +678,7 @@ pub unsafe extern "C" fn SCEnipRegisterParsers() {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
         SCLogDebug!("Rust enip parser registered for TCP.");
-        AppLayerParserRegisterParserAcceptableDataDirection(
+        SCAppLayerParserRegisterParserAcceptableDataDirection(
             IPPROTO_TCP,
             ALPROTO_ENIP,
             STREAM_TOSERVER | STREAM_TOCLIENT,

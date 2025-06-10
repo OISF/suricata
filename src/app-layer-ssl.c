@@ -3231,7 +3231,8 @@ void RegisterSSLParsers(void)
 
         AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_TLS, SSLStateAlloc, SSLStateFree);
 
-        AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_TCP, ALPROTO_TLS, STREAM_TOSERVER);
+        SCAppLayerParserRegisterParserAcceptableDataDirection(
+                IPPROTO_TCP, ALPROTO_TLS, STREAM_TOSERVER);
 
         AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_TLS, SSLStateTransactionFree);
 
