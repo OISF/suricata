@@ -145,11 +145,12 @@ PacketAlert *PacketAlertCreate(void)
     return pa_array;
 }
 
-void PacketAlertRecycle(PacketAlert *pa_array)
+void PacketAlertRecycle(PacketAlert *pa_array, uint16_t cnt)
 {
     if (pa_array == NULL)
         return;
-    for (int i = 0; i < packet_alert_max; i++) {
+    /* Clean json content for alerts attached to the packet */
+    for (int i = 0; i < cnt; i++) {
         struct PacketContextData *current_json = pa_array[i].json_info;
         while (current_json) {
             struct PacketContextData *next_json = current_json->next;
