@@ -718,3 +718,8 @@ extern "C" {
 extern "C" {
     pub fn SCAppLayerParserStateIssetFlag(pstate: *mut AppLayerParserState, flag: u16) -> u16;
 }
+extern "C" {
+    pub fn SCAppLayerRegisterParserAlias(
+        proto_name: *const ::std::os::raw::c_char, proto_alias: *const ::std::os::raw::c_char,
+    ) -> ::std::os::raw::c_int;
+}
