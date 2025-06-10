@@ -26,7 +26,7 @@ use std::collections::VecDeque;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_int, c_void};
 use suricata_sys::sys::{
-    AppLayerParserState, AppProto, SCAppLayerParserStateIssetFlag,
+    AppLayerParserState, AppProto, SCAppLayerParserRegisterLogger, SCAppLayerParserStateIssetFlag,
     SCAppLayerProtoDetectConfProtoDetectionEnabled,
 };
 
@@ -418,7 +418,7 @@ pub unsafe extern "C" fn SCRegisterTemplateParser() {
                 SCLogError!("Invalid value for template.max-tx");
             }
         }
-        AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_TEMPLATE);
+        SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_TEMPLATE);
         SCLogNotice!("Rust template parser registered.");
     } else {
         SCLogNotice!("Protocol detector and parser disabled for TEMPLATE.");

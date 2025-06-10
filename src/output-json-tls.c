@@ -697,7 +697,7 @@ static OutputInitResult OutputTlsLogInitSub(SCConfNode *conf, OutputCtx *parent_
     output_ctx->data = tls_ctx;
     output_ctx->DeInit = OutputTlsLogDeinitSub;
 
-    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_TLS);
+    SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_TLS);
 
     result.ctx = output_ctx;
     result.ok = true;

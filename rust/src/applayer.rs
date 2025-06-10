@@ -538,7 +538,6 @@ pub const APP_LAYER_TX_ACCEPT: u8 = BIT_U8!(4);
 /// cbindgen:ignore
 extern "C" {
     pub fn AppLayerParserConfParserEnabled(ipproto: *const c_char, proto: *const c_char) -> c_int;
-    pub fn AppLayerParserRegisterLogger(pproto: u8, alproto: AppProto);
 }
 
 #[repr(C)]

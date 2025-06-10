@@ -106,7 +106,7 @@ static OutputInitResult OutputDHCPLogInitSub(SCConfNode *conf, OutputCtx *parent
 
     dhcplog_ctx->rs_logger = SCDhcpLoggerNew(conf);
 
-    AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_DHCP);
+    SCAppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_DHCP);
 
     result.ctx = output_ctx;
     result.ok = true;

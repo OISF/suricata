@@ -135,7 +135,7 @@ static OutputInitResult OutputPgsqlLogInitSub(SCConfNode *conf, OutputCtx *paren
 
     JsonPgsqlLogParseConfig(conf, pgsql_ctx);
 
-    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_PGSQL);
+    SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_PGSQL);
 
     SCLogDebug("PostgreSQL log sub-module initialized.");
 

@@ -146,7 +146,7 @@ static OutputInitResult OutputMQTTLogInitSub(SCConfNode *conf, OutputCtx *parent
 
     JsonMQTTLogParseConfig(conf, mqttlog_ctx);
 
-    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_MQTT);
+    SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_MQTT);
 
     result.ctx = output_ctx;
     result.ok = true;

@@ -29,8 +29,9 @@ use std::collections::VecDeque;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_int, c_void};
 use suricata_sys::sys::{
-    AppLayerParserState, AppProto, SCAppLayerParserSetStreamDepth, SCAppLayerParserStateIssetFlag,
-    SCAppLayerProtoDetectConfProtoDetectionEnabled, SCAppLayerRequestProtocolTLSUpgrade,
+    AppLayerParserState, AppProto, SCAppLayerParserRegisterLogger, SCAppLayerParserSetStreamDepth,
+    SCAppLayerParserStateIssetFlag, SCAppLayerProtoDetectConfProtoDetectionEnabled,
+    SCAppLayerRequestProtocolTLSUpgrade,
 };
 
 use sawp::error::Error as SawpError;
@@ -539,7 +540,7 @@ pub unsafe extern "C" fn SCRegisterPop3Parser() {
                 SCLogError!("Invalid value for pop3.max-tx");
             }
         }
-        AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_POP3);
+        SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_POP3);
         SCLogDebug!("Rust pop3 parser registered.");
     } else {
         SCLogDebug!("Protocol detector and parser disabled for POP3.");

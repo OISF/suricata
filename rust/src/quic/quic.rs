@@ -34,7 +34,8 @@ use crate::{
 use std::collections::VecDeque;
 use std::ffi::CString;
 use suricata_sys::sys::{
-    AppLayerParserState, AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled,
+    AppLayerParserState, AppProto, SCAppLayerParserRegisterLogger,
+    SCAppLayerProtoDetectConfProtoDetectionEnabled,
 };
 use tls_parser::TlsExtensionType;
 
@@ -588,7 +589,7 @@ pub unsafe extern "C" fn SCRegisterQuicParser() {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
         SCLogDebug!("Rust quic parser registered.");
-        AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_QUIC);
+        SCAppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_QUIC);
     } else {
         SCLogDebug!("Protocol detector and parser disabled for quic.");
     }

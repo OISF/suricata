@@ -140,7 +140,7 @@ static OutputInitResult OutputSmtpLogInitSub(SCConfNode *conf, OutputCtx *parent
     output_ctx->DeInit = OutputSmtpLogDeInitCtxSub;
 
     /* enable the logger for the app layer */
-    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_SMTP);
+    SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_SMTP);
 
     result.ctx = output_ctx;
     result.ok = true;

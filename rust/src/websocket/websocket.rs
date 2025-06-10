@@ -31,7 +31,8 @@ use nom7::Needed;
 use flate2::Decompress;
 use flate2::FlushDecompress;
 use suricata_sys::sys::{
-    AppLayerParserState, AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled,
+    AppLayerParserState, AppProto, SCAppLayerParserRegisterLogger,
+    SCAppLayerProtoDetectConfProtoDetectionEnabled,
 };
 
 use std;
@@ -442,7 +443,7 @@ pub unsafe extern "C" fn SCRegisterWebSocketParser() {
                 SCLogError!("Invalid value for websocket.max-payload-size");
             }
         }
-        AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_WEBSOCKET);
+        SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_WEBSOCKET);
     } else {
         SCLogDebug!("Protocol detector and parser disabled for WEBSOCKET.");
     }

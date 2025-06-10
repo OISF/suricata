@@ -32,8 +32,8 @@ use std;
 use std::ffi::CString;
 use std::os::raw::c_char;
 use suricata_sys::sys::{
-    AppLayerParserState, AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled,
-    SCAppLayerProtoDetectPMRegisterPatternCI,
+    AppLayerParserState, AppProto, SCAppLayerParserRegisterLogger,
+    SCAppLayerProtoDetectConfProtoDetectionEnabled, SCAppLayerProtoDetectPMRegisterPatternCI,
 };
 
 pub(super) static mut ALPROTO_RFB: AppProto = ALPROTO_UNKNOWN;
@@ -926,7 +926,7 @@ pub unsafe extern "C" fn SCRfbRegisterParser() {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
         SCLogDebug!("Rust rfb parser registered.");
-        AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_RFB);
+        SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_RFB);
         if SCAppLayerProtoDetectPMRegisterPatternCI(
             IPPROTO_TCP,
             ALPROTO_RFB,

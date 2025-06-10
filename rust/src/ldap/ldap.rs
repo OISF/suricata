@@ -29,7 +29,7 @@ use std::collections::VecDeque;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_int, c_void};
 use suricata_sys::sys::{
-    AppLayerParserState, AppProto, SCAppLayerParserStateIssetFlag,
+    AppLayerParserState, AppProto, SCAppLayerParserRegisterLogger, SCAppLayerParserStateIssetFlag,
     SCAppLayerProtoDetectConfProtoDetectionEnabled, SCAppLayerRequestProtocolTLSUpgrade,
 };
 
@@ -718,7 +718,7 @@ pub unsafe extern "C" fn SCRegisterLdapTcpParser() {
                 SCLogError!("Invalid value for ldap.max-tx");
             }
         }
-        AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_LDAP);
+        SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_LDAP);
     } else {
         SCLogDebug!("Protocol detection and parser disabled for LDAP/TCP.");
     }
@@ -777,7 +777,7 @@ pub unsafe extern "C" fn SCRegisterLdapUdpParser() {
                 SCLogError!("Invalid value for ldap.max-tx");
             }
         }
-        AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_LDAP);
+        SCAppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_LDAP);
     } else {
         SCLogDebug!("Protocol detection and parser disabled for LDAP/UDP.");
     }

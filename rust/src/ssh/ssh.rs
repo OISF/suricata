@@ -25,7 +25,7 @@ use nom7::Err;
 use std::ffi::CString;
 use std::sync::atomic::{AtomicBool, Ordering};
 use suricata_sys::sys::{
-    AppLayerParserState, AppProto, SCAppLayerParserStateSetFlag,
+    AppLayerParserState, AppProto, SCAppLayerParserRegisterLogger, SCAppLayerParserStateSetFlag,
     SCAppLayerProtoDetectConfProtoDetectionEnabled,
 };
 
@@ -581,7 +581,7 @@ pub unsafe extern "C" fn SCRegisterSshParser() {
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
-        AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_SSH);
+        SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_SSH);
         SCLogDebug!("Rust ssh parser registered.");
     } else {
         SCLogNotice!("Protocol detector and parser disabled for SSH.");

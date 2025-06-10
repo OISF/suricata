@@ -31,7 +31,7 @@ use std;
 use std::collections::VecDeque;
 use std::ffi::CString;
 use suricata_sys::sys::{
-    AppLayerParserState, AppProto, SCAppLayerParserStateIssetFlag,
+    AppLayerParserState, AppProto, SCAppLayerParserRegisterLogger, SCAppLayerParserStateIssetFlag,
     SCAppLayerProtoDetectConfProtoDetectionEnabled, SCAppLayerProtoDetectPMRegisterPatternCS,
 };
 
@@ -601,7 +601,7 @@ pub unsafe extern "C" fn SCRegisterSipParser() {
         if register_pattern_probe(core::IPPROTO_UDP) < 0 {
             return;
         }
-        AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_SIP);
+        SCAppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_SIP);
     } else {
         SCLogDebug!("Protocol detection and parsing disabled for UDP SIP.");
     }
@@ -623,7 +623,7 @@ pub unsafe extern "C" fn SCRegisterSipParser() {
         if register_pattern_probe(core::IPPROTO_TCP) < 0 {
             return;
         }
-        AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_SIP);
+        SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_SIP);
     } else {
         SCLogDebug!("Protocol detection and parsing disabled for TCP SIP.");
     }

@@ -34,8 +34,8 @@ use nom7::{Err, IResult};
 use nom7::error::{ErrorKind, make_error};
 use suricata_sys::sys::{
     AppLayerParserState, AppProto, AppProtoNewProtoFromString, EveJsonTxLoggerRegistrationData,
-    SCAppLayerProtoDetectConfProtoDetectionEnabled, SCOutputEvePreRegisterLogger,
-    SCOutputJsonLogDirection, SCSigTablePreRegister,
+    SCAppLayerParserRegisterLogger, SCAppLayerProtoDetectConfProtoDetectionEnabled,
+    SCOutputEvePreRegisterLogger, SCOutputJsonLogDirection, SCSigTablePreRegister,
 };
 
 #[derive(AppLayerEvent)]
@@ -435,7 +435,7 @@ pub unsafe extern "C" fn SCRegisterSnmpParser() {
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, ALPROTO_SNMP);
         }
-        AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_SNMP);
+        SCAppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_SNMP);
     } else {
         SCLogDebug!("Protocol detector and parser disabled for SNMP.");
     }
