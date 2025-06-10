@@ -25,7 +25,7 @@ use nom7::Err;
 use std::ffi::CString;
 use std::sync::atomic::{AtomicBool, Ordering};
 use suricata_sys::sys::{
-    AppLayerParserState_, AppProto, SCAppLayerParserStateSetFlag,
+    AppLayerParserState, AppProto, SCAppLayerParserStateSetFlag,
     SCAppLayerProtoDetectConfProtoDetectionEnabled,
 };
 
@@ -139,7 +139,7 @@ impl SSHState {
     }
 
     fn parse_record(
-        &mut self, mut input: &[u8], resp: bool, pstate: *mut std::os::raw::c_void,
+        &mut self, mut input: &[u8], resp: bool, pstate: *mut AppLayerParserState,
         flow: *const Flow, stream_slice: &StreamSlice,
     ) -> AppLayerResult {
         let (hdr, ohdr) = if !resp {
@@ -239,11 +239,7 @@ impl SSHState {
 
                                 if flags != 0 {
                                     unsafe {
-                                        // TODO a later bindgen should prove that this cast is useless
-                                        SCAppLayerParserStateSetFlag(
-                                            pstate as *mut AppLayerParserState_,
-                                            flags,
-                                        );
+                                        SCAppLayerParserStateSetFlag(pstate, flags);
                                     }
                                 }
                             }
@@ -336,7 +332,7 @@ impl SSHState {
     }
 
     fn parse_banner(
-        &mut self, input: &[u8], resp: bool, pstate: *mut std::os::raw::c_void, flow: *const Flow,
+        &mut self, input: &[u8], resp: bool, pstate: *mut AppLayerParserState, flow: *const Flow,
         stream_slice: &StreamSlice,
     ) -> AppLayerResult {
         let hdr = if !resp {
@@ -461,7 +457,7 @@ extern "C" fn ssh_state_tx_free(_state: *mut std::os::raw::c_void, _tx_id: u64) 
 }
 
 unsafe extern "C" fn ssh_parse_request(
-    flow: *mut Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = &mut cast_pointer!(state, SSHState);
@@ -476,7 +472,7 @@ unsafe extern "C" fn ssh_parse_request(
 }
 
 unsafe extern "C" fn ssh_parse_response(
-    flow: *mut Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = &mut cast_pointer!(state, SSHState);

@@ -24,7 +24,7 @@ use std::ffi::CString;
 
 use nom7::{Err, Needed};
 use suricata_sys::sys::{
-    AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled,
+    AppLayerParserState, AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled,
     SCAppLayerProtoDetectPPParseConfPorts, SCAppLayerProtoDetectPPRegister,
 };
 
@@ -1938,7 +1938,7 @@ extern "C" fn nfs_state_free(state: *mut std::os::raw::c_void) {
 
 /// C binding parse a NFS TCP request. Returns 1 on success, -1 on failure.
 unsafe extern "C" fn nfs_parse_request(
-    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, NFSState);
@@ -1958,7 +1958,7 @@ extern "C" fn nfs_parse_request_tcp_gap(state: &mut NFSState, input_len: u32) ->
 }
 
 unsafe extern "C" fn nfs_parse_response(
-    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, NFSState);
@@ -1979,7 +1979,7 @@ extern "C" fn nfs_parse_response_tcp_gap(state: &mut NFSState, input_len: u32) -
 
 /// C binding to parse an NFS/UDP request. Returns 1 on success, -1 on failure.
 unsafe extern "C" fn nfs_parse_request_udp(
-    f: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    f: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, NFSState);
@@ -1989,7 +1989,7 @@ unsafe extern "C" fn nfs_parse_request_udp(
 }
 
 unsafe extern "C" fn nfs_parse_response_udp(
-    f: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    f: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, NFSState);

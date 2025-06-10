@@ -25,7 +25,7 @@ use crate::direction::{Direction, DIR_BOTH};
 use crate::flow::Flow;
 use nom7::Err;
 use suricata_sys::sys::{
-    AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled,
+    AppLayerParserState, AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled,
     SCAppLayerProtoDetectPMRegisterPatternCSwPP,
 };
 use std;
@@ -237,7 +237,7 @@ impl DCERPCUDPState {
 }
 
 unsafe extern "C" fn parse(
-    _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {

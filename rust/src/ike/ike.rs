@@ -29,10 +29,12 @@ use crate::ike::ikev1::{handle_ikev1, IkeV1Header, Ikev1Container};
 use crate::ike::ikev2::{handle_ikev2, Ikev2Container};
 use crate::ike::parser::*;
 use nom7::Err;
-use suricata_sys::sys::{AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled};
 use std;
 use std::collections::HashSet;
 use std::ffi::CString;
+use suricata_sys::sys::{
+    AppLayerParserState, AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled,
+};
 
 #[derive(AppLayerEvent)]
 pub enum IkeEvent {
@@ -126,11 +128,11 @@ impl Transaction for IKETransaction {
 
 impl IKETransaction {
     pub fn new(direction: Direction) -> Self {
-	Self {
-	    direction,
-	    tx_data: applayer::AppLayerTxData::for_direction(direction),
-	    ..Default::default()
-	}
+        Self {
+            direction,
+            tx_data: applayer::AppLayerTxData::for_direction(direction),
+            ..Default::default()
+        }
     }
 
     /// Set an event.
@@ -173,7 +175,9 @@ impl IKEState {
     }
 
     pub fn get_tx(&mut self, tx_id: u64) -> Option<&mut IKETransaction> {
-        self.transactions.iter_mut().find(|tx| tx.tx_id == tx_id + 1)
+        self.transactions
+            .iter_mut()
+            .find(|tx| tx.tx_id == tx_id + 1)
     }
 
     pub fn new_tx(&mut self, direction: Direction) -> IKETransaction {
@@ -315,7 +319,7 @@ unsafe extern "C" fn ike_state_tx_free(state: *mut std::os::raw::c_void, tx_id: 
 }
 
 unsafe extern "C" fn ike_parse_request(
-    _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, IKEState);
@@ -323,7 +327,7 @@ unsafe extern "C" fn ike_parse_request(
 }
 
 unsafe extern "C" fn ike_parse_response(
-    _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, IKEState);

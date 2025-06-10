@@ -15,8 +15,8 @@
  * 02110-1301, USA.
  */
 
- use suricata_sys::sys::{
-    AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled,
+use suricata_sys::sys::{
+    AppLayerParserState, AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled,
     SCAppLayerProtoDetectPMRegisterPatternCS,
 };
 
@@ -54,10 +54,10 @@ pub struct BitTorrentDHTTransaction {
 
 impl BitTorrentDHTTransaction {
     pub fn new(direction: Direction) -> Self {
-	Self {
-	    tx_data: AppLayerTxData::for_direction(direction),
-	    ..Default::default()
-	}
+        Self {
+            tx_data: AppLayerTxData::for_direction(direction),
+            ..Default::default()
+        }
     }
 
     /// Set an event on the transaction
@@ -160,35 +160,42 @@ unsafe extern "C" fn state_free(state: *mut std::os::raw::c_void) {
     std::mem::drop(Box::from_raw(state as *mut BitTorrentDHTState));
 }
 
-unsafe extern "C" fn state_tx_free(
-    state: *mut std::os::raw::c_void, tx_id: u64,
-) {
+unsafe extern "C" fn state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
     let state = cast_pointer!(state, BitTorrentDHTState);
     state.free_tx(tx_id);
 }
 
 unsafe extern "C" fn parse_ts(
-    _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     return parse(
-        _flow, state, _pstate, stream_slice,
-        _data, Direction::ToServer);
+        _flow,
+        state,
+        _pstate,
+        stream_slice,
+        _data,
+        Direction::ToServer,
+    );
 }
 
 unsafe extern "C" fn parse_tc(
-    _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     return parse(
-        _flow, state, _pstate, stream_slice,
-        _data, Direction::ToClient);
+        _flow,
+        state,
+        _pstate,
+        stream_slice,
+        _data,
+        Direction::ToClient,
+    );
 }
 
 unsafe extern "C" fn parse(
-    _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
-    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
-    direction: Direction,
+    _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
+    stream_slice: StreamSlice, _data: *const std::os::raw::c_void, direction: Direction,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, BitTorrentDHTState);
     let buf = stream_slice.as_slice();
@@ -209,9 +216,7 @@ unsafe extern "C" fn state_get_tx(
     }
 }
 
-unsafe extern "C" fn state_get_tx_count(
-    state: *mut std::os::raw::c_void,
-) -> u64 {
+unsafe extern "C" fn state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, BitTorrentDHTState);
     return state.tx_id;
 }

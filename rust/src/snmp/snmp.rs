@@ -33,7 +33,7 @@ use der_parser::der::parse_der_sequence;
 use nom7::{Err, IResult};
 use nom7::error::{ErrorKind, make_error};
 use suricata_sys::sys::{
-    AppProto, AppProtoNewProtoFromString, EveJsonTxLoggerRegistrationData,
+    AppLayerParserState, AppProto, AppProtoNewProtoFromString, EveJsonTxLoggerRegistrationData,
     SCAppLayerProtoDetectConfProtoDetectionEnabled, SCOutputEvePreRegisterLogger,
     SCOutputJsonLogDirection, SCSigTablePreRegister,
 };
@@ -273,7 +273,7 @@ extern "C" fn snmp_state_free(state: *mut std::os::raw::c_void) {
 
 unsafe extern "C" fn snmp_parse_request(_flow: *mut Flow,
                                        state: *mut std::os::raw::c_void,
-                                       _pstate: *mut std::os::raw::c_void,
+                                       _pstate: *mut AppLayerParserState,
                                        stream_slice: StreamSlice,
                                        _data: *const std::os::raw::c_void,
                                        ) -> AppLayerResult {
@@ -283,7 +283,7 @@ unsafe extern "C" fn snmp_parse_request(_flow: *mut Flow,
 
 unsafe extern "C" fn snmp_parse_response(_flow: *mut Flow,
                                        state: *mut std::os::raw::c_void,
-                                       _pstate: *mut std::os::raw::c_void,
+                                       _pstate: *mut AppLayerParserState,
                                        stream_slice: StreamSlice,
                                        _data: *const std::os::raw::c_void,
                                        ) -> AppLayerResult {

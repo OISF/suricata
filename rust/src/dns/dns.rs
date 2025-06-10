@@ -32,7 +32,8 @@ use crate::frames::Frame;
 use nom7::number::streaming::be_u16;
 use nom7::{Err, IResult};
 use suricata_sys::sys::{
-    AppProto, DetectEngineThreadCtx, SCAppLayerProtoDetectConfProtoDetectionEnabled,
+    AppLayerParserState, AppProto, DetectEngineThreadCtx,
+    SCAppLayerProtoDetectConfProtoDetectionEnabled,
 };
 
 /// DNS record types.
@@ -936,7 +937,7 @@ pub(crate) unsafe extern "C" fn state_tx_free(state: *mut std::os::raw::c_void, 
 
 /// C binding parse a DNS request. Returns 1 on success, -1 on failure.
 pub(crate) unsafe extern "C" fn parse_request(
-    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);
@@ -945,7 +946,7 @@ pub(crate) unsafe extern "C" fn parse_request(
 }
 
 unsafe extern "C" fn parse_response(
-    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);
@@ -955,7 +956,7 @@ unsafe extern "C" fn parse_response(
 
 /// C binding parse a DNS request. Returns 1 on success, -1 on failure.
 unsafe extern "C" fn parse_request_tcp(
-    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);
@@ -968,7 +969,7 @@ unsafe extern "C" fn parse_request_tcp(
 }
 
 unsafe extern "C" fn parse_response_tcp(
-    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);

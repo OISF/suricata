@@ -1151,7 +1151,7 @@ static int SSHParserTest18(void)
     void *tx = SCSshStateGetTx(ssh_state, 0);
     FAIL_IF(SCSshTxGetFlags(tx, STREAM_TOCLIENT) != SshStateFinished);
 
-    FAIL_IF(!(AppLayerParserStateIssetFlag(f->alparser, APP_LAYER_PARSER_NO_INSPECTION)));
+    FAIL_IF(!(SCAppLayerParserStateIssetFlag(f->alparser, APP_LAYER_PARSER_NO_INSPECTION)));
 
     UTHFreePacket(p);
     StreamTcpUTClearSession(&ssn);

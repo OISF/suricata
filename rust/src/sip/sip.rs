@@ -19,19 +19,21 @@
 
 use crate::applayer::{self, *};
 use crate::core;
-use crate::core::{ALPROTO_UNKNOWN, IPPROTO_TCP, IPPROTO_UDP, sc_app_layer_parser_trigger_raw_stream_inspection};
+use crate::core::{
+    sc_app_layer_parser_trigger_raw_stream_inspection, ALPROTO_UNKNOWN, IPPROTO_TCP, IPPROTO_UDP,
+};
 use crate::direction::Direction;
 use crate::flow::Flow;
 use crate::frames::*;
 use crate::sip::parser::*;
 use nom7::Err;
-use suricata_sys::sys::{
-    AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled,
-    SCAppLayerProtoDetectPMRegisterPatternCS,
-};
 use std;
 use std::collections::VecDeque;
 use std::ffi::CString;
+use suricata_sys::sys::{
+    AppLayerParserState, AppProto, SCAppLayerParserStateIssetFlag,
+    SCAppLayerProtoDetectConfProtoDetectionEnabled, SCAppLayerProtoDetectPMRegisterPatternCS,
+};
 
 // app-layer-frame-documentation tag start: FrameType enum
 #[derive(AppLayerFrameType)]
@@ -185,7 +187,10 @@ impl SIPState {
                         tx.request_line = req_line;
                     }
                     self.transactions.push_back(tx);
-                    sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
+                    sc_app_layer_parser_trigger_raw_stream_inspection(
+                        flow,
+                        Direction::ToServer as i32,
+                    );
                     let consumed = start.len() - rem.len();
                     start = rem;
 
@@ -281,7 +286,10 @@ impl SIPState {
                         tx.response_line = resp_line;
                     }
                     self.transactions.push_back(tx);
-                    sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
+                    sc_app_layer_parser_trigger_raw_stream_inspection(
+                        flow,
+                        Direction::ToClient as i32,
+                    );
                     let consumed = start.len() - rem.len();
                     start = rem;
 
@@ -440,7 +448,7 @@ extern "C" fn sip_tx_get_alstate_progress(
 pub static mut ALPROTO_SIP: AppProto = ALPROTO_UNKNOWN;
 
 unsafe extern "C" fn sip_parse_request(
-    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, SIPState);
@@ -448,11 +456,11 @@ unsafe extern "C" fn sip_parse_request(
 }
 
 unsafe extern "C" fn sip_parse_request_tcp(
-    flow: *mut Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     if stream_slice.is_empty() {
-        if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0 {
+        if SCAppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0 {
             return AppLayerResult::ok();
         } else {
             return AppLayerResult::err();
@@ -464,7 +472,7 @@ unsafe extern "C" fn sip_parse_request_tcp(
 }
 
 unsafe extern "C" fn sip_parse_response(
-    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, SIPState);
@@ -472,11 +480,11 @@ unsafe extern "C" fn sip_parse_response(
 }
 
 unsafe extern "C" fn sip_parse_response_tcp(
-    flow: *mut Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     if stream_slice.is_empty() {
-        if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0 {
+        if SCAppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0 {
             return AppLayerResult::ok();
         } else {
             return AppLayerResult::err();

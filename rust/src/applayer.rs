@@ -29,7 +29,7 @@ use crate::core::StreamingBufferConfig;
 // Make the AppLayerEvent derive macro available to users importing
 // AppLayerEvent from this module.
 pub use suricata_derive::AppLayerEvent;
-use suricata_sys::sys::AppProto;
+use suricata_sys::sys::{AppLayerParserState, AppProto};
 
 /// Cast pointer to a variable, as a mutable reference to an object
 ///
@@ -481,7 +481,7 @@ impl AppLayerGetFileState {
 
 pub type ParseFn      = unsafe extern "C" fn (flow: *mut Flow,
                                        state: *mut c_void,
-                                       pstate: *mut c_void,
+                                       pstate: *mut AppLayerParserState,
                                        stream_slice: StreamSlice,
                                        data: *const c_void) -> AppLayerResult;
 pub type ProbeFn      = unsafe extern "C" fn (flow: *const Flow, flags: u8, input:*const u8, input_len: u32, rdir: *mut u8) -> AppProto;
@@ -537,7 +537,6 @@ pub const APP_LAYER_TX_ACCEPT: u8 = BIT_U8!(4);
 
 /// cbindgen:ignore
 extern "C" {
-    pub fn AppLayerParserStateIssetFlag(state: *mut c_void, flag: u16) -> u16;
     pub fn AppLayerParserSetStreamDepth(ipproto: u8, alproto: AppProto, stream_depth: u32);
     pub fn AppLayerParserConfParserEnabled(ipproto: *const c_char, proto: *const c_char) -> c_int;
     pub fn AppLayerParserRegisterLogger(pproto: u8, alproto: AppProto);

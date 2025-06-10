@@ -28,7 +28,9 @@ use std;
 use std::ffi::CString;
 
 use nom7::Err;
-use suricata_sys::sys::{AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled};
+use suricata_sys::sys::{
+    AppLayerParserState, AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled,
+};
 
 #[derive(AppLayerEvent)]
 pub enum NTPEvent {
@@ -177,7 +179,7 @@ extern "C" fn ntp_state_free(state: *mut std::os::raw::c_void) {
 }
 
 unsafe extern "C" fn ntp_parse_request(
-    _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, NTPState);
@@ -188,7 +190,7 @@ unsafe extern "C" fn ntp_parse_request(
 }
 
 unsafe extern "C" fn ntp_parse_response(
-    _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, NTPState);

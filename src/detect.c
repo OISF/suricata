@@ -164,7 +164,7 @@ static void DetectRun(ThreadVars *th_v,
             }
             const TcpSession *ssn = p->flow->protoctx;
             bool setting_nopayload = p->flow->alparser &&
-                                     AppLayerParserStateIssetFlag(
+                                     SCAppLayerParserStateIssetFlag(
                                              p->flow->alparser, APP_LAYER_PARSER_NO_INSPECTION) &&
                                      !(p->flags & PKT_NOPAYLOAD_INSPECTION);
             // we may be right after disabling app-layer (ssh)

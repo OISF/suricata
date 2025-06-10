@@ -15,7 +15,9 @@
  * 02110-1301, USA.
  */
 
-use suricata_sys::sys::{AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled};
+use suricata_sys::sys::{
+    AppLayerParserState, AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled,
+};
 
 use crate::applayer::{self, *};
 use crate::core::{ALPROTO_UNKNOWN, IPPROTO_UDP};
@@ -224,7 +226,7 @@ unsafe extern "C" fn dhcp_state_get_tx_count(state: *mut std::os::raw::c_void) -
 }
 
 unsafe extern "C" fn dhcp_parse(
-    _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, DHCPState);

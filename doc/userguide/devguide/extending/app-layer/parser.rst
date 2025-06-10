@@ -35,7 +35,7 @@ In Rust, the callbacks are similar.
     #[no_mangle]
     pub extern "C" fn rs_dns_parse_response_tcp(_flow: *const core::Flow,
             state: *mut std::os::raw::c_void,
-            _pstate: *mut std::os::raw::c_void,
+            _pstate: *mut AppLayerParserState,
             input: *const u8,
             input_len: u32,
             _data: *const std::os::raw::c_void,
