@@ -2659,7 +2659,7 @@ void RegisterHTPParsers(void)
         /* This parser accepts gaps. */
         AppLayerParserRegisterOptionFlags(
                 IPPROTO_TCP, ALPROTO_HTTP1, APP_LAYER_PARSER_OPT_ACCEPT_GAPS);
-        AppLayerParserRegisterParserAcceptableDataDirection(
+        SCAppLayerParserRegisterParserAcceptableDataDirection(
                 IPPROTO_TCP, ALPROTO_HTTP1, STREAM_TOSERVER | STREAM_TOCLIENT);
         /* app-layer-frame-documentation tag start: registering relevant callbacks */
         AppLayerParserRegisterGetFrameFuncs(
