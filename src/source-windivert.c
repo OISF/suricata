@@ -69,6 +69,7 @@ void TmModuleVerdictWinDivertRegister(void)
 {
     tmm_modules[TMM_VERDICTWINDIVERT].name = "VerdictWinDivert";
     tmm_modules[TMM_VERDICTWINDIVERT].ThreadInit = NoWinDivertSupportExit;
+    tmm_modules[TMM_VERDICTWINDIVERT].flags = TM_FLAG_VERDICT_TM;
 }
 
 void TmModuleDecodeWinDivertRegister(void)
@@ -382,6 +383,7 @@ void TmModuleVerdictWinDivertRegister(void)
     tm_ptr->ThreadInit = VerdictWinDivertThreadInit;
     tm_ptr->Func = VerdictWinDivert;
     tm_ptr->ThreadDeinit = VerdictWinDivertThreadDeinit;
+    tm_ptr->flags = TM_FLAG_VERDICT_TM;
 }
 
 void TmModuleDecodeWinDivertRegister(void)

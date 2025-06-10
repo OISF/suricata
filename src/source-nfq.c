@@ -75,6 +75,7 @@ void TmModuleVerdictNFQRegister (void)
     tmm_modules[TMM_VERDICTNFQ].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_VERDICTNFQ].ThreadDeinit = NULL;
     tmm_modules[TMM_VERDICTNFQ].cap_flags = SC_CAP_NET_ADMIN;
+    tmm_modules[TMM_VERDICTNFQ].flags = TM_FLAG_VERDICT_TM;
 }
 
 void TmModuleDecodeNFQRegister (void)
@@ -187,6 +188,7 @@ void TmModuleVerdictNFQRegister (void)
     tmm_modules[TMM_VERDICTNFQ].ThreadInit = VerdictNFQThreadInit;
     tmm_modules[TMM_VERDICTNFQ].Func = VerdictNFQ;
     tmm_modules[TMM_VERDICTNFQ].ThreadDeinit = VerdictNFQThreadDeinit;
+    tmm_modules[TMM_VERDICTNFQ].flags = TM_FLAG_VERDICT_TM;
 }
 
 void TmModuleDecodeNFQRegister (void)
