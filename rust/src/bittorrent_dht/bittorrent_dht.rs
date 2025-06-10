@@ -16,8 +16,8 @@
  */
 
 use suricata_sys::sys::{
-    AppLayerParserState, AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled,
-    SCAppLayerProtoDetectPMRegisterPatternCS,
+    AppLayerParserState, AppProto, SCAppLayerParserRegisterLogger,
+    SCAppLayerProtoDetectConfProtoDetectionEnabled, SCAppLayerProtoDetectPMRegisterPatternCS,
 };
 
 use crate::applayer::{self, *};
@@ -321,7 +321,7 @@ pub unsafe extern "C" fn SCRegisterBittorrentDhtUdpParser() {
         {
             SCLogDebug!("Failed to register protocol detection pattern for direction TOCLIENT");
         }
-        AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_BITTORRENT_DHT);
+        SCAppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_BITTORRENT_DHT);
 
         SCLogDebug!("Parser registered for bittorrent-dht.");
     } else {

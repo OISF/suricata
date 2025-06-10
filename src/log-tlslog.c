@@ -240,7 +240,7 @@ static OutputInitResult LogTlsLogInitCtx(SCConfNode *conf)
     SCLogDebug("TLS log output initialized");
 
     /* Enable the logger for the app layer */
-    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_TLS);
+    SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_TLS);
 
     result.ctx = output_ctx;
     result.ok = true;

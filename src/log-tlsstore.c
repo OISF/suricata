@@ -427,7 +427,7 @@ static OutputInitResult LogTlsStoreLogInitCtx(SCConfNode *conf)
     SCLogInfo("storing certs in %s", tls_logfile_base_dir);
 
     /* enable the logger for the app layer */
-    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_TLS);
+    SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_TLS);
 
     result.ctx = output_ctx;
     result.ok = true;

@@ -657,8 +657,8 @@ static OutputInitResult JsonDnsLogInitCtxSub(SCConfNode *conf, OutputCtx *parent
 
     SCLogDebug("DNS log sub-module initialized");
 
-    AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_DNS);
-    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_DNS);
+    SCAppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_DNS);
+    SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_DNS);
 
     result.ctx = output_ctx;
     result.ok = true;

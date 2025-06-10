@@ -783,31 +783,31 @@ static OutputInitResult OutputLuaLogInit(SCConfNode *conf)
             om->alproto = ALPROTO_HTTP1;
             om->ts_log_progress = -1;
             om->tc_log_progress = -1;
-            AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_HTTP1);
+            SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_HTTP1);
         } else if (opts.alproto == ALPROTO_TLS) {
             om->TxLogFunc = LuaTxLogger;
             om->alproto = ALPROTO_TLS;
             om->tc_log_progress = TLS_STATE_SERVER_HANDSHAKE_DONE;
             om->ts_log_progress = TLS_STATE_CLIENT_HANDSHAKE_DONE;
-            AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_TLS);
+            SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_TLS);
         } else if (opts.alproto == ALPROTO_DNS) {
             om->TxLogFunc = LuaTxLogger;
             om->alproto = ALPROTO_DNS;
             om->ts_log_progress = -1;
             om->tc_log_progress = -1;
-            AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_DNS);
-            AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_DNS);
+            SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_DNS);
+            SCAppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_DNS);
         } else if (opts.alproto == ALPROTO_SSH) {
             om->TxLogFunc = LuaTxLogger;
             om->alproto = ALPROTO_SSH;
             om->TxLogCondition = SSHTxLogCondition;
-            AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_SSH);
+            SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_SSH);
         } else if (opts.alproto == ALPROTO_SMTP) {
             om->TxLogFunc = LuaTxLogger;
             om->alproto = ALPROTO_SMTP;
             om->ts_log_progress = -1;
             om->tc_log_progress = -1;
-            AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_SMTP);
+            SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_SMTP);
         } else if (opts.packet && opts.alerts) {
             om->PacketLogFunc = LuaPacketLoggerAlerts;
             om->PacketConditionFunc = LuaPacketConditionAlerts;

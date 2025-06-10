@@ -39,7 +39,7 @@ use std::ffi::CString;
 use std::fmt;
 use std::io;
 use suricata_sys::sys::{
-    AppLayerParserState, AppProto, SCAppLayerForceProtocolChange,
+    AppLayerParserState, AppProto, SCAppLayerForceProtocolChange, SCAppLayerParserRegisterLogger,
     SCAppLayerProtoDetectConfProtoDetectionEnabled,
 };
 
@@ -1598,7 +1598,7 @@ pub unsafe extern "C" fn SCRegisterHttp2Parser() {
                 SCLogError!("Invalid value for http2.max-reassembly-size");
             }
         }
-        AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_HTTP2);
+        SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_HTTP2);
         SCLogDebug!("Rust http2 parser registered.");
     } else {
         SCLogNotice!("Protocol detector and parser disabled for HTTP2.");
@@ -1616,7 +1616,7 @@ pub unsafe extern "C" fn SCRegisterHttp2Parser() {
         } else {
             SCLogWarning!("DOH2 is not meant to be detection-only.");
         }
-        AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_DOH2);
+        SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_DOH2);
         SCLogDebug!("Rust doh2 parser registered.");
     } else {
         SCLogNotice!("Protocol detector and parser disabled for DOH2.");

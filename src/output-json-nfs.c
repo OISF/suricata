@@ -101,8 +101,8 @@ static int JsonNFSLogger(ThreadVars *tv, void *thread_data,
 
 static OutputInitResult NFSLogInitSub(SCConfNode *conf, OutputCtx *parent_ctx)
 {
-    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_NFS);
-    AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_NFS);
+    SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_NFS);
+    SCAppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_NFS);
     return OutputJsonLogInitSub(conf, parent_ctx);
 }
 
