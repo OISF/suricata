@@ -514,7 +514,6 @@ pub type GetStateNameById = unsafe extern "C" fn(c_int, u8) -> *const c_char;
 /// cbindgen:ignore
 extern "C" {
     pub fn AppLayerRegisterProtocolDetection(parser: *const RustParser, enable_default: c_int) -> AppProto;
-    pub fn AppLayerRegisterParserAlias(parser_name: *const c_char, alias_name: *const c_char);
     pub fn AppLayerRegisterParser(parser: *const RustParser, alproto: AppProto) -> c_int;
 }
 
