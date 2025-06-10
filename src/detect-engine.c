@@ -2388,7 +2388,7 @@ retry:
             threads_done = no_of_detect_tvs;
             break;
         }
-        usleep(1000);
+        SleepMsec(1);
         if (SC_ATOMIC_GET(new_det_ctx[i]->so_far_used_by_detect) == 1) {
             SCLogDebug("new_det_ctx - %p used by detect engine", new_det_ctx[i]);
             threads_done++;
@@ -2414,7 +2414,7 @@ retry:
             }
 
             while (!TmThreadsCheckFlag(tv, THV_RUNNING_DONE)) {
-                usleep(100);
+                SleepUsec(100);
             }
         }
     }

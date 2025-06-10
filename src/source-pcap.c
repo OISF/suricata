@@ -422,7 +422,7 @@ static TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot)
             int dbreak = 0;
             SCLogError("error code %" PRId32 " %s", r, pcap_geterr(ptv->pcap_handle));
             do {
-                usleep(PCAP_RECONNECT_TIMEOUT);
+                SleepUsec(PCAP_RECONNECT_TIMEOUT);
                 if (suricata_ctl_flags != 0) {
                     dbreak = 1;
                     break;

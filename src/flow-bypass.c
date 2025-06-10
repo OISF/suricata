@@ -123,7 +123,7 @@ static TmEcode BypassedFlowManager(ThreadVars *th_v, void *thread_data)
                 return TM_ECODE_OK;
             }
             StatsSyncCountersIfSignalled(th_v);
-            usleep(10000);
+            SleepMsec(10);
         }
     }
     return TM_ECODE_OK;
