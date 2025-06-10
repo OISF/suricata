@@ -819,5 +819,5 @@ void TmModuleFlowWorkerRegister (void)
     tmm_modules[TMM_FLOWWORKER].ThreadBusy = FlowWorkerIsBusy;
     tmm_modules[TMM_FLOWWORKER].ThreadDeinit = FlowWorkerThreadDeinit;
     tmm_modules[TMM_FLOWWORKER].cap_flags = 0;
-    tmm_modules[TMM_FLOWWORKER].flags = TM_FLAG_STREAM_TM|TM_FLAG_DETECT_TM;
+    tmm_modules[TMM_FLOWWORKER].flags = TM_FLAG_FLOWWORKER_TM;
 }

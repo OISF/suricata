@@ -31,16 +31,14 @@
 /* thread flags */
 #define TM_FLAG_RECEIVE_TM      0x01
 #define TM_FLAG_DECODE_TM       0x02
-#define TM_FLAG_STREAM_TM       0x04
-#define TM_FLAG_DETECT_TM       0x08
+#define TM_FLAG_FLOWWORKER_TM   0x04
+#define TM_FLAG_VERDICT_TM      0x08
 #define TM_FLAG_MANAGEMENT_TM   0x10
 #define TM_FLAG_COMMAND_TM      0x20
-#define TM_FLAG_VERDICT_TM      0x40
 
 /* all packet modules combined */
 #define TM_FLAG_PACKET_ALL                                                                         \
-    (TM_FLAG_RECEIVE_TM | TM_FLAG_DECODE_TM | TM_FLAG_STREAM_TM | TM_FLAG_DETECT_TM |              \
-            TM_FLAG_VERDICT_TM)
+    (TM_FLAG_RECEIVE_TM | TM_FLAG_DECODE_TM | TM_FLAG_FLOWWORKER_TM | TM_FLAG_VERDICT_TM)
 
 typedef TmEcode (*ThreadInitFunc)(ThreadVars *, const void *, void **);
 typedef TmEcode (*ThreadDeinitFunc)(ThreadVars *, void *);
