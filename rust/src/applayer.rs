@@ -537,7 +537,6 @@ pub const APP_LAYER_TX_ACCEPT: u8 = BIT_U8!(4);
 
 /// cbindgen:ignore
 extern "C" {
-    pub fn AppLayerParserSetStreamDepth(ipproto: u8, alproto: AppProto, stream_depth: u32);
     pub fn AppLayerParserConfParserEnabled(ipproto: *const c_char, proto: *const c_char) -> c_int;
     pub fn AppLayerParserRegisterLogger(pproto: u8, alproto: AppProto);
     pub fn AppLayerParserRegisterParserAcceptableDataDirection(ipproto: u8, alproto: AppProto, dir: u8);

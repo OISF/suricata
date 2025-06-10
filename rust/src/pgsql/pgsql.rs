@@ -31,7 +31,7 @@ use std;
 use std::collections::VecDeque;
 use std::ffi::CString;
 use suricata_sys::sys::{
-    AppLayerParserState, AppProto, SCAppLayerParserStateIssetFlag,
+    AppLayerParserState, AppProto, SCAppLayerParserSetStreamDepth, SCAppLayerParserStateIssetFlag,
     SCAppLayerProtoDetectConfProtoDetectionEnabled, SCAppLayerRequestProtocolTLSUpgrade,
 };
 
@@ -975,7 +975,7 @@ pub unsafe extern "C" fn SCRegisterPgsqlParser() {
                     SCLogError!("Invalid depth value");
                 }
             }
-            AppLayerParserSetStreamDepth(IPPROTO_TCP, ALPROTO_PGSQL, stream_depth)
+            SCAppLayerParserSetStreamDepth(IPPROTO_TCP, ALPROTO_PGSQL, stream_depth)
         }
         if let Some(val) = conf_get("app-layer.protocols.pgsql.max-tx") {
             if let Ok(v) = val.parse::<usize>() {

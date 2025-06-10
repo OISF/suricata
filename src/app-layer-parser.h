@@ -275,7 +275,7 @@ bool AppLayerParserHasDecoderEvents(AppLayerParserState *pstate);
 int AppLayerParserProtocolHasLogger(uint8_t ipproto, AppProto alproto);
 LoggerId AppLayerParserProtocolGetLoggerBits(uint8_t ipproto, AppProto alproto);
 void AppLayerParserTriggerRawStreamInspection(Flow *f, int direction);
-void AppLayerParserSetStreamDepth(uint8_t ipproto, AppProto alproto, uint32_t stream_depth);
+void SCAppLayerParserSetStreamDepth(uint8_t ipproto, AppProto alproto, uint32_t stream_depth);
 uint32_t AppLayerParserGetStreamDepth(const Flow *f);
 void AppLayerParserSetStreamDepthFlag(uint8_t ipproto, AppProto alproto, void *state, uint64_t tx_id, uint8_t flags);
 int AppLayerParserIsEnabled(AppProto alproto);

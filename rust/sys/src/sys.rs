@@ -696,6 +696,9 @@ pub struct AppLayerParserState_ {
 }
 pub type AppLayerParserState = AppLayerParserState_;
 extern "C" {
+    pub fn SCAppLayerParserSetStreamDepth(ipproto: u8, alproto: AppProto, stream_depth: u32);
+}
+extern "C" {
     pub fn SCAppLayerParserStateSetFlag(pstate: *mut AppLayerParserState, flag: u16);
 }
 extern "C" {
