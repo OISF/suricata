@@ -123,11 +123,12 @@ void PacketReinit(Packet *p)
     p->BypassPacketsFlow = NULL;
 #define RESET_PKT_LEN(p) ((p)->pktlen = 0)
     RESET_PKT_LEN(p);
-    p->alerts.cnt = 0;
     p->alerts.discarded = 0;
     p->alerts.suppressed = 0;
     p->alerts.drop.action = 0;
-    PacketAlertRecycle(p->alerts.alerts);
+    if (p->alerts.cnt > 0)
+        PacketAlertRecycle(p->alerts.alerts, p->alerts.cnt);
+    p->alerts.cnt = 0;
     p->pcap_cnt = 0;
     p->tunnel_rtv_cnt = 0;
     p->tunnel_tpr_cnt = 0;
