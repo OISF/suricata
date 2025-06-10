@@ -2301,7 +2301,7 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
     uint32_t i = 0;
 
     /* count detect threads in use */
-    uint32_t no_of_detect_tvs = TmThreadCountThreadsByTmmFlags(TM_FLAG_DETECT_TM);
+    uint32_t no_of_detect_tvs = TmThreadCountThreadsByTmmFlags(TM_FLAG_FLOWWORKER_TM);
     /* can be zero in unix socket mode */
     if (no_of_detect_tvs == 0) {
         return 0;
@@ -2320,12 +2320,12 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
     /* get reference to tv's and setup new_det_ctx array */
     SCMutexLock(&tv_root_lock);
     for (ThreadVars *tv = tv_root[TVT_PPT]; tv != NULL; tv = tv->next) {
-        if ((tv->tmm_flags & TM_FLAG_DETECT_TM) == 0) {
+        if ((tv->tmm_flags & TM_FLAG_FLOWWORKER_TM) == 0) {
             continue;
         }
         for (TmSlot *s = tv->tm_slots; s != NULL; s = s->slot_next) {
             TmModule *tm = TmModuleGetById(s->tm_id);
-            if (!(tm->flags & TM_FLAG_DETECT_TM)) {
+            if (!(tm->flags & TM_FLAG_FLOWWORKER_TM)) {
                 continue;
             }
 
@@ -2355,12 +2355,12 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
     /* atomically replace the det_ctx data */
     i = 0;
     for (ThreadVars *tv = tv_root[TVT_PPT]; tv != NULL; tv = tv->next) {
-        if ((tv->tmm_flags & TM_FLAG_DETECT_TM) == 0) {
+        if ((tv->tmm_flags & TM_FLAG_FLOWWORKER_TM) == 0) {
             continue;
         }
         for (TmSlot *s = tv->tm_slots; s != NULL; s = s->slot_next) {
             TmModule *tm = TmModuleGetById(s->tm_id);
-            if (!(tm->flags & TM_FLAG_DETECT_TM)) {
+            if (!(tm->flags & TM_FLAG_FLOWWORKER_TM)) {
                 continue;
             }
             SCLogDebug("swapping new det_ctx - %p with older one - %p",
@@ -2409,7 +2409,7 @@ retry:
      * THV_DEINIT flag */
     if (i != no_of_detect_tvs) { // not all threads we swapped
         for (ThreadVars *tv = tv_root[TVT_PPT]; tv != NULL; tv = tv->next) {
-            if ((tv->tmm_flags & TM_FLAG_DETECT_TM) == 0) {
+            if ((tv->tmm_flags & TM_FLAG_FLOWWORKER_TM) == 0) {
                 continue;
             }
 

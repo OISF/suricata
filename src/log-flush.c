@@ -43,7 +43,7 @@ static void WorkerFlushLogs(void)
     SCEnter();
 
     /* count detect threads in use */
-    uint32_t no_of_detect_tvs = TmThreadCountThreadsByTmmFlags(TM_FLAG_DETECT_TM);
+    uint32_t no_of_detect_tvs = TmThreadCountThreadsByTmmFlags(TM_FLAG_FLOWWORKER_TM);
     /* can be zero in unix socket mode */
     if (no_of_detect_tvs == 0) {
         return;
@@ -61,12 +61,12 @@ static void WorkerFlushLogs(void)
     SCMutexLock(&tv_root_lock);
     /* get reference to tv's and setup fw_threads array */
     for (ThreadVars *tv = tv_root[TVT_PPT]; tv != NULL; tv = tv->next) {
-        if ((tv->tmm_flags & TM_FLAG_DETECT_TM) == 0) {
+        if ((tv->tmm_flags & TM_FLAG_FLOWWORKER_TM) == 0) {
             continue;
         }
         for (TmSlot *s = tv->tm_slots; s != NULL; s = s->slot_next) {
             TmModule *tm = TmModuleGetById(s->tm_id);
-            if (!(tm->flags & TM_FLAG_DETECT_TM)) {
+            if (!(tm->flags & TM_FLAG_FLOWWORKER_TM)) {
                 continue;
             }
 
