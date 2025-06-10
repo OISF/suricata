@@ -1826,8 +1826,8 @@ void SCAppLayerParserStateSetFlag(AppLayerParserState *pstate, uint16_t flag)
     SCReturn;
 }
 
-/* coccinelle: AppLayerParserStateIssetFlag():2,2:APP_LAYER_PARSER_ */
-uint16_t AppLayerParserStateIssetFlag(AppLayerParserState *pstate, uint16_t flag)
+/* coccinelle: SCAppLayerParserStateIssetFlag():2,2:APP_LAYER_PARSER_ */
+uint16_t SCAppLayerParserStateIssetFlag(AppLayerParserState *pstate, uint16_t flag)
 {
     SCEnter();
     SCReturnUInt(pstate->flags & flag);

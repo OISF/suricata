@@ -22,7 +22,10 @@ use crate::flow::Flow;
 use crate::frames::*;
 use std::ffi::CString;
 use nom7::IResult;
-use suricata_sys::sys::{AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled};
+use suricata_sys::sys::{
+    AppLayerParserState, AppProto, SCAppLayerParserStateIssetFlag,
+    SCAppLayerProtoDetectConfProtoDetectionEnabled,
+};
 use super::parser;
 
 static mut ALPROTO_TELNET: AppProto = ALPROTO_UNKNOWN;
@@ -417,11 +420,11 @@ unsafe extern "C" fn telnet_state_tx_free(
 unsafe extern "C" fn telnet_parse_request(
     flow: *mut Flow,
     state: *mut std::os::raw::c_void,
-    pstate: *mut std::os::raw::c_void,
+    pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void
 ) -> AppLayerResult {
-    let eof = AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0;
+    let eof = SCAppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0;
 
     if eof {
         // If needed, handle EOF, or pass it into the parser.
@@ -444,11 +447,11 @@ unsafe extern "C" fn telnet_parse_request(
 unsafe extern "C" fn telnet_parse_response(
     flow: *mut Flow,
     state: *mut std::os::raw::c_void,
-    pstate: *mut std::os::raw::c_void,
+    pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice,
     _data: *const std::os::raw::c_void
 ) -> AppLayerResult {
-    let _eof = AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0;
+    let _eof = SCAppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0;
     let state = cast_pointer!(state, TelnetState);
 
     if stream_slice.is_gap() {

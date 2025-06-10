@@ -1391,9 +1391,9 @@ static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
     uint32_t input_len = StreamSliceGetDataLen(&stream_slice);
 
     if (input_buf == NULL &&
-            ((direction == 0 && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS)) ||
+            ((direction == 0 && SCAppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS)) ||
                     (direction == 1 &&
-                            AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC)))) {
+                            SCAppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC)))) {
         SCReturnStruct(APP_LAYER_OK);
     } else if (input_buf == NULL || input_len == 0) {
         SCReturnStruct(APP_LAYER_OK);

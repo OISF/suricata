@@ -159,10 +159,11 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             }
             flags &= ~(STREAM_START);
             if (f->alparser &&
-                   (((flags & STREAM_TOSERVER) != 0 &&
-                     AppLayerParserStateIssetFlag(f->alparser, APP_LAYER_PARSER_EOF_TS)) ||
-                    ((flags & STREAM_TOCLIENT) != 0 &&
-                     AppLayerParserStateIssetFlag(f->alparser, APP_LAYER_PARSER_EOF_TC)))) {
+                    (((flags & STREAM_TOSERVER) != 0 && SCAppLayerParserStateIssetFlag(f->alparser,
+                                                                APP_LAYER_PARSER_EOF_TS)) ||
+                            ((flags & STREAM_TOCLIENT) != 0 &&
+                                    SCAppLayerParserStateIssetFlag(
+                                            f->alparser, APP_LAYER_PARSER_EOF_TC)))) {
                 //no final chunk
                 alsize = 0;
                 break;

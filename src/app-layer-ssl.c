@@ -2669,9 +2669,9 @@ static AppLayerResult SSLDecode(Flow *f, uint8_t direction, void *alstate,
     int32_t input_len = (int32_t)StreamSliceGetDataLen(&stream_slice);
 
     if ((input == NULL || input_len == 0) &&
-            ((direction == 0 && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS)) ||
+            ((direction == 0 && SCAppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS)) ||
                     (direction == 1 &&
-                            AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC)))) {
+                            SCAppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC)))) {
         /* flag session as finished if APP_LAYER_PARSER_EOF is set */
         if (direction == 0)
             UpdateClientState(ssl_state, TLS_STATE_CLIENT_FINISHED);
@@ -2795,8 +2795,8 @@ static AppLayerResult SSLDecode(Flow *f, uint8_t direction, void *alstate,
     }
 
     /* flag session as finished if APP_LAYER_PARSER_EOF is set */
-    if (AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) &&
-        AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC)) {
+    if (SCAppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) &&
+            SCAppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC)) {
         /* update both sides to keep existing behavior */
         UpdateClientState(ssl_state, TLS_STATE_CLIENT_FINISHED);
         UpdateServerState(ssl_state, TLS_STATE_SERVER_FINISHED);

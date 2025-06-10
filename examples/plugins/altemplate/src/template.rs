@@ -28,17 +28,19 @@ use std::ffi::CString;
 use std::os::raw::{c_char, c_int, c_void};
 use suricata::applayer::{
     state_get_tx_iterator, AppLayerEvent, AppLayerParserConfParserEnabled,
-    AppLayerParserRegisterLogger, AppLayerParserStateIssetFlag, AppLayerRegisterParser,
-    AppLayerRegisterProtocolDetection, AppLayerResult, AppLayerStateData, AppLayerTxData,
-    RustParser, State, StreamSlice, Transaction, APP_LAYER_PARSER_EOF_TC, APP_LAYER_PARSER_EOF_TS,
-    APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
+    AppLayerParserRegisterLogger, AppLayerRegisterParser, AppLayerRegisterProtocolDetection,
+    AppLayerResult, AppLayerStateData, AppLayerTxData, RustParser, State, StreamSlice, Transaction,
+    APP_LAYER_PARSER_EOF_TC, APP_LAYER_PARSER_EOF_TS, APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
 };
 use suricata::conf::conf_get;
 use suricata::core::{ALPROTO_UNKNOWN, IPPROTO_TCP};
 use suricata::{
     build_slice, cast_pointer, export_state_data_get, export_tx_data_get, SCLogError, SCLogNotice,
 };
-use suricata_sys::sys::{AppProto, Flow, SCAppLayerProtoDetectConfProtoDetectionEnabled};
+use suricata_sys::sys::{
+    AppLayerParserState, AppProto, Flow, SCAppLayerParserStateIssetFlag,
+    SCAppLayerProtoDetectConfProtoDetectionEnabled,
+};
 
 static mut TEMPLATE_MAX_TX: usize = 256;
 
@@ -296,10 +298,10 @@ unsafe extern "C" fn template_state_tx_free(state: *mut c_void, tx_id: u64) {
 }
 
 unsafe extern "C" fn template_parse_request(
-    _flow: *mut Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
-    _data: *const c_void,
+    _flow: *mut Flow, state: *mut c_void, pstate: *mut AppLayerParserState,
+    stream_slice: StreamSlice, _data: *const c_void,
 ) -> AppLayerResult {
-    let eof = AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0;
+    let eof = SCAppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0;
 
     if eof {
         // If needed, handle EOF, or pass it into the parser.
@@ -320,10 +322,10 @@ unsafe extern "C" fn template_parse_request(
 }
 
 unsafe extern "C" fn template_parse_response(
-    _flow: *mut Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
-    _data: *const c_void,
+    _flow: *mut Flow, state: *mut c_void, pstate: *mut AppLayerParserState,
+    stream_slice: StreamSlice, _data: *const c_void,
 ) -> AppLayerResult {
-    let _eof = AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0;
+    let _eof = SCAppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0;
     let state = cast_pointer!(state, TemplateState);
 
     if stream_slice.is_gap() {

@@ -39,7 +39,8 @@ use std::ffi::CString;
 use std::fmt;
 use std::io;
 use suricata_sys::sys::{
-    AppProto, SCAppLayerForceProtocolChange, SCAppLayerProtoDetectConfProtoDetectionEnabled,
+    AppLayerParserState, AppProto, SCAppLayerForceProtocolChange,
+    SCAppLayerProtoDetectConfProtoDetectionEnabled,
 };
 
 static mut ALPROTO_HTTP2: AppProto = ALPROTO_UNKNOWN;
@@ -1463,7 +1464,7 @@ unsafe extern "C" fn http2_state_tx_free(state: *mut std::os::raw::c_void, tx_id
 }
 
 unsafe extern "C" fn http2_parse_ts(
-    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, HTTP2State);
@@ -1471,7 +1472,7 @@ unsafe extern "C" fn http2_parse_ts(
 }
 
 unsafe extern "C" fn http2_parse_tc(
-    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, HTTP2State);

@@ -29,7 +29,10 @@ use std;
 use std::collections::VecDeque;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_int, c_void};
-use suricata_sys::sys::{AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled};
+use suricata_sys::sys::{
+    AppLayerParserState, AppProto, SCAppLayerParserStateIssetFlag,
+    SCAppLayerProtoDetectConfProtoDetectionEnabled,
+};
 
 pub(super) static mut ALPROTO_ENIP: AppProto = ALPROTO_UNKNOWN;
 
@@ -493,26 +496,26 @@ unsafe extern "C" fn enip_state_tx_free(state: *mut c_void, tx_id: u64) {
 }
 
 unsafe extern "C" fn enip_parse_request_udp(
-    flow: *mut Flow, state: *mut c_void, _pstate: *mut c_void, stream_slice: StreamSlice,
-    _data: *const c_void,
+    flow: *mut Flow, state: *mut c_void, _pstate: *mut AppLayerParserState,
+    stream_slice: StreamSlice, _data: *const c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, EnipState);
     state.parse_udp(stream_slice, true, flow)
 }
 
 unsafe extern "C" fn enip_parse_response_udp(
-    flow: *mut Flow, state: *mut c_void, _pstate: *mut c_void, stream_slice: StreamSlice,
-    _data: *const c_void,
+    flow: *mut Flow, state: *mut c_void, _pstate: *mut AppLayerParserState,
+    stream_slice: StreamSlice, _data: *const c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, EnipState);
     state.parse_udp(stream_slice, false, flow)
 }
 
 unsafe extern "C" fn enip_parse_request_tcp(
-    flow: *mut Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
-    _data: *const c_void,
+    flow: *mut Flow, state: *mut c_void, pstate: *mut AppLayerParserState,
+    stream_slice: StreamSlice, _data: *const c_void,
 ) -> AppLayerResult {
-    let eof = AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0;
+    let eof = SCAppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0;
     if eof {
         return AppLayerResult::ok();
     }
@@ -528,10 +531,10 @@ unsafe extern "C" fn enip_parse_request_tcp(
 }
 
 unsafe extern "C" fn enip_parse_response_tcp(
-    flow: *mut Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
-    _data: *const c_void,
+    flow: *mut Flow, state: *mut c_void, pstate: *mut AppLayerParserState,
+    stream_slice: StreamSlice, _data: *const c_void,
 ) -> AppLayerResult {
-    let eof = AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0;
+    let eof = SCAppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0;
     if eof {
         return AppLayerResult::ok();
     }

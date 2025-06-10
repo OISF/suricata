@@ -35,7 +35,7 @@ use nom7::error::{make_error, ErrorKind};
 
 use lru::LruCache;
 use suricata_sys::sys::{
-    AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled,
+    AppLayerParserState, AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled,
     SCAppLayerProtoDetectPMRegisterPatternCSwPP, SCAppLayerProtoDetectPPParseConfPorts,
     SCAppLayerProtoDetectPPRegister,
 };
@@ -2009,7 +2009,7 @@ extern "C" fn smb_state_free(state: *mut std::os::raw::c_void) {
 /// C binding parse a SMB request. Returns 1 on success, -1 on failure.
 unsafe extern "C" fn smb_parse_request_tcp(flow: *mut Flow,
                                        state: *mut ffi::c_void,
-                                       _pstate: *mut std::os::raw::c_void,
+                                       _pstate: *mut AppLayerParserState,
                                        stream_slice: StreamSlice,
                                        _data: *const std::os::raw::c_void,
                                        )
@@ -2044,7 +2044,7 @@ extern "C" fn smb_parse_request_tcp_gap(
 
 unsafe extern "C" fn smb_parse_response_tcp(flow: *mut Flow,
                                         state: *mut ffi::c_void,
-                                        _pstate: *mut std::os::raw::c_void,
+                                        _pstate: *mut AppLayerParserState,
                                         stream_slice: StreamSlice,
                                         _data: *const ffi::c_void,
                                         )
