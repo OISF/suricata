@@ -10,6 +10,10 @@ the ``dns`` object accross ``dns`` and ``alert`` objects.
 
 Ticket: https://redmine.openinfosecfoundation.org/issues/6281
 
+Additionally, version ``3`` DNS response messages will now use the IP
+address of the responder as the ``src_ip``, not the client, ticket:
+https://redmine.openinfosecfoundation.org/issues/6400
+
 The changes are summarized below:
 
 * DNS requests now have a type of ``request`` instead of ``query``.
