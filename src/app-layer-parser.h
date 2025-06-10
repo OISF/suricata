@@ -171,9 +171,8 @@ int AppLayerParserPreRegister(void (*Register)(void));
 int AppLayerParserRegisterParser(uint8_t ipproto, AppProto alproto,
                       uint8_t direction,
                       AppLayerParserFPtr Parser);
-void AppLayerParserRegisterParserAcceptableDataDirection(uint8_t ipproto,
-                                              AppProto alproto,
-                                              uint8_t direction);
+void SCAppLayerParserRegisterParserAcceptableDataDirection(
+        uint8_t ipproto, AppProto alproto, uint8_t direction);
 void AppLayerParserRegisterOptionFlags(uint8_t ipproto, AppProto alproto,
         uint32_t flags);
 void AppLayerParserRegisterStateFuncs(uint8_t ipproto, AppProto alproto,

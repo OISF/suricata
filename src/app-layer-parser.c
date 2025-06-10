@@ -412,8 +412,8 @@ int AppLayerParserRegisterParser(uint8_t ipproto, AppProto alproto,
     SCReturnInt(0);
 }
 
-void AppLayerParserRegisterParserAcceptableDataDirection(uint8_t ipproto, AppProto alproto,
-                                              uint8_t direction)
+void SCAppLayerParserRegisterParserAcceptableDataDirection(
+        uint8_t ipproto, AppProto alproto, uint8_t direction)
 {
     SCEnter();
 
