@@ -30,9 +30,9 @@ use std::collections::VecDeque;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_int, c_void};
 use suricata_sys::sys::{
-    AppLayerParserState, AppProto, SCAppLayerParserRegisterLogger,
-    SCAppLayerParserRegisterParserAcceptableDataDirection, SCAppLayerParserStateIssetFlag,
-    SCAppLayerProtoDetectConfProtoDetectionEnabled,
+    AppLayerParserState, AppProto, SCAppLayerParserConfParserEnabled,
+    SCAppLayerParserRegisterLogger, SCAppLayerParserRegisterParserAcceptableDataDirection,
+    SCAppLayerParserStateIssetFlag, SCAppLayerProtoDetectConfProtoDetectionEnabled,
 };
 
 pub(super) static mut ALPROTO_ENIP: AppProto = ALPROTO_UNKNOWN;
@@ -650,7 +650,7 @@ pub unsafe extern "C" fn SCEnipRegisterParsers() {
     if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_ENIP = alproto;
-        if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+        if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
         SCLogDebug!("Rust enip parser registered for UDP.");
@@ -675,7 +675,7 @@ pub unsafe extern "C" fn SCEnipRegisterParsers() {
     if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_ENIP = alproto;
-        if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+        if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
         SCLogDebug!("Rust enip parser registered for TCP.");

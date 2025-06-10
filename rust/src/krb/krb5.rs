@@ -33,8 +33,8 @@ use nom7::{Err, IResult};
 use std;
 use std::ffi::CString;
 use suricata_sys::sys::{
-    AppLayerParserState, AppProto, SCAppLayerParserRegisterLogger,
-    SCAppLayerProtoDetectConfProtoDetectionEnabled,
+    AppLayerParserState, AppProto, SCAppLayerParserConfParserEnabled,
+    SCAppLayerParserRegisterLogger, SCAppLayerProtoDetectConfProtoDetectionEnabled,
 };
 
 #[derive(AppLayerEvent)]
@@ -638,7 +638,7 @@ pub unsafe extern "C" fn SCRegisterKrb5Parser() {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         // store the allocated ID for the probe function
         ALPROTO_KRB5 = alproto;
-        if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+        if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
         SCAppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_KRB5);
@@ -656,7 +656,7 @@ pub unsafe extern "C" fn SCRegisterKrb5Parser() {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         // store the allocated ID for the probe function
         ALPROTO_KRB5 = alproto;
-        if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+        if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
         SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_KRB5);

@@ -696,6 +696,12 @@ pub struct AppLayerParserState_ {
 }
 pub type AppLayerParserState = AppLayerParserState_;
 extern "C" {
+    #[doc = " \\brief Given a protocol name, checks if the parser is enabled in\n        the conf file.\n\n \\param alproto_name Name of the app layer protocol.\n\n \\retval 1 If enabled.\n \\retval 0 If disabled."]
+    pub fn SCAppLayerParserConfParserEnabled(
+        ipproto: *const ::std::os::raw::c_char, alproto_name: *const ::std::os::raw::c_char,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
     pub fn SCAppLayerParserRegisterParserAcceptableDataDirection(
         ipproto: u8, alproto: AppProto, direction: u8,
     );

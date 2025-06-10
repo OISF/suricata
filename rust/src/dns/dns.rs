@@ -32,7 +32,7 @@ use crate::frames::Frame;
 use nom7::number::streaming::be_u16;
 use nom7::{Err, IResult};
 use suricata_sys::sys::{
-    AppLayerParserState, AppProto, DetectEngineThreadCtx,
+    AppLayerParserState, AppProto, DetectEngineThreadCtx, SCAppLayerParserConfParserEnabled,
     SCAppLayerProtoDetectConfProtoDetectionEnabled,
 };
 
@@ -1314,7 +1314,7 @@ pub unsafe extern "C" fn SCRegisterDnsUdpParser() {
     if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_DNS = alproto;
-        if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+        if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
     }
@@ -1361,7 +1361,7 @@ pub unsafe extern "C" fn SCRegisterDnsTcpParser() {
     if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_DNS = alproto;
-        if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+        if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
     }

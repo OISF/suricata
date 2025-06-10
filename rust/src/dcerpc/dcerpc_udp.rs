@@ -25,8 +25,8 @@ use crate::direction::{Direction, DIR_BOTH};
 use crate::flow::Flow;
 use nom7::Err;
 use suricata_sys::sys::{
-    AppLayerParserState, AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled,
-    SCAppLayerProtoDetectPMRegisterPatternCSwPP,
+    AppLayerParserState, AppProto, SCAppLayerParserConfParserEnabled,
+    SCAppLayerProtoDetectConfProtoDetectionEnabled, SCAppLayerProtoDetectPMRegisterPatternCSwPP,
 };
 use std;
 use std::ffi::CString;
@@ -391,7 +391,7 @@ pub unsafe extern "C" fn SCRegisterDcerpcUdpParser() {
         if register_pattern_probe() < 0 {
             return;
         }
-        if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+        if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
     } else {

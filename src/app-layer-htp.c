@@ -1593,7 +1593,7 @@ void HTPFreeConfig(void)
     SCEnter();
 
     if (!SCAppLayerProtoDetectConfProtoDetectionEnabled("tcp", "http") ||
-            !AppLayerParserConfParserEnabled("tcp", "http")) {
+            !SCAppLayerParserConfParserEnabled("tcp", "http")) {
         SCReturn;
     }
 
@@ -2630,7 +2630,7 @@ void RegisterHTPParsers(void)
         return;
     }
 
-    if (AppLayerParserConfParserEnabled("tcp", proto_name)) {
+    if (SCAppLayerParserConfParserEnabled("tcp", proto_name)) {
         AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_HTTP1, HTPStateAlloc, HTPStateFree);
         AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_HTTP1, HTPStateTransactionFree);
         AppLayerParserRegisterGetTxFilesFunc(IPPROTO_TCP, ALPROTO_HTTP1, HTPGetTxFiles);

@@ -1281,7 +1281,7 @@ void RegisterFTPParsers(void)
         AppLayerProtoDetectRegisterProtocol(ALPROTO_FTPDATA, proto_data_name);
     }
 
-    if (AppLayerParserConfParserEnabled("tcp", proto_name)) {
+    if (SCAppLayerParserConfParserEnabled("tcp", proto_name)) {
         AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_FTP, STREAM_TOSERVER,
                                      FTPParseRequest);
         AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_FTP, STREAM_TOCLIENT,

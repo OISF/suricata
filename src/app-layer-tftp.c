@@ -184,7 +184,7 @@ void RegisterTFTPParsers(void)
         return;
     }
 
-    if (AppLayerParserConfParserEnabled("udp", proto_name)) {
+    if (SCAppLayerParserConfParserEnabled("udp", proto_name)) {
 
         SCLogDebug("Registering TFTP protocol parser.");
 
@@ -223,8 +223,7 @@ void RegisterTFTPParsers(void)
 
         AppLayerParserRegisterTxDataFunc(IPPROTO_UDP, ALPROTO_TFTP, SCTftpGetTxData);
         AppLayerParserRegisterStateDataFunc(IPPROTO_UDP, ALPROTO_TFTP, SCTftpGetStateData);
-    }
-    else {
+    } else {
         SCLogDebug("TFTP protocol parsing disabled.");
     }
 }

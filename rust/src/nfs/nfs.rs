@@ -24,8 +24,9 @@ use std::ffi::CString;
 
 use nom7::{Err, Needed};
 use suricata_sys::sys::{
-    AppLayerParserState, AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled,
-    SCAppLayerProtoDetectPPParseConfPorts, SCAppLayerProtoDetectPPRegister,
+    AppLayerParserState, AppProto, SCAppLayerParserConfParserEnabled,
+    SCAppLayerProtoDetectConfProtoDetectionEnabled, SCAppLayerProtoDetectPPParseConfPorts,
+    SCAppLayerProtoDetectPPRegister,
 };
 
 use crate::applayer;
@@ -2398,7 +2399,7 @@ pub unsafe extern "C" fn SCRegisterNfsParser() {
                 Some(ffi_nfs_probe),
             );
         }
-        if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+        if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
         SCLogDebug!("Rust nfs parser registered.");
@@ -2474,7 +2475,7 @@ pub unsafe extern "C" fn SCRegisterNfsUdpParser() {
                 Some(nfs_probe_udp_tc),
             );
         }
-        if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+        if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
         if let Some(val) = conf_get("app-layer.protocols.nfs.max-tx") {

@@ -25,8 +25,8 @@ use nom7::error::{Error, ErrorKind};
 use nom7::number::Endianness;
 use nom7::{Err, IResult, Needed};
 use suricata_sys::sys::{
-    AppLayerParserState, AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled,
-    SCAppLayerProtoDetectPMRegisterPatternCSwPP,
+    AppLayerParserState, AppProto, SCAppLayerParserConfParserEnabled,
+    SCAppLayerProtoDetectConfProtoDetectionEnabled, SCAppLayerProtoDetectPMRegisterPatternCSwPP,
 };
 use std;
 use std::cmp;
@@ -1252,7 +1252,7 @@ pub unsafe extern "C" fn SCRegisterDcerpcParser() {
         if register_pattern_probe() < 0 {
             return;
         }
-        if AppLayerParserConfParserEnabled(
+        if SCAppLayerParserConfParserEnabled(
             ip_proto_str.as_ptr(),
             parser.name,
         ) != 0

@@ -1556,8 +1556,7 @@ void RegisterDNP3Parsers(void)
         SCReturn;
     }
 
-    if (AppLayerParserConfParserEnabled("tcp", proto_name))
-    {
+    if (SCAppLayerParserConfParserEnabled("tcp", proto_name)) {
         SCLogConfig("Registering DNP3/tcp parsers.");
 
         AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_DNP3, STREAM_TOSERVER,
@@ -1586,8 +1585,7 @@ void RegisterDNP3Parsers(void)
         AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_DNP3,
             DNP3GetTxData);
         AppLayerParserRegisterStateDataFunc(IPPROTO_TCP, ALPROTO_DNP3, DNP3GetStateData);
-    }
-    else {
+    } else {
         SCLogConfig("Parser disabled for protocol %s. "
             "Protocol detection still on.", proto_name);
     }

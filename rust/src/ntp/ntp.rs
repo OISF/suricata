@@ -29,7 +29,8 @@ use std::ffi::CString;
 
 use nom7::Err;
 use suricata_sys::sys::{
-    AppLayerParserState, AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled,
+    AppLayerParserState, AppProto, SCAppLayerParserConfParserEnabled,
+    SCAppLayerProtoDetectConfProtoDetectionEnabled,
 };
 
 #[derive(AppLayerEvent)]
@@ -297,7 +298,7 @@ pub unsafe extern "C" fn SCRegisterNtpParser() {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         // store the allocated ID for the probe function
         ALPROTO_NTP = alproto;
-        if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+        if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
     } else {

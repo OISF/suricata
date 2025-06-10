@@ -39,7 +39,8 @@ use std::ffi::CString;
 use std::fmt;
 use std::io;
 use suricata_sys::sys::{
-    AppLayerParserState, AppProto, SCAppLayerForceProtocolChange, SCAppLayerParserRegisterLogger,
+    AppLayerParserState, AppProto, SCAppLayerForceProtocolChange,
+    SCAppLayerParserConfParserEnabled, SCAppLayerParserRegisterLogger,
     SCAppLayerProtoDetectConfProtoDetectionEnabled,
 };
 
@@ -1574,7 +1575,7 @@ pub unsafe extern "C" fn SCRegisterHttp2Parser() {
     if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_HTTP2 = alproto;
-        if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+        if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
         if let Some(val) = conf_get("app-layer.protocols.http2.max-streams") {
@@ -1611,7 +1612,7 @@ pub unsafe extern "C" fn SCRegisterHttp2Parser() {
     if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_DOH2 = alproto;
-        if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+        if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         } else {
             SCLogWarning!("DOH2 is not meant to be detection-only.");
