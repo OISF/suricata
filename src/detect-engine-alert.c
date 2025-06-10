@@ -290,15 +290,12 @@ static inline int PacketAlertSetContext(
     if (det_ctx->json_content_len) {
         /* We have some JSON attached in the current detection so let's try
            to see if some need to be used for current signature. */
-        struct PacketContextData *current_json = pa->json_info;
+        struct PacketContextData *current_json = SCCalloc(1, sizeof(struct PacketContextData));
         if (current_json == NULL) {
-            current_json = SCCalloc(1, sizeof(struct PacketContextData));
-            if (current_json == NULL) {
-                /* Allocation error, let's return now */
-                return -1;
-            }
-            pa->json_info = current_json;
+            /* Allocation error, let's return now */
+            return -1;
         }
+        pa->json_info = current_json;
         for (size_t i = 0; i < det_ctx->json_content_len; i++) {
             if (s == det_ctx->json_content[i].id) {
                 if (current_json->json_string != NULL) {
