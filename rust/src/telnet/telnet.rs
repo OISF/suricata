@@ -23,8 +23,8 @@ use crate::frames::*;
 use std::ffi::CString;
 use nom7::IResult;
 use suricata_sys::sys::{
-    AppLayerParserState, AppProto, SCAppLayerParserStateIssetFlag,
-    SCAppLayerProtoDetectConfProtoDetectionEnabled,
+    AppLayerParserState, AppProto, SCAppLayerParserConfParserEnabled,
+    SCAppLayerParserStateIssetFlag, SCAppLayerProtoDetectConfProtoDetectionEnabled,
 };
 use super::parser;
 
@@ -549,7 +549,7 @@ pub unsafe extern "C" fn SCRegisterTelnetParser() {
     {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_TELNET = alproto;
-        if AppLayerParserConfParserEnabled(
+        if SCAppLayerParserConfParserEnabled(
             ip_proto_str.as_ptr(),
             parser.name,
         ) != 0

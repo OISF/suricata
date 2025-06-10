@@ -31,7 +31,8 @@ use std;
 use std::collections::VecDeque;
 use std::ffi::CString;
 use suricata_sys::sys::{
-    AppLayerParserState, AppProto, SCAppLayerParserSetStreamDepth, SCAppLayerParserStateIssetFlag,
+    AppLayerParserState, AppProto, SCAppLayerParserConfParserEnabled,
+    SCAppLayerParserSetStreamDepth, SCAppLayerParserStateIssetFlag,
     SCAppLayerProtoDetectConfProtoDetectionEnabled, SCAppLayerRequestProtocolTLSUpgrade,
 };
 
@@ -961,7 +962,7 @@ pub unsafe extern "C" fn SCRegisterPgsqlParser() {
     if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_PGSQL = alproto;
-        if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+        if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
         SCLogDebug!("Rust pgsql parser registered.");

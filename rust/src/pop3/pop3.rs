@@ -29,9 +29,9 @@ use std::collections::VecDeque;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_int, c_void};
 use suricata_sys::sys::{
-    AppLayerParserState, AppProto, SCAppLayerParserRegisterLogger, SCAppLayerParserSetStreamDepth,
-    SCAppLayerParserStateIssetFlag, SCAppLayerProtoDetectConfProtoDetectionEnabled,
-    SCAppLayerRequestProtocolTLSUpgrade,
+    AppLayerParserState, AppProto, SCAppLayerParserConfParserEnabled,
+    SCAppLayerParserRegisterLogger, SCAppLayerParserSetStreamDepth, SCAppLayerParserStateIssetFlag,
+    SCAppLayerProtoDetectConfProtoDetectionEnabled, SCAppLayerRequestProtocolTLSUpgrade,
 };
 
 use sawp::error::Error as SawpError;
@@ -518,7 +518,7 @@ pub unsafe extern "C" fn SCRegisterPop3Parser() {
     if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_POP3 = alproto;
-        if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+        if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
         let retval = conf_get("app-layer.protocols.pop3.stream-depth");

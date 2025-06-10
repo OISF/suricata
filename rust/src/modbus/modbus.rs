@@ -26,7 +26,8 @@ use sawp::parser::{Direction, Parse};
 use sawp::probe::{Probe, Status};
 use sawp_modbus::{self, AccessType, ErrorFlags, Flags, Message};
 use suricata_sys::sys::{
-    AppLayerParserState, AppProto, SCAppLayerParserRegisterLogger, SCAppLayerParserStateIssetFlag,
+    AppLayerParserState, AppProto, SCAppLayerParserConfParserEnabled,
+    SCAppLayerParserRegisterLogger, SCAppLayerParserStateIssetFlag,
     SCAppLayerProtoDetectConfProtoDetectionEnabledDefault,
 };
 
@@ -450,7 +451,7 @@ pub unsafe extern "C" fn SCRegisterModbusParser() {
     {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_MODBUS = alproto;
-        if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+        if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
         SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_MODBUS);

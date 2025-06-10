@@ -1873,7 +1873,7 @@ void RegisterSMTPParsers(void)
         return;
     }
 
-    if (AppLayerParserConfParserEnabled("tcp", proto_name)) {
+    if (SCAppLayerParserConfParserEnabled("tcp", proto_name)) {
         AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateAlloc, SMTPStateFree);
 
         AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_SMTP, STREAM_TOSERVER,

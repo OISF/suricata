@@ -35,9 +35,10 @@ use nom7::error::{make_error, ErrorKind};
 
 use lru::LruCache;
 use suricata_sys::sys::{
-    AppLayerParserState, AppProto, SCAppLayerParserSetStreamDepth,
-    SCAppLayerProtoDetectConfProtoDetectionEnabled, SCAppLayerProtoDetectPMRegisterPatternCSwPP,
-    SCAppLayerProtoDetectPPParseConfPorts, SCAppLayerProtoDetectPPRegister,
+    AppLayerParserState, AppProto, SCAppLayerParserConfParserEnabled,
+    SCAppLayerParserSetStreamDepth, SCAppLayerProtoDetectConfProtoDetectionEnabled,
+    SCAppLayerProtoDetectPMRegisterPatternCSwPP, SCAppLayerProtoDetectPPParseConfPorts,
+    SCAppLayerProtoDetectPPRegister,
 };
 use std::num::NonZeroUsize;
 
@@ -2390,7 +2391,7 @@ pub unsafe extern "C" fn SCRegisterSmbParser() {
                                           0, MIN_REC_SIZE, Direction::ToServer as u8, Some(c_smb_probe_tcp), Some(c_smb_probe_tcp));
         }
 
-        if AppLayerParserConfParserEnabled(
+        if SCAppLayerParserConfParserEnabled(
             ip_proto_str.as_ptr(),
             parser.name,
         ) != 0
