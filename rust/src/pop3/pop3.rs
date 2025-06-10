@@ -29,7 +29,7 @@ use std::collections::VecDeque;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_int, c_void};
 use suricata_sys::sys::{
-    AppLayerParserState, AppProto, SCAppLayerParserStateIssetFlag,
+    AppLayerParserState, AppProto, SCAppLayerParserSetStreamDepth, SCAppLayerParserStateIssetFlag,
     SCAppLayerProtoDetectConfProtoDetectionEnabled, SCAppLayerRequestProtocolTLSUpgrade,
 };
 
@@ -525,7 +525,7 @@ pub unsafe extern "C" fn SCRegisterPop3Parser() {
             match get_memval(val) {
                 Ok(retval) => {
                     let stream_depth = retval as u32;
-                    AppLayerParserSetStreamDepth(IPPROTO_TCP, ALPROTO_POP3, stream_depth);
+                    SCAppLayerParserSetStreamDepth(IPPROTO_TCP, ALPROTO_POP3, stream_depth);
                 }
                 Err(_) => {
                     SCLogError!("Invalid depth value");

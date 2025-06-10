@@ -35,9 +35,9 @@ use nom7::error::{make_error, ErrorKind};
 
 use lru::LruCache;
 use suricata_sys::sys::{
-    AppLayerParserState, AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled,
-    SCAppLayerProtoDetectPMRegisterPatternCSwPP, SCAppLayerProtoDetectPPParseConfPorts,
-    SCAppLayerProtoDetectPPRegister,
+    AppLayerParserState, AppProto, SCAppLayerParserSetStreamDepth,
+    SCAppLayerProtoDetectConfProtoDetectionEnabled, SCAppLayerProtoDetectPMRegisterPatternCSwPP,
+    SCAppLayerProtoDetectPPParseConfPorts, SCAppLayerProtoDetectPPRegister,
 };
 use std::num::NonZeroUsize;
 
@@ -2405,7 +2405,7 @@ pub unsafe extern "C" fn SCRegisterSmbParser() {
                 Err(_) => { SCLogError!("Invalid depth value"); }
             }
         }
-        AppLayerParserSetStreamDepth(IPPROTO_TCP, ALPROTO_SMB, stream_depth);
+        SCAppLayerParserSetStreamDepth(IPPROTO_TCP, ALPROTO_SMB, stream_depth);
         let retval = conf_get("app-layer.protocols.smb.max-read-size");
         if let Some(val) = retval {
             match get_memval(val) {
