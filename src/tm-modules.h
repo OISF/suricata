@@ -35,6 +35,12 @@
 #define TM_FLAG_LOGAPI_TM       0x10 /**< TM is run by Log API */
 #define TM_FLAG_MANAGEMENT_TM   0x20
 #define TM_FLAG_COMMAND_TM      0x40
+#define TM_FLAG_VERDICT_TM      0x80
+
+/* all packet modules combined */
+#define TM_FLAG_PACKET_ALL                                                                         \
+    (TM_FLAG_RECEIVE_TM | TM_FLAG_DECODE_TM | TM_FLAG_STREAM_TM | TM_FLAG_DETECT_TM |              \
+            TM_FLAG_VERDICT_TM)
 
 typedef TmEcode (*ThreadInitFunc)(ThreadVars *, const void *, void **);
 typedef TmEcode (*ThreadDeinitFunc)(ThreadVars *, void *);

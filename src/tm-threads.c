@@ -507,7 +507,7 @@ static void *TmThreadsSlotVar(void *td)
             TmThreadsHandleInjectedPackets(tv);
         }
 
-        if (TmThreadsCheckFlag(tv, THV_REQ_FLOW_LOOP)) {
+        if (TmThreadsCheckFlag(tv, (THV_KILL | THV_REQ_FLOW_LOOP))) {
             run = 0;
         }
     }
@@ -1482,10 +1482,21 @@ static void TmThreadDebugValidateNoMorePackets(void)
 #endif
 }
 
+/** \internal
+ *  \brief check if a thread has any of the modules indicated by TM_FLAG_*
+ *  \param tv thread
+ *  \param flags TM_FLAG_*'s
+ *  \retval bool true if at least on of the flags is present */
+static inline bool CheckModuleFlags(const ThreadVars *tv, const uint8_t flags)
+{
+    return (tv->tmm_flags & flags) != 0;
+}
+
 /**
  * \brief Disable all packet threads
  * \param set flag to set
  * \param check flag to check
+ * \param module_flags bitflags of TmModule's to apply the `set` flag to.
  *
  * Support 2 stages in shutting down the packet threads:
  * 1. set THV_REQ_FLOW_LOOP and wait for THV_FLOW_LOOP
@@ -1493,8 +1504,11 @@ static void TmThreadDebugValidateNoMorePackets(void)
  *
  * During step 1 the main loop is exited, and the flow loop logic is entered.
  * During step 2, the flow loop logic is done and the thread closes.
+ *
+ * `module_flags` limits which threads are disabled
  */
-void TmThreadDisablePacketThreads(const uint16_t set, const uint16_t check)
+void TmThreadDisablePacketThreads(
+        const uint16_t set, const uint16_t check, const uint8_t module_flags)
 {
     struct timeval start_ts;
     struct timeval cur_ts;
@@ -1518,6 +1532,11 @@ again:
     /* loop through the packet threads and kill them */
     SCMutexLock(&tv_root_lock);
     for (ThreadVars *tv = tv_root[TVT_PPT]; tv != NULL; tv = tv->next) {
+        /* only set flow worker threads to THV_REQ_FLOW_LOOP */
+        if (!CheckModuleFlags(tv, module_flags)) {
+            SCLogDebug("%s does not have any of the modules %02x, skip", tv->name, module_flags);
+            continue;
+        }
         TmThreadsSetFlag(tv, set);
 
         /* separate worker threads (autofp) will still wait at their
@@ -1533,8 +1552,9 @@ again:
         }
 
         /* wait for it to reach the expected state */
-        while (!TmThreadsCheckFlag(tv, check)) {
+        if (!TmThreadsCheckFlag(tv, check)) {
             SCMutexUnlock(&tv_root_lock);
+            SCLogDebug("%s did not reach state %u, again", tv->name, check);
 
             SleepMsec(1);
             goto again;
