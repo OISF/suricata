@@ -1566,7 +1566,7 @@ void AppLayerParserTriggerRawStreamInspection(Flow *f, int direction)
     SCReturn;
 }
 
-void AppLayerParserSetStreamDepth(uint8_t ipproto, AppProto alproto, uint32_t stream_depth)
+void SCAppLayerParserSetStreamDepth(uint8_t ipproto, AppProto alproto, uint32_t stream_depth)
 {
     SCEnter();
 
