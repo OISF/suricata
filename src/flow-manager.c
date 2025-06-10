@@ -841,7 +841,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
     while (!TimeModeIsReady()) {
         if (suricata_ctl_flags != 0)
             return TM_ECODE_OK;
-        usleep(10);
+        SleepUsec(10);
     }
     bool run = TmThreadsWaitForUnpause(th_v);
 
@@ -965,7 +965,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
         }
 
         if (emerg || !time_is_live) {
-            usleep(250);
+            SleepUsec(250);
         } else {
             struct timeval cond_tv;
             gettimeofday(&cond_tv, NULL);
@@ -1145,7 +1145,7 @@ static TmEcode FlowRecycler(ThreadVars *th_v, void *thread_data)
 
         const bool emerg = (SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY);
         if (emerg || !time_is_live) {
-            usleep(250);
+            SleepUsec(250);
         } else {
             struct timeval cond_tv;
             gettimeofday(&cond_tv, NULL);
@@ -1240,7 +1240,7 @@ void FlowDisableFlowRecyclerThread(void)
     /* make sure all flows are processed */
     do {
         FlowWakeupFlowRecyclerThread();
-        usleep(10);
+        SleepUsec(10);
     } while (!FlowRecyclerReadyToShutdown());
 
     SCMutexLock(&tv_root_lock);

@@ -100,7 +100,7 @@ retry:
             threads_done = no_of_detect_tvs;
             break;
         }
-        usleep(1000);
+        SleepMsec(1);
         if (fw_threads[i] && FlowWorkerGetFlushAck(fw_threads[i])) {
             SCLogDebug("thread slot %d has ack'd flush request", i);
             threads_done++;
@@ -164,7 +164,7 @@ static void *LogFlusherWakeupThread(void *arg)
     uint64_t worker_flush_count = 0;
     bool run = TmThreadsWaitForUnpause(tv_local);
     while (run) {
-        usleep(log_flush_sleep_time * 1000);
+        SleepMsec(log_flush_sleep_time);
 
         if (++wait_count == flush_wait_count) {
             worker_flush_count++;
