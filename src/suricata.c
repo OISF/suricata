@@ -2290,12 +2290,13 @@ void PostRunDeinit(const int runmode, struct timeval *start_time)
     FlowDisableFlowManagerThread();
     /* disable capture */
     TmThreadDisableReceiveThreads();
-    /* tell packet threads to enter flow timeout loop */
-    TmThreadDisablePacketThreads(THV_REQ_FLOW_LOOP, THV_FLOW_LOOP);
+    /* tell relevant packet threads to enter flow timeout loop */
+    TmThreadDisablePacketThreads(
+            THV_REQ_FLOW_LOOP, THV_FLOW_LOOP, (TM_FLAG_RECEIVE_TM | TM_FLAG_DETECT_TM));
     /* run cleanup on the flow hash */
     FlowWorkToDoCleanup();
-    /* gracefully shut down packet threads */
-    TmThreadDisablePacketThreads(THV_KILL, THV_RUNNING_DONE);
+    /* gracefully shut down all packet threads */
+    TmThreadDisablePacketThreads(THV_KILL, THV_RUNNING_DONE, TM_FLAG_PACKET_ALL);
     SCPrintElapsedTime(start_time);
     FlowDisableFlowRecyclerThread();
 
