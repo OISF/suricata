@@ -27,7 +27,7 @@ use std::collections::VecDeque;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_int, c_void};
 use suricata::applayer::{
-    state_get_tx_iterator, AppLayerEvent, AppLayerParserConfParserEnabled, AppLayerRegisterParser,
+    state_get_tx_iterator, AppLayerEvent, AppLayerRegisterParser,
     AppLayerRegisterProtocolDetection, AppLayerResult, AppLayerStateData, AppLayerTxData,
     RustParser, State, StreamSlice, Transaction, APP_LAYER_PARSER_EOF_TC, APP_LAYER_PARSER_EOF_TS,
     APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
@@ -38,8 +38,9 @@ use suricata::{
     build_slice, cast_pointer, export_state_data_get, export_tx_data_get, SCLogError, SCLogNotice,
 };
 use suricata_sys::sys::{
-    AppLayerParserState, AppProto, Flow, SCAppLayerParserRegisterLogger,
-    SCAppLayerParserStateIssetFlag, SCAppLayerProtoDetectConfProtoDetectionEnabled,
+    AppLayerParserState, AppProto, Flow, SCAppLayerParserConfParserEnabled,
+    SCAppLayerParserRegisterLogger, SCAppLayerParserStateIssetFlag,
+    SCAppLayerProtoDetectConfProtoDetectionEnabled,
 };
 
 static mut TEMPLATE_MAX_TX: usize = 256;
@@ -413,7 +414,7 @@ pub(super) unsafe extern "C" fn template_register_parser() {
     if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_TEMPLATE = alproto;
-        if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+        if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
         if let Some(val) = conf_get("app-layer.protocols.template.max-tx") {

@@ -26,7 +26,10 @@ use crate::dns::dns;
 use crate::flow::Flow;
 
 use suricata_sys::sys::DetectEngineThreadCtx;
-use suricata_sys::sys::{AppProto, AppProtoEnum, SCAppLayerProtoDetectConfProtoDetectionEnabled};
+use suricata_sys::sys::{
+    AppProto, AppProtoEnum, SCAppLayerParserConfParserEnabled,
+    SCAppLayerProtoDetectConfProtoDetectionEnabled,
+};
 
 pub(super) static mut ALPROTO_MDNS: AppProto = ALPROTO_UNKNOWN;
 
@@ -124,7 +127,7 @@ pub unsafe extern "C" fn SCRegisterMdnsParser() {
     if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_MDNS = alproto;
-        if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+        if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
     }

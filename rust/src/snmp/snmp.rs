@@ -35,7 +35,7 @@ use nom7::error::{ErrorKind, make_error};
 use suricata_sys::sys::{
     AppLayerParserState, AppProto, AppProtoNewProtoFromString, EveJsonTxLoggerRegistrationData,
     SCAppLayerParserRegisterLogger, SCAppLayerProtoDetectConfProtoDetectionEnabled,
-    SCOutputEvePreRegisterLogger, SCOutputJsonLogDirection, SCSigTablePreRegister,
+    SCOutputEvePreRegisterLogger, SCOutputJsonLogDirection, SCSigTablePreRegister, SCAppLayerParserConfParserEnabled,
 };
 
 #[derive(AppLayerEvent)]
@@ -425,14 +425,14 @@ pub unsafe extern "C" fn SCRegisterSnmpParser() {
     if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         // port 161
         _ = AppLayerRegisterProtocolDetection(&parser, 1);
-        if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+        if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, ALPROTO_SNMP);
         }
         // port 162
         let default_port_traps = CString::new("162").unwrap();
         parser.default_port = default_port_traps.as_ptr();
         let _ = AppLayerRegisterProtocolDetection(&parser, 1);
-        if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+        if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, ALPROTO_SNMP);
         }
         SCAppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_SNMP);

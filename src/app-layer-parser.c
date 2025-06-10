@@ -342,8 +342,7 @@ void AppLayerParserThreadCtxFree(AppLayerParserThreadCtx *tctx)
 /** \brief check if a parser is enabled in the config
  *  Returns enabled always if: were running unittests
  */
-int AppLayerParserConfParserEnabled(const char *ipproto,
-                                    const char *alproto_name)
+int SCAppLayerParserConfParserEnabled(const char *ipproto, const char *alproto_name)
 {
     SCEnter();
 

@@ -3216,7 +3216,7 @@ void RegisterSSLParsers(void)
         return;
     }
 
-    if (AppLayerParserConfParserEnabled("tcp", proto_name)) {
+    if (SCAppLayerParserConfParserEnabled("tcp", proto_name)) {
         AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_TLS, STREAM_TOSERVER,
                                      SSLParseClientRecord);
 

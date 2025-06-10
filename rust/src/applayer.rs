@@ -535,11 +535,6 @@ pub const _APP_LAYER_TX_INSPECTED_TS: u8 = BIT_U8!(2);
 pub const _APP_LAYER_TX_INSPECTED_TC: u8 = BIT_U8!(3);
 pub const APP_LAYER_TX_ACCEPT: u8 = BIT_U8!(4);
 
-/// cbindgen:ignore
-extern "C" {
-    pub fn AppLayerParserConfParserEnabled(ipproto: *const c_char, proto: *const c_char) -> c_int;
-}
-
 #[repr(C)]
 pub struct AppLayerGetTxIterTuple {
     tx_ptr: *mut std::os::raw::c_void,

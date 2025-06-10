@@ -123,8 +123,7 @@ void AppLayerParserThreadCtxFree(AppLayerParserThreadCtx *tctx);
  * \retval 1 If enabled.
  * \retval 0 If disabled.
  */
-int AppLayerParserConfParserEnabled(const char *ipproto,
-                                    const char *alproto_name);
+int SCAppLayerParserConfParserEnabled(const char *ipproto, const char *alproto_name);
 
 enum ExceptionPolicy AppLayerErrorGetExceptionPolicy(void);
 
