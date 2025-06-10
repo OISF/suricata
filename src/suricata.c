@@ -2292,7 +2292,7 @@ void PostRunDeinit(const int runmode, struct timeval *start_time)
     TmThreadDisableReceiveThreads();
     /* tell relevant packet threads to enter flow timeout loop */
     TmThreadDisablePacketThreads(
-            THV_REQ_FLOW_LOOP, THV_FLOW_LOOP, (TM_FLAG_RECEIVE_TM | TM_FLAG_DETECT_TM));
+            THV_REQ_FLOW_LOOP, THV_FLOW_LOOP, (TM_FLAG_RECEIVE_TM | TM_FLAG_FLOWWORKER_TM));
     /* run cleanup on the flow hash */
     FlowWorkToDoCleanup();
     /* gracefully shut down all packet threads */

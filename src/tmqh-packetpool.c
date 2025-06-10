@@ -465,7 +465,7 @@ void PacketPoolPostRunmodes(void)
                    "must be at least %d",
                 RESERVED_PACKETS);
     }
-    uint32_t threads = TmThreadCountThreadsByTmmFlags(TM_FLAG_DETECT_TM);
+    uint32_t threads = TmThreadCountThreadsByTmmFlags(TM_FLAG_FLOWWORKER_TM);
     if (threads == 0)
         return;
 
