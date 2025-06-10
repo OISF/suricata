@@ -1256,8 +1256,7 @@ static int AppLayerProtoDetectPMMapSignatures(AppLayerProtoDetectPMCtx *ctx)
                 s->id, s->cd->offset, s->cd->depth);
 
         if (s->cd->flags & DETECT_CONTENT_NOCASE) {
-            mpm_ret = MpmAddPatternCI(&ctx->mpm_ctx,
-                    s->cd->content, s->cd->content_len,
+            mpm_ret = SCMpmAddPatternCI(&ctx->mpm_ctx, s->cd->content, s->cd->content_len,
                     s->cd->offset, s->cd->depth, s->cd->id, s->id, 0);
             if (mpm_ret < 0)
                 goto error;

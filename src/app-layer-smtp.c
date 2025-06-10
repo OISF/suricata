@@ -1630,9 +1630,8 @@ static void SMTPSetMpmState(void)
     for (i = 0; i < sizeof(smtp_reply_map)/sizeof(SCEnumCharMap) - 1; i++) {
         SCEnumCharMap *map = &smtp_reply_map[i];
         /* The third argument is 3, because reply code is always 3 bytes. */
-        MpmAddPatternCI(smtp_mpm_ctx, (uint8_t *)map->enum_name, 3,
-                        0 /* defunct */, 0 /* defunct */,
-                        i /* pattern id */, i /* rule id */ , 0 /* no flags */);
+        SCMpmAddPatternCI(smtp_mpm_ctx, (uint8_t *)map->enum_name, 3, 0 /* defunct */,
+                0 /* defunct */, i /* pattern id */, i /* rule id */, 0 /* no flags */);
     }
 
     mpm_table[SMTP_MPM].Prepare(NULL, smtp_mpm_ctx);

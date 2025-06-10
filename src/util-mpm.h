@@ -25,7 +25,9 @@
 #define SURICATA_UTIL_MPM_H
 
 #include "app-layer-protos.h"
-#include "util-prefilter.h"
+// forward declaration for bindgen
+#define SigIntId uint32_t
+typedef struct PrefilterRuleStore_ PrefilterRuleStore;
 
 #define MPM_INIT_HASH_SIZE 65536
 
@@ -170,7 +172,8 @@ typedef struct MpmTableElmt_ {
      *  \param flags pattern flags
      */
     int  (*AddPattern)(struct MpmCtx_ *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, SigIntId, uint8_t);
-    int  (*AddPatternNocase)(struct MpmCtx_ *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, SigIntId, uint8_t);
+    int (*AddPatternNocase)(struct MpmCtx_ *, const uint8_t *, uint16_t, uint16_t, uint16_t,
+            uint32_t, SigIntId, uint8_t);
     int (*Prepare)(MpmConfig *, struct MpmCtx_ *);
     int (*CacheRuleset)(MpmConfig *);
     /** \retval cnt number of patterns that matches: once per pattern max. */
@@ -205,14 +208,12 @@ void MpmDestroyThreadCtx(MpmThreadCtx *mpm_thread_ctx, const uint16_t matcher);
 int MpmAddPatternCS(struct MpmCtx_ *mpm_ctx, uint8_t *pat, uint16_t patlen,
                     uint16_t offset, uint16_t depth,
                     uint32_t pid, SigIntId sid, uint8_t flags);
-int MpmAddPatternCI(struct MpmCtx_ *mpm_ctx, uint8_t *pat, uint16_t patlen,
-                    uint16_t offset, uint16_t depth,
-                    uint32_t pid, SigIntId sid, uint8_t flags);
+int SCMpmAddPatternCI(MpmCtx *mpm_ctx, const uint8_t *pat, uint16_t patlen, uint16_t offset,
+        uint16_t depth, uint32_t pid, SigIntId sid, uint8_t flags);
 
 void MpmFreePattern(MpmCtx *mpm_ctx, MpmPattern *p);
 
-int MpmAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
-                            uint16_t offset, uint16_t depth, uint32_t pid,
-                            SigIntId sid, uint8_t flags);
+int MpmAddPattern(MpmCtx *mpm_ctx, const uint8_t *pat, uint16_t patlen, uint16_t offset,
+        uint16_t depth, uint32_t pid, SigIntId sid, uint8_t flags);
 
 #endif /* SURICATA_UTIL_MPM_H */
