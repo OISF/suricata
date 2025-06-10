@@ -16,14 +16,14 @@
  */
 
 use std;
-use std::ptr;
 use std::ffi::{CStr, CString};
 use std::os::raw::{c_char, c_void};
+use std::ptr;
 
 use crate::conf::{conf_get, get_memval};
-use crate::core::*;
 use crate::ftp::constant::*;
 use lazy_static::lazy_static;
+use suricata_sys::sys::{MpmCtx, SCMpmAddPatternCI};
 
 #[repr(C)]
 pub struct DetectFtpModeData {
@@ -133,14 +133,14 @@ pub unsafe extern "C" fn SCGetFtpCommandInfo(
 
 #[allow(non_snake_case)]
 #[no_mangle]
-pub unsafe extern "C" fn SCFTPSetMpmState(ctx: *const c_void) {
+pub unsafe extern "C" fn SCFTPSetMpmState(ctx: *mut MpmCtx) {
     for index in 0..FTP_COMMANDS.len() {
         let name_ptr = FTP_COMMANDS[index].command_name.as_ptr();
         let len = FTP_COMMANDS[index].command_length;
         if len > 0 {
-            MpmAddPatternCI(
+            SCMpmAddPatternCI(
                 ctx,
-                name_ptr,
+                name_ptr as *const u8,
                 len as u16,
                 0,
                 0,
@@ -229,7 +229,9 @@ pub unsafe extern "C" fn SCFTPGetConfigValues(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCFTPParseReplyReceived(c_str: *const c_char) -> *mut DetectFtpReplyReceivedData {
+pub unsafe extern "C" fn SCFTPParseReplyReceived(
+    c_str: *const c_char,
+) -> *mut DetectFtpReplyReceivedData {
     if c_str.is_null() {
         return ptr::null_mut();
     }
@@ -241,13 +243,15 @@ pub unsafe extern "C" fn SCFTPParseReplyReceived(c_str: *const c_char) -> *mut D
 
     // Check for case-insensitive match
     let received_val = match input_str.trim().to_ascii_lowercase().as_str() {
-        "true" | "1" | "yes" | "on"  => true,
-        "false" | "0" | "no" | "off"=> false,
+        "true" | "1" | "yes" | "on" => true,
+        "false" | "0" | "no" | "off" => false,
         _ => return ptr::null_mut(), // invalid input
     };
 
     // Return a pointer to a heap-allocated struct
-    let boxed = Box::new(DetectFtpReplyReceivedData { received: received_val });
+    let boxed = Box::new(DetectFtpReplyReceivedData {
+        received: received_val,
+    });
     Box::into_raw(boxed)
 }
 
