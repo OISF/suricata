@@ -698,3 +698,6 @@ pub type AppLayerParserState = AppLayerParserState_;
 extern "C" {
     pub fn SCAppLayerParserStateSetFlag(pstate: *mut AppLayerParserState, flag: u16);
 }
+extern "C" {
+    pub fn SCAppLayerParserStateIssetFlag(pstate: *mut AppLayerParserState, flag: u16) -> u16;
+}

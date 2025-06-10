@@ -98,7 +98,7 @@ static AppLayerResult TFTPParseRequest(Flow *f, void *state, AppLayerParserState
 
     /* Likely connection closed, we can just return here. */
     if ((input == NULL || input_len == 0) &&
-        AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS)) {
+            SCAppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS)) {
         SCReturnStruct(APP_LAYER_OK);
     }
 

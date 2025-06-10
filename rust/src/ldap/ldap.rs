@@ -29,7 +29,8 @@ use std::collections::VecDeque;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_int, c_void};
 use suricata_sys::sys::{
-    AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled, SCAppLayerRequestProtocolTLSUpgrade,
+    AppLayerParserState, AppProto, SCAppLayerParserStateIssetFlag,
+    SCAppLayerProtoDetectConfProtoDetectionEnabled, SCAppLayerRequestProtocolTLSUpgrade,
 };
 
 use crate::ldap::types::*;
@@ -178,7 +179,8 @@ impl LdapState {
     fn find_request(&mut self, message_id: MessageID) -> Option<&mut LdapTransaction> {
         self.transactions.iter_mut().find(|tx| {
             tx.request
-                .as_ref().is_some_and(|req| req.message_id == message_id)
+                .as_ref()
+                .is_some_and(|req| req.message_id == message_id)
         })
     }
 
@@ -577,11 +579,11 @@ unsafe extern "C" fn ldap_state_tx_free(state: *mut c_void, tx_id: u64) {
 }
 
 unsafe extern "C" fn ldap_parse_request(
-    flow: *mut Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
-    _data: *const c_void,
+    flow: *mut Flow, state: *mut c_void, pstate: *mut AppLayerParserState,
+    stream_slice: StreamSlice, _data: *const c_void,
 ) -> AppLayerResult {
     if stream_slice.is_empty() {
-        if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0 {
+        if SCAppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0 {
             return AppLayerResult::ok();
         } else {
             return AppLayerResult::err();
@@ -598,11 +600,11 @@ unsafe extern "C" fn ldap_parse_request(
 }
 
 unsafe extern "C" fn ldap_parse_response(
-    flow: *mut Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
-    _data: *const c_void,
+    flow: *mut Flow, state: *mut c_void, pstate: *mut AppLayerParserState,
+    stream_slice: StreamSlice, _data: *const c_void,
 ) -> AppLayerResult {
     if stream_slice.is_empty() {
-        if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0 {
+        if SCAppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0 {
             return AppLayerResult::ok();
         } else {
             return AppLayerResult::err();
@@ -618,16 +620,16 @@ unsafe extern "C" fn ldap_parse_response(
 }
 
 unsafe extern "C" fn ldap_parse_request_udp(
-    flow: *mut Flow, state: *mut c_void, _pstate: *mut c_void, stream_slice: StreamSlice,
-    _data: *const c_void,
+    flow: *mut Flow, state: *mut c_void, _pstate: *mut AppLayerParserState,
+    stream_slice: StreamSlice, _data: *const c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, LdapState);
     state.parse_request_udp(flow, stream_slice)
 }
 
 unsafe extern "C" fn ldap_parse_response_udp(
-    flow: *mut Flow, state: *mut c_void, _pstate: *mut c_void, stream_slice: StreamSlice,
-    _data: *const c_void,
+    flow: *mut Flow, state: *mut c_void, _pstate: *mut AppLayerParserState,
+    stream_slice: StreamSlice, _data: *const c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, LdapState);
     state.parse_response_udp(flow, stream_slice)

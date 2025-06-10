@@ -303,7 +303,7 @@ void AppLayerParserStateCleanup(const Flow *f, void *alstate, AppLayerParserStat
 void AppLayerParserRegisterProtocolParsers(void);
 
 void SCAppLayerParserStateSetFlag(AppLayerParserState *pstate, uint16_t flag);
-uint16_t AppLayerParserStateIssetFlag(AppLayerParserState *pstate, uint16_t flag);
+uint16_t SCAppLayerParserStateIssetFlag(AppLayerParserState *pstate, uint16_t flag);
 
 AppLayerParserState *AppLayerParserStateAlloc(void);
 void AppLayerParserStateFree(AppLayerParserState *pstate);

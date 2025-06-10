@@ -373,7 +373,7 @@ static inline void FlowWorkerStreamTCPUpdate(ThreadVars *tv, FlowWorkerThreadDat
     // this is the first packet that sets no payload inspection
     bool setting_nopayload =
             p->flow->alparser &&
-            AppLayerParserStateIssetFlag(p->flow->alparser, APP_LAYER_PARSER_NO_INSPECTION) &&
+            SCAppLayerParserStateIssetFlag(p->flow->alparser, APP_LAYER_PARSER_NO_INSPECTION) &&
             !(p->flags & PKT_NOPAYLOAD_INSPECTION);
     if (FlowChangeProto(p->flow) || setting_nopayload) {
         StreamTcpDetectLogFlush(tv, fw->stream_thread, p->flow, p, &fw->pq);

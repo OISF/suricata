@@ -30,7 +30,9 @@ use nom7::Needed;
 
 use flate2::Decompress;
 use flate2::FlushDecompress;
-use suricata_sys::sys::{AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled};
+use suricata_sys::sys::{
+    AppLayerParserState, AppProto, SCAppLayerProtoDetectConfProtoDetectionEnabled,
+};
 
 use std;
 use std::collections::VecDeque;
@@ -344,16 +346,16 @@ unsafe extern "C" fn websocket_state_tx_free(state: *mut c_void, tx_id: u64) {
 }
 
 unsafe extern "C" fn websocket_parse_request(
-    flow: *mut Flow, state: *mut c_void, _pstate: *mut c_void, stream_slice: StreamSlice,
-    _data: *const c_void,
+    flow: *mut Flow, state: *mut c_void, _pstate: *mut AppLayerParserState,
+    stream_slice: StreamSlice, _data: *const c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, WebSocketState);
     state.parse(stream_slice, Direction::ToServer, flow)
 }
 
 unsafe extern "C" fn websocket_parse_response(
-    flow: *mut Flow, state: *mut c_void, _pstate: *mut c_void, stream_slice: StreamSlice,
-    _data: *const c_void,
+    flow: *mut Flow, state: *mut c_void, _pstate: *mut AppLayerParserState,
+    stream_slice: StreamSlice, _data: *const c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, WebSocketState);
     state.parse(stream_slice, Direction::ToClient, flow)
