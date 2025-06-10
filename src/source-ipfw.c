@@ -76,6 +76,7 @@ void TmModuleVerdictIPFWRegister (void)
     tmm_modules[TMM_VERDICTIPFW].Func = NULL;
     tmm_modules[TMM_VERDICTIPFW].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_VERDICTIPFW].ThreadDeinit = NULL;
+    tmm_modules[TMM_VERDICTIPFW].flags = TM_FLAG_VERDICT_TM;
 }
 
 void TmModuleDecodeIPFWRegister (void)
@@ -181,6 +182,7 @@ void TmModuleVerdictIPFWRegister (void)
     tmm_modules[TMM_VERDICTIPFW].ThreadDeinit = VerdictIPFWThreadDeinit;
     tmm_modules[TMM_VERDICTIPFW].cap_flags = SC_CAP_NET_ADMIN | SC_CAP_NET_RAW |
                                              SC_CAP_NET_BIND_SERVICE; /** \todo untested */
+    tmm_modules[TMM_VERDICTIPFW].flags = TM_FLAG_VERDICT_TM;
 }
 
 /**

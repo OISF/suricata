@@ -121,7 +121,8 @@ void TmThreadWaitForFlag(ThreadVars *, uint32_t);
 
 TmEcode TmThreadsSlotVarRun (ThreadVars *tv, Packet *p, TmSlot *slot);
 
-void TmThreadDisablePacketThreads(const uint16_t set, const uint16_t check);
+void TmThreadDisablePacketThreads(
+        const uint16_t set, const uint16_t check, const uint8_t module_flags);
 void TmThreadDisableReceiveThreads(void);
 
 uint32_t TmThreadCountThreadsByTmmFlags(uint8_t flags);
