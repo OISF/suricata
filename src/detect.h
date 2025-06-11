@@ -327,8 +327,7 @@ typedef struct DetectPort_ {
 #define FILE_SIG_NEED_SIZE          0x80
 
 /* Detection Engine flags */
-#define DE_QUIET           0x01     /**< DE is quiet (esp for unittests) */
-#define DE_HAS_FIREWALL    0x02     /**< firewall rules loaded, default policies active */
+#define DE_QUIET 0x01 /**< DE is quiet (esp for unittests) */
 
 typedef struct IPOnlyCIDRItem_ {
     /* address data for this item */
