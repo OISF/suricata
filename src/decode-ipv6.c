@@ -34,8 +34,38 @@
 #include "decode-ipv6.h"
 #include "decode.h"
 #include "defrag.h"
+#include "flow-hash.h"
 #include "util-print.h"
 #include "util-validate.h"
+
+static bool g_ipv4_in_ipv6_parent_flow_enabled = false;
+static bool g_ipv6_in_ipv6_parent_flow_enabled = false;
+
+void DecodeIPV4InIPV6Config(void)
+{
+    int enabled = 0;
+
+    if (ConfGetBool("decoder.ipv6.ipip-ipv4.track-parent-flow", &enabled) == 1) {
+        if (enabled) {
+            g_ipv4_in_ipv6_parent_flow_enabled = true;
+        } else {
+            g_ipv4_in_ipv6_parent_flow_enabled = false;
+        }
+    }
+}
+
+void DecodeIPV6InIPV6Config(void)
+{
+    int enabled = 0;
+
+    if (ConfGetBool("decoder.ipv6.ipip-ipv6.track-parent-flow", &enabled) == 1) {
+        if (enabled) {
+            g_ipv6_in_ipv6_parent_flow_enabled = true;
+        } else {
+            g_ipv6_in_ipv6_parent_flow_enabled = false;
+        }
+    }
+}
 
 /**
  * \brief Function to decode IPv4 in IPv6 packets
@@ -54,7 +84,9 @@ static void DecodeIPv4inIPv6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, c
             PKT_SET_SRC(tp, PKT_SRC_DECODER_IPV6);
             PacketEnqueueNoLock(&tv->decode_pq,tp);
             StatsIncr(tv, dtv->counter_ipv4inipv6);
-            return;
+        }
+        if (g_ipv4_in_ipv6_parent_flow_enabled) {
+            FlowSetupPacket(p);
         }
     } else {
         ENGINE_SET_EVENT(p, IPV4_IN_IPV6_WRONG_IP_VER);
@@ -80,6 +112,9 @@ static int DecodeIP6inIP6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             PKT_SET_SRC(tp, PKT_SRC_DECODER_IPV6);
             PacketEnqueueNoLock(&tv->decode_pq,tp);
             StatsIncr(tv, dtv->counter_ipv6inipv6);
+        }
+        if (g_ipv6_in_ipv6_parent_flow_enabled) {
+            FlowSetupPacket(p);
         }
     } else {
         ENGINE_SET_EVENT(p, IPV6_IN_IPV6_WRONG_IP_VER);
