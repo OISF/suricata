@@ -2788,6 +2788,28 @@ Using this default configuration, Teredo detection will run on UDP port
 3544. If the `ports` parameter is missing, or set to `any`, all ports will be
 inspected for possible presence of Teredo.
 
+IP-in-IP
+~~~~~~~~
+
+IPv6
+^^^^
+
+By default, for IPv4 over IPv6 tunneling, the parent flow is not set up, as this
+can lead to discrepancies in alerts and flows detected. This enable this setting,
+change::
+
+    decoder:
+      ipv6:
+        ipip-ipv4:
+          parent-flow: true
+
+The same is true for IPv6 over IPv6. To enable parent flow setting in this case::
+
+    decoder:
+      ipv6:
+        ipip-ipv6:
+          parent-flow: true
+
 Advanced Options
 ----------------
 

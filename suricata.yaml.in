@@ -1672,6 +1672,16 @@ decoder:
   # maximum number of decoder layers for a packet
   # max-layers: 16
 
+  # Set parent flow for packets seen in IP-in-IP tunneling for ipv4 or ipv6
+  # over ipv6.
+  # Disabled by default, as these will impact number of alerts seen, as well as
+  # number of flows.
+  # ipv6:
+  #   ipip-ipv4:
+  #     parent-flow: true   # disabled by default
+  #   ipip-ipv6:
+  #     parent-flow: true   # disabled by default
+
 ##
 ## Performance tuning and profiling
 ##
