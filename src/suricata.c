@@ -232,16 +232,28 @@ int EngineModeIsUnknown(void)
     return (g_engine_mode == ENGINE_MODE_UNKNOWN);
 }
 
+int EngineModeIsFirewall(void)
+{
+    DEBUG_VALIDATE_BUG_ON(g_engine_mode == ENGINE_MODE_UNKNOWN);
+    return (g_engine_mode == ENGINE_MODE_FIREWALL);
+}
+
+/* this returns true for firewall mode as well */
 int EngineModeIsIPS(void)
 {
     DEBUG_VALIDATE_BUG_ON(g_engine_mode == ENGINE_MODE_UNKNOWN);
-    return (g_engine_mode == ENGINE_MODE_IPS);
+    return (g_engine_mode >= ENGINE_MODE_IPS);
 }
 
 int EngineModeIsIDS(void)
 {
     DEBUG_VALIDATE_BUG_ON(g_engine_mode == ENGINE_MODE_UNKNOWN);
     return (g_engine_mode == ENGINE_MODE_IDS);
+}
+
+void EngineModeSetFirewall(void)
+{
+    g_engine_mode = ENGINE_MODE_FIREWALL;
 }
 
 void EngineModeSetIPS(void)
@@ -619,6 +631,7 @@ static void PrintUsage(const char *progname)
     printf("\t--fatal-unittests                    : enable fatal failure on unittest error\n");
     printf("\t--unittests-coverage                 : display unittest coverage report\n");
 #endif /* UNITTESTS */
+    printf("\t--firewall                           : enable firewall mode\n");
     printf("\t--firewall-rules-exclusive=<path>    : path to firewall rule file loaded "
            "exclusively\n");
     printf("\t--list-app-layer-protos              : list supported app layer protocols\n");
@@ -1336,6 +1349,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
     int conf_test = 0;
     int engine_analysis = 0;
     int ret = TM_ECODE_OK;
+    int firewall_mode = 0;
 
 #ifdef UNITTESTS
     coverage_unittests = 0;
@@ -1420,6 +1434,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
 
         {"qa-skip-prefilter", 0, &g_skip_prefilter, 1 },
 
+        {"firewall", 0, &firewall_mode, 1 },
         {"firewall-rules-exclusive", required_argument, 0, 0},
 
         {"include", required_argument, 0, 0},
@@ -1833,6 +1848,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
                 }
                 suri->firewall_rule_file = optarg;
                 suri->firewall_rule_file_exclusive = true;
+                suri->firewall_mode = true;
             } else {
                 int r = ExceptionSimulationCommandLineParser(
                         (long_opts[option_index]).name, optarg);
@@ -2056,6 +2072,10 @@ TmEcode SCParseCommandLine(int argc, char **argv)
             PrintUsage(argv[0]);
             return TM_ECODE_FAILED;
         }
+    }
+
+    if (firewall_mode) {
+        suri->firewall_mode = true;
     }
 
     if (suri->disabled_detect && (suri->sig_file != NULL || suri->firewall_rule_file != NULL)) {
@@ -2662,6 +2682,21 @@ static void SetupUserMode(SCInstance *suri)
  */
 int PostConfLoadedSetup(SCInstance *suri)
 {
+    int cnf_firewall_enabled = 0;
+    if (SCConfGetBool("firewall.enabled", &cnf_firewall_enabled) == 1) {
+        if (cnf_firewall_enabled == 1) {
+            suri->firewall_mode = true;
+        } else {
+            if (suri->firewall_mode) {
+                FatalError("firewall mode enabled through commandline, but disabled in config");
+            }
+        }
+    }
+    if (suri->firewall_mode) {
+        SCLogWarning("firewall mode is EXPERIMENTAL and subject to change");
+        EngineModeSetFirewall();
+    }
+
     /* load the pattern matchers */
     MpmTableSetup();
     SpmTableSetup();
