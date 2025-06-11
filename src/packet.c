@@ -99,6 +99,7 @@ void PacketReinit(Packet *p)
     p->app_update_direction = 0;
     p->sig_mask = 0;
     p->pkt_hooks = 0;
+    const uint32_t pflags = p->flags;
     p->flags = 0;
     p->flowflags = 0;
     p->pkt_src = 0;
@@ -127,7 +128,8 @@ void PacketReinit(Packet *p)
     p->alerts.suppressed = 0;
     p->alerts.drop.action = 0;
     if (p->alerts.cnt > 0) {
-        PacketAlertRecycle(p->alerts.alerts, p->alerts.cnt);
+        if (pflags & PKT_ALERT_CTX_USED)
+            PacketAlertRecycle(p->alerts.alerts, p->alerts.cnt);
         p->alerts.cnt = 0;
     }
     p->pcap_cnt = 0;
