@@ -1359,6 +1359,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
 
     // clang-format off
     struct option long_opts[] = {
+        {"help", 0, 0, 0},
         {"dump-config", 0, &dump_config, 1},
         {"dump-features", 0, &dump_features, 1},
         {"pfring", optional_argument, 0, 0},
@@ -1451,8 +1452,11 @@ TmEcode SCParseCommandLine(int argc, char **argv)
     while ((opt = getopt_long(argc, argv, short_opts, long_opts, &option_index)) != -1) {
         switch (opt) {
         case 0:
-            if (strcmp((long_opts[option_index]).name , "pfring") == 0 ||
-                strcmp((long_opts[option_index]).name , "pfring-int") == 0) {
+            if (strcmp((long_opts[option_index]).name, "help") == 0) {
+                suri->run_mode = RUNMODE_PRINT_USAGE;
+                return TM_ECODE_OK;
+            } else if (strcmp((long_opts[option_index]).name, "pfring") == 0 ||
+                       strcmp((long_opts[option_index]).name, "pfring-int") == 0) {
 #ifdef HAVE_PFRING
                 /* TODO: Which plugin? */
                 suri->run_mode = RUNMODE_PLUGIN;
@@ -1469,8 +1473,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
                            "to pass --enable-pfring to configure when building.");
                 return TM_ECODE_FAILED;
 #endif /* HAVE_PFRING */
-            }
-            else if(strcmp((long_opts[option_index]).name , "pfring-cluster-id") == 0){
+            } else if (strcmp((long_opts[option_index]).name, "pfring-cluster-id") == 0) {
 #ifdef HAVE_PFRING
                 if (SCConfSetFinal("pfring.cluster-id", optarg) != 1) {
                     SCLogError("failed to set pfring.cluster-id");
@@ -1481,8 +1484,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
                            "to pass --enable-pfring to configure when building.");
                 return TM_ECODE_FAILED;
 #endif /* HAVE_PFRING */
-            }
-            else if(strcmp((long_opts[option_index]).name , "pfring-cluster-type") == 0){
+            } else if (strcmp((long_opts[option_index]).name, "pfring-cluster-type") == 0) {
 #ifdef HAVE_PFRING
                 if (SCConfSetFinal("pfring.cluster-type", optarg) != 1) {
                     SCLogError("failed to set pfring.cluster-type");
@@ -1493,12 +1495,10 @@ TmEcode SCParseCommandLine(int argc, char **argv)
                            "to pass --enable-pfring to configure when building.");
                 return TM_ECODE_FAILED;
 #endif /* HAVE_PFRING */
-            }
-            else if (strcmp((long_opts[option_index]).name , "capture-plugin") == 0){
+            } else if (strcmp((long_opts[option_index]).name, "capture-plugin") == 0) {
                 suri->run_mode = RUNMODE_PLUGIN;
                 suri->capture_plugin_name = optarg;
-            }
-            else if (strcmp((long_opts[option_index]).name , "capture-plugin-args") == 0){
+            } else if (strcmp((long_opts[option_index]).name, "capture-plugin-args") == 0) {
                 suri->capture_plugin_args = optarg;
             } else if (strcmp((long_opts[option_index]).name, "dpdk") == 0) {
                 if (ParseCommandLineDpdk(suri, optarg) != TM_ECODE_OK) {
