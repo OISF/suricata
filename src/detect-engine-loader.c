@@ -323,14 +323,14 @@ static int LoadFirewallRuleFiles(DetectEngineCtx *de_ctx)
         return 0;
     }
 
-    SCConfNode *default_fw_rule_path = SCConfGetNode("firewall-rule-path");
+    SCConfNode *default_fw_rule_path = SCConfGetNode("firewall.rule-path");
     if (default_fw_rule_path == NULL) {
-        SCLogNotice("fw: firewall-rule-path not defined, skip loading firewall rules");
+        SCLogNotice("fw: firewall.rule-path not defined, skip loading firewall rules");
         return 0;
     }
-    SCConfNode *rule_files = SCConfGetNode("firewall-rule-files");
+    SCConfNode *rule_files = SCConfGetNode("firewall.rule-files");
     if (rule_files == NULL) {
-        SCLogNotice("fw: firewall-rule-files not defined, skip loading firewall rules");
+        SCLogNotice("fw: firewall.rule-files not defined, skip loading firewall rules");
         return 0;
     }
 
@@ -340,7 +340,7 @@ static int LoadFirewallRuleFiles(DetectEngineCtx *de_ctx)
         int32_t bad_sigs = 0;
         int32_t skipped_sigs = 0;
 
-        char *sfile = DetectLoadCompleteSigPathWithKey(de_ctx, "firewall-rule-path", file->val);
+        char *sfile = DetectLoadCompleteSigPathWithKey(de_ctx, "firewall.rule-path", file->val);
         SCLogNotice("fw: rule file full path \"%s\"", sfile);
 
         int ret = DetectLoadSigFile(de_ctx, sfile, &good_sigs, &bad_sigs, &skipped_sigs, true);
