@@ -16,6 +16,7 @@
  */
 
 #include "suricata-common.h"
+#include "suricata.h"
 
 #include "detect.h"
 #include "detect-engine-alert.h"
@@ -409,13 +410,12 @@ static inline void FlowApplySignatureActions(
 static inline void PacketAlertFinalizeProcessQueue(
         const DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p)
 {
-    const bool have_fw_rules = (de_ctx->flags & DE_HAS_FIREWALL) != 0;
+    const bool have_fw_rules = EngineModeIsFirewall();
 
     if (det_ctx->alert_queue_size > 1) {
         /* sort the alert queue before thresholding and appending to Packet */
         qsort(det_ctx->alert_queue, det_ctx->alert_queue_size, sizeof(PacketAlert),
-                (de_ctx->flags & DE_HAS_FIREWALL) ? AlertQueueSortHelperFirewall
-                                                  : AlertQueueSortHelper);
+                have_fw_rules ? AlertQueueSortHelperFirewall : AlertQueueSortHelper);
     }
 
     bool dropped = false;
