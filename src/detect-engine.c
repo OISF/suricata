@@ -3416,6 +3416,10 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data)
     /* Register a counter for Lua memory limit errors. */
     det_ctx->lua_memory_limit_errors = StatsRegisterCounter("detect.lua.memory_limit_errors", tv);
 
+    det_ctx->json_content = NULL;
+    det_ctx->json_content_capacity = 0;
+    det_ctx->json_content_len = 0;
+
 #ifdef PROFILING
     det_ctx->counter_mpm_list = StatsRegisterAvgCounter("detect.mpm_list", tv);
     det_ctx->counter_nonmpm_list = StatsRegisterAvgCounter("detect.nonmpm_list", tv);
@@ -3583,6 +3587,12 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
 #else
         DetectEngineDeReference(&det_ctx->de_ctx);
 #endif
+    }
+
+    if (det_ctx->json_content) {
+        SCFree(det_ctx->json_content);
+        det_ctx->json_content = NULL;
+        det_ctx->json_content_capacity = 0;
     }
 
     AppLayerDecoderEventsFreeEvents(&det_ctx->decoder_events);
@@ -5049,6 +5059,30 @@ void SCDetectEngineRegisterRateFilterCallback(SCDetectRateFilterFunc fn, void *a
     de_ctx->RateFilterCallback = fn;
     de_ctx->rate_filter_callback_arg = arg;
     DetectEngineDeReference(&de_ctx);
+}
+
+int DetectEngineThreadCtxGetJsonContext(DetectEngineThreadCtx *det_ctx)
+{
+    if (det_ctx->json_content_len > SIG_JSON_CONTENT_ARRAY_LEN - 1) {
+        SCLogDebug("json content length %u exceeds maximum %u", det_ctx->json_content_len,
+                SIG_JSON_CONTENT_ARRAY_LEN);
+        return -1;
+    }
+    if (det_ctx->json_content_len >= det_ctx->json_content_capacity) {
+        if (det_ctx->json_content_capacity == 0) {
+            det_ctx->json_content_capacity = 1;
+        } else {
+            det_ctx->json_content_capacity *= 2;
+        }
+        void *tmp = SCRealloc(
+                det_ctx->json_content, det_ctx->json_content_capacity * sizeof(SigJsonContent));
+        if (unlikely(tmp == NULL)) {
+            return -1;
+        }
+        SCLogDebug("reallocated json content array to %u items", det_ctx->json_content_capacity);
+        det_ctx->json_content = tmp;
+    }
+    return 0;
 }
 
 /*************************************Unittest*********************************/

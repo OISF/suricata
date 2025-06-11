@@ -257,6 +257,7 @@ void AlertJsonHeader(const Packet *p, const PacketAlert *pa, SCJsonBuilder *js, 
         SCJbOpenObject(js, "context");
         const struct PacketContextData *json_info = pa->json_info;
         while (json_info) {
+            SCLogDebug("JSON string '{%s}'", json_info->json_string);
             /* The string is valid json as it is validated by JANSSON
                during parsing and included later via a format string */
             SCJbSetFormatted(js, json_info->json_string);
