@@ -176,7 +176,7 @@ static void DetectAlertStoreMatch(DetectEngineThreadCtx *det_ctx, const Signatur
             return;
         }
         SCJbSetStringFromBytes(js, json_key, str_ptr, capture_len);
-        uint32_t js_len = SCJbLen(js);
+        uint32_t js_len = (uint32_t)SCJbLen(js);
         if (js_len > SIG_JSON_CONTENT_ITEM_LEN) {
             SCLogDebug("Captured length is too long for JSON.");
             SCFree(str_ptr);
@@ -437,7 +437,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
         }
         if (acap) {
             if (a_set)
-                cut_capture = MIN(cut_capture, (acap - regexstr));
+                cut_capture = MIN(cut_capture, (int)(acap - regexstr));
             else
                 cut_capture = (int)(acap - regexstr);
         }
