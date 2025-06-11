@@ -2313,6 +2313,9 @@ reference-config-file: @e_sysconfdir@reference.config
 ## Suricata as a Firewall options (experimental)
 ##
 firewall:
+  # toggle to enable firewall mode
+  #enabled: no
+
   # Firewall rule file are in their own path and are not managed
   # by Suricata-Update.
   #rule-path: /etc/suricata/firewall/
