@@ -24,7 +24,7 @@
 #ifndef SURICATA_DATASETS_CONTEXT_JSON_H
 #define SURICATA_DATASETS_CONTEXT_JSON_H
 
-#include <suricata-common.h>
+#include "suricata-common.h"
 #include "datasets.h"
 
 #define DATAJSON_JSON_LENGTH 1024
