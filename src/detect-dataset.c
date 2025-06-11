@@ -445,13 +445,16 @@ static int SetupSavePath(const DetectEngineCtx *de_ctx,
     // data dir
     const char *dir = ConfigGetDataDirectory();
     BUG_ON(dir == NULL); // should not be able to fail
-    char path[PATH_MAX];
-    if (snprintf(path, sizeof(path), "%s/%s", dir, save) >= (int)sizeof(path)) // TODO windows path
-        return -1;
+    if (!PathIsAbsolute(save)) {
+        char path[PATH_MAX];
+        if (snprintf(path, sizeof(path), "%s/%s", dir, save) >=
+                (int)sizeof(path)) // TODO windows path
+            return -1;
 
-    /* TODO check if location exists and is writable */
+        /* TODO check if location exists and is writable */
 
-    strlcpy(save, path, save_size);
+        strlcpy(save, path, save_size);
+    }
 
     return 0;
 }
