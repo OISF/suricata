@@ -154,6 +154,7 @@ void PacketAlertRecycle(PacketAlert *pa_array, uint16_t cnt)
         struct PacketContextData *current_json = pa_array[i].json_info;
         while (current_json) {
             struct PacketContextData *next_json = current_json->next;
+            SCFree(current_json->json_string);
             SCFree(current_json);
             current_json = next_json;
         }
@@ -169,6 +170,7 @@ void PacketAlertFree(PacketAlert *pa_array)
         struct PacketContextData *allocated_json = pa_array[i].json_info;
         while (allocated_json) {
             struct PacketContextData *next_json = allocated_json->next;
+            SCFree(allocated_json->json_string);
             SCFree(allocated_json);
             allocated_json = next_json;
         }

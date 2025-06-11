@@ -168,8 +168,11 @@ static void DetectAlertStoreMatch(DetectEngineThreadCtx *det_ctx, const Signatur
 
     SCLogDebug("json key: %s", json_key);
     /* Setup the data*/
-    if ((det_ctx->json_content_len < SIG_JSON_CONTENT_ARRAY_LEN) &&
-            (capture_len + strlen(json_key) + 5 < SIG_JSON_CONTENT_ITEM_LEN)) {
+    if (capture_len + strlen(json_key) + 5 < SIG_JSON_CONTENT_ITEM_LEN) {
+        if (DetectEngineThreadCtxGetJsonContext(det_ctx) < 0) {
+            SCFree(str_ptr);
+            return;
+        }
         SCJsonBuilder *js = SCJbNewObject();
         if (unlikely(js == NULL)) {
             SCFree(str_ptr);
