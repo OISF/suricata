@@ -34,6 +34,7 @@
 #include "decode-ipv6.h"
 #include "decode.h"
 #include "defrag.h"
+#include "flow-hash.h"
 #include "util-print.h"
 #include "util-validate.h"
 
@@ -54,6 +55,7 @@ static void DecodeIPv4inIPv6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, c
             PKT_SET_SRC(tp, PKT_SRC_DECODER_IPV6);
             PacketEnqueueNoLock(&tv->decode_pq,tp);
             StatsIncr(tv, dtv->counter_ipv4inipv6);
+            FlowSetupPacket(p);
             return;
         }
     } else {
@@ -79,6 +81,7 @@ static int DecodeIP6inIP6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             PKT_SET_SRC(tp, PKT_SRC_DECODER_IPV6);
             PacketEnqueueNoLock(&tv->decode_pq,tp);
             StatsIncr(tv, dtv->counter_ipv6inipv6);
+            FlowSetupPacket(p);
         }
     } else {
         ENGINE_SET_EVENT(p, IPV6_IN_IPV6_WRONG_IP_VER);
