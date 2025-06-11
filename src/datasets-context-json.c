@@ -893,7 +893,7 @@ int DatajsonAddSerialized(Dataset *set, const char *value, const char *json)
     int ret = -1;
     switch (set->type) {
         case DATASET_TYPE_STRING: {
-            uint32_t decoded_size = SCBase64DecodeBufferSize(strlen(value));
+            uint32_t decoded_size = SCBase64DecodeBufferSize((uint32_t)strlen(value));
             uint8_t decoded[decoded_size];
             uint32_t num_decoded = SCBase64Decode(
                     (const uint8_t *)value, strlen(value), SCBase64ModeStrict, decoded);
