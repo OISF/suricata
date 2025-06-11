@@ -1248,7 +1248,9 @@ void DecodeUnregisterCounters(void);
 
 /** Flag to indicate that packet contents should not be inspected */
 #define PKT_NOPAYLOAD_INSPECTION BIT_U32(2)
-// vacancy
+
+/** set if PacketAlerts may contain json context data */
+#define PKT_ALERT_CTX_USED BIT_U32(3)
 
 /** Packet has matched a tag */
 #define PKT_HAS_TAG BIT_U32(4)
