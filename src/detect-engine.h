@@ -79,6 +79,7 @@ DetectEngineCtx *DetectEngineCtxInit(void);
 DetectEngineCtx *DetectEngineCtxInitStubForDD(void);
 DetectEngineCtx *DetectEngineCtxInitStubForMT(void);
 void DetectEngineCtxFree(DetectEngineCtx *);
+int DetectEngineThreadCtxGetJsonContext(DetectEngineThreadCtx *det_ctx);
 
 int DetectRegisterThreadCtxGlobalFuncs(const char *name,
         void *(*InitFunc)(void *), void *data, void (*FreeFunc)(void *));

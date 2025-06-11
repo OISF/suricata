@@ -81,12 +81,17 @@ static int DetectDatajsonBufferMatch(DetectEngineThreadCtx *det_ctx, const Detec
             if (r.json.len > 0) {
                 /* we need to add 3 on length check for the added quotes and colon when
                 building the json string */
-                if ((det_ctx->json_content_len < SIG_JSON_CONTENT_ARRAY_LEN) &&
-                        (r.json.len + strlen(sd->json_key) + 3 < SIG_JSON_CONTENT_ITEM_LEN)) {
+                if (r.json.len + strlen(sd->json_key) + 3 < SIG_JSON_CONTENT_ITEM_LEN) {
+                    if (DetectEngineThreadCtxGetJsonContext(det_ctx) < 0) {
+                        DatajsonUnlockElt(&r);
+                        return 0;
+                    }
                     snprintf(det_ctx->json_content[det_ctx->json_content_len].json_content,
                             SIG_JSON_CONTENT_ITEM_LEN, "\"%s\":%s", sd->json_key, r.json.value);
                     det_ctx->json_content[det_ctx->json_content_len].id = sd->id;
                     det_ctx->json_content_len++;
+                    SCLogDebug("Added json content %u (alloc length %u)", det_ctx->json_content_len,
+                            det_ctx->json_content_capacity);
                 }
             }
             DatajsonUnlockElt(&r);

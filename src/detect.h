@@ -1278,7 +1278,9 @@ typedef struct DetectEngineThreadCtx_ {
     /* byte_* values */
     uint64_t *byte_values;
 
-    size_t json_content_len;
+    SigJsonContent *json_content;
+    uint8_t json_content_capacity;
+    uint8_t json_content_len;
 
     /* counter for the filestore array below -- up here for cache reasons. */
     uint16_t filestore_cnt;
@@ -1382,7 +1384,6 @@ typedef struct DetectEngineThreadCtx_ {
     /** stat of lua memory limit errors. */
     uint16_t lua_memory_limit_errors;
 
-    SigJsonContent json_content[SIG_JSON_CONTENT_ARRAY_LEN];
 #ifdef DEBUG
     uint64_t pkt_stream_add_cnt;
     uint64_t payload_mpm_cnt;
