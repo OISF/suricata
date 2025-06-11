@@ -227,14 +227,13 @@ impl LdapState {
                 SCLogDebug!("ts: pdu {:?}", self.request_frame);
             }
             match ldap_parse_msg(start) {
-                Ok((rem, msg)) => {
+                Ok((rem, request)) => {
                     let tx = self.new_tx();
                     if tx.is_none() {
                         return AppLayerResult::err();
                     }
                     let mut tx = tx.unwrap();
                     let tx_id = tx.id();
-                    let request = msg;
                     // check if STARTTLS was requested
                     if let ProtocolOp::ExtendedRequest(request) = &request.protocol_op {
                         if request.request_name.0 == STARTTLS_OID {
@@ -298,8 +297,7 @@ impl LdapState {
                 SCLogDebug!("tc: pdu {:?}", self.response_frame);
             }
             match ldap_parse_msg(start) {
-                Ok((rem, msg)) => {
-                    let response = msg;
+                Ok((rem, response)) => {
                     // check if STARTTLS was requested
                     if self.request_tls {
                         if let ProtocolOp::ExtendedResponse(response) = &response.protocol_op {
@@ -389,13 +387,12 @@ impl LdapState {
         SCLogDebug!("ts: pdu {:?}", self.request_frame);
 
         match ldap_parse_msg(input) {
-            Ok((_, msg)) => {
+            Ok((_, request)) => {
                 let tx = self.new_tx();
                 if tx.is_none() {
                     return AppLayerResult::err();
                 }
                 let mut tx = tx.unwrap();
-                let request = msg;
                 tx.complete |= tx_is_complete(&request.protocol_op, Direction::ToServer);
                 tx.request = Some(request.to_static());
                 self.transactions.push_back(tx);
@@ -435,8 +432,7 @@ impl LdapState {
                 SCLogDebug!("tc: pdu {:?}", self.response_frame);
             }
             match ldap_parse_msg(start) {
-                Ok((rem, msg)) => {
-                    let response = msg;
+                Ok((rem, response)) => {
                     if let Some(tx) = self.find_request(response.message_id) {
                         tx.complete |= tx_is_complete(&response.protocol_op, Direction::ToClient);
                         let tx_id = tx.id();
@@ -534,8 +530,7 @@ fn tx_is_complete(op: &ProtocolOp, dir: Direction) -> bool {
 
 fn probe(input: &[u8], direction: Direction, rdir: *mut u8) -> AppProto {
     match ldap_parse_msg(input) {
-        Ok((_, msg)) => {
-            let ldap_msg = msg;
+        Ok((_, ldap_msg)) => {
             if direction == Direction::ToServer && !ldap_is_request(&ldap_msg) {
                 unsafe {
                     *rdir = Direction::ToClient.into();
