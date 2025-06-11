@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -600,20 +600,18 @@ static void PrintUsage(const char *progname)
     printf("%s %s\n", PROG_NAME, PROG_VER);
 #endif
     printf("USAGE: %s [OPTIONS] [BPF FILTER]\n\n", progname);
+
+    printf("\n  General:\n");
+    printf("\t-v                                   : be more verbose (use multiple times to "
+           "increase verbosity)\n");
     printf("\t-c <path>                            : path to configuration file\n");
-    printf("\t-T                                   : test configuration file (use with -c)\n");
-    printf("\t-i <dev or ip>                       : run in pcap live mode\n");
-    printf("\t-F <bpf filter file>                 : bpf filter file\n");
-    printf("\t-r <path>                            : run in pcap file/offline mode\n");
-#ifdef NFQ
-    printf("\t-q <qid[:qid]>                       : run in inline nfqueue mode (use colon to specify a range of queues)\n");
-#endif /* NFQ */
-#ifdef IPFW
-    printf("\t-d <divert port>                     : run in inline ipfw divert mode\n");
-#endif /* IPFW */
-    printf("\t-s <path>                            : path to signature file loaded in addition to suricata.yaml settings (optional)\n");
-    printf("\t-S <path>                            : path to signature file loaded exclusively (optional)\n");
     printf("\t-l <dir>                             : default log directory\n");
+    printf("\t--include <path>                     : additional configuration file\n");
+    printf("\t--set name=value                     : set a configuration value\n");
+    printf("\t--pidfile <file>                     : write pid to this file\n");
+    printf("\t-T                                   : test configuration file (use with -c)\n");
+    printf("\t--init-errors-fatal                  : enable fatal failure on signature init "
+           "error\n");
 #ifndef OS_WIN32
     printf("\t-D                                   : run as daemon\n");
 #else
@@ -621,48 +619,35 @@ static void PrintUsage(const char *progname)
     printf("\t--service-remove                     : remove service\n");
     printf("\t--service-change-params              : change service startup parameters\n");
 #endif /* OS_WIN32 */
-    printf("\t-k [all|none]                        : force checksum check (all) or disabled it (none)\n");
-    printf("\t-V                                   : display Suricata version\n");
-    printf("\t-v                                   : be more verbose (use multiple times to increase verbosity)\n");
-#ifdef UNITTESTS
-    printf("\t-u                                   : run the unittests and exit\n");
-    printf("\t-U, --unittest-filter=REGEX          : filter unittests with a regex\n");
-    printf("\t--list-unittests                     : list unit tests\n");
-    printf("\t--fatal-unittests                    : enable fatal failure on unittest error\n");
-    printf("\t--unittests-coverage                 : display unittest coverage report\n");
-#endif /* UNITTESTS */
-    printf("\t--firewall                           : enable firewall mode\n");
-    printf("\t--firewall-rules-exclusive=<path>    : path to firewall rule file loaded "
-           "exclusively\n");
-    printf("\t--list-app-layer-protos              : list supported app layer protocols\n");
-    printf("\t--list-app-layer-hooks               : list supported app layer hooks for use in "
-           "rules\n");
-    printf("\t--list-keywords[=all|csv|<kword>]    : list keywords implemented by the engine\n");
-    printf("\t--list-runmodes                      : list supported runmodes\n");
+#ifdef HAVE_LIBCAP_NG
+    printf("\t--user <user>                        : run suricata as this user after init\n");
+    printf("\t--group <group>                      : run suricata as this group after init\n");
+#endif /* HAVE_LIBCAP_NG */
+#ifdef BUILD_UNIX_SOCKET
+    printf("\t--unix-socket[=<file>]               : use unix socket to control suricata work\n");
+#endif
     printf("\t--runmode <runmode_id>               : specific runmode modification the engine should run.  The argument\n"
            "\t                                       supplied should be the id for the runmode obtained by running\n"
            "\t                                       --list-runmodes\n");
-    printf("\t--engine-analysis                    : print reports on analysis of different sections in the engine and exit.\n"
-           "\t                                       Please have a look at the conf parameter engine-analysis on what reports\n"
-           "\t                                       can be printed\n");
-    printf("\t--pidfile <file>                     : write pid to this file\n");
-    printf("\t--init-errors-fatal                  : enable fatal failure on signature init error\n");
-    printf("\t--disable-detection                  : disable detection engine\n");
-    printf("\t--dump-config                        : show the running configuration\n");
-    printf("\t--dump-features                      : display provided features\n");
-    printf("\t--build-info                         : display build information\n");
-    printf("\t--pcap[=<dev>]                       : run in pcap mode, no value select interfaces from suricata.yaml\n");
-    printf("\t--pcap-file-continuous               : when running in pcap mode with a directory, continue checking directory for pcaps until interrupted\n");
-    printf("\t--pcap-file-delete                   : when running in replay mode (-r with directory or file), will delete pcap files that have been processed when done\n");
-    printf("\t--pcap-file-recursive                : will descend into subdirectories when running in replay mode (-r)\n");
-    printf("\t--pcap-file-buffer-size              : set read buffer size (setvbuf)\n");
+
+    printf("\n  Capture and IPS:\n");
+
+    printf("\t-F <bpf filter file>                 : bpf filter file\n");
+    printf("\t-k [all|none]                        : force checksum check (all) or disabled it "
+           "(none)\n");
+    printf("\t-i <dev or ip>                       : run in pcap live mode\n");
+    printf("\t--pcap[=<dev>]                       : run in pcap mode, no value select interfaces "
+           "from suricata.yaml\n");
 #ifdef HAVE_PCAP_SET_BUFF
     printf("\t--pcap-buffer-size                   : size of the pcap buffer value from 0 - %i\n",INT_MAX);
 #endif /* HAVE_SET_PCAP_BUFF */
-#ifdef HAVE_DPDK
-    printf("\t--dpdk                               : run in dpdk mode, uses interfaces from "
-           "suricata.yaml\n");
-#endif
+#ifdef NFQ
+    printf("\t-q <qid[:qid]>                       : run in inline nfqueue mode (use colon to "
+           "specify a range of queues)\n");
+#endif /* NFQ */
+#ifdef IPFW
+    printf("\t-d <divert port>                     : run in inline ipfw divert mode\n");
+#endif /* IPFW */
 #ifdef HAVE_AF_PACKET
     printf("\t--af-packet[=<dev>]                  : run in af-packet mode, no value select interfaces from suricata.yaml\n");
 #endif
@@ -679,17 +664,12 @@ static void PrintUsage(const char *progname)
     printf("\t--pfring-cluster-id <id>             : pfring cluster id \n");
     printf("\t--pfring-cluster-type <type>         : pfring cluster type for PF_RING 4.1.2 and later cluster_round_robin|cluster_flow\n");
 #endif /* HAVE_PFRING */
-    printf("\t--simulate-ips                       : force engine into IPS mode. Useful for QA\n");
-#ifdef HAVE_LIBCAP_NG
-    printf("\t--user <user>                        : run suricata as this user after init\n");
-    printf("\t--group <group>                      : run suricata as this group after init\n");
-#endif /* HAVE_LIBCAP_NG */
-    printf("\t--erf-in <path>                      : process an ERF file\n");
+#ifdef HAVE_DPDK
+    printf("\t--dpdk                               : run in dpdk mode, uses interfaces from "
+           "suricata.yaml\n");
+#endif
 #ifdef HAVE_DAG
     printf("\t--dag <dagX:Y>                       : process ERF records from DAG interface X, stream Y\n");
-#endif
-#ifdef BUILD_UNIX_SOCKET
-    printf("\t--unix-socket[=<file>]               : use unix socket to control suricata work\n");
 #endif
 #ifdef WINDIVERT
     printf("\t--windivert <filter>                 : run in inline WinDivert mode\n");
@@ -698,12 +678,60 @@ static void PrintUsage(const char *progname)
 #ifdef HAVE_LIBNET11
     printf("\t--reject-dev <dev>                   : send reject packets from this interface\n");
 #endif
-    printf("\t--include <path>                     : additional configuration file\n");
-    printf("\t--set name=value                     : set a configuration value\n");
+
+    printf("\n  Capture Files:\n");
+    printf("\t-r <path>                            : run in pcap file/offline mode\n");
+    printf("\t--pcap-file-continuous               : when running in pcap mode with a directory, "
+           "continue checking directory for pcaps until interrupted\n");
+    printf("\t--pcap-file-delete                   : when running in replay mode (-r with "
+           "directory or file), will delete pcap files that have been processed when done\n");
+    printf("\t--pcap-file-recursive                : will descend into subdirectories when running "
+           "in replay mode (-r)\n");
+    printf("\t--pcap-file-buffer-size              : set read buffer size (setvbuf)\n");
+    printf("\t--erf-in <path>                      : process an ERF file\n");
+
+    printf("\n  Detection:\n");
+    printf("\t-s <path>                            : path to signature file loaded in addition to "
+           "suricata.yaml settings (optional)\n");
+    printf("\t-S <path>                            : path to signature file loaded exclusively "
+           "(optional)\n");
+    printf("\t--disable-detection                  : disable detection engine\n");
+    printf("\t--engine-analysis                    : print reports on analysis of different "
+           "sections in the engine and exit.\n"
+           "\t                                       Please have a look at the conf parameter "
+           "engine-analysis on what reports\n"
+           "\t                                       can be printed\n");
+
+    printf("\n  Firewall:\n");
+    printf("\t--firewall                           : enable firewall mode\n");
+    printf("\t--firewall-rules-exclusive=<path>    : path to firewall rule file loaded "
+           "exclusively\n");
+
+    printf("\n  Info:\n");
+    printf("\t-V                                   : display Suricata version\n");
+    printf("\t--list-keywords[=all|csv|<kword>]    : list keywords implemented by the engine\n");
+    printf("\t--list-runmodes                      : list supported runmodes\n");
+    printf("\t--list-app-layer-protos              : list supported app layer protocols\n");
+    printf("\t--list-app-layer-hooks               : list supported app layer hooks for use in "
+           "rules\n");
+    printf("\t--dump-config                        : show the running configuration\n");
+    printf("\t--dump-features                      : display provided features\n");
+    printf("\t--build-info                         : display build information\n");
+
+    printf("\n  Testing:\n");
+    printf("\t--simulate-ips                       : force engine into IPS mode. Useful for QA\n");
+#ifdef UNITTESTS
+    printf("\t-u                                   : run the unittests and exit\n");
+    printf("\t-U=REGEX, --unittest-filter=REGEX    : filter unittests with a pcre compatible "
+           "regex\n");
+    printf("\t--list-unittests                     : list unit tests\n");
+    printf("\t--fatal-unittests                    : enable fatal failure on unittest error\n");
+    printf("\t--unittests-coverage                 : display unittest coverage report\n");
+#endif /* UNITTESTS */
     printf("\n");
-    printf("\nTo run the engine with default configuration on "
-            "interface eth0 with signature file \"signatures.rules\", run the "
-            "command as:\n\n%s -c suricata.yaml -s signatures.rules -i eth0 \n\n",
+    printf("\nTo run " PROG_NAME " with default configuration on "
+           "interface eth0 with signature file \"signatures.rules\", run the "
+           "command as:\n\n%s -c suricata.yaml -s signatures.rules -i eth0 \n\n",
             progname);
 }
 
