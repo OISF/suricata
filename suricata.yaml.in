@@ -2302,26 +2302,26 @@ rule-files:
   - suricata.rules
 
 ##
-## Suricata as a Firewall options (experimental)
-##
-
-# Firewall rule file are in their own path and are not managed
-# by Suricata-Update.
-#firewall-rule-path: /etc/suricata/firewall/
-
-# List of files with firewall rules. Order matters, files are loaded
-# in order and rules are applied in that order (per state, see docs)
-#firewall-rule-files:
-#  - firewall.rules
-
-
-##
 ## Auxiliary configuration files.
 ##
 
 classification-file: @e_sysconfdir@classification.config
 reference-config-file: @e_sysconfdir@reference.config
 # threshold-file: @e_sysconfdir@threshold.config
+
+##
+## Suricata as a Firewall options (experimental)
+##
+firewall:
+  # Firewall rule file are in their own path and are not managed
+  # by Suricata-Update.
+  #rule-path: /etc/suricata/firewall/
+
+  # List of files with firewall rules. Order matters, files are loaded
+  # in order and rules are applied in that order (per state, see docs)
+  #rule-files:
+  #  - firewall.rules
+
 
 ##
 ## Include other configs
