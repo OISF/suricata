@@ -106,12 +106,17 @@ enum {
 enum EngineMode {
     ENGINE_MODE_UNKNOWN,
     ENGINE_MODE_IDS,
+    /* order matters, we need to be able to do IPS is true for >= ENGINE_MODE_IPS */
     ENGINE_MODE_IPS,
+    ENGINE_MODE_FIREWALL,
 };
 
+/* superset of IPS mode */
+void EngineModeSetFirewall(void);
 void EngineModeSetIPS(void);
 void EngineModeSetIDS(void);
 int EngineModeIsUnknown(void);
+bool EngineModeIsFirewall(void);
 int EngineModeIsIPS(void);
 int EngineModeIsIDS(void);
 
@@ -136,6 +141,8 @@ typedef struct SCInstance_ {
     char *regex_arg;
     char *firewall_rule_file;
     bool firewall_rule_file_exclusive;
+    /* is firewall mode enabled */
+    bool is_firewall;
 
     char *keyword_info;
     char *runmode_custom_mode;
