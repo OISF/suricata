@@ -660,7 +660,7 @@ static inline uint8_t DetectRulePacketRules(ThreadVars *const tv,
 {
     uint8_t action = 0;
     bool fw_verdict = false;
-    const bool have_fw_rules = (de_ctx->flags & DE_HAS_FIREWALL) != 0;
+    const bool have_fw_rules = EngineModeIsFirewall();
     const Signature *next_s = NULL;
 
     /* inspect the sigs against the packet */
@@ -1043,8 +1043,8 @@ static inline void DetectRunPostRules(ThreadVars *tv, const DetectEngineCtx *de_
     /* firewall: "fail" closed if we don't have an ACCEPT. This can happen
      * if there was no rule group. */
     // TODO review packet src types here
-    if (de_ctx->flags & DE_HAS_FIREWALL && !(p->action & ACTION_ACCEPT) &&
-            p->pkt_src == PKT_SRC_WIRE && scratch->default_action == ACTION_DROP) {
+    if (EngineModeIsFirewall() && !(p->action & ACTION_ACCEPT) && p->pkt_src == PKT_SRC_WIRE &&
+            scratch->default_action == ACTION_DROP) {
         SCLogDebug("packet %" PRIu64 ": droppit as no ACCEPT set %02x (pkt %s)", p->pcap_cnt,
                 p->action, PktSrcToString(p->pkt_src));
         PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_DEFAULT_PACKET_POLICY);
@@ -1618,7 +1618,7 @@ static int DetectRunTxCheckFirewallPolicy(DetectEngineThreadCtx *det_ctx, Packet
 thread_local Signature default_accept;
 static inline void DetectRunAppendDefaultAccept(DetectEngineThreadCtx *det_ctx, Packet *p)
 {
-    if (det_ctx->de_ctx->flags & DE_HAS_FIREWALL) {
+    if (EngineModeIsFirewall()) {
         memset(&default_accept, 0, sizeof(default_accept));
         default_accept.action = ACTION_ACCEPT;
         default_accept.action_scope = ACTION_SCOPE_PACKET;
@@ -1724,7 +1724,7 @@ static void DetectRunTx(ThreadVars *tv,
 
     uint32_t fw_verdicted = 0;
     uint32_t tx_inspected = 0;
-    const bool have_fw_rules = (de_ctx->flags & DE_HAS_FIREWALL) != 0;
+    const bool have_fw_rules = EngineModeIsFirewall();
 
     SCLogDebug("packet %" PRIu64, p->pcap_cnt);
 
@@ -2263,7 +2263,7 @@ static void DetectFlow(ThreadVars *tv,
 
     /* in firewall mode, we still need to run the fw rulesets even for exception policy pass */
     bool skip = false;
-    if (de_ctx->flags & DE_HAS_FIREWALL) {
+    if (EngineModeIsFirewall()) {
         skip = (f->flags & (FLOW_ACTION_ACCEPT));
 
     } else {

@@ -2266,7 +2266,7 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
         VarNameStoreActivate();
     }
 
-    if (de_ctx->flags & DE_HAS_FIREWALL) {
+    if (EngineModeIsFirewall()) {
         FirewallAnalyzer(de_ctx);
     }
     return 0;

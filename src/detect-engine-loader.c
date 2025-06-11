@@ -300,7 +300,6 @@ static int LoadFirewallRuleFiles(DetectEngineCtx *de_ctx)
         int32_t skipped_sigs = 0;
 
         SCLogNotice("fw: rule file full path \"%s\"", de_ctx->firewall_rule_file_exclusive);
-        de_ctx->flags |= DE_HAS_FIREWALL;
 
         int ret = DetectLoadSigFile(de_ctx, de_ctx->firewall_rule_file_exclusive, &good_sigs,
                 &bad_sigs, &skipped_sigs, true);
@@ -360,8 +359,6 @@ static int LoadFirewallRuleFiles(DetectEngineCtx *de_ctx)
             de_ctx->sig_stat.good_sigs_total += good_sigs;
         }
     }
-    de_ctx->flags |= DE_HAS_FIREWALL;
-
     return 0;
 }
 
