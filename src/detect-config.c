@@ -80,6 +80,7 @@ void DetectConfigRegister(void)
 #ifdef UNITTESTS
     sigmatch_table[DETECT_CONFIG].RegisterTests = DetectConfigRegisterTests;
 #endif
+    sigmatch_table[DETECT_CONFIG].flags = SIGMATCH_SUPPORT_FIREWALL;
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
