@@ -2811,6 +2811,25 @@ The stats counter `decoder.ipv4_in_ipv4` is associated with this setting.
    #     enabled: true
    #     track-parent-flow: true   # disabled by default
 
+IPv6
+^^^^
+
+By default, for IPv4 over IPv6 tunneling, the parent flow is not set up, as this
+can lead to discrepancies in alerts and flows detected. This enable this setting,
+change::
+
+    decoder:
+      ipv6:
+        ipip-ipv4:
+          track-parent-flow: true
+
+The same is true for IPv6 over IPv6. To enable parent flow setting in this case::
+
+    decoder:
+      ipv6:
+        ipip-ipv6:
+          track-parent-flow: true
+
 Advanced Options
 ----------------
 
