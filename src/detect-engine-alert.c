@@ -570,6 +570,8 @@ void PacketAlertFinalize(const DetectEngineCtx *de_ctx, DetectEngineThreadCtx *d
 
     if (det_ctx->alert_queue_size > 0) {
         PacketAlertFinalizeProcessQueue(de_ctx, det_ctx, p);
+        if (det_ctx->json_content_len)
+            p->flags |= PKT_ALERT_CTX_USED;
     }
 
     /* At this point, we should have all the new alerts. Now check the tag
