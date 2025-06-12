@@ -25,9 +25,6 @@
 #ifndef SURICATA_APP_LAYER_EVENTS_H
 #define SURICATA_APP_LAYER_EVENTS_H
 
-/* contains fwd declaration of AppLayerDecoderEvents_ */
-#include "decode.h"
-#include "rust.h"
 #include "util-enum.h"
 
 /**
