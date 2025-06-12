@@ -24,7 +24,6 @@ use crate::filecontainer::*;
 use crate::flow::Flow;
 
 /// Opaque C types.
-pub enum AppLayerDecoderEvents {}
 pub enum GenericVar {}
 
 #[repr(C)]
@@ -82,12 +81,6 @@ pub type SCLogMessageFunc =
 
 pub type AppLayerParserTriggerRawStreamInspectionFunc =
     extern "C" fn (flow: *const Flow, direction: i32);
-pub type AppLayerDecoderEventsSetEventRawFunc =
-    extern "C" fn (events: *mut *mut AppLayerDecoderEvents,
-                   event: u8);
-
-pub type AppLayerDecoderEventsFreeEventsFunc =
-    extern "C" fn (events: *mut *mut AppLayerDecoderEvents);
 
 pub enum StreamingBufferConfig {}
 
@@ -144,8 +137,6 @@ pub type GenericVarFreeFunc =
 #[repr(C)]
 pub struct SuricataContext {
     pub SCLogMessage: SCLogMessageFunc,
-    AppLayerDecoderEventsSetEventRaw: AppLayerDecoderEventsSetEventRawFunc,
-    AppLayerDecoderEventsFreeEvents: AppLayerDecoderEventsFreeEventsFunc,
     pub AppLayerParserTriggerRawStreamInspection: AppLayerParserTriggerRawStreamInspectionFunc,
 
     pub HttpRangeFreeBlock: SCHttpRangeFreeBlock,
@@ -202,28 +193,6 @@ pub fn sc_app_layer_parser_trigger_raw_stream_inspection(flow: *const Flow, dire
     unsafe {
         if let Some(c) = SC {
             (c.AppLayerParserTriggerRawStreamInspection)(flow, direction);
-        }
-    }
-}
-
-/// AppLayerDecoderEventsSetEventRaw wrapper.
-pub fn sc_app_layer_decoder_events_set_event_raw(
-    events: *mut *mut AppLayerDecoderEvents, event: u8)
-{
-    unsafe {
-        if let Some(c) = SC {
-            (c.AppLayerDecoderEventsSetEventRaw)(events, event);
-        }
-    }
-}
-
-/// AppLayerDecoderEventsFreeEvents wrapper.
-pub fn sc_app_layer_decoder_events_free_events(
-    events: *mut *mut AppLayerDecoderEvents)
-{
-    unsafe {
-        if let Some(c) = SC {
-            (c.AppLayerDecoderEventsFreeEvents)(events);
         }
     }
 }
