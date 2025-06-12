@@ -51,6 +51,7 @@
 #include "app-layer-register.h"
 
 #include "util-mpm.h"
+#include "util-file.h"
 
 #include "flow-bindgen.h"
 

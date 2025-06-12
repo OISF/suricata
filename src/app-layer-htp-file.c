@@ -58,13 +58,13 @@ int HTPFileOpen(HtpState *s, HtpTxUserData *tx, const uint8_t *filename, uint16_
 
     if (direction & STREAM_TOCLIENT) {
         files = &tx->files_tc;
-        flags = FileFlowFlagsToFlags(tx->tx_data.file_flags, STREAM_TOCLIENT);
+        flags = SCFileFlowFlagsToFlags(tx->tx_data.file_flags, STREAM_TOCLIENT);
 
         // we shall not open a new file if there is a current one
         DEBUG_VALIDATE_BUG_ON(tx->file_range != NULL);
     } else {
         files = &tx->files_ts;
-        flags = FileFlowFlagsToFlags(tx->tx_data.file_flags, STREAM_TOSERVER);
+        flags = SCFileFlowFlagsToFlags(tx->tx_data.file_flags, STREAM_TOSERVER);
     }
 
     if (FileOpenFileWithId(files, &htp_sbcfg, s->file_track_id++, filename, filename_len, data,

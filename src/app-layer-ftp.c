@@ -998,7 +998,7 @@ static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
         ftpdata_state->tx_data.updated_tc = true;
     }
     /* we depend on detection engine for file pruning */
-    const uint16_t flags = FileFlowFlagsToFlags(ftpdata_state->tx_data.file_flags, direction);
+    const uint16_t flags = SCFileFlowFlagsToFlags(ftpdata_state->tx_data.file_flags, direction);
     int ret = 0;
 
     SCLogDebug("FTP-DATA input_len %u flags %04x dir %d/%s EOF %s", input_len, flags, direction,

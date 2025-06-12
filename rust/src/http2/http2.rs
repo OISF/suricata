@@ -25,7 +25,6 @@ use crate::conf::conf_get;
 use crate::core::*;
 use crate::direction::Direction;
 use crate::dns::dns::DnsVariant;
-use crate::filecontainer::*;
 use crate::filetracker::*;
 use crate::flow::Flow;
 use crate::frames::Frame;
@@ -41,7 +40,7 @@ use std::io;
 use suricata_sys::sys::{
     AppLayerParserState, AppProto, SCAppLayerForceProtocolChange,
     SCAppLayerParserConfParserEnabled, SCAppLayerParserRegisterLogger,
-    SCAppLayerProtoDetectConfProtoDetectionEnabled,
+    SCAppLayerProtoDetectConfProtoDetectionEnabled, SCFileFlowFlagsToFlags,
 };
 
 static mut ALPROTO_HTTP2: AppProto = ALPROTO_UNKNOWN;
@@ -299,8 +298,8 @@ impl HTTP2Transaction {
     }
 
     pub fn update_file_flags(&mut self, flow_file_flags: u16) {
-        self.ft_ts.file_flags = unsafe { FileFlowFlagsToFlags(flow_file_flags, STREAM_TOSERVER) };
-        self.ft_tc.file_flags = unsafe { FileFlowFlagsToFlags(flow_file_flags, STREAM_TOCLIENT) };
+        self.ft_ts.file_flags = unsafe { SCFileFlowFlagsToFlags(flow_file_flags, STREAM_TOSERVER) };
+        self.ft_tc.file_flags = unsafe { SCFileFlowFlagsToFlags(flow_file_flags, STREAM_TOCLIENT) };
     }
 
     fn decompress<'a>(
