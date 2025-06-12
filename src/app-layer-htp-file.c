@@ -264,7 +264,7 @@ end:
  *  \retval true if reassembled file was added
  *  \retval false if no reassembled file was added
  */
-bool HTPFileCloseHandleRange(const StreamingBufferConfig *sbcfg, FileContainer *files,
+bool SCHTPFileCloseHandleRange(const StreamingBufferConfig *sbcfg, FileContainer *files,
         const uint16_t flags, HttpRangeContainerBlock *c, const uint8_t *data, uint32_t data_len)
 {
     bool added = false;
@@ -340,11 +340,11 @@ int HTPFileClose(
 
     if (tx->file_range != NULL) {
         bool added =
-                HTPFileCloseHandleRange(&htp_sbcfg, files, flags, tx->file_range, data, data_len);
+                SCHTPFileCloseHandleRange(&htp_sbcfg, files, flags, tx->file_range, data, data_len);
         if (added) {
             tx->tx_data.files_opened++;
         }
-        HttpRangeFreeBlock(tx->file_range);
+        SCHttpRangeFreeBlock(tx->file_range);
         tx->file_range = NULL;
     }
 
