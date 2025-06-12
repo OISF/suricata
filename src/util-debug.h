@@ -24,6 +24,8 @@
 #ifndef SURICATA_UTIL_DEBUG_H
 #define SURICATA_UTIL_DEBUG_H
 
+#include "util-error.h"
+
 /**
  * \brief The various log levels
  * NOTE: when adding new level, don't forget to update SCLogMapLogLevelToSyslogLevel()
@@ -42,11 +44,13 @@ typedef enum {
     SC_LOG_LEVEL_MAX,
 } SCLogLevel;
 
+SCError SCLogMessage(const SCLogLevel, const char *, const unsigned int, const char *, const char *,
+        const char *message);
+
 #ifndef SURICATA_BINDGEN_H
 #include "suricata-common.h"
 
 #include "threads.h"
-#include "util-error.h"
 #include "util-debug-filters.h"
 
 /**
@@ -541,9 +545,6 @@ void SCLogAppendOPIfaceCtx(SCLogOPIfaceCtx *, SCLogInitData *);
 void SCLogInitLogModule(SCLogInitData *);
 
 void SCLogDeInitLogModule(void);
-
-SCError SCLogMessage(const SCLogLevel, const char *, const unsigned int, const char *, const char *,
-        const char *message);
 
 SCLogOPBuffer *SCLogAllocLogOPBuffer(void);
 

@@ -25,9 +25,7 @@
 #include "app-layer-ike.h" //IKEState, IKETransaction
 #include "app-layer-tftp.h" //TFTPState, TFTPTransaction
 
-#include "util-debug.h"
 #include "util-file.h"
-#include "util-var.h"
 
 // hack for include orders cf SCSha256
 typedef struct HttpRangeContainerBlock HttpRangeContainerBlock;
@@ -35,9 +33,6 @@ typedef struct HttpRangeContainerBlock HttpRangeContainerBlock;
 struct AppLayerParser;
 
 typedef struct SuricataContext_ {
-    SCError (*SCLogMessage)(const SCLogLevel, const char *, const unsigned int, const char *,
-            const char *, const char *message);
-
     void (*HttpRangeFreeBlock)(HttpRangeContainerBlock *);
     bool (*HTPFileCloseHandleRange)(const StreamingBufferConfig *sbcfg, FileContainer *,
             const uint16_t, HttpRangeContainerBlock *, const uint8_t *, uint32_t);
