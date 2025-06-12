@@ -52,4 +52,6 @@
 
 #include "util-mpm.h"
 
+#include "flow-bindgen.h"
+
 #endif
