@@ -1507,7 +1507,7 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 
 [[package]]
 name = "suricata"
-version = "8.0.0-rc1-dev"
+version = "8.0.0-rc1"
 dependencies = [
  "aes",
  "aes-gcm",
@@ -1559,7 +1559,7 @@ dependencies = [
 
 [[package]]
 name = "suricata-derive"
-version = "8.0.0-rc1-dev"
+version = "8.0.0-rc1"
 dependencies = [
  "proc-macro-crate",
  "proc-macro2",
@@ -1595,11 +1595,11 @@ dependencies = [
 
 [[package]]
 name = "suricata-sys"
-version = "8.0.0-rc1-dev"
+version = "8.0.0-rc1"
 
 [[package]]
 name = "suricatactl"
-version = "8.0.0-rc1-dev"
+version = "8.0.0-rc1"
 dependencies = [
  "clap",
  "once_cell",
@@ -1610,7 +1610,7 @@ dependencies = [
 
 [[package]]
 name = "suricatasc"
-version = "8.0.0-rc1-dev"
+version = "8.0.0-rc1"
 dependencies = [
  "clap",
  "home",

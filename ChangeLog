@@ -1,3 +1,97 @@
+8.0.0-rc1 -- 2025-06-12
+
+Feature #7715: rules: add option to skip flow tracking for a packet
+Feature #7714: detect: add pre_flow rule hook
+Feature #7713: detect: add tcp.wscale keyword to match on TCP wscale option values
+Feature #7712: detect: add pre_stream rule hook
+Feature #7702: commandline: add --list-app-layer-hooks option
+Feature #7645: pgsql: add CopyIn subprotocol/mode
+Feature #7635: eve: include transaction count
+Feature #7599: mime: add email.received keyword
+Feature #7597: mime: add email.url keyword
+Feature #7593: mime: add email.message_id keyword
+Feature #7507: rules: ftp.completion_code keyword
+Feature #7506: rules: ftp.reply_received keyword
+Feature #7505: rules: ftp.mode keyword
+Feature #7504: rules: ftp.dynamic_port keyword
+Feature #7372: Datajson: a dataset evolution
+Feature #7047: eve: add ip version field
+Feature #7036: DPDK NUMA setup: choose correct CPUs from worker-cpu-set
+Feature #6805: cpu-affinity: enhance CPU affinity logic with per-interface NUMA preferences
+Feature #6695: tls: log extensions
+Feature #6259: pgsql: add `query` detection keyword
+Feature #5692: http: brotli content encoding for HTTP/1.1
+Feature #4099: app-layer: allow direct rule keyword registration
+Feature #3952: protocols: implement mDNS
+Feature #2290: lua: use script as transform
+Bug #7747: affinity: warnings in the granular thread affinity settings code
+Bug #7746: suricatasc does not handle reconnect
+Bug #7735: brotli: old crate version has integer underflow
+Bug #7732: http1: use cursor wrapper handling EOF for brotli
+Bug #7730: dcerpc: uint16 overflow (rust debug assertion)
+Bug #7725: decode/ipv4: missing ip-in-ip case handling
+Bug #7698: firewall: eve verdict field should state "accept" instead of alert
+Bug #7694: flow: elephant flow counts previous bytes revisiting an index
+Bug #7689: Dataset of type IP can't set IPv4
+Bug #7687: flow: non-TCP protocol timeout handling leads to missing flows
+Bug #7681: flow: race condition at shutdown leads to duplicate flows
+Bug #7671: lua: suricata-lua-sys needs to honor MSAN oss-fuzz flags
+Bug #7668: http: lack of setting updated_ts leads to firewall bypass
+Bug #7665: transaction rules: support filesize
+Bug #7653: ips: deconflict pass flow and drop packet rules
+Bug #7647: pgsql: empty request logged if password message disabled
+Bug #7634: hyperscan: coverity warnings
+Bug #7579: detect/files: local_file_id not incremented if inspection buffer is NULL
+Bug #7568: pcap: continuous file reading fails on an empty directory
+Bug #7549: detect: using different sticky buffers for byte_extract and byte_jump leads to undefined value before doing the jump
+Bug #7498: rust: cleanup of extern "C" functions and no_mangle
+Bug #7479: segfault using dummy config output.eve-log.types.alert.payload-buffer-size = 0
+Bug #7420: detect-engine: warning fgets could get negative value
+Bug #7390: byte_extract: issue with saved 'name' in distance keyword
+Bug #7374: dpdk: iface-copy should not be mandatory
+Bug #7344: build: build can sometimes fail copying the lua headers into place
+Bug #7285: Websocket compression mishandling
+Bug #7236: plugins: custom transaction loggers cannot be registered by a plugin
+Bug #7019: snmp: probing parser returns ALPROTO_FAILED instead of ALPROTO_UNKNOWN if slice.len() < 4
+Bug #7004: app-layer: wrong tx may be logged for stream rules
+Bug #6981: dpdk: compiler warnings about lossy integer precision
+Bug #6400: log of DNS answer is in wrong direction 
+Bug #6186: Integer overflows 64 to 32 bytes
+Bug #5739: htp: handle alloc failure for user data
+Bug #5177: detect/analyzer: rule analyzer warns about http buffers usage
+Bug #4815: unix socket: ftp memcap missing from socket commands
+Bug #3436: suricatasc: crashing using command 'reopen-log-files' 
+Optimization #7733: transforms: move base64 transform pure rust
+Optimization #7708: http1: add tx iterator
+Optimization #7529: detect/dns: move wrapper code from C to rust
+Optimization #7353: files: remove deprecated force-md5 config option
+Optimization #7292: CI: clang-format rechecks every main-7.0.x commit
+Optimization #7083: detect/dataset: skip adding localstatedir if fullpath is provided
+Task #7727: lua: suricata.log library
+Task #7673: libsuricata: rate_filter callback
+Task #7656: fast.lua: update script to reflect library use
+Task #7609: lua: suricata.util lib
+Task #7608: lua: turn tls into lib
+Task #7607: lua: turn ssh into lib
+Task #7606: lua: turn smtp into lib
+Task #7605: lua: turn ja3 into lib
+Task #7603: lua: turn hassh into lib
+Task #7598: mime: add email.x_mailer
+Task #7591: mime: add email.date keyword
+Task #7491: lua: turn file into lua lib
+Task #7490: lua: turn rule into lua lib
+Task #7487: lua: turn flowints into lib
+Task #7486: lua: turn flowvars into lib
+Task #7461: suricata-verify: pass all tests
+Task #7079: rust: unify rust ffi style
+Task #7026: app-protos: trigger raw stream inspection
+Task #6573: rust: set new minimum Rust version for Suricata 8
+Task #3695: research: libhwloc for better autoconfiguration
+Documentation #7683: mime:  add email.attachment keyword
+Documentation #7329: doc: explain the priority ports setting
+Documentation #7143: doc: legacy keyword http_host used in examples
+Documentation #5485: userguide: explain that the http.header_names buffer is normalized
+
 8.0.0-beta1 -- 2025-04-08
 
 Feature #7644: pgsql: add CopyOut subprotocol/mode
