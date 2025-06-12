@@ -93,7 +93,7 @@ int AppLayerGetPktEventInfo(const char *event_name, uint8_t *event_id)
  *                memory will be allocated.
  * \param event   The event to be stored.
  */
-void AppLayerDecoderEventsSetEventRaw(AppLayerDecoderEvents **sevents, uint8_t event)
+void SCAppLayerDecoderEventsSetEventRaw(AppLayerDecoderEvents **sevents, uint8_t event)
 {
     if (*sevents == NULL) {
         AppLayerDecoderEvents *new_devents = SCCalloc(1, sizeof(AppLayerDecoderEvents));
@@ -135,7 +135,7 @@ void AppLayerDecoderEventsResetEvents(AppLayerDecoderEvents *events)
 }
 
 
-void AppLayerDecoderEventsFreeEvents(AppLayerDecoderEvents **events)
+void SCAppLayerDecoderEventsFreeEvents(AppLayerDecoderEvents **events)
 {
     if (events && *events != NULL) {
         if ((*events)->events != NULL)

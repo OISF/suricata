@@ -166,7 +166,7 @@ void PacketDestructor(Packet *p)
     PacketAlertFree(p->alerts.alerts);
     PACKET_FREE_EXTDATA(p);
     SCSpinDestroy(&p->persistent.tunnel_lock);
-    AppLayerDecoderEventsFreeEvents(&p->app_layer_events);
+    SCAppLayerDecoderEventsFreeEvents(&p->app_layer_events);
     PACKET_PROFILING_RESET(p);
 }
 

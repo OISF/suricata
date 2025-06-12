@@ -461,7 +461,7 @@ static void SMTPSetEvent(SMTPState *s, uint8_t e)
     SCLogDebug("setting event %u", e);
 
     if (s->curr_tx != NULL) {
-        AppLayerDecoderEventsSetEventRaw(&s->curr_tx->tx_data.events, e);
+        SCAppLayerDecoderEventsSetEventRaw(&s->curr_tx->tx_data.events, e);
         //        s->events++;
         return;
     }
