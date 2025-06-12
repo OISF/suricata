@@ -925,7 +925,7 @@ static void DNP3HandleUserDataRequest(
         tx->complete = 1;
     }
     if (f != NULL) {
-        AppLayerParserTriggerRawStreamInspection(f, STREAM_TOSERVER);
+        SCAppLayerParserTriggerRawStreamInspection(f, STREAM_TOSERVER);
     }
 }
 
@@ -1002,7 +1002,7 @@ static void DNP3HandleUserDataResponse(
         tx->complete = 1;
     }
     if (f != NULL) {
-        AppLayerParserTriggerRawStreamInspection(f, STREAM_TOCLIENT);
+        SCAppLayerParserTriggerRawStreamInspection(f, STREAM_TOCLIENT);
     }
 }
 
