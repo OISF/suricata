@@ -50,6 +50,7 @@ pub enum DatasetType {
 }
 
 // Extern fns operating on the opaque Dataset type above
+#[allow(unused_doc_comments)]
 /// cbindgen:ignore
 extern "C" {
     pub fn DatasetAdd(set: &Dataset, data: *const u8, len: u32) -> i32;
