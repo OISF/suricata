@@ -864,8 +864,7 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
     if (RB_EMPTY(&stream->seg_tree) &&
         stream->flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_SKIPPED) {
 
-        SCAppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
-                APPLAYER_PROTO_DETECTION_SKIPPED);
+        SCAppLayerDecoderEventsSetEventRaw(&p->app_layer_events, APPLAYER_PROTO_DETECTION_SKIPPED);
     }
 
     int r = StreamTcpReassembleInsertSegment(tv, ra_ctx, stream, seg, p, p->payload, payload_len);

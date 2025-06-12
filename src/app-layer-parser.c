@@ -1315,7 +1315,7 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
         if (!(p->option_flags & APP_LAYER_PARSER_OPT_ACCEPT_GAPS)) {
             SCLogDebug("app-layer parser does not accept gaps");
             if (f->alstate != NULL && !FlowChangeProto(f)) {
-                AppLayerParserTriggerRawStreamInspection(f, direction);
+                SCAppLayerParserTriggerRawStreamInspection(f, direction);
             }
             AppLayerIncGapErrorCounter(tv, f);
             goto error;
@@ -1554,7 +1554,7 @@ LoggerId AppLayerParserProtocolGetLoggerBits(uint8_t ipproto, AppProto alproto)
     SCReturnUInt(r);
 }
 
-void AppLayerParserTriggerRawStreamInspection(Flow *f, int direction)
+void SCAppLayerParserTriggerRawStreamInspection(Flow *f, int direction)
 {
     SCEnter();
 
