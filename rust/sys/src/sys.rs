@@ -761,3 +761,15 @@ extern "C" {
         sid: u32, flags: u8,
     ) -> ::std::os::raw::c_int;
 }
+extern "C" {
+    pub fn SCFlowGetLastTimeAsParts(flow: *const Flow, secs: *mut u64, usecs: *mut u64);
+}
+extern "C" {
+    pub fn SCFlowGetFlags(flow: *const Flow) -> u32;
+}
+extern "C" {
+    pub fn SCFlowGetSourcePort(flow: *const Flow) -> u16;
+}
+extern "C" {
+    pub fn SCFlowGetDestinationPort(flow: *const Flow) -> u16;
+}

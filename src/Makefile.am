@@ -335,6 +335,7 @@ noinst_HEADERS = \
 	detect.h \
 	device-storage.h \
 	feature.h \
+	flow-bindgen.h \
 	flow-bit.h \
 	flow-bypass.h \
 	flow-callbacks.h \
