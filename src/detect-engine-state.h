@@ -34,6 +34,9 @@
 #ifndef SURICATA_DETECT_ENGINE_STATE_H
 #define SURICATA_DETECT_ENGINE_STATE_H
 
+// forward declaration for bindgen
+#define SigIntId uint32_t
+
 #define DETECT_ENGINE_INSPECT_SIG_NO_MATCH 0
 #define DETECT_ENGINE_INSPECT_SIG_MATCH 1
 #define DETECT_ENGINE_INSPECT_SIG_CANT_MATCH 2
@@ -105,7 +108,7 @@ DetectEngineState *DetectEngineStateAlloc(void);
  *
  * \param state DetectEngineState instance to free.
  */
-void DetectEngineStateFree(DetectEngineState *state);
+void SCDetectEngineStateFree(DetectEngineState *state);
 
 #endif /* SURICATA_DETECT_ENGINE_STATE_H */
 
