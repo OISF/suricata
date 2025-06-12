@@ -213,7 +213,7 @@ void FileForceHashParseCfg(SCConfNode *conf)
     }
 }
 
-uint16_t FileFlowFlagsToFlags(const uint16_t flow_file_flags, uint8_t direction)
+uint16_t SCFileFlowFlagsToFlags(const uint16_t flow_file_flags, uint8_t direction)
 {
     uint16_t flags = 0;
 
@@ -256,7 +256,7 @@ uint16_t FileFlowFlagsToFlags(const uint16_t flow_file_flags, uint8_t direction)
 
 uint16_t FileFlowToFlags(const Flow *flow, uint8_t direction)
 {
-    return FileFlowFlagsToFlags(flow->file_flags, direction);
+    return SCFileFlowFlagsToFlags(flow->file_flags, direction);
 }
 
 void FileApplyTxFlags(const AppLayerTxData *txd, const uint8_t direction, File *file)
@@ -264,7 +264,7 @@ void FileApplyTxFlags(const AppLayerTxData *txd, const uint8_t direction, File *
     SCLogDebug("file flags %04x STORE %s NOSTORE %s", file->flags,
             (file->flags & FILE_STORE) ? "true" : "false",
             (file->flags & FILE_NOSTORE) ? "true" : "false");
-    uint16_t update_flags = FileFlowFlagsToFlags(txd->file_flags, direction);
+    uint16_t update_flags = SCFileFlowFlagsToFlags(txd->file_flags, direction);
     DEBUG_VALIDATE_BUG_ON(
             (file->flags & (FILE_STORE | FILE_NOSTORE)) == (FILE_STORE | FILE_NOSTORE));
     if (file->flags & FILE_STORE)
