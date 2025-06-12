@@ -43,7 +43,7 @@ static HostStorageId host_bit_id = { .id = -1 }; /**< Host storage id for bits *
 static void HostBitFreeAll(void *store)
 {
     GenericVar *gv = store;
-    GenericVarFree(gv);
+    SCGenericVarFree(gv);
 }
 
 void HostBitInitCtx(void)

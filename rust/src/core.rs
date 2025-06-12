@@ -25,9 +25,6 @@ use suricata_sys::sys::SCAppLayerParserTriggerRawStreamInspection;
 use crate::filecontainer::*;
 use crate::flow::Flow;
 
-/// Opaque C types.
-pub enum GenericVar {}
-
 #[repr(C)]
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[allow(non_camel_case_types)]
@@ -122,9 +119,6 @@ pub type SCFileContainerRecycle = extern "C" fn (
         file_container: &FileContainer,
         sbcfg: &StreamingBufferConfig);
 
-pub type GenericVarFreeFunc =
-    extern "C" fn(gvar: *mut GenericVar);
-
 // A Suricata context that is passed in from C. This is alternative to
 // using functions from Suricata directly, so they can be wrapped so
 // Rust unit tests will still compile when they are not linked
@@ -145,8 +139,6 @@ pub struct SuricataContext {
     pub FileAppendData: SCFileAppendDataById,
     pub FileAppendGAP: SCFileAppendGAPById,
     pub FileContainerRecycle: SCFileContainerRecycle,
-
-    GenericVarFree: GenericVarFreeFunc,
 }
 
 #[allow(non_snake_case)]
@@ -174,16 +166,6 @@ pub fn init_ffi(context: &'static SuricataContext)
 pub extern "C" fn SCRustInit(context: &'static SuricataContext)
 {
     init_ffi(context);
-}
-
-/// GenericVarFree wrapper.
-pub fn sc_generic_var_free(gvar: *mut GenericVar)
-{
-    unsafe {
-        if let Some(c) = SC {
-            (c.GenericVarFree)(gvar);
-        }
-    }
 }
 
 /// SCAppLayerParserTriggerRawStreamInspection wrapper
