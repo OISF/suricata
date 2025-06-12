@@ -249,7 +249,7 @@ void AppLayerParserStateFree(AppLayerParserState *pstate)
     SCEnter();
 
     if (pstate->decoder_events != NULL)
-        AppLayerDecoderEventsFreeEvents(&pstate->decoder_events);
+        SCAppLayerDecoderEventsFreeEvents(&pstate->decoder_events);
     AppLayerParserFramesFreeContainer(pstate->frames);
     SCFree(pstate);
 

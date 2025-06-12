@@ -328,7 +328,7 @@ static inline int SafeMemcpy(void *dst, size_t dst_offset, size_t dst_size,
         if ((ssl_state) == NULL) {                                                                 \
             SCLogDebug("could not set decoder event %u", event);                                   \
         } else {                                                                                   \
-            AppLayerDecoderEventsSetEventRaw(&(ssl_state)->tx_data.events, (event));               \
+            SCAppLayerDecoderEventsSetEventRaw(&(ssl_state)->tx_data.events, (event));               \
             (ssl_state)->events++;                                                                 \
         }                                                                                          \
     } while (0)

@@ -55,8 +55,9 @@ int AppLayerGetPktEventInfo(const char *event_name, uint8_t *event_id);
 
 int AppLayerGetEventInfoById(
         uint8_t event_id, const char **event_name, AppLayerEventType *event_type);
-void AppLayerDecoderEventsSetEventRaw(AppLayerDecoderEvents **sevents, uint8_t event);
+void SCAppLayerDecoderEventsSetEventRaw(AppLayerDecoderEvents **sevents, uint8_t event);
 
+#ifndef SURICATA_BINDGEN_H
 static inline int AppLayerDecoderEventsIsEventSet(
         const AppLayerDecoderEvents *devents, uint8_t event)
 {
@@ -71,9 +72,10 @@ static inline int AppLayerDecoderEventsIsEventSet(
 
     return 0;
 }
+#endif
 
 void AppLayerDecoderEventsResetEvents(AppLayerDecoderEvents *events);
-void AppLayerDecoderEventsFreeEvents(AppLayerDecoderEvents **events);
+void SCAppLayerDecoderEventsFreeEvents(AppLayerDecoderEvents **events);
 int DetectEngineGetEventInfo(
         const char *event_name, uint8_t *event_id, AppLayerEventType *event_type);
 int SCAppLayerGetEventIdByName(const char *event_name, SCEnumCharMap *table, uint8_t *event_id);
