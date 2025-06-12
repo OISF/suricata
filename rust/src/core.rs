@@ -17,8 +17,7 @@
 
 //! This module exposes items from the core "C" code to Rust.
 
-use std;
-use suricata_sys::sys::{AppProto, AppProtoEnum, SCLogLevel};
+use suricata_sys::sys::{AppProto, AppProtoEnum};
 #[cfg(not(test))]
 use suricata_sys::sys::SCAppLayerParserTriggerRawStreamInspection;
 
@@ -68,16 +67,6 @@ macro_rules!BIT_U64 {
 //
 // Function types for calls into C.
 //
-
-#[allow(non_snake_case)]
-pub type SCLogMessageFunc =
-    extern "C" fn(level: SCLogLevel,
-                  filename: *const std::os::raw::c_char,
-                  line: std::os::raw::c_uint,
-                  function: *const std::os::raw::c_char,
-                  subsystem: *const std::os::raw::c_char,
-                  message: *const std::os::raw::c_char) -> std::os::raw::c_int;
-
 pub enum StreamingBufferConfig {}
 
 // Opaque flow type (defined in C)
@@ -129,8 +118,6 @@ pub type SCFileContainerRecycle = extern "C" fn (
 #[allow(non_snake_case)]
 #[repr(C)]
 pub struct SuricataContext {
-    pub SCLogMessage: SCLogMessageFunc,
-
     pub HttpRangeFreeBlock: SCHttpRangeFreeBlock,
     pub HTPFileCloseHandleRange: SCHTPFileCloseHandleRange,
 
