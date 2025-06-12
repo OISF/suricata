@@ -22,6 +22,8 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
+#include "suricata-common.h"
+#include "rust.h"
 #include "app-layer-events.h"
 #include "util-enum.h"
 
