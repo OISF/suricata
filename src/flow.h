@@ -582,11 +582,6 @@ enum ExceptionPolicy FlowGetMemcapExceptionPolicy(void);
 FlowStorageId GetFlowBypassInfoID(void);
 void RegisterFlowBypassInfo(void);
 
-void FlowGetLastTimeAsParts(Flow *flow, uint64_t *secs, uint64_t *usecs);
-uint32_t FlowGetFlags(Flow *flow);
-uint16_t FlowGetSourcePort(Flow *flow);
-uint16_t FlowGetDestinationPort(Flow *flow);
-
 /** ----- Inline functions ----- */
 
 static inline AppProto FlowGetAppProtocol(const Flow *f)
