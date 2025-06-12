@@ -45,7 +45,7 @@ void XBitFree(XBit *fb)
     SCFree(fb);
 }
 
-void GenericVarFree(GenericVar *gv)
+void SCGenericVarFree(GenericVar *gv)
 {
     if (gv == NULL)
         return;
@@ -57,14 +57,14 @@ void GenericVarFree(GenericVar *gv)
         case DETECT_FLOWBITS:
         {
             FlowBit *fb = (FlowBit *)gv;
-            //printf("GenericVarFree: fb %p, removing\n", fb);
+            // printf("SCGenericVarFree: fb %p, removing\n", fb);
             FlowBitFree(fb);
             break;
         }
         case DETECT_XBITS:
         {
             XBit *fb = (XBit *)gv;
-            //printf("GenericVarFree: fb %p, removing\n", fb);
+            // printf("SCGenericVarFree: fb %p, removing\n", fb);
             XBitFree(fb);
             break;
         }
@@ -86,13 +86,13 @@ void GenericVarFree(GenericVar *gv)
         }
         default:
         {
-            SCLogDebug("GenericVarFree unknown type %" PRIu32, gv->type);
+            SCLogDebug("SCGenericVarFree unknown type %" PRIu32, gv->type);
             DEBUG_VALIDATE_BUG_ON(1);
             break;
         }
     }
 
-    GenericVarFree(next_gv);
+    SCGenericVarFree(next_gv);
 }
 
 void GenericVarAppend(GenericVar **list, GenericVar *gv)

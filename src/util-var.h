@@ -57,6 +57,7 @@ typedef struct GenericVar_ {
     struct GenericVar_ *next;
 } GenericVar;
 
+#ifndef SURICATA_BINDGEN_H
 typedef struct XBit_ {
     uint16_t type; /* type, DETECT_XBITS in this case */
     uint8_t pad[2];
@@ -66,6 +67,7 @@ typedef struct XBit_ {
 } XBit;
 
 void XBitFree(XBit *);
+#endif
 
 // A list of variables we try to resolve while parsing configuration file.
 // Helps to detect recursive declarations.
@@ -76,7 +78,7 @@ typedef struct ResolvedVariable_ {
 
 typedef TAILQ_HEAD(, ResolvedVariable_) ResolvedVariablesList;
 
-void GenericVarFree(GenericVar *);
+void SCGenericVarFree(GenericVar *);
 void GenericVarAppend(GenericVar **, GenericVar *);
 void GenericVarRemove(GenericVar **, GenericVar *);
 

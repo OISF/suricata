@@ -846,6 +846,19 @@ extern "C" {
 extern "C" {
     pub fn SCFileFlowFlagsToFlags(flow_file_flags: u16, direction: u8) -> u16;
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct GenericVar_ {
+    #[doc = "< variable type, uses detection sm_type"]
+    pub type_: u16,
+    pub pad: [u8; 2usize],
+    pub idx: u32,
+    pub next: *mut GenericVar_,
+}
+pub type GenericVar = GenericVar_;
+extern "C" {
+    pub fn SCGenericVarFree(arg1: *mut GenericVar);
+}
 extern "C" {
     pub fn SCFlowGetLastTimeAsParts(flow: *const Flow, secs: *mut u64, usecs: *mut u64);
 }

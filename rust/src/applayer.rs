@@ -18,7 +18,7 @@
 //! Parser registration functions and common interface module.
 
 use std;
-use crate::core::{self,AppLayerEventType, GenericVar, STREAM_TOSERVER};
+use crate::core::{self,AppLayerEventType, STREAM_TOSERVER};
 use crate::direction::Direction;
 use crate::filecontainer::FileContainer;
 use crate::flow::Flow;
@@ -29,9 +29,14 @@ use crate::core::StreamingBufferConfig;
 // Make the AppLayerEvent derive macro available to users importing
 // AppLayerEvent from this module.
 pub use suricata_derive::AppLayerEvent;
-use suricata_sys::sys::{AppLayerParserState, AppProto, DetectEngineState, AppLayerDecoderEvents};
+use suricata_sys::sys::{
+    AppLayerDecoderEvents, AppLayerParserState, AppProto, DetectEngineState, GenericVar,
+};
 #[cfg(not(test))]
-use suricata_sys::sys::{SCDetectEngineStateFree, SCAppLayerDecoderEventsFreeEvents, SCAppLayerDecoderEventsSetEventRaw};
+use suricata_sys::sys::{
+    SCAppLayerDecoderEventsFreeEvents, SCAppLayerDecoderEventsSetEventRaw, SCDetectEngineStateFree,
+    SCGenericVarFree,
+};
 
 /// Cast pointer to a variable, as a mutable reference to an object
 ///
@@ -171,23 +176,27 @@ pub unsafe extern "C" fn SCAppLayerTxDataCleanup(txd: *mut AppLayerTxData) {
 }
 
 impl AppLayerTxData {
+    #[cfg(not(test))]
     pub fn cleanup(&mut self) {
-        #[cfg(not(test))]
         if !self.de_state.is_null() {
             unsafe {
                 SCDetectEngineStateFree(self.de_state);
             }
         }
-        #[cfg(not(test))]
         if !self.events.is_null() {
             unsafe {
                 SCAppLayerDecoderEventsFreeEvents(&mut self.events);
             }
         }
         if !self.txbits.is_null() {
-            core::sc_generic_var_free(self.txbits);
+            unsafe {
+                SCGenericVarFree(self.txbits);
+            }
         }
     }
+
+    #[cfg(test)]
+    pub fn cleanup(&mut self) {}
 
     /// Create new AppLayerTxData for a transaction that covers both
     /// directions.
