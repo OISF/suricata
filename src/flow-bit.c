@@ -161,7 +161,7 @@ static int FlowBitTest01 (void)
     FlowBit *fb = FlowBitGet(&f, 0);
     FAIL_IF_NULL(fb);
 
-    GenericVarFree(f.flowvar);
+    SCGenericVarFree(f.flowvar);
     PASS;
 }
 
@@ -173,7 +173,7 @@ static int FlowBitTest02 (void)
     FlowBit *fb = FlowBitGet(&f, 0);
     FAIL_IF_NOT_NULL(fb);
 
-    GenericVarFree(f.flowvar);
+    SCGenericVarFree(f.flowvar);
     PASS;
 }
 
@@ -192,7 +192,7 @@ static int FlowBitTest03 (void)
     fb = FlowBitGet(&f, 0);
     FAIL_IF_NOT_NULL(fb);
 
-    GenericVarFree(f.flowvar);
+    SCGenericVarFree(f.flowvar);
     PASS;
 }
 
@@ -209,7 +209,7 @@ static int FlowBitTest04 (void)
     FlowBit *fb = FlowBitGet(&f, 0);
     FAIL_IF_NULL(fb);
 
-    GenericVarFree(f.flowvar);
+    SCGenericVarFree(f.flowvar);
     PASS;
 }
 
@@ -226,7 +226,7 @@ static int FlowBitTest05 (void)
     FlowBit *fb = FlowBitGet(&f, 1);
     FAIL_IF_NULL(fb);
 
-    GenericVarFree(f.flowvar);
+    SCGenericVarFree(f.flowvar);
     PASS;
 }
 
@@ -243,7 +243,7 @@ static int FlowBitTest06 (void)
     FlowBit *fb = FlowBitGet(&f, 2);
     FAIL_IF_NULL(fb);
 
-    GenericVarFree(f.flowvar);
+    SCGenericVarFree(f.flowvar);
     PASS;
 }
 
@@ -260,7 +260,7 @@ static int FlowBitTest07 (void)
     FlowBit *fb = FlowBitGet(&f, 3);
     FAIL_IF_NULL(fb);
 
-    GenericVarFree(f.flowvar);
+    SCGenericVarFree(f.flowvar);
     PASS;
 }
 
@@ -282,7 +282,7 @@ static int FlowBitTest08 (void)
     fb = FlowBitGet(&f, 0);
     FAIL_IF_NOT_NULL(fb);
 
-    GenericVarFree(f.flowvar);
+    SCGenericVarFree(f.flowvar);
     PASS;
 }
 
@@ -304,7 +304,7 @@ static int FlowBitTest09 (void)
     fb = FlowBitGet(&f, 1);
     FAIL_IF_NOT_NULL(fb);
 
-    GenericVarFree(f.flowvar);
+    SCGenericVarFree(f.flowvar);
     PASS;
 }
 
@@ -326,7 +326,7 @@ static int FlowBitTest10 (void)
     fb = FlowBitGet(&f, 2);
     FAIL_IF_NOT_NULL(fb);
 
-    GenericVarFree(f.flowvar);
+    SCGenericVarFree(f.flowvar);
     PASS;
 }
 
@@ -348,7 +348,7 @@ static int FlowBitTest11 (void)
     fb = FlowBitGet(&f, 3);
     FAIL_IF_NOT_NULL(fb);
 
-    GenericVarFree(f.flowvar);
+    SCGenericVarFree(f.flowvar);
     PASS;
 }
 
