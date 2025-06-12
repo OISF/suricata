@@ -511,7 +511,7 @@ impl NFSState {
 
     // TODO maybe not enough users to justify a func
     pub fn mark_response_tx_done(
-        &mut self, flow: *const Flow, xid: u32, rpc_status: u32, nfs_status: u32, resp_handle: &[u8],
+        &mut self, flow: *mut Flow, xid: u32, rpc_status: u32, nfs_status: u32, resp_handle: &[u8],
     ) {
         if let Some(mytx) = self.get_tx_by_xid(xid) {
             mytx.tx_data.updated_tc = true;
@@ -882,7 +882,7 @@ impl NFSState {
 
     /// complete request record
     fn process_request_record(
-        &mut self, flow: *const Flow, stream_slice: &StreamSlice, r: &RpcPacket,
+        &mut self, flow: *mut Flow, stream_slice: &StreamSlice, r: &RpcPacket,
     ) {
         SCLogDebug!(
             "REQUEST {} procedure {} ({}) blob size {}",
@@ -964,7 +964,7 @@ impl NFSState {
         return None;
     }
 
-    pub fn process_write_record<'b>(&mut self, flow: *const Flow, r: &RpcPacket<'b>, w: &Nfs3RequestWrite<'b>) -> u32 {
+    pub fn process_write_record<'b>(&mut self, flow: *mut Flow, r: &RpcPacket<'b>, w: &Nfs3RequestWrite<'b>) -> u32 {
         let mut fill_bytes = 0;
         let pad = w.count % 4;
         if pad != 0 {
@@ -1056,7 +1056,7 @@ impl NFSState {
     }
 
     fn process_partial_write_request_record<'b>(
-        &mut self, flow: *const Flow, r: &RpcPacket<'b>, w: &Nfs3RequestWrite<'b>,
+        &mut self, flow: *mut Flow, r: &RpcPacket<'b>, w: &Nfs3RequestWrite<'b>,
     ) -> u32 {
         SCLogDebug!(
             "REQUEST {} procedure {} blob size {}",
@@ -1073,7 +1073,7 @@ impl NFSState {
     }
 
     fn process_reply_record(
-        &mut self, flow: *const Flow, stream_slice: &StreamSlice, r: &RpcReplyPacket,
+        &mut self, flow: *mut Flow, stream_slice: &StreamSlice, r: &RpcReplyPacket,
     ) -> u32 {
         let mut xidmap;
         match self.requestmap.remove(&r.hdr.xid) {
@@ -1131,7 +1131,7 @@ impl NFSState {
 
     // update in progress chunks for file transfers
     // return how much data we consumed
-    fn filetracker_update(&mut self, flow: *const Flow, direction: Direction, data: &[u8], gap_size: u32) -> u32 {
+    fn filetracker_update(&mut self, flow: *mut Flow, direction: Direction, data: &[u8], gap_size: u32) -> u32 {
         let mut chunk_left = if direction == Direction::ToServer {
             self.ts_chunk_left
         } else {
@@ -1261,7 +1261,7 @@ impl NFSState {
     /// xidmapr is an Option as it's already removed from the map if we
     /// have a complete record. Otherwise we do a lookup ourselves.
     pub fn process_read_record<'b>(
-        &mut self, flow: *const Flow, r: &RpcReplyPacket<'b>, reply: &NfsReplyRead<'b>,
+        &mut self, flow: *mut Flow, r: &RpcReplyPacket<'b>, reply: &NfsReplyRead<'b>,
         xidmapr: Option<&NFSRequestXidMap>,
     ) -> u32 {
         let file_name;
@@ -1428,7 +1428,7 @@ impl NFSState {
     }
 
     fn process_partial_read_reply_record<'b>(
-        &mut self, flow: *const Flow, r: &RpcReplyPacket<'b>, reply: &NfsReplyRead<'b>,
+        &mut self, flow: *mut Flow, r: &RpcReplyPacket<'b>, reply: &NfsReplyRead<'b>,
     ) -> u32 {
         SCLogDebug!(
             "REPLY {} to procedure READ blob size {} / {}",
@@ -1452,7 +1452,7 @@ impl NFSState {
     pub fn parse_tcp_data_ts_gap(&mut self, gap_size: u32) -> AppLayerResult {
         SCLogDebug!("parse_tcp_data_ts_gap ({})", gap_size);
         let gap = vec![0; gap_size as usize];
-        let consumed = self.filetracker_update(std::ptr::null(), Direction::ToServer, &gap, gap_size);
+        let consumed = self.filetracker_update(std::ptr::null_mut(), Direction::ToServer, &gap, gap_size);
         if consumed > gap_size {
             SCLogDebug!("consumed more than GAP size: {} > {}", consumed, gap_size);
             return AppLayerResult::ok();
@@ -1466,7 +1466,7 @@ impl NFSState {
     pub fn parse_tcp_data_tc_gap(&mut self, gap_size: u32) -> AppLayerResult {
         SCLogDebug!("parse_tcp_data_tc_gap ({})", gap_size);
         let gap = vec![0; gap_size as usize];
-        let consumed = self.filetracker_update(std::ptr::null(), Direction::ToClient, &gap, gap_size);
+        let consumed = self.filetracker_update(std::ptr::null_mut(), Direction::ToClient, &gap, gap_size);
         if consumed > gap_size {
             SCLogDebug!("consumed more than GAP size: {} > {}", consumed, gap_size);
             return AppLayerResult::ok();
@@ -1479,7 +1479,7 @@ impl NFSState {
 
     /// Handle partial records
     fn parse_tcp_partial_data_ts<'b>(
-        &mut self, flow: *const Flow, base_input: &'b [u8], cur_i: &'b [u8], phdr: &RpcRequestPacketPartial,
+        &mut self, flow: *mut Flow, base_input: &'b [u8], cur_i: &'b [u8], phdr: &RpcRequestPacketPartial,
         rec_size: usize,
     ) -> AppLayerResult {
         // special case: avoid buffering file write blobs
@@ -1540,7 +1540,7 @@ impl NFSState {
 
     /// Parsing function, handling TCP chunks fragmentation
     pub fn parse_tcp_data_ts(
-        &mut self, flow: *const Flow, stream_slice: &StreamSlice,
+        &mut self, flow: *mut Flow, stream_slice: &StreamSlice,
     ) -> AppLayerResult {
         let mut cur_i = stream_slice.as_slice();
         // take care of in progress file chunk transfers
@@ -1669,7 +1669,7 @@ impl NFSState {
 
     /// Handle partial records
     fn parse_tcp_partial_data_tc<'b>(
-        &mut self, flow: *const Flow, base_input: &'b [u8], cur_i: &'b [u8], phdr: &RpcPacketHeader, rec_size: usize,
+        &mut self, flow: *mut Flow, base_input: &'b [u8], cur_i: &'b [u8], phdr: &RpcPacketHeader, rec_size: usize,
     ) -> AppLayerResult {
         // special case: avoid buffering file read blobs
         // as these can be large.
@@ -1730,7 +1730,7 @@ impl NFSState {
 
     /// Parsing function, handling TCP chunks fragmentation
     pub fn parse_tcp_data_tc(
-        &mut self, flow: *const Flow, stream_slice: &StreamSlice,
+        &mut self, flow: *mut Flow, stream_slice: &StreamSlice,
     ) -> AppLayerResult {
         let mut cur_i = stream_slice.as_slice();
         // take care of in progress file chunk transfers
@@ -1854,7 +1854,7 @@ impl NFSState {
     }
     /// Parsing function
     pub fn parse_udp_ts(
-        &mut self, flow: *const Flow, stream_slice: &StreamSlice,
+        &mut self, flow: *mut Flow, stream_slice: &StreamSlice,
     ) -> AppLayerResult {
         let input = stream_slice.as_slice();
         SCLogDebug!("parse_udp_ts ({})", input.len());
@@ -1896,7 +1896,7 @@ impl NFSState {
 
     /// Parsing function
     pub fn parse_udp_tc(
-        &mut self, flow: *const Flow, stream_slice: &StreamSlice,
+        &mut self, flow: *mut Flow, stream_slice: &StreamSlice,
     ) -> AppLayerResult {
         let input = stream_slice.as_slice();
         SCLogDebug!("parse_udp_tc ({})", input.len());

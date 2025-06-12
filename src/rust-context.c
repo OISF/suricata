@@ -26,7 +26,6 @@
 
 const SuricataContext suricata_context = {
     SCLogMessage,
-    AppLayerParserTriggerRawStreamInspection,
 
     HttpRangeFreeBlock,
     HTPFileCloseHandleRange,

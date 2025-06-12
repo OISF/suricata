@@ -158,7 +158,7 @@ impl SIPState {
     }
 
     fn parse_request_tcp(
-        &mut self, flow: *const Flow, stream_slice: StreamSlice,
+        &mut self, flow: *mut Flow, stream_slice: StreamSlice,
     ) -> AppLayerResult {
         let input = stream_slice.as_slice();
         if input.is_empty() {
@@ -257,7 +257,7 @@ impl SIPState {
     }
 
     fn parse_response_tcp(
-        &mut self, flow: *const Flow, stream_slice: StreamSlice,
+        &mut self, flow: *mut Flow, stream_slice: StreamSlice,
     ) -> AppLayerResult {
         let input = stream_slice.as_slice();
         if input.is_empty() {
