@@ -171,6 +171,7 @@ pub struct SuricataFileContext {
     pub files_sbcfg: &'static StreamingBufferConfig,
 }
 
+#[allow(unused_doc_comments)]
 /// cbindgen:ignore
 extern "C" {
     pub fn SCGetContext() -> &'static mut SuricataContext;

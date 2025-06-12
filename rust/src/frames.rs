@@ -30,6 +30,7 @@ struct CFrame {
 }
 
 // Defined in app-layer-register.h
+#[allow(unused_doc_comments)]
 /// cbindgen:ignore
 extern "C" {
     #[cfg(not(test))]
