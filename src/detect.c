@@ -988,7 +988,7 @@ static DetectRunScratchpad DetectRunSetup(const DetectEngineCtx *de_ctx,
             pflow->sgh_toclient = NULL;
 
             pflow->de_ctx_version = de_ctx->version;
-            GenericVarFree(pflow->flowvar);
+            SCGenericVarFree(pflow->flowvar);
             pflow->flowvar = NULL;
 
             DetectEngineStateResetTxs(pflow);
