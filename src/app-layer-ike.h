@@ -28,8 +28,4 @@
 void RegisterIKEParsers(void);
 void IKEParserRegisterTests(void);
 
-/** Opaque Rust types. */
-typedef struct IKEState_ IKEState;
-typedef struct IKETransaction_ IKETransaction;
-
 #endif /* SURICATA_APP_LAYER_IKE_H */
