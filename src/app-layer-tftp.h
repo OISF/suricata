@@ -26,8 +26,4 @@
 
 void RegisterTFTPParsers(void);
 
-/** Opaque Rust types. */
-typedef struct TFTPState_ TFTPState;
-typedef struct TFTPTransaction_  TFTPTransaction;
-
 #endif /* SURICATA_APP_LAYER_TFTP_H */
