@@ -25,9 +25,6 @@
 #include "util-var.h"
 
 const SuricataContext suricata_context = {
-    HttpRangeFreeBlock,
-    HTPFileCloseHandleRange,
-
     FileOpenFileWithId,
     FileCloseFileById,
     FileAppendDataById,

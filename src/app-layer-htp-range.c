@@ -604,7 +604,7 @@ static void HttpRangeBlockDerefContainer(HttpRangeContainerBlock *b)
     }
 }
 
-void HttpRangeFreeBlock(HttpRangeContainerBlock *b)
+void SCHttpRangeFreeBlock(HttpRangeContainerBlock *b)
 {
     if (b) {
         BUG_ON(b->container == NULL && b->files != NULL);
