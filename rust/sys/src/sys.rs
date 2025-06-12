@@ -750,6 +750,11 @@ extern "C" {
     pub fn SCAppLayerParserRegisterLogger(ipproto: u8, alproto: AppProto);
 }
 extern "C" {
+    pub fn SCAppLayerParserTriggerRawStreamInspection(
+        f: *mut Flow, direction: ::std::os::raw::c_int,
+    );
+}
+extern "C" {
     pub fn SCAppLayerParserSetStreamDepth(ipproto: u8, alproto: AppProto, stream_depth: u32);
 }
 extern "C" {

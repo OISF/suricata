@@ -134,7 +134,6 @@ void AppLayerDecoderEventsResetEvents(AppLayerDecoderEvents *events)
     }
 }
 
-
 void SCAppLayerDecoderEventsFreeEvents(AppLayerDecoderEvents **events)
 {
     if (events && *events != NULL) {
