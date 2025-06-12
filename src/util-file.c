@@ -98,25 +98,25 @@ void FileForceFilestoreEnable(void)
 void FileForceMagicEnable(void)
 {
     g_file_force_magic = 1;
-    g_file_flow_mask |= (FLOWFILE_NO_MAGIC_TS|FLOWFILE_NO_MAGIC_TC);
+    g_file_flow_mask |= FLOWFILE_NO_MAGIC;
 }
 
 void FileForceMd5Enable(void)
 {
     g_file_force_md5 = 1;
-    g_file_flow_mask |= (FLOWFILE_NO_MD5_TS|FLOWFILE_NO_MD5_TC);
+    g_file_flow_mask |= FLOWFILE_NO_MD5;
 }
 
 void FileForceSha1Enable(void)
 {
     g_file_force_sha1 = 1;
-    g_file_flow_mask |= (FLOWFILE_NO_SHA1_TS|FLOWFILE_NO_SHA1_TC);
+    g_file_flow_mask |= FLOWFILE_NO_SHA1;
 }
 
 void FileForceSha256Enable(void)
 {
     g_file_force_sha256 = 1;
-    g_file_flow_mask |= (FLOWFILE_NO_SHA256_TS|FLOWFILE_NO_SHA256_TC);
+    g_file_flow_mask |= FLOWFILE_NO_SHA256;
 }
 
 int FileForceFilestore(void)
@@ -161,7 +161,7 @@ int FileForceSha256(void)
 void FileForceTrackingEnable(void)
 {
     g_file_force_tracking = 1;
-    g_file_flow_mask |= (FLOWFILE_NO_SIZE_TS|FLOWFILE_NO_SIZE_TC);
+    g_file_flow_mask |= FLOWFILE_NO_SIZE;
 }
 
 /**
@@ -217,6 +217,22 @@ uint16_t FileFlowFlagsToFlags(const uint16_t flow_file_flags, uint8_t direction)
 {
     uint16_t flags = 0;
 
+    if (flow_file_flags & FLOWFILE_NO_MAGIC) {
+        flags |= FILE_NOMAGIC;
+    }
+
+    if (flow_file_flags & FLOWFILE_NO_MD5) {
+        flags |= FILE_NOMD5;
+    }
+
+    if (flow_file_flags & FLOWFILE_NO_SHA1) {
+        flags |= FILE_NOSHA1;
+    }
+
+    if (flow_file_flags & FLOWFILE_NO_SHA256) {
+        flags |= FILE_NOSHA256;
+    }
+
     if (direction == STREAM_TOSERVER) {
         if ((flow_file_flags & (FLOWFILE_NO_STORE_TS | FLOWFILE_STORE_TS)) ==
                 FLOWFILE_NO_STORE_TS) {
@@ -224,44 +240,12 @@ uint16_t FileFlowFlagsToFlags(const uint16_t flow_file_flags, uint8_t direction)
         } else if (flow_file_flags & FLOWFILE_STORE_TS) {
             flags |= FILE_STORE;
         }
-
-        if (flow_file_flags & FLOWFILE_NO_MAGIC_TS) {
-            flags |= FILE_NOMAGIC;
-        }
-
-        if (flow_file_flags & FLOWFILE_NO_MD5_TS) {
-            flags |= FILE_NOMD5;
-        }
-
-        if (flow_file_flags & FLOWFILE_NO_SHA1_TS) {
-            flags |= FILE_NOSHA1;
-        }
-
-        if (flow_file_flags & FLOWFILE_NO_SHA256_TS) {
-            flags |= FILE_NOSHA256;
-        }
     } else {
         if ((flow_file_flags & (FLOWFILE_NO_STORE_TC | FLOWFILE_STORE_TC)) ==
                 FLOWFILE_NO_STORE_TC) {
             flags |= FILE_NOSTORE;
         } else if (flow_file_flags & FLOWFILE_STORE_TC) {
             flags |= FILE_STORE;
-        }
-
-        if (flow_file_flags & FLOWFILE_NO_MAGIC_TC) {
-            flags |= FILE_NOMAGIC;
-        }
-
-        if (flow_file_flags & FLOWFILE_NO_MD5_TC) {
-            flags |= FILE_NOMD5;
-        }
-
-        if (flow_file_flags & FLOWFILE_NO_SHA1_TC) {
-            flags |= FILE_NOSHA1;
-        }
-
-        if (flow_file_flags & FLOWFILE_NO_SHA256_TC) {
-            flags |= FILE_NOSHA256;
         }
     }
     DEBUG_VALIDATE_BUG_ON((flags & (FILE_STORE | FILE_NOSTORE)) == (FILE_STORE | FILE_NOSTORE));

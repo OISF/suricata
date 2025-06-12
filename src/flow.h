@@ -126,45 +126,37 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 
 #define FLOWFILE_INIT                   0
 
-/** no magic on files in this flow */
-#define FLOWFILE_NO_MAGIC_TS            BIT_U16(0)
-#define FLOWFILE_NO_MAGIC_TC            BIT_U16(1)
-
 /** even if the flow has files, don't store 'm */
-#define FLOWFILE_NO_STORE_TS            BIT_U16(2)
-#define FLOWFILE_NO_STORE_TC            BIT_U16(3)
+#define FLOWFILE_NO_STORE_TS BIT_U16(0)
+#define FLOWFILE_NO_STORE_TC BIT_U16(1)
+
+/** no magic on files in this flow */
+#define FLOWFILE_NO_MAGIC BIT_U16(2)
+
 /** no md5 on files in this flow */
-#define FLOWFILE_NO_MD5_TS              BIT_U16(4)
-#define FLOWFILE_NO_MD5_TC              BIT_U16(5)
+#define FLOWFILE_NO_MD5 BIT_U16(3)
 
 /** no sha1 on files in this flow */
-#define FLOWFILE_NO_SHA1_TS             BIT_U16(6)
-#define FLOWFILE_NO_SHA1_TC             BIT_U16(7)
+#define FLOWFILE_NO_SHA1 BIT_U16(4)
 
 /** no sha256 on files in this flow */
-#define FLOWFILE_NO_SHA256_TS           BIT_U16(8)
-#define FLOWFILE_NO_SHA256_TC           BIT_U16(9)
+#define FLOWFILE_NO_SHA256 BIT_U16(5)
 
 /** no size tracking of files in this flow */
-#define FLOWFILE_NO_SIZE_TS             BIT_U16(10)
-#define FLOWFILE_NO_SIZE_TC             BIT_U16(11)
+#define FLOWFILE_NO_SIZE BIT_U16(6)
+
+// vacancy(5)
 
 /** store files in the flow */
 #define FLOWFILE_STORE_TS BIT_U16(12)
 #define FLOWFILE_STORE_TC BIT_U16(13)
 
-#define FLOWFILE_NONE_TS (FLOWFILE_NO_MAGIC_TS | \
-                          FLOWFILE_NO_STORE_TS | \
-                          FLOWFILE_NO_MD5_TS   | \
-                          FLOWFILE_NO_SHA1_TS  | \
-                          FLOWFILE_NO_SHA256_TS| \
-                          FLOWFILE_NO_SIZE_TS)
-#define FLOWFILE_NONE_TC (FLOWFILE_NO_MAGIC_TC | \
-                          FLOWFILE_NO_STORE_TC | \
-                          FLOWFILE_NO_MD5_TC   | \
-                          FLOWFILE_NO_SHA1_TC  | \
-                          FLOWFILE_NO_SHA256_TC| \
-                          FLOWFILE_NO_SIZE_TC)
+#define FLOWFILE_NONE_TS                                                                           \
+    (FLOWFILE_NO_MAGIC | FLOWFILE_NO_STORE_TS | FLOWFILE_NO_MD5 | FLOWFILE_NO_SHA1 |               \
+            FLOWFILE_NO_SHA256 | FLOWFILE_NO_SIZE)
+#define FLOWFILE_NONE_TC                                                                           \
+    (FLOWFILE_NO_MAGIC | FLOWFILE_NO_STORE_TC | FLOWFILE_NO_MD5 | FLOWFILE_NO_SHA1 |               \
+            FLOWFILE_NO_SHA256 | FLOWFILE_NO_SIZE)
 #define FLOWFILE_NONE    (FLOWFILE_NONE_TS|FLOWFILE_NONE_TC)
 
 #define FLOW_IS_IPV4(f) \
