@@ -328,7 +328,7 @@ static inline int SafeMemcpy(void *dst, size_t dst_offset, size_t dst_size,
         if ((ssl_state) == NULL) {                                                                 \
             SCLogDebug("could not set decoder event %u", event);                                   \
         } else {                                                                                   \
-            SCAppLayerDecoderEventsSetEventRaw(&(ssl_state)->tx_data.events, (event));               \
+            SCAppLayerDecoderEventsSetEventRaw(&(ssl_state)->tx_data.events, (event));             \
             (ssl_state)->events++;                                                                 \
         }                                                                                          \
     } while (0)
@@ -2624,7 +2624,7 @@ static struct SSLDecoderResult SSLv3Decode(uint8_t direction, SSLState *ssl_stat
     if (ssl_state->curr_connp->bytes_processed >=
             ssl_state->curr_connp->record_length + SSLV3_RECORD_HDR_LEN) {
         SCLogDebug("record complete, trigger RAW");
-        AppLayerParserTriggerRawStreamInspection(
+        SCAppLayerParserTriggerRawStreamInspection(
                 ssl_state->f, direction == 0 ? STREAM_TOSERVER : STREAM_TOCLIENT);
         SSLParserReset(ssl_state);
         ValidateRecordState(ssl_state->curr_connp);

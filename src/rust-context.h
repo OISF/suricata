@@ -37,7 +37,6 @@ struct AppLayerParser;
 typedef struct SuricataContext_ {
     SCError (*SCLogMessage)(const SCLogLevel, const char *, const unsigned int, const char *,
             const char *, const char *message);
-    void (*AppLayerParserTriggerRawStreamInspection)(Flow *, int direction);
 
     void (*HttpRangeFreeBlock)(HttpRangeContainerBlock *);
     bool (*HTPFileCloseHandleRange)(const StreamingBufferConfig *sbcfg, FileContainer *,
