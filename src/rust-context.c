@@ -25,8 +25,6 @@
 #include "util-var.h"
 
 const SuricataContext suricata_context = {
-    SCLogMessage,
-
     HttpRangeFreeBlock,
     HTPFileCloseHandleRange,
 

@@ -19,9 +19,9 @@
 
 use std::{ffi::CString, path::Path};
 
-use crate::core::SC;
-
 use suricata_sys::sys::{SCFatalErrorOnInitStatic, SCLogLevel};
+#[cfg(not(test))]
+use suricata_sys::sys::{SCError, SCLogMessage};
 
 pub static mut LEVEL: SCLogLevel = SCLogLevel::SC_LOG_NOTSET;
 
@@ -59,23 +59,28 @@ pub fn sclog(level: SCLogLevel, file: &str, line: u32, function: &str, message: 
 /// SCLogMessage wrapper. If the Suricata C context is not registered
 /// a more basic log format will be used (for example, when running
 /// Rust unit tests).
+#[cfg(not(test))]
 pub fn sc_log_message(
     level: SCLogLevel, filename: &str, line: std::os::raw::c_uint, function: &str, module: &str,
     message: &str,
-) -> std::os::raw::c_int {
+) -> SCError {
     unsafe {
-        if let Some(c) = SC {
-            return (c.SCLogMessage)(
-                level,
-                to_safe_cstring(filename).as_ptr(),
-                line,
-                to_safe_cstring(function).as_ptr(),
-                to_safe_cstring(module).as_ptr(),
-                to_safe_cstring(message).as_ptr(),
-            );
-        }
+        return SCLogMessage(
+            level,
+            to_safe_cstring(filename).as_ptr(),
+            line,
+            to_safe_cstring(function).as_ptr(),
+            to_safe_cstring(module).as_ptr(),
+            to_safe_cstring(message).as_ptr(),
+        );
     }
+}
 
+#[cfg(test)]
+pub fn sc_log_message(
+    level: SCLogLevel, filename: &str, line: std::os::raw::c_uint, _function: &str, _module: &str,
+    message: &str,
+) -> i32 {
     // Fall back if the Suricata C context is not registered which is
     // the case when Rust unit tests are running.
     //
