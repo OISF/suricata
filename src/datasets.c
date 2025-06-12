@@ -443,9 +443,6 @@ int DatasetGetOrCreate(const char *name, enum DatasetTypes type, const char *sav
     return 0;
 out_err:
     if (set) {
-        if (set->hash) {
-            THashShutdown(set->hash);
-        }
         SCFree(set);
     }
     return -1;
