@@ -435,6 +435,20 @@ extern "C" {
         s: *mut Signature, alproto: AppProto,
     ) -> ::std::os::raw::c_int;
 }
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub enum SCError {
+    SC_OK = 0,
+    SC_ENOMEM = 1,
+    SC_EINVAL = 2,
+    SC_ELIMIT = 3,
+    SC_EEXIST = 4,
+    SC_ENOENT = 5,
+    SC_ERR_MAX = 6,
+}
+extern "C" {
+    pub fn SCErrorToString(arg1: SCError) -> *const ::std::os::raw::c_char;
+}
 #[repr(i32)]
 #[doc = " \\brief The various log levels\n NOTE: when adding new level, don't forget to update SCLogMapLogLevelToSyslogLevel()\n      or it may result in logging to syslog with LOG_EMERG priority."]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
@@ -449,6 +463,13 @@ pub enum SCLogLevel {
     SC_LOG_CONFIG = 6,
     SC_LOG_DEBUG = 7,
     SC_LOG_LEVEL_MAX = 8,
+}
+extern "C" {
+    pub fn SCLogMessage(
+        arg1: SCLogLevel, arg2: *const ::std::os::raw::c_char, arg3: ::std::os::raw::c_uint,
+        arg4: *const ::std::os::raw::c_char, arg5: *const ::std::os::raw::c_char,
+        message: *const ::std::os::raw::c_char,
+    ) -> SCError;
 }
 extern "C" {
     pub fn SCFatalErrorOnInitStatic(arg1: *const ::std::os::raw::c_char);
