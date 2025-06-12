@@ -24,7 +24,6 @@ use crate::filecontainer::*;
 use crate::flow::Flow;
 
 /// Opaque C types.
-pub enum DetectEngineState {}
 pub enum AppLayerDecoderEvents {}
 pub enum GenericVar {}
 
@@ -80,9 +79,6 @@ pub type SCLogMessageFunc =
                   function: *const std::os::raw::c_char,
                   subsystem: *const std::os::raw::c_char,
                   message: *const std::os::raw::c_char) -> std::os::raw::c_int;
-
-pub type DetectEngineStateFreeFunc =
-    extern "C" fn(state: *mut DetectEngineState);
 
 pub type AppLayerParserTriggerRawStreamInspectionFunc =
     extern "C" fn (flow: *const Flow, direction: i32);
@@ -148,7 +144,6 @@ pub type GenericVarFreeFunc =
 #[repr(C)]
 pub struct SuricataContext {
     pub SCLogMessage: SCLogMessageFunc,
-    DetectEngineStateFree: DetectEngineStateFreeFunc,
     AppLayerDecoderEventsSetEventRaw: AppLayerDecoderEventsSetEventRawFunc,
     AppLayerDecoderEventsFreeEvents: AppLayerDecoderEventsFreeEventsFunc,
     pub AppLayerParserTriggerRawStreamInspection: AppLayerParserTriggerRawStreamInspectionFunc,
@@ -190,16 +185,6 @@ pub fn init_ffi(context: &'static SuricataContext)
 pub extern "C" fn SCRustInit(context: &'static SuricataContext)
 {
     init_ffi(context);
-}
-
-/// DetectEngineStateFree wrapper.
-pub fn sc_detect_engine_state_free(state: *mut DetectEngineState)
-{
-    unsafe {
-        if let Some(c) = SC {
-            (c.DetectEngineStateFree)(state);
-        }
-    }
 }
 
 /// GenericVarFree wrapper.
