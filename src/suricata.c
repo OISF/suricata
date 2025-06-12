@@ -2957,8 +2957,6 @@ void SuricataMainLoop(void)
 
 int InitGlobal(void)
 {
-    SCRustInit(&suricata_context);
-
     SC_ATOMIC_INIT(engine_stage);
 
     /* initialize the logging subsys */
