@@ -733,6 +733,8 @@ pub struct AppLayerParserState_ {
     _unused: [u8; 0],
 }
 pub type AppLayerParserState = AppLayerParserState_;
+#[doc = " \\brief Data structure to store app layer decoder events."]
+pub type AppLayerDecoderEvents = AppLayerDecoderEvents_;
 extern "C" {
     #[doc = " \\brief Given a protocol name, checks if the parser is enabled in\n        the conf file.\n\n \\param alproto_name Name of the app layer protocol.\n\n \\retval 1 If enabled.\n \\retval 0 If disabled."]
     pub fn SCAppLayerParserConfParserEnabled(
@@ -759,6 +761,43 @@ extern "C" {
 extern "C" {
     pub fn SCAppLayerRegisterParserAlias(
         proto_name: *const ::std::os::raw::c_char, proto_alias: *const ::std::os::raw::c_char,
+    ) -> ::std::os::raw::c_int;
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct SCEnumCharMap_ {
+    pub enum_name: *const ::std::os::raw::c_char,
+    pub enum_value: ::std::os::raw::c_int,
+}
+pub type SCEnumCharMap = SCEnumCharMap_;
+extern "C" {
+    pub fn SCMapEnumNameToValue(
+        arg1: *const ::std::os::raw::c_char, arg2: *mut SCEnumCharMap,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCMapEnumValueToName(
+        arg1: ::std::os::raw::c_int, arg2: *mut SCEnumCharMap,
+    ) -> *const ::std::os::raw::c_char;
+}
+#[doc = " \\brief Data structure to store app layer decoder events."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct AppLayerDecoderEvents_ {
+    pub events: *mut u8,
+    pub cnt: u8,
+    pub events_buffer_size: u8,
+    pub event_last_logged: u8,
+}
+extern "C" {
+    pub fn SCAppLayerDecoderEventsSetEventRaw(sevents: *mut *mut AppLayerDecoderEvents, event: u8);
+}
+extern "C" {
+    pub fn SCAppLayerDecoderEventsFreeEvents(events: *mut *mut AppLayerDecoderEvents);
+}
+extern "C" {
+    pub fn SCAppLayerGetEventIdByName(
+        event_name: *const ::std::os::raw::c_char, table: *mut SCEnumCharMap, event_id: *mut u8,
     ) -> ::std::os::raw::c_int;
 }
 #[repr(C)]

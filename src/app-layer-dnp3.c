@@ -461,7 +461,7 @@ static void *DNP3StateAlloc(void *orig_state, AppProto proto_orig)
 static void DNP3SetEvent(DNP3State *dnp3, uint8_t event)
 {
     if (dnp3 && dnp3->curr) {
-        AppLayerDecoderEventsSetEventRaw(&dnp3->curr->tx_data.events, event);
+        SCAppLayerDecoderEventsSetEventRaw(&dnp3->curr->tx_data.events, event);
         dnp3->events++;
     }
     else {
@@ -474,7 +474,7 @@ static void DNP3SetEvent(DNP3State *dnp3, uint8_t event)
  */
 static void DNP3SetEventTx(DNP3Transaction *tx, uint8_t event)
 {
-    AppLayerDecoderEventsSetEventRaw(&tx->tx_data.events, event);
+    SCAppLayerDecoderEventsSetEventRaw(&tx->tx_data.events, event);
     tx->dnp3->events++;
 }
 

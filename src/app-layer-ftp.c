@@ -462,7 +462,7 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
             state->current_line_truncated_ts = false;
         }
         if (tx->request_truncated) {
-            AppLayerDecoderEventsSetEventRaw(&tx->tx_data.events, FtpEventRequestCommandTooLong);
+            SCAppLayerDecoderEventsSetEventRaw(&tx->tx_data.events, FtpEventRequestCommandTooLong);
         }
 
         /* change direction (default to server) so expectation will handle
@@ -705,7 +705,7 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
                 if (likely(wrapper)) {
                     response->truncated = state->current_line_truncated_tc;
                     if (response->truncated) {
-                        AppLayerDecoderEventsSetEventRaw(
+                        SCAppLayerDecoderEventsSetEventRaw(
                                 &tx->tx_data.events, FtpEventResponseCommandTooLong);
                     }
                     if (line.lf_found) {

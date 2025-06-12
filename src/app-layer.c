@@ -317,18 +317,18 @@ static void TCPProtoDetectCheckBailConditions(ThreadVars *tv,
         /* we bail out whatever the pp and pm states if
          * we received too much data */
     } else if (size_tc > 2 * size_tc_limit || size_ts > 2 * size_ts_limit) {
-        AppLayerDecoderEventsSetEventRaw(&p->app_layer_events, APPLAYER_PROTO_DETECTION_SKIPPED);
+        SCAppLayerDecoderEventsSetEventRaw(&p->app_layer_events, APPLAYER_PROTO_DETECTION_SKIPPED);
         goto failure;
 
     } else if (FLOW_IS_PM_DONE(f, STREAM_TOSERVER) && FLOW_IS_PP_DONE(f, STREAM_TOSERVER) &&
                size_ts > size_ts_limit && size_tc == 0) {
-        AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
+        SCAppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                 APPLAYER_PROTO_DETECTION_SKIPPED);
         goto failure;
 
     } else if (FLOW_IS_PM_DONE(f, STREAM_TOCLIENT) && FLOW_IS_PP_DONE(f, STREAM_TOCLIENT) &&
                size_tc > size_tc_limit && size_ts == 0) {
-        AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
+        SCAppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                 APPLAYER_PROTO_DETECTION_SKIPPED);
         goto failure;
 
@@ -338,7 +338,7 @@ static void TCPProtoDetectCheckBailConditions(ThreadVars *tv,
     } else if (size_tc > size_tc_limit && FLOW_IS_PP_DONE(f, STREAM_TOSERVER) &&
                !(FLOW_IS_PM_DONE(f, STREAM_TOSERVER)) && FLOW_IS_PM_DONE(f, STREAM_TOCLIENT) &&
                FLOW_IS_PP_DONE(f, STREAM_TOCLIENT)) {
-        AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
+        SCAppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                 APPLAYER_PROTO_DETECTION_SKIPPED);
         goto failure;
 
@@ -348,7 +348,7 @@ static void TCPProtoDetectCheckBailConditions(ThreadVars *tv,
     } else if (size_ts > size_ts_limit && FLOW_IS_PP_DONE(f, STREAM_TOCLIENT) &&
                !(FLOW_IS_PM_DONE(f, STREAM_TOCLIENT)) && FLOW_IS_PM_DONE(f, STREAM_TOSERVER) &&
                FLOW_IS_PP_DONE(f, STREAM_TOSERVER)) {
-        AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
+        SCAppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                 APPLAYER_PROTO_DETECTION_SKIPPED);
         goto failure;
     }
@@ -427,7 +427,7 @@ static int TCPProtoDetect(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 
     if (*alproto != ALPROTO_UNKNOWN) {
         if (*alproto_otherdir != ALPROTO_UNKNOWN && *alproto_otherdir != *alproto) {
-            AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
+            SCAppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                     APPLAYER_MISMATCH_PROTOCOL_BOTH_DIRECTIONS);
 
             if (ssn->data_first_seen_dir == APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
@@ -504,7 +504,7 @@ static int TCPProtoDetect(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                  * As the second data was recognized as P1, the protocol did not change !
                  */
                 FlowUnsetChangeProtoFlag(f);
-                AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
+                SCAppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                                                  APPLAYER_UNEXPECTED_PROTOCOL);
             }
         }
@@ -530,7 +530,7 @@ static int TCPProtoDetect(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             first_data_dir = AppLayerParserGetFirstDataDir(f->proto, f->alproto);
 
             if (first_data_dir && !(first_data_dir & ssn->data_first_seen_dir)) {
-                AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
+                SCAppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                         APPLAYER_WRONG_DIRECTION_FIRST_DATA);
                 goto detect_error;
             }
@@ -652,7 +652,7 @@ static int TCPProtoDetect(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                         StreamTcpUpdateAppLayerProgress(ssn, direction, data_len);
                     }
 
-                    AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
+                    SCAppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                             APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION);
                     TcpSessionSetReassemblyDepth(ssn,
                             AppLayerParserGetStreamDepth(f));
@@ -815,11 +815,11 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, Packet
 
         if (f->alproto_expect != ALPROTO_UNKNOWN && f->alproto != ALPROTO_UNKNOWN &&
                 f->alproto != f->alproto_expect) {
-            AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
+            SCAppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                                              APPLAYER_UNEXPECTED_PROTOCOL);
 
             if (f->alproto_expect == ALPROTO_TLS && f->alproto != ALPROTO_TLS) {
-                AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
+                SCAppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                         APPLAYER_NO_TLS_AFTER_STARTTLS);
 
             }
@@ -938,7 +938,7 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
             default:
                 if (*alproto_otherdir != ALPROTO_UNKNOWN && *alproto_otherdir != ALPROTO_FAILED) {
                     if (*alproto_otherdir != *alproto) {
-                        AppLayerDecoderEventsSetEventRaw(
+                        SCAppLayerDecoderEventsSetEventRaw(
                                 &p->app_layer_events, APPLAYER_MISMATCH_PROTOCOL_BOTH_DIRECTIONS);
                         // data already sent to parser, we cannot change the protocol to use the one
                         // of the server
