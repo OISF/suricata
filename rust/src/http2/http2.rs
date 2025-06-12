@@ -20,6 +20,7 @@ use super::detect;
 use super::parser;
 use super::range;
 
+use super::range::{HttpRangeContainerBlock, SCHTPFileCloseHandleRange, SCHttpRangeFreeBlock};
 use crate::applayer::{self, *};
 use crate::conf::conf_get;
 use crate::core::*;
@@ -217,10 +218,10 @@ impl HTTP2Transaction {
 
     pub fn free(&mut self) {
         if !self.file_range.is_null() {
-            if let Some(c) = unsafe { SC } {
-                if let Some(sfcm) = unsafe { SURICATA_HTTP2_FILE_CONFIG } {
-                    //TODO get a file container instead of NULL
-                    (c.HTPFileCloseHandleRange)(
+            if let Some(sfcm) = unsafe { SURICATA_HTTP2_FILE_CONFIG } {
+                //TODO get a file container instead of NULL
+                unsafe {
+                    SCHTPFileCloseHandleRange(
                         sfcm.files_sbcfg,
                         std::ptr::null_mut(),
                         0,
@@ -228,9 +229,9 @@ impl HTTP2Transaction {
                         std::ptr::null_mut(),
                         0,
                     );
-                    (c.HttpRangeFreeBlock)(self.file_range);
-                    self.file_range = std::ptr::null_mut();
+                    SCHttpRangeFreeBlock(self.file_range);
                 }
+                self.file_range = std::ptr::null_mut();
             }
         }
     }
@@ -614,9 +615,9 @@ impl HTTP2State {
         // but we need state's file container cf https://redmine.openinfosecfoundation.org/issues/4444
         for tx in &mut self.transactions {
             if !tx.file_range.is_null() {
-                if let Some(c) = unsafe { SC } {
-                    if let Some(sfcm) = unsafe { SURICATA_HTTP2_FILE_CONFIG } {
-                        (c.HTPFileCloseHandleRange)(
+                if let Some(sfcm) = unsafe { SURICATA_HTTP2_FILE_CONFIG } {
+                    unsafe {
+                        SCHTPFileCloseHandleRange(
                             sfcm.files_sbcfg,
                             &mut tx.ft_tc.file,
                             0,
@@ -624,9 +625,9 @@ impl HTTP2State {
                             std::ptr::null_mut(),
                             0,
                         );
-                        (c.HttpRangeFreeBlock)(tx.file_range);
-                        tx.file_range = std::ptr::null_mut();
+                        SCHttpRangeFreeBlock(tx.file_range);
                     }
+                    tx.file_range = std::ptr::null_mut();
                 }
             }
         }
@@ -655,9 +656,9 @@ impl HTTP2State {
                 // this should be in HTTP2Transaction::free
                 // but we need state's file container cf https://redmine.openinfosecfoundation.org/issues/4444
                 if !tx.file_range.is_null() {
-                    if let Some(c) = unsafe { SC } {
-                        if let Some(sfcm) = unsafe { SURICATA_HTTP2_FILE_CONFIG } {
-                            (c.HTPFileCloseHandleRange)(
+                    if let Some(sfcm) = unsafe { SURICATA_HTTP2_FILE_CONFIG } {
+                        unsafe {
+                            SCHTPFileCloseHandleRange(
                                 sfcm.files_sbcfg,
                                 &mut tx.ft_tc.file,
                                 0,
@@ -665,9 +666,9 @@ impl HTTP2State {
                                 std::ptr::null_mut(),
                                 0,
                             );
-                            (c.HttpRangeFreeBlock)(tx.file_range);
-                            tx.file_range = std::ptr::null_mut();
+                            SCHttpRangeFreeBlock(tx.file_range);
                         }
+                        tx.file_range = std::ptr::null_mut();
                     }
                 }
                 break;

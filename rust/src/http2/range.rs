@@ -16,10 +16,9 @@
 */
 
 use super::detect;
-use crate::core::{
-    HttpRangeContainerBlock, StreamingBufferConfig, SuricataFileContext, SC,
-};
+use crate::core::{StreamingBufferConfig, SuricataFileContext};
 use crate::direction::Direction;
+use crate::filecontainer::FileContainer;
 use crate::flow::Flow;
 use crate::http2::http2::HTTP2Transaction;
 use crate::http2::http2::SURICATA_HTTP2_FILE_CONFIG;
@@ -32,6 +31,38 @@ use nom7::error::{make_error, ErrorKind};
 use nom7::{Err, IResult};
 use std::os::raw::c_uchar;
 use std::str::FromStr;
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct HttpRangeContainerBlock {
+    _unused: [u8; 0],
+}
+
+// Defined in app-layer-htp-range.h
+#[allow(unused_doc_comments)]
+/// cbindgen:ignore
+extern "C" {
+    #[cfg(not(test))]
+    pub fn SCHttpRangeFreeBlock(range: *mut HttpRangeContainerBlock);
+    #[cfg(not(test))]
+    pub fn SCHTPFileCloseHandleRange(
+        sbcfg: &StreamingBufferConfig, fc: *mut FileContainer, flags: u16,
+        c: *mut HttpRangeContainerBlock, data: *const u8, data_len: u32,
+    ) -> bool;
+}
+
+#[cfg(test)]
+#[allow(non_snake_case)]
+pub(super) unsafe fn SCHttpRangeFreeBlock(_range: *mut HttpRangeContainerBlock) {}
+
+#[cfg(test)]
+#[allow(non_snake_case)]
+pub(super) unsafe fn SCHTPFileCloseHandleRange(
+    _sbcfg: &StreamingBufferConfig, _fc: *mut FileContainer, _flags: u16,
+    _c: *mut HttpRangeContainerBlock, _data: *const u8, _data_len: u32,
+) -> bool {
+    true
+}
 
 #[derive(Debug)]
 #[repr(C)]
@@ -166,14 +197,14 @@ pub fn http2_range_append(
 }
 
 pub fn http2_range_close(tx: &mut HTTP2Transaction, dir: Direction, data: &[u8]) {
-    let added = if let Some(c) = unsafe { SC } {
-        if let Some(sfcm) = unsafe { SURICATA_HTTP2_FILE_CONFIG } {
-            let (files, flags) = if dir == Direction::ToServer {
-                (&mut tx.ft_ts.file, tx.ft_ts.file_flags)
-            } else {
-                (&mut tx.ft_tc.file, tx.ft_tc.file_flags)
-            };
-            let added = (c.HTPFileCloseHandleRange)(
+    let added = if let Some(sfcm) = unsafe { SURICATA_HTTP2_FILE_CONFIG } {
+        let (files, flags) = if dir == Direction::ToServer {
+            (&mut tx.ft_ts.file, tx.ft_ts.file_flags)
+        } else {
+            (&mut tx.ft_tc.file, tx.ft_tc.file_flags)
+        };
+        unsafe {
+            let added = SCHTPFileCloseHandleRange(
                 sfcm.files_sbcfg,
                 files,
                 flags,
@@ -181,10 +212,8 @@ pub fn http2_range_close(tx: &mut HTTP2Transaction, dir: Direction, data: &[u8])
                 data.as_ptr(),
                 data.len() as u32,
             );
-            (c.HttpRangeFreeBlock)(tx.file_range);
+            SCHttpRangeFreeBlock(tx.file_range);
             added
-        } else {
-            false
         }
     } else {
         false
