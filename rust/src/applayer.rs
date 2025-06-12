@@ -29,9 +29,9 @@ use crate::core::StreamingBufferConfig;
 // Make the AppLayerEvent derive macro available to users importing
 // AppLayerEvent from this module.
 pub use suricata_derive::AppLayerEvent;
-use suricata_sys::sys::{AppLayerParserState, AppProto, DetectEngineState};
+use suricata_sys::sys::{AppLayerParserState, AppProto, DetectEngineState, AppLayerDecoderEvents};
 #[cfg(not(test))]
-use suricata_sys::sys::{SCDetectEngineStateFree};
+use suricata_sys::sys::{SCDetectEngineStateFree, SCAppLayerDecoderEventsFreeEvents, SCAppLayerDecoderEventsSetEventRaw};
 
 /// Cast pointer to a variable, as a mutable reference to an object
 ///
@@ -148,7 +148,7 @@ pub struct AppLayerTxData {
     detect_progress_tc: u8,
 
     de_state: *mut DetectEngineState,
-    pub events: *mut core::AppLayerDecoderEvents,
+    pub events: *mut AppLayerDecoderEvents,
     txbits: *mut GenericVar,
 }
 
@@ -178,8 +178,11 @@ impl AppLayerTxData {
                 SCDetectEngineStateFree(self.de_state);
             }
         }
+        #[cfg(not(test))]
         if !self.events.is_null() {
-            core::sc_app_layer_decoder_events_free_events(&mut self.events);
+            unsafe {
+                SCAppLayerDecoderEventsFreeEvents(&mut self.events);
+            }
         }
         if !self.txbits.is_null() {
             core::sc_generic_var_free(self.txbits);
@@ -244,8 +247,11 @@ impl AppLayerTxData {
         self.files_opened += 1;
     }
 
-    pub fn set_event(&mut self, event: u8) {
-        core::sc_app_layer_decoder_events_set_event_raw(&mut self.events, event);
+    pub fn set_event(&mut self, _event: u8) {
+        #[cfg(not(test))]
+        unsafe {
+            SCAppLayerDecoderEventsSetEventRaw(&mut self.events, _event);
+        }
     }
 
     pub fn update_file_flags(&mut self, state_flags: u16) {
