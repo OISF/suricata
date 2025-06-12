@@ -427,7 +427,7 @@ static void HTPSetEvent(HtpState *s, HtpTxUserData *htud,
     SCLogDebug("setting event %u", e);
 
     if (htud) {
-        AppLayerDecoderEventsSetEventRaw(&htud->tx_data.events, e);
+        SCAppLayerDecoderEventsSetEventRaw(&htud->tx_data.events, e);
         s->events++;
         return;
     }
@@ -440,7 +440,7 @@ static void HTPSetEvent(HtpState *s, HtpTxUserData *htud,
         tx = HTPStateGetTx(s, tx_id - 1);
     if (tx != NULL) {
         htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
-        AppLayerDecoderEventsSetEventRaw(&htud->tx_data.events, e);
+        SCAppLayerDecoderEventsSetEventRaw(&htud->tx_data.events, e);
         s->events++;
         return;
     }

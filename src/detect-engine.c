@@ -3598,7 +3598,7 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
         det_ctx->json_content_capacity = 0;
     }
 
-    AppLayerDecoderEventsFreeEvents(&det_ctx->decoder_events);
+    SCAppLayerDecoderEventsFreeEvents(&det_ctx->decoder_events);
     PrefilterPktNonPFStatsDump();
     SCFree(det_ctx);
 
@@ -5013,7 +5013,7 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
 /* events api */
 void DetectEngineSetEvent(DetectEngineThreadCtx *det_ctx, uint8_t e)
 {
-    AppLayerDecoderEventsSetEventRaw(&det_ctx->decoder_events, e);
+    SCAppLayerDecoderEventsSetEventRaw(&det_ctx->decoder_events, e);
     det_ctx->events++;
 }
 
