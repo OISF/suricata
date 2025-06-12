@@ -805,7 +805,7 @@ static int SMTPProcessCommandDATA(
                         depth = (uint32_t)(smtp_config.content_inspect_min_size +
                                            (state->toserver_data_count -
                                                    state->toserver_last_data_stamp));
-                        AppLayerParserTriggerRawStreamInspection(f, STREAM_TOSERVER);
+                        SCAppLayerParserTriggerRawStreamInspection(f, STREAM_TOSERVER);
                         SCLogDebug(
                                 "StreamTcpReassemblySetMinInspectDepth STREAM_TOSERVER %u", depth);
                         StreamTcpReassemblySetMinInspectDepth(f->protoctx, STREAM_TOSERVER, depth);
@@ -833,7 +833,7 @@ static int SMTPProcessCommandDATA(
                     }
                     depth = (uint32_t)(state->toserver_data_count -
                                        state->toserver_last_data_stamp);
-                    AppLayerParserTriggerRawStreamInspection(f, STREAM_TOSERVER);
+                    SCAppLayerParserTriggerRawStreamInspection(f, STREAM_TOSERVER);
                     SCLogDebug("StreamTcpReassemblySetMinInspectDepth STREAM_TOSERVER %u", depth);
                     StreamTcpReassemblySetMinInspectDepth(f->protoctx, STREAM_TOSERVER, depth);
             }
@@ -977,7 +977,7 @@ static int SMTPProcessReply(
         state->cmds_cnt = 0;
         state->cmds_idx = 0;
     }
-    AppLayerParserTriggerRawStreamInspection(f, STREAM_TOCLIENT);
+    SCAppLayerParserTriggerRawStreamInspection(f, STREAM_TOCLIENT);
 
     return 0;
 }
@@ -1179,7 +1179,7 @@ static int SMTPProcessRequest(
      * STARTTLS and DATA */
     if (!(state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
         int r = 0;
-        AppLayerParserTriggerRawStreamInspection(f, STREAM_TOSERVER);
+        SCAppLayerParserTriggerRawStreamInspection(f, STREAM_TOSERVER);
 
         if (line->len >= 8 && SCMemcmpLowercase("starttls", line->buf, 8) == 0) {
             state->current_command = SMTP_COMMAND_STARTTLS;
