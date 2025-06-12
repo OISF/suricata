@@ -19,6 +19,8 @@
 
 use std;
 use suricata_sys::sys::{AppProto, AppProtoEnum, SCLogLevel};
+#[cfg(not(test))]
+use suricata_sys::sys::SCAppLayerParserTriggerRawStreamInspection;
 
 use crate::filecontainer::*;
 use crate::flow::Flow;
@@ -79,9 +81,6 @@ pub type SCLogMessageFunc =
                   subsystem: *const std::os::raw::c_char,
                   message: *const std::os::raw::c_char) -> std::os::raw::c_int;
 
-pub type AppLayerParserTriggerRawStreamInspectionFunc =
-    extern "C" fn (flow: *const Flow, direction: i32);
-
 pub enum StreamingBufferConfig {}
 
 // Opaque flow type (defined in C)
@@ -137,7 +136,6 @@ pub type GenericVarFreeFunc =
 #[repr(C)]
 pub struct SuricataContext {
     pub SCLogMessage: SCLogMessageFunc,
-    pub AppLayerParserTriggerRawStreamInspection: AppLayerParserTriggerRawStreamInspectionFunc,
 
     pub HttpRangeFreeBlock: SCHttpRangeFreeBlock,
     pub HTPFileCloseHandleRange: SCHTPFileCloseHandleRange,
@@ -188,11 +186,13 @@ pub fn sc_generic_var_free(gvar: *mut GenericVar)
     }
 }
 
-/// AppLayerParserTriggerRawStreamInspection wrapper
-pub fn sc_app_layer_parser_trigger_raw_stream_inspection(flow: *const Flow, direction: i32) {
+/// SCAppLayerParserTriggerRawStreamInspection wrapper
+#[cfg(not(test))]
+pub fn sc_app_layer_parser_trigger_raw_stream_inspection(flow: *mut Flow, direction: i32) {
     unsafe {
-        if let Some(c) = SC {
-            (c.AppLayerParserTriggerRawStreamInspection)(flow, direction);
-        }
+        SCAppLayerParserTriggerRawStreamInspection(flow, direction);
     }
 }
+
+#[cfg(test)]
+pub fn sc_app_layer_parser_trigger_raw_stream_inspection(_flow: *const Flow, _direction: i32) {}

@@ -711,7 +711,7 @@ static inline void SMTPTransactionComplete(SMTPState *state, Flow *f, uint16_t d
     DEBUG_VALIDATE_BUG_ON(state->curr_tx == NULL);
     if (state->curr_tx) {
         state->curr_tx->done = true;
-        AppLayerParserTriggerRawStreamInspection(f, dir);
+        SCAppLayerParserTriggerRawStreamInspection(f, dir);
     }
 }
 
@@ -807,7 +807,7 @@ static int SMTPProcessCommandDATA(
                         depth = (uint32_t)(smtp_config.content_inspect_min_size +
                                            (state->toserver_data_count -
                                                    state->toserver_last_data_stamp));
-                        AppLayerParserTriggerRawStreamInspection(f, STREAM_TOSERVER);
+                        SCAppLayerParserTriggerRawStreamInspection(f, STREAM_TOSERVER);
                         SCLogDebug(
                                 "StreamTcpReassemblySetMinInspectDepth STREAM_TOSERVER %u", depth);
                         StreamTcpReassemblySetMinInspectDepth(f->protoctx, STREAM_TOSERVER, depth);
@@ -835,7 +835,7 @@ static int SMTPProcessCommandDATA(
                     }
                     depth = (uint32_t)(state->toserver_data_count -
                                        state->toserver_last_data_stamp);
-                    AppLayerParserTriggerRawStreamInspection(f, STREAM_TOSERVER);
+                    SCAppLayerParserTriggerRawStreamInspection(f, STREAM_TOSERVER);
                     SCLogDebug("StreamTcpReassemblySetMinInspectDepth STREAM_TOSERVER %u", depth);
                     StreamTcpReassemblySetMinInspectDepth(f->protoctx, STREAM_TOSERVER, depth);
             }
@@ -1100,10 +1100,10 @@ static int NoNewTx(SMTPState *state, Flow *f, const SMTPLine *line)
 {
     if (!(state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
         if (line->len >= 4 && SCMemcmpLowercase("rset", line->buf, 4) == 0) {
-            AppLayerParserTriggerRawStreamInspection(f, STREAM_TOSERVER);
+            SCAppLayerParserTriggerRawStreamInspection(f, STREAM_TOSERVER);
             return 1;
         } else if (line->len >= 4 && SCMemcmpLowercase("quit", line->buf, 4) == 0) {
-            AppLayerParserTriggerRawStreamInspection(f, STREAM_TOSERVER);
+            SCAppLayerParserTriggerRawStreamInspection(f, STREAM_TOSERVER);
             return 1;
         }
     }

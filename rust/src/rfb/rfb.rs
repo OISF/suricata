@@ -184,7 +184,7 @@ impl RFBState {
         return None;
     }
 
-    fn parse_request(&mut self, flow: *const Flow, stream_slice: StreamSlice) -> AppLayerResult {
+    fn parse_request(&mut self, flow: *mut Flow, stream_slice: StreamSlice) -> AppLayerResult {
         let input = stream_slice.as_slice();
 
         // We're not interested in empty requests.
@@ -420,7 +420,7 @@ impl RFBState {
         }
     }
 
-    fn parse_response(&mut self, flow: *const Flow, stream_slice: StreamSlice) -> AppLayerResult {
+    fn parse_response(&mut self, flow: *mut Flow, stream_slice: StreamSlice) -> AppLayerResult {
         let input = stream_slice.as_slice();
         // We're not interested in empty responses.
         if input.is_empty() {
@@ -971,7 +971,7 @@ mod test {
             0x2e, 0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x64, 0x6f, 0x6d, 0x61, 0x69, 0x6e,
         ];
         let r = state.parse_response(
-            std::ptr::null(),
+            std::ptr::null_mut(),
             StreamSlice::from_slice(buf, STREAM_START, 0),
         );
 
@@ -1012,7 +1012,7 @@ mod test {
         //The buffer values correspond to Server Protocol version: 003.008
         // Same buffer is used for both functions due to similar values in request and response
         init_state.parse_response(
-            std::ptr::null(),
+            std::ptr::null_mut(),
             StreamSlice::from_slice(&buf[0..12], STREAM_START, 0),
         );
         let mut ok_state = parser::RFBGlobalState::TSClientProtocolVersion;
@@ -1020,21 +1020,21 @@ mod test {
 
         //The buffer values correspond to Client Protocol version: 003.008
         init_state.parse_request(
-            std::ptr::null(),
+            std::ptr::null_mut(),
             StreamSlice::from_slice(&buf[0..12], STREAM_START, 0),
         );
         ok_state = parser::RFBGlobalState::TCSupportedSecurityTypes;
         assert_eq!(init_state.state, ok_state);
 
         init_state.parse_response(
-            std::ptr::null(),
+            std::ptr::null_mut(),
             StreamSlice::from_slice(&buf[12..14], STREAM_START, 0),
         );
         ok_state = parser::RFBGlobalState::TSSecurityTypeSelection;
         assert_eq!(init_state.state, ok_state);
 
         init_state.parse_request(
-            std::ptr::null(),
+            std::ptr::null_mut(),
             StreamSlice::from_slice(&buf[14..15], STREAM_START, 0),
         );
         ok_state = parser::RFBGlobalState::TCVncChallenge;
@@ -1043,7 +1043,7 @@ mod test {
         //The buffer values correspond to Server Authentication challenge: 547b7a6f36a154db03a2575c6f2a4ec5
         // Same buffer is used for both functions due to similar values in request and response
         init_state.parse_response(
-            std::ptr::null(),
+            std::ptr::null_mut(),
             StreamSlice::from_slice(&buf[15..31], STREAM_START, 0),
         );
         ok_state = parser::RFBGlobalState::TSVncResponse;
@@ -1051,28 +1051,28 @@ mod test {
 
         //The buffer values correspond to Client Authentication response: 547b7a6f36a154db03a2575c6f2a4ec5
         init_state.parse_request(
-            std::ptr::null(),
+            std::ptr::null_mut(),
             StreamSlice::from_slice(&buf[15..31], STREAM_START, 0),
         );
         ok_state = parser::RFBGlobalState::TCSecurityResult;
         assert_eq!(init_state.state, ok_state);
 
         init_state.parse_response(
-            std::ptr::null(),
+            std::ptr::null_mut(),
             StreamSlice::from_slice(&buf[31..35], STREAM_START, 0),
         );
         ok_state = parser::RFBGlobalState::TSClientInit;
         assert_eq!(init_state.state, ok_state);
 
         init_state.parse_request(
-            std::ptr::null(),
+            std::ptr::null_mut(),
             StreamSlice::from_slice(&buf[35..36], STREAM_START, 0),
         );
         ok_state = parser::RFBGlobalState::TCServerInit;
         assert_eq!(init_state.state, ok_state);
 
         init_state.parse_response(
-            std::ptr::null(),
+            std::ptr::null_mut(),
             StreamSlice::from_slice(&buf[36..90], STREAM_START, 0),
         );
         ok_state = parser::RFBGlobalState::Skip;
