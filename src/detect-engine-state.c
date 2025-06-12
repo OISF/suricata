@@ -166,7 +166,7 @@ DetectEngineState *DetectEngineStateAlloc(void)
     return d;
 }
 
-void DetectEngineStateFree(DetectEngineState *state)
+void SCDetectEngineStateFree(DetectEngineState *state)
 {
     DeStateStore *store;
     DeStateStore *store_next;
@@ -417,7 +417,7 @@ static int DeStateTest02(void)
     FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head->next->store[0].sid != 155);
     FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head->next->store[1].sid != 166);
 
-    DetectEngineStateFree(state);
+    SCDetectEngineStateFree(state);
 
     PASS;
 }
@@ -443,7 +443,7 @@ static int DeStateTest03(void)
     FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head->store[1].sid != 22);
     FAIL_IF(!(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head->store[1].flags & BIT_U32(DE_STATE_FLAG_BASE)));
 
-    DetectEngineStateFree(state);
+    SCDetectEngineStateFree(state);
     PASS;
 }
 

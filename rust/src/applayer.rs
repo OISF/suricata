@@ -18,7 +18,7 @@
 //! Parser registration functions and common interface module.
 
 use std;
-use crate::core::{self,DetectEngineState,AppLayerEventType, GenericVar, STREAM_TOSERVER};
+use crate::core::{self,AppLayerEventType, GenericVar, STREAM_TOSERVER};
 use crate::direction::Direction;
 use crate::filecontainer::FileContainer;
 use crate::flow::Flow;
@@ -29,7 +29,9 @@ use crate::core::StreamingBufferConfig;
 // Make the AppLayerEvent derive macro available to users importing
 // AppLayerEvent from this module.
 pub use suricata_derive::AppLayerEvent;
-use suricata_sys::sys::{AppLayerParserState, AppProto};
+use suricata_sys::sys::{AppLayerParserState, AppProto, DetectEngineState};
+#[cfg(not(test))]
+use suricata_sys::sys::{SCDetectEngineStateFree};
 
 /// Cast pointer to a variable, as a mutable reference to an object
 ///
@@ -170,8 +172,11 @@ pub unsafe extern "C" fn SCAppLayerTxDataCleanup(txd: *mut AppLayerTxData) {
 
 impl AppLayerTxData {
     pub fn cleanup(&mut self) {
+        #[cfg(not(test))]
         if !self.de_state.is_null() {
-            core::sc_detect_engine_state_free(self.de_state);
+            unsafe {
+                SCDetectEngineStateFree(self.de_state);
+            }
         }
         if !self.events.is_null() {
             core::sc_app_layer_decoder_events_free_events(&mut self.events);
