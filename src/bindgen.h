@@ -50,6 +50,7 @@
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
 #include "app-layer-register.h"
+#include "app-layer-events.h"
 
 #include "util-mpm.h"
 #include "util-file.h"
