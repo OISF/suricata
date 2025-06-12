@@ -69,18 +69,6 @@ macro_rules!BIT_U64 {
 //
 pub enum StreamingBufferConfig {}
 
-// Opaque flow type (defined in C)
-pub enum HttpRangeContainerBlock {}
-
-pub type SCHttpRangeFreeBlock = extern "C" fn (
-        c: *mut HttpRangeContainerBlock);
-pub type SCHTPFileCloseHandleRange = extern "C" fn (
-        sbcfg: &StreamingBufferConfig,
-        fc: *mut FileContainer,
-        flags: u16,
-        c: *mut HttpRangeContainerBlock,
-        data: *const u8,
-        data_len: u32) -> bool;
 pub type SCFileOpenFileWithId = extern "C" fn (
         file_container: &FileContainer,
         sbcfg: &StreamingBufferConfig,
@@ -118,9 +106,6 @@ pub type SCFileContainerRecycle = extern "C" fn (
 #[allow(non_snake_case)]
 #[repr(C)]
 pub struct SuricataContext {
-    pub HttpRangeFreeBlock: SCHttpRangeFreeBlock,
-    pub HTPFileCloseHandleRange: SCHTPFileCloseHandleRange,
-
     pub FileOpenFile: SCFileOpenFileWithId,
     pub FileCloseFile: SCFileCloseFileById,
     pub FileAppendData: SCFileAppendDataById,

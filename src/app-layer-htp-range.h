@@ -109,7 +109,7 @@ HttpRangeContainerBlock *HttpRangeContainerOpenFile(const unsigned char *key, ui
         const unsigned char *name, uint16_t name_len, uint16_t flags, const unsigned char *data,
         uint32_t data_len);
 
-void HttpRangeFreeBlock(HttpRangeContainerBlock *b);
+void SCHttpRangeFreeBlock(HttpRangeContainerBlock *b);
 
 uint64_t HTPByteRangeMemcapGlobalCounter(void);
 uint64_t HTPByteRangeMemuseGlobalCounter(void);

@@ -486,8 +486,8 @@ static void HtpTxUserDataFree(void *txud)
             SCMimeStateFree(htud->mime_state);
         SCAppLayerTxDataCleanup(&htud->tx_data);
         if (htud->file_range) {
-            HTPFileCloseHandleRange(&htp_sbcfg, &htud->files_tc, 0, htud->file_range, NULL, 0);
-            HttpRangeFreeBlock(htud->file_range);
+            SCHTPFileCloseHandleRange(&htp_sbcfg, &htud->files_tc, 0, htud->file_range, NULL, 0);
+            SCHttpRangeFreeBlock(htud->file_range);
         }
         FileContainerRecycle(&htud->files_ts, &htp_sbcfg);
         FileContainerRecycle(&htud->files_tc, &htp_sbcfg);
