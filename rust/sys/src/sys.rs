@@ -762,6 +762,9 @@ extern "C" {
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {
+    pub fn SCFileFlowFlagsToFlags(flow_file_flags: u16, direction: u8) -> u16;
+}
+extern "C" {
     pub fn SCFlowGetLastTimeAsParts(flow: *const Flow, secs: *mut u64, usecs: *mut u64);
 }
 extern "C" {
