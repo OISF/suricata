@@ -386,6 +386,44 @@ extern "C" {
         kw: *const SCTransformTableElmt,
     ) -> ::std::os::raw::c_int;
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct DeStateStoreItem_ {
+    pub flags: u32,
+    pub sid: u32,
+}
+pub type DeStateStoreItem = DeStateStoreItem_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct DeStateStore_ {
+    pub store: [DeStateStoreItem; 15usize],
+    pub next: *mut DeStateStore_,
+}
+pub type DeStateStore = DeStateStore_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct DetectEngineStateDirection_ {
+    #[doc = "< head of the list"]
+    pub head: *mut DeStateStore,
+    #[doc = "< current active store"]
+    pub cur: *mut DeStateStore,
+    #[doc = "< tail of the list"]
+    pub tail: *mut DeStateStore,
+    pub cnt: u32,
+    pub filestore_cnt: u16,
+    pub flags: u8,
+}
+pub type DetectEngineStateDirection = DetectEngineStateDirection_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct DetectEngineState_ {
+    pub dir_state: [DetectEngineStateDirection; 2usize],
+}
+pub type DetectEngineState = DetectEngineState_;
+extern "C" {
+    #[doc = " \\brief Frees a DetectEngineState object.\n\n \\param state DetectEngineState instance to free."]
+    pub fn SCDetectEngineStateFree(state: *mut DetectEngineState);
+}
 extern "C" {
     pub fn SCSigMatchAppendSMToList(
         arg1: *mut DetectEngineCtx, arg2: *mut Signature, arg3: u16, arg4: *mut SigMatchCtx,
