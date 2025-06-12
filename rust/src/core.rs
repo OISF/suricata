@@ -21,7 +21,6 @@ use suricata_sys::sys::{AppProto, AppProtoEnum};
 #[cfg(not(test))]
 use suricata_sys::sys::SCAppLayerParserTriggerRawStreamInspection;
 
-use crate::filecontainer::*;
 use crate::flow::Flow;
 
 #[repr(C)]
@@ -69,75 +68,10 @@ macro_rules!BIT_U64 {
 //
 pub enum StreamingBufferConfig {}
 
-pub type SCFileOpenFileWithId = extern "C" fn (
-        file_container: &FileContainer,
-        sbcfg: &StreamingBufferConfig,
-        track_id: u32,
-        name: *const u8, name_len: u16,
-        data: *const u8, data_len: u32,
-        flags: u16) -> i32;
-pub type SCFileCloseFileById = extern "C" fn (
-        file_container: &FileContainer,
-        sbcfg: &StreamingBufferConfig,
-        track_id: u32,
-        data: *const u8, data_len: u32,
-        flags: u16) -> i32;
-pub type SCFileAppendDataById = extern "C" fn (
-        file_container: &FileContainer,
-        sbcfg: &StreamingBufferConfig,
-        track_id: u32,
-        data: *const u8, data_len: u32) -> i32;
-pub type SCFileAppendGAPById = extern "C" fn (
-        file_container: &FileContainer,
-        sbcfg: &StreamingBufferConfig,
-        track_id: u32,
-        data: *const u8, data_len: u32) -> i32;
-pub type SCFileContainerRecycle = extern "C" fn (
-        file_container: &FileContainer,
-        sbcfg: &StreamingBufferConfig);
-
-// A Suricata context that is passed in from C. This is alternative to
-// using functions from Suricata directly, so they can be wrapped so
-// Rust unit tests will still compile when they are not linked
-// directly to the real function.
-//
-// This might add a little too much complexity to keep pure Rust test
-// cases working.
-#[allow(non_snake_case)]
-#[repr(C)]
-pub struct SuricataContext {
-    pub FileOpenFile: SCFileOpenFileWithId,
-    pub FileCloseFile: SCFileCloseFileById,
-    pub FileAppendData: SCFileAppendDataById,
-    pub FileAppendGAP: SCFileAppendGAPById,
-    pub FileContainerRecycle: SCFileContainerRecycle,
-}
-
 #[allow(non_snake_case)]
 #[repr(C)]
 pub struct SuricataFileContext {
     pub files_sbcfg: &'static StreamingBufferConfig,
-}
-
-#[allow(unused_doc_comments)]
-/// cbindgen:ignore
-extern "C" {
-    pub fn SCGetContext() -> &'static mut SuricataContext;
-}
-
-pub static mut SC: Option<&'static SuricataContext> = None;
-
-pub fn init_ffi(context: &'static SuricataContext)
-{
-    unsafe {
-        SC = Some(context);
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn SCRustInit(context: &'static SuricataContext)
-{
-    init_ffi(context);
 }
 
 /// SCAppLayerParserTriggerRawStreamInspection wrapper
