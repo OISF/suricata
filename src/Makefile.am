@@ -434,7 +434,6 @@ noinst_HEADERS = \
 	runmode-unix-socket.h \
 	runmode-windivert.h \
 	runmodes.h \
-	rust-context.h \
 	rust.h \
 	source-af-packet.h \
 	source-af-xdp.h \
@@ -1030,7 +1029,6 @@ libsuricata_c_a_SOURCES = \
 	runmode-unix-socket.c \
 	runmode-windivert.c \
 	runmodes.c \
-	rust-context.c \
 	source-af-packet.c \
 	source-af-xdp.c \
 	source-dpdk.c \
