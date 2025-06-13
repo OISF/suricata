@@ -1672,6 +1672,11 @@ decoder:
   # maximum number of decoder layers for a packet
   # max-layers: 16
 
+  # IP-in-IP tunneling for ipv4 over ipv4 handling
+  # disabled by default
+  # ipv4:
+  #   enabled: true
+
 ##
 ## Performance tuning and profiling
 ##
