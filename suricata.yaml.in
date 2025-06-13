@@ -1672,6 +1672,14 @@ decoder:
   # maximum number of decoder layers for a packet
   # max-layers: 16
 
+  # IP-in-IP tunneling for ipv4 over ipv4 handling
+  # disabled by default, as these will impact number of alerts seen, as well as
+  # number of flows
+  # ipv4:
+  #   ipip:
+  #     enabled: true
+  #     parent-flow: true   # disabled by default
+
 ##
 ## Performance tuning and profiling
 ##
