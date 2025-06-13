@@ -176,6 +176,7 @@ typedef struct IPV4Vars_
     uint16_t opts_set;
 } IPV4Vars;
 
+void DecodeIPV4IpInIpConfig(void);
 
 void DecodeIPV4RegisterTests(void);
 
