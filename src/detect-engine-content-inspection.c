@@ -251,8 +251,8 @@ uint8_t DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThrea
             /* If the value came from a variable, make sure to adjust the depth so it's relative
              * to the offset value.
              */
-            if (cd->flags & (DETECT_CONTENT_DISTANCE_VAR|DETECT_CONTENT_OFFSET_VAR|DETECT_CONTENT_DEPTH_VAR)) {
-                 depth += offset;
+            if (cd->flags & (DETECT_CONTENT_OFFSET_VAR | DETECT_CONTENT_DEPTH_VAR)) {
+                depth += offset;
             }
 
             /* update offset with prev_offset if we're searching for
