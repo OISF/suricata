@@ -2788,6 +2788,24 @@ Using this default configuration, Teredo detection will run on UDP port
 3544. If the `ports` parameter is missing, or set to `any`, all ports will be
 inspected for possible presence of Teredo.
 
+IPv4: IP-in-IP
+~~~~~~~~~~~~~~
+
+Enable decoding IP-in-IP tunneling for IPv4. There is also a dedicated option to
+set the parent flow for packets, when the engine sees such IP-in-IP packets. This
+option can be enabled regardless of enabled the ipip tunelling.
+As this may impact signature matching and flow tracking, these are disabled by default.
+
+::
+
+   # IP-in-IP tunneling for ipv4 over ipv4 handling
+   # disabled by default, as these will impact number of alerts seen, as well as
+   # number of flows
+   # ipv4:
+   #   ipip:
+   #     enabled: true
+   #     parent_flow: true   # disabled by default
+
 Advanced Options
 ----------------
 
