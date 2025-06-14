@@ -785,6 +785,7 @@ static PcapLogData *PcapLogDataCopy(const PcapLogData *pl)
         copy_comp->buffer = SCMalloc(copy_comp->buffer_size);
         if (copy_comp->buffer == NULL) {
             SCLogError("SCMalloc failed: %s", strerror(errno));
+            SCFree(copy->prefix);
             SCFree(copy->h);
             SCFree(copy);
             return NULL;
@@ -793,6 +794,7 @@ static PcapLogData *PcapLogDataCopy(const PcapLogData *pl)
         if (copy_comp->pcap_buf == NULL) {
             SCLogError("SCMalloc failed: %s", strerror(errno));
             SCFree(copy_comp->buffer);
+            SCFree(copy->prefix);
             SCFree(copy->h);
             SCFree(copy);
             return NULL;
@@ -803,6 +805,7 @@ static PcapLogData *PcapLogDataCopy(const PcapLogData *pl)
             SCLogError("SCFmemopen failed: %s", strerror(errno));
             SCFree(copy_comp->buffer);
             SCFree(copy_comp->pcap_buf);
+            SCFree(copy->prefix);
             SCFree(copy->h);
             SCFree(copy);
             return NULL;
@@ -817,6 +820,7 @@ static PcapLogData *PcapLogDataCopy(const PcapLogData *pl)
             fclose(copy_comp->pcap_buf_wrapper);
             SCFree(copy_comp->buffer);
             SCFree(copy_comp->pcap_buf);
+            SCFree(copy->prefix);
             SCFree(copy->h);
             SCFree(copy);
             return NULL;
