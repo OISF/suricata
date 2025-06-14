@@ -29,7 +29,7 @@ use nom7::IResult;
 
 impl NFSState {
     /// complete NFS3 request record
-    pub fn process_request_record_v3(&mut self, flow: *const Flow, r: &RpcPacket) {
+    pub fn process_request_record_v3(&mut self, flow: *mut Flow, r: &RpcPacket) {
         SCLogDebug!(
             "REQUEST {} procedure {} ({}) blob size {}",
             r.hdr.xid,
@@ -196,7 +196,7 @@ impl NFSState {
         self.requestmap.insert(r.hdr.xid, xidmap);
     }
 
-    pub fn process_reply_record_v3(&mut self, flow: *const Flow, r: &RpcReplyPacket, xidmap: &mut NFSRequestXidMap) {
+    pub fn process_reply_record_v3(&mut self, flow: *mut Flow, r: &RpcReplyPacket, xidmap: &mut NFSRequestXidMap) {
         let mut nfs_status = 0;
         let mut resp_handle = Vec::new();
 

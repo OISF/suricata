@@ -18,7 +18,7 @@
 //! Parser registration functions and common interface module.
 
 use std;
-use crate::core::{self,DetectEngineState,AppLayerEventType, GenericVar, STREAM_TOSERVER};
+use crate::core::{self,AppLayerEventType, STREAM_TOSERVER};
 use crate::direction::Direction;
 use crate::filecontainer::FileContainer;
 use crate::flow::Flow;
@@ -29,7 +29,14 @@ use crate::core::StreamingBufferConfig;
 // Make the AppLayerEvent derive macro available to users importing
 // AppLayerEvent from this module.
 pub use suricata_derive::AppLayerEvent;
-use suricata_sys::sys::{AppLayerParserState, AppProto};
+use suricata_sys::sys::{
+    AppLayerDecoderEvents, AppLayerParserState, AppProto, DetectEngineState, GenericVar,
+};
+#[cfg(not(test))]
+use suricata_sys::sys::{
+    SCAppLayerDecoderEventsFreeEvents, SCAppLayerDecoderEventsSetEventRaw, SCDetectEngineStateFree,
+    SCGenericVarFree,
+};
 
 /// Cast pointer to a variable, as a mutable reference to an object
 ///
@@ -146,7 +153,7 @@ pub struct AppLayerTxData {
     detect_progress_tc: u8,
 
     de_state: *mut DetectEngineState,
-    pub events: *mut core::AppLayerDecoderEvents,
+    pub events: *mut AppLayerDecoderEvents,
     txbits: *mut GenericVar,
 }
 
@@ -169,17 +176,27 @@ pub unsafe extern "C" fn SCAppLayerTxDataCleanup(txd: *mut AppLayerTxData) {
 }
 
 impl AppLayerTxData {
+    #[cfg(not(test))]
     pub fn cleanup(&mut self) {
         if !self.de_state.is_null() {
-            core::sc_detect_engine_state_free(self.de_state);
+            unsafe {
+                SCDetectEngineStateFree(self.de_state);
+            }
         }
         if !self.events.is_null() {
-            core::sc_app_layer_decoder_events_free_events(&mut self.events);
+            unsafe {
+                SCAppLayerDecoderEventsFreeEvents(&mut self.events);
+            }
         }
         if !self.txbits.is_null() {
-            core::sc_generic_var_free(self.txbits);
+            unsafe {
+                SCGenericVarFree(self.txbits);
+            }
         }
     }
+
+    #[cfg(test)]
+    pub fn cleanup(&mut self) {}
 
     /// Create new AppLayerTxData for a transaction that covers both
     /// directions.
@@ -239,8 +256,11 @@ impl AppLayerTxData {
         self.files_opened += 1;
     }
 
-    pub fn set_event(&mut self, event: u8) {
-        core::sc_app_layer_decoder_events_set_event_raw(&mut self.events, event);
+    pub fn set_event(&mut self, _event: u8) {
+        #[cfg(not(test))]
+        unsafe {
+            SCAppLayerDecoderEventsSetEventRaw(&mut self.events, _event);
+        }
     }
 
     pub fn update_file_flags(&mut self, state_flags: u16) {
@@ -511,10 +531,10 @@ pub type GetStateIdByName = unsafe extern "C" fn(*const c_char, u8) -> c_int;
 pub type GetStateNameById = unsafe extern "C" fn(c_int, u8) -> *const c_char;
 
 // Defined in app-layer-register.h
+#[allow(unused_doc_comments)]
 /// cbindgen:ignore
 extern "C" {
     pub fn AppLayerRegisterProtocolDetection(parser: *const RustParser, enable_default: c_int) -> AppProto;
-    pub fn AppLayerRegisterParserAlias(parser_name: *const c_char, alias_name: *const c_char);
     pub fn AppLayerRegisterParser(parser: *const RustParser, alproto: AppProto) -> c_int;
 }
 

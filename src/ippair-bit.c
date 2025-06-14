@@ -43,7 +43,7 @@ static IPPairStorageId g_ippair_bit_storage_id = { .id = -1 }; /**< IPPair stora
 static void XBitFreeAll(void *store)
 {
     GenericVar *gv = store;
-    GenericVarFree(gv);
+    SCGenericVarFree(gv);
 }
 
 void IPPairBitInitCtx(void)

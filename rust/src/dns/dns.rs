@@ -702,7 +702,7 @@ impl DNSState {
     ///
     /// Returns the number of messages parsed.
     fn parse_request_tcp(
-        &mut self, flow: *const Flow, stream_slice: StreamSlice,
+        &mut self, flow: *mut Flow, stream_slice: StreamSlice,
     ) -> AppLayerResult {
         let input = stream_slice.as_slice();
         if self.gap {
@@ -766,7 +766,7 @@ impl DNSState {
     ///
     /// Returns the number of messages parsed.
     fn parse_response_tcp(
-        &mut self, flow: *const Flow, stream_slice: StreamSlice,
+        &mut self, flow: *mut Flow, stream_slice: StreamSlice,
     ) -> AppLayerResult {
         let input = stream_slice.as_slice();
         if self.gap {
@@ -1405,7 +1405,7 @@ mod tests {
         assert_eq!(
             AppLayerResult::ok(),
             state.parse_request_tcp(
-                std::ptr::null(),
+                std::ptr::null_mut(),
                 StreamSlice::from_slice(&request, STREAM_TOSERVER, 0)
             )
         );
@@ -1445,7 +1445,7 @@ mod tests {
         assert_eq!(
             AppLayerResult::incomplete(0, 52),
             state.parse_request_tcp(
-                std::ptr::null(),
+                std::ptr::null_mut(),
                 StreamSlice::from_slice(&request, STREAM_TOSERVER, 0)
             )
         );
@@ -1490,7 +1490,7 @@ mod tests {
         assert_eq!(
             AppLayerResult::ok(),
             state.parse_response_tcp(
-                std::ptr::null(),
+                std::ptr::null_mut(),
                 StreamSlice::from_slice(&request, STREAM_TOCLIENT, 0)
             )
         );
@@ -1538,7 +1538,7 @@ mod tests {
         assert_eq!(
             AppLayerResult::incomplete(0, 103),
             state.parse_response_tcp(
-                std::ptr::null(),
+                std::ptr::null_mut(),
                 StreamSlice::from_slice(&request, STREAM_TOCLIENT, 0)
             )
         );
@@ -1747,7 +1747,7 @@ mod tests {
         ];
 
         // A NULL flow.
-        let flow = std::ptr::null();
+        let flow = std::ptr::null_mut();
 
         let mut state = DNSState::new();
         assert_eq!(
@@ -1759,7 +1759,7 @@ mod tests {
     #[test]
     fn test_dns_tcp_parser_split_payload() {
         // A NULL flow.
-        let flow = std::ptr::null();
+        let flow = std::ptr::null_mut();
 
         /* incomplete payload */
         #[rustfmt::skip]
