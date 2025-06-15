@@ -942,6 +942,13 @@ static void DumpMatches(RuleAnalyzer *ctx, SCJsonBuilder *js, const SigMatchData
                 SCJbClose(js);
                 break;
             }
+            case DETECT_ICODE: {
+                const DetectU8Data *cd = (const DetectU8Data *)smd->ctx;
+                SCJbOpenObject(js, "code");
+                SCDetectU8ToJson(js, cd);
+                SCJbClose(js);
+                break;
+            }
             case DETECT_ICMP_ID: {
                 const DetectIcmpIdData *cd = (const DetectIcmpIdData *)smd->ctx;
                 SCJbOpenObject(js, "id");
