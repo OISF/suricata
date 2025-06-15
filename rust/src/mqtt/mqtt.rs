@@ -221,7 +221,7 @@ impl MQTTState {
     // without having to introduce lifetimes etc.
     // This is the reason for the code duplication below. Maybe there is a
     // more concise way to do it, but this works for now.
-    fn handle_msg(&mut self, flow: *const Flow, msg: MQTTMessage, toclient: bool) {
+    fn handle_msg(&mut self, flow: *mut Flow, msg: MQTTMessage, toclient: bool) {
         let tx_len = self.transactions.len();
         match msg.op {
             MQTTOperation::CONNECT(ref conn) => {
@@ -413,7 +413,7 @@ impl MQTTState {
         }
     }
 
-    fn parse_request(&mut self, flow: *const Flow, stream_slice: StreamSlice) -> AppLayerResult {
+    fn parse_request(&mut self, flow: *mut Flow, stream_slice: StreamSlice) -> AppLayerResult {
         let input = stream_slice.as_slice();
         let mut current = input;
 
@@ -500,7 +500,7 @@ impl MQTTState {
         return AppLayerResult::ok();
     }
 
-    fn parse_response(&mut self, flow: *const Flow, stream_slice: StreamSlice) -> AppLayerResult {
+    fn parse_response(&mut self, flow: *mut Flow, stream_slice: StreamSlice) -> AppLayerResult {
         let input = stream_slice.as_slice();
         let mut current = input;
 

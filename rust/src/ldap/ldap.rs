@@ -265,7 +265,7 @@ impl LdapState {
         return AppLayerResult::ok();
     }
 
-    fn parse_response(&mut self, flow: *const Flow, stream_slice: StreamSlice) -> AppLayerResult {
+    fn parse_response(&mut self, flow: *mut Flow, stream_slice: StreamSlice) -> AppLayerResult {
         let input = stream_slice.as_slice();
         if input.is_empty() {
             return AppLayerResult::ok();

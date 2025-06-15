@@ -321,7 +321,7 @@ impl NFSState {
     }
 
     fn compound_response<'b>(
-        &mut self, flow: *const Flow, r: &RpcReplyPacket<'b>, cr: &Nfs4ResponseCompoundRecord<'b>,
+        &mut self, flow: *mut Flow, r: &RpcReplyPacket<'b>, cr: &Nfs4ResponseCompoundRecord<'b>,
         xidmap: &mut NFSRequestXidMap,
     ) {
         let mut insert_filename_with_getfh = false;
@@ -396,7 +396,7 @@ impl NFSState {
         }
     }
 
-    pub fn process_reply_record_v4(&mut self, flow: *const Flow, r: &RpcReplyPacket, xidmap: &mut NFSRequestXidMap) {
+    pub fn process_reply_record_v4(&mut self, flow: *mut Flow, r: &RpcReplyPacket, xidmap: &mut NFSRequestXidMap) {
         if xidmap.procedure == NFSPROC4_COMPOUND {
             let mut data = r.prog_data;
 
