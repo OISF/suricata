@@ -591,6 +591,7 @@ int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             if (tp != NULL) {
                 PKT_SET_SRC(tp, PKT_SRC_DECODER_IPV4);
                 PacketEnqueueNoLock(&tv->decode_pq, tp);
+                StatsIncr(tv, dtv->counter_ipv6inipv4);
             }
             FlowSetupPacket(p);
             break;
@@ -601,6 +602,7 @@ int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             if (tp != NULL) {
                 PKT_SET_SRC(tp, PKT_SRC_DECODER_IPV4);
                 PacketEnqueueNoLock(&tv->decode_pq, tp);
+                StatsIncr(tv, dtv->counter_ipv4inipv4);
             }
             FlowSetupPacket(p);
             break;
