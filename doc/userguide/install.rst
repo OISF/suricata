@@ -104,6 +104,11 @@ one of the following ways::
     :start-after: # install-guide-documentation tag start: Minimal RPM-based dependencies
     :end-before: # install-guide-documentation tag end: Minimal RPM-based dependencies
 
+Windows
+"""""""
+
+For building and installing from source on Windows, see :doc:`install/windows`.
+
 Compilation
 """""""""""
 
