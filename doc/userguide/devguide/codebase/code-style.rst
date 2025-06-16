@@ -1,16 +1,15 @@
 .. _Coding Style:
 
-============
 Coding Style
-============
+############
 
 Suricata uses a fairly strict coding style. This document describes it.
 
 Formatting
-~~~~~~~~~~
+**********
 
 clang-format
-^^^^^^^^^^^^
+============
 ``clang-format`` is configured to help you with formatting C code.
 
 .. note::
@@ -18,7 +17,7 @@ clang-format
     The ``.clang-format`` script requires clang 9 or newer.
 
 Format your Changes
-*******************
+-------------------
 
 Before opening a pull request, please also try to ensure it is formatted
 properly. We use ``clang-format`` for this, which has git integration through the
@@ -41,7 +40,7 @@ reformat your whole branch after the fact.
     that isolates you from the different versions.
 
 Formatting the most recent commit only
-""""""""""""""""""""""""""""""""""""""
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 The following command will format only the code changed in the most recent commit:
 
 .. code-block:: bash
@@ -63,7 +62,7 @@ For bigger formatting changes, we do ask you to add them to separate, dedicated
 commits.
 
 Formatting code in staging
-""""""""""""""""""""""""""
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 The following command will format the changes in staging, i.e. files you
 ``git add``-ed:
 
@@ -82,7 +81,7 @@ If you also want to change the unstaged changes, do:
     $ scripts/clang-format.sh cached --force
 
 Formatting your branch's commits
-""""""""""""""""""""""""""""""""
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 In case you have multiple commits on your branch already and forgot to
 format them you can fix that up as well.
 
@@ -111,7 +110,7 @@ Note the usage of ``first_commit_on_your_branch^``, not ``master``, to avoid pic
 new commits on ``master`` in case you've updated master since you've branched.
 
 Check formatting
-""""""""""""""""
+~~~~~~~~~~~~~~~~
 Check if your branch changes' formatting is correct with:
 
 .. code-block:: bash
@@ -123,7 +122,7 @@ Add the ``--diff`` parameter if you want to see the actual diff of the formattin
 change.
 
 Formatting a whole file
-"""""""""""""""""""""""
+~~~~~~~~~~~~~~~~~~~~~~~
 
 +--------------------------------------------------------------------+
 | **Note**                                                           |
@@ -140,7 +139,7 @@ shall be a different commit and must not be mixed with actual code changes.
     $ clang-format -i {file}
 
 Disabling clang-format
-**********************
+----------------------
 
 There might be times, where the clang-format's formatting might not please.
 This might mostly happen with macros, arrays (single or multi-dimensional ones),
@@ -155,7 +154,7 @@ You can always disable clang-format.
     /* clang-format on */
 
 Installing clang-format and git-clang-format
-********************************************
+--------------------------------------------
 clang-format 9 or newer is required.
 
 On ubuntu 18.04:
@@ -179,7 +178,7 @@ On fedora:
 
 
 Line length
-^^^^^^^^^^^
+===========
 
 Limit line lengths to 100 characters.
 
@@ -194,7 +193,7 @@ clang-format:
 
 
 Indent
-^^^^^^
+======
 
 We use 4 space indentation.
 
@@ -240,7 +239,7 @@ clang-format:
  - UseTab: Never [llvm]_
 
 Braces
-^^^^^^
+======
 
 Functions should have the opening brace on a newline:
 
@@ -318,7 +317,7 @@ clang-format:
    - IndentBraces:    false
 
 Flow
-~~~~
+****
 
 Don't use conditions and statements on the same line. E.g.
 
@@ -381,10 +380,10 @@ clang-format:
    - SplitEmptyRecord: true
 
 Alignment
-~~~~~~~~~
+*********
 
 Pointers
-^^^^^^^^
+========
 Pointers shall be right aligned.
 
 .. code-block:: c
@@ -398,7 +397,7 @@ clang-format:
  - DerivePointerAlignment: false
 
 Declarations and Comments
-^^^^^^^^^^^^^^^^^^^^^^^^^
+=========================
 Trailing comments should be aligned for consecutive lines.
 
 .. code-block:: c
@@ -423,15 +422,15 @@ clang-format:
  - AlignTrailingComments: true
 
 Functions
-~~~~~~~~~
+*********
 
 parameter names
-^^^^^^^^^^^^^^^
+===============
 
 TODO
 
 Function names
-^^^^^^^^^^^^^^
+==============
 
 Function names are NamedLikeThis().
 
@@ -440,20 +439,20 @@ Function names are NamedLikeThis().
     static SCConfNode *SCConfGetNodeOrCreate(char *name, int final)
 
 static vs non-static
-^^^^^^^^^^^^^^^^^^^^
+====================
 
 Functions should be declared static whenever possible.
 
 inline
-^^^^^^
+======
 
 The inlining of functions should be used only in critical paths.
 
 Variables
-~~~~~~~~~
+*********
 
 Names
-^^^^^
+=====
 
 A variable is ``named_like_this`` in all lowercase.
 
@@ -466,12 +465,12 @@ Generally, use descriptive variable names.
 In loop vars, make sure ``i`` is a signed int type.
 
 Scope
-^^^^^
+=====
 
 TODO
 
 Macros
-~~~~~~
+******
 
 Macro names are ALL_CAPS_WITH_UNDERSCORES.
 Enclose parameters in parens on each usage inside the macro.
@@ -503,12 +502,12 @@ clang-format:
  - AlignEscapedNewlines: Right
 
 Comments
-~~~~~~~~
+********
 
 TODO
 
 Function comments
-^^^^^^^^^^^^^^^^^
+=================
 
 We use Doxygen, functions are documented using Doxygen notation:
 
@@ -530,12 +529,12 @@ We use Doxygen, functions are documented using Doxygen notation:
     static SCConfNode *SCConfGetNodeOrCreate(char *name, int final)
 
 General comments
-^^^^^^^^^^^^^^^^
+================
 
 We use ``/* foobar */`` style and try to avoid ``//`` style.
 
 File names
-~~~~~~~~~~
+**********
 
 File names are all lowercase and have a .c. .h  or .rs (Rust) extension.
 
@@ -544,7 +543,7 @@ Most files have a _subsystem_ prefix, e.g. ``detect-dsize.c, util-ip.c``
 Some cases have a multi-layer prefix, e.g. ``util-mpm-ac.c``
 
 Enums
-~~~~~
+*****
 
 Use a common prefix for all enum values. Value names are ALL_CAPS_WITH_UNDERSCORES.
 
@@ -566,12 +565,12 @@ clang-format:
  - AllowShortEnumsOnASingleLine: false [clang11]_
 
 Structures and typedefs
-~~~~~~~~~~~~~~~~~~~~~~~
+***********************
 
 TODO
 
 switch statements
-~~~~~~~~~~~~~~~~~
+*****************
 
 Switch statements are indented like in the following example, so the 'case' is indented from the switch:
 
@@ -628,12 +627,12 @@ clang-format:
    - AfterCaseLabel:  false (default)
 
 const
-~~~~~
+*****
 
 TODO
 
 goto
-~~~~
+****
 
 Goto statements should be used with care. Generally, we use it primarily for error handling. E.g.:
 
@@ -680,7 +679,7 @@ clang-format:
  - IndentGotoLabels: true (default) [clang10]_
 
 Includes
-~~~~~~~~
+********
 
 TODO
 
@@ -690,7 +689,7 @@ clang-format:
  - SortIncludes: false
 
 Unittests
-~~~~~~~~~
+*********
 
 When writing unittests that use a data array containing a protocol message, please put an explanatory comment that contain the readable content of the message
 
@@ -712,7 +711,7 @@ you should have something like:
         static uint8_t welcome_reply[] = { 0x32, 0x32, 0x30, 0x20,
 
 Banned functions
-~~~~~~~~~~~~~~~~
+****************
 
 +------------+---------------+-----------+
 | function   | replacement   | reason    |
