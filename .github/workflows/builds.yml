@@ -2961,6 +2961,63 @@ jobs:
       - run: make install
       - run: suricata-update -V
 
+  windows-msys2-ucrt64-libpcap:
+    name: Windows MSYS2 UCRT64 (libpcap)
+    runs-on: windows-latest
+    needs: [prepare-deps, ubuntu-22-04-dist]
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - name: Cache ~/.cargo
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+        with:
+          path: ~/.cargo/registry
+          key: cargo-registry
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: ucrt64
+          update: true
+          install: |
+            autoconf
+            automake
+            git
+            make
+            mingw-w64-ucrt-x86_64-cbindgen
+            mingw-w64-ucrt-x86_64-jansson
+            mingw-w64-ucrt-x86_64-libpcap
+            mingw-w64-ucrt-x86_64-libtool
+            mingw-w64-ucrt-x86_64-libyaml
+            mingw-w64-ucrt-x86_64-pcre2
+            mingw-w64-ucrt-x86_64-python-yaml
+            mingw-w64-ucrt-x86_64-rust
+            mingw-w64-ucrt-x86_64-toolchain
+            unzip
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - run: git config --global --add safe.directory /__w/suricata/suricata
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: prep
+          path: prep
+      - name: Download suricata.tar.gz
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: dist
+      - run: tar xvf suricata-*.tar.gz --strip-components=1
+      - run: tar xf prep/suricata-verify.tar.gz
+      - name: Build
+        run: |
+          ./autogen.sh
+          CFLAGS="-ggdb -Werror" ./configure --enable-warnings --enable-unittests --enable-gccprotect --disable-gccmarch-native --disable-shared
+          make -j3
+      - name: Run
+        run: |
+          ./src/suricata --build-info
+          ./src/suricata -u -l .
+          python3 ./suricata-verify/run.py -q --debug-failed
+      - run: make install
+      - run: suricata-update -V
+
   windows-msys2-mingw64-windivert:
     name: Windows MSYS2 MINGW64 (WinDivert)
     runs-on: windows-latest
