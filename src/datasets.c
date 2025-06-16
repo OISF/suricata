@@ -520,12 +520,10 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
     DatasetUnlock();
     return set;
 out_err:
-    if (set) {
-        if (set->hash) {
-            THashShutdown(set->hash);
-        }
-        SCFree(set);
+    if (set->hash) {
+        THashShutdown(set->hash);
     }
+    SCFree(set);
     DatasetUnlock();
     return NULL;
 }
