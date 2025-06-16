@@ -10,11 +10,13 @@ Formatting
 
 clang-format
 ============
+
 ``clang-format`` is configured to help you with formatting C code.
 
 .. note::
 
-    The ``.clang-format`` script requires clang 9 or newer.
+    The ``.clang-format`` script requires clang 9 or newer. At this
+    time ``clang-format-14`` is used to validate formatting in CI.
 
 Format your Changes
 -------------------
@@ -32,9 +34,9 @@ reformat your whole branch after the fact.
 .. note::
 
     Depending on your installation, you might have to use the version-specific
-    ``git clang-format`` in the commands below, e.g. ``git clang-format-9``,
+    ``git clang-format`` in the commands below, e.g. ``git clang-format-14``,
     and possibly even provide the ``clang-format`` binary with
-    ``--binary clang-format-9``.
+    ``--binary clang-format-14``.
 
     As an alternative, you can use the provided ``scripts/clang-format.sh``
     that isolates you from the different versions.
@@ -155,20 +157,21 @@ You can always disable clang-format.
 
 Installing clang-format and git-clang-format
 --------------------------------------------
+
 clang-format 9 or newer is required.
 
-On ubuntu 18.04:
+On Ubuntu 24.04:
 
 - It is sufficient to only install clang-format, e.g.
 
     .. code-block:: bash
 
-        $ sudo apt-get install clang-format-9
+        $ sudo apt-get install clang-format-14
 
 - See http://apt.llvm.org for other releases in case the clang-format version
   is not found in the default repos.
 
-On fedora:
+On Fedora:
 
 - Install the ``clang``  and ``git-clang-format`` packages with
 
@@ -432,7 +435,8 @@ TODO
 Function names
 ==============
 
-Function names are NamedLikeThis().
+Function names are SCNamedLikeThis(). All non-static functions should
+be prefixed with `SC`.
 
 .. code-block:: c
 
@@ -504,8 +508,6 @@ clang-format:
 Comments
 ********
 
-TODO
-
 Function comments
 =================
 
@@ -551,6 +553,8 @@ Put each enum values on a separate line.
 Tip: Add a trailing comma to the last element to force "one-value-per-line"
 formatting in clang-format.
 
+Enums exposed in a header file should be prefixed with ``SC_``.
+
 .. code-block:: c
 
     enum { VALUE_ONE, VALUE_TWO };  // <- wrong
@@ -567,7 +571,15 @@ clang-format:
 Structures and typedefs
 ***********************
 
-TODO
+Structures and typedefs use ``TitleCase`` naming. When exposed in a
+header file they must be prefixed with ``SC``.
+
+For example:
+
+.. code-block:: rust
+
+   typedef struct SCPlugin_ {
+   } SCPlugin;
 
 switch statements
 *****************
@@ -681,9 +693,8 @@ clang-format:
 Includes
 ********
 
-TODO
-
-A .c file shall include it's own header first.
+A .c file shall include it's own header first, or immediately after
+``suricata-common.h``.
 
 clang-format:
  - SortIncludes: false
@@ -745,6 +756,39 @@ Banned functions
 
 Also, check the existing code. If yours is wildly different, it's wrong.
 Example: https://github.com/oisf/suricata/blob/master/src/decode-ethernet.c
+
+Rust
+****
+
+Pure Rust Code
+==============
+
+Rust functions should follow normal Rust style where appropriate, for
+example:
+
+.. code-block:: rust
+
+   pub fn try_new_array() -> Result<()> {
+       Ok(())
+   }
+
+New Rust code should be formatted with ``rustfmt`` or ``cargo
+fmt``. If reformatting an existing file, format and commit before
+making any changes. Such reformatting may be rejected in a PR based on
+a variety of factors.
+
+FFI
+===
+
+Rust code that is exposed to C should follow our C code style with
+respect to naming. This applies to all functions marked as
+``#[no_mangle]``. For example:
+
+.. code-block:: rust
+
+   #[no_mangle]
+   pub extern "C" SCJbNewArray() -> *mut JsonBuilder {
+   }
 
 .. rubric:: Footnotes
 
