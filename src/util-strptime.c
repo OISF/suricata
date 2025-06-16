@@ -383,54 +383,58 @@ recurse:
 #endif
 				bp += 3;
 			} else {
-				ep = find_string(bp, &i,
-						 (const char * const *)tzname,
-						  NULL, 2);
-				if (ep != NULL) {
-					tm->tm_isdst = i;
+                            ep = find_string(bp, &i,
+#ifdef _WIN32
+                                    (const char *const *)_tzname,
+#else
+                                    (const char *const *)tzname,
+#endif
+                                    NULL, 2);
+                            if (ep != NULL) {
+                                tm->tm_isdst = i;
 #ifdef TM_GMTOFF
 					tm->TM_GMTOFF = -(timezone);
 #endif
 #ifdef TM_ZONE
 					tm->TM_ZONE = tzname[i];
 #endif
-				}
-				bp = ep;
-			}
-			continue;
+                            }
+                            bp = ep;
+                        }
+                        continue;
 
-		case 'z':
-			/*
-			 * We recognize all ISO 8601 formats:
-			 * Z	= Zulu time/UTC
-			 * [+-]hhmm
-			 * [+-]hh:mm
-			 * [+-]hh
-			 * We recognize all RFC-822/RFC-2822 formats:
-			 * UT|GMT
-			 *          North American : UTC offsets
-			 * E[DS]T = Eastern : -4 | -5
-			 * C[DS]T = Central : -5 | -6
-			 * M[DS]T = Mountain: -6 | -7
-			 * P[DS]T = Pacific : -7 | -8
-			 *          Military
-			 * [A-IL-M] = -1 ... -9 (J not used)
-			 * [N-Y]  = +1 ... +12
-			 */
-			while (isspace(*bp))
-				bp++;
+                case 'z':
+                    /*
+                     * We recognize all ISO 8601 formats:
+                     * Z	= Zulu time/UTC
+                     * [+-]hhmm
+                     * [+-]hh:mm
+                     * [+-]hh
+                     * We recognize all RFC-822/RFC-2822 formats:
+                     * UT|GMT
+                     *          North American : UTC offsets
+                     * E[DS]T = Eastern : -4 | -5
+                     * C[DS]T = Central : -5 | -6
+                     * M[DS]T = Mountain: -6 | -7
+                     * P[DS]T = Pacific : -7 | -8
+                     *          Military
+                     * [A-IL-M] = -1 ... -9 (J not used)
+                     * [N-Y]  = +1 ... +12
+                     */
+                    while (isspace(*bp))
+                        bp++;
 
-			switch (*bp++) {
-			case 'G':
-				if (*bp++ != 'M')
-					return NULL;
-				/*FALLTHROUGH*/
-			case 'U':
-				if (*bp++ != 'T')
-					return NULL;
-				/*FALLTHROUGH*/
-			case 'Z':
-				tm->tm_isdst = 0;
+                    switch (*bp++) {
+                        case 'G':
+                            if (*bp++ != 'M')
+                                return NULL;
+                            /*FALLTHROUGH*/
+                        case 'U':
+                            if (*bp++ != 'T')
+                                return NULL;
+                            /*FALLTHROUGH*/
+                        case 'Z':
+                            tm->tm_isdst = 0;
 #ifdef TM_GMTOFF
 				tm->TM_GMTOFF = 0;
 #endif
@@ -489,37 +493,37 @@ recurse:
 					continue;
 				}
 				return NULL;
-			}
-			offs = 0;
-			for (i = 0; i < 4; ) {
-				if (isdigit(*bp)) {
-					offs = offs * 10 + (*bp++ - '0');
-					i++;
-					continue;
-				}
-				if (i == 2 && *bp == ':') {
-					bp++;
-					continue;
-				}
-				break;
-			}
-			switch (i) {
-			case 2:
-				offs *= 100;
-				break;
-			case 4:
-				i = offs % 100;
-				if (i >= 60)
-					return NULL;
-				/* Convert minutes into decimal */
-				offs = (offs / 100) * 100 + (i * 50) / 30;
-				break;
-			default:
-				return NULL;
-			}
-			if (neg)
-				offs = -offs;
-			tm->tm_isdst = 0;	/* XXX */
+                    }
+                    offs = 0;
+                    for (i = 0; i < 4;) {
+                        if (isdigit(*bp)) {
+                            offs = offs * 10 + (*bp++ - '0');
+                            i++;
+                            continue;
+                        }
+                        if (i == 2 && *bp == ':') {
+                            bp++;
+                            continue;
+                        }
+                        break;
+                    }
+                    switch (i) {
+                        case 2:
+                            offs *= 100;
+                            break;
+                        case 4:
+                            i = offs % 100;
+                            if (i >= 60)
+                                return NULL;
+                            /* Convert minutes into decimal */
+                            offs = (offs / 100) * 100 + (i * 50) / 30;
+                            break;
+                        default:
+                            return NULL;
+                    }
+                    if (neg)
+                        offs = -offs;
+                    tm->tm_isdst = 0; /* XXX */
 #ifdef TM_GMTOFF
 			tm->TM_GMTOFF = offs;
 #endif
