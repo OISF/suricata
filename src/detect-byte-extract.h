@@ -26,7 +26,8 @@
 
 void DetectByteExtractRegister(void);
 
-SigMatch *DetectByteExtractRetrieveSMVar(const char *, int sm_list, const Signature *);
+const SigMatch *DetectByteExtractRetrieveSMVar(
+        const char *, int sm_list, int *found_list, const Signature *);
 int DetectByteExtractDoMatch(DetectEngineThreadCtx *, const SigMatchData *, const Signature *,
         const uint8_t *, uint32_t, uint64_t *, uint8_t);
 
