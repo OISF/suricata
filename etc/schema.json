@@ -172,19 +172,47 @@
             }
         },
         "app_proto": {
-            "type": "string"
+            "type": "string",
+            "description": "Application layer protocol of the flow",
+            "suricata": {
+                "keywords": [
+                    "app-layer-protocol"
+                ]
+            }
         },
         "app_proto_expected": {
-            "type": "string"
+            "type": "string",
+            "description": "In case of a protocol change to a specific protocol, and this specific protocol was not recognised, this field will have the value of the expected protocol",
+            "suricata": {
+                "$comment": "TODO implement keyword app-layer-protocol option"
+            }
         },
         "app_proto_orig": {
-            "type": "string"
+            "type": "string",
+            "description": "Original application layer protocol of the flow after a protocol change",
+            "suricata": {
+                "keywords": [
+                    "app-layer-protocol"
+                ]
+            }
         },
         "app_proto_tc": {
-            "type": "string"
+            "type": "string",
+            "description": "Application layer protocol detected to client in case of mismatch",
+            "suricata": {
+                "keywords": [
+                    "app-layer-protocol"
+                ]
+            }
         },
         "app_proto_ts": {
-            "type": "string"
+            "type": "string",
+            "description": "Application layer protocol detected to server in case of mismatch",
+            "suricata": {
+                "keywords": [
+                    "app-layer-protocol"
+                ]
+            }
         },
         "arp": {
             "type": "object",
