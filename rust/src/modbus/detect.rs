@@ -612,7 +612,7 @@ mod test {
         // Read/Write Multiple Registers Request
         assert_eq!(
             modbus.parse(
-                std::ptr::null(),
+                std::ptr::null_mut(),
                 &[
                     0x12, 0x34, // Transaction ID
                     0x00, 0x00, // Protocol ID
@@ -985,7 +985,7 @@ mod test {
         // Force Listen Only Mode
         assert_eq!(
             modbus.parse(
-                std::ptr::null(),
+                std::ptr::null_mut(),
                 &[
                     0x0A, 0x00, // Transaction ID
                     0x00, 0x00, // Protocol ID
@@ -1015,7 +1015,7 @@ mod test {
 
         // Encapsulated Interface Transport (MEI)
         assert_eq!(
-            modbus.parse(std::ptr::null(),
+            modbus.parse(std::ptr::null_mut(),
                 &[
                     0x00, 0x10, // Transaction ID
                     0x00, 0x00, // Protocol ID
@@ -1044,7 +1044,7 @@ mod test {
 
         // Unassigned/Unknown function
         assert_eq!(
-            modbus.parse(std::ptr::null(),
+            modbus.parse(std::ptr::null_mut(),
                 &[
                     0x00, 0x0A, // Transaction ID
                     0x00, 0x00, // Protocol ID
@@ -1071,7 +1071,7 @@ mod test {
 
         // Read Coils request
         assert_eq!(
-            modbus.parse(std::ptr::null(),
+            modbus.parse(std::ptr::null_mut(),
                 &[
                     0x00, 0x00, // Transaction ID
                     0x00, 0x00, // Protocol ID
@@ -1176,7 +1176,7 @@ mod test {
 
         // Read Inputs Register request
         assert_eq!(
-            modbus.parse(std::ptr::null(),
+            modbus.parse(std::ptr::null_mut(),
                 &[
                     0x00, 0x0A, // Transaction ID
                     0x00, 0x00, // Protocol ID
@@ -1326,7 +1326,7 @@ mod test {
         // Origin: https://github.com/bro/bro/blob/master/testing/btest/Traces/modbus/modbus.trace
         // Read Coils Response
         assert_eq!(
-            modbus.parse(std::ptr::null(),
+            modbus.parse(std::ptr::null_mut(),
                 &[
                     0x00, 0x01, // Transaction ID
                     0x00, 0x00, // Protocol ID
@@ -1370,7 +1370,7 @@ mod test {
         // Origin: https://github.com/bro/bro/blob/master/testing/btest/Traces/modbus/modbus.trace
         // Write Single Register Response
         assert_eq!(
-            modbus.parse(std::ptr::null(),
+            modbus.parse(std::ptr::null_mut(),
                 &[
                     0x00, 0x01, // Transaction ID
                     0x00, 0x00, // Protocol ID
@@ -1412,7 +1412,7 @@ mod test {
         // Origin: https://github.com/bro/bro/blob/master/testing/btest/Traces/modbus/modbus.trace
         // Write Single Register Response
         assert_eq!(
-            modbus.parse(std::ptr::null(),
+            modbus.parse(std::ptr::null_mut(),
                 &[
                     0x00, 0x00, // Transaction ID
                     0x00, 0x00, // Protocol ID

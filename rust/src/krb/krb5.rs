@@ -128,7 +128,7 @@ impl KRB5State {
     /// Parse a Kerberos request message
     ///
     /// Returns 0 in case of success, or -1 on error
-    fn parse(&mut self, i: &[u8], flow: *const Flow, direction: Direction) -> i32 {
+    fn parse(&mut self, i: &[u8], flow: *mut Flow, direction: Direction) -> i32 {
         match der_read_element_header(i) {
             Ok((_rem, hdr)) => {
                 // Kerberos messages start with an APPLICATION header
