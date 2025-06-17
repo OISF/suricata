@@ -1325,6 +1325,74 @@ DCERPC BIND/BINDACK::
       "call_id": 2
     }
 
+NTLMSSP fields
+~~~~~~~~~~~~~~
+
+* "domain" (string): the Windows domain.
+* "user" (string): the user.
+* "host" (string): the host.
+* "version" (string): the client version.
+
+Example::
+
+    "ntlmssp": {
+      "domain": "VNET3",
+      "user": "administrator",
+      "host": "BLU",
+      "version": "60.230 build 13699 rev 188"
+    }
+
+More complete example::
+
+  "smb": {
+    "id": 3,
+    "dialect": "NT LM 0.12",
+    "command": "SMB1_COMMAND_SESSION_SETUP_ANDX",
+    "status": "STATUS_SUCCESS",
+    "status_code": "0x0",
+    "session_id": 2048,
+    "tree_id": 0,
+    "ntlmssp": {
+      "domain": "VNET3",
+      "user": "administrator",
+      "host": "BLU",
+      "version": "60.230 build 13699 rev 188"
+    },
+    "request": {
+      "native_os": "Unix",
+      "native_lm": "Samba 3.9.0-SVN-build-11572"
+    },
+    "response": {
+      "native_os": "Windows (TM) Code Name \"Longhorn\" Ultimate 5231",
+      "native_lm": "Windows (TM) Code Name \"Longhorn\" Ultimate 6.0"
+    }
+  }
+
+Kerberos fields
+~~~~~~~~~~~~~~~
+
+* "kerberos.realm" (string): the Kerberos Realm.
+* "kerberos.snames (array of strings): snames.
+
+Example::
+
+  "smb": {
+    "dialect": "2.10",
+    "command": "SMB2_COMMAND_SESSION_SETUP",
+    "status": "STATUS_SUCCESS",
+    "status_code": "0x0",
+    "session_id": 35184439197745,
+    "tree_id": 0,
+    "kerberos": {
+      "realm": "CONTOSO.LOCAL",
+      "snames": [
+        "cifs",
+        "DC1.contoso.local"
+      ]
+    }
+  }
+
+
 Event type: BITTORRENT-DHT
 --------------------------
 
@@ -1547,74 +1615,6 @@ Sample error responses::
       "msg": "Malformed Packet"
     }
   }
-
-NTLMSSP fields
-~~~~~~~~~~~~~~
-
-* "domain" (string): the Windows domain.
-* "user" (string): the user.
-* "host" (string): the host.
-* "version" (string): the client version.
-
-Example::
-
-    "ntlmssp": {
-      "domain": "VNET3",
-      "user": "administrator",
-      "host": "BLU",
-      "version": "60.230 build 13699 rev 188"
-    }
-
-More complete example::
-
-  "smb": {
-    "id": 3,
-    "dialect": "NT LM 0.12",
-    "command": "SMB1_COMMAND_SESSION_SETUP_ANDX",
-    "status": "STATUS_SUCCESS",
-    "status_code": "0x0",
-    "session_id": 2048,
-    "tree_id": 0,
-    "ntlmssp": {
-      "domain": "VNET3",
-      "user": "administrator",
-      "host": "BLU",
-      "version": "60.230 build 13699 rev 188"
-    },
-    "request": {
-      "native_os": "Unix",
-      "native_lm": "Samba 3.9.0-SVN-build-11572"
-    },
-    "response": {
-      "native_os": "Windows (TM) Code Name \"Longhorn\" Ultimate 5231",
-      "native_lm": "Windows (TM) Code Name \"Longhorn\" Ultimate 6.0"
-    }
-  }
-
-Kerberos fields
-~~~~~~~~~~~~~~~
-
-* "kerberos.realm" (string): the Kerberos Realm.
-* "kerberos.snames (array of strings): snames.
-
-Example::
-
-  "smb": {
-    "dialect": "2.10",
-    "command": "SMB2_COMMAND_SESSION_SETUP",
-    "status": "STATUS_SUCCESS",
-    "status_code": "0x0",
-    "session_id": 35184439197745,
-    "tree_id": 0,
-    "kerberos": {
-      "realm": "CONTOSO.LOCAL",
-      "snames": [
-        "cifs",
-        "DC1.contoso.local"
-      ]
-    }
-  }
-
 
 Event type: SSH
 ----------------
