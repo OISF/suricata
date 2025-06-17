@@ -81,6 +81,7 @@
 #include "util-memcpy.h"
 #include "util-validate.h"
 #include "util-mpm-ac-ks.h"
+#include "util-mpm-ac-queue.h"
 
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 
@@ -147,17 +148,6 @@ static void SCACTileDestroyInitCtx(MpmCtx *mpm_ctx);
 
 /* a placeholder to denote a failure transition in the goto table */
 #define SC_AC_TILE_FAIL (-1)
-
-#define STATE_QUEUE_CONTAINER_SIZE 65536
-
-/**
- * \brief Helper structure used by AC during state table creation
- */
-typedef struct StateQueue_ {
-    int32_t store[STATE_QUEUE_CONTAINER_SIZE];
-    int top;
-    int bot;
-} StateQueue;
 
 /**
  * \internal
@@ -402,48 +392,6 @@ static void SCACTileCreateGotoTable(MpmCtx *mpm_ctx)
     }
 }
 
-static inline int SCACStateQueueIsEmpty(StateQueue *q)
-{
-    if (q->top == q->bot)
-        return 1;
-    else
-        return 0;
-}
-
-static inline void SCACEnqueue(StateQueue *q, int32_t state)
-{
-    int i = 0;
-
-    /*if we already have this */
-    for (i = q->bot; i < q->top; i++) {
-        if (q->store[i] == state)
-            return;
-    }
-
-    q->store[q->top++] = state;
-
-    if (q->top == STATE_QUEUE_CONTAINER_SIZE)
-        q->top = 0;
-
-    if (q->top == q->bot) {
-        FatalError("Just ran out of space in the queue.  "
-                   "Fatal Error.  Exiting.  Please file a bug report on this");
-    }
-}
-
-static inline int32_t SCACDequeue(StateQueue *q)
-{
-    if (q->bot == STATE_QUEUE_CONTAINER_SIZE)
-        q->bot = 0;
-
-    if (q->bot == q->top) {
-        FatalError("StateQueue behaving weirdly.  "
-                   "Fatal Error.  Exiting.  Please file a bug report on this");
-    }
-
-    return q->store[q->bot++];
-}
-
 /**
  * \internal
  * \brief Club the output data from 2 states and store it in the 1st state.
@@ -506,10 +454,7 @@ static void SCACTileCreateFailureTable(MpmCtx *mpm_ctx)
     int32_t state = 0;
     int32_t r_state = 0;
 
-    StateQueue *q = SCCalloc(1, sizeof(StateQueue));
-    if (q == NULL) {
-        FatalError("Error allocating memory");
-    }
+    StateQueue *q = SCACStateQueueAlloc();
 
     /* Allocate space for the failure table.  A failure entry in the table for
      * every state(SCACTileCtx->state_count) */
@@ -547,7 +492,7 @@ static void SCACTileCreateFailureTable(MpmCtx *mpm_ctx)
                                      mpm_ctx);
         }
     }
-    SCFree(q);
+    SCACStateQueueFree(q);
 }
 
 /*
@@ -681,10 +626,7 @@ static inline void SCACTileCreateDeltaTable(MpmCtx *mpm_ctx)
         ctx->alphabet_storage = 256; /* Change? */
     }
 
-    StateQueue *q = SCCalloc(1, sizeof(StateQueue));
-    if (q == NULL) {
-        FatalError("Error allocating memory");
-    }
+    StateQueue *q = SCACStateQueueAlloc();
 
     for (aa = 0; aa < ctx->alphabet_size; aa++) {
         int temp_state = ctx->goto_table[0][aa];
@@ -705,7 +647,7 @@ static inline void SCACTileCreateDeltaTable(MpmCtx *mpm_ctx)
             }
         }
     }
-    SCFree(q);
+    SCACStateQueueFree(q);
 }
 
 static void SCACTileClubOutputStatePresenceWithDeltaTable(MpmCtx *mpm_ctx)
