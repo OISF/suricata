@@ -168,7 +168,7 @@ impl RdpState {
     }
 
     /// parse buffer captures from client to server
-    fn parse_ts(&mut self, flow: *const Flow, input: &[u8]) -> AppLayerResult {
+    fn parse_ts(&mut self, flow: *mut Flow, input: &[u8]) -> AppLayerResult {
         // no need to process input buffer
         if self.bypass_parsing {
             return AppLayerResult::ok();
@@ -274,7 +274,7 @@ impl RdpState {
     }
 
     /// parse buffer captures from server to client
-    fn parse_tc(&mut self, flow: *const Flow, input: &[u8]) -> AppLayerResult {
+    fn parse_tc(&mut self, flow: *mut Flow, input: &[u8]) -> AppLayerResult {
         // no need to process input buffer
         if self.bypass_parsing {
             return AppLayerResult::ok();
@@ -581,13 +581,13 @@ mod tests {
         // will consume 0, request length + 1
         assert_eq!(
             AppLayerResult::incomplete(0, 9),
-            state.parse_ts(std::ptr::null(), buf_1)
+            state.parse_ts(std::ptr::null_mut(), buf_1)
         );
         assert_eq!(0, state.transactions.len());
         // exactly aligns with transaction
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse_ts(std::ptr::null(), buf_2)
+            state.parse_ts(std::ptr::null_mut(), buf_2)
         );
         assert_eq!(1, state.transactions.len());
         let item = RdpTransactionItem::X224ConnectionRequest(X224ConnectionRequest {
@@ -609,7 +609,7 @@ mod tests {
     fn test_parse_ts_other() {
         let buf: &[u8] = &[0x03, 0x00, 0x00, 0x01, 0x00];
         let mut state = RdpState::new();
-        assert_eq!(AppLayerResult::err(), state.parse_ts(std::ptr::null(), buf));
+        assert_eq!(AppLayerResult::err(), state.parse_ts(std::ptr::null_mut(), buf));
     }
 
     #[test]
@@ -620,13 +620,13 @@ mod tests {
         // will consume 0, request length + 1
         assert_eq!(
             AppLayerResult::incomplete(0, 6),
-            state.parse_tc(std::ptr::null(), buf_1)
+            state.parse_tc(std::ptr::null_mut(), buf_1)
         );
         assert_eq!(0, state.transactions.len());
         // exactly aligns with transaction
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse_tc(std::ptr::null(), buf_2)
+            state.parse_tc(std::ptr::null_mut(), buf_2)
         );
         assert_eq!(1, state.transactions.len());
         let item = RdpTransactionItem::McsConnectResponse(McsConnectResponse {});
@@ -637,7 +637,7 @@ mod tests {
     fn test_parse_tc_other() {
         let buf: &[u8] = &[0x03, 0x00, 0x00, 0x01, 0x00];
         let mut state = RdpState::new();
-        assert_eq!(AppLayerResult::err(), state.parse_tc(std::ptr::null(), buf));
+        assert_eq!(AppLayerResult::err(), state.parse_tc(std::ptr::null_mut(), buf));
     }
 
     #[test]
