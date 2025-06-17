@@ -231,8 +231,7 @@ int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
 
         SCLogDebug("comparing base %d string 0x%" PRIx64 " %s%u 0x%" PRIx64,
                data->base, val, (neg ? "!" : ""), data->op, data->value);
-    }
-    else {
+    } else {
         int endianness = (flags & DETECT_BYTETEST_LITTLE) ?
                           BYTE_LITTLE_ENDIAN : BYTE_BIG_ENDIAN;
         extbytes = ByteExtractUint64(&val, endianness, (uint16_t)nbytes, ptr);
@@ -259,6 +258,7 @@ int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
 
     /* Compare using the configured operator */
     match = 0;
+    SCLogDebug("val: %ld, value: %ld", val, value);
     switch (data->op) {
         case DETECT_BYTETEST_OP_EQ:
             if (val == value) {
@@ -640,7 +640,8 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
 
     if (value != NULL) {
         DetectByteIndexType index;
-        if (!DetectByteRetrieveSMVar(value, s, sm_list, &index)) {
+        if (!DetectByteRetrieveSMVar(
+                    value, s, SigMatchStrictEnabled(DETECT_BYTETEST), sm_list, &index, de_ctx)) {
             SCLogError("Unknown byte_extract var "
                        "seen in byte_test - %s",
                     value);
@@ -654,7 +655,8 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
 
     if (offset != NULL) {
         DetectByteIndexType index;
-        if (!DetectByteRetrieveSMVar(offset, s, sm_list, &index)) {
+        if (!DetectByteRetrieveSMVar(
+                    offset, s, SigMatchStrictEnabled(DETECT_BYTETEST), sm_list, &index, de_ctx)) {
             SCLogError("Unknown byte_extract var "
                        "seen in byte_test - %s",
                     offset);
@@ -668,7 +670,8 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
 
     if (nbytes != NULL) {
         DetectByteIndexType index;
-        if (!DetectByteRetrieveSMVar(nbytes, s, sm_list, &index)) {
+        if (!DetectByteRetrieveSMVar(
+                    nbytes, s, SigMatchStrictEnabled(DETECT_BYTETEST), sm_list, &index, de_ctx)) {
             SCLogError("Unknown byte_extract var "
                        "seen in byte_test - %s",
                     nbytes);
