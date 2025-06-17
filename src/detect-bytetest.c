@@ -348,7 +348,7 @@ static DetectBytetestData *DetectBytetestParse(
         if (i == 2) {
             test_value = (char *) str_ptr;
             data_offset = SCStrdup((char *) str_ptr);
-            if (data_offset == NULL) {
+            if (offset == NULL) {
                 goto error;
             }
         } else {
