@@ -27,6 +27,6 @@
 
 typedef uint8_t DetectByteIndexType;
 
-bool DetectByteRetrieveSMVar(const char *, const Signature *, int sm_list, DetectByteIndexType *);
-
+bool DetectByteRetrieveSMVar(const char *, const Signature *, bool strict, int sm_list,
+        DetectByteIndexType *, const DetectEngineCtx *);
 #endif /* SURICATA_DETECT_BYTE_H */
