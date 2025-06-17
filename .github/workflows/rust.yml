@@ -4,9 +4,11 @@ on:
   push:
     paths-ignore:
       - "doc/**"
+      - "etc/schema.json"
   pull_request:
     paths-ignore:
       - "doc/**"
+      - "etc/schema.json"
 
 permissions:
   contents: read #  to fetch code (actions/checkout)
