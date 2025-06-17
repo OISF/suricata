@@ -25,10 +25,16 @@ StateQueue *SCACStateQueueAlloc(void)
     if (q == NULL) {
         FatalError("Error allocating memory");
     }
+    q->store = SCCalloc(STATE_QUEUE_CONTAINER_SIZE, sizeof(int32_t));
+    if (q->store == NULL) {
+        FatalError("Error allocating memory");
+    }
+    q->size = STATE_QUEUE_CONTAINER_SIZE;
     return q;
 }
 
 void SCACStateQueueFree(StateQueue *q)
 {
+    SCFree(q->store);
     SCFree(q);
 }
