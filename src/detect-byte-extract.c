@@ -26,6 +26,7 @@
 
 #include "detect.h"
 #include "detect-engine.h"
+#include "detect-byte.h"
 #include "detect-content.h"
 #include "detect-pcre.h"
 #include "detect-bytejump.h"
@@ -364,6 +365,15 @@ static void DetectByteExtractFree(DetectEngineCtx *de_ctx, void *ptr)
     SCByteExtractFree(ptr);
 }
 
+static inline bool DetectByteExtractSMNameMatch(const SigMatch *sm, const char *arg)
+{
+    if (sm->type == DETECT_BYTE_EXTRACT) {
+        const SCDetectByteExtractData *bed = (const SCDetectByteExtractData *)sm->ctx;
+        return strcmp(bed->name, arg) == 0;
+    }
+    return false;
+}
+
 /**
  * \brief Lookup the SigMatch for a named byte_extract variable.
  *
@@ -372,30 +382,25 @@ static void DetectByteExtractFree(DetectEngineCtx *de_ctx, void *ptr)
  *
  * \retval A pointer to the SigMatch if found, otherwise NULL.
  */
-SigMatch *DetectByteExtractRetrieveSMVar(const char *arg, int sm_list, const Signature *s)
+const SigMatch *DetectByteExtractRetrieveSMVar(const char *arg, int *found_list, const Signature *s)
 {
     for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
-        SigMatch *sm = s->init_data->buffers[x].head;
+        const SigMatch *sm = s->init_data->buffers[x].head;
         while (sm != NULL) {
-            if (sm->type == DETECT_BYTE_EXTRACT) {
-                const SCDetectByteExtractData *bed = (const SCDetectByteExtractData *)sm->ctx;
-                if (strcmp(bed->name, arg) == 0) {
-                    return sm;
-                }
+            if (DetectByteExtractSMNameMatch(sm, arg)) {
+                *found_list = s->init_data->buffers[x].id;
+                return sm;
             }
             sm = sm->next;
         }
     }
 
     for (int list = 0; list < DETECT_SM_LIST_MAX; list++) {
-        SigMatch *sm = s->init_data->smlists[list];
+        const SigMatch *sm = s->init_data->smlists[list];
         while (sm != NULL) {
-            // Make sure that the linked buffers ore on the same list
-            if (sm->type == DETECT_BYTE_EXTRACT && (sm_list == -1 || sm_list == list)) {
-                const SCDetectByteExtractData *bed = (const SCDetectByteExtractData *)sm->ctx;
-                if (strcmp(bed->name, arg) == 0) {
-                    return sm;
-                }
+            if (DetectByteExtractSMNameMatch(sm, arg)) {
+                *found_list = list;
+                return sm;
             }
             sm = sm->next;
         }

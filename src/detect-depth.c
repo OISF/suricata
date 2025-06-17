@@ -106,7 +106,8 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
     }
     if (str[0] != '-' && isalpha((unsigned char)str[0])) {
         DetectByteIndexType index;
-        if (!DetectByteRetrieveSMVar(str, s, -1, &index)) {
+        if (!DetectByteRetrieveSMVar(
+                    str, s, SigMatchStrictEnabled(DETECT_DEPTH), -1, &index, de_ctx)) {
             SCLogError("unknown byte_ keyword var "
                        "seen in depth - %s.",
                     str);
