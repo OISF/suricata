@@ -61,6 +61,7 @@
 #include "util-mpm-ac.h"
 #include "util-memcpy.h"
 #include "util-validate.h"
+#include "util-mpm-ac-queue.h"
 
 void SCACInitCtx(MpmCtx *);
 void SCACDestroyCtx(MpmCtx *);
@@ -75,8 +76,6 @@ void SCACPrintInfo(MpmCtx *mpm_ctx);
 #ifdef UNITTESTS
 static void SCACRegisterTests(void);
 #endif
-
-#include "util-mpm-ac-queue.c"
 
 /* a placeholder to denote a failure transition in the goto table */
 #define SC_AC_FAIL (-1)

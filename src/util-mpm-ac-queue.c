@@ -15,19 +15,11 @@
  * 02110-1301, USA.
  */
 
-#define STATE_QUEUE_CONTAINER_SIZE 65536
+#include "suricata-common.h"
+#include "util-debug.h"
+#include "util-mpm-ac-queue.h"
 
-/**
- * \brief Helper structure used by AC during state table creation
- */
-typedef struct StateQueue_ {
-    uint32_t top;
-    uint32_t bot;
-    uint32_t size;
-    int32_t *store;
-} StateQueue;
-
-static inline StateQueue *SCACStateQueueAlloc(void)
+StateQueue *SCACStateQueueAlloc(void)
 {
     StateQueue *q = SCCalloc(1, sizeof(StateQueue));
     if (q == NULL) {
@@ -41,58 +33,8 @@ static inline StateQueue *SCACStateQueueAlloc(void)
     return q;
 }
 
-static inline void SCACStateQueueFree(StateQueue *q)
+void SCACStateQueueFree(StateQueue *q)
 {
     SCFree(q->store);
     SCFree(q);
-}
-
-static inline int SCACStateQueueIsEmpty(StateQueue *q)
-{
-    if (q->top == q->bot)
-        return 1;
-    else
-        return 0;
-}
-
-static inline void SCACEnqueue(StateQueue *q, int32_t state)
-{
-    /*if we already have this */
-    for (uint32_t i = q->bot; i < q->top; i++) {
-        if (q->store[i] == state)
-            return;
-    }
-
-    q->store[q->top++] = state;
-
-    if (q->top == q->size)
-        q->top = 0;
-
-    if (q->top == q->bot) {
-        // allocate a new store and copy + realign
-        int32_t *tmp = SCCalloc(q->size + STATE_QUEUE_CONTAINER_SIZE, sizeof(int32_t));
-        if (tmp == NULL) {
-            FatalError("Error reallocating memory");
-        }
-        memcpy(tmp, q->store + q->bot, (q->size - q->bot) * sizeof(int32_t));
-        memcpy(tmp + (q->size - q->bot), q->store, q->top * sizeof(int32_t));
-        SCFree(q->store);
-        q->store = tmp;
-        q->bot = 0;
-        q->top = q->size;
-        q->size += STATE_QUEUE_CONTAINER_SIZE;
-    }
-}
-
-static inline int32_t SCACDequeue(StateQueue *q)
-{
-    if (q->bot == q->size)
-        q->bot = 0;
-
-    if (q->bot == q->top) {
-        FatalError("StateQueue behaving weirdly.  "
-                   "Fatal Error.  Exiting.  Please file a bug report on this");
-    }
-
-    return q->store[q->bot++];
 }

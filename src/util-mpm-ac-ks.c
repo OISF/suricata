@@ -81,6 +81,7 @@
 #include "util-memcpy.h"
 #include "util-validate.h"
 #include "util-mpm-ac-ks.h"
+#include "util-mpm-ac-queue.h"
 
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 
@@ -146,8 +147,6 @@ static void SCACTileDestroyInitCtx(MpmCtx *mpm_ctx);
 
 /* a placeholder to denote a failure transition in the goto table */
 #define SC_AC_TILE_FAIL (-1)
-
-#include "util-mpm-ac-queue.c"
 
 /**
  * \internal
