@@ -1,6 +1,8 @@
 Generic App Layer Keywords
 ==========================
 
+.. _rule-keyword-app-layer-protocol:
+
 app-layer-protocol
 ------------------
 
