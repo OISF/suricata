@@ -76,25 +76,16 @@ void SCACPrintInfo(MpmCtx *mpm_ctx);
 static void SCACRegisterTests(void);
 #endif
 
+#include "util-mpm-ac-queue.c"
+
 /* a placeholder to denote a failure transition in the goto table */
 #define SC_AC_FAIL (-1)
-
-#define STATE_QUEUE_CONTAINER_SIZE 65536
 
 #define AC_CASE_MASK    0x80000000
 #define AC_PID_MASK     0x7FFFFFFF
 #define AC_CASE_BIT     31
 
 static int construct_both_16_and_32_state_tables = 0;
-
-/**
- * \brief Helper structure used by AC during state table creation
- */
-typedef struct StateQueue_ {
-    int32_t store[STATE_QUEUE_CONTAINER_SIZE];
-    int top;
-    int bot;
-} StateQueue;
 
 /**
  * \internal
@@ -358,46 +349,6 @@ static inline void SCACDetermineLevel1Gap(MpmCtx *mpm_ctx)
         int32_t newstate = SCACInitNewState(mpm_ctx);
         ctx->goto_table[0][u] = newstate;
     }
-}
-
-static inline int SCACStateQueueIsEmpty(StateQueue *q)
-{
-    if (q->top == q->bot)
-        return 1;
-    else
-        return 0;
-}
-
-static inline void SCACEnqueue(StateQueue *q, int32_t state)
-{
-    int i = 0;
-
-    /*if we already have this */
-    for (i = q->bot; i < q->top; i++) {
-        if (q->store[i] == state)
-            return;
-    }
-
-    q->store[q->top++] = state;
-
-    if (q->top == STATE_QUEUE_CONTAINER_SIZE)
-        q->top = 0;
-
-    if (q->top == q->bot) {
-        FatalError("Just ran out of space in the queue. Please file a bug report on this");
-    }
-}
-
-static inline int32_t SCACDequeue(StateQueue *q)
-{
-    if (q->bot == STATE_QUEUE_CONTAINER_SIZE)
-        q->bot = 0;
-
-    if (q->bot == q->top) {
-        FatalError("StateQueue behaving weirdly. Please file a bug report on this");
-    }
-
-    return q->store[q->bot++];
 }
 
 /**
