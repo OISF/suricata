@@ -95,7 +95,7 @@ pub type DetectEngineStateFreeFunc =
     extern "C" fn(state: *mut DetectEngineState);
 
 pub type AppLayerParserTriggerRawStreamInspectionFunc =
-    extern "C" fn (flow: *const Flow, direction: i32);
+    extern "C" fn (flow: *mut Flow, direction: i32);
 pub type AppLayerDecoderEventsSetEventRawFunc =
     extern "C" fn (events: *mut *mut AppLayerDecoderEvents,
                    event: u8);
@@ -222,7 +222,7 @@ pub fn sc_generic_var_free(gvar: *mut GenericVar)
 }
 
 /// AppLayerParserTriggerRawStreamInspection wrapper
-pub fn sc_app_layer_parser_trigger_raw_stream_inspection(flow: *const Flow, direction: i32) {
+pub fn sc_app_layer_parser_trigger_raw_stream_inspection(flow: *mut Flow, direction: i32) {
     unsafe {
         if let Some(c) = SC {
             (c.AppLayerParserTriggerRawStreamInspection)(flow, direction);

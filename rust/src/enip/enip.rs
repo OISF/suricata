@@ -273,7 +273,7 @@ impl EnipState {
         }
     }
     fn parse_tcp(
-        &mut self, stream_slice: StreamSlice, request: bool, flow: *const Flow,
+        &mut self, stream_slice: StreamSlice, request: bool, flow: *mut Flow,
     ) -> AppLayerResult {
         let input = stream_slice.as_slice();
         if request {
