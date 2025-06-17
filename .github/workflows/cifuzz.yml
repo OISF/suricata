@@ -5,6 +5,7 @@ on:
   pull_request:
     paths-ignore:
       - "doc/**"
+      - "etc/schema.json"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
