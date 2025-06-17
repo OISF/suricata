@@ -408,10 +408,7 @@ static inline void SCACCreateFailureTable(MpmCtx *mpm_ctx)
     int32_t state = 0;
     int32_t r_state = 0;
 
-    StateQueue *q = SCCalloc(1, sizeof(StateQueue));
-    if (q == NULL) {
-        FatalError("Error allocating memory");
-    }
+    StateQueue *q = SCACStateQueueAlloc();
 
     /* allot space for the failure table.  A failure entry in the table for
      * every state(SCACCtx->state_count) */
@@ -448,7 +445,7 @@ static inline void SCACCreateFailureTable(MpmCtx *mpm_ctx)
                                  mpm_ctx);
         }
     }
-    SCFree(q);
+    SCACStateQueueFree(q);
 }
 
 /**
@@ -471,10 +468,7 @@ static inline void SCACCreateDeltaTable(MpmCtx *mpm_ctx)
         mpm_ctx->memory_cnt++;
         mpm_ctx->memory_size += (ctx->state_count * sizeof(*ctx->state_table_u16));
 
-        StateQueue *q = SCCalloc(1, sizeof(StateQueue));
-        if (q == NULL) {
-            FatalError("Error allocating memory");
-        }
+        StateQueue *q = SCACStateQueueAlloc();
 
         for (ascii_code = 0; ascii_code < 256; ascii_code++) {
             DEBUG_VALIDATE_BUG_ON(ctx->goto_table[0][ascii_code] > UINT16_MAX);
@@ -499,7 +493,7 @@ static inline void SCACCreateDeltaTable(MpmCtx *mpm_ctx)
                 }
             }
         }
-        SCFree(q);
+        SCACStateQueueFree(q);
     }
 
     if (!(ctx->state_count < 32767) || construct_both_16_and_32_state_tables) {
@@ -513,10 +507,7 @@ static inline void SCACCreateDeltaTable(MpmCtx *mpm_ctx)
         mpm_ctx->memory_cnt++;
         mpm_ctx->memory_size += (ctx->state_count * sizeof(*ctx->state_table_u32));
 
-        StateQueue *q = SCCalloc(1, sizeof(StateQueue));
-        if (q == NULL) {
-            FatalError("Error allocating memory");
-        }
+        StateQueue *q = SCACStateQueueAlloc();
 
         for (ascii_code = 0; ascii_code < 256; ascii_code++) {
             SC_AC_STATE_TYPE_U32 temp_state = ctx->goto_table[0][ascii_code];
@@ -539,7 +530,7 @@ static inline void SCACCreateDeltaTable(MpmCtx *mpm_ctx)
                 }
             }
         }
-        SCFree(q);
+        SCACStateQueueFree(q);
     }
 }
 

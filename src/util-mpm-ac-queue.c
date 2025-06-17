@@ -15,17 +15,37 @@
  * 02110-1301, USA.
  */
 
-
 #define STATE_QUEUE_CONTAINER_SIZE 65536
 
 /**
  * \brief Helper structure used by AC during state table creation
  */
 typedef struct StateQueue_ {
-    int32_t store[STATE_QUEUE_CONTAINER_SIZE];
     int top;
     int bot;
+    uint32_t size;
+    int32_t *store;
 } StateQueue;
+
+static inline StateQueue *SCACStateQueueAlloc(void)
+{
+    StateQueue *q = SCCalloc(1, sizeof(StateQueue));
+    if (q == NULL) {
+        FatalError("Error allocating memory");
+    }
+    q->store = SCCalloc(STATE_QUEUE_CONTAINER_SIZE, sizeof(int32_t));
+    if (q->store == NULL) {
+        FatalError("Error allocating memory");
+    }
+    q->size = STATE_QUEUE_CONTAINER_SIZE;
+    return q;
+}
+
+static inline void SCACStateQueueFree(StateQueue *q)
+{
+    SCFree(q->store);
+    SCFree(q);
+}
 
 static inline int SCACStateQueueIsEmpty(StateQueue *q)
 {

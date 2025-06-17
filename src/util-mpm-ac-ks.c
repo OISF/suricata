@@ -454,10 +454,7 @@ static void SCACTileCreateFailureTable(MpmCtx *mpm_ctx)
     int32_t state = 0;
     int32_t r_state = 0;
 
-    StateQueue *q = SCCalloc(1, sizeof(StateQueue));
-    if (q == NULL) {
-        FatalError("Error allocating memory");
-    }
+    StateQueue *q = SCACStateQueueAlloc();
 
     /* Allocate space for the failure table.  A failure entry in the table for
      * every state(SCACTileCtx->state_count) */
@@ -494,7 +491,7 @@ static void SCACTileCreateFailureTable(MpmCtx *mpm_ctx)
                                      mpm_ctx);
         }
     }
-    SCFree(q);
+    SCACStateQueueFree(q);
 }
 
 /*
@@ -628,10 +625,7 @@ static inline void SCACTileCreateDeltaTable(MpmCtx *mpm_ctx)
         ctx->alphabet_storage = 256; /* Change? */
     }
 
-    StateQueue *q = SCCalloc(1, sizeof(StateQueue));
-    if (q == NULL) {
-        FatalError("Error allocating memory");
-    }
+    StateQueue *q = SCACStateQueueAlloc();
 
     for (aa = 0; aa < ctx->alphabet_size; aa++) {
         int temp_state = ctx->goto_table[0][aa];
@@ -652,7 +646,7 @@ static inline void SCACTileCreateDeltaTable(MpmCtx *mpm_ctx)
             }
         }
     }
-    SCFree(q);
+    SCACStateQueueFree(q);
 }
 
 static void SCACTileClubOutputStatePresenceWithDeltaTable(MpmCtx *mpm_ctx)
