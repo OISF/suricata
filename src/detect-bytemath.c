@@ -442,17 +442,20 @@ static void DetectByteMathFree(DetectEngineCtx *de_ctx, void *ptr)
  */
 SigMatch *DetectByteMathRetrieveSMVar(const char *arg, int sm_list, const Signature *s)
 {
+    bool any = sm_list == -1;
     for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
-        SigMatch *sm = s->init_data->buffers[x].head;
-        while (sm != NULL) {
-            if (sm->type == DETECT_BYTEMATH) {
-                const DetectByteMathData *bmd = (const DetectByteMathData *)sm->ctx;
-                if (strcmp(bmd->result, arg) == 0) {
-                    SCLogDebug("Retrieved SM for \"%s\"", arg);
-                    return sm;
+        if (any || (uint32_t)sm_list == s->init_data->buffers[x].id) {
+            SigMatch *sm = s->init_data->buffers[x].head;
+            while (sm != NULL) {
+                if (sm->type == DETECT_BYTEMATH) {
+                    const DetectByteMathData *bmd = (const DetectByteMathData *)sm->ctx;
+                    if (strcmp(bmd->result, arg) == 0) {
+                        SCLogDebug("Retrieved SM for \"%s\"", arg);
+                        return sm;
+                    }
                 }
+                sm = sm->next;
             }
-            sm = sm->next;
         }
     }
 
@@ -460,7 +463,7 @@ SigMatch *DetectByteMathRetrieveSMVar(const char *arg, int sm_list, const Signat
         SigMatch *sm = s->init_data->smlists[list];
         while (sm != NULL) {
             // Make sure that the linked buffers ore on the same list
-            if (sm->type == DETECT_BYTEMATH && (sm_list == -1 || sm_list == list)) {
+            if (sm->type == DETECT_BYTEMATH && (any || sm_list == list)) {
                 const DetectByteMathData *bmd = (const DetectByteMathData *)sm->ctx;
                 if (strcmp(bmd->result, arg) == 0) {
                     SCLogDebug("Retrieved SM for \"%s\"", arg);
