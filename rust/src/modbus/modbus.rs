@@ -185,7 +185,7 @@ impl ModbusState {
     }
 
     pub fn parse(
-        &mut self, flow: *const Flow, input: &[u8], direction: Direction,
+        &mut self, flow: *mut Flow, input: &[u8], direction: Direction,
     ) -> AppLayerResult {
         let mut rest = input;
         while !rest.is_empty() {
@@ -996,7 +996,7 @@ mod tests {
         let mut state = ModbusState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(std::ptr::null(), RD_COILS_REQ, Direction::ToServer)
+            state.parse(std::ptr::null_mut(), RD_COILS_REQ, Direction::ToServer)
         );
         assert_eq!(state.transactions.len(), 1);
 
@@ -1013,7 +1013,7 @@ mod tests {
 
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(std::ptr::null(), RD_COILS_RESP, Direction::ToClient)
+            state.parse(std::ptr::null_mut(), RD_COILS_RESP, Direction::ToClient)
         );
         assert_eq!(state.transactions.len(), 1);
 
@@ -1028,7 +1028,7 @@ mod tests {
         let mut state = ModbusState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(std::ptr::null(), WR_MULT_REG_REQ, Direction::ToServer)
+            state.parse(std::ptr::null_mut(), WR_MULT_REG_REQ, Direction::ToServer)
         );
         assert_eq!(state.transactions.len(), 1);
 
@@ -1046,7 +1046,7 @@ mod tests {
 
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(std::ptr::null(), WR_MULT_REG_RESP, Direction::ToClient)
+            state.parse(std::ptr::null_mut(), WR_MULT_REG_RESP, Direction::ToClient)
         );
         assert_eq!(state.transactions.len(), 1);
 
@@ -1067,7 +1067,7 @@ mod tests {
         let mut state = ModbusState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(std::ptr::null(), RD_WR_MULT_REG_REQ, Direction::ToServer)
+            state.parse(std::ptr::null_mut(), RD_WR_MULT_REG_REQ, Direction::ToServer)
         );
         assert_eq!(state.transactions.len(), 1);
 
@@ -1091,7 +1091,7 @@ mod tests {
 
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(std::ptr::null(), RD_WR_MULT_REG_RESP, Direction::ToClient)
+            state.parse(std::ptr::null_mut(), RD_WR_MULT_REG_RESP, Direction::ToClient)
         );
         assert_eq!(state.transactions.len(), 1);
 
@@ -1112,7 +1112,7 @@ mod tests {
         assert_eq!(
             AppLayerResult::ok(),
             state.parse(
-                std::ptr::null(),
+                std::ptr::null_mut(),
                 FORCE_LISTEN_ONLY_MODE,
                 Direction::ToServer
             )
@@ -1139,7 +1139,7 @@ mod tests {
         let mut state = ModbusState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(std::ptr::null(), INVALID_PROTO_REQ, Direction::ToServer)
+            state.parse(std::ptr::null_mut(), INVALID_PROTO_REQ, Direction::ToServer)
         );
 
         assert_eq!(state.transactions.len(), 1);
@@ -1153,7 +1153,7 @@ mod tests {
         let mut state = ModbusState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(std::ptr::null(), RD_COILS_RESP, Direction::ToClient)
+            state.parse(std::ptr::null_mut(), RD_COILS_RESP, Direction::ToClient)
         );
         assert_eq!(state.transactions.len(), 1);
 
@@ -1169,7 +1169,7 @@ mod tests {
         assert_eq!(
             AppLayerResult::incomplete(15, 4),
             state.parse(
-                std::ptr::null(),
+                std::ptr::null_mut(),
                 INVALID_LEN_WR_MULT_REG_REQ,
                 Direction::ToServer
             )
@@ -1195,7 +1195,7 @@ mod tests {
         let mut state = ModbusState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(std::ptr::null(), RD_COILS_REQ, Direction::ToServer)
+            state.parse(std::ptr::null_mut(), RD_COILS_REQ, Direction::ToServer)
         );
         assert_eq!(state.transactions.len(), 1);
 
@@ -1212,7 +1212,7 @@ mod tests {
 
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(std::ptr::null(), RD_COILS_ERR_RESP, Direction::ToClient)
+            state.parse(std::ptr::null_mut(), RD_COILS_ERR_RESP, Direction::ToClient)
         );
         assert_eq!(state.transactions.len(), 1);
 
@@ -1234,7 +1234,7 @@ mod tests {
         assert_eq!(
             AppLayerResult::incomplete(0, 12),
             state.parse(
-                std::ptr::null(),
+                std::ptr::null_mut(),
                 &RD_COILS_REQ[0..(RD_COILS_REQ.len() - 3)],
                 Direction::ToServer
             )
@@ -1242,7 +1242,7 @@ mod tests {
         assert_eq!(state.transactions.len(), 0);
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(std::ptr::null(), RD_COILS_REQ, Direction::ToServer)
+            state.parse(std::ptr::null_mut(), RD_COILS_REQ, Direction::ToServer)
         );
         assert_eq!(state.transactions.len(), 1);
 
@@ -1267,7 +1267,7 @@ mod tests {
         let mut state = ModbusState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(std::ptr::null(), &req, Direction::ToServer)
+            state.parse(std::ptr::null_mut(), &req, Direction::ToServer)
         );
         assert_eq!(state.transactions.len(), 2);
 
@@ -1296,7 +1296,7 @@ mod tests {
 
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(std::ptr::null(), &resp, Direction::ToClient)
+            state.parse(std::ptr::null_mut(), &resp, Direction::ToClient)
         );
         assert_eq!(state.transactions.len(), 2);
 
@@ -1323,7 +1323,7 @@ mod tests {
         assert_eq!(
             AppLayerResult::ok(),
             state.parse(
-                std::ptr::null(),
+                std::ptr::null_mut(),
                 EXCEEDED_LEN_WR_MULT_REG_REQ,
                 Direction::ToServer
             )
@@ -1341,7 +1341,7 @@ mod tests {
         assert_eq!(
             AppLayerResult::ok(),
             state.parse(
-                std::ptr::null(),
+                std::ptr::null_mut(),
                 INVALID_PDU_WR_MULT_REG_REQ,
                 Direction::ToServer
             )
@@ -1360,7 +1360,7 @@ mod tests {
         let mut state = ModbusState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(std::ptr::null(), MASK_WR_REG_REQ, Direction::ToServer)
+            state.parse(std::ptr::null_mut(), MASK_WR_REG_REQ, Direction::ToServer)
         );
         assert_eq!(state.transactions.len(), 1);
 
@@ -1378,7 +1378,7 @@ mod tests {
 
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(std::ptr::null(), MASK_WR_REG_RESP, Direction::ToClient)
+            state.parse(std::ptr::null_mut(), MASK_WR_REG_RESP, Direction::ToClient)
         );
         assert_eq!(state.transactions.len(), 1);
 
@@ -1400,7 +1400,7 @@ mod tests {
         let mut state = ModbusState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(std::ptr::null(), WR_SINGLE_REG_REQ, Direction::ToServer)
+            state.parse(std::ptr::null_mut(), WR_SINGLE_REG_REQ, Direction::ToServer)
         );
         assert_eq!(state.transactions.len(), 1);
 
@@ -1417,7 +1417,7 @@ mod tests {
 
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(std::ptr::null(), WR_SINGLE_REG_RESP, Direction::ToClient)
+            state.parse(std::ptr::null_mut(), WR_SINGLE_REG_RESP, Direction::ToClient)
         );
         assert_eq!(state.transactions.len(), 1);
 
@@ -1439,7 +1439,7 @@ mod tests {
         assert_eq!(
             AppLayerResult::ok(),
             state.parse(
-                std::ptr::null(),
+                std::ptr::null_mut(),
                 INVALID_MASK_WR_REG_REQ,
                 Direction::ToServer
             )
@@ -1454,7 +1454,7 @@ mod tests {
 
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(std::ptr::null(), MASK_WR_REG_RESP, Direction::ToClient)
+            state.parse(std::ptr::null_mut(), MASK_WR_REG_RESP, Direction::ToClient)
         );
         assert_eq!(state.transactions.len(), 1);
 
@@ -1477,7 +1477,7 @@ mod tests {
         assert_eq!(
             AppLayerResult::ok(),
             state.parse(
-                std::ptr::null(),
+                std::ptr::null_mut(),
                 INVALID_WR_SINGLE_REG_REQ,
                 Direction::ToServer
             )
@@ -1492,7 +1492,7 @@ mod tests {
 
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(std::ptr::null(), WR_SINGLE_REG_RESP, Direction::ToClient)
+            state.parse(std::ptr::null_mut(), WR_SINGLE_REG_RESP, Direction::ToClient)
         );
         assert_eq!(state.transactions.len(), 1);
 
@@ -1513,7 +1513,7 @@ mod tests {
         let mut state = ModbusState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            state.parse(std::ptr::null(), INVALID_FUNC_CODE, Direction::ToServer)
+            state.parse(std::ptr::null_mut(), INVALID_FUNC_CODE, Direction::ToServer)
         );
         assert_eq!(state.transactions.len(), 1);
 

@@ -331,7 +331,7 @@ pub struct DCERPCState {
     tc_gap: bool,
     ts_ssn_gap: bool,
     tc_ssn_gap: bool,
-    pub flow: Option<*const Flow>,
+    pub flow: Option<*mut Flow>,
     state_data: AppLayerStateData,
 }
 

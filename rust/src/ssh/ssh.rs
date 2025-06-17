@@ -333,7 +333,7 @@ impl SSHState {
     }
 
     fn parse_banner(
-        &mut self, input: &[u8], resp: bool, pstate: *mut AppLayerParserState, flow: *const Flow,
+        &mut self, input: &[u8], resp: bool, pstate: *mut AppLayerParserState, flow: *mut Flow,
         stream_slice: &StreamSlice,
     ) -> AppLayerResult {
         let hdr = if !resp {

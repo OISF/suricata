@@ -173,7 +173,7 @@ impl POP3State {
             .find(|tx| tx.response.is_none())
     }
 
-    fn parse_request(&mut self, flow: *const Flow, input: &[u8]) -> AppLayerResult {
+    fn parse_request(&mut self, flow: *mut Flow, input: &[u8]) -> AppLayerResult {
         // We're not interested in empty requests.
         if input.is_empty() {
             return AppLayerResult::ok();

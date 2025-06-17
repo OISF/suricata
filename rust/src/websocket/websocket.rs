@@ -148,7 +148,7 @@ impl WebSocketState {
     }
 
     fn parse(
-        &mut self, stream_slice: StreamSlice, direction: Direction, flow: *const Flow,
+        &mut self, stream_slice: StreamSlice, direction: Direction, flow: *mut Flow,
     ) -> AppLayerResult {
         let to_skip = if direction == Direction::ToClient {
             &mut self.to_skip_tc
