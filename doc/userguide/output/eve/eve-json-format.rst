@@ -1124,6 +1124,37 @@ Example of TFTP logging:
       "mode": "octet"
    }
 
+Event type: KRB5
+----------------
+
+KRB5 Fields
+~~~~~~~~~~~
+
+* "cname" (string): The client PrincipalName
+* "encryption" (string): Encryption used (only in AS-REP and TGS-REP)
+* "error_code" (string): Error code, if request has failed
+* "failed_request" (string): The request type for which the response had an error_code
+* "msg_type" (string): The message type: AS-REQ, AS-REP, etc...
+* "realm" (string): The server Realm
+* "sname" (string): The server PrincipalName
+* "ticket_encryption" (string): Encryption used for ticket
+* "ticket_weak_encryption" (boolean): Wether the encryption used for ticket is a weak cipher
+* "weak_encryption" (boolean): Wether the encryption used in AS-REP or TGS-REP is a weak cipher
+
+Examples of KRB5 logging:
+
+Pipe open::
+
+    "krb5": {
+      "msg_type": "KRB_TGS_REP",
+      "cname": "robin",
+      "realm": "CYLERA.LAB",
+      "sname": "ldap/dc01",
+      "encryption": "aes256-cts-hmac-sha1-96",
+      "weak_encryption": false,
+      "ticket_encryption": "aes256-cts-hmac-sha1-96",
+      "ticket_weak_encryption": false
+    }
 
 Event type: SMB
 ---------------
