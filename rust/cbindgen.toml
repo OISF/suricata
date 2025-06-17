@@ -108,8 +108,6 @@ exclude = [
     "JsonT",
     "IKEState",
     "IKETransaction",
-    "NTPState",
-    "NTPTransaction",
     "SuricataContext",
     "SuricataFileContext",
     "TFTPState",
