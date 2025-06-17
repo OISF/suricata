@@ -55,8 +55,8 @@ void SCHSInitCtx(MpmCtx *);
 void SCHSInitThreadCtx(MpmCtx *, MpmThreadCtx *);
 void SCHSDestroyCtx(MpmCtx *);
 void SCHSDestroyThreadCtx(MpmCtx *, MpmThreadCtx *);
-int SCHSAddPatternCI(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t,
-                     uint32_t, SigIntId, uint8_t);
+int SCHSAddPatternCI(
+        MpmCtx *, const uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, SigIntId, uint8_t);
 int SCHSAddPatternCS(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t,
                      uint32_t, SigIntId, uint8_t);
 int SCHSPreparePatterns(MpmConfig *mpm_conf, MpmCtx *mpm_ctx);
@@ -128,7 +128,7 @@ static void SCHSSetAllocators(void)
  *
  * \retval hash A 32 bit unsigned hash.
  */
-static inline uint32_t SCHSInitHashRaw(uint8_t *pat, uint16_t patlen)
+static inline uint32_t SCHSInitHashRaw(const uint8_t *pat, uint16_t patlen)
 {
     uint32_t hash = patlen * pat[0];
     if (patlen > 1)
@@ -149,10 +149,8 @@ static inline uint32_t SCHSInitHashRaw(uint8_t *pat, uint16_t patlen)
  *
  * \retval hash A 32 bit unsigned hash.
  */
-static inline SCHSPattern *SCHSInitHashLookup(SCHSCtx *ctx, uint8_t *pat,
-                                              uint16_t patlen, uint16_t offset,
-                                              uint16_t depth, char flags,
-                                              uint32_t pid)
+static inline SCHSPattern *SCHSInitHashLookup(SCHSCtx *ctx, const uint8_t *pat, uint16_t patlen,
+        uint16_t offset, uint16_t depth, char flags, uint32_t pid)
 {
     uint32_t hash = SCHSInitHashRaw(pat, patlen);
 
@@ -272,9 +270,8 @@ static inline int SCHSInitHashAdd(SCHSCtx *ctx, SCHSPattern *p)
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-static int SCHSAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
-                          uint16_t offset, uint16_t depth, uint32_t pid,
-                          SigIntId sid, uint8_t flags)
+static int SCHSAddPattern(MpmCtx *mpm_ctx, const uint8_t *pat, uint16_t patlen, uint16_t offset,
+        uint16_t depth, uint32_t pid, SigIntId sid, uint8_t flags)
 {
     SCHSCtx *ctx = (SCHSCtx *)mpm_ctx->ctx;
 
@@ -1087,9 +1084,8 @@ uint32_t SCHSSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-int SCHSAddPatternCI(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
-                     uint16_t offset, uint16_t depth, uint32_t pid,
-                     SigIntId sid, uint8_t flags)
+int SCHSAddPatternCI(MpmCtx *mpm_ctx, const uint8_t *pat, uint16_t patlen, uint16_t offset,
+        uint16_t depth, uint32_t pid, SigIntId sid, uint8_t flags)
 {
     flags |= MPM_PATTERN_FLAG_NOCASE;
     return SCHSAddPattern(mpm_ctx, pat, patlen, offset, depth, pid, sid, flags);
