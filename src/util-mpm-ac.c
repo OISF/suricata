@@ -64,8 +64,8 @@
 
 void SCACInitCtx(MpmCtx *);
 void SCACDestroyCtx(MpmCtx *);
-int SCACAddPatternCI(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t,
-                     uint32_t, SigIntId, uint8_t);
+int SCACAddPatternCI(
+        MpmCtx *, const uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, SigIntId, uint8_t);
 int SCACAddPatternCS(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t,
                      uint32_t, SigIntId, uint8_t);
 int SCACPreparePatterns(MpmConfig *, MpmCtx *mpm_ctx);
@@ -1038,9 +1038,8 @@ uint32_t SCACSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-int SCACAddPatternCI(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
-                     uint16_t offset, uint16_t depth, uint32_t pid,
-                     SigIntId sid, uint8_t flags)
+int SCACAddPatternCI(MpmCtx *mpm_ctx, const uint8_t *pat, uint16_t patlen, uint16_t offset,
+        uint16_t depth, uint32_t pid, SigIntId sid, uint8_t flags)
 {
     flags |= MPM_PATTERN_FLAG_NOCASE;
     return MpmAddPattern(mpm_ctx, pat, patlen, offset, depth, pid, sid, flags);
