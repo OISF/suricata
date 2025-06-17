@@ -2428,34 +2428,86 @@
             "additionalProperties": false,
             "properties": {
                 "cname": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "The client PrincipalName",
+                    "suricata": {
+                        "keywords": [
+                            "krb5.cname"
+                        ]
+                    }
                 },
                 "encryption": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Encryption used (only in AS-REP and TGS-REP)",
+                    "suricata": {
+                        "$comment": "TODO add keyword"
+                    }
                 },
                 "error_code": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Error code, if request has failed",
+                    "suricata": {
+                        "keywords": [
+                            "krb5_err_code"
+                        ]
+                    }
                 },
                 "failed_request": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "The request type for which the response had an error_code",
+                    "suricata": {
+                        "$comment": "TODO add keyword"
+                    }
                 },
                 "msg_type": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "The message type: AS-REQ, AS-REP, etc...",
+                    "suricata": {
+                        "keywords": [
+                            "krb5_msg_type"
+                        ]
+                    }
                 },
                 "realm": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "The server Realm",
+                    "suricata": {
+                        "$comment": "TODO add keyword"
+                    }
                 },
                 "sname": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "The server PrincipalName",
+                    "suricata": {
+                        "keywords": [
+                            "krb5.sname"
+                        ]
+                    }
                 },
                 "ticket_encryption": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Encryption used for ticket",
+                    "suricata": {
+                        "keywords": [
+                            "krb5.ticket_encryption"
+                        ]
+                    }
                 },
                 "ticket_weak_encryption": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "description": "Whether the encryption used for ticket is a weak cipher",
+                    "suricata": {
+                        "keywords": [
+                            "krb5.ticket_encryption"
+                        ]
+                    }
                 },
                 "weak_encryption": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "description": "Whether the encryption used in AS-REP or TGS-REP is a weak cipher",
+                    "suricata": {
+                        "$comment": "TODO add keyword (rather option for encryption keyword)"
+                    }
                 }
             },
             "optional": true
