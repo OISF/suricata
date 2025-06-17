@@ -18,7 +18,7 @@
 //! This module exposes items from the core "C" code to Rust.
 
 use std;
-use std::os::raw::{c_int, c_void};
+use std::os::raw::c_void;
 use suricata_sys::sys::{AppProto, AppProtoEnum, SCLogLevel};
 
 use crate::filecontainer::*;
@@ -72,8 +72,8 @@ macro_rules!BIT_U64 {
 /// cbindgen:ignore
 extern "C" {
     pub fn MpmAddPatternCI(
-        ctx: *const c_void, pat: *const libc::c_char, pat_len: c_int, _offset: c_int,
-        _depth: c_int, id: c_int, rule_id: c_int, _flags: c_int,
+        ctx: *const c_void, pat: *const libc::c_char, pat_len: u16, _offset: u16,
+        _depth: u16, id: u32, rule_id: u32, _flags: u8,
     ) -> c_void;
 }
 

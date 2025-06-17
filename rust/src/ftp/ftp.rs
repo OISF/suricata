@@ -18,7 +18,7 @@
 use std;
 use std::ptr;
 use std::ffi::{CStr, CString};
-use std::os::raw::{c_char, c_int, c_void};
+use std::os::raw::{c_char, c_void};
 
 use crate::conf::{conf_get, get_memval};
 use crate::core::*;
@@ -141,11 +141,11 @@ pub unsafe extern "C" fn SCFTPSetMpmState(ctx: *const c_void) {
             MpmAddPatternCI(
                 ctx,
                 name_ptr,
-                len as c_int,
+                len as u16,
                 0,
                 0,
-                index as c_int,
-                index as c_int,
+                index as u32,
+                index as u32,
                 0,
             );
         }
