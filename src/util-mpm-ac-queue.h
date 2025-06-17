@@ -31,9 +31,10 @@
  * \brief Helper structure used by AC during state table creation
  */
 typedef struct StateQueue_ {
-    int32_t store[STATE_QUEUE_CONTAINER_SIZE];
-    int top;
-    int bot;
+    uint32_t top;
+    uint32_t bot;
+    uint32_t size;
+    int32_t *store;
 } StateQueue;
 
 StateQueue *SCACStateQueueAlloc(void);
@@ -49,28 +50,36 @@ static inline int SCACStateQueueIsEmpty(StateQueue *q)
 
 static inline void SCACEnqueue(StateQueue *q, int32_t state)
 {
-    int i = 0;
-
     /*if we already have this */
-    for (i = q->bot; i < q->top; i++) {
+    for (uint32_t i = q->bot; i < q->top; i++) {
         if (q->store[i] == state)
             return;
     }
 
     q->store[q->top++] = state;
 
-    if (q->top == STATE_QUEUE_CONTAINER_SIZE)
+    if (q->top == q->size)
         q->top = 0;
 
     if (q->top == q->bot) {
-        FatalError("Just ran out of space in the queue.  "
-                   "Fatal Error.  Exiting.  Please file a bug report on this");
+        // allocate a new store and copy + realign
+        int32_t *tmp = SCCalloc(q->size + STATE_QUEUE_CONTAINER_SIZE, sizeof(int32_t));
+        if (tmp == NULL) {
+            FatalError("Error reallocating memory");
+        }
+        memcpy(tmp, q->store + q->bot, (q->size - q->bot) * sizeof(int32_t));
+        memcpy(tmp + (q->size - q->bot), q->store, q->top * sizeof(int32_t));
+        SCFree(q->store);
+        q->store = tmp;
+        q->bot = 0;
+        q->top = q->size;
+        q->size += STATE_QUEUE_CONTAINER_SIZE;
     }
 }
 
 static inline int32_t SCACDequeue(StateQueue *q)
 {
-    if (q->bot == STATE_QUEUE_CONTAINER_SIZE)
+    if (q->bot == q->size)
         q->bot = 0;
 
     if (q->bot == q->top) {
