@@ -144,7 +144,7 @@ pub unsafe extern "C" fn SCFTPSetMpmState(ctx: *const c_void) {
                 len as u16,
                 0,
                 0,
-                index as u16,
+                index as u32,
                 index as u32,
                 0,
             );

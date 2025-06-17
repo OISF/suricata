@@ -73,7 +73,7 @@ macro_rules!BIT_U64 {
 extern "C" {
     pub fn MpmAddPatternCI(
         ctx: *const c_void, pat: *const libc::c_char, pat_len: u16, _offset: u16,
-        _depth: u16, id: u16, rule_id: u32, _flags: u8,
+        _depth: u16, id: u32, rule_id: u32, _flags: u8,
     ) -> c_void;
 }
 
