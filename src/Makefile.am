@@ -567,6 +567,7 @@ noinst_HEADERS = \
 	util-memrchr.h \
 	util-misc.h \
 	util-mpm-ac-ks.h \
+	util-mpm-ac-queue.h \
 	util-mpm-ac.h \
 	util-mpm-hs-cache.h \
 	util-mpm-hs-core.h \
@@ -1149,6 +1150,7 @@ libsuricata_c_a_SOURCES = \
 	util-misc.c \
 	util-mpm-ac-ks-small.c \
 	util-mpm-ac-ks.c \
+	util-mpm-ac-queue.c \
 	util-mpm-ac.c \
 	util-mpm-hs-cache.c \
 	util-mpm-hs-core.c \
