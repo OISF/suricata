@@ -19,20 +19,14 @@ CentOS, RHEL, AlmaLinux, RockyLinux, etc Version 8+
 
 .. note:: The following instructions require ``sudo`` to be installed.
 
+Enterprise Linux and Rebuilds
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 .. code-block:: none
 
    sudo dnf install epel-release dnf-plugins-core
-   sudo dnf copr enable @oisf/suricata-7.0
+   sudo dnf copr enable @oisf/suricata-8.0
    sudo dnf install suricata
-
-CentOS 7
-^^^^^^^^
-
-.. code-block:: none
-
-   sudo yum install epel-release yum-plugin-copr
-   sudo yum copr enable @oisf/suricata-7.0
-   sudo yum install suricata
 
 Fedora
 ^^^^^^
@@ -40,7 +34,7 @@ Fedora
 .. code-block:: none
 
     sudo dnf install dnf-plugins-core
-    sudo dnf copr enable @oisf/suricata-7.0
+    sudo dnf copr enable @oisf/suricata-8.0
     sudo dnf install suricata
 
 Additional Notes for RPM Installations
