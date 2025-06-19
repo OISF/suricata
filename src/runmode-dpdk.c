@@ -35,6 +35,7 @@
 #include "runmode-dpdk.h"
 #include "decode.h"
 #include "source-dpdk.h"
+#include "util-affinity.h"
 #include "util-runmodes.h"
 #include "util-byte.h"
 #include "util-cpu.h"
