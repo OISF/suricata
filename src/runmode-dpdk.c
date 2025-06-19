@@ -413,7 +413,7 @@ static int ConfigSetThreads(DPDKIfaceConfig *iconf, const char *entry_str)
     if (sched_cpus == 0) {
         SCLogError("No worker CPU cores with configured affinity were configured");
         SCReturnInt(-EINVAL);
-    } else if (UtilAffinityCpusOverlap(wtaf, mtaf) != 0) {
+    } else if (UtilAffinityCpusOverlap(wtaf, mtaf)) {
         SCLogWarning("Worker threads should not overlap with management threads in the CPU core "
                      "affinity configuration");
     }
