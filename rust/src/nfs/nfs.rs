@@ -26,7 +26,7 @@ use nom7::{Err, Needed};
 use suricata_sys::sys::{
     AppLayerParserState, AppProto, SCAppLayerParserConfParserEnabled,
     SCAppLayerProtoDetectConfProtoDetectionEnabled, SCAppLayerProtoDetectPPParseConfPorts,
-    SCAppLayerProtoDetectPPRegister,
+    SCAppLayerProtoDetectPPRegister, SCFileFlowFlagsToFlags,
 };
 
 use crate::applayer;
@@ -35,7 +35,6 @@ use crate::conf::*;
 use crate::core::*;
 use crate::direction::Direction;
 use crate::direction::DIR_BOTH;
-use crate::filecontainer::*;
 use crate::filetracker::*;
 use crate::flow::{Flow, flow_get_last_time};
 use crate::frames::*;
@@ -166,7 +165,7 @@ impl NFSTransactionFile {
         } else {
             STREAM_TOCLIENT
         };
-        self.file_tracker.file_flags = unsafe { FileFlowFlagsToFlags(flow_file_flags, dir_flag) };
+        self.file_tracker.file_flags = unsafe { SCFileFlowFlagsToFlags(flow_file_flags, dir_flag) };
     }
 }
 
