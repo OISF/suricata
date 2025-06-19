@@ -1106,7 +1106,7 @@ void UtilAffinityCpusExclude(ThreadsAffinityType *mod_taf, ThreadsAffinityType *
  * \brief Helper function to reset affinity state for unit tests
  * This properly clears CPU sets without destroying initialized mutexes
  */
-static void ResetAffinityForTest(void)
+void ResetAffinityForTest(void)
 {
     thread_affinity_init_done = 0;
     for (int i = 0; i < MAX_CPU_SET; i++) {
