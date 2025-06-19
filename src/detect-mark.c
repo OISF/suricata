@@ -35,6 +35,7 @@
 #include "detect-parse.h"
 
 #include "util-unittest.h"
+#include "util-byte.h"
 #include "util-debug.h"
 
 #define PARSE_REGEX "([0x]*[0-9a-f]+)/([0x]*[0-9a-f]+)"
@@ -81,7 +82,6 @@ static void * DetectMarkParse (const char *rawstr)
     size_t pcre2_len;
     const char *str_ptr = NULL;
     char *ptr = NULL;
-    char *endptr = NULL;
     uint32_t mark;
     uint32_t mask;
     DetectMarkData *data;
@@ -105,20 +105,8 @@ static void * DetectMarkParse (const char *rawstr)
     if (ptr == NULL)
         goto error;
 
-    errno = 0;
-    mark = strtoul(ptr, &endptr, 0);
-    if (errno == ERANGE) {
-        SCLogError("Numeric value out of range");
-        pcre2_substring_free((PCRE2_UCHAR8 *)ptr);
-        goto error;
-    }     /* If there is no numeric value in the given string then strtoull(), makes
-             endptr equals to ptr and return 0 as result */
-    else if (endptr == ptr && mark == 0) {
-        SCLogError("No numeric value");
-        pcre2_substring_free((PCRE2_UCHAR8 *)ptr);
-        goto error;
-    } else if (endptr == ptr) {
-        SCLogError("Invalid numeric value");
+    if (ByteExtractStringUint32(&mark, 0, strlen(ptr), ptr) <= 0) {
+        SCLogError("invalid input as arg to nfq_set_mark keyword");
         pcre2_substring_free((PCRE2_UCHAR8 *)ptr);
         goto error;
     }
@@ -143,21 +131,8 @@ static void * DetectMarkParse (const char *rawstr)
         return data;
     }
 
-    errno = 0;
-    mask = strtoul(ptr, &endptr, 0);
-    if (errno == ERANGE) {
-        SCLogError("Numeric value out of range");
-        pcre2_substring_free((PCRE2_UCHAR8 *)ptr);
-        goto error;
-    }     /* If there is no numeric value in the given string then strtoull(), makes
-             endptr equals to ptr and return 0 as result */
-    else if (endptr == ptr && mask == 0) {
-        SCLogError("No numeric value");
-        pcre2_substring_free((PCRE2_UCHAR8 *)ptr);
-        goto error;
-    }
-    else if (endptr == ptr) {
-        SCLogError("Invalid numeric value");
+    if (ByteExtractStringUint32(&mask, 0, strlen(ptr), ptr) <= 0) {
+        SCLogError("invalid input as arg to nfq_set_mark keyword");
         pcre2_substring_free((PCRE2_UCHAR8 *)ptr);
         goto error;
     }
@@ -272,6 +247,8 @@ static int MarkTestParse01 (void)
     data = DetectMarkParse("1/1");
 
     FAIL_IF_NULL(data);
+    FAIL_IF(data->mark != 1);
+    FAIL_IF(data->mask != 1);
 
     DetectMarkDataFree(NULL, data);
     PASS;
@@ -302,6 +279,8 @@ static int MarkTestParse03 (void)
     DetectMarkData *data;
 
     data = DetectMarkParse("0x10/0xff");
+    FAIL_IF(data->mark != 0x10);
+    FAIL_IF(data->mask != 0xff);
 
     FAIL_IF_NULL(data);
 
