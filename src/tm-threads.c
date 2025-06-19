@@ -875,15 +875,15 @@ TmEcode TmThreadSetupOptions(ThreadVars *tv)
     if (tv->thread_setup_flags & THREAD_SET_AFFTYPE) {
         ThreadsAffinityType *taf = &thread_affinity[tv->cpu_affinity];
         bool use_iface_affinity = RunmodeIsAutofp() && tv->cpu_affinity == RECEIVE_CPU_SET &&
-                                  FindAffinityByInterface(taf, tv->iface_name) != NULL;
+                                  AffinityTypeGetChildTypeByIface(taf, tv->iface_name) != NULL;
         use_iface_affinity |= RunmodeIsWorkers() && tv->cpu_affinity == WORKER_CPU_SET &&
-                              FindAffinityByInterface(taf, tv->iface_name) != NULL;
+                              AffinityTypeGetChildTypeByIface(taf, tv->iface_name) != NULL;
 
         if (use_iface_affinity) {
-            taf = FindAffinityByInterface(taf, tv->iface_name);
+            taf = AffinityTypeGetChildTypeByIface(taf, tv->iface_name);
         }
 
-        if (UtilAffinityGetAffinedCPUNum(taf) == 0) {
+        if (AffinityGetAffinedCPUNum(taf) == 0) {
             if (!taf->nocpu_warned) {
                 SCLogWarning("No CPU affinity set for %s", AffinityGetYamlPath(taf));
                 taf->nocpu_warned = true;
