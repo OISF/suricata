@@ -6,11 +6,13 @@ on:
       # Don't run this workflow if only files under doc/ have been
       # modified.
       - "doc/**"
+      - "etc/schema.json"
   pull_request:
     paths-ignore:
       # Don't run this workflow if only files under doc/ have been
       # modified.
       - "doc/**"
+      - "etc/schema.json"
   workflow_dispatch:
     inputs:
       SU_REPO:

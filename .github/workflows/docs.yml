@@ -5,6 +5,7 @@ on:
     paths:
       # Something has to change in doc/ for thos workflow to be run.
       - "doc/**"
+      - "etc/schema.json"
   pull_request:
   workflow_dispatch:
     inputs:
