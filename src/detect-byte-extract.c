@@ -129,7 +129,7 @@ int DetectByteExtractDoMatch(DetectEngineThreadCtx *det_ctx, const SigMatchData 
         extbytes = ByteExtractStringUint64(&val, data->base,
                                            data->nbytes, (const char *)ptr);
         if (extbytes <= 0) {
-            /* strtoull() return 0 if there is no numeric value in data string */
+            /* ByteExtractStringUint64() set val to 0 if there is no numeric value in data string */
             if (val == 0) {
                 SCLogDebug("No Numeric value");
                 return 0;
