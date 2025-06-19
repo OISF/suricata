@@ -23,7 +23,7 @@
  * VXLAN tunneling scheme decoder.
  *
  * This implementation is based on the following specification doc:
- * https://tools.ietf.org/html/draft-mahalingam-dutt-dcops-vxlan-00
+ * https://tools.ietf.org/html/rfc7348
  */
 
 #include "suricata-common.h"
@@ -135,7 +135,7 @@ int DecodeVXLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     }
 
     const VXLANHeader *vxlanh = (const VXLANHeader *)pkt;
-    if ((vxlanh->flags[0] & 0x08) == 0 || vxlanh->res != 0)
+    if ((vxlanh->flags[0] & 0x08) == 0)
         return TM_ECODE_FAILED;
 
 #if DEBUG
@@ -265,6 +265,49 @@ static int DecodeVXLANtest02 (void)
     PacketFree(p);
     PASS;
 }
+
+/**
+ * \test DecodeVXLANtest03 tests the non-zero res field on receiver side.
+ * Contains a HTTP response packet.
+ */
+static int DecodeVXLANtest03(void)
+{
+    uint8_t raw_vxlan[] = {
+        0xc0, 0x00, 0x12, 0xb5, 0x00, 0x57, 0x00, 0x00, /* UDP header */
+        0xff, 0x01, 0xd2, 0x0a, 0x00, 0x00, 0x0b, 0x01, /* VXLAN header (res = 0x01) */
+        0xfa, 0x16, 0x3e, 0xfe, 0x55, 0x1c,             /* inner destination MAC */
+        0xfa, 0x16, 0x3e, 0xfe, 0x57, 0xdc,             /* inner source MAC */
+        0x08, 0x00,                                     /* another IPv4 0x0800 */
+        0x45, 0x00, 0x00, 0x39, 0xc2, 0xae, 0x40, 0x00, 0x40, 0x06, 0x7e, 0x61, 0xc0, 0xa8, 0x01,
+        0x86, 0xda, 0x5e, 0x5d, 0x22, /* IPv4 hdr */
+        0x00, 0x50, 0xc8, 0x34, 0xaf, 0xbd, 0x02, 0x16, 0x56, 0xea, 0x3b, 0x41, 0x50, 0x18, 0x00,
+        0xee, 0xf9, 0xda, 0x00, 0x00, /* TCP probe src port 80 */
+        0x48, 0x54, 0x54, 0x50, 0x2f, 0x31, 0x2e, 0x30, 0x20, 0x32, 0x30, 0x30, 0x20, 0x4f, 0x4b,
+        0xd, 0xa /* HTTP response (HTTP/1.0 200 OK\r\n) */
+    };
+    Packet *p = PacketGetFromAlloc();
+    FAIL_IF_NULL(p);
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+
+    DecodeVXLANConfigPorts(VXLAN_DEFAULT_PORT_S);
+    FlowInitConfig(FLOW_QUIET);
+
+    DecodeUDP(&tv, &dtv, p, raw_vxlan, sizeof(raw_vxlan));
+    FAIL_IF_NOT(PacketIsUDP(p));
+    FAIL_IF(tv.decode_pq.top == NULL);
+
+    Packet *tp = PacketDequeueNoLock(&tv.decode_pq);
+    FAIL_IF_NOT(PacketIsTCP(tp));
+    FAIL_IF_NOT(tp->sp == 80);
+
+    FlowShutdown();
+    PacketFree(p);
+    PacketFreeOrRelease(tp);
+    PASS;
+}
 #endif /* UNITTESTS */
 
 void DecodeVXLANRegisterTests(void)
@@ -274,5 +317,6 @@ void DecodeVXLANRegisterTests(void)
                    DecodeVXLANtest01);
     UtRegisterTest("DecodeVXLANtest02",
                    DecodeVXLANtest02);
+    UtRegisterTest("DecodeVXLANtest03", DecodeVXLANtest03);
 #endif /* UNITTESTS */
 }
