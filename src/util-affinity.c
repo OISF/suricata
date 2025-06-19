@@ -1047,7 +1047,7 @@ uint16_t UtilAffinityGetAffinedCPUNum(ThreadsAffinityType *taf)
     uint16_t ncpu = 0;
 #if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined __sun
     SCMutexLock(&taf->taf_mutex);
-    for (int i = UtilCpuGetNumProcessorsOnline(); i >= 0; i--)
+    for (int i = UtilCpuGetNumProcessorsOnline() - 1; i >= 0; i--)
         if (CPU_ISSET(i, &taf->cpu_set)) {
             ncpu++;
         }
@@ -1075,7 +1075,7 @@ uint16_t UtilAffinityCpusOverlap(ThreadsAffinityType *taf1, ThreadsAffinityType 
     SCMutexUnlock(&taf2->taf_mutex);
     SCMutexUnlock(&taf1->taf_mutex);
 
-    for (int i = UtilCpuGetNumProcessorsOnline(); i >= 0; i--)
+    for (int i = UtilCpuGetNumProcessorsOnline() - 1; i >= 0; i--)
         if (CPU_ISSET(i, &tmpcset)) {
             return 1;
         }
