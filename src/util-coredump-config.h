@@ -29,4 +29,6 @@
 int32_t CoredumpLoadConfig(void);
 void CoredumpEnable(void);
 
+void CoredumpConfigRegisterTests(void);
+
 #endif /* SURICATA_COREDUMP_CONFIG_H */

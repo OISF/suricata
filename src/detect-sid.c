@@ -28,6 +28,7 @@
 #include "detect-engine.h"
 #include "detect-parse.h"
 #include "detect-sid.h"
+#include "util-byte.h"
 #include "util-debug.h"
 #include "util-error.h"
 #include "util-unittest.h"
@@ -52,17 +53,9 @@ void DetectSidRegister (void)
 
 static int DetectSidSetup (DetectEngineCtx *de_ctx, Signature *s, const char *sidstr)
 {
-    unsigned long id = 0;
-    char *endptr = NULL;
-    errno = 0;
-    id = strtoul(sidstr, &endptr, 10);
-    if (errno == ERANGE || endptr == NULL || *endptr != '\0') {
-        SCLogError("invalid character as arg "
-                   "to sid keyword");
-        goto error;
-    }
-    if (id >= UINT_MAX) {
-        SCLogError("sid value too high, max %u", UINT_MAX);
+    uint32_t id = 0;
+    if (ByteExtractStringUint32(&id, 10, strlen(sidstr), sidstr) <= 0) {
+        SCLogError("invalid input as arg to sid keyword");
         goto error;
     }
     if (id == 0) {
@@ -74,7 +67,7 @@ static int DetectSidSetup (DetectEngineCtx *de_ctx, Signature *s, const char *si
         goto error;
     }
 
-    s->id = (uint32_t)id;
+    s->id = id;
     return 0;
 
  error:
