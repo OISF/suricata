@@ -208,7 +208,7 @@
     AC_FUNC_STRTOD
 
     AC_CHECK_FUNCS([memmem memset memchr memrchr memmove])
-    AC_CHECK_FUNCS([strcasecmp strchr strrchr strdup strndup strncasecmp strtol strtoul strstr strpbrk strtoull strtoumax])
+    AC_CHECK_FUNCS([strcasecmp strchr strrchr strdup strndup strncasecmp strtol strstr strpbrk strtoull strtoumax])
     AC_CHECK_FUNCS([strerror])
     AC_CHECK_FUNCS([gethostname inet_ntoa uname])
     AC_CHECK_FUNCS([gettimeofday clock_gettime utime strptime tzset localtime_r])
