@@ -185,7 +185,7 @@ int LiveGetDeviceCountWithoutAssignedThreading(void)
     LiveDevice *pd;
 
     TAILQ_FOREACH (pd, &live_devices, next) {
-        if (GetAffinityTypeForNameAndIface("worker-cpu-set", pd->dev) == NULL) {
+        if (AffinityTypeGetByIfaceOrCpuset("worker-cpu-set", pd->dev) == NULL) {
             i++;
         }
     }
