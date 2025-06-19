@@ -98,3 +98,15 @@ DefragTracker *DefragTrackerDequeue(DefragTrackerStack *q)
     DQLOCK_UNLOCK(q);
     return dt;
 }
+
+/**
+ *  \brief return stack size
+ */
+uint32_t DefragTrackerStackSize(DefragTrackerStack *q)
+{
+    uint32_t len;
+    DQLOCK_LOCK(q);
+    len = q->len;
+    DQLOCK_UNLOCK(q);
+    return len;
+}
