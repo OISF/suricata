@@ -737,10 +737,11 @@ Logging
 ~~~~~~~
 
 When the ``entropy`` rule keyword is provided and the rule is evaluated, the
-`calculated entropy` value is logged within the ``metadata`` section of an
-output log. If the alert matched, it will be included there; here's an example
-that shows the calculated entropy value with the buffer on which the value was
-computed::
+`calculated entropy` value is associated with the flow even if the calculated
+entropy value didn't result in a match or alert. Subsequent logging of event
+types that include the flow, including alerts, will contain the ``entropy`` value in
+the ``metadata`` section of an output log. The follow is an example that shows
+the calculated entropy value with the buffer on which the value was computed::
 
      "metadata": {
         "entropy": {
