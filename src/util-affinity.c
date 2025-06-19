@@ -1109,7 +1109,7 @@ void AffinityCpusSubtract(ThreadsAffinityType *mod_taf, ThreadsAffinityType *sta
  * \brief Helper function to reset affinity state for unit tests
  * This properly clears CPU sets without destroying initialized mutexes
  */
-static void ResetAffinityForTest(void)
+void AffinityReset(void)
 {
     thread_affinity_init_done = 0;
     for (int i = 0; i < MAX_CPU_SET; i++) {
@@ -1162,7 +1162,7 @@ static int ThreadingAffinityTest01(void)
 {
     SCConfCreateContextBackup();
     SCConfInit();
-    ResetAffinityForTest();
+    AffinityReset();
     const char *config = "%YAML 1.1\n"
                          "---\n"
                          "threading:\n"
@@ -1199,7 +1199,7 @@ static int ThreadingAffinityTest02(void)
 {
     SCConfCreateContextBackup();
     SCConfInit();
-    ResetAffinityForTest();
+    AffinityReset();
 
     const char *config = "%YAML 1.1\n"
                          "---\n"
@@ -1229,7 +1229,7 @@ static int ThreadingAffinityTest03(void)
 {
     SCConfCreateContextBackup();
     SCConfInit();
-    ResetAffinityForTest();
+    AffinityReset();
 
     const char *config = "%YAML 1.1\n"
                          "---\n"
@@ -1260,7 +1260,7 @@ static int ThreadingAffinityTest04(void)
 {
     SCConfCreateContextBackup();
     SCConfInit();
-    ResetAffinityForTest();
+    AffinityReset();
 
     const char *config = "%YAML 1.1\n"
                          "---\n"
@@ -1293,7 +1293,7 @@ static int ThreadingAffinityTest05(void)
 {
     SCConfCreateContextBackup();
     SCConfInit();
-    ResetAffinityForTest();
+    AffinityReset();
 
     const char *config = "%YAML 1.1\n"
                          "---\n"
@@ -1320,7 +1320,7 @@ static int ThreadingAffinityTest06(void)
 {
     SCConfCreateContextBackup();
     SCConfInit();
-    ResetAffinityForTest();
+    AffinityReset();
 
     const char *config = "%YAML 1.1\n"
                          "---\n"
@@ -1356,7 +1356,7 @@ static int ThreadingAffinityTest07(void)
 {
     SCConfCreateContextBackup();
     SCConfInit();
-    ResetAffinityForTest();
+    AffinityReset();
 
     const char *config = "%YAML 1.1\n"
                          "---\n"
@@ -1384,7 +1384,7 @@ static int ThreadingAffinityTest08(void)
 {
     SCConfCreateContextBackup();
     SCConfInit();
-    ResetAffinityForTest();
+    AffinityReset();
 
     const char *config = "%YAML 1.1\n"
                          "---\n"
@@ -1412,7 +1412,7 @@ static int ThreadingAffinityTest09(void)
 {
     SCConfCreateContextBackup();
     SCConfInit();
-    ResetAffinityForTest();
+    AffinityReset();
 
     const char *config = "%YAML 1.1\n"
                          "---\n"
@@ -1450,7 +1450,7 @@ static int ThreadingAffinityTest10(void)
 {
     SCConfCreateContextBackup();
     SCConfInit();
-    ResetAffinityForTest();
+    AffinityReset();
 
     const char *config = "%YAML 1.1\n"
                          "---\n"
@@ -1501,7 +1501,7 @@ static int ThreadingAffinityTest11(void)
 {
     SCConfCreateContextBackup();
     SCConfInit();
-    ResetAffinityForTest();
+    AffinityReset();
 
     const char *config = "%YAML 1.1\n"
                          "---\n"
@@ -1541,7 +1541,7 @@ static int ThreadingAffinityTest12(void)
 {
     SCConfCreateContextBackup();
     SCConfInit();
-    ResetAffinityForTest();
+    AffinityReset();
 
     const char *config = "%YAML 1.1\n"
                          "---\n"
@@ -1595,7 +1595,7 @@ static int ThreadingAffinityTest13(void)
 {
     SCConfCreateContextBackup();
     SCConfInit();
-    ResetAffinityForTest();
+    AffinityReset();
 
     const char *config = "%YAML 1.1\n"
                          "---\n"
@@ -1622,7 +1622,7 @@ static int ThreadingAffinityTest14(void)
 {
     SCConfCreateContextBackup();
     SCConfInit();
-    ResetAffinityForTest();
+    AffinityReset();
 
     const char *config = "%YAML 1.1\n"
                          "---\n"
@@ -1648,7 +1648,7 @@ static int ThreadingAffinityTest15(void)
 {
     SCConfCreateContextBackup();
     SCConfInit();
-    ResetAffinityForTest();
+    AffinityReset();
 
     const char *config = "%YAML 1.1\n"
                          "---\n"
@@ -1675,7 +1675,7 @@ static int ThreadingAffinityTest16(void)
 {
     SCConfCreateContextBackup();
     SCConfInit();
-    ResetAffinityForTest();
+    AffinityReset();
 
     const char *config = "%YAML 1.1\n"
                          "---\n"
@@ -1701,7 +1701,7 @@ static int ThreadingAffinityTest17(void)
 {
     SCConfCreateContextBackup();
     SCConfInit();
-    ResetAffinityForTest();
+    AffinityReset();
 
     const char *config = "%YAML 1.1\n"
                          "---\n"
@@ -1726,7 +1726,7 @@ static int ThreadingAffinityTest18(void)
 {
     SCConfCreateContextBackup();
     SCConfInit();
-    ResetAffinityForTest();
+    AffinityReset();
 
     const char *config = "%YAML 1.1\n"
                          "---\n"
@@ -1751,7 +1751,7 @@ static int ThreadingAffinityTest19(void)
 {
     SCConfCreateContextBackup();
     SCConfInit();
-    ResetAffinityForTest();
+    AffinityReset();
 
     const char *config = "%YAML 1.1\n"
                          "---\n"
@@ -1776,7 +1776,7 @@ static int ThreadingAffinityTest20(void)
 {
     SCConfCreateContextBackup();
     SCConfInit();
-    ResetAffinityForTest();
+    AffinityReset();
 
     const char *config = "%YAML 1.1\n"
                          "---\n"
@@ -1801,7 +1801,7 @@ static int ThreadingAffinityTest21(void)
 {
     SCConfCreateContextBackup();
     SCConfInit();
-    ResetAffinityForTest();
+    AffinityReset();
 
     const char *config = "%YAML 1.1\n"
                          "---\n"
@@ -1826,7 +1826,7 @@ static int ThreadingAffinityTest22(void)
 {
     SCConfCreateContextBackup();
     SCConfInit();
-    ResetAffinityForTest();
+    AffinityReset();
 
     const char *config = "%YAML 1.1\n"
                          "---\n"
@@ -1863,7 +1863,7 @@ static int ThreadingAffinityTest23(void)
 {
     SCConfCreateContextBackup();
     SCConfInit();
-    ResetAffinityForTest();
+    AffinityReset();
 
     const char *config = "%YAML 1.1\n"
                          "---\n"
@@ -1901,7 +1901,7 @@ static int ThreadingAffinityTest24(void)
 {
     SCConfCreateContextBackup();
     SCConfInit();
-    ResetAffinityForTest();
+    AffinityReset();
 
     const char *config = "%YAML 1.1\n"
                          "---\n"
@@ -1931,7 +1931,7 @@ static int ThreadingAffinityTest24(void)
  */
 static int ThreadingAffinityTest25(void)
 {
-    ResetAffinityForTest();
+    AffinityReset();
 
     ThreadsAffinityType *parent = AffinityTypeGetOrCreateByIfaceOrCpuset("worker-cpu-set", NULL);
     FAIL_IF(parent == NULL);
@@ -1963,7 +1963,7 @@ static int ThreadingAffinityTest25(void)
  */
 static int ThreadingAffinityTest26(void)
 {
-    ResetAffinityForTest();
+    AffinityReset();
 
     ThreadsAffinityType test_taf;
     memset(&test_taf, 0, sizeof(test_taf));
@@ -1990,7 +1990,7 @@ static int ThreadingAffinityTest27(void)
 {
     SCConfCreateContextBackup();
     SCConfInit();
-    ResetAffinityForTest();
+    AffinityReset();
 
     const char *config = "%YAML 1.1\n"
                          "---\n"
