@@ -468,7 +468,7 @@ static int ConfigSetThreads(DPDKIfaceConfig *iconf, const char *entry_str)
         SCReturnInt(-EINVAL);
     }
 
-    if (iconf->threads <= 0) {
+    if (iconf->threads == 0) {
         SCLogError("%s: positive number of threads required", iconf->iface);
         SCReturnInt(-ERANGE);
     }
