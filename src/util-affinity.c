@@ -1059,14 +1059,10 @@ uint16_t UtilAffinityGetAffinedCPUNum(ThreadsAffinityType *taf)
 #ifdef HAVE_DPDK
 /**
  * Find if CPU sets overlap
- * \return 1 if CPUs overlap, 0 otherwise
+ * \retval true if CPUs overlap, false otherwise
  */
-uint16_t UtilAffinityCpusOverlap(ThreadsAffinityType *taf1, ThreadsAffinityType *taf2)
+bool UtilAffinityCpusOverlap(ThreadsAffinityType *taf1, ThreadsAffinityType *taf2)
 {
-    ThreadsAffinityType tmptaf;
-    CPU_ZERO(&tmptaf);
-    SCMutexInit(&tmptaf.taf_mutex, NULL);
-
     cpu_set_t tmpcset;
 
     SCMutexLock(&taf1->taf_mutex);
@@ -1077,9 +1073,9 @@ uint16_t UtilAffinityCpusOverlap(ThreadsAffinityType *taf1, ThreadsAffinityType 
 
     for (int i = UtilCpuGetNumProcessorsOnline() - 1; i >= 0; i--)
         if (CPU_ISSET(i, &tmpcset)) {
-            return 1;
+            return true;
         }
-    return 0;
+    return false;
 }
 
 /**
