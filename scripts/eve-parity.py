@@ -13,6 +13,10 @@
 #
 # Display all eve fields that do not have a keyword mapping.
 #
+# ## fields-missing-keywords
+#
+# Display all eve fields that are known to miss a keyword.
+#
 # ## mapped-fields
 #
 # Display all EVE fields that have a keyword mapping.
@@ -27,7 +31,7 @@ import argparse
 def main():
     parser = argparse.ArgumentParser(description="EVE Parity Check Tool")
     parser.add_argument(
-        "command", choices=["mapped-fields", "unmapped-keywords", "unmapped-fields"]
+        "command", choices=["mapped-fields", "unmapped-keywords", "unmapped-fields", "fields-missing-keywords"]
     )
     args = parser.parse_args()
 
@@ -40,6 +44,8 @@ def main():
         unmapped_keywords(keywords, keys)
     elif args.command == "unmapped-fields":
         unmapped_fields(keywords, keys)
+    elif args.command == "fields-missing-keywords":
+        fields_missing_keywords(keywords, keys)
 
 
 def unmapped_keywords(keywords, keys):
@@ -59,6 +65,21 @@ def unmapped_fields(keywords, keys):
 
     for key in keys.keys():
         if "keywords" not in keys[key]:
+            with_missing.add(key)
+
+    # Print sorted.
+    for key in sorted(with_missing):
+        print(key)
+
+def fields_missing_keywords(keywords, keys):
+    with_missing = set()
+
+    for key in keys.keys():
+        if "keywords" not in keys[key]:
+            continue
+        if not hasattr(keys[key]["keywords"], "__len__"):
+            raise Exception("keywords are not an array for " + key)
+        if len(keys[key]["keywords"]) == 0:
             with_missing.add(key)
 
     # Print sorted.
@@ -92,12 +113,16 @@ def load_schema():
             if props["type"] in ["string", "integer", "boolean", "number"]:
                 # End of the line...
                 key = ".".join(path + [name])
+                no_keywords = props.get("suricata", {}).get("no_keywords")
+                if no_keywords is True:
+                    # happens for dns.version
+                    continue
                 keys[key] = props.get("suricata", {})
             elif props["type"] == "object":
                 #  An object can set "suricata.keywords" to false to
                 #  disable descending into it. For examples, "stats".
-                keywords = props.get("suricata", {}).get("keywords")
-                if keywords is False:
+                no_keywords = props.get("suricata", {}).get("no_keywords")
+                if no_keywords is True:
                     # print("Skipping object {}, keywords disabled".format(".".join(path + [name])))
                     continue
 

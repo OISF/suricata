@@ -1123,7 +1123,7 @@
                     "desription":
                             "DNS fields grouped by type: alternative format, no direct keywords",
                     "suricata": {
-                        "keywords": false
+                        "no_keywords": true
                     }
                 },
                 "id": {
@@ -1258,7 +1258,7 @@
                     "type": "integer",
                     "description": "The version of this EVE DNS event",
                     "suricata": {
-                        "keywords": false
+                        "no_keywords": true
                     }
                 },
                 "z": {
@@ -1341,7 +1341,7 @@
                 }
             },
             "suricata": {
-                "keywords": false
+                "no_keywords": true
             }
         },
         "email": {
@@ -7049,7 +7049,7 @@
             },
             "optional": true,
             "suricata": {
-                "keywords": false
+                "no_keywords": true
             }
         },
         "stream": {
