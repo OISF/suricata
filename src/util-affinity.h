@@ -120,6 +120,7 @@ int AffinityBuildCpusetWithCallback(
 
 #ifdef UNITTESTS
 void AffinityRegisterTests(void);
+void AffinityReset(void);
 #endif
 
 #endif /* SURICATA_UTIL_AFFINITY_H */
