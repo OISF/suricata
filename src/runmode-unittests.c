@@ -205,7 +205,7 @@ static void RegisterUnittests(void)
     SCLogRegisterTests();
     MagicRegisterTests();
     UtilMiscRegisterTests();
-    ThreadingAffinityRegisterTests();
+    AffinityRegisterTests();
     TmThreadsRegisterTests();
     DetectAddressTests();
     DetectProtoTests();

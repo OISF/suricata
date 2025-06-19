@@ -109,7 +109,7 @@ static ThreadsAffinityType *AllocAndInitAffinityType(
     return new_affinity;
 }
 
-ThreadsAffinityType *FindAffinityByInterface(
+ThreadsAffinityType *AffinityTypeGetChildTypeByIface(
         ThreadsAffinityType *parent, const char *interface_name)
 {
     if (parent == NULL || interface_name == NULL || parent->nb_children == 0 ||
@@ -128,34 +128,36 @@ ThreadsAffinityType *FindAffinityByInterface(
 
 /**
  * \brief Find affinity by name (*-cpu-set name) and an interface name.
- * \param name the name of the affinity (e.g. worker-cpu-set, receive-cpu-set).
- * The name is required and cannot be NULL.
+ * \param affinity_set_name the name of the affinity (e.g. worker-cpu-set, receive-cpu-set).
+ * The affinity_set_name is required and cannot be NULL.
  * \param interface_name the name of the interface.
- * If NULL, the affinity is looked up by name only.
+ * If NULL, the affinity is looked up by affinity_set_name only.
  *  \retval a pointer to the affinity or NULL if not found
  */
-ThreadsAffinityType *GetAffinityTypeForNameAndIface(const char *name, const char *interface_name)
+ThreadsAffinityType *AffinityTypeGetByIfaceOrCpuset(
+        const char *affinity_set_name, const char *interface_name)
 {
-    if (name == NULL || *name == '\0') {
+    if (affinity_set_name == NULL || *affinity_set_name == '\0') {
         return NULL;
     }
 
     ThreadsAffinityType *parent_affinity = NULL;
     for (int i = 0; i < MAX_CPU_SET; i++) {
-        if (thread_affinity[i].name != NULL && strcmp(thread_affinity[i].name, name) == 0) {
+        if (thread_affinity[i].name != NULL &&
+                strcmp(thread_affinity[i].name, affinity_set_name) == 0) {
             parent_affinity = &thread_affinity[i];
             break;
         }
     }
 
     if (parent_affinity == NULL) {
-        SCLogError("CPU affinity with name \"%s\" not found", name);
+        SCLogError("CPU affinity with name \"%s\" not found", affinity_set_name);
         return NULL;
     }
 
     if (interface_name != NULL) {
         ThreadsAffinityType *child_affinity =
-                FindAffinityByInterface(parent_affinity, interface_name);
+                AffinityTypeGetChildTypeByIface(parent_affinity, interface_name);
         // found or not found, it is returned
         return child_affinity;
     }
@@ -167,39 +169,39 @@ ThreadsAffinityType *GetAffinityTypeForNameAndIface(const char *name, const char
  * \brief Finds affinity by its name and interface name.
  * Interfaces are children of cpu-set names. If the queried interface is not
  * found, then it is allocated, initialized and assigned to the queried cpu-set.
- * \param name the name of the affinity (e.g. worker-cpu-set, receive-cpu-set).
- * The name is required and cannot be NULL.
+ * \param affinity_set_name the name of the affinity (e.g. worker-cpu-set, receive-cpu-set).
+ * The affinity_set_name is required and cannot be NULL.
  * \param interface_name the name of the interface.
- * If NULL, the affinity is looked up by name only.
+ * If NULL, the affinity is looked up by affinity_set_name only.
  * \retval a pointer to the affinity or NULL if not found
  */
-ThreadsAffinityType *GetOrAllocAffinityTypeForIfaceOfName(
-        const char *name, const char *interface_name)
+ThreadsAffinityType *AffinityTypeGetOrCreateByIfaceOrCpuset(
+        const char *affinity_set_name, const char *interface_name)
 {
     int i;
     ThreadsAffinityType *parent_affinity = NULL;
 
     for (i = 0; i < MAX_CPU_SET; i++) {
-        if (strcmp(thread_affinity[i].name, name) == 0) {
+        if (strcmp(thread_affinity[i].name, affinity_set_name) == 0) {
             parent_affinity = &thread_affinity[i];
             break;
         }
     }
 
     if (parent_affinity == NULL) {
-        SCLogError("CPU affinity with name \"%s\" not found", name);
+        SCLogError("CPU affinity with name \"%s\" not found", affinity_set_name);
         return NULL;
     }
 
     if (interface_name != NULL) {
         ThreadsAffinityType *child_affinity =
-                FindAffinityByInterface(parent_affinity, interface_name);
+                AffinityTypeGetChildTypeByIface(parent_affinity, interface_name);
         if (child_affinity != NULL) {
             return child_affinity;
         }
 
         // If not found, allocate and initialize a new child affinity
-        return AllocAndInitAffinityType(name, interface_name, parent_affinity);
+        return AllocAndInitAffinityType(affinity_set_name, interface_name, parent_affinity);
     }
 
     return parent_affinity;
@@ -223,7 +225,7 @@ static void AffinitySetupInit(void)
     }
 }
 
-int BuildCpusetWithCallback(
+int AffinityBuildCpusetWithCallback(
         const char *name, SCConfNode *node, void (*Callback)(int i, void *data), void *data)
 {
     SCConfNode *lnode;
@@ -282,7 +284,7 @@ static void AffinityCallback(int i, void *data)
 
 static int BuildCpuset(const char *name, SCConfNode *node, cpu_set_t *cpu)
 {
-    return BuildCpusetWithCallback(name, node, AffinityCallback, (void *)cpu);
+    return AffinityBuildCpusetWithCallback(name, node, AffinityCallback, (void *)cpu);
 }
 
 /**
@@ -505,7 +507,7 @@ static int SetupSingleIfaceAffinity(ThreadsAffinityType *taf, SCConfNode *iface_
     }
 
     ThreadsAffinityType *iface_taf =
-            GetOrAllocAffinityTypeForIfaceOfName(taf->name, interface_name);
+            AffinityTypeGetOrCreateByIfaceOrCpuset(taf->name, interface_name);
     if (iface_taf == NULL) {
         SCLogError("Failed to allocate CPU affinity type for interface: %s", interface_name);
         return -1;
@@ -587,7 +589,7 @@ static bool AffinityConfigIsLegacy(void)
 /**
  * \brief Extract CPU affinity configuration from current config file
  */
-void AffinitySetupLoadFromConfig(void)
+void AffinityLoadFromConfig(void)
 {
 #if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined __sun
     if (thread_affinity_init_done == 0) {
@@ -611,7 +613,7 @@ void AffinitySetupLoadFromConfig(void)
             continue;
         }
 
-        ThreadsAffinityType *taf = GetOrAllocAffinityTypeForIfaceOfName(setname, NULL);
+        ThreadsAffinityType *taf = AffinityTypeGetOrCreateByIfaceOrCpuset(setname, NULL);
         if (taf == NULL) {
             SCLogError("Failed to allocate CPU affinity type: %s", setname);
             continue;
@@ -1042,7 +1044,7 @@ uint16_t AffinityGetNextCPU(ThreadVars *tv, ThreadsAffinityType *taf)
  * \brief Return the total number of CPUs in a given affinity
  * \retval the number of affined CPUs
  */
-uint16_t UtilAffinityGetAffinedCPUNum(ThreadsAffinityType *taf)
+uint16_t AffinityGetAffinedCPUNum(ThreadsAffinityType *taf)
 {
     uint16_t ncpu = 0;
 #if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined __sun
@@ -1061,7 +1063,7 @@ uint16_t UtilAffinityGetAffinedCPUNum(ThreadsAffinityType *taf)
  * Find if CPU sets overlap
  * \retval true if CPUs overlap, false otherwise
  */
-bool UtilAffinityCpusOverlap(ThreadsAffinityType *taf1, ThreadsAffinityType *taf2)
+bool AffinityCpusOverlap(ThreadsAffinityType *taf1, ThreadsAffinityType *taf2)
 {
     cpu_set_t tmpcset;
 
@@ -1084,7 +1086,7 @@ bool UtilAffinityCpusOverlap(ThreadsAffinityType *taf1, ThreadsAffinityType *taf
  * \param mod_taf - CPU set to be modified
  * \param static_taf - static CPU set to be used only for evaluation
  */
-void UtilAffinityCpusExclude(ThreadsAffinityType *mod_taf, ThreadsAffinityType *static_taf)
+void AffinityCpusSubtract(ThreadsAffinityType *mod_taf, ThreadsAffinityType *static_taf)
 {
     SCMutexLock(&mod_taf->taf_mutex);
     SCMutexLock(&static_taf->taf_mutex);
@@ -1172,7 +1174,7 @@ static int ThreadingAffinityTest01(void)
 
     SCConfYamlLoadString(config, strlen(config));
 
-    AffinitySetupLoadFromConfig();
+    AffinityLoadFromConfig();
     FAIL_IF_NOT(AffinityConfigIsLegacy() == false);
 
     ThreadsAffinityType *mgmt_taf = &thread_affinity[MANAGEMENT_CPU_SET];
@@ -1207,7 +1209,7 @@ static int ThreadingAffinityTest02(void)
                          "        cpu: [ 1, 2 ]\n";
 
     SCConfYamlLoadString(config, strlen(config));
-    AffinitySetupLoadFromConfig();
+    AffinityLoadFromConfig();
     FAIL_IF_NOT(AffinityConfigIsLegacy() == true);
 
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
@@ -1237,7 +1239,7 @@ static int ThreadingAffinityTest03(void)
                          "      cpu: [ \"0-3\" ]\n";
 
     SCConfYamlLoadString(config, strlen(config));
-    AffinitySetupLoadFromConfig();
+    AffinityLoadFromConfig();
 
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
     FAIL_IF_NOT(CPU_ISSET(0, &worker_taf->cpu_set));
@@ -1268,7 +1270,7 @@ static int ThreadingAffinityTest04(void)
                          "      cpu: [ 1, 3, 5 ]\n";
 
     SCConfYamlLoadString(config, strlen(config));
-    AffinitySetupLoadFromConfig();
+    AffinityLoadFromConfig();
 
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
     FAIL_IF_NOT(CPU_ISSET(1, &worker_taf->cpu_set));
@@ -1301,7 +1303,7 @@ static int ThreadingAffinityTest05(void)
                          "      cpu: [ \"all\" ]\n";
 
     SCConfYamlLoadString(config, strlen(config));
-    AffinitySetupLoadFromConfig();
+    AffinityLoadFromConfig();
 
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
     FAIL_IF_NOT(CPU_COUNT(&worker_taf->cpu_set) == UtilCpuGetNumProcessorsOnline());
@@ -1333,7 +1335,7 @@ static int ThreadingAffinityTest06(void)
                          "        default: \"medium\"\n";
 
     SCConfYamlLoadString(config, strlen(config));
-    AffinitySetupLoadFromConfig();
+    AffinityLoadFromConfig();
 
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
     FAIL_IF_NOT(CPU_ISSET(0, &worker_taf->lowprio_cpu));
@@ -1365,7 +1367,7 @@ static int ThreadingAffinityTest07(void)
                          "      mode: \"exclusive\"\n";
 
     SCConfYamlLoadString(config, strlen(config));
-    AffinitySetupLoadFromConfig();
+    AffinityLoadFromConfig();
 
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
     FAIL_IF_NOT(worker_taf->mode_flag == EXCLUSIVE_AFFINITY);
@@ -1393,7 +1395,7 @@ static int ThreadingAffinityTest08(void)
                          "      threads: 4\n";
 
     SCConfYamlLoadString(config, strlen(config));
-    AffinitySetupLoadFromConfig();
+    AffinityLoadFromConfig();
 
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
     FAIL_IF_NOT(worker_taf->nb_threads == 4);
@@ -1424,7 +1426,7 @@ static int ThreadingAffinityTest09(void)
                          "          mode: \"exclusive\"\n";
 
     SCConfYamlLoadString(config, strlen(config));
-    AffinitySetupLoadFromConfig();
+    AffinityLoadFromConfig();
 
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
     FAIL_IF_NOT(worker_taf->nb_children == 1);
@@ -1463,7 +1465,7 @@ static int ThreadingAffinityTest10(void)
                          "          cpu: [ 3, 4 ]\n";
 
     SCConfYamlLoadString(config, strlen(config));
-    AffinitySetupLoadFromConfig();
+    AffinityLoadFromConfig();
 
     ThreadsAffinityType *receive_taf = &thread_affinity[RECEIVE_CPU_SET];
     FAIL_IF_NOT(receive_taf->nb_children == 2);
@@ -1515,7 +1517,7 @@ static int ThreadingAffinityTest11(void)
                          "            default: \"high\"\n";
 
     SCConfYamlLoadString(config, strlen(config));
-    AffinitySetupLoadFromConfig();
+    AffinityLoadFromConfig();
 
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
     FAIL_IF_NOT(worker_taf->nb_children == 1);
@@ -1561,7 +1563,7 @@ static int ThreadingAffinityTest12(void)
                          "      cpu: [ 4 ]\n";
 
     SCConfYamlLoadString(config, strlen(config));
-    AffinitySetupLoadFromConfig();
+    AffinityLoadFromConfig();
 
     FAIL_IF_NOT(CPU_ISSET(0, &thread_affinity[MANAGEMENT_CPU_SET].cpu_set));
     FAIL_IF_NOT(CPU_COUNT(&thread_affinity[MANAGEMENT_CPU_SET].cpu_set) == 1);
@@ -1603,7 +1605,7 @@ static int ThreadingAffinityTest13(void)
                          "      cpu: [ \"invalid-cpu\" ]\n";
 
     SCConfYamlLoadString(config, strlen(config));
-    AffinitySetupLoadFromConfig();
+    AffinityLoadFromConfig();
 
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
     FAIL_IF_NOT(CPU_COUNT(&worker_taf->cpu_set) == 0);
@@ -1628,7 +1630,7 @@ static int ThreadingAffinityTest14(void)
                          "  cpu-affinity:\n";
 
     SCConfYamlLoadString(config, strlen(config));
-    AffinitySetupLoadFromConfig();
+    AffinityLoadFromConfig();
 
     FAIL_IF_NOT(
             CPU_COUNT(&thread_affinity[WORKER_CPU_SET].cpu_set) == UtilCpuGetNumProcessorsOnline());
@@ -1656,7 +1658,7 @@ static int ThreadingAffinityTest15(void)
                          "        cpu: [ \"3-1\" ]\n"; // Invalid reverse range
 
     SCConfYamlLoadString(config, strlen(config));
-    AffinitySetupLoadFromConfig();
+    AffinityLoadFromConfig();
 
     FAIL_IF_NOT(CPU_COUNT(&thread_affinity[MANAGEMENT_CPU_SET].cpu_set) == 0);
 
@@ -1684,7 +1686,7 @@ static int ThreadingAffinityTest16(void)
                          "          default: invalid_priority\n";
 
     SCConfYamlLoadString(config, strlen(config));
-    AffinitySetupLoadFromConfig();
+    AffinityLoadFromConfig();
 
     SCConfDeInit();
     SCConfRestoreContextBackup();
@@ -1709,7 +1711,7 @@ static int ThreadingAffinityTest17(void)
                          "        mode: invalid_mode\n";
 
     SCConfYamlLoadString(config, strlen(config));
-    AffinitySetupLoadFromConfig();
+    AffinityLoadFromConfig();
 
     SCConfDeInit();
     SCConfRestoreContextBackup();
@@ -1734,7 +1736,7 @@ static int ThreadingAffinityTest18(void)
                          "        threads: 0\n";
 
     SCConfYamlLoadString(config, strlen(config));
-    AffinitySetupLoadFromConfig();
+    AffinityLoadFromConfig();
 
     SCConfDeInit();
     SCConfRestoreContextBackup();
@@ -1759,7 +1761,7 @@ static int ThreadingAffinityTest19(void)
                          "        cpu: [ -1 ]\n";
 
     SCConfYamlLoadString(config, strlen(config));
-    AffinitySetupLoadFromConfig();
+    AffinityLoadFromConfig();
 
     SCConfDeInit();
     SCConfRestoreContextBackup();
@@ -1784,7 +1786,7 @@ static int ThreadingAffinityTest20(void)
                          "        threads: invalid_number\n";
 
     SCConfYamlLoadString(config, strlen(config));
-    AffinitySetupLoadFromConfig();
+    AffinityLoadFromConfig();
 
     SCConfDeInit();
     SCConfRestoreContextBackup();
@@ -1809,7 +1811,7 @@ static int ThreadingAffinityTest21(void)
                          "        cpu: [ 0-99999 ]\n";
 
     SCConfYamlLoadString(config, strlen(config));
-    AffinitySetupLoadFromConfig();
+    AffinityLoadFromConfig();
 
     SCConfDeInit();
     SCConfRestoreContextBackup();
@@ -1839,7 +1841,7 @@ static int ThreadingAffinityTest22(void)
                          "              cpu: [ 2 ]\n";
 
     SCConfYamlLoadString(config, strlen(config));
-    AffinitySetupLoadFromConfig();
+    AffinityLoadFromConfig();
 
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
     FAIL_IF_NOT(worker_taf->nb_children == 1);
@@ -1854,7 +1856,7 @@ static int ThreadingAffinityTest22(void)
 }
 
 /**
- * \brief Test GetAffinityTypeForNameAndIface with NULL and empty string parameters
+ * \brief Test AffinityTypeGetByIfaceOrCpuset with NULL and empty string parameters
  * Comprehensive NULL parameter testing
  */
 static int ThreadingAffinityTest23(void)
@@ -1871,19 +1873,19 @@ static int ThreadingAffinityTest23(void)
                          "      cpu: [ 1, 2, 3 ]\n";
 
     SCConfYamlLoadString(config, strlen(config));
-    AffinitySetupLoadFromConfig();
+    AffinityLoadFromConfig();
 
-    ThreadsAffinityType *result = GetAffinityTypeForNameAndIface(NULL, "eth0");
+    ThreadsAffinityType *result = AffinityTypeGetByIfaceOrCpuset(NULL, "eth0");
     FAIL_IF_NOT(result == NULL);
 
-    result = GetAffinityTypeForNameAndIface("", "eth0");
+    result = AffinityTypeGetByIfaceOrCpuset("", "eth0");
     FAIL_IF_NOT(result == NULL);
 
-    result = GetAffinityTypeForNameAndIface("worker-cpu-set", NULL);
+    result = AffinityTypeGetByIfaceOrCpuset("worker-cpu-set", NULL);
     FAIL_IF(result == NULL);
     FAIL_IF_NOT(strcmp(result->name, "worker-cpu-set") == 0);
 
-    result = GetAffinityTypeForNameAndIface("worker-cpu-set", "");
+    result = AffinityTypeGetByIfaceOrCpuset("worker-cpu-set", "");
     FAIL_IF_NOT(result == NULL); // Returns NULL as no child with an empty name exists
 
     SCConfDeInit();
@@ -1913,7 +1915,7 @@ static int ThreadingAffinityTest24(void)
                          "            cpu: [ 2 ]\n";
 
     SCConfYamlLoadString(config, strlen(config));
-    AffinitySetupLoadFromConfig();
+    AffinityLoadFromConfig();
 
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
     FAIL_IF_NOT(worker_taf->nb_children == 0);
@@ -1931,21 +1933,25 @@ static int ThreadingAffinityTest25(void)
 {
     ResetAffinityForTest();
 
-    ThreadsAffinityType *parent = GetOrAllocAffinityTypeForIfaceOfName("worker-cpu-set", NULL);
+    ThreadsAffinityType *parent = AffinityTypeGetOrCreateByIfaceOrCpuset("worker-cpu-set", NULL);
     FAIL_IF(parent == NULL);
 
-    ThreadsAffinityType *child1 = GetOrAllocAffinityTypeForIfaceOfName("worker-cpu-set", "iface1");
-    ThreadsAffinityType *child2 = GetOrAllocAffinityTypeForIfaceOfName("worker-cpu-set", "iface2");
-    ThreadsAffinityType *child3 = GetOrAllocAffinityTypeForIfaceOfName("worker-cpu-set", "iface3");
-    ThreadsAffinityType *child4 = GetOrAllocAffinityTypeForIfaceOfName("worker-cpu-set", "iface4");
+    ThreadsAffinityType *child1 =
+            AffinityTypeGetOrCreateByIfaceOrCpuset("worker-cpu-set", "iface1");
+    ThreadsAffinityType *child2 =
+            AffinityTypeGetOrCreateByIfaceOrCpuset("worker-cpu-set", "iface2");
+    ThreadsAffinityType *child3 =
+            AffinityTypeGetOrCreateByIfaceOrCpuset("worker-cpu-set", "iface3");
+    ThreadsAffinityType *child4 =
+            AffinityTypeGetOrCreateByIfaceOrCpuset("worker-cpu-set", "iface4");
 
     FAIL_IF_NOT(child1 && child2 && child3 && child4);
     FAIL_IF_NOT(parent->nb_children == 4);
 
-    ThreadsAffinityType *found = FindAffinityByInterface(parent, "iface2");
+    ThreadsAffinityType *found = AffinityTypeGetChildTypeByIface(parent, "iface2");
     FAIL_IF_NOT(found == child2);
 
-    found = GetOrAllocAffinityTypeForIfaceOfName("worker-cpu-set", "iface2");
+    found = AffinityTypeGetOrCreateByIfaceOrCpuset("worker-cpu-set", "iface2");
     FAIL_IF_NOT(found == child2);
 
     PASS;
@@ -1996,7 +2002,7 @@ static int ThreadingAffinityTest27(void)
                          "        cpu: [ 1, 2 ]\n";
 
     SCConfYamlLoadString(config, strlen(config));
-    AffinitySetupLoadFromConfig();
+    AffinityLoadFromConfig();
 
     ThreadsAffinityType *mgmt_taf = &thread_affinity[MANAGEMENT_CPU_SET];
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
@@ -2015,7 +2021,7 @@ static int ThreadingAffinityTest27(void)
 /**
  * \brief Register all threading affinity unit tests
  */
-void ThreadingAffinityRegisterTests(void)
+void AffinityRegisterTests(void)
 {
 #if defined(__linux__) || defined(__FreeBSD__) || defined(__NetBSD__)
     UtRegisterTest("ThreadingAffinityTest01", ThreadingAffinityTest01);
