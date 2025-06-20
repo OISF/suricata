@@ -171,6 +171,10 @@ Major changes
     -         cpu: [0, 1]
     +     worker-cpu-set:
     +       cpu: [0, 1]
+- All applayer protocols except FTP and HTTP now trigger inspection upon completion
+  of a request/response in the respective direction. This means that earlier a
+  content that matched just because it fell in the inspection chunk without wholly
+  belonging to any one request/response may not match any longer.
 
 Removals
 ~~~~~~~~
