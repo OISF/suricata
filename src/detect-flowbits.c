@@ -47,6 +47,7 @@
 
 #include "tree.h"
 
+#include "util-enum.h"
 #include "util-var-name.h"
 #include "util-unittest.h"
 #include "util-debug.h"
@@ -89,6 +90,98 @@ void DetectFlowbitsRegister (void)
             DETECT_TABLE_PACKET_PRE_STREAM_FLAG | DETECT_TABLE_PACKET_FILTER_FLAG |
             DETECT_TABLE_PACKET_TD_FLAG | DETECT_TABLE_APP_FILTER_FLAG | DETECT_TABLE_APP_TD_FLAG;
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
+}
+
+static bool DetectFlowbitIsPostmatch(uint8_t cmd)
+{
+    DEBUG_VALIDATE_BUG_ON(cmd >= DETECT_FLOWBITS_CMD_MAX);
+
+    switch (cmd) {
+        case DETECT_FLOWBITS_CMD_TOGGLE:
+        case DETECT_FLOWBITS_CMD_SET:
+        case DETECT_FLOWBITS_CMD_UNSET:
+            return true;
+    }
+    return false;
+}
+
+SCEnumCharMap flowbit_cmds[] = {
+    { "set", DETECT_FLOWBITS_CMD_SET },
+    { "toggle", DETECT_FLOWBITS_CMD_TOGGLE },
+    { "unset", DETECT_FLOWBITS_CMD_UNSET },
+    { "isnotset", DETECT_FLOWBITS_CMD_ISNOTSET },
+    { "isset", DETECT_FLOWBITS_CMD_ISSET },
+};
+
+static inline int DetectFlowbitValidateDo(
+        Signature *s, uint8_t cmd, uint8_t cmd2, uint32_t idx, bool err)
+{
+    bool postmatch = DetectFlowbitIsPostmatch(cmd);
+    SigMatch *list = postmatch ? s->init_data->smlists[DETECT_SM_LIST_POSTMATCH]
+                               : s->init_data->smlists[DETECT_SM_LIST_MATCH];
+
+    for (SigMatch *sm = list; sm != NULL; sm = sm->next) {
+        if (sm->type != DETECT_FLOWBITS)
+            continue;
+
+        DetectFlowbitsData *fd = (DetectFlowbitsData *)sm->ctx;
+        if ((fd->idx == idx) && (fd->cmd == cmd)) {
+            if (err) {
+                SCLogError("invalid flowbit command combination in the same signature: isset and "
+                           "isnotset");
+                return -1;
+            }
+            SCLogWarning(
+                    "inconsequential flowbit command combination in the same signature: %s and %s",
+                    SCMapEnumValueToName(cmd, flowbit_cmds),
+                    SCMapEnumValueToName(cmd2, flowbit_cmds));
+            return 0;
+        }
+    }
+
+    /* no invalid or inconsequential command pair was found */
+    return 1;
+}
+
+static int DetectFlowbitValidate(Signature *s, DetectFlowbitsData *fd)
+{
+    struct DetectFlowbitInvalidCmdMap_ {
+        uint8_t cmd1;
+        uint8_t cmd2;
+        bool err; /* Error out if rule is unsatisfiable at runtime */
+    };
+
+    struct DetectFlowbitInvalidCmdMap_ icmds_map[] = {
+        /* POSTMATCH, MATCH combinations */
+        { DETECT_FLOWBITS_CMD_UNSET, DETECT_FLOWBITS_CMD_ISNOTSET, false },
+        { DETECT_FLOWBITS_CMD_SET, DETECT_FLOWBITS_CMD_ISSET, false },
+        /* POSTMATCH, POSTMATCH combinations */
+        { DETECT_FLOWBITS_CMD_SET, DETECT_FLOWBITS_CMD_TOGGLE, false },
+        { DETECT_FLOWBITS_CMD_UNSET, DETECT_FLOWBITS_CMD_TOGGLE, false },
+        { DETECT_FLOWBITS_CMD_SET, DETECT_FLOWBITS_CMD_UNSET, false },
+        /* MATCH, MATCH combinations */
+        { DETECT_FLOWBITS_CMD_ISSET, DETECT_FLOWBITS_CMD_ISNOTSET, true },
+    };
+
+    int ret = 0;
+
+    for (uint8_t i = 0; i < ARRAY_SIZE(icmds_map); i++) {
+        if (fd->cmd == icmds_map[i].cmd1) {
+            ret = DetectFlowbitValidateDo(
+                    s, icmds_map[i].cmd2, icmds_map[i].cmd1, fd->idx, icmds_map[i].err);
+            if (ret != 1) {
+                return ret;
+            }
+        } else if (fd->cmd == icmds_map[i].cmd2) {
+            ret = DetectFlowbitValidateDo(
+                    s, icmds_map[i].cmd1, icmds_map[i].cmd2, fd->idx, icmds_map[i].err);
+            if (ret != 1) {
+                return ret;
+            }
+        }
+    }
+
+    return 0;
 }
 
 static int FlowbitOrAddData(DetectEngineCtx *de_ctx, DetectFlowbitsData *cd, char *arrptr)
@@ -363,6 +456,11 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
         SCLogDebug("idx %" PRIu32 ", cmd %s, name %s",
             cd->idx, fb_cmd_str, strlen(fb_name) ? fb_name : "(none)");
     }
+
+    if (DetectFlowbitValidate(s, cd) != 0) {
+        goto error;
+    }
+
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
 
