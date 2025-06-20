@@ -55,6 +55,6 @@ Suricata Rules
    vlan-keywords
    ldap-keywords
    pgsql-keywords
-   rule-types
    email-keywords
+   rule-types
    rules-internals
