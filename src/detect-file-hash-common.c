@@ -229,7 +229,9 @@ static DetectFileHashData *DetectFileHashParse (const DetectEngineCtx *de_ctx,
     if (filename == NULL) {
         goto error;
     }
-
+    
+    /* de_ctx->rule_file is already set by the rule loader before this
+     * function is called, so it is guaranteed to be non-NULL here. */
     rule_filename = SCStrdup(de_ctx->rule_file);
     if (rule_filename == NULL) {
         goto error;
@@ -239,16 +241,14 @@ static DetectFileHashData *DetectFileHashParse (const DetectEngineCtx *de_ctx,
     fp = fopen(filename, "r");
     if (fp == NULL) {
 #ifdef HAVE_LIBGEN_H
-        if (de_ctx->rule_file != NULL) {
-            char *dir = dirname(rule_filename);
-            if (dir != NULL) {
-                char path[PATH_MAX];
-                snprintf(path, sizeof(path), "%s/%s", dir, str);
-                fp = fopen(path, "r");
-                if (fp == NULL) {
-                    SCLogError("opening hash file %s: %s", path, strerror(errno));
-                    goto error;
-                }
+        char *dir = dirname(rule_filename);
+        if (dir != NULL) {
+            char path[PATH_MAX];
+            snprintf(path, sizeof(path), "%s/%s", dir, str);
+            fp = fopen(path, "r");
+            if (fp == NULL) {
+                SCLogError("opening hash file %s: %s", path, strerror(errno));
+                goto error;
             }
         }
         if (fp == NULL) {
