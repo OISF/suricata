@@ -51,11 +51,15 @@
 
 .. Basic input options.
 
+.. _cmdline-option-r:
+
 .. option:: -r <path>
 
    Run in pcap offline mode (replay mode) reading files from pcap file. If
    <path> specifies a directory, all files in that directory will be processed
    in order of modified time maintaining flow state between files.
+
+.. _cmdline-option-pcap-file-continuous:
 
 .. option:: --pcap-file-continuous
 
@@ -63,12 +67,16 @@
    interrupted. This is useful with directories to add new files and not reset
    flow state between files.
 
+.. _cmdline-option-pcap-file-recursive:
+
 .. option:: --pcap-file-recursive
 
    Used with the -r option when the path provided is a directory.  This option
    enables recursive traversal into subdirectories to a maximum depth of 255.
    This option cannot be combined with --pcap-file-continuous.  Symlinks are
    ignored.
+
+.. _cmdline-option-pcap-file-delete:
 
 .. option:: --pcap-file-delete
 
@@ -153,9 +161,13 @@
    For more information about runmodes see :doc:`Runmodes
    </performance/runmodes>` in the user guide.
 
+.. _cmdline-option-F:
+
 .. option:: -F <bpf filter file>
 
    Use BPF filter from file.
+
+.. _cmdline-option-k:
 
 .. option:: -k [all|none]
 
