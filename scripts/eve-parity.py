@@ -60,6 +60,8 @@ def unmapped_fields(keywords, keys):
     for key in keys.keys():
         if "keywords" not in keys[key]:
             with_missing.add(key)
+        elif keys[key]["keywords"] is False:
+            with_missing.add(key)
 
     # Print sorted.
     for key in sorted(with_missing):
