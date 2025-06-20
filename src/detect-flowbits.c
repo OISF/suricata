@@ -91,6 +91,71 @@ void DetectFlowbitsRegister (void)
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
+struct DetectFlowbitInvalidCmdMap_ {
+    int8_t cmd1;
+    int8_t cmd2;
+};
+
+static bool DetectFlowbitIsPostmatch(uint8_t cmd)
+{
+    DEBUG_VALIDATE_BUG_ON(cmd >= DETECT_FLOWBITS_CMD_MAX);
+
+    switch (cmd) {
+        case DETECT_FLOWBITS_CMD_TOGGLE:
+        case DETECT_FLOWBITS_CMD_SET:
+        case DETECT_FLOWBITS_CMD_UNSET:
+            return true;
+    }
+    return false;
+}
+
+static inline int DetectFlowbitValidateCallbackDo(Signature *s, uint8_t cmd, uint32_t idx)
+{
+    bool postmatch = DetectFlowbitIsPostmatch(cmd);
+    SigMatch *list = postmatch ? s->init_data->smlists[DETECT_SM_LIST_POSTMATCH]
+                               : s->init_data->smlists[DETECT_SM_LIST_MATCH];
+
+    for (SigMatch *sm = list; sm != NULL; sm = sm->next) {
+        if (sm->type != DETECT_FLOWBITS)
+            continue;
+
+        DetectFlowbitsData *fd = (DetectFlowbitsData *)sm->ctx;
+        if ((fd->idx == idx) && (fd->cmd == cmd))
+            return -1;
+    }
+    return 0;
+}
+
+static int DetectFlowbitValidateCallback(Signature *s, DetectFlowbitsData *fd)
+{
+    struct DetectFlowbitInvalidCmdMap_ icmds_map[] = {
+        /* POSTMATCH, MATCH combinations */
+        { DETECT_FLOWBITS_CMD_UNSET, DETECT_FLOWBITS_CMD_ISNOTSET },
+        { DETECT_FLOWBITS_CMD_SET, DETECT_FLOWBITS_CMD_ISSET },
+        /* POSTMATCH, POSTMATCH combinations */
+        { DETECT_FLOWBITS_CMD_SET, DETECT_FLOWBITS_CMD_TOGGLE },
+        { DETECT_FLOWBITS_CMD_SET, DETECT_FLOWBITS_CMD_UNSET },
+        /* MATCH, MATCH combinations */
+        { DETECT_FLOWBITS_CMD_ISSET, DETECT_FLOWBITS_CMD_ISNOTSET },
+        /* END */
+        { -1, -1 },
+    };
+
+    for (uint8_t i = 0; icmds_map[i].cmd1 != -1; i++) {
+        if (fd->cmd == icmds_map[i].cmd1) {
+            uint8_t cmd2 = icmds_map[i].cmd2;
+            if (DetectFlowbitValidateCallbackDo(s, cmd2, fd->idx) == -1)
+                return -1;
+        } else if (fd->cmd == icmds_map[i].cmd2) {
+            uint8_t cmd1 = icmds_map[i].cmd1;
+            if (DetectFlowbitValidateCallbackDo(s, cmd1, fd->idx) == -1)
+                return -1;
+        }
+    }
+
+    return 0;
+}
+
 static int FlowbitOrAddData(DetectEngineCtx *de_ctx, DetectFlowbitsData *cd, char *arrptr)
 {
     char *strarr[MAX_TOKENS];
@@ -385,6 +450,10 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
         // coverity[deadcode : FALSE]
         default:
             goto error;
+    }
+
+    if (DetectFlowbitValidateCallback(s, cd) != 0) {
+        FatalError("invalid flowbit command combination in the same signature");
     }
 
     return 0;
