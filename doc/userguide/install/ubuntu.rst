@@ -1,7 +1,7 @@
 .. _install-binary-ubuntu:
 
 Ubuntu Package Installation
-===========================
+###########################
 
 For Ubuntu, the OISF maintains a Personal Package Archive (PPA)
 ``suricata-stable`` that always contains the latest stable release.
@@ -23,7 +23,7 @@ After installing you can proceed to the :ref:`Basic setup`.
 `OISF launchpad: suricata-stable <https://launchpad.net/~oisf/+archive/suricata-stable>`_.
 
 Upgrading
-^^^^^^^^^
+*********
 
 To upgrade::
 
@@ -31,14 +31,14 @@ To upgrade::
     sudo apt-get upgrade suricata
 
 Remove
-^^^^^^
+******
 
 To remove Suricata from your system::
 
     sudo apt-get remove suricata
 
 Getting Debug or Pre-release Versions
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+*************************************
 
 .. note:: The following instructions require ``sudo`` to be installed.
 
@@ -60,7 +60,7 @@ Suricata will then always be the latest release, stable or beta.
 `OISF launchpad: suricata-beta <https://launchpad.net/~oisf/+archive/suricata-beta>`_.
 
 Daily Releases
-^^^^^^^^^^^^^^
+**************
 
 .. note:: The following instructions require ``sudo`` to be installed.
 
@@ -87,6 +87,6 @@ repository, the same procedures as above apply, just using another PPA,
 `OISF launchpad: suricata-daily <https://launchpad.net/~oisf/+archive/suricata-daily>`_.
 
 After Installation
-------------------
+******************
 
 After installing you can proceed to the :ref:`Basic setup`.
