@@ -1,0 +1,34 @@
+# Malformed data in request. Malformed means length fields are wrong, etc.
+alert mdns any any -> any any (msg:"SURICATA mDNS malformed request data"; flow:to_server; app-layer-event:mdns.malformed_data; classtype:protocol-command-decode; sid:2242000; rev:1;)
+
+# Malformed data in response.
+alert mdns any any -> any any (msg:"SURICATA mDNS malformed response data"; flow:to_client; app-layer-event:mdns.malformed_data; classtype:protocol-command-decode; sid:2242001; rev:1;)
+
+# Response flag set on to_server packet
+# Note: Not applicable to mDNS but kept for reference as the DNS parser is used.
+#alert mdns any any -> any any (msg:"SURICATA mDNS Not a request"; flow:to_server; app-layer-event:mdns.not_request; classtype:protocol-command-decode; sid:2242002; rev:1;)
+
+# Response flag not set on to_client packet
+# Note: Not applicable to mDNS but kept for reference as the DNS parser is used.
+#alert mdns any any -> any any (msg:"SURICATA mDNS Not a response"; flow:to_client; app-layer-event:mdns.not_response; classtype:protocol-command-decode; sid:2242003; rev:1;)
+
+# Z flag (reserved) not 0
+alert mdns any any -> any any (msg:"SURICATA mDNS Z flag set"; app-layer-event:mdns.z_flag_set; classtype:protocol-command-decode; sid:2242004; rev:1;)
+
+# Invalid (unknown) opcode.
+alert mdns any any -> any any (msg:"SURICATA mDNS Invalid opcode"; app-layer-event:mdns.invalid_opcode; classtype:protocol-command-decode; sid:2242005; rev:1;)
+
+# A resource name was too long (over 1025 chars)
+alert mdns any any -> any any (msg:"SURICATA mDNS Name too long"; app-layer-event:mdns.name_too_long; classtype:protocol-command-decode; sid:2242006; rev:1;)
+
+# An infinite loop was found while decoding a mDNS resource name.
+alert mdns any any -> any any (msg:"SURICATA mDNS Infinite loop"; app-layer-event:mdns.infinite_loop; classtype:protocol-command-decode; sid:2242007; rev:1;)
+
+# Suricata's maximum number of mDNS name labels was reached while parsing a resource name.
+alert mdns any any -> any any (msg:"SURICATA mDNS Too many labels"; app-layer-event:mdns.too_many_labels; classtype:protocol-command-decode; sid:2242008; rev:1;)
+
+# mDNS message failed parsing in additionals section.
+alert mdns any any -> any any (msg:"SURICATA mDNS invalid additionals"; app-layer-event:mdns.invalid_additionals; classtype:protocol-command-decode; sid:2242009; rev:1;)
+
+# mDNS message failed parsing in authorities section.
+alert mdns any any -> any any (msg:"SURICATA mDNS invalid authorities"; app-layer-event:mdns.invalid_authorities; classtype:protocol-command-decode; sid:2242010; rev:1;)
