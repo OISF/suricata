@@ -1,7 +1,7 @@
 .. _install-binary-debian:
 
 Debian Package Installation
-===========================
+###########################
 
 Suricata is available in the official Debian repositories for Debian 9
 (stretch) and later versions.
@@ -26,6 +26,6 @@ For Debian 10 (buster), for instance, run the following as ``root``::
     apt-get install suricata -t buster-backports
 
 After Installation
-------------------
+******************
 
 After installing you can proceed to the :ref:`Basic setup`.

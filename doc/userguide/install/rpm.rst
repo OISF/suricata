@@ -1,7 +1,7 @@
 .. _install-binary-rpm:
 
 RPM Installation
-================
+################
 
 Using the Fedora COPR system, the OISF provides Suricata packages for
 Fedora, Red Hat Enterprise Linux, and Enterprise Linux rebuilds.
@@ -12,13 +12,13 @@ each distribution version. For example, the OISF maintains Suricata 7
 and Suricata 8 packages for RHEL 9 and 10.
 
 Installing From Package Repositories
-------------------------------------
+************************************
 
 .. note:: Instructions in the following sections require ``sudo`` to
           be installed.
 
 Enterprise Linux and Rebuilds
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+=============================
 
 .. code-block:: none
 
@@ -27,7 +27,7 @@ Enterprise Linux and Rebuilds
    sudo dnf install suricata
 
 Fedora
-^^^^^^
+======
 
 .. code-block:: none
 
@@ -36,7 +36,7 @@ Fedora
     sudo dnf install suricata
 
 Additional Notes for RPM Installations
---------------------------------------
+**************************************
 
 - Suricata is pre-configured to run as the ``suricata`` user.
 - Command line parameters such as providing the interface names can be
@@ -50,7 +50,7 @@ Additional Notes for RPM Installations
   - ``/var/lib/suricata``: State directory rules, datasets.
 
 Starting Suricata On-Boot
-^^^^^^^^^^^^^^^^^^^^^^^^^
+=========================
 
 The Suricata RPMs are configured to run from Systemd.
 
@@ -73,6 +73,6 @@ To reload rules::
   sudo systemctl reload suricata
 
 After Installation
-------------------
+******************
 
 After installing you can proceed to the :ref:`Basic setup`.
