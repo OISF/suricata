@@ -171,6 +171,9 @@ Major changes
     -         cpu: [0, 1]
     +     worker-cpu-set:
     +       cpu: [0, 1]
+-  When using the `byte` keywords like ``byte_extract``, ``byte_math``, etc with
+  variables, the variables must be associated with the same buffer or the rule
+  won't load.
 
 Removals
 ~~~~~~~~
