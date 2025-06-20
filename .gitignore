@@ -62,3 +62,6 @@ doc/userguide/*.1
 
 # Generated compile commands for LSP.
 /compile_commands.json
+
+# Don't ignore *.rules in rules/
+!/rules/*.rules
