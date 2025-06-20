@@ -13,6 +13,7 @@ http-events.rules \
 http2-events.rules \
 ipsec-events.rules \
 kerberos-events.rules \
+mdns-events.rules \
 modbus-events.rules \
 mqtt-events.rules \
 nfs-events.rules \
