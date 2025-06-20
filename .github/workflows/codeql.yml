@@ -5,11 +5,13 @@ on:
     branches: [ master ]
     paths-ignore:
       - "doc/**"
+      - "etc/schema.json"
   pull_request:
     # The branches below must be a subset of the branches above
     branches: [ master ]
     paths-ignore:
       - "doc/**"
+      - "etc/schema.json"
   schedule:
     - cron: '18 21 * * 1'
 
