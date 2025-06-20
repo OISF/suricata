@@ -1088,12 +1088,15 @@ uint16_t UtilAffinityCpusOverlap(ThreadsAffinityType *taf1, ThreadsAffinityType 
  */
 void UtilAffinityCpusExclude(ThreadsAffinityType *mod_taf, ThreadsAffinityType *static_taf)
 {
-    cpu_set_t tmpset;
     SCMutexLock(&mod_taf->taf_mutex);
     SCMutexLock(&static_taf->taf_mutex);
-    CPU_XOR(&tmpset, &mod_taf->cpu_set, &static_taf->cpu_set);
+    int max_cpus = UtilCpuGetNumProcessorsOnline();
+    for (int cpu = 0; cpu < max_cpus; cpu++) {
+        if (CPU_ISSET(cpu, &mod_taf->cpu_set) && CPU_ISSET(cpu, &static_taf->cpu_set)) {
+            CPU_CLR(cpu, &mod_taf->cpu_set);
+        }
+    }
     SCMutexUnlock(&static_taf->taf_mutex);
-    mod_taf->cpu_set = tmpset;
     SCMutexUnlock(&mod_taf->taf_mutex);
 }
 #endif /* HAVE_DPDK */
@@ -1106,7 +1109,7 @@ void UtilAffinityCpusExclude(ThreadsAffinityType *mod_taf, ThreadsAffinityType *
  * \brief Helper function to reset affinity state for unit tests
  * This properly clears CPU sets without destroying initialized mutexes
  */
-static void ResetAffinityForTest(void)
+void ResetAffinityForTest(void)
 {
     thread_affinity_init_done = 0;
     for (int i = 0; i < MAX_CPU_SET; i++) {
