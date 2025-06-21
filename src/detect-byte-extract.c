@@ -374,24 +374,29 @@ static void DetectByteExtractFree(DetectEngineCtx *de_ctx, void *ptr)
  */
 SigMatch *DetectByteExtractRetrieveSMVar(const char *arg, int sm_list, const Signature *s)
 {
+    bool any = sm_list == -1;
     for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
-        SigMatch *sm = s->init_data->buffers[x].head;
-        while (sm != NULL) {
-            if (sm->type == DETECT_BYTE_EXTRACT) {
-                const SCDetectByteExtractData *bed = (const SCDetectByteExtractData *)sm->ctx;
-                if (strcmp(bed->name, arg) == 0) {
-                    return sm;
+        if (any || (uint32_t)sm_list == s->init_data->buffers[x].id) {
+            SigMatch *sm = s->init_data->buffers[x].head;
+            while (sm != NULL) {
+                if (sm->type == DETECT_BYTE_EXTRACT) {
+                    const SCDetectByteExtractData *bed = (const SCDetectByteExtractData *)sm->ctx;
+                    if (strcmp(bed->name, arg) == 0) {
+                        return sm;
+                    }
                 }
+                sm = sm->next;
             }
-            sm = sm->next;
         }
     }
 
     for (int list = 0; list < DETECT_SM_LIST_MAX; list++) {
         SigMatch *sm = s->init_data->smlists[list];
+        if (sm_list != list && !any)
+            continue;
         while (sm != NULL) {
             // Make sure that the linked buffers ore on the same list
-            if (sm->type == DETECT_BYTE_EXTRACT && (sm_list == -1 || sm_list == list)) {
+            if (sm->type == DETECT_BYTE_EXTRACT && (any || sm_list == list)) {
                 const SCDetectByteExtractData *bed = (const SCDetectByteExtractData *)sm->ctx;
                 if (strcmp(bed->name, arg) == 0) {
                     return sm;
