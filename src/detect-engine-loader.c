@@ -717,13 +717,22 @@ static TmEcode DetectLoader(ThreadVars *th_v, void *thread_data)
 
         SCMutexUnlock(&loader->m);
 
-        if (TmThreadsCheckFlag(th_v, THV_KILL)) {
-            break;
-        }
-
         /* just wait until someone wakes us up */
         SCCtrlMutexLock(th_v->ctrl_mutex);
-        SCCtrlCondWait(th_v->ctrl_cond, th_v->ctrl_mutex);
+        int rc = 0;
+        while (rc == 0) {
+            if (TmThreadsCheckFlag(th_v, THV_KILL)) {
+                run = false;
+                break;
+            }
+            SCMutexLock(&loader->m);
+            bool has_work = loader->task_list.tqh_first != NULL;
+            SCMutexUnlock(&loader->m);
+            if (has_work)
+                break;
+
+            rc = SCCtrlCondWait(th_v->ctrl_cond, th_v->ctrl_mutex);
+        }
         SCCtrlMutexUnlock(th_v->ctrl_mutex);
 
         SCLogDebug("woke up...");
