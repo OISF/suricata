@@ -75,5 +75,6 @@ void DefragTrackerStackDestroy(DefragTrackerStack *);
 
 void DefragTrackerEnqueue(DefragTrackerStack *, DefragTracker *);
 DefragTracker *DefragTrackerDequeue(DefragTrackerStack *);
+uint32_t DefragTrackerStackSize(DefragTrackerStack *q);
 
 #endif /* SURICATA_DEFRAG_QUEUE_H */

@@ -977,11 +977,12 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
             struct timespec cond_time = FROM_TIMEVAL(cond_tv);
             SCCtrlMutexLock(&flow_manager_ctrl_mutex);
             while (1) {
+                if (SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY) {
+                    break;
+                }
                 int rc = SCCtrlCondTimedwait(
                         &flow_manager_ctrl_cond, &flow_manager_ctrl_mutex, &cond_time);
-                if (rc == ETIMEDOUT || rc < 0)
-                    break;
-                if (SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY) {
+                if (rc == ETIMEDOUT || rc < 0) {
                     break;
                 }
             }
@@ -1153,15 +1154,15 @@ static TmEcode FlowRecycler(ThreadVars *th_v, void *thread_data)
             struct timespec cond_time = FROM_TIMEVAL(cond_tv);
             SCCtrlMutexLock(&flow_recycler_ctrl_mutex);
             while (1) {
-                int rc = SCCtrlCondTimedwait(
-                        &flow_recycler_ctrl_cond, &flow_recycler_ctrl_mutex, &cond_time);
-                if (rc == ETIMEDOUT || rc < 0) {
-                    break;
-                }
                 if (SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY) {
                     break;
                 }
                 if (SC_ATOMIC_GET(flow_recycle_q.non_empty)) {
+                    break;
+                }
+                int rc = SCCtrlCondTimedwait(
+                        &flow_recycler_ctrl_cond, &flow_recycler_ctrl_mutex, &cond_time);
+                if (rc == ETIMEDOUT || rc < 0) {
                     break;
                 }
             }

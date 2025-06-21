@@ -275,7 +275,8 @@ void DefragInitConfig(bool quiet)
             }
             if (!quiet) {
                 SCLogConfig("preallocated %" PRIu32 " defrag trackers of size %" PRIuMAX "",
-                        defragtracker_spare_q.len, (uintmax_t)sizeof(DefragTracker));
+                        DefragTrackerStackSize(&defragtracker_spare_q),
+                        (uintmax_t)sizeof(DefragTracker));
             }
         }
     }
