@@ -3155,16 +3155,18 @@ static void DetectEngineThreadCtxDeinitKeywords(DetectEngineCtx *de_ctx, DetectE
 static TmEcode DetectEngineThreadCtxInitForMT(ThreadVars *tv, DetectEngineThreadCtx *det_ctx)
 {
     DetectEngineMasterCtx *master = &g_master_de_ctx;
+    SCMutexLock(&master->lock);
+
     DetectEngineTenantMapping *map_array = NULL;
     uint32_t map_array_size = 0;
     uint32_t map_cnt = 0;
     uint32_t max_tenant_id = 0;
     DetectEngineCtx *list = master->list;
-    HashTable *mt_det_ctxs_hash = NULL;
 
     if (master->tenant_selector == TENANT_SELECTOR_UNKNOWN) {
         SCLogError("no tenant selector set: "
                    "set using multi-detect.selector");
+        SCMutexUnlock(&master->lock);
         return TM_ECODE_FAILED;
     }
 
@@ -3177,7 +3179,8 @@ static TmEcode DetectEngineThreadCtxInitForMT(ThreadVars *tv, DetectEngineThread
         tcnt++;
     }
 
-    mt_det_ctxs_hash = HashTableInit(tcnt * 2, TenantIdHash, TenantIdCompare, TenantIdFree);
+    HashTable *mt_det_ctxs_hash =
+            HashTableInit(tcnt * 2, TenantIdHash, TenantIdCompare, TenantIdFree);
     if (mt_det_ctxs_hash == NULL) {
         goto error;
     }
@@ -3257,6 +3260,7 @@ static TmEcode DetectEngineThreadCtxInitForMT(ThreadVars *tv, DetectEngineThread
             break;
     }
 
+    SCMutexUnlock(&master->lock);
     return TM_ECODE_OK;
 error:
     if (map_array != NULL)
@@ -3264,6 +3268,7 @@ error:
     if (mt_det_ctxs_hash != NULL)
         HashTableFree(mt_det_ctxs_hash);
 
+    SCMutexUnlock(&master->lock);
     return TM_ECODE_FAILED;
 }
 
@@ -3870,11 +3875,13 @@ DetectEngineCtx *DetectEngineReference(DetectEngineCtx *de_ctx)
     return de_ctx;
 }
 
-/** TODO locking? Not needed if this is a one time setting at startup */
-int DetectEngineMultiTenantEnabled(void)
+bool DetectEngineMultiTenantEnabled(void)
 {
     DetectEngineMasterCtx *master = &g_master_de_ctx;
-    return (master->multi_tenant_enabled);
+    SCMutexLock(&master->lock);
+    bool enabled = master->multi_tenant_enabled;
+    SCMutexUnlock(&master->lock);
+    return enabled;
 }
 
 /** \internal
