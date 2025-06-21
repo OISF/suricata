@@ -59,15 +59,6 @@ void TmqhPacketpoolRegister (void)
     tmqh_table[TMQH_PACKETPOOL].OutHandler = TmqhOutputPacketpool;
 }
 
-static int PacketPoolIsEmpty(PktPool *pool)
-{
-    /* Check local stack first. */
-    if (pool->head || pool->return_stack.head)
-        return 0;
-
-    return 1;
-}
-
 static void UpdateReturnThreshold(PktPool *pool)
 {
     const float perc = (float)pool->cnt / (float)max_pending_packets;
@@ -81,18 +72,18 @@ void PacketPoolWait(void)
 {
     PktPool *my_pool = GetThreadPacketPool();
 
-    if (PacketPoolIsEmpty(my_pool)) {
+    if (my_pool->head == NULL) {
         SC_ATOMIC_SET(my_pool->return_stack.return_threshold, 1);
 
         SCMutexLock(&my_pool->return_stack.mutex);
-        SCCondWait(&my_pool->return_stack.cond, &my_pool->return_stack.mutex);
+        int rc = 0;
+        while (my_pool->return_stack.cnt == 0 && rc == 0) {
+            rc = SCCondWait(&my_pool->return_stack.cond, &my_pool->return_stack.mutex);
+        }
         SCMutexUnlock(&my_pool->return_stack.mutex);
 
         UpdateReturnThreshold(my_pool);
     }
-
-    while(PacketPoolIsEmpty(my_pool))
-        cc_barrier();
 }
 
 /** \brief a initialized packet
