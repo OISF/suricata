@@ -65,17 +65,17 @@ typedef struct VXLANHeader_ {
     uint8_t res;
 } VXLANHeader;
 
-bool DecodeVXLANEnabledForPort(const uint16_t sp, const uint16_t dp)
+bool DecodeVXLANEnabledForPort(const uint16_t dp)
 {
-    SCLogDebug("ports %u->%u ports %d %d %d %d", sp, dp, g_vxlan_ports[0], g_vxlan_ports[1],
-            g_vxlan_ports[2], g_vxlan_ports[3]);
+    SCLogDebug("checking dest port %u against ports %d %d %d %d", dp, g_vxlan_ports[0],
+            g_vxlan_ports[1], g_vxlan_ports[2], g_vxlan_ports[3]);
 
     if (g_vxlan_enabled) {
         for (int i = 0; i < g_vxlan_ports_idx; i++) {
             if (g_vxlan_ports[i] == VXLAN_UNSET_PORT)
                 return false;
-            const int port = g_vxlan_ports[i];
-            if (port == (const int)sp || port == (const int)dp)
+            /* RFC 7348: VXLAN identification is based on destination port only */
+            if (g_vxlan_ports[i] == (const int)dp)
                 return true;
         }
     }
@@ -531,6 +531,42 @@ decoder:\n\
     SCConfRestoreContextBackup();
     PASS;
 }
+
+/**
+ * \test DecodeVXLANtest07 tests that only destination port is checked for VXLAN identification.
+ * Source port 4789, destination port 53 DNS query should NOT be VXLAN.
+ */
+static int DecodeVXLANtest07(void)
+{
+    uint8_t raw_dns[] = {
+        0x12, 0xb5, 0x00, 0x35, 0x00, 0x24, 0xb9, 0xd7, /* UDP header (sp=4789, dp=53) */
+        0x49, 0xa1, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x67, 0x6f,
+        0x6f, 0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x1d, 0x00,
+        0x01 /* DNS query (google.com) */
+    };
+
+    Packet *p = PacketGetFromAlloc();
+    FAIL_IF_NULL(p);
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+
+    DecodeVXLANConfigPorts(VXLAN_DEFAULT_PORT_S);
+    FlowInitConfig(FLOW_QUIET);
+
+    DecodeUDP(&tv, &dtv, p, raw_dns, sizeof(raw_dns));
+    FAIL_IF_NOT(PacketIsUDP(p));
+
+    /* Should not be VXLAN packet, and not invalid packet */
+    FAIL_IF(DecodeVXLANEnabledForPort(p->dp));
+    FAIL_IF(tv.decode_pq.top != NULL);
+    FAIL_IF(p->flags & PKT_IS_INVALID);
+
+    FlowShutdown();
+    PacketFree(p);
+    PASS;
+}
 #endif /* UNITTESTS */
 
 void DecodeVXLANRegisterTests(void)
@@ -544,5 +580,6 @@ void DecodeVXLANRegisterTests(void)
     UtRegisterTest("DecodeVXLANtest04", DecodeVXLANtest04);
     UtRegisterTest("DecodeVXLANtest05", DecodeVXLANtest05);
     UtRegisterTest("DecodeVXLANtest06", DecodeVXLANtest06);
+    UtRegisterTest("DecodeVXLANtest07", DecodeVXLANtest07);
 #endif /* UNITTESTS */
 }
