@@ -67,17 +67,17 @@ typedef struct VXLANHeader_ {
     uint8_t res;
 } VXLANHeader;
 
-bool DecodeVXLANEnabledForPort(const uint16_t sp, const uint16_t dp)
+bool DecodeVXLANEnabledForPort(const uint16_t dp)
 {
-    SCLogDebug("ports %u->%u ports %d %d %d %d", sp, dp, g_vxlan_ports[0], g_vxlan_ports[1],
-            g_vxlan_ports[2], g_vxlan_ports[3]);
+    SCLogDebug("checking dest port %u against ports %d %d %d %d", dp, g_vxlan_ports[0],
+            g_vxlan_ports[1], g_vxlan_ports[2], g_vxlan_ports[3]);
 
     if (g_vxlan_enabled) {
         for (int i = 0; i < g_vxlan_ports_idx; i++) {
             if (g_vxlan_ports[i] == VXLAN_UNSET_PORT)
                 return false;
-            const int port = g_vxlan_ports[i];
-            if (port == (const int)sp || port == (const int)dp)
+            /* RFC 7348: VXLAN identification is based on destination port only */
+            if (g_vxlan_ports[i] == (const int)dp)
                 return true;
         }
     }
@@ -521,6 +521,41 @@ static int DecodeVXLANtest06(void)
     PacketFreeOrRelease(tp);
     PASS;
 }
+
+/**
+ * \test DecodeVXLANtest07 tests that only destination port is checked for VXLAN identification.
+ * Source port 4789, destination port 8080 should NOT be VXLAN.
+ */
+static int DecodeVXLANtest07(void)
+{
+    uint8_t raw_vxlan[] = {
+        0x12, 0xb5, 0x1f, 0x90, 0x00, 0x3a, 0x87, 0x51, /* UDP header (sp=4789, dp=8080) */
+        0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x25, 0x00, /* VXLAN header */
+        0x10, 0x00, 0x00, 0x0c, 0x01, 0x00,             /* inner destination MAC */
+        0x00, 0x51, 0x52, 0xb3, 0x54, 0xe5,             /* inner source MAC */
+        0x08, 0x00,                                     /* another IPv4 0x0800 */
+        0x45, 0x00, 0x00, 0x1c, 0x00, 0x01, 0x00, 0x00, 0x40, 0x11, 0x44, 0x45, 0x0a, 0x60, 0x00,
+        0x0a, 0xb9, 0x1b, 0x73, 0x06,                  /* IPv4 hdr */
+        0x00, 0x35, 0x30, 0x39, 0x00, 0x08, 0x98, 0xe4 /* UDP probe src port 53 */
+    };
+    Packet *p = PacketGetFromAlloc();
+    FAIL_IF_NULL(p);
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+
+    DecodeVXLANConfigPorts(VXLAN_DEFAULT_PORT_S);
+    FlowInitConfig(FLOW_QUIET);
+
+    DecodeUDP(&tv, &dtv, p, raw_vxlan, sizeof(raw_vxlan));
+    FAIL_IF_NOT(PacketIsUDP(p));
+    FAIL_IF(tv.decode_pq.top != NULL);
+
+    FlowShutdown();
+    PacketFree(p);
+    PASS;
+}
 #endif /* UNITTESTS */
 
 void DecodeVXLANRegisterTests(void)
@@ -534,5 +569,6 @@ void DecodeVXLANRegisterTests(void)
     UtRegisterTest("DecodeVXLANtest04", DecodeVXLANtest04);
     UtRegisterTest("DecodeVXLANtest05", DecodeVXLANtest05);
     UtRegisterTest("DecodeVXLANtest06", DecodeVXLANtest06);
+    UtRegisterTest("DecodeVXLANtest07", DecodeVXLANtest07);
 #endif /* UNITTESTS */
 }
