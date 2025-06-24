@@ -3007,6 +3007,42 @@ Using this default configuration, Teredo detection will run on UDP port
 1.    If the `ports` parameter is missing, or set to `any`, all ports will be
 inspected for possible presence of Teredo.
 
+VXLAN
+~~~~~
+
+The VXLAN decoder can be configured with different reserved bits check modes.
+It is enabled by default and uses UDP port 4789.
+
+::
+
+    decoder:
+      # VXLAN decoder is assigned to up to 4 UDP ports. By default only the
+      # IANA assigned port 4789 is enabled.
+      vxlan:
+        enabled: true
+        ports: $VXLAN_PORTS # syntax: '[8472, 4789]' or '4789'.
+        # Reserved bits check mode. Possible values are:
+        #  - strict: check all reserved bits are zero for standard VXLAN
+        #  - normal: check only the last 1-byte reserved field is zero (allows GBP extensions, default)
+        #  - permissive: do not check any reserved bits (allows private VXLAN extensions)
+        reserved-bits-check: normal
+
+Using this default configuration, VXLAN detection will run on UDP port 4789
+with normal reserved bits checking. The ``reserved-bits-check`` option controls
+how strictly the decoder validates the VXLAN header:
+
+- ``strict``: Validates all reserved bits are zero for standard VXLAN.
+  This mode will reject VXLAN extensions like GBP.
+- ``normal``: Only checks the last 1-byte reserved field (default). This mode
+  allows VXLAN extensions like GBP while still providing basic validation.
+- ``permissive``: Does not check any reserved bits. This mode accepts any
+  VXLAN-like traffic regardless of reserved bit values. This is mainly useful
+  when dealing with private VXLAN extensions that may use the last reserved byte.
+
+The ``normal`` mode is recommended as it provides a good balance between
+standard compliance and support for common VXLAN extensions used in production
+networks.
+
 Recursion Level
 ~~~~~~~~~~~~~~~
 

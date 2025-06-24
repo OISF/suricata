@@ -23,7 +23,8 @@
  * VXLAN tunneling scheme decoder.
  *
  * This implementation is based on the following specification doc:
- * https://tools.ietf.org/html/draft-mahalingam-dutt-dcops-vxlan-00
+ * https://tools.ietf.org/html/rfc7348
+ * https://tools.ietf.org/html/draft-lrss-bess-evpn-group-policy-02
  */
 
 #include "suricata-common.h"
@@ -47,10 +48,17 @@
 #define VXLAN_DEFAULT_PORT      4789
 #define VXLAN_DEFAULT_PORT_S    "4789"
 
+typedef enum {
+    VXLAN_RES_CHECK_STRICT = 0,
+    VXLAN_RES_CHECK_NORMAL,
+    VXLAN_RES_CHECK_PERMISSIVE,
+} VXLANReservedCheckMode;
+
 static bool g_vxlan_enabled = true;
 static int g_vxlan_ports_idx = 0;
 static int g_vxlan_ports[VXLAN_MAX_PORTS] = { VXLAN_DEFAULT_PORT, VXLAN_UNSET_PORT,
     VXLAN_UNSET_PORT, VXLAN_UNSET_PORT };
+static VXLANReservedCheckMode g_vxlan_reserved_check_mode = VXLAN_RES_CHECK_NORMAL;
 
 typedef struct VXLANHeader_ {
     uint8_t flags[2];
@@ -113,6 +121,23 @@ void DecodeVXLANConfig(void)
         } else {
             DecodeVXLANConfigPorts(VXLAN_DEFAULT_PORT_S);
         }
+
+        node = SCConfGetNode("decoder.vxlan.reserved-bits-check");
+        if (node && node->val) {
+            if (strcasecmp(node->val, "strict") == 0) {
+                g_vxlan_reserved_check_mode = VXLAN_RES_CHECK_STRICT;
+            } else if (strcasecmp(node->val, "normal") == 0) {
+                g_vxlan_reserved_check_mode = VXLAN_RES_CHECK_NORMAL;
+            } else if (strcasecmp(node->val, "permissive") == 0) {
+                g_vxlan_reserved_check_mode = VXLAN_RES_CHECK_PERMISSIVE;
+            } else {
+                SCLogWarning(
+                        "Invalid VXLAN reserved-bits-check mode '%s', using 'normal'", node->val);
+                g_vxlan_reserved_check_mode = VXLAN_RES_CHECK_NORMAL;
+            }
+        } else {
+            g_vxlan_reserved_check_mode = VXLAN_RES_CHECK_NORMAL;
+        }
     }
 }
 
@@ -135,8 +160,25 @@ int DecodeVXLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     }
 
     const VXLANHeader *vxlanh = (const VXLANHeader *)pkt;
-    if ((vxlanh->flags[0] & 0x08) == 0 || vxlanh->res != 0)
+    if ((vxlanh->flags[0] & 0x08) == 0)
         return TM_ECODE_FAILED;
+
+    switch (g_vxlan_reserved_check_mode) {
+        case VXLAN_RES_CHECK_STRICT:
+            if ((vxlanh->flags[0] & 0xF7) != 0 || /* All reserved bits are zero except I bit */
+                    vxlanh->flags[1] != 0 ||      /* Second byte should be all zeros */
+                    vxlanh->gdp != 0 ||           /* GDP field is reserved in standard VXLAN */
+                    vxlanh->res != 0) {           /* Last reserved byte should be zero */
+                return TM_ECODE_FAILED;
+            }
+            break;
+        case VXLAN_RES_CHECK_NORMAL:
+            if (vxlanh->res != 0)
+                return TM_ECODE_FAILED;
+            break;
+        case VXLAN_RES_CHECK_PERMISSIVE:
+            break;
+    }
 
 #if DEBUG
     uint32_t vni = (vxlanh->vni[0] << 16) + (vxlanh->vni[1] << 8) + (vxlanh->vni[2]);
@@ -190,6 +232,7 @@ int DecodeVXLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 }
 
 #ifdef UNITTESTS
+#include "conf-yaml-loader.h"
 
 /**
  * \test DecodeVXLANTest01 test a good vxlan header.
@@ -265,6 +308,219 @@ static int DecodeVXLANtest02 (void)
     PacketFree(p);
     PASS;
 }
+
+/**
+ * \test DecodeVXLANtest03 tests the non-zero res field on receiver side.
+ * Contains a HTTP response packet.
+ */
+static int DecodeVXLANtest03(void)
+{
+    uint8_t raw_vxlan[] = {
+        0xc0, 0x00, 0x12, 0xb5, 0x00, 0x57, 0x00, 0x00, /* UDP header */
+        0xff, 0x01, 0xd2, 0x0a, 0x00, 0x00, 0x0b, 0x01, /* VXLAN header (res = 0x01) */
+        0xfa, 0x16, 0x3e, 0xfe, 0x55, 0x1c,             /* inner destination MAC */
+        0xfa, 0x16, 0x3e, 0xfe, 0x57, 0xdc,             /* inner source MAC */
+        0x08, 0x00,                                     /* another IPv4 0x0800 */
+        0x45, 0x00, 0x00, 0x39, 0xc2, 0xae, 0x40, 0x00, 0x40, 0x06, 0x7e, 0x61, 0xc0, 0xa8, 0x01,
+        0x86, 0xda, 0x5e, 0x5d, 0x22, /* IPv4 hdr */
+        0x00, 0x50, 0xc8, 0x34, 0xaf, 0xbd, 0x02, 0x16, 0x56, 0xea, 0x3b, 0x41, 0x50, 0x18, 0x00,
+        0xee, 0xf9, 0xda, 0x00, 0x00, /* TCP probe src port 80 */
+        0x48, 0x54, 0x54, 0x50, 0x2f, 0x31, 0x2e, 0x30, 0x20, 0x32, 0x30, 0x30, 0x20, 0x4f, 0x4b,
+        0xd, 0xa /* HTTP response (HTTP/1.0 200 OK\r\n) */
+    };
+    char config[] = "\
+%YAML 1.1\n\
+---\n\
+decoder:\n\
+\n\
+  vxlan:\n\
+    enabled: true\n\
+    ports: \"4789\"\n\
+    reserved-bits-check: permissive\n\
+";
+
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(config, strlen(config));
+
+    Packet *p = PacketGetFromAlloc();
+    FAIL_IF_NULL(p);
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+
+    DecodeVXLANConfig();
+    DecodeVXLANConfigPorts(VXLAN_DEFAULT_PORT_S);
+    FlowInitConfig(FLOW_QUIET);
+
+    DecodeUDP(&tv, &dtv, p, raw_vxlan, sizeof(raw_vxlan));
+    FAIL_IF_NOT(PacketIsUDP(p));
+    FAIL_IF(tv.decode_pq.top == NULL);
+
+    Packet *tp = PacketDequeueNoLock(&tv.decode_pq);
+    FAIL_IF_NOT(PacketIsTCP(tp));
+    FAIL_IF_NOT(tp->sp == 80);
+
+    FlowShutdown();
+    PacketFree(p);
+    PacketFreeOrRelease(tp);
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
+    PASS;
+}
+
+/**
+ * \test DecodeVXLANtest04 tests strict mode with standard VXLAN header.
+ */
+static int DecodeVXLANtest04(void)
+{
+    uint8_t raw_vxlan[] = {
+        0x12, 0xb5, 0x12, 0xb5, 0x00, 0x3a, 0x87, 0x51, /* UDP header */
+        0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x25, 0x00, /* VXLAN header (strict compliant) */
+        0x10, 0x00, 0x00, 0x0c, 0x01, 0x00,             /* inner destination MAC */
+        0x00, 0x51, 0x52, 0xb3, 0x54, 0xe5,             /* inner source MAC */
+        0x08, 0x00,                                     /* another IPv4 0x0800 */
+        0x45, 0x00, 0x00, 0x1c, 0x00, 0x01, 0x00, 0x00, 0x40, 0x11, 0x44, 0x45, 0x0a, 0x60, 0x00,
+        0x0a, 0xb9, 0x1b, 0x73, 0x06,                  /* IPv4 hdr */
+        0x00, 0x35, 0x30, 0x39, 0x00, 0x08, 0x98, 0xe4 /* UDP probe src port 53 */
+    };
+    char config[] = "\
+%YAML 1.1\n\
+---\n\
+decoder:\n\
+\n\
+  vxlan:\n\
+    enabled: true\n\
+    ports: \"4789\"\n\
+    reserved-bits-check: strict\n\
+";
+
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(config, strlen(config));
+
+    Packet *p = PacketGetFromAlloc();
+    FAIL_IF_NULL(p);
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+
+    DecodeVXLANConfig();
+    DecodeVXLANConfigPorts(VXLAN_DEFAULT_PORT_S);
+    FlowInitConfig(FLOW_QUIET);
+
+    DecodeUDP(&tv, &dtv, p, raw_vxlan, sizeof(raw_vxlan));
+    FAIL_IF_NOT(PacketIsUDP(p));
+    FAIL_IF(tv.decode_pq.top == NULL);
+
+    Packet *tp = PacketDequeueNoLock(&tv.decode_pq);
+    FAIL_IF_NOT(PacketIsUDP(tp));
+    FAIL_IF_NOT(tp->sp == 53);
+
+    FlowShutdown();
+    PacketFree(p);
+    PacketFreeOrRelease(tp);
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
+    PASS;
+}
+
+/**
+ * \test DecodeVXLANtest05 tests strict mode with GBP header (should fail).
+ */
+static int DecodeVXLANtest05(void)
+{
+    uint8_t raw_vxlan[] = {
+        0x12, 0xb5, 0x12, 0xb5, 0x00, 0x3a, 0x87, 0x51, /* UDP header */
+        0x88, 0x00, 0x12, 0x34, 0x00, 0x00, 0x25,
+        0x00,                               /* VXLAN-GBP header (G bit set, Group Policy ID) */
+        0x10, 0x00, 0x00, 0x0c, 0x01, 0x00, /* inner destination MAC */
+        0x00, 0x51, 0x52, 0xb3, 0x54, 0xe5, /* inner source MAC */
+        0x08, 0x00,                         /* another IPv4 0x0800 */
+        0x45, 0x00, 0x00, 0x1c, 0x00, 0x01, 0x00, 0x00, 0x40, 0x11, 0x44, 0x45, 0x0a, 0x60, 0x00,
+        0x0a, 0xb9, 0x1b, 0x73, 0x06,                  /* IPv4 hdr */
+        0x00, 0x35, 0x30, 0x39, 0x00, 0x08, 0x98, 0xe4 /* UDP probe src port 53 */
+    };
+    char config[] = "\
+%YAML 1.1\n\
+---\n\
+decoder:\n\
+\n\
+  vxlan:\n\
+    enabled: true\n\
+    ports: \"4789\"\n\
+    reserved-bits-check: strict\n\
+";
+
+    SCConfCreateContextBackup();
+    SCConfInit();
+    SCConfYamlLoadString(config, strlen(config));
+
+    Packet *p = PacketGetFromAlloc();
+    FAIL_IF_NULL(p);
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+
+    DecodeVXLANConfig();
+    DecodeVXLANConfigPorts(VXLAN_DEFAULT_PORT_S);
+    FlowInitConfig(FLOW_QUIET);
+
+    DecodeUDP(&tv, &dtv, p, raw_vxlan, sizeof(raw_vxlan));
+    FAIL_IF_NOT(PacketIsUDP(p));
+    /* Should fail to decode VXLAN in strict mode */
+    FAIL_IF(tv.decode_pq.top != NULL);
+
+    FlowShutdown();
+    PacketFree(p);
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
+    PASS;
+}
+
+/**
+ * \test DecodeVXLANtest06 tests normal mode with GBP header (should pass).
+ */
+static int DecodeVXLANtest06(void)
+{
+    uint8_t raw_vxlan[] = {
+        0x12, 0xb5, 0x12, 0xb5, 0x00, 0x3a, 0x87, 0x51, /* UDP header */
+        0x88, 0x00, 0x12, 0x34, 0x00, 0x00, 0x25,
+        0x00,                               /* VXLAN-GBP header (G bit set, Group Policy ID) */
+        0x10, 0x00, 0x00, 0x0c, 0x01, 0x00, /* inner destination MAC */
+        0x00, 0x51, 0x52, 0xb3, 0x54, 0xe5, /* inner source MAC */
+        0x08, 0x00,                         /* another IPv4 0x0800 */
+        0x45, 0x00, 0x00, 0x1c, 0x00, 0x01, 0x00, 0x00, 0x40, 0x11, 0x44, 0x45, 0x0a, 0x60, 0x00,
+        0x0a, 0xb9, 0x1b, 0x73, 0x06,                  /* IPv4 hdr */
+        0x00, 0x35, 0x30, 0x39, 0x00, 0x08, 0x98, 0xe4 /* UDP probe src port 53 */
+    };
+    Packet *p = PacketGetFromAlloc();
+    FAIL_IF_NULL(p);
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+
+    DecodeVXLANConfig();
+    DecodeVXLANConfigPorts(VXLAN_DEFAULT_PORT_S);
+    FlowInitConfig(FLOW_QUIET);
+
+    DecodeUDP(&tv, &dtv, p, raw_vxlan, sizeof(raw_vxlan));
+    FAIL_IF_NOT(PacketIsUDP(p));
+    FAIL_IF(tv.decode_pq.top == NULL);
+
+    Packet *tp = PacketDequeueNoLock(&tv.decode_pq);
+    FAIL_IF_NOT(PacketIsUDP(tp));
+    FAIL_IF_NOT(tp->sp == 53);
+
+    FlowShutdown();
+    PacketFree(p);
+    PacketFreeOrRelease(tp);
+    PASS;
+}
 #endif /* UNITTESTS */
 
 void DecodeVXLANRegisterTests(void)
@@ -274,5 +530,9 @@ void DecodeVXLANRegisterTests(void)
                    DecodeVXLANtest01);
     UtRegisterTest("DecodeVXLANtest02",
                    DecodeVXLANtest02);
+    UtRegisterTest("DecodeVXLANtest03", DecodeVXLANtest03);
+    UtRegisterTest("DecodeVXLANtest04", DecodeVXLANtest04);
+    UtRegisterTest("DecodeVXLANtest05", DecodeVXLANtest05);
+    UtRegisterTest("DecodeVXLANtest06", DecodeVXLANtest06);
 #endif /* UNITTESTS */
 }

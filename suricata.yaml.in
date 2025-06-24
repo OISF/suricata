@@ -1742,6 +1742,11 @@ decoder:
   vxlan:
     enabled: true
     ports: $VXLAN_PORTS # syntax: '[8472, 4789]' or '4789'.
+    # Reserved bits check mode. Possible values are:
+    #  - strict: check all reserved bits are zero for standard VXLAN
+    #  - normal: check only the last 1-byte reserved field is zero (allows GBP extensions, default)
+    #  - permissive: do not check any reserved bits (allows private VXLAN extensions)
+    reserved-bits-check: normal
 
   # Geneve decoder is assigned to up to 4 UDP ports. By default only the
   # IANA assigned port 6081 is enabled.
