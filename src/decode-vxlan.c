@@ -59,17 +59,17 @@ typedef struct VXLANHeader_ {
     uint8_t res;
 } VXLANHeader;
 
-bool DecodeVXLANEnabledForPort(const uint16_t sp, const uint16_t dp)
+bool DecodeVXLANEnabledForPort(const uint16_t dp)
 {
-    SCLogDebug("ports %u->%u ports %d %d %d %d", sp, dp, g_vxlan_ports[0], g_vxlan_ports[1],
-            g_vxlan_ports[2], g_vxlan_ports[3]);
+    SCLogDebug("checking dest port %u against ports %d %d %d %d", dp, g_vxlan_ports[0],
+            g_vxlan_ports[1], g_vxlan_ports[2], g_vxlan_ports[3]);
 
     if (g_vxlan_enabled) {
         for (int i = 0; i < g_vxlan_ports_idx; i++) {
             if (g_vxlan_ports[i] == VXLAN_UNSET_PORT)
                 return false;
-            const int port = g_vxlan_ports[i];
-            if (port == (const int)sp || port == (const int)dp)
+            /* RFC 7348: VXLAN identification is based on destination port only */
+            if (g_vxlan_ports[i] == (const int)dp)
                 return true;
         }
     }
