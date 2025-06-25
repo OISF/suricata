@@ -23,9 +23,16 @@
 
 #include "suricata-common.h"
 #include "tm-threads.h"
+#include "util-atomic.h"
 
 #ifndef SURICATA_SOURCE_PCAP_FILE_HELPER_H
 #define SURICATA_SOURCE_PCAP_FILE_HELPER_H
+
+typedef enum {
+    PCAP_FILE_DELETE_NONE = 0,
+    PCAP_FILE_DELETE_ALWAYS,
+    PCAP_FILE_DELETE_NON_ALERTS
+} PcapFileDeleteMode;
 
 typedef struct PcapFileGlobalVars_ {
     uint64_t cnt; /** packet counter */
@@ -46,7 +53,7 @@ typedef struct PcapFileSharedVars_
 
     struct timespec last_processed;
 
-    bool should_delete;
+    PcapFileDeleteMode delete_mode;
 
     ThreadVars *tv;
     TmSlot *slot;
@@ -75,6 +82,8 @@ typedef struct PcapFileFileVars_
     struct bpf_program filter;
 
     PcapFileSharedVars *shared;
+
+    SC_ATOMIC_DECLARE(uint64_t, alerts_count);
 
     /* fields used to get the first packet's timestamp early,
      * so it can be used to setup the time subsys. */
@@ -120,5 +129,15 @@ void CleanupPcapFileFileVars(PcapFileFileVars *pfv);
 TmEcode ValidateLinkType(int datalink, DecoderFunc *decoder);
 
 const char *PcapFileGetFilename(void);
+
+bool PcapFileShouldDeletePcapFile(PcapFileFileVars *pfv);
+
+void PcapFileAddAlerts(PcapFileFileVars *pfv, uint16_t alert_count);
+
+PcapFileDeleteMode PcapFileParseDeleteMode(void);
+
+#ifdef UNITTESTS
+void SourcePcapFileHelperRegisterTests(void);
+#endif
 
 #endif /* SURICATA_SOURCE_PCAP_FILE_HELPER_H */
