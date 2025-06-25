@@ -806,7 +806,7 @@ static int TopologyInitialize(void)
     return 0;
 }
 
-void TopologyDestroy()
+void TopologyDestroy(void)
 {
     if (topology != NULL) {
         hwloc_topology_destroy(topology);
