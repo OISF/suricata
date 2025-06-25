@@ -78,6 +78,7 @@
 #include "util-time.h"
 
 #include "source-pcap-file.h"
+#include "source-pcap-file-helper.h"
 #include "action-globals.h"
 
 //#define DEBUG
@@ -6860,6 +6861,17 @@ static void StreamTcpPseudoPacketCreateDetectLogFlush(ThreadVars *tv,
         SCReturn;
     }
     PKT_SET_SRC(np, PKT_SRC_STREAM_TCP_DETECTLOG_FLUSH);
+
+    /* In pcap-file mode, propagate the per-file context so that alerts
+     * generated on this pseudo packet count towards the same file. */
+    np->pcap_v.pfv = parent->pcap_v.pfv;
+
+    /* Ensure pseudo packet uses release hook that updates per-file alert
+     * count without touching pfv refcount. */
+    np->ReleasePacket = PcapFileReleasePseudoPacket;
+    if (np->pcap_v.pfv != NULL) {
+        SC_ATOMIC_ADD(np->pcap_v.pfv->ref_cnt, 1);
+    }
 
     np->tenant_id = f->tenant_id;
     np->datalink = DLT_RAW;

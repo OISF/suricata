@@ -46,6 +46,7 @@
 #include "util-signal.h"
 #include "queue.h"
 #include "util-validate.h"
+#include "source-pcap-file-helper.h"
 
 #ifdef PROFILE_LOCKING
 thread_local uint64_t mutex_lock_contention;
@@ -497,6 +498,17 @@ static void *TmThreadsSlotVar(void *td)
                 if (p != NULL) {
                     p->flags |= PKT_PSEUDO_STREAM_END;
                     PKT_SET_SRC(p, PKT_SRC_CAPTURE_TIMEOUT);
+                    /* In pcap-file mode, attach current pfv so alerts can be counted */
+                    {
+                        extern PcapFileFileVars *PcapFileGetCurrentPfv(void);
+                        extern void PcapFileReleasePseudoPacket(Packet *);
+                        PcapFileFileVars *pfv = PcapFileGetCurrentPfv();
+                        if (pfv != NULL) {
+                            p->pcap_v.pfv = pfv;
+                            p->ReleasePacket = PcapFileReleasePseudoPacket;
+                            SC_ATOMIC_ADD(pfv->ref_cnt, 1);
+                        }
+                    }
                 }
             }
         }
@@ -1441,6 +1453,17 @@ again:
                 if (p != NULL) {
                     p->flags |= PKT_PSEUDO_STREAM_END;
                     PKT_SET_SRC(p, PKT_SRC_SHUTDOWN_FLUSH);
+                    /* In pcap-file mode, attach current pfv so alerts can be counted */
+                    {
+                        extern PcapFileFileVars *PcapFileGetCurrentPfv(void);
+                        extern void PcapFileReleasePseudoPacket(Packet *);
+                        PcapFileFileVars *pfv = PcapFileGetCurrentPfv();
+                        if (pfv != NULL) {
+                            p->pcap_v.pfv = pfv;
+                            p->ReleasePacket = PcapFileReleasePseudoPacket;
+                            SC_ATOMIC_ADD(pfv->ref_cnt, 1);
+                        }
+                    }
                     PacketQueue *q = tv->stream_pq;
                     SCMutexLock(&q->mutex_q);
                     PacketEnqueue(q, p);

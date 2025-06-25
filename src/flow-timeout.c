@@ -65,6 +65,8 @@
 
 #include "util-profiling.h"
 
+#include "source-pcap-file-helper.h"
+
 /**
  * \internal
  * \brief Pseudo packet setup to finish a flow when needed.
@@ -104,6 +106,18 @@ static inline Packet *FlowPseudoPacketSetup(
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->payload = NULL;
     p->payload_len = 0;
+
+    /* In pcap-file mode, associate pseudo end-of-flow packets with the
+     * current file so their alerts are counted via PacketAlertFinalize. */
+    {
+        PcapFileFileVars *pfv = PcapFileGetCurrentPfv();
+        if (pfv != NULL) {
+            p->pcap_v.pfv = pfv;
+            p->ReleasePacket = PcapFileReleasePseudoPacket;
+            /* Hold a ref so deletion defers until pseudo is released */
+            SC_ATOMIC_ADD(pfv->ref_cnt, 1);
+        }
+    }
 
     /* apply reversed flow logic after setting direction to the packet */
     direction ^= ((f->flags & FLOW_DIR_REVERSED) != 0);
