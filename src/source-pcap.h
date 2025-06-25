@@ -24,6 +24,8 @@
 #ifndef SURICATA_SOURCE_PCAP_H
 #define SURICATA_SOURCE_PCAP_H
 
+typedef struct PcapFileFileVars_ PcapFileFileVars;
+
 void TmModuleReceivePcapRegister (void);
 void TmModuleDecodePcapRegister (void);
 void PcapTranslateIPToDevice(char *pcap_dev, size_t len);
@@ -35,6 +37,7 @@ void PcapTranslateIPToDevice(char *pcap_dev, size_t len);
 typedef struct PcapPacketVars_
 {
     uint32_t tenant_id;
+    PcapFileFileVars *pfv;
 } PcapPacketVars;
 
 /** needs to be able to contain Windows adapter id's, so
