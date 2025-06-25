@@ -51,6 +51,7 @@ noinst_HEADERS = \
 	app-layer.h \
 	bindgen.h \
 	build-info.h \
+	capture-hooks.h \
 	conf-yaml-loader.h \
 	conf.h \
 	counters.h \
@@ -636,6 +637,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer-ssl.c \
 	app-layer-tftp.c \
 	app-layer.c \
+	capture-hooks.c \
 	conf-yaml-loader.c \
 	conf.c \
 	counters.c \
