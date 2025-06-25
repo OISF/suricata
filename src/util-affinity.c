@@ -210,7 +210,7 @@ ThreadsAffinityType *GetOrAllocAffinityTypeForIfaceOfName(
 static void AffinitySetupInit(void)
 {
     int i, j;
-    int ncpu = UtilCpuGetNumProcessorsConfigured();
+    int ncpu = UtilCpuGetNumProcessorsOnline();
 
     SCLogDebug("Initialize CPU affinity setup");
     /* be conservative relatively to OS: use all cpus by default */
