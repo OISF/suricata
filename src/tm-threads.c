@@ -35,6 +35,7 @@
 #include "tm-queues.h"
 #include "tm-queuehandlers.h"
 #include "tm-threads.h"
+#include "capture-hooks.h"
 #include "tmqh-packetpool.h"
 #include "threads.h"
 #include "util-affinity.h"
@@ -46,6 +47,7 @@
 #include "util-signal.h"
 #include "queue.h"
 #include "util-validate.h"
+#include "source-pcap-file-helper.h"
 
 #ifdef PROFILE_LOCKING
 thread_local uint64_t mutex_lock_contention;
@@ -1358,6 +1360,7 @@ again:
             if (p != NULL) {
                 p->flags |= PKT_PSEUDO_STREAM_END;
                 PKT_SET_SRC(p, PKT_SRC_SHUTDOWN_FLUSH);
+                CaptureHooksOnPseudoPacketCreated(p);
                 PacketQueue *q = tv->stream_pq;
                 SCMutexLock(&q->mutex_q);
                 PacketEnqueue(q, p);
@@ -1441,6 +1444,7 @@ again:
                 if (p != NULL) {
                     p->flags |= PKT_PSEUDO_STREAM_END;
                     PKT_SET_SRC(p, PKT_SRC_SHUTDOWN_FLUSH);
+                    CaptureHooksOnPseudoPacketCreated(p);
                     PacketQueue *q = tv->stream_pq;
                     SCMutexLock(&q->mutex_q);
                     PacketEnqueue(q, p);
