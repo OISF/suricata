@@ -267,6 +267,14 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
         ptv->shared.should_delete = should_delete == 1;
     }
 
+    int delete_non_alerts_only = 0;
+    ptv->shared.delete_non_alerts_only = false;
+    if (SCConfGetBool("pcap-file.delete-non-alerts-only", &delete_non_alerts_only) == 1) {
+        ptv->shared.delete_non_alerts_only = delete_non_alerts_only == 1;
+    }
+
+    SC_ATOMIC_INIT(ptv->shared.alerts_total);
+
     DIR *directory = NULL;
     SCLogDebug("checking file or directory %s", (char*)initdata);
     if(PcapDetermineDirectoryOrFile((char *)initdata, &directory) == TM_ECODE_FAILED) {

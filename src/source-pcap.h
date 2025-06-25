@@ -31,10 +31,15 @@ void PcapTranslateIPToDevice(char *pcap_dev, size_t len);
 #define LIBPCAP_COPYWAIT    500
 #define LIBPCAP_PROMISC     1
 
+struct PcapFileSharedVars_;
+
 /* per packet Pcap vars */
 typedef struct PcapPacketVars_
 {
     uint32_t tenant_id;
+    /* Will be NULL for capture methods other
+     * than pcap-file.  */
+    struct PcapFileSharedVars_ *shared;
 } PcapPacketVars;
 
 /** needs to be able to contain Windows adapter id's, so

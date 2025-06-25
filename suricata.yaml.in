@@ -892,6 +892,7 @@ pcap-file:
 
   # tenant-id: none # applies in multi-tenant environment with "direct" selector
   # delete-when-done: false # applies to file and directory
+  # delete-no-alerts-only: false # if true, --pcap-file-delete will only remove pcaps that have generated no alerts
 
   # PCAP Directory Processing options
   # recursive: false
