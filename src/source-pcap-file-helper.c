@@ -30,6 +30,10 @@
 #include "util-profiling.h"
 #include "source-pcap-file.h"
 #include "util-exception-policy.h"
+#include <unistd.h>
+#include "detect-engine-alert.h" /* For AlertCounter */
+#include "conf-yaml-loader.h"    /* For SCConfYamlLoadString */
+#include "util-unittest.h"
 
 extern uint32_t max_pending_packets;
 extern PcapFileGlobalVars pcap_g;
@@ -44,7 +48,7 @@ void CleanupPcapFileFileVars(PcapFileFileVars *pfv)
             pfv->pcap_handle = NULL;
         }
         if (pfv->filename != NULL) {
-            if (pfv->shared != NULL && pfv->shared->should_delete) {
+            if (ShouldDeletePcapFile(pfv)) {
                 SCLogDebug("Deleting pcap file %s", pfv->filename);
                 if (unlink(pfv->filename) != 0) {
                     SCLogWarning("Failed to delete %s: %s", pfv->filename, strerror(errno));
@@ -83,6 +87,7 @@ void PcapFileCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt)
     p->pcap_cnt = ++pcap_g.cnt;
 
     p->pcap_v.tenant_id = ptv->shared->tenant_id;
+    p->pcap_v.shared = ptv->shared;
     ptv->shared->pkts++;
     ptv->shared->bytes += h->caplen;
 
@@ -236,6 +241,10 @@ TmEcode InitPcapFile(PcapFileFileVars *pfv)
         pcap_freecode(&pfv->filter);
     }
 
+    if (pfv->shared != NULL) {
+        pfv->alerts_start = SC_ATOMIC_GET(pfv->shared->alerts_total);
+    }
+
     pfv->datalink = pcap_datalink(pfv->pcap_handle);
     SCLogDebug("datalink %" PRId32 "", pfv->datalink);
     DatalinkSetGlobalType(pfv->datalink);
@@ -285,3 +294,173 @@ TmEcode ValidateLinkType(int datalink, DecoderFunc *DecoderFn)
 
     SCReturnInt(TM_ECODE_OK);
 }
+
+bool ShouldDeletePcapFile(PcapFileFileVars *pfv)
+{
+    if (pfv == NULL || pfv->shared == NULL)
+        return false;
+
+    if (!pfv->shared->should_delete) {
+        return false;
+    }
+
+    uint64_t alerts_before = pfv->alerts_start;
+    uint64_t alerts_now = SC_ATOMIC_GET(pfv->shared->alerts_total);
+    uint64_t file_alerts = alerts_now - alerts_before;
+
+    if (!pfv->shared->delete_no_alerts_only) {
+        return true;
+    }
+
+    if (file_alerts != 0) {
+        SCLogInfo("Skipping deletion of %s due to %" PRIu64 " alert(s) generated.", pfv->filename,
+                file_alerts);
+        return false;
+    }
+
+    return true;
+}
+
+#ifdef UNITTESTS
+/**
+ * \test Tests that the ShouldDeletePcapFile function correctly applies the
+ * delete-no-alerts-only configuration.
+ */
+static int SourcePcapFileHelperTest01(void)
+{
+    PcapFileSharedVars shared;
+    memset(&shared, 0, sizeof(shared));
+    shared.should_delete = true;
+    shared.delete_no_alerts_only = false;
+    SC_ATOMIC_INIT(shared.alerts_total);
+    SC_ATOMIC_SET(shared.alerts_total, 0);
+
+    PcapFileFileVars pfv;
+    memset(&pfv, 0, sizeof(pfv));
+    pfv.shared = &shared;
+    pfv.filename = SCStrdup("test.pcap");
+    pfv.alerts_start = 0;
+
+    /* Test case 1: Basic delete with no alerts filter disabled */
+    int result1 = ShouldDeletePcapFile(&pfv);
+    FAIL_IF(result1 != true);
+
+    /* Test case 2: With delete_no_alerts_only=true, but no alerts */
+    shared.delete_no_alerts_only = true;
+    int result2 = ShouldDeletePcapFile(&pfv);
+    FAIL_IF(result2 != true);
+
+    /* Test case 3: With delete_no_alerts_only=true, and alerts */
+    SC_ATOMIC_ADD(shared.alerts_total, 1);
+    int result3 = ShouldDeletePcapFile(&pfv);
+    FAIL_IF(result3 != false);
+
+    /* Test case 4: With delete_no_alerts_only=false and alerts */
+    shared.delete_no_alerts_only = false;
+    int result4 = ShouldDeletePcapFile(&pfv);
+    FAIL_IF(result4 != true);
+
+    /* Test case 5: With should_delete=false */
+    shared.should_delete = false;
+    int result5 = ShouldDeletePcapFile(&pfv);
+    FAIL_IF(result5 != false);
+
+    SCFree(pfv.filename);
+
+    PASS;
+}
+
+/**
+ * \test Test that alert counters are properly incremented
+ */
+static int SourcePcapFileHelperTest02(void)
+{
+    PcapFileSharedVars shared;
+    memset(&shared, 0, sizeof(shared));
+    SC_ATOMIC_INIT(shared.alerts_total);
+    SC_ATOMIC_SET(shared.alerts_total, 0);
+
+    Packet p;
+    memset(&p, 0, sizeof(p));
+    p.pcap_v.shared = &shared;
+
+    p.alerts.cnt = 2;
+    AlertCounter(&p);
+
+    uint64_t alerts_count = SC_ATOMIC_GET(shared.alerts_total);
+    FAIL_IF(alerts_count != 2);
+
+    /* Add another alert and check update correctly */
+    p.alerts.cnt = 3;
+    AlertCounter(&p);
+
+    alerts_count = SC_ATOMIC_GET(shared.alerts_total);
+    FAIL_IF(alerts_count != 5);
+
+    PASS;
+}
+
+/* Mock for configuration testing */
+static int SetupYamlConf(const char *conf_string)
+{
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    return SCConfYamlLoadString(conf_string, strlen(conf_string));
+}
+
+static void CleanupYamlConf(void)
+{
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
+}
+
+/**
+ * \test Test that configuration is properly parsed
+ */
+static int SourcePcapFileHelperTest03(void)
+{
+    int result = 0;
+    PcapFileSharedVars shared;
+    memset(&shared, 0, sizeof(shared));
+    int delete_no_alerts_only = 0;
+
+    const char *conf_string = "%YAML 1.1\n"
+                              "---\n"
+                              "pcap-file:\n"
+                              "  delete-no-alerts-only: true\n";
+
+    SetupYamlConf(conf_string);
+
+    result = SCConfGetBool("pcap-file.delete-no-alerts-only", &delete_no_alerts_only);
+    FAIL_IF(result != 1);
+    FAIL_IF(delete_no_alerts_only != 1);
+
+    CleanupYamlConf();
+
+    const char *conf_string2 = "%YAML 1.1\n"
+                               "---\n"
+                               "pcap-file:\n"
+                               "  delete-no-alerts-only: false\n";
+
+    SetupYamlConf(conf_string2);
+
+    result = SCConfGetBool("pcap-file.delete-no-alerts-only", &delete_no_alerts_only);
+    FAIL_IF(result != 1);
+    FAIL_IF(delete_no_alerts_only != 0);
+
+    CleanupYamlConf();
+
+    PASS;
+}
+
+/**
+ * \brief Register unit tests for pcap file helper
+ */
+void SourcePcapFileHelperRegisterTests(void)
+{
+    UtRegisterTest("SourcePcapFileHelperTest01", SourcePcapFileHelperTest01);
+    UtRegisterTest("SourcePcapFileHelperTest02", SourcePcapFileHelperTest02);
+    UtRegisterTest("SourcePcapFileHelperTest03", SourcePcapFileHelperTest03);
+}
+#endif /* UNITTESTS */

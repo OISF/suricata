@@ -48,6 +48,10 @@ typedef struct PcapFileSharedVars_
 
     bool should_delete;
 
+    bool delete_no_alerts_only;
+
+    SC_ATOMIC_DECLARE(uint64_t, alerts_total);
+
     ThreadVars *tv;
     TmSlot *slot;
 
@@ -81,6 +85,7 @@ typedef struct PcapFileFileVars_
     const u_char *first_pkt_data;
     struct pcap_pkthdr *first_pkt_hdr;
     struct timeval first_pkt_ts;
+    uint64_t alerts_start;
 
     /** flex array member for the libc io read buffer. Size controlled by
      * PcapFileGlobalVars::read_buffer_size. */
@@ -120,5 +125,11 @@ void CleanupPcapFileFileVars(PcapFileFileVars *pfv);
 TmEcode ValidateLinkType(int datalink, DecoderFunc *decoder);
 
 const char *PcapFileGetFilename(void);
+
+bool ShouldDeletePcapFile(PcapFileFileVars *pfv);
+
+#ifdef UNITTESTS
+void SourcePcapFileHelperRegisterTests(void);
+#endif
 
 #endif /* SURICATA_SOURCE_PCAP_FILE_HELPER_H */

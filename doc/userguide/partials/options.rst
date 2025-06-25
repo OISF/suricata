@@ -85,6 +85,10 @@
    continuously feed files to a directory and have them cleaned up when done. If
    this option is not set, pcap files will not be deleted after processing.
 
+   The behavior of this option can be further controlled using the
+   ``pcap-file.delete-no-alerts-only`` configuration option in ``suricata.yaml``.
+   When set to ``true``, only pcap files that have generated no alerts will be deleted.
+
 .. _cmdline-option-pcap-file-buffer-size:
 
 .. option:: --pcap-file-buffer-size <value>
