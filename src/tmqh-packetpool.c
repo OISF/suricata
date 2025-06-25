@@ -34,6 +34,7 @@
 #include "util-profiling.h"
 #include "util-validate.h"
 #include "action-globals.h"
+#include "source-pcap-file-helper.h"
 
 extern uint32_t max_pending_packets;
 
@@ -229,6 +230,11 @@ void PacketPoolReturnPacket(Packet *p)
             SCCondSignal(&pool->return_stack.cond);
             SCMutexUnlock(&pool->return_stack.mutex);
         }
+    }
+
+    if (p->pcap_v.pfv != NULL) {
+        SC_ATOMIC_SUB(p->pcap_v.pfv->refcnt, 1);
+        p->pcap_v.pfv = NULL;
     }
 }
 
