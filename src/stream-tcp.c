@@ -1800,7 +1800,7 @@ static inline bool StateSynSentValidateTimestamp(TcpSession *ssn, Packet *p)
 
 static void TcpStateQueueInitFromSsnSyn(const TcpSession *ssn, TcpStateQueue *q)
 {
-    BUG_ON(ssn->state != TCP_SYN_SENT); // TODO
+    DEBUG_VALIDATE_BUG_ON(ssn->state != TCP_SYN_SENT); // TODO
     memset(q, 0, sizeof(*q));
 
     /* SYN won't use wscale yet. So window should be limited to 16 bits. */

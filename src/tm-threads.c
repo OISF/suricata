@@ -2360,7 +2360,7 @@ void TmThreadsInitThreadsTimestamp(const SCTime_t ts)
 
 SCTime_t TmThreadsGetThreadTime(const int idx)
 {
-    BUG_ON(idx == 0);
+    DEBUG_VALIDATE_BUG_ON(idx == 0);
     const int i = idx - 1;
     Thread *t = &thread_store.threads[i];
     return SC_ATOMIC_GET(t->pktts);

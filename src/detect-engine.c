@@ -4630,7 +4630,7 @@ DetectEngineCtx *DetectEngineGetByTenantId(uint32_t tenant_id)
 
 void DetectEngineDeReference(DetectEngineCtx **de_ctx)
 {
-    BUG_ON((*de_ctx)->ref_cnt == 0);
+    DEBUG_VALIDATE_BUG_ON((*de_ctx)->ref_cnt == 0);
     (*de_ctx)->ref_cnt--;
     *de_ctx = NULL;
 }

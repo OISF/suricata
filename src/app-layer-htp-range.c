@@ -607,7 +607,7 @@ static void HttpRangeBlockDerefContainer(HttpRangeContainerBlock *b)
 void HttpRangeFreeBlock(HttpRangeContainerBlock *b)
 {
     if (b) {
-        BUG_ON(b->container == NULL && b->files != NULL);
+        DEBUG_VALIDATE_BUG_ON(b->container == NULL && b->files != NULL);
         const StreamingBufferConfig *sbcfg = b->container ? b->container->sbcfg : NULL;
 
         HttpRangeBlockDerefContainer(b);
