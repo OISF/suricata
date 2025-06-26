@@ -939,7 +939,9 @@ impl ConnectionParser {
         if self.response_data_other_at_tx_end {
             // We do. Let's yield then.
             self.response_data_other_at_tx_end = false;
-            return Err(HtpStatus::DATA_OTHER);
+            if self.response_index() == self.request_index() {
+                return Err(HtpStatus::DATA_OTHER);
+            }
         }
         Ok(())
     }
