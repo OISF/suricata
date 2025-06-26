@@ -982,7 +982,7 @@ static void DNP3HandleUserDataResponse(
         tx->iin = *iin;
     }
 
-    BUG_ON(tx->is_request);
+    DEBUG_VALIDATE_BUG_ON(tx->is_request);
 
     if (!DNP3ReassembleApplicationLayer(input + sizeof(DNP3LinkHeader),
                 input_len - sizeof(DNP3LinkHeader), &tx->buffer, &tx->buffer_len)) {

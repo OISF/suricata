@@ -368,7 +368,7 @@ static SCError SCLogMessageGetBuffer(SCTime_t tval, bool color, SCLogOPType type
     /* no of characters_written(cw) by snprintf */
     int cw = 0;
 
-    BUG_ON(sc_log_module_initialized != 1);
+    DEBUG_VALIDATE_BUG_ON(sc_log_module_initialized != 1);
 
     /* make a copy of the format string as it will be modified below */
     const int add_M = strstr(log_format, "%M") == NULL;

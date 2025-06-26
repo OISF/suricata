@@ -326,7 +326,7 @@ static int FrameJson(ThreadVars *tv, JsonFrameLogThread *aft, const Packet *p)
 {
     FrameJsonOutputCtx *json_output_ctx = aft->json_output_ctx;
 
-    BUG_ON(p->flow == NULL);
+    DEBUG_VALIDATE_BUG_ON(p->flow == NULL);
 
     FramesContainer *frames_container = AppLayerFramesGetContainer(p->flow);
     if (frames_container == NULL)
@@ -336,8 +336,8 @@ static int FrameJson(ThreadVars *tv, JsonFrameLogThread *aft, const Packet *p)
         return FrameJsonUdp(tv, aft, p, p->flow, frames_container);
     }
 
-    BUG_ON(p->proto != IPPROTO_TCP);
-    BUG_ON(p->flow->protoctx == NULL);
+    DEBUG_VALIDATE_BUG_ON(p->proto != IPPROTO_TCP);
+    DEBUG_VALIDATE_BUG_ON(p->flow->protoctx == NULL);
 
     /* TODO can we set these EOF flags once per packet? We have them in detect, tx, file, filedata,
      * etc */
