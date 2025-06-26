@@ -696,7 +696,7 @@ static int StatsOutput(ThreadVars *tv)
     sts = stats_ctx->sts;
     SCLogDebug("sts %p", sts);
     while (sts != NULL) {
-        BUG_ON(thread < 0);
+        DEBUG_VALIDATE_BUG_ON(thread < 0);
 
         SCLogDebug("Thread %d %s ctx %p", thread, sts->name, sts->ctx);
 
@@ -1104,10 +1104,14 @@ static int StatsThreadRegister(const char *thread_name, StatsPublicThreadContext
         id = HashTableLookup(stats_ctx->counters_id_hash, &t, sizeof(t));
         if (id == NULL) {
             id = SCCalloc(1, sizeof(*id));
-            BUG_ON(id == NULL);
+            DEBUG_VALIDATE_BUG_ON(id == NULL);
             id->id = counters_global_id++;
             id->string = pc->name;
-            BUG_ON(HashTableAdd(stats_ctx->counters_id_hash, id, sizeof(*id)) < 0);
+#ifdef DEBUG_VALIDATION
+            DEBUG_VALIDATE_BUG_ON(HashTableAdd(stats_ctx->counters_id_hash, id, sizeof(*id)) < 0);
+#else
+            HashTableAdd(stats_ctx->counters_id_hash, id, sizeof(*id));
+#endif
         }
         pc->gid = id->id;
         pc = pc->next;

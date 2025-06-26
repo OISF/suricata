@@ -1090,7 +1090,7 @@ static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
         }
     }
 
-    BUG_ON((direction & ftpdata_state->direction) == 0); // should be unreachable
+    DEBUG_VALIDATE_BUG_ON((direction & ftpdata_state->direction) == 0); // should be unreachable
     if (eof) {
         ret = FileCloseFile(ftpdata_state->files, &sbcfg, NULL, 0, flags);
         ftpdata_state->state = FTPDATA_STATE_FINISHED;

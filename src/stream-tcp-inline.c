@@ -98,7 +98,7 @@ int StreamTcpInlineSegmentCompare(const TcpStream *stream,
 
         uint32_t range = end - seq;
         SCLogDebug("range %u", range);
-        BUG_ON(range > 65536);
+        DEBUG_VALIDATE_BUG_ON(range > 65536);
 
         if (range) {
             int r = SCMemcmp(p->payload + pkt_off, seg_data + seg_off, range);
@@ -154,7 +154,7 @@ void StreamTcpInlineSegmentReplacePacket(const TcpStream *stream,
 
     uint32_t range = end - seq;
     SCLogDebug("range %u", range);
-    BUG_ON(range > 65536);
+    DEBUG_VALIDATE_BUG_ON(range > 65536);
 
     if (range) {
         /* update the packets payload. As payload is a ptr to either
