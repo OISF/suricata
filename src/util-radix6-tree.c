@@ -240,7 +240,7 @@ static void SCRadix6ValidateIPv6Key(uint8_t *key, const uint8_t netmask)
         PrintInet(AF_INET6, (void *)&address, ostr, sizeof(ostr));
         PrintInet(AF_INET6, (void *)&masked, nstr, sizeof(nstr));
         SCLogNotice("input %s/%u != expected %s/%u", ostr, netmask, nstr, netmask);
-        abort();
+        DEBUG_VALIDATE_BUG_ON(1);
     }
 }
 #endif
