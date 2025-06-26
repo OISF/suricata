@@ -600,7 +600,8 @@ static THashData *THashDataGetNew(THashTableContext *ctx, void *data)
     }
 
     // setup the data
-    DEBUG_VALIDATE_BUG_ON(ctx->config.DataSet(h->data, data) != 0);
+    int r = ctx->config.DataSet(h->data, data);
+    DEBUG_VALIDATE_BUG_ON(r != 0);
     (void) SC_ATOMIC_ADD(ctx->counter, 1);
     SCMutexLock(&h->m);
     return h;
