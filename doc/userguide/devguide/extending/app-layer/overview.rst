@@ -22,11 +22,12 @@ Parser
 
 The parser is described by an instance of the structure ``RustParser``.
 
-A parser has 
+A parser has :
+
 - a name (where it is better to avoid dashes)
 - an ipproto (if an app-layer is both over UDP and TCP, it needs to be registered with 2 RustParser)
 - flags : only one flag ``APP_LAYER_PARSER_OPT_ACCEPT_GAPS``
-- some app-layer detection logic see :ref:`devguide/internals/engines:Protocol detection`.
+- some app-layer detection logic see :ref:`Protocol detection`.
 - some logic around one state and one transaction structures
 - some stringers functions (frames, events)
 
@@ -34,7 +35,7 @@ So each app-layer protocol needs to define two structures : one State and one Tr
 A State will live throughout the flow (or until there is a protocol change in the flow).
 As such, it is useful to retain data that needs such a scope (for example HTTP2 dynamic headers table).
 And it is also useful if the parsing uses a state-machine logic, for example for file streaming.
-A State will own a list of `transactions`_.
+A State will own a list of :ref:`transactions`.
 
 Transactions
 ------------
