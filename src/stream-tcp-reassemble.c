@@ -1147,7 +1147,7 @@ static bool GetAppBuffer(const TcpStream *stream, const uint8_t **data, uint32_t
             SCLogDebug("blk at offset");
 
             StreamingBufferSBBGetData(&stream->sb, blk, data, data_len);
-            BUG_ON(blk->len != *data_len);
+            DEBUG_VALIDATE_BUG_ON(blk->len != *data_len);
 
             gap_ahead = check_for_gap && GapAhead(stream, blk);
 
@@ -1249,7 +1249,7 @@ static inline uint32_t AdjustToAcked(const Packet *p,
             if (app_progress <= last_ack_abs && app_progress + data_len > last_ack_abs) {
                 uint32_t check = data_len;
                 adjusted = (uint32_t)(last_ack_abs - app_progress);
-                BUG_ON(adjusted > check);
+                DEBUG_VALIDATE_BUG_ON(adjusted > check);
                 SCLogDebug("data len adjusted to %u to make sure only ACK'd "
                         "data is considered", adjusted);
             }
@@ -1750,7 +1750,7 @@ static int StreamReassembleRawInline(TcpSession *ssn, const Packet *p,
 
     /* run the callback */
     r = Callback(cb_data, mydata, mydata_len, mydata_offset);
-    BUG_ON(r < 0);
+    DEBUG_VALIDATE_BUG_ON(r < 0);
 
     if (return_progress) {
         *progress_out = (mydata_offset + mydata_len);
@@ -1849,7 +1849,7 @@ static int StreamReassembleRawDo(const TcpSession *ssn, const TcpStream *stream,
             if (progress + mydata_len > re) {
                 uint32_t check = mydata_len;
                 mydata_len = (uint32_t)(re - progress);
-                BUG_ON(check < mydata_len);
+                DEBUG_VALIDATE_BUG_ON(check < mydata_len);
                 SCLogDebug("data len adjusted to %u to make sure only ACK'd "
                         "data is considered", mydata_len);
             }
@@ -1861,7 +1861,7 @@ static int StreamReassembleRawDo(const TcpSession *ssn, const TcpStream *stream,
 
         /* we have data. */
         r = Callback(cb_data, mydata, mydata_len, mydata_offset);
-        BUG_ON(r < 0);
+        DEBUG_VALIDATE_BUG_ON(r < 0);
 
         if (mydata_offset == progress) {
             SCLogDebug("progress %"PRIu64" increasing with data len %u to %"PRIu64,

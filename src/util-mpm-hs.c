@@ -1049,8 +1049,8 @@ uint32_t SCHSSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
 
     /* scratch should have been cloned from g_scratch_proto at thread init. */
     hs_scratch_t *scratch = hs_thread_ctx->scratch;
-    BUG_ON(pd->hs_db == NULL);
-    BUG_ON(scratch == NULL);
+    DEBUG_VALIDATE_BUG_ON(pd->hs_db == NULL);
+    DEBUG_VALIDATE_BUG_ON(scratch == NULL);
 
     hs_error_t err = hs_scan(pd->hs_db, (const char *)buf, buflen, 0, scratch,
                              SCHSMatchEvent, &cctx);
