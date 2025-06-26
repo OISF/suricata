@@ -2707,7 +2707,7 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
             SCConfNodeRemove(node); /* frees node */
         }
 #if 0
-        ConfDump();
+        SCConfDump();
 #endif
     }
 
@@ -4813,7 +4813,7 @@ int DetectEngineReload(const SCInstance *suri)
         }
 
 #if 0
-        ConfDump();
+        SCConfDump();
 #endif
     }
 
