@@ -214,7 +214,7 @@ static int SCLogFileWriteNoLock(const char *buffer, int buffer_len, LogFileCtx *
 {
     int ret = 0;
 
-    BUG_ON(log_ctx->is_sock);
+    DEBUG_VALIDATE_BUG_ON(log_ctx->is_sock);
 
     /* Check for rotation. */
     if (log_ctx->rotation_flag) {
