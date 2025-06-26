@@ -865,11 +865,9 @@ int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature
      */
     if (s->init_data->buffer_index == 0 && s->init_data->hook.type == SIGNATURE_HOOK_TYPE_APP) {
         uint8_t dir = 0;
-        if ((s->flags & (SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT)) ==
-                (SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT))
-            abort();
-        if ((s->flags & (SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT)) == 0)
-            abort();
+        BUG_ON((s->flags & (SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT)) ==
+                (SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT));
+        BUG_ON((s->flags & (SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT)) == 0);
         if (s->flags & SIG_FLAG_TOSERVER)
             dir = 0;
         else if (s->flags & SIG_FLAG_TOCLIENT)

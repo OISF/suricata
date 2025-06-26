@@ -1501,7 +1501,7 @@ static void TmThreadDebugValidateNoMorePackets(void)
         if (ThreadStillHasPackets(tv)) {
             SCMutexUnlock(&tv_root_lock);
             TmThreadDumpThreads();
-            abort();
+            DEBUG_VALIDATE_BUG_ON(1);
         }
     }
     SCMutexUnlock(&tv_root_lock);
