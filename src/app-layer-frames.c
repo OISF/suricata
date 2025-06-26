@@ -336,8 +336,8 @@ static int FrameSlide(const char *ds, Frames *frames, const TcpStream *stream, c
     const uint64_t next_base = STREAM_BASE_OFFSET(stream) + slide;
 #if defined(DEBUG) || defined(DEBUG_VALIDATION)
     const uint16_t start = frames->cnt;
-#endif
     uint16_t removed = 0;
+#endif
     uint16_t x = 0;
     for (uint16_t i = 0; i < frames->cnt; i++) {
         if (i < FRAMES_STATIC_CNT) {
@@ -347,7 +347,9 @@ static int FrameSlide(const char *ds, Frames *frames, const TcpStream *stream, c
                 // remove by not incrementing 'x'
                 SCLogDebug("removing %p id %" PRIi64, frame, frame->id);
                 FrameClean(frame);
+#if defined(DEBUG) || defined(DEBUG_VALIDATION)
                 removed++;
+#endif
             } else {
                 Frame *nframe = &frames->sframes[x];
                 FrameCopy(nframe, frame);
@@ -365,7 +367,9 @@ static int FrameSlide(const char *ds, Frames *frames, const TcpStream *stream, c
                 // remove by not incrementing 'x'
                 SCLogDebug("removing %p id %" PRIi64, frame, frame->id);
                 FrameClean(frame);
+#if defined(DEBUG) || defined(DEBUG_VALIDATION)
                 removed++;
+#endif
             } else {
                 Frame *nframe;
                 if (x >= FRAMES_STATIC_CNT) {
