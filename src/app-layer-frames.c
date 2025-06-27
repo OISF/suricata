@@ -764,8 +764,8 @@ static void FramePrune(Frames *frames, const TcpStream *stream, const bool eof)
 
 #if defined(DEBUG) || defined(DEBUG_VALIDATION)
     const uint16_t start = frames->cnt;
-#endif
     uint16_t removed = 0;
+#endif
     uint16_t x = 0;
     for (uint16_t i = 0; i < frames->cnt; i++) {
         if (i < FRAMES_STATIC_CNT) {
@@ -776,7 +776,9 @@ static void FramePrune(Frames *frames, const TcpStream *stream, const bool eof)
                 SCLogDebug("removing %p id %" PRIi64, frame, frame->id);
                 FrameDebug("remove(s)", frames, frame);
                 FrameClean(frame);
+#if defined(DEBUG) || defined(DEBUG_VALIDATION)
                 removed++;
+#endif
             } else {
                 const uint64_t fle = FrameLeftEdge(stream, frame);
                 le = MIN(le, fle);
@@ -797,7 +799,9 @@ static void FramePrune(Frames *frames, const TcpStream *stream, const bool eof)
                 SCLogDebug("removing %p id %" PRIi64, frame, frame->id);
                 FrameDebug("remove(d)", frames, frame);
                 FrameClean(frame);
+#if defined(DEBUG) || defined(DEBUG_VALIDATION)
                 removed++;
+#endif
             } else {
                 const uint64_t fle = FrameLeftEdge(stream, frame);
                 le = MIN(le, fle);
