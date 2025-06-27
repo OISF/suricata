@@ -33,7 +33,7 @@ pub struct DetectDnsOpcode {
 /// the details of the error.
 fn parse_opcode(opcode: &str) -> Result<DetectDnsOpcode, ()> {
     let mut negated = false;
-    for (i, c) in opcode.chars().enumerate() {
+    for (i, c) in opcode.char_indices() {
         match c {
             ' ' | '\t' => {
                 continue;
