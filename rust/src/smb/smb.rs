@@ -1789,6 +1789,8 @@ impl SMBState {
                                         Ok((_, ref smb_record)) => {
                                             let pdu_frame = self.add_smb1_tc_pdu_frame(flow, stream_slice, nbss_hdr.data, nbss_hdr.length as i64);
                                             self.add_smb1_tc_hdr_data_frames(flow, stream_slice, nbss_hdr.data, nbss_hdr.length as i64);
+                                            // see https://github.com/rust-lang/rust-clippy/issues/15158
+                                            #[allow(clippy::collapsible_else_if)]
                                             if smb_record.is_response() {
                                                 smb1_response_record(self, smb_record);
                                             } else {
@@ -1812,6 +1814,8 @@ impl SMBState {
                                                 let record_len = (nbss_data.len() - nbss_data_rem.len()) as i64;
                                                 let pdu_frame = self.add_smb2_tc_pdu_frame(flow, stream_slice, nbss_data, record_len);
                                                 self.add_smb2_tc_hdr_data_frames(flow, stream_slice, nbss_data, record_len, smb_record.header_len as i64);
+                                                // see https://github.com/rust-lang/rust-clippy/issues/15158
+                                                #[allow(clippy::collapsible_else_if)]
                                                 if smb_record.is_response() {
                                                     smb2_response_record(self, smb_record);
                                                 } else {
@@ -2094,6 +2098,8 @@ fn smb_probe_tcp_midstream(direction: Direction, slice: &[u8], rdir: *mut u8, be
             if smb.version == 0xff_u8 { // SMB1
                 SCLogDebug!("SMBv1 record");
                 if let Ok((_, ref smb_record)) = parse_smb_record(data) {
+                    // see https://github.com/rust-lang/rust-clippy/issues/15158
+                    #[allow(clippy::collapsible_else_if)]
                     if smb_record.flags & 0x80 != 0 {
                         SCLogDebug!("RESPONSE {:02x}", smb_record.flags);
                         if direction == Direction::ToServer {
@@ -2110,6 +2116,8 @@ fn smb_probe_tcp_midstream(direction: Direction, slice: &[u8], rdir: *mut u8, be
             } else if smb.version == 0xfe_u8 { // SMB2
                 SCLogDebug!("SMB2 record");
                 if let Ok((_, ref smb_record)) = parse_smb2_record_direction(data) {
+                    // see https://github.com/rust-lang/rust-clippy/issues/15158
+                    #[allow(clippy::collapsible_else_if)]
                     if direction == Direction::ToServer {
                         SCLogDebug!("direction Direction::ToServer smb_record {:?}", smb_record);
                         if !smb_record.request {
