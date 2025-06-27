@@ -296,6 +296,8 @@ impl SSHState {
                 return r;
             }
             Err(Err::Incomplete(_)) => {
+                // see https://github.com/rust-lang/rust-clippy/issues/15158
+                #[allow(clippy::collapsible_else_if)]
                 if input.len() < SSH_MAX_BANNER_LEN {
                     //0 consumed, needs at least one more byte
                     return AppLayerResult::incomplete(0_u32, (input.len() + 1) as u32);
