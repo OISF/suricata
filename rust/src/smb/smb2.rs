@@ -679,13 +679,7 @@ pub fn smb2_response_record(state: &mut SMBState, r: &Smb2Record)
                         /* search key-guid map */
                         let guid_key = SMBCommonHdr::new(SMBHDR_TYPE_GUID,
                                 r.session_id, r.tree_id, r.message_id);
-                        let _guid_vec = match state.ssn2vec_map.remove(&guid_key) {
-                            Some(p) => p,
-                            None => {
-                                SCLogDebug!("SMBv2 response: GUID NOT FOUND");
-                                Vec::new()
-                            },
-                        };
+                        let _guid_vec = state.ssn2vec_map.remove(&guid_key).unwrap_or_default();
                         SCLogDebug!("SMBv2 write response for GUID {:?}", _guid_vec);
                     }
                     _ => {
