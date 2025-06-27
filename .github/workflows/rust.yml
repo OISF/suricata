@@ -61,7 +61,7 @@ jobs:
                 sudo \
                 which \
                 zlib-devel
-      - run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.85.0 -y
+      - run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.88.0 -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: cargo install bindgen-cli --version 0.66.0
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
