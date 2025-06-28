@@ -3742,28 +3742,36 @@
             "additionalProperties": false,
             "properties": {
                 "age": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "duration of the flow (measured from timestamp of last packet and first packet)"
                 },
                 "bytes": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "total number of bytes to client"
                 },
                 "end": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "date of the end of the flow"
                 },
                 "max_ttl": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "maximum observed Time-To-Live (TTL) value"
                 },
                 "min_ttl": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "minimum observed TTL value"
                 },
                 "pkts": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "total number of packets to client"
                 },
                 "start": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "date of start of the flow"
                 },
                 "tx_cnt": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "number of transactions seen in the flow (only present if flow has an application layer)"
                 }
             },
             "optional": true
