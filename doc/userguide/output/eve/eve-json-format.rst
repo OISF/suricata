@@ -3147,3 +3147,30 @@ Example of POP3 logging:
           "data": []
       }
    }
+
+Event type: Netflow
+-------------------
+
+Fields
+~~~~~~
+
+* "age": duration of the flow (measured from timestamp of last packet and first packet)
+* "bytes": total number of bytes to client
+* "end": date of the end of the flow
+* "max_ttl": maximum Time-To-Live (TTL) observed value
+* "min_ttl": minimum TTL observed value
+* "pkts": total number of packets to client
+* "start": date of start of the flow
+* "tx_cnt": number of transactions seen in the flow (only present if flow has an application layer)
+
+Example ::
+
+ "netflow": {
+    "pkts": 1,
+    "bytes": 160,
+    "start": "2013-02-26T17:02:42.907340-0500",
+    "end": "2013-02-26T17:02:42.907340-0500",
+    "age": 0,
+    "min_ttl": 1,
+    "max_ttl": 1
+  }
