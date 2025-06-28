@@ -3742,28 +3742,55 @@
             "additionalProperties": false,
             "properties": {
                 "age": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "Duration of the flow (measured from timestamp of last packet and first packet)",
+                    "suricata": {
+                        "keywords": [
+                            "flow.age"
+                        ]
+                    }
                 },
                 "bytes": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "Total number of bytes transferred to server/client",
+                    "suricata": {
+                        "keywords": [
+                            "flow.bytes",
+                            "flow.bytes_toserver",
+                            "flow.bytes_toclient"
+                        ]
+                    }
                 },
                 "end": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Date of the end of the flow"
                 },
                 "max_ttl": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "Maximum observed Time-To-Live (TTL) value"
                 },
                 "min_ttl": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "Minimum observed TTL value"
                 },
                 "pkts": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "Total number of packets transferred to server,client",
+                    "suricata": {
+                        "keywords": [
+                            "flow.pkts",
+                            "flow.pkts_toserver",
+                            "flow.pkts_toclient"
+                        ]
+                    }
                 },
                 "start": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Date of start of the flow"
                 },
                 "tx_cnt": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "Number of transactions seen in the flow (only present if flow has an application layer)"
                 }
             },
             "optional": true
