@@ -348,6 +348,23 @@ YAML::
 The logger is disabled by default since ARP can generate a large
 number of events.
 
+Netflow
+~~~~~~~
+
+Netflow records closely relate to flow records except that they are unidirectional while flow records
+are bidirectional. This means that there will be twice as many netflow records as there are flow records.
+
+Netflow records are disabled by default.
+
+YAML::
+
+      #- netflow
+
+To enable netflow, change this to::
+
+      - netflow:
+          enabled: yes
+
 MQTT
 ~~~~
 
