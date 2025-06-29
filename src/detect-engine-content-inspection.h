@@ -74,6 +74,10 @@ bool DetectEngineContentInspectionBuffer(DetectEngineCtx *de_ctx, DetectEngineTh
  *  \retval bool true to match on absent buffer, false otherwise */
 bool DetectContentInspectionMatchOnAbsentBuffer(const SigMatchData *smd);
 
+int DetectEngineContentInspectionBufferMulti(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const Signature *s, const SigMatchData *smd, Flow *f,
+        const InspectionBuffer *b, uint32_t local_id);
+
 void DetectEngineContentInspectionRegisterTests(void);
 
 #endif /* SURICATA_DETECT_ENGINE_CONTENT_INSPECTION_H */
