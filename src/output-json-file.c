@@ -233,7 +233,7 @@ static int JsonFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, co
     SCEnter();
     JsonFileLogThread *aft = (JsonFileLogThread *)thread_data;
 
-    BUG_ON(ff->flags & FILE_LOGGED);
+    DEBUG_VALIDATE_BUG_ON(ff->flags & FILE_LOGGED);
 
     SCLogDebug("ff %p", ff);
 

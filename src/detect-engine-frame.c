@@ -173,7 +173,7 @@ static void PrefilterMpmFrame(DetectEngineThreadCtx *det_ctx, const void *pectx,
             PREFILTER_PROFILING_ADD_BYTES(det_ctx, data_len);
         }
     } else if (p->proto == IPPROTO_TCP) {
-        BUG_ON(p->flow->protoctx == NULL);
+        DEBUG_VALIDATE_BUG_ON(p->flow->protoctx == NULL);
         TcpSession *ssn = p->flow->protoctx;
         TcpStream *stream;
         if (PKT_IS_TOSERVER(p)) {
@@ -228,7 +228,7 @@ int PrefilterGenericMpmFrameRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
 bool DetectRunFrameInspectRule(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, const Signature *s,
         Flow *f, Packet *p, const Frames *frames, const Frame *frame)
 {
-    BUG_ON(s->frame_inspect == NULL);
+    DEBUG_VALIDATE_BUG_ON(s->frame_inspect == NULL);
 
     SCLogDebug("inspecting rule %u against frame %p/%" PRIi64 "/%s", s->id, frame, frame->id,
             AppLayerParserGetFrameNameById(f->proto, f->alproto, frame->type));
@@ -367,7 +367,7 @@ static bool BufferSetup(struct FrameStreamData *fsd, InspectionBuffer *buffer, c
             }
 
             /* in: relative to start of input data */
-            BUG_ON(so_inspect_offset < input_offset);
+            DEBUG_VALIDATE_BUG_ON(so_inspect_offset < input_offset);
             DEBUG_VALIDATE_BUG_ON(so_inspect_offset - input_offset > UINT32_MAX);
             const uint32_t in_data_offset = (uint32_t)(so_inspect_offset - input_offset);
             data += in_data_offset;
@@ -382,7 +382,7 @@ static bool BufferSetup(struct FrameStreamData *fsd, InspectionBuffer *buffer, c
             data_len = input_len - in_data_offset - in_data_excess;
         } else {
             /* in: relative to start of input data */
-            BUG_ON(so_inspect_offset < input_offset);
+            DEBUG_VALIDATE_BUG_ON(so_inspect_offset < input_offset);
             DEBUG_VALIDATE_BUG_ON(so_inspect_offset - input_offset > UINT32_MAX);
             const uint32_t in_data_offset = (uint32_t)(so_inspect_offset - input_offset);
             data += in_data_offset;
@@ -475,7 +475,7 @@ static int FrameStreamDataInspectFunc(
     // PrintRawDataFp(stdout, data, data_len);
     // PrintRawDataFp(stdout, data, MIN(64, data_len));
 #endif
-    BUG_ON(fsd->frame->len > 0 && (int64_t)data_len > fsd->frame->len);
+    DEBUG_VALIDATE_BUG_ON(fsd->frame->len > 0 && (int64_t)data_len > fsd->frame->len);
 
     const bool match = DetectEngineContentInspection(det_ctx->de_ctx, det_ctx, s, engine->smd, p,
             p->flow, data, data_len, data_offset, buffer->flags,
@@ -578,7 +578,7 @@ int DetectEngineInspectFrameBufferGeneric(DetectEngineThreadCtx *det_ctx,
                ", list:%d, transforms:%p, s:%p, s->id:%u, engine:%p",
             p->pcap_cnt, frame->id, engine->sm_list, engine->v1.transforms, s, s->id, engine);
 
-    BUG_ON(p->flow->protoctx == NULL);
+    DEBUG_VALIDATE_BUG_ON(p->flow->protoctx == NULL);
     TcpSession *ssn = p->flow->protoctx;
     TcpStream *stream;
     if (PKT_IS_TOSERVER(p)) {

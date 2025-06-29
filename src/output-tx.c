@@ -158,7 +158,8 @@ static inline void OutputTxLogFiles(ThreadVars *tv, OutputFileLoggerThreadData *
         packet_dir_ready = eof | tc_ready | tc_eof;
         opposing_tx_ready = ts_ready;
     } else {
-        abort();
+        DEBUG_VALIDATE_BUG_ON(1);
+        return;
     }
 
     SCLogDebug("eof %d ts_ready %d ts_eof %d", eof, ts_ready, ts_eof);

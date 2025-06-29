@@ -215,7 +215,7 @@ static int NetmaskCount(RADIX_NODE_TYPE *node)
 static int ContainNetmaskAndSetUserData(
         RADIX_NODE_TYPE *node, uint8_t netmask, bool exact_match, void **user_data_result)
 {
-    BUG_ON(!node);
+    DEBUG_VALIDATE_BUG_ON(!node);
 
     RadixUserData *user_data = node->user_data;
     /* Check if we have a match for an exact ip.  An exact ip as in not a proper

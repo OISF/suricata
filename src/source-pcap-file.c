@@ -432,7 +432,7 @@ static TmEcode DecodePcapFile(ThreadVars *tv, Packet *p, void *data)
     SCEnter();
     DecodeThreadVars *dtv = (DecodeThreadVars *)data;
 
-    BUG_ON(PKT_IS_PSEUDOPKT(p));
+    DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
 
     /* update counters */
     DecodeUpdatePacketCounters(tv, dtv, p);

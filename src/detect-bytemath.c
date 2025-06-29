@@ -156,7 +156,7 @@ int DetectByteMathDoMatch(DetectEngineThreadCtx *det_ctx, const DetectByteMathDa
         }
     }
 
-    BUG_ON(extbytes > len);
+    DEBUG_VALIDATE_BUG_ON(extbytes > len);
 
     ptr += extbytes;
 

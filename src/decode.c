@@ -140,7 +140,7 @@ ExceptionPolicyStatsSetts flow_memcap_eps_stats = {
 PacketAlert *PacketAlertCreate(void)
 {
     PacketAlert *pa_array = SCCalloc(packet_alert_max, sizeof(PacketAlert));
-    BUG_ON(pa_array == NULL);
+    DEBUG_VALIDATE_BUG_ON(pa_array == NULL);
 
     return pa_array;
 }

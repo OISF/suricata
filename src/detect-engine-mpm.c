@@ -96,10 +96,8 @@ static void RegisterInternal(const char *name, int direction, int priority,
 
     BUG_ON(tx_min_progress >= 48);
 
-    if (PrefilterRegister == PrefilterGenericMpmRegister && GetData == NULL) {
-        // must register GetData with PrefilterGenericMpmRegister
-        abort();
-    }
+    // must register GetData with PrefilterGenericMpmRegister
+    BUG_ON(PrefilterRegister == PrefilterGenericMpmRegister && GetData == NULL);
 
     DetectBufferTypeSupportsMpm(name);
     DetectBufferTypeSupportsTransformations(name);
@@ -557,10 +555,8 @@ void DetectPktMpmRegister(const char *name, int priority,
     SCLogDebug("registering %s/%d/%p/%p", name, priority,
             PrefilterRegister, GetData);
 
-    if (PrefilterRegister == PrefilterGenericMpmPktRegister && GetData == NULL) {
-        // must register GetData with PrefilterGenericMpmRegister
-        abort();
-    }
+    // must register GetData with PrefilterGenericMpmRegister
+    BUG_ON(PrefilterRegister == PrefilterGenericMpmPktRegister && GetData == NULL);
 
     DetectBufferTypeSupportsMpm(name);
     DetectBufferTypeSupportsTransformations(name);
@@ -2156,8 +2152,7 @@ static void PrepareMpms(DetectEngineCtx *de_ctx, SigGroupHead *sh)
                 break;
             }
             default:
-                abort();
-                break;
+                BUG_ON(1);
         }
     }
 

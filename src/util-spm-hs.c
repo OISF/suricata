@@ -28,6 +28,7 @@
 #include "util-spm.h"
 #include "util-spm-hs.h"
 #include "util-debug.h"
+#include "util-validate.h"
 
 #ifdef BUILD_HYPERSCAN
 
@@ -41,7 +42,7 @@ static int MatchEvent(unsigned int id, unsigned long long from,
                       unsigned long long to, unsigned int flags, void *context)
 {
     uint64_t *match_offset = context;
-    BUG_ON(*match_offset != UINT64_MAX);
+    DEBUG_VALIDATE_BUG_ON(*match_offset != UINT64_MAX);
     *match_offset = to;
     return 1; /* Terminate matching. */
 }
@@ -158,7 +159,7 @@ static uint8_t *HSScan(const SpmCtx *ctx, SpmThreadCtx *thread_ctx,
         return NULL;
     }
 
-    BUG_ON(match_offset < sctx->needle_len);
+    DEBUG_VALIDATE_BUG_ON(match_offset < sctx->needle_len);
 
     /* Note: existing API returns non-const ptr */
     return (uint8_t *)haystack + (match_offset - sctx->needle_len);

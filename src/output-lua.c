@@ -292,7 +292,7 @@ static int LuaFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, con
     if ((!(PacketIsIPv4(p))) && (!(PacketIsIPv6(p))))
         return 0;
 
-    BUG_ON(ff->flags & FILE_LOGGED);
+    DEBUG_VALIDATE_BUG_ON(ff->flags & FILE_LOGGED);
 
     SCLogDebug("ff %p", ff);
 

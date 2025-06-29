@@ -118,7 +118,7 @@ static inline void InspectionBufferApplyTransformsInternal(DetectEngineThreadCtx
             const int id = transforms->transforms[i].transform;
             if (id == 0)
                 break;
-            BUG_ON(sigmatch_table[id].Transform == NULL);
+            DEBUG_VALIDATE_BUG_ON(sigmatch_table[id].Transform == NULL);
             sigmatch_table[id].Transform(det_ctx, buffer, transforms->transforms[i].options);
             SCLogDebug("applied transform %s", sigmatch_table[id].name);
         }

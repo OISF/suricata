@@ -218,7 +218,7 @@ static int DetectXbitTxMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t fl
         void *txv, const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectXbitsData *xd = (const DetectXbitsData *)ctx;
-    BUG_ON(xd == NULL);
+    DEBUG_VALIDATE_BUG_ON(xd == NULL);
 
     AppLayerTxData *txd = AppLayerParserGetTxData(f->proto, f->alproto, txv);
 

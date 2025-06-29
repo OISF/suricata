@@ -58,7 +58,7 @@ static void *LuaAlloc(void *ud, void *ptr, size_t osize, size_t nsize)
             /* This happens, ignore. */
             return NULL;
         }
-        BUG_ON(osize > ctx->alloc_bytes);
+        DEBUG_VALIDATE_BUG_ON(osize > ctx->alloc_bytes);
         SCFree(ptr);
         ctx->alloc_bytes -= osize;
         return NULL;
@@ -82,8 +82,8 @@ static void *LuaAlloc(void *ud, void *ptr, size_t osize, size_t nsize)
 
         void *nptr = SCRealloc(ptr, nsize);
         if (nptr != NULL) {
-            BUG_ON((ssize_t)ctx->alloc_bytes + diff < 0);
-            BUG_ON(osize > ctx->alloc_bytes);
+            DEBUG_VALIDATE_BUG_ON((ssize_t)ctx->alloc_bytes + diff < 0);
+            DEBUG_VALIDATE_BUG_ON(osize > ctx->alloc_bytes);
             ctx->alloc_bytes += diff;
         }
         return nptr;

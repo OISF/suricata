@@ -387,7 +387,7 @@ static InspectionBuffer *FiledataGetDataCallback(DetectEngineThreadCtx *det_ctx,
             }
         } else {
             uint64_t new_data = file_size - cur_file->content_inspected;
-            BUG_ON(new_data == 0);
+            DEBUG_VALIDATE_BUG_ON(new_data == 0);
             if (new_data < cur_file->inspect_window) {
                 uint64_t inspect_short = cur_file->inspect_window - new_data;
                 if (cur_file->content_inspected < inspect_short) {

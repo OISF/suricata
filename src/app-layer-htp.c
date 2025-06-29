@@ -340,7 +340,7 @@ static void HTPParserRegisterTests(void);
 static inline uint64_t HtpGetActiveRequestTxID(HtpState *s)
 {
     uint64_t id = HTPStateGetTxCnt(s);
-    BUG_ON(id == 0);
+    DEBUG_VALIDATE_BUG_ON(id == 0);
     return id - 1;
 }
 
@@ -1404,7 +1404,7 @@ static int HTPCallbackRequestBodyData(const htp_connp_t *connp, htp_tx_data_t *d
         uint32_t len = AppLayerHtpComputeChunkLength(tx_ud->request_body.content_len_so_far,
                 hstate->cfg->request.body_limit, stream_depth, tx_ud->tsflags,
                 (uint32_t)htp_tx_data_len(d));
-        BUG_ON(len > (uint32_t)htp_tx_data_len(d));
+        DEBUG_VALIDATE_BUG_ON(len > (uint32_t)htp_tx_data_len(d));
 
         HtpBodyAppendChunk(&tx_ud->request_body, htp_tx_data_data(d), len);
 
@@ -1525,7 +1525,7 @@ static int HTPCallbackResponseBodyData(const htp_connp_t *connp, htp_tx_data_t *
         uint32_t len = AppLayerHtpComputeChunkLength(tx_ud->response_body.content_len_so_far,
                 hstate->cfg->response.body_limit, stream_depth, tx_ud->tcflags,
                 (uint32_t)htp_tx_data_len(d));
-        BUG_ON(len > (uint32_t)htp_tx_data_len(d));
+        DEBUG_VALIDATE_BUG_ON(len > (uint32_t)htp_tx_data_len(d));
 
         HtpBodyAppendChunk(&tx_ud->response_body, htp_tx_data_data(d), len);
 

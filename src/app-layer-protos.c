@@ -50,7 +50,7 @@ const char *AppProtoToString(AppProto alproto)
             break;
         default:
             if (alproto < g_alproto_max) {
-                BUG_ON(g_alproto_strings[alproto].alproto != alproto);
+                DEBUG_VALIDATE_BUG_ON(g_alproto_strings[alproto].alproto != alproto);
                 proto_name = g_alproto_strings[alproto].str;
             }
     }
