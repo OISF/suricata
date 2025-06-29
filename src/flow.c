@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -141,6 +141,11 @@ uint64_t FlowGetMemuse(void)
 {
     uint64_t memusecopy = SC_ATOMIC_GET(flow_memuse);
     return memusecopy;
+}
+
+enum ExceptionPolicy FlowGetMemcapExceptionPolicy(void)
+{
+    return flow_config.memcap_policy;
 }
 
 void FlowCleanupAppLayer(Flow *f)
