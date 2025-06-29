@@ -58,13 +58,13 @@ int HTPFileOpen(HtpState *s, HtpTxUserData *tx, const uint8_t *filename, uint16_
 
     if (direction & STREAM_TOCLIENT) {
         files = &tx->files_tc;
-        flags = FileFlowFlagsToFlags(tx->tx_data.file_flags, STREAM_TOCLIENT);
+        flags = SCFileFlowFlagsToFlags(tx->tx_data.file_flags, STREAM_TOCLIENT);
 
         // we shall not open a new file if there is a current one
         DEBUG_VALIDATE_BUG_ON(tx->file_range != NULL);
     } else {
         files = &tx->files_ts;
-        flags = FileFlowFlagsToFlags(tx->tx_data.file_flags, STREAM_TOSERVER);
+        flags = SCFileFlowFlagsToFlags(tx->tx_data.file_flags, STREAM_TOSERVER);
     }
 
     if (FileOpenFileWithId(files, &htp_sbcfg, s->file_track_id++, filename, filename_len, data,
@@ -112,7 +112,7 @@ static int HTPParseAndCheckContentRange(
 {
     int r = HTPParseContentRange(rawvalue, range);
     if (r != 0) {
-        AppLayerDecoderEventsSetEventRaw(&htud->tx_data.events, HTTP_DECODER_EVENT_RANGE_INVALID);
+        SCAppLayerDecoderEventsSetEventRaw(&htud->tx_data.events, HTTP_DECODER_EVENT_RANGE_INVALID);
         s->events++;
         SCLogDebug("parsing range failed, going back to normal file");
         return r;
@@ -129,7 +129,7 @@ static int HTPParseAndCheckContentRange(
         SCLogDebug("range without all information");
         return -3;
     } else if (range->start > range->end || range->end > range->size - 1) {
-        AppLayerDecoderEventsSetEventRaw(&htud->tx_data.events, HTTP_DECODER_EVENT_RANGE_INVALID);
+        SCAppLayerDecoderEventsSetEventRaw(&htud->tx_data.events, HTTP_DECODER_EVENT_RANGE_INVALID);
         s->events++;
         SCLogDebug("invalid range");
         return -4;
@@ -264,7 +264,7 @@ end:
  *  \retval true if reassembled file was added
  *  \retval false if no reassembled file was added
  */
-bool HTPFileCloseHandleRange(const StreamingBufferConfig *sbcfg, FileContainer *files,
+bool SCHTPFileCloseHandleRange(const StreamingBufferConfig *sbcfg, FileContainer *files,
         const uint16_t flags, HttpRangeContainerBlock *c, const uint8_t *data, uint32_t data_len)
 {
     bool added = false;
@@ -340,11 +340,11 @@ int HTPFileClose(
 
     if (tx->file_range != NULL) {
         bool added =
-                HTPFileCloseHandleRange(&htp_sbcfg, files, flags, tx->file_range, data, data_len);
+                SCHTPFileCloseHandleRange(&htp_sbcfg, files, flags, tx->file_range, data, data_len);
         if (added) {
             tx->tx_data.files_opened++;
         }
-        HttpRangeFreeBlock(tx->file_range);
+        SCHttpRangeFreeBlock(tx->file_range);
         tx->file_range = NULL;
     }
 
