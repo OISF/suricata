@@ -3,18 +3,21 @@ SUBDIRS =	htp \
 		suricatasc \
 		suricatactl
 
-EXTRA_DIST =	src derive htp \
-		.cargo/config.toml.in \
+EXTRA_DIST =	.cargo/config.toml.in \
+		Cargo.lock \
+		Cargo.toml \
 		cbindgen.toml \
-		dist/rust-bindings.h \
-		dist/htp/htp_rs.h \
-		vendor \
-		Cargo.toml Cargo.lock \
+		derive \
 		derive/Cargo.toml \
+		dist/htp/htp_rs.h \
+		dist/rust-bindings.h \
+		htp \
+		src \
+		suricatactl \
+		suricatasc \
 		sys \
 		sys/Cargo.toml \
-		suricatasc \
-		suricatactl
+		vendor
 
 if !DEBUG
 RELEASE = --release
