@@ -1,4 +1,5 @@
-SUBDIRS =	sys \
+SUBDIRS =	htp \
+		sys \
 		suricatasc \
 		suricatactl
 
@@ -13,8 +14,7 @@ EXTRA_DIST =	src derive htp \
 		sys \
 		sys/Cargo.toml \
 		suricatasc \
-		suricatactl \
-		htp/Cargo.toml
+		suricatactl
 
 if !DEBUG
 RELEASE = --release
