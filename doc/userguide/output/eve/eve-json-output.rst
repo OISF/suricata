@@ -617,8 +617,8 @@ Options
 The output can be enabled per instance of the EVE logger.
 
 The ``community-id`` option is boolean. If set to ``true`` it is enabled.
-The ``community-id-seed`` option specifies a unsigned 16 bit value that
-is used a seed to the hash that is calculated for the ``community-id``
+The ``community-id-seed`` option specifies an unsigned 16 bit value that
+is used to seed the hash that is calculated for the ``community-id``
 output. This must be set to the same value on all tools that output this
 record.
 
