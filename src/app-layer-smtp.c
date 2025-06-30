@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2024 Open Information Security Foundation
+/* Copyright (C) 2007-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -977,6 +977,7 @@ static int SMTPProcessReply(
         state->cmds_cnt = 0;
         state->cmds_idx = 0;
     }
+    AppLayerParserTriggerRawStreamInspection(f, STREAM_TOCLIENT);
 
     return 0;
 }
@@ -1178,6 +1179,7 @@ static int SMTPProcessRequest(
      * STARTTLS and DATA */
     if (!(state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
         int r = 0;
+        AppLayerParserTriggerRawStreamInspection(f, STREAM_TOSERVER);
 
         if (line->len >= 8 && SCMemcmpLowercase("starttls", line->buf, 8) == 0) {
             state->current_command = SMTP_COMMAND_STARTTLS;
