@@ -205,7 +205,13 @@ TmEcode ReceivePcapFileLoop(ThreadVars *tv, void *data, void *slot)
     if(ptv->is_directory == 0) {
         SCLogInfo("Starting file run for %s", ptv->behavior.file->filename);
         status = PcapFileDispatch(ptv->behavior.file);
-        CleanupPcapFileFromThreadVars(ptv, ptv->behavior.file);
+        /*
+         * If delete-non-alerts-only == true we defer cleanup to ThreadDeinit so alert counters
+         * are final.
+         */
+        if (!ptv->shared.delete_non_alerts_only) {
+            CleanupPcapFileFromThreadVars(ptv, ptv->behavior.file);
+        }
     } else {
         SCLogInfo("Starting directory run for %s", ptv->behavior.directory->filename);
         PcapDirectoryDispatch(ptv->behavior.directory);
@@ -265,6 +271,12 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
     ptv->shared.should_delete = false;
     if (SCConfGetBool("pcap-file.delete-when-done", &should_delete) == 1) {
         ptv->shared.should_delete = should_delete == 1;
+    }
+
+    int delete_non_alerts_only = 0;
+    ptv->shared.delete_non_alerts_only = false;
+    if (SCConfGetBool("pcap-file.delete-non-alerts-only", &delete_non_alerts_only) == 1) {
+        ptv->shared.delete_non_alerts_only = delete_non_alerts_only == 1;
     }
 
     DIR *directory = NULL;
