@@ -1,6 +1,6 @@
 [package]
 name = "suricata-htp"
-version = "2.0.0"
+version = "@PACKAGE_VERSION@"
 edition = "2021"
 autobins = false
 license-file = "LICENSE"
