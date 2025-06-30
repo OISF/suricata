@@ -470,7 +470,7 @@ flow, since one packet may match on several rules.
 Verdict
 ~~~~~~~
 
-An object containning info on the final action that will be applied to a given
+An object containing info on the final action that will be applied to a given
 packet, based on all the signatures triggered by it and other possible events
 (e.g., a flow drop). For that reason, it is possible for an alert with
 an action ``allowed`` to have a verdict ``drop``, in IPS mode, for instance, if
@@ -3110,7 +3110,7 @@ Fields
 
 * "hw_type": network link protocol type
 * "proto_type": internetwork protocol for which the request is intended
-* "opcode": operation that the sender is performing (e.g. request, response)  
+* "opcode": operation that the sender is performing (e.g. request, response)
 * "src_mac": source MAC address
 * "src_ip": source IP address
 * "dest_mac": destination MAC address
