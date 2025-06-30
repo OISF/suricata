@@ -1124,6 +1124,37 @@ Example of TFTP logging:
       "mode": "octet"
    }
 
+Event type: KRB5
+----------------
+
+KRB5 Fields
+~~~~~~~~~~~
+
+* "cname" (string): The client PrincipalName
+* "encryption" (string): Encryption used (only in AS-REP and TGS-REP)
+* "error_code" (string): Error code, if request has failed
+* "failed_request" (string): The request type for which the response had an error_code
+* "msg_type" (string): The message type: AS-REQ, AS-REP, etc...
+* "realm" (string): The server Realm
+* "sname" (string): The server PrincipalName
+* "ticket_encryption" (string): Encryption used for ticket
+* "ticket_weak_encryption" (boolean): Whether the encryption used for ticket is a weak cipher
+* "weak_encryption" (boolean): Whether the encryption used in AS-REP or TGS-REP is a weak cipher
+
+Examples of KRB5 logging:
+
+Pipe open::
+
+    "krb5": {
+      "msg_type": "KRB_TGS_REP",
+      "cname": "robin",
+      "realm": "CYLERA.LAB",
+      "sname": "ldap/dc01",
+      "encryption": "aes256-cts-hmac-sha1-96",
+      "weak_encryption": false,
+      "ticket_encryption": "aes256-cts-hmac-sha1-96",
+      "ticket_weak_encryption": false
+    }
 
 Event type: SMB
 ---------------
@@ -1344,6 +1375,74 @@ DCERPC BIND/BINDACK::
       ],
       "call_id": 2
     }
+
+NTLMSSP fields
+~~~~~~~~~~~~~~
+
+* "domain" (string): the Windows domain.
+* "user" (string): the user.
+* "host" (string): the host.
+* "version" (string): the client version.
+
+Example::
+
+    "ntlmssp": {
+      "domain": "VNET3",
+      "user": "administrator",
+      "host": "BLU",
+      "version": "60.230 build 13699 rev 188"
+    }
+
+More complete example::
+
+  "smb": {
+    "id": 3,
+    "dialect": "NT LM 0.12",
+    "command": "SMB1_COMMAND_SESSION_SETUP_ANDX",
+    "status": "STATUS_SUCCESS",
+    "status_code": "0x0",
+    "session_id": 2048,
+    "tree_id": 0,
+    "ntlmssp": {
+      "domain": "VNET3",
+      "user": "administrator",
+      "host": "BLU",
+      "version": "60.230 build 13699 rev 188"
+    },
+    "request": {
+      "native_os": "Unix",
+      "native_lm": "Samba 3.9.0-SVN-build-11572"
+    },
+    "response": {
+      "native_os": "Windows (TM) Code Name \"Longhorn\" Ultimate 5231",
+      "native_lm": "Windows (TM) Code Name \"Longhorn\" Ultimate 6.0"
+    }
+  }
+
+Kerberos fields
+~~~~~~~~~~~~~~~
+
+* "kerberos.realm" (string): the Kerberos Realm.
+* "kerberos.snames (array of strings): snames.
+
+Example::
+
+  "smb": {
+    "dialect": "2.10",
+    "command": "SMB2_COMMAND_SESSION_SETUP",
+    "status": "STATUS_SUCCESS",
+    "status_code": "0x0",
+    "session_id": 35184439197745,
+    "tree_id": 0,
+    "kerberos": {
+      "realm": "CONTOSO.LOCAL",
+      "snames": [
+        "cifs",
+        "DC1.contoso.local"
+      ]
+    }
+  }
+
 
 Event type: BITTORRENT-DHT
 --------------------------
@@ -1567,74 +1666,6 @@ Sample error responses::
       "msg": "Malformed Packet"
     }
   }
-
-NTLMSSP fields
-~~~~~~~~~~~~~~
-
-* "domain" (string): the Windows domain.
-* "user" (string): the user.
-* "host" (string): the host.
-* "version" (string): the client version.
-
-Example::
-
-    "ntlmssp": {
-      "domain": "VNET3",
-      "user": "administrator",
-      "host": "BLU",
-      "version": "60.230 build 13699 rev 188"
-    }
-
-More complete example::
-
-  "smb": {
-    "id": 3,
-    "dialect": "NT LM 0.12",
-    "command": "SMB1_COMMAND_SESSION_SETUP_ANDX",
-    "status": "STATUS_SUCCESS",
-    "status_code": "0x0",
-    "session_id": 2048,
-    "tree_id": 0,
-    "ntlmssp": {
-      "domain": "VNET3",
-      "user": "administrator",
-      "host": "BLU",
-      "version": "60.230 build 13699 rev 188"
-    },
-    "request": {
-      "native_os": "Unix",
-      "native_lm": "Samba 3.9.0-SVN-build-11572"
-    },
-    "response": {
-      "native_os": "Windows (TM) Code Name \"Longhorn\" Ultimate 5231",
-      "native_lm": "Windows (TM) Code Name \"Longhorn\" Ultimate 6.0"
-    }
-  }
-
-Kerberos fields
-~~~~~~~~~~~~~~~
-
-* "kerberos.realm" (string): the Kerberos Realm.
-* "kerberos.snames (array of strings): snames.
-
-Example::
-
-  "smb": {
-    "dialect": "2.10",
-    "command": "SMB2_COMMAND_SESSION_SETUP",
-    "status": "STATUS_SUCCESS",
-    "status_code": "0x0",
-    "session_id": 35184439197745,
-    "tree_id": 0,
-    "kerberos": {
-      "realm": "CONTOSO.LOCAL",
-      "snames": [
-        "cifs",
-        "DC1.contoso.local"
-      ]
-    }
-  }
-
 
 Event type: SSH
 ----------------

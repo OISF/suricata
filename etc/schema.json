@@ -172,19 +172,47 @@
             }
         },
         "app_proto": {
-            "type": "string"
+            "type": "string",
+            "description": "Application layer protocol of the flow",
+            "suricata": {
+                "keywords": [
+                    "app-layer-protocol"
+                ]
+            }
         },
         "app_proto_expected": {
-            "type": "string"
+            "type": "string",
+            "description": "In case of a protocol change to a specific protocol, and this specific protocol was not recognised, this field will have the value of the expected protocol",
+            "suricata": {
+                "$comment": "TODO implement keyword app-layer-protocol option"
+            }
         },
         "app_proto_orig": {
-            "type": "string"
+            "type": "string",
+            "description": "Original application layer protocol of the flow after a protocol change",
+            "suricata": {
+                "keywords": [
+                    "app-layer-protocol"
+                ]
+            }
         },
         "app_proto_tc": {
-            "type": "string"
+            "type": "string",
+            "description": "Application layer protocol detected to client in case of mismatch",
+            "suricata": {
+                "keywords": [
+                    "app-layer-protocol"
+                ]
+            }
         },
         "app_proto_ts": {
-            "type": "string"
+            "type": "string",
+            "description": "Application layer protocol detected to server in case of mismatch",
+            "suricata": {
+                "keywords": [
+                    "app-layer-protocol"
+                ]
+            }
         },
         "arp": {
             "type": "object",
@@ -2428,34 +2456,86 @@
             "additionalProperties": false,
             "properties": {
                 "cname": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "The client PrincipalName",
+                    "suricata": {
+                        "keywords": [
+                            "krb5.cname"
+                        ]
+                    }
                 },
                 "encryption": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Encryption used (only in AS-REP and TGS-REP)",
+                    "suricata": {
+                        "$comment": "TODO add keyword"
+                    }
                 },
                 "error_code": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Error code, if request has failed",
+                    "suricata": {
+                        "keywords": [
+                            "krb5_err_code"
+                        ]
+                    }
                 },
                 "failed_request": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "The request type for which the response had an error_code",
+                    "suricata": {
+                        "$comment": "TODO add keyword"
+                    }
                 },
                 "msg_type": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "The message type: AS-REQ, AS-REP, etc...",
+                    "suricata": {
+                        "keywords": [
+                            "krb5_msg_type"
+                        ]
+                    }
                 },
                 "realm": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "The server Realm",
+                    "suricata": {
+                        "$comment": "TODO add keyword"
+                    }
                 },
                 "sname": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "The server PrincipalName",
+                    "suricata": {
+                        "keywords": [
+                            "krb5.sname"
+                        ]
+                    }
                 },
                 "ticket_encryption": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Encryption used for ticket",
+                    "suricata": {
+                        "keywords": [
+                            "krb5.ticket_encryption"
+                        ]
+                    }
                 },
                 "ticket_weak_encryption": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "description": "Whether the encryption used for ticket is a weak cipher",
+                    "suricata": {
+                        "keywords": [
+                            "krb5.ticket_encryption"
+                        ]
+                    }
                 },
                 "weak_encryption": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "description": "Whether the encryption used in AS-REP or TGS-REP is a weak cipher",
+                    "suricata": {
+                        "$comment": "TODO add keyword (rather option for encryption keyword)"
+                    }
                 }
             },
             "optional": true
@@ -2831,7 +2911,45 @@
                 "additionals": {
                     "description": "mDNS additional records",
                     "type": "array",
-                    "minItems": 1
+                    "minItems": 1,
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "ptr": {
+                                "type": "string",
+                                "description": "Value of the requested PTR record",
+                                "suricata": {
+                                    "keywords": [
+                                        "mdns.response.rrname"
+                                    ]
+                                }
+                            },
+                            "rrname": {
+                                "type": "string",
+                                "description": "Resource name of the record being returned",
+                                "suricata": {
+                                    "keywords": [
+                                        "mdns.additionals.rrname",
+                                        "mdns.response.rrname"
+                                    ]
+                                }
+                            },
+                            "rrname_truncated": {
+                                "description": "Name was truncated by Suricata due to length",
+                                "type": "boolean",
+                                "$comment": "keyword: app-layer-event:mdns.name_too_long (https://redmine.openinfosecfoundation.org/issues/7784)"
+                            },
+                            "txt": {
+                                "type": "array",
+                                "description": "Value of the requested TXT record",
+                                "minItems": 1,
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
                 },
                 "answers": {
                     "description": "mDNS answer records",
@@ -2842,14 +2960,37 @@
                         "additionalProperties": false,
                         "properties": {
                             "ptr": {
-                                "type": "string"
+                                "type": "string",
+                                "description": "Value of the requested PTR record",
+                                "suricata": {
+                                    "$comment": "No specific ptr keywords exists",
+                                    "keywords": [
+                                        "mdns.response.rrname"
+                                    ]
+                                }
                             },
                             "rrname": {
-                                "type": "string"
+                                "type": "string",
+                                "description": "Resource name of the record being returned",
+                                "suricata": {
+                                    "keywords": [
+                                        "mdns.answers.rrname",
+                                        "mdns.response.rrname"
+                                    ]
+                                }
+                            },
+                            "rrname_truncated": {
+                                "description": "Name was truncated by Suricata due to length",
+                                "type": "boolean",
+                                "$comment": "keyword: app-layer-event:mdns.name_too_long (https://redmine.openinfosecfoundation.org/issues/7784)"
                             },
                             "txt": {
                                 "type": "array",
-                                "minItems": 1
+                                "description": "Value of the requested TXT record",
+                                "minItems": 1,
+                                "items": {
+                                    "type": "string"
+                                }
                             }
                         }
                     }
@@ -2857,7 +2998,28 @@
                 "authorities": {
                     "description": "mDNS authority records",
                     "type": "array",
-                    "minItems": 1
+                    "minItems": 1,
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "rrname": {
+                                "type": "string",
+                                "description": "Resource name of the record being returned",
+                                "suricata": {
+                                    "keywords": [
+                                        "mdns.authorities.rrname",
+                                        "mdns.response.rrname"
+                                    ]
+                                }
+                            },
+                            "rrname_truncated": {
+                                "description": "Name was truncated by Suricata due to length",
+                                "type": "boolean",
+                                "$comment": "keyword: app-layer-event:mdns.name_too_long (https://redmine.openinfosecfoundation.org/issues/7784)"
+                            }
+                        }
+                    }
                 },
                 "flags": {
                     "description": "mDNS message flags",
@@ -2912,10 +3074,22 @@
                         "type": "object",
                         "properties": {
                             "rrname": {
-                                "type": "string"
+                                "description": "Resource name being requested",
+                                "type": "string",
+                                "suricata": {
+                                    "keywords": [
+                                        "mdns.queries.rrname"
+                                    ]
+                                }
+                            },
+                            "rrname_truncated": {
+                                "description": "Name was truncated by Suricata due to length",
+                                "type": "boolean",
+                                "$comment": "keyword: app-layer-event:mdns.name_too_long (https://redmine.openinfosecfoundation.org/issues/7784)"
                             },
                             "rrtype": {
-                                "type": "string"
+                                "type": "string", 
+                                "description": "Type of resource being requested"
                             }
                         }
                     }
@@ -6064,10 +6238,16 @@
                         "ipv4": {
                             "type": "integer"
                         },
+                        "ipv4_in_ipv4": {
+                            "type": "integer"
+                        },
                         "ipv4_in_ipv6": {
                             "type": "integer"
                         },
                         "ipv6": {
+                            "type": "integer"
+                        },
+                        "ipv6_in_ipv4": {
                             "type": "integer"
                         },
                         "ipv6_in_ipv6": {

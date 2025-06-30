@@ -1231,6 +1231,7 @@ TmEcode VerdictNFQ(ThreadVars *tv, Packet *p, void *data)
         /* coverity[missing_lock] */
         p->nfq_v.verdicted = true;
 
+        /* coverity[missing_lock] */
         int ret = NFQSetVerdict(p, p->nfq_v.mark, p->nfq_v.mark_modified);
         if (ret != TM_ECODE_OK) {
             return ret;

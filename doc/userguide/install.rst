@@ -104,6 +104,11 @@ one of the following ways::
     :start-after: # install-guide-documentation tag start: Minimal RPM-based dependencies
     :end-before: # install-guide-documentation tag end: Minimal RPM-based dependencies
 
+Windows
+"""""""
+
+For building and installing from source on Windows, see :doc:`install/windows`.
+
 Compilation
 """""""""""
 
@@ -164,210 +169,39 @@ and will present you with a ready-to-run (configured and set-up) Suricata.
 Binary packages
 ---------------
 
-Ubuntu from Personal Package Archives (PPA)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. toctree::
+   :maxdepth: 1
 
-For Ubuntu, OISF maintains a PPA ``suricata-stable`` that always contains the
-latest stable release.
+   install/ubuntu
+   install/debian
+   install/rpm
+   install/other
 
-.. note:: The following instructions require ``sudo`` to be installed.
+Suricata is available on various distributions as binary
+packages. These offer a convenient way to install and manage Suricata
+without compiling from source.
 
-Setup to install the latest stable Suricata::
+**For Ubuntu systems**:
 
-    sudo apt-get install software-properties-common
-    sudo add-apt-repository ppa:oisf/suricata-stable
-    sudo apt-get update
+    See :doc:`install/ubuntu` for detailed instructions on
+    installing from PPA repositories.
 
-Then, you can install the latest stable with::
+**For Debian systems**:
 
-    sudo apt-get install suricata
+    See :doc:`install/debian` for detailed instructions on
+    installing from official repositories and backports.
 
-After installing you can proceed to the :ref:`Basic setup`.
+**For RPM-based distributions (CentOS, AlmaLinux, RockyLinux, Fedora, etc)**:
 
-`OISF launchpad: suricata-stable <https://launchpad.net/~oisf/+archive/suricata-stable>`_.
+    See :doc:`install/rpm` for detailed instructions on
+    installing from COPR repositories.
 
-Upgrading
-"""""""""
+**For other distributions**:
 
-To upgrade::
-
-    sudo apt-get update
-    sudo apt-get upgrade suricata
-
-Remove
-""""""
-
-To remove Suricata from your system::
-
-    sudo apt-get remove suricata
-
-
-
-Getting Debug or Pre-release Versions
-"""""""""""""""""""""""""""""""""""""
-
-.. note:: The following instructions require ``sudo`` to be installed.
-
-If you want Suricata with built-in (enabled) debugging, you can install the
-debug package::
-
-    sudo apt-get install suricata-dbg
-
-If you would like to help test the Release Candidate (RC) packages, the same procedures
-apply, just using another PPA: ``suricata-beta``::
-
-    sudo add-apt-repository ppa:oisf/suricata-beta
-    sudo apt-get update
-    sudo apt-get upgrade
-
-You can use both the suricata-stable and suricata-beta repositories together.
-Suricata will then always be the latest release, stable or beta.
-
-`OISF launchpad: suricata-beta <https://launchpad.net/~oisf/+archive/suricata-beta>`_.
-
-Daily Releases
-""""""""""""""
-
-.. note:: The following instructions require ``sudo`` to be installed.
-
-If you would like to help test the daily build packages from our latest git(dev)
-repository, the same procedures as above apply, just using another PPA,
-``suricata-daily``::
-
-    sudo add-apt-repository ppa:oisf/suricata-daily-allarch
-    sudo apt-get update
-    sudo apt-get upgrade
-
-.. note::
-
-    Please have in mind that this is packaged from our latest development git master
-    and is therefore potentially unstable.
-
-    We do our best to make others aware of continuing development and items
-    within the engine that are not yet complete or optimal. With this in mind,
-    please refer to `Suricata's issue tracker on Redmine 
-    <http://redmine.openinfosecfoundation.org/projects/suricata/issues>`_ 
-    for an up-to-date list of what we are working on, planned roadmap, 
-    and to report issues.
-
-`OISF launchpad: suricata-daily <https://launchpad.net/~oisf/+archive/suricata-daily>`_.
-
-Debian
-^^^^^^
-
-.. note:: The following instructions require ``sudo`` to be installed.
-
-In Debian 9 (stretch) and later do::
-
-    sudo apt-get install suricata
-
-In the "stable" version of Debian, Suricata is usually not available in the
-latest version. A more recent version is often available from Debian backports,
-if it can be built there.
-
-To use backports, the backports repository for the current stable
-distribution needs to be added to the system-wide sources list.
-For Debian 10 (buster), for instance, run the following as ``root``::
-
-    echo "deb http://http.debian.net/debian buster-backports main" > \
-        /etc/apt/sources.list.d/backports.list
-    apt-get update
-    apt-get install suricata -t buster-backports
-
-.. _RPM packages:
-
-CentOS, AlmaLinux, RockyLinux, Fedora, etc
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-RPMs are provided for the latest release of *Enterprise Linux*. This
-includes CentOS Linux and rebuilds such as AlmaLinux and RockyLinux.
-Additionally, RPMs are provided for the latest supported versions of Fedora.
-
-RPMs specifically for CentOS Stream are not provided, however the RPMs for their
-related version may work fine.
-
-Installing From Package Repositories
-""""""""""""""""""""""""""""""""""""
-
-CentOS, RHEL, AlmaLinux, RockyLinux, etc Version 8+
-'''''''''''''''''''''''''''''''''''''''''''''''''''
-
-.. note:: The following instructions require ``sudo`` to be installed.
-
-.. code-block:: none
-
-   sudo dnf install epel-release dnf-plugins-core
-   sudo dnf copr enable @oisf/suricata-7.0
-   sudo dnf install suricata
-
-CentOS 7
-''''''''
-
-.. code-block:: none
-
-   sudo yum install epel-release yum-plugin-copr
-   sudo yum copr enable @oisf/suricata-7.0
-   sudo yum install suricata
-
-Fedora
-''''''
-
-.. code-block:: none
-
-    sudo dnf install dnf-plugins-core
-    sudo dnf copr enable @oisf/suricata-7.0
-    sudo dnf install suricata
-
-Additional Notes for RPM Installations
-""""""""""""""""""""""""""""""""""""""
-
-- Suricata is pre-configured to run as the ``suricata`` user.
-- Command line parameters such as providing the interface names can be
-  configured in ``/etc/sysconfig/suricata``.
-- Users can run ``suricata-update`` without being root provided they
-  are added to the ``suricata`` group.
-- Directories:
-
-  - ``/etc/suricata``: Configuration directory
-  - ``/var/log/suricata``: Log directory
-  - ``/var/lib/suricata``: State directory rules, datasets.
-
-Starting Suricata On-Boot
-'''''''''''''''''''''''''
-
-The Suricata RPMs are configured to run from Systemd.
-
-.. note:: The following instructions require ``sudo`` to be installed.
-
-To start Suricata::
-
-  sudo systemctl start suricata
-
-To stop Suricata::
-
-  sudo systemctl stop suricata
-
-To have Suricata start on-boot::
-
-  sudo systemctl enable suricata
-
-To reload rules::
-
-  sudo systemctl reload suricata
+    See :doc:`install/other` for installation instructions
+    for Arch Linux and other distributions.
 
 .. _install-advanced:
-
-Arch Based
-^^^^^^^^^^
-
-The ArchLinux AUR contains Suricata and suricata-nfqueue packages, with commonly
-used configurations for compilation (may also be edited to your liking). You may
-use makepkg, yay (sample below), or other AUR helpers to compile and build
-Suricata packages.
-
-::
-
-    yay -S suricata
 
 Advanced Installation
 ---------------------

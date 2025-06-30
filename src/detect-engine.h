@@ -108,7 +108,7 @@ void DetectEngineDeReference(DetectEngineCtx **de_ctx);
 int DetectEngineReload(const SCInstance *suri);
 int DetectEngineEnabled(void);
 int DetectEngineMTApply(void);
-int DetectEngineMultiTenantEnabled(void);
+bool DetectEngineMultiTenantEnabled(void);
 int DetectEngineMultiTenantSetup(const bool unix_socket);
 
 int DetectEngineReloadStart(void);

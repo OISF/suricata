@@ -74,6 +74,13 @@ where
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn SCDetectU8ToJson(
+    js: &mut JsonBuilder, du: &DetectUintData<u8>,
+) -> bool {
+    return detect_uint_to_json(js, du).is_ok();
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn SCDetectU16ToJson(
     js: &mut JsonBuilder, du: &DetectUintData<u16>,
 ) -> bool {

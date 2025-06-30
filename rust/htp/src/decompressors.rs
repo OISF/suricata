@@ -700,7 +700,7 @@ impl BufWriter for LzmaBufWriter {
         self.0.finish().map_err(|e| match e {
             lzma_rs::error::Error::IoError(e) => e,
             lzma_rs::error::Error::HeaderTooShort(e) => {
-                std::io::Error::new(std::io::ErrorKind::Other, format!("{}", e))
+                std::io::Error::new(std::io::ErrorKind::Other, format!("{e}"))
             }
             lzma_rs::error::Error::LzmaError(e) | lzma_rs::error::Error::XzError(e) => {
                 std::io::Error::new(std::io::ErrorKind::Other, e)

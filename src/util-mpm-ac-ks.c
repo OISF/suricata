@@ -81,13 +81,14 @@
 #include "util-memcpy.h"
 #include "util-validate.h"
 #include "util-mpm-ac-ks.h"
+#include "util-mpm-ac-queue.h"
 
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 
 void SCACTileInitCtx(MpmCtx *);
 void SCACTileDestroyCtx(MpmCtx *);
-int SCACTileAddPatternCI(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t,
-                         uint32_t, SigIntId, uint8_t);
+int SCACTileAddPatternCI(
+        MpmCtx *, const uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, SigIntId, uint8_t);
 int SCACTileAddPatternCS(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t,
                          uint32_t, SigIntId, uint8_t);
 int SCACTilePreparePatterns(MpmConfig *mpm_conf, MpmCtx *mpm_ctx);
@@ -146,17 +147,6 @@ static void SCACTileDestroyInitCtx(MpmCtx *mpm_ctx);
 
 /* a placeholder to denote a failure transition in the goto table */
 #define SC_AC_TILE_FAIL (-1)
-
-#define STATE_QUEUE_CONTAINER_SIZE 65536
-
-/**
- * \brief Helper structure used by AC during state table creation
- */
-typedef struct StateQueue_ {
-    int32_t store[STATE_QUEUE_CONTAINER_SIZE];
-    int top;
-    int bot;
-} StateQueue;
 
 /**
  * \internal
@@ -401,48 +391,6 @@ static void SCACTileCreateGotoTable(MpmCtx *mpm_ctx)
     }
 }
 
-static inline int SCACTileStateQueueIsEmpty(StateQueue *q)
-{
-    if (q->top == q->bot)
-        return 1;
-    else
-        return 0;
-}
-
-static inline void SCACTileEnqueue(StateQueue *q, int32_t state)
-{
-    int i = 0;
-
-    /*if we already have this */
-    for (i = q->bot; i < q->top; i++) {
-        if (q->store[i] == state)
-            return;
-    }
-
-    q->store[q->top++] = state;
-
-    if (q->top == STATE_QUEUE_CONTAINER_SIZE)
-        q->top = 0;
-
-    if (q->top == q->bot) {
-        FatalError("Just ran out of space in the queue.  "
-                   "Fatal Error.  Exiting.  Please file a bug report on this");
-    }
-}
-
-static inline int32_t SCACTileDequeue(StateQueue *q)
-{
-    if (q->bot == STATE_QUEUE_CONTAINER_SIZE)
-        q->bot = 0;
-
-    if (q->bot == q->top) {
-        FatalError("StateQueue behaving weirdly.  "
-                   "Fatal Error.  Exiting.  Please file a bug report on this");
-    }
-
-    return q->store[q->bot++];
-}
-
 /**
  * \internal
  * \brief Club the output data from 2 states and store it in the 1st state.
@@ -505,8 +453,7 @@ static void SCACTileCreateFailureTable(MpmCtx *mpm_ctx)
     int32_t state = 0;
     int32_t r_state = 0;
 
-    StateQueue q;
-    memset(&q, 0, sizeof(StateQueue));
+    StateQueue *q = SCACStateQueueAlloc();
 
     /* Allocate space for the failure table.  A failure entry in the table for
      * every state(SCACTileCtx->state_count) */
@@ -521,19 +468,19 @@ static void SCACTileCreateFailureTable(MpmCtx *mpm_ctx)
     for (aa = 0; aa < ctx->alphabet_size; aa++) {
         int32_t temp_state = ctx->goto_table[0][aa];
         if (temp_state != 0) {
-            SCACTileEnqueue(&q, temp_state);
+            SCACEnqueue(q, temp_state);
             ctx->failure_table[temp_state] = 0;
         }
     }
 
-    while (!SCACTileStateQueueIsEmpty(&q)) {
+    while (!SCACStateQueueIsEmpty(q)) {
         /* pick up every state from the queue and add failure transitions */
-        r_state = SCACTileDequeue(&q);
+        r_state = SCACDequeue(q);
         for (aa = 0; aa < ctx->alphabet_size; aa++) {
             int32_t temp_state = ctx->goto_table[r_state][aa];
             if (temp_state == SC_AC_TILE_FAIL)
                 continue;
-            SCACTileEnqueue(&q, temp_state);
+            SCACEnqueue(q, temp_state);
             state = ctx->failure_table[r_state];
 
             while(ctx->goto_table[state][aa] == SC_AC_TILE_FAIL)
@@ -543,6 +490,7 @@ static void SCACTileCreateFailureTable(MpmCtx *mpm_ctx)
                                      mpm_ctx);
         }
     }
+    SCACStateQueueFree(q);
 }
 
 /*
@@ -676,28 +624,28 @@ static inline void SCACTileCreateDeltaTable(MpmCtx *mpm_ctx)
         ctx->alphabet_storage = 256; /* Change? */
     }
 
-    StateQueue q;
-    memset(&q, 0, sizeof(StateQueue));
+    StateQueue *q = SCACStateQueueAlloc();
 
     for (aa = 0; aa < ctx->alphabet_size; aa++) {
         int temp_state = ctx->goto_table[0][aa];
         if (temp_state != 0)
-            SCACTileEnqueue(&q, temp_state);
+            SCACEnqueue(q, temp_state);
     }
 
-    while (!SCACTileStateQueueIsEmpty(&q)) {
-        r_state = SCACTileDequeue(&q);
+    while (!SCACStateQueueIsEmpty(q)) {
+        r_state = SCACDequeue(q);
 
         for (aa = 0; aa < ctx->alphabet_size; aa++) {
             int temp_state = ctx->goto_table[r_state][aa];
             if (temp_state != SC_AC_TILE_FAIL) {
-                SCACTileEnqueue(&q, temp_state);
+                SCACEnqueue(q, temp_state);
             } else {
                 int f_state = ctx->failure_table[r_state];
                 ctx->goto_table[r_state][aa] = ctx->goto_table[f_state][aa];
             }
         }
     }
+    SCACStateQueueFree(q);
 }
 
 static void SCACTileClubOutputStatePresenceWithDeltaTable(MpmCtx *mpm_ctx)
@@ -1336,9 +1284,8 @@ uint32_t SCACTileSearchLarge(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thr
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-int SCACTileAddPatternCI(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
-                         uint16_t offset, uint16_t depth, uint32_t pid,
-                         SigIntId sid, uint8_t flags)
+int SCACTileAddPatternCI(MpmCtx *mpm_ctx, const uint8_t *pat, uint16_t patlen, uint16_t offset,
+        uint16_t depth, uint32_t pid, SigIntId sid, uint8_t flags)
 {
     flags |= MPM_PATTERN_FLAG_NOCASE;
     return MpmAddPattern(mpm_ctx, pat, patlen, offset, depth,

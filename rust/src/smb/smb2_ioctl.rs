@@ -98,6 +98,8 @@ pub fn smb2_ioctl_response_record(state: &mut SMBState, r: &Smb2Record)
             } else {
                 false
             };
+            // see https://github.com/rust-lang/rust-clippy/issues/15158
+            #[allow(clippy::collapsible_else_if)]
             if is_dcerpc {
                 SCLogDebug!("IOCTL response data is_pipe. Calling smb_read_dcerpc_record");
                 let vercmd = SMBVerCmdStat::new2_with_ntstatus(SMB2_COMMAND_IOCTL, r.nt_status);

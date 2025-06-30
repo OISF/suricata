@@ -33,6 +33,7 @@
 #include "decode-events.h"
 
 #include "detect-gid.h"
+#include "util-byte.h"
 #include "util-unittest.h"
 #include "util-debug.h"
 
@@ -71,21 +72,13 @@ void DetectGidRegister (void)
  */
 static int DetectGidSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
-    unsigned long gid = 0;
-    char *endptr = NULL;
-    errno = 0;
-    gid = strtoul(rawstr, &endptr, 10);
-    if (errno == ERANGE || endptr == NULL || *endptr != '\0') {
-        SCLogError("invalid character as arg "
-                   "to gid keyword");
-        goto error;
-    }
-    if (gid >= UINT_MAX) {
-        SCLogError("gid value to high, max %u", UINT_MAX);
+    uint32_t gid = 0;
+    if (ByteExtractStringUint32(&gid, 10, strlen(rawstr), rawstr) <= 0) {
+        SCLogError("invalid input as arg to gid keyword");
         goto error;
     }
 
-    s->gid = (uint32_t)gid;
+    s->gid = gid;
 
     return 0;
 

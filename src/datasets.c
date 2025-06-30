@@ -319,15 +319,15 @@ static void DatasetGetPath(
 /** \brief look for set by name without creating it */
 Dataset *DatasetFind(const char *name, enum DatasetTypes type)
 {
-    SCMutexLock(&sets_lock);
+    DatasetLock();
     Dataset *set = DatasetSearchByName(name);
     if (set) {
         if (set->type != type) {
-            SCMutexUnlock(&sets_lock);
+            DatasetUnlock();
             return NULL;
         }
     }
-    SCMutexUnlock(&sets_lock);
+    DatasetUnlock();
     return set;
 }
 
@@ -443,9 +443,6 @@ int DatasetGetOrCreate(const char *name, enum DatasetTypes type, const char *sav
     return 0;
 out_err:
     if (set) {
-        if (set->hash) {
-            THashShutdown(set->hash);
-        }
         SCFree(set);
     }
     return -1;
@@ -523,12 +520,10 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
     DatasetUnlock();
     return set;
 out_err:
-    if (set) {
-        if (set->hash) {
-            THashShutdown(set->hash);
-        }
-        SCFree(set);
+    if (set->hash) {
+        THashShutdown(set->hash);
     }
+    SCFree(set);
     DatasetUnlock();
     return NULL;
 }
@@ -552,7 +547,7 @@ void DatasetReload(void)
      * New datasets shall be created with the rule reload and do not require
      * any intervention.
      * */
-    SCMutexLock(&sets_lock);
+    DatasetLock();
     Dataset *set = sets;
     while (set) {
         if (!DatasetIsStatic(set->save, set->load) || set->from_yaml) {
@@ -568,13 +563,13 @@ void DatasetReload(void)
         SCLogDebug("Set %s at %p hidden successfully", set->name, set);
         set = set->next;
     }
-    SCMutexUnlock(&sets_lock);
+    DatasetUnlock();
 }
 
 void DatasetPostReloadCleanup(void)
 {
+    DatasetLock();
     SCLogDebug("Post Reload Cleanup starting.. Hidden sets will be removed");
-    SCMutexLock(&sets_lock);
     Dataset *cur = sets;
     Dataset *prev = NULL;
     while (cur) {
@@ -594,7 +589,7 @@ void DatasetPostReloadCleanup(void)
         SCFree(cur);
         cur = next;
     }
-    SCMutexUnlock(&sets_lock);
+    DatasetUnlock();
 }
 
 /* Value reflects THASH_DEFAULT_HASHSIZE which is what the default was earlier,
@@ -778,8 +773,8 @@ int DatasetsInit(void)
 
 void DatasetsDestroy(void)
 {
+    DatasetLock();
     SCLogDebug("destroying datasets: %p", sets);
-    SCMutexLock(&sets_lock);
     Dataset *set = sets;
     while (set) {
         SCLogDebug("destroying set %s", set->name);
@@ -789,7 +784,7 @@ void DatasetsDestroy(void)
         set = next;
     }
     sets = NULL;
-    SCMutexUnlock(&sets_lock);
+    DatasetUnlock();
     SCLogDebug("destroying datasets done: %p", sets);
 }
 
@@ -856,8 +851,8 @@ static int IPv6AsAscii(const void *s, char *out, size_t out_size)
 
 void DatasetsSave(void)
 {
+    DatasetLock();
     SCLogDebug("saving datasets: %p", sets);
-    SCMutexLock(&sets_lock);
     Dataset *set = sets;
     while (set) {
         if (strlen(set->save) == 0)
@@ -892,7 +887,7 @@ void DatasetsSave(void)
     next:
         set = set->next;
     }
-    SCMutexUnlock(&sets_lock);
+    DatasetUnlock();
 }
 
 static int DatasetLookupString(Dataset *set, const uint8_t *data, const uint32_t data_len)

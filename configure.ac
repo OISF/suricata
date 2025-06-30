@@ -1,4 +1,4 @@
-    AC_INIT([suricata],[8.0.0-rc1])
+    AC_INIT([suricata],[8.0.0-dev])
     m4_ifndef([AM_SILENT_RULES], [m4_define([AM_SILENT_RULES],[])])AM_SILENT_RULES([yes])
     AC_CONFIG_HEADERS([src/autoconf.h])
     AC_CONFIG_SRCDIR([src/suricata.c])
@@ -208,7 +208,7 @@
     AC_FUNC_STRTOD
 
     AC_CHECK_FUNCS([memmem memset memchr memrchr memmove])
-    AC_CHECK_FUNCS([strcasecmp strchr strrchr strdup strndup strncasecmp strtol strtoul strstr strpbrk strtoull strtoumax])
+    AC_CHECK_FUNCS([strcasecmp strchr strrchr strdup strndup strncasecmp strtol strstr strpbrk strtoull strtoumax])
     AC_CHECK_FUNCS([strerror])
     AC_CHECK_FUNCS([gethostname inet_ntoa uname])
     AC_CHECK_FUNCS([gettimeofday clock_gettime utime strptime tzset localtime_r])
@@ -2570,6 +2570,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   DAG enabled:                             ${enable_dag}
   Napatech enabled:                        ${enable_napatech}
   WinDivert enabled:                       ${enable_windivert}
+  Npcap support:                           ${have_wpcap}
 
   Unix socket enabled:                     ${enable_unixsocket}
   Detection enabled:                       ${enable_detection}

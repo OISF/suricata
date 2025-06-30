@@ -294,14 +294,17 @@ out:
     return result;
 }
 
-/** \brief find name for id+type at packet time. */
+/** \brief find name for id+type at packet time.
+ *  As the `active` store won't be modified, we don't need locks. */
 const char *VarNameStoreLookupById(const uint32_t id, const enum VarTypes type)
 {
     const char *name = NULL;
 
+    /* coverity[missing_lock] */
     const VarNameStore *current = SC_ATOMIC_GET(active);
     if (current) {
         VariableName lookup = { .type = type, .id = id };
+        /* coverity[missing_lock] */
         const VariableName *found = HashListTableLookup(current->ids, (void *)&lookup, 0);
         if (found) {
             return found->name;
@@ -311,12 +314,15 @@ const char *VarNameStoreLookupById(const uint32_t id, const enum VarTypes type)
     return name;
 }
 
-/** \brief find name for id+type at packet time. */
+/** \brief find name for id+type at packet time.
+ *  As the `active` store won't be modified, we don't need locks. */
 uint32_t VarNameStoreLookupByName(const char *name, const enum VarTypes type)
 {
+    /* coverity[missing_lock] */
     const VarNameStore *current = SC_ATOMIC_GET(active);
     if (current) {
         VariableName lookup = { .name = (char *)name, .type = type };
+        /* coverity[missing_lock] */
         const VariableName *found = HashListTableLookup(current->names, (void *)&lookup, 0);
         if (found) {
             return found->id;

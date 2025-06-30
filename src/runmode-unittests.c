@@ -68,6 +68,7 @@
 #include "util-radix6-tree.h"
 #include "util-host-os-info.h"
 #include "util-cidr.h"
+#include "util-coredump-config.h"
 #include "util-unittest-helper.h"
 #include "util-time.h"
 #include "util-rule-vars.h"
@@ -218,6 +219,7 @@ static void RegisterUnittests(void)
     SCProtoNameRegisterTests();
     UtilCIDRTests();
     OutputJsonStatsRegisterTests();
+    CoredumpConfigRegisterTests();
 }
 #endif
 

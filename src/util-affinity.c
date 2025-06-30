@@ -210,7 +210,7 @@ ThreadsAffinityType *GetOrAllocAffinityTypeForIfaceOfName(
 static void AffinitySetupInit(void)
 {
     int i, j;
-    int ncpu = UtilCpuGetNumProcessorsConfigured();
+    int ncpu = UtilCpuGetNumProcessorsOnline();
 
     SCLogDebug("Initialize CPU affinity setup");
     /* be conservative relatively to OS: use all cpus by default */
@@ -806,7 +806,7 @@ static int TopologyInitialize(void)
     return 0;
 }
 
-void TopologyDestroy()
+void TopologyDestroy(void)
 {
     if (topology != NULL) {
         hwloc_topology_destroy(topology);

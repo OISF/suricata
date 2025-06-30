@@ -213,45 +213,13 @@ static int DetectLuaRunMatch(
     if (lua_gettop(tlua->luastate) > 0) {
         /* script returns a number (return 1 or return 0) */
         if (lua_type(tlua->luastate, 1) == LUA_TNUMBER) {
-            double script_ret = lua_tonumber(tlua->luastate, 1);
-            SCLogDebug("script_ret %f", script_ret);
+            lua_Integer script_ret = lua_tointeger(tlua->luastate, 1);
+            SCLogDebug("script_ret %lld", script_ret);
             lua_pop(tlua->luastate, 1);
-
-            if (script_ret == 1.0)
+            if (script_ret == 1)
                 match = 1;
-
-        /* script returns a table */
-        } else if (lua_type(tlua->luastate, 1) == LUA_TTABLE) {
-            lua_pushnil(tlua->luastate);
-            const char *k, *v;
-            while (lua_next(tlua->luastate, -2)) {
-                v = lua_tostring(tlua->luastate, -1);
-                lua_pop(tlua->luastate, 1);
-                k = lua_tostring(tlua->luastate, -1);
-
-                if (!k || !v)
-                    continue;
-
-                SCLogDebug("k='%s', v='%s'", k, v);
-
-                if (strcmp(k, "retval") == 0) {
-                    int val;
-                    if (StringParseInt32(&val, 10, 0, (const char *)v) < 0) {
-                        SCLogError("Invalid value "
-                                   "for \"retval\" from LUA return table: '%s'",
-                                v);
-                        match = 0;
-                    }
-                    else if (val == 1) {
-                        match = 1;
-                    }
-                } else {
-                    /* set flow var? */
-                }
-            }
-
-            /* pop the table */
-            lua_pop(tlua->luastate, 1);
+        } else {
+            SCLogDebug("Unsupported datatype returned from Lua script");
         }
     }
 

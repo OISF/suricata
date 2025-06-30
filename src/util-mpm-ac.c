@@ -61,11 +61,12 @@
 #include "util-mpm-ac.h"
 #include "util-memcpy.h"
 #include "util-validate.h"
+#include "util-mpm-ac-queue.h"
 
 void SCACInitCtx(MpmCtx *);
 void SCACDestroyCtx(MpmCtx *);
-int SCACAddPatternCI(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t,
-                     uint32_t, SigIntId, uint8_t);
+int SCACAddPatternCI(
+        MpmCtx *, const uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, SigIntId, uint8_t);
 int SCACAddPatternCS(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t,
                      uint32_t, SigIntId, uint8_t);
 int SCACPreparePatterns(MpmConfig *, MpmCtx *mpm_ctx);
@@ -79,22 +80,11 @@ static void SCACRegisterTests(void);
 /* a placeholder to denote a failure transition in the goto table */
 #define SC_AC_FAIL (-1)
 
-#define STATE_QUEUE_CONTAINER_SIZE 65536
-
 #define AC_CASE_MASK    0x80000000
 #define AC_PID_MASK     0x7FFFFFFF
 #define AC_CASE_BIT     31
 
 static int construct_both_16_and_32_state_tables = 0;
-
-/**
- * \brief Helper structure used by AC during state table creation
- */
-typedef struct StateQueue_ {
-    int32_t store[STATE_QUEUE_CONTAINER_SIZE];
-    int top;
-    int bot;
-} StateQueue;
 
 /**
  * \internal
@@ -360,46 +350,6 @@ static inline void SCACDetermineLevel1Gap(MpmCtx *mpm_ctx)
     }
 }
 
-static inline int SCACStateQueueIsEmpty(StateQueue *q)
-{
-    if (q->top == q->bot)
-        return 1;
-    else
-        return 0;
-}
-
-static inline void SCACEnqueue(StateQueue *q, int32_t state)
-{
-    int i = 0;
-
-    /*if we already have this */
-    for (i = q->bot; i < q->top; i++) {
-        if (q->store[i] == state)
-            return;
-    }
-
-    q->store[q->top++] = state;
-
-    if (q->top == STATE_QUEUE_CONTAINER_SIZE)
-        q->top = 0;
-
-    if (q->top == q->bot) {
-        FatalError("Just ran out of space in the queue. Please file a bug report on this");
-    }
-}
-
-static inline int32_t SCACDequeue(StateQueue *q)
-{
-    if (q->bot == STATE_QUEUE_CONTAINER_SIZE)
-        q->bot = 0;
-
-    if (q->bot == q->top) {
-        FatalError("StateQueue behaving weirdly. Please file a bug report on this");
-    }
-
-    return q->store[q->bot++];
-}
-
 /**
  * \internal
  * \brief Club the output data from 2 states and store it in the 1st state.
@@ -457,10 +407,7 @@ static inline void SCACCreateFailureTable(MpmCtx *mpm_ctx)
     int32_t state = 0;
     int32_t r_state = 0;
 
-    StateQueue *q = SCCalloc(1, sizeof(StateQueue));
-    if (q == NULL) {
-        FatalError("Error allocating memory");
-    }
+    StateQueue *q = SCACStateQueueAlloc();
 
     /* allot space for the failure table.  A failure entry in the table for
      * every state(SCACCtx->state_count) */
@@ -497,7 +444,7 @@ static inline void SCACCreateFailureTable(MpmCtx *mpm_ctx)
                                  mpm_ctx);
         }
     }
-    SCFree(q);
+    SCACStateQueueFree(q);
 }
 
 /**
@@ -520,10 +467,7 @@ static inline void SCACCreateDeltaTable(MpmCtx *mpm_ctx)
         mpm_ctx->memory_cnt++;
         mpm_ctx->memory_size += (ctx->state_count * sizeof(*ctx->state_table_u16));
 
-        StateQueue *q = SCCalloc(1, sizeof(StateQueue));
-        if (q == NULL) {
-            FatalError("Error allocating memory");
-        }
+        StateQueue *q = SCACStateQueueAlloc();
 
         for (ascii_code = 0; ascii_code < 256; ascii_code++) {
             DEBUG_VALIDATE_BUG_ON(ctx->goto_table[0][ascii_code] > UINT16_MAX);
@@ -548,7 +492,7 @@ static inline void SCACCreateDeltaTable(MpmCtx *mpm_ctx)
                 }
             }
         }
-        SCFree(q);
+        SCACStateQueueFree(q);
     }
 
     if (!(ctx->state_count < 32767) || construct_both_16_and_32_state_tables) {
@@ -562,10 +506,7 @@ static inline void SCACCreateDeltaTable(MpmCtx *mpm_ctx)
         mpm_ctx->memory_cnt++;
         mpm_ctx->memory_size += (ctx->state_count * sizeof(*ctx->state_table_u32));
 
-        StateQueue *q = SCCalloc(1, sizeof(StateQueue));
-        if (q == NULL) {
-            FatalError("Error allocating memory");
-        }
+        StateQueue *q = SCACStateQueueAlloc();
 
         for (ascii_code = 0; ascii_code < 256; ascii_code++) {
             SC_AC_STATE_TYPE_U32 temp_state = ctx->goto_table[0][ascii_code];
@@ -588,7 +529,7 @@ static inline void SCACCreateDeltaTable(MpmCtx *mpm_ctx)
                 }
             }
         }
-        SCFree(q);
+        SCACStateQueueFree(q);
     }
 }
 
@@ -1038,9 +979,8 @@ uint32_t SCACSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-int SCACAddPatternCI(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
-                     uint16_t offset, uint16_t depth, uint32_t pid,
-                     SigIntId sid, uint8_t flags)
+int SCACAddPatternCI(MpmCtx *mpm_ctx, const uint8_t *pat, uint16_t patlen, uint16_t offset,
+        uint16_t depth, uint32_t pid, SigIntId sid, uint8_t flags)
 {
     flags |= MPM_PATTERN_FLAG_NOCASE;
     return MpmAddPattern(mpm_ctx, pat, patlen, offset, depth, pid, sid, flags);
