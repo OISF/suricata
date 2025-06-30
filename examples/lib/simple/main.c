@@ -47,6 +47,9 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
+    /* Enable default signal handlers just like Suricata. */
+    SCEnableDefaultSignalHandlers();
+
     SuricataInit();
     SuricataPostInit();
 

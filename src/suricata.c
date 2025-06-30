@@ -286,6 +286,11 @@ void SCRunmodeSet(SCRunMode run_mode)
     suricata.run_mode = run_mode;
 }
 
+void SCEnableDefaultSignalHandlers(void)
+{
+    suricata.install_signal_handlers = true;
+}
+
 /** signal handlers
  *
  *  WARNING: don't use the SCLog* API in the handlers. The API is complex
@@ -2870,8 +2875,10 @@ int PostConfLoadedSetup(SCInstance *suri)
     if (MayDaemonize(suri) != TM_ECODE_OK)
         SCReturnInt(TM_ECODE_FAILED);
 
-    if (InitSignalHandler(suri) != TM_ECODE_OK)
-        SCReturnInt(TM_ECODE_FAILED);
+    if (suri->install_signal_handlers) {
+        if (InitSignalHandler(suri) != TM_ECODE_OK)
+            SCReturnInt(TM_ECODE_FAILED);
+    }
 
     /* Check for the existence of the default logging directory which we pick
      * from suricata.yaml.  If not found, shut the engine down */

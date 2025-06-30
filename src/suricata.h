@@ -160,6 +160,8 @@ typedef struct SCInstance_ {
     bool set_datadir;
     bool unix_socket_enabled;
 
+    bool install_signal_handlers; /**< Install default signal handlers */
+
     int delayed_detect;
     int disabled_detect;
     int daemon;
@@ -213,6 +215,11 @@ SCRunMode SCRunmodeGet(void);
  * Mainly exposed outside of suricata.c as a unit-test helper.
  */
 void SCRunmodeSet(SCRunMode run_mode);
+
+/**
+ * \brief Enable default signal handlers.
+ */
+void SCEnableDefaultSignalHandlers(void);
 
 int SuriHasSigFile(void);
 
