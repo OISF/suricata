@@ -468,12 +468,6 @@ static DetectBytetestData *DetectBytetestParse(
         memmove(data_offset, str_ptr, end_ptr - str_ptr);
         data_offset[end_ptr-str_ptr] = '\0';
         if (data_offset[0] != '-' && isalpha((unsigned char)data_offset[0])) {
-            if (data_offset == NULL) {
-                SCLogError("byte_test supplied with "
-                           "var name for offset.  \"offset\" argument supplied to "
-                           "this function has to be non-NULL");
-                goto error;
-            }
             *offset = SCStrdup(data_offset);
             if (*offset == NULL)
                 goto error;
