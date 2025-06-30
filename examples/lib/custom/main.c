@@ -202,6 +202,12 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
+    /* Enable default signal handlers including SIGHUP for log file rotation,
+     * and SIGUSR2 for reloading rules. This should be done with care by a
+     * library user as the application may already have signal handlers
+     * loaded. */
+    SCEnableDefaultSignalHandlers();
+
     /* Set "offline" runmode to replay a pcap in library mode. */
     if (!SCConfSetFromString("runmode=offline", 1)) {
         exit(EXIT_FAILURE);

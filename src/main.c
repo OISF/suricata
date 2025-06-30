@@ -49,6 +49,9 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
+    /* Enable default signal handlers */
+    SCEnableDefaultSignalHandlers();
+
     /* Initialization tasks: apply configuration, drop privileges,
      * etc. */
     SuricataInit();
