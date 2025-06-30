@@ -87,7 +87,7 @@ suricata-sys = { path = "./sys", version = "@PACKAGE_VERSION@" }
 
 suricata-lua-sys = { version = "5.4.8002" }
 
-htp = { package = "suricata-htp", path = "./htp", version = "2.0.0" }
+htp = { package = "suricata-htp", path = "./htp", version = "@PACKAGE_VERSION@" }
 
 [dev-dependencies]
 test-case = "~3.3.1"
