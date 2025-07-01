@@ -4222,10 +4222,16 @@
                         "ipv4": {
                             "type": "integer"
                         },
+                        "ipv4_in_ipv4": {
+                            "type": "integer"
+                        },
                         "ipv4_in_ipv6": {
                             "type": "integer"
                         },
                         "ipv6": {
+                            "type": "integer"
+                        },
+                        "ipv6_in_ipv4": {
                             "type": "integer"
                         },
                         "ipv6_in_ipv6": {
