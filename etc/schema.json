@@ -4222,14 +4222,24 @@
                         "ipv4": {
                             "type": "integer"
                         },
+                        "ipv4_in_ipv4": {
+                            "type": "integer",
+                            "description": "Number of IP-in-IP packets seen for ipv4-ipv4"
+                        },
                         "ipv4_in_ipv6": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of IP-in-IP packets seen for ipv4-ipv6"
                         },
                         "ipv6": {
                             "type": "integer"
                         },
+                        "ipv6_in_ipv4": {
+                            "type": "integer",
+                            "description": "Number of IP-in-IP packets seen for ipv6-ipv4"
+                        },
                         "ipv6_in_ipv6": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of IP-in-IP packets seen for ipv6-ipv6"
                         },
                         "max_mac_addrs_dst": {
                             "type": "integer"
