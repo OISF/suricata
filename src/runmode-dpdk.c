@@ -447,16 +447,16 @@ static int ConfigSetThreads(DPDKIfaceConfig *iconf, const char *entry_str)
             SCReturnInt(-ERANGE);
         }
 
-        if (remaining_auto_cpus > 0) {
-            iconf->threads++;
-            remaining_auto_cpus--;
-        } else if (remaining_auto_cpus == UINT16_MAX) {
+        if (remaining_auto_cpus == UINT16_MAX) {
             // first time auto-assignment
             remaining_auto_cpus = sched_cpus % live_dev_count;
             if (remaining_auto_cpus > 0) {
                 iconf->threads++;
                 remaining_auto_cpus--;
             }
+        } else if (remaining_auto_cpus > 0) {
+            iconf->threads++;
+            remaining_auto_cpus--;
         }
         SCLogConfig("%s: auto-assigned %u threads", iconf->iface, iconf->threads);
         SCReturnInt(0);
