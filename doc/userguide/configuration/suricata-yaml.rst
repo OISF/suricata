@@ -2796,6 +2796,8 @@ set the parent flow for packets, when the engine sees such IP-in-IP packets. Thi
 option can be enabled regardless of enabled the ipip tunelling.
 As this may impact signature matching and flow tracking, these are disabled by default.
 
+The stats counter `decoder.ipv4_in_ipv4` is associated with this setting.
+
 ::
 
    # IP-in-IP tunneling for ipv4 over ipv4 handling
