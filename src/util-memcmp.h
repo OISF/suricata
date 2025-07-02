@@ -29,13 +29,14 @@
 #ifndef SURICATA_UTIL_MEMCMP_H
 #define SURICATA_UTIL_MEMCMP_H
 
+// NOLINTNEXTLINE(misc-header-include-cycle)
 #include "suricata-common.h"
 #include "util-optimize.h"
 
 /** \brief compare two patterns, converting the 2nd to lowercase
  *  \warning *ONLY* the 2nd pattern is converted to lowercase
  */
-static inline int SCMemcmpLowercase(const void *, const void *, size_t);
+static inline int SCMemcmpLowercase(const void *s1, const void *s2, size_t n);
 
 void MemcmpRegisterTests(void);
 

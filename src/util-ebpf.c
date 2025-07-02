@@ -280,6 +280,7 @@ alloc_error:
     }
     bpf_map_data->last = 0;
     SCLogError("Can't allocate bpf map name");
+    SCFree(bpf_map_data);
     return -1;
 }
 
