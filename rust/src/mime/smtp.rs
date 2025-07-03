@@ -19,7 +19,6 @@ use super::mime;
 use crate::core::StreamingBufferConfig;
 use crate::filecontainer::FileContainer;
 use crate::utils::base64;
-use digest::generic_array::{typenum::U16, GenericArray};
 use digest::Digest;
 use digest::Update;
 use md5::Md5;
@@ -92,7 +91,7 @@ pub struct MimeStateSMTP<'a> {
     sbcfg: *const StreamingBufferConfig,
     md5: md5::Md5,
     pub(crate) md5_state: MimeSmtpMd5State,
-    pub(crate) md5_result: GenericArray<u8, U16>,
+    pub(crate) md5_result: String,
 }
 
 pub fn mime_smtp_state_init(
@@ -116,7 +115,7 @@ pub fn mime_smtp_state_init(
         sbcfg,
         md5: Md5::new(),
         md5_state: MimeSmtpMd5State::MimeSmtpMd5Disabled,
-        md5_result: [0; 16].into(),
+        md5_result: String::new(),
     };
     return Some(r);
 }
@@ -376,7 +375,7 @@ fn mime_smtp_parse_line(
     let mut warnings = 0;
     match ctx.state_flag {
         MimeSmtpParserState::MimeSmtpStart => {
-            if unsafe { MIME_SMTP_CONFIG_BODY_MD5 }
+            if unsafe { MIME_SMTP_CONFIG_ENABLE_BODY_MD5 }
                 && ctx.md5_state != MimeSmtpMd5State::MimeSmtpMd5Started
             {
                 ctx.md5 = Md5::new();
@@ -638,7 +637,8 @@ pub unsafe extern "C" fn SCSmtpMimeParseLine(
 fn mime_smtp_complete(ctx: &mut MimeStateSMTP) {
     if ctx.md5_state == MimeSmtpMd5State::MimeSmtpMd5Started {
         ctx.md5_state = MimeSmtpMd5State::MimeSmtpMd5Completed;
-        ctx.md5_result = ctx.md5.finalize_reset();
+        let hash = ctx.md5.finalize_reset();
+        ctx.md5_result = format!("{:x}", hash);
     }
     // look for url in the last unfinished line
     mime_smtp_find_url_strings(ctx, b"\n");
@@ -710,7 +710,8 @@ pub unsafe extern "C" fn SCMimeSmtpGetHeaderName(
 
 static mut MIME_SMTP_CONFIG_DECODE_BASE64: bool = true;
 static mut MIME_SMTP_CONFIG_DECODE_QUOTED: bool = true;
-static mut MIME_SMTP_CONFIG_BODY_MD5: bool = false;
+static mut MIME_SMTP_CONFIG_ENABLE_BODY_MD5: bool = false;
+static mut MIME_SMTP_CONFIG_DISABLE_BODY_MD5: bool = false;
 static mut MIME_SMTP_CONFIG_HEADER_VALUE_DEPTH: u32 = 0;
 static mut MIME_SMTP_CONFIG_EXTRACT_URLS: bool = true;
 static mut MIME_SMTP_CONFIG_LOG_URL_SCHEME: bool = false;
@@ -737,8 +738,22 @@ pub unsafe extern "C" fn SCMimeSmtpConfigLogUrlScheme(val: std::os::raw::c_int) 
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCMimeSmtpConfigBodyMd5(val: std::os::raw::c_int) {
-    MIME_SMTP_CONFIG_BODY_MD5 = val != 0;
+pub unsafe extern "C" fn SCMimeSmtpConfigBodyMd5(val: bool) {
+    if val {
+        MIME_SMTP_CONFIG_ENABLE_BODY_MD5 = true;
+    } else {
+        MIME_SMTP_CONFIG_DISABLE_BODY_MD5 = true;
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn MimeBodyMd5IsEnabled() -> bool {
+    MIME_SMTP_CONFIG_ENABLE_BODY_MD5
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn MimeBodyMd5IsDisabled() -> bool {
+    MIME_SMTP_CONFIG_DISABLE_BODY_MD5
 }
 
 #[no_mangle]
