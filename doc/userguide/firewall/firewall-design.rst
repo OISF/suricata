@@ -1,3 +1,5 @@
+.. _firewall mode design:
+
 Firewall Mode Design
 ====================
 
