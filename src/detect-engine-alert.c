@@ -38,6 +38,9 @@
 
 #include "action-globals.h"
 
+#include "util-atomic.h"
+#include "source-pcap-file-helper.h"
+
 /** tag signature we use for tag alerts */
 static Signature g_tag_signature;
 /** tag packet alert structure for tag alerts */
@@ -590,6 +593,10 @@ void PacketAlertFinalize(const DetectEngineCtx *de_ctx, DetectEngineThreadCtx *d
     if (!(p->flags & PKT_PSEUDO_STREAM_END))
         TagHandlePacket(de_ctx, det_ctx, p);
 
+    if (p->alerts.cnt > 0) {
+        (void)SC_ATOMIC_ADD(g_pcap_file_alerts, p->alerts.cnt);
+    }
+
     /* Set flag on flow to indicate that it has alerts */
     if (p->flow != NULL && p->alerts.cnt > 0) {
         if (!FlowHasAlerts(p->flow)) {
@@ -597,6 +604,8 @@ void PacketAlertFinalize(const DetectEngineCtx *de_ctx, DetectEngineThreadCtx *d
             p->flags |= PKT_FIRST_ALERTS;
         }
     }
+
+    SCReturn;
 }
 
 #ifdef UNITTESTS

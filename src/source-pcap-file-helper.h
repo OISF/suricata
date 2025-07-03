@@ -23,6 +23,7 @@
 
 #include "suricata-common.h"
 #include "tm-threads.h"
+#include "util-atomic.h"
 
 #ifndef SURICATA_SOURCE_PCAP_FILE_HELPER_H
 #define SURICATA_SOURCE_PCAP_FILE_HELPER_H
@@ -47,6 +48,8 @@ typedef struct PcapFileSharedVars_
     struct timespec last_processed;
 
     bool should_delete;
+
+    bool delete_non_alerts_only;
 
     ThreadVars *tv;
     TmSlot *slot;
@@ -120,5 +123,13 @@ void CleanupPcapFileFileVars(PcapFileFileVars *pfv);
 TmEcode ValidateLinkType(int datalink, DecoderFunc *decoder);
 
 const char *PcapFileGetFilename(void);
+
+bool ShouldDeletePcapFile(PcapFileFileVars *pfv);
+
+extern SC_ATOMIC_DECLARE(uint64_t, g_pcap_file_alerts);
+
+#ifdef UNITTESTS
+void SourcePcapFileHelperRegisterTests(void);
+#endif
 
 #endif /* SURICATA_SOURCE_PCAP_FILE_HELPER_H */
