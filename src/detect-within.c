@@ -104,7 +104,7 @@ static int DetectWithinSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
     }
     if (str[0] != '-' && isalpha((unsigned char)str[0])) {
         DetectByteIndexType index;
-        if (!DetectByteRetrieveSMVar(str, s, -1, &index)) {
+        if (!DetectByteRetrieveSMVar(str, s, false, -1, &index)) {
             SCLogError("unknown byte_ keyword var "
                        "seen in within - %s",
                     str);

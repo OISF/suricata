@@ -176,6 +176,12 @@ Major changes
   content that matched just because it fell in the inspection chunk without wholly
   belonging to any one request/response may not match any longer.
 
+- When using the `byte` keywords like ``byte_extract``, ``byte_math``, etc with
+  variables and variable usage is with a different buffer than the buffer used
+  to create the variable, a warning is printed and the rule is loaded. Use the
+  command line option ``--strict-rule-keywords`` to produce an error message and
+  to prevent the rule from loading.
+
 Removals
 ~~~~~~~~
 - The ssh keywords ``ssh.protoversion`` and ``ssh.softwareversion`` have been removed.
