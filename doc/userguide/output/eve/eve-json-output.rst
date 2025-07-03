@@ -348,6 +348,23 @@ YAML::
 The logger is disabled by default since ARP can generate a large
 number of events.
 
+Netflow
+~~~~~~~
+
+Netflow records closely relate to flow records except that they are unidirectional while flow records
+are bidirectional. This means that there will be twice as many netflow records as there are flow records.
+
+Netflow records are disabled by default.
+
+YAML::
+
+      #- netflow
+
+To enable netflow, change this to::
+
+      - netflow:
+          enabled: yes
+
 MQTT
 ~~~~
 
@@ -601,7 +618,7 @@ The output can be enabled per instance of the EVE logger.
 
 The ``community-id`` option is boolean. If set to ``true`` it is enabled.
 The ``community-id-seed`` option specifies a unsigned 16 bit value that
-is used a seed to the hash that is calculated for the ``community-id``
+is used to seed the hash that is calculated for the ``community-id``
 output. This must be set to the same value on all tools that output this
 record.
 

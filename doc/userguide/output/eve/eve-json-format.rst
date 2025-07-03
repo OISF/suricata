@@ -470,7 +470,7 @@ flow, since one packet may match on several rules.
 Verdict
 ~~~~~~~
 
-An object containning info on the final action that will be applied to a given
+An object containing info on the final action that will be applied to a given
 packet, based on all the signatures triggered by it and other possible events
 (e.g., a flow drop). For that reason, it is possible for an alert with
 an action ``allowed`` to have a verdict ``drop``, in IPS mode, for instance, if
@@ -3110,7 +3110,7 @@ Fields
 
 * "hw_type": network link protocol type
 * "proto_type": internetwork protocol for which the request is intended
-* "opcode": operation that the sender is performing (e.g. request, response)  
+* "opcode": operation that the sender is performing (e.g. request, response)
 * "src_mac": source MAC address
 * "src_ip": source IP address
 * "dest_mac": destination MAC address
@@ -3178,3 +3178,30 @@ Example of POP3 logging:
           "data": []
       }
    }
+
+Event type: Netflow
+-------------------
+
+Fields
+~~~~~~
+
+* "age": duration of the flow (measured from timestamp of last packet and first packet)
+* "bytes": total number of bytes to client
+* "end": date of the end of the flow
+* "max_ttl": maximum observed Time-To-Live (TTL) value
+* "min_ttl": minimum observed TTL value
+* "pkts": total number of packets to client
+* "start": date of start of the flow
+* "tx_cnt": number of transactions seen in the flow (only present if flow has an application layer)
+
+Example ::
+
+ "netflow": {
+    "pkts": 1,
+    "bytes": 160,
+    "start": "2013-02-26T17:02:42.907340-0500",
+    "end": "2013-02-26T17:02:42.907340-0500",
+    "age": 0,
+    "min_ttl": 1,
+    "max_ttl": 1
+  }
