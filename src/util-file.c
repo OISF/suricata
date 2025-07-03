@@ -98,25 +98,25 @@ void FileForceFilestoreEnable(void)
 void FileForceMagicEnable(void)
 {
     g_file_force_magic = 1;
-    g_file_flow_mask |= (FLOWFILE_NO_MAGIC_TS|FLOWFILE_NO_MAGIC_TC);
+    g_file_flow_mask |= FLOWFILE_NO_MAGIC;
 }
 
 void FileForceMd5Enable(void)
 {
     g_file_force_md5 = 1;
-    g_file_flow_mask |= (FLOWFILE_NO_MD5_TS|FLOWFILE_NO_MD5_TC);
+    g_file_flow_mask |= FLOWFILE_NO_MD5;
 }
 
 void FileForceSha1Enable(void)
 {
     g_file_force_sha1 = 1;
-    g_file_flow_mask |= (FLOWFILE_NO_SHA1_TS|FLOWFILE_NO_SHA1_TC);
+    g_file_flow_mask |= FLOWFILE_NO_SHA1;
 }
 
 void FileForceSha256Enable(void)
 {
     g_file_force_sha256 = 1;
-    g_file_flow_mask |= (FLOWFILE_NO_SHA256_TS|FLOWFILE_NO_SHA256_TC);
+    g_file_flow_mask |= FLOWFILE_NO_SHA256;
 }
 
 int FileForceFilestore(void)
@@ -161,7 +161,7 @@ int FileForceSha256(void)
 void FileForceTrackingEnable(void)
 {
     g_file_force_tracking = 1;
-    g_file_flow_mask |= (FLOWFILE_NO_SIZE_TS|FLOWFILE_NO_SIZE_TC);
+    g_file_flow_mask |= FLOWFILE_NO_SIZE;
 }
 
 /**
@@ -213,9 +213,25 @@ void FileForceHashParseCfg(SCConfNode *conf)
     }
 }
 
-uint16_t FileFlowFlagsToFlags(const uint16_t flow_file_flags, uint8_t direction)
+uint16_t SCFileFlowFlagsToFlags(const uint16_t flow_file_flags, uint8_t direction)
 {
     uint16_t flags = 0;
+
+    if (flow_file_flags & FLOWFILE_NO_MAGIC) {
+        flags |= FILE_NOMAGIC;
+    }
+
+    if (flow_file_flags & FLOWFILE_NO_MD5) {
+        flags |= FILE_NOMD5;
+    }
+
+    if (flow_file_flags & FLOWFILE_NO_SHA1) {
+        flags |= FILE_NOSHA1;
+    }
+
+    if (flow_file_flags & FLOWFILE_NO_SHA256) {
+        flags |= FILE_NOSHA256;
+    }
 
     if (direction == STREAM_TOSERVER) {
         if ((flow_file_flags & (FLOWFILE_NO_STORE_TS | FLOWFILE_STORE_TS)) ==
@@ -224,44 +240,12 @@ uint16_t FileFlowFlagsToFlags(const uint16_t flow_file_flags, uint8_t direction)
         } else if (flow_file_flags & FLOWFILE_STORE_TS) {
             flags |= FILE_STORE;
         }
-
-        if (flow_file_flags & FLOWFILE_NO_MAGIC_TS) {
-            flags |= FILE_NOMAGIC;
-        }
-
-        if (flow_file_flags & FLOWFILE_NO_MD5_TS) {
-            flags |= FILE_NOMD5;
-        }
-
-        if (flow_file_flags & FLOWFILE_NO_SHA1_TS) {
-            flags |= FILE_NOSHA1;
-        }
-
-        if (flow_file_flags & FLOWFILE_NO_SHA256_TS) {
-            flags |= FILE_NOSHA256;
-        }
     } else {
         if ((flow_file_flags & (FLOWFILE_NO_STORE_TC | FLOWFILE_STORE_TC)) ==
                 FLOWFILE_NO_STORE_TC) {
             flags |= FILE_NOSTORE;
         } else if (flow_file_flags & FLOWFILE_STORE_TC) {
             flags |= FILE_STORE;
-        }
-
-        if (flow_file_flags & FLOWFILE_NO_MAGIC_TC) {
-            flags |= FILE_NOMAGIC;
-        }
-
-        if (flow_file_flags & FLOWFILE_NO_MD5_TC) {
-            flags |= FILE_NOMD5;
-        }
-
-        if (flow_file_flags & FLOWFILE_NO_SHA1_TC) {
-            flags |= FILE_NOSHA1;
-        }
-
-        if (flow_file_flags & FLOWFILE_NO_SHA256_TC) {
-            flags |= FILE_NOSHA256;
         }
     }
     DEBUG_VALIDATE_BUG_ON((flags & (FILE_STORE | FILE_NOSTORE)) == (FILE_STORE | FILE_NOSTORE));
@@ -272,7 +256,7 @@ uint16_t FileFlowFlagsToFlags(const uint16_t flow_file_flags, uint8_t direction)
 
 uint16_t FileFlowToFlags(const Flow *flow, uint8_t direction)
 {
-    return FileFlowFlagsToFlags(flow->file_flags, direction);
+    return SCFileFlowFlagsToFlags(flow->file_flags, direction);
 }
 
 void FileApplyTxFlags(const AppLayerTxData *txd, const uint8_t direction, File *file)
@@ -280,7 +264,7 @@ void FileApplyTxFlags(const AppLayerTxData *txd, const uint8_t direction, File *
     SCLogDebug("file flags %04x STORE %s NOSTORE %s", file->flags,
             (file->flags & FILE_STORE) ? "true" : "false",
             (file->flags & FILE_NOSTORE) ? "true" : "false");
-    uint16_t update_flags = FileFlowFlagsToFlags(txd->file_flags, direction);
+    uint16_t update_flags = SCFileFlowFlagsToFlags(txd->file_flags, direction);
     DEBUG_VALIDATE_BUG_ON(
             (file->flags & (FILE_STORE | FILE_NOSTORE)) == (FILE_STORE | FILE_NOSTORE));
     if (file->flags & FILE_STORE)

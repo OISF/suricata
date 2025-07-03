@@ -25,6 +25,12 @@
 #ifndef SURICATA_UTIL_FILE_H
 #define SURICATA_UTIL_FILE_H
 
+// only bindgen this function as struct File_ defined here in C
+// uses some structrues from rust
+uint16_t SCFileFlowFlagsToFlags(const uint16_t flow_file_flags, uint8_t direction);
+
+#ifndef SURICATA_BINDGEN_H
+
 #include "conf.h"
 #include "util-streaming-buffer.h"
 #include "flow.h"
@@ -241,7 +247,6 @@ void FileStoreFileById(FileContainer *fc, uint32_t);
 uint64_t FileDataSize(const File *file);
 uint64_t FileTrackedSize(const File *file);
 
-uint16_t FileFlowFlagsToFlags(const uint16_t flow_file_flags, uint8_t direction);
 uint16_t FileFlowToFlags(const Flow *flow, uint8_t direction);
 
 #ifdef DEBUG
@@ -251,5 +256,7 @@ void FilePrintFlags(const File *file);
 #endif
 
 void FilesPrune(FileContainer *fc, const StreamingBufferConfig *sbcfg, const bool trunc);
+
+#endif // SURICATA_BINDGEN_H
 
 #endif /* SURICATA_UTIL_FILE_H */

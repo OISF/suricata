@@ -36,6 +36,7 @@
 #include "util-time.h"
 
 #include "flow.h"
+#include "flow-bindgen.h"
 #include "flow-queue.h"
 #include "flow-hash.h"
 #include "flow-util.h"
@@ -217,12 +218,7 @@ static inline void FlowSwapFlags(Flow *f)
 
 static inline void FlowSwapFileFlags(Flow *f)
 {
-    SWAP_FLAGS(f->file_flags, FLOWFILE_NO_MAGIC_TS, FLOWFILE_NO_MAGIC_TC);
     SWAP_FLAGS(f->file_flags, FLOWFILE_NO_STORE_TS, FLOWFILE_NO_STORE_TC);
-    SWAP_FLAGS(f->file_flags, FLOWFILE_NO_MD5_TS, FLOWFILE_NO_MD5_TC);
-    SWAP_FLAGS(f->file_flags, FLOWFILE_NO_SHA1_TS, FLOWFILE_NO_SHA1_TC);
-    SWAP_FLAGS(f->file_flags, FLOWFILE_NO_SHA256_TS, FLOWFILE_NO_SHA256_TC);
-    SWAP_FLAGS(f->file_flags, FLOWFILE_NO_SIZE_TS, FLOWFILE_NO_SIZE_TC);
 }
 
 static inline void TcpStreamFlowSwap(Flow *f)
@@ -1190,7 +1186,7 @@ void FlowUpdateState(Flow *f, const enum FlowState s)
  * parts into output pointers to make it simpler to call from Rust
  * over FFI using only basic data types.
  */
-void FlowGetLastTimeAsParts(Flow *flow, uint64_t *secs, uint64_t *usecs)
+void SCFlowGetLastTimeAsParts(const Flow *flow, uint64_t *secs, uint64_t *usecs)
 {
     *secs = (uint64_t)SCTIME_SECS(flow->lastts);
     *usecs = (uint64_t)SCTIME_USECS(flow->lastts);
@@ -1202,7 +1198,7 @@ void FlowGetLastTimeAsParts(Flow *flow, uint64_t *secs, uint64_t *usecs)
  * A function to get the flow sport useful when the caller only has an
  * opaque pointer to the flow structure.
  */
-uint16_t FlowGetSourcePort(Flow *flow)
+uint16_t SCFlowGetSourcePort(const Flow *flow)
 {
     return flow->sp;
 }
@@ -1214,7 +1210,7 @@ uint16_t FlowGetSourcePort(Flow *flow)
  * opaque pointer to the flow structure.
  */
 
-uint16_t FlowGetDestinationPort(Flow *flow)
+uint16_t SCFlowGetDestinationPort(const Flow *flow)
 {
     return flow->dp;
 }
@@ -1225,7 +1221,7 @@ uint16_t FlowGetDestinationPort(Flow *flow)
  * opaque pointer to the flow structure.
  */
 
-uint32_t FlowGetFlags(Flow *flow)
+uint32_t SCFlowGetFlags(const Flow *flow)
 {
     return flow->flags;
 }

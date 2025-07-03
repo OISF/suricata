@@ -40,6 +40,7 @@
 #include "detect-engine-register.h"
 #include "detect-engine-buffer.h"
 #include "detect-engine-helper.h"
+#include "detect-engine-state.h"
 #include "detect-parse.h"
 
 #include "util-debug.h"
@@ -48,5 +49,13 @@
 
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
+#include "app-layer-register.h"
+#include "app-layer-events.h"
+
+#include "util-mpm.h"
+#include "util-file.h"
+#include "util-var.h"
+
+#include "flow-bindgen.h"
 
 #endif
