@@ -87,6 +87,7 @@ following keywords:
 * ``email.url``
 * ``file.data``
 * ``file.magic``
+* ``file.mimetype``
 * ``file.name``
 * ``ftp.completion_code``
 * ``ftp.reply``
