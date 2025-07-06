@@ -9,6 +9,8 @@
     LT_INIT
     PKG_PROG_PKG_CONFIG
 
+    gpl_license_only="no"
+
     dnl Taken from https://llvm.org/svn/llvm-project/llvm/trunk/autoconf/configure.ac
     dnl check if we compile using clang or gcc. On some systems the gcc binary is
     dnl is actually clang, so do a compile test.
@@ -1765,6 +1767,16 @@
         fi
     fi
 
+  # mimetype
+    AC_ARG_ENABLE(gpl-mimetype,
+           AS_HELP_STRING([--disable-gpl-mimetype], [Do not embed GPL data in mimetype support [default=no]]),
+                        [enable_gpl_mimetype="$enableval"],[enable_gpl_mimetype=yes])
+    AS_IF([test "x$enable_gpl_mimetype" = "xyes"], [
+        WITH_GPL_DATA="\"with-gpl-data\""
+        gpl_license_only="yes"
+        AC_SUBST(WITH_GPL_DATA)
+    ])
+
     # Napatech - Using the 3GD API
     AC_ARG_ENABLE(napatech,
                 AS_HELP_STRING([--enable-napatech],[Enable Napatech Devices]),
@@ -2619,6 +2631,9 @@ Development settings:
   Debug output enabled:                    ${enable_debug}
   Debug validation enabled:                ${enable_debug_validation}
   Fuzz targets enabled:                    ${enable_fuzztargets}
+
+License Compatibility:
+  GNU Public License only:                 ${gpl_license_only}
 
 Generic build parameters:
   Installation prefix:                     ${prefix}
