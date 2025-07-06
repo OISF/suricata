@@ -1765,6 +1765,15 @@
         fi
     fi
 
+  # mimetype
+    AC_ARG_ENABLE(gpl-mimetype,
+           AS_HELP_STRING([--enable-gpl-mimetype], [Embed GPL data in mimetype support [default=no]]),
+                        [enable_gpl_mimetype="$enableval"],[enable_gpl_mimetype=no])
+    AS_IF([test "x$enable_gpl_mimetype" = "xyes"], [
+        WITH_GPL_DATA="\"with-gpl-data\""
+        AC_SUBST(WITH_GPL_DATA)
+    ])
+
     # Napatech - Using the 3GD API
     AC_ARG_ENABLE(napatech,
                 AS_HELP_STRING([--enable-napatech],[Enable Napatech Devices]),
