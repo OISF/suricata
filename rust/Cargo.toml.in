@@ -58,7 +58,7 @@ lru = "~0.12.5"
 der-parser = { version = "~9.0.0", default-features = false }
 kerberos-parser = { version = "~0.8.0", default-features = false }
 
-tree_magic_mini = "~3.1.6"
+tree_magic_mini = { version = "~3.1.6", features = [@WITH_GPL_DATA@] }
 
 sawp-modbus = "~0.13.1"
 sawp-pop3 = "~0.13.1"
