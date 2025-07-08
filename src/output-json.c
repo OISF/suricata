@@ -297,11 +297,45 @@ static void EveAddFlowVars(const Flow *f, SCJsonBuilder *js_root, SCJsonBuilder 
                 const char *varname = VarNameStoreLookupById(fv->idx, VAR_TYPE_FLOW_FLOAT);
                 if (varname) {
                     if (js_entropyvals == NULL) {
-                        js_entropyvals = SCJbNewObject();
+                        js_entropyvals = SCJbNewArray();
                         if (js_entropyvals == NULL)
                             break;
                     }
-                    SCJbSetFloat(js_entropyvals, varname, fv->data.fv_float.value);
+                    /* Transform a variable name like "sid:39133;buffer:file_data;instance:1"
+                     * into a set of pairs like:
+                     * "sid:39133;buffer:file_data;instance:1"
+                     */
+                    char *v = SCStrdup(varname);
+                    char *saveptr;
+                    char *tok = strtok_r(v, ";", &saveptr);
+                    if (tok == NULL) {
+                        continue;
+                    }
+                    SCJbStartObject(js_entropyvals);
+                    while (tok) {
+                        char *colon = strchr(tok, ':');
+                        if (colon) {
+                            *colon = '\0';
+                            const char *key = tok;
+                            const char *val = colon + 1;
+                            bool is_num = true;
+                            for (const char *p = val; *p; ++p) {
+                                if (!isdigit((unsigned char)*p)) {
+                                    is_num = false;
+                                    SCJbSetString(js_entropyvals, key, val);
+                                    break;
+                                }
+                            }
+                            if (is_num) {
+                                SCJbSetUint(js_entropyvals, key, atoi(val));
+                            }
+                        } else {
+                            SCJbSetString(js_entropyvals, "buffer", tok);
+                        }
+                        tok = strtok_r(NULL, ";", &saveptr);
+                    }
+                    SCJbSetFloat(js_entropyvals, "value", fv->data.fv_float.value);
+                    SCJbClose(js_entropyvals);
                 }
 
             } else if (fv->datatype == FLOWVAR_TYPE_INT) {
