@@ -1,3 +1,38 @@
+8.0.0 -- 2025-07-08
+
+Security #7658: http2: global tx (stream id 0) may open file and never close it(HIGH - CVE 2025-53538)
+Bug #7798: dpdk: auto count of threads assigns more threads than affined
+Bug #7791: http: BUG_ON assertion reached in packet path
+Bug #7790: affinity: intermittent unittest failures
+Bug #7789: dpdk: compilation warning of a function without prototype
+Bug #7783: smtp: incorrect inspection window
+Bug #7752: decode: no parent packet flow for ip-in-ipv6
+Bug #7678: mpm/ac: error "Just ran out of space in the queue"
+Bug #7649: lib: suricata version in sys crate needs to be updated on build
+Bug #1484: src: BUG_ON(1) statements in the packet path
+Optimization #7643: excessive mtu messages at start up
+Optimization #7212: strtoul: replace with ByteExtractString variant
+Optimization #6264: mpm/ac-ks: reduce stack usage
+Optimization #4753: lua: fix inconsistency in the init "needs" key
+Documentation #7749: doc: update user manual seciton on RPMs
+Documentation #7723: doc/exceptions: review 'inspection' terminology
+Documentation #7648: rtd: set "latest" to last stable release starting with 8.0.0
+Documentation #7078: devguide: document current ffi naming style
+Documentation #6955: devguide: update coding-style docs
+Documentation #6566: userguide: add description for missing EVE krb fields
+Documentation #6288: eve/schema: generate tables of data for app-layer protocols
+Documentation #6252: userguide/install: move Ubuntu distros to their own page
+Documentation #6069: userguide/install: move RPM distros to their own page
+Documentation #6022: devguide: explain how the engine identifies applayer protocols
+Documentation #5911: userguide: update & bring guide for installation on Windows to RtD
+Task #7758: decode: add stats counters for ipv4/ipv6 over ipv4
+Task #7750: packaging: rpm for RHEL 10
+Task #7632: suricata-lua-sys: tag with a non-prerelease version
+Task #6941: lua: review and document lua rule return types
+Task #6814: libsuricata: opt-in signal handling
+Task #6359: detect/analyzer: add more details for the ICMP icode keyword
+Task #6262: tracking: reduce stack usage
+
 8.0.0-rc1 -- 2025-06-12
 
 Feature #7715: rules: add option to skip flow tracking for a packet
