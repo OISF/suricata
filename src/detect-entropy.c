@@ -28,8 +28,39 @@
 
 #include "rust.h"
 
+/*
+ * Base size required for the entropy var name:
+ * - 17 (tags)
+ *   10 (max sid)
+ *   5 (separators)
+ *   2 (entropy instance cnt)
+ */
+#define ENTROPY_VAR_NAME_BASE_LEN (17 + 10 + 5 + 2)
+#define ENTROPY_VAR_NAME_FORMAT   "sid:%d;buffer:%s;instance:%d"
+
+static int DetectEntropyRuleInstanceCount(Signature *s)
+{
+    int entropy_cnt = 1;
+    for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
+        for (SigMatch *sm = s->init_data->buffers[x].head; sm != NULL; sm = sm->next) {
+            if (sm->type == DETECT_ENTROPY) {
+                ++entropy_cnt;
+            }
+        }
+    }
+
+    return entropy_cnt;
+}
+
 static int DetectEntropySetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
+
+    int unique_name;
+    SCConfGetBool("logging.entropy.make-unique", &unique_name);
+    if (unique_name) {
+        SCLogConfig("entropy values are marked with signature_id");
+    }
+
     DetectEntropyData *ded = SCDetectEntropyParse(arg);
     if (ded == NULL) {
         goto error;
@@ -41,8 +72,19 @@ static int DetectEntropySetup(DetectEngineCtx *de_ctx, Signature *s, const char 
             goto error;
 
         sm_list = s->init_data->list;
-        ded->fv_idx = VarNameStoreRegister(
-                DetectEngineBufferTypeGetNameById(de_ctx, sm_list), VAR_TYPE_FLOW_FLOAT);
+        const char *var_name_ptr = DetectEngineBufferTypeGetNameById(de_ctx, sm_list);
+        if (unique_name) {
+            int entropy_cnt = DetectEntropyRuleInstanceCount(s);
+            SCLogDebug("There are a total of %d entropy usages in this rule", entropy_cnt);
+
+            char name_buf[ENTROPY_VAR_NAME_BASE_LEN + strlen(var_name_ptr)];
+            snprintf(name_buf, sizeof(name_buf), ENTROPY_VAR_NAME_FORMAT, s->id, var_name_ptr,
+                    entropy_cnt);
+
+            ded->fv_idx = VarNameStoreRegister(name_buf, VAR_TYPE_FLOW_FLOAT);
+        } else {
+            ded->fv_idx = VarNameStoreRegister(var_name_ptr, VAR_TYPE_FLOW_FLOAT);
+        }
     }
 
     if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_ENTROPY, (SigMatchCtx *)ded, sm_list) != NULL) {
