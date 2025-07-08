@@ -297,11 +297,11 @@ static void EveAddFlowVars(const Flow *f, SCJsonBuilder *js_root, SCJsonBuilder 
                 const char *varname = VarNameStoreLookupById(fv->idx, VAR_TYPE_FLOW_FLOAT);
                 if (varname) {
                     if (js_entropyvals == NULL) {
-                        js_entropyvals = SCJbNewObject();
+                        js_entropyvals = SCJbNewArray();
                         if (js_entropyvals == NULL)
                             break;
                     }
-                    SCJbSetFloat(js_entropyvals, varname, fv->data.fv_float.value);
+                    SCJbAppendFloatKv(js_entropyvals, varname, fv->data.fv_float.value);
                 }
 
             } else if (fv->datatype == FLOWVAR_TYPE_INT) {
