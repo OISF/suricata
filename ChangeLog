@@ -1,3 +1,24 @@
+7.0.11 -- 2025-07-08
+
+Security #7766: libhtp-c: memory leak with lzma(HIGH - CVE 2025-53537)
+Security #7659: http2: global tx (stream id 0) may open file and never close it (7.0.x backport)(HIGH - CVE 2025-53538)
+Bug #7779: mpm/ac: error "Just ran out of space in the queue" (7.0.x backport)
+Bug #7748: byte_extract: issue with saved 'name' in distance keyword (7.0.x backport)
+Bug #7736: brotli: old crate version has integer underflow (7.0.x backport)
+Bug #7731: dcerpc: uint16 overflow (rust debug assertion) (7.0.x backport)
+Bug #7716: snmp: probing parser returns ALPROTO_FAILED instead of ALPROTO_UNKNOWN if slice.len() < 4 (7.0.x backport)
+Bug #7690: datasets: set type IP can't set IPv4 (7.0.x backport)
+Bug #7688: flow: non-TCP protocol timeout handling leads to missing flows (7.0.x backport)
+Bug #7682: flow: race condition at shutdown leads to duplicate flows (7.0.x backport)
+Bug #7670: http: lack of setting updated_ts leads to detection delay (7.0.x backport)
+Bug #7663: ips: deconflict pass flow and drop packet rules (7.0.x backport)
+Bug #7661: pcap: continuous file reading fails on an empty directory (7.0.x backport)
+Bug #7652: rust: warnings with rustc 1.86
+Bug #7610: http: reachable assertion when memcap reached during rule reload
+Bug #7375: dpdk: iface-copy should not be mandatory (7.0.x backport)
+Bug #7293: CI: clang-format does not work for main-7.0.x branch (7.0.x backport)
+Optimization #7781: mpm/ac-ks: reduce stack usage (7.0.x backport)
+
 7.0.10 -- 2025-03-25
 
 Bug #7619: af-packet: setting bpf fails (7.0.x backport)
