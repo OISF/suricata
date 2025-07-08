@@ -41,8 +41,10 @@ static int DetectEntropySetup(DetectEngineCtx *de_ctx, Signature *s, const char 
             goto error;
 
         sm_list = s->init_data->list;
-        ded->fv_idx = VarNameStoreRegister(
-                DetectEngineBufferTypeGetNameById(de_ctx, sm_list), VAR_TYPE_FLOW_FLOAT);
+        char name_buf[30];
+        snprintf(name_buf, sizeof(name_buf), "%s_%d",
+                DetectEngineBufferTypeGetNameById(de_ctx, sm_list), s->id);
+        ded->fv_idx = VarNameStoreRegister(name_buf, VAR_TYPE_FLOW_FLOAT);
     }
 
     if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_ENTROPY, (SigMatchCtx *)ded, sm_list) != NULL) {
