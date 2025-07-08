@@ -30,6 +30,12 @@
 
 static int DetectEntropySetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
+    int unique_name;
+    SCConfGetBool("logging.entropy.make-unique", &unique_name);
+    if (unique_name) {
+        SCLogConfig("entropy values are marked with signature_id");
+    }
+
     DetectEntropyData *ded = SCDetectEntropyParse(arg);
     if (ded == NULL) {
         goto error;
@@ -41,8 +47,15 @@ static int DetectEntropySetup(DetectEngineCtx *de_ctx, Signature *s, const char 
             goto error;
 
         sm_list = s->init_data->list;
-        ded->fv_idx = VarNameStoreRegister(
-                DetectEngineBufferTypeGetNameById(de_ctx, sm_list), VAR_TYPE_FLOW_FLOAT);
+        const char *var_name_ptr = DetectEngineBufferTypeGetNameById(de_ctx, sm_list);
+        if (unique_name) {
+            /* 10 -- max sid + 1 (separator) + sticky buffer len */
+            char name_buf[10 + 1 + strlen(var_name_ptr)];
+            snprintf(name_buf, sizeof(name_buf), "%s_%d", var_name_ptr, s->id);
+            ded->fv_idx = VarNameStoreRegister(name_buf, VAR_TYPE_FLOW_FLOAT);
+        } else {
+            ded->fv_idx = VarNameStoreRegister(var_name_ptr, VAR_TYPE_FLOW_FLOAT);
+        }
     }
 
     if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_ENTROPY, (SigMatchCtx *)ded, sm_list) != NULL) {
