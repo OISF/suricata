@@ -70,6 +70,9 @@ void DetectDceIfaceRegister(void)
     sigmatch_table[DETECT_DCE_IFACE].AppLayerTxMatch = DetectDceIfaceMatchRust;
     sigmatch_table[DETECT_DCE_IFACE].Setup = DetectDceIfaceSetup;
     sigmatch_table[DETECT_DCE_IFACE].Free = DetectDceIfaceFree;
+    sigmatch_table[DETECT_DCE_IFACE].desc =
+            "match on the value of the interface UUID in a DCERPC header";
+    sigmatch_table[DETECT_DCE_IFACE].url = "/rules/dcerpc-keywords.html#dcerpc-iface";
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
     g_dce_generic_list_id = DetectBufferTypeRegister("dce_generic");

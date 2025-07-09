@@ -138,6 +138,9 @@ void DetectEngineEventRegister (void)
     sigmatch_table[DETECT_DECODE_EVENT].Match = DetectEngineEventMatch;
     sigmatch_table[DETECT_DECODE_EVENT].Setup = DetectDecodeEventSetup;
     sigmatch_table[DETECT_DECODE_EVENT].Free  = DetectEngineEventFree;
+    sigmatch_table[DETECT_DECODE_EVENT].desc =
+            "match on events triggered by structural or invalid values during packet decoding";
+    sigmatch_table[DETECT_DECODE_EVENT].url = "/rules/decode-layer.html#decode-event";
     sigmatch_table[DETECT_DECODE_EVENT].flags |= SIGMATCH_DEONLY_COMPAT;
     sigmatch_table[DETECT_DECODE_EVENT].SupportsPrefilter = PrefilterDecodeEventIsPrefilterable;
     sigmatch_table[DETECT_DECODE_EVENT].SetupPrefilter = PrefilterSetupDecodeEvent;
@@ -146,6 +149,8 @@ void DetectEngineEventRegister (void)
     sigmatch_table[DETECT_STREAM_EVENT].Match = DetectEngineEventMatch;
     sigmatch_table[DETECT_STREAM_EVENT].Setup = DetectStreamEventSetup;
     sigmatch_table[DETECT_STREAM_EVENT].Free  = DetectEngineEventFree;
+    sigmatch_table[DETECT_STREAM_EVENT].desc =
+            "match on events triggered by anomalies during TCP streaming";
     sigmatch_table[DETECT_STREAM_EVENT].SupportsPrefilter = PrefilterStreamEventIsPrefilterable;
     sigmatch_table[DETECT_STREAM_EVENT].SetupPrefilter = PrefilterSetupStreamEvent;
 
