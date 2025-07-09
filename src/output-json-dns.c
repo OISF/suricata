@@ -287,9 +287,15 @@ static int JsonDoh2Logger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     LogDnsLogThread *td = (LogDnsLogThread *)thread_data;
     LogDnsFileCtx *dnslog_ctx = td->dnslog_ctx;
 
+    void *tx_dns = DetectGetInnerTx(txptr, ALPROTO_DOH2, ALPROTO_DNS, STREAM_TOCLIENT);
+    if (tx_dns == NULL) {
+        tx_dns = DetectGetInnerTx(txptr, ALPROTO_DOH2, ALPROTO_DNS, STREAM_TOSERVER);
+    }
+
     /* DOH2 is always logged in flow direction, as its driven by the scope of an
      * HTTP transation */
-    SCJsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL, dnslog_ctx->eve_ctx);
+    SCJsonBuilder *jb =
+            CreateEveHeader(p, LOG_DIR_FLOW, tx_dns ? "dns" : "http", NULL, dnslog_ctx->eve_ctx);
 
     if (unlikely(jb == NULL)) {
         return TM_ECODE_OK;
@@ -304,10 +310,6 @@ static int JsonDoh2Logger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
         SCJbRestoreMark(jb, &mark);
     }
 
-    void *tx_dns = DetectGetInnerTx(txptr, ALPROTO_DOH2, ALPROTO_DNS, STREAM_TOCLIENT);
-    if (tx_dns == NULL) {
-        tx_dns = DetectGetInnerTx(txptr, ALPROTO_DOH2, ALPROTO_DNS, STREAM_TOSERVER);
-    }
     bool r2 = false;
     if (tx_dns) {
         // mix of JsonDnsLogger
