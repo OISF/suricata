@@ -127,8 +127,8 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOWFILE_INIT                   0
 
 /** no magic on files in this flow */
-#define FLOWFILE_NO_MAGIC_TS            BIT_U16(0)
-#define FLOWFILE_NO_MAGIC_TC            BIT_U16(1)
+#define FLOWFILE_NO_MAGIC BIT_U16(0)
+// vacancy
 
 /** even if the flow has files, don't store 'm */
 #define FLOWFILE_NO_STORE_TS            BIT_U16(2)
@@ -152,10 +152,10 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOWFILE_STORE_TC BIT_U16(13)
 
 #define FLOWFILE_NONE_TS                                                                           \
-    (FLOWFILE_NO_MAGIC_TS | FLOWFILE_NO_STORE_TS | FLOWFILE_NO_MD5_TS | FLOWFILE_NO_SHA1_TS |      \
+    (FLOWFILE_NO_MAGIC | FLOWFILE_NO_STORE_TS | FLOWFILE_NO_MD5_TS | FLOWFILE_NO_SHA1_TS |         \
             FLOWFILE_NO_SHA256_TS)
 #define FLOWFILE_NONE_TC                                                                           \
-    (FLOWFILE_NO_MAGIC_TC | FLOWFILE_NO_STORE_TC | FLOWFILE_NO_MD5_TC | FLOWFILE_NO_SHA1_TC |      \
+    (FLOWFILE_NO_MAGIC | FLOWFILE_NO_STORE_TC | FLOWFILE_NO_MD5_TC | FLOWFILE_NO_SHA1_TC |         \
             FLOWFILE_NO_SHA256_TC)
 #define FLOWFILE_NONE    (FLOWFILE_NONE_TS|FLOWFILE_NONE_TC)
 

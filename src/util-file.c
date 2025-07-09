@@ -98,7 +98,7 @@ void FileForceFilestoreEnable(void)
 void FileForceMagicEnable(void)
 {
     g_file_force_magic = 1;
-    g_file_flow_mask |= (FLOWFILE_NO_MAGIC_TS|FLOWFILE_NO_MAGIC_TC);
+    g_file_flow_mask |= FLOWFILE_NO_MAGIC;
 }
 
 void FileForceMd5Enable(void)
@@ -216,16 +216,16 @@ uint16_t FileFlowFlagsToFlags(const uint16_t flow_file_flags, uint8_t direction)
 {
     uint16_t flags = 0;
 
+    if (flow_file_flags & FLOWFILE_NO_MAGIC) {
+        flags |= FILE_NOMAGIC;
+    }
+
     if (direction == STREAM_TOSERVER) {
         if ((flow_file_flags & (FLOWFILE_NO_STORE_TS | FLOWFILE_STORE_TS)) ==
                 FLOWFILE_NO_STORE_TS) {
             flags |= FILE_NOSTORE;
         } else if (flow_file_flags & FLOWFILE_STORE_TS) {
             flags |= FILE_STORE;
-        }
-
-        if (flow_file_flags & FLOWFILE_NO_MAGIC_TS) {
-            flags |= FILE_NOMAGIC;
         }
 
         if (flow_file_flags & FLOWFILE_NO_MD5_TS) {
@@ -245,10 +245,6 @@ uint16_t FileFlowFlagsToFlags(const uint16_t flow_file_flags, uint8_t direction)
             flags |= FILE_NOSTORE;
         } else if (flow_file_flags & FLOWFILE_STORE_TC) {
             flags |= FILE_STORE;
-        }
-
-        if (flow_file_flags & FLOWFILE_NO_MAGIC_TC) {
-            flags |= FILE_NOMAGIC;
         }
 
         if (flow_file_flags & FLOWFILE_NO_MD5_TC) {
