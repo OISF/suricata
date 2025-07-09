@@ -127,37 +127,33 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOWFILE_INIT                   0
 
 /** no magic on files in this flow */
-#define FLOWFILE_NO_MAGIC_TS            BIT_U16(0)
-#define FLOWFILE_NO_MAGIC_TC            BIT_U16(1)
+#define FLOWFILE_NO_MAGIC BIT_U16(0)
+// vacancy
 
 /** even if the flow has files, don't store 'm */
 #define FLOWFILE_NO_STORE_TS            BIT_U16(2)
 #define FLOWFILE_NO_STORE_TC            BIT_U16(3)
 /** no md5 on files in this flow */
-#define FLOWFILE_NO_MD5_TS              BIT_U16(4)
-#define FLOWFILE_NO_MD5_TC              BIT_U16(5)
+#define FLOWFILE_NO_MD5 BIT_U16(4)
+// vacancy
 
 /** no sha1 on files in this flow */
-#define FLOWFILE_NO_SHA1_TS             BIT_U16(6)
-#define FLOWFILE_NO_SHA1_TC             BIT_U16(7)
+#define FLOWFILE_NO_SHA1 BIT_U16(6)
+// vacancy
 
 /** no sha256 on files in this flow */
-#define FLOWFILE_NO_SHA256_TS           BIT_U16(8)
-#define FLOWFILE_NO_SHA256_TC           BIT_U16(9)
-
-// vacancy(2)
+#define FLOWFILE_NO_SHA256 BIT_U16(8)
+// vacancy(3)
 
 /** store files in the flow */
 #define FLOWFILE_STORE_TS BIT_U16(12)
 #define FLOWFILE_STORE_TC BIT_U16(13)
 
-#define FLOWFILE_NONE_TS                                                                           \
-    (FLOWFILE_NO_MAGIC_TS | FLOWFILE_NO_STORE_TS | FLOWFILE_NO_MD5_TS | FLOWFILE_NO_SHA1_TS |      \
-            FLOWFILE_NO_SHA256_TS)
-#define FLOWFILE_NONE_TC                                                                           \
-    (FLOWFILE_NO_MAGIC_TC | FLOWFILE_NO_STORE_TC | FLOWFILE_NO_MD5_TC | FLOWFILE_NO_SHA1_TC |      \
-            FLOWFILE_NO_SHA256_TC)
-#define FLOWFILE_NONE    (FLOWFILE_NONE_TS|FLOWFILE_NONE_TC)
+#define FLOWFILE_NONE_TS (FLOWFILE_NO_STORE_TS)
+#define FLOWFILE_NONE_TC (FLOWFILE_NO_STORE_TC)
+#define FLOWFILE_NONE                                                                              \
+    (FLOWFILE_NONE_TS | FLOWFILE_NONE_TC | FLOWFILE_NO_MAGIC | FLOWFILE_NO_MD5 |                   \
+            FLOWFILE_NO_SHA1 | FLOWFILE_NO_SHA256)
 
 #define FLOW_IS_IPV4(f) \
     (((f)->flags & FLOW_IPV4) == FLOW_IPV4)
