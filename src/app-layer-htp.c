@@ -1500,6 +1500,9 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
         }
     }
 
+    // Use this pos to increase body_parsed
+    // without counting data in the beginning multiple times
+    const uint8_t *pos = chunks_buffer;
     while (header_start != NULL && header_end != NULL &&
             header_end != form_end &&
             header_start < (chunks_buffer + chunks_buffer_len) &&
@@ -1588,7 +1591,8 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
                 }
                 FlagDetectStateNewFile(htud, STREAM_TOSERVER);
 
-                htud->request_body.body_parsed += (header_end - chunks_buffer);
+                htud->request_body.body_parsed += (header_end - pos);
+                pos = header_end;
                 htud->tsflags &= ~HTP_FILENAME_SET;
             } else {
                 SCLogDebug("chunk doesn't contain form end");
@@ -1616,9 +1620,10 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
                 if (header_next == NULL) {
                     SCLogDebug("more file data to come");
 
-                    uint32_t offset = (header_end + 4) - chunks_buffer;
+                    uint32_t offset = (header_end + 4) - pos;
                     SCLogDebug("offset %u", offset);
                     htud->request_body.body_parsed += offset;
+                    pos = (header_end + 4);
 
                     if (filedata_len >= (uint32_t)(expected_boundary_len + 2)) {
                         filedata_len -= (expected_boundary_len + 2 - 1);
@@ -1666,7 +1671,8 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
                     FlagDetectStateNewFile(htud, STREAM_TOSERVER);
 
                     htud->tsflags &= ~HTP_FILENAME_SET;
-                    htud->request_body.body_parsed += (header_end - chunks_buffer);
+                    htud->request_body.body_parsed += (header_end - pos);
+                    pos = header_end;
                 }
             }
         }
