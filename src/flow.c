@@ -223,7 +223,6 @@ static inline void FlowSwapFileFlags(Flow *f)
     SWAP_FLAGS(f->file_flags, FLOWFILE_NO_MD5_TS, FLOWFILE_NO_MD5_TC);
     SWAP_FLAGS(f->file_flags, FLOWFILE_NO_SHA1_TS, FLOWFILE_NO_SHA1_TC);
     SWAP_FLAGS(f->file_flags, FLOWFILE_NO_SHA256_TS, FLOWFILE_NO_SHA256_TC);
-    SWAP_FLAGS(f->file_flags, FLOWFILE_NO_SIZE_TS, FLOWFILE_NO_SIZE_TC);
 }
 
 static inline void TcpStreamFlowSwap(Flow *f)
