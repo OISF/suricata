@@ -120,6 +120,8 @@ void DetectDceStubDataRegister(void)
     sigmatch_table[DETECT_DCE_STUB_DATA].name = "dcerpc.stub_data";
     sigmatch_table[DETECT_DCE_STUB_DATA].alias = "dce_stub_data";
     sigmatch_table[DETECT_DCE_STUB_DATA].Setup = DetectDceStubDataSetup;
+    sigmatch_table[DETECT_DCE_STUB_DATA].desc = "match on the stub data in a DCERPC packet";
+    sigmatch_table[DETECT_DCE_STUB_DATA].url = "/rules/dcerpc-keywords.html#dcerpc-stub-data";
 #ifdef UNITTESTS
     sigmatch_table[DETECT_DCE_STUB_DATA].RegisterTests = DetectDceStubDataRegisterTests;
 #endif

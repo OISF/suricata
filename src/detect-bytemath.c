@@ -74,6 +74,8 @@ void DetectBytemathRegister(void)
     sigmatch_table[DETECT_BYTEMATH].Match = NULL;
     sigmatch_table[DETECT_BYTEMATH].Setup = DetectByteMathSetup;
     sigmatch_table[DETECT_BYTEMATH].Free = DetectByteMathFree;
+    sigmatch_table[DETECT_BYTEMATH].desc = "used to perform mathematical operations on byte values";
+    sigmatch_table[DETECT_BYTEMATH].url = "/rules/payload-keywords.html#byte-math";
 #ifdef UNITTESTS
     sigmatch_table[DETECT_BYTEMATH].RegisterTests = DetectByteMathRegisterTests;
 #endif

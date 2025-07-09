@@ -74,6 +74,9 @@ void DetectDceOpnumRegister(void)
     sigmatch_table[DETECT_DCE_OPNUM].AppLayerTxMatch = DetectDceOpnumMatchRust;
     sigmatch_table[DETECT_DCE_OPNUM].Setup = DetectDceOpnumSetup;
     sigmatch_table[DETECT_DCE_OPNUM].Free  = DetectDceOpnumFree;
+    sigmatch_table[DETECT_DCE_OPNUM].desc =
+            "match on one or many operation numbers within the interface in a DCERPC header";
+    sigmatch_table[DETECT_DCE_OPNUM].url = "/rules/dcerpc-keywords.html#dcerpc-opnum";
 #ifdef UNITTESTS
     sigmatch_table[DETECT_DCE_OPNUM].RegisterTests = DetectDceOpnumRegisterTests;
 #endif

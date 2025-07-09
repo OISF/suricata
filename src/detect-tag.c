@@ -72,6 +72,8 @@ void DetectTagRegister(void)
     sigmatch_table[DETECT_TAG].Match = DetectTagMatch;
     sigmatch_table[DETECT_TAG].Setup = DetectTagSetup;
     sigmatch_table[DETECT_TAG].Free  = DetectTagDataFree;
+    sigmatch_table[DETECT_TAG].desc = "tag of current and future packets for a flow or host";
+    sigmatch_table[DETECT_TAG].url = "/rules/tag.html#tag";
 #ifdef UNITTESTS
     sigmatch_table[DETECT_TAG].RegisterTests = DetectTagRegisterTests;
 #endif

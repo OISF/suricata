@@ -77,6 +77,9 @@ void DetectConfigRegister(void)
     sigmatch_table[DETECT_CONFIG].Match = DetectConfigPostMatch;
     sigmatch_table[DETECT_CONFIG].Setup = DetectConfigSetup;
     sigmatch_table[DETECT_CONFIG].Free  = DetectConfigFree;
+    sigmatch_table[DETECT_CONFIG].desc =
+            "apply different configuration settings to a flow, packet or other unit";
+    sigmatch_table[DETECT_CONFIG].url = "/rules/config.html";
 #ifdef UNITTESTS
     sigmatch_table[DETECT_CONFIG].RegisterTests = DetectConfigRegisterTests;
 #endif

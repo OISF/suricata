@@ -82,6 +82,7 @@ void DetectSmbNamedPipeRegister(void)
     sigmatch_table[KEYWORD_ID].Setup = DetectSmbNamedPipeSetup;
     sigmatch_table[KEYWORD_ID].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
     sigmatch_table[KEYWORD_ID].desc = "sticky buffer to match on SMB named pipe in tree connect";
+    sigmatch_table[KEYWORD_ID].url = "/rules/smb-keywords.html#smb-named-pipe";
 
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetNamedPipeData, ALPROTO_SMB, 1);
@@ -142,6 +143,7 @@ void DetectSmbShareRegister(void)
     sigmatch_table[KEYWORD_ID].Setup = DetectSmbShareSetup;
     sigmatch_table[KEYWORD_ID].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
     sigmatch_table[KEYWORD_ID].desc = "sticky buffer to match on SMB share name in tree connect";
+    sigmatch_table[KEYWORD_ID].url = "/rules/smb-keywords.html#smb-share";
 
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetShareData, ALPROTO_SMB, 1);
