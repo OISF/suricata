@@ -580,9 +580,6 @@ void SigGroupHeadSetupFiles(const DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         if (s == NULL)
             continue;
 
-        if (SignatureIsFilesizeInspecting(s)) {
-            sgh->flags |= SIG_GROUP_HEAD_HAVEFILESIZE;
-        }
         if (SignatureIsFileMd5Inspecting(s)) {
             sgh->flags |= SIG_GROUP_HEAD_HAVEFILEMD5;
             SCLogDebug("sgh %p has filemd5", sgh);
