@@ -317,6 +317,11 @@ the global config is documented.
       #decoder-events-prefix: "decoder.event"
       # Add stream events as stats.
       #stream-events: false
+      # Exception policy stats counters options
+      # (Note: if exception policy: ignore, counters are not logged)
+      exception-policy:
+        #per-app-proto-errors: false  # default: false. True will log errors for
+                                        # each app-proto. Warning: VERY verbose
 
 Statistics can be `enabled` or disabled here.
 
@@ -338,6 +343,10 @@ See `issue 2225 <https://redmine.openinfosecfoundation.org/issues/2225>`_.
 Similar to the `decoder-events` option, the `stream-events` option controls
 whether the stream-events are added as counters as well. This is disabled by
 default.
+
+If any exception policy is enabled, stats counters are logged. To control
+verbosity for application layer protocol errors, leave `per-app-proto-errors`
+as false.
 
 Outputs
 ~~~~~~~
