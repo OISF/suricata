@@ -152,12 +152,10 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOWFILE_STORE_TC BIT_U16(13)
 
 #define FLOWFILE_NONE_TS                                                                           \
-    (FLOWFILE_NO_MAGIC | FLOWFILE_NO_STORE_TS | FLOWFILE_NO_MD5_TS | FLOWFILE_NO_SHA1_TS |         \
-            FLOWFILE_NO_SHA256_TS)
+    (FLOWFILE_NO_STORE_TS | FLOWFILE_NO_MD5_TS | FLOWFILE_NO_SHA1_TS | FLOWFILE_NO_SHA256_TS)
 #define FLOWFILE_NONE_TC                                                                           \
-    (FLOWFILE_NO_MAGIC | FLOWFILE_NO_STORE_TC | FLOWFILE_NO_MD5_TC | FLOWFILE_NO_SHA1_TC |         \
-            FLOWFILE_NO_SHA256_TC)
-#define FLOWFILE_NONE    (FLOWFILE_NONE_TS|FLOWFILE_NONE_TC)
+    (FLOWFILE_NO_STORE_TC | FLOWFILE_NO_MD5_TC | FLOWFILE_NO_SHA1_TC | FLOWFILE_NO_SHA256_TC)
+#define FLOWFILE_NONE (FLOWFILE_NONE_TS | FLOWFILE_NONE_TC | FLOWFILE_NO_MAGIC)
 
 #define FLOW_IS_IPV4(f) \
     (((f)->flags & FLOW_IPV4) == FLOW_IPV4)
