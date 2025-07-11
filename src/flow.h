@@ -127,8 +127,8 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOWFILE_INIT                   0
 
 /** no magic on files in this flow */
-#define FLOWFILE_NO_MAGIC_TS            BIT_U16(0)
-#define FLOWFILE_NO_MAGIC_TC            BIT_U16(1)
+#define FLOWFILE_NO_MAGIC BIT_U16(0)
+// vacancy
 
 /** even if the flow has files, don't store 'm */
 #define FLOWFILE_NO_STORE_TS            BIT_U16(2)
@@ -145,27 +145,17 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOWFILE_NO_SHA256_TS           BIT_U16(8)
 #define FLOWFILE_NO_SHA256_TC           BIT_U16(9)
 
-/** no size tracking of files in this flow */
-#define FLOWFILE_NO_SIZE_TS             BIT_U16(10)
-#define FLOWFILE_NO_SIZE_TC             BIT_U16(11)
+// vacancy(2)
 
 /** store files in the flow */
 #define FLOWFILE_STORE_TS BIT_U16(12)
 #define FLOWFILE_STORE_TC BIT_U16(13)
 
-#define FLOWFILE_NONE_TS (FLOWFILE_NO_MAGIC_TS | \
-                          FLOWFILE_NO_STORE_TS | \
-                          FLOWFILE_NO_MD5_TS   | \
-                          FLOWFILE_NO_SHA1_TS  | \
-                          FLOWFILE_NO_SHA256_TS| \
-                          FLOWFILE_NO_SIZE_TS)
-#define FLOWFILE_NONE_TC (FLOWFILE_NO_MAGIC_TC | \
-                          FLOWFILE_NO_STORE_TC | \
-                          FLOWFILE_NO_MD5_TC   | \
-                          FLOWFILE_NO_SHA1_TC  | \
-                          FLOWFILE_NO_SHA256_TC| \
-                          FLOWFILE_NO_SIZE_TC)
-#define FLOWFILE_NONE    (FLOWFILE_NONE_TS|FLOWFILE_NONE_TC)
+#define FLOWFILE_NONE_TS                                                                           \
+    (FLOWFILE_NO_STORE_TS | FLOWFILE_NO_MD5_TS | FLOWFILE_NO_SHA1_TS | FLOWFILE_NO_SHA256_TS)
+#define FLOWFILE_NONE_TC                                                                           \
+    (FLOWFILE_NO_STORE_TC | FLOWFILE_NO_MD5_TC | FLOWFILE_NO_SHA1_TC | FLOWFILE_NO_SHA256_TC)
+#define FLOWFILE_NONE (FLOWFILE_NONE_TS | FLOWFILE_NONE_TC | FLOWFILE_NO_MAGIC)
 
 #define FLOW_IS_IPV4(f) \
     (((f)->flags & FLOW_IPV4) == FLOW_IPV4)
@@ -581,11 +571,6 @@ enum ExceptionPolicy FlowGetMemcapExceptionPolicy(void);
 
 FlowStorageId GetFlowBypassInfoID(void);
 void RegisterFlowBypassInfo(void);
-
-void FlowGetLastTimeAsParts(Flow *flow, uint64_t *secs, uint64_t *usecs);
-uint32_t FlowGetFlags(Flow *flow);
-uint16_t FlowGetSourcePort(Flow *flow);
-uint16_t FlowGetDestinationPort(Flow *flow);
 
 /** ----- Inline functions ----- */
 

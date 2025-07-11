@@ -371,7 +371,7 @@ DetectPostInspectFileFlagsUpdate(Flow *f, const SigGroupHead *sgh, uint8_t direc
 #ifdef HAVE_MAGIC
         if (!(sgh->flags & SIG_GROUP_HEAD_HAVEFILEMAGIC)) {
             SCLogDebug("requesting disabling magic for flow");
-            flow_file_flags |= (FLOWFILE_NO_MAGIC_TS|FLOWFILE_NO_MAGIC_TC);
+            flow_file_flags |= FLOWFILE_NO_MAGIC;
         }
 #endif
         if (!(sgh->flags & SIG_GROUP_HEAD_HAVEFILEMD5)) {
@@ -385,10 +385,6 @@ DetectPostInspectFileFlagsUpdate(Flow *f, const SigGroupHead *sgh, uint8_t direc
         if (!(sgh->flags & SIG_GROUP_HEAD_HAVEFILESHA256)) {
             SCLogDebug("requesting disabling sha256 for flow");
             flow_file_flags |= (FLOWFILE_NO_SHA256_TS|FLOWFILE_NO_SHA256_TC);
-        }
-        if (!(sgh->flags & SIG_GROUP_HEAD_HAVEFILESIZE)) {
-            SCLogDebug("requesting disabling filesize for flow");
-            flow_file_flags |= (FLOWFILE_NO_SIZE_TS|FLOWFILE_NO_SIZE_TC);
         }
     }
     if (flow_file_flags != 0) {

@@ -48,5 +48,10 @@
 
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
+#include "app-layer-register.h"
+
+#include "util-mpm.h"
+
+#include "flow-bindgen.h"
 
 #endif

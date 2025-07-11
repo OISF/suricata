@@ -15,20 +15,13 @@
  * 02110-1301, USA.
  */
 
-/// Flow API from C.
-/// cbindgen:ignore
-extern "C" {
-    fn FlowGetLastTimeAsParts(flow: &Flow, secs: *mut u64, usecs: *mut u64);
-    fn FlowGetFlags(flow: &Flow) -> u32;
-    fn FlowGetSourcePort(flow: &Flow) -> u16;
-    fn FlowGetDestinationPort(flow: &Flow) -> u16;
-}
-
 // Flow flags
 pub const FLOW_DIR_REVERSED: u32 = BIT_U32!(26);
 
 /// Opaque flow type (defined in C)
-pub use suricata_sys::sys::Flow;
+pub use suricata_sys::sys::{
+    Flow, SCFlowGetDestinationPort, SCFlowGetFlags, SCFlowGetLastTimeAsParts, SCFlowGetSourcePort,
+};
 
 /// Return the time of the last flow update as a `Duration`
 /// since the epoch.
@@ -36,17 +29,17 @@ pub fn flow_get_last_time(flow: &Flow) -> std::time::Duration {
     unsafe {
         let mut secs: u64 = 0;
         let mut usecs: u64 = 0;
-        FlowGetLastTimeAsParts(flow, &mut secs, &mut usecs);
+        SCFlowGetLastTimeAsParts(flow, &mut secs, &mut usecs);
         std::time::Duration::new(secs, usecs as u32 * 1000)
     }
 }
 
 /// Return the flow flags.
 pub fn flow_get_flags(flow: &Flow) -> u32 {
-    unsafe { FlowGetFlags(flow) }
+    unsafe { SCFlowGetFlags(flow) }
 }
 
 /// Return flow ports
 pub fn flow_get_ports(flow: &Flow) -> (u16, u16) {
-    unsafe { (FlowGetSourcePort(flow), FlowGetDestinationPort(flow)) }
+    unsafe { (SCFlowGetSourcePort(flow), SCFlowGetDestinationPort(flow)) }
 }
