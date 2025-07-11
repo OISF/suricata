@@ -91,6 +91,26 @@ void DetectFlowbitsRegister (void)
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
+static void DetectFlowbitValidateCallback(Signature *s, bool postmatch, DetectFlowbitsData *fd)
+{
+    SigMatch *list = NULL;
+    if (!postmatch && fd->cmd == DETECT_FLOWBITS_CMD_ISSET)
+        list = s->init_data->smlists[DETECT_SM_LIST_POSTMATCH];
+    else if (postmatch && fd->cmd == DETECT_FLOWBITS_CMD_SET)
+        list = s->init_data->smlists[DETECT_SM_LIST_MATCH];
+    for (const SigMatch *sm = list; sm != NULL; sm = sm->next) {
+        if (sm->type != DETECT_FLOWBITS)
+            continue;
+        /* Check if an entry corresponding to the same idx exists in the opposite list */
+        DetectFlowbitsData *fd2 = (DetectFlowbitsData *)sm->ctx;
+        if (fd2->idx == fd->idx) {
+            SCLogWarning("Setting isset and set on the same flowbit in the same signature is "
+                         "unnecessary and will be disallowed soon");
+            break;
+        }
+    }
+}
+
 static int FlowbitOrAddData(DetectEngineCtx *de_ctx, DetectFlowbitsData *cd, char *arrptr)
 {
     char *strarr[MAX_TOKENS];
@@ -301,6 +321,7 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     DetectFlowbitsData *cd = NULL;
     uint8_t fb_cmd = 0;
     char fb_cmd_str[16] = "", fb_name[256] = "";
+    bool postmatch = false;
 
     if (!DetectFlowbitParse(rawstr, fb_cmd_str, sizeof(fb_cmd_str), fb_name,
             sizeof(fb_name))) {
@@ -374,6 +395,7 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
         case DETECT_FLOWBITS_CMD_SET:
         case DETECT_FLOWBITS_CMD_UNSET:
         case DETECT_FLOWBITS_CMD_TOGGLE:
+            postmatch = true;
             /* modifiers, only run when entire sig has matched */
             if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_FLOWBITS, (SigMatchCtx *)cd,
                         DETECT_SM_LIST_POSTMATCH) == NULL) {
@@ -387,6 +409,7 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
             goto error;
     }
 
+    DetectFlowbitValidateCallback(s, postmatch, cd);
     return 0;
 
 error:
