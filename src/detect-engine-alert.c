@@ -37,6 +37,7 @@
 #include "util-validate.h"
 
 #include "action-globals.h"
+#include "source-pcap-file-helper.h"
 
 /** tag signature we use for tag alerts */
 static Signature g_tag_signature;
@@ -597,6 +598,13 @@ void PacketAlertFinalize(const DetectEngineCtx *de_ctx, DetectEngineThreadCtx *d
             p->flags |= PKT_FIRST_ALERTS;
         }
     }
+
+    /* Count alerts for pcap file deletion logic */
+    if (p->alerts.cnt > 0 && p->pcap_v.pfv != NULL) {
+        PcapFileAddAlerts(p->pcap_v.pfv, p->alerts.cnt);
+    }
+
+    SCReturn;
 }
 
 #ifdef UNITTESTS

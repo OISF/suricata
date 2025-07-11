@@ -892,6 +892,7 @@ pcap-file:
 
   # tenant-id: none # applies in multi-tenant environment with "direct" selector
   # delete-when-done: false # applies to file and directory
+  #   Options: false (no deletion), true (always delete), "non-alerts" (delete only files with no alerts)
 
   # PCAP Directory Processing options
   # recursive: false
