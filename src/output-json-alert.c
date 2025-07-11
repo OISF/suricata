@@ -296,6 +296,9 @@ static void AlertJsonTunnel(const Packet *p, SCJsonBuilder *js)
     SCJbSetUint(js, "dest_port", addr.dp);
     SCJbSetString(js, "proto", addr.proto);
 
+    if (p->tunnel_id > 0 && p->tunnel_id != PKT_TUNNEL_UNKNOWN) {
+        SCJbSetUint(js, "tunnel_id", p->tunnel_id);
+    }
     SCJbSetUint(js, "depth", p->recursion_level);
     if (pcap_cnt != 0) {
         SCJbSetUint(js, "pcap_cnt", pcap_cnt);
