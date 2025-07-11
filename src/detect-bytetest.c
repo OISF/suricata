@@ -640,7 +640,8 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
 
     if (value != NULL) {
         DetectByteIndexType index;
-        if (!DetectByteRetrieveSMVar(value, s, sm_list, &index)) {
+        if (!DetectByteRetrieveSMVar(value, s, SigMatchStrictEnabled(DETECT_BYTETEST), sm_list,
+                    &index, de_ctx->rule_line)) {
             SCLogError("Unknown byte_extract var "
                        "seen in byte_test - %s",
                     value);
@@ -654,10 +655,11 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
 
     if (offset != NULL) {
         DetectByteIndexType index;
-        if (!DetectByteRetrieveSMVar(offset, s, sm_list, &index)) {
+        if (!DetectByteRetrieveSMVar(offset, s, SigMatchStrictEnabled(DETECT_BYTETEST), sm_list,
+                    &index, de_ctx->rule_line)) {
             SCLogError("Unknown byte_extract var "
                        "seen in byte_test - %s",
-                    offset);
+                    value);
             goto error;
         }
         data->offset = index;
@@ -668,7 +670,8 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
 
     if (nbytes != NULL) {
         DetectByteIndexType index;
-        if (!DetectByteRetrieveSMVar(nbytes, s, sm_list, &index)) {
+        if (!DetectByteRetrieveSMVar(nbytes, s, SigMatchStrictEnabled(DETECT_BYTETEST), sm_list,
+                    &index, de_ctx->rule_line)) {
             SCLogError("Unknown byte_extract var "
                        "seen in byte_test - %s",
                     nbytes);

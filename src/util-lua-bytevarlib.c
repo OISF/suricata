@@ -55,7 +55,7 @@ static int LuaBytevarMap(lua_State *L)
     }
 
     DetectByteIndexType idx;
-    if (!DetectByteRetrieveSMVar(name, s, -1, &idx)) {
+    if (!DetectByteRetrieveSMVar(name, s, false, -1, &idx, 1)) {
         luaL_error(L, "unknown byte_extract or byte_math variable: %s", name);
     }
 

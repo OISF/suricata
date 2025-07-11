@@ -27,6 +27,24 @@
 
 typedef uint8_t DetectByteIndexType;
 
-bool DetectByteRetrieveSMVar(const char *, const Signature *, int sm_list, DetectByteIndexType *);
+bool DetectByteRetrieveSMVar(const char *, const Signature *, bool strict, int sm_list,
+        DetectByteIndexType *, int rule_line);
+
+// Once a variable is found, apply strict semantics (error) else warning
+static inline bool DetectByteListMismatch(
+        bool any, int sm_list, int found_list, bool strict, const char *arg, int rule_line)
+{
+    if (any || sm_list == found_list)
+        return false;
+
+    if (strict) {
+        return true;
+    }
+
+    SCLogWarning("Using byte variable from a different buffer may produce indeterminate "
+                 "results; variable: \"%s\" at line %" PRId32 "",
+            arg, rule_line);
+    return false;
+}
 
 #endif /* SURICATA_DETECT_BYTE_H */
