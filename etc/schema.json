@@ -6434,16 +6434,20 @@
                 },
                 "detect": {
                     "type": "object",
+                    "description": "Statistics related to the detection engines",
                     "additionalProperties": false,
                     "properties": {
                         "alert": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Count of alerts triggered"
                         },
                         "alert_queue_overflow": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Count of alerts discarded due to alert queue overflow or a drop in firewall mode"
                         },
                         "alerts_suppressed": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Count of alerts not logged due to noalert keyword usage or thresholding"
                         },
                         "engines": {
                             "type": "array",
@@ -6453,19 +6457,24 @@
                                 "additionalProperties": false,
                                 "properties": {
                                     "id": {
-                                        "type": "integer"
+                                        "type": "integer",
+                                        "description": "If multi-tenancy is enabled, the tenant id"
                                     },
                                     "last_reload": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "description": "Last time the rules were reloaded, in TimeString format"
                                     },
                                     "rules_failed": {
-                                        "type": "integer"
+                                        "type": "integer",
+                                        "description": "Count of rules that failed to load"
                                     },
                                     "rules_loaded": {
-                                        "type": "integer"
+                                        "type": "integer",
+                                        "description": "Count of rules successfully loaded"
                                     },
                                     "rules_skipped": {
-                                        "type": "integer"
+                                        "type": "integer",
+                                        "description": "Count of rules that were skipped due to missing requirements"
                                     }
                                 }
                             }
@@ -6495,10 +6504,12 @@
                             }
                         },
                         "match_list": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "If profiling is enabled, average count of signature matched against a packet"
                         },
                         "mpm_list": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "If profiling is enabled, average count of signatures in the mpm prefilter list"
                         }
                     }
                 },
