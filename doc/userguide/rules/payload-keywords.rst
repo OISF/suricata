@@ -731,7 +731,7 @@ The following operators are available::
 This example matches if the `file.data` content for an HTTP transaction has
 a Shannon entropy value of 4 or higher::
 
-	alert http any any -> any any (msg:"entropy simple test"; file.data; entropy: value >= 4; sid:1;)
+    alert http any any -> any any (msg:"entropy simple test"; file.data; entropy: value >= 4; sid:1;)
 
 Logging
 ~~~~~~~
@@ -744,9 +744,28 @@ the ``metadata`` section of an output log. The follow is an example that shows
 the calculated entropy value with the buffer on which the value was computed::
 
      "metadata": {
-        "entropy": {
-          "file_data": 4.265743301617466
-        }
+        "entropy":[
+           {
+             "buffer":"file_data",
+             "value":4.150007324019584
+           }
+        ]
+      }
+
+When ``logging.entropy.make-unique`` is enabled, the format is modified to
+include the signature id, instance number (tracks which entropy keyword
+was used in a rule in case there are multiple usages), buffer and
+value::
+
+     "metadata": {
+        entropy": [
+          {
+            "sid": 1,
+            "buffer": "file_data",
+            "instance": 1,
+            "value": 4.137370175000773
+          }
+        ]
       }
 
 The events where entropy is logged will depend largely on how it's used within a
