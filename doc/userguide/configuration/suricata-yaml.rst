@@ -538,13 +538,13 @@ In multi mode the filename takes a few special variables:
   - %n representing the thread number
   - %i representing the thread id
   - %t representing the timestamp (secs or secs.usecs based on 'ts-format')
-  
+
   Example: filename: pcap.%n.%t
 
 .. note:: It is possible to use directories but the directories are not
   created by Suricata. For example ``filename: pcaps/%n/log.%s`` will log into
   the pre-existing ``pcaps`` directory and per thread sub directories.
-  
+
 .. note:: that the limit and max-files settings are enforced per thread. So the
   size limit using 8 threads with 1000mb files and 2000 files is about 16TiB.
 
@@ -2145,8 +2145,8 @@ A logging line exists of two parts. First it displays meta information
 
   i: suricata: This is Suricata version 7.0.2 RELEASE running in USER mode
 
-(Here the part until the second `:` is the meta info, 
-"This is Suricata version 7.0.2 RELEASE running in USER mode" is the actual 
+(Here the part until the second `:` is the meta info,
+"This is Suricata version 7.0.2 RELEASE running in USER mode" is the actual
 message.)
 
 It is possible to determine which information will be displayed in
@@ -3028,6 +3028,25 @@ headers are encapsulated in the same number of headers.
 Advanced Options
 ----------------
 
+entropy
+~~~~~~~
+
+When a rule causes an entropy value to be calculated for a flow, output for the flow will include
+the calculated entropy value. The log output contains the sticky buffer name for which the
+entropy was calculated. Often, more context is needed and the configuration setting shown
+below will amend the sticky buffer name with the signature id of the rule that caused
+the entropy value calculation. Additionally, if multiple ``entropy`` keywords are used
+within a rule, the occurrence number is included in the log output.
+The default value is ``on``. We strongly recommend changing using the default value of ``on``.
+
+::
+
+    logging:
+        # Ensure that logged entropy values have unique names by appending the signature_id
+        # of the rule and other values where used
+        #entropy:
+            #make-unique: on
+
 stacktrace
 ~~~~~~~~~~
 Display diagnostic stacktraces when a signal unexpectedly terminates Suricata, e.g., such as
@@ -3086,7 +3105,7 @@ Suricata 7.0 default:
        #allow-rules: true
 
        # Upper bound of allocations by a Lua rule before it will fail
-       #max-bytes: 500000 
+       #max-bytes: 500000
 
        # Upper bound of lua instructions by a Lua rule before it will fail
        #max-instructions: 500000
