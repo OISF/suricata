@@ -749,6 +749,15 @@ the calculated entropy value with the buffer on which the value was computed::
         }
       }
 
+When ``logging.entropy.make-unique`` is enabled, the format is modified such
+that the signature id of the rule producing the entropy value is included::
+
+     "metadata": {
+        "entropy": {
+          "file_data_391933": 4.265743301617466
+        }
+      }
+
 The events where entropy is logged will depend largely on how it's used within a
 rule and the rule's protocol.
 

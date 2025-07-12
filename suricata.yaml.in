@@ -629,6 +629,11 @@ logging:
   # message with the offending stacktrace if enabled.
   #stacktrace-on-signal: on
 
+  # Ensure that logged entropy values have unique names by appending the signature_id
+  # of the rule where used
+  #entropy:
+    #make-unique: off
+
   # Define your logging outputs.  If none are defined, or they are all
   # disabled you will get the default: console output.
   outputs:
