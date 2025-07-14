@@ -10,6 +10,7 @@
     PKG_PROG_PKG_CONFIG
 
     gpl_license_only="no"
+    proprietary_license_only="no"
 
     dnl Taken from https://llvm.org/svn/llvm-project/llvm/trunk/autoconf/configure.ac
     dnl check if we compile using clang or gcc. On some systems the gcc binary is
@@ -1783,6 +1784,7 @@
                 [ enable_napatech=$enableval ],
                 [ enable_napatech=no])
     AS_IF([test "x$enable_napatech" = "xyes"], [
+        proprietary_license_only="yes"
         if test "x$enable_shared" = "xno"; then
             echo
             echo "   ERROR! napatech cannot be enabled with --disable-shared"
@@ -2567,6 +2569,11 @@ AC_CONFIG_FILES(plugins/pfring/Makefile)
 AC_CONFIG_FILES(plugins/napatech/Makefile)
 AC_CONFIG_FILES(plugins/ndpi/Makefile)
 
+if test "$gpl_license_only" = "yes" and "$proprietary_license_only" = "yes"; then
+    echo "ERROR: The build options mix GPL and proprietary licenses."
+    exit 1
+fi
+
 AC_OUTPUT
 
 SURICATA_BUILD_CONF="Suricata Configuration:
@@ -2634,6 +2641,7 @@ Development settings:
 
 License Compatibility:
   GNU Public License only:                 ${gpl_license_only}
+  Proprietary License only:                ${proprietary_license_only}
 
 Generic build parameters:
   Installation prefix:                     ${prefix}
