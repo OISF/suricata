@@ -119,8 +119,8 @@ function within a ``stream`` subtable::
     local close = args["stream"]["close"]
 
     -- To server?
-    local ts = args["stream"]["toserver"]
+    local ts = args["stream"]["to_server"]
 
     -- To client?
-    local tc = args["stream"]["toclient"]
+    local tc = args["stream"]["to_client"]
   end
