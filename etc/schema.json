@@ -2083,6 +2083,7 @@
                         "request": {
                             "type": "object",
                             "additionalProperties": false,
+                            "minProperties": 1,
                             "properties": {
                                 "error_code": {
                                     "type": "string"
@@ -2114,6 +2115,7 @@
                         "response": {
                             "type": "object",
                             "additionalProperties": false,
+                            "minProperties": 1,
                             "properties": {
                                 "error_code": {
                                     "type": "string"
