@@ -21,9 +21,7 @@ use suricata_sys::sys::SCLogGetLogLevel;
 
 pub fn init() {
     unsafe {
-        let context = crate::core::SCGetContext();
-        crate::core::init_ffi(context);
-
+        // maybe we can get rid of this...
         crate::debug::LEVEL = SCLogGetLogLevel();
     }
 }
