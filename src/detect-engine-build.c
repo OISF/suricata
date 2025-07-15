@@ -176,25 +176,6 @@ int SignatureIsFileSha256Inspecting(const Signature *s)
     return 0;
 }
 
-/**
- *  \brief Check if a signature contains the filesize keyword.
- *
- *  \param s signature
- *
- *  \retval 0 no
- *  \retval 1 yes
- */
-int SignatureIsFilesizeInspecting(const Signature *s)
-{
-    if (s == NULL)
-        return 0;
-
-    if (s->file_flags & FILE_SIG_NEED_SIZE)
-        return 1;
-
-    return 0;
-}
-
 static bool SignatureInspectsBuffers(const Signature *s)
 {
     return (s->init_data->buffer_index > 0);
