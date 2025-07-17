@@ -38,6 +38,30 @@
 #include "flow.h"
 #include "util-print.h"
 
+static bool g_ipv4_ipip_enabled = false;
+static bool g_ipv4_ipip_parent_flow_enabled = false;
+
+void DecodeIPV4IpInIpConfig(void)
+{
+    int enabled = 0;
+
+    if (ConfGetBool("decoder.ipv4.ipip.enabled", &enabled) == 1) {
+        if (enabled) {
+            g_ipv4_ipip_enabled = true;
+        } else {
+            g_ipv4_ipip_enabled = false;
+        }
+        enabled = 0;
+    }
+    if (ConfGetBool("decoder.ipv4.ipip.track-parent-flow", &enabled) == 1) {
+        if (enabled) {
+            g_ipv4_ipip_parent_flow_enabled = true;
+        } else {
+            g_ipv4_ipip_parent_flow_enabled = false;
+        }
+    }
+}
+
 /* Generic validation
  *
  * [--type--][--len---]
@@ -585,7 +609,23 @@ int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         case IPPROTO_ESP:
             DecodeESP(tv, dtv, p, pkt + IPV4_GET_HLEN(p), IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p));
             break;
-
+        case IPPROTO_IPIP: {
+            /* optional in Suricata 7 as it wasn't always present */
+            if (g_ipv4_ipip_enabled) {
+                /* spawn off tunnel packet */
+                Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + IPV4_GET_HLEN(p),
+                        IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p), DECODE_TUNNEL_IPV4);
+                if (tp != NULL) {
+                    PKT_SET_SRC(tp, PKT_SRC_DECODER_IPV4);
+                    PacketEnqueueNoLock(&tv->decode_pq, tp);
+                    StatsIncr(tv, dtv->counter_ipv4inipv4);
+                }
+            }
+            if (g_ipv4_ipip_parent_flow_enabled) {
+                FlowSetupPacket(p);
+            }
+            break;
+        }
         case IPPROTO_IPV6:
             {
                 /* spawn off tunnel packet */
@@ -595,6 +635,7 @@ int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                 if (tp != NULL) {
                     PKT_SET_SRC(tp, PKT_SRC_DECODER_IPV4);
                     PacketEnqueueNoLock(&tv->decode_pq,tp);
+                    StatsIncr(tv, dtv->counter_ipv6inipv4);
                 }
                 FlowSetupPacket(p);
                 break;
