@@ -622,12 +622,14 @@ static void EngineAnalysisRulesPrintFP(const DetectEngineCtx *de_ctx, const Sign
 void EngineAnalysisRulesFailure(
         const DetectEngineCtx *de_ctx, const char *line, const char *file, int lineno)
 {
-    fprintf(de_ctx->ea->fp_engine_analysis_fp, "== Sid: UNKNOWN ==\n");
-    fprintf(de_ctx->ea->fp_engine_analysis_fp, "%s\n", line);
-    fprintf(de_ctx->ea->fp_engine_analysis_fp, "    FAILURE: invalid rule.\n");
-    fprintf(de_ctx->ea->fp_engine_analysis_fp, "    File: %s.\n", file);
-    fprintf(de_ctx->ea->fp_engine_analysis_fp, "    Line: %d.\n", lineno);
-    fprintf(de_ctx->ea->fp_engine_analysis_fp, "\n");
+    if (de_ctx->ea->fp_engine_analysis_fp) {
+        fprintf(de_ctx->ea->fp_engine_analysis_fp, "== Sid: UNKNOWN ==\n");
+        fprintf(de_ctx->ea->fp_engine_analysis_fp, "%s\n", line);
+        fprintf(de_ctx->ea->fp_engine_analysis_fp, "    FAILURE: invalid rule.\n");
+        fprintf(de_ctx->ea->fp_engine_analysis_fp, "    File: %s.\n", file);
+        fprintf(de_ctx->ea->fp_engine_analysis_fp, "    Line: %d.\n", lineno);
+        fprintf(de_ctx->ea->fp_engine_analysis_fp, "\n");
+    }
 }
 
 typedef struct RuleAnalyzer {
