@@ -270,6 +270,7 @@ static int INLINE filter_gre(struct xdp_md *ctx, void *data, __u64 nh_off, void 
     };
 
     nh_off += iph->ihl << 2;
+
     /* need to save this off before we advance the packet beyond it, else the bpf verifier
      * will catch this and refuse to load our program
      */
@@ -287,6 +288,7 @@ static int INLINE filter_gre(struct xdp_md *ctx, void *data, __u64 nh_off, void 
         return XDP_PASS;
     }
 
+    // skip past gre header...
     nh_off += 4;
     proto = grhdr->proto;
     if (grhdr->flags & GRE_CSUM) {
@@ -306,6 +308,10 @@ static int INLINE filter_gre(struct xdp_md *ctx, void *data, __u64 nh_off, void 
         if(grhdr->flags & GRE_SEQ) {
             nh_off += GRE_ERSPAN_TYPE_II_HEADER_SIZE;
         }
+    } else if (proto != __constant_htons(ETH_P_IP) && proto != __constant_htons(ETH_P_IPV6)) {
+	// if the encapsulated packet isn't IP-based, then we can't rebalance this flow 
+	// anyway, so just return it to the stack...
+        return XDP_PASS;
     }
 
     if (data + nh_off > data_end) {
