@@ -377,41 +377,49 @@ const PARSER_NAME : &[u8] = b"snmp\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn SCRegisterSnmpParser() {
+    let ip_proto_str = CString::new("udp").unwrap();
+    if SCAppLayerProtoDetectConfProtoDetectionEnabled(
+        ip_proto_str.as_ptr(),
+        PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
+    ) == 0
+    {
+        SCLogDebug!("Protocol detector and parser disabled for SNMP.");
+        return;
+    }
     let default_port = CString::new("161").unwrap();
     let mut parser = RustParser {
-        name               : PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
-        default_port       : default_port.as_ptr(),
-        ipproto            : core::IPPROTO_UDP,
-        probe_ts           : Some(snmp_probing_parser),
-        probe_tc           : Some(snmp_probing_parser),
-        min_depth          : 0,
-        max_depth          : 16,
-        state_new          : snmp_state_new,
-        state_free         : snmp_state_free,
-        tx_free            : snmp_state_tx_free,
-        parse_ts           : snmp_parse_request,
-        parse_tc           : snmp_parse_response,
-        get_tx_count       : snmp_state_get_tx_count,
-        get_tx             : snmp_state_get_tx,
-        tx_comp_st_ts      : 1,
-        tx_comp_st_tc      : 1,
-        tx_get_progress    : snmp_tx_get_alstate_progress,
-        get_eventinfo      : Some(SNMPEvent::get_event_info),
-        get_eventinfo_byid : Some(SNMPEvent::get_event_info_by_id),
-        localstorage_new   : None,
-        localstorage_free  : None,
-        get_tx_files       : None,
-        get_tx_iterator    : Some(applayer::state_get_tx_iterator::<SNMPState, SNMPTransaction>),
-        get_tx_data        : snmp_get_tx_data,
-        get_state_data     : snmp_get_state_data,
-        apply_tx_config    : None,
-        flags              : 0,
+        name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
+        default_port: default_port.as_ptr(),
+        ipproto: core::IPPROTO_UDP,
+        probe_ts: Some(snmp_probing_parser),
+        probe_tc: Some(snmp_probing_parser),
+        min_depth: 0,
+        max_depth: 16,
+        state_new: snmp_state_new,
+        state_free: snmp_state_free,
+        tx_free: snmp_state_tx_free,
+        parse_ts: snmp_parse_request,
+        parse_tc: snmp_parse_response,
+        get_tx_count: snmp_state_get_tx_count,
+        get_tx: snmp_state_get_tx,
+        tx_comp_st_ts: 1,
+        tx_comp_st_tc: 1,
+        tx_get_progress: snmp_tx_get_alstate_progress,
+        get_eventinfo: Some(SNMPEvent::get_event_info),
+        get_eventinfo_byid: Some(SNMPEvent::get_event_info_by_id),
+        localstorage_new: None,
+        localstorage_free: None,
+        get_tx_files: None,
+        get_tx_iterator: Some(applayer::state_get_tx_iterator::<SNMPState, SNMPTransaction>),
+        get_tx_data: snmp_get_tx_data,
+        get_state_data: snmp_get_state_data,
+        apply_tx_config: None,
+        flags: 0,
         get_frame_id_by_name: None,
         get_frame_name_by_id: None,
         get_state_id_by_name: None,
         get_state_name_by_id: None,
     };
-    let ip_proto_str = CString::new("udp").unwrap();
     ALPROTO_SNMP = AppProtoNewProtoFromString(PARSER_NAME.as_ptr() as *const std::os::raw::c_char);
     let reg_data = EveJsonTxLoggerRegistrationData {
         confname: b"eve-log.snmp\0".as_ptr() as *const std::os::raw::c_char,
@@ -422,21 +430,17 @@ pub unsafe extern "C" fn SCRegisterSnmpParser() {
     };
     SCOutputEvePreRegisterLogger(reg_data);
     SCSigTablePreRegister(Some(detect_snmp_register));
-    if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
-        // port 161
-        _ = AppLayerRegisterProtocolDetection(&parser, 1);
-        if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
-            let _ = AppLayerRegisterParser(&parser, ALPROTO_SNMP);
-        }
-        // port 162
-        let default_port_traps = CString::new("162").unwrap();
-        parser.default_port = default_port_traps.as_ptr();
-        let _ = AppLayerRegisterProtocolDetection(&parser, 1);
-        if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
-            let _ = AppLayerRegisterParser(&parser, ALPROTO_SNMP);
-        }
-        SCAppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_SNMP);
-    } else {
-        SCLogDebug!("Protocol detector and parser disabled for SNMP.");
+    // port 161
+    _ = AppLayerRegisterProtocolDetection(&parser, 1);
+    if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+        let _ = AppLayerRegisterParser(&parser, ALPROTO_SNMP);
     }
+    // port 162
+    let default_port_traps = CString::new("162").unwrap();
+    parser.default_port = default_port_traps.as_ptr();
+    let _ = AppLayerRegisterProtocolDetection(&parser, 1);
+    if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+        let _ = AppLayerRegisterParser(&parser, ALPROTO_SNMP);
+    }
+    SCAppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_SNMP);
 }
