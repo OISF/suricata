@@ -6127,6 +6127,8 @@ static int HTPBodyReassemblyTest01(void)
     BUG_ON(r != 0);
     r = HtpBodyAppendChunk(NULL, &htud.request_body, chunk2, sizeof(chunk2)-1);
     BUG_ON(r != 0);
+    htud.boundary = (uint8_t *)strdup("e5a320f21416a02493a0a6f561b1c494");
+    htud.boundary_len = strlen("e5a320f21416a02493a0a6f561b1c494");
 
     const uint8_t *chunks_buffer = NULL;
     uint32_t chunks_buffer_len = 0;
@@ -6152,6 +6154,7 @@ static int HTPBodyReassemblyTest01(void)
 
     result = 1;
 end:
+    SCFree(htud.boundary);
     return result;
 }
 
