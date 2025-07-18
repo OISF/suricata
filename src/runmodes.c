@@ -675,6 +675,9 @@ static void RunModeInitializeEveOutput(
         int sub_count = 0;
         char subname[256];
 
+        if (type->val == NULL) {
+            FatalError("output types should be a list");
+        }
         if (strcmp(type->val, "ikev2") == 0) {
             SCLogWarning("eve module 'ikev2' has been replaced by 'ike'");
             strlcpy(subname, "eve-log.ike", sizeof(subname));
