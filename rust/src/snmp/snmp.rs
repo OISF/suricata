@@ -412,17 +412,18 @@ pub unsafe extern "C" fn SCRegisterSnmpParser() {
         get_state_name_by_id: None,
     };
     let ip_proto_str = CString::new("udp").unwrap();
-    ALPROTO_SNMP = AppProtoNewProtoFromString(PARSER_NAME.as_ptr() as *const std::os::raw::c_char);
-    let reg_data = EveJsonTxLoggerRegistrationData {
-        confname: b"eve-log.snmp\0".as_ptr() as *const std::os::raw::c_char,
-        logname: b"JsonSNMPLog\0".as_ptr() as *const std::os::raw::c_char,
-        alproto: ALPROTO_SNMP,
-        dir: SCOutputJsonLogDirection::LOG_DIR_PACKET as u8,
-        LogTx: Some(snmp_log_json_response),
-    };
-    SCOutputEvePreRegisterLogger(reg_data);
-    SCSigTablePreRegister(Some(detect_snmp_register));
     if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+        ALPROTO_SNMP =
+            AppProtoNewProtoFromString(PARSER_NAME.as_ptr() as *const std::os::raw::c_char);
+        let reg_data = EveJsonTxLoggerRegistrationData {
+            confname: b"eve-log.snmp\0".as_ptr() as *const std::os::raw::c_char,
+            logname: b"JsonSNMPLog\0".as_ptr() as *const std::os::raw::c_char,
+            alproto: ALPROTO_SNMP,
+            dir: SCOutputJsonLogDirection::LOG_DIR_PACKET as u8,
+            LogTx: Some(snmp_log_json_response),
+        };
+        SCOutputEvePreRegisterLogger(reg_data);
+        SCSigTablePreRegister(Some(detect_snmp_register));
         // port 161
         _ = AppLayerRegisterProtocolDetection(&parser, 1);
         if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
