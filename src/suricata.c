@@ -807,6 +807,7 @@ static void PrintBuildInfo(void)
     strlcat(features, "HAVE_JA4 ", sizeof(features));
 #endif
     strlcat(features, "HAVE_LIBJANSSON ", sizeof(features));
+    strlcat(features, "HAVE_MIMETYPE ", sizeof(features));
 #ifdef PROFILING
     strlcat(features, "PROFILING ", sizeof(features));
 #endif

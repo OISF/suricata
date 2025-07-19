@@ -33,6 +33,7 @@
 #include "detect-filemagic.h"
 #include "util-file.h"
 #include "util-magic.h"
+#include "util-mimetype.h"
 #include "util-profiling.h"
 #include "util-validate.h"
 
@@ -132,6 +133,10 @@ void OutputFileLogFfc(ThreadVars *tv, OutputFileLoggerThreadData *op_thread_data
                 FilemagicThreadLookup(&op_thread_data->magic_ctx, ff);
             }
 #endif
+
+            if (FileForceMimetype() && ff->mimetype == NULL) {
+                FileMimetypeLookup(ff);
+            }
             const OutputFileLogger *logger = list;
             const OutputLoggerThreadStore *store = op_thread_data->store;
             while (logger && store) {

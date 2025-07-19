@@ -127,6 +127,17 @@ here: https://redmine.openinfosecfoundation.org/issues/437
 
 ``file.magic`` supports multiple buffer matching, see :doc:`multi-buffer-matching`.
 
+file.mimetype
+-------------
+
+Sticky buffer that matches on the MIME type guessed from the binary content of a file.
+
+Example::
+
+  file.mimetype; content:"application/vnd.microsoft.portable-executable";
+
+``file.mimetype`` supports multiple buffer matching, see :doc:`multi-buffer-matching`.
+
 filestore
 ---------
 

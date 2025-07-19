@@ -317,14 +317,15 @@ typedef struct DetectPort_ {
 // vacancy 1x
 #define SIG_MASK_REQUIRE_ENGINE_EVENT       BIT_U8(7)
 
-#define FILE_SIG_NEED_FILE          0x01
-#define FILE_SIG_NEED_FILENAME      0x02
-#define FILE_SIG_NEED_MAGIC         0x04    /**< need the start of the file */
-#define FILE_SIG_NEED_FILECONTENT   0x08
-#define FILE_SIG_NEED_MD5           0x10
-#define FILE_SIG_NEED_SHA1          0x20
-#define FILE_SIG_NEED_SHA256        0x40
-#define FILE_SIG_NEED_SIZE          0x80
+#define FILE_SIG_NEED_FILE        BIT_U16(0)
+#define FILE_SIG_NEED_FILENAME    BIT_U16(1)
+#define FILE_SIG_NEED_MAGIC       BIT_U16(2) /**< need the start of the file */
+#define FILE_SIG_NEED_FILECONTENT BIT_U16(3)
+#define FILE_SIG_NEED_MD5         BIT_U16(4)
+#define FILE_SIG_NEED_SHA1        BIT_U16(5)
+#define FILE_SIG_NEED_SHA256      BIT_U16(6)
+#define FILE_SIG_NEED_SIZE        BIT_U16(7)
+#define FILE_SIG_NEED_MIMETYPE    BIT_U16(8)
 
 /* Detection Engine flags */
 #define DE_QUIET 0x01 /**< DE is quiet (esp for unittests) */
@@ -681,7 +682,7 @@ typedef struct Signature_ {
 
     /** inline -- action */
     uint8_t action;
-    uint8_t file_flags;
+    uint16_t file_flags;
 
     /** addresses, ports and proto this sig matches on */
     DetectProto proto;
@@ -1493,6 +1494,7 @@ enum {
 #define SIG_GROUP_HEAD_HAVEFILESIZE   BIT_U16(3)
 #define SIG_GROUP_HEAD_HAVEFILESHA1   BIT_U16(4)
 #define SIG_GROUP_HEAD_HAVEFILESHA256 BIT_U16(5)
+#define SIG_GROUP_HEAD_HAVEFILEMIMETYPE BIT_U16(6)
 
 enum MpmBuiltinBuffers {
     MPMB_TCP_PKT_TS,

@@ -137,7 +137,12 @@ void EveFileInfo(SCJsonBuilder *jb, const File *ff, const uint64_t tx_id, const 
     if (ff->magic)
         SCJbSetString(jb, "magic", (char *)ff->magic);
 #endif
+
+    if (ff->mimetype)
+        SCJbSetString(jb, "mimetype", (char *)ff->mimetype);
+
     SCJbSetBool(jb, "gaps", ff->flags & FILE_HAS_GAPS);
+
     switch (ff->state) {
         case FILE_STATE_CLOSED:
             JB_SET_STRING(jb, "state", "CLOSED");
