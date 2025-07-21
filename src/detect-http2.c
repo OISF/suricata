@@ -222,7 +222,7 @@ static int DetectHTTP2frametypeMatch(DetectEngineThreadCtx *det_ctx,
 static int DetectHTTP2FuncParseFrameType(const char *str, uint8_t *ft)
 {
     // first parse numeric value
-    if (ByteExtractStringUint8(ft, 10, (uint16_t)strlen(str), str) >= 0) {
+    if (ByteExtractStringUint8(ft, 10, (uint16_t)strlen(str), str) > 0) {
         return 1;
     }
 
@@ -307,7 +307,7 @@ static int DetectHTTP2errorcodeMatch(DetectEngineThreadCtx *det_ctx,
 static int DetectHTTP2FuncParseErrorCode(const char *str, uint32_t *ec)
 {
     // first parse numeric value
-    if (ByteExtractStringUint32(ec, 10, (uint16_t)strlen(str), str) >= 0) {
+    if (ByteExtractStringUint32(ec, 10, (uint16_t)strlen(str), str) > 0) {
         return 1;
     }
 

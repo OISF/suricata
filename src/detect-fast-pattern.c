@@ -309,8 +309,7 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const c
             goto error;
         }
         uint16_t offset;
-        if (StringParseUint16(&offset, 10, 0,
-                              (const char *)arg_substr) < 0) {
+        if (StringParseUint16(&offset, 10, 0, (const char *)arg_substr) <= 0) {
             SCLogError("Invalid fast pattern offset:"
                        " \"%s\"",
                     arg_substr);
@@ -325,8 +324,7 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const c
             goto error;
         }
         uint16_t length;
-        if (StringParseUint16(&length, 10, 0,
-                              (const char *)arg_substr) < 0) {
+        if (StringParseUint16(&length, 10, 0, (const char *)arg_substr) <= 0) {
             SCLogError("Invalid value for fast "
                        "pattern: \"%s\"",
                     arg_substr);

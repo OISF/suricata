@@ -313,10 +313,10 @@ static int SRepSplitLine(SRepCIDRTree *cidr_ctx, char *line, Address *ip, uint8_
         return 1;
 
     uint8_t c, v;
-    if (StringParseU8RangeCheck(&c, 10, 0, (const char *)ptrs[1], 0, SREP_MAX_CATS - 1) < 0)
+    if (StringParseU8RangeCheck(&c, 10, 0, (const char *)ptrs[1], 0, SREP_MAX_CATS - 1) <= 0)
         return -1;
 
-    if (StringParseU8RangeCheck(&v, 10, 0, (const char *)ptrs[2], 0, SREP_MAX_VAL) < 0)
+    if (StringParseU8RangeCheck(&v, 10, 0, (const char *)ptrs[2], 0, SREP_MAX_VAL) <= 0)
         return -1;
 
     if (strchr(ptrs[0], '/') != NULL) {
