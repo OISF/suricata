@@ -571,7 +571,7 @@ static uint8_t GetDnsLogVersion(SCConfNode *conf)
     }
 
     uint8_t version;
-    if (StringParseUint8(&version, 10, 0, version_string) >= 0) {
+    if (StringParseUint8(&version, 10, 0, version_string) > 0) {
         return version;
     }
     SCLogWarning("Failed to parse EVE DNS log version of \"%s\"", version_string);
