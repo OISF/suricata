@@ -56,7 +56,7 @@ static int LuaBytevarMap(lua_State *L)
 
     DetectByteIndexType idx;
     if (!DetectByteRetrieveSMVar(name, s, -1, &idx)) {
-        luaL_error(L, "unknown byte_extract or byte_math variable: %s", name);
+        return luaL_error(L, "unknown byte_extract or byte_math variable: %s", name);
     }
 
     ld->bytevar[ld->bytevars].name = SCStrdup(name);
