@@ -154,7 +154,7 @@ static DetectIdData *DetectIdParse (const char *idstr)
     }
 
     /* ok, fill the id data */
-    if (StringParseUint16(&temp, 10, 0, (const char *)tmp_str) < 0) {
+    if (StringParseUint16(&temp, 10, 0, (const char *)tmp_str) <= 0) {
         SCLogError("invalid id option '%s'", tmp_str);
         goto error;
     }
