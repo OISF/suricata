@@ -1166,7 +1166,7 @@ void AppLayerRegisterGlobalCounters(void)
     StatsRegisterGlobalCounter("http.byterange.memuse", HTPByteRangeMemuseGlobalCounter);
     StatsRegisterGlobalCounter("http.byterange.memcap", HTPByteRangeMemcapGlobalCounter);
     StatsRegisterGlobalCounter("ippair.memuse", IPPairGetMemuse);
-    StatsRegisterGlobalCounter("ippair.memcap", IPPairGetMemuse);
+    StatsRegisterGlobalCounter("ippair.memcap", IPPairGetMemcap);
     StatsRegisterGlobalCounter("host.memuse", HostGetMemuse);
     StatsRegisterGlobalCounter("host.memcap", HostGetMemcap);
 }
