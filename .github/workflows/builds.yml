@@ -2645,10 +2645,10 @@ jobs:
       - run: suricata-update -V
       - run: suricatasc -h
 
-  debian-11:
-    name: Debian 11 (xdp)
+  debian-12-xdp:
+    name: Debian 12 (xdp)
     runs-on: ubuntu-latest
-    container: debian:11
+    container: debian:12
     needs: [prepare-deps, prepare-cbindgen]
     steps:
       # Cache Rust stuff.
