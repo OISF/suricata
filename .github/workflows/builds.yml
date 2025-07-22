@@ -789,7 +789,7 @@ jobs:
 
   # Fedora build using GCC.
   fedora-42-gcc:
-    name: Fedora 42 (gcc, debug, asan, wshadow, rust-strict)
+    name: Fedora 42 (gcc, debug, flto, asan, wshadow, rust-strict)
     runs-on: ubuntu-latest
     container: fedora:42
     needs: [prepare-deps, prepare-cbindgen]
@@ -840,6 +840,7 @@ jobs:
                 pkgconfig \
                 python3-yaml \
                 sudo \
+                vectorscan-devel \
                 which \
                 zlib-devel
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -853,7 +854,7 @@ jobs:
       - run: ./autogen.sh
       - run: ./configure --enable-warnings --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue
         env:
-          CFLAGS: "${{ env.DEFAULT_CFLAGS }} -Wshadow -fsanitize=address -fno-omit-frame-pointer"
+          CFLAGS: "${{ env.DEFAULT_CFLAGS }} -Wshadow -fsanitize=address -fno-omit-frame-pointer -flto=auto -O2"
           LDFLAGS: "-fsanitize=address"
           ac_cv_func_realloc_0_nonnull: "yes"
           ac_cv_func_malloc_0_nonnull: "yes"
