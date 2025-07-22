@@ -427,6 +427,39 @@ end:
     if (ht != NULL) HashTableFree(ht);
     return result;
 }
+
+static int HashTableTestCollisionBug(void)
+{
+    HashTable *ht = HashTableInit(32, HashTableGenericHash, NULL, NULL);
+    FAIL_IF_NULL(ht);
+
+    FAIL_IF_NOT(HashTableGenericHash(ht, (void *)"abc", 3) ==
+                HashTableGenericHash(ht, (void *)"iln", 3));
+
+    // Add two strings that collide in the same bucket
+    FAIL_IF_NOT(HashTableAdd(ht, (char *)"abc", 3) == 0);
+    FAIL_IF_NOT(HashTableAdd(ht, (char *)"iln", 3) == 0);
+
+    // Verify both keys are present
+    FAIL_IF_NULL(HashTableLookup(ht, (char *)"abc", 3));
+    FAIL_IF_NULL(HashTableLookup(ht, (char *)"iln", 3));
+
+    // Remove first key once
+    FAIL_IF_NOT(HashTableRemove(ht, (char *)"abc", 3) == 0);
+
+    // Verify first key is gone, second key remains
+    FAIL_IF_NOT_NULL(HashTableLookup(ht, (char *)"abc", 3));
+    FAIL_IF_NULL(HashTableLookup(ht, (char *)"iln", 3));
+
+    // Remove first key again (should not affect "iln")
+    FAIL_IF(HashTableRemove(ht, (char *)"abc", 3) == 0);
+
+    // Verify second key is still present (correct behavior)
+    FAIL_IF_NULL(HashTableLookup(ht, (char *)"iln", 3));
+
+    HashTableFree(ht);
+    PASS;
+}
 #endif
 
 void HashTableRegisterTests(void)
@@ -444,6 +477,7 @@ void HashTableRegisterTests(void)
 
     UtRegisterTest("HashTableTestFull01", HashTableTestFull01);
     UtRegisterTest("HashTableTestFull02", HashTableTestFull02);
+    UtRegisterTest("HashTableTestCollisionBug", HashTableTestCollisionBug);
 #endif
 }
 
