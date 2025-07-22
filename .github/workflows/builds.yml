@@ -681,9 +681,9 @@ jobs:
       # Check compilation against systemd
       - run: ldd src/suricata | grep libsystemd &> /dev/null
 
-  # Fedora 39 build using GCC.
-  fedora-41-gcc:
-    name: Fedora 41 (gcc, debug, asan, wshadow, rust-strict)
+  # Fedora build using GCC.
+  fedora-42-gcc:
+    name: Fedora 42 (gcc, debug, flto, asan, wshadow, rust-strict)
     runs-on: ubuntu-latest
     container: fedora:41
     needs: [prepare-deps, prepare-cbindgen]
@@ -733,6 +733,7 @@ jobs:
                 pkgconfig \
                 python3-yaml \
                 sudo \
+                vectorscan-devel \
                 which \
                 zlib-devel
       - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
@@ -747,7 +748,7 @@ jobs:
       - run: ./autogen.sh
       - run: ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue
         env:
-          CFLAGS: "${{ env.DEFAULT_CFLAGS }} -Wshadow -fsanitize=address -fno-omit-frame-pointer"
+          CFLAGS: "${{ env.DEFAULT_CFLAGS }} -Wshadow -fsanitize=address -fno-omit-frame-pointer -flto=auto -O2"
           LDFLAGS: "-fsanitize=address"
           ac_cv_func_realloc_0_nonnull: "yes"
           ac_cv_func_malloc_0_nonnull: "yes"
