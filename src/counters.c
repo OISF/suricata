@@ -1104,7 +1104,7 @@ static int StatsThreadRegister(const char *thread_name, StatsPublicThreadContext
         id = HashTableLookup(stats_ctx->counters_id_hash, &t, sizeof(t));
         if (id == NULL) {
             id = SCCalloc(1, sizeof(*id));
-            DEBUG_VALIDATE_BUG_ON(id == NULL);
+            BUG_ON(id == NULL);
             id->id = counters_global_id++;
             id->string = pc->name;
 #ifdef DEBUG_VALIDATION
