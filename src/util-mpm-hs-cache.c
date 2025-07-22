@@ -222,14 +222,12 @@ cleanup:
 
 uint64_t HSHashDb(const PatternDatabase *pd)
 {
-    uint64_t cached_hash = 0;
-    uint32_t *hash = (uint32_t *)(&cached_hash);
+    uint32_t hash[2] = { 0 };
     hashword2(&pd->pattern_cnt, 1, &hash[0], &hash[1]);
     for (uint32_t i = 0; i < pd->pattern_cnt; i++) {
         SCHSCachePatternHash(pd->parray[i], &hash[0], &hash[1]);
     }
-
-    return cached_hash;
+    return ((uint64_t)hash[0] << 32) | hash[1];
 }
 
 void HSSaveCacheIterator(void *data, void *aux)
