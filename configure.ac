@@ -2133,7 +2133,7 @@ fi
     fi
     RUST_SURICATA_LIB="${RUST_SURICATA_LIBDIR}/${RUST_SURICATA_LIBNAME}"
 
-    CFLAGS="${CFLAGS} -I\${srcdir}/../rust/gen -I\${srcdir}/../rust/dist -I../rust/gen"
+    CFLAGS="-I\${srcdir}/../rust/gen ${CFLAGS} -I\${srcdir}/../rust/dist"
     AC_SUBST(RUST_SURICATA_LIB)
     AC_SUBST(RUST_LDADD)
     if test "x$CARGO_HOME" = "x"; then
