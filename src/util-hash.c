@@ -75,22 +75,38 @@ error:
     return NULL;
 }
 
+/**
+ *  \brief Free a HashTableBucket and return the next bucket
+ *  \param ht Pointer to the HashTable
+ *  \param htb Pointer to the HashTableBucket to free
+ *  \return HashTableBucket* Pointer to the next HashTableBucket or NULL
+ */
+static HashTableBucket *HashTableBucketFree(HashTable *ht, HashTableBucket *htb)
+{
+    HashTableBucket *next_hashbucket = htb->next;
+    if (ht->Free != NULL)
+        ht->Free(htb->data);
+    SCFree(htb);
+    return next_hashbucket;
+}
+
+/**
+ *  \brief Free a HashTable and all its contents
+ *  \details This function will free all the buckets and the array of buckets.
+ *  \note If the Free function is set, it will be called for each data item in the hash table.
+ *  \param ht Pointer to the HashTable to free
+ *  \return void
+ */
 void HashTableFree(HashTable *ht)
 {
-    uint32_t i = 0;
-
     if (ht == NULL)
         return;
 
     /* free the buckets */
-    for (i = 0; i < ht->array_size; i++) {
+    for (uint32_t i = 0; i < ht->array_size; i++) {
         HashTableBucket *hashbucket = ht->array[i];
         while (hashbucket != NULL) {
-            HashTableBucket *next_hashbucket = hashbucket->next;
-            if (ht->Free != NULL)
-                ht->Free(hashbucket->data);
-            SCFree(hashbucket);
-            hashbucket = next_hashbucket;
+            hashbucket = HashTableBucketFree(ht, hashbucket);
         }
     }
 
@@ -138,44 +154,27 @@ error:
         SCFree(hb);
     return -1;
 }
-
+/**
+ *  \brief Remove an item from the hash table
+ *  \details This function will search for the item in the hash table and remove it if found
+ *  \note If the Free function is set, it will be called for the data item being removed.
+ *  \param ht Pointer to the HashTable
+ *  \param data Pointer to the data to remove
+ *  \param datalen Length of the data to remove
+ *  \return int 0 on success, -1 if the item was not found or an error occurred
+ */
 int HashTableRemove(HashTable *ht, void *data, uint16_t datalen)
 {
     uint32_t hash = ht->Hash(ht, data, datalen);
 
-    if (ht->array[hash] == NULL) {
-        return -1;
-    }
-
-    if (ht->array[hash]->next == NULL) {
-        if (ht->Free != NULL)
-            ht->Free(ht->array[hash]->data);
-        SCFree(ht->array[hash]);
-        ht->array[hash] = NULL;
-        return 0;
-    }
-
-    HashTableBucket *hashbucket = ht->array[hash], *prev_hashbucket = NULL;
-    do {
-        if (ht->Compare(hashbucket->data,hashbucket->size,data,datalen) == 1) {
-            if (prev_hashbucket == NULL) {
-                /* root bucket */
-                ht->array[hash] = hashbucket->next;
-            } else {
-                /* child bucket */
-                prev_hashbucket->next = hashbucket->next;
-            }
-
-            /* remove this */
-            if (ht->Free != NULL)
-                ht->Free(hashbucket->data);
-            SCFree(hashbucket);
+    HashTableBucket **hashbucket = &(ht->array[hash]);
+    while (*hashbucket != NULL) {
+        if (ht->Compare((*hashbucket)->data, (*hashbucket)->size, data, datalen)) {
+            *hashbucket = HashTableBucketFree(ht, *hashbucket);
             return 0;
         }
-
-        prev_hashbucket = hashbucket;
-        hashbucket = hashbucket->next;
-    } while (hashbucket != NULL);
+        hashbucket = &((*hashbucket)->next);
+    }
 
     return -1;
 }
@@ -480,4 +479,3 @@ void HashTableRegisterTests(void)
     UtRegisterTest("HashTableTestCollisionBug", HashTableTestCollisionBug);
 #endif
 }
-
