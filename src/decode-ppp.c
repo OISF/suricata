@@ -138,6 +138,7 @@ static int DecodePPPUncompressedProto(ThreadVars *tv, DecodeThreadVars *dtv, Pac
         case PPP_LQM:
         case PPP_CBCP:
         case PPP_COMP_DGRAM:
+        case PPP_CDPCP:
             /* Valid types to be in PPP but don't inspect validity. */
             return TM_ECODE_OK;
 
