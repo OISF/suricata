@@ -54,6 +54,7 @@
 #define PPP_STIICP     0x8033       /* Stream Protocol Control Protocol */
 #define PPP_VINESCP    0x8035       /* Banyan Vines Control Protocol */
 #define PPP_IPV6CP     0x8057       /* IPv6 Control Protocol */
+#define PPP_CDPCP      0x8207       /* Cisco Discovery Protocol Control Protocol */
 #define PPP_MPLSCP     0x8281       /* rfc 3022 */
 #define PPP_LCP        0xc021       /* Link Control Protocol */
 #define PPP_PAP        0xc023       /* Password Authentication Protocol */
