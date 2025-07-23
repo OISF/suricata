@@ -2447,6 +2447,7 @@ jobs:
               texlive-latex-extra \
               zlib1g \
               zlib1g-dev \
+              clang \
               libxdp-dev
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - run: git config --global --add safe.directory /__w/suricata/suricata
@@ -2663,7 +2664,6 @@ jobs:
         run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
       - run: |
-          echo "deb http://deb.debian.org/debian bullseye-backports main" >> /etc/apt/sources.list
           apt update
           apt -y install \
                 automake \
