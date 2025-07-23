@@ -446,6 +446,12 @@ static OutputInitResult OutputFilestoreLogInitCtx(SCConfNode *conf)
         SCLogConfig("Filestore (v2) forcing magic lookup for stored files");
     }
 
+    const char *force_mimetype = SCConfNodeLookupChildValue(conf, "force-mimetype");
+    if (force_mimetype != NULL && SCConfValIsTrue(force_mimetype)) {
+        FileForceMimetypeEnable();
+        SCLogConfig("forcing mimetype lookup for logged files");
+    }
+
     FileForceHashParseCfg(conf);
 
     /* The new filestore requires SHA256. */

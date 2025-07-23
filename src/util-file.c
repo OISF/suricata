@@ -55,6 +55,11 @@ static int g_file_force_filestore = 0;
  */
 static int g_file_force_magic = 0;
 
+/** \brief switch to force mimetype checks on all files
+ *         regardless of the rules.
+ */
+static int g_file_force_mimetype = 0;
+
 /** \brief switch to force md5 calculation on all files
  *         regardless of the rules.
  */
@@ -101,6 +106,12 @@ void FileForceMagicEnable(void)
     g_file_flow_mask |= (FLOWFILE_NO_MAGIC_TS|FLOWFILE_NO_MAGIC_TC);
 }
 
+void FileForceMimetypeEnable(void)
+{
+    g_file_force_mimetype = 1;
+    g_file_flow_mask |= (FLOWFILE_NO_MIMETYPE_TS | FLOWFILE_NO_MIMETYPE_TC);
+}
+
 void FileForceMd5Enable(void)
 {
     g_file_force_md5 = 1;
@@ -141,6 +152,11 @@ uint32_t FileReassemblyDepth(void)
 int FileForceMagic(void)
 {
     return g_file_force_magic;
+}
+
+int FileForceMimetype(void)
+{
+    return g_file_force_mimetype;
 }
 
 int FileForceMd5(void)
@@ -240,6 +256,10 @@ uint16_t FileFlowFlagsToFlags(const uint16_t flow_file_flags, uint8_t direction)
         if (flow_file_flags & FLOWFILE_NO_SHA256_TS) {
             flags |= FILE_NOSHA256;
         }
+
+        if (flow_file_flags & FLOWFILE_NO_MIMETYPE_TS) {
+            flags |= FILE_NOMIMETYPE;
+        }
     } else {
         if ((flow_file_flags & (FLOWFILE_NO_STORE_TC | FLOWFILE_STORE_TC)) ==
                 FLOWFILE_NO_STORE_TC) {
@@ -262,6 +282,10 @@ uint16_t FileFlowFlagsToFlags(const uint16_t flow_file_flags, uint8_t direction)
 
         if (flow_file_flags & FLOWFILE_NO_SHA256_TC) {
             flags |= FILE_NOSHA256;
+        }
+
+        if (flow_file_flags & FLOWFILE_NO_MIMETYPE_TC) {
+            flags |= FILE_NOMIMETYPE;
         }
     }
     DEBUG_VALIDATE_BUG_ON((flags & (FILE_STORE | FILE_NOSTORE)) == (FILE_STORE | FILE_NOSTORE));
@@ -368,6 +392,15 @@ static int FilePruneFile(File *file, const StreamingBufferConfig *cfg)
         SCLogDebug("file->flags & FILE_NOMAGIC == true");
     }
 #endif
+    if (!(file->flags & FILE_NOMIMETYPE)) {
+        /* need mimetype but haven't set it yet, bail out */
+        if (file->mimetype == NULL)
+            SCReturnInt(0);
+        else
+            SCLogDebug("file->mimetype %s", file->mimetype);
+    } else {
+        SCLogDebug("file->flags & FILE_NOMIMETYPE == true");
+    }
     uint64_t left_edge = FileDataSize(file);
     if (file->flags & FILE_STORE) {
         left_edge = MIN(left_edge,file->content_stored);
@@ -579,6 +612,8 @@ static void FileFree(File *ff, const StreamingBufferConfig *sbcfg)
     if (ff->magic != NULL)
         SCFree(ff->magic);
 #endif
+    if (ff->mimetype != NULL)
+        SCRustCStringFree(ff->mimetype);
     if (ff->sb != NULL) {
         StreamingBufferFree(ff->sb, sbcfg);
     }
@@ -912,6 +947,10 @@ static File *FileOpenFile(FileContainer *ffc, const StreamingBufferConfig *sbcfg
     if (flags & FILE_NOMAGIC) {
         SCLogDebug("not doing magic for this file");
         ff->flags |= FILE_NOMAGIC;
+    }
+    if (flags & FILE_NOMIMETYPE) {
+        SCLogDebug("not doing mimetype for this file");
+        ff->flags |= FILE_NOMIMETYPE;
     }
     if (flags & FILE_NOMD5) {
         SCLogDebug("not doing md5 for this file");
