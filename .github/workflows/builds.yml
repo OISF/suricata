@@ -2388,7 +2388,7 @@ jobs:
           ./.github/workflows/live/dpdk.sh ".github/workflows/dpdk/suricata-null-ips.yaml"
 
   debian-12:
-    name: Debian 12
+    name: Debian 12 (xdp)
     runs-on: ubuntu-latest
     container: debian:12
     needs: [prepare-deps]
@@ -2446,7 +2446,9 @@ jobs:
               texlive-fonts-extra \
               texlive-latex-extra \
               zlib1g \
-              zlib1g-dev
+              zlib1g-dev \
+              clang \
+              libxdp-dev
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
@@ -2460,13 +2462,13 @@ jobs:
       - run: tar xf prep/suricata-update.tar.gz
       - run: tar xf prep/suricata-verify.tar.gz
       - run: ./autogen.sh
-      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-warnings --enable-unittests
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-warnings --enable-unittests --enable-ebpf --enable-ebpf-build
       - run: make -j ${{ env.CPUS }}
       - run: make check
         # -j2 caused random failures during cargo vendor
       - run: make distcheck
         env:
-          DISTCHECK_CONFIGURE_FLAGS: "--enable-unittests --enable-debug --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk"
+          DISTCHECK_CONFIGURE_FLAGS: "--enable-unittests --enable-debug --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk --enable-ebpf --enable-ebpf-build"
       - run: test -e doc/userguide/suricata.1
       - run: test -e doc/userguide/userguide.pdf
       - name: Building Rust documentation
@@ -2646,7 +2648,7 @@ jobs:
       - run: suricatasc -h
 
   debian-11:
-    name: Debian 11 (xdp)
+    name: Debian 11
     runs-on: ubuntu-latest
     container: debian:11
     needs: [prepare-deps, prepare-cbindgen]
@@ -2662,7 +2664,6 @@ jobs:
         run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
       - run: |
-          echo "deb http://deb.debian.org/debian bullseye-backports main" >> /etc/apt/sources.list
           apt update
           apt -y install \
                 automake \
@@ -2696,8 +2697,7 @@ jobs:
                 zlib1g-dev \
                 clang \
                 libbpf-dev \
-                libelf-dev \
-                libxdp-dev
+                libelf-dev
       - name: Install Rust
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $RUST_VERSION_KNOWN -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
@@ -2710,7 +2710,7 @@ jobs:
       - run: tar xf prep/suricata-update.tar.gz
       - uses: ./.github/actions/install-cbindgen
       - run: ./autogen.sh
-      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-warnings --enable-unittests --enable-fuzztargets --enable-ebpf --enable-ebpf-build
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-warnings --enable-unittests --enable-fuzztargets
       - run: make -j ${{ env.CPUS }}
       - run: make check
       - run: tar xf prep/suricata-verify.tar.gz
