@@ -26,6 +26,7 @@
 
 #include "app-layer-htp.h"
 #include "util-lua.h"
+#include "htp/htp_rs.h"
 #include "util-lua-common.h"
 #include "util-lua-http.h"
 
@@ -107,8 +108,13 @@ static int LuaHttpGetRequestLine(lua_State *luastate)
         return 1;
     }
 
-    return LuaPushStringBuffer(
-            luastate, bstr_ptr(htp_tx_request_line(tx->tx)), bstr_len(htp_tx_request_line(tx->tx)));
+    const struct bstr *line = htp_tx_request_line(tx->tx);
+    if (line == NULL) {
+        lua_pushnil(luastate);
+        return 1;
+    }
+
+    return LuaPushStringBuffer(luastate, bstr_ptr(line), bstr_len(line));
 }
 
 static int LuaHttpGetResponseLine(lua_State *luastate)
@@ -119,8 +125,13 @@ static int LuaHttpGetResponseLine(lua_State *luastate)
         return 1;
     }
 
-    return LuaPushStringBuffer(luastate, bstr_ptr(htp_tx_response_line(tx->tx)),
-            bstr_len(htp_tx_response_line(tx->tx)));
+    const struct bstr *line = htp_tx_response_line(tx->tx);
+    if (line == NULL) {
+        lua_pushnil(luastate);
+        return 1;
+    }
+
+    return LuaPushStringBuffer(luastate, bstr_ptr(line), bstr_len(line));
 }
 
 static int LuaHttpGetHeader(lua_State *luastate, int dir)
