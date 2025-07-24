@@ -26,6 +26,7 @@
 
 #include "flow.h"
 #include "stream-tcp-private.h"
+#include "source-pcap-file-info-helper.h"
 
 #define RESET_COUNTERS(f)                                                                          \
     do {                                                                                           \
@@ -69,6 +70,7 @@
         (f)->sgh_toserver = NULL;                                                                  \
         (f)->sgh_toclient = NULL;                                                                  \
         (f)->flowvar = NULL;                                                                       \
+        (f)->pcap_info = NULL;                                                                     \
         RESET_COUNTERS((f));                                                                       \
     } while (0)
 
@@ -80,6 +82,7 @@
 #define FLOW_RECYCLE(f)                                                                            \
     do {                                                                                           \
         FlowCleanupAppLayer((f));                                                                  \
+        PcapFileInfoDeref(&((f)->pcap_info));                                                      \
         (f)->sp = 0;                                                                               \
         (f)->dp = 0;                                                                               \
         (f)->proto = 0;                                                                            \
@@ -119,6 +122,7 @@
 #define FLOW_DESTROY(f)                                                                            \
     do {                                                                                           \
         FlowCleanupAppLayer((f));                                                                  \
+        PcapFileInfoDeref(&((f)->pcap_info));                                                      \
                                                                                                    \
         FLOWLOCK_DESTROY((f));                                                                     \
         GenericVarFree((f)->flowvar);                                                              \

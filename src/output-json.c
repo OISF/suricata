@@ -1022,7 +1022,16 @@ void OutputJsonBuilderBuffer(
     }
 
     if (file_ctx->is_pcap_offline) {
-        SCJbSetString(js, "pcap_filename", PcapFileGetFilename());
+        if (f && f->pcap_info && f->pcap_info->filename) {
+            // intended for e.g. Flow managers (flow events)
+            SCJbSetString(js, "pcap_filename", f->pcap_info->filename);
+        } else if (p && p->pcap_v.info && p->pcap_v.info->filename) {
+            // intended for e.g. Workers (alert events)
+            SCJbSetString(js, "pcap_filename", p->pcap_v.info->filename);
+        } else {
+            // intended for e.g. (stats events)
+            SCJbSetString(js, "pcap_filename", PcapFileGetFilename());
+        }
     }
 
     SCEveRunCallbacks(tv, p, f, js);

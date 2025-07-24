@@ -30,40 +30,47 @@
 
 PcapFileInfo *PcapFileInfoAddReference(PcapFileInfo *pfi)
 {
+    SCEnter();
+    if (SCRunmodeGet() != RUNMODE_PCAP_FILE) {
+        SCReturn NULL;
+    }
     (void)SC_ATOMIC_ADD(pfi->ref, 1);
-    return pfi;
+    SCReturnPtr(pfi, "PcapFileInfo *");
 }
 
 PcapFileInfo *PcapFileInfoInit(const char *filename)
 {
+    SCEnter();
     PcapFileInfo *pfi = SCCalloc(1, sizeof(PcapFileInfo));
     if (unlikely(pfi == NULL)) {
         SCLogError("Failed to allocate memory for PcapFileInfo");
-        SCReturnPtr(NULL, PcapFileInfo);
+        SCReturnPtr(NULL, "PcapFileInfo *");
     }
 
     pfi->filename = SCStrdup(filename);
     if (unlikely(pfi->filename == NULL)) {
         SCLogError("Failed to allocate memory for PcapFileInfo filename");
         SCFree(pfi);
-        SCReturnPtr(NULL, PcapFileInfo);
+        SCReturnPtr(NULL, "PcapFileInfo *");
     }
 
     SC_ATOMIC_INIT(pfi->ref);
     PcapFileInfoAddReference(pfi);
 
-    return pfi;
+    SCReturnPtr(pfi, "PcapFileInfo *");
 }
 
-void PcapFileInfoDeref(PcapFileInfo *pfi)
+void PcapFileInfoDeref(PcapFileInfo **pfi)
 {
-    if (unlikely(pfi == NULL)) {
-        return;
-    }
-    if (SC_ATOMIC_SUB(pfi->ref, 1) == 1) {
-        if (pfi->filename) {
-            SCFree(pfi->filename);
+    SCEnter();
+    if (SCRunmodeGet() != RUNMODE_PCAP_FILE || unlikely(pfi == NULL || *pfi == NULL)) {
+        SCReturn;
+    } else if (SC_ATOMIC_SUB((*pfi)->ref, 1) == 1) {
+        if ((*pfi)->filename) {
+            SCFree((*pfi)->filename);
         }
-        SCFree(pfi);
+        SCFree(*pfi);
     }
+    *pfi = NULL;
+    SCReturn;
 }

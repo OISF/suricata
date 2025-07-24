@@ -34,6 +34,6 @@ typedef struct PcapFileInfo_ {
 
 PcapFileInfo *PcapFileInfoAddReference(PcapFileInfo *pfi);
 PcapFileInfo *PcapFileInfoInit(const char *filename);
-void PcapFileInfoDeref(PcapFileInfo *pfi);
+void PcapFileInfoDeref(PcapFileInfo **pfi);
 
 #endif /* SURICATA_SOURCE_PCAP_FILE_INFO_HELPER_H */

@@ -22,6 +22,7 @@
  */
 
 #include "suricata-common.h"
+#include "source-pcap-file-info-helper.h"
 #include "tm-threads.h"
 
 #ifndef SURICATA_SOURCE_PCAP_FILE_HELPER_H
@@ -68,7 +69,7 @@ typedef struct PcapFileSharedVars_
  */
 typedef struct PcapFileFileVars_
 {
-    char *filename;
+    PcapFileInfo *info;
     pcap_t *pcap_handle;
 
     int datalink;

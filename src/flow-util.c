@@ -24,6 +24,7 @@
  */
 
 #include "suricata-common.h"
+#include "source-pcap-file-info-helper.h"
 #include "threads.h"
 
 #include "flow.h"
@@ -210,6 +211,11 @@ void FlowInit(ThreadVars *tv, Flow *f, const Packet *p)
         DEBUG_VALIDATE_BUG_ON(FlowGetStorageById(f, FlowRateGetStorageID()) != NULL);
         FlowRateStore *frs = FlowRateStoreInit();
         FlowSetStorageById(f, FlowRateGetStorageID(), frs);
+    }
+
+    DEBUG_VALIDATE_BUG_ON(f->pcap_info != NULL);
+    if (p->pcap_v.info) {
+        f->pcap_info = PcapFileInfoAddReference(p->pcap_v.info);
     }
 
     SCFlowRunInitCallbacks(tv, f, p);
