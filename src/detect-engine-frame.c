@@ -73,7 +73,7 @@ static void BufferSetupUdp(DetectEngineThreadCtx *det_ctx, InspectionBuffer *buf
 void DetectRunPrefilterFrame(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh, Packet *p,
         const Frames *frames, const Frame *frame, const AppProto alproto)
 {
-    SCLogDebug("pcap_cnt %" PRIu64, p->pcap_cnt);
+    SCLogDebug("pcap_cnt %" PRIu64, p->pcap_v.pcap_cnt);
     PrefilterEngine *engine = sgh->frame_engines;
     do {
         if ((engine->alproto == alproto || engine->alproto == ALPROTO_UNKNOWN) &&
@@ -150,7 +150,7 @@ static void PrefilterMpmFrame(DetectEngineThreadCtx *det_ctx, const void *pectx,
     const MpmCtx *mpm_ctx = ctx->mpm_ctx;
 
     SCLogDebug("packet:%" PRIu64 ", prefilter running on list %d -> frame field type %u",
-            p->pcap_cnt, ctx->list_id, frame->type);
+            p->pcap_v.pcap_cnt, ctx->list_id, frame->type);
     if (p->proto == IPPROTO_UDP) {
         // TODO can we use single here? Could it conflict with TCP?
         InspectionBuffer *buffer = InspectionBufferMultipleForListGet(det_ctx, ctx->list_id, 0);
@@ -197,7 +197,7 @@ static void PrefilterMpmFrame(DetectEngineThreadCtx *det_ctx, const void *pectx,
     }
     SCLogDebug("packet:%" PRIu64
                ", prefilter done running on list %d -> frame field type %u; have %u matches",
-            p->pcap_cnt, ctx->list_id, frame->type, det_ctx->pmq.rule_id_array_cnt);
+            p->pcap_v.pcap_cnt, ctx->list_id, frame->type, det_ctx->pmq.rule_id_array_cnt);
 }
 
 static void PrefilterMpmFrameFree(void *ptr)
@@ -272,7 +272,7 @@ static void BufferSetupUdp(DetectEngineThreadCtx *det_ctx, InspectionBuffer *buf
 
     SCLogDebug("packet %" PRIu64 " -> frame %p/%" PRIi64 "/%s offset %" PRIu64
                " type %u len %" PRIi64,
-            p->pcap_cnt, frame, frame->id,
+            p->pcap_v.pcap_cnt, frame, frame->id,
             AppLayerParserGetFrameNameById(p->flow->proto, p->flow->alproto, frame->type),
             frame->offset, frame->type, frame->len);
 
@@ -289,8 +289,8 @@ static int DetectFrameInspectUdp(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Packet *p, const Frames *_frames,
         const Frame *frame, const int list_id)
 {
-    SCLogDebug("packet:%" PRIu64 ", inspect: s:%p s->id:%u, transforms:%p", p->pcap_cnt, s, s->id,
-            transforms);
+    SCLogDebug("packet:%" PRIu64 ", inspect: s:%p s->id:%u, transforms:%p", p->pcap_v.pcap_cnt, s,
+            s->id, transforms);
 
     // TODO can we use single here? Could it conflict with TCP?
     InspectionBuffer *buffer = InspectionBufferMultipleForListGet(det_ctx, list_id, 0);
@@ -576,7 +576,8 @@ int DetectEngineInspectFrameBufferGeneric(DetectEngineThreadCtx *det_ctx,
 
     SCLogDebug("packet:%" PRIu64 ", frame->id:%" PRIu64
                ", list:%d, transforms:%p, s:%p, s->id:%u, engine:%p",
-            p->pcap_cnt, frame->id, engine->sm_list, engine->v1.transforms, s, s->id, engine);
+            p->pcap_v.pcap_cnt, frame->id, engine->sm_list, engine->v1.transforms, s, s->id,
+            engine);
 
     DEBUG_VALIDATE_BUG_ON(p->flow->protoctx == NULL);
     TcpSession *ssn = p->flow->protoctx;

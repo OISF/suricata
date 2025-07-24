@@ -112,7 +112,7 @@ static void DetectRun(ThreadVars *th_v,
         Packet *p)
 {
     SCEnter();
-    SCLogDebug("p->pcap_cnt %" PRIu64 " direction %s pkt_src %s", p->pcap_cnt,
+    SCLogDebug("p->pcap_v.pcap_cnt %" PRIu64 " direction %s pkt_src %s", p->pcap_v.pcap_cnt,
             p->flow ? (FlowGetPacketDirection(p->flow, p) == TOSERVER ? "toserver" : "toclient")
                     : "noflow",
             PktSrcToString(p->pkt_src));
@@ -158,7 +158,7 @@ static void DetectRun(ThreadVars *th_v,
     if (pflow && pflow->alstate && likely(pflow->proto == p->proto)) {
         if (p->proto == IPPROTO_TCP) {
             if ((p->flags & PKT_STREAM_EST) == 0) {
-                SCLogDebug("packet %" PRIu64 ": skip tcp non-established", p->pcap_cnt);
+                SCLogDebug("packet %" PRIu64 ": skip tcp non-established", p->pcap_v.pcap_cnt);
                 DetectRunAppendDefaultAccept(det_ctx, p);
                 goto end;
             }
@@ -178,7 +178,7 @@ static void DetectRun(ThreadVars *th_v,
             if (!PKT_IS_PSEUDOPKT(p) && p->app_update_direction == 0 &&
                     ((PKT_IS_TOSERVER(p) && (p->flow->flags & FLOW_TS_APP_UPDATED) == 0) ||
                             (PKT_IS_TOCLIENT(p) && (p->flow->flags & FLOW_TC_APP_UPDATED) == 0))) {
-                SCLogDebug("packet %" PRIu64 ": no app-layer update", p->pcap_cnt);
+                SCLogDebug("packet %" PRIu64 ": no app-layer update", p->pcap_v.pcap_cnt);
                 DetectRunAppendDefaultAccept(det_ctx, p);
                 goto end;
             }
@@ -195,7 +195,7 @@ static void DetectRun(ThreadVars *th_v,
                 pflow, pflow->alparser, pflow->alstate, scratch.flow_flags, (scratch.sgh == NULL));
         PACKET_PROFILING_DETECT_END(p, PROF_DETECT_TX_UPDATE);
     } else {
-        SCLogDebug("packet %" PRIu64 ": no flow / app-layer", p->pcap_cnt);
+        SCLogDebug("packet %" PRIu64 ": no flow / app-layer", p->pcap_v.pcap_cnt);
         DetectRunAppendDefaultAccept(det_ctx, p);
     }
 
@@ -212,7 +212,7 @@ static void DetectRunPacketHook(ThreadVars *th_v, const DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh, Packet *p)
 {
     SCEnter();
-    SCLogDebug("p->pcap_cnt %" PRIu64 " direction %s pkt_src %s", p->pcap_cnt,
+    SCLogDebug("p->pcap_v.pcap_cnt %" PRIu64 " direction %s pkt_src %s", p->pcap_v.pcap_cnt,
             p->flow ? (FlowGetPacketDirection(p->flow, p) == TOSERVER ? "toserver" : "toclient")
                     : "noflow",
             PktSrcToString(p->pkt_src));
@@ -701,7 +701,8 @@ static inline uint8_t DetectRulePacketRules(ThreadVars *const tv,
         }
         const uint8_t s_proto_flags = s->proto.flags;
 
-        SCLogDebug("packet %" PRIu64 ": inspecting signature id %" PRIu32 "", p->pcap_cnt, s->id);
+        SCLogDebug("packet %" PRIu64 ": inspecting signature id %" PRIu32 "", p->pcap_v.pcap_cnt,
+                s->id);
 
         /* if we accept:hook'd the `packet_filter` hook, we skip the rest of the firewall rules. */
         if (s->flags & SIG_FLAG_FIREWALL) {
@@ -1046,7 +1047,7 @@ static inline void DetectRunPostRules(ThreadVars *tv, const DetectEngineCtx *de_
     // TODO review packet src types here
     if (EngineModeIsFirewall() && !(p->action & ACTION_ACCEPT) && p->pkt_src == PKT_SRC_WIRE &&
             scratch->default_action == ACTION_DROP) {
-        SCLogDebug("packet %" PRIu64 ": droppit as no ACCEPT set %02x (pkt %s)", p->pcap_cnt,
+        SCLogDebug("packet %" PRIu64 ": droppit as no ACCEPT set %02x (pkt %s)", p->pcap_v.pcap_cnt,
                 p->action, PktSrcToString(p->pkt_src));
         PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_DEFAULT_PACKET_POLICY);
     }
@@ -1681,7 +1682,7 @@ static bool ApplyAccept(Packet *p, const uint8_t flow_flags, const Signature *s,
         /* if there is no fw rule for the next progress value,
          * we invoke the default drop policy. */
         if (fw_next_progress_missing) {
-            SCLogDebug("%" PRIu64 ": %s default drop for progress", p->pcap_cnt,
+            SCLogDebug("%" PRIu64 ": %s default drop for progress", p->pcap_v.pcap_cnt,
                     flow_flags & STREAM_TOSERVER ? "toserver" : "toclient");
             PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_DEFAULT_APP_POLICY);
             p->flow->flags |= FLOW_ACTION_DROP;
@@ -1727,7 +1728,7 @@ static void DetectRunTx(ThreadVars *tv,
     uint32_t tx_inspected = 0;
     const bool have_fw_rules = EngineModeIsFirewall();
 
-    SCLogDebug("packet %" PRIu64, p->pcap_cnt);
+    SCLogDebug("packet %" PRIu64, p->pcap_v.pcap_cnt);
 
     while (1) {
         AppLayerGetTxIterTuple ires = IterFunc(ipproto, alproto, alstate, tx_id_min, total_txs, &state);
@@ -1877,7 +1878,7 @@ static void DetectRunTx(ThreadVars *tv,
             uint32_t *inspect_flags = det_ctx->tx_candidates[i].flags;
             bool break_out_of_app_filter = false;
 
-            SCLogDebug("%" PRIu64 ": sid:%u: %s tx %u/%u/%u sig %u", p->pcap_cnt, s->id,
+            SCLogDebug("%" PRIu64 ": sid:%u: %s tx %u/%u/%u sig %u", p->pcap_v.pcap_cnt, s->id,
                     flow_flags & STREAM_TOSERVER ? "toserver" : "toclient", tx.tx_progress,
                     tx.detect_progress, tx.detect_progress_orig, s->app_progress_hook);
 
@@ -1998,7 +1999,7 @@ static void DetectRunTx(ThreadVars *tv,
                         (s->flags & SIG_FLAG_FIREWALL) ? "firewall" : "regular",
                         BOOL2STR(last_for_progress));
                 if (s->flags & SIG_FLAG_FIREWALL) {
-                    SCLogDebug("%" PRIu64 ": %s default drop for progress", p->pcap_cnt,
+                    SCLogDebug("%" PRIu64 ": %s default drop for progress", p->pcap_v.pcap_cnt,
                             flow_flags & STREAM_TOSERVER ? "toserver" : "toclient");
                     /* if this rule was the last for our progress state, and it didn't match,
                      * we have to invoke the default drop policy. */
@@ -2057,7 +2058,7 @@ static void DetectRunTx(ThreadVars *tv,
 
         /* this side of the tx is done */
         if (tx.tx_progress >= tx.tx_end_state) {
-            SCLogDebug("%" PRIu64 ": %s tx done", p->pcap_cnt,
+            SCLogDebug("%" PRIu64 ": %s tx done", p->pcap_v.pcap_cnt,
                     flow_flags & STREAM_TOSERVER ? "toserver" : "toclient");
             const uint8_t inspected_flag = (flow_flags & STREAM_TOSERVER)
                                                    ? APP_LAYER_TX_INSPECTED_TS
@@ -2069,7 +2070,7 @@ static void DetectRunTx(ThreadVars *tv,
         }
 
         if (tx.detect_progress != tx.detect_progress_orig) {
-            SCLogDebug("%" PRIu64 ": %s tx state change %u -> %u", p->pcap_cnt,
+            SCLogDebug("%" PRIu64 ": %s tx state change %u -> %u", p->pcap_v.pcap_cnt,
                     flow_flags & STREAM_TOSERVER ? "toserver" : "toclient", tx.detect_progress_orig,
                     tx.detect_progress);
             SCLogDebug("%p/%" PRIu64 " Storing new progress %02x (was %02x)", tx.tx_ptr, tx.tx_id,
@@ -2087,10 +2088,10 @@ static void DetectRunTx(ThreadVars *tv,
 
     /* apply default policy if there were txs to inspect, we have fw rules and non of the rules
      * applied a policy. */
-    SCLogDebug("packet %" PRIu64 ": tx_inspected %u fw_verdicted %u", p->pcap_cnt, tx_inspected,
-            fw_verdicted);
+    SCLogDebug("packet %" PRIu64 ": tx_inspected %u fw_verdicted %u", p->pcap_v.pcap_cnt,
+            tx_inspected, fw_verdicted);
     if (tx_inspected && have_fw_rules && tx_inspected != fw_verdicted) {
-        SCLogDebug("%" PRIu64 ": %s default drop", p->pcap_cnt,
+        SCLogDebug("%" PRIu64 ": %s default drop", p->pcap_v.pcap_cnt,
                 flow_flags & STREAM_TOSERVER ? "toserver" : "toclient");
         PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_DEFAULT_APP_POLICY);
         p->flow->flags |= FLOW_ACTION_DROP;
@@ -2114,7 +2115,7 @@ static void DetectRunFrames(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngin
             ((PKT_IS_TOSERVER(p) && (f->flags & FLOW_TS_APP_UPDATED) == 0) ||
                     (PKT_IS_TOCLIENT(p) && (f->flags & FLOW_TC_APP_UPDATED) == 0))) {
         SCLogDebug("pcap_cnt %" PRIu64 ": %s: skip frame inspection for TCP w/o APP UPDATE",
-                p->pcap_cnt, PKT_IS_TOSERVER(p) ? "toserver" : "toclient");
+                p->pcap_v.pcap_cnt, PKT_IS_TOSERVER(p) ? "toserver" : "toclient");
         return;
     }
     FramesContainer *frames_container = AppLayerFramesGetContainer(f);
@@ -2286,8 +2287,9 @@ static void DetectFlow(ThreadVars *tv,
                 AppLayerParserSetTransactionInspectId(f, f->alparser, f->alstate, flags, true);
             }
         }
-        SCLogDebug("p->pcap %"PRIu64": no detection on packet, "
-                "PKT_NOPACKET_INSPECTION is set", p->pcap_cnt);
+        SCLogDebug("p->pcap %" PRIu64 ": no detection on packet, "
+                   "PKT_NOPACKET_INSPECTION is set",
+                p->pcap_v.pcap_cnt);
         return;
     }
 
@@ -2314,7 +2316,7 @@ uint8_t DetectPreFlow(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p)
     const DetectEngineCtx *de_ctx = det_ctx->de_ctx;
     const SigGroupHead *sgh = de_ctx->pre_flow_sgh;
 
-    SCLogDebug("thread id: %u, packet %" PRIu64 ", sgh %p", tv->id, p->pcap_cnt, sgh);
+    SCLogDebug("thread id: %u, packet %" PRIu64 ", sgh %p", tv->id, p->pcap_v.pcap_cnt, sgh);
     DetectRunPacketHook(tv, de_ctx, det_ctx, sgh, p);
     return p->action;
 }
@@ -2325,7 +2327,7 @@ uint8_t DetectPreStream(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *
     const int direction = (PKT_IS_TOCLIENT(p) != 0);
     const SigGroupHead *sgh = de_ctx->pre_stream_sgh[direction];
 
-    SCLogDebug("thread id: %u, packet %" PRIu64 ", sgh %p", tv->id, p->pcap_cnt, sgh);
+    SCLogDebug("thread id: %u, packet %" PRIu64 ", sgh %p", tv->id, p->pcap_v.pcap_cnt, sgh);
     DetectRunPacketHook(tv, de_ctx, det_ctx, sgh, p);
     return p->action;
 }

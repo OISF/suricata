@@ -191,18 +191,18 @@ static int DetectnDPIProtocolPacketMatch(
     /*
     if (s->type == SIG_TYPE_PDONLY &&
             (p->flags & (PKT_PROTO_DETECT_TS_DONE | PKT_PROTO_DETECT_TC_DONE)) == 0) {
-        SCLogDebug("packet %"PRIu64": flags not set", p->pcap_cnt);
+        SCLogDebug("packet %"PRIu64": flags not set", p->pcap_v.pcap_cnt);
         SCReturnInt(0);
     }
     */
 
     if (!flowctx->detection_completed) {
-        SCLogDebug("packet %" PRIu64 ": ndpi protocol not yet detected", p->pcap_cnt);
+        SCLogDebug("packet %" PRIu64 ": ndpi protocol not yet detected", p->pcap_v.pcap_cnt);
         SCReturnInt(0);
     }
 
     if (f == NULL) {
-        SCLogDebug("packet %" PRIu64 ": no flow", p->pcap_cnt);
+        SCLogDebug("packet %" PRIu64 ": no flow", p->pcap_v.pcap_cnt);
         SCReturnInt(0);
     }
 
@@ -318,12 +318,12 @@ static int DetectnDPIRiskPacketMatch(
     SCEnter();
 
     if (!flowctx->detection_completed) {
-        SCLogDebug("packet %" PRIu64 ": ndpi risks not yet detected", p->pcap_cnt);
+        SCLogDebug("packet %" PRIu64 ": ndpi risks not yet detected", p->pcap_v.pcap_cnt);
         SCReturnInt(0);
     }
 
     if (f == NULL) {
-        SCLogDebug("packet %" PRIu64 ": no flow", p->pcap_cnt);
+        SCLogDebug("packet %" PRIu64 ": no flow", p->pcap_v.pcap_cnt);
         SCReturnInt(0);
     }
 

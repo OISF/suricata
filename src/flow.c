@@ -401,7 +401,7 @@ static inline void FlowUpdateEthernet(
  */
 void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars *dtv)
 {
-    SCLogDebug("packet %"PRIu64" -- flow %p", p->pcap_cnt, f);
+    SCLogDebug("packet %" PRIu64 " -- flow %p", p->pcap_v.pcap_cnt, f);
 
     const int pkt_dir = FlowGetPacketDirection(f, p);
 #ifdef CAPTURE_OFFLOAD

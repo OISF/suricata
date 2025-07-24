@@ -584,7 +584,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
     uint8_t ip6_nh_set_value = 0;
 
 #ifdef DEBUG
-    uint64_t pcap_cnt = p->pcap_cnt;
+    uint64_t pcap_cnt = p->pcap_v.pcap_cnt;
 #endif
 
     if (tracker->af == AF_INET) {

@@ -104,7 +104,7 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
     /* reset rule store */
     det_ctx->pmq.rule_id_array_cnt = 0;
 
-    SCLogDebug("packet %" PRIu64 " tx %p progress %d tx->detect_progress %02x", p->pcap_cnt,
+    SCLogDebug("packet %" PRIu64 " tx %p progress %d tx->detect_progress %02x", p->pcap_v.pcap_cnt,
             tx->tx_ptr, tx->tx_progress, tx->detect_progress);
 
     PrefilterEngine *engine = sgh->tx_engines;

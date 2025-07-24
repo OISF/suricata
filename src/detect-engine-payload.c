@@ -333,8 +333,8 @@ uint8_t DetectEngineInspectStream(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
             is_last = true;
     }
 
-    SCLogDebug("%s ran stream for sid %u on packet %"PRIu64" and we %s",
-            is_last? "LAST:" : "normal:", s->id, p->pcap_cnt,
+    SCLogDebug("%s ran stream for sid %u on packet %" PRIu64 " and we %s",
+            is_last ? "LAST:" : "normal:", s->id, p->pcap_v.pcap_cnt,
             match ? "matched" : "didn't match");
 
     if (match) {

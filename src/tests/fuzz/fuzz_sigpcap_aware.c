@@ -192,7 +192,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         p->ts = SCTIME_FROM_TIMEVAL(&header.ts);
         p->datalink = pkts.datalink;
         pcap_cnt++;
-        p->pcap_cnt = pcap_cnt;
+        p->pcap_v.pcap_cnt = pcap_cnt;
     }
 bail:
     PacketFree(p);

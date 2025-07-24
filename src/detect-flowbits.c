@@ -971,7 +971,7 @@ static void PrefilterFlowbitFree(void *vctx)
 static void PrefilterFlowbitMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
 {
     struct PrefilterEngineFlowbits *ctx = (struct PrefilterEngineFlowbits *)pectx;
-    SCLogDebug("%" PRIu64 ": ctx %p", p->pcap_cnt, ctx);
+    SCLogDebug("%" PRIu64 ": ctx %p", p->pcap_v.pcap_cnt, ctx);
 
     if (p->flow == NULL) {
         SCReturn;
@@ -1007,7 +1007,7 @@ static void PrefilterFlowbitPostRuleMatch(
         DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p, Flow *f)
 {
     struct PrefilterEngineFlowbits *ctx = (struct PrefilterEngineFlowbits *)pectx;
-    SCLogDebug("%" PRIu64 ": ctx %p", p->pcap_cnt, ctx);
+    SCLogDebug("%" PRIu64 ": ctx %p", p->pcap_v.pcap_cnt, ctx);
 
     if (p->flow == NULL) {
         SCReturn;

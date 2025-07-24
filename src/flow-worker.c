@@ -393,10 +393,10 @@ static inline void FlowWorkerStreamTCPUpdate(ThreadVars *tv, FlowWorkerThreadDat
     }
 
     /* Packets here can safely access p->flow as it's locked */
-    SCLogDebug("packet %"PRIu64": extra packets %u", p->pcap_cnt, fw->pq.len);
+    SCLogDebug("packet %" PRIu64 ": extra packets %u", p->pcap_v.pcap_cnt, fw->pq.len);
     Packet *x;
     while ((x = PacketDequeueNoLock(&fw->pq))) {
-        SCLogDebug("packet %"PRIu64" extra packet %p", p->pcap_cnt, x);
+        SCLogDebug("packet %" PRIu64 " extra packet %p", p->pcap_v.pcap_cnt, x);
 
         if (det_ctx != NULL) {
             FLOWWORKER_PROFILING_START(x, PROFILE_FLOWWORKER_DETECT);
@@ -436,7 +436,8 @@ static void FlowWorkerFlowTimeout(
 {
     DEBUG_VALIDATE_BUG_ON(p->pkt_src != PKT_SRC_FFR);
 
-    SCLogDebug("packet %"PRIu64" is TCP. Direction %s", p->pcap_cnt, PKT_IS_TOSERVER(p) ? "TOSERVER" : "TOCLIENT");
+    SCLogDebug("packet %" PRIu64 " is TCP. Direction %s", p->pcap_v.pcap_cnt,
+            PKT_IS_TOSERVER(p) ? "TOSERVER" : "TOCLIENT");
     DEBUG_VALIDATE_BUG_ON(!(p->flow && PacketIsTCP(p)));
     DEBUG_ASSERT_FLOW_LOCKED(p->flow);
 
@@ -446,7 +447,7 @@ static void FlowWorkerFlowTimeout(
     PacketUpdateEngineEventCounters(tv, fw->dtv, p);
 
     /* handle Detect */
-    SCLogDebug("packet %"PRIu64" calling Detect", p->pcap_cnt);
+    SCLogDebug("packet %" PRIu64 " calling Detect", p->pcap_v.pcap_cnt);
     if (det_ctx != NULL) {
         FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_DETECT);
         Detect(tv, p, det_ctx);
@@ -518,37 +519,37 @@ static void PacketAppUpdate2FlowFlags(Packet *p)
 {
     switch ((enum StreamUpdateDir)p->app_update_direction) {
         case UPDATE_DIR_NONE: // NONE implies pseudo packet
-            SCLogDebug("pcap_cnt %" PRIu64 ", UPDATE_DIR_NONE", p->pcap_cnt);
+            SCLogDebug("pcap_cnt %" PRIu64 ", UPDATE_DIR_NONE", p->pcap_v.pcap_cnt);
             break;
         case UPDATE_DIR_PACKET:
             if (PKT_IS_TOSERVER(p)) {
                 p->flow->flags |= FLOW_TS_APP_UPDATED;
-                SCLogDebug("pcap_cnt %" PRIu64 ", FLOW_TS_APP_UPDATED set", p->pcap_cnt);
+                SCLogDebug("pcap_cnt %" PRIu64 ", FLOW_TS_APP_UPDATED set", p->pcap_v.pcap_cnt);
             } else {
                 p->flow->flags |= FLOW_TC_APP_UPDATED;
-                SCLogDebug("pcap_cnt %" PRIu64 ", FLOW_TC_APP_UPDATED set", p->pcap_cnt);
+                SCLogDebug("pcap_cnt %" PRIu64 ", FLOW_TC_APP_UPDATED set", p->pcap_v.pcap_cnt);
             }
             break;
         case UPDATE_DIR_BOTH:
             if (PKT_IS_TOSERVER(p)) {
                 p->flow->flags |= FLOW_TS_APP_UPDATED | FLOW_TC_APP_UPDATE_NEXT;
                 SCLogDebug("pcap_cnt %" PRIu64 ", FLOW_TS_APP_UPDATED|FLOW_TC_APP_UPDATE_NEXT set",
-                        p->pcap_cnt);
+                        p->pcap_v.pcap_cnt);
             } else {
                 p->flow->flags |= FLOW_TC_APP_UPDATED | FLOW_TS_APP_UPDATE_NEXT;
                 SCLogDebug("pcap_cnt %" PRIu64 ", FLOW_TC_APP_UPDATED|FLOW_TS_APP_UPDATE_NEXT set",
-                        p->pcap_cnt);
+                        p->pcap_v.pcap_cnt);
             }
             /* fall through */
         case UPDATE_DIR_OPPOSING:
             if (PKT_IS_TOSERVER(p)) {
                 p->flow->flags |= FLOW_TC_APP_UPDATED | FLOW_TS_APP_UPDATE_NEXT;
                 SCLogDebug("pcap_cnt %" PRIu64 ", FLOW_TC_APP_UPDATED|FLOW_TS_APP_UPDATE_NEXT set",
-                        p->pcap_cnt);
+                        p->pcap_v.pcap_cnt);
             } else {
                 p->flow->flags |= FLOW_TS_APP_UPDATED | FLOW_TC_APP_UPDATE_NEXT;
                 SCLogDebug("pcap_cnt %" PRIu64 ", FLOW_TS_APP_UPDATED|FLOW_TC_APP_UPDATE_NEXT set",
-                        p->pcap_cnt);
+                        p->pcap_v.pcap_cnt);
             }
             break;
     }
@@ -562,7 +563,7 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
     DEBUG_VALIDATE_BUG_ON(p == NULL);
     DEBUG_VALIDATE_BUG_ON(tv->flow_queue == NULL);
 
-    SCLogDebug("packet %"PRIu64, p->pcap_cnt);
+    SCLogDebug("packet %" PRIu64, p->pcap_v.pcap_cnt);
 
     if ((PKT_IS_FLUSHPKT(p))) {
         SCLogDebug("thread %s flushing", tv->printable_name);
@@ -612,13 +613,13 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
         TimeSetByThread(tv->id, p->ts);
     }
 
-    SCLogDebug("packet %"PRIu64" has flow? %s", p->pcap_cnt, p->flow ? "yes" : "no");
+    SCLogDebug("packet %" PRIu64 " has flow? %s", p->pcap_v.pcap_cnt, p->flow ? "yes" : "no");
 
     /* handle TCP and app layer */
     if (p->flow) {
         SCLogDebug("packet %" PRIu64
                    ": direction %s FLOW_TS_APP_UPDATE_NEXT %s FLOW_TC_APP_UPDATE_NEXT %s",
-                p->pcap_cnt, PKT_IS_TOSERVER(p) ? "toserver" : "toclient",
+                p->pcap_v.pcap_cnt, PKT_IS_TOSERVER(p) ? "toserver" : "toclient",
                 BOOL2STR((p->flow->flags & FLOW_TS_APP_UPDATE_NEXT) != 0),
                 BOOL2STR((p->flow->flags & FLOW_TC_APP_UPDATE_NEXT) != 0));
         /* see if need to consider flags set by prev packets */
@@ -633,7 +634,7 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
         }
 
         if (PacketIsTCP(p)) {
-            SCLogDebug("packet %" PRIu64 " is TCP. Direction %s", p->pcap_cnt,
+            SCLogDebug("packet %" PRIu64 " is TCP. Direction %s", p->pcap_v.pcap_cnt,
                     PKT_IS_TOSERVER(p) ? "TOSERVER" : "TOCLIENT");
             DEBUG_ASSERT_FLOW_LOCKED(p->flow);
 
@@ -661,7 +662,7 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
 
     /* handle Detect */
     DEBUG_ASSERT_FLOW_LOCKED(p->flow);
-    SCLogDebug("packet %"PRIu64" calling Detect", p->pcap_cnt);
+    SCLogDebug("packet %" PRIu64 " calling Detect", p->pcap_v.pcap_cnt);
     if (det_ctx != NULL) {
         FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_DETECT);
         Detect(tv, p, det_ctx);

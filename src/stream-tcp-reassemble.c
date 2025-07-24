@@ -1089,9 +1089,7 @@ static void GetSessionSize(TcpSession *ssn, Packet *p)
         size = GetStreamSize(&ssn->client);
         size += GetStreamSize(&ssn->server);
 
-        //if (size > 900000)
-        //    SCLogInfo("size %"PRIu64", packet %"PRIu64, size, p->pcap_cnt);
-        SCLogDebug("size %"PRIu64", packet %"PRIu64, size, p->pcap_cnt);
+        SCLogDebug("size %" PRIu64 ", packet %" PRIu64, size, p->pcap_v.pcap_cnt);
     }
 }
 #endif
@@ -1200,7 +1198,7 @@ static inline bool CheckGap(TcpSession *ssn, TcpStream *stream, Packet *p)
             if (RB_EMPTY(&stream->sb.sbb_tree)) {
                 SCLogDebug("packet %" PRIu64 ": no GAP. "
                            "next_seq %u < last_ack %u, but no data in list",
-                        p->pcap_cnt, stream->next_seq, stream->last_ack);
+                        p->pcap_v.pcap_cnt, stream->next_seq, stream->last_ack);
                 return false;
             }
             const uint64_t next_seq_abs =
@@ -1210,7 +1208,7 @@ static inline bool CheckGap(TcpSession *ssn, TcpStream *stream, Packet *p)
                 /* ack'd data after the gap */
                 SCLogDebug("packet %" PRIu64 ": GAP. "
                            "next_seq %u < last_ack %u, but ACK'd data beyond gap.",
-                        p->pcap_cnt, stream->next_seq, stream->last_ack);
+                        p->pcap_v.pcap_cnt, stream->next_seq, stream->last_ack);
                 return true;
             }
         }
@@ -1218,12 +1216,12 @@ static inline bool CheckGap(TcpSession *ssn, TcpStream *stream, Packet *p)
         SCLogDebug("packet %" PRIu64 ": GAP! "
                    "last_ack_abs %" PRIu64 " > app_progress %" PRIu64 ", "
                    "but we have no data.",
-                p->pcap_cnt, last_ack_abs, app_progress);
+                p->pcap_v.pcap_cnt, last_ack_abs, app_progress);
         return true;
     }
-    SCLogDebug("packet %"PRIu64": no GAP. "
-            "last_ack_abs %"PRIu64" <= app_progress %"PRIu64,
-            p->pcap_cnt, last_ack_abs, app_progress);
+    SCLogDebug("packet %" PRIu64 ": no GAP. "
+               "last_ack_abs %" PRIu64 " <= app_progress %" PRIu64,
+            p->pcap_v.pcap_cnt, last_ack_abs, app_progress);
     return false;
 }
 
@@ -1337,7 +1335,7 @@ static int ReassembleUpdateAppLayer(ThreadVars *tv, TcpReassemblyThreadCtx *ra_c
 
             mydata = NULL;
             mydata_len = 0;
-            SCLogDebug("%"PRIu64" got %p/%u", p->pcap_cnt, mydata, mydata_len);
+            SCLogDebug("%" PRIu64 " got %p/%u", p->pcap_v.pcap_cnt, mydata, mydata_len);
             break;
         }
         DEBUG_VALIDATE_BUG_ON(mydata == NULL && mydata_len > 0);
@@ -1584,8 +1582,9 @@ void StreamReassembleRawUpdateProgress(TcpSession *ssn, Packet *p, const uint64_
         stream->flags &= ~STREAMTCP_STREAM_FLAG_TRIGGER_RAW;
 
     } else {
-        SCLogDebug("p->pcap_cnt %"PRIu64": progress %"PRIu64" app %"PRIu64" raw %"PRIu64" tcp win %"PRIu32,
-                p->pcap_cnt, progress, STREAM_APP_PROGRESS(stream),
+        SCLogDebug("p->pcap_v.pcap_cnt %" PRIu64 ": progress %" PRIu64 " app %" PRIu64
+                   " raw %" PRIu64 " tcp win %" PRIu32,
+                p->pcap_v.pcap_cnt, progress, STREAM_APP_PROGRESS(stream),
                 STREAM_RAW_PROGRESS(stream), stream->window);
     }
 
@@ -2029,7 +2028,7 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
         dir = UPDATE_DIR_BOTH;
     } else if ((ssn->flags & STREAMTCP_FLAG_ASYNC) != 0) {
         dir = UPDATE_DIR_PACKET;
-        SCLogDebug("%" PRIu64 ": ASYNC: UPDATE_DIR_PACKET", p->pcap_cnt);
+        SCLogDebug("%" PRIu64 ": ASYNC: UPDATE_DIR_PACKET", p->pcap_v.pcap_cnt);
     }
 
     /* handle ack received */
@@ -2074,7 +2073,7 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
             SCReturnInt(-1);
         }
 
-        SCLogDebug("packet %"PRIu64" set PKT_STREAM_ADD", p->pcap_cnt);
+        SCLogDebug("packet %" PRIu64 " set PKT_STREAM_ADD", p->pcap_v.pcap_cnt);
         p->flags |= PKT_STREAM_ADD;
     } else {
         SCLogDebug("ssn %p / stream %p: not calling StreamTcpReassembleHandleSegmentHandleData:"

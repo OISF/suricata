@@ -287,7 +287,7 @@ static void AlertJsonTunnel(const Packet *p, SCJsonBuilder *js)
     uint64_t pcap_cnt;
     JsonAddrInfo addr = json_addr_info_zero;
     JsonAddrInfoInit(p->root, 0, &addr);
-    pcap_cnt = p->root->pcap_cnt;
+    pcap_cnt = p->root->pcap_v.pcap_cnt;
     pkt_src = p->root->pkt_src;
 
     SCJbSetString(js, "src_ip", addr.src_ip);

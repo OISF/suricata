@@ -659,8 +659,9 @@ static int TCPProtoDetect(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                     AppLayerIncFlowCounter(tv, f);
 
                     *alproto = *alproto_otherdir;
-                    SCLogDebug("packet %"PRIu64": pd done(us %u them %u), parser called (r==%d), APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION set",
-                            p->pcap_cnt, *alproto, *alproto_otherdir, r);
+                    SCLogDebug("packet %" PRIu64 ": pd done(us %u them %u), parser called (r==%d), "
+                               "APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION set",
+                            p->pcap_v.pcap_cnt, *alproto, *alproto_otherdir, r);
                     if (r < 0) {
                         goto parser_error;
                     }
