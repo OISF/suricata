@@ -43,15 +43,17 @@ void CleanupPcapFileFileVars(PcapFileFileVars *pfv)
             pcap_close(pfv->pcap_handle);
             pfv->pcap_handle = NULL;
         }
-        if (pfv->filename != NULL) {
+        if (pfv->info != NULL && pfv->info->filename != NULL) {
             if (pfv->shared != NULL && pfv->shared->should_delete) {
-                SCLogDebug("Deleting pcap file %s", pfv->filename);
-                if (unlink(pfv->filename) != 0) {
-                    SCLogWarning("Failed to delete %s: %s", pfv->filename, strerror(errno));
+                SCLogDebug("Deleting pcap file %s", pfv->info->filename);
+                if (unlink(pfv->info->filename) != 0) {
+                    SCLogWarning("Failed to delete %s: %s", pfv->info->filename, strerror(errno));
                 }
             }
-            SCFree(pfv->filename);
-            pfv->filename = NULL;
+        }
+        if (pfv->info != NULL) {
+            PcapFileInfoDeref(pfv->info);
+            pfv->info = NULL;
         }
         pfv->shared = NULL;
         SCFree(pfv);
@@ -83,6 +85,8 @@ void PcapFileCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt)
     p->pcap_cnt = ++pcap_g.cnt;
 
     p->pcap_v.tenant_id = ptv->shared->tenant_id;
+    DEBUG_VALIDATE_BUG_ON(p->pcap_v.info != NULL);
+    p->pcap_v.info = PcapFileInfoAddReference(ptv->info);
     ptv->shared->pkts++;
     ptv->shared->bytes += h->caplen;
 
@@ -138,7 +142,7 @@ TmEcode PcapFileDispatch(PcapFileFileVars *ptv)
 
     int packet_q_len = 64;
     TmEcode loop_result = TM_ECODE_OK;
-    strlcpy(pcap_filename, ptv->filename, sizeof(pcap_filename));
+    strlcpy(pcap_filename, ptv->info->filename, sizeof(pcap_filename));
 
     while (loop_result == TM_ECODE_OK) {
         if (suricata_ctl_flags & SURICATA_STOP) {
@@ -154,18 +158,18 @@ TmEcode PcapFileDispatch(PcapFileFileVars *ptv)
                           (pcap_handler)PcapFileCallbackLoop, (u_char *)ptv);
         if (unlikely(r == -1)) {
             SCLogError("error code %" PRId32 " %s for %s", r, pcap_geterr(ptv->pcap_handle),
-                    ptv->filename);
+                    ptv->info->filename);
             if (ptv->shared->cb_result == TM_ECODE_FAILED) {
                 SCReturnInt(TM_ECODE_FAILED);
             }
             loop_result = TM_ECODE_DONE;
         } else if (unlikely(r == 0)) {
             SCLogInfo("pcap file %s end of file reached (pcap err code %" PRId32 ")",
-                      ptv->filename, r);
+                    ptv->info->filename, r);
             ptv->shared->files++;
             loop_result = TM_ECODE_DONE;
         } else if (ptv->shared->cb_result == TM_ECODE_FAILED) {
-            SCLogError("Pcap callback PcapFileCallbackLoop failed for %s", ptv->filename);
+            SCLogError("Pcap callback PcapFileCallbackLoop failed for %s", ptv->info->filename);
             loop_result = TM_ECODE_FAILED;
         }
         StatsSyncCountersIfSignalled(ptv->shared->tv);
@@ -197,12 +201,12 @@ TmEcode InitPcapFile(PcapFileFileVars *pfv)
 {
     char errbuf[PCAP_ERRBUF_SIZE] = "";
 
-    if(unlikely(pfv->filename == NULL)) {
+    if (unlikely(pfv->info->filename == NULL)) {
         SCLogError("Filename was null");
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    pfv->pcap_handle = pcap_open_offline(pfv->filename, errbuf);
+    pfv->pcap_handle = pcap_open_offline(pfv->info->filename, errbuf);
     if (pfv->pcap_handle == NULL) {
         SCLogError("%s", errbuf);
         SCReturnInt(TM_ECODE_FAILED);
@@ -223,13 +227,13 @@ TmEcode InitPcapFile(PcapFileFileVars *pfv)
 
         if (pcap_compile(pfv->pcap_handle, &pfv->filter, pfv->shared->bpf_string, 1, 0) < 0) {
             SCLogError("bpf compilation error %s for %s", pcap_geterr(pfv->pcap_handle),
-                    pfv->filename);
+                    pfv->info->filename);
             SCReturnInt(TM_ECODE_FAILED);
         }
 
         if (pcap_setfilter(pfv->pcap_handle, &pfv->filter) < 0) {
             SCLogError("could not set bpf filter %s for %s", pcap_geterr(pfv->pcap_handle),
-                    pfv->filename);
+                    pfv->info->filename);
             pcap_freecode(&pfv->filter);
             SCReturnInt(TM_ECODE_FAILED);
         }

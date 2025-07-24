@@ -30,35 +30,38 @@
 
 PcapFileInfo *PcapFileInfoAddReference(PcapFileInfo *pfi)
 {
+    SCEnter();
     (void)SC_ATOMIC_ADD(pfi->ref, 1);
-    return pfi;
+    SCReturnPtr(pfi, "PcapFileInfo *");
 }
 
 PcapFileInfo *PcapFileInfoInit(const char *filename)
 {
+    SCEnter();
     PcapFileInfo *pfi = SCCalloc(1, sizeof(PcapFileInfo));
     if (unlikely(pfi == NULL)) {
         SCLogError("Failed to allocate memory for PcapFileInfo");
-        SCReturnPtr(NULL, PcapFileInfo);
+        SCReturnPtr(NULL, "PcapFileInfo *");
     }
 
     pfi->filename = SCStrdup(filename);
     if (unlikely(pfi->filename == NULL)) {
         SCLogError("Failed to allocate memory for PcapFileInfo filename");
         SCFree(pfi);
-        SCReturnPtr(NULL, PcapFileInfo);
+        SCReturnPtr(NULL, "PcapFileInfo *");
     }
 
     SC_ATOMIC_INIT(pfi->ref);
     PcapFileInfoAddReference(pfi);
 
-    return pfi;
+    SCReturnPtr(pfi, "PcapFileInfo *");
 }
 
 void PcapFileInfoDeref(PcapFileInfo *pfi)
 {
+    SCEnter();
     if (unlikely(pfi == NULL)) {
-        return;
+        SCReturn;
     }
     if (SC_ATOMIC_SUB(pfi->ref, 1) == 1) {
         if (pfi->filename) {
@@ -66,4 +69,5 @@ void PcapFileInfoDeref(PcapFileInfo *pfi)
         }
         SCFree(pfi);
     }
+    SCReturn;
 }

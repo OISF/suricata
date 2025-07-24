@@ -27,6 +27,7 @@
 /* forward declaration for macset include */
 typedef struct FlowStorageId FlowStorageId;
 
+#include "source-pcap-file-info-helper.h"
 #include "decode.h"
 #include "util-time.h"
 #include "util-exception-policy.h"
@@ -496,6 +497,8 @@ typedef struct Flow_
     uint32_t tosrcpktcnt;
     uint64_t todstbytecnt;
     uint64_t tosrcbytecnt;
+
+    PcapFileInfo *pcap_info;
 
     Storage storage[];
 } Flow;
