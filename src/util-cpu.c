@@ -107,6 +107,10 @@ uint16_t UtilCpuGetNumProcessorsConfigured(void)
  */
 uint16_t UtilCpuGetNumProcessorsOnline(void)
 {
+#ifdef UNITTESTS
+    return 40; // A mockup value for unittests
+#endif
+
 #ifdef SYSCONF_NPROCESSORS_ONLN_COMPAT
     long nprocs = -1;
     nprocs = sysconf(_SC_NPROCESSORS_ONLN);
