@@ -179,6 +179,9 @@ Major changes
 Removals
 ~~~~~~~~
 - The ssh keywords ``ssh.protoversion`` and ``ssh.softwareversion`` have been removed.
+- The detect engine stats counters for non-mpm-prefiltered rules ``fnonmpm_list``
+  and ``nonmpm_list`` were not in use since Suricata 8.0.0 and **were thus removed
+  in 8.0.1.**
 
 Deprecations
 ~~~~~~~~~~~~
