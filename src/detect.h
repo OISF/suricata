@@ -1293,8 +1293,6 @@ typedef struct DetectEngineThreadCtx_ {
     uint16_t counter_alerts_suppressed;
 #ifdef PROFILING
     uint16_t counter_mpm_list;
-    uint16_t counter_nonmpm_list;
-    uint16_t counter_fnonmpm_list;
     uint16_t counter_match_list;
 #endif
 
