@@ -176,6 +176,13 @@ Major changes
   content that matched just because it fell in the inspection chunk without wholly
   belonging to any one request/response may not match any longer.
 
+- If a byte keyword (such as ``byte_extract`` or ``byte_math``, etc) is used with
+  a variable, and that variable usage is with a buffer other than the one used
+  to create the variable, a warning is printed and the rule is loaded. The
+  command-line option ``--strict-rule-keywords`` should be used to produce
+  an error message and prevent the rule from loading. See
+  https://redmine.openinfosecfoundation.org/issues/1412 for more information.
+
 Removals
 ~~~~~~~~
 - The ssh keywords ``ssh.protoversion`` and ``ssh.softwareversion`` have been removed.
