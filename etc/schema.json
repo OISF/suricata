@@ -6470,9 +6470,6 @@
                                 }
                             }
                         },
-                        "fnonmpm_list": {
-                            "type": "integer"
-                        },
                         "lua": {
                             "type": "object",
                             "additionalProperties": false,
@@ -6501,9 +6498,6 @@
                             "type": "integer"
                         },
                         "mpm_list": {
-                            "type": "integer"
-                        },
-                        "nonmpm_list": {
                             "type": "integer"
                         }
                     }
