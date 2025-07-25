@@ -1712,54 +1712,68 @@
             "additionalProperties": false,
             "properties": {
                 "end": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "The offset of the last byte captured."
                 },
                 "file_id": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "Integer value representing the id of a file that has been stored."
                 },
                 "filename": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Name of the file as observed in network traffic."
                 },
                 "gaps": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "description": "Boolean value indicating if there were gaps in the file."
                 },
                 "magic": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "[optional, requires libmagic] The magic value for the file [requires libmagic]"
                 },
                 "md5": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "[optional, if state is ``CLOSED``] When closed, md5 sum"
                 },
                 "sha1": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "[optional, if state is ``CLOSED]`` When closed, sha1 sum"
                 },
                 "sha256": {
-                    "type": "string"
+                    "type": "string",
+                    "description": " The sha256 value for the file, if available"
                 },
                 "sid": {
                     "type": "array",
                     "minItems": 1,
                     "items": {
-                        "type": "integer"
+                        "type": "integer",
+                        "description": "One or more signature ids that triggered a `filestore`"
                     }
                 },
                 "size": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "The observed size fo the file, in bytes."
                 },
                 "start": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "The offset of the first byte captured"
                 },
                 "state": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "The state of the file when the record is written."
                 },
                 "stored": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "description": "Boolean value indicating whether the file has been stored yet."
                 },
                 "storing": {
                     "type": "boolean",
-                    "description": "the file is set to be stored when completed"
+                    "description": "Boolean value indicating whether the file has been stored -- true when not stored."
                 },
                 "tx_id": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "The transaction id in effect"
                 }
             }
         },

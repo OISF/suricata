@@ -187,6 +187,46 @@ Event type: ``fileinfo``::
       }
     }
 
+Event type: ``fileinfo``::
+
+    {
+      "timestamp": "2013-02-26T17:02:39.854906-0500",
+      "flow_id": 2174054341157872,
+      "pcap_cnt": 10579,
+      "event_type": "fileinfo",
+      "src_ip": "199.102.234.31",
+      "src_port": 80,
+      "dest_ip": "172.16.133.41",
+      "dest_port": 52661,
+      "proto": "TCP",
+      "ip_v": 4,
+      "pkt_src": "wire/pcap",
+      "metadata": {
+        "flowints": {
+          "http.anomaly.count": 1
+        }
+      },
+      "http": {
+        "hostname": "www.tripadvisor.com",
+        "url": "/",
+        "http_user_agent": "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.22 (KHTML, like Gecko) Chrome/25.0.1364.97 Safari/537.22",
+        "http_content_type": "text/html",
+        "http_method": "GET",
+        "protocol": "HTTP/1.1",
+        "status": 200,
+        "length": 24282
+      },
+      "app_proto": "http",
+      "fileinfo": {
+        "filename": "/",
+        "gaps": false,
+        "state": "CLOSED",
+        "stored": false,
+        "size": 101248,
+        "tx_id": 0
+      }
+    }
+
 Event type: ``HTTP``::
 
     {
@@ -613,6 +653,44 @@ Examples
         "layer": "proto_parser"
       }
     }
+
+.. _eve-format-fileinfo:
+
+Event type: fileinfo
+--------------------
+
+Fields
+~~~~~~
+
+* "end: The offset of the last byte captured
+* "file_id": Integer value representing the id of a file that has been stored.
+* "filename": Name of the file as observed in network traffic.
+* "gaps": Boolean value indicating if there were gaps in the file.
+* "magic": [optional, requires libmagic] The magic value for the file [requires libmagic]
+* "md5": [optional, if state is ``CLOSED``] When closed, md5 sum
+* "sha1": [optional, if state is ``CLOSED]`` When closed, sha1 sum
+* "sha256": The sha256 value for the file, if available
+* "sid": One or more signature ids that triggered a `filestore`
+* "size": The observed size fo the file, in bytes.
+* "start": The offset of the first byte captured
+* "state": The state of the file when the record is written.
+* "stored": Boolean value indicating whether the file has been stored yet.
+* "storing": Boolean value indicating whether the file has been stored -- true when not stored.
+* "tx_id": The transaction id in effect.
+
+
+Offset values
+^^^^^^^^^^^^^
+
+This example shows the offset values from a ``fileinfo`` event -- note the ``http`` content
+range `start` and `end` value are replicated in the ``fileinfo`` fields::
+
+        http.content_range.raw: bytes 500-1000/146515
+        http.content_range.start: 500
+        http.content_range.end: 1000
+        http.content_range.size: 146515
+        fileinfo.start: 500
+        fileinfo.end: 1000
 
 .. _eve-format-http:
 
