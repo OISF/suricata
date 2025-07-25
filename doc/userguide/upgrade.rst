@@ -179,6 +179,8 @@ Major changes
 Removals
 ~~~~~~~~
 - The ssh keywords ``ssh.protoversion`` and ``ssh.softwareversion`` have been removed.
+- **Starting from 8.0.1,** the detect engine stats counters for non-mpm-prefiltered
+  rules ``fnonmpm_list`` and ``nonmpm_list`` weren't in use any longer and were removed.
 
 Deprecations
 ~~~~~~~~~~~~
