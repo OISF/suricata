@@ -2586,6 +2586,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   Detection enabled:                       ${enable_detection}
 
   Libmagic support:                        ${enable_magic}
+  GPL Mimetype DB inclusion:               ${enable_gpl_mimetype}
   libjansson support:                      ${enable_jansson}
   hiredis support:                         ${enable_hiredis}
   hiredis async with libevent:             ${enable_hiredis_async}
