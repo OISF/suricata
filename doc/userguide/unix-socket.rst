@@ -14,7 +14,7 @@ The unix socket is always enabled by default.
 
 The creation of the socket is managed by setting enabled to 'yes' or 'auto'
 under unix-command in Suricata YAML configuration file: ::
-  
+
   unix-command:
     enabled: yes
     #filename: custom.socket # use this to specify an alternate file
@@ -70,11 +70,12 @@ The set of existing commands is the following:
 * add-hostbit: add hostbit on a host IP with a particular bit name and time of expiry
 * remove-hostbit: remove hostbit on a host IP with specified bit name
 * list-hostbit: list hostbit for a particular host IP
+* get-flow-stats-by-id: list information for a specific ``flow_id``
 
 A typical session with ``suricatasc`` looks like:
 
 ::
-  
+
   # suricatasc
   Command list: shutdown, command-list, help, version, uptime, running-mode, capture-mode, conf-get, dump-counters, iface-stat, iface-list, quit
   >>> iface-list
@@ -94,7 +95,7 @@ You can use ``suricatasc`` directly on the command prompt:
 
   root@debian64:~# suricatasc -c version
   {'message': '5.0.3 RELEASE', 'return': 'OK'}
-  root@debian64:~# 
+  root@debian64:~#
   root@debian64:~# suricatasc -c uptime
   {'message': 35264, 'return': 'OK'}
   root@debian64:~#
@@ -120,11 +121,11 @@ you don't need to wait for the signature engine to initialize.
 
 To use this mode, start Suricata with your preferred configuration YAML file and
 provide the option ``--unix-socket`` as argument::
-  
+
   suricata -c /etc/suricata-full-sigs.yaml --unix-socket
 
 It is also possible to specify the socket filename as an argument::
-  
+
   suricata --unix-socket=custom.socket
 
 In this last case, you will need to provide the complete path to the
@@ -135,7 +136,7 @@ first argument of ``suricatasc``: ::
 
 Once Suricata is started, you can use ``suricatasc`` to connect to the
 command socket and provide different pcap files: ::
-  
+
   root@tiger:~# suricatasc
   >>> pcap-file /home/benches/file1.pcap /tmp/file1
   Success: Successfully added file to list
@@ -154,18 +155,18 @@ using ``pcap-file-continuous`` and passing in a directory, the directory will
 be monitored for new files being added until you use ``pcap-interrupt`` or
 delete/move the directory.
 
-To display  how many files are waiting to get processed, you can do: ::
-  
+To display how many files are waiting to get processed, you can do: ::
+
   >>> pcap-file-number
   Success: 3
 
 To display the list of queued files, do: ::
-  
+
   >>> pcap-file-list
   Success: {'count': 2, 'files': ['/home/benches/file1.pcap', '/home/benches/file2.pcap']}
 
 To display current processed file: ::
-  
+
   >>> pcap-current
   Success:
   "/tmp/test.pcap"
@@ -194,13 +195,13 @@ https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Unix_Socket#Pro
 
 The following session show what is sent (SND) and received (RCV) by
 the server. Initial negotiation is the following: ::
-  
+
   # suricatasc
   SND: {"version": "0.1"}
   RCV: {"return": "OK"}
 
 Once this is done, commands can be issued: ::
-  
+
   >>> iface-list
   SND: {"command": "iface-list"}
   RCV: {"message": {"count": 1, "ifaces": ["wlan0"]}, "return": "OK"}
@@ -211,7 +212,7 @@ Once this is done, commands can be issued: ::
   Success: {'pkts': 41508, 'drop': 0, 'invalid-checksums': 0}
 
 In pcap-file mode, this gives: ::
-  
+
   >>> pcap-file /home/eric/git/oisf/benches/sandnet.pcap /tmp/bench
   SND: {"command": "pcap-file", "arguments": {"output-dir": "/tmp/bench", "filename": "/home/eric/git/oisf/benches/sandnet.pcap"}}
   RCV: {"message": "Successfully added file to list", "return": "OK"}
