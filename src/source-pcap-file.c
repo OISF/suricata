@@ -24,6 +24,7 @@
  */
 
 #include "suricata-common.h"
+#include "source-pcap-file-info-helper.h"
 #include "source-pcap-file.h"
 #include "source-pcap-file-helper.h"
 #include "source-pcap-file-directory-helper.h"
@@ -203,7 +204,7 @@ TmEcode ReceivePcapFileLoop(ThreadVars *tv, void *data, void *slot)
     TmThreadsSetFlag(tv, THV_RUNNING);
 
     if(ptv->is_directory == 0) {
-        SCLogInfo("Starting file run for %s", ptv->behavior.file->filename);
+        SCLogInfo("Starting file run for %s", ptv->behavior.file->info->filename);
         status = PcapFileDispatch(ptv->behavior.file);
         CleanupPcapFileFromThreadVars(ptv, ptv->behavior.file);
     } else {
@@ -284,9 +285,9 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
             SCReturnInt(TM_ECODE_OK);
         }
 
-        pv->filename = SCStrdup((char *)initdata);
-        if (unlikely(pv->filename == NULL)) {
-            SCLogError("Failed to allocate filename");
+        pv->info = PcapFileInfoInit((char *)initdata);
+        if (unlikely(pv->info == NULL)) {
+            SCLogError("Failed to allocate PcapFileInfo");
             CleanupPcapFileFileVars(pv);
             CleanupPcapFileThreadVars(ptv);
             SCReturnInt(TM_ECODE_OK);
@@ -298,7 +299,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
             ptv->is_directory = 0;
             ptv->behavior.file = pv;
         } else {
-            SCLogWarning("Failed to init pcap file %s, skipping", pv->filename);
+            SCLogWarning("Failed to init pcap file %s, skipping", pv->info->filename);
             CleanupPcapFileFileVars(pv);
             CleanupPcapFileThreadVars(ptv);
             SCReturnInt(TM_ECODE_OK);
