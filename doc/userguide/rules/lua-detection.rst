@@ -8,9 +8,8 @@ There are 2 ways that Lua can be used with detection. These are
 * ``lua`` rule keyword.
 * ``luaxform`` transform.
 
-.. note:: Lua is disabled by default for use in rules, it must be
-          enabled in the configuration file. See the ``security.lua``
-          section of ``suricata.yaml`` and enable ``allow-rules``.
+.. note:: As of Suricata 8.0, Lua rules are enabled by default and run
+          in a sandboxed environment. See :ref:`lua-sandbox`.
 
 Lua Rule Keyword
 ----------------
@@ -109,6 +108,8 @@ Lua Transform: ``luaxform``
 ---------------------------
 
 More details in :ref:`lua-transform`.
+
+.. _lua-sandbox:
 
 Lua Sandbox and Available functions
 -----------------------------------
