@@ -29,6 +29,9 @@ Example:
 
   local config = require("suricata.config")
   local logger = require("suricata.log")
+  local http = require("suricata.http")
+  local packet = require("suricata.packet")
+  local flow = require("suricata.flow")
 
   function init (args)
       local needs = {}
@@ -44,26 +47,29 @@ Example:
   end
 
   function log(args)
-      http_uri = HttpGetRequestUriRaw()
+      local tx = http:get_tx()
+
+      http_uri = tx:request_uri_raw()
       if http_uri == nil then
           http_uri = "<unknown>"
       end
       http_uri = string.gsub(http_uri, "%c", ".")
 
-      http_host = HttpGetRequestHost()
+      http_host = tx:request_host()
       if http_host == nil then
           http_host = "<hostname unknown>"
       end
       http_host = string.gsub(http_host, "%c", ".")
 
-      http_ua = HttpGetRequestHeader("User-Agent")
+      http_ua = tx:request_header("User-Agent")
       if http_ua == nil then
           http_ua = "<useragent unknown>"
       end
       http_ua = string.gsub(http_ua, "%g", ".")
 
-      timestring = SCPacketTimeString()
-      ip_version, src_ip, dst_ip, protocol, src_port, dst_port = SCFlowTuple()
+      local p = packet.get()
+      timestring = p:timestring_legacy()
+      ip_version, src_ip, dst_ip, protocol, src_port, dst_port = p:tuple()
 
       file:write (timestring .. " " .. http_host .. " [**] " .. http_uri .. " [**] " ..
              http_ua .. " [**] " .. src_ip .. ":" .. src_port .. " -> " ..
