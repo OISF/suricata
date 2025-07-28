@@ -33,42 +33,37 @@ Init function
 .. code-block:: lua
 
   function init (args)
-      local needs = {}
-      needs["http.request_line"] = tostring(true)
-      return needs
+      return {}
   end
 
-The init function registers the buffer(s) that need
-inspection. Currently the following are available:
+Most Lua rule scripts can simply return an empty table in their init
+method. To hook into specific protocols states, :ref:`rule-hooks` may
+be used. However, some buffers do require explicit initialization::
 
-* packet -- entire packet, including headers
-* payload -- packet payload (not stream)
-* buffer -- the current sticky buffer
+* ja3
+* ja3s
+* packet
+* payload
 * stream
-* dnp3
-* ssh
-* smtp
-* tls
-* http.uri
-* http.uri.raw
-* http.request_line
-* http.request_headers
-* http.request_headers.raw
-* http.request_body
-* http.response_headers
-* http.response_headers.raw
-* http.response_body
 
-All the HTTP buffers have a limitation: only one can be inspected by a
-script at a time.
+To request these buffers, use an ``init`` method like:
+
+.. code-block:: lua
+
+  function init (args)
+    return {packet = true}
+  end
 
 Match function
 ^^^^^^^^^^^^^^
 
 .. code-block:: lua
 
+  local http = require("suricata.http")
+
   function match(args)
-      a = tostring(args["http.request_line"])
+      local tx = http:get_tx()
+      a = tx:request_line()
       if #a > 0 then
           if a:find("^POST%s+/.*%.php%s+HTTP/1.0$") then
               return 1
@@ -80,29 +75,6 @@ Match function
 
 The script can return 1 or 0. It should return 1 if the condition(s)
 it checks for match, 0 if not.
-
-Entire script:
-
-.. code-block:: lua
-
-  function init (args)
-      local needs = {}
-      needs["http.request_line"] = tostring(true)
-      return needs
-  end
-
-  function match(args)
-      a = tostring(args["http.request_line"])
-      if #a > 0 then
-          if a:find("^POST%s+/.*%.php%s+HTTP/1.0$") then
-              return 1
-          end
-      end
-
-      return 0
-  end
-
-  return 0
 
 Lua Transform: ``luaxform``
 ---------------------------
