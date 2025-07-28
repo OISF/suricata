@@ -52,10 +52,6 @@ Common configure options
 
     Setups Suricata for logging into /var/log/suricata/. Default ``/usr/local/var/log/suricata``
 
-.. option:: --enable-lua
-
-    Enables Lua support for detection and output.
-
 .. option:: --enable-geoip
 
     Enables GeoIP support for detection.
