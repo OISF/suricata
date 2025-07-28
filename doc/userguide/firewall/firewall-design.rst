@@ -56,6 +56,7 @@ drop
 .. note:: the action ``pass`` is not available in firewall rules due to ambiguity around
    the existing meaning for threat detection rules.
 
+.. _rule-hooks:
 
 Explicit rule hook (states)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
