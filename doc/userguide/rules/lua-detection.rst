@@ -8,10 +8,6 @@ There are 2 ways that Lua can be used with detection. These are
 * ``lua`` rule keyword.
 * ``luaxform`` transform.
 
-.. note:: Lua is disabled by default for use in rules, it must be
-          enabled in the configuration file. See the ``security.lua``
-          section of ``suricata.yaml`` and enable ``allow-rules``.
-
 Lua Rule Keyword
 ----------------
 
