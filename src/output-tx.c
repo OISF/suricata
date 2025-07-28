@@ -628,6 +628,9 @@ static TmEcode OutputTxLogThreadDeinit(ThreadVars *tv, void *thread_data)
 static uint32_t OutputTxLoggerGetActiveCount(void)
 {
     uint32_t cnt = 0;
+    if (list == NULL) {
+        return cnt;
+    }
     for (AppProto alproto = 0; alproto < g_alproto_max; alproto++) {
         for (OutputTxLogger *p = list[alproto]; p != NULL; p = p->next) {
             cnt++;
