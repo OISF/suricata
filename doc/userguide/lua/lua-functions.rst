@@ -6,22 +6,28 @@ Lua functions
 Differences between `output` and `detect`:
 ------------------------------------------
 
-Currently, the ``needs`` key initialization varies, depending on what is the goal of the script: output or detection.
-The Lua script for the ``luaxform`` transform **does not use ``needs``**.
+Currently the ``table`` returned from the ``init`` method varies,
+depending on whether it is in an output script or a detection script.
 
-If the script is for detection, the ``needs`` initialization should be as seen in the example below (see :ref:`lua-detection` for a complete example of a detection script):
+Lua scripts for ``luaxform`` do not require an ``init`` method.
 
-::
+If the script is for detection, the ``init`` method should return a
+table, for example, if a packet is required:
+
+.. code-block:: lua
 
   function init (args)
-      local needs = {}
-      needs["packet"] = tostring(true)
-      return needs
+    local needs = {}
+    needs["packet"] = true
+    return needs
   end
 
-For output logs, follow the pattern below. (The complete script structure can be seen at :ref:`lua-output`:)
+See :ref:`lua-detection` for more detection script examples.
 
-::
+For output scripts, follow the pattern below. (The complete script
+structure can be seen at :ref:`lua-output`:)
+
+.. code-block:: lua
 
   function init (args)
       local needs = {}
@@ -29,9 +35,12 @@ For output logs, follow the pattern below. (The complete script structure can be
       return needs
   end
 
+Do notice that the functions and protocols available for ``log`` and
+``match`` may also vary. DNP3, for instance, is not available for
+logging.
 
-Do notice that the functions and protocols available for ``log`` and ``match`` may also vary. DNP3, for instance, is not
-available for logging.
+.. note:: By convention, many scripts use a variable name of ``needs``
+          for this table, however this is not a hard requirement.
 
 packet
 ------
@@ -71,15 +80,38 @@ For output, init with:
       return needs
   end
 
-For detection, use the specific buffer (cf :ref:`lua-detection` for a complete list), as with:
+For detection, rule hooks are used to execute the Lua script at
+specific protocol states, for example::
 
-::
+  alert http1:request_line any any -> any any (
+      msg: "Test HTTP Lua request.line";
+      lua: test-request-line.lua; sid:1;)
+
+where ``test-request-line.lua`` might look like:
+
+.. code-block:: lua
+
+  local http = require("suricata.http")
 
   function init (args)
-      local needs = {}
-      needs["http.uri"] = tostring(true)
-      return needs
+    return {}
   end
+
+  function match(args)
+    local tx, err = http:get_tx()
+    http_request_line, err = tx:request_line()
+
+    if #http_request_line > 0 then
+        --GET /base64-hello-world.txt HTTP/1.1
+        if http_request_line:find("^GET") then
+            return 1
+        end
+    end
+
+    return 0
+  end
+
+For more information on rule hooks, see :ref:`rule-hooks`.
 
 Streaming Data
 --------------
