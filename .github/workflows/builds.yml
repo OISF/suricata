@@ -67,6 +67,176 @@ jobs:
           name: cbindgen
           path: .
 
+  almalinux-10:
+    name: AlmaLinux 10 (schema, plugins)
+    runs-on: ubuntu-latest
+    container: almalinux:10
+    needs: [prepare-deps, prepare-cbindgen]
+    steps:
+      # Cache Rust stuff.
+      - name: Cache cargo registry
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+        with:
+          path: ~/.cargo/registry
+          key: cargo-registry
+
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
+
+      - name: Install system packages
+        run: |
+          dnf -y install dnf-plugins-core epel-release
+          dnf config-manager --set-enabled crb
+          dnf -y install \
+                autoconf \
+                automake \
+                cargo-vendor \
+                cbindgen \
+                diffutils \
+                numactl-devel \
+                dpdk-devel \
+                file-devel \
+                gcc \
+                gcc-c++ \
+                git \
+                hwloc \
+                hwloc-devel \
+                jansson-devel \
+                jq \
+                libtool \
+                libyaml-devel \
+                libnfnetlink-devel \
+                libnetfilter_queue-devel \
+                libnet-devel \
+                libcap-ng-devel \
+                libevent-devel \
+                libmaxminddb-devel \
+                libpcap-devel \
+                libtool \
+                lz4-devel \
+                make \
+                pcre2-devel \
+                pkgconfig \
+                python3-devel \
+                python3-sphinx \
+                python3-yaml \
+                rust-toolset \
+                sudo \
+                which \
+                zlib-devel
+          # These packages required to build the PDF.
+          dnf -y install \
+                texlive-latex \
+                texlive-cmap \
+                texlive-collection-latexrecommended \
+                texlive-fncychap \
+                texlive-titlesec \
+                texlive-tabulary \
+                texlive-framed \
+                texlive-wrapfig \
+                texlive-upquote \
+                texlive-capt-of \
+                texlive-needspace
+
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - run: git config --global --add safe.directory /__w/suricata/suricata
+      - uses: ./.github/actions/install-cbindgen
+      # Download and extract dependency archives created during prep
+      # job.
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: prep
+          path: prep
+      - run: tar xvf prep/suricata-update.tar.gz
+      - run: tar xvf prep/suricata-verify.tar.gz
+      - name: Configuring
+        run: |
+          ./autogen.sh
+          CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-warnings
+      - run: make -j ${{ env.CPUS }} distcheck
+        env:
+          DISTCHECK_CONFIGURE_FLAGS: "--enable-unittests --enable-debug --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk"
+          MAKEFLAGS: "-j ${{ env.CPUS }}"
+      - run: test -e doc/userguide/suricata.1
+
+      - name: Building Rust documentation
+        run: make doc
+        working-directory: rust
+      - run: make install install-conf
+      - run: suricatasc -h
+      - run: suricata-update -V
+      - run: suricata-update
+
+      - name: Check if Suricata-Update example configuration files are installed
+        run: |
+          test -e /usr/local/lib/suricata/python/suricata/update/configs/disable.conf
+          test -e /usr/local/lib/suricata/python/suricata/update/configs/drop.conf
+          test -e /usr/local/lib/suricata/python/suricata/update/configs/enable.conf
+          test -e /usr/local/lib/suricata/python/suricata/update/configs/modify.conf
+          test -e /usr/local/lib/suricata/python/suricata/update/configs/threshold.in
+          test -e /usr/local/lib/suricata/python/suricata/update/configs/update.yaml
+
+      - name: Test capture plugin
+        working-directory: examples/plugins/ci-capture
+        run: |
+          make
+          ../../../src/suricata -S /dev/null --set plugins.0=./capture.so --capture-plugin=ci-capture --runmode=single -l . -c ../../../suricata.yaml
+          cat eve.json | jq -c 'select(.dns)'
+          test $(cat eve.json | jq -c 'select(.dns)' | wc -l) = "1"
+
+      - name: Test app-layer plugin
+        working-directory: examples/plugins/altemplate
+        run: |
+          cargo build
+          ../../../src/suricata -S altemplate.rules --set plugins.0=./target/debug/libsuricata_altemplate.so --runmode=single -l . -c altemplate.yaml -k none -r ../../../rust/src/applayertemplate/template.pcap
+          cat eve.json | jq -c 'select(.altemplate)'
+          test $(cat eve.json | jq -c 'select(.altemplate)' | wc -l) = "3"
+        # we get 2 alerts and 1 altemplate events
+
+      - name: Test library build in tree
+        working-directory: examples/lib/simple
+        run: make clean all
+
+      - name: Test plugin build in tree
+        working-directory: examples/plugins/c-json-filetype
+        run: make clean all
+
+      - name: Build example C custom logger plugin
+        working-directory: examples/plugins/c-custom-loggers
+        run: make clean all
+
+      - name: Install Suricata and library
+        run: make install install-headers install-library
+
+      - name: Test library build out of tree
+        working-directory: examples/lib/simple
+        run: PATH=/usr/local/bin:$PATH make -f Makefile.example clean all
+
+      - name: Test custom lib example
+        run: |
+          make
+          ./custom -- ../../../qa/docker/pcaps/tls.pcap
+          test $(cat eve.json |jq 'select(.stats) | .stats.decoder.pkts') = 110
+        working-directory: examples/lib/custom
+
+      - name: Cleaning source directory for standalone plugin test.
+        run: make clean
+
+      - name: Test plugin against installed headers
+        working-directory: examples/plugins/c-json-filetype
+        run: |
+          # First use sed to pretend we are a user following our
+          # directions for building a standalone plugin.
+          sed -i 's/^#LIBSURICATA_CONFIG/LIBSURICATA_CONFIG/' Makefile
+          sed -i 's/^#CPPFLAGS/CPPFLAGS/' Makefile
+          sed -i 's/^CPPFLAGS.*HAVE_CONFIG_H//' Makefile
+
+          # And build.
+          PATH=/usr/local/bin:$PATH make clean all
+
+      - name: Check EVE schema ordering
+        run: ./scripts/schema-sort.py --check ./etc/schema.json
+
   almalinux-9:
     name: AlmaLinux 9 (schema)
     runs-on: ubuntu-latest
