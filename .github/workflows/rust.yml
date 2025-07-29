@@ -68,7 +68,7 @@ jobs:
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - run: ./scripts/bundle.sh
       - run: ./autogen.sh
-      - run: ./configure --enable-warnings --enable-mimetype
+      - run: ./configure --enable-warnings --enable-mimetype --enable-bundled-gpl-mimetype
       - name: Checking bindgen output
         working-directory: rust
         run: |
