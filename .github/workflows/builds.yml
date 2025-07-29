@@ -827,7 +827,7 @@ jobs:
           path: prep
       - run: tar xf prep/suricata-update.tar.gz
       - run: ./autogen.sh
-      - run: RUSTC_WRAPPER="$(pwd)/scripts/rustc.py" ./configure --enable-warnings --disable-shared
+      - run: RUSTC_WRAPPER="$(pwd)/scripts/rustc.py" ./configure --enable-warnings --disable-shared --enable-mimetype
         env:
           CC: "clang"
           RUSTFLAGS: "-Cinstrument-coverage"
@@ -837,6 +837,8 @@ jobs:
           CC: "clang"
           RUSTFLAGS: "-Cinstrument-coverage"
           CFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0"
+      - name: install mimetype files
+        run: make upgrade-data
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
       - run: rm -r prep
@@ -1328,13 +1330,152 @@ jobs:
       - run: tar xf prep/suricata-update.tar.gz
       - run: tar xf prep/suricata-verify.tar.gz
       - run: ./autogen.sh
-      - run: ./configure --enable-unittests --enable-coccinelle
+      - run: ./configure --enable-unittests --enable-coccinelle --enable-mimetype
       - run: make -j ${{ env.CPUS }}
       - run: CONCURRENCY_LEVEL=${{ env.CPUS }} make check
+      - run: make upgrade-data
       - run: python3 ./suricata-verify/run.py -q --debug-failed
       - run: make install
       - run: make install-headers
       - run: make install-library
+
+  ubuntu-24-04-sys-mime:
+    name: Ubuntu 24.04 (mime sys data)
+    runs-on: ubuntu-latest
+    container: ubuntu:24.04
+    needs: [prepare-deps]
+    steps:
+      - name: Cache ~/.cargo
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+        with:
+          path: ~/.cargo/registry
+          key: cargo-registry
+
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
+
+      - name: Install dependencies
+        run: |
+          apt update
+          apt -y install \
+                autoconf \
+                automake \
+                build-essential \
+                cargo \
+                cbindgen \
+                clang-14 \
+                coccinelle \
+                dpdk-dev \
+                git \
+                hwloc \
+                libhwloc-dev \
+                jq \
+                libcap-ng-dev \
+                libevent-dev \
+                libevent-pthreads-2.1-7 \
+                libhiredis-dev \
+                libhyperscan-dev \
+                libjansson-dev \
+                libmagic-dev \
+                libnet1-dev \
+                libnuma-dev \
+                libpcap-dev \
+                libpcre2-dev \
+                libpython3.12 \
+                libtool \
+                libyaml-dev \
+                llvm-14-dev \
+                make \
+                parallel \
+                python-is-python3 \
+                python3-yaml \
+                rustc \
+                shared-mime-info \
+                software-properties-common \
+                zlib1g \
+                zlib1g-dev
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - run: git config --global --add safe.directory /__w/suricata/suricata
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: prep
+          path: prep
+      - run: tar xf prep/suricata-update.tar.gz
+      - run: tar xf prep/suricata-verify.tar.gz
+      - run: ./autogen.sh
+      - run: ./configure --enable-unittests --enable-coccinelle --enable-mimetype
+      - run: make -j ${{ env.CPUS }}
+      - run: CONCURRENCY_LEVEL=${{ env.CPUS }} make check
+      - run: python3 ./suricata-verify/run.py -q --debug-failed
+
+
+  ubuntu-24-04-gpl-mime:
+    name: Ubuntu 24.04 (gpl data)
+    runs-on: ubuntu-latest
+    container: ubuntu:24.04
+    needs: [prepare-deps]
+    steps:
+      - name: Cache ~/.cargo
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+        with:
+          path: ~/.cargo/registry
+          key: cargo-registry
+
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
+
+      - name: Install dependencies
+        run: |
+          apt update
+          apt -y install \
+                autoconf \
+                automake \
+                build-essential \
+                cargo \
+                cbindgen \
+                clang-14 \
+                coccinelle \
+                dpdk-dev \
+                git \
+                hwloc \
+                libhwloc-dev \
+                jq \
+                libcap-ng-dev \
+                libevent-dev \
+                libevent-pthreads-2.1-7 \
+                libhiredis-dev \
+                libhyperscan-dev \
+                libjansson-dev \
+                libmagic-dev \
+                libnet1-dev \
+                libnuma-dev \
+                libpcap-dev \
+                libpcre2-dev \
+                libpython3.12 \
+                libtool \
+                libyaml-dev \
+                llvm-14-dev \
+                make \
+                parallel \
+                python-is-python3 \
+                python3-yaml \
+                rustc \
+                software-properties-common \
+                zlib1g \
+                zlib1g-dev
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - run: git config --global --add safe.directory /__w/suricata/suricata
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: prep
+          path: prep
+      - run: tar xf prep/suricata-update.tar.gz
+      - run: tar xf prep/suricata-verify.tar.gz
+      - run: ./autogen.sh
+      - run: ./configure --enable-unittests --enable-coccinelle --enable-mimetype --enable-bundled-gpl-mimetype
+      - run: make -j ${{ env.CPUS }}
+      - run: CONCURRENCY_LEVEL=${{ env.CPUS }} make check
+      - run: python3 ./suricata-verify/run.py -q --debug-failed
 
   ubuntu-24-04-cov-ut:
     name: Ubuntu 24.04 (unittests coverage)
