@@ -137,9 +137,11 @@ void OutputFiledataLogFfc(ThreadVars *tv, OutputFiledataLoggerThreadData *td, Pa
             FilemagicThreadLookup(&td->magic_ctx, ff);
         }
 #endif
+#ifdef HAVE_MIMETYPE
         if (FileForceMimetype() && ff->mimetype == NULL) {
             FileMimetypeLookup(ff);
         }
+#endif
 
         if (ff->flags & FILE_STORED) {
             continue;

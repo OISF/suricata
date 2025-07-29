@@ -133,10 +133,11 @@ void OutputFileLogFfc(ThreadVars *tv, OutputFileLoggerThreadData *op_thread_data
                 FilemagicThreadLookup(&op_thread_data->magic_ctx, ff);
             }
 #endif
-
+#ifdef HAVE_MIMETYPE
             if (FileForceMimetype() && ff->mimetype == NULL) {
                 FileMimetypeLookup(ff);
             }
+#endif
             const OutputFileLogger *logger = list;
             const OutputLoggerThreadStore *store = op_thread_data->store;
             while (logger && store) {
