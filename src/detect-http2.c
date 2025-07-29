@@ -26,20 +26,12 @@
 
 #include "detect.h"
 #include "detect-parse.h"
-#include "detect-content.h"
-
 #include "detect-engine.h"
 #include "detect-engine-buffer.h"
 #include "detect-engine-uint.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-prefilter.h"
-#include "detect-engine-content-inspection.h"
 #include "detect-engine-helper.h"
-
 #include "detect-http2.h"
 #include "util-byte.h"
-#include "rust.h"
-#include "util-profiling.h"
 
 #ifdef UNITTESTS
 void DetectHTTP2frameTypeRegisterTests (void);
@@ -54,38 +46,44 @@ void DetectHTTP2sizeUpdateRegisterTests (void);
 static int DetectHTTP2frametypeMatch(DetectEngineThreadCtx *det_ctx,
                                      Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
                                      const SigMatchCtx *ctx);
-static int DetectHTTP2frametypeSetup (DetectEngineCtx *, Signature *, const char *);
-void DetectHTTP2frametypeFree (DetectEngineCtx *, void *);
+static int DetectHTTP2frametypeSetup(
+        DetectEngineCtx * /*de_ctx*/, Signature * /*s*/, const char * /*str*/);
+void DetectHTTP2frametypeFree(DetectEngineCtx * /*de_ctx*/, void * /*ptr*/);
 
 static int DetectHTTP2errorcodeMatch(DetectEngineThreadCtx *det_ctx,
                                      Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
                                      const SigMatchCtx *ctx);
-static int DetectHTTP2errorcodeSetup (DetectEngineCtx *, Signature *, const char *);
-void DetectHTTP2errorcodeFree (DetectEngineCtx *, void *);
+static int DetectHTTP2errorcodeSetup(
+        DetectEngineCtx * /*de_ctx*/, Signature * /*s*/, const char * /*str*/);
+void DetectHTTP2errorcodeFree(DetectEngineCtx * /*de_ctx*/, void * /*ptr*/);
 
 static int DetectHTTP2priorityMatch(DetectEngineThreadCtx *det_ctx,
                                      Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
                                      const SigMatchCtx *ctx);
-static int DetectHTTP2prioritySetup (DetectEngineCtx *, Signature *, const char *);
-void DetectHTTP2priorityFree (DetectEngineCtx *, void *);
+static int DetectHTTP2prioritySetup(
+        DetectEngineCtx * /*de_ctx*/, Signature * /*s*/, const char * /*str*/);
+void DetectHTTP2priorityFree(DetectEngineCtx * /*de_ctx*/, void * /*ptr*/);
 
 static int DetectHTTP2windowMatch(DetectEngineThreadCtx *det_ctx,
                                      Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
                                      const SigMatchCtx *ctx);
-static int DetectHTTP2windowSetup (DetectEngineCtx *, Signature *, const char *);
-void DetectHTTP2windowFree (DetectEngineCtx *, void *);
+static int DetectHTTP2windowSetup(
+        DetectEngineCtx * /*de_ctx*/, Signature * /*s*/, const char * /*str*/);
+void DetectHTTP2windowFree(DetectEngineCtx * /*de_ctx*/, void * /*ptr*/);
 
 static int DetectHTTP2sizeUpdateMatch(DetectEngineThreadCtx *det_ctx,
                                      Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
                                      const SigMatchCtx *ctx);
-static int DetectHTTP2sizeUpdateSetup (DetectEngineCtx *, Signature *, const char *);
-void DetectHTTP2sizeUpdateFree (DetectEngineCtx *, void *);
+static int DetectHTTP2sizeUpdateSetup(
+        DetectEngineCtx * /*de_ctx*/, Signature * /*s*/, const char * /*str*/);
+void DetectHTTP2sizeUpdateFree(DetectEngineCtx * /*de_ctx*/, void * /*ptr*/);
 
 static int DetectHTTP2settingsMatch(DetectEngineThreadCtx *det_ctx,
                                      Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
                                      const SigMatchCtx *ctx);
-static int DetectHTTP2settingsSetup (DetectEngineCtx *, Signature *, const char *);
-void DetectHTTP2settingsFree (DetectEngineCtx *, void *);
+static int DetectHTTP2settingsSetup(
+        DetectEngineCtx * /*de_ctx*/, Signature * /*s*/, const char * /*str*/);
+void DetectHTTP2settingsFree(DetectEngineCtx * /*de_ctx*/, void * /*ptr*/);
 
 static int DetectHTTP2headerNameSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg);
 
@@ -591,5 +589,5 @@ static int DetectHTTP2headerNameSetup(DetectEngineCtx *de_ctx, Signature *s, con
 }
 
 #ifdef UNITTESTS
-#include "tests/detect-http2.c"
+#include "tests/detect-http2.c" // NOLINT(bugprone-suspicious-include)
 #endif
