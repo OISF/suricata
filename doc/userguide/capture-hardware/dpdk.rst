@@ -210,9 +210,8 @@ Rx (and Tx) descriptors are set to the highest possible value to allow more
 buffer room when traffic spikes occur. However, it requires more memory.
 Individual properties can still be set manually if needed.
 
-.. note:: Mellanox ConnectX-4 NICs does not support auto-configuration of
-  ``tx-descriptors`` in the TAP/IPS modes. Instead it can be set to
-  a fixed value (e.g. 16384).
+.. note:: Mellanox ConnectX-4 NICs may not support auto-configuration of
+  ``RX /TX descriptors``. Instead it can be set to a fixed value (e.g. 16384).
 
 .. _dpdk-link-state-change-timeout:
 
