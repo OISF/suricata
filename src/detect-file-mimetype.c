@@ -36,6 +36,30 @@
 #include "util-profiling.h"
 #include "app-layer-parser.h"
 
+#include "conf.h"
+
+#ifndef HAVE_MIMETYPE
+
+static int DetectFileMimetypeSetupNoSupport(DetectEngineCtx *de_ctx, Signature *s, const char *str)
+{
+    SCLogError("no libmagic support built in, needed for filemagic keyword");
+    return -1;
+}
+
+/**
+ * \brief Registration function for keyword: filemagic
+ */
+void DetectFileMimetypeRegister(void)
+{
+    sigmatch_table[DETECT_FILE_MIMETYPE].name = "file.mimetype";
+    sigmatch_table[DETECT_FILE_MIMETYPE].desc = "sticky buffer to match on file mime type";
+    sigmatch_table[DETECT_FILE_MIMETYPE].url = "/rules/file-keywords.html#file_mimetype";
+    sigmatch_table[DETECT_FILE_MIMETYPE].Setup = DetectFileMimetypeSetupNoSupport;
+    sigmatch_table[DETECT_FILE_MIMETYPE].flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+}
+
+#else /* HAVE_MIMETYPE */
+
 static int g_file_match_list_id = 0;
 
 static int DetectFileMimetypeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str);
@@ -204,3 +228,5 @@ static unsigned char DetectEngineInspectFileMimetype(DetectEngineCtx *de_ctx,
     }
     return r;
 }
+
+#endif /* HAVE_MIMETYPE */
