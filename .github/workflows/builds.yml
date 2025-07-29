@@ -1328,7 +1328,7 @@ jobs:
       - run: tar xf prep/suricata-update.tar.gz
       - run: tar xf prep/suricata-verify.tar.gz
       - run: ./autogen.sh
-      - run: ./configure --enable-unittests --enable-coccinelle
+      - run: ./configure --enable-unittests --enable-coccinelle --enable-mimetype
       - run: make -j ${{ env.CPUS }}
       - run: CONCURRENCY_LEVEL=${{ env.CPUS }} make check
       - run: python3 ./suricata-verify/run.py -q --debug-failed
