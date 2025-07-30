@@ -329,6 +329,12 @@ static void PrintFeatureList(const SigTableElmt *e, char sep)
         printf("supports firewall");
         prev = 1;
     }
+    if (flags & SIGMATCH_INFO_MULTI_BUFFER) {
+        if (prev == 1)
+            printf("%c", sep);
+        printf("multi buffer");
+        prev = 1;
+    }
     if (e->Transform) {
         if (prev == 1)
             printf("%c", sep);

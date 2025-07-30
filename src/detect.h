@@ -1682,6 +1682,8 @@ typedef struct SigGroupHead_ {
 #define SIGMATCH_SUPPORT_FIREWALL BIT_U16(12)
 /** keyword supporting setting an optional direction */
 #define SIGMATCH_SUPPORT_DIR BIT_U16(13)
+/** keyword is a multi buffer */
+#define SIGMATCH_INFO_MULTI_BUFFER BIT_U16(14)
 
 enum DetectEngineTenantSelectors
 {

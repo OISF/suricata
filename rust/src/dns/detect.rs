@@ -21,7 +21,7 @@ use crate::detect::uint::{
     detect_match_uint, detect_parse_uint_enum, DetectUintData, SCDetectU16Free, SCDetectU8Free,
     SCDetectU8Parse,
 };
-use crate::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
+use crate::detect::{helper_keyword_register_multi_buffer, SigTableElmtStickyBuffer};
 use crate::direction::Direction;
 use std::ffi::CStr;
 use std::os::raw::{c_int, c_void};
@@ -354,7 +354,7 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         url: String::from("/rules/dns-keywords.html#dns-answer-name"),
         setup: dns_detect_answer_name_setup,
     };
-    let _g_dns_answer_name_kw_id = helper_keyword_register_sticky_buffer(&kw);
+    let _g_dns_answer_name_kw_id = helper_keyword_register_multi_buffer(&kw);
     G_DNS_ANSWER_NAME_BUFFER_ID = SCDetectHelperMultiBufferProgressMpmRegister(
         b"dns.answer.name\0".as_ptr() as *const libc::c_char,
         b"dns answer name\0".as_ptr() as *const libc::c_char,
@@ -386,7 +386,7 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         url: String::from("/rules/dns-keywords.html#dns-query-name"),
         setup: dns_detect_query_name_setup,
     };
-    let _g_dns_query_name_kw_id = helper_keyword_register_sticky_buffer(&kw);
+    let _g_dns_query_name_kw_id = helper_keyword_register_multi_buffer(&kw);
     G_DNS_QUERY_NAME_BUFFER_ID = SCDetectHelperMultiBufferProgressMpmRegister(
         b"dns.query.name\0".as_ptr() as *const libc::c_char,
         b"dns query name\0".as_ptr() as *const libc::c_char,
@@ -433,7 +433,7 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         url: String::from("/rules/dns-keywords.html#dns-query"),
         setup: dns_detect_query_setup,
     };
-    let g_dns_query_name_kw_id = helper_keyword_register_sticky_buffer(&kw);
+    let g_dns_query_name_kw_id = helper_keyword_register_multi_buffer(&kw);
     SCDetectHelperKeywordAliasRegister(
         g_dns_query_name_kw_id,
         b"dns_query\0".as_ptr() as *const libc::c_char,
