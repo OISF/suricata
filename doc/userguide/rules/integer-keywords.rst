@@ -13,6 +13,12 @@ Simple example::
 The integer value can be written as base-10 like ``100`` or as 
 an hexadecimal value like ``0x64``.
 
+The integer value can also have a unit/multiplier as a
+case-insensitive suffix:
+* kb : 1024
+* mb : 1048576
+* gb : 1073741824
+
 The most direct example is to match for equality, but there are
 different modes.
 
