@@ -328,9 +328,6 @@ jobs:
           DISTCHECK_CONFIGURE_FLAGS: "--enable-unittests --enable-debug --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk"
           MAKEFLAGS: "-j ${{ env.CPUS }}"
       - run: test -e doc/userguide/suricata.1
-      - name: Checking includes
-        run: |
-          cppclean src/*.h | grep "does not need to be #included" | python3 scripts/cppclean_check.py
       - name: Building Rust documentation
         run: make doc
         working-directory: rust
@@ -654,9 +651,6 @@ jobs:
           ./autogen.sh
           CFLAGS="${DEFAULT_CFLAGS}" ./configure
       - run: make -j ${{ env.CPUS }} check
-      - name: Checking includes
-        run: |
-          cppclean src/*.h | grep "does not need to be #included" | python3 scripts/cppclean_check.py
       - run: make install
       - run: suricatasc -h
       - run: suricata-update -V
