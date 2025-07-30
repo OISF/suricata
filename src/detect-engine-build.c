@@ -384,7 +384,7 @@ static int SignatureIsDEOnly(DetectEngineCtx *de_ctx, const Signature *s)
     /* check for conflicting keywords */
     SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
     for ( ;sm != NULL; sm = sm->next) {
-        if ( !(sigmatch_table[sm->type].flags & SIGMATCH_DEONLY_COMPAT))
+        if (sm->type != DETECT_DECODE_EVENT)
             SCReturnInt(0);
     }
 

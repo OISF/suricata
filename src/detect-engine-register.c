@@ -305,12 +305,6 @@ static void PrintFeatureList(const SigTableElmt *e, char sep)
         printf("compatible with IP only rule");
         prev = 1;
     }
-    if (flags & SIGMATCH_DEONLY_COMPAT) {
-        if (prev == 1)
-            printf("%c", sep);
-        printf("compatible with decoder event only rule");
-        prev = 1;
-    }
     if (flags & SIGMATCH_INFO_CONTENT_MODIFIER) {
         if (prev == 1)
             printf("%c", sep);

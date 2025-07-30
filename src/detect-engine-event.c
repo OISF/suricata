@@ -141,7 +141,6 @@ void DetectEngineEventRegister (void)
     sigmatch_table[DETECT_DECODE_EVENT].desc =
             "match on events triggered by structural or invalid values during packet decoding";
     sigmatch_table[DETECT_DECODE_EVENT].url = "/rules/decode-layer.html#decode-event";
-    sigmatch_table[DETECT_DECODE_EVENT].flags |= SIGMATCH_DEONLY_COMPAT;
     sigmatch_table[DETECT_DECODE_EVENT].SupportsPrefilter = PrefilterDecodeEventIsPrefilterable;
     sigmatch_table[DETECT_DECODE_EVENT].SetupPrefilter = PrefilterSetupDecodeEvent;
 

@@ -1650,11 +1650,9 @@ typedef struct SigGroupHead_ {
 /** sigmatch has no options, so the parser shouldn't expect any */
 #define SIGMATCH_NOOPT                  BIT_U16(0)
 /** sigmatch is compatible with a ip only rule */
-#define SIGMATCH_IPONLY_COMPAT          BIT_U16(1)
-/** sigmatch is compatible with a decode event only rule */
-#define SIGMATCH_DEONLY_COMPAT          BIT_U16(2)
+#define SIGMATCH_IPONLY_COMPAT BIT_U16(1)
 
-// vacancy
+// vacancy (x2)
 
 /** sigmatch may have options, so the parser should be ready to
  *  deal with both cases */
