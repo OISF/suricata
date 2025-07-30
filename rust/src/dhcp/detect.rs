@@ -22,6 +22,7 @@ use super::dhcp::{
 use super::parser::DHCPOptionWrapper;
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{DetectUintData, SCDetectU64Free, SCDetectU64Match, SCDetectU64Parse};
+use crate::detect::SIGMATCH_INFO_UINT64;
 use std::os::raw::{c_int, c_void};
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectHelperBufferRegister,
@@ -173,7 +174,7 @@ pub unsafe extern "C" fn SCDetectDHCPRegister() {
         AppLayerTxMatch: Some(dhcp_detect_leasetime_match),
         Setup: Some(dhcp_detect_leasetime_setup),
         Free: Some(dhcp_detect_time_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT64,
     };
     G_DHCP_LEASE_TIME_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_DHCP_LEASE_TIME_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -188,7 +189,7 @@ pub unsafe extern "C" fn SCDetectDHCPRegister() {
         AppLayerTxMatch: Some(dhcp_detect_rebindingtime_match),
         Setup: Some(dhcp_detect_rebindingtime_setup),
         Free: Some(dhcp_detect_time_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT64,
     };
     G_DHCP_REBINDING_TIME_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_DHCP_REBINDING_TIME_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -203,7 +204,7 @@ pub unsafe extern "C" fn SCDetectDHCPRegister() {
         AppLayerTxMatch: Some(dhcp_detect_renewaltime_match),
         Setup: Some(dhcp_detect_renewaltime_setup),
         Free: Some(dhcp_detect_time_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT64,
     };
     G_DHCP_RENEWAL_TIME_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_DHCP_RENEWAL_TIME_BUFFER_ID = SCDetectHelperBufferRegister(

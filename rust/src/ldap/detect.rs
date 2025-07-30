@@ -23,7 +23,7 @@ use crate::detect::uint::{
 };
 use crate::detect::{
     helper_keyword_register_multi_buffer, helper_keyword_register_sticky_buffer,
-    SigTableElmtStickyBuffer,
+    SigTableElmtStickyBuffer, SIGMATCH_INFO_MULTI_UINT, SIGMATCH_INFO_UINT32, SIGMATCH_INFO_UINT8,
 };
 use crate::ldap::types::*;
 use ldap_parser::ldap::{LdapMessage, ProtocolOp};
@@ -631,7 +631,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         AppLayerTxMatch: Some(ldap_detect_request_operation_match),
         Setup: Some(ldap_detect_request_operation_setup),
         Free: Some(ldap_detect_request_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT8,
     };
     G_LDAP_REQUEST_OPERATION_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_LDAP_REQUEST_OPERATION_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -647,7 +647,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         AppLayerTxMatch: Some(ldap_detect_responses_operation_match),
         Setup: Some(ldap_detect_responses_operation_setup),
         Free: Some(ldap_detect_responses_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_MULTI_UINT,
     };
     G_LDAP_RESPONSES_OPERATION_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_LDAP_RESPONSES_OPERATION_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -662,7 +662,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         AppLayerTxMatch: Some(ldap_detect_responses_count_match),
         Setup: Some(ldap_detect_responses_count_setup),
         Free: Some(ldap_detect_responses_count_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT32,
     };
     G_LDAP_RESPONSES_COUNT_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_LDAP_RESPONSES_COUNT_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -706,7 +706,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         AppLayerTxMatch: Some(ldap_detect_responses_result_code_match),
         Setup: Some(ldap_detect_responses_result_code_setup),
         Free: Some(ldap_detect_responses_result_code_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT32 | SIGMATCH_INFO_MULTI_UINT,
     };
     G_LDAP_RESPONSES_RESULT_CODE_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_LDAP_RESPONSES_RESULT_CODE_BUFFER_ID = SCDetectHelperBufferRegister(

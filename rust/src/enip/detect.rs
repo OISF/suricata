@@ -35,7 +35,10 @@ use crate::detect::uint::{
     SCDetectU16Parse, SCDetectU32Free, SCDetectU32Match, SCDetectU32Parse, SCDetectU8Free,
     SCDetectU8Match, SCDetectU8Parse,
 };
-use crate::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
+use crate::detect::{
+    helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer, SIGMATCH_INFO_MULTI_UINT,
+    SIGMATCH_INFO_UINT16, SIGMATCH_INFO_UINT32, SIGMATCH_INFO_UINT8,
+};
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
     SCDetectHelperBufferMpmRegister, SCDetectHelperBufferRegister, SCDetectHelperKeywordRegister,
@@ -1365,7 +1368,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         AppLayerTxMatch: Some(capabilities_match),
         Setup: Some(capabilities_setup),
         Free: Some(capabilities_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT16,
     };
     G_ENIP_CAPABILITIES_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_ENIP_CAPABILITIES_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -1380,7 +1383,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         AppLayerTxMatch: Some(cip_attribute_match),
         Setup: Some(cip_attribute_setup),
         Free: Some(cip_attribute_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT32 | SIGMATCH_INFO_MULTI_UINT,
     };
     G_ENIP_CIP_ATTRIBUTE_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_ENIP_CIP_ATTRIBUTE_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -1395,7 +1398,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         AppLayerTxMatch: Some(cip_class_match),
         Setup: Some(cip_class_setup),
         Free: Some(cip_class_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT32 | SIGMATCH_INFO_MULTI_UINT,
     };
     G_ENIP_CIP_CLASS_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_ENIP_CIP_CLASS_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -1410,7 +1413,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         AppLayerTxMatch: Some(vendor_id_match),
         Setup: Some(vendor_id_setup),
         Free: Some(vendor_id_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT16,
     };
     G_ENIP_VENDOR_ID_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_ENIP_VENDOR_ID_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -1425,7 +1428,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         AppLayerTxMatch: Some(status_match),
         Setup: Some(status_setup),
         Free: Some(status_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT32,
     };
     G_ENIP_STATUS_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_ENIP_STATUS_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -1440,7 +1443,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         AppLayerTxMatch: Some(state_match),
         Setup: Some(state_setup),
         Free: Some(state_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT8,
     };
     G_ENIP_STATE_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_ENIP_STATE_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -1455,7 +1458,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         AppLayerTxMatch: Some(serial_match),
         Setup: Some(serial_setup),
         Free: Some(serial_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT32,
     };
     G_ENIP_SERIAL_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_ENIP_SERIAL_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -1470,7 +1473,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         AppLayerTxMatch: Some(revision_match),
         Setup: Some(revision_setup),
         Free: Some(revision_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT16,
     };
     G_ENIP_REVISION_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_ENIP_REVISION_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -1485,7 +1488,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         AppLayerTxMatch: Some(protocol_version_match),
         Setup: Some(protocol_version_setup),
         Free: Some(protocol_version_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT16,
     };
     G_ENIP_PROTOCOL_VERSION_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_ENIP_PROTOCOL_VERSION_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -1500,7 +1503,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         AppLayerTxMatch: Some(product_code_match),
         Setup: Some(product_code_setup),
         Free: Some(product_code_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT16,
     };
     G_ENIP_PRODUCT_CODE_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_ENIP_PRODUCT_CODE_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -1515,7 +1518,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         AppLayerTxMatch: Some(command_match),
         Setup: Some(command_setup),
         Free: Some(command_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT16,
     };
     G_ENIP_COMMAND_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_ENIP_COMMAND_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -1530,7 +1533,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         AppLayerTxMatch: Some(identity_status_match),
         Setup: Some(identity_status_setup),
         Free: Some(identity_status_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT16,
     };
     G_ENIP_IDENTITY_STATUS_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_ENIP_IDENTITY_STATUS_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -1545,7 +1548,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         AppLayerTxMatch: Some(device_type_match),
         Setup: Some(device_type_setup),
         Free: Some(device_type_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT16,
     };
     G_ENIP_DEVICE_TYPE_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_ENIP_DEVICE_TYPE_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -1560,7 +1563,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         AppLayerTxMatch: Some(cip_status_match),
         Setup: Some(cip_status_setup),
         Free: Some(cip_status_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_MULTI_UINT,
     };
     G_ENIP_CIP_STATUS_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_ENIP_CIP_STATUS_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -1575,7 +1578,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         AppLayerTxMatch: Some(cip_instance_match),
         Setup: Some(cip_instance_setup),
         Free: Some(cip_instance_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT32 | SIGMATCH_INFO_MULTI_UINT,
     };
     G_ENIP_CIP_INSTANCE_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_ENIP_CIP_INSTANCE_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -1591,7 +1594,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         AppLayerTxMatch: Some(cip_extendedstatus_match),
         Setup: Some(cip_extendedstatus_setup),
         Free: Some(cip_extendedstatus_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT16 | SIGMATCH_INFO_MULTI_UINT,
     };
     G_ENIP_CIP_EXTENDEDSTATUS_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_ENIP_CIP_EXTENDEDSTATUS_BUFFER_ID = SCDetectHelperBufferRegister(

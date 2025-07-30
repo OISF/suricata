@@ -329,6 +329,38 @@ static void PrintFeatureList(const SigTableElmt *e, char sep)
         printf("multi buffer");
         prev = 1;
     }
+    if (flags & SIGMATCH_INFO_UINT8) {
+        if (prev == 1)
+            printf("%c", sep);
+        if (flags & SIGMATCH_INFO_MULTI_UINT)
+            printf("multi ");
+        printf("uint8");
+        prev = 1;
+    }
+    if (flags & SIGMATCH_INFO_UINT16) {
+        if (prev == 1)
+            printf("%c", sep);
+        if (flags & SIGMATCH_INFO_MULTI_UINT)
+            printf("multi ");
+        printf("uint16");
+        prev = 1;
+    }
+    if (flags & SIGMATCH_INFO_UINT32) {
+        if (prev == 1)
+            printf("%c", sep);
+        if (flags & SIGMATCH_INFO_MULTI_UINT)
+            printf("multi ");
+        printf("uint32");
+        prev = 1;
+    }
+    if (flags & SIGMATCH_INFO_UINT64) {
+        if (prev == 1)
+            printf("%c", sep);
+        if (flags & SIGMATCH_INFO_MULTI_UINT)
+            printf("multi ");
+        printf("uint64");
+        prev = 1;
+    }
     if (e->Transform) {
         if (prev == 1)
             printf("%c", sep);

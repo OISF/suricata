@@ -130,6 +130,12 @@ pub(crate) const SIGMATCH_OPTIONAL_OPT: u32 = 0x10; // BIT_U16(4) in detect.h
 pub(crate) const SIGMATCH_QUOTES_MANDATORY: u32 = 0x40; // BIT_U16(6) in detect.h
 pub const SIGMATCH_INFO_STICKY_BUFFER: u32 = 0x200; // BIT_U16(9)
 pub const SIGMATCH_INFO_MULTI_BUFFER: u32 = 0x4000; // BIT_U16(14)
+pub const SIGMATCH_INFO_UINT8: u32 = 0x8000; // BIT_U32(15)
+pub const SIGMATCH_INFO_UINT16: u32 = 0x10000; // BIT_U32(16)
+pub const SIGMATCH_INFO_UINT32: u32 = 0x20000; // BIT_U32(17)
+pub const SIGMATCH_INFO_UINT64: u32 = 0x40000; // BIT_U32(18)
+pub const SIGMATCH_INFO_MULTI_UINT: u32 = 0x80000; // BIT_U32(19)
+
 
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

@@ -70,6 +70,7 @@ void DetectICodeRegister (void)
 #endif
     sigmatch_table[DETECT_ICODE].SupportsPrefilter = PrefilterICodeIsPrefilterable;
     sigmatch_table[DETECT_ICODE].SetupPrefilter = PrefilterSetupICode;
+    sigmatch_table[DETECT_ICODE].flags = SIGMATCH_SUPPORT_FIREWALL | SIGMATCH_INFO_UINT8;
 }
 
 /**

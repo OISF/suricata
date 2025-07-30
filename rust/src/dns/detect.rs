@@ -21,7 +21,10 @@ use crate::detect::uint::{
     detect_match_uint, detect_parse_uint_enum, DetectUintData, SCDetectU16Free, SCDetectU8Free,
     SCDetectU8Parse,
 };
-use crate::detect::{helper_keyword_register_multi_buffer, SigTableElmtStickyBuffer};
+use crate::detect::{
+    helper_keyword_register_multi_buffer, SigTableElmtStickyBuffer, SIGMATCH_INFO_MULTI_UINT,
+    SIGMATCH_INFO_UINT16, SIGMATCH_INFO_UINT8,
+};
 use crate::direction::Direction;
 use std::ffi::CStr;
 use std::os::raw::{c_int, c_void};
@@ -372,7 +375,7 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         AppLayerTxMatch: Some(dns_opcode_match),
         Setup: Some(dns_opcode_setup),
         Free: Some(dns_opcode_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT8,
     };
     G_DNS_OPCODE_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_DNS_OPCODE_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -404,7 +407,7 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         AppLayerTxMatch: Some(dns_rcode_match),
         Setup: Some(dns_rcode_setup),
         Free: Some(dns_rcode_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT16,
     };
     G_DNS_RCODE_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_DNS_RCODE_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -419,7 +422,7 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         AppLayerTxMatch: Some(dns_rrtype_match),
         Setup: Some(dns_rrtype_setup),
         Free: Some(dns_rrtype_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT16 | SIGMATCH_INFO_MULTI_UINT,
     };
     G_DNS_RRTYPE_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_DNS_RRTYPE_BUFFER_ID = SCDetectHelperBufferRegister(
