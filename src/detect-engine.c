@@ -106,6 +106,7 @@ static uint32_t DetectEngineTenantGetIdFromLivedev(const void *ctx, const Packet
 static uint32_t DetectEngineTenantGetIdFromVlanId(const void *ctx, const Packet *p);
 static uint32_t DetectEngineTenantGetIdFromPcap(const void *ctx, const Packet *p);
 
+static bool DetectEngineMultiTenantEnabledWithLock(void);
 static DetectEngineAppInspectionEngine *g_app_inspect_engines = NULL;
 static DetectEnginePktInspectionEngine *g_pkt_inspect_engines = NULL;
 static DetectEngineFrameInspectionEngine *g_frame_inspect_engines = NULL;
@@ -3150,10 +3151,12 @@ static void DetectEngineThreadCtxDeinitKeywords(DetectEngineCtx *de_ctx, DetectE
 }
 
 /** NOTE: master MUST be locked before calling this */
-static TmEcode DetectEngineThreadCtxInitForMT(ThreadVars *tv, DetectEngineThreadCtx *det_ctx)
+static TmEcode DetectEngineThreadCtxInitForMT(
+        ThreadVars *tv, DetectEngineThreadCtx *det_ctx, bool master_lock_held)
 {
     DetectEngineMasterCtx *master = &g_master_de_ctx;
-    SCMutexLock(&master->lock);
+    if (!master_lock_held)
+        SCMutexLock(&master->lock);
 
     DetectEngineTenantMapping *map_array = NULL;
     uint32_t map_array_size = 0;
@@ -3164,7 +3167,8 @@ static TmEcode DetectEngineThreadCtxInitForMT(ThreadVars *tv, DetectEngineThread
     if (master->tenant_selector == TENANT_SELECTOR_UNKNOWN) {
         SCLogError("no tenant selector set: "
                    "set using multi-detect.selector");
-        SCMutexUnlock(&master->lock);
+        if (!master_lock_held)
+            SCMutexUnlock(&master->lock);
         return TM_ECODE_FAILED;
     }
 
@@ -3258,7 +3262,8 @@ static TmEcode DetectEngineThreadCtxInitForMT(ThreadVars *tv, DetectEngineThread
             break;
     }
 
-    SCMutexUnlock(&master->lock);
+    if (!master_lock_held)
+        SCMutexUnlock(&master->lock);
     return TM_ECODE_OK;
 error:
     if (map_array != NULL)
@@ -3266,7 +3271,8 @@ error:
     if (mt_det_ctxs_hash != NULL)
         HashTableFree(mt_det_ctxs_hash);
 
-    SCMutexUnlock(&master->lock);
+    if (!master_lock_held)
+        SCMutexUnlock(&master->lock);
     return TM_ECODE_FAILED;
 }
 
@@ -3431,7 +3437,7 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data)
 #endif
 
     if (DetectEngineMultiTenantEnabled()) {
-        if (DetectEngineThreadCtxInitForMT(tv, det_ctx) != TM_ECODE_OK) {
+        if (DetectEngineThreadCtxInitForMT(tv, det_ctx, false) != TM_ECODE_OK) {
             DetectEngineThreadCtxDeinit(tv, det_ctx);
             return TM_ECODE_FAILED;
         }
@@ -3493,8 +3499,8 @@ DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
     det_ctx->counter_match_list = counter_match_list;
 #endif
 
-    if (mt && DetectEngineMultiTenantEnabled()) {
-        if (DetectEngineThreadCtxInitForMT(tv, det_ctx) != TM_ECODE_OK) {
+    if (mt && DetectEngineMultiTenantEnabledWithLock()) {
+        if (DetectEngineThreadCtxInitForMT(tv, det_ctx, true) != TM_ECODE_OK) {
             DetectEngineDeReference(&det_ctx->de_ctx);
             SCFree(det_ctx);
             return NULL;
@@ -3872,12 +3878,17 @@ DetectEngineCtx *DetectEngineReference(DetectEngineCtx *de_ctx)
     de_ctx->ref_cnt++;
     return de_ctx;
 }
+static bool DetectEngineMultiTenantEnabledWithLock(void)
+{
+    DetectEngineMasterCtx *master = &g_master_de_ctx;
+    return master->multi_tenant_enabled;
+}
 
 bool DetectEngineMultiTenantEnabled(void)
 {
     DetectEngineMasterCtx *master = &g_master_de_ctx;
     SCMutexLock(&master->lock);
-    bool enabled = master->multi_tenant_enabled;
+    bool enabled = DetectEngineMultiTenantEnabledWithLock();
     SCMutexUnlock(&master->lock);
     return enabled;
 }
