@@ -1447,7 +1447,7 @@ typedef struct SigTableElmt_ {
 #ifdef UNITTESTS
     void (*RegisterTests)(void);
 #endif
-    uint16_t flags;
+    uint32_t flags;
     /* coccinelle: SigTableElmt:flags:SIGMATCH_ */
 
     /** bitfield of tables supported by this rule: used by DETECT_TABLE_*_FLAG flags. */
@@ -1648,40 +1648,40 @@ typedef struct SigGroupHead_ {
 } SigGroupHead;
 
 /** sigmatch has no options, so the parser shouldn't expect any */
-#define SIGMATCH_NOOPT                  BIT_U16(0)
+#define SIGMATCH_NOOPT BIT_U32(0)
 /** sigmatch is compatible with a ip only rule */
-#define SIGMATCH_IPONLY_COMPAT BIT_U16(1)
+#define SIGMATCH_IPONLY_COMPAT BIT_U32(1)
 
 // vacancy (x2)
 
 /** sigmatch may have options, so the parser should be ready to
  *  deal with both cases */
-#define SIGMATCH_OPTIONAL_OPT           BIT_U16(4)
+#define SIGMATCH_OPTIONAL_OPT BIT_U32(4)
 /** input may be wrapped in double quotes. They will be stripped before
  *  input data is passed to keyword parser */
-#define SIGMATCH_QUOTES_OPTIONAL        BIT_U16(5)
+#define SIGMATCH_QUOTES_OPTIONAL BIT_U32(5)
 /** input MUST be wrapped in double quotes. They will be stripped before
  *  input data is passed to keyword parser. Missing double quotes lead to
  *  error and signature invalidation. */
-#define SIGMATCH_QUOTES_MANDATORY       BIT_U16(6)
+#define SIGMATCH_QUOTES_MANDATORY BIT_U32(6)
 /** negation parsing is handled by the rule parser. Signature::init_data::negated
  *  will be set to true or false prior to calling the keyword parser. Exclamation
  *  mark is stripped from the input to the keyword parser. */
-#define SIGMATCH_HANDLE_NEGATION        BIT_U16(7)
+#define SIGMATCH_HANDLE_NEGATION BIT_U32(7)
 /** keyword is a content modifier */
-#define SIGMATCH_INFO_CONTENT_MODIFIER  BIT_U16(8)
+#define SIGMATCH_INFO_CONTENT_MODIFIER BIT_U32(8)
 /** keyword is a sticky buffer */
-#define SIGMATCH_INFO_STICKY_BUFFER     BIT_U16(9)
+#define SIGMATCH_INFO_STICKY_BUFFER BIT_U32(9)
 /** keyword is deprecated: used to suggest an alternative */
-#define SIGMATCH_INFO_DEPRECATED        BIT_U16(10)
+#define SIGMATCH_INFO_DEPRECATED BIT_U32(10)
 /** strict parsing is enabled */
-#define SIGMATCH_STRICT_PARSING         BIT_U16(11)
+#define SIGMATCH_STRICT_PARSING BIT_U32(11)
 /** keyword supported by firewall rules */
-#define SIGMATCH_SUPPORT_FIREWALL BIT_U16(12)
+#define SIGMATCH_SUPPORT_FIREWALL BIT_U32(12)
 /** keyword supporting setting an optional direction */
-#define SIGMATCH_SUPPORT_DIR BIT_U16(13)
+#define SIGMATCH_SUPPORT_DIR BIT_U32(13)
 /** keyword is a multi buffer */
-#define SIGMATCH_INFO_MULTI_BUFFER BIT_U16(14)
+#define SIGMATCH_INFO_MULTI_BUFFER BIT_U32(14)
 
 enum DetectEngineTenantSelectors
 {

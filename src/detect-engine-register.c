@@ -292,7 +292,7 @@ int DETECT_TBLSIZE_IDX = DETECT_TBLSIZE_STATIC;
 
 static void PrintFeatureList(const SigTableElmt *e, char sep)
 {
-    const uint16_t flags = e->flags;
+    const uint32_t flags = e->flags;
 
     int prev = 0;
     if (flags & SIGMATCH_NOOPT) {
