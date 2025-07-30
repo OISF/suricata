@@ -94,6 +94,7 @@ void DetectFlowAgeRegister(void)
     sigmatch_table[DETECT_FLOW_AGE].Match = DetectFlowAgeMatch;
     sigmatch_table[DETECT_FLOW_AGE].Setup = DetectFlowAgeSetup;
     sigmatch_table[DETECT_FLOW_AGE].Free = DetectFlowAgeFree;
+    sigmatch_table[DETECT_FLOW_AGE].flags = SIGMATCH_INFO_UINT32;
     sigmatch_table[DETECT_FLOW_AGE].SupportsPrefilter = PrefilterFlowAgeIsPrefilterable;
     sigmatch_table[DETECT_FLOW_AGE].SetupPrefilter = PrefilterSetupFlowAge;
 }

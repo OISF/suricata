@@ -137,6 +137,7 @@ void DetectVlanIdRegister(void)
     sigmatch_table[DETECT_VLAN_ID].Match = DetectVlanIdMatch;
     sigmatch_table[DETECT_VLAN_ID].Setup = DetectVlanIdSetup;
     sigmatch_table[DETECT_VLAN_ID].Free = DetectVlanIdFree;
+    sigmatch_table[DETECT_VLAN_ID].flags = SIGMATCH_INFO_UINT16 | SIGMATCH_INFO_MULTI_UINT;
     sigmatch_table[DETECT_VLAN_ID].SupportsPrefilter = PrefilterVlanIdIsPrefilterable;
     sigmatch_table[DETECT_VLAN_ID].SetupPrefilter = PrefilterSetupVlanId;
 }
@@ -216,4 +217,5 @@ void DetectVlanLayersRegister(void)
     sigmatch_table[DETECT_VLAN_LAYERS].Free = DetectVlanLayersFree;
     sigmatch_table[DETECT_VLAN_LAYERS].SupportsPrefilter = PrefilterVlanLayersIsPrefilterable;
     sigmatch_table[DETECT_VLAN_LAYERS].SetupPrefilter = PrefilterSetupVlanLayers;
+    sigmatch_table[DETECT_VLAN_LAYERS].flags = SIGMATCH_INFO_UINT8;
 }
