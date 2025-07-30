@@ -74,7 +74,7 @@ pub struct SigTableElmtStickyBuffer {
     ) -> c_int,
 }
 
-pub fn helper_keyword_register_sticky_buffer(kw: &SigTableElmtStickyBuffer) -> u16 {
+fn helper_keyword_register_buffer_flags(kw: &SigTableElmtStickyBuffer, flags: u16) -> u16 {
     let name = CString::new(kw.name.as_bytes()).unwrap().into_raw();
     let desc = CString::new(kw.desc.as_bytes()).unwrap().into_raw();
     let url = CString::new(kw.url.as_bytes()).unwrap().into_raw();
@@ -83,7 +83,7 @@ pub fn helper_keyword_register_sticky_buffer(kw: &SigTableElmtStickyBuffer) -> u
         desc,
         url,
         Setup: Some(kw.setup),
-        flags: SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER,
+        flags,
         AppLayerTxMatch: None,
         Free: None,
     };
@@ -92,6 +92,17 @@ pub fn helper_keyword_register_sticky_buffer(kw: &SigTableElmtStickyBuffer) -> u
         SCDetectHelperKeywordSetCleanCString(r);
         return r;
     }
+}
+
+pub fn helper_keyword_register_multi_buffer(kw: &SigTableElmtStickyBuffer) -> u16 {
+    return helper_keyword_register_buffer_flags(
+        kw,
+        SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_INFO_MULTI_BUFFER,
+    );
+}
+
+pub fn helper_keyword_register_sticky_buffer(kw: &SigTableElmtStickyBuffer) -> u16 {
+    return helper_keyword_register_buffer_flags(kw, SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER);
 }
 
 #[repr(C)]
@@ -118,6 +129,7 @@ pub const SIGMATCH_NOOPT: u16 = 1; // BIT_U16(0) in detect.h
 pub(crate) const SIGMATCH_OPTIONAL_OPT: u16 = 0x10; // BIT_U16(4) in detect.h
 pub(crate) const SIGMATCH_QUOTES_MANDATORY: u16 = 0x40; // BIT_U16(6) in detect.h
 pub const SIGMATCH_INFO_STICKY_BUFFER: u16 = 0x200; // BIT_U16(9)
+pub const SIGMATCH_INFO_MULTI_BUFFER: u16 = 0x4000; // BIT_U16(14)
 
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
