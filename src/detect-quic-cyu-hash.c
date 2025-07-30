@@ -63,7 +63,8 @@ void DetectQuicCyuHashRegister(void)
     sigmatch_table[DETECT_QUIC_CYU_HASH].desc = "sticky buffer to match on the QUIC CYU hash";
     sigmatch_table[DETECT_QUIC_CYU_HASH].url = "/rules/" KEYWORD_DOC;
     sigmatch_table[DETECT_QUIC_CYU_HASH].Setup = DetectQuicCyuHashSetup;
-    sigmatch_table[DETECT_QUIC_CYU_HASH].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_QUIC_CYU_HASH].flags =
+            SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_INFO_MULTI_BUFFER;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_QUIC_CYU_HASH].RegisterTests = DetectQuicCyuHashRegisterTests;
 #endif
