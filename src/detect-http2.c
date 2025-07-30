@@ -172,7 +172,8 @@ void DetectHttp2Register(void)
     sigmatch_table[DETECT_HTTP2_HEADERNAME].desc = "sticky buffer to match on one HTTP2 header name";
     sigmatch_table[DETECT_HTTP2_HEADERNAME].url = "/rules/http2-keywords.html#header_name";
     sigmatch_table[DETECT_HTTP2_HEADERNAME].Setup = DetectHTTP2headerNameSetup;
-    sigmatch_table[DETECT_HTTP2_HEADERNAME].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_HTTP2_HEADERNAME].flags |=
+            SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_INFO_MULTI_BUFFER;
 
     DetectAppLayerMultiRegister("http2_header_name", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
             HTTP2StateOpen, SCHttp2TxGetHeaderName, 2);

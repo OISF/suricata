@@ -155,7 +155,7 @@ void SCDetectSMTPRegister(void)
     kw.desc = "SMTP rcpt to buffer";
     kw.url = "/rules/smtp-keywords.html#smtp-rcpt-to";
     kw.Setup = DetectSmtpRcptToSetup;
-    kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+    kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_INFO_MULTI_BUFFER;
     SCDetectHelperKeywordRegister(&kw);
     g_smtp_rcpt_to_buffer_id = SCDetectHelperMultiBufferMpmRegister(
             "smtp.rcpt_to", "SMTP RCPT TO", ALPROTO_SMTP, STREAM_TOSERVER, GetSmtpRcptToData);

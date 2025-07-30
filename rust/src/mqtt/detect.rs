@@ -22,7 +22,10 @@ use crate::detect::uint::{
     detect_match_uint, detect_parse_uint, detect_parse_uint_enum, DetectUintData, DetectUintMode,
     SCDetectU8Free, SCDetectU8Parse,
 };
-use crate::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
+use crate::detect::{
+    helper_keyword_register_multi_buffer, helper_keyword_register_sticky_buffer,
+    SigTableElmtStickyBuffer,
+};
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
     SCDetectHelperBufferMpmRegister, SCDetectHelperBufferRegister, SCDetectHelperKeywordRegister,
@@ -990,7 +993,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
             SCLogError!("Invalid value for app-layer.protocols.mqtt.unsubscribe-topic-match-limit");
         }
     }
-    let _g_mqtt_unsub_topic_kw_id = helper_keyword_register_sticky_buffer(&kw);
+    let _g_mqtt_unsub_topic_kw_id = helper_keyword_register_multi_buffer(&kw);
     G_MQTT_UNSUB_TOPIC_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         keyword_name,
         b"unsubscribe topic query\0".as_ptr() as *const libc::c_char,
@@ -1029,7 +1032,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
             SCLogError!("Invalid value for app-layer.protocols.mqtt.subscribe-topic-match-limit");
         }
     }
-    let _g_mqtt_sub_topic_kw_id = helper_keyword_register_sticky_buffer(&kw);
+    let _g_mqtt_sub_topic_kw_id = helper_keyword_register_multi_buffer(&kw);
     G_MQTT_SUB_TOPIC_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         keyword_name,
         b"subscribe topic query\0".as_ptr() as *const libc::c_char,
