@@ -56,6 +56,7 @@ void DetectIkeExchTypeRegister(void)
     sigmatch_table[DETECT_IKE_EXCH_TYPE].AppLayerTxMatch = DetectIkeExchTypeMatch;
     sigmatch_table[DETECT_IKE_EXCH_TYPE].Setup = DetectIkeExchTypeSetup;
     sigmatch_table[DETECT_IKE_EXCH_TYPE].Free = DetectIkeExchTypeFree;
+    sigmatch_table[DETECT_IKE_EXCH_TYPE].flags = SIGMATCH_INFO_UINT8;
 
     DetectAppLayerInspectEngineRegister("ike.exchtype", ALPROTO_IKE, SIG_FLAG_TOSERVER, 1,
             DetectEngineInspectGenericList, NULL);

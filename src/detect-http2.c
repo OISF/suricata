@@ -131,6 +131,8 @@ void DetectHttp2Register(void)
     sigmatch_table[DETECT_HTTP2_PRIORITY].AppLayerTxMatch = DetectHTTP2priorityMatch;
     sigmatch_table[DETECT_HTTP2_PRIORITY].Setup = DetectHTTP2prioritySetup;
     sigmatch_table[DETECT_HTTP2_PRIORITY].Free = DetectHTTP2priorityFree;
+    sigmatch_table[DETECT_HTTP2_PRIORITY].flags =
+            SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_MULTI_UINT | SIGMATCH_INFO_MULTI_UINT;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_HTTP2_PRIORITY].RegisterTests = DetectHTTP2priorityRegisterTests;
 #endif
@@ -142,6 +144,7 @@ void DetectHttp2Register(void)
     sigmatch_table[DETECT_HTTP2_WINDOW].AppLayerTxMatch = DetectHTTP2windowMatch;
     sigmatch_table[DETECT_HTTP2_WINDOW].Setup = DetectHTTP2windowSetup;
     sigmatch_table[DETECT_HTTP2_WINDOW].Free = DetectHTTP2windowFree;
+    sigmatch_table[DETECT_HTTP2_WINDOW].flags = SIGMATCH_INFO_UINT32 | SIGMATCH_INFO_MULTI_UINT;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_HTTP2_WINDOW].RegisterTests = DetectHTTP2windowRegisterTests;
 #endif
@@ -153,6 +156,7 @@ void DetectHttp2Register(void)
     sigmatch_table[DETECT_HTTP2_SIZEUPDATE].AppLayerTxMatch = DetectHTTP2sizeUpdateMatch;
     sigmatch_table[DETECT_HTTP2_SIZEUPDATE].Setup = DetectHTTP2sizeUpdateSetup;
     sigmatch_table[DETECT_HTTP2_SIZEUPDATE].Free = DetectHTTP2sizeUpdateFree;
+    sigmatch_table[DETECT_HTTP2_SIZEUPDATE].flags = SIGMATCH_INFO_UINT64;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_HTTP2_SIZEUPDATE].RegisterTests = DetectHTTP2sizeUpdateRegisterTests;
 #endif
