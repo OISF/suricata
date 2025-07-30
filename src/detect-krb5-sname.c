@@ -56,7 +56,8 @@ void DetectKrb5SNameRegister(void)
     sigmatch_table[DETECT_KRB5_SNAME].alias = "krb5_sname";
     sigmatch_table[DETECT_KRB5_SNAME].url = "/rules/kerberos-keywords.html#krb5-sname";
     sigmatch_table[DETECT_KRB5_SNAME].Setup = DetectKrb5SNameSetup;
-    sigmatch_table[DETECT_KRB5_SNAME].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_KRB5_SNAME].flags =
+            SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_INFO_MULTI_BUFFER;
     sigmatch_table[DETECT_KRB5_SNAME].desc = "sticky buffer to match on Kerberos 5 server name";
 
     DetectAppLayerMultiRegister(

@@ -118,6 +118,7 @@ exclude = [
     "SRepCatGetByShortname",
     "SIGMATCH_NOOPT",
     "SIGMATCH_INFO_STICKY_BUFFER",
+    "SIGMATCH_INFO_MULTI_BUFFER",
     "FtpCommand",
 ]
 

@@ -61,7 +61,8 @@ void DetectQuicCyuStringRegister(void)
     sigmatch_table[DETECT_QUIC_CYU_STRING].desc = "sticky buffer to match on the QUIC CYU string";
     sigmatch_table[DETECT_QUIC_CYU_STRING].url = "/rules/" KEYWORD_DOC;
     sigmatch_table[DETECT_QUIC_CYU_STRING].Setup = DetectQuicCyuStringSetup;
-    sigmatch_table[DETECT_QUIC_CYU_STRING].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_QUIC_CYU_STRING].flags =
+            SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_INFO_MULTI_BUFFER;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_QUIC_CYU_STRING].RegisterTests = DetectQuicCyuStringRegisterTests;
 #endif

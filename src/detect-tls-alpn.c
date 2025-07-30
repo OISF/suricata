@@ -89,7 +89,8 @@ void DetectTlsAlpnRegister(void)
     sigmatch_table[DETECT_TLS_ALPN].url = "/rules/tls-keywords.html#tls-alpn";
     sigmatch_table[DETECT_TLS_ALPN].Setup = DetectTlsAlpnSetup;
     sigmatch_table[DETECT_TLS_ALPN].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_TLS_ALPN].flags |= SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_TLS_ALPN].flags |=
+            SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_INFO_MULTI_BUFFER;
 
     DetectAppLayerMultiRegister("tls.alpn", ALPROTO_TLS, SIG_FLAG_TOSERVER,
             TLS_STATE_CLIENT_HELLO_DONE, TlsAlpnGetData, 2);
