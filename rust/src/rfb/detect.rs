@@ -23,7 +23,9 @@ use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{
     detect_match_uint, detect_parse_uint_enum, DetectUintData, SCDetectU32Free, SCDetectU32Parse,
 };
-use crate::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
+use crate::detect::{
+    helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer, SIGMATCH_INFO_UINT32,
+};
 use std::ffi::CStr;
 use std::os::raw::{c_int, c_void};
 use std::ptr;
@@ -203,7 +205,7 @@ pub unsafe extern "C" fn SCDetectRfbRegister() {
         AppLayerTxMatch: Some(rfb_sec_type_match),
         Setup: Some(rfb_sec_type_setup),
         Free: Some(rfb_sec_type_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT32,
     };
     G_RFB_SEC_TYPE_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_RFB_SEC_TYPE_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -218,7 +220,7 @@ pub unsafe extern "C" fn SCDetectRfbRegister() {
         AppLayerTxMatch: Some(rfb_sec_result_match),
         Setup: Some(rfb_sec_result_setup),
         Free: Some(rfb_sec_result_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT32,
     };
     G_RFB_SEC_RESULT_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_RFB_SEC_RESULT_BUFFER_ID = SCDetectHelperBufferRegister(

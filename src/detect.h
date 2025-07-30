@@ -1682,6 +1682,16 @@ typedef struct SigGroupHead_ {
 #define SIGMATCH_SUPPORT_DIR BIT_U32(13)
 /** keyword is a multi buffer */
 #define SIGMATCH_INFO_MULTI_BUFFER BIT_U32(14)
+/** keyword is a unsigned 8-bit integer */
+#define SIGMATCH_INFO_UINT8 BIT_U32(15)
+/** keyword is a unsigned 16-bit integer */
+#define SIGMATCH_INFO_UINT16 BIT_U32(16)
+/** keyword is a unsigned 32-bit integer */
+#define SIGMATCH_INFO_UINT32 BIT_U32(17)
+/** keyword is a unsigned 64-bit integer */
+#define SIGMATCH_INFO_UINT64 BIT_U32(18)
+/** keyword is a multi uint */
+#define SIGMATCH_INFO_MULTI_UINT BIT_U32(19)
 
 enum DetectEngineTenantSelectors
 {
