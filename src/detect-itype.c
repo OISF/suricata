@@ -62,7 +62,7 @@ void DetectITypeRegister (void)
     sigmatch_table[DETECT_ITYPE].Match = DetectITypeMatch;
     sigmatch_table[DETECT_ITYPE].Setup = DetectITypeSetup;
     sigmatch_table[DETECT_ITYPE].Free = DetectITypeFree;
-    sigmatch_table[DETECT_ITYPE].flags = SIGMATCH_SUPPORT_FIREWALL;
+    sigmatch_table[DETECT_ITYPE].flags = SIGMATCH_SUPPORT_FIREWALL | SIGMATCH_INFO_UINT8;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_ITYPE].RegisterTests = DetectITypeRegisterTests;
 #endif
