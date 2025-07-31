@@ -15,11 +15,14 @@
  * 02110-1301, USA.
  */
 
-use super::dns::{DNSRcode, DNSRecordType, DNSTransaction, ALPROTO_DNS};
+use super::dns::{
+    DNSAnswerEntry, DNSQueryEntry, DNSRcode, DNSRecordType, DNSTransaction, ALPROTO_DNS,
+};
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{
-    detect_match_uint, detect_parse_uint_enum, DetectUintData, SCDetectU16Free, SCDetectU8Free,
-    SCDetectU8Parse,
+    detect_match_uint, detect_parse_array_uint_enum, detect_parse_uint_enum,
+    detect_uint_match_at_index, DetectUintArrayData, DetectUintData, SCDetectU16Free,
+    SCDetectU8Free, SCDetectU8Parse,
 };
 use crate::detect::{
     helper_keyword_register_multi_buffer, SigTableElmtStickyBuffer, SIGMATCH_INFO_MULTI_UINT,
@@ -105,23 +108,25 @@ unsafe extern "C" fn dns_rrtype_match(
     tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, DNSTransaction);
-    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    let ctx = cast_pointer!(ctx, DetectUintArrayData<u16>);
 
     if flags & Direction::ToServer as u8 != 0 {
         if let Some(request) = &tx.request {
-            for i in 0..request.queries.len() {
-                if detect_match_uint(ctx, request.queries[i].rrtype) {
-                    return 1;
-                }
-            }
+            return detect_uint_match_at_index::<DNSQueryEntry, u16>(
+                &request.queries,
+                ctx,
+                |q| Some(q.rrtype),
+                |rrt, ctx_value| detect_match_uint(ctx_value, rrt) as c_int,
+            );
         }
     } else if flags & Direction::ToClient as u8 != 0 {
         if let Some(response) = &tx.response {
-            for i in 0..response.answers.len() {
-                if detect_match_uint(ctx, response.answers[i].rrtype) {
-                    return 1;
-                }
-            }
+            return detect_uint_match_at_index::<DNSAnswerEntry, u16>(
+                &response.answers,
+                ctx,
+                |a| Some(a.rrtype),
+                |rrt, ctx_value| detect_match_uint(ctx_value, rrt) as c_int,
+            );
         }
     }
     return 0;
@@ -212,10 +217,10 @@ unsafe extern "C" fn dns_rcode_free(_de: *mut DetectEngineCtx, ctx: *mut c_void)
 
 unsafe extern "C" fn dns_rrtype_parse(
     ustr: *const std::os::raw::c_char,
-) -> *mut DetectUintData<u8> {
+) -> *mut DetectUintArrayData<u8> {
     let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
     if let Ok(s) = ft_name.to_str() {
-        if let Some(ctx) = detect_parse_uint_enum::<u16, DNSRecordType>(s) {
+        if let Some(ctx) = detect_parse_array_uint_enum::<u16, DNSRecordType>(s) {
             let boxed = Box::new(ctx);
             return Box::into_raw(boxed) as *mut _;
         }
@@ -249,9 +254,8 @@ unsafe extern "C" fn dns_rrtype_setup(
 }
 
 unsafe extern "C" fn dns_rrtype_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
-    // Just unbox...
-    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
-    SCDetectU16Free(ctx);
+    let ctx = cast_pointer!(ctx, DetectUintArrayData<u16>);
+    std::mem::drop(Box::from_raw(ctx));
 }
 
 unsafe extern "C" fn dns_detect_answer_name_setup(
