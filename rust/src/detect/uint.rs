@@ -57,6 +57,12 @@ pub(crate) enum DetectUintIndex {
     Index(i32),
 }
 
+#[derive(Debug, PartialEq)]
+pub(crate) struct DetectUintArrayData<T> {
+    pub du: DetectUintData<T>,
+    pub index: DetectUintIndex,
+}
+
 /// Parses a string for detection with integers, using enumeration strings
 ///
 /// Needs to specify T1 the integer type (like u8)
