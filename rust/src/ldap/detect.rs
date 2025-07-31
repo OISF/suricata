@@ -19,7 +19,7 @@ use super::ldap::{LdapTransaction, ALPROTO_LDAP};
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{
     detect_match_uint, detect_parse_uint_enum, DetectUintData, DetectUintIndex, SCDetectU32Free,
-    SCDetectU32Parse, SCDetectU8Free,
+    SCDetectU32Parse, SCDetectU8Free, DetectUintArrayData,
 };
 use crate::detect::{
     helper_keyword_register_multi_buffer, helper_keyword_register_sticky_buffer,
@@ -38,25 +38,6 @@ use std::collections::VecDeque;
 use std::ffi::CStr;
 use std::os::raw::{c_int, c_void};
 use std::str::FromStr;
-
-#[derive(Debug, PartialEq)]
-struct DetectLdapRespOpData {
-    /// Ldap response operation code
-    pub du8: DetectUintData<u8>,
-    /// Index can be Any to match with any responses index,
-    /// All to match if all indices, or an i32 integer
-    /// Negative values represent back to front indexing.
-    pub index: DetectUintIndex,
-}
-
-struct DetectLdapRespResultData {
-    /// Ldap result code
-    pub du32: DetectUintData<u32>,
-    /// Index can be Any to match with any responses index,
-    /// All to match if all indices, or an i32 integer
-    /// Negative values represent back to front indexing.
-    pub index: DetectUintIndex,
-}
 
 static mut G_LDAP_REQUEST_OPERATION_KW_ID: u16 = 0;
 static mut G_LDAP_REQUEST_OPERATION_BUFFER_ID: c_int = 0;
@@ -145,16 +126,16 @@ fn parse_ldap_index(parts: &[&str]) -> Option<DetectUintIndex> {
     return Some(index);
 }
 
-fn aux_ldap_parse_protocol_resp_op(s: &str) -> Option<DetectLdapRespOpData> {
+fn aux_ldap_parse_protocol_resp_op(s: &str) -> Option<DetectUintArrayData<u8>> {
     let parts: Vec<&str> = s.split(',').collect();
     if parts.len() > 2 {
         return None;
     }
 
     let index = parse_ldap_index(&parts)?;
-    let du8 = detect_parse_uint_enum::<u8, ProtocolOpCode>(parts[0])?;
+    let du = detect_parse_uint_enum::<u8, ProtocolOpCode>(parts[0])?;
 
-    Some(DetectLdapRespOpData { du8, index })
+    Some(DetectUintArrayData{ du, index })
 }
 
 unsafe extern "C" fn ldap_parse_protocol_resp_op(
@@ -243,11 +224,11 @@ unsafe extern "C" fn ldap_detect_responses_operation_match(
     tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, LdapTransaction);
-    let ctx = cast_pointer!(ctx, DetectLdapRespOpData);
+    let ctx = cast_pointer!(ctx, DetectUintArrayData<u8>);
 
     return match_at_index::<LdapMessage, u8>(
         &tx.responses,
-        &ctx.du8,
+        &ctx.du,
         |response| Some(response.protocol_op.tag().0 as u8),
         |code, ctx_value| detect_match_uint(ctx_value, code) as c_int,
         &ctx.index,
@@ -256,7 +237,7 @@ unsafe extern "C" fn ldap_detect_responses_operation_match(
 
 unsafe extern "C" fn ldap_detect_responses_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     // Just unbox...
-    let ctx = cast_pointer!(ctx, DetectLdapRespOpData);
+    let ctx = cast_pointer!(ctx, DetectUintArrayData<u8>);
     std::mem::drop(Box::from_raw(ctx));
 }
 
@@ -385,16 +366,16 @@ unsafe extern "C" fn ldap_tx_get_responses_dn(
     return true;
 }
 
-fn aux_ldap_parse_resp_result_code(s: &str) -> Option<DetectLdapRespResultData> {
+fn aux_ldap_parse_resp_result_code(s: &str) -> Option<DetectUintArrayData<u32>> {
     let parts: Vec<&str> = s.split(',').collect();
     if parts.len() > 2 {
         return None;
     }
 
     let index = parse_ldap_index(&parts)?;
-    let du32 = detect_parse_uint_enum::<u32, LdapResultCode>(parts[0])?;
+    let du = detect_parse_uint_enum::<u32, LdapResultCode>(parts[0])?;
 
-    Some(DetectLdapRespResultData { du32, index })
+    Some(DetectUintArrayData { du, index })
 }
 
 unsafe extern "C" fn ldap_parse_responses_result_code(
@@ -454,11 +435,11 @@ unsafe extern "C" fn ldap_detect_responses_result_code_match(
     tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, LdapTransaction);
-    let ctx = cast_pointer!(ctx, DetectLdapRespResultData);
+    let ctx = cast_pointer!(ctx, DetectUintArrayData<u32>);
 
     return match_at_index::<LdapMessage, u32>(
         &tx.responses,
-        &ctx.du32,
+        &ctx.du,
         get_ldap_result_code,
         |code, ctx_value| detect_match_uint(ctx_value, code) as c_int,
         &ctx.index,
@@ -469,7 +450,7 @@ unsafe extern "C" fn ldap_detect_responses_result_code_free(
     _de: *mut DetectEngineCtx, ctx: *mut c_void,
 ) {
     // Just unbox...
-    let ctx = cast_pointer!(ctx, DetectLdapRespResultData);
+    let ctx = cast_pointer!(ctx, DetectUintArrayData<u32>);
     std::mem::drop(Box::from_raw(ctx));
 }
 
