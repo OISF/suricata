@@ -111,7 +111,7 @@ unsafe extern "C" fn ldap_detect_request_free(_de: *mut DetectEngineCtx, ctx: *m
 
 unsafe extern "C" fn ldap_parse_protocol_resp_op(
     ustr: *const std::os::raw::c_char,
-) -> *mut DetectUintData<u8> {
+) -> *mut DetectUintArrayData<u8> {
     let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
     if let Ok(s) = ft_name.to_str() {
         if let Some(ctx) = detect_parse_array_uint_enum::<u8, ProtocolOpCode>(s) {
@@ -295,7 +295,7 @@ unsafe extern "C" fn ldap_tx_get_responses_dn(
 
 unsafe extern "C" fn ldap_parse_responses_result_code(
     ustr: *const std::os::raw::c_char,
-) -> *mut DetectUintData<u32> {
+) -> *mut DetectUintArrayData<u32> {
     let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
     if let Ok(s) = ft_name.to_str() {
         if let Some(ctx) = detect_parse_array_uint_enum::<u32, LdapResultCode>(s) {
