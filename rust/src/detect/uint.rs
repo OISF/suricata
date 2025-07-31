@@ -26,6 +26,7 @@ use nom7::IResult;
 use super::EnumString;
 
 use std::ffi::CStr;
+use std::str::FromStr;
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 #[repr(u8)]
@@ -61,6 +62,36 @@ pub(crate) enum DetectUintIndex {
 pub(crate) struct DetectUintArrayData<T> {
     pub du: DetectUintData<T>,
     pub index: DetectUintIndex,
+}
+
+fn parse_uint_index(parts: &[&str]) -> Option<DetectUintIndex> {
+    let index = if parts.len() == 2 {
+        match parts[1] {
+            "all" => DetectUintIndex::All,
+            "any" => DetectUintIndex::Any,
+            _ => {
+                let i32_index = i32::from_str(parts[1]).ok()?;
+                DetectUintIndex::Index(i32_index)
+            }
+        }
+    } else {
+        DetectUintIndex::Any
+    };
+    return Some(index);
+}
+
+pub(crate) fn detect_parse_array_uint_enum<T1: DetectIntType, T2: EnumString<T1>>(
+    s: &str,
+) -> Option<DetectUintArrayData<T1>> {
+    let parts: Vec<&str> = s.split(',').collect();
+    if parts.len() > 2 {
+        return None;
+    }
+
+    let index = parse_uint_index(&parts)?;
+    let du = detect_parse_uint_enum::<T1, T2>(parts[0])?;
+
+    Some(DetectUintArrayData { du, index })
 }
 
 /// Parses a string for detection with integers, using enumeration strings
