@@ -18,7 +18,18 @@
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
 use crate::krb::krb5::{test_weak_encryption, KRB5Transaction};
-use suricata_sys::sys::DetectEngineThreadCtx;
+use suricata_sys::sys::AppProtoEnum::ALPROTO_KRB5;
+use suricata_sys::sys::{
+    AppProto, DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectHelperBufferRegister,
+    SCDetectHelperKeywordRegister, SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList,
+    SCSigTableAppLiteElmt, SigMatchCtx, Signature,
+};
+
+use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
+use crate::detect::uint::{
+    detect_parse_uint_enum, DetectUintData, SCDetectU32Free, SCDetectU32Match,
+};
+use crate::detect::SIGMATCH_INFO_UINT32;
 
 use kerberos_parser::krb5::EncryptionType;
 
@@ -29,13 +40,8 @@ use nom7::combinator::{all_consuming, map_res, opt};
 use nom7::multi::many1;
 use nom7::IResult;
 
-use std::ffi::CStr;
+use std::ffi::{c_int, CStr};
 use std::os::raw::c_void;
-
-#[no_mangle]
-pub unsafe extern "C" fn SCKrb5TxGetMsgType(tx: &KRB5Transaction, ptr: *mut u32) {
-    *ptr = tx.msg_type.0;
-}
 
 /// Get error code, if present in transaction
 /// Return 0 if error code was filled, else 1
@@ -344,4 +350,98 @@ mod tests {
             }
         }
     }
+}
+
+static mut G_KRB5_MSG_TYPE_KW_ID: u16 = 0;
+static mut G_KRB5_MSG_TYPE_BUFFER_ID: c_int = 0;
+
+// We should apply the derive on the kerberos_parser MessageType
+#[repr(u32)]
+#[derive(EnumStringU32)]
+#[allow(non_camel_case_types)]
+pub enum Krb5MessageType {
+    AS_REQ = 10,
+    AS_REP = 11,
+    TGS_REQ = 12,
+    TGS_REP = 13,
+    AP_REQ = 14,
+    AP_REP = 15,
+    RESERVED16 = 16,
+    RESERVED17 = 17,
+    SAFE = 20,
+    PRIV = 21,
+    CRED = 22,
+    ERROR = 30,
+}
+
+unsafe extern "C" fn krb5_parse_msg_type(
+    ustr: *const std::os::raw::c_char,
+) -> *mut DetectUintData<u32> {
+    let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
+    if let Ok(s) = ft_name.to_str() {
+        if let Some(ctx) = detect_parse_uint_enum::<u32, Krb5MessageType>(s) {
+            let boxed = Box::new(ctx);
+            return Box::into_raw(boxed) as *mut _;
+        }
+    }
+    return std::ptr::null_mut();
+}
+
+unsafe extern "C" fn krb5_msg_type_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_KRB5 as AppProto) != 0 {
+        return -1;
+    }
+    let ctx = krb5_parse_msg_type(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_KRB5_MSG_TYPE_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_KRB5_MSG_TYPE_BUFFER_ID,
+    )
+    .is_null()
+    {
+        krb5_msg_type_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn krb5_msg_type_match(
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
+) -> c_int {
+    let tx = cast_pointer!(tx, KRB5Transaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u32>);
+    // kerberos_parser crate defines MessageType as u32 and not u8...
+    return SCDetectU32Match(tx.msg_type.0, ctx);
+}
+
+unsafe extern "C" fn krb5_msg_type_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
+    let ctx = cast_pointer!(ctx, DetectUintData<u32>);
+    SCDetectU32Free(ctx);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCDetectKrb5MsgTypeRegister() {
+    let kw = SCSigTableAppLiteElmt {
+        name: b"krb5_msg_type\0".as_ptr() as *const libc::c_char,
+        desc: b"match Kerberos 5 message type\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/kerberos-keywords.html#krb5-msg-type\0".as_ptr() as *const libc::c_char,
+        AppLayerTxMatch: Some(krb5_msg_type_match),
+        Setup: Some(krb5_msg_type_setup),
+        Free: Some(krb5_msg_type_free),
+        flags: SIGMATCH_INFO_UINT32,
+    };
+    G_KRB5_MSG_TYPE_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    G_KRB5_MSG_TYPE_BUFFER_ID = SCDetectHelperBufferRegister(
+        b"krb5_msg_type\0".as_ptr() as *const libc::c_char,
+        ALPROTO_KRB5 as AppProto,
+        STREAM_TOCLIENT | STREAM_TOSERVER,
+    );
 }
