@@ -7,6 +7,8 @@ krb5_msg_type
 This keyword allows to match the Kerberos messages by its type (integer).
 It is possible to specify the following values defined in RFC4120:
 
+krb5_msg_type uses :ref:`unsigned 32-bit integer <rules-integer-keywords>`.
+
 * 10 (AS-REQ)
 * 11 (AS-REP)
 * 12 (TGS-REQ)
@@ -15,15 +17,15 @@ It is possible to specify the following values defined in RFC4120:
 
 Syntax::
 
- krb5_msg_type:<number>
+ krb5_msg_type:(mode) <number or string>
 
 Signature examples::
 
  alert krb5 any any -> any any (msg:"Kerberos 5 AS-REQ message"; krb5_msg_type:10; sid:3; rev:1;)
- alert krb5 any any -> any any (msg:"Kerberos 5 AS-REP message"; krb5_msg_type:11; sid:4; rev:1;)
+ alert krb5 any any -> any any (msg:"Kerberos 5 AS-REP message"; krb5_msg_type:AS_REP; sid:4; rev:1;)
  alert krb5 any any -> any any (msg:"Kerberos 5 TGS-REQ message"; krb5_msg_type:12; sid:5; rev:1;)
  alert krb5 any any -> any any (msg:"Kerberos 5 TGS-REP message"; krb5_msg_type:13; sid:6; rev:1;)
- alert krb5 any any -> any any (msg:"Kerberos 5 ERROR message"; krb5_msg_type:30; sid:7; rev:1;)
+ alert krb5 any any -> any any (msg:"Kerberos 5 not ERROR message"; krb5_msg_type:!30; sid:7; rev:1;)
 
 
 .. note:: AP-REQ and AP-REP are not currently supported since those messages
