@@ -27,7 +27,6 @@ use super::EnumString;
 
 use std::ffi::{CStr, c_int};
 use std::str::FromStr;
-use std::collections::VecDeque;
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 #[repr(u8)]
@@ -96,7 +95,7 @@ pub(crate) fn detect_parse_array_uint_enum<T1: DetectIntType, T2: EnumString<T1>
 }
 
 pub(crate) fn detect_uint_match_at_index<T, U>(
-    array: &VecDeque<T>, ctx: &DetectUintArrayData<U>, get_value: impl Fn(&T) -> Option<U>,
+    array: &Vec<T>, ctx: &DetectUintArrayData<U>, get_value: impl Fn(&T) -> Option<U>,
     detect_match: impl Fn(U, &DetectUintData<U>) -> c_int,
 ) -> c_int {
     match ctx.index {

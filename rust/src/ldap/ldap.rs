@@ -64,7 +64,7 @@ enum LdapEvent {
 pub struct LdapTransaction {
     pub tx_id: u64,
     pub request: Option<LdapMessage<'static>>,
-    pub responses: VecDeque<LdapMessage<'static>>,
+    pub responses: Vec<LdapMessage<'static>>,
     complete: bool,
 
     tx_data: AppLayerTxData,
@@ -81,7 +81,7 @@ impl LdapTransaction {
         Self {
             tx_id: 0,
             request: None,
-            responses: VecDeque::new(),
+            responses: Vec::new(),
             complete: false,
             tx_data: AppLayerTxData::new(),
         }
@@ -312,7 +312,7 @@ impl LdapState {
                         tx.complete |= tx_is_complete(&response.protocol_op, Direction::ToClient);
                         let tx_id = tx.id();
                         tx.tx_data.updated_tc = true;
-                        tx.responses.push_back(response.to_static());
+                        tx.responses.push(response.to_static());
                         sc_app_layer_parser_trigger_raw_stream_inspection(
                             flow,
                             Direction::ToClient as i32,
@@ -329,7 +329,7 @@ impl LdapState {
                         let mut tx = tx.unwrap();
                         let tx_id = tx.id();
                         tx.complete = true;
-                        tx.responses.push_back(response.to_static());
+                        tx.responses.push(response.to_static());
                         self.transactions.push_back(tx);
                         sc_app_layer_parser_trigger_raw_stream_inspection(
                             flow,
@@ -345,7 +345,7 @@ impl LdapState {
                         let mut tx = tx.unwrap();
                         tx.complete = true;
                         let tx_id = tx.id();
-                        tx.responses.push_back(response.to_static());
+                        tx.responses.push(response.to_static());
                         self.transactions.push_back(tx);
                         sc_app_layer_parser_trigger_raw_stream_inspection(
                             flow,
@@ -436,7 +436,7 @@ impl LdapState {
                     if let Some(tx) = self.find_request(response.message_id) {
                         tx.complete |= tx_is_complete(&response.protocol_op, Direction::ToClient);
                         let tx_id = tx.id();
-                        tx.responses.push_back(response.to_static());
+                        tx.responses.push(response.to_static());
                         let consumed = start.len() - rem.len();
                         self.set_frame_tc(flow, tx_id, consumed as i64);
                     } else if let ProtocolOp::ExtendedResponse(_) = response.protocol_op {
@@ -449,7 +449,7 @@ impl LdapState {
                         let mut tx = tx.unwrap();
                         tx.complete = true;
                         let tx_id = tx.id();
-                        tx.responses.push_back(response.to_static());
+                        tx.responses.push(response.to_static());
                         self.transactions.push_back(tx);
                         let consumed = start.len() - rem.len();
                         self.set_frame_tc(flow, tx_id, consumed as i64);
@@ -461,7 +461,7 @@ impl LdapState {
                         let mut tx = tx.unwrap();
                         tx.complete = true;
                         let tx_id = tx.id();
-                        tx.responses.push_back(response.to_static());
+                        tx.responses.push(response.to_static());
                         self.transactions.push_back(tx);
                         self.set_event(LdapEvent::RequestNotFound);
                         let consumed = start.len() - rem.len();
