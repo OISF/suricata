@@ -18,8 +18,9 @@
 use super::ldap::{LdapTransaction, ALPROTO_LDAP};
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{
-    detect_match_uint, detect_parse_array_uint_enum, detect_parse_uint_enum, DetectUintArrayData,
-    DetectUintData, DetectUintIndex, SCDetectU32Free, SCDetectU32Parse, SCDetectU8Free,
+    detect_match_uint, detect_parse_array_uint_enum, detect_parse_uint_enum,
+    detect_uint_match_at_index, DetectUintArrayData, DetectUintData, SCDetectU32Free,
+    SCDetectU32Parse, SCDetectU8Free,
 };
 use crate::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
 use crate::ldap::types::*;
@@ -107,7 +108,7 @@ unsafe extern "C" fn ldap_detect_request_free(_de: *mut DetectEngineCtx, ctx: *m
 
 unsafe extern "C" fn ldap_parse_protocol_resp_op(
     ustr: *const std::os::raw::c_char,
-) -> *mut DetectUintData<u8> {
+) -> *mut DetectUintArrayData<u8> {
     let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
     if let Ok(s) = ft_name.to_str() {
         if let Some(ctx) = detect_parse_array_uint_enum::<u8, ProtocolOpCode>(s) {
@@ -143,49 +144,6 @@ unsafe extern "C" fn ldap_detect_responses_operation_setup(
     return 0;
 }
 
-fn match_at_index<T, U>(
-    array: &[T], ctx_value: &DetectUintData<U>, get_value: impl Fn(&T) -> Option<U>,
-    detect_match: impl Fn(U, &DetectUintData<U>) -> c_int, index: &DetectUintIndex,
-) -> c_int {
-    match index {
-        DetectUintIndex::Any => {
-            for response in array {
-                if let Some(code) = get_value(response) {
-                    if detect_match(code, ctx_value) == 1 {
-                        return 1;
-                    }
-                }
-            }
-            return 0;
-        }
-        DetectUintIndex::All => {
-            for response in array {
-                if let Some(code) = get_value(response) {
-                    if detect_match(code, ctx_value) == 0 {
-                        return 0;
-                    }
-                }
-            }
-            return 1;
-        }
-        DetectUintIndex::Index(idx) => {
-            let index = if *idx < 0 {
-                // negative values for backward indexing.
-                ((array.len() as i32) + idx) as usize
-            } else {
-                *idx as usize
-            };
-            if array.len() <= index {
-                return 0;
-            }
-            if let Some(code) = get_value(&array[index]) {
-                return detect_match(code, ctx_value);
-            }
-            return 0;
-        }
-    }
-}
-
 unsafe extern "C" fn ldap_detect_responses_operation_match(
     _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
     tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
@@ -193,13 +151,9 @@ unsafe extern "C" fn ldap_detect_responses_operation_match(
     let tx = cast_pointer!(tx, LdapTransaction);
     let ctx = cast_pointer!(ctx, DetectUintArrayData<u8>);
 
-    return match_at_index::<LdapMessage, u8>(
-        &tx.responses,
-        &ctx.du,
-        |response| Some(response.protocol_op.tag().0 as u8),
-        |code, ctx_value| detect_match_uint(ctx_value, code) as c_int,
-        &ctx.index,
-    );
+    return detect_uint_match_at_index::<LdapMessage, u8>(&tx.responses, ctx, |response| {
+        Some(response.protocol_op.tag().0 as u8)
+    });
 }
 
 unsafe extern "C" fn ldap_detect_responses_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
@@ -335,7 +289,7 @@ unsafe extern "C" fn ldap_tx_get_responses_dn(
 
 unsafe extern "C" fn ldap_parse_responses_result_code(
     ustr: *const std::os::raw::c_char,
-) -> *mut DetectUintData<u32> {
+) -> *mut DetectUintArrayData<u32> {
     let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
     if let Ok(s) = ft_name.to_str() {
         if let Some(ctx) = detect_parse_array_uint_enum::<u32, LdapResultCode>(s) {
@@ -392,12 +346,10 @@ unsafe extern "C" fn ldap_detect_responses_result_code_match(
     let tx = cast_pointer!(tx, LdapTransaction);
     let ctx = cast_pointer!(ctx, DetectUintArrayData<u32>);
 
-    return match_at_index::<LdapMessage, u32>(
+    return detect_uint_match_at_index::<LdapMessage, u32>(
         &tx.responses,
-        &ctx.du,
+        ctx,
         get_ldap_result_code,
-        |code, ctx_value| detect_match_uint(ctx_value, code) as c_int,
-        &ctx.index,
     );
 }
 
