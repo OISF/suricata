@@ -168,7 +168,16 @@ static void ApplyToU8Hash(PrefilterPacketU8HashCtx *ctx, PrefilterPacketHeaderVa
                 } while (x--);
 
                 break;
-            }
+        }
+        case DetectUintModeLte: {
+            uint8_t x = v.u8[1];
+            do {
+                SigsArray *sa = ctx->array[x];
+                sa->sigs[sa->offset++] = s->num;
+            } while (x--);
+
+            break;
+        }
         case PREFILTER_U8HASH_MODE_GT:
             {
                 int x = v.u8[1] + 1;
@@ -178,7 +187,16 @@ static void ApplyToU8Hash(PrefilterPacketU8HashCtx *ctx, PrefilterPacketHeaderVa
                 } while (++x < 256);
 
                 break;
-            }
+        }
+        case DetectUintModeGte: {
+            int x = v.u8[1];
+            do {
+                SigsArray *sa = ctx->array[x];
+                sa->sigs[sa->offset++] = s->num;
+            } while (++x < 256);
+
+            break;
+        }
         case PREFILTER_U8HASH_MODE_RA:
             {
                 int x = v.u8[1] + 1;
@@ -188,7 +206,20 @@ static void ApplyToU8Hash(PrefilterPacketU8HashCtx *ctx, PrefilterPacketHeaderVa
                 } while (++x < v.u8[2]);
 
                 break;
+        }
+        case DetectUintModeNe: {
+            for (uint8_t i = 0; i < UINT8_MAX; i++) {
+                if (i != v.u8[1]) {
+                    SigsArray *sa = ctx->array[i];
+                    sa->sigs[sa->offset++] = s->num;
+                }
             }
+            if (UINT8_MAX != v.u8[1]) {
+                SigsArray *sa = ctx->array[UINT8_MAX];
+                sa->sigs[sa->offset++] = s->num;
+            }
+            break;
+        }
     }
 }
 
@@ -305,9 +336,29 @@ static void SetupU8Hash(DetectEngineCtx *de_ctx, HashListTable *hash_table,
 
                 break;
             }
+            case DetectUintModeLte: {
+                uint8_t v = ctx->v1.u8[1];
+                counts[v] += ctx->cnt;
+                while (v > 0) {
+                    v--;
+                    counts[v] += ctx->cnt;
+                }
+
+                break;
+            }
             case PREFILTER_U8HASH_MODE_GT:
             {
                 uint8_t v = ctx->v1.u8[1];
+                while (v < UINT8_MAX) {
+                    v++;
+                    counts[v] += ctx->cnt;
+                }
+
+                break;
+            }
+            case DetectUintModeGte: {
+                uint8_t v = ctx->v1.u8[1];
+                counts[v] += ctx->cnt;
                 while (v < UINT8_MAX) {
                     v++;
                     counts[v] += ctx->cnt;
@@ -327,6 +378,19 @@ static void SetupU8Hash(DetectEngineCtx *de_ctx, HashListTable *hash_table,
                 }
                 break;
             }
+            case DetectUintModeNe: {
+                for (uint8_t i = 0; i < UINT8_MAX; i++) {
+                    if (i != ctx->v1.u8[1]) {
+                        counts[i] += ctx->cnt;
+                    }
+                }
+                if (UINT8_MAX != ctx->v1.u8[1]) {
+                    counts[UINT8_MAX] += ctx->cnt;
+                }
+                break;
+            }
+            default:
+                SCLogWarning("Prefilter not implemented for mode 0x%x", ctx->v1.u8[0]);
         }
     }
 
