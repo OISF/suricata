@@ -40,7 +40,7 @@ use std::os::raw::{c_int, c_void};
 use std::str::FromStr;
 
 #[derive(Debug, PartialEq)]
-enum LdapIndex {
+enum DetectUintIndex {
     Any,
     All,
     Index(i32),
@@ -53,7 +53,7 @@ struct DetectLdapRespOpData {
     /// Index can be Any to match with any responses index,
     /// All to match if all indices, or an i32 integer
     /// Negative values represent back to front indexing.
-    pub index: LdapIndex,
+    pub index: DetectUintIndex,
 }
 
 struct DetectLdapRespResultData {
@@ -62,7 +62,7 @@ struct DetectLdapRespResultData {
     /// Index can be Any to match with any responses index,
     /// All to match if all indices, or an i32 integer
     /// Negative values represent back to front indexing.
-    pub index: LdapIndex,
+    pub index: DetectUintIndex,
 }
 
 static mut G_LDAP_REQUEST_OPERATION_KW_ID: u16 = 0;
@@ -136,18 +136,18 @@ unsafe extern "C" fn ldap_detect_request_free(_de: *mut DetectEngineCtx, ctx: *m
     SCDetectU8Free(ctx);
 }
 
-fn parse_ldap_index(parts: &[&str]) -> Option<LdapIndex> {
+fn parse_ldap_index(parts: &[&str]) -> Option<DetectUintIndex> {
     let index = if parts.len() == 2 {
         match parts[1] {
-            "all" => LdapIndex::All,
-            "any" => LdapIndex::Any,
+            "all" => DetectUintIndex::All,
+            "any" => DetectUintIndex::Any,
             _ => {
                 let i32_index = i32::from_str(parts[1]).ok()?;
-                LdapIndex::Index(i32_index)
+                DetectUintIndex::Index(i32_index)
             }
         }
     } else {
-        LdapIndex::Any
+        DetectUintIndex::Any
     };
     return Some(index);
 }
@@ -204,10 +204,10 @@ unsafe extern "C" fn ldap_detect_responses_operation_setup(
 
 fn match_at_index<T, U>(
     array: &VecDeque<T>, ctx_value: &DetectUintData<U>, get_value: impl Fn(&T) -> Option<U>,
-    detect_match: impl Fn(U, &DetectUintData<U>) -> c_int, index: &LdapIndex,
+    detect_match: impl Fn(U, &DetectUintData<U>) -> c_int, index: &DetectUintIndex,
 ) -> c_int {
     match index {
-        LdapIndex::Any => {
+        DetectUintIndex::Any => {
             for response in array {
                 if let Some(code) = get_value(response) {
                     if detect_match(code, ctx_value) == 1 {
@@ -217,7 +217,7 @@ fn match_at_index<T, U>(
             }
             return 0;
         }
-        LdapIndex::All => {
+        DetectUintIndex::All => {
             for response in array {
                 if let Some(code) = get_value(response) {
                     if detect_match(code, ctx_value) == 0 {
@@ -227,7 +227,7 @@ fn match_at_index<T, U>(
             }
             return 1;
         }
-        LdapIndex::Index(idx) => {
+        DetectUintIndex::Index(idx) => {
             let index = if *idx < 0 {
                 // negative values for backward indexing.
                 ((array.len() as i32) + idx) as usize
