@@ -274,7 +274,7 @@ void DetectAppLayerInspectEngineRegister(const char *name, AppProto alproto, uin
         int progress, InspectEngineFuncPtr Callback, InspectionBufferGetDataPtr GetData)
 {
     /* before adding, check that we don't add a duplicate entry, which will
-     * propegate all the way into the packet runtime if allowed. */
+     * propagate all the way into the packet runtime if allowed. */
     DetectEngineAppInspectionEngine *t = g_app_inspect_engines;
     while (t != NULL) {
         const uint32_t t_direction = t->dir == 0 ? SIG_FLAG_TOSERVER : SIG_FLAG_TOCLIENT;
@@ -296,7 +296,7 @@ void DetectAppLayerInspectEngineRegisterSingle(const char *name, AppProto alprot
         int progress, InspectEngineFuncPtr Callback, InspectionSingleBufferGetDataPtr GetData)
 {
     /* before adding, check that we don't add a duplicate entry, which will
-     * propegate all the way into the packet runtime if allowed. */
+     * propagate all the way into the packet runtime if allowed. */
     DetectEngineAppInspectionEngine *t = g_app_inspect_engines;
     while (t != NULL) {
         const uint32_t t_direction = t->dir == 0 ? SIG_FLAG_TOSERVER : SIG_FLAG_TOCLIENT;
