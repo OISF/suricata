@@ -18,8 +18,8 @@
 use super::ldap::{LdapTransaction, ALPROTO_LDAP};
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{
-    detect_match_uint, detect_parse_uint_enum, DetectUintData, SCDetectU32Free, SCDetectU32Parse,
-    SCDetectU8Free,
+    detect_match_uint, detect_parse_uint_enum, DetectUintData, DetectUintIndex, SCDetectU32Free,
+    SCDetectU32Parse, SCDetectU8Free,
 };
 use crate::detect::{
     helper_keyword_register_multi_buffer, helper_keyword_register_sticky_buffer,
@@ -38,13 +38,6 @@ use std::collections::VecDeque;
 use std::ffi::CStr;
 use std::os::raw::{c_int, c_void};
 use std::str::FromStr;
-
-#[derive(Debug, PartialEq)]
-enum DetectUintIndex {
-    Any,
-    All,
-    Index(i32),
-}
 
 #[derive(Debug, PartialEq)]
 struct DetectLdapRespOpData {
