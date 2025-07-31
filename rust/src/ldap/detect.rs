@@ -31,7 +31,6 @@ use suricata_sys::sys::{
     SCSigTableAppLiteElmt, SigMatchCtx, Signature,
 };
 
-use std::collections::VecDeque;
 use std::ffi::CStr;
 use std::os::raw::{c_int, c_void};
 
@@ -145,7 +144,7 @@ unsafe extern "C" fn ldap_detect_responses_operation_setup(
 }
 
 fn match_at_index<T, U>(
-    array: &VecDeque<T>, ctx_value: &DetectUintData<U>, get_value: impl Fn(&T) -> Option<U>,
+    array: &[T], ctx_value: &DetectUintData<U>, get_value: impl Fn(&T) -> Option<U>,
     detect_match: impl Fn(U, &DetectUintData<U>) -> c_int, index: &DetectUintIndex,
 ) -> c_int {
     match index {
