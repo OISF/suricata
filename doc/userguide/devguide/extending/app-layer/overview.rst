@@ -10,6 +10,7 @@ After a generic first step of collecting data about this application-layer proto
 especially pcaps for testing, we can dive into the Suricata specifics.
 
 An application-layer protocol has three logic components in Suricata:
+
 - parser
 - logger
 - detecting keywords
@@ -74,6 +75,7 @@ then improve it by adding gap support.
 Pcaps for testing can be created by removing some packets in previous testing pcaps.
 
 After adding the flag ``APP_LAYER_PARSER_OPT_ACCEPT_GAPS``, a generic way to handle this is:
+
 - add two booleans to the State, like request_gap and response_gap
 - have the parsing functions set these booleans ``if stream_slice.is_gap()``
 - have the parsing functions test these booleans, and try to resync with a beginning of a PDU
