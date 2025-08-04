@@ -1778,6 +1778,10 @@
             WITH_GPL_DATA="\"with-gpl-data\""
             AC_SUBST(WITH_GPL_DATA)
         ])
+        AM_CONDITIONAL([HAVE_MIMETYPE], [true])
+        ],
+        [
+        AM_CONDITIONAL([HAVE_MIMETYPE], [false])
         ]
     )
     if test "x$enable_gpl_mimetype" != "xyes"; then

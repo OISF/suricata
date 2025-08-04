@@ -27,6 +27,8 @@
 #include "util-mimetype.h"
 #include "rust.h"
 
+#ifdef HAVE_MIMETYPE
+
 #define FILE_MIMETYPE_MIN_SIZE 512
 
 int FileMimetypeLookup(File *file)
@@ -49,3 +51,5 @@ int FileMimetypeLookup(File *file)
     }
     SCReturnInt(0);
 }
+
+#endif /* HAVE_MIMETYPE */
