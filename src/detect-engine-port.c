@@ -794,7 +794,7 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
 
     SCLogDebug("head %p, *head %p, negate %d", head, *head, negate);
 
-    for (u = 0, x = 0; u < size && x < sizeof(port); u++) {
+    for (; u < size && x < sizeof(port); u++) {
         port[x] = s[u];
         x++;
 
