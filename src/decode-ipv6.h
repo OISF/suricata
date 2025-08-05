@@ -240,6 +240,8 @@ typedef struct IPV6ExtHdrs_
 #define IPV6_EXTHDR_SET_RH(p)       (p)->ip6eh.rh_set = true
 #define IPV6_EXTHDR_ISSET_RH(p)     (p)->ip6eh.rh_set
 
+void DecodeIPV4InIPV6Config(void);
+void DecodeIPV6InIPV6Config(void);
 void DecodeIPV6RegisterTests(void);
 
 #endif /* __DECODE_IPV6_H__ */
