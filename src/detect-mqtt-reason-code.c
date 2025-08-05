@@ -126,7 +126,7 @@ static uint8_t *DetectMQTTReasonCodeParse(const char *rawstr)
     uint8_t val;
 
     ret = StringParseUint8(&val, 10, 0, rawstr);
-    if (ret < 0) {
+    if (ret <= 0) {
         SCLogError("invalid MQTT reason code: %s", rawstr);
         return NULL;
     }

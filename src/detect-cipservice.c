@@ -347,7 +347,7 @@ static DetectEnipCommandData *DetectEnipCommandParse(const char *rulestr)
     }
 
     uint16_t cmd;
-    if (StringParseUint16(&cmd, 10, 0, rulestr) < 0) {
+    if (StringParseUint16(&cmd, 10, 0, rulestr) <= 0) {
         SCLogError("invalid ENIP command"
                    ": \"%s\"",
                 rulestr);
