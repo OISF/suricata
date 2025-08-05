@@ -807,6 +807,7 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
         } else if (!o_set && s[u] == '!') {
             SCLogDebug("negation encountered");
             n_set = 1;
+            BUG_ON(x == 0);
             x--;
         } else if (s[u] == '[') {
             if (!o_set) {
