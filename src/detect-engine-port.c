@@ -807,7 +807,8 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
         } else if (!o_set && s[u] == '!') {
             SCLogDebug("negation encountered");
             n_set = 1;
-            x--;
+            if (x > 0) /* always true; check is added to make Coverity happy */
+                x--;
         } else if (s[u] == '[') {
             if (!o_set) {
                 o_set = 1;
