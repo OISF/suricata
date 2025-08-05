@@ -7073,6 +7073,7 @@ static int HTPParserTest27(void)
     HtpTxUserData *tx_ud = SCMalloc(sizeof(HtpTxUserData));
     FAIL_IF_NULL(tx_ud);
 
+    tx_ud->tsflags = BIT_U8(0);
     tx_ud->tsflags |= HTP_STREAM_DEPTH_SET;
     tx_ud->request_body.content_len_so_far = 2500;
 
