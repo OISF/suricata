@@ -108,7 +108,7 @@ static uint8_t *DetectMQTTQosParse(const char *rawstr)
     uint8_t val;
 
     ret = StringParseU8RangeCheck(&val, 10, 0, rawstr, 0, 2);
-    if (ret < 0) {
+    if (ret <= 0) {
         SCLogError("invalid MQTT QOS level: %s", rawstr);
         return NULL;
     }
