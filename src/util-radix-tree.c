@@ -1032,7 +1032,7 @@ bool SCRadixAddKeyIPV4String(const char *str, SCRadixTree *tree, void *user)
         }
 
         /* Get binary values for cidr mask */
-        if (StringParseU8RangeCheck(&cidr, 10, 0, (const char *)mask_str, 0, 32) < 0) {
+        if (StringParseU8RangeCheck(&cidr, 10, 0, (const char *)mask_str, 0, 32) <= 0) {
             sc_errno = SC_EINVAL;
             return false;
         }
@@ -1096,7 +1096,6 @@ bool SCRadixAddKeyIPV6String(const char *str, SCRadixTree *tree, void *user)
 
     /* Does it have a mask? */
     if (NULL != (mask_str = strchr(ip_str, '/'))) {
-        uint8_t cidr;
         *(mask_str++) = '\0';
 
         /* Dotted type netmask not supported (yet) */
@@ -1105,8 +1104,9 @@ bool SCRadixAddKeyIPV6String(const char *str, SCRadixTree *tree, void *user)
             return false;
         }
 
+        uint8_t cidr;
         /* Get binary values for cidr mask */
-        if (StringParseU8RangeCheck(&cidr, 10, 0, (const char *)mask_str, 0, 128) < 0) {
+        if (StringParseU8RangeCheck(&cidr, 10, 0, (const char *)mask_str, 0, 128) <= 0) {
             sc_errno = SC_EINVAL;
             return false;
         }
