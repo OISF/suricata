@@ -827,7 +827,7 @@ jobs:
           path: prep
       - run: tar xf prep/suricata-update.tar.gz
       - run: ./autogen.sh
-      - run: RUSTC_WRAPPER="$(pwd)/scripts/rustc.py" ./configure --enable-warnings --disable-shared
+      - run: RUSTC_WRAPPER="$(pwd)/scripts/rustc.py" ./configure --enable-warnings --disable-shared --enable-mimetype
         env:
           CC: "clang"
           RUSTFLAGS: "-Cinstrument-coverage"
