@@ -145,6 +145,7 @@ static int TransformDoubleWhitespace(InspectionBuffer *buffer)
     const uint8_t *input = buffer->inspect;
     const uint32_t input_len = buffer->inspect_len;
     uint8_t output[input_len * 2]; // if all chars are whitespace this fits
+    memset(&output, 0, input_len * 2);
     uint8_t *oi = output, *os = output;
 
     PrintRawDataFp(stdout, input, input_len);
