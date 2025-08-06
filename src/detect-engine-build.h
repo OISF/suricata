@@ -23,6 +23,7 @@ void PacketCreateMask(Packet *p, SignatureMask *mask, AppProto alproto,
 
 int SignatureIsFilestoring(const Signature *);
 int SignatureIsFilemagicInspecting(const Signature *);
+int SignatureIsFileMimetypeInspecting(const Signature *);
 int SignatureIsFileMd5Inspecting(const Signature *);
 int SignatureIsFileSha1Inspecting(const Signature *s);
 int SignatureIsFileSha256Inspecting(const Signature *s);
