@@ -142,6 +142,9 @@ The MIME type analysis is faster than the magic analysis and the identification 
 more reproducible across different Suricata versions and operating systems. Being a
 standard, this is also improving correlation with other tools.
 
+See :ref:`output-eve-fileinfo` for more information on how to set up MIME type
+identification database.
+
 filestore
 ---------
 
