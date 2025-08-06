@@ -65,6 +65,7 @@
 #include "util-buffer.h"
 #include "util-reference-config.h"
 #include "util-validate.h"
+#include "util-mimetype.h"
 
 #include "action-globals.h"
 
@@ -487,6 +488,10 @@ static void AlertAddFiles(const Packet *p, SCJsonBuilder *jb, const uint64_t tx_
                 isopen = true;
                 SCJbOpenArray(jb, "files");
             }
+#ifdef HAVE_MIMETYPE
+            if (FileForceMimetype() && file->mimetype == NULL)
+                FileMimetypeLookup(file);
+#endif
             SCJbStartObject(jb);
             EveFileInfo(jb, file, tx_id, file->flags);
             SCJbClose(jb);
