@@ -1765,6 +1765,34 @@
         fi
     fi
 
+  # mimetype
+    AC_ARG_ENABLE(mimetype,
+           AS_HELP_STRING([--enable-mimetype], [Enable mimetype support [default=no]]),
+                        [enable_mimetype="$enableval"],[enable_mimetype=no])
+    install_mimetype_files="no"
+    AS_IF([test "x$enable_mimetype" = "xyes"], [
+        install_mimetype_files="yes"
+        AC_DEFINE([HAVE_MIMETYPE],[1],(Mimetype support enabled))
+        AC_ARG_ENABLE(bundled-gpl-mimetype,
+               AS_HELP_STRING([--enable-bundled-gpl-mimetype], [Embed GPL data in mimetype support [default=no]]),
+                            [enable_gpl_mimetype="$enableval"],[enable_gpl_mimetype=no])
+        AS_IF([test "x$enable_gpl_mimetype" = "xyes"], [
+            WITH_GPL_DATA="\"with-gpl-data\""
+            AC_SUBST(WITH_GPL_DATA)
+            AC_DEFINE([HAVE_GPL_MIMETYPE],[1],[Embedded GPL data for Mimetype support enabled])
+            install_mimetype_files="no"
+        ])
+        AM_CONDITIONAL([HAVE_MIMETYPE], [true])
+        ],
+        [
+        AM_CONDITIONAL([HAVE_MIMETYPE], [false])
+        ]
+    )
+    if test "x$enable_gpl_mimetype" != "xyes"; then
+        enable_gpl_mimetype="no"
+    fi
+    AM_CONDITIONAL([INSTALL_MIMETYPE_FILES], [test "x$install_mimetype_files" = "xyes"])
+
     # Napatech - Using the 3GD API
     AC_ARG_ENABLE(napatech,
                 AS_HELP_STRING([--enable-napatech],[Enable Napatech Devices]),
@@ -2578,6 +2606,8 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   Detection enabled:                       ${enable_detection}
 
   Libmagic support:                        ${enable_magic}
+  mimetype support:                        ${enable_mimetype}
+  GPL Mimetype DB inclusion:               ${enable_gpl_mimetype}
   libjansson support:                      ${enable_jansson}
   hiredis support:                         ${enable_hiredis}
   hiredis async with libevent:             ${enable_hiredis_async}

@@ -325,6 +325,7 @@ typedef struct DetectPort_ {
 #define FILE_SIG_NEED_SHA1        BIT_U16(5)
 #define FILE_SIG_NEED_SHA256      BIT_U16(6)
 #define FILE_SIG_NEED_SIZE        BIT_U16(7)
+#define FILE_SIG_NEED_MIMETYPE    BIT_U16(8)
 
 /* Detection Engine flags */
 #define DE_QUIET 0x01 /**< DE is quiet (esp for unittests) */
@@ -1491,6 +1492,7 @@ enum {
 // vacancy
 #define SIG_GROUP_HEAD_HAVEFILESHA1   BIT_U16(4)
 #define SIG_GROUP_HEAD_HAVEFILESHA256 BIT_U16(5)
+#define SIG_GROUP_HEAD_HAVEFILEMIMETYPE BIT_U16(6)
 
 enum MpmBuiltinBuffers {
     MPMB_TCP_PKT_TS,

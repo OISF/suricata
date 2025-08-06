@@ -597,6 +597,9 @@ void SigGroupHeadSetupFiles(const DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             sgh->flags |= SIG_GROUP_HEAD_HAVEFILEMAGIC;
         }
 #endif
+        if (SignatureIsFileMimetypeInspecting(s)) {
+            sgh->flags |= SIG_GROUP_HEAD_HAVEFILEMIMETYPE;
+        }
         if (SignatureIsFilestoring(s)) {
             // should be insured by caller that we do not overflow
             DEBUG_VALIDATE_BUG_ON(sgh->filestore_cnt == UINT16_MAX);
