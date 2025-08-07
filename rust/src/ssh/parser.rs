@@ -92,7 +92,7 @@ pub struct SshBanner<'a> {
 
 // Could be simplified adding dummy \n at the end
 // or use nom5 nom::bytes::complete::is_not
-pub fn ssh_parse_banner(i: &[u8]) -> IResult<&[u8], SshBanner> {
+pub fn ssh_parse_banner(i: &[u8]) -> IResult<&[u8], SshBanner<'_>> {
     let (i, _) = tag("SSH-")(i)?;
     let (i, protover) = is_not("-")(i)?;
     let (i, _) = char('-')(i)?;
@@ -207,7 +207,7 @@ fn parse_string(i: &[u8]) -> IResult<&[u8], &[u8]> {
     length_data(be_u32)(i)
 }
 
-pub fn ssh_parse_key_exchange(i: &[u8]) -> IResult<&[u8], SshPacketKeyExchange> {
+pub fn ssh_parse_key_exchange(i: &[u8]) -> IResult<&[u8], SshPacketKeyExchange<'_>> {
     let (i, cookie) = take(16_usize)(i)?;
     let (i, kex_algs) = parse_string(i)?;
     let (i, server_host_key_algs) = parse_string(i)?;

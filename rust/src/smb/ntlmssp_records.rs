@@ -96,7 +96,7 @@ fn extract_ntlm_substring(i: &[u8], offset: u32, length: u16) -> IResult<&[u8], 
     return Ok((i, &i[start..end]));
 }
 
-pub fn parse_ntlm_auth_record(i: &[u8]) -> IResult<&[u8], NTLMSSPAuthRecord> {
+pub fn parse_ntlm_auth_record(i: &[u8]) -> IResult<&[u8], NTLMSSPAuthRecord<'_>> {
     let orig_i = i;
     let record_len = i.len() + NTLMSSP_IDTYPE_LEN; // identifier (8) and type (4) are cut before we are called
 
@@ -169,7 +169,7 @@ pub struct NTLMSSPRecord<'a> {
     pub data: &'a [u8],
 }
 
-pub fn parse_ntlmssp(i: &[u8]) -> IResult<&[u8], NTLMSSPRecord> {
+pub fn parse_ntlmssp(i: &[u8]) -> IResult<&[u8], NTLMSSPRecord<'_>> {
     let (i, _) = take_until_and_consume(b"NTLMSSP\x00")(i)?;
     let (i, msg_type) = le_u32(i)?;
     let (i, data) = rest(i)?;

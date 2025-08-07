@@ -209,7 +209,7 @@ impl<'a> SNMPState<'a> {
         SNMPTransaction::new(direction, self.version, self.tx_id)
     }
 
-    fn get_tx_by_id(&mut self, tx_id: u64) -> Option<&SNMPTransaction> {
+    fn get_tx_by_id(&mut self, tx_id: u64) -> Option<&SNMPTransaction<'_>> {
         self.transactions.iter().rev().find(|&tx| tx.id == tx_id + 1)
     }
 
