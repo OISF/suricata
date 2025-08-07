@@ -55,7 +55,7 @@ pub fn mime_parse_header_token(input: &[u8]) -> IResult<&[u8], (&[u8], &[u8])> {
     return Ok((input, (name, value)));
 }
 
-fn mime_parse_header_tokens(input: &[u8]) -> IResult<&[u8], MIMEHeaderTokens> {
+fn mime_parse_header_tokens(input: &[u8]) -> IResult<&[u8], MIMEHeaderTokens<'_>> {
     let (mut input, _) = take_until_and_consume(b";")(input)?;
     let mut tokens = HashMap::new();
     while !input.is_empty() {

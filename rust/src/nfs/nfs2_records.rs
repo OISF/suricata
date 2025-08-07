@@ -28,7 +28,7 @@ pub struct Nfs2Handle<'a> {
     pub value: &'a[u8],
 }
 
-pub fn parse_nfs2_handle(i: &[u8]) -> IResult<&[u8], Nfs2Handle> {
+pub fn parse_nfs2_handle(i: &[u8]) -> IResult<&[u8], Nfs2Handle<'_>> {
     let (i, value) = take(32_usize)(i)?;
     Ok((i, Nfs2Handle { value }))
 }
@@ -39,7 +39,7 @@ pub struct Nfs2RequestLookup<'a> {
     pub name_vec: Vec<u8>,
 }
 
-pub fn parse_nfs2_request_lookup(i: &[u8]) -> IResult<&[u8], Nfs2RequestLookup> {
+pub fn parse_nfs2_request_lookup(i: &[u8]) -> IResult<&[u8], Nfs2RequestLookup<'_>> {
     let (i, handle) = parse_nfs2_handle(i)?;
     let (i, name_len) = be_u32(i)?;
     let (i, name_contents) = take(name_len as usize)(i)?;
@@ -57,7 +57,7 @@ pub struct Nfs2RequestRead<'a> {
     pub offset: u32,
 }
 
-pub fn parse_nfs2_request_read(i: &[u8]) -> IResult<&[u8], Nfs2RequestRead> {
+pub fn parse_nfs2_request_read(i: &[u8]) -> IResult<&[u8], Nfs2RequestRead<'_>> {
     let (i, handle) = parse_nfs2_handle(i)?;
     let (i, offset) = be_u32(i)?;
     let (i, _count) = be_u32(i)?;
@@ -65,7 +65,7 @@ pub fn parse_nfs2_request_read(i: &[u8]) -> IResult<&[u8], Nfs2RequestRead> {
     Ok((i, req))
 }
 
-pub fn parse_nfs2_reply_read(i: &[u8]) -> IResult<&[u8], NfsReplyRead> {
+pub fn parse_nfs2_reply_read(i: &[u8]) -> IResult<&[u8], NfsReplyRead<'_>> {
     let (i, status) = be_u32(i)?;
     let (i, attr_blob) = take(68_usize)(i)?;
     let (i, data_len) = be_u32(i)?;

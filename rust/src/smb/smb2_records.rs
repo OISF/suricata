@@ -32,7 +32,7 @@ pub struct Smb2SecBlobRecord<'a> {
     pub data: &'a [u8],
 }
 
-pub fn parse_smb2_sec_blob(i: &[u8]) -> IResult<&[u8], Smb2SecBlobRecord> {
+pub fn parse_smb2_sec_blob(i: &[u8]) -> IResult<&[u8], Smb2SecBlobRecord<'_>> {
     let (i, data) = rest(i)?;
     Ok((i, Smb2SecBlobRecord { data }))
 }
@@ -94,7 +94,7 @@ fn parse_smb2_flags(i: &[u8]) -> IResult<&[u8], SmbFlags> {
     ))
 }
 
-pub fn parse_smb2_request_record(i: &[u8]) -> IResult<&[u8], Smb2Record> {
+pub fn parse_smb2_request_record(i: &[u8]) -> IResult<&[u8], Smb2Record<'_>> {
     let (i, _server_component) = tag(b"\xfeSMB")(i)?;
     let (i, hlen) = le_u16(i)?;
     let (i, _credit_charge) = le_u16(i)?;
@@ -136,7 +136,7 @@ pub struct Smb2NegotiateProtocolRequestRecord<'a> {
 
 pub fn parse_smb2_request_negotiate_protocol(
     i: &[u8],
-) -> IResult<&[u8], Smb2NegotiateProtocolRequestRecord> {
+) -> IResult<&[u8], Smb2NegotiateProtocolRequestRecord<'_>> {
     let (i, _struct_size) = take(2_usize)(i)?;
     let (i, dialects_count) = le_u16(i)?;
     let (i, _sec_mode) = le_u16(i)?;
@@ -165,7 +165,7 @@ pub struct Smb2NegotiateProtocolResponseRecord<'a> {
 
 pub fn parse_smb2_response_negotiate_protocol(
     i: &[u8],
-) -> IResult<&[u8], Smb2NegotiateProtocolResponseRecord> {
+) -> IResult<&[u8], Smb2NegotiateProtocolResponseRecord<'_>> {
     let (i, _struct_size) = take(2_usize)(i)?;
     let (i, _skip1) = take(2_usize)(i)?;
     let (i, dialect) = le_u16(i)?;
@@ -187,7 +187,7 @@ pub fn parse_smb2_response_negotiate_protocol(
 
 pub fn parse_smb2_response_negotiate_protocol_error(
     i: &[u8],
-) -> IResult<&[u8], Smb2NegotiateProtocolResponseRecord> {
+) -> IResult<&[u8], Smb2NegotiateProtocolResponseRecord<'_>> {
     let (i, _struct_size) = take(2_usize)(i)?;
     let (i, _skip1) = take(2_usize)(i)?;
     let record = Smb2NegotiateProtocolResponseRecord {
@@ -205,7 +205,7 @@ pub struct Smb2SessionSetupRequestRecord<'a> {
     pub data: &'a [u8],
 }
 
-pub fn parse_smb2_request_session_setup(i: &[u8]) -> IResult<&[u8], Smb2SessionSetupRequestRecord> {
+pub fn parse_smb2_request_session_setup(i: &[u8]) -> IResult<&[u8], Smb2SessionSetupRequestRecord<'_>> {
     let (i, _struct_size) = take(2_usize)(i)?;
     let (i, _flags) = le_u8(i)?;
     let (i, _security_mode) = le_u8(i)?;
@@ -224,7 +224,7 @@ pub struct Smb2TreeConnectRequestRecord<'a> {
     pub share_name: &'a [u8],
 }
 
-pub fn parse_smb2_request_tree_connect(i: &[u8]) -> IResult<&[u8], Smb2TreeConnectRequestRecord> {
+pub fn parse_smb2_request_tree_connect(i: &[u8]) -> IResult<&[u8], Smb2TreeConnectRequestRecord<'_>> {
     let (i, _struct_size) = take(2_usize)(i)?;
     let (i, _offset_length) = take(4_usize)(i)?;
     let (i, data) = rest(i)?;
@@ -254,7 +254,7 @@ pub struct Smb2CreateRequestRecord<'a> {
     pub data: &'a [u8],
 }
 
-pub fn parse_smb2_request_create(i: &[u8]) -> IResult<&[u8], Smb2CreateRequestRecord> {
+pub fn parse_smb2_request_create(i: &[u8]) -> IResult<&[u8], Smb2CreateRequestRecord<'_>> {
     let (i, _skip1) = take(36_usize)(i)?;
     let (i, disposition) = le_u32(i)?;
     let (i, create_options) = le_u32(i)?;
@@ -279,7 +279,7 @@ pub struct Smb2IOCtlRequestRecord<'a> {
     pub data: &'a [u8],
 }
 
-pub fn parse_smb2_request_ioctl(i: &[u8]) -> IResult<&[u8], Smb2IOCtlRequestRecord> {
+pub fn parse_smb2_request_ioctl(i: &[u8]) -> IResult<&[u8], Smb2IOCtlRequestRecord<'_>> {
     let (i, _skip) = take(2_usize)(i)?; // structure size
     let (i, _) = take(2_usize)(i)?; // reserved
     let (i, func) = le_u32(i)?;
@@ -311,7 +311,7 @@ pub struct Smb2IOCtlResponseRecord<'a> {
     pub outdata_offset: u32,
 }
 
-pub fn parse_smb2_response_ioctl(i: &[u8]) -> IResult<&[u8], Smb2IOCtlResponseRecord> {
+pub fn parse_smb2_response_ioctl(i: &[u8]) -> IResult<&[u8], Smb2IOCtlResponseRecord<'_>> {
     let (i, _skip) = take(2_usize)(i)?; // structure size
     let (i, _) = take(2_usize)(i)?; // reserved
     let (i, func) = le_u32(i)?;
@@ -340,7 +340,7 @@ pub struct Smb2CloseRequestRecord<'a> {
     pub guid: &'a [u8],
 }
 
-pub fn parse_smb2_request_close(i: &[u8]) -> IResult<&[u8], Smb2CloseRequestRecord> {
+pub fn parse_smb2_request_close(i: &[u8]) -> IResult<&[u8], Smb2CloseRequestRecord<'_>> {
     let (i, _skip) = take(8_usize)(i)?;
     let (i, guid) = take(16_usize)(i)?;
     let record = Smb2CloseRequestRecord { guid };
@@ -352,7 +352,7 @@ pub struct Smb2SetInfoRequestRenameRecord<'a> {
     pub name: &'a [u8],
 }
 
-pub fn parse_smb2_request_setinfo_rename(i: &[u8]) -> IResult<&[u8], Smb2SetInfoRequestData> {
+pub fn parse_smb2_request_setinfo_rename(i: &[u8]) -> IResult<&[u8], Smb2SetInfoRequestData<'_>> {
     let (i, _replace) = le_u8(i)?;
     let (i, _reserved) = take(7_usize)(i)?;
     let (i, _root_handle) = take(8_usize)(i)?;
@@ -367,7 +367,7 @@ pub struct Smb2SetInfoRequestDispoRecord {
     pub delete: bool,
 }
 
-pub fn parse_smb2_request_setinfo_disposition(i: &[u8]) -> IResult<&[u8], Smb2SetInfoRequestData> {
+pub fn parse_smb2_request_setinfo_disposition(i: &[u8]) -> IResult<&[u8], Smb2SetInfoRequestData<'_>> {
     let (i, info) = le_u8(i)?;
     let record = Smb2SetInfoRequestData::DISPOSITION(Smb2SetInfoRequestDispoRecord {
         delete: info & 1 != 0,
@@ -392,7 +392,7 @@ pub struct Smb2SetInfoRequestRecord<'a> {
 
 fn parse_smb2_request_setinfo_data(
     i: &[u8], class: u8, infolvl: u8,
-) -> IResult<&[u8], Smb2SetInfoRequestData> {
+) -> IResult<&[u8], Smb2SetInfoRequestData<'_>> {
     if class == 1 {
         // constants from [MS-FSCC] section 2.4
         match infolvl {
@@ -408,7 +408,7 @@ fn parse_smb2_request_setinfo_data(
     return Ok((i, Smb2SetInfoRequestData::UNHANDLED));
 }
 
-pub fn parse_smb2_request_setinfo(i: &[u8]) -> IResult<&[u8], Smb2SetInfoRequestRecord> {
+pub fn parse_smb2_request_setinfo(i: &[u8]) -> IResult<&[u8], Smb2SetInfoRequestRecord<'_>> {
     let (i, _struct_size) = le_u16(i)?;
     let (i, class) = le_u8(i)?;
     let (i, infolvl) = le_u8(i)?;
@@ -438,7 +438,7 @@ pub struct Smb2WriteRequestRecord<'a> {
 }
 
 // can be called on incomplete records
-pub fn parse_smb2_request_write(i: &[u8]) -> IResult<&[u8], Smb2WriteRequestRecord> {
+pub fn parse_smb2_request_write(i: &[u8]) -> IResult<&[u8], Smb2WriteRequestRecord<'_>> {
     let (i, _skip1) = take(4_usize)(i)?;
     let (i, wr_len) = le_u32(i)?;
     let (i, wr_offset) = le_u64(i)?;
@@ -464,7 +464,7 @@ pub struct Smb2ReadRequestRecord<'a> {
     pub guid: &'a [u8],
 }
 
-pub fn parse_smb2_request_read(i: &[u8]) -> IResult<&[u8], Smb2ReadRequestRecord> {
+pub fn parse_smb2_request_read(i: &[u8]) -> IResult<&[u8], Smb2ReadRequestRecord<'_>> {
     let (i, _skip1) = take(4_usize)(i)?;
     let (i, rd_len) = le_u32(i)?;
     let (i, rd_offset) = le_u64(i)?;
@@ -499,7 +499,7 @@ fn parse_smb2_data(i: &[u8], len: u32) -> IResult<&[u8], &[u8]> {
 }
 
 // can be called on incomplete records
-pub fn parse_smb2_response_read(i: &[u8]) -> IResult<&[u8], Smb2ReadResponseRecord> {
+pub fn parse_smb2_response_read(i: &[u8]) -> IResult<&[u8], Smb2ReadResponseRecord<'_>> {
     let (i, _struct_size) = le_u16(i)?;
     let (i, _data_offset) = le_u16(i)?;
     let (i, rd_len) = le_u32(i)?;
@@ -520,7 +520,7 @@ pub struct Smb2CreateResponseRecord<'a> {
     pub size: u64,
 }
 
-pub fn parse_smb2_response_create(i: &[u8]) -> IResult<&[u8], Smb2CreateResponseRecord> {
+pub fn parse_smb2_response_create(i: &[u8]) -> IResult<&[u8], Smb2CreateResponseRecord<'_>> {
     let (i, _ssize) = le_u16(i)?;
     let (i, _oplock) = le_u8(i)?;
     let (i, _resp_flags) = le_u8(i)?;
@@ -559,7 +559,7 @@ pub fn parse_smb2_response_write(i: &[u8]) -> IResult<&[u8], Smb2WriteResponseRe
     Ok((i, record))
 }
 
-pub fn parse_smb2_response_record(i: &[u8]) -> IResult<&[u8], Smb2Record> {
+pub fn parse_smb2_response_record(i: &[u8]) -> IResult<&[u8], Smb2Record<'_>> {
     let (i, _) = tag(b"\xfeSMB")(i)?;
     let (i, hlen) = le_u16(i)?;
     let (i, _credit_charge) = le_u16(i)?;

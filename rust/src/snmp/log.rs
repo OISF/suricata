@@ -22,7 +22,7 @@ use crate::snmp::snmp::SNMPTransaction;
 use crate::snmp::snmp_parser::{NetworkAddress,PduType};
 use std::borrow::Cow;
 
-fn str_of_pdu_type(t:&PduType) -> Cow<str> {
+fn str_of_pdu_type(t:&PduType) -> Cow<'_, str> {
     match t {
         &PduType::GetRequest => Cow::Borrowed("get_request"),
         &PduType::GetNextRequest => Cow::Borrowed("get_next_request"),

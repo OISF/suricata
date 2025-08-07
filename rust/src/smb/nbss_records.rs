@@ -59,7 +59,7 @@ impl NbssRecord<'_> {
     }
 }
 
-pub fn parse_nbss_record(i: &[u8]) -> IResult<&[u8], NbssRecord> {
+pub fn parse_nbss_record(i: &[u8]) -> IResult<&[u8], NbssRecord<'_>> {
     let (i, buf) = be_u32(i)?;
     let message_type = (buf >> 24) as u8;
     let length = buf & 0xff_ffff;
@@ -72,7 +72,7 @@ pub fn parse_nbss_record(i: &[u8]) -> IResult<&[u8], NbssRecord> {
     Ok((i, record))
 }
 
-pub fn parse_nbss_record_partial(i: &[u8]) -> IResult<&[u8], NbssRecord> {
+pub fn parse_nbss_record_partial(i: &[u8]) -> IResult<&[u8], NbssRecord<'_>> {
     let (i, buf) = be_u32(i)?;
     let message_type = (buf >> 24) as u8;
     let length = buf & 0xff_ffff;
