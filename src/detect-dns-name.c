@@ -113,7 +113,7 @@ static int Register(const char *keyword, const char *desc, const char *doc,
     sigmatch_table[keyword_id].url = doc;
     sigmatch_table[keyword_id].Setup = Setup;
     sigmatch_table[keyword_id].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[keyword_id].flags |= SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[keyword_id].flags |= SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_INFO_MULTI_BUFFER;
 
     DetectAppLayerMultiRegister(keyword, alproto, SIG_FLAG_TOSERVER, 1, GetBufferFn, 2);
     DetectAppLayerMultiRegister(keyword, alproto, SIG_FLAG_TOCLIENT, 1, GetBufferFn, 2);

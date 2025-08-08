@@ -198,7 +198,6 @@
 #include "detect-ipv6hdr.h"
 #include "detect-krb5-cname.h"
 #include "detect-krb5-errcode.h"
-#include "detect-krb5-msgtype.h"
 #include "detect-krb5-sname.h"
 #include "detect-krb5-ticket-encryption.h"
 #include "detect-sip-method.h"
@@ -292,7 +291,7 @@ int DETECT_TBLSIZE_IDX = DETECT_TBLSIZE_STATIC;
 
 static void PrintFeatureList(const SigTableElmt *e, char sep)
 {
-    const uint16_t flags = e->flags;
+    const uint32_t flags = e->flags;
 
     int prev = 0;
     if (flags & SIGMATCH_NOOPT) {
@@ -303,12 +302,6 @@ static void PrintFeatureList(const SigTableElmt *e, char sep)
         if (prev == 1)
             printf("%c", sep);
         printf("compatible with IP only rule");
-        prev = 1;
-    }
-    if (flags & SIGMATCH_DEONLY_COMPAT) {
-        if (prev == 1)
-            printf("%c", sep);
-        printf("compatible with decoder event only rule");
         prev = 1;
     }
     if (flags & SIGMATCH_INFO_CONTENT_MODIFIER) {
@@ -327,6 +320,44 @@ static void PrintFeatureList(const SigTableElmt *e, char sep)
         if (prev == 1)
             printf("%c", sep);
         printf("supports firewall");
+        prev = 1;
+    }
+    if (flags & SIGMATCH_INFO_MULTI_BUFFER) {
+        if (prev == 1)
+            printf("%c", sep);
+        printf("multi buffer");
+        prev = 1;
+    }
+    if (flags & SIGMATCH_INFO_UINT8) {
+        if (prev == 1)
+            printf("%c", sep);
+        if (flags & SIGMATCH_INFO_MULTI_UINT)
+            printf("multi ");
+        printf("uint8");
+        prev = 1;
+    }
+    if (flags & SIGMATCH_INFO_UINT16) {
+        if (prev == 1)
+            printf("%c", sep);
+        if (flags & SIGMATCH_INFO_MULTI_UINT)
+            printf("multi ");
+        printf("uint16");
+        prev = 1;
+    }
+    if (flags & SIGMATCH_INFO_UINT32) {
+        if (prev == 1)
+            printf("%c", sep);
+        if (flags & SIGMATCH_INFO_MULTI_UINT)
+            printf("multi ");
+        printf("uint32");
+        prev = 1;
+    }
+    if (flags & SIGMATCH_INFO_UINT64) {
+        if (prev == 1)
+            printf("%c", sep);
+        if (flags & SIGMATCH_INFO_MULTI_UINT)
+            printf("multi ");
+        printf("uint64");
         prev = 1;
     }
     if (e->Transform) {
@@ -716,7 +747,7 @@ void SigTableSetup(void)
     DetectIpv6hdrRegister();
     DetectKrb5CNameRegister();
     DetectKrb5ErrCodeRegister();
-    DetectKrb5MsgTypeRegister();
+    SCDetectKrb5MsgTypeRegister();
     DetectKrb5SNameRegister();
     DetectKrb5TicketEncryptionRegister();
     DetectSipMethodRegister();

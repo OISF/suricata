@@ -83,7 +83,8 @@ void DetectTlsSubjectAltNameRegister(void)
     sigmatch_table[DETECT_TLS_SUBJECTALTNAME].url = "/rules/tls-keywords.html#tls-subjectaltname";
     sigmatch_table[DETECT_TLS_SUBJECTALTNAME].Setup = DetectTlsSubjectAltNameSetup;
     sigmatch_table[DETECT_TLS_SUBJECTALTNAME].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_TLS_SUBJECTALTNAME].flags |= SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_TLS_SUBJECTALTNAME].flags |=
+            SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_INFO_MULTI_BUFFER;
 
     DetectAppLayerMultiRegister("tls.subjectaltname", ALPROTO_TLS, SIG_FLAG_TOCLIENT,
             TLS_STATE_SERVER_CERT_DONE, TlsSubjectAltNameGetData, 2);

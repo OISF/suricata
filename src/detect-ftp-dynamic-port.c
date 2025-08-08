@@ -103,6 +103,7 @@ void DetectFtpDynamicPortRegister(void)
     sigmatch_table[DETECT_FTP_DYNPORT].url = "/rules/" KEYWORD_DOC;
     sigmatch_table[DETECT_FTP_DYNPORT].Setup = DetectFtpDynamicPortSetup;
     sigmatch_table[DETECT_FTP_DYNPORT].Free = DetectFtpDynamicPortFree;
+    sigmatch_table[DETECT_FTP_DYNPORT].flags = SIGMATCH_INFO_UINT16;
     sigmatch_table[DETECT_FTP_DYNPORT].AppLayerTxMatch = DetectFtpDynamicPortMatch;
 
     DetectAppLayerInspectEngineRegister(

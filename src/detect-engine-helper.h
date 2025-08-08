@@ -54,7 +54,7 @@ typedef struct SCSigTableAppLiteElmt {
     /// keyword documentation url
     const char *url;
     /// flags SIGMATCH_*
-    uint16_t flags;
+    uint32_t flags;
     /// function callback to parse and setup keyword in rule
     int (*Setup)(DetectEngineCtx *, Signature *, const char *);
     /// function callback to free structure allocated by setup if any
@@ -68,7 +68,7 @@ typedef struct SCTransformTableElmt {
     const char *name;
     const char *desc;
     const char *url;
-    uint16_t flags;
+    uint32_t flags;
     int (*Setup)(DetectEngineCtx *, Signature *, const char *);
     void (*Free)(DetectEngineCtx *, void *);
     void (*Transform)(DetectEngineThreadCtx *, InspectionBuffer *, void *context);

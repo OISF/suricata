@@ -18,7 +18,10 @@
 // written by Giuseppe Longo <giuseppe@glongo.it>
 
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
-use crate::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
+use crate::detect::{
+    helper_keyword_register_multi_buffer, helper_keyword_register_sticky_buffer,
+    SigTableElmtStickyBuffer,
+};
 use crate::direction::Direction;
 use crate::sip::sip::{SIPTransaction, ALPROTO_SIP};
 use std::os::raw::{c_int, c_void};
@@ -740,7 +743,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         url: String::from("/rules/sdp-keywords.html#sdp-bandwidth"),
         setup: sdp_bandwidth_setup,
     };
-    let _ = helper_keyword_register_sticky_buffer(&kw);
+    let _ = helper_keyword_register_multi_buffer(&kw);
     G_SDP_BANDWIDTH_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         b"sdp.bandwidth\0".as_ptr() as *const libc::c_char,
         b"sdp.bandwidth\0".as_ptr() as *const libc::c_char,
@@ -754,7 +757,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         url: String::from("/rules/sdp-keywords.html#time"),
         setup: sdp_time_setup,
     };
-    let _ = helper_keyword_register_sticky_buffer(&kw);
+    let _ = helper_keyword_register_multi_buffer(&kw);
     G_SDP_TIME_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         b"sdp.time\0".as_ptr() as *const libc::c_char,
         b"sdp.time\0".as_ptr() as *const libc::c_char,
@@ -768,7 +771,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         url: String::from("/rules/sdp-keywords.html#repeat-time"),
         setup: sdp_repeat_time_setup,
     };
-    let _ = helper_keyword_register_sticky_buffer(&kw);
+    let _ = helper_keyword_register_multi_buffer(&kw);
     G_SDP_REPEAT_TIME_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         b"sdp.repeat_time\0".as_ptr() as *const libc::c_char,
         b"sdp.repeat_time\0".as_ptr() as *const libc::c_char,
@@ -810,7 +813,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         url: String::from("/rules/sdp-keywords.html#sdp-attribute"),
         setup: sdp_attribute_setup,
     };
-    let _ = helper_keyword_register_sticky_buffer(&kw);
+    let _ = helper_keyword_register_multi_buffer(&kw);
     G_SDP_ATTRIBUTE_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         b"sdp.attribute\0".as_ptr() as *const libc::c_char,
         b"sdp.attribute\0".as_ptr() as *const libc::c_char,
@@ -826,7 +829,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         url: String::from("/rules/sdp-keywords.html#media-description-media"),
         setup: sdp_media_desc_media_setup,
     };
-    let _ = helper_keyword_register_sticky_buffer(&kw);
+    let _ = helper_keyword_register_multi_buffer(&kw);
     G_SDP_MEDIA_DESC_MEDIA_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         b"sdp.media.media\0".as_ptr() as *const libc::c_char,
         b"sdp.media.media\0".as_ptr() as *const libc::c_char,
@@ -840,7 +843,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         url: String::from("/rules/sdp-keywords.html#sdp-media-description-session-info"),
         setup: sdp_media_desc_session_info_setup,
     };
-    let _ = helper_keyword_register_sticky_buffer(&kw);
+    let _ = helper_keyword_register_multi_buffer(&kw);
     G_SDP_MEDIA_DESC_SESSION_INFO_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         b"sdp.media.media_info\0".as_ptr() as *const libc::c_char,
         b"sdp.media.media_info\0".as_ptr() as *const libc::c_char,
@@ -854,7 +857,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         url: String::from("/rules/sdp-keywords.html#sdp-media-description-connection-data"),
         setup: sdp_media_desc_connection_data_setup,
     };
-    let _ = helper_keyword_register_sticky_buffer(&kw);
+    let _ = helper_keyword_register_multi_buffer(&kw);
     G_SDP_MEDIA_DESC_CONNECTION_DATA_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         b"sdp.media.connection_data\0".as_ptr() as *const libc::c_char,
         b"sdp.media.connection_data\0".as_ptr() as *const libc::c_char,
@@ -868,7 +871,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         url: String::from("/rules/sdp-keywords.html#sdp-media-description-encryption-key"),
         setup: sdp_media_desc_encryption_key_setup,
     };
-    let _ = helper_keyword_register_sticky_buffer(&kw);
+    let _ = helper_keyword_register_multi_buffer(&kw);
     G_SDP_MEDIA_DESC_ENCRYPTION_KEY_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         b"sdp.media.encryption_key\0".as_ptr() as *const libc::c_char,
         b"sdp.media.encryption_key\0".as_ptr() as *const libc::c_char,

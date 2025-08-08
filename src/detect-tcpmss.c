@@ -56,6 +56,7 @@ void DetectTcpmssRegister(void)
     sigmatch_table[DETECT_TCPMSS].Match = DetectTcpmssMatch;
     sigmatch_table[DETECT_TCPMSS].Setup = DetectTcpmssSetup;
     sigmatch_table[DETECT_TCPMSS].Free = DetectTcpmssFree;
+    sigmatch_table[DETECT_TCPMSS].flags = SIGMATCH_INFO_UINT16;
     sigmatch_table[DETECT_TCPMSS].SupportsPrefilter = PrefilterTcpmssIsPrefilterable;
     sigmatch_table[DETECT_TCPMSS].SetupPrefilter = PrefilterSetupTcpmss;
 }

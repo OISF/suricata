@@ -22,7 +22,10 @@ use crate::detect::uint::{
     detect_match_uint, detect_parse_uint, detect_parse_uint_enum, DetectUintData, DetectUintMode,
     SCDetectU8Free, SCDetectU8Parse,
 };
-use crate::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
+use crate::detect::{
+    helper_keyword_register_multi_buffer, helper_keyword_register_sticky_buffer,
+    SigTableElmtStickyBuffer, SIGMATCH_INFO_MULTI_UINT, SIGMATCH_INFO_UINT8,
+};
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
     SCDetectHelperBufferMpmRegister, SCDetectHelperBufferRegister, SCDetectHelperKeywordRegister,
@@ -990,7 +993,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
             SCLogError!("Invalid value for app-layer.protocols.mqtt.unsubscribe-topic-match-limit");
         }
     }
-    let _g_mqtt_unsub_topic_kw_id = helper_keyword_register_sticky_buffer(&kw);
+    let _g_mqtt_unsub_topic_kw_id = helper_keyword_register_multi_buffer(&kw);
     G_MQTT_UNSUB_TOPIC_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         keyword_name,
         b"unsubscribe topic query\0".as_ptr() as *const libc::c_char,
@@ -1006,7 +1009,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         AppLayerTxMatch: Some(mqtt_type_match),
         Setup: Some(mqtt_type_setup),
         Free: Some(mqtt_type_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_MULTI_UINT,
     };
     G_MQTT_TYPE_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_MQTT_TYPE_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -1029,7 +1032,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
             SCLogError!("Invalid value for app-layer.protocols.mqtt.subscribe-topic-match-limit");
         }
     }
-    let _g_mqtt_sub_topic_kw_id = helper_keyword_register_sticky_buffer(&kw);
+    let _g_mqtt_sub_topic_kw_id = helper_keyword_register_multi_buffer(&kw);
     G_MQTT_SUB_TOPIC_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         keyword_name,
         b"subscribe topic query\0".as_ptr() as *const libc::c_char,
@@ -1046,7 +1049,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         AppLayerTxMatch: Some(mqtt_reason_code_match),
         Setup: Some(mqtt_reason_code_setup),
         Free: Some(mqtt_reason_code_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_MULTI_UINT,
     };
     G_MQTT_REASON_CODE_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_MQTT_REASON_CODE_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -1121,7 +1124,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         AppLayerTxMatch: Some(mqtt_protocol_version_match),
         Setup: Some(mqtt_protocol_version_setup),
         Free: Some(mqtt_protocol_version_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT8,
     };
     G_MQTT_PROTOCOL_VERSION_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_MQTT_PROTOCOL_VERSION_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -1136,7 +1139,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         AppLayerTxMatch: Some(mqtt_flags_match),
         Setup: Some(mqtt_flags_setup),
         Free: Some(mqtt_flags_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_MULTI_UINT,
     };
     G_MQTT_FLAGS_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_MQTT_FLAGS_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -1151,7 +1154,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         AppLayerTxMatch: Some(mqtt_conn_flags_match),
         Setup: Some(mqtt_conn_flags_setup),
         Free: Some(mqtt_conn_flags_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_MULTI_UINT,
     };
     G_MQTT_CONN_FLAGS_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_MQTT_CONN_FLAGS_BUFFER_ID = SCDetectHelperBufferRegister(

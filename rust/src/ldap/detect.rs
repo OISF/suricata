@@ -18,10 +18,14 @@
 use super::ldap::{LdapTransaction, ALPROTO_LDAP};
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{
-    detect_match_uint, detect_parse_uint_enum, DetectUintData, SCDetectU32Free, SCDetectU32Parse,
-    SCDetectU8Free,
+    detect_match_uint, detect_parse_array_uint_enum, detect_parse_uint_enum,
+    detect_uint_match_at_index, DetectUintArrayData, DetectUintData, SCDetectU32Free,
+    SCDetectU32Parse, SCDetectU8Free,
 };
-use crate::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
+use crate::detect::{
+    helper_keyword_register_multi_buffer, helper_keyword_register_sticky_buffer,
+    SigTableElmtStickyBuffer, SIGMATCH_INFO_MULTI_UINT, SIGMATCH_INFO_UINT32, SIGMATCH_INFO_UINT8,
+};
 use crate::ldap::types::*;
 use ldap_parser::ldap::{LdapMessage, ProtocolOp};
 use suricata_sys::sys::{
@@ -31,36 +35,8 @@ use suricata_sys::sys::{
     SCSigTableAppLiteElmt, SigMatchCtx, Signature,
 };
 
-use std::collections::VecDeque;
 use std::ffi::CStr;
 use std::os::raw::{c_int, c_void};
-use std::str::FromStr;
-
-#[derive(Debug, PartialEq)]
-enum LdapIndex {
-    Any,
-    All,
-    Index(i32),
-}
-
-#[derive(Debug, PartialEq)]
-struct DetectLdapRespOpData {
-    /// Ldap response operation code
-    pub du8: DetectUintData<u8>,
-    /// Index can be Any to match with any responses index,
-    /// All to match if all indices, or an i32 integer
-    /// Negative values represent back to front indexing.
-    pub index: LdapIndex,
-}
-
-struct DetectLdapRespResultData {
-    /// Ldap result code
-    pub du32: DetectUintData<u32>,
-    /// Index can be Any to match with any responses index,
-    /// All to match if all indices, or an i32 integer
-    /// Negative values represent back to front indexing.
-    pub index: LdapIndex,
-}
 
 static mut G_LDAP_REQUEST_OPERATION_KW_ID: u16 = 0;
 static mut G_LDAP_REQUEST_OPERATION_BUFFER_ID: c_int = 0;
@@ -133,40 +109,12 @@ unsafe extern "C" fn ldap_detect_request_free(_de: *mut DetectEngineCtx, ctx: *m
     SCDetectU8Free(ctx);
 }
 
-fn parse_ldap_index(parts: &[&str]) -> Option<LdapIndex> {
-    let index = if parts.len() == 2 {
-        match parts[1] {
-            "all" => LdapIndex::All,
-            "any" => LdapIndex::Any,
-            _ => {
-                let i32_index = i32::from_str(parts[1]).ok()?;
-                LdapIndex::Index(i32_index)
-            }
-        }
-    } else {
-        LdapIndex::Any
-    };
-    return Some(index);
-}
-
-fn aux_ldap_parse_protocol_resp_op(s: &str) -> Option<DetectLdapRespOpData> {
-    let parts: Vec<&str> = s.split(',').collect();
-    if parts.len() > 2 {
-        return None;
-    }
-
-    let index = parse_ldap_index(&parts)?;
-    let du8 = detect_parse_uint_enum::<u8, ProtocolOpCode>(parts[0])?;
-
-    Some(DetectLdapRespOpData { du8, index })
-}
-
 unsafe extern "C" fn ldap_parse_protocol_resp_op(
     ustr: *const std::os::raw::c_char,
-) -> *mut DetectUintData<u8> {
+) -> *mut DetectUintArrayData<u8> {
     let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
     if let Ok(s) = ft_name.to_str() {
-        if let Some(ctx) = aux_ldap_parse_protocol_resp_op(s) {
+        if let Some(ctx) = detect_parse_array_uint_enum::<u8, ProtocolOpCode>(s) {
             let boxed = Box::new(ctx);
             return Box::into_raw(boxed) as *mut _;
         }
@@ -199,68 +147,24 @@ unsafe extern "C" fn ldap_detect_responses_operation_setup(
     return 0;
 }
 
-fn match_at_index<T, U>(
-    array: &VecDeque<T>, ctx_value: &DetectUintData<U>, get_value: impl Fn(&T) -> Option<U>,
-    detect_match: impl Fn(U, &DetectUintData<U>) -> c_int, index: &LdapIndex,
-) -> c_int {
-    match index {
-        LdapIndex::Any => {
-            for response in array {
-                if let Some(code) = get_value(response) {
-                    if detect_match(code, ctx_value) == 1 {
-                        return 1;
-                    }
-                }
-            }
-            return 0;
-        }
-        LdapIndex::All => {
-            for response in array {
-                if let Some(code) = get_value(response) {
-                    if detect_match(code, ctx_value) == 0 {
-                        return 0;
-                    }
-                }
-            }
-            return 1;
-        }
-        LdapIndex::Index(idx) => {
-            let index = if *idx < 0 {
-                // negative values for backward indexing.
-                ((array.len() as i32) + idx) as usize
-            } else {
-                *idx as usize
-            };
-            if array.len() <= index {
-                return 0;
-            }
-            if let Some(code) = get_value(&array[index]) {
-                return detect_match(code, ctx_value);
-            }
-            return 0;
-        }
-    }
-}
-
 unsafe extern "C" fn ldap_detect_responses_operation_match(
     _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
     tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, LdapTransaction);
-    let ctx = cast_pointer!(ctx, DetectLdapRespOpData);
+    let ctx = cast_pointer!(ctx, DetectUintArrayData<u8>);
 
-    return match_at_index::<LdapMessage, u8>(
+    return detect_uint_match_at_index::<LdapMessage, u8>(
         &tx.responses,
-        &ctx.du8,
+        &ctx,
         |response| Some(response.protocol_op.tag().0 as u8),
         |code, ctx_value| detect_match_uint(ctx_value, code) as c_int,
-        &ctx.index,
     );
 }
 
 unsafe extern "C" fn ldap_detect_responses_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     // Just unbox...
-    let ctx = cast_pointer!(ctx, DetectLdapRespOpData);
+    let ctx = cast_pointer!(ctx, DetectUintArrayData<u8>);
     std::mem::drop(Box::from_raw(ctx));
 }
 
@@ -389,24 +293,12 @@ unsafe extern "C" fn ldap_tx_get_responses_dn(
     return true;
 }
 
-fn aux_ldap_parse_resp_result_code(s: &str) -> Option<DetectLdapRespResultData> {
-    let parts: Vec<&str> = s.split(',').collect();
-    if parts.len() > 2 {
-        return None;
-    }
-
-    let index = parse_ldap_index(&parts)?;
-    let du32 = detect_parse_uint_enum::<u32, LdapResultCode>(parts[0])?;
-
-    Some(DetectLdapRespResultData { du32, index })
-}
-
 unsafe extern "C" fn ldap_parse_responses_result_code(
     ustr: *const std::os::raw::c_char,
-) -> *mut DetectUintData<u32> {
+) -> *mut DetectUintArrayData<u32> {
     let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
     if let Ok(s) = ft_name.to_str() {
-        if let Some(ctx) = aux_ldap_parse_resp_result_code(s) {
+        if let Some(ctx) = detect_parse_array_uint_enum::<u32, LdapResultCode>(s) {
             let boxed = Box::new(ctx);
             return Box::into_raw(boxed) as *mut _;
         }
@@ -458,14 +350,13 @@ unsafe extern "C" fn ldap_detect_responses_result_code_match(
     tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, LdapTransaction);
-    let ctx = cast_pointer!(ctx, DetectLdapRespResultData);
+    let ctx = cast_pointer!(ctx, DetectUintArrayData<u32>);
 
-    return match_at_index::<LdapMessage, u32>(
+    return detect_uint_match_at_index::<LdapMessage, u32>(
         &tx.responses,
-        &ctx.du32,
+        &ctx,
         get_ldap_result_code,
         |code, ctx_value| detect_match_uint(ctx_value, code) as c_int,
-        &ctx.index,
     );
 }
 
@@ -473,7 +364,7 @@ unsafe extern "C" fn ldap_detect_responses_result_code_free(
     _de: *mut DetectEngineCtx, ctx: *mut c_void,
 ) {
     // Just unbox...
-    let ctx = cast_pointer!(ctx, DetectLdapRespResultData);
+    let ctx = cast_pointer!(ctx, DetectUintArrayData<u32>);
     std::mem::drop(Box::from_raw(ctx));
 }
 
@@ -628,7 +519,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         AppLayerTxMatch: Some(ldap_detect_request_operation_match),
         Setup: Some(ldap_detect_request_operation_setup),
         Free: Some(ldap_detect_request_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT8,
     };
     G_LDAP_REQUEST_OPERATION_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_LDAP_REQUEST_OPERATION_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -644,7 +535,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         AppLayerTxMatch: Some(ldap_detect_responses_operation_match),
         Setup: Some(ldap_detect_responses_operation_setup),
         Free: Some(ldap_detect_responses_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_MULTI_UINT,
     };
     G_LDAP_RESPONSES_OPERATION_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_LDAP_RESPONSES_OPERATION_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -659,7 +550,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         AppLayerTxMatch: Some(ldap_detect_responses_count_match),
         Setup: Some(ldap_detect_responses_count_setup),
         Free: Some(ldap_detect_responses_count_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT32,
     };
     G_LDAP_RESPONSES_COUNT_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_LDAP_RESPONSES_COUNT_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -687,7 +578,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         url: String::from("/rules/ldap-keywords.html#ldap.responses.dn"),
         setup: ldap_detect_responses_dn_setup,
     };
-    let _g_ldap_responses_dn_kw_id = helper_keyword_register_sticky_buffer(&kw);
+    let _g_ldap_responses_dn_kw_id = helper_keyword_register_multi_buffer(&kw);
     G_LDAP_RESPONSES_DN_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         b"ldap.responses.dn\0".as_ptr() as *const libc::c_char,
         b"LDAP RESPONSES DISTINGUISHED_NAME\0".as_ptr() as *const libc::c_char,
@@ -703,7 +594,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         AppLayerTxMatch: Some(ldap_detect_responses_result_code_match),
         Setup: Some(ldap_detect_responses_result_code_setup),
         Free: Some(ldap_detect_responses_result_code_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT32 | SIGMATCH_INFO_MULTI_UINT,
     };
     G_LDAP_RESPONSES_RESULT_CODE_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_LDAP_RESPONSES_RESULT_CODE_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -717,7 +608,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         url: String::from("/rules/ldap-keywords.html#ldap.responses.message"),
         setup: ldap_detect_responses_msg_setup,
     };
-    let _g_ldap_responses_dn_kw_id = helper_keyword_register_sticky_buffer(&kw);
+    let _g_ldap_responses_dn_kw_id = helper_keyword_register_multi_buffer(&kw);
     G_LDAP_RESPONSES_MSG_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         b"ldap.responses.message\0".as_ptr() as *const libc::c_char,
         b"LDAP RESPONSES DISTINGUISHED_NAME\0".as_ptr() as *const libc::c_char,
@@ -731,7 +622,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         url: String::from("/rules/ldap-keywords.html#ldap.request.attribute_type"),
         setup: ldap_detect_request_attibute_type_setup,
     };
-    let _g_ldap_request_attribute_type_kw_id = helper_keyword_register_sticky_buffer(&kw);
+    let _g_ldap_request_attribute_type_kw_id = helper_keyword_register_multi_buffer(&kw);
     G_LDAP_REQUEST_ATTRIBUTE_TYPE_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         b"ldap.request.attribute_type\0".as_ptr() as *const libc::c_char,
         b"LDAP REQUEST ATTRIBUTE TYPE\0".as_ptr() as *const libc::c_char,
@@ -745,7 +636,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         url: String::from("/rules/ldap-keywords.html#ldap.responses.attribute_type"),
         setup: ldap_detect_responses_attibute_type_setup,
     };
-    let _g_ldap_responses_attribute_type_kw_id = helper_keyword_register_sticky_buffer(&kw);
+    let _g_ldap_responses_attribute_type_kw_id = helper_keyword_register_multi_buffer(&kw);
     G_LDAP_RESPONSES_ATTRIBUTE_TYPE_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         b"ldap.responses.attribute_type\0".as_ptr() as *const libc::c_char,
         b"LDAP RESPONSES ATTRIBUTE TYPE\0".as_ptr() as *const libc::c_char,

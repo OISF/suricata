@@ -100,8 +100,8 @@ void DetectFilenameRegister(void)
     sigmatch_table[DETECT_FILE_NAME].desc = "sticky buffer to match on the file name";
     sigmatch_table[DETECT_FILE_NAME].url = "/rules/file-keywords.html#filename";
     sigmatch_table[DETECT_FILE_NAME].Setup = DetectFilenameSetupSticky;
-    sigmatch_table[DETECT_FILE_NAME].flags =
-            SIGMATCH_OPTIONAL_OPT | SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_SUPPORT_DIR;
+    sigmatch_table[DETECT_FILE_NAME].flags = SIGMATCH_OPTIONAL_OPT | SIGMATCH_INFO_STICKY_BUFFER |
+                                             SIGMATCH_SUPPORT_DIR | SIGMATCH_INFO_MULTI_BUFFER;
 
     DetectBufferTypeSetDescriptionByName("file.name", "file name");
 

@@ -66,7 +66,8 @@ void DetectFilesizeRegister(void)
     sigmatch_table[DETECT_FILESIZE].FileMatch = DetectFilesizeMatch;
     sigmatch_table[DETECT_FILESIZE].Setup = DetectFilesizeSetup;
     sigmatch_table[DETECT_FILESIZE].Free = DetectFilesizeFree;
-    sigmatch_table[DETECT_FILESIZE].flags = SIGMATCH_SUPPORT_DIR;
+    sigmatch_table[DETECT_FILESIZE].flags =
+            SIGMATCH_SUPPORT_DIR | SIGMATCH_INFO_UINT64 | SIGMATCH_INFO_MULTI_UINT;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_FILESIZE].RegisterTests = DetectFilesizeRegisterTests;
 #endif
