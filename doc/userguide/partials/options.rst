@@ -80,10 +80,23 @@
 
 .. option:: --pcap-file-delete
 
-   Used with the -r option to indicate that the mode should delete pcap files
-   after they have been processed. This is useful with pcap-file-continuous to
-   continuously feed files to a directory and have them cleaned up when done. If
-   this option is not set, pcap files will not be deleted after processing.
+   Used with the -r option to force deletion of pcap files after they have been 
+   processed. This is useful with pcap-file-continuous to continuously feed files 
+   to a directory and have them cleaned up when done.
+
+   **Command Line vs Configuration**: This command line option overrides the 
+   ``pcap-file.delete-when-done`` configuration option in ``suricata.yaml`` and 
+   forces "always delete" mode (equivalent to ``delete-when-done: true``).
+
+   **For more control**, use the ``pcap-file.delete-when-done`` configuration 
+   option instead, which supports three values:
+   
+   - ``false`` (default): No files are deleted
+   - ``true``: All files are deleted after processing  
+   - ``"non-alerts"``: Only files that generated no alerts are deleted
+
+   If neither ``--pcap-file-delete`` nor ``delete-when-done`` is configured, 
+   pcap files will not be deleted after processing.
 
 .. _cmdline-option-pcap-file-buffer-size:
 
