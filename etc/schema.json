@@ -6566,6 +6566,7 @@
                 },
                 "flow": {
                     "type": "object",
+                    "description": "Stats on flow-related diagnostics",
                     "additionalProperties": false,
                     "properties": {
                         "active": {
@@ -6593,61 +6594,79 @@
                                     "additionalProperties": false,
                                     "properties": {
                                         "capture_bypassed": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Set if the flow bypass is handled at capture level"
                                         },
                                         "closed": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Set if flow is closed at the time of logging"
                                         },
                                         "established": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Set if flow is established at the time of logging"
                                         },
                                         "local_bypassed": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Set if the flow bypass is handled by Suricata"
                                         },
                                         "new": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Set when the flow is newly created at the time logging"
                                         }
                                     }
                                 },
                                 "tcp_liberal": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "description": "Number of TCP flows ended that had liberal state"
                                 },
                                 "tcp_state": {
                                     "type": "object",
+                                    "description": "",
                                     "additionalProperties": false,
                                     "properties": {
                                         "close_wait": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of TCP sessions in CLOSE_WAIT state"
                                         },
                                         "closed": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of TCP sessions in CLOSED state"
                                         },
                                         "closing": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of TCP sessions in CLOSING state"
                                         },
                                         "established": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of TCP sessions in ESTABLISHED state"
                                         },
                                         "fin_wait1": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of TCP sessions in FIN_WAIT_1 state"
                                         },
                                         "fin_wait2": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of TCP sessions in FIN_WAIT_2 state"
                                         },
                                         "last_ack": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of TCP sessions in LAST_ACK state"
                                         },
                                         "none": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of TCP sessions newly created"
                                         },
                                         "syn_recv": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of TCP sessions in SYN_RECV state"
                                         },
                                         "syn_sent": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of TCP sessions in SYN_SENT state"
                                         },
                                         "time_wait": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of TCP sessions in TIME_WAIT state"
                                         }
                                     }
                                 }
@@ -6696,6 +6715,7 @@
                         },
                         "mgr": {
                             "type": "object",
+                            "description": "Flow manager thread stats counters",
                             "additionalProperties": false,
                             "properties": {
                                 "flows_checked": {
@@ -6777,34 +6797,44 @@
                         },
                         "wrk": {
                             "type": "object",
+                            "description": "Flow worker threads stats",
                             "additionalProperties": false,
                             "properties": {
                                 "flows_evicted": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "description": "Number of flows that were evicted"
                                 },
                                 "flows_evicted_needs_work": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "description": "Number of TCP flows that were returned to the workers in case reassembly, detection, logging still needs work"
                                 },
                                 "flows_evicted_pkt_inject": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "description": "Number of packets injected into evicted flows"
                                 },
                                 "flows_injected": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "description": "Number of flows injected into the worker thread from another thread"
                                 },
                                 "flows_injected_max": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "description": "Maximum number of flows injected into the worker thread from another thread"
                                 },
                                 "spare_sync": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "description": "Number of times the engine attempted to fetch flows from the master flow pool/ spare queue"
                                 },
                                 "spare_sync_avg": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "description": "Average length of master flow pool/ spare queues"
                                 },
                                 "spare_sync_empty": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "description": "Number of spare queues that were empty when trying to fetch a flow"
                                 },
                                 "spare_sync_incomplete": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "description": "Number of spare flow queues thata are incomplete"
                                 }
                             }
                         }
@@ -6812,6 +6842,7 @@
                 },
                 "flow_bypassed": {
                     "type": "object",
+                    "description": "",
                     "additionalProperties": false,
                     "properties": {
                         "bytes": {
