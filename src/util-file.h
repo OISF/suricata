@@ -56,6 +56,7 @@ typedef struct SCMd5 SCMd5;
 #define FILE_STORED     BIT_U16(11)
 #define FILE_NOTRACK    BIT_U16(12) /**< track size of file */
 #define FILE_USE_DETECT BIT_U16(13) /**< use content_inspected tracker */
+#define FILE_NOMIMETYPE BIT_U16(14)
 #define FILE_HAS_GAPS   BIT_U16(15)
 
 // to be used instead of PATH_MAX which depends on the OS
@@ -89,6 +90,7 @@ typedef struct File_ {
 #ifdef HAVE_MAGIC
     char *magic;
 #endif
+    char *mimetype;
     struct File_ *next;
     SCMd5 *md5_ctx;
     uint8_t md5[SC_MD5_LEN];
@@ -220,6 +222,9 @@ uint32_t FileReassemblyDepth(void);
 
 void FileForceMagicEnable(void);
 int FileForceMagic(void);
+
+void FileForceMimetypeEnable(void);
+int FileForceMimetype(void);
 
 void FileForceMd5Enable(void);
 int FileForceMd5(void);

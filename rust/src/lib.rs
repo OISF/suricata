@@ -90,6 +90,8 @@ pub mod applayer;
 pub mod frames;
 pub mod filecontainer;
 pub mod filetracker;
+#[cfg(feature = "filemimetype")]
+pub mod filemimetype;
 pub mod kerberos;
 pub mod detect;
 pub mod utils;
