@@ -614,6 +614,45 @@ Examples
       }
     }
 
+.. _eve-format-fileinfo:
+
+Event type: fileinfo
+--------------------
+
+Fields
+~~~~~~
+
+* "end: The offset of the last byte captured
+* "file_id": Integer value representing the id of a file that has been stored
+* "filename": Name of the file as observed in network traffic
+* "gaps": Boolean value indicating if there were gaps in the file
+* "magic": [optional, requires libmagic] The magic value for the file
+* "md5": [optional, if state is ``CLOSED``] When closed, md5 sum
+* "sha1": [optional, if state is ``CLOSED]`` When closed, sha1 sum
+* "sha256": The sha256 value for the file, if available
+* "sid": One or more signature ids that triggered a `filestore`
+* "size": The observed size of the file, in bytes
+* "start": The offset of the first byte captured
+* "state": The state of the file when the record is written
+* "stored": Boolean value indicating whether the file has been stored yet
+* "storing": Boolean value indicating whether the file is in the process of being stored;
+  true when not yet stored
+* "tx_id": The transaction id in effect
+
+
+Offset values
+^^^^^^^^^^^^^
+
+This example shows the offset values from a ``fileinfo`` event -- note the ``http`` content
+range `start` and `end` value are replicated in the ``fileinfo`` fields::
+
+        http.content_range.raw: bytes 500-1000/146515
+        http.content_range.start: 500
+        http.content_range.end: 1000
+        http.content_range.size: 146515
+        fileinfo.start: 500
+        fileinfo.end: 1000
+
 .. _eve-format-http:
 
 Event type: HTTP
