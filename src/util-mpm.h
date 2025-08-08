@@ -25,7 +25,9 @@
 #define SURICATA_UTIL_MPM_H
 
 #include "app-layer-protos.h"
-#include "util-prefilter.h"
+// forward declaration for bindgen
+#define SigIntId uint32_t
+typedef struct PrefilterRuleStore_ PrefilterRuleStore;
 
 #define MPM_INIT_HASH_SIZE 65536
 
@@ -206,7 +208,7 @@ void MpmDestroyThreadCtx(MpmThreadCtx *mpm_thread_ctx, const uint16_t matcher);
 int MpmAddPatternCS(struct MpmCtx_ *mpm_ctx, uint8_t *pat, uint16_t patlen,
                     uint16_t offset, uint16_t depth,
                     uint32_t pid, SigIntId sid, uint8_t flags);
-int MpmAddPatternCI(MpmCtx *mpm_ctx, const uint8_t *pat, uint16_t patlen, uint16_t offset,
+int SCMpmAddPatternCI(MpmCtx *mpm_ctx, const uint8_t *pat, uint16_t patlen, uint16_t offset,
         uint16_t depth, uint32_t pid, SigIntId sid, uint8_t flags);
 
 void MpmFreePattern(MpmCtx *mpm_ctx, MpmPattern *p);

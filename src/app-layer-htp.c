@@ -427,7 +427,7 @@ static void HTPSetEvent(HtpState *s, HtpTxUserData *htud,
     SCLogDebug("setting event %u", e);
 
     if (htud) {
-        AppLayerDecoderEventsSetEventRaw(&htud->tx_data.events, e);
+        SCAppLayerDecoderEventsSetEventRaw(&htud->tx_data.events, e);
         s->events++;
         return;
     }
@@ -440,7 +440,7 @@ static void HTPSetEvent(HtpState *s, HtpTxUserData *htud,
         tx = HTPStateGetTx(s, tx_id - 1);
     if (tx != NULL) {
         htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
-        AppLayerDecoderEventsSetEventRaw(&htud->tx_data.events, e);
+        SCAppLayerDecoderEventsSetEventRaw(&htud->tx_data.events, e);
         s->events++;
         return;
     }
@@ -486,8 +486,8 @@ static void HtpTxUserDataFree(void *txud)
             SCMimeStateFree(htud->mime_state);
         SCAppLayerTxDataCleanup(&htud->tx_data);
         if (htud->file_range) {
-            HTPFileCloseHandleRange(&htp_sbcfg, &htud->files_tc, 0, htud->file_range, NULL, 0);
-            HttpRangeFreeBlock(htud->file_range);
+            SCHTPFileCloseHandleRange(&htp_sbcfg, &htud->files_tc, 0, htud->file_range, NULL, 0);
+            SCHttpRangeFreeBlock(htud->file_range);
         }
         FileContainerRecycle(&htud->files_ts, &htp_sbcfg);
         FileContainerRecycle(&htud->files_tc, &htp_sbcfg);
@@ -1470,7 +1470,7 @@ end:
 
                 /* body still in progress, but due to min inspect size we need to inspect now */
                 StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOSERVER, depth);
-                AppLayerParserTriggerRawStreamInspection(hstate->f, STREAM_TOSERVER);
+                SCAppLayerParserTriggerRawStreamInspection(hstate->f, STREAM_TOSERVER);
             }
         /* after the start of the body, disable the depth logic */
         } else if (tx_ud->request_body.body_inspected > 0) {
@@ -1562,7 +1562,7 @@ static int HTPCallbackResponseBodyData(const htp_connp_t *connp, htp_tx_data_t *
 
                 /* body still in progress, but due to min inspect size we need to inspect now */
                 StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOCLIENT, depth);
-                AppLayerParserTriggerRawStreamInspection(hstate->f, STREAM_TOCLIENT);
+                SCAppLayerParserTriggerRawStreamInspection(hstate->f, STREAM_TOCLIENT);
             }
         /* after the start of the body, disable the depth logic */
         } else if (tx_ud->response_body.body_inspected > 0) {
@@ -1767,7 +1767,7 @@ static int HTPCallbackRequestComplete(const htp_connp_t *connp, htp_tx_t *tx)
     hstate->last_request_data_stamp = abs_right_edge;
     /* request done, do raw reassembly now to inspect state and stream
      * at the same time. */
-    AppLayerParserTriggerRawStreamInspection(hstate->f, STREAM_TOSERVER);
+    SCAppLayerParserTriggerRawStreamInspection(hstate->f, STREAM_TOSERVER);
     SCReturnInt(HTP_STATUS_OK);
 }
 
@@ -1816,7 +1816,7 @@ static int HTPCallbackResponseComplete(const htp_connp_t *connp, htp_tx_t *tx)
 
     /* response done, do raw reassembly now to inspect state and stream
      * at the same time. */
-    AppLayerParserTriggerRawStreamInspection(hstate->f, STREAM_TOCLIENT);
+    SCAppLayerParserTriggerRawStreamInspection(hstate->f, STREAM_TOCLIENT);
 
     /* handle HTTP CONNECT */
     if (htp_tx_request_method_number(tx) == HTP_METHOD_CONNECT) {
