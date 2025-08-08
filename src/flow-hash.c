@@ -641,6 +641,10 @@ static inline Flow *FlowSpareSync(ThreadVars *tv, FlowLookupStruct *fls,
             if (f != NULL) {
                 StatsAddUI64(tv, fls->dtv->counter_flow_spare_sync_avg, fls->spare_queue.len+1);
                 if (fls->spare_queue.len < 99) {
+                    /* When a new flow pool is fetched it has 100 flows in sync,
+                     * so there should be 99 left if we're in full sync.
+                     * If len is below 99, means the spare sync is incomplete */
+                    /* Track these instances */
                     StatsIncr(tv, fls->dtv->counter_flow_spare_sync_incomplete);
                 }
             } else if (fls->spare_queue.len == 0) {
