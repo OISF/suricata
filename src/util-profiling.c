@@ -790,8 +790,7 @@ void SCProfilingPrintPacketProfile(Packet *p)
 
     /* total cost from acquisition to return to packetpool */
     uint64_t delta = p->profile->ticks_end - p->profile->ticks_start;
-    fprintf(packet_profile_csv_fp, "%"PRIu64",%"PRIu64",",
-            p->pcap_cnt, delta);
+    fprintf(packet_profile_csv_fp, "%" PRIu64 ",%" PRIu64 ",", p->pcap_v.pcap_cnt, delta);
 
     for (int i = 0; i < TMM_SIZE; i++) {
         const PktProfilingTmmData *pdt = &p->profile->tmm[i];

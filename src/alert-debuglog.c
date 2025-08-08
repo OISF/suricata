@@ -166,8 +166,8 @@ static TmEcode AlertDebugLogger(ThreadVars *tv, const Packet *p, void *thread_da
 
     MemBufferWriteString(aft->buffer, "+================\n"
                          "TIME:              %s\n", timebuf);
-    if (p->pcap_cnt > 0) {
-        MemBufferWriteString(aft->buffer, "PCAP PKT NUM:      %"PRIu64"\n", p->pcap_cnt);
+    if (p->pcap_v.pcap_cnt > 0) {
+        MemBufferWriteString(aft->buffer, "PCAP PKT NUM:      %" PRIu64 "\n", p->pcap_v.pcap_cnt);
     }
     pkt_src_str = PktSrcToString(p->pkt_src);
     MemBufferWriteString(aft->buffer, "PKT SRC:           %s\n", pkt_src_str);
@@ -326,9 +326,8 @@ static TmEcode AlertDebugLogDecoderEvent(ThreadVars *tv, const Packet *p, void *
     MemBufferWriteString(aft->buffer,
                          "+================\n"
                          "TIME:              %s\n", timebuf);
-    if (p->pcap_cnt > 0) {
-        MemBufferWriteString(aft->buffer,
-                             "PCAP PKT NUM:      %"PRIu64"\n", p->pcap_cnt);
+    if (p->pcap_v.pcap_cnt > 0) {
+        MemBufferWriteString(aft->buffer, "PCAP PKT NUM:      %" PRIu64 "\n", p->pcap_v.pcap_cnt);
     }
     pkt_src_str = PktSrcToString(p->pkt_src);
     MemBufferWriteString(aft->buffer, "PKT SRC:           %s\n", pkt_src_str);

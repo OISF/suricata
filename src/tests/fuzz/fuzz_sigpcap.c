@@ -196,7 +196,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         p->datalink = pcap_datalink(pkts);
         p->pkt_src = PKT_SRC_WIRE;
         pcap_cnt++;
-        p->pcap_cnt = pcap_cnt;
+        p->pcap_v.pcap_cnt = pcap_cnt;
     }
 bail:
     //close structure
