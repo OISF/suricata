@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2023 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -641,9 +641,24 @@ static inline Flow *FlowSpareSync(ThreadVars *tv, FlowLookupStruct *fls,
     return f;
 }
 
-static inline void NoFlowHandleIPS(Packet *p)
+static void FlowExceptionPolicyStatsIncr(
+        ThreadVars *tv, FlowLookupStruct *fls, enum ExceptionPolicy policy)
+{
+#ifdef UNITTESTS
+    if (tv == NULL || fls->dtv == NULL) {
+        return;
+    }
+#endif
+    uint16_t id = fls->dtv->counter_flow_memcap_eps.eps_id[policy];
+    if (likely(id > 0)) {
+        StatsIncr(tv, id);
+    }
+}
+
+static inline void NoFlowHandleIPS(ThreadVars *tv, FlowLookupStruct *fls, Packet *p)
 {
     ExceptionPolicyApply(p, flow_config.memcap_policy, PKT_DROP_REASON_FLOW_MEMCAP);
+    FlowExceptionPolicyStatsIncr(tv, fls, flow_config.memcap_policy);
 }
 
 /**
@@ -663,7 +678,7 @@ static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, Packet *p)
     const bool emerg = ((SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY) != 0);
 #ifdef DEBUG
     if (g_eps_flow_memcap != UINT64_MAX && g_eps_flow_memcap == p->pcap_cnt) {
-        NoFlowHandleIPS(p);
+        NoFlowHandleIPS(tv, fls, p);
         StatsIncr(tv, fls->dtv->counter_flow_memcap);
         return NULL;
     }
@@ -689,7 +704,14 @@ static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, Packet *p)
 
             f = FlowGetUsedFlow(tv, fls->dtv, p->ts);
             if (f == NULL) {
-                NoFlowHandleIPS(p);
+                NoFlowHandleIPS(tv, fls, p);
+#ifdef UNITTESTS
+                if (tv != NULL && fls->dtv != NULL) {
+#endif
+                    StatsIncr(tv, fls->dtv->counter_flow_memcap);
+#ifdef UNITTESTS
+                }
+#endif
                 return NULL;
             }
 #ifdef UNITTESTS
@@ -714,7 +736,7 @@ static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, Packet *p)
 #ifdef UNITTESTS
             }
 #endif
-            NoFlowHandleIPS(p);
+            NoFlowHandleIPS(tv, fls, p);
             return NULL;
         }
 

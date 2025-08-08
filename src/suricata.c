@@ -213,6 +213,10 @@ uint16_t g_livedev_mask = 0xffff;
  * support */
 bool g_disable_hashing = false;
 
+/** add per-proto app-layer error counters for exception policies stats? disabled by default */
+bool g_stats_eps_per_app_proto_errors = false;
+bool g_eps_stats_counters = false;
+
 /** Suricata instance */
 SCInstance suricata;
 
@@ -2711,6 +2715,16 @@ int PostConfLoadedSetup(SCInstance *suri)
     /* Must occur prior to output mod registration
        and app layer setup. */
     FeatureTrackingRegister();
+
+    ConfNode *eps = ConfGetNode("stats.exception-policy");
+    if (eps != NULL) {
+        if (ConfNodeChildValueIsTrue(eps, "per-app-proto-errors")) {
+            g_stats_eps_per_app_proto_errors = true;
+        }
+        if (ConfNodeChildValueIsTrue(eps, "global-stats")) {
+            g_eps_stats_counters = true;
+        }
+    }
 
     AppLayerSetup();
 

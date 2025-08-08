@@ -4940,6 +4940,53 @@
                     },
                     "additionalProperties": false
                 },
+                "exception_policy": {
+                    "type": "object",
+                    "properties": {
+                        "app_layer": {
+                            "type": "object",
+                            "error": {
+                                "description":
+                                    "Consolidated stats on how many times app-layer error exception policy was applied, and which one",
+                                "$ref": "#/$defs/exceptionPolicy"
+                            }
+                        },
+                        "defrag": {
+                            "type": "object",
+                            "memcap": {
+                                "description":
+                                        "How many times defrag memcap exception policy was applied, and which one",
+                                "$ref": "#/$defs/exceptionPolicy"
+                            }
+                        },
+                        "flow": {
+                            "type": "object",
+                            "memcap": {
+                                "description":
+                                        "How many times flow memcap exception policy was applied, and which one",
+                                "$ref": "#/$defs/exceptionPolicy"
+                            }
+                        },
+                        "tcp": {
+                            "type": "object",
+                            "midstream": {
+                                "description":
+                                        "How many times midstream exception policy was applied, and which one",
+                                "$ref": "#/$defs/exceptionPolicy"
+                            },
+                            "ssn_memcap": {
+                                "description":
+                                        "How many times session memcap exception policy was applied, and which one",
+                                "$ref": "#/$defs/exceptionPolicy"
+                            },
+                            "reassembly": {
+                                "description":
+                                        "How many times reassembly memcap exception policy was applied, and which one",
+                                "$ref": "#/$defs/exceptionPolicy"
+                            }
+                        }
+                    }
+                },
                 "file_store": {
                     "type": "object",
                     "properties": {
@@ -5615,6 +5662,11 @@
                 },
                 "internal": {
                     "type": "integer"
+                },
+                "exception_policy": {
+                    "description":
+                            "How many times app-layer error exception policy was applied, and which one",
+                    "$ref": "#/$defs/exceptionPolicy"
                 }
             },
             "additionalProperties": false
@@ -5655,6 +5707,35 @@
                             ]
                         }
                     ]
+                }
+            }
+        },
+        "exceptionPolicy": {
+            "type": "object",
+            "properties": {
+                "drop_flow": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "drop_packet": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "pass_flow": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "pass_packet": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "bypass": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "reject": {
+                    "type": "integer",
+                    "minimum": 0
                 }
             }
         }

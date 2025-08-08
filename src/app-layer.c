@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2023 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -49,6 +49,8 @@
 #include "app-layer-htp-mem.h"
 #include "util-exception-policy.h"
 
+extern bool g_eps_stats_counters;
+extern bool g_stats_eps_per_app_proto_errors;
 /**
  * \brief This is for the app layer in general and it contains per thread
  *        context relevant to both the alpd and alp.
@@ -80,6 +82,7 @@ typedef struct AppLayerCounterNames_ {
     char parser_error[MAX_COUNTER_SIZE];
     char internal_error[MAX_COUNTER_SIZE];
     char alloc_error[MAX_COUNTER_SIZE];
+    char eps_name[EXCEPTION_POLICY_MAX][MAX_COUNTER_SIZE];
 } AppLayerCounterNames;
 
 typedef struct AppLayerCounters_ {
@@ -89,12 +92,41 @@ typedef struct AppLayerCounters_ {
     uint16_t parser_error_id;
     uint16_t internal_error_id;
     uint16_t alloc_error_id;
+    ExceptionPolicyCounters eps_error;
 } AppLayerCounters;
 
 /* counter names. Only used at init. */
 AppLayerCounterNames applayer_counter_names[FLOW_PROTO_APPLAYER_MAX][ALPROTO_MAX];
 /* counter id's. Used that runtime. */
 AppLayerCounters applayer_counters[FLOW_PROTO_APPLAYER_MAX][ALPROTO_MAX];
+/* Exception policy global counters ids */
+ExceptionPolicyCounters eps_error_summary;
+
+/* Settings order as in the enum */
+// clang-format off
+ExceptionPolicyStatsSetts app_layer_error_eps_stats = {
+    .valid_settings_ids = {
+       /* EXCEPTION_POLICY_NOT_SET */      false,
+       /* EXCEPTION_POLICY_AUTO */         false,
+       /* EXCEPTION_POLICY_PASS_PACKET */  true,
+       /* EXCEPTION_POLICY_PASS_FLOW */    true,
+       /* EXCEPTION_POLICY_BYPASS_FLOW */  true,
+       /* EXCEPTION_POLICY_DROP_PACKET */  false,
+       /* EXCEPTION_POLICY_DROP_FLOW */    false,
+       /* EXCEPTION_POLICY_REJECT */       true,
+    },
+    .valid_settings_ips = {
+       /* EXCEPTION_POLICY_NOT_SET */      false,
+       /* EXCEPTION_POLICY_AUTO */         false,
+       /* EXCEPTION_POLICY_PASS_PACKET */  true,
+       /* EXCEPTION_POLICY_PASS_FLOW */    true,
+       /* EXCEPTION_POLICY_BYPASS_FLOW */  true,
+       /* EXCEPTION_POLICY_DROP_PACKET */  true,
+       /* EXCEPTION_POLICY_DROP_FLOW */    true,
+       /* EXCEPTION_POLICY_REJECT */       true,
+    },
+};
+// clang-format on
 
 void AppLayerSetupCounters(void);
 void AppLayerDeSetupCounters(void);
@@ -156,6 +188,25 @@ void AppLayerIncInternalErrorCounter(ThreadVars *tv, Flow *f)
     const uint16_t id = applayer_counters[f->protomap][f->alproto].internal_error_id;
     if (likely(tv && id > 0)) {
         StatsIncr(tv, id);
+    }
+}
+
+static void AppLayerIncrErrorExcPolicyCounter(ThreadVars *tv, Flow *f, enum ExceptionPolicy policy)
+{
+#ifdef UNITTESTS
+    if (tv == NULL) {
+        return;
+    }
+#endif
+    uint16_t id = applayer_counters[f->protomap][f->alproto].eps_error.eps_id[policy];
+    /* for the summary values */
+    uint16_t g_id = eps_error_summary.eps_id[policy];
+
+    if (likely(id > 0)) {
+        StatsIncr(tv, id);
+    }
+    if (likely(g_id > 0)) {
+        StatsIncr(tv, g_id);
     }
 }
 
@@ -642,6 +693,7 @@ static int TCPProtoDetect(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     SCReturnInt(0);
 parser_error:
     ExceptionPolicyApply(p, g_applayerparser_error_policy, PKT_DROP_REASON_APPLAYER_ERROR);
+    AppLayerIncrErrorExcPolicyCounter(tv, f, g_applayerparser_error_policy);
     SCReturnInt(-1);
 detect_error:
     DisableAppLayer(tv, f, p);
@@ -710,6 +762,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, Packet
         StreamTcpUpdateAppLayerProgress(ssn, direction, data_len);
         if (r < 0) {
             ExceptionPolicyApply(p, g_applayerparser_error_policy, PKT_DROP_REASON_APPLAYER_ERROR);
+            AppLayerIncrErrorExcPolicyCounter(tv, f, g_applayerparser_error_policy);
             SCReturnInt(-1);
         }
         goto end;
@@ -796,6 +849,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, Packet
                 if (r < 0) {
                     ExceptionPolicyApply(
                             p, g_applayerparser_error_policy, PKT_DROP_REASON_APPLAYER_ERROR);
+                    AppLayerIncrErrorExcPolicyCounter(tv, f, g_applayerparser_error_policy);
                     SCReturnInt(-1);
                 }
             }
@@ -936,6 +990,7 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
     }
     if (r < 0) {
         ExceptionPolicyApply(p, g_applayerparser_error_policy, PKT_DROP_REASON_APPLAYER_ERROR);
+        AppLayerIncrErrorExcPolicyCounter(tv, f, g_applayerparser_error_policy);
         SCReturnInt(-1);
     }
 
@@ -1066,6 +1121,30 @@ void AppLayerRegisterGlobalCounters(void)
     StatsRegisterGlobalCounter("app_layer.expectations", ExpectationGetCounter);
 }
 
+static bool IsAppLayerErrorExceptionPolicyStatsValid(enum ExceptionPolicy policy)
+{
+    if (EngineModeIsIPS()) {
+        return app_layer_error_eps_stats.valid_settings_ips[policy];
+    }
+    return app_layer_error_eps_stats.valid_settings_ids[policy];
+}
+
+static void AppLayerSetupExceptionPolicyPerProtoCounters(
+        uint8_t ipproto_map, AppProto alproto, const char *alproto_str, const char *ipproto_suffix)
+{
+    if (g_stats_eps_per_app_proto_errors &&
+            g_applayerparser_error_policy != EXCEPTION_POLICY_NOT_SET) {
+        for (enum ExceptionPolicy i = EXCEPTION_POLICY_NOT_SET + 1; i < EXCEPTION_POLICY_MAX; i++) {
+            if (IsAppLayerErrorExceptionPolicyStatsValid(i)) {
+                snprintf(applayer_counter_names[ipproto_map][alproto].eps_name[i],
+                        sizeof(applayer_counter_names[ipproto_map][alproto].eps_name[i]),
+                        "app_layer.error.%s%s.exception_policy.%s", alproto_str, ipproto_suffix,
+                        ExceptionPolicyEnumToString(i, true));
+            }
+        }
+    }
+}
+
 #define IPPROTOS_MAX 2
 void AppLayerSetupCounters(void)
 {
@@ -1073,6 +1152,19 @@ void AppLayerSetupCounters(void)
     AppProto alprotos[ALPROTO_MAX];
     const char *str = "app_layer.flow.";
     const char *estr = "app_layer.error.";
+
+    /* We don't log stats counters if exception policy is `ignore`/`not set` */
+    if (g_applayerparser_error_policy != EXCEPTION_POLICY_NOT_SET && g_eps_stats_counters) {
+        /* Register global counters for app layer error exception policy summary */
+        const char *eps_default_str = "exception_policy.app_layer.error.";
+        for (enum ExceptionPolicy i = EXCEPTION_POLICY_NOT_SET + 1; i < EXCEPTION_POLICY_MAX; i++) {
+            if (IsAppLayerErrorExceptionPolicyStatsValid(i)) {
+                snprintf(app_layer_error_eps_stats.eps_name[i],
+                        sizeof(app_layer_error_eps_stats.eps_name[i]), "%s%s", eps_default_str,
+                        ExceptionPolicyEnumToString(i, true));
+            }
+        }
+    }
 
     AppLayerProtoDetectSupportedAppProtocols(alprotos);
 
@@ -1110,6 +1202,9 @@ void AppLayerSetupCounters(void)
                     snprintf(applayer_counter_names[ipproto_map][alproto].internal_error,
                             sizeof(applayer_counter_names[ipproto_map][alproto].internal_error),
                             "%s%s%s.internal", estr, alproto_str, ipproto_suffix);
+
+                    AppLayerSetupExceptionPolicyPerProtoCounters(
+                            ipproto_map, alproto, alproto_str, ipproto_suffix);
                 } else {
                     snprintf(applayer_counter_names[ipproto_map][alproto].name,
                             sizeof(applayer_counter_names[ipproto_map][alproto].name),
@@ -1132,6 +1227,8 @@ void AppLayerSetupCounters(void)
                     snprintf(applayer_counter_names[ipproto_map][alproto].internal_error,
                             sizeof(applayer_counter_names[ipproto_map][alproto].internal_error),
                             "%s%s.internal", estr, alproto_str);
+                    AppLayerSetupExceptionPolicyPerProtoCounters(
+                            ipproto_map, alproto, alproto_str, "");
                 }
             } else if (alproto == ALPROTO_FAILED) {
                 snprintf(applayer_counter_names[ipproto_map][alproto].name,
@@ -1152,6 +1249,17 @@ void AppLayerRegisterThreadCounters(ThreadVars *tv)
     const uint8_t ipprotos[] = { IPPROTO_TCP, IPPROTO_UDP };
     AppProto alprotos[ALPROTO_MAX];
     AppLayerProtoDetectSupportedAppProtocols(alprotos);
+
+    /* We don't log stats counters if exception policy is `ignore`/`not set` */
+    if (g_applayerparser_error_policy != EXCEPTION_POLICY_NOT_SET && g_eps_stats_counters) {
+        /* Register global counters for app layer error exception policy summary */
+        for (enum ExceptionPolicy i = EXCEPTION_POLICY_NOT_SET + 1; i < EXCEPTION_POLICY_MAX; i++) {
+            if (IsAppLayerErrorExceptionPolicyStatsValid(i)) {
+                eps_error_summary.eps_id[i] =
+                        StatsRegisterCounter(app_layer_error_eps_stats.eps_name[i], tv);
+            }
+        }
+    }
 
     for (uint8_t p = 0; p < IPPROTOS_MAX; p++) {
         const uint8_t ipproto = ipprotos[p];
@@ -1175,6 +1283,18 @@ void AppLayerRegisterThreadCounters(ThreadVars *tv)
                         applayer_counter_names[ipproto_map][alproto].parser_error, tv);
                 applayer_counters[ipproto_map][alproto].internal_error_id = StatsRegisterCounter(
                         applayer_counter_names[ipproto_map][alproto].internal_error, tv);
+                /* We don't log stats counters if exception policy is `ignore`/`not set` */
+                if (g_stats_eps_per_app_proto_errors &&
+                        g_applayerparser_error_policy != EXCEPTION_POLICY_NOT_SET) {
+                    for (enum ExceptionPolicy i = EXCEPTION_POLICY_NOT_SET + 1;
+                            i < EXCEPTION_POLICY_MAX; i++) {
+                        if (IsAppLayerErrorExceptionPolicyStatsValid(i)) {
+                            applayer_counters[ipproto_map][alproto]
+                                    .eps_error.eps_id[i] = StatsRegisterCounter(
+                                    applayer_counter_names[ipproto_map][alproto].eps_name[i], tv);
+                        }
+                    }
+                }
             } else if (alproto == ALPROTO_FAILED) {
                 applayer_counters[ipproto_map][alproto].counter_id =
                     StatsRegisterCounter(applayer_counter_names[ipproto_map][alproto].name, tv);
