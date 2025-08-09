@@ -103,7 +103,7 @@ int DecodeUDP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     }
 
     /* Handle VXLAN if configured */
-    if (DecodeVXLANEnabledForPort(p->sp, p->dp) &&
+    if (DecodeVXLANEnabledForPort(p->dp) &&
             unlikely(DecodeVXLAN(tv, dtv, p, p->payload, p->payload_len) == TM_ECODE_OK)) {
         /* Here we have a VXLAN packet and don't need to handle app
          * layer */
