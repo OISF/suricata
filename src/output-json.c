@@ -622,7 +622,7 @@ static bool CalculateCommunityFlowIdv4(const Flow *f,
     dp = htons(dp);
 
     ipv4.seed = htons(seed);
-    if (ntohl(src) < ntohl(dst) || (src == dst && sp < dp)) {
+    if (ntohl(src) < ntohl(dst) || (src == dst && ntohs(sp) < ntohs(dp))) {
         ipv4.src = src;
         ipv4.dst = dst;
         ipv4.sp = sp;
@@ -671,7 +671,7 @@ static bool CalculateCommunityFlowIdv6(const Flow *f,
 
     ipv6.seed = htons(seed);
     int cmp_r = memcmp(&f->src, &f->dst, sizeof(f->src));
-    if ((cmp_r < 0) || (cmp_r == 0 && sp < dp)) {
+    if ((cmp_r < 0) || (cmp_r == 0 && ntohs(sp) < ntohs(dp))) {
         memcpy(&ipv6.src, &f->src.addr_data32, 16);
         memcpy(&ipv6.dst, &f->dst.addr_data32, 16);
         ipv6.sp = sp;
