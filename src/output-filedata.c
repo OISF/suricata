@@ -33,6 +33,7 @@
 #include "util-validate.h"
 #include "util-magic.h"
 #include "util-path.h"
+#include "util-mimetype.h"
 
 bool g_filedata_logger_enabled = false;
 
@@ -136,6 +137,12 @@ void OutputFiledataLogFfc(ThreadVars *tv, OutputFiledataLoggerThreadData *td, Pa
             FilemagicThreadLookup(&td->magic_ctx, ff);
         }
 #endif
+#ifdef HAVE_MIMETYPE
+        if (FileForceMimetype() && ff->mimetype == NULL) {
+            FileMimetypeLookup(ff);
+        }
+#endif
+
         if (ff->flags & FILE_STORED) {
             continue;
         }

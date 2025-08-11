@@ -128,6 +128,7 @@
 #include "util-landlock.h"
 #include "util-macset.h"
 #include "util-flow-rate.h"
+#include "util-mimetype.h"
 #include "util-misc.h"
 #include "util-mpm-hs.h"
 #include "util-path.h"
@@ -807,6 +808,9 @@ static void PrintBuildInfo(void)
     strlcat(features, "HAVE_JA4 ", sizeof(features));
 #endif
     strlcat(features, "HAVE_LIBJANSSON ", sizeof(features));
+#ifdef HAVE_MIMETYPE
+    strlcat(features, "HAVE_MIMETYPE ", sizeof(features));
+#endif
 #ifdef PROFILING
     strlcat(features, "PROFILING ", sizeof(features));
 #endif
@@ -3033,6 +3037,11 @@ void SuricataInit(void)
         /* Ignore recursion level when comparing flows. */
         g_recurlvl_mask = 0x00;
     }
+
+#ifdef HAVE_MIMETYPE
+    FileMimetypeSetup();
+#endif /* HAVE_MIMETYPE */
+
     SetupUserMode(&suricata);
     InitRunAs(&suricata);
 
