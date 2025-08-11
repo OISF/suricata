@@ -641,6 +641,8 @@ static inline Flow *FlowSpareSync(ThreadVars *tv, FlowLookupStruct *fls,
             if (f != NULL) {
                 StatsAddUI64(tv, fls->dtv->counter_flow_spare_sync_avg, fls->spare_queue.len+1);
                 if (fls->spare_queue.len < 99) {
+                    /* When a new flow pool is retrieved, it would ideally have 100 flows. */
+                    /* Track when they're shorter */
                     StatsIncr(tv, fls->dtv->counter_flow_spare_sync_incomplete);
                 }
             } else if (fls->spare_queue.len == 0) {
