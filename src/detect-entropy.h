@@ -20,6 +20,6 @@
 
 void DetectEntropyRegister(void);
 bool DetectEntropyDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
-        const SigMatchCtx *ctx, const uint8_t *buffer, const uint32_t buffer_len);
+        const SigMatchCtx *ctx, Flow *flow, const uint8_t *buffer, const uint32_t buffer_len);
 
 #endif

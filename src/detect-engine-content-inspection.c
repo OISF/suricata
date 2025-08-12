@@ -497,7 +497,7 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
         } while (1);
 
     } else if (smd->type == DETECT_ENTROPY) {
-        if (!DetectEntropyDoMatch(det_ctx, s, smd->ctx, buffer, buffer_len)) {
+        if (!DetectEntropyDoMatch(det_ctx, s, smd->ctx, f, buffer, buffer_len)) {
             goto no_match;
         }
         goto match;
