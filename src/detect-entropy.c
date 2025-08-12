@@ -37,12 +37,15 @@ static int DetectEntropySetup(DetectEngineCtx *de_ctx, Signature *s, const char 
 
     int sm_list = DETECT_SM_LIST_PMATCH;
     if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
+        /* sticky buffer */
         if (DetectBufferGetActiveList(de_ctx, s) == -1)
             goto error;
 
         sm_list = s->init_data->list;
         ded->fv_idx = VarNameStoreRegister(
                 DetectEngineBufferTypeGetNameById(de_ctx, sm_list), VAR_TYPE_FLOW_FLOAT);
+    } else {
+        ded->fv_idx = VarNameStoreRegister("content", VAR_TYPE_FLOW_FLOAT);
     }
 
     if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_ENTROPY, (SigMatchCtx *)ded, sm_list) != NULL) {
@@ -69,14 +72,14 @@ static void DetectEntropyFree(DetectEngineCtx *de_ctx, void *ptr)
 }
 
 bool DetectEntropyDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
-        const SigMatchCtx *ctx, const uint8_t *buffer, const uint32_t buffer_len)
+        const SigMatchCtx *ctx, Flow *flow, const uint8_t *buffer, const uint32_t buffer_len)
 {
     double entropy = -1.0;
     bool rc = SCDetectEntropyMatch(buffer, buffer_len, (const DetectEntropyData *)ctx, &entropy);
 
-    if (entropy != -1.0) {
+    if (flow && entropy != -1.0) {
         DetectEntropyData *ded = (DetectEntropyData *)ctx;
-        FlowVarAddFloat(det_ctx->p->flow, ded->fv_idx, entropy);
+        FlowVarAddFloat(flow, ded->fv_idx, entropy);
     }
 
     return rc;
