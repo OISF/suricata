@@ -2645,6 +2645,95 @@ jobs:
       - run: suricata-update -V
       - run: suricatasc -h
 
+  debian-13:
+    name: Debian 13 (xdp)
+    runs-on: ubuntu-latest
+    container: debian:13
+    needs: [prepare-deps]
+    steps:
+      # Cache Rust stuff.
+      - name: Cache cargo registry
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+        with:
+          path: ~/.cargo/registry
+          key: cargo-registry
+
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
+
+      - run: apt update
+      - run: |
+          apt -y install \
+              autoconf \
+              automake \
+              build-essential \
+              cmake \
+              cargo \
+              dpdk-dev \
+              git \
+              hwloc \
+              libhwloc-dev \
+              jq \
+              make \
+              libpcre2-dev \
+              libtool \
+              libpcap-dev \
+              libnet1-dev \
+              libyaml-0-2 \
+              libyaml-dev \
+              libcap-ng-dev \
+              libcap-ng0 \
+              libmagic-dev \
+              libmaxminddb-dev \
+              libjansson-dev \
+              libjansson4 \
+              libnuma-dev \
+              liblz4-dev \
+              libssl-dev \
+              liblzma-dev \
+              libvectorscan-dev \
+              pkg-config \
+              python3 \
+              python3-yaml \
+              rustc \
+              sphinx-doc \
+              sphinx-common \
+              texlive-latex-base \
+              texlive-fonts-recommended \
+              texlive-fonts-extra \
+              texlive-latex-extra \
+              zlib1g \
+              zlib1g-dev \
+              clang \
+              libxdp-dev
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - run: git config --global --add safe.directory /__w/suricata/suricata
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: prep
+          path: prep
+      - uses: ./.github/actions/install-cbindgen
+      - run: tar xf prep/suricata-update.tar.gz
+      - run: tar xf prep/suricata-verify.tar.gz
+      - run: ./autogen.sh
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-warnings --enable-unittests --enable-ebpf --enable-ebpf-build
+      - run: make -j ${{ env.CPUS }}
+      - run: make check
+        # -j2 caused random failures during cargo vendor
+      - run: make distcheck
+        env:
+          DISTCHECK_CONFIGURE_FLAGS: "--enable-unittests --enable-debug --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk --enable-ebpf --enable-ebpf-build"
+      - run: test -e doc/userguide/suricata.1
+      - run: test -e doc/userguide/userguide.pdf
+      - name: Building Rust documentation
+        run: make doc
+        working-directory: rust
+      - name: Running suricata-verify
+        run: python3 ./suricata-verify/run.py -q --debug-failed
+      - run: make install
+      - run: suricata-update -V
+      - run: suricatasc -h
+
   ubuntu-22-04-dist:
     name: Ubuntu 22.04 Dist Builder
     runs-on: ubuntu-latest
