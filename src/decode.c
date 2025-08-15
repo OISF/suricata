@@ -921,6 +921,8 @@ void CaptureStatsSetup(ThreadVars *tv)
 void DecodeGlobalConfig(void)
 {
     DecodeIPV4IpInIpConfig();
+    DecodeIPV4InIPV6Config();
+    DecodeIPV6InIPV6Config();
     DecodeTeredoConfig();
     DecodeGeneveConfig();
     DecodeVXLANConfig();
