@@ -5641,31 +5641,40 @@
                 },
                 "decoder": {
                     "type": "object",
+                    "description": "Statistics for packet decoding engine",
                     "additionalProperties": false,
                     "properties": {
                         "arp": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of ARP packets decoded"
                         },
                         "avg_pkt_size": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Average packet size decoded, per thread"
                         },
                         "bytes": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of bytes decoded by the engine, per thread"
                         },
                         "chdlc": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of Cisco HDLC packets decoded"
                         },
                         "erspan": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of ERSPAN packets decoded"
                         },
                         "esp": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of ESP packets decoded"
                         },
                         "ethernet": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of Ethernet packets decoded"
                         },
                         "event": {
                             "type": "object",
+                            "description": "Statistics on events raised during packet decoding",
                             "additionalProperties": false,
                             "properties": {
                                 "afpacket": {
@@ -5684,25 +5693,32 @@
                                     "additionalProperties": false,
                                     "properties": {
                                         "invalid_hardware_size": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of ARP packets with invalid hardware size for ARP (valid size is 6)"
                                         },
                                         "invalid_protocol_size": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of ARP packets with invalid protocol size (valid size is 4)"
                                         },
                                         "pkt_too_small": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of decoded ARP packets with header length too small"
                                         },
                                         "unsupported_hardware": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of decoded ARP packets with unsupported hardware"
                                         },
                                         "unsupported_opcode": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of decoded ARP packets with unsupported Operation Codes"
                                         },
                                         "unsupported_pkt": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of unsupported decoded ARP packets"
                                         },
                                         "unsupported_protocol": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of decoded ARP packets with unsupported protocol"
                                         }
                                     }
                                 },
@@ -5711,7 +5727,8 @@
                                     "additionalProperties": false,
                                     "properties": {
                                         "pkt_too_small": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of events of packet too small for decoded CHDLC packets"
                                         }
                                     }
                                 },
@@ -5720,7 +5737,8 @@
                                     "additionalProperties": false,
                                     "properties": {
                                         "pkt_too_small": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of events of packet too small for decoded DCE packets"
                                         }
                                     }
                                 },
@@ -5729,13 +5747,16 @@
                                     "additionalProperties": false,
                                     "properties": {
                                         "header_too_small": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of events of packets with header too small for decoded ERPSAN packets"
                                         },
                                         "too_many_vlan_layers": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of events of packets with too many VLAN layers for decoded ERPSAN packets"
                                         },
                                         "unsupported_version": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of events of packets with unsupported version for decoded ERPSAN packets"
                                         }
                                     }
                                 },
@@ -5744,7 +5765,8 @@
                                     "additionalProperties": false,
                                     "properties": {
                                         "pkt_too_small": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of events of packet too small for decoded ESP packets"
                                         }
                                     }
                                 },
@@ -5753,10 +5775,12 @@
                                     "additionalProperties": false,
                                     "properties": {
                                         "pkt_too_small": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of events of packet too small for decoded Ethernet packets"
                                         },
                                         "unknown_ethertype": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of events of Unkonwn Ethertype for decoded Ethernet packets"
                                         }
                                     }
                                 },
@@ -5765,7 +5789,8 @@
                                     "additionalProperties": false,
                                     "properties": {
                                         "unknown_payload_type": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of events of unknown payload type for decoded Geneve packets"
                                         }
                                     }
                                 },
@@ -5774,49 +5799,64 @@
                                     "additionalProperties": false,
                                     "properties": {
                                         "pkt_too_small": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of events of packet too small for decoded GRE packets"
                                         },
                                         "version0_flags": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of events of with version 0 flags set for decoded GRE packets"
                                         },
                                         "version0_hdr_too_big": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of events of with version 0 and header too big for decoded GRE packets"
                                         },
                                         "version0_malformed_sre_hdr": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of events of with version 0 and  malformed SRE header for decoded GRE packets"
                                         },
                                         "version0_recur": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of events of with version 0 and flag recursion control set for decoded GRE packets"
                                         },
                                         "version1_chksum": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of events of with version 1 and checksum flag set for decoded GRE packets"
                                         },
                                         "version1_flags": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of events of with version 1 flags set for decoded GRE packets"
                                         },
                                         "version1_hdr_too_big": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of events of with version 1 and header too big for decoded GRE packets"
                                         },
                                         "version1_malformed_sre_hdr": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of events of with version 1 and  malformed SRE header for decoded GRE packets"
                                         },
                                         "version1_no_key": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of events of with version 1 and no key flag set for decoded GRE packets"
                                         },
                                         "version1_recur": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of events of with version 1 and flag recursion control set for decoded GRE packets"
                                         },
                                         "version1_route": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of events of with version 1 and flag route set for decoded GRE packets"
                                         },
                                         "version1_ssr": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of events of with version 1 and flag SSR set for decoded GRE packets"
                                         },
                                         "version1_wrong_protocol": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of events of with version 1 and wrong protocol set for decoded GRE packets"
                                         },
                                         "wrong_version": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of events of wrong version set for decoded GRE packets"
                                         }
                                     }
                                 },
