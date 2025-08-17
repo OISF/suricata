@@ -191,7 +191,8 @@ fn parse_transform_base64(
 
 unsafe fn base64_parse(c_arg: *const c_char) -> *mut DetectTransformFromBase64Data {
     if c_arg.is_null() {
-        return std::ptr::null_mut();
+        let detect = DetectTransformFromBase64Data::default();
+        return Box::into_raw(Box::new(detect));
     }
 
     if let Ok(arg) = CStr::from_ptr(c_arg).to_str() {
