@@ -303,7 +303,7 @@ temporarily (for more, read :ref:`stats configuration<suricata_yaml_outputs>`).
 .. _command-line-exception-policies:
 
 Command-line Options for Simulating Exceptions
-==============================================
+**********************************************
 
 It is also possible to force specific exception scenarios, to check engine
 behavior under failure or error conditions.
@@ -328,7 +328,7 @@ The available command-line options are:
   growing the temporary alert queue, during alerts processing.
 
 Glossary
-========
+********
 
 - **decoding**: traffic parsing on the packet level;
 - **[app-layer] parsing**: traffic is parsed on the application layer level for
@@ -337,7 +337,7 @@ Glossary
   block or allow traffic.
 
 Common abbreviations
---------------------
+====================
 
 - applayer/ app-layer: application layer protocol
 - memcap: (maximum) memory capacity available
