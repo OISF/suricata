@@ -246,11 +246,15 @@ The option values must be ``,`` separated and can appear in any order.
 Format::
 
     from_base64: [[bytes <value>] [, offset <offset_value> [, mode: strict|rfc4648|rfc2045]]]
+    from_base64
 
 There are defaults for each of the options:
 - ``bytes`` defaults to the length of the input buffer
 - ``offset`` defaults to ``0`` and must be less than ``65536``
 - ``mode`` defaults to ``rfc4648``
+
+The second example shows the rule keyword only which will cause the default values for each option to
+be used.
 
 Note that both ``bytes`` and ``offset`` may be variables from `byte_extract` and/or `byte_math` in
 later versions of Suricata. They are not supported yet.
