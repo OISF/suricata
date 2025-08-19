@@ -40,6 +40,7 @@
 #include "action-globals.h"
 #include "flow-util.h"
 #include "util-validate.h"
+#include "rust.h"
 
 #define DETECT_FLOWVAR_NOT_USED      1
 #define DETECT_FLOWVAR_TYPE_READ     2
@@ -621,6 +622,62 @@ static SCSigSignatureWrapper *SCSigOrder(SCSigSignatureWrapper *sw,
     return result;
 }
 
+static int SCSigResolveFlowbitDependencies(SCSigSignatureWrapper *sw)
+{
+    void *graph = SCCreateDirectedGraph();
+    printf("%p\n", graph);
+    uint32_t sig_cnt = 1; /* Keeping a space for the dummy node */
+    while (sw != NULL) {
+        Signature *s = sw->sig;
+        uint32_t sidx = SCCreateNodeEdgeDirectedGraph(graph, s->iid,
+                false /* Signature type node */, false /* does not matter */,
+                UINT32_MAX /* no signature index in graph yet */);
+        SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
+        DetectFlowbitsData *fbd = NULL;
+        uint32_t _nidx = 0;
+
+        while (sm != NULL) {
+            if (sm->type != DETECT_FLOWBITS) {
+                sm = sm->next;
+                continue;
+            }
+            fbd = (DetectFlowbitsData *)sm->ctx;
+            _nidx = SCCreateNodeEdgeDirectedGraph(
+                    graph, fbd->idx, true /* Flowbit type node */, false /* READ cmd */, sidx);
+            sm = sm->next;
+        }
+
+        sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
+
+        while (sm != NULL) {
+            if (sm->type != DETECT_FLOWBITS) {
+                sm = sm->next;
+                continue;
+            }
+            fbd = (DetectFlowbitsData *)sm->ctx;
+            _nidx = SCCreateNodeEdgeDirectedGraph(
+                    graph, fbd->idx, true /* Flowbit type node */, true /* WRITE cmd */, sidx);
+            sm = sm->next;
+        }
+
+        printf("%p\n", fbd);
+        printf("%d\n", _nidx);
+        sw = sw->next;
+        sig_cnt++;
+    }
+
+    uint32_t *sorted_sids = SCCalloc(sig_cnt, sizeof(uint32_t));
+    if (sorted_sids == NULL) {
+        return -1;
+    }
+    SCResolveFlowbitDependencies(graph, sorted_sids, sig_cnt);
+
+    // STODO sort signature wrapper list based on the order defined by sorted_sids
+
+    SCFree(sorted_sids); /* No longer needed */
+    return -1;
+}
+
 /**
  * \brief Orders an incoming Signature based on its action
  *
@@ -812,6 +869,8 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
     SCSigSignatureWrapper *sigw = NULL;
     SCSigSignatureWrapper *td_sigw_list = NULL; /* unified td list */
 
+    SCSigSignatureWrapper *sr_fb_sigw_list = NULL; /* SET_READ flowbits */
+
     SCSigSignatureWrapper *fw_pf_sigw_list = NULL; /* hook: packet_filter */
     SCSigSignatureWrapper *fw_af_sigw_list = NULL; /* hook: app_filter */
 
@@ -829,8 +888,13 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
                 fw_af_sigw_list = sigw;
             }
         } else {
-            sigw->next = td_sigw_list;
-            td_sigw_list = sigw;
+            if (sigw->user[DETECT_SIGORDER_FLOWBITS] == DETECT_FLOWVAR_TYPE_SET_READ) {
+                sigw->next = sr_fb_sigw_list;
+                sr_fb_sigw_list = sigw; // STODO fix memleaks for this
+            } else {
+                sigw->next = td_sigw_list;
+                td_sigw_list = sigw;
+            }
         }
         sig = sig->next;
     }
@@ -849,6 +913,14 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
     if (td_sigw_list) {
         /* Sort the list */
         td_sigw_list = SCSigOrder(td_sigw_list, de_ctx->sc_sig_order_funcs);
+    }
+    if (sr_fb_sigw_list) {
+        /* Resolve any complex dependencies, if possible, or error out early on */
+        int retval = SCSigResolveFlowbitDependencies(sr_fb_sigw_list);
+        if (retval < 0) {
+            SCLogError("Error resolving flowbit dependencies");
+            // STODO what now?
+        }
     }
     /* Recreate the sig list in order */
     de_ctx->sig_list = NULL;
@@ -903,6 +975,8 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
         sigw = sigw->next;
         SCFree(sigw_to_free);
     }
+
+    // STODO find the right place in sig_list to insert the processed array
 }
 
 /**
