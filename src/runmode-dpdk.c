@@ -226,7 +226,7 @@ static char *AllocAndSetOption(const char *arg)
 
     ptr = AllocArgument(full_len);
     strlcpy(ptr, dash_prefix, full_len);
-    strlcat(ptr, arg, full_len);
+    strlcat(ptr, arg, full_len + 1);
     SCReturnPtr(ptr, "char *");
 }
 
