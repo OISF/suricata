@@ -412,6 +412,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "either"
+version = "1.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "48c757948c5ede0e46177b7add2e67155f70e33c07fea8284df6576da70b3719"
+
+[[package]]
 name = "endian-type"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -479,6 +485,12 @@ dependencies = [
  "rustix",
  "windows-sys 0.59.0",
 ]
+
+[[package]]
+name = "fixedbitset"
+version = "0.5.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1d674e81391d1e1ab681a28d99df07927c6d4aa5b027d7da16ba32d1d21ecd99"
 
 [[package]]
 name = "flate2"
@@ -697,6 +709,15 @@ checksum = "2cf8413e5de78bcbc51880ff71f4b64105719abe6efb8b4b877d3c7dc494ddd1"
 dependencies = [
  "nom",
  "rusticata-macros",
+]
+
+[[package]]
+name = "itertools"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
+dependencies = [
+ "either",
 ]
 
 [[package]]
@@ -1045,6 +1066,18 @@ name = "overload"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
+
+[[package]]
+name = "petgraph"
+version = "0.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "54acf3a685220b533e437e264e4d932cfbdc4cc7ec0cd232ed73c08d03b8a7ca"
+dependencies = [
+ "fixedbitset",
+ "hashbrown",
+ "indexmap",
+ "serde",
+]
 
 [[package]]
 name = "phf"
@@ -1524,6 +1557,7 @@ dependencies = [
  "hex",
  "hkdf",
  "ipsec-parser",
+ "itertools",
  "kerberos-parser",
  "lazy_static",
  "ldap-parser",
@@ -1537,6 +1571,7 @@ dependencies = [
  "num",
  "num-derive",
  "num-traits 0.2.19",
+ "petgraph",
  "psl",
  "regex",
  "sawp",
