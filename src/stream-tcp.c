@@ -1787,6 +1787,7 @@ static void TcpStateQueueInitFromSsnSyn(const TcpSession *ssn, TcpStateQueue *q)
     BUG_ON(ssn->state != TCP_SYN_SENT); // TODO
     memset(q, 0, sizeof(*q));
 
+    q->seq = ssn->client.isn;
     /* SYN won't use wscale yet. So window should be limited to 16 bits. */
     DEBUG_VALIDATE_BUG_ON(ssn->server.window > UINT16_MAX);
     q->win = (uint16_t)ssn->server.window;
@@ -1817,8 +1818,9 @@ static void TcpStateQueueInitFromPktSyn(const Packet *p, TcpStateQueue *q)
 #endif
     memset(q, 0, sizeof(*q));
 
+    q->seq = TCP_GET_SEQ(p);
     q->win = TCP_GET_WINDOW(p);
-    q->pkt_ts = SCTIME_SECS(p->ts);
+    q->pkt_ts = (uint32_t)SCTIME_SECS(p->ts);
 
     if (TCP_GET_SACKOK(p) == 1) {
         q->flags |= STREAMTCP_QUEUE_FLAG_SACK;
@@ -1846,6 +1848,7 @@ static void TcpStateQueueInitFromPktSynAck(const Packet *p, TcpStateQueue *q)
 #endif
     memset(q, 0, sizeof(*q));
 
+    q->seq = TCP_GET_ACK(p) - 1;
     q->win = TCP_GET_WINDOW(p);
     q->pkt_ts = SCTIME_SECS(p->ts);
 
@@ -1870,36 +1873,62 @@ static void TcpStateQueueInitFromPktSynAck(const Packet *p, TcpStateQueue *q)
 /** \internal
  *  \brief Find the Queued SYN that is the same as this SYN/ACK
  *  \retval q or NULL */
-static const TcpStateQueue *StreamTcp3whsFindSyn(const TcpSession *ssn, TcpStateQueue *s)
+static const TcpStateQueue *StreamTcp3whsFindSyn(
+        const TcpSession *ssn, TcpStateQueue *s, TcpStateQueue **ret_tail)
 {
     SCLogDebug("ssn %p: search state:%p, isn:%u/win:%u/has_ts:%s/tsval:%u", ssn, s, s->seq, s->win,
             BOOL2STR(s->flags & STREAMTCP_QUEUE_FLAG_TS), s->ts);
 
-    for (const TcpStateQueue *q = ssn->queue; q != NULL; q = q->next) {
-        SCLogDebug("ssn %p: queue state:%p, isn:%u/win:%u/has_ts:%s/tsval:%u", ssn, q, q->seq,
-                q->win, BOOL2STR(q->flags & STREAMTCP_QUEUE_FLAG_TS), q->ts);
+    TcpStateQueue *last = NULL;
+    for (TcpStateQueue *q = ssn->queue; q != NULL; q = q->next) {
+        SCLogDebug("ssn %p: queue state:%p, isn:%u/win:%u/has_ts:%s/tsval:%u (last:%s)", ssn, q,
+                q->seq, q->win, BOOL2STR(q->flags & STREAMTCP_QUEUE_FLAG_TS), q->ts,
+                BOOL2STR(q->next == NULL));
         if ((s->flags & STREAMTCP_QUEUE_FLAG_TS) == (q->flags & STREAMTCP_QUEUE_FLAG_TS) &&
-                s->ts == q->ts) {
+                s->ts == q->ts && s->seq == q->seq) {
             return q;
         }
+        last = q;
     }
+    if (ret_tail)
+        *ret_tail = last;
     return NULL;
 }
 
-/** \note the SEQ values *must* be the same */
+/** \internal
+ *  \brief take oldest element in the list and replace it with the new data
+ */
+static void AddAndRotate(TcpSession *ssn, TcpStateQueue *tail, TcpStateQueue *search)
+{
+    TcpStateQueue *old_head = ssn->queue;
+    TcpStateQueue *new_head = old_head->next;
+    /* set new head */
+    ssn->queue = new_head;
+
+    /* old head node is now appended to the list tail */
+    tail->next = old_head;
+
+    *old_head = *search;
+    old_head->next = NULL;
+}
+
 static int StreamTcp3whsStoreSyn(TcpSession *ssn, Packet *p)
 {
     TcpStateQueue search;
     TcpStateQueueInitFromSsnSyn(ssn, &search);
+    TcpStateQueue *tail = NULL;
 
     /* first see if this is already in our list */
-    if (ssn->queue != NULL && StreamTcp3whsFindSyn(ssn, &search) != NULL)
+    if (ssn->queue != NULL && StreamTcp3whsFindSyn(ssn, &search, &tail) != NULL)
         return 0;
 
     if (ssn->queue_len == stream_config.max_syn_queued) {
-        SCLogDebug("ssn %p: =~ SYN queue limit reached", ssn);
+        SCLogDebug("%" PRIu64 ": ssn %p: =~ SYN queue limit reached, rotate", p->pcap_cnt, ssn);
         StreamTcpSetEvent(p, STREAM_3WHS_SYN_FLOOD);
-        return -1;
+
+        /* add to the list, evicting the oldest entry */
+        AddAndRotate(ssn, tail, &search);
+        return 0;
     }
 
     if (StreamTcpCheckMemcap((uint32_t)sizeof(TcpStateQueue)) == 0) {
@@ -1916,9 +1945,13 @@ static int StreamTcp3whsStoreSyn(TcpSession *ssn, Packet *p)
 
     *q = search;
     /* put in list */
-    q->next = ssn->queue;
-    ssn->queue = q;
+    if (tail)
+        tail->next = q;
+    if (ssn->queue == NULL)
+        ssn->queue = q;
     ssn->queue_len++;
+    SCLogDebug("%" PRIu64 ": ssn %p: =~ SYN with SEQ %u added (queue_len %u)", p->pcap_cnt, ssn,
+            q->seq, ssn->queue_len);
     return 0;
 }
 
@@ -1944,6 +1977,102 @@ static inline void StreamTcp3whsStoreSynApplyToSsn(TcpSession *ssn, const TcpSta
     } else {
         ssn->flags &= ~STREAMTCP_FLAG_CLIENT_SACKOK;
     }
+    ssn->client.isn = q->seq;
+    ssn->client.base_seq = ssn->client.next_seq = ssn->client.isn + 1;
+    SCLogDebug("ssn: %p client.isn updated to %u", ssn, ssn->client.isn);
+}
+
+/** \internal
+ *  \brief handle SYN/ACK on SYN_SENT state (non-TFO case)
+ *
+ *  If packet doesn't match the session, check queued states (if any)
+ *
+ *  \retval true packet is accepted
+ *  \retval false packet is rejected
+ */
+static inline bool StateSynSentCheckSynAck3Whs(TcpSession *ssn, Packet *p, const bool ts_mismatch)
+{
+    const bool seq_match = SEQ_EQ(TCP_GET_ACK(p), ssn->client.isn + 1);
+    if (seq_match && !ts_mismatch) {
+        return true;
+    }
+
+    /* check the queued syns */
+    if (ssn->queue == NULL) {
+        goto failure;
+    }
+
+    TcpStateQueue search;
+    TcpStateQueueInitFromPktSynAck(p, &search);
+    SCLogDebug("%" PRIu64 ": ssn %p: SYN/ACK looking for SEQ %u", p->pcap_cnt, ssn, search.seq);
+
+    const TcpStateQueue *q = StreamTcp3whsFindSyn(ssn, &search, NULL);
+    if (q == NULL) {
+        SCLogDebug("not found: mismatch");
+        goto failure;
+    }
+
+    SCLogDebug("ssn %p: found queued SYN state:%p, isn:%u/win:%u/has_ts:%s/tsval:%u", ssn, q,
+            q->seq, q->win, BOOL2STR(q->flags & STREAMTCP_QUEUE_FLAG_TS), q->ts);
+    StreamTcp3whsStoreSynApplyToSsn(ssn, q);
+    return true;
+failure:
+    if (!seq_match) {
+        StreamTcpSetEvent(p, STREAM_3WHS_SYNACK_WITH_WRONG_ACK);
+    } else if (ts_mismatch) {
+        StreamTcpSetEvent(p, STREAM_PKT_INVALID_TIMESTAMP);
+    }
+    return false;
+}
+
+/** \internal
+ *  \brief handle SYN/ACK on SYN_SENT state (TFO case)
+ *
+ *  If packet doesn't match the session, check queued states (if any)
+ *
+ *  \retval true packet is accepted
+ *  \retval false packet is rejected
+ */
+static inline bool StateSynSentCheckSynAckTFO(TcpSession *ssn, Packet *p, const bool ts_mismatch)
+{
+    const bool seq_match_tfo = SEQ_EQ(TCP_GET_ACK(p), ssn->client.next_seq);
+    const bool seq_match_nodata = SEQ_EQ(TCP_GET_ACK(p), ssn->client.isn + 1);
+    if (seq_match_tfo && !ts_mismatch) {
+        // ok
+    } else if (seq_match_nodata && !ts_mismatch) {
+        ssn->client.next_seq = ssn->client.isn; // reset to ISN
+        SCLogDebug("ssn %p: (TFO) next_seq reset to isn (%u)", ssn, ssn->client.next_seq);
+        StreamTcpSetEvent(p, STREAM_3WHS_SYNACK_TFO_DATA_IGNORED);
+        ssn->flags |= STREAMTCP_FLAG_TFO_DATA_IGNORED;
+    } else {
+        /* check the queued syns */
+        if (ssn->queue == NULL) {
+            goto failure;
+        }
+
+        TcpStateQueue search;
+        TcpStateQueueInitFromPktSynAck(p, &search);
+        SCLogDebug("%" PRIu64 ": ssn %p: SYN/ACK looking for SEQ %u", p->pcap_cnt, ssn, search.seq);
+
+        const TcpStateQueue *q = StreamTcp3whsFindSyn(ssn, &search, NULL);
+        if (q == NULL) {
+            SCLogDebug("not found: mismatch");
+            goto failure;
+        }
+
+        SCLogDebug("ssn %p: found queued SYN state:%p, isn:%u/win:%u/has_ts:%s/tsval:%u", ssn, q,
+                q->seq, q->win, BOOL2STR(q->flags & STREAMTCP_QUEUE_FLAG_TS), q->ts);
+        StreamTcp3whsStoreSynApplyToSsn(ssn, q);
+    }
+    ssn->flags |= STREAMTCP_FLAG_TCP_FAST_OPEN;
+    return true;
+failure:
+    if (!seq_match_tfo && !seq_match_nodata) {
+        StreamTcpSetEvent(p, STREAM_3WHS_SYNACK_WITH_WRONG_ACK);
+    } else if (ts_mismatch) {
+        StreamTcpSetEvent(p, STREAM_PKT_INVALID_TIMESTAMP);
+    }
+    return false;
 }
 
 /**
@@ -1965,71 +2094,38 @@ static int StreamTcpPacketStateSynSent(
 
     /* common case: SYN/ACK from server to client */
     if ((p->tcph->th_flags & (TH_SYN | TH_ACK)) == (TH_SYN | TH_ACK) && PKT_IS_TOCLIENT(p)) {
-        SCLogDebug("ssn %p: SYN/ACK on SYN_SENT state for packet %" PRIu64, ssn, p->pcap_cnt);
+        SCLogDebug("%" PRIu64 ": ssn %p: SYN/ACK on SYN_SENT state for packet %" PRIu64,
+                p->pcap_cnt, ssn, p->pcap_cnt);
+        const bool ts_mismatch = !StateSynSentValidateTimestamp(ssn, p);
 
         if (!(TCP_HAS_TFO(p) || (ssn->flags & STREAMTCP_FLAG_TCP_FAST_OPEN))) {
-            /* Check if the SYN/ACK packet ack's the earlier
-             * received SYN packet. */
-            if (!(SEQ_EQ(TCP_GET_ACK(p), ssn->client.isn + 1))) {
-                StreamTcpSetEvent(p, STREAM_3WHS_SYNACK_WITH_WRONG_ACK);
-                SCLogDebug("ssn %p: ACK mismatch, packet ACK %" PRIu32 " != "
-                        "%" PRIu32 " from stream", ssn, TCP_GET_ACK(p),
-                        ssn->client.isn + 1);
+            if (StateSynSentCheckSynAck3Whs(ssn, p, ts_mismatch)) {
+                SCLogDebug("ssn %p: ACK match, packet ACK %" PRIu32 " == "
+                           "%" PRIu32 " from stream",
+                        ssn, TCP_GET_ACK(p), ssn->client.isn + 1);
+            } else {
+                SCLogDebug("ssn %p: (3WHS) ACK mismatch, packet ACK %" PRIu32 " != "
+                           "%" PRIu32 " from stream",
+                        ssn, TCP_GET_ACK(p), ssn->client.next_seq);
                 return -1;
             }
         } else {
-            if (SEQ_EQ(TCP_GET_ACK(p), ssn->client.next_seq)) {
+            if (StateSynSentCheckSynAckTFO(ssn, p, ts_mismatch)) {
                 SCLogDebug("ssn %p: (TFO) ACK matches next_seq, packet ACK %" PRIu32 " == "
                            "%" PRIu32 " from stream",
                         ssn, TCP_GET_ACK(p), ssn->client.next_seq);
-            } else if (SEQ_EQ(TCP_GET_ACK(p), ssn->client.isn + 1)) {
-                SCLogDebug("ssn %p: (TFO) ACK matches ISN+1, packet ACK %" PRIu32 " == "
-                           "%" PRIu32 " from stream",
-                        ssn, TCP_GET_ACK(p), ssn->client.isn + 1);
-                ssn->client.next_seq = ssn->client.isn; // reset to ISN
-                SCLogDebug("ssn %p: (TFO) next_seq reset to isn (%u)", ssn, ssn->client.next_seq);
-                StreamTcpSetEvent(p, STREAM_3WHS_SYNACK_TFO_DATA_IGNORED);
-                ssn->flags |= STREAMTCP_FLAG_TFO_DATA_IGNORED;
             } else {
-                StreamTcpSetEvent(p, STREAM_3WHS_SYNACK_WITH_WRONG_ACK);
                 SCLogDebug("ssn %p: (TFO) ACK mismatch, packet ACK %" PRIu32 " != "
                         "%" PRIu32 " from stream", ssn, TCP_GET_ACK(p),
                         ssn->client.next_seq);
                 return -1;
             }
-            ssn->flags |= STREAMTCP_FLAG_TCP_FAST_OPEN;
         }
-
-        const bool ts_mismatch = !StateSynSentValidateTimestamp(ssn, p);
-        if (ts_mismatch) {
-            SCLogDebug("ssn %p: ts_mismatch:%s", ssn, BOOL2STR(ts_mismatch));
-            if (ssn->queue) {
-                TcpStateQueue search;
-                TcpStateQueueInitFromPktSynAck(p, &search);
-
-                const TcpStateQueue *q = StreamTcp3whsFindSyn(ssn, &search);
-                if (q == NULL) {
-                    SCLogDebug("not found: mismatch");
-                    StreamTcpSetEvent(p, STREAM_PKT_INVALID_TIMESTAMP);
-                    return -1;
-                }
-                SCLogDebug("ssn %p: found queued SYN state:%p, isn:%u/win:%u/has_ts:%s/tsval:%u",
-                        ssn, q, q->seq, q->win, BOOL2STR(q->flags & STREAMTCP_QUEUE_FLAG_TS),
-                        q->ts);
-
-                StreamTcp3whsStoreSynApplyToSsn(ssn, q);
-
-            } else {
-                SCLogDebug("not found: no queue");
-                StreamTcpSetEvent(p, STREAM_PKT_INVALID_TIMESTAMP);
-                return -1;
-            }
-        }
-
         /* clear ssn->queue on state change: TcpSession can be reused by SYN/ACK */
         StreamTcp3wsFreeQueue(ssn);
 
         StreamTcp3whsSynAckUpdate(ssn, p, /* no queue override */NULL);
+        SCLogDebug("%" PRIu64 ": ssn %p: SYN/ACK on SYN_SENT state: accepted", p->pcap_cnt, ssn);
         return 0;
 
     } else if ((p->tcph->th_flags & (TH_SYN | TH_ACK)) == (TH_SYN | TH_ACK) && PKT_IS_TOSERVER(p)) {
