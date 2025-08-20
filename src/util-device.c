@@ -258,11 +258,11 @@ static int LiveSafeDeviceName(const char *devname, char *newdevname, size_t dest
 }
 
 /**
- *  \brief Get a pointer to the device at idx
+ *  \brief Get a pointer to the device by name
  *
- *  \param number idx of the device in our list
+ *  \param str name of the device in our list
  *
- *  \retval ptr pointer to the string containing the device
+ *  \retval ptr pointer to the device instance
  *  \retval NULL on error
  */
 LiveDevice *LiveGetDevice(const char *name)
@@ -278,6 +278,30 @@ LiveDevice *LiveGetDevice(const char *name)
         if (!strcmp(name, pd->dev)) {
             return pd;
         }
+    }
+
+    return NULL;
+}
+
+/**
+ *  \brief Get a pointer to the device at idx
+ *
+ *  \param number idx of the device in our list
+ *
+ *  \retval ptr pointer to the device instance
+ *  \retval NULL on error
+ */
+LiveDevice *LiveGetDeviceByIdx(int number)
+{
+    int i = 0;
+    LiveDevice *pd;
+
+    TAILQ_FOREACH (pd, &live_devices, next) {
+        if (i == number) {
+            return pd;
+        }
+
+        i++;
     }
 
     return NULL;
