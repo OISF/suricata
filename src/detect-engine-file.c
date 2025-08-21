@@ -92,6 +92,12 @@ static uint8_t DetectFileInspect(DetectEngineThreadCtx *det_ctx, Flow *f, const 
             continue;
         }
 
+        if ((s->file_flags & FILE_SIG_NEED_MIMETYPE) && file_size == 0) {
+            SCLogDebug("sig needs file content, but we don't have any");
+            r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+            continue;
+        }
+
         if ((s->file_flags & FILE_SIG_NEED_FILECONTENT) && file_size == 0) {
             SCLogDebug("sig needs file content, but we don't have any");
             r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;

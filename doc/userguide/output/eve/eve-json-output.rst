@@ -315,6 +315,65 @@ YAML::
             # Default: all.
             #types: [a, aaaa, cname, mx, ns, ptr, txt]
 
+
+.. _output-eve-fileinfo:
+
+Fileinfo
+~~~~~~~~
+
+Fileinfo records are logged when files are seen on network traffic. The log
+contains information about the file, such as its name, size, and
+hashes.
+
+The type of the file can also be determined by doing an analysis of the beginning of the content
+of the file. This is done by using libmagic and/or libmimetype. Magic is slower than mimetype, but 
+it can provide more information about the file type. At the same time, magic output is less predictive than
+mimetype one that follows a standard.
+
+If you want to log the file type, you can enable either or both of these options.
+
+YAML::
+
+        - files:
+            force-magic: no   # force logging magic on all logged files
+            force-mimetype: no # force logging mime type on all logged files
+            # force logging of checksums, available hash functions are md5,
+            # sha1 and sha256
+            #force-hash: [md5]
+
+The identification by magic is using a file available on the system. The file can be set by using a
+dedicated configuration option:
+
+YAML::
+
+  magic-file: /usr/share/file/magic
+
+The mimetype analysis is using by default Suricata provided MIME type files if the bundled GPL
+data is not included at build time and if these mime type files have been installed on the system.
+This can be done by using ``make install-conf`` for initial installation or by using
+``make upgrade-data`` for updating the files.
+
+If Suricata MIME types files are not available, then the system MIME type files will be used.
+In that case, the used files have the same syntax as the one
+used by magic but they are auto discovered using predefined path and paths
+built upon XDG_DATA_DIRS and XDG_DATA_HOME variables.
+
+If bundled GPL data is included then no files on disk are used and the results of the
+identification are only dependent of the version of the `tree_magic_mini Rust crate <https://github.com/mbrubeck/tree_magic/>`_
+that has been used to build Suricata.
+
+If ever customer MIME type files are needed, then the ``mimetype-dir`` option can be used to
+specify a directory where these MIME type files are located. This directory will be used instead
+of the default one.
+
+YAML::
+
+  mimetype-dir: /etc/suricata/mime
+
+Alternatively, the ``TREE_MAGIC_DIR`` environment variable can be set to
+point to a directory where the MIME type files are located. This will override the setting
+in the configuration file.
+
 TLS
 ~~~
 

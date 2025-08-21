@@ -292,6 +292,7 @@ outputs:
             #custom: [subject, issuer, session_resumed, serial, fingerprint, sni, version, not_before, not_after, certificate, chain, ja3, ja3s, ja4, subjectaltname, client, client_certificate, client_chain, client_alpns, server_alpns, client_handshake, server_handshake]
         - files:
             force-magic: no   # force logging magic on all logged files
+            force-mimetype: no # force logging mime type on all logged files
             # force logging of checksums, available hash functions are md5,
             # sha1 and sha256
             #force-hash: [md5]
@@ -1402,6 +1403,11 @@ unix-command:
 # Magic file. The extension .mgc is added to the value here.
 #magic-file: /usr/share/file/magic
 @e_magic_file_comment@magic-file: @e_magic_file@
+
+# Directory where the mimetype files are stored.
+# Default path will be picked if variable is not set so use this
+# variable only to implement custom mimetype files.
+#mimetype-dir: @e_datadir@/mimetype/
 
 # GeoIP2 database file. Specify path and filename of GeoIP2 database
 # if using rules with "geoip" rule option.
