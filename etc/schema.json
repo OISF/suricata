@@ -5686,6 +5686,9 @@
                                         "invalid_hardware_size": {
                                             "type": "integer"
                                         },
+                                        "invalid_pkt": {
+                                            "type": "integer"
+                                        },
                                         "invalid_protocol_size": {
                                             "type": "integer"
                                         },
@@ -5696,9 +5699,6 @@
                                             "type": "integer"
                                         },
                                         "unsupported_opcode": {
-                                            "type": "integer"
-                                        },
-                                        "unsupported_pkt": {
                                             "type": "integer"
                                         },
                                         "unsupported_protocol": {
