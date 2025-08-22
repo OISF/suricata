@@ -53,6 +53,7 @@ void DetectICMPv6mtuRegister(void)
     sigmatch_table[DETECT_ICMPV6MTU].Match = DetectICMPv6mtuMatch;
     sigmatch_table[DETECT_ICMPV6MTU].Setup = DetectICMPv6mtuSetup;
     sigmatch_table[DETECT_ICMPV6MTU].Free = DetectICMPv6mtuFree;
+    sigmatch_table[DETECT_ICMPV6MTU].flags = SIGMATCH_INFO_UINT32;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_ICMPV6MTU].RegisterTests = DetectICMPv6mtuRegisterTests;
 #endif

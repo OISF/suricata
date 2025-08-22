@@ -20,7 +20,7 @@
 use super::snmp::{SNMPTransaction, ALPROTO_SNMP};
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{DetectUintData, SCDetectU32Free, SCDetectU32Match, SCDetectU32Parse};
-use crate::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
+use crate::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer, SIGMATCH_INFO_UINT32};
 use std::os::raw::{c_int, c_void};
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
@@ -176,7 +176,7 @@ pub(super) unsafe extern "C" fn detect_snmp_register() {
         AppLayerTxMatch: Some(snmp_detect_version_match),
         Setup: Some(snmp_detect_version_setup),
         Free: Some(snmp_detect_version_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT32,
     };
     G_SNMP_VERSION_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_SNMP_VERSION_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -192,7 +192,7 @@ pub(super) unsafe extern "C" fn detect_snmp_register() {
         AppLayerTxMatch: Some(snmp_detect_pdutype_match),
         Setup: Some(snmp_detect_pdutype_setup),
         Free: Some(snmp_detect_pdutype_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT32,
     };
     G_SNMP_PDUTYPE_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_SNMP_PDUTYPE_BUFFER_ID = SCDetectHelperBufferRegister(

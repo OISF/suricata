@@ -25,7 +25,8 @@ use nom7::IResult;
 
 use super::EnumString;
 
-use std::ffi::CStr;
+use std::ffi::{CStr, c_int};
+use std::str::FromStr;
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 #[repr(u8)]
@@ -48,6 +49,92 @@ pub struct DetectUintData<T> {
     pub arg1: T,
     pub arg2: T,
     pub mode: DetectUintMode,
+}
+
+#[derive(Debug, PartialEq)]
+pub(crate) enum DetectUintIndex {
+    Any,
+    All,
+    Index(i32),
+}
+
+#[derive(Debug, PartialEq)]
+pub(crate) struct DetectUintArrayData<T> {
+    pub du: DetectUintData<T>,
+    pub index: DetectUintIndex,
+}
+
+fn parse_uint_index(parts: &[&str]) -> Option<DetectUintIndex> {
+    let index = if parts.len() == 2 {
+        match parts[1] {
+            "all" => DetectUintIndex::All,
+            "any" => DetectUintIndex::Any,
+            _ => {
+                let i32_index = i32::from_str(parts[1]).ok()?;
+                DetectUintIndex::Index(i32_index)
+            }
+        }
+    } else {
+        DetectUintIndex::Any
+    };
+    return Some(index);
+}
+
+pub(crate) fn detect_parse_array_uint_enum<T1: DetectIntType, T2: EnumString<T1>>(
+    s: &str,
+) -> Option<DetectUintArrayData<T1>> {
+    let parts: Vec<&str> = s.split(',').collect();
+    if parts.len() > 2 {
+        return None;
+    }
+
+    let index = parse_uint_index(&parts)?;
+    let du = detect_parse_uint_enum::<T1, T2>(parts[0])?;
+
+    Some(DetectUintArrayData { du, index })
+}
+
+pub(crate) fn detect_uint_match_at_index<T, U>(
+    array: &Vec<T>, ctx: &DetectUintArrayData<U>, get_value: impl Fn(&T) -> Option<U>,
+    detect_match: impl Fn(U, &DetectUintData<U>) -> c_int,
+) -> c_int {
+    match ctx.index {
+        DetectUintIndex::Any => {
+            for response in array {
+                if let Some(code) = get_value(response) {
+                    if detect_match(code, &ctx.du) == 1 {
+                        return 1;
+                    }
+                }
+            }
+            return 0;
+        }
+        DetectUintIndex::All => {
+            for response in array {
+                if let Some(code) = get_value(response) {
+                    if detect_match(code, &ctx.du) == 0 {
+                        return 0;
+                    }
+                }
+            }
+            return 1;
+        }
+        DetectUintIndex::Index(idx) => {
+            let index = if idx < 0 {
+                // negative values for backward indexing.
+                ((array.len() as i32) + idx) as usize
+            } else {
+                idx as usize
+            };
+            if array.len() <= index {
+                return 0;
+            }
+            if let Some(code) = get_value(&array[index]) {
+                return detect_match(code, &ctx.du);
+            }
+            return 0;
+        }
+    }
 }
 
 /// Parses a string for detection with integers, using enumeration strings
