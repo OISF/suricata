@@ -187,7 +187,7 @@ static inline void RuleActionToFlow(const uint8_t action, Flow *f)
  *  \param pa packet alert struct -- match, including actions after thresholding (rate_filter) */
 static void PacketApplySignatureActions(Packet *p, const Signature *s, const PacketAlert *pa)
 {
-    SCLogDebug("packet %" PRIu64 " sid %u action %02x alert_flags %02x", p->pcap_cnt, s->id,
+    SCLogDebug("packet %" PRIu64 " sid %u action %02x alert_flags %02x", p->pcap_v.pcap_cnt, s->id,
             pa->action, pa->flags);
 
     /* REJECT also sets ACTION_DROP, just make it more visible with this check */
@@ -222,11 +222,11 @@ static void PacketApplySignatureActions(Packet *p, const Signature *s, const Pac
             // nothing to set in the packet
         } else if (pa->action & ACTION_ACCEPT) {
             const enum ActionScope as = pa->s->action_scope;
-            SCLogDebug("packet %" PRIu64 ": ACCEPT %u as:%u flags:%02x", p->pcap_cnt, s->id, as,
-                    pa->flags);
+            SCLogDebug("packet %" PRIu64 ": ACCEPT %u as:%u flags:%02x", p->pcap_v.pcap_cnt, s->id,
+                    as, pa->flags);
             if (as == ACTION_SCOPE_PACKET || as == ACTION_SCOPE_FLOW ||
                     (pa->flags & PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET)) {
-                SCLogDebug("packet %" PRIu64 ": sid:%u ACCEPT", p->pcap_cnt, s->id);
+                SCLogDebug("packet %" PRIu64 ": sid:%u ACCEPT", p->pcap_v.pcap_cnt, s->id);
                 p->action |= ACTION_ACCEPT;
             }
         } else if (pa->action & (ACTION_ALERT | ACTION_CONFIG)) {
@@ -449,7 +449,7 @@ static inline void FlowApplySignatureActions(
         if (pa->flags & PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW) {
             SCLogDebug("packet %" PRIu64 " sid %u action %02x alert_flags %02x (set "
                        "PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW)",
-                    p->pcap_cnt, s->id, s->action, pa->flags);
+                    p->pcap_v.pcap_cnt, s->id, s->action, pa->flags);
         }
     }
 }
@@ -507,8 +507,8 @@ static inline void PacketAlertFinalizeProcessQueue(
                     }
                 }
             }
-            SCLogDebug("packet %" PRIu64 ": i:%u sid:%u skip_action_set %s", p->pcap_cnt, i, s->id,
-                    BOOL2STR(skip_action_set));
+            SCLogDebug("packet %" PRIu64 ": i:%u sid:%u skip_action_set %s", p->pcap_v.pcap_cnt, i,
+                    s->id, BOOL2STR(skip_action_set));
             if (!skip_action_set) {
                 /* set actions on the flow */
                 FlowApplySignatureActions(p, pa, s, pa->flags);

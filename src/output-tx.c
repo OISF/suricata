@@ -186,7 +186,7 @@ static inline void OutputTxLogFiles(ThreadVars *tv, OutputFileLoggerThreadData *
     if (ffc || ffc_opposing)
         SCLogDebug("pcap_cnt %" PRIu64 " flow %p tx %p tx_id %" PRIu64
                    " ffc %p ffc_opposing %p tx_complete %d",
-                p->pcap_cnt, f, tx, tx_id, ffc, ffc_opposing, tx_complete);
+                p->pcap_v.pcap_cnt, f, tx, tx_id, ffc, ffc_opposing, tx_complete);
 
     if (ffc) {
         const bool file_close = ((p->flags & PKT_PSEUDO_STREAM_END)) | eof;
@@ -234,7 +234,7 @@ static inline void OutputTxLogFiles(ThreadVars *tv, OutputFileLoggerThreadData *
     } else {
         SCLogDebug("pcap_cnt %" PRIu64 " flow %p tx %p tx_id %" PRIu64
                    " NOT SETTING FILE FLAGS ffc %p ffc_opposing %p tx_complete %d",
-                p->pcap_cnt, f, tx, tx_id, ffc, ffc_opposing, tx_complete);
+                p->pcap_v.pcap_cnt, f, tx, tx_id, ffc, ffc_opposing, tx_complete);
     }
 }
 
@@ -292,8 +292,8 @@ static void OutputTxLogCallLoggers(ThreadVars *tv, OutputTxLoggerThreadData *op_
         if ((ctx->tx_logged_old & BIT_U32(logger->logger_id)) == 0) {
             SCLogDebug("alproto match %d, logging tx_id %" PRIu64, logger->alproto, tx_id);
 
-            SCLogDebug("pcap_cnt %" PRIu64 ", tx_id %" PRIu64 " logger %d. EOF %s", p->pcap_cnt,
-                    tx_id, logger->logger_id, eof ? "true" : "false");
+            SCLogDebug("pcap_cnt %" PRIu64 ", tx_id %" PRIu64 " logger %d. EOF %s",
+                    p->pcap_v.pcap_cnt, tx_id, logger->logger_id, eof ? "true" : "false");
 
             if (eof) {
                 SCLogDebug("EOF, so log now");
@@ -354,7 +354,7 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
     Flow * const f = p->flow;
     const uint8_t ipproto = f->proto;
     const AppProto alproto = f->alproto;
-    SCLogDebug("pcap_cnt %u tx logging %u/%s", (uint32_t)p->pcap_cnt, alproto,
+    SCLogDebug("pcap_cnt %u tx logging %u/%s", (uint32_t)p->pcap_v.pcap_cnt, alproto,
             AppProtoToString(alproto));
 
     const bool file_logging_active = (op_thread_data->file || op_thread_data->filedata);
@@ -378,7 +378,7 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
                 logger_expectation, LOGGER_FILE, LOGGER_FILEDATA);
         goto end;
     }
-    SCLogDebug("pcap_cnt %" PRIu64, p->pcap_cnt);
+    SCLogDebug("pcap_cnt %" PRIu64, p->pcap_v.pcap_cnt);
 
     const bool last_pseudo = (p->flowflags & FLOW_PKT_LAST_PSEUDO) != 0;
     const bool ts_eof = SCAppLayerParserStateIssetFlag(f->alparser, APP_LAYER_PARSER_EOF_TS) != 0;
@@ -398,8 +398,8 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
     const bool support_files = AppLayerParserSupportsFiles(ipproto, alproto);
     const uint8_t pkt_dir = STREAM_FLAGS_FOR_PACKET(p);
 
-    SCLogDebug("pcap_cnt %" PRIu64 ": tx_id %" PRIu64 " total_txs %" PRIu64, p->pcap_cnt, tx_id,
-            total_txs);
+    SCLogDebug("pcap_cnt %" PRIu64 ": tx_id %" PRIu64 " total_txs %" PRIu64, p->pcap_v.pcap_cnt,
+            tx_id, total_txs);
 
     AppLayerGetTxIteratorFunc IterFunc = AppLayerGetTxIterator(ipproto, alproto);
     AppLayerGetTxIterState state;
