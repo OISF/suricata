@@ -1271,6 +1271,8 @@ UDP, ICMP and default (all other protocols).
       emergency-new: 10
       emergency-established: 100
 
+.. _stream-engine-yaml:
+
 Stream-engine
 ~~~~~~~~~~~~~
 
