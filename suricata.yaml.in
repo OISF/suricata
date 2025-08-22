@@ -608,6 +608,15 @@ logging:
   # This value is overridden by the SC_LOG_LEVEL env var.
   default-log-level: notice
 
+  # Ensure that logged entropy values have unique names by including additional
+  # information in the logged output name: signature id, instance
+  # When off: file_data
+  # When on: sid:nnn;buffer:file_data:instance:1
+  # The default value is off; it is strongly recommended to change this
+  # value to on
+  #entropy:
+    #make-unique: off
+
   # The default output format.  Optional parameter, should default to
   # something reasonable if not provided.  Can be overridden in an
   # output section.  You can leave this out to get the default.
