@@ -17,17 +17,11 @@
 
 //! This module exposes items from the core "C" code to Rust.
 
-use std;
-use std::os::raw::c_void;
-use suricata_sys::sys::{AppProto, AppProtoEnum, SCLogLevel};
+use suricata_sys::sys::{AppProto, AppProtoEnum};
+#[cfg(not(test))]
+use suricata_sys::sys::SCAppLayerParserTriggerRawStreamInspection;
 
-use crate::filecontainer::*;
 use crate::flow::Flow;
-
-/// Opaque C types.
-pub enum DetectEngineState {}
-pub enum AppLayerDecoderEvents {}
-pub enum GenericVar {}
 
 #[repr(C)]
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -69,111 +63,10 @@ macro_rules!BIT_U64 {
 }
 
 
-/// cbindgen:ignore
-extern "C" {
-    pub fn MpmAddPatternCI(
-        ctx: *const c_void, pat: *const libc::c_char, pat_len: u16, _offset: u16,
-        _depth: u16, id: u32, rule_id: u32, _flags: u8,
-    ) -> c_void;
-}
-
-
 //
 // Function types for calls into C.
 //
-
-#[allow(non_snake_case)]
-pub type SCLogMessageFunc =
-    extern "C" fn(level: SCLogLevel,
-                  filename: *const std::os::raw::c_char,
-                  line: std::os::raw::c_uint,
-                  function: *const std::os::raw::c_char,
-                  subsystem: *const std::os::raw::c_char,
-                  message: *const std::os::raw::c_char) -> std::os::raw::c_int;
-
-pub type DetectEngineStateFreeFunc =
-    extern "C" fn(state: *mut DetectEngineState);
-
-pub type AppLayerParserTriggerRawStreamInspectionFunc =
-    extern "C" fn (flow: *mut Flow, direction: i32);
-pub type AppLayerDecoderEventsSetEventRawFunc =
-    extern "C" fn (events: *mut *mut AppLayerDecoderEvents,
-                   event: u8);
-
-pub type AppLayerDecoderEventsFreeEventsFunc =
-    extern "C" fn (events: *mut *mut AppLayerDecoderEvents);
-
 pub enum StreamingBufferConfig {}
-
-// Opaque flow type (defined in C)
-pub enum HttpRangeContainerBlock {}
-
-pub type SCHttpRangeFreeBlock = extern "C" fn (
-        c: *mut HttpRangeContainerBlock);
-pub type SCHTPFileCloseHandleRange = extern "C" fn (
-        sbcfg: &StreamingBufferConfig,
-        fc: *mut FileContainer,
-        flags: u16,
-        c: *mut HttpRangeContainerBlock,
-        data: *const u8,
-        data_len: u32) -> bool;
-pub type SCFileOpenFileWithId = extern "C" fn (
-        file_container: &FileContainer,
-        sbcfg: &StreamingBufferConfig,
-        track_id: u32,
-        name: *const u8, name_len: u16,
-        data: *const u8, data_len: u32,
-        flags: u16) -> i32;
-pub type SCFileCloseFileById = extern "C" fn (
-        file_container: &FileContainer,
-        sbcfg: &StreamingBufferConfig,
-        track_id: u32,
-        data: *const u8, data_len: u32,
-        flags: u16) -> i32;
-pub type SCFileAppendDataById = extern "C" fn (
-        file_container: &FileContainer,
-        sbcfg: &StreamingBufferConfig,
-        track_id: u32,
-        data: *const u8, data_len: u32) -> i32;
-pub type SCFileAppendGAPById = extern "C" fn (
-        file_container: &FileContainer,
-        sbcfg: &StreamingBufferConfig,
-        track_id: u32,
-        data: *const u8, data_len: u32) -> i32;
-pub type SCFileContainerRecycle = extern "C" fn (
-        file_container: &FileContainer,
-        sbcfg: &StreamingBufferConfig);
-
-pub type GenericVarFreeFunc =
-    extern "C" fn(gvar: *mut GenericVar);
-
-// A Suricata context that is passed in from C. This is alternative to
-// using functions from Suricata directly, so they can be wrapped so
-// Rust unit tests will still compile when they are not linked
-// directly to the real function.
-//
-// This might add a little too much complexity to keep pure Rust test
-// cases working.
-#[allow(non_snake_case)]
-#[repr(C)]
-pub struct SuricataContext {
-    pub SCLogMessage: SCLogMessageFunc,
-    DetectEngineStateFree: DetectEngineStateFreeFunc,
-    AppLayerDecoderEventsSetEventRaw: AppLayerDecoderEventsSetEventRawFunc,
-    AppLayerDecoderEventsFreeEvents: AppLayerDecoderEventsFreeEventsFunc,
-    pub AppLayerParserTriggerRawStreamInspection: AppLayerParserTriggerRawStreamInspectionFunc,
-
-    pub HttpRangeFreeBlock: SCHttpRangeFreeBlock,
-    pub HTPFileCloseHandleRange: SCHTPFileCloseHandleRange,
-
-    pub FileOpenFile: SCFileOpenFileWithId,
-    pub FileCloseFile: SCFileCloseFileById,
-    pub FileAppendData: SCFileAppendDataById,
-    pub FileAppendGAP: SCFileAppendGAPById,
-    pub FileContainerRecycle: SCFileContainerRecycle,
-
-    GenericVarFree: GenericVarFreeFunc,
-}
 
 #[allow(non_snake_case)]
 #[repr(C)]
@@ -181,73 +74,13 @@ pub struct SuricataFileContext {
     pub files_sbcfg: &'static StreamingBufferConfig,
 }
 
-/// cbindgen:ignore
-extern "C" {
-    pub fn SCGetContext() -> &'static mut SuricataContext;
-}
-
-pub static mut SC: Option<&'static SuricataContext> = None;
-
-pub fn init_ffi(context: &'static SuricataContext)
-{
+/// SCAppLayerParserTriggerRawStreamInspection wrapper
+#[cfg(not(test))]
+pub(crate) fn sc_app_layer_parser_trigger_raw_stream_inspection(flow: *mut Flow, direction: i32) {
     unsafe {
-        SC = Some(context);
+        SCAppLayerParserTriggerRawStreamInspection(flow, direction);
     }
 }
 
-#[no_mangle]
-pub extern "C" fn SCRustInit(context: &'static SuricataContext)
-{
-    init_ffi(context);
-}
-
-/// DetectEngineStateFree wrapper.
-pub fn sc_detect_engine_state_free(state: *mut DetectEngineState)
-{
-    unsafe {
-        if let Some(c) = SC {
-            (c.DetectEngineStateFree)(state);
-        }
-    }
-}
-
-/// GenericVarFree wrapper.
-pub fn sc_generic_var_free(gvar: *mut GenericVar)
-{
-    unsafe {
-        if let Some(c) = SC {
-            (c.GenericVarFree)(gvar);
-        }
-    }
-}
-
-/// AppLayerParserTriggerRawStreamInspection wrapper
-pub fn sc_app_layer_parser_trigger_raw_stream_inspection(flow: *mut Flow, direction: i32) {
-    unsafe {
-        if let Some(c) = SC {
-            (c.AppLayerParserTriggerRawStreamInspection)(flow, direction);
-        }
-    }
-}
-
-/// AppLayerDecoderEventsSetEventRaw wrapper.
-pub fn sc_app_layer_decoder_events_set_event_raw(
-    events: *mut *mut AppLayerDecoderEvents, event: u8)
-{
-    unsafe {
-        if let Some(c) = SC {
-            (c.AppLayerDecoderEventsSetEventRaw)(events, event);
-        }
-    }
-}
-
-/// AppLayerDecoderEventsFreeEvents wrapper.
-pub fn sc_app_layer_decoder_events_free_events(
-    events: *mut *mut AppLayerDecoderEvents)
-{
-    unsafe {
-        if let Some(c) = SC {
-            (c.AppLayerDecoderEventsFreeEvents)(events);
-        }
-    }
-}
+#[cfg(test)]
+pub(crate) fn sc_app_layer_parser_trigger_raw_stream_inspection(_flow: *const Flow, _direction: i32) {}
