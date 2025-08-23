@@ -29,7 +29,7 @@ Get timestamps of the first and the last packets from the flow, as seconds and
 microseconds since `1970-01-01 00:00:00` UTC, returning 4 numbers::
 
     f = flow.get()
-    local start_sec, start_usec, last_sec, last_usec = f:timestamps()
+    local start_sec, last_sec, start_usec, last_usec = f:timestamps()
 
 ``timestring_legacy``
 ^^^^^^^^^^^^^^^^^^^^^
