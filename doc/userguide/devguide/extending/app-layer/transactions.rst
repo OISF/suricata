@@ -21,6 +21,8 @@ Transactions are implemented and stored in the per-flow state. The engine intera
 How the engine uses transactions
 ================================
 
+All transactions share a common structure ``AppLayerTxData`` and a unique increasing id.
+
 Logging
 ~~~~~~~
 

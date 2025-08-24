@@ -10,6 +10,8 @@ Stream
 Defrag
 ------
 
+.. _Protocol detection:
+
 Protocol detection
 ------------------
 
