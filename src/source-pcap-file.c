@@ -205,7 +205,6 @@ TmEcode ReceivePcapFileLoop(ThreadVars *tv, void *data, void *slot)
     if(ptv->is_directory == 0) {
         SCLogInfo("Starting file run for %s", ptv->behavior.file->filename);
         status = PcapFileDispatch(ptv->behavior.file);
-        CleanupPcapFileFromThreadVars(ptv, ptv->behavior.file);
     } else {
         SCLogInfo("Starting directory run for %s", ptv->behavior.directory->filename);
         PcapDirectoryDispatch(ptv->behavior.directory);
@@ -261,11 +260,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
         }
     }
 
-    int should_delete = 0;
-    ptv->shared.should_delete = false;
-    if (SCConfGetBool("pcap-file.delete-when-done", &should_delete) == 1) {
-        ptv->shared.should_delete = should_delete == 1;
-    }
+    ptv->shared.delete_mode = PcapFileParseDeleteMode();
 
     DIR *directory = NULL;
     SCLogDebug("checking file or directory %s", (char*)initdata);
@@ -422,6 +417,11 @@ TmEcode ReceivePcapFileThreadDeinit(ThreadVars *tv, void *data)
     SCEnter();
     if(data != NULL) {
         PcapFileThreadVars *ptv = (PcapFileThreadVars *) data;
+
+        if (!ptv->is_directory && ptv->behavior.file != NULL) {
+            CleanupPcapFileFromThreadVars(ptv, ptv->behavior.file);
+        }
+
         CleanupPcapFileThreadVars(ptv);
     }
     SCReturnInt(TM_ECODE_OK);

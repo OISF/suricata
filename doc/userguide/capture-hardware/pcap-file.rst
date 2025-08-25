@@ -15,6 +15,8 @@ Configuration
     checksum-checks: auto
     # buffer-size: 128 KiB
     # tenant-id: none
+    # Applies to file and directory. Options: false (no deletion), true (always delete), 
+    #   "non-alerts" (delete only files with no alerts)
     # delete-when-done: false
     # recursive: false
     # continuous: false
@@ -85,9 +87,22 @@ Other options
 
 **delete-when-done**
 
-- If ``true``, Suricata deletes the PCAP file after processing.
-- The command-line option is
-  :ref:`--pcap-file-delete <cmdline-option-pcap-file-delete>`
+Controls when PCAP files are deleted after processing. Three values are supported:
+
+- ``false`` (default): Files are never deleted
+- ``true``: Files are always deleted after processing
+- ``"non-alerts"``: Files are deleted only if they generated no alerts
+
+.. note::
+
+   The command-line option :ref:`--pcap-file-delete <cmdline-option-pcap-file-delete>`
+   overrides this configuration and forces "always delete" mode (``true``).
+
+.. warning::
+
+   When using ``"non-alerts"`` mode, file deletion is deferred until thread 
+   cleanup to ensure alert counts are finalized. This may delay deletion 
+   compared to other modes.
 
 **BPF filter**
 
