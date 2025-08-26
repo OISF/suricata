@@ -1756,7 +1756,7 @@
                 },
                 "storing": {
                     "type": "boolean",
-                    "description": "the file is set to be stored when completed"
+                    "description": "The file is set to be stored when completed"
                 },
                 "tx_id": {
                     "type": "integer"
@@ -1815,7 +1815,7 @@
                     },
                     "storing": {
                         "type": "boolean",
-                        "description": "the file is set to be stored when completed"
+                        "description": "The file is set to be stored when completed"
                     },
                     "tx_id": {
                         "type": "integer"
@@ -2222,7 +2222,7 @@
                 },
                 "status_string": {
                     "type": "string",
-                    "description": "status string when it is not a valid integer (like 2XX)"
+                    "description": "Status string when it is not a valid integer (like 2XX)"
                 },
                 "true_client_ip": {
                     "type": "string"
@@ -3891,7 +3891,7 @@
                 },
                 "linktype_name": {
                     "type": "string",
-                    "description": "the descriptive name of the linktype"
+                    "description": "The descriptive name of the linktype"
                 }
             },
             "optional": true
@@ -3945,7 +3945,7 @@
                         "password_redacted": {
                             "type": "boolean",
                             "description":
-                                    "indicates if a password message was received but not logged due to Suricata settings"
+                                    "Indicates if a password message was received but not logged due to Suricata settings"
                         },
                         "process_id": {
                             "type": "integer"
@@ -4156,14 +4156,14 @@
                     "properties": {
                         "args": {
                             "type": "array",
-                            "description": "pop3 request arguments",
+                            "description": "Pop3 request arguments",
                             "items": {
                                 "type": "string"
                             }
                         },
                         "command": {
                             "type": "string",
-                            "description": "a pop3 command, for example `USER` or `STAT`"
+                            "description": "A pop3 command, for example `USER` or `STAT`"
                         }
                     },
                     "optional": true
@@ -4179,14 +4179,14 @@
                         },
                         "header": {
                             "type": "string",
-                            "description": "first line of response"
+                            "description": "First line of response"
                         },
                         "status": {
                             "type": "string"
                         },
                         "success": {
                             "type": "boolean",
-                            "description": "response indicated positive status ie +OK"
+                            "description": "Response indicated positive status ie +OK"
                         }
                     },
                     "optional": true
@@ -4204,7 +4204,7 @@
                 "cyu": {
                     "type": "array",
                     "description":
-                            "ja3-like fingerprint for versions of QUIC before standardization",
+                            "JA3-like fingerprint for versions of QUIC before standardization",
                     "minItems": 1,
                     "items": {
                         "type": "object",
@@ -4212,11 +4212,11 @@
                         "properties": {
                             "hash": {
                                 "type": "string",
-                                "description": "cyu hash hex representation"
+                                "description": "CYU hash hex representation"
                             },
                             "string": {
                                 "type": "string",
-                                "description": "cyu hash string representation"
+                                "description": "CYU hash string representation"
                             }
                         }
                     }
@@ -4231,15 +4231,15 @@
                         "properties": {
                             "name": {
                                 "type": "string",
-                                "description": "human-friendly name of the extension"
+                                "description": "Human-friendly name of the extension"
                             },
                             "type": {
                                 "type": "integer",
-                                "description": "integer identifier of the extension"
+                                "description": "Integer identifier of the extension"
                             },
                             "values": {
                                 "type": "array",
-                                "description": "extension values",
+                                "description": "Extension values",
                                 "minItems": 1,
                                 "items": {
                                     "type": "string"
@@ -4254,14 +4254,14 @@
                     "properties": {
                         "hash": {
                             "type": "string",
-                            "description": "ja3 hex representation"
+                            "description": "JA3 hex representation"
                         },
                         "string": {
                             "type": "string",
-                            "description": "ja3 string representation"
+                            "description": "JA3 string representation"
                         }
                     },
-                    "description": "ja3 from client, as in TLS",
+                    "description": "JA3 from client, as in TLS",
                     "optional": true
                 },
                 "ja3s": {
@@ -4270,14 +4270,14 @@
                     "properties": {
                         "hash": {
                             "type": "string",
-                            "description": "ja3s hex representation"
+                            "description": "JA3s hex representation"
                         },
                         "string": {
                             "type": "string",
-                            "description": "ja3s string representation"
+                            "description": "JA3s string representation"
                         }
                     },
-                    "description": "ja3 from server, as in TLS",
+                    "description": "JA3 from server, as in TLS",
                     "optional": true
                 },
                 "ja4": {
@@ -6810,38 +6810,38 @@
                                 "flows_checked": {
                                     "type": "integer",
                                     "description":
-                                            "number of flows checked for timeout in the last pass"
+                                            "Number of flows checked for timeout in the last pass"
                                 },
                                 "flows_evicted": {
                                     "type": "integer",
-                                    "description": "number of flows that were evicted"
+                                    "description": "Number of flows that were evicted"
                                 },
                                 "flows_evicted_needs_work": {
                                     "type": "integer",
                                     "description":
-                                            "number of TCP flows that were returned to the workers in case reassembly, detection, logging still needs work"
+                                            "Number of TCP flows that were returned to the workers in case reassembly, detection, logging still needs work"
                                 },
                                 "flows_notimeout": {
                                     "type": "integer",
-                                    "description": "number of flows that did not time out"
+                                    "description": "Number of flows that did not time out"
                                 },
                                 "flows_timeout": {
                                     "type": "integer",
-                                    "description": "number of flows that reached the time out"
+                                    "description": "Number of flows that reached the time out"
                                 },
                                 "full_hash_pass": {
                                     "type": "integer",
                                     "description":
-                                            "number of times a full pass of the hash table was done"
+                                            "Number of times a full pass of the hash table was done"
                                 },
                                 "rows_maxlen": {
                                     "type": "integer",
-                                    "description": "size of the biggest row in the hash table"
+                                    "description": "Size of the biggest row in the hash table"
                                 },
                                 "rows_per_sec": {
                                     "type": "integer",
                                     "description":
-                                            "number of rows to be scanned every second by a worker"
+                                            "Number of rows to be scanned every second by a worker"
                                 }
                             }
                         },
@@ -6851,15 +6851,15 @@
                             "properties": {
                                 "queue_avg": {
                                     "type": "integer",
-                                    "description": "average number of recycled flows per queue"
+                                    "description": "Average number of recycled flows per queue"
                                 },
                                 "queue_max": {
                                     "type": "integer",
-                                    "description": "maximum number of recycled flows per queue"
+                                    "description": "Maximum number of recycled flows per queue"
                                 },
                                 "recycled": {
                                     "type": "integer",
-                                    "description": "number of recycled flows"
+                                    "description": "Number of recycled flows"
                                 }
                             }
                         },
@@ -7820,7 +7820,7 @@
         "tx_guessed": {
             "type": "boolean",
             "description":
-                    "the signature that triggered this alert didn't tie to a transaction, so the transaction (and metadata) logged is a forced estimation and may not be the one you expect"
+                    "The signature that triggered this alert didn't tie to a transaction, so the transaction (and metadata) logged is a forced estimation and may not be the one you expect"
         },
         "tx_id": {
             "type": "integer"
