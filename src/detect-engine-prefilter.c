@@ -1488,13 +1488,6 @@ static const PrefilterStore *PrefilterStoreGetStore(const DetectEngineCtx *de_ct
     return store;
 }
 
-#ifdef PROFILING
-const char *PrefilterStoreGetName(const uint32_t id)
-{
-    return NULL;
-}
-#endif
-
 #include "util-print.h"
 
 typedef struct PrefilterMpmCtx {
