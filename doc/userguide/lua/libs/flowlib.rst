@@ -58,7 +58,7 @@ Ports and Addresses
 ~~~~~~~~~~~~~~~~~~~
 
 ``tuple``
-~~~~~~~~~
+^^^^^^^^^
 
 Using the `tuple` method, the IP version (4 or 6), src IP and dest IP (as
 string), IP protocol (int), and ports (ints) are retrieved.
