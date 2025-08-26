@@ -6811,38 +6811,38 @@
                                 "flows_checked": {
                                     "type": "integer",
                                     "description":
-                                            "number of flows checked for timeout in the last pass"
+                                            "Number of flows checked for timeout in the last pass"
                                 },
                                 "flows_evicted": {
                                     "type": "integer",
-                                    "description": "number of flows that were evicted"
+                                    "description": "Number of flows that were evicted"
                                 },
                                 "flows_evicted_needs_work": {
                                     "type": "integer",
                                     "description":
-                                            "number of TCP flows that were returned to the workers in case reassembly, detection, logging still needs work"
+                                            "Number of TCP flows that were returned to the workers in case reassembly, detection, logging still needs work"
                                 },
                                 "flows_notimeout": {
                                     "type": "integer",
-                                    "description": "number of flows that did not time out"
+                                    "description": "Number of flows that did not time out"
                                 },
                                 "flows_timeout": {
                                     "type": "integer",
-                                    "description": "number of flows that reached the time out"
+                                    "description": "Number of flows that reached the time out"
                                 },
                                 "full_hash_pass": {
                                     "type": "integer",
                                     "description":
-                                            "number of times a full pass of the hash table was done"
+                                            "Number of times a full pass of the hash table was done"
                                 },
                                 "rows_maxlen": {
                                     "type": "integer",
-                                    "description": "size of the biggest row in the hash table"
+                                    "description": "Size of the biggest row in the hash table"
                                 },
                                 "rows_per_sec": {
                                     "type": "integer",
                                     "description":
-                                            "number of rows to be scanned every second by a worker"
+                                            "Number of rows to be scanned every second by a worker"
                                 }
                             }
                         },
@@ -6852,15 +6852,15 @@
                             "properties": {
                                 "queue_avg": {
                                     "type": "integer",
-                                    "description": "average number of recycled flows per queue"
+                                    "description": "Average number of recycled flows per queue"
                                 },
                                 "queue_max": {
                                     "type": "integer",
-                                    "description": "maximum number of recycled flows per queue"
+                                    "description": "Maximum number of recycled flows per queue"
                                 },
                                 "recycled": {
                                     "type": "integer",
-                                    "description": "number of recycled flows"
+                                    "description": "Number of recycled flows"
                                 }
                             }
                         },
