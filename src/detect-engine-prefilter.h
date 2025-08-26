@@ -87,10 +87,6 @@ void PrefilterFreeEnginesList(PrefilterEngineList *list);
 int PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 void PrefilterCleanupRuleGroup(const DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 
-#ifdef PROFILING
-const char *PrefilterStoreGetName(const uint32_t id);
-#endif
-
 void PrefilterInit(DetectEngineCtx *de_ctx);
 void PrefilterDeinit(DetectEngineCtx *de_ctx);
 
