@@ -104,8 +104,11 @@ impl<T> DetectIntType for T where
 
 pub fn detect_parse_uint_unit(i: &str) -> IResult<&str, u64> {
     let (i, unit) = alt((
+        value(1024, tag_no_case("kib")),
         value(1024, tag_no_case("kb")),
+        value(1024 * 1024, tag_no_case("mib")),
         value(1024 * 1024, tag_no_case("mb")),
+        value(1024 * 1024 * 1024, tag_no_case("gib")),
         value(1024 * 1024 * 1024, tag_no_case("gb")),
     ))(i)?;
     return Ok((i, unit));
