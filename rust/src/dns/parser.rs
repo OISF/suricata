@@ -239,8 +239,12 @@ fn dns_parse_answer<'a>(
                         1
                     }
                 };
-                let result: IResult<&'a [u8], Vec<DNSRData>> =
-                    many_m_n(1, n, complete(|b| dns_parse_rdata(b, message, val.rrtype, flags)))(val.data);
+                let result: IResult<&'a [u8], Vec<DNSRData>> = if val.data.is_empty() {
+                    // many_m_n returns ErrorKind:ManyMN on empty data as it does not consume
+                    Ok((val.data, Vec::new()))
+                } else {
+                    many_m_n(1, n, complete(|b| dns_parse_rdata(b, message, val.rrtype, flags)))(val.data)
+                };
                 match result {
                     Ok((_, rdatas)) => {
                         for rdata in rdatas {
