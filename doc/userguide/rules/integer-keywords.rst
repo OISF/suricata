@@ -15,9 +15,9 @@ an hexadecimal value like ``0x64``.
 
 The integer value can also have a unit/multiplier as a
 case-insensitive suffix:
-* kb : 1024
-* mb : 1048576
-* gb : 1073741824
+* kb/kib : 1024
+* mb/mib : 1048576
+* gb/gib : 1073741824
 
 The most direct example is to match for equality, but there are
 different modes.
