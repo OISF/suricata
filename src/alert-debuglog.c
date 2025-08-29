@@ -285,7 +285,7 @@ static TmEcode AlertDebugLogger(ThreadVars *tv, const Packet *p, void *thread_da
             int ret;
             uint8_t flag;
             if (!(PacketIsTCP(p)) || p->flow == NULL || p->flow->protoctx == NULL) {
-                return TM_ECODE_OK;
+                continue;
             }
             /* IDS mode reverse the data */
             /** \todo improve the order selection policy */
