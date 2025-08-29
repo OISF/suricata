@@ -227,11 +227,21 @@ Flow Event
 
 When an Exception Policy is triggered, this will be indicated in the flow log
 event for the associated flow, also indicating which target triggered that, and
-what policy was applied. If no exception policy is triggered, that field won't
-be present in the logs.
+what policy was applied. **This is a configurable option, disabled by default.**
+If no exception policy is triggered, that field won't be present in the logs.
 
 Note that this is true even if the policy is applied only to certain packets from
 a flow.
+
+To enable logging of the triggered exception policies for a given flow, enable
+the yaml option::
+
+    output:
+      - eve-log:
+          enabled: yes
+          types:
+            - flow:
+                exception-policy: true
 
 .. Note:: As exception policies targetting ``flow memcap`` and ``defrag
       memcap`` act on a per-packet level, these are not shown in the flow logs.
