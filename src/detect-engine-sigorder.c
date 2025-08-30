@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2024 Open Information Security Foundation
+/* Copyright (C) 2007-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -40,6 +40,7 @@
 #include "action-globals.h"
 #include "flow-util.h"
 #include "util-validate.h"
+#include "rust.h"
 
 #define DETECT_FLOWVAR_NOT_USED      1
 #define DETECT_FLOWVAR_TYPE_READ     2
@@ -546,6 +547,13 @@ static int SCSigLessThan(SCSigSignatureWrapper *sw1,
 
         funcs = funcs->next;
     }
+
+    // Special handling for flowbits, do not touch the order if the comparison fn
+    // calculates two signatures to be equal
+    if ((sw1->user[DETECT_SIGORDER_FLOWBITS] > DETECT_FLOWBITS_NOT_USED) &&
+            (sw1->user[DETECT_SIGORDER_FLOWBITS] == sw2->user[DETECT_SIGORDER_FLOWBITS]))
+        return 0;
+
     // They are equal, so use sid as the final decider.
     return sw1->sig->id < sw2->sig->id;
 }
@@ -619,6 +627,119 @@ static SCSigSignatureWrapper *SCSigOrder(SCSigSignatureWrapper *sw,
         last->next = subA;
 
     return result;
+}
+
+/**
+ * \brief Function to Resolve dependencies among flowbits
+ *
+ * \param arg_sw Signature Wrapper containing all flowbits of SET_READ type
+ *
+ * \return SCSigSignatureWrapper list post dependency resolution
+ */
+static SCSigSignatureWrapper *SCSigResolveFlowbitDependencies(SCSigSignatureWrapper *head)
+{
+    uint32_t sig_cnt = 0;
+    uint32_t *sorted_siids = NULL;
+    SCSigSignatureWrapper *sw = head;
+
+    void *graph = SCCreateDirectedGraph();
+
+    while (sw != NULL) {
+        DEBUG_VALIDATE_BUG_ON(sw->user[DETECT_SIGORDER_FLOWBITS] != DETECT_FLOWBITS_TYPE_SET_READ);
+
+        Signature *s = sw->sig;
+        int64_t sidx = SCCreateNodeEdgeDirectedGraph(graph, s->iid, false /* Signature type node */,
+                false /* does not matter */, UINT32_MAX /* no signature index in graph yet */);
+        if (sidx < 0) {
+            goto error;
+        }
+        DEBUG_VALIDATE_BUG_ON(sidx > UINT32_MAX);
+        SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
+        DetectFlowbitsData *fbd = NULL;
+        int64_t nidx = 0;
+
+        while (sm != NULL) {
+            if (sm->type != DETECT_FLOWBITS) {
+                sm = sm->next;
+                continue;
+            }
+            fbd = (DetectFlowbitsData *)sm->ctx;
+            nidx = SCCreateNodeEdgeDirectedGraph(graph, fbd->idx, true /* Flowbit type node */,
+                    false /* READ cmd */, (uint32_t)sidx);
+            if (nidx < 0) {
+                goto error;
+            }
+            sm = sm->next;
+        }
+
+        sm = s->init_data->smlists[DETECT_SM_LIST_POSTMATCH];
+
+        while (sm != NULL) {
+            if (sm->type != DETECT_FLOWBITS) {
+                sm = sm->next;
+                continue;
+            }
+            fbd = (DetectFlowbitsData *)sm->ctx;
+            nidx = SCCreateNodeEdgeDirectedGraph(graph, fbd->idx, true /* Flowbit type node */,
+                    true /* WRITE cmd */, (uint32_t)sidx);
+            if (nidx < 0) {
+                goto error;
+            }
+            sm = sm->next;
+        }
+
+        sw = sw->next;
+        sig_cnt++;
+    }
+
+    DEBUG_VALIDATE_BUG_ON(sig_cnt == 0);
+
+    sorted_siids = SCCalloc(sig_cnt, sizeof(uint32_t));
+    if (sorted_siids == NULL) {
+        goto error;
+    }
+    if (SCResolveFlowbitDependencies(graph, sorted_siids, sig_cnt) < 0) {
+        goto error;
+    }
+
+    SCSigSignatureWrapper *fin = NULL;
+    SCSigSignatureWrapper *tmp = NULL;
+    SCSigSignatureWrapper *prev = NULL;
+
+    for (uint32_t i = 0; i < sig_cnt; i++) {
+        sw = head;
+        prev = NULL;
+        while (sw != NULL) {
+            if (sorted_siids[i] == sw->sig->iid) {
+                if (tmp) {
+                    tmp->next = sw;
+                    tmp = tmp->next;
+                } else {
+                    tmp = sw;
+                    fin = tmp;
+                }
+                if (!prev) {
+                    head = sw->next;
+                } else {
+                    prev->next = sw->next;
+                }
+                sw->next = NULL;
+            }
+            prev = sw;
+            sw = sw->next;
+        }
+    }
+    SCFree(sorted_siids); /* No longer needed */
+    SCFreeDirectedGraph(graph);
+    return fin;
+
+error:
+    SCLogError("Error resolving flowbit dependencies; rolling back to original order");
+    if (sorted_siids != NULL) {
+        SCFree(sorted_siids);
+    }
+    SCFreeDirectedGraph(graph);
+    return head;
 }
 
 /**
@@ -810,12 +931,22 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
 
     SCLogDebug("ordering signatures in memory");
     SCSigSignatureWrapper *sigw = NULL;
-    SCSigSignatureWrapper *td_sigw_list = NULL; /* unified td list */
+
+    SCSigSignatureWrapper *td_sigw_list_start = NULL; /* unified td list start */
+    SCSigSignatureWrapper *td_sigw_list_end = NULL;   /* unified td list end */
+
+    SCSigSignatureWrapper *s_fb_sigw_list_start = NULL;  /* SET flowbits list start */
+    SCSigSignatureWrapper *r_fb_sigw_list_start = NULL;  /* READ flowbits list start */
+    SCSigSignatureWrapper *sr_fb_sigw_list_start = NULL; /* SET_READ flowbits list start */
+
+    SCSigSignatureWrapper *s_fb_sigw_list_end = NULL;  /* SET flowbits list end */
+    SCSigSignatureWrapper *sr_fb_sigw_list_end = NULL; /* SET_READ flowbits list end */
 
     SCSigSignatureWrapper *fw_pf_sigw_list = NULL; /* hook: packet_filter */
     SCSigSignatureWrapper *fw_af_sigw_list = NULL; /* hook: app_filter */
 
     Signature *sig = de_ctx->sig_list;
+
     while (sig != NULL) {
         sigw = SCSigAllocSignatureWrapper(sig);
         /* Push signature wrapper onto a list, order doesn't matter here. */
@@ -829,8 +960,29 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
                 fw_af_sigw_list = sigw;
             }
         } else {
-            sigw->next = td_sigw_list;
-            td_sigw_list = sigw;
+            /* Flowbit specific handling. Store the three types of flowbit signatures
+             * separately for an easy merge of the lists by priority later on */
+            if (sigw->user[DETECT_SIGORDER_FLOWBITS] > DETECT_FLOWBITS_NOT_USED) {
+                if (sigw->user[DETECT_SIGORDER_FLOWBITS] == DETECT_FLOWBITS_TYPE_SET_READ) {
+                    sigw->next = sr_fb_sigw_list_start;
+                    sr_fb_sigw_list_start = sigw;
+                } else if (sigw->user[DETECT_SIGORDER_FLOWBITS] == DETECT_FLOWBITS_TYPE_READ) {
+                    sigw->next = r_fb_sigw_list_start;
+                    r_fb_sigw_list_start = sigw;
+                    /* READ flowbits are the last to be placed in the final list so no need
+                     * to store the end */
+                } else if (sigw->user[DETECT_SIGORDER_FLOWBITS] == DETECT_FLOWBITS_TYPE_SET) {
+                    sigw->next = s_fb_sigw_list_start;
+                    if (!s_fb_sigw_list_end)
+                        s_fb_sigw_list_end = sigw;
+                    s_fb_sigw_list_start = sigw;
+                }
+            } else {
+                sigw->next = td_sigw_list_start;
+                if (!td_sigw_list_end)
+                    td_sigw_list_end = sigw;
+                td_sigw_list_start = sigw;
+            }
         }
         sig = sig->next;
     }
@@ -846,10 +998,47 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
         SCSigOrderFunc OrderFn = { .SWCompare = SCSigOrderByAppFirewall, .next = NULL };
         fw_af_sigw_list = SCSigOrder(fw_af_sigw_list, &OrderFn);
     }
-    if (td_sigw_list) {
-        /* Sort the list */
-        td_sigw_list = SCSigOrder(td_sigw_list, de_ctx->sc_sig_order_funcs);
+    if (sr_fb_sigw_list_start) {
+        /* Resolve any complex dependencies, if possible, or roll back to the original ruleset */
+        sr_fb_sigw_list_start = SCSigResolveFlowbitDependencies(sr_fb_sigw_list_start);
+        SCSigSignatureWrapper *tmp = sr_fb_sigw_list_start;
+
+        /* Find the end of the list after dependency resolution */
+        while (tmp != NULL) {
+            sr_fb_sigw_list_end = tmp;
+            tmp = tmp->next;
+        }
     }
+
+    /* Merge the flowbit lists into the generic threat detection list. The ideal order is:
+     * Threat Detection -> SET flowbits -> SET_READ flowbits -> READ flowbits */
+    SCSigSignatureWrapper *tmp = NULL;
+    if (s_fb_sigw_list_end) {
+        s_fb_sigw_list_end->next = sr_fb_sigw_list_start;
+        tmp = s_fb_sigw_list_start;
+    }
+    if (sr_fb_sigw_list_end) {
+        sr_fb_sigw_list_end->next = r_fb_sigw_list_start;
+        if (!tmp)
+            tmp = sr_fb_sigw_list_start;
+    }
+    if (r_fb_sigw_list_start) {
+        if (!sr_fb_sigw_list_start && s_fb_sigw_list_end)
+            s_fb_sigw_list_end->next = r_fb_sigw_list_start;
+        if (!tmp)
+            tmp = r_fb_sigw_list_start;
+    }
+
+    if (td_sigw_list_end) {
+        td_sigw_list_end->next = tmp;
+        /* Sort the list by the registered ordering functions */
+        td_sigw_list_start = SCSigOrder(td_sigw_list_start, de_ctx->sc_sig_order_funcs);
+    } else if (tmp) {
+        td_sigw_list_start = tmp;
+        /* Sort the list by the registered ordering functions */
+        td_sigw_list_start = SCSigOrder(td_sigw_list_start, de_ctx->sc_sig_order_funcs);
+    }
+
     /* Recreate the sig list in order */
     de_ctx->sig_list = NULL;
 
@@ -888,7 +1077,7 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
         SCFree(sigw_to_free);
     }
     /* threat detect list for hook app_td */
-    for (sigw = td_sigw_list; sigw != NULL;) {
+    for (sigw = td_sigw_list_start; sigw != NULL;) {
         sigw->sig->next = NULL;
         if (de_ctx->sig_list == NULL) {
             /* First entry on the list */

@@ -58,6 +58,9 @@ lru = "~0.12.5"
 der-parser = { version = "~9.0.0", default-features = false }
 kerberos-parser = { version = "~0.8.0", default-features = false }
 
+petgraph = "~0.8.2"
+itertools = "~0.14.0"
+
 sawp-modbus = "~0.13.1"
 sawp-pop3 = "~0.13.1"
 sawp = "~0.13.1"
