@@ -156,7 +156,7 @@ unsafe extern "C" fn ldap_detect_responses_operation_match(
 
     return detect_uint_match_at_index::<LdapMessage, u8>(
         &tx.responses,
-        &ctx,
+        ctx,
         |response| Some(response.protocol_op.tag().0 as u8),
         |code, ctx_value| detect_match_uint(ctx_value, code) as c_int,
     );
@@ -354,7 +354,7 @@ unsafe extern "C" fn ldap_detect_responses_result_code_match(
 
     return detect_uint_match_at_index::<LdapMessage, u32>(
         &tx.responses,
-        &ctx,
+        ctx,
         get_ldap_result_code,
         |code, ctx_value| detect_match_uint(ctx_value, code) as c_int,
     );
