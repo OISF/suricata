@@ -34,6 +34,13 @@ also check all the new features that have been added but are not covered by
 this guide. Those features are either not enabled by default or require
 dedicated new configuration.
 
+Upgrading to 7.0.12
+-------------------
+
+- Various expected PPP packet types will no longer be marked as Unsupported Protocol
+  when in a PPPOE packet.
+- Added Cisco Discovery Protocol Control Protocol as a valid PPP packet.
+
 Upgrading to 7.0.9
 ------------------
 - The AF_PACKET default block size for both TPACKET_V2 and TPACKET_V3
