@@ -1784,14 +1784,14 @@ static inline bool StateSynSentValidateTimestamp(TcpSession *ssn, Packet *p)
         if (receiver_stream->last_ts != 0 && ts_echo != 0 &&
             ts_echo != receiver_stream->last_ts)
         {
-            SCLogDebug("ssn %p: BAD TSECR echo %u recv %u", ssn,
-                    ts_echo, receiver_stream->last_ts);
+            SCLogDebug("%" PRIu64 ": ssn %p: BAD TSECR echo %u recv %u", p->pcap_cnt, ssn, ts_echo,
+                    receiver_stream->last_ts);
             return false;
         }
     } else {
         if (receiver_stream->last_ts == 0 && ts_echo != 0) {
-            SCLogDebug("ssn %p: BAD TSECR echo %u recv %u", ssn,
-                    ts_echo, receiver_stream->last_ts);
+            SCLogDebug("%" PRIu64 ": ssn %p: BAD TSECR echo %u recv %u", p->pcap_cnt, ssn, ts_echo,
+                    receiver_stream->last_ts);
             return false;
         }
     }
