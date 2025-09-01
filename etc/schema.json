@@ -1729,6 +1729,10 @@
                 "md5": {
                     "type": "string"
                 },
+                "mimetype": {
+                    "type": "string",
+                    "description": "The MIME type of the file (e.g., application/pdf, image/png, etc.)"
+                },
                 "sha1": {
                     "type": "string"
                 },
@@ -1787,6 +1791,10 @@
                     },
                     "md5": {
                         "type": "string"
+                    },
+                    "mimetype": {
+                        "type": "string",
+                        "description": "The MIME type of the file (e.g., application/pdf, image/png, etc.)"
                     },
                     "sha1": {
                         "type": "string"

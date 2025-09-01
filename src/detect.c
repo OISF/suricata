@@ -374,6 +374,10 @@ DetectPostInspectFileFlagsUpdate(Flow *f, const SigGroupHead *sgh, uint8_t direc
             flow_file_flags |= (FLOWFILE_NO_MAGIC_TS|FLOWFILE_NO_MAGIC_TC);
         }
 #endif
+        if (!(sgh->flags & SIG_GROUP_HEAD_HAVEFILEMIMETYPE)) {
+            SCLogDebug("requesting disabling mimetype for flow");
+            flow_file_flags |= (FLOWFILE_NO_MIMETYPE_TS | FLOWFILE_NO_MIMETYPE_TC);
+        }
         if (!(sgh->flags & SIG_GROUP_HEAD_HAVEFILEMD5)) {
             SCLogDebug("requesting disabling md5 for flow");
             flow_file_flags |= (FLOWFILE_NO_MD5_TS|FLOWFILE_NO_MD5_TC);

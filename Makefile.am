@@ -39,7 +39,27 @@ install-conf:
 	install -d "$(DESTDIR)$(e_rundir)"
 	install -m 770 -d "$(DESTDIR)$(e_localstatedir)"
 	install -m 770 -d "$(DESTDIR)$(e_datadir)"
+if INSTALL_MIMETYPE_FILES
+	install -m 770 -d "$(DESTDIR)$(e_datadir)/mimetype"
+	@test -e "$(DESTDIR)$(e_datadir)/mimetype/magic" || \
+		install -m 600 "$(top_srcdir)/etc/mimetype/magic" "$(DESTDIR)$(e_datadir)/mimetype"
+	@test -e "$(DESTDIR)$(e_datadir)/mimetype/aliases" || \
+		install -m 600 "$(top_srcdir)/etc/mimetype/aliases" "$(DESTDIR)$(e_datadir)/mimetype"
+	@test -e "$(DESTDIR)$(e_datadir)/mimetype/subclasses" || \
+		install -m 600 "$(top_srcdir)/etc/mimetype/subclasses" "$(DESTDIR)$(e_datadir)/mimetype"
+endif
+
 	install -m 770 -d "$(DESTDIR)$(e_sghcachedir)"
+
+upgrade-data:
+if INSTALL_MIMETYPE_FILES
+	install -d "$(DESTDIR)$(e_datadir)/mimetype"
+	install -m 600 "$(top_srcdir)/etc/mimetype/magic" "$(DESTDIR)$(e_datadir)/mimetype"
+	install -m 600 "$(top_srcdir)/etc/mimetype/aliases" "$(DESTDIR)$(e_datadir)/mimetype"
+	install -m 600 "$(top_srcdir)/etc/mimetype/subclasses" "$(DESTDIR)$(e_datadir)/mimetype"
+else
+	@echo "Not installing Mime type files as mimetype support not enabled or gpl data are embedded in the binary."
+endif
 
 install-rules:
 if INSTALL_SURICATA_UPDATE
