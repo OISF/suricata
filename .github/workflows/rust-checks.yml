@@ -155,5 +155,5 @@ jobs:
       - name: Cargo Update and Build
         working-directory: rust
         run: |
-          cargo update
+          CARGO_RESOLVER_INCOMPATIBLE_RUST_VERSIONS=fallback cargo update
           cargo build --all-features --all-targets
