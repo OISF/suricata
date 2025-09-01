@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -50,6 +50,105 @@
 #include "stream-tcp.h"
 #include "stream-tcp-private.h"
 #include "flow-storage.h"
+#include "util-exception-policy.h"
+
+#define FLOW_LOG_EXCEPTION_POLICY BIT_U8(0)
+
+typedef struct LogFlowCtx_ {
+    uint8_t flags;
+    OutputJsonCtx *eve_ctx;
+} LogFlowCtx;
+
+typedef struct LogFlowLogThread_ {
+    LogFlowCtx *flowlog_ctx;
+    OutputJsonThreadCtx *output_ctx;
+} LogFlowLogThread;
+
+static void OutputFlowLogDeInitCtxSub(OutputCtx *output_ctx)
+{
+    LogFlowCtx *flow_ctx = output_ctx->data;
+    SCFree(flow_ctx);
+    SCFree(output_ctx);
+}
+
+static void JsonFlowLogParseConfig(ConfNode *conf, LogFlowCtx *flow_ctx)
+{
+    flow_ctx->flags &= ~FLOW_LOG_EXCEPTION_POLICY;
+
+    if (conf != NULL) {
+        if (ConfNodeChildValueIsTrue(conf, "exception-policy")) {
+            flow_ctx->flags |= FLOW_LOG_EXCEPTION_POLICY;
+        }
+    }
+    SCLogDebug("Exception policy logging for flow %s",
+            flow_ctx->flags & FLOW_LOG_EXCEPTION_POLICY ? "enabled" : "disabled");
+}
+
+static OutputInitResult OutputFlowLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+{
+    OutputInitResult result = { NULL, false };
+    OutputJsonCtx *ojc = parent_ctx->data;
+
+    LogFlowCtx *flow_ctx = SCCalloc(1, sizeof(LogFlowCtx));
+    if (unlikely(flow_ctx == NULL)) {
+        return result;
+    }
+
+    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
+    if (unlikely(output_ctx == NULL)) {
+        SCFree(flow_ctx);
+        return result;
+    }
+
+    flow_ctx->eve_ctx = ojc;
+
+    output_ctx->data = flow_ctx;
+    output_ctx->DeInit = OutputFlowLogDeInitCtxSub;
+    JsonFlowLogParseConfig(conf, flow_ctx);
+
+    result.ctx = output_ctx;
+    result.ok = true;
+
+    return result;
+}
+
+static TmEcode JsonFlowLogThreadInit(ThreadVars *tv, const void *initdata, void **data)
+{
+    LogFlowLogThread *thread = SCCalloc(1, sizeof(LogFlowLogThread));
+    if (unlikely(thread == NULL)) {
+        return TM_ECODE_FAILED;
+    }
+
+    if (initdata == NULL) {
+        SCLogDebug("Error getting context for EveLogFlow. \"initdata\" argument NULL");
+        goto error_exit;
+    }
+
+    thread->flowlog_ctx = ((OutputCtx *)initdata)->data;
+    thread->output_ctx = CreateEveThreadCtx(tv, thread->flowlog_ctx->eve_ctx);
+    if (!thread->output_ctx) {
+        goto error_exit;
+    }
+
+    *data = (void *)thread;
+    return TM_ECODE_OK;
+
+error_exit:
+    SCFree(thread);
+    return TM_ECODE_FAILED;
+}
+
+static TmEcode JsonFlowLogThreadDeInit(ThreadVars *tv, void *data)
+{
+    LogFlowLogThread *thread = (LogFlowLogThread *)data;
+    if (thread == NULL) {
+        return TM_ECODE_FAILED;
+    }
+
+    FreeEveThreadCtx(thread->output_ctx);
+    SCFree(thread);
+    return TM_ECODE_OK;
+}
 
 static JsonBuilder *CreateEveHeaderFromFlow(const Flow *f)
 {
@@ -214,8 +313,67 @@ void EveAddFlow(Flow *f, JsonBuilder *js)
     jb_set_string(js, "start", timebuf1);
 }
 
+static void EveExceptionPolicyLog(JsonBuilder *js, uint16_t flag)
+{
+    if (flag & EXCEPTION_TARGET_FLAG_DEFRAG_MEMCAP) {
+        jb_start_object(js);
+        jb_set_string(js, "target",
+                ExceptionPolicyTargetFlagToString(EXCEPTION_TARGET_FLAG_DEFRAG_MEMCAP));
+        jb_set_string(js, "policy",
+                ExceptionPolicyEnumToString(
+                        ExceptionPolicyTargetPolicy(EXCEPTION_TARGET_FLAG_DEFRAG_MEMCAP), true));
+        jb_close(js);
+    }
+    if (flag & EXCEPTION_TARGET_FLAG_SESSION_MEMCAP) {
+        jb_start_object(js);
+        jb_set_string(js, "target",
+                ExceptionPolicyTargetFlagToString(EXCEPTION_TARGET_FLAG_SESSION_MEMCAP));
+        jb_set_string(js, "policy",
+                ExceptionPolicyEnumToString(
+                        ExceptionPolicyTargetPolicy(EXCEPTION_TARGET_FLAG_SESSION_MEMCAP), true));
+        jb_close(js);
+    }
+    if (flag & EXCEPTION_TARGET_FLAG_REASSEMBLY_MEMCAP) {
+        jb_start_object(js);
+        jb_set_string(js, "target",
+                ExceptionPolicyTargetFlagToString(EXCEPTION_TARGET_FLAG_REASSEMBLY_MEMCAP));
+        jb_set_string(js, "policy",
+                ExceptionPolicyEnumToString(
+                        ExceptionPolicyTargetPolicy(EXCEPTION_TARGET_FLAG_REASSEMBLY_MEMCAP),
+                        true));
+        jb_close(js);
+    }
+    if (flag & EXCEPTION_TARGET_FLAG_FLOW_MEMCAP) {
+        jb_start_object(js);
+        jb_set_string(
+                js, "target", ExceptionPolicyTargetFlagToString(EXCEPTION_TARGET_FLAG_FLOW_MEMCAP));
+        jb_set_string(js, "policy",
+                ExceptionPolicyEnumToString(
+                        ExceptionPolicyTargetPolicy(EXCEPTION_TARGET_FLAG_FLOW_MEMCAP), true));
+        jb_close(js);
+    }
+    if (flag & EXCEPTION_TARGET_FLAG_MIDSTREAM) {
+        jb_start_object(js);
+        jb_set_string(
+                js, "target", ExceptionPolicyTargetFlagToString(EXCEPTION_TARGET_FLAG_MIDSTREAM));
+        jb_set_string(js, "policy",
+                ExceptionPolicyEnumToString(
+                        ExceptionPolicyTargetPolicy(EXCEPTION_TARGET_FLAG_MIDSTREAM), true));
+        jb_close(js);
+    }
+    if (flag & EXCEPTION_TARGET_FLAG_APPLAYER_ERROR) {
+        jb_start_object(js);
+        jb_set_string(js, "target",
+                ExceptionPolicyTargetFlagToString(EXCEPTION_TARGET_FLAG_APPLAYER_ERROR));
+        jb_set_string(js, "policy",
+                ExceptionPolicyEnumToString(
+                        ExceptionPolicyTargetPolicy(EXCEPTION_TARGET_FLAG_APPLAYER_ERROR), true));
+        jb_close(js);
+    }
+}
+
 /* Eve format logging */
-static void EveFlowLogJSON(OutputJsonThreadCtx *aft, JsonBuilder *jb, Flow *f)
+static void EveFlowLogJSON(LogFlowLogThread *ft, JsonBuilder *jb, Flow *f)
 {
     EveAddAppProto(f, jb);
     jb_open_object(jb, "flow");
@@ -277,11 +435,16 @@ static void EveFlowLogJSON(OutputJsonThreadCtx *aft, JsonBuilder *jb, Flow *f)
     } else if (f->flags & FLOW_ACTION_PASS) {
         JB_SET_STRING(jb, "action", "pass");
     }
+    if (f->applied_exception_policy != 0 && ft->flowlog_ctx->flags & FLOW_LOG_EXCEPTION_POLICY) {
+        jb_open_array(jb, "exception_policy");
+        EveExceptionPolicyLog(jb, f->applied_exception_policy);
+        jb_close(jb); /* close array */
+    }
 
     /* Close flow. */
     jb_close(jb);
 
-    EveAddCommonOptions(&aft->ctx->cfg, NULL, f, jb, LOG_DIR_FLOW);
+    EveAddCommonOptions(&ft->output_ctx->ctx->cfg, NULL, f, jb, LOG_DIR_FLOW);
 
     /* TCP */
     if (f->proto == IPPROTO_TCP) {
@@ -332,10 +495,7 @@ static void EveFlowLogJSON(OutputJsonThreadCtx *aft, JsonBuilder *jb, Flow *f)
 static int JsonFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
 {
     SCEnter();
-    OutputJsonThreadCtx *thread = thread_data;
-
-    /* reset */
-    MemBufferReset(thread->buffer);
+    LogFlowLogThread *thread = thread_data;
 
     JsonBuilder *jb = CreateEveHeaderFromFlow(f);
     if (unlikely(jb == NULL)) {
@@ -344,7 +504,7 @@ static int JsonFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
 
     EveFlowLogJSON(thread, jb, f);
 
-    OutputJsonBuilderBuffer(jb, thread);
+    OutputJsonBuilderBuffer(jb, thread->output_ctx);
     jb_free(jb);
 
     SCReturnInt(TM_ECODE_OK);
@@ -354,5 +514,6 @@ void JsonFlowLogRegister (void)
 {
     /* register as child of eve-log */
     OutputRegisterFlowSubModule(LOGGER_JSON_FLOW, "eve-log", "JsonFlowLog", "eve-log.flow",
-            OutputJsonLogInitSub, JsonFlowLogger, JsonLogThreadInit, JsonLogThreadDeinit, NULL);
+            OutputFlowLogInitSub, JsonFlowLogger, JsonFlowLogThreadInit, JsonFlowLogThreadDeInit,
+            NULL);
 }

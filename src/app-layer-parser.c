@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -161,6 +161,11 @@ enum ExceptionPolicy g_applayerparser_error_policy = EXCEPTION_POLICY_NOT_SET;
 static void AppLayerConfig(void)
 {
     g_applayerparser_error_policy = ExceptionPolicyParse("app-layer.error-policy", true);
+}
+
+enum ExceptionPolicy AppLayerErrorGetExceptionPolicy(void)
+{
+    return g_applayerparser_error_policy;
 }
 
 static void AppLayerParserFramesFreeContainer(FramesContainer *frames)
