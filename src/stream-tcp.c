@@ -1872,9 +1872,14 @@ static void TcpStateQueueInitFromPktSynAck(const Packet *p, TcpStateQueue *q)
 
 /** \internal
  *  \brief Find the Queued SYN that is the same as this SYN/ACK
- *  \retval q or NULL */
+ *  \param[in] ignore_ts if true, ignore the timestamp
+ *  \retval q or NULL
+ *
+ *  \note When `ignore_ts`, the following is accepted: SYN w/o TS, SYN/ACK with TS.
+ *  \note When `ignore_ts` is set, `s` corresponds to the SYN/ACK packet and the
+ *  queue holds the stored SYN packets. */
 static const TcpStateQueue *StreamTcp3whsFindSyn(
-        const TcpSession *ssn, TcpStateQueue *s, TcpStateQueue **ret_tail)
+        const TcpSession *ssn, TcpStateQueue *s, TcpStateQueue **ret_tail, const bool ignore_ts)
 {
     SCLogDebug("ssn %p: search state:%p, isn:%u/win:%u/has_ts:%s/tsval:%u", ssn, s, s->seq, s->win,
             BOOL2STR(s->flags & STREAMTCP_QUEUE_FLAG_TS), s->ts);
@@ -1884,9 +1889,15 @@ static const TcpStateQueue *StreamTcp3whsFindSyn(
         SCLogDebug("ssn %p: queue state:%p, isn:%u/win:%u/has_ts:%s/tsval:%u (last:%s)", ssn, q,
                 q->seq, q->win, BOOL2STR(q->flags & STREAMTCP_QUEUE_FLAG_TS), q->ts,
                 BOOL2STR(q->next == NULL));
-        if ((s->flags & STREAMTCP_QUEUE_FLAG_TS) == (q->flags & STREAMTCP_QUEUE_FLAG_TS) &&
-                s->ts == q->ts && s->seq == q->seq) {
-            return q;
+
+        if (s->flags & STREAMTCP_QUEUE_FLAG_TS) {
+            if ((q->flags & STREAMTCP_QUEUE_FLAG_TS) && s->ts == q->ts && s->seq == q->seq) {
+                return q;
+            }
+        } else if (ignore_ts) {
+            if (s->seq == q->seq) {
+                return q;
+            }
         }
         last = q;
     }
@@ -1919,7 +1930,7 @@ static int StreamTcp3whsStoreSyn(TcpSession *ssn, Packet *p)
     TcpStateQueue *tail = NULL;
 
     /* first see if this is already in our list */
-    if (ssn->queue != NULL && StreamTcp3whsFindSyn(ssn, &search, &tail) != NULL)
+    if (ssn->queue != NULL && StreamTcp3whsFindSyn(ssn, &search, &tail, false) != NULL)
         return 0;
 
     if (ssn->queue_len == stream_config.max_syn_queued) {
@@ -2006,7 +2017,8 @@ static inline bool StateSynSentCheckSynAck3Whs(TcpSession *ssn, Packet *p, const
     TcpStateQueueInitFromPktSynAck(p, &search);
     SCLogDebug("%" PRIu64 ": ssn %p: SYN/ACK looking for SEQ %u", p->pcap_cnt, ssn, search.seq);
 
-    const TcpStateQueue *q = StreamTcp3whsFindSyn(ssn, &search, NULL);
+    const TcpStateQueue *q =
+            StreamTcp3whsFindSyn(ssn, &search, NULL, stream_config.liberal_timestamps);
     if (q == NULL) {
         SCLogDebug("not found: mismatch");
         goto failure;
@@ -2054,7 +2066,8 @@ static inline bool StateSynSentCheckSynAckTFO(TcpSession *ssn, Packet *p, const 
         TcpStateQueueInitFromPktSynAck(p, &search);
         SCLogDebug("%" PRIu64 ": ssn %p: SYN/ACK looking for SEQ %u", p->pcap_cnt, ssn, search.seq);
 
-        const TcpStateQueue *q = StreamTcp3whsFindSyn(ssn, &search, NULL);
+        const TcpStateQueue *q =
+                StreamTcp3whsFindSyn(ssn, &search, NULL, stream_config.liberal_timestamps);
         if (q == NULL) {
             SCLogDebug("not found: mismatch");
             goto failure;
@@ -2096,7 +2109,11 @@ static int StreamTcpPacketStateSynSent(
     if ((p->tcph->th_flags & (TH_SYN | TH_ACK)) == (TH_SYN | TH_ACK) && PKT_IS_TOCLIENT(p)) {
         SCLogDebug("%" PRIu64 ": ssn %p: SYN/ACK on SYN_SENT state for packet %" PRIu64,
                 p->pcap_cnt, ssn, p->pcap_cnt);
-        const bool ts_mismatch = !StateSynSentValidateTimestamp(ssn, p);
+        /* if timestamps are liberal, allow a SYN/ACK with TS even if the SYN
+         * had none (violates RFC 7323, see bug #4702). */
+        const bool ts_mismatch =
+                !(stream_config.liberal_timestamps || StateSynSentValidateTimestamp(ssn, p));
+        SCLogDebug("ts_mismatch %s", BOOL2STR(ts_mismatch));
 
         if (!(TCP_HAS_TFO(p) || (ssn->flags & STREAMTCP_FLAG_TCP_FAST_OPEN))) {
             if (StateSynSentCheckSynAck3Whs(ssn, p, ts_mismatch)) {
