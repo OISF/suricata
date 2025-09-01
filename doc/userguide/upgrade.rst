@@ -176,6 +176,9 @@ Major changes
   of a request/response in the respective direction. This means that earlier a
   content that matched just because it fell in the inspection chunk without wholly
   belonging to any one request/response may not match any longer.
+- Various expected PPP packet types will no longer be marked as Unsupported Protocol
+  when in a PPPOE packet.
+- Added Cisco Discovery Protocol Control Protocol as a valid PPP packet.
 
 Removals
 ~~~~~~~~
