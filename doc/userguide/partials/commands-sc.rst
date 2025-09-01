@@ -123,3 +123,7 @@
 .. describe:: memcap-list
 
    List all memcap values available.
+
+.. describe:: get-flow-stats-by-id <flow_id>
+
+   Display information for a specific flow using ``flow_id`` values.

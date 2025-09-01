@@ -140,6 +140,9 @@ int ByteExtractUint64(uint64_t *res, int e, uint16_t len, const uint8_t *bytes)
     return ret;
 }
 
+/**
+ * \retval Greater than 0 if successful, 0 or negative on failure.
+ */
 int ByteExtractUint32(uint32_t *res, int e, uint16_t len, const uint8_t *bytes)
 {
     uint64_t i64;
@@ -334,6 +337,9 @@ int StringParseUint32(uint32_t *res, int base, size_t len, const char *str)
     return ret;
 }
 
+/**
+ * \retval Greater than 0 if successful, 0 or negative on failure.
+ */
 int StringParseUint16(uint16_t *res, int base, size_t len, const char *str)
 {
     uint64_t i64;
@@ -358,6 +364,9 @@ int StringParseUint16(uint16_t *res, int base, size_t len, const char *str)
     return ret;
 }
 
+/**
+ * \retval Greater than 0 if successful, 0 or negative on failure.
+ */
 int StringParseUint8(uint8_t *res, int base, size_t len, const char *str)
 {
     uint64_t i64;
@@ -459,6 +468,9 @@ int StringParseU16RangeCheck(
     return ret;
 }
 
+/**
+ * \retval Greater than 0 if successful, 0 or negative on failure.
+ */
 int StringParseU8RangeCheck(
         uint8_t *res, int base, size_t len, const char *str, uint8_t min, uint8_t max)
 {

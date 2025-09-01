@@ -627,6 +627,12 @@ static TmEcode OutputTxLogThreadDeinit(ThreadVars *tv, void *thread_data)
 
 static uint32_t OutputTxLoggerGetActiveCount(void)
 {
+    if (list == NULL) {
+        // This may happen in socket mode playing pcaps
+        // when suricata.yaml logs only alerts (and no app-layer events)
+        return 0;
+    }
+
     uint32_t cnt = 0;
     for (AppProto alproto = 0; alproto < g_alproto_max; alproto++) {
         for (OutputTxLogger *p = list[alproto]; p != NULL; p = p->next) {

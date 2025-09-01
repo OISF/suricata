@@ -11,6 +11,7 @@ environment without access to additional modules.
    base64
    bytevar
    config
+   dnp3
    dns
    file
    flowlib

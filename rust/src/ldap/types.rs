@@ -188,6 +188,6 @@ pub fn ldap_is_response(message: &LdapMessage) -> bool {
     return !ldap_is_request(message);
 }
 
-pub fn ldap_parse_msg(input: &[u8]) -> ParseResult<LdapMessage, LdapError> {
+pub fn ldap_parse_msg(input: &[u8]) -> ParseResult<'_, LdapMessage<'_>, LdapError> {
     LdapMessage::from_ber(input)
 }

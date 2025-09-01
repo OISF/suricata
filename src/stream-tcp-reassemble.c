@@ -1421,7 +1421,6 @@ int StreamTcpReassembleAppLayer(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, 
             SCLogDebug("sending empty eof message");
             /* send EOF to app layer */
             uint8_t stream_flags = StreamGetAppLayerFlags(ssn, stream, p);
-            DEBUG_VALIDATE_BUG_ON((stream_flags & STREAM_EOF) == 0);
             AppLayerHandleTCPData(
                     tv, ra_ctx, p, p->flow, ssn, &stream, NULL, 0, stream_flags, app_update_dir);
             AppLayerProfilingStore(ra_ctx->app_tctx, p);

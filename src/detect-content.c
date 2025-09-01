@@ -412,6 +412,8 @@ void SigParseRequiredContentSize(
 {
     int max_offset = 0, total_len = 0;
     bool first = true;
+    // define it first, and override it unless in DETECT_CONTENT_NEGATED edge case
+    *offset = 0;
     for (; sm != NULL; sm = sm->next) {
         if (sm->type != DETECT_CONTENT || sm->ctx == NULL) {
             continue;

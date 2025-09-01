@@ -1756,7 +1756,7 @@
                 },
                 "storing": {
                     "type": "boolean",
-                    "description": "the file is set to be stored when completed"
+                    "description": "The file is set to be stored when completed"
                 },
                 "tx_id": {
                     "type": "integer"
@@ -1815,7 +1815,7 @@
                     },
                     "storing": {
                         "type": "boolean",
-                        "description": "the file is set to be stored when completed"
+                        "description": "The file is set to be stored when completed"
                     },
                     "tx_id": {
                         "type": "integer"
@@ -2083,6 +2083,7 @@
                         "request": {
                             "type": "object",
                             "additionalProperties": false,
+                            "minProperties": 1,
                             "properties": {
                                 "error_code": {
                                     "type": "string"
@@ -2114,6 +2115,7 @@
                         "response": {
                             "type": "object",
                             "additionalProperties": false,
+                            "minProperties": 1,
                             "properties": {
                                 "error_code": {
                                     "type": "string"
@@ -2220,7 +2222,7 @@
                 },
                 "status_string": {
                     "type": "string",
-                    "description": "status string when it is not a valid integer (like 2XX)"
+                    "description": "Status string when it is not a valid integer (like 2XX)"
                 },
                 "true_client_ip": {
                     "type": "string"
@@ -3889,7 +3891,7 @@
                 },
                 "linktype_name": {
                     "type": "string",
-                    "description": "the descriptive name of the linktype"
+                    "description": "The descriptive name of the linktype"
                 }
             },
             "optional": true
@@ -3943,7 +3945,7 @@
                         "password_redacted": {
                             "type": "boolean",
                             "description":
-                                    "indicates if a password message was received but not logged due to Suricata settings"
+                                    "Indicates if a password message was received but not logged due to Suricata settings"
                         },
                         "process_id": {
                             "type": "integer"
@@ -4154,14 +4156,14 @@
                     "properties": {
                         "args": {
                             "type": "array",
-                            "description": "pop3 request arguments",
+                            "description": "Pop3 request arguments",
                             "items": {
                                 "type": "string"
                             }
                         },
                         "command": {
                             "type": "string",
-                            "description": "a pop3 command, for example `USER` or `STAT`"
+                            "description": "A pop3 command, for example `USER` or `STAT`"
                         }
                     },
                     "optional": true
@@ -4177,14 +4179,14 @@
                         },
                         "header": {
                             "type": "string",
-                            "description": "first line of response"
+                            "description": "First line of response"
                         },
                         "status": {
                             "type": "string"
                         },
                         "success": {
                             "type": "boolean",
-                            "description": "response indicated positive status ie +OK"
+                            "description": "Response indicated positive status ie +OK"
                         }
                     },
                     "optional": true
@@ -4202,7 +4204,7 @@
                 "cyu": {
                     "type": "array",
                     "description":
-                            "ja3-like fingerprint for versions of QUIC before standardization",
+                            "JA3-like fingerprint for versions of QUIC before standardization",
                     "minItems": 1,
                     "items": {
                         "type": "object",
@@ -4210,11 +4212,11 @@
                         "properties": {
                             "hash": {
                                 "type": "string",
-                                "description": "cyu hash hex representation"
+                                "description": "CYU hash hex representation"
                             },
                             "string": {
                                 "type": "string",
-                                "description": "cyu hash string representation"
+                                "description": "CYU hash string representation"
                             }
                         }
                     }
@@ -4229,15 +4231,15 @@
                         "properties": {
                             "name": {
                                 "type": "string",
-                                "description": "human-friendly name of the extension"
+                                "description": "Human-friendly name of the extension"
                             },
                             "type": {
                                 "type": "integer",
-                                "description": "integer identifier of the extension"
+                                "description": "Integer identifier of the extension"
                             },
                             "values": {
                                 "type": "array",
-                                "description": "extension values",
+                                "description": "Extension values",
                                 "minItems": 1,
                                 "items": {
                                     "type": "string"
@@ -4252,14 +4254,14 @@
                     "properties": {
                         "hash": {
                             "type": "string",
-                            "description": "ja3 hex representation"
+                            "description": "JA3 hex representation"
                         },
                         "string": {
                             "type": "string",
-                            "description": "ja3 string representation"
+                            "description": "JA3 string representation"
                         }
                     },
-                    "description": "ja3 from client, as in TLS",
+                    "description": "JA3 from client, as in TLS",
                     "optional": true
                 },
                 "ja3s": {
@@ -4268,14 +4270,14 @@
                     "properties": {
                         "hash": {
                             "type": "string",
-                            "description": "ja3s hex representation"
+                            "description": "JA3s hex representation"
                         },
                         "string": {
                             "type": "string",
-                            "description": "ja3s string representation"
+                            "description": "JA3s string representation"
                         }
                     },
-                    "description": "ja3 from server, as in TLS",
+                    "description": "JA3 from server, as in TLS",
                     "optional": true
                 },
                 "ja4": {
@@ -5639,31 +5641,40 @@
                 },
                 "decoder": {
                     "type": "object",
+                    "description": "Statistics for packet decoding engine",
                     "additionalProperties": false,
                     "properties": {
                         "arp": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of ARP packets decoded"
                         },
                         "avg_pkt_size": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Average packet size decoded"
                         },
                         "bytes": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of bytes decoded by the engine"
                         },
                         "chdlc": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of Cisco HDLC packets decoded"
                         },
                         "erspan": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of ERSPAN packets decoded"
                         },
                         "esp": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of ESP packets decoded"
                         },
                         "ethernet": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of Ethernet packets decoded"
                         },
                         "event": {
                             "type": "object",
+                            "description": "Statistics on events raised during packet decoding",
                             "additionalProperties": false,
                             "properties": {
                                 "afpacket": {
@@ -5682,25 +5693,32 @@
                                     "additionalProperties": false,
                                     "properties": {
                                         "invalid_hardware_size": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of ARP packets with invalid hardware size (valid size is 6)"
+                                        },
+                                        "invalid_pkt": {
+                                            "type": "integer",
+                                            "description": "Number of invalid decoded ARP packets"
                                         },
                                         "invalid_protocol_size": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of ARP packets with invalid protocol size (valid size is 4)"
                                         },
                                         "pkt_too_small": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of ARP packets with header length too small"
                                         },
                                         "unsupported_hardware": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of ARP packets with unsupported hardware"
                                         },
                                         "unsupported_opcode": {
-                                            "type": "integer"
-                                        },
-                                        "unsupported_pkt": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of ARP packets with unsupported Operation Codes"
                                         },
                                         "unsupported_protocol": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of ARP packets with unsupported protocol"
                                         }
                                     }
                                 },
@@ -5709,7 +5727,8 @@
                                     "additionalProperties": false,
                                     "properties": {
                                         "pkt_too_small": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of packets too small for CHDLC"
                                         }
                                     }
                                 },
@@ -5718,7 +5737,8 @@
                                     "additionalProperties": false,
                                     "properties": {
                                         "pkt_too_small": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of packets too small for DCE"
                                         }
                                     }
                                 },
@@ -5727,13 +5747,16 @@
                                     "additionalProperties": false,
                                     "properties": {
                                         "header_too_small": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of packets with header too small for ERPSAN"
                                         },
                                         "too_many_vlan_layers": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of packets with too many VLAN layers for ERPSAN"
                                         },
                                         "unsupported_version": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of packets with unsupported version for ERPSAN"
                                         }
                                     }
                                 },
@@ -5742,7 +5765,8 @@
                                     "additionalProperties": false,
                                     "properties": {
                                         "pkt_too_small": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of packets too small for ESP"
                                         }
                                     }
                                 },
@@ -5751,10 +5775,12 @@
                                     "additionalProperties": false,
                                     "properties": {
                                         "pkt_too_small": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of packets too small for Ethernet"
                                         },
                                         "unknown_ethertype": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of packets with Unkonwn Ethertype for Ethernet"
                                         }
                                     }
                                 },
@@ -5763,7 +5789,8 @@
                                     "additionalProperties": false,
                                     "properties": {
                                         "unknown_payload_type": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of packets with unknown payload type for Geneve"
                                         }
                                     }
                                 },
@@ -5772,49 +5799,64 @@
                                     "additionalProperties": false,
                                     "properties": {
                                         "pkt_too_small": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of packets too small for GRE"
                                         },
                                         "version0_flags": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of packets with version 0 flags set for GRE"
                                         },
                                         "version0_hdr_too_big": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of packets with version 0 and header too big for GRE"
                                         },
                                         "version0_malformed_sre_hdr": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of packets of with version 0 and  malformed SRE header for GRE"
                                         },
                                         "version0_recur": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of packets with version 0 and flag recursion control set for GRE"
                                         },
                                         "version1_chksum": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of packets with version 1 and checksum flag set for GRE"
                                         },
                                         "version1_flags": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of packets with version 1 flags set for GRE"
                                         },
                                         "version1_hdr_too_big": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of packets with version 1 and header too big for GRE"
                                         },
                                         "version1_malformed_sre_hdr": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of packets with version 1 and  malformed SRE header for GRE"
                                         },
                                         "version1_no_key": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of packets with version 1 and no key flag set for GRE"
                                         },
                                         "version1_recur": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of packets with version 1 and flag recursion control set for GRE"
                                         },
                                         "version1_route": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of packets with version 1 and flag route set for GRE"
                                         },
                                         "version1_ssr": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of packets with version 1 and flag SSR set for GRE"
                                         },
                                         "version1_wrong_protocol": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of packets with version 1 and wrong protocol set for GRE"
                                         },
                                         "wrong_version": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of packets with wrong version set for GRE"
                                         }
                                     }
                                 },
@@ -5823,19 +5865,24 @@
                                     "additionalProperties": false,
                                     "properties": {
                                         "ipv4_trunc_pkt": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of truncated packets for ICMPv4"
                                         },
                                         "ipv4_unknown_ver": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of ICMPv4 packets with unknown version"
                                         },
                                         "pkt_too_small": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of packets too small for ICMPv4"
                                         },
                                         "unknown_code": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of ICMPv4 packets with unknown code"
                                         },
                                         "unknown_type": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of ICMPv4 packets with unknown type"
                                         }
                                     }
                                 },
@@ -5844,28 +5891,36 @@
                                     "additionalProperties": false,
                                     "properties": {
                                         "experimentation_type": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of ICMPv6 packets with private experimentation type"
                                         },
                                         "ipv6_trunc_pkt": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of truncated ICMPv6 packets"
                                         },
                                         "ipv6_unknown_version": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of ICMPv6 packets with unknown version"
                                         },
                                         "mld_message_with_invalid_hl": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of ICMPv6 packets with MLD messages and invalid HL (not 1)"
                                         },
                                         "pkt_too_small": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of packets too small for ICMPv6"
                                         },
                                         "unassigned_type": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of ICMPv6 packets with unassigned type"
                                         },
                                         "unknown_code": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of ICMPv6 packets with unknown code"
                                         },
                                         "unknown_type": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of ICMPv6 packets with unknown type"
                                         }
                                     }
                                 },
@@ -5874,7 +5929,8 @@
                                     "additionalProperties": false,
                                     "properties": {
                                         "header_too_small": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IEEE802.1ah packets with header too small"
                                         }
                                     }
                                 },
@@ -5883,7 +5939,8 @@
                                     "additionalProperties": false,
                                     "properties": {
                                         "invalid_ip_version": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of RAW packets with invalid IP version"
                                         }
                                     }
                                 },
@@ -6153,17 +6210,18 @@
                                     "additionalProperties": false,
                                     "properties": {
                                         "pkt_too_small": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of SLL decoded packets that were too small"
                                         }
                                     }
                                 },
                                 "sll2": {
                                     "type": "object",
-                                    "description": "The number of times the SLL2 header was too small to be valid",
                                     "additionalProperties": false,
                                     "properties": {
                                         "pkt_too_small": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "The number of times the SLL2 header was too small to be valid"
                                         }
                                     }
                                 },
@@ -6245,110 +6303,144 @@
                             }
                         },
                         "geneve": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of GENEVE packets decoded"
                         },
                         "gre": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of GRE packets decoded"
                         },
                         "icmpv4": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of ICMPv4 packets decoded"
                         },
                         "icmpv6": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of ICMPv6 packets decoded"
                         },
                         "ieee8021ah": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of IEEE802.1ah packets decoded"
                         },
                         "invalid": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of invalid packets decoded"
                         },
                         "ipv4": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of IPv4 packets decoded"
                         },
                         "ipv4_in_ipv4": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of IPv4 in IPv4 packets decoded"
                         },
                         "ipv4_in_ipv6": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of IPv4 in IPv6 packets decoded"
                         },
                         "ipv6": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of IPv6 packets decoded"
                         },
                         "ipv6_in_ipv4": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of IPv6 in IPv4 packets decoded"
                         },
                         "ipv6_in_ipv6": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of IPv6 in IPv6 packets decoded"
                         },
                         "max_mac_addrs_dst": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Maximum  amount of destination MAC addresses seen per flow (only if ethernet header logging enabled)"
                         },
                         "max_mac_addrs_src": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Maximum  amount of source MAC addresses seen per flow (only if ethernet header logging enabled)"
                         },
                         "max_pkt_size": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Maximum packet size decoded by the engine"
                         },
                         "mpls": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of MPLS packets decoded"
                         },
                         "nsh": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of NSH packets decoded"
                         },
                         "null": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of LINKTYPE_NULL packets decoded"
                         },
                         "pkts": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of packets decoded"
                         },
                         "ppp": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of PPP packets decoded"
                         },
                         "pppoe": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of PPPOE packets decoded"
                         },
                         "raw": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of RAW packets decoded"
                         },
                         "sctp": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of STCP packets decoded"
                         },
                         "sll": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of SLL packets decoded"
                         },
                         "sll2": {
                             "type": "integer",
                             "description": "The number of SLL2 frames encountered"
                         },
                         "tcp": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of TCP packets decoded"
                         },
                         "teredo": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of Teredo packets decoded"
                         },
                         "too_many_layers": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of decoded packets that reach maximum layers for the engine"
                         },
                         "udp": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of UDP packets decoded"
                         },
                         "unknown_ethertype": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of decoded packets with unknown ethertype"
                         },
                         "vlan": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of VLAN layer 2 packets decoded"
                         },
                         "vlan_qinq": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of VLAN layer 2 (Q-in-Q) packets decoded"
                         },
                         "vlan_qinqinq": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of VLAN layer 3 (Q-in-Q-in-Q) packets decoded"
                         },
                         "vntag": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of VNTAG packets decoded"
                         },
                         "vxlan": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of VXLAN packets decoded"
                         }
                     }
                 },
@@ -6468,9 +6560,6 @@
                                 }
                             }
                         },
-                        "fnonmpm_list": {
-                            "type": "integer"
-                        },
                         "lua": {
                             "type": "object",
                             "additionalProperties": false,
@@ -6499,9 +6588,6 @@
                             "type": "integer"
                         },
                         "mpm_list": {
-                            "type": "integer"
-                        },
-                        "nonmpm_list": {
                             "type": "integer"
                         }
                     }
@@ -6570,6 +6656,7 @@
                 },
                 "flow": {
                     "type": "object",
+                    "description": "Stats on flow-related diagnostics",
                     "additionalProperties": false,
                     "properties": {
                         "active": {
@@ -6597,61 +6684,78 @@
                                     "additionalProperties": false,
                                     "properties": {
                                         "capture_bypassed": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of flows bypassed at the capture level -- counted at the time of flow end"
                                         },
                                         "closed": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of flows in 'closed' state at the time of flow end"
                                         },
                                         "established": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of flows in 'established' state at the time of flow end"
                                         },
                                         "local_bypassed": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of flows bypassed internally -- counted at the time of flow end"
                                         },
                                         "new": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of flows in 'new' state at the time of flow end"
                                         }
                                     }
                                 },
                                 "tcp_liberal": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "description": "Number of TCP flows ended that had liberal state"
                                 },
                                 "tcp_state": {
                                     "type": "object",
                                     "additionalProperties": false,
                                     "properties": {
                                         "close_wait": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of TCP sessions in CLOSE_WAIT state"
                                         },
                                         "closed": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of TCP sessions in CLOSED state"
                                         },
                                         "closing": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of TCP sessions in CLOSING state"
                                         },
                                         "established": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of TCP sessions in ESTABLISHED state"
                                         },
                                         "fin_wait1": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of TCP sessions in FIN_WAIT_1 state"
                                         },
                                         "fin_wait2": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of TCP sessions in FIN_WAIT_2 state"
                                         },
                                         "last_ack": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of TCP sessions in LAST_ACK state"
                                         },
                                         "none": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of TCP sessions newly created"
                                         },
                                         "syn_recv": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of TCP sessions in SYN_RECV state"
                                         },
                                         "syn_sent": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of TCP sessions in SYN_SENT state"
                                         },
                                         "time_wait": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of TCP sessions in TIME_WAIT state"
                                         }
                                     }
                                 }
@@ -6700,43 +6804,44 @@
                         },
                         "mgr": {
                             "type": "object",
+                            "description": "Flow manager stats counters",
                             "additionalProperties": false,
                             "properties": {
                                 "flows_checked": {
                                     "type": "integer",
                                     "description":
-                                            "number of flows checked for timeout in the last pass"
+                                            "Number of flows checked for timeout in the last pass"
                                 },
                                 "flows_evicted": {
                                     "type": "integer",
-                                    "description": "number of flows that were evicted"
+                                    "description": "Number of flows that were evicted"
                                 },
                                 "flows_evicted_needs_work": {
                                     "type": "integer",
                                     "description":
-                                            "number of TCP flows that were returned to the workers in case reassembly, detection, logging still needs work"
+                                            "Number of TCP flows that were returned to the workers in case reassembly, detection, logging still needs work"
                                 },
                                 "flows_notimeout": {
                                     "type": "integer",
-                                    "description": "number of flows that did not time out"
+                                    "description": "Number of flows that did not time out"
                                 },
                                 "flows_timeout": {
                                     "type": "integer",
-                                    "description": "number of flows that reached the time out"
+                                    "description": "Number of flows that reached the time out"
                                 },
                                 "full_hash_pass": {
                                     "type": "integer",
                                     "description":
-                                            "number of times a full pass of the hash table was done"
+                                            "Number of times a full pass of the hash table was done"
                                 },
                                 "rows_maxlen": {
                                     "type": "integer",
-                                    "description": "size of the biggest row in the hash table"
+                                    "description": "Size of the biggest row in the hash table"
                                 },
                                 "rows_per_sec": {
                                     "type": "integer",
                                     "description":
-                                            "number of rows to be scanned every second by a worker"
+                                            "Number of rows to be scanned every second by a worker"
                                 }
                             }
                         },
@@ -6746,15 +6851,15 @@
                             "properties": {
                                 "queue_avg": {
                                     "type": "integer",
-                                    "description": "average number of recycled flows per queue"
+                                    "description": "Average number of recycled flows per queue"
                                 },
                                 "queue_max": {
                                     "type": "integer",
-                                    "description": "maximum number of recycled flows per queue"
+                                    "description": "Maximum number of recycled flows per queue"
                                 },
                                 "recycled": {
                                     "type": "integer",
-                                    "description": "number of recycled flows"
+                                    "description": "Number of recycled flows"
                                 }
                             }
                         },
@@ -6781,34 +6886,44 @@
                         },
                         "wrk": {
                             "type": "object",
+                            "description": "Flow worker threads stats",
                             "additionalProperties": false,
                             "properties": {
                                 "flows_evicted": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "description": "Number of flows that were evicted"
                                 },
                                 "flows_evicted_needs_work": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "description": "Number of TCP flows that were returned to the workers in case reassembly, detection, logging still needs work"
                                 },
                                 "flows_evicted_pkt_inject": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "description": "Number of pseudo packets injected into worker threads to complete flows' processing. For any flow this can be between 0-2, this is the total for all flows."
                                 },
                                 "flows_injected": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "description": "Number of flows injected into the worker thread from another thread"
                                 },
                                 "flows_injected_max": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "description": "Maximum number of flows injected into the worker thread from another thread"
                                 },
                                 "spare_sync": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "description": "Number of times the engine attempted to fetch flows from the master flow pool/spare queue"
                                 },
                                 "spare_sync_avg": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "description": "Average number of flows a thread could fetch from the master flow pool/spare queue"
                                 },
                                 "spare_sync_empty": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "description": "Number of times the master spare pool was empty when requesting flows from it"
                                 },
                                 "spare_sync_incomplete": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "description": "Number of times spare flow syncs were incomplete (fetched with less than 100 flows in sync)"
                                 }
                             }
                         }
@@ -7705,7 +7820,7 @@
         "tx_guessed": {
             "type": "boolean",
             "description":
-                    "the signature that triggered this alert didn't tie to a transaction, so the transaction (and metadata) logged is a forced estimation and may not be the one you expect"
+                    "The signature that triggered this alert didn't tie to a transaction, so the transaction (and metadata) logged is a forced estimation and may not be the one you expect"
         },
         "tx_id": {
             "type": "integer"

@@ -669,6 +669,9 @@ static void RunModeInitializeEveOutput(
     if (types == NULL) {
         return;
     }
+    if (!SCConfNodeIsSequence(types)) {
+        FatalError("output types should be a sequence");
+    }
 
     SCConfNode *type = NULL;
     TAILQ_FOREACH(type, &types->head, next) {

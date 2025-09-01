@@ -26,7 +26,6 @@ int SignatureIsFilemagicInspecting(const Signature *);
 int SignatureIsFileMd5Inspecting(const Signature *);
 int SignatureIsFileSha1Inspecting(const Signature *s);
 int SignatureIsFileSha256Inspecting(const Signature *s);
-int SignatureIsFilesizeInspecting(const Signature *);
 void SignatureSetType(DetectEngineCtx *de_ctx, Signature *s);
 
 int SigPrepareStage1(DetectEngineCtx *de_ctx);

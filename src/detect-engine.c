@@ -106,6 +106,7 @@ static uint32_t DetectEngineTenantGetIdFromLivedev(const void *ctx, const Packet
 static uint32_t DetectEngineTenantGetIdFromVlanId(const void *ctx, const Packet *p);
 static uint32_t DetectEngineTenantGetIdFromPcap(const void *ctx, const Packet *p);
 
+static bool DetectEngineMultiTenantEnabledWithLock(void);
 static DetectEngineAppInspectionEngine *g_app_inspect_engines = NULL;
 static DetectEnginePktInspectionEngine *g_pkt_inspect_engines = NULL;
 static DetectEngineFrameInspectionEngine *g_frame_inspect_engines = NULL;
@@ -273,7 +274,7 @@ void DetectAppLayerInspectEngineRegister(const char *name, AppProto alproto, uin
         int progress, InspectEngineFuncPtr Callback, InspectionBufferGetDataPtr GetData)
 {
     /* before adding, check that we don't add a duplicate entry, which will
-     * propegate all the way into the packet runtime if allowed. */
+     * propagate all the way into the packet runtime if allowed. */
     DetectEngineAppInspectionEngine *t = g_app_inspect_engines;
     while (t != NULL) {
         const uint32_t t_direction = t->dir == 0 ? SIG_FLAG_TOSERVER : SIG_FLAG_TOCLIENT;
@@ -295,7 +296,7 @@ void DetectAppLayerInspectEngineRegisterSingle(const char *name, AppProto alprot
         int progress, InspectEngineFuncPtr Callback, InspectionSingleBufferGetDataPtr GetData)
 {
     /* before adding, check that we don't add a duplicate entry, which will
-     * propegate all the way into the packet runtime if allowed. */
+     * propagate all the way into the packet runtime if allowed. */
     DetectEngineAppInspectionEngine *t = g_app_inspect_engines;
     while (t != NULL) {
         const uint32_t t_direction = t->dir == 0 ? SIG_FLAG_TOSERVER : SIG_FLAG_TOCLIENT;
@@ -3153,7 +3154,6 @@ static void DetectEngineThreadCtxDeinitKeywords(DetectEngineCtx *de_ctx, DetectE
 static TmEcode DetectEngineThreadCtxInitForMT(ThreadVars *tv, DetectEngineThreadCtx *det_ctx)
 {
     DetectEngineMasterCtx *master = &g_master_de_ctx;
-    SCMutexLock(&master->lock);
 
     DetectEngineTenantMapping *map_array = NULL;
     uint32_t map_array_size = 0;
@@ -3164,7 +3164,6 @@ static TmEcode DetectEngineThreadCtxInitForMT(ThreadVars *tv, DetectEngineThread
     if (master->tenant_selector == TENANT_SELECTOR_UNKNOWN) {
         SCLogError("no tenant selector set: "
                    "set using multi-detect.selector");
-        SCMutexUnlock(&master->lock);
         return TM_ECODE_FAILED;
     }
 
@@ -3258,7 +3257,6 @@ static TmEcode DetectEngineThreadCtxInitForMT(ThreadVars *tv, DetectEngineThread
             break;
     }
 
-    SCMutexUnlock(&master->lock);
     return TM_ECODE_OK;
 error:
     if (map_array != NULL)
@@ -3266,7 +3264,6 @@ error:
     if (mt_det_ctxs_hash != NULL)
         HashTableFree(mt_det_ctxs_hash);
 
-    SCMutexUnlock(&master->lock);
     return TM_ECODE_FAILED;
 }
 
@@ -3425,16 +3422,18 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data)
 
 #ifdef PROFILING
     det_ctx->counter_mpm_list = StatsRegisterAvgCounter("detect.mpm_list", tv);
-    det_ctx->counter_nonmpm_list = StatsRegisterAvgCounter("detect.nonmpm_list", tv);
-    det_ctx->counter_fnonmpm_list = StatsRegisterAvgCounter("detect.fnonmpm_list", tv);
     det_ctx->counter_match_list = StatsRegisterAvgCounter("detect.match_list", tv);
 #endif
 
     if (DetectEngineMultiTenantEnabled()) {
+        DetectEngineMasterCtx *master = &g_master_de_ctx;
+        SCMutexLock(&master->lock);
         if (DetectEngineThreadCtxInitForMT(tv, det_ctx) != TM_ECODE_OK) {
             DetectEngineThreadCtxDeinit(tv, det_ctx);
+            SCMutexUnlock(&master->lock);
             return TM_ECODE_FAILED;
         }
+        SCMutexUnlock(&master->lock);
     }
 
     /* pass thread data back to caller */
@@ -3483,17 +3482,11 @@ DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
     det_ctx->counter_alerts_overflow = StatsRegisterCounter("detect.alert_queue_overflow", tv);
     det_ctx->counter_alerts_suppressed = StatsRegisterCounter("detect.alerts_suppressed", tv);
 #ifdef PROFILING
-    uint16_t counter_mpm_list = StatsRegisterAvgCounter("detect.mpm_list", tv);
-    uint16_t counter_nonmpm_list = StatsRegisterAvgCounter("detect.nonmpm_list", tv);
-    uint16_t counter_fnonmpm_list = StatsRegisterAvgCounter("detect.fnonmpm_list", tv);
-    uint16_t counter_match_list = StatsRegisterAvgCounter("detect.match_list", tv);
-    det_ctx->counter_mpm_list = counter_mpm_list;
-    det_ctx->counter_nonmpm_list = counter_nonmpm_list;
-    det_ctx->counter_fnonmpm_list = counter_fnonmpm_list;
-    det_ctx->counter_match_list = counter_match_list;
+    det_ctx->counter_mpm_list = StatsRegisterAvgCounter("detect.mpm_list", tv);
+    det_ctx->counter_match_list = StatsRegisterAvgCounter("detect.match_list", tv);
 #endif
 
-    if (mt && DetectEngineMultiTenantEnabled()) {
+    if (mt && DetectEngineMultiTenantEnabledWithLock()) {
         if (DetectEngineThreadCtxInitForMT(tv, det_ctx) != TM_ECODE_OK) {
             DetectEngineDeReference(&det_ctx->de_ctx);
             SCFree(det_ctx);
@@ -3873,11 +3866,17 @@ DetectEngineCtx *DetectEngineReference(DetectEngineCtx *de_ctx)
     return de_ctx;
 }
 
+static bool DetectEngineMultiTenantEnabledWithLock(void)
+{
+    DetectEngineMasterCtx *master = &g_master_de_ctx;
+    return master->multi_tenant_enabled;
+}
+
 bool DetectEngineMultiTenantEnabled(void)
 {
     DetectEngineMasterCtx *master = &g_master_de_ctx;
     SCMutexLock(&master->lock);
-    bool enabled = master->multi_tenant_enabled;
+    bool enabled = DetectEngineMultiTenantEnabledWithLock();
     SCMutexUnlock(&master->lock);
     return enabled;
 }

@@ -794,7 +794,7 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
 
     SCLogDebug("head %p, *head %p, negate %d", head, *head, negate);
 
-    for (u = 0, x = 0; u < size && x < sizeof(port); u++) {
+    for (; u < size && x < sizeof(port); u++) {
         port[x] = s[u];
         x++;
 
@@ -807,6 +807,7 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
         } else if (!o_set && s[u] == '!') {
             SCLogDebug("negation encountered");
             n_set = 1;
+            BUG_ON(x == 0); /* always false; added to guide static code analyzers like Coverity */
             x--;
         } else if (s[u] == '[') {
             if (!o_set) {

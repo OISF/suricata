@@ -599,6 +599,8 @@ const struct DecodeEvents_ DEvents[] = {
             "decoder.nsh.unknown_payload",
             NSH_UNKNOWN_PAYLOAD,
     },
+
+    /* GENERIC EVENTS */
     {
             "decoder.too_many_layers",
             GENERIC_TOO_MANY_LAYERS,

@@ -1293,8 +1293,6 @@ typedef struct DetectEngineThreadCtx_ {
     uint16_t counter_alerts_suppressed;
 #ifdef PROFILING
     uint16_t counter_mpm_list;
-    uint16_t counter_nonmpm_list;
-    uint16_t counter_fnonmpm_list;
     uint16_t counter_match_list;
 #endif
 
@@ -1490,7 +1488,7 @@ enum {
 #define SIG_GROUP_HEAD_HAVEFILEMAGIC BIT_U16(1)
 #endif
 #define SIG_GROUP_HEAD_HAVEFILEMD5    BIT_U16(2)
-#define SIG_GROUP_HEAD_HAVEFILESIZE   BIT_U16(3)
+// vacancy
 #define SIG_GROUP_HEAD_HAVEFILESHA1   BIT_U16(4)
 #define SIG_GROUP_HEAD_HAVEFILESHA256 BIT_U16(5)
 

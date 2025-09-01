@@ -92,7 +92,8 @@ Major changes
   E.g., ``ipv4-csum: valid`` will only match if the check sum is valid, even when engine
   checksum validations are disabled.
 - Lua detection scripts (rules) now run in a sandboxed
-  environment. See :ref:`lua-detection`.
+  environment. See :ref:`lua-detection`. Lua rules are now also
+  enabled by default.
 - Lua output scripts have no default module search path, a search path
   will need to be set before external modules can be loaded. See the
   new default configuration file or :ref:`lua-output-yaml` for more
@@ -182,6 +183,9 @@ Major changes
 Removals
 ~~~~~~~~
 - The ssh keywords ``ssh.protoversion`` and ``ssh.softwareversion`` have been removed.
+- The detect engine stats counters for non-mpm-prefiltered rules ``fnonmpm_list``
+  and ``nonmpm_list`` were not in use since Suricata 8.0.0 and **were thus removed
+  in 8.0.1.**
 
 Deprecations
 ~~~~~~~~~~~~

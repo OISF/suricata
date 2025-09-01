@@ -10,6 +10,8 @@ in with pkgs;
       cargo
       rustc
       rust-cbindgen
+      rust-analyzer
+      tree-sitter-grammars.tree-sitter-rust
       clang
       libclang.python
       libllvm
@@ -34,6 +36,7 @@ in with pkgs;
       pcre2
       vectorscan
       zlib
+      sphinx
     ];
 
     # the following is needed to be able to build ebpf files

@@ -281,7 +281,7 @@ bool SCRadix6AddKeyIPV6String(
         }
 
         uint8_t cidr;
-        if (StringParseU8RangeCheck(&cidr, 10, 0, (const char *)mask_str, 0, 128) < 0) {
+        if (StringParseU8RangeCheck(&cidr, 10, 0, (const char *)mask_str, 0, 128) <= 0) {
             sc_errno = SC_EINVAL;
             return false;
         }

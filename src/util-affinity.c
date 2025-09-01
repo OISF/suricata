@@ -242,11 +242,11 @@ int BuildCpusetWithCallback(
             stop = 1;
         } else if (strchr(lnode->val, '-') != NULL) {
             char *sep = strchr(lnode->val, '-');
-            if (StringParseUint32(&a, 10, sep - lnode->val, lnode->val) < 0) {
+            if (StringParseUint32(&a, 10, sep - lnode->val, lnode->val) <= 0) {
                 SCLogError("%s: invalid cpu range (start invalid): \"%s\"", name, lnode->val);
                 return -1;
             }
-            if (StringParseUint32(&b, 10, strlen(sep) - 1, sep + 1) < 0) {
+            if (StringParseUint32(&b, 10, strlen(sep) - 1, sep + 1) <= 0) {
                 SCLogError("%s: invalid cpu range (end invalid): \"%s\"", name, lnode->val);
                 return -1;
             }
@@ -260,7 +260,7 @@ int BuildCpusetWithCallback(
                 return -1;
             }
         } else {
-            if (StringParseUint32(&a, 10, strlen(lnode->val), lnode->val) < 0) {
+            if (StringParseUint32(&a, 10, strlen(lnode->val), lnode->val) <= 0) {
                 SCLogError("%s: invalid cpu range (not an integer): \"%s\"", name, lnode->val);
                 return -1;
             }

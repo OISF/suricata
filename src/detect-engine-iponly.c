@@ -279,7 +279,7 @@ static int IPOnlyCIDRItemParseSingle(IPOnlyCIDRItem **pdd, const char *str)
                 }
 
                 uint8_t cidr;
-                if (StringParseU8RangeCheck(&cidr, 10, 0, (const char *)mask, 0, 32) < 0)
+                if (StringParseU8RangeCheck(&cidr, 10, 0, (const char *)mask, 0, 32) <= 0)
                     goto error;
 
                 dd->netmask = cidr;

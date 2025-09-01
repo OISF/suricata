@@ -1229,6 +1229,7 @@ impl ConnectionParser {
                                 HtpContentEncoding::Lzma
                             } else if encoding.cmp_slice(b"inflate") == Ordering::Equal
                                 || encoding.cmp_slice(b"none") == Ordering::Equal
+                                || encoding.cmp_slice(b"identity") == Ordering::Equal
                             {
                                 HtpContentEncoding::None
                             } else {

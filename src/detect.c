@@ -386,10 +386,6 @@ DetectPostInspectFileFlagsUpdate(Flow *f, const SigGroupHead *sgh, uint8_t direc
             SCLogDebug("requesting disabling sha256 for flow");
             flow_file_flags |= (FLOWFILE_NO_SHA256_TS|FLOWFILE_NO_SHA256_TC);
         }
-        if (!(sgh->flags & SIG_GROUP_HEAD_HAVEFILESIZE)) {
-            SCLogDebug("requesting disabling filesize for flow");
-            flow_file_flags |= (FLOWFILE_NO_SIZE_TS|FLOWFILE_NO_SIZE_TC);
-        }
     }
     if (flow_file_flags != 0) {
         FileUpdateFlowFileFlags(f, flow_file_flags, direction);

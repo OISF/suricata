@@ -4339,7 +4339,7 @@ static int AddressTestCutIPv401(void)
 
 static int AddressTestCutIPv402(void)
 {
-    DetectAddress *a, *b, *c;
+    DetectAddress *a, *b, *c = NULL;
     a = DetectAddressParseSingle("1.2.3.0/255.255.255.0");
     b = DetectAddressParseSingle("1.2.2.0-1.2.3.4");
 
@@ -4363,7 +4363,7 @@ error:
 
 static int AddressTestCutIPv403(void)
 {
-    DetectAddress *a, *b, *c;
+    DetectAddress *a, *b, *c = NULL;
     a = DetectAddressParseSingle("1.2.3.0/255.255.255.0");
     b = DetectAddressParseSingle("1.2.2.0-1.2.3.4");
 
@@ -4394,7 +4394,7 @@ error:
 
 static int AddressTestCutIPv404(void)
 {
-    DetectAddress *a, *b, *c;
+    DetectAddress *a, *b, *c = NULL;
     a = DetectAddressParseSingle("1.2.3.3-1.2.3.6");
     b = DetectAddressParseSingle("1.2.3.0-1.2.3.5");
 
@@ -4426,7 +4426,7 @@ error:
 
 static int AddressTestCutIPv405(void)
 {
-    DetectAddress *a, *b, *c;
+    DetectAddress *a, *b, *c = NULL;
     a = DetectAddressParseSingle("1.2.3.3-1.2.3.6");
     b = DetectAddressParseSingle("1.2.3.0-1.2.3.9");
 
@@ -4457,7 +4457,7 @@ error:
 
 static int AddressTestCutIPv406(void)
 {
-    DetectAddress *a, *b, *c;
+    DetectAddress *a, *b, *c = NULL;
     a = DetectAddressParseSingle("1.2.3.0-1.2.3.9");
     b = DetectAddressParseSingle("1.2.3.3-1.2.3.6");
 
@@ -4488,7 +4488,7 @@ error:
 
 static int AddressTestCutIPv407(void)
 {
-    DetectAddress *a, *b, *c;
+    DetectAddress *a, *b, *c = NULL;
     a = DetectAddressParseSingle("1.2.3.0-1.2.3.6");
     b = DetectAddressParseSingle("1.2.3.0-1.2.3.9");
 
@@ -4517,7 +4517,7 @@ error:
 
 static int AddressTestCutIPv408(void)
 {
-    DetectAddress *a, *b, *c;
+    DetectAddress *a, *b, *c = NULL;
     a = DetectAddressParseSingle("1.2.3.3-1.2.3.9");
     b = DetectAddressParseSingle("1.2.3.0-1.2.3.9");
 
@@ -4546,7 +4546,7 @@ error:
 
 static int AddressTestCutIPv409(void)
 {
-    DetectAddress *a, *b, *c;
+    DetectAddress *a, *b, *c = NULL;
     a = DetectAddressParseSingle("1.2.3.0-1.2.3.9");
     b = DetectAddressParseSingle("1.2.3.0-1.2.3.6");
 
@@ -4575,7 +4575,7 @@ error:
 
 static int AddressTestCutIPv410(void)
 {
-    DetectAddress *a, *b, *c;
+    DetectAddress *a, *b, *c = NULL;
     a = DetectAddressParseSingle("1.2.3.0-1.2.3.9");
     b = DetectAddressParseSingle("1.2.3.3-1.2.3.9");
 

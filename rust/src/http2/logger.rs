@@ -270,13 +270,23 @@ fn log_http2(tx: &HTTP2Transaction, js: &mut JsonBuilder) -> Result<bool, JsonEr
     js.open_object("http2")?;
 
     js.set_uint("stream_id", tx.stream_id as u64)?;
+    let mark = js.get_mark();
     js.open_object("request")?;
     let has_request = log_http2_frames(&tx.frames_ts, js)?;
-    js.close()?;
+    if has_request {
+        js.close()?;
+    } else {
+        js.restore_mark(&mark)?;
+    }
 
+    let mark = js.get_mark();
     js.open_object("response")?;
     let has_response = log_http2_frames(&tx.frames_tc, js)?;
-    js.close()?;
+    if has_response {
+        js.close()?;
+    } else {
+        js.restore_mark(&mark)?;
+    }
 
     js.close()?; // http2
     js.close()?; // http
