@@ -54,6 +54,7 @@
 #include "detect-content.h"
 
 #include "detect-engine-payload.h"
+#include "detect-engine-uint.h"
 
 #include "stream.h"
 
@@ -1234,8 +1235,24 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
 
         for (SigMatch *sm = s->init_data->buffers[x].head; sm != NULL; sm = sm->next) {
             // a buffer with absent keyword cannot be used as fast_pattern
-            if (sm->type == DETECT_ABSENT)
+            if (sm->type == DETECT_ABSENT || sm->type == DETECT_MULTI_ALL_OR_ABSENT)
                 break;
+            if (sm->type == DETECT_MULTI_NB) {
+                // Multi-buffers mode matches with "matches: 0" can succeed
+                // if there are no content that matches, so it cannot be used as fast pattern
+                const DetectU32Data *du32 = (DetectU32Data *)sm->ctx;
+                if (du32->mode == DETECT_UINT_EQ && du32->arg1 == 0) {
+                    break;
+                }
+            }
+            if (sm->type == DETECT_MULTI_INDEX) {
+                // Multi-buffers mode index with "oob_or" can succeed
+                // if there are not enough elements, so it cannot be used as fast pattern
+                const DetectUintIndexPrecise *ip = (DetectUintIndexPrecise *)sm->ctx;
+                if (ip->oob) {
+                    break;
+                }
+            }
             if (sm->type != DETECT_CONTENT)
                 continue;
 
