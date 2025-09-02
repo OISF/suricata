@@ -210,6 +210,7 @@
 #include "detect-ja4-hash.h"
 #include "detect-ftp-command.h"
 #include "detect-entropy.h"
+#include "detect-multi.h"
 #include "detect-ftp-command-data.h"
 #include "detect-ftp-completion-code.h"
 #include "detect-ftp-reply.h"
@@ -641,6 +642,7 @@ void SigTableSetup(void)
     DetectBytejumpRegister();
     DetectBytemathRegister();
     DetectEntropyRegister();
+    DetectMultiRegister();
     DetectSameipRegister();
     DetectGeoipRegister();
     DetectL3ProtoRegister();

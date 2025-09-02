@@ -94,6 +94,11 @@ enum DetectKeywordId {
     DETECT_URILEN,
     DETECT_ABSENT,
     DETECT_ENTROPY,
+    DETECT_MULTI_COUNT,
+    DETECT_MULTI_ALL,
+    DETECT_MULTI_ALL_OR_ABSENT,
+    DETECT_MULTI_NB,
+    DETECT_MULTI_INDEX,
     /* end of content inspection */
 
     DETECT_METADATA,
