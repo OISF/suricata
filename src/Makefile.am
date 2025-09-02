@@ -111,6 +111,7 @@ noinst_HEADERS = \
 	detect-classtype.h \
 	detect-config.h \
 	detect-content.h \
+	detect-count.h \
 	detect-csum.h \
 	detect-datarep.h \
 	detect-dataset.h \
@@ -712,6 +713,7 @@ libsuricata_c_a_SOURCES = \
 	detect-classtype.c \
 	detect-config.c \
 	detect-content.c \
+	detect-count.c \
 	detect-csum.c \
 	detect-datarep.c \
 	detect-dataset.c \

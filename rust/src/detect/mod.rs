@@ -119,6 +119,8 @@ pub(crate) const SIGMATCH_OPTIONAL_OPT: u16 = 0x10; // BIT_U16(4) in detect.h
 pub(crate) const SIGMATCH_QUOTES_MANDATORY: u16 = 0x40; // BIT_U16(6) in detect.h
 pub const SIGMATCH_INFO_STICKY_BUFFER: u16 = 0x200; // BIT_U16(9)
 
+pub const DETECT_COUNT_INDEX: u32 = 0xFFFFFFFF;
+
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 // endian <big|little|dce>

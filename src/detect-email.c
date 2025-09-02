@@ -219,6 +219,11 @@ static bool GetMimeEmailReceivedData(DetectEngineThreadCtx *det_ctx, const void 
         return false;
     }
 
+    if (idx == DETECT_COUNT_INDEX) {
+        *buf_len = SCDetectMimeEmailGetCount(tx->mime_state, "received");
+        return true;
+    }
+
     if (SCDetectMimeEmailGetDataArray(tx->mime_state, buf, buf_len, "received", idx) != 1) {
         return false;
     }
@@ -307,6 +312,6 @@ void DetectEmailRegister(void)
     kw.Setup = DetectMimeEmailReceivedSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
     SCDetectHelperKeywordRegister(&kw);
-    g_mime_email_received_buffer_id = SCDetectHelperMultiBufferMpmRegister("email.received",
-            "MIME EMAIL RECEIVED", ALPROTO_SMTP, STREAM_TOSERVER, GetMimeEmailReceivedData);
+    g_mime_email_received_buffer_id = SCDetectHelperMultiBufferProgressMpmRegister("email.received",
+            "MIME EMAIL RECEIVED", ALPROTO_SMTP, STREAM_TOSERVER, GetMimeEmailReceivedData, 1);
 }
