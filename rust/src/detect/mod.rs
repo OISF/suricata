@@ -144,6 +144,9 @@ pub const SIGMATCH_INFO_MULTI_UINT: u32 = 0x80000; // BIT_U32(19)
 pub const SIGMATCH_INFO_ENUM_UINT: u32 = 0x100000; // BIT_U32(20)
 pub const SIGMATCH_INFO_BITFLAGS_UINT: u32 = 0x200000; // BIT_U32(21)
 
+
+pub const DETECT_COUNT_INDEX: u32 = 0xFFFFFFFF;
+
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 // endian <big|little|dce>

@@ -462,6 +462,12 @@ SigMatch *SCSigMatchAppendSMToList(
                 }
                 SCLogDebug("s->init_data->buffer_index %u", s->init_data->buffer_index);
             }
+        } else if (s->init_data->curbuf->head->type == DETECT_MULTI_COUNT) {
+            SCLogError("Cannot add other conditions after multi-buffer count, please reuse the "
+                       "sticky buffer name to add conditions.");
+            new->ctx = NULL;
+            SigMatchFree(de_ctx, new);
+            return NULL;
         }
         BUG_ON(s->init_data->curbuf == NULL);
 
