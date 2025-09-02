@@ -2295,7 +2295,13 @@ fi
 
 # Cargo/Rust
     AM_CONDITIONAL([RUST_CROSS_COMPILE], [test "x$cross_compiling" = "xyes"])
-    AC_PATH_PROG(RUSTC, rustc, "no")
+
+    # Check for rustc, respecting RUSTC environment variable
+    AC_ARG_VAR([RUSTC], [Rustc command])
+    if test -z "$RUSTC"; then
+        RUSTC="rustc"
+    fi
+    AC_PATH_PROG(RUSTC, $RUSTC, "no")
     if test "$RUSTC" = "no"; then
         echo ""
         echo "    ERROR: Rust compiler not found."
@@ -2309,9 +2315,24 @@ fi
         exit 1
     fi
 
-    AC_PATH_PROG(CARGO, cargo, "no")
-    if test "CARGO" = "no"; then
+    # Check for cargo, respecting CARGO environment variable
+    AC_ARG_VAR([CARGO], [Cargo command])
+    if test -z "$CARGO"; then
+        CARGO="cargo"
+    fi
+    AC_PATH_PROG(CARGO, $CARGO, "no")
+    if test "$CARGO" = "no"; then
         AC_MSG_ERROR([cargo required])
+    fi
+
+    # Check for rustdoc, respecting RUSTDOC environment variable
+    AC_ARG_VAR([RUSTDOC], [Rustdoc command])
+    if test -z "$RUSTDOC"; then
+        RUSTDOC="rustdoc"
+    fi
+    AC_PATH_PROG(RUSTDOC, $RUSTDOC, "no")
+    if test "$RUSTDOC" = "no"; then
+        AC_MSG_ERROR([rustdoc required])
     fi
 
     AC_DEFINE([HAVE_RUST],[1],[Enable Rust language])
