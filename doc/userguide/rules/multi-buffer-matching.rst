@@ -73,6 +73,46 @@ So with the Suricata behavior prior to Suricata 7, the signature
 would not fire in this case since both content conditions will
 not be met.
 
+Indexes for multi-buffers
+-------------------------
+
+As for :ref:`multi-integer <multi-integers>`, multi-buffers can precise
+which index to match on.
+
+The syntax is::
+ buffer: index; content: "toto";
+
+.. table:: **Index values for multi-buffers keywords**
+
+    ============= ===========================================================
+    Value         Description
+    ============= ===========================================================
+    [default]     Match with any index
+    any           Match with any index
+    or_absent     Match with any index or matches on an empty list
+    all           Match only if all and at least one indexes match
+    all_or_absent Match only if all indexes match or matches on an empty list
+    matches nb    Matches a number of times
+    index i       Match specific index
+    oob_or i      Match with specific index or index out of bounds
+    ============= ===========================================================
+
+.. container:: example-rule
+
+  alert ip any any -> any 5353 (:example-rule-emphasis:`email.received: all;` content:"abc"; sid:1;)
+
+.. container:: example-rule
+
+  alert ip any any -> any 5353 (:example-rule-emphasis:`email.received: matches >2;` content:"def"; sid:1;)
+
+.. container:: example-rule
+
+  alert ip any any -> any 5353 (:example-rule-emphasis:`email.received: index 0;` content:"ghi"; sid:1;)
+
+
+List of multi-buffers
+---------------------
+
 Multiple buffer matching is currently enabled for use with the
 following keywords:
 
