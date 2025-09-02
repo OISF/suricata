@@ -248,6 +248,7 @@ noinst_HEADERS = \
 	detect-mark.h \
 	detect-metadata.h \
 	detect-msg.h \
+	detect-multi.h \
 	detect-noalert.h \
 	detect-nocase.h \
 	detect-offset.h \
@@ -824,6 +825,7 @@ libsuricata_c_a_SOURCES = \
 	detect-mark.c \
 	detect-metadata.c \
 	detect-msg.c \
+	detect-multi.c \
 	detect-noalert.c \
 	detect-nocase.c \
 	detect-offset.c \
