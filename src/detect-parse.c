@@ -36,6 +36,7 @@
 #include "detect-content.h"
 #include "detect-bsize.h"
 #include "detect-isdataat.h"
+#include "detect-multi.h"
 #include "detect-pcre.h"
 #include "detect-uricontent.h"
 #include "detect-reference.h"
@@ -2642,6 +2643,9 @@ static int SigValidateCheckBuffers(
             SCReturnInt(0);
         }
         if (!DetectAbsentValidateContentCallback(s, b)) {
+            SCReturnInt(0);
+        }
+        if (!DetectMultiValidateContentCallback(s, b)) {
             SCReturnInt(0);
         }
     }
