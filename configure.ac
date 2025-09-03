@@ -2178,6 +2178,9 @@ fi
     AC_SUBST(rust_vendor_comment)
     AM_CONDITIONAL([HAVE_RUST_VENDOR], [test "x$have_rust_vendor" = "xyes"])
 
+# Bindgen requires rustfmt.
+    AC_PATH_PROG([RUSTFMT], [rustfmt], [no])
+
 # Check for bindgen
     AC_PATH_PROG([BINDGEN], [bindgen], [no])
     if test "x$BINDGEN" != "xno"; then
@@ -2194,7 +2197,7 @@ fi
         BINDGEN="no"
       fi
     fi
-    AM_CONDITIONAL([HAVE_BINDGEN], [test "x$BINDGEN" != "xno"])
+    AM_CONDITIONAL([HAVE_BINDGEN], [test "x$BINDGEN" != "xno" -a "x$RUSTFMT" != "xno"])
 
     have_rust_headers="no"
     AC_MSG_CHECKING(for $srcdir/rust/dist/rust-bindings.h)
