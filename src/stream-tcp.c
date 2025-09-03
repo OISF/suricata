@@ -1933,7 +1933,8 @@ static int StreamTcp3whsStoreSyn(TcpSession *ssn, Packet *p)
     if (ssn->queue != NULL && StreamTcp3whsFindSyn(ssn, &search, &tail, false) != NULL)
         return 0;
 
-    if (ssn->queue_len == stream_config.max_syn_queued) {
+    if (ssn->queue_len > 0 && ssn->queue_len == stream_config.max_syn_queued) {
+        DEBUG_VALIDATE_BUG_ON(ssn->queue == NULL);
         SCLogDebug("%" PRIu64 ": ssn %p: =~ SYN queue limit reached, rotate", p->pcap_cnt, ssn);
         StreamTcpSetEvent(p, STREAM_3WHS_SYN_FLOOD);
 
@@ -1956,10 +1957,12 @@ static int StreamTcp3whsStoreSyn(TcpSession *ssn, Packet *p)
 
     *q = search;
     /* put in list */
-    if (tail)
+    if (tail) {
         tail->next = q;
-    if (ssn->queue == NULL)
+    } else {
+        DEBUG_VALIDATE_BUG_ON(ssn->queue != NULL);
         ssn->queue = q;
+    }
     ssn->queue_len++;
     SCLogDebug("%" PRIu64 ": ssn %p: =~ SYN with SEQ %u added (queue_len %u)", p->pcap_cnt, ssn,
             q->seq, ssn->queue_len);
