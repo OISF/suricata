@@ -1220,6 +1220,8 @@ jobs:
       - run: make -j ${{ env.CPUS }}
       - run: make check
       - run: python3 ./suricata-verify/run.py -q --debug-failed
+        env:
+          CARGO: cargo-1.82
       - run: make install
       - run: make install-headers
       - run: make install-library
