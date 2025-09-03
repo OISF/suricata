@@ -119,7 +119,7 @@ if HAVE_BINDGEN
 		echo "Not checking bindings for out of tree build"; \
 	fi
 else
-	@echo "Unable to check bindgen bindings: bindgen not found"
+	@echo "Unable to check bindgen bindings: bindgen or rustfmt not found"
 endif
 
 check:
@@ -165,7 +165,7 @@ if HAVE_BINDGEN
 	cat sys/src/jsonbuilder.rs.tmp >> sys/src/jsonbuilder.rs
 	rm -f sys/src/jsonbuilder.rs.tmp
 else
-	@echo "error: bindgen not installed, can't update bindings"
+	@echo "error: bindgen or rustfmt not installed, can't update bindings"
 	exit 1
 endif
 
