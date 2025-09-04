@@ -1,4 +1,4 @@
-/* Copyright (C) 2021 Open Information Security Foundation
+/* Copyright (C) 2021-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -36,10 +36,12 @@ typedef struct DPDKIfaceConfigAttributes_ {
     const char *linkup_timeout;
     const char *mempool_size;
     const char *mempool_cache_size;
+    const char *bypass_ring_size;
     const char *rx_descriptors;
     const char *tx_descriptors;
     const char *copy_mode;
     const char *copy_iface;
+    const char *drop_filter;
 } DPDKIfaceConfigAttributes;
 
 int RunModeIdsDpdkWorkers(void);

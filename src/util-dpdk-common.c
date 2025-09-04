@@ -66,4 +66,27 @@ void DPDKDeviceResourcesDeinit(DPDKDeviceResources **dpdk_vars)
     }
 }
 
+/**
+ * \brief Input is a number of which we want to find the greatest divisor up to max_num (inclusive).
+ * The divisor is returned.
+ */
+static int GreatestDivisorUpTo(uint32_t num, uint32_t max_num)
+{
+    for (int i = max_num; i >= 2; i--) {
+        if (num % i == 0) {
+            return i;
+        }
+    }
+    return 1;
+}
+
+uint32_t MempoolCacheSizeCalculate(uint32_t mp_sz)
+{
+    // It is advised to have mempool cache size lower or equal to:
+    //   RTE_MEMPOOL_CACHE_MAX_SIZE (by default 512) and "mempool-size / 1.5"
+    // and at the same time "mempool-size modulo cache_size == 0".
+    uint32_t max_cache_size = MIN(RTE_MEMPOOL_CACHE_MAX_SIZE, mp_sz / 1.5);
+    return GreatestDivisorUpTo(mp_sz, max_cache_size);
+}
+
 #endif /* HAVE_DPDK */
