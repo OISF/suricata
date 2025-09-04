@@ -21,8 +21,6 @@ This is the documentation for Suricata |version|.
    configuration/index.rst
    reputation/index.rst
    initscripts
-   setting-up-ipsinline-for-linux
-   setting-up-ipsinline-for-windows
    output/index.rst
    lua/index.rst
    file-extraction/file-extraction.rst
@@ -30,6 +28,7 @@ This is the documentation for Suricata |version|.
    capture-hardware/index.rst
    unix-socket.rst
    plugins/index.rst
+   ips/index.rst
    firewall/index.rst
    3rd-party-integration/index.rst
    manpages/index.rst
