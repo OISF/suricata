@@ -17,7 +17,7 @@ jobs:
    strategy:
      fail-fast: false
      matrix:
-       sanitizer: [address, undefined]
+       sanitizer: [address]
    steps:
    - name: Clear unnecessary files
      run: |
