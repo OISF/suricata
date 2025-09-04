@@ -65,6 +65,26 @@ pub unsafe extern "C" fn SCDetectMimeEmailGetUrl(
 /// for array header fields.
 /// The hname parameter determines which data will be returned.
 #[no_mangle]
+pub unsafe extern "C" fn SCDetectMimeEmailGetCount(
+    ctx: &MimeStateSMTP, hname: *const std::os::raw::c_char,
+) -> u32{
+    let c_str = CStr::from_ptr(hname); //unsafe
+    let str = c_str.to_str().unwrap_or("");
+
+    let mut r = 0u32;
+    for h in &ctx.headers[..ctx.main_headers_nb] {
+        if mime::slice_equals_lowercase(&h.name, str.as_bytes()) {
+            r += 1;
+        }
+    }
+
+    return r;
+}
+
+/// Intermediary function used in detect-email.c to access data from the MimeStateSMTP structure
+/// for array header fields.
+/// The hname parameter determines which data will be returned.
+#[no_mangle]
 pub unsafe extern "C" fn SCDetectMimeEmailGetDataArray(
     ctx: &MimeStateSMTP, buffer: *mut *const u8, buffer_len: *mut u32,
     hname: *const std::os::raw::c_char, idx: u32,
