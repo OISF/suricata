@@ -10,8 +10,9 @@ ADD https://github.com/lz4/lz4/releases/download/v1.10.0/lz4-1.10.0.tar.gz lz4-1
 RUN git clone --depth 1 -b develop https://github.com/madler/zlib.git
 RUN git clone --depth=1 https://github.com/catenacyber/fuzzpcap
 
-ENV RUSTUP_TOOLCHAIN nightly
-RUN rustup toolchain install nightly-x86_64-unknown-linux-gnu
+ENV RUSTUP_TOOLCHAIN nightly-2025-08-23
+RUN rustup toolchain install nightly-2025-08-23-x86_64-unknown-linux-gnu
+RUN rustup component add rust-src --toolchain nightly-2025-08-23-x86_64-unknown-linux-gnu
 RUN cargo install --force cbindgen
 
 COPY . $SRC/suricata

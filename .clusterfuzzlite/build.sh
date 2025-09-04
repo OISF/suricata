@@ -72,8 +72,6 @@ fi
 
 date
 
-rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu
-
 # build project
 
 date
