@@ -14,8 +14,6 @@ ENV RUSTUP_TOOLCHAIN nightly
 RUN rustup toolchain install nightly-x86_64-unknown-linux-gnu
 RUN cargo install --force cbindgen
 
-RUN git clone --depth 1 https://github.com/OISF/libhtp.git libhtp
-
 COPY . $SRC/suricata
 WORKDIR $SRC/suricata
 COPY ./.clusterfuzzlite/build.sh $SRC/

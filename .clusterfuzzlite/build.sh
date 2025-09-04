@@ -70,8 +70,6 @@ fi
 
 rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu
 
-#we did not put libhtp there before so that cifuzz does not remove it
-cp -r libhtp suricata/
 # build project
 
 cd suricata
