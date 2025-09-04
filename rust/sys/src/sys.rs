@@ -386,6 +386,44 @@ extern "C" {
         kw: *const SCTransformTableElmt,
     ) -> ::std::os::raw::c_int;
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct DeStateStoreItem_ {
+    pub flags: u32,
+    pub sid: u32,
+}
+pub type DeStateStoreItem = DeStateStoreItem_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct DeStateStore_ {
+    pub store: [DeStateStoreItem; 15usize],
+    pub next: *mut DeStateStore_,
+}
+pub type DeStateStore = DeStateStore_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct DetectEngineStateDirection_ {
+    #[doc = "< head of the list"]
+    pub head: *mut DeStateStore,
+    #[doc = "< current active store"]
+    pub cur: *mut DeStateStore,
+    #[doc = "< tail of the list"]
+    pub tail: *mut DeStateStore,
+    pub cnt: u32,
+    pub filestore_cnt: u16,
+    pub flags: u8,
+}
+pub type DetectEngineStateDirection = DetectEngineStateDirection_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct DetectEngineState_ {
+    pub dir_state: [DetectEngineStateDirection; 2usize],
+}
+pub type DetectEngineState = DetectEngineState_;
+extern "C" {
+    #[doc = " \\brief Frees a DetectEngineState object.\n\n \\param state DetectEngineState instance to free."]
+    pub fn SCDetectEngineStateFree(state: *mut DetectEngineState);
+}
 extern "C" {
     pub fn SCSigMatchAppendSMToList(
         arg1: *mut DetectEngineCtx, arg2: *mut Signature, arg3: u16, arg4: *mut SigMatchCtx,
@@ -396,6 +434,20 @@ extern "C" {
     pub fn SCDetectSignatureSetAppProto(
         s: *mut Signature, alproto: AppProto,
     ) -> ::std::os::raw::c_int;
+}
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub enum SCError {
+    SC_OK = 0,
+    SC_ENOMEM = 1,
+    SC_EINVAL = 2,
+    SC_ELIMIT = 3,
+    SC_EEXIST = 4,
+    SC_ENOENT = 5,
+    SC_ERR_MAX = 6,
+}
+extern "C" {
+    pub fn SCErrorToString(arg1: SCError) -> *const ::std::os::raw::c_char;
 }
 #[repr(i32)]
 #[doc = " \\brief The various log levels\n NOTE: when adding new level, don't forget to update SCLogMapLogLevelToSyslogLevel()\n      or it may result in logging to syslog with LOG_EMERG priority."]
@@ -411,6 +463,13 @@ pub enum SCLogLevel {
     SC_LOG_CONFIG = 6,
     SC_LOG_DEBUG = 7,
     SC_LOG_LEVEL_MAX = 8,
+}
+extern "C" {
+    pub fn SCLogMessage(
+        arg1: SCLogLevel, arg2: *const ::std::os::raw::c_char, arg3: ::std::os::raw::c_uint,
+        arg4: *const ::std::os::raw::c_char, arg5: *const ::std::os::raw::c_char,
+        message: *const ::std::os::raw::c_char,
+    ) -> SCError;
 }
 extern "C" {
     pub fn SCFatalErrorOnInitStatic(arg1: *const ::std::os::raw::c_char);
@@ -695,6 +754,8 @@ pub struct AppLayerParserState_ {
     _unused: [u8; 0],
 }
 pub type AppLayerParserState = AppLayerParserState_;
+#[doc = " \\brief Data structure to store app layer decoder events."]
+pub type AppLayerDecoderEvents = AppLayerDecoderEvents_;
 extern "C" {
     #[doc = " \\brief Given a protocol name, checks if the parser is enabled in\n        the conf file.\n\n \\param alproto_name Name of the app layer protocol.\n\n \\retval 1 If enabled.\n \\retval 0 If disabled."]
     pub fn SCAppLayerParserConfParserEnabled(
@@ -710,6 +771,11 @@ extern "C" {
     pub fn SCAppLayerParserRegisterLogger(ipproto: u8, alproto: AppProto);
 }
 extern "C" {
+    pub fn SCAppLayerParserTriggerRawStreamInspection(
+        f: *mut Flow, direction: ::std::os::raw::c_int,
+    );
+}
+extern "C" {
     pub fn SCAppLayerParserSetStreamDepth(ipproto: u8, alproto: AppProto, stream_depth: u32);
 }
 extern "C" {
@@ -717,4 +783,112 @@ extern "C" {
 }
 extern "C" {
     pub fn SCAppLayerParserStateIssetFlag(pstate: *mut AppLayerParserState, flag: u16) -> u16;
+}
+extern "C" {
+    pub fn SCAppLayerRegisterParserAlias(
+        proto_name: *const ::std::os::raw::c_char, proto_alias: *const ::std::os::raw::c_char,
+    ) -> ::std::os::raw::c_int;
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct SCEnumCharMap_ {
+    pub enum_name: *const ::std::os::raw::c_char,
+    pub enum_value: ::std::os::raw::c_int,
+}
+pub type SCEnumCharMap = SCEnumCharMap_;
+extern "C" {
+    pub fn SCMapEnumNameToValue(
+        arg1: *const ::std::os::raw::c_char, arg2: *mut SCEnumCharMap,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCMapEnumValueToName(
+        arg1: ::std::os::raw::c_int, arg2: *mut SCEnumCharMap,
+    ) -> *const ::std::os::raw::c_char;
+}
+#[doc = " \\brief Data structure to store app layer decoder events."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct AppLayerDecoderEvents_ {
+    pub events: *mut u8,
+    pub cnt: u8,
+    pub events_buffer_size: u8,
+    pub event_last_logged: u8,
+}
+extern "C" {
+    pub fn SCAppLayerDecoderEventsSetEventRaw(sevents: *mut *mut AppLayerDecoderEvents, event: u8);
+}
+extern "C" {
+    pub fn SCAppLayerDecoderEventsFreeEvents(events: *mut *mut AppLayerDecoderEvents);
+}
+extern "C" {
+    pub fn SCAppLayerGetEventIdByName(
+        event_name: *const ::std::os::raw::c_char, table: *mut SCEnumCharMap, event_id: *mut u8,
+    ) -> ::std::os::raw::c_int;
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct MpmPattern_ {
+    pub len: u16,
+    pub flags: u8,
+    pub offset: u16,
+    pub depth: u16,
+    pub original_pat: *mut u8,
+    pub cs: *mut u8,
+    pub ci: *mut u8,
+    pub id: u32,
+    pub sids_size: u32,
+    pub sids: *mut u32,
+    pub next: *mut MpmPattern_,
+}
+pub type MpmPattern = MpmPattern_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct MpmCtx_ {
+    pub ctx: *mut ::std::os::raw::c_void,
+    pub mpm_type: u8,
+    pub flags: u8,
+    pub maxdepth: u16,
+    pub pattern_cnt: u32,
+    pub minlen: u16,
+    pub maxlen: u16,
+    pub memory_cnt: u32,
+    pub memory_size: u32,
+    pub max_pat_id: u32,
+    pub init_hash: *mut *mut MpmPattern,
+}
+pub type MpmCtx = MpmCtx_;
+extern "C" {
+    pub fn SCMpmAddPatternCI(
+        mpm_ctx: *mut MpmCtx, pat: *const u8, patlen: u16, offset: u16, depth: u16, pid: u32,
+        sid: u32, flags: u8,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCFileFlowFlagsToFlags(flow_file_flags: u16, direction: u8) -> u16;
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct GenericVar_ {
+    #[doc = "< variable type, uses detection sm_type"]
+    pub type_: u16,
+    pub pad: [u8; 2usize],
+    pub idx: u32,
+    pub next: *mut GenericVar_,
+}
+pub type GenericVar = GenericVar_;
+extern "C" {
+    pub fn SCGenericVarFree(arg1: *mut GenericVar);
+}
+extern "C" {
+    pub fn SCFlowGetLastTimeAsParts(flow: *const Flow, secs: *mut u64, usecs: *mut u64);
+}
+extern "C" {
+    pub fn SCFlowGetFlags(flow: *const Flow) -> u32;
+}
+extern "C" {
+    pub fn SCFlowGetSourcePort(flow: *const Flow) -> u16;
+}
+extern "C" {
+    pub fn SCFlowGetDestinationPort(flow: *const Flow) -> u16;
 }

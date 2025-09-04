@@ -23,7 +23,7 @@
 #define SURICATA_UTIL_ERROR_H
 
 /* different error types */
-typedef enum {
+typedef enum SCError {
     SC_OK,
 
     SC_ENOMEM,
@@ -37,8 +37,10 @@ typedef enum {
 
 const char *SCErrorToString(SCError);
 
+#ifndef SURICATA_BINDGEN_H
 #include "threads.h"
 
 extern thread_local SCError sc_errno;
+#endif
 
 #endif /* SURICATA_UTIL_ERROR_H */
