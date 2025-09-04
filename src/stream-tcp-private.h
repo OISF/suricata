@@ -295,7 +295,7 @@ typedef struct TcpSession_ {
     uint32_t reassembly_depth; /**< reassembly depth for the stream */
     TcpStream server;
     TcpStream client;
-    TcpStateQueue *queue;                   /**< list of SYN/ACK candidates */
+    TcpStateQueue *queue; /**< list of SYN or SYN/ACK candidates */
 } TcpSession;
 
 #define StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream) \
