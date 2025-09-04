@@ -1,5 +1,7 @@
 #!/bin/bash -eu
 
+date
+
 cd $SRC/
 # build dependencies statically
 if [ "$SANITIZER" = "memory" ]
@@ -68,15 +70,21 @@ then
     export RUSTFLAGS="$RUSTFLAGS -Cdebug-assertions=yes"
 fi
 
+date
+
 rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu
 
 # build project
+
+date
 
 cd suricata
 sh autogen.sh
 
 ./src/tests/fuzz/oss-fuzz-configure.sh
 make -j$(nproc)
+
+date
 
 ./src/suricata --list-app-layer-protos | tail -n +2 | while read i; do cp src/fuzz_applayerparserparse $OUT/fuzz_applayerparserparse""_$i; done
 
@@ -88,6 +96,9 @@ ls fuzz_* | while read i; do
     wget "https://storage.googleapis.com/suricata-backup.clusterfuzz-external.appspot.com/corpus/libFuzzer/suricata_$i/public.zip" --output-file=$OUT/"$i"_seed_corpus.zip || true
 done
 )
+
+date
+
 # dictionaries
 ./src/suricata --list-keywords | grep "\- " | sed 's/- //' | awk '{print "\""$0"\""}' > $OUT/fuzz_siginit.dict
 
@@ -101,3 +112,5 @@ cat generic.dict >> $OUT/fuzz_siginit.dict
 cat generic.dict >> $OUT/fuzz_applayerparserparse.dict
 cat generic.dict >> $OUT/fuzz_sigpcap.dict
 cat generic.dict >> $OUT/fuzz_sigpcap_aware.dict
+
+date
