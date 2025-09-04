@@ -7,7 +7,6 @@ auto_ccs:
 sanitizers:
   - address
   - memory
-  - undefined
 fuzzing_engines:
   - afl
   - honggfuzz

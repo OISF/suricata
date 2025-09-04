@@ -1,5 +1,5 @@
 FROM gcr.io/oss-fuzz-base/base-builder-rust
-RUN apt-get update && apt-get install -y build-essential autoconf automake libtool make pkg-config  python flex bison zlib1g-dev libpcre3-dev cmake tshark
+RUN apt-get update && apt-get install -y build-essential autoconf automake libtool make pkg-config flex bison zlib1g-dev libpcre3-dev cmake
 
 # TODO libmagic, liblzma and other optional libraries
 ADD https://github.com/PhilipHazel/pcre2/releases/download/pcre2-10.44/pcre2-10.44.tar.gz pcre2-10.44.tar.gz
@@ -13,8 +13,6 @@ RUN git clone --depth=1 https://github.com/catenacyber/fuzzpcap
 ENV RUSTUP_TOOLCHAIN nightly
 RUN rustup toolchain install nightly-x86_64-unknown-linux-gnu
 RUN cargo install --force cbindgen
-
-RUN git clone --depth 1 https://github.com/OISF/libhtp.git libhtp
 
 COPY . $SRC/suricata
 WORKDIR $SRC/suricata
