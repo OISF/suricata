@@ -80,7 +80,7 @@ void PcapFileCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt)
     p->ts = SCTIME_FROM_TIMEVAL_UNTRUSTED(&h->ts);
     SCLogDebug("p->ts.tv_sec %" PRIuMAX "", (uintmax_t)SCTIME_SECS(p->ts));
     p->datalink = ptv->datalink;
-    p->pcap_cnt = ++pcap_g.cnt;
+    p->pcap_v.pcap_cnt = ++pcap_g.cnt;
 
     p->pcap_v.tenant_id = ptv->shared->tenant_id;
     ptv->shared->pkts++;
@@ -96,8 +96,8 @@ void PcapFileCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt)
     if (pcap_g.checksum_mode == CHECKSUM_VALIDATION_DISABLE) {
         p->flags |= PKT_IGNORE_CHECKSUM;
     } else if (pcap_g.checksum_mode == CHECKSUM_VALIDATION_AUTO) {
-        if (ChecksumAutoModeCheck(ptv->shared->pkts, p->pcap_cnt,
-                                  SC_ATOMIC_GET(pcap_g.invalid_checksums))) {
+        if (ChecksumAutoModeCheck(ptv->shared->pkts, p->pcap_v.pcap_cnt,
+                    SC_ATOMIC_GET(pcap_g.invalid_checksums))) {
             pcap_g.checksum_mode = CHECKSUM_VALIDATION_DISABLE;
             p->flags |= PKT_IGNORE_CHECKSUM;
         }

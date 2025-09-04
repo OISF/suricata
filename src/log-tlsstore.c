@@ -168,8 +168,8 @@ static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *s
             goto end_fwrite_fpmeta;
         if (fprintf(fpmeta, "TIME:              %s\n", timebuf) < 0)
             goto end_fwrite_fpmeta;
-        if (p->pcap_cnt > 0) {
-            if (fprintf(fpmeta, "PCAP PKT NUM:      %"PRIu64"\n", p->pcap_cnt) < 0)
+        if (p->pcap_v.pcap_cnt > 0) {
+            if (fprintf(fpmeta, "PCAP PKT NUM:      %" PRIu64 "\n", p->pcap_v.pcap_cnt) < 0)
                 goto end_fwrite_fpmeta;
         }
         if (fprintf(fpmeta, "SRC IP:            %s\n", srcip) < 0)

@@ -80,7 +80,7 @@ static int LuaPacketPcapCnt(lua_State *luastate)
         LUA_ERROR("failed to get packet");
     }
 
-    lua_pushinteger(luastate, s->p->pcap_cnt);
+    lua_pushinteger(luastate, s->p->pcap_v.pcap_cnt);
     return 1;
 }
 

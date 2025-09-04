@@ -272,9 +272,9 @@ enum TcpState {
         if ((p)->flags & PKT_STREAM_NO_EVENTS) {                                                   \
             SCLogDebug("not setting event %d on pkt %p (%" PRIu64 "), "                            \
                        "stream in known bad condition",                                            \
-                    (e), p, (p)->pcap_cnt);                                                        \
+                    (e), p, (p)->pcap_v.pcap_cnt);                                                 \
         } else {                                                                                   \
-            SCLogDebug("setting event %d on pkt %p (%" PRIu64 ")", (e), p, (p)->pcap_cnt);         \
+            SCLogDebug("setting event %d on pkt %p (%" PRIu64 ")", (e), p, (p)->pcap_v.pcap_cnt);  \
             ENGINE_SET_EVENT((p), (e));                                                            \
             p->l4.vars.tcp.stream_pkt_flags |= STREAM_PKT_FLAG_EVENTSET;                           \
         }                                                                                          \

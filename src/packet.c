@@ -132,7 +132,7 @@ void PacketReinit(Packet *p)
             PacketAlertRecycle(p->alerts.alerts, p->alerts.cnt);
         p->alerts.cnt = 0;
     }
-    p->pcap_cnt = 0;
+    p->pcap_v.pcap_cnt = 0;
     p->tunnel_rtv_cnt = 0;
     p->tunnel_tpr_cnt = 0;
     p->events.cnt = 0;

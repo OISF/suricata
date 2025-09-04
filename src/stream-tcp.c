@@ -1987,7 +1987,8 @@ static int StreamTcpPacketStateSynSent(
 
     /* common case: SYN/ACK from server to client */
     if ((tcph->th_flags & (TH_SYN | TH_ACK)) == (TH_SYN | TH_ACK) && PKT_IS_TOCLIENT(p)) {
-        SCLogDebug("ssn %p: SYN/ACK on SYN_SENT state for packet %" PRIu64, ssn, p->pcap_cnt);
+        SCLogDebug(
+                "ssn %p: SYN/ACK on SYN_SENT state for packet %" PRIu64, ssn, p->pcap_v.pcap_cnt);
 
         if (!(TCP_HAS_TFO(p) || (ssn->flags & STREAMTCP_FLAG_TCP_FAST_OPEN))) {
             /* Check if the SYN/ACK packet ack's the earlier
@@ -2256,7 +2257,7 @@ static int StreamTcpPacketStateSynSent(
                 StreamTcp3whsStoreSyn(ssn, p);
                 SCLogDebug("ssn %p: Retransmitted SYN. Updating ssn from packet %" PRIu64
                            ". Stored previous state",
-                        ssn, p->pcap_cnt);
+                        ssn, p->pcap_v.pcap_cnt);
             }
             StreamTcp3whsStoreSynApplyToSsn(ssn, &syn_pkt);
         }
@@ -3110,7 +3111,7 @@ static bool StreamTcpPacketIsZeroWindowProbeAck(const TcpSession *ssn, const Pac
         return false;
     if (TCP_GET_RAW_ACK(tcph) != rcv->last_ack)
         return false;
-    SCLogDebug("ssn %p: packet %" PRIu64 " is a Zero Window Probe ACK", ssn, p->pcap_cnt);
+    SCLogDebug("ssn %p: packet %" PRIu64 " is a Zero Window Probe ACK", ssn, p->pcap_v.pcap_cnt);
     return true;
 }
 
@@ -3148,8 +3149,8 @@ static bool StreamTcpPacketIsDupAck(const TcpSession *ssn, const Packet *p)
         return false;
 
     SCLogDebug("ssn %p: packet:%" PRIu64 " seq:%u ack:%u win:%u snd %u:%u:%u rcv %u:%u:%u", ssn,
-            p->pcap_cnt, TCP_GET_RAW_SEQ(tcph), TCP_GET_RAW_ACK(tcph), pkt_win, snd->next_seq,
-            snd->last_ack, rcv->window, snd->next_seq, rcv->last_ack, rcv->window);
+            p->pcap_v.pcap_cnt, TCP_GET_RAW_SEQ(tcph), TCP_GET_RAW_ACK(tcph), pkt_win,
+            snd->next_seq, snd->last_ack, rcv->window, snd->next_seq, rcv->last_ack, rcv->window);
     return true;
 }
 
@@ -5143,8 +5144,9 @@ static void StreamTcpPacketCheckPostRst(TcpSession *ssn, Packet *p)
     }
 
     if (ostream->flags & STREAMTCP_STREAM_FLAG_RST_RECV) {
-        SCLogDebug("regular packet %"PRIu64" from same sender as "
-                "the previous RST. Looks like it injected!", p->pcap_cnt);
+        SCLogDebug("regular packet %" PRIu64 " from same sender as "
+                   "the previous RST. Looks like it injected!",
+                p->pcap_v.pcap_cnt);
         ostream->flags &= ~STREAMTCP_STREAM_FLAG_RST_RECV;
         ssn->flags &= ~STREAMTCP_FLAG_CLOSED_BY_RST;
         StreamTcpSetEvent(p, STREAM_SUSPECTED_RST_INJECT);
@@ -5187,7 +5189,7 @@ static int StreamTcpPacketIsKeepAlive(TcpSession *ssn, Packet *p)
     const uint32_t seq = TCP_GET_RAW_SEQ(tcph);
     const uint32_t ack = TCP_GET_RAW_ACK(tcph);
     if (ack == ostream->last_ack && seq == (stream->next_seq - 1)) {
-        SCLogDebug("packet is TCP keep-alive: %"PRIu64, p->pcap_cnt);
+        SCLogDebug("packet is TCP keep-alive: %" PRIu64, p->pcap_v.pcap_cnt);
         stream->flags |= STREAMTCP_STREAM_FLAG_KEEPALIVE;
         STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_KEEPALIVE);
         return 1;
@@ -5236,7 +5238,7 @@ static int StreamTcpPacketIsKeepAliveACK(TcpSession *ssn, Packet *p)
         return 0;
 
     if ((ostream->flags & STREAMTCP_STREAM_FLAG_KEEPALIVE) && ack == ostream->last_ack && seq == stream->next_seq) {
-        SCLogDebug("packet is TCP keep-aliveACK: %"PRIu64, p->pcap_cnt);
+        SCLogDebug("packet is TCP keep-aliveACK: %" PRIu64, p->pcap_v.pcap_cnt);
         ostream->flags &= ~STREAMTCP_STREAM_FLAG_KEEPALIVE;
         STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_KEEPALIVEACK);
         return 1;
@@ -5308,7 +5310,7 @@ static int StreamTcpPacketIsWindowUpdate(TcpSession *ssn, Packet *p)
         return 0;
 
     if (ack == ostream->last_ack && seq == stream->next_seq) {
-        SCLogDebug("packet is TCP window update: %"PRIu64, p->pcap_cnt);
+        SCLogDebug("packet is TCP window update: %" PRIu64, p->pcap_v.pcap_cnt);
         STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_WINDOWUPDATE);
         return 1;
     }
@@ -5347,8 +5349,8 @@ static int StreamTcpPacketIsFinShutdownAck(TcpSession *ssn, Packet *p)
     seq = TCP_GET_RAW_SEQ(tcph);
     ack = TCP_GET_RAW_ACK(tcph);
 
-    SCLogDebug("%"PRIu64", seq %u ack %u stream->next_seq %u ostream->next_seq %u",
-            p->pcap_cnt, seq, ack, stream->next_seq, ostream->next_seq);
+    SCLogDebug("%" PRIu64 ", seq %u ack %u stream->next_seq %u ostream->next_seq %u",
+            p->pcap_v.pcap_cnt, seq, ack, stream->next_seq, ostream->next_seq);
 
     if (SEQ_EQ(stream->next_seq + 1, seq) && SEQ_EQ(ack, ostream->next_seq + 1)) {
         return 1;
@@ -5408,13 +5410,15 @@ static int StreamTcpPacketIsBadWindowUpdate(TcpSession *ssn, Packet *p)
                 SEQ_GT(ack, ostream->next_seq) &&
                 SEQ_GT(seq, stream->next_seq))
         {
-            SCLogDebug("%"PRIu64", pkt_win %u, stream win %u, diff %u, dsize %u",
-                p->pcap_cnt, pkt_win, ostream->window, diff, p->payload_len);
-            SCLogDebug("%"PRIu64", pkt_win %u, stream win %u",
-                p->pcap_cnt, pkt_win, ostream->window);
-            SCLogDebug("%"PRIu64", seq %u ack %u ostream->next_seq %u ostream->last_ack %u, ostream->next_win %u, diff %u (%u)",
-                    p->pcap_cnt, seq, ack, ostream->next_seq, ostream->last_ack, ostream->next_win,
-                    ostream->next_seq - ostream->last_ack, stream->next_seq - stream->last_ack);
+            SCLogDebug("%" PRIu64 ", pkt_win %u, stream win %u, diff %u, dsize %u",
+                    p->pcap_v.pcap_cnt, pkt_win, ostream->window, diff, p->payload_len);
+            SCLogDebug("%" PRIu64 ", pkt_win %u, stream win %u", p->pcap_v.pcap_cnt, pkt_win,
+                    ostream->window);
+            SCLogDebug("%" PRIu64 ", seq %u ack %u ostream->next_seq %u ostream->last_ack %u, "
+                       "ostream->next_win %u, diff %u (%u)",
+                    p->pcap_v.pcap_cnt, seq, ack, ostream->next_seq, ostream->last_ack,
+                    ostream->next_win, ostream->next_seq - ostream->last_ack,
+                    stream->next_seq - stream->last_ack);
 
             /* get the expected window shrinking from looking at ack vs last_ack.
              * Observed a lot of just a little overrunning that value. So added some
@@ -5546,7 +5550,7 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
 
     DEBUG_ASSERT_FLOW_LOCKED(p->flow);
 
-    SCLogDebug("p->pcap_cnt %"PRIu64, p->pcap_cnt);
+    SCLogDebug("p->pcap_v.pcap_cnt %" PRIu64, p->pcap_v.pcap_cnt);
 
     TcpSession *ssn = (TcpSession *)p->flow->protoctx;
     const TCPHdr *tcph = PacketGetTCP(p);
@@ -5771,7 +5775,7 @@ static inline int StreamTcpValidateChecksum(Packet *p)
         ret = 0;
         if (p->livedev) {
             (void) SC_ATOMIC_ADD(p->livedev->invalid_checksums, 1);
-        } else if (p->pcap_cnt) {
+        } else if (p->pcap_v.pcap_cnt) {
             PcapIncreaseInvalidChecksum();
         }
     }
@@ -5790,13 +5794,14 @@ static int TcpSessionPacketIsStreamStarter(const Packet *p)
     }
 
     if ((tcph->th_flags & (TH_SYN | TH_ACK)) == TH_SYN) {
-        SCLogDebug("packet %" PRIu64 " is a stream starter: %02x", p->pcap_cnt, tcph->th_flags);
+        SCLogDebug(
+                "packet %" PRIu64 " is a stream starter: %02x", p->pcap_v.pcap_cnt, tcph->th_flags);
         return 1;
     }
 
     if (stream_config.midstream || stream_config.async_oneside) {
         if ((tcph->th_flags & (TH_SYN | TH_ACK)) == (TH_SYN | TH_ACK)) {
-            SCLogDebug("packet %" PRIu64 " is a midstream stream starter: %02x", p->pcap_cnt,
+            SCLogDebug("packet %" PRIu64 " is a midstream stream starter: %02x", p->pcap_v.pcap_cnt,
                     tcph->th_flags);
             return 1;
         }
@@ -5814,43 +5819,57 @@ static bool TcpSessionReuseDoneEnoughSyn(const Packet *p, const Flow *f, const T
         if (ssn == NULL) {
             /* most likely a flow that was picked up after the 3whs, or a flow that
              * does not have a session due to memcap issues. */
-            SCLogDebug("steam starter packet %" PRIu64 ", ssn %p null. Reuse.", p->pcap_cnt, ssn);
+            SCLogDebug("steam starter packet %" PRIu64 ", ssn %p null. Reuse.", p->pcap_v.pcap_cnt,
+                    ssn);
             return true;
         }
         if (ssn->flags & STREAMTCP_FLAG_TFO_DATA_IGNORED) {
             SCLogDebug("steam starter packet %" PRIu64
                        ", ssn %p. STREAMTCP_FLAG_TFO_DATA_IGNORED set. Reuse.",
-                    p->pcap_cnt, ssn);
+                    p->pcap_v.pcap_cnt, ssn);
             return true;
         }
         if (SEQ_EQ(ssn->client.isn, TCP_GET_RAW_SEQ(tcph))) {
-            SCLogDebug("steam starter packet %"PRIu64", ssn %p. Packet SEQ == Stream ISN. Retransmission. Don't reuse.", p->pcap_cnt, ssn);
+            SCLogDebug("steam starter packet %" PRIu64
+                       ", ssn %p. Packet SEQ == Stream ISN. Retransmission. Don't reuse.",
+                    p->pcap_v.pcap_cnt, ssn);
             return false;
         }
         if (ssn->state >= TCP_LAST_ACK) {
-            SCLogDebug("steam starter packet %"PRIu64", ssn %p state >= TCP_LAST_ACK (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
+            SCLogDebug("steam starter packet %" PRIu64
+                       ", ssn %p state >= TCP_LAST_ACK (%u). Reuse.",
+                    p->pcap_v.pcap_cnt, ssn, ssn->state);
             return true;
         } else if (ssn->state == TCP_NONE) {
-            SCLogDebug("steam starter packet %"PRIu64", ssn %p state == TCP_NONE (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
+            SCLogDebug("steam starter packet %" PRIu64 ", ssn %p state == TCP_NONE (%u). Reuse.",
+                    p->pcap_v.pcap_cnt, ssn, ssn->state);
             return true;
         } else { // < TCP_LAST_ACK
-            SCLogDebug("steam starter packet %"PRIu64", ssn %p state < TCP_LAST_ACK (%u). Don't reuse.", p->pcap_cnt, ssn, ssn->state);
+            SCLogDebug("steam starter packet %" PRIu64
+                       ", ssn %p state < TCP_LAST_ACK (%u). Don't reuse.",
+                    p->pcap_v.pcap_cnt, ssn, ssn->state);
             return false;
         }
 
     } else {
         if (ssn == NULL) {
-            SCLogDebug("steam starter packet %"PRIu64", ssn %p null. Reuse.", p->pcap_cnt, ssn);
+            SCLogDebug("steam starter packet %" PRIu64 ", ssn %p null. Reuse.", p->pcap_v.pcap_cnt,
+                    ssn);
             return true;
         }
         if (ssn->state >= TCP_LAST_ACK) {
-            SCLogDebug("steam starter packet %"PRIu64", ssn %p state >= TCP_LAST_ACK (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
+            SCLogDebug("steam starter packet %" PRIu64
+                       ", ssn %p state >= TCP_LAST_ACK (%u). Reuse.",
+                    p->pcap_v.pcap_cnt, ssn, ssn->state);
             return true;
         } else if (ssn->state == TCP_NONE) {
-            SCLogDebug("steam starter packet %"PRIu64", ssn %p state == TCP_NONE (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
+            SCLogDebug("steam starter packet %" PRIu64 ", ssn %p state == TCP_NONE (%u). Reuse.",
+                    p->pcap_v.pcap_cnt, ssn, ssn->state);
             return true;
         } else { // < TCP_LAST_ACK
-            SCLogDebug("steam starter packet %"PRIu64", ssn %p state < TCP_LAST_ACK (%u). Don't reuse.", p->pcap_cnt, ssn, ssn->state);
+            SCLogDebug("steam starter packet %" PRIu64
+                       ", ssn %p state < TCP_LAST_ACK (%u). Don't reuse.",
+                    p->pcap_v.pcap_cnt, ssn, ssn->state);
             return false;
         }
     }
@@ -5868,37 +5887,51 @@ static bool TcpSessionReuseDoneEnoughSynAck(const Packet *p, const Flow *f, cons
     const TCPHdr *tcph = PacketGetTCP(p);
     if (FlowGetPacketDirection(f, p) == TOCLIENT) {
         if (ssn == NULL) {
-            SCLogDebug("steam starter packet %"PRIu64", ssn %p null. No reuse.", p->pcap_cnt, ssn);
+            SCLogDebug("steam starter packet %" PRIu64 ", ssn %p null. No reuse.",
+                    p->pcap_v.pcap_cnt, ssn);
             return false;
         }
         if (SEQ_EQ(ssn->server.isn, TCP_GET_RAW_SEQ(tcph))) {
-            SCLogDebug("steam starter packet %"PRIu64", ssn %p. Packet SEQ == Stream ISN. Retransmission. Don't reuse.", p->pcap_cnt, ssn);
+            SCLogDebug("steam starter packet %" PRIu64
+                       ", ssn %p. Packet SEQ == Stream ISN. Retransmission. Don't reuse.",
+                    p->pcap_v.pcap_cnt, ssn);
             return false;
         }
         if (ssn->state >= TCP_LAST_ACK) {
-            SCLogDebug("steam starter packet %"PRIu64", ssn %p state >= TCP_LAST_ACK (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
+            SCLogDebug("steam starter packet %" PRIu64
+                       ", ssn %p state >= TCP_LAST_ACK (%u). Reuse.",
+                    p->pcap_v.pcap_cnt, ssn, ssn->state);
             return true;
         } else if (ssn->state == TCP_NONE) {
-            SCLogDebug("steam starter packet %"PRIu64", ssn %p state == TCP_NONE (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
+            SCLogDebug("steam starter packet %" PRIu64 ", ssn %p state == TCP_NONE (%u). Reuse.",
+                    p->pcap_v.pcap_cnt, ssn, ssn->state);
             return true;
         } else { // < TCP_LAST_ACK
-            SCLogDebug("steam starter packet %"PRIu64", ssn %p state < TCP_LAST_ACK (%u). Don't reuse.", p->pcap_cnt, ssn, ssn->state);
+            SCLogDebug("steam starter packet %" PRIu64
+                       ", ssn %p state < TCP_LAST_ACK (%u). Don't reuse.",
+                    p->pcap_v.pcap_cnt, ssn, ssn->state);
             return false;
         }
 
     } else {
         if (ssn == NULL) {
-            SCLogDebug("steam starter packet %"PRIu64", ssn %p null. Reuse.", p->pcap_cnt, ssn);
+            SCLogDebug("steam starter packet %" PRIu64 ", ssn %p null. Reuse.", p->pcap_v.pcap_cnt,
+                    ssn);
             return true;
         }
         if (ssn->state >= TCP_LAST_ACK) {
-            SCLogDebug("steam starter packet %"PRIu64", ssn %p state >= TCP_LAST_ACK (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
+            SCLogDebug("steam starter packet %" PRIu64
+                       ", ssn %p state >= TCP_LAST_ACK (%u). Reuse.",
+                    p->pcap_v.pcap_cnt, ssn, ssn->state);
             return true;
         } else if (ssn->state == TCP_NONE) {
-            SCLogDebug("steam starter packet %"PRIu64", ssn %p state == TCP_NONE (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
+            SCLogDebug("steam starter packet %" PRIu64 ", ssn %p state == TCP_NONE (%u). Reuse.",
+                    p->pcap_v.pcap_cnt, ssn, ssn->state);
             return true;
         } else { // < TCP_LAST_ACK
-            SCLogDebug("steam starter packet %"PRIu64", ssn %p state < TCP_LAST_ACK (%u). Don't reuse.", p->pcap_cnt, ssn, ssn->state);
+            SCLogDebug("steam starter packet %" PRIu64
+                       ", ssn %p state < TCP_LAST_ACK (%u). Don't reuse.",
+                    p->pcap_v.pcap_cnt, ssn, ssn->state);
             return false;
         }
     }
@@ -5949,11 +5982,11 @@ TmEcode StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueueNoLock *pq)
 
     StreamTcpThread *stt = (StreamTcpThread *)data;
 
-    SCLogDebug("p->pcap_cnt %" PRIu64 " direction %s pkt_src %s", p->pcap_cnt,
+    SCLogDebug("p->pcap_v.pcap_cnt %" PRIu64 " direction %s pkt_src %s", p->pcap_v.pcap_cnt,
             p->flow ? (FlowGetPacketDirection(p->flow, p) == TOSERVER ? "toserver" : "toclient")
                     : "noflow",
             PktSrcToString(p->pkt_src));
-    t_pcapcnt = p->pcap_cnt;
+    t_pcapcnt = p->pcap_v.pcap_cnt;
 
     if (!(PacketIsTCP(p))) {
         return TM_ECODE_OK;

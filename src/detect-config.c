@@ -187,7 +187,7 @@ static int ConfigApply(DetectEngineThreadCtx *det_ctx,
     }
 
     if (this_packet) {
-        SCLogDebug("packet logic here: %" PRIu64, p->pcap_cnt);
+        SCLogDebug("packet logic here: %" PRIu64, p->pcap_v.pcap_cnt);
         ConfigApplyPacket(p, config);
     } else if (this_tx) {
         SCLogDebug("tx logic here: tx_id %"PRIu64, det_ctx->tx_id);
