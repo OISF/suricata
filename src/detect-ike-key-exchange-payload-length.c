@@ -59,6 +59,7 @@ void DetectIkeKeyExchangePayloadLengthRegister(void)
             DetectIkeKeyExchangePayloadLengthSetup;
     sigmatch_table[DETECT_IKE_KEY_EXCHANGE_PAYLOAD_LENGTH].Free =
             DetectIkeKeyExchangePayloadLengthFree;
+    sigmatch_table[DETECT_IKE_KEY_EXCHANGE_PAYLOAD_LENGTH].flags = SIGMATCH_INFO_UINT32;
 
     DetectAppLayerInspectEngineRegister("ike.key_exchange_payload_length", ALPROTO_IKE,
             SIG_FLAG_TOSERVER, 1, DetectEngineInspectGenericList, NULL);

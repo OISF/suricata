@@ -21,7 +21,10 @@ use crate::detect::uint::{
     detect_parse_uint, detect_parse_uint_enum, DetectUintData, DetectUintMode, SCDetectU32Free,
     SCDetectU32Match, SCDetectU32Parse, SCDetectU8Free, SCDetectU8Match,
 };
-use crate::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
+use crate::detect::{
+    helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer, SIGMATCH_INFO_UINT32,
+    SIGMATCH_INFO_UINT8,
+};
 use crate::websocket::parser::WebSocketOpcode;
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
@@ -273,7 +276,7 @@ pub unsafe extern "C" fn SCDetectWebsocketRegister() {
         AppLayerTxMatch: Some(websocket_detect_opcode_match),
         Setup: Some(websocket_detect_opcode_setup),
         Free: Some(websocket_detect_opcode_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT8,
     };
     G_WEBSOCKET_OPCODE_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_WEBSOCKET_OPCODE_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -288,7 +291,7 @@ pub unsafe extern "C" fn SCDetectWebsocketRegister() {
         AppLayerTxMatch: Some(websocket_detect_mask_match),
         Setup: Some(websocket_detect_mask_setup),
         Free: Some(websocket_detect_mask_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT32,
     };
     G_WEBSOCKET_MASK_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_WEBSOCKET_MASK_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -303,7 +306,7 @@ pub unsafe extern "C" fn SCDetectWebsocketRegister() {
         AppLayerTxMatch: Some(websocket_detect_flags_match),
         Setup: Some(websocket_detect_flags_setup),
         Free: Some(websocket_detect_flags_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT8,
     };
     G_WEBSOCKET_FLAGS_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_WEBSOCKET_FLAGS_BUFFER_ID = SCDetectHelperBufferRegister(

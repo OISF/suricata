@@ -21,7 +21,10 @@ use crate::detect::uint::{
     detect_match_uint, detect_parse_uint_enum, DetectUintData, SCDetectU16Free, SCDetectU8Free,
     SCDetectU8Parse,
 };
-use crate::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
+use crate::detect::{
+    helper_keyword_register_multi_buffer, SigTableElmtStickyBuffer, SIGMATCH_INFO_MULTI_UINT,
+    SIGMATCH_INFO_UINT16, SIGMATCH_INFO_UINT8,
+};
 use crate::direction::Direction;
 use std::ffi::CStr;
 use std::os::raw::{c_int, c_void};
@@ -354,7 +357,7 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         url: String::from("/rules/dns-keywords.html#dns-answer-name"),
         setup: dns_detect_answer_name_setup,
     };
-    let _g_dns_answer_name_kw_id = helper_keyword_register_sticky_buffer(&kw);
+    let _g_dns_answer_name_kw_id = helper_keyword_register_multi_buffer(&kw);
     G_DNS_ANSWER_NAME_BUFFER_ID = SCDetectHelperMultiBufferProgressMpmRegister(
         b"dns.answer.name\0".as_ptr() as *const libc::c_char,
         b"dns answer name\0".as_ptr() as *const libc::c_char,
@@ -372,7 +375,7 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         AppLayerTxMatch: Some(dns_opcode_match),
         Setup: Some(dns_opcode_setup),
         Free: Some(dns_opcode_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT8,
     };
     G_DNS_OPCODE_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_DNS_OPCODE_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -386,7 +389,7 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         url: String::from("/rules/dns-keywords.html#dns-query-name"),
         setup: dns_detect_query_name_setup,
     };
-    let _g_dns_query_name_kw_id = helper_keyword_register_sticky_buffer(&kw);
+    let _g_dns_query_name_kw_id = helper_keyword_register_multi_buffer(&kw);
     G_DNS_QUERY_NAME_BUFFER_ID = SCDetectHelperMultiBufferProgressMpmRegister(
         b"dns.query.name\0".as_ptr() as *const libc::c_char,
         b"dns query name\0".as_ptr() as *const libc::c_char,
@@ -404,7 +407,7 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         AppLayerTxMatch: Some(dns_rcode_match),
         Setup: Some(dns_rcode_setup),
         Free: Some(dns_rcode_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT16,
     };
     G_DNS_RCODE_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_DNS_RCODE_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -419,7 +422,7 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         AppLayerTxMatch: Some(dns_rrtype_match),
         Setup: Some(dns_rrtype_setup),
         Free: Some(dns_rrtype_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT16 | SIGMATCH_INFO_MULTI_UINT,
     };
     G_DNS_RRTYPE_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_DNS_RRTYPE_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -433,7 +436,7 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         url: String::from("/rules/dns-keywords.html#dns-query"),
         setup: dns_detect_query_setup,
     };
-    let g_dns_query_name_kw_id = helper_keyword_register_sticky_buffer(&kw);
+    let g_dns_query_name_kw_id = helper_keyword_register_multi_buffer(&kw);
     SCDetectHelperKeywordAliasRegister(
         g_dns_query_name_kw_id,
         b"dns_query\0".as_ptr() as *const libc::c_char,

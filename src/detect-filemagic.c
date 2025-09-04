@@ -114,8 +114,8 @@ void DetectFilemagicRegister(void)
     sigmatch_table[DETECT_FILE_MAGIC].desc = "sticky buffer to match on the file magic";
     sigmatch_table[DETECT_FILE_MAGIC].url = "/rules/file-keywords.html#filemagic";
     sigmatch_table[DETECT_FILE_MAGIC].Setup = DetectFilemagicSetupSticky;
-    sigmatch_table[DETECT_FILE_MAGIC].flags =
-            SIGMATCH_OPTIONAL_OPT | SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_SUPPORT_DIR;
+    sigmatch_table[DETECT_FILE_MAGIC].flags = SIGMATCH_OPTIONAL_OPT | SIGMATCH_INFO_STICKY_BUFFER |
+                                              SIGMATCH_SUPPORT_DIR | SIGMATCH_INFO_MULTI_BUFFER;
 
     filehandler_table[DETECT_FILE_MAGIC].name = "file.magic",
     filehandler_table[DETECT_FILE_MAGIC].priority = 2;
