@@ -1,5 +1,5 @@
 FROM gcr.io/oss-fuzz-base/base-builder-rust
-RUN apt-get update && apt-get install -y build-essential autoconf automake libtool make pkg-config  python flex bison zlib1g-dev libpcre3-dev cmake tshark
+RUN apt-get update && apt-get install -y build-essential autoconf automake libtool make pkg-config flex bison zlib1g-dev libpcre3-dev cmake
 
 # TODO libmagic, liblzma and other optional libraries
 ADD https://github.com/PhilipHazel/pcre2/releases/download/pcre2-10.44/pcre2-10.44.tar.gz pcre2-10.44.tar.gz
