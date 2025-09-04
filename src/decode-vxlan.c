@@ -147,7 +147,7 @@ int DecodeVXLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     StatsIncr(tv, dtv->counter_vxlan);
 
     EthernetHdr *ethh = (EthernetHdr *)(pkt + VXLAN_HEADER_LEN);
-    int decode_tunnel_proto = DECODE_TUNNEL_UNSET;
+    bool eth_ok = false;
 
     /* Look at encapsulated Ethernet frame to get next protocol  */
     uint16_t eth_type = SCNtohs(ethh->eth_type);
@@ -156,20 +156,21 @@ int DecodeVXLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     switch (eth_type) {
         case ETHERNET_TYPE_ARP:
             SCLogDebug("VXLAN found ARP");
+            eth_ok = true;
             break;
         case ETHERNET_TYPE_IP:
             SCLogDebug("VXLAN found IPv4");
-            decode_tunnel_proto = DECODE_TUNNEL_IPV4;
+            eth_ok = true;
             break;
         case ETHERNET_TYPE_IPV6:
             SCLogDebug("VXLAN found IPv6");
-            decode_tunnel_proto = DECODE_TUNNEL_IPV6;
+            eth_ok = true;
             break;
         case ETHERNET_TYPE_VLAN:
         case ETHERNET_TYPE_8021AD:
         case ETHERNET_TYPE_8021QINQ:
             SCLogDebug("VXLAN found VLAN");
-            decode_tunnel_proto = DECODE_TUNNEL_VLAN;
+            eth_ok = true;
             break;
         default:
             SCLogDebug("VXLAN found unsupported Ethertype - expected IPv4, IPv6, VLAN, or ARP");
@@ -177,9 +178,9 @@ int DecodeVXLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     }
 
     /* Set-up and process inner packet if it is a supported ethertype */
-    if (decode_tunnel_proto != DECODE_TUNNEL_UNSET) {
-        Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + VXLAN_HEADER_LEN + ETHERNET_HEADER_LEN,
-                len - (VXLAN_HEADER_LEN + ETHERNET_HEADER_LEN), decode_tunnel_proto);
+    if (eth_ok) {
+        Packet *tp = PacketTunnelPktSetup(
+                tv, dtv, p, pkt + VXLAN_HEADER_LEN, len - VXLAN_HEADER_LEN, DECODE_TUNNEL_VXLAN);
         if (tp != NULL) {
             PKT_SET_SRC(tp, PKT_SRC_DECODER_VXLAN);
             PacketEnqueueNoLock(&tv->decode_pq, tp);
