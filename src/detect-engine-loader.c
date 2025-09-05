@@ -299,7 +299,7 @@ static int LoadFirewallRuleFiles(DetectEngineCtx *de_ctx)
         int32_t bad_sigs = 0;
         int32_t skipped_sigs = 0;
 
-        SCLogNotice("fw: rule file full path \"%s\"", de_ctx->firewall_rule_file_exclusive);
+        SCLogDebug("fw: rule file full path \"%s\"", de_ctx->firewall_rule_file_exclusive);
 
         int ret = DetectLoadSigFile(de_ctx, de_ctx->firewall_rule_file_exclusive, &good_sigs,
                 &bad_sigs, &skipped_sigs, true);
