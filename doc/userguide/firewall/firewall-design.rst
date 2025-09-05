@@ -1,5 +1,5 @@
 Firewall Mode Design
-====================
+********************
 
 .. note:: In Suricata 8 the firewall mode is experimental and subject to change.
 
@@ -14,16 +14,54 @@ properties than the default "threat detection" rulesets:
 5. evaluation order is as rules are in the file(s), per protocol state
 
 Concepts
---------
+========
 
-* ``table`` collection of rules with different properties: ``packet:filter``, ``packet:td``,
-  ``app:<proto>:<state>``, ``app:td``. These are built-in. No custom tables can be created.
-* ``state`` controls a specific protocol state at which a rule is evaluated. Examples are
-  ``tcp.flow_start`` or ``tls.client_body_done``.
+Tables
+------
 
-The tables for the application layer are per app layer protocol and per protocol state.
-For example, ``app:http:request_line``.
+A ``table`` is a collection of rules with different properties. These tables are built-in.
+No custom tables can be created. Tables are available within the scope of packet layer
+and application layer (if available). Each rule can define its own :ref:`action scope<ips_action_scopes>`.
 
+Packet layer tables
+~~~~~~~~~~~~~~~~~~~
+
+Rules categorized in the following tables apply to all packets.
+
+.. table::
+
+    +-----------------------+--------------------------------------------------------------------+----------------+--------------------------------+
+    |          Table        |                             Description                            | Default Policy |           Rule Order           |
+    +=======================+====================================================================+================+================================+
+    | ``packet:pre_flow``   | Firewall rules to be evaluated before flow is created/updated      | ``drop:packet``|   As appears in the rule file  |
+    +-----------------------+--------------------------------------------------------------------+----------------+--------------------------------+
+    | ``packet:pre_stream`` | Firewall rules to be evaluated before stream is updated            | ``drop:packet``|   As appears in the rule file  |
+    +-----------------------+--------------------------------------------------------------------+----------------+--------------------------------+
+    | ``packet:filter``     | Firewall rules to be evaluated against every packet after decoding | ``drop:packet``|   As appears in the rule file  |
+    +-----------------------+--------------------------------------------------------------------+----------------+--------------------------------+
+    | ``packet:td``         | Generic IDS/IPS threat detection rules                             | ``accept:hook``| Internal IDS/IPS rule ordering |
+    +-----------------------+--------------------------------------------------------------------+----------------+--------------------------------+
+
+
+Application layer tables
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+If applayer is available, rules from the following tables apply. The tables for the
+application layer are per app layer protocol and per protocol state. e.g. ``http:request_line``.
+
+
+.. table::
+
+    +----------------+--------------------------------------------------------------------------+----------------+--------------------------------+
+    |      Table     |                                Description                               | Default Policy |           Rule Order           |
+    +================+==========================================================================+================+================================+
+    | ``app:filter`` | Firewall rules to be evaluated per applayer protocol and state           | ``drop:flow``  |   As appears in the rule file  |
+    +----------------+--------------------------------------------------------------------------+----------------+--------------------------------+
+    | ``app:td``     | Generic IDS/IPS threat detection rules                                   | ``accept:hook``| Internal IDS/IPS rule ordering |
+    +----------------+--------------------------------------------------------------------------+----------------+--------------------------------+
+
+
+.. _ips_action_scopes:
 
 Actions and Action Scopes
 -------------------------
@@ -51,7 +89,7 @@ drop
 ``drop`` is used to drop either the packet or the flow
 
 * ``packet`` drop this packet directly, don't eval any further rules
-* ``flow`` drop this packet as with ``packet`` and drop all future packets in this flow 
+* ``flow`` drop this packet as with ``packet`` and drop all future packets in this flow
 
 .. note:: the action ``pass`` is not available in firewall rules due to ambiguity around
    the existing meaning for threat detection rules.
@@ -59,12 +97,29 @@ drop
 .. _rule-hooks:
 
 Explicit rule hook (states)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------
 
 In the regular IDS/IPS rules the engine infers from the rule's matching logic where the
 rule should be "hooked" into the engine. While this works well for these types of rules,
 it does lead to many edge cases that are not acceptable in a firewall ruleset. For this
 reason in the firewall rules the hook needs to be explicitly set.
+
+There are two types of hooks available based on the layer.
+
+Packet layer hooks
+~~~~~~~~~~~~~~~~~~
+
+* ``flow_start``: evaluate the rule only on the first packet in both the directions
+* ``pre_flow``: evaluate the rule before the flow is created/updated
+* ``pre_stream``: evaluate the rule before the stream is updated
+* ``all``: evaluate the rule on every packet
+
+Application layer hooks
+~~~~~~~~~~~~~~~~~~~~~~~
+
+The application layer states / hooks are defined per protocol. Each of the hooks has its own
+default-``drop`` policy, so a ruleset needs an ``accept`` rule for each of the states to allow
+the traffic to flow through.
 
 This is done in the protocol field of the rule. Where in threat detection a rule might look like::
 
@@ -74,9 +129,7 @@ In the firewall case it will be::
 
     accept:hook http1:request_line ... http.uri; ...
 
-The application layer states / hooks are defined per protocol. Each of the hooks has its own
-default-``drop`` policy, so a ruleset needs an ``accept`` rule for each of the states to allow
-the traffic to flow through.
+All available applayer hooks are available via commandline option ``--list-app-layer-hooks``.
 
 general
 ^^^^^^^
@@ -146,8 +199,9 @@ ssh
 
 Available states are listed in :ref:`ssh-hooks`.
 
+
 Firewall pipeline
-~~~~~~~~~~~~~~~~~
+-----------------
 
 The firewall pipeline works in the detection engine, and is invoked after packet decoding, flow
 update, stream tracking and reassembly and app-layer parsing are all done in the context of a
@@ -184,11 +238,26 @@ by ``action-order`` logic. It can then apply a ``drop`` or default to ``accept``
 
 
 Pass rules with Firewall mode
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------------
 
 In IDS/IPS mode, a ``pass`` rule with app-layer matches will bypass the detection engine for the
 rest of the flow. In firewall mode, this bypass no longer happens in the same way, as ``pass`` rules
 do not affect firewall rules. So the detection engine is still invoked on packets of such a flow,
 but the ``packet_td`` and ``app_td`` tables are skipped.
 
+Firewall rules
+==============
 
+Firewall rules are loaded first and separately from the following section of ``suricata.yaml``:
+
+::
+
+  firewall-rule-path: /etc/suricata/firewall/
+  firewall-rule-files:
+    - fw.rules
+
+One can optionally, also load firewall rules exclusively from commandline using the
+``--firewall-rules-exclusive`` option.
+
+Firewall rules are available in the file ``firewall.json`` as a part of the output
+of :ref:`engine analysis<config:engine-analysis>`.
