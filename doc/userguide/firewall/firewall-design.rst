@@ -221,7 +221,7 @@ next table is ``app:*:*``.
 In ``app:*:*`` the per application layer states are all evaluated at least once. At each of
 these states an ``accept:hook`` is required to progress to the next state. When all available states
 have been accepted, the pipeline moves to the final table ``app:td`` (application layer threat
-detection). A ``drop`` in the ``app_filter`` table is immediate, however and ``accept`` is
+detection). A ``drop`` in the ``app:filter`` table is immediate, however and ``accept`` is
 conditional on the verdict of the ``app:td`` table.
 
 The default ``drop`` in one of the ``app:*:*`` tables is a ``drop:flow``. This means that the
@@ -243,7 +243,7 @@ Pass rules with Firewall mode
 In IDS/IPS mode, a ``pass`` rule with app-layer matches will bypass the detection engine for the
 rest of the flow. In firewall mode, this bypass no longer happens in the same way, as ``pass`` rules
 do not affect firewall rules. So the detection engine is still invoked on packets of such a flow,
-but the ``packet_td`` and ``app_td`` tables are skipped.
+but the ``packet:td`` and ``app:td`` tables are skipped.
 
 Firewall rules
 ==============
