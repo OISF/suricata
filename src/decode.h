@@ -1003,6 +1003,7 @@ typedef struct DecodeThreadVars_
     uint16_t counter_vlan_qinqinq;
     uint16_t counter_vxlan;
     uint16_t counter_vntag;
+    uint16_t counter_etag;
     uint16_t counter_ieee8021ah;
     uint16_t counter_pppoe;
     uint16_t counter_teredo;
@@ -1158,6 +1159,7 @@ int DecodeESP(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint1
 int DecodeGRE(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeVLAN(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeVNTag(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
+int DecodeETag(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeIEEE8021ah(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeGeneve(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeVXLAN(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
@@ -1498,6 +1500,9 @@ static inline bool DecodeNetworkLayer(ThreadVars *tv, DecodeThreadVars *dtv,
                 // DCE layer is ethernet + 2 bytes, followed by another ethernet
                 DecodeEthernet(tv, dtv, p, data + 2, len - 2);
             }
+            break;
+        case ETHERNET_TYPE_ETAG:
+            DecodeETag(tv, dtv, p, data, len);
             break;
         case ETHERNET_TYPE_VNTAG:
             DecodeVNTag(tv, dtv, p, data, len);
