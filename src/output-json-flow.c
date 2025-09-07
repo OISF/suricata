@@ -175,26 +175,6 @@ static SCJsonBuilder *CreateEveHeaderFromFlow(const Flow *f)
     return jb;
 }
 
-void EveAddAppProto(Flow *f, SCJsonBuilder *js)
-{
-    if (f->alproto) {
-        SCJbSetString(js, "app_proto", AppProtoToString(f->alproto));
-    }
-    if (f->alproto_ts && f->alproto_ts != f->alproto) {
-        SCJbSetString(js, "app_proto_ts", AppProtoToString(f->alproto_ts));
-    }
-    if (f->alproto_tc && f->alproto_tc != f->alproto) {
-        SCJbSetString(js, "app_proto_tc", AppProtoToString(f->alproto_tc));
-    }
-    if (f->alproto_orig != f->alproto && f->alproto_orig != ALPROTO_UNKNOWN) {
-        SCJbSetString(js, "app_proto_orig", AppProtoToString(f->alproto_orig));
-    }
-    if (f->alproto_expect != f->alproto && f->alproto_expect != ALPROTO_UNKNOWN) {
-        SCJbSetString(js, "app_proto_expected", AppProtoToString(f->alproto_expect));
-    }
-
-}
-
 void EveAddFlow(Flow *f, SCJsonBuilder *js)
 {
     FlowBypassInfo *fc = FlowGetStorageById(f, GetFlowBypassInfoID());

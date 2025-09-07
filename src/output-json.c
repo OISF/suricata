@@ -831,6 +831,28 @@ static int CreateJSONEther(
     return 0;
 }
 
+void EveAddAppProto(const Flow *f, SCJsonBuilder *js)
+{
+    if (f == NULL) {
+        return;
+    }
+    if (f->alproto) {
+        SCJbSetString(js, "app_proto", AppProtoToString(f->alproto));
+    }
+    if (f->alproto_ts && f->alproto_ts != f->alproto) {
+        SCJbSetString(js, "app_proto_ts", AppProtoToString(f->alproto_ts));
+    }
+    if (f->alproto_tc && f->alproto_tc != f->alproto) {
+        SCJbSetString(js, "app_proto_tc", AppProtoToString(f->alproto_tc));
+    }
+    if (f->alproto_orig != f->alproto && f->alproto_orig != ALPROTO_UNKNOWN) {
+        SCJbSetString(js, "app_proto_orig", AppProtoToString(f->alproto_orig));
+    }
+    if (f->alproto_expect != f->alproto && f->alproto_expect != ALPROTO_UNKNOWN) {
+        SCJbSetString(js, "app_proto_expected", AppProtoToString(f->alproto_expect));
+    }
+}
+
 SCJsonBuilder *CreateEveHeader(const Packet *p, enum SCOutputJsonLogDirection dir,
         const char *event_type, JsonAddrInfo *addr, OutputJsonCtx *eve_ctx)
 {
