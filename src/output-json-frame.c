@@ -313,7 +313,6 @@ static int FrameJsonUdp(ThreadVars *tv, JsonFrameLogThread *aft, const Packet *p
         if (unlikely(jb == NULL))
             return TM_ECODE_OK;
 
-        SCJbSetString(jb, "app_proto", AppProtoToString(f->alproto));
         FrameJsonLogOneFrame(IPPROTO_UDP, frame, p->flow, NULL, p, jb, aft->payload_buffer);
         OutputJsonBuilderBuffer(tv, p, p->flow, jb, aft->ctx);
         SCJbFree(jb);
@@ -387,7 +386,6 @@ static int FrameJson(ThreadVars *tv, JsonFrameLogThread *aft, const Packet *p)
             if (unlikely(jb == NULL))
                 return TM_ECODE_OK;
 
-            SCJbSetString(jb, "app_proto", AppProtoToString(p->flow->alproto));
             FrameJsonLogOneFrame(IPPROTO_TCP, frame, p->flow, stream, p, jb, aft->payload_buffer);
             OutputJsonBuilderBuffer(tv, p, p->flow, jb, aft->ctx);
             SCJbFree(jb);

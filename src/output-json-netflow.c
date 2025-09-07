@@ -228,7 +228,7 @@ static void NetFlowLogEveToServer(SCJsonBuilder *js, Flow *f)
 
 static void NetFlowLogEveToClient(SCJsonBuilder *js, Flow *f)
 {
-    SCJbSetString(js, "app_proto", AppProtoToString(f->alproto_tc ? f->alproto_tc : f->alproto));
+    EveAddAppProto(f, js);
 
     SCJbOpenObject(js, "netflow");
 

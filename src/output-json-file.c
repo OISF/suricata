@@ -189,8 +189,6 @@ SCJsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, void *tx
             break;
     }
 
-    SCJbSetString(js, "app_proto", AppProtoToString(p->flow->alproto));
-
     SCJbOpenObject(js, "fileinfo");
     if (stored) {
         // the file has just been stored on disk cf OUTPUT_FILEDATA_FLAG_CLOSE
