@@ -189,7 +189,11 @@ SCJsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, void *tx
             break;
     }
 
-    SCJbSetString(js, "app_proto", AppProtoToString(p->flow->alproto));
+    /* if eve_ctx is NULL, we are called in filestore context, so for compatibility
+     * we need to log app_proto */
+    if (eve_ctx == NULL || eve_ctx->cfg.eve_version < EVE_VERSION_GLOBAL_APP_PROTO) {
+        SCJbSetString(js, "app_proto", AppProtoToString(p->flow->alproto));
+    }
 
     SCJbOpenObject(js, "fileinfo");
     if (stored) {

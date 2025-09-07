@@ -870,6 +870,10 @@ SCJsonBuilder *CreateEveHeader(const Packet *p, enum SCOutputJsonLogDirection di
 
     CreateEveFlowId(js, f);
 
+    if (eve_ctx != NULL && eve_ctx->cfg.eve_version >= EVE_VERSION_GLOBAL_APP_PROTO) {
+        EveAddAppProto(f, js);
+    }
+
     /* sensor id */
     if (sensor_id >= 0) {
         SCJbSetUint(js, "sensor_id", sensor_id);

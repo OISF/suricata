@@ -37,7 +37,8 @@ void OutputJsonRegister(void);
 #define JSON_ADDR_LEN 46
 #define JSON_PROTO_LEN 16
 
-#define EVE_MAX_VERSION 2
+#define EVE_MAX_VERSION              2
+#define EVE_VERSION_GLOBAL_APP_PROTO 2
 
 /* A struct to contain address info for rendering to JSON. */
 typedef struct JsonAddrInfo_ {
