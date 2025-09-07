@@ -110,6 +110,7 @@ void EveAddCommonOptions(const OutputJsonCommonSettings *cfg, const Packet *p, c
         SCJsonBuilder *js, enum SCOutputJsonLogDirection dir);
 int OutputJsonLogFlush(ThreadVars *tv, void *thread_data, const Packet *p);
 void EveAddMetadata(const Packet *p, const Flow *f, SCJsonBuilder *js);
+void EveAddAppProto(const Flow *f, SCJsonBuilder *js);
 
 int OutputJSONMemBufferCallback(const char *str, size_t size, void *data);
 
