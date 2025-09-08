@@ -7264,13 +7264,6 @@ const char *StreamTcpStateAsString(const enum TcpState state)
     return tcp_state;
 }
 
-const char *StreamTcpSsnStateAsString(const TcpSession *ssn)
-{
-    if (ssn == NULL)
-        return NULL;
-    return StreamTcpStateAsString(ssn->state);
-}
-
 #ifdef UNITTESTS
 #include "tests/stream-tcp.c"
 #endif
