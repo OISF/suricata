@@ -2558,6 +2558,7 @@
         },
         "ldap": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "request": {
                     "type": "object",
@@ -2565,6 +2566,7 @@
                     "properties": {
                         "abandon_request": {
                             "type": "object",
+                            "additionalProperties": false,
                             "properties": {
                                 "message_id": {
                                     "type": "integer"
@@ -2574,12 +2576,14 @@
                         },
                         "add_request": {
                             "type": "object",
+                            "additionalProperties": false,
                             "properties": {
                                 "attributes": {
                                     "type": "array",
                                     "minItems": 1,
                                     "items": {
                                         "type": "object",
+                                        "additionalProperties": false,
                                         "properties": {
                                             "name": {
                                                 "type": "string"
@@ -2602,12 +2606,14 @@
                         },
                         "bind_request": {
                             "type": "object",
+                            "additionalProperties": false,
                             "properties": {
                                 "name": {
                                     "type": "string"
                                 },
                                 "sasl": {
                                     "type": "object",
+                                    "additionalProperties": false,
                                     "properties": {
                                         "credentials": {
                                             "type": "string",
@@ -2627,9 +2633,11 @@
                         },
                         "compare_request": {
                             "type": "object",
+                            "additionalProperties": false,
                             "properties": {
                                 "attribute_value_assertion": {
                                     "type": "object",
+                                    "additionalProperties": false,
                                     "properties": {
                                         "description": {
                                             "type": "string"
@@ -2647,6 +2655,7 @@
                         },
                         "del_request": {
                             "type": "object",
+                            "additionalProperties": false,
                             "properties": {
                                 "dn": {
                                     "type": "string"
@@ -2656,6 +2665,7 @@
                         },
                         "extended_request": {
                             "type": "object",
+                            "additionalProperties": false,
                             "properties": {
                                 "name": {
                                     "type": "string"
@@ -2672,6 +2682,7 @@
                         },
                         "mod_dn_request": {
                             "type": "object",
+                            "additionalProperties": false,
                             "properties": {
                                 "delete_old_rdn": {
                                     "type": "boolean"
@@ -2691,15 +2702,18 @@
                         },
                         "modify_request": {
                             "type": "object",
+                            "additionalProperties": false,
                             "properties": {
                                 "changes": {
                                     "type": "array",
                                     "minItems": 1,
                                     "items": {
                                         "type": "object",
+                                        "additionalProperties": false,
                                         "properties": {
                                             "modification": {
                                                 "type": "object",
+                                                "additionalProperties": false,
                                                 "properties": {
                                                     "attribute_type": {
                                                         "type": "string"
@@ -2726,10 +2740,16 @@
                             "optional": "true"
                         },
                         "operation": {
-                            "type": "string"
+                            "type": "string",
+                            "suricata": {
+                                "keywords": [
+                                    "ldap.request.operation"
+                                ]
+                            }
                         },
                         "search_request": {
                             "type": "object",
+                            "additionalProperties": false,
                             "properties": {
                                 "attributes": {
                                     "type": "array",
@@ -2755,6 +2775,9 @@
                                 },
                                 "types_online": {
                                     "type": "boolean"
+                                },
+                                "types_only": {
+                                    "type": "boolean"
                                 }
                             },
                             "optional": "true"
@@ -2765,11 +2788,18 @@
                     "type": "array",
                     "optional": "true",
                     "minItems": 1,
+                    "suricata": {
+                        "keywords": [
+                            "ldap.responses.count"
+                        ]
+                    },
                     "items": {
                         "type": "object",
+                        "additionalProperties": false,
                         "properties": {
                             "add_response": {
                                 "type": "object",
+                                "additionalProperties": false,
                                 "properties": {
                                     "matched_dn": {
                                         "type": "string"
@@ -2778,13 +2808,19 @@
                                         "type": "string"
                                     },
                                     "result_code": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "suricata": {
+                                            "keywords": [
+                                                "ldap.responses.result_code"
+                                            ]
+                                        }
                                     }
                                 },
                                 "optional": "true"
                             },
                             "bind_response": {
                                 "type": "object",
+                                "additionalProperties": false,
                                 "properties": {
                                     "matched_dn": {
                                         "type": "string"
@@ -2793,7 +2829,12 @@
                                         "type": "string"
                                     },
                                     "result_code": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "suricata": {
+                                            "keywords": [
+                                                "ldap.responses.result_code"
+                                            ]
+                                        }
                                     },
                                     "server_sasl_creds": {
                                         "type": "string",
@@ -2804,6 +2845,7 @@
                             },
                             "compare_response": {
                                 "type": "object",
+                                "additionalProperties": false,
                                 "properties": {
                                     "matched_dn": {
                                         "type": "string"
@@ -2812,13 +2854,19 @@
                                         "type": "string"
                                     },
                                     "result_code": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "suricata": {
+                                            "keywords": [
+                                                "ldap.responses.result_code"
+                                            ]
+                                        }
                                     }
                                 },
                                 "optional": "true"
                             },
                             "del_response": {
                                 "type": "object",
+                                "additionalProperties": false,
                                 "properties": {
                                     "matched_dn": {
                                         "type": "string"
@@ -2827,13 +2875,19 @@
                                         "type": "string"
                                     },
                                     "result_code": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "suricata": {
+                                            "keywords": [
+                                                "ldap.responses.result_code"
+                                            ]
+                                        }
                                     }
                                 },
                                 "optional": "true"
                             },
                             "extended_response": {
                                 "type": "object",
+                                "additionalProperties": false,
                                 "properties": {
                                     "matched_dn": {
                                         "type": "string"
@@ -2845,7 +2899,12 @@
                                         "type": "string"
                                     },
                                     "result_code": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "suricata": {
+                                            "keywords": [
+                                                "ldap.responses.result_code"
+                                            ]
+                                        }
                                     },
                                     "value": {
                                         "type": "string"
@@ -2855,6 +2914,7 @@
                             },
                             "intermediate_response": {
                                 "type": "object",
+                                "additionalProperties": false,
                                 "properties": {
                                     "name": {
                                         "type": "string"
@@ -2865,8 +2925,12 @@
                                 },
                                 "optional": "true"
                             },
+                            "message_id": {
+                                "type": "integer"
+                            },
                             "mod_dn_response": {
                                 "type": "object",
+                                "additionalProperties": false,
                                 "properties": {
                                     "matched_dn": {
                                         "type": "string"
@@ -2875,13 +2939,19 @@
                                         "type": "string"
                                     },
                                     "result_code": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "suricata": {
+                                            "keywords": [
+                                                "ldap.responses.result_code"
+                                            ]
+                                        }
                                     }
                                 },
                                 "optional": "true"
                             },
                             "modify_response": {
                                 "type": "object",
+                                "additionalProperties": false,
                                 "properties": {
                                     "matched_dn": {
                                         "type": "string"
@@ -2890,13 +2960,27 @@
                                         "type": "string"
                                     },
                                     "result_code": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "suricata": {
+                                            "keywords": [
+                                                "ldap.responses.result_code"
+                                            ]
+                                        }
                                     }
                                 },
                                 "optional": "true"
                             },
+                            "operation": {
+                                "type": "string",
+                                "suricata": {
+                                    "keywords": [
+                                        "ldap.responses.operation"
+                                    ]
+                                }
+                            },
                             "search_result_done": {
                                 "type": "object",
+                                "additionalProperties": false,
                                 "properties": {
                                     "matched_dn": {
                                         "type": "string"
@@ -2905,6 +2989,41 @@
                                         "type": "string"
                                     },
                                     "result_code": {
+                                        "type": "string",
+                                        "suricata": {
+                                            "keywords": [
+                                                "ldap.responses.result_code"
+                                            ]
+                                        }
+                                    }
+                                },
+                                "optional": "true"
+                            },
+                            "search_result_entry": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "attributes": {
+                                        "type": "array",
+                                        "minItems": 1,
+                                        "items": {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "type": {
+                                                    "type": "string"
+                                                },
+                                                "values": {
+                                                    "type": "array",
+                                                    "minItems": 1,
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "base_object": {
                                         "type": "string"
                                     }
                                 },
