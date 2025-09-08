@@ -17,10 +17,16 @@
 
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
-use super::snmp::{SNMPTransaction, ALPROTO_SNMP};
+use super::snmp::{SNMPTransaction, SnmpPduType, ALPROTO_SNMP};
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
-use crate::detect::uint::{DetectUintData, SCDetectU32Free, SCDetectU32Match, SCDetectU32Parse};
-use crate::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer, SIGMATCH_INFO_UINT32};
+use crate::detect::uint::{
+    detect_parse_uint_enum, DetectUintData, SCDetectU32Free, SCDetectU32Match, SCDetectU32Parse,
+};
+use crate::detect::{
+    helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer, SIGMATCH_INFO_ENUM_UINT,
+    SIGMATCH_INFO_UINT32,
+};
+use std::ffi::CStr;
 use std::os::raw::{c_int, c_void};
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
@@ -76,13 +82,26 @@ unsafe extern "C" fn snmp_detect_version_free(_de: *mut DetectEngineCtx, ctx: *m
     SCDetectU32Free(ctx);
 }
 
+unsafe extern "C" fn snmp_detect_pdutype_parse(
+    ustr: *const std::os::raw::c_char,
+) -> *mut DetectUintData<u32> {
+    let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
+    if let Ok(s) = ft_name.to_str() {
+        if let Some(ctx) = detect_parse_uint_enum::<u32, SnmpPduType>(s) {
+            let boxed = Box::new(ctx);
+            return Box::into_raw(boxed) as *mut _;
+        }
+    }
+    return std::ptr::null_mut();
+}
+
 unsafe extern "C" fn snmp_detect_pdutype_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
 ) -> c_int {
     if SCDetectSignatureSetAppProto(s, ALPROTO_SNMP) != 0 {
         return -1;
     }
-    let ctx = SCDetectU32Parse(raw) as *mut c_void;
+    let ctx = snmp_detect_pdutype_parse(raw) as *mut c_void;
     if ctx.is_null() {
         return -1;
     }
@@ -192,7 +211,7 @@ pub(super) unsafe extern "C" fn detect_snmp_register() {
         AppLayerTxMatch: Some(snmp_detect_pdutype_match),
         Setup: Some(snmp_detect_pdutype_setup),
         Free: Some(snmp_detect_pdutype_free),
-        flags: SIGMATCH_INFO_UINT32,
+        flags: SIGMATCH_INFO_UINT32 | SIGMATCH_INFO_ENUM_UINT,
     };
     G_SNMP_PDUTYPE_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_SNMP_PDUTYPE_BUFFER_ID = SCDetectHelperBufferRegister(
