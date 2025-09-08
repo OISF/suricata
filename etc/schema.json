@@ -507,7 +507,12 @@
                     "type": "integer"
                 },
                 "lease_time": {
-                    "type": "integer"
+                    "type": "integer",
+                    "suricata": {
+                        "keywords": [
+                            "dhcp.leasetime"
+                        ]
+                    }
                 },
                 "next_server_ip": {
                     "type": "string"
@@ -520,13 +525,23 @@
                     }
                 },
                 "rebinding_time": {
-                    "type": "integer"
+                    "type": "integer",
+                    "suricata": {
+                        "keywords": [
+                            "dhcp.rebinding_time"
+                        ]
+                    }
                 },
                 "relay_ip": {
                     "type": "string"
                 },
                 "renewal_time": {
-                    "type": "integer"
+                    "type": "integer",
+                    "suricata": {
+                        "keywords": [
+                            "dhcp.renewal_time"
+                        ]
+                    }
                 },
                 "requested_ip": {
                     "type": "string"
@@ -1495,7 +1510,12 @@
                             "additionalProperties": false,
                             "properties": {
                                 "class_name": {
-                                    "type": "string"
+                                    "type": "string",
+                                    "suricata": {
+                                        "keywords": [
+                                            "enip.cip_class"
+                                        ]
+                                    }
                                 },
                                 "multiple": {
                                     "type": "array",
@@ -1505,7 +1525,12 @@
                                         "additionalProperties": false,
                                         "properties": {
                                             "class_name": {
-                                                "type": "string"
+                                                "type": "string",
+                                                "suricata": {
+                                                    "keywords": [
+                                                        "enip.cip_class"
+                                                    ]
+                                                }
                                             },
                                             "path": {
                                                 "type": "array",
@@ -1518,7 +1543,14 @@
                                                             "type": "string"
                                                         },
                                                         "value": {
-                                                            "type": "integer"
+                                                            "type": "integer",
+                                                            "suricata": {
+                                                                "keywords": [
+                                                                    "enip.cip_attribute",
+                                                                    "enip.cip_class",
+                                                                    "enip.cip_instance"
+                                                                ]
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -1540,7 +1572,14 @@
                                                 "type": "string"
                                             },
                                             "value": {
-                                                "type": "integer"
+                                                "type": "integer",
+                                                "suricata": {
+                                                    "keywords": [
+                                                        "enip.cip_attribute",
+                                                        "enip.cip_class",
+                                                        "enip.cip_instance"
+                                                    ]
+                                                }
                                             }
                                         }
                                     }
@@ -1551,7 +1590,12 @@
                             }
                         },
                         "command": {
-                            "type": "string"
+                            "type": "string",
+                            "suricata": {
+                                "keywords": [
+                                    "enip.command"
+                                ]
+                            }
                         },
                         "register_session": {
                             "type": "object",
@@ -1561,12 +1605,22 @@
                                     "type": "integer"
                                 },
                                 "protocol_version": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "suricata": {
+                                        "keywords": [
+                                            "enip.protocol_version"
+                                        ]
+                                    }
                                 }
                             }
                         },
                         "status": {
-                            "type": "string"
+                            "type": "string",
+                            "suricata": {
+                                "keywords": [
+                                    "enip.status"
+                                ]
+                            }
                         }
                     }
                 },
@@ -1589,10 +1643,20 @@
                                                 "type": "string"
                                             },
                                             "status": {
-                                                "type": "string"
+                                                "type": "string",
+                                                "suricata": {
+                                                    "keywords": [
+                                                        "enip.cip_status"
+                                                    ]
+                                                }
                                             },
                                             "status_extended": {
-                                                "type": "string"
+                                                "type": "string",
+                                                "suricata": {
+                                                    "keywords": [
+                                                        "enip.cip_extendedstatus"
+                                                    ]
+                                                }
                                             },
                                             "status_extended_meaning": {
                                                 "type": "string"
@@ -1604,10 +1668,20 @@
                                     "type": "string"
                                 },
                                 "status": {
-                                    "type": "string"
+                                    "type": "string",
+                                    "suricata": {
+                                        "keywords": [
+                                            "enip.cip_status"
+                                        ]
+                                    }
                                 },
                                 "status_extended": {
-                                    "type": "string"
+                                    "type": "string",
+                                    "suricata": {
+                                        "keywords": [
+                                            "enip.cip_extendedstatus"
+                                        ]
+                                    }
                                 },
                                 "status_extended_meaning": {
                                     "type": "string"
@@ -1615,38 +1689,83 @@
                             }
                         },
                         "command": {
-                            "type": "string"
+                            "type": "string",
+                            "suricata": {
+                                "keywords": [
+                                    "enip.command"
+                                ]
+                            }
                         },
                         "identity": {
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
                                 "device_type": {
-                                    "type": "string"
+                                    "type": "string",
+                                    "suricata": {
+                                        "keywords": [
+                                            "enip.device_type"
+                                        ]
+                                    }
                                 },
                                 "product_code": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "suricata": {
+                                        "keywords": [
+                                            "enip.product_code"
+                                        ]
+                                    }
                                 },
                                 "product_name": {
                                     "type": "string"
                                 },
                                 "protocol_version": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "suricata": {
+                                        "keywords": [
+                                            "enip.protocol_version"
+                                        ]
+                                    }
                                 },
                                 "revision": {
-                                    "type": "string"
+                                    "type": "string",
+                                    "suricata": {
+                                        "keywords": [
+                                            "enip.revision"
+                                        ]
+                                    }
                                 },
                                 "serial": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "suricata": {
+                                        "keywords": [
+                                            "enip.serial"
+                                        ]
+                                    }
                                 },
                                 "state": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "suricata": {
+                                        "keywords": [
+                                            "enip.state"
+                                        ]
+                                    }
                                 },
                                 "status": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "suricata": {
+                                        "keywords": [
+                                            "enip.identity_status"
+                                        ]
+                                    }
                                 },
                                 "vendor_id": {
-                                    "type": "string"
+                                    "type": "string",
+                                    "suricata": {
+                                        "keywords": [
+                                            "enip.vendor_id"
+                                        ]
+                                    }
                                 }
                             }
                         },
@@ -1655,10 +1774,20 @@
                             "additionalProperties": false,
                             "properties": {
                                 "capabilities": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "suricata": {
+                                        "keywords": [
+                                            "enip.capabilities"
+                                        ]
+                                    }
                                 },
                                 "protocol_version": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "suricata": {
+                                        "keywords": [
+                                            "enip.protocol_version"
+                                        ]
+                                    }
                                 },
                                 "service_name": {
                                     "type": "string"
@@ -1673,12 +1802,22 @@
                                     "type": "integer"
                                 },
                                 "protocol_version": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "suricata": {
+                                        "keywords": [
+                                            "enip.protocol_version"
+                                        ]
+                                    }
                                 }
                             }
                         },
                         "status": {
-                            "type": "string"
+                            "type": "string",
+                            "suricata": {
+                                "keywords": [
+                                    "enip.status"
+                                ]
+                            }
                         }
                     }
                 }
@@ -1763,7 +1902,12 @@
                 },
                 "size": {
                     "type": "integer",
-                    "description": "The observed size fo the file, in bytes"
+                    "description": "The observed size fo the file, in bytes",
+                    "suricata": {
+                        "keywords": [
+                            "filesize"
+                        ]
+                    }
                 },
                 "start": {
                     "type": "integer",
@@ -2037,7 +2181,12 @@
                     }
                 },
                 "dynamic_port": {
-                    "type": "integer"
+                    "type": "integer",
+                    "suricata": {
+                        "keywords": [
+                            "ftp.dynamic_port"
+                        ]
+                    }
                 },
                 "mode": {
                     "type": "string"
@@ -2116,7 +2265,12 @@
                                     "type": "string"
                                 },
                                 "priority": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "suricata": {
+                                        "keywords": [
+                                            "http2.priority"
+                                        ]
+                                    }
                                 },
                                 "settings": {
                                     "type": "array",
@@ -2214,7 +2368,12 @@
                                 "type": "string"
                             },
                             "table_size_update": {
-                                "type": "integer"
+                                "type": "integer",
+                                "suricata": {
+                                    "keywords": [
+                                        "http2.size_update"
+                                    ]
+                                }
                             },
                             "value": {
                                 "type": "string"
@@ -2233,7 +2392,12 @@
                                 "type": "string"
                             },
                             "table_size_update": {
-                                "type": "integer"
+                                "type": "integer",
+                                "suricata": {
+                                    "keywords": [
+                                        "http2.size_update"
+                                    ]
+                                }
                             },
                             "value": {
                                 "type": "string"
@@ -2266,10 +2430,20 @@
             }
         },
         "icmp_code": {
-            "type": "integer"
+            "type": "integer",
+            "suricata": {
+                "keywords": [
+                    "icode"
+                ]
+            }
         },
         "icmp_type": {
-            "type": "integer"
+            "type": "integer",
+            "suricata": {
+                "keywords": [
+                    "itype"
+                ]
+            }
         },
         "ike": {
             "type": "object",
@@ -2300,7 +2474,12 @@
                     "type": "integer"
                 },
                 "exchange_type": {
-                    "type": "integer"
+                    "type": "integer",
+                    "suricata": {
+                        "keywords": [
+                            "ike.exchtype"
+                        ]
+                    }
                 },
                 "exchange_type_verbose": {
                     "type": "string"
@@ -2317,13 +2496,23 @@
                                     "type": "string"
                                 },
                                 "key_exchange_payload_length": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "suricata": {
+                                        "keywords": [
+                                            "ike.key_exchange_payload_length"
+                                        ]
+                                    }
                                 },
                                 "nonce_payload": {
                                     "type": "string"
                                 },
                                 "nonce_payload_length": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "suricata": {
+                                        "keywords": [
+                                            "ike.nonce_payload_length"
+                                        ]
+                                    }
                                 },
                                 "proposals": {
                                     "type": "array",
@@ -3508,13 +3697,23 @@
         "mqtt": {
             "type": "object",
             "additionalProperties": false,
+            "suricata": {
+                "keywords": [
+                    "mqtt.type"
+                ]
+            },
             "properties": {
                 "connack": {
                     "type": "object",
                     "additionalProperties": false,
                     "properties": {
                         "dup": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "suricata": {
+                                "keywords": [
+                                    "mqtt.flags"
+                                ]
+                            }
                         },
                         "properties": {
                             "type": "object",
@@ -3524,7 +3723,12 @@
                             "type": "integer"
                         },
                         "retain": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "suricata": {
+                                "keywords": [
+                                    "mqtt.flags"
+                                ]
+                            }
                         },
                         "return_code": {
                             "type": "integer"
@@ -3542,11 +3746,21 @@
                             "type": "string"
                         },
                         "dup": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "suricata": {
+                                "keywords": [
+                                    "mqtt.flags"
+                                ]
+                            }
                         },
                         "flags": {
                             "type": "object",
                             "additionalProperties": false,
+                            "suricata": {
+                                "keywords": [
+                                    "mqtt.connect.flags"
+                                ]
+                            },
                             "properties": {
                                 "clean_session": {
                                     "type": "boolean"
@@ -3576,13 +3790,23 @@
                             "type": "string"
                         },
                         "protocol_version": {
-                            "type": "integer"
+                            "type": "integer",
+                            "suricata": {
+                                "keywords": [
+                                    "mqtt.protocol_version"
+                                ]
+                            }
                         },
                         "qos": {
                             "type": "integer"
                         },
                         "retain": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "suricata": {
+                                "keywords": [
+                                    "mqtt.flags"
+                                ]
+                            }
                         },
                         "username": {
                             "type": "string"
@@ -3610,7 +3834,12 @@
                     "additionalProperties": false,
                     "properties": {
                         "dup": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "suricata": {
+                                "keywords": [
+                                    "mqtt.flags"
+                                ]
+                            }
                         },
                         "properties": {
                             "type": "object",
@@ -3620,10 +3849,20 @@
                             "type": "integer"
                         },
                         "reason_code": {
-                            "type": "integer"
+                            "type": "integer",
+                            "suricata": {
+                                "keywords": [
+                                    "mqtt.reason_code"
+                                ]
+                            }
                         },
                         "retain": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "suricata": {
+                                "keywords": [
+                                    "mqtt.flags"
+                                ]
+                            }
                         }
                     }
                 },
@@ -3632,13 +3871,23 @@
                     "additionalProperties": false,
                     "properties": {
                         "dup": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "suricata": {
+                                "keywords": [
+                                    "mqtt.flags"
+                                ]
+                            }
                         },
                         "qos": {
                             "type": "integer"
                         },
                         "retain": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "suricata": {
+                                "keywords": [
+                                    "mqtt.flags"
+                                ]
+                            }
                         }
                     }
                 },
@@ -3647,13 +3896,23 @@
                     "additionalProperties": false,
                     "properties": {
                         "dup": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "suricata": {
+                                "keywords": [
+                                    "mqtt.flags"
+                                ]
+                            }
                         },
                         "qos": {
                             "type": "integer"
                         },
                         "retain": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "suricata": {
+                                "keywords": [
+                                    "mqtt.flags"
+                                ]
+                            }
                         }
                     }
                 },
@@ -3662,7 +3921,12 @@
                     "additionalProperties": false,
                     "properties": {
                         "dup": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "suricata": {
+                                "keywords": [
+                                    "mqtt.flags"
+                                ]
+                            }
                         },
                         "message_id": {
                             "type": "integer"
@@ -3671,10 +3935,20 @@
                             "type": "integer"
                         },
                         "reason_code": {
-                            "type": "integer"
+                            "type": "integer",
+                            "suricata": {
+                                "keywords": [
+                                    "mqtt.reason_code"
+                                ]
+                            }
                         },
                         "retain": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "suricata": {
+                                "keywords": [
+                                    "mqtt.flags"
+                                ]
+                            }
                         }
                     }
                 },
@@ -3683,7 +3957,12 @@
                     "additionalProperties": false,
                     "properties": {
                         "dup": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "suricata": {
+                                "keywords": [
+                                    "mqtt.flags"
+                                ]
+                            }
                         },
                         "message_id": {
                             "type": "integer"
@@ -3692,10 +3971,20 @@
                             "type": "integer"
                         },
                         "reason_code": {
-                            "type": "integer"
+                            "type": "integer",
+                            "suricata": {
+                                "keywords": [
+                                    "mqtt.reason_code"
+                                ]
+                            }
                         },
                         "retain": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "suricata": {
+                                "keywords": [
+                                    "mqtt.flags"
+                                ]
+                            }
                         }
                     }
                 },
@@ -3704,7 +3993,12 @@
                     "additionalProperties": false,
                     "properties": {
                         "dup": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "suricata": {
+                                "keywords": [
+                                    "mqtt.flags"
+                                ]
+                            }
                         },
                         "message": {
                             "type": "string"
@@ -3720,7 +4014,12 @@
                             "type": "integer"
                         },
                         "retain": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "suricata": {
+                                "keywords": [
+                                    "mqtt.flags"
+                                ]
+                            }
                         },
                         "skipped_length": {
                             "type": "integer"
@@ -3738,7 +4037,12 @@
                     "additionalProperties": false,
                     "properties": {
                         "dup": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "suricata": {
+                                "keywords": [
+                                    "mqtt.flags"
+                                ]
+                            }
                         },
                         "message_id": {
                             "type": "integer"
@@ -3747,10 +4051,20 @@
                             "type": "integer"
                         },
                         "reason_code": {
-                            "type": "integer"
+                            "type": "integer",
+                            "suricata": {
+                                "keywords": [
+                                    "mqtt.reason_code"
+                                ]
+                            }
                         },
                         "retain": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "suricata": {
+                                "keywords": [
+                                    "mqtt.flags"
+                                ]
+                            }
                         }
                     }
                 },
@@ -3759,7 +4073,12 @@
                     "additionalProperties": false,
                     "properties": {
                         "dup": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "suricata": {
+                                "keywords": [
+                                    "mqtt.flags"
+                                ]
+                            }
                         },
                         "message_id": {
                             "type": "integer"
@@ -3768,10 +4087,20 @@
                             "type": "integer"
                         },
                         "reason_code": {
-                            "type": "integer"
+                            "type": "integer",
+                            "suricata": {
+                                "keywords": [
+                                    "mqtt.reason_code"
+                                ]
+                            }
                         },
                         "retain": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "suricata": {
+                                "keywords": [
+                                    "mqtt.flags"
+                                ]
+                            }
                         }
                     }
                 },
@@ -3780,7 +4109,12 @@
                     "additionalProperties": false,
                     "properties": {
                         "dup": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "suricata": {
+                                "keywords": [
+                                    "mqtt.flags"
+                                ]
+                            }
                         },
                         "message_id": {
                             "type": "integer"
@@ -3796,7 +4130,12 @@
                             }
                         },
                         "retain": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "suricata": {
+                                "keywords": [
+                                    "mqtt.flags"
+                                ]
+                            }
                         }
                     }
                 },
@@ -3805,7 +4144,12 @@
                     "additionalProperties": false,
                     "properties": {
                         "dup": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "suricata": {
+                                "keywords": [
+                                    "mqtt.flags"
+                                ]
+                            }
                         },
                         "message_id": {
                             "type": "integer"
@@ -3814,7 +4158,12 @@
                             "type": "integer"
                         },
                         "retain": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "suricata": {
+                                "keywords": [
+                                    "mqtt.flags"
+                                ]
+                            }
                         },
                         "topics": {
                             "type": "array",
@@ -3839,7 +4188,12 @@
                     "additionalProperties": false,
                     "properties": {
                         "dup": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "suricata": {
+                                "keywords": [
+                                    "mqtt.flags"
+                                ]
+                            }
                         },
                         "message_id": {
                             "type": "integer"
@@ -3852,10 +4206,20 @@
                             "minItems": 1,
                             "items": {
                                 "type": "integer"
+                            },
+                            "suricata": {
+                                "keywords": [
+                                    "mqtt.reason_code"
+                                ]
                             }
                         },
                         "retain": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "suricata": {
+                                "keywords": [
+                                    "mqtt.flags"
+                                ]
+                            }
                         }
                     }
                 },
@@ -3864,7 +4228,12 @@
                     "additionalProperties": false,
                     "properties": {
                         "dup": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "suricata": {
+                                "keywords": [
+                                    "mqtt.flags"
+                                ]
+                            }
                         },
                         "message_id": {
                             "type": "integer"
@@ -3873,7 +4242,12 @@
                             "type": "integer"
                         },
                         "retain": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "suricata": {
+                                "keywords": [
+                                    "mqtt.flags"
+                                ]
+                            }
                         },
                         "topics": {
                             "type": "array",
@@ -3967,7 +4341,12 @@
                     "type": "integer"
                 },
                 "procedure": {
-                    "type": "string"
+                    "type": "string",
+                    "suricata": {
+                        "keywords": [
+                            "nfs_procedure"
+                        ]
+                    }
                 },
                 "read": {
                     "type": "object",
@@ -4008,7 +4387,12 @@
                     "type": "string"
                 },
                 "version": {
-                    "type": "integer"
+                    "type": "integer",
+                    "suricata": {
+                        "keywords": [
+                            "nfs.version"
+                        ]
+                    }
                 },
                 "write": {
                     "type": "object",
@@ -4549,10 +4933,20 @@
                     "additionalProperties": false,
                     "properties": {
                         "security_result": {
-                            "type": "string"
+                            "type": "string",
+                            "suricata": {
+                                "keywords": [
+                                    "rfb.secresult"
+                                ]
+                            }
                         },
                         "security_type": {
-                            "type": "integer"
+                            "type": "integer",
+                            "suricata": {
+                                "keywords": [
+                                    "rfb.sectype"
+                                ]
+                            }
                         },
                         "vnc": {
                             "type": "object",
@@ -5164,7 +5558,12 @@
                     "type": "string"
                 },
                 "pdu_type": {
-                    "type": "string"
+                    "type": "string",
+                    "suricata": {
+                        "keywords": [
+                            "snmp.pdu_type"
+                        ]
+                    }
                 },
                 "usm": {
                     "type": "string"
@@ -5177,7 +5576,12 @@
                     }
                 },
                 "version": {
-                    "type": "integer"
+                    "type": "integer",
+                    "suricata": {
+                        "keywords": [
+                            "snmp.version"
+                        ]
+                    }
                 }
             },
             "optional": true
@@ -8009,9 +8413,19 @@
         },
         "vlan": {
             "type": "array",
+            "suricata": {
+                "keywords": [
+                    "vlan.layers"
+                ]
+            },
             "minItems": 1,
             "items": {
-                "type": "number"
+                "type": "number",
+                "suricata": {
+                    "keywords": [
+                        "vlan.id"
+                    ]
+                }
             }
         },
         "websocket": {
@@ -8019,13 +8433,28 @@
             "additionalProperties": false,
             "properties": {
                 "fin": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "suricata": {
+                        "keywords": [
+                            "websocket.flags"
+                        ]
+                    }
                 },
                 "mask": {
-                    "type": "integer"
+                    "type": "integer",
+                    "suricata": {
+                        "keywords": [
+                            "websocket.mask"
+                        ]
+                    }
                 },
                 "opcode": {
-                    "type": "string"
+                    "type": "string",
+                    "suricata": {
+                        "keywords": [
+                            "websocket.opcode"
+                        ]
+                    }
                 },
                 "payload_base64": {
                     "type": "string"
