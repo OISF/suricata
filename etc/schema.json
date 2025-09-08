@@ -26,6 +26,7 @@
                 },
                 "metadata": {
                     "type": "object",
+                    "additionalProperties": true,
                     "properties": {
                         "affected_product": {
                             "type": "array",
@@ -309,24 +310,21 @@
                             "type": "array",
                             "items": {
                                 "type": "object",
-                                "items": {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                        "id",
-                                        "ip",
-                                        "port"
-                                    ],
-                                    "properties": {
-                                        "id": {
-                                            "type": "string"
-                                        },
-                                        "ip": {
-                                            "type": "string"
-                                        },
-                                        "port": {
-                                            "type": "number"
-                                        }
+                                "additionalProperties": false,
+                                "required": [
+                                    "id",
+                                    "ip",
+                                    "port"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "string"
+                                    },
+                                    "ip": {
+                                        "type": "string"
+                                    },
+                                    "port": {
+                                        "type": "number"
                                     }
                                 }
                             }
@@ -360,7 +358,16 @@
                         "values": {
                             "type": "array",
                             "items": {
-                                "type": "object"
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "ip": {
+                                        "type": "string"
+                                    },
+                                    "port": {
+                                        "type": "number"
+                                    }
+                                }
                             }
                         }
                     }
@@ -597,7 +604,8 @@
                                         "type": "array",
                                         "minItems": 1,
                                         "items": {
-                                            "type": "object"
+                                            "type": "object",
+                                            "additionalProperties": true
                                         }
                                     },
                                     "prefix_code": {
@@ -712,7 +720,8 @@
                                                 "type": "array",
                                                 "minItems": 1,
                                                 "items": {
-                                                    "type": "object"
+                                                    "type": "object",
+                                                    "additionalProperties": true
                                                 }
                                             },
                                             "prefix_code": {
@@ -822,7 +831,8 @@
                                                 "type": "array",
                                                 "minItems": 1,
                                                 "items": {
-                                                    "type": "object"
+                                                    "type": "object",
+                                                    "additionalProperties": true
                                                 }
                                             },
                                             "prefix_code": {
@@ -3207,6 +3217,7 @@
                     "minItems": 1,
                     "items": {
                         "type": "object",
+                        "additionalProperties": false,
                         "properties": {
                             "rrname": {
                                 "description": "Resource name being requested",
@@ -3249,6 +3260,7 @@
             "properties": {
                 "entropy": {
                     "type": "object",
+                    "additionalProperties": true,
                     "suricata": {
                         "keywords": [
                             "entropy"
@@ -3269,6 +3281,7 @@
                 },
                 "flowints": {
                     "type": "object",
+                    "additionalProperties": true,
                     "suricata": {
                         "keywords": [
                             "flowint"
@@ -3280,6 +3293,7 @@
                     "minItems": 1,
                     "items": {
                         "type": "object",
+                        "additionalProperties": true,
                         "properties": {
                             "gid": {
                                 "type": "string"
@@ -3503,7 +3517,8 @@
                             "type": "boolean"
                         },
                         "properties": {
-                            "type": "object"
+                            "type": "object",
+                            "additionalProperties": true
                         },
                         "qos": {
                             "type": "integer"
@@ -3554,7 +3569,8 @@
                             "type": "string"
                         },
                         "properties": {
-                            "type": "object"
+                            "type": "object",
+                            "additionalProperties": true
                         },
                         "protocol_string": {
                             "type": "string"
@@ -3579,7 +3595,8 @@
                                     "type": "string"
                                 },
                                 "properties": {
-                                    "type": "object"
+                                    "type": "object",
+                                    "additionalProperties": true
                                 },
                                 "topic": {
                                     "type": "string"
@@ -3596,7 +3613,8 @@
                             "type": "boolean"
                         },
                         "properties": {
-                            "type": "object"
+                            "type": "object",
+                            "additionalProperties": true
                         },
                         "qos": {
                             "type": "integer"
@@ -3695,7 +3713,8 @@
                             "type": "integer"
                         },
                         "properties": {
-                            "type": "object"
+                            "type": "object",
+                            "additionalProperties": true
                         },
                         "qos": {
                             "type": "integer"
@@ -3870,6 +3889,7 @@
         },
         "ndpi": {
             "type": "object",
+            "additionalProperties": true,
             "description": "nDPI plugin, contents provided by 3rd party library"
         },
         "netflow": {
@@ -4057,6 +4077,7 @@
                     "properties": {
                         "copy_data_in": {
                             "type": "object",
+                            "additionalProperties": false,
                             "description": "CopyData message from CopyIn mode",
                             "properties": {
                                 "data_size": {
@@ -4110,6 +4131,7 @@
                                     "minItems": 1,
                                     "items": {
                                         "type": "object",
+                                        "additionalProperties": true,
                                         "properties": {
                                             "application_name": {
                                                 "type": "string"
@@ -4160,6 +4182,7 @@
                         },
                         "copy_data_out": {
                             "type": "object",
+                            "additionalProperties": false,
                             "description": "CopyData message from CopyOut mode",
                             "properties": {
                                 "data_size": {
@@ -4174,6 +4197,7 @@
                         },
                         "copy_in_response": {
                             "type": "object",
+                            "additionalProperties": false,
                             "description": "Backend/server response accepting CopyIn mode",
                             "properties": {
                                 "columns": {
@@ -4184,6 +4208,7 @@
                         },
                         "copy_out_response": {
                             "type": "object",
+                            "additionalProperties": false,
                             "description": "Backend/server response accepting CopyOut mode",
                             "properties": {
                                 "columns": {
@@ -4215,6 +4240,7 @@
                             "minItems": 1,
                             "items": {
                                 "type": "object",
+                                "additionalProperties": true,
                                 "properties": {
                                     "application_name": {
                                         "type": "string"
@@ -4283,9 +4309,11 @@
         },
         "pop3": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "request": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "args": {
                             "type": "array",
@@ -4303,6 +4331,7 @@
                 },
                 "response": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "data": {
                             "type": "array",
@@ -5760,6 +5789,7 @@
                 },
                 "capture": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "kernel_drops": {
                             "type": "integer"
@@ -6738,6 +6768,7 @@
                 },
                 "exception_policy": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "app_layer": {
                             "type": "object",
@@ -7466,7 +7497,8 @@
             "type": "integer"
         },
         "stream_tcp": {
-            "type": "object"
+            "type": "object",
+            "additionalProperties": true
         },
         "suricata_version": {
             "type": "string"
@@ -7476,6 +7508,7 @@
         },
         "tcp": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "ack": {
                     "type": "boolean"
@@ -7701,6 +7734,7 @@
                 },
                 "client_handshake": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "ciphers": {
                             "description": "TLS client cipher(s)",
@@ -7847,6 +7881,7 @@
                 },
                 "server_handshake": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "cipher": {
                             "description": "TLS server's chosen cipher",
@@ -8162,6 +8197,7 @@
         },
         "verdict_type": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "action": {
                     "type": "string"
@@ -8196,6 +8232,7 @@
         },
         "exceptionPolicy": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "bypass": {
                     "type": "integer",
