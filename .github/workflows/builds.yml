@@ -237,6 +237,9 @@ jobs:
       - name: Check EVE schema ordering
         run: ./scripts/schema-sort.py --check ./etc/schema.json
 
+      - name: Check EVE schema has all additionalProperties
+        run: test $(cat etc/schema.json | 'paths( objects | (.type == "object" and (has("additionalProperties") | not) )) | join(".")' | wc -l) = "0"
+
   almalinux-9:
     name: AlmaLinux 9 (schema)
     runs-on: ubuntu-latest
