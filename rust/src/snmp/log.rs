@@ -17,25 +17,10 @@
 
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
+use crate::detect::EnumString;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
-use crate::snmp::snmp::SNMPTransaction;
-use crate::snmp::snmp_parser::{NetworkAddress, PduType};
-use std::borrow::Cow;
-
-fn str_of_pdu_type(t: &PduType) -> Cow<'_, str> {
-    match t {
-        &PduType::GetRequest => Cow::Borrowed("get_request"),
-        &PduType::GetNextRequest => Cow::Borrowed("get_next_request"),
-        &PduType::Response => Cow::Borrowed("response"),
-        &PduType::SetRequest => Cow::Borrowed("set_request"),
-        &PduType::TrapV1 => Cow::Borrowed("trap_v1"),
-        &PduType::GetBulkRequest => Cow::Borrowed("get_bulk_request"),
-        &PduType::InformRequest => Cow::Borrowed("inform_request"),
-        &PduType::TrapV2 => Cow::Borrowed("trap_v2"),
-        &PduType::Report => Cow::Borrowed("report"),
-        x => Cow::Owned(format!("Unknown(0x{:x})", x.0)),
-    }
-}
+use crate::snmp::snmp::{SNMPTransaction, SnmpPduType};
+use crate::snmp::snmp_parser::NetworkAddress;
 
 fn snmp_log_response(jsb: &mut JsonBuilder, tx: &SNMPTransaction) -> Result<(), JsonError> {
     jsb.open_object("snmp")?;
@@ -44,7 +29,11 @@ fn snmp_log_response(jsb: &mut JsonBuilder, tx: &SNMPTransaction) -> Result<(), 
         jsb.set_string("pdu_type", "encrypted")?;
     } else {
         if let Some(ref info) = tx.info {
-            jsb.set_string("pdu_type", &str_of_pdu_type(&info.pdu_type))?;
+            if let Some(pt) = SnmpPduType::from_u(info.pdu_type.0) {
+                jsb.set_string("pdu_type", pt.to_str())?;
+            } else {
+                jsb.set_string("pdu_type", &format!("Unknown(0x{:x})", info.pdu_type.0))?;
+            }
             if info.err.0 != 0 {
                 jsb.set_string("error", &format!("{:?}", info.err))?;
             }
