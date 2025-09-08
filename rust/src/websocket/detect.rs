@@ -22,8 +22,8 @@ use crate::detect::uint::{
     SCDetectU32Match, SCDetectU32Parse, SCDetectU8Free, SCDetectU8Match,
 };
 use crate::detect::{
-    helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer, SIGMATCH_INFO_ENUM_UINT,
-    SIGMATCH_INFO_UINT32, SIGMATCH_INFO_UINT8,
+    helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer, SIGMATCH_INFO_BITFLAGS_UINT,
+    SIGMATCH_INFO_ENUM_UINT, SIGMATCH_INFO_UINT32, SIGMATCH_INFO_UINT8,
 };
 use crate::websocket::parser::WebSocketOpcode;
 use suricata_sys::sys::{
@@ -306,7 +306,7 @@ pub unsafe extern "C" fn SCDetectWebsocketRegister() {
         AppLayerTxMatch: Some(websocket_detect_flags_match),
         Setup: Some(websocket_detect_flags_setup),
         Free: Some(websocket_detect_flags_free),
-        flags: SIGMATCH_INFO_UINT8,
+        flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_BITFLAGS_UINT,
     };
     G_WEBSOCKET_FLAGS_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_WEBSOCKET_FLAGS_BUFFER_ID = SCDetectHelperBufferRegister(
