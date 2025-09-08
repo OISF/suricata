@@ -24,7 +24,8 @@ use crate::detect::uint::{
     detect_match_uint, detect_parse_uint_enum, DetectUintData, SCDetectU32Free, SCDetectU32Parse,
 };
 use crate::detect::{
-    helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer, SIGMATCH_INFO_UINT32,
+    helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer, SIGMATCH_INFO_ENUM_UINT,
+    SIGMATCH_INFO_UINT32,
 };
 use std::ffi::CStr;
 use std::os::raw::{c_int, c_void};
@@ -220,7 +221,7 @@ pub unsafe extern "C" fn SCDetectRfbRegister() {
         AppLayerTxMatch: Some(rfb_sec_result_match),
         Setup: Some(rfb_sec_result_setup),
         Free: Some(rfb_sec_result_free),
-        flags: SIGMATCH_INFO_UINT32,
+        flags: SIGMATCH_INFO_UINT32 | SIGMATCH_INFO_ENUM_UINT,
     };
     G_RFB_SEC_RESULT_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_RFB_SEC_RESULT_BUFFER_ID = SCDetectHelperBufferRegister(
