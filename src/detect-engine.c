@@ -1392,15 +1392,6 @@ const char *DetectEngineBufferTypeGetDescriptionById(const DetectEngineCtx *de_c
     return exists->description;
 }
 
-const char *DetectBufferTypeGetDescriptionByName(const char *name)
-{
-    const DetectBufferType *exists = DetectBufferTypeLookupByName(name);
-    if (!exists) {
-        return NULL;
-    }
-    return exists->description;
-}
-
 void DetectEngineBufferTypeSupportsFrames(DetectEngineCtx *de_ctx, const char *name)
 {
     DetectBufferType *exists = DetectEngineBufferTypeLookupByName(de_ctx, name);
