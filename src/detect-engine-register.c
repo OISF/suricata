@@ -343,6 +343,8 @@ static void PrintFeatureList(const SigTableElmt *e, char sep)
             printf("multi ");
         if (flags & SIGMATCH_INFO_ENUM_UINT)
             printf("enum ");
+        if (flags & SIGMATCH_INFO_BITFLAGS_UINT)
+            printf("bitflags ");
         if (flags & SIGMATCH_INFO_UINT8)
             printf("uint8");
         if (flags & SIGMATCH_INFO_UINT16)

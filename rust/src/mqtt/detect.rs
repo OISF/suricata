@@ -24,8 +24,8 @@ use crate::detect::uint::{
 };
 use crate::detect::{
     helper_keyword_register_multi_buffer, helper_keyword_register_sticky_buffer,
-    SigTableElmtStickyBuffer, SIGMATCH_INFO_ENUM_UINT, SIGMATCH_INFO_MULTI_UINT,
-    SIGMATCH_INFO_UINT8,
+    SigTableElmtStickyBuffer, SIGMATCH_INFO_BITFLAGS_UINT, SIGMATCH_INFO_ENUM_UINT,
+    SIGMATCH_INFO_MULTI_UINT, SIGMATCH_INFO_UINT8,
 };
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
@@ -1142,7 +1142,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         AppLayerTxMatch: Some(mqtt_flags_match),
         Setup: Some(mqtt_flags_setup),
         Free: Some(mqtt_flags_free),
-        flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_MULTI_UINT,
+        flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_MULTI_UINT | SIGMATCH_INFO_BITFLAGS_UINT,
     };
     G_MQTT_FLAGS_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_MQTT_FLAGS_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -1157,7 +1157,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         AppLayerTxMatch: Some(mqtt_conn_flags_match),
         Setup: Some(mqtt_conn_flags_setup),
         Free: Some(mqtt_conn_flags_free),
-        flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_MULTI_UINT,
+        flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_MULTI_UINT | SIGMATCH_INFO_BITFLAGS_UINT,
     };
     G_MQTT_CONN_FLAGS_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_MQTT_CONN_FLAGS_BUFFER_ID = SCDetectHelperBufferRegister(
