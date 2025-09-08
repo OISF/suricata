@@ -156,7 +156,6 @@ void StreamReassembleRawUpdateProgress(TcpSession *ssn, Packet *p, const uint64_
 void StreamTcpDetectLogFlush(ThreadVars *tv, StreamTcpThread *stt, Flow *f, Packet *p, PacketQueueNoLock *pq);
 
 const char *StreamTcpStateAsString(const enum TcpState);
-const char *StreamTcpSsnStateAsString(const TcpSession *ssn);
 
 enum ExceptionPolicy StreamTcpSsnMemcapGetExceptionPolicy(void);
 enum ExceptionPolicy StreamTcpReassemblyMemcapGetExceptionPolicy(void);
