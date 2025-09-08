@@ -335,36 +335,22 @@ static void PrintFeatureList(const SigTableElmt *e, char sep)
         printf("multi buffer");
         prev = 1;
     }
-    if (flags & SIGMATCH_INFO_UINT8) {
+    if (flags & (SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_UINT16 | SIGMATCH_INFO_UINT32 |
+                        SIGMATCH_INFO_UINT64)) {
         if (prev == 1)
             printf("%c", sep);
         if (flags & SIGMATCH_INFO_MULTI_UINT)
             printf("multi ");
-        printf("uint8");
-        prev = 1;
-    }
-    if (flags & SIGMATCH_INFO_UINT16) {
-        if (prev == 1)
-            printf("%c", sep);
-        if (flags & SIGMATCH_INFO_MULTI_UINT)
-            printf("multi ");
-        printf("uint16");
-        prev = 1;
-    }
-    if (flags & SIGMATCH_INFO_UINT32) {
-        if (prev == 1)
-            printf("%c", sep);
-        if (flags & SIGMATCH_INFO_MULTI_UINT)
-            printf("multi ");
-        printf("uint32");
-        prev = 1;
-    }
-    if (flags & SIGMATCH_INFO_UINT64) {
-        if (prev == 1)
-            printf("%c", sep);
-        if (flags & SIGMATCH_INFO_MULTI_UINT)
-            printf("multi ");
-        printf("uint64");
+        if (flags & SIGMATCH_INFO_ENUM_UINT)
+            printf("enum ");
+        if (flags & SIGMATCH_INFO_UINT8)
+            printf("uint8");
+        if (flags & SIGMATCH_INFO_UINT16)
+            printf("uint16");
+        if (flags & SIGMATCH_INFO_UINT32)
+            printf("uint32");
+        if (flags & SIGMATCH_INFO_UINT64)
+            printf("uint64");
         prev = 1;
     }
     if (e->Transform) {

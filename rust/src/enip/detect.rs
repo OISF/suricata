@@ -36,8 +36,8 @@ use crate::detect::uint::{
     SCDetectU8Match, SCDetectU8Parse,
 };
 use crate::detect::{
-    helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer, SIGMATCH_INFO_MULTI_UINT,
-    SIGMATCH_INFO_UINT16, SIGMATCH_INFO_UINT32, SIGMATCH_INFO_UINT8,
+    helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer, SIGMATCH_INFO_ENUM_UINT,
+    SIGMATCH_INFO_MULTI_UINT, SIGMATCH_INFO_UINT16, SIGMATCH_INFO_UINT32, SIGMATCH_INFO_UINT8,
 };
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
@@ -1428,7 +1428,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         AppLayerTxMatch: Some(status_match),
         Setup: Some(status_setup),
         Free: Some(status_free),
-        flags: SIGMATCH_INFO_UINT32,
+        flags: SIGMATCH_INFO_UINT32 | SIGMATCH_INFO_ENUM_UINT,
     };
     G_ENIP_STATUS_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_ENIP_STATUS_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -1518,7 +1518,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         AppLayerTxMatch: Some(command_match),
         Setup: Some(command_setup),
         Free: Some(command_free),
-        flags: SIGMATCH_INFO_UINT16,
+        flags: SIGMATCH_INFO_UINT16 | SIGMATCH_INFO_ENUM_UINT,
     };
     G_ENIP_COMMAND_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_ENIP_COMMAND_BUFFER_ID = SCDetectHelperBufferRegister(

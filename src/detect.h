@@ -1692,6 +1692,8 @@ typedef struct SigGroupHead_ {
 #define SIGMATCH_INFO_UINT64 BIT_U32(18)
 /** keyword is a multi uint */
 #define SIGMATCH_INFO_MULTI_UINT BIT_U32(19)
+/** keyword is an uint with enumeration stringer */
+#define SIGMATCH_INFO_ENUM_UINT BIT_U32(20)
 
 enum DetectEngineTenantSelectors
 {

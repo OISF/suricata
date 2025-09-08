@@ -124,6 +124,7 @@ exclude = [
     "SIGMATCH_INFO_UINT32",
     "SIGMATCH_INFO_UINT64",
     "SIGMATCH_INFO_MULTI_UINT",
+    "SIGMATCH_INFO_ENUM_UINT",
     "FtpCommand",
 ]
 
