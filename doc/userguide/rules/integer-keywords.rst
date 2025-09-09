@@ -88,3 +88,26 @@ Examples::
 
     websocket.flags:fin,!comp;
     websocket.flags:&0xc0=0x80; # behaves the same
+
+.. _multi-integers:
+
+Multi-integers
+--------------
+
+As :ref:`multi-buffers <rules-multi-buffer-matching>` and sticky buffers,
+some integer keywords are also multi-integer.
+
+They expand the syntax of a single integer::
+ keyword: operation and value[,index];
+
+.. table:: **Index values for multi-integers keyword**
+
+    =========  ================================================
+    Value      Description
+    =========  ================================================
+    [default]  Match with any index
+    any        Match with any index
+    all        Match only if all indexes match
+    0>=        Match specific index
+    0<         Match specific index with back to front indexing
+    =========  ================================================
