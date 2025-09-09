@@ -20,6 +20,7 @@ use crate::nfs::nfs::*;
 use crate::nfs::types::*;
 use crc::crc32;
 use std::string::String;
+use crate::detect::EnumString;
 
 #[no_mangle]
 pub extern "C" fn SCNfsTxLoggingIsFiltered(state: &mut NFSState, tx: &NFSTransaction) -> u8 {
@@ -81,12 +82,19 @@ fn nfs_common_header(
     state: &NFSState, tx: &NFSTransaction, js: &mut JsonBuilder,
 ) -> Result<(), JsonError> {
     js.set_uint("version", state.nfs_version as u64)?;
-    let proc_string = if state.nfs_version < 4 {
-        nfs3_procedure_string(tx.procedure)
+    if state.nfs_version < 4 {
+        if let Some(proc) = NfsProc3::from_u(tx.procedure) {
+            js.set_string("procedure", &proc.to_str().to_uppercase())?;
+        } else {
+            js.set_string("procedure", &format!("{}", tx.procedure.to_string()))?;
+        }
     } else {
-        nfs4_procedure_string(tx.procedure)
-    };
-    js.set_string("procedure", &proc_string)?;
+        if let Some(proc) = NfsProc4::from_u(tx.procedure) {
+            js.set_string("procedure", &proc.to_str().to_uppercase())?;
+        } else {
+            js.set_string("procedure", &format!("{}", tx.procedure.to_string()))?;
+        }
+    }
     let file_name = String::from_utf8_lossy(&tx.file_name);
     js.set_string("filename", &file_name)?;
 

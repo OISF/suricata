@@ -71,7 +71,6 @@
 #include "detect-http-host.h"
 
 #include "detect-mark.h"
-#include "detect-nfs-procedure.h"
 #include "detect-nfs-version.h"
 
 #include "detect-engine-event.h"
@@ -678,7 +677,7 @@ void SigTableSetup(void)
     DetectTlsRegister();
     DetectTlsValidityRegister();
     DetectTlsVersionRegister();
-    DetectNfsProcedureRegister();
+    SCDetectNfsProcedureRegister();
     DetectNfsVersionRegister();
     DetectUrilenRegister();
     DetectBsizeRegister();

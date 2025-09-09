@@ -17,6 +17,7 @@
 
 //! NFS application layer, parser, logger module.
 
+pub mod detect;
 pub mod log;
 pub mod nfs;
 pub mod nfs2;
