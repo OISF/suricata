@@ -19,7 +19,9 @@ use super::http2::{
     HTTP2Event, HTTP2Frame, HTTP2FrameTypeData, HTTP2State, HTTP2Transaction, HTTP2TransactionState,
 };
 use super::parser;
-use crate::detect::uint::{detect_match_uint, DetectUintData};
+use crate::detect::uint::{
+    detect_match_uint, detect_uint_match_at_index, DetectUintArrayData, DetectUintData,
+};
 use crate::direction::Direction;
 use base64::{engine::general_purpose::STANDARD, Engine};
 use std::ffi::CStr;
@@ -128,64 +130,38 @@ pub unsafe extern "C" fn SCHttp2ParseErrorCode(
     return -1;
 }
 
-fn http2_tx_get_next_priority(
-    tx: &HTTP2Transaction, direction: Direction, nb: u32,
+fn get_http2_priority(frame: &HTTP2Frame) -> Option<u8> {
+    return match &frame.data {
+        HTTP2FrameTypeData::PRIORITY(prio) => Some(prio.weight),
+        HTTP2FrameTypeData::HEADERS(hd) => {
+            if let Some(prio) = hd.priority {
+                return Some(prio.weight);
+            }
+            None
+        }
+        _ => None,
+    };
+}
+
+fn http2_match_priority(
+    tx: &HTTP2Transaction, direction: Direction, ctx: &DetectUintArrayData<u8>,
 ) -> std::os::raw::c_int {
-    let mut pos = 0_u32;
-    if direction == Direction::ToServer {
-        for i in 0..tx.frames_ts.len() {
-            match &tx.frames_ts[i].data {
-                HTTP2FrameTypeData::PRIORITY(prio) => {
-                    if pos == nb {
-                        return prio.weight as i32;
-                    } else {
-                        pos += 1;
-                    }
-                }
-                HTTP2FrameTypeData::HEADERS(hd) => {
-                    if let Some(prio) = hd.priority {
-                        if pos == nb {
-                            return prio.weight as i32;
-                        } else {
-                            pos += 1;
-                        }
-                    }
-                }
-                _ => {}
-            }
-        }
+    let frames = if direction == Direction::ToServer {
+        &tx.frames_ts
     } else {
-        for i in 0..tx.frames_tc.len() {
-            match &tx.frames_tc[i].data {
-                HTTP2FrameTypeData::PRIORITY(prio) => {
-                    if pos == nb {
-                        return prio.weight as i32;
-                    } else {
-                        pos += 1;
-                    }
-                }
-                HTTP2FrameTypeData::HEADERS(hd) => {
-                    if let Some(prio) = hd.priority {
-                        if pos == nb {
-                            return prio.weight as i32;
-                        } else {
-                            pos += 1;
-                        }
-                    }
-                }
-                _ => {}
-            }
-        }
-    }
-    return -1;
+        &tx.frames_tc
+    };
+
+    return detect_uint_match_at_index::<HTTP2Frame, u8>(frames, ctx, get_http2_priority);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCHttp2TxGetNextPriority(
-    tx: *mut std::os::raw::c_void, direction: u8, nb: u32,
+pub unsafe extern "C" fn SCHttp2PriorityMatch(
+    tx: *mut std::os::raw::c_void, direction: u8, ctx: *const std::os::raw::c_void,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, HTTP2Transaction);
-    return http2_tx_get_next_priority(tx, direction.into(), nb);
+    let ctx = cast_pointer!(ctx, DetectUintArrayData<u8>);
+    return http2_match_priority(tx, direction.into(), ctx);
 }
 
 fn http2_tx_get_next_window(
