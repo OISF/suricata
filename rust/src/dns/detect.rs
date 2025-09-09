@@ -109,12 +109,9 @@ unsafe extern "C" fn dns_rrtype_match(
 
     if flags & Direction::ToServer as u8 != 0 {
         if let Some(request) = &tx.request {
-            return detect_uint_match_at_index::<DNSQueryEntry, u16>(
-                &request.queries,
-                ctx,
-                |q| Some(q.rrtype),
-                |rrt, ctx_value| detect_match_uint(ctx_value, rrt) as c_int,
-            );
+            return detect_uint_match_at_index::<DNSQueryEntry, u16>(&request.queries, ctx, |q| {
+                Some(q.rrtype)
+            });
         }
     } else if flags & Direction::ToClient as u8 != 0 {
         if let Some(response) = &tx.response {
@@ -122,7 +119,6 @@ unsafe extern "C" fn dns_rrtype_match(
                 &response.answers,
                 ctx,
                 |a| Some(a.rrtype),
-                |rrt, ctx_value| detect_match_uint(ctx_value, rrt) as c_int,
             );
         }
     }

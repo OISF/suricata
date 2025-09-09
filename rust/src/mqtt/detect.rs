@@ -19,9 +19,8 @@
 
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{
-    detect_match_uint, detect_parse_array_uint_enum, detect_parse_uint,
-    detect_uint_match_at_index, DetectUintArrayData, DetectUintData, DetectUintMode,
-    SCDetectU8Free, SCDetectU8Parse,
+    detect_match_uint, detect_parse_array_uint_enum, detect_parse_uint, detect_uint_match_at_index,
+    DetectUintArrayData, DetectUintData, DetectUintMode, SCDetectU8Free, SCDetectU8Parse,
 };
 use crate::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
 use suricata_sys::sys::{
@@ -46,12 +45,9 @@ use std::ptr;
 use std::str::FromStr;
 
 fn mqtt_tx_has_type(tx: &MQTTTransaction, ctx: &DetectUintArrayData<u8>) -> c_int {
-    return detect_uint_match_at_index::<MQTTMessage, u8>(
-        &tx.msg,
-        ctx,
-        |msg| Some(msg.header.message_type as u8),
-        |mtype, ctx_value| detect_match_uint(ctx_value, mtype) as c_int,
-    );
+    return detect_uint_match_at_index::<MQTTMessage, u8>(&tx.msg, ctx, |msg| {
+        Some(msg.header.message_type as u8)
+    });
 }
 
 unsafe extern "C" fn mqtt_conn_clientid_get_data(

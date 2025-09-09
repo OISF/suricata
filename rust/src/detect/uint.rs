@@ -94,15 +94,14 @@ pub(crate) fn detect_parse_array_uint_enum<T1: DetectIntType, T2: EnumString<T1>
     Some(DetectUintArrayData { du, index })
 }
 
-pub(crate) fn detect_uint_match_at_index<T, U>(
+pub(crate) fn detect_uint_match_at_index<T, U: DetectIntType>(
     array: &Vec<T>, ctx: &DetectUintArrayData<U>, get_value: impl Fn(&T) -> Option<U>,
-    detect_match: impl Fn(U, &DetectUintData<U>) -> c_int,
 ) -> c_int {
     match ctx.index {
         DetectUintIndex::Any => {
             for response in array {
                 if let Some(code) = get_value(response) {
-                    if detect_match(code, &ctx.du) == 1 {
+                    if detect_match_uint::<U>(&ctx.du, code) {
                         return 1;
                     }
                 }
@@ -112,7 +111,7 @@ pub(crate) fn detect_uint_match_at_index<T, U>(
         DetectUintIndex::All => {
             for response in array {
                 if let Some(code) = get_value(response) {
-                    if detect_match(code, &ctx.du) == 0 {
+                    if !detect_match_uint::<U>(&ctx.du, code) {
                         return 0;
                     }
                 }
@@ -130,7 +129,7 @@ pub(crate) fn detect_uint_match_at_index<T, U>(
                 return 0;
             }
             if let Some(code) = get_value(&array[index]) {
-                return detect_match(code, &ctx.du);
+                return detect_match_uint::<U>(&ctx.du, code) as c_int;
             }
             return 0;
         }
