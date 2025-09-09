@@ -1,3 +1,5 @@
+.. _rules-multi-buffer-matching:
+
 Multiple Buffer Matching
 ========================
 
