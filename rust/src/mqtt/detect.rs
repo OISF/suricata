@@ -19,7 +19,8 @@
 
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{
-    detect_match_uint, detect_parse_uint, detect_parse_uint_enum, DetectUintData, DetectUintMode,
+    detect_match_uint, detect_parse_array_uint_enum, detect_parse_uint,
+    detect_uint_match_at_index, DetectUintArrayData, DetectUintData, DetectUintMode,
     SCDetectU8Free, SCDetectU8Parse,
 };
 use crate::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
@@ -38,19 +39,19 @@ use nom7::IResult;
 
 use super::mqtt::{MQTTState, MQTTTransaction, ALPROTO_MQTT};
 use crate::conf::conf_get;
-use crate::mqtt::mqtt_message::{MQTTOperation, MQTTTypeCode};
+use crate::mqtt::mqtt_message::{MQTTMessage, MQTTOperation, MQTTTypeCode};
 use std::ffi::CStr;
 use std::os::raw::{c_int, c_void};
 use std::ptr;
 use std::str::FromStr;
 
-fn mqtt_tx_has_type(tx: &MQTTTransaction, mtype: &DetectUintData<u8>) -> c_int {
-    for msg in tx.msg.iter() {
-        if detect_match_uint(mtype, msg.header.message_type as u8) {
-            return 1;
-        }
-    }
-    return 0;
+fn mqtt_tx_has_type(tx: &MQTTTransaction, ctx: &DetectUintArrayData<u8>) -> c_int {
+    return detect_uint_match_at_index::<MQTTMessage, u8>(
+        &tx.msg,
+        ctx,
+        |msg| Some(msg.header.message_type as u8),
+        |mtype, ctx_value| detect_match_uint(ctx_value, mtype) as c_int,
+    );
 }
 
 unsafe extern "C" fn mqtt_conn_clientid_get_data(
@@ -382,10 +383,12 @@ unsafe extern "C" fn sub_topic_setup(
     return 0;
 }
 
-unsafe extern "C" fn mqtt_parse_type(ustr: *const std::os::raw::c_char) -> *mut DetectUintData<u8> {
+unsafe extern "C" fn mqtt_parse_type(
+    ustr: *const std::os::raw::c_char,
+) -> *mut DetectUintArrayData<u8> {
     let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
     if let Ok(s) = ft_name.to_str() {
-        if let Some(ctx) = detect_parse_uint_enum::<u8, MQTTTypeCode>(s) {
+        if let Some(ctx) = detect_parse_array_uint_enum::<u8, MQTTTypeCode>(s) {
             let boxed = Box::new(ctx);
             return Box::into_raw(boxed) as *mut _;
         }
@@ -423,14 +426,14 @@ unsafe extern "C" fn mqtt_type_match(
     tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, MQTTTransaction);
-    let ctx = cast_pointer!(ctx, DetectUintData<u8>);
+    let ctx = cast_pointer!(ctx, DetectUintArrayData<u8>);
     return mqtt_tx_has_type(tx, ctx);
 }
 
 unsafe extern "C" fn mqtt_type_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     // Just unbox...
-    let ctx = cast_pointer!(ctx, DetectUintData<u8>);
-    SCDetectU8Free(ctx);
+    let ctx = cast_pointer!(ctx, DetectUintArrayData<u8>);
+    std::mem::drop(Box::from_raw(ctx));
 }
 
 unsafe extern "C" fn mqtt_reason_code_setup(
@@ -1324,19 +1327,19 @@ mod test {
 
     #[test]
     fn mqtt_type_test_parse() {
-        let ctx = detect_parse_uint_enum::<u8, MQTTTypeCode>("CONNECT").unwrap();
-        assert_eq!(ctx.arg1, 1);
-        assert_eq!(ctx.mode, DetectUintMode::DetectUintModeEqual);
-        let ctx = detect_parse_uint_enum::<u8, MQTTTypeCode>("PINGRESP").unwrap();
-        assert_eq!(ctx.arg1, 13);
-        assert_eq!(ctx.mode, DetectUintMode::DetectUintModeEqual);
-        let ctx = detect_parse_uint_enum::<u8, MQTTTypeCode>("auth").unwrap();
-        assert_eq!(ctx.arg1, 15);
-        assert_eq!(ctx.mode, DetectUintMode::DetectUintModeEqual);
-        assert!(detect_parse_uint_enum::<u8, MQTTTypeCode>("invalidopt").is_none());
-        let ctx = detect_parse_uint_enum::<u8, MQTTTypeCode>("unassigned").unwrap();
-        assert_eq!(ctx.arg1, 0);
-        assert_eq!(ctx.mode, DetectUintMode::DetectUintModeEqual);
+        let ctx = detect_parse_array_uint_enum::<u8, MQTTTypeCode>("CONNECT").unwrap();
+        assert_eq!(ctx.du.arg1, 1);
+        assert_eq!(ctx.du.mode, DetectUintMode::DetectUintModeEqual);
+        let ctx = detect_parse_array_uint_enum::<u8, MQTTTypeCode>("PINGRESP").unwrap();
+        assert_eq!(ctx.du.arg1, 13);
+        assert_eq!(ctx.du.mode, DetectUintMode::DetectUintModeEqual);
+        let ctx = detect_parse_array_uint_enum::<u8, MQTTTypeCode>("auth").unwrap();
+        assert_eq!(ctx.du.arg1, 15);
+        assert_eq!(ctx.du.mode, DetectUintMode::DetectUintModeEqual);
+        assert!(detect_parse_array_uint_enum::<u8, MQTTTypeCode>("invalidopt").is_none());
+        let ctx = detect_parse_array_uint_enum::<u8, MQTTTypeCode>("unassigned").unwrap();
+        assert_eq!(ctx.du.arg1, 0);
+        assert_eq!(ctx.du.mode, DetectUintMode::DetectUintModeEqual);
     }
 
     #[test]
