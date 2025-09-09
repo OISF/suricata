@@ -48,6 +48,8 @@ where ``UNASSIGNED`` refers to message type code 0.
 
 mqtt.type uses an :ref:`unsigned 8-bits integer <rules-integer-keywords>`.
 
+mqtt.type is also a :ref:`multi-integer <multi-integers>`.
+
 Examples::
 
   mqtt.type:CONNECT;
