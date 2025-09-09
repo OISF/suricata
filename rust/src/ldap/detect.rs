@@ -151,12 +151,9 @@ unsafe extern "C" fn ldap_detect_responses_operation_match(
     let tx = cast_pointer!(tx, LdapTransaction);
     let ctx = cast_pointer!(ctx, DetectUintArrayData<u8>);
 
-    return detect_uint_match_at_index::<LdapMessage, u8>(
-        &tx.responses,
-        ctx,
-        |response| Some(response.protocol_op.tag().0 as u8),
-        |code, ctx_value| detect_match_uint(ctx_value, code) as c_int,
-    );
+    return detect_uint_match_at_index::<LdapMessage, u8>(&tx.responses, ctx, |response| {
+        Some(response.protocol_op.tag().0 as u8)
+    });
 }
 
 unsafe extern "C" fn ldap_detect_responses_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
@@ -353,7 +350,6 @@ unsafe extern "C" fn ldap_detect_responses_result_code_match(
         &tx.responses,
         ctx,
         get_ldap_result_code,
-        |code, ctx_value| detect_match_uint(ctx_value, code) as c_int,
     );
 }
 
