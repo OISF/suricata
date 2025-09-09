@@ -34,6 +34,21 @@ also check all the new features that have been added but are not covered by
 this guide. Those features are either not enabled by default or require
 dedicated new configuration.
 
+Upgrading to 8.0.1
+------------------
+
+Major changes
+~~~~~~~~~~~~~
+
+- Various expected PPP packet types will no longer be marked as Unsupported Protocol
+  when in a PPPOE packet.
+- Added Cisco Discovery Protocol Control Protocol as a valid PPP packet.
+
+Keyword changes
+~~~~~~~~~~~~~~~
+- Usage of multiple ``tls.cert_subject`` in a rule will print a warning
+  as this keyword was not and is not implemented as a multi-buffer.
+
 Upgrading 7.0 to 8.0
 --------------------
 .. note:: ``stats.whitelist`` has been renamed to ``stats.score`` in ``eve.json``
@@ -176,9 +191,6 @@ Major changes
   of a request/response in the respective direction. This means that earlier a
   content that matched just because it fell in the inspection chunk without wholly
   belonging to any one request/response may not match any longer.
-- Various expected PPP packet types will no longer be marked as Unsupported Protocol
-  when in a PPPOE packet.
-- Added Cisco Discovery Protocol Control Protocol as a valid PPP packet.
 
 Removals
 ~~~~~~~~
