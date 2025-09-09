@@ -199,6 +199,8 @@ Keyword changes
 ~~~~~~~~~~~~~~~
 - ``ja3.hash`` and ``ja3s.hash`` no longer accept contents with non hexadecimal
   characters, as they will never match.
+- Usage of multiple ``tls.cert_subject`` in a rule will print a warning
+  as this keyword was not and is not implemented as a multi-buffer.
 
 Logging changes
 ~~~~~~~~~~~~~~~
