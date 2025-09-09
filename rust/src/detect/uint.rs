@@ -609,6 +609,26 @@ pub unsafe extern "C" fn SCDetectU8ArrayFree(ctx: &mut DetectUintArrayData<u8>) 
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn SCDetectU32ArrayParse(
+    ustr: *const std::os::raw::c_char,
+) -> *mut c_void {
+    let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
+    if let Ok(s) = ft_name.to_str() {
+        if let Some(ctx) = detect_parse_array_uint::<u32>(s) {
+            let boxed = Box::new(ctx);
+            return Box::into_raw(boxed) as *mut c_void;
+        }
+    }
+    return std::ptr::null_mut();
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCDetectU32ArrayFree(ctx: &mut DetectUintData<u32>) {
+    // Just unbox...
+    std::mem::drop(Box::from_raw(ctx));
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn SCDetectU16Parse(
     ustr: *const std::os::raw::c_char,
 ) -> *mut DetectUintData<u16> {

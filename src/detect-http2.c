@@ -414,17 +414,7 @@ static int DetectHTTP2windowMatch(DetectEngineThreadCtx *det_ctx,
                                const SigMatchCtx *ctx)
 
 {
-    uint32_t nb = 0;
-    int value = SCHttp2TxGetNextWindow(txv, flags, nb);
-    const DetectU32Data *du32 = (const DetectU32Data *)ctx;
-    while (value >= 0) {
-        if (DetectU32Match(value, du32)) {
-            return 1;
-        }
-        nb++;
-        value = SCHttp2TxGetNextWindow(txv, flags, nb);
-    }
-    return 0;
+    return SCHttp2WindowMatch(txv, flags, ctx);
 }
 
 /**
@@ -442,7 +432,7 @@ static int DetectHTTP2windowSetup (DetectEngineCtx *de_ctx, Signature *s, const 
     if (SCDetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
         return -1;
 
-    DetectU32Data *wu = DetectU32Parse(str);
+    DetectU32Data *wu = SCDetectU32ArrayParse(str);
     if (wu == NULL)
         return -1;
 
@@ -462,7 +452,7 @@ static int DetectHTTP2windowSetup (DetectEngineCtx *de_ctx, Signature *s, const 
  */
 void DetectHTTP2windowFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    SCDetectU32Free(ptr);
+    SCDetectU32ArrayFree(ptr);
 }
 
 /**

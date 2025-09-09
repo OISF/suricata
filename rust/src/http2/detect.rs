@@ -164,40 +164,31 @@ pub unsafe extern "C" fn SCHttp2PriorityMatch(
     return http2_match_priority(tx, direction.into(), ctx);
 }
 
-fn http2_tx_get_next_window(
-    tx: &HTTP2Transaction, direction: Direction, nb: u32,
-) -> std::os::raw::c_int {
-    let mut pos = 0_u32;
-    if direction == Direction::ToServer {
-        for i in 0..tx.frames_ts.len() {
-            if let HTTP2FrameTypeData::WINDOWUPDATE(wu) = tx.frames_ts[i].data {
-                if pos == nb {
-                    return wu.sizeinc as i32;
-                } else {
-                    pos += 1;
-                }
-            }
-        }
-    } else {
-        for i in 0..tx.frames_tc.len() {
-            if let HTTP2FrameTypeData::WINDOWUPDATE(wu) = tx.frames_tc[i].data {
-                if pos == nb {
-                    return wu.sizeinc as i32;
-                } else {
-                    pos += 1;
-                }
-            }
-        }
+fn get_http2_window(frame: &HTTP2Frame) -> Option<u32> {
+    if let HTTP2FrameTypeData::WINDOWUPDATE(wu) = &frame.data {
+        return Some(wu.sizeinc);
     }
-    return -1;
+    return None;
+}
+
+fn http2_match_window(
+    tx: &HTTP2Transaction, direction: Direction, ctx: &DetectUintArrayData<u32>,
+) -> std::os::raw::c_int {
+    let frames = if direction == Direction::ToServer {
+        &tx.frames_ts
+    } else {
+        &tx.frames_tc
+    };
+    return detect_uint_match_at_index::<HTTP2Frame, u32>(frames, ctx, get_http2_window);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCHttp2TxGetNextWindow(
-    tx: *mut std::os::raw::c_void, direction: u8, nb: u32,
+pub unsafe extern "C" fn SCHttp2WindowMatch(
+    tx: *mut std::os::raw::c_void, direction: u8, ctx: *const std::os::raw::c_void,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, HTTP2Transaction);
-    return http2_tx_get_next_window(tx, direction.into(), nb);
+    let ctx = cast_pointer!(ctx, DetectUintArrayData<u32>);
+    return http2_match_window(tx, direction.into(), ctx);
 }
 
 #[no_mangle]
