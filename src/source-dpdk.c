@@ -416,6 +416,7 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
         for (uint16_t i = 0; i < nb_rx; i++) {
             p = PacketGetFromQueueOrAlloc();
             if (unlikely(p == NULL)) {
+                rte_pktmbuf_free(ptv->received_mbufs[i]);
                 continue;
             }
             PKT_SET_SRC(p, PKT_SRC_WIRE);
