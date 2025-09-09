@@ -25,7 +25,7 @@ use nom7::IResult;
 
 use super::EnumString;
 
-use std::ffi::{c_int, CStr};
+use std::ffi::{c_int, c_void, CStr};
 use std::str::FromStr;
 
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -52,14 +52,14 @@ pub struct DetectUintData<T> {
 }
 
 #[derive(Debug, PartialEq)]
-pub(crate) enum DetectUintIndex {
+pub enum DetectUintIndex {
     Any,
     All,
     Index(i32),
 }
 
 #[derive(Debug, PartialEq)]
-pub(crate) struct DetectUintArrayData<T> {
+pub struct DetectUintArrayData<T> {
     pub du: DetectUintData<T>,
     pub index: DetectUintIndex,
 }
@@ -78,6 +78,18 @@ fn parse_uint_index(parts: &[&str]) -> Option<DetectUintIndex> {
         DetectUintIndex::Any
     };
     return Some(index);
+}
+
+pub(crate) fn detect_parse_array_uint<T: DetectIntType>(s: &str) -> Option<DetectUintArrayData<T>> {
+    let parts: Vec<&str> = s.split(',').collect();
+    if parts.len() > 2 {
+        return None;
+    }
+
+    let index = parse_uint_index(&parts)?;
+    let (_, du) = detect_parse_uint::<T>(parts[0]).ok()?;
+
+    Some(DetectUintArrayData { du, index })
 }
 
 pub(crate) fn detect_parse_array_uint_enum<T1: DetectIntType, T2: EnumString<T1>>(
@@ -550,6 +562,24 @@ pub unsafe extern "C" fn SCDetectU8Match(arg: u8, ctx: &DetectUintData<u8>) -> s
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectU8Free(ctx: &mut DetectUintData<u8>) {
     // Just unbox...
+    std::mem::drop(Box::from_raw(ctx));
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCDetectU8ArrayParse(ustr: *const std::os::raw::c_char) -> *mut c_void {
+    let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
+    if let Ok(s) = ft_name.to_str() {
+        if let Some(ctx) = detect_parse_array_uint::<u8>(s) {
+            let boxed = Box::new(ctx);
+            // DetectUintArrayData<u8> cannot be cbindgend
+            return Box::into_raw(boxed) as *mut c_void;
+        }
+    }
+    return std::ptr::null_mut();
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCDetectU8ArrayFree(ctx: &mut DetectUintArrayData<u8>) {
     std::mem::drop(Box::from_raw(ctx));
 }
 
