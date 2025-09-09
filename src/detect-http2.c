@@ -94,6 +94,7 @@ void DetectHTTP2RegisterTests (void);
 #endif
 
 static int g_http2_match_buffer_id = 0;
+static int g_http2_complete_buffer_id = 0;
 static int g_http2_header_name_buffer_id = 0;
 
 /**
@@ -190,6 +191,13 @@ void DetectHttp2Register(void)
             "http2", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectGenericList, NULL);
 
     g_http2_match_buffer_id = DetectBufferTypeRegister("http2");
+
+    DetectAppLayerInspectEngineRegister("http2_complete", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
+            HTTP2StateClosed, DetectEngineInspectGenericList, NULL);
+    DetectAppLayerInspectEngineRegister("http2_complete", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
+            HTTP2StateClosed, DetectEngineInspectGenericList, NULL);
+
+    g_http2_complete_buffer_id = DetectBufferTypeRegister("http2_complete");
 }
 
 /**
@@ -414,17 +422,7 @@ static int DetectHTTP2windowMatch(DetectEngineThreadCtx *det_ctx,
                                const SigMatchCtx *ctx)
 
 {
-    uint32_t nb = 0;
-    int value = SCHttp2TxGetNextWindow(txv, flags, nb);
-    const DetectU32Data *du32 = (const DetectU32Data *)ctx;
-    while (value >= 0) {
-        if (DetectU32Match(value, du32)) {
-            return 1;
-        }
-        nb++;
-        value = SCHttp2TxGetNextWindow(txv, flags, nb);
-    }
-    return 0;
+    return SCHttp2WindowMatch(txv, flags, ctx);
 }
 
 /**
@@ -442,12 +440,13 @@ static int DetectHTTP2windowSetup (DetectEngineCtx *de_ctx, Signature *s, const 
     if (SCDetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
         return -1;
 
-    DetectU32Data *wu = DetectU32Parse(str);
+    DetectU32Data *wu = SCDetectU32ArrayParse(str);
     if (wu == NULL)
         return -1;
 
+    // use g_http2_complete_buffer_id as we may have window changes in any state
     if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_HTTP2_WINDOW, (SigMatchCtx *)wu,
-                g_http2_match_buffer_id) == NULL) {
+                g_http2_complete_buffer_id) == NULL) {
         SCDetectU32Free(wu);
         return -1;
     }
@@ -462,7 +461,7 @@ static int DetectHTTP2windowSetup (DetectEngineCtx *de_ctx, Signature *s, const 
  */
 void DetectHTTP2windowFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    SCDetectU32Free(ptr);
+    SCDetectU32ArrayFree(ptr);
 }
 
 /**
