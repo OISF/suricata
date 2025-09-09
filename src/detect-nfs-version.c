@@ -71,6 +71,8 @@ void DetectNfsVersionRegister (void)
     sigmatch_table[DETECT_NFS_VERSION].flags = SIGMATCH_INFO_UINT32;
     // unit tests were the same as DetectNfsProcedureRegisterTests
 
+    DetectAppLayerInspectEngineRegister(
+            "nfs_request", ALPROTO_NFS, SIG_FLAG_TOSERVER, 0, DetectEngineInspectGenericList, NULL);
     g_nfs_request_buffer_id = DetectBufferTypeGetByName("nfs_request");
 
     SCLogDebug("g_nfs_request_buffer_id %d", g_nfs_request_buffer_id);
