@@ -519,7 +519,7 @@ static int UnixCommandExecute(UnixCommand * this, char *command, UnixClient *cli
     }
 
     if (UnixCommandSendJSONToClient(client, server_msg) != 0) {
-        goto error;
+        goto error_cmd;
     }
 
     json_decref(jsoncmd);
