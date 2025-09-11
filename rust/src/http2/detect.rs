@@ -151,8 +151,8 @@ fn http2_match_priority(
     } else {
         &tx.frames_tc
     };
-
-    return detect_uint_match_at_index::<HTTP2Frame, u8>(frames, ctx, get_http2_priority);
+    let eof = tx.state >= HTTP2TransactionState::HTTP2StateClosed;
+    return detect_uint_match_at_index::<HTTP2Frame, u8>(frames, ctx, get_http2_priority, eof);
 }
 
 #[no_mangle]
@@ -179,7 +179,8 @@ fn http2_match_window(
     } else {
         &tx.frames_tc
     };
-    return detect_uint_match_at_index::<HTTP2Frame, u32>(frames, ctx, get_http2_window);
+    let eof = tx.state >= HTTP2TransactionState::HTTP2StateClosed;
+    return detect_uint_match_at_index::<HTTP2Frame, u32>(frames, ctx, get_http2_window, eof);
 }
 
 #[no_mangle]
