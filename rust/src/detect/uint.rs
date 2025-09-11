@@ -55,7 +55,8 @@ pub enum DetectUintIndex {
     Any,
     All,
     All1,
-    Index(i32),
+    OrAbsent,
+    Index((bool, i32)),
     NumberMatches(DetectUintData<u32>),
 }
 
@@ -66,12 +67,15 @@ pub struct DetectUintArrayData<T> {
 }
 
 fn parse_uint_index_precise(s: &str) -> IResult<&str, DetectUintIndex> {
+    let (s, oob) = opt(tag("oob_or"))(s)?;
+    let (s, _) = opt(is_a(" "))(s)?;
     let (s, i32_index) = nom_i32(s)?;
-    Ok((s, DetectUintIndex::Index(i32_index)))
+    Ok((s, DetectUintIndex::Index((oob.is_some(), i32_index))))
 }
 
 fn parse_uint_index_nb(s: &str) -> IResult<&str, DetectUintIndex> {
     let (s, _) = tag("nb")(s)?;
+    let (s, _) = opt(is_a(" "))(s)?;
     let (s, du32) = detect_parse_uint::<u32>(s)?;
     Ok((s, DetectUintIndex::NumberMatches(du32)))
 }
@@ -87,6 +91,7 @@ fn parse_uint_index(parts: &[&str]) -> Option<DetectUintIndex> {
             "all" => DetectUintIndex::All,
             "all1" => DetectUintIndex::All1,
             "any" => DetectUintIndex::Any,
+            "or_absent" => DetectUintIndex::OrAbsent,
             // not only a literal, but some numeric value
             _ => return parse_uint_index_val(parts[1]),
         }
@@ -133,6 +138,21 @@ pub(crate) fn detect_uint_match_at_index<T, U: DetectIntType>(
                         return 1;
                     }
                 }
+            }
+            return 0;
+        }
+        DetectUintIndex::OrAbsent => {
+            let mut has_elem = false;
+            for response in array {
+                if let Some(code) = get_value(response) {
+                    if detect_match_uint::<U>(&ctx.du, code) {
+                        return 1;
+                    }
+                    has_elem = true;
+                }
+            }
+            if !has_elem && eof {
+                return 1;
             }
             return 0;
         }
@@ -189,7 +209,7 @@ pub(crate) fn detect_uint_match_at_index<T, U: DetectIntType>(
             }
             return 0;
         }
-        DetectUintIndex::Index(idx) => {
+        DetectUintIndex::Index((oob, idx)) => {
             let index = if *idx < 0 {
                 // negative values for backward indexing.
                 ((array.len() as i32) + idx) as usize
@@ -197,6 +217,9 @@ pub(crate) fn detect_uint_match_at_index<T, U: DetectIntType>(
                 *idx as usize
             };
             if array.len() <= index {
+                if *oob && eof {
+                    return 1;
+                }
                 return 0;
             }
             if let Some(code) = get_value(&array[index]) {
