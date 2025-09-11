@@ -98,7 +98,7 @@ As :ref:`multi-buffers <rules-multi-buffer-matching>` and sticky buffers,
 some integer keywords are also multi-integer.
 
 They expand the syntax of a single integer::
- keyword: operation and value[,index];
+ keyword: operation and value[,index,subslice];
 
 .. table:: **Index values for multi-integers keyword**
 
@@ -125,3 +125,12 @@ be sure to have the final number of elements.
 The index ``nb`` accepts all comparison modes as integer keywords.
 For example ``nb>3`` will match only if more than 3 integers in the
 array match the value.
+
+The subslice may use positive or negative indexing.
+For the array [1,2,3,4,5,6], here are some examples:
+* 2:4 will have subslice [3,4]
+* -4:-1 will have subslice [3,4,5]
+* 3:-1 will have subslice [4,5]
+* -4:4 will have subslice [3,4]
+
+If one index is out of bounds, an empty subslice is used.
