@@ -108,6 +108,11 @@ They expand the syntax of a single integer::
     [default]  Match with any index
     any        Match with any index
     all        Match only if all indexes match
+    all1       Match only if all and at least one indexes match
     0>=        Match specific index
     0<         Match specific index with back to front indexing
     =========  ================================================
+
+The index ``all`` will match if there is no value.
+The index ``all1`` will not match if there is no value and behaves
+like ``all`` if there is at least one value.

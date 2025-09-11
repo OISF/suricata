@@ -55,6 +55,7 @@ pub struct DetectUintData<T> {
 pub enum DetectUintIndex {
     Any,
     All,
+    All1,
     Index(i32),
 }
 
@@ -68,6 +69,7 @@ fn parse_uint_index(parts: &[&str]) -> Option<DetectUintIndex> {
     let index = if parts.len() == 2 {
         match parts[1] {
             "all" => DetectUintIndex::All,
+            "all1" => DetectUintIndex::All1,
             "any" => DetectUintIndex::Any,
             _ => {
                 let i32_index = i32::from_str(parts[1]).ok()?;
@@ -132,6 +134,24 @@ pub(crate) fn detect_uint_match_at_index<T, U: DetectIntType>(
                 }
             }
             return 1;
+        }
+        DetectUintIndex::All1 => {
+            if !eof {
+                return 0;
+            }
+            let mut has_elem = false;
+            for response in array {
+                if let Some(code) = get_value(response) {
+                    if !detect_match_uint::<U>(&ctx.du, code) {
+                        return 0;
+                    }
+                    has_elem = true;
+                }
+            }
+            if has_elem {
+                return 1;
+            }
+            return 0;
         }
         DetectUintIndex::Index(idx) => {
             let index = if idx < 0 {
