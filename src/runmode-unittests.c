@@ -112,6 +112,7 @@
 #include "decode-nsh.h"
 #include "decode-pppoe.h"
 #include "decode-raw.h"
+#include "decode-etag.h"
 #include "decode-vntag.h"
 #include "decode-vxlan.h"
 #include "decode-pppoe.h"
@@ -152,6 +153,7 @@ static void RegisterUnittests(void)
     DecodeCHDLCRegisterTests();
     DecodePPPRegisterTests();
     DecodeVLANRegisterTests();
+    DecodeETagRegisterTests();
     DecodeVNTagRegisterTests();
     DecodeGeneveRegisterTests();
     DecodeVXLANRegisterTests();
