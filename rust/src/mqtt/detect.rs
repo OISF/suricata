@@ -45,9 +45,12 @@ use std::ptr;
 use std::str::FromStr;
 
 fn mqtt_tx_has_type(tx: &MQTTTransaction, ctx: &DetectUintArrayData<u8>) -> c_int {
-    return detect_uint_match_at_index::<MQTTMessage, u8>(&tx.msg, ctx, |msg| {
-        Some(msg.header.message_type as u8)
-    });
+    return detect_uint_match_at_index::<MQTTMessage, u8>(
+        &tx.msg,
+        ctx,
+        |msg| Some(msg.header.message_type as u8),
+        tx.complete,
+    );
 }
 
 unsafe extern "C" fn mqtt_conn_clientid_get_data(

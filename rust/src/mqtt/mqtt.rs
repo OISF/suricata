@@ -75,7 +75,7 @@ pub struct MQTTTransaction {
     tx_id: u64,
     pkt_id: Option<u32>,
     pub msg: Vec<MQTTMessage>,
-    complete: bool,
+    pub complete: bool,
     toclient: bool,
     toserver: bool,
 
