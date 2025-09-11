@@ -64,6 +64,9 @@ pub enum DetectUintIndex {
 pub struct DetectUintArrayData<T> {
     pub du: DetectUintData<T>,
     pub index: DetectUintIndex,
+    // subslice
+    pub start: i32,
+    pub end: i32,
 }
 
 fn parse_uint_index_precise(s: &str) -> IResult<&str, DetectUintIndex> {
@@ -85,8 +88,29 @@ fn parse_uint_index_val(s: &str) -> Option<DetectUintIndex> {
     Some(arg1)
 }
 
+fn parse_uint_subslice_aux(s: &str) -> IResult<&str, (i32, i32)> {
+    let (s, start) = nom_i32(s)?;
+    let (s, _) = char(':')(s)?;
+    let (s, end) = nom_i32(s)?;
+    return Ok((s, (start, end)));
+}
+
+fn parse_uint_subslice(parts: &[&str]) -> Option<(i32, i32)> {
+    if parts.len() < 3 {
+        return Some((0, 0));
+    }
+    let (_, (start, end)) = parse_uint_subslice_aux(parts[2]).ok()?;
+    if start > 0 && end > 0 && end <= start {
+        return None;
+    }
+    if start < 0 && end < 0 && end <= start {
+        return None;
+    }
+    return Some((start, end));
+}
+
 fn parse_uint_index(parts: &[&str]) -> Option<DetectUintIndex> {
-    let index = if parts.len() == 2 {
+    let index = if parts.len() >= 2 {
         match parts[1] {
             "all" => DetectUintIndex::All,
             "all1" => DetectUintIndex::All1,
@@ -103,36 +127,63 @@ fn parse_uint_index(parts: &[&str]) -> Option<DetectUintIndex> {
 
 pub(crate) fn detect_parse_array_uint<T: DetectIntType>(s: &str) -> Option<DetectUintArrayData<T>> {
     let parts: Vec<&str> = s.split(',').collect();
-    if parts.len() > 2 {
+    if parts.len() > 3 {
         return None;
     }
 
     let index = parse_uint_index(&parts)?;
     let (_, du) = detect_parse_uint::<T>(parts[0]).ok()?;
+    let (start, end) = parse_uint_subslice(&parts)?;
 
-    Some(DetectUintArrayData { du, index })
+    Some(DetectUintArrayData {
+        du,
+        index,
+        start,
+        end,
+    })
 }
 
 pub(crate) fn detect_parse_array_uint_enum<T1: DetectIntType, T2: EnumString<T1>>(
     s: &str,
 ) -> Option<DetectUintArrayData<T1>> {
     let parts: Vec<&str> = s.split(',').collect();
-    if parts.len() > 2 {
+    if parts.len() > 3 {
         return None;
     }
 
     let index = parse_uint_index(&parts)?;
     let du = detect_parse_uint_enum::<T1, T2>(parts[0])?;
+    let (start, end) = parse_uint_subslice(&parts)?;
 
-    Some(DetectUintArrayData { du, index })
+    Some(DetectUintArrayData {
+        du,
+        index,
+        start,
+        end,
+    })
 }
 
 pub(crate) fn detect_uint_match_at_index<T, U: DetectIntType>(
     array: &[T], ctx: &DetectUintArrayData<U>, get_value: impl Fn(&T) -> Option<U>, eof: bool,
 ) -> c_int {
+    let start = if ctx.start >= 0 {
+        ctx.start as usize
+    } else {
+        ((array.len() as i32) + ctx.start) as usize
+    };
+    let end = if ctx.end > 0 {
+        ctx.end as usize
+    } else {
+        ((array.len() as i32) + ctx.end) as usize
+    };
+    let subslice = if end > array.len() || start >= end {
+        &array[..0]
+    } else {
+        &array[start..end]
+    };
     match &ctx.index {
         DetectUintIndex::Any => {
-            for response in array {
+            for response in subslice {
                 if let Some(code) = get_value(response) {
                     if detect_match_uint::<U>(&ctx.du, code) {
                         return 1;
@@ -143,7 +194,7 @@ pub(crate) fn detect_uint_match_at_index<T, U: DetectIntType>(
         }
         DetectUintIndex::OrAbsent => {
             let mut has_elem = false;
-            for response in array {
+            for response in subslice {
                 if let Some(code) = get_value(response) {
                     if detect_match_uint::<U>(&ctx.du, code) {
                         return 1;
@@ -166,7 +217,7 @@ pub(crate) fn detect_uint_match_at_index<T, U: DetectIntType>(
                 }
             }
             let mut nb = 0u32;
-            for response in array {
+            for response in subslice {
                 if let Some(code) = get_value(response) {
                     if detect_match_uint::<U>(&ctx.du, code) {
                         nb += 1;
@@ -182,7 +233,7 @@ pub(crate) fn detect_uint_match_at_index<T, U: DetectIntType>(
             if !eof {
                 return 0;
             }
-            for response in array {
+            for response in subslice {
                 if let Some(code) = get_value(response) {
                     if !detect_match_uint::<U>(&ctx.du, code) {
                         return 0;
@@ -196,7 +247,7 @@ pub(crate) fn detect_uint_match_at_index<T, U: DetectIntType>(
                 return 0;
             }
             let mut has_elem = false;
-            for response in array {
+            for response in subslice {
                 if let Some(code) = get_value(response) {
                     if !detect_match_uint::<U>(&ctx.du, code) {
                         return 0;
@@ -212,17 +263,17 @@ pub(crate) fn detect_uint_match_at_index<T, U: DetectIntType>(
         DetectUintIndex::Index((oob, idx)) => {
             let index = if *idx < 0 {
                 // negative values for backward indexing.
-                ((array.len() as i32) + idx) as usize
+                ((subslice.len() as i32) + idx) as usize
             } else {
                 *idx as usize
             };
-            if array.len() <= index {
+            if subslice.len() <= index {
                 if *oob && eof {
                     return 1;
                 }
                 return 0;
             }
-            if let Some(code) = get_value(&array[index]) {
+            if let Some(code) = get_value(&subslice[index]) {
                 return detect_match_uint::<U>(&ctx.du, code) as c_int;
             }
             return 0;
