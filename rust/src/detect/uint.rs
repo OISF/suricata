@@ -26,7 +26,6 @@ use nom7::IResult;
 use super::EnumString;
 
 use std::ffi::{CStr, c_int, c_void};
-use std::str::FromStr;
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 #[repr(u8)]
@@ -57,6 +56,7 @@ pub enum DetectUintIndex {
     All,
     All1,
     Index(i32),
+    NumberMatches(DetectUintData<u32>),
 }
 
 #[derive(Debug, PartialEq)]
@@ -65,15 +65,34 @@ pub struct DetectUintArrayData<T> {
     pub index: DetectUintIndex,
 }
 
+fn parse_uint_index_precise(s: &str) -> IResult<&str, DetectUintIndex> {
+    let (s, i32_index) = map_opt(digit1, |s2: &str| s2.parse::<i32>().ok())(s)?;
+    Ok((s, DetectUintIndex::Index(i32_index)))
+}
+
+fn parse_uint_index_nb(s: &str) -> IResult<&str, DetectUintIndex> {
+    let (s, _) = tag("nb")(s)?;
+    let (s, du32) = detect_parse_uint::<u32>(s)?;
+    Ok((s, DetectUintIndex::NumberMatches(du32)))
+}
+
+fn parse_uint_index_val(s: &str) -> Option<DetectUintIndex> {
+    let (_s, arg1) = alt((
+        parse_uint_index_precise,
+        parse_uint_index_nb,
+    ))(s).ok()?;
+    Some(arg1)
+}
+
 fn parse_uint_index(parts: &[&str]) -> Option<DetectUintIndex> {
     let index = if parts.len() == 2 {
         match parts[1] {
             "all" => DetectUintIndex::All,
             "all1" => DetectUintIndex::All1,
             "any" => DetectUintIndex::Any,
+            // not only a literal, but some numeric value
             _ => {
-                let i32_index = i32::from_str(parts[1]).ok()?;
-                DetectUintIndex::Index(i32_index)
+                return parse_uint_index_val(parts[1])
             }
         }
     } else {
@@ -111,7 +130,7 @@ pub(crate) fn detect_parse_array_uint_enum<T1: DetectIntType, T2: EnumString<T1>
 pub(crate) fn detect_uint_match_at_index<T, U: DetectIntType>(
     array: &Vec<T>, ctx: &DetectUintArrayData<U>, get_value: impl Fn(&T) -> Option<U>, eof: bool,
 ) -> c_int {
-    match ctx.index {
+    match &ctx.index {
         DetectUintIndex::Any => {
             for response in array {
                 if let Some(code) = get_value(response) {
@@ -119,6 +138,28 @@ pub(crate) fn detect_uint_match_at_index<T, U: DetectIntType>(
                         return 1;
                     }
                 }
+            }
+            return 0;
+        }
+        DetectUintIndex::NumberMatches(du32) => {
+            if !eof {
+                match du32.mode {
+                    DetectUintMode::DetectUintModeGt | DetectUintMode::DetectUintModeGte => {}
+                    _ => {
+                        return 0;
+                    }
+                }
+            }
+            let mut nb = 0u32;
+            for response in array {
+                if let Some(code) = get_value(response) {
+                    if detect_match_uint::<U>(&ctx.du, code) {
+                        nb = nb + 1;
+                    }
+                }
+            }
+            if detect_match_uint(&du32, nb) {
+                return 1;
             }
             return 0;
         }
@@ -154,11 +195,11 @@ pub(crate) fn detect_uint_match_at_index<T, U: DetectIntType>(
             return 0;
         }
         DetectUintIndex::Index(idx) => {
-            let index = if idx < 0 {
+            let index = if *idx < 0 {
                 // negative values for backward indexing.
                 ((array.len() as i32) + idx) as usize
             } else {
-                idx as usize
+                *idx as usize
             };
             if array.len() <= index {
                 return 0;
