@@ -65,7 +65,7 @@ pub struct LdapTransaction {
     pub tx_id: u64,
     pub request: Option<LdapMessage<'static>>,
     pub responses: Vec<LdapMessage<'static>>,
-    complete: bool,
+    pub complete: bool,
 
     tx_data: AppLayerTxData,
 }
