@@ -109,6 +109,7 @@ They expand the syntax of a single integer::
     any        Match with any index
     all        Match only if all indexes match
     all1       Match only if all and at least one indexes match
+    nb         Matches a number of times
     0>=        Match specific index
     0<         Match specific index with back to front indexing
     =========  ================================================
@@ -116,3 +117,9 @@ They expand the syntax of a single integer::
 The index ``all`` will match if there is no value.
 The index ``all1`` will not match if there is no value and behaves
 like ``all`` if there is at least one value.
+These keywords will wait for transaction completion to run, to
+be sure to have the final number of elements.
+
+The index ``nb`` accepts all comparison modes as integer keywords.
+For example ``nb>3`` will match only if more than 3 integers in the
+array match the value.
