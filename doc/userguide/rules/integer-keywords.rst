@@ -110,8 +110,10 @@ They expand the syntax of a single integer::
     all        Match only if all indexes match
     all1       Match only if all and at least one indexes match
     nb         Matches a number of times
+    or_absent  Match with any index or no values
     0>=        Match specific index
     0<         Match specific index with back to front indexing
+    or_oob     Match with specific index or index out of bounds
     =========  ================================================
 
 The index ``all`` will match if there is no value.
