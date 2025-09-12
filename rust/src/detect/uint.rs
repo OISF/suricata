@@ -159,7 +159,7 @@ pub(crate) fn detect_parse_array_uint_enum<T1: DetectIntType, T2: EnumString<T1>
 }
 
 pub(crate) fn detect_uint_match_at_index<T, U: DetectIntType>(
-    array: &Vec<T>, ctx: &DetectUintArrayData<U>, get_value: impl Fn(&T) -> Option<U>, eof: bool,
+    array: &[T], ctx: &DetectUintArrayData<U>, get_value: impl Fn(&T) -> Option<U>, eof: bool,
 ) -> c_int {
     let start = if ctx.start >= 0 {
         ctx.start as usize
