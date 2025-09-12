@@ -419,7 +419,6 @@ void DetectFrameMpmRegisterByParentId(DetectEngineCtx *de_ctx, const int id, con
             DetectBufferMpmRegistry *am = SCCalloc(1, sizeof(*am));
             BUG_ON(am == NULL);
             am->name = t->name;
-            snprintf(am->pname, sizeof(am->pname), "%s#%d", am->name, id);
             DEBUG_VALIDATE_BUG_ON(id < 0 || id > UINT16_MAX);
             am->sm_list = (uint16_t)id; // use new id
             am->sm_list_base = t->sm_list;
@@ -431,8 +430,11 @@ void DetectFrameMpmRegisterByParentId(DetectEngineCtx *de_ctx, const int id, con
             am->direction = t->direction;
             am->sgh_mpm_context = t->sgh_mpm_context;
             am->next = t->next;
+
+            BuildBasicPname(am->pname, sizeof(am->pname), am->name, (uint16_t)id);
             if (transforms) {
                 memcpy(&am->transforms, transforms, sizeof(*transforms));
+                AppendTransformsToPname(am->pname, sizeof(am->pname), transforms);
             }
             am->id = de_ctx->frame_mpms_list_cnt++;
 
@@ -649,7 +651,6 @@ void DetectPktMpmRegisterByParentId(DetectEngineCtx *de_ctx,
             DetectBufferMpmRegistry *am = SCCalloc(1, sizeof(*am));
             BUG_ON(am == NULL);
             am->name = t->name;
-            snprintf(am->pname, sizeof(am->pname), "%s#%d", am->name, id);
             DEBUG_VALIDATE_BUG_ON(id < 0 || id > INT16_MAX);
             am->sm_list = (uint16_t)id; // use new id
             am->sm_list_base = t->sm_list;
@@ -659,8 +660,11 @@ void DetectPktMpmRegisterByParentId(DetectEngineCtx *de_ctx,
             am->priority = t->priority;
             am->sgh_mpm_context = t->sgh_mpm_context;
             am->next = t->next;
+
+            BuildBasicPname(am->pname, sizeof(am->pname), am->name, (uint16_t)id);
             if (transforms) {
                 memcpy(&am->transforms, transforms, sizeof(*transforms));
+                AppendTransformsToPname(am->pname, sizeof(am->pname), transforms);
             }
             am->id = de_ctx->pkt_mpms_list_cnt++;
 
