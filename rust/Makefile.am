@@ -82,6 +82,7 @@ maintainer-clean-local:
 check:
 	CARGO_HOME="$(CARGO_HOME)" @rustup_home@ \
 		CARGO_TARGET_DIR="$(abs_top_builddir)/rust/target" \
+		RUSTDOC=$(RUSTDOC) \
 		$(CARGO) test --all $(RELEASE) --features "$(RUST_FEATURES)"
 
 vendor:
@@ -89,18 +90,18 @@ vendor:
 
 if HAVE_CBINDGEN
 gen/rust-bindings.h: $(RUST_SURICATA_LIB)
-	cbindgen --config $(abs_top_srcdir)/rust/cbindgen.toml \
+	CARGO=$(CARGO) cbindgen --config $(abs_top_srcdir)/rust/cbindgen.toml \
 		--quiet --verify --output $(abs_top_builddir)/rust/gen/rust-bindings.h || true
 else
 gen/rust-bindings.h:
 endif
 
 doc:
-	CARGO_HOME=$(CARGO_HOME) $(CARGO) doc --all-features --no-deps
+	CARGO_HOME=$(CARGO_HOME) RUSTDOC=$(RUSTDOC) $(CARGO) doc --all-features --no-deps
 
 if HAVE_CBINDGEN
 dist/rust-bindings.h:
-	cbindgen --config $(abs_top_srcdir)/rust/cbindgen.toml \
+	CARGO=$(CARGO) cbindgen --config $(abs_top_srcdir)/rust/cbindgen.toml \
 		--quiet --output $(abs_top_builddir)/rust/dist/rust-bindings.h
 else
 dist/rust-bindings.h:
@@ -109,5 +110,5 @@ endif
 Cargo.toml: Cargo.toml.in
 
 update-lock: Cargo.toml
-	cargo update
+	$(CARGO) update
 	mv Cargo.lock Cargo.lock.in
