@@ -215,11 +215,11 @@ pub(crate) fn detect_uint_match_at_index<T, U: DetectIntType>(
             for response in subslice {
                 if let Some(code) = get_value(response) {
                     if detect_match_uint::<U>(&ctx.du, code) {
-                        nb = nb + 1;
+                        nb += 1;
                     }
                 }
             }
-            if detect_match_uint(&du32, nb) {
+            if detect_match_uint(du32, nb) {
                 return 1;
             }
             return 0;
