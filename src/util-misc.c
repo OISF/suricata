@@ -27,6 +27,7 @@
 #include "util-debug.h"
 #include "util-unittest.h"
 #include "util-misc.h"
+#include "util-validate.h"
 
 #define PARSE_REGEX "^\\s*(\\d+(?:.\\d+)?)\\s*([a-zA-Z]{2,3})?\\s*$"
 static pcre2_code *parse_regex = NULL;
@@ -207,6 +208,9 @@ int ParseSizeStringU64(const char *size, uint64_t *res)
 void ShortenString(const char *input,
     char *output, size_t output_size, char c)
 {
+    if (output_size == 0)
+        return;
+
     const size_t str_len = strlen(input);
     size_t half = (output_size - 1) / 2;
 
@@ -214,6 +218,9 @@ void ShortenString(const char *input,
     if (half * 2 == (output_size - 1)) {
         half = half - 1;
     }
+    DEBUG_VALIDATE_BUG_ON(half > output_size);
+    if (half == 0 || half > output_size)
+        return;
 
     size_t spaces = (output_size - 1) - (half * 2);
 
