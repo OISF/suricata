@@ -35,8 +35,6 @@ typedef enum {
     SC_ERR_MAX
 } SCError;
 
-const char *SCErrorToString(SCError);
-
 #include "threads.h"
 
 extern thread_local SCError sc_errno;

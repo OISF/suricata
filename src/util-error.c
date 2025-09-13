@@ -29,28 +29,3 @@
 #include "util-error.h"
 
 thread_local SCError sc_errno = SC_OK;
-#define CASE_CODE(E)  case E: return #E
-
-/**
- * \brief Maps the error code, to its string equivalent
- *
- * \param The error code
- *
- * \retval The string equivalent for the error code
- */
-const char * SCErrorToString(SCError err)
-{
-    switch (err) {
-        CASE_CODE (SC_OK);
-
-        CASE_CODE(SC_ENOMEM);
-        CASE_CODE(SC_EINVAL);
-        CASE_CODE(SC_ELIMIT);
-        CASE_CODE(SC_EEXIST);
-        CASE_CODE(SC_ENOENT);
-
-        CASE_CODE (SC_ERR_MAX);
-    }
-
-    return "UNKNOWN_ERROR";
-}
