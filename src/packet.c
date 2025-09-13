@@ -15,6 +15,7 @@
  * 02110-1301, USA.
  */
 
+#include "source-pcap-file-info-helper.h"
 #include "packet.h"
 #include "pkt-var.h"
 #include "flow.h"
@@ -65,10 +66,12 @@ void PacketInit(Packet *p)
     SCSpinInit(&p->persistent.tunnel_lock, 0);
     p->alerts.alerts = PacketAlertCreate();
     p->livedev = NULL;
+    p->pcap_v.info = NULL;
 }
 
 void PacketReleaseRefs(Packet *p)
 {
+    PcapFileInfoDeref(&(p->pcap_v.info));
     FlowDeReference(&p->flow);
     HostDeReference(&p->host_src);
     HostDeReference(&p->host_dst);
