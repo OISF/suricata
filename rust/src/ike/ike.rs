@@ -34,7 +34,7 @@ use std::collections::HashSet;
 use std::ffi::CString;
 use suricata_sys::sys::{
     AppLayerParserState, AppProto, SCAppLayerParserConfParserEnabled,
-    SCAppLayerProtoDetectConfProtoDetectionEnabled,
+    SCAppLayerProtoDetectConfProtoDetectionEnabled, SCAppLayerRegisterParserAlias,
 };
 
 #[derive(AppLayerEvent)]
@@ -415,7 +415,7 @@ pub unsafe extern "C" fn SCRegisterIkeParser() {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
 
-        AppLayerRegisterParserAlias(
+        SCAppLayerRegisterParserAlias(
             PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
             PARSER_ALIAS.as_ptr() as *const std::os::raw::c_char,
         );

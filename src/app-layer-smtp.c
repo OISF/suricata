@@ -461,7 +461,7 @@ static void SMTPSetEvent(SMTPState *s, uint8_t e)
     SCLogDebug("setting event %u", e);
 
     if (s->curr_tx != NULL) {
-        AppLayerDecoderEventsSetEventRaw(&s->curr_tx->tx_data.events, e);
+        SCAppLayerDecoderEventsSetEventRaw(&s->curr_tx->tx_data.events, e);
         //        s->events++;
         return;
     }
@@ -805,7 +805,7 @@ static int SMTPProcessCommandDATA(
                         depth = (uint32_t)(smtp_config.content_inspect_min_size +
                                            (state->toserver_data_count -
                                                    state->toserver_last_data_stamp));
-                        AppLayerParserTriggerRawStreamInspection(f, STREAM_TOSERVER);
+                        SCAppLayerParserTriggerRawStreamInspection(f, STREAM_TOSERVER);
                         SCLogDebug(
                                 "StreamTcpReassemblySetMinInspectDepth STREAM_TOSERVER %u", depth);
                         StreamTcpReassemblySetMinInspectDepth(f->protoctx, STREAM_TOSERVER, depth);
@@ -833,7 +833,7 @@ static int SMTPProcessCommandDATA(
                     }
                     depth = (uint32_t)(state->toserver_data_count -
                                        state->toserver_last_data_stamp);
-                    AppLayerParserTriggerRawStreamInspection(f, STREAM_TOSERVER);
+                    SCAppLayerParserTriggerRawStreamInspection(f, STREAM_TOSERVER);
                     SCLogDebug("StreamTcpReassemblySetMinInspectDepth STREAM_TOSERVER %u", depth);
                     StreamTcpReassemblySetMinInspectDepth(f->protoctx, STREAM_TOSERVER, depth);
             }
@@ -977,7 +977,7 @@ static int SMTPProcessReply(
         state->cmds_cnt = 0;
         state->cmds_idx = 0;
     }
-    AppLayerParserTriggerRawStreamInspection(f, STREAM_TOCLIENT);
+    SCAppLayerParserTriggerRawStreamInspection(f, STREAM_TOCLIENT);
 
     return 0;
 }
@@ -1179,7 +1179,7 @@ static int SMTPProcessRequest(
      * STARTTLS and DATA */
     if (!(state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
         int r = 0;
-        AppLayerParserTriggerRawStreamInspection(f, STREAM_TOSERVER);
+        SCAppLayerParserTriggerRawStreamInspection(f, STREAM_TOSERVER);
 
         if (line->len >= 8 && SCMemcmpLowercase("starttls", line->buf, 8) == 0) {
             state->current_command = SMTP_COMMAND_STARTTLS;
@@ -1628,9 +1628,8 @@ static void SMTPSetMpmState(void)
     for (i = 0; i < sizeof(smtp_reply_map)/sizeof(SCEnumCharMap) - 1; i++) {
         SCEnumCharMap *map = &smtp_reply_map[i];
         /* The third argument is 3, because reply code is always 3 bytes. */
-        MpmAddPatternCI(smtp_mpm_ctx, (uint8_t *)map->enum_name, 3,
-                        0 /* defunct */, 0 /* defunct */,
-                        i /* pattern id */, i /* rule id */ , 0 /* no flags */);
+        SCMpmAddPatternCI(smtp_mpm_ctx, (uint8_t *)map->enum_name, 3, 0 /* defunct */,
+                0 /* defunct */, i /* pattern id */, i /* rule id */, 0 /* no flags */);
     }
 
     mpm_table[SMTP_MPM].Prepare(NULL, smtp_mpm_ctx);

@@ -22,6 +22,7 @@
 #include "util-profiling.h"
 #include "util-validate.h"
 #include "action-globals.h"
+#include "rust.h"
 #include "app-layer-events.h"
 
 /** \brief issue drop action
@@ -165,7 +166,7 @@ void PacketDestructor(Packet *p)
     PacketAlertFree(p->alerts.alerts);
     PACKET_FREE_EXTDATA(p);
     SCSpinDestroy(&p->persistent.tunnel_lock);
-    AppLayerDecoderEventsFreeEvents(&p->app_layer_events);
+    SCAppLayerDecoderEventsFreeEvents(&p->app_layer_events);
     PACKET_PROFILING_RESET(p);
 }
 
