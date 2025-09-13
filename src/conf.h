@@ -67,6 +67,7 @@ int SCConfGetInt(const char *name, intmax_t *val);
 int SCConfGetBool(const char *name, int *val);
 int SCConfGetDouble(const char *name, double *val);
 int SCConfGetFloat(const char *name, float *val);
+int SCConfGetTime(const char *name, uint64_t *val);
 int SCConfSet(const char *name, const char *val);
 int SCConfSetFromString(const char *input, int final);
 int SCConfSetFinal(const char *name, const char *val);
