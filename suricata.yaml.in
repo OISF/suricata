@@ -1758,6 +1758,14 @@ decoder:
   # has put the headers on, like when using netmap driver pickup.
   recursion-level:
     use-for-tracking: true
+  # If your packets sources are tunnels encapsulating the traffic,
+  # you can list here these tunnels and assign identifiers to them.
+  # tunnels:
+  #  - id: 1
+  #    type: erspan2
+  #    src: 192.168.1.1
+  #    dst: 192.168.1.3
+  #    session: 123
 
 ##
 ## Performance tuning and profiling
