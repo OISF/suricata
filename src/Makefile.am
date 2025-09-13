@@ -243,7 +243,6 @@ noinst_HEADERS = \
 	detect-ja4-hash.h \
 	detect-krb5-cname.h \
 	detect-krb5-errcode.h \
-	detect-krb5-msgtype.h \
 	detect-krb5-sname.h \
 	detect-krb5-ticket-encryption.h \
 	detect-l3proto.h \
@@ -253,7 +252,6 @@ noinst_HEADERS = \
 	detect-metadata.h \
 	detect-modbus.h \
 	detect-msg.h \
-	detect-nfs-procedure.h \
 	detect-nfs-version.h \
 	detect-noalert.h \
 	detect-nocase.h \
@@ -843,7 +841,6 @@ libsuricata_c_a_SOURCES = \
 	detect-ja4-hash.c \
 	detect-krb5-cname.c \
 	detect-krb5-errcode.c \
-	detect-krb5-msgtype.c \
 	detect-krb5-sname.c \
 	detect-krb5-ticket-encryption.c \
 	detect-l3proto.c \
@@ -853,7 +850,6 @@ libsuricata_c_a_SOURCES = \
 	detect-metadata.c \
 	detect-modbus.c \
 	detect-msg.c \
-	detect-nfs-procedure.c \
 	detect-nfs-version.c \
 	detect-noalert.c \
 	detect-nocase.c \
