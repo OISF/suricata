@@ -479,6 +479,11 @@ extern "C" {
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {
+    pub fn SCConfGetTime(
+        name: *const ::std::os::raw::c_char, val: *mut u64,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
     pub fn SCConfSet(
         name: *const ::std::os::raw::c_char, val: *const ::std::os::raw::c_char,
     ) -> ::std::os::raw::c_int;
