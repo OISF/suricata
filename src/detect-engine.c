@@ -56,6 +56,7 @@
 #include "detect-engine-payload.h"
 #include "detect-fast-pattern.h"
 #include "detect-byte-extract.h"
+#include "detect-count.h"
 #include "detect-content.h"
 #include "detect-uricontent.h"
 #include "detect-tcphdr.h"
@@ -2163,6 +2164,25 @@ uint8_t DetectEngineInspectMultiBufferGeneric(DetectEngineCtx *de_ctx,
     const DetectEngineTransforms *transforms = NULL;
     if (!engine->mpm) {
         transforms = engine->v2.transforms;
+    }
+
+    const SigMatchData *smd = engine->smd;
+    bool only_count = true;
+    while (1) {
+        if (smd->type == DETECT_COUNT) {
+            if (!DetectCountDoMatch(det_ctx, f, flags, txv, engine->v2.GetMultiData, smd->ctx)) {
+                return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+            }
+        } else {
+            only_count = false;
+        }
+        if (smd->is_last) {
+            break;
+        }
+        smd++;
+    }
+    if (only_count) {
+        return DETECT_ENGINE_INSPECT_SIG_MATCH;
     }
 
     do {

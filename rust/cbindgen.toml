@@ -90,6 +90,7 @@ include = [
     "FtpDataStateValues",
     "HTTP2TransactionState",
     "DataRepType",
+    "DETECT_COUNT_INDEX",
 ]
 
 # A list of items to not include in the generated bindings
