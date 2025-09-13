@@ -22,6 +22,15 @@ case-insensitive suffix:
 The most direct example is to match for equality, but there are
 different modes.
 
+The list of integer keywords can be found by command
+``suricata --list-keywords=csv | grep "uint"``
+
+Some other keywords may use unsigned integers as part of their logic:
+* iprep
+* stream_size
+* flow.pkts
+* flow.bytes
+
 Comparison modes
 ----------------
 

@@ -70,6 +70,7 @@ void DetectNfsProcedureRegister (void)
     sigmatch_table[DETECT_NFS_PROCEDURE].AppLayerTxMatch = DetectNfsProcedureMatch;
     sigmatch_table[DETECT_NFS_PROCEDURE].Setup = DetectNfsProcedureSetup;
     sigmatch_table[DETECT_NFS_PROCEDURE].Free = DetectNfsProcedureFree;
+    sigmatch_table[DETECT_NFS_PROCEDURE].flags = SIGMATCH_INFO_UINT32 | SIGMATCH_INFO_MULTI_UINT;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_NFS_PROCEDURE].RegisterTests = DetectNfsProcedureRegisterTests;
 #endif

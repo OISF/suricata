@@ -111,7 +111,8 @@ void DetectTlsCertsRegister(void)
     sigmatch_table[DETECT_TLS_CERTS].RegisterTests = DetectTlsCertsRegisterTests;
 #endif
     sigmatch_table[DETECT_TLS_CERTS].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_TLS_CERTS].flags |= SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_TLS_CERTS].flags |=
+            SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_INFO_MULTI_BUFFER;
 
     DetectAppLayerMultiRegister("tls.certs", ALPROTO_TLS, SIG_FLAG_TOCLIENT,
             TLS_STATE_SERVER_CERT_DONE, TlsCertsGetData, 2);
@@ -242,6 +243,7 @@ void DetectTlsCertChainLenRegister(void)
     sigmatch_table[KEYWORD_ID].AppLayerTxMatch = DetectTLSCertChainLenMatch;
     sigmatch_table[KEYWORD_ID].Setup = DetectTLSCertChainLenSetup;
     sigmatch_table[KEYWORD_ID].Free = DetectTLSCertChainLenFree;
+    sigmatch_table[KEYWORD_ID].flags = SIGMATCH_INFO_UINT32;
 
     g_tls_cert_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
 }

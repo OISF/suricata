@@ -56,6 +56,7 @@ void DetectIkeNoncePayloadLengthRegister(void)
             DetectIkeNoncePayloadLengthMatch;
     sigmatch_table[DETECT_IKE_NONCE_PAYLOAD_LENGTH].Setup = DetectIkeNoncePayloadLengthSetup;
     sigmatch_table[DETECT_IKE_NONCE_PAYLOAD_LENGTH].Free = DetectIkeNoncePayloadLengthFree;
+    sigmatch_table[DETECT_IKE_NONCE_PAYLOAD_LENGTH].flags = SIGMATCH_INFO_UINT32;
 
     DetectAppLayerInspectEngineRegister("ike.nonce_payload_length", ALPROTO_IKE, SIG_FLAG_TOSERVER,
             1, DetectEngineInspectGenericList, NULL);

@@ -124,3 +124,6 @@ following keywords:
 * ``tls.alpn``
 * ``tls.certs``
 * ``tls.subjectaltname``
+
+These can be found by command
+``suricata --list-keywords=csv | grep "multi buffer" | cut -d';' -f1``

@@ -292,7 +292,7 @@ int DETECT_TBLSIZE_IDX = DETECT_TBLSIZE_STATIC;
 
 static void PrintFeatureList(const SigTableElmt *e, char sep)
 {
-    const uint16_t flags = e->flags;
+    const uint32_t flags = e->flags;
 
     int prev = 0;
     if (flags & SIGMATCH_NOOPT) {
@@ -327,6 +327,32 @@ static void PrintFeatureList(const SigTableElmt *e, char sep)
         if (prev == 1)
             printf("%c", sep);
         printf("supports firewall");
+        prev = 1;
+    }
+    if (flags & SIGMATCH_INFO_MULTI_BUFFER) {
+        if (prev == 1)
+            printf("%c", sep);
+        printf("multi buffer");
+        prev = 1;
+    }
+    if (flags & (SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_UINT16 | SIGMATCH_INFO_UINT32 |
+                        SIGMATCH_INFO_UINT64)) {
+        if (prev == 1)
+            printf("%c", sep);
+        if (flags & SIGMATCH_INFO_MULTI_UINT)
+            printf("multi ");
+        if (flags & SIGMATCH_INFO_ENUM_UINT)
+            printf("enum ");
+        if (flags & SIGMATCH_INFO_BITFLAGS_UINT)
+            printf("bitflags ");
+        if (flags & SIGMATCH_INFO_UINT8)
+            printf("uint8");
+        if (flags & SIGMATCH_INFO_UINT16)
+            printf("uint16");
+        if (flags & SIGMATCH_INFO_UINT32)
+            printf("uint32");
+        if (flags & SIGMATCH_INFO_UINT64)
+            printf("uint64");
         prev = 1;
     }
     if (e->Transform) {
