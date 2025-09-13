@@ -689,6 +689,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "humantime"
+version = "2.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "135b12329e5e3ce057a9f972339ea52bc954fe1e9358ef27f95e89716fbc5424"
+
+[[package]]
 name = "indexmap"
 version = "2.11.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1551,6 +1557,7 @@ dependencies = [
  "flate2",
  "hex",
  "hkdf",
+ "humantime",
  "ipsec-parser",
  "kerberos-parser",
  "lazy_static",
