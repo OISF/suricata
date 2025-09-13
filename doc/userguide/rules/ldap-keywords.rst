@@ -79,6 +79,8 @@ Syntax::
 
 ldap.responses.operation uses :ref:`unsigned 8-bit integer <rules-integer-keywords>`.
 
+ldap.responses.operation is also a :ref:`multi-integer <multi-integers>`.
+
 This keyword maps to the EVE field ``ldap.responses[].operation``
 
 An LDAP request operation can receive multiple responses. By default, the ldap.responses.operation
@@ -271,6 +273,8 @@ Syntax::
  ldap.responses.result_code: code[,index];
 
 ldap.responses.result_code uses :ref:`unsigned 32-bit integer <rules-integer-keywords>`.
+
+ldap.responses.result_code is also a :ref:`multi-integer <multi-integers>`.
 
 This keyword maps to the following eve fields:
 

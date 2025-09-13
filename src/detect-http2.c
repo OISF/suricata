@@ -362,17 +362,7 @@ static int DetectHTTP2priorityMatch(DetectEngineThreadCtx *det_ctx,
                                const SigMatchCtx *ctx)
 
 {
-    uint32_t nb = 0;
-    int value = SCHttp2TxGetNextPriority(txv, flags, nb);
-    const DetectU8Data *du8 = (const DetectU8Data *)ctx;
-    while (value >= 0) {
-        if (DetectU8Match((uint8_t)value, du8)) {
-            return 1;
-        }
-        nb++;
-        value = SCHttp2TxGetNextPriority(txv, flags, nb);
-    }
-    return 0;
+    return SCHttp2PriorityMatch(txv, flags, ctx);
 }
 
 /**
@@ -390,7 +380,7 @@ static int DetectHTTP2prioritySetup (DetectEngineCtx *de_ctx, Signature *s, cons
     if (SCDetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
         return -1;
 
-    DetectU8Data *prio = DetectU8Parse(str);
+    DetectU8Data *prio = SCDetectU8ArrayParse(str);
     if (prio == NULL)
         return -1;
 
@@ -410,7 +400,7 @@ static int DetectHTTP2prioritySetup (DetectEngineCtx *de_ctx, Signature *s, cons
  */
 void DetectHTTP2priorityFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    SCDetectU8Free(ptr);
+    SCDetectU8ArrayFree(ptr);
 }
 
 /**
@@ -424,17 +414,7 @@ static int DetectHTTP2windowMatch(DetectEngineThreadCtx *det_ctx,
                                const SigMatchCtx *ctx)
 
 {
-    uint32_t nb = 0;
-    int value = SCHttp2TxGetNextWindow(txv, flags, nb);
-    const DetectU32Data *du32 = (const DetectU32Data *)ctx;
-    while (value >= 0) {
-        if (DetectU32Match(value, du32)) {
-            return 1;
-        }
-        nb++;
-        value = SCHttp2TxGetNextWindow(txv, flags, nb);
-    }
-    return 0;
+    return SCHttp2WindowMatch(txv, flags, ctx);
 }
 
 /**
@@ -452,7 +432,7 @@ static int DetectHTTP2windowSetup (DetectEngineCtx *de_ctx, Signature *s, const 
     if (SCDetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
         return -1;
 
-    DetectU32Data *wu = DetectU32Parse(str);
+    DetectU32Data *wu = SCDetectU32ArrayParse(str);
     if (wu == NULL)
         return -1;
 
@@ -472,7 +452,7 @@ static int DetectHTTP2windowSetup (DetectEngineCtx *de_ctx, Signature *s, const 
  */
 void DetectHTTP2windowFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    SCDetectU32Free(ptr);
+    SCDetectU32ArrayFree(ptr);
 }
 
 /**

@@ -88,3 +88,49 @@ Examples::
 
     websocket.flags:fin,!comp;
     websocket.flags:&0xc0=0x80; # behaves the same
+
+.. _multi-integers:
+
+Multi-integers
+--------------
+
+As :ref:`multi-buffers <rules-multi-buffer-matching>` and sticky buffers,
+some integer keywords are also multi-integer.
+
+They expand the syntax of a single integer::
+ keyword: operation and value[,index,subslice];
+
+.. table:: **Index values for multi-integers keyword**
+
+    =========  ================================================
+    Value      Description
+    =========  ================================================
+    [default]  Match with any index
+    any        Match with any index
+    all        Match only if all indexes match
+    all1       Match only if all and at least one indexes match
+    nb         Matches a number of times
+    or_absent  Match with any index or no values
+    0>=        Match specific index
+    0<         Match specific index with back to front indexing
+    or_oob     Match with specific index or index out of bounds
+    =========  ================================================
+
+The index ``all`` will match if there is no value.
+The index ``all1`` will not match if there is no value and behaves
+like ``all`` if there is at least one value.
+These keywords will wait for transaction completion to run, to
+be sure to have the final number of elements.
+
+The index ``nb`` accepts all comparison modes as integer keywords.
+For example ``nb>3`` will match only if more than 3 integers in the
+array match the value.
+
+The subslice may use positive or negative indexing.
+For the array [1,2,3,4,5,6], here are some examples:
+* 2:4 will have subslice [3,4]
+* -4:-1 will have subslice [3,4,5]
+* 3:-1 will have subslice [4,5]
+* -4:4 will have subslice [3,4]
+
+If one index is out of bounds, an empty subslice is used.
