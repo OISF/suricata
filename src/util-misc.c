@@ -231,6 +231,151 @@ void ShortenString(const char *input,
     snprintf(output + length, half + 1, "%s", input + (str_len - half));
 }
 
+/**
+ * \brief Parse a time string into seconds and set in res.
+ * \return 0 on success, -1 on overflow, -2 on invalid format, -3 other error
+ */
+int ParseTimeStringU64(const char *entry, uint64_t *res)
+{
+    if (res == NULL) {
+        return -3;
+    }
+    *res = 0;
+    if (entry == NULL) {
+        return -3;
+    }
+    const char *p = entry;
+    while (isspace((unsigned char)*p))
+        p++;
+    if (*p == '\0')
+        goto formaterr; // empty after spaces
+
+    errno = 0;
+    char *endptr = NULL;
+    unsigned long long base = strtoull(p, &endptr, 10);
+    if (errno == ERANGE) {
+        goto overflow;
+    }
+    if (endptr == p) {
+        goto formaterr; // no digits
+    }
+
+    while (isspace((unsigned char)*endptr))
+        endptr++;
+    char unitbuf[16];
+    size_t ulen = 0;
+    const char *up = endptr; // unit processing pointer
+    while (*up && isalpha((unsigned char)*up) && ulen + 1 < sizeof(unitbuf)) {
+        unitbuf[ulen++] = (char)tolower((unsigned char)*up);
+        up++;
+    }
+    unitbuf[ulen] = '\0';
+    /* Any non-space trailing characters invalidate */
+    while (isspace((unsigned char)*up))
+        up++;
+    if (*up != '\0') {
+        goto formaterr;
+    }
+
+    uint64_t multiplier = 1ULL;
+    if (ulen != 0) {
+        /* Match tokens by length then content to be efficient */
+        switch (ulen) {
+            case 1:
+                if (unitbuf[0] == 's') {
+                    multiplier = 1ULL;
+                } else if (unitbuf[0] == 'm') {
+                    multiplier = 60ULL;
+                } else if (unitbuf[0] == 'h') {
+                    multiplier = 3600ULL;
+                } else if (unitbuf[0] == 'd') {
+                    multiplier = 86400ULL;
+                } else if (unitbuf[0] == 'w') {
+                    multiplier = 604800ULL;
+                } else if (unitbuf[0] == 'y') {
+                    multiplier = 31536000ULL;
+                } else {
+                    goto formaterr;
+                }
+                break;
+            case 2:
+                if (memcmp(unitbuf, "hr", 2) == 0)
+                    multiplier = 3600ULL;
+                else
+                    goto formaterr;
+                break;
+            case 3:
+                if (memcmp(unitbuf, "sec", 3) == 0)
+                    multiplier = 1ULL;
+                else if (memcmp(unitbuf, "min", 3) == 0)
+                    multiplier = 60ULL;
+                else if (memcmp(unitbuf, "hrs", 3) == 0)
+                    multiplier = 3600ULL;
+                else if (memcmp(unitbuf, "day", 3) == 0)
+                    multiplier = 86400ULL;
+                else if (memcmp(unitbuf, "wks", 3) == 0)
+                    multiplier = 604800ULL;
+                else if (memcmp(unitbuf, "yrs", 3) == 0)
+                    multiplier = 31536000ULL;
+                else
+                    goto formaterr;
+                break;
+            case 4:
+                if (memcmp(unitbuf, "secs", 4) == 0)
+                    multiplier = 1ULL;
+                else if (memcmp(unitbuf, "hour", 4) == 0)
+                    multiplier = 3600ULL;
+                else if (memcmp(unitbuf, "days", 4) == 0)
+                    multiplier = 86400ULL;
+                else if (memcmp(unitbuf, "week", 4) == 0)
+                    multiplier = 604800ULL;
+                else if (memcmp(unitbuf, "year", 4) == 0)
+                    multiplier = 31536000ULL;
+                else
+                    goto formaterr;
+                break;
+            case 5:
+                if (memcmp(unitbuf, "hours", 5) == 0)
+                    multiplier = 3600ULL;
+                else if (memcmp(unitbuf, "weeks", 5) == 0)
+                    multiplier = 604800ULL;
+                else if (memcmp(unitbuf, "years", 5) == 0)
+                    multiplier = 31536000ULL;
+                else
+                    goto formaterr;
+                break;
+            case 6:
+                if (memcmp(unitbuf, "second", 6) == 0)
+                    multiplier = 1ULL;
+                else
+                    goto formaterr;
+                break;
+            case 7:
+                if (memcmp(unitbuf, "seconds", 7) == 0)
+                    multiplier = 1ULL;
+                else
+                    goto formaterr;
+                break;
+            default:
+                goto formaterr; /* unsupported */
+        }
+    }
+
+    if (base > 0 && multiplier > UINT64_MAX / base) {
+        goto overflow;
+    }
+    *res = (uint64_t)base * multiplier;
+    return 0;
+
+overflow:
+    SCLogError("Time to convert \"%s\" is too big.", entry);
+    return -1;
+
+formaterr:
+    SCLogError("Invalid time argument \"%s\". Valid input is <number><unit> (e.g. 10s, 5m, 2h)", entry);
+    return -2;
+}
+
 /*********************************Unittests********************************/
 
 #ifdef UNITTESTS
@@ -806,10 +951,104 @@ static int UtilMiscParseSizeStringTest02(void)
     PASS;
 }
 
+static int UtilMiscParseTimeStringTest01(void)
+{
+    uint64_t v;
+    FAIL_IF(ParseTimeStringU64("10", &v) != 0 || v != 10);
+    FAIL_IF(ParseTimeStringU64("10s", &v) != 0 || v != 10);
+    FAIL_IF(ParseTimeStringU64("10sec", &v) != 0 || v != 10);
+    FAIL_IF(ParseTimeStringU64("2m", &v) != 0 || v != 120);
+    FAIL_IF(ParseTimeStringU64("2 min", &v) != 0 || v != 120);
+    FAIL_IF(ParseTimeStringU64("1h", &v) != 0 || v != 3600);
+    FAIL_IF(ParseTimeStringU64("1 hour", &v) != 0 || v != 3600);
+    FAIL_IF(ParseTimeStringU64("1d", &v) != 0 || v != 86400ULL);
+    FAIL_IF(ParseTimeStringU64("1 day", &v) != 0 || v != 86400ULL);
+    FAIL_IF(ParseTimeStringU64("1w", &v) != 0 || v != 604800ULL);
+    FAIL_IF(ParseTimeStringU64("1 week", &v) != 0 || v != 604800ULL);
+    FAIL_IF(ParseTimeStringU64("1y", &v) != 0 || v != 31536000ULL);
+    FAIL_IF(ParseTimeStringU64("1 year", &v) != 0 || v != 31536000ULL);
+    FAIL_IF(ParseTimeStringU64("  5  m  ", &v) != 0 || v != 300ULL);
+    PASS;
+}
+
+static int UtilMiscParseTimeStringInvalidUnit(void)
+{
+    uint64_t v;
+    FAIL_IF(ParseTimeStringU64("10q", &v) == 0);
+    PASS;
+}
+
+static int UtilMiscParseTimeStringExactMax(void)
+{
+    uint64_t v;
+    char buf[64];
+    snprintf(buf, sizeof(buf), "%llu", (unsigned long long)UINT64_MAX);
+    FAIL_IF(ParseTimeStringU64(buf, &v) != 0 || v != UINT64_MAX);
+    PASS;
+}
+
+static int UtilMiscParseTimeStringOverflowYears(void)
+{
+    uint64_t v;
+    char buf[128];
+    snprintf(buf, sizeof(buf), "%lluY", (unsigned long long)(UINT64_MAX / 31536000ULL + 1ULL));
+    FAIL_IF(ParseTimeStringU64(buf, &v) != -1);
+    PASS;
+}
+
+static int UtilMiscParseTimeStringOverflowDigits(void)
+{
+    uint64_t v;
+    /* UINT64_MAX *10 */
+    FAIL_IF(ParseTimeStringU64("184467440737095516160", &v) != -1);
+    PASS;
+}
+
+static int UtilMiscParseTimeStringMalformed(void)
+{
+    uint64_t v;
+    FAIL_IF(ParseTimeStringU64("", &v) == 0);
+    FAIL_IF(ParseTimeStringU64("  ", &v) == 0);
+    FAIL_IF(ParseTimeStringU64("abc", &v) == 0);
+    FAIL_IF(ParseTimeStringU64("10ss", &v) == 0);
+    PASS;
+}
+
+static int UtilMiscParseTimeStringTest03(void)
+{
+    uint64_t v;
+    /* plus sign */
+    FAIL_IF(ParseTimeStringU64("+5m", &v) != 0 || v != 300ULL);
+    /* uppercase units */
+    FAIL_IF(ParseTimeStringU64("2H", &v) != 0 || v != 7200ULL);
+    FAIL_IF(ParseTimeStringU64("3DAYS", &v) != 0 || v != 3ULL * 86400ULL);
+    /* boundary: largest value that doesn't overflow with seconds (UINT64_MAX) truncated by overflow
+     * check */
+    FAIL_IF(ParseTimeStringU64("0", &v) != 0 || v != 0ULL);
+    /* near overflow valid case: (UINT64_MAX / 60) minutes becomes seconds <= UINT64_MAX */
+    unsigned long long maxmins = (unsigned long long)(UINT64_MAX / 60ULL);
+    char buf[64];
+    snprintf(buf, sizeof(buf), "%llum", maxmins);
+    FAIL_IF(ParseTimeStringU64(buf, &v) != 0 || v != (uint64_t)maxmins * 60ULL);
+    /* overflow minutes */
+    snprintf(buf, sizeof(buf), "%lluM", maxmins + 1ULL);
+    FAIL_IF(ParseTimeStringU64(buf, &v) == 0);
+    /* disallowed ms */
+    FAIL_IF(ParseTimeStringU64("10ms", &v) == 0);
+    PASS;
+}
+
 void UtilMiscRegisterTests(void)
 {
     UtRegisterTest("UtilMiscParseSizeStringTest01",
                    UtilMiscParseSizeStringTest01);
     UtRegisterTest("UtilMiscParseSizeStringTest02", UtilMiscParseSizeStringTest02);
+    UtRegisterTest("UtilMiscParseTimeStringTest01", UtilMiscParseTimeStringTest01);
+    UtRegisterTest("UtilMiscParseTimeStringInvalidUnit", UtilMiscParseTimeStringInvalidUnit);
+    UtRegisterTest("UtilMiscParseTimeStringExactMax", UtilMiscParseTimeStringExactMax);
+    UtRegisterTest("UtilMiscParseTimeStringOverflowYears", UtilMiscParseTimeStringOverflowYears);
+    UtRegisterTest("UtilMiscParseTimeStringOverflowDigits", UtilMiscParseTimeStringOverflowDigits);
+    UtRegisterTest("UtilMiscParseTimeStringMalformed", UtilMiscParseTimeStringMalformed);
+    UtRegisterTest("UtilMiscParseTimeStringTest03", UtilMiscParseTimeStringTest03);
 }
 #endif /* UNITTESTS */

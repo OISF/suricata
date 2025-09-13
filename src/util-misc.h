@@ -46,6 +46,18 @@ int ParseSizeStringU16(const char *, uint16_t *);
 int ParseSizeStringU32(const char *, uint32_t *);
 int ParseSizeStringU64(const char *, uint64_t *);
 
+/* time string parsing API (to seconds) */
+/* Supported units (case-insensitive, singular/plural & common abbreviations):
+ *  s, sec, secs, second, seconds
+ *  m, min, mins, minute, minutes
+ *  h, hr, hrs, hour, hours
+ *  d, day, days
+ *  w, week, weeks
+ *  y, year, years (365 days)
+ * If unit omitted value is interpreted as seconds.
+ */
+int ParseTimeStringU64(const char *str, uint64_t *res);
+
 #ifdef UNITTESTS
 void UtilMiscRegisterTests(void);
 #endif /* UNITTESTS */
