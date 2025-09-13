@@ -391,9 +391,16 @@ static void SMTPConfigure(void) {
             SCMimeSmtpConfigLogUrlScheme(val);
         }
 
-        ret = SCConfGetChildValueBool(config, "body-md5", &val);
-        if (ret) {
-            SCMimeSmtpConfigBodyMd5(val);
+        // default (if value is absent) is auto : do not set anything
+        const char *strval;
+        if (SCConfGetChildValue(config, "body-md5", &strval) == 1) {
+            if (SCConfValIsFalse(strval)) {
+                SCMimeSmtpConfigBodyMd5(false);
+            } else if (SCConfValIsTrue(strval)) {
+                SCMimeSmtpConfigBodyMd5(true);
+            } else if (strcmp(strval, "auto") != 0) {
+                SCLogWarning("Unknown value for body-md5: %s", strval);
+            }
         }
     }
 
