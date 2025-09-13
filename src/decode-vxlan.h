@@ -28,6 +28,6 @@
 
 void DecodeVXLANRegisterTests(void);
 void DecodeVXLANConfig(void);
-bool DecodeVXLANEnabledForPort(const uint16_t sp, const uint16_t dp);
+bool DecodeVXLANEnabledForPort(const uint16_t dp);
 
 #endif /* !SURICATA_DECODE_VXLAN_H */
