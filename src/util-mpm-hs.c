@@ -838,7 +838,7 @@ static int SCHSCacheRuleset(MpmConfig *mpm_conf)
     SCLogDebug("Caching the loaded ruleset to %s", mpm_conf->cache_dir_path);
     if (SCCreateDirectoryTree(mpm_conf->cache_dir_path, true) != 0) {
         SCLogWarning("Failed to create Hyperscan cache folder, make sure "
-                     "the  parent folder is writeable "
+                     "the parent folder is writeable "
                      "or adjust sgh-mpm-caching-path setting (%s)",
                 mpm_conf->cache_dir_path);
         return -1;
