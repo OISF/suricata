@@ -7176,44 +7176,56 @@
                     "properties": {
                         "app_layer": {
                             "type": "object",
-                            "error": {
-                                "description":
+                            "additionalProperties": false,
+                            "properties": {
+                                "error": {
+                                    "description":
                                         "Consolidated stats on how many times app-layer error exception policy was applied, and which one",
-                                "$ref": "#/$defs/exceptionPolicy"
+                                        "$ref": "#/$defs/exceptionPolicy"
+                                }
                             }
                         },
                         "defrag": {
                             "type": "object",
-                            "memcap": {
-                                "description":
+                            "additionalProperties": false,
+                            "properties": {
+                                "memcap": {
+                                    "description":
                                         "How many times defrag memcap exception policy was applied, and which one",
-                                "$ref": "#/$defs/exceptionPolicy"
+                                        "$ref": "#/$defs/exceptionPolicy"
+                                }
                             }
                         },
                         "flow": {
                             "type": "object",
-                            "memcap": {
-                                "description":
+                            "additionalProperties": false,
+                            "properties": {
+                                "memcap": {
+                                    "description":
                                         "How many times flow memcap exception policy was applied, and which one",
-                                "$ref": "#/$defs/exceptionPolicy"
+                                        "$ref": "#/$defs/exceptionPolicy"
+                                }
                             }
                         },
                         "tcp": {
                             "type": "object",
-                            "midstream": {
-                                "description":
+                            "additionalProperties": false,
+                            "properties": {
+                                "midstream": {
+                                    "description":
                                         "How many times midstream exception policy was applied, and which one",
-                                "$ref": "#/$defs/exceptionPolicy"
-                            },
-                            "ssn_memcap": {
-                                "description":
+                                        "$ref": "#/$defs/exceptionPolicy"
+                                },
+                                "ssn_memcap": {
+                                    "description":
                                         "How many times session memcap exception policy was applied, and which one",
-                                "$ref": "#/$defs/exceptionPolicy"
-                            },
-                            "reassembly": {
-                                "description":
+                                        "$ref": "#/$defs/exceptionPolicy"
+                                },
+                                "reassembly": {
+                                    "description":
                                         "How many times reassembly memcap exception policy was applied, and which one",
-                                "$ref": "#/$defs/exceptionPolicy"
+                                        "$ref": "#/$defs/exceptionPolicy"
+                                }
                             }
                         }
                     }
