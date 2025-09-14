@@ -7176,6 +7176,7 @@
                     "properties": {
                         "app_layer": {
                             "type": "object",
+                            "additionalProperties": false,
                             "error": {
                                 "description":
                                         "Consolidated stats on how many times app-layer error exception policy was applied, and which one",
@@ -7184,6 +7185,7 @@
                         },
                         "defrag": {
                             "type": "object",
+                            "additionalProperties": false,
                             "memcap": {
                                 "description":
                                         "How many times defrag memcap exception policy was applied, and which one",
@@ -7192,6 +7194,7 @@
                         },
                         "flow": {
                             "type": "object",
+                            "additionalProperties": false,
                             "memcap": {
                                 "description":
                                         "How many times flow memcap exception policy was applied, and which one",
@@ -7200,6 +7203,7 @@
                         },
                         "tcp": {
                             "type": "object",
+                            "additionalProperties": false,
                             "midstream": {
                                 "description":
                                         "How many times midstream exception policy was applied, and which one",
