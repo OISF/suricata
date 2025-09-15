@@ -59,5 +59,6 @@ bool SCIsRegularFile(const struct dirent *const dir_entry);
 char *SCRealPath(const char *path, char *resolved_path);
 const char *SCBasename(const char *path);
 bool SCPathContainsTraversal(const char *path);
+int SCTouchFile(const char *path);
 
 #endif /* SURICATA_UTIL_PATH_H */
