@@ -1,3 +1,31 @@
+7.0.12 -- 2025-09-15
+
+Security #7852: tcp: syn resend with different seq leads to detection bypasss (7.0.x backport)(HIGH - CVE 2025-59147)
+Bug #7898: unix-socket: memory leak when client disconnects during rule reload (7.0.x backport)
+Bug #7883: tcp: SYN/ACK dropped when client does not support timestamps (7.0.x backport)
+Bug #7878: rust: build with RUSTC and CARGO variables fails (7.0.x backport)
+Bug #7876: tcp: possible bypass with TCP ssn reuse (7.0.x backport)
+Bug #7874: alert-debug: DNS Query triggers alert but no output in alert-debug.log (7.0.x backport)
+Bug #7872: dpdk: mbuf reference leak on a NULL packet
+Bug #7866: detect/integers: u8 prefilter does not support all modes (7.0.x backport)
+Bug #7862: http: dissection anomaly on `Content-Encoding: identity` (7.0.x backport)
+Bug #7837: util-byte: bad usage of StringParse function return codes (7.0.x backport)
+Bug #7826: decoder/pppoe: valid packets are getting dropped as decoder.ppp.unsup_proto (7.0.x backport)
+Bug #7823: community id computed wrong for tcp and ipv4 when src_ip == dest_ip   (7.0.x backport)
+Bug #7810: detect/dsize: uninitialized value from SigParseRequiredContentSize (7.0.x backport)
+Bug #7777: decode/ipv6: set packet flow in ip-in-ip (7.0.x backport)
+Bug #7726: decode/ipv4: missing ip-in-ip case handling (7.0.x backport)
+Bug #7582: http: multipart post only decodes first file
+Bug #7574: dns: malformed request data event from macOS to Active Directory DNS server
+Bug #7522: detect/ip-only: false positive alerts on pseudo packets ending a one direction flow (7.0.x backport)
+Bug #6934: UBSAN: null pointer passed as argument to memcpy in unit test
+Feature #7623: flow/output: log triggered exception policy (7.0.x backport)
+Feature #6804: ci: add test for non-bundled htp
+Feature #6509: stats: exception policy counters (7.0.x backport)
+Task #7776: decode/ipv4: add stats counters for ipv4/ipv6 over ipv4 (7.0.x backport)
+Documentation #7778: doc/exceptions: review 'inspection' terminology (7.0.x backport)
+Documentation #6582: userguide: add description for missing EVE krb fields (7.0.x backport)
+
 7.0.11 -- 2025-07-08
 
 Security #7766: libhtp-c: memory leak with lzma(HIGH - CVE 2025-53537)
