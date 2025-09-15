@@ -264,4 +264,131 @@ void HSSaveCacheIterator(void *data, void *aux)
     }
 }
 
+/**
+ * \brief Prune the HS cache directory of files older than cutoff time.
+ *
+ * \param dirpath        Path to the cache directory.
+ * \param cutoff         Time cutoff (files older than this will be removed).
+ * \param o_fconsidered  If non-NULL, on return will be set to the number of
+ *                       files considered for pruning.
+ *
+ * \retval Number of files removed on success, negative value on failure.
+ */
+static int32_t HSPruneFilesOlderThan(const char *dirpath, time_t cutoff, int32_t *o_fconsidered)
+{
+    DIR *dir = opendir(dirpath);
+    if (dir == NULL) {
+        return -1;
+    }
+    struct dirent *ent;
+    int32_t removed = 0, considered = 0;
+    char path[PATH_MAX];
+    while ((ent = readdir(dir)) != NULL) {
+        const char *name = ent->d_name;
+        size_t namelen = strlen(name);
+        if (namelen < 3 || strcmp(name + namelen - 3, ".hs") != 0)
+            continue;
+
+        if (PathMerge(path, sizeof(path), dirpath, name) != 0)
+            continue;
+        struct stat st;
+        if (stat(path, &st) != 0)
+            continue;
+        if (!S_ISREG(st.st_mode))
+            continue;
+        considered++;
+        if (st.st_mtime < cutoff) {
+            if (unlink(path) == 0) {
+                removed++;
+                SCLogDebug("Removed stale file %s (age %llds)", path,
+                        (long long)(time(NULL) - st.st_mtime));
+            } else {
+                SCLogWarning("Failed to prune \"%s\": %s", path, strerror(errno));
+            }
+        }
+    }
+    closedir(dir);
+    if (o_fconsidered)
+        *o_fconsidered = considered;
+    return removed;
+}
+
+int SCHSCachePrune(MpmConfig *mpm_conf)
+{
+    if (mpm_conf == NULL || mpm_conf->cache_dir_path == NULL)
+        return -1;
+    if (mpm_conf->cache_max_age_seconds == 0)
+        return 0; // disabled
+
+    const time_t now = time(NULL);
+    if (now == (time_t)-1) {
+        return -1;
+    }
+
+    if (mpm_conf->cache_max_age_seconds > (uint64_t)now) {
+        SCLogWarning("sgh-mpm-caching-max-age (%" PRIu64
+                     ") is larger than current time, disabling cache pruning",
+                mpm_conf->cache_max_age_seconds);
+        return 0;
+    }
+
+    const time_t cutoff = now - (time_t)mpm_conf->cache_max_age_seconds;
+    int32_t considered = 0;
+    int32_t removed = HSPruneFilesOlderThan(mpm_conf->cache_dir_path, cutoff, &considered);
+    if (removed < 0) {
+        // failed to open the directory
+        return -1;
+    }
+
+    PatternDatabaseCache *pd_cache_stats = mpm_conf->cache_stats;
+    pd_cache_stats->hs_dbs_cache_pruned_cnt = removed;
+    pd_cache_stats->hs_dbs_cache_pruned_considered_cnt = considered;
+    pd_cache_stats->hs_dbs_cache_pruned_cutoff = cutoff;
+    pd_cache_stats->cache_max_age_seconds = mpm_conf->cache_max_age_seconds;
+    return 0;
+}
+
+void *SCHSCacheStatsInit(void)
+{
+    PatternDatabaseCache *pd_cache_stats = SCCalloc(1, sizeof(PatternDatabaseCache));
+    if (pd_cache_stats == NULL) {
+        SCLogError("Failed to allocate memory for Hyperscan cache stats");
+        return NULL;
+    }
+    return pd_cache_stats;
+}
+
+void SCHSCacheStatsPrint(void *data)
+{
+    if (data == NULL) {
+        return;
+    }
+
+    PatternDatabaseCache *pd_cache_stats = (PatternDatabaseCache *)data;
+
+    char time_str[64];
+    struct tm *tm_info = localtime(&pd_cache_stats->hs_dbs_cache_pruned_cutoff);
+    if (tm_info != NULL) {
+        strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", tm_info);
+    } else {
+        snprintf(time_str, sizeof(time_str), "%" PRIu64 " seconds",
+                pd_cache_stats->cache_max_age_seconds);
+    }
+
+    SCLogNotice("Rule group caching - loaded: %u newly cached: %u total cacheable: %u pruned: "
+                "%u/%u cache files older than %s",
+            pd_cache_stats->hs_dbs_cache_loaded_cnt, pd_cache_stats->hs_dbs_cache_saved_cnt,
+            pd_cache_stats->hs_cacheable_dbs_cnt, pd_cache_stats->hs_dbs_cache_pruned_cnt,
+            pd_cache_stats->hs_dbs_cache_pruned_considered_cnt, time_str);
+}
+
+void SCHSCacheStatsDeinit(void *data)
+{
+    if (data == NULL) {
+        return;
+    }
+    PatternDatabaseCache *pd_cache_stats = (PatternDatabaseCache *)data;
+    SCFree(pd_cache_stats);
+}
+
 #endif /* BUILD_HYPERSCAN */
