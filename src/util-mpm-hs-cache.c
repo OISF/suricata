@@ -150,6 +150,10 @@ int HSLoadCache(hs_database_t **hs_db, const char *hs_db_hash, const char *dirpa
         }
 
         ret = 0;
+        /* Touch file to update modification time so active caches are retained. */
+        if (SCTouchFile(hash_file_static) != 0) {
+            SCLogDebug("Failed to update mtime for %s", hash_file_static);
+        }
         goto freeup;
     }
 
