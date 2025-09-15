@@ -7216,14 +7216,14 @@
                                         "How many times midstream exception policy was applied, and which one",
                                         "$ref": "#/$defs/exceptionPolicy"
                                 },
-                                "ssn_memcap": {
-                                    "description":
-                                        "How many times session memcap exception policy was applied, and which one",
-                                        "$ref": "#/$defs/exceptionPolicy"
-                                },
                                 "reassembly": {
                                     "description":
                                         "How many times reassembly memcap exception policy was applied, and which one",
+                                        "$ref": "#/$defs/exceptionPolicy"
+                                },
+                                "ssn_memcap": {
+                                    "description":
+                                        "How many times session memcap exception policy was applied, and which one",
                                         "$ref": "#/$defs/exceptionPolicy"
                                 }
                             }
