@@ -20,7 +20,7 @@
  *
  * \author Lukas Sismis <lsismis@oisf.net>
  *
- * MPM pattern matcher that calls the Hyperscan regex matcher.
+ * Hyperscan cache helper utilities for MPM cache files.
  */
 
 #include "suricata-common.h"
