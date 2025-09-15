@@ -83,6 +83,8 @@ if it is present on the system in case of the "auto" setting.
 If the current suricata installation does not have hyperscan
 support, refer to :ref:`installation`
 
+.. _hyperscan-cache-configuration:
+
 Hyperscan caching
 ~~~~~~~~~~~~~~~~~
 
@@ -103,6 +105,24 @@ To enable this function, in `suricata.yaml` configure:
     sgh-mpm-caching: yes
     sgh-mpm-caching-path: /var/lib/suricata/cache/hs
 
+
+To avoid cache files growing indefinitely, Suricata supports pruning of old
+cache files. Suricata removes cache files older than the specified age
+on startup/rule reloads, where age is determined by delta of the file
+modification time and the current time.
+Cache files that are actively being used will have their modification time
+updated when loaded, so they won't be deleted.
+
+In `suricata.yaml` configure:
+
+::
+
+  detect:
+    sgh-mpm-caching-max-age: 7d
+
+The setting accepts a combination of time units (s,m,h,d,w,y),
+e.g. `1w 3d 12h` for 1 week, 3 days and 12 hours. Setting the value to `0`
+disables pruning.
 
 **Note**:
 You might need to create and adjust permissions to the default caching folder
