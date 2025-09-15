@@ -2530,10 +2530,18 @@ static DetectEngineCtx *DetectEngineCtxInitReal(
         if (de_ctx->mpm_cfg == NULL) {
             goto error;
         }
-    }
-    if (DetectEngineMpmCachingEnabled() && mpm_table[de_ctx->mpm_matcher].ConfigCacheDirSet) {
-        mpm_table[de_ctx->mpm_matcher].ConfigCacheDirSet(
-                de_ctx->mpm_cfg, DetectEngineMpmCachingGetPath());
+
+        if (DetectEngineMpmCachingEnabled() && mpm_table[de_ctx->mpm_matcher].ConfigCacheDirSet) {
+            mpm_table[de_ctx->mpm_matcher].ConfigCacheDirSet(
+                    de_ctx->mpm_cfg, DetectEngineMpmCachingGetPath());
+
+            if (mpm_table[de_ctx->mpm_matcher].CachePrune) {
+                if (SCConfGetTime("detect.sgh-mpm-caching-max-age",
+                            &de_ctx->mpm_cfg->cache_max_age_seconds) != 1) {
+                    de_ctx->mpm_cfg->cache_max_age_seconds = 7ULL * 24ULL * 3600ULL;
+                }
+            }
+        }
     }
 
     de_ctx->spm_global_thread_ctx = SpmInitGlobalThreadCtx(de_ctx->spm_matcher);

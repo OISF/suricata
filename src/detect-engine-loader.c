@@ -506,6 +506,10 @@ skip_regular_rules:
         mpm_table[de_ctx->mpm_matcher].CacheRuleset(de_ctx->mpm_cfg);
     }
 
+    if (mpm_table[de_ctx->mpm_matcher].CachePrune != NULL) {
+        mpm_table[de_ctx->mpm_matcher].CachePrune(de_ctx->mpm_cfg);
+    }
+
  end:
     gettimeofday(&de_ctx->last_reload, NULL);
     if (SCRunmodeGet() == RUNMODE_ENGINE_ANALYSIS) {

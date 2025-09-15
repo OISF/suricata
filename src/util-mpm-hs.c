@@ -64,6 +64,7 @@ uint32_t SCHSSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                     PrefilterRuleStore *pmq, const uint8_t *buf, const uint32_t buflen);
 void SCHSPrintInfo(MpmCtx *mpm_ctx);
 void SCHSPrintSearchStats(MpmThreadCtx *mpm_thread_ctx);
+int SCHSCachePrune(MpmConfig *mpm_conf);
 #ifdef UNITTESTS
 static void SCHSRegisterTests(void);
 #endif
@@ -856,6 +857,96 @@ static int SCHSCacheRuleset(MpmConfig *mpm_conf)
 }
 
 /**
+ * \brief Prune the HS cache directory of files older than cutoff time.
+ *
+ * \param dirpath        Path to the cache directory.
+ * \param cutoff         Time cutoff (files older than this will be removed).
+ * \param o_fconsidered  If non-NULL, on return will be set to the number of
+ *                       files considered for pruning.
+ *
+ * \retval Number of files removed on success, negative value on failure.
+ */
+static int32_t HSPruneFilesOlderThan(const char *dirpath, time_t cutoff, int32_t *o_fconsidered)
+{
+    DIR *dir = opendir(dirpath);
+    if (dir == NULL) {
+        return -1;
+    }
+    struct dirent *ent;
+    int32_t removed = 0, considered = 0;
+    char path[PATH_MAX];
+    while ((ent = readdir(dir)) != NULL) {
+        const char *name = ent->d_name;
+        size_t namelen = strlen(name);
+        if (namelen < 3 || strcmp(name + namelen - 3, ".hs") != 0)
+            continue;
+
+        if (PathMerge(path, sizeof(path), dirpath, name) != 0)
+            continue;
+        struct stat st;
+        if (stat(path, &st) != 0)
+            continue;
+        if (!S_ISREG(st.st_mode))
+            continue;
+        considered++;
+        if (st.st_mtime < cutoff) {
+            if (unlink(path) == 0) {
+                removed++;
+                SCLogDebug("Removed stale file %s (age %llds)", path,
+                        (long long)(time(NULL) - st.st_mtime));
+            } else {
+                SCLogWarning("Failed to prune \"%s\": %s", path, strerror(errno));
+            }
+        }
+    }
+    closedir(dir);
+    if (o_fconsidered)
+        *o_fconsidered = considered;
+    return removed;
+}
+
+int SCHSCachePrune(MpmConfig *mpm_conf)
+{
+    if (mpm_conf == NULL || mpm_conf->cache_dir_path == NULL)
+        return -1;
+    if (mpm_conf->cache_max_age_seconds == 0)
+        return 0; // disabled
+
+    const time_t now = time(NULL);
+    if (now == (time_t)-1) {
+        return -1;
+    }
+
+    if (mpm_conf->cache_max_age_seconds > (uint64_t)now) {
+        SCLogWarning("sgh-mpm-caching-max-age (%" PRIu64
+                     ") is larger than current time, disabling cache pruning",
+                mpm_conf->cache_max_age_seconds);
+        return 0;
+    }
+
+    const time_t cutoff = now - (time_t)mpm_conf->cache_max_age_seconds;
+    int32_t considered = 0;
+    int32_t removed = HSPruneFilesOlderThan(mpm_conf->cache_dir_path, cutoff, &considered);
+    if (removed < 0) {
+        // failed to open the directory
+        return -1;
+    } else if (removed > 0) {
+        char time_str[64];
+        struct tm *tm_info = localtime(&cutoff);
+        if (tm_info != NULL) {
+            strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", tm_info);
+        } else {
+            snprintf(time_str, sizeof(time_str), "%" PRIu64 " seconds ago",
+                    (uint64_t)mpm_conf->cache_max_age_seconds);
+        }
+
+        SCLogInfo("MPM cache prune: removed %d/%u stale cache files older than %s", removed,
+                considered, time_str);
+    }
+    return 0;
+}
+
+/**
  * \brief Init the mpm thread context.
  *
  * \param mpm_ctx        Pointer to the mpm context.
@@ -1187,6 +1278,7 @@ void MpmHSRegister(void)
     mpm_table[MPM_HS].AddPatternNocase = SCHSAddPatternCI;
     mpm_table[MPM_HS].Prepare = SCHSPreparePatterns;
     mpm_table[MPM_HS].CacheRuleset = SCHSCacheRuleset;
+    mpm_table[MPM_HS].CachePrune = SCHSCachePrune;
     mpm_table[MPM_HS].Search = SCHSSearch;
     mpm_table[MPM_HS].PrintCtx = SCHSPrintInfo;
     mpm_table[MPM_HS].PrintThreadCtx = SCHSPrintSearchStats;

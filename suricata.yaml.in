@@ -1792,6 +1792,9 @@ detect:
   # Cache files are created in the standard library directory.
   sgh-mpm-caching: yes
   sgh-mpm-caching-path: @e_sghcachedir@
+  # Maximum age for cached MPM databases before they are pruned.
+  # Accepts time units (s,m,h,d,w,y). Omit to use the default of 7d, 0 to disable.
+  # sgh-mpm-caching-max-age: 7d
   # inspection-recursion-limit: 3000
   # maximum number of times a tx will get logged for rules without app-layer keywords
   # stream-tx-log-limit: 4
