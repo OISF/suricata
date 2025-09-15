@@ -178,7 +178,6 @@ void DetectAppLayerMpmMultiRegister(const char *name, int direction, int priorit
  */
 static void BuildBasicPname(char *out, const size_t out_size, const char *name, const uint16_t id)
 {
-    char pname[out_size];
     size_t id_space;
     if (id < 10)
         id_space = 1;
@@ -191,6 +190,7 @@ static void BuildBasicPname(char *out, const size_t out_size, const char *name, 
     else
         id_space = 5;
     size_t name_space = out_size - (id_space + 1);
+    char pname[name_space];
     if (strlen(name) >= name_space) {
         ShortenString(name, pname, name_space, '~');
     } else {
@@ -222,7 +222,7 @@ static void AppendTransformsToPname(
     }
     xforms[strlen(xforms) - 1] = '\0';
 
-    ssize_t left = (ssize_t)out_size - (ssize_t)strlen(out) - (ssize_t)3;
+    ssize_t left = (ssize_t)out_size - (ssize_t)strlen(out) - (ssize_t)4;
     SCLogDebug("left %d '%s' %d", (int)left, xforms, (int)strlen(xforms));
     /* only append xform if we can add least 5 chars */
     if (left >= 5) {
