@@ -35,9 +35,20 @@ struct HsIteratorData {
     const char *cache_path;
 };
 
+struct HsFilesIteratorData {
+    HashTable *tbl;
+    const char *cache_path;
+};
+
 int HSLoadCache(hs_database_t **hs_db, const char *hs_db_hash, const char *dirpath);
 int HSHashDb(const PatternDatabase *pd, char *hash, size_t hash_len);
 void HSSaveCacheIterator(void *data, void *aux);
+void HSCacheFilenameUsedIterator(void *data, void *aux);
+int SCHSCachePruneEvaluate(MpmConfig *mpm_conf, HashTable *inuse_caches);
+
+void *SCHSCacheStatsInit(void);
+void SCHSCacheStatsPrint(void *data);
+void SCHSCacheStatsDeinit(void *data);
 #endif /* BUILD_HYPERSCAN */
 
 #endif /* SURICATA_UTIL_MPM_HS_CACHE__H */

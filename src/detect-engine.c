@@ -2481,6 +2481,49 @@ const char *DetectEngineMpmCachingGetPath(void)
     return SGH_CACHE_DIR;
 }
 
+void DetectEngineMpmCacheService(enum DetectEngineMpmCacheOp op)
+{
+    DetectEngineCtx *de_ctx = DetectEngineGetCurrent();
+    if (!de_ctx) {
+        return;
+    }
+
+    if (!de_ctx->mpm_cfg || !de_ctx->mpm_cfg->cache_dir_path) {
+        goto error;
+    }
+
+    if (mpm_table[de_ctx->mpm_matcher].CacheStatsInit != NULL) {
+        de_ctx->mpm_cfg->cache_stats = mpm_table[de_ctx->mpm_matcher].CacheStatsInit();
+        if (de_ctx->mpm_cfg->cache_stats == NULL) {
+            goto error;
+        }
+    }
+
+    if (op == DETECT_ENGINE_MPM_CACHE_OP_SAVE || op == DETECT_ENGINE_MPM_CACHE_OP_SAVE_AND_PRUNE) {
+        if (mpm_table[de_ctx->mpm_matcher].CacheRuleset != NULL) {
+            mpm_table[de_ctx->mpm_matcher].CacheRuleset(de_ctx->mpm_cfg);
+        }
+    }
+
+    if (op == DETECT_ENGINE_MPM_CACHE_OP_PRUNE || op == DETECT_ENGINE_MPM_CACHE_OP_SAVE_AND_PRUNE) {
+        if (mpm_table[de_ctx->mpm_matcher].CachePrune != NULL) {
+            mpm_table[de_ctx->mpm_matcher].CachePrune(de_ctx->mpm_cfg);
+        }
+    }
+
+    if (mpm_table[de_ctx->mpm_matcher].CacheStatsPrint != NULL) {
+        mpm_table[de_ctx->mpm_matcher].CacheStatsPrint(de_ctx->mpm_cfg->cache_stats);
+    }
+
+    if (mpm_table[de_ctx->mpm_matcher].CacheStatsDeinit != NULL) {
+        mpm_table[de_ctx->mpm_matcher].CacheStatsDeinit(de_ctx->mpm_cfg->cache_stats);
+        de_ctx->mpm_cfg->cache_stats = NULL;
+    }
+
+error:
+    DetectEngineDeReference(&de_ctx);
+}
+
 static DetectEngineCtx *DetectEngineCtxInitReal(
         enum DetectEngineType type, const char *prefix, uint32_t tenant_id)
 {
@@ -2503,10 +2546,18 @@ static DetectEngineCtx *DetectEngineCtxInitReal(
         if (de_ctx->mpm_cfg == NULL) {
             goto error;
         }
-    }
-    if (DetectEngineMpmCachingEnabled() && mpm_table[de_ctx->mpm_matcher].ConfigCacheDirSet) {
-        mpm_table[de_ctx->mpm_matcher].ConfigCacheDirSet(
-                de_ctx->mpm_cfg, DetectEngineMpmCachingGetPath());
+
+        if (DetectEngineMpmCachingEnabled() && mpm_table[de_ctx->mpm_matcher].ConfigCacheDirSet) {
+            mpm_table[de_ctx->mpm_matcher].ConfigCacheDirSet(
+                    de_ctx->mpm_cfg, DetectEngineMpmCachingGetPath());
+
+            if (mpm_table[de_ctx->mpm_matcher].CachePrune) {
+                if (SCConfGetTime("detect.sgh-mpm-caching-max-age",
+                            &de_ctx->mpm_cfg->cache_max_age_seconds) != 1) {
+                    de_ctx->mpm_cfg->cache_max_age_seconds = 7ULL * 24ULL * 60ULL * 60ULL;
+                }
+            }
+        }
     }
 
     if (type == DETECT_ENGINE_TYPE_DD_STUB || type == DETECT_ENGINE_TYPE_MT_STUB) {
@@ -2527,6 +2578,7 @@ static DetectEngineCtx *DetectEngineCtxInitReal(
 
     SCLogConfig("pattern matchers: MPM: %s, SPM: %s", mpm_table[de_ctx->mpm_matcher].name,
             spm_table[de_ctx->spm_matcher].name);
+
     de_ctx->spm_global_thread_ctx = SpmInitGlobalThreadCtx(de_ctx->spm_matcher);
     if (de_ctx->spm_global_thread_ctx == NULL) {
         SCLogDebug("Unable to alloc SpmGlobalThreadCtx.");
@@ -4884,6 +4936,8 @@ int DetectEngineReload(const SCInstance *suri)
     DetectEngineBumpVersion();
 
     SCLogDebug("old_de_ctx should have been freed");
+
+    DetectEngineMpmCacheService(DETECT_ENGINE_MPM_CACHE_OP_SAVE_AND_PRUNE);
 
     SCLogNotice("rule reload complete");
 

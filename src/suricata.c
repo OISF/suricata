@@ -2676,6 +2676,7 @@ void PostConfLoadedDetectSetup(SCInstance *suri)
         gettimeofday(&de_ctx->last_reload, NULL);
         DetectEngineAddToMaster(de_ctx);
         DetectEngineBumpVersion();
+        DetectEngineMpmCacheService(DETECT_ENGINE_MPM_CACHE_OP_SAVE_AND_PRUNE);
     }
 }
 
