@@ -125,6 +125,21 @@ static void SCRedisAsyncCommandCallback(redisAsyncContext *ac, void *r, void *pr
     }
 }
 
+/** \brief SCRedisAsyncAuthCallback() Callback when AUTH reply from redis happens.
+ *  \param ac redis async context
+ *  \param r redis reply
+ *  \param privdata opaque data with pointer to LogFileCtx
+ */
+static void SCRedisAsyncAuthCallback(redisAsyncContext *ac, void *r, void *privdata)
+{
+    redisReply *reply = r;
+    if (reply != NULL && reply->type == REDIS_REPLY_ERROR) {
+        SCLogError("Redis AUTH failed: %s", reply->str);
+    } else if (reply != NULL) {
+        SCLogInfo("Redis authenticated successfully.");
+    }
+}
+
 /** \brief SCRedisAsyncEchoCommandCallback() Callback for an ECHO command reply
  *         This is used to check if redis is connected.
  *  \param ac redis async context
@@ -242,6 +257,16 @@ static int SCConfLogReopenAsyncRedis(LogFileCtx *log_ctx)
 
     redisLibeventAttach(ctx->async, ctx->ev_base);
 
+    if (log_ctx->redis_setup.password != NULL) {
+        if (log_ctx->redis_setup.username != NULL) {
+            redisAsyncCommand(ctx->async, SCRedisAsyncAuthCallback, log_ctx, "AUTH %s %s",
+                    log_ctx->redis_setup.username, log_ctx->redis_setup.password);
+        } else {
+            redisAsyncCommand(ctx->async, SCRedisAsyncAuthCallback, log_ctx, "AUTH %s",
+                    log_ctx->redis_setup.password);
+        }
+    }
+
     log_ctx->redis = ctx;
     log_ctx->Close = SCLogFileCloseRedis;
     return 0;
@@ -322,6 +347,29 @@ static int SCConfLogReopenSyncRedis(LogFileCtx *log_ctx)
         return -1;
     }
     SCLogInfo("Connected to redis server [%s].", log_ctx->redis_setup.server);
+
+    if (log_ctx->redis_setup.password != NULL) {
+        redisReply *reply;
+        if (log_ctx->redis_setup.username != NULL) {
+            reply = redisCommand(ctx->sync, "AUTH %s %s", log_ctx->redis_setup.username,
+                    log_ctx->redis_setup.password);
+        } else {
+            reply = redisCommand(ctx->sync, "AUTH %s", log_ctx->redis_setup.password);
+        }
+
+        if (reply == NULL || reply->type == REDIS_REPLY_ERROR) {
+            SCLogError("Redis AUTH failed: %s", reply ? reply->str : ctx->sync->errstr);
+            if (reply) {
+                freeReplyObject(reply);
+            }
+            redisFree(ctx->sync);
+            ctx->sync = NULL;
+            ctx->tried = time(NULL);
+            return -1;
+        }
+        freeReplyObject(reply);
+        SCLogInfo("Redis authenticated successfully.");
+    }
 
     log_ctx->redis = ctx;
     log_ctx->Close = SCLogFileCloseRedis;
@@ -473,6 +521,8 @@ int SCConfLogOpenRedis(SCConfNode *redis_node, void *lf_ctx)
     if (redis_node) {
         log_ctx->redis_setup.server = SCConfNodeLookupChildValue(redis_node, "server");
         log_ctx->redis_setup.key = SCConfNodeLookupChildValue(redis_node, "key");
+        log_ctx->redis_setup.username = SCConfNodeLookupChildValue(redis_node, "username");
+        log_ctx->redis_setup.password = SCConfNodeLookupChildValue(redis_node, "password");
 
         redis_port = SCConfNodeLookupChildValue(redis_node, "port");
         redis_mode = SCConfNodeLookupChildValue(redis_node, "mode");
