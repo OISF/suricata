@@ -846,15 +846,12 @@ static int SCHSCacheRuleset(MpmConfig *mpm_conf)
                 mpm_conf->cache_dir_path);
         return -1;
     }
-    PatternDatabaseCache pd_stats = { 0 };
-    struct HsIteratorData iter_data = { .pd_stats = &pd_stats,
+    PatternDatabaseCache *pd_stats = mpm_conf->cache_stats;
+    struct HsIteratorData iter_data = { .pd_stats = pd_stats,
         .cache_path = mpm_conf->cache_dir_path };
     SCMutexLock(&g_db_table_mutex);
     HashTableIterate(g_db_table, HSSaveCacheIterator, &iter_data);
     SCMutexUnlock(&g_db_table_mutex);
-    SCLogNotice("Rule group caching - loaded: %u newly cached: %u total cacheable: %u",
-            pd_stats.hs_dbs_cache_loaded_cnt, pd_stats.hs_dbs_cache_saved_cnt,
-            pd_stats.hs_cacheable_dbs_cnt);
     return 0;
 }
 
@@ -1189,7 +1186,11 @@ void MpmHSRegister(void)
     mpm_table[MPM_HS].AddPattern = SCHSAddPatternCS;
     mpm_table[MPM_HS].AddPatternNocase = SCHSAddPatternCI;
     mpm_table[MPM_HS].Prepare = SCHSPreparePatterns;
+    mpm_table[MPM_HS].CacheStatsInit = SCHSCacheStatsInit;
+    mpm_table[MPM_HS].CacheStatsPrint = SCHSCacheStatsPrint;
+    mpm_table[MPM_HS].CacheStatsDeinit = SCHSCacheStatsDeinit;
     mpm_table[MPM_HS].CacheRuleset = SCHSCacheRuleset;
+    mpm_table[MPM_HS].CachePrune = SCHSCachePrune;
     mpm_table[MPM_HS].Search = SCHSSearch;
     mpm_table[MPM_HS].PrintCtx = SCHSPrintInfo;
     mpm_table[MPM_HS].PrintThreadCtx = SCHSPrintSearchStats;

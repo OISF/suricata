@@ -93,6 +93,10 @@ typedef struct PatternDatabaseCache_ {
     uint32_t hs_cacheable_dbs_cnt;
     uint32_t hs_dbs_cache_loaded_cnt;
     uint32_t hs_dbs_cache_saved_cnt;
+    uint32_t hs_dbs_cache_pruned_cnt;
+    uint32_t hs_dbs_cache_pruned_considered_cnt;
+    time_t hs_dbs_cache_pruned_cutoff;
+    uint64_t cache_max_age_seconds;
 } PatternDatabaseCache;
 
 const char *HSErrorToStr(hs_error_t error_code);
