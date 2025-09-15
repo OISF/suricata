@@ -277,3 +277,54 @@ bool SCPathContainsTraversal(const char *path)
 #endif
     return strstr(path, pattern) != NULL;
 }
+
+/* Update mtime of an existing file to 'now'. */
+int SCTouchFile(const char *path)
+{
+    if (path == NULL || path[0] == '\0') {
+        errno = EINVAL;
+        return -1;
+    }
+#ifdef OS_WIN32
+    HANDLE h = CreateFileA(path, FILE_WRITE_ATTRIBUTES,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, 0, NULL);
+    if (h == INVALID_HANDLE_VALUE)
+        return -1;
+    FILETIME now;
+    GetSystemTimeAsFileTime(&now);
+    BOOL ok = SetFileTime(h, NULL, NULL, &now);
+    DWORD werr = ok ? 0 : GetLastError();
+    CloseHandle(h);
+    if (!ok) {
+        if (werr == ERROR_FILE_NOT_FOUND)
+            errno = ENOENT;
+        else if (werr == ERROR_ACCESS_DENIED)
+            errno = EACCES;
+        else
+            errno = EIO;
+        return -1;
+    }
+    return 0;
+#else
+#if defined(UTIME_NOW) && defined(UTIME_OMIT)
+    struct timespec ts[2];
+    ts[0].tv_nsec = UTIME_OMIT; /* keep atime */
+    ts[1].tv_sec = 0;
+    ts[1].tv_nsec = UTIME_NOW;
+    if (utimensat(AT_FDCWD, path, ts, 0) == 0)
+        return 0;
+    if (errno != ENOSYS && errno != EINVAL) {
+        return -1; /* real error or ENOENT */
+    }
+#endif
+    if (utimes(path, NULL) == 0)
+        return 0;
+    if (errno == ENOENT)
+        return -1;
+    struct utimbuf ub;
+    ub.actime = ub.modtime = time(NULL);
+    if (utime(path, &ub) == 0)
+        return 0;
+    return -1;
+#endif
+}
