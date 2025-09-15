@@ -68,6 +68,10 @@ Other Changes
   from unbounded to 2048. Configuration options, ``max-tx``,
   ``max-points``, and ``max-objects`` have been added for users who
   may need to change these defaults.
+- Hyperscan caching (`detect.sgh-mpm-caching`), when enabled, prunes
+  cache files that have not been used in the last 7 days by default.
+  See :ref:`Hyperscan caching configuration
+  <hyperscan-cache-configuration>` for more information.
 
 Upgrading to 8.0.1
 ------------------

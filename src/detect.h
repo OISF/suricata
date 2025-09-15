@@ -1750,6 +1750,9 @@ extern SigTableElmt *sigmatch_table;
 
 /** Remember to add the options in SignatureIsIPOnly() at detect.c otherwise it wont be part of a signature group */
 
+#define DETECT_ENGINE_MPM_CACHE_OP_PRUNE BIT_U32(0)
+#define DETECT_ENGINE_MPM_CACHE_OP_SAVE  BIT_U32(1)
+
 /* detection api */
 TmEcode Detect(ThreadVars *tv, Packet *p, void *data);
 uint8_t DetectPreFlow(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p);
