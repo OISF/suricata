@@ -1,3 +1,59 @@
+8.0.1 -- 2025-09-15
+
+Security #7881: detect/tls: keyword tls.subjectaltname leads to NULL Deref if tls.subjectaltname contains zero(HIGH - CVE 2025-59150)
+Security #7861: detect: Dynamic-stack-buffer-overflow in ShortenString(HIGH - CVE 2025-59149)
+Security #7838: detect/entropy: segfault when not anchored to a sticky buffer(HIGH - CVE 2025-59148)
+Security #7657: tcp: syn resend with different seq leads to detection bypasss(HIGH - CVE 2025-59147)
+Bug #7891: unix-socket: memory leak when client disconnects during rule reload
+Bug #7877: rust: build with RUSTC and CARGO variables fails
+Bug #7865: detect/integers: u8 prefilter does not support all modes
+Bug #7859: doc/userguide: build failure with read the docs theme
+Bug #7843: http: dissection anomaly on `Content-Encoding: identity`
+Bug #7836: util-byte: bad usage of StringParse function return codes
+Bug #7828: util/hash: unexpected remove behavior
+Bug #7827: app-layer: ippair.memcap counter shows memuse
+Bug #7824: hyperscan: caching results in segfault with link time optimization (-flto=auto, etc)
+Bug #7822: engine-analysis: SEGV on rule failure without rules-fast-pattern enabled
+Bug #7821: engine-analysis: no report for failed rules without fast pattern
+Bug #7820: app-layer/snmp: internal error if app-layer is disabled
+Bug #7815: unix-socket: segfault in "pcap-file-list" command
+Bug #7813: cppcheck: warnings in counters.c
+Bug #7804: util-lua-sandbox.c undeclared identifier error for Suricata 8.0.0
+Bug #7803: http: use transactions right get function
+Bug #7802: detect/dsize: uninitialized value from SigParseRequiredContentSize
+Bug #7741: http2: events can contain an empty response object
+Bug #7740: doh2: events are always dns even if there is no DNS info (pure HTTP2 settings)
+Bug #7651: decoder/pppoe: valid packets are getting dropped as decoder.ppp.unsup_proto
+Bug #7636: tcp: assertion triggered in StreamTcpReassembleAppLayer
+Bug #7611: eve: segv in stats.totals output
+Bug #5689: eve: community id computed wrong for tcp and ipv4 when src_ip == dest_ip  
+Bug #4702: tcp: SYN/ACK dropped when client does not support timestamps
+Bug #4178: alert-debug: DNS Query triggers alert but no output in alert-debug.log
+Bug #3844: tcp: possible bypass with TCP ssn reuse
+Optimization #7769: detect/file: remove redundant de_ctx->rule_file != NULL check
+Feature #7869: detect/integers: support units like kib
+Task #7857: schema/arp: fix invalid pkt event output
+Task #7834: detect: remove unused non-pf stats counters
+Documentation #7890: detect: tls.cert_subject incorrectly claims to support multi-buffer
+Documentation #7867: detect/multi-buffers: complete list in userguide page on multi-buffer-matching
+Documentation #7854: doc/lualib: fix flow timestamps() return value order
+Documentation #7795: eve/schema: document stats.detect counters
+Documentation #7794: eve/schema: document stats.flow counters
+Documentation #7728: lua: fix all Lua documentation examples for new library format
+Documentation #7648: rtd: set "latest" to last stable release starting with 8.0.0
+Documentation #7639: dpdk: update Connect-X4 recommended fallback tx-descriptor count
+Documentation #7631: userguide: document lua lib suricata.dnp3
+Documentation #7190: detect/integers: document usage of units
+Documentation #7081: userguide: add unix socket option to retrieve flow info
+Documentation #6840: devguide/app-layer: section with conceptualized steps for adding parser
+Documentation #6284: userguide: document what's the impact of `stream.inline`
+Documentation #6270: userguide: document usage of Suricata as a firewall
+Documentation #5690: userguide: document the differences between IPS and IDS mode
+Documentation #5513: userguide: add a chapter for IPS mode
+Documentation #5139: userguide: add a section for netflow event type
+Documentation #5078: doc/userguide: improve rule reload documentation
+Documentation #4351: doc: explain the engine logic to trigger inspection of TCP data
+
 8.0.0 -- 2025-07-08
 
 Security #7658: http2: global tx (stream id 0) may open file and never close it(HIGH - CVE 2025-53538)
