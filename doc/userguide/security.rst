@@ -83,7 +83,7 @@ The following commands will setup the correct permissions:
     chgrp -R suricata /var/lib/suricata
     chmod -R g+srw /var/lib/suricata
 
-* ``/var/lib/suricata``::
+* ``/var/run/suricata``::
 
     chgrp -R suricata /var/run/suricata
     chmod -R g+srw /var/run/suricata
