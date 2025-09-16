@@ -2,13 +2,13 @@ name: "CodeQL"
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
     paths-ignore:
       - "doc/**"
       - "etc/schema.json"
   pull_request:
     # The branches below must be a subset of the branches above
-    branches: [ master ]
+    branches: [ main ]
     paths-ignore:
       - "doc/**"
       - "etc/schema.json"
