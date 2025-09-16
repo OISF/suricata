@@ -12,7 +12,7 @@ There are multiple versions of Suricata at any given time:
     * Old stable release
 
 For example, at the moment, there are 3 releases based on these Suricata branches:
-    * master: 8.0.0-dev, current development branch
+    * main: 8.0.0-dev, current development branch
     * main-7.0.x: major stable release (note we're changing our naming conventions)
     * master-6.0.x: old stable release
 
@@ -33,7 +33,7 @@ issue should be backported, please let us know in the ticket or related PR. But
 sometimes we'll miss those.
 
 The general principle used to determine what will be backported is:
-    * security fixes (please see our `Security Policy <https://github.com/OISF/suricata/blob/master/SECURITY.md>`_)
+    * security fixes (please see our `Security Policy <https://github.com/OISF/suricata/blob/main/SECURITY.md>`_)
     * bug fixes
     * in some cases, new features are backported if there are sufficient reasons to
       backport a new feature.
@@ -80,21 +80,21 @@ Therefore, we will be periodically reviewing:
 
 Then, also periodically, we will create backport issues from those items
 identified in the previous steps. When doing so, we will evaluate what are the
-relevant target backport releases. Some issues reported against master or the
+relevant target backport releases. Some issues reported against main or the
 current Suricata release may not apply to older releases.
 
 Git Backport Workflow
 ---------------------
 
 If you are working on a task that needs to be backported, only start the
-backporting process once the PR for master has been merged. Then:
+backporting process once the PR for main has been merged. Then:
 
     * *Identify the commit(s) needed* for the backport. Start with the PR that merged
-      the commits into master and select only the commits from the issue being
+      the commits into main and select only the commits from the issue being
       backported.
     * *Bring each commit into the new branch,* one at a time -- starting with the
       oldest commit. Use ``git cherry-pick -x commit-hash``, where ``commit-hash``
-      is the hash to the commit already in master or main-7.0x that is being
+      is the hash to the commit already in main or main-7.0x that is being
       backported, as it maintains the linkage with said cherry-picked commit.
     * *Resolve conflicts:* Some of the cherry-picked commits may contain merge
       conflicts. If the conflicts are small, include the corrections in the
@@ -108,7 +108,7 @@ backporting process once the PR for master has been merged. Then:
 
 .. Note:: Exceptions
 
-   Sometimes, the fix for master will not work for the stable or old releases.
+   Sometimes, the fix for main will not work for the stable or old releases.
    In such cases, the backporting process won't be through cherry-picking, but
    through actually implementing a fix for the specific version.
 

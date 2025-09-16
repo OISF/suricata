@@ -9,7 +9,7 @@ Rule Types and Categorization
 Once parsed, Suricata rules are categorized for performance and further
 processing (as different rule types will be handled by specific engine modules).
 The signature types are defined in `src/detect.h
-<https://github.com/OISF/suricata/blob/master/src/detect.h>`_:
+<https://github.com/OISF/suricata/blob/main/src/detect.h>`_:
 
 .. literalinclude:: ../../../src/detect.h
     :caption: src/detect.h
@@ -62,7 +62,7 @@ The rule type will impact:
 This categorization is done taking into consideration the presence or absence of
 certain rule elements, as well as the type of keywords used. The categorization
 currently takes place in `src/detect-engine-build.c:void SignatureSetType()
-<https://github.com/OISF/suricata/blob/master/src/detect-engine-build.c#L1642-L1704>`_.
+<https://github.com/OISF/suricata/blob/main/src/detect-engine-build.c#L1642-L1704>`_.
 
 The ``SignatureSetType()`` overall flow is described below:
 
@@ -173,7 +173,7 @@ Signature Properties
 --------------------
 
 The `Action Scope` mentioned above relates to the Signature Properties, as seen in
-`src/detect-engine.c <https://github.com/OISF/suricata/blob/master/src/detect-engine.c>`_:
+`src/detect-engine.c <https://github.com/OISF/suricata/blob/main/src/detect-engine.c>`_:
 
 .. literalinclude:: ../../../src/detect-engine.c
     :caption: src/detect-engine.c
@@ -293,7 +293,7 @@ Decoder Events Only
 Signatures that inspect broken or invalid packets. They expose Suricata decoding
 events.
 
-For more examples check https://github.com/OISF/suricata/blob/master/rules/decoder-events.rules.
+For more examples check https://github.com/OISF/suricata/blob/main/rules/decoder-events.rules.
 
 Example
 """""""

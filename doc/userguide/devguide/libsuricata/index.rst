@@ -26,7 +26,7 @@ Application-layer plugins
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Application layer plugins can be added as demonstrated by example
-https://github.com/OISF/suricata/blob/master/examples/plugins/altemplate/
+https://github.com/OISF/suricata/blob/main/examples/plugins/altemplate/
 
 The plugin code contains the same files as an application layer in the source tree:
   - alname.rs : entry point of protocol with its registration

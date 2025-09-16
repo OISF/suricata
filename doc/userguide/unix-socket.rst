@@ -26,7 +26,7 @@ directory.
 Clients are implemented for some programming languages and can be used as code
 example to write custom scripts:
 
-* Rust: https://github.com/OISF/suricata/blob/master/rust/suricatasc (version provided in Suricata 8+)
+* Rust: https://github.com/OISF/suricata/blob/main/rust/suricatasc (version provided in Suricata 8+)
 * Python: https://github.com/OISF/suricata/blob/main-7.0.x/python/suricata/sc/suricatasc.py (Python version from older versions of Suricata)
 * Perl: https://github.com/aflab/suricatac (a simple Perl client with interactive mode)
 * C: https://github.com/regit/SuricataC (a Unix socket mode client in C without interactive mode)

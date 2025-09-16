@@ -25,7 +25,7 @@ Building a standalone plugin has the following dependencies:
 Modify the Makefile to use `libsuricata-config`.
 
 Before building this plugin you will need to build and install Suricata from the
-git master branch and install the development tools and headers:
+git main branch and install the development tools and headers:
 
 - `make install-library`
 - `make install-headers`

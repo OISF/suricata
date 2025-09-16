@@ -23,7 +23,7 @@ applications using Suricata as a library.
 
 The Suricata source code contains an example plugin demonstrating how
 to hook into some of these APIs. See
-https://github.com/OISF/suricata/blob/master/examples/plugins/c-custom-loggers/custom-logger.c.
+https://github.com/OISF/suricata/blob/main/examples/plugins/c-custom-loggers/custom-logger.c.
 
 Packet Logging
 ~~~~~~~~~~~~~~
