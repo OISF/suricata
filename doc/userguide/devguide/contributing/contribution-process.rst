@@ -10,7 +10,7 @@ Essentially, these are:
 #. Agree to and sign our :ref:`Contribution Agreement<contribution-agreement>`
 #. Communicate early, and use the :ref:`preferred channels <communication-channels>`
 #. :ref:`claim-ticket`
-#. :ref:`Fork from master <what-branch-to-work-on>`
+#. :ref:`Fork from main <what-branch-to-work-on>`
 #. Follow our :ref:`Coding Style`
 #. Use our :ref:`documentation-style`
 #. Stick to our :ref:`commit guidelines<commits>`
@@ -183,16 +183,16 @@ There are usually 2 or 3 active branches:
 
     * master-x.x.x (e.g. master-6.0.x)
     * main-x.x.x (e.g. main-7.0.x)
-    * master
+    * main
 
-The ones with version numbers are stable branches. **master** is the development branch.
+The ones with version numbers are stable branches. **main** is the development branch.
 
 The stable branch should only be worked on for important bug fixes or other
 needed :doc:`backports<backports-guide>`. Those are mainly expected from more
 experienced contributors.
 
 Development of new features or large scale redesign is done in the development
-branch. New development and new contributors should work with *master* except
+branch. New development and new contributors should work with *main* except
 in very special cases - which should and would be discussed with us first.
 
 If in doubt, please reach out to us via :ref:`Redmine, Discord or
@@ -298,7 +298,7 @@ When using these, indicate the portion to be highlighted by surrounding it with
 
 It is only necessary to invoke the role once per document. One can see these
 being invoked in our introduction to the rule language (see `Rules intro
-<https://raw.githubusercontent.com/OISF/suricata/master/doc/userguide/rules/intro.rst>`_).
+<https://raw.githubusercontent.com/OISF/suricata/main/doc/userguide/rules/intro.rst>`_).
 
 A rule example like::
 

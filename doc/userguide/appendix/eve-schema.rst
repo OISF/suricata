@@ -6,7 +6,7 @@ log files. This schema follows the `JSON Schema
 <https://json-schema.org/>`_ specification and can be found in
 ``etc/schema.json``. If your distribution does not contain this file,
 it can be viewed online at
-https://github.com/OISF/suricata/blob/master/etc/schema.json, but note
+https://github.com/OISF/suricata/blob/main/etc/schema.json, but note
 that it is version-specific and may change between major versions of
 Suricata.
 
