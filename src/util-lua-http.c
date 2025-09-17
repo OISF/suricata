@@ -23,7 +23,7 @@
  */
 
 #include "suricata-common.h"
-
+#include "htp/htp_rs.h"
 #include "app-layer-htp.h"
 #include "util-lua.h"
 #include "util-lua-common.h"
@@ -65,9 +65,13 @@ static int LuaHttpGetRequestHost(lua_State *luastate)
         lua_pushnil(luastate);
         return 1;
     }
+    const struct bstr *host = htp_tx_request_hostname(tx->tx);
+    if (host == NULL) {
+        lua_pushnil(luastate);
+        return 1;
+    }
 
-    return LuaPushStringBuffer(luastate, bstr_ptr(htp_tx_request_hostname(tx->tx)),
-            bstr_len(htp_tx_request_hostname(tx->tx)));
+    return LuaPushStringBuffer(luastate, bstr_ptr(host), bstr_len(host));
 }
 
 static int LuaHttpGetRequestUriRaw(lua_State *luastate)
@@ -77,9 +81,13 @@ static int LuaHttpGetRequestUriRaw(lua_State *luastate)
         lua_pushnil(luastate);
         return 1;
     }
+    const struct bstr *uri = htp_tx_request_uri(tx->tx);
+    if (uri == NULL) {
+        lua_pushnil(luastate);
+        return 1;
+    }
 
-    return LuaPushStringBuffer(
-            luastate, bstr_ptr(htp_tx_request_uri(tx->tx)), bstr_len(htp_tx_request_uri(tx->tx)));
+    return LuaPushStringBuffer(luastate, bstr_ptr(uri), bstr_len(uri));
 }
 
 static int LuaHttpGetRequestUriNormalized(lua_State *luastate)
@@ -107,8 +115,13 @@ static int LuaHttpGetRequestLine(lua_State *luastate)
         return 1;
     }
 
-    return LuaPushStringBuffer(
-            luastate, bstr_ptr(htp_tx_request_line(tx->tx)), bstr_len(htp_tx_request_line(tx->tx)));
+    const struct bstr *line = htp_tx_request_line(tx->tx);
+    if (line == NULL) {
+        lua_pushnil(luastate);
+        return 1;
+    }
+
+    return LuaPushStringBuffer(luastate, bstr_ptr(line), bstr_len(line));
 }
 
 static int LuaHttpGetResponseLine(lua_State *luastate)
@@ -119,8 +132,13 @@ static int LuaHttpGetResponseLine(lua_State *luastate)
         return 1;
     }
 
-    return LuaPushStringBuffer(luastate, bstr_ptr(htp_tx_response_line(tx->tx)),
-            bstr_len(htp_tx_response_line(tx->tx)));
+    const struct bstr *line = htp_tx_response_line(tx->tx);
+    if (line == NULL) {
+        lua_pushnil(luastate);
+        return 1;
+    }
+
+    return LuaPushStringBuffer(luastate, bstr_ptr(line), bstr_len(line));
 }
 
 static int LuaHttpGetHeader(lua_State *luastate, int dir)
