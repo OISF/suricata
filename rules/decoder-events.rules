@@ -102,6 +102,8 @@ alert pkthdr any any -> any any (msg:"SURICATA VLAN too many layers"; decode-eve
 alert pkthdr any any -> any any (msg:"SURICATA VNTAG header too small"; decode-event:vntag.header_too_small; classtype:protocol-command-decode; sid:2200117; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA VNTAG unknown type"; decode-event:vntag.unknown_type; classtype:protocol-command-decode; sid:2200118; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA IEEE802.1AH header too small"; decode-event:ieee8021ah.header_too_small; classtype:protocol-command-decode; sid:2200112; rev:1;)
+alert pkthdr any any -> any any (msg:"SURICATA ETAG header too small"; decode-event:etag.header_too_small; classtype:protocol-command-decode; sid:2200123; rev:1;)
+alert pkthdr any any -> any any (msg:"SURICATA ETAG unknown type"; decode-event:etag.unknown_type; classtype:protocol-command-decode; sid:2200124; rev:1;)
 
 alert pkthdr any any -> any any (msg:"SURICATA IP raw invalid IP version "; decode-event:ipraw.invalid_ip_version; classtype:protocol-command-decode; sid:2200068; rev:2;)
 alert pkthdr any any -> any any (msg:"SURICATA FRAG IPv4 Packet size too large"; decode-event:ipv4.frag_pkt_too_large; classtype:protocol-command-decode; sid:2200069; rev:3;)
@@ -155,5 +157,5 @@ alert pkthdr any any -> any any (msg:"SURICATA packet with too many layers"; dec
 # Capture events.
 alert pkthdr any any -> any any (msg:"SURICATA AF-PACKET truncated packet"; decode-event:afpacket.trunc_pkt; classtype:protocol-command-decode; sid:2200122; rev:1;)
 
-# next sid is 2200123
+# next sid is 2200125
 
