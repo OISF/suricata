@@ -794,10 +794,6 @@ static void PrintBuildInfo(void)
 #ifdef PCRE2_HAVE_JIT
     strlcat(features, "PCRE_JIT ", sizeof(features));
 #endif
-    /* For compatibility, just say we have HAVE_NSS. */
-    strlcat(features, "HAVE_NSS ", sizeof(features));
-    /* HTTP2_DECOMPRESSION is not an optional feature in this major version */
-    strlcat(features, "HTTP2_DECOMPRESSION ", sizeof(features));
     /* Lua is now vendored in and always available. */
     strlcat(features, "HAVE_LUA ", sizeof(features));
 #ifdef HAVE_JA3
@@ -824,7 +820,6 @@ static void PrintBuildInfo(void)
 #ifdef HAVE_MAGIC
     strlcat(features, "MAGIC ", sizeof(features));
 #endif
-    strlcat(features, "RUST ", sizeof(features));
 #if defined(SC_ADDRESS_SANITIZER)
     strlcat(features, "ASAN ", sizeof(features));
 #endif
