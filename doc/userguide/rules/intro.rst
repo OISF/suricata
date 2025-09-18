@@ -131,6 +131,23 @@ is enabled in the configuration file, suricata.yaml.
 If you have a signature with the protocol declared as 'http', Suricata makes
 sure the signature will only match if the TCP stream contains http traffic.
 
+Explicit rule hooks
+~~~~~~~~~~~~~~~~~~~
+
+In Suricata 8 the protocol field can be used to force evaluation of a rule at
+a specific explicit protocol state. This takes the format of::
+
+    <proto>:<hook>
+
+Where each application protocol comes with a default set of hooks, as well as
+per protocol specific hooks.
+
+More details can be found in :ref:`rule-hooks`.
+
+.. note::
+
+   While developed for the firewall usecase, these hooks can be used in IDS/IPS rules as well.
+
 Source and destination
 ----------------------
 .. container:: example-rule
