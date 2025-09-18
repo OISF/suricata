@@ -8,7 +8,7 @@ for l in sys.stdin:
 
     if included == "rust.h" or included == "suricata-common.h":
         continue
-    if includer == "src/suricata-common.h" or includer == "src/rust-context.h" or includer == "src/rust.h" or includer == "src/threads.h":
+    if includer == "src/suricata-common.h" or includer == "src/rust.h" or includer == "src/threads.h":
         continue
 
     if included == "util-file.h" and includer == "src/detect.h":
