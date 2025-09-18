@@ -91,11 +91,16 @@ you can pick from. These are:
 * http (either HTTP1 or HTTP2)
 * http1
 * http2
-* ftp
 * tls (this includes ssl)
+* quic
+* ftp (ftp command channel)
+* ftp-data (ftp data channel)
 * smb
 * dns
+* doh2 (dns over http/2)
+* mdns
 * dcerpc
+* ldap
 * dhcp
 * ssh
 * smtp
@@ -108,6 +113,7 @@ you can pick from. These are:
 * ike
 * krb5
 * bittorrent-dht
+* mqtt
 * ntp
 * dhcp
 * rfb
@@ -115,6 +121,7 @@ you can pick from. These are:
 * snmp
 * tftp
 * sip
+* telnet
 * websocket
 
 The availability of these protocols depends on whether the protocol
