@@ -124,10 +124,7 @@ pub fn detect_parse_uint_value_hex<T: DetectIntType>(i: &str) -> IResult<&str, T
 }
 
 pub fn detect_parse_uint_value<T: DetectIntType>(i: &str) -> IResult<&str, T> {
-    let (i, arg1) = alt((
-        detect_parse_uint_value_hex,
-        detect_parse_uint_with_unit,
-    ))(i)?;
+    let (i, arg1) = alt((detect_parse_uint_value_hex, detect_parse_uint_with_unit))(i)?;
     Ok((i, arg1))
 }
 
@@ -178,19 +175,10 @@ pub fn detect_parse_uint_start_interval<T: DetectIntType>(
     } else {
         DetectUintMode::DetectUintModeRange
     };
-    Ok((
-        i,
-        DetectUintData {
-            arg1,
-            arg2,
-            mode,
-        },
-    ))
+    Ok((i, DetectUintData { arg1, arg2, mode }))
 }
 
-pub fn detect_parse_uint_bitmask<T: DetectIntType>(
-    i: &str,
-) -> IResult<&str, DetectUintData<T>> {
+pub fn detect_parse_uint_bitmask<T: DetectIntType>(i: &str) -> IResult<&str, DetectUintData<T>> {
     let (i, _) = opt(is_a(" "))(i)?;
     let (i, _) = tag("&")(i)?;
     let (i, _) = opt(is_a(" "))(i)?;
@@ -209,23 +197,14 @@ pub fn detect_parse_uint_bitmask<T: DetectIntType>(
     } else {
         DetectUintMode::DetectUintModeNegBitmask
     };
-    Ok((
-        i,
-        DetectUintData {
-            arg1,
-            arg2,
-            mode,
-        },
-    ))
+    Ok((i, DetectUintData { arg1, arg2, mode }))
 }
 
 fn detect_parse_uint_start_interval_inclusive<T: DetectIntType>(
     i: &str,
 ) -> IResult<&str, DetectUintData<T>> {
     let (i, neg) = opt(char('!'))(i)?;
-    let (i, arg1) = verify(detect_parse_uint_value::<T>, |x| {
-        *x > T::min_value()
-    })(i)?;
+    let (i, arg1) = verify(detect_parse_uint_value::<T>, |x| *x > T::min_value())(i)?;
     let (i, _) = opt(is_a(" "))(i)?;
     let (i, _) = alt((tag("-"), tag("<>")))(i)?;
     let (i, _) = opt(is_a(" "))(i)?;
@@ -475,9 +454,7 @@ pub unsafe extern "C" fn SCDetectU8Parse(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCDetectU8Match(
-    arg: u8, ctx: &DetectUintData<u8>,
-) -> std::os::raw::c_int {
+pub unsafe extern "C" fn SCDetectU8Match(arg: u8, ctx: &DetectUintData<u8>) -> std::os::raw::c_int {
     if detect_match_uint(ctx, arg) {
         return 1;
     }
