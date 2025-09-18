@@ -68,13 +68,17 @@ Protocol
 
     alert :example-rule-emphasis:`http` $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP GET Request Containing Rule in URI"; flow:established,to_server; http.method; content:"GET"; http.uri; content:"rule"; fast_pattern; classtype:bad-unknown; sid:123; rev:1;)
 
-This keyword in a signature tells Suricata which protocol it
-concerns. You can choose between four basic protocols:
+The protocol value will limit what protocol(s) the signature will be applied to:
 
+* ip (ip stands for 'all' or 'any')
 * tcp (for tcp-traffic)
 * udp
-* icmp
-* ip (ip stands for 'all' or 'any')
+* icmp (both icmpv4 and icmpv6)
+* icmpv4
+* icmpv6
+* ipv4/ip4 - just IPv4
+* ipv6/ip6 - just IPv6
+* pkthdr (for inspecting packets w/o invalid headers)
 
 There are a couple of additional TCP related protocol options:
 
