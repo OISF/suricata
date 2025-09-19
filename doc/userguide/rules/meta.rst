@@ -110,6 +110,7 @@ In the part [1:123], the first 1 is the gid (123 is the sid and 1 is the rev).
 
     07/12/2022-21:59:26.713297  [**] [:example-rule-emphasis:`1`:123:1] HTTP GET Request Containing Rule in URI [**] [Classification: Potentially Bad Traffic] [Priority: 2] {TCP} 192.168.225.121:12407 -> 172.16.105.84:80
 
+.. _classtype:
 
 classtype
 ---------
