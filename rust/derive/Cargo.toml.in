@@ -1,6 +1,8 @@
 [package]
 name = "suricata-derive"
 version = "@PACKAGE_VERSION@"
+license = "GPL-2.0-only"
+description = "Derive macros for Suricata"
 edition = "2021"
 
 [lib]
