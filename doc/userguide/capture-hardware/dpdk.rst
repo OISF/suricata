@@ -239,3 +239,71 @@ Encapsulation stripping
 Suricata supports stripping the hardware-offloaded encapsulation stripping on
 the supported NICs. Currently, VLAN encapsulation stripping is supported.
 VLAN encapsulation stripping can be enabled with `vlan-strip-offload`.
+
+Drop filter
+-----------------------------
+
+Drop filter can improve the performance of Suricata by filtering
+used-predefined flows directly in the Network interface card. The user can
+specify unwanted flows before the start of Suricata. These flows are not going to be
+inspected by Suricata and will be ignored for the whole run of the program.
+On some PMDs, the statistics of the dropped flows are gathered and stored in eve.json.
+
+The syntax for drop filter in Suricata is similar to the dpdk-testpmd application
+rule syntax, although in Suricata, only the "pattern" section is applicable.
+The user can define multiple rules, either to match specific flow
+or a range of flows (e.g. using ip or port masks).
+
+Patterns currently supported by this feature are listed in
+"src/util-dpdk-rte-flow-pattern.c" in "enum index next_item[]"
+and their corresponding attributes in "enum index item_<pattern>[]".
+
+.. literalinclude:: ../../../src/util-dpdk-rte-flow-pattern.c
+    :language: c
+    :start-at: /* --- start pattern enum --- */
+    :end-at: /* --- end pattern enum --- */
+
+
+This feature is supported and tested only on NICs with mlx5, ice, and i40e drivers. 
+Some of the drivers also support collecting statistics about dropped flows 
+(visible in dpdk.rte_flow_filtered in eve.json). 
+The level of functionality varies between these cards, as specified below:
+
+* ice:
+
+  The driver does not support broad patterns; some pattern item has to have
+  specification, e.g., ``pattern eth / ipv4 / end`` raises an error but
+  ``pattern eth / ipv4 src is x / end`` or ``pattern eth / ipv4 / tcp src is x`` works fine.
+  It also supports gathering statistics of the filtered packets, but only
+  when all of the rules match one specific flow (e.g. mask can not be used).
+
+* i40e:
+
+  The driver does not support different item sets on the same pattern item type,
+  e.g., if the first rule is in the form ``pattern eth / ipv4 src is x / end``,
+  then any other rule containing an ipv4 pattern type must exclusively use the src attribute.
+  Statistics of the filtered packets are not supported.
+
+* mlx5:
+
+  The driver is the most versatile PMD, supporting a wide range of patterns. 
+  It also supports gathering statistics of the filtered packets without any other constraints.
+
+
+The configuration for the drop filter can be found and modified in the
+DPDK section of the suricata.yaml file.
+
+Below is a sample configuration that demonstrates how to filter specific flow and a range of flows:
+
+::
+
+  ...
+  dpdk:
+      eal-params:
+        proc-type: primary
+
+      interfaces:
+        - interface: 0000:3b:00.0
+          drop-filter:
+            - rule: "pattern eth / ipv4 src is 192.11.120.50 / tcp / end"
+            - rule: "pattern eth / ipv4 src is 170.22.40.0 src mask 255.255.255.0 / tcp / end"
