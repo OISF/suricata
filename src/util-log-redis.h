@@ -41,6 +41,8 @@ typedef struct RedisSetup_ {
     const char *format;
     const char *command;
     const char *key;
+    const char *username;
+    const char *password;
     const char *server;
     uint16_t  port;
     int is_async;
