@@ -68,13 +68,17 @@ Protocol
 
     alert :example-rule-emphasis:`http` $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP GET Request Containing Rule in URI"; flow:established,to_server; http.method; content:"GET"; http.uri; content:"rule"; fast_pattern; classtype:bad-unknown; sid:123; rev:1;)
 
-This keyword in a signature tells Suricata which protocol it
-concerns. You can choose between four basic protocols:
+The protocol value will limit what protocol(s) the signature will be applied to:
 
+* ip (ip stands for 'all' or 'any')
 * tcp (for tcp-traffic)
 * udp
-* icmp
-* ip (ip stands for 'all' or 'any')
+* icmp (both icmpv4 and icmpv6)
+* icmpv4
+* icmpv6
+* ipv4/ip4 - just IPv4
+* ipv6/ip6 - just IPv6
+* pkthdr (for inspecting packets w/o invalid headers)
 
 There are a couple of additional TCP related protocol options:
 
@@ -87,11 +91,16 @@ you can pick from. These are:
 * http (either HTTP1 or HTTP2)
 * http1
 * http2
-* ftp
 * tls (this includes ssl)
+* quic
+* ftp (ftp command channel)
+* ftp-data (ftp data channel)
 * smb
 * dns
+* doh2 (dns over http/2)
+* mdns
 * dcerpc
+* ldap
 * dhcp
 * ssh
 * smtp
@@ -104,6 +113,7 @@ you can pick from. These are:
 * ike
 * krb5
 * bittorrent-dht
+* mqtt
 * ntp
 * dhcp
 * rfb
@@ -111,6 +121,7 @@ you can pick from. These are:
 * snmp
 * tftp
 * sip
+* telnet
 * websocket
 
 The availability of these protocols depends on whether the protocol
@@ -118,6 +129,23 @@ is enabled in the configuration file, suricata.yaml.
 
 If you have a signature with the protocol declared as 'http', Suricata makes
 sure the signature will only match if the TCP stream contains http traffic.
+
+Explicit rule hooks
+~~~~~~~~~~~~~~~~~~~
+
+In Suricata 8 the protocol field can be used to force evaluation of a rule at
+a specific explicit protocol state. This takes the format of::
+
+    <proto>:<hook>
+
+Where each application protocol comes with a default set of hooks, as well as
+per protocol specific hooks.
+
+More details can be found in :ref:`rule-hooks`.
+
+.. note::
+
+   While developed for the firewall usecase, these hooks can be used in IDS/IPS rules as well
 
 Source and destination
 ----------------------
