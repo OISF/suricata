@@ -88,7 +88,7 @@ The example above matches on SSH connections where the software string contains
 ssh.hassh
 ---------
 
-Match on hassh (md5 of of hassh algorithms of client).
+Match on hassh (md5 of hassh algorithms of client).
 
 Example::
 
@@ -136,6 +136,7 @@ ssh.hassh.server.string
 Match on hassh string (hassh algorithms of server).
 
 Example::
+
   alert ssh any any -> any any (msg:"match SSH hash-server-string"; \
       ssh.hassh.server.string; content:"umac-64-etm@openssh.com,umac-128-etm@openssh.com"; \
       sid:1000040;)

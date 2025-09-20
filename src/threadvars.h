@@ -93,7 +93,7 @@ typedef struct ThreadVars_ {
 
     SC_ATOMIC_DECLARE(uint32_t, flags);
 
-    /** list of of TmSlot objects together forming the packet pipeline. */
+    /** list of TmSlot objects together forming the packet pipeline. */
     struct TmSlot_ *tm_slots;
 
     /** pointer to the flowworker in the pipeline. Used as starting point
