@@ -448,6 +448,7 @@ noinst_HEADERS = \
 	source-nfq.h \
 	source-pcap-file-directory-helper.h \
 	source-pcap-file-helper.h \
+	source-pcap-file-info-helper.h \
 	source-pcap-file.h \
 	source-pcap.h \
 	source-windivert-prototypes.h \
@@ -1043,6 +1044,7 @@ libsuricata_c_a_SOURCES = \
 	source-nfq.c \
 	source-pcap-file-directory-helper.c \
 	source-pcap-file-helper.c \
+	source-pcap-file-info-helper.c \
 	source-pcap-file.c \
 	source-pcap.c \
 	source-windivert.c \
