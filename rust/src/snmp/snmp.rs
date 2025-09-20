@@ -69,6 +69,21 @@ pub(super) struct SNMPPduInfo<'a> {
     pub vars: Vec<Oid<'a>>,
 }
 
+#[repr(u32)]
+#[derive(EnumStringU32)]
+#[allow(non_camel_case_types)]
+pub enum SnmpPduType {
+    GET_REQUEST = 0,
+    GET_NEXT_REQUEST = 1,
+    RESPONSE = 2,
+    SET_REQUEST = 3,
+    TRAP_V1 = 4,
+    GET_BULK_REQUEST = 5,
+    INFORM_REQUEST = 6,
+    TRAP_V2 = 7,
+    REPORT = 8,
+}
+
 pub(super) struct SNMPTransaction<'a> {
     /// PDU version
     pub version: u32,

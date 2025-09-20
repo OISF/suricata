@@ -39,35 +39,32 @@ pub const NFSPROC3_FSINFO: u32 = 19;
 pub const NFSPROC3_PATHCONF: u32 = 20;
 pub const NFSPROC3_COMMIT: u32 = 21;
 
-pub fn nfs3_procedure_string(procedure: u32) -> String {
-    match procedure {
-        NFSPROC3_NULL => "NULL",
-        NFSPROC3_GETATTR => "GETATTR",
-        NFSPROC3_SETATTR => "SETATTR",
-        NFSPROC3_LOOKUP => "LOOKUP",
-        NFSPROC3_ACCESS => "ACCESS",
-        NFSPROC3_READLINK => "READLINK",
-        NFSPROC3_READ => "READ",
-        NFSPROC3_WRITE => "WRITE",
-        NFSPROC3_CREATE => "CREATE",
-        NFSPROC3_MKDIR => "MKDIR",
-        NFSPROC3_SYMLINK => "SYMLINK",
-        NFSPROC3_MKNOD => "MKNOD",
-        NFSPROC3_REMOVE => "REMOVE",
-        NFSPROC3_RMDIR => "RMDIR",
-        NFSPROC3_RENAME => "RENAME",
-        NFSPROC3_LINK => "LINK",
-        NFSPROC3_READDIR => "READDIR",
-        NFSPROC3_READDIRPLUS => "READDIRPLUS",
-        NFSPROC3_FSSTAT => "FSSTAT",
-        NFSPROC3_FSINFO => "FSINFO",
-        NFSPROC3_PATHCONF => "PATHCONF",
-        NFSPROC3_COMMIT => "COMMIT",
-        _ => {
-            return (procedure).to_string();
-        }
-    }
-    .to_string()
+#[repr(u32)]
+#[derive(EnumStringU32)]
+#[allow(non_camel_case_types)]
+pub enum NfsProc3 {
+    NULL = 0,
+    GETATTR = 1,
+    SETATTR = 2,
+    LOOKUP = 3,
+    ACCESS = 4,
+    READLINK = 5,
+    READ = 6,
+    WRITE = 7,
+    CREATE = 8,
+    MKDIR = 9,
+    SYMLINK = 10,
+    MKNOD = 11,
+    REMOVE = 12,
+    RMDIR = 13,
+    RENAME = 14,
+    LINK = 15,
+    READDIR = 16,
+    READDIRPLUS = 17,
+    FSSTAT = 18,
+    FSINFO = 19,
+    PATHCONF = 20,
+    COMMIT = 21,
 }
 
 /* RFC 1813, section '2.6 Defined Error Numbers' */
@@ -242,54 +239,60 @@ pub const NFSPROC4_RECLAIM_COMPLETE: u32 = 58;
 
 pub const NFSPROC4_ILLEGAL: u32 = 10044;
 
-pub fn nfs4_procedure_string(procedure: u32) -> String {
-    match procedure {
-        NFSPROC4_COMPOUND => "COMPOUND",
-        NFSPROC4_NULL => "NULL",
-        // ops
-        NFSPROC4_ACCESS => "ACCESS",
-        NFSPROC4_CLOSE => "CLOSE",
-        NFSPROC4_COMMIT => "COMMIT",
-        NFSPROC4_CREATE => "CREATE",
-        NFSPROC4_DELEGPURGE => "DELEGPURGE",
-        NFSPROC4_DELEGRETURN => "DELEGRETURN",
-        NFSPROC4_GETATTR => "GETATTR",
-        NFSPROC4_GETFH => "GETFH",
-        NFSPROC4_LINK => "LINK",
-        NFSPROC4_LOCK => "LOCK",
-        NFSPROC4_LOCKT => "LOCKT",
-        NFSPROC4_LOCKU => "LOCKU",
-        NFSPROC4_LOOKUP => "LOOKUP",
-        NFSPROC4_LOOKUPP => "LOOKUPP",
-        NFSPROC4_NVERIFY => "NVERIFY",
-        NFSPROC4_OPEN => "OPEN",
-        NFSPROC4_OPENATTR => "OPENATTR",
-        NFSPROC4_OPEN_CONFIRM => "OPEN_CONFIRM",
-        NFSPROC4_OPEN_DOWNGRADE => "OPEN_DOWNGRADE",
-        NFSPROC4_PUTFH => "PUTFH",
-        NFSPROC4_PUTPUBFH => "PUTPUBFH",
-        NFSPROC4_PUTROOTFH => "PUTROOTFH",
-        NFSPROC4_READ => "READ",
-        NFSPROC4_READDIR => "READDIR",
-        NFSPROC4_READLINK => "READLINK",
-        NFSPROC4_REMOVE => "REMOVE",
-        NFSPROC4_RENAME => "RENAME",
-        NFSPROC4_RENEW => "RENEW",
-        NFSPROC4_RESTOREFH => "RESTOREFH",
-        NFSPROC4_SAVEFH => "SAVEFH",
-        NFSPROC4_SECINFO => "SECINFO",
-        NFSPROC4_SETATTR => "SETATTR",
-        NFSPROC4_SETCLIENTID => "SETCLIENTID",
-        NFSPROC4_SETCLIENTID_CONFIRM => "SETCLIENTID_CONFIRM",
-        NFSPROC4_VERIFY => "VERIFY",
-        NFSPROC4_WRITE => "WRITE",
-        NFSPROC4_RELEASE_LOCKOWNER => "RELEASE_LOCKOWNER",
-        NFSPROC4_ILLEGAL => "ILLEGAL",
-        _ => {
-            return (procedure).to_string();
-        }
-    }
-    .to_string()
+#[repr(u32)]
+#[derive(EnumStringU32)]
+#[allow(non_camel_case_types)]
+pub enum NfsProc4 {
+    NULL = 0,
+    COMPOUND = 1,
+    ACCESS = 3,
+    CLOSE = 4,
+    COMMIT = 5,
+    CREATE = 6,
+    DELEGPURGE = 7,
+    DELEGRETURN = 8,
+    GETATTR = 9,
+    GETFH = 10,
+    LINK = 11,
+    LOCK = 12,
+    LOCKT = 13,
+    LOCKU = 14,
+    LOOKUP = 15,
+    LOOKUPP = 16,
+    NVERIFY = 17,
+    OPEN = 18,
+    OPENATTR = 19,
+    OPEN_CONFIRM = 20,
+    OPEN_DOWNGRADE = 21,
+    PUTFH = 22,
+    PUTPUBFH = 23,
+    PUTROOTFH = 24,
+    READ = 25,
+    READDIR = 26,
+    READLINK = 27,
+    REMOVE = 28,
+    RENAME = 29,
+    RENEW = 30,
+    RESTOREFH = 31,
+    SAVEFH = 32,
+    SECINFO = 33,
+    SETATTR = 34,
+    SETCLIENTID = 35,
+    SETCLIENTID_CONFIRM = 36,
+    VERIFY = 37,
+    WRITE = 38,
+    RELEASE_LOCKOWNER = 39,
+    EXCHANGE_ID = 42,
+    CREATE_SESSION = 43,
+    DESTROY_SESSION = 44,
+    GETDEVINFO = 47,
+    LAYOUTGET = 50,
+    LAYOUTRETURN = 51,
+    SECINFO_NO_NAME = 52,
+    SEQUENCE = 53,
+    DESTROY_CLIENTID = 57,
+    RECLAIM_COMPLETE = 58,
+    ILLEGAL = 10044,
 }
 
 pub const NFS4_OK: u32 = 0;
