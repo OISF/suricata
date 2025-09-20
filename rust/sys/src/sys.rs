@@ -418,6 +418,26 @@ extern "C" {
 extern "C" {
     pub fn SCLogGetLogLevel() -> SCLogLevel;
 }
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub enum SCPacketTunnelType {
+    PacketTunnelNone = 0,
+    PacketTunnelRoot = 1,
+    PacketTunnelChild = 2,
+    DECODE_TUNNEL_ETHERNET = 3,
+    DECODE_TUNNEL_ERSPANII = 4,
+    DECODE_TUNNEL_ERSPANI = 5,
+    DECODE_TUNNEL_VXLAN = 6,
+    DECODE_TUNNEL_VLAN = 7,
+    DECODE_TUNNEL_IPV4 = 8,
+    DECODE_TUNNEL_IPV6 = 9,
+    #[doc = "< separate protocol for stricter error handling"]
+    DECODE_TUNNEL_IPV6_TEREDO = 10,
+    DECODE_TUNNEL_PPP = 11,
+    DECODE_TUNNEL_NSH = 12,
+    DECODE_TUNNEL_ARP = 13,
+    DECODE_TUNNEL_UNSET = 14,
+}
 #[doc = " Structure of a configuration parameter."]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
