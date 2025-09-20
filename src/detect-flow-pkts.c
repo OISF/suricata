@@ -173,6 +173,7 @@ void DetectFlowPktsToServerRegister(void)
     sigmatch_table[DETECT_FLOW_PKTS_TO_SERVER].Match = DetectFlowPktsMatch;
     sigmatch_table[DETECT_FLOW_PKTS_TO_SERVER].Setup = DetectFlowPktsToServerSetup;
     sigmatch_table[DETECT_FLOW_PKTS_TO_SERVER].Free = DetectFlowPktsFree;
+    sigmatch_table[DETECT_FLOW_PKTS_TO_SERVER].flags = SIGMATCH_INFO_UINT32;
     sigmatch_table[DETECT_FLOW_PKTS_TO_SERVER].SupportsPrefilter = PrefilterFlowPktsIsPrefilterable;
     sigmatch_table[DETECT_FLOW_PKTS_TO_SERVER].SetupPrefilter = PrefilterSetupFlowPkts;
 }
@@ -186,6 +187,7 @@ void DetectFlowPktsToClientRegister(void)
     sigmatch_table[DETECT_FLOW_PKTS_TO_CLIENT].Match = DetectFlowPktsMatch;
     sigmatch_table[DETECT_FLOW_PKTS_TO_CLIENT].Setup = DetectFlowPktsToClientSetup;
     sigmatch_table[DETECT_FLOW_PKTS_TO_CLIENT].Free = DetectFlowPktsFree;
+    sigmatch_table[DETECT_FLOW_PKTS_TO_CLIENT].flags = SIGMATCH_INFO_UINT32;
     sigmatch_table[DETECT_FLOW_PKTS_TO_CLIENT].SupportsPrefilter = PrefilterFlowPktsIsPrefilterable;
     sigmatch_table[DETECT_FLOW_PKTS_TO_CLIENT].SetupPrefilter = PrefilterSetupFlowPkts;
 }
@@ -287,6 +289,7 @@ void DetectFlowBytesToServerRegister(void)
     sigmatch_table[DETECT_FLOW_BYTES_TO_SERVER].Match = DetectFlowBytesMatch;
     sigmatch_table[DETECT_FLOW_BYTES_TO_SERVER].Setup = DetectFlowBytesToServerSetup;
     sigmatch_table[DETECT_FLOW_BYTES_TO_SERVER].Free = DetectFlowBytesFree;
+    sigmatch_table[DETECT_FLOW_BYTES_TO_SERVER].flags = SIGMATCH_INFO_UINT64;
 }
 
 void DetectFlowBytesToClientRegister(void)
@@ -298,4 +301,5 @@ void DetectFlowBytesToClientRegister(void)
     sigmatch_table[DETECT_FLOW_BYTES_TO_CLIENT].Match = DetectFlowBytesMatch;
     sigmatch_table[DETECT_FLOW_BYTES_TO_CLIENT].Setup = DetectFlowBytesToClientSetup;
     sigmatch_table[DETECT_FLOW_BYTES_TO_CLIENT].Free = DetectFlowBytesFree;
+    sigmatch_table[DETECT_FLOW_BYTES_TO_CLIENT].flags = SIGMATCH_INFO_UINT64;
 }

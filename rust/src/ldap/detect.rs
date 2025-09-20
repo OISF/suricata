@@ -22,7 +22,11 @@ use crate::detect::uint::{
     detect_uint_match_at_index, DetectUintArrayData, DetectUintData, SCDetectU32Free,
     SCDetectU32Parse, SCDetectU8Free,
 };
-use crate::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
+use crate::detect::{
+    helper_keyword_register_multi_buffer, helper_keyword_register_sticky_buffer,
+    SigTableElmtStickyBuffer, SIGMATCH_INFO_ENUM_UINT, SIGMATCH_INFO_MULTI_UINT,
+    SIGMATCH_INFO_UINT32, SIGMATCH_INFO_UINT8,
+};
 use crate::ldap::types::*;
 use ldap_parser::ldap::{LdapMessage, ProtocolOp};
 use suricata_sys::sys::{
@@ -516,7 +520,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         AppLayerTxMatch: Some(ldap_detect_request_operation_match),
         Setup: Some(ldap_detect_request_operation_setup),
         Free: Some(ldap_detect_request_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_ENUM_UINT,
     };
     G_LDAP_REQUEST_OPERATION_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_LDAP_REQUEST_OPERATION_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -532,7 +536,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         AppLayerTxMatch: Some(ldap_detect_responses_operation_match),
         Setup: Some(ldap_detect_responses_operation_setup),
         Free: Some(ldap_detect_responses_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_MULTI_UINT | SIGMATCH_INFO_ENUM_UINT,
     };
     G_LDAP_RESPONSES_OPERATION_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_LDAP_RESPONSES_OPERATION_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -547,7 +551,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         AppLayerTxMatch: Some(ldap_detect_responses_count_match),
         Setup: Some(ldap_detect_responses_count_setup),
         Free: Some(ldap_detect_responses_count_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT32,
     };
     G_LDAP_RESPONSES_COUNT_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_LDAP_RESPONSES_COUNT_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -575,7 +579,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         url: String::from("/rules/ldap-keywords.html#ldap.responses.dn"),
         setup: ldap_detect_responses_dn_setup,
     };
-    let _g_ldap_responses_dn_kw_id = helper_keyword_register_sticky_buffer(&kw);
+    let _g_ldap_responses_dn_kw_id = helper_keyword_register_multi_buffer(&kw);
     G_LDAP_RESPONSES_DN_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         b"ldap.responses.dn\0".as_ptr() as *const libc::c_char,
         b"LDAP RESPONSES DISTINGUISHED_NAME\0".as_ptr() as *const libc::c_char,
@@ -591,7 +595,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         AppLayerTxMatch: Some(ldap_detect_responses_result_code_match),
         Setup: Some(ldap_detect_responses_result_code_setup),
         Free: Some(ldap_detect_responses_result_code_free),
-        flags: 0,
+        flags: SIGMATCH_INFO_UINT32 | SIGMATCH_INFO_MULTI_UINT | SIGMATCH_INFO_ENUM_UINT,
     };
     G_LDAP_RESPONSES_RESULT_CODE_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_LDAP_RESPONSES_RESULT_CODE_BUFFER_ID = SCDetectHelperBufferRegister(
@@ -605,7 +609,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         url: String::from("/rules/ldap-keywords.html#ldap.responses.message"),
         setup: ldap_detect_responses_msg_setup,
     };
-    let _g_ldap_responses_dn_kw_id = helper_keyword_register_sticky_buffer(&kw);
+    let _g_ldap_responses_dn_kw_id = helper_keyword_register_multi_buffer(&kw);
     G_LDAP_RESPONSES_MSG_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         b"ldap.responses.message\0".as_ptr() as *const libc::c_char,
         b"LDAP RESPONSES DISTINGUISHED_NAME\0".as_ptr() as *const libc::c_char,
@@ -619,7 +623,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         url: String::from("/rules/ldap-keywords.html#ldap.request.attribute_type"),
         setup: ldap_detect_request_attibute_type_setup,
     };
-    let _g_ldap_request_attribute_type_kw_id = helper_keyword_register_sticky_buffer(&kw);
+    let _g_ldap_request_attribute_type_kw_id = helper_keyword_register_multi_buffer(&kw);
     G_LDAP_REQUEST_ATTRIBUTE_TYPE_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         b"ldap.request.attribute_type\0".as_ptr() as *const libc::c_char,
         b"LDAP REQUEST ATTRIBUTE TYPE\0".as_ptr() as *const libc::c_char,
@@ -633,7 +637,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         url: String::from("/rules/ldap-keywords.html#ldap.responses.attribute_type"),
         setup: ldap_detect_responses_attibute_type_setup,
     };
-    let _g_ldap_responses_attribute_type_kw_id = helper_keyword_register_sticky_buffer(&kw);
+    let _g_ldap_responses_attribute_type_kw_id = helper_keyword_register_multi_buffer(&kw);
     G_LDAP_RESPONSES_ATTRIBUTE_TYPE_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         b"ldap.responses.attribute_type\0".as_ptr() as *const libc::c_char,
         b"LDAP RESPONSES ATTRIBUTE TYPE\0".as_ptr() as *const libc::c_char,

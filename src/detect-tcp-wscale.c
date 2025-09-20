@@ -54,7 +54,7 @@ void DetectTcpWscaleRegister(void)
     sigmatch_table[DETECT_TCP_WSCALE].Free = DetectTcpWscaleFree;
     sigmatch_table[DETECT_TCP_WSCALE].SupportsPrefilter = PrefilterTcpWscaleIsPrefilterable;
     sigmatch_table[DETECT_TCP_WSCALE].SetupPrefilter = PrefilterSetupTcpWscale;
-    sigmatch_table[DETECT_TCP_WSCALE].flags = SIGMATCH_SUPPORT_FIREWALL;
+    sigmatch_table[DETECT_TCP_WSCALE].flags = SIGMATCH_SUPPORT_FIREWALL | SIGMATCH_INFO_UINT8;
     sigmatch_table[DETECT_TCP_WSCALE].tables =
             (DETECT_TABLE_PACKET_PRE_FLOW_FLAG | DETECT_TABLE_PACKET_PRE_STREAM_FLAG |
                     DETECT_TABLE_PACKET_FILTER_FLAG | DETECT_TABLE_PACKET_TD_FLAG);

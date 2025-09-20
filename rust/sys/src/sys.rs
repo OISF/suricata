@@ -283,7 +283,7 @@ pub struct SCSigTableAppLiteElmt {
     #[doc = " keyword documentation url"]
     pub url: *const ::std::os::raw::c_char,
     #[doc = " flags SIGMATCH_*"]
-    pub flags: u16,
+    pub flags: u32,
     #[doc = " function callback to parse and setup keyword in rule"]
     pub Setup: ::std::option::Option<
         unsafe extern "C" fn(
@@ -315,7 +315,7 @@ pub struct SCTransformTableElmt {
     pub name: *const ::std::os::raw::c_char,
     pub desc: *const ::std::os::raw::c_char,
     pub url: *const ::std::os::raw::c_char,
-    pub flags: u16,
+    pub flags: u32,
     pub Setup: ::std::option::Option<
         unsafe extern "C" fn(
             arg1: *mut DetectEngineCtx,
