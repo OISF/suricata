@@ -88,6 +88,7 @@ typedef struct MpmPattern_ {
 
 typedef struct MpmConfig_ {
     const char *cache_dir_path;
+    uint64_t cache_max_age_seconds; /* 0 means disabled/no pruning policy */
 } MpmConfig;
 
 typedef struct MpmCtx_ {
@@ -174,6 +175,7 @@ typedef struct MpmTableElmt_ {
             uint32_t, SigIntId, uint8_t);
     int (*Prepare)(MpmConfig *, struct MpmCtx_ *);
     int (*CacheRuleset)(MpmConfig *);
+    int (*CachePrune)(MpmConfig *);
     /** \retval cnt number of patterns that matches: once per pattern max. */
     uint32_t (*Search)(const struct MpmCtx_ *, struct MpmThreadCtx_ *, PrefilterRuleStore *, const uint8_t *, uint32_t);
     void (*PrintCtx)(struct MpmCtx_ *);
