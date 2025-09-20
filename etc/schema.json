@@ -6235,6 +6235,10 @@
                             "type": "integer",
                             "description": "Number of ESP packets decoded"
                         },
+                        "etag": {
+                            "type": "integer",
+                            "description": "Number of ETAG packets decoded"
+                        },
                         "ethernet": {
                             "type": "integer",
                             "description": "Number of Ethernet packets decoded"
@@ -6334,6 +6338,18 @@
                                         "pkt_too_small": {
                                             "type": "integer",
                                             "description": "Number of packets too small for ESP"
+                                        }
+                                    }
+                                },
+                                "etag": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "header_too_small": {
+                                            "type": "integer"
+                                        },
+                                        "unknown_type": {
+                                            "type": "integer"
                                         }
                                     }
                                 },

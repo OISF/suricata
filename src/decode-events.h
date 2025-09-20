@@ -159,6 +159,10 @@ enum {
     VNTAG_HEADER_TOO_SMALL, /**< vntag header smaller than minimum size */
     VNTAG_UNKNOWN_TYPE,     /**< vntag unknown type */
 
+    /* ETAG EVENTS */
+    ETAG_HEADER_TOO_SMALL, /**< etag header smaller than minimum size */
+    ETAG_UNKNOWN_TYPE,     /**< etag unknown type */
+
     /* RAW EVENTS */
     IPRAW_INVALID_IPV, /**< invalid ip version in ip raw */
 

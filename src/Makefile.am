@@ -66,6 +66,7 @@ noinst_HEADERS = \
 	decode-chdlc.h \
 	decode-erspan.h \
 	decode-esp.h \
+	decode-etag.h \
 	decode-ethernet.h \
 	decode-events.h \
 	decode-geneve.h \
@@ -666,6 +667,7 @@ libsuricata_c_a_SOURCES = \
 	decode-chdlc.c \
 	decode-erspan.c \
 	decode-esp.c \
+	decode-etag.c \
 	decode-ethernet.c \
 	decode-events.c \
 	decode-geneve.c \

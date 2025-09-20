@@ -432,6 +432,16 @@ const struct DecodeEvents_ DEvents[] = {
             VNTAG_UNKNOWN_TYPE,
     },
 
+    /* ETAG EVENTS */
+    {
+            "decoder.etag.header_too_small",
+            ETAG_HEADER_TOO_SMALL,
+    },
+    {
+            "decoder.etag.unknown_type",
+            ETAG_UNKNOWN_TYPE,
+    },
+
     /* RAW EVENTS */
     {
             "decoder.ipraw.invalid_ip_version",
