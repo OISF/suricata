@@ -72,6 +72,9 @@ had flowbits set and a rule action with higher priority, for instance.
    extra logic for prioritization. For example, considering flowbits, the
    priority is write (highest) > write + read > read (lowest) > no flowbits.
 
+.. note:: it is also possible to have a rule priority set implicitly, through
+   the `classtype` keyword. Check :ref:`classtype`.
+
 Another important element when considering rule parsing, processing and matching
 is that the ruleset is optimized into signature group heads based on the signature
 elements (thus, for instance, a TCP rule and an UDP rule would be loaded into
@@ -179,7 +182,7 @@ flow isn't flagged with ``pass``, it will be dropped with the third rule.
 
 .. Tip::
    A more straightforward way to achieve that in Suricata 8 is using the firewall
-   more. See :doc:`../firewall/firewall-design`.
+   mode. See :doc:`../firewall/firewall-design`.
 
 Alerts not seen
 ~~~~~~~~~~~~~~~

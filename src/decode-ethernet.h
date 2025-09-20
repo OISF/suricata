@@ -48,6 +48,7 @@
 #define ETHERNET_TYPE_ERSPAN          0x88BE
 #define ETHERNET_TYPE_DCE             0x8903 /* Data center ethernet,
                                               * Cisco Fabric Path */
+#define ETHERNET_TYPE_ETAG  0x893F           /* 802.1BR */
 #define ETHERNET_TYPE_NSH 0x894F
 #define ETHERNET_TYPE_VNTAG 0x8926 /* 802.1Qbh */
 
