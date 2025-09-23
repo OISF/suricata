@@ -306,9 +306,10 @@ And in Rust:
 Work In Progress changes
 ========================
 
-Currently we are working to have files be part of the transaction instead of the per-flow state, as seen in https://redmine.openinfosecfoundation.org/issues/4444.
-
-Another work in progress is to limit the number of transactions per flow, to prevent Denial of Service (DoS) by quadratic complexity - a type of attack that may happen to protocols which can have multiple transactions at the same time - such as HTTP2 so-called streams (see  https://redmine.openinfosecfoundation.org/issues/4530).
+An ongoing effort is to limit the number of transactions per flow, to prevent
+Denial of Service (DoS) by quadratic complexity - a type of attack that may
+happen to protocols which can have multiple transactions at the same time -
+such as HTTP2 so-called streams (see  https://redmine.openinfosecfoundation.org/issues/4530).
 
 Common words and abbreviations
 ==============================
