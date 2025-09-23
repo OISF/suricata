@@ -18,7 +18,7 @@ The following workflow is recommended by Evan and is the guideline for contribut
 
    3.
 
-      Create a branch for your work. This will make a copy of the current branch (master) and name it "new_feature". Now you can work in this new branch without breaking the main one.
+      Create a branch for your work. This will make a copy of the current branch (main) and name it "new_feature". Now you can work in this new branch without breaking the main one.
 
       git checkout -b new_feature
 
@@ -30,9 +30,9 @@ The following workflow is recommended by Evan and is the guideline for contribut
 
    5.
 
-      When you are ready to send your local changes back to the Rubinius repository, you first need to ensure that your local copy is up-to-date. First, ensure you have committed your local changes. Then switch from your topic branch to the master branch.
+      When you are ready to send your local changes back to the Rubinius repository, you first need to ensure that your local copy is up-to-date. First, ensure you have committed your local changes. Then switch from your topic branch to the main branch.
 
-      git checkout master
+      git checkout main
 
    6.
 
@@ -45,11 +45,11 @@ The following workflow is recommended by Evan and is the guideline for contribut
       Switch back to your topic branch and integrate any new changes. The git rebase command will save your changes away, update the topic branch, and then reapply them.
 
       git checkout new_feature
-      git rebase master
+      git rebase main
 
       Warning! If you are sharing a branch, you must use:
 
-      git merge master
+      git merge main
 
       Rebase causes the commit layout to change and will confuse anyone you've shared this branch with.
 
@@ -61,9 +61,9 @@ The following workflow is recommended by Evan and is the guideline for contribut
 
    9.
 
-      Now, switch back to the master branch and merge your changes from the topic branch
+      Now, switch back to the main branch and merge your changes from the topic branch
 
-      git checkout master
+      git checkout main
       git merge new_feature
 
   10.
@@ -84,7 +84,7 @@ The following workflow is recommended by Evan and is the guideline for contribut
 
       git branch -d new_feature
 
-When you're familiar with the workflow, you can use the rake tasks to help you out. For example, rake git will fetch the latest code from remote repo, rebase the current branch to master, fast-forward the changes to master and push the commits to the remote. This saves a lot of typing. Check rake -T git for all the git related tasks.
+When you're familiar with the workflow, you can use the rake tasks to help you out. For example, rake git will fetch the latest code from remote repo, rebase the current branch to main, fast-forward the changes to main and push the commits to the remote. This saves a lot of typing. Check rake -T git for all the git related tasks.
 
 Taken from: http://rubinius.lighthouseapp.com/projects/5089/using-git
 

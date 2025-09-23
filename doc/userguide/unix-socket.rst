@@ -34,7 +34,7 @@ directory.
 Clients are implemented for some programming languages and can be used as code
 example to write custom scripts:
 
-* Python: https://github.com/OISF/suricata/blob/master/python/suricata/sc/suricatasc.py (provided with Suricata and used in this document)
+* Python: https://github.com/OISF/suricata/blob/main/python/suricata/sc/suricatasc.py (provided with Suricata and used in this document)
 * Perl: https://github.com/aflab/suricatac (a simple Perl client with interactive mode)
 * C: https://github.com/regit/SuricataC (a Unix socket mode client in C without interactive mode)
 
