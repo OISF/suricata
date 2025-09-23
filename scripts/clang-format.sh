@@ -61,7 +61,7 @@ proper it provides additional functionality such as reformatting of all commits 
 
 Commands used in various situations:
 
-Formatting branch changes (compared to master or SURICATA_BRANCH env variable):
+Formatting branch changes (compared to main-7.0.x or SURICATA_BRANCH env variable):
     branch          Format all changes in branch as additional commit
     rewrite-branch  Format every commit in branch and rewrite history
 
@@ -155,7 +155,7 @@ ${bold}DESCRIPTION${normal}
         Check if all branch changes are correctly formatted.
 
         Note, it does not check every commit's formatting, but rather the
-        overall diff between HEAD and master.
+        overall diff between HEAD and main-7.0.x.
 
         Returns 1 if formatting is off, 0 if it is correct.
 
@@ -215,7 +215,7 @@ ${bold}SYNOPSIS${normal}
         $EXEC rewrite-branch
 
 ${bold}DESCRIPTION${normal}
-        Reformat all commits in branch off master one-by-one. This will ${bold}rewrite
+        Reformat all commits in branch off main-7.0.x one-by-one. This will ${bold}rewrite
         the branch history${normal} using the existing commit metadata!
         It automatically detects all commits on your branch.
 
@@ -335,21 +335,21 @@ function HelpCommand {
     esac
 }
 
-# Return first commit of branch (off master or SURICATA_BRANCH env variable).
+# Return first commit of branch (off main-7.0.x or SURICATA_BRANCH env variable).
 #
-# Use $first_commit^ if you need the commit on master we branched off.
-# Do not compare with master directly as it will diff with the latest commit
-# on master. If our branch has not been rebased on the latest master, this
-# would result in including all new commits on master!
+# Use $first_commit^ if you need the commit on main-7.0.x we branched off.
+# Do not compare with main-7.0.x directly as it will diff with the latest commit
+# on main-7.0.x. If our branch has not been rebased on the latest main-7.0.x, this
+# would result in including all new commits on main-7.0.x!
 function FirstCommitOfBranch {
-    start="${SURICATA_BRANCH:-origin/master}"
+    start="${SURICATA_BRANCH:-origin/main-7.0.x}"
     local first_commit=$(git rev-list $start..HEAD | tail -n 1)
     echo $first_commit
 }
 
 # Check if branch formatting is correct.
-# Compares with master branch as baseline which means it's limited to branches
-# other than master.
+# Compares with main-7.0.x branch as baseline which means it's limited to branches
+# other than main-7.0.x.
 # Exits with 1 if not, 0 if ok.
 function CheckBranch {
     # check parameters
@@ -397,7 +397,7 @@ function CheckBranch {
     fi
 
     # Find first commit on branch. Use $first_commit^ if you need the
-    # commit on master we branched off.
+    # commit on main-7.0.x we branched off.
     local first_commit=$(FirstCommitOfBranch)
 
     # git-clang-format is a python script that does not like SIGPIPE shut down
@@ -465,7 +465,7 @@ function ReformatBranch {
     fi
 
     # Find first commit on branch. Use $first_commit^ if you need the
-    # commit on master we branched off.
+    # commit on main-7.0.x we branched off.
     local first_commit=$(FirstCommitOfBranch)
     echo "First commit on branch: $first_commit"
 
@@ -515,20 +515,20 @@ function ReformatCached {
     fi
 }
 
-# Reformat all commits of a branch (compared with master) and rewrites
+# Reformat all commits of a branch (compared with main-7.0.x) and rewrites
 # the history with the formatted commits one-by-one.
 # This is helpful for quickly reformatting branches with multiple commits,
-# or where the master version of a file has been reformatted.
+# or where the main-7.0.x version of a file has been reformatted.
 #
 # You can achieve the same manually by git checkout -n <commit>, git clang-format
 # for each commit in your branch.
 function ReformatCommitsOnBranch {
-    # Do not allow rewriting of master.
+    # Do not allow rewriting of main-7.0.x.
     # CheckBranch below will also tell us there are no changes compared with
-    # master, but let's make this foolproof and explicit here.
+    # main-7.0.x, but let's make this foolproof and explicit here.
     local current_branch=$(git rev-parse --abbrev-ref HEAD)
-    if [ "$current_branch" == "master" ]; then
-        Die "Must not rewrite master branch history."
+    if [ "$current_branch" == "main-7.0.x" ]; then
+        Die "Must not rewrite main-7.0.x branch history."
     fi
 
     CheckBranch "--quiet"
@@ -541,7 +541,7 @@ function ReformatCommitsOnBranch {
         export FILTER_BRANCH_SQUELCH_WARNING=1
 
         # Find first commit on branch. Use $first_commit^ if you need the
-        # commit on master we branched off.
+        # commit on main-7.0.x we branched off.
         local first_commit=$(FirstCommitOfBranch)
         echo "First commit on branch: $first_commit"
         # Use --force in case it's run a second time on the same branch
