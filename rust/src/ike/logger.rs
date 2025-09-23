@@ -22,31 +22,34 @@ use crate::ike::parser::{ExchangeType, IsakmpPayloadType, SaAttribute};
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use num_traits::FromPrimitive;
 use std;
+use std::collections::HashMap;
 use std::convert::TryFrom;
 
 const LOG_EXTENDED: u32 = 0x01;
 
 fn add_attributes(transform: &Vec<SaAttribute>, js: &mut JsonBuilder) -> Result<(), JsonError> {
+    let mut logged: HashMap<String, usize> = HashMap::new();
+
     for attribute in transform {
-        js.set_string(
-            attribute.attribute_type.to_string().as_str(),
-            attribute.attribute_value.to_string().as_str(),
-        )?;
+        let mut key = attribute.attribute_type.to_string();
+        let idx = logged.entry(key.clone()).or_insert(0);
+
+        if *idx > 0 {
+            key = format!("{}_{}", key, idx);
+        }
+
+        js.set_string(&key, &attribute.attribute_value.to_string())?;
 
         if let Some(numeric_value) = attribute.numeric_value {
-            js.set_uint(
-                format!("{}_raw", attribute.attribute_type).as_str(),
-                numeric_value as u64,
-            )?;
+            js.set_uint(&format!("{}_raw", key), numeric_value as u64)?;
         } else if let Some(hex_value) = &attribute.hex_value {
-            js.set_string(
-                format!("{}_raw", attribute.attribute_type).as_str(),
-                hex_value,
-            )?;
+            js.set_string(&format!("{}_raw", key), hex_value)?;
         }
+
+        *idx += 1;
     }
 
-    return Ok(());
+    Ok(())
 }
 
 fn log_ike(
