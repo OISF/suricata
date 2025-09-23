@@ -2449,29 +2449,33 @@
             "type": "object",
             "additionalProperties": false,
             "properties": {
-                "alg_auth": {
-                    "type": "string"
-                },
-                "alg_auth_raw": {
-                    "type": "integer"
-                },
-                "alg_dh": {
-                    "type": "string"
-                },
-                "alg_dh_raw": {
-                    "type": "integer"
-                },
-                "alg_enc": {
-                    "type": "string"
-                },
-                "alg_enc_raw": {
-                    "type": "integer"
-                },
-                "alg_hash": {
-                    "type": "string"
-                },
-                "alg_hash_raw": {
-                    "type": "integer"
+                "attributes": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "key": {
+                                "type": "string",
+                                "enum": [
+                                    "alg_auth",
+                                    "alg_dh",
+                                    "alg_enc",
+                                    "alg_hash",
+                                    "sa_key_length",
+                                    "sa_life_duration",
+                                    "sa_life_type"
+                                ]
+                            },
+                            "raw": {
+                                "type": ["string", "number"]
+                            },
+                            "value": {
+                                "type": "string"
+                            }
+                        }
+                    }
                 },
                 "exchange_type": {
                     "type": "integer",
@@ -2521,47 +2525,23 @@
                                         "type": "object",
                                         "additionalProperties": false,
                                         "properties": {
-                                            "alg_auth": {
+                                            "key": {
+                                                "type": "string",
+                                                "enum": [
+                                                    "alg_auth",
+                                                    "alg_dh",
+                                                    "alg_enc",
+                                                    "alg_hash",
+                                                    "sa_key_length",
+                                                    "sa_life_duration",
+                                                    "sa_life_type"
+                                                ]
+                                            },
+                                            "raw": {
+                                                "type": ["string", "number"]
+                                            },
+                                            "value": {
                                                 "type": "string"
-                                            },
-                                            "alg_auth_raw": {
-                                                "type": "integer"
-                                            },
-                                            "alg_dh": {
-                                                "type": "string"
-                                            },
-                                            "alg_dh_raw": {
-                                                "type": "integer"
-                                            },
-                                            "alg_enc": {
-                                                "type": "string"
-                                            },
-                                            "alg_enc_raw": {
-                                                "type": "integer"
-                                            },
-                                            "alg_hash": {
-                                                "type": "string"
-                                            },
-                                            "alg_hash_raw": {
-                                                "type": "integer"
-                                            },
-                                            "sa_key_length": {
-                                                "type": "string"
-                                            },
-                                            "sa_key_length_raw": {
-                                                "type": "integer"
-                                            },
-                                            "sa_life_duration": {
-                                                "type": "string"
-                                            },
-                                            "sa_life_duration_raw": {
-                                                "type": "integer"
-                                            },
-                                            "sa_life_type": {
-                                                "type": "string"
-                                            },
-                                            "sa_life_type_raw": {
-                                                "type": "integer"
                                             }
                                         }
                                     }
@@ -2631,24 +2611,6 @@
                 },
                 "role": {
                     "type": "string"
-                },
-                "sa_key_length": {
-                    "type": "string"
-                },
-                "sa_key_length_raw": {
-                    "type": "integer"
-                },
-                "sa_life_duration": {
-                    "type": "string"
-                },
-                "sa_life_duration_raw": {
-                    "type": "integer"
-                },
-                "sa_life_type": {
-                    "type": "string"
-                },
-                "sa_life_type_raw": {
-                    "type": "integer"
                 },
                 "version_major": {
                     "type": "integer"
