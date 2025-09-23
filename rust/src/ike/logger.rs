@@ -1,4 +1,4 @@
-/* Copyright (C) 2020 Open Information Security Foundation
+/* Copyright (C) 2020-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -26,33 +26,39 @@ use std::convert::TryFrom;
 
 const LOG_EXTENDED: u32 = 0x01;
 
+// IKE log format version. Version 2 is for 9.0 even if changes are
+// made before 9.0 is final.
+const IKE_LOG_VERSION: u8 = 2;
+
+/// Add IKE attributes as objects.
+///
+/// This function does not open the array, it should be opened by the
+/// caller.
 fn add_attributes(transform: &Vec<SaAttribute>, js: &mut JsonBuilder) -> Result<(), JsonError> {
     for attribute in transform {
-        js.set_string(
-            attribute.attribute_type.to_string().as_str(),
-            attribute.attribute_value.to_string().as_str(),
-        )?;
+        js.start_object()?;
+        js.set_string("key", &attribute.attribute_type.to_string())?;
+        js.set_string("value", &attribute.attribute_value.to_string())?;
 
-        if let Some(numeric_value) = attribute.numeric_value {
-            js.set_uint(
-                format!("{}_raw", attribute.attribute_type).as_str(),
-                numeric_value as u64,
-            )?;
-        } else if let Some(hex_value) = &attribute.hex_value {
-            js.set_string(
-                format!("{}_raw", attribute.attribute_type).as_str(),
-                hex_value,
-            )?;
+        if let Some(v) = attribute.numeric_value {
+            js.set_uint("raw", v as u64)?;
+        } else if let Some(v) = &attribute.hex_value {
+            js.set_string("raw", v)?;
         }
+
+        js.close()?;
     }
 
-    return Ok(());
+    Ok(())
 }
 
 fn log_ike(
     state: &IKEState, tx: &IKETransaction, flags: u32, jb: &mut JsonBuilder,
 ) -> Result<(), JsonError> {
     jb.open_object("ike")?;
+
+    // The version of the IKE record format.
+    jb.set_uint("version", IKE_LOG_VERSION)?;
 
     jb.set_uint("version_major", tx.hdr.maj_ver as u64)?;
     jb.set_uint("version_minor", tx.hdr.min_ver as u64)?;
@@ -76,15 +82,15 @@ fn log_ike(
     if tx.ike_version == 1 {
         if state.ikev1_container.server.nb_transforms > 0 {
             // log the first transform as the chosen one
+            jb.open_array("attributes")?;
             add_attributes(&state.ikev1_container.server.transform, jb)?;
+            jb.close()?;
         }
         if tx.direction == Direction::ToClient && tx.hdr.ikev1_transforms.len() > 1 {
             // in case we have multiple server transforms log them in a list
             jb.open_array("server_proposals")?;
             for server_transform in &tx.hdr.ikev1_transforms {
-                jb.start_object()?;
                 add_attributes(server_transform, jb)?;
-                jb.close()?;
             }
             jb.close()?;
         }
@@ -160,9 +166,7 @@ fn log_ikev1(state: &IKEState, tx: &IKETransaction, jb: &mut JsonBuilder) -> Res
         if tx.direction == Direction::ToServer && !tx.hdr.ikev1_transforms.is_empty() {
             jb.open_array("proposals")?;
             for client_transform in &tx.hdr.ikev1_transforms {
-                jb.start_object()?;
                 add_attributes(client_transform, jb)?;
-                jb.close()?;
             }
             jb.close()?; // proposals
         }
