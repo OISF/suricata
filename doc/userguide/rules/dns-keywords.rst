@@ -1,3 +1,5 @@
+.. _DNS Rule Keywords:
+
 DNS Keywords
 ============
 

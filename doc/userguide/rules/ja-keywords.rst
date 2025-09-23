@@ -1,3 +1,5 @@
+.. _JA Rule Keywords:
+
 JA3/JA4 Keywords
 ================
 
