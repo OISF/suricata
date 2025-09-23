@@ -331,7 +331,11 @@ This rule cannot have the ``fast_pattern`` to client, as ``file.data`` is a stre
 
     alert http any any => any any (file.data: to_server; content: "123";  http.stat_code; content: "500"; fast_patten;)
 
-If not explicit, a transactional rule will choose a fast_pattern to server by default
+If not explicit, a transactional rule will choose a fast_pattern to server by default.
+
+Transactional rules behavior depends on how transactions are implemented per
+protocol, see :ref:`Protocols` for more details.
+
 
 Rule options
 ------------
