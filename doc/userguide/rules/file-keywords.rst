@@ -1,3 +1,5 @@
+.. _File Rule Keywords:
+
 File Keywords
 =============
 

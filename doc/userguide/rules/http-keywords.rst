@@ -1,3 +1,5 @@
+.. _HTTP Rule Keywords:
+
 HTTP Keywords
 =============
 

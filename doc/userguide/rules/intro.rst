@@ -293,6 +293,9 @@ Suricata will duplicate it and use the same rule with headers in both directions
 
    There is no 'reverse' style direction, i.e. there is no ``<-``.
 
+
+.. _Transactional Rules:
+
 Transactional rules
 ~~~~~~~~~~~~~~~~~~~
 
