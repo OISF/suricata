@@ -10,7 +10,7 @@ Essentially, these are:
 #. Agree to and sign our :ref:`Contribution Agreement<contribution-agreement>`
 #. Communicate early, and use the :ref:`preferred channels <communication-channels>`
 #. :ref:`claim-ticket`
-#. :ref:`Fork from master <what-branch-to-work-on>`
+#. :ref:`Fork from main <what-branch-to-work-on>`
 #. Follow our :ref:`Coding Style`
 #. Use our :ref:`documentation-style`
 #. Stick to our :ref:`commit guidelines<commits>`
@@ -153,8 +153,7 @@ What branch to work on
 
 There are 2 or 3 active branches:
 
-    * master-x.x.x (e.g. master-6.x.y)
-    * master
+    * main
 
 The former is the stable branch. The latter the development branch.
 
@@ -162,7 +161,7 @@ The stable branch should only be worked on for important bug fixes. Those are
 mainly expected from more experienced contributors.
 
 Development of new features or large scale redesign is done in the development
-branch. New development and new contributors should work with ``master`` except
+branch. New development and new contributors should work with ``main`` except
 in very special cases - which should and would be discussed with us first.
 
 If in doubt, please reach out to us via :ref:`Redmine, Discord or
