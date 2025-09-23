@@ -1,11 +1,11 @@
 DCERPC Keywords
-================
+===============
 
 Following keywords can be used for matching on fields in headers and payloads
 of DCERPC packets over UDP, TCP and SMB.
 
 dcerpc.iface
--------------
+------------
 
 Match on the value of the interface UUID in a DCERPC header. If `any_frag` option
 is given, the match shall be done on all fragments. If it's not, the match shall
@@ -33,7 +33,7 @@ ET Open rule example:
 
 
 dcerpc.opnum
--------------
+------------
 
 Match on one or many operation numbers and/or operation number range within the
 interface in a DCERPC header.
@@ -54,7 +54,7 @@ Examples::
   dcerpc.opnum:12-14,12,121,62-78;
 
 dcerpc.stub_data
------------------
+----------------
 
 Match on the stub data in a given DCERPC packet. It is a 'sticky buffer'.
 
@@ -64,7 +64,7 @@ Example::
 
 
 Additional information
------------------------
+----------------------
 
 More information on the protocol can be found here:
 
