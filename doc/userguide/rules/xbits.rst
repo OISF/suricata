@@ -1,7 +1,7 @@
 Xbits Keyword
 =============
 
-Set, unset, toggle and check for bits stored per host or ip_pair.
+Set, unset, toggle and check for bits stored per host, ip_pair or tx.
 
 Syntax::
 
@@ -10,6 +10,15 @@ Syntax::
         [,expire <seconds>];
     xbits:<set|unset|isset|toggle>,<name>,track <ip_src|ip_dst|ip_pair> \
         [,expire <seconds>];
+    xbits:<set|isset>,<name>,track tx;
+
+Transaction support (`tx`)
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Bits stored per app-layer transaction. What counts as a transaction protocol
+is implementation dependent.
+
+See :ref:`Protocols` for a per protocol explanation.
 
 Notes
 ~~~~~
