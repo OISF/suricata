@@ -24,6 +24,7 @@ This is the documentation for Suricata |version|.
    output/index.rst
    lua/index.rst
    file-extraction/file-extraction.rst
+   protocols/protocols.rst
    public-data-sets
    capture-hardware/index.rst
    unix-socket.rst

@@ -1,5 +1,7 @@
+.. _SMB Rule Keywords:
+
 SMB Keywords
-==============
+============
 
 .. role:: example-rule-options
 
