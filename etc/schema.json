@@ -2563,6 +2563,14 @@
                                             "sa_life_type_raw": {
                                                 "type": "integer"
                                             }
+                                        },
+                                        "patternProperties": {
+                                            "^sa_life_duration_[0-9]+$": {
+                                                "type": "string"
+                                            },
+                                            "^sa_life_duration_[0-9]+_raw$": {
+                                                "type": "integer"
+                                            }
                                         }
                                     }
                                 }
