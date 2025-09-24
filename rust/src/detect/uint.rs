@@ -20,6 +20,7 @@ use nom7::bytes::complete::{is_a, tag, tag_no_case, take_while};
 use nom7::character::complete::{char, digit1, hex_digit1, i32 as nom_i32};
 use nom7::combinator::{all_consuming, map_opt, opt, value, verify};
 use nom7::error::{make_error, Error, ErrorKind};
+use nom7::multi::many1;
 use nom7::Err;
 use nom7::IResult;
 
@@ -281,6 +282,71 @@ pub(crate) fn detect_uint_match_at_index<T, U: DetectIntType>(
     }
 }
 
+#[derive(Debug, PartialEq)]
+struct FlagItem<T> {
+    value: T,
+    neg: bool,
+}
+
+fn parse_flag_list_item<T1: DetectIntType, T2: EnumString<T1>>(
+    s: &str,
+) -> IResult<&str, FlagItem<T1>> {
+    let (s, _) = opt(is_a(" "))(s)?;
+    let (s, neg) = opt(tag("!"))(s)?;
+    let neg = neg.is_some();
+    let (s, vals) = take_while(|c| c != ' ' && c != ',')(s)?;
+    let value = T2::from_str(vals);
+    if value.is_none() {
+        return Err(Err::Error(make_error(s, ErrorKind::Switch)));
+    }
+    let value = value.unwrap().into_u();
+    let (s, _) = opt(is_a(" ,"))(s)?;
+    Ok((s, FlagItem { neg, value }))
+}
+
+fn parse_flag_list<T1: DetectIntType, T2: EnumString<T1>>(
+    s: &str,
+) -> IResult<&str, Vec<FlagItem<T1>>> {
+    return many1(parse_flag_list_item::<T1, T2>)(s);
+}
+
+pub fn detect_parse_uint_bitflags<T1: DetectIntType, T2: EnumString<T1>>(
+    s: &str,
+) -> Option<DetectUintData<T1>> {
+    if let Ok((_, ctx)) = detect_parse_uint::<T1>(s) {
+        return Some(ctx);
+    }
+    // otherwise, try strings for bitmask
+    if let Ok((rem, l)) = parse_flag_list::<T1, T2>(s) {
+        if !rem.is_empty() {
+            SCLogError!("junk at the end of bitflags");
+            return None;
+        }
+        let mut arg1 = T1::min_value();
+        let mut arg2 = T1::min_value();
+        for elem in l.iter() {
+            if elem.value & arg1 != T1::min_value() {
+                SCLogError!(
+                    "Repeated bitflag for {}",
+                    T2::from_u(elem.value).unwrap().to_str()
+                );
+                return None;
+            }
+            arg1 |= elem.value;
+            if !elem.neg {
+                arg2 |= elem.value;
+            }
+        }
+        let ctx = DetectUintData::<T1> {
+            arg1,
+            arg2,
+            mode: DetectUintMode::DetectUintModeBitmask,
+        };
+        return Some(ctx);
+    }
+    return None;
+}
+
 /// Parses a string for detection with integers, using enumeration strings
 ///
 /// Needs to specify T1 the integer type (like u8)
@@ -317,6 +383,7 @@ pub fn detect_parse_uint_enum<T1: DetectIntType, T2: EnumString<T1>>(
 pub trait DetectIntType:
     std::str::FromStr
     + std::cmp::PartialOrd
+    + std::ops::BitOrAssign
     + num::PrimInt
     + num::Bounded
     + num::ToPrimitive
@@ -326,6 +393,7 @@ pub trait DetectIntType:
 impl<T> DetectIntType for T where
     T: std::str::FromStr
         + std::cmp::PartialOrd
+        + std::ops::BitOrAssign
         + num::PrimInt
         + num::Bounded
         + num::ToPrimitive
