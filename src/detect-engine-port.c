@@ -851,11 +851,11 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
                     goto error;
                 }
                 if (negate == 1 || n_set == 1) {
-                    alloc_rule_var_port = SCMalloc(strlen(rule_var_port) + 3);
+                    const size_t str_size = strlen(rule_var_port) + 3 + 1;
+                    alloc_rule_var_port = SCMalloc(str_size);
                     if (unlikely(alloc_rule_var_port == NULL))
                         goto error;
-                    snprintf(alloc_rule_var_port, strlen(rule_var_port) + 3,
-                             "[%s]", rule_var_port);
+                    snprintf(alloc_rule_var_port, str_size, "[%s]", rule_var_port);
                 } else {
                     alloc_rule_var_port = SCStrdup(rule_var_port);
                     if (unlikely(alloc_rule_var_port == NULL))
@@ -921,11 +921,11 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
                     goto error;
                 }
                 if ((negate + n_set) % 2) {
-                    alloc_rule_var_port = SCMalloc(strlen(rule_var_port) + 3);
+                    const size_t str_size = strlen(rule_var_port) + 3 + 1;
+                    alloc_rule_var_port = SCMalloc(str_size);
                     if (unlikely(alloc_rule_var_port == NULL))
                         goto error;
-                    snprintf(alloc_rule_var_port, strlen(rule_var_port) + 3,
-                            "[%s]", rule_var_port);
+                    snprintf(alloc_rule_var_port, str_size, "[%s]", rule_var_port);
                 } else {
                     alloc_rule_var_port = SCStrdup(rule_var_port);
                     if (unlikely(alloc_rule_var_port == NULL))
