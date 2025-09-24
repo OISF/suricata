@@ -681,6 +681,11 @@
                                 "type": "string"
                             }
                         }
+                    },
+                    "suricata": {
+                        "keywords": [
+                            "dnp3.iin"
+                        ]
                     }
                 },
                 "request": {
@@ -908,6 +913,11 @@
                                         "type": "string"
                                     }
                                 }
+                            },
+                            "suricata": {
+                                "keywords": [
+                                    "dnp3.iin"
+                                ]
                             }
                         },
                         "src": {

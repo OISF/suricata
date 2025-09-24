@@ -96,6 +96,7 @@ pub mod handshake;
 
 pub mod lua;
 
+pub mod dnp3;
 pub mod dns;
 pub mod mdns;
 pub mod nfs;

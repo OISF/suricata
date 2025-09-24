@@ -61,22 +61,6 @@ static void JsonDNP3LogLinkControl(SCJsonBuilder *js, uint8_t lc)
     SCJbSetUint(js, "function_code", DNP3_LINK_FC(lc));
 }
 
-static void JsonDNP3LogIin(SCJsonBuilder *js, uint16_t iin)
-{
-    if (iin) {
-        SCJbOpenArray(js, "indicators");
-
-        int mapping = 0;
-        do {
-            if (iin & DNP3IndicatorsMap[mapping].value) {
-                SCJbAppendString(js, DNP3IndicatorsMap[mapping].name);
-            }
-            mapping++;
-        } while (DNP3IndicatorsMap[mapping].name != NULL);
-        SCJbClose(js);
-    }
-}
-
 static void JsonDNP3LogApplicationControl(SCJsonBuilder *js, uint8_t ac)
 {
     SCJbSetBool(js, "fir", DNP3_APP_FIR(ac));
@@ -206,7 +190,7 @@ static void JsonDNP3LogResponse(SCJsonBuilder *js, DNP3Transaction *dnp3tx)
     SCJbClose(js);
 
     SCJbOpenObject(js, "iin");
-    JsonDNP3LogIin(js, (uint16_t)(dnp3tx->iin.iin1 << 8 | dnp3tx->iin.iin2));
+    SCJsonDNP3LogIin(js, (uint16_t)(dnp3tx->iin.iin1 << 8 | dnp3tx->iin.iin2));
     SCJbClose(js);
 }
 
