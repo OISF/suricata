@@ -194,7 +194,7 @@ static void BuildBasicPname(char *out, const size_t out_size, const char *name, 
     if (strlen(name) >= name_space) {
         ShortenString(name, pname, name_space, '~');
     } else {
-        snprintf(pname, sizeof(pname), "%s", name);
+        strlcpy(pname, name, sizeof(pname));
     }
     snprintf(out, out_size, "%s#%u", pname, id);
 }
@@ -210,22 +210,22 @@ static void AppendTransformsToPname(
     if (transforms == NULL || transforms->cnt == 0)
         return;
 
-    /* create comma separated string of the names of the
-     * transforms and then shorten it if necessary. Finally
-     * use it to construct the 'profile' name for the engine */
-    char xforms[1024] = "";
-    for (int i = 0; i < transforms->cnt; i++) {
-        char ttstr[64];
-        (void)snprintf(ttstr, sizeof(ttstr), "%s,",
-                sigmatch_table[transforms->transforms[i].transform].name);
-        strlcat(xforms, ttstr, sizeof(xforms));
-    }
-    xforms[strlen(xforms) - 1] = '\0';
-
     ssize_t left = (ssize_t)out_size - (ssize_t)strlen(out) - (ssize_t)4;
-    SCLogDebug("left %d '%s' %d", (int)left, xforms, (int)strlen(xforms));
     /* only append xform if we can add least 5 chars */
     if (left >= 5) {
+        /* create comma separated string of the names of the
+         * transforms and then shorten it if necessary. Finally
+         * use it to construct the 'profile' name for the engine */
+        char xforms[left];
+        for (int i = 0; i < transforms->cnt; i++) {
+            char ttstr[64];
+            (void)snprintf(ttstr, sizeof(ttstr), "%s,",
+                    sigmatch_table[transforms->transforms[i].transform].name);
+            strlcat(xforms, ttstr, sizeof(xforms));
+        }
+        xforms[strlen(xforms) - 1] = '\0';
+        SCLogDebug("left %d '%s' %d", (int)left, xforms, (int)strlen(xforms));
+
         char xforms_print[out_size];
         if ((size_t)left >= strlen(xforms)) {
             snprintf(xforms_print, sizeof(xforms_print), " (%s)", xforms);
