@@ -317,7 +317,11 @@ pub fn detect_parse_uint_bitflags<T1: DetectIntType, T2: EnumString<T1>>(
         return Some(ctx);
     }
     // otherwise, try strings for bitmask
-    if let Ok((_, l)) = parse_flag_list::<T1, T2>(s) {
+    if let Ok((rem, l)) = parse_flag_list::<T1, T2>(s) {
+        if !rem.is_empty() {
+            SCLogWarning!("junk at the end of bitflags");
+            return None;
+        }
         let mut arg1 = T1::min_value();
         let mut arg2 = T1::min_value();
         for elem in l.iter() {
