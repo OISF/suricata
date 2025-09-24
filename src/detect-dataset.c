@@ -388,7 +388,7 @@ static int SetupLoadPath(const DetectEngineCtx *de_ctx,
 
     SCLogDebug("rule_file %s dir %s", de_ctx->rule_file, dir);
     char path[PATH_MAX];
-    if (snprintf(path, sizeof(path), "%s/%s", dir, load) >= (int)sizeof(path)) // TODO windows path
+    if (PathMerge(path, sizeof(path), dir, load) < 0)
         return -1;
 
     if (SCPathExists(path)) {
@@ -447,8 +447,7 @@ static int SetupSavePath(const DetectEngineCtx *de_ctx,
     BUG_ON(dir == NULL); // should not be able to fail
     if (!PathIsAbsolute(save)) {
         char path[PATH_MAX];
-        if (snprintf(path, sizeof(path), "%s/%s", dir, save) >=
-                (int)sizeof(path)) // TODO windows path
+        if (PathMerge(path, sizeof(path), dir, save) < 0)
             return -1;
 
         /* TODO check if location exists and is writable */
