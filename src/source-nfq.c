@@ -856,7 +856,7 @@ int NFQRegisterQueue(const uint16_t number)
     nq->queue_num = number;
     receive_queue_num++;
     SCMutexUnlock(&nfq_init_lock);
-    snprintf(queue, sizeof(queue) - 1, "NFQ#%hu", number);
+    snprintf(queue, sizeof(queue), "NFQ#%u", number);
     LiveRegisterDevice(queue);
 
     ntv->livedev = LiveGetDevice(queue);
