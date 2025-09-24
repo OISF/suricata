@@ -1,4 +1,4 @@
-/* Copyright (C) 2011-2019 Open Information Security Foundation
+/* Copyright (C) 2011-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -155,16 +155,16 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
                 FatalError("Multidev: Failed to allocate config for %s (%d)", dev, lthread);
             }
 
-            int threads_count = ModThreadsCount(aconf);
-            for (int thread = 0; thread < threads_count; thread++) {
-                const size_t printable_threadname_size = strlen(thread_name) + 10 + strlen(dev) + 1;
+            uint16_t threads_count = ModThreadsCount(aconf);
+            for (uint16_t thread = 0; thread < threads_count; thread++) {
+                const size_t printable_threadname_size = strlen(thread_name) + 5 + strlen(dev) + 1;
                 char *printable_threadname = SCMalloc(printable_threadname_size);
                 if (unlikely(printable_threadname == NULL)) {
                     FatalError("failed to alloc printable thread name: %s", strerror(errno));
                 }
-                snprintf(tname, sizeof(tname), "%s#%02d-%s", thread_name,
-                         thread+1, visual_devname);
-                snprintf(printable_threadname, printable_threadname_size, "%s#%02d-%s", thread_name,
+                snprintf(tname, sizeof(tname), "%s#%02u-%s", thread_name, thread + 1,
+                        visual_devname);
+                snprintf(printable_threadname, printable_threadname_size, "%s#%02u-%s", thread_name,
                         thread + 1, dev);
 
                 ThreadVars *tv_receive =
@@ -202,7 +202,7 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
     }
 
     for (uint16_t thread = 0; thread < thread_max; thread++) {
-        snprintf(tname, sizeof(tname), "%s#%02u", thread_name_workers, (uint16_t)(thread + 1));
+        snprintf(tname, sizeof(tname), "%s#%02u", thread_name_workers, thread + 1);
         snprintf(qname, sizeof(qname), "pickup%u", (uint16_t)(thread + 1));
 
         SCLogDebug("tname %s, qname %s", tname, qname);
@@ -248,23 +248,23 @@ static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc Mod
                               const char *live_dev, void *aconf,
                               unsigned char single_mode)
 {
-    int threads_count;
+    uint16_t threads_count;
     uint16_t thread_max = TmThreadsGetWorkerThreadMax();
 
     if (single_mode) {
         threads_count = 1;
     } else {
         threads_count = MIN(ModThreadsCount(aconf), thread_max);
-        SCLogInfo("%s: creating %" PRId32 " thread%s", live_dev, threads_count,
+        SCLogInfo("%s: creating %" PRIu16 " thread%s", live_dev, threads_count,
                 threads_count > 1 ? "s" : "");
     }
 
     /* create the threads */
-    for (int thread = 0; thread < threads_count; thread++) {
+    for (uint16_t thread = 0; thread < threads_count; thread++) {
         char tname[TM_THREAD_NAME_MAX];
         TmModule *tm_module = NULL;
         const char *visual_devname = LiveGetShortName(live_dev);
-        const size_t printable_threadname_size = strlen(thread_name) + 10 + strlen(live_dev) + 1;
+        const size_t printable_threadname_size = strlen(thread_name) + 5 + strlen(live_dev) + 1;
         char *printable_threadname = SCMalloc(printable_threadname_size);
         if (unlikely(printable_threadname == NULL)) {
             FatalError("failed to alloc printable thread name: %s", strerror(errno));
@@ -276,9 +276,8 @@ static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc Mod
             snprintf(printable_threadname, printable_threadname_size, "%s#01-%s", thread_name,
                     live_dev);
         } else {
-            snprintf(tname, sizeof(tname), "%s#%02d-%s", thread_name,
-                     thread+1, visual_devname);
-            snprintf(printable_threadname, printable_threadname_size, "%s#%02d-%s", thread_name,
+            snprintf(tname, sizeof(tname), "%s#%02u-%s", thread_name, thread + 1, visual_devname);
+            snprintf(printable_threadname, printable_threadname_size, "%s#%02u-%s", thread_name,
                     thread + 1, live_dev);
         }
         ThreadVars *tv = TmThreadCreatePacketHandler(tname,
@@ -446,7 +445,7 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
         }
 
     }
-    for (int thread = 0; thread < thread_max; thread++) {
+    for (uint16_t thread = 0; thread < thread_max; thread++) {
         snprintf(tname, sizeof(tname), "%s#%02u", thread_name_workers, (uint16_t)(thread + 1));
         char qname[TM_QUEUE_NAME_MAX];
         snprintf(qname, sizeof(qname), "pickup%u", (uint16_t)(thread + 1));
