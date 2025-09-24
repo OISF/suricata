@@ -25,7 +25,7 @@
 
 typedef void *(*ConfigIfaceParserFunc) (const char *);
 typedef void *(*ConfigIPSParserFunc) (int);
-typedef int (*ConfigIfaceThreadsCountFunc) (void *);
+typedef uint16_t (*ConfigIfaceThreadsCountFunc)(void *);
 
 int RunModeSetLiveCaptureAuto(ConfigIfaceParserFunc configparser,
                               ConfigIfaceThreadsCountFunc ModThreadsCount,

@@ -253,7 +253,7 @@ static void *ParseAFPConfig(const char *iface)
             if (strcmp(threadsstr, "auto") == 0) {
                 aconf->threads = 0;
             } else {
-                if (StringParseInt32(&aconf->threads, 10, 0, (const char *)threadsstr) < 0) {
+                if (StringParseUint16(&aconf->threads, 10, 0, (const char *)threadsstr) < 0) {
                     SCLogWarning("%s: invalid number of "
                                  "threads, resetting to default",
                             iface);
@@ -668,15 +668,15 @@ finalize:
     if (aconf->threads == 0) {
         /* for cluster_flow use core count */
         if (cluster_type == PACKET_FANOUT_HASH) {
-            aconf->threads = (int)UtilCpuGetNumProcessorsOnline();
+            aconf->threads = UtilCpuGetNumProcessorsOnline();
             SCLogPerf("%s: cluster_flow: %u cores, using %u threads", iface, aconf->threads,
                     aconf->threads);
 
             /* for cluster_qm use RSS queue count */
         } else if (cluster_type == PACKET_FANOUT_QM) {
             int rss_queues = GetIfaceRSSQueuesNum(iface);
-            if (rss_queues > 0) {
-                aconf->threads = rss_queues;
+            if (rss_queues > 0 && rss_queues <= UINT16_MAX) {
+                aconf->threads = (uint16_t)rss_queues;
                 SCLogPerf("%s: cluster_qm: %d RSS queues, using %u threads", iface, rss_queues,
                         aconf->threads);
             }
@@ -771,7 +771,7 @@ finalize:
     return aconf;
 }
 
-static int AFPConfigGeThreadsCount(void *conf)
+static uint16_t AFPConfigGeThreadsCount(void *conf)
 {
     AFPIfaceConfig *afp = (AFPIfaceConfig *)conf;
     return afp->threads;
