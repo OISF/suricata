@@ -19,8 +19,9 @@
 
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{
-    detect_match_uint, detect_parse_array_uint_enum, detect_parse_uint, detect_uint_match_at_index,
-    DetectUintArrayData, DetectUintData, DetectUintMode, SCDetectU8Free, SCDetectU8Parse,
+    detect_match_uint, detect_parse_array_uint_enum, detect_parse_uint_bitflags,
+    detect_uint_match_at_index, DetectUintArrayData, DetectUintData, SCDetectU8Free,
+    SCDetectU8Parse,
 };
 use crate::detect::{
     helper_keyword_register_multi_buffer, helper_keyword_register_sticky_buffer,
@@ -33,12 +34,6 @@ use suricata_sys::sys::{
     SCDetectHelperMultiBufferMpmRegister, SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList,
     SCSigTableAppLiteElmt, SigMatchCtx, Signature,
 };
-
-use nom7::branch::alt;
-use nom7::bytes::complete::{is_a, tag};
-use nom7::combinator::{opt, value};
-use nom7::multi::many1;
-use nom7::IResult;
 
 use super::mqtt::{MQTTState, MQTTTransaction, ALPROTO_MQTT};
 use crate::conf::conf_get;
@@ -672,56 +667,11 @@ unsafe extern "C" fn mqtt_protocol_version_free(_de: *mut DetectEngineCtx, ctx: 
     SCDetectU8Free(ctx);
 }
 
-// maybe to factor with websocket.flags
-struct MqttParsedFlagItem {
-    neg: bool,
-    value: u8,
-}
-
-fn parse_flag_list_item(s: &str) -> IResult<&str, MqttParsedFlagItem> {
-    let (s, _) = opt(is_a(" "))(s)?;
-    let (s, neg) = opt(tag("!"))(s)?;
-    let neg = neg.is_some();
-    let (s, value) = alt((value(0x8, tag("dup")), value(0x1, tag("retain"))))(s)?;
-    let (s, _) = opt(is_a(" ,"))(s)?;
-    Ok((s, MqttParsedFlagItem { neg, value }))
-}
-
-fn parse_flag_list(s: &str) -> IResult<&str, Vec<MqttParsedFlagItem>> {
-    return many1(parse_flag_list_item)(s);
-}
-
-fn parse_flags(s: &str) -> Option<DetectUintData<u8>> {
-    // try first numerical value
-    if let Ok((_, ctx)) = detect_parse_uint::<u8>(s) {
-        return Some(ctx);
-    }
-    // otherwise, try strings for bitmask
-    if let Ok((rem, l)) = parse_flag_list(s) {
-        if !rem.is_empty() {
-            SCLogWarning!("junk at the end of mqtt.flags");
-            return None;
-        }
-        let mut arg1 = 0;
-        let mut arg2 = 0;
-        for elem in l.iter() {
-            if elem.value & arg1 != 0 {
-                SCLogWarning!("Repeated bitflag for mqtt.flags");
-                return None;
-            }
-            arg1 |= elem.value;
-            if !elem.neg {
-                arg2 |= elem.value;
-            }
-        }
-        let ctx = DetectUintData::<u8> {
-            arg1,
-            arg2,
-            mode: DetectUintMode::DetectUintModeBitmask,
-        };
-        return Some(ctx);
-    }
-    return None;
+#[repr(u8)]
+#[derive(EnumStringU8)]
+pub enum MqttFlag {
+    Dup = 0x8,
+    Retain = 0x1,
 }
 
 unsafe extern "C" fn mqtt_parse_flags(
@@ -729,7 +679,7 @@ unsafe extern "C" fn mqtt_parse_flags(
 ) -> *mut DetectUintData<u8> {
     let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
     if let Ok(s) = ft_name.to_str() {
-        if let Some(ctx) = parse_flags(s) {
+        if let Some(ctx) = detect_parse_uint_bitflags::<u8, MqttFlag>(s) {
             let boxed = Box::new(ctx);
             return Box::into_raw(boxed) as *mut _;
         }
@@ -792,57 +742,15 @@ unsafe extern "C" fn mqtt_flags_free(_de: *mut DetectEngineCtx, ctx: *mut c_void
     SCDetectU8Free(ctx);
 }
 
-fn parse_conn_flag_list_item(s: &str) -> IResult<&str, MqttParsedFlagItem> {
-    let (s, _) = opt(is_a(" "))(s)?;
-    let (s, neg) = opt(tag("!"))(s)?;
-    let neg = neg.is_some();
-    let (s, value) = alt((
-        value(0x80, tag("username")),
-        value(0x40, tag("password")),
-        // longer version first
-        value(0x4, tag("will_retain")),
-        value(0x20, tag("will")),
-        value(0x2, tag("clean_session")),
-    ))(s)?;
-    let (s, _) = opt(is_a(" ,"))(s)?;
-    Ok((s, MqttParsedFlagItem { neg, value }))
-}
-
-fn parse_conn_flag_list(s: &str) -> IResult<&str, Vec<MqttParsedFlagItem>> {
-    return many1(parse_conn_flag_list_item)(s);
-}
-
-fn parse_conn_flags(s: &str) -> Option<DetectUintData<u8>> {
-    // try first numerical value
-    if let Ok((_, ctx)) = detect_parse_uint::<u8>(s) {
-        return Some(ctx);
-    }
-    // otherwise, try strings for bitmask
-    if let Ok((rem, l)) = parse_conn_flag_list(s) {
-        if !rem.is_empty() {
-            SCLogWarning!("junk at the end of mqtt.connect.flags");
-            return None;
-        }
-        let mut arg1 = 0;
-        let mut arg2 = 0;
-        for elem in l.iter() {
-            if elem.value & arg1 != 0 {
-                SCLogWarning!("Repeated bitflag for mqtt.connect.flags");
-                return None;
-            }
-            arg1 |= elem.value;
-            if !elem.neg {
-                arg2 |= elem.value;
-            }
-        }
-        let ctx = DetectUintData::<u8> {
-            arg1,
-            arg2,
-            mode: DetectUintMode::DetectUintModeBitmask,
-        };
-        return Some(ctx);
-    }
-    return None;
+#[repr(u8)]
+#[derive(EnumStringU8)]
+#[allow(non_camel_case_types)]
+pub enum MqttConnFlag {
+    Username = 0x80,
+    Password = 0x40,
+    Will = 0x20,
+    Will_retain = 0x4,
+    Clean_session = 0x2,
 }
 
 unsafe extern "C" fn mqtt_parse_conn_flags(
@@ -850,7 +758,7 @@ unsafe extern "C" fn mqtt_parse_conn_flags(
 ) -> *mut DetectUintData<u8> {
     let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
     if let Ok(s) = ft_name.to_str() {
-        if let Some(ctx) = parse_conn_flags(s) {
+        if let Some(ctx) = detect_parse_uint_bitflags::<u8, MqttConnFlag>(s) {
             let boxed = Box::new(ctx);
             return Box::into_raw(boxed) as *mut _;
         }
@@ -1283,49 +1191,60 @@ mod test {
 
     #[test]
     fn mqtt_parse_flags() {
-        let ctx = parse_flags("retain").unwrap();
+        let ctx = detect_parse_uint_bitflags::<u8, MqttFlag>("retain").unwrap();
         assert_eq!(ctx.arg1, 1);
         assert_eq!(ctx.arg2, 1);
-        let ctx = parse_flags("dup").unwrap();
+        let ctx = detect_parse_uint_bitflags::<u8, MqttFlag>("dup").unwrap();
         assert_eq!(ctx.arg1, 8);
         assert_eq!(ctx.arg2, 8);
-        let ctx = parse_flags("retain,dup").unwrap();
+        let ctx = detect_parse_uint_bitflags::<u8, MqttFlag>("retain,dup").unwrap();
         assert_eq!(ctx.arg1, 8 | 1);
         assert_eq!(ctx.arg2, 8 | 1);
-        let ctx = parse_flags("dup, retain").unwrap();
+        let ctx = detect_parse_uint_bitflags::<u8, MqttFlag>("dup, retain").unwrap();
         assert_eq!(ctx.arg1, 8 | 1);
         assert_eq!(ctx.arg2, 8 | 1);
-        let ctx = parse_flags("retain,!dup").unwrap();
+        let ctx = detect_parse_uint_bitflags::<u8, MqttFlag>("retain,!dup").unwrap();
         assert_eq!(ctx.arg1, 1 | 8);
         assert_eq!(ctx.arg2, 1);
-        assert!(parse_flags("ref").is_none());
-        assert!(parse_flags("dup,!").is_none());
-        assert!(parse_flags("dup,!dup").is_none());
-        assert!(parse_flags("!retain,retain").is_none());
+        assert!(detect_parse_uint_bitflags::<u8, MqttFlag>("ref").is_none());
+        assert!(detect_parse_uint_bitflags::<u8, MqttFlag>("dup,!").is_none());
+        assert!(detect_parse_uint_bitflags::<u8, MqttFlag>("dup,!dup").is_none());
+        assert!(detect_parse_uint_bitflags::<u8, MqttFlag>("!retain,retain").is_none());
     }
 
     #[test]
     fn mqtt_parse_conn_flags() {
-        let ctx = parse_conn_flags("username").unwrap();
+        let ctx = detect_parse_uint_bitflags::<u8, MqttConnFlag>("username").unwrap();
         assert_eq!(ctx.arg1, 0x80);
         assert_eq!(ctx.arg2, 0x80);
-        let ctx = parse_conn_flags("username,password,will,will_retain,clean_session").unwrap();
+        let ctx = detect_parse_uint_bitflags::<u8, MqttConnFlag>(
+            "username,password,will,will_retain,clean_session",
+        )
+        .unwrap();
         assert_eq!(ctx.arg1, 0xE6);
         assert_eq!(ctx.arg2, 0xE6);
-        let ctx =
-            parse_conn_flags("!username,!password,!will,!will_retain,!clean_session").unwrap();
+        let ctx = detect_parse_uint_bitflags::<u8, MqttConnFlag>(
+            "!username,!password,!will,!will_retain,!clean_session",
+        )
+        .unwrap();
         assert_eq!(ctx.arg1, 0xE6);
         assert_eq!(ctx.arg2, 0);
-        let ctx = parse_conn_flags("   username,password").unwrap();
+        let ctx = detect_parse_uint_bitflags::<u8, MqttConnFlag>("   username,password").unwrap();
         assert_eq!(ctx.arg1, 0xC0);
         assert_eq!(ctx.arg2, 0xC0);
-        assert!(parse_conn_flags("foobar").is_none());
-        assert!(parse_conn_flags("will,!").is_none());
-        assert!(parse_conn_flags("").is_none());
-        assert!(parse_conn_flags("username, username").is_none());
-        assert!(parse_conn_flags("!username, username").is_none());
-        assert!(parse_conn_flags("!username,password,!password").is_none());
-        assert!(parse_conn_flags("will, username,password,   !will, will").is_none());
+        assert!(detect_parse_uint_bitflags::<u8, MqttConnFlag>("foobar").is_none());
+        assert!(detect_parse_uint_bitflags::<u8, MqttConnFlag>("will,!").is_none());
+        assert!(detect_parse_uint_bitflags::<u8, MqttConnFlag>("").is_none());
+        assert!(detect_parse_uint_bitflags::<u8, MqttConnFlag>("username, username").is_none());
+        assert!(detect_parse_uint_bitflags::<u8, MqttConnFlag>("!username, username").is_none());
+        assert!(
+            detect_parse_uint_bitflags::<u8, MqttConnFlag>("!username,password,!password")
+                .is_none()
+        );
+        assert!(detect_parse_uint_bitflags::<u8, MqttConnFlag>(
+            "will, username,password,   !will, will"
+        )
+        .is_none());
     }
 
     #[test]
