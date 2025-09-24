@@ -123,14 +123,9 @@ static TmEcode ConfigSetThreads(AFXDPIfaceConfig *aconf, const char *entry_str)
         SCReturnInt(TM_ECODE_OK);
     }
 
-    if (StringParseInt32(&aconf->threads, 10, 0, entry_str) < 0) {
+    if (StringParseUint16(&aconf->threads, 10, 0, entry_str) < 0) {
         SCLogError("Threads entry for interface %s contain non-numerical characters - \"%s\"",
                 aconf->iface, entry_str);
-        SCReturnInt(TM_ECODE_FAILED);
-    }
-
-    if (aconf->threads < 0) {
-        SCLogError("Interface %s has a negative number of threads", aconf->iface);
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -306,7 +301,7 @@ finalize:
     return aconf;
 }
 
-static int AFXDPConfigGetThreadsCount(void *conf)
+static uint16_t AFXDPConfigGetThreadsCount(void *conf)
 {
     if (conf == NULL)
         FatalError("Configuration file is NULL");
