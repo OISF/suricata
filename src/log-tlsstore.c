@@ -57,20 +57,19 @@ typedef struct LogTlsStoreLogThread_ {
 static int CreateFileName(
         const Packet *p, SSLState *state, char *filename, size_t filename_size, const bool client)
 {
-    char path[PATH_MAX];
+    char file[PATH_MAX];
     int file_id = SC_ATOMIC_ADD(cert_id, 1);
-
-    const char *dir = client ? "client-" : "";
+    const char *direction = client ? "client-" : "";
 
     /* Use format : packet time + incremental ID
      * When running on same pcap it will overwrite
      * On a live device, we will not be able to overwrite */
-    if (snprintf(path, sizeof(path), "%s/%s%ld.%ld-%d.pem", tls_logfile_base_dir, dir,
-                (long int)SCTIME_SECS(p->ts), (long int)SCTIME_USECS(p->ts),
-                file_id) == sizeof(path))
+    if (snprintf(file, sizeof(file), "%s%ld.%ld-%d.pem", direction, (long int)SCTIME_SECS(p->ts),
+                (long int)SCTIME_USECS(p->ts), file_id) == sizeof(file))
         return 0;
 
-    strlcpy(filename, path, filename_size);
+    if (PathMerge(filename, filename_size, tls_logfile_base_dir, file) < 0)
+        return 0;
     return 1;
 }
 
@@ -419,8 +418,11 @@ static OutputInitResult LogTlsStoreLogInitCtx(SCConfNode *conf)
             strlcpy(tls_logfile_base_dir,
                     s_base_dir, sizeof(tls_logfile_base_dir));
         } else {
-            snprintf(tls_logfile_base_dir, sizeof(tls_logfile_base_dir),
-                    "%s/%s", s_default_log_dir, s_base_dir);
+            if (PathMerge(tls_logfile_base_dir, sizeof(tls_logfile_base_dir), s_default_log_dir,
+                        s_base_dir) < 0) {
+                LogTlsStoreLogDeInitCtx(output_ctx);
+                return result;
+            }
         }
     }
 
