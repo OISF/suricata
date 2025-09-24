@@ -359,18 +359,19 @@ static void SMTPConfigure(void) {
 
             TAILQ_FOREACH (scheme, &extract_urls_schemes->head, next) {
                 size_t scheme_len = strlen(scheme->val);
-                if (scheme_len > UINT16_MAX - SCHEME_SUFFIX_LEN) {
-                    FatalError("Too long value for extract-urls-schemes");
+                if (scheme_len > UINT8_MAX - SCHEME_SUFFIX_LEN) {
+                    FatalError("extract-urls-schemes entry '%s' is too long", scheme->val);
                 }
                 if (scheme->val[scheme_len - 1] != '/') {
                     scheme_len += SCHEME_SUFFIX_LEN;
-                    char *new_val = SCMalloc(scheme_len + 1);
-                    if (unlikely(new_val == NULL)) {
-                        FatalError("SCMalloc failure.");
-                    }
-                    int r = snprintf(new_val, scheme_len + 1, "%s://", scheme->val);
+                    char tmp[256];
+                    int r = snprintf(tmp, sizeof(tmp), "%s://", scheme->val);
                     if (r != (int)scheme_len) {
                         FatalError("snprintf failure for SMTP url extraction scheme.");
+                    }
+                    char *new_val = SCStrdup(tmp);
+                    if (unlikely(new_val == NULL)) {
+                        FatalError("extract-urls-schemes entry SCStrdup failure.");
                     }
                     SCFree(scheme->val);
                     scheme->val = new_val;
