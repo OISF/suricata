@@ -182,8 +182,9 @@ static void AlertJsonReference(const PacketAlert *pa, SCJsonBuilder *jb)
     while (kv) {
         /* Note that the key and reference sizes have been bound
          * checked during parsing
+         * add +2 to safisfy gcc 15 + -Wformat-truncation=2
          */
-        const size_t size_needed = kv->key_len + kv->reference_len + 1;
+        const size_t size_needed = kv->key_len + kv->reference_len + 3;
         char kv_store[size_needed];
         snprintf(kv_store, size_needed, "%s%s", kv->key, kv->reference);
         SCJbAppendString(jb, kv_store);
