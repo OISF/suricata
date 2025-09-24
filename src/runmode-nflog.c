@@ -139,7 +139,7 @@ static void *ParseNflogConfig(const char *group)
     return nflogconf;
 }
 
-static int NflogConfigGeThreadsCount(void *conf)
+static uint16_t NflogConfigGeThreadsCount(void *conf)
 {
     /* for each nflog group there is no reason to use more than 1 thread */
     return 1;

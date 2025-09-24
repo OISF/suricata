@@ -89,7 +89,7 @@ typedef struct AFPIfaceConfig_
 {
     char iface[AFP_IFACE_NAME_LENGTH];
     /* number of threads */
-    int threads;
+    uint16_t threads;
     /* socket buffer size */
     int buffer_size;
     /* ring size in number of packets */
