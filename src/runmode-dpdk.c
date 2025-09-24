@@ -1853,7 +1853,7 @@ static void *ParseDpdkConfigAndConfigureDevice(const char *iface)
  * \return a DPDKIfaceConfig corresponding to the interface name
  */
 
-static int DPDKConfigGetThreadsCount(void *conf)
+static uint16_t DPDKConfigGetThreadsCount(void *conf)
 {
     if (conf == NULL)
         FatalError("Configuration file is NULL");

@@ -136,7 +136,7 @@ static void *ParsePcapConfig(const char *iface)
         aconf->threads = 1;
     } else {
         if (threadsstr != NULL) {
-            if (StringParseInt32(&aconf->threads, 10, 0, (const char *)threadsstr) < 0) {
+            if (StringParseUint16(&aconf->threads, 10, 0, (const char *)threadsstr) < 0) {
                 SCLogWarning("Invalid value for "
                              "pcap.threads: %s, resetting to 1",
                         threadsstr);
@@ -216,7 +216,7 @@ static void *ParsePcapConfig(const char *iface)
     return aconf;
 }
 
-static int PcapConfigGeThreadsCount(void *conf)
+static uint16_t PcapConfigGeThreadsCount(void *conf)
 {
     PcapIfaceConfig *pfp = (PcapIfaceConfig *)conf;
     return pfp->threads;
