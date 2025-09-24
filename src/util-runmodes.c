@@ -157,15 +157,15 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
 
             int threads_count = ModThreadsCount(aconf);
             for (int thread = 0; thread < threads_count; thread++) {
-                char *printable_threadname = SCMalloc(sizeof(char) * (strlen(thread_name)+5+strlen(dev)));
+                const size_t printable_threadname_size = strlen(thread_name) + 10 + strlen(dev) + 1;
+                char *printable_threadname = SCMalloc(printable_threadname_size);
                 if (unlikely(printable_threadname == NULL)) {
                     FatalError("failed to alloc printable thread name: %s", strerror(errno));
                 }
                 snprintf(tname, sizeof(tname), "%s#%02d-%s", thread_name,
                          thread+1, visual_devname);
-                snprintf(printable_threadname, strlen(thread_name)+5+strlen(dev),
-                         "%s#%02d-%s", thread_name, thread+1,
-                         dev);
+                snprintf(printable_threadname, printable_threadname_size, "%s#%02d-%s", thread_name,
+                        thread + 1, dev);
 
                 ThreadVars *tv_receive =
                     TmThreadCreatePacketHandler(tname,
@@ -264,7 +264,8 @@ static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc Mod
         char tname[TM_THREAD_NAME_MAX];
         TmModule *tm_module = NULL;
         const char *visual_devname = LiveGetShortName(live_dev);
-        char *printable_threadname = SCMalloc(sizeof(char) * (strlen(thread_name)+5+strlen(live_dev)));
+        const size_t printable_threadname_size = strlen(thread_name) + 10 + strlen(live_dev) + 1;
+        char *printable_threadname = SCMalloc(printable_threadname_size);
         if (unlikely(printable_threadname == NULL)) {
             FatalError("failed to alloc printable thread name: %s", strerror(errno));
             exit(EXIT_FAILURE);
@@ -272,13 +273,13 @@ static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc Mod
 
         if (single_mode) {
             snprintf(tname, sizeof(tname), "%s#01-%s", thread_name, visual_devname);
-            snprintf(printable_threadname, strlen(thread_name)+5+strlen(live_dev), "%s#01-%s",
-                     thread_name, live_dev);
+            snprintf(printable_threadname, printable_threadname_size, "%s#01-%s", thread_name,
+                    live_dev);
         } else {
             snprintf(tname, sizeof(tname), "%s#%02d-%s", thread_name,
                      thread+1, visual_devname);
-            snprintf(printable_threadname, strlen(thread_name)+5+strlen(live_dev), "%s#%02d-%s",
-                     thread_name, thread+1, live_dev);
+            snprintf(printable_threadname, printable_threadname_size, "%s#%02d-%s", thread_name,
+                    thread + 1, live_dev);
         }
         ThreadVars *tv = TmThreadCreatePacketHandler(tname,
                 "packetpool", "packetpool",
