@@ -1593,7 +1593,7 @@
                             "type": "string",
                             "suricata": {
                                 "keywords": [
-                                    "enip.command"
+                                    "enip_command"
                                 ]
                             }
                         },
@@ -1692,7 +1692,7 @@
                             "type": "string",
                             "suricata": {
                                 "keywords": [
-                                    "enip.command"
+                                    "enip_command"
                                 ]
                             }
                         },
