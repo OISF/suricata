@@ -71,7 +71,7 @@ Though the steps are the same, there are a few differences when implementing fra
 Rust
 ----
 
-This section shows how Frame support is added in Rust, using examples from the `SIP parser <https://github.com/OISF/suricata/blob/master/rust/src/sip/sip.rs>`_, and the `telnet parser <https://github.com/OISF/suricata/blob/master/rust/src/telnet/telnet.rs>`_.
+This section shows how Frame support is added in Rust, using examples from the `SIP parser <https://github.com/OISF/suricata/blob/main/rust/src/sip/sip.rs>`_, and the `telnet parser <https://github.com/OISF/suricata/blob/main/rust/src/telnet/telnet.rs>`_.
 
 **Define the frame types**. The frame types are defined as an enum. In Rust, make sure to derive from the ``AppLayerFrameType``:
 

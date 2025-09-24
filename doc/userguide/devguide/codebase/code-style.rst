@@ -86,7 +86,7 @@ Formatting your branch's commits
 In case you have multiple commits on your branch already and forgot to
 format them you can fix that up as well.
 
-The following command will format every commit in your branch off master and
+The following command will format every commit in your branch off main and
 rewrite history using the existing commit metadata.
 
 Tip: Create a new version of your branch first and run this off the new version.
@@ -107,8 +107,8 @@ formatting changes:
     # Or with script:
     $ scripts/clang-format.sh branch
 
-Note the usage of ``first_commit_on_your_branch^``, not ``master``, to avoid picking up
-new commits on ``master`` in case you've updated master since you've branched.
+Note the usage of ``first_commit_on_your_branch^``, not ``main``, to avoid picking up
+new commits on ``main`` in case you've updated main since you've branched.
 
 Check formatting
 """"""""""""""""
@@ -745,7 +745,7 @@ Banned functions
 +------------+---------------+-----------+
 
 Also, check the existing code. If yours is wildly different, it's wrong.
-Example: https://github.com/oisf/suricata/blob/master/src/decode-ethernet.c
+Example: https://github.com/oisf/suricata/blob/main/src/decode-ethernet.c
 
 .. rubric:: Footnotes
 

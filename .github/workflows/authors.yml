@@ -20,8 +20,8 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
       - run: sudo apt -y install git
-      - name: Export known authors from master branch
-        run: git log --format="%an <%ae>" origin/master | sort | uniq > authors.txt
+      - name: Export known authors from main branch
+        run: git log --format="%an <%ae>" origin/main | sort | uniq > authors.txt
       - name: Export authors from new commits
         run: git log --format="%an <%ae>" ${{ github.event.pull_request.base.sha }}... | sort | uniq > commit-authors.txt
       - name: Check new authors

@@ -15,7 +15,7 @@ There are a few ways of testing Suricata:
 - **Static and dynamic analysis tools**: to help in finding bugs, memory leaks and other issues (like     `scan-build <https://clang-analyzer.llvm.org/scan-build.html#scanbuild_basicusage>`_, from `clang`,     which is also used for our C formatting checks; or ASAN, which checks for memory issues);
 - **Fuzz testing**: especially good for uncovering existing, often non-trivial bugs. For more on how to fuzz test Suricata, check :doc:`fuzz-testing`;
 - **CI checks**: each PR submitted to the project's public repositories will be run against a suit of Continuous Integration
-  workflows, as part of our QA process. Those cover: formatting and commit checks; fuzz tests (CI Fuzz), and several  builds. See our `github workflows <https://github.com/OISF/suricata/tree/master/.github/workflows>`_ for details and those in
+  workflows, as part of our QA process. Those cover: formatting and commit checks; fuzz tests (CI Fuzz), and several  builds. See our `github workflows <https://github.com/OISF/suricata/tree/main/.github/workflows>`_ for details and those in
   action at `<https://github.com/OISF/suricata/actions>`_.
 
   .. note:: If you can run unit tests or other checks and report failures in our `issue tracker <https://redmine.openinfosecfoundation.org/projects/suricata/issues>`_, that is rather useful and appreciated!
@@ -40,7 +40,7 @@ given that the way to do so differs, depending on the language.
 Code Examples
 ^^^^^^^^^^^^^
 
-An example from the `DNS parser <https://github.com/OISF/suricata/blob/master/rust/src/dns/parser.rs#L417>`_. This
+An example from the `DNS parser <https://github.com/OISF/suricata/blob/main/rust/src/dns/parser.rs#L417>`_. This
 checks that the given raw input (note the comments indicating what it means), once processed by ``dns_parse_name`` yields
 the expected result, including the unparsed portion.
 
@@ -108,7 +108,7 @@ Refer to the `Suricata Verify readme <https://github.com/OISF/suricata-verify#re
 this type of test. It suffices to have a packet capture representative of the behavior one wants to test, and then
 follow the steps described there.
 
-The Git repository for the Suricata Verify tests is a great source for examples, like the `app-layer-template <https://github.com/OISF/suricata-verify/tree/master/tests/app-layer-template>`_ one.
+The Git repository for the Suricata Verify tests is a great source for examples, like the `app-layer-template <https://github.com/OISF/suricata-verify/tree/main/tests/app-layer-template>`_ one.
 
 Generating Input
 ================
@@ -137,7 +137,7 @@ It is also possible to use Scapy to create specific traffic: `Scapy usage
 
 Suricata-verify tests have several examples of pcaps generated in such a way. Look for Python scripts like the one used
 for the `dce-udp-scapy
-<https://github.com/OISF/suricata-verify/blob/master/tests/dcerpc/dcerpc-udp-scapy/dcerpc_udp_scapy.py>`_.
+<https://github.com/OISF/suricata-verify/blob/main/tests/dcerpc/dcerpc-udp-scapy/dcerpc_udp_scapy.py>`_.
 
 Other examples from our Suricata-Verify tests:
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

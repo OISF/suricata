@@ -240,7 +240,7 @@ repository, the same procedures as above apply, just using another PPA,
 
 .. note::
 
-    Please have in mind that this is packaged from our latest development git master
+    Please have in mind that this is packaged from our latest development git main
     and is therefore potentially unstable.
 
     We do our best to make others aware of continuing development and items

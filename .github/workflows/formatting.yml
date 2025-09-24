@@ -4,8 +4,8 @@ on:
   push:
     # Only run on pushes to pull request branches
     branches-ignore:
-      - 'master'
-      - 'master-*'
+      - 'main'
+      - 'main-*'
     paths-ignore:
       - "doc/**"
   pull_request:
@@ -74,13 +74,13 @@ jobs:
                 zlib1g-dev
       # Checking out the branch is not as simple as "checking out".
       #
-      # In case master has any new commits since we branched off, github will
-      # automatically add a "merge commit" from our branch to master and check
+      # In case main has any new commits since we branched off, github will
+      # automatically add a "merge commit" from our branch to main and check
       # this out instead of the original last commit on the branch.
       #
       # This screws up git clang-format as it'll also format the "merge commit"
       # and essentially report any formatting issues in the "merge commit".
-      # However, we really don't care about any of the new commits on master.
+      # However, we really don't care about any of the new commits on main.
       #
       # There are supposed to be ways to use with/ref to fix that and while
       # they work perfectly well for pull requests within the forked repo, none
@@ -113,7 +113,7 @@ jobs:
           #
           # Commit history example in case github added merge, i.e. if you did
           # git log --pretty=oneline -2:
-          #   sha_1 Merge sha_2 into latest_sha_on_master
+          #   sha_1 Merge sha_2 into latest_sha_on_main
           #   sha_2 This is the real last commit on branch
           echo "Last two commits on checkout:"
           git log --pretty=oneline -2
@@ -121,7 +121,7 @@ jobs:
           second_last_commit_sha=$(git log --pretty=%H -2 |tail -1)
           echo "$last_commit_subject" | grep -e "^Merge $second_last_commit_sha into [0-9a-fA-F]*$" > /dev/null 2>&1
           if [ $? -eq 0 ]; then
-              # Last commit was a merge to master - ignore
+              # Last commit was a merge to main - ignore
               echo "Found github merge commit - checking out real last commit instead..."
               git checkout $second_last_commit_sha
           else
