@@ -249,7 +249,8 @@ json_t *StatsToJSON(const StatsTable *st, uint8_t flags)
                 json_object_set_new(js_type, stat_name, json_integer(st->stats[u].value));
 
                 if (flags & JSON_STATS_DELTAS) {
-                    char deltaname[strlen(stat_name) + strlen(delta_suffix) + 1];
+                    /* add +1 to safisfy gcc 15 + -Wformat-truncation=2 */
+                    char deltaname[strlen(stat_name) + strlen(delta_suffix) + 2];
                     snprintf(deltaname, sizeof(deltaname), "%s%s", stat_name, delta_suffix);
                     json_object_set_new(js_type, deltaname,
                         json_integer(st->stats[u].value - st->stats[u].pvalue));
@@ -310,7 +311,7 @@ json_t *StatsToJSON(const StatsTable *st, uint8_t flags)
                     json_object_set_new(js_type, stat_name, json_integer(st->tstats[u].value));
 
                     if (flags & JSON_STATS_DELTAS) {
-                        char deltaname[strlen(stat_name) + strlen(delta_suffix) + 1];
+                        char deltaname[strlen(stat_name) + strlen(delta_suffix) + 2];
                         snprintf(deltaname, sizeof(deltaname), "%s%s", stat_name, delta_suffix);
                         json_object_set_new(js_type, deltaname,
                             json_integer(st->tstats[u].value - st->tstats[u].pvalue));
