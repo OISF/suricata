@@ -712,13 +712,14 @@ static IPOnlyCIDRItem *IPOnlyCIDRListParse2(
                     goto error;
 
                 if ((negate + n_set) % 2) {
-                    temp_rule_var_address = SCMalloc(strlen(rule_var_address) + 3);
+                    /* add +1 to safisfy gcc 15 + -Wformat-truncation=2 */
+                    const size_t str_size = strlen(rule_var_address) + 3 + 1;
+                    temp_rule_var_address = SCMalloc(str_size);
                     if (unlikely(temp_rule_var_address == NULL)) {
                         goto error;
                     }
 
-                    snprintf(temp_rule_var_address, strlen(rule_var_address) + 3,
-                             "[%s]", rule_var_address);
+                    snprintf(temp_rule_var_address, str_size, "[%s]", rule_var_address);
                 } else {
                     temp_rule_var_address = SCStrdup(rule_var_address);
                     if (unlikely(temp_rule_var_address == NULL)) {
@@ -774,12 +775,13 @@ static IPOnlyCIDRItem *IPOnlyCIDRListParse2(
                     goto error;
 
                 if ((negate + n_set) % 2) {
-                    temp_rule_var_address = SCMalloc(strlen(rule_var_address) + 3);
+                    /* add +1 to safisfy gcc 15 + -Wformat-truncation=2 */
+                    const size_t str_size = strlen(rule_var_address) + 3 + 1;
+                    temp_rule_var_address = SCMalloc(str_size);
                     if (unlikely(temp_rule_var_address == NULL)) {
                         goto error;
                     }
-                    snprintf(temp_rule_var_address, strlen(rule_var_address) + 3,
-                            "[%s]", rule_var_address);
+                    snprintf(temp_rule_var_address, str_size, "[%s]", rule_var_address);
                 } else {
                     temp_rule_var_address = SCStrdup(rule_var_address);
                     if (unlikely(temp_rule_var_address == NULL)) {
