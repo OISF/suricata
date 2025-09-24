@@ -484,13 +484,12 @@ void SetupEngineAnalysis(DetectEngineCtx *de_ctx, bool *fp_analysis, bool *rule_
     ea->file_prefix = NULL;
     size_t cfg_prefix_len = strlen(de_ctx->config_prefix);
     if (cfg_prefix_len > 0) {
-        /* length of prefix + NULL + "." */
-        ea->file_prefix = SCCalloc(1, cfg_prefix_len + 1 + 1);
+        char prefix[sizeof(de_ctx->config_prefix) + 1];
+        snprintf(prefix, sizeof(prefix), "%s.", de_ctx->config_prefix);
+        ea->file_prefix = SCStrdup(prefix);
         if (ea->file_prefix == NULL) {
             FatalError("Unable to allocate per-engine analysis context name buffer");
         }
-
-        snprintf(ea->file_prefix, cfg_prefix_len + 1 + 1, "%s.", de_ctx->config_prefix);
     }
 
     de_ctx->ea = ea;
