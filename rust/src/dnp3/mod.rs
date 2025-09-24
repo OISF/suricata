@@ -1,4 +1,4 @@
-/* Copyright (C) 2015 Open Information Security Foundation
+/* Copyright (C) 2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,17 +15,7 @@
  * 02110-1301, USA.
  */
 
-#ifndef SURICATA_DETECT_DNP3_H
-#define SURICATA_DETECT_DNP3_H
+//! Application layer dnp3 detection.
 
-/**
- * Struct for mapping symbolic names to values.
- */
-typedef struct DNP3Mapping_ {
-    const char     *name;
-    uint16_t  value;
-} DNP3Mapping;
-
-void DetectDNP3Register(void);
-
-#endif /* SURICATA_DETECT_DNP3_H */
+pub mod detect;
+pub mod log;

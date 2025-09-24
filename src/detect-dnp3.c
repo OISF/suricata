@@ -27,12 +27,14 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-prefilter.h"
 #include "detect-engine-content-inspection.h"
+#include "detect-engine-uint.h"
 
 #include "app-layer-dnp3.h"
 #include "util-byte.h"
 
 static int g_dnp3_match_buffer_id = 0;
 static int g_dnp3_data_buffer_id = 0;
+static int g_dnp3_ind_buffer_id = 0;
 
 /**
  * The detection struct.
@@ -44,41 +46,12 @@ typedef struct DetectDNP3_ {
             uint8_t  function_code;
         };
         struct {
-            /* Internal indicator flags for IIN detection. */
-            uint16_t ind_flags;
-        };
-        struct {
             /* Object info for object detection. */
             uint8_t  obj_group;
             uint8_t  obj_variation;
         };
     };
 } DetectDNP3;
-
-/**
- * Indicator names to value mappings (Snort compatible).
- */
-DNP3Mapping DNP3IndicatorsMap[] = {
-    {"device_restart",        0x8000},
-    {"device_trouble",        0x4000},
-    {"local_control",         0x2000},
-    {"need_time",             0x1000},
-    {"class_3_events",        0x0800},
-    {"class_2_events",        0x0400},
-    {"class_1_events",        0x0200},
-    {"all_stations",          0x0100},
-
-    {"reserved_1",            0x0080},
-    {"reserved_2",            0x0040},
-    {"config_corrupt",        0x0020},
-    {"already_executing",     0x0010},
-    {"event_buffer_overflow", 0x0008},
-    {"parameter_error",       0x0004},
-    {"object_unknown",        0x0002},
-    {"no_func_code_support",  0x0001},
-
-    {NULL, 0},
-};
 
 /**
  * Application function code name to code mappings (Snort compatible).
@@ -125,26 +98,8 @@ DNP3Mapping DNP3FunctionNameMap[] = {
 
 #ifdef UNITTESTS
 static void DetectDNP3FuncRegisterTests(void);
-static void DetectDNP3IndRegisterTests(void);
 static void DetectDNP3ObjRegisterTests(void);
 #endif
-
-/**
- * \brief Utility function to trim leading and trailing whitespace
- *     from a string.
- */
-static char *TrimString(char *str)
-{
-    char *end = str + strlen(str) - 1;
-    while (isspace(*str)) {
-        str++;
-    }
-    while (end > str && isspace(*end)) {
-        end--;
-    }
-    *(end + 1) = '\0';
-    return str;
-}
 
 static InspectionBuffer *GetDNP3Data(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms,
@@ -235,80 +190,33 @@ error:
     SCReturnInt(-1);
 }
 
-static int DetectDNP3IndParseByName(const char *str, uint16_t *flags)
+static void DetectDNP3IndFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    char tmp[strlen(str) + 1];
-    char *p, *last = NULL;
-
-    strlcpy(tmp, str, sizeof(tmp));
-
-    for ((p = strtok_r(tmp, ",", &last)); p; (p = strtok_r(NULL, ",", &last))) {
-        p = TrimString(p);
-        int found = 0;
-        int i = 0;
-        while (DNP3IndicatorsMap[i].name != NULL) {
-            if (strcasecmp(p, DNP3IndicatorsMap[i].name) == 0) {
-                *flags |= DNP3IndicatorsMap[i].value;
-                found = 1;
-                break;
-            }
-            i++;
-        }
-
-        if (!found) {
-            SCLogError("Bad argument \"%s\" supplied to dnp3.ind keyword.", p);
-            return 0;
-        }
-    }
-
-    return 1;
-}
-
-static int DetectDNP3IndParse(const char *str, uint16_t *flags)
-{
-    *flags = 0;
-
-    if (StringParseUint16(flags, 0, (uint16_t)strlen(str), str) > 0) {
-        return 1;
-    }
-
-    /* Parse by name - will log a more specific error message on error. */
-    if (DetectDNP3IndParseByName(str, flags)) {
-        return 1;
-    }
-
-    return 0;
+    SCDetectU16Free(ptr);
 }
 
 static int DetectDNP3IndSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     SCEnter();
-    DetectDNP3 *detect = NULL;
-    uint16_t flags;
 
     if (SCDetectSignatureSetAppProto(s, ALPROTO_DNP3) != 0)
         return -1;
 
-    if (!DetectDNP3IndParse(str, &flags)) {
+    DetectU16Data *detect = SCDnp3DetectIndParse(str);
+    if (detect == NULL) {
         SCLogError("Invalid argument \"%s\" supplied to dnp3.ind keyword.", str);
         return -1;
     }
 
-    detect = SCCalloc(1, sizeof(DetectDNP3));
-    if (unlikely(detect == NULL)) {
-        goto error;
-    }
-    detect->ind_flags = flags;
-
     if (SCSigMatchAppendSMToList(
-                de_ctx, s, DETECT_DNP3IND, (SigMatchCtx *)detect, g_dnp3_match_buffer_id) == NULL) {
+                de_ctx, s, DETECT_DNP3IND, (SigMatchCtx *)detect, g_dnp3_ind_buffer_id) == NULL) {
         goto error;
     }
 
     SCReturnInt(0);
 error:
     if (detect != NULL) {
-        SCFree(detect);
+        DetectDNP3IndFree(NULL, detect);
     }
     SCReturnInt(-1);
 }
@@ -438,16 +346,9 @@ static int DetectDNP3IndMatch(DetectEngineThreadCtx *det_ctx,
     const SigMatchCtx *ctx)
 {
     DNP3Transaction *tx = (DNP3Transaction *)txv;
-    DetectDNP3 *detect = (DetectDNP3 *)ctx;
+    DetectU16Data *detect = (DetectU16Data *)ctx;
 
-    if (flags & STREAM_TOCLIENT) {
-        if ((tx->iin.iin1 & (detect->ind_flags >> 8)) ||
-                (tx->iin.iin2 & (detect->ind_flags & 0xf))) {
-            return 1;
-        }
-    }
-
-    return 0;
+    return DetectU16Match((uint16_t)((tx->iin.iin1 << 8) | tx->iin.iin2), detect);
 }
 
 static void DetectDNP3FuncRegister(void)
@@ -481,10 +382,8 @@ static void DetectDNP3IndRegister(void)
     sigmatch_table[DETECT_DNP3IND].Match = NULL;
     sigmatch_table[DETECT_DNP3IND].AppLayerTxMatch = DetectDNP3IndMatch;
     sigmatch_table[DETECT_DNP3IND].Setup = DetectDNP3IndSetup;
-    sigmatch_table[DETECT_DNP3IND].Free = DetectDNP3Free;
-#ifdef UNITTESTS
-    sigmatch_table[DETECT_DNP3IND].RegisterTests = DetectDNP3IndRegisterTests;
-#endif
+    sigmatch_table[DETECT_DNP3IND].Free = DetectDNP3IndFree;
+    sigmatch_table[DETECT_DNP3IND].flags = SIGMATCH_INFO_UINT16 | SIGMATCH_INFO_BITFLAGS_UINT;
     SCReturn;
 }
 
@@ -560,6 +459,9 @@ void DetectDNP3Register(void)
 
     g_dnp3_match_buffer_id = DetectBufferTypeRegister("dnp3");
 
+    DetectAppLayerInspectEngineRegister(
+            "dnp3_ind", ALPROTO_DNP3, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectGenericList, NULL);
+    g_dnp3_ind_buffer_id = DetectBufferTypeRegister("dnp3_ind");
 }
 
 #ifdef UNITTESTS
@@ -624,46 +526,6 @@ static int DetectDNP3FuncTest01(void)
     PASS;
 }
 
-static int DetectDNP3IndTestParseAsInteger(void)
-{
-    uint16_t flags = 0;
-
-    FAIL_IF(!DetectDNP3IndParse("0", &flags));
-    FAIL_IF(flags != 0);
-    FAIL_IF(!DetectDNP3IndParse("1", &flags));
-    FAIL_IF(flags != 0x0001);
-
-    FAIL_IF(!DetectDNP3IndParse("0x0", &flags));
-    FAIL_IF(flags != 0);
-    FAIL_IF(!DetectDNP3IndParse("0x0000", &flags));
-    FAIL_IF(flags != 0);
-    FAIL_IF(!DetectDNP3IndParse("0x0001", &flags));
-    FAIL_IF(flags != 0x0001);
-
-    FAIL_IF(!DetectDNP3IndParse("0x8421", &flags));
-    FAIL_IF(flags != 0x8421);
-
-    FAIL_IF(DetectDNP3IndParse("a", &flags));
-
-    PASS;
-}
-
-static int DetectDNP3IndTestParseByName(void)
-{
-    uint16_t flags = 0;
-
-    FAIL_IF(!DetectDNP3IndParse("all_stations", &flags));
-    FAIL_IF(!(flags & 0x0100));
-    FAIL_IF(!DetectDNP3IndParse("class_1_events , class_2_events", &flags));
-    FAIL_IF(!(flags & 0x0200));
-    FAIL_IF(!(flags & 0x0400));
-    FAIL_IF((flags & 0xf9ff));
-
-    FAIL_IF(DetectDNP3IndParse("something", &flags));
-
-    PASS;
-}
-
 static int DetectDNP3ObjSetupTest(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -709,14 +571,6 @@ static void DetectDNP3FuncRegisterTests(void)
     UtRegisterTest("DetectDNP3FuncParseFunctionCodeTest",
                    DetectDNP3FuncParseFunctionCodeTest);
     UtRegisterTest("DetectDNP3FuncTest01", DetectDNP3FuncTest01);
-}
-
-static void DetectDNP3IndRegisterTests(void)
-{
-    UtRegisterTest("DetectDNP3IndTestParseAsInteger",
-                   DetectDNP3IndTestParseAsInteger);
-    UtRegisterTest("DetectDNP3IndTestParseByName",
-                   DetectDNP3IndTestParseByName);
 }
 
 static void DetectDNP3ObjRegisterTests(void)
