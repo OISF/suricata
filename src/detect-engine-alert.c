@@ -37,6 +37,7 @@
 #include "util-validate.h"
 
 #include "action-globals.h"
+#include "source-pcap-file-helper.h"
 
 /** tag signature we use for tag alerts */
 static Signature g_tag_signature;
@@ -595,6 +596,26 @@ void PacketAlertFinalize(const DetectEngineCtx *de_ctx, DetectEngineThreadCtx *d
         if (!FlowHasAlerts(p->flow)) {
             FlowSetHasAlertsFlag(p->flow);
             p->flags |= PKT_FIRST_ALERTS;
+        }
+    }
+
+    /* For pcap-file mode: any packet tied to a pcap file that produced
+     * alerts should increment that file's alert counter. This ensures
+     * delete-when-done: "non-alerts" does not delete files with stream-
+     * only or pseudo-packet alerts. */
+    if (p->alerts.cnt > 0) {
+        /* Best-effort attribute to current pcap file if not already set */
+        if (p->pcap_v.pfv == NULL) {
+            PcapFileFileVars *cur = PcapFileGetCurrentPfv();
+            if (cur == NULL) {
+                cur = PcapFileGetCurrentPfvGlobal();
+            }
+            if (cur != NULL) {
+                p->pcap_v.pfv = cur;
+            }
+        }
+        if (p->pcap_v.pfv != NULL) {
+            PcapFileAddAlertCount(p->pcap_v.pfv, p->alerts.cnt);
         }
     }
 }
