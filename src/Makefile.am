@@ -519,6 +519,7 @@ noinst_HEADERS = \
 	util-fix_checksum.h \
 	util-flow-rate.h \
 	util-fmemopen.h \
+	util-fopen.h \
 	util-hash-lookup3.h \
 	util-hash-string.h \
 	util-hash.h \
@@ -1100,6 +1101,7 @@ libsuricata_c_a_SOURCES = \
 	util-fix_checksum.c \
 	util-flow-rate.c \
 	util-fmemopen.c \
+	util-fopen.c \
 	util-hash-lookup3.c \
 	util-hash-string.c \
 	util-hash.c \

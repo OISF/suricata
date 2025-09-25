@@ -26,6 +26,7 @@
 #include "output-json-file.h"
 
 #include "util-conf.h"
+#include "util-fopen.h"
 #include "util-misc.h"
 #include "util-path.h"
 #include "util-print.h"
@@ -184,7 +185,7 @@ static void OutputFilestoreFinalizeFiles(ThreadVars *tv, const OutputFilestoreLo
                 JsonBuildFileInfoRecord(p, ff, tx, tx_id, true, dir, ctx->xff_cfg, NULL);
         if (likely(js_fileinfo != NULL)) {
             SCJbClose(js_fileinfo);
-            FILE *out = fopen(js_metadata_filename, "w");
+            FILE *out = SCFopen(js_metadata_filename, "w", S_IWUSR | S_IRUSR | S_IRGRP | S_IROTH);
             if (out != NULL) {
                 size_t js_len = SCJbLen(js_fileinfo);
                 fwrite(SCJbPtr(js_fileinfo), js_len, 1, out);
