@@ -102,9 +102,11 @@ fn parse_uint_subslice(parts: &[&str]) -> Option<(i32, i32)> {
     }
     let (_, (start, end)) = parse_uint_subslice_aux(parts[2]).ok()?;
     if start > 0 && end > 0 && end <= start {
+        SCLogError!("subslice must end after start {} {}", start, end);
         return None;
     }
     if start < 0 && end < 0 && end <= start {
+        SCLogError!("subslice must end after start {} {}", start, end);
         return None;
     }
     return Some((start, end));
@@ -129,6 +131,7 @@ fn parse_uint_index(parts: &[&str]) -> Option<DetectUintIndex> {
 pub(crate) fn detect_parse_array_uint<T: DetectIntType>(s: &str) -> Option<DetectUintArrayData<T>> {
     let parts: Vec<&str> = s.split(',').collect();
     if parts.len() > 3 {
+        SCLogError!("Too many comma-separated parts in multi-integer");
         return None;
     }
 
@@ -149,6 +152,7 @@ pub(crate) fn detect_parse_array_uint_enum<T1: DetectIntType, T2: EnumString<T1>
 ) -> Option<DetectUintArrayData<T1>> {
     let parts: Vec<&str> = s.split(',').collect();
     if parts.len() > 3 {
+        SCLogError!("Too many comma-separated parts in multi-integer");
         return None;
     }
 
@@ -297,6 +301,7 @@ fn parse_flag_list_item<T1: DetectIntType, T2: EnumString<T1>>(
     let (s, vals) = take_while(|c| c != ' ' && c != ',')(s)?;
     let value = T2::from_str(vals);
     if value.is_none() {
+        SCLogError!("Bitflag unexpected value {}", vals);
         return Err(Err::Error(make_error(s, ErrorKind::Switch)));
     }
     let value = value.unwrap().into_u();
@@ -377,6 +382,7 @@ pub fn detect_parse_uint_enum<T1: DetectIntType, T2: EnumString<T1>>(
         };
         return Some(ctx);
     }
+    SCLogError!("Unexpected value for enumeration integer: {}", s);
     return None;
 }
 
