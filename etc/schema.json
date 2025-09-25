@@ -2567,6 +2567,7 @@
                         "server": {
                             "type": "object",
                             "additionalProperties": false,
+                            "minProperties": 1,
                             "properties": {
                                 "key_exchange_payload": {
                                     "type": "string"
