@@ -41,7 +41,7 @@ typedef struct PfringIfaceConfig_ {
 
     char iface[PFRING_IFACE_NAME_LENGTH];
     /* number of threads */
-    int threads;
+    uint16_t threads;
 
     const char *bpf_filter;
 
