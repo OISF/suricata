@@ -166,26 +166,31 @@ fn log_ikev1(state: &IKEState, tx: &IKETransaction, jb: &mut JsonBuilder) -> Res
         jb.close()?; // client
 
         // server data
-        jb.open_object("server")?;
-        if !state.ikev1_container.server.key_exchange.is_empty() {
-            jb.set_string(
-                "key_exchange_payload",
-                &state.ikev1_container.server.key_exchange,
-            )?;
-            if let Ok(server_key_length) =
-                u64::try_from(state.ikev1_container.server.key_exchange.len())
-            {
-                jb.set_uint("key_exchange_payload_length", server_key_length / 2)?;
+        if !state.ikev1_container.server.key_exchange.is_empty()
+            || !state.ikev1_container.server.nonce.is_empty()
+        {
+            jb.open_object("server")?;
+            if !state.ikev1_container.server.key_exchange.is_empty() {
+                jb.set_string(
+                    "key_exchange_payload",
+                    &state.ikev1_container.server.key_exchange,
+                )?;
+                if let Ok(server_key_length) =
+                    u64::try_from(state.ikev1_container.server.key_exchange.len())
+                {
+                    jb.set_uint("key_exchange_payload_length", server_key_length / 2)?;
+                }
             }
-        }
-        if !state.ikev1_container.server.nonce.is_empty() {
-            jb.set_string("nonce_payload", &state.ikev1_container.server.nonce)?;
-            if let Ok(server_nonce_length) = u64::try_from(state.ikev1_container.server.nonce.len())
-            {
-                jb.set_uint("nonce_payload_length", server_nonce_length / 2)?;
+            if !state.ikev1_container.server.nonce.is_empty() {
+                jb.set_string("nonce_payload", &state.ikev1_container.server.nonce)?;
+                if let Ok(server_nonce_length) =
+                    u64::try_from(state.ikev1_container.server.nonce.len())
+                {
+                    jb.set_uint("nonce_payload_length", server_nonce_length / 2)?;
+                }
             }
+            jb.close()?; // server
         }
-        jb.close()?; // server
 
         if !tx.hdr.ikev1_header.vendor_ids.is_empty() {
             jb.open_array("vendor_ids")?;
