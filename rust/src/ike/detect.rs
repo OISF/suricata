@@ -145,7 +145,7 @@ pub extern "C" fn rs_ike_state_get_sa_attribute(
     let sa_type_s: Result<_, _>;
 
     unsafe { sa_type_s = CStr::from_ptr(sa_type).to_str() }
-    SCLogInfo!("{:#?}", sa_type_s);
+    SCLogDebug!("{:#?}", sa_type_s);
 
     if let Ok(sa) = sa_type_s {
         if tx.ike_version == 1 {
