@@ -26,9 +26,13 @@ def find_ref(schema: dict, ref: str) -> dict:
 
 def get_type(props: dict, name: str) -> str:
     prop_type = props["type"]
-    if prop_type == "array":
+    if isinstance(prop_type, list):
+        prop_type = " or ".join(prop_type)
+    elif prop_type == "array":
         try:
             array_type = props["items"]["type"]
+            if isinstance(array_type, list):
+                array_type = " or ".join(array_type)
         except KeyError:
             errprint("warning: array property without items: {}".format(name))
             array_type = "unknown"
@@ -48,7 +52,9 @@ def render_flat(schema: dict):
                 if not ref:
                     raise Exception("$ref not found: {}".format(props["$ref"]))
                 props = ref
-            if props["type"] in ["string", "integer", "boolean", "number"]:
+            if isinstance(props["type"], list):
+                print("{}: {}".format(".".join(path + [name]), " or ".join(props["type"])))
+            elif props["type"] in ["string", "integer", "boolean", "number"]:
                 # End of the line...
                 print("{}: {}".format(".".join(path + [name]), props["type"]))
             elif props["type"] == "object":
@@ -63,9 +69,12 @@ def render_flat(schema: dict):
                     )
             elif props["type"] == "array":
                 if "items" in props and "type" in props["items"]:
+                    item_type = props["items"]["type"]
+                    if isinstance(item_type, list):
+                        item_type = " or ".join(item_type)
                     print(
                         "{}: {}[]".format(
-                            ".".join(path + [name]), props["items"]["type"]
+                            ".".join(path + [name]), item_type
                         )
                     )
                     if "properties" in props["items"]:
@@ -110,14 +119,17 @@ def render_rst(schema: dict):
                 {"name": name, "type": prop_type, "description": description}
             )
 
-            if props["type"] == "object" and "properties" in props:
+            if not isinstance(props["type"], list) and props["type"] == "object" and "properties" in props:
                 stack.insert(0, (props, path + [name], "object"))
             elif (
-                props["type"] == "array"
+                not isinstance(props["type"], list)
+                and props["type"] == "array"
                 and "items" in props
                 and "properties" in props["items"]
             ):
                 array_type = props["items"]["type"]
+                if isinstance(array_type, list):
+                    array_type = " or ".join(array_type)
                 stack.insert(
                     0,
                     (
