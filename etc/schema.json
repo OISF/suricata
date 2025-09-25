@@ -6356,10 +6356,12 @@
                                     "additionalProperties": false,
                                     "properties": {
                                         "header_too_small": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of packets with header too small for E-tag"
                                         },
                                         "unknown_type": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of E-tag packets with unknown type"
                                         }
                                     }
                                 },
@@ -6542,52 +6544,68 @@
                                     "additionalProperties": false,
                                     "properties": {
                                         "frag_ignored": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv6 fragments ignored due to resource allocation errors"
                                         },
                                         "frag_overlap": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv4 fragments with overlapping data"
                                         },
                                         "frag_pkt_too_large": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv4 fragments ignored due to being too large"
                                         },
                                         "hlen_too_small": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv4 packets flagged invalid due to header smaller than minimum size"
                                         },
                                         "icmpv6": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv4 packets flagged invalid due to having an ICMPV6 header"
                                         },
                                         "iplen_smaller_than_hlen": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv4 packets flagged invalid due to length being smaller than IP header size"
                                         },
                                         "opt_duplicate": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv4 packets with duplicated IP options"
                                         },
                                         "opt_eol_required": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv4 packets with 'end of list' option not present, but required, in IP options"
                                         },
                                         "opt_invalid": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv4 packets with invalid IP options"
                                         },
                                         "opt_invalid_len": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv4 packets flagged invalid due to IP options with invalid length"
                                         },
                                         "opt_malformed": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv4 packets flagged invalid due to malformed IP options"
                                         },
                                         "opt_pad_required": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv4 packets with padding bytes required in IP options"
                                         },
                                         "opt_unknown": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv4 packets flagged invalid due to unknown IP option"
                                         },
                                         "pkt_too_small": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv4 packets flagged invalid due to size smaller than minimum header size"
                                         },
                                         "trunc_pkt": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv4 packets flagged invalid due to truncated packet"
                                         },
                                         "wrong_ip_version": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv4 packets flagged invalid due to having wrong IP version in IP options"
                                         }
                                     }
                                 },
@@ -6596,97 +6614,128 @@
                                     "additionalProperties": false,
                                     "properties": {
                                         "data_after_none_header": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv6 packets with data after the 'none' header"
                                         },
                                         "dstopts_only_padding": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv6 packets with all DST options as only padding"
                                         },
                                         "dstopts_unknown_opt": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv6 packets with unknown DST option"
                                         },
                                         "exthdr_ah_res_not_null": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv6 packets with AH header reserved fields not null"
                                         },
                                         "exthdr_dupl_ah": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv6 packets with duplicated 'authentication' header in IPv6 extension headers"
                                         },
                                         "exthdr_dupl_dh": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv6 packets with duplicated 'destination' header in IPv6 extension headers"
                                         },
                                         "exthdr_dupl_eh": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv6 packets with duplicated 'ESP' header in IPv6 extension headers"
                                         },
                                         "exthdr_dupl_fh": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv6 packets with duplicated 'fragment' header in IPv6 extension headers"
                                         },
                                         "exthdr_dupl_hh": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv6 packets with duplicated 'hop-by-hop' header in IPv6 extension headers"
                                         },
                                         "exthdr_dupl_rh": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv6 packets with duplicated'routing' header in IPv6 extension headers"
                                         },
                                         "exthdr_invalid_optlen": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv6 packets flagged invalid due to invalid option length in a hop or dst extended header"
                                         },
                                         "exthdr_useless_fh": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv6 packets with useless 'fragment header' in the extended headers"
                                         },
                                         "fh_non_zero_reserved_field": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv6 packets with 'fragment header' with non-zero reserved field"
                                         },
                                         "frag_ignored": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv6 fragments ignored due to resource allocation errors"
                                         },
                                         "frag_invalid_length": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv6 fragments with invalid length"
                                         },
                                         "frag_overlap": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv6 fragments with overlapping data"
                                         },
                                         "frag_pkt_too_large": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv6 fragments ignored due to being too large"
                                         },
                                         "hopopts_only_padding": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv6 packets with all HOP options as only padding"
                                         },
                                         "hopopts_unknown_opt": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv6 packets with unknown HOP option"
                                         },
                                         "icmpv4": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv6 packets with ICMPv4 header"
                                         },
                                         "ipv4_in_ipv6_too_small": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description":"Number of IPv4-in-IPv6 packets flagged invalid due to being too small"
                                         },
                                         "ipv4_in_ipv6_wrong_version": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv4-in-IPv6 packets with wrong IP version"
                                         },
                                         "ipv6_in_ipv6_too_small": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv6-in-IPv6 packets flagged invalid due to being too small"
                                         },
                                         "ipv6_in_ipv6_wrong_version": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv6-in-IPv6 packets with wrong IP version"
                                         },
                                         "pkt_too_small": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv6 packets flagged invalid due to size smaller than minimum header size"
                                         },
                                         "rh_type_0": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv6 packets with extended header 'routing' with type 0"
                                         },
                                         "trunc_exthdr": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv6 packets flagged invalid due to truncated extension header"
                                         },
                                         "trunc_pkt": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv6 packets flagged invalid due to truncated packet"
                                         },
                                         "unknown_next_header": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv6 packets with unknown next header"
                                         },
                                         "wrong_ip_version": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv6 packets flagged invalid due to wrong IP version"
                                         },
                                         "zero_len_padn": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "Number of IPv6 packets with PadN option without data (length zero)"
                                         }
                                     }
                                 },
