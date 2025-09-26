@@ -81,7 +81,9 @@ pub fn http2_parse_frame_header(i: &[u8]) -> IResult<&[u8], HTTP2FrameHeader> {
 }
 
 #[repr(u32)]
+#[derive(EnumStringU32)]
 #[derive(Clone, Copy, PartialEq, Eq, FromPrimitive, Debug)]
+#[suricata(enum_string_style = "UPPERCASE")]
 pub enum HTTP2ErrorCode {
     NoError = 0,
     ProtocolError = 1,
@@ -97,37 +99,6 @@ pub enum HTTP2ErrorCode {
     EnhanceYourCalm = 11,
     InadequateSecurity = 12,
     Http11Required = 13,
-}
-
-impl fmt::Display for HTTP2ErrorCode {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-impl std::str::FromStr for HTTP2ErrorCode {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let su = s.to_uppercase();
-        let su_slice: &str = &su;
-        match su_slice {
-            "NO_ERROR" => Ok(HTTP2ErrorCode::NoError),
-            "PROTOCOL_ERROR" => Ok(HTTP2ErrorCode::ProtocolError),
-            "FLOW_CONTROL_ERROR" => Ok(HTTP2ErrorCode::FlowControlError),
-            "SETTINGS_TIMEOUT" => Ok(HTTP2ErrorCode::SettingsTimeout),
-            "STREAM_CLOSED" => Ok(HTTP2ErrorCode::StreamClosed),
-            "FRAME_SIZE_ERROR" => Ok(HTTP2ErrorCode::FrameSizeError),
-            "REFUSED_STREAM" => Ok(HTTP2ErrorCode::RefusedStream),
-            "CANCEL" => Ok(HTTP2ErrorCode::Cancel),
-            "COMPRESSION_ERROR" => Ok(HTTP2ErrorCode::CompressionError),
-            "CONNECT_ERROR" => Ok(HTTP2ErrorCode::ConnectError),
-            "ENHANCE_YOUR_CALM" => Ok(HTTP2ErrorCode::EnhanceYourCalm),
-            "INADEQUATE_SECURITY" => Ok(HTTP2ErrorCode::InadequateSecurity),
-            "HTTP_1_1_REQUIRED" => Ok(HTTP2ErrorCode::Http11Required),
-            _ => Err(format!("'{}' is not a valid value for HTTP2ErrorCode", s)),
-        }
-    }
 }
 
 #[derive(Clone, Copy, Debug)]

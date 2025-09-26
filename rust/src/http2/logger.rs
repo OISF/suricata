@@ -17,6 +17,7 @@
 
 use super::http2::{HTTP2Frame, HTTP2FrameTypeData, HTTP2Transaction};
 use super::parser;
+use crate::detect::EnumString;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use std;
 use std::collections::{HashMap, HashSet};
@@ -145,16 +146,10 @@ fn log_http2_frames(frames: &[HTTP2Frame], js: &mut JsonBuilder) -> Result<bool,
         match &frame.data {
             HTTP2FrameTypeData::GOAWAY(goaway) => {
                 if !has_error_code {
-                    let errcode: Option<parser::HTTP2ErrorCode> =
-                        num::FromPrimitive::from_u32(goaway.errorcode);
-                    match errcode {
-                        Some(errstr) => {
-                            js.set_string("error_code", &errstr.to_string().to_uppercase())?;
-                        }
-                        None => {
-                            //use uint32
-                            js.set_string("error_code", &goaway.errorcode.to_string())?;
-                        }
+                    if let Some(errcode) = parser::HTTP2ErrorCode::from_u(goaway.errorcode) {
+                        js.set_string("error_code", errcode.to_str())?;
+                    } else {
+                        js.set_string("error_code", &format!("unknown-{}", goaway.errorcode))?;
                     }
                     has_error_code = true;
                 } else if !has_multiple {
@@ -164,16 +159,10 @@ fn log_http2_frames(frames: &[HTTP2Frame], js: &mut JsonBuilder) -> Result<bool,
             }
             HTTP2FrameTypeData::RSTSTREAM(rst) => {
                 if !has_error_code {
-                    let errcode: Option<parser::HTTP2ErrorCode> =
-                        num::FromPrimitive::from_u32(rst.errorcode);
-                    match errcode {
-                        Some(errstr) => {
-                            js.set_string("error_code", &errstr.to_string())?;
-                        }
-                        None => {
-                            //use uint32
-                            js.set_string("error_code", &rst.errorcode.to_string())?;
-                        }
+                    if let Some(errcode) = parser::HTTP2ErrorCode::from_u(rst.errorcode) {
+                        js.set_string("error_code", errcode.to_str())?;
+                    } else {
+                        js.set_string("error_code", &format!("unknown-{}", rst.errorcode))?;
                     }
                     has_error_code = true;
                 } else if !has_multiple {
