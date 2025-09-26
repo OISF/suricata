@@ -20,6 +20,12 @@ http2.frametype
 
 Match on the frame type present in a transaction.
 
+http2.frametype uses an :ref:`unsigned 8-bit integer <rules-integer-keywords>`.
+
+http2.frametype is also a :ref:`multi-integer <multi-integers>`.
+
+http2.frametype does not have any corresponding log output.
+
 Examples::
 
   http2.frametype:GOAWAY;
@@ -66,6 +72,8 @@ Match on the value of the HTTP2 value field present in a WINDOWUPDATE frame.
 http2.window uses an :ref:`unsigned 32-bit integer <rules-integer-keywords>`.
 
 http2.window is also a :ref:`multi-integer <multi-integers>`.
+
+http2.window does not have any corresponding log output.
 
 This keyword takes a numeric argument after a colon and supports additional qualifiers, such as:
 
