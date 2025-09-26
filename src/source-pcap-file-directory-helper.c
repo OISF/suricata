@@ -423,9 +423,8 @@ TmEcode PcapDirectoryDispatchForTimeRange(PcapFileDirectoryVars *pv,
                     SCReturnInt(TM_ECODE_FAILED);
                 }
 
-                pftv->filename = SCStrdup(current_file->filename);
-                if (unlikely(pftv->filename == NULL)) {
-                    SCLogError("Failed to allocate filename");
+                pftv->info = PcapFileInfoInit(current_file->filename);
+                if (unlikely(pftv->info == NULL)) {
                     CleanupPcapFileFileVars(pftv);
                     SCReturnInt(TM_ECODE_FAILED);
                 }
