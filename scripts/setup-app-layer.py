@@ -80,12 +80,12 @@ def copy_app_layer_templates(proto):
     upper = proto.upper()
 
     pairs = (
-        ("rust/src/applayertemplate/mod.rs",
-         "rust/src/applayer%s/mod.rs" % (lower)),
         ("rust/src/applayertemplate/template.rs",
          "rust/src/applayer%s/%s.rs" % (lower, lower)),
         ("rust/src/applayertemplate/parser.rs",
          "rust/src/applayer%s/parser.rs" % (lower)),
+        ("rust/src/applayertemplate/mod.rs",
+         "rust/src/applayer%s/mod.rs" % (lower)),
     )
 
     common_copy_templates(proto, pairs)
