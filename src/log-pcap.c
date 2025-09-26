@@ -967,7 +967,7 @@ static TmEcode PcapLogInitRingBuffer(PcapLogData *pl)
             goto fail;
         }
         char path[PATH_MAX];
-        if (snprintf(path, PATH_MAX, "%s/%s", pattern, entry->d_name) == PATH_MAX)
+        if (PathMerge(path, sizeof(path), pattern, entry->d_name) < 0)
             goto fail;
 
         if ((pf->filename = SCStrdup(path)) == NULL) {
@@ -1705,18 +1705,18 @@ static void PcapLogFileDeInitCtx(OutputCtx *output_ctx)
  */
 static int PcapLogOpenFileCtx(PcapLogData *pl)
 {
-    char *filename = NULL;
+    char *path = NULL;
 
     PCAPLOG_PROFILE_START;
 
     if (pl->filename != NULL)
-        filename = pl->filename;
+        path = pl->filename;
     else {
-        filename = SCMalloc(PATH_MAX);
-        if (unlikely(filename == NULL)) {
+        path = SCMalloc(PATH_MAX);
+        if (unlikely(path == NULL)) {
             return -1;
         }
-        pl->filename = filename;
+        pl->filename = path;
     }
 
     /** get the time so we can have a filename with seconds since epoch */
@@ -1728,15 +1728,16 @@ static int PcapLogOpenFileCtx(PcapLogData *pl)
         return -1;
     }
 
+    char file[PATH_MAX] = "";
     if (pl->mode == LOGMODE_NORMAL) {
         int ret;
         /* create the filename to use */
         if (pl->timestamp_format == TS_FORMAT_SEC) {
-            ret = snprintf(filename, PATH_MAX, "%s/%s.%" PRIu32 "%s", pl->dir, pl->prefix,
+            ret = snprintf(file, sizeof(file), "%s.%" PRIu32 "%s", pl->prefix,
                     (uint32_t)SCTIME_SECS(ts), pl->suffix);
         } else {
-            ret = snprintf(filename, PATH_MAX, "%s/%s.%" PRIu32 ".%" PRIu32 "%s", pl->dir,
-                    pl->prefix, (uint32_t)SCTIME_SECS(ts), (uint32_t)SCTIME_USECS(ts), pl->suffix);
+            ret = snprintf(file, sizeof(file), "%s.%" PRIu32 ".%" PRIu32 "%s", pl->prefix,
+                    (uint32_t)SCTIME_SECS(ts), (uint32_t)SCTIME_USECS(ts), pl->suffix);
         }
         if (ret < 0 || (size_t)ret >= PATH_MAX) {
             SCLogError("failed to construct path");
@@ -1745,9 +1746,6 @@ static int PcapLogOpenFileCtx(PcapLogData *pl)
     } else if (pl->mode == LOGMODE_MULTI) {
         if (pl->filename_part_cnt > 0) {
             /* assemble filename from stored tokens */
-
-            strlcpy(filename, pl->dir, PATH_MAX);
-            strlcat(filename, "/", PATH_MAX);
 
             for (int i = 0; i < pl->filename_part_cnt; i++) {
                 if (pl->filename_parts[i] == NULL ||strlen(pl->filename_parts[i]) == 0)
@@ -1778,31 +1776,35 @@ static int PcapLogOpenFileCtx(PcapLogData *pl)
                                     (uint32_t)SCTIME_SECS(ts), (uint32_t)SCTIME_USECS(ts));
                         }
                     }
-                    strlcat(filename, str, PATH_MAX);
+                    strlcat(file, str, sizeof(file));
 
-                /* copy the rest over */
+                    /* copy the rest over */
                 } else {
-                    strlcat(filename, pl->filename_parts[i], PATH_MAX);
+                    strlcat(file, pl->filename_parts[i], sizeof(file));
                 }
             }
-            strlcat(filename, pl->suffix, PATH_MAX);
+            strlcat(file, pl->suffix, sizeof(file));
         } else {
             int ret;
             /* create the filename to use */
             if (pl->timestamp_format == TS_FORMAT_SEC) {
-                ret = snprintf(filename, PATH_MAX, "%s/%s.%u.%" PRIu32 "%s", pl->dir, pl->prefix,
+                ret = snprintf(file, sizeof(file), "%s.%u.%" PRIu32 "%s", pl->prefix,
                         pl->thread_number, (uint32_t)SCTIME_SECS(ts), pl->suffix);
             } else {
-                ret = snprintf(filename, PATH_MAX, "%s/%s.%u.%" PRIu32 ".%" PRIu32 "%s", pl->dir,
-                        pl->prefix, pl->thread_number, (uint32_t)SCTIME_SECS(ts),
-                        (uint32_t)SCTIME_USECS(ts), pl->suffix);
+                ret = snprintf(file, sizeof(file), "%s.%u.%" PRIu32 ".%" PRIu32 "%s", pl->prefix,
+                        pl->thread_number, (uint32_t)SCTIME_SECS(ts), (uint32_t)SCTIME_USECS(ts),
+                        pl->suffix);
             }
             if (ret < 0 || (size_t)ret >= PATH_MAX) {
                 SCLogError("failed to construct path");
                 goto error;
             }
         }
-        SCLogDebug("multi-mode: filename %s", filename);
+        SCLogDebug("multi-mode: filename %s", file);
+    }
+    if (PathMerge(path, PATH_MAX, pl->dir, file) < 0) {
+        SCLogError("failed to construct path");
+        goto error;
     }
 
     if ((pf->filename = SCStrdup(pl->filename)) == NULL) {

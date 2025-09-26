@@ -44,7 +44,7 @@ int SCPidfileCreate(const char *pidfile)
     SCEnter();
 
     int pidfd = 0;
-    char val[16];
+    char val[32];
 
     size_t len = snprintf(val, sizeof(val), "%"PRIuMAX"\n", (uintmax_t)getpid());
     if (len <= 0) {
