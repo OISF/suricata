@@ -80,6 +80,9 @@ jobs:
       # The action above is supposed to do this for us, but it doesn't appear to stick.
       - run: /usr/bin/git config --global --add safe.directory /__w/suricata/suricata
       - run: git fetch
+      - name: Checking Cherry-pick lines
+        run: |
+          ./qa/validate-cp.sh "${GITHUB_BASE_REF}"
       - name: Building all commits
         run: |
           echo "Building commits from ${GITHUB_BASE_REF}."
