@@ -199,7 +199,7 @@ mod test {
                     arg2: 0,
                     mode: DetectUintMode::DetectUintModeEqual,
                 },
-                index: DetectUintIndex::All,
+                index: DetectUintIndex::All1,
                 start: 0,
                 end: 0,
             }
