@@ -123,6 +123,8 @@ void DetectHttp2Register(void)
     sigmatch_table[DETECT_HTTP2_ERRORCODE].AppLayerTxMatch = DetectHTTP2errorcodeMatch;
     sigmatch_table[DETECT_HTTP2_ERRORCODE].Setup = DetectHTTP2errorcodeSetup;
     sigmatch_table[DETECT_HTTP2_ERRORCODE].Free = DetectHTTP2errorcodeFree;
+    sigmatch_table[DETECT_HTTP2_ERRORCODE].flags =
+            SIGMATCH_INFO_UINT32 | SIGMATCH_INFO_MULTI_UINT | SIGMATCH_INFO_ENUM_UINT;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_HTTP2_ERRORCODE].RegisterTests = DetectHTTP2errorCodeRegisterTests;
 #endif
@@ -236,8 +238,10 @@ static int DetectHTTP2frametypeSetup (DetectEngineCtx *de_ctx, Signature *s, con
         return -1;
 
     void *dua8 = SCHttp2ParseFrametype(str);
-    if (dua8 == NULL)
+    if (dua8 == NULL) {
+        SCLogError("Invalid http2.frametype: %s", str);
         return -1;
+    }
 
     if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_HTTP2_FRAMETYPE, (SigMatchCtx *)dua8,
                 g_http2_match_buffer_id) == NULL) {
@@ -269,27 +273,7 @@ static int DetectHTTP2errorcodeMatch(DetectEngineThreadCtx *det_ctx,
                                const SigMatchCtx *ctx)
 
 {
-    uint32_t *detect = (uint32_t *)ctx;
-
-    return SCHttp2TxHasErrorCode(txv, flags, *detect);
-    //TODOask handle negation rules
-}
-
-static int DetectHTTP2FuncParseErrorCode(const char *str, uint32_t *ec)
-{
-    // first parse numeric value
-    if (ByteExtractStringUint32(ec, 10, (uint16_t)strlen(str), str) > 0) {
-        return 1;
-    }
-
-    // it it failed so far, parse string value from enumeration
-    int r = SCHttp2ParseErrorCode(str);
-    if (r >= 0) {
-        *ec = r;
-        return 1;
-    }
-
-    return 0;
+    return SCHttp2TxHasErrorCode(txv, flags, ctx);
 }
 
 /**
@@ -304,24 +288,18 @@ static int DetectHTTP2FuncParseErrorCode(const char *str, uint32_t *ec)
  */
 static int DetectHTTP2errorcodeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    uint32_t error_code;
-
     if (SCDetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
         return -1;
 
-    if (!DetectHTTP2FuncParseErrorCode(str, &error_code)) {
-        SCLogError("Invalid argument \"%s\" supplied to http2.errorcode keyword.", str);
+    void *dua32 = SCHttp2ParseErrorCode(str);
+    if (dua32 == NULL) {
+        SCLogError("Invalid http2.errorcode: %s", str);
         return -1;
     }
 
-    uint32_t *http2ec = SCCalloc(1, sizeof(uint32_t));
-    if (http2ec == NULL)
-        return -1;
-    *http2ec = error_code;
-
-    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_HTTP2_ERRORCODE, (SigMatchCtx *)http2ec,
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_HTTP2_ERRORCODE, (SigMatchCtx *)dua32,
                 g_http2_match_buffer_id) == NULL) {
-        DetectHTTP2errorcodeFree(NULL, http2ec);
+        DetectHTTP2errorcodeFree(NULL, dua32);
         return -1;
     }
 
@@ -335,7 +313,7 @@ static int DetectHTTP2errorcodeSetup (DetectEngineCtx *de_ctx, Signature *s, con
  */
 void DetectHTTP2errorcodeFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    SCFree(ptr);
+    SCDetectU32ArrayFree(ptr);
 }
 
 /**
