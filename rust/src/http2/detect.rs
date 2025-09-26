@@ -20,7 +20,8 @@ use super::http2::{
 };
 use super::parser;
 use crate::detect::uint::{
-    detect_match_uint, detect_uint_match_at_index, DetectUintArrayData, DetectUintData,
+    detect_match_uint, detect_parse_array_uint_enum, detect_uint_match_at_index,
+    DetectUintArrayData, DetectUintData,
 };
 use crate::direction::Direction;
 use base64::{engine::general_purpose::STANDARD, Engine};
@@ -30,44 +31,38 @@ use std::rc::Rc;
 use std::str::FromStr;
 use suricata_sys::sys::DetectEngineThreadCtx;
 
-fn http2_tx_has_frametype(
-    tx: &HTTP2Transaction, direction: Direction, value: u8,
-) -> std::os::raw::c_int {
-    if direction == Direction::ToServer {
-        for i in 0..tx.frames_ts.len() {
-            if tx.frames_ts[i].header.ftype == value {
-                return 1;
-            }
-        }
-    } else {
-        for i in 0..tx.frames_tc.len() {
-            if tx.frames_tc[i].header.ftype == value {
-                return 1;
-            }
-        }
-    }
-    return 0;
-}
-
 #[no_mangle]
 pub unsafe extern "C" fn SCHttp2TxHasFrametype(
-    tx: *mut std::os::raw::c_void, direction: u8, value: u8,
+    tx: *mut std::os::raw::c_void, direction: u8, ctx: *const std::os::raw::c_void,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, HTTP2Transaction);
-    return http2_tx_has_frametype(tx, direction.into(), value);
+    let ctx = cast_pointer!(ctx, DetectUintArrayData<u8>);
+    let frames = if direction & Direction::ToServer as u8 != 0 {
+        &tx.frames_ts
+    } else {
+        &tx.frames_tc
+    };
+    return detect_uint_match_at_index::<HTTP2Frame, u8>(
+        frames,
+        ctx,
+        |f| Some(f.header.ftype),
+        tx.state >= HTTP2TransactionState::HTTP2StateClosed,
+    );
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn SCHttp2ParseFrametype(
     str: *const std::os::raw::c_char,
-) -> std::os::raw::c_int {
+) -> *mut std::os::raw::c_void {
     let ft_name: &CStr = CStr::from_ptr(str); //unsafe
     if let Ok(s) = ft_name.to_str() {
-        if let Ok(x) = parser::HTTP2FrameType::from_str(s) {
-            return x as i32;
+        if let Some(ctx) = detect_parse_array_uint_enum::<u8, parser::HTTP2FrameType>(s) {
+            let boxed = Box::new(ctx);
+            // DetectUintArrayData<u8> cannot be cbindgend
+            return Box::into_raw(boxed) as *mut c_void;
         }
     }
-    return -1;
+    return std::ptr::null_mut();
 }
 
 fn http2_tx_has_errorcode(
