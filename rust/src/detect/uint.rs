@@ -43,7 +43,7 @@ pub enum DetectUintMode {
     DetectUintModeNegBitmask,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 #[repr(C)]
 pub struct DetectUintData<T> {
     pub arg1: T,

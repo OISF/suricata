@@ -68,7 +68,6 @@ unsafe extern "C" fn nfs_procedure_parse(
 ) -> *mut DetectUintData<u32> {
     let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
     if let Ok(s) = ft_name.to_str() {
-        // TODO big composite type
         if let Some(ctx) = nfs_procedure_parse_aux(s) {
             let boxed = Box::new(ctx);
             return Box::into_raw(boxed) as *mut _;
