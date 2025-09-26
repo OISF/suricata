@@ -389,7 +389,7 @@ extern enum ExceptionPolicy g_applayerparser_error_policy;
  */
 static int TCPProtoDetect(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         AppLayerThreadCtx *app_tctx, Packet *p, Flow *f, TcpSession *ssn, TcpStream **stream,
-        uint8_t *data, uint32_t data_len, uint8_t flags, enum StreamUpdateDir app_update_dir)
+        const uint8_t *data, uint32_t data_len, uint8_t flags, enum StreamUpdateDir app_update_dir)
 {
     AppProto *alproto;
     AppProto *alproto_otherdir;
