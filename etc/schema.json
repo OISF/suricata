@@ -2473,6 +2473,38 @@
                 "alg_hash_raw": {
                     "type": "integer"
                 },
+                "attributes": {
+                    "description": "When object-attributes = true",
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "key": {
+                                "type": "string",
+                                "enum": [
+                                    "alg_auth",
+                                    "alg_dh",
+                                    "alg_enc",
+                                    "alg_hash",
+                                    "sa_key_length",
+                                    "sa_life_duration",
+                                    "sa_life_type"
+                                ]
+                            },
+                            "raw": {
+                                "type": [
+                                    "string",
+                                    "number"
+                                ]
+                            },
+                            "value": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
                 "exchange_type": {
                     "type": "integer",
                     "suricata": {
@@ -2545,6 +2577,26 @@
                                             "alg_hash_raw": {
                                                 "type": "integer"
                                             },
+                                            "key": {
+                                                "description": "When object-attributes = true",
+                                                "type": "string",
+                                                "enum": [
+                                                    "alg_auth",
+                                                    "alg_dh",
+                                                    "alg_enc",
+                                                    "alg_hash",
+                                                    "sa_key_length",
+                                                    "sa_life_duration",
+                                                    "sa_life_type"
+                                                ]
+                                            },
+                                            "raw": {
+                                                "description": "When object-attributes = true",
+                                                "type": [
+                                                    "string",
+                                                    "number"
+                                                ]
+                                            },
                                             "sa_key_length": {
                                                 "type": "string"
                                             },
@@ -2562,6 +2614,10 @@
                                             },
                                             "sa_life_type_raw": {
                                                 "type": "integer"
+                                            },
+                                            "value": {
+                                                "description": "When object-attributes = true",
+                                                "type": "string"
                                             }
                                         },
                                         "patternProperties": {

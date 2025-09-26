@@ -25,7 +25,8 @@ use std;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 
-const LOG_EXTENDED: u32 = 0x01;
+const LOG_EXTENDED: u32 = BIT_U32!(1);
+const LOG_IKE_ATTRIBUTE_OBJECTS: u32 = BIT_U32!(2);
 
 fn add_attributes(transform: &Vec<SaAttribute>, js: &mut JsonBuilder) -> Result<(), JsonError> {
     let mut logged: HashMap<String, usize> = HashMap::new();
@@ -47,6 +48,30 @@ fn add_attributes(transform: &Vec<SaAttribute>, js: &mut JsonBuilder) -> Result<
         }
 
         *idx += 1;
+    }
+
+    Ok(())
+}
+
+/// Add IKE attributes as objects.
+///
+/// This function does not open the array, it should be opened by the
+/// caller.
+///
+/// This is the default add_attributes function in Suricata 9.
+fn add_attributes_as_objects(transform: &Vec<SaAttribute>, js: &mut JsonBuilder) -> Result<(), JsonError> {
+    for attribute in transform {
+        js.start_object()?;
+        js.set_string("key", &attribute.attribute_type.to_string())?;
+        js.set_string("value", &attribute.attribute_value.to_string())?;
+
+        if let Some(v) = attribute.numeric_value {
+            js.set_uint("raw", v as u64)?;
+        } else if let Some(v) = &attribute.hex_value {
+            js.set_string("raw", v)?;
+        }
+
+        js.close()?;
     }
 
     Ok(())
@@ -79,15 +104,25 @@ fn log_ike(
     if tx.ike_version == 1 {
         if state.ikev1_container.server.nb_transforms > 0 {
             // log the first transform as the chosen one
-            add_attributes(&state.ikev1_container.server.transform, jb)?;
+            if flags & LOG_IKE_ATTRIBUTE_OBJECTS == LOG_IKE_ATTRIBUTE_OBJECTS {
+                jb.open_array("attributes")?;
+                add_attributes_as_objects(&state.ikev1_container.server.transform, jb)?;
+                jb.close()?;
+            } else {
+                add_attributes(&state.ikev1_container.server.transform, jb)?;
+            }
         }
         if tx.direction == Direction::ToClient && tx.hdr.ikev1_transforms.len() > 1 {
             // in case we have multiple server transforms log them in a list
             jb.open_array("server_proposals")?;
             for server_transform in &tx.hdr.ikev1_transforms {
-                jb.start_object()?;
-                add_attributes(server_transform, jb)?;
-                jb.close()?;
+                if flags & LOG_IKE_ATTRIBUTE_OBJECTS == LOG_IKE_ATTRIBUTE_OBJECTS {
+                    add_attributes_as_objects(server_transform, jb)?;
+                } else {
+                    jb.start_object()?;
+                    add_attributes(server_transform, jb)?;
+                    jb.close()?;
+                }
             }
             jb.close()?;
         }
@@ -120,7 +155,7 @@ fn log_ike(
     jb.close()?;
 
     if tx.ike_version == 1 {
-        log_ikev1(state, tx, jb)?;
+        log_ikev1(state, tx, flags, jb)?;
     } else if tx.ike_version == 2 {
         log_ikev2(tx, jb)?;
     }
@@ -128,7 +163,7 @@ fn log_ike(
     return Ok(());
 }
 
-fn log_ikev1(state: &IKEState, tx: &IKETransaction, jb: &mut JsonBuilder) -> Result<(), JsonError> {
+fn log_ikev1(state: &IKEState, tx: &IKETransaction, flags: u32, jb: &mut JsonBuilder) -> Result<(), JsonError> {
     jb.open_object("ikev1")?;
 
     if let Some(doi) = state.ikev1_container.domain_of_interpretation {
@@ -163,9 +198,13 @@ fn log_ikev1(state: &IKEState, tx: &IKETransaction, jb: &mut JsonBuilder) -> Res
         if tx.direction == Direction::ToServer && !tx.hdr.ikev1_transforms.is_empty() {
             jb.open_array("proposals")?;
             for client_transform in &tx.hdr.ikev1_transforms {
-                jb.start_object()?;
-                add_attributes(client_transform, jb)?;
-                jb.close()?;
+                if flags & LOG_IKE_ATTRIBUTE_OBJECTS == LOG_IKE_ATTRIBUTE_OBJECTS {
+                    add_attributes_as_objects(client_transform, jb)?;
+                } else {
+                    jb.start_object()?;
+                    add_attributes(client_transform, jb)?;
+                    jb.close()?;
+                }
             }
             jb.close()?; // proposals
         }

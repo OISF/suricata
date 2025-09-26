@@ -315,6 +315,17 @@ YAML::
             # Default: all.
             #types: [a, aaaa, cname, mx, ns, ptr, txt]
 
+IKE
+~~~
+
+YAML::
+
+  - ike:
+      # Enable logging attributes as objects instead of
+      # giving duplicates an index suffix. This will be
+      # the default in Suricata 9.0.
+      #object-attributes: false
+
 TLS
 ~~~
 

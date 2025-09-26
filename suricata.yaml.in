@@ -326,7 +326,9 @@ outputs:
             #types: [file, tree_connect, negotiate, dcerpc, create,
             #  session_setup, ioctl, rename, set_file_path_info, generic]
         - tftp
-        - ike
+        - ike:
+            # Log attributes as object (future Suricata 9.0 behavior)
+            #object-attributes: false
         - dcerpc
         - krb5
         - bittorrent-dht
