@@ -36,6 +36,10 @@ http2.errorcode
 
 Match on the error code in a GOWAY or RST_STREAM frame
 
+http2.errorcode uses an :ref:`unsigned 32-bit integer <rules-integer-keywords>`.
+
+http2.errorcode is also a :ref:`multi-integer <multi-integers>`.
+
 Examples::
 
   http2.errorcode: NO_ERROR;

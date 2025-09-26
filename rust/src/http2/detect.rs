@@ -28,7 +28,6 @@ use base64::{engine::general_purpose::STANDARD, Engine};
 use std::ffi::CStr;
 use std::os::raw::c_void;
 use std::rc::Rc;
-use std::str::FromStr;
 use suricata_sys::sys::DetectEngineThreadCtx;
 
 #[no_mangle]
@@ -65,64 +64,45 @@ pub unsafe extern "C" fn SCHttp2ParseFrametype(
     return std::ptr::null_mut();
 }
 
-fn http2_tx_has_errorcode(
-    tx: &HTTP2Transaction, direction: Direction, code: u32,
-) -> std::os::raw::c_int {
-    if direction == Direction::ToServer {
-        for i in 0..tx.frames_ts.len() {
-            match tx.frames_ts[i].data {
-                HTTP2FrameTypeData::GOAWAY(goaway) => {
-                    if goaway.errorcode == code {
-                        return 1;
-                    }
-                }
-                HTTP2FrameTypeData::RSTSTREAM(rst) => {
-                    if rst.errorcode == code {
-                        return 1;
-                    }
-                }
-                _ => {}
-            }
-        }
-    } else {
-        for i in 0..tx.frames_tc.len() {
-            match tx.frames_tc[i].data {
-                HTTP2FrameTypeData::GOAWAY(goaway) => {
-                    if goaway.errorcode == code {
-                        return 1;
-                    }
-                }
-                HTTP2FrameTypeData::RSTSTREAM(rst) => {
-                    if rst.errorcode == code {
-                        return 1;
-                    }
-                }
-                _ => {}
-            }
-        }
+fn http2_tx_get_errorcode(f: &HTTP2Frame) -> Option<u32> {
+    match &f.data {
+        HTTP2FrameTypeData::GOAWAY(goaway) => Some(goaway.errorcode),
+        HTTP2FrameTypeData::RSTSTREAM(rst) => Some(rst.errorcode),
+        _ => None,
     }
-    return 0;
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn SCHttp2TxHasErrorCode(
-    tx: *mut std::os::raw::c_void, direction: u8, code: u32,
+    tx: *mut std::os::raw::c_void, direction: u8, ctx: *const std::os::raw::c_void,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, HTTP2Transaction);
-    return http2_tx_has_errorcode(tx, direction.into(), code);
+    let ctx = cast_pointer!(ctx, DetectUintArrayData<u32>);
+    let frames = if direction & Direction::ToServer as u8 != 0 {
+        &tx.frames_ts
+    } else {
+        &tx.frames_tc
+    };
+    return detect_uint_match_at_index::<HTTP2Frame, u32>(
+        frames,
+        ctx,
+        http2_tx_get_errorcode,
+        tx.state >= HTTP2TransactionState::HTTP2StateClosed,
+    );
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn SCHttp2ParseErrorCode(
     str: *const std::os::raw::c_char,
-) -> std::os::raw::c_int {
+) -> *mut std::os::raw::c_void {
     let ft_name: &CStr = CStr::from_ptr(str); //unsafe
     if let Ok(s) = ft_name.to_str() {
-        if let Ok(x) = parser::HTTP2ErrorCode::from_str(s) {
-            return x as i32;
+        if let Some(ctx) = detect_parse_array_uint_enum::<u32, parser::HTTP2ErrorCode>(s) {
+            let boxed = Box::new(ctx);
+            return Box::into_raw(boxed) as *mut c_void;
         }
     }
-    return -1;
+    return std::ptr::null_mut();
 }
 
 fn get_http2_priority(frame: &HTTP2Frame) -> Option<u8> {
