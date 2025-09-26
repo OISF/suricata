@@ -59,6 +59,7 @@ pub enum DetectUintIndex {
     OrAbsent,
     Index((bool, i32)),
     NumberMatches(DetectUintData<u32>),
+    Count(DetectUintData<u32>),
 }
 
 #[derive(Debug, PartialEq)]
@@ -112,6 +113,13 @@ fn parse_uint_subslice(parts: &[&str]) -> Option<(i32, i32)> {
     return Some((start, end));
 }
 
+fn parse_uint_count(s: &str) -> IResult<&str, DetectUintData<u32>> {
+    let (s, _) = tag("count")(s)?;
+    let (s, _) = opt(is_a(" "))(s)?;
+    let (s, du32) = detect_parse_uint::<u32>(s)?;
+    Ok((s, du32))
+}
+
 fn parse_uint_index(parts: &[&str]) -> Option<DetectUintIndex> {
     let index = if parts.len() >= 2 {
         match parts[1] {
@@ -122,6 +130,8 @@ fn parse_uint_index(parts: &[&str]) -> Option<DetectUintIndex> {
             // not only a literal, but some numeric value
             _ => return parse_uint_index_val(parts[1]),
         }
+    } else if let Ok((_, du)) = parse_uint_count(parts[0]) {
+        DetectUintIndex::Count(du)
     } else {
         DetectUintIndex::Any
     };
@@ -136,6 +146,19 @@ pub(crate) fn detect_parse_array_uint<T: DetectIntType>(s: &str) -> Option<Detec
     }
 
     let index = parse_uint_index(&parts)?;
+    if let DetectUintIndex::Count(_) = &index {
+        return Some(DetectUintArrayData {
+            du: DetectUintData::<T> {
+                arg1: T::min_value(),
+                arg2: T::min_value(),
+                mode: DetectUintMode::DetectUintModeEqual,
+            },
+            index,
+            start: 0,
+            end: 0,
+        });
+    }
+
     let (_, du) = detect_parse_uint::<T>(parts[0]).ok()?;
     let (start, end) = parse_uint_subslice(&parts)?;
 
@@ -157,6 +180,19 @@ pub(crate) fn detect_parse_array_uint_enum<T1: DetectIntType, T2: EnumString<T1>
     }
 
     let index = parse_uint_index(&parts)?;
+    if let DetectUintIndex::Count(_) = &index {
+        return Some(DetectUintArrayData {
+            du: DetectUintData::<T1> {
+                arg1: T1::min_value(),
+                arg2: T1::min_value(),
+                mode: DetectUintMode::DetectUintModeEqual,
+            },
+            index,
+            start: 0,
+            end: 0,
+        });
+    }
+
     let du = detect_parse_uint_enum::<T1, T2>(parts[0])?;
     let (start, end) = parse_uint_subslice(&parts)?;
 
@@ -227,6 +263,26 @@ pub(crate) fn detect_uint_match_at_index<T, U: DetectIntType>(
                     if detect_match_uint::<U>(&ctx.du, code) {
                         nb += 1;
                     }
+                }
+            }
+            if detect_match_uint(du32, nb) {
+                return 1;
+            }
+            return 0;
+        }
+        DetectUintIndex::Count(du32) => {
+            if !eof {
+                match du32.mode {
+                    DetectUintMode::DetectUintModeGt | DetectUintMode::DetectUintModeGte => {}
+                    _ => {
+                        return 0;
+                    }
+                }
+            }
+            let mut nb = 0u32;
+            for response in subslice {
+                if get_value(response).is_some() {
+                    nb += 1;
                 }
             }
             if detect_match_uint(du32, nb) {
