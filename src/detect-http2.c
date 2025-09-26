@@ -110,6 +110,8 @@ void DetectHttp2Register(void)
     sigmatch_table[DETECT_HTTP2_FRAMETYPE].AppLayerTxMatch = DetectHTTP2frametypeMatch;
     sigmatch_table[DETECT_HTTP2_FRAMETYPE].Setup = DetectHTTP2frametypeSetup;
     sigmatch_table[DETECT_HTTP2_FRAMETYPE].Free = DetectHTTP2frametypeFree;
+    sigmatch_table[DETECT_HTTP2_FRAMETYPE].flags =
+            SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_MULTI_UINT | SIGMATCH_INFO_ENUM_UINT;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_HTTP2_FRAMETYPE].RegisterTests = DetectHTTP2frameTypeRegisterTests;
 #endif
@@ -132,8 +134,7 @@ void DetectHttp2Register(void)
     sigmatch_table[DETECT_HTTP2_PRIORITY].AppLayerTxMatch = DetectHTTP2priorityMatch;
     sigmatch_table[DETECT_HTTP2_PRIORITY].Setup = DetectHTTP2prioritySetup;
     sigmatch_table[DETECT_HTTP2_PRIORITY].Free = DetectHTTP2priorityFree;
-    sigmatch_table[DETECT_HTTP2_PRIORITY].flags =
-            SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_MULTI_UINT | SIGMATCH_INFO_MULTI_UINT;
+    sigmatch_table[DETECT_HTTP2_PRIORITY].flags = SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_MULTI_UINT;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_HTTP2_PRIORITY].RegisterTests = DetectHTTP2priorityRegisterTests;
 #endif
@@ -216,26 +217,7 @@ static int DetectHTTP2frametypeMatch(DetectEngineThreadCtx *det_ctx,
                                const SigMatchCtx *ctx)
 
 {
-    uint8_t *detect = (uint8_t *)ctx;
-
-    return SCHttp2TxHasFrametype(txv, flags, *detect);
-}
-
-static int DetectHTTP2FuncParseFrameType(const char *str, uint8_t *ft)
-{
-    // first parse numeric value
-    if (ByteExtractStringUint8(ft, 10, (uint16_t)strlen(str), str) > 0) {
-        return 1;
-    }
-
-    // it it failed so far, parse string value from enumeration
-    int r = SCHttp2ParseFrametype(str);
-    if (r >= 0 && r <= UINT8_MAX) {
-        *ft = (uint8_t)r;
-        return 1;
-    }
-
-    return 0;
+    return SCHttp2TxHasFrametype(txv, flags, ctx);
 }
 
 /**
@@ -250,24 +232,16 @@ static int DetectHTTP2FuncParseFrameType(const char *str, uint8_t *ft)
  */
 static int DetectHTTP2frametypeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    uint8_t frame_type;
-
     if (SCDetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
         return -1;
 
-    if (!DetectHTTP2FuncParseFrameType(str, &frame_type)) {
-        SCLogError("Invalid argument \"%s\" supplied to http2.frametype keyword.", str);
+    void *dua8 = SCHttp2ParseFrametype(str);
+    if (dua8 == NULL)
         return -1;
-    }
 
-    uint8_t *http2ft = SCCalloc(1, sizeof(uint8_t));
-    if (http2ft == NULL)
-        return -1;
-    *http2ft = frame_type;
-
-    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_HTTP2_FRAMETYPE, (SigMatchCtx *)http2ft,
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_HTTP2_FRAMETYPE, (SigMatchCtx *)dua8,
                 g_http2_match_buffer_id) == NULL) {
-        DetectHTTP2frametypeFree(NULL, http2ft);
+        DetectHTTP2frametypeFree(NULL, dua8);
         return -1;
     }
 
@@ -281,7 +255,7 @@ static int DetectHTTP2frametypeSetup (DetectEngineCtx *de_ctx, Signature *s, con
  */
 void DetectHTTP2frametypeFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    SCFree(ptr);
+    SCDetectU8ArrayFree(ptr);
 }
 
 /**

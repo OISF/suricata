@@ -35,7 +35,10 @@ use std::rc::Rc;
 use base64::{Engine, engine::general_purpose::STANDARD_NO_PAD};
 
 #[repr(u8)]
+#[derive(EnumStringU8)]
 #[derive(Clone, Copy, PartialEq, Eq, FromPrimitive, Debug)]
+// parse GOAWAY, not GO_AWAY
+#[suricata(enum_string_style = "UPPERCASE")]
 pub enum HTTP2FrameType {
     Data = 0,
     Headers = 1,
@@ -47,34 +50,6 @@ pub enum HTTP2FrameType {
     GoAway = 7,
     WindowUpdate = 8,
     Continuation = 9,
-}
-
-impl fmt::Display for HTTP2FrameType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-impl std::str::FromStr for HTTP2FrameType {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let su = s.to_uppercase();
-        let su_slice: &str = &su;
-        match su_slice {
-            "DATA" => Ok(HTTP2FrameType::Data),
-            "HEADERS" => Ok(HTTP2FrameType::Headers),
-            "PRIORITY" => Ok(HTTP2FrameType::Priority),
-            "RSTSTREAM" => Ok(HTTP2FrameType::RstStream),
-            "SETTINGS" => Ok(HTTP2FrameType::Settings),
-            "PUSHPROMISE" => Ok(HTTP2FrameType::PushPromise),
-            "PING" => Ok(HTTP2FrameType::Ping),
-            "GOAWAY" => Ok(HTTP2FrameType::GoAway),
-            "WINDOWUPDATE" => Ok(HTTP2FrameType::WindowUpdate),
-            "CONTINUATION" => Ok(HTTP2FrameType::Continuation),
-            _ => Err(format!("'{}' is not a valid value for HTTP2FrameType", s)),
-        }
-    }
 }
 
 #[derive(PartialEq, Eq, Debug)]
