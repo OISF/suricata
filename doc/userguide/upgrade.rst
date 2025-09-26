@@ -34,6 +34,21 @@ also check all the new features that have been added but are not covered by
 this guide. Those features are either not enabled by default or require
 dedicated new configuration.
 
+Upgrading to 8.0.2
+------------------
+
+Logging Changes
+~~~~~~~~~~~~~~~
+
+- Duplicate field names in IKE attributes has been removed. Before 8.0
+  it was possible to see duplicate field names like
+  ``sa_life_duration``, while some parsers ignore the duplicates,
+  strict parsers will fail on duplicates. To address this, duplicates
+  will now be given an index suffix, for example: `sa_life_duration`,
+  `sa_life_duration_1`. See
+  https://redmine.openinfosecfoundation.org/issues/7902 for more
+  information.
+
 Upgrading to 8.0.1
 ------------------
 

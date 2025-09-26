@@ -49,8 +49,9 @@
 
 #include "rust.h"
 
-#define LOG_IKE_DEFAULT  0
-#define LOG_IKE_EXTENDED (1 << 0)
+#define LOG_IKE_DEFAULT           BIT_U32(0)
+#define LOG_IKE_EXTENDED          BIT_U32(1)
+#define LOG_IKE_ATTRIBUTE_OBJECTS BIT_U32(2)
 
 typedef struct LogIKEFileCtx_ {
     uint32_t flags;
@@ -130,6 +131,11 @@ static OutputInitResult OutputIKELogInitSub(SCConfNode *conf, OutputCtx *parent_
         if (SCConfValIsTrue(extended)) {
             ikelog_ctx->flags = LOG_IKE_EXTENDED;
         }
+    }
+
+    const char *objects = SCConfNodeLookupChildValue(conf, "object-attributes");
+    if (objects && SCConfValIsTrue(objects)) {
+        ikelog_ctx->flags |= LOG_IKE_ATTRIBUTE_OBJECTS;
     }
 
     output_ctx->data = ikelog_ctx;
