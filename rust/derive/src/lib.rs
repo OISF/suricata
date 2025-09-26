@@ -59,7 +59,7 @@ pub fn derive_app_layer_state(input: TokenStream) -> TokenStream {
     applayerstate::derive_app_layer_state(input)
 }
 
-#[proc_macro_derive(EnumStringU8, attributes(name))]
+#[proc_macro_derive(EnumStringU8, attributes(name, suricata))]
 pub fn derive_enum_string_u8(input: TokenStream) -> TokenStream {
     stringenum::derive_enum_string::<u8>(input, "u8")
 }
@@ -69,7 +69,7 @@ pub fn derive_enum_string_u16(input: TokenStream) -> TokenStream {
     stringenum::derive_enum_string::<u16>(input, "u16")
 }
 
-#[proc_macro_derive(EnumStringU32, attributes(name))]
+#[proc_macro_derive(EnumStringU32, attributes(name, suricata))]
 pub fn derive_enum_string_u32(input: TokenStream) -> TokenStream {
     stringenum::derive_enum_string::<u32>(input, "u32")
 }
