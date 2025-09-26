@@ -259,7 +259,7 @@ static int SetupLoadPath(const DetectEngineCtx *de_ctx,
 
     SCLogDebug("rule_file %s dir %s", de_ctx->rule_file, dir);
     char path[PATH_MAX];
-    if (snprintf(path, sizeof(path), "%s/%s", dir, load) >= (int)sizeof(path)) // TODO windows path
+    if (PathMerge(path, sizeof(path), dir, load) < 0)
         return -1;
 
     if (SCPathExists(path)) {

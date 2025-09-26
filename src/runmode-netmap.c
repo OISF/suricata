@@ -357,13 +357,13 @@ static void *ParseNetmapConfig(const char *iface_name)
 
     SC_ATOMIC_RESET(aconf->ref);
     (void) SC_ATOMIC_ADD(aconf->ref, aconf->in.threads);
-    SCLogPerf("%s: using %d threads", aconf->iface_name, aconf->in.threads);
+    SCLogPerf("%s: using %u threads", aconf->iface_name, aconf->in.threads);
 
     LiveDeviceHasNoStats();
     return aconf;
 }
 
-static int NetmapConfigGeThreadsCount(void *conf)
+static uint16_t NetmapConfigGeThreadsCount(void *conf)
 {
     NetmapIfaceConfig *aconf = (NetmapIfaceConfig *)conf;
     return aconf->in.threads;

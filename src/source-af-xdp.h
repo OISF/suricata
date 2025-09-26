@@ -29,7 +29,7 @@
 typedef struct AFXDPIfaceConfig {
     char iface[AFXDP_IFACE_NAME_LENGTH];
     /* number of threads */
-    int threads;
+    uint16_t threads;
     int promisc;
 
     /* misc use flags */

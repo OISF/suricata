@@ -190,7 +190,7 @@ static void *NapatechConfigParser(const char *device)
     return (void *)conf;
 }
 
-static int NapatechGetThreadsCount(void *conf __attribute__((unused)))
+static uint16_t NapatechGetThreadsCount(void *conf __attribute__((unused)))
 {
     /* No matter which live device it is there is no reason to ever use more than 1 thread
        2 or more thread would cause packet duplication */

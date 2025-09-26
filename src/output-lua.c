@@ -33,6 +33,7 @@
 #include "app-layer-ssh.h"
 #include "app-layer-parser.h"
 #include "util-time.h"
+#include "util-path.h"
 #include "util-lua.h"
 #include "util-lua-common.h"
 #include "util-lua-http.h"
@@ -654,10 +655,13 @@ static OutputInitResult OutputLuaLogInitSub(SCConfNode *conf, OutputCtx *parent_
 
     const char *dir = mc->script_dir;
     char path[PATH_MAX] = "";
-    int ret = snprintf(path, sizeof(path),"%s%s%s", dir, strlen(dir) ? "/" : "", conf->val);
-    if (ret < 0 || ret == sizeof(path)) {
-        SCLogError("failed to construct lua script path");
-        goto error;
+    if (strlen(dir) > 0) {
+        if (PathMerge(path, sizeof(path), dir, conf->val) < 0) {
+            SCLogError("failed to construct lua script path");
+            goto error;
+        }
+    } else {
+        strlcpy(path, conf->val, sizeof(path));
     }
     SCLogDebug("script full path %s", path);
 
