@@ -1308,6 +1308,7 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
     uint64_t p_tx_cnt = 0;
     uint32_t consumed = input_len;
     const uint8_t direction = (flags & STREAM_TOSERVER) ? 0 : 1;
+    int r = 1;
 
     /* we don't have the parser registered for this protocol */
     if (p->StateAlloc == NULL) {
@@ -1395,7 +1396,14 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
         if (res.status < 0) {
             AppLayerIncParserErrorCounter(tv, f);
             goto error;
-        } else if (res.status > 0) {
+        } else if (res.status == 2 && res.consumed > 0) {
+            SCLogDebug("OK consumed %u", res.consumed);
+
+            /* partial */
+            SCLogDebug("OK partial %u", res.consumed);
+            consumed = res.consumed;
+            r = 2;
+        } else if (res.status == 1) {
             DEBUG_VALIDATE_BUG_ON(res.consumed > input_len);
             DEBUG_VALIDATE_BUG_ON(res.needed + res.consumed < input_len);
             DEBUG_VALIDATE_BUG_ON(res.needed == 0);
@@ -1428,6 +1436,7 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
                 }
             }
             consumed = res.consumed;
+            r = 1;
         }
     }
 
@@ -1485,8 +1494,9 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
     /* update app progress */
     if (consumed != input_len && f->proto == IPPROTO_TCP && f->protoctx != NULL) {
         TcpSession *ssn = f->protoctx;
+        SCLogDebug("updated progress with %u", consumed);
         StreamTcpUpdateAppLayerProgress(ssn, direction, consumed);
-        SCReturnInt(1);
+        SCReturnInt(r);
     }
 
     SCReturnInt(0);
