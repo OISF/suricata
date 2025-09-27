@@ -1052,6 +1052,9 @@ extern "C" {
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {
+    pub fn SCAppLayerRequestProtocolChangeUnknown(f: *mut Flow, dp: u16) -> bool;
+}
+extern "C" {
     pub fn SCAppLayerRequestProtocolTLSUpgrade(f: *mut Flow) -> bool;
 }
 extern "C" {
