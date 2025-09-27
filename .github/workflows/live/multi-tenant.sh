@@ -9,24 +9,24 @@
 # Call with following argument:
 # runmode string (single/autofp/workers)
 
+SOCKET=/var/run/suricata/suricata-command.socket
 function timed_command()
 {
     local command="$1"; shift
     local expected=${1:-"OK"}; shift
     local timeout=${1:-60}
     local duration=${1:-30}
-    SOCKET=/usr/local/var/run/suricata/suricata-command.socket
     JSON=$(timeout --kill-after=${timeout} ${duration} ${SURICATASC} -c "${command}" ${SOCKET})
     rc=$?
-    [ $rc -eq 124 ] && {
+    if [ $rc -eq 124 ]; then
         echo "Timeout detected; exiting"
         exit 1
-    }
+    fi
     result=$(echo $JSON | jq -r '.return')
-    [ $result == ${expected} ] || {
+    if [ $result != ${expected} ]; then
         echo "EXITing due to expected result mismatch: expected ${expected}; actual ${result}"
         exit 1
-    }
+    fi
     echo ${JSON}
 }
 
