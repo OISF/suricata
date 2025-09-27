@@ -1789,6 +1789,10 @@ jobs:
           ./.github/workflows/live/pcap.sh "single"
         env:
           LLVM_PROFILE_FILE: "/tmp/pcap-single.profraw"
+      - run: |
+          ./.github/workflows/live/multi-tenant.sh "autofp"
+        env:
+          LLVM_PROFILE_FILE: "/tmp/mt-autofp.profraw"
       - run: llvm-profdata-15 merge -o default.profdata $(find /tmp/ -name '*.profraw')
       - run: llvm-cov-15 show ./src/suricata -instr-profile=default.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
       - name: Upload coverage to Codecov
@@ -1988,7 +1992,9 @@ jobs:
           ./.github/workflows/live/pcap.sh "autofp"
       - run: |
           ./.github/workflows/live/pcap.sh "single"
-  
+      - run: |
+          ./.github/workflows/live/multi-tenant.sh "autofp"
+
   ubuntu-22-04-cov-fuzz:
     name: Ubuntu 22.04 (fuzz corpus coverage)
     runs-on: ubuntu-latest
