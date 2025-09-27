@@ -1361,13 +1361,21 @@ static int ReassembleUpdateAppLayer(ThreadVars *tv, TcpReassemblyThreadCtx *ra_c
         }
         (*stream)->data_required = 0;
 
-        SCLogDebug("parser");
+        const uint64_t old_app_progress = STREAM_APP_PROGRESS(*stream);
         /* update the app-layer */
-        (void)AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream, (uint8_t *)mydata,
+        int r = AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream, (uint8_t *)mydata,
                 mydata_len, flags, app_update_dir);
         AppLayerProfilingStore(ra_ctx->app_tctx, p);
         AppLayerFrameDump(p->flow);
         uint64_t new_app_progress = STREAM_APP_PROGRESS(*stream);
+        /* if we consumed some, but not all, we do another round as this is
+         * due to partial ok support */
+        if (r == 1 && old_app_progress != new_app_progress &&
+                old_app_progress + mydata_len > new_app_progress && !(flags & STREAM_DEPTH) &&
+                FlowChangeProto(p->flow)) {
+            app_progress = new_app_progress;
+            continue;
+        }
         if (new_app_progress == app_progress || FlowChangeProto(p->flow))
             break;
         app_progress = new_app_progress;

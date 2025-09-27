@@ -558,7 +558,7 @@ static int TCPProtoDetect(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                 flags, data, data_len);
         PACKET_PROFILING_APP_END(app_tctx);
         p->app_update_direction = (uint8_t)app_update_dir;
-        if (r != 1) {
+        if (r <= 0) {
             StreamTcpUpdateAppLayerProgress(ssn, direction, data_len);
         }
         if (r == 0) {
@@ -578,6 +578,7 @@ static int TCPProtoDetect(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         if (r < 0) {
             goto parser_error;
         }
+        SCReturnInt(r);
     } else {
         /* if the ssn is midstream, we may end up with a case where the
          * start of an HTTP request is missing. We won't detect HTTP based
@@ -775,9 +776,13 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, Packet
     if (alproto == ALPROTO_UNKNOWN && (flags & STREAM_START)) {
         DEBUG_VALIDATE_BUG_ON(FlowChangeProto(f));
         /* run protocol detection */
-        if (TCPProtoDetect(tv, ra_ctx, app_tctx, p, f, ssn, stream, data, data_len, flags,
-                    app_update_dir) != 0) {
+        int rd = TCPProtoDetect(
+                tv, ra_ctx, app_tctx, p, f, ssn, stream, data, data_len, flags, app_update_dir);
+        if (rd < 0) {
             goto failure;
+        }
+        if (rd == 2) {
+            SCReturnInt(1);
         }
     } else if (alproto != ALPROTO_UNKNOWN && FlowChangeProto(f)) {
         SCLogDebug("protocol change, old %s", AppProtoToString(f->alproto_orig));
