@@ -730,6 +730,9 @@ extern "C" {
     pub fn SCAppLayerRequestProtocolTLSUpgrade(f: *mut Flow) -> bool;
 }
 extern "C" {
+    pub fn SCAppLayerRequestProtocolChangeUnknown(f: *mut Flow, dp: u16);
+}
+extern "C" {
     pub fn SCAppLayerForceProtocolChange(f: *mut Flow, new_proto: AppProto);
 }
 extern "C" {
