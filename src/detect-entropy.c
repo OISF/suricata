@@ -42,8 +42,17 @@ static int DetectEntropySetup(DetectEngineCtx *de_ctx, Signature *s, const char 
             goto error;
 
         sm_list = s->init_data->list;
-        ded->fv_idx = VarNameStoreRegister(
-                DetectEngineBufferTypeGetNameById(de_ctx, sm_list), VAR_TYPE_FLOW_FLOAT);
+        const char *name;
+        if (sm_list == DETECT_SM_LIST_BASE64_DATA) {
+            name = "base64_data";
+        } else {
+            name = DetectEngineBufferTypeGetNameById(de_ctx, sm_list);
+            if (name == NULL) {
+                DEBUG_VALIDATE_BUG_ON(1);
+                name = "unknown";
+            }
+        }
+        ded->fv_idx = VarNameStoreRegister(name, VAR_TYPE_FLOW_FLOAT);
     } else {
         ded->fv_idx = VarNameStoreRegister("content", VAR_TYPE_FLOW_FLOAT);
     }
