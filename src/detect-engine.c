@@ -3153,6 +3153,9 @@ static TmEcode DetectEngineThreadCtxInitForMT(ThreadVars *tv, DetectEngineThread
     uint32_t max_tenant_id = 0;
     DetectEngineCtx *list = master->list;
 
+    DEBUG_VALIDATE_BUG_ON(!SCMutexIsLocked(&master->lock));
+
+    /* coverity[missing_lock] */
     if (master->tenant_selector == TENANT_SELECTOR_UNKNOWN) {
         SCLogError("no tenant selector set: "
                    "set using multi-detect.selector");
