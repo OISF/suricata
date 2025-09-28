@@ -61,7 +61,8 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 /** All packets in this flow should be accepted */
 #define FLOW_ACTION_ACCEPT BIT_U32(4)
 
-// vacancy bit 5
+/** decrypted flow */
+#define FLOW_IS_DECRYPTED BIT_U32(5)
 
 /** Packet payloads belonging to this flow should not be inspected */
 #define FLOW_NOPAYLOAD_INSPECTION       BIT_U32(6)
@@ -324,6 +325,25 @@ typedef unsigned short FlowStateType;
 /** Local Thread ID */
 typedef uint16_t FlowThreadId;
 
+typedef struct FlowTuple {
+    FlowAddress src, dst;
+    union {
+        Port sp; /**< tcp/udp source port */
+        struct {
+            uint8_t type; /**< icmp type */
+            uint8_t code; /**< icmp code */
+        } icmp_s;
+    };
+    union {
+        Port dp; /**< tcp/udp destination port */
+        struct {
+            uint8_t type; /**< icmp type */
+            uint8_t code; /**< icmp code */
+        } icmp_d;
+    };
+    uint8_t proto;
+} __attribute__((__packed__)) FlowTuple;
+
 #include "util-storage.h"
 
 /**
@@ -488,6 +508,9 @@ typedef struct Flow_
     uint32_t tosrcpktcnt;
     uint64_t todstbytecnt;
     uint64_t tosrcbytecnt;
+
+    // TODO could be using storage?
+    FlowTuple *translate;
 
     Storage storage[];
 } Flow;
