@@ -1032,5 +1032,10 @@ extern "C" {
     pub fn SCFlowGetDestinationPort(flow: *const Flow) -> u16;
 }
 extern "C" {
+    pub fn SCFlowSetDecrypted(
+        f: *mut Flow, proto: u8, src_ip: u32, sp: u16, dest_ip: u32, dp: u16,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
     pub fn SCSRepCatGetByShortname(shortname: *const ::std::os::raw::c_char) -> u8;
 }
