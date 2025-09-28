@@ -116,6 +116,7 @@
 #define SCMutexInit(mut, mutattrs) SCMutexInit_dbg(mut, mutattrs)
 #define SCMutexLock(mut) SCMutexLock_dbg(mut)
 #define SCMutexTrylock(mut) SCMutexTrylock_dbg(mut)
+#define SCMutexIsLocked(mut)       (SCMutexTrylock(mut) == EBUSY)
 #define SCMutexUnlock(mut) SCMutexUnlock_dbg(mut)
 #define SCMutexDestroy pthread_mutex_destroy
 #define SCMUTEX_INITIALIZER PTHREAD_MUTEX_INITIALIZER
