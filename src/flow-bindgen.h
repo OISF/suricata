@@ -25,5 +25,7 @@ void SCFlowGetLastTimeAsParts(const Flow *flow, uint64_t *secs, uint64_t *usecs)
 uint64_t SCFlowGetFlags(const Flow *flow);
 uint16_t SCFlowGetSourcePort(const Flow *flow);
 uint16_t SCFlowGetDestinationPort(const Flow *flow);
+int SCFlowSetDecrypted(
+        Flow *f, uint8_t proto, uint32_t src_ip, uint16_t sp, uint32_t dest_ip, uint16_t dp);
 
 #endif /* SURICATA_FLOW_BINDGEN_H */
