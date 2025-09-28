@@ -4479,6 +4479,31 @@
             },
             "optional": true
         },
+        "orig": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "dest_ip": {
+                    "type": "string"
+                },
+                "dest_port": {
+                    "type": "integer"
+                },
+                "ip_v": {
+                    "type": "integer",
+                    "description": "IP version of the packet or flow"
+                },
+                "proto": {
+                    "type": "string"
+                },
+                "src_ip": {
+                    "type": "string"
+                },
+                "src_port": {
+                    "type": "integer"
+                }
+            }
+        },
         "packet": {
             "type": "string"
         },

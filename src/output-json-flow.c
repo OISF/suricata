@@ -53,6 +53,73 @@
 #include "flow-storage.h"
 #include "util-exception-policy.h"
 
+static void AddTranslateTuple(const Flow *f, const FlowTuple *ft, SCJsonBuilder *jb)
+{
+    char srcip[46] = { 0 }, dstip[46] = { 0 };
+    Port sp, dp;
+    if ((f->flags & FLOW_DIR_REVERSED) == 0) {
+        if (FLOW_IS_IPV4(f)) {
+            PrintInet(AF_INET, (const void *)&(ft->src.addr_data32[0]), srcip, sizeof(srcip));
+            PrintInet(AF_INET, (const void *)&(ft->dst.addr_data32[0]), dstip, sizeof(dstip));
+        } else if (FLOW_IS_IPV6(f)) {
+            PrintInet(AF_INET6, (const void *)&(ft->src.address), srcip, sizeof(srcip));
+            PrintInet(AF_INET6, (const void *)&(ft->dst.address), dstip, sizeof(dstip));
+        }
+        sp = ft->sp;
+        dp = ft->dp;
+    } else {
+        if (FLOW_IS_IPV4(f)) {
+            PrintInet(AF_INET, (const void *)&(ft->dst.addr_data32[0]), srcip, sizeof(srcip));
+            PrintInet(AF_INET, (const void *)&(ft->src.addr_data32[0]), dstip, sizeof(dstip));
+        } else if (FLOW_IS_IPV6(f)) {
+            PrintInet(AF_INET6, (const void *)&(ft->dst.address), srcip, sizeof(srcip));
+            PrintInet(AF_INET6, (const void *)&(ft->src.address), dstip, sizeof(dstip));
+        }
+        sp = ft->dp;
+        dp = ft->sp;
+    }
+    SCJbSetString(jb, "src_ip", srcip);
+    switch (ft->proto) {
+        case IPPROTO_ICMP:
+            break;
+        case IPPROTO_UDP:
+        case IPPROTO_TCP:
+        case IPPROTO_SCTP:
+            SCJbSetUint(jb, "src_port", sp);
+            break;
+    }
+    SCJbSetString(jb, "dest_ip", dstip);
+    switch (ft->proto) {
+        case IPPROTO_ICMP:
+            break;
+        case IPPROTO_UDP:
+        case IPPROTO_TCP:
+        case IPPROTO_SCTP:
+            SCJbSetUint(jb, "dest_port", dp);
+            break;
+    }
+
+    if (SCProtoNameValid(ft->proto)) {
+        SCJbSetString(jb, "proto", known_proto[ft->proto]);
+    } else {
+        char proto[4];
+        snprintf(proto, sizeof(proto), "%" PRIu8 "", ft->proto);
+        SCJbSetString(jb, "proto", proto);
+    }
+
+    switch (ft->proto) {
+        case IPPROTO_ICMP:
+        case IPPROTO_ICMPV6:
+            SCJbSetUint(jb, "icmp_type", ft->icmp_s.type);
+            SCJbSetUint(jb, "icmp_code", ft->icmp_s.code);
+            if (f->tosrcpktcnt) {
+                SCJbSetUint(jb, "response_icmp_type", ft->icmp_d.type);
+                SCJbSetUint(jb, "response_icmp_code", ft->icmp_d.code);
+            }
+            break;
+    }
+}
+
 static SCJsonBuilder *CreateEveHeaderFromFlow(const Flow *f)
 {
     char timebuf[64];
@@ -121,6 +188,15 @@ static SCJsonBuilder *CreateEveHeaderFromFlow(const Flow *f)
         SCJbClose(jb);
     }
 
+    bool translate = false;
+    if (f->flags & FLOW_IS_TRANSLATED) {
+        const FlowTuple *ft = SCFlowGetTranslated(f);
+        if (ft != NULL) {
+            AddTranslateTuple(f, ft, jb);
+            SCJbOpenObject(jb, "orig");
+            translate = true;
+        }
+    }
     /* tuple */
     SCJbSetString(jb, "src_ip", srcip);
     switch(f->proto) {
@@ -172,6 +248,8 @@ static SCJsonBuilder *CreateEveHeaderFromFlow(const Flow *f)
             SCJbSetUint(jb, "spi", f->esp.spi);
             break;
     }
+    if (translate)
+        SCJbClose(jb);
     return jb;
 }
 
