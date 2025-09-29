@@ -753,6 +753,12 @@ pub struct AppLayerParserState_ {
 pub type AppLayerParserState = AppLayerParserState_;
 #[doc = " \\brief Data structure to store app layer decoder events."]
 pub type AppLayerDecoderEvents = AppLayerDecoderEvents_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct File_ {
+    _unused: [u8; 0],
+}
+pub type File = File_;
 extern "C" {
     #[doc = " \\brief Given a protocol name, checks if the parser is enabled in\n        the conf file.\n\n \\param alproto_name Name of the app layer protocol.\n\n \\retval 1 If enabled.\n \\retval 0 If disabled."]
     pub fn SCAppLayerParserConfParserEnabled(
@@ -863,6 +869,42 @@ extern "C" {
 }
 extern "C" {
     pub fn SCFileFlowFlagsToFlags(flow_file_flags: u16, direction: u8) -> u16;
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct StreamingBufferConfig_ {
+    pub buf_size: u32,
+    #[doc = "< max concurrent memory regions. 0 means no limit."]
+    pub max_regions: u16,
+    #[doc = "< max gap size before a new region will be created."]
+    pub region_gap: u32,
+    pub Calloc: ::std::option::Option<
+        unsafe extern "C" fn(n: usize, size: usize) -> *mut ::std::os::raw::c_void,
+    >,
+    pub Realloc: ::std::option::Option<
+        unsafe extern "C" fn(
+            ptr: *mut ::std::os::raw::c_void,
+            orig_size: usize,
+            size: usize,
+        ) -> *mut ::std::os::raw::c_void,
+    >,
+    pub Free:
+        ::std::option::Option<unsafe extern "C" fn(ptr: *mut ::std::os::raw::c_void, size: usize)>,
+}
+pub type StreamingBufferConfig = StreamingBufferConfig_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct FileContainer_ {
+    pub head: *mut File,
+    pub tail: *mut File,
+}
+pub type FileContainer = FileContainer_;
+extern "C" {
+    #[doc = "  \\brief Store a chunk of file data in the flow. The open \"flowfile\"\n         will be used.\n\n  \\param ffc the container\n  \\param data data chunk\n  \\param data_len data chunk len\n\n  \\retval 0 ok\n  \\retval -1 error"]
+    pub fn FileAppendData(
+        arg1: *mut FileContainer, sbcfg: *const StreamingBufferConfig, data: *const u8,
+        data_len: u32,
+    ) -> ::std::os::raw::c_int;
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
