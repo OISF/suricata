@@ -216,13 +216,16 @@ static void AppendTransformsToPname(
         /* create comma separated string of the names of the
          * transforms and then shorten it if necessary. Finally
          * use it to construct the 'profile' name for the engine */
-        char xforms[left];
+        char xforms[left + 1];
+        memset(xforms, 0, left + 1);
         for (int i = 0; i < transforms->cnt; i++) {
             char ttstr[64];
             (void)snprintf(ttstr, sizeof(ttstr), "%s,",
                     sigmatch_table[transforms->transforms[i].transform].name);
             strlcat(xforms, ttstr, sizeof(xforms));
         }
+        if (strlen(xforms) == 0)
+            return;
         xforms[strlen(xforms) - 1] = '\0';
         SCLogDebug("left %d '%s' %d", (int)left, xforms, (int)strlen(xforms));
 
