@@ -6329,15 +6329,15 @@
                                     "properties": {
                                         "header_too_small": {
                                             "type": "integer",
-                                            "description": "Number of packets with header too small for ERPSAN"
+                                            "description": "Number of packets with header too small for ERSPAN"
                                         },
                                         "too_many_vlan_layers": {
                                             "type": "integer",
-                                            "description": "Number of packets with too many VLAN layers for ERPSAN"
+                                            "description": "Number of packets with too many VLAN layers for ERSPAN"
                                         },
                                         "unsupported_version": {
                                             "type": "integer",
-                                            "description": "Number of packets with unsupported version for ERPSAN"
+                                            "description": "Number of packets with unsupported version for ERSPAN"
                                         }
                                     }
                                 },
