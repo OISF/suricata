@@ -25,10 +25,8 @@
 #ifndef SURICATA_UTIL_SPM_BS
 #define SURICATA_UTIL_SPM_BS
 
-#include "suricata-common.h"
-
 uint8_t *BasicSearch(const uint8_t *, uint32_t, const uint8_t *, uint16_t);
 uint8_t *BasicSearchNocase(const uint8_t *, uint32_t, const uint8_t *, uint16_t);
-uint32_t BasicSearchNocaseIndex(const uint8_t *, uint32_t, const uint8_t *, uint16_t);
+uint32_t SCBasicSearchNocaseIndex(const uint8_t *, uint32_t, const uint8_t *, uint16_t);
 
 #endif /* SURICATA_UTIL_SPM_BS */

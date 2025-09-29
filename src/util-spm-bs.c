@@ -131,7 +131,7 @@ uint8_t *BasicSearchNocase(const uint8_t *haystack, uint32_t haystack_len, const
     return NULL;
 }
 
-uint32_t BasicSearchNocaseIndex(
+uint32_t SCBasicSearchNocaseIndex(
         const uint8_t *haystack, uint32_t haystack_len, const uint8_t *needle, uint16_t needle_len)
 {
     uint8_t *r = BasicSearchNocase(haystack, haystack_len, needle, needle_len);

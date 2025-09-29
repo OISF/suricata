@@ -55,6 +55,7 @@
 #include "util-mpm.h"
 #include "util-file.h"
 #include "util-var.h"
+#include "util-spm-bs.h"
 
 #include "flow-bindgen.h"
 
