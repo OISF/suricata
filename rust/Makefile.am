@@ -141,6 +141,7 @@ if HAVE_BINDGEN
 		--default-enum-style rust \
 		--allowlist-type 'AppProto.*' \
 		--allowlist-function 'AppProto.*' \
+		--allowlist-function 'FileAppendData' \
 		--allowlist-type 'SC.*' \
 		--allowlist-function 'SC.*' \
 		--allowlist-var 'SC.*' \

@@ -66,7 +66,7 @@ macro_rules!BIT_U64 {
 //
 // Function types for calls into C.
 //
-pub enum StreamingBufferConfig {}
+pub use suricata_sys::sys::StreamingBufferConfig;
 
 #[allow(non_snake_case)]
 #[repr(C)]

@@ -17,14 +17,12 @@
 
 use super::mime;
 use crate::core::StreamingBufferConfig;
-use crate::filecontainer::FileContainer;
 use crate::utils::base64;
 use digest::Digest;
 use digest::Update;
 use md5::Md5;
 use std::ffi::CStr;
-use std::os::raw::c_uchar;
-use suricata_sys::sys::SCBasicSearchNocaseIndex;
+use suricata_sys::sys::{FileAppendData, FileContainer, SCBasicSearchNocaseIndex};
 
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialOrd, PartialEq, Eq)]
@@ -256,14 +254,6 @@ fn mime_smtp_process_headers(ctx: &mut MimeStateSMTP) -> (u32, bool) {
         }
     }
     return (warnings, encap);
-}
-
-extern "C" {
-    // Defined in util-file.h
-    pub fn FileAppendData(
-        c: *mut FileContainer, sbcfg: *const StreamingBufferConfig, data: *const c_uchar,
-        data_len: u32,
-    ) -> std::os::raw::c_int;
 }
 
 fn hex(i: u8) -> Option<u8> {
