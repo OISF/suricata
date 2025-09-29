@@ -19,7 +19,7 @@
 pub const FLOW_DIR_REVERSED: u32 = BIT_U32!(26);
 
 /// Opaque flow type (defined in C)
-pub use suricata_sys::sys::{
+pub(crate) use suricata_sys::sys::{
     Flow, SCFlowGetDestinationPort, SCFlowGetFlags, SCFlowGetLastTimeAsParts, SCFlowGetSourcePort,
 };
 
