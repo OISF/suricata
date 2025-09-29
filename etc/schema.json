@@ -6206,13 +6206,16 @@
                     "additionalProperties": false,
                     "properties": {
                         "kernel_drops": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of packets dropped by the kernel"
                         },
                         "kernel_ifdrops": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of packets dropped by the interface"
                         },
                         "kernel_packets": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of packets received from the kernel"
                         }
                     }
                 },
@@ -6357,11 +6360,11 @@
                                     "properties": {
                                         "header_too_small": {
                                             "type": "integer",
-                                            "description": "Number of packets with header too small for E-tag"
+                                            "description": "Number of packets with header too small for ETAG"
                                         },
                                         "unknown_type": {
                                             "type": "integer",
-                                            "description": "Number of E-tag packets with unknown type"
+                                            "description": "Number of ETAG packets with unknown type"
                                         }
                                     }
                                 },
