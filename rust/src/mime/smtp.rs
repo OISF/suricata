@@ -570,17 +570,45 @@ fn mime_smtp_parse_line(
                         if i.len() > MAX_ENC_LINE_LEN {
                             warnings |= MIME_ANOM_LONG_ENC_LINE;
                         }
-                        let mut c = 0;
+                        let mut c = 0usize;
                         let mut eol_equal = false;
                         let mut quoted_buffer = Vec::with_capacity(i.len());
+                        if ctx.bufeolen > 0 {
+                            // we were escaping
+                            if i.len() >= 2 {
+                                let (h1, h2) = if ctx.bufeolen == 1 {
+                                    (i[0], i[1])
+                                } else {
+                                    (ctx.bufeol[0], i[0])
+                                };
+                                if let Some(v) = hex(h1) {
+                                    if let Some(v2) = hex(h2) {
+                                        quoted_buffer.push((v << 4) | v2);
+                                    }
+                                }
+                            }
+                            if quoted_buffer.is_empty() {
+                                    warnings |= MIME_ANOM_INVALID_QP;
+                            }
+                            c = 3 - ctx.bufeolen as usize;
+                            ctx.bufeolen = 0;
+                        }
                         while c < i.len() {
                             if i[c] == b'=' {
-                                if c == i.len() - 1 {
+                                if c == i.len() - 1 && full.len() > i.len() {
                                     eol_equal = true;
                                     break;
                                 } else if c + 2 >= i.len() {
+                                    if full.len() > i.len() {
                                     // log event ?
-                                    warnings |= MIME_ANOM_INVALID_QP;
+                                        warnings |= MIME_ANOM_INVALID_QP;
+                                    } else {
+                                        // keep in state the bytes to unescape
+                                        ctx.bufeolen = (i.len() - c) as u8;
+                                        if ctx.bufeolen == 2 {
+                                            ctx.bufeol[0] = i[c+1];
+                                        }
+                                    }
                                     break;
                                 }
                                 if let Some(v) = hex(i[c + 1]) {
@@ -598,7 +626,7 @@ fn mime_smtp_parse_line(
                                 c += 1;
                             }
                         }
-                        if !eol_equal {
+                        if !eol_equal && !i.is_empty() {
                             quoted_buffer.extend_from_slice(&full[i.len()..]);
                         }
                         mime_smtp_find_url_strings(ctx, &quoted_buffer);
