@@ -13,7 +13,7 @@ alert pkthdr any any -> any any (msg:"SURICATA IPv4 option end of list required"
 alert pkthdr any any -> any any (msg:"SURICATA IPv4 duplicated IP option"; decode-event:ipv4.opt_duplicate; classtype:protocol-command-decode; sid:2200009; rev:2;)
 alert pkthdr any any -> any any (msg:"SURICATA IPv4 unknown IP option"; decode-event:ipv4.opt_unknown; classtype:protocol-command-decode; sid:2200010; rev:2;)
 alert pkthdr any any -> any any (msg:"SURICATA IPv4 wrong IP version"; decode-event:ipv4.wrong_ip_version; classtype:protocol-command-decode; sid:2200011; rev:2;)
-alert pkthdr any any -> any any (msg:"SURICATA IPv6 packet too small"; decode-event:ipv6.pkt_too_small; classtype:protocol-command-decode; sid:2200012; rev:2;)
+#alert pkthdr any any -> any any (msg:"SURICATA IPv6 packet too small"; decode-event:ipv6.pkt_too_small; classtype:protocol-command-decode; sid:2200012; rev:2;)
 alert pkthdr any any -> any any (msg:"SURICATA IPv6 truncated packet"; decode-event:ipv6.trunc_pkt; classtype:protocol-command-decode; sid:2200013; rev:2;)
 alert pkthdr any any -> any any (msg:"SURICATA IPv6 truncated extension header"; decode-event:ipv6.trunc_exthdr; classtype:protocol-command-decode; sid:2200014; rev:2;)
 alert pkthdr any any -> any any (msg:"SURICATA IPv6 duplicated Fragment extension header"; decode-event:ipv6.exthdr_dupl_fh; classtype:protocol-command-decode; sid:2200015; rev:2;)

@@ -537,6 +537,7 @@ static const IPV6Hdr *DecodeIPV6Packet(
         ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint16_t len)
 {
     if (unlikely(len < IPV6_HEADER_LEN)) {
+        ENGINE_SET_INVALID_EVENT(p, IPV6_PKT_TOO_SMALL);
         return NULL;
     }
 
@@ -893,6 +894,38 @@ static int DecodeIPV6HopTest01 (void)
     PASS;
 }
 
+/**
+ * \test pkt too small event setting
+ */
+static int DecodeIPV6PktTooSmallTest01 (void)
+{
+    uint8_t raw_pkt1[] = { 0x60, 0x00, 0x00, 0x00, 0x00, 0x20, 0x00, 0x01, 0xfe, 0x80, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x02, 0x0f, 0xfe, 0xff, 0xfe, 0x98, 0x3d, 0x01, 0xff, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x3a, 0x00,
+        0xff, /* 0xff is a nonsense opt */
+        0x02, 0x00, 0x00, 0x00, 0x00, 0x82, 0x00, 0x1c, 0x6f, 0x27, 0x10, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+    Packet *p1 = PacketGetFromAlloc();
+    FAIL_IF(unlikely(p1 == NULL));
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+
+    FlowInitConfig(FLOW_QUIET);
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+
+    PacketCopyData(p1, raw_pkt1, sizeof(raw_pkt1));
+
+    /* force pkt length to be shorter than headers length */
+    DecodeIPV6(&tv, &dtv, p1, GET_PKT_DATA(p1), GET_PKT_LEN(p1) - 33);
+
+    FAIL_IF_NOT(ENGINE_ISSET_EVENT(p1, IPV6_PKT_TOO_SMALL));
+    PacketRecycle(p1);
+    SCFree(p1);
+    FlowShutdown();
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 /**
@@ -905,6 +938,7 @@ void DecodeIPV6RegisterTests(void)
     UtRegisterTest("DecodeIPV6FragTest01", DecodeIPV6FragTest01);
     UtRegisterTest("DecodeIPV6RouteTest01", DecodeIPV6RouteTest01);
     UtRegisterTest("DecodeIPV6HopTest01", DecodeIPV6HopTest01);
+    UtRegisterTest("DecodeIPV6PktTooSmallTest01", DecodeIPV6PktTooSmallTest01);
 #endif /* UNITTESTS */
 }
 
