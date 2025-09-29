@@ -24,6 +24,7 @@ use digest::Update;
 use md5::Md5;
 use std::ffi::CStr;
 use std::os::raw::c_uchar;
+use suricata_sys::sys::SCBasicSearchNocaseIndex;
 
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialOrd, PartialEq, Eq)]
@@ -263,10 +264,6 @@ extern "C" {
         c: *mut FileContainer, sbcfg: *const StreamingBufferConfig, data: *const c_uchar,
         data_len: u32,
     ) -> std::os::raw::c_int;
-    // Defined in util-spm-bs.h
-    pub fn BasicSearchNocaseIndex(
-        data: *const c_uchar, data_len: u32, needle: *const c_uchar, needle_len: u16,
-    ) -> u32;
 }
 
 fn hex(i: u8) -> Option<u8> {
@@ -296,7 +293,7 @@ fn mime_smtp_extract_urls(urls: &mut Vec<Vec<u8>>, input_start: &[u8]) {
     for s in unsafe { MIME_SMTP_CONFIG_EXTRACT_URL_SCHEMES.iter() } {
         let mut input = input_start;
         let mut start = unsafe {
-            BasicSearchNocaseIndex(
+            SCBasicSearchNocaseIndex(
                 input.as_ptr(),
                 input.len() as u32,
                 s.as_ptr(),
@@ -314,7 +311,7 @@ fn mime_smtp_extract_urls(urls: &mut Vec<Vec<u8>>, input_start: &[u8]) {
             urls.push(urlv);
             input = &input[start as usize + url.len()..];
             start = unsafe {
-                BasicSearchNocaseIndex(
+                SCBasicSearchNocaseIndex(
                     input.as_ptr(),
                     input.len() as u32,
                     s.as_ptr(),

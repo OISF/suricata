@@ -878,6 +878,9 @@ extern "C" {
     pub fn SCGenericVarFree(arg1: *mut GenericVar);
 }
 extern "C" {
+    pub fn SCBasicSearchNocaseIndex(arg1: *const u8, arg2: u32, arg3: *const u8, arg4: u16) -> u32;
+}
+extern "C" {
     pub fn SCFlowGetLastTimeAsParts(flow: *const Flow, secs: *mut u64, usecs: *mut u64);
 }
 extern "C" {
