@@ -95,21 +95,9 @@ include = [
 # A list of items to not include in the generated bindings
 # default: []
 exclude = [
-    "AppLayerDecoderEvents",
-    "AppLayerParserState",
     "CLuaState",
-    "DetectEngineState",
-    "DetectEngineThreadCtx",
-    "GenericVar",
-    "Flow",
-    "HttpRangeContainerBlock",
     "FileContainer",
-    "JsonT",
-    "IKEState",
-    "IKETransaction",
-    "TFTPState",
-    "TFTPTransaction",
-    "free",
+    "HttpRangeContainerBlock",
     "IPPROTO_TCP",
     "IPPROTO_UDP",
     "SRepCatGetByShortname",
@@ -123,7 +111,6 @@ exclude = [
     "SIGMATCH_INFO_MULTI_UINT",
     "SIGMATCH_INFO_ENUM_UINT",
     "SIGMATCH_INFO_BITFLAGS_UINT",
-    "FtpCommand",
 ]
 
 # Types of items that we'll generate. If empty, then all types of item are emitted.
@@ -148,7 +135,6 @@ item_types = ["enums","structs","opaque","functions","constants"]
 # [export]
 # prefix = "capi_"
 [export.rename]
-"JsonT" = "json_t"
 "CLuaState" = "lua_State"
 "JsonBuilder" = "SCJsonBuilder"
 "JsonBuilderMark" = "SCJsonBuilderMark"

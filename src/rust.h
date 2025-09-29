@@ -21,13 +21,6 @@
 // Forward declarations needed by rust-bindings.h
 typedef struct HttpRangeContainerBlock HttpRangeContainerBlock;
 
-// These need to be removed by making rust using a generic void
-// in functions prototypes and then casting
-typedef struct IKEState_ IKEState;
-typedef struct IKETransaction_ IKETransaction;
-typedef struct TFTPState_ TFTPState;
-typedef struct TFTPTransaction_ TFTPTransaction;
-
 typedef struct DetectEngineState_ DetectEngineState;
 
 // may be improved by smaller include
