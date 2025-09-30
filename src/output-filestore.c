@@ -35,7 +35,7 @@
 /* Create a filestore specific PATH_MAX that is less than the system
  * PATH_MAX to prevent newer gcc truncation warnings with snprint. */
 #define SHA256_STRING_LEN    (SC_SHA256_LEN * 2)
-#define LEAF_DIR_MAX_LEN 4
+#define LEAF_DIR_MAX_LEN     4
 #define FILESTORE_PREFIX_MAX (PATH_MAX - SHA256_STRING_LEN - LEAF_DIR_MAX_LEN)
 
 /* The default log directory, relative to the default log
@@ -104,8 +104,7 @@ static uint32_t FileGetMaxOpenFiles(void)
  * \param src_filename Filename to use as timestamp source.
  * \param filename Filename to apply timestamps to.
  */
-static void OutputFilestoreUpdateFileTime(const char *src_filename,
-        const char *filename)
+static void OutputFilestoreUpdateFileTime(const char *src_filename, const char *filename)
 {
     struct stat sb;
     if (stat(src_filename, &sb) != 0) {
@@ -117,8 +116,7 @@ static void OutputFilestoreUpdateFileTime(const char *src_filename,
         .modtime = sb.st_mtime,
     };
     if (utime(filename, &utimbuf) != 0) {
-        SCLogDebug("Failed to update file timestamps: %s: %s", filename,
-                strerror(errno));
+        SCLogDebug("Failed to update file timestamps: %s: %s", filename, strerror(errno));
     }
 }
 
@@ -129,8 +127,7 @@ static void OutputFilestoreFinalizeFiles(ThreadVars *tv, const OutputFilestoreLo
     /* Stringify the SHA256 which will be used in the final
      * filename. */
     char sha256string[(SC_SHA256_LEN * 2) + 1];
-    PrintHexString(sha256string, sizeof(sha256string), ff->sha256,
-            sizeof(ff->sha256));
+    PrintHexString(sha256string, sizeof(sha256string), ff->sha256, sizeof(ff->sha256));
 
     /* construct tmp file path */
     char tmp_filename[PATH_MAX] = "";
@@ -214,8 +211,7 @@ static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet
         if (PathMerge(filename, sizeof(filename), ctx->tmpdir, tmp_filename) < 0)
             return -1;
 
-        file_fd = open(filename, O_CREAT | O_TRUNC | O_NOFOLLOW | O_WRONLY,
-                0644);
+        file_fd = open(filename, O_CREAT | O_TRUNC | O_NOFOLLOW | O_WRONLY, 0644);
         if (file_fd == -1) {
             StatsIncr(tv, aft->fs_error_counter);
             SCLogWarning("Filestore (v2) failed to create %s: %s", filename, strerror(errno));
@@ -283,8 +279,7 @@ static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet
     return 0;
 }
 
-static TmEcode OutputFilestoreLogThreadInit(ThreadVars *t, const void *initdata,
-        void **data)
+static TmEcode OutputFilestoreLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     OutputFilestoreLogThread *aft = SCCalloc(1, sizeof(OutputFilestoreLogThread));
     if (unlikely(aft == NULL))
@@ -299,8 +294,7 @@ static TmEcode OutputFilestoreLogThreadInit(ThreadVars *t, const void *initdata,
     OutputFilestoreCtx *ctx = ((OutputCtx *)initdata)->data;
     aft->ctx = ctx;
 
-    aft->counter_max_hits =
-        StatsRegisterCounter("file_store.open_files_max_hit", t);
+    aft->counter_max_hits = StatsRegisterCounter("file_store.open_files_max_hit", t);
 
     /* File system type errors (open, write, rename) will only be
      * logged once. But this stat will be incremented for every
@@ -487,8 +481,7 @@ static OutputInitResult OutputFilestoreLogInitCtx(SCConfNode *conf)
     const char *stream_depth_str = SCConfNodeLookupChildValue(conf, "stream-depth");
     if (stream_depth_str != NULL && strcmp(stream_depth_str, "no")) {
         uint32_t stream_depth = 0;
-        if (ParseSizeStringU32(stream_depth_str,
-                               &stream_depth) < 0) {
+        if (ParseSizeStringU32(stream_depth_str, &stream_depth) < 0) {
             SCLogError("Error parsing "
                        "file-store.stream-depth "
                        "from conf file - %s.  Killing engine",
@@ -510,8 +503,7 @@ static OutputInitResult OutputFilestoreLogInitCtx(SCConfNode *conf)
     const char *file_count_str = SCConfNodeLookupChildValue(conf, "max-open-files");
     if (file_count_str != NULL) {
         uint32_t file_count = 0;
-        if (ParseSizeStringU32(file_count_str,
-                               &file_count) < 0) {
+        if (ParseSizeStringU32(file_count_str, &file_count) < 0) {
             SCLogError("Error parsing "
                        "file-store.max-open-files "
                        "from conf file - %s.  Killing engine",
@@ -521,7 +513,8 @@ static OutputInitResult OutputFilestoreLogInitCtx(SCConfNode *conf)
             if (file_count != 0) {
                 FileSetMaxOpenFiles(file_count);
                 SCLogConfig("Filestore (v2) will keep a max of %d "
-                        "simultaneously open files", file_count);
+                            "simultaneously open files",
+                        file_count);
             }
         }
     }
