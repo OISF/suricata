@@ -336,7 +336,7 @@ static void OutputFilestoreLogDeInitCtx(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-static void GetLogDirectory(const SCConfNode *conf, char *out, size_t out_size)
+static int GetLogDirectory(const SCConfNode *conf, char *out, size_t out_size)
 {
     const char *log_base_dir = SCConfNodeLookupChildValue(conf, "dir");
     if (log_base_dir == NULL) {
@@ -344,11 +344,15 @@ static void GetLogDirectory(const SCConfNode *conf, char *out, size_t out_size)
         log_base_dir = default_log_dir;
     }
     if (PathIsAbsolute(log_base_dir)) {
-        strlcpy(out, log_base_dir, out_size);
+        size_t r = strlcpy(out, log_base_dir, out_size);
+        if (r >= out_size)
+            return -1;
     } else {
         const char *default_log_prefix = SCConfigGetLogDirectory();
-        PathMerge(out, out_size, default_log_prefix, log_base_dir);
+        if (PathMerge(out, out_size, default_log_prefix, log_base_dir) < 0)
+            return -1;
     }
+    return 0;
 }
 
 static bool InitFilestoreDirectory(const char *dir)
@@ -420,7 +424,10 @@ static OutputInitResult OutputFilestoreLogInitCtx(SCConfNode *conf)
     }
 
     char log_directory[PATH_MAX] = "";
-    GetLogDirectory(conf, log_directory, sizeof(log_directory));
+    if (GetLogDirectory(conf, log_directory, sizeof(log_directory)) < 0) {
+        SCLogError("File-store output path too long.");
+        return result;
+    }
     if (!InitFilestoreDirectory(log_directory)) {
         return result;
     }
