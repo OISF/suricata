@@ -4410,9 +4410,12 @@ int DetectEngineMultiTenantSetup(const bool unix_socket)
 
                 char yaml_path[PATH_MAX] = "";
                 if (path) {
-                    PathMerge(yaml_path, PATH_MAX, path, yaml_node->val);
+                    if (PathMerge(yaml_path, PATH_MAX, path, yaml_node->val) < 0)
+                        goto bad_tenant;
                 } else {
-                    strlcpy(yaml_path, yaml_node->val, sizeof(yaml_path));
+                    size_t r = strlcpy(yaml_path, yaml_node->val, sizeof(yaml_path));
+                    if (r >= sizeof(yaml_path))
+                        goto bad_tenant;
                 }
                 SCLogDebug("tenant path: %s", yaml_path);
 
