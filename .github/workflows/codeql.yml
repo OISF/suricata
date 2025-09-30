@@ -1,4 +1,4 @@
-name: "CodeQL"
+name: "CodeQL (Rust/C)"
 
 on:
   push:
@@ -35,8 +35,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [ 'cpp' ]
-        # CodeQL supports [ 'cpp', 'csharp', 'go', 'java', 'javascript', 'python', 'ruby' ]
+        language: [ 'cpp', 'rust' ]
     steps:
     - name: Checkout repository
       uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
@@ -60,7 +59,7 @@ jobs:
        export PATH=/opt/work/.cargo/bin:$PATH
         chmod +x autogen.sh
        ./autogen.sh
-       ./configure --enable-warnings
+       ./configure --enable-warnings --enable-unittests
        make
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3.30.3
