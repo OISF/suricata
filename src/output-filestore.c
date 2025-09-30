@@ -231,7 +231,7 @@ static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet
             }
             ff->fd = -1;
         }
-    /* we can get called with a NULL ffd when we need to close */
+        /* we can get called with NULL data when we need to close */
     } else if (data != NULL) {
         if (ff->fd == -1) {
             /* construct tmp file path */
