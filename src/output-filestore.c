@@ -257,8 +257,7 @@ static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet
             /* construct tmp file path */
             char tmp_filename[PATH_MAX] = "";
             snprintf(tmp_filename, sizeof(tmp_filename), "file.%u", ff->file_store_id);
-            if (PathMerge(filename, sizeof(filename), ctx->tmpdir, tmp_filename) < 0)
-                return -1;
+            (void)PathMerge(filename, sizeof(filename), ctx->tmpdir, tmp_filename);
             StatsIncr(tv, aft->fs_error_counter);
             WARN_ONCE(WOT_WRITE, "Filestore (v2) failed to write to %s: %s", filename,
                     strerror(errno));
