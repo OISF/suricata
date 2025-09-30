@@ -218,7 +218,6 @@ static int IPV4OptValidateCIPSO(Packet *p, const IPV4Opt *o)
 
         /* Tag header must fit within option length */
         if (unlikely(len < 2)) {
-            //printf("CIPSO tag header too large %" PRIu16 " < 2\n", len);
             ENGINE_SET_INVALID_EVENT(p, IPV4_OPT_MALFORMED);
             return -1;
         }
@@ -229,7 +228,6 @@ static int IPV4OptValidateCIPSO(Packet *p, const IPV4Opt *o)
 
         /* Tag length must fit within the option length */
         if (unlikely(tlen > len)) {
-            //printf("CIPSO tag len too large %" PRIu8 " > %" PRIu16 "\n", tlen, len);
             ENGINE_SET_INVALID_EVENT(p, IPV4_OPT_MALFORMED);
             return -1;
         }
@@ -242,7 +240,6 @@ static int IPV4OptValidateCIPSO(Packet *p, const IPV4Opt *o)
             case 7:
                 /* Tag is at least 4 and at most the remainder of option len */
                 if (unlikely((tlen < 4) || (tlen > len))) {
-                    //printf("CIPSO tag %" PRIu8 " bad tlen=%" PRIu8 " len=%" PRIu8 "\n", ttype, tlen, len);
                     ENGINE_SET_INVALID_EVENT(p, IPV4_OPT_MALFORMED);
                     return -1;
                 }
@@ -251,7 +248,6 @@ static int IPV4OptValidateCIPSO(Packet *p, const IPV4Opt *o)
                  * type 7, which has no such field.
                  */
                 if (unlikely((ttype != 7) && (*tag != 0))) {
-                    //printf("CIPSO tag %" PRIu8 " ao=%" PRIu8 "\n", ttype, tlen);
                     ENGINE_SET_INVALID_EVENT(p, IPV4_OPT_MALFORMED);
                     return -1;
                 }
@@ -267,7 +263,6 @@ static int IPV4OptValidateCIPSO(Packet *p, const IPV4Opt *o)
                 ENGINE_SET_INVALID_EVENT(p,IPV4_OPT_MALFORMED);
                 return -1;
             default:
-                //printf("CIPSO tag %" PRIu8 " unknown tag\n", ttype);
                 ENGINE_SET_INVALID_EVENT(p, IPV4_OPT_MALFORMED);
                 /** \todo May not want to return error here on unknown tag type (at least not for 3|4) */
                 return -1;
