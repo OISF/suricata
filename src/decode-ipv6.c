@@ -317,8 +317,7 @@ static void DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, 
                         /* a zero padN len would be weird */
                         if (ip6_optlen == 0)
                             ENGINE_SET_EVENT(p, IPV6_EXTHDR_ZERO_LEN_PADN);
-                    }
-                    else if (*ptr == IPV6OPT_RA) /* RA */
+                    } else if (*ptr == IPV6OPT_RA) /* RA */
                     {
                         ra->ip6ra_type = *(ptr);
                         ra->ip6ra_len  = ip6_optlen;
@@ -331,8 +330,7 @@ static void DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, 
                         memcpy(&ra->ip6ra_value, (ptr + 2), sizeof(ra->ip6ra_value));
                         ra->ip6ra_value = SCNtohs(ra->ip6ra_value);
                         other_cnt++;
-                    }
-                    else if (*ptr == IPV6OPT_JUMBO) /* Jumbo */
+                    } else if (*ptr == IPV6OPT_JUMBO) /* Jumbo */
                     {
                         jumbo->ip6j_type = *(ptr);
                         jumbo->ip6j_len  = ip6_optlen;
@@ -344,8 +342,7 @@ static void DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, 
 
                         memcpy(&jumbo->ip6j_payload_len, (ptr+2), sizeof(jumbo->ip6j_payload_len));
                         jumbo->ip6j_payload_len = SCNtohl(jumbo->ip6j_payload_len);
-                    }
-                    else if (*ptr == IPV6OPT_HAO) /* HAO */
+                    } else if (*ptr == IPV6OPT_HAO) /* HAO */
                     {
                         hao->ip6hao_type = *(ptr);
                         hao->ip6hao_len  = ip6_optlen;
@@ -355,7 +352,7 @@ static void DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, 
                             break;
                         }
 
-                        memcpy(&hao->ip6hao_hoa, (ptr+2), sizeof(hao->ip6hao_hoa));
+                        memcpy(&hao->ip6hao_hoa, (ptr + 2), sizeof(hao->ip6hao_hoa));
                         other_cnt++;
                     } else {
                         if (nh == IPPROTO_HOPOPTS)
