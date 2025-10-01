@@ -185,8 +185,11 @@ fn get_memunit(unit: &str) -> u64 {
     match unit {
         "b" => BYTE,
         "kb" => KILOBYTE,
+        "kib" => KILOBYTE,
         "mb" => MEGABYTE,
+        "mib" => MEGABYTE,
         "gb" => GIGABYTE,
+        "gib" => GIGABYTE,
         _ => 0,
     }
 }
@@ -200,13 +203,15 @@ fn get_memunit(unit: &str) -> u64 {
 /// # Arguments
 ///
 /// * `arg` - A string slice that holds the value parsed from the config
+///
+/// Note that kb/mb/gb and kib/mib/gib are equivalent
 pub fn get_memval(arg: &str) -> Result<u64, &'static str> {
     let arg = arg.trim();
     let val: f64;
     let mut unit: &str;
     let mut parser = tuple((
         preceded(multispace0, double),
-        preceded(multispace0, verify(not_line_ending, |c: &str| c.len() < 3)),
+        preceded(multispace0, verify(not_line_ending, |c: &str| c.len() < 4)),
     ));
     let r: IResult<&str, (f64, &str)> = parser(arg);
     if let Ok(r) = r {
@@ -242,13 +247,22 @@ mod tests {
         let s = "10Kb";
         assert_eq!(Ok(res * KILOBYTE), get_memval(s));
 
+        let s = "10Kib";
+        assert_eq!(Ok(res * KILOBYTE), get_memval(s));
+
         let s = "10KB";
         assert_eq!(Ok(res * KILOBYTE), get_memval(s));
 
         let s = "10mb";
         assert_eq!(Ok(res * MEGABYTE), get_memval(s));
 
+        let s = "10mib";
+        assert_eq!(Ok(res * MEGABYTE), get_memval(s));
+
         let s = "10gb";
+        assert_eq!(Ok(res * GIGABYTE), get_memval(s));
+
+        let s = "10gib";
         assert_eq!(Ok(res * GIGABYTE), get_memval(s));
     }
 
