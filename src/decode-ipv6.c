@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2024 Open Information Security Foundation
+/* Copyright (C) 2007-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -58,7 +58,7 @@ static void DecodeIPv4inIPv6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, c
         }
         FlowSetupPacket(p);
     } else {
-        ENGINE_SET_EVENT(p, IPV4_IN_IPV6_WRONG_IP_VER);
+        ENGINE_SET_INVALID_EVENT(p, IPV4_IN_IPV6_WRONG_IP_VER);
     }
 }
 
@@ -83,7 +83,7 @@ static int DecodeIP6inIP6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         }
         FlowSetupPacket(p);
     } else {
-        ENGINE_SET_EVENT(p, IPV6_IN_IPV6_WRONG_IP_VER);
+        ENGINE_SET_INVALID_EVENT(p, IPV6_IN_IPV6_WRONG_IP_VER);
     }
     return TM_ECODE_OK;
 }
