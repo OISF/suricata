@@ -417,7 +417,15 @@ static void *StatsMgmtThread(void *arg)
         /* wait for the set time, or until we are woken up by
          * the shutdown procedure */
         SCCtrlMutexLock(tv_local->ctrl_mutex);
-        SCCtrlCondTimedwait(tv_local->ctrl_cond, tv_local->ctrl_mutex, &cond_time);
+        while (1) {
+            if (TmThreadsCheckFlag(tv_local, THV_KILL)) {
+                break;
+            }
+            int rc = SCCtrlCondTimedwait(tv_local->ctrl_cond, tv_local->ctrl_mutex, &cond_time);
+            if (rc == ETIMEDOUT || rc < 0) {
+                break;
+            }
+        }
         SCCtrlMutexUnlock(tv_local->ctrl_mutex);
 
         SCMutexLock(&stats_table_mutex);
@@ -494,7 +502,15 @@ static void *StatsWakeupThread(void *arg)
         /* wait for the set time, or until we are woken up by
          * the shutdown procedure */
         SCCtrlMutexLock(tv_local->ctrl_mutex);
-        SCCtrlCondTimedwait(tv_local->ctrl_cond, tv_local->ctrl_mutex, &cond_time);
+        while (1) {
+            if (TmThreadsCheckFlag(tv_local, THV_KILL)) {
+                break;
+            }
+            int rc = SCCtrlCondTimedwait(tv_local->ctrl_cond, tv_local->ctrl_mutex, &cond_time);
+            if (rc == ETIMEDOUT || rc < 0) {
+                break;
+            }
+        }
         SCCtrlMutexUnlock(tv_local->ctrl_mutex);
 
         SCMutexLock(&tv_root_lock);
