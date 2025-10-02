@@ -1810,6 +1810,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     SCRegisterLdapTcpParser();
     SCRegisterLdapUdpParser();
     SCRegisterMdnsParser();
+    SCRegisterSSLProxyParser();
     SCRegisterTemplateParser();
     SCRfbRegisterParser();
     SCMqttRegisterParser();
