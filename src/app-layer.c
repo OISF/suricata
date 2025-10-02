@@ -50,6 +50,7 @@
 #include "decode-events.h"
 #include "app-layer-htp-mem.h"
 #include "util-exception-policy.h"
+#include "util-memcmp.h"
 
 extern bool g_stats_eps_per_app_proto_errors;
 /**
@@ -1066,6 +1067,7 @@ static void AppLayerNamesSetup(void)
     AppProtoRegisterProtoString(ALPROTO_LDAP, "ldap");
     AppProtoRegisterProtoString(ALPROTO_DOH2, "doh2");
     AppProtoRegisterProtoString(ALPROTO_MDNS, "mdns");
+    AppProtoRegisterProtoString(ALPROTO_SSLPROXY, "sslproxy");
     AppProtoRegisterProtoString(ALPROTO_TEMPLATE, "template");
     AppProtoRegisterProtoString(ALPROTO_RDP, "rdp");
     AppProtoRegisterProtoString(ALPROTO_HTTP2, "http2");
