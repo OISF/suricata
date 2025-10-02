@@ -617,6 +617,7 @@ noinst_HEADERS = \
 	win32-misc.h \
 	win32-service.h \
 	win32-syscall.h \
+	capture-hooks.h \
 	win32-syslog.h
 
 libsuricata_c_a_SOURCES = \
@@ -1201,7 +1202,8 @@ libsuricata_c_a_SOURCES = \
 	util-var.c \
 	win32-misc.c \
 	win32-service.c \
-	win32-syscall.c
+	win32-syscall.c \
+	capture-hooks.c
 
 EXTRA_DIST = \
 	${PRIVATE_INCLUDES} \
