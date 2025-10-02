@@ -5904,6 +5904,10 @@
                                     "description": "Errors encountered parsing SSH protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
+                                "sslproxy": {
+                                    "description": "Errors encountered parsing SSLproxy protocol",
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
                                 "telnet": {
                                     "description": "Errors encountered parsing Telnet protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
@@ -6087,6 +6091,10 @@
                                     "type": "integer",
                                     "description": "Number of flows for SSH protocol"
                                 },
+                                "sslproxy": {
+                                    "type": "integer",
+                                    "description": "Number of flows for SSLproxy protocol"
+                                },
                                 "telnet": {
                                     "type": "integer",
                                     "description": "Number of flows for Telnet protocol"
@@ -6260,6 +6268,10 @@
                                 "ssh": {
                                     "type": "integer",
                                     "description": "Number of transactions for SSH protocol"
+                                },
+                                "sslproxy": {
+                                    "type": "integer",
+                                    "description": "Number of transactions for SSLproxy protocol"
                                 },
                                 "telnet": {
                                     "type": "integer",
