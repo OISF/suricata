@@ -5801,6 +5801,10 @@
                                     "description": "Errors encountered parsing SIP/UDP protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
+                                "sslproxy": {
+                                    "description": "Errors encountered parsing SSLproxy protocol",
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
                                 "smb": {
                                     "description": "Errors encountered parsing SMB protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
@@ -5984,6 +5988,10 @@
                                     "type": "integer",
                                     "description": "Number of flows for SIP/UDP protocol"
                                 },
+                                "sslproxy": {
+                                    "type": "integer",
+                                    "description": "Number of flows for SSLproxy protocol"
+                                },
                                 "smb": {
                                     "type": "integer",
                                     "description": "Number of flows for SMB protocol"
@@ -6157,6 +6165,10 @@
                                 "sip_udp": {
                                     "type": "integer",
                                     "description": "Number of transactions for SIP/UDP protocol"
+                                },
+                                "sslproxy": {
+                                    "type": "integer",
+                                    "description": "Number of transactions for SSLproxy protocol"
                                 },
                                 "smb": {
                                     "type": "integer",
