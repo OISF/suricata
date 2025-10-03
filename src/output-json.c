@@ -761,7 +761,7 @@ static int CreateJSONEther(
         if (PacketIsEthernet(p)) {
             const EthernetHdr *ethh = PacketGetEthernet(p);
             SCJbOpenObject(js, "ether");
-            SCJbSetUint(js, "ether_type", ethh->eth_type);
+            SCJbSetUintHex(js, "ether_type", SCNtohs(ethh->eth_type));
             const uint8_t *src;
             const uint8_t *dst;
             switch (dir) {

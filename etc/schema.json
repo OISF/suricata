@@ -1848,7 +1848,7 @@
                     }
                 },
                 "ether_type": {
-                    "type": "integer",
+                    "type": "string",
                     "description": "Ethernet type value "
                 },
                 "src_mac": {
