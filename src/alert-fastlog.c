@@ -55,6 +55,7 @@
 #include "util-time.h"
 
 #include "action-globals.h"
+#include "source-pcap-packet.h"
 
 #define DEFAULT_LOG_FILENAME "fast.log"
 
@@ -179,9 +180,9 @@ int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p)
                             pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg, pa->s->prio);
             PrintBufferRawLineHex(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE,
                                   GET_PKT_DATA(p), GET_PKT_LEN(p) < 32 ? GET_PKT_LEN(p) : 32);
-            if (p->pcap_cnt != 0) {
-                PrintBufferData(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE, 
-                                "] [pcap file packet: %"PRIu64"]\n", p->pcap_cnt);
+            if (PcapPacketCntGet(p) != 0) {
+                PrintBufferData(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE,
+                        "] [pcap file packet: %" PRIu64 "]\n", PcapPacketCntGet(p));
             } else {
                 PrintBufferData(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE, "]\n");
             }

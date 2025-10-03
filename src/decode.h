@@ -77,6 +77,7 @@ enum PktSrcEnum {
 #ifdef HAVE_AF_XDP
 #include "source-af-xdp.h"
 #endif
+#include "runmode-unittests.h"
 
 #include "decode-ethernet.h"
 #include "decode-gre.h"
@@ -621,10 +622,6 @@ typedef struct Packet_
 
     struct Host_ *host_src;
     struct Host_ *host_dst;
-
-    /** packet number in the pcap file, matches wireshark */
-    uint64_t pcap_cnt;
-
 
     /* engine events */
     PacketEngineEvents events;

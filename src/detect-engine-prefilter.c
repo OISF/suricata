@@ -60,6 +60,8 @@
 #include "util-validate.h"
 #include "util-hash-string.h"
 
+#include "source-pcap-packet.h"
+
 static int PrefilterStoreGetId(DetectEngineCtx *de_ctx,
         const char *name, void (*FreeFunc)(void *));
 static const PrefilterStore *PrefilterStoreGetStore(const DetectEngineCtx *de_ctx,
@@ -104,7 +106,7 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
     /* reset rule store */
     det_ctx->pmq.rule_id_array_cnt = 0;
 
-    SCLogDebug("packet %" PRIu64 " tx %p progress %d tx->detect_progress %02x", p->pcap_cnt,
+    SCLogDebug("packet %" PRIu64 " tx %p progress %d tx->detect_progress %02x", PcapPacketCntGet(p),
             tx->tx_ptr, tx->tx_progress, tx->detect_progress);
 
     PrefilterEngine *engine = sgh->tx_engines;

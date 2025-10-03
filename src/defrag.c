@@ -57,6 +57,7 @@
 
 #include "tmqh-packetpool.h"
 #include "decode.h"
+#include "source-pcap-packet.h"
 
 #ifdef UNITTESTS
 #include "util-unittest.h"
@@ -584,7 +585,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
     uint8_t ip6_nh_set_value = 0;
 
 #ifdef DEBUG
-    uint64_t pcap_cnt = p->pcap_cnt;
+    uint64_t pcap_cnt = PcapPacketCntGet(p);
 #endif
 
     if (tracker->af == AF_INET) {

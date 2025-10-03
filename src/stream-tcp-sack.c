@@ -24,6 +24,7 @@
  */
 
 #include "suricata-common.h"
+#include "source-pcap-packet.h"
 #include "stream-tcp.h"
 #include "stream-tcp-private.h"
 #include "stream-tcp-sack.h"
@@ -277,14 +278,14 @@ int StreamTcpSackUpdatePacket(TcpStream *stream, Packet *p)
 
         /* RFC 2883 D-SACK */
         if (SEQ_LT(le, TCP_GET_RAW_ACK(tcph))) {
-            SCLogDebug("packet: %" PRIu64 ": D-SACK? %u-%u before ACK %u", p->pcap_cnt, le, re,
-                    TCP_GET_RAW_ACK(tcph));
+            SCLogDebug("packet: %" PRIu64 ": D-SACK? %u-%u before ACK %u", PcapPacketCntGet(p), le,
+                    re, TCP_GET_RAW_ACK(tcph));
             STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_DSACK);
             goto next;
         } else if (record == 1) { // 2nd record
             if (SEQ_GEQ(first_le, le) && SEQ_LEQ(first_re, re)) {
                 SCLogDebug("packet: %" PRIu64 ": D-SACK? %u-%u inside 2nd range %u-%u ACK %u",
-                        p->pcap_cnt, first_le, first_re, le, re, TCP_GET_RAW_ACK(tcph));
+                        PcapPacketCntGet(p), first_le, first_re, le, re, TCP_GET_RAW_ACK(tcph));
                 STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_DSACK);
             }
             goto next;

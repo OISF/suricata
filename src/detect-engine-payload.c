@@ -38,6 +38,7 @@
 #include "detect-engine-payload.h"
 #include "detect-engine-build.h"
 
+#include "source-pcap-packet.h"
 #include "stream.h"
 #include "stream-tcp.h"
 
@@ -333,8 +334,8 @@ uint8_t DetectEngineInspectStream(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
             is_last = true;
     }
 
-    SCLogDebug("%s ran stream for sid %u on packet %"PRIu64" and we %s",
-            is_last? "LAST:" : "normal:", s->id, p->pcap_cnt,
+    SCLogDebug("%s ran stream for sid %u on packet %" PRIu64 " and we %s",
+            is_last ? "LAST:" : "normal:", s->id, PcapPacketCntGet(p),
             match ? "matched" : "didn't match");
 
     if (match) {

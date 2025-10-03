@@ -24,6 +24,7 @@
 #include "action-globals.h"
 #include "rust.h"
 #include "app-layer-events.h"
+#include "source-pcap-packet.h"
 
 /** \brief issue drop action
  *
@@ -133,7 +134,7 @@ void PacketReinit(Packet *p)
             PacketAlertRecycle(p->alerts.alerts, p->alerts.cnt);
         p->alerts.cnt = 0;
     }
-    p->pcap_cnt = 0;
+    PcapPacketCntReset(p);
     p->tunnel_rtv_cnt = 0;
     p->tunnel_tpr_cnt = 0;
     p->events.cnt = 0;

@@ -32,6 +32,7 @@
 #include "util-lua.h"
 #include "util-debug.h"
 #include "util-print.h"
+#include "source-pcap-packet.h"
 
 /* key for p (packet) pointer */
 extern const char lua_ext_key_p[];
@@ -80,7 +81,7 @@ static int LuaPacketPcapCnt(lua_State *luastate)
         LUA_ERROR("failed to get packet");
     }
 
-    lua_pushinteger(luastate, s->p->pcap_cnt);
+    lua_pushinteger(luastate, PcapPacketCntGet(s->p));
     return 1;
 }
 
