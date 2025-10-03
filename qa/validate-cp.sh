@@ -4,12 +4,12 @@
 #set -e
 
 if [ $# -ne 1 ]; then
-    echo "call with base branch (e.g. master-5.0.x)"
+    echo "call with base branch (e.g. main-7.0.x)"
     exit 1;
 fi
 
 BASE=$1
-CHECK_BRANCH="${VALIDATE_CHECK_BRANCH:-remotes/origin/master}"
+CHECK_BRANCH="${VALIDATE_CHECK_BRANCH:-remotes/origin/main}"
 
 test_cherrypicked_line() {
     REV=$1
