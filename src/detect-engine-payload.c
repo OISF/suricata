@@ -38,6 +38,7 @@
 #include "detect-engine-payload.h"
 #include "detect-engine-build.h"
 
+#include "source-pcap-packet.h"
 #include "stream.h"
 #include "stream-tcp.h"
 

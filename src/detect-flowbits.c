@@ -52,6 +52,8 @@
 #include "util-debug.h"
 #include "util-conf.h"
 
+#include "source-pcap-packet.h"
+
 #define PARSE_REGEX         "^([a-z]+)(?:,\\s*(.*))?"
 static DetectParseRegex parse_regex;
 

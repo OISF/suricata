@@ -26,6 +26,7 @@
 #include "suricata-common.h"
 #include "output.h"
 #include "output-tx.h"
+#include "source-pcap-packet.h"
 #include "stream.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"

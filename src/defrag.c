@@ -57,6 +57,7 @@
 
 #include "tmqh-packetpool.h"
 #include "decode.h"
+#include "source-pcap-packet.h"
 
 #ifdef UNITTESTS
 #include "util-unittest.h"

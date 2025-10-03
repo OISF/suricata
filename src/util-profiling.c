@@ -32,6 +32,7 @@
 #ifdef PROFILING
 #include "tm-threads.h"
 #include "conf.h"
+#include "source-pcap-packet.h"
 #include "util-unittest.h"
 #include "util-byte.h"
 #include "util-profiling-locks.h"

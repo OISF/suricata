@@ -29,6 +29,7 @@
 #include "util-checksum.h"
 #include "util-profiling.h"
 #include "source-pcap-file.h"
+#include "source-pcap-packet.h"
 #include "util-exception-policy.h"
 
 extern uint32_t max_pending_packets;

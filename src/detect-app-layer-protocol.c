@@ -30,6 +30,7 @@
 #include "detect-app-layer-protocol.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
+#include "source-pcap-packet.h"
 #include "util-debug.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"

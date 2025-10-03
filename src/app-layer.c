@@ -35,6 +35,7 @@
 #include "app-layer-detect-proto.h"
 #include "app-layer-frames.h"
 #include "app-layer-events.h"
+#include "source-pcap-packet.h"
 #include "stream-tcp-reassemble.h"
 #include "stream-tcp-private.h"
 #include "stream-tcp-inline.h"

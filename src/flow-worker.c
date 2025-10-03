@@ -38,6 +38,7 @@
 #include "packet.h"
 #include "decode.h"
 #include "detect.h"
+#include "source-pcap-packet.h"
 #include "stream-tcp.h"
 #include "app-layer.h"
 #include "detect-engine.h"

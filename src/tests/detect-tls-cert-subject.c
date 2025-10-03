@@ -25,6 +25,7 @@
 #include "detect-engine-build.h"
 #include "detect-engine-alert.h"
 #include "app-layer-parser.h"
+#include "source-pcap-packet.h"
 
 /**
  * \test Test that a signature containing a tls.cert_subject is correctly parsed

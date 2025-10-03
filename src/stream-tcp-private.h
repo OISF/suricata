@@ -24,6 +24,7 @@
 #ifndef SURICATA_STREAM_TCP_PRIVATE_H
 #define SURICATA_STREAM_TCP_PRIVATE_H
 
+#include "source-pcap-packet.h"
 #include "util-pool-thread.h"
 #include "util-streaming-buffer.h"
 

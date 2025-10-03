@@ -34,6 +34,7 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-frame.h"
 
+#include "source-pcap-packet.h"
 #include "stream-tcp.h"
 
 #include "util-profiling.h"

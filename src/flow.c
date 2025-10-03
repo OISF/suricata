@@ -47,6 +47,7 @@
 #include "flow-spare-pool.h"
 #include "flow-callbacks.h"
 
+#include "source-pcap-packet.h"
 #include "stream-tcp-private.h"
 
 #include "util-unittest.h"

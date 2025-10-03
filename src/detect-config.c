@@ -47,6 +47,7 @@
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
 
+#include "source-pcap-packet.h"
 #include "stream-tcp.h"
 
 #include "detect-config.h"

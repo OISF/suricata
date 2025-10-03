@@ -28,6 +28,7 @@
 #include "util-lua-packetlib.h"
 
 #include "app-layer-protos.h" /* Required by util-lua-common. */
+#include "source-pcap-packet.h"
 #include "util-lua-common.h"
 #include "util-lua.h"
 #include "util-debug.h"

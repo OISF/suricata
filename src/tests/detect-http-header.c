@@ -51,6 +51,8 @@
 #include "../util-unittest.h"
 #include "../util-unittest-helper.h"
 
+#include "../source-pcap-packet.h"
+
 /**
  * \test Test parser accepting valid rules and rejecting invalid rules
  */

@@ -30,6 +30,7 @@
 #include "thread-callbacks.h"
 #include "thread-storage.h"
 #include "util-debug.h"
+#include "source-pcap-packet.h"
 
 #include "ndpi_api.h"
 

@@ -53,6 +53,8 @@
 #include "stream-tcp.h"
 #include "util-exception-policy.h"
 
+#include "source-pcap-packet.h"
+
 extern TcpStreamCnf stream_config;
 
 

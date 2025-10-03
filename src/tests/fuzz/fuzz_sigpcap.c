@@ -6,6 +6,7 @@
 
 #include "suricata-common.h"
 #include "source-pcap-file.h"
+#include "source-pcap-packet.h"
 #include "detect-engine.h"
 #include "util-classification-config.h"
 #include "util-reference-config.h"

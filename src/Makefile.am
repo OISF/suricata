@@ -448,6 +448,7 @@ noinst_HEADERS = \
 	source-pcap-file-directory-helper.h \
 	source-pcap-file-helper.h \
 	source-pcap-file.h \
+	source-pcap-packet.h \
 	source-pcap.h \
 	source-windivert-prototypes.h \
 	source-windivert.h \
@@ -1041,6 +1042,7 @@ libsuricata_c_a_SOURCES = \
 	source-pcap-file-directory-helper.c \
 	source-pcap-file-helper.c \
 	source-pcap-file.c \
+	source-pcap-packet.c \
 	source-pcap.c \
 	source-windivert.c \
 	stream-tcp-cache.c \

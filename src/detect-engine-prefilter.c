@@ -60,6 +60,8 @@
 #include "util-validate.h"
 #include "util-hash-string.h"
 
+#include "source-pcap-packet.h"
+
 static int PrefilterStoreGetId(DetectEngineCtx *de_ctx,
         const char *name, void (*FreeFunc)(void *));
 static const PrefilterStore *PrefilterStoreGetStore(const DetectEngineCtx *de_ctx,
