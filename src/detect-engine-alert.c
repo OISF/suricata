@@ -37,6 +37,7 @@
 #include "util-validate.h"
 
 #include "action-globals.h"
+#include "source-pcap-packet.h"
 
 /** tag signature we use for tag alerts */
 static Signature g_tag_signature;

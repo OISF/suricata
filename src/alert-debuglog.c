@@ -53,7 +53,7 @@
 #include "util-optimize.h"
 #include "util-logopenfile.h"
 #include "util-time.h"
-
+#include "source-pcap-packet.h"
 #include "stream-tcp-reassemble.h"
 
 #define DEFAULT_LOG_FILENAME "alert-debug.log"

@@ -26,6 +26,7 @@
 #include "util-misc.h"
 #include "util-hash-lookup3.h"
 #include "util-validate.h"
+#include "source-pcap-packet.h"
 
 /** defrag tracker hash table */
 DefragTrackerHashRow *defragtracker_hash;

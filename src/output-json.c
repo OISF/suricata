@@ -62,6 +62,7 @@
 #include "flow-storage.h"
 
 #include "source-pcap-file-helper.h"
+#include "source-pcap-packet.h"
 
 #define DEFAULT_LOG_FILENAME "eve.json"
 #define MODULE_NAME "OutputJSON"

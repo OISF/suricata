@@ -26,6 +26,8 @@
 #include "app-layer-parser.h"
 #include "detect-engine-alert.h"
 
+#include "source-pcap-packet.h"
+
 /**
  * \test Test that a signature containing a tls_cert_issuer is correctly parsed
  *       and that the keyword is registered.

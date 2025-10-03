@@ -54,6 +54,8 @@
 #include "util-file-decompression.h"
 #include "util-profiling.h"
 
+#include "source-pcap-packet.h"
+
 static int DetectFiledataSetup (DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectFiledataRegisterTests(void);

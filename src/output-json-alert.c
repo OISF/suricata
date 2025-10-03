@@ -67,6 +67,7 @@
 #include "util-validate.h"
 
 #include "action-globals.h"
+#include "source-pcap-packet.h"
 
 #define MODULE_NAME "JsonAlertLog"
 
