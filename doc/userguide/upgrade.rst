@@ -34,6 +34,15 @@ also check all the new features that have been added but are not covered by
 this guide. Those features are either not enabled by default or require
 dedicated new configuration.
 
+Upgrading to 9.0.0
+------------------
+
+Logging Changes
+~~~~~~~~~~~~~~~
+- The format of IKEv1 proposal attributes has been changed to handle
+  duplicate attribute types. See :ref:`IKE logging changes
+  <9.0-ike-logging-changes>`
+
 Upgrading to 8.0.1
 ------------------
 

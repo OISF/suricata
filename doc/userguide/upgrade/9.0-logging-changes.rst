@@ -1,0 +1,143 @@
+:orphan: Referenced from upgrade notes, not a toctree
+
+Suricata 9.0 Logging Changes
+############################
+
+.. _9.0-ike-logging-changes:
+
+IKE
+***
+
+IKE attributes are now logged as an array of objects instead of a map
+keyed by the attribute type. This allows for multiple attributes of
+the same type to be logged.
+
+The affected field names include:
+
+* alg_auth
+* alg_auth_raw
+* alg_dh
+* alf_dh_raw
+* alg_enc
+* alg_enc_raw
+* alg_hash
+* alg_hash_raw
+* sa_key_length
+* sa_key_length_raw
+* sa_life_duration
+* sa_life_duration_raw
+* sa_life_type
+* sa_life_type_raw
+
+Example - Attributes in "ike" object
+====================================
+
+**Suricata 8.0**
+
+.. code-block:: json
+
+   "ike": {
+     "alg_enc": "EncAesCbc",
+     "alg_enc_raw": 7,
+     "sa_key_length": "Unknown",
+     "sa_key_length_raw": 128
+   }
+
+**Suricata 9.0**
+
+.. code-block:: json
+
+   "ike": {
+     "_v": 2,
+     "attributes": [
+       {
+         "key": "alg_enc",
+         "value": "EncAesCbc",
+         "raw": 7
+       },
+       {
+         "key": "sa_key_length",
+         "value": "Unknown",
+         "raw": 128
+       }
+     ]
+   }
+
+Example - Client Proposal
+=========================
+
+**Suricata 8.0**
+
+.. code-block:: json
+
+        "ikev1": {
+           "client": {
+             "proposals": [
+               {
+                 "alg_enc": "EncAesCbc",
+                 "alg_enc_raw": 7,
+                 "sa_key_length": "Unknown",
+                 "sa_key_length_raw": 128,
+                 "alg_hash": "HashSha",
+                 "alg_hash_raw": 2,
+                 "alg_dh": "GroupAlternate1024BitModpGroup",
+                 "alg_dh_raw": 2,
+                 "alg_auth": "AuthPreSharedKey",
+                 "alg_auth_raw": 1,
+                 "sa_life_type": "LifeTypeSeconds",
+                 "sa_life_type_raw": 1,
+                 "sa_life_duration": "Unknown",
+                 "sa_life_duration_raw": 86400
+               }
+             ]
+           }
+         }
+
+**Suricata 9.0**
+
+.. code-block:: json
+
+        "ike": {
+          "_v": 2,
+          "ikev1": {
+            "client": {
+              "proposals": [
+                {
+                  "key": "alg_enc",
+                  "value": "EncAesCbc",
+                  "raw": 7
+                },
+                {
+                  "key": "sa_key_length",
+                  "value": "Unknown",
+                  "raw": 128
+                },
+                {
+                  "key": "alg_hash",
+                  "value": "HashSha",
+                  "raw": 2
+                },
+                {
+                  "key": "alg_dh",
+                  "value": "GroupAlternate1024BitModpGroup",
+                  "raw": 2
+                },
+                {
+                  "key": "alg_auth",
+                  "value": "AuthPreSharedKey",
+                  "raw": 1
+                },
+                {
+                  "key": "sa_life_type",
+                  "value": "LifeTypeSeconds",
+                  "raw": 1
+                },
+                {
+                  "key": "sa_life_duration",
+                  "value": "Unknown",
+                  "raw": 86400
+                }
+              ]
+            }
+          }
+        }
