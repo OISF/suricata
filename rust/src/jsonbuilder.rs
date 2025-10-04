@@ -424,6 +424,23 @@ impl JsonBuilder {
         self.push_str(&val.to_string())
     }
 
+    pub fn append_float_kv(&mut self, key: &str, val: f64) -> Result<&mut Self, JsonError> {
+        match self.current_state() {
+            State::ArrayFirst => {
+                self.set_state(State::ArrayNth);
+            }
+            State::ArrayNth => {
+                self.push(',')?;
+            }
+            _ => {
+                debug_validate_fail!("invalid state");
+                return Err(JsonError::InvalidState);
+            }
+        }
+        self.push_float_kv(key, val)?;
+        Ok(self)
+    }
+
     pub fn append_float(&mut self, val: f64) -> Result<&mut Self, JsonError> {
         match self.current_state() {
             State::ArrayFirst => {
@@ -730,6 +747,19 @@ impl JsonBuilder {
         self.buf.capacity()
     }
 
+    fn push_float_kv(&mut self, key: &str, val: f64) -> Result<(), JsonError> {
+        if val.is_nan() || val.is_infinite() {
+            self.push_str("null")?;
+        } else {
+            self.push('{')?;
+            self.push('"')?;
+            self.push_str(key)?;
+            self.push_str("\":")?;
+            self.push_float(val)?;
+            self.push('}')?;
+        }
+        Ok(())
+    }
     fn push_float(&mut self, val: f64) -> Result<(), JsonError> {
         if val.is_nan() || val.is_infinite() {
             self.push_str("null")?;
@@ -1020,6 +1050,14 @@ pub unsafe extern "C" fn SCJbAppendBase64(
 #[no_mangle]
 pub unsafe extern "C" fn SCJbAppendUint(js: &mut JsonBuilder, val: u64) -> bool {
     return js.append_uint(val).is_ok();
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCJbAppendFloatKv(js: &mut JsonBuilder, key: *const c_char, val: f64) -> bool {
+    if let Ok(key) = CStr::from_ptr(key).to_str() {
+        return js.append_float_kv(key, val).is_ok();
+    }
+    return false;
 }
 
 #[no_mangle]
@@ -1481,6 +1519,15 @@ mod test {
         jb.close().unwrap();
         assert_eq!(jb.buf, r#"[1.1,2.2]"#);
     }
+    #[test]
+    fn test_append_floatkv() {
+        let mut jb = JsonBuilder::try_new_array().unwrap();
+        jb.append_float_kv("key1", 5.39393).unwrap();
+        jb.append_float_kv("key2", 7.39393).unwrap();
+        jb.close().unwrap();
+        assert_eq!(jb.buf, "[{\"key1\":5.39393},{\"key2\":7.39393}]");
+    }
+
 
     #[test]
     fn test_set_nan() {
