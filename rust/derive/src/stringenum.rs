@@ -19,10 +19,33 @@ extern crate proc_macro;
 use super::applayerevent::transform_name;
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{self, parse_macro_input, DeriveInput};
 use std::str::FromStr;
+use syn::{self, parse_macro_input, DeriveInput};
 
-pub fn derive_enum_string<T: std::str::FromStr + quote::ToTokens>(input: TokenStream, ustr: &str) -> TokenStream where <T as FromStr>::Err: std::fmt::Display {
+fn get_attr_enum_string_style(attr: &syn::Attribute) -> String {
+    let meta = attr.parse_meta().unwrap();
+    if let syn::Meta::List(l) = meta {
+        for n in l.nested {
+            if let syn::NestedMeta::Meta(syn::Meta::NameValue(nv)) = n {
+                if nv.path.is_ident("enum_string_style") {
+                    if let syn::Lit::Str(s) = nv.lit {
+                        return s.value();
+                    }
+                    panic!("enum_string_style invalid syntax");
+                }
+            }
+        }
+        panic!("no enum_string_style");
+    }
+    panic!("suricata attribute is not a list");
+}
+
+pub fn derive_enum_string<T: std::str::FromStr + quote::ToTokens>(
+    input: TokenStream, ustr: &str,
+) -> TokenStream
+where
+    <T as FromStr>::Err: std::fmt::Display,
+{
     let input = parse_macro_input!(input as DeriveInput);
     let name = input.ident;
     let mut values = Vec::new();
@@ -30,13 +53,37 @@ pub fn derive_enum_string<T: std::str::FromStr + quote::ToTokens>(input: TokenSt
     let mut names_upper = Vec::new();
     let mut fields = Vec::new();
 
+    let mut enum_string_style = String::from("");
+
     if let syn::Data::Enum(ref data) = input.data {
+        for attr in input.attrs.iter() {
+            if attr.path.is_ident("suricata") {
+                enum_string_style = get_attr_enum_string_style(attr);
+            }
+        }
         for v in (&data.variants).into_iter() {
             if let Some((_, val)) = &v.discriminant {
-                let fname = transform_name(&v.ident.to_string());
-                let fnameu = fname.to_ascii_uppercase();
-                names.push(fname);
-                names_upper.push(fnameu);
+                match &enum_string_style[..] {
+                    "UPPERCASE" => {
+                        names.push(v.ident.to_string().to_ascii_uppercase());
+                        names_upper.push(v.ident.to_string().to_ascii_uppercase());
+                    }
+                    "LOG_UPPERCASE" => {
+                        names.push(v.ident.to_string().to_ascii_uppercase());
+                        let fname = transform_name(&v.ident.to_string());
+                        let fnameu = fname.to_ascii_uppercase();
+                        names_upper.push(fnameu);
+                    }
+                    "" => { // snake_case
+                        let fname = transform_name(&v.ident.to_string());
+                        let fnameu = fname.to_ascii_uppercase();
+                        names.push(fname);
+                        names_upper.push(fnameu);
+                    }
+                    _ => {
+                        panic!("EnumString style unknown {}", enum_string_style);
+                    }
+                };
                 fields.push(v.ident.clone());
                 if let syn::Expr::Lit(l) = val {
                     if let syn::Lit::Int(li) = &l.lit {
@@ -59,7 +106,9 @@ pub fn derive_enum_string<T: std::str::FromStr + quote::ToTokens>(input: TokenSt
         panic!("EnumString can only be derived for enums");
     }
 
-    let is_suricata = std::env::var("CARGO_PKG_NAME").map(|var| var == "suricata").unwrap_or(false);
+    let is_suricata = std::env::var("CARGO_PKG_NAME")
+        .map(|var| var == "suricata")
+        .unwrap_or(false);
     let crate_id = if is_suricata {
         syn::Ident::new("crate", proc_macro2::Span::call_site())
     } else {

@@ -100,26 +100,6 @@ int DetectProtoParse(DetectProto *dp, const char *str)
         SCLogDebug("IP protocol detected");
     } else {
         goto error;
-
-        /** \todo are numeric protocols even valid? */
-#if 0
-        uint8_t proto_u8; /* Used to avoid sign extension */
-
-        /* Extract out a 0-256 value with validation checks */
-        if (ByteExtractStringUint8(&proto_u8, 10, 0, str) == -1) {
-            // XXX
-            SCLogDebug("DetectProtoParse: Error in extracting byte string");
-            goto error;
-        }
-        proto = (int)proto_u8;
-
-        /* Proto 0 is the same as "ip" above */
-        if (proto == IPPROTO_IP) {
-            dp->flags |= DETECT_PROTO_ANY;
-        } else {
-            dp->proto[proto / 8] |= 1<<(proto % 8);
-        }
-#endif
     }
 
     return 0;

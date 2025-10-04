@@ -2269,7 +2269,12 @@
                             "minProperties": 1,
                             "properties": {
                                 "error_code": {
-                                    "type": "string"
+                                    "type": "string",
+                                    "suricata": {
+                                        "keywords": [
+                                            "http2.errorcode"
+                                        ]
+                                    }
                                 },
                                 "has_multiple": {
                                     "type": "string"
@@ -2306,7 +2311,12 @@
                             "minProperties": 1,
                             "properties": {
                                 "error_code": {
-                                    "type": "string"
+                                    "type": "string",
+                                    "suricata": {
+                                        "keywords": [
+                                            "http2.errorcode"
+                                        ]
+                                    }
                                 },
                                 "has_multiple": {
                                     "type": "string"
