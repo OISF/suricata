@@ -1,0 +1,16 @@
+%YAML 1.1
+---
+
+multi-detect:
+  enabled: yes
+  #selector: direct # direct or vlan or device
+  selector: vlan
+  loaders: 3
+
+  tenants:
+  - id: 1
+    yaml: tenant-1.yaml
+
+  mappings:
+  - vlan-id: 1000
+    tenant-id: 1
