@@ -881,6 +881,7 @@ jobs:
                 ccache \
                 clang \
                 diffutils \
+                dpdk-devel \
                 file-devel \
                 gcc \
                 gcc-c++ \
@@ -906,6 +907,7 @@ jobs:
                 lz4-devel \
                 make \
                 parallel \
+                numactl-devel \
                 pcre2-devel \
                 pkgconfig \
                 python \
@@ -925,7 +927,7 @@ jobs:
       - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow" ./configure --disable-shared
       - run: make check
       - run: make distclean
-      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-warnings --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue
+      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-warnings --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue --enable-dpdk
         env:
           LDFLAGS: "-fsanitize=address"
           ac_cv_func_realloc_0_nonnull: "yes"
@@ -981,6 +983,7 @@ jobs:
                 cbindgen \
                 ccache \
                 diffutils \
+                dpdk-devel \
                 file-devel \
                 gcc \
                 gcc-c++ \
@@ -1003,6 +1006,7 @@ jobs:
                 libtool \
                 lz4-devel \
                 make \
+                numactl-devel \
                 pcre2-devel \
                 pkgconfig \
                 python3-yaml \
@@ -1019,7 +1023,7 @@ jobs:
           path: prep
       - run: tar xf prep/suricata-update.tar.gz
       - run: ./autogen.sh
-      - run: ./configure --enable-warnings --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue
+      - run: ./configure --enable-warnings --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue --enable-dpdk
         env:
           CFLAGS: "${{ env.DEFAULT_CFLAGS }} -Wshadow -fsanitize=address -fno-omit-frame-pointer -flto=auto -O2"
           LDFLAGS: "-fsanitize=address"
@@ -1071,6 +1075,7 @@ jobs:
                 ccache \
                 clang \
                 diffutils \
+                dpdk-devel \
                 file-devel \
                 gcc \
                 gcc-c++ \
@@ -1093,6 +1098,7 @@ jobs:
                 libtool \
                 lz4-devel \
                 make \
+                numactl-devel \
                 pcre2-devel \
                 pkgconfig \
                 python3-yaml \
@@ -1119,7 +1125,7 @@ jobs:
       - run: >-
           sudo -u suricata -s env PATH="/home/suricata/.cargo/bin:$PATH" ./configure --enable-warnings
           --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis
-          --enable-nfqueue --disable-ja3 --disable-ja4
+          --enable-nfqueue --enable-dpdk --disable-ja3 --disable-ja4
         working-directory: /home/suricata/suricata
         env:
           ac_cv_func_realloc_0_nonnull: "yes"
@@ -1440,6 +1446,7 @@ jobs:
                 automake \
                 clang-19 \
                 curl \
+                dpdk-dev \
                 git \
                 hwloc \
                 libhwloc-dev \
@@ -1484,7 +1491,7 @@ jobs:
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.85.1 -y
       - uses: ./.github/actions/install-cbindgen
       - run: ./autogen.sh
-      - run: ./configure --enable-warnings --disable-shared --enable-unittests
+      - run: ./configure --enable-warnings --disable-shared --enable-unittests --enable-dpdk
         env:
           CC: "clang-19"
           CXX: "clang++-19"
@@ -3009,6 +3016,7 @@ jobs:
                 autoconf \
                 build-essential \
                 ccache \
+                dpdk-dev \
                 curl \
                 git \
                 hwloc \
@@ -3022,6 +3030,7 @@ jobs:
                 libcap-ng-dev \
                 libcap-ng0 \
                 libmagic-dev \
+                libnuma-dev \
                 libjansson-dev \
                 libgeoip-dev \
                 libhiredis-dev \
@@ -3049,7 +3058,7 @@ jobs:
       - run: tar xf prep/suricata-update.tar.gz
       - uses: ./.github/actions/install-cbindgen
       - run: ./autogen.sh
-      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-warnings --enable-unittests --enable-fuzztargets
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-warnings --enable-unittests --enable-fuzztargets --enable-ebpf-build --enable-dpdk
       - run: make -j ${{ env.CPUS }}
       - run: make check
       - run: tar xf prep/suricata-verify.tar.gz
