@@ -730,6 +730,9 @@ extern "C" {
     pub fn SCAppLayerRequestProtocolTLSUpgrade(f: *mut Flow) -> bool;
 }
 extern "C" {
+    pub fn SCAppLayerRequestProtocolChangeUnknown(f: *mut Flow, dp: u16);
+}
+extern "C" {
     pub fn SCAppLayerForceProtocolChange(f: *mut Flow, new_proto: AppProto);
 }
 extern "C" {
@@ -933,4 +936,7 @@ extern "C" {
 }
 extern "C" {
     pub fn SCFlowGetDestinationPort(flow: *const Flow) -> u16;
+}
+extern "C" {
+    pub fn SCFlowSetDecrypted(flow: *mut Flow, proto: u8, src_ip: u32, sp: u16, dest_ip: u32, dp: u16) -> i32;
 }
