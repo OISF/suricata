@@ -802,6 +802,7 @@ int UTHPacketMatchSigMpm(Packet *p, char *sig, uint16_t mpm_type)
 end:
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
+    StatsThreadCleanup(&th_v);
     SCConfSet("mpm-algo", "auto");
     SCReturnInt(result);
 }
