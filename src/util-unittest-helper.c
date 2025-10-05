@@ -766,14 +766,22 @@ int UTHPacketMatchSigMpm(Packet *p, char *sig, uint16_t mpm_type)
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
 
+    if (mpm_type == MPM_AC) {
+        SCConfSet("mpm-algo", "ac");
+#ifdef BUILD_HYPERSCAN
+    } else if (mpm_type == MPM_HS) {
+        SCConfSet("mpm-algo", "hs");
+#endif
+    } else {
+        BUG_ON("unsupported MPM type");
+    }
+
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
         printf("de_ctx == NULL: ");
         goto end;
     }
-
     de_ctx->flags |= DE_QUIET;
-    de_ctx->mpm_matcher = mpm_type;
 
     de_ctx->sig_list = SigInit(de_ctx, sig);
     if (de_ctx->sig_list == NULL) {
@@ -794,6 +802,7 @@ int UTHPacketMatchSigMpm(Packet *p, char *sig, uint16_t mpm_type)
 end:
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
+    SCConfSet("mpm-algo", "auto");
     SCReturnInt(result);
 }
 
