@@ -202,13 +202,13 @@ pub(crate) enum HtpContentEncoding {
 //a cursor turning EOF into blocking errors
 #[derive(Debug)]
 struct BlockingCursor {
-    pub cursor: Cursor<Vec<u8>>,
+    pub cursor: Cursor<Box<[u8]>>,
 }
 
 impl BlockingCursor {
     fn new() -> BlockingCursor {
         BlockingCursor {
-            cursor: Cursor::new(Vec::with_capacity(ENCODING_CHUNK_SIZE)),
+            cursor: Cursor::new(Box::new([0u8; ENCODING_CHUNK_SIZE])),
         }
     }
     pub fn set_position(&mut self, pos: u64) {
@@ -217,7 +217,7 @@ impl BlockingCursor {
     fn position(&self) -> u64 {
         self.cursor.position()
     }
-    pub fn get_ref(&self) -> &Vec<u8> {
+    pub fn get_ref(&self) -> &[u8] {
         self.cursor.get_ref()
     }
 }
@@ -236,7 +236,7 @@ impl Write for BlockingCursor {
             }
             Ok(0) => {
                 //regular EOF turned into blocking error
-                return Err(std::io::ErrorKind::WouldBlock.into());
+                return Err(std::io::ErrorKind::WriteZero.into());
             }
             Ok(_n) => {}
         }
