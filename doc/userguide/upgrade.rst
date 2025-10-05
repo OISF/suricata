@@ -34,6 +34,15 @@ also check all the new features that have been added but are not covered by
 this guide. Those features are either not enabled by default or require
 dedicated new configuration.
 
+Upgrading to 8.0.2
+------------------
+
+Logging Changes
+~~~~~~~~~~~~~~~
+- Ethertype values (``ether.ether_type``) are now logged matching the network order value.
+  E.g., previously, ``ether_type`` values were logged in host order;  an ethertype value of ``0xfbb7``
+  (network order) was logged as `47099`` (``0xb7fb``). This ethertype value will be logged as ``64439``.
+
 Upgrading to 8.0.1
 ------------------
 
