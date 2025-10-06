@@ -20,7 +20,7 @@ use super::detect;
 use super::parser;
 use super::range;
 
-use super::range::{HttpRangeContainerBlock, SCHTPFileCloseHandleRange, SCHttpRangeFreeBlock};
+use super::range::{SCHTPFileCloseHandleRange, SCHttpRangeFreeBlock};
 use crate::applayer::{self, *};
 use crate::conf::conf_get;
 use crate::core::*;
@@ -39,7 +39,7 @@ use std::ffi::CString;
 use std::fmt;
 use std::io;
 use suricata_sys::sys::{
-    AppLayerParserState, AppProto, SCAppLayerForceProtocolChange,
+    AppLayerParserState, AppProto, HttpRangeContainerBlock, SCAppLayerForceProtocolChange,
     SCAppLayerParserConfParserEnabled, SCAppLayerParserRegisterLogger,
     SCAppLayerProtoDetectConfProtoDetectionEnabled, SCFileFlowFlagsToFlags,
     SCHTTP2MimicHttp1Request,
