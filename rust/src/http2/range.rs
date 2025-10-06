@@ -31,19 +31,12 @@ use nom7::error::{make_error, ErrorKind};
 use nom7::{Err, IResult};
 use std::os::raw::c_uchar;
 use std::str::FromStr;
+use suricata_sys::sys::HttpRangeContainerBlock;
 
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct HttpRangeContainerBlock {
-    _unused: [u8; 0],
-}
-
-// Defined in app-layer-htp-range.h
+// Defined in app-layer-htp-file.h
 #[allow(unused_doc_comments)]
 /// cbindgen:ignore
 extern "C" {
-    #[cfg(not(test))]
-    pub fn SCHttpRangeFreeBlock(range: *mut HttpRangeContainerBlock);
     #[cfg(not(test))]
     pub fn SCHTPFileCloseHandleRange(
         sbcfg: &StreamingBufferConfig, fc: *mut FileContainer, flags: u16,
@@ -54,6 +47,8 @@ extern "C" {
 #[cfg(test)]
 #[allow(non_snake_case)]
 pub(super) unsafe fn SCHttpRangeFreeBlock(_range: *mut HttpRangeContainerBlock) {}
+#[cfg(not(test))]
+pub(super) use suricata_sys::sys::SCHttpRangeFreeBlock;
 
 #[cfg(test)]
 #[allow(non_snake_case)]
