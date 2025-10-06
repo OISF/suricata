@@ -1701,8 +1701,7 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
                 }
             }
             else if (sm->type == DETECT_FLAGS) {
-                DetectFlagsData *fd = (DetectFlagsData *)sm->ctx;
-                if (fd != NULL) {
+                if (sm->ctx != NULL) {
                     rule_flags = 1;
                 }
             }
