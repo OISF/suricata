@@ -29,9 +29,8 @@ use nom7::character::complete::{char, digit1};
 use nom7::combinator::{map_res, value};
 use nom7::error::{make_error, ErrorKind};
 use nom7::{Err, IResult};
-use std::os::raw::c_uchar;
 use std::str::FromStr;
-use suricata_sys::sys::HttpRangeContainerBlock;
+use suricata_sys::sys::{HttpRangeContainerBlock, SCHttpRangeContainerOpenFile, SCHttpRangeAppendData};
 
 // Defined in app-layer-htp-file.h
 #[allow(unused_doc_comments)]
@@ -167,11 +166,11 @@ pub fn http2_range_open(
     if let Ok((key, index)) = http2_range_key_get(tx) {
         let name = &key[index..];
         tx.file_range = unsafe {
-            HttpRangeContainerOpenFile(
+            SCHttpRangeContainerOpenFile(
                 key.as_ptr(),
                 key.len() as u32,
                 flow,
-                v,
+                &*v as *const _ as *const suricata_sys::sys::HTTPContentRange,
                 cfg.files_sbcfg,
                 name.as_ptr(),
                 name.len() as u16,
@@ -187,7 +186,7 @@ pub fn http2_range_append(
     cfg: &'static SuricataFileContext, fr: *mut HttpRangeContainerBlock, data: &[u8],
 ) {
     unsafe {
-        HttpRangeAppendData(cfg.files_sbcfg, fr, data.as_ptr(), data.len() as u32);
+        SCHttpRangeAppendData(cfg.files_sbcfg, fr, data.as_ptr(), data.len() as u32);
     }
 }
 
@@ -217,19 +216,6 @@ pub fn http2_range_close(tx: &mut HTTP2Transaction, dir: Direction, data: &[u8])
     if added {
         tx.tx_data.incr_files_opened();
     }
-}
-
-// Defined in app-layer-htp-range.h
-extern "C" {
-    pub fn HttpRangeContainerOpenFile(
-        key: *const c_uchar, keylen: u32, f: *const Flow, cr: &HTTPContentRange,
-        sbcfg: *const StreamingBufferConfig, name: *const c_uchar, name_len: u16, flags: u16,
-        data: *const c_uchar, data_len: u32,
-    ) -> *mut HttpRangeContainerBlock;
-    pub fn HttpRangeAppendData(
-        cfg: *const StreamingBufferConfig, c: *mut HttpRangeContainerBlock, data: *const c_uchar,
-        data_len: u32,
-    ) -> std::os::raw::c_int;
 }
 
 #[cfg(test)]
