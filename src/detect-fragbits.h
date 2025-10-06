@@ -25,21 +25,6 @@
 #define SURICATA_DETECT_FRAGBITS_H
 
 /**
- * \struct DetectFragBitsData_
- * DetectFragBitsData_ is used to store fragbits: input value
- */
-
-/**
- * \typedef DetectFragBitsData
- * A typedef for DetectFragBitsData_
- */
-
-typedef struct DetectFragBitsData_ {
-    uint8_t fragbits; /**< IP fragbits */
-    uint8_t modifier; /**< !(1) +(2) *(3) modifiers */
-} DetectFragBitsData;
-
-/**
  * Registration function for fragbits: keyword
  */
 

@@ -218,13 +218,16 @@ You can match on the following bits::
 Matching on this bits can be more specified with the following
 modifiers::
 
-  +         match on the specified bits, plus any others
+  +         match on all the specified bits (plus any others)
   *         match if any of the specified bits are set
-  !         match if the specified bits are not set
+  !         match if not all the specified bits are set
+  =         match on all the specified bits and only them
+
+fragbits uses an :ref:`unsigned 16-bits integer <rules-integer-keywords>` with bitmasks.
 
 Format::
 
-  fragbits:[*+!]<[MDR]>;
+  fragbits:[*+!=]<[MDR]>;
 
 Example of fragbits in a rule:
 

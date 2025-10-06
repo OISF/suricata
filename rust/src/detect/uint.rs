@@ -16,8 +16,8 @@
  */
 
 use nom7::branch::alt;
-use nom7::bytes::complete::{is_a, tag, tag_no_case, take_while};
-use nom7::character::complete::{char, digit1, hex_digit1, i32 as nom_i32};
+use nom7::bytes::complete::{is_a, tag, tag_no_case, take_while, take};
+use nom7::character::complete::{char, digit1, hex_digit1, i32 as nom_i32, anychar};
 use nom7::combinator::{all_consuming, map_opt, opt, value, verify};
 use nom7::error::{make_error, Error, ErrorKind};
 use nom7::multi::many1;
@@ -346,6 +346,111 @@ pub fn detect_parse_uint_bitflags<T1: DetectIntType, T2: EnumString<T1>>(
             arg1,
             arg2,
             mode: DetectUintMode::DetectUintModeBitmask,
+        };
+        return Some(ctx);
+    }
+    return None;
+}
+
+fn parse_flagchar_list_item<T1: DetectIntType, T2: EnumString<T1>>(
+    s: &str,
+) -> IResult<&str, FlagItem<T1>> {
+    let (s, neg) = opt(tag("!"))(s)?;
+    let neg = neg.is_some();
+    let (s, vals) = take(1usize)(s)?;
+    let value = T2::from_str(vals);
+    if value.is_none() {
+        SCLogError!("Bitflag unexpected value {}", vals);
+        return Err(Err::Error(make_error(s, ErrorKind::Switch)));
+    }
+    let value = value.unwrap().into_u();
+    Ok((s, FlagItem { neg, value }))
+}
+
+fn parse_flagchar_list<T1: DetectIntType, T2: EnumString<T1>>(
+    s: &str,
+) -> IResult<&str, Vec<FlagItem<T1>>> {
+    return many1(parse_flagchar_list_item::<T1, T2>)(s);
+}
+
+#[derive(Clone, Debug, PartialEq)]
+enum DetectBitflagModifier {
+    Equal,
+    Plus,
+    Any,
+    Not,
+}
+
+fn parse_bitchars_modifier(s: &str) -> IResult<&str, DetectBitflagModifier> {
+    let (s1, m) = anychar(s)?;
+    match m {
+        '!' => Ok((s1, DetectBitflagModifier::Not)),
+        '+' => Ok((s1, DetectBitflagModifier::Plus)),
+        '*' => Ok((s1, DetectBitflagModifier::Any)),
+        '=' => Ok((s1, DetectBitflagModifier::Equal)),
+        // do not consume if not a known modifier: use default equal
+        _ => Ok((s, DetectBitflagModifier::Equal)),
+    }
+}
+
+pub fn detect_parse_uint_bitchars<T1: DetectIntType, T2: EnumString<T1>>(
+    s: &str,
+) -> Option<DetectUintData<T1>> {
+    // first try numeric form
+    if let Ok((_, ctx)) = detect_parse_uint::<T1>(s) {
+        return Some(ctx);
+    }
+    // otherwise, try strings, maybe prefixed by modifier
+    let (s, modifier) = parse_bitchars_modifier(s).ok()?;
+    let (s, _) = take_while::<_, &str, Error<_>>(|c| c == ' ' || c == '\t')(s).ok()?;
+    if let Ok((rem, l)) = parse_flagchar_list::<T1, T2>(s) {
+        if !rem.is_empty() {
+            SCLogError!("junk at the end of bitflags");
+            return None;
+        }
+        let mut arg1 = T1::min_value();
+        let mut arg2 = T1::min_value();
+        for elem in l.iter() {
+            if elem.value & arg1 != T1::min_value() {
+                SCLogError!(
+                    "Repeated bitflag for {}",
+                    T2::from_u(elem.value).unwrap().to_str()
+                );
+                return None;
+            }
+            arg1 |= elem.value;
+            if !elem.neg {
+                if modifier != DetectBitflagModifier::Plus && modifier != DetectBitflagModifier::Not
+                {
+                    SCLogError!(
+                        "Single negated bitflag for incompatible with modifier {:?}",
+                        modifier
+                    );
+                }
+                arg2 |= elem.value;
+            }
+        }
+        let ctx = match modifier {
+            DetectBitflagModifier::Equal => DetectUintData::<T1> {
+                arg1,
+                arg2: T1::min_value(),
+                mode: DetectUintMode::DetectUintModeEqual,
+            },
+            DetectBitflagModifier::Plus => DetectUintData::<T1> {
+                arg1,
+                arg2,
+                mode: DetectUintMode::DetectUintModeBitmask,
+            },
+            DetectBitflagModifier::Any => DetectUintData::<T1> {
+                arg1,
+                arg2: T1::min_value(),
+                mode: DetectUintMode::DetectUintModeNegBitmask,
+            },
+            DetectBitflagModifier::Not => DetectUintData::<T1> {
+                arg1,
+                arg2,
+                mode: DetectUintMode::DetectUintModeNegBitmask,
+            },
         };
         return Some(ctx);
     }
