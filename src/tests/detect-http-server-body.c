@@ -928,11 +928,13 @@ static int DetectEngineHttpServerBodyFileDataTest03(void)
     FAIL_IF_NOT(PacketAlertCheck(p2, 2));
 
     AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -2403,6 +2405,7 @@ end:
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -2558,6 +2561,7 @@ end:
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -2942,6 +2946,7 @@ end:
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -3091,6 +3096,7 @@ end:
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
