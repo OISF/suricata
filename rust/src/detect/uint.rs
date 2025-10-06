@@ -386,7 +386,7 @@ pub enum DetectBitflagModifier {
     Not,
 }
 
-fn parse_bitchars_modifier(
+pub(crate) fn parse_bitchars_modifier(
     s: &str, default: DetectBitflagModifier,
 ) -> IResult<&str, DetectBitflagModifier> {
     let (s1, m) = anychar(s)?;
