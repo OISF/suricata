@@ -42,6 +42,7 @@ use suricata_sys::sys::{
     AppLayerParserState, AppProto, SCAppLayerForceProtocolChange,
     SCAppLayerParserConfParserEnabled, SCAppLayerParserRegisterLogger,
     SCAppLayerProtoDetectConfProtoDetectionEnabled, SCFileFlowFlagsToFlags,
+    SCHTTP2MimicHttp1Request,
 };
 
 static mut ALPROTO_HTTP2: AppProto = ALPROTO_UNKNOWN;
@@ -1431,13 +1432,6 @@ unsafe extern "C" fn http2_probing_parser_tc(
     return ALPROTO_UNKNOWN;
 }
 
-// Extern functions operating on HTTP2.
-extern "C" {
-    pub fn HTTP2MimicHttp1Request(
-        orig_state: *mut std::os::raw::c_void, new_state: *mut std::os::raw::c_void,
-    );
-}
-
 // Suppress the unsafe warning here as creating a state for an app-layer
 // is typically not unsafe.
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
@@ -1450,7 +1444,7 @@ extern "C" fn http2_state_new(
     if !orig_state.is_null() {
         //we could check ALPROTO_HTTP1 == orig_proto
         unsafe {
-            HTTP2MimicHttp1Request(orig_state, r);
+            SCHTTP2MimicHttp1Request(orig_state, r);
         }
     }
     return r;

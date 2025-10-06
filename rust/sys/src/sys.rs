@@ -829,6 +829,11 @@ extern "C" {
         event_name: *const ::std::os::raw::c_char, table: *mut SCEnumCharMap, event_id: *mut u8,
     ) -> ::std::os::raw::c_int;
 }
+extern "C" {
+    pub fn SCHTTP2MimicHttp1Request(
+        arg1: *mut ::std::os::raw::c_void, arg2: *mut ::std::os::raw::c_void,
+    );
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct MpmPattern_ {

@@ -52,6 +52,7 @@
 #include "app-layer-parser.h"
 #include "app-layer-register.h"
 #include "app-layer-events.h"
+#include "app-layer-http2.h"
 
 #include "util-mpm.h"
 #include "util-file.h"
