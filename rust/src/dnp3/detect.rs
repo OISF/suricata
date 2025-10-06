@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-use crate::detect::uint::{detect_parse_uint_bitflags, DetectUintData};
+use crate::detect::uint::{detect_parse_uint_bitflags, DetectBitflagModifier, DetectUintData};
 
 use std::ffi::CStr;
 
@@ -47,7 +47,9 @@ pub unsafe extern "C" fn SCDnp3DetectIndParse(
 ) -> *mut DetectUintData<u16> {
     let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
     if let Ok(s) = ft_name.to_str() {
-        if let Some(ctx) = detect_parse_uint_bitflags::<u16, Dnp3IndFlag>(s) {
+        if let Some(ctx) =
+            detect_parse_uint_bitflags::<u16, Dnp3IndFlag>(s, DetectBitflagModifier::Any)
+        {
             let boxed = Box::new(ctx);
             return Box::into_raw(boxed) as *mut _;
         }
@@ -61,24 +63,43 @@ mod test {
 
     #[test]
     fn dnp3_ind_parse() {
-        let ctx = detect_parse_uint_bitflags::<u16, Dnp3IndFlag>("0").unwrap();
-        assert_eq!(ctx.arg1, 0);
-        let ctx = detect_parse_uint_bitflags::<u16, Dnp3IndFlag>("1").unwrap();
-        assert_eq!(ctx.arg1, 1);
-        let ctx = detect_parse_uint_bitflags::<u16, Dnp3IndFlag>("0x0").unwrap();
-        assert_eq!(ctx.arg1, 0);
-        let ctx = detect_parse_uint_bitflags::<u16, Dnp3IndFlag>("0x0000").unwrap();
-        assert_eq!(ctx.arg1, 0);
-        let ctx = detect_parse_uint_bitflags::<u16, Dnp3IndFlag>("0x0001").unwrap();
-        assert_eq!(ctx.arg1, 1);
-        let ctx = detect_parse_uint_bitflags::<u16, Dnp3IndFlag>("0x8421").unwrap();
-        assert_eq!(ctx.arg1, 0x8421);
-        assert!(detect_parse_uint_bitflags::<u16, Dnp3IndFlag>("a").is_none());
-        let ctx = detect_parse_uint_bitflags::<u16, Dnp3IndFlag>("all_stations").unwrap();
-        assert_eq!(ctx.arg1, 0x0100);
-        let ctx = detect_parse_uint_bitflags::<u16, Dnp3IndFlag>("class_1_events , class_2_events")
+        let ctx = detect_parse_uint_bitflags::<u16, Dnp3IndFlag>("0", DetectBitflagModifier::Any)
             .unwrap();
+        assert_eq!(ctx.arg1, 0);
+        let ctx = detect_parse_uint_bitflags::<u16, Dnp3IndFlag>("1", DetectBitflagModifier::Any)
+            .unwrap();
+        assert_eq!(ctx.arg1, 1);
+        let ctx = detect_parse_uint_bitflags::<u16, Dnp3IndFlag>("0x0", DetectBitflagModifier::Any)
+            .unwrap();
+        assert_eq!(ctx.arg1, 0);
+        let ctx = detect_parse_uint_bitflags::<u16, Dnp3IndFlag>("0x0000", DetectBitflagModifier::Any).unwrap();
+        assert_eq!(ctx.arg1, 0);
+        let ctx =
+            detect_parse_uint_bitflags::<u16, Dnp3IndFlag>("0x0001", DetectBitflagModifier::Any)
+                .unwrap();
+        assert_eq!(ctx.arg1, 1);
+        let ctx = detect_parse_uint_bitflags::<u16, Dnp3IndFlag>("0x8421", DetectBitflagModifier::Any).unwrap();
+        assert_eq!(ctx.arg1, 0x8421);
+        assert!(
+            detect_parse_uint_bitflags::<u16, Dnp3IndFlag>("a", DetectBitflagModifier::Any)
+                .is_none()
+        );
+        let ctx = detect_parse_uint_bitflags::<u16, Dnp3IndFlag>(
+            "all_stations",
+            DetectBitflagModifier::Any,
+        )
+        .unwrap();
+        assert_eq!(ctx.arg1, 0x0100);
+        let ctx = detect_parse_uint_bitflags::<u16, Dnp3IndFlag>(
+            "class_1_events , class_2_events",
+            DetectBitflagModifier::Any,
+        )
+        .unwrap();
         assert_eq!(ctx.arg1, 0x600);
-        assert!(detect_parse_uint_bitflags::<u16, Dnp3IndFlag>("something").is_none());
+        assert!(detect_parse_uint_bitflags::<u16, Dnp3IndFlag>(
+            "something",
+            DetectBitflagModifier::Any
+        )
+        .is_none());
     }
 }

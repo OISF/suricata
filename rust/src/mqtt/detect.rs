@@ -20,8 +20,8 @@
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{
     detect_match_uint, detect_parse_array_uint_enum, detect_parse_uint_bitflags,
-    detect_uint_match_at_index, DetectUintArrayData, DetectUintData, SCDetectU8Free,
-    SCDetectU8Parse,
+    detect_uint_match_at_index, DetectBitflagModifier, DetectUintArrayData, DetectUintData,
+    SCDetectU8Free, SCDetectU8Parse,
 };
 use crate::detect::{
     helper_keyword_register_multi_buffer, helper_keyword_register_sticky_buffer,
@@ -679,7 +679,9 @@ unsafe extern "C" fn mqtt_parse_flags(
 ) -> *mut DetectUintData<u8> {
     let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
     if let Ok(s) = ft_name.to_str() {
-        if let Some(ctx) = detect_parse_uint_bitflags::<u8, MqttFlag>(s) {
+        if let Some(ctx) =
+            detect_parse_uint_bitflags::<u8, MqttFlag>(s, DetectBitflagModifier::Plus)
+        {
             let boxed = Box::new(ctx);
             return Box::into_raw(boxed) as *mut _;
         }
@@ -758,7 +760,9 @@ unsafe extern "C" fn mqtt_parse_conn_flags(
 ) -> *mut DetectUintData<u8> {
     let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
     if let Ok(s) = ft_name.to_str() {
-        if let Some(ctx) = detect_parse_uint_bitflags::<u8, MqttConnFlag>(s) {
+        if let Some(ctx) =
+            detect_parse_uint_bitflags::<u8, MqttConnFlag>(s, DetectBitflagModifier::Plus)
+        {
             let boxed = Box::new(ctx);
             return Box::into_raw(boxed) as *mut _;
         }
@@ -1191,58 +1195,109 @@ mod test {
 
     #[test]
     fn mqtt_parse_flags() {
-        let ctx = detect_parse_uint_bitflags::<u8, MqttFlag>("retain").unwrap();
+        let ctx = detect_parse_uint_bitflags::<u8, MqttFlag>("retain", DetectBitflagModifier::Plus)
+            .unwrap();
         assert_eq!(ctx.arg1, 1);
         assert_eq!(ctx.arg2, 1);
-        let ctx = detect_parse_uint_bitflags::<u8, MqttFlag>("dup").unwrap();
+        let ctx =
+            detect_parse_uint_bitflags::<u8, MqttFlag>("dup", DetectBitflagModifier::Plus).unwrap();
         assert_eq!(ctx.arg1, 8);
         assert_eq!(ctx.arg2, 8);
-        let ctx = detect_parse_uint_bitflags::<u8, MqttFlag>("retain,dup").unwrap();
+        let ctx =
+            detect_parse_uint_bitflags::<u8, MqttFlag>("retain,dup", DetectBitflagModifier::Plus)
+                .unwrap();
         assert_eq!(ctx.arg1, 8 | 1);
         assert_eq!(ctx.arg2, 8 | 1);
-        let ctx = detect_parse_uint_bitflags::<u8, MqttFlag>("dup, retain").unwrap();
+        let ctx =
+            detect_parse_uint_bitflags::<u8, MqttFlag>("dup, retain", DetectBitflagModifier::Plus)
+                .unwrap();
         assert_eq!(ctx.arg1, 8 | 1);
         assert_eq!(ctx.arg2, 8 | 1);
-        let ctx = detect_parse_uint_bitflags::<u8, MqttFlag>("retain,!dup").unwrap();
+        let ctx =
+            detect_parse_uint_bitflags::<u8, MqttFlag>("retain,!dup", DetectBitflagModifier::Plus)
+                .unwrap();
         assert_eq!(ctx.arg1, 1 | 8);
         assert_eq!(ctx.arg2, 1);
-        assert!(detect_parse_uint_bitflags::<u8, MqttFlag>("ref").is_none());
-        assert!(detect_parse_uint_bitflags::<u8, MqttFlag>("dup,!").is_none());
-        assert!(detect_parse_uint_bitflags::<u8, MqttFlag>("dup,!dup").is_none());
-        assert!(detect_parse_uint_bitflags::<u8, MqttFlag>("!retain,retain").is_none());
+        assert!(
+            detect_parse_uint_bitflags::<u8, MqttFlag>("ref", DetectBitflagModifier::Plus)
+                .is_none()
+        );
+        assert!(
+            detect_parse_uint_bitflags::<u8, MqttFlag>("dup,!", DetectBitflagModifier::Plus)
+                .is_none()
+        );
+        assert!(detect_parse_uint_bitflags::<u8, MqttFlag>(
+            "dup,!dup",
+            DetectBitflagModifier::Plus
+        )
+        .is_none());
+        assert!(detect_parse_uint_bitflags::<u8, MqttFlag>(
+            "!retain,retain",
+            DetectBitflagModifier::Plus
+        )
+        .is_none());
     }
 
     #[test]
     fn mqtt_parse_conn_flags() {
-        let ctx = detect_parse_uint_bitflags::<u8, MqttConnFlag>("username").unwrap();
+        let ctx =
+            detect_parse_uint_bitflags::<u8, MqttConnFlag>("username", DetectBitflagModifier::Plus)
+                .unwrap();
         assert_eq!(ctx.arg1, 0x80);
         assert_eq!(ctx.arg2, 0x80);
         let ctx = detect_parse_uint_bitflags::<u8, MqttConnFlag>(
             "username,password,will,will_retain,clean_session",
+            DetectBitflagModifier::Plus,
         )
         .unwrap();
         assert_eq!(ctx.arg1, 0xE6);
         assert_eq!(ctx.arg2, 0xE6);
         let ctx = detect_parse_uint_bitflags::<u8, MqttConnFlag>(
             "!username,!password,!will,!will_retain,!clean_session",
+            DetectBitflagModifier::Plus,
         )
         .unwrap();
         assert_eq!(ctx.arg1, 0xE6);
         assert_eq!(ctx.arg2, 0);
-        let ctx = detect_parse_uint_bitflags::<u8, MqttConnFlag>("   username,password").unwrap();
+        let ctx = detect_parse_uint_bitflags::<u8, MqttConnFlag>(
+            "   username,password",
+            DetectBitflagModifier::Plus,
+        )
+        .unwrap();
         assert_eq!(ctx.arg1, 0xC0);
         assert_eq!(ctx.arg2, 0xC0);
-        assert!(detect_parse_uint_bitflags::<u8, MqttConnFlag>("foobar").is_none());
-        assert!(detect_parse_uint_bitflags::<u8, MqttConnFlag>("will,!").is_none());
-        assert!(detect_parse_uint_bitflags::<u8, MqttConnFlag>("").is_none());
-        assert!(detect_parse_uint_bitflags::<u8, MqttConnFlag>("username, username").is_none());
-        assert!(detect_parse_uint_bitflags::<u8, MqttConnFlag>("!username, username").is_none());
+        assert!(detect_parse_uint_bitflags::<u8, MqttConnFlag>(
+            "foobar",
+            DetectBitflagModifier::Plus
+        )
+        .is_none());
+        assert!(detect_parse_uint_bitflags::<u8, MqttConnFlag>(
+            "will,!",
+            DetectBitflagModifier::Plus
+        )
+        .is_none());
         assert!(
-            detect_parse_uint_bitflags::<u8, MqttConnFlag>("!username,password,!password")
+            detect_parse_uint_bitflags::<u8, MqttConnFlag>("", DetectBitflagModifier::Plus)
                 .is_none()
         );
         assert!(detect_parse_uint_bitflags::<u8, MqttConnFlag>(
-            "will, username,password,   !will, will"
+            "username, username",
+            DetectBitflagModifier::Plus
+        )
+        .is_none());
+        assert!(detect_parse_uint_bitflags::<u8, MqttConnFlag>(
+            "!username, username",
+            DetectBitflagModifier::Plus
+        )
+        .is_none());
+        assert!(detect_parse_uint_bitflags::<u8, MqttConnFlag>(
+            "!username,password,!password",
+            DetectBitflagModifier::Plus
+        )
+        .is_none());
+        assert!(detect_parse_uint_bitflags::<u8, MqttConnFlag>(
+            "will, username,password,   !will, will",
+            DetectBitflagModifier::Plus
         )
         .is_none());
     }

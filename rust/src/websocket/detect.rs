@@ -18,8 +18,8 @@
 use super::websocket::{WebSocketTransaction, ALPROTO_WEBSOCKET};
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{
-    detect_parse_uint_bitflags, detect_parse_uint_enum, DetectUintData, SCDetectU32Free,
-    SCDetectU32Match, SCDetectU32Parse, SCDetectU8Free, SCDetectU8Match,
+    detect_parse_uint_bitflags, detect_parse_uint_enum, DetectBitflagModifier, DetectUintData,
+    SCDetectU32Free, SCDetectU32Match, SCDetectU32Parse, SCDetectU8Free, SCDetectU8Match,
 };
 use crate::detect::{
     helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer, SIGMATCH_INFO_BITFLAGS_UINT,
@@ -61,7 +61,9 @@ unsafe extern "C" fn websocket_parse_flags(
 ) -> *mut DetectUintData<u8> {
     let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
     if let Ok(s) = ft_name.to_str() {
-        if let Some(ctx) = detect_parse_uint_bitflags::<u8, WebSocketFlag>(s) {
+        if let Some(ctx) =
+            detect_parse_uint_bitflags::<u8, WebSocketFlag>(s, DetectBitflagModifier::Plus)
+        {
             let boxed = Box::new(ctx);
             return Box::into_raw(boxed) as *mut _;
         }

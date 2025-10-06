@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-use crate::detect::uint::{detect_parse_uint_bitchars, DetectUintData};
+use crate::detect::uint::{detect_parse_uint_bitchars, DetectBitflagModifier, DetectUintData};
 
 use std::ffi::CStr;
 
@@ -34,7 +34,9 @@ pub unsafe extern "C" fn SCDetectIpv4FragbitsParse(
 ) -> *mut DetectUintData<u16> {
     let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
     if let Ok(s) = ft_name.to_str() {
-        if let Some(ctx) = detect_parse_uint_bitchars::<u16, Ipv4FragBits>(s) {
+        if let Some(ctx) =
+            detect_parse_uint_bitchars::<u16, Ipv4FragBits>(s, DetectBitflagModifier::Equal)
+        {
             let boxed = Box::new(ctx);
             return Box::into_raw(boxed) as *mut _;
         }
@@ -48,8 +50,13 @@ mod test {
 
     #[test]
     fn fragbits_parse() {
-        let ctx = detect_parse_uint_bitchars::<u16, Ipv4FragBits>("M").unwrap();
+        let ctx =
+            detect_parse_uint_bitchars::<u16, Ipv4FragBits>("M", DetectBitflagModifier::Equal)
+                .unwrap();
         assert_eq!(ctx.arg1, 0x2000);
-        assert!(detect_parse_uint_bitchars::<u16, Ipv4FragBits>("G").is_none());
+        assert!(
+            detect_parse_uint_bitchars::<u16, Ipv4FragBits>("G", DetectBitflagModifier::Equal)
+                .is_none()
+        );
     }
 }
