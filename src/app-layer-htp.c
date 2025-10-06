@@ -5626,6 +5626,7 @@ libhtp:\n\
     SCConfDeInit();
     SCConfRestoreContextBackup();
     HtpConfigRestoreBackup();
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
