@@ -154,10 +154,11 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    FLOW_DESTROY(&f);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -260,9 +261,10 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
+    FLOW_DESTROY(&f);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -390,10 +392,11 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    FLOW_DESTROY(&f);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -510,10 +513,11 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    FLOW_DESTROY(&f);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -630,10 +634,11 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    FLOW_DESTROY(&f);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -750,10 +755,11 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    FLOW_DESTROY(&f);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -870,10 +876,11 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    FLOW_DESTROY(&f);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -990,10 +997,11 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    FLOW_DESTROY(&f);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -1111,10 +1119,11 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    FLOW_DESTROY(&f);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -1232,10 +1241,11 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    FLOW_DESTROY(&f);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -1353,10 +1363,11 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    FLOW_DESTROY(&f);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -1474,10 +1485,11 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    FLOW_DESTROY(&f);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -1595,10 +1607,11 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    FLOW_DESTROY(&f);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -1716,10 +1729,11 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    FLOW_DESTROY(&f);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -1837,10 +1851,11 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    FLOW_DESTROY(&f);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -1949,9 +1964,10 @@ end:
         DetectEngineCtxFree(de_ctx);
     }
 
-    StreamTcpFreeConfig(true);
-
     UTHFreePackets(&p, 1);
+    FLOW_DESTROY(&f);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -2049,9 +2065,10 @@ end:
         DetectEngineCtxFree(de_ctx);
     }
 
-    StreamTcpFreeConfig(true);
-
     UTHFreePackets(&p, 1);
+    FLOW_DESTROY(&f);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -2161,9 +2178,10 @@ end:
         DetectEngineCtxFree(de_ctx);
     }
 
-    StreamTcpFreeConfig(true);
-
     UTHFreePackets(&p, 1);
+    FLOW_DESTROY(&f);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
