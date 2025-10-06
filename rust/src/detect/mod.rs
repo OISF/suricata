@@ -29,6 +29,7 @@ pub mod iprep;
 pub mod parser;
 pub mod requires;
 pub mod stream_size;
+pub mod tcp;
 pub mod tojson;
 pub mod transforms;
 pub mod uint;
