@@ -198,7 +198,7 @@ int HTPFileOpenWithRange(HtpState *s, HtpTxUserData *txud, const uint8_t *filena
         SCReturnInt(0);
     }
     DEBUG_VALIDATE_BUG_ON(htud->file_range);
-    htud->file_range = HttpRangeContainerOpenFile(keyurl, keylen, s->f, &crparsed, &htp_sbcfg,
+    htud->file_range = SCHttpRangeContainerOpenFile(keyurl, keylen, s->f, &crparsed, &htp_sbcfg,
             filename, filename_len, flags, data, data_len);
     SCFree(keyurl);
     if (htud->file_range == NULL) {
@@ -242,7 +242,7 @@ int HTPFileStoreChunk(HtpTxUserData *tx, const uint8_t *data, uint32_t data_len,
     }
 
     if (tx->file_range != NULL) {
-        if (HttpRangeAppendData(&htp_sbcfg, tx->file_range, data, data_len) < 0) {
+        if (SCHttpRangeAppendData(&htp_sbcfg, tx->file_range, data, data_len) < 0) {
             SCLogDebug("Failed to append data");
         }
     }
@@ -268,7 +268,7 @@ bool SCHTPFileCloseHandleRange(const StreamingBufferConfig *sbcfg, FileContainer
         const uint16_t flags, HttpRangeContainerBlock *c, const uint8_t *data, uint32_t data_len)
 {
     bool added = false;
-    if (HttpRangeAppendData(sbcfg, c, data, data_len) < 0) {
+    if (SCHttpRangeAppendData(sbcfg, c, data, data_len) < 0) {
         SCLogDebug("Failed to append data");
     }
     if (c->container) {
