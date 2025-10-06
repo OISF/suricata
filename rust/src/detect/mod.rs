@@ -24,6 +24,7 @@ pub mod entropy;
 pub mod error;
 pub mod float;
 pub mod flow;
+pub mod fragbits;
 pub mod iprep;
 pub mod parser;
 pub mod requires;
