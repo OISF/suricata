@@ -493,6 +493,7 @@ Flow *UTHBuildFlow(int family, const char *src, const char *dst, Port sp, Port d
 void UTHFreeFlow(Flow *flow)
 {
     if (flow != NULL) {
+        FLOW_DESTROY(flow);
         SCFree(flow);//FlowFree(flow);
     }
 }
