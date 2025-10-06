@@ -2784,7 +2784,9 @@ static int HTPParserTest01b(void)
     const htp_header_t *h = htp_tx_request_header_index(tx, 0);
     FAIL_IF_NULL(h);
 
-    FAIL_IF(strcmp(bstr_util_strdup_to_c(htp_header_value(h)), "Victor/1.0"));
+    char *v = bstr_util_strdup_to_c(htp_header_value(h));
+    FAIL_IF(strcmp(v, "Victor/1.0"));
+    SCFree(v);
     FAIL_IF(htp_tx_request_method_number(tx) != HTP_METHOD_POST);
     FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_V1_0);
 
@@ -2839,7 +2841,9 @@ static int HTPParserTest01c(void)
     const htp_header_t *h = htp_tx_request_header_index(tx, 0);
     FAIL_IF_NULL(h);
 
-    FAIL_IF(strcmp(bstr_util_strdup_to_c(htp_header_value(h)), "Victor/1.0"));
+    char *v = bstr_util_strdup_to_c(htp_header_value(h));
+    FAIL_IF(strcmp(v, "Victor/1.0"));
+    SCFree(v);
     FAIL_IF(htp_tx_request_method_number(tx) != HTP_METHOD_POST);
     FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_V1_0);
 
@@ -2895,7 +2899,9 @@ static int HTPParserTest01a(void)
     const htp_header_t *h = htp_tx_request_header_index(tx, 0);
     FAIL_IF_NULL(h);
 
-    FAIL_IF(strcmp(bstr_util_strdup_to_c(htp_header_value(h)), "Victor/1.0"));
+    char *v = bstr_util_strdup_to_c(htp_header_value(h));
+    FAIL_IF(strcmp(v, "Victor/1.0"));
+    SCFree(v);
     FAIL_IF(htp_tx_request_method_number(tx) != HTP_METHOD_POST);
     FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_V1_0);
 
