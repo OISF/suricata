@@ -26,11 +26,13 @@
 #include "suricata-common.h"
 #include "suricata.h"
 #include "decode.h"
+#include "rust.h"
 
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine-prefilter.h"
 #include "detect-engine-prefilter-common.h"
+#include "detect-engine-uint.h"
 
 #include "flow-var.h"
 #include "decode-events.h"
@@ -40,23 +42,6 @@
 #include "util-unittest-helper.h"
 
 #include "util-debug.h"
-
-/**
- *  Regex (by Brian Rectanus)
- *  flags: [!+*](SAPRFU120)[,SAPRFU12]
- */
-#define PARSE_REGEX "^\\s*(?:([\\+\\*!]))?\\s*([SAPRFU120CE\\+\\*!]+)(?:\\s*,\\s*([SAPRFU12CE]+))?\\s*$"
-
-/**
- * Flags args[0] *(3) +(2) !(1)
- *
- */
-
-#define MODIFIER_NOT  1
-#define MODIFIER_PLUS 2
-#define MODIFIER_ANY  3
-
-static DetectParseRegex parse_regex;
 
 static int DetectFlagsMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
@@ -88,50 +73,8 @@ void DetectFlagsRegister (void)
 #endif
     sigmatch_table[DETECT_FLAGS].SupportsPrefilter = PrefilterTcpFlagsIsPrefilterable;
     sigmatch_table[DETECT_FLAGS].SetupPrefilter = PrefilterSetupTcpFlags;
-
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
-}
-
-static inline int FlagsMatch(const uint8_t pflags, const uint8_t modifier,
-                             const uint8_t dflags, const uint8_t iflags)
-{
-    if (!dflags && pflags) {
-        if(modifier == MODIFIER_NOT) {
-            SCReturnInt(1);
-        }
-
-        SCReturnInt(0);
-    }
-
-    const uint8_t flags = pflags & iflags;
-
-    switch (modifier) {
-        case MODIFIER_ANY:
-            if ((flags & dflags) > 0) {
-                SCReturnInt(1);
-            }
-            SCReturnInt(0);
-
-        case MODIFIER_PLUS:
-            if (((flags & dflags) == dflags)) {
-                SCReturnInt(1);
-            }
-            SCReturnInt(0);
-
-        case MODIFIER_NOT:
-            if ((flags & dflags) != dflags) {
-                SCReturnInt(1);
-            }
-            SCReturnInt(0);
-
-        default:
-            SCLogDebug("flags %"PRIu8" and de->flags %"PRIu8"", flags, dflags);
-            if (flags == dflags) {
-                SCReturnInt(1);
-            }
-    }
-
-    SCReturnInt(0);
+    sigmatch_table[DETECT_FLAGS].flags = SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_BITFLAGS_UINT;
+    ;
 }
 
 /**
@@ -157,315 +100,10 @@ static int DetectFlagsMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
         SCReturnInt(0);
     }
 
-    const DetectFlagsData *de = (const DetectFlagsData *)ctx;
     const TCPHdr *tcph = PacketGetTCP(p);
     const uint8_t flags = tcph->th_flags;
-
-    return FlagsMatch(flags, de->modifier, de->flags, de->ignored_flags);
-}
-
-/**
- * \internal
- * \brief This function is used to parse flags options passed via flags: keyword
- *
- * \param rawstr Pointer to the user provided flags options
- *
- * \retval de pointer to DetectFlagsData on success
- * \retval NULL on failure
- */
-static DetectFlagsData *DetectFlagsParse (const char *rawstr)
-{
-    SCEnter();
-
-    int found = 0, ignore = 0;
-    char *ptr;
-    DetectFlagsData *de = NULL;
-
-    char arg1[16] = "";
-    char arg2[16] = "";
-    char arg3[16] = "";
-
-    pcre2_match_data *match = NULL;
-    int ret = DetectParsePcreExec(&parse_regex, &match, rawstr, 0, 0);
-    SCLogDebug("input '%s', pcre said %d", rawstr, ret);
-    if (ret < 3) {
-        SCLogError("pcre match failed");
-        goto error;
-    }
-
-    size_t pcre2len = sizeof(arg1);
-    int res = SC_Pcre2SubstringCopy(match, 1, (PCRE2_UCHAR8 *)arg1, &pcre2len);
-    if (res < 0) {
-        SCLogError("pcre2_substring_copy_bynumber failed");
-        goto error;
-    }
-    if (ret >= 2) {
-        pcre2len = sizeof(arg2);
-        res = pcre2_substring_copy_bynumber(match, 2, (PCRE2_UCHAR8 *)arg2, &pcre2len);
-        if (res < 0) {
-            SCLogError("pcre2_substring_copy_bynumber failed");
-            goto error;
-        }
-    }
-    if (ret >= 3) {
-        pcre2len = sizeof(arg3);
-        res = SC_Pcre2SubstringCopy(match, 3, (PCRE2_UCHAR8 *)arg3, &pcre2len);
-        if (res < 0) {
-            SCLogError("pcre2_substring_copy_bynumber failed");
-            goto error;
-        }
-    }
-    SCLogDebug("args '%s', '%s', '%s'", arg1, arg2, arg3);
-
-    if (strlen(arg2) == 0) {
-        SCLogDebug("empty argument");
-        goto error;
-    }
-
-    de = SCCalloc(1, sizeof(DetectFlagsData));
-    if (unlikely(de == NULL))
-        goto error;
-    de->ignored_flags = 0xff;
-
-    /** First parse args1 */
-    ptr = arg1;
-    while (*ptr != '\0') {
-        switch (*ptr) {
-            case 'S':
-            case 's':
-                de->flags |= TH_SYN;
-                found++;
-                break;
-            case 'A':
-            case 'a':
-                de->flags |= TH_ACK;
-                found++;
-                break;
-            case 'F':
-            case 'f':
-                de->flags |= TH_FIN;
-                found++;
-                break;
-            case 'R':
-            case 'r':
-                de->flags |= TH_RST;
-                found++;
-                break;
-            case 'P':
-            case 'p':
-                de->flags |= TH_PUSH;
-                found++;
-                break;
-            case 'U':
-            case 'u':
-                de->flags |= TH_URG;
-                found++;
-                break;
-            case '1':
-                de->flags |= TH_CWR;
-                found++;
-                break;
-            case '2':
-                de->flags |= TH_ECN;
-                found++;
-                break;
-            case 'C':
-            case 'c':
-                de->flags |= TH_CWR;
-                found++;
-                break;
-            case 'E':
-            case 'e':
-                de->flags |= TH_ECN;
-                found++;
-                break;
-            case '0':
-                de->flags = 0;
-                found++;
-                break;
-
-            case '!':
-                de->modifier = MODIFIER_NOT;
-                break;
-            case '+':
-                de->modifier = MODIFIER_PLUS;
-                break;
-            case '*':
-                de->modifier = MODIFIER_ANY;
-                break;
-        }
-        ptr++;
-    }
-
-    /** Second parse first set of flags */
-    if (strlen(arg2) > 0) {
-        ptr = arg2;
-        while (*ptr != '\0') {
-            switch (*ptr) {
-                case 'S':
-                case 's':
-                    de->flags |= TH_SYN;
-                    found++;
-                    break;
-                case 'A':
-                case 'a':
-                    de->flags |= TH_ACK;
-                    found++;
-                    break;
-                case 'F':
-                case 'f':
-                    de->flags |= TH_FIN;
-                    found++;
-                    break;
-                case 'R':
-                case 'r':
-                    de->flags |= TH_RST;
-                    found++;
-                    break;
-                case 'P':
-                case 'p':
-                    de->flags |= TH_PUSH;
-                    found++;
-                    break;
-                case 'U':
-                case 'u':
-                    de->flags |= TH_URG;
-                    found++;
-                    break;
-                case '1':
-                case 'C':
-                case 'c':
-                    de->flags |= TH_CWR;
-                    found++;
-                    break;
-                case '2':
-                case 'E':
-                case 'e':
-                    de->flags |= TH_ECN;
-                    found++;
-                    break;
-                case '0':
-                    de->flags = 0;
-                    found++;
-                    break;
-
-                case '!':
-                    if (de->modifier != 0) {
-                        SCLogError("\"flags\" supports only"
-                                   " one modifier at a time");
-                        goto error;
-                    }
-                    de->modifier = MODIFIER_NOT;
-                    SCLogDebug("NOT modifier is set");
-                    break;
-                case '+':
-                    if (de->modifier != 0) {
-                        SCLogError("\"flags\" supports only"
-                                   " one modifier at a time");
-                        goto error;
-                    }
-                    de->modifier = MODIFIER_PLUS;
-                    SCLogDebug("PLUS modifier is set");
-                    break;
-                case '*':
-                    if (de->modifier != 0) {
-                        SCLogError("\"flags\" supports only"
-                                   " one modifier at a time");
-                        goto error;
-                    }
-                    de->modifier = MODIFIER_ANY;
-                    SCLogDebug("ANY modifier is set");
-                    break;
-                default:
-                    break;
-            }
-            ptr++;
-        }
-
-        if (found == 0)
-            goto error;
-    }
-
-    /** Finally parse ignored flags */
-    if (strlen(arg3) > 0) {
-        ptr = arg3;
-
-        while (*ptr != '\0') {
-            switch (*ptr) {
-                case 'S':
-                case 's':
-                    de->ignored_flags &= ~TH_SYN;
-                    ignore++;
-                    break;
-                case 'A':
-                case 'a':
-                    de->ignored_flags &= ~TH_ACK;
-                    ignore++;
-                    break;
-                case 'F':
-                case 'f':
-                    de->ignored_flags &= ~TH_FIN;
-                    ignore++;
-                    break;
-                case 'R':
-                case 'r':
-                    de->ignored_flags &= ~TH_RST;
-                    ignore++;
-                    break;
-                case 'P':
-                case 'p':
-                    de->ignored_flags &= ~TH_PUSH;
-                    ignore++;
-                    break;
-                case 'U':
-                case 'u':
-                    de->ignored_flags &= ~TH_URG;
-                    ignore++;
-                    break;
-                case '1':
-                    de->ignored_flags &= ~TH_CWR;
-                    ignore++;
-                    break;
-                case '2':
-                    de->ignored_flags &= ~TH_ECN;
-                    ignore++;
-                    break;
-                case 'C':
-                case 'c':
-                    de->ignored_flags &= ~TH_CWR;
-                    ignore++;
-                    break;
-                case 'E':
-                case 'e':
-                    de->ignored_flags &= ~TH_ECN;
-                    ignore++;
-                    break;
-                case '0':
-                    break;
-                default:
-                    break;
-            }
-            ptr++;
-        }
-
-        if (ignore == 0) {
-            SCLogDebug("ignore == 0");
-            goto error;
-        }
-    }
-
-    pcre2_match_data_free(match);
-    SCLogDebug("found %"PRId32" ignore %"PRId32"", found, ignore);
-    SCReturnPtr(de, "DetectFlagsData");
-
-error:
-    if (de) {
-        SCFree(de);
-    }
-    if (match) {
-        pcre2_match_data_free(match);
-    }
-    SCReturnPtr(NULL, "DetectFlagsData");
+    DetectU8Data *du8 = (DetectU8Data *)ctx;
+    return DetectU8Match(flags, du8);
 }
 
 /**
@@ -482,14 +120,12 @@ error:
  */
 static int DetectFlagsSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
-    DetectFlagsData *de = NULL;
-
-    de = DetectFlagsParse(rawstr);
-    if (de == NULL)
+    DetectU8Data *du8 = SCDetectTcpFlagsParse(rawstr);
+    if (du8 == NULL)
         goto error;
 
     if (SCSigMatchAppendSMToList(
-                de_ctx, s, DETECT_FLAGS, (SigMatchCtx *)de, DETECT_SM_LIST_MATCH) == NULL) {
+                de_ctx, s, DETECT_FLAGS, (SigMatchCtx *)du8, DETECT_SM_LIST_MATCH) == NULL) {
         goto error;
     }
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
@@ -497,21 +133,20 @@ static int DetectFlagsSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
     return 0;
 
 error:
-    if (de)
-        SCFree(de);
+    if (du8)
+        DetectFlagsFree(NULL, du8);
     return -1;
 }
 
 /**
  * \internal
- * \brief this function will free memory associated with DetectFlagsData
+ * \brief this function will free memory associated with DetectU8Data
  *
- * \param de pointer to DetectFlagsData
+ * \param de pointer to DetectU8Data
  */
 static void DetectFlagsFree(DetectEngineCtx *de_ctx, void *de_ptr)
 {
-    DetectFlagsData *de = (DetectFlagsData *)de_ptr;
-    if(de) SCFree(de);
+    SCDetectU8Free(de_ptr);
 }
 
 int DetectFlagsSignatureNeedsSynPackets(const Signature *s)
@@ -521,9 +156,9 @@ int DetectFlagsSignatureNeedsSynPackets(const Signature *s)
         switch (sm->type) {
             case DETECT_FLAGS:
             {
-                const DetectFlagsData *fl = (const DetectFlagsData *)sm->ctx;
+                const DetectU8Data *fl = (const DetectU8Data *)sm->ctx;
 
-                if (!(fl->modifier == MODIFIER_NOT) && (fl->flags & TH_SYN)) {
+                if (DetectU8Match(TH_SYN, fl)) {
                     return 1;
                 }
                 break;
@@ -540,9 +175,9 @@ int DetectFlagsSignatureNeedsSynOnlyPackets(const Signature *s)
         switch (sm->type) {
             case DETECT_FLAGS:
             {
-                const DetectFlagsData *fl = (const DetectFlagsData *)sm->ctx;
+                const DetectU8Data *fl = (const DetectU8Data *)sm->ctx;
 
-                if (!(fl->modifier == MODIFIER_NOT) && (fl->flags == TH_SYN)) {
+                if (!(fl->mode == DetectUintModeNegBitmask) && (fl->arg1 == TH_SYN)) {
                     return 1;
                 }
                 break;
@@ -566,8 +201,11 @@ PrefilterPacketFlagsMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void 
 
     const TCPHdr *tcph = PacketGetTCP(p);
     const uint8_t flags = tcph->th_flags;
-    if (FlagsMatch(flags, ctx->v1.u8[0], ctx->v1.u8[1], ctx->v1.u8[2]))
-    {
+    DetectU8Data du8;
+    du8.mode = ctx->v1.u8[0];
+    du8.arg1 = ctx->v1.u8[1];
+    du8.arg2 = ctx->v1.u8[2];
+    if (DetectU8Match(flags, &du8)) {
         SCLogDebug("packet matches TCP flags %02x", ctx->v1.u8[1]);
         PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
     }
@@ -576,20 +214,18 @@ PrefilterPacketFlagsMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void 
 static void
 PrefilterPacketFlagsSet(PrefilterPacketHeaderValue *v, void *smctx)
 {
-    const DetectFlagsData *a = smctx;
-    v->u8[0] = a->modifier;
-    v->u8[1] = a->flags;
-    v->u8[2] = a->ignored_flags;
+    const DetectU8Data *a = smctx;
+    v->u8[0] = a->mode;
+    v->u8[1] = a->arg1;
+    v->u8[2] = a->arg2;
     SCLogDebug("v->u8[0] = %02x", v->u8[0]);
 }
 
 static bool
 PrefilterPacketFlagsCompare(PrefilterPacketHeaderValue v, void *smctx)
 {
-    const DetectFlagsData *a = smctx;
-    if (v.u8[0] == a->modifier &&
-        v.u8[1] == a->flags &&
-        v.u8[2] == a->ignored_flags)
+    const DetectU8Data *a = smctx;
+    if (v.u8[0] == a->mode && v.u8[1] == a->arg1 && v.u8[2] == a->arg2)
         return true;
     return false;
 }
@@ -618,39 +254,6 @@ static bool PrefilterTcpFlagsIsPrefilterable(const Signature *s)
 
 #ifdef UNITTESTS
 /**
- * \test FlagsTestParse01 is a test for a  valid flags value
- *
- *  \retval 1 on success
- *  \retval 0 on failure
- */
-static int FlagsTestParse01 (void)
-{
-    DetectFlagsData *de = DetectFlagsParse("S");
-    FAIL_IF_NULL(de);
-    FAIL_IF_NOT(de->flags == TH_SYN);
-    DetectFlagsFree(NULL, de);
-    PASS;
-}
-
-/**
- * \test FlagsTestParse02 is a test for an invalid flags value
- *
- *  \retval 1 on success
- *  \retval 0 on failure
- */
-static int FlagsTestParse02 (void)
-{
-    DetectFlagsData *de = NULL;
-    de = DetectFlagsParse("G");
-    if (de) {
-        DetectFlagsFree(NULL, de);
-        return 0;
-    }
-
-    return 1;
-}
-
-/**
  * \test FlagsTestParse03 test if ACK and PUSH are set. Must return success
  *
  *  \retval 1 on success
@@ -663,7 +266,7 @@ static int FlagsTestParse03 (void)
         return 0;
     ThreadVars tv;
     int ret = 0;
-    DetectFlagsData *de = NULL;
+    DetectU8Data *de = NULL;
     SigMatch *sm = NULL;
     IPV4Hdr ipv4h;
     TCPHdr tcph;
@@ -676,9 +279,9 @@ static int FlagsTestParse03 (void)
     tcph.th_flags = TH_ACK | TH_PUSH | TH_SYN | TH_RST;
     UTHSetTCPHdr(p, &tcph);
 
-    de = DetectFlagsParse("AP+");
+    de = SCDetectTcpFlagsParse("AP+");
 
-    if (de == NULL || (de->flags != (TH_ACK|TH_PUSH)) )
+    if (de == NULL || (de->arg1 != (TH_ACK | TH_PUSH)))
         goto error;
 
     sm = SigMatchAlloc();
@@ -691,14 +294,16 @@ static int FlagsTestParse03 (void)
     ret = DetectFlagsMatch(NULL, p, NULL, sm->ctx);
 
     if(ret) {
-        if (de) SCFree(de);
+        if (de)
+            DetectFlagsFree(NULL, de);
         if (sm) SCFree(sm);
         SCFree(p);
         return 1;
     }
 
 error:
-    if (de) SCFree(de);
+    if (de)
+        DetectFlagsFree(NULL, de);
     if (sm) SCFree(sm);
     SCFree(p);
     return 0;
@@ -717,7 +322,7 @@ static int FlagsTestParse04 (void)
         return 0;
     ThreadVars tv;
     int ret = 0;
-    DetectFlagsData *de = NULL;
+    DetectU8Data *de = NULL;
     SigMatch *sm = NULL;
     IPV4Hdr ipv4h;
     TCPHdr tcph;
@@ -730,9 +335,9 @@ static int FlagsTestParse04 (void)
     tcph.th_flags = TH_SYN;
     UTHSetTCPHdr(p, &tcph);
 
-    de = DetectFlagsParse("A");
+    de = SCDetectTcpFlagsParse("A");
 
-    if (de == NULL || de->flags != TH_ACK)
+    if (de == NULL || de->arg1 != TH_ACK)
         goto error;
 
     sm = SigMatchAlloc();
@@ -745,7 +350,8 @@ static int FlagsTestParse04 (void)
     ret = DetectFlagsMatch(NULL, p, NULL, sm->ctx);
 
     if(ret) {
-        if (de) SCFree(de);
+        if (de)
+            DetectFlagsFree(NULL, de);
         if (sm) SCFree(sm);
         SCFree(p);
         return 0;
@@ -753,7 +359,8 @@ static int FlagsTestParse04 (void)
 
     /* Error expected. */
 error:
-    if (de) SCFree(de);
+    if (de)
+        DetectFlagsFree(NULL, de);
     if (sm) SCFree(sm);
     SCFree(p);
     return 1;
@@ -772,7 +379,7 @@ static int FlagsTestParse05 (void)
         return 0;
     ThreadVars tv;
     int ret = 0;
-    DetectFlagsData *de = NULL;
+    DetectU8Data *de = NULL;
     SigMatch *sm = NULL;
     IPV4Hdr ipv4h;
     TCPHdr tcph;
@@ -785,9 +392,10 @@ static int FlagsTestParse05 (void)
     tcph.th_flags = TH_ACK | TH_PUSH | TH_SYN | TH_RST;
     UTHSetTCPHdr(p, &tcph);
 
-    de = DetectFlagsParse("+AP,SR");
+    de = SCDetectTcpFlagsParse("+AP,SR");
 
-    if (de == NULL || (de->modifier != MODIFIER_PLUS) || (de->flags != (TH_ACK|TH_PUSH)) || (de->ignored_flags != (TH_SYN|TH_RST)))
+    if (de == NULL || (de->mode != DetectUintModeBitmask) || (de->arg1 != (TH_ACK | TH_PUSH)) ||
+            (de->arg2 != (TH_ACK | TH_PUSH)))
         goto error;
 
     sm = SigMatchAlloc();
@@ -800,7 +408,8 @@ static int FlagsTestParse05 (void)
     ret = DetectFlagsMatch(NULL, p, NULL, sm->ctx);
 
     if(ret) {
-        if (de) SCFree(de);
+        if (de)
+            DetectFlagsFree(NULL, de);
         if (sm) SCFree(sm);
         SCFree(p);
         return 0;
@@ -808,7 +417,8 @@ static int FlagsTestParse05 (void)
 
     /* Error expected. */
 error:
-    if (de) SCFree(de);
+    if (de)
+        DetectFlagsFree(NULL, de);
     if (sm) SCFree(sm);
     SCFree(p);
     return 1;
@@ -827,7 +437,7 @@ static int FlagsTestParse06 (void)
         return 0;
     ThreadVars tv;
     int ret = 0;
-    DetectFlagsData *de = NULL;
+    DetectU8Data *de = NULL;
     SigMatch *sm = NULL;
     IPV4Hdr ipv4h;
     TCPHdr tcph;
@@ -840,9 +450,10 @@ static int FlagsTestParse06 (void)
     tcph.th_flags = TH_ACK | TH_PUSH | TH_SYN | TH_RST;
     UTHSetTCPHdr(p, &tcph);
 
-    de = DetectFlagsParse("+AP,UR");
+    de = SCDetectTcpFlagsParse("+AP,UR");
 
-    if (de == NULL || (de->modifier != MODIFIER_PLUS) || (de->flags != (TH_ACK|TH_PUSH)) || ((0xff - de->ignored_flags) != (TH_URG|TH_RST)))
+    if (de == NULL || (de->mode != DetectUintModeBitmask) || (de->arg1 != (TH_ACK | TH_PUSH)) ||
+            (de->arg2 != (TH_ACK | TH_PUSH)))
         goto error;
 
     sm = SigMatchAlloc();
@@ -855,14 +466,16 @@ static int FlagsTestParse06 (void)
     ret = DetectFlagsMatch(NULL, p, NULL, sm->ctx);
 
     if(ret) {
-        if (de) SCFree(de);
+        if (de)
+            DetectFlagsFree(NULL, de);
         if (sm) SCFree(sm);
         SCFree(p);
         return 1;
     }
 
 error:
-    if (de) SCFree(de);
+    if (de)
+        DetectFlagsFree(NULL, de);
     if (sm) SCFree(sm);
     SCFree(p);
     return 0;
@@ -881,7 +494,7 @@ static int FlagsTestParse07 (void)
         return 0;
     ThreadVars tv;
     int ret = 0;
-    DetectFlagsData *de = NULL;
+    DetectU8Data *de = NULL;
     SigMatch *sm = NULL;
     IPV4Hdr ipv4h;
     TCPHdr tcph;
@@ -894,9 +507,9 @@ static int FlagsTestParse07 (void)
     tcph.th_flags = TH_SYN | TH_RST;
     UTHSetTCPHdr(p, &tcph);
 
-    de = DetectFlagsParse("*AP");
+    de = SCDetectTcpFlagsParse("*AP");
 
-    if (de == NULL || (de->modifier != MODIFIER_ANY) || (de->flags != (TH_ACK|TH_PUSH)))
+    if (de == NULL || (de->mode != DetectUintModeNegBitmask) || (de->arg1 != (TH_ACK | TH_PUSH)))
         goto error;
 
     sm = SigMatchAlloc();
@@ -909,7 +522,8 @@ static int FlagsTestParse07 (void)
     ret = DetectFlagsMatch(NULL, p, NULL, sm->ctx);
 
     if(ret) {
-        if (de) SCFree(de);
+        if (de)
+            DetectFlagsFree(NULL, de);
         if (sm) SCFree(sm);
         SCFree(p);
         return 0;
@@ -917,7 +531,8 @@ static int FlagsTestParse07 (void)
 
     /* Error expected. */
 error:
-    if (de) SCFree(de);
+    if (de)
+        DetectFlagsFree(NULL, de);
     if (sm) SCFree(sm);
     SCFree(p);
     return 1;
@@ -936,7 +551,7 @@ static int FlagsTestParse08 (void)
         return 0;
     ThreadVars tv;
     int ret = 0;
-    DetectFlagsData *de = NULL;
+    DetectU8Data *de = NULL;
     SigMatch *sm = NULL;
     IPV4Hdr ipv4h;
     TCPHdr tcph;
@@ -949,9 +564,9 @@ static int FlagsTestParse08 (void)
     tcph.th_flags = TH_SYN | TH_RST;
     UTHSetTCPHdr(p, &tcph);
 
-    de = DetectFlagsParse("*SA");
+    de = SCDetectTcpFlagsParse("*SA");
 
-    if (de == NULL || (de->modifier != MODIFIER_ANY) || (de->flags != (TH_ACK|TH_SYN)))
+    if (de == NULL || (de->mode != DetectUintModeNegBitmask) || (de->arg1 != (TH_ACK | TH_SYN)))
         goto error;
 
     sm = SigMatchAlloc();
@@ -964,14 +579,16 @@ static int FlagsTestParse08 (void)
     ret = DetectFlagsMatch(NULL, p, NULL, sm->ctx);
 
     if(ret) {
-        if (de) SCFree(de);
+        if (de)
+            DetectFlagsFree(NULL, de);
         if (sm) SCFree(sm);
         SCFree(p);
         return 1;
     }
 
 error:
-    if (de) SCFree(de);
+    if (de)
+        DetectFlagsFree(NULL, de);
     if (sm) SCFree(sm);
     SCFree(p);
     return 0;
@@ -990,7 +607,7 @@ static int FlagsTestParse09 (void)
         return 0;
     ThreadVars tv;
     int ret = 0;
-    DetectFlagsData *de = NULL;
+    DetectU8Data *de = NULL;
     SigMatch *sm = NULL;
     IPV4Hdr ipv4h;
     TCPHdr tcph;
@@ -1003,9 +620,9 @@ static int FlagsTestParse09 (void)
     tcph.th_flags = TH_SYN | TH_RST;
     UTHSetTCPHdr(p, &tcph);
 
-    de = DetectFlagsParse("!PA");
+    de = SCDetectTcpFlagsParse("!PA");
 
-    if (de == NULL || (de->modifier != MODIFIER_NOT) || (de->flags != (TH_ACK|TH_PUSH)))
+    if (de == NULL || (de->mode != DetectUintModeNegBitmask) || (de->arg1 != (TH_ACK | TH_PUSH)))
         goto error;
 
     sm = SigMatchAlloc();
@@ -1018,14 +635,16 @@ static int FlagsTestParse09 (void)
     ret = DetectFlagsMatch(NULL, p, NULL, sm->ctx);
 
     if(ret) {
-        if (de) SCFree(de);
+        if (de)
+            DetectFlagsFree(NULL, de);
         if (sm) SCFree(sm);
         SCFree(p);
         return 1;
     }
 
 error:
-    if (de) SCFree(de);
+    if (de)
+        DetectFlagsFree(NULL, de);
     if (sm) SCFree(sm);
     SCFree(p);
     return 0;
@@ -1044,7 +663,7 @@ static int FlagsTestParse10 (void)
         return 0;
     ThreadVars tv;
     int ret = 0;
-    DetectFlagsData *de = NULL;
+    DetectU8Data *de = NULL;
     SigMatch *sm = NULL;
     IPV4Hdr ipv4h;
     TCPHdr tcph;
@@ -1057,9 +676,9 @@ static int FlagsTestParse10 (void)
     tcph.th_flags = TH_SYN | TH_RST;
     UTHSetTCPHdr(p, &tcph);
 
-    de = DetectFlagsParse("!AP");
+    de = SCDetectTcpFlagsParse("!AP");
 
-    if (de == NULL || (de->modifier != MODIFIER_NOT) || (de->flags != (TH_ACK|TH_PUSH)))
+    if (de == NULL || (de->mode != DetectUintModeNegBitmask) || (de->arg1 != (TH_ACK | TH_PUSH)))
         goto error;
 
     sm = SigMatchAlloc();
@@ -1072,14 +691,16 @@ static int FlagsTestParse10 (void)
     ret = DetectFlagsMatch(NULL, p, NULL, sm->ctx);
 
     if(ret) {
-        if (de) SCFree(de);
+        if (de)
+            DetectFlagsFree(NULL, de);
         if (sm) SCFree(sm);
         SCFree(p);
         return 1;
     }
 
 error:
-    if (de) SCFree(de);
+    if (de)
+        DetectFlagsFree(NULL, de);
     if (sm) SCFree(sm);
     SCFree(p);
     return 0;
@@ -1098,7 +719,7 @@ static int FlagsTestParse11 (void)
         return 0;
     ThreadVars tv;
     int ret = 0;
-    DetectFlagsData *de = NULL;
+    DetectU8Data *de = NULL;
     SigMatch *sm = NULL;
     IPV4Hdr ipv4h;
     TCPHdr tcph;
@@ -1111,9 +732,10 @@ static int FlagsTestParse11 (void)
     tcph.th_flags = TH_SYN | TH_RST | TH_URG;
     UTHSetTCPHdr(p, &tcph);
 
-    de = DetectFlagsParse("*AP,SR");
+    de = SCDetectTcpFlagsParse("*AP,SR");
 
-    if (de == NULL || (de->modifier != MODIFIER_ANY) || (de->flags != (TH_ACK|TH_PUSH)) || ((0xff - de->ignored_flags) != (TH_SYN|TH_RST)))
+    if (de == NULL || (de->mode != DetectUintModeNegBitmask) || (de->arg1 != (TH_ACK | TH_PUSH)) ||
+            (de->arg2 != 0))
         goto error;
 
     sm = SigMatchAlloc();
@@ -1126,7 +748,8 @@ static int FlagsTestParse11 (void)
     ret = DetectFlagsMatch(NULL, p, NULL, sm->ctx);
 
     if(ret) {
-        if (de) SCFree(de);
+        if (de)
+            DetectFlagsFree(NULL, de);
         if (sm) SCFree(sm);
         SCFree(p);
         return 0;
@@ -1134,7 +757,8 @@ static int FlagsTestParse11 (void)
 
     /* Expected. */
 error:
-    if (de) SCFree(de);
+    if (de)
+        DetectFlagsFree(NULL, de);
     if (sm) SCFree(sm);
     SCFree(p);
     return 1;
@@ -1153,7 +777,7 @@ static int FlagsTestParse12 (void)
         return 0;
     ThreadVars tv;
     int ret = 0;
-    DetectFlagsData *de = NULL;
+    DetectU8Data *de = NULL;
     SigMatch *sm = NULL;
     IPV4Hdr ipv4h;
     TCPHdr tcph;
@@ -1166,9 +790,9 @@ static int FlagsTestParse12 (void)
     tcph.th_flags = TH_SYN;
     UTHSetTCPHdr(p, &tcph);
 
-    de = DetectFlagsParse("0");
+    de = SCDetectTcpFlagsParse("0");
 
-    if (de == NULL || de->flags != 0) {
+    if (de == NULL || de->arg1 != 0) {
         printf("de setup: ");
         goto error;
     }
@@ -1183,7 +807,8 @@ static int FlagsTestParse12 (void)
     ret = DetectFlagsMatch(NULL, p, NULL, sm->ctx);
 
     if(ret) {
-        if (de) SCFree(de);
+        if (de)
+            DetectFlagsFree(NULL, de);
         if (sm) SCFree(sm);
         SCFree(p);
         return 0;
@@ -1191,45 +816,11 @@ static int FlagsTestParse12 (void)
 
     /* Expected. */
 error:
-    if (de) SCFree(de);
+    if (de)
+        DetectFlagsFree(NULL, de);
     if (sm) SCFree(sm);
     SCFree(p);
     return 1;
-}
-
-/**
- * \test test for a  valid flags value
- *
- *  \retval 1 on success
- *  \retval 0 on failure
- */
-static int FlagsTestParse13 (void)
-{
-    DetectFlagsData *de = NULL;
-    de = DetectFlagsParse("+S*");
-    if (de != NULL) {
-        DetectFlagsFree(NULL, de);
-        return 0;
-    }
-
-    return 1;
-}
-
-/**
- * \test Parse 'C' and 'E' flags.
- *
- *  \retval 1 on success.
- *  \retval 0 on failure.
- */
-static int FlagsTestParse14(void)
-{
-    DetectFlagsData *de = DetectFlagsParse("CE");
-    if (de != NULL && (de->flags == (TH_CWR | TH_ECN)) ) {
-        DetectFlagsFree(NULL, de);
-        return 1;
-    }
-
-    return 0;
 }
 
 static int FlagsTestParse15(void)
@@ -1239,7 +830,7 @@ static int FlagsTestParse15(void)
         return 0;
     ThreadVars tv;
     int ret = 0;
-    DetectFlagsData *de = NULL;
+    DetectU8Data *de = NULL;
     SigMatch *sm = NULL;
     IPV4Hdr ipv4h;
     TCPHdr tcph;
@@ -1252,9 +843,9 @@ static int FlagsTestParse15(void)
     tcph.th_flags = TH_ECN | TH_CWR | TH_SYN | TH_RST;
     UTHSetTCPHdr(p, &tcph);
 
-    de = DetectFlagsParse("EC+");
+    de = SCDetectTcpFlagsParse("EC+");
 
-    if (de == NULL || (de->flags != (TH_ECN | TH_CWR)) )
+    if (de == NULL || (de->arg1 != (TH_ECN | TH_CWR)))
         goto error;
 
     sm = SigMatchAlloc();
@@ -1268,7 +859,7 @@ static int FlagsTestParse15(void)
 
     if (ret) {
         if (de)
-            SCFree(de);
+            DetectFlagsFree(NULL, de);
         if (sm)
             SCFree(sm);
         SCFree(p);
@@ -1277,7 +868,7 @@ static int FlagsTestParse15(void)
 
 error:
     if (de)
-        SCFree(de);
+        DetectFlagsFree(NULL, de);
     if (sm)
         SCFree(sm);
     SCFree(p);
@@ -1291,7 +882,7 @@ static int FlagsTestParse16(void)
         return 0;
     ThreadVars tv;
     int ret = 0;
-    DetectFlagsData *de = NULL;
+    DetectU8Data *de = NULL;
     SigMatch *sm = NULL;
     IPV4Hdr ipv4h;
     TCPHdr tcph;
@@ -1304,9 +895,9 @@ static int FlagsTestParse16(void)
     tcph.th_flags = TH_ECN | TH_SYN | TH_RST;
     UTHSetTCPHdr(p, &tcph);
 
-    de = DetectFlagsParse("EC*");
+    de = SCDetectTcpFlagsParse("EC*");
 
-    if (de == NULL || (de->flags != (TH_ECN | TH_CWR)) )
+    if (de == NULL || (de->arg1 != (TH_ECN | TH_CWR)))
         goto error;
 
     sm = SigMatchAlloc();
@@ -1320,7 +911,7 @@ static int FlagsTestParse16(void)
 
     if (ret) {
         if (de)
-            SCFree(de);
+            DetectFlagsFree(NULL, de);
         if (sm)
             SCFree(sm);
         SCFree(p);
@@ -1329,7 +920,7 @@ static int FlagsTestParse16(void)
 
 error:
     if (de)
-        SCFree(de);
+        DetectFlagsFree(NULL, de);
     if (sm)
         SCFree(sm);
     SCFree(p);
@@ -1346,7 +937,7 @@ static int FlagsTestParse17(void)
         return 0;
     ThreadVars tv;
     int ret = 0;
-    DetectFlagsData *de = NULL;
+    DetectU8Data *de = NULL;
     SigMatch *sm = NULL;
     IPV4Hdr ipv4h;
     TCPHdr tcph;
@@ -1359,9 +950,9 @@ static int FlagsTestParse17(void)
     tcph.th_flags = TH_ECN | TH_SYN | TH_RST;
     UTHSetTCPHdr(p, &tcph);
 
-    de = DetectFlagsParse("EC+");
+    de = SCDetectTcpFlagsParse("EC+");
 
-    if (de == NULL || (de->flags != (TH_ECN | TH_CWR)) )
+    if (de == NULL || (de->arg1 != (TH_ECN | TH_CWR)))
         goto error;
 
     sm = SigMatchAlloc();
@@ -1375,7 +966,7 @@ static int FlagsTestParse17(void)
 
     if (ret == 0) {
         if (de)
-            SCFree(de);
+            DetectFlagsFree(NULL, de);
         if (sm)
             SCFree(sm);
         SCFree(p);
@@ -1384,7 +975,7 @@ static int FlagsTestParse17(void)
 
 error:
     if (de)
-        SCFree(de);
+        DetectFlagsFree(NULL, de);
     if (sm)
         SCFree(sm);
     SCFree(p);
@@ -1396,8 +987,6 @@ error:
  */
 static void FlagsRegisterTests(void)
 {
-    UtRegisterTest("FlagsTestParse01", FlagsTestParse01);
-    UtRegisterTest("FlagsTestParse02", FlagsTestParse02);
     UtRegisterTest("FlagsTestParse03", FlagsTestParse03);
     UtRegisterTest("FlagsTestParse04", FlagsTestParse04);
     UtRegisterTest("FlagsTestParse05", FlagsTestParse05);
@@ -1408,8 +997,6 @@ static void FlagsRegisterTests(void)
     UtRegisterTest("FlagsTestParse10", FlagsTestParse10);
     UtRegisterTest("FlagsTestParse11", FlagsTestParse11);
     UtRegisterTest("FlagsTestParse12", FlagsTestParse12);
-    UtRegisterTest("FlagsTestParse13", FlagsTestParse13);
-    UtRegisterTest("FlagsTestParse14", FlagsTestParse14);
     UtRegisterTest("FlagsTestParse15", FlagsTestParse15);
     UtRegisterTest("FlagsTestParse16", FlagsTestParse16);
     UtRegisterTest("FlagsTestParse17", FlagsTestParse17);

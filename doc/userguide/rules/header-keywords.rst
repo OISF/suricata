@@ -220,7 +220,7 @@ modifiers::
 
   +         match on all the specified bits (plus any others)
   *         match if any of the specified bits are set
-  !         match if not all the specified bits are set
+  !         match if not all the specified bits are set (or ``-``)
   =         match on all the specified bits and only them
 
 fragbits uses an :ref:`unsigned 16-bits integer <rules-integer-keywords>` with bitmasks.
@@ -325,15 +325,18 @@ The following modifiers can be set to change the match criteria:
 ========  ===================================
 Modifier  Description
 ========  ===================================
-``+``     match on the bits, plus any others
+``+``     match on all the bits, plus any others
 ``*``     match if any of the bits are set
-``!``     match if the bits are not set
+``!``     match if the bits are not set (or ``-``)
+``=``     match on all the bits, and only them
 ========  ===================================
 
 To handle writing rules for session initiation packets such as ECN where a SYN
 packet is sent with CWR and ECE flags set, an option mask may be used by
 appending a comma and masked values. For example, a rule that checks for a SYN
 flag, regardless of the values of the reserved bits is ``tcp.flags:S,CE;``
+
+tcp.flags uses an :ref:`unsigned 16-bits integer <rules-integer-keywords>` with bitmasks.
 
 Format of tcp.flags::
 
