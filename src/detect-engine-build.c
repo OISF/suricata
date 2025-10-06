@@ -479,13 +479,13 @@ static int SignatureCreateMask(Signature *s)
                 break;
             case DETECT_FLAGS:
             {
-                DetectFlagsData *fl = (DetectFlagsData *)sm->ctx;
+                DetectU8Data *fl = (DetectU8Data *)sm->ctx;
 
-                if (fl->flags & MASK_TCP_INITDEINIT_FLAGS) {
+                if (fl->arg1 & MASK_TCP_INITDEINIT_FLAGS) {
                     s->mask |= SIG_MASK_REQUIRE_FLAGS_INITDEINIT;
                     SCLogDebug("sig requires SIG_MASK_REQUIRE_FLAGS_INITDEINIT");
                 }
-                if (fl->flags & MASK_TCP_UNUSUAL_FLAGS) {
+                if (fl->arg1 & MASK_TCP_UNUSUAL_FLAGS) {
                     s->mask |= SIG_MASK_REQUIRE_FLAGS_UNUSUAL;
                     SCLogDebug("sig requires SIG_MASK_REQUIRE_FLAGS_UNUSUAL");
                 }
