@@ -136,6 +136,7 @@ end:
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -228,6 +229,7 @@ end:
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -320,6 +322,7 @@ end:
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -412,6 +415,7 @@ end:
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -504,6 +508,7 @@ end:
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -596,6 +601,7 @@ end:
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -688,6 +694,7 @@ end:
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -780,6 +787,7 @@ end:
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -872,6 +880,7 @@ end:
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -965,6 +974,7 @@ end:
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -1058,6 +1068,7 @@ end:
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -1151,6 +1162,7 @@ end:
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -1244,6 +1256,7 @@ end:
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -1337,6 +1350,7 @@ end:
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -1430,6 +1444,7 @@ end:
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -1523,6 +1538,7 @@ end:
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -1616,6 +1632,7 @@ end:
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -1765,9 +1782,10 @@ end:
         DetectEngineCtxFree(de_ctx);
     }
 
-    StreamTcpFreeConfig(true);
-
     UTHFreePackets(&p, 1);
+    FLOW_DESTROY(&f);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -1856,8 +1874,10 @@ end:
     if (de_ctx != NULL) {
         DetectEngineCtxFree(de_ctx);
     }
-    StreamTcpFreeConfig(true);
     UTHFreePackets(&p, 1);
+    FLOW_DESTROY(&f);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -1946,8 +1966,10 @@ end:
         DetectEngineCtxFree(de_ctx);
     }
 
-    StreamTcpFreeConfig(true);
     UTHFreePackets(&p, 1);
+    FLOW_DESTROY(&f);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -2037,8 +2059,10 @@ end:
         DetectEngineCtxFree(de_ctx);
     }
 
-    StreamTcpFreeConfig(true);
     UTHFreePackets(&p, 1);
+    FLOW_DESTROY(&f);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -2128,8 +2152,10 @@ end:
         DetectEngineCtxFree(de_ctx);
     }
 
-    StreamTcpFreeConfig(true);
     UTHFreePackets(&p, 1);
+    FLOW_DESTROY(&f);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -2219,8 +2245,10 @@ end:
         DetectEngineCtxFree(de_ctx);
     }
 
-    StreamTcpFreeConfig(true);
     UTHFreePackets(&p, 1);
+    FLOW_DESTROY(&f);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -2309,8 +2337,10 @@ end:
         DetectEngineCtxFree(de_ctx);
     }
 
-    StreamTcpFreeConfig(true);
     UTHFreePackets(&p, 1);
+    FLOW_DESTROY(&f);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -2319,9 +2349,6 @@ end:
  */
 static int DetectHttpCookieSigTest08(void)
 {
-    int result = 0;
-    Flow f;
-
     uint8_t httpbuf_request[] =
         "GET / HTTP/1.1\r\n"
         "User-Agent: Mozilla/1.0\r\n"
@@ -2334,9 +2361,8 @@ static int DetectHttpCookieSigTest08(void)
         "\r\n";
     uint32_t httpbuf_response_len = sizeof(httpbuf_response) - 1; /* minus the \0 */
 
+    Flow f;
     TcpSession ssn;
-    Packet *p1 = NULL, *p2 = NULL;
-    Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
@@ -2352,13 +2378,13 @@ static int DetectHttpCookieSigTest08(void)
     f.flags |= FLOW_IPV4;
     f.alproto = ALPROTO_HTTP1;
 
-    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    Packet *p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
     p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
-    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    Packet *p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
@@ -2367,18 +2393,14 @@ static int DetectHttpCookieSigTest08(void)
     StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                                   "(flow:to_client; content:\"response_user_agent\"; "
-                                   "http_cookie; sid:1;)");
-    if (s == NULL) {
-        goto end;
-    }
+    Signature *s =
+            DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
+                                          "(flow:to_client; content:\"response_user_agent\"; "
+                                          "http_cookie; sid:1;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -2386,55 +2408,34 @@ static int DetectHttpCookieSigTest08(void)
     /* request */
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf_request,
             httpbuf_request_len);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
-    }
+    FAIL_IF(r != 0);
 
     http_state = f.alstate;
-    if (http_state == NULL) {
-        printf("no http state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(http_state);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-    if (PacketAlertCheck(p1, 1)) {
-        goto end;
-    }
+    FAIL_IF(PacketAlertCheck(p1, 1));
 
     /* response */
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, httpbuf_response,
             httpbuf_response_len);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
-    }
+    FAIL_IF(r != 0);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-    if (!PacketAlertCheck(p2, 1)) {
-        goto end;
-    }
+    FAIL_IF(!PacketAlertCheck(p2, 1));
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL) {
-        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    }
-    if (de_ctx != NULL) {
-        DetectEngineCtxFree(de_ctx);
-    }
-
-    StreamTcpFreeConfig(true);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
-    return result;
+    FLOW_DESTROY(&f);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -2561,9 +2562,11 @@ end:
         DetectEngineCtxFree(de_ctx);
     }
 
-    StreamTcpFreeConfig(true);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    FLOW_DESTROY(&f);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
