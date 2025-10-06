@@ -23,6 +23,7 @@
 // forward declarations
 typedef struct HttpRangeContainerBuffer HttpRangeContainerBuffer;
 typedef struct HttpRangeContainerFile HttpRangeContainerFile;
+typedef struct HTTPContentRange HTTPContentRange;
 
 /** A structure representing a single range request :
  * either skipping, buffering, or appending
@@ -41,6 +42,15 @@ typedef struct HttpRangeContainerBlock {
 } HttpRangeContainerBlock;
 
 void SCHttpRangeFreeBlock(HttpRangeContainerBlock *b);
+
+// HttpRangeContainerBlock but trouble with headers inclusion order
+HttpRangeContainerBlock *SCHttpRangeContainerOpenFile(const unsigned char *key, uint32_t keylen,
+        const Flow *f, const HTTPContentRange *cr, const StreamingBufferConfig *sbcfg,
+        const unsigned char *name, uint16_t name_len, uint16_t flags, const unsigned char *data,
+        uint32_t data_len);
+
+int SCHttpRangeAppendData(const StreamingBufferConfig *sbcfg, HttpRangeContainerBlock *c,
+        const uint8_t *data, uint32_t len);
 
 #ifndef SURICATA_BINDGEN_H
 
@@ -106,16 +116,8 @@ typedef struct HttpRangeContainerFile {
     bool error;
 } HttpRangeContainerFile;
 
-int HttpRangeAppendData(const StreamingBufferConfig *sbcfg, HttpRangeContainerBlock *c,
-        const uint8_t *data, uint32_t len);
 File *HttpRangeClose(
         const StreamingBufferConfig *sbcfg, HttpRangeContainerBlock *c, uint16_t flags);
-
-// HttpRangeContainerBlock but trouble with headers inclusion order
-HttpRangeContainerBlock *HttpRangeContainerOpenFile(const unsigned char *key, uint32_t keylen,
-        const Flow *f, const HTTPContentRange *cr, const StreamingBufferConfig *sbcfg,
-        const unsigned char *name, uint16_t name_len, uint16_t flags, const unsigned char *data,
-        uint32_t data_len);
 
 uint64_t HTPByteRangeMemcapGlobalCounter(void);
 uint64_t HTPByteRangeMemuseGlobalCounter(void);

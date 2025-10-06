@@ -883,6 +883,11 @@ pub struct HttpRangeContainerBuffer {
 pub struct HttpRangeContainerFile {
     _unused: [u8; 0],
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct HTTPContentRange {
+    _unused: [u8; 0],
+}
 #[doc = " A structure representing a single range request :\n either skipping, buffering, or appending\n As this belongs to a flow, appending data to it is ensured to be thread-safe\n Only one block per file has the pointer to the container"]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -898,6 +903,20 @@ pub struct HttpRangeContainerBlock {
 }
 extern "C" {
     pub fn SCHttpRangeFreeBlock(b: *mut HttpRangeContainerBlock);
+}
+extern "C" {
+    pub fn SCHttpRangeContainerOpenFile(
+        key: *const ::std::os::raw::c_uchar, keylen: u32, f: *const Flow,
+        cr: *const HTTPContentRange, sbcfg: *const StreamingBufferConfig,
+        name: *const ::std::os::raw::c_uchar, name_len: u16, flags: u16,
+        data: *const ::std::os::raw::c_uchar, data_len: u32,
+    ) -> *mut HttpRangeContainerBlock;
+}
+extern "C" {
+    pub fn SCHttpRangeAppendData(
+        sbcfg: *const StreamingBufferConfig, c: *mut HttpRangeContainerBlock, data: *const u8,
+        len: u32,
+    ) -> ::std::os::raw::c_int;
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
