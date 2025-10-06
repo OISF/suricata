@@ -55,6 +55,7 @@
 #include "defrag-hash.h"
 #include "defrag-timeout.h"
 #include "ippair-timeout.h"
+#include "rust.h"
 #include "app-layer-htp-range.h"
 
 #include "output-flow.h"
