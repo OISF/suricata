@@ -151,10 +151,13 @@ static int RunTest(struct TestSteps *steps, const char *sig, const char *yaml)
     FLOW_DESTROY(&f);
 
     if (yaml) {
+        HTPFreeConfig();
+        SCConfDeInit();
         HtpConfigRestoreBackup();
         SCConfRestoreContextBackup();
         EngineModeSetIDS();
     }
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
