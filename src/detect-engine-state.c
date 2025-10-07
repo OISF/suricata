@@ -518,12 +518,13 @@ static int DeStateSigTest01(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(PacketAlertCheck(p, 1));
 
+    UTHFreePacket(p);
+    FLOW_DESTROY(&f);
     AppLayerParserThreadCtxFree(alp_tctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
-    UTHFreePacket(p);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -633,12 +634,13 @@ static int DeStateSigTest02(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(!(PacketAlertCheck(p, 2)));
 
+    UTHFreePacket(p);
+    FLOW_DESTROY(&f);
     AppLayerParserThreadCtxFree(alp_tctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
-    UTHFreePacket(p);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -717,12 +719,14 @@ static int DeStateSigTest03(void)
 
     FAIL_IF(!(file->flags & FILE_STORE));
 
-    AppLayerParserThreadCtxFree(alp_tctx);
+    UTHFreePacket(p);
     UTHFreeFlow(f);
 
+    AppLayerParserThreadCtxFree(alp_tctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -796,11 +800,13 @@ static int DeStateSigTest04(void)
 
     FAIL_IF(file->flags & FILE_STORE);
 
-    AppLayerParserThreadCtxFree(alp_tctx);
+    UTHFreePacket(p);
     UTHFreeFlow(f);
+    AppLayerParserThreadCtxFree(alp_tctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -878,11 +884,13 @@ static int DeStateSigTest05(void)
     FAIL_IF_NOT(http_state->state_data.file_flags & FLOWFILE_NO_STORE_TS);
     FAIL_IF(file->flags & FILE_NOSTORE);
 
-    AppLayerParserThreadCtxFree(alp_tctx);
+    UTHFreePacket(p);
     UTHFreeFlow(f);
+    AppLayerParserThreadCtxFree(alp_tctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -959,11 +967,13 @@ static int DeStateSigTest06(void)
     FAIL_IF_NOT(tx_ud->tx_data.file_flags & FLOWFILE_NO_STORE_TS);
     FAIL_IF(file->flags & FILE_NOSTORE);
 
-    AppLayerParserThreadCtxFree(alp_tctx);
+    UTHFreePacket(p);
     UTHFreeFlow(f);
+    AppLayerParserThreadCtxFree(alp_tctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -1044,11 +1054,13 @@ static int DeStateSigTest07(void)
     FAIL_IF_NULL(file);
     FAIL_IF(file->flags & FILE_STORE);
 
-    AppLayerParserThreadCtxFree(alp_tctx);
+    UTHFreePacket(p);
     UTHFreeFlow(f);
+    AppLayerParserThreadCtxFree(alp_tctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -1172,11 +1184,13 @@ static int DeStateSigTest08(void)
     FAIL_IF_NULL(file);
     FAIL_IF_NOT(file->flags & FILE_STORE);
 
-    AppLayerParserThreadCtxFree(alp_tctx);
+    UTHFreePacket(p);
     UTHFreeFlow(f);
+    AppLayerParserThreadCtxFree(alp_tctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -1298,11 +1312,13 @@ static int DeStateSigTest09(void)
     FAIL_IF_NULL(file);
     FAIL_IF_NOT(file->flags & FILE_STORE);
 
-    AppLayerParserThreadCtxFree(alp_tctx);
+    UTHFreePacket(p);
     UTHFreeFlow(f);
+    AppLayerParserThreadCtxFree(alp_tctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -1424,11 +1440,13 @@ static int DeStateSigTest10(void)
     FAIL_IF_NULL(file);
     FAIL_IF_NOT(file->flags & FILE_STORE);
 
-    AppLayerParserThreadCtxFree(alp_tctx);
+    UTHFreePacket(p);
     UTHFreeFlow(f);
+    AppLayerParserThreadCtxFree(alp_tctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
