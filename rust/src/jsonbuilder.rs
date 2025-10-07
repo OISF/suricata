@@ -637,6 +637,47 @@ impl JsonBuilder {
         Ok(self)
     }
 
+    pub fn u64_to_hex(&mut self, val: u64) -> String {
+        // 16 hex digits max in a u64
+        let mut buf = [0u8; 16];
+        let mut n = val;
+        for i in (0..16).rev() {
+            buf[i] = HEX[(n & 0xF) as usize];
+            n >>= 4;
+        }
+        String::from_utf8_lossy(&buf).trim_start_matches('0').to_string()
+    }
+
+    /// Set a key and an unsigned integer type on an object.
+    pub fn set_uint_hex<T>(&mut self, key: &str, val: T) -> Result<&mut Self, JsonError>
+    where
+        T: Unsigned + Into<u64>,
+    {
+        match self.current_state() {
+            State::ObjectNth => {
+                self.push(',')?;
+            }
+            State::ObjectFirst => {
+                self.set_state(State::ObjectNth);
+            }
+            _ => {
+                debug_validate_fail!("invalid state");
+                return Err(JsonError::InvalidState);
+            }
+        }
+
+        let val: u64 = val.into();
+        let sval = self.u64_to_hex(val);
+
+        self.push('"')?;
+        self.push_str(key)?;
+        // Hex values are displayed with the prefix 0x
+        self.push_str("\": \"0x")?;
+        self.push_str(sval.as_str())?;
+        self.push('"')?;
+        Ok(self)
+    }
+
     /// Set a key and an unsigned integer type on an object.
     pub fn set_uint<T>(&mut self, key: &str, val: T) -> Result<&mut Self, JsonError>
     where
@@ -1025,6 +1066,14 @@ pub unsafe extern "C" fn SCJbAppendUint(js: &mut JsonBuilder, val: u64) -> bool 
 #[no_mangle]
 pub unsafe extern "C" fn SCJbAppendFloat(js: &mut JsonBuilder, val: f64) -> bool {
     return js.append_float(val).is_ok();
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCJbSetUintHex(js: &mut JsonBuilder, key: *const c_char, val: u64) -> bool {
+    if let Ok(key) = CStr::from_ptr(key).to_str() {
+        return js.set_uint_hex(key, val).is_ok();
+    }
+    return false;
 }
 
 #[no_mangle]
