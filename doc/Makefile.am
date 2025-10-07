@@ -2,7 +2,6 @@ SUBDIRS = userguide
 
 EXTRA_DIST = \
 AUTHORS \
-GITGUIDE \
 INSTALL \
 NEWS \
 README \
