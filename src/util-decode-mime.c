@@ -1445,15 +1445,66 @@ static int ProcessQuotedPrintableBodyLine(const uint8_t *buf, uint32_t len,
         SCLogDebug("Error: Max encoded input line length exceeded %u > %u",
                 len, MAX_ENC_LINE_LEN);
     }
-    if (len == 0) {
-        memcpy(state->data_chunk + state->data_chunk_len, buf + len,
-                state->current_line_delimiter_len);
-        state->data_chunk_len += state->current_line_delimiter_len;
-        return ProcessDecodedDataChunk(state->data_chunk, state->data_chunk_len, state);
-    }
 
     remaining = len;
     offset = 0;
+    if (state->bvr_len > 0 && state->bvremain[0] == '=') {
+        // we were escaping
+        if (state->bvr_len > 1) {
+            h1 = state->bvremain[1];
+            h2 = *(buf + offset);
+        } else {
+            h1 = *(buf + offset);
+            h2 = *(buf + offset + 1);
+        }
+        res = DecodeQPChar(h1);
+        if (res < 0) {
+            entity->anomaly_flags |= ANOM_INVALID_QP;
+            state->msg->anomaly_flags |= ANOM_INVALID_QP;
+            SCLogDebug("Error: Quoted-printable decoding failed");
+        } else {
+            val = (uint8_t)(res << 4);
+            res = DecodeQPChar(h2);
+            if (res < 0) {
+                entity->anomaly_flags |= ANOM_INVALID_QP;
+                state->msg->anomaly_flags |= ANOM_INVALID_QP;
+                SCLogDebug("Error: Quoted-printable decoding failed");
+            } else {
+                val += res;
+                state->data_chunk[state->data_chunk_len] = val;
+                state->data_chunk_len++;
+                offset = 3 - state->bvr_len;
+                remaining -= offset;
+                /* If buffer full, then invoke callback */
+                if (DATA_CHUNK_SIZE - state->data_chunk_len < EOL_LEN + 1) {
+
+                    /* Invoke pre-processor and callback */
+                    ret = ProcessDecodedDataChunk(state->data_chunk, state->data_chunk_len, state);
+                    if (ret != MIME_DEC_OK) {
+                        SCLogDebug("Error: ProcessDecodedDataChunk() function "
+                                   "failed");
+                    }
+                }
+            }
+        }
+        state->bvr_len = 0;
+    } else if (state->bvr_len > 0) {
+        // end of line was kept for next call which is now
+        memcpy(state->data_chunk + state->data_chunk_len, state->bvremain, state->bvr_len);
+        state->data_chunk_len += state->bvr_len;
+        state->bvr_len = 0;
+    }
+    if (len == 0) {
+        ret = ProcessDecodedDataChunk(state->data_chunk, state->data_chunk_len, state);
+        if (ret != MIME_DEC_OK) {
+            SCLogDebug("Error: ProcessDecodedDataChunk() function "
+                       "failed");
+        }
+        // keep end of line for next call (and skip it on completion)
+        memcpy(state->bvremain, buf, state->current_line_delimiter_len);
+        state->bvr_len = state->current_line_delimiter_len;
+        return ret;
+    }
     while (remaining > 0) {
 
         c = *(buf + offset);
@@ -1468,15 +1519,26 @@ static int ProcessQuotedPrintableBodyLine(const uint8_t *buf, uint32_t len,
                 memcpy(state->data_chunk + state->data_chunk_len, CRLF, EOL_LEN);
                 state->data_chunk_len += EOL_LEN;
             }
-        } else if (remaining > 1) {
+        } else {
             /* If last character handle as soft line break by ignoring,
                        otherwise process as escaped '=' character */
 
             /* Not enough characters */
             if (remaining < 3) {
-                entity->anomaly_flags |= ANOM_INVALID_QP;
-                state->msg->anomaly_flags |= ANOM_INVALID_QP;
-                SCLogDebug("Error: Quoted-printable decoding failed");
+                if (state->current_line_delimiter_len > 0 && remaining > 1) {
+                    entity->anomaly_flags |= ANOM_INVALID_QP;
+                    state->msg->anomaly_flags |= ANOM_INVALID_QP;
+                    SCLogDebug("Error: Quoted-printable decoding failed");
+                } else if (state->current_line_delimiter_len == 0) {
+                    state->bvr_len = (uint8_t)remaining; //
+                    state->bvremain[0] = '=';
+                    // keep in state the bytes to unescape
+                    if (remaining > 1) {
+                        state->bvremain[1] = *(buf + offset + 1);
+                        remaining--;
+                        offset++;
+                    }
+                }
             } else {
                 h1 = *(buf + offset + 1);
                 res = DecodeQPChar(h1);
