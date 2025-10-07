@@ -2764,7 +2764,8 @@ static int SigValidateFileHandling(const Signature *s)
         SCReturnInt(1);
     }
 
-    if (s->alproto != ALPROTO_UNKNOWN && !AppLayerParserSupportsFiles(IPPROTO_TCP, s->alproto)) {
+    if (s->alproto != ALPROTO_UNKNOWN && !AppLayerParserSupportsFiles(IPPROTO_TCP, s->alproto) &&
+            !AppLayerParserSupportsFiles(IPPROTO_UDP, s->alproto)) {
         SCLogError("protocol %s doesn't "
                    "support file matching",
                 AppProtoToString(s->alproto));
@@ -2776,7 +2777,8 @@ static int SigValidateFileHandling(const Signature *s)
             if (s->init_data->alprotos[i] == ALPROTO_UNKNOWN) {
                 break;
             }
-            if (AppLayerParserSupportsFiles(IPPROTO_TCP, s->init_data->alprotos[i])) {
+            if (AppLayerParserSupportsFiles(IPPROTO_TCP, s->init_data->alprotos[i]) ||
+                    AppLayerParserSupportsFiles(IPPROTO_UDP, s->init_data->alprotos[i])) {
                 found = true;
                 break;
             }
