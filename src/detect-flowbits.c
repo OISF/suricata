@@ -1624,12 +1624,12 @@ static int FlowBitsTestSig06(void)
     }
     FAIL_IF_NOT(result);
 
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    DetectEngineCtxFree(de_ctx);
-
+    PacketFree(p);
     FLOW_DESTROY(&f);
 
-    SCFree(p);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -1699,12 +1699,11 @@ static int FlowBitsTestSig07(void)
     }
     FAIL_IF(result);
 
+    PacketFree(p);
+    FLOW_DESTROY(&f);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-
-    FLOW_DESTROY(&f);
-
-    SCFree(p);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -1775,12 +1774,11 @@ static int FlowBitsTestSig08(void)
     }
     FAIL_IF(result);
 
+    PacketFree(p);
+    FLOW_DESTROY(&f);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-
-    FLOW_DESTROY(&f);
-
-    SCFree(p);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
