@@ -474,6 +474,15 @@ void UTHFreePacket(Packet *p)
 {
     if (p == NULL)
         return;
+    /* for IPv6 UTHBuildPacketIPV6Real allocs both IPv6 hdr and TCP hdr */
+    if (p->l3.type == PACKET_L3_IPV6) {
+        SCFree(p->l3.hdrs.ip6h);
+        p->l3.hdrs.ip6h = NULL;
+        if (p->l4.type == PACKET_L4_TCP) {
+            SCFree(p->l4.hdrs.tcph);
+            p->l4.hdrs.tcph = NULL;
+        }
+    }
     PacketFree(p);
 }
 
