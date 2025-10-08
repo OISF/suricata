@@ -740,7 +740,6 @@ static int SCClassConfTest04(void)
     result &= (SCClassConfGetClasstype("bed-unknown", de_ctx) == NULL);
 
     DetectEngineCtxFree(de_ctx);
-
     return result;
 }
 
@@ -773,7 +772,6 @@ static int SCClassConfTest05(void)
     result &= (SCClassConfGetClasstype("bed-unknown", de_ctx) == NULL);
 
     DetectEngineCtxFree(de_ctx);
-
     return result;
 }
 

@@ -982,9 +982,11 @@ static int SigGroupHeadTest06(void)
     const SigGroupHead *sgh = SigMatchSignaturesGetSgh(de_ctx, p);
     FAIL_IF_NULL(sgh);
 
-    DetectEngineCtxFree(de_ctx);
     UTHFreePackets(&p, 1);
 
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 #endif
