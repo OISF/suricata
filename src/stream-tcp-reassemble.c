@@ -2469,8 +2469,9 @@ static int StreamTcpReassembleTest33(void)
     FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, &ssn.client, p) == -1);
 
     StreamTcpUTClearSession(&ssn);
+    FLOW_DESTROY(&f);
+    PacketFree(p);
     StreamTcpUTDeinit(ra_ctx);
-    SCFree(p);
     PASS;
 }
 
@@ -2530,8 +2531,9 @@ static int StreamTcpReassembleTest34(void)
     FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, &ssn.client, p) == -1);
 
     StreamTcpUTClearSession(&ssn);
+    FLOW_DESTROY(&f);
     StreamTcpUTDeinit(ra_ctx);
-    SCFree(p);
+    PacketFree(p);
     PASS;
 }
 
@@ -3014,9 +3016,10 @@ static int StreamTcpReassembleTest39 (void)
     p->payload = NULL;
     FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
 
+    PacketFree(p);
     StreamTcpSessionClear(ssn);
+    FLOW_DESTROY(&f);
     StreamTcpUTDeinit(stt.ra_ctx);
-    SCFree(p);
     PASS;
 }
 
@@ -3157,10 +3160,10 @@ static int StreamTcpReassembleTest40 (void)
     FAIL_IF(f->alproto != ALPROTO_HTTP1);
 
     StreamTcpUTClearSession(&ssn);
+    PacketFree(p);
+    UTHFreeFlow(f);
     StreamTcpReassembleFreeThreadCtx(ra_ctx);
     StreamTcpFreeConfig(true);
-    SCFree(p);
-    UTHFreeFlow(f);
     PASS;
 }
 
@@ -3333,10 +3336,10 @@ static int StreamTcpReassembleTest47 (void)
     FAIL_IF(f->alproto != ALPROTO_HTTP1);
 
     StreamTcpUTClearSession(&ssn);
+    PacketFree(p);
+    UTHFreeFlow(f);
     StreamTcpReassembleFreeThreadCtx(ra_ctx);
     StreamTcpFreeConfig(true);
-    SCFree(p);
-    UTHFreeFlow(f);
     PASS;
 }
 
