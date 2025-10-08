@@ -2096,10 +2096,10 @@ static int SMTPParserTest01(void)
 
     result = 1;
 end:
+    FLOW_DESTROY(&f);
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     return result;
 }
 
@@ -3627,17 +3627,14 @@ static int SMTPParserTest12(void)
     result = 1;
 
 end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    DetectEngineCtxFree(de_ctx);
-
+    UTHFreePackets(&p, 1);
+    FLOW_DESTROY(&f);
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
-    UTHFreePackets(&p, 1);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -3777,19 +3774,15 @@ static int SMTPParserTest13(void)
     }
 
     result = 1;
-
 end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    DetectEngineCtxFree(de_ctx);
-
+    UTHFreePackets(&p, 1);
+    FLOW_DESTROY(&f);
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
-    UTHFreePackets(&p, 1);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -4241,10 +4234,10 @@ static int SMTPParserTest14(void)
 
     result = 1;
 end:
+    FLOW_DESTROY(&f);
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     return result;
 }
 #endif /* UNITTESTS */
