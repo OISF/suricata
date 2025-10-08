@@ -28,12 +28,11 @@
 #include "stream-tcp.h"
 #include "util-unittest-helper.h"
 
-#define TEST_INIT                                                       \
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();                    \
-    FAIL_IF(de_ctx == NULL);                                            \
-    SRepInit(de_ctx);                                                   \
-                                                                        \
-    Address a;                                                          \
+#define TEST_INIT                                                                                  \
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();                                               \
+    FAIL_IF(de_ctx == NULL);                                                                       \
+                                                                                                   \
+    Address a;                                                                                     \
     uint8_t cat = 0, value = 0;
 
 #define TEST_INIT_WITH_PACKET_IPV6(src, dst)                                                       \
