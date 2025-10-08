@@ -1581,11 +1581,8 @@ static int DetectContentParseTest20(void)
         goto end;
     }
 
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+end:
     DetectEngineCtxFree(de_ctx);
-
     return result;
 }
 
@@ -1610,11 +1607,8 @@ static int DetectContentParseTest21(void)
         goto end;
     }
 
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+end:
     DetectEngineCtxFree(de_ctx);
-
     return result;
 }
 
@@ -1639,11 +1633,8 @@ static int DetectContentParseTest22(void)
         goto end;
     }
 
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+end:
     DetectEngineCtxFree(de_ctx);
-
     return result;
 }
 
@@ -1668,11 +1659,8 @@ static int DetectContentParseTest23(void)
         goto end;
     }
 
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+end:
     DetectEngineCtxFree(de_ctx);
-
     return result;
 }
 
@@ -1711,10 +1699,7 @@ static int DetectContentParseTest24(void)
     result = (strncmp("boo", (char *)cd->content, cd->content_len) == 0);
 
 end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
-
     return result;
 }
 
@@ -1739,11 +1724,8 @@ static int DetectContentParseTest25(void)
         goto end;
     }
 
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+end:
     DetectEngineCtxFree(de_ctx);
-
     return result;
 }
 
@@ -1768,11 +1750,8 @@ static int DetectContentParseTest26(void)
         goto end;
     }
 
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+end:
     DetectEngineCtxFree(de_ctx);
-
     return result;
 }
 
@@ -1797,11 +1776,8 @@ static int DetectContentParseTest27(void)
         goto end;
     }
 
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+end:
     DetectEngineCtxFree(de_ctx);
-
     return result;
 }
 
@@ -1826,11 +1802,8 @@ static int DetectContentParseTest28(void)
         goto end;
     }
 
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+end:
     DetectEngineCtxFree(de_ctx);
-
     return result;
 }
 
@@ -1855,11 +1828,8 @@ static int DetectContentParseTest29(void)
         goto end;
     }
 
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+end:
     DetectEngineCtxFree(de_ctx);
-
     return result;
 }
 
@@ -1884,11 +1854,8 @@ static int DetectContentParseTest30(void)
         goto end;
     }
 
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+end:
     DetectEngineCtxFree(de_ctx);
-
     return result;
 }
 
@@ -1913,11 +1880,8 @@ static int DetectContentParseTest31(void)
         goto end;
     }
 
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+end:
     DetectEngineCtxFree(de_ctx);
-
     return result;
 }
 
@@ -1942,11 +1906,8 @@ static int DetectContentParseTest32(void)
         goto end;
     }
 
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+end:
     DetectEngineCtxFree(de_ctx);
-
     return result;
 }
 
@@ -1971,11 +1932,8 @@ static int DetectContentParseTest33(void)
         goto end;
     }
 
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+end:
     DetectEngineCtxFree(de_ctx);
-
     return result;
 }
 
@@ -2000,11 +1958,8 @@ static int DetectContentParseTest34(void)
         goto end;
     }
 
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+end:
     DetectEngineCtxFree(de_ctx);
-
     return result;
 }
 
@@ -2029,11 +1984,8 @@ static int DetectContentParseTest35(void)
         goto end;
     }
 
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+end:
     DetectEngineCtxFree(de_ctx);
-
     return result;
 }
 
@@ -2062,10 +2014,10 @@ static int SigTestPositiveTestContent(const char *rule, uint8_t *buf)
 
     FAIL_IF(PacketAlertCheck(p, 1) != 1);
 
+    UTHFreePackets(&p, 1);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-
-    UTHFreePackets(&p, 1);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -2256,15 +2208,14 @@ static int SigTestNegativeTestContent(const char *rule, uint8_t *buf)
 
     result = 1;
 end:
+    UTHFreePackets(&p, 1);
     if (det_ctx != NULL) {
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     }
     if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
-        SigCleanSignatures(de_ctx);
         DetectEngineCtxFree(de_ctx);
     }
-    UTHFreePackets(&p, 1);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
