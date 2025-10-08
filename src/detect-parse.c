@@ -3661,6 +3661,7 @@ static int SigParseTest02 (void)
     if (de_ctx == NULL)
         goto end;
 
+    SCClassConfDeInitContext(de_ctx);
     FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
     SCClassConfLoadClassificationConfigFile(de_ctx, fd);
 
