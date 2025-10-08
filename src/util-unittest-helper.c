@@ -749,7 +749,7 @@ int UTHMatchPackets(DetectEngineCtx *de_ctx, Packet **p, int num_packets)
      * and others may not. That check will be outside
      */
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    if (de_ctx != NULL) SigGroupCleanup(de_ctx);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
