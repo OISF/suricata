@@ -2263,15 +2263,13 @@ static int SCHSTest29(void)
 
     result = 1;
 end:
+    UTHFreePackets(&p, 1);
     if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
-        SigCleanSignatures(de_ctx);
-
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
     }
 
-    UTHFreePackets(&p, 1);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
