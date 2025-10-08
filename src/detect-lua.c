@@ -873,7 +873,6 @@ static int LuaMatchTest01(void)
     /* do detect for p1 */
     SCLogDebug("inspecting p1");
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-
     FAIL_IF(PacketAlertCheck(p1, 1));
 
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
@@ -882,7 +881,6 @@ static int LuaMatchTest01(void)
     /* do detect for p2 */
     SCLogDebug("inspecting p2");
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-
     FAIL_IF_NOT(PacketAlertCheck(p2, 1));
 
     uint32_t id = VarNameStoreLookupByName("cnt", VAR_TYPE_FLOW_VAR);
@@ -890,18 +888,18 @@ static int LuaMatchTest01(void)
 
     FlowVar *fv = FlowVarGet(&f, id);
     FAIL_IF_NULL(fv);
-
     FAIL_IF(fv->data.fv_str.value_len != 1);
-
     FAIL_IF(memcmp(fv->data.fv_str.value, "2", 1) != 0);
 
-    AppLayerParserThreadCtxFree(alp_tctx);
-    DetectEngineCtxFree(de_ctx);
-
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    FLOW_DESTROY(&f);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -997,7 +995,6 @@ static int LuaMatchTest01a(void)
     /* do detect for p1 */
     SCLogDebug("inspecting p1");
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-
     FAIL_IF(PacketAlertCheck(p1, 1));
 
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
@@ -1005,7 +1002,6 @@ static int LuaMatchTest01a(void)
     /* do detect for p2 */
     SCLogDebug("inspecting p2");
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-
     FAIL_IF_NOT(PacketAlertCheck(p2, 1));
 
     uint32_t id = VarNameStoreLookupByName("cnt", VAR_TYPE_FLOW_VAR);
@@ -1013,18 +1009,18 @@ static int LuaMatchTest01a(void)
 
     FlowVar *fv = FlowVarGet(&f, id);
     FAIL_IF_NULL(fv);
-
     FAIL_IF(fv->data.fv_str.value_len != 1);
-
     FAIL_IF(memcmp(fv->data.fv_str.value, "2", 1) != 0);
 
-    AppLayerParserThreadCtxFree(alp_tctx);
-    DetectEngineCtxFree(de_ctx);
-
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    FLOW_DESTROY(&f);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -1125,17 +1121,17 @@ static int LuaMatchTest02(void)
 
     FlowVar *fv = FlowVarGet(&f, id);
     FAIL_IF_NULL(fv);
-
     FAIL_IF(fv->data.fv_str.value_len != 1);
-
     FAIL_IF(memcmp(fv->data.fv_str.value, "2", 1) != 0);
 
-    DetectEngineCtxFree(de_ctx);
-
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    FLOW_DESTROY(&f);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -1227,7 +1223,6 @@ static int LuaMatchTest02a(void)
 
     /* do detect for p2 */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-
     FAIL_IF_NOT(PacketAlertCheck(p2, 1));
 
     uint32_t id = VarNameStoreLookupByName("cnt", VAR_TYPE_FLOW_VAR);
@@ -1235,17 +1230,17 @@ static int LuaMatchTest02a(void)
 
     FlowVar *fv = FlowVarGet(&f, id);
     FAIL_IF_NULL(fv);
-
     FAIL_IF(fv->data.fv_str.value_len != 1);
-
     FAIL_IF(memcmp(fv->data.fv_str.value, "2", 1) != 0);
 
-    DetectEngineCtxFree(de_ctx);
-
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    FLOW_DESTROY(&f);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -1338,25 +1333,23 @@ static int LuaMatchTest03(void)
 
     /* do detect for p2 */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-
     FAIL_IF_NOT(PacketAlertCheck(p2, 1));
 
     uint32_t id = VarNameStoreLookupByName("cnt", VAR_TYPE_FLOW_VAR);
     FAIL_IF(id == 0);
-
     FlowVar *fv = FlowVarGet(&f, id);
     FAIL_IF_NULL(fv);
-
     FAIL_IF(fv->data.fv_str.value_len != 1);
-
     FAIL_IF(memcmp(fv->data.fv_str.value, "2", 1) != 0);
 
-    DetectEngineCtxFree(de_ctx);
-
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    FLOW_DESTROY(&f);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -1453,20 +1446,19 @@ static int LuaMatchTest03a(void)
 
     uint32_t id = VarNameStoreLookupByName("cnt", VAR_TYPE_FLOW_VAR);
     FAIL_IF(id == 0);
-
     FlowVar *fv = FlowVarGet(&f, id);
     FAIL_IF_NULL(fv);
-
     FAIL_IF(fv->data.fv_str.value_len != 1);
-
     FAIL_IF(memcmp(fv->data.fv_str.value, "2", 1) != 0);
 
-    DetectEngineCtxFree(de_ctx);
-
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    FLOW_DESTROY(&f);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -1559,34 +1551,31 @@ static int LuaMatchTest04(void)
     FAIL_IF_NULL(http_state);
 
     /* do detect for p1 */
-    SCLogInfo("p1");
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-
     FAIL_IF(PacketAlertCheck(p1, 1));
 
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
     FAIL_IF(r != 0);
-    /* do detect for p2 */
-    SCLogInfo("p2");
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
 
+    /* do detect for p2 */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
     FAIL_IF_NOT(PacketAlertCheck(p2, 1));
 
     uint32_t id = VarNameStoreLookupByName("cnt", VAR_TYPE_FLOW_INT);
     FAIL_IF(id == 0);
-
     FlowVar *fv = FlowVarGet(&f, id);
     FAIL_IF_NULL(fv);
-
     FAIL_IF(fv->data.fv_int.value != 2);
 
-    AppLayerParserThreadCtxFree(alp_tctx);
-    DetectEngineCtxFree(de_ctx);
-
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    FLOW_DESTROY(&f);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -1681,34 +1670,31 @@ static int LuaMatchTest04a(void)
     FAIL_IF_NULL(http_state);
 
     /* do detect for p1 */
-    SCLogInfo("p1");
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-
     FAIL_IF(PacketAlertCheck(p1, 1));
 
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
     FAIL_IF(r != 0);
-    /* do detect for p2 */
-    SCLogInfo("p2");
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
 
+    /* do detect for p2 */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
     FAIL_IF_NOT(PacketAlertCheck(p2, 1));
 
     uint32_t id = VarNameStoreLookupByName("cnt", VAR_TYPE_FLOW_INT);
     FAIL_IF(id == 0);
-
     FlowVar *fv = FlowVarGet(&f, id);
     FAIL_IF_NULL(fv);
-
     FAIL_IF(fv->data.fv_int.value != 2);
 
-    AppLayerParserThreadCtxFree(alp_tctx);
-    DetectEngineCtxFree(de_ctx);
-
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    FLOW_DESTROY(&f);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -1796,34 +1782,31 @@ static int LuaMatchTest05(void)
     FAIL_IF_NULL(http_state);
 
     /* do detect for p1 */
-    SCLogInfo("p1");
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-
     FAIL_IF(PacketAlertCheck(p1, 1));
 
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
     FAIL_IF(r != 0);
-    /* do detect for p2 */
-    SCLogInfo("p2");
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
 
+    /* do detect for p2 */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
     FAIL_IF_NOT(PacketAlertCheck(p2, 1));
 
     uint32_t id = VarNameStoreLookupByName("cnt", VAR_TYPE_FLOW_INT);
     FAIL_IF(id == 0);
-
     FlowVar *fv = FlowVarGet(&f, id);
     FAIL_IF_NULL(fv);
-
     FAIL_IF(fv->data.fv_int.value != 2);
 
-    AppLayerParserThreadCtxFree(alp_tctx);
-    DetectEngineCtxFree(de_ctx);
-
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    FLOW_DESTROY(&f);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -1913,7 +1896,6 @@ static int LuaMatchTest05a(void)
     /* do detect for p1 */
     SCLogInfo("p1");
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-
     FAIL_IF(PacketAlertCheck(p1, 1));
 
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
@@ -1926,19 +1908,19 @@ static int LuaMatchTest05a(void)
 
     uint32_t id = VarNameStoreLookupByName("cnt", VAR_TYPE_FLOW_INT);
     FAIL_IF(id == 0);
-
     FlowVar *fv = FlowVarGet(&f, id);
     FAIL_IF_NULL(fv);
-
     FAIL_IF(fv->data.fv_int.value != 2);
 
-    AppLayerParserThreadCtxFree(alp_tctx);
-    DetectEngineCtxFree(de_ctx);
-
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    FLOW_DESTROY(&f);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -2031,34 +2013,31 @@ static int LuaMatchTest06(void)
     FAIL_IF_NULL(http_state);
 
     /* do detect for p1 */
-    SCLogInfo("p1");
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-
     FAIL_IF(PacketAlertCheck(p1, 1));
 
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
     FAIL_IF(r != 0);
-    /* do detect for p2 */
-    SCLogInfo("p2");
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
 
+    /* do detect for p2 */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
     FAIL_IF_NOT(PacketAlertCheck(p2, 1));
 
     uint32_t id = VarNameStoreLookupByName("cnt", VAR_TYPE_FLOW_INT);
     FAIL_IF(id == 0);
-
     FlowVar *fv = FlowVarGet(&f, id);
     FAIL_IF_NULL(fv);
-
     FAIL_IF(fv->data.fv_int.value != 0);
 
-    AppLayerParserThreadCtxFree(alp_tctx);
-    DetectEngineCtxFree(de_ctx);
-
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    FLOW_DESTROY(&f);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -2151,34 +2130,31 @@ static int LuaMatchTest06a(void)
     FAIL_IF_NULL(http_state);
 
     /* do detect for p1 */
-    SCLogInfo("p1");
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-
     FAIL_IF(PacketAlertCheck(p1, 1));
 
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf2, httplen2);
     FAIL_IF(r != 0);
-    /* do detect for p2 */
-    SCLogInfo("p2");
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
 
+    /* do detect for p2 */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
     FAIL_IF_NOT(PacketAlertCheck(p2, 1));
 
     uint32_t id = VarNameStoreLookupByName("cnt", VAR_TYPE_FLOW_INT);
     FAIL_IF(id == 0);
-
     FlowVar *fv = FlowVarGet(&f, id);
     FAIL_IF_NULL(fv);
-
     FAIL_IF(fv->data.fv_int.value != 0);
 
-    AppLayerParserThreadCtxFree(alp_tctx);
-    DetectEngineCtxFree(de_ctx);
-
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    FLOW_DESTROY(&f);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
