@@ -211,6 +211,7 @@ static int DetectClasstypeTest01(void)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
+    SCClassConfDeInitContext(de_ctx);
     FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
     FAIL_IF_NULL(fd);
     SCClassConfLoadClassificationConfigFile(de_ctx, fd);
@@ -220,6 +221,7 @@ static int DetectClasstypeTest01(void)
     FAIL_IF_NULL(s);
     FAIL_IF_NOT(s->prio == 3);
 
+    SCClassConfDeInitContext(de_ctx);
     DetectEngineCtxFree(de_ctx);
     PASS;
 }
@@ -234,6 +236,7 @@ static int DetectClasstypeTest02(void)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
+    SCClassConfDeInitContext(de_ctx);
     FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
     FAIL_IF_NULL(fd);
     SCClassConfLoadClassificationConfigFile(de_ctx, fd);
@@ -265,6 +268,7 @@ static int DetectClasstypeTest02(void)
     FAIL_IF_NULL(sig);
     FAIL_IF_NOT(sig->prio == 2);
 
+    SCClassConfDeInitContext(de_ctx);
     DetectEngineCtxFree(de_ctx);
     PASS;
 }
@@ -278,6 +282,7 @@ static int DetectClasstypeTest03(void)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
+    SCClassConfDeInitContext(de_ctx);
     FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
     FAIL_IF_NULL(fd);
     SCClassConfLoadClassificationConfigFile(de_ctx, fd);
@@ -303,6 +308,7 @@ static int DetectClasstypeTest03(void)
     FAIL_IF_NULL(sig);
     FAIL_IF_NOT(sig->prio == 5);
 
+    SCClassConfDeInitContext(de_ctx);
     DetectEngineCtxFree(de_ctx);
     PASS;
 }
