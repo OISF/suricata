@@ -246,20 +246,18 @@ static int LogCustomFormatTest01(void)
     SCTime_t ts = SCTIME_FROM_SECS(mktime(&tm));
 
     MemBuffer *buffer = MemBufferCreateNew(62);
-    if (!buffer) {
-        return 0;
-    }
+    FAIL_IF_NULL(buffer);
 
     LogCustomFormatWriteTimestamp(buffer, "", ts);
     /*
      * {buffer = "01/13/14-04:30:00", size = 62, offset = 17}
      */
     FAIL_IF_NOT( buffer->offset == 17);
+    FAIL_IF_NOT(buffer->size == 62);
     FAIL_IF(strcmp((char *)buffer->buffer, "01/13/14-04:30:00") != 0);
 
     MemBufferFree(buffer);
-
-    return 1;
+    PASS;
 }
 
 static void LogCustomFormatRegisterTests(void)
