@@ -721,16 +721,16 @@ static int ValidityTestDetect01(void)
     FAIL_IF_NOT(PacketAlertCheck(p3, 1));
     FAIL_IF_NOT(PacketAlertCheck(p3, 2));
 
-    AppLayerParserThreadCtxFree(alp_tctx);
-    DetectEngineThreadCtxDeinit(&tv, det_ctx);
-    DetectEngineCtxFree(de_ctx);
-
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     UTHFreePacket(p1);
     UTHFreePacket(p2);
     UTHFreePacket(p3);
+    FLOW_DESTROY(&f);
 
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&tv);
     PASS;
 }
 
@@ -1044,16 +1044,16 @@ static int ExpiredTestDetect01(void)
 
     FAIL_IF_NOT(PacketAlertCheck(p3, 1));
 
-    AppLayerParserThreadCtxFree(alp_tctx);
-    DetectEngineThreadCtxDeinit(&tv, det_ctx);
-    DetectEngineCtxFree(de_ctx);
-
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     UTHFreePacket(p1);
     UTHFreePacket(p2);
     UTHFreePacket(p3);
+    FLOW_DESTROY(&f);
 
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&tv);
     PASS;
 }
 
@@ -1352,16 +1352,16 @@ static int ValidTestDetect01(void)
 
     FAIL_IF_NOT(PacketAlertCheck(p3, 1));
 
-    AppLayerParserThreadCtxFree(alp_tctx);
-    DetectEngineThreadCtxDeinit(&tv, det_ctx);
-    DetectEngineCtxFree(de_ctx);
-
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     UTHFreePacket(p1);
     UTHFreePacket(p2);
     UTHFreePacket(p3);
+    FLOW_DESTROY(&f);
 
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&tv);
     PASS;
 }
 
