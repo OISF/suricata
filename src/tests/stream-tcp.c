@@ -57,7 +57,7 @@ static int StreamTcpTest01(void)
     FAIL_IF_NOT_NULL(f.alparser);
     FAIL_IF_NOT(ssn->state == 0);
     StreamTcpSessionClear(p->flow->protoctx);
-    SCFree(p);
+    PacketFree(p);
     FLOW_DESTROY(&f);
     StreamTcpUTDeinit(stt.ra_ctx);
     PASS;
@@ -142,7 +142,7 @@ static int StreamTcpTest02(void)
     StreamTcpSessionClear(p->flow->protoctx);
     // StreamTcpUTClearSession(p->flow->protoctx);
 
-    SCFree(p);
+    PacketFree(p);
     FLOW_DESTROY(&f);
     StreamTcpUTDeinit(stt.ra_ctx);
     PASS;
@@ -216,7 +216,7 @@ static int StreamTcpTest03(void)
 
     ret = 1;
 end:
-    SCFree(p);
+    PacketFree(p);
     FLOW_DESTROY(&f);
     StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
@@ -283,7 +283,7 @@ static int StreamTcpTest04(void)
 
     ret = 1;
 end:
-    SCFree(p);
+    PacketFree(p);
     FLOW_DESTROY(&f);
     StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
@@ -381,7 +381,7 @@ static int StreamTcpTest05(void)
 
     ret = 1;
 end:
-    SCFree(p);
+    PacketFree(p);
     FLOW_DESTROY(&f);
     StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
@@ -445,7 +445,7 @@ static int StreamTcpTest06(void)
 
     ret = 1;
 end:
-    SCFree(p);
+    PacketFree(p);
     FLOW_DESTROY(&f);
     StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
@@ -506,7 +506,7 @@ static int StreamTcpTest07(void)
     FAIL_IF(((TcpSession *)(p->flow->protoctx))->client.next_seq != 11);
 
     StreamTcpSessionClear(p->flow->protoctx);
-    SCFree(p);
+    PacketFree(p);
     FLOW_DESTROY(&f);
     StreamTcpUTDeinit(stt.ra_ctx);
     PASS;
@@ -568,7 +568,7 @@ static int StreamTcpTest08(void)
 
     StreamTcpSessionClear(p->flow->protoctx);
 
-    SCFree(p);
+    PacketFree(p);
     FLOW_DESTROY(&f);
     StreamTcpUTDeinit(stt.ra_ctx);
     PASS;
@@ -638,7 +638,7 @@ static int StreamTcpTest09(void)
     FAIL_IF(TCPSEG_RB_NEXT(seg) != NULL);
 
     StreamTcpSessionClear(p->flow->protoctx);
-    SCFree(p);
+    PacketFree(p);
     FLOW_DESTROY(&f);
     StreamTcpUTDeinit(stt.ra_ctx);
     PASS;
@@ -717,7 +717,7 @@ static int StreamTcpTest10(void)
 
     StreamTcpSessionClear(p->flow->protoctx);
 
-    SCFree(p);
+    PacketFree(p);
     FLOW_DESTROY(&f);
     StreamTcpUTDeinit(stt.ra_ctx);
     PASS;
@@ -794,7 +794,7 @@ static int StreamTcpTest11(void)
     FAIL_IF(ssn->client.next_seq != 14);
 
     StreamTcpSessionClear(p->flow->protoctx);
-    SCFree(p);
+    PacketFree(p);
     FLOW_DESTROY(&f);
     StreamTcpUTDeinit(stt.ra_ctx);
     PASS;
@@ -887,7 +887,7 @@ static int StreamTcpTest12(void)
 
     ret = 1;
 end:
-    SCFree(p);
+    PacketFree(p);
     FLOW_DESTROY(&f);
     StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
@@ -993,7 +993,7 @@ static int StreamTcpTest13(void)
 
     ret = 1;
 end:
-    SCFree(p);
+    PacketFree(p);
     FLOW_DESTROY(&f);
     StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
@@ -1244,7 +1244,7 @@ static int StreamTcpTest14(void)
 end:
     SCConfDeInit();
     SCConfRestoreContextBackup();
-    SCFree(p);
+    PacketFree(p);
     FLOW_DESTROY(&f);
     StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
@@ -1323,7 +1323,7 @@ static int StreamTcp4WHSTest01(void)
     ret = 1;
 end:
     StreamTcpSessionClear(p->flow->protoctx);
-    SCFree(p);
+    PacketFree(p);
     FLOW_DESTROY(&f);
     StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
@@ -1392,7 +1392,7 @@ static int StreamTcp4WHSTest02(void)
     ret = 1;
 end:
     StreamTcpSessionClear(p->flow->protoctx);
-    SCFree(p);
+    PacketFree(p);
     FLOW_DESTROY(&f);
     StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
@@ -1472,7 +1472,7 @@ static int StreamTcp4WHSTest03(void)
     ret = 1;
 end:
     StreamTcpSessionClear(p->flow->protoctx);
-    SCFree(p);
+    PacketFree(p);
     FLOW_DESTROY(&f);
     StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
@@ -1634,7 +1634,7 @@ static int StreamTcpTest15(void)
 end:
     SCConfDeInit();
     SCConfRestoreContextBackup();
-    SCFree(p);
+    PacketFree(p);
     FLOW_DESTROY(&f);
     StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
@@ -1796,7 +1796,7 @@ static int StreamTcpTest16(void)
 end:
     SCConfDeInit();
     SCConfRestoreContextBackup();
-    SCFree(p);
+    PacketFree(p);
     FLOW_DESTROY(&f);
     StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
@@ -1959,7 +1959,7 @@ static int StreamTcpTest17(void)
 end:
     SCConfDeInit();
     SCConfRestoreContextBackup();
-    SCFree(p);
+    PacketFree(p);
     FLOW_DESTROY(&f);
     StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
@@ -2008,7 +2008,7 @@ static int StreamTcpTest18(void)
 end:
     SCConfDeInit();
     SCConfRestoreContextBackup();
-    SCFree(p);
+    PacketFree(p);
     StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
 }
@@ -2058,7 +2058,7 @@ static int StreamTcpTest19(void)
 end:
     SCConfDeInit();
     SCConfRestoreContextBackup();
-    SCFree(p);
+    PacketFree(p);
     StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
 }
@@ -2108,7 +2108,7 @@ static int StreamTcpTest20(void)
 end:
     SCConfDeInit();
     SCConfRestoreContextBackup();
-    SCFree(p);
+    PacketFree(p);
     StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
 }
@@ -2158,7 +2158,7 @@ static int StreamTcpTest21(void)
 end:
     SCConfDeInit();
     SCConfRestoreContextBackup();
-    SCFree(p);
+    PacketFree(p);
     StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
 }
@@ -2208,7 +2208,7 @@ static int StreamTcpTest22(void)
 end:
     SCConfDeInit();
     SCConfRestoreContextBackup();
-    SCFree(p);
+    PacketFree(p);
     StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
 }
@@ -2269,7 +2269,7 @@ static int StreamTcpTest23(void)
     FAIL_IF(TCP_SEG_LEN(seg) != 2);
 
     StreamTcpUTClearSession(&ssn);
-    SCFree(p);
+    PacketFree(p);
     FLOW_DESTROY(&f);
     StreamTcpUTDeinit(stt.ra_ctx);
     FAIL_IF(SC_ATOMIC_GET(st_memuse) > 0);
@@ -2332,7 +2332,7 @@ static int StreamTcpTest24(void)
     FAIL_IF(TCP_SEG_LEN(seg) != 4);
 
     StreamTcpUTClearSession(&ssn);
-    SCFree(p);
+    PacketFree(p);
     FLOW_DESTROY(&f);
     StreamTcpUTDeinit(stt.ra_ctx);
     FAIL_IF(SC_ATOMIC_GET(st_memuse) > 0);
@@ -2424,7 +2424,7 @@ static int StreamTcpTest25(void)
 
     ret = 1;
 end:
-    SCFree(p);
+    PacketFree(p);
     FLOW_DESTROY(&f);
     StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
@@ -2516,7 +2516,7 @@ static int StreamTcpTest26(void)
 
     ret = 1;
 end:
-    SCFree(p);
+    PacketFree(p);
     FLOW_DESTROY(&f);
     StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
@@ -2608,7 +2608,7 @@ static int StreamTcpTest27(void)
 
     ret = 1;
 end:
-    SCFree(p);
+    PacketFree(p);
     FLOW_DESTROY(&f);
     StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
@@ -2747,7 +2747,7 @@ static int StreamTcpTest37(void)
 
     ret = 1;
 end:
-    SCFree(p);
+    PacketFree(p);
     FLOW_DESTROY(&f);
     StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
@@ -2901,7 +2901,7 @@ static int StreamTcpTest38(void)
 
 end:
     StreamTcpSessionClear(p->flow->protoctx);
-    SCFree(p);
+    PacketFree(p);
     FLOW_DESTROY(&f);
     StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
@@ -3034,7 +3034,7 @@ static int StreamTcpTest39(void)
 
 end:
     StreamTcpSessionClear(p->flow->protoctx);
-    SCFree(p);
+    PacketFree(p);
     FLOW_DESTROY(&f);
     StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
@@ -3121,7 +3121,7 @@ static int StreamTcpTest42(void)
 
     ret = 1;
 end:
-    SCFree(p);
+    PacketFree(p);
     FLOW_DESTROY(&f);
     StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
@@ -3208,7 +3208,7 @@ static int StreamTcpTest43(void)
 
     ret = 1;
 end:
-    SCFree(p);
+    PacketFree(p);
     FLOW_DESTROY(&f);
     StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
@@ -3291,7 +3291,7 @@ static int StreamTcpTest44(void)
 
     ret = 1;
 end:
-    SCFree(p);
+    PacketFree(p);
     FLOW_DESTROY(&f);
     StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
@@ -3397,7 +3397,7 @@ static int StreamTcpTest45(void)
 
     ret = 1;
 end:
-    SCFree(p);
+    PacketFree(p);
     StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
 }
