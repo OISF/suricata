@@ -710,6 +710,7 @@ int UTHMatchPacketsWithResults(DetectEngineCtx *de_ctx, Packet **p, int num_pack
     result = 1;
 cleanup:
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
