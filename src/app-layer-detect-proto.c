@@ -3227,20 +3227,17 @@ static int AppLayerProtoDetectTest16(void)
     }
     result = 1;
  end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&tv, det_ctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-
-    StreamTcpFreeConfig(true);
-
-    UTHFreePackets(&p, 1);
-    UTHFreeFlow(f);
-    return result;
+     UTHFreePackets(&p, 1);
+     UTHFreeFlow(f);
+     if (alp_tctx != NULL)
+         AppLayerParserThreadCtxFree(alp_tctx);
+     if (det_ctx != NULL)
+         DetectEngineThreadCtxDeinit(&tv, det_ctx);
+     if (de_ctx != NULL)
+         DetectEngineCtxFree(de_ctx);
+     StreamTcpFreeConfig(true);
+     StatsThreadCleanup(&tv);
+     return result;
 }
 
 /** \test test if the engine detect the proto on a non standar port
@@ -3320,20 +3317,17 @@ static int AppLayerProtoDetectTest17(void)
     result = 1;
 
  end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&tv, det_ctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-
-    StreamTcpFreeConfig(true);
-
-    UTHFreePackets(&p, 1);
-    UTHFreeFlow(f);
-    return result;
+     UTHFreePackets(&p, 1);
+     UTHFreeFlow(f);
+     if (alp_tctx != NULL)
+         AppLayerParserThreadCtxFree(alp_tctx);
+     if (det_ctx != NULL)
+         DetectEngineThreadCtxDeinit(&tv, det_ctx);
+     if (de_ctx != NULL)
+         DetectEngineCtxFree(de_ctx);
+     StreamTcpFreeConfig(true);
+     StatsThreadCleanup(&tv);
+     return result;
 }
 
 /** \test test if the engine detect the proto and doesn't match
@@ -3412,20 +3406,17 @@ static int AppLayerProtoDetectTest18(void)
 
     result = 1;
  end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&tv, det_ctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-
-    StreamTcpFreeConfig(true);
-
-    UTHFreePackets(&p, 1);
-    UTHFreeFlow(f);
-    return result;
+     UTHFreePackets(&p, 1);
+     UTHFreeFlow(f);
+     if (alp_tctx != NULL)
+         AppLayerParserThreadCtxFree(alp_tctx);
+     if (det_ctx != NULL)
+         DetectEngineThreadCtxDeinit(&tv, det_ctx);
+     if (de_ctx != NULL)
+         DetectEngineCtxFree(de_ctx);
+     StreamTcpFreeConfig(true);
+     StatsThreadCleanup(&tv);
+     return result;
 }
 
 /** \test test if the engine detect the proto and doesn't match
@@ -3496,19 +3487,17 @@ static int AppLayerProtoDetectTest19(void)
     result = 1;
 
  end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&tv, det_ctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-
-    StreamTcpFreeConfig(true);
-    UTHFreePackets(&p, 1);
-    UTHFreeFlow(f);
-    return result;
+     UTHFreePackets(&p, 1);
+     UTHFreeFlow(f);
+     if (alp_tctx != NULL)
+         AppLayerParserThreadCtxFree(alp_tctx);
+     if (det_ctx != NULL)
+         DetectEngineThreadCtxDeinit(&tv, det_ctx);
+     if (de_ctx != NULL)
+         DetectEngineCtxFree(de_ctx);
+     StreamTcpFreeConfig(true);
+     StatsThreadCleanup(&tv);
+     return result;
 }
 
 void AppLayerProtoDetectUnittestsRegister(void)
