@@ -56,7 +56,7 @@ pub enum HTTP2ConnectionState {
 
 const HTTP2_FRAME_HEADER_LEN: usize = 9;
 const HTTP2_MAGIC_LEN: usize = 24;
-const HTTP2_FRAME_GOAWAY_LEN: usize = 4;
+const HTTP2_FRAME_GOAWAY_LEN: usize = 8;
 const HTTP2_FRAME_RSTSTREAM_LEN: usize = 4;
 const HTTP2_FRAME_PRIORITY_LEN: usize = 5;
 const HTTP2_FRAME_WINDOWUPDATE_LEN: usize = 4;
