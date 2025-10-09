@@ -107,6 +107,7 @@ pub struct HTTP2FrameGoAway {
 }
 
 pub fn http2_parse_frame_goaway(i: &[u8]) -> IResult<&[u8], HTTP2FrameGoAway> {
+    let (i, _last_stream_id) = be_u32(i)?;
     let (i, errorcode) = be_u32(i)?;
     Ok((i, HTTP2FrameGoAway { errorcode }))
 }
