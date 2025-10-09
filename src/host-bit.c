@@ -206,6 +206,11 @@ static int HostBitTest01 (void)
 {
     int ret = 0;
 
+    StorageCleanup();
+    StorageInit();
+    HostBitInitCtx();
+    StorageFinalize();
+
     HostInitConfig(true);
     Host *h = HostAlloc();
     if (h == NULL)
@@ -219,13 +224,19 @@ static int HostBitTest01 (void)
 
     HostFree(h);
 end:
-    HostCleanup();
+    HostShutdown();
+    StorageCleanup();
     return ret;
 }
 
 static int HostBitTest02 (void)
 {
     int ret = 0;
+
+    StorageCleanup();
+    StorageInit();
+    HostBitInitCtx();
+    StorageFinalize();
 
     HostInitConfig(true);
     Host *h = HostAlloc();
@@ -238,13 +249,19 @@ static int HostBitTest02 (void)
 
     HostFree(h);
 end:
-    HostCleanup();
+    HostShutdown();
+    StorageCleanup();
     return ret;
 }
 
 static int HostBitTest03 (void)
 {
     int ret = 0;
+
+    StorageCleanup();
+    StorageInit();
+    HostBitInitCtx();
+    StorageFinalize();
 
     HostInitConfig(true);
     Host *h = HostAlloc();
@@ -271,13 +288,19 @@ static int HostBitTest03 (void)
 
     HostFree(h);
 end:
-    HostCleanup();
+    HostShutdown();
+    StorageCleanup();
     return ret;
 }
 
 static int HostBitTest04 (void)
 {
     int ret = 0;
+
+    StorageCleanup();
+    StorageInit();
+    HostBitInitCtx();
+    StorageFinalize();
 
     HostInitConfig(true);
     Host *h = HostAlloc();
@@ -295,13 +318,19 @@ static int HostBitTest04 (void)
 
     HostFree(h);
 end:
-    HostCleanup();
+    HostShutdown();
+    StorageCleanup();
     return ret;
 }
 
 static int HostBitTest05 (void)
 {
     int ret = 0;
+
+    StorageCleanup();
+    StorageInit();
+    HostBitInitCtx();
+    StorageFinalize();
 
     HostInitConfig(true);
     Host *h = HostAlloc();
@@ -319,13 +348,19 @@ static int HostBitTest05 (void)
 
     HostFree(h);
 end:
-    HostCleanup();
+    HostShutdown();
+    StorageCleanup();
     return ret;
 }
 
 static int HostBitTest06 (void)
 {
     int ret = 0;
+
+    StorageCleanup();
+    StorageInit();
+    HostBitInitCtx();
+    StorageFinalize();
 
     HostInitConfig(true);
     Host *h = HostAlloc();
@@ -343,13 +378,19 @@ static int HostBitTest06 (void)
 
     HostFree(h);
 end:
-    HostCleanup();
+    HostShutdown();
+    StorageCleanup();
     return ret;
 }
 
 static int HostBitTest07 (void)
 {
     int ret = 0;
+
+    StorageCleanup();
+    StorageInit();
+    HostBitInitCtx();
+    StorageFinalize();
 
     HostInitConfig(true);
     Host *h = HostAlloc();
@@ -367,13 +408,19 @@ static int HostBitTest07 (void)
 
     HostFree(h);
 end:
-    HostCleanup();
+    HostShutdown();
+    StorageCleanup();
     return ret;
 }
 
 static int HostBitTest08 (void)
 {
     int ret = 0;
+
+    StorageCleanup();
+    StorageInit();
+    HostBitInitCtx();
+    StorageFinalize();
 
     HostInitConfig(true);
     Host *h = HostAlloc();
@@ -400,13 +447,19 @@ static int HostBitTest08 (void)
     ret = 1;
     HostFree(h);
 end:
-    HostCleanup();
+    HostShutdown();
+    StorageCleanup();
     return ret;
 }
 
 static int HostBitTest09 (void)
 {
     int ret = 0;
+
+    StorageCleanup();
+    StorageInit();
+    HostBitInitCtx();
+    StorageFinalize();
 
     HostInitConfig(true);
     Host *h = HostAlloc();
@@ -433,13 +486,19 @@ static int HostBitTest09 (void)
     ret = 1;
     HostFree(h);
 end:
-    HostCleanup();
+    HostShutdown();
+    StorageCleanup();
     return ret;
 }
 
 static int HostBitTest10 (void)
 {
     int ret = 0;
+
+    StorageCleanup();
+    StorageInit();
+    HostBitInitCtx();
+    StorageFinalize();
 
     HostInitConfig(true);
     Host *h = HostAlloc();
@@ -466,13 +525,19 @@ static int HostBitTest10 (void)
     ret = 1;
     HostFree(h);
 end:
-    HostCleanup();
+    HostShutdown();
+    StorageCleanup();
     return ret;
 }
 
 static int HostBitTest11 (void)
 {
     int ret = 0;
+
+    StorageCleanup();
+    StorageInit();
+    HostBitInitCtx();
+    StorageFinalize();
 
     HostInitConfig(true);
     Host *h = HostAlloc();
@@ -499,7 +564,8 @@ static int HostBitTest11 (void)
     ret = 1;
     HostFree(h);
 end:
-    HostCleanup();
+    HostShutdown();
+    StorageCleanup();
     return ret;
 }
 
