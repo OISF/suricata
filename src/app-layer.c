@@ -1464,6 +1464,7 @@ void AppLayerDeSetupCounters(void)
     StreamTcpFreeConfig(true);                                                                     \
     PacketFree(p);                                                                                 \
     FLOW_DESTROY(&f);                                                                              \
+    IPPairShutdown();                                                                              \
     StatsThreadCleanup(&tv);
 
 /**
