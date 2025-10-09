@@ -629,9 +629,8 @@ static int ICMPV6ParamProbTest01(void)
                 PacketGetICMPv6EmbIPv6(p)->s_ip6_dst[i] != ipv6dst[i]);
     }
 
-    PacketRecycle(p);
+    PacketFree(p);
     FlowShutdown();
-    SCFree(p);
     PASS;
 }
 
@@ -686,9 +685,8 @@ static int ICMPV6PktTooBigTest01(void)
 
     SCLogDebug("ICMPV6 IPV6 src and dst properly set");
 
-    PacketRecycle(p);
+    PacketFree(p);
     FlowShutdown();
-    SCFree(p);
     PASS;
 }
 
@@ -743,9 +741,8 @@ static int ICMPV6TimeExceedTest01(void)
 
     SCLogDebug("ICMPV6 IPV6 src and dst properly set");
 
-    PacketRecycle(p);
+    PacketFree(p);
     FlowShutdown();
-    SCFree(p);
     PASS;
 }
 
@@ -798,9 +795,8 @@ static int ICMPV6DestUnreachTest01(void)
                 PacketGetICMPv6EmbIPv6(p)->s_ip6_dst[i] != ipv6dst[i]);
     }
 
-    PacketRecycle(p);
+    PacketFree(p);
     FlowShutdown();
-    SCFree(p);
     PASS;
 }
 
@@ -838,9 +834,8 @@ static int ICMPV6EchoReqTest01(void)
     FAIL_IF(SCNtohs(ICMPV6_GET_ID(p)) != 9712);
     FAIL_IF(SCNtohs(ICMPV6_GET_SEQ(p)) != 29987);
 
-    PacketRecycle(p);
+    PacketFree(p);
     FlowShutdown();
-    SCFree(p);
     PASS;
 }
 
@@ -877,9 +872,8 @@ static int ICMPV6EchoRepTest01(void)
     FAIL_IF(SCNtohs(ICMPV6_GET_ID(p)) != 9712);
     FAIL_IF(SCNtohs(ICMPV6_GET_SEQ(p)) != 29987);
 
-    PacketRecycle(p);
+    PacketFree(p);
     FlowShutdown();
-    SCFree(p);
     PASS;
 }
 
@@ -920,9 +914,8 @@ static int ICMPV6ParamProbTest02(void)
     FAIL_IF(ICMPV6_GET_CODE(PacketGetICMPv6(p)) != 0);
     FAIL_IF(!ENGINE_ISSET_EVENT(p, ICMPV6_IPV6_UNKNOWN_VER));
 
-    PacketRecycle(p);
+    PacketFree(p);
     FlowShutdown();
-    SCFree(p);
     PASS;
 }
 
@@ -960,9 +953,8 @@ static int ICMPV6PktTooBigTest02(void)
     FAIL_IF(!PacketIsICMPv6(p));
     FAIL_IF(!ENGINE_ISSET_EVENT(p, ICMPV6_UNKNOWN_CODE));
 
-    PacketRecycle(p);
+    PacketFree(p);
     FlowShutdown();
-    SCFree(p);
     PASS;
 }
 
@@ -997,9 +989,8 @@ static int ICMPV6TimeExceedTest02(void)
 
     FAIL_IF(!ENGINE_ISSET_EVENT(p, ICMPV6_PKT_TOO_SMALL));
 
-    PacketRecycle(p);
+    PacketFree(p);
     FlowShutdown();
-    SCFree(p);
     PASS;
 }
 
@@ -1037,9 +1028,8 @@ static int ICMPV6DestUnreachTest02(void)
 
     FAIL_IF(!ENGINE_ISSET_EVENT(p, ICMPV6_IPV6_TRUNC_PKT));
 
-    PacketRecycle(p);
+    PacketFree(p);
     FlowShutdown();
-    SCFree(p);
     PASS;
 }
 
@@ -1073,9 +1063,8 @@ static int ICMPV6EchoReqTest02(void)
 
     FAIL_IF(!ENGINE_ISSET_EVENT(p, ICMPV6_UNKNOWN_CODE));
 
-    PacketRecycle(p);
+    PacketFree(p);
     FlowShutdown();
-    SCFree(p);
     PASS;
 }
 
@@ -1109,9 +1098,8 @@ static int ICMPV6EchoRepTest02(void)
 
     FAIL_IF(!ENGINE_ISSET_EVENT(p, ICMPV6_UNKNOWN_CODE));
 
-    PacketRecycle(p);
+    PacketFree(p);
     FlowShutdown();
-    SCFree(p);
     PASS;
 }
 
@@ -1149,9 +1137,8 @@ static int ICMPV6PayloadTest01(void)
     FAIL_IF_NULL(p->payload);
     FAIL_IF(p->payload_len != 37);
 
-    PacketRecycle(p);
+    PacketFree(p);
     FlowShutdown();
-    SCFree(p);
     PASS;
 }
 
@@ -1181,9 +1168,8 @@ static int ICMPV6RouterSolicitTestKnownCode(void)
 
     FAIL_IF(ENGINE_ISSET_EVENT(p, ICMPV6_UNKNOWN_CODE));
 
-    PacketRecycle(p);
+    PacketFree(p);
     FlowShutdown();
-    SCFree(p);
     PASS;
 }
 
@@ -1213,9 +1199,8 @@ static int ICMPV6RouterSolicitTestUnknownCode(void)
 
     FAIL_IF(!ENGINE_ISSET_EVENT(p, ICMPV6_UNKNOWN_CODE));
 
-    PacketRecycle(p);
+    PacketFree(p);
     FlowShutdown();
-    SCFree(p);
     PASS;
 }
 
@@ -1245,9 +1230,8 @@ static int ICMPV6RouterAdvertTestKnownCode(void)
 
     FAIL_IF(ENGINE_ISSET_EVENT(p, ICMPV6_UNKNOWN_CODE));
 
-    PacketRecycle(p);
+    PacketFree(p);
     FlowShutdown();
-    SCFree(p);
     PASS;
 }
 
@@ -1277,9 +1261,8 @@ static int ICMPV6RouterAdvertTestUnknownCode(void)
 
     FAIL_IF(!ENGINE_ISSET_EVENT(p, ICMPV6_UNKNOWN_CODE));
 
-    PacketRecycle(p);
+    PacketFree(p);
     FlowShutdown();
-    SCFree(p);
     PASS;
 }
 
@@ -1309,9 +1292,8 @@ static int ICMPV6NeighbourSolicitTestKnownCode(void)
 
     FAIL_IF(ENGINE_ISSET_EVENT(p, ICMPV6_UNKNOWN_CODE));
 
-    PacketRecycle(p);
+    PacketFree(p);
     FlowShutdown();
-    SCFree(p);
     PASS;
 }
 
@@ -1341,9 +1323,8 @@ static int ICMPV6NeighbourSolicitTestUnknownCode(void)
 
     FAIL_IF(!ENGINE_ISSET_EVENT(p, ICMPV6_UNKNOWN_CODE));
 
-    PacketRecycle(p);
+    PacketFree(p);
     FlowShutdown();
-    SCFree(p);
     PASS;
 }
 
@@ -1373,9 +1354,8 @@ static int ICMPV6NeighbourAdvertTestKnownCode(void)
 
     FAIL_IF(ENGINE_ISSET_EVENT(p, ICMPV6_UNKNOWN_CODE));
 
-    PacketRecycle(p);
+    PacketFree(p);
     FlowShutdown();
-    SCFree(p);
     PASS;
 }
 
@@ -1405,9 +1385,8 @@ static int ICMPV6NeighbourAdvertTestUnknownCode(void)
 
     FAIL_IF(!ENGINE_ISSET_EVENT(p, ICMPV6_UNKNOWN_CODE));
 
-    PacketRecycle(p);
+    PacketFree(p);
     FlowShutdown();
-    SCFree(p);
     PASS;
 }
 
@@ -1437,9 +1416,8 @@ static int ICMPV6RedirectTestKnownCode(void)
 
     FAIL_IF(ENGINE_ISSET_EVENT(p, ICMPV6_UNKNOWN_CODE));
 
-    PacketRecycle(p);
+    PacketFree(p);
     FlowShutdown();
-    SCFree(p);
     PASS;
 }
 
@@ -1469,9 +1447,8 @@ static int ICMPV6RedirectTestUnknownCode(void)
 
     FAIL_IF(!ENGINE_ISSET_EVENT(p, ICMPV6_UNKNOWN_CODE));
 
-    PacketRecycle(p);
+    PacketFree(p);
     FlowShutdown();
-    SCFree(p);
     PASS;
 }
 
@@ -1521,9 +1498,8 @@ static int ICMPV6CalculateValidChecksumWithFCS(void)
     FAIL_IF(icmpv6_len != 28);
     FAIL_IF(ICMPV6CalculateChecksum(ip6h->s_ip6_addrs, (uint16_t *)icmpv6h, icmpv6_len) != csum);
 
-    PacketRecycle(p);
+    PacketFree(p);
     FlowShutdown();
-    SCFree(p);
     PASS;
 }
 
