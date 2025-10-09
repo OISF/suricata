@@ -1,0 +1,17 @@
+FROM ubuntu:22.04
+
+RUN apt-get update && \
+    apt-get install -y software-properties-common && \
+    add-apt-repository ppa:oisf/suricata-stable && \
+    apt-get update && \
+    apt-get install -y suricata
+
+# Copy default config
+COPY suricata.yaml /etc/suricata/suricata.yaml
+
+# Create directories for logs
+RUN mkdir -p /var/log/suricata && \
+    mkdir -p /var/run/suricata
+
+EXPOSE 443
+ENTRYPOINT ["/usr/bin/suricata"]

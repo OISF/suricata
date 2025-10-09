@@ -1,0 +1,22 @@
+services:
+  suricata:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: suricata
+    network_mode: "host"
+    volumes:
+      - ./suricata-docker.yaml:/etc/suricata/suricata.yaml:ro
+      - ./rules:/etc/suricata/rules:ro
+      - ./logs:/var/log/suricata
+    command: ["/usr/bin/suricata", "-c", "/etc/suricata/suricata.yaml", "--af-packet=eth0", "-vvv"]
+    cap_add:
+      - NET_ADMIN
+      - SYS_NICE
+      - NET_RAW
+      - IPC_LOCK
+    security_opt:
+      - seccomp:unconfined
+    ulimits:
+      memlock: -1
+    restart: "no"

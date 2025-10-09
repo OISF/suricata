@@ -4,3 +4,14 @@
 #
 #   name {repo} {branch|tag}
 suricata-update https://github.com/OISF/suricata-update 1.3.6
+
+# Core dependencies with secure versions
+cryptography>=42.0.2  # Fixes CVE-2023-50782, CVE-2023-0286, CVE-2023-23931, CVE-2023-49083, CVE-2024-0727
+PyJWT>=2.8.0  # Fixes CVE-2022-29217
+oauthlib>=3.2.2  # Fixes CVE-2022-36087
+zipp>=3.17.0  # Fixes CVE-2024-5569
+
+# Additional security recommendations
+urllib3>=2.0.7
+requests>=2.31.0
+certifi>=2023.7.22
