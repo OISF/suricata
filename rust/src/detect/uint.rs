@@ -803,7 +803,7 @@ pub unsafe extern "C" fn SCDetectU32ArrayParse(ustr: *const std::os::raw::c_char
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCDetectU32ArrayFree(ctx: &mut DetectUintData<u32>) {
+pub unsafe extern "C" fn SCDetectU32ArrayFree(ctx: &mut DetectUintArrayData<u32>) {
     // Just unbox...
     std::mem::drop(Box::from_raw(ctx));
 }
