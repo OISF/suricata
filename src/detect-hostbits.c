@@ -458,6 +458,7 @@ void DetectHostbitFree (DetectEngineCtx *de_ctx, void *ptr)
 
 static void HostBitsTestSetup(void)
 {
+    StorageCleanup();
     StorageInit();
     HostBitInitCtx();
     StorageFinalize();
@@ -466,7 +467,7 @@ static void HostBitsTestSetup(void)
 
 static void HostBitsTestShutdown(void)
 {
-    HostCleanup();
+    HostShutdown();
     StorageCleanup();
 }
 
@@ -591,10 +592,11 @@ static int HostBitsTestSig01(void)
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
+    PacketFree(p);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-    PacketFree(p);
     HostBitsTestShutdown();
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -695,11 +697,11 @@ static int HostBitsTestSig03(void)
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
+    PacketFree(p);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     HostBitsTestShutdown();
-
-    SCFree(p);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
