@@ -198,6 +198,8 @@ action-order:\n\
     FAIL_IF_NOT(action_order_sigs[1] == ACTION_DROP);
     FAIL_IF_NOT(action_order_sigs[2] == ACTION_REJECT);
     FAIL_IF_NOT(action_order_sigs[3] == ACTION_ALERT);
+
+    SCConfDeInit();
     SCConfRestoreContextBackup();
 
     /* Restore default values */
@@ -232,6 +234,7 @@ action-order:\n\
     FAIL_IF_NOT(action_order_sigs[1] == ACTION_DROP);
     FAIL_IF_NOT(action_order_sigs[2] == ACTION_REJECT);
     FAIL_IF_NOT(action_order_sigs[3] == ACTION_ALERT);
+    SCConfDeInit();
     SCConfRestoreContextBackup();
 
     /* Restore default values */
@@ -265,6 +268,7 @@ action-order:\n\
     FAIL_IF_NOT(action_order_sigs[1] == ACTION_DROP);
     FAIL_IF_NOT(action_order_sigs[2] == ACTION_REJECT);
     FAIL_IF_NOT(action_order_sigs[3] == ACTION_ALERT);
+    SCConfDeInit();
     SCConfRestoreContextBackup();
 
     /* Restore default values */
@@ -295,6 +299,7 @@ action-order:\n";
     FAIL_IF_NOT(action_order_sigs[1] == ACTION_DROP);
     FAIL_IF_NOT(action_order_sigs[2] == ACTION_REJECT);
     FAIL_IF_NOT(action_order_sigs[3] == ACTION_ALERT);
+    SCConfDeInit();
     SCConfRestoreContextBackup();
 
     /* Restore default values */
@@ -331,6 +336,7 @@ action-order:\n\
     FAIL_IF_NOT(action_order_sigs[1] == ACTION_DROP);
     FAIL_IF_NOT(action_order_sigs[2] == ACTION_REJECT);
     FAIL_IF_NOT(action_order_sigs[3] == ACTION_ALERT);
+    SCConfDeInit();
     SCConfRestoreContextBackup();
 
     /* Restore default values */
@@ -364,6 +370,7 @@ action-order:\n\
     FAIL_IF_NOT(action_order_sigs[1] == ACTION_DROP);
     FAIL_IF_NOT(action_order_sigs[2] == ACTION_REJECT);
     FAIL_IF_NOT(action_order_sigs[3] == ACTION_PASS);
+    SCConfDeInit();
     SCConfRestoreContextBackup();
 
     /* Restore default values */
@@ -397,6 +404,7 @@ action-order:\n\
     FAIL_IF_NOT(action_order_sigs[1] == ACTION_ALERT);
     FAIL_IF_NOT(action_order_sigs[2] == ACTION_DROP);
     FAIL_IF_NOT(action_order_sigs[3] == ACTION_REJECT);
+    SCConfDeInit();
     SCConfRestoreContextBackup();
 
     /* Restore default values */
@@ -426,6 +434,7 @@ static int UtilActionTest08(void)
     FAIL_IF_NOT(action_order_sigs[2] == ACTION_REJECT);
     FAIL_IF_NOT(action_order_sigs[3] == ACTION_ALERT);
 
+    SCConfDeInit();
     SCConfRestoreContextBackup();
     PASS;
 }
