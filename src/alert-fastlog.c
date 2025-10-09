@@ -285,9 +285,9 @@ static int AlertFastLogTest01(void)
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF(de_ctx == NULL);
-
     de_ctx->flags |= DE_QUIET;
 
+    SCClassConfDeInitContext(de_ctx);
     FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
     SCClassConfLoadClassificationConfigFile(de_ctx, fd);
 
@@ -302,12 +302,10 @@ static int AlertFastLogTest01(void)
     FAIL_IF_NOT(p->alerts.cnt == 1);
     FAIL_IF_NOT(strcmp(p->alerts.alerts[0].s->class_msg, "Unknown are we") == 0);
 
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    UTHFreePackets(&p, 1);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-
-    UTHFreePackets(&p, 1);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -326,9 +324,9 @@ static int AlertFastLogTest02(void)
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF(de_ctx == NULL);
-
     de_ctx->flags |= DE_QUIET;
 
+    SCClassConfDeInitContext(de_ctx);
     FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
     SCClassConfLoadClassificationConfigFile(de_ctx, fd);
 
@@ -343,12 +341,10 @@ static int AlertFastLogTest02(void)
     FAIL_IF_NOT(p->alerts.cnt == 1);
     FAIL_IF_NOT(strcmp(p->alerts.alerts[0].s->class_msg, "Unknown are we") == 0);
 
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    UTHFreePackets(&p, 1);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-
-    UTHFreePackets(&p, 1);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -359,12 +355,8 @@ static int AlertFastLogTest02(void)
  */
 void AlertFastLogRegisterTests(void)
 {
-
 #ifdef UNITTESTS
-
     UtRegisterTest("AlertFastLogTest01", AlertFastLogTest01);
     UtRegisterTest("AlertFastLogTest02", AlertFastLogTest02);
-
 #endif /* UNITTESTS */
-
 }
