@@ -448,7 +448,7 @@ static int EngineEventTestParse06 (void)
 
     FAIL_IF_NOT(DetectEngineEventMatch(NULL, p, NULL, sm->ctx));
 
-    SCFree(p);
+    PacketFree(p);
     SCFree(de);
     SCFree(sm);
 
