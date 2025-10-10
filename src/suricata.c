@@ -2453,6 +2453,16 @@ int SCFinalizeRunMode(void)
     SCInstance *suri = &suricata;
     switch (suri->run_mode) {
         case RUNMODE_UNKNOWN:
+<<<<<<< Updated upstream
+            printf("\n[!] No capture/runmode specified.\n");
+            printf("    Please specify a runmode or capture option.\n");
+            printf("    Use --list-runmodes to see available runmodes.\n\n");
+=======
+
+            SCLogWarning("Please specify a runmode or capture option.");
+            SCLogWarning("Use --list-runmodes to see available runmodes.");
+
+>>>>>>> Stashed changes
             PrintUsage(suri->progname);
             return TM_ECODE_FAILED;
         default:
