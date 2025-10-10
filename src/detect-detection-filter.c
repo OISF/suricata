@@ -419,7 +419,7 @@ static int DetectDetectionFilterTestSig1(void)
 
     UTHFreePackets(&p, 1);
     ThresholdDestroy();
-
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -481,7 +481,7 @@ static int DetectDetectionFilterTestSig2(void)
 
     UTHFreePackets(&p, 1);
     ThresholdDestroy();
-
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -557,7 +557,7 @@ static int DetectDetectionFilterTestSig3(void)
 
     UTHFreePackets(&p, 1);
     ThresholdDestroy();
-
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
