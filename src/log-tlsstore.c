@@ -137,6 +137,7 @@ static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *s
     int ret;
     uint8_t *ptmp;
     SSLCertsChain *cert;
+    char *subject = NULL;
 
     if (TAILQ_EMPTY(&connp->certs)) {
         SCReturn;
@@ -234,13 +235,17 @@ static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *s
                 goto end_fwrite_fpmeta;
         }
 
+        subject = CreateStringFromByteArray(connp->cert0_subject, connp->cert0_subject_len);
         if (fprintf(fpmeta,
                     "TLS SUBJECT:       %s\n"
                     "TLS ISSUERDN:      %s\n"
                     "TLS FINGERPRINT:   %s\n",
-                    connp->cert0_subject, connp->cert0_issuerdn, connp->cert0_fingerprint) < 0)
+                    subject, connp->cert0_issuerdn, connp->cert0_fingerprint) < 0)
             goto end_fwrite_fpmeta;
 
+        if (subject) {
+            SCFree(subject);
+        }
         fclose(fpmeta);
     } else {
         if (logging_dir_not_writable < LOGGING_WRITE_ISSUE_LIMIT) {
@@ -268,6 +273,9 @@ end_fwrite_fpmeta:
             SCLogWarning("Unable to write certificate metafile");
             logging_dir_not_writable++;
         }
+    }
+    if (subject) {
+        SCFree(subject);
     }
     SCReturn;
 end_fp:
