@@ -144,6 +144,9 @@ static int DetectEngineHttpStatCodeTest01(void)
 
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
+    if (det_ctx != NULL) {
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    }
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -244,6 +247,9 @@ static int DetectEngineHttpStatCodeTest02(void)
 
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
+    if (det_ctx != NULL) {
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    }
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -367,6 +373,9 @@ static int DetectEngineHttpStatCodeTest03(void)
 
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
+    if (det_ctx != NULL) {
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    }
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -481,6 +490,9 @@ static int DetectEngineHttpStatCodeTest04(void)
 
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
+    if (det_ctx != NULL) {
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    }
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -595,6 +607,9 @@ static int DetectEngineHttpStatCodeTest05(void)
 
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
+    if (det_ctx != NULL) {
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    }
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -709,6 +724,9 @@ static int DetectEngineHttpStatCodeTest06(void)
 
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
+    if (det_ctx != NULL) {
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    }
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -823,6 +841,9 @@ static int DetectEngineHttpStatCodeTest07(void)
 
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
+    if (det_ctx != NULL) {
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    }
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -937,6 +958,9 @@ static int DetectEngineHttpStatCodeTest08(void)
 
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
+    if (det_ctx != NULL) {
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    }
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -1052,6 +1076,9 @@ static int DetectEngineHttpStatCodeTest09(void)
 
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
+    if (det_ctx != NULL) {
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    }
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -1167,6 +1194,9 @@ static int DetectEngineHttpStatCodeTest10(void)
 
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
+    if (det_ctx != NULL) {
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    }
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -1282,6 +1312,9 @@ static int DetectEngineHttpStatCodeTest11(void)
 
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
+    if (det_ctx != NULL) {
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    }
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -1397,6 +1430,9 @@ static int DetectEngineHttpStatCodeTest12(void)
 
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
+    if (det_ctx != NULL) {
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    }
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -1512,6 +1548,9 @@ static int DetectEngineHttpStatCodeTest13(void)
 
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
+    if (det_ctx != NULL) {
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    }
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -1743,6 +1782,9 @@ static int DetectEngineHttpStatCodeTest15(void)
 
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
+    if (det_ctx != NULL) {
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    }
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
