@@ -252,47 +252,64 @@ void RunModeRegisterRunModes(void)
 }
 
 /**
- * \brief Lists all registered runmodes.
+ * \brief Lists all registered runmodes (optimized table output).
  */
 void RunModeListRunmodes(void)
 {
-    printf("------------------------------------- Runmodes -------------------"
-           "-----------------------\n");
+    int type_width = 12;
+    int mode_width = 10;
+    const int desc_width = 60;
 
-    printf("| %-17s | %-17s | %-10s \n",
-           "RunMode Type", "Custom Mode ", "Description");
-    printf("|-----------------------------------------------------------------"
-           "-----------------------\n");
-    int i = RUNMODE_UNKNOWN + 1;
-    int j = 0;
-    for ( ; i < RUNMODE_USER_MAX; i++) {
-        int mode_displayed = 0;
-        for (j = 0; j < runmodes[i].cnt; j++) {
-            if (mode_displayed == 1) {
-                printf("|                   ----------------------------------------------"
-                       "-----------------------\n");
-                RunMode *runmode = &runmodes[i].runmodes[j];
-                printf("| %-17s | %-17s | %-27s \n",
-                       "",
-                       runmode->name,
-                       runmode->description);
-            } else {
-                RunMode *runmode = &runmodes[i].runmodes[j];
-                printf("| %-17s | %-17s | %-27s \n",
-                       RunModeTranslateModeToName(runmode->runmode),
-                       runmode->name,
-                       runmode->description);
-            }
-            if (mode_displayed == 0)
-                mode_displayed = 1;
-        }
-        if (mode_displayed == 1) {
-            printf("|-----------------------------------------------------------------"
-                   "-----------------------\n");
+    /* Dynamically calculate max column widths */
+    for (int i = RUNMODE_UNKNOWN + 1; i < RUNMODE_USER_MAX; i++) {
+        for (int j = 0; j < runmodes[i].cnt; j++) {
+            RunMode *r = &runmodes[i].runmodes[j];
+            int tlen = strlen(RunModeTranslateModeToName(r->runmode));
+            int mlen = strlen(r->name);
+            if (tlen > type_width)
+                type_width = tlen;
+            if (mlen > mode_width)
+                mode_width = mlen;
         }
     }
-}
 
+    /* Print header */
+    printf("\n%-*s\n", type_width + mode_width + desc_width + 10,
+           "--------------------------- Runmodes ---------------------------");
+    printf("| %-*s | %-*s | %-*s |\n",
+           type_width, "RunMode Type",
+           mode_width, "Custom Mode",
+           desc_width, "Description");
+
+    /* Separator function */
+    auto void PrintSeparator(void) {
+        printf("|-%.*s-|-%.*s-|-%.*s-|\n",
+               type_width + 2, "----------------------------------------",
+               mode_width + 2, "----------------------------------------",
+               desc_width + 2, "------------------------------------------------------------");
+    };
+    PrintSeparator();
+
+    /* Print runmodes */
+    for (int i = RUNMODE_UNKNOWN + 1; i < RUNMODE_USER_MAX; i++) {
+        int printed = 0;
+        for (int j = 0; j < runmodes[i].cnt; j++) {
+            RunMode *r = &runmodes[i].runmodes[j];
+            const char *type_name = RunModeTranslateModeToName(r->runmode);
+
+            printf("| %-*s | %-*s | %-*s |\n",
+                   printed ? 0 : type_width,
+                   printed ? "" : type_name,
+                   mode_width, r->name,
+                   desc_width, r->description);
+            printed = 1;
+        }
+        if (printed)
+            PrintSeparator();
+    }
+
+    printf("\n");
+}
 static const char *RunModeGetConfOrDefault(int capture_mode, const char *capture_plugin_name)
 {
     const char *custom_mode = NULL;
