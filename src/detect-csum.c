@@ -908,8 +908,6 @@ static int DetectCsumValidArgsTestParse03(void)
 
 static int DetectCsumICMPV6Test01(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    Signature *s = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
     DecodeThreadVars dtv;
@@ -942,13 +940,13 @@ static int DetectCsumICMPV6Test01(void)
     StreamTcpInitConfig(true);
     FlowInitConfig(FLOW_QUIET);
 
-    de_ctx = DetectEngineCtxInit();
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
     de_ctx->mpm_matcher = mpm_default_matcher;
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert ip any any -> any any "
-                                   "(icmpv6-csum:valid; sid:1;)");
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert ip any any -> any any "
+                                                 "(icmpv6-csum:valid; sid:1;)");
     FAIL_IF_NULL(s);
     SigGroupBuild(de_ctx);
 
@@ -957,16 +955,14 @@ static int DetectCsumICMPV6Test01(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
-
     FAIL_IF(!PacketAlertCheck(p, 1));
 
+    PacketFree(p);
+    FlowShutdown();
     DetectEngineThreadCtxDeinit(&tv, det_ctx);
     DetectEngineCtxFree(de_ctx);
-
     StreamTcpFreeConfig(true);
-    PacketRecycle(p);
-    FlowShutdown();
-    SCFree(p);
+    StatsThreadCleanup(&tv);
     PASS;
 }
 
