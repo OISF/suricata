@@ -490,14 +490,13 @@ static int TlsDecodeHSCertificate(SSLState *ssl_state, SSLStateConnp *connp,
             goto next;
         }
 
-        char *str = SCX509GetSubject(x509);
-        if (str == NULL) {
+        SCX509GetSubject(x509, &connp->cert0_subject, &connp->cert0_subject_len);
+        if (connp->cert0_subject == NULL) {
             err_code = ERR_EXTRACT_SUBJECT;
             goto error;
         }
-        connp->cert0_subject = str;
 
-        str = SCX509GetIssuer(x509);
+        char *str = SCX509GetIssuer(x509);
         if (str == NULL) {
             err_code = ERR_EXTRACT_ISSUER;
             goto error;
@@ -2855,7 +2854,8 @@ static void SSLStateFree(void *p)
     SSLCertsChain *item;
 
     if (ssl_state->client_connp.cert0_subject)
-        SCRustCStringFree(ssl_state->client_connp.cert0_subject);
+        SCX509ArrayFree(
+                ssl_state->client_connp.cert0_subject, ssl_state->client_connp.cert0_subject_len);
     if (ssl_state->client_connp.cert0_issuerdn)
         SCRustCStringFree(ssl_state->client_connp.cert0_issuerdn);
     if (ssl_state->client_connp.cert0_serial)
@@ -2870,7 +2870,8 @@ static void SSLStateFree(void *p)
         SCFree(ssl_state->client_connp.hs_buffer);
 
     if (ssl_state->server_connp.cert0_subject)
-        SCRustCStringFree(ssl_state->server_connp.cert0_subject);
+        SCX509ArrayFree(
+                ssl_state->server_connp.cert0_subject, ssl_state->server_connp.cert0_subject_len);
     if (ssl_state->server_connp.cert0_issuerdn)
         SCRustCStringFree(ssl_state->server_connp.cert0_issuerdn);
     if (ssl_state->server_connp.cert0_serial)
