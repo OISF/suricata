@@ -1832,8 +1832,8 @@ static int DetectDceStubDataTestParse06(void)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags = DE_QUIET;
-    Signature *s = DetectEngineAppendSig(de_ctx,
-            "alert dns any any -> any any dce_stub_data;content:\"0\";");
+    Signature *s = DetectEngineAppendSig(
+            de_ctx, "alert dns any any -> any any dce_stub_data;content:\"0\"; sid:1;");
     FAIL_IF_NOT_NULL(s);
     DetectEngineCtxFree(de_ctx);
     PASS;
