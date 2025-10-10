@@ -364,8 +364,6 @@ static int DetectIPRepTest01(void)
 
     p->src.addr_data32[0] = UTHSetIPv4Address("10.0.0.1");
     de_ctx->flags |= DE_QUIET;
-
-    SRepInit(de_ctx);
     SRepResetVersion();
 
     fd = DetectIPRepGenerateCategoriesDummy();
@@ -394,8 +392,8 @@ static int DetectIPRepTest01(void)
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-
     HostShutdown();
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -417,8 +415,6 @@ static int DetectIPRepTest02(void)
 
     p->src.addr_data32[0] = UTHSetIPv4Address("10.0.0.1");
     de_ctx->flags |= DE_QUIET;
-
-    SRepInit(de_ctx);
     SRepResetVersion();
 
     fd = DetectIPRepGenerateCategoriesDummy();
@@ -448,6 +444,7 @@ static int DetectIPRepTest02(void)
     DetectEngineCtxFree(de_ctx);
 
     HostShutdown();
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -469,8 +466,6 @@ static int DetectIPRepTest03(void)
 
     p->dst.addr_data32[0] = UTHSetIPv4Address("10.0.0.2");
     de_ctx->flags |= DE_QUIET;
-
-    SRepInit(de_ctx);
     SRepResetVersion();
 
     fd = DetectIPRepGenerateCategoriesDummy();
@@ -500,6 +495,7 @@ static int DetectIPRepTest03(void)
     DetectEngineCtxFree(de_ctx);
 
     HostShutdown();
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -522,8 +518,6 @@ static int DetectIPRepTest04(void)
     p->src.addr_data32[0] = UTHSetIPv4Address("10.0.0.1");
     p->dst.addr_data32[0] = UTHSetIPv4Address("10.0.0.2");
     de_ctx->flags |= DE_QUIET;
-
-    SRepInit(de_ctx);
     SRepResetVersion();
 
     fd = DetectIPRepGenerateCategoriesDummy();
@@ -553,6 +547,7 @@ static int DetectIPRepTest04(void)
     DetectEngineCtxFree(de_ctx);
 
     HostShutdown();
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -574,8 +569,6 @@ static int DetectIPRepTest05(void)
 
     p->src.addr_data32[0] = UTHSetIPv4Address("1.0.0.1");
     de_ctx->flags |= DE_QUIET;
-
-    SRepInit(de_ctx);
     SRepResetVersion();
 
     fd = DetectIPRepGenerateCategoriesDummy();
@@ -605,6 +598,7 @@ static int DetectIPRepTest05(void)
     DetectEngineCtxFree(de_ctx);
 
     HostShutdown();
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -626,8 +620,6 @@ static int DetectIPRepTest06(void)
 
     p->src.addr_data32[0] = UTHSetIPv4Address("1.0.0.1");
     de_ctx->flags |= DE_QUIET;
-
-    SRepInit(de_ctx);
     SRepResetVersion();
 
     fd = DetectIPRepGenerateCategoriesDummy();
@@ -657,6 +649,7 @@ static int DetectIPRepTest06(void)
     DetectEngineCtxFree(de_ctx);
 
     HostShutdown();
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -678,8 +671,6 @@ static int DetectIPRepTest07(void)
 
     p->dst.addr_data32[0] = UTHSetIPv4Address("1.0.0.2");
     de_ctx->flags |= DE_QUIET;
-
-    SRepInit(de_ctx);
     SRepResetVersion();
 
     fd = DetectIPRepGenerateCategoriesDummy();
@@ -709,6 +700,7 @@ static int DetectIPRepTest07(void)
     DetectEngineCtxFree(de_ctx);
 
     HostShutdown();
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -731,8 +723,6 @@ static int DetectIPRepTest08(void)
     p->src.addr_data32[0] = UTHSetIPv4Address("1.0.0.1");
     p->dst.addr_data32[0] = UTHSetIPv4Address("1.0.0.2");
     de_ctx->flags |= DE_QUIET;
-
-    SRepInit(de_ctx);
     SRepResetVersion();
 
     fd = DetectIPRepGenerateCategoriesDummy();
@@ -762,6 +752,7 @@ static int DetectIPRepTest08(void)
     DetectEngineCtxFree(de_ctx);
 
     HostShutdown();
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -784,8 +775,6 @@ static int DetectIPRepTest09(void)
     p->src.addr_data32[0] = UTHSetIPv4Address("192.168.0.1");
     p->dst.addr_data32[0] = UTHSetIPv4Address("192.168.0.2");
     de_ctx->flags |= DE_QUIET;
-
-    SRepInit(de_ctx);
     SRepResetVersion();
 
     fd = DetectIPRepGenerateCategoriesDummy2();
@@ -815,6 +804,7 @@ static int DetectIPRepTest09(void)
     DetectEngineCtxFree(de_ctx);
 
     HostShutdown();
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -849,8 +839,6 @@ static int DetectIPRepTest10(void)
     p->src.addr_data32[0] = UTHSetIPv4Address("192.168.0.1");
     p->dst.addr_data32[0] = UTHSetIPv4Address("192.168.0.2");
     de_ctx->flags |= DE_QUIET;
-
-    SRepInit(de_ctx);
     SRepResetVersion();
 
     fd = DetectIPRepGenerateCategoriesDummy2();
@@ -877,6 +865,7 @@ static int DetectIPRepTest10(void)
     DetectEngineCtxFree(de_ctx);
 
     HostShutdown();
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -899,8 +888,6 @@ static int DetectIPRepTest11(void)
     p->src.addr_data32[0] = UTHSetIPv4Address("10.0.0.1");
     p->dst.addr_data32[0] = UTHSetIPv4Address("10.0.0.2");
     de_ctx->flags |= DE_QUIET;
-
-    SRepInit(de_ctx);
     SRepResetVersion();
 
     fd = DetectIPRepGenerateCategoriesDummy2();
@@ -927,6 +914,7 @@ static int DetectIPRepTest11(void)
     DetectEngineCtxFree(de_ctx);
 
     HostShutdown();
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
