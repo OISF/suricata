@@ -1,4 +1,4 @@
-/* Copyright (C) 2019-2020 Open Information Security Foundation
+/* Copyright (C) 2019-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -85,13 +85,16 @@ pub unsafe extern "C" fn SCX509Decode(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCX509GetSubject(ptr: *const X509) -> *mut c_char {
+pub unsafe extern "C" fn SCX509GetSubject(ptr: *const X509, subject_name: *mut *mut u8, subject_len: *mut u32) {
     if ptr.is_null() {
-        return std::ptr::null_mut();
+        *subject_len = 0;
+        *subject_name = std::ptr::null_mut();
     }
     let x509 = cast_pointer! {ptr, X509};
-    let subject = x509.0.tbs_certificate.subject.to_string();
-    rust_string_to_c(subject)
+    let subject = x509.0.tbs_certificate.subject().to_string().into_bytes();
+
+    *subject_len = subject.len() as u32;
+    *subject_name = Box::into_raw(subject.into_boxed_slice()) as *mut u8;
 }
 
 #[no_mangle]
@@ -180,6 +183,14 @@ pub unsafe extern "C" fn SCX509Free(ptr: *mut X509) {
         return;
     }
     drop(Box::from_raw(ptr));
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCX509ArrayFree(ptr: *mut u8, len: u32) {
+    if ptr.is_null() {
+        return;
+    }
+    drop(Box::from_raw(std::slice::from_raw_parts_mut(ptr, len as usize)));
 }
 
 fn x509_parse_error_to_errcode(e: &Err<X509Error>) -> X509DecodeError {

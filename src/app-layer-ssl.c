@@ -469,6 +469,8 @@ static int TlsDecodeHSCertificate(SSLState *ssl_state, SSLStateConnp *connp,
 {
     const uint8_t *input = (uint8_t *)initial_input;
     uint32_t err_code = 0;
+    uint8_t *subject_name = NULL;
+    uint32_t subject_len = 0;
     X509 *x509 = NULL;
     int rc = 0;
 
@@ -490,14 +492,20 @@ static int TlsDecodeHSCertificate(SSLState *ssl_state, SSLStateConnp *connp,
             goto next;
         }
 
-        char *str = SCX509GetSubject(x509);
-        if (str == NULL) {
+        SCX509GetSubject(x509, &subject_name, &subject_len);
+        if (subject_len == 0 || subject_name == NULL) {
             err_code = ERR_EXTRACT_SUBJECT;
             goto error;
         }
-        connp->cert0_subject = str;
+        connp->cert0_subject = SCCalloc(subject_len, sizeof(uint8_t));
+        if (connp->cert0_subject == NULL) {
+            goto error;
+        }
+        memcpy(connp->cert0_subject, subject_name, subject_len);
+        connp->cert0_subject_len = subject_len;
+        SCX509ArrayFree(subject_name, subject_len);
 
-        str = SCX509GetIssuer(x509);
+        char *str = SCX509GetIssuer(x509);
         if (str == NULL) {
             err_code = ERR_EXTRACT_ISSUER;
             goto error;
@@ -2780,12 +2788,14 @@ static AppLayerResult SSLDecode(Flow *f, uint8_t direction, void *alstate,
 
     /* mark handshake as done if we have subject and issuer */
     if ((ssl_state->flags & SSL_AL_FLAG_NEED_CLIENT_CERT) &&
-            ssl_state->client_connp.cert0_subject && ssl_state->client_connp.cert0_issuerdn) {
+            ssl_state->client_connp.cert0_subject != NULL &&
+            ssl_state->client_connp.cert0_issuerdn) {
         /* update both sides to keep existing behavior */
         UpdateClientState(ssl_state, TLS_STATE_CLIENT_HANDSHAKE_DONE);
         UpdateServerState(ssl_state, TLS_STATE_SERVER_HANDSHAKE_DONE);
     } else if ((ssl_state->flags & SSL_AL_FLAG_NEED_CLIENT_CERT) == 0 &&
-               ssl_state->server_connp.cert0_subject && ssl_state->server_connp.cert0_issuerdn) {
+               ssl_state->server_connp.cert0_subject != NULL &&
+               ssl_state->server_connp.cert0_issuerdn) {
         /* update both sides to keep existing behavior */
         UpdateClientState(ssl_state, TLS_STATE_CLIENT_HANDSHAKE_DONE);
         UpdateServerState(ssl_state, TLS_STATE_SERVER_HANDSHAKE_DONE);
@@ -2855,7 +2865,7 @@ static void SSLStateFree(void *p)
     SSLCertsChain *item;
 
     if (ssl_state->client_connp.cert0_subject)
-        SCRustCStringFree(ssl_state->client_connp.cert0_subject);
+        SCFree(ssl_state->client_connp.cert0_subject);
     if (ssl_state->client_connp.cert0_issuerdn)
         SCRustCStringFree(ssl_state->client_connp.cert0_issuerdn);
     if (ssl_state->client_connp.cert0_serial)
@@ -2870,7 +2880,7 @@ static void SSLStateFree(void *p)
         SCFree(ssl_state->client_connp.hs_buffer);
 
     if (ssl_state->server_connp.cert0_subject)
-        SCRustCStringFree(ssl_state->server_connp.cert0_subject);
+        SCFree(ssl_state->server_connp.cert0_subject);
     if (ssl_state->server_connp.cert0_issuerdn)
         SCRustCStringFree(ssl_state->server_connp.cert0_issuerdn);
     if (ssl_state->server_connp.cert0_serial)
