@@ -744,6 +744,7 @@ static int DetectDceStubDataTestParse02(void)
     FLOW_DESTROY(&f);
 
     UTHFreePackets(&p, 1);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -1239,6 +1240,7 @@ static int DetectDceStubDataTestParse03(void)
     FLOW_DESTROY(&f);
 
     UTHFreePackets(&p, 1);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -1550,6 +1552,7 @@ static int DetectDceStubDataTestParse04(void)
     FLOW_DESTROY(&f);
 
     UTHFreePackets(&p, 1);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -1823,6 +1826,7 @@ static int DetectDceStubDataTestParse05(void)
     FLOW_DESTROY(&f);
 
     UTHFreePackets(&p, 1);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
