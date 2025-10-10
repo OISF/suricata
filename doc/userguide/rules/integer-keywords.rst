@@ -143,3 +143,16 @@ For the array [1,2,3,4,5,6], here are some examples:
 * -4:4 will have subslice [3,4]
 
 If one index is out of bounds, an empty subslice is used.
+
+Count
+-----
+
+Multi-integer can also just count the number of occurences
+without matching to a specific value.
+
+The syntax is::
+ keyword: count [mode] value;
+
+Examples::
+
+    http2.window:count >5;
