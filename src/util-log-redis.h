@@ -41,6 +41,8 @@ typedef struct RedisSetup_ {
     const char *format;
     const char *command;
     const char *key;
+    const char *username;
+    const char *password;
     const char *server;
     uint16_t  port;
     int is_async;
@@ -48,12 +50,34 @@ typedef struct RedisSetup_ {
     char *stream_format;
 } RedisSetup;
 
+#if HAVE_LIBEVENT
+enum RedisConnState {
+    /** The context is not connected to the Redis server. */
+    REDIS_STATE_DISCONNECTED,
+
+    /** The ECHO command failed, possibly due to requiring authentication. */
+    REDIS_STATE_ECHO_FAILED,
+
+    /** A connection to the Redis server has been established.
+     *  If authentication is not required, this is the final state where data can be safely sent.
+     *  If authentication is required, the client must proceed to authenticate before sending data.
+     */
+    REDIS_STATE_CONNECTED,
+
+    /** Authentication with the Redis server failed. */
+    REDIS_STATE_AUTH_FAILED,
+
+    /** The connection is fully authenticated, and ready to send data. */
+    REDIS_STATE_AUTHENTICATED,
+};
+#endif /* HAVE_LIBEVENT */
+
 typedef struct SCLogRedisContext_ {
     redisContext *sync;
 #if HAVE_LIBEVENT
     redisAsyncContext *async;
     struct event_base *ev_base;
-    int connected;
+    enum RedisConnState state;
 #endif /* HAVE_LIBEVENT */
     time_t tried;
     int  batch_count;
