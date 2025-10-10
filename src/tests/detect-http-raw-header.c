@@ -108,7 +108,6 @@ static int DetectEngineHttpRawHeaderTest01(void)
         "GET /index.html HTTP/1.0\r\n"
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -131,7 +130,7 @@ static int DetectEngineHttpRawHeaderTest01(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -140,7 +139,7 @@ static int DetectEngineHttpRawHeaderTest01(void)
                                "content:\"one\"; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -149,15 +148,13 @@ static int DetectEngineHttpRawHeaderTest01(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -165,20 +162,18 @@ static int DetectEngineHttpRawHeaderTest01(void)
 
     if (!(PacketAlertCheck(p, 1))) {
         printf("sid 1 didn't match but should have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -198,7 +193,6 @@ static int DetectEngineHttpRawHeaderTest02(void)
         "GET /index.html HTTP/1.0\r\n"
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -221,7 +215,7 @@ static int DetectEngineHttpRawHeaderTest02(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -230,7 +224,7 @@ static int DetectEngineHttpRawHeaderTest02(void)
                                "content:\"one\"; depth:15; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -239,15 +233,13 @@ static int DetectEngineHttpRawHeaderTest02(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -255,20 +247,18 @@ static int DetectEngineHttpRawHeaderTest02(void)
 
     if (!(PacketAlertCheck(p, 1))) {
         printf("sid 1 didn't match but should have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -288,7 +278,6 @@ static int DetectEngineHttpRawHeaderTest03(void)
         "GET /index.html HTTP/1.0\r\n"
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -311,7 +300,7 @@ static int DetectEngineHttpRawHeaderTest03(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -320,7 +309,7 @@ static int DetectEngineHttpRawHeaderTest03(void)
                                "content:!\"one\"; depth:5; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -329,15 +318,13 @@ static int DetectEngineHttpRawHeaderTest03(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -345,20 +332,18 @@ static int DetectEngineHttpRawHeaderTest03(void)
 
     if (!(PacketAlertCheck(p, 1))) {
         printf("sid 1 didn't match but should have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -378,7 +363,6 @@ static int DetectEngineHttpRawHeaderTest04(void)
         "GET /index.html HTTP/1.0\r\n"
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -401,7 +385,7 @@ static int DetectEngineHttpRawHeaderTest04(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -410,7 +394,7 @@ static int DetectEngineHttpRawHeaderTest04(void)
                                "content:\"one\"; depth:5; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -419,15 +403,13 @@ static int DetectEngineHttpRawHeaderTest04(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -435,20 +417,18 @@ static int DetectEngineHttpRawHeaderTest04(void)
 
     if (PacketAlertCheck(p, 1)) {
         printf("sid 1 matched but shouldn't have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -468,7 +448,6 @@ static int DetectEngineHttpRawHeaderTest05(void)
         "GET /index.html HTTP/1.0\r\n"
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -491,7 +470,7 @@ static int DetectEngineHttpRawHeaderTest05(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -500,7 +479,7 @@ static int DetectEngineHttpRawHeaderTest05(void)
                                "content:!\"one\"; depth:15; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -509,15 +488,13 @@ static int DetectEngineHttpRawHeaderTest05(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -525,20 +502,18 @@ static int DetectEngineHttpRawHeaderTest05(void)
 
     if (PacketAlertCheck(p, 1)) {
         printf("sid 1 matched but shouldn't have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -558,7 +533,6 @@ static int DetectEngineHttpRawHeaderTest06(void)
         "GET /index.html HTTP/1.0\r\n"
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -581,7 +555,7 @@ static int DetectEngineHttpRawHeaderTest06(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -590,7 +564,7 @@ static int DetectEngineHttpRawHeaderTest06(void)
                                "content:\"one\"; offset:10; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -599,15 +573,13 @@ static int DetectEngineHttpRawHeaderTest06(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -615,20 +587,18 @@ static int DetectEngineHttpRawHeaderTest06(void)
 
     if (!(PacketAlertCheck(p, 1))) {
         printf("sid 1 didn't match but should have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -648,7 +618,6 @@ static int DetectEngineHttpRawHeaderTest07(void)
         "GET /index.html HTTP/1.0\r\n"
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -671,7 +640,7 @@ static int DetectEngineHttpRawHeaderTest07(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -680,7 +649,7 @@ static int DetectEngineHttpRawHeaderTest07(void)
                                "content:!\"one\"; offset:15; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -689,15 +658,13 @@ static int DetectEngineHttpRawHeaderTest07(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -705,20 +672,18 @@ static int DetectEngineHttpRawHeaderTest07(void)
 
     if (!(PacketAlertCheck(p, 1))) {
         printf("sid 1 didn't match but should have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -738,7 +703,6 @@ static int DetectEngineHttpRawHeaderTest08(void)
         "GET /index.html HTTP/1.0\r\n"
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -761,7 +725,7 @@ static int DetectEngineHttpRawHeaderTest08(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -770,7 +734,7 @@ static int DetectEngineHttpRawHeaderTest08(void)
                                "content:\"one\"; offset:15; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -779,15 +743,13 @@ static int DetectEngineHttpRawHeaderTest08(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -795,20 +757,18 @@ static int DetectEngineHttpRawHeaderTest08(void)
 
     if (PacketAlertCheck(p, 1)) {
         printf("sid 1 matched but shouldn't have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -828,7 +788,6 @@ static int DetectEngineHttpRawHeaderTest09(void)
         "GET /index.html HTTP/1.0\r\n"
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -851,7 +810,7 @@ static int DetectEngineHttpRawHeaderTest09(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -860,7 +819,7 @@ static int DetectEngineHttpRawHeaderTest09(void)
                                "content:!\"one\"; offset:10; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -869,15 +828,13 @@ static int DetectEngineHttpRawHeaderTest09(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -885,20 +842,18 @@ static int DetectEngineHttpRawHeaderTest09(void)
 
     if (PacketAlertCheck(p, 1)) {
         printf("sid 1 matched but shouldn't have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -918,7 +873,6 @@ static int DetectEngineHttpRawHeaderTest10(void)
         "GET /index.html HTTP/1.0\r\n"
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -941,7 +895,7 @@ static int DetectEngineHttpRawHeaderTest10(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -950,7 +904,7 @@ static int DetectEngineHttpRawHeaderTest10(void)
                                "content:\"one\"; http_raw_header; content:\"three\"; http_raw_header; within:10; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -959,15 +913,13 @@ static int DetectEngineHttpRawHeaderTest10(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -975,20 +927,18 @@ static int DetectEngineHttpRawHeaderTest10(void)
 
     if (!(PacketAlertCheck(p, 1))) {
         printf("sid 1 didn't match but should have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -1008,7 +958,6 @@ static int DetectEngineHttpRawHeaderTest11(void)
         "GET /index.html HTTP/1.0\r\n"
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -1031,7 +980,7 @@ static int DetectEngineHttpRawHeaderTest11(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -1040,7 +989,7 @@ static int DetectEngineHttpRawHeaderTest11(void)
                                "content:\"one\"; http_raw_header; content:!\"three\"; http_raw_header; within:5; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -1049,15 +998,13 @@ static int DetectEngineHttpRawHeaderTest11(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -1065,20 +1012,18 @@ static int DetectEngineHttpRawHeaderTest11(void)
 
     if (!(PacketAlertCheck(p, 1))) {
         printf("sid 1 didn't match but should have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -1098,7 +1043,6 @@ static int DetectEngineHttpRawHeaderTest12(void)
         "GET /index.html HTTP/1.0\r\n"
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -1121,7 +1065,7 @@ static int DetectEngineHttpRawHeaderTest12(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -1130,7 +1074,7 @@ static int DetectEngineHttpRawHeaderTest12(void)
                                "content:\"one\"; http_raw_header; content:!\"three\"; http_raw_header; within:10; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -1139,15 +1083,13 @@ static int DetectEngineHttpRawHeaderTest12(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -1155,20 +1097,18 @@ static int DetectEngineHttpRawHeaderTest12(void)
 
     if (PacketAlertCheck(p, 1)) {
         printf("sid 1 matched but shouldn't have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -1188,7 +1128,6 @@ static int DetectEngineHttpRawHeaderTest13(void)
         "GET /index.html HTTP/1.0\r\n"
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -1211,7 +1150,7 @@ static int DetectEngineHttpRawHeaderTest13(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -1220,7 +1159,7 @@ static int DetectEngineHttpRawHeaderTest13(void)
                                "content:\"one\"; http_raw_header; content:\"three\"; http_raw_header; within:5; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -1229,15 +1168,13 @@ static int DetectEngineHttpRawHeaderTest13(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -1245,20 +1182,18 @@ static int DetectEngineHttpRawHeaderTest13(void)
 
     if (PacketAlertCheck(p, 1)) {
         printf("sid 1 matched but shouldn't have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -1278,7 +1213,6 @@ static int DetectEngineHttpRawHeaderTest14(void)
         "GET /index.html HTTP/1.0\r\n"
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -1301,7 +1235,7 @@ static int DetectEngineHttpRawHeaderTest14(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -1310,7 +1244,7 @@ static int DetectEngineHttpRawHeaderTest14(void)
                                "content:\"one\"; http_raw_header; content:\"five\"; http_raw_header; distance:7; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -1319,15 +1253,13 @@ static int DetectEngineHttpRawHeaderTest14(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -1335,20 +1267,18 @@ static int DetectEngineHttpRawHeaderTest14(void)
 
     if (!(PacketAlertCheck(p, 1))) {
         printf("sid 1 didn't match but should have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -1368,7 +1298,6 @@ static int DetectEngineHttpRawHeaderTest15(void)
         "GET /index.html HTTP/1.0\r\n"
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -1391,7 +1320,7 @@ static int DetectEngineHttpRawHeaderTest15(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -1400,7 +1329,7 @@ static int DetectEngineHttpRawHeaderTest15(void)
                                "content:\"one\"; http_raw_header; content:!\"five\"; http_raw_header; distance:15; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -1409,15 +1338,13 @@ static int DetectEngineHttpRawHeaderTest15(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -1425,20 +1352,18 @@ static int DetectEngineHttpRawHeaderTest15(void)
 
     if (!(PacketAlertCheck(p, 1))) {
         printf("sid 1 didn't match but should have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -1458,7 +1383,6 @@ static int DetectEngineHttpRawHeaderTest16(void)
         "GET /index.html HTTP/1.0\r\n"
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -1481,7 +1405,7 @@ static int DetectEngineHttpRawHeaderTest16(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -1490,7 +1414,7 @@ static int DetectEngineHttpRawHeaderTest16(void)
                                "content:\"one\"; http_raw_header; content:!\"five\"; http_raw_header; distance:7; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -1499,15 +1423,13 @@ static int DetectEngineHttpRawHeaderTest16(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -1515,20 +1437,18 @@ static int DetectEngineHttpRawHeaderTest16(void)
 
     if (PacketAlertCheck(p, 1)) {
         printf("sid 1 matched but shouldn't have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -1548,7 +1468,6 @@ static int DetectEngineHttpRawHeaderTest17(void)
         "GET /index.html HTTP/1.0\r\n"
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -1571,7 +1490,7 @@ static int DetectEngineHttpRawHeaderTest17(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -1580,7 +1499,7 @@ static int DetectEngineHttpRawHeaderTest17(void)
                                "content:\"one\"; http_raw_header; content:\"five\"; http_raw_header; distance:15; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -1589,15 +1508,13 @@ static int DetectEngineHttpRawHeaderTest17(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -1605,20 +1522,18 @@ static int DetectEngineHttpRawHeaderTest17(void)
 
     if (PacketAlertCheck(p, 1)) {
         printf("sid 1 matched but shouldn't have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 static int DetectEngineHttpRawHeaderTest20(void)
@@ -1699,6 +1614,7 @@ static int DetectEngineHttpRawHeaderTest20(void)
     FAIL_IF(!PacketAlertCheck(p2, 1));
 
     AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
@@ -1706,6 +1622,7 @@ static int DetectEngineHttpRawHeaderTest20(void)
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
 
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -1727,7 +1644,6 @@ static int DetectEngineHttpRawHeaderTest21(void)
         "\r\n";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -1756,7 +1672,7 @@ static int DetectEngineHttpRawHeaderTest21(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -1766,7 +1682,7 @@ static int DetectEngineHttpRawHeaderTest21(void)
                                "content:!\"dummy\"; within:7; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -1775,15 +1691,13 @@ static int DetectEngineHttpRawHeaderTest21(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http1_buf, http1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: \n");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -1791,15 +1705,14 @@ static int DetectEngineHttpRawHeaderTest21(void)
 
     if (PacketAlertCheck(p1, 1)) {
         printf("sid 1 matched but shouldn't have\n");
-        goto end;
+        FAIL;
     }
 
     r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http2_buf, http2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -1807,22 +1720,19 @@ static int DetectEngineHttpRawHeaderTest21(void)
 
     if (!PacketAlertCheck(p2, 1)) {
         printf("sid 1 didn't match but shouldn't have");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 static int DetectEngineHttpRawHeaderTest22(void)
@@ -1843,7 +1753,6 @@ static int DetectEngineHttpRawHeaderTest22(void)
         "\r\n";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -1872,7 +1781,7 @@ static int DetectEngineHttpRawHeaderTest22(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -1882,7 +1791,7 @@ static int DetectEngineHttpRawHeaderTest22(void)
                                "content:!\"dummy\"; distance:3; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -1891,15 +1800,13 @@ static int DetectEngineHttpRawHeaderTest22(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http1_buf, http1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: \n");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -1907,15 +1814,14 @@ static int DetectEngineHttpRawHeaderTest22(void)
 
     if (PacketAlertCheck(p1, 1)) {
         printf("sid 1 matched but shouldn't have\n");
-        goto end;
+        FAIL;
     }
 
     r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http2_buf, http2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -1923,22 +1829,19 @@ static int DetectEngineHttpRawHeaderTest22(void)
 
     if (PacketAlertCheck(p2, 1)) {
         printf("sid 1 matched but shouldn't have");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 static int DetectEngineHttpRawHeaderTest23(void)
@@ -1959,7 +1862,6 @@ static int DetectEngineHttpRawHeaderTest23(void)
         "\r\n";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -1988,7 +1890,7 @@ static int DetectEngineHttpRawHeaderTest23(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -1998,7 +1900,7 @@ static int DetectEngineHttpRawHeaderTest23(void)
                                "content:!\"dummy\"; distance:13; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -2007,15 +1909,13 @@ static int DetectEngineHttpRawHeaderTest23(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http1_buf, http1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: \n");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -2023,15 +1923,14 @@ static int DetectEngineHttpRawHeaderTest23(void)
 
     if (PacketAlertCheck(p1, 1)) {
         printf("sid 1 matched but shouldn't have\n");
-        goto end;
+        FAIL;
     }
 
     r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http2_buf, http2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -2039,22 +1938,19 @@ static int DetectEngineHttpRawHeaderTest23(void)
 
     if (!PacketAlertCheck(p2, 1)) {
         printf("sid 1 didn't match but should have");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 static int DetectEngineHttpRawHeaderTest24(void)
@@ -2075,7 +1971,6 @@ static int DetectEngineHttpRawHeaderTest24(void)
         "\r\n";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -2104,7 +1999,7 @@ static int DetectEngineHttpRawHeaderTest24(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -2114,7 +2009,7 @@ static int DetectEngineHttpRawHeaderTest24(void)
                                "content:\"dummy\"; within:15; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -2123,15 +2018,13 @@ static int DetectEngineHttpRawHeaderTest24(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http1_buf, http1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: \n");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -2139,15 +2032,14 @@ static int DetectEngineHttpRawHeaderTest24(void)
 
     if (PacketAlertCheck(p1, 1)) {
         printf("sid 1 matched but shouldn't have\n");
-        goto end;
+        FAIL;
     }
 
     r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http2_buf, http2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -2155,22 +2047,19 @@ static int DetectEngineHttpRawHeaderTest24(void)
 
     if (!PacketAlertCheck(p2, 1)) {
         printf("sid 1 didn't match but should have");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 static int DetectEngineHttpRawHeaderTest25(void)
@@ -2191,7 +2080,6 @@ static int DetectEngineHttpRawHeaderTest25(void)
         "\r\n";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -2220,7 +2108,7 @@ static int DetectEngineHttpRawHeaderTest25(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -2230,7 +2118,7 @@ static int DetectEngineHttpRawHeaderTest25(void)
                                "content:\"dummy\"; within:10; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -2239,15 +2127,13 @@ static int DetectEngineHttpRawHeaderTest25(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http1_buf, http1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: \n");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -2255,15 +2141,14 @@ static int DetectEngineHttpRawHeaderTest25(void)
 
     if (PacketAlertCheck(p1, 1)) {
         printf("sid 1 matched but shouldn't have\n");
-        goto end;
+        FAIL;
     }
 
     r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http2_buf, http2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -2271,22 +2156,19 @@ static int DetectEngineHttpRawHeaderTest25(void)
 
     if (PacketAlertCheck(p2, 1)) {
         printf("sid 1 matched but shouldn't have");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 static int DetectEngineHttpRawHeaderTest26(void)
@@ -2307,7 +2189,6 @@ static int DetectEngineHttpRawHeaderTest26(void)
         "\r\n";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -2336,7 +2217,7 @@ static int DetectEngineHttpRawHeaderTest26(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -2346,7 +2227,7 @@ static int DetectEngineHttpRawHeaderTest26(void)
                                "content:\"dummy\"; distance:8; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -2355,15 +2236,13 @@ static int DetectEngineHttpRawHeaderTest26(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http1_buf, http1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: \n");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -2371,15 +2250,14 @@ static int DetectEngineHttpRawHeaderTest26(void)
 
     if (PacketAlertCheck(p1, 1)) {
         printf("sid 1 matched but shouldn't have\n");
-        goto end;
+        FAIL;
     }
 
     r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http2_buf, http2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -2387,20 +2265,19 @@ static int DetectEngineHttpRawHeaderTest26(void)
 
     if (!PacketAlertCheck(p2, 1)) {
         printf("sid 1 didn't match but should have");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-
-end:
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 static int DetectEngineHttpRawHeaderTest27(void)
@@ -2421,7 +2298,6 @@ static int DetectEngineHttpRawHeaderTest27(void)
         "\r\n";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -2450,7 +2326,7 @@ static int DetectEngineHttpRawHeaderTest27(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -2460,7 +2336,7 @@ static int DetectEngineHttpRawHeaderTest27(void)
                                "content:\"dummy\"; distance:14; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -2469,15 +2345,13 @@ static int DetectEngineHttpRawHeaderTest27(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http1_buf, http1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: \n");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -2485,15 +2359,14 @@ static int DetectEngineHttpRawHeaderTest27(void)
 
     if (PacketAlertCheck(p1, 1)) {
         printf("sid 1 matched but shouldn't have\n");
-        goto end;
+        FAIL;
     }
 
     r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http2_buf, http2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -2501,22 +2374,19 @@ static int DetectEngineHttpRawHeaderTest27(void)
 
     if (PacketAlertCheck(p2, 1)) {
         printf("sid 1 matched but shouldn't have");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 static int DetectEngineHttpRawHeaderTest28(void)
@@ -2542,7 +2412,6 @@ static int DetectEngineHttpRawHeaderTest28(void)
         "\r\n"
         "abcdef";
     uint32_t http_buf2_len = sizeof(http_buf2) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -2571,7 +2440,7 @@ static int DetectEngineHttpRawHeaderTest28(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -2580,7 +2449,7 @@ static int DetectEngineHttpRawHeaderTest28(void)
                                "content:\"Content-Length: 6\"; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -2589,15 +2458,13 @@ static int DetectEngineHttpRawHeaderTest28(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf1, http_buf1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: \n");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -2605,15 +2472,14 @@ static int DetectEngineHttpRawHeaderTest28(void)
 
     if (PacketAlertCheck(p1, 1)) {
         printf("sid 1 matched but shouldn't have\n");
-        goto end;
+        FAIL;
     }
 
     r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, http_buf2, http_buf2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -2621,22 +2487,19 @@ static int DetectEngineHttpRawHeaderTest28(void)
 
     if (!PacketAlertCheck(p2, 1)) {
         printf("sid 1 didn't match but should have");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 static int DetectEngineHttpRawHeaderTest29(void)
@@ -2662,7 +2525,6 @@ static int DetectEngineHttpRawHeaderTest29(void)
         "\r\n"
         "abcdef";
     uint32_t http_buf2_len = sizeof(http_buf2) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -2691,7 +2553,7 @@ static int DetectEngineHttpRawHeaderTest29(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -2700,7 +2562,7 @@ static int DetectEngineHttpRawHeaderTest29(void)
                                "content:\"Content-Length: 7\"; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -2709,15 +2571,13 @@ static int DetectEngineHttpRawHeaderTest29(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf1, http_buf1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: \n");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -2725,15 +2585,14 @@ static int DetectEngineHttpRawHeaderTest29(void)
 
     if (PacketAlertCheck(p1, 1)) {
         printf("sid 1 matched but shouldn't have\n");
-        goto end;
+        FAIL;
     }
 
     r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, http_buf2, http_buf2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -2741,55 +2600,20 @@ static int DetectEngineHttpRawHeaderTest29(void)
 
     if (PacketAlertCheck(p2, 1)) {
         printf("sid 1 matched but shouldn't have");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
-
-#if 0
-
-static int DetectEngineHttpRawHeaderTest30(void)
-{
-    int result = 0;
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
-    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"Content-Length: 6\"; http_raw_header; "
-                               "content:\"User-Agent: Mozilla\"; http_raw_header; "
-                               "sid:1;)");
-    if (de_ctx->sig_list != NULL) {
-        goto end;
-    }
-
-    result = 1;
-
- end:
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-    return result;
-}
-
-#endif /* #if 0 */
 
 /**
  * \test Trailing headers.
@@ -2814,7 +2638,6 @@ static int DetectEngineHttpRawHeaderTest31(void)
         "Dummy-Header: kaboom\r\n"
         "\r\n";
     uint32_t http1_len = sizeof(http1_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -2838,7 +2661,7 @@ static int DetectEngineHttpRawHeaderTest31(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -2847,7 +2670,7 @@ static int DetectEngineHttpRawHeaderTest31(void)
                                "content:\"Dummy\"; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -2856,15 +2679,13 @@ static int DetectEngineHttpRawHeaderTest31(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http1_buf, http1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: \n");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -2872,21 +2693,18 @@ static int DetectEngineHttpRawHeaderTest31(void)
 
     if (!(PacketAlertCheck(p1, 1))) {
         printf("sid 1 didn't match but should have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -2915,7 +2733,6 @@ static int DetectEngineHttpRawHeaderTest32(void)
         "\r\n";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -2944,7 +2761,7 @@ static int DetectEngineHttpRawHeaderTest32(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -2953,7 +2770,7 @@ static int DetectEngineHttpRawHeaderTest32(void)
                                "content:\"Dummy\"; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -2962,15 +2779,13 @@ static int DetectEngineHttpRawHeaderTest32(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http1_buf, http1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: \n");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -2978,15 +2793,14 @@ static int DetectEngineHttpRawHeaderTest32(void)
 
     if (PacketAlertCheck(p1, 1)) {
         printf("sid 1 matched but shouldn't have\n");
-        goto end;
+        FAIL;
     }
 
     r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http2_buf, http2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -2994,22 +2808,19 @@ static int DetectEngineHttpRawHeaderTest32(void)
 
     if (!PacketAlertCheck(p2, 1)) {
         printf("sid 1 didn't match but should have\n");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -3034,7 +2845,6 @@ static int DetectHttpRawHeaderTest06(void)
         "\r\n"
         "This is dummy message body\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -3057,7 +2867,7 @@ static int DetectHttpRawHeaderTest06(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -3066,7 +2876,7 @@ static int DetectHttpRawHeaderTest06(void)
                                "content:\"Content-Type: text/html\"; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -3075,15 +2885,13 @@ static int DetectHttpRawHeaderTest06(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -3091,20 +2899,18 @@ static int DetectHttpRawHeaderTest06(void)
 
     if (!(PacketAlertCheck(p, 1))) {
         printf("sid 1 didn't match but should have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -3132,7 +2938,6 @@ static int DetectHttpRawHeaderTest07(void)
         "This is dummy message body1";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -3160,7 +2965,7 @@ static int DetectHttpRawHeaderTest07(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -3169,7 +2974,7 @@ static int DetectHttpRawHeaderTest07(void)
                                "content:\"Mozilla\"; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -3178,15 +2983,13 @@ static int DetectHttpRawHeaderTest07(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http1_buf, http1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -3194,15 +2997,14 @@ static int DetectHttpRawHeaderTest07(void)
 
     if ( (PacketAlertCheck(p1, 1))) {
         printf("sid 1 matched but shouldn't have: ");
-        goto end;
+        FAIL;
     }
 
     r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http2_buf, http2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -3210,21 +3012,19 @@ static int DetectHttpRawHeaderTest07(void)
 
     if (!(PacketAlertCheck(p2, 1))) {
         printf("sid 1 didn't match but should have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -3251,7 +3051,6 @@ static int DetectHttpRawHeaderTest08(void)
         "\r\n";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -3279,7 +3078,7 @@ static int DetectHttpRawHeaderTest08(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -3288,7 +3087,7 @@ static int DetectHttpRawHeaderTest08(void)
                                "content:\"Gecko/20091221 Firefox/3.5.7\"; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -3297,15 +3096,13 @@ static int DetectHttpRawHeaderTest08(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http1_buf, http1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -3313,15 +3110,14 @@ static int DetectHttpRawHeaderTest08(void)
 
     if ((PacketAlertCheck(p1, 1))) {
         printf("sid 1 didn't match but should have: ");
-        goto end;
+        FAIL;
     }
 
     r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http2_buf, http2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -3329,21 +3125,19 @@ static int DetectHttpRawHeaderTest08(void)
 
     if (!(PacketAlertCheck(p2, 1))) {
         printf("sid 1 didn't match but should have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -3371,7 +3165,6 @@ static int DetectHttpRawHeaderTest09(void)
         "This is dummy body\r\n";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -3399,7 +3192,7 @@ static int DetectHttpRawHeaderTest09(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -3408,7 +3201,7 @@ static int DetectHttpRawHeaderTest09(void)
                                "content:\"Firefox/3.5.7|0D 0A|Content\"; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -3417,15 +3210,13 @@ static int DetectHttpRawHeaderTest09(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http1_buf, http1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -3433,15 +3224,14 @@ static int DetectHttpRawHeaderTest09(void)
 
     if ((PacketAlertCheck(p1, 1))) {
         printf("sid 1 didn't match but should have: ");
-        goto end;
+        FAIL;
     }
 
     r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http2_buf, http2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -3449,21 +3239,19 @@ static int DetectHttpRawHeaderTest09(void)
 
     if (!(PacketAlertCheck(p2, 1))) {
         printf("sid 1 didn't match but should have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -3491,7 +3279,6 @@ static int DetectHttpRawHeaderTest10(void)
         "This is dummy body";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -3519,7 +3306,7 @@ static int DetectHttpRawHeaderTest10(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -3528,7 +3315,7 @@ static int DetectHttpRawHeaderTest10(void)
                                "content:\"firefox/3.5.7|0D 0A|content\"; nocase; http_raw_header;"
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -3537,15 +3324,13 @@ static int DetectHttpRawHeaderTest10(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http1_buf, http1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -3553,15 +3338,14 @@ static int DetectHttpRawHeaderTest10(void)
 
     if ((PacketAlertCheck(p1, 1))) {
         printf("sid 1 didn't match but should have: ");
-        goto end;
+        FAIL;
     }
 
     r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http2_buf, http2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -3569,21 +3353,19 @@ static int DetectHttpRawHeaderTest10(void)
 
     if (!(PacketAlertCheck(p2, 1))) {
         printf("sid 1 didn't match but should have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -3608,7 +3390,6 @@ static int DetectHttpRawHeaderTest11(void)
         "\r\n"
         "This is dummy message body\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -3631,7 +3412,7 @@ static int DetectHttpRawHeaderTest11(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -3640,7 +3421,7 @@ static int DetectHttpRawHeaderTest11(void)
                                "content:!\"lalalalala\"; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -3649,15 +3430,13 @@ static int DetectHttpRawHeaderTest11(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -3665,20 +3444,18 @@ static int DetectHttpRawHeaderTest11(void)
 
     if (!(PacketAlertCheck(p, 1))) {
         printf("sid 1 didn't match but should have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -3703,7 +3480,6 @@ static int DetectHttpRawHeaderTest12(void)
         "\r\n"
         "This is dummy message body\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -3726,7 +3502,7 @@ static int DetectHttpRawHeaderTest12(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -3735,7 +3511,7 @@ static int DetectHttpRawHeaderTest12(void)
                                "content:!\"User-Agent: Mozilla/5.0 \"; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -3744,15 +3520,13 @@ static int DetectHttpRawHeaderTest12(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -3760,20 +3534,18 @@ static int DetectHttpRawHeaderTest12(void)
 
     if ((PacketAlertCheck(p, 1))) {
         printf("sid 1 didn't match but should have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -3798,7 +3570,6 @@ static int DetectHttpRawHeaderTest13(void)
         "\r\n"
         "longbufferabcdefghijklmnopqrstuvwxyz0123456789bufferend\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -3822,7 +3593,7 @@ static int DetectHttpRawHeaderTest13(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -3831,7 +3602,7 @@ static int DetectHttpRawHeaderTest13(void)
                                "content:\"Host: www.openinfosecfoundation.org\"; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -3840,15 +3611,13 @@ static int DetectHttpRawHeaderTest13(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -3856,21 +3625,18 @@ static int DetectHttpRawHeaderTest13(void)
 
     if (!(PacketAlertCheck(p, 1))) {
         printf("sid 1 didn't match but should have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-end:
-
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 void DetectHttpRawHeaderRegisterTests(void)
