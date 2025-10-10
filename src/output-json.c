@@ -62,6 +62,7 @@
 #include "flow-storage.h"
 
 #include "source-pcap-file-helper.h"
+#include "source-pcap-packet.h"
 
 #define DEFAULT_LOG_FILENAME "eve.json"
 #define MODULE_NAME "OutputJSON"
@@ -875,8 +876,8 @@ SCJsonBuilder *CreateEveHeader(const Packet *p, enum SCOutputJsonLogDirection di
     }
 
     /* pcap_cnt */
-    if (p->pcap_cnt != 0) {
-        SCJbSetUint(js, "pcap_cnt", p->pcap_cnt);
+    if (PcapPacketCntGet(p) != 0) {
+        SCJbSetUint(js, "pcap_cnt", PcapPacketCntGet(p));
     }
 
     if (event_type) {

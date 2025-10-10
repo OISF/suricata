@@ -26,6 +26,7 @@
 #include "util-misc.h"
 #include "util-hash-lookup3.h"
 #include "util-validate.h"
+#include "source-pcap-packet.h"
 
 /** defrag tracker hash table */
 DefragTrackerHashRow *defragtracker_hash;
@@ -469,8 +470,8 @@ static void DefragExceptionPolicyStatsIncr(
 static DefragTracker *DefragTrackerGetNew(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
 {
 #ifdef DEBUG
-    if (g_eps_defrag_memcap != UINT64_MAX && g_eps_defrag_memcap == p->pcap_cnt) {
-        SCLogNotice("simulating memcap hit for packet %" PRIu64, p->pcap_cnt);
+    if (g_eps_defrag_memcap != UINT64_MAX && g_eps_defrag_memcap == PcapPacketCntGet(p)) {
+        SCLogNotice("simulating memcap hit for packet %" PRIu64, PcapPacketCntGet(p));
         ExceptionPolicyApply(p, defrag_config.memcap_policy, PKT_DROP_REASON_DEFRAG_MEMCAP);
         DefragExceptionPolicyStatsIncr(tv, dtv, defrag_config.memcap_policy);
         return NULL;
