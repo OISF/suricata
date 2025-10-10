@@ -132,7 +132,12 @@ typedef struct JsonTlsLogThread_ {
 static void JsonTlsLogSubject(SCJsonBuilder *js, SSLState *ssl_state)
 {
     if (ssl_state->server_connp.cert0_subject) {
-        SCJbSetString(js, "subject", ssl_state->server_connp.cert0_subject);
+        if (ssl_state->server_connp.cert0_subject_len == 0) {
+            SCJbSetString(js, "subject", "");
+        } else {
+            SCJbSetStringFromBytes(js, "subject", ssl_state->server_connp.cert0_subject,
+                    ssl_state->server_connp.cert0_subject_len);
+        }
     }
 }
 
@@ -333,7 +338,11 @@ static void JsonTlsLogClientCert(
         SCJsonBuilder *js, SSLStateConnp *connp, const bool log_cert, const bool log_chain)
 {
     if (connp->cert0_subject != NULL) {
-        SCJbSetString(js, "subject", connp->cert0_subject);
+        if (connp->cert0_subject_len == 0) {
+            SCJbSetString(js, "subject", "");
+        } else {
+            SCJbSetStringFromBytes(js, "subject", connp->cert0_subject, connp->cert0_subject_len);
+        }
     }
     if (connp->cert0_issuerdn != NULL) {
         SCJbSetString(js, "issuerdn", connp->cert0_issuerdn);
