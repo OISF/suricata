@@ -1,0 +1,19 @@
+description: Verify warning when no capture/runmode is specified
+prereq: suricata
+basedir: /home/speck/outreachy/suricata
+
+args:
+  - -v
+
+pre:
+  - mkdir -p ./LOGS/
+
+run:
+  cmd: $SURICATA -c /home/speck/outreachy/suricata/suricata.yaml -l ./LOGS/
+  expect_fail: yes
+
+verify:
+  log_contains:
+    - "No capture/runmode specified."
+    - "Please specify a runmode or capture option."
+    - "Use --list-runmodes to see available runmodes."
