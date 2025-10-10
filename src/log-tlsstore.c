@@ -185,11 +185,14 @@ static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *s
                 goto end_fwrite_fpmeta;
         }
 
-        if (fprintf(fpmeta,
-                    "TLS SUBJECT:       %s\n"
-                    "TLS ISSUERDN:      %s\n"
-                    "TLS FINGERPRINT:   %s\n",
-                    connp->cert0_subject, connp->cert0_issuerdn, connp->cert0_fingerprint) < 0)
+        char *subject = CreateStringFromByteArray(connp->cert0_subject, connp->cert0_subject_len);
+        int r = fprintf(fpmeta,
+                "TLS SUBJECT:       %s\n"
+                "TLS ISSUERDN:      %s\n"
+                "TLS FINGERPRINT:   %s\n",
+                subject ? subject : "<ERROR>", connp->cert0_issuerdn, connp->cert0_fingerprint);
+        SCFree(subject);
+        if (r < 0)
             goto end_fwrite_fpmeta;
 
         fclose(fpmeta);

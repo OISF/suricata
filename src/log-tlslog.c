@@ -301,8 +301,10 @@ static void LogTlsLogBasic(LogTlsLogThread *aft, SSLState *ssl_state, const SCTi
                          timebuf, srcip, sp, dstip, dp);
 
     if (ssl_state->server_connp.cert0_subject != NULL) {
-        MemBufferWriteString(aft->buffer, " Subject='%s'",
-        ssl_state->server_connp.cert0_subject);
+        char *subject = CreateStringFromByteArray(
+                ssl_state->server_connp.cert0_subject, ssl_state->server_connp.cert0_subject_len);
+        MemBufferWriteString(aft->buffer, " Subject='%s'", subject ? subject : "<ERROR>");
+        SCFree(subject);
     }
 
     if (ssl_state->server_connp.cert0_issuerdn != NULL) {
