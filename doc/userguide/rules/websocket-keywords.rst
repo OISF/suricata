@@ -25,7 +25,7 @@ The value can also be a list of strings (comma-separated),
 where each string is the name of a specific bit like `fin` and `comp`,
 and can be prefixed by `!` for negation.
 
-websocket.flags uses an :ref:`unsigned 8-bits integer <rules-integer-keywords>`
+websocket.flags uses an :ref:`unsigned 8-bits integer <rules-integer-keywords>` with bitmasks.
 
 Examples::
 

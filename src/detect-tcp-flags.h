@@ -25,22 +25,6 @@
 #define SURICATA_DETECT_FLAGS_H
 
 /**
- * \struct DetectFlagsData_
- * DetectFlagsData_ is used to store flags: input value
- */
-
-/**
- * \typedef DetectFlagsData
- * A typedef for DetectFlagsData_
- */
-
-typedef struct DetectFlagsData_ {
-    uint8_t flags;  /**< TCP flags */
-    uint8_t modifier; /**< !(1) +(2) *(3) modifiers */
-    uint8_t ignored_flags; /**< Ignored TCP flags defined by modifier , */
-} DetectFlagsData;
-
-/**
  * Registration function for flags: keyword
  */
 

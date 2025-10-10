@@ -62,7 +62,7 @@ mqtt.flags
 
 Match on a combination of MQTT header flags, separated by commas (``,``). Flags may be prefixed by ``!`` to indicate negation, i.e. a flag prefixed by ``!`` must `not` be set to match.
 
-mqtt.flags uses an :ref:`unsigned 8-bits integer <rules-integer-keywords>`
+mqtt.flags uses an :ref:`unsigned 8-bits integer <rules-integer-keywords>` with bitmasks.
 
 Valid flags are:
 
@@ -146,7 +146,7 @@ mqtt.connect.flags
 
 Match on a combination of MQTT CONNECT flags, separated by commas (``,``). Flags may be prefixed by ``!`` to indicate negation, i.e. a flag prefixed by ``!`` must `not` be set to match.
 
-mqtt.connect.flags uses an :ref:`unsigned 8-bits integer <rules-integer-keywords>`
+mqtt.connect.flags uses an :ref:`unsigned 8-bits integer <rules-integer-keywords>` with bitmasks.
 
 Valid flags are:
 
