@@ -1170,7 +1170,7 @@ static int DetectFlowintTestPacket01Real(void)
     UTHFreeFlow(f);
     DetectEngineThreadCtxDeinit(&th_v,(void *) det_ctx);
     DetectEngineCtxFree(de_ctx);
-
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -1245,6 +1245,7 @@ static int DetectFlowintTestPacket02Real(void)
     UTHFreeFlow(f);
     DetectEngineThreadCtxDeinit(&th_v,(void *) det_ctx);
     DetectEngineCtxFree(de_ctx);
+    StatsThreadCleanup(&th_v);
 
     PASS;
 }
@@ -1308,6 +1309,7 @@ static int DetectFlowintTestPacket03Real(void)
     UTHFreeFlow(f);
     DetectEngineThreadCtxDeinit(&th_v,(void *) det_ctx);
     DetectEngineCtxFree(de_ctx);
+    StatsThreadCleanup(&th_v);
 
     PASS;
 }
