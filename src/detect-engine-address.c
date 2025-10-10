@@ -137,12 +137,11 @@ DetectAddress *DetectAddressCopy(DetectAddress *orig)
 }
 
 /**
- * \internal
  * \brief Frees a list of DetectAddress instances.
  *
  * \param head Pointer to a list of DetectAddress instances to be freed.
  */
-static void DetectAddressCleanupList(DetectAddress *head)
+void DetectAddressCleanupList(DetectAddress *head)
 {
     for (DetectAddress *cur = head; cur != NULL; ) {
         DetectAddress *next = cur->next;
