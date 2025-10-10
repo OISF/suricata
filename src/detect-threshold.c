@@ -643,9 +643,6 @@ static int DetectThresholdTestSig1(void)
     else
         printf("alerts %" PRIi32 ", expected 5: ", alerts);
 
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
@@ -653,6 +650,7 @@ static int DetectThresholdTestSig1(void)
 
 end:
     ThresholdDestroy();
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -730,6 +728,7 @@ cleanup:
 end:
     UTHFreePackets(&p, 1);
     ThresholdDestroy();
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -786,6 +785,7 @@ static int DetectThresholdTestSig3(void)
     DetectEngineCtxFree(de_ctx);
     UTHFreePackets(&p, 1);
     ThresholdDestroy();
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -859,6 +859,7 @@ cleanup:
 end:
     UTHFreePackets(&p, 1);
     ThresholdDestroy();
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -948,6 +949,7 @@ cleanup:
 end:
     UTHFreePackets(&p, 1);
     ThresholdDestroy();
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -1032,6 +1034,7 @@ cleanup:
 end:
     UTHFreePackets(&p, 1);
     ThresholdDestroy();
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -1120,6 +1123,7 @@ cleanup:
 end:
     UTHFreePackets(&p, 1);
     ThresholdDestroy();
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -1208,6 +1212,7 @@ cleanup:
 end:
     UTHFreePackets(&p, 1);
     ThresholdDestroy();
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -1296,6 +1301,7 @@ cleanup:
 end:
     UTHFreePackets(&p, 1);
     ThresholdDestroy();
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -1384,6 +1390,7 @@ cleanup:
 end:
     UTHFreePackets(&p, 1);
     ThresholdDestroy();
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -1472,6 +1479,7 @@ cleanup:
 end:
     UTHFreePackets(&p, 1);
     ThresholdDestroy();
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -1561,6 +1569,7 @@ end:
     UTHFreePackets(&p, 1);
     HostShutdown();
     ThresholdDestroy();
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -1630,6 +1639,7 @@ static int DetectThresholdTestSig13(void)
     DetectEngineCtxFree(de_ctx);
     UTHFreePackets(&p, 1);
     ThresholdDestroy();
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -1713,6 +1723,7 @@ static int DetectThresholdTestSig14(void)
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
     ThresholdDestroy();
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
