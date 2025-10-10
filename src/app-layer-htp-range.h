@@ -18,10 +18,44 @@
 #ifndef SURICATA_APP_LAYER_HTP_RANGE_H
 #define SURICATA_APP_LAYER_HTP_RANGE_H
 
-#include "suricata-common.h"
+#include "util-file.h"
 
+// forward declarations
+typedef struct HttpRangeContainerBuffer HttpRangeContainerBuffer;
+typedef struct HttpRangeContainerFile HttpRangeContainerFile;
+typedef struct HTTPContentRange HTTPContentRange;
+
+/** A structure representing a single range request :
+ * either skipping, buffering, or appending
+ * As this belongs to a flow, appending data to it is ensured to be thread-safe
+ * Only one block per file has the pointer to the container
+ */
+typedef struct HttpRangeContainerBlock {
+    /** state where we skip content */
+    uint64_t toskip;
+    /** current out of order range to write into */
+    HttpRangeContainerBuffer *current;
+    /** pointer to the main file container, where to directly append data */
+    HttpRangeContainerFile *container;
+    /** file container we are owning for now */
+    FileContainer *files;
+} HttpRangeContainerBlock;
+
+void SCHttpRangeFreeBlock(HttpRangeContainerBlock *b);
+
+// HttpRangeContainerBlock but trouble with headers inclusion order
+HttpRangeContainerBlock *SCHttpRangeContainerOpenFile(const unsigned char *key, uint32_t keylen,
+        const Flow *f, const HTTPContentRange *cr, const StreamingBufferConfig *sbcfg,
+        const unsigned char *name, uint16_t name_len, uint16_t flags, const unsigned char *data,
+        uint32_t data_len);
+
+int SCHttpRangeAppendData(const StreamingBufferConfig *sbcfg, HttpRangeContainerBlock *c,
+        const uint8_t *data, uint32_t len);
+
+#ifndef SURICATA_BINDGEN_H
+
+#include "util-streaming-buffer.h"
 #include "util-thash.h"
-#include "rust.h"
 
 void HttpRangeContainersInit(void);
 void HttpRangeContainersDestroy(void);
@@ -82,37 +116,12 @@ typedef struct HttpRangeContainerFile {
     bool error;
 } HttpRangeContainerFile;
 
-/** A structure representing a single range request :
- * either skipping, buffering, or appending
- * As this belongs to a flow, appending data to it is ensured to be thread-safe
- * Only one block per file has the pointer to the container
- */
-typedef struct HttpRangeContainerBlock {
-    /** state where we skip content */
-    uint64_t toskip;
-    /** current out of order range to write into */
-    HttpRangeContainerBuffer *current;
-    /** pointer to the main file container, where to directly append data */
-    HttpRangeContainerFile *container;
-    /** file container we are owning for now */
-    FileContainer *files;
-} HttpRangeContainerBlock;
-
-int HttpRangeAppendData(const StreamingBufferConfig *sbcfg, HttpRangeContainerBlock *c,
-        const uint8_t *data, uint32_t len);
 File *HttpRangeClose(
         const StreamingBufferConfig *sbcfg, HttpRangeContainerBlock *c, uint16_t flags);
-
-// HttpRangeContainerBlock but trouble with headers inclusion order
-HttpRangeContainerBlock *HttpRangeContainerOpenFile(const unsigned char *key, uint32_t keylen,
-        const Flow *f, const HTTPContentRange *cr, const StreamingBufferConfig *sbcfg,
-        const unsigned char *name, uint16_t name_len, uint16_t flags, const unsigned char *data,
-        uint32_t data_len);
-
-void SCHttpRangeFreeBlock(HttpRangeContainerBlock *b);
 
 uint64_t HTPByteRangeMemcapGlobalCounter(void);
 uint64_t HTPByteRangeMemuseGlobalCounter(void);
 int HTPByteRangeSetMemcap(uint64_t);
+#endif // SURICATA_BINDGEN_H
 
 #endif /* SURICATA_APP_LAYER_HTP_RANGE_H */

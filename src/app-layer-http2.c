@@ -69,7 +69,7 @@ void RegisterHTTP2Parsers(void)
 #endif
 }
 
-void HTTP2MimicHttp1Request(void *alstate_orig, void *h2s)
+void SCHTTP2MimicHttp1Request(void *alstate_orig, void *h2s)
 {
     htp_tx_t *h1tx = HtpGetTxForH2(alstate_orig);
     if (h2s == NULL || h1tx == NULL) {
