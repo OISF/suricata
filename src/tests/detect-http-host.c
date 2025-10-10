@@ -94,6 +94,7 @@ static int RunTest(const uint8_t *buf, const uint32_t size, const char *sig_str,
     FAIL_IF(PacketAlertCheck(p, 1) != expect);
 
     AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
@@ -708,6 +709,7 @@ static int DetectHttpHHTest07(void)
     FAIL_IF(!(PacketAlertCheck(p2, 1)));
 
     AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
@@ -797,6 +799,7 @@ static int DetectHttpHHTest08(void)
     FAIL_IF(!(PacketAlertCheck(p2, 1)));
 
     AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
@@ -890,6 +893,7 @@ static int DetectHttpHHTest09(void)
     FAIL_IF(!(PacketAlertCheck(p2, 1)));
 
     AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
@@ -1009,6 +1013,7 @@ static int DetectHttpHHTest10(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -1387,6 +1392,7 @@ static int DetectHttpHRHTest07(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -1503,6 +1509,7 @@ static int DetectHttpHRHTest08(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -1623,6 +1630,7 @@ static int DetectHttpHRHTest09(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -1743,6 +1751,7 @@ static int DetectHttpHRHTest10(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -2108,6 +2117,7 @@ static int DetectHttpHRHTest37(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
