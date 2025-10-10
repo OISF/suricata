@@ -187,7 +187,8 @@ static int DetectTlsSubjectMatch (DetectEngineThreadCtx *det_ctx,
         SCLogDebug("TLS: Subject is [%s], looking for [%s]\n",
                    connp->cert0_subject, tls_data->subject);
 
-        if (strstr(connp->cert0_subject, tls_data->subject) != NULL) {
+        if (SpmSearch(connp->cert0_subject, connp->cert0_subject_len,
+                    (const uint8_t *)tls_data->subject, (uint16_t)strlen(tls_data->subject)) != NULL) {
             if (tls_data->flags & DETECT_CONTENT_NEGATED) {
                 ret = 0;
             } else {
