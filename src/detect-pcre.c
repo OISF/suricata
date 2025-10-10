@@ -1721,8 +1721,7 @@ static int DetectPcreTxBodyChunksTest01(void)
 
     FAIL_IF(StreamingBufferSegmentCompareRawData(htud->request_body.sb, &cur->sbseg, (uint8_t *)"Body two!!", 10) != 1);
 
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
@@ -1868,19 +1867,13 @@ static int DetectPcreTxBodyChunksTest02(void)
 
     FAIL_IF(StreamingBufferSegmentCompareRawData(htud->request_body.sb, &cur->sbseg, (uint8_t *)"Body two!!", 10) != 1);
 
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL) {
-        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    }
-    if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
-        DetectEngineCtxFree(de_ctx);
-    }
-
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     UTHFreePacket(p);
+    FLOW_DESTROY(&f);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -2005,19 +1998,14 @@ static int DetectPcreTxBodyChunksTest03(void)
 
     FAIL_IF(AppLayerParserGetTxCnt(&f, htp_state) != 2);
 
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL) {
-        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    }
-    if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
-        DetectEngineCtxFree(de_ctx);
-    }
+    UTHFreePacket(p);
+    FLOW_DESTROY(&f);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
-    UTHFreePacket(p);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
