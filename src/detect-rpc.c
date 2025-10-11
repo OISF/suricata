@@ -517,11 +517,11 @@ static int DetectRpcTestSig01(void)
     FAIL_IF(PacketAlertCheck(p, 4) == 0);
     FAIL_IF(PacketAlertCheck(p, 5) > 0);
 
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    DetectEngineCtxFree(de_ctx);
-
     UTHFreePackets(&p, 1);
 
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
