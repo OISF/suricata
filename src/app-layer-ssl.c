@@ -471,6 +471,8 @@ static int TlsDecodeHSCertificate(SSLState *ssl_state, SSLStateConnp *connp,
     uint32_t err_code = 0;
     uint8_t *subject_name = NULL;
     uint32_t subject_len = 0;
+    uint8_t *issuer_name = NULL;
+    uint32_t issuer_len = 0;
     X509 *x509 = NULL;
     int rc = 0;
 
@@ -505,12 +507,18 @@ static int TlsDecodeHSCertificate(SSLState *ssl_state, SSLStateConnp *connp,
         connp->cert0_subject_len = subject_len;
         SCX509ArrayFree(subject_name, subject_len);
 
-        char *str = SCX509GetIssuer(x509);
-        if (str == NULL) {
+        SCX509GetIssuer(x509, &issuer_name, &issuer_len);
+        if (issuer_name == NULL || issuer_len == 0) {
             err_code = ERR_EXTRACT_ISSUER;
             goto error;
         }
-        connp->cert0_issuerdn = str;
+        connp->cert0_issuerdn = SCCalloc(issuer_len, sizeof(uint8_t));
+        if (connp->cert0_issuerdn == NULL) {
+            goto error;
+        }
+        memcpy(connp->cert0_issuerdn, issuer_name, issuer_len);
+        connp->cert0_issuerdn_len = issuer_len;
+        SCX509ArrayFree(issuer_name, issuer_len);
 
         connp->cert0_sans_len = SCX509GetSubjectAltNameLen(x509);
         char **sans = SCCalloc(connp->cert0_sans_len, sizeof(char *));
@@ -521,7 +529,7 @@ static int TlsDecodeHSCertificate(SSLState *ssl_state, SSLStateConnp *connp,
             sans[i] = SCX509GetSubjectAltNameAt(x509, i);
         }
         connp->cert0_sans = sans;
-        str = SCX509GetSerial(x509);
+        char *str = SCX509GetSerial(x509);
         if (str == NULL) {
             err_code = ERR_INVALID_SERIAL;
             goto error;
@@ -2867,7 +2875,7 @@ static void SSLStateFree(void *p)
     if (ssl_state->client_connp.cert0_subject)
         SCFree(ssl_state->client_connp.cert0_subject);
     if (ssl_state->client_connp.cert0_issuerdn)
-        SCRustCStringFree(ssl_state->client_connp.cert0_issuerdn);
+        SCFree(ssl_state->client_connp.cert0_issuerdn);
     if (ssl_state->client_connp.cert0_serial)
         SCRustCStringFree(ssl_state->client_connp.cert0_serial);
     if (ssl_state->client_connp.cert0_fingerprint)
@@ -2882,7 +2890,7 @@ static void SSLStateFree(void *p)
     if (ssl_state->server_connp.cert0_subject)
         SCFree(ssl_state->server_connp.cert0_subject);
     if (ssl_state->server_connp.cert0_issuerdn)
-        SCRustCStringFree(ssl_state->server_connp.cert0_issuerdn);
+        SCFree(ssl_state->server_connp.cert0_issuerdn);
     if (ssl_state->server_connp.cert0_serial)
         SCRustCStringFree(ssl_state->server_connp.cert0_serial);
     if (ssl_state->server_connp.cert0_fingerprint)

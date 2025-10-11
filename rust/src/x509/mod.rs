@@ -129,13 +129,16 @@ pub unsafe extern "C" fn SCX509GetSubjectAltNameAt(ptr: *const X509, idx: u16) -
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCX509GetIssuer(ptr: *const X509) -> *mut c_char {
+pub unsafe extern "C" fn SCX509GetIssuer(ptr: *const X509, issuer_name: *mut *mut u8, issuer_len: *mut u32) {
     if ptr.is_null() {
-        return std::ptr::null_mut();
+        *issuer_len = 0;
+        *issuer_name = std::ptr::null_mut();
     }
     let x509 = cast_pointer! {ptr, X509};
-    let issuer = x509.0.tbs_certificate.issuer.to_string();
-    rust_string_to_c(issuer)
+    let issuer = x509.0.tbs_certificate.issuer.to_string().into_bytes();
+
+    *issuer_len = issuer.len() as u32;
+    *issuer_name = Box::into_raw(issuer.into_boxed_slice()) as *mut u8;
 }
 
 #[no_mangle]

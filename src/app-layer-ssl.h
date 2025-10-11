@@ -184,10 +184,11 @@ typedef struct SSLStateConnp_ {
     uint16_t session_id_length;
 
     uint8_t random[TLS_RANDOM_LEN];
-    char *cert0_issuerdn;
     char *cert0_serial;
     uint8_t *cert0_subject;
     uint32_t cert0_subject_len;
+    uint8_t *cert0_issuerdn;
+    uint32_t cert0_issuerdn_len;
     int64_t cert0_not_before;
     int64_t cert0_not_after;
     char *cert0_fingerprint;

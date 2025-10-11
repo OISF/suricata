@@ -376,7 +376,7 @@ static int DetectTlsIssuerDNMatch (DetectEngineThreadCtx *det_ctx,
         SCLogDebug("TLS: IssuerDN is [%s], looking for [%s]\n",
                    connp->cert0_issuerdn, tls_data->issuerdn);
 
-        if (strstr(connp->cert0_issuerdn, tls_data->issuerdn) != NULL) {
+        if (memcmp(connp->cert0_issuerdn, tls_data->issuerdn, connp->cert0_issuerdn_len) == 0) {
             if (tls_data->flags & DETECT_CONTENT_NEGATED) {
                 ret = 0;
             } else {
