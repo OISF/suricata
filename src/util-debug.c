@@ -1811,6 +1811,7 @@ static int SCLogTestInit05(void)
 {
     char str[4096];
     memset(str, 'A', sizeof(str));
+    str[sizeof(str) - 1] = '\0';
     SCLogInfo("%s", str);
 
     PASS;
