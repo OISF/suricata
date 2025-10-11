@@ -379,6 +379,8 @@ void DetectContentFree(DetectEngineCtx *de_ctx, void *ptr)
     if (cd == NULL)
         SCReturn;
 
+    if (cd->replace)
+        SCFree(cd->replace);
     SpmDestroyCtx(cd->spm_ctx);
 
     SCFree(cd);
