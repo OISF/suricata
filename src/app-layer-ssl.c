@@ -496,12 +496,11 @@ static int TlsDecodeHSCertificate(SSLState *ssl_state, SSLStateConnp *connp,
             goto error;
         }
 
-        char *str = SCX509GetIssuer(x509);
-        if (str == NULL) {
+        SCX509GetIssuer(x509, &connp->cert0_issuerdn, &connp->cert0_issuerdn_len);
+        if (connp->cert0_issuerdn_len == 0 || connp->cert0_issuerdn == NULL) {
             err_code = ERR_EXTRACT_ISSUER;
             goto error;
         }
-        connp->cert0_issuerdn = str;
 
         connp->cert0_sans_len = SCX509GetSubjectAltNameLen(x509);
         char **sans = SCCalloc(connp->cert0_sans_len, sizeof(char *));
@@ -512,7 +511,7 @@ static int TlsDecodeHSCertificate(SSLState *ssl_state, SSLStateConnp *connp,
             sans[i] = SCX509GetSubjectAltNameAt(x509, i);
         }
         connp->cert0_sans = sans;
-        str = SCX509GetSerial(x509);
+        char *str = SCX509GetSerial(x509);
         if (str == NULL) {
             err_code = ERR_INVALID_SERIAL;
             goto error;
@@ -2859,7 +2858,8 @@ static void SSLStateFree(void *p)
         SCX509ArrayFree(
                 ssl_state->client_connp.cert0_subject, ssl_state->client_connp.cert0_subject_len);
     if (ssl_state->client_connp.cert0_issuerdn)
-        SCRustCStringFree(ssl_state->client_connp.cert0_issuerdn);
+        SCX509ArrayFree(
+                ssl_state->client_connp.cert0_issuerdn, ssl_state->client_connp.cert0_issuerdn_len);
     if (ssl_state->client_connp.cert0_serial)
         SCRustCStringFree(ssl_state->client_connp.cert0_serial);
     if (ssl_state->client_connp.cert0_fingerprint)
@@ -2875,7 +2875,8 @@ static void SSLStateFree(void *p)
         SCX509ArrayFree(
                 ssl_state->server_connp.cert0_subject, ssl_state->server_connp.cert0_subject_len);
     if (ssl_state->server_connp.cert0_issuerdn)
-        SCRustCStringFree(ssl_state->server_connp.cert0_issuerdn);
+        SCX509ArrayFree(
+                ssl_state->server_connp.cert0_issuerdn, ssl_state->server_connp.cert0_issuerdn_len);
     if (ssl_state->server_connp.cert0_serial)
         SCRustCStringFree(ssl_state->server_connp.cert0_serial);
     if (ssl_state->server_connp.cert0_fingerprint)

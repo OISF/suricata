@@ -135,6 +135,7 @@ static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *s
     uint8_t *ptmp;
     SSLCertsChain *cert;
     char *subject = NULL;
+    char *issuerdn = NULL;
 
     if (TAILQ_EMPTY(&connp->certs)) {
         SCReturn;
@@ -233,15 +234,20 @@ static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *s
         }
 
         subject = CreateStringFromByteArray(connp->cert0_subject, connp->cert0_subject_len);
+        issuerdn = CreateStringFromByteArray(connp->cert0_issuerdn, connp->cert0_issuerdn_len);
+
         if (fprintf(fpmeta,
                     "TLS SUBJECT:       %s\n"
                     "TLS ISSUERDN:      %s\n"
                     "TLS FINGERPRINT:   %s\n",
-                    subject, connp->cert0_issuerdn, connp->cert0_fingerprint) < 0)
+                    subject, issuerdn, connp->cert0_fingerprint) < 0)
             goto end_fwrite_fpmeta;
 
         if (subject) {
             SCFree(subject);
+        }
+        if (issuerdn) {
+            SCFree(issuerdn);
         }
         fclose(fpmeta);
     } else {
@@ -273,6 +279,9 @@ end_fwrite_fpmeta:
     }
     if (subject) {
         SCFree(subject);
+    }
+    if (issuerdn) {
+        SCFree(issuerdn);
     }
     SCReturn;
 end_fp:
