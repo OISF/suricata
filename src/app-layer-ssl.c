@@ -473,6 +473,8 @@ static int TlsDecodeHSCertificate(SSLState *ssl_state, SSLStateConnp *connp,
     uint32_t subject_len = 0;
     uint8_t *issuer_name = NULL;
     uint32_t issuer_len = 0;
+    uint8_t *serial_num = NULL;
+    uint32_t serial_len = 0;
     X509 *x509 = NULL;
     int rc = 0;
 
@@ -529,12 +531,19 @@ static int TlsDecodeHSCertificate(SSLState *ssl_state, SSLStateConnp *connp,
             sans[i] = SCX509GetSubjectAltNameAt(x509, i);
         }
         connp->cert0_sans = sans;
-        char *str = SCX509GetSerial(x509);
-        if (str == NULL) {
+
+        SCX509GetSerial(x509, &serial_num, &serial_len);
+        if (serial_num == NULL || serial_len == 0) {
             err_code = ERR_INVALID_SERIAL;
             goto error;
         }
-        connp->cert0_serial = str;
+        connp->cert0_serial = SCCalloc(serial_len, sizeof(uint8_t));
+        if (connp->cert0_serial == NULL) {
+            goto error;
+        }
+        memcpy(connp->cert0_serial, serial_num, serial_len);
+        connp->cert0_serial_len = serial_len;
+        SCX509ArrayFree(serial_num, serial_len);
 
         rc = SCX509GetValidity(x509, &connp->cert0_not_before, &connp->cert0_not_after);
         if (rc != 0) {
@@ -2877,7 +2886,7 @@ static void SSLStateFree(void *p)
     if (ssl_state->client_connp.cert0_issuerdn)
         SCFree(ssl_state->client_connp.cert0_issuerdn);
     if (ssl_state->client_connp.cert0_serial)
-        SCRustCStringFree(ssl_state->client_connp.cert0_serial);
+        SCFree(ssl_state->client_connp.cert0_serial);
     if (ssl_state->client_connp.cert0_fingerprint)
         SCFree(ssl_state->client_connp.cert0_fingerprint);
     if (ssl_state->client_connp.sni)
@@ -2892,7 +2901,7 @@ static void SSLStateFree(void *p)
     if (ssl_state->server_connp.cert0_issuerdn)
         SCFree(ssl_state->server_connp.cert0_issuerdn);
     if (ssl_state->server_connp.cert0_serial)
-        SCRustCStringFree(ssl_state->server_connp.cert0_serial);
+        SCFree(ssl_state->server_connp.cert0_serial);
     if (ssl_state->server_connp.cert0_fingerprint)
         SCFree(ssl_state->server_connp.cert0_fingerprint);
     if (ssl_state->server_connp.sni)
