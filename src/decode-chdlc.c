@@ -92,7 +92,7 @@ static int DecodeCHDLCTest01 (void)
     FAIL_IF_NOT(PacketIsTCP(p));
     FAIL_IF_NOT(p->dp == 80);
 
-    SCFree(p);
+    PacketFree(p);
     PASS;
 }
 #endif /* UNITTESTS */
