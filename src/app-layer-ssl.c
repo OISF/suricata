@@ -333,8 +333,6 @@ static inline int SafeMemcpy(void *dst, size_t dst_offset, size_t dst_size,
         }                                                                                          \
     } while (0)
 
-static void SSLStateCertSANFree(SSLStateConnp *connp);
-
 static void *SSLGetTx(void *state, uint64_t tx_id)
 {
     SSLState *ssl_state = (SSLState *)state;
@@ -554,7 +552,6 @@ error:
     if (x509 != NULL)
         SCX509Free(x509);
 
-    SSLStateCertSANFree(connp);
     return -1;
 
 invalid_cert:
