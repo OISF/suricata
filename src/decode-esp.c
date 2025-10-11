@@ -109,7 +109,7 @@ static int DecodeESPTest01(void)
     FAIL_IF(ESP_GET_SPI(PacketGetESP(p)) != 0x7b);
     FAIL_IF(ESP_GET_SEQUENCE(PacketGetESP(p)) != 0x08);
 
-    SCFree(p);
+    PacketFree(p);
 
     PASS;
 }
@@ -137,7 +137,7 @@ static int DecodeESPTest02(void)
     FAIL_IF(ESP_GET_SPI(PacketGetESP(p)) != 0x7b);
     FAIL_IF(ESP_GET_SEQUENCE(PacketGetESP(p)) != 0x08);
 
-    SCFree(p);
+    PacketFree(p);
 
     PASS;
 }
@@ -162,7 +162,7 @@ static int DecodeESPTest03(void)
     // expect ESP_PKT_TOO_SMALL
     FAIL_IF_NOT(ENGINE_ISSET_EVENT(p, ESP_PKT_TOO_SMALL));
 
-    SCFree(p);
+    PacketFree(p);
 
     PASS;
 }
@@ -187,7 +187,7 @@ static int DecodeESPTest04(void)
     // expect ESP_PKT_TOO_SMALL
     FAIL_IF_NOT(ENGINE_ISSET_EVENT(p, ESP_PKT_TOO_SMALL));
 
-    SCFree(p);
+    PacketFree(p);
 
     PASS;
 }
