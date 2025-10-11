@@ -46,7 +46,6 @@ static void DetectSameipRegisterTests(void);
 
 /**
  * \brief Registration function for sameip: keyword
- * \todo add support for no_stream and stream_only
  */
 void DetectSameipRegister(void)
 {
@@ -92,18 +91,12 @@ static int DetectSameipMatch(DetectEngineThreadCtx *det_ctx,
  */
 static int DetectSameipSetup(DetectEngineCtx *de_ctx, Signature *s, const char *optstr)
 {
-
     /* Get this into a SigMatch and put it in the Signature. */
-
     if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_SAMEIP, NULL, DETECT_SM_LIST_MATCH) == NULL) {
-        goto error;
+        return -1;
     }
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
-
     return 0;
-
-error:
-    return -1;
 }
 
 #ifdef UNITTESTS
@@ -121,28 +114,24 @@ static int DetectSameipSigTest01(void)
                     "GET / HTTP/1.0\r\n"
                     "\r\n";
     uint16_t buflen = strlen((char *)buf);
-    Packet *p1 = NULL;
-    Packet *p2 = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
 
     memset(&th_v, 0, sizeof(th_v));
 
     /* First packet has same IPs */
-    p1 = UTHBuildPacketSrcDst(buf, buflen, IPPROTO_TCP, "1.2.3.4", "1.2.3.4");
+    Packet *p1 = UTHBuildPacketSrcDst(buf, buflen, IPPROTO_TCP, "1.2.3.4", "1.2.3.4");
 
     /* Second packet does not have same IPs */
-    p2 = UTHBuildPacketSrcDst(buf, buflen, IPPROTO_TCP, "1.2.3.4", "4.3.2.1");
+    Packet *p2 = UTHBuildPacketSrcDst(buf, buflen, IPPROTO_TCP, "1.2.3.4", "4.3.2.1");
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
-
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,
-                                     "alert tcp any any -> any any "
-                                     "(msg:\"Testing sameip\"; sameip; sid:1;)");
-    FAIL_IF_NULL(de_ctx->sig_list);
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                                                 "(msg:\"Testing sameip\"; sameip; sid:1;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -153,9 +142,12 @@ static int DetectSameipSigTest01(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
     FAIL_IF(PacketAlertCheck(p2, 1) != 0);
 
+    UTHFreePacket(p1);
+    UTHFreePacket(p2);
+
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
