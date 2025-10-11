@@ -339,9 +339,12 @@ static void LogTlsLogExtended(LogTlsLogThread *aft, SSLState *ssl_state, const S
         LogTlsLogString(aft->buffer, "SNI", ssl_state->client_connp.sni);
     }
     if (ssl_state->server_connp.cert0_serial != NULL) {
+        char *serial = CreateStringFromByteArray(
+                ssl_state->client_connp.cert0_serial, ssl_state->client_connp.cert0_serial_len);
         LOG_CF_WRITE_SPACE_SEPARATOR(aft->buffer);
-        LogTlsLogString(aft->buffer, "SERIAL",
-                        ssl_state->server_connp.cert0_serial);
+        LogTlsLogString(aft->buffer, "SERIAL", serial ? serial : "<ERROR>");
+
+        SCFree(serial);
     }
 
     LOG_CF_WRITE_SPACE_SEPARATOR(aft->buffer);
