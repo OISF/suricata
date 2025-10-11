@@ -308,8 +308,10 @@ static void LogTlsLogBasic(LogTlsLogThread *aft, SSLState *ssl_state, const SCTi
     }
 
     if (ssl_state->server_connp.cert0_issuerdn != NULL) {
-        MemBufferWriteString(aft->buffer, " Issuerdn='%s'",
-                             ssl_state->server_connp.cert0_issuerdn);
+        char *issuerdn = CreateStringFromByteArray(
+                ssl_state->server_connp.cert0_issuerdn, ssl_state->server_connp.cert0_issuerdn_len);
+        MemBufferWriteString(aft->buffer, " Issuerdn='%s'", issuerdn ? issuerdn : "<ERROR>");
+        SCFree(issuerdn);
     }
 
     if (ssl_state->flags & SSL_AL_FLAG_SESSION_RESUMED) {
