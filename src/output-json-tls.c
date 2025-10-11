@@ -195,7 +195,8 @@ static void JsonTlsLogSni(SCJsonBuilder *js, SSLState *ssl_state)
 static void JsonTlsLogSerial(SCJsonBuilder *js, SSLState *ssl_state)
 {
     if (ssl_state->server_connp.cert0_serial) {
-        SCJbSetString(js, "serial", ssl_state->server_connp.cert0_serial);
+        SCJbSetStringFromBytes(js, "serial", ssl_state->server_connp.cert0_serial,
+                ssl_state->server_connp.cert0_serial_len);
     }
 }
 
@@ -361,7 +362,7 @@ static void JsonTlsLogClientCert(
         SCJbSetString(js, "fingerprint", connp->cert0_fingerprint);
     }
     if (connp->cert0_serial) {
-        SCJbSetString(js, "serial", connp->cert0_serial);
+        SCJbSetStringFromBytes(js, "serial", connp->cert0_serial, connp->cert0_serial_len);
     }
     if (connp->cert0_not_before != 0) {
         char timebuf[64];

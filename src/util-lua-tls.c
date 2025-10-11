@@ -291,8 +291,7 @@ static int GetCertSerial(lua_State *luastate, bool client)
     if (connp->cert0_serial == NULL)
         return LuaCallbackError(luastate, "error: no certificate serial");
 
-    return LuaPushStringBuffer(
-            luastate, (uint8_t *)connp->cert0_serial, strlen(connp->cert0_serial));
+    return LuaPushStringBuffer(luastate, connp->cert0_serial, connp->cert0_serial_len);
 }
 
 static int LuaTlsGetServerCertSerial(lua_State *luastate)
