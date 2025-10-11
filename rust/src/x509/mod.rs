@@ -144,15 +144,18 @@ pub unsafe extern "C" fn SCX509GetIssuer(ptr: *const X509, issuer_name: *mut *mu
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCX509GetSerial(ptr: *const X509) -> *mut c_char {
+pub unsafe extern "C" fn SCX509GetSerial(ptr: *const X509, serial_num: *mut *mut u8, serial_len: *mut u32) {
     if ptr.is_null() {
-        return std::ptr::null_mut();
+        *serial_len = 0;
+        *serial_num = std::ptr::null_mut();
+        return;
     }
     let x509 = cast_pointer! {ptr, X509};
     let raw_serial = x509.0.tbs_certificate.raw_serial();
     let v: Vec<_> = raw_serial.iter().map(|x| format!("{:02X}", x)).collect();
     let serial = v.join(":");
-    rust_string_to_c(serial)
+    *serial_len = serial.len() as u32;
+    *serial_num = Box::into_raw(serial.into_bytes().into_boxed_slice()) as *mut u8;
 }
 
 /// Extract validity from input X.509 object
