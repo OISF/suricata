@@ -511,12 +511,12 @@ static int TlsDecodeHSCertificate(SSLState *ssl_state, SSLStateConnp *connp,
             sans[i] = SCX509GetSubjectAltNameAt(x509, i);
         }
         connp->cert0_sans = sans;
-        char *str = SCX509GetSerial(x509);
-        if (str == NULL) {
+
+        SCX509GetSerial(x509, &connp->cert0_serial, &connp->cert0_serial_len);
+        if (connp->cert0_serial == NULL) {
             err_code = ERR_INVALID_SERIAL;
             goto error;
         }
-        connp->cert0_serial = str;
 
         rc = SCX509GetValidity(x509, &connp->cert0_not_before, &connp->cert0_not_after);
         if (rc != 0) {
@@ -2859,7 +2859,8 @@ static void SSLStateFree(void *p)
         SCX509ArrayFree(
                 ssl_state->client_connp.cert0_issuerdn, ssl_state->client_connp.cert0_issuerdn_len);
     if (ssl_state->client_connp.cert0_serial)
-        SCRustCStringFree(ssl_state->client_connp.cert0_serial);
+        SCX509ArrayFree(
+                ssl_state->client_connp.cert0_serial, ssl_state->client_connp.cert0_serial_len);
     if (ssl_state->client_connp.cert0_fingerprint)
         SCFree(ssl_state->client_connp.cert0_fingerprint);
     if (ssl_state->client_connp.sni)
@@ -2876,7 +2877,8 @@ static void SSLStateFree(void *p)
         SCX509ArrayFree(
                 ssl_state->server_connp.cert0_issuerdn, ssl_state->server_connp.cert0_issuerdn_len);
     if (ssl_state->server_connp.cert0_serial)
-        SCRustCStringFree(ssl_state->server_connp.cert0_serial);
+        SCX509ArrayFree(
+                ssl_state->server_connp.cert0_serial, ssl_state->server_connp.cert0_serial_len);
     if (ssl_state->server_connp.cert0_fingerprint)
         SCFree(ssl_state->server_connp.cert0_fingerprint);
     if (ssl_state->server_connp.sni)
