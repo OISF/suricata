@@ -258,6 +258,7 @@ static int DetectReferenceParseTest01(void)
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
+    SCRConfDeInitContext(de_ctx);
     FILE *fd = SCRConfGenerateValidDummyReferenceConfigFD01();
     FAIL_IF_NULL(fd);
     SCRConfLoadReferenceConfigFile(de_ctx, fd);
@@ -287,6 +288,7 @@ static int DetectReferenceParseTest02(void)
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
+    SCRConfDeInitContext(de_ctx);
     FILE *fd = SCRConfGenerateValidDummyReferenceConfigFD01();
     FAIL_IF_NULL(fd);
     SCRConfLoadReferenceConfigFile(de_ctx, fd);
@@ -323,6 +325,7 @@ static int DetectReferenceParseTest03(void)
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
+    SCRConfDeInitContext(de_ctx);
     FILE *fd = SCRConfGenerateValidDummyReferenceConfigFD01();
     FAIL_IF_NULL(fd);
     SCRConfLoadReferenceConfigFile(de_ctx, fd);
