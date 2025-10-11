@@ -175,7 +175,7 @@ static int GetCertInfo(lua_State *luastate, bool client, const SSLState *ssl_sta
 
     int r = LuaPushStringBuffer(luastate, (uint8_t *)ssl_version, strlen(ssl_version));
     r += LuaPushStringBuffer(luastate, connp->cert0_subject, connp->cert0_subject_len);
-    r += LuaPushStringBuffer(luastate, (uint8_t *)connp->cert0_issuerdn, strlen(connp->cert0_issuerdn));
+    r += LuaPushStringBuffer(luastate, connp->cert0_issuerdn, connp->cert0_issuerdn_len);
     r += LuaPushStringBuffer(luastate, (uint8_t *)connp->cert0_fingerprint, strlen(connp->cert0_fingerprint));
     return r;
 }

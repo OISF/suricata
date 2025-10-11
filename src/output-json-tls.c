@@ -144,7 +144,12 @@ static void JsonTlsLogSubject(SCJsonBuilder *js, SSLState *ssl_state)
 static void JsonTlsLogIssuer(SCJsonBuilder *js, SSLState *ssl_state)
 {
     if (ssl_state->server_connp.cert0_issuerdn) {
-        SCJbSetString(js, "issuerdn", ssl_state->server_connp.cert0_issuerdn);
+        if (ssl_state->server_connp.cert0_issuerdn_len == 0) {
+            SCJbSetString(js, "issuerdn", "");
+        } else {
+            SCJbSetStringFromBytes(js, "issuerdn", ssl_state->server_connp.cert0_issuerdn,
+                    ssl_state->server_connp.cert0_issuerdn_len);
+        }
     }
 }
 
@@ -350,7 +355,12 @@ static void JsonTlsLogClientCert(
         }
     }
     if (connp->cert0_issuerdn != NULL) {
-        SCJbSetString(js, "issuerdn", connp->cert0_issuerdn);
+        if (connp->cert0_issuerdn_len == 0) {
+            SCJbSetString(js, "issuerdn", "");
+        } else {
+            SCJbSetStringFromBytes(
+                    js, "issuerdn", connp->cert0_issuerdn, connp->cert0_issuerdn_len);
+        }
     }
     if (connp->cert0_fingerprint) {
         SCJbSetString(js, "fingerprint", connp->cert0_fingerprint);
