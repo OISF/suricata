@@ -1986,6 +1986,8 @@ static int DNP3ReassembleApplicationLayerTest01(void)
     reassembled_len = 0;
     FAIL_IF(DNP3ReassembleApplicationLayer(short_payload2,
             sizeof(short_payload2), &output, &reassembled_len));
+    SCFree(output);
+    output = NULL;
 
     PASS;
 }
