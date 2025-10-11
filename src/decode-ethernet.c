@@ -101,7 +101,7 @@ static int DecodeEthernetTest01 (void)
 
     DecodeEthernet(&tv, &dtv, p, raw_eth, sizeof(raw_eth));
 
-    SCFree(p);
+    PacketFree(p);
     return 1;
 }
 
@@ -127,7 +127,7 @@ static int DecodeEthernetTestDceTooSmall(void)
 
     FAIL_IF_NOT(ENGINE_ISSET_EVENT(p, DCE_PKT_TOO_SMALL));
 
-    SCFree(p);
+    PacketFree(p);
     PASS;
 }
 
@@ -162,7 +162,7 @@ static int DecodeEthernetTestDceNextTooSmall(void)
 
     FAIL_IF_NOT(ENGINE_ISSET_EVENT(p, DCE_PKT_TOO_SMALL));
 
-    SCFree(p);
+    PacketFree(p);
     PASS;
 }
 
