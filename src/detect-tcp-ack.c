@@ -207,116 +207,66 @@ static bool PrefilterTcpAckIsPrefilterable(const Signature *s)
  */
 static int DetectAckSigTest01(void)
 {
-    Packet *p1 = NULL;
-    Packet *p2 = NULL;
-    Packet *p3 = NULL;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
-    int result = 0;
-
     memset(&th_v, 0, sizeof(th_v));
+    DetectEngineThreadCtx *det_ctx = NULL;
 
     /* TCP w/ack=42 */
-    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    Packet *p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     p1->l4.hdrs.tcph->th_ack = htonl(42);
 
     /* TCP w/ack=100 */
-    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    Packet *p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     p2->l4.hdrs.tcph->th_ack = htonl(100);
 
     /* ICMP */
-    p3 = UTHBuildPacket(NULL, 0, IPPROTO_ICMP);
+    Packet *p3 = UTHBuildPacket(NULL, 0, IPPROTO_ICMP);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
     /* These three are crammed in here as there is no Parse */
-    if (SigInit(de_ctx,
-                "alert tcp any any -> any any "
-                "(msg:\"Testing ack\";ack:foo;sid:1;)") != NULL)
-    {
-        printf("invalid ack accepted: ");
-        goto cleanup_engine;
-    }
-    if (SigInit(de_ctx,
-                "alert tcp any any -> any any "
-                "(msg:\"Testing ack\";ack:9999999999;sid:1;)") != NULL)
-    {
-        printf("overflowing ack accepted: ");
-        goto cleanup_engine;
-    }
-    if (SigInit(de_ctx,
-                "alert tcp any any -> any any "
-                "(msg:\"Testing ack\";ack:-100;sid:1;)") != NULL)
-    {
-        printf("negative ack accepted: ");
-        goto cleanup_engine;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                                                 "(msg:\"Testing ack\";ack:foo;sid:1;)");
+    FAIL_IF_NOT_NULL(s);
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                                      "(msg:\"Testing ack\";ack:9999999999;sid:1;)");
+    FAIL_IF_NOT_NULL(s);
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                                      "(msg:\"Testing ack\";ack:-100;sid:1;)");
+    FAIL_IF_NOT_NULL(s);
 
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"Testing ack\";ack:41;sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        goto cleanup_engine;
-    }
-
-    de_ctx->sig_list->next = SigInit(de_ctx,
-                                     "alert tcp any any -> any any "
-                                     "(msg:\"Testing ack\";ack:42;sid:2;)");
-    if (de_ctx->sig_list->next == NULL) {
-        goto cleanup_engine;
-    }
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                                      "(msg:\"Testing ack\";ack:41;sid:1;)");
+    FAIL_IF_NULL(s);
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                                      "(msg:\"Testing ack\";ack:42;sid:2;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-    if (PacketAlertCheck(p1, 1) != 0) {
-        printf("sid 1 alerted, but should not have: ");
-        goto cleanup;
-    }
-    if (PacketAlertCheck(p1, 2) == 0) {
-        printf("sid 2 did not alert, but should have: ");
-        goto cleanup;
-    }
+    FAIL_IF(PacketAlertCheck(p1, 1));
+    FAIL_IF_NOT(PacketAlertCheck(p1, 2));
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-    if (PacketAlertCheck(p2, 1) != 0) {
-        printf("sid 1 alerted, but should not have: ");
-        goto cleanup;
-    }
-    if (PacketAlertCheck(p2, 2) != 0) {
-        printf("sid 2 alerted, but should not have: ");
-        goto cleanup;
-    }
+    FAIL_IF(PacketAlertCheck(p2, 1));
+    FAIL_IF(PacketAlertCheck(p2, 2));
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p3);
-    if (PacketAlertCheck(p3, 1) != 0) {
-        printf("sid 1 alerted, but should not have: ");
-        goto cleanup;
-    }
-    if (PacketAlertCheck(p3, 2) != 0) {
-        printf("sid 2 alerted, but should not have: ");
-        goto cleanup;
-    }
+    FAIL_IF(PacketAlertCheck(p3, 1));
+    FAIL_IF(PacketAlertCheck(p3, 2));
 
-    result = 1;
-
-cleanup:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    UTHFreePacket(p1);
+    UTHFreePacket(p2);
+    UTHFreePacket(p3);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-
-cleanup_engine:
     DetectEngineCtxFree(de_ctx);
-
-end:
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**

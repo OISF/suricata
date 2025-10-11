@@ -88,6 +88,7 @@ static int FlowStorageTest01(void)
 {
     Flow *f = NULL;
 
+    StorageCleanup();
     StorageInit();
 
     FlowStorageId id1 = FlowStorageRegister("test", 8, StorageTestAlloc, StorageTestFree);
@@ -169,6 +170,7 @@ static int FlowStorageTest02(void)
 {
     Flow *f = NULL;
 
+    StorageCleanup();
     StorageInit();
 
     FlowStorageId id1 = FlowStorageRegister("test", sizeof(void *), NULL, StorageTestFree);
@@ -220,6 +222,7 @@ static int FlowStorageTest03(void)
 {
     Flow *f = NULL;
 
+    StorageCleanup();
     StorageInit();
 
     FlowStorageId id1 = FlowStorageRegister("test1", sizeof(void *), NULL, StorageTestFree);

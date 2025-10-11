@@ -628,10 +628,9 @@ static int DetectDsizeIcmpv6Test01(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    PacketRecycle(p);
+    PacketFree(p);
     FlowShutdown();
-    SCFree(p);
-
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 

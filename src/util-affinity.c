@@ -1187,6 +1187,7 @@ static int ThreadingAffinityTest01(void)
     FAIL_IF_NOT(CPU_ISSET(3, &worker_taf->cpu_set));
     FAIL_IF_NOT(CPU_COUNT(&worker_taf->cpu_set));
 
+    SCConfDeInit();
     SCConfRestoreContextBackup();
     PASS;
 }
@@ -1216,6 +1217,7 @@ static int ThreadingAffinityTest02(void)
     FAIL_IF_NOT(CPU_ISSET(2, &worker_taf->cpu_set));
     FAIL_IF_NOT(CPU_COUNT(&worker_taf->cpu_set) == 2);
 
+    SCConfDeInit();
     SCConfRestoreContextBackup();
     PASS;
 }
@@ -1246,6 +1248,7 @@ static int ThreadingAffinityTest03(void)
     FAIL_IF_NOT(CPU_ISSET(3, &worker_taf->cpu_set));
     FAIL_IF_NOT(CPU_COUNT(&worker_taf->cpu_set) == 4);
 
+    SCConfDeInit();
     SCConfRestoreContextBackup();
     PASS;
 }
@@ -1278,6 +1281,7 @@ static int ThreadingAffinityTest04(void)
     FAIL_IF(CPU_ISSET(4, &worker_taf->cpu_set));
     FAIL_IF_NOT(CPU_COUNT(&worker_taf->cpu_set) == 3);
 
+    SCConfDeInit();
     SCConfRestoreContextBackup();
     PASS;
 }
@@ -1304,6 +1308,7 @@ static int ThreadingAffinityTest05(void)
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
     FAIL_IF_NOT(CPU_COUNT(&worker_taf->cpu_set) == UtilCpuGetNumProcessorsOnline());
 
+    SCConfDeInit();
     SCConfRestoreContextBackup();
     PASS;
 }
@@ -1339,6 +1344,7 @@ static int ThreadingAffinityTest06(void)
     FAIL_IF_NOT(CPU_ISSET(3, &worker_taf->hiprio_cpu));
     FAIL_IF_NOT(worker_taf->prio == PRIO_MEDIUM);
 
+    SCConfDeInit();
     SCConfRestoreContextBackup();
     PASS;
 }
@@ -1366,6 +1372,7 @@ static int ThreadingAffinityTest07(void)
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
     FAIL_IF_NOT(worker_taf->mode_flag == EXCLUSIVE_AFFINITY);
 
+    SCConfDeInit();
     SCConfRestoreContextBackup();
     PASS;
 }
@@ -1393,6 +1400,7 @@ static int ThreadingAffinityTest08(void)
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
     FAIL_IF_NOT(worker_taf->nb_threads == 4);
 
+    SCConfDeInit();
     SCConfRestoreContextBackup();
     PASS;
 }
@@ -1430,6 +1438,7 @@ static int ThreadingAffinityTest09(void)
     FAIL_IF_NOT(CPU_COUNT(&iface_taf->cpu_set) == 2);
     FAIL_IF_NOT(iface_taf->mode_flag == EXCLUSIVE_AFFINITY);
 
+    SCConfDeInit();
     SCConfRestoreContextBackup();
     PASS;
 }
@@ -1480,6 +1489,7 @@ static int ThreadingAffinityTest10(void)
 
     FAIL_IF_NOT(eth0_found && eth1_found);
 
+    SCConfDeInit();
     SCConfRestoreContextBackup();
     PASS;
 }
@@ -1519,6 +1529,7 @@ static int ThreadingAffinityTest11(void)
     FAIL_IF_NOT(CPU_ISSET(3, &iface_taf->hiprio_cpu));
     FAIL_IF_NOT(iface_taf->prio == PRIO_HIGH);
 
+    SCConfDeInit();
     SCConfRestoreContextBackup();
     PASS;
 }
@@ -1572,6 +1583,7 @@ static int ThreadingAffinityTest12(void)
     FAIL_IF_NOT(iface_taf->prio == PRIO_HIGH);
     FAIL_IF_NOT(CPU_COUNT(&thread_affinity[WORKER_CPU_SET].cpu_set) == 2);
 
+    SCConfDeInit();
     SCConfRestoreContextBackup();
     PASS;
 }
@@ -1598,6 +1610,7 @@ static int ThreadingAffinityTest13(void)
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
     FAIL_IF_NOT(CPU_COUNT(&worker_taf->cpu_set) == 0);
 
+    SCConfDeInit();
     SCConfRestoreContextBackup();
     PASS;
 }
@@ -1622,6 +1635,7 @@ static int ThreadingAffinityTest14(void)
     FAIL_IF_NOT(
             CPU_COUNT(&thread_affinity[WORKER_CPU_SET].cpu_set) == UtilCpuGetNumProcessorsOnline());
 
+    SCConfDeInit();
     SCConfRestoreContextBackup();
     PASS;
 }
@@ -1648,6 +1662,7 @@ static int ThreadingAffinityTest15(void)
 
     FAIL_IF_NOT(CPU_COUNT(&thread_affinity[MANAGEMENT_CPU_SET].cpu_set) == 0);
 
+    SCConfDeInit();
     SCConfRestoreContextBackup();
     PASS;
 }
@@ -1673,6 +1688,7 @@ static int ThreadingAffinityTest16(void)
     SCConfYamlLoadString(config, strlen(config));
     AffinitySetupLoadFromConfig();
 
+    SCConfDeInit();
     SCConfRestoreContextBackup();
     PASS;
 }
@@ -1697,6 +1713,7 @@ static int ThreadingAffinityTest17(void)
     SCConfYamlLoadString(config, strlen(config));
     AffinitySetupLoadFromConfig();
 
+    SCConfDeInit();
     SCConfRestoreContextBackup();
     PASS;
 }
@@ -1721,6 +1738,7 @@ static int ThreadingAffinityTest18(void)
     SCConfYamlLoadString(config, strlen(config));
     AffinitySetupLoadFromConfig();
 
+    SCConfDeInit();
     SCConfRestoreContextBackup();
     PASS;
 }
@@ -1745,6 +1763,7 @@ static int ThreadingAffinityTest19(void)
     SCConfYamlLoadString(config, strlen(config));
     AffinitySetupLoadFromConfig();
 
+    SCConfDeInit();
     SCConfRestoreContextBackup();
     PASS;
 }
@@ -1769,6 +1788,7 @@ static int ThreadingAffinityTest20(void)
     SCConfYamlLoadString(config, strlen(config));
     AffinitySetupLoadFromConfig();
 
+    SCConfDeInit();
     SCConfRestoreContextBackup();
     PASS;
 }
@@ -1793,6 +1813,7 @@ static int ThreadingAffinityTest21(void)
     SCConfYamlLoadString(config, strlen(config));
     AffinitySetupLoadFromConfig();
 
+    SCConfDeInit();
     SCConfRestoreContextBackup();
     PASS;
 }
@@ -1829,6 +1850,7 @@ static int ThreadingAffinityTest22(void)
     FAIL_IF_NOT(CPU_ISSET(1, &iface_taf->cpu_set));
     FAIL_IF_NOT(iface_taf->nb_children == 0);
 
+    SCConfDeInit();
     SCConfRestoreContextBackup();
     PASS;
 }
@@ -1866,6 +1888,7 @@ static int ThreadingAffinityTest23(void)
     result = GetAffinityTypeForNameAndIface("worker-cpu-set", "");
     FAIL_IF_NOT(result == NULL); // Returns NULL as no child with an empty name exists
 
+    SCConfDeInit();
     SCConfRestoreContextBackup();
     PASS;
 }
@@ -1897,6 +1920,7 @@ static int ThreadingAffinityTest24(void)
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
     FAIL_IF_NOT(worker_taf->nb_children == 0);
 
+    SCConfDeInit();
     SCConfRestoreContextBackup();
     PASS;
 }
@@ -1983,6 +2007,7 @@ static int ThreadingAffinityTest27(void)
     FAIL_IF(CPU_COUNT(&mgmt_taf->cpu_set) != 1 ||
             CPU_COUNT(&worker_taf->cpu_set) != UtilCpuGetNumProcessorsOnline());
 
+    SCConfDeInit();
     SCConfRestoreContextBackup();
     PASS;
 }

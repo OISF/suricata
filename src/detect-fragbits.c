@@ -475,9 +475,6 @@ static int FragBitsTestParse03 (void)
     FAIL_IF(unlikely(p == NULL));
     ThreadVars tv;
     DecodeThreadVars dtv;
-    int ret = 0;
-    DetectFragBitsData *de = NULL;
-    SigMatch *sm = NULL;
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
@@ -487,23 +484,24 @@ static int FragBitsTestParse03 (void)
 
     DecodeEthernet(&tv, &dtv, p, raw_eth, sizeof(raw_eth));
 
-    de = DetectFragBitsParse("D");
+    DetectFragBitsData *de = DetectFragBitsParse("D");
+    FAIL_IF(de == NULL);
+    FAIL_IF(de->fragbits != FRAGBITS_HAVE_DF);
 
-    FAIL_IF(de == NULL || (de->fragbits != FRAGBITS_HAVE_DF));
-
-    sm = SigMatchAlloc();
+    SigMatch *sm = SigMatchAlloc();
     FAIL_IF(sm == NULL);
-
     sm->type = DETECT_FRAGBITS;
     sm->ctx = (SigMatchCtx *)de;
 
-    ret = DetectFragBitsMatch(NULL, p, NULL, sm->ctx);
+    int ret = DetectFragBitsMatch(NULL, p, NULL, sm->ctx);
     FAIL_IF(ret == 0);
 
-    FlowShutdown();
     SCFree(de);
     SCFree(sm);
-    SCFree(p);
+    PacketFree(p);
+
+    AppLayerDestroyCtxThread(dtv.app_tctx);
+    FlowShutdown();
     PASS;
 }
 
@@ -557,9 +555,6 @@ static int FragBitsTestParse04 (void)
     FAIL_IF(unlikely(p == NULL));
     ThreadVars tv;
     DecodeThreadVars dtv;
-    int ret = 0;
-    DetectFragBitsData *de = NULL;
-    SigMatch *sm = NULL;
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
@@ -569,25 +564,24 @@ static int FragBitsTestParse04 (void)
 
     DecodeEthernet(&tv, &dtv, p, raw_eth, sizeof(raw_eth));
 
-    de = DetectFragBitsParse("!D");
-
+    DetectFragBitsData *de = DetectFragBitsParse("!D");
     FAIL_IF(de == NULL);
     FAIL_IF(de->fragbits != FRAGBITS_HAVE_DF);
     FAIL_IF(de->modifier != MODIFIER_NOT);
 
-    sm = SigMatchAlloc();
+    SigMatch *sm = SigMatchAlloc();
     FAIL_IF(sm == NULL);
-
     sm->type = DETECT_FRAGBITS;
     sm->ctx = (SigMatchCtx *)de;
 
-    ret = DetectFragBitsMatch(NULL, p, NULL, sm->ctx);
+    int ret = DetectFragBitsMatch(NULL, p, NULL, sm->ctx);
     FAIL_IF(ret);
     SCFree(de);
     SCFree(sm);
-    PacketRecycle(p);
+    PacketFree(p);
+
+    AppLayerDestroyCtxThread(dtv.app_tctx);
     FlowShutdown();
-    SCFree(p);
     PASS;
 }
 

@@ -812,7 +812,7 @@ static int DetectAddressIPv4IsCompleteIPSpace03(void)
     temp->ip2.addr_data32[0] = in.s_addr;
     FAIL_IF_NOT(DetectAddressIsCompleteIPSpaceIPv4(a) == 1);
 
-    DetectAddressFree(a);
+    DetectAddressCleanupList(a);
 
     PASS;
 }
@@ -871,7 +871,7 @@ static int DetectAddressIPv4IsCompleteIPSpace04(void)
     temp->ip2.addr_data32[0] = in.s_addr;
     FAIL_IF_NOT(DetectAddressIsCompleteIPSpaceIPv4(a) == 0);
 
-    DetectAddressFree(a);
+    DetectAddressCleanupList(a);
 
     PASS;
 }

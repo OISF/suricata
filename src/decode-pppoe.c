@@ -272,7 +272,7 @@ static int DecodePPPOEtest01(void)
 
     FAIL_IF(!ENGINE_ISSET_EVENT(p, PPPOE_PKT_TOO_SMALL));
 
-    SCFree(p);
+    PacketFree(p);
     PASS;
 }
 
@@ -307,7 +307,7 @@ static int DecodePPPOEtest02(void)
     FAIL_IF(!ENGINE_ISSET_EVENT(p, ICMPV4_UNKNOWN_TYPE));
 
     FlowShutdown();
-    SCFree(p);
+    PacketFree(p);
     PASS;
 }
 
@@ -333,7 +333,7 @@ static int DecodePPPOEtest03(void)
     int r = DecodePPPOEDiscovery(&tv, &dtv, p, raw_pppoe, sizeof(raw_pppoe));
     FAIL_IF_NOT(r == TM_ECODE_OK);
 
-    SCFree(p);
+    PacketFree(p);
     PASS;
 }
 
@@ -359,7 +359,7 @@ static int DecodePPPOEtest04(void)
 
     FAIL_IF(!ENGINE_ISSET_EVENT(p, PPPOE_WRONG_CODE));
 
-    SCFree(p);
+    PacketFree(p);
     PASS;
 }
 
@@ -387,7 +387,7 @@ static int DecodePPPOEtest05(void)
 
     FAIL_IF(!ENGINE_ISSET_EVENT(p, PPPOE_MALFORMED_TAGS));
 
-    SCFree(p);
+    PacketFree(p);
     PASS;
 }
 
@@ -435,7 +435,7 @@ static int DecodePPPOEtest07(void)
     DecodePPPOESession(&tv, &dtv, p, raw_pppoe, sizeof(raw_pppoe));
 
     FAIL_IF(ENGINE_ISSET_EVENT(p, PPP_WRONG_TYPE));
-    SCFree(p);
+    PacketFree(p);
     PASS;
 }
 
@@ -463,7 +463,7 @@ static int DecodePPPOEtest08(void)
     DecodePPPOESession(&tv, &dtv, p, raw_pppoe, sizeof(raw_pppoe));
 
     FAIL_IF(ENGINE_ISSET_EVENT(p, PPP_WRONG_TYPE));
-    SCFree(p);
+    PacketFree(p);
     PASS;
 }
 
@@ -490,7 +490,7 @@ static int DecodePPPOEtest09(void)
     DecodePPPOESession(&tv, &dtv, p, raw_pppoe, sizeof(raw_pppoe));
 
     FAIL_IF(ENGINE_ISSET_EVENT(p, PPP_WRONG_TYPE));
-    SCFree(p);
+    PacketFree(p);
     PASS;
 }
 
@@ -518,7 +518,7 @@ static int DecodePPPOEtest10(void)
     DecodePPPOESession(&tv, &dtv, p, raw_pppoe, sizeof(raw_pppoe));
 
     FAIL_IF(ENGINE_ISSET_EVENT(p, PPP_WRONG_TYPE));
-    SCFree(p);
+    PacketFree(p);
     PASS;
 }
 #endif /* UNITTESTS */

@@ -230,14 +230,14 @@ int DetectReplaceLongPatternMatchTest(uint8_t *raw_eth_pkt, uint16_t pktsize,
 {
     int result = 0;
 
-    Packet *p = NULL;
-    p = PacketGetFromAlloc();
+    Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
 
     DecodeThreadVars dtv;
-
     ThreadVars th_v;
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&th_v, 0, sizeof(th_v));
     DetectEngineThreadCtx *det_ctx = NULL;
 
     if (pp == NULL) {
@@ -245,10 +245,7 @@ int DetectReplaceLongPatternMatchTest(uint8_t *raw_eth_pkt, uint16_t pktsize,
     }
 
     PacketCopyData(p, raw_eth_pkt, pktsize);
-    memset(&dtv, 0, sizeof(DecodeThreadVars));
-    memset(&th_v, 0, sizeof(th_v));
     dtv.app_tctx = AppLayerGetCtxThread();
-
     FlowInitConfig(FLOW_QUIET);
     DecodeEthernet(&th_v, &dtv, p, GET_PKT_DATA(p), pktsize);
 
@@ -258,16 +255,14 @@ int DetectReplaceLongPatternMatchTest(uint8_t *raw_eth_pkt, uint16_t pktsize,
     }
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, sig);
-    if (de_ctx->sig_list == NULL) {
+    Signature *s = DetectEngineAppendSig(de_ctx, sig);
+    if (s == NULL) {
         goto end;
     }
-    de_ctx->sig_list->next = NULL;
 
-    if (de_ctx->sig_list->init_data->smlists_tail[DETECT_SM_LIST_PMATCH]->type == DETECT_CONTENT) {
-        DetectContentData *co = (DetectContentData *)de_ctx->sig_list->init_data
-                                        ->smlists_tail[DETECT_SM_LIST_PMATCH]
-                                        ->ctx;
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH]->type == DETECT_CONTENT) {
+        DetectContentData *co =
+                (DetectContentData *)s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH]->ctx;
         if (co->flags & DETECT_CONTENT_RELATIVE_NEXT) {
             printf("relative next flag set on final match which is content: ");
             goto end;
@@ -276,7 +271,8 @@ int DetectReplaceLongPatternMatchTest(uint8_t *raw_eth_pkt, uint16_t pktsize,
 
     SigGroupBuild(de_ctx);
     DetectEngineAddToMaster(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, NULL, (void *)&det_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+    BUG_ON(det_ctx == NULL);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     DetectEngineMoveToFreeList(de_ctx);
@@ -292,7 +288,6 @@ int DetectReplaceLongPatternMatchTest(uint8_t *raw_eth_pkt, uint16_t pktsize,
         SCLogDebug("replace: copying %d on %p", *len, pp);
     }
 
-
     result = 1;
 end:
     if (dtv.app_tctx != NULL)
@@ -300,11 +295,9 @@ end:
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEnginePruneFreeList();
-    PacketRecycle(p);
+    PacketFree(p);
     FlowShutdown();
-    SCFree(p);
-
-
+    StatsThreadCleanup(&th_v);
     return result;
 }
 

@@ -311,7 +311,7 @@ static int IpOptsTestParse03 (void)
 
     SCFree(de);
     SCFree(sm);
-    SCFree(p);
+    PacketFree(p);
 
     PASS;
 }
@@ -345,7 +345,7 @@ static int IpOptsTestParse04 (void)
 
     SCFree(de);
     SCFree(sm);
-    SCFree(p);
+    PacketFree(p);
 
     PASS;
 }

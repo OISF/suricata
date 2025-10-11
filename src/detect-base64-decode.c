@@ -404,13 +404,12 @@ end:
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     }
     if (de_ctx != NULL) {
-        SigCleanSignatures(de_ctx);
-        SigGroupCleanup(de_ctx);
         DetectEngineCtxFree(de_ctx);
     }
     if (p != NULL) {
         UTHFreePacket(p);
     }
+    StatsThreadCleanup(&tv);
     return retval;
 }
 
@@ -471,6 +470,7 @@ end:
     if (p != NULL) {
         UTHFreePacket(p);
     }
+    StatsThreadCleanup(&tv);
     return retval;
 }
 
@@ -520,13 +520,12 @@ end:
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     }
     if (de_ctx != NULL) {
-        SigCleanSignatures(de_ctx);
-        SigGroupCleanup(de_ctx);
         DetectEngineCtxFree(de_ctx);
     }
     if (p != NULL) {
         UTHFreePacket(p);
     }
+    StatsThreadCleanup(&tv);
     return retval;
 }
 
@@ -581,13 +580,12 @@ end:
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
     }
     if (de_ctx != NULL) {
-        SigCleanSignatures(de_ctx);
-        SigGroupCleanup(de_ctx);
         DetectEngineCtxFree(de_ctx);
     }
     if (p != NULL) {
         UTHFreePacket(p);
     }
+    StatsThreadCleanup(&tv);
     return retval;
 }
 

@@ -29,6 +29,7 @@ void DetectAddressFree(DetectAddress *);
 DetectAddress *DetectAddressCopy(DetectAddress *);
 int DetectAddressParse(const DetectEngineCtx *, DetectAddressHead *, const char *);
 void DetectAddressHeadCleanup(DetectAddressHead *);
+void DetectAddressCleanupList(DetectAddress *head);
 
 bool DetectAddressListsAreEqual(DetectAddress *list1, DetectAddress *list2);
 

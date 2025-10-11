@@ -756,7 +756,7 @@ static int DecodeIPV6FragTest01 (void)
         return 0;
     Packet *p2 = PacketGetFromAlloc();
     if (unlikely(p2 == NULL)) {
-        SCFree(p1);
+        PacketFree(p1);
         return 0;
     }
     ThreadVars tv;
@@ -795,12 +795,12 @@ static int DecodeIPV6FragTest01 (void)
 end:
     PacketRecycle(p1);
     PacketRecycle(p2);
-    SCFree(p1);
-    SCFree(p2);
+    PacketFree(p1);
+    PacketFree(p2);
     pkt = PacketDequeueNoLock(&tv.decode_pq);
     while (pkt != NULL) {
         PacketRecycle(pkt);
-        SCFree(pkt);
+        PacketFree(pkt);
         pkt = PacketDequeueNoLock(&tv.decode_pq);
     }
     DefragDestroy();
@@ -842,7 +842,7 @@ static int DecodeIPV6RouteTest01 (void)
     FAIL_IF (!(IPV6_EXTHDR_ISSET_RH(p1)));
     FAIL_IF(p1->l3.vars.ip6.eh.rh_type != 0);
     PacketRecycle(p1);
-    SCFree(p1);
+    PacketFree(p1);
     FlowShutdown();
     PASS;
 }
@@ -875,7 +875,7 @@ static int DecodeIPV6HopTest01 (void)
     FAIL_IF (!(ENGINE_ISSET_EVENT(p1, IPV6_HOPOPTS_UNKNOWN_OPT)));
 
     PacketRecycle(p1);
-    SCFree(p1);
+    PacketFree(p1);
     FlowShutdown();
     PASS;
 }
@@ -908,7 +908,7 @@ static int DecodeIPV6PktTooSmallTest01(void)
 
     FAIL_IF_NOT(ENGINE_ISSET_EVENT(p1, IPV6_PKT_TOO_SMALL));
     PacketRecycle(p1);
-    SCFree(p1);
+    PacketFree(p1);
     FlowShutdown();
     PASS;
 }

@@ -56,6 +56,7 @@ extern thread_local uint32_t ut_inspection_recursion_counter;
         FAIL_IF_NOT(ut_inspection_recursion_counter == (steps));                                   \
         DetectEngineThreadCtxDeinit(&tv, det_ctx);                                                 \
         DetectEngineCtxFree(de_ctx);                                                               \
+        StatsThreadCleanup(&tv);                                                                   \
     }
 #define TEST_FOOTER     \
     PASS

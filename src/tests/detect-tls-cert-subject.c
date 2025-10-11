@@ -320,52 +320,41 @@ static int DetectTlsSubjectTest02(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
-                                STREAM_TOSERVER, client_hello,
-                                sizeof(client_hello));
-
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER, client_hello, sizeof(client_hello));
     FAIL_IF(r != 0);
 
     ssl_state = f.alstate;
     FAIL_IF_NULL(ssl_state);
 
     SigMatchSignatures(&tv, de_ctx, det_ctx, p1);
-
     FAIL_IF(PacketAlertCheck(p1, 1));
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
-                            server_hello, sizeof(server_hello));
-
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT, server_hello, sizeof(server_hello));
     FAIL_IF(r != 0);
 
     SigMatchSignatures(&tv, de_ctx, det_ctx, p2);
-
     FAIL_IF(PacketAlertCheck(p2, 1));
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
-                            certificate, sizeof(certificate));
-
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT, certificate, sizeof(certificate));
     FAIL_IF(r != 0);
 
     SigMatchSignatures(&tv, de_ctx, det_ctx, p3);
-
     FAIL_IF_NOT(PacketAlertCheck(p3, 1));
 
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&tv, det_ctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     UTHFreePacket(p1);
     UTHFreePacket(p2);
     UTHFreePacket(p3);
+    FLOW_DESTROY(&f);
 
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    SigGroupCleanup(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&tv);
     PASS;
 }
 

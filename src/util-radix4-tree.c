@@ -365,8 +365,12 @@ bool SCRadix4CompareTrees(
 /*------------------------------------Unit_Tests------------------------------*/
 
 #ifdef UNITTESTS
+static void SCRadix4UtFree(void *ptr)
+{
+    SCFree(ptr);
+}
 
-static const SCRadix4Config ut_ip_radix4_config = { NULL, NULL };
+static const SCRadix4Config ut_ip_radix4_config = { SCRadix4UtFree, NULL };
 
 #define GET_IPV4(str)                                                                              \
     SCLogDebug("setting up %s", (str));                                                            \

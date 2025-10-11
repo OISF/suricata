@@ -95,12 +95,13 @@ static int DetectEngineHttpUATest(
     bool match = PacketAlertCheck(p, 1);
     FAIL_IF_NOT(match == expect);
 
+    UTHFreePackets(&p, 1);
+    FLOW_DESTROY(&f);
     AppLayerParserThreadCtxFree(alp_tctx);
-
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
-    UTHFreePackets(&p, 1);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -485,11 +486,13 @@ static int DetectHttpUATest06(void)
     FAIL_IF_NOT(PacketAlertCheck(p, 1));
 
     AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -572,12 +575,14 @@ static int DetectHttpUATest07(void)
     FAIL_IF_NOT(PacketAlertCheck(p2, 1));
 
     AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -660,12 +665,14 @@ static int DetectHttpUATest08(void)
     FAIL_IF_NOT(PacketAlertCheck(p2, 1));
 
     AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -752,11 +759,13 @@ static int DetectHttpUATest09(void)
     FAIL_IF_NOT(PacketAlertCheck(p2, 1));
 
     AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -842,11 +851,13 @@ static int DetectHttpUATest10(void)
     FAIL_IF_NOT(PacketAlertCheck(p2, 1));
 
     AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -913,10 +924,12 @@ static int DetectHttpUATest11(void)
     FAIL_IF(PacketAlertCheck(p, 1));
 
     AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -981,11 +994,13 @@ static int DetectHttpUATest12(void)
     FAIL_IF_NOT(PacketAlertCheck(p, 1));
 
     AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -1053,10 +1068,12 @@ static int DetectHttpUATest13(void)
     FAIL_IF_NOT(PacketAlertCheck(p, 1));
 
     AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -1177,6 +1194,7 @@ static int DetectHttpUATest14(void)
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 

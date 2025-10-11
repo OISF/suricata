@@ -2034,11 +2034,10 @@ static int SCSigOrderingTest12(void)
     FAIL_IF_NOT(UTHCheckPacketMatchResults(p, sids, results, 2));
 
     UTHFreePackets(&p, 1);
+    FLOW_DESTROY(&f);
 
     DetectEngineCtxFree(de_ctx);
-
     FlowShutdown();
-
     PASS;
 }
 

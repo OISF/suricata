@@ -1229,6 +1229,7 @@ host-os-policy:\n\
     result = 1;
 
  end:
+     SCHInfoCleanResources();
      SCConfDeInit();
      SCConfRestoreContextBackup();
 
@@ -1297,6 +1298,7 @@ host-os-policy:\n\
     result = 1;
 
  end:
+     SCHInfoCleanResources();
      SCConfDeInit();
      SCConfRestoreContextBackup();
 
@@ -1344,6 +1346,7 @@ host-os-policy:\n\
     result = 1;
 
  end:
+     SCHInfoCleanResources();
      SCConfDeInit();
      SCConfRestoreContextBackup();
 
@@ -1390,6 +1393,7 @@ host-os-policy:\n\
     result = 1;
 
  end:
+     SCHInfoCleanResources();
      SCConfDeInit();
      SCConfRestoreContextBackup();
 
@@ -1428,6 +1432,7 @@ host-os-policy:\n\
     FAIL_IF (SCHInfoGetHostOSFlavour("0.0.0.0") != -1);
     FAIL_IF (SCHInfoGetHostOSFlavour("0.0.0.6") != -1);
 
+    SCHInfoCleanResources();
     SCConfDeInit();
     SCConfRestoreContextBackup();
     SCHInfoRestoreContextBackup();

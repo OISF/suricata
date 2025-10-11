@@ -190,6 +190,10 @@ static int IPPairBitTest01 (void)
 {
     int ret = 0;
 
+    StorageCleanup();
+    StorageInit();
+    IPPairBitInitCtx();
+    StorageFinalize();
     IPPairInitConfig(true);
     IPPair *h = IPPairAlloc();
     if (h == NULL)
@@ -203,7 +207,8 @@ static int IPPairBitTest01 (void)
 
     IPPairFree(h);
 end:
-    IPPairCleanup();
+    IPPairShutdown();
+    StorageCleanup();
     return ret;
 }
 
@@ -211,6 +216,10 @@ static int IPPairBitTest02 (void)
 {
     int ret = 0;
 
+    StorageCleanup();
+    StorageInit();
+    IPPairBitInitCtx();
+    StorageFinalize();
     IPPairInitConfig(true);
     IPPair *h = IPPairAlloc();
     if (h == NULL)
@@ -222,7 +231,8 @@ static int IPPairBitTest02 (void)
 
     IPPairFree(h);
 end:
-    IPPairCleanup();
+    IPPairShutdown();
+    StorageCleanup();
     return ret;
 }
 
@@ -230,6 +240,10 @@ static int IPPairBitTest03 (void)
 {
     int ret = 0;
 
+    StorageCleanup();
+    StorageInit();
+    IPPairBitInitCtx();
+    StorageFinalize();
     IPPairInitConfig(true);
     IPPair *h = IPPairAlloc();
     if (h == NULL)
@@ -255,7 +269,8 @@ static int IPPairBitTest03 (void)
 
     IPPairFree(h);
 end:
-    IPPairCleanup();
+    IPPairShutdown();
+    StorageCleanup();
     return ret;
 }
 
@@ -263,6 +278,10 @@ static int IPPairBitTest04 (void)
 {
     int ret = 0;
 
+    StorageCleanup();
+    StorageInit();
+    IPPairBitInitCtx();
+    StorageFinalize();
     IPPairInitConfig(true);
     IPPair *h = IPPairAlloc();
     if (h == NULL)
@@ -279,7 +298,8 @@ static int IPPairBitTest04 (void)
 
     IPPairFree(h);
 end:
-    IPPairCleanup();
+    IPPairShutdown();
+    StorageCleanup();
     return ret;
 }
 
@@ -287,6 +307,10 @@ static int IPPairBitTest05 (void)
 {
     int ret = 0;
 
+    StorageCleanup();
+    StorageInit();
+    IPPairBitInitCtx();
+    StorageFinalize();
     IPPairInitConfig(true);
     IPPair *h = IPPairAlloc();
     if (h == NULL)
@@ -303,7 +327,8 @@ static int IPPairBitTest05 (void)
 
     IPPairFree(h);
 end:
-    IPPairCleanup();
+    IPPairShutdown();
+    StorageCleanup();
     return ret;
 }
 
@@ -311,6 +336,10 @@ static int IPPairBitTest06 (void)
 {
     int ret = 0;
 
+    StorageCleanup();
+    StorageInit();
+    IPPairBitInitCtx();
+    StorageFinalize();
     IPPairInitConfig(true);
     IPPair *h = IPPairAlloc();
     if (h == NULL)
@@ -327,7 +356,8 @@ static int IPPairBitTest06 (void)
 
     IPPairFree(h);
 end:
-    IPPairCleanup();
+    IPPairShutdown();
+    StorageCleanup();
     return ret;
 }
 
@@ -335,6 +365,10 @@ static int IPPairBitTest07 (void)
 {
     int ret = 0;
 
+    StorageCleanup();
+    StorageInit();
+    IPPairBitInitCtx();
+    StorageFinalize();
     IPPairInitConfig(true);
     IPPair *h = IPPairAlloc();
     if (h == NULL)
@@ -351,7 +385,8 @@ static int IPPairBitTest07 (void)
 
     IPPairFree(h);
 end:
-    IPPairCleanup();
+    IPPairShutdown();
+    StorageCleanup();
     return ret;
 }
 
@@ -359,6 +394,10 @@ static int IPPairBitTest08 (void)
 {
     int ret = 0;
 
+    StorageCleanup();
+    StorageInit();
+    IPPairBitInitCtx();
+    StorageFinalize();
     IPPairInitConfig(true);
     IPPair *h = IPPairAlloc();
     if (h == NULL)
@@ -384,7 +423,8 @@ static int IPPairBitTest08 (void)
     ret = 1;
     IPPairFree(h);
 end:
-    IPPairCleanup();
+    IPPairShutdown();
+    StorageCleanup();
     return ret;
 }
 
@@ -392,6 +432,10 @@ static int IPPairBitTest09 (void)
 {
     int ret = 0;
 
+    StorageCleanup();
+    StorageInit();
+    IPPairBitInitCtx();
+    StorageFinalize();
     IPPairInitConfig(true);
     IPPair *h = IPPairAlloc();
     if (h == NULL)
@@ -417,7 +461,8 @@ static int IPPairBitTest09 (void)
     ret = 1;
     IPPairFree(h);
 end:
-    IPPairCleanup();
+    IPPairShutdown();
+    StorageCleanup();
     return ret;
 }
 
@@ -425,6 +470,10 @@ static int IPPairBitTest10 (void)
 {
     int ret = 0;
 
+    StorageCleanup();
+    StorageInit();
+    IPPairBitInitCtx();
+    StorageFinalize();
     IPPairInitConfig(true);
     IPPair *h = IPPairAlloc();
     if (h == NULL)
@@ -450,7 +499,8 @@ static int IPPairBitTest10 (void)
     ret = 1;
     IPPairFree(h);
 end:
-    IPPairCleanup();
+    IPPairShutdown();
+    StorageCleanup();
     return ret;
 }
 
@@ -458,6 +508,10 @@ static int IPPairBitTest11 (void)
 {
     int ret = 0;
 
+    StorageCleanup();
+    StorageInit();
+    IPPairBitInitCtx();
+    StorageFinalize();
     IPPairInitConfig(true);
     IPPair *h = IPPairAlloc();
     if (h == NULL)
@@ -483,7 +537,8 @@ static int IPPairBitTest11 (void)
     ret = 1;
     IPPairFree(h);
 end:
-    IPPairCleanup();
+    IPPairShutdown();
+    StorageCleanup();
     return ret;
 }
 

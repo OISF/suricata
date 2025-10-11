@@ -199,10 +199,10 @@ static int DetectTtlTestSig1(void)
     FAIL_IF_NOT(PacketAlertCheck(p, 3));
     FAIL_IF_NOT(PacketAlertCheck(p, 4));
 
+    PacketFree(p);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-
-    SCFree(p);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 

@@ -405,7 +405,7 @@ static int DecodeICMPV4test01(void)
     FAIL_IF_NOT(icmpv4h->code == 0);
 
     FlowShutdown();
-    SCFree(p);
+    PacketFree(p);
     PASS;
 }
 
@@ -454,7 +454,7 @@ static int DecodeICMPV4test02(void)
     FAIL_IF_NOT(icmpv4h->code == 0);
 
     FlowShutdown();
-    SCFree(p);
+    PacketFree(p);
     PASS;
 }
 
@@ -517,7 +517,7 @@ static int DecodeICMPV4test03(void)
     FAIL_IF_NOT(strcmp(d, "209.85.227.147") == 0);
 
     FlowShutdown();
-    SCFree(p);
+    PacketFree(p);
     PASS;
 }
 
@@ -587,7 +587,7 @@ static int DecodeICMPV4test04(void)
 
 end:
     FlowShutdown();
-    SCFree(p);
+    PacketFree(p);
     return ret;
 }
 
@@ -655,7 +655,7 @@ static int DecodeICMPV4test05(void)
 
 end:
     FlowShutdown();
-    SCFree(p);
+    PacketFree(p);
     return ret;
 }
 
@@ -738,7 +738,7 @@ static int ICMPV4InvalidType07(void)
     }
 
     FlowShutdown();
-    SCFree(p);
+    PacketFree(p);
     return ret;
 }
 
@@ -782,7 +782,7 @@ static int DecodeICMPV4test08(void)
     FAIL_IF_NOT(icmpv4h->code == 0);
 
     FlowShutdown();
-    SCFree(p);
+    PacketFree(p);
     PASS;
 }
 #endif /* UNITTESTS */

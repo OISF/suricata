@@ -26,6 +26,7 @@
  */
 
 #include "suricata-common.h"
+
 #include "app-layer-ftp.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
@@ -1411,6 +1412,7 @@ void FTPParserCleanup(void)
 
 /* UNITTESTS */
 #ifdef UNITTESTS
+#include "flow-util.h"
 #include "stream-tcp.h"
 
 /** \test Send a get request in one chunk. */
@@ -1439,6 +1441,7 @@ static int FTPParserTest01(void)
     FAIL_IF_NULL(ftp_state);
     FAIL_IF(ftp_state->command != FTP_COMMAND_PORT);
 
+    FLOW_DESTROY(&f);
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
     PASS;
@@ -1486,6 +1489,7 @@ static int FTPParserTest11(void)
 
     FAIL_IF(ftp_state->command != FTP_COMMAND_RETR);
 
+    FLOW_DESTROY(&f);
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
     PASS;
@@ -1533,6 +1537,7 @@ static int FTPParserTest12(void)
 
     FAIL_IF(ftp_state->command != FTP_COMMAND_STOR);
 
+    FLOW_DESTROY(&f);
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
     PASS;

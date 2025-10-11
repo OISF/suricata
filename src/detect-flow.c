@@ -548,6 +548,7 @@ static int DetectFlowTestParse02 (void)
     FAIL_IF_NULL(fd);
     FAIL_IF_NOT(fd->flags == DETECT_FLOW_FLAG_ESTABLISHED &&
         fd->match_cnt == 1);
+    DetectFlowFree(NULL, fd);
     PASS;
 }
 
@@ -1026,6 +1027,7 @@ static int DetectFlowSigTest01(void)
     DetectEngineCtxFree(de_ctx);
     UTHFreePacket(p);
 
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -1093,6 +1095,7 @@ static int DetectFlowTestNoFragMatch(void)
     FAIL_IF_NOT(FlowMatch(pflags, 0, fd->flags, fd->match_cnt));
     pflags |= PKT_REBUILT_FRAGMENT;
     FAIL_IF(FlowMatch(pflags, 0, fd->flags, fd->match_cnt));
+    DetectFlowFree(NULL, fd);
     PASS;
 }
 
@@ -1110,6 +1113,7 @@ static int DetectFlowTestOnlyFragMatch(void)
     FAIL_IF(FlowMatch(pflags, 0, fd->flags, fd->match_cnt));
     pflags |= PKT_REBUILT_FRAGMENT;
     FAIL_IF_NOT(FlowMatch(pflags, 0, fd->flags, fd->match_cnt));
+    DetectFlowFree(NULL, fd);
     PASS;
 }
 

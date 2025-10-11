@@ -118,7 +118,6 @@ error:
 
 static int DetectL3protoTestSig1(void)
 {
-
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
     Signature *s = NULL;
@@ -166,8 +165,8 @@ static int DetectL3protoTestSig1(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    SCFree(p);
-
+    PacketFree(p);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -179,7 +178,6 @@ static int DetectL3protoTestSig1(void)
 
 static int DetectL3protoTestSig2(void)
 {
-
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
     Signature *s = NULL;
@@ -227,7 +225,8 @@ static int DetectL3protoTestSig2(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    SCFree(p);
+    PacketFree(p);
+    StatsThreadCleanup(&th_v);
 
     PASS;
 }
@@ -239,7 +238,6 @@ static int DetectL3protoTestSig2(void)
 
 static int DetectL3protoTestSig3(void)
 {
-
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
     Signature *s = NULL;
@@ -287,7 +285,8 @@ static int DetectL3protoTestSig3(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    SCFree(p);
+    PacketFree(p);
+    StatsThreadCleanup(&th_v);
 
     PASS;
 }

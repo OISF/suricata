@@ -648,27 +648,23 @@ static int PayloadTestSig13(void)
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
-
     de_ctx->inspection_recursion_limit = 3000;
-
     de_ctx->flags |= DE_QUIET;
     de_ctx->mpm_matcher = mpm_type;
 
-    de_ctx->sig_list = SigInit(de_ctx, sig);
-    FAIL_IF_NULL(de_ctx->sig_list);
+    Signature *s = DetectEngineAppendSig(de_ctx, sig);
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-
     FAIL_IF_NOT(PacketAlertCheck(p, de_ctx->sig_list->id) != 1);
 
+    UTHFreePacket(p);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-
-    UTHFreePacket(p);
-
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 

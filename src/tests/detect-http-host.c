@@ -90,15 +90,15 @@ static int RunTest(const uint8_t *buf, const uint32_t size, const char *sig_str,
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-
     FAIL_IF(PacketAlertCheck(p, 1) != expect);
 
-    AppLayerParserThreadCtxFree(alp_tctx);
-    DetectEngineCtxFree(de_ctx);
-
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
+    FLOW_DESTROY(&f);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 /**
@@ -708,12 +708,14 @@ static int DetectHttpHHTest07(void)
     FAIL_IF(!(PacketAlertCheck(p2, 1)));
 
     AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -797,12 +799,14 @@ static int DetectHttpHHTest08(void)
     FAIL_IF(!(PacketAlertCheck(p2, 1)));
 
     AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -890,12 +894,14 @@ static int DetectHttpHHTest09(void)
     FAIL_IF(!(PacketAlertCheck(p2, 1)));
 
     AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -1009,6 +1015,7 @@ static int DetectHttpHHTest10(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -1016,6 +1023,7 @@ end:
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -1261,6 +1269,7 @@ end:
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -1387,6 +1396,7 @@ static int DetectHttpHRHTest07(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -1394,6 +1404,7 @@ end:
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -1503,6 +1514,7 @@ static int DetectHttpHRHTest08(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -1510,6 +1522,7 @@ end:
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -1623,6 +1636,7 @@ static int DetectHttpHRHTest09(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -1630,6 +1644,7 @@ end:
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -1743,6 +1758,7 @@ static int DetectHttpHRHTest10(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -1750,6 +1766,7 @@ end:
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -1995,6 +2012,7 @@ end:
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -2108,6 +2126,7 @@ static int DetectHttpHRHTest37(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -2115,6 +2134,7 @@ end:
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 

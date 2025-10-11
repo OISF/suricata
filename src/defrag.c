@@ -1335,7 +1335,7 @@ static Packet *BuildIpv6TestPacket(
     return p;
 error:
     if (p != NULL)
-        SCFree(p);
+        PacketFree(p);
     return NULL;
 }
 
@@ -1400,7 +1400,7 @@ static Packet *BuildIpv6TestPacketWithContent(
     return p;
 error:
     if (p != NULL)
-        SCFree(p);
+        PacketFree(p);
     return NULL;
 }
 
@@ -1447,10 +1447,10 @@ static int DefragInOrderSimpleTest(void)
         FAIL_IF(GET_PKT_DATA(reassembled)[i] != 'C');
     }
 
-    SCFree(p1);
-    SCFree(p2);
-    SCFree(p3);
-    SCFree(reassembled);
+    PacketFree(p1);
+    PacketFree(p2);
+    PacketFree(p3);
+    PacketFree(reassembled);
 
     DefragDestroy();
     PASS;
@@ -1497,10 +1497,10 @@ static int DefragReverseSimpleTest(void)
         FAIL_IF(GET_PKT_DATA(reassembled)[i] != 'C');
     }
 
-    SCFree(p1);
-    SCFree(p2);
-    SCFree(p3);
-    SCFree(reassembled);
+    PacketFree(p1);
+    PacketFree(p2);
+    PacketFree(p3);
+    PacketFree(reassembled);
 
     DefragDestroy();
     PASS;
@@ -1548,10 +1548,10 @@ static int DefragInOrderSimpleIpv6Test(void)
         FAIL_IF(GET_PKT_DATA(reassembled)[i] != 'C');
     }
 
-    SCFree(p1);
-    SCFree(p2);
-    SCFree(p3);
-    SCFree(reassembled);
+    PacketFree(p1);
+    PacketFree(p2);
+    PacketFree(p3);
+    PacketFree(reassembled);
 
     DefragDestroy();
     PASS;
@@ -1597,10 +1597,10 @@ static int DefragReverseSimpleIpv6Test(void)
     }
 
     DefragContextDestroy(dc);
-    SCFree(p1);
-    SCFree(p2);
-    SCFree(p3);
-    SCFree(reassembled);
+    PacketFree(p1);
+    PacketFree(p2);
+    PacketFree(p3);
+    PacketFree(reassembled);
 
     DefragDestroy();
     PASS;
@@ -1712,13 +1712,13 @@ static int DefragDoSturgesNovakTest(int policy, uint8_t *expected, size_t expect
         PrintRawDataFp(stdout, GET_PKT_DATA(reassembled) + 20, GET_PKT_LEN(reassembled) - 20);
         FAIL;
     }
-    SCFree(reassembled);
+    PacketFree(reassembled);
 
     /* Make sure all frags were returned back to the pool. */
     FAIL_IF(defrag_context->frag_pool->outstanding != 0);
 
     for (i = 0; i < 17; i++) {
-        SCFree(packets[i]);
+        PacketFree(packets[i]);
     }
     DefragDestroy();
     PASS;
@@ -1822,13 +1822,13 @@ static int DefragDoSturgesNovakIpv6Test(int policy, uint8_t *expected, size_t ex
 
     FAIL_IF(IPV6_GET_RAW_PLEN(PacketGetIPv6(reassembled)) != 192);
 
-    SCFree(reassembled);
+    PacketFree(reassembled);
 
     /* Make sure all frags were returned to the pool. */
     FAIL_IF(defrag_context->frag_pool->outstanding != 0);
 
     for (i = 0; i < 17; i++) {
-        SCFree(packets[i]);
+        PacketFree(packets[i]);
     }
     DefragDestroy();
     PASS;
@@ -2290,7 +2290,7 @@ static int DefragTimeoutTest(void)
         FAIL_IF_NULL(p);
 
         Packet *tp = Defrag(&test_tv, &test_dtv, p);
-        SCFree(p);
+        PacketFree(p);
         FAIL_IF_NOT_NULL(tp);
     }
 
@@ -2309,7 +2309,7 @@ static int DefragTimeoutTest(void)
     FAIL_IF(tracker->id != 99);
 
     SCMutexUnlock(&tracker->lock);
-    SCFree(p);
+    PacketFree(p);
 
     DefragDestroy();
     PASS;
@@ -2344,7 +2344,7 @@ static int DefragNoDataIpv4Test(void)
     FAIL_IF(dc->frag_pool->outstanding != 0);
 
     DefragContextDestroy(dc);
-    SCFree(p);
+    PacketFree(p);
 
     DefragDestroy();
     PASS;
@@ -2376,7 +2376,7 @@ static int DefragTooLargeIpv4Test(void)
     FAIL_IF(dc->frag_pool->outstanding != 0);
 
     DefragContextDestroy(dc);
-    SCFree(p);
+    PacketFree(p);
 
     DefragDestroy();
     PASS;
@@ -2401,7 +2401,7 @@ static int DefragVlanTest(void)
     /* With no VLAN IDs set, packets should re-assemble. */
     FAIL_IF((r = Defrag(&test_tv, &test_dtv, p1)) != NULL);
     FAIL_IF((r = Defrag(&test_tv, &test_dtv, p2)) == NULL);
-    SCFree(r);
+    PacketFree(r);
 
     /* With mismatched VLANs, packets should not re-assemble. */
     p1->vlan_id[0] = 1;
@@ -2409,8 +2409,8 @@ static int DefragVlanTest(void)
     FAIL_IF((r = Defrag(&test_tv, &test_dtv, p1)) != NULL);
     FAIL_IF((r = Defrag(&test_tv, &test_dtv, p2)) != NULL);
 
-    SCFree(p1);
-    SCFree(p2);
+    PacketFree(p1);
+    PacketFree(p2);
     DefragDestroy();
 
     PASS;
@@ -2433,7 +2433,7 @@ static int DefragVlanQinQTest(void)
     /* With no VLAN IDs set, packets should re-assemble. */
     FAIL_IF((r = Defrag(&test_tv, &test_dtv, p1)) != NULL);
     FAIL_IF((r = Defrag(&test_tv, &test_dtv, p2)) == NULL);
-    SCFree(r);
+    PacketFree(r);
 
     /* With mismatched VLANs, packets should not re-assemble. */
     p1->vlan_id[0] = 1;
@@ -2443,8 +2443,8 @@ static int DefragVlanQinQTest(void)
     FAIL_IF((r = Defrag(&test_tv, &test_dtv, p1)) != NULL);
     FAIL_IF((r = Defrag(&test_tv, &test_dtv, p2)) != NULL);
 
-    SCFree(p1);
-    SCFree(p2);
+    PacketFree(p1);
+    PacketFree(p2);
     DefragDestroy();
 
     PASS;
@@ -2467,7 +2467,7 @@ static int DefragVlanQinQinQTest(void)
     /* With no VLAN IDs set, packets should re-assemble. */
     FAIL_IF((r = Defrag(&test_tv, &test_dtv, p1)) != NULL);
     FAIL_IF((r = Defrag(&test_tv, &test_dtv, p2)) == NULL);
-    SCFree(r);
+    PacketFree(r);
 
     /* With mismatched VLANs, packets should not re-assemble. */
     p1->vlan_id[0] = 1;
@@ -2524,7 +2524,7 @@ static int DefragTrackerReuseTest(void)
     FAIL_IF(tracker2 != tracker1);
     FAIL_IF(tracker2->remove);
 
-    SCFree(p1);
+    PacketFree(p1);
     DefragDestroy();
     PASS;
 }
@@ -2568,10 +2568,10 @@ static int DefragMfIpv4Test(void)
     uint8_t expected_payload[] = "AAAAAAAABBBBBBBB";
     FAIL_IF(memcmp(GET_PKT_DATA(p) + sizeof(IPV4Hdr), expected_payload, sizeof(expected_payload)));
 
-    SCFree(p1);
-    SCFree(p2);
-    SCFree(p3);
-    SCFree(p);
+    PacketFree(p1);
+    PacketFree(p2);
+    PacketFree(p3);
+    PacketFree(p);
     DefragDestroy();
     PASS;
 }
@@ -2615,10 +2615,10 @@ static int DefragMfIpv6Test(void)
     uint8_t expected_payload[] = "AAAAAAAABBBBBBBB";
     FAIL_IF(memcmp(GET_PKT_DATA(p) + sizeof(IPV6Hdr), expected_payload, sizeof(expected_payload)));
 
-    SCFree(p1);
-    SCFree(p2);
-    SCFree(p3);
-    SCFree(p);
+    PacketFree(p1);
+    PacketFree(p2);
+    PacketFree(p3);
+    PacketFree(p);
     DefragDestroy();
     PASS;
 }
@@ -2645,9 +2645,9 @@ static int DefragTestBadProto(void)
     FAIL_IF_NOT_NULL(Defrag(&test_tv, &test_dtv, p2));
     FAIL_IF_NOT_NULL(Defrag(&test_tv, &test_dtv, p3));
 
-    SCFree(p1);
-    SCFree(p2);
-    SCFree(p3);
+    PacketFree(p1);
+    PacketFree(p2);
+    PacketFree(p3);
 
     DefragDestroy();
     PASS;
@@ -2701,9 +2701,9 @@ static int DefragTestJeremyLinux(void)
     FAIL_IF(memcmp(expected, GET_PKT_DATA(r) + 20, sizeof(expected)) != 0);
 
     for (i = 0; i < 4; i++) {
-        SCFree(packets[i]);
+        PacketFree(packets[i]);
     }
-    SCFree(r);
+    PacketFree(r);
 
     DefragDestroy();
     PASS;
@@ -2760,6 +2760,10 @@ static int DefragBsdFragmentAfterNoMfIpv4Test(void)
         FAIL;
     }
 
+    for (int i = 0; i < 4; i++) {
+        PacketFree(packets[i]);
+    }
+    PacketFree(r);
     DefragDestroy();
     PASS;
 }
@@ -2805,6 +2809,10 @@ static int DefragBsdFragmentAfterNoMfIpv6Test(void)
         FAIL;
     }
 
+    for (int i = 0; i < 4; i++) {
+        PacketFree(packets[i]);
+    }
+    PacketFree(r);
     DefragDestroy();
     PASS;
 }
@@ -2858,6 +2866,10 @@ static int DefragBsdSubsequentOverlapsStartOfOriginalIpv4Test_2(void)
 
     FAIL_IF(memcmp(expected, GET_PKT_DATA(r) + 20 + 8, sizeof(expected)) != 0);
 
+    for (int i = 0; i < 4; i++) {
+        PacketFree(packets[i]);
+    }
+    PacketFree(r);
     DefragDestroy();
     PASS;
 }
@@ -2910,6 +2922,10 @@ static int DefragBsdSubsequentOverlapsStartOfOriginalIpv6Test_2(void)
 
     FAIL_IF(memcmp(expected, GET_PKT_DATA(r) + 40 + 8, sizeof(expected)) != 0);
 
+    for (int i = 0; i < 4; i++) {
+        PacketFree(packets[i]);
+    }
+    PacketFree(r);
     DefragDestroy();
     PASS;
 }
@@ -2958,6 +2974,11 @@ static int DefragBsdSubsequentOverlapsStartOfOriginalIpv4Test(void)
         FAIL;
     }
 
+    for (int i = 0; i < 2; i++) {
+        PacketFree(packets[i]);
+    }
+    PacketFree(r);
+    DefragDestroy();
     PASS;
 }
 
@@ -2993,6 +3014,11 @@ static int DefragBsdSubsequentOverlapsStartOfOriginalIpv6Test(void)
         FAIL;
     }
 
+    for (int i = 0; i < 2; i++) {
+        PacketFree(packets[i]);
+    }
+    PacketFree(r);
+    DefragDestroy();
     PASS;
 }
 
@@ -3049,11 +3075,9 @@ static int DefragBsdMissingFragmentIpv4Test(void)
 #endif
 
     for (int i = 0; i < 5; i++) {
-        SCFree(packets[i]);
+        PacketFree(packets[i]);
     }
-
     DefragDestroy();
-
     PASS;
 }
 
@@ -3098,11 +3122,9 @@ static int DefragBsdMissingFragmentIpv6Test(void)
 #endif
 
     for (int i = 0; i < 5; i++) {
-        SCFree(packets[i]);
+        PacketFree(packets[i]);
     }
-
     DefragDestroy();
-
     PASS;
 }
 

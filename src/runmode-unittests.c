@@ -256,6 +256,11 @@ void RunUnittests(int list_unittests, const char *regex_arg)
 
     TagInitCtx();
 
+    /* test and initialize the unit testing subsystem */
+    if (regex_arg == NULL) {
+        regex_arg = ".*";
+        UtRunSelftest(regex_arg); /* inits and cleans up again */
+    }
     UtInitialize();
 
     RegisterAllModules();
@@ -263,11 +268,6 @@ void RunUnittests(int list_unittests, const char *regex_arg)
     HostBitInitCtx();
 
     StorageFinalize();
-    /* test and initialize the unit testing subsystem */
-    if (regex_arg == NULL){
-        regex_arg = ".*";
-        UtRunSelftest(regex_arg); /* inits and cleans up again */
-    }
 
     AppLayerHtpEnableRequestBodyCallback();
     AppLayerHtpNeedFileInspection();

@@ -142,23 +142,17 @@ static int DecodeVLANtest01 (void)
 {
     uint8_t raw_vlan[] = { 0x00, 0x20, 0x08 };
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
+    FAIL_IF_NULL(p);
     ThreadVars tv;
     DecodeThreadVars dtv;
-
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     DecodeVLAN(&tv, &dtv, p, raw_vlan, sizeof(raw_vlan));
+    FAIL_IF_NOT(ENGINE_ISSET_EVENT(p, VLAN_HEADER_TOO_SMALL));
 
-    if(ENGINE_ISSET_EVENT(p,VLAN_HEADER_TOO_SMALL))  {
-        SCFree(p);
-        return 1;
-    }
-
-    SCFree(p);
-    return 0;
+    PacketFree(p);
+    PASS;
 }
 
 /**
@@ -178,24 +172,17 @@ static int DecodeVLANtest02 (void)
         0x3c, 0x4c, 0x00, 0x00, 0x01, 0x01, 0x08, 0x0a,
         0x00, 0x04, 0xf0, 0xc8, 0x01, 0x99, 0xa3, 0xf3};
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
+    FAIL_IF_NULL(p);
     ThreadVars tv;
     DecodeThreadVars dtv;
-
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     DecodeVLAN(&tv, &dtv, p, raw_vlan, sizeof(raw_vlan));
 
-
-    if(ENGINE_ISSET_EVENT(p,VLAN_UNKNOWN_TYPE))  {
-        SCFree(p);
-        return 1;
-    }
-
-    SCFree(p);
-    return 0;
+    FAIL_IF_NOT(ENGINE_ISSET_EVENT(p, VLAN_UNKNOWN_TYPE));
+    PacketFree(p);
+    PASS;
 }
 
 /**
@@ -215,11 +202,9 @@ static int DecodeVLANtest03 (void)
         0x3c, 0x4c, 0x00, 0x00, 0x01, 0x01, 0x08, 0x0a,
         0x00, 0x04, 0xf0, 0xc8, 0x01, 0x99, 0xa3, 0xf3};
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
+    FAIL_IF_NULL(p);
     ThreadVars tv;
     DecodeThreadVars dtv;
-
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
@@ -227,29 +212,13 @@ static int DecodeVLANtest03 (void)
 
     DecodeVLAN(&tv, &dtv, p, raw_vlan, sizeof(raw_vlan));
 
+    FAIL_IF(p->vlan_id[0] == 0);
+    FAIL_IF(ENGINE_ISSET_EVENT(p, VLAN_HEADER_TOO_SMALL));
+    FAIL_IF(ENGINE_ISSET_EVENT(p, VLAN_UNKNOWN_TYPE));
 
-    if(p->vlan_id[0] == 0) {
-        goto error;
-    }
-
-    if(ENGINE_ISSET_EVENT(p,VLAN_HEADER_TOO_SMALL))  {
-        goto error;
-    }
-
-    if(ENGINE_ISSET_EVENT(p,VLAN_UNKNOWN_TYPE))  {
-        goto error;
-    }
-
-    PacketRecycle(p);
+    PacketFree(p);
     FlowShutdown();
-    SCFree(p);
-    return 1;
-
-error:
-    PacketRecycle(p);
-    FlowShutdown();
-    SCFree(p);
-    return 0;
+    PASS;
 }
 #endif /* UNITTESTS */
 

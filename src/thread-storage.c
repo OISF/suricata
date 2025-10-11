@@ -75,6 +75,7 @@ static void StorageTestFree(void *x)
 
 static int ThreadStorageTest01(void)
 {
+    StorageCleanup();
     StorageInit();
 
     ThreadStorageId id1 = ThreadStorageRegister("test", 8, StorageTestAlloc, StorageTestFree);
@@ -127,6 +128,7 @@ static int ThreadStorageTest01(void)
 
 static int ThreadStorageTest02(void)
 {
+    StorageCleanup();
     StorageInit();
 
     ThreadStorageId id1 = ThreadStorageRegister("test", sizeof(void *), NULL, StorageTestFree);
@@ -150,11 +152,13 @@ static int ThreadStorageTest02(void)
 
     ThreadFreeStorage(tv);
     StorageCleanup();
+    SCFree(tv);
     PASS;
 }
 
 static int ThreadStorageTest03(void)
 {
+    StorageCleanup();
     StorageInit();
 
     ThreadStorageId id1 = ThreadStorageRegister("test1", sizeof(void *), NULL, StorageTestFree);
@@ -198,6 +202,7 @@ static int ThreadStorageTest03(void)
 
     ThreadFreeStorage(tv);
     StorageCleanup();
+    SCFree(tv);
     PASS;
 }
 #endif

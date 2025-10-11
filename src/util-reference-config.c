@@ -602,6 +602,7 @@ static int SCRConfTest01(void)
     if (de_ctx == NULL)
         return result;
 
+    SCRConfDeInitContext(de_ctx);
     FILE *fd = SCRConfGenerateValidDummyReferenceConfigFD01();
     SCRConfLoadReferenceConfigFile(de_ctx, fd);
 
@@ -630,6 +631,7 @@ static int SCRConfTest02(void)
     if (de_ctx == NULL)
         return result;
 
+    SCRConfDeInitContext(de_ctx);
     FILE *fd = SCRConfGenerateInvalidDummyReferenceConfigFD03();
     SCRConfLoadReferenceConfigFile(de_ctx, fd);
 
@@ -657,6 +659,7 @@ static int SCRConfTest03(void)
     if (de_ctx == NULL)
         return result;
 
+    SCRConfDeInitContext(de_ctx);
     FILE *fd = SCRConfGenerateInvalidDummyReferenceConfigFD02();
     SCRConfLoadReferenceConfigFile(de_ctx, fd);
 
@@ -683,6 +686,7 @@ static int SCRConfTest04(void)
     if (de_ctx == NULL)
         return 0;
 
+    SCRConfDeInitContext(de_ctx);
     FILE *fd = SCRConfGenerateValidDummyReferenceConfigFD01();
     SCRConfLoadReferenceConfigFile(de_ctx, fd);
 
@@ -715,6 +719,7 @@ static int SCRConfTest05(void)
     if (de_ctx == NULL)
         return 0;
 
+    SCRConfDeInitContext(de_ctx);
     FILE *fd = SCRConfGenerateInvalidDummyReferenceConfigFD03();
     SCRConfLoadReferenceConfigFile(de_ctx, fd);
 
@@ -747,6 +752,7 @@ static int SCRConfTest06(void)
     if (de_ctx == NULL)
         return 0;
 
+    SCRConfDeInitContext(de_ctx);
     FILE *fd = SCRConfGenerateInvalidDummyReferenceConfigFD02();
     SCRConfLoadReferenceConfigFile(de_ctx, fd);
 

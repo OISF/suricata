@@ -2430,6 +2430,8 @@ static int StreamingBufferTest12(void)
     FAIL_IF(sc_errno != SC_ELIMIT);
 
     StreamingBufferFree(sb, &cfg);
+    HTPFreeConfig();
+    SCConfDeInit();
     HtpConfigRestoreBackup();
     SCConfRestoreContextBackup();
 

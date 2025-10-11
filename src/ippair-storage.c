@@ -76,6 +76,7 @@ static void StorageTestFree(void *x)
 
 static int IPPairStorageTest01(void)
 {
+    StorageCleanup();
     StorageInit();
 
     IPPairStorageId id1 = IPPairStorageRegister("test", 8, StorageTestAlloc, StorageTestFree);
@@ -159,6 +160,7 @@ error:
 
 static int IPPairStorageTest02(void)
 {
+    StorageCleanup();
     StorageInit();
 
     IPPairStorageId id1 = IPPairStorageRegister("test", sizeof(void *), NULL, StorageTestFree);
@@ -212,6 +214,7 @@ error:
 
 static int IPPairStorageTest03(void)
 {
+    StorageCleanup();
     StorageInit();
 
     IPPairStorageId id1 = IPPairStorageRegister("test1", sizeof(void *), NULL, StorageTestFree);

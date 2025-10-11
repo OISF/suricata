@@ -427,12 +427,11 @@ static int DetectFragOffsetMatchTest01 (void)
     FAIL_IF(PacketAlertCheck(p, 1) == 0);
     FAIL_IF(PacketAlertCheck(p, 2));
 
+    PacketFree(p);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-
     FlowShutdown();
-
-    SCFree(p);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 

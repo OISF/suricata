@@ -257,6 +257,7 @@ static int DetectQuicCyuHashTest01(void)
 
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
+    StatsThreadCleanup(&tv);
     PASS;
 }
 

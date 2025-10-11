@@ -65,7 +65,6 @@ static int DetectEngineHttpCookieTest01(void)
         "Cookie: CONNECT\r\n"
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -88,7 +87,7 @@ static int DetectEngineHttpCookieTest01(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -97,7 +96,7 @@ static int DetectEngineHttpCookieTest01(void)
                                "content:\"CONNECT\"; http_cookie; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -106,15 +105,13 @@ static int DetectEngineHttpCookieTest01(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -122,21 +119,18 @@ static int DetectEngineHttpCookieTest01(void)
 
     if (!(PacketAlertCheck(p, 1))) {
         printf("sid 1 didn't match but should have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -157,7 +151,6 @@ static int DetectEngineHttpCookieTest02(void)
         "Cookie: CONNECT\r\n"
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -180,7 +173,7 @@ static int DetectEngineHttpCookieTest02(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -189,7 +182,7 @@ static int DetectEngineHttpCookieTest02(void)
                                "content:\"CO\"; depth:4; http_cookie; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -198,15 +191,13 @@ static int DetectEngineHttpCookieTest02(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -214,21 +205,18 @@ static int DetectEngineHttpCookieTest02(void)
 
     if (!(PacketAlertCheck(p, 1))) {
         printf("sid 1 didn't match but should have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -249,7 +237,6 @@ static int DetectEngineHttpCookieTest03(void)
         "Cookie: CONNECT\r\n"
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -272,7 +259,7 @@ static int DetectEngineHttpCookieTest03(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -281,7 +268,7 @@ static int DetectEngineHttpCookieTest03(void)
                                "content:!\"ECT\"; depth:4; http_cookie; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -290,15 +277,13 @@ static int DetectEngineHttpCookieTest03(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -306,21 +291,18 @@ static int DetectEngineHttpCookieTest03(void)
 
     if (!(PacketAlertCheck(p, 1))) {
         printf("sid 1 didn't match but should have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -341,7 +323,6 @@ static int DetectEngineHttpCookieTest04(void)
         "Cookie: CONNECT\r\n"
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -364,7 +345,7 @@ static int DetectEngineHttpCookieTest04(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -373,7 +354,7 @@ static int DetectEngineHttpCookieTest04(void)
                                "content:\"ECT\"; depth:4; http_cookie; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -382,15 +363,13 @@ static int DetectEngineHttpCookieTest04(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -398,21 +377,18 @@ static int DetectEngineHttpCookieTest04(void)
 
     if (PacketAlertCheck(p, 1)) {
         printf("sid 1 matched but shouldn't have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -433,7 +409,6 @@ static int DetectEngineHttpCookieTest05(void)
         "Cookie: CONNECT\r\n"
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -456,7 +431,7 @@ static int DetectEngineHttpCookieTest05(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -465,7 +440,7 @@ static int DetectEngineHttpCookieTest05(void)
                                "content:!\"CON\"; depth:4; http_cookie; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -474,15 +449,13 @@ static int DetectEngineHttpCookieTest05(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -490,21 +463,18 @@ static int DetectEngineHttpCookieTest05(void)
 
     if (PacketAlertCheck(p, 1)) {
         printf("sid 1 matched but shouldn't have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -525,7 +495,6 @@ static int DetectEngineHttpCookieTest06(void)
         "Cookie: CONNECT\r\n"
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -548,7 +517,7 @@ static int DetectEngineHttpCookieTest06(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -557,7 +526,7 @@ static int DetectEngineHttpCookieTest06(void)
                                "content:\"ECT\"; offset:3; http_cookie; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -566,15 +535,13 @@ static int DetectEngineHttpCookieTest06(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -582,21 +549,18 @@ static int DetectEngineHttpCookieTest06(void)
 
     if (!(PacketAlertCheck(p, 1))) {
         printf("sid 1 didn't match but should have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -617,7 +581,6 @@ static int DetectEngineHttpCookieTest07(void)
         "Cookie: CONNECT\r\n"
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -640,7 +603,7 @@ static int DetectEngineHttpCookieTest07(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -649,7 +612,7 @@ static int DetectEngineHttpCookieTest07(void)
                                "content:!\"CO\"; offset:3; http_cookie; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -658,15 +621,13 @@ static int DetectEngineHttpCookieTest07(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -674,21 +635,18 @@ static int DetectEngineHttpCookieTest07(void)
 
     if (!(PacketAlertCheck(p, 1))) {
         printf("sid 1 didn't match but should have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -709,7 +667,6 @@ static int DetectEngineHttpCookieTest08(void)
         "Cookie: CONNECT\r\n"
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -732,7 +689,7 @@ static int DetectEngineHttpCookieTest08(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -741,7 +698,7 @@ static int DetectEngineHttpCookieTest08(void)
                                "content:!\"ECT\"; offset:3; http_cookie; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -750,15 +707,13 @@ static int DetectEngineHttpCookieTest08(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -766,21 +721,18 @@ static int DetectEngineHttpCookieTest08(void)
 
     if (PacketAlertCheck(p, 1)) {
         printf("sid 1 matched but shouldn't have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -801,7 +753,6 @@ static int DetectEngineHttpCookieTest09(void)
         "Cookie: CONNECT\r\n"
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -824,7 +775,7 @@ static int DetectEngineHttpCookieTest09(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -833,7 +784,7 @@ static int DetectEngineHttpCookieTest09(void)
                                "content:\"CON\"; offset:3; http_cookie; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -842,15 +793,13 @@ static int DetectEngineHttpCookieTest09(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -858,21 +807,18 @@ static int DetectEngineHttpCookieTest09(void)
 
     if (PacketAlertCheck(p, 1)) {
         printf("sid 1 matched but shouldn't have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -893,7 +839,6 @@ static int DetectEngineHttpCookieTest10(void)
         "Cookie: CONNECT\r\n"
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -916,7 +861,7 @@ static int DetectEngineHttpCookieTest10(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -926,7 +871,7 @@ static int DetectEngineHttpCookieTest10(void)
                                "content:\"EC\"; within:4; http_cookie; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -935,15 +880,13 @@ static int DetectEngineHttpCookieTest10(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -951,21 +894,18 @@ static int DetectEngineHttpCookieTest10(void)
 
     if (!PacketAlertCheck(p, 1)) {
         printf("sid 1 didn't match but should have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -986,7 +926,6 @@ static int DetectEngineHttpCookieTest11(void)
         "Cookie: CONNECT\r\n"
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -1009,7 +948,7 @@ static int DetectEngineHttpCookieTest11(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -1019,7 +958,7 @@ static int DetectEngineHttpCookieTest11(void)
                                "content:!\"EC\"; within:3; http_cookie; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -1028,15 +967,13 @@ static int DetectEngineHttpCookieTest11(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -1044,21 +981,18 @@ static int DetectEngineHttpCookieTest11(void)
 
     if (!PacketAlertCheck(p, 1)) {
         printf("sid 1 didn't match but should have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -1079,7 +1013,6 @@ static int DetectEngineHttpCookieTest12(void)
         "Cookie: CONNECT\r\n"
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -1102,7 +1035,7 @@ static int DetectEngineHttpCookieTest12(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -1112,7 +1045,7 @@ static int DetectEngineHttpCookieTest12(void)
                                "content:\"EC\"; within:3; http_cookie; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -1121,15 +1054,13 @@ static int DetectEngineHttpCookieTest12(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -1137,21 +1068,18 @@ static int DetectEngineHttpCookieTest12(void)
 
     if (PacketAlertCheck(p, 1)) {
         printf("sid 1 matched but shouldn't have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -1172,7 +1100,6 @@ static int DetectEngineHttpCookieTest13(void)
         "Cookie: CONNECT\r\n"
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -1195,7 +1122,7 @@ static int DetectEngineHttpCookieTest13(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -1205,7 +1132,7 @@ static int DetectEngineHttpCookieTest13(void)
                                "content:!\"EC\"; within:4; http_cookie; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -1214,15 +1141,13 @@ static int DetectEngineHttpCookieTest13(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -1230,21 +1155,18 @@ static int DetectEngineHttpCookieTest13(void)
 
     if (PacketAlertCheck(p, 1)) {
         printf("sid 1 matched but shouldn't have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -1265,7 +1187,6 @@ static int DetectEngineHttpCookieTest14(void)
         "Cookie: CONNECT\r\n"
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -1288,7 +1209,7 @@ static int DetectEngineHttpCookieTest14(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -1298,7 +1219,7 @@ static int DetectEngineHttpCookieTest14(void)
                                "content:\"EC\"; distance:2; http_cookie; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -1307,15 +1228,13 @@ static int DetectEngineHttpCookieTest14(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -1323,21 +1242,18 @@ static int DetectEngineHttpCookieTest14(void)
 
     if (!PacketAlertCheck(p, 1)) {
         printf("sid 1 didn't match but should have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -1358,7 +1274,6 @@ static int DetectEngineHttpCookieTest15(void)
         "Cookie: CONNECT\r\n"
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -1381,7 +1296,7 @@ static int DetectEngineHttpCookieTest15(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -1391,7 +1306,7 @@ static int DetectEngineHttpCookieTest15(void)
                                "content:!\"EC\"; distance:3; http_cookie; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -1400,15 +1315,13 @@ static int DetectEngineHttpCookieTest15(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -1416,21 +1329,18 @@ static int DetectEngineHttpCookieTest15(void)
 
     if (!PacketAlertCheck(p, 1)) {
         printf("sid 1 didn't match but should have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -1451,7 +1361,6 @@ static int DetectEngineHttpCookieTest16(void)
         "Cookie: CONNECT\r\n"
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -1474,7 +1383,7 @@ static int DetectEngineHttpCookieTest16(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -1484,7 +1393,7 @@ static int DetectEngineHttpCookieTest16(void)
                                "content:\"EC\"; distance:3; http_cookie; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -1493,15 +1402,13 @@ static int DetectEngineHttpCookieTest16(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -1509,21 +1416,18 @@ static int DetectEngineHttpCookieTest16(void)
 
     if (PacketAlertCheck(p, 1)) {
         printf("sid 1 matched but shouldn't have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -1544,7 +1448,6 @@ static int DetectEngineHttpCookieTest17(void)
         "Cookie: CONNECT\r\n"
         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -1567,7 +1470,7 @@ static int DetectEngineHttpCookieTest17(void)
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto end;
+        FAIL;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -1577,7 +1480,7 @@ static int DetectEngineHttpCookieTest17(void)
                                "content:!\"EC\"; distance:2; http_cookie; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
-        goto end;
+        FAIL;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -1586,15 +1489,13 @@ static int DetectEngineHttpCookieTest17(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -1602,21 +1503,18 @@ static int DetectEngineHttpCookieTest17(void)
 
     if (PacketAlertCheck(p, 1)) {
         printf("sid 1 matched but shouldn't have: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -1625,22 +1523,15 @@ end:
  */
 static int DetectHttpCookieTest01(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
-        goto end;
-
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_cookie\"; http_cookie;sid:1;)");
-    if (de_ctx->sig_list == NULL)
-        result = 1;
-
-end:
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-    return result;
+    Signature *s =
+            DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                                          "(msg:\"Testing http_cookie\"; http_cookie;sid:1;)");
+    FAIL_IF_NOT_NULL(s);
+    DetectEngineCtxFree(de_ctx);
+    PASS;
 }
 
 /**
@@ -1649,29 +1540,20 @@ end:
  */
 static int DetectHttpCookieTest02(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
-        goto end;
-
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_cookie\"; content:\"me\"; "
-                               "http_cookie:woo; sid:1;)");
-    if (de_ctx->sig_list == NULL)
-        result = 1;
-
-end:
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-    return result;
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                                                 "(msg:\"Testing http_cookie\"; content:\"me\"; "
+                                                 "http_cookie:woo; sid:1;)");
+    FAIL_IF_NOT_NULL(s);
+    DetectEngineCtxFree(de_ctx);
+    PASS;
 }
 
 /** \test Check the signature working to alert when http_cookie is matched . */
 static int DetectHttpCookieSigTest01(void)
 {
-    int result = 0;
     Flow f;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\nCookie:"
                          " hellocatchme\r\n\r\n";
@@ -1705,7 +1587,7 @@ static int DetectHttpCookieSigTest01(void)
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
-        goto end;
+        FAIL;
     }
 
     de_ctx->flags |= DE_QUIET;
@@ -1714,13 +1596,13 @@ static int DetectHttpCookieSigTest01(void)
                                    "\"HTTP cookie\"; content:\"me\"; "
                                    "http_cookie; sid:1;)");
     if (s == NULL) {
-        goto end;
+        FAIL;
     }
 
     s->next = SigInit(de_ctx,"alert http any any -> any any (msg:\"HTTP "
                       "cookie\"; content:\"go\"; http_cookie; sid:2;)");
     if (s->next == NULL) {
-        goto end;
+        FAIL;
     }
 
 
@@ -1731,15 +1613,13 @@ static int DetectHttpCookieSigTest01(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -1747,34 +1627,27 @@ static int DetectHttpCookieSigTest01(void)
 
     if (!(PacketAlertCheck(p, 1))) {
         printf("sid 1 didn't match but should have: ");
-        goto end;
+        FAIL;
     }
     if (PacketAlertCheck(p, 2)) {
         printf("sid 2 matched but shouldn't: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL) {
-        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    }
-    if (de_ctx != NULL) {
-        DetectEngineCtxFree(de_ctx);
-    }
-
-    StreamTcpFreeConfig(true);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     UTHFreePackets(&p, 1);
-    return result;
+    FLOW_DESTROY(&f);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /** \test Check the signature working to alert when http_cookie is not present */
 static int DetectHttpCookieSigTest02(void)
 {
-    int result = 0;
     Flow f;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
@@ -1808,7 +1681,7 @@ static int DetectHttpCookieSigTest02(void)
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
-        goto end;
+        FAIL;
     }
 
     de_ctx->flags |= DE_QUIET;
@@ -1817,7 +1690,7 @@ static int DetectHttpCookieSigTest02(void)
                                    "\"HTTP cookie\"; content:\"me\"; "
                                    "http_cookie; sid:1;)");
     if (s == NULL) {
-        goto end;
+        FAIL;
     }
 
     SigGroupBuild(de_ctx);
@@ -1827,44 +1700,35 @@ static int DetectHttpCookieSigTest02(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     if ((PacketAlertCheck(p, 1))) {
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL) {
-        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    }
-    if (de_ctx != NULL) {
-        DetectEngineCtxFree(de_ctx);
-    }
-    StreamTcpFreeConfig(true);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
     UTHFreePackets(&p, 1);
-    return result;
+    FLOW_DESTROY(&f);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /** \test Check the signature working to alert when http_cookie is not present */
 static int DetectHttpCookieSigTest03(void)
 {
-    int result = 0;
     Flow f;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n"
         "Cookie: dummy\r\n\r\n";
@@ -1898,7 +1762,7 @@ static int DetectHttpCookieSigTest03(void)
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
-        goto end;
+        FAIL;
     }
 
     de_ctx->flags |= DE_QUIET;
@@ -1907,7 +1771,7 @@ static int DetectHttpCookieSigTest03(void)
                                    "\"HTTP cookie\"; content:\"boo\"; "
                                    "http_cookie; sid:1;)");
     if (s == NULL) {
-        goto end;
+        FAIL;
     }
 
     SigGroupBuild(de_ctx);
@@ -1917,44 +1781,36 @@ static int DetectHttpCookieSigTest03(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     if ((PacketAlertCheck(p, 1))) {
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL) {
-        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    }
-    if (de_ctx != NULL) {
-        DetectEngineCtxFree(de_ctx);
-    }
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(true);
     UTHFreePackets(&p, 1);
-    return result;
+    FLOW_DESTROY(&f);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /** \test Check the signature working to alert when http_cookie is not present */
 static int DetectHttpCookieSigTest04(void)
 {
-    int result = 0;
     Flow f;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n"
         "Cookie: dummy\r\n\r\n";
@@ -1989,7 +1845,7 @@ static int DetectHttpCookieSigTest04(void)
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
-        goto end;
+        FAIL;
     }
 
     de_ctx->flags |= DE_QUIET;
@@ -1998,7 +1854,7 @@ static int DetectHttpCookieSigTest04(void)
                                    "\"HTTP cookie\"; content:!\"boo\"; "
                                    "http_cookie; sid:1;)");
     if (s == NULL) {
-        goto end;
+        FAIL;
     }
 
     SigGroupBuild(de_ctx);
@@ -2008,44 +1864,36 @@ static int DetectHttpCookieSigTest04(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     if (!PacketAlertCheck(p, 1)) {
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL) {
-        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    }
-    if (de_ctx != NULL) {
-        DetectEngineCtxFree(de_ctx);
-    }
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(true);
     UTHFreePackets(&p, 1);
-    return result;
+    FLOW_DESTROY(&f);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /** \test Check the signature working to alert when http_cookie is not present */
 static int DetectHttpCookieSigTest05(void)
 {
-    int result = 0;
     Flow f;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n"
         "Cookie: DuMmY\r\n\r\n";
@@ -2080,7 +1928,7 @@ static int DetectHttpCookieSigTest05(void)
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
-        goto end;
+        FAIL;
     }
 
     de_ctx->flags |= DE_QUIET;
@@ -2089,7 +1937,7 @@ static int DetectHttpCookieSigTest05(void)
                                    "\"HTTP cookie\"; content:\"dummy\"; nocase; "
                                    "http_cookie; sid:1;)");
     if (s == NULL) {
-        goto end;
+        FAIL;
     }
 
     SigGroupBuild(de_ctx);
@@ -2099,44 +1947,36 @@ static int DetectHttpCookieSigTest05(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     if (!PacketAlertCheck(p, 1)) {
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL) {
-        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    }
-    if (de_ctx != NULL) {
-        DetectEngineCtxFree(de_ctx);
-    }
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(true);
     UTHFreePackets(&p, 1);
-    return result;
+    FLOW_DESTROY(&f);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /** \test Check the signature working to alert when http_cookie is not present */
 static int DetectHttpCookieSigTest06(void)
 {
-    int result = 0;
     Flow f;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n"
         "Cookie: DuMmY\r\n\r\n";
@@ -2171,7 +2011,7 @@ static int DetectHttpCookieSigTest06(void)
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
-        goto end;
+        FAIL;
     }
 
     de_ctx->flags |= DE_QUIET;
@@ -2181,7 +2021,7 @@ static int DetectHttpCookieSigTest06(void)
                                    "http_cookie; nocase; sid:1;)");
     if (s == NULL) {
         printf("sig parse failed: ");
-        goto end;
+        FAIL;
     }
 
     SigGroupBuild(de_ctx);
@@ -2191,13 +2031,13 @@ static int DetectHttpCookieSigTest06(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        goto end;
+        FAIL;
     }
 
     /* do detect */
@@ -2205,29 +2045,23 @@ static int DetectHttpCookieSigTest06(void)
 
     if (!PacketAlertCheck(p, 1)) {
         printf("sig 1 failed to match: ");
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL) {
-        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    }
-    if (de_ctx != NULL) {
-        DetectEngineCtxFree(de_ctx);
-    }
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(true);
     UTHFreePackets(&p, 1);
-    return result;
+    FLOW_DESTROY(&f);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /** \test Check the signature working to alert when http_cookie is not present */
 static int DetectHttpCookieSigTest07(void)
 {
-    int result = 0;
     Flow f;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n"
         "Cookie: dummy\r\n\r\n";
@@ -2261,7 +2095,7 @@ static int DetectHttpCookieSigTest07(void)
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
-        goto end;
+        FAIL;
     }
 
     de_ctx->flags |= DE_QUIET;
@@ -2270,7 +2104,7 @@ static int DetectHttpCookieSigTest07(void)
                                    "\"HTTP cookie\"; content:!\"dummy\"; "
                                    "http_cookie; sid:1;)");
     if (s == NULL) {
-        goto end;
+        FAIL;
     }
 
     SigGroupBuild(de_ctx);
@@ -2280,38 +2114,31 @@ static int DetectHttpCookieSigTest07(void)
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     if (PacketAlertCheck(p, 1)) {
-        goto end;
+        FAIL;
     }
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL) {
-        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    }
-    if (de_ctx != NULL) {
-        DetectEngineCtxFree(de_ctx);
-    }
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
 
-    StreamTcpFreeConfig(true);
     UTHFreePackets(&p, 1);
-    return result;
+    FLOW_DESTROY(&f);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -2319,9 +2146,6 @@ end:
  */
 static int DetectHttpCookieSigTest08(void)
 {
-    int result = 0;
-    Flow f;
-
     uint8_t httpbuf_request[] =
         "GET / HTTP/1.1\r\n"
         "User-Agent: Mozilla/1.0\r\n"
@@ -2334,9 +2158,8 @@ static int DetectHttpCookieSigTest08(void)
         "\r\n";
     uint32_t httpbuf_response_len = sizeof(httpbuf_response) - 1; /* minus the \0 */
 
+    Flow f;
     TcpSession ssn;
-    Packet *p1 = NULL, *p2 = NULL;
-    Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
@@ -2352,13 +2175,13 @@ static int DetectHttpCookieSigTest08(void)
     f.flags |= FLOW_IPV4;
     f.alproto = ALPROTO_HTTP1;
 
-    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    Packet *p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
     p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
-    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    Packet *p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
@@ -2367,18 +2190,14 @@ static int DetectHttpCookieSigTest08(void)
     StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                                   "(flow:to_client; content:\"response_user_agent\"; "
-                                   "http_cookie; sid:1;)");
-    if (s == NULL) {
-        goto end;
-    }
+    Signature *s =
+            DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
+                                          "(flow:to_client; content:\"response_user_agent\"; "
+                                          "http_cookie; sid:1;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -2386,55 +2205,34 @@ static int DetectHttpCookieSigTest08(void)
     /* request */
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf_request,
             httpbuf_request_len);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
-    }
+    FAIL_IF(r != 0);
 
     http_state = f.alstate;
-    if (http_state == NULL) {
-        printf("no http state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(http_state);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-    if (PacketAlertCheck(p1, 1)) {
-        goto end;
-    }
+    FAIL_IF(PacketAlertCheck(p1, 1));
 
     /* response */
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, httpbuf_response,
             httpbuf_response_len);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
-    }
+    FAIL_IF(r != 0);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-    if (!PacketAlertCheck(p2, 1)) {
-        goto end;
-    }
+    FAIL_IF(!PacketAlertCheck(p2, 1));
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL) {
-        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    }
-    if (de_ctx != NULL) {
-        DetectEngineCtxFree(de_ctx);
-    }
-
-    StreamTcpFreeConfig(true);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
-    return result;
+    FLOW_DESTROY(&f);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**
@@ -2442,7 +2240,6 @@ end:
  */
 static int DetectHttpCookieSigTest09(void)
 {
-    int result = 0;
     Flow f;
 
     uint8_t httpbuf_request[] =
@@ -2492,7 +2289,7 @@ static int DetectHttpCookieSigTest09(void)
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
-        goto end;
+        FAIL;
     }
 
     de_ctx->flags |= DE_QUIET;
@@ -2501,13 +2298,13 @@ static int DetectHttpCookieSigTest09(void)
                                    "(flow:to_server; content:\"request_user_agent\"; "
                                    "http_cookie; sid:1;)");
     if (s == NULL) {
-        goto end;
+        FAIL;
     }
     s = de_ctx->sig_list->next = SigInit(de_ctx,"alert http any any -> any any "
                                          "(flow:to_client; content:\"response_user_agent\"; "
                                          "http_cookie; sid:2;)");
     if (s == NULL) {
-        goto end;
+        FAIL;
     }
 
     SigGroupBuild(de_ctx);
@@ -2518,20 +2315,19 @@ static int DetectHttpCookieSigTest09(void)
             httpbuf_request_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        goto end;
+        FAIL;
     }
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
     if (!PacketAlertCheck(p1, 1) || PacketAlertCheck(p1, 2)) {
-        goto end;
+        FAIL;
     }
 
     /* response */
@@ -2539,32 +2335,25 @@ static int DetectHttpCookieSigTest09(void)
             httpbuf_response_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
+        FAIL;
     }
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
     if (PacketAlertCheck(p2, 1) || !PacketAlertCheck(p2, 2)) {
-        goto end;
+        FAIL;
     }
 
-    result = 1;
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
 
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL) {
-        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    }
-    if (de_ctx != NULL) {
-        DetectEngineCtxFree(de_ctx);
-    }
-
-    StreamTcpFreeConfig(true);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
-    return result;
+    FLOW_DESTROY(&f);
+    StreamTcpFreeConfig(true);
+    StatsThreadCleanup(&th_v);
+    PASS;
 }
 
 /**

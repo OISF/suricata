@@ -1071,6 +1071,7 @@ static int DetectFastPatternTest14(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     FlowShutdown();
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 

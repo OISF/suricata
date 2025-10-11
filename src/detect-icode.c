@@ -373,7 +373,7 @@ static int DetectICodeMatchTest01(void)
     DetectEngineCtxFree(de_ctx);
 
     UTHFreePackets(&p, 1);
-
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 

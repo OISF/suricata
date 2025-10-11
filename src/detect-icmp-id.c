@@ -436,14 +436,12 @@ static int DetectIcmpIdMatchTest01 (void)
     result = 1;
 
 cleanup:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     UTHFreePackets(&p, 1);
 end:
+    StatsThreadCleanup(&th_v);
     return result;
 
 }
@@ -513,15 +511,13 @@ static int DetectIcmpIdMatchTest02 (void)
     result = 1;
 
 cleanup:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     FlowShutdown();
 end:
-    SCFree(p);
+    PacketFree(p);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 

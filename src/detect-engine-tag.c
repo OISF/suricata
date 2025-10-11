@@ -660,6 +660,7 @@ static int DetectTagTestPacket01 (void)
                               {0, 0, 0, 0, 0},
                               {0, 0, 0, 0, 0}
                              };
+    StorageCleanup();
     StorageInit();
     TagInitCtx();
     StorageFinalize();
@@ -714,6 +715,7 @@ static int DetectTagTestPacket02 (void)
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
 
+    StorageCleanup();
     StorageInit();
     TagInitCtx();
     StorageFinalize();
@@ -797,6 +799,7 @@ static int DetectTagTestPacket02 (void)
     HostShutdown();
     TagDestroyCtx();
     StorageCleanup();
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -816,6 +819,7 @@ static int DetectTagTestPacket03 (void)
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
 
+    StorageCleanup();
     StorageInit();
     TagInitCtx();
     StorageFinalize();
@@ -896,6 +900,7 @@ static int DetectTagTestPacket03 (void)
     HostShutdown();
     TagDestroyCtx();
     StorageCleanup();
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -909,19 +914,17 @@ static int DetectTagTestPacket04 (void)
     uint16_t buf_len = strlen((char *)buf);
     uint16_t buf_len2 = strlen((char *)buf2);
 
-    Flow *f = NULL;
     TcpSession ssn;
-
-    memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
+    StorageCleanup();
     StorageInit();
     TagInitCtx();
     StorageFinalize();
     HostInitConfig(1);
     FlowInitConfig(1);
 
-    f = FlowAlloc();
+    Flow *f = FlowAlloc();
     FAIL_IF_NULL(f);
     FLOW_INITIALIZE(f);
     f->protoctx = (void *)&ssn;
@@ -1017,6 +1020,7 @@ static int DetectTagTestPacket04 (void)
     HostShutdown();
     TagDestroyCtx();
     StorageCleanup();
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -1030,19 +1034,17 @@ static int DetectTagTestPacket05 (void)
     uint16_t buf_len = strlen((char *)buf);
     uint16_t buf_len2 = strlen((char *)buf2);
 
-    Flow *f = NULL;
     TcpSession ssn;
-
-    memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
+    StorageCleanup();
     StorageInit();
     TagInitCtx();
     StorageFinalize();
     HostInitConfig(1);
     FlowInitConfig(1);
 
-    f = FlowAlloc();
+    Flow *f = FlowAlloc();
     FAIL_IF_NULL(f);
     FLOW_INITIALIZE(f);
     f->protoctx = (void *)&ssn;
@@ -1143,6 +1145,7 @@ static int DetectTagTestPacket05 (void)
     HostShutdown();
     TagDestroyCtx();
     StorageCleanup();
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -1156,19 +1159,17 @@ static int DetectTagTestPacket06 (void)
     uint16_t buf_len = strlen((char *)buf);
     uint16_t buf_len2 = strlen((char *)buf2);
 
-    Flow *f = NULL;
     TcpSession ssn;
-
-    memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
+    StorageCleanup();
     StorageInit();
     TagInitCtx();
     StorageFinalize();
     HostInitConfig(1);
     FlowInitConfig(1);
 
-    f = FlowAlloc();
+    Flow *f = FlowAlloc();
     FAIL_IF_NULL(f);
     FLOW_INITIALIZE(f);
     f->protoctx = (void *)&ssn;
@@ -1265,6 +1266,7 @@ static int DetectTagTestPacket06 (void)
     HostShutdown();
     TagDestroyCtx();
     StorageCleanup();
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -1278,19 +1280,17 @@ static int DetectTagTestPacket07 (void)
     uint16_t buf_len = strlen((char *)buf);
     uint16_t buf_len2 = strlen((char *)buf2);
 
-    Flow *f = NULL;
     TcpSession ssn;
-
-    memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
+    StorageCleanup();
     StorageInit();
     TagInitCtx();
     StorageFinalize();
     HostInitConfig(1);
     FlowInitConfig(1);
 
-    f = FlowAlloc();
+    Flow *f = FlowAlloc();
     FAIL_IF_NULL(f);
     FLOW_INITIALIZE(f);
     f->protoctx = (void *)&ssn;
@@ -1386,6 +1386,7 @@ static int DetectTagTestPacket07 (void)
     HostShutdown();
     TagDestroyCtx();
     StorageCleanup();
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 

@@ -474,6 +474,15 @@ void UTHFreePacket(Packet *p)
 {
     if (p == NULL)
         return;
+    /* for IPv6 UTHBuildPacketIPV6Real allocs both IPv6 hdr and TCP hdr */
+    if (p->l3.type == PACKET_L3_IPV6) {
+        SCFree(p->l3.hdrs.ip6h);
+        p->l3.hdrs.ip6h = NULL;
+        if (p->l4.type == PACKET_L4_TCP) {
+            SCFree(p->l4.hdrs.tcph);
+            p->l4.hdrs.tcph = NULL;
+        }
+    }
     PacketFree(p);
 }
 
@@ -493,6 +502,7 @@ Flow *UTHBuildFlow(int family, const char *src, const char *dst, Port sp, Port d
 void UTHFreeFlow(Flow *flow)
 {
     if (flow != NULL) {
+        FLOW_DESTROY(flow);
         SCFree(flow);//FlowFree(flow);
     }
 }
@@ -700,6 +710,7 @@ int UTHMatchPacketsWithResults(DetectEngineCtx *de_ctx, Packet **p, int num_pack
     result = 1;
 cleanup:
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -739,7 +750,7 @@ int UTHMatchPackets(DetectEngineCtx *de_ctx, Packet **p, int num_packets)
      * and others may not. That check will be outside
      */
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    if (de_ctx != NULL) SigGroupCleanup(de_ctx);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -766,17 +777,25 @@ int UTHPacketMatchSigMpm(Packet *p, char *sig, uint16_t mpm_type)
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
 
+    if (mpm_type == MPM_AC) {
+        SCConfSet("mpm-algo", "ac");
+#ifdef BUILD_HYPERSCAN
+    } else if (mpm_type == MPM_HS) {
+        SCConfSet("mpm-algo", "hs");
+#endif
+    } else {
+        BUG_ON("unsupported MPM type");
+    }
+
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
         printf("de_ctx == NULL: ");
         goto end;
     }
-
     de_ctx->flags |= DE_QUIET;
-    de_ctx->mpm_matcher = mpm_type;
 
-    de_ctx->sig_list = SigInit(de_ctx, sig);
-    if (de_ctx->sig_list == NULL) {
+    Signature *s = DetectEngineAppendSig(de_ctx, sig);
+    if (s == NULL) {
         printf("signature == NULL: ");
         goto end;
     }
@@ -785,7 +804,7 @@ int UTHPacketMatchSigMpm(Packet *p, char *sig, uint16_t mpm_type)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (PacketAlertCheck(p, de_ctx->sig_list->id) != 1) {
+    if (PacketAlertCheck(p, s->id) != 1) {
         printf("signature didn't alert: ");
         goto end;
     }
@@ -794,6 +813,8 @@ int UTHPacketMatchSigMpm(Packet *p, char *sig, uint16_t mpm_type)
 end:
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
+    StatsThreadCleanup(&th_v);
+    SCConfSet("mpm-algo", "auto");
     SCReturnInt(result);
 }
 
@@ -812,7 +833,6 @@ int UTHPacketMatchSig(Packet *p, const char *sig)
     int result = 1;
 
     DecodeThreadVars dtv;
-
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
 
@@ -827,8 +847,8 @@ int UTHPacketMatchSig(Packet *p, const char *sig)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, sig);
-    if (de_ctx->sig_list == NULL) {
+    Signature *s = DetectEngineAppendSig(de_ctx, sig);
+    if (s == NULL) {
         result = 0;
         goto end;
     }
@@ -837,22 +857,17 @@ int UTHPacketMatchSig(Packet *p, const char *sig)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (PacketAlertCheck(p, de_ctx->sig_list->id) != 1) {
+    if (PacketAlertCheck(p, s->id) != 1) {
         result = 0;
         goto end;
     }
 
 end:
-    if (de_ctx) {
-	SigGroupCleanup(de_ctx);
-	SigCleanSignatures(de_ctx);
-    }
-
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
-
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
