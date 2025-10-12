@@ -300,7 +300,7 @@ impl POP3State {
 
     fn parse_response(&mut self, input: &[u8], flow: *mut Flow) -> AppLayerResult {
         // skip RETR data
-        let input = if self.retr_data > 0 {
+        let mut start = if self.retr_data > 0 {
             SCLogDebug!("input {} retr_data {}", input.len(), self.retr_data);
             if input.len() >= self.retr_data as usize {
                 let input = &input[self.retr_data as usize..];
@@ -317,14 +317,14 @@ impl POP3State {
             input
         };
         // We're not interested in empty responses.
-        if input.is_empty() {
+        if start.is_empty() {
             return AppLayerResult::ok();
         }
-        SCLogDebug!("input {} retr_data {}", input.len(), self.retr_data);
+        SCLogDebug!("input {} retr_data {}", start.len(), self.retr_data);
 
         if self.response_gap {
             unsafe {
-                if probe(input, Direction::ToClient) != ALPROTO_POP3 {
+                if probe(start, Direction::ToClient) != ALPROTO_POP3 {
                     // The parser now needs to decide what to do as we are not in sync.
                     // For this pop3, we'll just try again next time.
                     return AppLayerResult::ok();
@@ -335,7 +335,6 @@ impl POP3State {
             // state and keep parsing.
             self.response_gap = false;
         }
-        let mut start = input;
         while !start.is_empty() {
             // empty server challenge is not handled by sawp-pop3. Simply skip past it.
             if start.starts_with(b"+ \r\n") {
