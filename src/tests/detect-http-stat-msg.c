@@ -43,125 +43,97 @@
 
 static int DetectEngineHttpStatMsgTest01(void)
  {
-    TcpSession ssn;
-    Packet *p1 = NULL;
-    Packet *p2 = NULL;
-    ThreadVars th_v;
-    DetectEngineCtx *de_ctx = NULL;
-    DetectEngineThreadCtx *det_ctx = NULL;
-    HtpState *http_state = NULL;
-    Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
-    uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 message\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 7\r\n"
-        "\r\n"
-        "message";
-    uint32_t http_len2 = sizeof(http_buf2) - 1;
-    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+     TcpSession ssn;
+     ThreadVars th_v;
+     DetectEngineThreadCtx *det_ctx = NULL;
+     Flow f;
+     uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                           "Gecko/20091221 Firefox/3.5.7\r\n"
+                           "\r\n";
+     uint32_t http_len1 = sizeof(http_buf1) - 1;
+     uint8_t http_buf2[] = "HTTP/1.0 200 message\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 7\r\n"
+                           "\r\n"
+                           "message";
+     uint32_t http_len2 = sizeof(http_buf2) - 1;
+     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
-    memset(&th_v, 0, sizeof(th_v));
-    memset(&f, 0, sizeof(f));
-    memset(&ssn, 0, sizeof(ssn));
+     memset(&th_v, 0, sizeof(th_v));
+     memset(&f, 0, sizeof(f));
+     memset(&ssn, 0, sizeof(ssn));
 
-    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
-    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+     Packet *p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+     Packet *p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
-    FLOW_INITIALIZE(&f);
-    f.protoctx = (void *)&ssn;
-    f.proto = IPPROTO_TCP;
-    f.flags |= FLOW_IPV4;
+     FLOW_INITIALIZE(&f);
+     f.protoctx = (void *)&ssn;
+     f.proto = IPPROTO_TCP;
+     f.flags |= FLOW_IPV4;
 
-    p1->flow = &f;
-    p1->flowflags |= FLOW_PKT_TOSERVER;
-    p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    p2->flow = &f;
-    p2->flowflags |= FLOW_PKT_TOCLIENT;
-    p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP1;
+     p1->flow = &f;
+     p1->flowflags |= FLOW_PKT_TOSERVER;
+     p1->flowflags |= FLOW_PKT_ESTABLISHED;
+     p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
+     p2->flow = &f;
+     p2->flowflags |= FLOW_PKT_TOCLIENT;
+     p2->flowflags |= FLOW_PKT_ESTABLISHED;
+     p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
+     f.alproto = ALPROTO_HTTP1;
 
-    StreamTcpInitConfig(true);
+     StreamTcpInitConfig(true);
 
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        FAIL;
+     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+     FAIL_IF_NULL(de_ctx);
+     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->flags |= DE_QUIET;
+     Signature *s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
+                                                  "(msg:\"http stat msg test\"; "
+                                                  "content:\"message\"; http_stat_msg; "
+                                                  "sid:1;)");
+     FAIL_IF_NULL(s);
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http stat msg test\"; "
-                               "content:\"message\"; http_stat_msg; "
-                               "sid:1;)");
-    if (de_ctx->sig_list == NULL)
-        FAIL;
+     SigGroupBuild(de_ctx);
+     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+     int r = AppLayerParserParse(
+             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf1, http_len1);
+     FAIL_IF(r != 0);
 
-    int r = AppLayerParserParse(
-            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf1, http_len1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FAIL;
-    }
+     HtpState *http_state = f.alstate;
+     FAIL_IF_NULL(http_state);
 
-    http_state = f.alstate;
-    if (http_state == NULL) {
-        printf("no http state: \n");
-        FAIL;
-    }
+     /* do detect */
+     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+     FAIL_IF((PacketAlertCheck(p1, 1)));
 
-    /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+     r = AppLayerParserParse(
+             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, http_buf2, http_len2);
+     FAIL_IF(r != 0);
 
-    if ((PacketAlertCheck(p1, 1))) {
-        printf("sid 1 matched but shouldn't have\n");
-        FAIL;
-    }
+     /* do detect */
+     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+     FAIL_IF(!(PacketAlertCheck(p2, 1)));
 
-    r = AppLayerParserParse(
-            NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, http_buf2, http_len2);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        FAIL;
-    }
+     UTHFreePackets(&p1, 1);
+     UTHFreePackets(&p2, 1);
+     FLOW_DESTROY(&f);
 
-    /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-
-    if (!(PacketAlertCheck(p2, 1))) {
-        printf("sid 1 didn't match but should have");
-        FAIL;
-    }
-
-        AppLayerParserThreadCtxFree(alp_tctx);
-        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-        DetectEngineCtxFree(de_ctx);
-
-    UTHFreePackets(&p1, 1);
-    UTHFreePackets(&p2, 1);
-    FLOW_DESTROY(&f);
-    StreamTcpFreeConfig(true);
-    StatsThreadCleanup(&th_v);
-    PASS;
+     AppLayerParserThreadCtxFree(alp_tctx);
+     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+     DetectEngineCtxFree(de_ctx);
+     StreamTcpFreeConfig(true);
+     StatsThreadCleanup(&th_v);
+     PASS;
 }
 
 static int DetectEngineHttpStatMsgTest02(void)
 {
     TcpSession ssn;
-    Packet *p1 = NULL;
     ThreadVars th_v;
-    DetectEngineCtx *de_ctx = NULL;
     DetectEngineThreadCtx *det_ctx = NULL;
-    HtpState *http_state = NULL;
     Flow f;
     uint8_t http_buf1[] =
         "GET /index.html HTTP/1.0\r\n"
@@ -182,7 +154,7 @@ static int DetectEngineHttpStatMsgTest02(void)
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    Packet *p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
@@ -197,56 +169,40 @@ static int DetectEngineHttpStatMsgTest02(void)
 
     StreamTcpInitConfig(true);
 
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        FAIL;
-
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http stat msg test\"; "
-                               "content:\"ABC\"; http_stat_msg; offset:4; "
-                               "sid:1;)");
-    if (de_ctx->sig_list == NULL)
-        FAIL;
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
+                                                 "(msg:\"http stat msg test\"; "
+                                                 "content:\"ABC\"; http_stat_msg; offset:4; "
+                                                 "sid:1;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf1, http_len1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FAIL;
-    }
+    FAIL_IF(r != 0);
 
     r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, http_buf2, http_len2);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FAIL;
-    }
+    FAIL_IF(r != 0);
 
-    http_state = f.alstate;
-    if (http_state == NULL) {
-        printf("no http state: \n");
-        FAIL;
-    }
+    HtpState *http_state = f.alstate;
+    FAIL_IF_NULL(http_state);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-
-    if (!(PacketAlertCheck(p1, 1))) {
-        printf("sid 1 didn't match but should have\n");
-        FAIL;
-    }
-
-        AppLayerParserThreadCtxFree(alp_tctx);
-        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-        DetectEngineCtxFree(de_ctx);
+    FAIL_IF(!(PacketAlertCheck(p1, 1)));
 
     UTHFreePackets(&p1, 1);
     FLOW_DESTROY(&f);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
     StatsThreadCleanup(&th_v);
     PASS;
@@ -322,10 +278,7 @@ static int DetectEngineHttpStatMsgTest03(void)
 
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf1, http_len1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FAIL;
-    }
+    FAIL_IF_NOT(r == 0);
 
     http_state = f.alstate;
     if (http_state == NULL) {
@@ -343,17 +296,11 @@ static int DetectEngineHttpStatMsgTest03(void)
 
     r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, http_buf2, http_len2);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        FAIL;
-    }
+    FAIL_IF_NOT(r == 0);
 
     r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, http_buf3, http_len3);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        FAIL;
-    }
+    FAIL_IF_NOT(r == 0);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
@@ -363,12 +310,9 @@ static int DetectEngineHttpStatMsgTest03(void)
         FAIL;
     }
 
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    if (de_ctx != NULL)
-        if (de_ctx != NULL)
-            DetectEngineCtxFree(de_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
@@ -445,10 +389,7 @@ static int DetectEngineHttpStatMsgTest04(void)
 
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf1, http_len1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FAIL;
-    }
+    FAIL_IF_NOT(r == 0);
 
     http_state = f.alstate;
     if (http_state == NULL) {
@@ -466,10 +407,7 @@ static int DetectEngineHttpStatMsgTest04(void)
 
     r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, http_buf2, http_len2);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        FAIL;
-    }
+    FAIL_IF_NOT(r == 0);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
@@ -479,11 +417,9 @@ static int DetectEngineHttpStatMsgTest04(void)
         FAIL;
     }
 
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
@@ -560,10 +496,7 @@ static int DetectEngineHttpStatMsgTest05(void)
 
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf1, http_len1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FAIL;
-    }
+    FAIL_IF_NOT(r == 0);
 
     http_state = f.alstate;
     if (http_state == NULL) {
@@ -581,10 +514,7 @@ static int DetectEngineHttpStatMsgTest05(void)
 
     r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, http_buf2, http_len2);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        FAIL;
-    }
+    FAIL_IF_NOT(r == 0);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
@@ -594,11 +524,9 @@ static int DetectEngineHttpStatMsgTest05(void)
         FAIL;
     }
 
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
@@ -675,10 +603,7 @@ static int DetectEngineHttpStatMsgTest06(void)
 
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf1, http_len1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FAIL;
-    }
+    FAIL_IF_NOT(r == 0);
 
     http_state = f.alstate;
     if (http_state == NULL) {
@@ -696,10 +621,7 @@ static int DetectEngineHttpStatMsgTest06(void)
 
     r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, http_buf2, http_len2);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        FAIL;
-    }
+    FAIL_IF_NOT(r == 0);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
@@ -709,11 +631,9 @@ static int DetectEngineHttpStatMsgTest06(void)
         FAIL;
     }
 
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
@@ -790,10 +710,7 @@ static int DetectEngineHttpStatMsgTest07(void)
 
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf1, http_len1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FAIL;
-    }
+    FAIL_IF_NOT(r == 0);
 
     http_state = f.alstate;
     if (http_state == NULL) {
@@ -811,10 +728,7 @@ static int DetectEngineHttpStatMsgTest07(void)
 
     r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, http_buf2, http_len2);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        FAIL;
-    }
+    FAIL_IF_NOT(r == 0);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
@@ -824,11 +738,9 @@ static int DetectEngineHttpStatMsgTest07(void)
         FAIL;
     }
 
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
@@ -905,10 +817,7 @@ static int DetectEngineHttpStatMsgTest08(void)
 
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf1, http_len1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FAIL;
-    }
+    FAIL_IF_NOT(r == 0);
 
     http_state = f.alstate;
     if (http_state == NULL) {
@@ -926,10 +835,7 @@ static int DetectEngineHttpStatMsgTest08(void)
 
     r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, http_buf2, http_len2);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        FAIL;
-    }
+    FAIL_IF_NOT(r == 0);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
@@ -939,11 +845,9 @@ static int DetectEngineHttpStatMsgTest08(void)
         FAIL;
     }
 
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
@@ -1021,10 +925,7 @@ static int DetectEngineHttpStatMsgTest09(void)
 
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf1, http_len1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FAIL;
-    }
+    FAIL_IF_NOT(r == 0);
 
     http_state = f.alstate;
     if (http_state == NULL) {
@@ -1042,10 +943,7 @@ static int DetectEngineHttpStatMsgTest09(void)
 
     r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, http_buf2, http_len2);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        FAIL;
-    }
+    FAIL_IF_NOT(r == 0);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
@@ -1055,11 +953,9 @@ static int DetectEngineHttpStatMsgTest09(void)
         FAIL;
     }
 
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
@@ -1137,10 +1033,7 @@ static int DetectEngineHttpStatMsgTest10(void)
 
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf1, http_len1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FAIL;
-    }
+    FAIL_IF_NOT(r == 0);
 
     http_state = f.alstate;
     if (http_state == NULL) {
@@ -1158,10 +1051,7 @@ static int DetectEngineHttpStatMsgTest10(void)
 
     r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, http_buf2, http_len2);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        FAIL;
-    }
+    FAIL_IF_NOT(r == 0);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
@@ -1171,11 +1061,9 @@ static int DetectEngineHttpStatMsgTest10(void)
         FAIL;
     }
 
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
@@ -1253,10 +1141,7 @@ static int DetectEngineHttpStatMsgTest11(void)
 
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf1, http_len1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FAIL;
-    }
+    FAIL_IF_NOT(r == 0);
 
     http_state = f.alstate;
     if (http_state == NULL) {
@@ -1274,10 +1159,7 @@ static int DetectEngineHttpStatMsgTest11(void)
 
     r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, http_buf2, http_len2);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        FAIL;
-    }
+    FAIL_IF_NOT(r == 0);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
@@ -1287,11 +1169,9 @@ static int DetectEngineHttpStatMsgTest11(void)
         FAIL;
     }
 
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
@@ -1369,10 +1249,7 @@ static int DetectEngineHttpStatMsgTest12(void)
 
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf1, http_len1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FAIL;
-    }
+    FAIL_IF_NOT(r == 0);
 
     http_state = f.alstate;
     if (http_state == NULL) {
@@ -1390,10 +1267,7 @@ static int DetectEngineHttpStatMsgTest12(void)
 
     r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, http_buf2, http_len2);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        FAIL;
-    }
+    FAIL_IF_NOT(r == 0);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
@@ -1403,11 +1277,9 @@ static int DetectEngineHttpStatMsgTest12(void)
         FAIL;
     }
 
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
@@ -1485,10 +1357,7 @@ static int DetectEngineHttpStatMsgTest13(void)
 
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf1, http_len1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FAIL;
-    }
+    FAIL_IF_NOT(r == 0);
 
     http_state = f.alstate;
     if (http_state == NULL) {
@@ -1506,10 +1375,7 @@ static int DetectEngineHttpStatMsgTest13(void)
 
     r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, http_buf2, http_len2);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        FAIL;
-    }
+    FAIL_IF_NOT(r == 0);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
@@ -1598,10 +1464,7 @@ static int DetectEngineHttpStatMsgTest14(void)
 
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf1, http_len1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FAIL;
-    }
+    FAIL_IF_NOT(r == 0);
 
     http_state = f.alstate;
     if (http_state == NULL) {
@@ -1619,10 +1482,7 @@ static int DetectEngineHttpStatMsgTest14(void)
 
     r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, http_buf2, http_len2);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        FAIL;
-    }
+    FAIL_IF_NOT(r == 0);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
@@ -1711,10 +1571,7 @@ static int DetectEngineHttpStatMsgTest15(void)
 
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf1, http_len1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FAIL;
-    }
+    FAIL_IF_NOT(r == 0);
 
     http_state = f.alstate;
     if (http_state == NULL) {
@@ -1732,10 +1589,7 @@ static int DetectEngineHttpStatMsgTest15(void)
 
     r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, http_buf2, http_len2);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        FAIL;
-    }
+    FAIL_IF_NOT(r == 0);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
@@ -1817,16 +1671,10 @@ static int DetectHttpStatMsgSigTest01(void)
 
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FAIL;
-    }
+    FAIL_IF_NOT(r == 0);
 
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, httpbuf2, httplen2);
-    if (r != 0) {
-        printf("toclient chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FAIL;
-    }
+    FAIL_IF_NOT(r == 0);
 
     http_state = f.alstate;
     if (http_state == NULL) {
@@ -1846,12 +1694,9 @@ static int DetectHttpStatMsgSigTest01(void)
         FAIL;
     }
 
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    if (de_ctx != NULL) {
-        DetectEngineCtxFree(de_ctx);
-    }
+    DetectEngineCtxFree(de_ctx);
 
     UTHFreePackets(&p, 1);
     FLOW_DESTROY(&f);
@@ -1914,16 +1759,10 @@ static int DetectHttpStatMsgSigTest02(void)
 
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FAIL;
-    }
+    FAIL_IF_NOT(r == 0);
 
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, httpbuf2, httplen2);
-    if (r != 0) {
-        printf("toclient chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FAIL;
-    }
+    FAIL_IF_NOT(r == 0);
 
     http_state = f.alstate;
     if (http_state == NULL) {
@@ -1939,14 +1778,9 @@ static int DetectHttpStatMsgSigTest02(void)
         FAIL;
     }
 
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL) {
-        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    }
-    if (de_ctx != NULL) {
-        DetectEngineCtxFree(de_ctx);
-    }
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     UTHFreePackets(&p, 1);
     FLOW_DESTROY(&f);
@@ -2017,16 +1851,10 @@ static int DetectHttpStatMsgSigTest03(void)
 
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FAIL;
-    }
+    FAIL_IF_NOT(r == 0);
 
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, httpbuf2, httplen2);
-    if (r != 0) {
-        printf("toclient chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FAIL;
-    }
+    FAIL_IF_NOT(r == 0);
 
     http_state = f.alstate;
     if (http_state == NULL) {
