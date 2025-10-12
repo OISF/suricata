@@ -2250,13 +2250,10 @@ static int DetectHttpServerBodyTest13(void)
 /** \test multiple http transactions and body chunks of request handling */
 static int DetectHttpServerBodyTest14(void)
 {
-    int result = 0;
-    Signature *s = NULL;
     DetectEngineThreadCtx *det_ctx = NULL;
     ThreadVars th_v;
     Flow f;
     TcpSession ssn;
-    Packet *p = NULL;
     uint8_t httpbuf1[] = "GET /index1.html HTTP/1.1\r\n"
                          "User-Agent: Mozilla/1.0\r\n"
                          "Host: www.openinfosecfoundation.org\r\n"
@@ -2281,13 +2278,13 @@ static int DetectHttpServerBodyTest14(void)
                          "\r\n"
                          "two";
     uint32_t httplen4 = sizeof(httpbuf4) - 1; /* minus the \0 */
-    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    Packet *p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
@@ -2303,124 +2300,77 @@ static int DetectHttpServerBodyTest14(void)
     StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flow:established,to_client; "
-                                      "content:\"one\"; http_server_body; sid:1; rev:1;)");
-    if (s == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any (flow:established,to_client; "
+            "content:\"one\"; http_server_body; sid:1; rev:1;)");
+    FAIL_IF_NULL(s);
     s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flow:established,to_client; "
                                       "content:\"two\"; http_server_body; sid:2; rev:1;)");
-    if (s == NULL) {
-        printf("sig2 parse failed: ");
-        goto end;
-    }
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SCLogDebug("add chunk 1");
-
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER | STREAM_START, httpbuf1, httplen1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
+    FAIL_IF(r != 0);
 
     SCLogDebug("add chunk 2");
 
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, httpbuf2, httplen2);
-    if (r != 0) {
-        printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
+    FAIL_IF(r != 0);
 
     SCLogDebug("inspect chunk 1");
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (!(PacketAlertCheck(p, 1))) {
-        printf("sig 1 didn't alert (tx 1): ");
-        goto end;
-    }
+    FAIL_IF(!(PacketAlertCheck(p, 1)));
     p->alerts.cnt = 0;
 
     SCLogDebug("add chunk 3");
 
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf3, httplen3);
-    if (r != 0) {
-        printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
+    FAIL_IF(r != 0);
 
     SCLogDebug("add chunk 4");
 
     r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT | STREAM_EOF, httpbuf4, httplen4);
-    if (r != 0) {
-        printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
+    FAIL_IF(r != 0);
 
     SCLogDebug("inspect chunk 4");
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if ((PacketAlertCheck(p, 1))) {
-        printf("sig 1 alerted (tx 2): ");
-        goto end;
-    }
-    if (!(PacketAlertCheck(p, 2))) {
-        printf("sig 2 didn't alert (tx 2): ");
-        goto end;
-    }
+    FAIL_IF((PacketAlertCheck(p, 1)));
+    FAIL_IF(!(PacketAlertCheck(p, 2)));
     p->alerts.cnt = 0;
 
     HtpState *htp_state = f.alstate;
-    if (htp_state == NULL) {
-        printf("no http state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(htp_state);
+    FAIL_IF(AppLayerParserGetTxCnt(&f, htp_state) != 2);
 
-    if (AppLayerParserGetTxCnt(&f, htp_state) != 2) {
-        printf("The http app layer doesn't have 2 transactions, but it should: ");
-        goto end;
-    }
-
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL) {
-        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    }
-    if (de_ctx != NULL) {
-        DetectEngineCtxFree(de_ctx);
-    }
-
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     UTHFreePacket(p);
+    FLOW_DESTROY(&f);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    StreamTcpFreeConfig(true);
     StatsThreadCleanup(&th_v);
-    return result;
+    PASS;
 }
 
 static int DetectHttpServerBodyTest15(void)
 {
-    int result = 0;
-    Signature *s = NULL;
     DetectEngineThreadCtx *det_ctx = NULL;
     ThreadVars th_v;
     Flow f;
     TcpSession ssn;
-    Packet *p = NULL;
     uint8_t httpbuf1[] = "GET /index1.html HTTP/1.1\r\n"
                          "User-Agent: Mozilla/1.0\r\n"
                          "Host: www.openinfosecfoundation.org\r\n"
@@ -2445,13 +2395,13 @@ static int DetectHttpServerBodyTest15(void)
                          "\r\n"
                          "two";
     uint32_t httplen4 = sizeof(httpbuf4) - 1; /* minus the \0 */
-    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    Packet *p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
@@ -2467,105 +2417,59 @@ static int DetectHttpServerBodyTest15(void)
     StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flow:established,to_client; "
-                                      "content:\"one\"; http_server_body; sid:1; rev:1;)");
-    if (s == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any (flow:established,to_client; "
+            "content:\"one\"; http_server_body; sid:1; rev:1;)");
+    FAIL_IF_NULL(s);
     s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flow:established,to_client; "
                                       "content:\"two\"; http_server_body; sid:2; rev:1;)");
-    if (s == NULL) {
-        printf("sig2 parse failed: ");
-        goto end;
-    }
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER | STREAM_START, httpbuf1, httplen1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
+    FAIL_IF(r != 0);
 
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, httpbuf2, httplen2);
-    if (r != 0) {
-        printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
+    FAIL_IF(r != 0);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (!(PacketAlertCheck(p, 1))) {
-        printf("sig 1 didn't alert (tx 1): ");
-        goto end;
-    }
-    if (PacketAlertCheck(p, 2)) {
-        printf("sig 2 alerted (tx 1): ");
-        goto end;
-    }
+    FAIL_IF(!(PacketAlertCheck(p, 1)));
+    FAIL_IF(PacketAlertCheck(p, 2));
     p->alerts.cnt = 0;
 
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf3, httplen3);
-    if (r != 0) {
-        printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
+    FAIL_IF(r != 0);
 
     r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT | STREAM_EOF, httpbuf4, httplen4);
-    if (r != 0) {
-        printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
+    FAIL_IF(r != 0);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if ((PacketAlertCheck(p, 1))) {
-        printf("sig 1 alerted (tx 2): ");
-        goto end;
-    }
-    if (!(PacketAlertCheck(p, 2))) {
-        printf("sig 2 didn't alert (tx 2): ");
-        goto end;
-    }
+    FAIL_IF((PacketAlertCheck(p, 1)));
+    FAIL_IF(!(PacketAlertCheck(p, 2)));
     p->alerts.cnt = 0;
 
     HtpState *htp_state = f.alstate;
-    if (htp_state == NULL) {
-        printf("no http state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(htp_state);
+    FAIL_IF(AppLayerParserGetTxCnt(&f, htp_state) != 2);
 
-    if (AppLayerParserGetTxCnt(&f, htp_state) != 2) {
-        printf("The http app layer doesn't have 2 transactions, but it should: ");
-        goto end;
-    }
-
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL) {
-        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    }
-    if (de_ctx != NULL) {
-        DetectEngineCtxFree(de_ctx);
-    }
-
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     UTHFreePacket(p);
+    FLOW_DESTROY(&f);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    StreamTcpFreeConfig(true);
     StatsThreadCleanup(&th_v);
-    return result;
+    PASS;
 }
 
 /**
@@ -2805,13 +2709,10 @@ static int DetectHttpServerBodyFileDataTest08(void)
 /** \test multiple http transactions and body chunks of request handling */
 static int DetectHttpServerBodyFileDataTest09(void)
 {
-    int result = 0;
-    Signature *s = NULL;
     DetectEngineThreadCtx *det_ctx = NULL;
     ThreadVars th_v;
     Flow f;
     TcpSession ssn;
-    Packet *p = NULL;
     uint8_t httpbuf1[] = "GET /index1.html HTTP/1.1\r\n"
         "User-Agent: Mozilla/1.0\r\n"
         "Host: www.openinfosecfoundation.org\r\n"
@@ -2836,13 +2737,13 @@ static int DetectHttpServerBodyFileDataTest09(void)
         "\r\n"
         "two";
     uint32_t httplen4 = sizeof(httpbuf4) - 1; /* minus the \0 */
-    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    Packet *p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
@@ -2858,110 +2759,64 @@ static int DetectHttpServerBodyFileDataTest09(void)
     StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flow:established,to_client; file_data; content:\"one\"; sid:1; rev:1;)");
-    if (s == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any (flow:established,to_client; file_data; "
+            "content:\"one\"; sid:1; rev:1;)");
+    FAIL_IF_NULL(s);
     s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flow:established,to_client; file_data; content:\"two\"; sid:2; rev:1;)");
-    if (s == NULL) {
-        printf("sig2 parse failed: ");
-        goto end;
-    }
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER | STREAM_START, httpbuf1, httplen1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
+    FAIL_IF(r != 0);
 
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, httpbuf2, httplen2);
-    if (r != 0) {
-        printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
+    FAIL_IF(r != 0);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (!(PacketAlertCheck(p, 1))) {
-        printf("sig 1 didn't alert (tx 1): ");
-        goto end;
-    }
+    FAIL_IF(!(PacketAlertCheck(p, 1)));
     p->alerts.cnt = 0;
 
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf3, httplen3);
-    if (r != 0) {
-        printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
+    FAIL_IF(r != 0);
 
     r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT | STREAM_EOF, httpbuf4, httplen4);
-    if (r != 0) {
-        printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
+    FAIL_IF(r != 0);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if ((PacketAlertCheck(p, 1))) {
-        printf("sig 1 alerted (tx 2): ");
-        goto end;
-    }
-    if (!(PacketAlertCheck(p, 2))) {
-        printf("sig 2 didn't alert (tx 2): ");
-        goto end;
-    }
-    p->alerts.cnt = 0;
+    FAIL_IF((PacketAlertCheck(p, 1)));
+    FAIL_IF(!(PacketAlertCheck(p, 2)));
 
     HtpState *htp_state = f.alstate;
-    if (htp_state == NULL) {
-        printf("no http state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(htp_state);
+    FAIL_IF(AppLayerParserGetTxCnt(&f, htp_state) != 2);
 
-    if (AppLayerParserGetTxCnt(&f, htp_state) != 2) {
-        printf("The http app layer doesn't have 2 transactions, but it should: ");
-        goto end;
-    }
-
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL) {
-        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    }
-    if (de_ctx != NULL) {
-        DetectEngineCtxFree(de_ctx);
-    }
-
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     UTHFreePacket(p);
+    FLOW_DESTROY(&f);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    StreamTcpFreeConfig(true);
     StatsThreadCleanup(&th_v);
-    return result;
+    PASS;
 }
 
 static int DetectHttpServerBodyFileDataTest10(void)
 {
-    int result = 0;
-    Signature *s = NULL;
     DetectEngineThreadCtx *det_ctx = NULL;
     ThreadVars th_v;
     Flow f;
     TcpSession ssn;
-    Packet *p = NULL;
     uint8_t httpbuf1[] = "GET /index1.html HTTP/1.1\r\n"
         "User-Agent: Mozilla/1.0\r\n"
         "Host: www.openinfosecfoundation.org\r\n"
@@ -2986,13 +2841,13 @@ static int DetectHttpServerBodyFileDataTest10(void)
         "\r\n"
         "two";
     uint32_t httplen4 = sizeof(httpbuf4) - 1; /* minus the \0 */
-    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    Packet *p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
@@ -3008,99 +2863,56 @@ static int DetectHttpServerBodyFileDataTest10(void)
     StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flow:established,to_client; file_data; content:\"one\";  sid:1; rev:1;)");
-    if (s == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any (flow:established,to_client; file_data; "
+            "content:\"one\";  sid:1; rev:1;)");
+    FAIL_IF_NULL(s);
     s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flow:established,to_client; file_data; content:\"two\"; sid:2; rev:1;)");
-    if (s == NULL) {
-        printf("sig2 parse failed: ");
-        goto end;
-    }
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER | STREAM_START, httpbuf1, httplen1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
+    FAIL_IF(r != 0);
 
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, httpbuf2, httplen2);
-    if (r != 0) {
-        printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
+    FAIL_IF(r != 0);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (!(PacketAlertCheck(p, 1))) {
-        printf("sig 1 didn't alert (tx 1): ");
-        goto end;
-    }
+    FAIL_IF(!(PacketAlertCheck(p, 1)));
     p->alerts.cnt = 0;
 
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf3, httplen3);
-    if (r != 0) {
-        printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
+    FAIL_IF(r != 0);
 
     r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT | STREAM_EOF, httpbuf4, httplen4);
-    if (r != 0) {
-        printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
+    FAIL_IF(r != 0);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if ((PacketAlertCheck(p, 1))) {
-        printf("sig 1 alerted (tx 2): ");
-        goto end;
-    }
-    if (!(PacketAlertCheck(p, 2))) {
-        printf("sig 2 didn't alert (tx 2): ");
-        goto end;
-    }
-    p->alerts.cnt = 0;
+    FAIL_IF((PacketAlertCheck(p, 1)));
+    FAIL_IF(!(PacketAlertCheck(p, 2)));
 
     HtpState *htp_state = f.alstate;
-    if (htp_state == NULL) {
-        printf("no http state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(htp_state);
+    FAIL_IF(AppLayerParserGetTxCnt(&f, htp_state) != 2);
 
-    if (AppLayerParserGetTxCnt(&f, htp_state) != 2) {
-        printf("The http app layer doesn't have 2 transactions, but it should: ");
-        goto end;
-    }
-
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL) {
-        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    }
-    if (de_ctx != NULL) {
-        DetectEngineCtxFree(de_ctx);
-    }
-
-    StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     UTHFreePacket(p);
+    FLOW_DESTROY(&f);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    StreamTcpFreeConfig(true);
     StatsThreadCleanup(&th_v);
-    return result;
+    PASS;
 }
 
 void DetectHttpServerBodyRegisterTests(void)
