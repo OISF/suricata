@@ -26,9 +26,9 @@ Supported protocols are:
 Settings
 ~~~~~~~~
 
-*stream.checksum_validation* controls whether or not the stream engine rejects packets with invalid checksums. A good idea normally, but the network interface performs checksum offloading a lot of packets may seem to be broken. This setting is enabled by default, and can be disabled by setting to "no". Note that the checksum handling can be controlled per interface, see "checksum_checks" in example configuration.
+*stream.checksum_validation* controls whether or not the stream engine rejects packets with invalid checksums. This is a good idea normally, but if the network interface performs checksum offloading, a lot of packets may seem to be broken. This setting is enabled by default, and can be disabled by setting to "no". Note that the checksum handling can be controlled per interface; see "checksum_checks" in example configuration.
 
-*file-store.stream-depth* controls how far into a stream reassembly is done. Beyond this value no reassembly will be done. This means that after this value the HTTP session will no longer be tracked. By default a setting of 1 Megabyte is used. 0 sets it to unlimited. If set to no, it is disabled and stream.reassembly.depth is considered. Non-zero values must be greater than ``stream.stream-depth`` to be used.
+*file-store.stream-depth* controls how far into a stream reassembly is done. Beyond this value no reassembly will be done. This means that after this value the HTTP session will no longer be tracked. By default a setting of 1 Megabyte is used. 0 sets it to unlimited. If set to "no", it is disabled and *stream.reassembly.depth* is considered. Non-zero values must be greater than ``stream.stream-depth`` to be used.
 
 *libhtp.default-config.request-body-limit* / *libhtp.server-config.<config>.request-body-limit* controls how much of the HTTP request body is tracked for inspection by the `http_client_body` keyword, but also used to limit file inspection. A value of 0 means unlimited.
 
