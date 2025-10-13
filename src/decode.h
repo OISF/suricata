@@ -550,7 +550,7 @@ typedef struct Packet_
     uint32_t flow_hash;
 
     /* tunnel type: none, root or child */
-    enum PacketTunnelType ttype;
+    uint8_t ttype; // enum PacketTunnelType
 
     SCTime_t ts;
 
