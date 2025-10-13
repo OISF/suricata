@@ -3273,6 +3273,8 @@ jobs:
         working-directory: rust
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py -q --debug-failed
+      - name: Running suricata-verify replay tests
+        run: python3 ./suricata-verify/run.py --replay --debug-failed
       - run: make install
       - run: suricata-update -V
       - run: suricatasc -h
