@@ -417,7 +417,7 @@ enum PacketL2Types {
 };
 
 struct PacketL2 {
-    enum PacketL2Types type;
+    uint8_t type; // enum PacketL2Types
     union L2Hdrs {
         EthernetHdr *ethh;
     } hdrs;
@@ -431,7 +431,7 @@ enum PacketL3Types {
 };
 
 struct PacketL3 {
-    enum PacketL3Types type;
+    uint8_t type; // enum PacketL3Types
     /* Checksum for IP packets. */
     bool csum_set;
     uint16_t csum;
@@ -462,7 +462,7 @@ enum PacketL4Types {
 };
 
 struct PacketL4 {
-    enum PacketL4Types type;
+    uint8_t type; // enum PacketL4Types
     bool csum_set;
     uint16_t csum;
     union L4Hdrs {
@@ -550,10 +550,10 @@ typedef struct Packet_
     uint32_t flow_hash;
 
     /* tunnel type: none, root or child */
-    enum PacketTunnelType ttype;
+    uint8_t ttype; // enum PacketTunnelType
 
     /* tunnel protocol */
-    enum DecodeTunnelProto tproto;
+    uint8_t tproto; // enum DecodeTunnelProto
 
     SCTime_t ts;
 
