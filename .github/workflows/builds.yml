@@ -2691,6 +2691,8 @@ jobs:
               python3-yaml \
               sphinx-doc \
               sphinx-common \
+              sudo \
+              tcpreplay \
               texlive-latex-base \
               texlive-fonts-recommended \
               texlive-fonts-extra \
@@ -2726,6 +2728,8 @@ jobs:
         working-directory: rust
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py -q --debug-failed
+      - name: Running suricata-verify live tests
+        run: sudo python3 ./suricata-verify/run.py --live lo --debug-failed
       - run: make install
       - run: suricata-update -V
       - run: suricatasc -h
@@ -2783,6 +2787,8 @@ jobs:
               rustc \
               sphinx-doc \
               sphinx-common \
+              sudo \
+              tcpreplay \
               texlive-latex-base \
               texlive-fonts-recommended \
               texlive-fonts-extra \
@@ -2815,6 +2821,11 @@ jobs:
         working-directory: rust
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py -q --debug-failed
+      - run: ulimit -a
+      - run: ulimit -l
+      - run: ulimit -l unlimited
+      - name: Running suricata-verify live tests
+        run: sudo python3 ./suricata-verify/run.py --live lo --debug-failed
       - run: make install
       - run: suricata-update -V
       - run: suricatasc -h
