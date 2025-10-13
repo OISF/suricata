@@ -540,6 +540,9 @@ typedef struct Packet_
     /** bit flags of SignatureHookPkt values this packet should trigger */
     uint16_t pkt_hooks;
 
+    /* tunnel type: none, root or child */
+    uint8_t ttype; // enum PacketTunnelType
+
     /* Pkt Flags */
     uint32_t flags;
 
@@ -548,9 +551,6 @@ typedef struct Packet_
     /* raw hash value for looking up the flow, will need to modulated to the
      * hash size still */
     uint32_t flow_hash;
-
-    /* tunnel type: none, root or child */
-    enum PacketTunnelType ttype;
 
     SCTime_t ts;
 
