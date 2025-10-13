@@ -190,12 +190,12 @@ static int IPPairBitTest01 (void)
 {
     IPPairInitConfig(true);
     IPPair *h = IPPairAlloc();
-    FAIL_IF_NULL(h)
+    FAIL_IF_NULL(h);
 
     IPPairBitAdd(h, 0, SCTIME_FROM_SECS(0));
 
     XBit *fb = IPPairBitGet(h,0);
-    FAIL_IF_NULL(fb)
+    FAIL_IF_NULL(fb);
 
     IPPairFree(h);
 
@@ -208,10 +208,12 @@ static int IPPairBitTest02 (void)
 {
     IPPairInitConfig(true);
     IPPair *h = IPPairAlloc();
-    FAIL_IF_NULL(h)
+    FAIL_IF_NULL(h);
+
+    IPPairBitAdd(h, 0, SCTIME_FROM_SECS(0));
 
     XBit *fb = IPPairBitGet(h,0);
-    FAIL_IF_NULL(fb)
+    FAIL_IF_NULL(fb);
 
     IPPairFree(h);
 
@@ -343,7 +345,7 @@ static int IPPairBitTest08 (void)
     IPPairBitRemove(h,0);
 
     fb = IPPairBitGet(h,0);
-    FAIL_IF(fb != null);
+    FAIL_IF(fb != NULL);
 
     IPPairFree(h);
     IPPairCleanup();
@@ -356,7 +358,7 @@ static int IPPairBitTest09 (void)
     IPPairInitConfig(true);
 
     IPPair *h = IPPairAlloc();
-    FAIL_IF_NULL(h)
+    FAIL_IF_NULL(h);
 
     IPPairBitAdd(h, 0, SCTIME_FROM_SECS(90));
     IPPairBitAdd(h, 1, SCTIME_FROM_SECS(90));
