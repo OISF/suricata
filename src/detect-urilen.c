@@ -255,14 +255,15 @@ static int DetectUrilenParseTest01(void)
 {
     DetectUrilenData *urilend = DetectUrilenParse("10");
 
-    FAIL_IF_NULL(urilend, "DetectUrilenParse returned NULL");
+    FAIL_IF_NULL(urilend);
     
-    FAIL_IF(urilend->du16.arg1 != 10, "arg1 mismatch: %u", urilend->du16.arg1);
-    FAIL_IF(urilend->du16.mode != DETECT_UINT_EQ, "mode mismatch: %u", urilend->du16.mode);
-    FAIL_IF(urilend->raw_buffer, "expected raw_buffer to be false");
+    FAIL_IF(urilend->du16.arg1 != 10);
+    FAIL_IF(urilend->du16.mode != DETECT_UINT_EQ);
+    FAIL_IF(urilend->raw_buffer);
 
     DetectUrilenFree(NULL, urilend);
-    PASS();
+
+    PASS;
     
 }
 
@@ -277,7 +278,8 @@ static int DetectUrilenParseTest02(void)
     FAIL_IF(urilend->raw_buffer);
 
     DetectUrilenFree(NULL, urilend);
-    PASS();
+
+    PASS;
 }
 
 /** \test   Test the Urilen keyword setup */
@@ -291,7 +293,8 @@ static int DetectUrilenParseTest03(void)
     FAIL_IF(urilend->raw_buffer);
 
     DetectUrilenFree(NULL, urilend);
-    PASS();
+
+    PASS;
 }
 
 /** \test   Test the Urilen keyword setup */
@@ -306,7 +309,8 @@ static int DetectUrilenParseTest04(void)
     FAIL_IF(urilend->raw_buffer);
 
     DetectUrilenFree(NULL, urilend);
-    PASS();
+
+    PASS;
 }
 
 /** \test   Test the Urilen keyword setup */
@@ -321,7 +325,8 @@ static int DetectUrilenParseTest05(void)
     FAIL_IF(urilend->raw_buffer);
 
     DetectUrilenFree(NULL, urilend);
-    PASS();
+
+    PASS;
 }
 
 /** \test   Test the Urilen keyword setup */
@@ -336,7 +341,8 @@ static int DetectUrilenParseTest06(void)
     FAIL_IF(!urilend->raw_buffer);
 
     DetectUrilenFree(NULL, urilend);
-    PASS();
+
+    PASS;
 }
 
 /** \test   Test the Urilen keyword setup */
@@ -350,7 +356,8 @@ static int DetectUrilenParseTest07(void)
     FAIL_IF(urilend->raw_buffer);
 
     DetectUrilenFree(NULL, urilend);
-    PASS();
+
+    PASS;
 }
 
 /** \test   Test the Urilen keyword setup */
@@ -364,7 +371,8 @@ static int DetectUrilenParseTest08(void)
     FAIL_IF(urilend->raw_buffer);
 
     DetectUrilenFree(NULL, urilend);
-    PASS();
+
+    PASS;
 }
 
 /** \test   Test the Urilen keyword setup */
@@ -378,7 +386,8 @@ static int DetectUrilenParseTest09(void)
     FAIL_IF(!urilend->raw_buffer);
 
     DetectUrilenFree(NULL, urilend);
-    PASS();
+
+    PASS;
 }
 
 /** \test   Test the Urilen keyword setup */
@@ -392,7 +401,8 @@ static int DetectUrilenParseTest10(void)
     FAIL_IF(!urilend->raw_buffer);
 
     DetectUrilenFree(NULL, urilend);
-    PASS();
+
+    PASS;
 }
 
 /**
@@ -467,13 +477,12 @@ static int DetectUrilenSetpTest01(void)
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     
-    PASS();
+    PASS;
 }
 
 /** \test Check a signature with given urilen */
 static int DetectUrilenSigTest01(void)
 {
-    int result = 0;
     Flow f;
     uint8_t httpbuf1[] = "POST /suricata HTTP/1.0\r\n"
                          "Host: foo.bar.tld\r\n"
@@ -486,11 +495,14 @@ static int DetectUrilenSigTest01(void)
     DetectEngineThreadCtx *det_ctx;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
+    FAIL_IF_NULL(alp_tctx);
+
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
     p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    FAIL_IF_NULL(p)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
@@ -506,9 +518,7 @@ static int DetectUrilenSigTest01(void)
     StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
 
@@ -516,58 +526,44 @@ static int DetectUrilenSigTest01(void)
                                    "alert tcp any any -> any any "
                                    "(msg:\"Testing urilen\"; "
                                    "urilen: <5; sid:1;)");
-    if (s == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(s);
 
     s = s->next = SigInit(de_ctx,
                           "alert tcp any any -> any any "
                           "(msg:\"Testing http_method\"; "
                            "urilen: >5; sid:2;)");
-    if (s == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, httpbuf1, httplen1);
-    if (r != 0) {
-        SCLogDebug("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
+    FAIL_IF(r != 0);
 
     HtpState *htp_state = f.alstate;
-    if (htp_state == NULL) {
-        SCLogDebug("no http state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(htp_state);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if ((PacketAlertCheck(p, 1))) {
-        printf("sid 1 alerted, but should not have: \n");
-        goto end;
-    }
-    if (!PacketAlertCheck(p, 2)) {
-        printf("sid 2 did not alerted, but should have: \n");
-        goto end;
-    }
+    FAIL_IF(PacketAlertCheck(p, 1));
 
-    result = 1;
+    FAIL_IF_NOT(PacketAlertCheck(p, 2));
 
-end:
+
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL) SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL) SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    
+    PASS;
 }
 
 /**
