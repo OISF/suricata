@@ -1535,6 +1535,7 @@ dependencies = [
  "der-parser",
  "digest",
  "flate2",
+ "generic-array",
  "hex",
  "hkdf",
  "ipsec-parser",
