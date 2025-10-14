@@ -6721,6 +6721,28 @@
                                         }
                                     }
                                 },
+                                "l2tp": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "pkt_too_small": {
+                                            "type": "integer",
+                                            "description": "Number of L2TPv3 packets with the header length too small"
+                                        },
+                                        "invalid_version": {
+                                            "type": "integer",
+                                            "description": "Number of L2TP packets with an invalid version"
+                                        },
+                                        "unknown_payload_type": {
+                                            "type": "integer",
+                                            "description": "Number of L2TPv3 packets with an unknown inner L2 type"
+                                        },
+                                        "invalid_ip_proto": {
+                                            "type": "integer",
+                                            "description": "Number of L2TP packets with an invalid IP Protocol"
+                                        }
+                                    }
+                                },
                                 "mpls": {
                                     "type": "object",
                                     "additionalProperties": false,
@@ -6961,6 +6983,14 @@
                         "ipv6_in_ipv6": {
                             "type": "integer",
                             "description": "Number of IPv6 in IPv6 packets decoded"
+                        },
+                        "l2tp": {
+                            "type": "integer",
+                            "description": "Number of L2TPv3 packets decoded"
+                        },
+                        "l2tp_unsupported": {
+                            "type": "integer",
+                            "description": "Number of L2TPv1/2 packets decoded"
                         },
                         "max_mac_addrs_dst": {
                             "type": "integer",
