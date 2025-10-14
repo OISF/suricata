@@ -207,7 +207,7 @@ static int IPPairBitTest01 (void)
 static int IPPairBitTest02 (void)
 {
     IPPairInitConfig(true);
-    
+
     IPPair *h = IPPairAlloc();
     FAIL_IF_NULL(h);
 
@@ -355,7 +355,7 @@ static int IPPairBitTest08 (void)
 static int IPPairBitTest09 (void)
 {
     IPPairInitConfig(true);
-    
+
     IPPair *h = IPPairAlloc();
     FAIL_IF_NULL(h);
 
@@ -425,7 +425,7 @@ static int IPPairBitTest11 (void)
 
     IPPairFree(h);
     IPPairCleanup();
-    
+
     PASS;
 }
 
