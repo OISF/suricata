@@ -1739,9 +1739,9 @@ decoder:
     # the value is set to 'any', Teredo detection runs on _all_ UDP packets.
     ports: $TEREDO_PORTS # syntax: '[3544, 1234]' or '3533' or 'any'.
 
-l2tp:
-  enabled: true
-  ports: $L2TP_PORTS # syntax: '[1701, 2193]'
+  l2tp:
+    enabled: true
+    ports: $L2TP_PORTS # syntax: '[1701, 2193]'
 
   # VXLAN decoder is assigned to up to 4 UDP ports. By default only the
   # IANA assigned port 4789 is enabled.

@@ -23,8 +23,8 @@
  * Layer Two Tunneling Protocol (L2TP) Version 3 over IP or UDP decoder.
  */
 
-#ifndef __DECODE_L2TP_H__
-#define __DECODE_L2TP_H__
+#ifndef SURICATA_DECODE_L2TP_H
+#define SURICATA_DECODE_L2TP_H
 
 #ifndef IPPROTO_L2TP
 #define IPPROTO_L2TP 115
@@ -48,4 +48,4 @@ void DecodeL2TPRegisterTests(void);
 void DecodeL2TPConfig(void);
 bool DecodeL2TPEnabledForPort(const uint16_t sp, const uint16_t dp);
 
-#endif /* !__DECODE_L2TP_H__ */
+#endif /* SURICATA_DECODE_L2TP_H */
