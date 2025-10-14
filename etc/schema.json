@@ -6709,18 +6709,6 @@
                                         }
                                     }
                                 },
-                                "ltnull": {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "properties": {
-                                        "pkt_too_small": {
-                                            "type": "integer"
-                                        },
-                                        "unsupported_type": {
-                                            "type": "integer"
-                                        }
-                                    }
-                                },
                                 "l2tp": {
                                     "type": "object",
                                     "additionalProperties": false,
@@ -6740,6 +6728,18 @@
                                         "invalid_ip_proto": {
                                             "type": "integer",
                                             "description": "Number of L2TP packets with an invalid IP Protocol"
+                                        }
+                                    }
+                                },
+                                "ltnull": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "pkt_too_small": {
+                                            "type": "integer"
+                                        },
+                                        "unsupported_type": {
+                                            "type": "integer"
                                         }
                                     }
                                 },
