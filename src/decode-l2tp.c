@@ -51,9 +51,6 @@ static int g_l2tp_ports[L2TP_MAX_PORTS] = { L2TP_DEFAULT_PORT, L2TP_UNSET_PORT, 
 
 bool DecodeL2TPEnabledForPort(const uint16_t sp, const uint16_t dp)
 {
-    //    SCLogDebug("ports %u->%u ports %d %d %d %d", sp, dp, g_l2tp_ports[0], g_l2tp_ports[1],
-    //            g_l2tp_ports[2], g_l2tp_ports[3]);
-
     if (g_l2tp_enabled) {
         for (int i = 0; i < g_l2tp_ports_idx; i++) {
             if (g_l2tp_ports[i] == L2TP_UNSET_PORT)
