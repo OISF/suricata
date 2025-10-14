@@ -168,6 +168,9 @@ SC_ATOMIC_DECLARE(unsigned int, engine_stage);
 /* Max packets processed simultaneously per thread. */
 #define DEFAULT_MAX_PENDING_PACKETS 1024
 
+/* Maximum number of v's supported */
+#define VERBOSE_MAX (SC_LOG_DEBUG - SC_LOG_NOTICE)
+
 /** suricata engine control flags */
 volatile uint8_t suricata_ctl_flags = 0;
 
@@ -2084,9 +2087,15 @@ TmEcode SCParseCommandLine(int argc, char **argv)
 
             SetBpfStringFromFile(optarg);
             break;
-        case 'v':
-            suri->verbose++;
-            break;
+        case 'v': {
+            static bool ignore_extra = false;
+            if (suri->verbose < VERBOSE_MAX)
+                suri->verbose++;
+            else if (!ignore_extra) {
+                SCLogNotice("extraneous verbose option(s) ignored");
+                ignore_extra = true;
+            }
+        } break;
         case 'k':
             if (optarg == NULL) {
                 SCLogError("no option argument (optarg) for -k");
@@ -3044,6 +3053,10 @@ void SuricataInit(void)
 
     if (suricata.run_mode == RUNMODE_CONF_TEST)
         SCLogInfo("Running suricata under test mode");
+
+    if (suricata.verbose) {
+        SCLogInfo("Running with verbose level %d", suricata.verbose);
+    }
 
     if (ParseInterfacesList(suricata.aux_run_mode, suricata.pcap_dev) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
