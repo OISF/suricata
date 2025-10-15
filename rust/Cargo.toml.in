@@ -51,7 +51,7 @@ widestring = "~0.4.3"
 flate2 = { version = "~1.0.35", features = ["zlib"] }
 brotli = "~8.0.1"
 hkdf = "~0.12.4"
-aes = "~0.7.5"
+aes = "~0.8.4"
 aes-gcm = "~0.9.4"
 lru = "~0.12.5"
 

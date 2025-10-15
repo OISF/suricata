@@ -16,9 +16,8 @@
  */
 
 use aes::cipher::generic_array::GenericArray;
+use aes::cipher::{BlockEncrypt, KeyInit};
 use aes::Aes128;
-use aes::BlockEncrypt;
-use aes::NewBlockCipher;
 use aes_gcm::AeadInPlace;
 use aes_gcm::Aes128Gcm;
 use aes_gcm::NewAead;
