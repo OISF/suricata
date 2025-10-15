@@ -43,6 +43,10 @@ Logging Changes
   duplicate attribute types. See :ref:`IKE logging changes
   <9.0-ike-logging-changes>`
 
+- Ethertype values (``ether.ether_type``) are now logged matching the network order value.
+  E.g., previously, ``ether_type`` values were logged in host order;  an ethertype value of ``0xfbb7``
+  (network order) was logged as `47099`` (``0xb7fb``). This ethertype value will be logged as ``64439``.
+
 Upgrading to 8.0.1
 ------------------
 

@@ -151,7 +151,7 @@ static int DecodeNSHTestHeaderTooSmall(void)
     DecodeNSH(&tv, &dtv, p, valid_nsh_packet, 7);
     FAIL_IF_NOT(ENGINE_ISSET_EVENT(p, NSH_HEADER_TOO_SMALL));
 
-    SCFree(p);
+    PacketFree(p);
     PASS;
 }
 
@@ -172,7 +172,7 @@ static int DecodeNSHTestUnsupportedVersion(void)
     valid_nsh_packet[0] = 0x00;
     FAIL_IF_NOT(ENGINE_ISSET_EVENT(p, NSH_UNSUPPORTED_VERSION));
 
-    SCFree(p);
+    PacketFree(p);
     PASS;
 }
 
@@ -191,7 +191,7 @@ static int DecodeNSHTestPacketTooSmall(void)
     DecodeNSH(&tv, &dtv, p, valid_nsh_packet, 8);
     FAIL_IF_NOT(ENGINE_ISSET_EVENT(p, NSH_BAD_HEADER_LENGTH));
 
-    SCFree(p);
+    PacketFree(p);
     PASS;
 }
 
@@ -212,7 +212,7 @@ static int DecodeNSHTestReservedType(void)
     valid_nsh_packet[2] = 0x02;
     FAIL_IF_NOT(ENGINE_ISSET_EVENT(p, NSH_RESERVED_TYPE));
 
-    SCFree(p);
+    PacketFree(p);
     PASS;
 }
 
@@ -232,7 +232,7 @@ static int DecodeNSHTestInvalidType(void)
     DecodeNSH(&tv, &dtv, p, valid_nsh_packet, sizeof(valid_nsh_packet));
     valid_nsh_packet[2] = 0x02;
     FAIL_IF_NOT(ENGINE_ISSET_EVENT(p, NSH_BAD_HEADER_LENGTH));
-    SCFree(p);
+    PacketFree(p);
     PASS;
 }
 
@@ -253,7 +253,7 @@ static int DecodeNSHTestUnsupportedType(void)
     valid_nsh_packet[2] = 0x02;
     FAIL_IF_NOT(ENGINE_ISSET_EVENT(p, NSH_UNSUPPORTED_TYPE));
 
-    SCFree(p);
+    PacketFree(p);
     PASS;
 }
 
@@ -274,7 +274,7 @@ static int DecodeNSHTestUnknownPayload(void)
     valid_nsh_packet[3] = 0x01;
     FAIL_IF_NOT(ENGINE_ISSET_EVENT(p, NSH_UNKNOWN_PAYLOAD));
 
-    SCFree(p);
+    PacketFree(p);
     PASS;
 }
 

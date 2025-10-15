@@ -468,6 +468,7 @@ static void DetectXbitFree (DetectEngineCtx *de_ctx, void *ptr)
 
 static void XBitsTestSetup(void)
 {
+    StorageCleanup();
     StorageInit();
     HostBitInitCtx();
     IPPairBitInitCtx();
@@ -478,8 +479,8 @@ static void XBitsTestSetup(void)
 
 static void XBitsTestShutdown(void)
 {
-    HostCleanup();
-    IPPairCleanup();
+    HostShutdown();
+    IPPairShutdown();
     StorageCleanup();
 }
 
@@ -547,7 +548,6 @@ static int XBitsTestSig01(void)
     uint16_t buflen = strlen((char *)buf);
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
-    Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -565,7 +565,7 @@ static int XBitsTestSig01(void)
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx,
+    Signature *s = DetectEngineAppendSig(de_ctx,
             "alert ip any any -> any any (xbits:set,abc,track ip_pair; content:\"GET \"; sid:1;)");
     FAIL_IF_NULL(s);
 
@@ -575,7 +575,7 @@ static int XBitsTestSig01(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     XBitsTestShutdown();
-    SCFree(p);
+    PacketFree(p);
     StatsThreadCleanup(&th_v);
     StatsReleaseResources();
     PASS;

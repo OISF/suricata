@@ -114,6 +114,7 @@ pub struct POP3State {
     transactions: VecDeque<POP3Transaction>,
     request_gap: bool,
     response_gap: bool,
+    retr_data: u32,
 }
 
 impl State<POP3Transaction> for POP3State {
@@ -124,6 +125,39 @@ impl State<POP3Transaction> for POP3State {
     fn get_transaction_by_index(&self, index: usize) -> Option<&POP3Transaction> {
         self.transactions.get(index)
     }
+}
+
+use nom7::{
+    bytes::streaming::{tag, take_until},
+    IResult,
+};
+
+fn parse_unknown_message(input: &[u8]) -> IResult<&[u8], &[u8]> {
+    let (input, value) = take_until("\r\n")(input)?;
+    let (input, _) = tag("\r\n")(input)?;
+    return Ok((input, value));
+}
+
+fn find_end_of_header(input: &[u8]) -> IResult<&[u8], &[u8]> {
+    let (input, value) = take_until("\r\n")(input)?;
+    let (input, _) = tag("\r\n")(input)?;
+    return Ok((input, value));
+}
+
+fn find_end_of_message(input: &[u8]) -> IResult<&[u8], &[u8]> {
+    let (input, value) = take_until(".\r\n")(input)?;
+    let (input, _) = tag(".\r\n")(input)?;
+    return Ok((input, value));
+}
+
+fn parse_response_header_with_octets(input: &[u8]) -> IResult<&[u8], u32> {
+    let (input, size) = nom7::combinator::map_res(
+        nom7::bytes::complete::take_while_m_n(1, 10, |b: u8| b.is_ascii_digit()),
+        std::str::from_utf8,
+    )(input)?;
+    let size: u32 = size.parse::<u32>().unwrap_or_default();
+    SCLogDebug!("size {}", size);
+    return Ok((input, size));
 }
 
 impl POP3State {
@@ -203,6 +237,7 @@ impl POP3State {
                             Some(tx) => tx,
                             None => return AppLayerResult::err(),
                         };
+                        SCLogDebug!("tx created");
 
                         tx.error_flags_to_events(msg.error_flags);
                         tx.request = Some(command);
@@ -210,6 +245,7 @@ impl POP3State {
                         sc_app_layer_parser_trigger_raw_stream_inspection(flow, direction::Direction::ToServer as i32);
                     }
 
+                    SCLogDebug!("request done");
                     start = rem;
                 }
                 Ok((rem, None)) => {
@@ -235,7 +271,26 @@ impl POP3State {
                     let needed = start.len() + 1;
                     return AppLayerResult::incomplete(consumed as u32, needed as u32);
                 }
-                Err(_) => return AppLayerResult::err(),
+                Err(_e) => {
+                    SCLogDebug!("request error {:?}", _e);
+
+                    // check for base64 SASL data
+                    if let Ok((rem, _value)) =  parse_unknown_message(start) {
+                        let mut tx = match self.new_tx() {
+                            Some(tx) => tx,
+                            None => return AppLayerResult::err(),
+                        };
+                        SCLogDebug!("tx created");
+
+                        let keyword = sawp_pop3::Keyword::Unknown("<SASL DATA>".to_string());
+                        tx.request = Some(Command { keyword, args: Vec::new(), });
+                        self.transactions.push_back(tx);
+                        sc_app_layer_parser_trigger_raw_stream_inspection(flow, direction::Direction::ToServer as i32);
+                        start = rem;
+                    } else {
+                        return AppLayerResult::err();
+                    }
+                }
             }
         }
 
@@ -244,14 +299,32 @@ impl POP3State {
     }
 
     fn parse_response(&mut self, input: &[u8], flow: *mut Flow) -> AppLayerResult {
+        // skip RETR data
+        let mut start = if self.retr_data > 0 {
+            SCLogDebug!("input {} retr_data {}", input.len(), self.retr_data);
+            if input.len() >= self.retr_data as usize {
+                let input = &input[self.retr_data as usize..];
+                self.retr_data = 0;
+                if let Some(tx) = self.find_request() {
+                    tx.complete = true;
+                }
+                input
+            } else {
+                self.retr_data -= input.len() as u32;
+                &[]
+            }
+        } else {
+            input
+        };
         // We're not interested in empty responses.
-        if input.is_empty() {
+        if start.is_empty() {
             return AppLayerResult::ok();
         }
+        SCLogDebug!("input {} retr_data {}", start.len(), self.retr_data);
 
         if self.response_gap {
             unsafe {
-                if probe(input, Direction::ToClient) != ALPROTO_POP3 {
+                if probe(start, Direction::ToClient) != ALPROTO_POP3 {
                     // The parser now needs to decide what to do as we are not in sync.
                     // For this pop3, we'll just try again next time.
                     return AppLayerResult::ok();
@@ -262,10 +335,128 @@ impl POP3State {
             // state and keep parsing.
             self.response_gap = false;
         }
-        let mut start = input;
         while !start.is_empty() {
+            // empty server challenge is not handled by sawp-pop3. Simply skip past it.
+            if start.starts_with(b"+ \r\n") {
+                SCLogDebug!("empty server challenge");
+                if let Some(tx) = self.find_request() {
+                    SCLogDebug!("found tx request:{:?} response:{:?}", tx.request, tx.response);
+                    let response = { Response { status: sawp_pop3::Status::OK, header: Vec::new(), data: Vec::new() }};
+                    tx.response = Some(response);
+                    tx.complete = true;
+                }
+                start = &start[4..];
+                continue;
+            }
+            // since sawp-pop3 won't tell us if a command needs a multiline response, and if
+            // it saw the full multiline response, we have to check for it here.
+            let (mut multiline, is_retr) = if let Some(tx) = self.find_request() {
+                let command = tx.request.as_ref().unwrap();
+                SCLogDebug!("command {:?}", command);
+                match command.keyword {
+                    sawp_pop3::Keyword::LIST|sawp_pop3::Keyword::UIDL => {
+                        // LIST and UIDL are in single line mode if they
+                        // have a argument
+                        if !command.args.is_empty() {
+                            (false, false)
+                        } else {
+                            (true, false)
+                        }
+                    }
+                    sawp_pop3::Keyword::TOP => (true, false),
+                    sawp_pop3::Keyword::RETR => (true, true),
+                    _ => (false, false),
+                }
+            } else {
+                (false, false)
+            };
+            SCLogDebug!("multiline {}", multiline);
+
+            match find_end_of_header(start) {
+                Ok((body, header)) => {
+                    SCLogDebug!("end of header found");
+
+                    // get the RETR octet size so we don't FP on the RETR data
+                    // when looking for the end of message marker
+                    if is_retr && !header.is_empty() && header.starts_with(b"+OK ") && header.ends_with(b"octets") {
+                        let header_args = &header[4..];
+                        SCLogDebug!("octets line");
+
+                        let size = match parse_response_header_with_octets(header_args) {
+                            Ok((_, size)) => size,
+                            Err(_e) => {
+                                SCLogDebug!("header parsing error! {:?}", _e);
+                                0
+                            }
+                        };
+
+                        let retr_octets_requested = size;
+                        let retr_octets_processed = if body.len() < size as usize {
+                            SCLogDebug!("incomplete RETR data: {} < {}", body.len(), size);
+                            body.len() as u32
+                        } else {
+                            retr_octets_requested
+                        };
+                        self.retr_data = retr_octets_requested - retr_octets_processed;
+                        start = &body[retr_octets_processed as usize..];
+
+                    // multiline no longer applies for errors
+                    } else if header.starts_with(b"-ERR") {
+                        multiline = false;
+                    }
+                }
+                // partial header, lets return incomplete
+                Err(nom7::Err::Incomplete(needed)) => {
+                    if let nom7::Needed::Size(n) = needed {
+                        SCLogDebug!("needed {}", n);
+                        let consumed = input.len() - start.len();
+                        let needed = start.len() + n.get();
+                        return AppLayerResult::incomplete(consumed as u32, needed as u32);
+                    }
+                    return AppLayerResult::err();
+                }
+                _ => {
+                    return AppLayerResult::err();
+                }
+            }
+
+            // sawp-pop3 doesn't give us enough info about multiline parsing, so
+            // look for the end of message marker ourselves. Except for the RETR
+            // data, which can get too large, we just return incomplete until we
+            // have all data.
+            if multiline {
+                match find_end_of_message(start) {
+                    Ok((rem, _eom)) => {
+                        SCLogDebug!("end of multiline message found: message size {}", start.len() - rem.len());
+
+                        // for RETR, search for the final multiline end marker to skip past it
+                        if is_retr && self.retr_data == 0 {
+                            SCLogDebug!("command is RETR, all data processed, skip past EOM marker");
+                            start = rem;
+                            SCLogDebug!("start len {}", start.len());
+
+                            // mark as complete
+                            if let Some(tx) = self.find_request() {
+                                tx.complete = true;
+                            }
+                        }
+                    }
+                    _ => {
+                        SCLogDebug!("no multiline response, consider incomplete");
+                        let consumed = input.len() - start.len();
+                        let needed = start.len() + 1;
+                        return AppLayerResult::incomplete(consumed as u32, needed as u32);
+                    }
+                }
+            }
+            // we may have consumed all data by now
+            if start.is_empty() {
+                return AppLayerResult::ok();
+            }
+
             match POP3_PARSER.parse(start, Direction::ToClient) {
                 Ok((rem, Some(msg))) => {
+                    SCLogDebug!("msg {:?} start:{} rem:{}", msg, start.len(), rem.len());
                     if let InnerMessage::Response(mut response) = msg.inner {
                         let tx = if let Some(tx) = self.find_request() {
                             tx
@@ -284,9 +475,9 @@ impl POP3State {
                         tx.error_flags_to_events(msg.error_flags);
                         tx.complete = true;
                         sc_app_layer_parser_trigger_raw_stream_inspection(flow, direction::Direction::ToClient as i32);
-
                         if response.status == sawp_pop3::Status::OK && tx.request.is_some() {
                             let command = tx.request.as_ref().unwrap();
+                            SCLogDebug!("command {:?}", command);
                             match &command.keyword {
                                 sawp_pop3::Keyword::STLS => {
                                     unsafe {
@@ -305,6 +496,7 @@ impl POP3State {
                         tx.response = Some(response);
                     }
                     start = rem;
+                    SCLogDebug!("updated: start:{} rem:{}", start.len(), rem.len());
                 }
                 Ok((rem, None)) => {
                     // Not enough data. This parser doesn't give us a good indication
@@ -329,7 +521,8 @@ impl POP3State {
                     let needed = start.len() + 1;
                     return AppLayerResult::incomplete(consumed as u32, needed as u32);
                 }
-                Err(_) => {
+                Err(_e) => {
+                    SCLogDebug!("response error {:?}", _e);
                     return AppLayerResult::err();
                 }
             }

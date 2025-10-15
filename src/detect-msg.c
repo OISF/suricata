@@ -129,6 +129,7 @@ static int DetectMsgParseTest01(void)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
+    SCClassConfDeInitContext(de_ctx);
     FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
     SCClassConfLoadClassificationConfigFile(de_ctx, fd);
 
@@ -137,11 +138,10 @@ static int DetectMsgParseTest01(void)
             "flow:stateless,to_server; content:\"flowstatelesscheck\"; "
             "classtype:bad-unknown; sid: 40000002; rev: 1;)");
     FAIL_IF_NULL(sig);
-
     FAIL_IF(strcmp(sig->msg, teststringparsed) != 0);
 
+    SCClassConfDeInitContext(de_ctx);
     DetectEngineCtxFree(de_ctx);
-
     PASS;
 }
 
@@ -169,6 +169,7 @@ static int DetectMsgParseTest03(void)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
+    SCClassConfDeInitContext(de_ctx);
     FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
     SCClassConfLoadClassificationConfigFile(de_ctx, fd);
 
@@ -177,11 +178,10 @@ static int DetectMsgParseTest03(void)
             "flow:stateless,to_server; content:\"flowstatelesscheck\"; "
             "classtype:bad-unknown; sid: 40000002; rev: 1;)");
     FAIL_IF_NULL(sig);
-
     FAIL_IF(strcmp(sig->msg, teststringparsed) != 0);
 
+    SCClassConfDeInitContext(de_ctx);
     DetectEngineCtxFree(de_ctx);
-
     PASS;
 }
 

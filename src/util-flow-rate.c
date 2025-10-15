@@ -268,6 +268,9 @@ static int FlowRateTest01(void)
     FAIL_IF(frs->dir[0].last_ts.secs != p3->ts.secs);
     FAIL_IF(frs->dir[0].buf[0] != 139);
 
+    UTHFreePacket(p1);
+    UTHFreePacket(p2);
+    UTHFreePacket(p3);
     FlowRateStoreFree(frs);
     PASS;
 }
@@ -315,6 +318,10 @@ static int FlowRateTest02(void)
     FAIL_IF(frs->dir[0].last_ts.secs != p4->ts.secs);
     FAIL_IF(frs->dir[0].buf[3] != 46);
 
+    UTHFreePacket(p1);
+    UTHFreePacket(p2);
+    UTHFreePacket(p3);
+    UTHFreePacket(p4);
     FlowRateStoreFree(frs);
     PASS;
 }
@@ -384,6 +391,12 @@ static int FlowRateTest03(void)
     FAIL_IF(frs->dir[0].start_ts.secs != p5->ts.secs);
     FAIL_IF(frs->dir[0].buf[1] != 47);
 
+    UTHFreePacket(p1);
+    UTHFreePacket(p2);
+    UTHFreePacket(p3);
+    UTHFreePacket(p4);
+    UTHFreePacket(p5);
+    UTHFreePacket(p6);
     FlowRateStoreFree(frs);
     PASS;
 }
@@ -417,6 +430,8 @@ static int FlowRateTest04(void)
     FAIL_IF(frs->dir[0].buf[0] != 44);
     FAIL_IF(frs->dir[0].start_ts.secs != p2->ts.secs);
 
+    UTHFreePacket(p1);
+    UTHFreePacket(p2);
     FlowRateStoreFree(frs);
     PASS;
 }
@@ -478,6 +493,11 @@ static int FlowRateTest05(void)
     FAIL_IF(frs->dir[0].start_ts.secs != p5->ts.secs);
     FAIL_IF(frs->dir[0].buf[0] != 43);
 
+    UTHFreePacket(p1);
+    UTHFreePacket(p2);
+    UTHFreePacket(p3);
+    UTHFreePacket(p4);
+    UTHFreePacket(p5);
     FlowRateStoreFree(frs);
     PASS;
 }
@@ -550,6 +570,12 @@ static int FlowRateTest06(void)
     FAIL_IF(frs->dir[0].buf[2] != 0);
     FAIL_IF(frs->dir[0].buf[3] != 48);
 
+    UTHFreePacket(p1);
+    UTHFreePacket(p2);
+    UTHFreePacket(p3);
+    UTHFreePacket(p4);
+    UTHFreePacket(p5);
+    UTHFreePacket(p6);
     FlowRateStoreFree(frs);
     PASS;
 }
@@ -623,6 +649,12 @@ static int FlowRateTest07(void)
     FAIL_IF(frs->dir[0].buf[2] != 0);
     FAIL_IF(frs->dir[0].buf[3] != 48);
 
+    UTHFreePacket(p1);
+    UTHFreePacket(p2);
+    UTHFreePacket(p3);
+    UTHFreePacket(p4);
+    UTHFreePacket(p5);
+    UTHFreePacket(p6);
     FlowRateStoreFree(frs);
     PASS;
 }

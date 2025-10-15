@@ -407,9 +407,8 @@ static int TCPGetWscaleTest01(void)
     uint8_t wscale = TCP_GET_WSCALE(p);
     FAIL_IF(wscale != 2);
 
-    PacketRecycle(p);
+    PacketFree(p);
     FlowShutdown();
-    SCFree(p);
     PASS;
 }
 
@@ -442,9 +441,8 @@ static int TCPGetWscaleTest02(void)
     uint8_t wscale = TCP_GET_WSCALE(p);
     FAIL_IF(wscale != 0);
 
-    PacketRecycle(p);
+    PacketFree(p);
     FlowShutdown();
-    SCFree(p);
     PASS;
 }
 
@@ -475,9 +473,8 @@ static int TCPGetWscaleTest03(void)
     uint8_t wscale = TCP_GET_WSCALE(p);
     FAIL_IF(wscale != 0);
 
-    PacketRecycle(p);
+    PacketFree(p);
     FlowShutdown();
-    SCFree(p);
     PASS;
 }
 
@@ -522,9 +519,8 @@ static int TCPGetSackTest01(void)
 
     FAIL_IF(memcmp(sackptr, raw_tcp_sack, 16) != 0);
 
-    PacketRecycle(p);
+    PacketFree(p);
     FlowShutdown();
-    SCFree(p);
     PASS;
 }
 #endif /* UNITTESTS */

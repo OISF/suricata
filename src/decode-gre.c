@@ -310,7 +310,7 @@ static int DecodeGREtest01 (void)
     DecodeGRE(&tv, &dtv, p, raw_gre, sizeof(raw_gre));
     FAIL_IF_NOT(ENGINE_ISSET_EVENT(p, GRE_PKT_TOO_SMALL));
 
-    SCFree(p);
+    PacketFree(p);
     PASS;
 }
 
@@ -346,7 +346,7 @@ static int DecodeGREtest02 (void)
     DecodeGRE(&tv, &dtv, p, raw_gre, sizeof(raw_gre));
     FAIL_IF_NOT(ENGINE_ISSET_EVENT(p, GRE_WRONG_VERSION));
 
-    SCFree(p);
+    PacketFree(p);
     PASS;
 }
 
@@ -383,7 +383,7 @@ static int DecodeGREtest03 (void)
     DecodeGRE(&tv, &dtv, p, raw_gre, sizeof(raw_gre));
     FAIL_IF_NOT(PacketIsGRE(p));
 
-    SCFree(p);
+    PacketFree(p);
     PASS;
 }
 #endif /* UNITTESTS */

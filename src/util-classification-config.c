@@ -655,6 +655,7 @@ static int SCClassConfTest01(void)
     if (de_ctx == NULL)
         return result;
 
+    SCClassConfDeInitContext(de_ctx);
     FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
     SCClassConfLoadClassificationConfigFile(de_ctx, fd);
 
@@ -681,6 +682,7 @@ static int SCClassConfTest02(void)
     if (de_ctx == NULL)
         return result;
 
+    SCClassConfDeInitContext(de_ctx);
     FILE *fd = SCClassConfGenerateInvalidDummyClassConfigFD03();
     SCClassConfLoadClassificationConfigFile(de_ctx, fd);
 
@@ -704,6 +706,7 @@ static int SCClassConfTest03(void)
 
     FAIL_IF_NULL(de_ctx);
 
+    SCClassConfDeInitContext(de_ctx);
     FILE *fd = SCClassConfGenerateInvalidDummyClassConfigFD02();
     FAIL_IF(SCClassConfLoadClassificationConfigFile(de_ctx, fd));
 
@@ -719,29 +722,24 @@ static int SCClassConfTest03(void)
 static int SCClassConfTest04(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    int result = 1;
+    FAIL_IF_NULL(de_ctx);
 
-    if (de_ctx == NULL)
-        return 0;
-
+    SCClassConfDeInitContext(de_ctx);
     FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
     SCClassConfLoadClassificationConfigFile(de_ctx, fd);
 
-    if (de_ctx->class_conf_ht == NULL)
-        return 0;
+    FAIL_IF_NULL(de_ctx->class_conf_ht);
+    FAIL_IF_NOT(de_ctx->class_conf_ht->count == 3);
 
-    result = (de_ctx->class_conf_ht->count == 3);
-
-    result &= (SCClassConfGetClasstype("unknown", de_ctx) != NULL);
-    result &= (SCClassConfGetClasstype("unKnoWn", de_ctx) != NULL);
-    result &= (SCClassConfGetClasstype("bamboo", de_ctx) == NULL);
-    result &= (SCClassConfGetClasstype("bad-unknown", de_ctx) != NULL);
-    result &= (SCClassConfGetClasstype("BAD-UNKnOWN", de_ctx) != NULL);
-    result &= (SCClassConfGetClasstype("bed-unknown", de_ctx) == NULL);
+    FAIL_IF_NOT(SCClassConfGetClasstype("unknown", de_ctx) != NULL);
+    FAIL_IF_NOT(SCClassConfGetClasstype("unKnoWn", de_ctx) != NULL);
+    FAIL_IF_NOT(SCClassConfGetClasstype("bamboo", de_ctx) == NULL);
+    FAIL_IF_NOT(SCClassConfGetClasstype("bad-unknown", de_ctx) != NULL);
+    FAIL_IF_NOT(SCClassConfGetClasstype("BAD-UNKnOWN", de_ctx) != NULL);
+    FAIL_IF_NOT(SCClassConfGetClasstype("bed-unknown", de_ctx) == NULL);
 
     DetectEngineCtxFree(de_ctx);
-
-    return result;
+    PASS;
 }
 
 /**
@@ -752,29 +750,24 @@ static int SCClassConfTest04(void)
 static int SCClassConfTest05(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    int result = 1;
+    FAIL_IF_NULL(de_ctx);
 
-    if (de_ctx == NULL)
-        return 0;
-
+    SCClassConfDeInitContext(de_ctx);
     FILE *fd = SCClassConfGenerateInvalidDummyClassConfigFD03();
     SCClassConfLoadClassificationConfigFile(de_ctx, fd);
 
-    if (de_ctx->class_conf_ht == NULL)
-        return 0;
+    FAIL_IF_NULL(de_ctx->class_conf_ht);
+    FAIL_IF_NOT(de_ctx->class_conf_ht->count == 0);
 
-    result = (de_ctx->class_conf_ht->count == 0);
-
-    result &= (SCClassConfGetClasstype("unknown", de_ctx) == NULL);
-    result &= (SCClassConfGetClasstype("unKnoWn", de_ctx) == NULL);
-    result &= (SCClassConfGetClasstype("bamboo", de_ctx) == NULL);
-    result &= (SCClassConfGetClasstype("bad-unknown", de_ctx) == NULL);
-    result &= (SCClassConfGetClasstype("BAD-UNKnOWN", de_ctx) == NULL);
-    result &= (SCClassConfGetClasstype("bed-unknown", de_ctx) == NULL);
+    FAIL_IF_NOT(SCClassConfGetClasstype("unknown", de_ctx) == NULL);
+    FAIL_IF_NOT(SCClassConfGetClasstype("unKnoWn", de_ctx) == NULL);
+    FAIL_IF_NOT(SCClassConfGetClasstype("bamboo", de_ctx) == NULL);
+    FAIL_IF_NOT(SCClassConfGetClasstype("bad-unknown", de_ctx) == NULL);
+    FAIL_IF_NOT(SCClassConfGetClasstype("BAD-UNKnOWN", de_ctx) == NULL);
+    FAIL_IF_NOT(SCClassConfGetClasstype("bed-unknown", de_ctx) == NULL);
 
     DetectEngineCtxFree(de_ctx);
-
-    return result;
+    PASS;
 }
 
 /**

@@ -744,6 +744,7 @@ static int DetectDceStubDataTestParse02(void)
     FLOW_DESTROY(&f);
 
     UTHFreePackets(&p, 1);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -1239,6 +1240,7 @@ static int DetectDceStubDataTestParse03(void)
     FLOW_DESTROY(&f);
 
     UTHFreePackets(&p, 1);
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -1550,6 +1552,7 @@ static int DetectDceStubDataTestParse04(void)
     FLOW_DESTROY(&f);
 
     UTHFreePackets(&p, 1);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -1823,6 +1826,7 @@ static int DetectDceStubDataTestParse05(void)
     FLOW_DESTROY(&f);
 
     UTHFreePackets(&p, 1);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -1832,8 +1836,8 @@ static int DetectDceStubDataTestParse06(void)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags = DE_QUIET;
-    Signature *s = DetectEngineAppendSig(de_ctx,
-            "alert dns any any -> any any dce_stub_data;content:\"0\";");
+    Signature *s = DetectEngineAppendSig(
+            de_ctx, "alert dns any any -> any any dce_stub_data;content:\"0\"; sid:1;");
     FAIL_IF_NOT_NULL(s);
     DetectEngineCtxFree(de_ctx);
     PASS;

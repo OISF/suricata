@@ -896,7 +896,7 @@ static int DetectByteMathPacket01(void)
 
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
-
+    StatsThreadCleanup(&tv);
     PASS;
 }
 
@@ -998,6 +998,7 @@ static int DetectByteMathPacket02(void)
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
 
+    StatsThreadCleanup(&tv);
     PASS;
 }
 

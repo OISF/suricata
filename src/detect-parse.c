@@ -3661,6 +3661,7 @@ static int SigParseTest02 (void)
     if (de_ctx == NULL)
         goto end;
 
+    SCClassConfDeInitContext(de_ctx);
     FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
     SCClassConfLoadClassificationConfigFile(de_ctx, fd);
 
@@ -4626,9 +4627,9 @@ static int SigTestBidirec03 (void)
 
 end:
     if (p != NULL) {
-        PacketRecycle(p);
-        SCFree(p);
+        PacketFree(p);
     }
+    DetectEngineCtxFree(de_ctx);
     FlowShutdown();
     return result;
 }
@@ -4771,13 +4772,12 @@ static int SigTestBidirec04 (void)
 
 end:
     if (de_ctx != NULL) {
-        SigCleanSignatures(de_ctx);
-        SigGroupCleanup(de_ctx);
         DetectEngineCtxFree(de_ctx);
     }
 
     if (p != NULL)
-        SCFree(p);
+        PacketFree(p);
+    StatsThreadCleanup(&th_v);
     return result;
 }
 
@@ -4955,7 +4955,8 @@ static int SigParseTestNegation08 (void)
         goto end;
     de_ctx->flags |= DE_QUIET;
 
-    s = SigInit(de_ctx,"alert tcp any any -> [192.168.0.0/16,!192.168.0.0/24] any (sid:410006; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> [192.168.0.0/16,!192.168.0.0/24] any (sid:410006; rev:1;)");
     if (s == NULL) {
         goto end;
     }
@@ -5127,19 +5128,15 @@ end:
 
 static int SigParseTestUnbalancedQuotes01(void)
 {
-    DetectEngineCtx *de_ctx;
-    Signature *s;
-
-    de_ctx = DetectEngineCtxInit();
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-
-    s = SigInit(de_ctx,
+    Signature *s = DetectEngineAppendSig(de_ctx,
             "alert http any any -> any any (msg:\"SigParseTestUnbalancedQuotes01\"; "
             "pcre:\"/\\/[a-z]+\\.php\\?[a-z]+?=\\d{7}&[a-z]+?=\\d{7,8}$/U\" "
             "flowbits:set,et.exploitkitlanding; classtype:trojan-activity; sid:2017078; rev:5;)");
     FAIL_IF_NOT_NULL(s);
-
+    DetectEngineCtxFree(de_ctx);
     PASS;
 }
 
@@ -5148,13 +5145,12 @@ static int SigParseTestContentGtDsize01(void)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-
-    Signature *s = SigInit(de_ctx,
-            "alert http any any -> any any ("
-            "dsize:21; content:\"0123456789001234567890|00 00|\"; "
-            "sid:1; rev:1;)");
+    Signature *s =
+            DetectEngineAppendSig(de_ctx, "alert http any any -> any any ("
+                                          "dsize:21; content:\"0123456789001234567890|00 00|\"; "
+                                          "sid:1; rev:1;)");
     FAIL_IF_NOT_NULL(s);
-
+    DetectEngineCtxFree(de_ctx);
     PASS;
 }
 
@@ -5163,13 +5159,12 @@ static int SigParseTestContentGtDsize02(void)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-
-    Signature *s = SigInit(de_ctx,
-            "alert http any any -> any any ("
-            "dsize:21; content:\"0123456789|00 00|\"; offset:10; "
-            "sid:1; rev:1;)");
+    Signature *s =
+            DetectEngineAppendSig(de_ctx, "alert http any any -> any any ("
+                                          "dsize:21; content:\"0123456789|00 00|\"; offset:10; "
+                                          "sid:1; rev:1;)");
     FAIL_IF_NOT_NULL(s);
-
+    DetectEngineCtxFree(de_ctx);
     PASS;
 }
 

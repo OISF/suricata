@@ -100,26 +100,6 @@ int DetectProtoParse(DetectProto *dp, const char *str)
         SCLogDebug("IP protocol detected");
     } else {
         goto error;
-
-        /** \todo are numeric protocols even valid? */
-#if 0
-        uint8_t proto_u8; /* Used to avoid sign extension */
-
-        /* Extract out a 0-256 value with validation checks */
-        if (ByteExtractStringUint8(&proto_u8, 10, 0, str) == -1) {
-            // XXX
-            SCLogDebug("DetectProtoParse: Error in extracting byte string");
-            goto error;
-        }
-        proto = (int)proto_u8;
-
-        /* Proto 0 is the same as "ip" above */
-        if (proto == IPPROTO_IP) {
-            dp->flags |= DETECT_PROTO_ANY;
-        } else {
-            dp->proto[proto / 8] |= 1<<(proto % 8);
-        }
-#endif
     }
 
     return 0;
@@ -149,6 +129,7 @@ int DetectProtoContainsProto(const DetectProto *dp, int proto)
 #include "detect-engine.h"
 #include "detect-parse.h"
 #include "detect-engine-mpm.h"
+
 /**
  * \brief this function is used to initialize the detection engine context and
  *        setup the signature with passed values.
@@ -158,32 +139,31 @@ static int DetectProtoInitTest(DetectEngineCtx **de_ctx, Signature **sig,
 {
     char fullstr[1024];
     int result = 0;
+    static uint32_t test_sid = 1;
 
-    *de_ctx = NULL;
     *sig = NULL;
 
-    if (snprintf(fullstr, 1024, "alert %s any any -> any any (msg:\"DetectProto"
-            " test\"; sid:1;)", str) >= 1024)
-    {
+    if (snprintf(fullstr, 1024,
+                "alert %s any any -> any any (msg:\"DetectProto"
+                " test\"; sid:%u;)",
+                str, test_sid++) >= 1024) {
         goto end;
     }
 
-    *de_ctx = DetectEngineCtxInit();
     if (*de_ctx == NULL) {
-        goto end;
+        *de_ctx = DetectEngineCtxInit();
+        if (*de_ctx == NULL) {
+            goto end;
+        }
+
+        (*de_ctx)->flags |= DE_QUIET;
     }
 
-    (*de_ctx)->flags |= DE_QUIET;
-
-    (*de_ctx)->sig_list = SigInit(*de_ctx, fullstr);
-    if ((*de_ctx)->sig_list == NULL) {
+    Signature *s = DetectEngineAppendSig(*de_ctx, fullstr);
+    if (s == NULL) {
         goto end;
     }
-
-    *sig = (*de_ctx)->sig_list;
-
-    if (DetectProtoParse(dp, str) < 0)
-        goto end;
+    *sig = s;
 
     result = 1;
 

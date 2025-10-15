@@ -182,7 +182,6 @@ static int SSHParserTestUtilCheck(const char *protoexp, const char *softexp, voi
 /** \test Send a version string in one chunk (client version str). */
 static int SSHParserTest01(void)
 {
-    int result = 0;
     Flow f;
     uint8_t sshbuf[] = "SSH-2.0-MySSHClient-0.5.1\n";
     uint32_t sshlen = sizeof(sshbuf) - 1;
@@ -193,39 +192,27 @@ static int SSHParserTest01(void)
     memset(&ssn, 0, sizeof(ssn));
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.alproto = ALPROTO_SSH;
 
     StreamTcpInitConfig(true);
 
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
                                 STREAM_TOSERVER | STREAM_EOF, sshbuf, sshlen);
-    if (r != 0) {
-        printf("toclient chunk 1 returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
 
     void *ssh_state = f.alstate;
-    if (ssh_state == NULL) {
-        printf("no ssh state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(ssh_state);
 
     void *tx = SCSshStateGetTx(ssh_state, 0);
-    if (SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateBannerDone) {
-        printf("Client version string not parsed: ");
-        goto end;
-    }
+    FAIL_IF_NULL(tx);
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateBannerDone);
+    FAIL_IF(SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOSERVER));
 
-    if (SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOSERVER))
-        goto end;
-
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
-    return result;
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(true);
+    PASS;
 }
 
 /** \test Send a version string in one chunk but multiple lines and comments.
@@ -244,6 +231,7 @@ static int SSHParserTest02(void)
     memset(&ssn, 0, sizeof(ssn));
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.alproto = ALPROTO_SSH;
 
     StreamTcpInitConfig(true);
@@ -271,10 +259,10 @@ static int SSHParserTest02(void)
 
     result = 1;
 end:
+    FLOW_DESTROY(&f);
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     return result;
 }
 
@@ -294,6 +282,7 @@ static int SSHParserTest03(void)
     memset(&ssn, 0, sizeof(ssn));
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.alproto = ALPROTO_SSH;
 
     StreamTcpInitConfig(true);
@@ -325,10 +314,10 @@ static int SSHParserTest03(void)
 
     result = 1;
 end:
+    FLOW_DESTROY(&f);
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     return result;
 }
 
@@ -346,6 +335,7 @@ static int SSHParserTest04(void)
     memset(&ssn, 0, sizeof(ssn));
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.alproto = ALPROTO_SSH;
 
     StreamTcpInitConfig(true);
@@ -374,10 +364,10 @@ static int SSHParserTest04(void)
     result = 1;
 
 end:
+    FLOW_DESTROY(&f);
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     return result;
 }
 
@@ -396,6 +386,7 @@ static int SSHParserTest05(void)
     memset(&ssn, 0, sizeof(ssn));
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.alproto = ALPROTO_SSH;
 
     StreamTcpInitConfig(true);
@@ -423,10 +414,10 @@ static int SSHParserTest05(void)
 
     result = 1;
 end:
+    FLOW_DESTROY(&f);
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     return result;
 }
 
@@ -445,6 +436,7 @@ static int SSHParserTest06(void)
     memset(&ssn, 0, sizeof(ssn));
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.alproto = ALPROTO_SSH;
 
     StreamTcpInitConfig(true);
@@ -475,13 +467,12 @@ static int SSHParserTest06(void)
     if (SCSshTxGetSoftware(tx, &dummy, &dummy_len, STREAM_TOCLIENT) != 0)
         goto end;
 
-
     result = 1;
 end:
+    FLOW_DESTROY(&f);
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     return result;
 }
 
@@ -531,9 +522,9 @@ static int SSHParserTest07(void)
     FAIL_IF(SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOSERVER));
 
     UTHFreePacket(p);
+    UTHFreeFlow(f);
     StreamTcpUTClearSession(&ssn);
     StreamTcpUTDeinit(ra_ctx);
-    UTHFreeFlow(f);
     PASS;
 }
 
@@ -582,9 +573,9 @@ static int SSHParserTest08(void)
     FAIL_IF(SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOSERVER));
 
     UTHFreePacket(p);
+    UTHFreeFlow(f);
     StreamTcpUTClearSession(&ssn);
     StreamTcpUTDeinit(ra_ctx);
-    UTHFreeFlow(f);
     PASS;
 }
 
@@ -632,9 +623,9 @@ static int SSHParserTest09(void)
     FAIL_IF(SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOCLIENT));
 
     UTHFreePacket(p);
+    UTHFreeFlow(f);
     StreamTcpUTClearSession(&ssn);
     StreamTcpUTDeinit(ra_ctx);
-    UTHFreeFlow(f);
     PASS;
 }
 
@@ -683,9 +674,9 @@ static int SSHParserTest10(void)
     FAIL_IF(SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOCLIENT));
 
     UTHFreePacket(p);
+    UTHFreeFlow(f);
     StreamTcpUTClearSession(&ssn);
     StreamTcpUTDeinit(ra_ctx);
-    UTHFreeFlow(f);
     PASS;
 }
 
@@ -705,6 +696,7 @@ static int SSHParserTest11(void)
     memset(&ssn, 0, sizeof(ssn));
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.alproto = ALPROTO_SSH;
 
     StreamTcpInitConfig(true);
@@ -737,10 +729,10 @@ static int SSHParserTest11(void)
 
     result = 1;
 end:
+    FLOW_DESTROY(&f);
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     return result;
 }
 
@@ -762,6 +754,7 @@ static int SSHParserTest12(void)
     memset(&ssn, 0, sizeof(ssn));
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.alproto = ALPROTO_SSH;
 
     StreamTcpInitConfig(true);
@@ -800,10 +793,10 @@ static int SSHParserTest12(void)
 
     result = 1;
 end:
+    FLOW_DESTROY(&f);
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     return result;
 }
 
@@ -857,9 +850,9 @@ static int SSHParserTest13(void)
     FAIL_IF(SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOSERVER));
 
     UTHFreePacket(p);
+    UTHFreeFlow(f);
     StreamTcpUTClearSession(&ssn);
     StreamTcpUTDeinit(ra_ctx);
-    UTHFreeFlow(f);
     PASS;
 }
 
@@ -916,9 +909,9 @@ static int SSHParserTest14(void)
     FAIL_IF(SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOSERVER));
 
     UTHFreePacket(p);
+    UTHFreeFlow(f);
     StreamTcpUTClearSession(&ssn);
     StreamTcpUTDeinit(ra_ctx);
-    UTHFreeFlow(f);
     PASS;
 }
 
@@ -974,9 +967,9 @@ static int SSHParserTest15(void)
     FAIL_IF(SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOSERVER));
 
     UTHFreePacket(p);
+    UTHFreeFlow(f);
     StreamTcpUTClearSession(&ssn);
     StreamTcpUTDeinit(ra_ctx);
-    UTHFreeFlow(f);
     PASS;
 }
 
@@ -1030,9 +1023,9 @@ static int SSHParserTest16(void)
     FAIL_IF(SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOCLIENT));
 
     UTHFreePacket(p);
+    UTHFreeFlow(f);
     StreamTcpUTClearSession(&ssn);
     StreamTcpUTDeinit(ra_ctx);
-    UTHFreeFlow(f);
     PASS;
 }
 
@@ -1087,9 +1080,9 @@ static int SSHParserTest17(void)
     FAIL_IF(SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOCLIENT));
 
     UTHFreePacket(p);
+    UTHFreeFlow(f);
     StreamTcpUTClearSession(&ssn);
     StreamTcpUTDeinit(ra_ctx);
-    UTHFreeFlow(f);
     PASS;
 }
 
@@ -1154,9 +1147,9 @@ static int SSHParserTest18(void)
     FAIL_IF(!(SCAppLayerParserStateIssetFlag(f->alparser, APP_LAYER_PARSER_NO_INSPECTION)));
 
     UTHFreePacket(p);
+    UTHFreeFlow(f);
     StreamTcpUTClearSession(&ssn);
     StreamTcpUTDeinit(ra_ctx);
-    UTHFreeFlow(f);
     PASS;
 }
 
@@ -1221,9 +1214,9 @@ static int SSHParserTest19(void)
     FAIL_IF(SSHParserTestUtilCheck("2.0", (char *)sshbuf3, tx, STREAM_TOCLIENT));
 
     UTHFreePacket(p);
+    UTHFreeFlow(f);
     StreamTcpUTClearSession(&ssn);
     StreamTcpUTDeinit(ra_ctx);
-    UTHFreeFlow(f);
     PASS;
 }
 
@@ -1289,9 +1282,9 @@ static int SSHParserTest20(void)
     FAIL_IF(SSHParserTestUtilCheck("2.0", NULL, tx, STREAM_TOCLIENT));
 
     UTHFreePacket(p);
+    UTHFreeFlow(f);
     StreamTcpUTClearSession(&ssn);
     StreamTcpUTDeinit(ra_ctx);
-    UTHFreeFlow(f);
     PASS;
 }
 
@@ -1356,9 +1349,9 @@ static int SSHParserTest21(void)
     FAIL_IF(SSHParserTestUtilCheck("2.0", NULL, tx, STREAM_TOCLIENT));
 
     UTHFreePacket(p);
+    UTHFreeFlow(f);
     StreamTcpUTClearSession(&ssn);
     StreamTcpUTDeinit(ra_ctx);
-    UTHFreeFlow(f);
     PASS;
 }
 
@@ -1375,87 +1368,82 @@ static int SSHParserTest22(void)
     uint8_t sshbuf1[] = "SSH-";
     uint8_t sshbuf2[] = "2.0-";
     uint8_t sshbuf3[] = {
-        'l', 'i', 'b', 's', 's', 'h', '\r', //7
+        'l', 'i', 'b', 's', 's', 'h', '\r', // 7
 
-        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00, //50
+        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x01, 17,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00,
+        0x00, 0x00, 0x00, // 50
 
-        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00, //100
+        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x01, 17,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00,
+        0x00, 0x00, 0x00, // 100
 
-        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00, //150
+        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x01, 17,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00,
+        0x00, 0x00, 0x00, // 150
 
-        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00, //200
+        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x01, 17,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00,
+        0x00, 0x00, 0x00, // 200
 
-            0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00, //250
+        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x01, 17,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00,
+        0x00, 0x00, 0x00, // 250
 
-            0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x06, 0x01, 21, 0x00, 0x00, 0x00, 0x00, //300
-        };
+        0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x01, 17,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x01, 21, 0x00,
+        0x00, 0x00, 0x00, // 300
+    };
 
+    uint8_t *sshbufs[3] = { sshbuf1, sshbuf2, sshbuf3 };
+    uint32_t sshlens[3] = { sizeof(sshbuf1) - 1, sizeof(sshbuf2) - 1, sizeof(sshbuf3) - 1 };
 
-        uint8_t* sshbufs[3] = {sshbuf1, sshbuf2, sshbuf3};
-        uint32_t sshlens[3] = {sizeof(sshbuf1) - 1, sizeof(sshbuf2) - 1, sizeof(sshbuf3) - 1};
+    memset(&tv, 0x00, sizeof(tv));
 
-        memset(&tv, 0x00, sizeof(tv));
+    StreamTcpUTInit(&ra_ctx);
+    StreamTcpUTInitInline();
+    StreamTcpUTSetupSession(&ssn);
+    StreamTcpUTSetupStream(&ssn.server, 1);
+    StreamTcpUTSetupStream(&ssn.client, 1);
 
-        StreamTcpUTInit(&ra_ctx);
-        StreamTcpUTInitInline();
-        StreamTcpUTSetupSession(&ssn);
-        StreamTcpUTSetupStream(&ssn.server, 1);
-        StreamTcpUTSetupStream(&ssn.client, 1);
+    f = UTHBuildFlow(AF_INET, "1.1.1.1", "2.2.2.2", 1234, 2222);
+    FAIL_IF_NULL(f);
+    f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_SSH;
 
-        f = UTHBuildFlow(AF_INET, "1.1.1.1", "2.2.2.2", 1234, 2222);
-        FAIL_IF_NULL(f);
-        f->protoctx = &ssn;
-        f->proto = IPPROTO_TCP;
-        f->alproto = ALPROTO_SSH;
+    p = PacketGetFromAlloc();
+    FAIL_IF(unlikely(p == NULL));
+    p->proto = IPPROTO_TCP;
+    p->flow = f;
 
-        p = PacketGetFromAlloc();
-        FAIL_IF(unlikely(p == NULL));
-        p->proto = IPPROTO_TCP;
-        p->flow = f;
+    uint32_t seq = 2;
+    for (int i = 0; i < 3; i++) {
+        FAIL_IF(StreamTcpUTAddSegmentWithPayload(
+                        &tv, ra_ctx, &ssn.server, seq, sshbufs[i], sshlens[i]) == -1);
+        seq += sshlens[i];
+        FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.server, p, UPDATE_DIR_PACKET) <
+                0);
+    }
 
-        uint32_t seq = 2;
-        for (int i=0; i<3; i++) {
-            FAIL_IF(StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.server, seq, sshbufs[i], sshlens[i]) == -1);
-            seq += sshlens[i];
-            FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.server, p, UPDATE_DIR_PACKET) < 0);
-        }
+    void *ssh_state = f->alstate;
+    FAIL_IF_NULL(ssh_state);
+    void *tx = SCSshStateGetTx(ssh_state, 0);
+    FAIL_IF(SCSshTxGetFlags(tx, STREAM_TOCLIENT) != SshStateFinished);
 
-        void *ssh_state = f->alstate;
-        FAIL_IF_NULL(ssh_state);
-        void *tx = SCSshStateGetTx(ssh_state, 0);
-        FAIL_IF(SCSshTxGetFlags(tx, STREAM_TOCLIENT) != SshStateFinished);
+    FAIL_IF(SSHParserTestUtilCheck("2.0", "libssh", tx, STREAM_TOCLIENT));
 
-        FAIL_IF(SSHParserTestUtilCheck("2.0", "libssh", tx, STREAM_TOCLIENT));
-
-        UTHFreePacket(p);
-        StreamTcpUTClearSession(&ssn);
-        StreamTcpUTDeinit(ra_ctx);
-        UTHFreeFlow(f);
-        PASS;
+    UTHFreePacket(p);
+    UTHFreeFlow(f);
+    StreamTcpUTClearSession(&ssn);
+    StreamTcpUTDeinit(ra_ctx);
+    PASS;
 }
 
 /** \test Send a version string in one chunk (client version str). */
@@ -1472,6 +1460,7 @@ static int SSHParserTest23(void)
     memset(&ssn, 0, sizeof(ssn));
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.alproto = ALPROTO_SSH;
 
     StreamTcpInitConfig(true);
@@ -1506,6 +1495,7 @@ static int SSHParserTest24(void)
     memset(&ssn, 0, sizeof(ssn));
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.alproto = ALPROTO_SSH;
 
     StreamTcpInitConfig(true);
@@ -1532,10 +1522,10 @@ static int SSHParserTest24(void)
 
     result = 1;
 end:
+    FLOW_DESTROY(&f);
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     return result;
 }
 
@@ -1553,6 +1543,7 @@ static int SSHParserTest25(void)
     memset(&ssn, 0, sizeof(ssn));
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
     f.alproto = ALPROTO_SSH;
 
     StreamTcpInitConfig(true);
@@ -1569,9 +1560,9 @@ static int SSHParserTest25(void)
     uint32_t dummy_len = 0;
     FAIL_IF(SCSshTxGetSoftware(tx, &dummy, &dummy_len, STREAM_TOCLIENT) != 0);
 
+    FLOW_DESTROY(&f);
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
-    FLOW_DESTROY(&f);
     PASS;
 }
 

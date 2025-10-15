@@ -51,6 +51,7 @@ void StreamTcpUTInit(TcpReassemblyThreadCtx **ra_ctx)
 void StreamTcpUTDeinit(TcpReassemblyThreadCtx *ra_ctx)
 {
     StreamTcpReassembleFreeThreadCtx(ra_ctx);
+    IPPairShutdown();
     StreamTcpFreeConfig(true);
     stream_config.flags &= ~STREAMTCP_INIT_FLAG_INLINE;
 }

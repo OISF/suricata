@@ -250,13 +250,9 @@ static int DecodePPPtest01(void)
 
     /* Function my returns here with expected value */
 
-    if (ENGINE_ISSET_EVENT(p, PPPIPV4_PKT_TOO_SMALL)) {
-        SCFree(p);
-        return 1;
-    }
-
-    SCFree(p);
-    return 0;
+    FAIL_IF_NOT(ENGINE_ISSET_EVENT(p, PPPIPV4_PKT_TOO_SMALL));
+    PacketFree(p);
+    PASS;
 }
 
 /*  DecodePPPtest02
@@ -282,13 +278,10 @@ static int DecodePPPtest02(void)
 
     /* Function must returns here */
 
-    if (ENGINE_ISSET_EVENT(p, PPP_WRONG_TYPE)) {
-        SCFree(p);
-        return 1;
-    }
+    FAIL_IF_NOT(ENGINE_ISSET_EVENT(p, PPP_WRONG_TYPE));
 
-    SCFree(p);
-    return 0;
+    PacketFree(p);
+    PASS;
 }
 
 /** DecodePPPtest03
@@ -316,31 +309,14 @@ static int DecodePPPtest03(void)
 
     DecodePPP(&tv, &dtv, p, raw_ppp, sizeof(raw_ppp));
 
+    FAIL_IF(ENGINE_ISSET_EVENT(p, PPP_PKT_TOO_SMALL));
+    FAIL_IF(ENGINE_ISSET_EVENT(p, PPPIPV4_PKT_TOO_SMALL));
+    FAIL_IF(ENGINE_ISSET_EVENT(p, PPP_WRONG_TYPE));
+    FAIL_IF(!(ENGINE_ISSET_EVENT(p, IPV4_TRUNC_PKT)));
+
+    PacketFree(p);
     FlowShutdown();
-
-    if (ENGINE_ISSET_EVENT(p, PPP_PKT_TOO_SMALL)) {
-        SCFree(p);
-        return 0;
-    }
-
-    if (ENGINE_ISSET_EVENT(p, PPPIPV4_PKT_TOO_SMALL)) {
-        SCFree(p);
-        return 0;
-    }
-
-    if (ENGINE_ISSET_EVENT(p, PPP_WRONG_TYPE)) {
-        SCFree(p);
-        return 0;
-    }
-
-    if (!(ENGINE_ISSET_EVENT(p, IPV4_TRUNC_PKT))) {
-        SCFree(p);
-        return 0;
-    }
-    /* Function must return here */
-
-    SCFree(p);
-    return 1;
+    PASS;
 }
 
 /*  DecodePPPtest04
@@ -369,15 +345,12 @@ static int DecodePPPtest04(void)
 
     FlowShutdown();
 
-    if (!(ENGINE_ISSET_EVENT(p, IPV4_TRUNC_PKT))) {
-        SCFree(p);
-        return 0;
-    }
+    FAIL_IF(!(ENGINE_ISSET_EVENT(p, IPV4_TRUNC_PKT)));
 
     /* Function must returns here */
 
-    SCFree(p);
-    return 1;
+    PacketFree(p);
+    PASS;
 }
 #endif /* UNITTESTS */
 
