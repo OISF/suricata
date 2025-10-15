@@ -45,6 +45,7 @@
 #include "host.h"
 
 static bool g_l2tp_enabled = true;
+static bool g_l2tp_strict = false;
 static int g_l2tp_ports_idx = 0;
 static int g_l2tp_ports[L2TP_MAX_PORTS] = { L2TP_DEFAULT_PORT, L2TP_UNSET_PORT, L2TP_UNSET_PORT,
     L2TP_UNSET_PORT };
@@ -94,6 +95,15 @@ void DecodeL2TPConfig(void)
         }
     }
 
+    int strict = 0;
+    if (SCConfGetBool("decoder.l2tp.strict", &strict) == 1) {
+        if (strict) {
+            g_l2tp_strict = true;
+        } else {
+            g_l2tp_strict = false;
+        }
+    }
+
     if (g_l2tp_enabled) {
         SCConfNode *node = SCConfGetNode("decoder.l2tp.ports");
         if (node && node->val) {
@@ -132,11 +142,14 @@ int DecodeL2TP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *
             StatsIncr(tv, dtv->counter_l2tp);
             StatsIncr(tv, dtv->counter_l2tp_unsupported);
             return TM_ECODE_OK;
-        } else if (l2tp_hdr->type != 0 && l2tp_hdr->version != 3 && l2tp_hdr->reserved != 0) {
+        } else if (l2tp_hdr->version != 3) {
             SCLogDebug("L2TP Invalid. Type: %u Version: %u Reserved: %u", l2tp_hdr->type,
                     l2tp_hdr->version, l2tp_hdr->reserved);
             ENGINE_SET_INVALID_EVENT(p, L2TP_INVALID_VER);
-            return TM_ECODE_FAILED;
+            if (g_l2tp_strict && l2tp_hdr->reserved != 0 && l2tp_hdr->type != 0) {
+                return TM_ECODE_FAILED;
+            }
+            return TM_ECODE_OK;
         }
         len -= sizeof(L2TPoverUDPDataHdr);
         pkt += sizeof(L2TPoverUDPDataHdr);
@@ -168,30 +181,18 @@ int DecodeL2TP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *
             return TM_ECODE_FAILED;
         }
         /* check the protocol type */
-        uint16_t proto = (pkt[12] << 8) + pkt[13];
+        EthernetHdr *ethh = (EthernetHdr *)(pkt);
+        uint16_t proto = SCNtohs(ethh->eth_type);
         switch (proto) {
             case ETHERNET_TYPE_IP:
-            case ETHERNET_TYPE_ARP:
             case ETHERNET_TYPE_IPV6:
-            case ETHERNET_TYPE_PUP:
-            case ETHERNET_TYPE_BRIDGE:
-            case ETHERNET_TYPE_REVARP:
-            case ETHERNET_TYPE_EAPOL:
-            case ETHERNET_TYPE_IPX:
-            case ETHERNET_TYPE_PPPOE_DISC:
-            case ETHERNET_TYPE_PPPOE_SESS:
+            case ETHERNET_TYPE_ARP:
+            case ETHERNET_TYPE_VLAN:
             case ETHERNET_TYPE_8021AD:
-            case ETHERNET_TYPE_8021AH:
-            case ETHERNET_TYPE_8021Q:
-            case ETHERNET_TYPE_LOOP:
             case ETHERNET_TYPE_8021QINQ:
-            case ETHERNET_TYPE_ERSPAN:
-            case ETHERNET_TYPE_DCE:
-            case ETHERNET_TYPE_NSH:
-            case ETHERNET_TYPE_VNTAG:
-                eth_found = true; // breaks the loop
+                eth_found = true; /* breaks the loop */
                 break;
-            default: // consume 4 bytes to detect all combinations of cookie/sublayer types
+            default: /* consume 4 bytes to detect all combinations of cookie/sublayer types */
                 len -= sizeof(uint32_t);
                 pkt += sizeof(uint32_t);
                 break;
@@ -199,8 +200,9 @@ int DecodeL2TP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *
     }
 
     if (!eth_found) {
+        SCLogDebug("L2TP found unsupported Ethertype - expected IPv4, IPv6, VLAN, or ARP");
         ENGINE_SET_INVALID_EVENT(p, L2TP_UNKNOWN_PAYLOAD_TYPE);
-        return TM_ECODE_FAILED;
+        return TM_ECODE_OK;
     }
 
     Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt, len, DECODE_TUNNEL_ETHERNET);
@@ -213,6 +215,7 @@ int DecodeL2TP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *
 }
 
 #ifdef UNITTESTS
+/* TODO: add a unit test and documentation for the "strict mode" YAML option */
 /**
  * \test DecodeL2TPTest01 tests a L2TPv3 over UDP packet with no sublayer or cookie present
  */

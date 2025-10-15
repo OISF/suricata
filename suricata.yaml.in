@@ -1741,7 +1741,8 @@ decoder:
 
   l2tp:
     enabled: true
-    ports: $L2TP_PORTS # syntax: '[1701, 2193]'
+    ports: $L2TP_PORTS # syntax: '[1701, 2193]''
+    strict: false # enforce checking of reserved bits
 
   # VXLAN decoder is assigned to up to 4 UDP ports. By default only the
   # IANA assigned port 4789 is enabled.
