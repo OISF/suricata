@@ -115,6 +115,7 @@ pub struct POP3State {
     request_gap: bool,
     response_gap: bool,
     retr_data: u32,
+    auth_data_next: bool,
 }
 
 impl State<POP3Transaction> for POP3State {
@@ -128,12 +129,18 @@ impl State<POP3Transaction> for POP3State {
 }
 
 use nom7::{
-    bytes::streaming::{tag, take_until},
+    bytes::streaming::{tag, take_until, take_while},
     IResult,
+    AsChar,
 };
 
-fn parse_unknown_message(input: &[u8]) -> IResult<&[u8], &[u8]> {
-    let (input, value) = take_until("\r\n")(input)?;
+#[inline]
+fn is_base64_char(b: u8) -> bool {
+    b.is_alphanum() || b"+/=".contains(&b)
+}
+
+fn parse_base64_message(input: &[u8]) -> IResult<&[u8], &[u8]> {
+    let (input, value) = take_while(is_base64_char)(input)?;
     let (input, _) = tag("\r\n")(input)?;
     return Ok((input, value));
 }
@@ -230,6 +237,46 @@ impl POP3State {
 
         let mut start = input;
         while !start.is_empty() {
+            // sawp_pop3 can't handle the AUTH blob "command", so
+            // handle that here.
+            if self.auth_data_next {
+                match parse_base64_message(start) {
+                    Ok((rem, _base64_blob)) => {
+                        SCLogDebug!("AUTH SASL blob {:?}", _base64_blob);
+                        self.auth_data_next = false;
+
+                        if let Some(mut tx) = self.new_tx() {
+                            SCLogDebug!("tx created");
+                            let keyword = sawp_pop3::Keyword::Unknown("<SASL DATA>".to_string());
+                            tx.request = Some(Command {
+                                keyword,
+                                args: Vec::new(),
+                            });
+                            self.transactions.push_back(tx);
+                            sc_app_layer_parser_trigger_raw_stream_inspection(
+                                flow,
+                                direction::Direction::ToServer as i32,
+                            );
+                        }
+
+                        start = rem;
+                        continue;
+                    }
+                    Err(nom7::Err::Incomplete(needed)) => {
+                        if let nom7::Needed::Size(n) = needed {
+                            SCLogDebug!("needed {}", n);
+                            let consumed = input.len() - start.len();
+                            let needed = start.len() + n.get();
+                            return AppLayerResult::incomplete(consumed as u32, needed as u32);
+                        }
+                        return AppLayerResult::err();
+                    }
+                    Err(_e) => {
+                        SCLogDebug!("AUTH base64 parse failure {:?}", _e);
+                        return AppLayerResult::err();
+                    }
+                }
+            }
             match POP3_PARSER.parse(start, Direction::ToServer) {
                 Ok((rem, Some(msg))) => {
                     if let InnerMessage::Command(command) = msg.inner {
@@ -273,23 +320,7 @@ impl POP3State {
                 }
                 Err(_e) => {
                     SCLogDebug!("request error {:?}", _e);
-
-                    // check for base64 SASL data
-                    if let Ok((rem, _value)) =  parse_unknown_message(start) {
-                        let mut tx = match self.new_tx() {
-                            Some(tx) => tx,
-                            None => return AppLayerResult::err(),
-                        };
-                        SCLogDebug!("tx created");
-
-                        let keyword = sawp_pop3::Keyword::Unknown("<SASL DATA>".to_string());
-                        tx.request = Some(Command { keyword, args: Vec::new(), });
-                        self.transactions.push_back(tx);
-                        sc_app_layer_parser_trigger_raw_stream_inspection(flow, direction::Direction::ToServer as i32);
-                        start = rem;
-                    } else {
-                        return AppLayerResult::err();
-                    }
+                    return AppLayerResult::err();
                 }
             }
         }
@@ -340,10 +371,25 @@ impl POP3State {
             if start.starts_with(b"+ \r\n") {
                 SCLogDebug!("empty server challenge");
                 if let Some(tx) = self.find_request() {
-                    SCLogDebug!("found tx request:{:?} response:{:?}", tx.request, tx.response);
-                    let response = { Response { status: sawp_pop3::Status::OK, header: Vec::new(), data: Vec::new() }};
-                    tx.response = Some(response);
+                    tx.response = Some(Response {
+                        status: sawp_pop3::Status::OK,
+                        header: Vec::new(),
+                        data: Vec::new(),
+                    });
                     tx.complete = true;
+                    SCLogDebug!(
+                        "found tx request: {:?} response: {:?}",
+                        tx.request,
+                        tx.response
+                    );
+
+                    if matches!(
+                        tx.request.as_ref().map(|r| &r.keyword),
+                        Some(sawp_pop3::Keyword::AUTH)
+                    ) {
+                        SCLogDebug!("empty server challenge follows AUTH");
+                        self.auth_data_next = true;
+                    }
                 }
                 start = &start[4..];
                 continue;
@@ -458,6 +504,7 @@ impl POP3State {
                 Ok((rem, Some(msg))) => {
                     SCLogDebug!("msg {:?} start:{} rem:{}", msg, start.len(), rem.len());
                     if let InnerMessage::Response(mut response) = msg.inner {
+                        let mut auth_ok = false;
                         let tx = if let Some(tx) = self.find_request() {
                             tx
                         } else {
@@ -490,10 +537,17 @@ impl POP3State {
                                     // TODO: pass off to mime parser
                                     response.data.clear();
                                 }
+                                sawp_pop3::Keyword::AUTH => {
+                                    SCLogDebug!("OK on AUTH, expect base64 blob");
+                                    auth_ok = true;
+                                }
                                 _ => {}
                             }
                         }
                         tx.response = Some(response);
+                        if auth_ok {
+                            self.auth_data_next = true;
+                        }
                     }
                     start = rem;
                     SCLogDebug!("updated: start:{} rem:{}", start.len(), rem.len());
