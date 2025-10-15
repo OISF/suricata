@@ -18,9 +18,8 @@
 use aes::cipher::generic_array::GenericArray;
 use aes::cipher::{BlockEncrypt, KeyInit};
 use aes::Aes128;
-use aes_gcm::AeadInPlace;
+use aes_gcm::aead::AeadInPlace;
 use aes_gcm::Aes128Gcm;
-use aes_gcm::NewAead;
 use hkdf::Hkdf;
 use sha2::Sha256;
 
