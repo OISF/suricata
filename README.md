@@ -132,7 +132,7 @@ then increase risk of hiding other warnings.
 
 __Q: I think your QA test is wrong__
 
-A: If you really think it is, we can discuss how to improve it. But
+A: If you really think it is, feel free to open a discussion on how to improve it. But
 don't come to this conclusion too quickly, more often it's the code
 that turns out to be wrong.
 
