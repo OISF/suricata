@@ -15,6 +15,9 @@
  * 02110-1301, USA.
  */
 
+// For now suppress deprecation warning from GenericArray.
+#![allow(deprecated)]
+
 use aes::cipher::generic_array::GenericArray;
 use aes::cipher::{BlockEncrypt, KeyInit};
 use aes::Aes128;
