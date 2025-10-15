@@ -139,6 +139,7 @@ impl std::str::FromStr for HTTP2ErrorCode {
         match su_slice {
             "NO_ERROR" => Ok(HTTP2ErrorCode::NoError),
             "PROTOCOL_ERROR" => Ok(HTTP2ErrorCode::ProtocolError),
+            "INTERNAL_ERROR" => Ok(HTTP2ErrorCode::InternalError),
             "FLOW_CONTROL_ERROR" => Ok(HTTP2ErrorCode::FlowControlError),
             "SETTINGS_TIMEOUT" => Ok(HTTP2ErrorCode::SettingsTimeout),
             "STREAM_CLOSED" => Ok(HTTP2ErrorCode::StreamClosed),
