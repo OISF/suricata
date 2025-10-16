@@ -437,20 +437,6 @@ void AppLayerParserRegisterStateFuncs(uint8_t ipproto, AppProto alproto,
 {
     SCEnter();
 
-    if (alp_ctx.ctxs_len <= alproto && alproto < g_alproto_max) {
-        // Realloc now as AppLayerParserRegisterStateFuncs is called first
-        void *tmp = SCRealloc(
-                alp_ctx.ctxs, sizeof(AppLayerParserProtoCtx[FLOW_PROTO_MAX]) * g_alproto_max);
-        if (unlikely(tmp == NULL)) {
-            FatalError("Unable to realloc alp_ctx.ctxs.");
-        }
-        alp_ctx.ctxs = tmp;
-        memset(&alp_ctx.ctxs[alp_ctx.ctxs_len], 0,
-                sizeof(AppLayerParserProtoCtx[FLOW_PROTO_MAX]) *
-                        (g_alproto_max - alp_ctx.ctxs_len));
-        alp_ctx.ctxs_len = g_alproto_max;
-    }
-
     alp_ctx.ctxs[alproto][FlowGetProtoMapping(ipproto)].StateAlloc = StateAlloc;
     alp_ctx.ctxs[alproto][FlowGetProtoMapping(ipproto)].StateFree = StateFree;
 
@@ -1749,6 +1735,24 @@ static void ValidateParsers(void)
 static void (**PreRegisteredCallbacks)(void) = NULL;
 static size_t preregistered_callbacks_nb = 0;
 static size_t preregistered_callbacks_cap = 0;
+
+int SCAppLayerParserReallocCtx(AppProto alproto)
+{
+    if (alp_ctx.ctxs_len <= alproto && alproto < g_alproto_max) {
+        /* Realloc alp_ctx.ctxs, so that dynamic alproto can be treated as real/normal ones. 
+         * In case we need to turn off dynamic alproto. */
+        void *tmp = SCRealloc(alp_ctx.ctxs, 
+                sizeof(AppLayerParserProtoCtx[FLOW_PROTO_MAX]) * (alp_ctx.ctxs_len + ARRAY_CAP_STEP));
+        if (unlikely(tmp == NULL)) {
+            FatalError("Unable to realloc alp_ctx.ctxs.");
+        }
+        alp_ctx.ctxs = tmp;
+        memset(&alp_ctx.ctxs[alp_ctx.ctxs_len], 0, 
+                sizeof(AppLayerParserProtoCtx[FLOW_PROTO_MAX]) * ARRAY_CAP_STEP);
+        alp_ctx.ctxs_len += ARRAY_CAP_STEP;
+    }
+    return 0;
+}
 
 int AppLayerParserPreRegister(void (*Register)(void))
 {
