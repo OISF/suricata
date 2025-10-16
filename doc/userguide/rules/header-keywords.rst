@@ -153,6 +153,8 @@ this way, the receiver of the packet knows which fragments belong to
 the same packet. (IP ID does not take care of the order, in that case
 offset is used. It clarifies the order of the fragments.)
 
+id uses an :ref:`unsigned 16-bits integer <rules-integer-keywords>`.
+
 Format of id::
 
   id:<number>;
