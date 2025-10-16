@@ -246,6 +246,8 @@ reassembly. The id is used to determine which fragments belong to
 which packet and the fragmentation offset field clarifies the order of
 the fragments.
 
+fragoffset uses an :ref:`unsigned 16-bits integer <rules-integer-keywords>`.
+
 You can use the following modifiers::
 
   <       match if the value is smaller than the specified value
