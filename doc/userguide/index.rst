@@ -37,3 +37,4 @@ This is the documentation for Suricata |version|.
    devguide/index.rst
    verifying-source-files
    appendix/index.rst
+   known-issues
