@@ -961,9 +961,9 @@ static void DumpMatches(RuleAnalyzer *ctx, SCJsonBuilder *js, const SigMatchData
                 break;
             }
             case DETECT_ICMP_ID: {
-                const DetectIcmpIdData *cd = (const DetectIcmpIdData *)smd->ctx;
+                const DetectU16Data *cd = (const DetectU16Data *)smd->ctx;
                 SCJbOpenObject(js, "id");
-                SCJbSetUint(js, "number", SCNtohs(cd->id));
+                SCDetectU16ToJson(js, cd);
                 SCJbClose(js);
                 break;
             }
