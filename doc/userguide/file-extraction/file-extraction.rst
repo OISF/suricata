@@ -66,7 +66,7 @@ the default logging directory) and logs files using the SHA256 of the
 contents as the filename. Each file is then placed in a directory
 named `00` to `ff` where the directory shares the first 2 characters
 of the filename. For example, if the SHA256 hex string of an extracted
-file starts with "f9bc6d..." the file we be placed in the directory
+file starts with "f9bc6d..." the file will be placed in the directory
 `filestore/f9`.
 
 The size of a file that can be stored depends on ``file-store.stream-depth``,
