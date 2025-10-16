@@ -702,6 +702,8 @@ receiver has received the packet, it will send a reply using the same
 id so the sender will recognize it and connects it with the correct
 ICMP-request.
 
+icmp_id uses an :ref:`unsigned 16-bits integer <rules-integer-keywords>`.
+
 Format of the icmp_id keyword::
 
   icmp_id:<number>;

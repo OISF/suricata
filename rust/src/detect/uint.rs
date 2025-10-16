@@ -16,7 +16,7 @@
  */
 
 use nom7::branch::alt;
-use nom7::bytes::complete::{is_a, tag, tag_no_case, take_while};
+use nom7::bytes::complete::{is_a, tag, tag_no_case, take_till, take_while};
 use nom7::character::complete::{char, digit1, hex_digit1, i32 as nom_i32};
 use nom7::combinator::{all_consuming, map_opt, opt, value, verify};
 use nom7::error::{make_error, Error, ErrorKind};
@@ -815,6 +815,35 @@ pub unsafe extern "C" fn SCDetectU16Parse(
     let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
     if let Ok(s) = ft_name.to_str() {
         if let Ok((_, ctx)) = detect_parse_uint::<u16>(s) {
+            let boxed = Box::new(ctx);
+            return Box::into_raw(boxed) as *mut _;
+        }
+    }
+    return std::ptr::null_mut();
+}
+
+pub fn detect_parse_unquote_uint<T: DetectIntType>(i: &str) -> IResult<&str, DetectUintData<T>> {
+    let (i, _) = take_while(|c| c == ' ')(i)?;
+    let (i, quote) = opt(tag("\""))(i)?;
+    if quote.is_some() {
+        let (i, unquote) = take_till(|c| c == '"')(i)?;
+        if i.is_empty() {
+            return Err(Err::Error(make_error(i, ErrorKind::Tag)));
+        }
+        let (_i, uint) = detect_parse_uint(unquote)?;
+        return Ok((i, uint));
+    }
+    let (i, uint) = detect_parse_uint(i)?;
+    Ok((i, uint))
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCDetectU16UnquoteParse(
+    ustr: *const std::os::raw::c_char,
+) -> *mut DetectUintData<u16> {
+    let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
+    if let Ok(s) = ft_name.to_str() {
+        if let Ok((_, ctx)) = detect_parse_unquote_uint::<u16>(s) {
             let boxed = Box::new(ctx);
             return Box::into_raw(boxed) as *mut _;
         }

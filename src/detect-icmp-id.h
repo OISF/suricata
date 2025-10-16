@@ -24,10 +24,6 @@
 #ifndef SURICATA_DETECT_ICMP_ID_H
 #define SURICATA_DETECT_ICMP_ID_H
 
-typedef struct DetectIcmpIdData_ {
-    uint16_t id; /**< id in network byte error */
-} DetectIcmpIdData;
-
 /* prototypes */
 void DetectIcmpIdRegister(void);
 
