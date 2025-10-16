@@ -9,8 +9,6 @@
 // Allow unknown lints, our MSRV doesn't know them all, for
 // example static_mut_refs.
 #![allow(unknown_lints)]
-// Requires MSRV of 1.74 to fix.
-#![allow(clippy::io_other_error)]
 
 #[repr(C)]
 #[derive(PartialEq, Eq, Debug)]
