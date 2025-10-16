@@ -336,7 +336,7 @@ static int FlagsTestParse04 (void)
 }
 
 /**
- * \test FlagsTestParse05 test if ACK+PUSH and more flags are set. Ignore SYN and RST bits.
+ * \test FlagsTestParse05 test if ACK+PUSH and no other flags are set. Ignore SYN and RST bits.
  *  \retval 1 on success
  *  \retval 0 on failure
  */
@@ -356,10 +356,10 @@ static int FlagsTestParse05 (void)
     tcph.th_flags = TH_ACK | TH_PUSH | TH_SYN | TH_RST;
     UTHSetTCPHdr(p, &tcph);
 
-    DetectU8Data *de = SCDetectTcpFlagsParse("+AP,SR");
+    DetectU8Data *de = SCDetectTcpFlagsParse("AP,SR");
     FAIL_IF_NULL(de);
     FAIL_IF(de->mode != DetectUintModeBitmask);
-    FAIL_IF(de->arg1 != (TH_ACK | TH_PUSH));
+    FAIL_IF(de->arg1 != (uint8_t) ~(TH_SYN | TH_RST));
     FAIL_IF(de->arg2 != (TH_ACK | TH_PUSH));
 
     SigMatch *sm = SigMatchAlloc();
@@ -376,8 +376,8 @@ static int FlagsTestParse05 (void)
 }
 
 /**
- * \test FlagsTestParse06 test if ACK+PUSH and more flags are set. Ignore URG and RST bits.
- *       Must return success.
+ * \test FlagsTestParse06 test if ACK+PUSH and no other flags are set. Ignore URG and RST bits.
+ *       Must fail as TH_SYN is also set
  *  \retval 1 on success
  *  \retval 0 on failure
  */
@@ -397,10 +397,10 @@ static int FlagsTestParse06 (void)
     tcph.th_flags = TH_ACK | TH_PUSH | TH_SYN | TH_RST;
     UTHSetTCPHdr(p, &tcph);
 
-    DetectU8Data *de = SCDetectTcpFlagsParse("+AP,UR");
+    DetectU8Data *de = SCDetectTcpFlagsParse("AP,UR");
     FAIL_IF_NULL(de);
     FAIL_IF(de->mode != DetectUintModeBitmask);
-    FAIL_IF(de->arg1 != (TH_ACK | TH_PUSH));
+    FAIL_IF(de->arg1 != (uint8_t) ~(TH_URG | TH_RST));
     FAIL_IF(de->arg2 != (TH_ACK | TH_PUSH));
 
     SigMatch *sm = SigMatchAlloc();
@@ -409,7 +409,7 @@ static int FlagsTestParse06 (void)
     sm->ctx = (SigMatchCtx *)de;
 
     int ret = DetectFlagsMatch(NULL, p, NULL, sm->ctx);
-    FAIL_IF_NOT(ret == 1);
+    FAIL_IF_NOT(ret == 0);
 
     SigMatchFree(NULL, sm);
     PacketFree(p);
@@ -580,7 +580,7 @@ static int FlagsTestParse10 (void)
 }
 
 /**
- * \test FlagsTestParse11 test if ACK or PUSH are set. Ignore SYN and RST. Must fails.
+ * \test FlagsTestParse11 test if flags are ACK and PUSH. Ignore SYN and RST.
  *
  *  \retval 1 on success
  *  \retval 0 on failure
@@ -601,11 +601,11 @@ static int FlagsTestParse11 (void)
     tcph.th_flags = TH_SYN | TH_RST | TH_URG;
     UTHSetTCPHdr(p, &tcph);
 
-    DetectU8Data *de = SCDetectTcpFlagsParse("*AP,SR");
+    DetectU8Data *de = SCDetectTcpFlagsParse("AP,SR");
     FAIL_IF_NULL(de);
-    FAIL_IF(de->mode != DetectUintModeNegBitmask);
-    FAIL_IF(de->arg1 != (TH_ACK | TH_PUSH));
-    FAIL_IF(de->arg2 != 0);
+    FAIL_IF(de->mode != DetectUintModeBitmask);
+    FAIL_IF(de->arg1 != (uint8_t) ~(TH_SYN | TH_RST));
+    FAIL_IF(de->arg2 != (TH_ACK | TH_PUSH));
 
     SigMatch *sm = SigMatchAlloc();
     FAIL_IF_NULL(de);
