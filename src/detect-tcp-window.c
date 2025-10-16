@@ -28,6 +28,7 @@
 
 #include "detect.h"
 #include "detect-parse.h"
+#include "detect-engine-uint.h"
 
 #include "detect-tcp-window.h"
 #include "flow.h"
@@ -37,13 +38,6 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-byte.h"
-
-/**
- * \brief Regex for parsing our window option
- */
-#define PARSE_REGEX  "^\\s*([!])?\\s*([0-9]{1,9}+)\\s*$"
-
-static DetectParseRegex parse_regex;
 
 static int DetectWindowMatch(DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
@@ -65,10 +59,10 @@ void DetectWindowRegister (void)
     sigmatch_table[DETECT_WINDOW].Match = DetectWindowMatch;
     sigmatch_table[DETECT_WINDOW].Setup = DetectWindowSetup;
     sigmatch_table[DETECT_WINDOW].Free  = DetectWindowFree;
+    sigmatch_table[DETECT_WINDOW].flags = SIGMATCH_INFO_UINT16;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_WINDOW].RegisterTests = DetectWindowRegisterTests;
 #endif
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
 /**
@@ -85,7 +79,7 @@ void DetectWindowRegister (void)
 static int DetectWindowMatch(DetectEngineThreadCtx *det_ctx, Packet *p,
         const Signature *s, const SigMatchCtx *ctx)
 {
-    const DetectWindowData *wd = (const DetectWindowData *)ctx;
+    const DetectU16Data *wd = (const DetectU16Data *)ctx;
 
     DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
     if (!(PacketIsTCP(p)) || wd == NULL) {
@@ -93,81 +87,7 @@ static int DetectWindowMatch(DetectEngineThreadCtx *det_ctx, Packet *p,
     }
 
     const uint16_t window = TCP_GET_RAW_WINDOW(PacketGetTCP(p));
-    if ((!wd->negated && wd->size == window) || (wd->negated && wd->size != window)) {
-        return 1;
-    }
-
-    return 0;
-}
-
-/**
- * \brief This function is used to parse window options passed via window: keyword
- *
- * \param de_ctx Pointer to the detection engine context
- * \param windowstr Pointer to the user provided window options (negation! and size)
- *
- * \retval wd pointer to DetectWindowData on success
- * \retval NULL on failure
- */
-static DetectWindowData *DetectWindowParse(DetectEngineCtx *de_ctx, const char *windowstr)
-{
-    DetectWindowData *wd = NULL;
-    int res = 0;
-    size_t pcre2len;
-
-    pcre2_match_data *match = NULL;
-    int ret = DetectParsePcreExec(&parse_regex, &match, windowstr, 0, 0);
-    if (ret < 1 || ret > 3) {
-        SCLogError("pcre_exec parse error, ret %" PRId32 ", string %s", ret, windowstr);
-        goto error;
-    }
-
-    wd = SCMalloc(sizeof(DetectWindowData));
-    if (unlikely(wd == NULL))
-        goto error;
-
-    if (ret > 1) {
-        char copy_str[128] = "";
-        pcre2len = sizeof(copy_str);
-        res = SC_Pcre2SubstringCopy(match, 1, (PCRE2_UCHAR8 *)copy_str, &pcre2len);
-        if (res < 0) {
-            SCLogError("pcre2_substring_copy_bynumber failed");
-            goto error;
-        }
-
-        /* Detect if it's negated */
-        if (copy_str[0] == '!')
-            wd->negated = 1;
-        else
-            wd->negated = 0;
-
-        if (ret > 2) {
-            pcre2len = sizeof(copy_str);
-            res = pcre2_substring_copy_bynumber(match, 2, (PCRE2_UCHAR8 *)copy_str, &pcre2len);
-            if (res < 0) {
-                SCLogError("pcre2_substring_copy_bynumber failed");
-                goto error;
-            }
-
-            /* Get the window size if it's a valid value (in packets, we
-             * should alert if this doesn't happen from decode) */
-            if (StringParseUint16(&wd->size, 10, 0, copy_str) < 0) {
-                goto error;
-            }
-        }
-    }
-
-    pcre2_match_data_free(match);
-    return wd;
-
-error:
-    if (match) {
-        pcre2_match_data_free(match);
-    }
-    if (wd != NULL)
-        DetectWindowFree(de_ctx, wd);
-    return NULL;
-
+    return DetectU16Match(window, wd);
 }
 
 /**
@@ -182,27 +102,20 @@ error:
  */
 static int DetectWindowSetup (DetectEngineCtx *de_ctx, Signature *s, const char *windowstr)
 {
-    DetectWindowData *wd = NULL;
-
-    wd = DetectWindowParse(de_ctx, windowstr);
-    if (wd == NULL) goto error;
+    DetectU16Data *wd = SCDetectU16Parse(windowstr);
+    if (wd == NULL)
+        return -1;
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
 
     if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_WINDOW, (SigMatchCtx *)wd, DETECT_SM_LIST_MATCH) == NULL) {
-        goto error;
+        DetectWindowFree(de_ctx, wd);
+        return -1;
     }
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
-
     return 0;
-
-error:
-    if (wd != NULL)
-        DetectWindowFree(de_ctx, wd);
-    return -1;
-
 }
 
 /**
@@ -212,8 +125,7 @@ error:
  */
 void DetectWindowFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    DetectWindowData *wd = (DetectWindowData *)ptr;
-    SCFree(wd);
+    SCDetectU16Free(ptr);
 }
 
 #ifdef UNITTESTS /* UNITTESTS */
@@ -224,10 +136,9 @@ void DetectWindowFree(DetectEngineCtx *de_ctx, void *ptr)
  */
 static int DetectWindowTestParse01 (void)
 {
-    DetectWindowData *wd = NULL;
-    wd = DetectWindowParse(NULL, "35402");
+    DetectU16Data *wd = SCDetectU16Parse("35402");
     FAIL_IF_NULL(wd);
-    FAIL_IF_NOT(wd->size == 35402);
+    FAIL_IF_NOT(wd->arg1 == 35402);
 
     DetectWindowFree(NULL, wd);
     PASS;
@@ -238,11 +149,10 @@ static int DetectWindowTestParse01 (void)
  */
 static int DetectWindowTestParse02 (void)
 {
-    DetectWindowData *wd = NULL;
-    wd = DetectWindowParse(NULL, "!35402");
+    DetectU16Data *wd = SCDetectU16Parse("!35402");
     FAIL_IF_NULL(wd);
-    FAIL_IF_NOT(wd->negated == 1);
-    FAIL_IF_NOT(wd->size == 35402);
+    FAIL_IF_NOT(wd->mode == DetectUintModeNe);
+    FAIL_IF_NOT(wd->arg1 == 35402);
 
     DetectWindowFree(NULL, wd);
     PASS;
@@ -253,11 +163,8 @@ static int DetectWindowTestParse02 (void)
  */
 static int DetectWindowTestParse03 (void)
 {
-    DetectWindowData *wd = NULL;
-    wd = DetectWindowParse(NULL, "");
+    DetectU16Data *wd = SCDetectU16Parse("");
     FAIL_IF_NOT_NULL(wd);
-
-    DetectWindowFree(NULL, wd);
     PASS;
 }
 
@@ -266,11 +173,8 @@ static int DetectWindowTestParse03 (void)
  */
 static int DetectWindowTestParse04 (void)
 {
-    DetectWindowData *wd = NULL;
-    wd = DetectWindowParse(NULL, "1235402");
+    DetectU16Data *wd = SCDetectU16Parse("1235402");
     FAIL_IF_NOT_NULL(wd);
-
-    DetectWindowFree(NULL, wd);
     PASS;
 }
 

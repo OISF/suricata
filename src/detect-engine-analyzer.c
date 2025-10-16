@@ -959,10 +959,9 @@ static void DumpMatches(RuleAnalyzer *ctx, SCJsonBuilder *js, const SigMatchData
                 break;
             }
             case DETECT_WINDOW: {
-                const DetectWindowData *wd = (const DetectWindowData *)smd->ctx;
+                const DetectU16Data *cd = (const DetectU16Data *)smd->ctx;
                 SCJbOpenObject(js, "window");
-                SCJbSetUint(js, "size", wd->size);
-                SCJbSetBool(js, "negated", wd->negated);
+                SCDetectU16ToJson(js, cd);
                 SCJbClose(js);
                 break;
             }
