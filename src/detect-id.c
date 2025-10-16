@@ -31,6 +31,7 @@
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-prefilter-common.h"
+#include "detect-engine-uint.h"
 
 #include "detect-id.h"
 #include "flow.h"
@@ -44,9 +45,6 @@
 /**
  * \brief Regex for parsing "id" option, matching number or "number"
  */
-#define PARSE_REGEX  "^\\s*([0-9]{1,5}|\"[0-9]{1,5}\")\\s*$"
-
-static DetectParseRegex parse_regex;
 
 static int DetectIdMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
@@ -70,13 +68,12 @@ void DetectIdRegister (void)
     sigmatch_table[DETECT_ID].Match = DetectIdMatch;
     sigmatch_table[DETECT_ID].Setup = DetectIdSetup;
     sigmatch_table[DETECT_ID].Free  = DetectIdFree;
+    sigmatch_table[DETECT_ID].flags = SIGMATCH_INFO_UINT16;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_ID].RegisterTests = DetectIdRegisterTests;
 #endif
     sigmatch_table[DETECT_ID].SupportsPrefilter = PrefilterIdIsPrefilterable;
     sigmatch_table[DETECT_ID].SetupPrefilter = PrefilterSetupId;
-
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
 /**
@@ -94,7 +91,7 @@ static int DetectIdMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
                           const Signature *s, const SigMatchCtx *ctx)
 {
     DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
-    const DetectIdData *id_d = (const DetectIdData *)ctx;
+    const DetectU16Data *id_d = (const DetectU16Data *)ctx;
 
     /**
      * To match a ipv4 packet with a "id" rule
@@ -104,79 +101,7 @@ static int DetectIdMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
     }
 
     const IPV4Hdr *ip4h = PacketGetIPv4(p);
-    if (id_d->id == IPV4_GET_RAW_IPID(ip4h)) {
-        SCLogDebug("IPV4 Proto and matched with ip_id: %u.\n",
-                    id_d->id);
-        return 1;
-    }
-
-    return 0;
-}
-
-/**
- * \brief This function is used to parse IPV4 ip_id passed via keyword: "id"
- *
- * \param idstr Pointer to the user provided id option
- *
- * \retval id_d pointer to DetectIdData on success
- * \retval NULL on failure
- */
-static DetectIdData *DetectIdParse (const char *idstr)
-{
-    uint16_t temp;
-    DetectIdData *id_d = NULL;
-    int res = 0;
-    size_t pcre2len;
-    pcre2_match_data *match = NULL;
-
-    int ret = DetectParsePcreExec(&parse_regex, &match, idstr, 0, 0);
-
-    if (ret < 1 || ret > 3) {
-        SCLogError("invalid id option '%s'. The id option "
-                   "value must be in the range %u - %u",
-                idstr, DETECT_IPID_MIN, DETECT_IPID_MAX);
-        goto error;
-    }
-
-    char copy_str[128] = "";
-    char *tmp_str;
-    pcre2len = sizeof(copy_str);
-    res = pcre2_substring_copy_bynumber(match, 1, (PCRE2_UCHAR8 *)copy_str, &pcre2len);
-    if (res < 0) {
-        SCLogError("pcre2_substring_copy_bynumber failed");
-        goto error;
-    }
-    tmp_str = copy_str;
-
-    /* Let's see if we need to scape "'s */
-    if (tmp_str[0] == '"')
-    {
-        tmp_str[strlen(tmp_str) - 1] = '\0';
-        tmp_str += 1;
-    }
-
-    /* ok, fill the id data */
-    if (StringParseUint16(&temp, 10, 0, (const char *)tmp_str) <= 0) {
-        SCLogError("invalid id option '%s'", tmp_str);
-        goto error;
-    }
-
-    /* We have a correct id option */
-    id_d = SCMalloc(sizeof(DetectIdData));
-    if (unlikely(id_d == NULL))
-        goto error;
-
-    id_d->id = temp;
-
-    SCLogDebug("detect-id: will look for ip_id: %u\n", id_d->id);
-    pcre2_match_data_free(match);
-    return id_d;
-
-error:
-    if (match) {
-        pcre2_match_data_free(match);
-    }
-    return NULL;
+    return DetectU16Match(IPV4_GET_RAW_IPID(ip4h), id_d);
 }
 
 /**
@@ -192,9 +117,7 @@ error:
  */
 int DetectIdSetup (DetectEngineCtx *de_ctx, Signature *s, const char *idstr)
 {
-    DetectIdData *id_d = NULL;
-
-    id_d = DetectIdParse(idstr);
+    DetectU16Data *id_d = SCDetectU16UnquoteParse(idstr);
     if (id_d == NULL)
         return -1;
 
@@ -216,8 +139,7 @@ int DetectIdSetup (DetectEngineCtx *de_ctx, Signature *s, const char *idstr)
  */
 void DetectIdFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    DetectIdData *id_d = (DetectIdData *)ptr;
-    SCFree(id_d);
+    SCDetectU16Free(ptr);
 }
 
 /* prefilter code */
@@ -237,32 +159,20 @@ PrefilterPacketIdMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pe
         return;
 
     const IPV4Hdr *ip4h = PacketGetIPv4(p);
-    if (ctx->v1.u16[0] == IPV4_GET_RAW_IPID(ip4h)) {
+    DetectU16Data du16;
+    du16.mode = ctx->v1.u8[0];
+    du16.arg1 = ctx->v1.u16[1];
+    du16.arg2 = ctx->v1.u16[2];
+    if (DetectU16Match(IPV4_GET_RAW_IPID(ip4h), &du16)) {
         SCLogDebug("packet matches IP id %u", ctx->v1.u16[0]);
         PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
     }
 }
 
-static void
-PrefilterPacketIdSet(PrefilterPacketHeaderValue *v, void *smctx)
-{
-    const DetectIdData *a = smctx;
-    v->u16[0] = a->id;
-}
-
-static bool
-PrefilterPacketIdCompare(PrefilterPacketHeaderValue v, void *smctx)
-{
-    const DetectIdData *a = smctx;
-    if (v.u16[0] == a->id)
-        return true;
-    return false;
-}
-
 static int PrefilterSetupId(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
     return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_ID, SIG_MASK_REQUIRE_REAL_PKT,
-            PrefilterPacketIdSet, PrefilterPacketIdCompare, PrefilterPacketIdMatch);
+            PrefilterPacketU16Set, PrefilterPacketU16Compare, PrefilterPacketIdMatch);
 }
 
 static bool PrefilterIdIsPrefilterable(const Signature *s)
@@ -285,10 +195,10 @@ static bool PrefilterIdIsPrefilterable(const Signature *s)
  */
 static int DetectIdTestParse01 (void)
 {
-    DetectIdData *id_d = DetectIdParse(" 35402 ");
+    DetectU16Data *id_d = SCDetectU16UnquoteParse(" 35402 ");
 
     FAIL_IF_NULL(id_d);
-    FAIL_IF_NOT(id_d->id == 35402);
+    FAIL_IF_NOT(id_d->arg1 == 35402);
 
     DetectIdFree(NULL, id_d);
 
@@ -302,7 +212,7 @@ static int DetectIdTestParse01 (void)
  */
 static int DetectIdTestParse02 (void)
 {
-    DetectIdData *id_d = DetectIdParse("65537");
+    DetectU16Data *id_d = SCDetectU16UnquoteParse("65537");
 
     FAIL_IF_NOT_NULL(id_d);
 
@@ -316,7 +226,7 @@ static int DetectIdTestParse02 (void)
  */
 static int DetectIdTestParse03 (void)
 {
-    DetectIdData *id_d = DetectIdParse("12what?");
+    DetectU16Data *id_d = SCDetectU16UnquoteParse("12what?");
 
     FAIL_IF_NOT_NULL(id_d);
 
@@ -330,10 +240,10 @@ static int DetectIdTestParse03 (void)
 static int DetectIdTestParse04 (void)
 {
     /* yep, look if we trim blank spaces correctly and ignore "'s */
-    DetectIdData *id_d = DetectIdParse(" \"35402\" ");
+    DetectU16Data *id_d = SCDetectU16UnquoteParse(" \"35402\" ");
 
     FAIL_IF_NULL(id_d);
-    FAIL_IF_NOT(id_d->id == 35402);
+    FAIL_IF_NOT(id_d->arg1 == 35402);
 
     DetectIdFree(NULL, id_d);
 
