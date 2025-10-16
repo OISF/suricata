@@ -699,11 +699,9 @@ impl BufWriter for LzmaBufWriter {
     fn finish(self: Box<Self>) -> std::io::Result<BlockingCursor> {
         self.0.finish().map_err(|e| match e {
             lzma_rs::error::Error::IoError(e) => e,
-            lzma_rs::error::Error::HeaderTooShort(e) => {
-                std::io::Error::new(std::io::ErrorKind::Other, format!("{e}"))
-            }
+            lzma_rs::error::Error::HeaderTooShort(e) => std::io::Error::other(format!("{e}")),
             lzma_rs::error::Error::LzmaError(e) | lzma_rs::error::Error::XzError(e) => {
-                std::io::Error::new(std::io::ErrorKind::Other, e)
+                std::io::Error::other(e)
             }
         })
     }
@@ -734,7 +732,7 @@ impl BufWriter for BrotliBufWriter {
     fn finish(self: Box<Self>) -> std::io::Result<BlockingCursor> {
         self.0
             .into_inner()
-            .map_err(|_e| std::io::Error::new(std::io::ErrorKind::Other, "brotli"))
+            .map_err(|_e| std::io::Error::other("brotli"))
     }
 
     fn try_finish(&mut self) -> std::io::Result<()> {
@@ -794,10 +792,7 @@ impl InnerDecompressor {
                     Ok((Box::new(NullBufWriter(buf)), true))
                 }
             }
-            HtpContentEncoding::None => Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "expected a valid encoding",
-            )),
+            HtpContentEncoding::None => Err(std::io::Error::other("expected a valid encoding")),
         }
     }
 
@@ -867,10 +862,7 @@ impl InnerDecompressor {
             self.inner.replace(inner);
             Ok(())
         } else {
-            Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "nothing to flush to",
-            ))
+            Err(std::io::Error::other("nothing to flush to"))
         }
     }
 
@@ -989,10 +981,7 @@ impl Decompress for InnerDecompressor {
                 HtpContentEncoding::Lzma => HtpContentEncoding::Deflate,
                 HtpContentEncoding::Brotli => HtpContentEncoding::Deflate,
                 HtpContentEncoding::None => {
-                    return Err(std::io::Error::new(
-                        std::io::ErrorKind::Other,
-                        "expected a valid encoding",
-                    ))
+                    return Err(std::io::Error::other("expected a valid encoding"))
                 }
             };
             let (writer, passthrough) = Self::writer(self.encoding, &self.options)?;
@@ -1003,10 +992,7 @@ impl Decompress for InnerDecompressor {
             self.restarts += 1;
             Ok(())
         } else {
-            Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "too many restart attempts",
-            ))
+            Err(std::io::Error::other("too many restart attempts"))
         }
     }
 

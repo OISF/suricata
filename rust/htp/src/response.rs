@@ -1263,7 +1263,7 @@ impl ConnectionParser {
 
         // Invoke all callbacks.
         self.response_run_hook_body_data(&mut tx_data)
-            .map_err(|_| std::io::Error::new(std::io::ErrorKind::Other, "body data hook failed"))?;
+            .map_err(|_| std::io::Error::other("body data hook failed"))?;
         let resp = self.response_mut().unwrap();
         if let Some(decompressor) = &mut resp.response_decompressor {
             if decompressor.callback_inc() % compression_options.get_time_test_freq() == 0 {
@@ -1302,10 +1302,7 @@ impl ConnectionParser {
                     response_entity_len, response_message_len,
                 )
             );
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "compression_bomb_limit reached",
-            ));
+            return Err(std::io::Error::other("compression_bomb_limit reached"));
         }
         Ok(tx_data.len())
     }
