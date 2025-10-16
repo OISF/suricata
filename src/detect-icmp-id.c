@@ -31,6 +31,7 @@
 #include "detect-engine-prefilter-common.h"
 #include "detect-engine-build.h"
 #include "detect-engine-alert.h"
+#include "detect-engine-uint.h"
 
 #include "detect-icmp-id.h"
 
@@ -39,9 +40,6 @@
 #include "util-unittest-helper.h"
 #include "util-debug.h"
 
-#define PARSE_REGEX "^\\s*(\"\\s*)?([0-9]+)(\\s*\")?\\s*$"
-
-static DetectParseRegex parse_regex;
 
 static int DetectIcmpIdMatch(DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
@@ -64,13 +62,12 @@ void DetectIcmpIdRegister (void)
     sigmatch_table[DETECT_ICMP_ID].Match = DetectIcmpIdMatch;
     sigmatch_table[DETECT_ICMP_ID].Setup = DetectIcmpIdSetup;
     sigmatch_table[DETECT_ICMP_ID].Free = DetectIcmpIdFree;
+    sigmatch_table[DETECT_ICMP_ID].flags = SIGMATCH_INFO_UINT16;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_ICMP_ID].RegisterTests = DetectIcmpIdRegisterTests;
 #endif
     sigmatch_table[DETECT_ICMP_ID].SupportsPrefilter = PrefilterIcmpIdIsPrefilterable;
     sigmatch_table[DETECT_ICMP_ID].SetupPrefilter = PrefilterSetupIcmpId;
-
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
 static inline bool GetIcmpId(Packet *p, uint16_t *id)
@@ -115,7 +112,7 @@ static inline bool GetIcmpId(Packet *p, uint16_t *id)
         return false;
     }
 
-    *id = pid;
+    *id = ntohs(pid);
     return true;
 }
 
@@ -138,91 +135,8 @@ static int DetectIcmpIdMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
     if (!GetIcmpId(p, &pid))
         return 0;
 
-    const DetectIcmpIdData *iid = (const DetectIcmpIdData *)ctx;
-    if (pid == iid->id)
-        return 1;
-
-    return 0;
-}
-
-/**
- * \brief This function is used to parse icmp_id option passed via icmp_id: keyword
- *
- * \param de_ctx Pointer to the detection engine context
- * \param icmpidstr Pointer to the user provided icmp_id options
- *
- * \retval iid pointer to DetectIcmpIdData on success
- * \retval NULL on failure
- */
-static DetectIcmpIdData *DetectIcmpIdParse (DetectEngineCtx *de_ctx, const char *icmpidstr)
-{
-    DetectIcmpIdData *iid = NULL;
-    char *substr[3] = {NULL, NULL, NULL};
-    int res = 0;
-    size_t pcre2_len;
-
-    pcre2_match_data *match = NULL;
-    int ret = DetectParsePcreExec(&parse_regex, &match, icmpidstr, 0, 0);
-    if (ret < 1 || ret > 4) {
-        SCLogError("Parse error %s", icmpidstr);
-        goto error;
-    }
-
-    int i;
-    const char *str_ptr;
-    for (i = 1; i < ret; i++) {
-        res = SC_Pcre2SubstringGet(match, i, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
-        if (res < 0) {
-            SCLogError("pcre2_substring_get_bynumber failed");
-            goto error;
-        }
-        substr[i-1] = (char *)str_ptr;
-    }
-
-    iid = SCMalloc(sizeof(DetectIcmpIdData));
-    if (unlikely(iid == NULL))
-        goto error;
-    iid->id = 0;
-
-    if (substr[0]!= NULL && strlen(substr[0]) != 0) {
-        if (substr[2] == NULL) {
-            SCLogError("Missing close quote in input");
-            goto error;
-        }
-    } else {
-        if (substr[2] != NULL) {
-            SCLogError("Missing open quote in input");
-            goto error;
-        }
-    }
-
-    uint16_t id = 0;
-    if (StringParseUint16(&id, 10, 0, substr[1]) < 0) {
-        SCLogError("specified icmp id %s is not "
-                   "valid",
-                substr[1]);
-        goto error;
-    }
-    iid->id = htons(id);
-
-    for (i = 0; i < 3; i++) {
-        if (substr[i] != NULL)
-            pcre2_substring_free((PCRE2_UCHAR8 *)substr[i]);
-    }
-    pcre2_match_data_free(match);
-    return iid;
-
-error:
-    if (match) {
-        pcre2_match_data_free(match);
-    }
-    for (i = 0; i < 3; i++) {
-        if (substr[i] != NULL)
-            pcre2_substring_free((PCRE2_UCHAR8 *)substr[i]);
-    }
-    if (iid != NULL) DetectIcmpIdFree(de_ctx, iid);
-    return NULL;
-
+    const DetectU16Data *iid = (const DetectU16Data *)ctx;
+    return DetectU16Match(pid, iid);
 }
 
 /**
@@ -237,10 +151,9 @@ error:
  */
 static int DetectIcmpIdSetup (DetectEngineCtx *de_ctx, Signature *s, const char *icmpidstr)
 {
-    DetectIcmpIdData *iid = NULL;
-
-    iid = DetectIcmpIdParse(de_ctx, icmpidstr);
-    if (iid == NULL) goto error;
+    DetectU16Data *iid = SCDetectU16UnquoteParse(icmpidstr);
+    if (iid == NULL)
+        return -1;
 
     if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_ICMP_ID, (SigMatchCtx *)iid, DETECT_SM_LIST_MATCH) == NULL) {
@@ -251,8 +164,7 @@ static int DetectIcmpIdSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     return 0;
 
 error:
-    if (iid != NULL)
-        DetectIcmpIdFree(de_ctx, iid);
+    DetectIcmpIdFree(de_ctx, iid);
     return -1;
 
 }
@@ -264,8 +176,7 @@ error:
  */
 void DetectIcmpIdFree (DetectEngineCtx *de_ctx, void *ptr)
 {
-    DetectIcmpIdData *iid = (DetectIcmpIdData *)ptr;
-    SCFree(iid);
+    SCDetectU16Free(ptr);
 }
 
 /* prefilter code */
@@ -279,33 +190,20 @@ PrefilterPacketIcmpIdMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void
     if (!GetIcmpId(p, &pid))
         return;
 
-    if (pid == ctx->v1.u16[0])
-    {
+    DetectU16Data du16;
+    du16.mode = ctx->v1.u8[0];
+    du16.arg1 = ctx->v1.u16[1];
+    du16.arg2 = ctx->v1.u16[2];
+    if (DetectU16Match(pid, &du16)) {
         SCLogDebug("packet matches ICMP ID %u", ctx->v1.u16[0]);
         PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
     }
 }
 
-static void
-PrefilterPacketIcmpIdSet(PrefilterPacketHeaderValue *v, void *smctx)
-{
-    const DetectIcmpIdData *a = smctx;
-    v->u16[0] = a->id;
-}
-
-static bool
-PrefilterPacketIcmpIdCompare(PrefilterPacketHeaderValue v, void *smctx)
-{
-    const DetectIcmpIdData *a = smctx;
-    if (v.u16[0] == a->id)
-        return true;
-    return false;
-}
-
 static int PrefilterSetupIcmpId(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
     return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_ICMP_ID, SIG_MASK_REQUIRE_REAL_PKT,
-            PrefilterPacketIcmpIdSet, PrefilterPacketIcmpIdCompare, PrefilterPacketIcmpIdMatch);
+            PrefilterPacketU16Set, PrefilterPacketU16Compare, PrefilterPacketIcmpIdMatch);
 }
 
 static bool PrefilterIcmpIdIsPrefilterable(const Signature *s)
@@ -329,9 +227,9 @@ static bool PrefilterIcmpIdIsPrefilterable(const Signature *s)
  */
 static int DetectIcmpIdParseTest01 (void)
 {
-    DetectIcmpIdData *iid = DetectIcmpIdParse(NULL, "300");
+    DetectU16Data *iid = SCDetectU16UnquoteParse("300");
     FAIL_IF_NULL(iid);
-    FAIL_IF_NOT(iid->id == htons(300));
+    FAIL_IF_NOT(iid->arg1 == 300);
     DetectIcmpIdFree(NULL, iid);
     PASS;
 }
@@ -342,9 +240,9 @@ static int DetectIcmpIdParseTest01 (void)
  */
 static int DetectIcmpIdParseTest02 (void)
 {
-    DetectIcmpIdData *iid = DetectIcmpIdParse(NULL, "  300  ");
+    DetectU16Data *iid = SCDetectU16UnquoteParse("  300  ");
     FAIL_IF_NULL(iid);
-    FAIL_IF_NOT(iid->id == htons(300));
+    FAIL_IF_NOT(iid->arg1 == 300);
     DetectIcmpIdFree(NULL, iid);
     PASS;
 }
@@ -355,9 +253,9 @@ static int DetectIcmpIdParseTest02 (void)
  */
 static int DetectIcmpIdParseTest03 (void)
 {
-    DetectIcmpIdData *iid = DetectIcmpIdParse(NULL, "\"300\"");
+    DetectU16Data *iid = SCDetectU16UnquoteParse("\"300\"");
     FAIL_IF_NULL(iid);
-    FAIL_IF_NOT(iid->id == htons(300));
+    FAIL_IF_NOT(iid->arg1 == 300);
     DetectIcmpIdFree(NULL, iid);
     PASS;
 }
@@ -368,9 +266,9 @@ static int DetectIcmpIdParseTest03 (void)
  */
 static int DetectIcmpIdParseTest04 (void)
 {
-    DetectIcmpIdData *iid = DetectIcmpIdParse(NULL, "   \"   300 \"");
+    DetectU16Data *iid = SCDetectU16UnquoteParse("   \"   300 \"");
     FAIL_IF_NULL(iid);
-    FAIL_IF_NOT(iid->id == htons(300));
+    FAIL_IF_NOT(iid->arg1 == 300);
     DetectIcmpIdFree(NULL, iid);
     PASS;
 }
@@ -381,7 +279,7 @@ static int DetectIcmpIdParseTest04 (void)
  */
 static int DetectIcmpIdParseTest05 (void)
 {
-    DetectIcmpIdData *iid = DetectIcmpIdParse(NULL, "\"300");
+    DetectU16Data *iid = SCDetectU16UnquoteParse("\"300");
     FAIL_IF_NOT_NULL(iid);
     PASS;
 }
