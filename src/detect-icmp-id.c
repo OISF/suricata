@@ -40,7 +40,6 @@
 #include "util-unittest-helper.h"
 #include "util-debug.h"
 
-
 static int DetectIcmpIdMatch(DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectIcmpIdSetup(DetectEngineCtx *, Signature *, const char *);
