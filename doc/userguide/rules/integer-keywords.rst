@@ -111,23 +111,27 @@ They expand the syntax of a single integer::
 
 .. table:: **Index values for multi-integers keyword**
 
-    =========  ================================================
-    Value      Description
-    =========  ================================================
-    [default]  Match with any index
-    any        Match with any index
-    all        Match only if all indexes match
-    all1       Match only if all and at least one indexes match
-    nb         Matches a number of times
-    or_absent  Match with any index or no values
-    0>=        Match specific index
-    0<         Match specific index with back to front indexing
-    oob_or     Match with specific index or index out of bounds
-    =========  ================================================
+    ============= ================================================
+    Value         Description
+    ============= ================================================
+    [default]     Match with any index
+    any           Match with any index
+    all           Match only if all and at least one indexes match
+    all_or_absent Match only if all indexes match
+    nb            Matches a number of times
+    or_absent     Match with any index or no values
+    0>=           Match specific index
+    0<            Match specific index with back to front indexing
+    oob_or        Match with specific index or index out of bounds
+    ============= ================================================
 
-The index ``all`` will match if there is no value.
-The index ``all1`` will not match if there is no value and behaves
-like ``all`` if there is at least one value.
+**Please note that:**
+
+The index ``all`` will not match if there is no value.
+
+The index ``all_or_absent`` will match if there is no value
+and behaves like ``all`` if there is at least one value.
+
 These keywords will wait for transaction completion to run, to
 be sure to have the final number of elements.
 
