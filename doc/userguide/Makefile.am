@@ -9,6 +9,7 @@ EXTRA_DIST = \
 	devguide \
 	file-extraction \
 	index.rst \
+	known-issues.rst \
 	upgrade \
 	upgrade.rst \
 	initscripts.rst \
