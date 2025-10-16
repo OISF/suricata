@@ -37,6 +37,7 @@
 #include "decode-teredo.h"
 #include "decode-vxlan.h"
 #include "decode-events.h"
+#include "decode-l2tp.h"
 #include "util-unittest.h"
 #include "util-debug.h"
 #include "flow.h"
@@ -106,6 +107,15 @@ int DecodeUDP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     if (DecodeVXLANEnabledForPort(p->dp) &&
             unlikely(DecodeVXLAN(tv, dtv, p, p->payload, p->payload_len) == TM_ECODE_OK)) {
         /* Here we have a VXLAN packet and don't need to handle app
+         * layer */
+        FlowSetupPacket(p);
+        return TM_ECODE_OK;
+    }
+
+    /* Handle L2TP if configured */
+    if (DecodeL2TPEnabledForPort(p->sp, p->dp) &&
+            unlikely(DecodeL2TP(tv, dtv, p, p->payload, p->payload_len) == TM_ECODE_OK)) {
+        /* Here we have a L2TP packet and don't need to handle app
          * layer */
         FlowSetupPacket(p);
         return TM_ECODE_OK;

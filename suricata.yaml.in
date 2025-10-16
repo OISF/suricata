@@ -51,6 +51,7 @@ vars:
     VXLAN_PORTS: 4789
     TEREDO_PORTS: 3544
     SIP_PORTS: "[5060, 5061]"
+    L2TP_PORTS: 1701
 
 ##
 ## Step 2: Select outputs to enable
@@ -1738,6 +1739,11 @@ decoder:
     # ports to look for Teredo. Max 4 ports. If no ports are given, or
     # the value is set to 'any', Teredo detection runs on _all_ UDP packets.
     ports: $TEREDO_PORTS # syntax: '[3544, 1234]' or '3533' or 'any'.
+
+  l2tp:
+    enabled: true
+    ports: $L2TP_PORTS # syntax: '[1701, 2193]''
+    strict: false # enforce checking of reserved bits
 
   # VXLAN decoder is assigned to up to 4 UDP ports. By default only the
   # IANA assigned port 4789 is enabled.

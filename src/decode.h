@@ -62,6 +62,7 @@ enum PktSrcEnum {
     PKT_SRC_CAPTURE_TIMEOUT,
     PKT_SRC_DECODER_GENEVE,
     PKT_SRC_SHUTDOWN_FLUSH,
+    PKT_SRC_DECODER_L2TP,
 };
 
 #include "source-nflog.h"
@@ -92,6 +93,7 @@ enum PktSrcEnum {
 #include "decode-vlan.h"
 #include "decode-mpls.h"
 #include "decode-arp.h"
+#include "decode-l2tp.h"
 
 #include "util-validate.h"
 
@@ -1014,6 +1016,8 @@ typedef struct DecodeThreadVars_
     uint16_t counter_ipv6inipv6;
     uint16_t counter_erspan;
     uint16_t counter_nsh;
+    uint16_t counter_l2tp;
+    uint16_t counter_l2tp_unsupported;
 
     /** frag stats - defrag runs in the context of the decoder. */
     uint16_t counter_defrag_ipv4_fragments;
@@ -1110,6 +1114,7 @@ enum DecodeTunnelProto {
     DECODE_TUNNEL_PPP,
     DECODE_TUNNEL_NSH,
     DECODE_TUNNEL_ARP,
+    DECODE_TUNNEL_L2TP,
     DECODE_TUNNEL_UNSET
 };
 
@@ -1170,6 +1175,7 @@ int DecodeCHDLC(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uin
 int DecodeTEMPLATE(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeNSH(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeARP(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
+int DecodeL2TP(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 
 #ifdef UNITTESTS
 void DecodeIPV6FragHeader(Packet *p, const uint8_t *pkt,
