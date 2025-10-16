@@ -767,6 +767,7 @@ static PcapLogData *PcapLogDataCopy(const PcapLogData *pl)
     copy->use_stream_depth = pl->use_stream_depth;
     copy->size_limit = pl->size_limit;
     copy->conditional = pl->conditional;
+    copy->bpf_filter = pl->bpf_filter;
 
     const PcapLogCompressionData *comp = &pl->compression;
     PcapLogCompressionData *copy_comp = &copy->compression;
