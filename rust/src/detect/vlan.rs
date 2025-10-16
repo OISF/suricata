@@ -23,7 +23,7 @@ use std::ffi::{c_int, c_void, CStr};
 
 pub const DETECT_VLAN_ID_ANY: i8 = i8::MIN;
 pub const DETECT_VLAN_ID_ALL: i8 = i8::MAX;
-pub const DETECT_VLAN_ID_ALL1: i8 = i8::MAX - 1;
+pub const DETECT_VLAN_ID_ALL_OR_ABSENT: i8 = i8::MAX - 1;
 pub const DETECT_VLAN_ID_OR_ABSENT: i8 = i8::MAX - 2;
 pub const DETECT_VLAN_ID_ERROR: i8 = i8::MAX - 3;
 pub static VLAN_MAX_LAYERS: i32 = 3;
@@ -54,7 +54,7 @@ pub fn detect_parse_vlan_id(s: &str) -> Option<DetectUintArrayData<u16>> {
                 // keep previous behavior that vlan.id: all matched only if there was vlan
                 return Some(DetectUintArrayData {
                     du: a.du.clone(),
-                    index: DetectUintIndex::All1,
+                    index: DetectUintIndex::All,
                     start: a.start,
                     end: a.end,
                 });
@@ -108,7 +108,7 @@ pub unsafe extern "C" fn SCDetectVlanIdPrefilterMatch(
     let index = match ctx.layer {
         DETECT_VLAN_ID_ANY => DetectUintIndex::Any,
         DETECT_VLAN_ID_ALL => DetectUintIndex::All,
-        DETECT_VLAN_ID_ALL1 => DetectUintIndex::All1,
+        DETECT_VLAN_ID_ALL_OR_ABSENT => DetectUintIndex::AllOrAbsent,
         DETECT_VLAN_ID_OR_ABSENT => DetectUintIndex::OrAbsent,
         i => DetectUintIndex::Index((false, i.into())),
     };
@@ -130,7 +130,7 @@ pub unsafe extern "C" fn SCDetectVlanIdPrefilter(
     let layer = match ctx.index {
         DetectUintIndex::Any => DETECT_VLAN_ID_ANY,
         DetectUintIndex::All => DETECT_VLAN_ID_ALL,
-        DetectUintIndex::All1 => DETECT_VLAN_ID_ALL1,
+        DetectUintIndex::AllOrAbsent => DETECT_VLAN_ID_ALL_OR_ABSENT,
         DetectUintIndex::OrAbsent => DETECT_VLAN_ID_OR_ABSENT,
         DetectUintIndex::Index((_, i)) => i as i8,
         DetectUintIndex::NumberMatches(_) => DETECT_VLAN_ID_ERROR,
@@ -151,7 +151,7 @@ pub unsafe extern "C" fn SCDetectVlanIdPrefilterable(ctx: *const c_void) -> bool
     match ctx.index {
         DetectUintIndex::Any => true,
         DetectUintIndex::All => true,
-        DetectUintIndex::All1 => true,
+        DetectUintIndex::AllOrAbsent => true,
         DetectUintIndex::OrAbsent => true,
         // do not prefilter for precise index with "or out of bounds"
         DetectUintIndex::Index((oob, _)) => !oob,
@@ -201,7 +201,7 @@ mod test {
                     arg2: 0,
                     mode: DetectUintMode::DetectUintModeEqual,
                 },
-                index: DetectUintIndex::All1,
+                index: DetectUintIndex::All,
                 start: 0,
                 end: 0,
             }
