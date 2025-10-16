@@ -1328,9 +1328,7 @@ impl ConnectionParser {
                     request_entity_len, request_message_len,
                 )
             );
-            return Err(std::io::Error::other(
-                "compression_bomb_limit reached",
-            ));
+            return Err(std::io::Error::other("compression_bomb_limit reached"));
         }
         Ok(tx_data.len())
     }
