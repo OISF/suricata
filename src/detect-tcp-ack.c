@@ -34,6 +34,7 @@
 #include "detect-engine-prefilter.h"
 #include "detect-engine-prefilter-common.h"
 #include "detect-engine-build.h"
+#include "detect-engine-uint.h"
 
 #include "detect-tcp-ack.h"
 
@@ -62,6 +63,7 @@ void DetectAckRegister(void)
     sigmatch_table[DETECT_ACK].Match = DetectAckMatch;
     sigmatch_table[DETECT_ACK].Setup = DetectAckSetup;
     sigmatch_table[DETECT_ACK].Free = DetectAckFree;
+    sigmatch_table[DETECT_ACK].flags = SIGMATCH_INFO_UINT32;
 
     sigmatch_table[DETECT_ACK].SupportsPrefilter = PrefilterTcpAckIsPrefilterable;
     sigmatch_table[DETECT_ACK].SetupPrefilter = PrefilterSetupTcpAck;
@@ -86,14 +88,14 @@ static int DetectAckMatch(DetectEngineThreadCtx *det_ctx,
                           Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
-    const DetectAckData *data = (const DetectAckData *)ctx;
+    const DetectU32Data *data = (const DetectU32Data *)ctx;
 
     /* This is only needed on TCP packets */
     if (!(PacketIsTCP(p))) {
         return 0;
     }
 
-    return (data->ack == TCP_GET_RAW_ACK(PacketGetTCP(p))) ? 1 : 0;
+    return DetectU32Match(TCP_GET_RAW_ACK(PacketGetTCP(p)), data);
 }
 
 /**
@@ -110,29 +112,17 @@ static int DetectAckMatch(DetectEngineThreadCtx *det_ctx,
  */
 static int DetectAckSetup(DetectEngineCtx *de_ctx, Signature *s, const char *optstr)
 {
-    DetectAckData *data = NULL;
-
-    data = SCMalloc(sizeof(DetectAckData));
-    if (unlikely(data == NULL))
-        goto error;
-
-    if (StringParseUint32(&data->ack, 10, 0, optstr) < 0) {
-        goto error;
-    }
+    DetectU32Data *data = SCDetectU32Parse(optstr);
+    if (data == NULL)
+        return -1;
 
     if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_ACK, (SigMatchCtx *)data, DETECT_SM_LIST_MATCH) == NULL) {
-        goto error;
+        DetectAckFree(de_ctx, data);
+        return -1;
     }
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
-
     return 0;
-
-error:
-    if (data)
-        SCFree(data);
-    return -1;
-
 }
 
 /**
@@ -143,8 +133,7 @@ error:
  */
 static void DetectAckFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    DetectAckData *data = (DetectAckData *)ptr;
-    SCFree(data);
+    SCDetectU32Free(ptr);
 }
 
 /* prefilter code */
@@ -158,33 +147,22 @@ PrefilterPacketAckMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *p
     if (!PrefilterPacketHeaderExtraMatch(ctx, p))
         return;
 
-    if (p->proto == IPPROTO_TCP && PacketIsTCP(p) &&
-            (TCP_GET_RAW_ACK(PacketGetTCP(p)) == ctx->v1.u32[0])) {
-        SCLogDebug("packet matches TCP ack %u", ctx->v1.u32[0]);
-        PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
+    if (p->proto == IPPROTO_TCP && PacketIsTCP(p)) {
+        DetectU32Data du32;
+        du32.mode = ctx->v1.u8[0];
+        du32.arg1 = ctx->v1.u32[1];
+        du32.arg2 = ctx->v1.u32[2];
+        if (DetectU32Match(TCP_GET_RAW_ACK(PacketGetTCP(p)), &du32)) {
+            SCLogDebug("packet matches TCP ack %u", ctx->v1.u32[0]);
+            PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
+        }
     }
-}
-
-static void
-PrefilterPacketAckSet(PrefilterPacketHeaderValue *v, void *smctx)
-{
-    const DetectAckData *a = smctx;
-    v->u32[0] = a->ack;
-}
-
-static bool
-PrefilterPacketAckCompare(PrefilterPacketHeaderValue v, void *smctx)
-{
-    const DetectAckData *a = smctx;
-    if (v.u32[0] == a->ack)
-        return true;
-    return false;
 }
 
 static int PrefilterSetupTcpAck(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
     return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_ACK, SIG_MASK_REQUIRE_REAL_PKT,
-            PrefilterPacketAckSet, PrefilterPacketAckCompare, PrefilterPacketAckMatch);
+            PrefilterPacketU32Set, PrefilterPacketU32Compare, PrefilterPacketAckMatch);
 }
 
 static bool PrefilterTcpAckIsPrefilterable(const Signature *s)
