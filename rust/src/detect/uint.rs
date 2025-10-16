@@ -54,8 +54,8 @@ pub struct DetectUintData<T> {
 #[derive(Debug, PartialEq)]
 pub enum DetectUintIndex {
     Any,
+    AllOrAbsent,
     All,
-    All1,
     OrAbsent,
     Index((bool, i32)),
     NumberMatches(DetectUintData<u32>),
@@ -116,7 +116,7 @@ fn parse_uint_index(parts: &[&str]) -> Option<DetectUintIndex> {
     let index = if parts.len() >= 2 {
         match parts[1] {
             "all" => DetectUintIndex::All,
-            "all1" => DetectUintIndex::All1,
+            "all_or_absent" => DetectUintIndex::AllOrAbsent,
             "any" => DetectUintIndex::Any,
             "or_absent" => DetectUintIndex::OrAbsent,
             // not only a literal, but some numeric value
@@ -234,7 +234,7 @@ pub(crate) fn detect_uint_match_at_index<T, U: DetectIntType>(
             }
             return 0;
         }
-        DetectUintIndex::All => {
+        DetectUintIndex::AllOrAbsent => {
             if !eof {
                 return 0;
             }
@@ -247,7 +247,7 @@ pub(crate) fn detect_uint_match_at_index<T, U: DetectIntType>(
             }
             return 1;
         }
-        DetectUintIndex::All1 => {
+        DetectUintIndex::All => {
             if !eof {
                 return 0;
             }
