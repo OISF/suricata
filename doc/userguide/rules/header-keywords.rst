@@ -733,6 +733,8 @@ ICMP messages all have sequence numbers. This can be useful (together
 with the id) for checking which reply message belongs to which request
 message.
 
+icmp_seq uses an :ref:`unsigned 16-bits integer <rules-integer-keywords>`.
+
 Format of the icmp_seq keyword::
 
   icmp_seq:<number>;
