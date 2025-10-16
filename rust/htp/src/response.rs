@@ -1266,7 +1266,7 @@ impl ConnectionParser {
             .map_err(|_| std::io::Error::other("body data hook failed"))?;
         let resp = self.response_mut().unwrap();
         if let Some(decompressor) = &mut resp.response_decompressor {
-            if decompressor.callback_inc().is_multiple_of(compression_options.get_time_test_freq()) {
+            if decompressor.callback_inc() % compression_options.get_time_test_freq() == 0 {
                 if let Some(time_spent) = decompressor.timer_reset() {
                     if time_spent > compression_options.get_time_limit() as u64 {
                         decompressor.set_passthrough(true);
