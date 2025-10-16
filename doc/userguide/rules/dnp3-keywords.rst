@@ -12,6 +12,8 @@ This keyword will match on the application function code found in DNP3
 request and responses.  It can be specified as the integer value or
 the symbolic name of the function code.
 
+dnp3_func uses an :ref:`unsigned 8-bits integer <rules-integer-keywords>`.
+
 Syntax
 ~~~~~~
 
@@ -67,6 +69,8 @@ dnp3_ind
 
 This keyword matches on the DNP3 internal indicator flags in the
 response application header.
+
+dnp3_ind uses an :ref:`unsigned 16-bits integer <rules-integer-keywords>` with bitmasks.
 
 Syntax
 ~~~~~~
