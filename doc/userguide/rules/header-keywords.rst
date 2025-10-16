@@ -405,6 +405,8 @@ occasions every packet of a TCP connection has an ACK flag after the
 first SYN and a ack-number which increases with the receipt of every
 new data-byte.
 
+ack uses an :ref:`unsigned 32-bits integer <rules-integer-keywords>`.
+
 Format of ``ack``::
 
   ack:1;
