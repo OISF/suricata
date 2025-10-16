@@ -64,6 +64,10 @@ pub fn tcp_flags_parse(s: &str) -> Option<DetectUintData<u8>> {
                 SCLogError!("Too many commas");
                 return None;
             }
+            if modifier != DetectBitflagModifier::Equal {
+                SCLogError!("Ignored flags are only meaningful with equal mode");
+                return None;
+            }
             ignoring = true;
         } else if let Some(enum_val) = TcpFlag::from_str(vals) {
             let val = enum_val.into_u();
@@ -142,5 +146,9 @@ mod test {
         assert!(tcp_flags_parse("+S*").is_none());
         let ctx = tcp_flags_parse("CE").unwrap();
         assert_eq!(ctx.arg2, 0xC0);
+        assert!(tcp_flags_parse("A,A").is_none());
+        assert!(tcp_flags_parse("+A,U").is_none());
+        assert!(tcp_flags_parse("*A,U").is_none());
+        assert!(tcp_flags_parse("-A,U").is_none());
     }
 }
