@@ -25,13 +25,6 @@
 #define SURICATA_DETECT_ACK_H
 
 /**
- * \brief ack data
- */
-typedef struct DetectAckData_ {
-    uint32_t ack;                    /**< ack to match */
-} DetectAckData;
-
-/**
  * \brief Registration function for ack: keyword
  */
 void DetectAckRegister(void);
