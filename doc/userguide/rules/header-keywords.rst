@@ -372,6 +372,8 @@ keeping track of to what place in a data-stream a byte belongs. If the
 SYN flag is set at 1, then the sequence number of the first byte of
 the data is this number plus 1 (so, 2).
 
+seq uses an :ref:`unsigned 32-bits integer <rules-integer-keywords>`.
+
 Example::
 
   seq:0;
