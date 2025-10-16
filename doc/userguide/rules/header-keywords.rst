@@ -432,6 +432,8 @@ This mechanism is used to prevent the receiver from being overflowed by
 data. The value of the window size is limited and can be 2 to 65.535 bytes.
 To make more use of your bandwidth you can use a bigger TCP-window.
 
+window uses an :ref:`unsigned 16-bits integer <rules-integer-keywords>`.
+
 The format of the window keyword is::
 
   window:[!]<number>;
