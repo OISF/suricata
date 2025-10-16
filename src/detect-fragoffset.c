@@ -40,7 +40,6 @@
 #include "util-unittest.h"
 #include "util-debug.h"
 
-
 static int DetectFragOffsetMatch(DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
 static int DetectFragOffsetSetup(DetectEngineCtx *, Signature *, const char *);
@@ -70,7 +69,6 @@ void DetectFragOffsetRegister (void)
     sigmatch_table[DETECT_FRAGOFFSET].SupportsPrefilter = PrefilterFragOffsetIsPrefilterable;
     sigmatch_table[DETECT_FRAGOFFSET].SetupPrefilter = PrefilterSetupFragOffset;
 }
-
 
 /**
  * \brief This function is used to match fragoffset rule option set on a packet

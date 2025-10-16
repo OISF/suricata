@@ -923,13 +923,11 @@ static void DumpMatches(RuleAnalyzer *ctx, SCJsonBuilder *js, const SigMatchData
                 SCDetectU32ToJson(js, cd);
                 SCJbClose(js);
                 break;
-
-                break;
             }
             case DETECT_SEQ: {
-                const DetectSeqData *cd = (const DetectSeqData *)smd->ctx;
+                const DetectU32Data *cd = (const DetectU32Data *)smd->ctx;
                 SCJbOpenObject(js, "seq");
-                SCJbSetUint(js, "number", cd->seq);
+                SCDetectU32ToJson(js, cd);
                 SCJbClose(js);
                 break;
             }
