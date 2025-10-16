@@ -24,13 +24,6 @@
 #ifndef SURICATA_DETECT_ID_H
 #define SURICATA_DETECT_ID_H
 
-#define DETECT_IPID_MIN 0
-#define DETECT_IPID_MAX 65536
-
-typedef struct DetectIdData_ {
-    uint16_t id;     /** ip->id to match */
-} DetectIdData;
-
 /* prototypes */
 void DetectIdRegister (void);
 
