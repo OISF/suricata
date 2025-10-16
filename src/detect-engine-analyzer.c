@@ -917,11 +917,12 @@ static void DumpMatches(RuleAnalyzer *ctx, SCJsonBuilder *js, const SigMatchData
                 break;
             }
             case DETECT_ACK: {
-                const DetectAckData *cd = (const DetectAckData *)smd->ctx;
-
+                const DetectU32Data *cd = (const DetectU32Data *)smd->ctx;
                 SCJbOpenObject(js, "ack");
-                SCJbSetUint(js, "number", cd->ack);
+                SCDetectU32ToJson(js, cd);
                 SCJbClose(js);
+                break;
+
                 break;
             }
             case DETECT_SEQ: {
