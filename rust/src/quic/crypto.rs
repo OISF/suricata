@@ -15,15 +15,13 @@
  * 02110-1301, USA.
  */
 
-use aes::cipher::generic_array::GenericArray;
+use aes::cipher::{BlockEncrypt, KeyInit};
 use aes::Aes128;
-use aes::BlockEncrypt;
-use aes::NewBlockCipher;
-use aes_gcm::AeadInPlace;
+use aes_gcm::aead::AeadInPlace;
 use aes_gcm::Aes128Gcm;
-use aes_gcm::NewAead;
 use hkdf::Hkdf;
 use sha2::Sha256;
+use std::convert::TryInto;
 
 pub const AES128_KEY_LEN: usize = 16;
 pub const AES128_TAG_LEN: usize = 16;
@@ -41,14 +39,15 @@ impl HeaderProtectionKey {
             b"quic hp" as &[u8]
         };
         hkdf_expand_label(&hk, quichp, &mut secret, AES128_KEY_LEN as u16);
-        return Self(Aes128::new(GenericArray::from_slice(&secret)));
+        return Self(Aes128::new((&secret).into()));
     }
 
     pub fn decrypt_in_place(
         &self, sample: &[u8], first: &mut u8, packet_number: &mut [u8],
     ) -> Result<(), ()> {
-        let mut mask = GenericArray::clone_from_slice(sample);
-        self.0.encrypt_block(&mut mask);
+        debug_validate_bug_on!(sample.len() != AES128_KEY_LEN);
+        let mut mask: [u8; AES128_KEY_LEN] = sample[..AES128_KEY_LEN].try_into().map_err(|_| ())?;
+        self.0.encrypt_block((&mut mask).into());
 
         let (first_mask, pn_mask) = mask.split_first().unwrap();
 
@@ -84,7 +83,7 @@ impl PacketKey {
             b"quic key" as &[u8]
         };
         hkdf_expand_label(&hk, quickey, &mut secret, AES128_KEY_LEN as u16);
-        let key = Aes128Gcm::new(GenericArray::from_slice(&secret));
+        let key = Aes128Gcm::new((&secret).into());
 
         let mut r = PacketKey {
             key,
@@ -112,9 +111,8 @@ impl PacketKey {
         }
         let tag_pos = payload.len() - AES128_TAG_LEN;
         let (buffer, tag) = payload.split_at_mut(tag_pos);
-        let taga = GenericArray::from_slice(tag);
         self.key
-            .decrypt_in_place_detached(GenericArray::from_slice(&nonce), header, buffer, taga)
+            .decrypt_in_place_detached((&nonce).into(), header, buffer, (&*tag).into())
             .map_err(|_| ())?;
         Ok(&payload[..tag_pos])
     }
