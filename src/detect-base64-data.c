@@ -69,10 +69,10 @@ static int DetectBase64DataSetupTest01(void)
     FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = DetectEngineAppendSig(de_ctx,
+    Signature *s = DetectEngineAppendSig(de_ctx,
         "alert smtp any any -> any any (msg:\"DetectBase64DataSetupTest\"; "
         "base64_decode; base64_data; content:\"content\"; sid:1; rev:1;)");
-    FAIL_IF_NULL(de_ctx->sig_list);
+    FAIL_IF_NULL(s);
 
     SigMatch *sm = de_ctx->sig_list->init_data->smlists[DETECT_SM_LIST_PMATCH];
     FAIL_IF_NULL(sm);
@@ -93,9 +93,9 @@ static int DetectBase64DataSetupTest04(void)
     FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = DetectEngineAppendSig(de_ctx,
+    Signature *s = DetectEngineAppendSig(de_ctx,
         "alert tcp any any -> any any (msg:\"some b64thing\"; flow:established,from_server; file_data; content:\"sometext\"; fast_pattern; base64_decode:relative; base64_data; content:\"foobar\"; nocase; tag:session,120,seconds; sid:1111111; rev:1;)");
-    FAIL_IF_NULL(de_ctx->sig_list);
+    FAIL_IF_NULL(s);
 
     DetectEngineCtxFree(de_ctx);
     PASS;
