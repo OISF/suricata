@@ -115,6 +115,7 @@ ExceptionPolicyStatsSetts app_layer_error_eps_stats = {
        /* EXCEPTION_POLICY_DROP_PACKET */  false,
        /* EXCEPTION_POLICY_DROP_FLOW */    false,
        /* EXCEPTION_POLICY_REJECT */       true,
+       /* EXCEPTION_POLICY_REJECT_BOTH */  true,
     },
     .valid_settings_ips = {
        /* EXCEPTION_POLICY_NOT_SET */      false,
@@ -125,6 +126,7 @@ ExceptionPolicyStatsSetts app_layer_error_eps_stats = {
        /* EXCEPTION_POLICY_DROP_PACKET */  true,
        /* EXCEPTION_POLICY_DROP_FLOW */    true,
        /* EXCEPTION_POLICY_REJECT */       true,
+       /* EXCEPTION_POLICY_REJECT_BOTH */  true,
     },
 };
 // clang-format on
