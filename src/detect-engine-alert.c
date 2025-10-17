@@ -37,6 +37,7 @@
 #include "util-validate.h"
 
 #include "action-globals.h"
+#include "capture-hooks.h"
 
 /** tag signature we use for tag alerts */
 static Signature g_tag_signature;
@@ -596,6 +597,12 @@ void PacketAlertFinalize(const DetectEngineCtx *de_ctx, DetectEngineThreadCtx *d
             FlowSetHasAlertsFlag(p->flow);
             p->flags |= PKT_FIRST_ALERTS;
         }
+    }
+
+    /* Notify capture layer about packets with alerts, capture impl may
+     * update per-capture context (e.g. pcap-file alert counts). */
+    if (p->alerts.cnt > 0) {
+        CaptureHooksOnPacketWithAlerts(p);
     }
 }
 
