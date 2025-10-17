@@ -92,6 +92,7 @@ ExceptionPolicyStatsSetts defrag_memcap_eps_stats = {
     /* EXCEPTION_POLICY_DROP_PACKET */  false,
     /* EXCEPTION_POLICY_DROP_FLOW */    false,
     /* EXCEPTION_POLICY_REJECT */       true,
+    /* EXCEPTION_POLICY_REJECT_BOTH */  true,
     },
     .valid_settings_ips = {
     /* EXCEPTION_POLICY_NOT_SET */      false,
@@ -102,6 +103,7 @@ ExceptionPolicyStatsSetts defrag_memcap_eps_stats = {
     /* EXCEPTION_POLICY_DROP_PACKET */  true,
     /* EXCEPTION_POLICY_DROP_FLOW */    false,
     /* EXCEPTION_POLICY_REJECT */       true,
+    /* EXCEPTION_POLICY_REJECT_BOTH */  true,
     },
 };
 // clang-format on
@@ -118,6 +120,7 @@ ExceptionPolicyStatsSetts flow_memcap_eps_stats = {
     /* EXCEPTION_POLICY_DROP_PACKET */  false,
     /* EXCEPTION_POLICY_DROP_FLOW */    false,
     /* EXCEPTION_POLICY_REJECT */       true,
+    /* EXCEPTION_POLICY_REJECT_BOTH */  true,
     },
     .valid_settings_ips = {
     /* EXCEPTION_POLICY_NOT_SET */      false,
@@ -128,6 +131,7 @@ ExceptionPolicyStatsSetts flow_memcap_eps_stats = {
     /* EXCEPTION_POLICY_DROP_PACKET */  true,
     /* EXCEPTION_POLICY_DROP_FLOW */    false,
     /* EXCEPTION_POLICY_REJECT */       true,
+    /* EXCEPTION_POLICY_REJECT_BOTH */  true,
     },
 };
 // clang-format on
