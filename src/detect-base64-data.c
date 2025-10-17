@@ -48,10 +48,8 @@ void DetectBase64DataRegister(void)
 static int DetectBase64DataSetup(DetectEngineCtx *de_ctx, Signature *s,
     const char *str)
 {
-    SigMatch *pm = NULL;
-
     /* Check for a preceding base64_decode. */
-    pm = DetectGetLastSMFromLists(s, DETECT_BASE64_DECODE, -1);
+    SigMatch *pm = DetectGetLastSMFromLists(s, DETECT_BASE64_DECODE, -1);
     if (pm == NULL) {
         SCLogError("\"base64_data\" keyword seen without preceding base64_decode.");
         return -1;
@@ -67,25 +65,20 @@ static int g_file_data_buffer_id = 0;
 
 static int DetectBase64DataSetupTest01(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    SigMatch *sm;
-
-    de_ctx = DetectEngineCtxInit();
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
+    de_ctx->sig_list = DetectEngineAppendSig(de_ctx,
         "alert smtp any any -> any any (msg:\"DetectBase64DataSetupTest\"; "
         "base64_decode; base64_data; content:\"content\"; sid:1; rev:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
-    sm = de_ctx->sig_list->init_data->smlists[DETECT_SM_LIST_PMATCH];
+    SigMatch *sm = de_ctx->sig_list->init_data->smlists[DETECT_SM_LIST_PMATCH];
     FAIL_IF_NULL(sm);
     FAIL_IF_NOT(sm->type == DETECT_BASE64_DECODE);
     FAIL_IF_NULL(de_ctx->sig_list->init_data->smlists[DETECT_SM_LIST_BASE64_DATA]);
 
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     PASS;
 }
@@ -96,18 +89,14 @@ static int DetectBase64DataSetupTest01(void)
  */
 static int DetectBase64DataSetupTest04(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-
-    de_ctx = DetectEngineCtxInit();
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
+    de_ctx->sig_list = DetectEngineAppendSig(de_ctx,
         "alert tcp any any -> any any (msg:\"some b64thing\"; flow:established,from_server; file_data; content:\"sometext\"; fast_pattern; base64_decode:relative; base64_data; content:\"foobar\"; nocase; tag:session,120,seconds; sid:1111111; rev:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     PASS;
 }
