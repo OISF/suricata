@@ -102,6 +102,7 @@ ExceptionPolicyStatsSetts stream_memcap_eps_stats = {
     /* EXCEPTION_POLICY_DROP_PACKET */  false,
     /* EXCEPTION_POLICY_DROP_FLOW */    false,
     /* EXCEPTION_POLICY_REJECT */       true,
+    /* EXCEPTION_POLICY_REJECT_BOTH */  true,
     },
     .valid_settings_ips = {
     /* EXCEPTION_POLICY_NOT_SET */      false,
@@ -112,6 +113,7 @@ ExceptionPolicyStatsSetts stream_memcap_eps_stats = {
     /* EXCEPTION_POLICY_DROP_PACKET */  true,
     /* EXCEPTION_POLICY_DROP_FLOW */    true,
     /* EXCEPTION_POLICY_REJECT */       true,
+    /* EXCEPTION_POLICY_REJECT_BOTH */  true,
     },
 };
 // clang-format on
@@ -128,6 +130,7 @@ ExceptionPolicyStatsSetts stream_reassembly_memcap_eps_stats = {
     /* EXCEPTION_POLICY_DROP_PACKET */  false,
     /* EXCEPTION_POLICY_DROP_FLOW */    false,
     /* EXCEPTION_POLICY_REJECT */       true,
+    /* EXCEPTION_POLICY_REJECT_BOTH */  true,
     },
     .valid_settings_ips = {
     /* EXCEPTION_POLICY_NOT_SET */      false,
@@ -138,6 +141,7 @@ ExceptionPolicyStatsSetts stream_reassembly_memcap_eps_stats = {
     /* EXCEPTION_POLICY_DROP_PACKET */  true,
     /* EXCEPTION_POLICY_DROP_FLOW */    true,
     /* EXCEPTION_POLICY_REJECT */       true,
+    /* EXCEPTION_POLICY_REJECT_BOTH */  true,
     },
 };
 // clang-format on
@@ -154,6 +158,7 @@ ExceptionPolicyStatsSetts stream_midstream_enabled_eps_stats = {
     /* EXCEPTION_POLICY_DROP_PACKET */  false,
     /* EXCEPTION_POLICY_DROP_FLOW */    false,
     /* EXCEPTION_POLICY_REJECT */       false,
+    /* EXCEPTION_POLICY_REJECT_BOTH */  false,
     },
     .valid_settings_ips = {
     /* EXCEPTION_POLICY_NOT_SET */      false,
@@ -164,6 +169,7 @@ ExceptionPolicyStatsSetts stream_midstream_enabled_eps_stats = {
     /* EXCEPTION_POLICY_DROP_PACKET */  false,
     /* EXCEPTION_POLICY_DROP_FLOW */    false,
     /* EXCEPTION_POLICY_REJECT */       false,
+    /* EXCEPTION_POLICY_REJECT_BOTH */  false,
     },
 };
 // clang-format on
@@ -180,6 +186,7 @@ ExceptionPolicyStatsSetts stream_midstream_disabled_eps_stats = {
     /* EXCEPTION_POLICY_DROP_PACKET */  false,
     /* EXCEPTION_POLICY_DROP_FLOW */    false,
     /* EXCEPTION_POLICY_REJECT */       true,
+    /* EXCEPTION_POLICY_REJECT_BOTH */  true,
     },
     .valid_settings_ips = {
     /* EXCEPTION_POLICY_NOT_SET */      false,
@@ -190,6 +197,7 @@ ExceptionPolicyStatsSetts stream_midstream_disabled_eps_stats = {
     /* EXCEPTION_POLICY_DROP_PACKET */  false,
     /* EXCEPTION_POLICY_DROP_FLOW */    true,
     /* EXCEPTION_POLICY_REJECT */       true,
+    /* EXCEPTION_POLICY_REJECT_BOTH */  true,
     },
 };
 // clang-format on
