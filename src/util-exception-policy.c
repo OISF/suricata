@@ -47,6 +47,8 @@ const char *ExceptionPolicyEnumToString(enum ExceptionPolicy policy, bool is_jso
             return "reject";
         case EXCEPTION_POLICY_BYPASS_FLOW:
             return "bypass";
+        case EXCEPTION_POLICY_REJECT_BOTH:
+            return "reject_both";
         case EXCEPTION_POLICY_DROP_FLOW:
             return is_json ? "drop_flow" : "drop-flow";
         case EXCEPTION_POLICY_DROP_PACKET:
@@ -145,8 +147,14 @@ void ExceptionPolicyApply(Packet *p, enum ExceptionPolicy policy, enum PacketDro
         case EXCEPTION_POLICY_NOT_SET:
             break;
         case EXCEPTION_POLICY_REJECT:
-            SCLogDebug("EXCEPTION_POLICY_REJECT");
-            PacketDrop(p, ACTION_REJECT, drop_reason);
+        case EXCEPTION_POLICY_REJECT_BOTH:
+            if (policy == EXCEPTION_POLICY_REJECT) {
+                SCLogDebug("EXCEPTION_POLICY_REJECT");
+                PacketDrop(p, ACTION_REJECT, drop_reason);
+            } else {
+                SCLogDebug("EXCEPTION_POLICY_REJECT_BOTH");
+                PacketDrop(p, ACTION_REJECT_BOTH, drop_reason);
+            }
             if (!EngineModeIsIPS()) {
                 break;
             }
@@ -204,6 +212,7 @@ static enum ExceptionPolicy PickPacketAction(const char *option, enum ExceptionP
         case EXCEPTION_POLICY_PASS_PACKET:
             break;
         case EXCEPTION_POLICY_REJECT:
+        case EXCEPTION_POLICY_REJECT_BOTH:
             break;
         case EXCEPTION_POLICY_NOT_SET:
             break;
@@ -229,6 +238,8 @@ static enum ExceptionPolicy ExceptionPolicyConfigValueParse(
         policy = EXCEPTION_POLICY_PASS_PACKET;
     } else if (strcmp(value_str, "reject") == 0) {
         policy = EXCEPTION_POLICY_REJECT;
+    } else if (strcmp(value_str, "reject-both") == 0) {
+        policy = EXCEPTION_POLICY_REJECT_BOTH;
     } else if (strcmp(value_str, "ignore") == 0) { // TODO name?
         policy = EXCEPTION_POLICY_NOT_SET;
     } else if (strcmp(value_str, "auto") == 0) {
