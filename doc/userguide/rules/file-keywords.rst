@@ -90,7 +90,7 @@ Example::
 
   file.name; content:".pdf"; nocase; endswith;
 
-**Note**: While``fileeext`` and ``file.name`` can both be used
+**Note**: While ``fileeext`` and ``file.name`` can both be used
 to match on file extensions, ``file.name`` allows for partial
 matching on file extensions. The following would match on a file
 with the extension of .pd as well as .pdf.
