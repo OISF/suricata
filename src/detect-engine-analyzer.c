@@ -917,17 +917,16 @@ static void DumpMatches(RuleAnalyzer *ctx, SCJsonBuilder *js, const SigMatchData
                 break;
             }
             case DETECT_ACK: {
-                const DetectAckData *cd = (const DetectAckData *)smd->ctx;
-
+                const DetectU32Data *cd = (const DetectU32Data *)smd->ctx;
                 SCJbOpenObject(js, "ack");
-                SCJbSetUint(js, "number", cd->ack);
+                SCDetectU32ToJson(js, cd);
                 SCJbClose(js);
                 break;
             }
             case DETECT_SEQ: {
-                const DetectSeqData *cd = (const DetectSeqData *)smd->ctx;
+                const DetectU32Data *cd = (const DetectU32Data *)smd->ctx;
                 SCJbOpenObject(js, "seq");
-                SCJbSetUint(js, "number", cd->seq);
+                SCDetectU32ToJson(js, cd);
                 SCJbClose(js);
                 break;
             }
@@ -953,17 +952,16 @@ static void DumpMatches(RuleAnalyzer *ctx, SCJsonBuilder *js, const SigMatchData
                 break;
             }
             case DETECT_ICMP_ID: {
-                const DetectIcmpIdData *cd = (const DetectIcmpIdData *)smd->ctx;
+                const DetectU16Data *cd = (const DetectU16Data *)smd->ctx;
                 SCJbOpenObject(js, "id");
-                SCJbSetUint(js, "number", SCNtohs(cd->id));
+                SCDetectU16ToJson(js, cd);
                 SCJbClose(js);
                 break;
             }
             case DETECT_WINDOW: {
-                const DetectWindowData *wd = (const DetectWindowData *)smd->ctx;
+                const DetectU16Data *cd = (const DetectU16Data *)smd->ctx;
                 SCJbOpenObject(js, "window");
-                SCJbSetUint(js, "size", wd->size);
-                SCJbSetBool(js, "negated", wd->negated);
+                SCDetectU16ToJson(js, cd);
                 SCJbClose(js);
                 break;
             }

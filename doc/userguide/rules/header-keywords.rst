@@ -153,6 +153,8 @@ this way, the receiver of the packet knows which fragments belong to
 the same packet. (IP ID does not take care of the order, in that case
 offset is used. It clarifies the order of the fragments.)
 
+id uses an :ref:`unsigned 16-bits integer <rules-integer-keywords>`.
+
 Format of id::
 
   id:<number>;
@@ -245,6 +247,8 @@ Fragment option. The fragmentation offset field is convenient for
 reassembly. The id is used to determine which fragments belong to
 which packet and the fragmentation offset field clarifies the order of
 the fragments.
+
+fragoffset uses an :ref:`unsigned 16-bits integer <rules-integer-keywords>`.
 
 You can use the following modifiers::
 
@@ -374,6 +378,8 @@ keeping track of to what place in a data-stream a byte belongs. If the
 SYN flag is set at 1, then the sequence number of the first byte of
 the data is this number plus 1 (so, 2).
 
+seq uses an :ref:`unsigned 32-bits integer <rules-integer-keywords>`.
+
 Example::
 
   seq:0;
@@ -400,6 +406,8 @@ The ``ack`` is the acknowledgement of the receipt of all previous
 occasions every packet of a TCP connection has an ACK flag after the
 first SYN and a ack-number which increases with the receipt of every
 new data-byte.
+
+ack uses an :ref:`unsigned 32-bits integer <rules-integer-keywords>`.
 
 Format of ``ack``::
 
@@ -429,6 +437,8 @@ first, before the sender can send the same amount of new data.
 This mechanism is used to prevent the receiver from being overflowed by
 data. The value of the window size is limited and can be 2 to 65.535 bytes.
 To make more use of your bandwidth you can use a bigger TCP-window.
+
+window uses an :ref:`unsigned 16-bits integer <rules-integer-keywords>`.
 
 The format of the window keyword is::
 
@@ -706,6 +716,8 @@ receiver has received the packet, it will send a reply using the same
 id so the sender will recognize it and connects it with the correct
 ICMP-request.
 
+icmp_id uses an :ref:`unsigned 16-bits integer <rules-integer-keywords>`.
+
 Format of the icmp_id keyword::
 
   icmp_id:<number>;
@@ -728,6 +740,8 @@ You can use the icmp_seq keyword to check for a ICMP sequence number.
 ICMP messages all have sequence numbers. This can be useful (together
 with the id) for checking which reply message belongs to which request
 message.
+
+icmp_seq uses an :ref:`unsigned 16-bits integer <rules-integer-keywords>`.
 
 Format of the icmp_seq keyword::
 
