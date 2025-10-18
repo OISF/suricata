@@ -30,10 +30,11 @@ enum ExceptionPolicy {
     EXCEPTION_POLICY_BYPASS_FLOW,
     EXCEPTION_POLICY_DROP_PACKET,
     EXCEPTION_POLICY_DROP_FLOW,
-    EXCEPTION_POLICY_REJECT,
+    EXCEPTION_POLICY_REJECT,     /**< reject src */
+    EXCEPTION_POLICY_REJECT_BOTH /**< reject both src and dest */
 };
 
-#define EXCEPTION_POLICY_MAX (EXCEPTION_POLICY_REJECT + 1)
+#define EXCEPTION_POLICY_MAX (EXCEPTION_POLICY_REJECT_BOTH + 1)
 
 /* Max length = possible exception policy scenarios + counter names
  * + exception policy type. E.g.:
