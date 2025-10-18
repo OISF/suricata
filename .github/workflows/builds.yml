@@ -2691,6 +2691,7 @@ jobs:
               python3-yaml \
               sphinx-doc \
               sphinx-common \
+              tcpreplay \
               texlive-latex-base \
               texlive-fonts-recommended \
               texlive-fonts-extra \
@@ -2783,6 +2784,7 @@ jobs:
               rustc \
               sphinx-doc \
               sphinx-common \
+              tcpreplay \
               texlive-latex-base \
               texlive-fonts-recommended \
               texlive-fonts-extra \
