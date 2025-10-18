@@ -17,7 +17,7 @@ the steps::
     sudo apt install suricata jq
 
 The dedicated PPA repository is added, and after updating the index, Suricata can
-be installed. We recommend installing the ``jq`` tool at this time as it will help
+be installed. Install the ``jq`` tool at this time as it will help
 with displaying information from Suricata's EVE JSON output (described later in
 this guide).
 
@@ -126,7 +126,7 @@ ID ``2100498`` from the ET Open ruleset is written specific for such test cases.
 
 The syntax and logic behind those signatures is covered in other chapters. This
 will alert on any IP traffic that has the content within its payload. This rule
-can be triggered quite easy. Before we trigger it, start ``tail`` to see updates to
+can be triggered quite easy. Before triggering it, start ``tail`` to see updates to
 ``fast.log``.
 
 Rule trigger::

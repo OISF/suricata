@@ -36,7 +36,7 @@ In this example, :example-rule-action:`red` is the action,
 :example-rule-header:`green` is the header and :example-rule-options:`blue`
 are the options.
 
-We will be using the above signature as an example throughout
+The above signature serves as the above signature as an example throughout
 this section, highlighting the different parts of the signature.
 
 .. _actions:

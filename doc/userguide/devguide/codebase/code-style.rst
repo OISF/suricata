@@ -22,7 +22,7 @@ Format your Changes
 -------------------
 
 Before opening a pull request, please also try to ensure it is formatted
-properly. We use ``clang-format`` for this, which has git integration through the
+properly. Suricata uses ``clang-format`` for this, which has git integration through the
 ``git-clang-format`` script to only format your changes.
 
 On some systems, it may already be installed (or be installable via your package

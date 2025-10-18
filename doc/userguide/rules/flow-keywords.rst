@@ -131,7 +131,7 @@ flowint
 Flowint allows storage and mathematical operations using variables. It
 operates much like flowbits but with the addition of mathematical
 capabilities and the fact that an integer can be stored and
-manipulated, not just a flag set. We can use this for a number of very
+manipulated, not just a flag set. This capability is useful for a number of very
 useful things, such as counting occurrences, adding or subtracting
 occurrences, or doing thresholding within a stream in relation to
 multiple factors. This will be expanded to a global context very soon,
@@ -174,7 +174,7 @@ in the stream.
   alert tcp any any -> any any (msg:"More than Five Usernames!"; content:"jonkman"; \
         flowint: usernamecount, +, 1; flowint:usernamecount, >, 5;)
 
-So we'll get an alert ONLY if usernamecount is over five.
+So an alert will be generated ONLY if usernamecount is over five.
 
 So now let's say we want to get an alert as above but NOT if there
 have been more occurrences of that username logging out. Assuming this
@@ -194,9 +194,9 @@ of what such a simple function can do for rule writing. I see a lot of
 applications in things like login tracking, IRC state machines,
 malware tracking, and brute force login detection.
 
-Let's say we're tracking a protocol that normally allows five login
-fails per connection, but we have vulnerability where an attacker can
-continue to login after that five attempts and we need to know about
+Let's say you are tracking a protocol that normally allows five login
+fails per connection, but has a vulnerability where an attacker can
+continue to login after that five attempts and you need to detect
 it.
 
 ::
