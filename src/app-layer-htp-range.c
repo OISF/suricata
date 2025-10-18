@@ -22,6 +22,7 @@
  */
 
 #include "suricata-common.h"
+#include "rust.h"
 #include "app-layer-htp-range.h"
 #include "util-misc.h"        //ParseSizeStringU64
 #include "util-thash.h"       //HashTable
@@ -331,14 +332,14 @@ static HttpRangeContainerBlock *HttpRangeOpenFile(HttpRangeContainerFile *c, uin
     HttpRangeContainerBlock *r =
             HttpRangeOpenFileAux(c, start, end, total, sbcfg, name, name_len, flags);
     if (r) {
-        if (HttpRangeAppendData(sbcfg, r, data, len) < 0) {
+        if (SCHttpRangeAppendData(sbcfg, r, data, len) < 0) {
             SCLogDebug("Failed to append data while opening");
         }
     }
     return r;
 }
 
-HttpRangeContainerBlock *HttpRangeContainerOpenFile(const uint8_t *key, uint32_t keylen,
+HttpRangeContainerBlock *SCHttpRangeContainerOpenFile(const uint8_t *key, uint32_t keylen,
         const Flow *f, const HTTPContentRange *crparsed, const StreamingBufferConfig *sbcfg,
         const uint8_t *name, uint16_t name_len, uint16_t flags, const uint8_t *data,
         uint32_t data_len)
@@ -374,7 +375,7 @@ HttpRangeContainerBlock *HttpRangeContainerOpenFile(const uint8_t *key, uint32_t
     return r;
 }
 
-int HttpRangeAppendData(const StreamingBufferConfig *sbcfg, HttpRangeContainerBlock *c,
+int SCHttpRangeAppendData(const StreamingBufferConfig *sbcfg, HttpRangeContainerBlock *c,
         const uint8_t *data, uint32_t len)
 {
     if (len == 0) {

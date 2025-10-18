@@ -829,43 +829,10 @@ extern "C" {
         event_name: *const ::std::os::raw::c_char, table: *mut SCEnumCharMap, event_id: *mut u8,
     ) -> ::std::os::raw::c_int;
 }
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct MpmPattern_ {
-    pub len: u16,
-    pub flags: u8,
-    pub offset: u16,
-    pub depth: u16,
-    pub original_pat: *mut u8,
-    pub cs: *mut u8,
-    pub ci: *mut u8,
-    pub id: u32,
-    pub sids_size: u32,
-    pub sids: *mut u32,
-    pub next: *mut MpmPattern_,
-}
-pub type MpmPattern = MpmPattern_;
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct MpmCtx_ {
-    pub ctx: *mut ::std::os::raw::c_void,
-    pub mpm_type: u8,
-    pub flags: u8,
-    pub maxdepth: u16,
-    pub pattern_cnt: u32,
-    pub minlen: u16,
-    pub maxlen: u16,
-    pub memory_cnt: u32,
-    pub memory_size: u32,
-    pub max_pat_id: u32,
-    pub init_hash: *mut *mut MpmPattern,
-}
-pub type MpmCtx = MpmCtx_;
 extern "C" {
-    pub fn SCMpmAddPatternCI(
-        mpm_ctx: *mut MpmCtx, pat: *const u8, patlen: u16, offset: u16, depth: u16, pid: u32,
-        sid: u32, flags: u8,
-    ) -> ::std::os::raw::c_int;
+    pub fn SCHTTP2MimicHttp1Request(
+        arg1: *mut ::std::os::raw::c_void, arg2: *mut ::std::os::raw::c_void,
+    );
 }
 extern "C" {
     pub fn SCFileFlowFlagsToFlags(flow_file_flags: u16, direction: u8) -> u16;
@@ -904,6 +871,89 @@ extern "C" {
     pub fn FileAppendData(
         arg1: *mut FileContainer, sbcfg: *const StreamingBufferConfig, data: *const u8,
         data_len: u32,
+    ) -> ::std::os::raw::c_int;
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct HttpRangeContainerBuffer {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct HttpRangeContainerFile {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct HTTPContentRange {
+    _unused: [u8; 0],
+}
+#[doc = " A structure representing a single range request :\n either skipping, buffering, or appending\n As this belongs to a flow, appending data to it is ensured to be thread-safe\n Only one block per file has the pointer to the container"]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct HttpRangeContainerBlock {
+    #[doc = " state where we skip content"]
+    pub toskip: u64,
+    #[doc = " current out of order range to write into"]
+    pub current: *mut HttpRangeContainerBuffer,
+    #[doc = " pointer to the main file container, where to directly append data"]
+    pub container: *mut HttpRangeContainerFile,
+    #[doc = " file container we are owning for now"]
+    pub files: *mut FileContainer,
+}
+extern "C" {
+    pub fn SCHttpRangeFreeBlock(b: *mut HttpRangeContainerBlock);
+}
+extern "C" {
+    pub fn SCHttpRangeContainerOpenFile(
+        key: *const ::std::os::raw::c_uchar, keylen: u32, f: *const Flow,
+        cr: *const HTTPContentRange, sbcfg: *const StreamingBufferConfig,
+        name: *const ::std::os::raw::c_uchar, name_len: u16, flags: u16,
+        data: *const ::std::os::raw::c_uchar, data_len: u32,
+    ) -> *mut HttpRangeContainerBlock;
+}
+extern "C" {
+    pub fn SCHttpRangeAppendData(
+        sbcfg: *const StreamingBufferConfig, c: *mut HttpRangeContainerBlock, data: *const u8,
+        len: u32,
+    ) -> ::std::os::raw::c_int;
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct MpmPattern_ {
+    pub len: u16,
+    pub flags: u8,
+    pub offset: u16,
+    pub depth: u16,
+    pub original_pat: *mut u8,
+    pub cs: *mut u8,
+    pub ci: *mut u8,
+    pub id: u32,
+    pub sids_size: u32,
+    pub sids: *mut u32,
+    pub next: *mut MpmPattern_,
+}
+pub type MpmPattern = MpmPattern_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct MpmCtx_ {
+    pub ctx: *mut ::std::os::raw::c_void,
+    pub mpm_type: u8,
+    pub flags: u8,
+    pub maxdepth: u16,
+    pub pattern_cnt: u32,
+    pub minlen: u16,
+    pub maxlen: u16,
+    pub memory_cnt: u32,
+    pub memory_size: u32,
+    pub max_pat_id: u32,
+    pub init_hash: *mut *mut MpmPattern,
+}
+pub type MpmCtx = MpmCtx_;
+extern "C" {
+    pub fn SCMpmAddPatternCI(
+        mpm_ctx: *mut MpmCtx, pat: *const u8, patlen: u16, offset: u16, depth: u16, pid: u32,
+        sid: u32, flags: u8,
     ) -> ::std::os::raw::c_int;
 }
 #[repr(C)]

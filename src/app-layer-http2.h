@@ -26,6 +26,6 @@
 
 void RegisterHTTP2Parsers(void);
 
-void HTTP2MimicHttp1Request(void *, void *);
+void SCHTTP2MimicHttp1Request(void *, void *);
 
 #endif /* SURICATA_APP_LAYER_HTTP2_H */
