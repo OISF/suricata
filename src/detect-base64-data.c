@@ -74,10 +74,10 @@ static int DetectBase64DataSetupTest01(void)
         "base64_decode; base64_data; content:\"content\"; sid:1; rev:1;)");
     FAIL_IF_NULL(s);
 
-    SigMatch *sm = de_ctx->sig_list->init_data->smlists[DETECT_SM_LIST_PMATCH];
+    SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     FAIL_IF_NULL(sm);
     FAIL_IF_NOT(sm->type == DETECT_BASE64_DECODE);
-    FAIL_IF_NULL(de_ctx->sig_list->init_data->smlists[DETECT_SM_LIST_BASE64_DATA]);
+    FAIL_IF_NULL(s->init_data->smlists[DETECT_SM_LIST_BASE64_DATA]);
 
     DetectEngineCtxFree(de_ctx);
     PASS;
