@@ -75,6 +75,7 @@ noinst_HEADERS = \
 	decode-icmpv6.h \
 	decode-ipv4.h \
 	decode-ipv6.h \
+	decode-l2tp.h \
 	decode-mpls.h \
 	decode-nsh.h \
 	decode-ppp.h \
@@ -674,6 +675,7 @@ libsuricata_c_a_SOURCES = \
 	decode-icmpv6.c \
 	decode-ipv4.c \
 	decode-ipv6.c \
+	decode-l2tp.c \
 	decode-mpls.c \
 	decode-nsh.c \
 	decode-null.c \

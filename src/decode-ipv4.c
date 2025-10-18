@@ -580,6 +580,9 @@ int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         case IPPROTO_ESP:
             DecodeESP(tv, dtv, p, data, data_len);
             break;
+        case IPPROTO_L2TP:
+            DecodeL2TP(tv, dtv, p, data, data_len);
+            break;
         case IPPROTO_IPV6: {
             /* spawn off tunnel packet */
             Packet *tp = PacketTunnelPktSetup(tv, dtv, p, data, data_len, DECODE_TUNNEL_IPV6);

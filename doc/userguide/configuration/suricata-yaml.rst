@@ -2993,6 +2993,17 @@ see :doc:`../performance/packet-profiling`.
 Decoder
 -------
 
+L2TP
+~~~~~
+
+The L2TP decoder can be disabled. It is enabled by default and uses UDP port 1701.
+
+::
+    decoder:
+      l2tp:
+        enabled: true
+        ports: $L2TP_PORTS # syntax: '[1701, 2193]'
+
 Teredo
 ~~~~~~
 
