@@ -67,6 +67,7 @@
 #include "util-validate.h"
 
 #include "action-globals.h"
+#include "source-pcap-packet.h"
 
 #define MODULE_NAME "JsonAlertLog"
 
@@ -288,7 +289,7 @@ static void AlertJsonTunnel(const Packet *p, SCJsonBuilder *js)
     uint64_t pcap_cnt;
     JsonAddrInfo addr = json_addr_info_zero;
     JsonAddrInfoInit(p->root, 0, &addr);
-    pcap_cnt = p->root->pcap_cnt;
+    pcap_cnt = PcapPacketCntGet(p->root);
     pkt_src = p->root->pkt_src;
 
     SCJbSetString(js, "src_ip", addr.src_ip);

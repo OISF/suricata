@@ -50,6 +50,7 @@
 #include "util-logopenfile.h"
 #include "action-globals.h"
 
+#include "source-pcap-packet.h"
 #ifndef OS_WIN32
 
 #define MODULE_NAME                             "AlertSyslog"
@@ -343,9 +344,9 @@ static TmEcode AlertSyslogDecoderEvent(ThreadVars *tv, const Packet *p, void *da
         PrintRawLineHexBuf(temp_buf_pkt, sizeof(temp_buf_pkt), GET_PKT_DATA(p), GET_PKT_LEN(p) < 32 ? GET_PKT_LEN(p) : 32);
         strlcat(alert, temp_buf_pkt, sizeof(alert));
 
-        if (p->pcap_cnt != 0) {
-            snprintf(temp_buf_tail, sizeof(temp_buf_tail), "] [pcap file packet: %"PRIu64"]",
-                    p->pcap_cnt);
+        if (PcapPacketCntGet(p) != 0) {
+            snprintf(temp_buf_tail, sizeof(temp_buf_tail), "] [pcap file packet: %" PRIu64 "]",
+                    PcapPacketCntGet(p));
         } else {
             temp_buf_tail[0] = ']';
             temp_buf_tail[1] = '\0';

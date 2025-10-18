@@ -47,6 +47,7 @@
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
 
+#include "source-pcap-packet.h"
 #include "stream-tcp.h"
 
 #include "detect-config.h"
@@ -187,7 +188,7 @@ static int ConfigApply(DetectEngineThreadCtx *det_ctx,
     }
 
     if (this_packet) {
-        SCLogDebug("packet logic here: %" PRIu64, p->pcap_cnt);
+        SCLogDebug("packet logic here: %" PRIu64, PcapPacketCntGet(p));
         ConfigApplyPacket(p, config);
     } else if (this_tx) {
         SCLogDebug("tx logic here: tx_id %"PRIu64, det_ctx->tx_id);
