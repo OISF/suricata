@@ -80,18 +80,14 @@ static int IPPairStorageTest01(void)
     StorageInit();
 
     IPPairStorageId id1 = IPPairStorageRegister("test", 8, StorageTestAlloc, StorageTestFree);
-    if (id1.id < 0)
-        goto error;
+    FAIL_IF(id1.id < 0);
     IPPairStorageId id2 = IPPairStorageRegister("variable", 24, StorageTestAlloc, StorageTestFree);
-    if (id2.id < 0)
-        goto error;
+    FAIL_IF(id2.id < 0);
     IPPairStorageId id3 =
             IPPairStorageRegister("store", sizeof(void *), StorageTestAlloc, StorageTestFree);
-    if (id3.id < 0)
-        goto error;
+    FAIL_IF(id3.id < 0);
 
-    if (StorageFinalize() < 0)
-        goto error;
+    FAIL_IF(StorageFinalize() < 0);
 
     IPPairInitConfig(1);
 
@@ -103,59 +99,33 @@ static int IPPairStorageTest01(void)
     a.family = AF_INET;
     b.family = AF_INET;
     IPPair *h = IPPairGetIPPairFromHash(&a, &b);
-    if (h == NULL) {
-        printf("failed to get ippair: ");
-        goto error;
-    }
+    FAIL_IF_NULL(h);
 
     void *ptr = IPPairGetStorageById(h, id1);
-    if (ptr != NULL) {
-        goto error;
-    }
+    FAIL_IF_NOT_NULL(ptr);
     ptr = IPPairGetStorageById(h, id2);
-    if (ptr != NULL) {
-        goto error;
-    }
+    FAIL_IF_NOT_NULL(ptr);
     ptr = IPPairGetStorageById(h, id3);
-    if (ptr != NULL) {
-        goto error;
-    }
+    FAIL_IF_NOT_NULL(ptr);
 
     void *ptr1a = IPPairAllocStorageById(h, id1);
-    if (ptr1a == NULL) {
-        goto error;
-    }
+    FAIL_IF(ptr1a == NULL);
     void *ptr2a = IPPairAllocStorageById(h, id2);
-    if (ptr2a == NULL) {
-        goto error;
-    }
+    FAIL_IF(ptr2a == NULL);
     void *ptr3a = IPPairAllocStorageById(h, id3);
-    if (ptr3a == NULL) {
-        goto error;
-    }
+    FAIL_IF(ptr3a == NULL);
 
     void *ptr1b = IPPairGetStorageById(h, id1);
-    if (ptr1a != ptr1b) {
-        goto error;
-    }
+    FAIL_IF(ptr1a != ptr1b);
     void *ptr2b = IPPairGetStorageById(h, id2);
-    if (ptr2a != ptr2b) {
-        goto error;
-    }
+    FAIL_IF(ptr2a != ptr2b);
     void *ptr3b = IPPairGetStorageById(h, id3);
-    if (ptr3a != ptr3b) {
-        goto error;
-    }
+    FAIL_IF(ptr3a != ptr3b);
 
     IPPairRelease(h);
-
     IPPairShutdown();
     StorageCleanup();
-    return 1;
-error:
-    IPPairShutdown();
-    StorageCleanup();
-    return 0;
+    PASS;
 }
 
 static int IPPairStorageTest02(void)
@@ -164,11 +134,9 @@ static int IPPairStorageTest02(void)
     StorageInit();
 
     IPPairStorageId id1 = IPPairStorageRegister("test", sizeof(void *), NULL, StorageTestFree);
-    if (id1.id < 0)
-        goto error;
+    FAIL_IF(id1.id < 0);
 
-    if (StorageFinalize() < 0)
-        goto error;
+    FAIL_IF(StorageFinalize() < 0);
 
     IPPairInitConfig(1);
 
@@ -180,36 +148,23 @@ static int IPPairStorageTest02(void)
     a.family = AF_INET;
     b.family = AF_INET;
     IPPair *h = IPPairGetIPPairFromHash(&a, &b);
-    if (h == NULL) {
-        printf("failed to get ippair: ");
-        goto error;
-    }
+    FAIL_IF(h == NULL);
 
     void *ptr = IPPairGetStorageById(h, id1);
-    if (ptr != NULL) {
-        goto error;
-    }
+    FAIL_IF_NOT_NULL(ptr);
 
     void *ptr1a = SCMalloc(128);
-    if (unlikely(ptr1a == NULL)) {
-        goto error;
-    }
+    FAIL_IF(ptr1a == NULL);
+
     IPPairSetStorageById(h, id1, ptr1a);
 
     void *ptr1b = IPPairGetStorageById(h, id1);
-    if (ptr1a != ptr1b) {
-        goto error;
-    }
+    FAIL_IF(ptr1a != ptr1b);
 
     IPPairRelease(h);
-
     IPPairShutdown();
     StorageCleanup();
-    return 1;
-error:
-    IPPairShutdown();
-    StorageCleanup();
-    return 0;
+    PASS;
 }
 
 static int IPPairStorageTest03(void)
@@ -218,17 +173,13 @@ static int IPPairStorageTest03(void)
     StorageInit();
 
     IPPairStorageId id1 = IPPairStorageRegister("test1", sizeof(void *), NULL, StorageTestFree);
-    if (id1.id < 0)
-        goto error;
+    FAIL_IF(id1.id < 0);
     IPPairStorageId id2 = IPPairStorageRegister("test2", sizeof(void *), NULL, StorageTestFree);
-    if (id2.id < 0)
-        goto error;
+    FAIL_IF(id2.id < 0);
     IPPairStorageId id3 = IPPairStorageRegister("test3", 32, StorageTestAlloc, StorageTestFree);
-    if (id3.id < 0)
-        goto error;
+    FAIL_IF(id3.id < 0);
 
-    if (StorageFinalize() < 0)
-        goto error;
+    FAIL_IF(StorageFinalize() < 0);
 
     IPPairInitConfig(1);
 
@@ -240,55 +191,35 @@ static int IPPairStorageTest03(void)
     a.family = AF_INET;
     b.family = AF_INET;
     IPPair *h = IPPairGetIPPairFromHash(&a, &b);
-    if (h == NULL) {
-        printf("failed to get ippair: ");
-        goto error;
-    }
+    FAIL_IF(h == NULL);
 
     void *ptr = IPPairGetStorageById(h, id1);
-    if (ptr != NULL) {
-        goto error;
-    }
+    FAIL_IF_NOT_NULL(ptr);
 
     void *ptr1a = SCMalloc(128);
-    if (unlikely(ptr1a == NULL)) {
-        goto error;
-    }
+    FAIL_IF(ptr1a == NULL);
+
     IPPairSetStorageById(h, id1, ptr1a);
 
     void *ptr2a = SCMalloc(256);
-    if (unlikely(ptr2a == NULL)) {
-        goto error;
-    }
+    FAIL_IF(ptr2a == NULL);
+
     IPPairSetStorageById(h, id2, ptr2a);
 
     void *ptr3a = IPPairAllocStorageById(h, id3);
-    if (ptr3a == NULL) {
-        goto error;
-    }
+    FAIL_IF(ptr3a == NULL);
 
     void *ptr1b = IPPairGetStorageById(h, id1);
-    if (ptr1a != ptr1b) {
-        goto error;
-    }
+    FAIL_IF(ptr1a != ptr1b);
     void *ptr2b = IPPairGetStorageById(h, id2);
-    if (ptr2a != ptr2b) {
-        goto error;
-    }
+    FAIL_IF(ptr2a != ptr2b);
     void *ptr3b = IPPairGetStorageById(h, id3);
-    if (ptr3a != ptr3b) {
-        goto error;
-    }
+    FAIL_IF(ptr3a != ptr3b);
 
     IPPairRelease(h);
-
     IPPairShutdown();
     StorageCleanup();
-    return 1;
-error:
-    IPPairShutdown();
-    StorageCleanup();
-    return 0;
+    PASS;
 }
 #endif
 
