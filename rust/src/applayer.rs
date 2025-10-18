@@ -346,6 +346,15 @@ impl AppLayerResult {
     pub fn ok() -> Self {
         Default::default()
     }
+    /// parser has successfully processed input, but not all. The rest should be
+    /// immediately be processed.
+    pub fn ok_partial_continue(consumed: u32) -> Self {
+        return Self {
+            status: 2,
+            consumed,
+            needed: 0,
+        };
+    }
     /// parser has hit an unrecoverable error. Returning this to the API
     /// leads to no further calls to the parser.
     pub fn err() -> Self {
