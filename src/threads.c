@@ -43,6 +43,7 @@ static int ThreadMacrosTest01Mutex(void)
     r |= SCMutexInit(&mut, NULL);
     r |= SCMutexLock(&mut);
     r |= (SCMutexTrylock(&mut) == EBUSY)? 0 : 1;
+    r |= SCMutexIsLocked(&mut) ? 0 : 1;
     r |= SCMutexUnlock(&mut);
     r |= SCMutexDestroy(&mut);
 

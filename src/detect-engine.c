@@ -2303,6 +2303,7 @@ static void InjectPackets(
  *
  *  If called in unix socket mode, it's possible that we don't have
  *  detect threads yet.
+ *  NOTE: master MUST be locked before calling this
  *
  *  \retval -1 error
  *  \retval 0 no detection threads
@@ -3152,6 +3153,9 @@ static TmEcode DetectEngineThreadCtxInitForMT(ThreadVars *tv, DetectEngineThread
     uint32_t max_tenant_id = 0;
     DetectEngineCtx *list = master->list;
 
+    DEBUG_VALIDATE_BUG_ON(!SCMutexIsLocked(&master->lock));
+
+    /* coverity[missing_lock] */
     if (master->tenant_selector == TENANT_SELECTOR_UNKNOWN) {
         SCLogError("no tenant selector set: "
                    "set using multi-detect.selector");
@@ -4859,8 +4863,13 @@ int DetectEngineReload(const SCInstance *suri)
     DetectEngineDeReference(&old_de_ctx);
 
     SCLogDebug("going to reload the threads to use new_de_ctx %p", new_de_ctx);
+
+    DetectEngineMasterCtx *master = &g_master_de_ctx;
+    SCMutexLock(&master->lock);
     /* update the threads */
     DetectEngineReloadThreads(new_de_ctx);
+    SCMutexUnlock(&master->lock);
+
     SCLogDebug("threads now run new_de_ctx %p", new_de_ctx);
 
     /* walk free list, freeing the old_de_ctx */
