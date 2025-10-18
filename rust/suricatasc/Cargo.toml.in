@@ -25,3 +25,6 @@ serde_json = { version = "1.0.140", default-features = false, features = ["prese
 
 # Pinned back to support Rust 1.75.0. Not used directly by us, but by rustyline.
 home = { version = "=0.5.9" }
+
+# Pinned back to support Rust 1.75.0. Not used directly by us, but by serde_json.
+indexmap = { version = "=2.11.4" }
