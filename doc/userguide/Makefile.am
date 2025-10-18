@@ -13,6 +13,7 @@ EXTRA_DIST = \
 	firewall \
 	generate-evedoc.sh \
 	index.rst \
+	known-issues.rst \
 	upgrade \
 	upgrade.rst \
 	initscripts.rst \

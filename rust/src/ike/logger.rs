@@ -22,14 +22,24 @@ use crate::ike::parser::{ExchangeType, IsakmpPayloadType, SaAttribute};
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use num_traits::FromPrimitive;
 use std;
+use std::collections::HashSet;
 use std::convert::TryFrom;
 
 const LOG_EXTENDED: u32 = 0x01;
 
 fn add_attributes(transform: &Vec<SaAttribute>, js: &mut JsonBuilder) -> Result<(), JsonError> {
+    let mut logged: HashSet<String> = HashSet::new();
+
     for attribute in transform {
+        let key = attribute.attribute_type.to_string();
+
+        if logged.contains(&key) {
+            continue;
+        }
+        logged.insert(key.clone());
+
         js.set_string(
-            attribute.attribute_type.to_string().as_str(),
+            &key,
             attribute.attribute_value.to_string().as_str(),
         )?;
 
