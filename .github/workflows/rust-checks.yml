@@ -1,4 +1,4 @@
-name: Cargo Audit and Update
+name: Cargo Audit
 
 on:
   schedule:
@@ -89,71 +89,3 @@ jobs:
           IGNORES+=(--ignore RUSTSEC-2019-0036)
 
           cargo audit -D warnings "${IGNORES[@]}"
-
-  # This job uses our MSRV and does a `cargo update` with the idea
-  # that it should catch early any dependencies that have done a patch
-  # update pulling in a new MSRV. This would be an indicator that we
-  # have to more tightly pin the dependency, or even attempt to pin a
-  # transitive dependency.
-  update:
-    name: Cargo Update
-    runs-on: ubuntu-latest
-    container: almalinux:9
-    steps:
-      - name: Cache cargo registry
-        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
-        with:
-          path: ~/.cargo
-          key: ${{ github.job }}-cargo
-
-      - name: Install system packages
-        run: |
-          dnf -y install dnf-plugins-core epel-release
-          dnf config-manager --set-enabled crb
-          dnf -y install \
-                autoconf \
-                automake \
-                cbindgen \
-                diffutils \
-                numactl-devel \
-                dpdk-devel \
-                file-devel \
-                gcc \
-                gcc-c++ \
-                git \
-                jansson-devel \
-                jq \
-                libtool \
-                libyaml-devel \
-                libnfnetlink-devel \
-                libnetfilter_queue-devel \
-                libnet-devel \
-                libcap-ng-devel \
-                libevent-devel \
-                libmaxminddb-devel \
-                libpcap-devel \
-                libtool \
-                lz4-devel \
-                make \
-                pcre2-devel \
-                pkgconfig \
-                python3-devel \
-                python3-sphinx \
-                python3-yaml \
-                sudo \
-                which \
-                zlib-devel
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
-      - name: Install Minimum Supported Rust Version
-        run: |
-          curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $(awk -F '"' '/rust-version/ { print $2 }' rust/Cargo.toml.in)
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-      - name: Configure Suricata
-        run: |
-          ./autogen.sh
-          ./configure --enable-warnings
-      - name: Cargo Update and Build
-        working-directory: rust
-        run: |
-          cargo update
-          cargo build --all-features --all-targets
