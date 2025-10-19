@@ -510,23 +510,20 @@ static void DetectFilestoreFree(DetectEngineCtx *de_ctx, void *ptr)
  */
 static int DetectFilestoreTest01(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 1;
-
-    de_ctx = DetectEngineCtxInit();
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF(de_ctx == NULL);
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(bypass; filestore; "
-                               "content:\"message\"; http_host; "
-                               "sid:1;)");
-    FAIL_IF_NOT_NULL(de_ctx->sig_list);
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
+                                                 "(bypass; filestore; "
+                                                 "content:\"message\"; http_host; "
+                                                 "sid:1;)");
+    FAIL_IF_NOT_NULL(s);
 
     DetectEngineCtxFree(de_ctx);
 
-    return result;
+    PASS;
 }
 
 void DetectFilestoreRegisterTests(void)
