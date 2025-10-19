@@ -38,8 +38,7 @@ static int TestReassembleRawCallback(
 
     SCLogNotice("have %u expect %u", data_len, cb->expect_data_len);
 
-    FAIL_IF(data_len != cb->expect_data_len ||
-        memcmp(data, cb->expect_data, data_len) != 0);
+    FAIL_IF(data_len != cb->expect_data_len || memcmp(data, cb->expect_data, data_len) != 0);
 }
 
 static int TestReassembleRawValidate(TcpSession *ssn, Packet *p,
