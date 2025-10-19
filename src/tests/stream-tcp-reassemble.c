@@ -38,16 +38,8 @@ static int TestReassembleRawCallback(
 
     SCLogNotice("have %u expect %u", data_len, cb->expect_data_len);
 
-    if (data_len == cb->expect_data_len &&
-        memcmp(data, cb->expect_data, data_len) == 0) {
-        return 1;
-    } else {
-        SCLogNotice("data mismatch. Expected:");
-        PrintRawDataFp(stdout, cb->expect_data, cb->expect_data_len);
-        SCLogNotice("Got:");
-        PrintRawDataFp(stdout, data, data_len);
-        return -1;
-    }
+    FAIL_IF(data_len != cb->expect_data_len ||
+        memcmp(data, cb->expect_data, data_len) != 0);
 }
 
 static int TestReassembleRawValidate(TcpSession *ssn, Packet *p,
@@ -56,11 +48,7 @@ static int TestReassembleRawValidate(TcpSession *ssn, Packet *p,
     struct TestReassembleRawCallbackData cb = { data, data_len };
     uint64_t progress = 0;
     int r = StreamReassembleRaw(ssn, p, TestReassembleRawCallback, &cb, &progress, false);
-    if (r == 1) {
-        StreamReassembleRawUpdateProgress(ssn, p, progress);
-    }
-    SCLogNotice("r %d", r);
-    return r;
+    FAIL_IF(r != 1);
 }
 
 #define RAWREASSEMBLY_START(isn)                \
