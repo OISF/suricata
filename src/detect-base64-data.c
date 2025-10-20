@@ -67,47 +67,22 @@ static int g_file_data_buffer_id = 0;
 
 static int DetectBase64DataSetupTest01(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    SigMatch *sm;
-    int retval = 0;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-        "alert smtp any any -> any any (msg:\"DetectBase64DataSetupTest\"; "
-        "base64_decode; base64_data; content:\"content\"; sid:1; rev:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("SigInit failed: ");
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert smtp any any -> any any (msg:\"DetectBase64DataSetupTest\"; "
+            "base64_decode; base64_data; content:\"content\"; sid:1; rev:1;)");
+    FAIL_IF_NULL(s);
 
-    sm = de_ctx->sig_list->init_data->smlists[DETECT_SM_LIST_PMATCH];
-    if (sm == NULL) {
-        printf("DETECT_SM_LIST_PMATCH should not be NULL: ");
-        goto end;
-    }
-    if (sm->type != DETECT_BASE64_DECODE) {
-        printf("sm->type should be DETECT_BASE64_DECODE: ");
-        goto end;
-    }
+    SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
+    FAIL_IF_NULL(sm);
+    FAIL_IF_NOT(sm->type == DETECT_BASE64_DECODE);
+    FAIL_IF_NULL(s->init_data->smlists[DETECT_SM_LIST_BASE64_DATA]);
 
-    if (de_ctx->sig_list->init_data->smlists[DETECT_SM_LIST_BASE64_DATA] == NULL) {
-        printf("DETECT_SM_LIST_BASE64_DATA should not be NULL: ");
-       goto end;
-    }
-
-    retval = 1;
-end:
-    if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
-        SigCleanSignatures(de_ctx);
-        DetectEngineCtxFree(de_ctx);
-    }
-    return retval;
+    DetectEngineCtxFree(de_ctx);
+    PASS;
 }
 
 /**
@@ -116,30 +91,18 @@ end:
  */
 static int DetectBase64DataSetupTest04(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    int retval = 0;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-        "alert tcp any any -> any any (msg:\"some b64thing\"; flow:established,from_server; file_data; content:\"sometext\"; fast_pattern; base64_decode:relative; base64_data; content:\"foobar\"; nocase; tag:session,120,seconds; sid:1111111; rev:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("SigInit failed: ");
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any (msg:\"some b64thing\"; flow:established,from_server; "
+            "file_data; content:\"sometext\"; fast_pattern; base64_decode:relative; base64_data; "
+            "content:\"foobar\"; nocase; tag:session,120,seconds; sid:1111111; rev:1;)");
+    FAIL_IF_NULL(s);
 
-    retval = 1;
-end:
-    if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
-        SigCleanSignatures(de_ctx);
-        DetectEngineCtxFree(de_ctx);
-    }
-    return retval;
+    DetectEngineCtxFree(de_ctx);
+    PASS;
 }
 
 static void DetectBase64DataRegisterTests(void)
