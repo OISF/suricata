@@ -345,13 +345,13 @@ static int DetectHTTP2prioritySetup (DetectEngineCtx *de_ctx, Signature *s, cons
     if (SCDetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
         return -1;
 
-    DetectU8Data *prio = SCDetectU8ArrayParse(str);
+    void *prio = SCDetectU8ArrayParse(str);
     if (prio == NULL)
         return -1;
 
     if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_HTTP2_PRIORITY, (SigMatchCtx *)prio,
                 g_http2_match_buffer_id) == NULL) {
-        SCDetectU8Free(prio);
+        DetectHTTP2priorityFree(NULL, prio);
         return -1;
     }
 
@@ -397,14 +397,14 @@ static int DetectHTTP2windowSetup (DetectEngineCtx *de_ctx, Signature *s, const 
     if (SCDetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
         return -1;
 
-    DetectU32Data *wu = SCDetectU32ArrayParse(str);
+    void *wu = SCDetectU32ArrayParse(str);
     if (wu == NULL)
         return -1;
 
     // use g_http2_complete_buffer_id as we may have window changes in any state
     if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_HTTP2_WINDOW, (SigMatchCtx *)wu,
                 g_http2_complete_buffer_id) == NULL) {
-        SCDetectU32Free(wu);
+        DetectHTTP2windowFree(NULL, wu);
         return -1;
     }
 
@@ -450,13 +450,13 @@ static int DetectHTTP2sizeUpdateSetup (DetectEngineCtx *de_ctx, Signature *s, co
     if (SCDetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
         return -1;
 
-    void *su = SCDetectU64Parse(str);
+    DetectU64Data *su = SCDetectU64Parse(str);
     if (su == NULL)
         return -1;
 
     if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_HTTP2_SIZEUPDATE, (SigMatchCtx *)su,
                 g_http2_match_buffer_id) == NULL) {
-        DetectHTTP2settingsFree(NULL, su);
+        DetectHTTP2sizeUpdateFree(NULL, su);
         return -1;
     }
 
