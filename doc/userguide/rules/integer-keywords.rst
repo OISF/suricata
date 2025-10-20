@@ -88,6 +88,16 @@ Some integers on the wire represent multiple bits.
 Some of these bits have a string/meaning associated to it.
 Rules can be written using a list (comma-separated) of these strings,
 where each item can be negated.
+This list can be prefixed by a modifier:
+
+========  ===================================
+Modifier  Description
+========  ===================================
+``+``     match on all the bits, plus any others
+``*``     match if any of the bits are set
+``-``     match if not all the bits are set
+``=``     match on all the bits, and only them
+========  ===================================
 
 There is no right shift for trailing zeros applied here (even if there is one
 for ``byte_test`` and ``byte_math``). That means a rule with

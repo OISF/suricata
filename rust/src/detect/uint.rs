@@ -16,11 +16,10 @@
  */
 
 use nom7::branch::alt;
-use nom7::bytes::complete::{is_a, tag, tag_no_case, take_while};
-use nom7::character::complete::{char, digit1, hex_digit1, i32 as nom_i32};
+use nom7::bytes::complete::{is_a, tag, tag_no_case, take, take_while};
+use nom7::character::complete::{anychar, char, digit1, hex_digit1, i32 as nom_i32};
 use nom7::combinator::{all_consuming, map_opt, opt, value, verify};
 use nom7::error::{make_error, Error, ErrorKind};
-use nom7::multi::many1;
 use nom7::Err;
 use nom7::IResult;
 
@@ -348,37 +347,47 @@ struct FlagItem<T> {
     neg: bool,
 }
 
-fn parse_flag_list_item<T1: DetectIntType, T2: EnumString<T1>>(
-    s: &str,
-) -> IResult<&str, FlagItem<T1>> {
-    let (s, _) = opt(is_a(" "))(s)?;
-    let (s, neg) = opt(tag("!"))(s)?;
-    let neg = neg.is_some();
-    let (s, vals) = take_while(|c| c != ' ' && c != ',')(s)?;
-    let value = T2::from_str(vals);
-    if value.is_none() {
-        SCLogError!("Bitflag unexpected value {}", vals);
-        return Err(Err::Error(make_error(s, ErrorKind::Switch)));
-    }
-    let value = value.unwrap().into_u();
-    let (s, _) = opt(is_a(" ,"))(s)?;
-    Ok((s, FlagItem { neg, value }))
-}
-
 fn parse_flag_list<T1: DetectIntType, T2: EnumString<T1>>(
-    s: &str,
+    s: &str, singlechar: bool,
 ) -> IResult<&str, Vec<FlagItem<T1>>> {
-    return many1(parse_flag_list_item::<T1, T2>)(s);
+    let mut r = Vec::new();
+    let mut s2 = s;
+    while !s2.is_empty() {
+        let (s, _) = opt(is_a(" "))(s2)?;
+        let (s, neg) = opt(tag("!"))(s)?;
+        let neg = neg.is_some();
+        let (s, vals) = if singlechar {
+            take(1usize)(s)
+        } else {
+            take_while(|c| c != ' ' && c != ',')(s)
+        }?;
+        let value = T2::from_str(vals);
+        if value.is_none() {
+            SCLogError!("Bitflag unexpected value {}", vals);
+            return Err(Err::Error(make_error(s, ErrorKind::Switch)));
+        }
+        let value = value.unwrap().into_u();
+        let (s, _) = if singlechar {
+            Ok((s, None))
+        } else {
+            opt(is_a(" ,"))(s)
+        }?;
+        r.push(FlagItem { neg, value });
+        s2 = s;
+    }
+    return Ok((s2, r));
 }
 
 pub fn detect_parse_uint_bitflags<T1: DetectIntType, T2: EnumString<T1>>(
-    s: &str,
+    s: &str, defmod: DetectBitflagModifier, singlechar: bool,
 ) -> Option<DetectUintData<T1>> {
     if let Ok((_, ctx)) = detect_parse_uint::<T1>(s) {
         return Some(ctx);
     }
     // otherwise, try strings for bitmask
-    if let Ok((rem, l)) = parse_flag_list::<T1, T2>(s) {
+    let (s, modifier) = parse_bitchars_modifier(s, defmod).ok()?;
+    let (s, _) = take_while::<_, &str, Error<_>>(|c| c == ' ' || c == '\t')(s).ok()?;
+    if let Ok((rem, l)) = parse_flag_list::<T1, T2>(s, singlechar) {
         if !rem.is_empty() {
             SCLogError!("junk at the end of bitflags");
             return None;
@@ -398,14 +407,62 @@ pub fn detect_parse_uint_bitflags<T1: DetectIntType, T2: EnumString<T1>>(
                 arg2 |= elem.value;
             }
         }
-        let ctx = DetectUintData::<T1> {
-            arg1,
-            arg2,
-            mode: DetectUintMode::DetectUintModeBitmask,
+        let ctx = match modifier {
+            DetectBitflagModifier::Equal => DetectUintData::<T1> {
+                arg1,
+                arg2: T1::min_value(),
+                mode: DetectUintMode::DetectUintModeEqual,
+            },
+            DetectBitflagModifier::Plus => DetectUintData::<T1> {
+                arg1,
+                arg2,
+                mode: DetectUintMode::DetectUintModeBitmask,
+            },
+            DetectBitflagModifier::Any => DetectUintData::<T1> {
+                arg1,
+                arg2: T1::min_value(),
+                mode: DetectUintMode::DetectUintModeNegBitmask,
+            },
+            DetectBitflagModifier::Not => DetectUintData::<T1> {
+                arg1,
+                arg2,
+                mode: DetectUintMode::DetectUintModeNegBitmask,
+            },
         };
         return Some(ctx);
     }
     return None;
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum DetectBitflagModifier {
+    Equal,
+    Plus,
+    Any,
+    Not,
+}
+
+pub(crate) fn parse_bitchars_modifier(
+    s: &str, default: DetectBitflagModifier,
+) -> IResult<&str, DetectBitflagModifier> {
+    let (s1, m) = anychar(s)?;
+    match m {
+        '!' => {
+            // exclamation mark is only accepted for legacy keywords
+            // excluded for newer to avoid ambiguity with negating single flag
+            if default == DetectBitflagModifier::Equal {
+                Ok((s1, DetectBitflagModifier::Not))
+            } else {
+                Ok((s, default))
+            }
+        }
+        '-' => Ok((s1, DetectBitflagModifier::Not)),
+        '+' => Ok((s1, DetectBitflagModifier::Plus)),
+        '*' => Ok((s1, DetectBitflagModifier::Any)),
+        '=' => Ok((s1, DetectBitflagModifier::Equal)),
+        // do not consume if not a known modifier: use default equal
+        _ => Ok((s, default)),
+    }
 }
 
 /// Parses a string for detection with integers, using enumeration strings
