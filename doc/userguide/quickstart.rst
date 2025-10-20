@@ -126,7 +126,7 @@ ID ``2100498`` from the ET Open ruleset is written specific for such test cases.
 
 The syntax and logic behind those signatures is covered in other chapters. This
 will alert on any IP traffic that has the content within its payload. This rule
-can be triggered quite easy. Before we trigger it, start ``tail`` to see updates to
+can be triggered quite easy. Before you trigger it, start ``tail`` to see updates to
 ``fast.log``.
 
 Rule trigger::
