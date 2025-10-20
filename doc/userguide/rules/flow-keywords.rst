@@ -166,7 +166,7 @@ a particular stream and alert if it is over 5.
 This will count each occurrence and increment the var usernamecount
 and not generate an alert for each.
 
-Now say we want to generate an alert if there are more than five hits
+Now say you want to generate an alert if there are more than five hits
 in the stream.
 
 ::
@@ -176,7 +176,7 @@ in the stream.
 
 So we'll get an alert ONLY if usernamecount is over five.
 
-So now let's say we want to get an alert as above but NOT if there
+So now let's say you want to get an alert as above but NOT if there
 have been more occurrences of that username logging out. Assuming this
 particular protocol indicates a log out with "jonkman logout", let's
 try:
@@ -194,9 +194,9 @@ of what such a simple function can do for rule writing. I see a lot of
 applications in things like login tracking, IRC state machines,
 malware tracking, and brute force login detection.
 
-Let's say we're tracking a protocol that normally allows five login
-fails per connection, but we have vulnerability where an attacker can
-continue to login after that five attempts and we need to know about
+Let's say you're tracking a protocol that normally allows five login
+fails per connection, but there is vulnerability where an attacker can
+continue to login after those five attempts and you need to know about
 it.
 
 ::
@@ -223,7 +223,7 @@ We are now incrementing the counter if it's set.
 Now we'll generate an alert if we cross five login fails in the same
 stream.
 
-But let's also say we also need alert if there are two successful
+But let's also say you also need alert if there are two successful
 logins and a failed login after that.
 
 ::
