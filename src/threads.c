@@ -39,15 +39,13 @@ thread_local char t_thread_name[THREAD_NAME_LEN + 1];
 static int ThreadMacrosTest01Mutex(void)
 {
     SCMutex mut;
-    int r = 0;
-    r |= SCMutexInit(&mut, NULL);
-    r |= SCMutexLock(&mut);
-    r |= (SCMutexTrylock(&mut) == EBUSY)? 0 : 1;
-    r |= SCMutexIsLocked(&mut) ? 0 : 1;
-    r |= SCMutexUnlock(&mut);
-    r |= SCMutexDestroy(&mut);
+    FAIL_IF(SCMutexInit(&mut, NULL) != 0);
+    FAIL_IF(SCMutexLock(&mut) != 0);
+    FAIL_IF(SCMutexTrylock(&mut) != EBUSY);
+    FAIL_IF(SCMutexUnlock(&mut) != 0);
+    FAIL_IF(SCMutexDestroy(&mut) != 0);
 
-    return (r == 0)? 1 : 0;
+    PASS;
 }
 
 /**
@@ -68,18 +66,17 @@ static int ThreadMacrosTest01Mutex(void)
 static int ThreadMacrosTest02Spinlocks(void)
 {
     SCSpinlock mut;
-    int r = 0;
-    r |= SCSpinInit(&mut, 0);
-    r |= SCSpinLock(&mut);
+    FAIL_IF(SCSpinInit(&mut, 0) != 0);
+    FAIL_IF(SCSpinLock(&mut) != 0);
 #ifndef __OpenBSD__
-    r |= (SCSpinTrylock(&mut) == EBUSY)? 0 : 1;
+    FAIL_IF(SCSpinTrylock(&mut) != EBUSY);
 #else
-    r |= (SCSpinTrylock(&mut) == EDEADLK)? 0 : 1;
+    FAIL_IF(SCSpinTrylock(&mut) != EDEADLK);
 #endif
-    r |= SCSpinUnlock(&mut);
-    r |= SCSpinDestroy(&mut);
+    FAIL_IF(SCSpinUnlock(&mut) != 0);
+    FAIL_IF(SCSpinDestroy(&mut) != 0);
 
-    return (r == 0)? 1 : 0;
+    PASS;
 }
 
 /**
@@ -88,20 +85,19 @@ static int ThreadMacrosTest02Spinlocks(void)
 static int ThreadMacrosTest03RWLocks(void)
 {
     SCRWLock rwl_write;
-    int r = 0;
-    r |= SCRWLockInit(&rwl_write, NULL);
-    r |= SCRWLockWRLock(&rwl_write);
+    FAIL_IF(SCRWLockInit(&rwl_write, NULL) != 0);
+    FAIL_IF(SCRWLockWRLock(&rwl_write) != 0);
 /* OS X/macOS 10.10 (Yosemite) and newer return EDEADLK. Older versions
  * and other tested OS's return EBUSY. */
 #if __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__>=101000
-    r |= (SCRWLockTryWRLock(&rwl_write) == EDEADLK)? 0 : 1;
+    FAIL_IF(SCRWLockTryWRLock(&rwl_write) != EDEADLK);
 #else
-    r |= (SCRWLockTryWRLock(&rwl_write) == EBUSY)? 0 : 1;
+    FAIL_IF(SCRWLockTryWRLock(&rwl_write) != EBUSY);
 #endif
-    r |= SCRWLockUnlock(&rwl_write);
-    r |= SCRWLockDestroy(&rwl_write);
+    FAIL_IF(SCRWLockUnlock(&rwl_write) != 0);
+    FAIL_IF(SCRWLockDestroy(&rwl_write) != 0);
 
-    return (r == 0)? 1 : 0;
+    PASS;
 }
 
 /**
@@ -110,14 +106,13 @@ static int ThreadMacrosTest03RWLocks(void)
 static int ThreadMacrosTest04RWLocks(void)
 {
     SCRWLock rwl_read;
-    int r = 0;
-    r |= SCRWLockInit(&rwl_read, NULL);
-    r |= SCRWLockRDLock(&rwl_read);
-    r |= (SCRWLockTryWRLock(&rwl_read) == EBUSY)? 0 : 1;
-    r |= SCRWLockUnlock(&rwl_read);
-    r |= SCRWLockDestroy(&rwl_read);
+    FAIL_IF(SCRWLockInit(&rwl_read, NULL) != 0);
+    FAIL_IF(SCRWLockRDLock(&rwl_read) != 0);
+    FAIL_IF(SCRWLockTryWRLock(&rwl_read) != EBUSY);
+    FAIL_IF(SCRWLockUnlock(&rwl_read) != 0);
+    FAIL_IF(SCRWLockDestroy(&rwl_read) != 0);
 
-    return (r == 0)? 1 : 0;
+    PASS;
 }
 
 #if 0 // broken on OSX
