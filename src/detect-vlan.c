@@ -20,45 +20,6 @@
 #include "detect-parse.h"
 #include "rust.h"
 
-static int DetectVlanIdMatch(
-        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
-{
-    const DetectVlanIdData *vdata = (const DetectVlanIdData *)ctx;
-
-    if (p->vlan_idx == 0) {
-        return 0;
-    }
-
-    switch (vdata->layer) {
-        case DETECT_VLAN_ID_ANY:
-            for (int i = 0; i < p->vlan_idx; i++) {
-                if (DetectU16Match(p->vlan_id[i], &vdata->du16)) {
-                    return 1;
-                }
-            }
-            return 0;
-        case DETECT_VLAN_ID_ALL:
-            for (int i = 0; i < p->vlan_idx; i++) {
-                if (!DetectU16Match(p->vlan_id[i], &vdata->du16)) {
-                    return 0;
-                }
-            }
-            return 1;
-        default:
-            if (vdata->layer < 0) { // Negative layer values for backward indexing.
-                if (((int16_t)p->vlan_idx) + vdata->layer < 0) {
-                    return 0;
-                }
-                return DetectU16Match(p->vlan_id[p->vlan_idx + vdata->layer], &vdata->du16);
-            } else {
-                if (p->vlan_idx < vdata->layer) {
-                    return 0;
-                }
-                return DetectU16Match(p->vlan_id[vdata->layer], &vdata->du16);
-            }
-    }
-}
-
 static void DetectVlanIdFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     SCDetectVlanIdFree(ptr);
@@ -66,14 +27,13 @@ static void DetectVlanIdFree(DetectEngineCtx *de_ctx, void *ptr)
 
 static int DetectVlanIdSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
-    DetectVlanIdData *vdata = SCDetectVlanIdParse(rawstr);
+    SigMatchCtx *vdata = SCDetectVlanIdParse(rawstr);
     if (vdata == NULL) {
         SCLogError("vlan id invalid %s", rawstr);
         return -1;
     }
 
-    if (SCSigMatchAppendSMToList(
-                de_ctx, s, DETECT_VLAN_ID, (SigMatchCtx *)vdata, DETECT_SM_LIST_MATCH) == NULL) {
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_VLAN_ID, vdata, DETECT_SM_LIST_MATCH) == NULL) {
         DetectVlanIdFree(de_ctx, vdata);
         return -1;
     }
@@ -86,34 +46,31 @@ static void PrefilterPacketVlanIdMatch(DetectEngineThreadCtx *det_ctx, Packet *p
 {
     const PrefilterPacketHeaderCtx *ctx = pectx;
 
-    DetectVlanIdData vdata;
+    DetectVlanIdDataPrefilter vdata;
     vdata.du16.mode = ctx->v1.u8[0];
     vdata.layer = ctx->v1.u8[1];
     vdata.du16.arg1 = ctx->v1.u16[2];
     vdata.du16.arg2 = ctx->v1.u16[3];
 
-    if (p->vlan_idx == 0)
-        return;
-
-    if (DetectVlanIdMatch(det_ctx, p, NULL, (const SigMatchCtx *)&vdata)) {
+    if (SCDetectVlanIdPrefilterMatch(p->vlan_idx, p->vlan_id, &vdata)) {
         PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
     }
 }
 
 static void PrefilterPacketVlanIdSet(PrefilterPacketHeaderValue *v, void *smctx)
 {
-    const DetectVlanIdData *a = smctx;
-    v->u8[0] = a->du16.mode;
-    v->u8[1] = a->layer;
-    v->u16[2] = a->du16.arg1;
-    v->u16[3] = a->du16.arg2;
+    const DetectVlanIdDataPrefilter a = SCDetectVlanIdPrefilter(smctx);
+    v->u8[0] = a.du16.mode;
+    v->u8[1] = a.layer;
+    v->u16[2] = a.du16.arg1;
+    v->u16[3] = a.du16.arg2;
 }
 
 static bool PrefilterPacketVlanIdCompare(PrefilterPacketHeaderValue v, void *smctx)
 {
-    const DetectVlanIdData *a = smctx;
-    if (v.u8[0] == a->du16.mode && v.u8[1] == a->layer && v.u16[2] == a->du16.arg1 &&
-            v.u16[3] == a->du16.arg2)
+    const DetectVlanIdDataPrefilter a = SCDetectVlanIdPrefilter(smctx);
+    if (v.u8[0] == a.du16.mode && v.u8[1] == a.layer && v.u16[2] == a.du16.arg1 &&
+            v.u16[3] == a.du16.arg2)
         return true;
     return false;
 }
@@ -126,9 +83,20 @@ static int PrefilterSetupVlanId(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 
 static bool PrefilterVlanIdIsPrefilterable(const Signature *s)
 {
-    return PrefilterIsPrefilterableById(s, DETECT_VLAN_ID);
+    const SigMatch *sm;
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
+        if (sm->type == DETECT_VLAN_ID) {
+            return SCDetectVlanIdPrefilterable(sm->ctx);
+        }
+    }
+    return false;
 }
 
+static int DetectVlanIdMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
+{
+    return SCDetectVlanIdMatch(p->vlan_idx, p->vlan_id, ctx);
+}
 void DetectVlanIdRegister(void)
 {
     sigmatch_table[DETECT_VLAN_ID].name = "vlan.id";
