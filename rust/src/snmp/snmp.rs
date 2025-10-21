@@ -393,14 +393,6 @@ const PARSER_NAME : &[u8] = b"snmp\0";
 #[no_mangle]
 pub unsafe extern "C" fn SCRegisterSnmpParser() {
     let ip_proto_str = CString::new("udp").unwrap();
-    if SCAppLayerProtoDetectConfProtoDetectionEnabled(
-        ip_proto_str.as_ptr(),
-        PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
-    ) == 0
-    {
-        SCLogDebug!("Protocol detector and parser disabled for SNMP.");
-        return;
-    }
     let default_port = CString::new("161").unwrap();
     let mut parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
@@ -445,17 +437,21 @@ pub unsafe extern "C" fn SCRegisterSnmpParser() {
     };
     SCOutputEvePreRegisterLogger(reg_data);
     SCSigTablePreRegister(Some(detect_snmp_register));
-    // port 161
-    _ = AppLayerRegisterProtocolDetection(&parser, 1);
-    if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
-        let _ = AppLayerRegisterParser(&parser, ALPROTO_SNMP);
+   if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+        // port 161
+        _ = AppLayerRegisterProtocolDetection(&parser, 1);
+        if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+            let _ = AppLayerRegisterParser(&parser, ALPROTO_SNMP);
+        }
+        // port 162
+        let default_port_traps = CString::new("162").unwrap();
+        parser.default_port = default_port_traps.as_ptr();
+        let _ = AppLayerRegisterProtocolDetection(&parser, 1);
+        if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+            let _ = AppLayerRegisterParser(&parser, ALPROTO_SNMP);
+        }
+        SCAppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_SNMP);
+    } else {
+        SCLogDebug!("Protocol detector and parser disabled for SNMP.");
     }
-    // port 162
-    let default_port_traps = CString::new("162").unwrap();
-    parser.default_port = default_port_traps.as_ptr();
-    let _ = AppLayerRegisterProtocolDetection(&parser, 1);
-    if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
-        let _ = AppLayerRegisterParser(&parser, ALPROTO_SNMP);
-    }
-    SCAppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_SNMP);
 }
