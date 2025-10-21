@@ -600,7 +600,12 @@
                             }
                         },
                         "function_code": {
-                            "type": "integer"
+                            "type": "integer",
+                            "suricata": {
+                                "keywords": [
+                                    "dnp3.func"
+                                ]
+                            }
                         },
                         "objects": {
                             "type": "array",
@@ -721,7 +726,12 @@
                                     }
                                 },
                                 "function_code": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "suricata": {
+                                        "keywords": [
+                                            "dnp3.func"
+                                        ]
+                                    }
                                 },
                                 "objects": {
                                     "type": "array",
@@ -832,7 +842,12 @@
                                     }
                                 },
                                 "function_code": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "suricata": {
+                                        "keywords": [
+                                            "dnp3.func"
+                                        ]
+                                    }
                                 },
                                 "objects": {
                                     "type": "array",
