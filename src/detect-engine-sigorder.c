@@ -1997,7 +1997,7 @@ static int SCSigOrderingTest12(void)
     Packet *p = NULL;
     uint8_t buf[] = "test message";
     Flow f;
-
+    memset(&f, 0, sizeof(f));
     FLOW_INITIALIZE(&f);
     f.flags |= FLOW_IPV4;
     f.alproto = ALPROTO_UNKNOWN;
