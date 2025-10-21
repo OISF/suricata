@@ -42,6 +42,9 @@ typedef DetectUintData_u32 DetectU32Data;
 typedef DetectUintData_u16 DetectU16Data;
 typedef DetectUintData_u8 DetectU8Data;
 
+typedef DetectUintArrayData_u8 DetectU8ArrayData;
+typedef DetectUintArrayData_u32 DetectU32ArrayData;
+
 int DetectU64Match(const uint64_t parg, const DetectUintData_u64 *du64);
 DetectUintData_u64 *DetectU64Parse(const char *u64str);
 
