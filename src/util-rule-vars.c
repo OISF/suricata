@@ -347,52 +347,40 @@ static const char *dummy_mt_conf_string =
  */
 static int SCRuleVarsMTest01(void)
 {
-    int result = 0;
-    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
 
     SCConfCreateContextBackup();
     SCConfInit();
     SCConfYamlLoadString(dummy_mt_conf_string, strlen(dummy_mt_conf_string));
 
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
-        return 0;
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
     snprintf(de_ctx->config_prefix, sizeof(de_ctx->config_prefix),
                 "multi-detect.0");
 
     /* check for address-groups */
-    result = (SCRuleVarsGetConfVar(de_ctx,"$HOME_NET", SC_RULE_VARS_ADDRESS_GROUPS) != NULL &&
-               strcmp(SCRuleVarsGetConfVar(de_ctx,"$HOME_NET", SC_RULE_VARS_ADDRESS_GROUPS),
-                      "[8.8.8.8]") == 0);
-    if (result == 0)
-        goto end;
+    FAIL_IF_NOT(SCRuleVarsGetConfVar(de_ctx, "$HOME_NET", SC_RULE_VARS_ADDRESS_GROUPS) != NULL &&
+                strcmp(SCRuleVarsGetConfVar(de_ctx, "$HOME_NET", SC_RULE_VARS_ADDRESS_GROUPS),
+                        "[8.8.8.8]") == 0);
 
-    result = (SCRuleVarsGetConfVar(NULL,"$HOME_NET", SC_RULE_VARS_ADDRESS_GROUPS) != NULL &&
-               strcmp(SCRuleVarsGetConfVar(NULL,"$HOME_NET", SC_RULE_VARS_ADDRESS_GROUPS),
-                      "[1.2.3.4]") == 0);
-    if (result == 0)
-        goto end;
+    FAIL_IF_NOT(SCRuleVarsGetConfVar(NULL, "$HOME_NET", SC_RULE_VARS_ADDRESS_GROUPS) != NULL &&
+                strcmp(SCRuleVarsGetConfVar(NULL, "$HOME_NET", SC_RULE_VARS_ADDRESS_GROUPS),
+                        "[1.2.3.4]") == 0);
 
     /* check for port-groups */
-    result = (SCRuleVarsGetConfVar(de_ctx,"$HTTP_PORTS", SC_RULE_VARS_PORT_GROUPS) != NULL &&
-               strcmp(SCRuleVarsGetConfVar(de_ctx,"$HTTP_PORTS", SC_RULE_VARS_PORT_GROUPS),
-                      "54321") == 0);
-    if (result == 0)
-        goto end;
+    FAIL_IF_NOT(SCRuleVarsGetConfVar(de_ctx, "$HTTP_PORTS", SC_RULE_VARS_PORT_GROUPS) != NULL &&
+                strcmp(SCRuleVarsGetConfVar(de_ctx, "$HTTP_PORTS", SC_RULE_VARS_PORT_GROUPS),
+                        "54321") == 0);
 
-    result = (SCRuleVarsGetConfVar(NULL,"$HTTP_PORTS", SC_RULE_VARS_PORT_GROUPS) != NULL &&
-               strcmp(SCRuleVarsGetConfVar(NULL,"$HTTP_PORTS", SC_RULE_VARS_PORT_GROUPS),
-                      "12345") == 0);
-    if (result == 0)
-        goto end;
+    FAIL_IF_NOT(SCRuleVarsGetConfVar(NULL, "$HTTP_PORTS", SC_RULE_VARS_PORT_GROUPS) != NULL &&
+                strcmp(SCRuleVarsGetConfVar(NULL, "$HTTP_PORTS", SC_RULE_VARS_PORT_GROUPS),
+                        "12345") == 0);
 
-end:
     SCConfDeInit();
     SCConfRestoreContextBackup();
 
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-    return result;
+    DetectEngineCtxFree(de_ctx);
+    PASS;
 }
 
 #endif /* UNITTESTS */
