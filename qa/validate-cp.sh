@@ -9,20 +9,26 @@ if [ $# -ne 1 ]; then
 fi
 
 BASE=$1
-CHECK_BRANCH="${VALIDATE_CHECK_BRANCH:-remotes/origin/main}"
+
+if [ -z "${CHECK_BRANCHES}" ]; then
+    CHECK_BRANCHES="remotes/origin/main remotes/origin/main-8.0.x"
+fi
 
 test_cherrypicked_line() {
     REV=$1
     #echo "\"REV $REV\""
 
     CHERRY=$(echo $REV | grep '(cherry picked from commit' | awk '{print $5}'|awk -F')' '{print $1}' || return 1)
-    git branch -a --contains $CHERRY | grep " $CHECK_BRANCH$" &> /dev/null
-    if [ "$?" -ne 0 ]; then
-        echo -n "ERROR $CHERRY not found in $CHECK_BRANCH"
-        return 1
-    else
-        echo -n "OK "
-    fi
+
+    for branch in ${CHECK_BRANCHES}; do
+        if git branch -a --contains ${CHERRY} | grep " ${branch}" &> /dev/null; then
+            echo -n "OK "
+            return
+        fi
+    done
+
+    echo -n "ERROR $CHERRY not found in $CHECK_BRANCH"
+    return 1
 }
 
 for rev in $(git rev-list --reverse origin/${BASE}..HEAD); do
