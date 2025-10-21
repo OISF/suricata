@@ -8753,6 +8753,10 @@
                 "reject": {
                     "type": "integer",
                     "minimum": 0
+                },
+                "reject_both": {
+                    "type": "integer",
+                    "minimum": 0
                 }
             }
         }
