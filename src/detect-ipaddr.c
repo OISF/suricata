@@ -30,6 +30,7 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
+#include "detect-engine-buffer.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-prefilter.h"
 #include "detect-ipaddr.h"
@@ -96,7 +97,8 @@ static int DetectSrcIPAddrBufferSetup(DetectEngineCtx *de_ctx, Signature *s, con
 {
     /* store list id. Content, pcre, etc will be added to the list at this
      * id. */
-    s->init_data->list = g_src_ipaddr_buffer_id;
+    if (SCDetectBufferSetActiveList(de_ctx, s, g_src_ipaddr_buffer_id) < 0)
+        return -1;
 
     return 0;
 }
@@ -105,7 +107,8 @@ static int DetectDestIPAddrBufferSetup(DetectEngineCtx *de_ctx, Signature *s, co
 {
     /* store list id. Content, pcre, etc will be added to the list at this
      * id. */
-    s->init_data->list = g_dest_ipaddr_buffer_id;
+    if (SCDetectBufferSetActiveList(de_ctx, s, g_dest_ipaddr_buffer_id) < 0)
+        return -1;
 
     return 0;
 }
