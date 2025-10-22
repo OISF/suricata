@@ -33,6 +33,7 @@
 #include "suricata.h"
 #include "conf.h"
 #include "util-misc.h"
+#include "capture-hooks.h"
 
 extern uint32_t max_pending_packets;
 PcapFileGlobalVars pcap_g;
@@ -203,9 +204,12 @@ TmEcode ReceivePcapFileLoop(ThreadVars *tv, void *data, void *slot)
     TmThreadsSetFlag(tv, THV_RUNNING);
 
     if(ptv->is_directory == 0) {
-        SCLogInfo("Starting file run for %s", ptv->behavior.file->filename);
+        SCLogDebug("Starting file run for %s", ptv->behavior.file->filename);
+        /* Hold a reference for the duration of file processing, including
+         * post-dispatch flow draining during EngineStop, so deletion decision
+         * is deferred until all pseudo packets have been processed. */
+        SC_ATOMIC_ADD(ptv->behavior.file->ref_cnt, 1);
         status = PcapFileDispatch(ptv->behavior.file);
-        CleanupPcapFileFromThreadVars(ptv, ptv->behavior.file);
     } else {
         SCLogInfo("Starting directory run for %s", ptv->behavior.directory->filename);
         PcapDirectoryDispatch(ptv->behavior.directory);
@@ -215,6 +219,19 @@ TmEcode ReceivePcapFileLoop(ThreadVars *tv, void *data, void *slot)
     SCLogDebug("Pcap file loop complete with status %u", status);
 
     status = PcapFileExit(status, &ptv->shared.last_processed);
+
+    /* Release the hold set before dispatch and trigger deferred cleanup
+     * if requested and this was the final reference. */
+    if (ptv->is_directory == 0) {
+        /* Ensure current pfv global is set for any pseudo packets emitted
+         * during EngineStop/flow drain. */
+        PcapFileSetCurrentPfv(ptv->behavior.file);
+        uint32_t prev = SC_ATOMIC_SUB(ptv->behavior.file->ref_cnt, 1);
+        if (prev == 1 && ptv->behavior.file->cleanup_requested) {
+            CleanupPcapFileFileVars(ptv->behavior.file);
+            ptv->behavior.file = NULL;
+        }
+    }
     SCReturnInt(status);
 }
 
@@ -261,11 +278,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
         }
     }
 
-    int should_delete = 0;
-    ptv->shared.should_delete = false;
-    if (SCConfGetBool("pcap-file.delete-when-done", &should_delete) == 1) {
-        ptv->shared.should_delete = should_delete == 1;
-    }
+    ptv->shared.delete_mode = PcapFileParseDeleteMode();
 
     DIR *directory = NULL;
     SCLogDebug("checking file or directory %s", (char*)initdata);
@@ -422,6 +435,11 @@ TmEcode ReceivePcapFileThreadDeinit(ThreadVars *tv, void *data)
     SCEnter();
     if(data != NULL) {
         PcapFileThreadVars *ptv = (PcapFileThreadVars *) data;
+
+        if (!ptv->is_directory && ptv->behavior.file != NULL) {
+            CleanupPcapFileFromThreadVars(ptv, ptv->behavior.file);
+        }
+
         CleanupPcapFileThreadVars(ptv);
     }
     SCReturnInt(TM_ECODE_OK);
