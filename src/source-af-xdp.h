@@ -41,7 +41,7 @@ typedef struct AFXDPIfaceConfig {
     uint32_t busy_poll_budget;
     uint32_t gro_flush_timeout;
     uint32_t napi_defer_hard_irqs;
-   // Use interface-specific local variables instead of global variables
+    // Use interface-specific local variables instead of global variables
     uint8_t queue_idx;
     SC_ATOMIC_DECLARE(unsigned int, ref);
     void (*DerefFunc)(void *);

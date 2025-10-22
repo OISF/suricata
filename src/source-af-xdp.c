@@ -29,7 +29,7 @@
  * AF_XDP socket acquisition support
  *
  */
-#define SC_PCAP_DONT_INCLUDE_PCAP_H  1
+#define SC_PCAP_DONT_INCLUDE_PCAP_H 1
 #include "suricata-common.h"
 #include "suricata.h"
 #include "decode.h"
@@ -688,7 +688,7 @@ static TmEcode ReceiveAFXDPThreadInit(ThreadVars *tv, const void *initdata, void
 
     *data = (void *)ptv;
     afxdpconfig->DerefFunc(afxdpconfig);
-	
+
     // Use interface-specific local variables instead of global variables
     afxdpconfig->queue_idx++;
     SCReturnInt(TM_ECODE_OK);
