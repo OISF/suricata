@@ -44,6 +44,7 @@
 #include "detect-tcp-flags.h"
 #include "detect-tcp-ack.h"
 #include "detect-ipopts.h"
+#include "detect-ttl.h"
 #include "detect-tcp-seq.h"
 #include "feature.h"
 #include "util-print.h"
@@ -948,6 +949,13 @@ static void DumpMatches(RuleAnalyzer *ctx, SCJsonBuilder *js, const SigMatchData
             case DETECT_ICODE: {
                 const DetectU8Data *cd = (const DetectU8Data *)smd->ctx;
                 SCJbOpenObject(js, "code");
+                SCDetectU8ToJson(js, cd);
+                SCJbClose(js);
+                break;
+            }
+            case DETECT_TTL: {
+                const DetectU8Data *cd = (const DetectU8Data *)smd->ctx;
+                SCJbOpenObject(js, "time");
                 SCDetectU8ToJson(js, cd);
                 SCJbClose(js);
                 break;
