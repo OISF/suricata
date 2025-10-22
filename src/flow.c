@@ -416,7 +416,8 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
 #ifdef CAPTURE_OFFLOAD
     } else {
         /* still seeing packet, we downgrade to local bypass */
-        if (SCTIME_SECS(p->ts) - SCTIME_SECS(f->lastts) > FLOW_BYPASSED_TIMEOUT / 2) {
+        const uint32_t timeout_policy = FlowGetTimeoutPolicy(f);
+        if (SCTIME_SECS(p->ts) - SCTIME_SECS(f->lastts) > (timeout_policy / 2)) {
             SCLogDebug("Downgrading flow to local bypass");
             f->lastts = p->ts;
             FlowUpdateState(f, FLOW_STATE_LOCAL_BYPASSED);
