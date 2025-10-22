@@ -1078,6 +1078,34 @@ void PacketAlertGetMaxConfig(void)
     SCLogDebug("detect->packet_alert_max set to %d", packet_alert_max);
 }
 
+static inline bool PcapPacketNumRunmodeCanAccess(void)
+{
+    return SCRunmodeGet() == RUNMODE_PCAP_FILE || SCRunmodeGet() == RUNMODE_UNITTEST ||
+           SCRunmodeGet() == RUNMODE_UNIX_SOCKET;
+}
+
+inline uint64_t PcapPacketCntGet(const Packet *p)
+{
+    if (PcapPacketNumRunmodeCanAccess() && p != NULL) {
+        return p->pcap_v.pcap_cnt;
+    }
+    return 0;
+}
+
+inline void PcapPacketCntSet(Packet *p, uint64_t pcap_cnt)
+{
+    if (PcapPacketNumRunmodeCanAccess() && p != NULL) {
+        p->pcap_v.pcap_cnt = pcap_cnt;
+    }
+}
+
+inline void PcapPacketCntReset(Packet *p)
+{
+    if (PcapPacketNumRunmodeCanAccess() && p != NULL) {
+        p->pcap_v.pcap_cnt = 0;
+    }
+}
+
 /**
  * @}
  */
