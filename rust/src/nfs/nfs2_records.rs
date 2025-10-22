@@ -65,6 +65,34 @@ pub fn parse_nfs2_request_read(i: &[u8]) -> IResult<&[u8], Nfs2RequestRead<'_>> 
     Ok((i, req))
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub struct Nfs2RequestWrite<'a> {
+    pub handle: Nfs2Handle<'a>,
+    pub beginoffset: u32,
+    pub offset: u32,
+    pub totalcount: u32,
+    pub data: &'a [u8],
+}
+
+pub fn parse_nfs2_request_write(i: &[u8]) -> IResult<&[u8], Nfs2RequestWrite<'_>> {
+    let (i, handle) = parse_nfs2_handle(i)?;
+    let (i, beginoffset) = be_u32(i)?;
+    let (i, offset) = be_u32(i)?;
+    let (i, totalcount) = be_u32(i)?;
+    let (i, data_len) = be_u32(i)?; // XDR opaque length
+    let (i, data) = take(data_len)(i)?;
+    let fill_bytes = (4 - (data_len % 4)) % 4; // pad to 4-byte boundary
+    let (i, _) = cond(fill_bytes != 0, take(fill_bytes))(i)?;
+    let req = Nfs2RequestWrite {
+        handle,
+        beginoffset,
+        offset,
+        totalcount,
+        data,
+    };
+    Ok((i, req))
+}
+
 pub fn parse_nfs2_reply_read(i: &[u8]) -> IResult<&[u8], NfsReplyRead<'_>> {
     let (i, status) = be_u32(i)?;
     let (i, attr_blob) = take(68_usize)(i)?;
@@ -80,6 +108,31 @@ pub fn parse_nfs2_reply_read(i: &[u8]) -> IResult<&[u8], NfsReplyRead<'_>> {
         eof: false,
         data_len,
         data: data_contents,
+    };
+    Ok((i, reply))
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Nfs2ReplyWrite<'a> {
+    pub status: u32,
+    pub attr_blob: &'a [u8],
+    pub count: u32,
+    pub beginoffset: u32,
+    pub offset: u32,
+}
+
+pub fn parse_nfs2_reply_write(i: &[u8]) -> IResult<&[u8], Nfs2ReplyWrite<'_>> {
+    let (i, status) = be_u32(i)?;
+    let (i, attr_blob) = take(68_usize)(i)?;
+    let (i, count) = be_u32(i)?;
+    let (i, beginoffset) = be_u32(i)?;
+    let (i, offset) = be_u32(i)?;
+    let reply = Nfs2ReplyWrite {
+        status,
+        attr_blob,
+        count,
+        beginoffset,
+        offset,
     };
     Ok((i, reply))
 }
@@ -158,6 +211,30 @@ mod tests {
         assert_eq!(r.len(), 4);
         assert_eq!(request.handle, handle);
         assert_eq!(request.offset, 0);
+    }
+
+    #[test]
+    fn test_nfs2_request_write_minimal() {
+        #[rustfmt::skip]
+    let buf: &[u8] = &[
+        // fake 32-byte handle
+        0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+        0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
+        0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+        0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
+        // beginoffset, offset, totalcount
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x10,
+        0x00, 0x00, 0x00, 0x20,
+        // data_len + data
+        0x00, 0x00, 0x00, 0x04,
+        0xde, 0xad, 0xbe, 0xef,
+    ];
+
+        let (_, req) = parse_nfs2_request_write(buf).unwrap();
+        assert_eq!(req.offset, 0x10);
+        assert_eq!(req.totalcount, 0x20);
+        assert_eq!(req.data, &[0xde, 0xad, 0xbe, 0xef]);
     }
 
     #[test]
