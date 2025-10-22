@@ -431,11 +431,12 @@ static TmEcode OpenXSKSocket(AFXDPThreadVars *ptv)
 
     SCMutexLock(&xsk_protect.queue_protect);
 
+#if 0
     if (AFXDPAssignQueueID(ptv) != TM_ECODE_OK) {
         SCLogError("Failed to assign queue ID");
         SCReturnInt(TM_ECODE_FAILED);
     }
-
+#endif
     if ((ret = xsk_socket__create(&ptv->xsk.xsk, ptv->livedev->dev, ptv->xsk.queue.queue_num,
                  ptv->umem.umem, &ptv->xsk.rx, &ptv->xsk.tx, &ptv->xsk.cfg))) {
         SCLogError("Failed to create socket: %s", strerror(-ret));
@@ -657,7 +658,12 @@ static TmEcode ReceiveAFXDPThreadInit(ThreadVars *tv, const void *initdata, void
     ptv->xsk.busy_poll_time = afxdpconfig->busy_poll_time;
     ptv->gro_flush_timeout = afxdpconfig->gro_flush_timeout;
     ptv->napi_defer_hard_irqs = afxdpconfig->napi_defer_hard_irqs;
-
+    /*The queue numbering for each network interface card (NIC) should start from 0. Using a global
+     variable to track these numbers will result in startup failures. For example, if NIC A has 2
+     queues and NIC B has 2 queues: when monitoring both NIC A and NIC B simultaneously, relying
+     on a global variable would cause the queue indices of either NIC A or NIC B to incorrectly
+    reach 2 or 3, leading to XDP startup failures.*/
+    ptv->xsk.queue.queue_num = afxdpconfig->queue_idx;
     /* Stats registration */
     ptv->capture_afxdp_packets = StatsRegisterCounter("capture.afxdp_packets", ptv->tv);
     ptv->capture_kernel_drops = StatsRegisterCounter("capture.kernel_drops", ptv->tv);
@@ -682,6 +688,9 @@ static TmEcode ReceiveAFXDPThreadInit(ThreadVars *tv, const void *initdata, void
 
     *data = (void *)ptv;
     afxdpconfig->DerefFunc(afxdpconfig);
+	
+    // Use interface-specific local variables instead of global variables
+    afxdpconfig->queue_idx++;
     SCReturnInt(TM_ECODE_OK);
 }
 
