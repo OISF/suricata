@@ -9,3 +9,4 @@ Extending Suricata
    app-layer/index.rst
    detect/index.rst
    output/index.rst
+   output/eve-filetypes.rst
