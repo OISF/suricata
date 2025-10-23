@@ -51,6 +51,7 @@
 #include "util-validate.h"
 #include "util-conf.h"
 #include "detect-flowbits.h"
+#include "detect-flowint.h"
 #include "util-var-name.h"
 #include "detect-icmp-id.h"
 #include "detect-tcp-window.h"
@@ -914,6 +915,65 @@ static void DumpMatches(RuleAnalyzer *ctx, SCJsonBuilder *js, const SigMatchData
                     SCJbSetString(js, "operator", "or");
                 }
                 SCJbClose(js); // object
+                break;
+            }
+            case DETECT_FLOWINT: {
+                const DetectFlowintData *cd = (const DetectFlowintData *)smd->ctx;
+
+                SCJbOpenObject(js, "flowint");
+                switch (cd->modifier) {
+                    case FLOWINT_MODIFIER_SET:
+                        SCJbSetString(js, "cmd", "set");
+                        break;
+                    /*Pending the team decision on naming convention*/
+                    /*
+                    case FLOWINT_MODIFIER_ADD:
+                        SCJbSetString(js, "cmd", "add");
+                        break;
+                    case FLOWINT_MODIFIER_SUB:
+                        SCJbSetString(js, "cmd", "sub");
+                        break;
+                    case FLOWINT_MODIFIER_LT:
+                        SCJbSetString(js, "cmd", "lt");
+                        break;
+                    case FLOWINT_MODIFIER_LE:
+                        SCJbSetString(js, "cmd", "le");
+                        break;
+                    case FLOWINT_MODIFIER_EQ:
+                        SCJbSetString(js, "cmd", "eq");
+                        break;
+                    case FLOWINT_MODIFIER_NE:
+                        SCJbSetString(js, "cmd", "ne");
+                        break;
+                    case FLOWINT_MODIFIER_GE:
+                        SCJbSetString(js, "cmd", "ge");
+                        break;
+                    case FLOWINT_MODIFIER_GT:
+                        SCJbSetString(js, "cmd", "gt");
+                        break;
+                    */
+                    case FLOWINT_MODIFIER_ISSET:
+                        SCJbSetString(js, "cmd", "isset");
+                        break;
+                    case FLOWINT_MODIFIER_ISNOTSET:
+                        SCJbSetString(js, "cmd", "isnotset");
+                        break;
+                    default:
+                        SCJbSetString(js, "cmd", "unknown");
+                        break;
+                }
+                const char *varname = VarNameStoreSetupLookup(cd->idx, VAR_TYPE_FLOW_INT);
+                if (varname != NULL) {
+                    SCJbSetString(js, "var", varname);
+                }
+                if (cd->targettype == FLOWINT_TARGET_VAL) {
+                    SCJbSetUint(js, "value", cd->target.value);
+                } else if (cd->targettype == FLOWINT_TARGET_VAR) {
+                    if (cd->target.tvar.name != NULL) {
+                        SCJbSetString(js, "target", cd->target.tvar.name);
+                    }
+                }
+                SCJbClose(js);
                 break;
             }
             case DETECT_ACK: {
