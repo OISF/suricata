@@ -166,51 +166,55 @@ void FileForceTrackingEnable(void)
 /**
  * \brief Function to parse forced file hashing configuration.
  */
-void FileForceHashParseCfg(SCConfNode *conf)
+int FileForceHashParseCfg(SCConfNode *conf)
 {
     BUG_ON(conf == NULL);
 
-    SCConfNode *forcehash_node = NULL;
+    SCConfNode *forcehash_node = SCConfNodeLookupChild(conf, "force-hash");
 
-    if (conf != NULL)
-        forcehash_node = SCConfNodeLookupChild(conf, "force-hash");
+    if (conf == NULL){
+        return 0;
+    }
 
-    if (forcehash_node != NULL) {
-        SCConfNode *field = NULL;
+    if (!SCConfNodeIsSequence(forcehash_node)) {
+        SCLogError("force-hash must be a YAML sequence (e.g. '- sha256')");
+         return -1;
+    }
+        
+    SCConfNode *field = NULL;
+    TAILQ_FOREACH(field, &forcehash_node->head, next) {
+        if (field->val == NULL) 
+            continue;
 
-        TAILQ_FOREACH(field, &forcehash_node->head, next) {
-            if (strcasecmp("md5", field->val) == 0) {
-                if (g_disable_hashing) {
-                    SCLogInfo("not forcing md5 calculation for logged files: hashing globally "
-                              "disabled");
+        if (strcasecmp("md5", field->val) == 0) {
+            if (g_disable_hashing) {
+                    SCLogInfo("not forcing md5 calculation for logged files: hashing globally disabled");
                 } else {
                     FileForceMd5Enable();
                     SCLogConfig("forcing md5 calculation for logged or stored files");
                 }
-            }
-
-            if (strcasecmp("sha1", field->val) == 0) {
+            } else if (strcasecmp("sha1", field->val) == 0) {
                 if (g_disable_hashing) {
-                    SCLogInfo("not forcing sha1 calculation for logged files: hashing globally "
-                              "disabled");
+                    SCLogInfo("not forcing sha1 calculation for logged files: hashing globally disabled");
                 } else {
                     FileForceSha1Enable();
                     SCLogConfig("forcing sha1 calculation for logged or stored files");
                 }
-            }
-
-            if (strcasecmp("sha256", field->val) == 0) {
+            } else if (strcasecmp("sha256", field->val) == 0) {
                 if (g_disable_hashing) {
-                    SCLogInfo("not forcing sha256 calculation for logged files: hashing globally "
-                              "disabled");
+                    SCLogInfo("not forcing sha256 calculation for logged files: hashing globally disabled");
                 } else {
                     FileForceSha256Enable();
                     SCLogConfig("forcing sha256 calculation for logged or stored files");
                 }
+            } else {
+                SCLogError("unknown hash type '%s' in force-hash", field->val);
+                return -1;
             }
         }
+
+        return 0;
     }
-}
 
 uint16_t SCFileFlowFlagsToFlags(const uint16_t flow_file_flags, uint8_t direction)
 {

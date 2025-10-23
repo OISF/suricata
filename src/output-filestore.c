@@ -471,7 +471,10 @@ static OutputInitResult OutputFilestoreLogInitCtx(SCConfNode *conf)
         SCLogConfig("Filestore (v2) forcing magic lookup for stored files");
     }
 
-    FileForceHashParseCfg(conf);
+    if (FileForceHashParseCfg(conf) < 0) {
+        SCLogError("Invalid configuration for file-store.force-hash, aborting.");
+        SCReturnCT(result, "OutputInitResult");
+    }
 
     /* The new filestore requires SHA256. */
     FileForceSha256Enable();
