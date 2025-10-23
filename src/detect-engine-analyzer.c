@@ -41,6 +41,7 @@
 #include "detect-bytetest.h"
 #include "detect-isdataat.h"
 #include "detect-flow.h"
+#include "detect-ttl.h"
 #include "detect-tcp-flags.h"
 #include "detect-tcp-ack.h"
 #include "detect-ipopts.h"
@@ -948,6 +949,13 @@ static void DumpMatches(RuleAnalyzer *ctx, SCJsonBuilder *js, const SigMatchData
             case DETECT_ICODE: {
                 const DetectU8Data *cd = (const DetectU8Data *)smd->ctx;
                 SCJbOpenObject(js, "code");
+                SCDetectU8ToJson(js, cd);
+                SCJbClose(js);
+                break;
+            }
+            case DETECT_TTL: {
+                const DetectU8Data *cd = (const DetectU8Data *)smd->ctx;
+                SCJbOpenObject(js, "ttl");
                 SCDetectU8ToJson(js, cd);
                 SCJbClose(js);
                 break;
