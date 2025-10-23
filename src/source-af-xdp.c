@@ -282,18 +282,6 @@ TmEcode AFXDPQueueProtectionInit(void)
     SCReturnInt(TM_ECODE_OK);
 }
 
-static TmEcode AFXDPAssignQueueID(AFXDPThreadVars *ptv)
-{
-    if (!ptv->xsk.queue.assigned) {
-        ptv->xsk.queue.queue_num = SC_ATOMIC_GET(xsk_protect.queue_num);
-        SC_ATOMIC_ADD(xsk_protect.queue_num, 1);
-
-        /* Queue only needs assigned once, on startup */
-        ptv->xsk.queue.assigned = true;
-    }
-    SCReturnInt(TM_ECODE_OK);
-}
-
 static void AFXDPAllThreadsRunning(AFXDPThreadVars *ptv)
 {
     SCMutexLock(&xsk_protect.queue_protect);
@@ -431,12 +419,6 @@ static TmEcode OpenXSKSocket(AFXDPThreadVars *ptv)
 
     SCMutexLock(&xsk_protect.queue_protect);
 
-#if 0
-    if (AFXDPAssignQueueID(ptv) != TM_ECODE_OK) {
-        SCLogError("Failed to assign queue ID");
-        SCReturnInt(TM_ECODE_FAILED);
-    }
-#endif
     if ((ret = xsk_socket__create(&ptv->xsk.xsk, ptv->livedev->dev, ptv->xsk.queue.queue_num,
                  ptv->umem.umem, &ptv->xsk.rx, &ptv->xsk.tx, &ptv->xsk.cfg))) {
         SCLogError("Failed to create socket: %s", strerror(-ret));
