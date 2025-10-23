@@ -36,8 +36,7 @@
 
 typedef uint32_t ThreadId;
 
-/**
- * \brief Structure used to define an EVE output file type plugin.
+/** \brief Structure used to define an EVE output file type.
  *
  * EVE filetypes implement an object with a file-like interface and
  * are used to output EVE log records to files, syslog, or
