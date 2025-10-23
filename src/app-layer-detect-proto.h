@@ -114,6 +114,7 @@ void SCAppLayerForceProtocolChange(Flow *f, AppProto new_proto);
 /**
  * \brief Cleans up the app layer protocol detection phase.
  */
+int SCAppLayerProtoDetectReallocCtx(AppProto alproto);
 int AppLayerProtoDetectDeSetup(void);
 
 /**
