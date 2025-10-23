@@ -18,7 +18,7 @@
 use nom7::branch::alt;
 use nom7::bytes::complete::{is_a, tag, tag_no_case, take, take_while};
 use nom7::character::complete::{anychar, char, digit1, hex_digit1, i32 as nom_i32};
-use nom7::combinator::{all_consuming, map_opt, opt, value, verify};
+use nom7::combinator::{all_consuming, cut, map_opt, opt, value, verify};
 use nom7::error::{make_error, Error, ErrorKind};
 use nom7::Err;
 use nom7::IResult;
@@ -585,9 +585,13 @@ pub fn detect_parse_uint_start_interval<T: DetectIntType>(
     let (i, _) = opt(is_a(" "))(i)?;
     let (i, _) = alt((tag("-"), tag("<>")))(i)?;
     let (i, _) = opt(is_a(" "))(i)?;
-    let (i, arg2) = verify(detect_parse_uint_value, |x| {
+
+    // As we've determined this is range, use cut to turn the error
+    // into a failure so usage inside alt doesn't continue onto the
+    // next item.
+    let (i, arg2) = cut(verify(detect_parse_uint_value, |x| {
         x > &arg1 && *x - arg1 > T::one()
-    })(i)?;
+    }))(i)?;
     let mode = if neg.is_some() {
         DetectUintMode::DetectUintModeNegRg
     } else {
@@ -1042,5 +1046,14 @@ mod tests {
         assert_eq!(val.arg1, 44);
         assert!(detect_parse_uint::<u8>("").is_err());
         assert!(detect_parse_uint::<u8>("<444").is_err());
+    }
+
+    #[test]
+    fn test_invalid_range() {
+        // Invalid range - should fail (not enough values between bounds)
+        assert!(detect_parse_uint_notending::<u8>("1<>2").is_err());
+        assert!(detect_parse_uint_notending::<u8>("1-2").is_err());
+        assert!(detect_parse_uint_notending::<u8>("1-1").is_err());
+        assert!(detect_parse_uint_notending::<u8>("1-foo").is_err());
     }
 }
