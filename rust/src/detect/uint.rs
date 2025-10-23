@@ -1043,4 +1043,28 @@ mod tests {
         assert!(detect_parse_uint::<u8>("").is_err());
         assert!(detect_parse_uint::<u8>("<444").is_err());
     }
+
+    #[test]
+    fn test_null_range() {
+        // This is OK and expected.
+        let (_, val) = detect_parse_uint_notending::<u8>("1<>3").unwrap();
+        assert_eq!(val.arg1, 1);
+        assert_eq!(val.arg2, 3);
+        assert_eq!(val.mode, DetectUintMode::DetectUintModeRange);
+
+        // Is this expected?
+        let (_, val) = detect_parse_uint_notending::<u8>("1<>2").unwrap();
+        assert_eq!(val.arg1, 1);
+        assert_eq!(val.arg2, 0);
+        assert_eq!(val.mode, DetectUintMode::DetectUintModeEqual);
+
+        // Is this expected?
+        let (_, val) = detect_parse_uint_notending::<u8>("4-5").unwrap();
+        assert_eq!(val.arg1, 4);
+        assert_eq!(val.arg2, 0);
+        assert_eq!(val.mode, DetectUintMode::DetectUintModeEqual);
+
+        let(_, valeq) = detect_parse_uint_notending::<u8>("=4").unwrap();
+        assert_eq!(val, valeq);
+    }
 }
