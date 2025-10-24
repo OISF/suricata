@@ -255,11 +255,6 @@ int AffinityBuildCpusetWithCallback(
                 SCLogError("%s: invalid cpu range (bad order): \"%s\"", name, lnode->val);
                 return -EINVAL;
             }
-            if (b > max) {
-                SCLogError("%s: upper bound (%d) of cpu set is too high, only %d cpu(s)", name, b,
-                        max + 1);
-                return -ERANGE;
-            }
         } else {
             if (StringParseUint32(&a, 10, strlen(lnode->val), lnode->val) <= 0) {
                 SCLogError("%s: invalid cpu range (not an integer): \"%s\"", name, lnode->val);
@@ -267,7 +262,11 @@ int AffinityBuildCpusetWithCallback(
             }
             b = a;
         }
-        for (i = a; i<= b; i++) {
+        if (b > max) {
+            SCLogError("%s: CPU %" PRIu32 " exceeds available range (0-%" PRIu32 ")", name, b, max);
+            return -ERANGE;
+        }
+        for (i = a; i <= b; i++) {
             Callback(i, data);
         }
         if (stop) {
@@ -1172,7 +1171,7 @@ void AffinityReset(void)
 }
 
 /**
- * \brief Undo AffinityTestInit(): reset the affinity state, the config
+ * \brief Undo AffinityTestInitCpus(): reset the affinity state, the config
  * and the simulated CPUs. The test runner calls it after the test.
  */
 static void AffinityTestDeinit(void)
@@ -1184,19 +1183,28 @@ static void AffinityTestDeinit(void)
 }
 
 /**
- * \brief Initialize affinity test on a system with UTIL_CPU_UT_NUM_CPUS CPUs:
+ * \brief Initialize affinity test on a system with the given CPUs:
  * backup config, load YAML, load affinity.
  * \retval 0 on success, negative errno on error
  */
-static int AffinityTestInit(const char *config)
+static int AffinityTestInitCpus(const char *config, uint16_t configured, uint16_t online)
 {
-    UtilCpuSetNumProcessorsForTests(UTIL_CPU_UT_NUM_CPUS, UTIL_CPU_UT_NUM_CPUS);
+    UtilCpuSetNumProcessorsForTests(configured, online);
     SCConfCreateContextBackup();
     SCConfInit();
     UtSetTestCleanup(AffinityTestDeinit);
     /* not checked: ThreadingAffinityTest27 loads a YAML with a syntax error on purpose */
     SCConfYamlLoadString(config, strlen(config));
     return AffinityLoadFromConfig();
+}
+
+/**
+ * \brief Initialize affinity test on a system with UTIL_CPU_UT_NUM_CPUS CPUs
+ * \retval 0 on success, negative errno on error
+ */
+static int AffinityTestInit(const char *config)
+{
+    return AffinityTestInitCpus(config, UTIL_CPU_UT_NUM_CPUS, UTIL_CPU_UT_NUM_CPUS);
 }
 
 /**
@@ -1903,6 +1911,48 @@ static int ThreadingAffinityTest27(void)
     PASS;
 }
 
+/**
+ * \brief The first CPU past the CPUs of the system should fail parsing
+ */
+static int ThreadingAffinityTest28(void)
+{
+    const char *config = "%YAML 1.1\n"
+                         "---\n"
+                         "threading:\n"
+                         "  cpu-affinity:\n"
+                         "    worker-cpu-set:\n"
+                         "      cpu: [ 4 ]\n";
+
+    int ret = AffinityTestInitCpus(config, 4, 4);
+    FAIL_IF_NOT(ret == -ERANGE);
+
+    PASS;
+}
+
+/**
+ * \brief A CPU the system does not have fails parsing also in the priority
+ * lists of an interface-specific set
+ */
+static int ThreadingAffinityTest29(void)
+{
+    const char *config = "%YAML 1.1\n"
+                         "---\n"
+                         "threading:\n"
+                         "  cpu-affinity:\n"
+                         "    worker-cpu-set:\n"
+                         "      cpu: [ 0 ]\n"
+                         "      interface-specific-cpu-set:\n"
+                         "        - interface: \"eth0\"\n"
+                         "          cpu: [ 1 ]\n"
+                         "          prio:\n"
+                         "            high: [ 4 ]\n";
+
+    int ret = AffinityTestInitCpus(config, 4, 4);
+    FAIL_IF_NOT(ret == -ERANGE);
+
+    PASS;
+}
+
 #endif /* defined(__linux__) || defined(__FreeBSD__) || defined(__NetBSD__) */
 
 /**
@@ -1938,6 +1988,8 @@ void AffinityRegisterTests(void)
     UtRegisterTest("ThreadingAffinityTest25", ThreadingAffinityTest25);
     UtRegisterTest("ThreadingAffinityTest26", ThreadingAffinityTest26);
     UtRegisterTest("ThreadingAffinityTest27", ThreadingAffinityTest27);
+    UtRegisterTest("ThreadingAffinityTest28", ThreadingAffinityTest28);
+    UtRegisterTest("ThreadingAffinityTest29", ThreadingAffinityTest29);
 #endif /* defined(__linux__) || defined(__FreeBSD__) || defined(__NetBSD__) */
 }
 
