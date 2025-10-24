@@ -1158,13 +1158,37 @@ void AffinityReset(void)
 }
 
 /**
+ * \brief Undo AffinityTestInit(): reset the affinity state, the config
+ * and the simulated CPUs. The test runner calls it after the test.
+ */
+static void AffinityTestDeinit(void)
+{
+    AffinityReset();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
+    UtilCpuSetNumProcessorsForTests(0, 0);
+}
+
+/**
+ * \brief Initialize affinity test on a system with UTIL_CPU_UT_NUM_CPUS CPUs:
+ * backup config, load YAML, load affinity.
+ */
+static void AffinityTestInit(const char *config)
+{
+    UtilCpuSetNumProcessorsForTests(UTIL_CPU_UT_NUM_CPUS, UTIL_CPU_UT_NUM_CPUS);
+    SCConfCreateContextBackup();
+    SCConfInit();
+    UtSetTestCleanup(AffinityTestDeinit);
+    /* not checked: ThreadingAffinityTest27 loads a YAML with a syntax error on purpose */
+    SCConfYamlLoadString(config, strlen(config));
+    AffinityLoadFromConfig();
+}
+
+/**
  * \brief Test basic CPU affinity parsing in new format
  */
 static int ThreadingAffinityTest01(void)
 {
-    SCConfCreateContextBackup();
-    SCConfInit();
-    AffinityReset();
     const char *config = "%YAML 1.1\n"
                          "---\n"
                          "threading:\n"
@@ -1174,9 +1198,7 @@ static int ThreadingAffinityTest01(void)
                          "    worker-cpu-set:\n"
                          "      cpu: [ 1, 2, 3 ]\n";
 
-    SCConfYamlLoadString(config, strlen(config));
-
-    AffinityLoadFromConfig();
+    AffinityTestInit(config);
     FAIL_IF_NOT(AffinityConfigIsLegacy() == false);
 
     ThreadsAffinityType *mgmt_taf = &thread_affinity[MANAGEMENT_CPU_SET];
@@ -1187,10 +1209,8 @@ static int ThreadingAffinityTest01(void)
     FAIL_IF_NOT(CPU_ISSET(1, &worker_taf->cpu_set));
     FAIL_IF_NOT(CPU_ISSET(2, &worker_taf->cpu_set));
     FAIL_IF_NOT(CPU_ISSET(3, &worker_taf->cpu_set));
-    FAIL_IF_NOT(CPU_COUNT(&worker_taf->cpu_set));
+    FAIL_IF_NOT(CPU_COUNT(&worker_taf->cpu_set) == 3);
 
-    SCConfDeInit();
-    SCConfRestoreContextBackup();
     PASS;
 }
 
@@ -1199,10 +1219,6 @@ static int ThreadingAffinityTest01(void)
  */
 static int ThreadingAffinityTest02(void)
 {
-    SCConfCreateContextBackup();
-    SCConfInit();
-    AffinityReset();
-
     const char *config = "%YAML 1.1\n"
                          "---\n"
                          "threading:\n"
@@ -1210,8 +1226,7 @@ static int ThreadingAffinityTest02(void)
                          "    - worker-cpu-set:\n"
                          "        cpu: [ 1, 2 ]\n";
 
-    SCConfYamlLoadString(config, strlen(config));
-    AffinityLoadFromConfig();
+    AffinityTestInit(config);
     FAIL_IF_NOT(AffinityConfigIsLegacy() == true);
 
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
@@ -1219,8 +1234,6 @@ static int ThreadingAffinityTest02(void)
     FAIL_IF_NOT(CPU_ISSET(2, &worker_taf->cpu_set));
     FAIL_IF_NOT(CPU_COUNT(&worker_taf->cpu_set) == 2);
 
-    SCConfDeInit();
-    SCConfRestoreContextBackup();
     PASS;
 }
 
@@ -1229,10 +1242,6 @@ static int ThreadingAffinityTest02(void)
  */
 static int ThreadingAffinityTest03(void)
 {
-    SCConfCreateContextBackup();
-    SCConfInit();
-    AffinityReset();
-
     const char *config = "%YAML 1.1\n"
                          "---\n"
                          "threading:\n"
@@ -1240,8 +1249,7 @@ static int ThreadingAffinityTest03(void)
                          "    worker-cpu-set:\n"
                          "      cpu: [ \"0-3\" ]\n";
 
-    SCConfYamlLoadString(config, strlen(config));
-    AffinityLoadFromConfig();
+    AffinityTestInit(config);
 
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
     FAIL_IF_NOT(CPU_ISSET(0, &worker_taf->cpu_set));
@@ -1250,8 +1258,6 @@ static int ThreadingAffinityTest03(void)
     FAIL_IF_NOT(CPU_ISSET(3, &worker_taf->cpu_set));
     FAIL_IF_NOT(CPU_COUNT(&worker_taf->cpu_set) == 4);
 
-    SCConfDeInit();
-    SCConfRestoreContextBackup();
     PASS;
 }
 
@@ -1260,10 +1266,6 @@ static int ThreadingAffinityTest03(void)
  */
 static int ThreadingAffinityTest04(void)
 {
-    SCConfCreateContextBackup();
-    SCConfInit();
-    AffinityReset();
-
     const char *config = "%YAML 1.1\n"
                          "---\n"
                          "threading:\n"
@@ -1271,8 +1273,7 @@ static int ThreadingAffinityTest04(void)
                          "    worker-cpu-set:\n"
                          "      cpu: [ 1, 3, 5 ]\n";
 
-    SCConfYamlLoadString(config, strlen(config));
-    AffinityLoadFromConfig();
+    AffinityTestInit(config);
 
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
     FAIL_IF_NOT(CPU_ISSET(1, &worker_taf->cpu_set));
@@ -1283,8 +1284,6 @@ static int ThreadingAffinityTest04(void)
     FAIL_IF(CPU_ISSET(4, &worker_taf->cpu_set));
     FAIL_IF_NOT(CPU_COUNT(&worker_taf->cpu_set) == 3);
 
-    SCConfDeInit();
-    SCConfRestoreContextBackup();
     PASS;
 }
 
@@ -1293,10 +1292,6 @@ static int ThreadingAffinityTest04(void)
  */
 static int ThreadingAffinityTest05(void)
 {
-    SCConfCreateContextBackup();
-    SCConfInit();
-    AffinityReset();
-
     const char *config = "%YAML 1.1\n"
                          "---\n"
                          "threading:\n"
@@ -1304,14 +1299,11 @@ static int ThreadingAffinityTest05(void)
                          "    worker-cpu-set:\n"
                          "      cpu: [ \"all\" ]\n";
 
-    SCConfYamlLoadString(config, strlen(config));
-    AffinityLoadFromConfig();
+    AffinityTestInit(config);
 
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
     FAIL_IF_NOT(CPU_COUNT(&worker_taf->cpu_set) == UtilCpuGetNumProcessorsOnline());
 
-    SCConfDeInit();
-    SCConfRestoreContextBackup();
     PASS;
 }
 
@@ -1320,10 +1312,6 @@ static int ThreadingAffinityTest05(void)
  */
 static int ThreadingAffinityTest06(void)
 {
-    SCConfCreateContextBackup();
-    SCConfInit();
-    AffinityReset();
-
     const char *config = "%YAML 1.1\n"
                          "---\n"
                          "threading:\n"
@@ -1336,8 +1324,7 @@ static int ThreadingAffinityTest06(void)
                          "        high: [ 3 ]\n"
                          "        default: \"medium\"\n";
 
-    SCConfYamlLoadString(config, strlen(config));
-    AffinityLoadFromConfig();
+    AffinityTestInit(config);
 
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
     FAIL_IF_NOT(CPU_ISSET(0, &worker_taf->lowprio_cpu));
@@ -1346,8 +1333,6 @@ static int ThreadingAffinityTest06(void)
     FAIL_IF_NOT(CPU_ISSET(3, &worker_taf->hiprio_cpu));
     FAIL_IF_NOT(worker_taf->prio == PRIO_MEDIUM);
 
-    SCConfDeInit();
-    SCConfRestoreContextBackup();
     PASS;
 }
 
@@ -1356,10 +1341,6 @@ static int ThreadingAffinityTest06(void)
  */
 static int ThreadingAffinityTest07(void)
 {
-    SCConfCreateContextBackup();
-    SCConfInit();
-    AffinityReset();
-
     const char *config = "%YAML 1.1\n"
                          "---\n"
                          "threading:\n"
@@ -1368,14 +1349,11 @@ static int ThreadingAffinityTest07(void)
                          "      cpu: [ 0, 1 ]\n"
                          "      mode: \"exclusive\"\n";
 
-    SCConfYamlLoadString(config, strlen(config));
-    AffinityLoadFromConfig();
+    AffinityTestInit(config);
 
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
     FAIL_IF_NOT(worker_taf->mode_flag == EXCLUSIVE_AFFINITY);
 
-    SCConfDeInit();
-    SCConfRestoreContextBackup();
     PASS;
 }
 
@@ -1384,10 +1362,6 @@ static int ThreadingAffinityTest07(void)
  */
 static int ThreadingAffinityTest08(void)
 {
-    SCConfCreateContextBackup();
-    SCConfInit();
-    AffinityReset();
-
     const char *config = "%YAML 1.1\n"
                          "---\n"
                          "threading:\n"
@@ -1396,14 +1370,11 @@ static int ThreadingAffinityTest08(void)
                          "      cpu: [ 0, 1, 2 ]\n"
                          "      threads: 4\n";
 
-    SCConfYamlLoadString(config, strlen(config));
-    AffinityLoadFromConfig();
+    AffinityTestInit(config);
 
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
     FAIL_IF_NOT(worker_taf->nb_threads == 4);
 
-    SCConfDeInit();
-    SCConfRestoreContextBackup();
     PASS;
 }
 
@@ -1412,10 +1383,6 @@ static int ThreadingAffinityTest08(void)
  */
 static int ThreadingAffinityTest09(void)
 {
-    SCConfCreateContextBackup();
-    SCConfInit();
-    AffinityReset();
-
     const char *config = "%YAML 1.1\n"
                          "---\n"
                          "threading:\n"
@@ -1427,8 +1394,7 @@ static int ThreadingAffinityTest09(void)
                          "          cpu: [ 2, 3 ]\n"
                          "          mode: \"exclusive\"\n";
 
-    SCConfYamlLoadString(config, strlen(config));
-    AffinityLoadFromConfig();
+    AffinityTestInit(config);
 
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
     FAIL_IF_NOT(worker_taf->nb_children == 1);
@@ -1440,8 +1406,6 @@ static int ThreadingAffinityTest09(void)
     FAIL_IF_NOT(CPU_COUNT(&iface_taf->cpu_set) == 2);
     FAIL_IF_NOT(iface_taf->mode_flag == EXCLUSIVE_AFFINITY);
 
-    SCConfDeInit();
-    SCConfRestoreContextBackup();
     PASS;
 }
 
@@ -1450,10 +1414,6 @@ static int ThreadingAffinityTest09(void)
  */
 static int ThreadingAffinityTest10(void)
 {
-    SCConfCreateContextBackup();
-    SCConfInit();
-    AffinityReset();
-
     const char *config = "%YAML 1.1\n"
                          "---\n"
                          "threading:\n"
@@ -1466,8 +1426,7 @@ static int ThreadingAffinityTest10(void)
                          "        - interface: \"eth1\"\n"
                          "          cpu: [ 3, 4 ]\n";
 
-    SCConfYamlLoadString(config, strlen(config));
-    AffinityLoadFromConfig();
+    AffinityTestInit(config);
 
     ThreadsAffinityType *receive_taf = &thread_affinity[RECEIVE_CPU_SET];
     FAIL_IF_NOT(receive_taf->nb_children == 2);
@@ -1491,8 +1450,6 @@ static int ThreadingAffinityTest10(void)
 
     FAIL_IF_NOT(eth0_found && eth1_found);
 
-    SCConfDeInit();
-    SCConfRestoreContextBackup();
     PASS;
 }
 
@@ -1501,10 +1458,6 @@ static int ThreadingAffinityTest10(void)
  */
 static int ThreadingAffinityTest11(void)
 {
-    SCConfCreateContextBackup();
-    SCConfInit();
-    AffinityReset();
-
     const char *config = "%YAML 1.1\n"
                          "---\n"
                          "threading:\n"
@@ -1518,8 +1471,7 @@ static int ThreadingAffinityTest11(void)
                          "            high: [ \"all\" ]\n"
                          "            default: \"high\"\n";
 
-    SCConfYamlLoadString(config, strlen(config));
-    AffinityLoadFromConfig();
+    AffinityTestInit(config);
 
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
     FAIL_IF_NOT(worker_taf->nb_children == 1);
@@ -1531,8 +1483,6 @@ static int ThreadingAffinityTest11(void)
     FAIL_IF_NOT(CPU_ISSET(3, &iface_taf->hiprio_cpu));
     FAIL_IF_NOT(iface_taf->prio == PRIO_HIGH);
 
-    SCConfDeInit();
-    SCConfRestoreContextBackup();
     PASS;
 }
 
@@ -1541,10 +1491,6 @@ static int ThreadingAffinityTest11(void)
  */
 static int ThreadingAffinityTest12(void)
 {
-    SCConfCreateContextBackup();
-    SCConfInit();
-    AffinityReset();
-
     const char *config = "%YAML 1.1\n"
                          "---\n"
                          "threading:\n"
@@ -1564,8 +1510,7 @@ static int ThreadingAffinityTest12(void)
                          "    verdict-cpu-set:\n"
                          "      cpu: [ 4 ]\n";
 
-    SCConfYamlLoadString(config, strlen(config));
-    AffinityLoadFromConfig();
+    AffinityTestInit(config);
 
     FAIL_IF_NOT(CPU_ISSET(0, &thread_affinity[MANAGEMENT_CPU_SET].cpu_set));
     FAIL_IF_NOT(CPU_COUNT(&thread_affinity[MANAGEMENT_CPU_SET].cpu_set) == 1);
@@ -1585,8 +1530,6 @@ static int ThreadingAffinityTest12(void)
     FAIL_IF_NOT(iface_taf->prio == PRIO_HIGH);
     FAIL_IF_NOT(CPU_COUNT(&thread_affinity[WORKER_CPU_SET].cpu_set) == 2);
 
-    SCConfDeInit();
-    SCConfRestoreContextBackup();
     PASS;
 }
 
@@ -1595,10 +1538,6 @@ static int ThreadingAffinityTest12(void)
  */
 static int ThreadingAffinityTest13(void)
 {
-    SCConfCreateContextBackup();
-    SCConfInit();
-    AffinityReset();
-
     const char *config = "%YAML 1.1\n"
                          "---\n"
                          "threading:\n"
@@ -1606,14 +1545,11 @@ static int ThreadingAffinityTest13(void)
                          "    worker-cpu-set:\n"
                          "      cpu: [ \"invalid-cpu\" ]\n";
 
-    SCConfYamlLoadString(config, strlen(config));
-    AffinityLoadFromConfig();
+    AffinityTestInit(config);
 
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
     FAIL_IF_NOT(CPU_COUNT(&worker_taf->cpu_set) == 0);
 
-    SCConfDeInit();
-    SCConfRestoreContextBackup();
     PASS;
 }
 
@@ -1622,23 +1558,16 @@ static int ThreadingAffinityTest13(void)
  */
 static int ThreadingAffinityTest14(void)
 {
-    SCConfCreateContextBackup();
-    SCConfInit();
-    AffinityReset();
-
     const char *config = "%YAML 1.1\n"
                          "---\n"
                          "threading:\n"
                          "  cpu-affinity:\n";
 
-    SCConfYamlLoadString(config, strlen(config));
-    AffinityLoadFromConfig();
+    AffinityTestInit(config);
 
     FAIL_IF_NOT(
             CPU_COUNT(&thread_affinity[WORKER_CPU_SET].cpu_set) == UtilCpuGetNumProcessorsOnline());
 
-    SCConfDeInit();
-    SCConfRestoreContextBackup();
     PASS;
 }
 
@@ -1648,10 +1577,6 @@ static int ThreadingAffinityTest14(void)
  */
 static int ThreadingAffinityTest15(void)
 {
-    SCConfCreateContextBackup();
-    SCConfInit();
-    AffinityReset();
-
     const char *config = "%YAML 1.1\n"
                          "---\n"
                          "threading:\n"
@@ -1659,13 +1584,10 @@ static int ThreadingAffinityTest15(void)
                          "    - management-cpu-set:\n"
                          "        cpu: [ \"3-1\" ]\n"; // Invalid reverse range
 
-    SCConfYamlLoadString(config, strlen(config));
-    AffinityLoadFromConfig();
+    AffinityTestInit(config);
 
     FAIL_IF_NOT(CPU_COUNT(&thread_affinity[MANAGEMENT_CPU_SET].cpu_set) == 0);
 
-    SCConfDeInit();
-    SCConfRestoreContextBackup();
     PASS;
 }
 
@@ -1675,10 +1597,6 @@ static int ThreadingAffinityTest15(void)
  */
 static int ThreadingAffinityTest16(void)
 {
-    SCConfCreateContextBackup();
-    SCConfInit();
-    AffinityReset();
-
     const char *config = "%YAML 1.1\n"
                          "---\n"
                          "threading:\n"
@@ -1687,11 +1605,8 @@ static int ThreadingAffinityTest16(void)
                          "        prio:\n"
                          "          default: invalid_priority\n";
 
-    SCConfYamlLoadString(config, strlen(config));
-    AffinityLoadFromConfig();
+    AffinityTestInit(config);
 
-    SCConfDeInit();
-    SCConfRestoreContextBackup();
     PASS;
 }
 
@@ -1701,10 +1616,6 @@ static int ThreadingAffinityTest16(void)
  */
 static int ThreadingAffinityTest17(void)
 {
-    SCConfCreateContextBackup();
-    SCConfInit();
-    AffinityReset();
-
     const char *config = "%YAML 1.1\n"
                          "---\n"
                          "threading:\n"
@@ -1712,11 +1623,8 @@ static int ThreadingAffinityTest17(void)
                          "    - management-cpu-set:\n"
                          "        mode: invalid_mode\n";
 
-    SCConfYamlLoadString(config, strlen(config));
-    AffinityLoadFromConfig();
+    AffinityTestInit(config);
 
-    SCConfDeInit();
-    SCConfRestoreContextBackup();
     PASS;
 }
 
@@ -1726,10 +1634,6 @@ static int ThreadingAffinityTest17(void)
  */
 static int ThreadingAffinityTest18(void)
 {
-    SCConfCreateContextBackup();
-    SCConfInit();
-    AffinityReset();
-
     const char *config = "%YAML 1.1\n"
                          "---\n"
                          "threading:\n"
@@ -1737,11 +1641,8 @@ static int ThreadingAffinityTest18(void)
                          "    - management-cpu-set:\n"
                          "        threads: 0\n";
 
-    SCConfYamlLoadString(config, strlen(config));
-    AffinityLoadFromConfig();
+    AffinityTestInit(config);
 
-    SCConfDeInit();
-    SCConfRestoreContextBackup();
     PASS;
 }
 
@@ -1751,10 +1652,6 @@ static int ThreadingAffinityTest18(void)
  */
 static int ThreadingAffinityTest19(void)
 {
-    SCConfCreateContextBackup();
-    SCConfInit();
-    AffinityReset();
-
     const char *config = "%YAML 1.1\n"
                          "---\n"
                          "threading:\n"
@@ -1762,11 +1659,8 @@ static int ThreadingAffinityTest19(void)
                          "    - management-cpu-set:\n"
                          "        cpu: [ -1 ]\n";
 
-    SCConfYamlLoadString(config, strlen(config));
-    AffinityLoadFromConfig();
+    AffinityTestInit(config);
 
-    SCConfDeInit();
-    SCConfRestoreContextBackup();
     PASS;
 }
 
@@ -1776,10 +1670,6 @@ static int ThreadingAffinityTest19(void)
  */
 static int ThreadingAffinityTest20(void)
 {
-    SCConfCreateContextBackup();
-    SCConfInit();
-    AffinityReset();
-
     const char *config = "%YAML 1.1\n"
                          "---\n"
                          "threading:\n"
@@ -1787,11 +1677,8 @@ static int ThreadingAffinityTest20(void)
                          "    - management-cpu-set:\n"
                          "        threads: invalid_number\n";
 
-    SCConfYamlLoadString(config, strlen(config));
-    AffinityLoadFromConfig();
+    AffinityTestInit(config);
 
-    SCConfDeInit();
-    SCConfRestoreContextBackup();
     PASS;
 }
 
@@ -1801,10 +1688,6 @@ static int ThreadingAffinityTest20(void)
  */
 static int ThreadingAffinityTest21(void)
 {
-    SCConfCreateContextBackup();
-    SCConfInit();
-    AffinityReset();
-
     const char *config = "%YAML 1.1\n"
                          "---\n"
                          "threading:\n"
@@ -1812,11 +1695,8 @@ static int ThreadingAffinityTest21(void)
                          "    - management-cpu-set:\n"
                          "        cpu: [ 0-99999 ]\n";
 
-    SCConfYamlLoadString(config, strlen(config));
-    AffinityLoadFromConfig();
+    AffinityTestInit(config);
 
-    SCConfDeInit();
-    SCConfRestoreContextBackup();
     PASS;
 }
 
@@ -1826,10 +1706,6 @@ static int ThreadingAffinityTest21(void)
  */
 static int ThreadingAffinityTest22(void)
 {
-    SCConfCreateContextBackup();
-    SCConfInit();
-    AffinityReset();
-
     const char *config = "%YAML 1.1\n"
                          "---\n"
                          "threading:\n"
@@ -1842,8 +1718,7 @@ static int ThreadingAffinityTest22(void)
                          "            - interface: eth1\n"
                          "              cpu: [ 2 ]\n";
 
-    SCConfYamlLoadString(config, strlen(config));
-    AffinityLoadFromConfig();
+    AffinityTestInit(config);
 
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
     FAIL_IF_NOT(worker_taf->nb_children == 1);
@@ -1852,8 +1727,6 @@ static int ThreadingAffinityTest22(void)
     FAIL_IF_NOT(CPU_ISSET(1, &iface_taf->cpu_set));
     FAIL_IF_NOT(iface_taf->nb_children == 0);
 
-    SCConfDeInit();
-    SCConfRestoreContextBackup();
     PASS;
 }
 
@@ -1863,10 +1736,6 @@ static int ThreadingAffinityTest22(void)
  */
 static int ThreadingAffinityTest23(void)
 {
-    SCConfCreateContextBackup();
-    SCConfInit();
-    AffinityReset();
-
     const char *config = "%YAML 1.1\n"
                          "---\n"
                          "threading:\n"
@@ -1874,8 +1743,7 @@ static int ThreadingAffinityTest23(void)
                          "    worker-cpu-set:\n"
                          "      cpu: [ 1, 2, 3 ]\n";
 
-    SCConfYamlLoadString(config, strlen(config));
-    AffinityLoadFromConfig();
+    AffinityTestInit(config);
 
     ThreadsAffinityType *result = AffinityTypeGetByIfaceOrCpuset(NULL, "eth0");
     FAIL_IF_NOT(result == NULL);
@@ -1890,8 +1758,6 @@ static int ThreadingAffinityTest23(void)
     result = AffinityTypeGetByIfaceOrCpuset("worker-cpu-set", "");
     FAIL_IF_NOT(result == NULL); // Returns NULL as no child with an empty name exists
 
-    SCConfDeInit();
-    SCConfRestoreContextBackup();
     PASS;
 }
 
@@ -1901,10 +1767,6 @@ static int ThreadingAffinityTest23(void)
  */
 static int ThreadingAffinityTest24(void)
 {
-    SCConfCreateContextBackup();
-    SCConfInit();
-    AffinityReset();
-
     const char *config = "%YAML 1.1\n"
                          "---\n"
                          "threading:\n"
@@ -1916,14 +1778,11 @@ static int ThreadingAffinityTest24(void)
                          "          - interface_name: eth0\n" // Wrong field name
                          "            cpu: [ 2 ]\n";
 
-    SCConfYamlLoadString(config, strlen(config));
-    AffinityLoadFromConfig();
+    AffinityTestInit(config);
 
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
     FAIL_IF_NOT(worker_taf->nb_children == 0);
 
-    SCConfDeInit();
-    SCConfRestoreContextBackup();
     PASS;
 }
 
@@ -1933,7 +1792,7 @@ static int ThreadingAffinityTest24(void)
  */
 static int ThreadingAffinityTest25(void)
 {
-    AffinityReset();
+    UtSetTestCleanup(AffinityReset);
 
     ThreadsAffinityType *parent = AffinityTypeGetOrCreateByIfaceOrCpuset("worker-cpu-set", NULL);
     FAIL_IF(parent == NULL);
@@ -1965,8 +1824,6 @@ static int ThreadingAffinityTest25(void)
  */
 static int ThreadingAffinityTest26(void)
 {
-    AffinityReset();
-
     ThreadsAffinityType test_taf;
     memset(&test_taf, 0, sizeof(test_taf));
 
@@ -1990,10 +1847,6 @@ static int ThreadingAffinityTest26(void)
  */
 static int ThreadingAffinityTest27(void)
 {
-    SCConfCreateContextBackup();
-    SCConfInit();
-    AffinityReset();
-
     const char *config = "%YAML 1.1\n"
                          "---\n"
                          "threading:\n"
@@ -2003,8 +1856,7 @@ static int ThreadingAffinityTest27(void)
                          "    - worker-cpu-set:\n" // Deprecated format
                          "        cpu: [ 1, 2 ]\n";
 
-    SCConfYamlLoadString(config, strlen(config));
-    AffinityLoadFromConfig();
+    AffinityTestInit(config);
 
     ThreadsAffinityType *mgmt_taf = &thread_affinity[MANAGEMENT_CPU_SET];
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
@@ -2013,8 +1865,6 @@ static int ThreadingAffinityTest27(void)
     FAIL_IF(CPU_COUNT(&mgmt_taf->cpu_set) != 1 ||
             CPU_COUNT(&worker_taf->cpu_set) != UtilCpuGetNumProcessorsOnline());
 
-    SCConfDeInit();
-    SCConfRestoreContextBackup();
     PASS;
 }
 

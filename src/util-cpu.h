@@ -36,6 +36,12 @@ uint64_t UtilCpuGetTicks(void);
 void UtilCpuEnableSparcMisalignEmulation(void);
 
 #ifdef UNITTESTS
+/** \brief Number of CPUs simulated by the unit tests.
+ *
+ * Tests that depend on the CPU layout use this fixed count so that they
+ * behave the same regardless of the machine they run on. */
+#define UTIL_CPU_UT_NUM_CPUS 8
+
 /** \brief Simulate the CPUs of the system. 0 restores the system values. */
 void UtilCpuSetNumProcessorsForTests(uint16_t configured, uint16_t online);
 #endif
