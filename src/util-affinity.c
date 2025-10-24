@@ -225,9 +225,32 @@ static void AffinitySetupInit(void)
     }
 }
 
+/**
+ * \brief Highest CPU ID the system has, offline CPUs and the CPUs of the
+ * process CPU affinity mask included
+ */
+static uint32_t AffinityGetMaxCpuId(void)
+{
+    uint32_t ncpu = UtilCpuGetNumProcessorsConfigured();
+    if (ncpu == 0) {
+        ncpu = UtilCpuGetNumProcessorsOnline();
+    }
+    int32_t max_allowed = UtilCpuGetMaxAllowedCpu();
+    if (max_allowed >= 0 && (uint32_t)max_allowed >= ncpu) {
+        ncpu = (uint32_t)max_allowed + 1;
+    }
+#ifdef CPU_SETSIZE
+    if (ncpu > CPU_SETSIZE) {
+        ncpu = CPU_SETSIZE;
+    }
+#endif
+    return ncpu > 0 ? ncpu - 1 : 0;
+}
+
 int AffinityBuildCpusetWithCallback(
         const char *name, SCConfNode *node, void (*Callback)(int i, void *data), void *data)
 {
+    const uint32_t max_id = AffinityGetMaxCpuId();
     SCConfNode *lnode;
     TAILQ_FOREACH(lnode, &node->head, next) {
         char *sep = NULL;
@@ -240,7 +263,7 @@ int AffinityBuildCpusetWithCallback(
         }
         if (!strcmp(lnode->val, "all")) {
             a = 0;
-            b = max;
+            b = MIN(max, max_id);
             stop = 1;
         } else if ((sep = strchr(lnode->val, '-')) != NULL) {
             if (StringParseUint32(&a, 10, sep - lnode->val, lnode->val) <= 0) {
@@ -262,8 +285,9 @@ int AffinityBuildCpusetWithCallback(
             }
             b = a;
         }
-        if (b > max) {
-            SCLogError("%s: CPU %" PRIu32 " exceeds available range (0-%" PRIu32 ")", name, b, max);
+        if (b > max_id) {
+            SCLogError(
+                    "%s: CPU %" PRIu32 " exceeds available range (0-%" PRIu32 ")", name, b, max_id);
             return -ERANGE;
         }
         for (i = a; i <= b; i++) {
@@ -908,20 +932,20 @@ static int16_t FindCPUInNumaNode(int numa_node, ThreadsAffinityType *taf)
         return -1;
     }
 
-    if (taf->lcpu[numa_node] >= UtilCpuGetNumProcessorsOnline()) {
+    const uint16_t ncpu = (uint16_t)(AffinityGetMaxCpuId() + 1);
+    if (taf->lcpu[numa_node] >= ncpu) {
         return -1;
     }
 
     uint16_t cpu = taf->lcpu[numa_node];
-    while (cpu < UtilCpuGetNumProcessorsOnline() &&
+    while (cpu < ncpu &&
             (!CPU_ISSET(cpu, &taf->cpu_set) || !CPUIsFromNuma(cpu, (uint16_t)numa_node))) {
         cpu++;
     }
 
     taf->lcpu[numa_node] =
-            (CPU_ISSET(cpu, &taf->cpu_set) && CPUIsFromNuma(cpu, (uint16_t)numa_node))
-                    ? cpu + 1
-                    : UtilCpuGetNumProcessorsOnline();
+            (CPU_ISSET(cpu, &taf->cpu_set) && CPUIsFromNuma(cpu, (uint16_t)numa_node)) ? cpu + 1
+                                                                                       : ncpu;
     return (CPU_ISSET(cpu, &taf->cpu_set) && CPUIsFromNuma(cpu, (uint16_t)numa_node)) ? (int16_t)cpu
                                                                                       : -1;
 }
@@ -964,7 +988,7 @@ static uint16_t CPUSelectDefault(ThreadsAffinityType *taf)
 {
     uint16_t cpu = taf->lcpu[0];
     int attempts = 0;
-    uint16_t num_procs = UtilCpuGetNumProcessorsOnline();
+    uint16_t num_procs = (uint16_t)(AffinityGetMaxCpuId() + 1);
     if (num_procs > 0) {
         while (!CPU_ISSET(cpu, &taf->cpu_set) && attempts < 2) {
             cpu = (cpu + 1) % num_procs;
@@ -1062,7 +1086,7 @@ uint16_t AffinityGetAffinedCPUNum(ThreadsAffinityType *taf)
     uint16_t ncpu = 0;
 #if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined __sun
     SCMutexLock(&taf->taf_mutex);
-    for (int i = UtilCpuGetNumProcessorsOnline() - 1; i >= 0; i--)
+    for (int i = AffinityGetMaxCpuId(); i >= 0; i--)
         if (CPU_ISSET(i, &taf->cpu_set)) {
             ncpu++;
         }
@@ -1086,7 +1110,7 @@ bool AffinityCpusOverlap(ThreadsAffinityType *taf1, ThreadsAffinityType *taf2)
     SCMutexUnlock(&taf2->taf_mutex);
     SCMutexUnlock(&taf1->taf_mutex);
 
-    for (int i = UtilCpuGetNumProcessorsOnline() - 1; i >= 0; i--)
+    for (int i = AffinityGetMaxCpuId(); i >= 0; i--)
         if (CPU_ISSET(i, &tmpcset)) {
             return true;
         }
@@ -1103,7 +1127,7 @@ void AffinityCpusSubtract(ThreadsAffinityType *mod_taf, ThreadsAffinityType *sta
 {
     SCMutexLock(&mod_taf->taf_mutex);
     SCMutexLock(&static_taf->taf_mutex);
-    int max_cpus = UtilCpuGetNumProcessorsOnline();
+    int max_cpus = AffinityGetMaxCpuId() + 1;
     for (int cpu = 0; cpu < max_cpus; cpu++) {
         if (CPU_ISSET(cpu, &mod_taf->cpu_set) && CPU_ISSET(cpu, &static_taf->cpu_set)) {
             CPU_CLR(cpu, &mod_taf->cpu_set);
@@ -1179,17 +1203,19 @@ static void AffinityTestDeinit(void)
     AffinityReset();
     SCConfDeInit();
     SCConfRestoreContextBackup();
-    UtilCpuSetNumProcessorsForTests(0, 0);
+    UtilCpuSetNumProcessorsForTests(0, 0, -1);
 }
 
 /**
  * \brief Initialize affinity test on a system with the given CPUs:
  * backup config, load YAML, load affinity.
+ * \param max_allowed highest CPU of the process CPU affinity mask, -1 if not known
  * \retval 0 on success, negative errno on error
  */
-static int AffinityTestInitCpus(const char *config, uint16_t configured, uint16_t online)
+static int AffinityTestInitCpus(
+        const char *config, uint16_t configured, uint16_t online, int32_t max_allowed)
 {
-    UtilCpuSetNumProcessorsForTests(configured, online);
+    UtilCpuSetNumProcessorsForTests(configured, online, max_allowed);
     SCConfCreateContextBackup();
     SCConfInit();
     UtSetTestCleanup(AffinityTestDeinit);
@@ -1204,7 +1230,7 @@ static int AffinityTestInitCpus(const char *config, uint16_t configured, uint16_
  */
 static int AffinityTestInit(const char *config)
 {
-    return AffinityTestInitCpus(config, UTIL_CPU_UT_NUM_CPUS, UTIL_CPU_UT_NUM_CPUS);
+    return AffinityTestInitCpus(config, UTIL_CPU_UT_NUM_CPUS, UTIL_CPU_UT_NUM_CPUS, -1);
 }
 
 /**
@@ -1923,7 +1949,7 @@ static int ThreadingAffinityTest28(void)
                          "    worker-cpu-set:\n"
                          "      cpu: [ 4 ]\n";
 
-    int ret = AffinityTestInitCpus(config, 4, 4);
+    int ret = AffinityTestInitCpus(config, 4, 4, -1);
     FAIL_IF_NOT(ret == -ERANGE);
 
     PASS;
@@ -1947,7 +1973,94 @@ static int ThreadingAffinityTest29(void)
                          "          prio:\n"
                          "            high: [ 4 ]\n";
 
-    int ret = AffinityTestInitCpus(config, 4, 4);
+    int ret = AffinityTestInitCpus(config, 4, 4, -1);
+    FAIL_IF_NOT(ret == -ERANGE);
+
+    PASS;
+}
+
+/**
+ * \brief CPUs above the online CPU count are valid and used if the system has
+ * them, e.g. CPU 3 of 4 CPUs with CPU 1 offline
+ */
+static int ThreadingAffinityTest30(void)
+{
+    const char *config = "%YAML 1.1\n"
+                         "---\n"
+                         "threading:\n"
+                         "  cpu-affinity:\n"
+                         "    management-cpu-set:\n"
+                         "      cpu: [ 3 ]\n"
+                         "    worker-cpu-set:\n"
+                         "      cpu: [ \"2-3\" ]\n";
+
+    int ret = AffinityTestInitCpus(config, 4, 3, -1);
+    FAIL_IF(ret < 0);
+
+    ThreadsAffinityType *mgmt_taf = &thread_affinity[MANAGEMENT_CPU_SET];
+    FAIL_IF_NOT(CPU_ISSET(3, &mgmt_taf->cpu_set));
+    FAIL_IF_NOT(CPU_COUNT(&mgmt_taf->cpu_set) == 1);
+    FAIL_IF_NOT(AffinityGetAffinedCPUNum(mgmt_taf) == 1);
+
+    ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
+    FAIL_IF_NOT(CPU_ISSET(2, &worker_taf->cpu_set));
+    FAIL_IF_NOT(CPU_ISSET(3, &worker_taf->cpu_set));
+    FAIL_IF_NOT(CPU_COUNT(&worker_taf->cpu_set) == 2);
+    FAIL_IF_NOT(AffinityGetAffinedCPUNum(worker_taf) == 2);
+
+    ThreadVars tv;
+    memset(&tv, 0, sizeof(tv));
+    FAIL_IF_NOT(AffinityGetNextCPU(&tv, mgmt_taf) == 3);
+    FAIL_IF_NOT(AffinityGetNextCPU(&tv, mgmt_taf) == 3);
+
+    PASS;
+}
+
+/**
+ * \brief CPUs of the CPU affinity mask are valid also if the libc counts only
+ * them as configured, e.g. musl in a container limited to CPUs 8-11
+ */
+static int ThreadingAffinityTest31(void)
+{
+    const char *config = "%YAML 1.1\n"
+                         "---\n"
+                         "threading:\n"
+                         "  cpu-affinity:\n"
+                         "    management-cpu-set:\n"
+                         "      cpu: [ 8 ]\n"
+                         "    worker-cpu-set:\n"
+                         "      cpu: [ \"9-11\" ]\n";
+
+    int ret = AffinityTestInitCpus(config, 4, 4, 11);
+    FAIL_IF(ret < 0);
+
+    ThreadsAffinityType *mgmt_taf = &thread_affinity[MANAGEMENT_CPU_SET];
+    FAIL_IF_NOT(CPU_ISSET(8, &mgmt_taf->cpu_set));
+    FAIL_IF_NOT(CPU_COUNT(&mgmt_taf->cpu_set) == 1);
+
+    ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
+    FAIL_IF_NOT(CPU_ISSET(9, &worker_taf->cpu_set));
+    FAIL_IF_NOT(CPU_ISSET(11, &worker_taf->cpu_set));
+    FAIL_IF_NOT(CPU_COUNT(&worker_taf->cpu_set) == 3);
+    FAIL_IF_NOT(AffinityGetAffinedCPUNum(worker_taf) == 3);
+
+    PASS;
+}
+
+/**
+ * \brief The first CPU past the CPU affinity mask and the configured CPUs
+ * should fail parsing
+ */
+static int ThreadingAffinityTest32(void)
+{
+    const char *config = "%YAML 1.1\n"
+                         "---\n"
+                         "threading:\n"
+                         "  cpu-affinity:\n"
+                         "    worker-cpu-set:\n"
+                         "      cpu: [ 12 ]\n";
+
+    int ret = AffinityTestInitCpus(config, 4, 4, 11);
     FAIL_IF_NOT(ret == -ERANGE);
 
     PASS;
@@ -1990,6 +2103,9 @@ void AffinityRegisterTests(void)
     UtRegisterTest("ThreadingAffinityTest27", ThreadingAffinityTest27);
     UtRegisterTest("ThreadingAffinityTest28", ThreadingAffinityTest28);
     UtRegisterTest("ThreadingAffinityTest29", ThreadingAffinityTest29);
+    UtRegisterTest("ThreadingAffinityTest30", ThreadingAffinityTest30);
+    UtRegisterTest("ThreadingAffinityTest31", ThreadingAffinityTest31);
+    UtRegisterTest("ThreadingAffinityTest32", ThreadingAffinityTest32);
 #endif /* defined(__linux__) || defined(__FreeBSD__) || defined(__NetBSD__) */
 }
 
