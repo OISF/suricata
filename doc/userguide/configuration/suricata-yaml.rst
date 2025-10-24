@@ -924,7 +924,11 @@ receive-, worker- and verdict-set. These are fixed names and can not be
 changed. For each set there are several options: cpu, mode, and prio. In the
 option 'cpu' you can set the numbers of the CPU's/cores which will run the
 threads from that set. You can set this option to 'all', use a range (0-3) or a
-comma separated list (0,1).  The option 'mode' can be set to 'balanced' or
+comma separated list (0,1). With ``set-cpu-affinity`` enabled, Suricata does
+not start on a CPU range that ends past the CPUs of the system, an unknown CPU
+set name or a malformed CPU range, mode, priority or thread count, also in the
+``interface-specific-cpu-set`` of an interface that is not used.
+The option 'mode' can be set to 'balanced' or
 'exclusive'. When set to 'balanced', the individual threads can be processed by
 all cores set in the option 'cpu'. If the option 'mode' is set to 'exclusive',
 there will be fixed cores for each thread. As mentioned before, threads can

@@ -221,6 +221,11 @@ Other Changes
   by default, set with ``max-preliminary-responses``. Past the limit, the
   ``ftp.too_many_preliminary_responses`` event is raised. See
   :ref:`suricata-yaml-configure-ftp`.
+- With ``threading.set-cpu-affinity`` enabled, Suricata now fails to start on a
+  ``threading.cpu-affinity`` CPU range that ends past the CPUs of the system,
+  an unknown CPU set name or a malformed CPU range, mode, priority or thread
+  count, also in the ``interface-specific-cpu-set`` of an interface that is
+  not used.
 
 Changes for Library Users and Plugin Developers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
