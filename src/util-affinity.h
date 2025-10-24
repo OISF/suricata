@@ -110,6 +110,7 @@ ThreadsAffinityType *AffinityTypeGetChildTypeByIface(
 
 uint16_t AffinityGetNextCPU(ThreadVars *tv, ThreadsAffinityType *taf);
 uint16_t AffinityGetAffinedCPUNum(ThreadsAffinityType *taf);
+bool AffinityCPUConfigIsCompatible(void);
 #ifdef HAVE_DPDK
 bool AffinityCpusOverlap(ThreadsAffinityType *taf1, ThreadsAffinityType *taf2);
 void AffinityCpusSubtract(ThreadsAffinityType *mod_taf, ThreadsAffinityType *static_taf);
@@ -120,7 +121,16 @@ int AffinityBuildCpusetWithCallback(
 
 #ifdef UNITTESTS
 void AffinityRegisterTests(void);
+int AffinityVerifyCPURequirement(void);
 void AffinityReset(void);
+
+#define SKIP_INCOMPATIBLE_ENVIRONMENT                                                              \
+    do {                                                                                           \
+        int ret = AffinityVerifyCPURequirement();                                                  \
+        FAIL_IF(ret < 0);                                                                          \
+        if (ret != 0)                                                                              \
+            return ret;                                                                            \
+    } while (0)
 #endif
 
 #endif /* SURICATA_UTIL_AFFINITY_H */

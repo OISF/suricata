@@ -256,11 +256,6 @@ int AffinityBuildCpusetWithCallback(
                 SCLogError("%s: invalid cpu range (bad order): \"%s\"", name, lnode->val);
                 return -1;
             }
-            if (b > max) {
-                SCLogError("%s: upper bound (%d) of cpu set is too high, only %d cpu(s)", name, b,
-                        max + 1);
-                return -1;
-            }
         } else {
             if (StringParseUint32(&a, 10, strlen(lnode->val), lnode->val) <= 0) {
                 SCLogError("%s: invalid cpu range (not an integer): \"%s\"", name, lnode->val);
@@ -1056,6 +1051,72 @@ uint16_t AffinityGetAffinedCPUNum(ThreadsAffinityType *taf)
     return ncpu;
 }
 
+/**
+ * \brief Validate that a CPU affinity set only references valid CPU IDs
+ * \param taf ThreadsAffinityType to validate
+ * \retval true if the CPU set only uses CPUs within the available range, false otherwise
+ */
+static bool AffinityCpuSetIsValid(ThreadsAffinityType *taf)
+{
+    bool valid = true;
+#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun
+    if (taf == NULL) {
+        return false;
+    }
+
+    cpu_set_t test_set;
+    CPU_ZERO(&test_set);
+    SCMutexLock(&taf->taf_mutex);
+    uint16_t max_cpus = UtilCpuGetNumProcessorsOnline();
+    for (int cpu = 0; cpu < max_cpus; cpu++) {
+        if (CPU_ISSET(cpu, &taf->cpu_set)) {
+            CPU_SET(cpu, &test_set);
+        }
+    }
+
+    if (!CPU_EQUAL(&test_set, &taf->cpu_set)) {
+        SCLogWarning("CPU affinity set '%s' references CPU IDs beyond available %d CPUs (0-%d)",
+                taf->name ? taf->name : "unknown", max_cpus, max_cpus - 1);
+        valid = false;
+    }
+
+    SCMutexUnlock(&taf->taf_mutex);
+#endif
+    return valid;
+}
+
+/**
+ * \brief Verify that all CPU sets contain CPU up to the max available CPUs
+ * \retval true on success, false if any CPU set is incompatible
+ */
+bool AffinityCPUConfigIsCompatible(void)
+{
+    bool error_found = false;
+#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun
+    for (int i = 0; i < MAX_CPU_SET; i++) {
+        ThreadsAffinityType *taf = &thread_affinity[i];
+        if (!AffinityCpuSetIsValid(taf)) {
+            error_found = true;
+            continue;
+        }
+
+        if (taf->children != NULL) {
+            for (uint32_t j = 0; j < taf->nb_children; j++) {
+                ThreadsAffinityType *child = taf->children[j];
+                if (child != NULL) {
+                    if (!AffinityCpuSetIsValid(child)) {
+                        error_found = true;
+                        continue;
+                    }
+                }
+            }
+        }
+    }
+
+#endif
+    return !error_found;
+}
+
 #ifdef HAVE_DPDK
 /**
  * Find if CPU sets overlap
@@ -1158,6 +1219,20 @@ void AffinityReset(void)
 }
 
 /**
+ * \brief Verify that the test's CPU requirement is met
+ * \retval 0 if the requirement is met, 2 if the test is skipped
+ */
+int AffinityVerifyCPURequirement(void)
+{
+    if (AffinityCPUConfigIsCompatible() == false) {
+        char err_msg[256];
+        snprintf(err_msg, sizeof(err_msg), "not enough cpus in the system");
+        SKIP(err_msg);
+    }
+    return 0;
+}
+
+/**
  * \brief Test basic CPU affinity parsing in new format
  */
 static int ThreadingAffinityTest01(void)
@@ -1175,8 +1250,8 @@ static int ThreadingAffinityTest01(void)
                          "      cpu: [ 1, 2, 3 ]\n";
 
     SCConfYamlLoadString(config, strlen(config));
-
     AffinityLoadFromConfig();
+    SKIP_INCOMPATIBLE_ENVIRONMENT;
     FAIL_IF_NOT(AffinityConfigIsLegacy() == false);
 
     ThreadsAffinityType *mgmt_taf = &thread_affinity[MANAGEMENT_CPU_SET];
@@ -1212,6 +1287,7 @@ static int ThreadingAffinityTest02(void)
 
     SCConfYamlLoadString(config, strlen(config));
     AffinityLoadFromConfig();
+    SKIP_INCOMPATIBLE_ENVIRONMENT;
     FAIL_IF_NOT(AffinityConfigIsLegacy() == true);
 
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
@@ -1242,6 +1318,7 @@ static int ThreadingAffinityTest03(void)
 
     SCConfYamlLoadString(config, strlen(config));
     AffinityLoadFromConfig();
+    SKIP_INCOMPATIBLE_ENVIRONMENT;
 
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
     FAIL_IF_NOT(CPU_ISSET(0, &worker_taf->cpu_set));
@@ -1273,6 +1350,7 @@ static int ThreadingAffinityTest04(void)
 
     SCConfYamlLoadString(config, strlen(config));
     AffinityLoadFromConfig();
+    SKIP_INCOMPATIBLE_ENVIRONMENT;
 
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
     FAIL_IF_NOT(CPU_ISSET(1, &worker_taf->cpu_set));
@@ -1306,6 +1384,7 @@ static int ThreadingAffinityTest05(void)
 
     SCConfYamlLoadString(config, strlen(config));
     AffinityLoadFromConfig();
+    SKIP_INCOMPATIBLE_ENVIRONMENT;
 
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
     FAIL_IF_NOT(CPU_COUNT(&worker_taf->cpu_set) == UtilCpuGetNumProcessorsOnline());
@@ -1338,6 +1417,7 @@ static int ThreadingAffinityTest06(void)
 
     SCConfYamlLoadString(config, strlen(config));
     AffinityLoadFromConfig();
+    SKIP_INCOMPATIBLE_ENVIRONMENT;
 
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
     FAIL_IF_NOT(CPU_ISSET(0, &worker_taf->lowprio_cpu));
@@ -1370,6 +1450,7 @@ static int ThreadingAffinityTest07(void)
 
     SCConfYamlLoadString(config, strlen(config));
     AffinityLoadFromConfig();
+    SKIP_INCOMPATIBLE_ENVIRONMENT;
 
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
     FAIL_IF_NOT(worker_taf->mode_flag == EXCLUSIVE_AFFINITY);
@@ -1398,6 +1479,7 @@ static int ThreadingAffinityTest08(void)
 
     SCConfYamlLoadString(config, strlen(config));
     AffinityLoadFromConfig();
+    SKIP_INCOMPATIBLE_ENVIRONMENT;
 
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
     FAIL_IF_NOT(worker_taf->nb_threads == 4);
@@ -1429,6 +1511,7 @@ static int ThreadingAffinityTest09(void)
 
     SCConfYamlLoadString(config, strlen(config));
     AffinityLoadFromConfig();
+    SKIP_INCOMPATIBLE_ENVIRONMENT;
 
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
     FAIL_IF_NOT(worker_taf->nb_children == 1);
@@ -1468,6 +1551,7 @@ static int ThreadingAffinityTest10(void)
 
     SCConfYamlLoadString(config, strlen(config));
     AffinityLoadFromConfig();
+    SKIP_INCOMPATIBLE_ENVIRONMENT;
 
     ThreadsAffinityType *receive_taf = &thread_affinity[RECEIVE_CPU_SET];
     FAIL_IF_NOT(receive_taf->nb_children == 2);
@@ -1520,6 +1604,7 @@ static int ThreadingAffinityTest11(void)
 
     SCConfYamlLoadString(config, strlen(config));
     AffinityLoadFromConfig();
+    SKIP_INCOMPATIBLE_ENVIRONMENT;
 
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
     FAIL_IF_NOT(worker_taf->nb_children == 1);
@@ -1566,6 +1651,7 @@ static int ThreadingAffinityTest12(void)
 
     SCConfYamlLoadString(config, strlen(config));
     AffinityLoadFromConfig();
+    SKIP_INCOMPATIBLE_ENVIRONMENT;
 
     FAIL_IF_NOT(CPU_ISSET(0, &thread_affinity[MANAGEMENT_CPU_SET].cpu_set));
     FAIL_IF_NOT(CPU_COUNT(&thread_affinity[MANAGEMENT_CPU_SET].cpu_set) == 1);
@@ -1608,6 +1694,7 @@ static int ThreadingAffinityTest13(void)
 
     SCConfYamlLoadString(config, strlen(config));
     AffinityLoadFromConfig();
+    SKIP_INCOMPATIBLE_ENVIRONMENT;
 
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
     FAIL_IF_NOT(CPU_COUNT(&worker_taf->cpu_set) == 0);
@@ -1633,6 +1720,7 @@ static int ThreadingAffinityTest14(void)
 
     SCConfYamlLoadString(config, strlen(config));
     AffinityLoadFromConfig();
+    SKIP_INCOMPATIBLE_ENVIRONMENT;
 
     FAIL_IF_NOT(
             CPU_COUNT(&thread_affinity[WORKER_CPU_SET].cpu_set) == UtilCpuGetNumProcessorsOnline());
@@ -1661,6 +1749,7 @@ static int ThreadingAffinityTest15(void)
 
     SCConfYamlLoadString(config, strlen(config));
     AffinityLoadFromConfig();
+    SKIP_INCOMPATIBLE_ENVIRONMENT;
 
     FAIL_IF_NOT(CPU_COUNT(&thread_affinity[MANAGEMENT_CPU_SET].cpu_set) == 0);
 
@@ -1689,6 +1778,7 @@ static int ThreadingAffinityTest16(void)
 
     SCConfYamlLoadString(config, strlen(config));
     AffinityLoadFromConfig();
+    SKIP_INCOMPATIBLE_ENVIRONMENT;
 
     SCConfDeInit();
     SCConfRestoreContextBackup();
@@ -1714,6 +1804,7 @@ static int ThreadingAffinityTest17(void)
 
     SCConfYamlLoadString(config, strlen(config));
     AffinityLoadFromConfig();
+    SKIP_INCOMPATIBLE_ENVIRONMENT;
 
     SCConfDeInit();
     SCConfRestoreContextBackup();
@@ -1739,6 +1830,7 @@ static int ThreadingAffinityTest18(void)
 
     SCConfYamlLoadString(config, strlen(config));
     AffinityLoadFromConfig();
+    SKIP_INCOMPATIBLE_ENVIRONMENT;
 
     SCConfDeInit();
     SCConfRestoreContextBackup();
@@ -1764,6 +1856,7 @@ static int ThreadingAffinityTest19(void)
 
     SCConfYamlLoadString(config, strlen(config));
     AffinityLoadFromConfig();
+    SKIP_INCOMPATIBLE_ENVIRONMENT;
 
     SCConfDeInit();
     SCConfRestoreContextBackup();
@@ -1789,6 +1882,7 @@ static int ThreadingAffinityTest20(void)
 
     SCConfYamlLoadString(config, strlen(config));
     AffinityLoadFromConfig();
+    SKIP_INCOMPATIBLE_ENVIRONMENT;
 
     SCConfDeInit();
     SCConfRestoreContextBackup();
@@ -1844,6 +1938,7 @@ static int ThreadingAffinityTest22(void)
 
     SCConfYamlLoadString(config, strlen(config));
     AffinityLoadFromConfig();
+    SKIP_INCOMPATIBLE_ENVIRONMENT;
 
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
     FAIL_IF_NOT(worker_taf->nb_children == 1);
@@ -1876,6 +1971,7 @@ static int ThreadingAffinityTest23(void)
 
     SCConfYamlLoadString(config, strlen(config));
     AffinityLoadFromConfig();
+    SKIP_INCOMPATIBLE_ENVIRONMENT;
 
     ThreadsAffinityType *result = AffinityTypeGetByIfaceOrCpuset(NULL, "eth0");
     FAIL_IF_NOT(result == NULL);
@@ -1918,6 +2014,7 @@ static int ThreadingAffinityTest24(void)
 
     SCConfYamlLoadString(config, strlen(config));
     AffinityLoadFromConfig();
+    SKIP_INCOMPATIBLE_ENVIRONMENT;
 
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
     FAIL_IF_NOT(worker_taf->nb_children == 0);
@@ -2005,6 +2102,7 @@ static int ThreadingAffinityTest27(void)
 
     SCConfYamlLoadString(config, strlen(config));
     AffinityLoadFromConfig();
+    SKIP_INCOMPATIBLE_ENVIRONMENT;
 
     ThreadsAffinityType *mgmt_taf = &thread_affinity[MANAGEMENT_CPU_SET];
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
