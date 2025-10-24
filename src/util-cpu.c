@@ -51,6 +51,17 @@
 #define SYSCONF_NPROCESSORS_MAX_COMPAT
 #endif
 
+#ifdef UNITTESTS
+static uint16_t unittest_cpus_configured = 0;
+static uint16_t unittest_cpus_online = 0;
+
+void UtilCpuSetNumProcessorsForTests(uint16_t configured, uint16_t online)
+{
+    unittest_cpus_configured = configured;
+    unittest_cpus_online = online;
+}
+#endif
+
 /**
  * \brief Get the number of cpus configured in the system
  * \retval 0 if the syscall is not available or we have an error;
@@ -58,6 +69,11 @@
  */
 uint16_t UtilCpuGetNumProcessorsConfigured(void)
 {
+#ifdef UNITTESTS
+    if (unittest_cpus_configured > 0) {
+        return unittest_cpus_configured;
+    }
+#endif
 #ifdef SYSCONF_NPROCESSORS_CONF_COMPAT
 	long nprocs = -1;
     nprocs = sysconf(_SC_NPROCESSORS_CONF);
@@ -107,6 +123,11 @@ uint16_t UtilCpuGetNumProcessorsConfigured(void)
  */
 uint16_t UtilCpuGetNumProcessorsOnline(void)
 {
+#ifdef UNITTESTS
+    if (unittest_cpus_online > 0) {
+        return unittest_cpus_online;
+    }
+#endif
 #ifdef SYSCONF_NPROCESSORS_ONLN_COMPAT
     long nprocs = -1;
     nprocs = sysconf(_SC_NPROCESSORS_ONLN);

@@ -35,4 +35,9 @@ uint64_t UtilCpuGetTicks(void);
 
 void UtilCpuEnableSparcMisalignEmulation(void);
 
+#ifdef UNITTESTS
+/** \brief Simulate the CPUs of the system. 0 restores the system values. */
+void UtilCpuSetNumProcessorsForTests(uint16_t configured, uint16_t online);
+#endif
+
 #endif /* SURICATA_UTIL_CPU_H */
