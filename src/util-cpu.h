@@ -28,11 +28,24 @@
 uint16_t UtilCpuGetNumProcessorsConfigured(void);
 /* Processors online: */
 uint16_t UtilCpuGetNumProcessorsOnline(void);
+int32_t UtilCpuGetMaxAllowedCpu(void);
 
 void UtilCpuPrintSummary(void);
 
 uint64_t UtilCpuGetTicks(void);
 
 void UtilCpuEnableSparcMisalignEmulation(void);
+
+#ifdef UNITTESTS
+/** \brief Number of CPUs simulated by the unit tests.
+ *
+ * Tests that depend on the CPU layout use this fixed count so that they
+ * behave the same regardless of the machine they run on. */
+#define UTIL_CPU_UT_NUM_CPUS 8
+
+/** \brief Simulate the CPUs of the system.
+ *         0 (-1 for max_allowed) restores the system values. */
+void UtilCpuSetNumProcessorsForTests(uint16_t configured, uint16_t online, int32_t max_allowed);
+#endif
 
 #endif /* SURICATA_UTIL_CPU_H */

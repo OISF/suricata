@@ -924,7 +924,12 @@ receive-, worker- and verdict-set. These are fixed names and can not be
 changed. For each set there are several options: cpu, mode, and prio. In the
 option 'cpu' you can set the numbers of the CPU's/cores which will run the
 threads from that set. You can set this option to 'all', use a range (0-3) or a
-comma separated list (0,1).  The option 'mode' can be set to 'balanced' or
+comma separated list (0,1). CPU numbers start at 0 and must exist on the
+system. With ``set-cpu-affinity`` enabled, Suricata does not start on a CPU
+number the system does not have, an unknown CPU set name or a malformed CPU
+range, mode, priority or thread count, also in the
+``interface-specific-cpu-set`` of an interface that is not used.
+The option 'mode' can be set to 'balanced' or
 'exclusive'. When set to 'balanced', the individual threads can be processed by
 all cores set in the option 'cpu'. If the option 'mode' is set to 'exclusive',
 there will be fixed cores for each thread. As mentioned before, threads can
@@ -954,17 +959,17 @@ per available CPU/CPU core.
           # detect-thread-ratio variable:
           # threads: 3
           prio:
-            low: [ 0 ]
-            medium: [ "1-2" ]
-            high: [ 3 ]
+            # low: [ 0 ]
+            # medium: [ "1-2" ]
+            # high: [ 3 ]
             default: "medium"
-          interface-specific-cpu-set:
-            - interface: "enp4s0f0" # 0000:3b:00.0 # net_bonding0 # ens1f0
-              cpu: [ 1,3,5,7,9 ]
-              mode: "exclusive"
-              prio:
-                high: [ "all" ]
-                default: "medium"
+          # interface-specific-cpu-set:
+          #   - interface: "enp4s0f0" # 0000:3b:00.0 # net_bonding0 # ens1f0
+          #     cpu: [ 1,3,5,7,9 ]
+          #     mode: "exclusive"
+          #     prio:
+          #       high: [ "all" ]
+          #       default: "medium"
         verdict-cpu-set:
           cpu: [ 0 ]
           prio:
