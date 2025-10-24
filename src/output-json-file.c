@@ -327,7 +327,10 @@ static OutputInitResult OutputFileLogInitSub(SCConfNode *conf, OutputCtx *parent
             SCLogConfig("forcing magic lookup for logged files");
         }
 
-        FileForceHashParseCfg(conf);
+        if (FileForceHashParseCfg(conf) < 0) {
+            SCLogError("Invalid configuration for eve-log.files.force-hash, aborting.");
+            SCReturnCT(result, "OutputInitResult");
+        }
     }
 
     if (conf != NULL && SCConfNodeLookupChild(conf, "xff") != NULL) {
