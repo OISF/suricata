@@ -99,7 +99,7 @@ extern ThreadsAffinityType thread_affinity[MAX_CPU_SET];
 void TopologyDestroy(void);
 
 char *AffinityGetYamlPath(ThreadsAffinityType *taf);
-void AffinityLoadFromConfig(void);
+int AffinityLoadFromConfig(void);
 
 ThreadsAffinityType *AffinityTypeGetOrCreateByIfaceOrCpuset(
         const char *affinity_set_name, const char *interface_name);
