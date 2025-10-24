@@ -35,4 +35,14 @@ uint64_t UtilCpuGetTicks(void);
 
 void UtilCpuEnableSparcMisalignEmulation(void);
 
+#ifdef UNITTESTS
+/** \brief Number of online CPUs simulated by the unit tests.
+ *
+ * Tests that depend on the CPU layout use this fixed count so that they
+ * behave the same regardless of the machine they run on. */
+#define UTIL_CPU_UT_ONLINE_CPUS 8
+
+void UtilCpuSetNumProcessorsOnlineForTests(uint16_t ncpu);
+#endif
+
 #endif /* SURICATA_UTIL_CPU_H */
