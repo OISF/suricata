@@ -1119,8 +1119,10 @@ void AffinityReset(void)
         CPU_ZERO(&taf->medprio_cpu);
         CPU_ZERO(&taf->hiprio_cpu);
         taf->nb_threads = 0;
-        taf->prio = PRIO_LOW;
-        taf->mode_flag = BALANCED_AFFINITY;
+        taf->prio = PRIO_MEDIUM;
+        taf->mode_flag = (i == RECEIVE_CPU_SET || i == WORKER_CPU_SET) ? EXCLUSIVE_AFFINITY
+                                                                       : BALANCED_AFFINITY;
+        taf->nocpu_warned = false;
 
         for (int j = 0; j < MAX_NUMA_NODES; j++) {
             taf->lcpu[j] = 0;
