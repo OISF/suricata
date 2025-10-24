@@ -29,6 +29,7 @@
 struct TestReassembleRawCallbackData {
     const uint8_t *expect_data;
     const uint32_t expect_data_len;
+    int result;
 };
 
 static int TestReassembleRawCallback(
@@ -40,47 +41,50 @@ static int TestReassembleRawCallback(
 
     if (data_len == cb->expect_data_len &&
         memcmp(data, cb->expect_data, data_len) == 0) {
+        cb->result = 1;
         return 1;
     } else {
         SCLogNotice("data mismatch. Expected:");
         PrintRawDataFp(stdout, cb->expect_data, cb->expect_data_len);
         SCLogNotice("Got:");
         PrintRawDataFp(stdout, data, data_len);
+        cb->result = -1;
         return -1;
     }
 }
 
-static int TestReassembleRawValidate(TcpSession *ssn, Packet *p,
-        const uint8_t *data, const uint32_t data_len)
+static void TestReassembleRawValidate(
+        TcpSession *ssn, Packet *p, const uint8_t *data, const uint32_t data_len)
 {
-    struct TestReassembleRawCallbackData cb = { data, data_len };
+    struct TestReassembleRawCallbackData cb = { data, data_len, 0 };
     uint64_t progress = 0;
     int r = StreamReassembleRaw(ssn, p, TestReassembleRawCallback, &cb, &progress, false);
+
+    FAIL_IF(cb.result != 1);
+
     if (r == 1) {
         StreamReassembleRawUpdateProgress(ssn, p, progress);
     }
-    SCLogNotice("r %d", r);
-    return r;
+    FAIL_IF(r != 1);
 }
 
-#define RAWREASSEMBLY_START(isn)                \
-    TcpReassemblyThreadCtx *ra_ctx = NULL;      \
-    TcpSession ssn;                             \
-    ThreadVars tv;                              \
-    memset(&tv, 0, sizeof(tv));                 \
-    Packet *p = NULL;                           \
-    \
-                                                \
-    StreamTcpUTInit(&ra_ctx);                   \
-    StreamTcpUTInitInline();                    \
-    stream_config.reassembly_toserver_chunk_size = 9;   \
-    stream_config.reassembly_toclient_chunk_size = 9;   \
-    StreamTcpUTSetupSession(&ssn);              \
-    StreamTcpUTSetupStream(&ssn.server, (isn)); \
-    StreamTcpUTSetupStream(&ssn.client, (isn)); \
-    ssn.server.last_ack = (isn) + 1;            \
-    ssn.client.last_ack = (isn) + 1;            \
-                                                \
+#define RAWREASSEMBLY_START(isn)                                                                   \
+    TcpReassemblyThreadCtx *ra_ctx = NULL;                                                         \
+    TcpSession ssn;                                                                                \
+    ThreadVars tv;                                                                                 \
+    memset(&tv, 0, sizeof(tv));                                                                    \
+    Packet *p = NULL;                                                                              \
+                                                                                                   \
+    StreamTcpUTInit(&ra_ctx);                                                                      \
+    StreamTcpUTInitInline();                                                                       \
+    stream_config.reassembly_toserver_chunk_size = 9;                                              \
+    stream_config.reassembly_toclient_chunk_size = 9;                                              \
+    StreamTcpUTSetupSession(&ssn);                                                                 \
+    StreamTcpUTSetupStream(&ssn.server, (isn));                                                    \
+    StreamTcpUTSetupStream(&ssn.client, (isn));                                                    \
+    ssn.server.last_ack = (isn) + 1;                                                               \
+    ssn.client.last_ack = (isn) + 1;                                                               \
+                                                                                                   \
     TcpStream *stream = &ssn.client;
 
 #define RAWREASSEMBLY_END                       \
@@ -104,7 +108,7 @@ static int TestReassembleRawValidate(TcpSession *ssn, Packet *p,
         FAIL_IF(StreamTcpUTAddPayload(                                                             \
                         &tv, ra_ctx, &ssn, stream, (seq), (uint8_t *)(seg), (seglen)) != 0);       \
         p->flags |= PKT_STREAM_ADD;                                                                \
-        FAIL_IF(!(TestReassembleRawValidate(&ssn, p, (uint8_t *)(buf), (buflen))));                \
+        TestReassembleRawValidate(&ssn, p, (uint8_t *)(buf), (buflen));                            \
     }                                                                                              \
     PacketFree(p);
 
@@ -113,7 +117,7 @@ static int TestReassembleRawValidate(TcpSession *ssn, Packet *p,
     RAWREASSEMBLY_STEP((seq),(seg),(seglen),(buf),(buflen));    \
     FAIL_IF(STREAM_RAW_PROGRESS(stream) != (progress));
 
-static int StreamTcpReassembleRawTest01 (void)
+static int StreamTcpReassembleRawTest01(void)
 {
     RAWREASSEMBLY_START(1);
     RAWREASSEMBLY_STEP(2, "AAA", 3, "AAA", 3);
@@ -122,89 +126,80 @@ static int StreamTcpReassembleRawTest01 (void)
     RAWREASSEMBLY_END;
 }
 
-static int StreamTcpReassembleRawTest02 (void)
+static int StreamTcpReassembleRawTest02(void)
 {
     RAWREASSEMBLY_START(1);
     RAWREASSEMBLY_STEP(2, "AAA", 3, "AAA", 3);
     RAWREASSEMBLY_STEP(5, "BBB", 3, "AAABBB", 6);
-    RAWREASSEMBLY_STEP(11,"DDD", 3, "DDD", 3);
+    RAWREASSEMBLY_STEP(11, "DDD", 3, "DDD", 3);
     RAWREASSEMBLY_STEP(8, "CCC", 3, "BBBCCCDDD", 9);
     RAWREASSEMBLY_END;
 }
 
-static int StreamTcpReassembleRawTest03 (void)
+static int StreamTcpReassembleRawTest03(void)
 {
     RAWREASSEMBLY_START(1);
     RAWREASSEMBLY_STEP(2, "AAA", 3, "AAA", 3);
-    RAWREASSEMBLY_STEP(11,"DDD", 3, "DDD", 3);
+    RAWREASSEMBLY_STEP(11, "DDD", 3, "DDD", 3);
     RAWREASSEMBLY_STEP(8, "CCC", 3, "CCCDDD", 6);
     RAWREASSEMBLY_END;
 }
 
-static int StreamTcpReassembleRawTest04 (void)
+static int StreamTcpReassembleRawTest04(void)
 {
     RAWREASSEMBLY_START(1);
     RAWREASSEMBLY_STEP(2, "AAAAA", 5, "AAAAA", 5);
-    RAWREASSEMBLY_STEP(10,"CCCCC", 5, "CCCCC", 5);
+    RAWREASSEMBLY_STEP(10, "CCCCC", 5, "CCCCC", 5);
     RAWREASSEMBLY_STEP(7, "BBB", 3, "AAABBBCCC", 9);
     RAWREASSEMBLY_END;
 }
 
-static int StreamTcpReassembleRawTest05 (void)
+static int StreamTcpReassembleRawTest05(void)
 {
     RAWREASSEMBLY_START(1);
     RAWREASSEMBLY_STEP(2, "AAAAA", 5, "AAAAA", 5);
-    RAWREASSEMBLY_STEP(10,"CCCCC", 5, "CCCCC", 5);
+    RAWREASSEMBLY_STEP(10, "CCCCC", 5, "CCCCC", 5);
     RAWREASSEMBLY_STEP(2, "EEEEEEEEEEEEE", 13, "AAAAAEEECCCCC", 13);
     RAWREASSEMBLY_END;
 }
 
-static int StreamTcpReassembleRawTest06 (void)
+static int StreamTcpReassembleRawTest06(void)
 {
     RAWREASSEMBLY_START(1);
     RAWREASSEMBLY_STEP(2, "AAAAA", 5, "AAAAA", 5);
-    RAWREASSEMBLY_STEP(16,"CCCCC", 5, "CCCCC", 5);
+    RAWREASSEMBLY_STEP(16, "CCCCC", 5, "CCCCC", 5);
     RAWREASSEMBLY_STEP(7, "BBBBBBBBB", 9, "ABBBBBBBBBC", 11);
-    RAWREASSEMBLY_STEP(21,"DDDDDDDDDD",10,"CCCDDDDDDDDDD", 13);
+    RAWREASSEMBLY_STEP(21, "DDDDDDDDDD", 10, "CCCDDDDDDDDDD", 13);
     RAWREASSEMBLY_END;
 }
 
-static int StreamTcpReassembleRawTest07 (void)
+static int StreamTcpReassembleRawTest07(void)
 {
     RAWREASSEMBLY_START(1);
     RAWREASSEMBLY_STEP(2, "AAAAAAA", 7, "AAAAAAA", 7);
     RAWREASSEMBLY_STEP(9, "BBBBBBB", 7, "AAABBBBBBB", 10);
-    RAWREASSEMBLY_STEP(16,"C", 1, "ABBBBBBBC", 9);
-    RAWREASSEMBLY_STEP(17,"DDDDDDDD",8,"BBCDDDDDDDD", 11);
+    RAWREASSEMBLY_STEP(16, "C", 1, "ABBBBBBBC", 9);
+    RAWREASSEMBLY_STEP(17, "DDDDDDDD", 8, "BBCDDDDDDDD", 11);
     RAWREASSEMBLY_END;
 }
 
-static int StreamTcpReassembleRawTest08 (void)
+static int StreamTcpReassembleRawTest08(void)
 {
     RAWREASSEMBLY_START(1);
     RAWREASSEMBLY_STEP_WITH_PROGRESS(2, "AAA", 3, "AAA", 3, 3, 3);
     RAWREASSEMBLY_STEP_WITH_PROGRESS(8, "CCC", 3, "CCC", 3, 3, 3);
-    // segment lost, last_ack updated
     RAWREASSEMBLY_STEP_WITH_PROGRESS(11, "DDD", 3, "CCCDDD", 6, 8, 12);
     RAWREASSEMBLY_END;
 }
 
 static void StreamTcpReassembleRawRegisterTests(void)
 {
-    UtRegisterTest("StreamTcpReassembleRawTest01",
-                   StreamTcpReassembleRawTest01);
-    UtRegisterTest("StreamTcpReassembleRawTest02",
-                   StreamTcpReassembleRawTest02);
-    UtRegisterTest("StreamTcpReassembleRawTest03",
-                   StreamTcpReassembleRawTest03);
-    UtRegisterTest("StreamTcpReassembleRawTest04",
-                   StreamTcpReassembleRawTest04);
-    UtRegisterTest("StreamTcpReassembleRawTest05",
-                   StreamTcpReassembleRawTest05);
-    UtRegisterTest("StreamTcpReassembleRawTest06",
-                   StreamTcpReassembleRawTest06);
-    UtRegisterTest("StreamTcpReassembleRawTest07",
-                   StreamTcpReassembleRawTest07);
-    UtRegisterTest("StreamTcpReassembleRawTest08",
-                   StreamTcpReassembleRawTest08);
+    UtRegisterTest("StreamTcpReassembleRawTest01", StreamTcpReassembleRawTest01);
+    UtRegisterTest("StreamTcpReassembleRawTest02", StreamTcpReassembleRawTest02);
+    UtRegisterTest("StreamTcpReassembleRawTest03", StreamTcpReassembleRawTest03);
+    UtRegisterTest("StreamTcpReassembleRawTest04", StreamTcpReassembleRawTest04);
+    UtRegisterTest("StreamTcpReassembleRawTest05", StreamTcpReassembleRawTest05);
+    UtRegisterTest("StreamTcpReassembleRawTest06", StreamTcpReassembleRawTest06);
+    UtRegisterTest("StreamTcpReassembleRawTest07", StreamTcpReassembleRawTest07);
+    UtRegisterTest("StreamTcpReassembleRawTest08", StreamTcpReassembleRawTest08);
 }
