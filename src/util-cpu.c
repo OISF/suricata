@@ -54,11 +54,13 @@
 #ifdef UNITTESTS
 static uint16_t unittest_cpus_configured = 0;
 static uint16_t unittest_cpus_online = 0;
+static int32_t unittest_cpus_max_allowed = -1;
 
-void UtilCpuSetNumProcessorsForTests(uint16_t configured, uint16_t online)
+void UtilCpuSetNumProcessorsForTests(uint16_t configured, uint16_t online, int32_t max_allowed)
 {
     unittest_cpus_configured = configured;
     unittest_cpus_online = online;
+    unittest_cpus_max_allowed = max_allowed;
 }
 #endif
 
@@ -153,6 +155,35 @@ uint16_t UtilCpuGetNumProcessorsOnline(void)
                "synconf macro unavailable");
     return 0;
 #endif
+}
+
+/**
+ * \brief Get the highest CPU of the CPU affinity mask of the process
+ *
+ * Some libcs, like musl, count only the CPUs of this mask as configured,
+ * e.g. 4 in a container limited to CPUs 8-11.
+ *
+ * \retval the CPU ID, -1 if not known
+ */
+int32_t UtilCpuGetMaxAllowedCpu(void)
+{
+#ifdef UNITTESTS
+    if (unittest_cpus_configured > 0 || unittest_cpus_online > 0) {
+        return unittest_cpus_max_allowed;
+    }
+#endif
+#if defined(__linux__)
+    cpu_set_t set;
+    CPU_ZERO(&set);
+    if (sched_getaffinity(0, sizeof(set), &set) == 0) {
+        for (int cpu = CPU_SETSIZE - 1; cpu >= 0; cpu--) {
+            if (CPU_ISSET(cpu, &set)) {
+                return cpu;
+            }
+        }
+    }
+#endif
+    return -1;
 }
 
 /**
