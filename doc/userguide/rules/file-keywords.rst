@@ -164,12 +164,12 @@ Syntax::
 
 The filename is expanded to include the rule dir. In the default case
 it will become /etc/suricata/rules/filename. Use the exclamation mark
-to get a negated match. This allows for white listing.
+to get a negated match. This allows for safe listing.
 
 Examples::
 
-  filemd5:md5-blacklist;
-  filemd5:!md5-whitelist;
+  filemd5:md5-badlist;
+  filemd5:!md5-goodlist;
 
 *File format*
 
@@ -208,12 +208,12 @@ Syntax::
 
 The filename is expanded to include the rule dir. In the default case
 it will become /etc/suricata/rules/filename. Use the exclamation mark
-to get a negated match. This allows for white listing.
+to get a negated match. This allows for safe listing.
 
 Examples::
 
-  filesha1:sha1-blacklist;
-  filesha1:!sha1-whitelist;
+  filesha1:sha1-badlist;
+  filesha1:!sha1-goodlist;
 
 *File format*
 
@@ -230,12 +230,12 @@ Syntax::
 
 The filename is expanded to include the rule dir. In the default case
 it will become /etc/suricata/rules/filename. Use the exclamation mark
-to get a negated match. This allows for white listing.
+to get a negated match. This allows for safe listing.
 
 Examples::
 
-  filesha256:sha256-blacklist;
-  filesha256:!sha256-whitelist;
+  filesha256:sha256-badlist;
+  filesha256:!sha256-goodlist;
 
 *File format*
 
