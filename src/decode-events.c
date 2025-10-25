@@ -934,5 +934,23 @@ const struct DecodeEvents_ DEvents[] = {
             ARP_UNSUPPORTED_OPCODE,
     },
 
+    /* L2TP EVENTS */
+    {
+            "decoder.l2tp.pkt_too_small",
+            L2TP_PKT_TOO_SMALL,
+    },
+    {
+            "decoder.l2tp.invalid_version",
+            L2TP_INVALID_VER,
+    },
+    {
+            "decoder.l2tp.unknown_payload_type",
+            L2TP_UNKNOWN_PAYLOAD_TYPE,
+    },
+    {
+            "decoder.l2tp.invalid_ip_proto",
+            L2TP_INVALID_IP_PROTO,
+    },
+
     { NULL, 0 },
 };
