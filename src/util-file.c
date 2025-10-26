@@ -179,7 +179,9 @@ void FileForceHashParseCfg(SCConfNode *conf)
         SCConfNode *field = NULL;
 
         TAILQ_FOREACH(field, &forcehash_node->head, next) {
+            int valid_hash = 0;
             if (strcasecmp("md5", field->val) == 0) {
+                valid_hash = 1;
                 if (g_disable_hashing) {
                     SCLogInfo("not forcing md5 calculation for logged files: hashing globally "
                               "disabled");
@@ -190,6 +192,7 @@ void FileForceHashParseCfg(SCConfNode *conf)
             }
 
             if (strcasecmp("sha1", field->val) == 0) {
+                valid_hash = 1;
                 if (g_disable_hashing) {
                     SCLogInfo("not forcing sha1 calculation for logged files: hashing globally "
                               "disabled");
@@ -200,6 +203,7 @@ void FileForceHashParseCfg(SCConfNode *conf)
             }
 
             if (strcasecmp("sha256", field->val) == 0) {
+                valid_hash = 1;
                 if (g_disable_hashing) {
                     SCLogInfo("not forcing sha256 calculation for logged files: hashing globally "
                               "disabled");
@@ -207,6 +211,14 @@ void FileForceHashParseCfg(SCConfNode *conf)
                     FileForceSha256Enable();
                     SCLogConfig("forcing sha256 calculation for logged or stored files");
                 }
+            }
+
+            if (!valid_hash) {
+                SCLogError("Invalid hash algorithm specified in force-hash config: \"%s\". "
+                           "Valid options are: md5, sha1, sha256",
+                        field->val);
+                FatalError("Invalid configuration: force-hash algorithm must be one of: md5, sha1, "
+                           "sha256");
             }
         }
     }
