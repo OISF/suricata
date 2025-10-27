@@ -41,7 +41,7 @@ void UtilCpuEnableSparcMisalignEmulation(void);
  *
  * Tests that depend on the CPU layout use this fixed count so that they
  * behave the same regardless of the machine they run on. */
-#define UTIL_CPU_UT_NUM_CPUS 8
+#define UTIL_CPU_UT_NUM_CPUS 4
 
 /** \brief Simulate the CPUs of the system.
  *         0 (-1 for max_allowed) restores the system values. */
