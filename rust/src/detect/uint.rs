@@ -755,7 +755,9 @@ pub fn detect_match_uint<T: DetectIntType>(x: &DetectUintData<T>, val: T) -> boo
     return false;
 }
 
-pub fn detect_parse_uint_notending<T: DetectIntType>(i: &str) -> IResult<&str, DetectUintData<T>> {
+pub(crate) fn detect_parse_uint_notending<T: DetectIntType>(
+    i: &str,
+) -> IResult<&str, DetectUintData<T>> {
     let (i, _) = opt(is_a(" "))(i)?;
     let (i, uint) = alt((
         detect_parse_uint_bitmask,
