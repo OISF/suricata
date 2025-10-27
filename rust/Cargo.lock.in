@@ -88,7 +88,7 @@ dependencies = [
  "asn1-rs-derive 0.5.1",
  "asn1-rs-impl",
  "displaydoc",
- "nom",
+ "nom 7.1.3",
  "num-traits 0.2.19",
  "rusticata-macros",
  "thiserror 1.0.69",
@@ -104,7 +104,7 @@ dependencies = [
  "asn1-rs-derive 0.6.0",
  "asn1-rs-impl",
  "displaydoc",
- "nom",
+ "nom 7.1.3",
  "num-traits 0.2.19",
  "rusticata-macros",
  "thiserror 2.0.16",
@@ -377,7 +377,7 @@ checksum = "5cd0a5c643689626bec213c4d8bd4d96acc8ffdb4ad4bb6bc16abf27d5f4b553"
 dependencies = [
  "asn1-rs 0.6.2",
  "displaydoc",
- "nom",
+ "nom 7.1.3",
  "num-bigint 0.4.6",
  "num-traits 0.2.19",
  "rusticata-macros",
@@ -713,7 +713,7 @@ version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2cf8413e5de78bcbc51880ff71f4b64105719abe6efb8b4b877d3c7dc494ddd1"
 dependencies = [
- "nom",
+ "nom 7.1.3",
  "rusticata-macros",
 ]
 
@@ -730,7 +730,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dedcd80c336b8a8dc828afe2be00fb7006c48a95c2396beb0555149fb414f321"
 dependencies = [
  "der-parser",
- "nom",
+ "nom 7.1.3",
  "rusticata-macros",
 ]
 
@@ -863,12 +863,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "nom"
+version = "8.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "df9761775871bdef83bee530e60050f7e54b1105350d6884eb0fb4f46c2f9405"
+dependencies = [
+ "memchr",
+]
+
+[[package]]
 name = "nom-derive"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1ff943d68b88d0b87a6e0d58615e8fa07f9fd5a1319fa0a72efc1f62275c79a7"
 dependencies = [
- "nom",
+ "nom 7.1.3",
  "nom-derive-impl",
  "rustversion",
 ]
@@ -890,7 +899,7 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "76084be9bf432d487336dd4e39b31ad93f94aecb14b81f08724f4a37b9abb7a5"
 dependencies = [
- "nom",
+ "nom 7.1.3",
  "nom-derive",
 ]
 
@@ -1287,7 +1296,7 @@ version = "4.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "faf0c4a6ece9950b9abdb62b1cfcf2a68b3b67a10ba445b3bb85be2a293d0632"
 dependencies = [
- "nom",
+ "nom 7.1.3",
 ]
 
 [[package]]
@@ -1354,7 +1363,7 @@ version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "78562a138ea8cc5c8b04531864e5e268ff6b02d3bac0cf4d447f8085c0b0bf02"
 dependencies = [
- "nom",
+ "nom 7.1.3",
 ]
 
 [[package]]
@@ -1384,7 +1393,7 @@ version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "620cb1b2194fc49c0ed48f0be97962d6ae8316b5659c06572714dfb82c984f25"
 dependencies = [
- "nom",
+ "nom 7.1.3",
  "num_enum",
  "sawp",
  "sawp-flags",
@@ -1396,7 +1405,7 @@ version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ef576aa71811070479508d762e810d036b775f3629970901d082b4c9085d96da"
 dependencies = [
- "nom",
+ "nom 7.1.3",
  "sawp",
  "sawp-flags",
 ]
@@ -1513,7 +1522,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0f93180ada23141ed2643b7b4a7b20c7efea6af9c6bdc997c15b813bfa6e2c20"
 dependencies = [
  "asn1-rs 0.6.2",
- "nom",
+ "nom 7.1.3",
  "rusticata-macros",
  "thiserror 1.0.69",
 ]
@@ -1551,7 +1560,8 @@ dependencies = [
  "lzma-rs",
  "md-5",
  "memchr",
- "nom",
+ "nom 7.1.3",
+ "nom 8.0.0",
  "ntp-parser",
  "num",
  "num-derive",
@@ -1598,7 +1608,7 @@ dependencies = [
  "lazy_static",
  "libc",
  "lzma-rs",
- "nom",
+ "nom 7.1.3",
  "rstest",
  "time",
 ]
@@ -1807,7 +1817,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "409206e2de64edbf7ea99a44ac31680daf9ef1a57895fb3c5bd738a903691be0"
 dependencies = [
  "enum_primitive",
- "nom",
+ "nom 7.1.3",
  "nom-derive",
  "phf",
  "phf_codegen",
@@ -2069,7 +2079,7 @@ dependencies = [
  "data-encoding",
  "der-parser",
  "lazy_static",
- "nom",
+ "nom 7.1.3",
  "oid-registry",
  "rusticata-macros",
  "thiserror 1.0.69",
