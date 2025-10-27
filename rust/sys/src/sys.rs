@@ -60,7 +60,7 @@ extern "C" {
         alproto: AppProto, proto_name: *const ::std::os::raw::c_char,
     );
 }
-pub const SC_API_VERSION: u64 = 2048;
+pub const SC_API_VERSION: u64 = 2304;
 #[doc = " Structure to define a Suricata plugin."]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
