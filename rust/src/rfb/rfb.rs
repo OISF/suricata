@@ -27,7 +27,7 @@ use crate::core::{
 use crate::direction::Direction;
 use crate::flow::Flow;
 use crate::frames::*;
-use nom7::Err;
+use nom8::Err;
 use std;
 use std::ffi::CString;
 use std::os::raw::c_char;

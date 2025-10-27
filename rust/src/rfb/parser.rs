@@ -17,11 +17,11 @@
 
 // Author: Frank Honza <frank.honza@dcso.de>
 
-use nom7::bytes::streaming::tag;
-use nom7::bytes::streaming::take;
-use nom7::combinator::map_res;
-use nom7::number::streaming::*;
-use nom7::*;
+use nom8::bytes::streaming::tag;
+use nom8::bytes::streaming::take;
+use nom8::combinator::map_res;
+use nom8::number::streaming::*;
+use nom8::{IResult, Parser};
 use std::fmt;
 use std::str;
 
@@ -127,9 +127,9 @@ pub struct ServerInit {
 
 pub fn parse_protocol_version(i: &[u8]) -> IResult<&[u8], ProtocolVersion> {
     let (i, _) = tag("RFB ")(i)?;
-    let (i, major) = map_res(take(3_usize), str::from_utf8)(i)?;
+    let (i, major) = map_res(take(3_usize), str::from_utf8).parse(i)?;
     let (i, _) = tag(".")(i)?;
-    let (i, minor) = map_res(take(3_usize), str::from_utf8)(i)?;
+    let (i, minor) = map_res(take(3_usize), str::from_utf8).parse(i)?;
     let (i, _) = tag("\n")(i)?;
     Ok((
         i,
@@ -179,7 +179,7 @@ pub fn parse_security_result(i: &[u8]) -> IResult<&[u8], SecurityResult> {
 
 pub fn parse_failure_reason(i: &[u8]) -> IResult<&[u8], FailureReason> {
     let (i, reason_length) = be_u32(i)?;
-    let (i, reason_string) = map_res(take(reason_length as usize), str::from_utf8)(i)?;
+    let (i, reason_string) = map_res(take(reason_length as usize), str::from_utf8).parse(i)?;
     Ok((
         i,
         FailureReason {
@@ -239,6 +239,7 @@ pub fn parse_server_init(i: &[u8]) -> IResult<&[u8], ServerInit> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use nom8::Err;
 
     /// Simple test of some valid data.
     #[test]
