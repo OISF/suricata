@@ -56,6 +56,20 @@
 #include "util-thash.h"
 #include "util-hash-lookup3.h"
 
+/* bitmap settings for exact distinct counting of 16-bit ports */
+#define DF_PORT_BITMAP_SIZE (65536u / 8u)
+#define DF_PORT_BYTE_IDX(p) ((uint32_t)((p) >> 3))
+#define DF_PORT_BIT_MASK(p) ((uint8_t)(1u << ((p)&7u)))
+
+/* portable 8-bit popcount to avoid compiler-specific builtins */
+static inline uint8_t ThresholdPopcount8(uint8_t v)
+{
+    v = (uint8_t)(v - ((v >> 1) & 0x55u));
+    v = (uint8_t)((v & 0x33u) + ((v >> 2) & 0x33u));
+    v = (uint8_t)((v + (v >> 4)) & 0x0Fu);
+    return v;
+}
+
 struct Thresholds {
     THashTableContext *thash;
 } ctx;
@@ -95,6 +109,12 @@ typedef struct ThresholdEntry_ {
             SCTime_t tv1;  /**< Var for time control */
             Address addr;  /* used for src/dst/either tracking */
             Address addr2; /* used for both tracking */
+            /* distinct counting state (for detection_filter unique_on ports) */
+            uint8_t *distinct_bitmap_union; /* 65536 bits */
+            uint8_t **distinct_buckets;     /* per-second ring */
+            uint32_t distinct_bucket_count; /* ring size == seconds */
+            uint32_t distinct_bucket_index; /* current index */
+            uint32_t distinct_seen;         /* number of bits set in union */
         };
     };
 
@@ -109,9 +129,140 @@ static int ThresholdEntrySet(void *dst, void *src)
     return 0;
 }
 
+static void ThresholdDistinctInit(ThresholdEntry *te, const DetectThresholdData *td)
+{
+    if (td->type != TYPE_DETECTION || td->unique_on == DF_UNIQUE_NONE || td->seconds == 0) {
+        return;
+    }
+
+    const uint32_t bitmap_size = DF_PORT_BITMAP_SIZE;
+    te->distinct_bucket_count = td->seconds;
+    te->distinct_bucket_index = 0;
+    te->distinct_seen = 0;
+    te->distinct_bitmap_union = SCCalloc(1, bitmap_size);
+    if (te->distinct_bitmap_union == NULL) {
+        te->distinct_bucket_count = 0;
+        return;
+    }
+    te->distinct_buckets = NULL; /* use union-only mode unless we need per-second rotation */
+}
+
+static void ThresholdDistinctReset(ThresholdEntry *te)
+{
+    if (te->distinct_bucket_count == 0) {
+        return;
+    }
+    const uint32_t bitmap_size = DF_PORT_BITMAP_SIZE;
+    if (te->distinct_buckets) {
+        for (uint32_t i = 0; i < te->distinct_bucket_count; i++) {
+            if (te->distinct_buckets[i]) {
+                memset(te->distinct_buckets[i], 0x00, bitmap_size);
+            }
+        }
+    }
+    if (te->distinct_bitmap_union)
+        memset(te->distinct_bitmap_union, 0x00, bitmap_size);
+    te->distinct_seen = 0;
+    te->distinct_bucket_index = 0;
+}
+
+static void ThresholdDistinctAlign(ThresholdEntry *te, const SCTime_t base, const SCTime_t now)
+{
+    if (te->distinct_bucket_count == 0) {
+        return;
+    }
+    uint32_t elapsed = (uint32_t)(SCTIME_SECS(now) - SCTIME_SECS(base));
+    const uint32_t ring = te->distinct_bucket_count;
+    const uint32_t bitmap_size = DF_PORT_BITMAP_SIZE;
+    if (te->distinct_buckets == NULL) {
+        /* union-only mode: nothing to align per-second, expire handled by timeout */
+        (void)elapsed;
+        (void)ring;
+        (void)bitmap_size;
+        return;
+    }
+    if (elapsed >= ring) {
+        /* full window exceeded */
+        ThresholdDistinctReset(te);
+        return;
+    }
+    while (te->distinct_bucket_index != (elapsed % ring)) {
+        const uint32_t next_index = (te->distinct_bucket_index + 1) % ring;
+        uint8_t *bucket = te->distinct_buckets[next_index];
+        if (bucket) {
+            memset(bucket, 0x00, bitmap_size);
+        }
+        /* rebuild union */
+        if (te->distinct_bitmap_union) {
+            memset(te->distinct_bitmap_union, 0x00, bitmap_size);
+            te->distinct_seen = 0;
+            for (uint32_t bi = 0; bi < ring; bi++) {
+                uint8_t *b = te->distinct_buckets[bi];
+                if (!b)
+                    continue;
+                for (uint32_t k = 0; k < bitmap_size; k++) {
+                    uint8_t before = te->distinct_bitmap_union[k];
+                    te->distinct_bitmap_union[k] = (uint8_t)(te->distinct_bitmap_union[k] | b[k]);
+                    uint8_t added = (uint8_t)(te->distinct_bitmap_union[k] ^ before);
+                    if (added)
+                        te->distinct_seen += ThresholdPopcount8(added);
+                }
+            }
+        }
+        te->distinct_bucket_index = next_index;
+    }
+}
+
+static inline void ThresholdDistinctAddPort(ThresholdEntry *te, uint16_t port)
+{
+    if (te->distinct_bucket_count == 0) {
+        return;
+    }
+    const uint32_t byte_index = DF_PORT_BYTE_IDX(port);
+    const uint8_t bit_mask = DF_PORT_BIT_MASK(port);
+    if (te->distinct_buckets) {
+        uint8_t *cur_bucket = te->distinct_buckets[te->distinct_bucket_index];
+        if (cur_bucket) {
+            uint8_t already_in_bucket = (uint8_t)(cur_bucket[byte_index] & bit_mask);
+            if (!already_in_bucket) {
+                cur_bucket[byte_index] = (uint8_t)(cur_bucket[byte_index] | bit_mask);
+                uint8_t already = (uint8_t)(te->distinct_bitmap_union[byte_index] & bit_mask);
+                if (!already) {
+                    te->distinct_bitmap_union[byte_index] =
+                            (uint8_t)(te->distinct_bitmap_union[byte_index] | bit_mask);
+                    te->distinct_seen++;
+                }
+            }
+        }
+    } else if (te->distinct_bitmap_union) {
+        uint8_t already = (uint8_t)(te->distinct_bitmap_union[byte_index] & bit_mask);
+        if (!already) {
+            te->distinct_bitmap_union[byte_index] =
+                    (uint8_t)(te->distinct_bitmap_union[byte_index] | bit_mask);
+            te->distinct_seen++;
+        }
+    }
+}
+
 static void ThresholdEntryFree(void *ptr)
 {
-    // nothing to free, base data is part of hash
+    if (ptr == NULL)
+        return;
+
+    ThresholdEntry *e = ptr;
+    if (e->distinct_buckets) {
+        for (uint32_t i = 0; i < e->distinct_bucket_count; i++) {
+            if (e->distinct_buckets[i]) {
+                SCFree(e->distinct_buckets[i]);
+            }
+        }
+        SCFree(e->distinct_buckets);
+        e->distinct_buckets = NULL;
+    }
+    if (e->distinct_bitmap_union) {
+        SCFree(e->distinct_bitmap_union);
+        e->distinct_bitmap_union = NULL;
+    }
 }
 
 static inline uint32_t HashAddress(const Address *a)
@@ -585,8 +736,8 @@ static int AddEntryToFlow(Flow *f, FlowThresholdEntryList *e, SCTime_t packet_ti
     return 0;
 }
 
-static int ThresholdHandlePacketSuppress(Packet *p,
-        const DetectThresholdData *td, uint32_t sid, uint32_t gid)
+static int ThresholdHandlePacketSuppress(
+        Packet *p, const DetectThresholdData *td, uint32_t sid, uint32_t gid)
 {
     int ret = 0;
     DetectAddress *m = NULL;
@@ -684,6 +835,7 @@ static int ThresholdSetup(const DetectThresholdData *td, ThresholdEntry *te,
         default:
             te->tv1 = packet_time;
             te->tv_timeout = SCTIME_INITIALIZER;
+            ThresholdDistinctInit(te, td);
             break;
     }
 
@@ -779,21 +931,33 @@ static int ThresholdCheckUpdate(const DetectEngineCtx *de_ctx, const DetectThres
                 }
             }
             break;
-        case TYPE_DETECTION:
+        case TYPE_DETECTION: {
             SCLogDebug("detection_filter");
 
             if (SCTIME_CMP_LTE(p->ts, entry)) {
                 /* within timeout */
-                te->current_count++;
-                if (te->current_count > td->count) {
-                    ret = 1;
+                if (td->unique_on != DF_UNIQUE_NONE && te->distinct_bucket_count > 0 &&
+                        te->distinct_bitmap_union && te->distinct_buckets) {
+                    ThresholdDistinctAlign(te, te->tv1, p->ts);
+                    uint16_t port = (td->unique_on == DF_UNIQUE_SRC_PORT) ? p->sp : p->dp;
+                    ThresholdDistinctAddPort(te, port);
+                    if (te->distinct_seen > td->count) {
+                        ret = 1;
+                    }
+                } else {
+                    te->current_count++;
+                    if (te->current_count > td->count) {
+                        ret = 1;
+                    }
                 }
             } else {
                 /* expired, reset */
                 te->tv1 = p->ts;
                 te->current_count = 1;
+                ThresholdDistinctReset(te);
             }
             break;
+        }
         case TYPE_RATE: {
             SCLogDebug("rate_filter");
             const uint8_t original_action = pa->action;
@@ -903,6 +1067,15 @@ static int ThresholdGetFromHash(const DetectEngineCtx *de_ctx, struct Thresholds
         if (res.is_new) {
             // new threshold, set up
             r = ThresholdSetup(td, te, p->ts, s->id, s->gid, s->rev, p->tenant_id);
+            // For detection_filter with unique_on, record the first packet's port
+            if (td->type == TYPE_DETECTION && td->unique_on != DF_UNIQUE_NONE &&
+                    te->distinct_bucket_count > 0 && te->distinct_bitmap_union &&
+                    te->distinct_buckets) {
+                ThresholdDistinctAlign(te, te->tv1, p->ts);
+                uint16_t port = (td->unique_on == DF_UNIQUE_SRC_PORT) ? p->sp : p->dp;
+                ThresholdDistinctAddPort(te, port);
+                // Do not set r=1 here; first observation should not alert by itself
+            }
         } else {
             // existing, check/update
             r = ThresholdCheckUpdate(de_ctx, td, te, p, s->id, s->gid, s->rev, pa);
@@ -969,7 +1142,7 @@ int PacketAlertThreshold(const DetectEngineCtx *de_ctx, DetectEngineThreadCtx *d
     }
 
     if (td->type == TYPE_SUPPRESS) {
-        ret = ThresholdHandlePacketSuppress(p,td,s->id,s->gid);
+        ret = ThresholdHandlePacketSuppress(p, td, s->id, s->gid);
     } else if (td->track == TRACK_SRC) {
         if (PacketIsIPv4(p) && (td->type == TYPE_LIMIT || td->type == TYPE_BOTH)) {
             int cache_ret = CheckCache(p, td->track, s->id, s->gid, s->rev);

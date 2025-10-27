@@ -179,9 +179,33 @@ internal counter and alert each time the threshold has been reached.
 
 Syntax::
 
-  detection_filter: track <by_src|by_dst|by_rule|by_both|by_flow>, count <N>, seconds <T>
+  detection_filter: track <by_src|by_dst|by_rule|by_both|by_flow>, count <N>, seconds <T>[, unique_on <src_port|dst_port>]
 
-Example:
+``unique_on`` (optional) enables distinct counting on a field within the time window:
+
+- ``unique_on dst_port``: count distinct destination ports
+- ``unique_on src_port``: count distinct source ports
+
+When ``unique_on`` is specified, alerts start when the number of distinct values
+exceeds ``count`` during the ``seconds`` window, scoped by ``track``.
+
+Examples:
+
+.. container:: example-rule
+
+  alert tcp any any -> $HOME_NET any (msg:"Vertical scan: >=10 distinct dst ports in 60s";
+  flags:S; ack:0; flow:stateless;
+  :example-rule-emphasis:`detection_filter: track by_dst, count 10, seconds 60, unique_on dst_port;`
+  classtype:attempted-recon; sid:100001; rev:1;)
+
+.. container:: example-rule
+
+  alert tcp any any -> $HOME_NET 22 (msg:"Horizontal scan: >=20 distinct src ports to SSH in 30s";
+  flow:stateless;
+  :example-rule-emphasis:`detection_filter: track by_dst, count 20, seconds 30, unique_on src_port;`
+  classtype:attempted-recon; sid:100002; rev:1;)
+
+Without ``unique_on``, the classic behavior applies:
 
 .. container:: example-rule
 

@@ -49,7 +49,11 @@
 #define PARSE_REGEX                                                                                \
     "^\\s*(track|count|seconds)\\s+(by_src|by_dst|by_flow|\\d+)\\s*,\\s*(track|count|seconds)\\s+" \
     "(by_src|"                                                                                     \
-    "by_dst|by_flow|\\d+)\\s*,\\s*(track|count|seconds)\\s+(by_src|by_dst|by_flow|\\d+)\\s*$"
+    "by_dst|by_flow|\\d+)\\s*,\\s*(track|count|seconds)\\s+(by_src|by_dst|by_flow|\\d+)"           \
+    "(?:\\s*,\\s*unique_on\\s+(src_port|dst_port))?\\s*$"
+
+/* minimum number of PCRE submatches expected for detection_filter parse */
+#define DF_PARSE_MIN_SUBMATCHES 5
 
 static DetectParseRegex parse_regex;
 
@@ -104,12 +108,14 @@ static DetectThresholdData *DetectDetectionFilterParse(const char *rawstr)
     int res = 0;
     size_t pcre2_len;
     const char *str_ptr = NULL;
-    char *args[6] = { NULL, NULL, NULL, NULL, NULL, NULL };
+    char *args[8] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
     char *copy_str = NULL, *df_opt = NULL;
     int seconds_found = 0, count_found = 0, track_found = 0;
     int seconds_pos = 0, count_pos = 0;
     size_t pos = 0;
     int i = 0;
+    int parsed_count = 0;
+    int ret = 0;
     char *saveptr = NULL;
     pcre2_match_data *match = NULL;
 
@@ -134,8 +140,8 @@ static DetectThresholdData *DetectDetectionFilterParse(const char *rawstr)
     if (count_found != 1 || seconds_found != 1 || track_found != 1)
         goto error;
 
-    int ret = DetectParsePcreExec(&parse_regex, &match, rawstr, 0, 0);
-    if (ret < 5) {
+    ret = DetectParsePcreExec(&parse_regex, &match, rawstr, 0, 0);
+    if (ret < DF_PARSE_MIN_SUBMATCHES) {
         SCLogError("pcre_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
         goto error;
     }
@@ -154,6 +160,7 @@ static DetectThresholdData *DetectDetectionFilterParse(const char *rawstr)
         }
 
         args[i] = (char *)str_ptr;
+        parsed_count++;
 
         if (strncasecmp(args[i], "by_dst", strlen("by_dst")) == 0)
             df->track = TRACK_DST;
@@ -165,6 +172,10 @@ static DetectThresholdData *DetectDetectionFilterParse(const char *rawstr)
             count_pos = i + 1;
         if (strncasecmp(args[i], "seconds", strlen("seconds")) == 0)
             seconds_pos = i + 1;
+        if (strcasecmp(args[i], "src_port") == 0)
+            df->unique_on = DF_UNIQUE_SRC_PORT;
+        if (strcasecmp(args[i], "dst_port") == 0)
+            df->unique_on = DF_UNIQUE_DST_PORT;
     }
 
     if (args[count_pos] == NULL || args[seconds_pos] == NULL) {
@@ -184,7 +195,7 @@ static DetectThresholdData *DetectDetectionFilterParse(const char *rawstr)
         goto error;
     }
 
-    for (i = 0; i < 6; i++) {
+    for (i = 0; i < parsed_count; i++) {
         if (args[i] != NULL)
             pcre2_substring_free((PCRE2_UCHAR *)args[i]);
     }
@@ -193,9 +204,11 @@ static DetectThresholdData *DetectDetectionFilterParse(const char *rawstr)
     return df;
 
 error:
-    for (i = 0; i < 6; i++) {
-        if (args[i] != NULL)
-            pcre2_substring_free((PCRE2_UCHAR *)args[i]);
+    if (parsed_count > 0) {
+        for (i = 0; i < parsed_count; i++) {
+            if (args[i] != NULL)
+                pcre2_substring_free((PCRE2_UCHAR *)args[i]);
+        }
     }
     if (df != NULL)
         SCFree(df);
@@ -364,6 +377,307 @@ static int DetectDetectionFilterTestParse06(void)
     DetectThresholdData *df = DetectDetectionFilterParse("count 10, track by_dst, seconds 0");
     FAIL_IF_NOT_NULL(df);
 
+    PASS;
+}
+
+/**
+ * \test DetectDetectionFilterTestParseUnique01 tests parsing unique_on dst_port
+ */
+static int DetectDetectionFilterTestParseUnique01(void)
+{
+    DetectThresholdData *df =
+            DetectDetectionFilterParse("track by_dst, count 10, seconds 60, unique_on dst_port");
+    FAIL_IF_NULL(df);
+    FAIL_IF_NOT(df->track == TRACK_DST);
+    FAIL_IF_NOT(df->count == 10);
+    FAIL_IF_NOT(df->seconds == 60);
+    FAIL_IF_NOT(df->unique_on == DF_UNIQUE_DST_PORT);
+    DetectDetectionFilterFree(NULL, df);
+    PASS;
+}
+
+/**
+ * \test Distinct dst_port counting triggers when distinct > count
+ */
+static int DetectDetectionFilterDistinctDstPortTriggers(void)
+{
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+
+    ThresholdInit();
+    memset(&th_v, 0, sizeof(th_v));
+
+    Packet *p1 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    Packet *p2 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 81);
+    Packet *p3 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 82);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any (msg:\"DF distinct dst_port\"; "
+            "detection_filter: track by_dst, count 2, seconds 60, unique_on dst_port; sid:20;)");
+    FAIL_IF_NULL(s);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    FAIL_IF(PacketAlertCheck(p1, 20));
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    FAIL_IF(PacketAlertCheck(p2, 20));
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p3);
+    FAIL_IF_NOT(PacketAlertCheck(p3, 20));
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
+    UTHFreePackets(&p3, 1);
+    ThresholdDestroy();
+    StatsThreadCleanup(&th_v);
+    PASS;
+}
+
+/**
+ * \test Distinct src_port counting triggers when distinct > count
+ */
+static int DetectDetectionFilterDistinctSrcPortTriggers(void)
+{
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+
+    ThresholdInit();
+    memset(&th_v, 0, sizeof(th_v));
+
+    Packet *p1 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 2000, 80);
+    Packet *p2 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 2001, 80);
+    Packet *p3 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 2002, 80);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any (msg:\"DF distinct src_port\"; "
+            "detection_filter: track by_src, count 2, seconds 60, unique_on src_port; sid:21;)");
+    FAIL_IF_NULL(s);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    FAIL_IF(PacketAlertCheck(p1, 21));
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    FAIL_IF(PacketAlertCheck(p2, 21));
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p3);
+    FAIL_IF_NOT(PacketAlertCheck(p3, 21));
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
+    UTHFreePackets(&p3, 1);
+    ThresholdDestroy();
+    StatsThreadCleanup(&th_v);
+    PASS;
+}
+
+/**
+ * \test Distinct dst_port counting should not double count same port
+ */
+static int DetectDetectionFilterDistinctDstPortNoDoubleCount(void)
+{
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+
+    ThresholdInit();
+    memset(&th_v, 0, sizeof(th_v));
+
+    Packet *p1 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    Packet *p2 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    Packet *p3 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 81);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any (msg:\"DF distinct dst_port no dup\"; "
+            "detection_filter: track by_dst, count 2, seconds 60, unique_on dst_port; sid:22;)");
+    FAIL_IF_NULL(s);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    FAIL_IF(PacketAlertCheck(p1, 22));
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    FAIL_IF(PacketAlertCheck(p2, 22));
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p3);
+    FAIL_IF_NOT(PacketAlertCheck(p3, 22));
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
+    UTHFreePackets(&p3, 1);
+    ThresholdDestroy();
+    StatsThreadCleanup(&th_v);
+    PASS;
+}
+
+/**
+ * \test Distinct src_port counting should not double count same port
+ */
+static int DetectDetectionFilterDistinctSrcPortNoDoubleCount(void)
+{
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+
+    ThresholdInit();
+    memset(&th_v, 0, sizeof(th_v));
+
+    Packet *p1 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 2000, 80);
+    Packet *p2 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 2000, 80);
+    Packet *p3 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 2001, 80);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any (msg:\"DF distinct src_port no dup\"; "
+            "detection_filter: track by_src, count 2, seconds 60, unique_on src_port; sid:23;)");
+    FAIL_IF_NULL(s);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    FAIL_IF(PacketAlertCheck(p1, 23));
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    FAIL_IF(PacketAlertCheck(p2, 23));
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p3);
+    FAIL_IF_NOT(PacketAlertCheck(p3, 23));
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
+    UTHFreePackets(&p3, 1);
+    ThresholdDestroy();
+    StatsThreadCleanup(&th_v);
+    PASS;
+}
+
+/**
+ * \test Distinct boundary: exactly 'count' distinct should not alert
+ */
+static int DetectDetectionFilterDistinctBoundaryNoAlert(void)
+{
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+
+    ThresholdInit();
+    memset(&th_v, 0, sizeof(th_v));
+
+    Packet *p1 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    Packet *p2 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 81);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any (msg:\"DF distinct boundary no alert\"; "
+            "detection_filter: track by_dst, count 2, seconds 60, unique_on dst_port; sid:24;)");
+    FAIL_IF_NULL(s);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    FAIL_IF(PacketAlertCheck(p1, 24));
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    FAIL_IF(PacketAlertCheck(p2, 24));
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
+    ThresholdDestroy();
+    StatsThreadCleanup(&th_v);
+    PASS;
+}
+
+/**
+ * \test Distinct window reset: expire and re-trigger after seconds
+ */
+static int DetectDetectionFilterDistinctWindowReset(void)
+{
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+
+    ThresholdInit();
+    memset(&th_v, 0, sizeof(th_v));
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any (msg:\"DF distinct window reset\"; "
+            "detection_filter: track by_dst, count 2, seconds 2, unique_on dst_port; sid:25;)");
+    FAIL_IF_NULL(s);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    Packet *p1 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    p1->ts = TimeGet();
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    FAIL_IF(PacketAlertCheck(p1, 25));
+
+    Packet *p2 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 81);
+    p2->ts = TimeGet();
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    FAIL_IF(PacketAlertCheck(p2, 25));
+
+    Packet *p3 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 82);
+    p3->ts = TimeGet();
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p3);
+    FAIL_IF_NOT(PacketAlertCheck(p3, 25));
+
+    /* advance time beyond window to force expiration */
+    TimeSetIncrementTime(3);
+
+    Packet *p4 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    p4->ts = TimeGet();
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p4);
+    FAIL_IF(PacketAlertCheck(p4, 25));
+
+    Packet *p5 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 81);
+    p5->ts = TimeGet();
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p5);
+    FAIL_IF(PacketAlertCheck(p5, 25));
+
+    Packet *p6 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 82);
+    p6->ts = TimeGet();
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p6);
+    FAIL_IF_NOT(PacketAlertCheck(p6, 25));
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
+    UTHFreePackets(&p3, 1);
+    UTHFreePackets(&p4, 1);
+    UTHFreePackets(&p5, 1);
+    UTHFreePackets(&p6, 1);
+    ThresholdDestroy();
+    StatsThreadCleanup(&th_v);
     PASS;
 }
 
@@ -569,8 +883,22 @@ static void DetectDetectionFilterRegisterTests(void)
     UtRegisterTest("DetectDetectionFilterTestParse04", DetectDetectionFilterTestParse04);
     UtRegisterTest("DetectDetectionFilterTestParse05", DetectDetectionFilterTestParse05);
     UtRegisterTest("DetectDetectionFilterTestParse06", DetectDetectionFilterTestParse06);
+    UtRegisterTest(
+            "DetectDetectionFilterTestParseUnique01", DetectDetectionFilterTestParseUnique01);
     UtRegisterTest("DetectDetectionFilterTestSig1", DetectDetectionFilterTestSig1);
     UtRegisterTest("DetectDetectionFilterTestSig2", DetectDetectionFilterTestSig2);
     UtRegisterTest("DetectDetectionFilterTestSig3", DetectDetectionFilterTestSig3);
+    UtRegisterTest("DetectDetectionFilterDistinctDstPortTriggers",
+            DetectDetectionFilterDistinctDstPortTriggers);
+    UtRegisterTest("DetectDetectionFilterDistinctSrcPortTriggers",
+            DetectDetectionFilterDistinctSrcPortTriggers);
+    UtRegisterTest("DetectDetectionFilterDistinctDstPortNoDoubleCount",
+            DetectDetectionFilterDistinctDstPortNoDoubleCount);
+    UtRegisterTest("DetectDetectionFilterDistinctSrcPortNoDoubleCount",
+            DetectDetectionFilterDistinctSrcPortNoDoubleCount);
+    UtRegisterTest("DetectDetectionFilterDistinctBoundaryNoAlert",
+            DetectDetectionFilterDistinctBoundaryNoAlert);
+    UtRegisterTest(
+            "DetectDetectionFilterDistinctWindowReset", DetectDetectionFilterDistinctWindowReset);
 }
 #endif /* UNITTESTS */
