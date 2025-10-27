@@ -15,6 +15,31 @@
  * 02110-1301, USA.
  */
 
+/* RFC 1094, section '2.2 Server Procedures' */
+#[repr(u32)]
+#[derive(EnumStringU32)]
+#[allow(non_camel_case_types)]
+pub enum NfsProc2 {
+    NULL = 0,
+    GETATTR = 1,
+    SETATTR = 2,
+    ROOT = 3,
+    LOOKUP = 4,
+    READLINK = 5,
+    READ = 6,
+    WRITECACHE = 7,
+    WRITE = 8,
+    CREATE = 9,
+    REMOVE = 10,
+    RENAME = 11,
+    LINK = 12,
+    SYMLINK = 13,
+    MKDIR = 14,
+    RMDIR = 15,
+    READDIR = 16,
+    STATFS = 17,
+}
+
 /* RFC 1813, section '3. Server Procedures' */
 pub const NFSPROC3_NULL: u32 = 0;
 pub const NFSPROC3_GETATTR: u32 = 1;
