@@ -1278,7 +1278,7 @@ static int ThreadingAffinityTest04(void)
                          "threading:\n"
                          "  cpu-affinity:\n"
                          "    worker-cpu-set:\n"
-                         "      cpu: [ 1, 3, 5 ]\n";
+                         "      cpu: [ 0, 1, 3 ]\n";
 
     int ret = AffinityTestInit(config);
     if (ret == -ERANGE)
@@ -1286,12 +1286,10 @@ static int ThreadingAffinityTest04(void)
     FAIL_IF(ret < 0);
 
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
+    FAIL_IF_NOT(CPU_ISSET(0, &worker_taf->cpu_set));
     FAIL_IF_NOT(CPU_ISSET(1, &worker_taf->cpu_set));
     FAIL_IF_NOT(CPU_ISSET(3, &worker_taf->cpu_set));
-    FAIL_IF_NOT(CPU_ISSET(5, &worker_taf->cpu_set));
-    FAIL_IF(CPU_ISSET(0, &worker_taf->cpu_set));
     FAIL_IF(CPU_ISSET(2, &worker_taf->cpu_set));
-    FAIL_IF(CPU_ISSET(4, &worker_taf->cpu_set));
     FAIL_IF_NOT(CPU_COUNT(&worker_taf->cpu_set) == 3);
 
     SCConfDeInit();
@@ -1461,7 +1459,7 @@ static int ThreadingAffinityTest10(void)
                          "        - interface: \"eth0\"\n"
                          "          cpu: [ 1, 2 ]\n"
                          "        - interface: \"eth1\"\n"
-                         "          cpu: [ 3, 4 ]\n";
+                         "          cpu: [ 3 ]\n";
 
     int ret = AffinityTestInit(config);
     if (ret == -ERANGE)
@@ -1481,8 +1479,7 @@ static int ThreadingAffinityTest10(void)
                 eth0_found = true;
             }
         } else if (strcmp(iface_taf->name, "eth1") == 0) {
-            if (CPU_ISSET(3, &iface_taf->cpu_set) && CPU_ISSET(4, &iface_taf->cpu_set) &&
-                    CPU_COUNT(&iface_taf->cpu_set) == 2) {
+            if (CPU_ISSET(3, &iface_taf->cpu_set) && CPU_COUNT(&iface_taf->cpu_set) == 1) {
                 eth1_found = true;
             }
         }
@@ -1550,12 +1547,12 @@ static int ThreadingAffinityTest12(void)
                          "      cpu: [ 2, 3 ]\n"
                          "      interface-specific-cpu-set:\n"
                          "        - interface: \"eth0\"\n"
-                         "          cpu: [ \"5-7\" ]\n"
+                         "          cpu: [ \"1-3\" ]\n"
                          "          prio:\n"
                          "            high: [ \"all\" ]\n"
                          "            default: \"high\"\n"
                          "    verdict-cpu-set:\n"
-                         "      cpu: [ 4 ]\n";
+                         "      cpu: [ 1 ]\n";
 
     int ret = AffinityTestInit(config);
     if (ret == -ERANGE)
@@ -1566,19 +1563,20 @@ static int ThreadingAffinityTest12(void)
     FAIL_IF_NOT(CPU_COUNT(&thread_affinity[MANAGEMENT_CPU_SET].cpu_set) == 1);
     FAIL_IF_NOT(CPU_ISSET(1, &thread_affinity[RECEIVE_CPU_SET].cpu_set));
     FAIL_IF_NOT(CPU_COUNT(&thread_affinity[RECEIVE_CPU_SET].cpu_set) == 1);
-    FAIL_IF_NOT(CPU_ISSET(4, &thread_affinity[VERDICT_CPU_SET].cpu_set));
+    FAIL_IF_NOT(CPU_ISSET(1, &thread_affinity[VERDICT_CPU_SET].cpu_set));
     FAIL_IF_NOT(CPU_COUNT(&thread_affinity[VERDICT_CPU_SET].cpu_set) == 1);
     FAIL_IF_NOT(CPU_ISSET(2, &thread_affinity[WORKER_CPU_SET].cpu_set));
     FAIL_IF_NOT(CPU_ISSET(3, &thread_affinity[WORKER_CPU_SET].cpu_set));
+    FAIL_IF_NOT(CPU_COUNT(&thread_affinity[WORKER_CPU_SET].cpu_set) == 2);
 
     FAIL_IF_NOT(thread_affinity[WORKER_CPU_SET].nb_children == 1);
     ThreadsAffinityType *iface_taf = thread_affinity[WORKER_CPU_SET].children[0];
     FAIL_IF_NOT(strcmp(iface_taf->name, "eth0") == 0);
-    FAIL_IF_NOT(CPU_ISSET(1, &iface_taf->hiprio_cpu));
-    FAIL_IF_NOT(CPU_ISSET(2, &iface_taf->hiprio_cpu));
-    FAIL_IF_NOT(CPU_ISSET(3, &iface_taf->hiprio_cpu));
+    FAIL_IF_NOT(CPU_ISSET(1, &iface_taf->cpu_set));
+    FAIL_IF_NOT(CPU_ISSET(2, &iface_taf->cpu_set));
+    FAIL_IF_NOT(CPU_ISSET(3, &iface_taf->cpu_set));
+    FAIL_IF_NOT(CPU_COUNT(&iface_taf->cpu_set) == 3);
     FAIL_IF_NOT(iface_taf->prio == PRIO_HIGH);
-    FAIL_IF_NOT(CPU_COUNT(&thread_affinity[WORKER_CPU_SET].cpu_set) == 2);
 
     SCConfDeInit();
     SCConfRestoreContextBackup();
