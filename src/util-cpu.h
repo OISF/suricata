@@ -40,7 +40,7 @@ void UtilCpuEnableSparcMisalignEmulation(void);
  *
  * Tests that depend on the CPU layout use this fixed count so that they
  * behave the same regardless of the machine they run on. */
-#define UTIL_CPU_UT_ONLINE_CPUS 8
+#define UTIL_CPU_UT_ONLINE_CPUS 4
 
 void UtilCpuSetNumProcessorsOnlineForTests(uint16_t ncpu);
 #endif
