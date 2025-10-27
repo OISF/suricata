@@ -18,14 +18,14 @@
 use digest::Digest;
 use digest::Update;
 use md5::Md5;
-use nom7::branch::alt;
-use nom7::bytes::streaming::{is_not, tag, take, take_while};
-use nom7::character::streaming::char;
-use nom7::combinator::{complete, eof, not, rest, verify};
-use nom7::multi::length_data;
-use nom7::number::streaming::{be_u32, be_u8};
-use nom7::sequence::terminated;
-use nom7::IResult;
+use nom8::branch::alt;
+use nom8::bytes::streaming::{is_not, tag, take, take_while};
+use nom8::character::streaming::char;
+use nom8::combinator::{complete, eof, not, rest, verify};
+use nom8::multi::length_data;
+use nom8::number::streaming::{be_u32, be_u8};
+use nom8::sequence::terminated;
+use nom8::{IResult, Parser};
 use std::fmt;
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]
@@ -74,13 +74,13 @@ fn is_not_lineend(b: u8) -> bool {
 pub fn ssh_parse_line(i: &[u8]) -> IResult<&[u8], &[u8]> {
     fn parser(i: &[u8]) -> IResult<&[u8], &[u8]> {
         let (i, bytes) = tag("\r")(i)?;
-        let (i, _) = not(eof)(i)?;
+        let (i, _) = not(eof).parse(i)?;
         Ok((i, bytes))
     }
     terminated(
         take_while(is_not_lineend),
         alt((tag("\n"), tag("\r\n"), parser)),
-    )(i)
+    ).parse(i)
 }
 
 #[derive(PartialEq, Eq)]
@@ -95,7 +95,7 @@ pub fn ssh_parse_banner(i: &[u8]) -> IResult<&[u8], SshBanner<'_>> {
     let (i, _) = tag("SSH-")(i)?;
     let (i, protover) = is_not("-")(i)?;
     let (i, _) = char('-')(i)?;
-    let (i, swver) = alt((complete(is_not(" \r\n")), rest))(i)?;
+    let (i, swver) = alt((complete(is_not(" \r\n")), rest)).parse(i)?;
     //remaining after space is comments
     Ok((i, SshBanner { protover, swver }))
 }
@@ -118,7 +118,7 @@ impl fmt::Display for SshRecordHeader {
 }
 
 pub fn ssh_parse_record_header(i: &[u8]) -> IResult<&[u8], SshRecordHeader> {
-    let (i, pkt_len) = verify(be_u32, |&val| val > 1)(i)?;
+    let (i, pkt_len) = verify(be_u32, |&val| val > 1).parse(i)?;
     let (i, padding_len) = be_u8(i)?;
     let (i, msg_code) = be_u8(i)?;
     Ok((
@@ -133,7 +133,7 @@ pub fn ssh_parse_record_header(i: &[u8]) -> IResult<&[u8], SshRecordHeader> {
 
 //test for evasion against pkt_len=0or1...
 pub fn ssh_parse_record(i: &[u8]) -> IResult<&[u8], SshRecordHeader> {
-    let (i, pkt_len) = verify(be_u32, |&val| val > 1)(i)?;
+    let (i, pkt_len) = verify(be_u32, |&val| val > 1).parse(i)?;
     let (i, padding_len) = be_u8(i)?;
     let (i, msg_code) = be_u8(i)?;
     let (i, _) = take((pkt_len - 2) as usize)(i)?;
@@ -203,7 +203,7 @@ impl SshPacketKeyExchange<'_> {
 
 #[inline]
 fn parse_string(i: &[u8]) -> IResult<&[u8], &[u8]> {
-    length_data(be_u32)(i)
+    length_data(be_u32).parse(i)
 }
 
 pub fn ssh_parse_key_exchange(i: &[u8]) -> IResult<&[u8], SshPacketKeyExchange<'_>> {
@@ -244,7 +244,7 @@ pub fn ssh_parse_key_exchange(i: &[u8]) -> IResult<&[u8], SshPacketKeyExchange<'
 mod tests {
 
     use super::*;
-    use nom7::{Err, Needed};
+    use nom8::{Err, Needed};
 
     /// Simple test of some valid data.
     #[test]

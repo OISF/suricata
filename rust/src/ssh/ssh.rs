@@ -21,7 +21,7 @@ use crate::core::*;
 use crate::direction::Direction;
 use crate::flow::Flow;
 use crate::frames::Frame;
-use nom7::Err;
+use nom8::Err;
 use std::ffi::CString;
 use std::sync::atomic::{AtomicBool, Ordering};
 use suricata_sys::sys::{
