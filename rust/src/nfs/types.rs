@@ -15,6 +15,61 @@
  * 02110-1301, USA.
  */
 
+use crate::detect::EnumString;
+
+/* RFC 1094, section '2.2 Server Procedures' */
+#[repr(u32)]
+#[derive(EnumStringU32)]
+#[allow(non_camel_case_types)]
+pub enum NfsProc2 {
+    NULL = 0,
+    GETATTR = 1,
+    SETATTR = 2,
+    ROOT = 3,
+    LOOKUP = 4,
+    READLINK = 5,
+    READ = 6,
+    WRITECACHE = 7,
+    WRITE = 8,
+    CREATE = 9,
+    REMOVE = 10,
+    RENAME = 11,
+    LINK = 12,
+    SYMLINK = 13,
+    MKDIR = 14,
+    RMDIR = 15,
+    READDIR = 16,
+    STATFS = 17,
+}
+
+
+pub fn nfs2_procedure_string(procedure: u32) -> String {
+    match NfsProc2::from_u(procedure) {
+        Some(NfsProc2::NULL) => "NULL",
+        Some(NfsProc2::GETATTR) => "GETATTR",
+        Some(NfsProc2::SETATTR) => "SETATTR",
+        Some(NfsProc2::ROOT) => "ROOT",
+        Some(NfsProc2::LOOKUP) => "LOOKUP",
+        Some(NfsProc2::READLINK) => "READLINK",
+        Some(NfsProc2::READ) => "READ",
+        Some(NfsProc2::WRITECACHE) => "WRITECACHE",
+        Some(NfsProc2::WRITE) => "WRITE",
+        Some(NfsProc2::CREATE) => "CREATE",
+        Some(NfsProc2::REMOVE) => "REMOVE",
+        Some(NfsProc2::RENAME) => "RENAME",
+        Some(NfsProc2::LINK) => "LINK",
+        Some(NfsProc2::SYMLINK) => "SYMLINK",
+        Some(NfsProc2::MKDIR) => "MKDIR",
+        Some(NfsProc2::RMDIR) => "RMDIR",
+        Some(NfsProc2::READDIR) => "READDIR",
+        Some(NfsProc2::STATFS) => "STATFS",
+        None => {
+            return (procedure).to_string();
+        }
+    }
+    .to_string()
+}
+
 /* RFC 1813, section '3. Server Procedures' */
 pub const NFSPROC3_NULL: u32 = 0;
 pub const NFSPROC3_GETATTR: u32 = 1;
