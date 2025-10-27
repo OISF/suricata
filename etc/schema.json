@@ -7272,6 +7272,29 @@
                         "mpm_list": {
                             "type": "integer",
                             "description": "If profiling is enabled, average count of signatures in the mpm prefilter list"
+                        },
+                        "thresholds": {
+                            "type": "object",
+                            "description": "Statistics related to threshold tracking",
+                            "additionalProperties": false,
+                            "properties": {
+                                "bitmap_alloc_fail": {
+                                    "type": "integer",
+                                    "description": "Count of bitmap allocation failures due to memcap"
+                                },
+                                "bitmap_memuse": {
+                                    "type": "integer",
+                                    "description": "Memory usage by detection_filter unique_on bitmaps"
+                                },
+                                "memcap": {
+                                    "type": "integer",
+                                    "description": "Memory cap for threshold hash table"
+                                },
+                                "memuse": {
+                                    "type": "integer",
+                                    "description": "Memory usage by threshold hash table"
+                                }
+                            }
                         }
                     }
                 },
