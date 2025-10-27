@@ -61,6 +61,7 @@ Examples::
     bsize:<22; # lesser than
     bsize:<=22; # lesser than or equal
     bsize:19-22; # range between value1 and value2
+    bsize:19<>22; # same as 19-22
     bsize:!19-22; # negated range between value1 and value2
     bsize:&0xc0=0x80; # bitmask mask is compared to value for equality
     bsize:&0xc0!=0; # bitmask mask is compared to value for inequality
