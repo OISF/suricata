@@ -755,7 +755,15 @@ pub fn detect_match_uint<T: DetectIntType>(x: &DetectUintData<T>, val: T) -> boo
     return false;
 }
 
-pub fn detect_parse_uint_notending<T: DetectIntType>(i: &str) -> IResult<&str, DetectUintData<T>> {
+/// This helper function takes a string and returns a DetectUintData<T>
+/// But it does not check if there are more characters to consume.
+/// As such, it may be used by keywords that want a DetectUintData<T>
+/// and other parameters to parse after.
+/// Callers should ensure to use all_consuming on the remainder
+/// Otherwise, invalid ranges such as 1-foo will be parsed as =1
+pub(crate) fn detect_parse_uint_notending<T: DetectIntType>(
+    i: &str,
+) -> IResult<&str, DetectUintData<T>> {
     let (i, _) = opt(is_a(" "))(i)?;
     let (i, uint) = alt((
         detect_parse_uint_bitmask,
