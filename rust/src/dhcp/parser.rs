@@ -1,4 +1,4 @@
-/* Copyright (C) 2018 Open Information Security Foundation
+/* Copyright (C) 2018-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,10 +18,10 @@
 use std::cmp::min;
 
 use crate::dhcp::dhcp::*;
-use nom7::bytes::streaming::take;
-use nom7::combinator::verify;
-use nom7::number::streaming::{be_u16, be_u32, be_u8};
-use nom7::IResult;
+use nom8::bytes::streaming::take;
+use nom8::combinator::verify;
+use nom8::number::streaming::{be_u16, be_u32, be_u8};
+use nom8::{IResult, Parser};
 
 pub struct DHCPMessage {
     pub header: DHCPHeader,
@@ -90,14 +90,14 @@ pub fn parse_header(i: &[u8]) -> IResult<&[u8], DHCPHeader> {
     let (i, txid) = be_u32(i)?;
     let (i, seconds) = be_u16(i)?;
     let (i, flags) = be_u16(i)?;
-    let (i, clientip) = take(4_usize)(i)?;
-    let (i, yourip) = take(4_usize)(i)?;
-    let (i, serverip) = take(4_usize)(i)?;
-    let (i, giaddr) = take(4_usize)(i)?;
-    let (i, clienthw) = take(16_usize)(i)?;
-    let (i, servername) = take(64_usize)(i)?;
-    let (i, bootfilename) = take(128_usize)(i)?;
-    let (i, magic) = take(4_usize)(i)?;
+    let (i, clientip) = take(4_usize).parse(i)?;
+    let (i, yourip) = take(4_usize).parse(i)?;
+    let (i, serverip) = take(4_usize).parse(i)?;
+    let (i, giaddr) = take(4_usize).parse(i)?;
+    let (i, clienthw) = take(16_usize).parse(i)?;
+    let (i, servername) = take(64_usize).parse(i)?;
+    let (i, bootfilename) = take(128_usize).parse(i)?;
+    let (i, magic) = take(4_usize).parse(i)?;
     Ok((
         i,
         DHCPHeader {
@@ -122,9 +122,9 @@ pub fn parse_header(i: &[u8]) -> IResult<&[u8], DHCPHeader> {
 
 pub fn parse_clientid_option(i: &[u8]) -> IResult<&[u8], DHCPOption> {
     let (i, code) = be_u8(i)?;
-    let (i, len) = verify(be_u8, |&v| v > 1)(i)?;
+    let (i, len) = verify(be_u8, |&v| v > 1).parse(i)?;
     let (i, _htype) = be_u8(i)?;
-    let (i, data) = take(len - 1)(i)?;
+    let (i, data) = take(len - 1).parse(i)?;
     Ok((
         i,
         DHCPOption {
@@ -155,7 +155,7 @@ pub fn parse_address_time_option(i: &[u8]) -> IResult<&[u8], DHCPOption> {
 pub fn parse_generic_option(i: &[u8]) -> IResult<&[u8], DHCPOption> {
     let (i, code) = be_u8(i)?;
     let (i, len) = be_u8(i)?;
-    let (i, data) = take(len)(i)?;
+    let (i, data) = take(len).parse(i)?;
     Ok((
         i,
         DHCPOption {
