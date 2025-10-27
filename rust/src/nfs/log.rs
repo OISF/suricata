@@ -81,8 +81,10 @@ fn nfs_common_header(
     state: &NFSState, tx: &NFSTransaction, js: &mut JsonBuilder,
 ) -> Result<(), JsonError> {
     js.set_uint("version", state.nfs_version as u64)?;
-    let proc_string = if state.nfs_version < 4 {
+    let proc_string = if state.nfs_version == 3 {
         nfs3_procedure_string(tx.procedure)
+    } else if state.nfs_version <= 2 {
+        nfs2_procedure_string(tx.procedure)
     } else {
         nfs4_procedure_string(tx.procedure)
     };
