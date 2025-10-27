@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2021 Open Information Security Foundation
+/* Copyright (C) 2017-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,10 +19,11 @@
 
 use std::str;
 use std;
-use nom7::IResult;
-use nom7::combinator::map_res;
-use nom7::bytes::streaming::{tag, take_while};
-use nom7::number::streaming::be_u8;
+use nom8::IResult;
+use nom8::Parser;
+use nom8::combinator::map_res;
+use nom8::bytes::streaming::{tag, take_while};
+use nom8::number::streaming::be_u8;
 
 use crate::applayer::{AppLayerTxData,AppLayerStateData};
 
@@ -122,14 +123,14 @@ fn getstr(i: &[u8]) -> IResult<&[u8], &str> {
     map_res(
         take_while(|c| c != 0),
         str::from_utf8
-    )(i)
+    ).parse(i)
 }
 
 fn tftp_request(slice: &[u8]) -> IResult<&[u8], TFTPTransaction> {
-    let (i, _) = tag([0])(slice)?;
-    let (i, opcode) = be_u8(i)?;
+    let (i, _) = tag(&[0u8][..]).parse(slice)?;
+    let (i, opcode) = be_u8.parse(i)?;
     let (i, filename) = getstr(i)?;
-    let (i, _) = tag([0])(i)?;
+    let (i, _) = tag(&[0u8][..]).parse(i)?;
     let (i, mode) = getstr(i)?;
     Ok((i,
         TFTPTransaction::new(opcode, String::from(filename), String::from(mode))
