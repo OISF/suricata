@@ -29,8 +29,8 @@ use crate::dns::parser;
 use crate::flow::Flow;
 use crate::frames::Frame;
 
-use nom7::number::streaming::be_u16;
-use nom7::{Err, IResult};
+use nom8::number::streaming::be_u16;
+use nom8::{Err, IResult};
 use suricata_sys::sys::{
     AppLayerParserState, AppProto, DetectEngineThreadCtx, SCAppLayerParserConfParserEnabled,
     SCAppLayerProtoDetectConfProtoDetectionEnabled,
