@@ -26,7 +26,7 @@ use crate::conf::*;
 use crate::core::{ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP, *};
 use crate::direction::Direction;
 use crate::flow::Flow;
-use nom7::{Err, IResult};
+use nom8::{Err, IResult};
 use std;
 use std::collections::VecDeque;
 use std::ffi::CString;
@@ -475,7 +475,7 @@ impl PgsqlState {
                             return AppLayerResult::err();
                         }
                         PgsqlParseError::NomError(_i, error_kind) => {
-                            if error_kind == nom7::error::ErrorKind::Switch {
+                            if error_kind == nom8::error::ErrorKind::Switch {
                                 tx.tx_data.set_event(PgsqlEvent::MalformedRequest as u8);
                                 self.transactions.push_back(tx);
                             }
@@ -708,7 +708,7 @@ impl PgsqlState {
                             return AppLayerResult::err();
                         }
                         PgsqlParseError::NomError(_i, error_kind) => {
-                            if error_kind == nom7::error::ErrorKind::Switch {
+                            if error_kind == nom8::error::ErrorKind::Switch {
                                 tx.tx_data.set_event(PgsqlEvent::MalformedResponse as u8);
                                 self.transactions.push_back(tx);
                             }
