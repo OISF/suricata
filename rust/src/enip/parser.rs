@@ -15,11 +15,12 @@
  * 02110-1301, USA.
  */
 
-use nom7::bytes::streaming::take;
-use nom7::error::{make_error, ErrorKind};
-use nom7::multi::count;
-use nom7::number::streaming::{le_u16, le_u32, le_u64, le_u8};
-use nom7::IResult;
+use nom8::bytes::complete::take;
+use nom8::error::{make_error, ErrorKind};
+use nom8::multi::count;
+use nom8::number::complete::{le_u16, le_u32, le_u64, le_u8};
+use nom8::IResult;
+use nom8::Parser;
 
 use super::constant::EnipCommand;
 use crate::detect::EnumString;
@@ -35,12 +36,12 @@ pub struct EnipHeader {
 }
 
 pub fn parse_enip_header(i: &[u8]) -> IResult<&[u8], EnipHeader> {
-    let (i, cmd) = le_u16(i)?;
-    let (i, pdulen) = le_u16(i)?;
-    let (i, session) = le_u32(i)?;
-    let (i, status) = le_u32(i)?;
-    let (i, context) = le_u64(i)?;
-    let (i, options) = le_u32(i)?;
+    let (i, cmd) = le_u16.parse(i)?;
+    let (i, pdulen) = le_u16.parse(i)?;
+    let (i, session) = le_u32.parse(i)?;
+    let (i, status) = le_u32.parse(i)?;
+    let (i, context) = le_u64.parse(i)?;
+    let (i, options) = le_u32.parse(i)?;
     Ok((
         i,
         EnipHeader {
@@ -55,8 +56,8 @@ pub fn parse_enip_header(i: &[u8]) -> IResult<&[u8], EnipHeader> {
 }
 
 pub fn parse_enip_list_interfaces(i: &[u8]) -> IResult<&[u8], Vec<u16>> {
-    let (i, nb) = le_u16(i)?;
-    let (i, r) = count(le_u16, nb.into())(i)?;
+    let (i, nb) = le_u16.parse(i)?;
+    let (i, r) = count(le_u16, nb.into()).parse(i)?;
     Ok((i, r))
 }
 
@@ -154,27 +155,27 @@ pub fn cip_segment_type_string(p: u8) -> Option<&'static str> {
 }
 
 pub fn parse_cip_path_segment(i: &[u8]) -> IResult<&[u8], EnipCipPathSegment> {
-    let (i, segment_type) = le_u8(i)?;
+    let (i, segment_type) = le_u8.parse(i)?;
     if segment_type >> 5 != 1 {
         // we only handle logical segment
-        return Err(nom7::Err::Error(make_error(i, ErrorKind::Verify)));
+        return Err(nom8::Err::Error(make_error(i, ErrorKind::Verify)));
     }
     let (i, value) = match segment_type & 3 {
         0 => {
-            let (i, v) = le_u8(i)?;
+            let (i, v) = le_u8.parse(i)?;
             Ok((i, v as u32))
         }
         1 => {
-            let (i, _pad) = le_u8(i)?;
-            let (i, v) = le_u16(i)?;
+            let (i, _pad) = le_u8.parse(i)?;
+            let (i, v) = le_u16.parse(i)?;
             Ok((i, v as u32))
         }
         2 => {
-            let (i, _pad) = le_u8(i)?;
-            le_u32(i)
+            let (i, _pad) = le_u8.parse(i)?;
+            le_u32.parse(i)
         }
         // There may be more cases to handle
-        _ => Err(nom7::Err::Error(make_error(i, ErrorKind::Switch))),
+        _ => Err(nom8::Err::Error(make_error(i, ErrorKind::Switch))),
     }?;
     return Ok((
         i,
@@ -186,8 +187,8 @@ pub fn parse_cip_path_segment(i: &[u8]) -> IResult<&[u8], EnipCipPathSegment> {
 }
 
 pub fn parse_cip_path(i: &[u8]) -> IResult<&[u8], (Vec<EnipCipPathSegment>, usize)> {
-    let (i, nb) = le_u8(i)?;
-    let (i, data) = take(2 * (nb as usize))(i)?;
+    let (i, nb) = le_u8.parse(i)?;
+    let (i, data) = take(2 * (nb as usize)).parse(i)?;
     let consumed = 1 + 2 * (nb as usize);
     let mut rem = data;
     let mut segments = Vec::new();
@@ -204,15 +205,15 @@ pub const CIP_SET_ATTR_LIST: u8 = 4;
 pub const CIP_MULTIPLE_SERVICE: u8 = 0xa;
 
 pub fn parse_cip_request_get_attr_list(i: &[u8]) -> IResult<&[u8], EnipCipRequestGetAttributeList> {
-    let (i, nb) = le_u16(i)?;
-    let (i, attr_list) = count(le_u16, nb.into())(i)?;
+    let (i, nb) = le_u16.parse(i)?;
+    let (i, attr_list) = count(le_u16, nb.into()).parse(i)?;
     Ok((i, EnipCipRequestGetAttributeList { attr_list }))
 }
 
 pub fn parse_cip_request_set_attr_list(i: &[u8]) -> IResult<&[u8], EnipCipRequestSetAttributeList> {
-    let (i, nb) = le_u16(i)?;
+    let (i, nb) = le_u16.parse(i)?;
     if nb > 0 {
-        let (i, first_attr) = le_u16(i)?;
+        let (i, first_attr) = le_u16.parse(i)?;
         // do not parse further because attribute data is class specific
         return Ok((
             i,
@@ -228,8 +229,8 @@ pub fn parse_cip_reqresp_multiple(
     i: &[u8], offset_from_cip: usize,
 ) -> IResult<&[u8], EnipCipReqRespMultipleService> {
     let start = i;
-    let (i, nb) = le_u16(i)?;
-    let (i, offset_list) = count(le_u16, nb.into())(i)?;
+    let (i, nb) = le_u16.parse(i)?;
+    let (i, offset_list) = count(le_u16, nb.into()).parse(i)?;
     let mut packet_list = Vec::new();
     let mut size_list = Vec::new();
     let mut rem = i;
@@ -240,7 +241,7 @@ pub fn parse_cip_reqresp_multiple(
             size_list.push(start[offset_list[j] as usize..].len() - rem2.len());
             rem = rem2;
         } else {
-            return Err(nom7::Err::Error(make_error(i, ErrorKind::LengthValue)));
+            return Err(nom8::Err::Error(make_error(i, ErrorKind::LengthValue)));
         }
     }
     Ok((
@@ -276,10 +277,10 @@ pub fn parse_cip_request(i: &[u8], service: u8, multi: bool) -> IResult<&[u8], E
 }
 
 pub fn parse_cip_response(i: &[u8], service: u8, multi: bool) -> IResult<&[u8], EnipCipResponse> {
-    let (i, _reserved) = le_u8(i)?;
-    let (i, status) = le_u8(i)?;
-    let (i, status_ext_nb) = le_u8(i)?;
-    let (i, status_extended) = take(status_ext_nb as usize)(i)?;
+    let (i, _reserved) = le_u8.parse(i)?;
+    let (i, status) = le_u8.parse(i)?;
+    let (i, status_ext_nb) = le_u8.parse(i)?;
+    let (i, status_extended) = take(status_ext_nb as usize).parse(i)?;
     let offset_from_cip = 4 + (status_ext_nb as usize);
     let (i, payload) = match service {
         // CIP_GET_ATTR_LIST : need to parse attribute value variant, based on cip class
@@ -310,7 +311,7 @@ pub fn parse_cip_multi(i: &[u8]) -> IResult<&[u8], CipData> {
 }
 
 pub fn parse_cip(i: &[u8], multi: bool) -> IResult<&[u8], CipData> {
-    let (i, service) = le_u8(i)?;
+    let (i, service) = le_u8.parse(i)?;
     let (i, cipdir) = if service & 0x80 == 0 {
         let (i, req) = parse_cip_request(i, service, multi)?;
         Ok((i, CipDir::Request(req)))
@@ -371,18 +372,18 @@ pub const ENIP_ITEM_TYPE_IDENTITY: u16 = 0xc;
 pub const ENIP_ITEM_TYPE_SERVICES: u16 = 0x100;
 
 pub fn parse_cip_identity(i: &[u8]) -> IResult<&[u8], EnipItemIdentity> {
-    let (i, protocol_version) = le_u16(i)?;
-    let (i, _sock_addr) = take(16_usize)(i)?;
-    let (i, vendor_id) = le_u16(i)?;
-    let (i, device_type) = le_u16(i)?;
-    let (i, product_code) = le_u16(i)?;
-    let (i, revision_major) = le_u8(i)?;
-    let (i, revision_minor) = le_u8(i)?;
-    let (i, status) = le_u16(i)?;
-    let (i, serial) = le_u32(i)?;
-    let (i, prod_name_len) = le_u8(i)?;
-    let (i, product_name) = take(prod_name_len as usize)(i)?;
-    let (i, state) = le_u8(i)?;
+    let (i, protocol_version) = le_u16.parse(i)?;
+    let (i, _sock_addr) = take(16_usize).parse(i)?;
+    let (i, vendor_id) = le_u16.parse(i)?;
+    let (i, device_type) = le_u16.parse(i)?;
+    let (i, product_code) = le_u16.parse(i)?;
+    let (i, revision_major) = le_u8.parse(i)?;
+    let (i, revision_minor) = le_u8.parse(i)?;
+    let (i, status) = le_u16.parse(i)?;
+    let (i, serial) = le_u32.parse(i)?;
+    let (i, prod_name_len) = le_u8.parse(i)?;
+    let (i, product_name) = take(prod_name_len as usize).parse(i)?;
+    let (i, state) = le_u8.parse(i)?;
 
     return Ok((
         i,
@@ -409,9 +410,9 @@ pub struct EnipItemServices {
 }
 
 pub fn parse_enip_services(i: &[u8]) -> IResult<&[u8], EnipItemServices> {
-    let (i, protocol_version) = le_u16(i)?;
-    let (i, capabilities) = le_u16(i)?;
-    let (i, service_name) = take(16_usize)(i)?;
+    let (i, protocol_version) = le_u16.parse(i)?;
+    let (i, capabilities) = le_u16.parse(i)?;
+    let (i, service_name) = take(16_usize).parse(i)?;
     return Ok((
         i,
         EnipItemServices {
@@ -423,10 +424,10 @@ pub fn parse_enip_services(i: &[u8]) -> IResult<&[u8], EnipItemServices> {
 }
 
 pub fn parse_enip_cip_item(i: &[u8], start: usize) -> IResult<&[u8], EnipCipItem> {
-    let (i, item_type) = le_u16(i)?;
-    let (i, item_length) = le_u16(i)?;
+    let (i, item_type) = le_u16.parse(i)?;
+    let (i, item_length) = le_u16.parse(i)?;
     let mut cip_offset = start + 4;
-    let (i, data) = take(item_length as usize)(i)?;
+    let (i, data) = take(item_length as usize).parse(i)?;
     let (_, payload) = match item_type {
         ENIP_ITEM_TYPE_IDENTITY => {
             let (_, li) = parse_cip_identity(data)?;
@@ -437,7 +438,7 @@ pub fn parse_enip_cip_item(i: &[u8], start: usize) -> IResult<&[u8], EnipCipItem
             Ok((data, EnipItemPayload::Services(ls)))
         }
         ENIP_ITEM_TYPE_CONNECTED_DATA => {
-            let (data, seq_num) = le_u16(data)?;
+            let (data, seq_num) = le_u16.parse(data)?;
             cip_offset += 2;
             let (_, cip) = parse_cip_base(data)?;
             Ok((
@@ -477,7 +478,7 @@ pub struct EnipCIP {
 }
 
 pub fn parse_enip_cip_items(i: &[u8]) -> IResult<&[u8], Vec<EnipCipItem>> {
-    let (i, nb) = le_u16(i)?;
+    let (i, nb) = le_u16.parse(i)?;
     let mut start = 26; // ENIP_HEADER_LEN + fields parsed
     let mut items = Vec::new();
     let mut rem = i;
@@ -491,9 +492,9 @@ pub fn parse_enip_cip_items(i: &[u8]) -> IResult<&[u8], Vec<EnipCipItem>> {
 }
 
 pub fn parse_enip_cip(i: &[u8]) -> IResult<&[u8], EnipCIP> {
-    let (i, handle) = le_u32(i)?;
-    let (i, timeout) = le_u16(i)?;
-    let (i, nb) = le_u16(i)?;
+    let (i, handle) = le_u32.parse(i)?;
+    let (i, timeout) = le_u16.parse(i)?;
+    let (i, nb) = le_u16.parse(i)?;
     let mut start = 32; // ENIP_HEADER_LEN + fields parsed
     let mut items = Vec::new();
     let mut rem = i;
@@ -514,8 +515,8 @@ pub fn parse_enip_cip(i: &[u8]) -> IResult<&[u8], EnipCIP> {
 }
 
 pub fn parse_enip_register_session(i: &[u8]) -> IResult<&[u8], EnipRegisterSession> {
-    let (i, protocol_version) = le_u16(i)?;
-    let (i, options) = le_u16(i)?;
+    let (i, protocol_version) = le_u16.parse(i)?;
+    let (i, options) = le_u16.parse(i)?;
     Ok((
         i,
         EnipRegisterSession {
@@ -534,7 +535,7 @@ pub struct EnipPdu {
 
 pub fn parse_enip_pdu(i: &[u8]) -> IResult<&[u8], EnipPdu> {
     let (i, header) = parse_enip_header(i)?;
-    let (i, data) = take(header.pdulen as usize)(i)?;
+    let (i, data) = take(header.pdulen as usize).parse(i)?;
     let mut invalid = false;
     match EnipCommand::from_u(header.cmd) {
         Some(EnipCommand::RegisterSession) => {
