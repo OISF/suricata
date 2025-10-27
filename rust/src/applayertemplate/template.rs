@@ -20,7 +20,8 @@ use crate::applayer::*;
 use crate::conf::conf_get;
 use crate::core::{ALPROTO_UNKNOWN, IPPROTO_TCP};
 use crate::flow::Flow;
-use nom7 as nom;
+use nom8 as nom;
+use nom8::{AsChar, Parser};
 use std;
 use std::collections::VecDeque;
 use std::ffi::CString;
@@ -247,11 +248,11 @@ impl TemplateState {
 /// characters for that pattern.
 fn probe(input: &[u8]) -> nom::IResult<&[u8], ()> {
     let size = std::cmp::min(10, input.len());
-    let (rem, prefix) = nom::bytes::complete::take(size)(input)?;
+    let (rem, prefix) = nom::bytes::complete::take(size).parse(input)?;
     nom::sequence::terminated(
-        nom::bytes::complete::take_while1(nom::character::is_digit),
+        nom::bytes::complete::take_while1(|c: u8| c.is_dec_digit()),
         nom::bytes::complete::tag(":"),
-    )(prefix)?;
+    ).parse(prefix)?;
     Ok((rem, ()))
 }
 
