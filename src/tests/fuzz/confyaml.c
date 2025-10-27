@@ -31,6 +31,7 @@ outputs:\n\
             http-body: yes\n\
             http-body-printable: yes\n\
             tagged-packets: yes\n\
+            verdict: yes\n\
         - anomaly:\n\
             enabled: yes\n\
             types:\n\
