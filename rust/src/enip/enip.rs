@@ -24,7 +24,7 @@ use crate::detect::EnumString;
 use crate::direction::Direction;
 use crate::flow::Flow;
 use crate::frames::Frame;
-use nom7 as nom;
+use nom8 as nom;
 use std;
 use std::collections::VecDeque;
 use std::ffi::CString;
