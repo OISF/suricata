@@ -28,7 +28,7 @@ use crate::flow::Flow;
 use crate::ike::ikev1::{handle_ikev1, IkeV1Header, Ikev1Container};
 use crate::ike::ikev2::{handle_ikev2, Ikev2Container};
 use crate::ike::parser::*;
-use nom7::Err;
+use nom8::Err;
 use std;
 use std::collections::HashSet;
 use std::ffi::CString;

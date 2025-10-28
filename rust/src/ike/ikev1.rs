@@ -22,7 +22,7 @@ use crate::common::to_hex;
 use crate::direction::Direction;
 use crate::ike::ike::{IKEState, IkeEvent};
 use crate::ike::parser::*;
-use nom7::Err;
+use nom8::Err;
 use std;
 use std::collections::HashSet;
 
