@@ -23,9 +23,9 @@
 
 use crate::bittorrent_dht::bittorrent_dht::BitTorrentDHTTransaction;
 use bendy::decoding::{Decoder, Error, FromBencode, Object, ResultExt};
-use nom7::bytes::complete::take;
-use nom7::number::complete::be_u16;
-use nom7::IResult;
+use nom8::bytes::complete::take;
+use nom8::number::complete::be_u16;
+use nom8::{IResult, Parser};
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct BitTorrentDHTRequest {
@@ -242,7 +242,7 @@ impl FromBencode for BitTorrentDHTResponse {
                 }
                 (b"nodes", value) => {
                     let (_, decoded_nodes) =
-                        nom7::multi::many0(parse_node)(value.try_into_bytes().context("nodes")?)
+                        nom8::multi::many0(parse_node).parse(value.try_into_bytes().context("nodes")?)
                             .map_err(|_| Error::malformed_content("nodes.node"))?;
                     if !decoded_nodes.is_empty() {
                         nodes = Some(decoded_nodes);
@@ -250,7 +250,7 @@ impl FromBencode for BitTorrentDHTResponse {
                 }
                 (b"nodes6", value) => {
                     let (_, decoded_nodes) =
-                        nom7::multi::many0(parse_node6)(value.try_into_bytes().context("nodes6")?)
+                        nom8::multi::many0(parse_node6).parse(value.try_into_bytes().context("nodes6")?)
                             .map_err(|_| Error::malformed_content("nodes6.nodes6"))?;
                     if !decoded_nodes.is_empty() {
                         nodes6 = Some(decoded_nodes);
