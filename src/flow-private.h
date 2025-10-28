@@ -119,7 +119,7 @@ static inline uint32_t FlowGetFlowTimeoutDirect(
             break;
 #ifdef CAPTURE_OFFLOAD
         case FLOW_STATE_CAPTURE_BYPASSED:
-            timeout = FLOW_BYPASSED_TIMEOUT;
+            timeout = flow_timeouts[protomap].bypassed_timeout;
             break;
 #endif
         case FLOW_STATE_LOCAL_BYPASSED:
@@ -169,7 +169,7 @@ static inline uint32_t FlowGetTimeoutPolicy(const Flow *f)
             break;
 #ifdef CAPTURE_OFFLOAD
         case FLOW_STATE_CAPTURE_BYPASSED:
-            timeout = FLOW_BYPASSED_TIMEOUT;
+            timeout = flow_timeouts[f->protomap].bypassed_timeout;
             break;
 #endif
         case FLOW_STATE_LOCAL_BYPASSED:
