@@ -160,6 +160,7 @@ typedef const char *(*AppLayerParserGetStateNameByIdFn)(const int id, const uint
 typedef int (*AppLayerParserGetFrameIdByNameFn)(const char *frame_name);
 typedef const char *(*AppLayerParserGetFrameNameByIdFn)(const uint8_t id);
 
+int SCAppLayerParserReallocCtx(AppProto alproto);
 int AppLayerParserPreRegister(void (*Register)(void));
 /**
  * \brief Register app layer parser for the protocol.
