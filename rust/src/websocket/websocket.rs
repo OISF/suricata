@@ -25,8 +25,8 @@ use crate::direction::Direction;
 use crate::flow::Flow;
 use crate::frames::Frame;
 
-use nom7 as nom;
-use nom7::Needed;
+use nom8 as nom;
+use nom8::Needed;
 
 use flate2::Decompress;
 use flate2::FlushDecompress;
