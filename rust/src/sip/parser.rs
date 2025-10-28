@@ -75,7 +75,7 @@ fn is_method_char(b: u8) -> bool {
 
 #[inline]
 fn is_request_uri_char(b: u8) -> bool {
-    b.is_alphanum() || is_token_char(b) || b"~#@:;=?+&$,/".contains(&b)
+    is_token_char(b) || b"~#@:;=?+&$,/".contains(&b)
 }
 
 #[inline]
@@ -85,15 +85,15 @@ fn is_version_char(b: u8) -> bool {
 
 #[inline]
 fn is_reason_phrase(b: u8) -> bool {
-    b.is_alphanum() || is_token_char(b) || b"$&(),/:;=?@[\\]^ ".contains(&b)
+    is_token_char(b) || b"$&(),/:;=?@[\\]^ ".contains(&b)
 }
 
 fn is_header_name(b: u8) -> bool {
-    b.is_alphanum() || is_token_char(b)
+    is_token_char(b)
 }
 
 fn is_header_value(b: u8) -> bool {
-    b.is_alphanum() || is_token_char(b) || b"\"#$&(),/;:<=>?@[]{}()^|~\\\t\n\r ".contains(&b)
+    is_token_char(b) || b"\"#$&(),/;:<=>?@[]{}()^|~\\\t\n\r ".contains(&b)
 }
 
 fn expand_header_name(h: &str) -> &str {
