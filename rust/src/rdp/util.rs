@@ -20,7 +20,7 @@
 use crate::rdp::error::RdpError;
 use byteorder::ReadBytesExt;
 use memchr::memchr;
-use nom7::{Err, IResult, Needed};
+use nom8::{Err, IResult, Needed};
 use std::io::Cursor;
 use widestring::U16CString;
 
@@ -96,7 +96,7 @@ pub fn parse_per_length_determinant(input: &[u8]) -> IResult<&[u8], u32, RdpErro
 mod tests {
     use super::*;
     use crate::rdp::error::RdpError;
-    use nom7::Needed;
+    use nom8::Needed;
 
     #[test]
     fn test_le_string_abc() {
