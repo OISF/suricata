@@ -1658,6 +1658,35 @@ int SCAppLayerProtoDetectPMRegisterPatternCI(uint8_t ipproto, AppProto alproto, 
 
 /***** Setup/General Registration *****/
 
+#define ARRAY_CAP_STEP 16
+int SCAppLayerProtoDetectReallocCtx(AppProto alproto)
+{
+    if (alpd_ctx.alproto_names_len <= alproto && alproto < g_alproto_max) {
+        /* Realloc alpd_ctx.alproto_names, so that dynamic alproto can be treated as real/normal
+         * ones. In case we need to turn off dynamic alproto. */
+        void *tmp = SCRealloc(alpd_ctx.alproto_names,
+                sizeof(char *) * (alpd_ctx.alproto_names_len + ARRAY_CAP_STEP));
+        if (unlikely(tmp == NULL)) {
+            FatalError("Unable to realloc alproto_names.");
+        }
+        alpd_ctx.alproto_names = tmp;
+        memset(&alpd_ctx.alproto_names[alpd_ctx.alproto_names_len], 0,
+                sizeof(char *) * ARRAY_CAP_STEP);
+        alpd_ctx.alproto_names_len += ARRAY_CAP_STEP;
+
+        uint8_t *tmp2 = SCRealloc(alpd_ctx.expectation_proto,
+                sizeof(uint8_t) * (alpd_ctx.expectation_proto_len + ARRAY_CAP_STEP));
+        if (unlikely(tmp2 == NULL)) {
+            FatalError("Unable to realloc expectation_proto.");
+        }
+        alpd_ctx.expectation_proto = tmp2;
+        memset(&alpd_ctx.expectation_proto[alpd_ctx.expectation_proto_len], 0,
+                sizeof(uint8_t) * ARRAY_CAP_STEP);
+        alpd_ctx.expectation_proto_len += ARRAY_CAP_STEP;
+    }
+    SCReturnInt(0);
+}
+
 int AppLayerProtoDetectSetup(void)
 {
     SCEnter();
@@ -1742,16 +1771,6 @@ void AppLayerProtoDetectRegisterProtocol(AppProto alproto, const char *alproto_n
 {
     SCEnter();
 
-    if (alpd_ctx.alproto_names_len <= alproto && alproto < g_alproto_max) {
-        void *tmp = SCRealloc(alpd_ctx.alproto_names, sizeof(char *) * g_alproto_max);
-        if (unlikely(tmp == NULL)) {
-            FatalError("Unable to realloc alproto_names.");
-        }
-        alpd_ctx.alproto_names = tmp;
-        memset(&alpd_ctx.alproto_names[alpd_ctx.alproto_names_len], 0,
-                sizeof(char *) * (g_alproto_max - alpd_ctx.alproto_names_len));
-        alpd_ctx.alproto_names_len = g_alproto_max;
-    }
     if (alpd_ctx.alproto_names[alproto] == NULL)
         alpd_ctx.alproto_names[alproto] = alproto_name;
 
