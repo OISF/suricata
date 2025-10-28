@@ -26,7 +26,7 @@ use crate::core::{
 use crate::direction::Direction;
 use crate::flow::Flow;
 use crate::rdp::parser::*;
-use nom7::Err;
+use nom8::Err;
 use std;
 use std::collections::VecDeque;
 use suricata_sys::sys::{
@@ -186,7 +186,7 @@ impl RdpState {
                         available = remainder;
                     }
 
-                    Err(Err::Incomplete(_)) => {
+                    Err(nom7::Err::Incomplete(_)) => {
                         // nom need not compatible with applayer need, request one more byte
                         return AppLayerResult::incomplete(
                             (input.len() - available.len()) as u32,
@@ -194,7 +194,7 @@ impl RdpState {
                         );
                     }
 
-                    Err(Err::Failure(_)) | Err(Err::Error(_)) => {
+                    Err(nom7::Err::Failure(_)) | Err(nom7::Err::Error(_)) => {
                         return AppLayerResult::err();
                     }
                 }
@@ -318,7 +318,7 @@ impl RdpState {
                         }
                     }
 
-                    Err(Err::Incomplete(_)) => {
+                    Err(nom7::Err::Incomplete(_)) => {
                         // nom need not compatible with applayer need, request one more byte
                         return AppLayerResult::incomplete(
                             (input.len() - available.len()) as u32,
@@ -326,7 +326,7 @@ impl RdpState {
                         );
                     }
 
-                    Err(Err::Failure(_)) | Err(Err::Error(_)) => {
+                    Err(nom7::Err::Failure(_)) | Err(nom7::Err::Error(_)) => {
                         return AppLayerResult::err();
                     }
                 }

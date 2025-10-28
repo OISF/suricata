@@ -17,8 +17,8 @@
 
 // Author: Zach Kelly <zach.kelly@lmco.com>
 // Author: Pierre Chifflier <chifflier@wzdftpd.net>
-use nom7::error::{Error, ErrorKind, ParseError};
-use nom7::ErrorConvert;
+use nom8::error::{Error, ErrorKind, ParseError};
+use nom8::ErrorConvert;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum RdpError {
