@@ -26,7 +26,7 @@ use crate::core::*;
 use crate::direction::Direction;
 use crate::flow::Flow;
 use crate::frames::*;
-use nom7::Err;
+use nom8::Err;
 use std;
 use std::collections::VecDeque;
 use std::ffi::CString;

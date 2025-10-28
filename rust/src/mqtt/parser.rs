@@ -17,17 +17,16 @@
 
 // written by Sascha Steinbiss <sascha@steinbiss.name>
 
-use crate::common::nom7::bits;
+use crate::common::nom8::bits;
 use crate::mqtt::mqtt_message::*;
 use crate::mqtt::mqtt_property::*;
-use nom7::bits::streaming::take as take_bits;
-use nom7::bytes::complete::take;
-use nom7::bytes::streaming::take_while_m_n;
-use nom7::combinator::{complete, cond, verify};
-use nom7::multi::{length_data, many0, many1};
-use nom7::number::streaming::*;
-use nom7::sequence::tuple;
-use nom7::{Err, IResult, Needed};
+use nom8::bits::streaming::take as take_bits;
+use nom8::bytes::complete::take;
+use nom8::bytes::streaming::take_while_m_n;
+use nom8::combinator::{complete, cond, verify};
+use nom8::multi::{length_data, many0, many1};
+use nom8::number::streaming::*;
+use nom8::{Err, IResult, Needed, Parser};
 use num_traits::FromPrimitive;
 
 #[derive(Copy, Clone, Debug)]
@@ -62,14 +61,14 @@ fn convert_varint(continued: Vec<u8>, last: u8) -> u32 {
 
 #[inline]
 pub fn parse_mqtt_string(i: &[u8]) -> IResult<&[u8], String> {
-    let (i, content) = length_data(be_u16)(i)?;
+    let (i, content) = length_data(be_u16).parse(i)?;
     Ok((i, String::from_utf8_lossy(content).to_string()))
 }
 
 #[inline]
 pub fn parse_mqtt_variable_integer(i: &[u8]) -> IResult<&[u8], u32> {
-    let (i, continued_part) = take_while_m_n(0, 3, is_continuation_bit_set)(i)?;
-    let (i, non_continued_part) = verify(be_u8, |&val| !is_continuation_bit_set(val))(i)?;
+    let (i, continued_part) = take_while_m_n(0, 3, is_continuation_bit_set).parse(i)?;
+    let (i, non_continued_part) = verify(be_u8, |&val| !is_continuation_bit_set(val)).parse(i)?;
     Ok((
         i,
         convert_varint(continued_part.to_vec(), non_continued_part),
@@ -78,7 +77,7 @@ pub fn parse_mqtt_variable_integer(i: &[u8]) -> IResult<&[u8], u32> {
 
 #[inline]
 pub fn parse_mqtt_binary_data(i: &[u8]) -> IResult<&[u8], Vec<u8>> {
-    let (i, data) = length_data(be_u16)(i)?;
+    let (i, data) = length_data(be_u16).parse(i)?;
     Ok((i, data.to_vec()))
 }
 
@@ -131,12 +130,14 @@ fn parse_properties(input: &[u8], precond: bool) -> IResult<&[u8], Option<Vec<MQ
 
 #[inline]
 fn parse_fixed_header_flags(i: &[u8]) -> IResult<&[u8], (u8, u8, u8, u8)> {
-    bits(tuple((
-        take_bits(4u8),
-        take_bits(1u8),
-        take_bits(2u8),
-        take_bits(1u8),
-    )))(i)
+    bits(|input| {
+        (
+            take_bits(4u8),
+            take_bits(1u8),
+            take_bits(2u8),
+            take_bits(1u8),
+        ).parse(input)
+    })(i)
 }
 
 #[inline]
@@ -176,16 +177,16 @@ pub fn parse_fixed_header(i: &[u8]) -> IResult<&[u8], FixedHeader> {
 #[inline]
 fn parse_connect(i: &[u8]) -> IResult<&[u8], MQTTConnectData> {
     let (i, protocol_string) = parse_mqtt_string(i)?;
-    let (i, protocol_version) = be_u8(i)?;
-    let (i, rawflags) = be_u8(i)?;
-    let (i, keepalive) = be_u16(i)?;
+    let (i, protocol_version) = be_u8.parse(i)?;
+    let (i, rawflags) = be_u8.parse(i)?;
+    let (i, keepalive) = be_u16.parse(i)?;
     let (i, properties) = parse_properties(i, protocol_version == 5)?;
     let (i, client_id) = parse_mqtt_string(i)?;
     let (i, will_properties) = parse_properties(i, protocol_version == 5 && rawflags & 0x4 != 0)?;
-    let (i, will_topic) = cond(rawflags & 0x4 != 0, parse_mqtt_string)(i)?;
-    let (i, will_message) = cond(rawflags & 0x4 != 0, parse_mqtt_binary_data)(i)?;
-    let (i, username) = cond(rawflags & 0x80 != 0, parse_mqtt_string)(i)?;
-    let (i, password) = cond(rawflags & 0x40 != 0, parse_mqtt_binary_data)(i)?;
+    let (i, will_topic) = cond(rawflags & 0x4 != 0, parse_mqtt_string).parse(i)?;
+    let (i, will_message) = cond(rawflags & 0x4 != 0, parse_mqtt_binary_data).parse(i)?;
+    let (i, username) = cond(rawflags & 0x80 != 0, parse_mqtt_string).parse(i)?;
+    let (i, password) = cond(rawflags & 0x40 != 0, parse_mqtt_binary_data).parse(i)?;
     Ok((
         i,
         MQTTConnectData {
@@ -233,7 +234,7 @@ fn parse_publish(
 ) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTPublishData> {
     move |i: &[u8]| {
         let (i, topic) = parse_mqtt_string(i)?;
-        let (i, message_id) = cond(has_id, be_u16)(i)?;
+        let (i, message_id) = cond(has_id, be_u16).parse(i)?;
         let (message, properties) = parse_properties(i, protocol_version == 5)?;
         Ok((
             i,
@@ -332,9 +333,9 @@ fn parse_subscribe_topic(i: &[u8]) -> IResult<&[u8], MQTTSubscribeTopicData> {
 #[inline]
 fn parse_subscribe(protocol_version: u8) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTSubscribeData> {
     move |i: &[u8]| {
-        let (i, message_id) = be_u16(i)?;
+        let (i, message_id) = be_u16.parse(i)?;
         let (i, properties) = parse_properties(i, protocol_version == 5)?;
-        let (i, topics) = many1(complete(parse_subscribe_topic))(i)?;
+        let (i, topics) = many1(complete(parse_subscribe_topic)).parse(i)?;
         Ok((
             i,
             MQTTSubscribeData {
@@ -367,9 +368,9 @@ fn parse_unsubscribe(
     protocol_version: u8,
 ) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTUnsubscribeData> {
     move |i: &[u8]| {
-        let (i, message_id) = be_u16(i)?;
+        let (i, message_id) = be_u16.parse(i)?;
         let (i, properties) = parse_properties(i, protocol_version == 5)?;
-        let (i, topics) = many0(complete(parse_mqtt_string))(i)?;
+        let (i, topics) = many0(complete(parse_mqtt_string)).parse(i)?;
         Ok((
             i,
             MQTTUnsubscribeData {
@@ -384,9 +385,9 @@ fn parse_unsubscribe(
 #[inline]
 fn parse_unsuback(protocol_version: u8) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTUnsubackData> {
     move |i: &[u8]| {
-        let (i, message_id) = be_u16(i)?;
+        let (i, message_id) = be_u16.parse(i)?;
         let (i, properties) = parse_properties(i, protocol_version == 5)?;
-        let (i, reason_codes) = many0(complete(be_u8))(i)?;
+        let (i, reason_codes) = many0(complete(be_u8)).parse(i)?;
         Ok((
             i,
             MQTTUnsubackData {
@@ -670,7 +671,7 @@ pub fn parse_message(
                 header,
                 message_type,
                 protocol_version,
-            ))(rem);
+            )).parse(rem);
         }
         Err(err) => {
             return Err(err);
@@ -681,7 +682,7 @@ pub fn parse_message(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nom7::error::ErrorKind;
+    use nom8::error::ErrorKind;
 
     fn test_mqtt_parse_variable_fail(buf0: &[u8]) {
         let r0 = parse_mqtt_variable_integer(buf0);
