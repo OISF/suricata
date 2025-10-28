@@ -21,7 +21,7 @@ use crate::applayer::{self, *};
 use crate::flow::Flow;
 use crate::frames::*;
 use std::ffi::CString;
-use nom7::IResult;
+use nom8::IResult;
 use suricata_sys::sys::{
     AppLayerParserState, AppProto, SCAppLayerParserConfParserEnabled,
     SCAppLayerParserStateIssetFlag, SCAppLayerProtoDetectConfProtoDetectionEnabled,
@@ -236,7 +236,7 @@ impl TelnetState {
                         SCLogDebug!("request {:?}", _c);
                     }
                 }
-                Err(nom7::Err::Incomplete(_)) => {
+                Err(nom8::Err::Incomplete(_)) => {
                     // Not enough data. This parser doesn't give us a good indication
                     // of how much data is missing so just ask for one more byte so the
                     // parse is called as soon as more data is received.
@@ -344,7 +344,7 @@ impl TelnetState {
                         SCLogDebug!("response {:?}", _c);
                     }
                 }
-                Err(nom7::Err::Incomplete(_)) => {
+                Err(nom8::Err::Incomplete(_)) => {
                     let consumed = input.len() - start.len();
                     let needed = start.len() + 1;
                     return AppLayerResult::incomplete(consumed as u32, needed as u32);

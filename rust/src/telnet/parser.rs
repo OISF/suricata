@@ -15,16 +15,16 @@
  * 02110-1301, USA.
  */
 
-use crate::common::nom7::take_until_and_consume;
-use nom7::combinator::peek;
-use nom7::bytes::complete::take;
-use nom7::{IResult};
-use nom7::number::streaming::le_u8;
-use nom7::bytes::streaming::tag;
-use nom7::bytes::streaming::{take_until};
+use crate::common::nom8::take_until_and_consume;
+use nom8::combinator::peek;
+use nom8::bytes::complete::take;
+use nom8::{IResult, Parser};
+use nom8::number::streaming::le_u8;
+use nom8::bytes::streaming::tag;
+use nom8::bytes::streaming::{take_until};
 
 pub fn peek_message_is_ctl(i: &[u8]) -> IResult<&[u8], bool> {
-    let (i, v) = peek(le_u8)(i)?;
+    let (i, v) = peek(le_u8).parse(i)?;
     Ok((i, v == b'\xff'))
 }
 
@@ -36,13 +36,13 @@ pub enum TelnetMessageType<'a> {
 pub fn parse_ctl_suboption<'a>(i: &'a[u8], full: &'a[u8]) -> IResult<&'a[u8], &'a[u8]> {
     let (i, _sc) = le_u8(i)?;
     let tag: &[u8] = b"\xff\xf0";
-    let (i, x) = take_until(tag)(i)?;
+    let (i, x) = take_until(tag).parse(i)?;
     let o = &full[..(x.len()+3)];
     Ok((i, o))
 }
 
 pub fn parse_ctl_message(oi: &[u8]) -> IResult<&[u8], &[u8]> {
-    let (i, _) = tag(b"\xff")(oi)?;
+    let (i, _) = tag(&b"\xff"[..])(oi)?;
     let (i, cmd) = le_u8(i)?;
     let (i, d) = match cmd {
         251..=254 => take(3_usize)(oi)?,
@@ -54,7 +54,7 @@ pub fn parse_ctl_message(oi: &[u8]) -> IResult<&[u8], &[u8]> {
 }
 
 pub fn parse_message(i: &[u8]) -> IResult<&[u8], TelnetMessageType<'_>> {
-    let (i, v) = peek(le_u8)(i)?;
+    let (i, v) = peek(le_u8).parse(i)?;
     if v == b'\xff' {
         let (i, c) = parse_ctl_message(i)?;
         Ok((i, TelnetMessageType::Control(c)))
@@ -66,7 +66,7 @@ pub fn parse_message(i: &[u8]) -> IResult<&[u8], TelnetMessageType<'_>> {
 
 // 'login: ', 'Password: ', possibly with leading ctls
 pub fn parse_welcome_message(i: &[u8]) -> IResult<&[u8], TelnetMessageType<'_>> {
-    let (i, v) = peek(le_u8)(i)?;
+    let (i, v) = peek(le_u8).parse(i)?;
     if v == b'\xff' {
         let (i, c) = parse_ctl_message(i)?;
         Ok((i, TelnetMessageType::Control(c)))
