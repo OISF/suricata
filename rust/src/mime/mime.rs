@@ -15,13 +15,13 @@
  * 02110-1301, USA.
  */
 
-use crate::common::nom7::take_until_and_consume;
-use nom7::branch::alt;
-use nom7::bytes::complete::{tag, take, take_till, take_until, take_while};
-use nom7::character::complete::char;
-use nom7::combinator::{complete, opt, rest, value};
-use nom7::error::{make_error, ErrorKind};
-use nom7::{Err, IResult};
+use crate::common::nom8::take_until_and_consume;
+use nom8::branch::alt;
+use nom8::bytes::complete::{tag, take, take_till, take_until, take_while};
+use nom8::character::complete::char;
+use nom8::combinator::{complete, opt, rest, value};
+use nom8::error::{make_error, ErrorKind};
+use nom8::{Err, IResult, Parser};
 use std;
 use std::collections::HashMap;
 
@@ -31,7 +31,7 @@ pub struct HeaderTokens<'a> {
 }
 
 fn mime_parse_value_delimited(input: &[u8]) -> IResult<&[u8], &[u8]> {
-    let (input, _) = char('"')(input)?;
+    let (input, _) = char('"').parse(input)?;
     let mut escaping = false;
     for i in 0..input.len() {
         if input[i] == b'\\' {
@@ -45,13 +45,13 @@ fn mime_parse_value_delimited(input: &[u8]) -> IResult<&[u8], &[u8]> {
         }
     }
     // should fail
-    let (input, value) = take_until("\"")(input)?;
-    let (input, _) = char('"')(input)?;
+    let (input, value) = take_until("\"").parse(input)?;
+    let (input, _) = char('"').parse(input)?;
     return Ok((input, value));
 }
 
 fn mime_parse_value_until_semicolon(input: &[u8]) -> IResult<&[u8], &[u8]> {
-    let (input, value) = alt((take_till(|ch: u8| ch == b';'), rest))(input)?;
+    let (input, value) = alt((take_till(|ch: u8| ch == b';'), rest)).parse(input)?;
     for i in 0..value.len() {
         if !is_mime_space(value[value.len() - i - 1]) {
             return Ok((input, &value[..value.len() - i]));
@@ -67,18 +67,18 @@ fn is_mime_space(ch: u8) -> bool {
 
 pub fn mime_parse_header_token(input: &[u8]) -> IResult<&[u8], (&'_ [u8], &'_ [u8])> {
     // from RFC2047 : like ch.is_ascii_whitespace but without 0x0c FORM-FEED
-    let (input, _) = take_while(is_mime_space)(input)?;
-    let (input, name) = take_until("=")(input)?;
-    let (input, _) = char('=')(input)?;
+    let (input, _) = take_while(is_mime_space).parse(input)?;
+    let (input, name) = take_until("=").parse(input)?;
+    let (input, _) = char('=').parse(input)?;
     let (input, value) =
-        alt((mime_parse_value_delimited, mime_parse_value_until_semicolon))(input)?;
-    let (input, _) = take_while(is_mime_space)(input)?;
-    let (input, _) = opt(complete(char(';')))(input)?;
+        alt((mime_parse_value_delimited, mime_parse_value_until_semicolon)).parse(input)?;
+    let (input, _) = take_while(is_mime_space).parse(input)?;
+    let (input, _) = opt(complete(char(';'))).parse(input)?;
     return Ok((input, (name, value)));
 }
 
 fn mime_parse_header_tokens(input: &[u8]) -> IResult<&[u8], HeaderTokens<'_>> {
-    let (mut input, _) = take_until_and_consume(b";")(input)?;
+    let (mut input, _) = take_until_and_consume(b";").parse(input)?;
     let mut tokens = HashMap::new();
     while !input.is_empty() {
         match mime_parse_header_token(input) {
@@ -224,13 +224,13 @@ fn mime_parse_boundary<'a>(boundary: &[u8], input: &'a [u8]) -> IResult<&'a [u8]
 }
 
 fn mime_consume_until_eol(input: &[u8]) -> IResult<&[u8], bool> {
-    return alt((value(true, mime_parse_skip_line), value(false, rest)))(input);
+    return alt((value(true, mime_parse_skip_line), value(false, rest))).parse(input);
 }
 
 pub fn mime_parse_header_line(input: &[u8]) -> IResult<&[u8], &[u8]> {
-    let (input, name) = take_till(|ch: u8| ch == b':')(input)?;
-    let (input, _) = char(':')(input)?;
-    let (input, _) = take_while(is_mime_space)(input)?;
+    let (input, name) = take_till(|ch: u8| ch == b':').parse(input)?;
+    let (input, _) = char(':').parse(input)?;
+    let (input, _) = take_while(is_mime_space).parse(input)?;
     return Ok((input, name));
 }
 
@@ -254,7 +254,7 @@ fn mime_parse_headers<'a>(
     let mut errored = false;
     let mut input = i;
     while !input.is_empty() {
-        if let Ok((input2, line)) = take_until::<_, &[u8], nom7::error::Error<&[u8]>>("\r\n")(input)
+        if let Ok((input2, line)) = take_until::<_, &[u8], nom8::error::Error<&[u8]>>("\r\n").parse(input)
         {
             if let Ok((value, name)) = mime_parse_header_line(line) {
                 if slice_equals_lowercase(name, "content-disposition".as_bytes()) {
@@ -302,12 +302,12 @@ fn mime_parse_headers<'a>(
     return Ok((input, (MimeParserState::Header, fileopen, errored)));
 }
 
-type NomTakeError<'a> = Err<nom7::error::Error<&'a [u8]>>;
+type NomTakeError<'a> = Err<nom8::error::Error<&'a [u8]>>;
 
 fn mime_consume_chunk<'a>(boundary: &[u8], input: &'a [u8]) -> IResult<&'a [u8], bool> {
-    let r: Result<(&[u8], &[u8]), NomTakeError> = take_until("\r\n")(input);
+    let r: Result<(&[u8], &[u8]), NomTakeError> = take_until("\r\n").parse(input);
     if let Ok((input, line)) = r {
-        let (next_line, _) = tag("\r\n")(input)?;
+        let (next_line, _) = tag("\r\n").parse(input)?;
         if next_line.len() < boundary.len() {
             if next_line == &boundary[..next_line.len()] {
                 if !line.is_empty() {
