@@ -19,8 +19,8 @@
 
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use crate::mqtt::parser::*;
-use nom7::number::streaming::*;
-use nom7::IResult;
+use nom8::number::streaming::*;
+use nom8::IResult;
 
 // TODO: It might be useful to also add detection on property presence and
 // content, e.g. mqtt.property: AUTHENTICATION_METHOD.
