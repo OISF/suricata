@@ -15,10 +15,10 @@
  * 02110-1301, USA.
  */
 
-use nom7::bytes::streaming::take;
-use nom7::combinator::cond;
-use nom7::number::streaming::{be_u16, be_u32, be_u64, be_u8};
-use nom7::IResult;
+use nom8::bytes::streaming::take;
+use nom8::combinator::cond;
+use nom8::number::streaming::{be_u16, be_u32, be_u64, be_u8};
+use nom8::{IResult, Parser};
 use suricata_derive::EnumStringU8;
 
 #[derive(Clone, Debug, Default, EnumStringU8)]
@@ -46,24 +46,24 @@ pub struct WebSocketPdu {
 
 // cf rfc6455#section-5.2
 pub fn parse_message(i: &[u8], max_pl_size: u32) -> IResult<&[u8], WebSocketPdu> {
-    let (i, flags_op) = be_u8(i)?;
+    let (i, flags_op) = be_u8.parse(i)?;
     let fin = (flags_op & 0x80) != 0;
     let compress = (flags_op & 0x40) != 0;
     let flags = flags_op & 0xF0;
     let opcode = flags_op & 0xF;
-    let (i, mask_plen) = be_u8(i)?;
+    let (i, mask_plen) = be_u8.parse(i)?;
     let mask_flag = (mask_plen & 0x80) != 0;
     let (i, payload_len) = match mask_plen & 0x7F {
         126 => {
-            let (i, val) = be_u16(i)?;
+            let (i, val) = be_u16.parse(i)?;
             Ok((i, val.into()))
         }
-        127 => be_u64(i),
+        127 => be_u64.parse(i),
         _ => Ok((i, (mask_plen & 0x7F).into())),
     }?;
-    let (i, xormask) = cond(mask_flag, take(4usize))(i)?;
+    let (i, xormask) = cond(mask_flag, take(4usize)).parse(i)?;
     let mask = if mask_flag {
-        let (_, m) = be_u32(xormask.unwrap())?;
+        let (_, m) = be_u32.parse(xormask.unwrap())?;
         Some(m)
     } else {
         None
@@ -75,7 +75,7 @@ pub fn parse_message(i: &[u8], max_pl_size: u32) -> IResult<&[u8], WebSocketPdu>
     } else {
         (payload_len - (max_pl_size as u64), max_pl_size)
     };
-    let (i, payload_raw) = take(payload_len)(i)?;
+    let (i, payload_raw) = take(payload_len).parse(i)?;
     let mut payload = payload_raw.to_vec();
     if let Some(xorkey) = xormask {
         for i in 0..payload.len() {
