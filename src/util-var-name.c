@@ -154,6 +154,9 @@ void VarNameStoreDestroy(void)
  */
 uint32_t VarNameStoreRegister(const char *name, const enum VarTypes type)
 {
+    if (name == NULL) {
+        return 0;
+    }
     SCMutexLock(&base_lock);
     uint32_t id = 0;
 
