@@ -122,7 +122,7 @@ impl SIPState {
     }
 
     // app-layer-frame-documentation tag start: parse_request
-    fn parse_request(&mut self, flow: *const Flow, stream_slice: StreamSlice) -> bool {
+    fn parse_request(&mut self, flow: *mut Flow, stream_slice: StreamSlice) -> bool {
         let input = stream_slice.as_slice();
         let _pdu = Frame::new(
             flow,
@@ -222,7 +222,7 @@ impl SIPState {
         return AppLayerResult::ok();
     }
 
-    fn parse_response(&mut self, flow: *const Flow, stream_slice: StreamSlice) -> bool {
+    fn parse_response(&mut self, flow: *mut Flow, stream_slice: StreamSlice) -> bool {
         let input = stream_slice.as_slice();
         let _pdu = Frame::new(
             flow,
@@ -336,7 +336,7 @@ impl SIPTransaction {
 }
 
 // app-layer-frame-documentation tag start: function to add frames
-fn sip_frames_ts(flow: *const Flow, stream_slice: &StreamSlice, r: &Request, tx_id: u64) {
+fn sip_frames_ts(flow: *mut Flow, stream_slice: &StreamSlice, r: &Request, tx_id: u64) {
     let oi = stream_slice.as_slice();
     let _f = Frame::new(
         flow,
@@ -372,7 +372,7 @@ fn sip_frames_ts(flow: *const Flow, stream_slice: &StreamSlice, r: &Request, tx_
 }
 // app-layer-frame-documentation tag end: function to add frames
 
-fn sip_frames_tc(flow: *const Flow, stream_slice: &StreamSlice, r: &Response, tx_id: u64) {
+fn sip_frames_tc(flow: *mut Flow, stream_slice: &StreamSlice, r: &Response, tx_id: u64) {
     let oi = stream_slice.as_slice();
     let _f = Frame::new(
         flow,
