@@ -47,6 +47,15 @@ Logging Changes
   E.g., previously, ``ether_type`` values were logged in host order;  an ethertype value of ``0xfbb7``
   (network order) was logged as `47099`` (``0xb7fb``). This ethertype value will be logged as ``64439``.
 
+Other Changes
+~~~~~~~~~~~~~
+- ``engine-analysis`` output has been changed for keywords that now use the generic integers framework
+
+  - icmp_id
+  - tcp.ack
+  - tcp.seq
+  - tcp.window
+
 Upgrading to 8.0.1
 ------------------
 
