@@ -56,6 +56,9 @@ static int DetectEntropySetup(DetectEngineCtx *de_ctx, Signature *s, const char 
     } else {
         ded->fv_idx = VarNameStoreRegister("content", VAR_TYPE_FLOW_FLOAT);
     }
+    if (ded->fv_idx == 0) {
+        goto error;
+    }
 
     if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_ENTROPY, (SigMatchCtx *)ded, sm_list) != NULL) {
         SCReturnInt(0);
