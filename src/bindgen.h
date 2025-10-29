@@ -54,6 +54,7 @@
 #include "app-layer-events.h"
 #include "app-layer-http2.h"
 #include "app-layer-htp-range.h"
+#include "app-layer-frames.h"
 
 #include "util-mpm.h"
 #include "util-file.h"

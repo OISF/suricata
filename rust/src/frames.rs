@@ -18,33 +18,16 @@
 //! Module for bindings to the Suricata C frame API.
 
 use crate::applayer::StreamSlice;
-use crate::flow::Flow;
 #[cfg(not(test))]
 use crate::core::STREAM_TOSERVER;
 use crate::direction::Direction;
+use crate::flow::Flow;
 
-#[cfg(not(test))]
-#[repr(C)]
-struct CFrame {
-    _private: [u8; 0],
-}
-
-// Defined in app-layer-register.h
-#[allow(unused_doc_comments)]
-/// cbindgen:ignore
-extern "C" {
-    #[cfg(not(test))]
-    fn AppLayerFrameNewByRelativeOffset(
-        flow: *const Flow, stream_slice: *const StreamSlice, frame_start_rel: u32, len: i64,
-        dir: i32, frame_type: u8,
-    ) -> *const CFrame;
-    fn AppLayerFrameAddEventById(flow: *const Flow, dir: i32, id: i64, event: u8);
-    fn AppLayerFrameSetLengthById(flow: *const Flow, dir: i32, id: i64, len: i64);
-    #[cfg(not(test))]
-    fn AppLayerFrameSetTxIdById(flow: *const Flow, dir: i32, id: i64, tx_id: u64);
-    #[cfg(not(test))]
-    fn AppLayerFrameGetId(frame: *const CFrame) -> i64;
-}
+use std::os::raw::c_void;
+use suricata_sys::sys::{
+    SCAppLayerFrameAddEventById, SCAppLayerFrameNewByRelativeOffset, SCAppLayerFrameSetLengthById,
+    SCAppLayerFrameSetTxIdById,
+};
 
 pub struct Frame {
     pub id: i64,
@@ -65,26 +48,31 @@ impl Frame {
         frame_type: u8, tx_id: Option<u64>,
     ) -> Option<Self> {
         let offset = frame_start.as_ptr() as usize - stream_slice.as_slice().as_ptr() as usize;
-        SCLogDebug!("offset {} stream_slice.len() {} frame_start.len() {}", offset, stream_slice.len(), frame_start.len());
+        SCLogDebug!(
+            "offset {} stream_slice.len() {} frame_start.len() {}",
+            offset,
+            stream_slice.len(),
+            frame_start.len()
+        );
         let frame = unsafe {
-            AppLayerFrameNewByRelativeOffset(
+            SCAppLayerFrameNewByRelativeOffset(
                 flow,
-                stream_slice,
+                &*stream_slice as *const _ as *const c_void,
                 offset as u32,
                 frame_len,
                 (stream_slice.flags() & STREAM_TOSERVER == 0).into(),
                 frame_type,
             )
         };
-        let id = unsafe { AppLayerFrameGetId(frame) };
-        if id > 0 {
+        if !frame.is_null() {
+            let id = unsafe { (*frame).id };
             let r = Self {
                 id,
                 direction: Direction::from(stream_slice.flags()),
             };
             if let Some(tx_id) = tx_id {
                 unsafe {
-                    AppLayerFrameSetTxIdById(flow, r.direction(), id, tx_id);
+                    SCAppLayerFrameSetTxIdById(flow, r.direction(), id, tx_id);
                 };
             }
             Some(r)
@@ -117,7 +105,7 @@ impl Frame {
     #[allow(clippy::not_unsafe_ptr_arg_deref)]
     pub fn set_len(&self, flow: *const Flow, len: i64) {
         unsafe {
-            AppLayerFrameSetLengthById(flow, self.direction(), self.id, len);
+            SCAppLayerFrameSetLengthById(flow, self.direction(), self.id, len);
         };
     }
 
@@ -125,7 +113,7 @@ impl Frame {
     #[allow(clippy::not_unsafe_ptr_arg_deref)]
     pub fn set_tx(&self, flow: *const Flow, tx_id: u64) {
         unsafe {
-            AppLayerFrameSetTxIdById(flow, self.direction(), self.id, tx_id);
+            SCAppLayerFrameSetTxIdById(flow, self.direction(), self.id, tx_id);
         };
     }
 
@@ -138,7 +126,7 @@ impl Frame {
     #[allow(clippy::not_unsafe_ptr_arg_deref)]
     pub fn add_event(&self, flow: *const Flow, event: u8) {
         unsafe {
-            AppLayerFrameAddEventById(flow, self.direction(), self.id, event);
+            SCAppLayerFrameAddEventById(flow, self.direction(), self.id, event);
         };
     }
 }
