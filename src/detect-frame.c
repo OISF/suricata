@@ -24,6 +24,7 @@
 #include "decode.h"
 #include "detect.h"
 
+#include "rust.h"
 #include "app-layer-frames.h"
 #include "app-layer-parser.h"
 

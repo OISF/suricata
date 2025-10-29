@@ -918,6 +918,47 @@ extern "C" {
         len: u32,
     ) -> ::std::os::raw::c_int;
 }
+pub type FrameId = i64;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct Frame {
+    #[doc = "< protocol specific field type. E.g. NBSS.HDR or SMB.DATA"]
+    pub type_: u8,
+    #[doc = "< frame flags: FRAME_FLAG_*"]
+    pub flags: u8,
+    pub event_cnt: u8,
+    #[doc = "< per frame store for events"]
+    pub events: [u8; 4usize],
+    #[doc = "< offset from the start of the stream"]
+    pub offset: u64,
+    pub len: i64,
+    pub id: i64,
+    #[doc = "< tx_id to match this frame. UINT64T_MAX if not used."]
+    pub tx_id: u64,
+    #[doc = "< inspection tracker relative to the start of the frame"]
+    pub inspect_progress: u64,
+}
+extern "C" {
+    pub fn SCAppLayerFrameNewByRelativeOffset(
+        f: *mut Flow, stream_slice: *const ::std::os::raw::c_void, frame_start_rel: u32, len: i64,
+        dir: ::std::os::raw::c_int, frame_type: u8,
+    ) -> *mut Frame;
+}
+extern "C" {
+    pub fn SCAppLayerFrameAddEventById(
+        f: *const Flow, dir: ::std::os::raw::c_int, id: FrameId, e: u8,
+    );
+}
+extern "C" {
+    pub fn SCAppLayerFrameSetLengthById(
+        f: *const Flow, dir: ::std::os::raw::c_int, id: FrameId, len: i64,
+    );
+}
+extern "C" {
+    pub fn SCAppLayerFrameSetTxIdById(
+        f: *const Flow, dir: ::std::os::raw::c_int, id: FrameId, tx_id: u64,
+    );
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct MpmPattern_ {

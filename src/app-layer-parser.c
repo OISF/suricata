@@ -181,7 +181,7 @@ void AppLayerFramesFreeContainer(Flow *f)
     f->alparser->frames = NULL;
 }
 
-FramesContainer *AppLayerFramesGetContainer(Flow *f)
+FramesContainer *AppLayerFramesGetContainer(const Flow *f)
 {
     if (f == NULL || f->alparser == NULL)
         return NULL;

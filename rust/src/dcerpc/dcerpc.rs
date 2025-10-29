@@ -897,10 +897,11 @@ impl DCERPCState {
         }
 
         let mut frag_bytes_consumed: u16 = 0;
-        let mut flow = std::ptr::null();
-        if let Some(f) = self.flow {
-            flow = f;
-        }
+        let flow = if let Some(f) = self.flow {
+            f
+        } else {
+            std::ptr::null_mut()
+        };
         // Check if header data was complete. In case of EoF or incomplete data, wait for more
         // data else return error
         if self.header.is_none() && !cur_i.is_empty() {

@@ -638,7 +638,7 @@ impl DNSState {
     }
 
     pub(crate) fn parse_request_udp(
-        &mut self, flow: *const Flow, stream_slice: StreamSlice,
+        &mut self, flow: *mut Flow, stream_slice: StreamSlice,
     ) -> bool {
         let input = stream_slice.as_slice();
         let frame = Frame::new(
@@ -652,7 +652,7 @@ impl DNSState {
         self.parse_request(input, false, frame, flow)
     }
 
-    fn parse_response_udp(&mut self, flow: *const Flow, stream_slice: StreamSlice) -> bool {
+    fn parse_response_udp(&mut self, flow: *mut Flow, stream_slice: StreamSlice) -> bool {
         let input = stream_slice.as_slice();
         let frame = Frame::new(
             flow,

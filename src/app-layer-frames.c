@@ -27,6 +27,7 @@
 
 #include "flow.h"
 #include "stream-tcp.h"
+#include "rust.h"
 #include "app-layer-frames.h"
 #include "app-layer-parser.h"
 
@@ -539,9 +540,13 @@ static Frame *AppLayerFrameUdp(
 
 /** \brief create new frame using a relative offset from the start of the stream slice
  */
-Frame *AppLayerFrameNewByRelativeOffset(Flow *f, const StreamSlice *stream_slice,
-        const uint32_t frame_start_rel, const int64_t len, int dir, uint8_t frame_type)
+Frame *SCAppLayerFrameNewByRelativeOffset(Flow *f, const void *ss, const uint32_t frame_start_rel,
+        const int64_t len, int dir, uint8_t frame_type)
 {
+    // need to hide StreamSlice argument
+    // as we cannot bindgen a C function with an argument whose type
+    // is defined in rust (at least before a suricata_core crate)
+    const StreamSlice *stream_slice = (const StreamSlice *)ss;
     if (!(FrameConfigTypeIsEnabled(f->alproto, frame_type)))
         return NULL;
 
@@ -653,19 +658,10 @@ void AppLayerFrameAddEvent(Frame *r, uint8_t e)
     }
 }
 
-void AppLayerFrameAddEventById(Flow *f, const int dir, const FrameId id, uint8_t e)
+void SCAppLayerFrameAddEventById(const Flow *f, const int dir, const FrameId id, uint8_t e)
 {
     Frame *frame = AppLayerFrameGetById(f, dir, id);
     AppLayerFrameAddEvent(frame, e);
-}
-
-FrameId AppLayerFrameGetId(Frame *r)
-{
-    if (r != NULL) {
-        return r->id;
-    } else {
-        return -1;
-    }
 }
 
 void AppLayerFrameSetLength(Frame *frame, int64_t len)
@@ -676,7 +672,7 @@ void AppLayerFrameSetLength(Frame *frame, int64_t len)
     }
 }
 
-void AppLayerFrameSetLengthById(Flow *f, const int dir, const FrameId id, int64_t len)
+void SCAppLayerFrameSetLengthById(const Flow *f, const int dir, const FrameId id, int64_t len)
 {
     Frame *frame = AppLayerFrameGetById(f, dir, id);
     AppLayerFrameSetLength(frame, len);
@@ -691,13 +687,13 @@ void AppLayerFrameSetTxId(Frame *r, uint64_t tx_id)
     }
 }
 
-void AppLayerFrameSetTxIdById(Flow *f, const int dir, const FrameId id, uint64_t tx_id)
+void SCAppLayerFrameSetTxIdById(const Flow *f, const int dir, const FrameId id, uint64_t tx_id)
 {
     Frame *frame = AppLayerFrameGetById(f, dir, id);
     AppLayerFrameSetTxId(frame, tx_id);
 }
 
-Frame *AppLayerFrameGetById(Flow *f, const int dir, const FrameId frame_id)
+Frame *AppLayerFrameGetById(const Flow *f, const int dir, const FrameId frame_id)
 {
     FramesContainer *frames_container = AppLayerFramesGetContainer(f);
     SCLogDebug("get frame_id %" PRIi64 " direction %u/%s frames_container %p", frame_id, dir,
