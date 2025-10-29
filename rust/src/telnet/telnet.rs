@@ -140,7 +140,7 @@ impl TelnetState {
 
     // app-layer-frame-documentation tag start: parse_request
     fn parse_request(
-        &mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8],
+        &mut self, flow: *mut Flow, stream_slice: &StreamSlice, input: &[u8],
     ) -> AppLayerResult {
         // We're not interested in empty requests.
         if input.is_empty() {
@@ -254,7 +254,7 @@ impl TelnetState {
         return AppLayerResult::ok();
     }
 
-    fn parse_response(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8]) -> AppLayerResult {
+    fn parse_response(&mut self, flow: *mut Flow, stream_slice: &StreamSlice, input: &[u8]) -> AppLayerResult {
         // We're not interested in empty responses.
         if input.is_empty() {
             return AppLayerResult::ok();
