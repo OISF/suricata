@@ -1581,19 +1581,14 @@ static int DetectPcreTestSig01(void)
     uint8_t *buf = (uint8_t *)"lalala lalala\\ lala\n";
     uint16_t buflen = strlen((char *)buf);
     Packet *p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
-    int result = 0;
-
+    FAIL_IF_NULL(p);
+    
     char sig[] = "alert tcp any any -> any any (msg:\"pcre with an ending slash\"; pcre:\"/ "
                  "lalala\\\\/\"; sid:1;)";
-    if (UTHPacketMatchSig(p, sig) == 0) {
-        result = 0;
-        goto end;
-    }
-    result = 1;
-end:
-    if (p != NULL)
-        UTHFreePacket(p);
-    return result;
+     FAIL_IF(UTHPacketMatchSig(p, sig) == 0);
+
+    UTHFreePacket(p);
+    PASS;
 }
 
 /** \test anchored pcre */
