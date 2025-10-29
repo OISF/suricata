@@ -15,6 +15,50 @@
  * 02110-1301, USA.
  */
 
+/* RFC 1094, section '2.2 Server Procedures' */
+pub const NFSPROC2_NULL: u32 = 0;
+pub const NFSPROC2_GETATTR: u32 = 1;
+pub const NFSPROC2_SETATTR: u32 = 2;
+pub const NFSPROC2_ROOT: u32 = 3; // obsolete
+pub const NFSPROC2_LOOKUP: u32 = 4;
+pub const NFSPROC2_READLINK: u32 = 5;
+pub const NFSPROC2_READ: u32 = 6;
+pub const NFSPROC2_WRITECACHE: u32 = 7; // obsolete
+pub const NFSPROC2_WRITE: u32 = 8;
+pub const NFSPROC2_CREATE: u32 = 9;
+pub const NFSPROC2_REMOVE: u32 = 10;
+pub const NFSPROC2_RENAME: u32 = 11;
+pub const NFSPROC2_LINK: u32 = 12;
+pub const NFSPROC2_SYMLINK: u32 = 13;
+pub const NFSPROC2_MKDIR: u32 = 14;
+pub const NFSPROC2_RMDIR: u32 = 15;
+pub const NFSPROC2_READDIR: u32 = 16;
+pub const NFSPROC2_STATFS: u32 = 17;
+
+#[repr(u32)]
+#[derive(EnumStringU32)]
+#[allow(non_camel_case_types)]
+pub enum NfsProc2 {
+    NULL = 0,
+    GETATTR = 1,
+    SETATTR = 2,
+    ROOT = 3, // obsolete
+    LOOKUP = 4,
+    READLINK = 5,
+    READ = 6,
+    WRITECACHE = 7, // obsolete
+    WRITE = 8,
+    CREATE = 9,
+    REMOVE = 10,
+    RENAME = 11,
+    LINK = 12,
+    SYMLINK = 13,
+    MKDIR = 14,
+    RMDIR = 15,
+    READDIR = 16,
+    STATFS = 17,
+}
+
 /* RFC 1813, section '3. Server Procedures' */
 pub const NFSPROC3_NULL: u32 = 0;
 pub const NFSPROC3_GETATTR: u32 = 1;
