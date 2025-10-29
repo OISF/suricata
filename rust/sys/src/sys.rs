@@ -984,3 +984,6 @@ extern "C" {
 extern "C" {
     pub fn SCFlowGetDestinationPort(flow: *const Flow) -> u16;
 }
+extern "C" {
+    pub fn SCRepCatGetByShortname(shortname: *const ::std::os::raw::c_char) -> u8;
+}

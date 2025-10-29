@@ -21,11 +21,12 @@ use nom7::bytes::complete::tag;
 use nom7::character::complete::multispace0;
 use nom7::sequence::preceded;
 
+use suricata_sys::sys::SCRepCatGetByShortname;
+
 use nom7::Err;
 use nom7::IResult;
 
 use std::ffi::{CStr, CString};
-use std::os::raw::c_char;
 use std::str::FromStr;
 
 #[repr(u8)]
@@ -78,10 +79,6 @@ pub fn is_alphanumeric_or_slash(chr: char) -> bool {
     return false;
 }
 
-extern "C" {
-    pub fn SRepCatGetByShortname(name: *const c_char) -> u8;
-}
-
 pub fn detect_parse_iprep(i: &str) -> IResult<&str, DetectIPRepData, RuleParseError<&str>> {
     // Inner utility function for easy error creation.
     fn make_error(reason: String) -> nom7::Err<RuleParseError<&'static str>> {
@@ -105,7 +102,7 @@ pub fn detect_parse_iprep(i: &str) -> IResult<&str, DetectIPRepData, RuleParseEr
         } else {
             return Err(make_error("invalid name".to_string()));
         };
-        let cat = unsafe { SRepCatGetByShortname(namez.as_ptr()) };
+        let cat = unsafe { SCRepCatGetByShortname(namez.as_ptr()) };
         if cat == 0 {
             return Err(make_error("unknown category".to_string()));
         }

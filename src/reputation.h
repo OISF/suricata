@@ -26,6 +26,10 @@
 #ifndef SURICATA_REPUTATION_H
 #define SURICATA_REPUTATION_H
 
+uint8_t SCRepCatGetByShortname(const char *shortname);
+
+#ifndef SURICATA_BINDGEN_H
+
 #include "host.h"
 #include "util-radix4-tree.h"
 #include "util-radix6-tree.h"
@@ -44,7 +48,6 @@ typedef struct SReputation_ {
 } SReputation;
 
 void SRepFreeHostData(Host *h);
-uint8_t SRepCatGetByShortname(char *shortname);
 int SRepInit(struct DetectEngineCtx_ *de_ctx);
 void SRepDestroy(struct DetectEngineCtx_ *de_ctx);
 void SRepReloadComplete(void);
@@ -57,5 +60,7 @@ int SRepLoadCatFileFromFD(FILE *fp);
 int SRepLoadFileFromFD(SRepCIDRTree *cidr_ctx, FILE *fp);
 
 void SCReputationRegisterTests(void);
+
+#endif // SURICATA_BINDGEN_H
 
 #endif /* SURICATA_REPUTATION_H */
