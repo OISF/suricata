@@ -49,7 +49,7 @@ typedef uint32_t ThreadId;
  *   - Init: called once for each EVE instance using this filetype
  *   - ThreadInit: called once for each output thread
  *   - Write: called for each log record
- *   - ThreadInit: called once for each output thread on exit
+ *   - ThreadDeinit: called once for each output thread on exit
  *   - Deinit: called once for each EVE instance using this filetype on exit
  *
  * Examples:
@@ -114,7 +114,7 @@ typedef struct SCEveFileType_ {
      *
      * \param thread_id A unique ID to differentiate this thread from
      *     others. If EVE is not in threaded mode this will be called
-     *     one with a ThreadId of 0. In threaded mode the ThreadId of
+     *     once with a ThreadId of 0. In threaded mode the ThreadId of
      *     0 correlates to the main Suricata thread.
      *
      * \param thread_data Output pointer for any data required by this
@@ -179,7 +179,7 @@ SCEveFileType *SCEveFindFileType(const char *name);
  * The function type for callbacks registered with
  * SCEveRegisterCallback. This function will be called with the
  * SCJsonBuilder just prior to the top-level object being closed. New
- * fields maybe added, however there is no way to alter existing
+ * fields may be added, however, there is no way to alter existing
  * objects already added to the SCJsonBuilder.
  *
  * \param tv The ThreadVars for the thread performing the logging.
@@ -196,9 +196,9 @@ typedef void (*SCEveUserCallbackFn)(
  * is called just before the root object on the SCJsonBuilder is to be
  * closed.
  *
- * New objects and fields can be append, but exist entries cannot be modified.
+ * New objects and fields can be appended, but existing entries cannot be modified.
  *
- * Packet and Flow will be provided if available, but will other be
+ * Packet and Flow will be provided if available, but will otherwise be
  * NULL.
  *
  * Limitations: At this time the callbacks will only be called for EVE
