@@ -41,7 +41,7 @@ static const char *HSCacheConstructFPath(const char *folder_path, uint64_t hs_db
     static char hash_file_path[PATH_MAX];
 
     char hash_file_path_suffix[] = "_v1.hs";
-    char filename[PATH_MAX];
+    char filename[NAME_MAX];
     uint64_t r = snprintf(
             filename, sizeof(filename), "%020" PRIu64 "%s", hs_db_hash, hash_file_path_suffix);
     if (r != (uint64_t)(20 + strlen(hash_file_path_suffix)))
