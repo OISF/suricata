@@ -694,8 +694,11 @@ static int PatternDatabaseGetCached(
         return 0;
     } else if (cache_dir_path) {
         pd_cached = *pd;
-        uint64_t db_lookup_hash = HSHashDb(pd_cached);
-        if (HSLoadCache(&pd_cached->hs_db, db_lookup_hash, cache_dir_path) == 0) {
+        char hs_db_hash[SC_SHA256_LEN * 2 + 1]; // * 2 for hex +1 for nul terminator
+        if (HSHashDb(pd_cached, hs_db_hash, sizeof(hs_db_hash)) != 0) {
+            return -1;
+        }
+        if (HSLoadCache(&pd_cached->hs_db, hs_db_hash, cache_dir_path) == 0) {
             pd_cached->ref_cnt = 1;
             pd_cached->cached = true;
             if (HSScratchAlloc(pd_cached->hs_db) != 0) {
