@@ -230,12 +230,6 @@ static void FrameAddPayloadUDP(SCJsonBuilder *js, const Packet *p, const Frame *
     SCJbSetBase64(js, "payload", data, log_data_len);
 
     SCJbSetPrintAsciiString(js, "payload_printable", data, log_data_len);
-#if 0
-    char pretty_buf[data_len * 4 + 1];
-    pretty_buf[0] = '\0';
-    PayloadAsHex(data, data_len, pretty_buf, data_len * 4 + 1);
-    SCJbSetString(js, "payload_hex", pretty_buf);
-#endif
 }
 
 // TODO separate between stream_offset and frame_offset
