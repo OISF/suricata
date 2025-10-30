@@ -198,6 +198,7 @@ static void EveAddPacketVars(const Packet *p, SCJsonBuilder *js_vars)
 
             if (pv->key != NULL) {
                 uint32_t offset = 0;
+                DEBUG_VALIDATE_BUG_ON(pv->key_len > UINT16_MAX);
                 uint8_t keybuf[pv->key_len + 1];
                 PrintStringsToBuffer(keybuf, &offset, pv->key_len + 1, pv->key, pv->key_len);
                 SCJbSetPrintAsciiString(js_vars, (char *)keybuf, pv->value, pv->value_len);
@@ -267,6 +268,7 @@ static void EveAddFlowVars(const Flow *f, SCJsonBuilder *js_root, SCJsonBuilder 
                         break;
                 }
 
+                DEBUG_VALIDATE_BUG_ON(fv->key_len > UINT16_MAX);
                 uint8_t keybuf[fv->keylen + 1];
                 uint32_t offset = 0;
                 PrintStringsToBuffer(keybuf, &offset, fv->keylen + 1, fv->key, fv->keylen);
