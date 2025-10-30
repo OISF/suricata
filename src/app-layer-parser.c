@@ -1750,6 +1750,24 @@ static void (**PreRegisteredCallbacks)(void) = NULL;
 static size_t preregistered_callbacks_nb = 0;
 static size_t preregistered_callbacks_cap = 0;
 
+int SCAppLayerParserReallocCtx(AppProto alproto)
+{
+    if (alp_ctx.ctxs_len <= alproto && alproto < g_alproto_max) {
+        /* Realloc alp_ctx.ctxs, so that dynamic alproto can be treated as real/normal ones.
+         * In case we need to turn off dynamic alproto. */
+        void *tmp = SCRealloc(alp_ctx.ctxs, sizeof(AppLayerParserProtoCtx[FLOW_PROTO_MAX]) *
+                                                    (alp_ctx.ctxs_len + ARRAY_CAP_STEP));
+        if (unlikely(tmp == NULL)) {
+            FatalError("Unable to realloc alp_ctx.ctxs.");
+        }
+        alp_ctx.ctxs = tmp;
+        memset(&alp_ctx.ctxs[alp_ctx.ctxs_len], 0,
+                sizeof(AppLayerParserProtoCtx[FLOW_PROTO_MAX]) * ARRAY_CAP_STEP);
+        alp_ctx.ctxs_len += ARRAY_CAP_STEP;
+    }
+    return 0;
+}
+
 int AppLayerParserPreRegister(void (*Register)(void))
 {
     if (preregistered_callbacks_nb == preregistered_callbacks_cap) {
