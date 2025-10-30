@@ -758,10 +758,11 @@ enum DetectBufferMpmType {
     DETECT_BUFFER_MPM_TYPE_SIZE,
 };
 
+#define DETECT_PROFILE_NAME_LEN 32
 /** \brief one time registration of keywords at start up */
 typedef struct DetectBufferMpmRegistry_ {
     const char *name;
-    char pname[32];             /**< name used in profiling */
+    char pname[DETECT_PROFILE_NAME_LEN]; /**< name used in profiling */
     int direction;              /**< SIG_FLAG_TOSERVER or SIG_FLAG_TOCLIENT */
     int16_t sm_list;
     int16_t sm_list_base;
