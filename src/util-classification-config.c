@@ -561,7 +561,7 @@ bool SCClassConfLoadClassificationConfigFile(DetectEngineCtx *de_ctx, FILE *fd)
 SCClassConfClasstype *SCClassConfGetClasstype(const char *ct_name,
                                               DetectEngineCtx *de_ctx)
 {
-    char name[strlen(ct_name) + 1];
+    char name[CLASSTYPE_NAME_MAX_LEN + 1];
     size_t s;
     for (s = 0; s < strlen(ct_name); s++)
         name[s] = u8_tolower((unsigned char)ct_name[s]);
