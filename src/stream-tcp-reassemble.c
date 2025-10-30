@@ -3229,7 +3229,6 @@ static int StreamTcpReassembleTest45 (void)
 
 static int StreamTcpReassembleTest46 (void)
 {
-    int result = 0;
     TcpReassemblyThreadCtx *ra_ctx = NULL;
     TcpSession ssn;
     ThreadVars tv;
@@ -3245,28 +3244,18 @@ static int StreamTcpReassembleTest46 (void)
     StreamTcpUTSetupStream(&ssn.client, 100);
 
     int r = StreamTcpUTAddPayload(&tv, ra_ctx, &ssn, &ssn.client, 101, payload, payload_size);
-    if (r != 0)
-        goto end;
-    if (ssn.client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) {
-        printf("STREAMTCP_STREAM_FLAG_NOREASSEMBLY set: ");
-        goto end;
-    }
+    FAIL_IF(r != 0);
+    FAIL_IF(ssn.client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY);
 
     r = StreamTcpUTAddPayload(&tv, ra_ctx, &ssn, &ssn.client, 201, payload, payload_size);
-    if (r != 0)
-        goto end;
-    if (ssn.client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) {
-        printf("STREAMTCP_STREAM_FLAG_NOREASSEMBLY set: ");
-        goto end;
-    }
+    FAIL_IF(r != 0);
+    FAIL_IF(ssn.client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY);
 
-    result = 1;
-end:
     StreamTcpUTClearStream(&ssn.server);
     StreamTcpUTClearStream(&ssn.client);
     StreamTcpUTClearSession(&ssn);
     StreamTcpUTDeinit(ra_ctx);
-    return result;
+    PASS;
 }
 
 /**
@@ -3301,7 +3290,7 @@ static int StreamTcpReassembleTest47 (void)
     ssn.client.last_ack = 21;
 
     f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 200, 220);
-    FAIL_IF(f == NULL);
+    FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
     p->flow = f;
@@ -3346,7 +3335,6 @@ static int StreamTcpReassembleTest47 (void)
 /** \test 3 in order segments in inline reassembly */
 static int StreamTcpReassembleInlineTest01(void)
 {
-    int ret = 0;
     TcpReassemblyThreadCtx *ra_ctx = NULL;
     ThreadVars tv;
     TcpSession ssn;
@@ -3362,33 +3350,19 @@ static int StreamTcpReassembleInlineTest01(void)
 
     uint8_t payload[] = { 'C', 'C', 'C', 'C', 'C' };
     Packet *p = UTHBuildPacketReal(payload, 5, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
-    if (p == NULL) {
-        printf("couldn't get a packet: ");
-        goto end;
-    }
+    FAIL_IF_NULL(p);
     p->l4.hdrs.tcph->th_seq = htonl(12);
     p->flow = &f;
 
-    if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client,  2, 'A', 5) == -1) {
-        printf("failed to add segment 1: ");
-        goto end;
-    }
-    if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client,  7, 'B', 5) == -1) {
-        printf("failed to add segment 2: ");
-        goto end;
-    }
-    if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client, 12, 'C', 5) == -1) {
-        printf("failed to add segment 3: ");
-        goto end;
-    }
+    FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client, 2, 'A', 5) == -1);
+    FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client, 7, 'B', 5) == -1);
+    FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client, 12, 'C', 5) == -1);
     ssn.client.next_seq = 17;
-    ret = 1;
-end:
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
     StreamTcpUTClearSession(&ssn);
     StreamTcpUTDeinit(ra_ctx);
-    return ret;
+    PASS;
 }
 
 /** \test 3 in order segments, then reassemble, add one more and reassemble again.
@@ -3396,7 +3370,6 @@ end:
  */
 static int StreamTcpReassembleInlineTest02(void)
 {
-    int ret = 0;
     TcpReassemblyThreadCtx *ra_ctx = NULL;
     ThreadVars tv;
     TcpSession ssn;
@@ -3412,38 +3385,21 @@ static int StreamTcpReassembleInlineTest02(void)
 
     uint8_t payload[] = { 'C', 'C', 'C', 'C', 'C' };
     Packet *p = UTHBuildPacketReal(payload, 5, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
-    if (p == NULL) {
-        printf("couldn't get a packet: ");
-        goto end;
-    }
+    FAIL_IF_NULL(p);
     p->l4.hdrs.tcph->th_seq = htonl(12);
     p->flow = &f;
 
-    if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client,  2, 'A', 5) == -1) {
-        printf("failed to add segment 1: ");
-        goto end;
-    }
-    if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client,  7, 'B', 5) == -1) {
-        printf("failed to add segment 2: ");
-        goto end;
-    }
-    if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client, 12, 'C', 5) == -1) {
-        printf("failed to add segment 3: ");
-        goto end;
-    }
+    FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client, 2, 'A', 5) == -1);
+    FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client, 7, 'B', 5) == -1);
+    FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client, 12, 'C', 5) == -1);
     ssn.client.next_seq = 17;
-    if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client, 17, 'D', 5) == -1) {
-        printf("failed to add segment 4: ");
-        goto end;
-    }
+    FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client, 17, 'D', 5) == -1);
     ssn.client.next_seq = 22;
-    ret = 1;
-end:
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
     StreamTcpUTClearSession(&ssn);
     StreamTcpUTDeinit(ra_ctx);
-    return ret;
+    PASS;
 }
 
 /** \test 3 in order segments, then reassemble, add one more and reassemble again.
@@ -3452,7 +3408,6 @@ end:
  */
 static int StreamTcpReassembleInlineTest03(void)
 {
-    int ret = 0;
     TcpReassemblyThreadCtx *ra_ctx = NULL;
     ThreadVars tv;
     TcpSession ssn;
@@ -3470,41 +3425,24 @@ static int StreamTcpReassembleInlineTest03(void)
 
     uint8_t payload[] = { 'C', 'C', 'C', 'C', 'C' };
     Packet *p = UTHBuildPacketReal(payload, 5, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
-    if (p == NULL) {
-        printf("couldn't get a packet: ");
-        goto end;
-    }
+    FAIL_IF_NULL(p);
     p->l4.hdrs.tcph->th_seq = htonl(12);
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
 
-    if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client,  2, 'A', 5) == -1) {
-        printf("failed to add segment 1: ");
-        goto end;
-    }
-    if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client,  7, 'B', 5) == -1) {
-        printf("failed to add segment 2: ");
-        goto end;
-    }
-    if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client, 12, 'C', 5) == -1) {
-        printf("failed to add segment 3: ");
-        goto end;
-    }
+    FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client, 2, 'A', 5) == -1);
+    FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client, 7, 'B', 5) == -1);
+    FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client, 12, 'C', 5) == -1);
     ssn.client.next_seq = 17;
-    if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client, 17, 'D', 5) == -1) {
-        printf("failed to add segment 4: ");
-        goto end;
-    }
+    FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client, 17, 'D', 5) == -1);
     ssn.client.next_seq = 22;
 
     p->l4.hdrs.tcph->th_seq = htonl(17);
-    ret = 1;
-end:
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
     StreamTcpUTClearSession(&ssn);
     StreamTcpUTDeinit(ra_ctx);
-    return ret;
+    PASS;
 }
 
 /** \test 3 in order segments, then reassemble, add one more and reassemble again.
@@ -3513,7 +3451,6 @@ end:
  */
 static int StreamTcpReassembleInlineTest04(void)
 {
-    int ret = 0;
     TcpReassemblyThreadCtx *ra_ctx = NULL;
     ThreadVars tv;
     TcpSession ssn;
@@ -3531,41 +3468,24 @@ static int StreamTcpReassembleInlineTest04(void)
 
     uint8_t payload[] = { 'C', 'C', 'C', 'C', 'C' };
     Packet *p = UTHBuildPacketReal(payload, 5, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
-    if (p == NULL) {
-        printf("couldn't get a packet: ");
-        goto end;
-    }
+    FAIL_IF_NULL(p);
     p->l4.hdrs.tcph->th_seq = htonl(12);
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
 
-    if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client,  2, 'A', 5) == -1) {
-        printf("failed to add segment 1: ");
-        goto end;
-    }
-    if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client,  7, 'B', 5) == -1) {
-        printf("failed to add segment 2: ");
-        goto end;
-    }
-    if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client, 12, 'C', 5) == -1) {
-        printf("failed to add segment 3: ");
-        goto end;
-    }
+    FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client, 2, 'A', 5) == -1);
+    FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client, 7, 'B', 5) == -1);
+    FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client, 12, 'C', 5) == -1);
     ssn.client.next_seq = 17;
-    if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client, 17, 'D', 5) == -1) {
-        printf("failed to add segment 4: ");
-        goto end;
-    }
+    FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client, 17, 'D', 5) == -1);
     ssn.client.next_seq = 22;
 
     p->l4.hdrs.tcph->th_seq = htonl(17);
-    ret = 1;
-end:
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
     StreamTcpUTClearSession(&ssn);
     StreamTcpUTDeinit(ra_ctx);
-    return ret;
+    PASS;
 }
 
 /** \test 3 in order segments, then reassemble, add one more and reassemble again.
@@ -3591,7 +3511,7 @@ static int StreamTcpReassembleInlineTest08(void)
 
     uint8_t payload[] = { 'C', 'C', 'C', 'C', 'C' };
     Packet *p = UTHBuildPacketReal(payload, 5, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
-    FAIL_IF(p == NULL);
+    FAIL_IF_NULL(p);
     p->l4.hdrs.tcph->th_seq = htonl(12);
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
@@ -3623,7 +3543,6 @@ static int StreamTcpReassembleInlineTest08(void)
  */
 static int StreamTcpReassembleInlineTest09(void)
 {
-    int ret = 0;
     TcpReassemblyThreadCtx *ra_ctx = NULL;
     ThreadVars tv;
     TcpSession ssn;
@@ -3641,34 +3560,19 @@ static int StreamTcpReassembleInlineTest09(void)
 
     uint8_t payload[] = { 'C', 'C', 'C', 'C', 'C' };
     Packet *p = UTHBuildPacketReal(payload, 5, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
-    if (p == NULL) {
-        printf("couldn't get a packet: ");
-        goto end;
-    }
+    FAIL_IF_NULL(p);
     p->l4.hdrs.tcph->th_seq = htonl(17);
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
 
-    if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client,  2, 'A', 5) == -1) {
-        printf("failed to add segment 1: ");
-        goto end;
-    }
-    if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client,  7, 'B', 5) == -1) {
-        printf("failed to add segment 2: ");
-        goto end;
-    }
-    if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client, 17, 'D', 5) == -1) {
-        printf("failed to add segment 3: ");
-        goto end;
-    }
+    FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client, 2, 'A', 5) == -1);
+    FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client, 7, 'B', 5) == -1);
+    FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client, 17, 'D', 5) == -1);
     ssn.client.next_seq = 12;
     ssn.client.last_ack = 10;
 
     /* close the GAP and see if we properly reassemble and update base_seq */
-    if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client, 12, 'C', 5) == -1) {
-        printf("failed to add segment 4: ");
-        goto end;
-    }
+    FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client, 12, 'C', 5) == -1);
     ssn.client.next_seq = 22;
 
     p->l4.hdrs.tcph->th_seq = htonl(12);
@@ -3677,24 +3581,20 @@ static int StreamTcpReassembleInlineTest09(void)
     FAIL_IF_NULL(seg);
     FAIL_IF_NOT(seg->seq == 2);
 
-    ret = 1;
-end:
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
     StreamTcpUTClearSession(&ssn);
     StreamTcpUTDeinit(ra_ctx);
-    return ret;
+    PASS;
 }
 
 /** \test App Layer reassembly.
  */
 static int StreamTcpReassembleInlineTest10(void)
 {
-    int ret = 0;
     TcpReassemblyThreadCtx *ra_ctx = NULL;
     ThreadVars tv;
     TcpSession ssn;
-    Flow *f = NULL;
     Packet *p = NULL;
 
     memset(&tv, 0x00, sizeof(tv));
@@ -3708,9 +3608,8 @@ static int StreamTcpReassembleInlineTest10(void)
     ssn.client.last_ack = 2;
     ssn.data_first_seen_dir = STREAM_TOSERVER;
 
-    f = UTHBuildFlow(AF_INET, "1.1.1.1", "2.2.2.2", 1024, 80);
-    if (f == NULL)
-        goto end;
+    Flow *f = UTHBuildFlow(AF_INET, "1.1.1.1", "2.2.2.2", 1024, 80);
+    FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
 
@@ -3719,57 +3618,37 @@ static int StreamTcpReassembleInlineTest10(void)
     uint8_t stream_payload3[] = "HTTP/1.0\r\n\r\n";
 
     p = UTHBuildPacketReal(stream_payload3, 12, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
-    if (p == NULL) {
-        printf("couldn't get a packet: ");
-        goto end;
-    }
+    FAIL_IF_NULL(p);
     p->l4.hdrs.tcph->th_seq = htonl(7);
     p->flow = f;
     p->flowflags = FLOW_PKT_TOSERVER;
 
-    if (StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.client,  2, stream_payload1, 2) == -1) {
-        printf("failed to add segment 1: ");
-        goto end;
-    }
+    FAIL_IF(StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.client, 2, stream_payload1, 2) ==
+            -1);
     ssn.client.next_seq = 4;
 
     int r = StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.client, p, UPDATE_DIR_PACKET);
-    if (r < 0) {
-        printf("StreamTcpReassembleAppLayer failed: ");
-        goto end;
-    }
+    FAIL_IF(r < 0);
 
     /* ssn.server.ra_app_base_seq should be isn here. */
-    if (ssn.client.base_seq != 2 || ssn.client.base_seq != ssn.client.isn+1) {
-        printf("expected ra_app_base_seq 1, got %u: ", ssn.client.base_seq);
-        goto end;
-    }
+    FAIL_IF_NOT(ssn.client.base_seq == 2 && ssn.client.base_seq == ssn.client.isn + 1);
 
-    if (StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.client,  4, stream_payload2, 3) == -1) {
-        printf("failed to add segment 2: ");
-        goto end;
-    }
-    if (StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.client,  7, stream_payload3, 12) == -1) {
-        printf("failed to add segment 3: ");
-        goto end;
-    }
+    FAIL_IF(StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.client, 4, stream_payload2, 3) ==
+            -1);
+    FAIL_IF(StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.client, 7, stream_payload3, 12) ==
+            -1);
     ssn.client.next_seq = 19;
 
     r = StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.client, p, UPDATE_DIR_PACKET);
-    if (r < 0) {
-        printf("StreamTcpReassembleAppLayer failed: ");
-        goto end;
-    }
+    FAIL_IF(r < 0);
 
     FAIL_IF_NOT(STREAM_APP_PROGRESS(&ssn.client) == 17);
 
-    ret = 1;
-end:
     UTHFreePacket(p);
     StreamTcpUTClearSession(&ssn);
     StreamTcpUTDeinit(ra_ctx);
     UTHFreeFlow(f);
-    return ret;
+    PASS;
 }
 
 /** \test test insert with overlap
@@ -3791,7 +3670,7 @@ static int StreamTcpReassembleInsertTest01(void)
 
     uint8_t payload[] = { 'C', 'C', 'C', 'C', 'C' };
     Packet *p = UTHBuildPacketReal(payload, 5, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
-    FAIL_IF(p == NULL);
+    FAIL_IF_NULL(p);
     p->l4.hdrs.tcph->th_seq = htonl(12);
     p->flow = &f;
 
@@ -3813,7 +3692,6 @@ static int StreamTcpReassembleInsertTest01(void)
  */
 static int StreamTcpReassembleInsertTest02(void)
 {
-    int ret = 0;
     TcpReassemblyThreadCtx *ra_ctx = NULL;
     ThreadVars tv;
     TcpSession ssn;
@@ -3835,28 +3713,19 @@ static int StreamTcpReassembleInsertTest02(void)
         if (seq < 2)
             seq = 2;
 
-        if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client,  seq, 'A', len) == -1) {
-            printf("failed to add segment 1: ");
-            goto end;
-        }
+        FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client, seq, 'A', len) == -1);
     }
-    if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client,  2, 'B', 1024) == -1) {
-        printf("failed to add segment 2: ");
-        goto end;
-    }
+    FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client, 2, 'B', 1024) == -1);
 
-    ret = 1;
-end:
     StreamTcpUTClearSession(&ssn);
     StreamTcpUTDeinit(ra_ctx);
-    return ret;
+    PASS;
 }
 
 /** \test test insert with overlaps
  */
 static int StreamTcpReassembleInsertTest03(void)
 {
-    int ret = 0;
     TcpReassemblyThreadCtx *ra_ctx = NULL;
     ThreadVars tv;
     TcpSession ssn;
@@ -3867,10 +3736,7 @@ static int StreamTcpReassembleInsertTest03(void)
     StreamTcpUTSetupSession(&ssn);
     StreamTcpUTSetupStream(&ssn.client, 1);
 
-    if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client,  2, 'A', 1024) == -1) {
-        printf("failed to add segment 2: ");
-        goto end;
-    }
+    FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client, 2, 'A', 1024) == -1);
 
     int i;
     for (i = 2; i < 10; i++) {
@@ -3883,16 +3749,11 @@ static int StreamTcpReassembleInsertTest03(void)
         if (seq < 2)
             seq = 2;
 
-        if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client,  seq, 'B', len) == -1) {
-            printf("failed to add segment 2: ");
-            goto end;
-        }
+        FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client, seq, 'B', len) == -1);
     }
-    ret = 1;
-end:
     StreamTcpUTClearSession(&ssn);
     StreamTcpUTDeinit(ra_ctx);
-    return ret;
+    PASS;
 }
 
 #include "tests/stream-tcp-reassemble.c"
