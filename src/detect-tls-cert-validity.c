@@ -216,6 +216,8 @@ static time_t StringIsEpoch (char *string)
     return strtol(string, NULL, 10);
 }
 
+#define MAX_DATE_LEN 20
+
 /**
  * \internal
  * \brief Function to convert date string to epoch.
@@ -255,10 +257,10 @@ static time_t DateStringToEpoch (char *string)
     while (inlen > 0 && isspace(string[inlen - 1]))
         inlen--;
 
-    char tmp[inlen + 1];
+    char tmp[MAX_DATE_LEN];
 
     if (inlen < oldlen) {
-        strlcpy(tmp, string, inlen + 1);
+        strlcpy(tmp, string, MAX_DATE_LEN);
         string = tmp;
     }
 
@@ -288,8 +290,8 @@ static DetectTlsValidityData *DetectTlsValidityParse (const char *rawstr)
 {
     DetectTlsValidityData *dd = NULL;
     char mode[2] = "";
-    char value1[20] = "";
-    char value2[20] = "";
+    char value1[MAX_DATE_LEN] = "";
+    char value2[MAX_DATE_LEN] = "";
     char range[3] = "";
 
     pcre2_match_data *match = NULL;
