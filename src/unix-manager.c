@@ -554,6 +554,7 @@ static void UnixCommandRun(UnixCommand * this, UnixClient *client)
             SCLogError("Command server: client command is too long, "
                        "disconnect him.");
             UnixCommandClose(this, client->fd);
+            return;
         }
         buffer[ret] = 0;
     } else {
@@ -575,6 +576,7 @@ static void UnixCommandRun(UnixCommand * this, UnixClient *client)
                 SCLogInfo("Command server: client command is too long, "
                         "disconnect him.");
                 UnixCommandClose(this, client->fd);
+                return;
             }
             if (buffer[ret - 1] == '\n') {
                 buffer[ret-1] = 0;
