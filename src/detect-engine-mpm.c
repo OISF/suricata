@@ -216,7 +216,7 @@ static void AppendTransformsToPname(
         /* create comma separated string of the names of the
          * transforms and then shorten it if necessary. Finally
          * use it to construct the 'profile' name for the engine */
-        char xforms[left + 1];
+        char xforms[DETECT_PROFILE_NAME_LEN + 1];
         memset(xforms, 0, left + 1);
         for (int i = 0; i < transforms->cnt; i++) {
             char ttstr[64];
@@ -1524,6 +1524,7 @@ void MpmStoreReportStats(const DetectEngineCtx *de_ctx)
     HashListTableBucket *htb = NULL;
 
     uint32_t stats[MPMB_MAX] = {0};
+    DEBUG_VALIDATE_BUG_ON(de_ctx->buffer_type_id > UINT16_MAX);
     int app_mpms_cnt = de_ctx->buffer_type_id;
     uint32_t appstats[app_mpms_cnt + 1];    // +1 to silence scan-build
     memset(&appstats, 0x00, sizeof(appstats));
