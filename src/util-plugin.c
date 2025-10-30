@@ -26,6 +26,7 @@
 #ifdef HAVE_PLUGINS
 
 #include "app-layer-protos.h"
+#include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
 #include "detect-engine-register.h"
 #include "output.h"
@@ -165,6 +166,9 @@ SCCapturePlugin *SCPluginFindCaptureByName(const char *name)
 int SCPluginRegisterAppLayer(SCAppLayerPlugin *plugin)
 {
     AppProto alproto = AppProtoNewProtoFromString(plugin->name);
+
+    AppLayerProtoDetectRegisterProtocol(alproto, plugin->name);
+
     if (plugin->Register) {
         if (AppLayerParserPreRegister(plugin->Register) != 0) {
             return 1;
