@@ -52,6 +52,11 @@ extern "C" {
     ) -> bool;
 }
 extern "C" {
+    pub fn SCJbSetPrintAsciiString(
+        js: *mut SCJsonBuilder, key: *const ::std::os::raw::c_char, bytes: *const u8, len: u32,
+    ) -> bool;
+}
+extern "C" {
     pub fn SCJbSetBase64(
         js: *mut SCJsonBuilder, key: *const ::std::os::raw::c_char, bytes: *const u8, len: u32,
     ) -> bool;

@@ -370,7 +370,6 @@ static void EveHttpLogJSONHeaders(
 static void BodyPrintableBuffer(SCJsonBuilder *js, HtpBody *body, const char *key)
 {
     if (body->sb != NULL && body->sb->region.buf != NULL) {
-        uint32_t offset = 0;
         const uint8_t *body_data;
         uint32_t body_data_len;
         uint64_t body_offset;
@@ -380,11 +379,7 @@ static void BodyPrintableBuffer(SCJsonBuilder *js, HtpBody *body, const char *ke
             return;
         }
 
-        uint8_t printable_buf[body_data_len + 1];
-        PrintStringsToBuffer(printable_buf, &offset, body_data_len + 1, body_data, body_data_len);
-        if (offset > 0) {
-            SCJbSetString(js, key, (char *)printable_buf);
-        }
+        SCJbSetPrintAsciiString(js, key, body_data, body_data_len);
     }
 }
 
