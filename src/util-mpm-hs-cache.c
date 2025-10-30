@@ -39,12 +39,16 @@
 static const char *HSCacheConstructFPath(const char *folder_path, uint64_t hs_db_hash)
 {
     static char hash_file_path[PATH_MAX];
+    const char *sensor_name = NULL;
+    (void)SCConfGet("sensor-name", &sensor_name);
+    sensor_name = sensor_name ? sensor_name : "sc";
 
     char hash_file_path_suffix[] = "_v1.hs";
-    char filename[PATH_MAX];
+    char filename[NAME_MAX];
     uint64_t r = snprintf(
-            filename, sizeof(filename), "%020" PRIu64 "%s", hs_db_hash, hash_file_path_suffix);
-    if (r != (uint64_t)(20 + strlen(hash_file_path_suffix)))
+            filename, sizeof(filename), "%s_%s%s", sensor_name, hs_db_hash, hash_file_path_suffix);
+    if (r != (uint64_t)(strlen(sensor_name) + 1 + strlen(hs_db_hash) +
+                        strlen(hash_file_path_suffix)))
         return NULL;
 
     r = PathMerge(hash_file_path, sizeof(hash_file_path), folder_path, filename);
