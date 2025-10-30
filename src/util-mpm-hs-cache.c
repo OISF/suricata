@@ -34,9 +34,10 @@
 
 #ifdef BUILD_HYPERSCAN
 
+#include "rust.h"
 #include <hs.h>
 
-static const char *HSCacheConstructFPath(const char *folder_path, uint64_t hs_db_hash)
+static const char *HSCacheConstructFPath(const char *folder_path, const char *hs_db_hash)
 {
     static char hash_file_path[PATH_MAX];
     const char *sensor_name = NULL;
@@ -108,22 +109,22 @@ static char *HSReadStream(const char *file_path, size_t *buffer_sz)
  * Function to hash the searched pattern, only things relevant to Hyperscan
  * compilation are hashed.
  */
-static void SCHSCachePatternHash(const SCHSPattern *p, uint32_t *h1, uint32_t *h2)
+static void SCHSCachePatternHash(const SCHSPattern *p, SCSha256 *sha256)
 {
     BUG_ON(p->original_pat == NULL);
     BUG_ON(p->sids == NULL);
 
-    hashlittle2_safe(&p->len, sizeof(p->len), h1, h2);
-    hashlittle2_safe(&p->flags, sizeof(p->flags), h1, h2);
-    hashlittle2_safe(p->original_pat, p->len, h1, h2);
-    hashlittle2_safe(&p->id, sizeof(p->id), h1, h2);
-    hashlittle2_safe(&p->offset, sizeof(p->offset), h1, h2);
-    hashlittle2_safe(&p->depth, sizeof(p->depth), h1, h2);
-    hashlittle2_safe(&p->sids_size, sizeof(p->sids_size), h1, h2);
-    hashlittle2_safe(p->sids, p->sids_size * sizeof(SigIntId), h1, h2);
+    SCSha256Update(sha256, (const uint8_t *)&p->len, sizeof(p->len));
+    SCSha256Update(sha256, (const uint8_t *)&p->flags, sizeof(p->flags));
+    SCSha256Update(sha256, (const uint8_t *)p->original_pat, p->len);
+    SCSha256Update(sha256, (const uint8_t *)&p->id, sizeof(p->id));
+    SCSha256Update(sha256, (const uint8_t *)&p->offset, sizeof(p->offset));
+    SCSha256Update(sha256, (const uint8_t *)&p->depth, sizeof(p->depth));
+    SCSha256Update(sha256, (const uint8_t *)&p->sids_size, sizeof(p->sids_size));
+    SCSha256Update(sha256, (const uint8_t *)p->sids, p->sids_size * sizeof(SigIntId));
 }
 
-int HSLoadCache(hs_database_t **hs_db, uint64_t hs_db_hash, const char *dirpath)
+int HSLoadCache(hs_database_t **hs_db, const char *hs_db_hash, const char *dirpath)
 {
     const char *hash_file_static = HSCacheConstructFPath(dirpath, hs_db_hash);
     if (hash_file_static == NULL)
@@ -165,7 +166,7 @@ freeup:
     return ret;
 }
 
-static int HSSaveCache(hs_database_t *hs_db, uint64_t hs_db_hash, const char *dstpath)
+static int HSSaveCache(hs_database_t *hs_db, const char *hs_db_hash, const char *dstpath)
 {
     static bool notified = false;
     char *db_stream = NULL;
@@ -224,14 +225,22 @@ cleanup:
     return ret;
 }
 
-uint64_t HSHashDb(const PatternDatabase *pd)
+const char *HSHashDb(const PatternDatabase *pd)
 {
-    uint32_t hash[2] = { 0 };
-    hashword2(&pd->pattern_cnt, 1, &hash[0], &hash[1]);
+    static char hash[SC_SHA256_LEN * 2 + 1]; // * 2 for hex +1 for nul terminator
+
+    SCSha256 *hasher = SCSha256New();
+    SCSha256Update(hasher, (const uint8_t *)&pd->pattern_cnt, sizeof(pd->pattern_cnt));
     for (uint32_t i = 0; i < pd->pattern_cnt; i++) {
-        SCHSCachePatternHash(pd->parray[i], &hash[0], &hash[1]);
+        SCHSCachePatternHash(pd->parray[i], hasher);
     }
-    return ((uint64_t)hash[1] << 32) | hash[0];
+
+    if (!SCSha256FinalizeToHex(hasher, hash, sizeof(hash))) {
+        hasher = NULL;
+        SCLogDebug("sha256 hashing failed");
+        return NULL;
+    }
+    return hash;
 }
 
 void HSSaveCacheIterator(void *data, void *aux)

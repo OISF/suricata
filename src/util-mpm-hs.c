@@ -694,8 +694,7 @@ static int PatternDatabaseGetCached(
         return 0;
     } else if (cache_dir_path) {
         pd_cached = *pd;
-        uint64_t db_lookup_hash = HSHashDb(pd_cached);
-        if (HSLoadCache(&pd_cached->hs_db, db_lookup_hash, cache_dir_path) == 0) {
+        if (HSLoadCache(&pd_cached->hs_db, HSHashDb(pd_cached), cache_dir_path) == 0) {
             pd_cached->ref_cnt = 1;
             pd_cached->cached = true;
             if (HSScratchAlloc(pd_cached->hs_db) != 0) {
