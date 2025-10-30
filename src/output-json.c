@@ -200,18 +200,10 @@ static void EveAddPacketVars(const Packet *p, SCJsonBuilder *js_vars)
                 uint32_t offset = 0;
                 uint8_t keybuf[pv->key_len + 1];
                 PrintStringsToBuffer(keybuf, &offset, pv->key_len + 1, pv->key, pv->key_len);
-                uint32_t len = pv->value_len;
-                uint8_t printable_buf[len + 1];
-                offset = 0;
-                PrintStringsToBuffer(printable_buf, &offset, len + 1, pv->value, pv->value_len);
-                SCJbSetString(js_vars, (char *)keybuf, (char *)printable_buf);
+                SCJbSetPrintAsciiString(js_vars, (char *)keybuf, pv->value, pv->value_len);
             } else {
                 const char *varname = VarNameStoreLookupById(pv->id, VAR_TYPE_PKT_VAR);
-                uint32_t len = pv->value_len;
-                uint8_t printable_buf[len + 1];
-                uint32_t offset = 0;
-                PrintStringsToBuffer(printable_buf, &offset, len + 1, pv->value, pv->value_len);
-                SCJbSetString(js_vars, varname, (char *)printable_buf);
+                SCJbSetPrintAsciiString(js_vars, varname, pv->value, pv->value_len);
             }
             SCJbClose(js_vars);
         }
@@ -263,14 +255,9 @@ static void EveAddFlowVars(const Flow *f, SCJsonBuilder *js_root, SCJsonBuilder 
                             break;
                     }
 
-                    uint32_t len = fv->data.fv_str.value_len;
-                    uint8_t printable_buf[len + 1];
-                    uint32_t offset = 0;
-                    PrintStringsToBuffer(printable_buf, &offset, len + 1, fv->data.fv_str.value,
-                            fv->data.fv_str.value_len);
-
                     SCJbStartObject(js_flowvars);
-                    SCJbSetString(js_flowvars, varname, (char *)printable_buf);
+                    SCJbSetPrintAsciiString(
+                            js_flowvars, varname, fv->data.fv_str.value, fv->data.fv_str.value_len);
                     SCJbClose(js_flowvars);
                 }
             } else if (fv->datatype == FLOWVAR_TYPE_STR && fv->key != NULL) {
@@ -284,14 +271,9 @@ static void EveAddFlowVars(const Flow *f, SCJsonBuilder *js_root, SCJsonBuilder 
                 uint32_t offset = 0;
                 PrintStringsToBuffer(keybuf, &offset, fv->keylen + 1, fv->key, fv->keylen);
 
-                uint32_t len = fv->data.fv_str.value_len;
-                uint8_t printable_buf[len + 1];
-                offset = 0;
-                PrintStringsToBuffer(printable_buf, &offset, len + 1, fv->data.fv_str.value,
-                        fv->data.fv_str.value_len);
-
                 SCJbStartObject(js_flowvars);
-                SCJbSetString(js_flowvars, (const char *)keybuf, (char *)printable_buf);
+                SCJbSetPrintAsciiString(js_flowvars, (const char *)keybuf, fv->data.fv_str.value,
+                        fv->data.fv_str.value_len);
                 SCJbClose(js_flowvars);
             } else if (fv->datatype == FLOWVAR_TYPE_FLOAT) {
                 const char *varname = VarNameStoreLookupById(fv->idx, VAR_TYPE_FLOW_FLOAT);
