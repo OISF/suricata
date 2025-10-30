@@ -314,13 +314,7 @@ static void AlertAddPayload(AlertJsonOutputCtx *json_output_ctx, SCJsonBuilder *
     }
 
     if (json_output_ctx->flags & LOG_JSON_PAYLOAD) {
-        uint8_t printable_buf[p->payload_len + 1];
-        uint32_t offset = 0;
-        PrintStringsToBuffer(printable_buf, &offset,
-                p->payload_len + 1,
-                p->payload, p->payload_len);
-        printable_buf[p->payload_len] = '\0';
-        SCJbSetString(js, "payload_printable", (char *)printable_buf);
+        SCJbSetPrintAsciiString(js, "payload_printable", p->payload, p->payload_len);
     }
 }
 
@@ -637,11 +631,8 @@ static bool AlertJsonStreamData(const AlertJsonOutputCtx *json_output_ctx, JsonA
         }
 
         if (json_output_ctx->flags & LOG_JSON_PAYLOAD) {
-            uint8_t printable_buf[cbd.payload->offset + 1];
-            uint32_t offset = 0;
-            PrintStringsToBuffer(printable_buf, &offset, cbd.payload->offset + 1,
-                    cbd.payload->buffer, cbd.payload->offset);
-            SCJbSetString(jb, "payload_printable", (char *)printable_buf);
+            SCJbSetPrintAsciiString(
+                    jb, "payload_printable", cbd.payload->buffer, cbd.payload->offset);
         }
         return true;
     }
