@@ -85,16 +85,14 @@ void DetectContentRegister (void)
 int DetectContentDataParse(const char *keyword, const char *contentstr,
         uint8_t **pstr, uint16_t *plen)
 {
-    char *str = NULL;
-    size_t slen = 0;
-
-    slen = strlen(contentstr);
+    size_t slen = strlen(contentstr);
     if (slen == 0) {
         return -1;
     }
-    uint8_t buffer[slen + 1];
-    strlcpy((char *)&buffer, contentstr, slen + 1);
-    str = (char *)buffer;
+    char *str = SCStrdup(contentstr);
+    if (str == NULL) {
+        return -1;
+    }
 
     SCLogDebug("\"%s\", len %" PRIuMAX, str, (uintmax_t)slen);
 
@@ -193,17 +191,12 @@ int DetectContentDataParse(const char *keyword, const char *contentstr,
     }
 
     if (slen) {
-        uint8_t *ptr = SCCalloc(1, slen);
-        if (ptr == NULL) {
-            return -1;
-        }
-        memcpy(ptr, str, slen);
-
         *plen = (uint16_t)slen;
-        *pstr = ptr;
+        *pstr = (uint8_t *)str;
         return 0;
     }
 error:
+    SCFree(str);
     return -1;
 }
 /**
