@@ -38,6 +38,7 @@ ja4 = []
 
 [dependencies]
 nom7 = { version="7.1", package="nom" }
+nom8 = { version="8.0", package="nom" }
 bitflags = "~1.3.2"
 byteorder = "~1.4.3"
 uuid = "~0.8.2"

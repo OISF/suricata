@@ -19,11 +19,11 @@
 
 use crate::detect::EnumString;
 use crate::dns::dns::*;
-use nom7::combinator::rest;
-use nom7::error::ErrorKind;
-use nom7::multi::{count, length_data};
-use nom7::number::streaming::{be_u16, be_u32, be_u8};
-use nom7::{error_position, Err, IResult};
+use nom8::combinator::rest;
+use nom8::error::ErrorKind;
+use nom8::multi::{count, length_data};
+use nom8::number::streaming::{be_u16, be_u32, be_u8};
+use nom8::{error_position, Err, IResult, Parser};
 
 // Set a maximum assembled hostname length of 1025, this value was
 // chosen as its what DNSMasq uses, a popular DNS server, even if most
@@ -81,7 +81,7 @@ fn dns_parse_name<'b>(
             pos = &pos[1..];
             break;
         } else if len & 0b1100_0000 == 0 {
-            let (rem, label) = length_data(be_u8)(pos)?;
+            let (rem, label) = length_data(be_u8).parse(pos)?;
             if !flags.contains(DNSNameFlags::TRUNCATED) {
                 if !name.is_empty() {
                     name.push(b'.');
@@ -192,7 +192,7 @@ fn dns_parse_answer<'a>(
         let (i, rrtype) = be_u16(i)?;
         let (i, rrclass) = be_u16(i)?;
         let (i, ttl) = be_u32(i)?;
-        let (i, data) = length_data(be_u16)(i)?;
+        let (i, data) = length_data(be_u16).parse(i)?;
         let answer = Answer {
             name,
             rrtype,
@@ -345,7 +345,7 @@ fn dns_parse_rdata_txt(input: &[u8]) -> IResult<&[u8], DNSRData> {
     let mut i = input;
 
     while !i.is_empty() {
-        let (j, txt) = length_data(be_u8)(i)?;
+        let (j, txt) = length_data(be_u8).parse(i)?;
         txt_strings.push(txt.to_vec());
         i = j;
     }
@@ -378,7 +378,7 @@ fn dns_parse_rdata_opt(input: &[u8]) -> IResult<&[u8], DNSRData> {
 
     while !i.is_empty() {
         let (j, code) = be_u16(i)?;
-        let (j, data) = length_data(be_u16)(j)?;
+        let (j, data) = length_data(be_u16).parse(j)?;
         i = j;
         dns_rdata_opt_vec.push(DNSRDataOPT {
             code,
@@ -440,7 +440,7 @@ pub fn dns_parse_body<'a>(
     let (i, queries) = count(
         |b| dns_parse_query(b, message, &mut flags),
         header.questions as usize,
-    )(i)?;
+    ).parse(i)?;
     let (i, answers) = dns_parse_answer(i, message, header.answer_rr as usize, &mut flags)?;
 
     let mut invalid_authorities = false;

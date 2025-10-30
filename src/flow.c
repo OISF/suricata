@@ -415,8 +415,10 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
         }
 #ifdef CAPTURE_OFFLOAD
     } else {
+        FlowProtoTimeoutPtr flow_timeouts = SC_ATOMIC_GET(flow_timeouts);
         /* still seeing packet, we downgrade to local bypass */
-        if (SCTIME_SECS(p->ts) - SCTIME_SECS(f->lastts) > FLOW_BYPASSED_TIMEOUT / 2) {
+        if (SCTIME_SECS(p->ts) - SCTIME_SECS(f->lastts) >
+                flow_timeouts[f->protomap].bypassed_timeout / 2) {
             SCLogDebug("Downgrading flow to local bypass");
             f->lastts = p->ts;
             FlowUpdateState(f, FLOW_STATE_LOCAL_BYPASSED);

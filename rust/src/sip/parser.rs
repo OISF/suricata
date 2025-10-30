@@ -18,12 +18,11 @@
 // written by Giuseppe Longo <giuseppe@glongo.it>
 
 use crate::sdp::parser::{sdp_parse_message, SdpMessage};
-use nom7::bytes::streaming::{tag, take, take_while, take_while1};
-use nom7::character::streaming::{char, crlf};
-use nom7::character::{is_alphabetic, is_alphanumeric, is_digit, is_space};
-use nom7::combinator::{map, map_res, opt};
-use nom7::sequence::delimited;
-use nom7::{Err, IResult, Needed};
+use nom8::bytes::streaming::{tag, take, take_while, take_while1};
+use nom8::character::streaming::{char, crlf};
+use nom8::combinator::{map, map_res, opt};
+use nom8::sequence::delimited;
+use nom8::{AsChar, Err, IResult, Needed, Parser};
 use std;
 use std::collections::HashMap;
 
@@ -66,12 +65,12 @@ pub struct Response {
  */
 #[inline]
 fn is_token_char(b: u8) -> bool {
-    is_alphanumeric(b) || b"!%'*+-._`~".contains(&b)
+    b.is_alphanum() || b"!%'*+-._`~".contains(&b)
 }
 
 #[inline]
 fn is_method_char(b: u8) -> bool {
-    is_alphabetic(b)
+    b.is_alpha()
 }
 
 #[inline]
@@ -81,7 +80,7 @@ fn is_request_uri_char(b: u8) -> bool {
 
 #[inline]
 fn is_version_char(b: u8) -> bool {
-    is_digit(b) || b".".contains(&b)
+    b.is_dec_digit() || b".".contains(&b)
 }
 
 #[inline]
@@ -115,17 +114,17 @@ fn expand_header_name(h: &str) -> &str {
 
 pub fn parse_request(oi: &[u8]) -> IResult<&[u8], Request> {
     let (i, method) = parse_method(oi)?;
-    let (i, _) = char(' ')(i)?;
+    let (i, _) = char(' ').parse(i)?;
     let (i, path) = parse_request_uri(i)?;
-    let (i, _) = char(' ')(i)?;
+    let (i, _) = char(' ').parse(i)?;
     let (i, version) = parse_version(i)?;
-    let (hi, _) = crlf(i)?;
+    let (hi, _) = crlf.parse(i)?;
     let request_line_len = oi.len() - hi.len();
     let (phi, headers) = parse_headers(hi)?;
     let headers_len = hi.len() - phi.len();
-    let (bi, _) = crlf(phi)?;
+    let (bi, _) = crlf.parse(phi)?;
     let body_offset = oi.len() - bi.len();
-    let (i, body) = opt(sdp_parse_message)(bi)?;
+    let (i, body) = opt(sdp_parse_message).parse(bi)?;
     Ok((
         i,
         Request {
@@ -145,17 +144,17 @@ pub fn parse_request(oi: &[u8]) -> IResult<&[u8], Request> {
 
 pub fn parse_response(oi: &[u8]) -> IResult<&[u8], Response> {
     let (i, version) = parse_version(oi)?;
-    let (i, _) = char(' ')(i)?;
+    let (i, _) = char(' ').parse(i)?;
     let (i, code) = parse_code(i)?;
-    let (i, _) = char(' ')(i)?;
+    let (i, _) = char(' ').parse(i)?;
     let (i, reason) = parse_reason(i)?;
-    let (hi, _) = crlf(i)?;
+    let (hi, _) = crlf.parse(i)?;
     let response_line_len = oi.len() - hi.len();
     let (phi, headers) = parse_headers(hi)?;
     let headers_len = hi.len() - phi.len();
-    let (bi, _) = crlf(phi)?;
+    let (bi, _) = crlf.parse(phi)?;
     let body_offset = oi.len() - bi.len();
-    let (i, body) = opt(sdp_parse_message)(bi)?;
+    let (i, body) = opt(sdp_parse_message).parse(bi)?;
     Ok((
         i,
         Response {
@@ -175,51 +174,51 @@ pub fn parse_response(oi: &[u8]) -> IResult<&[u8], Response> {
 
 #[inline]
 fn parse_method(i: &[u8]) -> IResult<&[u8], &str> {
-    map_res(take_while(is_method_char), std::str::from_utf8)(i)
+    map_res(take_while(is_method_char), std::str::from_utf8).parse(i)
 }
 
 #[inline]
 fn parse_request_uri(i: &[u8]) -> IResult<&[u8], &str> {
-    map_res(take_while1(is_request_uri_char), std::str::from_utf8)(i)
+    map_res(take_while1(is_request_uri_char), std::str::from_utf8).parse(i)
 }
 
 #[inline]
 fn parse_version(i: &[u8]) -> IResult<&[u8], String> {
-    let (i, prefix) = map_res(tag("SIP/"), std::str::from_utf8)(i)?;
-    let (i, version) = map_res(take_while1(is_version_char), std::str::from_utf8)(i)?;
+    let (i, prefix) = map_res(tag("SIP/"), std::str::from_utf8).parse(i)?;
+    let (i, version) = map_res(take_while1(is_version_char), std::str::from_utf8).parse(i)?;
     Ok((i, format!("{}{}", prefix, version)))
 }
 
 #[inline]
 fn parse_code(i: &[u8]) -> IResult<&[u8], &str> {
-    map_res(take(3_usize), std::str::from_utf8)(i)
+    map_res(take(3_usize), std::str::from_utf8).parse(i)
 }
 
 #[inline]
 fn parse_reason(i: &[u8]) -> IResult<&[u8], &str> {
-    map_res(take_while(is_reason_phrase), std::str::from_utf8)(i)
+    map_res(take_while(is_reason_phrase), std::str::from_utf8).parse(i)
 }
 
 #[inline]
 fn header_name(i: &[u8]) -> IResult<&[u8], &str> {
-    map_res(take_while(is_header_name), std::str::from_utf8)(i)
+    map_res(take_while(is_header_name), std::str::from_utf8).parse(i)
 }
 
 #[inline]
 fn header_value(i: &[u8]) -> IResult<&[u8], &str> {
-    map_res(parse_header_value, std::str::from_utf8)(i)
+    map_res(parse_header_value, std::str::from_utf8).parse(i)
 }
 
 #[inline]
 fn hcolon(i: &[u8]) -> IResult<&[u8], char> {
-    delimited(take_while(is_space), char(':'), take_while(is_space))(i)
+    delimited(take_while(|c: u8| c.is_space()), char(':'), take_while(|c: u8| c.is_space())).parse(i)
 }
 
 fn message_header(i: &[u8]) -> IResult<&[u8], Header> {
-    let (i, n) = map(header_name, expand_header_name)(i)?;
+    let (i, n) = map(header_name, expand_header_name).parse(i)?;
     let (i, _) = hcolon(i)?;
     let (i, v) = header_value(i)?;
-    let (i, _) = crlf(i)?;
+    let (i, _) = crlf.parse(i)?;
     Ok((
         i,
         Header {
@@ -230,14 +229,14 @@ fn message_header(i: &[u8]) -> IResult<&[u8], Header> {
 }
 
 pub fn sip_take_line(i: &[u8]) -> IResult<&[u8], Option<String>> {
-    let (i, line) = map_res(take_while1(is_reason_phrase), std::str::from_utf8)(i)?;
+    let (i, line) = map_res(take_while1(is_reason_phrase), std::str::from_utf8).parse(i)?;
     Ok((i, Some(line.into())))
 }
 
 pub fn parse_headers(mut input: &[u8]) -> IResult<&[u8], HashMap<String, Vec<String>>> {
     let mut headers_map: HashMap<String, Vec<String>> = HashMap::new();
     loop {
-        match crlf(input) as IResult<&[u8], _> {
+        match crlf.parse(input) as IResult<&[u8], _> {
             Ok((_, _)) => {
                 break;
             }
