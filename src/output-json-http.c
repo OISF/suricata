@@ -238,14 +238,12 @@ static void EveHttpLogJSONBasic(SCJsonBuilder *js, htp_tx_t *tx)
     if (htp_tx_response_headers(tx) != NULL) {
         const htp_header_t *h_content_type = htp_tx_response_header(tx, "content-type");
         if (h_content_type != NULL) {
-            const size_t size = htp_header_value_len(h_content_type) * 2 + 1;
-            char string[size];
-            BytesToStringBuffer(htp_header_value_ptr(h_content_type),
-                    htp_header_value_len(h_content_type), string, size);
-            char *p = strchr(string, ';');
+            uint32_t len = (uint32_t)htp_header_value_len(h_content_type);
+            const uint8_t *p = memchr(htp_header_value_ptr(h_content_type), ';', len);
             if (p != NULL)
-                *p = '\0';
-            SCJbSetString(js, "http_content_type", string);
+                len = (uint32_t)(p - htp_header_value_ptr(h_content_type));
+            SCJbSetStringFromBytes(
+                    js, "http_content_type", htp_header_value_ptr(h_content_type), len);
         }
         const htp_header_t *h_content_range = htp_tx_response_header(tx, "content-range");
         if (h_content_range != NULL) {
