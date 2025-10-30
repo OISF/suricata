@@ -527,6 +527,52 @@ impl JsonBuilder {
         }
     }
 
+    /// Set a key with a string value taking only ascii-printable bytes.
+    /// Non-printable characters are replaced by a dot `.`, except
+    /// CR and LF which are escaped the regular json way \r and \n
+    pub fn set_print_ascii(&mut self, key: &str, val: &[u8]) -> Result<&mut Self, JsonError> {
+        match self.current_state() {
+            State::ObjectNth => {
+                self.push(',')?;
+            }
+            State::ObjectFirst => {
+                self.set_state(State::ObjectNth);
+            }
+            _ => {
+                debug_validate_fail!("invalid state");
+                return Err(JsonError::InvalidState);
+            }
+        }
+        self.push('"')?;
+        self.push_str(key)?;
+        self.push_str("\":\"")?;
+        for &x in val.iter() {
+            match x {
+                b'\r' => {
+                    self.push_str("\\r")?;
+                }
+                b'\n'=> {
+                    self.push_str("\\n")?;
+                }
+                b'"'=> {
+                    self.push_str("\\\"")?;
+                }
+                b'\\'=> {
+                    self.push_str("\\\\")?;
+                }
+                _ => {
+                    if !x.is_ascii() || x.is_ascii_control()  {
+                        self.push('.')?;
+                    } else {
+                        self.push(x as char)?;
+                    }
+                }
+            }
+        }
+        self.push('"')?;
+        Ok(self)
+    }
+
     /// Set a key and a string value (from bytes) on an object, with a limited size
     pub fn set_string_from_bytes_limited(&mut self, key: &str, val: &[u8], limit: usize) -> Result<&mut Self, JsonError> {
         let mut valtrunc = Vec::new();
@@ -880,6 +926,20 @@ pub unsafe extern "C" fn jb_set_string_from_bytes(
     if let Ok(key) = CStr::from_ptr(key).to_str() {
         let val = std::slice::from_raw_parts(bytes, len as usize);
         return js.set_string_from_bytes(key, val).is_ok();
+    }
+    return false;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCJbSetPrintAsciiString(
+    js: &mut JsonBuilder, key: *const c_char, bytes: *const u8, len: u32,
+) -> bool {
+    if bytes.is_null() || len == 0 {
+        return false;
+    }
+    if let Ok(key) = CStr::from_ptr(key).to_str() {
+        let val = std::slice::from_raw_parts(bytes, len as usize);
+        return js.set_print_ascii(key, val).is_ok();
     }
     return false;
 }

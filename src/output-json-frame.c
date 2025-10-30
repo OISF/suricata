@@ -202,11 +202,7 @@ static void FrameAddPayloadTCP(Flow *f, const TcpSession *ssn, const TcpStream *
 
     if (cbd.payload->offset) {
         jb_set_base64(jb, "payload", cbd.payload->buffer, cbd.payload->offset);
-        uint8_t printable_buf[cbd.payload->offset + 1];
-        uint32_t offset = 0;
-        PrintStringsToBuffer(printable_buf, &offset, sizeof(printable_buf), cbd.payload->buffer,
-                cbd.payload->offset);
-        jb_set_string(jb, "payload_printable", (char *)printable_buf);
+        SCJbSetPrintAsciiString(jb, "payload_printable", cbd.payload->buffer, cbd.payload->offset);
         jb_set_bool(jb, "complete", complete);
     }
 }
@@ -235,11 +231,7 @@ static void FrameAddPayloadUDP(JsonBuilder *js, const Packet *p, const Frame *fr
     const uint32_t log_data_len = MIN(data_len, 256);
     jb_set_base64(js, "payload", data, log_data_len);
 
-    uint8_t printable_buf[log_data_len + 1];
-    uint32_t o = 0;
-    PrintStringsToBuffer(printable_buf, &o, log_data_len + 1, data, log_data_len);
-    printable_buf[log_data_len] = '\0';
-    jb_set_string(js, "payload_printable", (char *)printable_buf);
+    SCJbSetPrintAsciiString(js, "payload_printable", data, log_data_len);
 #if 0
     char pretty_buf[data_len * 4 + 1];
     pretty_buf[0] = '\0';
