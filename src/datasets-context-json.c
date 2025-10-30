@@ -110,6 +110,10 @@ static json_t *GetSubObjectByKey(json_t *json, const char *key)
     if (!json || !key || !json_is_object(json)) {
         return NULL;
     }
+    if (strlen(key) > SIG_JSON_CONTENT_KEY_LEN) {
+        DEBUG_VALIDATE_BUG_ON(strlen(key) > SIG_JSON_CONTENT_KEY_LEN);
+        return NULL;
+    }
 
     const char *current_key = key;
     json_t *current = json;
