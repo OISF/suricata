@@ -134,7 +134,10 @@ static int FlowbitOrAddData(DetectEngineCtx *de_ctx, DetectFlowbitsData *cd, cha
     if (unlikely(cd->or_list == NULL))
         return -1;
     for (uint8_t j = 0; j < cd->or_list_size ; j++) {
-        cd->or_list[j] = VarNameStoreRegister(strarr[j], VAR_TYPE_FLOW_BIT);
+        uint32_t varname_id = VarNameStoreRegister(strarr[j], VAR_TYPE_FLOW_BIT);
+        if (unlikely(varname_id == 0))
+            return -1;
+        cd->or_list[j] = varname_id;
         de_ctx->max_fb_id = MAX(cd->or_list[j], de_ctx->max_fb_id);
     }
 
@@ -349,7 +352,10 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
         }
         cd->cmd = fb_cmd;
     } else {
-        cd->idx = VarNameStoreRegister(fb_name, VAR_TYPE_FLOW_BIT);
+        uint32_t varname_id = VarNameStoreRegister(fb_name, VAR_TYPE_FLOW_BIT);
+        if (unlikely(varname_id == 0))
+            goto error;
+        cd->idx = varname_id;
         de_ctx->max_fb_id = MAX(cd->idx, de_ctx->max_fb_id);
         cd->cmd = fb_cmd;
         cd->or_list_size = 0;
@@ -1610,6 +1616,7 @@ static int FlowBitsTestSig06(void)
     FAIL_IF_NULL(s);
 
     idx = VarNameStoreRegister("myflow", VAR_TYPE_FLOW_BIT);
+    FAIL_IF_NOT(idx);
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
@@ -1684,6 +1691,7 @@ static int FlowBitsTestSig07(void)
     FAIL_IF_NULL(s);
 
     idx = VarNameStoreRegister("myflow", VAR_TYPE_FLOW_BIT);
+    FAIL_IF_NOT(idx);
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
@@ -1759,6 +1767,7 @@ static int FlowBitsTestSig08(void)
     FAIL_IF_NULL(s);
 
     idx = VarNameStoreRegister("myflow", VAR_TYPE_FLOW_BIT);
+    FAIL_IF_NOT(idx);
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
