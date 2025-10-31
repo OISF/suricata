@@ -118,6 +118,8 @@ are:
 - ``drop-packet``: drop the packet.
 - ``reject``: same as ``drop-flow``, but reject the current packet as well (see
   ``reject`` action in Rule's :ref:`actions`).
+- ``reject-both``: same as ``reject``, except that it sends reject packets to both the
+  source and destination addresses.
 - ``bypass``: bypass the flow. No further decoding or parsing is done. :ref:`Bypass
   <bypass>` may be offloaded.
 - ``pass-flow``: disable payload and packet detection; stream reassembly,
@@ -153,7 +155,7 @@ midstream pick-ups enabled or not and the various exception policy values:
    * - Drop-packet
      - Not valid.*
      - Not valid.*
-   * - Reject
+   * - Reject / Reject-both
      - Not valid.*
      - Session not tracked, flow REJECTED.
    * - Pass-flow
@@ -192,7 +194,7 @@ whole flow.
    * - Drop-packet
      - Not valid.*
      - Not valid.*
-   * - Reject
+   * - Reject / Reject-both
      - Not valid.*
      - Session not tracked, flow DROPPED and REJECTED.
    * - Pass-flow
