@@ -147,7 +147,10 @@ static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
 
     cd->content = content;
     cd->content_len = len;
-    cd->id = VarNameStoreRegister(varname, VAR_TYPE_PKT_VAR);
+    uint32_t varname_id = VarNameStoreRegister(varname, VAR_TYPE_PKT_VAR);
+    if (unlikely(varname_id == 0))
+        goto error;
+    cd->id = varname_id;
     pcre2_substring_free((PCRE2_UCHAR8 *)varname);
 
     /* Okay so far so good, lets get this into a SigMatch
@@ -161,6 +164,9 @@ static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     return 0;
 
 error:
+    if (cd != NULL) {
+        SCFree(cd);
+    }
     if (match) {
         pcre2_match_data_free(match);
     }
