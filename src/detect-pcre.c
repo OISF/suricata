@@ -1059,7 +1059,7 @@ static int g_dce_stub_data_buffer_id = 0;
  */
 static int DetectPcreParseTest01 (void)
 {
-    int result = 1;
+
     DetectPcreData *pd = NULL;
     const char *teststring = "/blah/7";
     int list = DETECT_SM_LIST_NOTSET;
@@ -1071,7 +1071,7 @@ static int DetectPcreParseTest01 (void)
     FAIL_IF_NOT_NULL(pd);
 
     DetectEngineCtxFree(de_ctx);
-    return result;
+    PASS;
 }
 
 /**
@@ -1079,7 +1079,7 @@ static int DetectPcreParseTest01 (void)
  */
 static int DetectPcreParseTest02 (void)
 {
-    int result = 1;
+    
     DetectPcreData *pd = NULL;
     const char *teststring = "/blah/Ui$";
     int list = DETECT_SM_LIST_NOTSET;
@@ -1092,7 +1092,7 @@ static int DetectPcreParseTest02 (void)
     FAIL_IF_NOT(alproto == ALPROTO_HTTP1);
 
     DetectEngineCtxFree(de_ctx);
-    return result;
+    PASS;
 }
 
 /**
@@ -1100,7 +1100,7 @@ static int DetectPcreParseTest02 (void)
  */
 static int DetectPcreParseTest03 (void)
 {
-    int result = 1;
+    
     DetectPcreData *pd = NULL;
     const char *teststring = "/blah/UNi";
     int list = DETECT_SM_LIST_NOTSET;
@@ -1112,7 +1112,7 @@ static int DetectPcreParseTest03 (void)
     FAIL_IF_NOT_NULL(pd);
 
     DetectEngineCtxFree(de_ctx);
-    return result;
+    PASS;
 }
 
 /**
@@ -1120,7 +1120,6 @@ static int DetectPcreParseTest03 (void)
  */
 static int DetectPcreParseTest04 (void)
 {
-    int result = 1;
     DetectPcreData *pd = NULL;
     const char *teststring = "/b\\\"lah/i";
     int list = DETECT_SM_LIST_NOTSET;
@@ -1134,7 +1133,7 @@ static int DetectPcreParseTest04 (void)
 
     DetectPcreFree(de_ctx, pd);
     DetectEngineCtxFree(de_ctx);
-    return result;
+    PASS;
 }
 
 /**
@@ -1142,7 +1141,6 @@ static int DetectPcreParseTest04 (void)
  */
 static int DetectPcreParseTest05 (void)
 {
-    int result = 1;
     DetectPcreData *pd = NULL;
     const char *teststring = "/b(l|a)h/";
     int list = DETECT_SM_LIST_NOTSET;
@@ -1156,7 +1154,7 @@ static int DetectPcreParseTest05 (void)
 
     DetectPcreFree(de_ctx, pd);
     DetectEngineCtxFree(de_ctx);
-    return result;
+    PASS;
 }
 
 /**
@@ -1164,7 +1162,6 @@ static int DetectPcreParseTest05 (void)
  */
 static int DetectPcreParseTest06 (void)
 {
-    int result = 1;
     DetectPcreData *pd = NULL;
     const char *teststring = "/b(l|a)h/smi";
     int list = DETECT_SM_LIST_NOTSET;
@@ -1178,7 +1175,7 @@ static int DetectPcreParseTest06 (void)
 
     DetectPcreFree(de_ctx, pd);
     DetectEngineCtxFree(de_ctx);
-    return result;
+    PASS;
 }
 
 /**
@@ -1186,7 +1183,7 @@ static int DetectPcreParseTest06 (void)
  */
 static int DetectPcreParseTest07 (void)
 {
-    int result = 1;
+    
     DetectPcreData *pd = NULL;
     const char *teststring = "/blah/Ui";
     int list = DETECT_SM_LIST_NOTSET;
@@ -1200,7 +1197,7 @@ static int DetectPcreParseTest07 (void)
 
     DetectPcreFree(de_ctx, pd);
     DetectEngineCtxFree(de_ctx);
-    return result;
+    PASS;
 }
 
 /**
@@ -1208,7 +1205,7 @@ static int DetectPcreParseTest07 (void)
  */
 static int DetectPcreParseTest08 (void)
 {
-    int result = 1;
+    
     DetectPcreData *pd = NULL;
     const char *teststring = "/b(l|a)h/O";
     int list = DETECT_SM_LIST_NOTSET;
@@ -1222,7 +1219,7 @@ static int DetectPcreParseTest08 (void)
 
     DetectPcreFree(de_ctx, pd);
     DetectEngineCtxFree(de_ctx);
-    return result;
+    PASS;
 }
 
 /**
@@ -1292,10 +1289,8 @@ static int DetectPcreParseTest15(void)
                                "http_method; pcre:\"/abc/RM\"; sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
     PASS;
 }
 
@@ -1315,10 +1310,8 @@ static int DetectPcreParseTest16(void)
                                "http_cookie; pcre:\"/abc/RC\"; sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
     PASS;
 }
 
@@ -1337,10 +1330,8 @@ static int DetectPcreParseTest17(void)
                                "http_raw_header; pcre:\"/abc/RD\"; sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
     PASS;
 }
 
@@ -1359,10 +1350,8 @@ static int DetectPcreParseTest18(void)
                                "http_header; pcre:\"/abc/RH\"; sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
     PASS;
 }
 
@@ -1381,10 +1370,8 @@ static int DetectPcreParseTest19(void)
                                "http_client_body; pcre:\"/abc/RP\"; sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
     PASS;
 }
 
@@ -1403,10 +1390,8 @@ static int DetectPcreParseTest20(void)
                                "http_raw_uri; pcre:\"/abc/RI\"; sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
     PASS;
 }
 
@@ -1425,10 +1410,8 @@ static int DetectPcreParseTest21(void)
                                "pcre:\"/abc/RU\"; sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
     PASS;
 }
 
@@ -1447,10 +1430,8 @@ static int DetectPcreParseTest22(void)
                                "http_uri; pcre:\"/abc/RU\"; sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
     PASS;
 }
 
@@ -1469,10 +1450,8 @@ static int DetectPcreParseTest23(void)
                                "http_cookie; pcre:\"/abc/RM\"; sid:1;)");
     FAIL_IF_NOT_NULL(de_ctx->sig_list);
 
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
     PASS;
 }
 
@@ -1490,10 +1469,8 @@ static int DetectPcreParseTest24(void)
                                "pcre:\"/abc/UI\"; sid:1;)");
     FAIL_IF_NOT_NULL(de_ctx->sig_list);
 
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
     PASS;
 }
 
@@ -1511,10 +1488,8 @@ static int DetectPcreParseTest25(void)
                                "pcre:\"/abc/DH\"; sid:1;)");
     FAIL_IF_NOT_NULL(de_ctx->sig_list);
 
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
     PASS;
 }
 
@@ -1532,10 +1507,8 @@ static int DetectPcreParseTest26(void)
                                "pcre:\"/abc/F\"; sid:1;)");
     FAIL_IF_NOT_NULL(de_ctx->sig_list);
 
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
     PASS;
 }
 
@@ -1552,10 +1525,8 @@ static int DetectPcreParseTest27(void)
             "pcre:\"/^[a-z]{5}\\.html/R\"; sid:2; rev:2;)");
     FAIL_IF_NOT(de_ctx->sig_list == NULL);
 
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
     PASS;
 }
 
@@ -1581,19 +1552,14 @@ static int DetectPcreTestSig01(void)
     uint8_t *buf = (uint8_t *)"lalala lalala\\ lala\n";
     uint16_t buflen = strlen((char *)buf);
     Packet *p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
-    int result = 0;
+    FAIL_IF_NULL(p);
 
     char sig[] = "alert tcp any any -> any any (msg:\"pcre with an ending slash\"; pcre:\"/ "
                  "lalala\\\\/\"; sid:1;)";
-    if (UTHPacketMatchSig(p, sig) == 0) {
-        result = 0;
-        goto end;
-    }
-    result = 1;
-end:
-    if (p != NULL)
-        UTHFreePacket(p);
-    return result;
+    FAIL_IF(UTHPacketMatchSig(p, sig) == 0) 
+    
+    UTHFreePacket(p);
+    PASS
 }
 
 /** \test anchored pcre */
@@ -1602,13 +1568,13 @@ static int DetectPcreTestSig02(void)
     uint8_t *buf = (uint8_t *)"lalala\n";
     uint16_t buflen = strlen((char *)buf);
     Packet *p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
+    FAIL_IF_NULL(p);
 
     char sig[] = "alert tcp any any -> any any (msg:\"pcre with an ending slash\"; "
                  "pcre:\"/^(la)+$/\"; sid:1;)";
     FAIL_IF(UTHPacketMatchSig(p, sig) == 0);
 
-    if (p != NULL)
-        UTHFreePacket(p);
+    UTHFreePacket(p);
     PASS;
 }
 
@@ -1619,13 +1585,13 @@ static int DetectPcreTestSig03(void)
     uint8_t *buf = (uint8_t *)"lalala";
     uint16_t buflen = strlen((char *)buf);
     Packet *p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
+    FAIL_IF_NULL(p);
 
     char sig[] = "alert tcp any any -> any any (msg:\"pcre with an ending slash\"; "
                  "pcre:\"/^(la)+$/\"; sid:1;)";
     FAIL_IF(UTHPacketMatchSig(p, sig) == 0);
 
-    if (p != NULL)
-        UTHFreePacket(p);
+    UTHFreePacket(p);
     PASS;
 }
 
