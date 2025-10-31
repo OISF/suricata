@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -178,7 +178,10 @@ static int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char
     fd->name = SCStrdup(varname);
     if (unlikely(fd->name == NULL))
         goto error;
-    fd->idx = VarNameStoreRegister(varname, VAR_TYPE_FLOW_VAR);
+    uint32_t varname_id = VarNameStoreRegister(varname, VAR_TYPE_FLOW_VAR);
+    if (unlikely(varname_id == 0))
+        goto error;
+    fd->idx = varname_id;
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */

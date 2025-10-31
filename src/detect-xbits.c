@@ -378,7 +378,10 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
     if (unlikely(cd == NULL))
         return -1;
 
-    cd->idx = VarNameStoreRegister(fb_name, var_type);
+    uint32_t varname_id = VarNameStoreRegister(fb_name, var_type);
+    if (unlikely(varname_id == 0))
+        goto error;
+    cd->idx = varname_id;
     cd->cmd = fb_cmd;
     cd->tracker = hb_dir;
     cd->type = var_type;
@@ -389,6 +392,12 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
 
     *cdout = cd;
     return 0;
+
+error:
+    if (cd != NULL) {
+        SCFree(cd);
+    }
+    return -1;
 }
 
 int DetectXbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
