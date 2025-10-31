@@ -926,7 +926,7 @@ static int AFPReadFromRing(AFPThreadVars *ptv)
         if (unlikely(AFPShouldIgnoreFrame(ptv, sll)))
             goto next_frame;
 
-        Packet *p = PacketGetFromQueueOrAlloc();
+        Packet *p = PacketGetFromQueueOrAlloc(ptv->tv);
         if (p == NULL) {
             return AFPSuriFailure(ptv, h);
         }
@@ -956,7 +956,7 @@ static inline void AFPFlushBlock(struct tpacket_block_desc *pbd)
 
 static inline int AFPParsePacketV3(AFPThreadVars *ptv, struct tpacket_block_desc *pbd, struct tpacket3_hdr *ppd)
 {
-    Packet *p = PacketGetFromQueueOrAlloc();
+    Packet *p = PacketGetFromQueueOrAlloc(ptv->tv);
     if (p == NULL) {
         SCReturnInt(AFP_SURI_FAILURE);
     }
@@ -1387,7 +1387,7 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
 
         /* make sure we have at least one packet in the packet pool, to prevent
          * us from alloc'ing packets at line rate */
-        PacketPoolWait();
+        PacketPoolWait(tv);
 
         StatsIncr(ptv->tv, ptv->capture_afp_poll);
 

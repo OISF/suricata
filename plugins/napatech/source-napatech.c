@@ -847,7 +847,7 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
     while (!(suricata_ctl_flags & SURICATA_STOP)) {
         /* make sure we have at least one packet in the packet pool, to prevent
          * us from alloc'ing packets at line rate */
-        PacketPoolWait();
+        PacketPoolWait(tv);
 
         /* Napatech returns packets 1 at a time */
         status = NT_NetRxGet(ntv->rx_stream, &packet_buffer, 1000);
@@ -863,7 +863,7 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
             break;
         }
 
-        Packet *p = PacketGetFromQueueOrAlloc();
+        Packet *p = PacketGetFromQueueOrAlloc(tv);
         if (unlikely(p == NULL)) {
             NT_NetRxRelease(ntv->rx_stream, packet_buffer);
             SCReturnInt(TM_ECODE_FAILED);

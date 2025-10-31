@@ -37,6 +37,7 @@
 #include "flow-hash.h"
 #include "util-print.h"
 #include "util-validate.h"
+#include "tmqh-packetpool.h"
 
 /**
  * \brief Function to decode IPv4 in IPv6 packets
@@ -768,6 +769,7 @@ static int DecodeIPV6FragTest01 (void)
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
+    PacketPoolInit(&tv);
 
     PacketCopyData(p1, raw_frag1, sizeof(raw_frag1));
     PacketCopyData(p2, raw_frag2, sizeof(raw_frag2));
@@ -805,6 +807,7 @@ end:
     }
     DefragDestroy();
     FlowShutdown();
+    PacketPoolDestroy(&tv);
     return result;
 }
 

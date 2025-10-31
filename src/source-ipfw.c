@@ -281,9 +281,9 @@ TmEcode ReceiveIPFWLoop(ThreadVars *tv, void *data, void *slot)
 
         /* make sure we have at least one packet in the packet pool, to prevent
          * us from alloc'ing packets at line rate */
-        PacketPoolWait();
+        PacketPoolWait(tv);
 
-        p = PacketGetFromQueueOrAlloc();
+        p = PacketGetFromQueueOrAlloc(tv);
         if (p == NULL) {
             SCReturnInt(TM_ECODE_FAILED);
         }

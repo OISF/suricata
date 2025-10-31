@@ -261,10 +261,10 @@ error:
     return NULL;
 }
 
-Packet *FlowPseudoPacketGet(int direction, Flow *f, const TcpSession *ssn)
+Packet *FlowPseudoPacketGet(ThreadVars *tv, int direction, Flow *f, const TcpSession *ssn)
 {
-    PacketPoolWait();
-    Packet *p = PacketPoolGetPacket();
+    PacketPoolWait(tv);
+    Packet *p = PacketPoolGetPacket(tv);
     if (p == NULL) {
         return NULL;
     }

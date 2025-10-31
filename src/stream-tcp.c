@@ -6855,7 +6855,7 @@ static void StreamTcpPseudoPacketCreateDetectLogFlush(ThreadVars *tv,
         SCReturn;
     }
 
-    Packet *np = PacketPoolGetPacket();
+    Packet *np = PacketPoolGetPacket(tv);
     if (np == NULL) {
         SCReturn;
     }

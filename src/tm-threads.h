@@ -221,7 +221,7 @@ static inline void TmThreadsCaptureInjectPacket(ThreadVars *tv, Packet *p)
 {
     TmThreadsUnsetFlag(tv, THV_CAPTURE_INJECT_PKT);
     if (p == NULL)
-        p = PacketGetFromQueueOrAlloc();
+        p = PacketGetFromQueueOrAlloc(tv);
     if (p != NULL) {
         p->flags |= PKT_PSEUDO_STREAM_END;
         PKT_SET_SRC(p, PKT_SRC_CAPTURE_TIMEOUT);

@@ -151,7 +151,7 @@ static int NFLOGCallback(struct nflog_g_handle *gh, struct nfgenmsg *msg,
     int ret;
 
     /* grab a packet*/
-    Packet *p = PacketGetFromQueueOrAlloc();
+    Packet *p = PacketGetFromQueueOrAlloc(ntv->tv);
     if (p == NULL)
         return -1;
 

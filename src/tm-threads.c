@@ -214,7 +214,7 @@ static bool TmThreadsSlotPktAcqLoopInit(ThreadVars *tv)
         TmThreadSetupOptions(tv);
 
     CaptureStatsSetup(tv);
-    PacketPoolInit();
+    PacketPoolInit(tv);
 
     for (TmSlot *slot = s; slot != NULL; slot = slot->slot_next) {
         if (slot->SlotThreadInit != NULL) {
@@ -285,7 +285,7 @@ bool SCTmThreadsSlotPacketLoopFinish(ThreadVars *tv)
     TmThreadsSetFlag(tv, THV_RUNNING_DONE);
     TmThreadWaitForFlag(tv, THV_DEINIT);
 
-    PacketPoolDestroy();
+    PacketPoolDestroy(tv);
 
     for (TmSlot *slot = s; slot != NULL; slot = slot->slot_next) {
         if (slot->SlotThreadExitPrintStats != NULL) {
@@ -381,6 +381,7 @@ bool TmThreadsWaitForUnpause(ThreadVars *tv)
 static void *TmThreadsLib(void *td)
 {
     ThreadVars *tv = (ThreadVars *)td;
+
     TmSlot *s = tv->tm_slots;
 
     /* check if we are setup properly */
@@ -410,12 +411,13 @@ error:
 static void *TmThreadsSlotVar(void *td)
 {
     ThreadVars *tv = (ThreadVars *)td;
+
     TmSlot *s = (TmSlot *)tv->tm_slots;
     Packet *p = NULL;
     TmEcode r = TM_ECODE_OK;
 
     CaptureStatsSetup(tv);
-    PacketPoolInit();//Empty();
+    PacketPoolInit(tv); // Empty();
 
     SCSetThreadName(tv->name);
 
@@ -493,7 +495,7 @@ static void *TmThreadsSlotVar(void *td)
         /* if we didn't get a packet see if we need to do some housekeeping */
         if (unlikely(p == NULL)) {
             if (tv->flow_queue && SC_ATOMIC_GET(tv->flow_queue->non_empty)) {
-                p = PacketGetFromQueueOrAlloc();
+                p = PacketGetFromQueueOrAlloc(tv);
                 if (p != NULL) {
                     p->flags |= PKT_PSEUDO_STREAM_END;
                     PKT_SET_SRC(p, PKT_SRC_CAPTURE_TIMEOUT);
@@ -538,6 +540,7 @@ error:
 static void *TmThreadsManagement(void *td)
 {
     ThreadVars *tv = (ThreadVars *)td;
+
     TmSlot *s = (TmSlot *)tv->tm_slots;
     TmEcode r = TM_ECODE_OK;
 

@@ -37,6 +37,7 @@
 #include "defrag.h"
 #include "flow.h"
 #include "util-print.h"
+#include "tmqh-packetpool.h"
 
 /* Generic validation
  *
@@ -1293,6 +1294,7 @@ static int DecodeIPV4DefragTest01(void)
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
+    PacketPoolInit(&tv);
 
     FlowInitConfig(FLOW_QUIET);
     DefragInit();
@@ -1327,6 +1329,7 @@ static int DecodeIPV4DefragTest01(void)
     PacketRecycle(p);
     FlowShutdown();
     PacketFree(p);
+    PacketPoolDestroy(&tv);
     PASS;
 }
 
@@ -1389,6 +1392,7 @@ static int DecodeIPV4DefragTest02(void)
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
+    PacketPoolInit(&tv);
 
     FlowInitConfig(FLOW_QUIET);
     DefragInit();
@@ -1424,6 +1428,7 @@ static int DecodeIPV4DefragTest02(void)
     PacketRecycle(p);
     FlowShutdown();
     PacketFree(p);
+    PacketPoolDestroy(&tv);
     PASS;
 }
 
@@ -1480,6 +1485,7 @@ static int DecodeIPV4DefragTest03(void)
     DecodeThreadVars dtv;
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
+    PacketPoolInit(&tv);
 
     FlowInitConfig(FLOW_QUIET);
     DefragInit();
@@ -1524,6 +1530,7 @@ static int DecodeIPV4DefragTest03(void)
     PacketRecycle(p);
     FlowShutdown();
     PacketFree(p);
+    PacketPoolDestroy(&tv);
     PASS;
 }
 

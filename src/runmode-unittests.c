@@ -277,13 +277,20 @@ void RunUnittests(int list_unittests, const char *regex_arg)
     if (list_unittests) {
         UtListTests(regex_arg);
     } else {
+        /* Create a minimal ThreadVars for unit test packet pool */
+        ThreadVars unittest_tv;
+        memset(&unittest_tv, 0, sizeof(unittest_tv));
+        strlcpy(unittest_tv.name, "unittest", sizeof(unittest_tv.name));
+        unittest_tv.t = pthread_self();
+        unittest_tv.id = 1;
+
         /* global packet pool */
         extern uint32_t max_pending_packets;
         max_pending_packets = 128;
-        PacketPoolInit();
+        PacketPoolInit(&unittest_tv);
 
         uint32_t failed = UtRunTests(regex_arg);
-        PacketPoolDestroy();
+        PacketPoolDestroy(&unittest_tv);
         UtCleanup();
 #ifdef BUILD_HYPERSCAN
         MpmHSGlobalCleanup();

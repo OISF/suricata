@@ -41,6 +41,11 @@ typedef struct PktPoolLockedStack_{
 } __attribute__((aligned(CLS))) PktPoolLockedStack;
 
 typedef struct PktPool_ {
+    /* Back-reference to the ThreadVars that owns this pool.
+     * Used for multi-instance support and debugging.
+     * Set once at pool creation, never modified. */
+    ThreadVars *tv;
+
     /* link listed of free packets local to this thread.
      * No mutex is needed.
      */
@@ -76,11 +81,11 @@ Packet *TmqhInputPacketpool(ThreadVars *);
 void TmqhOutputPacketpool(ThreadVars *, Packet *);
 void TmqhReleasePacketsToPacketPool(PacketQueue *);
 void TmqhPacketpoolRegister(void);
-Packet *PacketPoolGetPacket(void);
-void PacketPoolWait(void);
+Packet *PacketPoolGetPacket(ThreadVars *);
+void PacketPoolWait(ThreadVars *);
 void PacketPoolReturnPacket(Packet *p);
-void PacketPoolInit(void);
-void PacketPoolDestroy(void);
+void PacketPoolInit(ThreadVars *);
+void PacketPoolDestroy(ThreadVars *);
 void PacketPoolPostRunmodes(void);
 
 #endif /* SURICATA_TMQH_PACKETPOOL_H */

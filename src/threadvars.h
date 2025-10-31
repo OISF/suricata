@@ -31,6 +31,7 @@
 #include "util-storage.h"
 
 struct TmSlot_;
+struct PktPool_;
 
 /** Thread flags set and read by threads to control the threads */
 // bit 0 vacant
@@ -138,6 +139,9 @@ typedef struct ThreadVars_ {
 
     /** Interface-specific thread affinity */
     char *iface_name;
+
+    /** Packet pool for this thread */
+    struct PktPool_ *pkt_pool;
 
     Storage storage[];
 } ThreadVars;
