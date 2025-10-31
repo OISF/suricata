@@ -395,7 +395,10 @@ int DetectHostbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     if (unlikely(cd == NULL))
         goto error;
 
-    cd->idx = VarNameStoreRegister(fb_name, VAR_TYPE_HOST_BIT);
+    uint32_t varname_id = VarNameStoreRegister(fb_name, VAR_TYPE_HOST_BIT);
+    if (unlikely(varname_id == 0))
+        goto error;
+    cd->idx = varname_id;
     cd->cmd = fb_cmd;
     cd->tracker = hb_dir;
     cd->type = VAR_TYPE_HOST_BIT;
