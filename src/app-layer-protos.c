@@ -25,6 +25,7 @@
 #include "suricata-common.h"
 #include "app-layer-protos.h"
 #include "rust.h"
+#include "app-layer-parser.h"
 
 AppProto g_alproto_max = ALPROTO_MAX_STATIC;
 #define ARRAY_CAP_STEP 16
@@ -97,6 +98,7 @@ void AppProtoRegisterProtoString(AppProto alproto, const char *proto_name)
             g_alproto_strings = tmp;
         }
         g_alproto_max++;
+        SCAppLayerParserReallocCtx(alproto);
     }
     g_alproto_strings[alproto].str = proto_name;
     g_alproto_strings[alproto].alproto = alproto;
