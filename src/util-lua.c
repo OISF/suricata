@@ -328,22 +328,7 @@ void LuaPrintStack(lua_State *state) {
 
 int LuaPushStringBuffer(lua_State *luastate, const uint8_t *input, size_t input_len)
 {
-    if (input_len % 4 != 0) {
-        /* we're using a buffer sized at a multiple of 4 as lua_pushlstring generates
-         * invalid read errors in valgrind otherwise. Adding in a nul to be sure.
-         *
-         * Buffer size = len + 1 (for nul) + whatever makes it a multiple of 4 */
-        size_t buflen = input_len + 1 + ((input_len + 1) % 4);
-        uint8_t buf[buflen];
-        memset(buf, 0x00, buflen);
-        memcpy(buf, input, input_len);
-        buf[input_len] = '\0';
-
-        /* return value through luastate, as a luastring */
-        lua_pushlstring(luastate, (char *)buf, input_len);
-    } else {
-        lua_pushlstring(luastate, (char *)input, input_len);
-    }
+    lua_pushlstring(luastate, (char *)input, input_len);
     return 1;
 }
 
