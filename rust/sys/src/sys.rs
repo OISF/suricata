@@ -702,6 +702,9 @@ extern "C" {
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {
+    pub fn SCAppLayerParserReallocCtx(alproto: AppProto) -> ::std::os::raw::c_int;
+}
+extern "C" {
     pub fn SCAppLayerParserRegisterParserAcceptableDataDirection(
         ipproto: u8, alproto: AppProto, direction: u8,
     );
