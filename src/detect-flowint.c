@@ -334,7 +334,10 @@ static DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx, const char
         SCLogError("malloc from strdup failed");
         goto error;
     }
-    sfd->idx = VarNameStoreRegister(varname, VAR_TYPE_FLOW_INT);
+    uint32_t varname_id = VarNameStoreRegister(varname, VAR_TYPE_FLOW_INT);
+    if (unlikely(varname_id == 0))
+        goto error;
+    sfd->idx = varname_id;
     SCLogDebug("sfd->name %s id %u", sfd->name, sfd->idx);
     sfd->modifier = modifier;
 
