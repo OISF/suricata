@@ -58,6 +58,15 @@ bool PacketCheckAction(const Packet *p, const uint8_t a)
     }
 }
 
+uint8_t PacketGetAction(const Packet *p)
+{
+    if (likely(p->root == NULL)) {
+        return p->action;
+    } else {
+        return p->action | p->root->action;
+    }
+}
+
 /**
  *  \brief Initialize a packet structure for use.
  */
