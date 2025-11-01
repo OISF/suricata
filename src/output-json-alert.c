@@ -650,7 +650,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
     for (int i = 0; i < p->alerts.cnt; i++) {
         const PacketAlert *pa = &p->alerts.alerts[i];
-        if (unlikely(pa->s == NULL)) {
+        if (unlikely(pa->s == NULL || (pa->action & ACTION_ALERT) == 0)) {
             continue;
         }
 
@@ -815,7 +815,7 @@ static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const 
 
     for (int i = 0; i < p->alerts.cnt; i++) {
         const PacketAlert *pa = &p->alerts.alerts[i];
-        if (unlikely(pa->s == NULL)) {
+        if (unlikely(pa->s == NULL || (pa->action & ACTION_ALERT) == 0)) {
             continue;
         }
 

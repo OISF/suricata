@@ -24,7 +24,7 @@
 
 #include "suricata-common.h"
 #include "output-lua.h"
-
+#include "action-globals.h"
 #include "util-lua-builtins.h"
 #include "util-debug.h"
 #include "output.h"
@@ -194,7 +194,7 @@ static int LuaPacketLoggerAlerts(ThreadVars *tv, void *thread_data, const Packet
     uint16_t cnt;
     for (cnt = 0; cnt < p->alerts.cnt; cnt++) {
         const PacketAlert *pa = &p->alerts.alerts[cnt];
-        if (unlikely(pa->s == NULL)) {
+        if (unlikely((pa->s == NULL) || (pa->action & ACTION_ALERT) == 0)) {
             continue;
         }
 

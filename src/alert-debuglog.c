@@ -24,6 +24,7 @@
 #include "suricata-common.h"
 #include "suricata.h"
 
+#include "action-globals.h"
 #include "detect.h"
 #include "flow.h"
 #include "conf.h"
@@ -243,7 +244,7 @@ static TmEcode AlertDebugLogger(ThreadVars *tv, const Packet *p, void *thread_da
 
     for (i = 0; i < p->alerts.cnt; i++) {
         const PacketAlert *pa = &p->alerts.alerts[i];
-        if (unlikely(pa->s == NULL)) {
+        if (unlikely(pa->s == NULL || (pa->action & ACTION_ALERT) == 0)) {
             continue;
         }
 
@@ -337,7 +338,7 @@ static TmEcode AlertDebugLogDecoderEvent(ThreadVars *tv, const Packet *p, void *
 
     for (i = 0; i < p->alerts.cnt; i++) {
         const PacketAlert *pa = &p->alerts.alerts[i];
-        if (unlikely(pa->s == NULL)) {
+        if (unlikely(pa->s == NULL || (pa->action & ACTION_ALERT) == 0)) {
             continue;
         }
 
