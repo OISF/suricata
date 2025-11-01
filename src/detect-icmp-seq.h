@@ -24,10 +24,6 @@
 #ifndef SURICATA_DETECT_ICMP_SEQ_H
 #define SURICATA_DETECT_ICMP_SEQ_H
 
-typedef struct DetectIcmpSeqData_ {
-    uint16_t seq; /**< sequence value in network byte order */
-} DetectIcmpSeqData;
-
 /* prototypes */
 void DetectIcmpSeqRegister(void);
 

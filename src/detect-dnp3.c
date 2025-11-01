@@ -40,61 +40,10 @@ static int g_dnp3_ind_buffer_id = 0;
  * The detection struct.
  */
 typedef struct DetectDNP3_ {
-    union {
-        struct {
-            /* Function code for function code detection. */
-            uint8_t  function_code;
-        };
-        struct {
-            /* Object info for object detection. */
-            uint8_t  obj_group;
-            uint8_t  obj_variation;
-        };
-    };
+    /* Object info for object detection. */
+    uint8_t obj_group;
+    uint8_t obj_variation;
 } DetectDNP3;
-
-/**
- * Application function code name to code mappings (Snort compatible).
- */
-DNP3Mapping DNP3FunctionNameMap[] = {
-    {"confirm",              0},
-    {"read",                 1},
-    {"write",                2},
-    {"select",               3},
-    {"operate",              4},
-    {"direct_operate",       5},
-    {"direct_operate_nr",    6},
-    {"immed_freeze",         7},
-    {"immed_freeze_nr",      8},
-    {"freeze_clear",         9},
-    {"freeze_clear_nr",      10},
-    {"freeze_at_time",       11},
-    {"freeze_at_time_nr",    12},
-    {"cold_restart",         13},
-    {"warm_restart",         14},
-    {"initialize_data",      15},
-    {"initialize_appl",      16},
-    {"start_appl",           17},
-    {"stop_appl",            18},
-    {"save_config",          19},
-    {"enable_unsolicited",   20},
-    {"disable_unsolicited",  21},
-    {"assign_class",         22},
-    {"delay_measure",        23},
-    {"record_current_time",  24},
-    {"open_file",            25},
-    {"close_file",           26},
-    {"delete_file",          27},
-    {"get_file_info",        28},
-    {"authenticate_file",    29},
-    {"abort_file",           30},
-    {"activate_config",      31},
-    {"authenticate_req",     32},
-    {"authenticate_err",     33},
-    {"response",             129},
-    {"unsolicited_response", 130},
-    {"authenticate_resp",    131}
-};
 
 #ifdef UNITTESTS
 static void DetectDNP3FuncRegisterTests(void);
@@ -128,64 +77,33 @@ static InspectionBuffer *GetDNP3Data(DetectEngineThreadCtx *det_ctx,
     return buffer;
 }
 
-/**
- * \brief Parse the provided function name or code to its integer
- *     value.
- *
- * If the value passed is a number, it will be checked that it falls
- * within the range of valid function codes.  If function name is
- * passed it will be resolved to its function code.
- *
- * \retval The function code as an integer if successful, -1 on
- *     failure.
- */
-static int DetectDNP3FuncParseFunctionCode(const char *str, uint8_t *fc)
+static void DetectDNP3FuncFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    if (StringParseUint8(fc, 10, (uint16_t)strlen(str), str) > 0) {
-        return 1;
-    }
-
-    /* Lookup by name. */
-    for (size_t i = 0;
-            i < sizeof(DNP3FunctionNameMap) / sizeof(DNP3Mapping); i++) {
-        if (strcasecmp(str, DNP3FunctionNameMap[i].name) == 0) {
-            *fc = (uint8_t)(DNP3FunctionNameMap[i].value);
-            return 1;
-        }
-    }
-
-    return 0;
+    SCDetectU8Free(ptr);
 }
 
 static int DetectDNP3FuncSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     SCEnter();
-    DetectDNP3 *dnp3 = NULL;
-    uint8_t function_code;
 
     if (SCDetectSignatureSetAppProto(s, ALPROTO_DNP3) != 0)
         return -1;
 
-    if (!DetectDNP3FuncParseFunctionCode(str, &function_code)) {
+    DetectU8Data *detect = SCDnp3DetectFuncParse(str);
+    if (detect == NULL) {
         SCLogError("Invalid argument \"%s\" supplied to dnp3_func keyword.", str);
         return -1;
     }
 
-    dnp3 = SCCalloc(1, sizeof(DetectDNP3));
-    if (unlikely(dnp3 == NULL)) {
-        goto error;
-    }
-    dnp3->function_code = function_code;
-
-    if (SCSigMatchAppendSMToList(
-                de_ctx, s, DETECT_DNP3FUNC, (SigMatchCtx *)dnp3, g_dnp3_match_buffer_id) == NULL) {
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_DNP3FUNC, (SigMatchCtx *)detect,
+                g_dnp3_match_buffer_id) == NULL) {
         goto error;
     }
 
     SCReturnInt(0);
 error:
-    if (dnp3 != NULL) {
-        SCFree(dnp3);
+    if (detect != NULL) {
+        DetectDNP3FuncFree(NULL, detect);
     }
     SCReturnInt(-1);
 }
@@ -302,16 +220,15 @@ static int DetectDNP3FuncMatch(DetectEngineThreadCtx *det_ctx,
     const SigMatchCtx *ctx)
 {
     DNP3Transaction *tx = (DNP3Transaction *)txv;
-    DetectDNP3 *detect = (DetectDNP3 *)ctx;
-    int match = 0;
+    DetectU8Data *detect = (DetectU8Data *)ctx;
 
     if (flags & STREAM_TOSERVER && tx->is_request) {
-        match = detect->function_code == tx->ah.function_code;
+        return DetectU8Match(tx->ah.function_code, detect);
     } else if (flags & STREAM_TOCLIENT && !tx->is_request) {
-        match = detect->function_code == tx->ah.function_code;
+        return DetectU8Match(tx->ah.function_code, detect);
     }
 
-    return match;
+    return 0;
 }
 
 static int DetectDNP3ObjMatch(DetectEngineThreadCtx *det_ctx,
@@ -363,7 +280,8 @@ static void DetectDNP3FuncRegister(void)
     sigmatch_table[DETECT_DNP3FUNC].Match = NULL;
     sigmatch_table[DETECT_DNP3FUNC].AppLayerTxMatch = DetectDNP3FuncMatch;
     sigmatch_table[DETECT_DNP3FUNC].Setup = DetectDNP3FuncSetup;
-    sigmatch_table[DETECT_DNP3FUNC].Free = DetectDNP3Free;
+    sigmatch_table[DETECT_DNP3FUNC].Free = DetectDNP3FuncFree;
+    sigmatch_table[DETECT_DNP3FUNC].flags = SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_ENUM_UINT;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_DNP3FUNC].RegisterTests = DetectDNP3FuncRegisterTests;
 #endif
@@ -472,39 +390,6 @@ void DetectDNP3Register(void)
 #include "flow-util.h"
 #include "stream-tcp.h"
 
-static int DetectDNP3FuncParseFunctionCodeTest(void)
-{
-    uint8_t fc;
-
-    /* Valid. */
-    FAIL_IF_NOT(DetectDNP3FuncParseFunctionCode("0", &fc));
-    FAIL_IF(fc != 0);
-
-    FAIL_IF_NOT(DetectDNP3FuncParseFunctionCode("1", &fc));
-    FAIL_IF(fc != 1);
-
-    FAIL_IF_NOT(DetectDNP3FuncParseFunctionCode("254", &fc));
-    FAIL_IF(fc != 254);
-
-    FAIL_IF_NOT(DetectDNP3FuncParseFunctionCode("255", &fc));
-    FAIL_IF(fc != 255);
-
-    FAIL_IF_NOT(DetectDNP3FuncParseFunctionCode("confirm", &fc));
-    FAIL_IF(fc != 0);
-
-    FAIL_IF_NOT(DetectDNP3FuncParseFunctionCode("CONFIRM", &fc));
-    FAIL_IF(fc != 0);
-
-    /* Invalid. */
-    FAIL_IF(DetectDNP3FuncParseFunctionCode("", &fc));
-    FAIL_IF(DetectDNP3FuncParseFunctionCode("-1", &fc));
-    FAIL_IF(DetectDNP3FuncParseFunctionCode("-2", &fc));
-    FAIL_IF(DetectDNP3FuncParseFunctionCode("256", &fc));
-    FAIL_IF(DetectDNP3FuncParseFunctionCode("unknown_function_code", &fc));
-
-    PASS;
-}
-
 static int DetectDNP3FuncTest01(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -519,8 +404,8 @@ static int DetectDNP3FuncTest01(void)
     FAIL_IF_NULL(sm);
     FAIL_IF_NULL(sm->ctx);
 
-    DetectDNP3 *dnp3func = (DetectDNP3 *)sm->ctx;
-    FAIL_IF(dnp3func->function_code != 2);
+    DetectU8Data *dnp3func = (DetectU8Data *)sm->ctx;
+    FAIL_IF(dnp3func->arg1 != 2);
 
     DetectEngineCtxFree(de_ctx);
     PASS;
@@ -568,8 +453,6 @@ static int DetectDNP3ObjParseTest(void)
 
 static void DetectDNP3FuncRegisterTests(void)
 {
-    UtRegisterTest("DetectDNP3FuncParseFunctionCodeTest",
-                   DetectDNP3FuncParseFunctionCodeTest);
     UtRegisterTest("DetectDNP3FuncTest01", DetectDNP3FuncTest01);
 }
 
