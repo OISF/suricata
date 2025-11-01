@@ -164,7 +164,7 @@ static int DropLogJSON(ThreadVars *tv, JsonDropLogThread *aft, const Packet *p)
     SCJbClose(js);
 
     if (aft->drop_ctx->flags & LOG_DROP_VERDICT) {
-        EveAddVerdict(js, p);
+        EveAddVerdict(js, p, 0);
     }
 
     if (aft->drop_ctx->flags & LOG_DROP_ALERTS) {

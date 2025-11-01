@@ -535,13 +535,15 @@ static void AlertAddFrame(
  * \brief    Build verdict object
  *
  * \param p  Pointer to Packet current being logged
- *
+ * \param alert_action action bitfield from the alert: only used for ACTION_PASS
  */
-void EveAddVerdict(SCJsonBuilder *jb, const Packet *p)
+void EveAddVerdict(SCJsonBuilder *jb, const Packet *p, const uint8_t alert_action)
 {
     SCJbOpenObject(jb, "verdict");
 
     const uint8_t packet_action = PacketGetAction(p);
+    SCLogDebug("%" PRIu64 ": packet_action %02x alert_action %02x", p->pcap_cnt, packet_action,
+            alert_action);
     /* add verdict info */
     if (packet_action & ACTION_REJECT_ANY) {
         // check rule to define type of reject packet sent
@@ -574,7 +576,7 @@ void EveAddVerdict(SCJsonBuilder *jb, const Packet *p)
         JB_SET_STRING(jb, "action", "drop");
     } else if (packet_action & ACTION_ACCEPT) {
         JB_SET_STRING(jb, "action", "accept");
-    } else if (p->alerts.alerts[p->alerts.cnt].action & ACTION_PASS) {
+    } else if (alert_action & ACTION_PASS) {
         JB_SET_STRING(jb, "action", "pass");
     } else {
         // TODO make sure we don't have a situation where this wouldn't work
@@ -648,6 +650,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
     if (p->alerts.cnt == 0 && !(p->flags & PKT_HAS_TAG))
         return TM_ECODE_OK;
 
+    const uint8_t final_action = p->alerts.cnt > 0 ? p->alerts.alerts[p->alerts.cnt - 1].action : 0;
     for (int i = 0; i < p->alerts.cnt; i++) {
         const PacketAlert *pa = &p->alerts.alerts[i];
         if (unlikely(pa->s == NULL || (pa->action & ACTION_ALERT) == 0)) {
@@ -785,7 +788,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         }
 
         if (json_output_ctx->flags & LOG_JSON_VERDICT) {
-            EveAddVerdict(jb, p);
+            EveAddVerdict(jb, p, final_action & ACTION_PASS);
         }
 
         OutputJsonBuilderBuffer(tv, p, p->flow, jb, aft->ctx);
@@ -813,6 +816,7 @@ static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const 
     if (p->alerts.cnt == 0)
         return TM_ECODE_OK;
 
+    const uint8_t final_action = p->alerts.alerts[p->alerts.cnt - 1].action;
     for (int i = 0; i < p->alerts.cnt; i++) {
         const PacketAlert *pa = &p->alerts.alerts[i];
         if (unlikely(pa->s == NULL || (pa->action & ACTION_ALERT) == 0)) {
@@ -841,7 +845,7 @@ static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const 
         }
 
         if (json_output_ctx->flags & LOG_JSON_VERDICT) {
-            EveAddVerdict(jb, p);
+            EveAddVerdict(jb, p, final_action & ACTION_PASS);
         }
 
         OutputJsonBuilderBuffer(tv, p, p->flow, jb, aft->ctx);
