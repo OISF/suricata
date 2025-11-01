@@ -185,7 +185,7 @@ int LiveGetDeviceCountWithoutAssignedThreading(void)
     LiveDevice *pd;
 
     TAILQ_FOREACH (pd, &live_devices, next) {
-        if (GetAffinityTypeForNameAndIface("worker-cpu-set", pd->dev) == NULL) {
+        if (AffinityTypeGetByIfaceOrCpuset("worker-cpu-set", pd->dev) == NULL) {
             i++;
         }
     }
@@ -360,6 +360,8 @@ int LiveDeviceListClean(void)
         SCFree(pd);
     }
 
+    // set the list to NULL
+    TAILQ_INIT(&live_devices);
     SCReturnInt(TM_ECODE_OK);
 }
 
@@ -471,6 +473,9 @@ void LiveDeviceFinalize(void)
         }
         SCFree(ld);
     }
+
+    // set the list to NULL
+    TAILQ_INIT(&pre_live_devices);
 }
 
 static void LiveDevExtensionFree(void *x)
