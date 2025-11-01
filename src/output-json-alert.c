@@ -702,7 +702,12 @@ void EveAddVerdict(JsonBuilder *jb, const Packet *p)
 
     } else if (PacketCheckAction(p, ACTION_DROP) && EngineModeIsIPS()) {
         JB_SET_STRING(jb, "action", "drop");
-    } else if (p->alerts.alerts[p->alerts.cnt].action & ACTION_PASS) {
+    } else if (p->alerts.cnt == 0 ||
+               (p->alerts.cnt <= packet_alert_max &&
+                       (p->alerts.alerts[p->alerts.cnt - 1].action &
+                               (ACTION_PASS | ACTION_ALERT)) == (ACTION_PASS | ACTION_ALERT)) ||
+               (p->alerts.cnt < packet_alert_max &&
+                       p->alerts.alerts[p->alerts.cnt].action & ACTION_PASS)) {
         JB_SET_STRING(jb, "action", "pass");
     } else {
         // TODO make sure we don't have a situation where this wouldn't work
