@@ -113,6 +113,8 @@
         (f)->sgh_toclient = NULL;                                                                  \
         SCGenericVarFree((f)->flowvar);                                                            \
         (f)->flowvar = NULL;                                                                       \
+        SCFree((f)->translate);                                                                    \
+        (f)->translate = NULL;                                                                     \
         RESET_COUNTERS((f));                                                                       \
     } while (0)
 
@@ -122,6 +124,7 @@
                                                                                                    \
         FLOWLOCK_DESTROY((f));                                                                     \
         SCGenericVarFree((f)->flowvar);                                                            \
+        SCFree((f)->translate);                                                                    \
     } while (0)
 
 /** \brief check if a memory alloc would fit in the memcap
