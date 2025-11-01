@@ -8,7 +8,7 @@ if HAVE_PYTHON
 
 install-exec-local:
 	install -d -m 0755 "$(DESTDIR)$(prefix)/lib/suricata/python/suricata/config"
-	install suricata/config/defaults.py \
+	install -m 0644 suricata/config/defaults.py \
 		"$(DESTDIR)$(prefix)/lib/suricata/python/suricata/config/defaults.py"
 
 uninstall-local:
