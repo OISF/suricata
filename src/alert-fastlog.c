@@ -151,7 +151,7 @@ int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p)
     }
     for (i = 0; i < p->alerts.cnt; i++) {
         const PacketAlert *pa = &p->alerts.alerts[i];
-        if (unlikely(pa->s == NULL)) {
+        if (unlikely(pa->s == NULL || (pa->action & ACTION_ALERT) == 0)) {
             continue;
         }
 

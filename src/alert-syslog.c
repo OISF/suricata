@@ -221,7 +221,7 @@ static TmEcode AlertSyslogIPv4(ThreadVars *tv, const Packet *p, void *data)
 
     for (int i = 0; i < p->alerts.cnt; i++) {
         const PacketAlert *pa = &p->alerts.alerts[i];
-        if (unlikely(pa->s == NULL)) {
+        if (unlikely(pa->s == NULL || (pa->action & ACTION_ALERT) == 0)) {
             continue;
         }
 
@@ -277,7 +277,7 @@ static TmEcode AlertSyslogIPv6(ThreadVars *tv, const Packet *p, void *data)
 
     for (int i = 0; i < p->alerts.cnt; i++) {
         const PacketAlert *pa = &p->alerts.alerts[i];
-        if (unlikely(pa->s == NULL)) {
+        if (unlikely(pa->s == NULL || (pa->action & ACTION_ALERT) == 0)) {
             continue;
         }
 
@@ -324,7 +324,7 @@ static TmEcode AlertSyslogDecoderEvent(ThreadVars *tv, const Packet *p, void *da
 
     for (int i = 0; i < p->alerts.cnt; i++) {
         const PacketAlert *pa = &p->alerts.alerts[i];
-        if (unlikely(pa->s == NULL)) {
+        if (unlikely(pa->s == NULL || (pa->action & ACTION_ALERT) == 0)) {
             continue;
         }
 

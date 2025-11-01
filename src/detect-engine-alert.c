@@ -465,6 +465,7 @@ static inline void PacketAlertFinalizeProcessQueue(
                 have_fw_rules ? AlertQueueSortHelperFirewall : AlertQueueSortHelper);
     }
 
+    bool alerted = false;
     bool dropped = false;
     bool skip_td = false;
     for (uint16_t i = 0; i < det_ctx->alert_queue_size; i++) {
@@ -532,20 +533,13 @@ static inline void PacketAlertFinalizeProcessQueue(
             /* we will not copy this to the AlertQueue */
             p->alerts.suppressed++;
         } else if (p->alerts.cnt < packet_alert_max) {
-            p->alerts.alerts[p->alerts.cnt] = *pa;
-            SCLogDebug("Appending sid %" PRIu32 " alert to Packet::alerts at pos %u", s->id, i);
+            p->alerts.alerts[p->alerts.cnt++] = *pa;
+            SCLogDebug("appending sid %" PRIu32 " alert to Packet::alerts at pos %u; action:%02x",
+                    s->id, i, pa->action);
 
-            /* pass w/o alert found, we're done. Alert is not logged. */
-            if ((pa->action & (ACTION_PASS | ACTION_ALERT)) == ACTION_PASS) {
-                SCLogDebug("sid:%u: is a pass rule, so break out of loop", s->id);
-                if (!have_fw_rules)
-                    break;
-                SCLogDebug("skipping td");
-                skip_td = true;
-                continue;
+            if (pa->action & ACTION_ALERT) {
+                alerted = true;
             }
-            p->alerts.cnt++;
-
             /* pass with alert, we're done. Alert is logged. */
             if (pa->action & ACTION_PASS) {
                 SCLogDebug("sid:%u: is a pass rule, so break out of loop", s->id);
@@ -562,6 +556,15 @@ static inline void PacketAlertFinalizeProcessQueue(
             }
         } else {
             p->alerts.discarded++;
+        }
+    }
+
+    /* Set flag on flow to indicate that it has alerts. We use the bool to
+     * exclude pass-only entries in `Packet::alerts` */
+    if (alerted && p->flow != NULL) {
+        if (!FlowHasAlerts(p->flow)) {
+            FlowSetHasAlertsFlag(p->flow);
+            p->flags |= PKT_FIRST_ALERTS;
         }
     }
 }
@@ -589,14 +592,6 @@ void PacketAlertFinalize(const DetectEngineCtx *de_ctx, DetectEngineThreadCtx *d
      * keyword context for sessions and hosts */
     if (!(p->flags & PKT_PSEUDO_STREAM_END))
         TagHandlePacket(de_ctx, det_ctx, p);
-
-    /* Set flag on flow to indicate that it has alerts */
-    if (p->flow != NULL && p->alerts.cnt > 0) {
-        if (!FlowHasAlerts(p->flow)) {
-            FlowSetHasAlertsFlag(p->flow);
-            p->flags |= PKT_FIRST_ALERTS;
-        }
-    }
 }
 
 #ifdef UNITTESTS
