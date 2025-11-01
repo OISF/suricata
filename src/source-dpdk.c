@@ -42,6 +42,7 @@
 #include "tmqh-packetpool.h"
 #include "util-privs.h"
 #include "util-device-private.h"
+#include "util-dpdk-rte-flow.h"
 #include "action-globals.h"
 
 #ifndef HAVE_DPDK
@@ -115,6 +116,7 @@ typedef struct DPDKThreadVars_ {
     LiveDevice *livedev;
     ChecksumValidationMode checksum_mode;
     bool intr_enabled;
+    bool port_stopped;
     /* references to packet and drop counters */
     uint16_t capture_dpdk_packets;
     uint16_t capture_dpdk_rx_errs;
@@ -122,6 +124,7 @@ typedef struct DPDKThreadVars_ {
     uint16_t capture_dpdk_rx_no_mbufs;
     uint16_t capture_dpdk_ierrors;
     uint16_t capture_dpdk_tx_errs;
+    uint16_t capture_dpdk_rte_flow_filtered;
     unsigned int flags;
     uint16_t threads;
     /* for IPS */
@@ -191,7 +194,8 @@ static inline void DPDKFreeMbufArray(
     }
 }
 
-static void DevicePostStartPMDSpecificActions(DPDKThreadVars *ptv, const char *driver_name)
+static int DevicePostStartPMDSpecificActions(
+        DPDKThreadVars *ptv, DPDKIfaceConfig *dpdk_config, const char *driver_name)
 {
     if (strcmp(driver_name, "net_bonding") == 0)
         driver_name = BondingDeviceDriverGet(ptv->port_id);
@@ -203,6 +207,16 @@ static void DevicePostStartPMDSpecificActions(DPDKThreadVars *ptv, const char *d
         iceDeviceSetRSS(ptv->port_id, ptv->threads, ptv->livedev->dev);
     else if (strcmp(driver_name, "mlx5_pci") == 0)
         mlx5DeviceSetRSS(ptv->port_id, ptv->threads, ptv->livedev->dev);
+
+    if ((strcmp(driver_name, "mlx5_pci") == 0 || strcmp(driver_name, "net_ice") == 0 ||
+                strcmp(driver_name, "net_i40e") == 0)) {
+        int retval =
+                RteFlowRulesCreate(dpdk_config->port_id, &dpdk_config->drop_filter, driver_name);
+        if (retval != 0)
+            SCReturnInt(retval);
+        ptv->livedev->dpdk_vars->drop_filter = &dpdk_config->drop_filter;
+    }
+    SCReturnInt(0);
 }
 
 static void DevicePreClosePMDSpecificActions(DPDKThreadVars *ptv, const char *driver_name)
@@ -289,6 +303,16 @@ static inline void DPDKDumpCounters(DPDKThreadVars *ptv)
         if (unlikely(retval != 0)) {
             SCLogError("%s: failed to get stats: %s", ptv->livedev->dev, rte_strerror(-retval));
             return;
+        }
+
+        if (!ptv->port_stopped) {
+            uint64_t filtered_packets = 0;
+            filtered_packets =
+                    RteFlowFilteredPacketsQuery(ptv->livedev->dpdk_vars->drop_filter->rule_handlers,
+                            ptv->livedev->dpdk_vars->drop_filter->rule_cnt, ptv->livedev->dev,
+                            ptv->port_id);
+            if (retval == 0)
+                StatsSetUI64(ptv->tv, ptv->capture_dpdk_rte_flow_filtered, filtered_packets);
         }
 
         StatsSetUI64(ptv->tv, ptv->capture_dpdk_packets,
@@ -488,6 +512,8 @@ static void HandleShutdown(DPDKThreadVars *ptv)
     while (SC_ATOMIC_GET(ptv->workers_sync->worker_checked_in) < ptv->workers_sync->worker_cnt) {
         rte_delay_us(10);
     }
+
+    DPDKDumpCounters(ptv);
     if (ptv->queue_id == 0) {
         rte_delay_us(20); // wait for all threads to get out of the sync loop
         SC_ATOMIC_SET(ptv->workers_sync->worker_checked_in, 0);
@@ -500,8 +526,8 @@ static void HandleShutdown(DPDKThreadVars *ptv)
             // in IDS we stop our port - no peer threads are running
             rte_eth_dev_stop(ptv->port_id);
         }
+        ptv->port_stopped = true;
     }
-    DPDKDumpCounters(ptv);
 }
 
 static void PeriodicDPDKDumpCounters(DPDKThreadVars *ptv)
@@ -600,12 +626,15 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
     ptv->capture_dpdk_imissed = StatsRegisterCounter("capture.dpdk.imissed", ptv->tv);
     ptv->capture_dpdk_rx_no_mbufs = StatsRegisterCounter("capture.dpdk.no_mbufs", ptv->tv);
     ptv->capture_dpdk_ierrors = StatsRegisterCounter("capture.dpdk.ierrors", ptv->tv);
+    ptv->capture_dpdk_rte_flow_filtered =
+            StatsRegisterCounter("capture.dpdk.rte_flow_filtered", ptv->tv);
 
     ptv->copy_mode = dpdk_config->copy_mode;
     ptv->checksum_mode = dpdk_config->checksum_mode;
 
     ptv->threads = dpdk_config->threads;
     ptv->intr_enabled = (dpdk_config->flags & DPDK_IRQ_MODE) ? true : false;
+    ptv->port_stopped = false;
     ptv->port_id = dpdk_config->port_id;
     ptv->out_port_id = dpdk_config->out_port_id;
     ptv->port_socket_id = dpdk_config->socket_id;
@@ -678,8 +707,11 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
             SCLogWarning("%s: link is down, trying to continue anyway", dpdk_config->iface);
         }
 
-        // some PMDs requires additional actions only after the device has started
-        DevicePostStartPMDSpecificActions(ptv, dev_info.driver_name);
+        /* some PMDs requires additional actions only after the device has started */
+        retval = DevicePostStartPMDSpecificActions(ptv, dpdk_config, dev_info.driver_name);
+        if (retval != 0) {
+            goto fail;
+        }
 
         uint16_t inconsistent_numa_cnt = SC_ATOMIC_GET(dpdk_config->inconsistent_numa_cnt);
         if (inconsistent_numa_cnt > 0 && ptv->port_socket_id != SOCKET_ID_ANY) {
