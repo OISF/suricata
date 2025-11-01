@@ -23,6 +23,7 @@
 
 void PacketDrop(Packet *p, const uint8_t action, enum PacketDropReason r);
 bool PacketCheckAction(const Packet *p, const uint8_t a);
+uint8_t PacketGetAction(const Packet *p);
 
 #ifdef UNITTESTS
 static inline uint8_t PacketTestAction(const Packet *p, const uint8_t a)
