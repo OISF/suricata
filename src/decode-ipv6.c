@@ -605,6 +605,10 @@ int DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *
             IPV6_SET_L4PROTO(p, IPPROTO_GRE);
             DecodeGRE(tv, dtv, p, data, data_len);
             break;
+        case IPPROTO_L2TP:
+            IPV6_SET_L4PROTO(p, IPPROTO_L2TP);
+            DecodeL2TP(tv, dtv, p, data, data_len);
+            break;
         case IPPROTO_FRAGMENT:
         case IPPROTO_HOPOPTS:
         case IPPROTO_ROUTING:

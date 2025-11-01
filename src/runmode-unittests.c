@@ -116,6 +116,7 @@
 #include "decode-vntag.h"
 #include "decode-vxlan.h"
 #include "decode-pppoe.h"
+#include "decode-l2tp.h"
 
 #include "output-json-stats.h"
 
@@ -169,6 +170,7 @@ static void RegisterUnittests(void)
     DecodeESPRegisterTests();
     DecodeMPLSRegisterTests();
     DecodeNSHRegisterTests();
+    DecodeL2TPRegisterTests();
     AppLayerProtoDetectUnittestsRegister();
     SCConfRegisterTests();
     SCConfYamlRegisterTests();
