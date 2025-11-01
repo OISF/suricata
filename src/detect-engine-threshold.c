@@ -630,11 +630,11 @@ static inline void RateFilterSetAction(PacketAlert *pa, uint8_t new_action)
             break;
         case TH_ACTION_DROP:
             pa->flags |= PACKET_ALERT_FLAG_RATE_FILTER_MODIFIED;
-            pa->action = ACTION_DROP;
+            pa->action = (ACTION_DROP | ACTION_ALERT);
             break;
         case TH_ACTION_REJECT:
             pa->flags |= PACKET_ALERT_FLAG_RATE_FILTER_MODIFIED;
-            pa->action = (ACTION_REJECT | ACTION_DROP);
+            pa->action = (ACTION_REJECT | ACTION_DROP | ACTION_ALERT);
             break;
         case TH_ACTION_PASS:
             pa->flags |= PACKET_ALERT_FLAG_RATE_FILTER_MODIFIED;
