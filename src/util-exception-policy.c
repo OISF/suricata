@@ -241,7 +241,7 @@ static enum ExceptionPolicy ExceptionPolicyConfigValueParse(
         policy = EXCEPTION_POLICY_PASS_PACKET;
     } else if (strcmp(value_str, "reject") == 0) {
         policy = EXCEPTION_POLICY_REJECT;
-    } else if (strcmp(value_str, "reject-both") == 0) {
+    } else if (strcmp(value_str, "rejectboth") == 0) {
         policy = EXCEPTION_POLICY_REJECT_BOTH;
     } else if (strcmp(value_str, "ignore") == 0) { // TODO name?
         policy = EXCEPTION_POLICY_NOT_SET;
