@@ -30,6 +30,6 @@
 void JsonAlertLogRegister(void);
 void AlertJsonHeader(const Packet *p, const PacketAlert *pa, SCJsonBuilder *js, uint16_t flags,
         JsonAddrInfo *addr, char *xff_buffer);
-void EveAddVerdict(SCJsonBuilder *jb, const Packet *p);
+void EveAddVerdict(SCJsonBuilder *jb, const Packet *p, const uint8_t alert_action);
 
 #endif /* SURICATA_OUTPUT_JSON_ALERT_H */
