@@ -437,10 +437,10 @@ static TmEcode WinDivertRecvHelper(ThreadVars *tv, WinDivertThreadVars *wd_tv)
     /* make sure we have at least one packet in the packet pool, to prevent us
      * from alloc'ing packets at line rate
      */
-    PacketPoolWait();
+    PacketPoolWait(tv);
 
     /* obtain a packet buffer */
-    Packet *p = PacketGetFromQueueOrAlloc();
+    Packet *p = PacketGetFromQueueOrAlloc(tv);
     if (unlikely(p == NULL)) {
         SCLogDebug(
                 "PacketGetFromQueueOrAlloc() - failed to obtain Packet buffer");

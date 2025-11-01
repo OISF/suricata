@@ -708,7 +708,7 @@ static TmEcode ReceiveAFXDPLoop(ThreadVars *tv, void *data, void *slot)
     // packets)
     TmThreadsSetFlag(tv, THV_RUNNING);
 
-    PacketPoolWait();
+    PacketPoolWait(tv);
     while (1) {
         /* Start by checking the state of our interface */
         if (unlikely(ptv->afxdp_state == AFXDP_STATE_DOWN)) {
@@ -777,7 +777,7 @@ static TmEcode ReceiveAFXDPLoop(ThreadVars *tv, void *data, void *slot)
         gettimeofday(&ts, NULL);
         ptv->pkts += rcvd;
         for (uint32_t i = 0; i < rcvd; i++) {
-            p = PacketGetFromQueueOrAlloc();
+            p = PacketGetFromQueueOrAlloc(ptv->tv);
             if (unlikely(p == NULL)) {
                 StatsIncr(ptv->tv, ptv->capture_afxdp_acquire_pkt_failed);
                 continue;

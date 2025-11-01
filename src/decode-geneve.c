@@ -43,6 +43,7 @@
 #include "pkt-var.h"
 #include "util-profiling.h"
 #include "host.h"
+#include "tmqh-packetpool.h"
 
 #define VALID_GENEVE_VERSIONS                                                                      \
     {                                                                                              \
@@ -301,6 +302,7 @@ static int DecodeGeneveTest01(void)
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
+    PacketPoolInit(&tv);
 
     FlowInitConfig(FLOW_QUIET);
     DecodeUDP(&tv, &dtv, p, raw_geneve, sizeof(raw_geneve));
@@ -315,6 +317,7 @@ static int DecodeGeneveTest01(void)
     FlowShutdown();
     PacketFree(p);
     PacketFree(tp);
+    PacketPoolDestroy(&tv);
     PASS;
 }
 
@@ -343,6 +346,7 @@ static int DecodeGeneveTest02(void)
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
+    PacketPoolInit(&tv);
 
     FlowInitConfig(FLOW_QUIET);
     DecodeUDP(&tv, &dtv, p, raw_geneve, sizeof(raw_geneve));
@@ -357,6 +361,7 @@ static int DecodeGeneveTest02(void)
     FlowShutdown();
     PacketFree(p);
     PacketFree(tp);
+    PacketPoolDestroy(&tv);
     PASS;
 }
 
@@ -390,6 +395,7 @@ static int DecodeGeneveTest03(void)
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
+    PacketPoolInit(&tv);
 
     FlowInitConfig(FLOW_QUIET);
     DecodeUDP(&tv, &dtv, p, raw_geneve, sizeof(raw_geneve));
@@ -404,6 +410,7 @@ static int DecodeGeneveTest03(void)
     FlowShutdown();
     PacketFree(p);
     PacketFree(tp);
+    PacketPoolDestroy(&tv);
     PASS;
 }
 
@@ -434,6 +441,7 @@ static int DecodeGeneveTest04(void)
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
+    PacketPoolInit(&tv);
 
     FlowInitConfig(FLOW_QUIET);
     DecodeUDP(&tv, &dtv, p, raw_geneve, sizeof(raw_geneve));
@@ -444,6 +452,7 @@ static int DecodeGeneveTest04(void)
     DecodeGeneveConfigPorts(GENEVE_DEFAULT_PORT_S); /* Reset Geneve port list for future calls */
     FlowShutdown();
     PacketFree(p);
+    PacketPoolDestroy(&tv);
     PASS;
 }
 
@@ -474,6 +483,7 @@ static int DecodeGeneveTest05(void)
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
+    PacketPoolInit(&tv);
 
     FlowInitConfig(FLOW_QUIET);
     DecodeUDP(&tv, &dtv, p, raw_geneve, sizeof(raw_geneve));
@@ -483,6 +493,7 @@ static int DecodeGeneveTest05(void)
 
     FlowShutdown();
     PacketFree(p);
+    PacketPoolDestroy(&tv);
     PASS;
 }
 #endif /* UNITTESTS */

@@ -750,14 +750,14 @@ static TmEcode FlowManagerThreadInit(ThreadVars *t, const void *initdata, void *
     ftd->counter_defrag_timeout = StatsRegisterCounter("defrag.mgr.tracker_timeout", t);
     ftd->counter_defrag_memuse = StatsRegisterCounter("defrag.memuse", t);
 
-    PacketPoolInit();
+    PacketPoolInit(t);
     return TM_ECODE_OK;
 }
 
 static TmEcode FlowManagerThreadDeinit(ThreadVars *t, void *data)
 {
     StreamTcpThreadCacheCleanup();
-    PacketPoolDestroy();
+    PacketPoolDestroy(t);
     SCFree(data);
     return TM_ECODE_OK;
 }

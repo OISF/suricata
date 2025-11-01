@@ -328,7 +328,7 @@ static void PcapCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt)
     SCEnter();
 
     PcapThreadVars *ptv = (PcapThreadVars *)user;
-    Packet *p = PacketGetFromQueueOrAlloc();
+    Packet *p = PacketGetFromQueueOrAlloc(ptv->tv);
 
     if (unlikely(p == NULL)) {
         SCReturn;
@@ -409,7 +409,7 @@ static TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot)
 
         /* make sure we have at least one packet in the packet pool, to prevent
          * us from alloc'ing packets at line rate */
-        PacketPoolWait();
+        PacketPoolWait(tv);
 
         int r = pcap_dispatch(ptv->pcap_handle, packet_q_len,
                           (pcap_handler)PcapCallbackLoop, (u_char *)ptv);
