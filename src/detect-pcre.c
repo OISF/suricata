@@ -815,21 +815,30 @@ static int DetectPcreParseCapture(const char *regexstr, DetectEngineCtx *de_ctx,
                 return -1;
 
             } else if (strncmp(name_array[name_idx], "flow:", 5) == 0) {
-                pd->capids[pd->idx] =
+                uint32_t varname_id =
                         VarNameStoreRegister(name_array[name_idx] + 5, VAR_TYPE_FLOW_VAR);
+                if (unlikely(varname_id == 0))
+                    return -1;
+                pd->capids[pd->idx] = varname_id;
                 pd->captypes[pd->idx] = VAR_TYPE_FLOW_VAR;
                 pd->idx++;
 
             } else if (strncmp(name_array[name_idx], "pkt:", 4) == 0) {
-                pd->capids[pd->idx] =
+                uint32_t varname_id =
                         VarNameStoreRegister(name_array[name_idx] + 4, VAR_TYPE_PKT_VAR);
+                if (unlikely(varname_id == 0))
+                    return -1;
+                pd->capids[pd->idx] = varname_id;
                 pd->captypes[pd->idx] = VAR_TYPE_PKT_VAR;
                 SCLogDebug("id %u type %u", pd->capids[pd->idx], pd->captypes[pd->idx]);
                 pd->idx++;
 
             } else if (strncmp(name_array[name_idx], "alert:", 6) == 0) {
-                pd->capids[pd->idx] =
+                uint32_t varname_id =
                         VarNameStoreRegister(name_array[name_idx] + 6, VAR_TYPE_ALERT_VAR);
+                if (unlikely(varname_id == 0))
+                    return -1;
+                pd->capids[pd->idx] = varname_id;
                 pd->captypes[pd->idx] = VAR_TYPE_ALERT_VAR;
                 pd->idx++;
 
@@ -890,16 +899,25 @@ static int DetectPcreParseCapture(const char *regexstr, DetectEngineCtx *de_ctx,
         }
 
         if (strcmp(type_str, "pkt") == 0) {
-            pd->capids[pd->idx] = VarNameStoreRegister((char *)capture_str, VAR_TYPE_PKT_VAR);
+            uint32_t varname_id = VarNameStoreRegister((char *)capture_str, VAR_TYPE_PKT_VAR);
+            if (unlikely(varname_id == 0))
+                return -1;
+            pd->capids[pd->idx] = varname_id;
             pd->captypes[pd->idx] = VAR_TYPE_PKT_VAR;
             SCLogDebug("id %u type %u", pd->capids[pd->idx], pd->captypes[pd->idx]);
             pd->idx++;
         } else if (strcmp(type_str, "flow") == 0) {
-            pd->capids[pd->idx] = VarNameStoreRegister((char *)capture_str, VAR_TYPE_FLOW_VAR);
+            uint32_t varname_id = VarNameStoreRegister((char *)capture_str, VAR_TYPE_FLOW_VAR);
+            if (unlikely(varname_id == 0))
+                return -1;
+            pd->capids[pd->idx] = varname_id;
             pd->captypes[pd->idx] = VAR_TYPE_FLOW_VAR;
             pd->idx++;
         } else if (strcmp(type_str, "alert") == 0) {
-            pd->capids[pd->idx] = VarNameStoreRegister((char *)capture_str, VAR_TYPE_ALERT_VAR);
+            uint32_t varname_id = VarNameStoreRegister((char *)capture_str, VAR_TYPE_ALERT_VAR);
+            if (unlikely(varname_id == 0))
+                return -1;
+            pd->capids[pd->idx] = varname_id;
             pd->captypes[pd->idx] = VAR_TYPE_ALERT_VAR;
             pd->idx++;
         }
