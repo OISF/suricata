@@ -27,6 +27,9 @@ use nom7::combinator::verify;
 use nom7::multi::many1_count;
 use nom7::IResult;
 
+use parse_duration::parse;
+use parse_duration::parse::Error;
+
 #[no_mangle]
 pub unsafe extern "C" fn SCCheckUtf8(val: *const c_char) -> bool {
     CStr::from_ptr(val).to_str().is_ok()
@@ -68,6 +71,7 @@ pub unsafe extern "C" fn SCValidateDomain(input: *const u8, in_len: u32) -> u32 
 mod tests {
 
     use super::*;
+    use std::ffi::CString;
 
     #[test]
     fn test_parse_domain() {
@@ -83,5 +87,101 @@ mod tests {
         assert!(parse_domain(buf1).is_err());
         let buf1: &[u8] = "a(x)y.com".as_bytes();
         assert!(parse_domain(buf1).is_err());
+    }
+
+    #[test]
+    fn test_parse_time_valid() {
+        unsafe {
+            let mut v: u64 = 0;
+
+            let s = CString::new("10").unwrap();
+            assert_eq!(SCParseTimeDuration(s.as_ptr(), &mut v as *mut u64), 0);
+            assert_eq!(v, 10);
+
+            let s = CString::new("0").unwrap();
+            assert_eq!(SCParseTimeDuration(s.as_ptr(), &mut v as *mut u64), 0);
+            assert_eq!(v, 0);
+
+            let s = CString::new("2H").unwrap();
+            assert_eq!(SCParseTimeDuration(s.as_ptr(), &mut v as *mut u64), 0);
+            assert_eq!(v, 7200);
+
+            assert_eq!(
+                SCParseTimeDuration(std::ptr::null(), &mut v as *mut u64),
+                -3
+            );
+            assert_eq!(SCParseTimeDuration(s.as_ptr(), std::ptr::null_mut()), -3);
+
+            let s = CString::new("1 day").unwrap();
+            assert_eq!(SCParseTimeDuration(s.as_ptr(), &mut v as *mut u64), 0);
+            assert_eq!(v, 86400);
+
+            let s = CString::new("1w").unwrap();
+            assert_eq!(SCParseTimeDuration(s.as_ptr(), &mut v as *mut u64), 0);
+            assert_eq!(v, 604800);
+
+            let s = CString::new("1 week").unwrap();
+            assert_eq!(SCParseTimeDuration(s.as_ptr(), &mut v as *mut u64), 0);
+            assert_eq!(v, 604800);
+
+            let s = CString::new("1y").unwrap();
+            assert_eq!(SCParseTimeDuration(s.as_ptr(), &mut v as *mut u64), 0);
+            assert_eq!(v, 31556952);
+
+            let s = CString::new("1 year").unwrap();
+            assert_eq!(SCParseTimeDuration(s.as_ptr(), &mut v as *mut u64), 0);
+            assert_eq!(v, 31556952);
+
+            // max
+            let s = CString::new("18446744073709551615").unwrap();
+            assert_eq!(SCParseTimeDuration(s.as_ptr(), &mut v as *mut u64), 0);
+            assert_eq!(v, u64::MAX);
+        }
+    }
+
+    #[test]
+    fn test_parse_time_duration_invalid() {
+        unsafe {
+            let mut v: u64 = 0;
+            let s = CString::new("10q").unwrap();
+            assert_ne!(SCParseTimeDuration(s.as_ptr(), &mut v as *mut u64), 0);
+
+            let s = CString::new("abc").unwrap();
+            assert_ne!(SCParseTimeDuration(s.as_ptr(), &mut v as *mut u64), 0);
+
+            let overflow_years = (u64::MAX / 31556952) + 1;
+            let s = CString::new(format!("{}y", overflow_years)).unwrap();
+            assert_eq!(SCParseTimeDuration(s.as_ptr(), &mut v as *mut u64), -1);
+        }
+    }
+}
+
+/// Reads a C string from `input`, parses it, and writes the result to `*res`.
+/// Returns:
+/// - 0 on success (result written to *res)
+/// - -1 on overflow
+/// - -2 on invalid format
+/// - -3 on NULL pointer
+#[no_mangle]
+pub unsafe extern "C" fn SCParseTimeDuration(input: *const c_char, res: *mut u64) -> i32 {
+    if input.is_null() || res.is_null() {
+        return -3;
+    }
+
+    let input_str = match CStr::from_ptr(input).to_str() {
+        Ok(s) => s,
+        Err(_) => return -2,
+    };
+
+    match parse(input_str) {
+        Ok(duration) => {
+            *res = duration.as_secs();
+            return 0;
+        }
+        Err(Error::OutOfBounds(_)) => return -1,  // Overflow
+        Err(Error::ParseInt(_)) => return -2,     // Invalid number format
+        Err(Error::UnknownUnit(_)) => return -2,  // Unrecognized unit
+        Err(Error::NoUnitFound(_)) => return -2,  // Missing unit when required
+        Err(Error::NoValueFound(_)) => return -2, // Empty or whitespace-only
     }
 }

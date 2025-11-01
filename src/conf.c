@@ -42,6 +42,7 @@
 #include "util-debug.h"
 #include "util-path.h"
 #include "util-conf.h"
+#include "rust.h"
 
 /** Maximum size of a complete domain name. */
 #define NODE_NAME_MAX 1024
@@ -644,6 +645,36 @@ int SCConfGetFloat(const char *name, float *val)
         return 0;
 
     *val = tmpfl;
+    return 1;
+}
+
+/**
+ * \brief Retrieve a configuration value as a time duration in seconds.
+ *
+ * The configuration value is expected to be a string with a number
+ * followed by an optional time-describing unit (e.g. s, seconds, weeks, years).
+ * If no unit is specified, seconds is assumed.
+ *
+ * \param name Name of configuration parameter to get.
+ * \param val Pointer to an uint64_t that will be set the
+ * configuration value in seconds.
+ *
+ * \retval 1 will be returned if the name is found and was properly
+ * converted to a time duration, otherwise 0 will be returned.
+ */
+int SCConfGetTime(const char *name, uint64_t *val)
+{
+    const char *strval = NULL;
+
+    if (SCConfGet(name, &strval) == 0)
+        return 0;
+
+    if (strval == NULL || strval[0] == '\0')
+        return 0;
+
+    if (SCParseTimeDuration(strval, val) != 0)
+        return 0;
+
     return 1;
 }
 
