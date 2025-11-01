@@ -611,7 +611,7 @@ impl MQTTState {
     }
 
     fn mqtt_hdr_and_data_frames(
-        &mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &MQTTMessage,
+        &mut self, flow: *mut Flow, stream_slice: &StreamSlice, input: &MQTTMessage,
     ) {
         let hdr = stream_slice.as_slice();
         //MQTT payload has a fixed header of 2 bytes

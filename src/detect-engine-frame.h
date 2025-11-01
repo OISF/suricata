@@ -22,6 +22,7 @@
  *
  */
 
+#include "rust.h"
 #include "app-layer-frames.h"
 
 void DetectRunPrefilterFrame(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh, Packet *p,

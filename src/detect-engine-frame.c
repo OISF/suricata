@@ -26,6 +26,7 @@
 #include "suricata.h"
 
 #include "app-layer-parser.h"
+#include "rust.h"
 #include "app-layer-frames.h"
 
 #include "detect-engine.h"

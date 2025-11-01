@@ -373,7 +373,7 @@ impl LdapState {
     }
 
     fn parse_request_udp(
-        &mut self, flow: *const Flow, stream_slice: StreamSlice,
+        &mut self, flow: *mut Flow, stream_slice: StreamSlice,
     ) -> AppLayerResult {
         let input = stream_slice.as_slice();
         let _pdu = Frame::new(
@@ -411,7 +411,7 @@ impl LdapState {
     }
 
     fn parse_response_udp(
-        &mut self, flow: *const Flow, stream_slice: StreamSlice,
+        &mut self, flow: *mut Flow, stream_slice: StreamSlice,
     ) -> AppLayerResult {
         let input = stream_slice.as_slice();
         if input.is_empty() {

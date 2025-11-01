@@ -141,7 +141,7 @@ impl SSHState {
 
     fn parse_record(
         &mut self, mut input: &[u8], resp: bool, pstate: *mut AppLayerParserState,
-        flow: *const Flow, stream_slice: &StreamSlice,
+        flow: *mut Flow, stream_slice: &StreamSlice,
     ) -> AppLayerResult {
         let (hdr, ohdr) = if !resp {
             (&mut self.transaction.cli_hdr, &self.transaction.srv_hdr)

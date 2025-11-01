@@ -326,7 +326,7 @@ static int SRepSplitLine(SRepCIDRTree *cidr_ctx, char *line, Address *ip, uint8_
 #define SREP_SHORTNAME_LEN 32
 static char srep_cat_table[SREP_MAX_CATS][SREP_SHORTNAME_LEN];
 
-uint8_t SRepCatGetByShortname(char *shortname)
+uint8_t SCSRepCatGetByShortname(const char *shortname)
 {
     uint8_t cat;
     for (cat = 0; cat < SREP_MAX_CATS; cat++) {

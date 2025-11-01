@@ -1241,7 +1241,7 @@ impl SMBState {
         return consumed;
     }
 
-    fn add_nbss_ts_frames(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) -> (Option<Frame>, Option<Frame>, Option<Frame>) {
+    fn add_nbss_ts_frames(&mut self, flow: *mut Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) -> (Option<Frame>, Option<Frame>, Option<Frame>) {
         let nbss_pdu = Frame::new(flow, stream_slice, input, nbss_len + 4, SMBFrameType::NBSSPdu as u8, None);
         SCLogDebug!("NBSS PDU frame {:?}", nbss_pdu);
         let nbss_hdr_frame = Frame::new(flow, stream_slice, input, 4_i64, SMBFrameType::NBSSHdr as u8, None);
@@ -1251,12 +1251,12 @@ impl SMBState {
         (nbss_pdu, nbss_hdr_frame, nbss_data_frame)
     }
 
-    fn add_smb1_ts_pdu_frame(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) -> Option<Frame> {
+    fn add_smb1_ts_pdu_frame(&mut self, flow: *mut Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) -> Option<Frame> {
         let smb_pdu = Frame::new(flow, stream_slice, input, nbss_len, SMBFrameType::SMB1Pdu as u8, None);
         SCLogDebug!("SMB PDU frame {:?}", smb_pdu);
         smb_pdu
     }
-    fn add_smb1_ts_hdr_data_frames(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) {
+    fn add_smb1_ts_hdr_data_frames(&mut self, flow: *mut Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) {
         let _smb1_hdr = Frame::new(flow, stream_slice, input, 32_i64, SMBFrameType::SMB1Hdr as u8, None);
         SCLogDebug!("SMBv1 HDR frame {:?}", _smb1_hdr);
         if input.len() > 32 {
@@ -1265,12 +1265,12 @@ impl SMBState {
         }
     }
 
-    fn add_smb2_ts_pdu_frame(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) -> Option<Frame> {
+    fn add_smb2_ts_pdu_frame(&mut self, flow: *mut Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) -> Option<Frame> {
         let smb_pdu = Frame::new(flow, stream_slice, input, nbss_len, SMBFrameType::SMB2Pdu as u8, None);
         SCLogDebug!("SMBv2 PDU frame {:?}", smb_pdu);
         smb_pdu
     }
-    fn add_smb2_ts_hdr_data_frames(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64, hdr_len: i64) {
+    fn add_smb2_ts_hdr_data_frames(&mut self, flow: *mut Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64, hdr_len: i64) {
         let _smb2_hdr = Frame::new(flow, stream_slice, input, hdr_len, SMBFrameType::SMB2Hdr as u8, None);
         SCLogDebug!("SMBv2 HDR frame {:?}", _smb2_hdr);
         if input.len() > hdr_len as usize {
@@ -1279,12 +1279,12 @@ impl SMBState {
         }
     }
 
-    fn add_smb3_ts_pdu_frame(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) -> Option<Frame> {
+    fn add_smb3_ts_pdu_frame(&mut self, flow: *mut Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) -> Option<Frame> {
         let smb_pdu = Frame::new(flow, stream_slice, input, nbss_len, SMBFrameType::SMB3Pdu as u8, None);
         SCLogDebug!("SMBv3 PDU frame {:?}", smb_pdu);
         smb_pdu
     }
-    fn add_smb3_ts_hdr_data_frames(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) {
+    fn add_smb3_ts_hdr_data_frames(&mut self, flow: *mut Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) {
         let _smb3_hdr = Frame::new(flow, stream_slice, input, 52_i64, SMBFrameType::SMB3Hdr as u8, None);
         SCLogDebug!("SMBv3 HDR frame {:?}", _smb3_hdr);
         if input.len() > 52 {
@@ -1294,7 +1294,7 @@ impl SMBState {
     }
 
     /// return bytes consumed
-    pub fn parse_tcp_data_ts_partial(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8]) -> usize
+    pub fn parse_tcp_data_ts_partial(&mut self, flow: *mut Flow, stream_slice: &StreamSlice, input: &[u8]) -> usize
     {
         SCLogDebug!("incomplete of size {}", input.len());
         if input.len() < 512 {
@@ -1378,7 +1378,7 @@ impl SMBState {
     }
 
     /// Parsing function, handling TCP chunks fragmentation
-    pub fn parse_tcp_data_ts(&mut self, flow: *const Flow, stream_slice: &StreamSlice) -> AppLayerResult
+    pub fn parse_tcp_data_ts(&mut self, flow: *mut Flow, stream_slice: &StreamSlice) -> AppLayerResult
     {
         let mut cur_i = stream_slice.as_slice();
         let consumed = self.handle_skip(Direction::ToServer, cur_i.len() as u32);
@@ -1577,7 +1577,7 @@ impl SMBState {
         AppLayerResult::ok()
     }
 
-    fn add_nbss_tc_frames(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) -> (Option<Frame>, Option<Frame>, Option<Frame>) {
+    fn add_nbss_tc_frames(&mut self, flow: *mut Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) -> (Option<Frame>, Option<Frame>, Option<Frame>) {
         let nbss_pdu = Frame::new(flow, stream_slice, input, nbss_len + 4, SMBFrameType::NBSSPdu as u8, None);
         SCLogDebug!("NBSS PDU frame {:?}", nbss_pdu);
         let nbss_hdr_frame = Frame::new(flow, stream_slice, input, 4_i64, SMBFrameType::NBSSHdr as u8, None);
@@ -1587,12 +1587,12 @@ impl SMBState {
         (nbss_pdu, nbss_hdr_frame, nbss_data_frame)
     }
 
-    fn add_smb1_tc_pdu_frame(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) -> Option<Frame> {
+    fn add_smb1_tc_pdu_frame(&mut self, flow: *mut Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) -> Option<Frame> {
         let smb_pdu = Frame::new(flow, stream_slice, input, nbss_len, SMBFrameType::SMB1Pdu as u8, None);
         SCLogDebug!("SMB PDU frame {:?}", smb_pdu);
         smb_pdu
     }
-    fn add_smb1_tc_hdr_data_frames(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) {
+    fn add_smb1_tc_hdr_data_frames(&mut self, flow: *mut Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) {
         let _smb1_hdr = Frame::new(flow, stream_slice, input, SMB1_HEADER_SIZE as i64, SMBFrameType::SMB1Hdr as u8, None);
         SCLogDebug!("SMBv1 HDR frame {:?}", _smb1_hdr);
         if input.len() > SMB1_HEADER_SIZE {
@@ -1602,12 +1602,12 @@ impl SMBState {
         }
     }
 
-    fn add_smb2_tc_pdu_frame(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) -> Option<Frame> {
+    fn add_smb2_tc_pdu_frame(&mut self, flow: *mut Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) -> Option<Frame> {
         let smb_pdu = Frame::new(flow, stream_slice, input, nbss_len, SMBFrameType::SMB2Pdu as u8, None);
         SCLogDebug!("SMBv2 PDU frame {:?}", smb_pdu);
         smb_pdu
     }
-    fn add_smb2_tc_hdr_data_frames(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64, hdr_len: i64) {
+    fn add_smb2_tc_hdr_data_frames(&mut self, flow: *mut Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64, hdr_len: i64) {
         let _smb2_hdr = Frame::new(flow, stream_slice, input, hdr_len, SMBFrameType::SMB2Hdr as u8, None);
         SCLogDebug!("SMBv2 HDR frame {:?}", _smb2_hdr);
         if input.len() > hdr_len as usize {
@@ -1616,11 +1616,11 @@ impl SMBState {
         }
     }
 
-    fn add_smb3_tc_pdu_frame(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) {
+    fn add_smb3_tc_pdu_frame(&mut self, flow: *mut Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) {
         let _smb_pdu = Frame::new(flow, stream_slice, input, nbss_len, SMBFrameType::SMB3Pdu as u8, None);
         SCLogDebug!("SMBv3 PDU frame {:?}", _smb_pdu);
     }
-    fn add_smb3_tc_hdr_data_frames(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) {
+    fn add_smb3_tc_hdr_data_frames(&mut self, flow: *mut Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) {
         let _smb3_hdr = Frame::new(flow, stream_slice, input, 52_i64, SMBFrameType::SMB3Hdr as u8, None);
         SCLogDebug!("SMBv3 HDR frame {:?}", _smb3_hdr);
         if input.len() > 52 {
@@ -1630,7 +1630,7 @@ impl SMBState {
     }
 
     /// return bytes consumed
-    pub fn parse_tcp_data_tc_partial(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8]) -> usize
+    pub fn parse_tcp_data_tc_partial(&mut self, flow: *mut Flow, stream_slice: &StreamSlice, input: &[u8]) -> usize
     {
         SCLogDebug!("incomplete of size {}", input.len());
         if input.len() < 512 {
@@ -1715,7 +1715,7 @@ impl SMBState {
     }
 
     /// Parsing function, handling TCP chunks fragmentation
-    pub fn parse_tcp_data_tc(&mut self, flow: *const Flow, stream_slice: &StreamSlice) -> AppLayerResult
+    pub fn parse_tcp_data_tc(&mut self, flow: *mut Flow, stream_slice: &StreamSlice) -> AppLayerResult
     {
         let mut cur_i = stream_slice.as_slice();
         let consumed = self.handle_skip(Direction::ToClient, cur_i.len() as u32);

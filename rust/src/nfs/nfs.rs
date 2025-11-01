@@ -537,7 +537,7 @@ impl NFSState {
     }
 
     fn add_rpc_udp_ts_pdu(
-        &mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], rpc_len: i64,
+        &mut self, flow: *mut Flow, stream_slice: &StreamSlice, input: &[u8], rpc_len: i64,
     ) -> Option<Frame> {
         let rpc_udp_ts_pdu = Frame::new(
             flow,
@@ -552,7 +552,7 @@ impl NFSState {
     }
 
     fn add_rpc_udp_ts_creds(
-        &mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], creds_len: i64,
+        &mut self, flow: *mut Flow, stream_slice: &StreamSlice, input: &[u8], creds_len: i64,
     ) {
         let _rpc_udp_ts_creds = Frame::new(
             flow,
@@ -566,7 +566,7 @@ impl NFSState {
     }
 
     fn add_rpc_tcp_ts_pdu(
-        &mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], rpc_len: i64,
+        &mut self, flow: *mut Flow, stream_slice: &StreamSlice, input: &[u8], rpc_len: i64,
     ) -> Option<Frame> {
         let rpc_tcp_ts_pdu = Frame::new(
             flow,
@@ -581,7 +581,7 @@ impl NFSState {
     }
 
     fn add_rpc_tcp_ts_creds(
-        &mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], creds_len: i64,
+        &mut self, flow: *mut Flow, stream_slice: &StreamSlice, input: &[u8], creds_len: i64,
     ) {
         let _rpc_tcp_ts_creds = Frame::new(
             flow,
@@ -595,7 +595,7 @@ impl NFSState {
     }
 
     fn add_nfs_ts_frame(
-        &mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nfs_len: i64,
+        &mut self, flow: *mut Flow, stream_slice: &StreamSlice, input: &[u8], nfs_len: i64,
     ) {
         let _nfs_req_pdu = Frame::new(
             flow,
@@ -609,7 +609,7 @@ impl NFSState {
     }
 
     fn add_nfs4_ts_frames(
-        &mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nfs4_len: i64,
+        &mut self, flow: *mut Flow, stream_slice: &StreamSlice, input: &[u8], nfs4_len: i64,
     ) {
         let _nfs4_ts_pdu = Frame::new(
             flow,
@@ -643,7 +643,7 @@ impl NFSState {
     }
 
     fn add_rpc_udp_tc_pdu(
-        &mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], rpc_len: i64,
+        &mut self, flow: *mut Flow, stream_slice: &StreamSlice, input: &[u8], rpc_len: i64,
     ) -> Option<Frame> {
         let rpc_udp_tc_pdu = Frame::new(
             flow,
@@ -658,7 +658,7 @@ impl NFSState {
     }
 
     fn add_rpc_udp_tc_frames(
-        &mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], rpc_len: i64,
+        &mut self, flow: *mut Flow, stream_slice: &StreamSlice, input: &[u8], rpc_len: i64,
     ) {
         if rpc_len > 8 {
             let _rpc_udp_tc_hdr = Frame::new(
@@ -683,7 +683,7 @@ impl NFSState {
     }
 
     fn add_rpc_tcp_tc_pdu(
-        &mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], rpc_tcp_len: i64,
+        &mut self, flow: *mut Flow, stream_slice: &StreamSlice, input: &[u8], rpc_tcp_len: i64,
     ) -> Option<Frame> {
         let rpc_tcp_tc_pdu = Frame::new(
             flow,
@@ -698,7 +698,7 @@ impl NFSState {
     }
 
     fn add_rpc_tcp_tc_frames(
-        &mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], rpc_tcp_len: i64,
+        &mut self, flow: *mut Flow, stream_slice: &StreamSlice, input: &[u8], rpc_tcp_len: i64,
     ) {
         if rpc_tcp_len > 12 {
             let _rpc_tcp_tc_hdr = Frame::new(
@@ -723,7 +723,7 @@ impl NFSState {
     }
 
     fn add_nfs_tc_frames(
-        &mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nfs_len: i64,
+        &mut self, flow: *mut Flow, stream_slice: &StreamSlice, input: &[u8], nfs_len: i64,
     ) {
         if nfs_len > 0 {
             let _nfs_tc_pdu = Frame::new(
@@ -748,7 +748,7 @@ impl NFSState {
     }
 
     fn add_nfs4_tc_frames(
-        &mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nfs4_len: i64,
+        &mut self, flow: *mut Flow, stream_slice: &StreamSlice, input: &[u8], nfs4_len: i64,
     ) {
         if nfs4_len > 0 {
             let _nfs4_tc_pdu = Frame::new(

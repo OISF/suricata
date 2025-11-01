@@ -81,7 +81,7 @@ impl State<EnipTransaction> for EnipState {
 }
 
 fn process_frames(
-    pdu: &parser::EnipPdu, stream_slice: &StreamSlice, flow: *const Flow, input: &[u8],
+    pdu: &parser::EnipPdu, stream_slice: &StreamSlice, flow: *mut Flow, input: &[u8],
     tx_id: Option<u64>,
 ) {
     let _pdu = Frame::new(
@@ -234,7 +234,7 @@ impl EnipState {
     }
 
     fn parse_udp(
-        &mut self, stream_slice: StreamSlice, request: bool, flow: *const Flow,
+        &mut self, stream_slice: StreamSlice, request: bool, flow: *mut Flow,
     ) -> AppLayerResult {
         let input = stream_slice.as_slice();
         match parser::parse_enip_pdu(input) {

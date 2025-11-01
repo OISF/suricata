@@ -24,9 +24,9 @@
 #ifndef SURICATA_APP_LAYER_SMTP_H
 #define SURICATA_APP_LAYER_SMTP_H
 
+#include "rust.h"
 #include "app-layer-frames.h"
 #include "util-streaming-buffer.h"
-#include "rust.h"
 
 /* Limit till the data would be buffered in current line */
 #define SMTP_LINE_BUFFER_LIMIT 4096
