@@ -2451,16 +2451,20 @@ int SCStartInternalRunMode(int argc, char **argv)
 int SCFinalizeRunMode(void)
 {
     SCInstance *suri = &suricata;
+
     switch (suri->run_mode) {
         case RUNMODE_UNKNOWN:
+            /* Only warn if user passed arguments */
+            if (suri->argc > 1) {
+                SCLogWarning("Please specify a runmode or capture option. "
+                             "Use --list-runmodes to see available runmodes.");
+            }
+
             PrintUsage(suri->progname);
             return TM_ECODE_FAILED;
+
         default:
             break;
-    }
-
-    if (!CheckValidDaemonModes(suri->daemon, suri->run_mode)) {
-        return TM_ECODE_FAILED;
     }
 
     return TM_ECODE_OK;
