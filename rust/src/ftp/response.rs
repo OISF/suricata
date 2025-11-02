@@ -104,7 +104,7 @@ pub unsafe extern "C" fn SCFTPFreeResponseLine(response: *mut FTPResponseLine) {
     }
 
     if !response.response.is_null() {
-        let _ = Box::from_raw(std::slice::from_raw_parts_mut(
+        let _ = Box::from_raw(std::ptr::slice_from_raw_parts_mut(
             response.response,
             response.length,
         ));
