@@ -53,6 +53,7 @@
 #include "util-conf.h"
 #include "detect-flowbits.h"
 #include "detect-flowint.h"
+#include "detect-xbits.h"
 #include "util-var-name.h"
 #include "detect-icmp-id.h"
 #include "detect-tcp-window.h"
@@ -915,6 +916,47 @@ static void DumpMatches(RuleAnalyzer *ctx, SCJsonBuilder *js, const SigMatchData
                 if (is_or) {
                     SCJbSetString(js, "operator", "or");
                 }
+                SCJbClose(js); // object
+                break;
+            }
+            case DETECT_XBITS: {
+                const DetectXbitsData *xd = (const DetectXbitsData *)smd->ctx;
+
+                SCJbOpenObject(js, "xbits");
+                switch (xd->cmd) {
+                    case DETECT_XBITS_CMD_ISSET:
+                        SCJbSetString(js, "cmd", "isset");
+                        break;
+                    case DETECT_XBITS_CMD_ISNOTSET:
+                        SCJbSetString(js, "cmd", "isnotset");
+                        break;
+                    case DETECT_XBITS_CMD_SET:
+                        SCJbSetString(js, "cmd", "set");
+                        break;
+                    case DETECT_XBITS_CMD_UNSET:
+                        SCJbSetString(js, "cmd", "unset");
+                        break;
+                    case DETECT_XBITS_CMD_TOGGLE:
+                        SCJbSetString(js, "cmd", "toggle");
+                        break;
+                }
+                SCJbSetString(js, "name", VarNameStoreSetupLookup(xd->idx, xd->type));
+                switch (xd->tracker) {
+                    case DETECT_XBITS_TRACK_IPSRC:
+                        SCJbSetString(js, "track", "ip_src");
+                        break;
+                    case DETECT_XBITS_TRACK_IPDST:
+                        SCJbSetString(js, "track", "ip_dst");
+                        break;
+                    case DETECT_XBITS_TRACK_IPPAIR:
+                        SCJbSetString(js, "track", "ip_pair");
+                        break;
+                    case DETECT_XBITS_TRACK_TX:
+                        SCJbSetString(js, "track", "tx");
+                        break;
+                }
+                // always log expire value
+                SCJbSetUint(js, "expire", xd->expire);
                 SCJbClose(js); // object
                 break;
             }
