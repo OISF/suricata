@@ -25,7 +25,7 @@ use suricata_sys::sys::{
 };
 
 use super::nfs::{NFSTransaction, NFSTransactionTypeData};
-use super::types::{NfsProc3, NfsProc4};
+use super::types::{NfsProc2, NfsProc3, NfsProc4};
 use crate::core::STREAM_TOSERVER;
 use crate::detect::uint::{
     detect_match_uint, detect_parse_uint_enum, detect_parse_uint_inclusive, DetectUintData,
@@ -40,6 +40,7 @@ static mut G_NFS_PROCEDURE_KW_ID: u16 = 0;
 static mut G_NFS_PROCEDURE_BUFFER_ID: c_int = 0;
 
 struct DetectNfsProcedureDataVersion {
+    v2: Option<DetectUintData<u32>>,
     v3: Option<DetectUintData<u32>>,
     v4: Option<DetectUintData<u32>>,
 }
@@ -53,13 +54,14 @@ fn nfs_procedure_parse_aux(s: &str) -> Option<DetectNfsProcedureData> {
     if let Ok((_, ctx)) = detect_parse_uint_inclusive::<u32>(s) {
         return Some(DetectNfsProcedureData::Num(ctx));
     }
+    let v2 = detect_parse_uint_enum::<u32, NfsProc2>(s);
     let v3 = detect_parse_uint_enum::<u32, NfsProc3>(s);
     let v4 = detect_parse_uint_enum::<u32, NfsProc4>(s);
-    if v3.is_none() && v4.is_none() {
+    if v2.is_none() && v3.is_none() && v4.is_none() {
         return None;
     }
     return Some(DetectNfsProcedureData::VersionLiteral(
-        DetectNfsProcedureDataVersion { v3, v4 },
+        DetectNfsProcedureDataVersion { v2, v3, v4 },
     ));
 }
 
@@ -105,7 +107,11 @@ unsafe extern "C" fn nfs_procedure_setup(
 fn nfs_procedure_match_val(proc: u32, nfs_version: u16, ctx: &DetectNfsProcedureData) -> bool {
     match ctx {
         DetectNfsProcedureData::VersionLiteral(ver) => {
-            if nfs_version < 4 {
+            if nfs_version == 2 {
+                if let Some(du32v2) = &ver.v2 {
+                    return detect_match_uint(du32v2, proc);
+                }
+            } else if nfs_version == 3 {
                 if let Some(du32v3) = &ver.v3 {
                     return detect_match_uint(du32v3, proc);
                 }
@@ -254,5 +260,36 @@ mod test {
         } else {
             panic!("not right enum");
         }
+    }
+
+    #[test]
+    fn nfs_procedure_v2_test() {
+        let ctx = nfs_procedure_parse_aux("WRITE").unwrap();
+        if let DetectNfsProcedureData::VersionLiteral(ver) = ctx {
+            assert!(ver.v2.is_some());
+            assert!(ver.v3.is_some());
+            assert!(ver.v4.is_some());
+            // WRITE is 8 in NFSv2, 7 in NFSv3, and 38 in NFSv4
+            if let Some(du32v2) = ver.v2 {
+                assert_eq!(du32v2.arg1, 8);
+            }
+            if let Some(du32v3) = ver.v3 {
+                assert_eq!(du32v3.arg1, 7);
+            }
+            if let Some(du32v4) = ver.v4 {
+                assert_eq!(du32v4.arg1, 38);
+            }
+        } else {
+            panic!("not right enum");
+        }
+    }
+
+    #[test]
+    fn nfs_procedure_v2_write_match_test() {
+        // Test that WRITE in NFSv2 context matches correctly
+        let ctx = nfs_procedure_parse_aux("WRITE").unwrap();
+        assert!(nfs_procedure_match_val(8, 2, &ctx)); // WRITE in NFSv2 is 8
+        assert!(!nfs_procedure_match_val(7, 2, &ctx)); // Wrong procedure
+        assert!(!nfs_procedure_match_val(8, 3, &ctx)); // Wrong version
     }
 }

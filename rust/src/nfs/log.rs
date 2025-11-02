@@ -15,18 +15,21 @@
  * 02110-1301, USA.
  */
 
+use crate::detect::EnumString;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use crate::nfs::nfs::*;
 use crate::nfs::types::*;
 use crc::crc32;
 use std::string::String;
-use crate::detect::EnumString;
 
 #[no_mangle]
 pub extern "C" fn SCNfsTxLoggingIsFiltered(state: &mut NFSState, tx: &NFSTransaction) -> u8 {
     // TODO probably best to make this configurable
 
-    if state.nfs_version <= 3 && tx.procedure == NFSPROC3_GETATTR {
+    if state.nfs_version == 2 && tx.procedure == NFSPROC2_GETATTR {
+        return 1;
+    }
+    if state.nfs_version == 3 && tx.procedure == NFSPROC3_GETATTR {
         return 1;
     }
 
@@ -82,7 +85,13 @@ fn nfs_common_header(
     state: &NFSState, tx: &NFSTransaction, js: &mut JsonBuilder,
 ) -> Result<(), JsonError> {
     js.set_uint("version", state.nfs_version as u64)?;
-    if state.nfs_version < 4 {
+    if state.nfs_version == 2 {
+        if let Some(proc) = NfsProc2::from_u(tx.procedure) {
+            js.set_string("procedure", &proc.to_str().to_uppercase())?;
+        } else {
+            js.set_string("procedure", &format!("{}", tx.procedure))?;
+        }
+    } else if state.nfs_version == 3 {
         if let Some(proc) = NfsProc3::from_u(tx.procedure) {
             js.set_string("procedure", &proc.to_str().to_uppercase())?;
         } else {
@@ -115,7 +124,21 @@ fn nfs_log_response(
 
     js.set_string("status", &nfs3_status_string(tx.nfs_response_status))?;
 
-    if state.nfs_version <= 3 {
+    if state.nfs_version == 2 {
+        if tx.procedure == NFSPROC2_READ {
+            js.open_object("read")?;
+            nfs_file_object(tx, js)?;
+            js.close()?;
+        } else if tx.procedure == NFSPROC2_WRITE {
+            js.open_object("write")?;
+            nfs_file_object(tx, js)?;
+            js.close()?;
+        } else if tx.procedure == NFSPROC2_RENAME {
+            js.open_object("rename")?;
+            nfs_rename_object(tx, js)?;
+            js.close()?;
+        }
+    } else if state.nfs_version == 3 {
         if tx.procedure == NFSPROC3_READ {
             js.open_object("read")?;
             nfs_file_object(tx, js)?;
