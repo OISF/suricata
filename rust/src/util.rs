@@ -20,12 +20,11 @@
 use std::ffi::CStr;
 use std::os::raw::c_char;
 
-use nom7::bytes::complete::take_while1;
-use nom7::character::complete::char;
-use nom7::character::{is_alphabetic, is_alphanumeric};
-use nom7::combinator::verify;
-use nom7::multi::many1_count;
-use nom7::IResult;
+use nom8::bytes::complete::take_while1;
+use nom8::character::complete::char;
+use nom8::combinator::verify;
+use nom8::multi::many1_count;
+use nom8::{AsChar, IResult, Parser};
 
 #[no_mangle]
 pub unsafe extern "C" fn SCCheckUtf8(val: *const c_char) -> bool {
@@ -33,24 +32,24 @@ pub unsafe extern "C" fn SCCheckUtf8(val: *const c_char) -> bool {
 }
 
 fn is_alphanumeric_or_hyphen(chr: u8) -> bool {
-    return is_alphanumeric(chr) || chr == b'-';
+    return chr.is_alphanum() || chr == b'-';
 }
 
 fn parse_domain_label(i: &[u8]) -> IResult<&[u8], ()> {
     let (i, _) = verify(take_while1(is_alphanumeric_or_hyphen), |x: &[u8]| {
-        is_alphabetic(x[0]) && x[x.len() - 1] != b'-'
-    })(i)?;
+        x[0].is_alpha() && x[x.len() - 1] != b'-'
+    }).parse(i)?;
     return Ok((i, ()));
 }
 
 fn parse_subdomain(input: &[u8]) -> IResult<&[u8], ()> {
     let (input, _) = parse_domain_label(input)?;
-    let (input, _) = char('.')(input)?;
+    let (input, _) = char('.').parse(input)?;
     return Ok((input, ()));
 }
 
 fn parse_domain(input: &[u8]) -> IResult<&[u8], ()> {
-    let (input, _) = many1_count(parse_subdomain)(input)?;
+    let (input, _) = many1_count(parse_subdomain).parse(input)?;
     let (input, _) = parse_domain_label(input)?;
     return Ok((input, ()));
 }
