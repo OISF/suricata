@@ -1077,7 +1077,6 @@ static int g_dce_stub_data_buffer_id = 0;
  */
 static int DetectPcreParseTest01 (void)
 {
-    int result = 1;
     DetectPcreData *pd = NULL;
     const char *teststring = "/blah/7";
     int list = DETECT_SM_LIST_NOTSET;
@@ -1089,7 +1088,7 @@ static int DetectPcreParseTest01 (void)
     FAIL_IF_NOT_NULL(pd);
 
     DetectEngineCtxFree(de_ctx);
-    return result;
+    PASS;
 }
 
 /**
@@ -1097,7 +1096,6 @@ static int DetectPcreParseTest01 (void)
  */
 static int DetectPcreParseTest02 (void)
 {
-    int result = 1;
     DetectPcreData *pd = NULL;
     const char *teststring = "/blah/Ui$";
     int list = DETECT_SM_LIST_NOTSET;
@@ -1110,7 +1108,7 @@ static int DetectPcreParseTest02 (void)
     FAIL_IF_NOT(alproto == ALPROTO_HTTP1);
 
     DetectEngineCtxFree(de_ctx);
-    return result;
+    PASS;
 }
 
 /**
@@ -1118,7 +1116,6 @@ static int DetectPcreParseTest02 (void)
  */
 static int DetectPcreParseTest03 (void)
 {
-    int result = 1;
     DetectPcreData *pd = NULL;
     const char *teststring = "/blah/UNi";
     int list = DETECT_SM_LIST_NOTSET;
@@ -1130,7 +1127,7 @@ static int DetectPcreParseTest03 (void)
     FAIL_IF_NOT_NULL(pd);
 
     DetectEngineCtxFree(de_ctx);
-    return result;
+    PASS;
 }
 
 /**
@@ -1138,7 +1135,6 @@ static int DetectPcreParseTest03 (void)
  */
 static int DetectPcreParseTest04 (void)
 {
-    int result = 1;
     DetectPcreData *pd = NULL;
     const char *teststring = "/b\\\"lah/i";
     int list = DETECT_SM_LIST_NOTSET;
@@ -1152,7 +1148,7 @@ static int DetectPcreParseTest04 (void)
 
     DetectPcreFree(de_ctx, pd);
     DetectEngineCtxFree(de_ctx);
-    return result;
+    PASS;
 }
 
 /**
@@ -1160,7 +1156,6 @@ static int DetectPcreParseTest04 (void)
  */
 static int DetectPcreParseTest05 (void)
 {
-    int result = 1;
     DetectPcreData *pd = NULL;
     const char *teststring = "/b(l|a)h/";
     int list = DETECT_SM_LIST_NOTSET;
@@ -1174,7 +1169,7 @@ static int DetectPcreParseTest05 (void)
 
     DetectPcreFree(de_ctx, pd);
     DetectEngineCtxFree(de_ctx);
-    return result;
+    PASS;
 }
 
 /**
@@ -1182,7 +1177,6 @@ static int DetectPcreParseTest05 (void)
  */
 static int DetectPcreParseTest06 (void)
 {
-    int result = 1;
     DetectPcreData *pd = NULL;
     const char *teststring = "/b(l|a)h/smi";
     int list = DETECT_SM_LIST_NOTSET;
@@ -1196,7 +1190,7 @@ static int DetectPcreParseTest06 (void)
 
     DetectPcreFree(de_ctx, pd);
     DetectEngineCtxFree(de_ctx);
-    return result;
+    PASS;
 }
 
 /**
@@ -1204,7 +1198,6 @@ static int DetectPcreParseTest06 (void)
  */
 static int DetectPcreParseTest07 (void)
 {
-    int result = 1;
     DetectPcreData *pd = NULL;
     const char *teststring = "/blah/Ui";
     int list = DETECT_SM_LIST_NOTSET;
@@ -1218,7 +1211,7 @@ static int DetectPcreParseTest07 (void)
 
     DetectPcreFree(de_ctx, pd);
     DetectEngineCtxFree(de_ctx);
-    return result;
+    PASS;
 }
 
 /**
@@ -1226,7 +1219,6 @@ static int DetectPcreParseTest07 (void)
  */
 static int DetectPcreParseTest08 (void)
 {
-    int result = 1;
     DetectPcreData *pd = NULL;
     const char *teststring = "/b(l|a)h/O";
     int list = DETECT_SM_LIST_NOTSET;
@@ -1240,7 +1232,7 @@ static int DetectPcreParseTest08 (void)
 
     DetectPcreFree(de_ctx, pd);
     DetectEngineCtxFree(de_ctx);
-    return result;
+    PASS;
 }
 
 /**
@@ -1270,6 +1262,7 @@ static int DetectPcreParseTest09 (void)
 static int DetectPcreParseTest10(void)
 {
     Signature *s = SigAlloc();
+    FAIL_IF_NULL(s);
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
@@ -1298,9 +1291,8 @@ static int DetectPcreParseTest10(void)
 /** \test Check a signature with pcre relative method */
 static int DetectPcreParseTest15(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-
-    FAIL_IF( (de_ctx = DetectEngineCtxInit()) == NULL);
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
@@ -1310,10 +1302,8 @@ static int DetectPcreParseTest15(void)
                                "http_method; pcre:\"/abc/RM\"; sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
     PASS;
 }
 
@@ -1321,9 +1311,8 @@ static int DetectPcreParseTest15(void)
 /** \test Check a signature with pcre relative cookie */
 static int DetectPcreParseTest16(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-
-    FAIL_IF( (de_ctx = DetectEngineCtxInit()) == NULL);
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
@@ -1333,19 +1322,16 @@ static int DetectPcreParseTest16(void)
                                "http_cookie; pcre:\"/abc/RC\"; sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
     PASS;
 }
 
 /** \test Check a signature with pcre relative raw header */
 static int DetectPcreParseTest17(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-
-    FAIL_IF( (de_ctx = DetectEngineCtxInit()) == NULL);
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
@@ -1355,19 +1341,16 @@ static int DetectPcreParseTest17(void)
                                "http_raw_header; pcre:\"/abc/RD\"; sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
     PASS;
 }
 
 /** \test Check a signature with pcre relative header */
 static int DetectPcreParseTest18(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-
-    FAIL_IF( (de_ctx = DetectEngineCtxInit()) == NULL);
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
@@ -1377,19 +1360,16 @@ static int DetectPcreParseTest18(void)
                                "http_header; pcre:\"/abc/RH\"; sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
     PASS;
 }
 
 /** \test Check a signature with pcre relative client-body */
 static int DetectPcreParseTest19(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-
-    FAIL_IF( (de_ctx = DetectEngineCtxInit()) == NULL);
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
@@ -1399,19 +1379,17 @@ static int DetectPcreParseTest19(void)
                                "http_client_body; pcre:\"/abc/RP\"; sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
     PASS;
 }
 
 /** \test Check a signature with pcre relative raw uri */
 static int DetectPcreParseTest20(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
 
-    FAIL_IF( (de_ctx = DetectEngineCtxInit()) == NULL);
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
@@ -1421,19 +1399,17 @@ static int DetectPcreParseTest20(void)
                                "http_raw_uri; pcre:\"/abc/RI\"; sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
     PASS;
 }
 
 /** \test Check a signature with pcre relative uricontent */
 static int DetectPcreParseTest21(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
 
-    FAIL_IF( (de_ctx = DetectEngineCtxInit()) == NULL);
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
@@ -1443,19 +1419,17 @@ static int DetectPcreParseTest21(void)
                                "pcre:\"/abc/RU\"; sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
     PASS;
 }
 
 /** \test Check a signature with pcre relative http_uri */
 static int DetectPcreParseTest22(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
 
-    FAIL_IF( (de_ctx = DetectEngineCtxInit()) == NULL);
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
@@ -1465,19 +1439,17 @@ static int DetectPcreParseTest22(void)
                                "http_uri; pcre:\"/abc/RU\"; sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
     PASS;
 }
 
 /** \test Check a signature with inconsistent pcre relative  */
 static int DetectPcreParseTest23(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
 
-    FAIL_IF( (de_ctx = DetectEngineCtxInit()) == NULL);
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
@@ -1487,19 +1459,17 @@ static int DetectPcreParseTest23(void)
                                "http_cookie; pcre:\"/abc/RM\"; sid:1;)");
     FAIL_IF_NOT_NULL(de_ctx->sig_list);
 
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
     PASS;
 }
 
 /** \test Check a signature with inconsistent pcre modifiers  */
 static int DetectPcreParseTest24(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
 
-    FAIL_IF( (de_ctx = DetectEngineCtxInit()) == NULL);
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
@@ -1508,19 +1478,17 @@ static int DetectPcreParseTest24(void)
                                "pcre:\"/abc/UI\"; sid:1;)");
     FAIL_IF_NOT_NULL(de_ctx->sig_list);
 
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
     PASS;
 }
 
 /** \test Check a signature with inconsistent pcre modifiers  */
 static int DetectPcreParseTest25(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
 
-    FAIL_IF( (de_ctx = DetectEngineCtxInit()) == NULL);
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
@@ -1529,19 +1497,17 @@ static int DetectPcreParseTest25(void)
                                "pcre:\"/abc/DH\"; sid:1;)");
     FAIL_IF_NOT_NULL(de_ctx->sig_list);
 
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
     PASS;
 }
 
 /** \test Check a signature with inconsistent pcre modifiers  */
 static int DetectPcreParseTest26(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
 
-    FAIL_IF( (de_ctx = DetectEngineCtxInit()) == NULL);
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
@@ -1550,39 +1516,35 @@ static int DetectPcreParseTest26(void)
                                "pcre:\"/abc/F\"; sid:1;)");
     FAIL_IF_NOT_NULL(de_ctx->sig_list);
 
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
     PASS;
 }
 
 /** \test Bug 1098 */
 static int DetectPcreParseTest27(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
 
-    FAIL_IF( (de_ctx = DetectEngineCtxInit()) == NULL);
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any 80 "
             "(content:\"baduricontent\"; http_raw_uri; "
             "pcre:\"/^[a-z]{5}\\.html/R\"; sid:2; rev:2;)");
-    FAIL_IF_NOT(de_ctx->sig_list == NULL);
+    FAIL_IF_NOT_NULL(de_ctx->sig_list);
 
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
     PASS;
 }
 
 /** \test Bug 1957 */
 static int DetectPcreParseTest28(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
 
-    FAIL_IF( (de_ctx = DetectEngineCtxInit()) == NULL);
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any 80 "
@@ -1599,19 +1561,13 @@ static int DetectPcreTestSig01(void)
     uint8_t *buf = (uint8_t *)"lalala lalala\\ lala\n";
     uint16_t buflen = strlen((char *)buf);
     Packet *p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
-    int result = 0;
 
     char sig[] = "alert tcp any any -> any any (msg:\"pcre with an ending slash\"; pcre:\"/ "
                  "lalala\\\\/\"; sid:1;)";
-    if (UTHPacketMatchSig(p, sig) == 0) {
-        result = 0;
-        goto end;
-    }
-    result = 1;
-end:
-    if (p != NULL)
-        UTHFreePacket(p);
-    return result;
+    FAIL_IF_NOT(UTHPacketMatchSig(p, sig));
+
+    UTHFreePacket(p);
+    PASS;
 }
 
 /** \test anchored pcre */
@@ -1623,10 +1579,9 @@ static int DetectPcreTestSig02(void)
 
     char sig[] = "alert tcp any any -> any any (msg:\"pcre with an ending slash\"; "
                  "pcre:\"/^(la)+$/\"; sid:1;)";
-    FAIL_IF(UTHPacketMatchSig(p, sig) == 0);
+    FAIL_IF_NOT(UTHPacketMatchSig(p, sig));
 
-    if (p != NULL)
-        UTHFreePacket(p);
+    UTHFreePacket(p);
     PASS;
 }
 
@@ -1640,10 +1595,9 @@ static int DetectPcreTestSig03(void)
 
     char sig[] = "alert tcp any any -> any any (msg:\"pcre with an ending slash\"; "
                  "pcre:\"/^(la)+$/\"; sid:1;)";
-    FAIL_IF(UTHPacketMatchSig(p, sig) == 0);
+    FAIL_IF_NOT(UTHPacketMatchSig(p, sig));
 
-    if (p != NULL)
-        UTHFreePacket(p);
+    UTHFreePacket(p);
     PASS;
 }
 
