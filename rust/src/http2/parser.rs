@@ -20,10 +20,9 @@ use crate::common::nom7::bits;
 use crate::detect::uint::{detect_parse_uint, DetectUintData};
 use crate::http2::http2::{HTTP2DynTable, HTTP2_MAX_TABLESIZE};
 use nom7::bits::streaming::take as take_bits;
-use nom7::branch::alt;
 use nom7::bytes::complete::tag;
-use nom7::bytes::streaming::{is_a, is_not, take, take_while};
-use nom7::combinator::{complete, cond, map_opt, opt, rest, verify};
+use nom7::bytes::streaming::{take, take_while};
+use nom7::combinator::{complete, cond, map_opt, verify};
 use nom7::error::{make_error, ErrorKind};
 use nom7::multi::many0;
 use nom7::number::streaming::{be_u16, be_u24, be_u32, be_u8};
@@ -683,12 +682,17 @@ pub struct DetectHTTP2settingsSigCtx {
     pub value: Option<DetectUintData<u32>>, //optional value
 }
 
-pub fn http2_parse_settingsctx(i: &str) -> IResult<&str, DetectHTTP2settingsSigCtx> {
-    let (i, _) = opt(is_a(" "))(i)?;
-    let (i, id) = map_opt(alt((complete(is_not(" <>=")), rest)), |s: &str| {
+pub fn http2_parse_settingsctx(i: &str) -> nom8::IResult<&str, DetectHTTP2settingsSigCtx> {
+    use nom8::Parser;
+    use nom8::bytes::complete::{is_a as is_a8, is_not as is_not8};
+    use nom8::combinator::{complete as complete8, map_opt as map_opt8, opt as opt8, rest as rest8};
+    use nom8::branch::alt as alt8;
+
+    let (i, _) = opt8(is_a8(" ")).parse(i)?;
+    let (i, id) = map_opt8(alt8((complete8(is_not8(" <>=")), rest8)), |s: &str| {
         HTTP2SettingsId::from_str(s).ok()
-    })(i)?;
-    let (i, value) = opt(complete(detect_parse_uint))(i)?;
+    }).parse(i)?;
+    let (i, value) = opt8(complete8(detect_parse_uint)).parse(i)?;
     Ok((i, DetectHTTP2settingsSigCtx { id, value }))
 }
 

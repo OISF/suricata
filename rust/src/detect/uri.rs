@@ -16,11 +16,11 @@
  */
 
 use super::uint::*;
-use nom7::branch::alt;
-use nom7::bytes::complete::{is_a, tag, take_while};
-use nom7::character::complete::char;
-use nom7::combinator::{all_consuming, opt, value};
-use nom7::IResult;
+use nom8::branch::alt;
+use nom8::bytes::complete::{is_a, tag, take_while};
+use nom8::character::complete::char;
+use nom8::combinator::{all_consuming, opt, value};
+use nom8::{IResult, Parser};
 
 use std::ffi::CStr;
 
@@ -32,17 +32,17 @@ pub struct DetectUrilenData {
 }
 
 pub fn detect_parse_urilen_raw(i: &str) -> IResult<&str, bool> {
-    let (i, _) = opt(is_a(" "))(i)?;
-    let (i, _) = char(',')(i)?;
-    let (i, _) = opt(is_a(" "))(i)?;
-    let (i, v) = alt((value(true, tag("raw")), value(false, tag("norm"))))(i)?;
-    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, _) = opt(is_a(" ")).parse(i)?;
+    let (i, _) = char(',').parse(i)?;
+    let (i, _) = opt(is_a(" ")).parse(i)?;
+    let (i, v) = alt((value(true, tag("raw")), value(false, tag("norm")))).parse(i)?;
+    let (i, _) = opt(is_a(" ")).parse(i)?;
     Ok((i, v))
 }
 
 pub fn detect_parse_urilen(i: &str) -> IResult<&str, DetectUrilenData> {
     let (i, du16) = detect_parse_uint_notending::<u16>(i)?;
-    let (i, _) = take_while(|c| c == ' ')(i)?;
+    let (i, _) = take_while(|c| c == ' ').parse(i)?;
     if i.is_empty() {
         return Ok((
             i,
@@ -52,7 +52,7 @@ pub fn detect_parse_urilen(i: &str) -> IResult<&str, DetectUrilenData> {
             },
         ));
     }
-    let (i, raw_buffer) = all_consuming(detect_parse_urilen_raw)(i)?;
+    let (i, raw_buffer) = all_consuming(detect_parse_urilen_raw).parse(i)?;
     return Ok((i, DetectUrilenData { du16, raw_buffer }));
 }
 

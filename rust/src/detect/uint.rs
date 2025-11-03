@@ -15,13 +15,13 @@
  * 02110-1301, USA.
  */
 
-use nom7::branch::alt;
-use nom7::bytes::complete::{is_a, tag, tag_no_case, take, take_till, take_while};
-use nom7::character::complete::{anychar, char, digit1, hex_digit1, i32 as nom_i32};
-use nom7::combinator::{all_consuming, map_opt, opt, value, verify};
-use nom7::error::{make_error, Error, ErrorKind};
-use nom7::Err;
-use nom7::IResult;
+use nom8::branch::alt;
+use nom8::bytes::complete::{is_a, tag, tag_no_case, take, take_till, take_while};
+use nom8::character::complete::{anychar, char, digit1, hex_digit1, i32 as nom_i32};
+use nom8::combinator::{all_consuming, map_opt, opt, value, verify};
+use nom8::error::{make_error, Error, ErrorKind};
+use nom8::Err;
+use nom8::{IResult, Parser};
 
 use super::EnumString;
 
@@ -71,28 +71,28 @@ pub struct DetectUintArrayData<T> {
 }
 
 fn parse_uint_index_precise(s: &str) -> IResult<&str, DetectUintIndex> {
-    let (s, oob) = opt(tag("oob_or"))(s)?;
-    let (s, _) = opt(is_a(" "))(s)?;
-    let (s, i32_index) = nom_i32(s)?;
+    let (s, oob) = opt(tag("oob_or")).parse(s)?;
+    let (s, _) = opt(is_a(" ")).parse(s)?;
+    let (s, i32_index) = nom_i32.parse(s)?;
     Ok((s, DetectUintIndex::Index((oob.is_some(), i32_index))))
 }
 
 fn parse_uint_index_nb(s: &str) -> IResult<&str, DetectUintIndex> {
-    let (s, _) = tag("nb")(s)?;
-    let (s, _) = opt(is_a(" "))(s)?;
+    let (s, _) = tag("nb").parse(s)?;
+    let (s, _) = opt(is_a(" ")).parse(s)?;
     let (s, du32) = detect_parse_uint::<u32>(s)?;
     Ok((s, DetectUintIndex::NumberMatches(du32)))
 }
 
 fn parse_uint_index_val(s: &str) -> Option<DetectUintIndex> {
-    let (_s, arg1) = alt((parse_uint_index_precise, parse_uint_index_nb))(s).ok()?;
+    let (_s, arg1) = alt((parse_uint_index_precise, parse_uint_index_nb)).parse(s).ok()?;
     Some(arg1)
 }
 
 fn parse_uint_subslice_aux(s: &str) -> IResult<&str, (i32, i32)> {
-    let (s, start) = nom_i32(s)?;
-    let (s, _) = char(':')(s)?;
-    let (s, end) = nom_i32(s)?;
+    let (s, start) = nom_i32.parse(s)?;
+    let (s, _) = char(':').parse(s)?;
+    let (s, end) = nom_i32.parse(s)?;
     return Ok((s, (start, end)));
 }
 
@@ -113,8 +113,8 @@ fn parse_uint_subslice(parts: &[&str]) -> Option<(i32, i32)> {
 }
 
 fn parse_uint_count(s: &str) -> IResult<&str, DetectUintData<u32>> {
-    let (s, _) = tag("count")(s)?;
-    let (s, _) = opt(is_a(" "))(s)?;
+    let (s, _) = tag("count").parse(s)?;
+    let (s, _) = opt(is_a(" ")).parse(s)?;
     let (s, du32) = detect_parse_uint::<u32>(s)?;
     Ok((s, du32))
 }
@@ -353,13 +353,13 @@ fn parse_flag_list<T1: DetectIntType, T2: EnumString<T1>>(
     let mut r = Vec::new();
     let mut s2 = s;
     while !s2.is_empty() {
-        let (s, _) = opt(is_a(" "))(s2)?;
-        let (s, neg) = opt(tag("!"))(s)?;
+        let (s, _) = opt(is_a(" ")).parse(s2)?;
+        let (s, neg) = opt(tag("!")).parse(s)?;
         let neg = neg.is_some();
         let (s, vals) = if singlechar {
-            take(1usize)(s)
+            take(1usize).parse(s)
         } else {
-            take_while(|c| c != ' ' && c != ',')(s)
+            take_while(|c| c != ' ' && c != ',').parse(s)
         }?;
         let value = T2::from_str(vals);
         if value.is_none() {
@@ -370,7 +370,7 @@ fn parse_flag_list<T1: DetectIntType, T2: EnumString<T1>>(
         let (s, _) = if singlechar {
             Ok((s, None))
         } else {
-            opt(is_a(" ,"))(s)
+            opt(is_a(" ,")).parse(s)
         }?;
         r.push(FlagItem { neg, value });
         s2 = s;
@@ -386,7 +386,7 @@ pub fn detect_parse_uint_bitflags<T1: DetectIntType, T2: EnumString<T1>>(
     }
     // otherwise, try strings for bitmask
     let (s, modifier) = parse_bitchars_modifier(s, defmod).ok()?;
-    let (s, _) = take_while::<_, &str, Error<_>>(|c| c == ' ' || c == '\t')(s).ok()?;
+    let (s, _) = take_while::<_, &str, Error<_>>(|c| c == ' ' || c == '\t').parse(s).ok()?;
     if let Ok((rem, l)) = parse_flag_list::<T1, T2>(s, singlechar) {
         if !rem.is_empty() {
             SCLogError!("junk at the end of bitflags");
@@ -481,7 +481,7 @@ pub fn detect_parse_uint_enum<T1: DetectIntType, T2: EnumString<T1>>(
     }
 
     // we need to precise the Error type, we get error[E0283]: type annotations needed
-    let (s, neg) = opt(char::<_, Error<_>>('!'))(s).ok()?;
+    let (s, neg) = opt(char::<_, Error<_>>('!')).parse(s).ok()?;
     let mode = if neg.is_some() {
         DetectUintMode::DetectUintModeNe
     } else {
@@ -528,13 +528,13 @@ pub fn detect_parse_uint_unit(i: &str) -> IResult<&str, u64> {
         value(1024 * 1024, tag_no_case("mb")),
         value(1024 * 1024 * 1024, tag_no_case("gib")),
         value(1024 * 1024 * 1024, tag_no_case("gb")),
-    ))(i)?;
+    )).parse(i)?;
     return Ok((i, unit));
 }
 
 pub fn detect_parse_uint_value_hex<T: DetectIntType>(i: &str) -> IResult<&str, T> {
-    let (i, _) = tag("0x")(i)?;
-    let (i, arg1s) = hex_digit1(i)?;
+    let (i, _) = tag("0x").parse(i)?;
+    let (i, arg1s) = hex_digit1.parse(i)?;
     match T::from_str_radix(arg1s, 16) {
         Ok(arg1) => Ok((i, arg1)),
         _ => Err(Err::Error(make_error(i, ErrorKind::Verify))),
@@ -542,13 +542,13 @@ pub fn detect_parse_uint_value_hex<T: DetectIntType>(i: &str) -> IResult<&str, T
 }
 
 pub fn detect_parse_uint_value<T: DetectIntType>(i: &str) -> IResult<&str, T> {
-    let (i, arg1) = alt((detect_parse_uint_value_hex, detect_parse_uint_with_unit))(i)?;
+    let (i, arg1) = alt((detect_parse_uint_value_hex, detect_parse_uint_with_unit)).parse(i)?;
     Ok((i, arg1))
 }
 
 pub fn detect_parse_uint_with_unit<T: DetectIntType>(i: &str) -> IResult<&str, T> {
-    let (i, arg1) = map_opt(digit1, |s: &str| s.parse::<T>().ok())(i)?;
-    let (i, unit) = opt(detect_parse_uint_unit)(i)?;
+    let (i, arg1) = map_opt(digit1, |s: &str| s.parse::<T>().ok()).parse(i)?;
+    let (i, unit) = opt(detect_parse_uint_unit).parse(i)?;
     if arg1 >= T::one() {
         if let Some(u) = unit {
             if T::max_value().to_u64().unwrap() / u < arg1.to_u64().unwrap() {
@@ -564,8 +564,8 @@ pub fn detect_parse_uint_with_unit<T: DetectIntType>(i: &str) -> IResult<&str, T
 pub fn detect_parse_uint_start_equal<T: DetectIntType>(
     i: &str,
 ) -> IResult<&str, DetectUintData<T>> {
-    let (i, _) = opt(tag("="))(i)?;
-    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, _) = opt(tag("=")).parse(i)?;
+    let (i, _) = opt(is_a(" ")).parse(i)?;
     let (i, arg1) = detect_parse_uint_value(i)?;
     Ok((
         i,
@@ -580,14 +580,14 @@ pub fn detect_parse_uint_start_equal<T: DetectIntType>(
 pub fn detect_parse_uint_start_interval<T: DetectIntType>(
     i: &str,
 ) -> IResult<&str, DetectUintData<T>> {
-    let (i, neg) = opt(char('!'))(i)?;
+    let (i, neg) = opt(char('!')).parse(i)?;
     let (i, arg1) = detect_parse_uint_value(i)?;
-    let (i, _) = opt(is_a(" "))(i)?;
-    let (i, _) = alt((tag("-"), tag("<>")))(i)?;
-    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, _) = opt(is_a(" ")).parse(i)?;
+    let (i, _) = alt((tag("-"), tag("<>"))).parse(i)?;
+    let (i, _) = opt(is_a(" ")).parse(i)?;
     let (i, arg2) = verify(detect_parse_uint_value, |x| {
         x > &arg1 && *x - arg1 > T::one()
-    })(i)?;
+    }).parse(i)?;
     let mode = if neg.is_some() {
         DetectUintMode::DetectUintModeNegRg
     } else {
@@ -597,14 +597,14 @@ pub fn detect_parse_uint_start_interval<T: DetectIntType>(
 }
 
 pub fn detect_parse_uint_bitmask<T: DetectIntType>(i: &str) -> IResult<&str, DetectUintData<T>> {
-    let (i, _) = opt(is_a(" "))(i)?;
-    let (i, _) = tag("&")(i)?;
-    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, _) = opt(is_a(" ")).parse(i)?;
+    let (i, _) = tag("&").parse(i)?;
+    let (i, _) = opt(is_a(" ")).parse(i)?;
     let (i, arg1) = detect_parse_uint_value(i)?;
-    let (i, _) = opt(is_a(" "))(i)?;
-    let (i, neg) = opt(tag("!"))(i)?;
-    let (i, _) = tag("=")(i)?;
-    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, _) = opt(is_a(" ")).parse(i)?;
+    let (i, neg) = opt(tag("!")).parse(i)?;
+    let (i, _) = tag("=").parse(i)?;
+    let (i, _) = opt(is_a(" ")).parse(i)?;
     let (i, arg2) = detect_parse_uint_value(i)?;
     if arg2 & arg1 != arg2 {
         // could never match
@@ -621,14 +621,14 @@ pub fn detect_parse_uint_bitmask<T: DetectIntType>(i: &str) -> IResult<&str, Det
 fn detect_parse_uint_start_interval_inclusive<T: DetectIntType>(
     i: &str,
 ) -> IResult<&str, DetectUintData<T>> {
-    let (i, neg) = opt(char('!'))(i)?;
-    let (i, arg1) = verify(detect_parse_uint_value::<T>, |x| *x > T::min_value())(i)?;
-    let (i, _) = opt(is_a(" "))(i)?;
-    let (i, _) = alt((tag("-"), tag("<>")))(i)?;
-    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, neg) = opt(char('!')).parse(i)?;
+    let (i, arg1) = verify(detect_parse_uint_value::<T>, |x| *x > T::min_value()).parse(i)?;
+    let (i, _) = opt(is_a(" ")).parse(i)?;
+    let (i, _) = alt((tag("-"), tag("<>"))).parse(i)?;
+    let (i, _) = opt(is_a(" ")).parse(i)?;
     let (i, arg2) = verify(detect_parse_uint_value::<T>, |x| {
         *x > arg1 && *x < T::max_value()
-    })(i)?;
+    }).parse(i)?;
     let mode = if neg.is_some() {
         DetectUintMode::DetectUintModeNegRg
     } else {
@@ -653,13 +653,13 @@ pub fn detect_parse_uint_mode(i: &str) -> IResult<&str, DetectUintMode> {
         value(DetectUintMode::DetectUintModeNe, tag("!=")),
         value(DetectUintMode::DetectUintModeNe, tag("!")),
         value(DetectUintMode::DetectUintModeEqual, tag("=")),
-    ))(i)?;
+    )).parse(i)?;
     return Ok((i, mode));
 }
 
 fn detect_parse_uint_start_symbol<T: DetectIntType>(i: &str) -> IResult<&str, DetectUintData<T>> {
     let (i, mode) = detect_parse_uint_mode(i)?;
-    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, _) = opt(is_a(" ")).parse(i)?;
     let (i, arg1) = detect_parse_uint_value(i)?;
 
     match mode {
@@ -764,30 +764,30 @@ pub fn detect_match_uint<T: DetectIntType>(x: &DetectUintData<T>, val: T) -> boo
 pub(crate) fn detect_parse_uint_notending<T: DetectIntType>(
     i: &str,
 ) -> IResult<&str, DetectUintData<T>> {
-    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, _) = opt(is_a(" ")).parse(i)?;
     let (i, uint) = alt((
         detect_parse_uint_bitmask,
         detect_parse_uint_start_interval,
         detect_parse_uint_start_equal,
         detect_parse_uint_start_symbol,
-    ))(i)?;
+    )).parse(i)?;
     Ok((i, uint))
 }
 
 pub fn detect_parse_uint<T: DetectIntType>(i: &str) -> IResult<&str, DetectUintData<T>> {
     let (i, uint) = detect_parse_uint_notending(i)?;
-    let (i, _) = all_consuming(take_while(|c| c == ' '))(i)?;
+    let (i, _) = all_consuming(take_while(|c| c == ' ')).parse(i)?;
     Ok((i, uint))
 }
 
 pub fn detect_parse_uint_inclusive<T: DetectIntType>(i: &str) -> IResult<&str, DetectUintData<T>> {
-    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, _) = opt(is_a(" ")).parse(i)?;
     let (i, uint) = alt((
         detect_parse_uint_start_interval_inclusive,
         detect_parse_uint_start_equal,
         detect_parse_uint_start_symbol,
-    ))(i)?;
-    let (i, _) = all_consuming(take_while(|c| c == ' '))(i)?;
+    )).parse(i)?;
+    let (i, _) = all_consuming(take_while(|c| c == ' ')).parse(i)?;
     Ok((i, uint))
 }
 
@@ -944,10 +944,10 @@ pub unsafe extern "C" fn SCDetectU16Parse(
 }
 
 pub fn detect_parse_unquote_uint<T: DetectIntType>(i: &str) -> IResult<&str, DetectUintData<T>> {
-    let (i, _) = take_while(|c| c == ' ')(i)?;
-    let (i, quote) = opt(tag("\""))(i)?;
+    let (i, _) = take_while(|c| c == ' ').parse(i)?;
+    let (i, quote) = opt(tag("\"")).parse(i)?;
     if quote.is_some() {
-        let (i, unquote) = take_till(|c| c == '"')(i)?;
+        let (i, unquote) = take_till(|c| c == '"').parse(i)?;
         if i.is_empty() {
             return Err(Err::Error(make_error(i, ErrorKind::Tag)));
         }
