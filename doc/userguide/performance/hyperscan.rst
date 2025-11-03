@@ -127,3 +127,7 @@ disables pruning.
 **Note**:
 You might need to create and adjust permissions to the default caching folder
 path, especially if you are running Suricata as a non-root user.
+
+**Note**:
+If you're running multiple Suricata instances, use separate cache folders
+for each one to avoid read/write conflicts when they run at the same time.
