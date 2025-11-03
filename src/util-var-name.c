@@ -203,6 +203,10 @@ const char *VarNameStoreSetupLookup(const uint32_t id, const enum VarTypes type)
 
 void VarNameStoreUnregister(const uint32_t id, const enum VarTypes type)
 {
+    if (unlikely(id == 0)) {
+        /* There was an error registering the varname, so nothing to unregister */
+        return;
+    }
     SCMutexLock(&base_lock);
     VariableName lookup = { .type = type, .id = id };
     VariableName *found = (VariableName *)HashListTableLookup(base.ids, (void *)&lookup, 0);
