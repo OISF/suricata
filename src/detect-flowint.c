@@ -354,8 +354,6 @@ error:
         pcre2_substring_free((PCRE2_UCHAR *)varval);
     if (modstr)
         pcre2_substring_free((PCRE2_UCHAR *)modstr);
-    if (sfd != NULL)
-        SCFree(sfd);
     return NULL;
 }
 
@@ -410,8 +408,7 @@ static int DetectFlowintSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
     return 0;
 
 error:
-    if (sfd)
-        DetectFlowintFree(de_ctx, sfd);
+    DetectFlowintFree(de_ctx, sfd);
     return -1;
 }
 
