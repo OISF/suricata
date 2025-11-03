@@ -482,8 +482,7 @@ static DetectLuaData *DetectLuaParse (DetectEngineCtx *de_ctx, const char *str)
     return lua;
 
 error:
-    if (lua != NULL)
-        DetectLuaFree(de_ctx, lua);
+    DetectLuaFree(de_ctx, lua);
     return NULL;
 }
 
