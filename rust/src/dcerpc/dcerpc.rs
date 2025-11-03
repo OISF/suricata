@@ -21,9 +21,9 @@ use crate::dcerpc::parser;
 use crate::direction::{Direction, DIR_BOTH};
 use crate::flow::Flow;
 use crate::frames::*;
-use nom7::error::{Error, ErrorKind};
-use nom7::number::Endianness;
-use nom7::{Err, IResult, Needed};
+use nom8::error::{Error, ErrorKind};
+use nom8::number::Endianness;
+use nom8::{Err, IResult, Needed};
 use suricata_sys::sys::{
     AppLayerParserState, AppProto, SCAppLayerParserConfParserEnabled,
     SCAppLayerProtoDetectConfProtoDetectionEnabled, SCAppLayerProtoDetectPMRegisterPatternCSwPP,
