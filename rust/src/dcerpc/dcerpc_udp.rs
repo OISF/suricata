@@ -23,7 +23,7 @@ use crate::dcerpc::dcerpc::{
 };
 use crate::direction::{Direction, DIR_BOTH};
 use crate::flow::Flow;
-use nom7::Err;
+use nom8::Err;
 use suricata_sys::sys::{
     AppLayerParserState, AppProto, SCAppLayerParserConfParserEnabled,
     SCAppLayerProtoDetectConfProtoDetectionEnabled, SCAppLayerProtoDetectPMRegisterPatternCSwPP,
