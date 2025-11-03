@@ -15,14 +15,13 @@
  * 02110-1301, USA.
  */
 
-use nom7::{
+use nom8::{
     branch::alt,
     bytes::complete::{is_a, tag, tag_no_case, take_while},
     character::complete::{char, digit1},
     combinator::{all_consuming, map, map_opt, opt, recognize, value, verify},
     error::{make_error, ErrorKind},
-    sequence::tuple,
-    Err, IResult,
+    Err, IResult, Parser,
 };
 
 use num::traits::float::FloatCore;
@@ -94,25 +93,25 @@ pub fn parse_float_value<T: DetectFloatType>(input: &str) -> IResult<&str, T> {
         }),
         // Handle numeric parsing, including scientific notation
         map_opt(
-            recognize(tuple((
+            recognize((
                 opt(alt((tag("+"), tag("-")))), // Handle optional signs
-                alt((digit1, recognize(tuple((tag("."), digit1))))), // Handle integers & `.5`
-                opt(tuple((tag("."), digit1))), // Handle decimals like `5.`
-                opt(tuple((
+                alt((digit1, recognize((tag("."), digit1)))), // Handle integers & `.5`
+                opt((tag("."), digit1)), // Handle decimals like `5.`
+                opt((
                     tag_no_case("e"),
                     opt(alt((tag("+"), tag("-")))),
                     digit1,
-                ))), // Handle `1e10`, `-1e-5`
-            ))),
+                )), // Handle `1e10`, `-1e-5`
+            )),
             |float_str: &str| <T as DetectFloatType>::from_str(float_str),
         ),
-    ))(input)
+    )).parse(input)
 }
 fn detect_parse_float_start_equal<T: DetectFloatType>(
     i: &str,
 ) -> IResult<&str, DetectFloatData<T>> {
-    let (i, _) = opt(tag("="))(i)?;
-    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, _) = opt(tag("=")).parse(i)?;
+    let (i, _) = opt(is_a(" ")).parse(i)?;
     let (i, arg1) = parse_float_value::<T>(i)?;
     Ok((
         i,
@@ -127,14 +126,14 @@ fn detect_parse_float_start_equal<T: DetectFloatType>(
 pub fn detect_parse_float_start_interval<T: DetectFloatType>(
     i: &str,
 ) -> IResult<&str, DetectFloatData<T>> {
-    let (i, neg) = opt(char('!'))(i)?;
+    let (i, neg) = opt(char('!')).parse(i)?;
     let (i, arg1) = parse_float_value::<T>(i)?;
-    let (i, _) = opt(is_a(" "))(i)?;
-    let (i, _) = alt((tag("-"), tag("<>")))(i)?;
-    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, _) = opt(is_a(" ")).parse(i)?;
+    let (i, _) = alt((tag("-"), tag("<>"))).parse(i)?;
+    let (i, _) = opt(is_a(" ")).parse(i)?;
     let (i, arg2) = verify(parse_float_value::<T>, |x| {
         *x > arg1 && *x - arg1 > <T as FloatCore>::epsilon()
-    })(i)?;
+    }).parse(i)?;
     let mode = if neg.is_some() {
         DetectFloatMode::DetectFloatModeNegRg
     } else {
@@ -151,7 +150,7 @@ fn detect_parse_float_mode(i: &str) -> IResult<&str, DetectFloatMode> {
         value(DetectFloatMode::DetectFloatModeLt, tag("<")),
         value(DetectFloatMode::DetectFloatModeNe, tag("!=")),
         value(DetectFloatMode::DetectFloatModeEqual, tag("=")),
-    ))(i)?;
+    )).parse(i)?;
     Ok((i, mode))
 }
 
@@ -159,7 +158,7 @@ fn detect_parse_float_start_symbol<T: DetectFloatType>(
     i: &str,
 ) -> IResult<&str, DetectFloatData<T>> {
     let (i, mode) = detect_parse_float_mode(i)?;
-    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, _) = opt(is_a(" ")).parse(i)?;
     let (i, arg1) = parse_float_value::<T>(i)?;
 
     match mode {
@@ -214,17 +213,17 @@ pub fn detect_match_float<T: DetectFloatType>(x: &DetectFloatData<T>, val: T) ->
 
 pub fn detect_parse_float<T: DetectFloatType>(i: &str) -> IResult<&str, DetectFloatData<T>> {
     let (i, float) = detect_parse_float_notending(i)?;
-    let (i, _) = all_consuming(take_while(|c| c == ' '))(i)?;
+    let (i, _) = all_consuming(take_while(|c| c == ' ')).parse(i)?;
     Ok((i, float))
 }
 
 fn detect_parse_float_notending<T: DetectFloatType>(i: &str) -> IResult<&str, DetectFloatData<T>> {
-    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, _) = opt(is_a(" ")).parse(i)?;
     let (i, float) = alt((
         detect_parse_float_start_interval,
         detect_parse_float_start_equal,
         detect_parse_float_start_symbol,
-    ))(i)?;
+    )).parse(i)?;
     Ok((i, float))
 }
 

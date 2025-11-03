@@ -32,12 +32,13 @@ use crate::detect::uint::{
 use crate::detect::{SIGMATCH_INFO_ENUM_UINT, SIGMATCH_INFO_MULTI_UINT};
 use kerberos_parser::krb5::EncryptionType;
 
-use nom7::branch::alt;
-use nom7::bytes::complete::{is_a, tag, take_while, take_while1};
-use nom7::character::complete::char;
-use nom7::combinator::{all_consuming, map_res, opt};
-use nom7::multi::many1;
-use nom7::IResult;
+use nom8::branch::alt;
+use nom8::bytes::complete::{is_a, tag, take_while, take_while1};
+use nom8::character::complete::char;
+use nom8::combinator::{all_consuming, map_res, opt};
+use nom8::multi::many1;
+use nom8::IResult;
+use nom8::Parser;
 
 use std::ffi::{c_int, CStr};
 use std::os::raw::c_void;
@@ -124,8 +125,8 @@ pub enum DetectKrb5TicketEncryptionData {
 }
 
 pub fn detect_parse_encryption_weak(i: &str) -> IResult<&str, DetectKrb5TicketEncryptionData> {
-    let (i, neg) = opt(char('!'))(i)?;
-    let (i, _) = tag("weak")(i)?;
+    let (i, neg) = opt(char('!')).parse(i)?;
+    let (i, _) = tag("weak").parse(i)?;
     let value = neg.is_none();
     return Ok((i, DetectKrb5TicketEncryptionData::WEAK(value)));
 }
@@ -189,18 +190,18 @@ pub fn is_alphanumeric_or_dash(chr: char) -> bool {
 }
 
 pub fn detect_parse_encryption_item(i: &str) -> IResult<&str, EncryptionType> {
-    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, _) = opt(is_a(" ")).parse(i)?;
     let (i, e) = map_res(take_while1(is_alphanumeric_or_dash), |s: &str| {
         EncryptionType::from_str(s)
-    })(i)?;
-    let (i, _) = opt(is_a(" "))(i)?;
-    let (i, _) = opt(char(','))(i)?;
+    }).parse(i)?;
+    let (i, _) = opt(is_a(" ")).parse(i)?;
+    let (i, _) = opt(char(',')).parse(i)?;
     return Ok((i, e));
 }
 
 pub fn detect_parse_encryption_list(i: &str) -> IResult<&str, DetectKrb5TicketEncryptionData> {
     let mut l = DetectKrb5TicketEncryptionList::new();
-    let (i, v) = many1(detect_parse_encryption_item)(i)?;
+    let (i, v) = many1(detect_parse_encryption_item).parse(i)?;
     for &val in v.iter() {
         let vali = val.0;
         // KRB_TICKET_FASTARRAY_SIZE is a constant typed usize but which fits in a i32
@@ -216,9 +217,9 @@ pub fn detect_parse_encryption_list(i: &str) -> IResult<&str, DetectKrb5TicketEn
 }
 
 pub fn detect_parse_encryption(i: &str) -> IResult<&str, DetectKrb5TicketEncryptionData> {
-    let (i, _) = opt(is_a(" "))(i)?;
-    let (i, parsed) = alt((detect_parse_encryption_weak, detect_parse_encryption_list))(i)?;
-    let (i, _) = all_consuming(take_while(|c| c == ' '))(i)?;
+    let (i, _) = opt(is_a(" ")).parse(i)?;
+    let (i, parsed) = alt((detect_parse_encryption_weak, detect_parse_encryption_list)).parse(i)?;
+    let (i, _) = all_consuming(take_while(|c| c == ' ')).parse(i)?;
     return Ok((i, parsed));
 }
 
