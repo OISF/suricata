@@ -17,10 +17,10 @@
 
 use crate::detect::error::RuleParseError;
 
-use nom7::bytes::complete::is_not;
-use nom7::character::complete::multispace0;
-use nom7::sequence::preceded;
-use nom7::IResult;
+use nom8::bytes::complete::is_not;
+use nom8::character::complete::multispace0;
+use nom8::sequence::preceded;
+use nom8::{IResult, Parser};
 
 #[derive(Debug)]
 pub enum ResultValue {
@@ -31,7 +31,7 @@ pub enum ResultValue {
 static WHITESPACE: &str = " \t\r\n";
 /// Parse all characters up until the next whitespace character.
 pub fn take_until_whitespace(input: &str) -> IResult<&str, &str, RuleParseError<&str>> {
-    nom7::bytes::complete::is_not(WHITESPACE)(input)
+    nom8::bytes::complete::is_not(WHITESPACE).parse(input)
 }
 
 // Parsed as a u64 so the value can be validated against a u32 min/max if needed.
@@ -49,5 +49,5 @@ pub fn parse_var(input: &str) -> IResult<&str, ResultValue, RuleParseError<&str>
 /// is ignore.
 pub fn parse_token(input: &str) -> IResult<&str, &str, RuleParseError<&str>> {
     let terminators = "\n\r\t,;: ";
-    preceded(multispace0, is_not(terminators))(input)
+    preceded(multispace0, is_not(terminators)).parse(input)
 }
