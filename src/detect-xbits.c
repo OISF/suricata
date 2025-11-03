@@ -252,18 +252,14 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
     int ret = DetectParsePcreExec(&parse_regex, &match, rawstr, 0, 0);
     if (ret != 2 && ret != 3 && ret != 4 && ret != 5) {
         SCLogError("\"%s\" is not a valid setting for xbits.", rawstr);
-        if (match) {
-            pcre2_match_data_free(match);
-        }
-        return -1;
+        goto error;
     }
     SCLogDebug("ret %d, %s", ret, rawstr);
     pcre2len = sizeof(fb_cmd_str);
     int res = pcre2_substring_copy_bynumber(match, 1, (PCRE2_UCHAR8 *)fb_cmd_str, &pcre2len);
     if (res < 0) {
         SCLogError("pcre2_substring_copy_bynumber failed");
-        pcre2_match_data_free(match);
-        return -1;
+        goto error;
     }
 
     if (ret >= 3) {
@@ -271,16 +267,14 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
         res = pcre2_substring_copy_bynumber(match, 2, (PCRE2_UCHAR8 *)fb_name, &pcre2len);
         if (res < 0) {
             SCLogError("pcre2_substring_copy_bynumber failed");
-            pcre2_match_data_free(match);
-            return -1;
+            goto error;
         }
         if (ret >= 4) {
             pcre2len = sizeof(hb_dir_str);
             res = pcre2_substring_copy_bynumber(match, 3, (PCRE2_UCHAR8 *)hb_dir_str, &pcre2len);
             if (res < 0) {
                 SCLogError("pcre2_substring_copy_bynumber failed");
-                pcre2_match_data_free(match);
-                return -1;
+                goto error;
             }
             SCLogDebug("hb_dir_str %s", hb_dir_str);
             if (strlen(hb_dir_str) > 0) {
@@ -298,8 +292,7 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
                     var_type = VAR_TYPE_TX_BIT;
                 } else {
                     // TODO
-                    pcre2_match_data_free(match);
-                    return -1;
+                    goto error;
                 }
             }
 
@@ -310,21 +303,18 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
                         match, 4, (PCRE2_UCHAR8 *)expire_str, &pcre2len);
                 if (res < 0) {
                     SCLogError("pcre2_substring_copy_bynumber failed");
-                    pcre2_match_data_free(match);
-                    return -1;
+                    goto error;
                 }
                 SCLogDebug("expire_str %s", expire_str);
                 if (StringParseUint32(&expire, 10, 0, (const char *)expire_str) < 0) {
                     SCLogError("Invalid value for "
                                "expire: \"%s\"",
                             expire_str);
-                    pcre2_match_data_free(match);
-                    return -1;
+                    goto error;
                 }
                 if (expire == 0) {
                     SCLogError("expire must be bigger than 0");
-                    pcre2_match_data_free(match);
-                    return -1;
+                    goto error;
                 }
                 SCLogDebug("expire %d", expire);
             }
@@ -389,6 +379,12 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
 
     *cdout = cd;
     return 0;
+
+error:
+    if (match)
+        pcre2_match_data_free(match);
+    DetectXbitFree(de_ctx, cd);
+    return -1;
 }
 
 int DetectXbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
@@ -415,16 +411,14 @@ int DetectXbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
                 SCLogDebug("tx xbit isset");
                 if (s->init_data->hook.type != SIGNATURE_HOOK_TYPE_APP) {
                     SCLogError("tx xbits require an explicit rule hook");
-                    SCFree(cd);
-                    return -1;
+                    goto error;
                 }
                 list = s->init_data->hook.sm_list;
                 SCLogDebug("setting list %d", list);
 
                 if (list == -1) {
                     SCLogError("tx xbits failed to set up"); // TODO how would we get here?
-                    SCFree(cd);
-                    return -1;
+                    goto error;
                 }
             }
 
@@ -432,8 +426,7 @@ int DetectXbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
             /* checks, so packet list */
             if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_XBITS, (SigMatchCtx *)cd, list) ==
                     NULL) {
-                SCFree(cd);
-                return -1;
+                goto error;
             }
             break;
         }
@@ -444,13 +437,16 @@ int DetectXbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
             /* modifiers, only run when entire sig has matched */
             if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_XBITS, (SigMatchCtx *)cd,
                         DETECT_SM_LIST_POSTMATCH) == NULL) {
-                SCFree(cd);
-                return -1;
+                goto error;
             }
             break;
     }
 
     return 0;
+
+error:
+    DetectXbitFree(de_ctx, cd);
+    return -1;
 }
 
 static void DetectXbitFree (DetectEngineCtx *de_ctx, void *ptr)
