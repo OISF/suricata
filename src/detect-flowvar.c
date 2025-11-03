@@ -192,8 +192,7 @@ static int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char
     return 0;
 
 error:
-    if (fd != NULL)
-        DetectFlowvarDataFree(de_ctx, fd);
+    DetectFlowvarDataFree(de_ctx, fd);
     if (content != NULL)
         SCFree(content);
     return -1;
@@ -272,8 +271,7 @@ int DetectFlowvarPostMatchSetup(DetectEngineCtx *de_ctx, Signature *s, uint32_t 
     }
     return 0;
 error:
-    if (fv != NULL)
-        DetectFlowvarDataFree(de_ctx, fv);
+    DetectFlowvarDataFree(de_ctx, fv);
     return -1;
 }
 
