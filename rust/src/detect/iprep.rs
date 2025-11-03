@@ -17,14 +17,14 @@
 
 use super::uint::*;
 use crate::detect::error::RuleParseError;
-use nom7::bytes::complete::tag;
-use nom7::character::complete::multispace0;
-use nom7::sequence::preceded;
+use nom8::bytes::complete::tag;
+use nom8::character::complete::multispace0;
+use nom8::sequence::preceded;
 
 use suricata_sys::sys::SCSRepCatGetByShortname;
 
-use nom7::Err;
-use nom7::IResult;
+use nom8::Err;
+use nom8::{IResult, Parser};
 
 use std::ffi::{CStr, CString};
 use std::str::FromStr;
@@ -81,13 +81,13 @@ pub fn is_alphanumeric_or_slash(chr: char) -> bool {
 
 pub fn detect_parse_iprep(i: &str) -> IResult<&str, DetectIPRepData, RuleParseError<&str>> {
     // Inner utility function for easy error creation.
-    fn make_error(reason: String) -> nom7::Err<RuleParseError<&'static str>> {
+    fn make_error(reason: String) -> nom8::Err<RuleParseError<&'static str>> {
         Err::Error(RuleParseError::InvalidIPRep(reason))
     }
-    let (_, values) = nom7::multi::separated_list1(
+    let (_, values) = nom8::multi::separated_list1(
         tag(","),
-        preceded(multispace0, nom7::bytes::complete::is_not(",")),
-    )(i)?;
+        preceded(multispace0, nom8::bytes::complete::is_not(",")),
+    ).parse(i)?;
 
     let args = values.len();
     if args == 4 || args == 3 {

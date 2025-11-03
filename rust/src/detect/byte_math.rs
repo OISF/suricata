@@ -23,10 +23,10 @@ use crate::detect::{get_endian_value, get_string_value, ByteBase, ByteEndian};
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 
-use nom7::bytes::complete::tag;
-use nom7::character::complete::multispace0;
-use nom7::sequence::preceded;
-use nom7::{Err, IResult};
+use nom8::bytes::complete::tag;
+use nom8::character::complete::multispace0;
+use nom8::sequence::preceded;
+use nom8::{Err, IResult, Parser};
 use std::str;
 
 pub const DETECT_BYTEMATH_FLAG_RELATIVE: u8 = 0x01;
@@ -152,13 +152,13 @@ fn get_oper_value(value: &str) -> Result<ByteMathOperator, ()> {
 
 fn parse_bytemath(input: &str) -> IResult<&str, DetectByteMathData, RuleParseError<&str>> {
     // Inner utility function for easy error creation.
-    fn make_error(reason: String) -> nom7::Err<RuleParseError<&'static str>> {
+    fn make_error(reason: String) -> nom8::Err<RuleParseError<&'static str>> {
         Err::Error(RuleParseError::InvalidByteMath(reason))
     }
-    let (_, values) = nom7::multi::separated_list1(
+    let (_, values) = nom8::multi::separated_list1(
         tag(","),
-        preceded(multispace0, nom7::bytes::complete::is_not(",")),
-    )(input)?;
+        preceded(multispace0, nom8::bytes::complete::is_not(",")),
+    ).parse(input)?;
 
     if values.len() < DETECT_BYTEMATH_FIXED_PARAM_COUNT
         || values.len() > DETECT_BYTEMATH_MAX_PARAM_COUNT
