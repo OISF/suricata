@@ -15,10 +15,11 @@
  * 02110-1301, USA.
  */
 
-use nom7::bytes::streaming::take;
-use nom7::combinator::rest;
-use nom7::number::streaming::be_u32;
-use nom7::IResult;
+use nom8::bytes::streaming::take;
+use nom8::combinator::rest;
+use nom8::number::streaming::be_u32;
+use nom8::Parser;
+use nom8::IResult;
 
 pub const NBSS_MSGTYPE_SESSION_MESSAGE:         u8 = 0x00;
 pub const NBSS_MSGTYPE_SESSION_REQUEST:         u8 = 0x81;
@@ -60,10 +61,10 @@ impl NbssRecord<'_> {
 }
 
 pub fn parse_nbss_record(i: &[u8]) -> IResult<&[u8], NbssRecord<'_>> {
-    let (i, buf) = be_u32(i)?;
+    let (i, buf) = be_u32.parse(i)?;
     let message_type = (buf >> 24) as u8;
     let length = buf & 0xff_ffff;
-    let (i, data) = take(length as usize)(i)?;
+    let (i, data) = take(length as usize).parse(i)?;
     let record = NbssRecord {
         message_type,
         length,
@@ -73,10 +74,10 @@ pub fn parse_nbss_record(i: &[u8]) -> IResult<&[u8], NbssRecord<'_>> {
 }
 
 pub fn parse_nbss_record_partial(i: &[u8]) -> IResult<&[u8], NbssRecord<'_>> {
-    let (i, buf) = be_u32(i)?;
+    let (i, buf) = be_u32.parse(i)?;
     let message_type = (buf >> 24) as u8;
     let length = buf & 0xff_ffff;
-    let (i, data) = rest(i)?;
+    let (i, data) = rest.parse(i)?;
     let record = NbssRecord {
         message_type,
         length,
@@ -89,7 +90,7 @@ pub fn parse_nbss_record_partial(i: &[u8]) -> IResult<&[u8], NbssRecord<'_>> {
 mod tests {
 
     use super::*;
-    use nom7::Err;
+    use nom8::Err;
 
     #[test]
     fn test_parse_nbss_record() {

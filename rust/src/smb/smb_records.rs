@@ -15,9 +15,10 @@
  * 02110-1301, USA.
  */
 
-use crate::common::nom7::take_until_and_consume;
+use crate::common::nom8::take_until_and_consume;
 use crate::smb::error::SmbError;
-use nom7::{Err, IResult};
+use nom8::Parser;
+use nom8::{Err, IResult};
 
 /// parse a UTF16 string that is null terminated. Normally by 2 null
 /// bytes, but at the end of the data it can also be a single null.
@@ -47,7 +48,7 @@ pub fn smb_get_unicode_string(blob: &[u8]) -> IResult<&[u8], Vec<u8>, SmbError>
 
 // parse an ASCII string that is null terminated
 pub fn smb_get_ascii_string(i: &[u8]) -> IResult<&[u8], Vec<u8>, SmbError> {
-    let (i, s) = take_until_and_consume(b"\x00")(i)?;
+    let (i, s) = take_until_and_consume(b"\x00").parse(i)?;
     Ok((i, s.to_vec()))
 }
 

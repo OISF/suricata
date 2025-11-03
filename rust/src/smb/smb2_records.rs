@@ -17,12 +17,13 @@
 
 use crate::smb::nbss_records::NBSS_MSGTYPE_SESSION_MESSAGE;
 use crate::smb::smb::*;
-use nom7::bytes::streaming::{tag, take};
-use nom7::combinator::{cond, map_parser, rest};
-use nom7::error::{make_error, ErrorKind};
-use nom7::multi::count;
-use nom7::number::streaming::{le_u16, le_u32, le_u64, le_u8};
-use nom7::{Err, IResult, Needed};
+use nom8::bytes::streaming::{tag, take};
+use nom8::combinator::{cond, map_parser, rest};
+use nom8::error::{make_error, ErrorKind};
+use nom8::multi::count;
+use nom8::number::streaming::{le_u16, le_u32, le_u64, le_u8};
+use nom8::Parser;
+use nom8::{Err, IResult, Needed};
 
 const SMB2_FLAGS_SERVER_TO_REDIR: u32 = 0x0000_0001;
 const SMB2_FLAGS_ASYNC_COMMAND: u32 = 0x0000_0002;
@@ -38,9 +39,9 @@ pub struct Smb2RecordDir {
 }
 
 pub fn parse_smb2_record_direction(i: &[u8]) -> IResult<&[u8], Smb2RecordDir> {
-    let (i, _server_component) = tag(b"\xfeSMB")(i)?;
-    let (i, _skip) = take(12_usize)(i)?;
-    let (i, flags) = le_u8(i)?;
+    let (i, _server_component) = tag(&b"\xfeSMB"[..]).parse(i)?;
+    let (i, _skip) = take(12_usize).parse(i)?;
+    let (i, flags) = le_u8.parse(i)?;
     let record = Smb2RecordDir {
         request: flags & 0x01 == 0,
     };
@@ -77,7 +78,7 @@ struct SmbFlags {
 }
 
 fn parse_smb2_flags(i: &[u8]) -> IResult<&[u8], SmbFlags> {
-    let (i, val) = le_u32(i)?;
+    let (i, val) = le_u32.parse(i)?;
     let direction = u8::from(val & SMB2_FLAGS_SERVER_TO_REDIR != 0);
     let async_command = u8::from(val & SMB2_FLAGS_ASYNC_COMMAND != 0);
     Ok((
@@ -90,24 +91,24 @@ fn parse_smb2_flags(i: &[u8]) -> IResult<&[u8], SmbFlags> {
 }
 
 pub fn parse_smb2_request_record(i: &[u8]) -> IResult<&[u8], Smb2Record<'_>> {
-    let (i, _server_component) = tag(b"\xfeSMB")(i)?;
-    let (i, hlen) = le_u16(i)?;
-    let (i, _credit_charge) = le_u16(i)?;
-    let (i, _channel_seq) = le_u16(i)?;
-    let (i, _reserved) = take(2_usize)(i)?;
-    let (i, command) = le_u16(i)?;
-    let (i, _credits_requested) = le_u16(i)?;
+    let (i, _server_component) = tag(&b"\xfeSMB"[..]).parse(i)?;
+    let (i, hlen) = le_u16.parse(i)?;
+    let (i, _credit_charge) = le_u16.parse(i)?;
+    let (i, _channel_seq) = le_u16.parse(i)?;
+    let (i, _reserved) = take(2_usize).parse(i)?;
+    let (i, command) = le_u16.parse(i)?;
+    let (i, _credits_requested) = le_u16.parse(i)?;
     let (i, flags) = parse_smb2_flags(i)?;
-    let (i, chain_offset) = le_u32(i)?;
-    let (i, message_id) = le_u64(i)?;
-    let (i, _process_id) = le_u32(i)?;
-    let (i, tree_id) = le_u32(i)?;
-    let (i, session_id) = le_u64(i)?;
-    let (i, _signature) = take(16_usize)(i)?;
+    let (i, chain_offset) = le_u32.parse(i)?;
+    let (i, message_id) = le_u64.parse(i)?;
+    let (i, _process_id) = le_u32.parse(i)?;
+    let (i, tree_id) = le_u32.parse(i)?;
+    let (i, session_id) = le_u64.parse(i)?;
+    let (i, _signature) = take(16_usize).parse(i)?;
     let (i, data) = if chain_offset > hlen as u32 {
-        take(chain_offset - hlen as u32)(i)?
+        take(chain_offset - hlen as u32).parse(i)?
     } else {
-        rest(i)?
+        rest.parse(i)?
     };
     let record = Smb2Record {
         direction: flags.direction,
@@ -132,16 +133,16 @@ pub struct Smb2NegotiateProtocolRequestRecord<'a> {
 pub fn parse_smb2_request_negotiate_protocol(
     i: &[u8],
 ) -> IResult<&[u8], Smb2NegotiateProtocolRequestRecord<'_>> {
-    let (i, _struct_size) = take(2_usize)(i)?;
-    let (i, dialects_count) = le_u16(i)?;
-    let (i, _sec_mode) = le_u16(i)?;
-    let (i, _reserved1) = le_u16(i)?;
-    let (i, _capabilities) = le_u32(i)?;
-    let (i, client_guid) = take(16_usize)(i)?;
-    let (i, _ctx_offset) = le_u32(i)?;
-    let (i, _ctx_cnt) = le_u16(i)?;
-    let (i, _reserved2) = le_u16(i)?;
-    let (i, dia_vec) = count(le_u16, dialects_count as usize)(i)?;
+    let (i, _struct_size) = take(2_usize).parse(i)?;
+    let (i, dialects_count) = le_u16.parse(i)?;
+    let (i, _sec_mode) = le_u16.parse(i)?;
+    let (i, _reserved1) = le_u16.parse(i)?;
+    let (i, _capabilities) = le_u32.parse(i)?;
+    let (i, client_guid) = take(16_usize).parse(i)?;
+    let (i, _ctx_offset) = le_u32.parse(i)?;
+    let (i, _ctx_cnt) = le_u16.parse(i)?;
+    let (i, _reserved2) = le_u16.parse(i)?;
+    let (i, dia_vec) = count(le_u16, dialects_count as usize).parse(i)?;
     let record = Smb2NegotiateProtocolRequestRecord {
         dialects_vec: dia_vec,
         client_guid,
@@ -161,15 +162,15 @@ pub struct Smb2NegotiateProtocolResponseRecord<'a> {
 pub fn parse_smb2_response_negotiate_protocol(
     i: &[u8],
 ) -> IResult<&[u8], Smb2NegotiateProtocolResponseRecord<'_>> {
-    let (i, _struct_size) = take(2_usize)(i)?;
-    let (i, _skip1) = take(2_usize)(i)?;
-    let (i, dialect) = le_u16(i)?;
-    let (i, _ctx_cnt) = le_u16(i)?;
-    let (i, server_guid) = take(16_usize)(i)?;
-    let (i, _capabilities) = le_u32(i)?;
-    let (i, max_trans_size) = le_u32(i)?;
-    let (i, max_read_size) = le_u32(i)?;
-    let (i, max_write_size) = le_u32(i)?;
+    let (i, _struct_size) = take(2_usize).parse(i)?;
+    let (i, _skip1) = take(2_usize).parse(i)?;
+    let (i, dialect) = le_u16.parse(i)?;
+    let (i, _ctx_cnt) = le_u16.parse(i)?;
+    let (i, server_guid) = take(16_usize).parse(i)?;
+    let (i, _capabilities) = le_u32.parse(i)?;
+    let (i, max_trans_size) = le_u32.parse(i)?;
+    let (i, max_read_size) = le_u32.parse(i)?;
+    let (i, max_write_size) = le_u32.parse(i)?;
     let record = Smb2NegotiateProtocolResponseRecord {
         dialect,
         server_guid,
@@ -183,8 +184,8 @@ pub fn parse_smb2_response_negotiate_protocol(
 pub fn parse_smb2_response_negotiate_protocol_error(
     i: &[u8],
 ) -> IResult<&[u8], Smb2NegotiateProtocolResponseRecord<'_>> {
-    let (i, _struct_size) = take(2_usize)(i)?;
-    let (i, _skip1) = take(2_usize)(i)?;
+    let (i, _struct_size) = take(2_usize).parse(i)?;
+    let (i, _skip1) = take(2_usize).parse(i)?;
     let record = Smb2NegotiateProtocolResponseRecord {
         dialect: 0,
         server_guid: &[],
@@ -201,15 +202,15 @@ pub struct Smb2SessionSetupRequestRecord<'a> {
 }
 
 pub fn parse_smb2_request_session_setup(i: &[u8]) -> IResult<&[u8], Smb2SessionSetupRequestRecord<'_>> {
-    let (i, _struct_size) = take(2_usize)(i)?;
-    let (i, _flags) = le_u8(i)?;
-    let (i, _security_mode) = le_u8(i)?;
-    let (i, _capabilities) = le_u32(i)?;
-    let (i, _channel) = le_u32(i)?;
-    let (i, _sec_offset) = le_u16(i)?;
-    let (i, _sec_len) = le_u16(i)?;
-    let (i, _prev_ssn_id) = take(8_usize)(i)?;
-    let (i, data) = rest(i)?;
+    let (i, _struct_size) = take(2_usize).parse(i)?;
+    let (i, _flags) = le_u8.parse(i)?;
+    let (i, _security_mode) = le_u8.parse(i)?;
+    let (i, _capabilities) = le_u32.parse(i)?;
+    let (i, _channel) = le_u32.parse(i)?;
+    let (i, _sec_offset) = le_u16.parse(i)?;
+    let (i, _sec_len) = le_u16.parse(i)?;
+    let (i, _prev_ssn_id) = take(8_usize).parse(i)?;
+    let (i, data) = rest.parse(i)?;
     let record = Smb2SessionSetupRequestRecord { data };
     Ok((i, record))
 }
@@ -220,9 +221,9 @@ pub struct Smb2TreeConnectRequestRecord<'a> {
 }
 
 pub fn parse_smb2_request_tree_connect(i: &[u8]) -> IResult<&[u8], Smb2TreeConnectRequestRecord<'_>> {
-    let (i, _struct_size) = take(2_usize)(i)?;
-    let (i, _offset_length) = take(4_usize)(i)?;
-    let (i, data) = rest(i)?;
+    let (i, _struct_size) = take(2_usize).parse(i)?;
+    let (i, _offset_length) = take(4_usize).parse(i)?;
+    let (i, data) = rest.parse(i)?;
     let record = Smb2TreeConnectRequestRecord { share_name: data };
     Ok((i, record))
 }
@@ -233,11 +234,11 @@ pub struct Smb2TreeConnectResponseRecord {
 }
 
 pub fn parse_smb2_response_tree_connect(i: &[u8]) -> IResult<&[u8], Smb2TreeConnectResponseRecord> {
-    let (i, _struct_size) = take(2_usize)(i)?;
-    let (i, share_type) = le_u8(i)?;
-    let (i, _share_flags) = le_u32(i)?;
-    let (i, _share_caps) = le_u32(i)?;
-    let (i, _access_mask) = le_u32(i)?;
+    let (i, _struct_size) = take(2_usize).parse(i)?;
+    let (i, share_type) = le_u8.parse(i)?;
+    let (i, _share_flags) = le_u32.parse(i)?;
+    let (i, _share_caps) = le_u32.parse(i)?;
+    let (i, _access_mask) = le_u32.parse(i)?;
     let record = Smb2TreeConnectResponseRecord { share_type };
     Ok((i, record))
 }
@@ -250,14 +251,14 @@ pub struct Smb2CreateRequestRecord<'a> {
 }
 
 pub fn parse_smb2_request_create(i: &[u8]) -> IResult<&[u8], Smb2CreateRequestRecord<'_>> {
-    let (i, _skip1) = take(36_usize)(i)?;
-    let (i, disposition) = le_u32(i)?;
-    let (i, create_options) = le_u32(i)?;
-    let (i, _file_name_offset) = le_u16(i)?;
-    let (i, file_name_length) = le_u16(i)?;
-    let (i, _skip2) = take(8_usize)(i)?;
-    let (i, data) = take(file_name_length)(i)?;
-    let (i, _skip3) = rest(i)?;
+    let (i, _skip1) = take(36_usize).parse(i)?;
+    let (i, disposition) = le_u32.parse(i)?;
+    let (i, create_options) = le_u32.parse(i)?;
+    let (i, _file_name_offset) = le_u16.parse(i)?;
+    let (i, file_name_length) = le_u16.parse(i)?;
+    let (i, _skip2) = take(8_usize).parse(i)?;
+    let (i, data) = take(file_name_length).parse(i)?;
+    let (i, _skip3) = rest.parse(i)?;
     let record = Smb2CreateRequestRecord {
         disposition,
         create_options,
@@ -275,17 +276,17 @@ pub struct Smb2IOCtlRequestRecord<'a> {
 }
 
 pub fn parse_smb2_request_ioctl(i: &[u8]) -> IResult<&[u8], Smb2IOCtlRequestRecord<'_>> {
-    let (i, _skip) = take(2_usize)(i)?; // structure size
-    let (i, _) = take(2_usize)(i)?; // reserved
-    let (i, func) = le_u32(i)?;
-    let (i, guid) = take(16_usize)(i)?;
-    let (i, _indata_offset) = le_u32(i)?;
-    let (i, indata_len) = le_u32(i)?;
-    let (i, _) = take(4_usize)(i)?;
-    let (i, _outdata_offset) = le_u32(i)?;
-    let (i, _outdata_len) = le_u32(i)?;
-    let (i, _) = take(12_usize)(i)?;
-    let (i, data) = take(indata_len)(i)?;
+    let (i, _skip) = take(2_usize).parse(i)?; // structure size
+    let (i, _) = take(2_usize).parse(i)?; // reserved
+    let (i, func) = le_u32.parse(i)?;
+    let (i, guid) = take(16_usize).parse(i)?;
+    let (i, _indata_offset) = le_u32.parse(i)?;
+    let (i, indata_len) = le_u32.parse(i)?;
+    let (i, _) = take(4_usize).parse(i)?;
+    let (i, _outdata_offset) = le_u32.parse(i)?;
+    let (i, _outdata_len) = le_u32.parse(i)?;
+    let (i, _) = take(12_usize).parse(i)?;
+    let (i, data) = take(indata_len).parse(i)?;
     let record = Smb2IOCtlRequestRecord {
         is_pipe: (func == 0x0011c017),
         function: func,
@@ -307,17 +308,17 @@ pub struct Smb2IOCtlResponseRecord<'a> {
 }
 
 pub fn parse_smb2_response_ioctl(i: &[u8]) -> IResult<&[u8], Smb2IOCtlResponseRecord<'_>> {
-    let (i, _skip) = take(2_usize)(i)?; // structure size
-    let (i, _) = take(2_usize)(i)?; // reserved
-    let (i, func) = le_u32(i)?;
-    let (i, guid) = take(16_usize)(i)?;
-    let (i, indata_offset) = le_u32(i)?;
-    let (i, indata_len) = le_u32(i)?;
-    let (i, outdata_offset) = le_u32(i)?;
-    let (i, outdata_len) = le_u32(i)?;
-    let (i, _) = take(8_usize)(i)?;
-    let (i, _) = take(indata_len)(i)?;
-    let (i, data) = take(outdata_len)(i)?;
+    let (i, _skip) = take(2_usize).parse(i)?; // structure size
+    let (i, _) = take(2_usize).parse(i)?; // reserved
+    let (i, func) = le_u32.parse(i)?;
+    let (i, guid) = take(16_usize).parse(i)?;
+    let (i, indata_offset) = le_u32.parse(i)?;
+    let (i, indata_len) = le_u32.parse(i)?;
+    let (i, outdata_offset) = le_u32.parse(i)?;
+    let (i, outdata_len) = le_u32.parse(i)?;
+    let (i, _) = take(8_usize).parse(i)?;
+    let (i, _) = take(indata_len).parse(i)?;
+    let (i, data) = take(outdata_len).parse(i)?;
     let record = Smb2IOCtlResponseRecord {
         is_pipe: (func == 0x0011c017),
         guid,
@@ -336,8 +337,8 @@ pub struct Smb2CloseRequestRecord<'a> {
 }
 
 pub fn parse_smb2_request_close(i: &[u8]) -> IResult<&[u8], Smb2CloseRequestRecord<'_>> {
-    let (i, _skip) = take(8_usize)(i)?;
-    let (i, guid) = take(16_usize)(i)?;
+    let (i, _skip) = take(8_usize).parse(i)?;
+    let (i, guid) = take(16_usize).parse(i)?;
     let record = Smb2CloseRequestRecord { guid };
     Ok((i, record))
 }
@@ -348,11 +349,11 @@ pub struct Smb2SetInfoRequestRenameRecord<'a> {
 }
 
 pub fn parse_smb2_request_setinfo_rename(i: &[u8]) -> IResult<&[u8], Smb2SetInfoRequestData<'_>> {
-    let (i, _replace) = le_u8(i)?;
-    let (i, _reserved) = take(7_usize)(i)?;
-    let (i, _root_handle) = take(8_usize)(i)?;
-    let (i, name_len) = le_u32(i)?;
-    let (i, name) = take(name_len)(i)?;
+    let (i, _replace) = le_u8.parse(i)?;
+    let (i, _reserved) = take(7_usize).parse(i)?;
+    let (i, _root_handle) = take(8_usize).parse(i)?;
+    let (i, name_len) = le_u32.parse(i)?;
+    let (i, name) = take(name_len).parse(i)?;
     let record = Smb2SetInfoRequestData::RENAME(Smb2SetInfoRequestRenameRecord { name });
     Ok((i, record))
 }
@@ -363,7 +364,7 @@ pub struct Smb2SetInfoRequestDispoRecord {
 }
 
 pub fn parse_smb2_request_setinfo_disposition(i: &[u8]) -> IResult<&[u8], Smb2SetInfoRequestData<'_>> {
-    let (i, info) = le_u8(i)?;
+    let (i, info) = le_u8.parse(i)?;
     let record = Smb2SetInfoRequestData::DISPOSITION(Smb2SetInfoRequestDispoRecord {
         delete: info & 1 != 0,
     });
@@ -404,17 +405,17 @@ fn parse_smb2_request_setinfo_data(
 }
 
 pub fn parse_smb2_request_setinfo(i: &[u8]) -> IResult<&[u8], Smb2SetInfoRequestRecord<'_>> {
-    let (i, _struct_size) = le_u16(i)?;
-    let (i, class) = le_u8(i)?;
-    let (i, infolvl) = le_u8(i)?;
-    let (i, setinfo_size) = le_u32(i)?;
-    let (i, _setinfo_offset) = le_u16(i)?;
-    let (i, _reserved) = take(2_usize)(i)?;
-    let (i, _additional_info) = le_u32(i)?;
-    let (i, guid) = take(16_usize)(i)?;
+    let (i, _struct_size) = le_u16.parse(i)?;
+    let (i, class) = le_u8.parse(i)?;
+    let (i, infolvl) = le_u8.parse(i)?;
+    let (i, setinfo_size) = le_u32.parse(i)?;
+    let (i, _setinfo_offset) = le_u16.parse(i)?;
+    let (i, _reserved) = take(2_usize).parse(i)?;
+    let (i, _additional_info) = le_u32.parse(i)?;
+    let (i, guid) = take(16_usize).parse(i)?;
     let (i, data) = map_parser(take(setinfo_size), |b| {
         parse_smb2_request_setinfo_data(b, class, infolvl)
-    })(i)?;
+    }).parse(i)?;
     let record = Smb2SetInfoRequestRecord {
         guid,
         class,
@@ -434,14 +435,14 @@ pub struct Smb2WriteRequestRecord<'a> {
 
 // can be called on incomplete records
 pub fn parse_smb2_request_write(i: &[u8]) -> IResult<&[u8], Smb2WriteRequestRecord<'_>> {
-    let (i, _skip1) = take(4_usize)(i)?;
-    let (i, wr_len) = le_u32(i)?;
-    let (i, wr_offset) = le_u64(i)?;
-    let (i, guid) = take(16_usize)(i)?;
-    let (i, _channel) = le_u32(i)?;
-    let (i, _remaining_bytes) = le_u32(i)?;
-    let (i, _write_flags) = le_u32(i)?;
-    let (i, _skip2) = take(4_usize)(i)?;
+    let (i, _skip1) = take(4_usize).parse(i)?;
+    let (i, wr_len) = le_u32.parse(i)?;
+    let (i, wr_offset) = le_u64.parse(i)?;
+    let (i, guid) = take(16_usize).parse(i)?;
+    let (i, _channel) = le_u32.parse(i)?;
+    let (i, _remaining_bytes) = le_u32.parse(i)?;
+    let (i, _write_flags) = le_u32.parse(i)?;
+    let (i, _skip2) = take(4_usize).parse(i)?;
     let (i, data) = parse_smb2_data(i, wr_len)?;
     let record = Smb2WriteRequestRecord {
         wr_len,
@@ -460,14 +461,14 @@ pub struct Smb2ReadRequestRecord<'a> {
 }
 
 pub fn parse_smb2_request_read(i: &[u8]) -> IResult<&[u8], Smb2ReadRequestRecord<'_>> {
-    let (i, _skip1) = take(4_usize)(i)?;
-    let (i, rd_len) = le_u32(i)?;
-    let (i, rd_offset) = le_u64(i)?;
-    let (i, guid) = take(16_usize)(i)?;
-    let (i, _min_count) = le_u32(i)?;
-    let (i, _channel) = le_u32(i)?;
-    let (i, _remaining_bytes) = le_u32(i)?;
-    let (i, _skip2) = take(4_usize)(i)?;
+    let (i, _skip1) = take(4_usize).parse(i)?;
+    let (i, rd_len) = le_u32.parse(i)?;
+    let (i, rd_offset) = le_u64.parse(i)?;
+    let (i, guid) = take(16_usize).parse(i)?;
+    let (i, _min_count) = le_u32.parse(i)?;
+    let (i, _channel) = le_u32.parse(i)?;
+    let (i, _remaining_bytes) = le_u32.parse(i)?;
+    let (i, _skip2) = take(4_usize).parse(i)?;
     let record = Smb2ReadRequestRecord {
         rd_len,
         rd_offset,
@@ -495,11 +496,11 @@ fn parse_smb2_data(i: &[u8], len: u32) -> IResult<&[u8], &[u8]> {
 
 // can be called on incomplete records
 pub fn parse_smb2_response_read(i: &[u8]) -> IResult<&[u8], Smb2ReadResponseRecord<'_>> {
-    let (i, _struct_size) = le_u16(i)?;
-    let (i, _data_offset) = le_u16(i)?;
-    let (i, rd_len) = le_u32(i)?;
-    let (i, _rd_rem) = le_u32(i)?;
-    let (i, _padding) = take(4_usize)(i)?;
+    let (i, _struct_size) = le_u16.parse(i)?;
+    let (i, _data_offset) = le_u16.parse(i)?;
+    let (i, rd_len) = le_u32.parse(i)?;
+    let (i, _rd_rem) = le_u32.parse(i)?;
+    let (i, _padding) = take(4_usize).parse(i)?;
     let (i, data) = parse_smb2_data(i, rd_len)?;
     let record = Smb2ReadResponseRecord { len: rd_len, data };
     Ok((i, record))
@@ -516,20 +517,20 @@ pub struct Smb2CreateResponseRecord<'a> {
 }
 
 pub fn parse_smb2_response_create(i: &[u8]) -> IResult<&[u8], Smb2CreateResponseRecord<'_>> {
-    let (i, _ssize) = le_u16(i)?;
-    let (i, _oplock) = le_u8(i)?;
-    let (i, _resp_flags) = le_u8(i)?;
-    let (i, _create_action) = le_u32(i)?;
-    let (i, create_ts) = le_u64(i)?;
-    let (i, last_access_ts) = le_u64(i)?;
-    let (i, last_write_ts) = le_u64(i)?;
-    let (i, last_change_ts) = le_u64(i)?;
-    let (i, _alloc_size) = le_u64(i)?;
-    let (i, eof) = le_u64(i)?;
-    let (i, _attrs) = le_u32(i)?;
-    let (i, _padding) = take(4_usize)(i)?;
-    let (i, guid) = take(16_usize)(i)?;
-    let (i, _skip2) = take(8_usize)(i)?;
+    let (i, _ssize) = le_u16.parse(i)?;
+    let (i, _oplock) = le_u8.parse(i)?;
+    let (i, _resp_flags) = le_u8.parse(i)?;
+    let (i, _create_action) = le_u32.parse(i)?;
+    let (i, create_ts) = le_u64.parse(i)?;
+    let (i, last_access_ts) = le_u64.parse(i)?;
+    let (i, last_write_ts) = le_u64.parse(i)?;
+    let (i, last_change_ts) = le_u64.parse(i)?;
+    let (i, _alloc_size) = le_u64.parse(i)?;
+    let (i, eof) = le_u64.parse(i)?;
+    let (i, _attrs) = le_u32.parse(i)?;
+    let (i, _padding) = take(4_usize).parse(i)?;
+    let (i, guid) = take(16_usize).parse(i)?;
+    let (i, _skip2) = take(8_usize).parse(i)?;
     let record = Smb2CreateResponseRecord {
         guid,
         create_ts: SMBFiletime::new(create_ts),
@@ -547,32 +548,32 @@ pub struct Smb2WriteResponseRecord {
 }
 
 pub fn parse_smb2_response_write(i: &[u8]) -> IResult<&[u8], Smb2WriteResponseRecord> {
-    let (i, _skip1) = take(4_usize)(i)?;
-    let (i, wr_cnt) = le_u32(i)?;
-    let (i, _skip2) = take(6_usize)(i)?;
+    let (i, _skip1) = take(4_usize).parse(i)?;
+    let (i, wr_cnt) = le_u32.parse(i)?;
+    let (i, _skip2) = take(6_usize).parse(i)?;
     let record = Smb2WriteResponseRecord { wr_cnt };
     Ok((i, record))
 }
 
 pub fn parse_smb2_response_record(i: &[u8]) -> IResult<&[u8], Smb2Record<'_>> {
-    let (i, _) = tag(b"\xfeSMB")(i)?;
-    let (i, hlen) = le_u16(i)?;
-    let (i, _credit_charge) = le_u16(i)?;
-    let (i, nt_status) = le_u32(i)?;
-    let (i, command) = le_u16(i)?;
-    let (i, _credit_granted) = le_u16(i)?;
+    let (i, _) = tag(&b"\xfeSMB"[..]).parse(i)?;
+    let (i, hlen) = le_u16.parse(i)?;
+    let (i, _credit_charge) = le_u16.parse(i)?;
+    let (i, nt_status) = le_u32.parse(i)?;
+    let (i, command) = le_u16.parse(i)?;
+    let (i, _credit_granted) = le_u16.parse(i)?;
     let (i, flags) = parse_smb2_flags(i)?;
-    let (i, chain_offset) = le_u32(i)?;
-    let (i, message_id) = le_u64(i)?;
-    let (i, _process_id) = cond(flags.async_command == 0, le_u32)(i)?;
-    let (i, tree_id) = cond(flags.async_command == 0, le_u32)(i)?;
-    let (i, async_id) = cond(flags.async_command == 1, le_u64)(i)?;
-    let (i, session_id) = le_u64(i)?;
-    let (i, _signature) = take(16_usize)(i)?;
+    let (i, chain_offset) = le_u32.parse(i)?;
+    let (i, message_id) = le_u64.parse(i)?;
+    let (i, _process_id) = cond(flags.async_command == 0, le_u32).parse(i)?;
+    let (i, tree_id) = cond(flags.async_command == 0, le_u32).parse(i)?;
+    let (i, async_id) = cond(flags.async_command == 1, le_u64).parse(i)?;
+    let (i, session_id) = le_u64.parse(i)?;
+    let (i, _signature) = take(16_usize).parse(i)?;
     let (i, data) = if chain_offset > hlen as u32 {
-        take(chain_offset - hlen as u32)(i)?
+        take(chain_offset - hlen as u32).parse(i)?
     } else {
-        rest(i)?
+        rest.parse(i)?
     };
     let record = Smb2Record {
         direction: flags.direction,
