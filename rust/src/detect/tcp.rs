@@ -20,8 +20,9 @@ use crate::detect::uint::{
     DetectUintMode,
 };
 use crate::detect::EnumString;
-use nom7::bytes::complete::take;
-use nom7::error::Error;
+use nom8::bytes::complete::take;
+use nom8::error::Error;
+use nom8::Parser;
 
 use std::ffi::CStr;
 
@@ -52,7 +53,7 @@ pub fn tcp_flags_parse(s: &str) -> Option<DetectUintData<u8>> {
     let mut arg2 = 0xffu8;
     let mut s2 = s;
     while !s2.is_empty() {
-        let (s, vals) = take::<usize, &str, Error<_>>(1usize)(s2).ok()?;
+        let (s, vals) = take::<usize, &str, Error<_>>(1usize).parse(s2).ok()?;
         s2 = s;
         let vals = match vals {
             "1" => "C",
