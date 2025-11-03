@@ -354,8 +354,7 @@ error:
         pcre2_substring_free((PCRE2_UCHAR *)varval);
     if (modstr)
         pcre2_substring_free((PCRE2_UCHAR *)modstr);
-    if (sfd != NULL)
-        SCFree(sfd);
+    DetectFlowintFree(de_ctx, sfd);
     return NULL;
 }
 
