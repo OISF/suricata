@@ -455,10 +455,10 @@ int DetectXbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 
 static void DetectXbitFree (DetectEngineCtx *de_ctx, void *ptr)
 {
-    DetectXbitsData *fd = (DetectXbitsData *)ptr;
-
-    if (fd == NULL)
+    if (ptr == NULL)
         return;
+
+    DetectXbitsData *fd = (DetectXbitsData *)ptr;
     VarNameStoreUnregister(fd->idx, fd->type);
 
     SCFree(fd);
