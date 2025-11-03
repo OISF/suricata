@@ -16,10 +16,10 @@
  */
 
 use super::uint::{detect_parse_uint, DetectUintData};
-use nom7::branch::alt;
-use nom7::bytes::complete::{is_a, tag};
-use nom7::combinator::{opt, value};
-use nom7::IResult;
+use nom8::branch::alt;
+use nom8::bytes::complete::{is_a, tag};
+use nom8::combinator::{opt, value};
+use nom8::{IResult, Parser};
 use std::ffi::CStr;
 
 #[allow(non_camel_case_types)]
@@ -53,16 +53,16 @@ fn detect_parse_flow_direction(i: &str) -> IResult<&str, DetectFlowDir> {
         value(DetectFlowDir::DETECT_FLOW_TOSERVER, tag("toserver")),
         value(DetectFlowDir::DETECT_FLOW_TOCLIENT, tag("toclient")),
         value(DetectFlowDir::DETECT_FLOW_TOEITHER, tag("either")),
-    ))(i)?;
+    )).parse(i)?;
     return Ok((i, fd));
 }
 
 fn detect_parse_flow_pkts(i: &str) -> IResult<&str, DetectFlowPkts> {
-    let (i, _) = opt(is_a(" \t"))(i)?;
+    let (i, _) = opt(is_a(" \t")).parse(i)?;
     let (i, fd) = detect_parse_flow_direction(i)?;
-    let (i, _) = opt(is_a(" \t"))(i)?;
-    let (i, _) = tag(",")(i)?;
-    let (i, _) = opt(is_a(" \t"))(i)?;
+    let (i, _) = opt(is_a(" \t")).parse(i)?;
+    let (i, _) = tag(",").parse(i)?;
+    let (i, _) = opt(is_a(" \t")).parse(i)?;
     return detect_parse_flow_pkts_dir(i, fd);
 }
 
@@ -111,11 +111,11 @@ pub unsafe extern "C" fn SCDetectFlowPktsFree(ctx: &mut DetectFlowPkts) {
 }
 
 fn detect_parse_flow_bytes(i: &str) -> IResult<&str, DetectFlowBytes> {
-    let (i, _) = opt(is_a(" \t"))(i)?;
+    let (i, _) = opt(is_a(" \t")).parse(i)?;
     let (i, fd) = detect_parse_flow_direction(i)?;
-    let (i, _) = opt(is_a(" \t"))(i)?;
-    let (i, _) = tag(",")(i)?;
-    let (i, _) = opt(is_a(" \t"))(i)?;
+    let (i, _) = opt(is_a(" \t")).parse(i)?;
+    let (i, _) = tag(",").parse(i)?;
+    let (i, _) = opt(is_a(" \t")).parse(i)?;
     return detect_parse_flow_bytes_dir(i, fd);
 }
 
