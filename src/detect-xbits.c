@@ -374,7 +374,7 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
         }
     }
 
-    cd = SCMalloc(sizeof(DetectXbitsData));
+    cd = SCCalloc(1, sizeof(DetectXbitsData));
     if (unlikely(cd == NULL))
         return -1;
 
