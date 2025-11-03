@@ -30,8 +30,8 @@ use std::str;
 use std::ffi::{self, CString};
 use std::collections::VecDeque;
  
-use nom7::{Err, Needed};
-use nom7::error::{make_error, ErrorKind};
+use nom8::{Err, Needed};
+use nom8::error::{make_error, ErrorKind};
 
 use lru::LruCache;
 use suricata_sys::sys::{
