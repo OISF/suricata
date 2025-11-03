@@ -354,6 +354,7 @@ error:
         pcre2_substring_free((PCRE2_UCHAR *)varval);
     if (modstr)
         pcre2_substring_free((PCRE2_UCHAR *)modstr);
+    DetectFlowintFree(de_ctx, sfd);
     return NULL;
 }
 
@@ -417,16 +418,19 @@ error:
  */
 void DetectFlowintFree(DetectEngineCtx *de_ctx, void *tmp)
 {
-    DetectFlowintData *sfd =(DetectFlowintData*) tmp;
-    if (sfd != NULL) {
-        VarNameStoreUnregister(sfd->idx, VAR_TYPE_FLOW_INT);
-        if (sfd->name != NULL)
-            SCFree(sfd->name);
-        if (sfd->targettype == FLOWINT_TARGET_VAR)
-            if (sfd->target.tvar.name != NULL)
-                SCFree(sfd->target.tvar.name);
-        SCFree(sfd);
+    if (tmp == NULL)
+        return;
+
+    DetectFlowintData *sfd = (DetectFlowintData *)tmp;
+    VarNameStoreUnregister(sfd->idx, VAR_TYPE_FLOW_INT);
+    if (sfd->name != NULL)
+        SCFree(sfd->name);
+    if (sfd->targettype == FLOWINT_TARGET_VAR) {
+        if (sfd->target.tvar.name != NULL) {
+            SCFree(sfd->target.tvar.name);
+        }
     }
+    SCFree(sfd);
 }
 
 #ifdef UNITTESTS
