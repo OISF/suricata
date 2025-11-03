@@ -34,10 +34,10 @@ use suricata_sys::sys::{
 #[cfg(not(test))]
 use suricata_sys::sys::{SCInspectionBufferCheckAndExpand, SCInspectionBufferTruncate};
 
-use nom7::bytes::complete::tag;
-use nom7::character::complete::multispace0;
-use nom7::sequence::preceded;
-use nom7::{Err, IResult};
+use nom8::bytes::complete::tag;
+use nom8::character::complete::multispace0;
+use nom8::sequence::preceded;
+use nom8::{Err, IResult, Parser};
 
 use std::ffi::CStr;
 use std::os::raw::{c_char, c_int, c_void};
@@ -87,7 +87,7 @@ fn parse_transform_base64(
     input: &str,
 ) -> IResult<&str, DetectTransformFromBase64Data, RuleParseError<&str>> {
     // Inner utility function for easy error creation.
-    fn make_error(reason: String) -> nom7::Err<RuleParseError<&'static str>> {
+    fn make_error(reason: String) -> nom8::Err<RuleParseError<&'static str>> {
         Err::Error(RuleParseError::InvalidTransformBase64(reason))
     }
     let mut transform_base64 = DetectTransformFromBase64Data::default();
@@ -96,10 +96,10 @@ fn parse_transform_base64(
     if input.is_empty() {
         return Ok((input, transform_base64));
     }
-    let (_, values) = nom7::multi::separated_list1(
+    let (_, values) = nom8::multi::separated_list1(
         tag(","),
-        preceded(multispace0, nom7::bytes::complete::is_not(",")),
-    )(input)?;
+        preceded(multispace0, nom8::bytes::complete::is_not(",")),
+    ).parse(input)?;
 
     // Too many options?
     if values.len() > DETECT_TRANSFORM_BASE64_MAX_PARAM_COUNT {
