@@ -22,17 +22,16 @@ use std::{cmp::Ordering, ffi::CStr};
 // Rust 1.64.0.
 use std::os::raw::{c_char, c_int};
 
-use nom7::bytes::complete::take_while;
-use nom7::combinator::map;
-use nom7::multi::{many1, separated_list1};
-use nom7::sequence::tuple;
-use nom7::{
+use nom8::bytes::complete::take_while;
+use nom8::combinator::map;
+use nom8::multi::{many1, separated_list1};
+use nom8::{
     branch::alt,
     bytes::complete::{tag, take_till},
     character::complete::{char, multispace0},
     combinator::map_res,
     sequence::preceded,
-    IResult,
+    IResult, Parser,
 };
 
 #[derive(Debug, Eq, PartialEq)]
@@ -146,8 +145,8 @@ impl SuricataVersion {
 /// ]
 fn parse_version_expression(input: &str) -> IResult<&str, Vec<Vec<RuleRequireVersion>>> {
     let sep = preceded(multispace0, tag("|"));
-    let inner_parser = many1(tuple((parse_op, parse_version)));
-    let (input, versions) = separated_list1(sep, inner_parser)(input)?;
+    let inner_parser = many1((parse_op, parse_version));
+    let (input, versions) = separated_list1(sep, inner_parser).parse(input)?;
 
     let versions = versions
         .into_iter()
@@ -195,7 +194,7 @@ fn parse_op(input: &str) -> IResult<&str, VersionCompareOp> {
             map(tag("<="), |_| VersionCompareOp::Lte),
             map(tag("<"), |_| VersionCompareOp::Lt),
         )),
-    )(input)
+    ).parse(input)
 }
 
 /// Parse the next part of the version.
@@ -205,21 +204,21 @@ fn parse_next_version_part(input: &str) -> IResult<&str, u8> {
     map_res(
         take_till(|c| c == '.' || c == '-' || c == ' '),
         |s: &str| s.parse::<u8>(),
-    )(input)
+    ).parse(input)
 }
 
 /// Parse a version string into a SuricataVersion.
 fn parse_version(input: &str) -> IResult<&str, SuricataVersion> {
-    let (input, major) = preceded(multispace0, parse_next_version_part)(input)?;
+    let (input, major) = preceded(multispace0, parse_next_version_part).parse(input)?;
     let (input, minor) = if input.is_empty() || input.starts_with(' ') {
         (input, 0)
     } else {
-        preceded(char('.'), parse_next_version_part)(input)?
+        preceded(char('.'), parse_next_version_part).parse(input)?
     };
     let (input, patch) = if input.is_empty() || input.starts_with(' ') {
         (input, 0)
     } else {
-        preceded(char('.'), parse_next_version_part)(input)?
+        preceded(char('.'), parse_next_version_part).parse(input)?
     };
 
     Ok((input, SuricataVersion::new(major, minor, patch)))
@@ -230,8 +229,8 @@ fn parse_key_value(input: &str) -> IResult<&str, (&str, &str)> {
     let (input, key) = preceded(
         multispace0,
         take_while(|c: char| c.is_alphanumeric() || c == '-' || c == '_'),
-    )(input)?;
-    let (input, value) = preceded(multispace0, take_till(|c: char| c == ','))(input)?;
+    ).parse(input)?;
+    let (input, value) = preceded(multispace0, take_till(|c: char| c == ',')).parse(input)?;
     Ok((input, (key, value)))
 }
 

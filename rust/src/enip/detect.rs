@@ -15,10 +15,11 @@
  * 02110-1301, USA.
  */
 
-use nom7::character::complete::{char, digit1, space0};
-use nom7::combinator::{map_opt, opt, verify};
-use nom7::error::{make_error, ErrorKind};
-use nom7::IResult;
+use nom8::character::complete::{char, digit1, space0};
+use nom8::combinator::{map_opt, opt, verify};
+use nom8::error::{make_error, ErrorKind};
+use nom8::Parser;
+use nom8::IResult;
 
 use std::os::raw::{c_int, c_void};
 
@@ -80,35 +81,35 @@ pub struct DetectCipServiceData {
 }
 
 fn enip_parse_cip_service(i: &str) -> IResult<&str, DetectCipServiceData> {
-    let (i, _) = space0(i)?;
+    let (i, _) = space0.parse(i)?;
     let (i, service) = verify(map_opt(digit1, |s: &str| s.parse::<u8>().ok()), |&v| {
         v < 0x80
-    })(i)?;
+    }).parse(i)?;
     let mut class = None;
     let mut attribute = None;
-    let (i, _) = space0(i)?;
-    let (i, comma) = opt(char(','))(i)?;
+    let (i, _) = space0.parse(i)?;
+    let (i, comma) = opt(char(',')).parse(i)?;
     let mut input = i;
     if comma.is_some() {
-        let (i, _) = space0(i)?;
-        let (i, class1) = map_opt(digit1, |s: &str| s.parse::<u32>().ok())(i)?;
+        let (i, _) = space0.parse(i)?;
+        let (i, class1) = map_opt(digit1, |s: &str| s.parse::<u32>().ok()).parse(i)?;
         class = Some(class1);
-        let (i, _) = space0(i)?;
-        let (i, comma) = opt(char(','))(i)?;
+        let (i, _) = space0.parse(i)?;
+        let (i, comma) = opt(char(',')).parse(i)?;
         input = i;
         if comma.is_some() {
-            let (i, _) = space0(i)?;
-            let (i, negation) = opt(char('!'))(i)?;
-            let (i, attr1) = map_opt(digit1, |s: &str| s.parse::<u32>().ok())(i)?;
+            let (i, _) = space0.parse(i)?;
+            let (i, negation) = opt(char('!')).parse(i)?;
+            let (i, attr1) = map_opt(digit1, |s: &str| s.parse::<u32>().ok()).parse(i)?;
             if negation.is_none() {
                 attribute = Some(attr1);
             }
             input = i;
         }
     }
-    let (i, _) = space0(input)?;
+    let (i, _) = space0.parse(input)?;
     if !i.is_empty() {
-        return Err(nom7::Err::Error(make_error(i, ErrorKind::NonEmpty)));
+        return Err(nom8::Err::Error(make_error(i, ErrorKind::NonEmpty)));
     }
     return Ok((
         i,
