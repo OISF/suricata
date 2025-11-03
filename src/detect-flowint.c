@@ -291,7 +291,7 @@ static DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx, const char
         goto error;
     }
 
-    sfd = SCMalloc(sizeof(DetectFlowintData));
+    sfd = SCCalloc(1, sizeof(DetectFlowintData));
     if (unlikely(sfd == NULL))
         goto error;
 
