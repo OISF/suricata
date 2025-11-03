@@ -17,12 +17,12 @@
 
 //! Module for retrieving configuration details.
 
-use nom7::{
+use nom8::{
     character::complete::{multispace0, not_line_ending},
     combinator::verify,
     number::complete::double,
-    sequence::{preceded, tuple},
-    IResult,
+    sequence::preceded,
+    IResult, Parser,
 };
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
@@ -209,11 +209,10 @@ pub fn get_memval(arg: &str) -> Result<u64, &'static str> {
     let arg = arg.trim();
     let val: f64;
     let mut unit: &str;
-    let mut parser = tuple((
+    let r: IResult<&str, (f64, &str)> = (
         preceded(multispace0, double),
         preceded(multispace0, verify(not_line_ending, |c: &str| c.len() < 4)),
-    ));
-    let r: IResult<&str, (f64, &str)> = parser(arg);
+    ).parse(arg);
     if let Ok(r) = r {
         val = (r.1).0;
         unit = (r.1).1;
