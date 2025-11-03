@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-use nom7::Err;
+use nom8::Err;
 
 use crate::direction::Direction;
 use crate::smb::smb::*;

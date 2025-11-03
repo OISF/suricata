@@ -30,7 +30,7 @@ use crate::smb::smb1_session::*;
 
 use crate::smb::smb_status::*;
 
-use nom7::Err;
+use nom8::Err;
 
 // https://msdn.microsoft.com/en-us/library/ee441741.aspx
 pub const SMB1_COMMAND_CREATE_DIRECTORY:        u8 = 0x00;
