@@ -18,7 +18,7 @@ use crate::{
     },
     HtpStatus,
 };
-use nom::sequence::tuple;
+use nom::Parser as _;
 use std::{
     cmp::{min, Ordering},
     mem::take,
@@ -272,7 +272,7 @@ impl ConnectionParser {
         // The request method starts at the beginning of the
         // line and ends with the first whitespace character.
         // We skip leading whitespace as IIS allows this.
-        let res = tuple((take_is_space, take_not_is_space))(buffered.as_slice());
+        let res = (take_is_space, take_not_is_space).parse(buffered.as_slice());
         if let Ok((_, (_, method))) = res {
             if HtpMethod::new(method) == HtpMethod::Unknown {
                 self.request_status = HtpStreamState::TUNNEL;
@@ -889,18 +889,18 @@ impl ConnectionParser {
         }
         // The request method starts at the beginning of the
         // line and ends with the first whitespace character.
-        let mut method_parser = tuple
+        let mut method_parser =
                                 // skip past leading whitespace. IIS allows this
-                               ((take_is_space,
+                               (take_is_space,
                                take_not_is_space,
                                 // Ignore whitespace after request method. The RFC allows
                                  // for only one SP, but then suggests any number of SP and HT
                                  // should be permitted. Apache uses isspace(), which is even
                                  // more permitting, so that's what we use here.
                                take_is_space
-                               ));
+                               );
 
-        if let Ok((remaining, (ls, method, ws))) = method_parser(data) {
+        if let Ok((remaining, (ls, method, ws))) = method_parser.parse(data) {
             if !ls.is_empty() {
                 htp_warn!(
                     self.logger,
@@ -1369,7 +1369,7 @@ impl ConnectionParser {
             //closing
             return self.state_request_complete(input);
         }
-        let res = tuple((take_is_space, take_not_is_space))(&data);
+        let res = (take_is_space, take_not_is_space).parse(&data);
 
         if let Ok((_, (_, method))) = res {
             if method.is_empty() {
