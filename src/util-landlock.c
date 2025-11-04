@@ -110,7 +110,7 @@ static inline struct landlock_ruleset *LandlockCreateRuleset(void)
         return NULL;
     }
     if (abi < 2) {
-        if (RequiresFeature(FEATURE_OUTPUT_FILESTORE)) {
+        if (SCRequiresFeature(FEATURE_OUTPUT_FILESTORE)) {
             SCLogError("Landlock disabled: need Linux 5.19+ for file store support");
             SCFree(ruleset);
             return NULL;

@@ -1717,7 +1717,7 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
 
     } /* for ( ; list_id < DETECT_SM_LIST_MAX; list_id++) */
 
-    if (file_store && !RequiresFeature("output::file-store")) {
+    if (file_store && !SCRequiresFeature("output::file-store")) {
         rule_warning += 1;
         warn_file_store_not_present = 1;
     }

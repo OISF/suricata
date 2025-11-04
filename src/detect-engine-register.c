@@ -387,7 +387,7 @@ static void SigMultilinePrint(size_t i, const char *prefix)
 }
 
 /** \brief Check if a keyword exists. */
-bool SigTableHasKeyword(const char *keyword)
+bool SCSigTableHasKeyword(const char *keyword)
 {
     for (int i = 0; i < DETECT_TBLSIZE; i++) {
         const char *name = sigmatch_table[i].name;

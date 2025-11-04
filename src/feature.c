@@ -123,7 +123,7 @@ void ProvidesFeature(const char *feature_name)
     SCMutexUnlock(&feature_table_mutex);
 }
 
-bool RequiresFeature(const char *feature_name)
+bool SCRequiresFeature(const char *feature_name)
 {
     FeatureEntryType f = { feature_name };
 

@@ -178,6 +178,9 @@ extern "C" {
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {
+    pub fn SCSigTableHasKeyword(keyword: *const ::std::os::raw::c_char) -> bool;
+}
+extern "C" {
     pub fn SCDetectHelperKeywordSetCleanCString(id: u16);
 }
 #[repr(C)]
@@ -1030,4 +1033,7 @@ extern "C" {
 }
 extern "C" {
     pub fn SCSRepCatGetByShortname(shortname: *const ::std::os::raw::c_char) -> u8;
+}
+extern "C" {
+    pub fn SCRequiresFeature(arg1: *const ::std::os::raw::c_char) -> bool;
 }

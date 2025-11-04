@@ -64,5 +64,6 @@
 #include "flow-bindgen.h"
 
 #include "reputation.h"
+#include "feature.h"
 
 #endif

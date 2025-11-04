@@ -30,7 +30,7 @@
 #define FEATURE_JA4                 "ja4"
 
 void ProvidesFeature(const char *);
-bool RequiresFeature(const char *);
+bool SCRequiresFeature(const char *);
 
 void FeatureDump(void);
 
