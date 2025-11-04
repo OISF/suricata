@@ -721,16 +721,16 @@ jobs:
 
       - name: Build and install nDPI
         run: |
-          curl -OL https://github.com/ntop/nDPI/archive/refs/tags/4.12.tar.gz
-          tar xvf 4.12.tar.gz
-          cd nDPI-4.12
+          curl -OL https://github.com/ntop/nDPI/archive/refs/tags/4.14.tar.gz
+          tar xvf 4.14.tar.gz
+          cd nDPI-4.14
           ./autogen.sh
           ./configure
           make -j ${{ env.CPUS }}
 
       - run: tar zxvf suricata-*.tar.gz --strip-components=1
       - name: ./configure
-        run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-ndpi --with-ndpi=$(pwd)/nDPI-4.12
+        run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-ndpi --with-ndpi=$(pwd)/nDPI-4.14
       - run: make -j ${{ env.CPUS }}
       - run: make install
       - run: make install-conf
