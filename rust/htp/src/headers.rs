@@ -1,13 +1,13 @@
 use crate::util::{is_token, trimmed, FlagOperations};
+use nom::AsChar;
 use nom::{
     branch::alt,
     bytes::complete::tag as complete_tag,
     bytes::streaming::{tag, take_till, take_while, take_while1},
-    character::{is_space, streaming::space0},
+    character::streaming::space0,
     combinator::{complete, map, not, opt, peek},
-    sequence::tuple,
     Err::Incomplete,
-    IResult, Needed,
+    IResult, Needed, Parser as _,
 };
 
 /// Helper for Parsed bytes and corresponding HeaderFlags
@@ -133,9 +133,10 @@ impl Parser {
                     complete_tag("\n\r"),
                     complete_tag("\n"),
                     complete_tag("\r"),
-                ))(input)
+                ))
+                .parse(input)
             } else {
-                alt((complete_tag("\r\n"), complete_tag("\n")))(input)
+                alt((complete_tag("\r\n"), complete_tag("\n"))).parse(input)
             }
         }
     }
@@ -146,19 +147,19 @@ impl Parser {
             if self.side == Side::Response {
                 alt((
                     map(
-                        tuple((
+                        (
                             complete_tag("\n\r\r\n"),
                             peek(alt((complete_tag("\n"), complete_tag("\r\n")))),
-                        )),
+                        ),
                         |(eol, _)| (eol, HeaderFlags::DEFORMED_EOL),
                     ),
                     map(
-                        tuple((
+                        (
                             complete_tag("\r\n\r"),
                             take_while1(|c| c == b'\r' || c == b' ' || c == b'\t'),
                             opt(complete_tag("\n")),
                             not(alt((complete_tag("\n"), complete_tag("\r\n")))),
-                        )),
+                        ),
                         |(eol1, eol2, eol3, _): (&[u8], &[u8], Option<&[u8]>, _)| {
                             (
                                 &input[..(eol1.len() + eol2.len() + eol3.unwrap_or(b"").len())],
@@ -166,18 +167,20 @@ impl Parser {
                             )
                         },
                     ),
-                ))(input)
+                ))
+                .parse(input)
             } else {
                 map(
                     alt((
-                        tuple((
+                        (
                             complete_tag("\n\r\r\n"),
                             peek(alt((complete_tag("\n"), complete_tag("\r\n")))),
-                        )),
-                        tuple((complete_tag("\n\r"), peek(complete_tag("\r\n")))),
+                        ),
+                        (complete_tag("\n\r"), peek(complete_tag("\r\n"))),
                     )),
                     |(eol, _)| (eol, HeaderFlags::DEFORMED_EOL),
-                )(input)
+                )
+                .parse(input)
             }
         }
     }
@@ -188,28 +191,24 @@ impl Parser {
             alt((
                 self.complete_eol_deformed(),
                 map(self.complete_eol_regular(), |eol| (eol, 0)),
-            ))(input)
+            ))
+            .parse(input)
         }
     }
 
     /// Parse one header end of line, and guarantee that it is not folding
     fn eol(&self) -> impl Fn(&[u8]) -> IResult<&[u8], ParsedBytes> + '_ {
-        move |input| {
-            map(
-                tuple((self.complete_eol(), not(folding_lws))),
-                |(end, _)| end,
-            )(input)
-        }
+        move |input| map((self.complete_eol(), not(folding_lws)), |(end, _)| end).parse(input)
     }
 
     /// Parse one null byte or one end of line, and guarantee that it is not folding
     fn null_or_eol(&self) -> impl Fn(&[u8]) -> IResult<&[u8], ParsedBytes> + '_ {
-        move |input| alt((null, self.eol()))(input)
+        move |input| alt((null, self.eol())).parse(input)
     }
 
     /// Parse one null byte or complete end of line
     fn complete_null_or_eol(&self) -> impl Fn(&[u8]) -> IResult<&[u8], ParsedBytes> + '_ {
-        move |input| alt((null, self.complete_eol()))(input)
+        move |input| alt((null, self.complete_eol())).parse(input)
     }
 
     /// Parse header folding bytes (eol + whitespace or eol + special cases)
@@ -217,17 +216,19 @@ impl Parser {
         move |input| {
             if self.side == Side::Response {
                 map(
-                    tuple((
+                    (
                         map(self.complete_eol_regular(), |eol| (eol, 0)),
                         folding_lws,
-                    )),
+                    ),
                     |((eol, flags), (lws, other_flags))| (eol, lws, flags | other_flags),
-                )(input)
+                )
+                .parse(input)
             } else {
                 map(
-                    tuple((self.complete_eol(), folding_lws)),
+                    (self.complete_eol(), folding_lws),
                     |((eol, flags), (lws, other_flags))| (eol, lws, flags | other_flags),
-                )(input)
+                )
+                .parse(input)
             }
         }
     }
@@ -242,7 +243,8 @@ impl Parser {
                     ((end, flags), Some(fold))
                 })),
                 map(self.complete_null_or_eol(), |end| (end, None)),
-            ))(input)
+            ))
+            .parse(input)
         }
     }
 
@@ -256,7 +258,8 @@ impl Parser {
                     ((end, flags), Some(fold))
                 }),
                 map(self.null_or_eol(), |end| (end, None)),
-            ))(input)
+            ))
+            .parse(input)
         }
     }
 
@@ -264,9 +267,9 @@ impl Parser {
     fn folding_or_terminator(&self) -> impl Fn(&[u8]) -> IResult<&[u8], FoldingOrTerminator> + '_ {
         move |input| {
             if self.complete {
-                self.complete_folding_or_terminator()(input)
+                self.complete_folding_or_terminator().parse(input)
             } else {
-                self.streaming_folding_or_terminator()(input)
+                self.streaming_folding_or_terminator().parse(input)
             }
         }
     }
@@ -276,12 +279,12 @@ impl Parser {
     /// eg. (bytes, (eol_bytes, Option<fold_bytes>))
     fn value_bytes(&self) -> impl Fn(&[u8]) -> IResult<&[u8], ValueBytes> + '_ {
         move |input| {
-            let (mut remaining, mut value) = take_till(self.is_eol())(input)?;
+            let (mut remaining, mut value) = take_till(self.is_eol()).parse(input)?;
             if value.last() == Some(&b'\r') {
                 value = &value[..value.len() - 1];
                 remaining = &input[value.len()..];
             }
-            let (remaining, result) = self.folding_or_terminator()(remaining)?;
+            let (remaining, result) = self.folding_or_terminator().parse(remaining)?;
             Ok((remaining, (value, result)))
         }
     }
@@ -289,7 +292,8 @@ impl Parser {
     /// Parse a complete header value, including any folded headers
     fn value(&self) -> impl Fn(&[u8]) -> IResult<&[u8], Value> + '_ {
         move |input| {
-            let (mut rest, (val_bytes, ((_eol, mut flags), fold))) = self.value_bytes()(input)?;
+            let (mut rest, (val_bytes, ((_eol, mut flags), fold))) =
+                self.value_bytes().parse(input)?;
             let mut value = val_bytes.to_vec();
             if let Some(fold) = fold {
                 let mut i = rest;
@@ -297,7 +301,7 @@ impl Parser {
                 loop {
                     if self.side == Side::Response {
                         // Peek ahead for ambiguous name with lws vs. value with folding
-                        match tuple((token_chars, separator_regular))(i) {
+                        match (token_chars, separator_regular).parse(i) {
                             Ok((_, ((_, tokens, _), (_, _)))) if !tokens.is_empty() => {
                                 flags.unset(HeaderFlags::FOLDING_SPECIAL_CASE);
                                 if value.is_empty() {
@@ -312,7 +316,8 @@ impl Parser {
                             _ => {}
                         }
                     }
-                    let (rest2, (val_bytes, ((eol, other_flags), fold))) = self.value_bytes()(i)?;
+                    let (rest2, (val_bytes, ((eol, other_flags), fold))) =
+                        self.value_bytes().parse(i)?;
                     i = rest2;
                     flags.set(other_flags);
                     //If the value is empty, the value started with a fold and we don't want to push back a space
@@ -375,11 +380,11 @@ impl Parser {
             let (name, rem) = input.split_at(offset);
             let mut flags = 0;
             if !name.is_empty() {
-                if is_space(name[0]) {
+                if name[0].is_space() {
                     flags.set(HeaderFlags::NAME_LEADING_WHITESPACE)
                 }
                 if let Some(end) = name.last() {
-                    if is_space(*end) {
+                    if end.is_space() {
                         flags.set(HeaderFlags::NAME_TRAILING_WHITESPACE);
                     }
                 }
@@ -397,13 +402,13 @@ impl Parser {
 
     /// Parse a separator between header name and value
     fn separator(&self) -> impl Fn(&[u8]) -> IResult<&[u8], u64> + '_ {
-        move |input| map(separator_regular, |_| 0)(input)
+        move |input| map(separator_regular, |_| 0).parse(input)
     }
 
     /// Parse data before an eol with no colon as an empty name with the data as the value
     fn header_sans_colon(&self) -> impl Fn(&[u8]) -> IResult<&[u8], Header> + '_ {
         move |input| {
-            let (remaining, (_, value)) = tuple((not(complete_tag("\r\n")), self.value()))(input)?;
+            let (remaining, (_, value)) = (not(complete_tag("\r\n")), self.value()).parse(input)?;
 
             let flags = value.flags | HeaderFlags::MISSING_COLON;
             Ok((
@@ -417,19 +422,22 @@ impl Parser {
     fn header_with_colon(&self) -> impl Fn(&[u8]) -> IResult<&[u8], Header> + '_ {
         move |input| {
             map(
-                tuple((self.name(), self.separator(), self.value())),
+                (self.name(), self.separator(), self.value()),
                 |(mut name, flag, mut value)| {
                     name.flags |= flag;
                     value.flags |= flag;
                     Header::new(name, value)
                 },
-            )(input)
+            )
+            .parse(input)
         }
     }
 
     /// Parses a header name and value with, or without a colon separator
     fn header(&self) -> impl Fn(&[u8]) -> IResult<&[u8], Header> + '_ {
-        move |input| alt((complete(self.header_with_colon()), self.header_sans_colon()))(input)
+        move |input| {
+            alt((complete(self.header_with_colon()), self.header_sans_colon())).parse(input)
+        }
     }
 
     /// Parse multiple headers and indicate if end of headers or null was found
@@ -438,7 +446,7 @@ impl Parser {
             let mut out = Vec::with_capacity(16);
             let mut i = input;
             loop {
-                match self.header()(i) {
+                match self.header().parse(i) {
                     Ok((rest, head)) => {
                         i = rest;
                         let is_null_terminated =
@@ -447,7 +455,7 @@ impl Parser {
                         if is_null_terminated {
                             return Ok((rest, (out, true)));
                         }
-                        if let Ok((rest2, _eoh)) = self.complete_eol_regular()(rest) {
+                        if let Ok((rest2, _eoh)) = self.complete_eol_regular().parse(rest) {
                             return Ok((rest2, (out, true)));
                         }
                     }
@@ -459,7 +467,7 @@ impl Parser {
                     }
                     Err(e) => {
                         if out.is_empty() {
-                            if let Ok((rest2, _eoh)) = self.complete_eol()(i) {
+                            if let Ok((rest2, _eoh)) = self.complete_eol().parse(i) {
                                 return Ok((rest2, (out, true)));
                             }
                         }
@@ -475,25 +483,27 @@ impl Parser {
 fn null(input: &[u8]) -> IResult<&[u8], ParsedBytes<'_>> {
     map(complete_tag("\0"), |null| {
         (null, HeaderFlags::NULL_TERMINATED)
-    })(input)
+    })
+    .parse(input)
 }
 
 /// Extracts folding lws (whitespace only)
 fn folding_lws(input: &[u8]) -> IResult<&[u8], ParsedBytes<'_>> {
     map(alt((tag(" "), tag("\t"), tag("\0"))), |fold| {
         (fold, HeaderFlags::FOLDING)
-    })(input)
+    })
+    .parse(input)
 }
 
 /// Parse a regular separator (colon followed by optional spaces) between header name and value
 fn separator_regular(input: &[u8]) -> IResult<&[u8], (&[u8], &[u8])> {
-    tuple((complete_tag(":"), space0))(input)
+    (complete_tag(":"), space0).parse(input)
 }
 
 type leading_token_trailing<'a> = (&'a [u8], &'a [u8], &'a [u8]);
 /// Parse token characters with leading and trailing whitespace
 fn token_chars(input: &[u8]) -> IResult<&[u8], leading_token_trailing<'_>> {
-    tuple((space0, take_while(is_token), space0))(input)
+    (space0, take_while(is_token), space0).parse(input)
 }
 
 #[cfg(test)]
@@ -542,13 +552,13 @@ mod test {
         #[case] diff_res_expected: Option<IResult<&[u8], ParsedHeaders>>,
     ) {
         let req_parser = Parser::new(Side::Request);
-        assert_eq!(req_parser.headers()(input), expected);
+        assert_eq!(req_parser.headers().parse(input), expected);
 
         let res_parser = Parser::new(Side::Response);
         if let Some(res_expected) = diff_res_expected {
-            assert_eq!(res_parser.headers()(input), res_expected);
+            assert_eq!(res_parser.headers().parse(input), res_expected);
         } else {
-            assert_eq!(res_parser.headers()(input), expected);
+            assert_eq!(res_parser.headers().parse(input), expected);
         }
     }
 
@@ -615,11 +625,11 @@ mod test {
         let req_parser = Parser::new(Side::Request);
         let res_parser = Parser::new(Side::Response);
         if let Some(req_expected) = diff_req_expected {
-            assert_eq!(req_parser.headers()(input), req_expected);
+            assert_eq!(req_parser.headers().parse(input), req_expected);
         } else {
-            assert_eq!(req_parser.headers()(input), expected);
+            assert_eq!(req_parser.headers().parse(input), expected);
         }
-        assert_eq!(res_parser.headers()(input), expected);
+        assert_eq!(res_parser.headers().parse(input), expected);
     }
 
     #[rstest]
@@ -636,7 +646,7 @@ mod test {
         #[case] response_parser_expected: Option<IResult<&[u8], Header>>,
     ) {
         let req_parser = Parser::new(Side::Request);
-        assert_eq!(req_parser.header_sans_colon()(input), expected);
+        assert_eq!(req_parser.header_sans_colon().parse(input), expected);
 
         let res_parser = Parser::new(Side::Response);
         let res_expected = if let Some(response_expected) = response_parser_expected {
@@ -644,7 +654,7 @@ mod test {
         } else {
             expected
         };
-        assert_eq!(res_parser.header_sans_colon()(input), res_expected);
+        assert_eq!(res_parser.header_sans_colon().parse(input), res_expected);
     }
 
     #[rstest]
@@ -662,10 +672,10 @@ mod test {
     #[case::lf_6(b"K: V\r\n a\r\n l\r\n u\r\n\te\r\n\r\n", Ok((b!("\r\n"), Header::new_with_flags(b"K", 0, b"V a l u\te", HeaderFlags::FOLDING))))]
     fn test_header_with_colon(#[case] input: &[u8], #[case] expected: IResult<&[u8], Header>) {
         let req_parser = Parser::new(Side::Request);
-        assert_eq!(req_parser.header_with_colon()(input), expected);
+        assert_eq!(req_parser.header_with_colon().parse(input), expected);
 
         let res_parser = Parser::new(Side::Response);
-        assert_eq!(res_parser.header_with_colon()(input), expected);
+        assert_eq!(res_parser.header_with_colon().parse(input), expected);
     }
 
     #[rstest]
@@ -694,13 +704,13 @@ mod test {
         #[case] diff_res_expected: Option<IResult<&[u8], Header>>,
     ) {
         let req_parser = Parser::new(Side::Request);
-        assert_eq!(req_parser.header()(input), expected);
+        assert_eq!(req_parser.header().parse(input), expected);
 
         let res_parser = Parser::new(Side::Response);
         if let Some(res_expected) = diff_res_expected {
-            assert_eq!(res_parser.header()(input), res_expected);
+            assert_eq!(res_parser.header().parse(input), res_expected);
         } else {
-            assert_eq!(res_parser.header()(input), expected);
+            assert_eq!(res_parser.header().parse(input), expected);
         }
     }
 
@@ -714,13 +724,13 @@ mod test {
         #[case] diff_res_expected: Option<IResult<&[u8], u64>>,
     ) {
         let req_parser = Parser::new(Side::Request);
-        assert_eq!(req_parser.separator()(input), expected);
+        assert_eq!(req_parser.separator().parse(input), expected);
 
         let res_parser = Parser::new(Side::Response);
         if let Some(res_expected) = diff_res_expected {
-            assert_eq!(res_parser.separator()(input), res_expected);
+            assert_eq!(res_parser.separator().parse(input), res_expected);
         } else {
-            assert_eq!(res_parser.separator()(input), expected);
+            assert_eq!(res_parser.separator().parse(input), expected);
         }
     }
 
@@ -747,13 +757,13 @@ mod test {
         #[case] diff_res_expected: Option<IResult<&[u8], Name>>,
     ) {
         let req_parser = Parser::new(Side::Request);
-        assert_eq!(req_parser.name()(input), expected);
+        assert_eq!(req_parser.name().parse(input), expected);
 
         let res_parser = Parser::new(Side::Response);
         if let Some(res_expected) = diff_res_expected {
-            assert_eq!(res_parser.name()(input), res_expected);
+            assert_eq!(res_parser.name().parse(input), res_expected);
         } else {
-            assert_eq!(res_parser.name()(input), expected);
+            assert_eq!(res_parser.name().parse(input), expected);
         }
     }
 
@@ -790,13 +800,13 @@ mod test {
         #[case] diff_res_expected: Option<IResult<&[u8], ParsedBytes>>,
     ) {
         let req_parser = Parser::new(Side::Request);
-        assert_eq!(req_parser.eol()(input), expected);
+        assert_eq!(req_parser.eol().parse(input), expected);
 
         let res_parser = Parser::new(Side::Response);
         if let Some(res_expected) = diff_res_expected {
-            assert_eq!(res_parser.eol()(input), res_expected);
+            assert_eq!(res_parser.eol().parse(input), res_expected);
         } else {
-            assert_eq!(res_parser.eol()(input), expected);
+            assert_eq!(res_parser.eol().parse(input), expected);
         }
     }
 
@@ -824,13 +834,13 @@ mod test {
         #[case] diff_res_expected: Option<IResult<&[u8], ParsedBytes>>,
     ) {
         let req_parser = Parser::new(Side::Request);
-        assert_eq!(req_parser.null_or_eol()(input), expected);
+        assert_eq!(req_parser.null_or_eol().parse(input), expected);
 
         let res_parser = Parser::new(Side::Response);
         if let Some(res_expected) = diff_res_expected {
-            assert_eq!(res_parser.null_or_eol()(input), res_expected);
+            assert_eq!(res_parser.null_or_eol().parse(input), res_expected);
         } else {
-            assert_eq!(res_parser.null_or_eol()(input), expected);
+            assert_eq!(res_parser.null_or_eol().parse(input), expected);
         }
     }
 
@@ -859,13 +869,13 @@ mod test {
         #[case] diff_res_expected: Option<IResult<&[u8], FoldingBytes>>,
     ) {
         let req_parser = Parser::new(Side::Request);
-        assert_eq!(req_parser.folding()(input), expected);
+        assert_eq!(req_parser.folding().parse(input), expected);
 
         let res_parser = Parser::new(Side::Response);
         if let Some(res_expected) = diff_res_expected {
-            assert_eq!(res_parser.folding()(input), res_expected);
+            assert_eq!(res_parser.folding().parse(input), res_expected);
         } else {
-            assert_eq!(res_parser.folding()(input), expected);
+            assert_eq!(res_parser.folding().parse(input), expected);
         }
     }
 
@@ -890,13 +900,16 @@ mod test {
         #[case] diff_res_expected: Option<IResult<&[u8], FoldingOrTerminator>>,
     ) {
         let req_parser = Parser::new(Side::Request);
-        assert_eq!(req_parser.folding_or_terminator()(input), expected);
+        assert_eq!(req_parser.folding_or_terminator().parse(input), expected);
 
         let res_parser = Parser::new(Side::Response);
         if let Some(res_expected) = diff_res_expected {
-            assert_eq!(res_parser.folding_or_terminator()(input), res_expected);
+            assert_eq!(
+                res_parser.folding_or_terminator().parse(input),
+                res_expected
+            );
         } else {
-            assert_eq!(res_parser.folding_or_terminator()(input), expected);
+            assert_eq!(res_parser.folding_or_terminator().parse(input), expected);
         }
     }
 
@@ -922,13 +935,13 @@ mod test {
         #[case] diff_res_expected: Option<IResult<&[u8], ValueBytes>>,
     ) {
         let req_parser = Parser::new(Side::Request);
-        assert_eq!(req_parser.value_bytes()(input), expected);
+        assert_eq!(req_parser.value_bytes().parse(input), expected);
 
         let res_parser = Parser::new(Side::Response);
         if let Some(res_expected) = diff_res_expected {
-            assert_eq!(res_parser.value_bytes()(input), res_expected);
+            assert_eq!(res_parser.value_bytes().parse(input), res_expected);
         } else {
-            assert_eq!(res_parser.value_bytes()(input), expected);
+            assert_eq!(res_parser.value_bytes().parse(input), expected);
         }
     }
 
@@ -956,13 +969,13 @@ mod test {
         #[case] diff_res_expected: Option<IResult<&[u8], Value>>,
     ) {
         let req_parser = Parser::new(Side::Request);
-        assert_eq!(req_parser.value()(input), expected);
+        assert_eq!(req_parser.value().parse(input), expected);
 
         let res_parser = Parser::new(Side::Response);
         if let Some(res_expected) = diff_res_expected {
-            assert_eq!(res_parser.value()(input), res_expected);
+            assert_eq!(res_parser.value().parse(input), res_expected);
         } else {
-            assert_eq!(res_parser.value()(input), expected);
+            assert_eq!(res_parser.value().parse(input), expected);
         }
     }
 }

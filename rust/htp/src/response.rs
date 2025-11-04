@@ -19,7 +19,7 @@ use crate::{
     },
     HtpStatus,
 };
-use nom::{bytes::streaming::take_till as streaming_take_till, error::ErrorKind, sequence::tuple};
+use nom::{bytes::streaming::take_till as streaming_take_till, error::ErrorKind, Parser as _};
 use std::{
     cmp::{min, Ordering},
     mem::take,
@@ -739,16 +739,16 @@ impl ConnectionParser {
         response_tx.response_status_number = HtpResponseNumber::Invalid;
         response_tx.response_message = None;
 
-        let mut response_line_parser = tuple((
+        let mut response_line_parser = (
             take_is_space_or_null,
             take_not_is_space,
             take_is_space,
             take_not_is_space,
             take_ascii_whitespace(),
-        ));
+        );
 
         let (message, (_ls, response_protocol, ws1, status_code, ws2)) =
-            response_line_parser(response_line)?;
+            response_line_parser.parse(response_line)?;
         if response_protocol.is_empty() {
             return Ok(());
         }

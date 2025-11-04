@@ -1,4 +1,5 @@
 use brotli;
+use nom::Parser as _;
 use std::{
     io::{Cursor, Write},
     time::Instant,
@@ -455,10 +456,9 @@ impl GzipBufWriter {
     fn parse_start(data: &[u8]) -> nom::IResult<&[u8], u8> {
         use nom::bytes::streaming::tag;
         use nom::number::streaming::{le_i32, le_u8};
-        use nom::sequence::tuple;
 
         let (rest, (_, flags, _mtime, _xfl, _operating_system)) =
-            tuple((tag(b"\x1f\x8b\x08"), le_u8, le_i32, le_u8, le_u8))(data)?;
+            (tag(&b"\x1f\x8b\x08"[..]), le_u8, le_i32, le_u8, le_u8).parse(data)?;
         Ok((rest, flags))
     }
 }
@@ -467,7 +467,6 @@ impl Write for GzipBufWriter {
     fn write(&mut self, data: &[u8]) -> std::io::Result<usize> {
         use nom::bytes::streaming::{tag, take_until};
         use nom::number::streaming::le_u16;
-        use nom::sequence::tuple;
 
         const FHCRC: u8 = 1 << 1;
         const FEXTRA: u8 = 1 << 2;
@@ -534,10 +533,11 @@ impl Write for GzipBufWriter {
                 }
                 GzState::Filename => {
                     if self.flags & FNAME != 0 {
-                        match tuple((
+                        match (
                             take_until::<&[u8], &[u8], nom::error::Error<&[u8]>>(b"\0" as &[u8]),
-                            tag(b"\0"),
-                        ))(parse)
+                            tag(&b"\0"[..]),
+                        )
+                            .parse(parse)
                         {
                             Ok((rest, _)) => {
                                 parse = rest;
@@ -557,10 +557,11 @@ impl Write for GzipBufWriter {
                 }
                 GzState::Comment => {
                     if self.flags & FCOMMENT != 0 {
-                        match tuple((
+                        match (
                             take_until::<&[u8], &[u8], nom::error::Error<&[u8]>>(b"\0" as &[u8]),
-                            tag(b"\0"),
-                        ))(parse)
+                            tag(&b"\0"[..]),
+                        )
+                            .parse(parse)
                         {
                             Ok((rest, _)) => {
                                 parse = rest;

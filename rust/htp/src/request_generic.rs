@@ -12,7 +12,7 @@ use crate::{
         FlagOperations, HtpFlags,
     },
 };
-use nom::{bytes::complete::take_while, error::ErrorKind, sequence::tuple};
+use nom::{bytes::complete::take_while, error::ErrorKind};
 use std::cmp::Ordering;
 
 impl ConnectionParser {

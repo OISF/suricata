@@ -11,7 +11,7 @@ use crate::{
     },
     HtpStatus,
 };
-use nom::{error::ErrorKind, sequence::tuple};
+use nom::{error::ErrorKind};
 use std::cmp::Ordering;
 
 impl ConnectionParser {

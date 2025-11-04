@@ -14,10 +14,8 @@ use nom::{
     branch::alt,
     bytes::complete::{is_not, tag, tag_no_case, take_till, take_until, take_while},
     combinator::{map, not, opt, peek},
-    error::ErrorKind,
     multi::many0,
-    sequence::tuple,
-    IResult,
+    IResult, Parser as _,
 };
 
 /// Parses the content type header, trimming any leading whitespace.
@@ -27,12 +25,13 @@ use nom::{
 fn content_type() -> impl Fn(&[u8]) -> IResult<&[u8], &[u8]> {
     move |input| {
         map(
-            tuple((
+            (
                 take_ascii_whitespace(),
                 take_till(|c| c == b';' || c == b',' || c == b' '),
-            )),
+            ),
             |(_, content_type)| content_type,
-        )(input)
+        )
+        .parse(input)
     }
 }
 
@@ -80,7 +79,7 @@ pub(crate) fn parse_content_length(input: &[u8], logger: Option<&mut Logger>) ->
 /// and after the number.
 pub(crate) fn parse_chunked_length(input: &[u8]) -> Result<(Option<u64>, bool)> {
     let (rest, _) = take_chunked_ctl_chars(input)?;
-    let (trailing_data, chunked_length) = hex_digits()(rest)?;
+    let (trailing_data, chunked_length) = hex_digits().parse(rest)?;
     if trailing_data.is_empty() && chunked_length.is_empty() {
         return Ok((None, false));
     }
@@ -105,9 +104,10 @@ pub(crate) fn scheme() -> impl Fn(&[u8]) -> IResult<&[u8], &[u8]> {
         // Scheme test: if it doesn't start with a forward slash character (which it must
         // for the contents to be a path or an authority), then it must be the scheme part
         map(
-            tuple((peek(not(tag("/"))), take_until(":"), tag(":"))),
+            (peek(not(tag("/"))), take_until(":"), tag(":")),
             |(_, scheme, _)| scheme,
-        )(input)
+        )
+        .parse(input)
     }
 }
 
@@ -123,8 +123,8 @@ pub(crate) fn credentials() -> impl Fn(&[u8]) -> IResult<&[u8], ParsedCredential
         // One, three or more slash characters, and it's a path.
         // Note: we only attempt to parse authority if we've seen a scheme.
         let (input, (_, _, credentials, _)) =
-            tuple((tag("//"), peek(not(tag("/"))), take_until("@"), tag("@")))(input)?;
-        let (password, username) = opt(tuple((take_until(":"), tag(":"))))(credentials)?;
+            (tag("//"), peek(not(tag("/"))), take_until("@"), tag("@")).parse(input)?;
+        let (password, username) = opt((take_until(":"), tag(":"))).parse(credentials)?;
         if let Some((username, _)) = username {
             Ok((input, (username, Some(password))))
         } else {
@@ -139,7 +139,7 @@ pub(crate) fn credentials() -> impl Fn(&[u8]) -> IResult<&[u8], ParsedCredential
 /// Returns a tuple of the remaining unconsumed data and the matched ipv6 hostname.
 pub(crate) fn ipv6() -> impl Fn(&[u8]) -> IResult<&[u8], &[u8]> {
     move |input| -> IResult<&[u8], &[u8]> {
-        let (rest, _) = tuple((tag("["), is_not("/?#]"), opt(tag("]"))))(input)?;
+        let (rest, _) = (tag("["), is_not("/?#]"), opt(tag("]"))).parse(input)?;
         Ok((rest, &input[..input.len() - rest.len()]))
     }
 }
@@ -150,14 +150,15 @@ pub(crate) fn ipv6() -> impl Fn(&[u8]) -> IResult<&[u8], &[u8]> {
 pub(crate) fn hostname() -> impl Fn(&[u8]) -> IResult<&[u8], &[u8]> {
     move |input| {
         let (input, mut hostname) = map(
-            tuple((
+            (
                 opt(tag("//")), //If it starts with "//", skip (might have parsed a scheme and no creds)
                 peek(not(tag("/"))), //If it starts with '/', this is a path, not a hostname
                 many0(tag(" ")),
                 alt((ipv6(), is_not("/?#:"))),
-            )),
+            ),
             |(_, _, _, hostname)| hostname,
-        )(input)?;
+        )
+        .parse(input)?;
         //There may be spaces in the middle of a hostname, so much trim only at the end
         while hostname.ends_with(b" ") {
             hostname = &hostname[..hostname.len() - 1];
@@ -174,7 +175,7 @@ pub(crate) fn port() -> impl Fn(&[u8]) -> IResult<&[u8], &[u8]> {
     move |input| {
         // Must start with ":" for there to be a port to parse
         let (input, (_, _, port, _)) =
-            tuple((tag(":"), many0(tag(" ")), is_not("/?#"), many0(tag(" "))))(input)?;
+            (tag(":"), many0(tag(" ")), is_not("/?#"), many0(tag(" "))).parse(input)?;
         let (_, port) = is_not(" ")(port)?; //we assume there never will be a space in the middle of a port
         Ok((input, port))
     }
@@ -185,7 +186,7 @@ pub(crate) fn port() -> impl Fn(&[u8]) -> IResult<&[u8], &[u8]> {
 ///
 /// Returns a tuple of the remaining unconsumed data and the matched path.
 pub(crate) fn path() -> impl Fn(&[u8]) -> IResult<&[u8], &[u8]> {
-    move |input| is_not("#?")(input)
+    move |input| is_not("#?").parse(input)
 }
 
 /// Attempts to extract the query from a given input URI,
@@ -195,9 +196,7 @@ pub(crate) fn path() -> impl Fn(&[u8]) -> IResult<&[u8], &[u8]> {
 pub(crate) fn query() -> impl Fn(&[u8]) -> IResult<&[u8], &[u8]> {
     move |input| {
         // Skip the starting '?'
-        map(tuple((tag("?"), take_till(|c| c == b'#'))), |(_, query)| {
-            query
-        })(input)
+        map((tag("?"), take_till(|c| c == b'#')), |(_, query)| query).parse(input)
     }
 }
 
@@ -208,7 +207,7 @@ pub(crate) fn query() -> impl Fn(&[u8]) -> IResult<&[u8], &[u8]> {
 pub(crate) fn fragment() -> impl Fn(&[u8]) -> IResult<&[u8], &[u8]> {
     move |input| {
         // Skip the starting '#'
-        let (input, _) = tag("#")(input)?;
+        let (input, _) = tag("#").parse(input)?;
         Ok((b"", input))
     }
 }
@@ -221,9 +220,9 @@ type parsed_hostport<'a> = (&'a [u8], parsed_port<'a>, bool);
 /// Returns a remaining unparsed data, parsed hostname, parsed port, converted port number,
 /// and a flag indicating whether the parsed data is valid.
 pub(crate) fn parse_hostport(input: &[u8]) -> IResult<&[u8], parsed_hostport<'_>> {
-    let (input, host) = hostname()(input)?;
+    let (input, host) = hostname().parse(input)?;
     let mut valid = validate_hostname(host);
-    if let Ok((_, p)) = port()(input) {
+    if let Ok((_, p)) = port().parse(input) {
         if let Some(port) = convert_port(p) {
             return Ok((input, (host, Some((p, Some(port))), valid)));
         } else {
@@ -241,7 +240,7 @@ pub(crate) fn parse_hostport(input: &[u8]) -> IResult<&[u8], parsed_hostport<'_>
 /// Returns (any unparsed trailing data, (version_number, flag indicating whether input contains trailing and/or leading whitespace and/or leading zeros))
 fn protocol_version(input: &[u8]) -> IResult<&[u8], (&[u8], bool)> {
     map(
-        tuple((
+        (
             take_ascii_whitespace(),
             tag_no_case("HTTP"),
             take_ascii_whitespace(),
@@ -249,11 +248,12 @@ fn protocol_version(input: &[u8]) -> IResult<&[u8], (&[u8], bool)> {
             take_while(|c: u8| c.is_ascii_whitespace() || c == b'0'),
             alt((tag(".9"), tag("1.0"), tag("1.1"))),
             take_ascii_whitespace(),
-        )),
+        ),
         |(_, _, leading, _, trailing, version, _)| {
             (version, !leading.is_empty() || !trailing.is_empty())
         },
-    )(input)
+    )
+    .parse(input)
 }
 
 /// Determines protocol number from a textual representation (i.e., "HTTP/1.1"). This
@@ -306,16 +306,17 @@ pub(crate) fn parse_status(status: &[u8]) -> HtpResponseNumber {
 /// Parses Digest Authorization request header.
 fn parse_authorization_digest(auth_header_value: &[u8]) -> IResult<&[u8], Vec<u8>> {
     // Extract the username
-    let (mut remaining_input, _) = tuple((
+    let (mut remaining_input, _) = (
         take_until("username="),
         tag("username="),
         take_ascii_whitespace(), // allow lws
         tag("\""),               // First character after LWS must be a double quote
-    ))(auth_header_value)?;
+    )
+        .parse(auth_header_value)?;
     let mut result = Vec::new();
     // Unescape any escaped double quotes and find the closing quote
     loop {
-        let (remaining, (auth_header, _)) = tuple((take_until("\""), tag("\"")))(remaining_input)?;
+        let (remaining, (auth_header, _)) = (take_until("\""), tag("\"")).parse(remaining_input)?;
         remaining_input = remaining;
         result.extend_from_slice(auth_header);
         if result.last() == Some(&(b'\\')) {
@@ -333,16 +334,18 @@ fn parse_authorization_digest(auth_header_value: &[u8]) -> IResult<&[u8], Vec<u8
 /// Parses Basic Authorization request header.
 fn parse_authorization_basic(request_tx: &mut Transaction, auth_header: &Header) -> Result<()> {
     // Skip 'Basic<lws>'
-    let (remaining_input, _) =
-        tuple((tag_no_case("basic"), take_ascii_whitespace()))(auth_header.value.as_slice())
-            .map_err(|_| HtpStatus::DECLINED)?;
+    let (remaining_input, _) = (tag_no_case("basic"), take_ascii_whitespace())
+        .parse(auth_header.value.as_slice())
+        .map_err(|_| HtpStatus::DECLINED)?;
     // Decode base64-encoded data
     let decoded = STANDARD
         .decode(remaining_input)
         .map_err(|_| HtpStatus::DECLINED)?;
-    let (password, (username, _)) =
-        tuple::<_, _, (&[u8], ErrorKind), _>((take_until(":"), tag(":")))(decoded.as_slice())
-            .map_err(|_| HtpStatus::DECLINED)?;
+    #[allow(clippy::type_complexity)]
+    let result: nom::IResult<&[u8], (&[u8], &[u8]), nom::error::Error<&[u8]>> =
+        (take_until(":"), tag(":")).parse(decoded.as_slice());
+    let (remaining, (username, _)) = result.map_err(|_| HtpStatus::DECLINED)?;
+    let password = remaining;
     request_tx.request_auth_username = Some(Bstr::from(username));
     request_tx.request_auth_password = Some(Bstr::from(password));
     Ok(())
@@ -377,11 +380,12 @@ pub(crate) fn parse_authorization(request_tx: &mut Transaction) -> Result<()> {
         }
     } else if auth_header.value.starts_with_nocase("bearer") {
         request_tx.request_auth_type = HtpAuthType::BEARER;
-        let (token, _) = tuple((
+        let (token, _) = (
             tag_no_case("bearer"),
             take_ascii_whitespace(), // allow lws
-        ))(auth_header.value.as_slice())
-        .map_err(|_| HtpStatus::DECLINED)?;
+        )
+            .parse(auth_header.value.as_slice())
+            .map_err(|_| HtpStatus::DECLINED)?;
         request_tx.request_auth_token = Some(Bstr::from(token));
     } else {
         // Unrecognized authentication method
