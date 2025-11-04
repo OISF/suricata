@@ -46,17 +46,13 @@ mod mock {
 #[cfg(not(test))]
 mod real {
     use std::ffi::CString;
-    use std::os::raw::c_char;
+    use suricata_sys::sys::{SCRequiresFeature, SCSigTableHasKeyword};
 
-    extern "C" {
-        fn RequiresFeature(feature: *const c_char) -> bool;
-        fn SigTableHasKeyword(keyword: *const c_char) -> bool;
-    }
 
     /// Check for a feature returning true if found.
     pub fn requires(feature: &str) -> bool {
         if let Ok(feature) = CString::new(feature) {
-            unsafe { RequiresFeature(feature.as_ptr()) }
+            unsafe { SCRequiresFeature(feature.as_ptr()) }
         } else {
             false
         }
@@ -64,7 +60,7 @@ mod real {
 
     pub fn has_keyword(keyword: &str) -> bool {
         if let Ok(keyword) = CString::new(keyword) {
-            unsafe { SigTableHasKeyword(keyword.as_ptr()) }
+            unsafe { SCSigTableHasKeyword(keyword.as_ptr()) }
         } else {
             false
         }

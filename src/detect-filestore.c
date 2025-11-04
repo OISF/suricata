@@ -354,7 +354,7 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
             SCLogDebug("reload-detected; re-checking feature presence; DE version now %"PRIu32,
                        de_ctx->version);
         }
-        if (!RequiresFeature(FEATURE_OUTPUT_FILESTORE)) {
+        if (!SCRequiresFeature(FEATURE_OUTPUT_FILESTORE)) {
             SCLogWarning("One or more rule(s) depends on the "
                          "file-store output log which is not enabled. "
                          "Enable the output \"file-store\".");
