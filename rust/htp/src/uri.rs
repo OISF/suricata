@@ -7,7 +7,7 @@ use crate::{
     utf8_decoder::decode_and_validate_inplace,
     util::{convert_port, FlagOperations, HtpFlags},
 };
-use nom::{combinator::opt, sequence::tuple};
+use nom::{combinator::opt, Parser as _};
 
 /// URI structure. Each of the fields provides access to a single
 /// URI element. Where an element is not present in a URI, the
@@ -182,16 +182,13 @@ impl Uri {
     /// It attempts, but is not guaranteed to successfully parse out a scheme, username, password, hostname, port, query, and fragment.
     /// Note: only attempts to extract a username, password, and hostname and subsequently port if it successfully parsed a scheme.
     pub(crate) fn parse_uri(&mut self, input: &[u8]) {
-        let res = tuple((
-            opt(tuple((
-                scheme(),
-                opt(credentials()),
-                opt(tuple((hostname(), opt(port())))),
-            ))),
+        let res = (
+            opt((scheme(), opt(credentials()), opt((hostname(), opt(port()))))),
             opt(path()),
             opt(query()),
             opt(fragment()),
-        ))(input);
+        )
+            .parse(input);
         if let Ok((_, (scheme_authority, path, query, fragment))) = res {
             if let Some(path) = path {
                 self.path = Some(Bstr::from(path));

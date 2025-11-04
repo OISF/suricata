@@ -10,9 +10,8 @@ use nom::{
     character::complete::{char, digit1},
     character::is_space as nom_is_space,
     combinator::{map, opt},
-    sequence::tuple,
     Err::Incomplete,
-    IResult, Needed,
+    IResult, Needed, Parser,
 };
 
 use std::str::FromStr;
@@ -195,7 +194,7 @@ pub(crate) fn is_token(c: u8) -> bool {
 
 /// This parser takes leading whitespace as defined by is_ascii_whitespace.
 pub(crate) fn take_ascii_whitespace() -> impl Fn(&[u8]) -> IResult<&[u8], &[u8]> {
-    move |input| take_while(|c: u8| c.is_ascii_whitespace())(input)
+    move |input| take_while(|c: u8| c.is_ascii_whitespace()).parse(input)
 }
 
 /// Remove all line terminators (LF, CR or CRLF) from
@@ -306,14 +305,15 @@ fn is_line_whitespace(data: &[u8]) -> bool {
 /// Returns (any trailing non-LWS characters, (non-LWS leading characters, ascii digits))
 pub(crate) fn ascii_digits(input: &[u8]) -> IResult<&[u8], (&[u8], &[u8])> {
     map(
-        tuple((
+        (
             nom_take_is_space,
             take_till(|c: u8| c.is_ascii_digit()),
             digit1,
             nom_take_is_space,
-        )),
+        ),
         |(_, leading_data, digits, _)| (leading_data, digits),
-    )(input)
+    )
+    .parse(input)
 }
 
 /// Searches for and extracts the next set of hex digits from the input slice if present
@@ -323,13 +323,14 @@ pub(crate) fn ascii_digits(input: &[u8]) -> IResult<&[u8], (&[u8], &[u8])> {
 pub(crate) fn hex_digits() -> impl Fn(&[u8]) -> IResult<&[u8], &[u8]> {
     move |input| {
         map(
-            tuple((
+            (
                 nom_take_is_space,
                 take_while(|c: u8| c.is_ascii_hexdigit()),
                 nom_take_is_space,
-            )),
+            ),
             |(_, digits, _)| digits,
-        )(input)
+        )
+        .parse(input)
     }
 }
 
@@ -387,7 +388,9 @@ pub(crate) fn treat_response_line_as_body(data: &[u8]) -> bool {
     //      IE: (?i)^\s*http\s*/
     //      Safari: ^HTTP/\d+\.\d+\s+\d{3}
 
-    tuple((opt(take_is_space_or_null), tag_no_case("http")))(data).is_err()
+    (opt(take_is_space_or_null), tag_no_case("http"))
+        .parse(data)
+        .is_err()
 }
 
 /// Implements relaxed (not strictly RFC) hostname validation.
@@ -399,19 +402,22 @@ pub(crate) fn validate_hostname(input: &[u8]) -> bool {
     }
 
     // Check IPv6
-    if let Ok((_rest, (_left_br, addr, _right_br))) = tuple((
+    if let Ok((_rest, (_left_br, addr, _right_br))) = (
         char::<_, NomError<&[u8]>>('['),
         is_not::<_, _, NomError<&[u8]>>("#?/]"),
         char::<_, NomError<&[u8]>>(']'),
-    ))(input)
+    )
+        .parse(input)
     {
         if let Ok(str) = std::str::from_utf8(addr) {
             return std::net::Ipv6Addr::from_str(str).is_ok();
         }
     }
 
-    if tag::<_, _, NomError<&[u8]>>(".")(input).is_ok()
-        || take_until::<_, _, NomError<&[u8]>>("..")(input).is_ok()
+    if tag::<_, _, NomError<&[u8]>>(".").parse(input).is_ok()
+        || take_until::<_, _, NomError<&[u8]>>("..")
+            .parse(input)
+            .is_ok()
     {
         return false;
     }
@@ -439,40 +445,40 @@ pub(crate) fn get_version() -> &'static str {
 
 /// Take leading whitespace as defined by nom_is_space.
 pub(crate) fn nom_take_is_space(data: &[u8]) -> IResult<&[u8], &[u8]> {
-    take_while(nom_is_space)(data)
+    take_while(nom_is_space).parse(data)
 }
 
 /// Take data before the first null character if it exists.
 pub(crate) fn take_until_null(data: &[u8]) -> IResult<&[u8], &[u8]> {
-    take_while(|c| c != b'\0')(data)
+    take_while(|c| c != b'\0').parse(data)
 }
 
 /// Take leading space as defined by util::is_space.
 pub(crate) fn take_is_space(data: &[u8]) -> IResult<&[u8], &[u8]> {
-    take_while(is_space)(data)
+    take_while(is_space).parse(data)
 }
 
 /// Take leading null characters or spaces as defined by util::is_space
 pub(crate) fn take_is_space_or_null(data: &[u8]) -> IResult<&[u8], &[u8]> {
-    take_while(|c| is_space(c) || c == b'\0')(data)
+    take_while(|c| is_space(c) || c == b'\0').parse(data)
 }
 
 /// Take any non-space character as defined by is_space.
 pub(crate) fn take_not_is_space(data: &[u8]) -> IResult<&[u8], &[u8]> {
-    take_while(|c: u8| !is_space(c))(data)
+    take_while(|c: u8| !is_space(c)).parse(data)
 }
 
 /// Returns all data up to and including the first new line or null
 /// Returns Err if not found
 pub(crate) fn take_till_lf_null(data: &[u8]) -> IResult<&[u8], &[u8]> {
-    let (_, line) = streaming_take_till(|c| c == b'\n' || c == 0)(data)?;
+    let (_, line) = streaming_take_till(|c| c == b'\n' || c == 0).parse(data)?;
     Ok((&data[line.len() + 1..], &data[0..line.len() + 1]))
 }
 
 /// Returns all data up to and including the first new line
 /// Returns Err if not found
 pub(crate) fn take_till_lf(data: &[u8]) -> IResult<&[u8], &[u8]> {
-    let (_, line) = streaming_take_till(|c| c == b'\n')(data)?;
+    let (_, line) = streaming_take_till(|c| c == b'\n').parse(data)?;
     Ok((&data[line.len() + 1..], &data[0..line.len() + 1]))
 }
 
@@ -480,14 +486,15 @@ pub(crate) fn take_till_lf(data: &[u8]) -> IResult<&[u8], &[u8]> {
 ///
 /// Returns Err if not found
 pub(crate) fn take_till_eol(data: &[u8]) -> IResult<&[u8], (&[u8], Eol)> {
-    let (_, (line, eol)) = tuple((
+    let (_, (line, eol)) = (
         streaming_take_till(|c| c == b'\n' || c == b'\r'),
         alt((
             streaming_tag("\r\n"),
             streaming_tag("\r"),
             streaming_tag("\n"),
         )),
-    ))(data)?;
+    )
+        .parse(data)?;
     match eol {
         b"\n" => Ok((&data[line.len() + 1..], (&data[0..line.len() + 1], Eol::LF))),
         b"\r" => Ok((&data[line.len() + 1..], (&data[0..line.len() + 1], Eol::CR))),
@@ -501,18 +508,19 @@ pub(crate) fn take_till_eol(data: &[u8]) -> IResult<&[u8], (&[u8], Eol)> {
 
 /// Skip control characters
 pub(crate) fn take_chunked_ctl_chars(data: &[u8]) -> IResult<&[u8], &[u8]> {
-    take_while(is_chunked_ctl_char)(data)
+    take_while(is_chunked_ctl_char).parse(data)
 }
 
 /// Check if the data contains valid chunked length chars, i.e. leading chunked ctl chars and ascii hexdigits
 ///
 /// Returns true if valid, false otherwise
 pub(crate) fn is_valid_chunked_length_data(data: &[u8]) -> bool {
-    tuple((
+    (
         take_chunked_ctl_chars,
         take_while1(|c: u8| !c.is_ascii_hexdigit()),
-    ))(data)
-    .is_err()
+    )
+        .parse(data)
+        .is_err()
 }
 
 fn is_chunked_ctl_char(c: u8) -> bool {

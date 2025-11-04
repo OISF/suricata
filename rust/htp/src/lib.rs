@@ -1,6 +1,7 @@
 //! Root crate for libhtp.
 
 #![deny(warnings)]
+#![allow(deprecated)]
 #![deny(missing_docs)]
 #![deny(unused_lifetimes)]
 #![allow(non_camel_case_types)]

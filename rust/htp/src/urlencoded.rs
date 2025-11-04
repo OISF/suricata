@@ -12,8 +12,7 @@ use nom::{
     combinator::{map, not},
     multi::fold_many0,
     number::complete::be_u8,
-    sequence::tuple,
-    IResult,
+    IResult, Parser as _,
 };
 
 /// Convert two input bytes, pointed to by the pointer parameter,
@@ -22,7 +21,7 @@ use nom::{
 ///
 /// Returns hex-decoded byte
 fn x2c(input: &[u8]) -> IResult<&[u8], u8> {
-    let (input, (c1, c2)) = tuple((be_u8, be_u8))(input)?;
+    let (input, (c1, c2)) = (be_u8, be_u8).parse(input)?;
     let mut decoded_byte = if c1 >= b'A' {
         ((c1 & 0xdf) - b'A') + 10
     } else {
@@ -101,13 +100,13 @@ fn path_decode_valid_u_encoding(
     cfg: &DecoderConfig,
 ) -> impl Fn(&[u8]) -> IResult<&[u8], UrlParseResult> + '_ {
     move |remaining_input| {
-        let (left, _) = tag_no_case("u")(remaining_input)?;
+        let (left, _) = tag_no_case("u").parse(remaining_input)?;
         let mut output = remaining_input;
         let mut byte = b'%';
         let mut flags = 0;
         let mut expected_status_code = HtpUnwanted::Ignore;
         if cfg.u_encoding_decode {
-            let (left, hex) = take_while_m_n(4, 4, |c: u8| c.is_ascii_hexdigit())(left)?;
+            let (left, hex) = take_while_m_n(4, 4, |c: u8| c.is_ascii_hexdigit()).parse(left)?;
             output = left;
             expected_status_code = cfg.u_encoding_unwanted;
             // Decode a valid %u encoding.
@@ -163,9 +162,9 @@ fn path_decode_invalid_u_encoding(
         let mut byte = b'%';
         let mut flags = 0;
         let mut expected_status_code = HtpUnwanted::Ignore;
-        let (left, _) = tag_no_case("u")(remaining_input)?;
+        let (left, _) = tag_no_case("u").parse(remaining_input)?;
         if cfg.u_encoding_decode {
-            let (left, hex) = take(4usize)(left)?;
+            let (left, hex) = take(4usize).parse(left)?;
             // Invalid %u encoding
             flags = HtpFlags::PATH_INVALID_ENCODING;
             expected_status_code = cfg.url_encoding_invalid_unwanted;
@@ -215,8 +214,9 @@ fn path_decode_valid_hex(
     move |remaining_input| {
         let original_remaining = remaining_input;
         // Valid encoding (2 xbytes)
-        not(tag_no_case("u"))(remaining_input)?;
-        let (mut left, hex) = take_while_m_n(2, 2, |c: u8| c.is_ascii_hexdigit())(remaining_input)?;
+        not(tag_no_case("u")).parse(remaining_input)?;
+        let (mut left, hex) =
+            take_while_m_n(2, 2, |c: u8| c.is_ascii_hexdigit()).parse(remaining_input)?;
         let mut flags = 0;
         // Convert from hex.
         let (_, mut byte) = x2c(hex)?;
@@ -265,8 +265,8 @@ fn path_decode_invalid_hex(
     move |remaining_input| {
         let mut remaining = remaining_input;
         // Valid encoding (2 xbytes)
-        not(tag_no_case("u"))(remaining_input)?;
-        let (left, hex) = take(2usize)(remaining_input)?;
+        not(tag_no_case("u")).parse(remaining_input)?;
+        let (left, hex) = take(2usize).parse(remaining_input)?;
         let mut byte = b'%';
         // Invalid encoding
         let flags = HtpFlags::PATH_INVALID_ENCODING;
@@ -312,13 +312,13 @@ fn path_decode_percent(
 ) -> impl Fn(&[u8]) -> IResult<&[u8], UrlParseResult> + '_ {
     move |i| {
         map(
-            tuple((
+            (
                 char('%'),
                 alt((
                     path_decode_valid_u_encoding(cfg),
                     path_decode_invalid_u_encoding(cfg),
                     move |remaining_input| {
-                        let (_, _) = tag_no_case("u")(remaining_input)?;
+                        let (_, _) = tag_no_case("u").parse(remaining_input)?;
                         // Incomplete invalid %u encoding
                         Ok((
                             remaining_input,
@@ -347,9 +347,10 @@ fn path_decode_percent(
                         ))
                     },
                 )),
-            )),
+            ),
             |(_, result)| result,
-        )(i)
+        )
+        .parse(i)
     }
 }
 
@@ -446,7 +447,8 @@ fn path_decode_uri<'a>(
             acc.2 = upr.expected_status_code;
             acc
         },
-    )(input)
+    )
+    .parse(input)
 }
 
 /// Decode the parsed uri path inplace according to the settings in the
@@ -486,7 +488,8 @@ fn decode_uri<'a>(
             }
             acc
         },
-    )(input)
+    )
+    .parse(input)
 }
 
 /// Performs decoding of the uri string, according to the configuration specified
@@ -525,9 +528,9 @@ fn decode_valid_u_encoding(
     cfg: &DecoderConfig,
 ) -> impl Fn(&[u8]) -> IResult<&[u8], UrlParseResult> + '_ {
     move |input| {
-        let (left, _) = alt((char('u'), char('U')))(input)?;
+        let (left, _) = alt((char('u'), char('U'))).parse(input)?;
         if cfg.u_encoding_decode {
-            let (input, hex) = take_while_m_n(4, 4, |c: u8| c.is_ascii_hexdigit())(left)?;
+            let (input, hex) = take_while_m_n(4, 4, |c: u8| c.is_ascii_hexdigit()).parse(left)?;
             let (_, (byte, flags)) = decode_u_encoding_params(hex, cfg)?;
             return Ok((
                 input,
@@ -559,14 +562,14 @@ fn decode_invalid_u_encoding(
     cfg: &DecoderConfig,
 ) -> impl Fn(&[u8]) -> IResult<&[u8], UrlParseResult> + '_ {
     move |mut input| {
-        let (left, _) = alt((char('u'), char('U')))(input)?;
+        let (left, _) = alt((char('u'), char('U'))).parse(input)?;
         let mut byte = b'%';
         let mut code = HtpUnwanted::Ignore;
         let mut flags = 0;
         let mut insert = true;
         if cfg.u_encoding_decode {
             // Invalid %u encoding (could not find 4 xdigits).
-            let (left, invalid_hex) = take(4usize)(left)?;
+            let (left, invalid_hex) = take(4usize).parse(left)?;
             flags.set(HtpFlags::URLEN_INVALID_ENCODING);
             code = if cfg.url_encoding_invalid_unwanted != HtpUnwanted::Ignore {
                 cfg.url_encoding_invalid_unwanted
@@ -602,8 +605,8 @@ fn decode_invalid_u_encoding(
 fn decode_valid_hex() -> impl Fn(&[u8]) -> IResult<&[u8], UrlParseResult> {
     move |input| {
         // Valid encoding (2 xbytes)
-        not(alt((char('u'), char('U'))))(input)?;
-        let (input, hex) = take_while_m_n(2, 2, |c: u8| c.is_ascii_hexdigit())(input)?;
+        not(alt((char('u'), char('U')))).parse(input)?;
+        let (input, hex) = take_while_m_n(2, 2, |c: u8| c.is_ascii_hexdigit()).parse(input)?;
         let (_, byte) = x2c(hex)?;
         Ok((
             input,
@@ -625,7 +628,7 @@ fn decode_invalid_hex(
     cfg: &DecoderConfig,
 ) -> impl Fn(&[u8]) -> IResult<&[u8], UrlParseResult> + '_ {
     move |mut input| {
-        not(alt((char('u'), char('U'))))(input)?;
+        not(alt((char('u'), char('U')))).parse(input)?;
         // Invalid encoding (2 bytes, but not hexadecimal digits).
         let mut byte = b'%';
         let mut insert = true;
@@ -657,7 +660,7 @@ fn decode_invalid_hex(
 /// Returns decoded byte, corresponding status code, appropriate flags and whether the byte should be output.
 fn decode_percent(cfg: &DecoderConfig) -> impl Fn(&[u8]) -> IResult<&[u8], UrlParseResult> + '_ {
     move |i| {
-        let (input, _) = char('%')(i)?;
+        let (input, _) = char('%').parse(i)?;
         let (input, upr) = alt((
             decode_valid_u_encoding(cfg),
             decode_invalid_u_encoding(cfg),
@@ -677,7 +680,8 @@ fn decode_percent(cfg: &DecoderConfig) -> impl Fn(&[u8]) -> IResult<&[u8], UrlPa
                     },
                 ))
             },
-        ))(input)?;
+        ))
+        .parse(input)?;
         //Did we get an encoded NUL byte?
         if upr.byte == 0 {
             let flags = upr.flags | HtpFlags::URLEN_ENCODED_NUL;
@@ -722,7 +726,8 @@ fn decode_plus(cfg: &DecoderConfig) -> impl Fn(&[u8]) -> IResult<&[u8], UrlParse
             } else {
                 byte as u8
             }
-        })(input)?;
+        })
+        .parse(input)?;
         Ok((
             input,
             UrlParseResult {
