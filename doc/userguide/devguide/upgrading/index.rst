@@ -1,6 +1,18 @@
 Upgrading
 =========
 
+Upgrading 8.0 to 9.0
+--------------------
+
+Alert Logging
+~~~~~~~~~~~~~
+
+Alert logging is done by iterating the `PacketAlert` entries in `Packet::alerts`. In 9.0
+it is important to check the `PacketAlert::action` field for the `ACTION_ALERT` flag. If
+this flag is not set, no alert should be generated. This is to support the `pass`-rule
+usecase better.
+
+
 Upgrading 7.0 to 8.0
 --------------------
 
