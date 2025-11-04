@@ -18,6 +18,14 @@
 #ifndef SURICATA_DATASETS_H
 #define SURICATA_DATASETS_H
 
+// forward declaration to make things opaque to bindgen
+typedef uint16_t DataRepType;
+typedef struct Dataset Dataset;
+int SCDatasetAdd(Dataset *set, const uint8_t *data, const uint32_t data_len);
+int SCDatasetAddwRep(
+        Dataset *set, const uint8_t *data, const uint32_t data_len, const DataRepType *rep);
+
+#ifndef SURICATA_BINDGEN_H
 #include "util-thash.h"
 #include "rust.h"
 #include "datasets-reputation.h"
@@ -70,7 +78,6 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
         uint64_t memcap, uint32_t hashsize);
 int DatasetGetOrCreate(const char *name, enum DatasetTypes type, const char *save, const char *load,
         uint64_t *memcap, uint32_t *hashsize, Dataset **ret_set);
-int DatasetAdd(Dataset *set, const uint8_t *data, const uint32_t data_len);
 int DatasetRemove(Dataset *set, const uint8_t *data, const uint32_t data_len);
 int DatasetLookup(Dataset *set, const uint8_t *data, const uint32_t data_len);
 DataRepResultType DatasetLookupwRep(Dataset *set, const uint8_t *data, const uint32_t data_len,
@@ -82,5 +89,7 @@ int DatasetParseIpv6String(Dataset *set, const char *line, struct in6_addr *in6)
 int DatasetAddSerialized(Dataset *set, const char *string);
 int DatasetRemoveSerialized(Dataset *set, const char *string);
 int DatasetLookupSerialized(Dataset *set, const char *string);
+
+#endif // SURICATA_BINDGEN_H
 
 #endif /* SURICATA_DATASETS_H */

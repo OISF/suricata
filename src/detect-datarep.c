@@ -79,15 +79,15 @@ int DetectDatarepBufferMatch(DetectEngineThreadCtx *det_ctx,
 
     switch (sd->op) {
         case DATAREP_OP_GT:
-            if (r.rep.value > sd->rep.value)
+            if (r.rep > sd->rep)
                 return 1;
             break;
         case DATAREP_OP_LT:
-            if (r.rep.value < sd->rep.value)
+            if (r.rep < sd->rep)
                 return 1;
             break;
         case DATAREP_OP_EQ:
-            if (r.rep.value == sd->rep.value)
+            if (r.rep == sd->rep)
                 return 1;
             break;
     }
@@ -344,7 +344,7 @@ static int DetectDatarepSetup (DetectEngineCtx *de_ctx, Signature *s, const char
 
     cd->set = set;
     cd->op = op;
-    cd->rep.value = value;
+    cd->rep = value;
 
     SCLogDebug("cmd %s, name %s",
         cmd_str, strlen(name) ? name : "(none)");
