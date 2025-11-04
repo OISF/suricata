@@ -295,6 +295,8 @@ to a buffer.
 Lua scripts that are used for transformations *must* contain a function
 named ``transform``.
 
+Lua scripts can have other functions; Suricata only invokes the ``transform`` function.
+
 Lua transforms can be passed optional arguments -- see the examples below -- but they
 are not required to do so. Arguments are comma-separated.
 
@@ -340,11 +342,6 @@ those values (or defaults, if there are no arguments) for applying the uppercase
 the buffer.
 
 .. code-block:: lua
-
-   function init (args)
-        local needs = {}
-        return needs
-   end
 
    local function get_value(item, key)
        if string.find(item, key) then
