@@ -65,5 +65,6 @@
 
 #include "reputation.h"
 #include "feature.h"
+#include "datasets.h"
 
 #endif

@@ -20,6 +20,7 @@
 
 // Forward declarations needed by rust-bindings.h
 typedef struct HttpRangeContainerBlock HttpRangeContainerBlock;
+typedef struct Dataset Dataset;
 
 typedef struct DetectEngineState_ DetectEngineState;
 

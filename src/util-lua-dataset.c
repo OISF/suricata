@@ -90,7 +90,7 @@ static int LuaDatasetAdd(lua_State *luastate)
 
     uint32_t str_len = lua_tonumber(luastate, 3);
 
-    int r = DatasetAdd(s->set, (const uint8_t *)str, str_len);
+    int r = SCDatasetAdd(s->set, (const uint8_t *)str, str_len);
     /* return value through luastate, as a luanumber */
     lua_pushnumber(luastate, (lua_Number)r);
     SCLogDebug("add:end");

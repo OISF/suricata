@@ -147,7 +147,7 @@ int DetectDatasetBufferMatch(DetectEngineThreadCtx *det_ctx,
         }
         case DETECT_DATASET_CMD_SET: {
             //PrintRawDataFp(stdout, data, data_len);
-            int r = DatasetAdd(sd->set, data, data_len);
+            int r = SCDatasetAdd(sd->set, data, data_len);
             if (r == 1)
                 return 1;
             break;

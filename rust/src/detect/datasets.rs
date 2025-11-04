@@ -28,17 +28,6 @@ use std::net::{Ipv4Addr, Ipv6Addr};
 use std::path::Path;
 use std::str::FromStr;
 
-/// Opaque Dataset type defined in C
-#[derive(Copy, Clone)]
-pub enum Dataset {}
-
-// Simple C type converted to Rust
-#[derive(Debug, PartialEq)]
-#[repr(C)]
-pub struct DataRepType {
-    pub value: u16,
-}
-
 #[derive(Debug)]
 #[repr(C)]
 pub enum DatasetType {
@@ -49,18 +38,11 @@ pub enum DatasetType {
     DSIpv6,
 }
 
-// Extern fns operating on the opaque Dataset type above
-#[allow(unused_doc_comments)]
-/// cbindgen:ignore
-extern "C" {
-    pub fn DatasetAdd(set: &Dataset, data: *const u8, len: u32) -> i32;
-    pub fn DatasetAddwRep(set: &Dataset, data: *const u8, len: u32, rep: *const DataRepType)
-        -> i32;
-}
+use suricata_sys::sys::{Dataset, SCDatasetAdd, SCDatasetAddwRep};
 
 #[no_mangle]
 pub unsafe extern "C" fn ParseDatasets(
-    set: &Dataset, name: *const c_char, fname: *const c_char, fmode: *const c_char,
+    set: &mut Dataset, name: *const c_char, fname: *const c_char, fmode: *const c_char,
     dstype: DatasetType,
 ) -> i32 {
     let file_string = unwrap_or_return!(CStr::from_ptr(fname).to_str(), -2);
@@ -136,7 +118,7 @@ pub unsafe extern "C" fn ParseDatasets(
 }
 
 unsafe fn process_string_set(
-    set: &Dataset, v: Vec<&str>, set_name: &str, filename: &Path, no_rep: bool,
+    set: &mut Dataset, v: Vec<&str>, set_name: &str, filename: &Path, no_rep: bool,
 ) -> i32 {
     let mut decoded: Vec<u8> = vec![];
     if base64::engine::general_purpose::STANDARD
@@ -147,10 +129,9 @@ unsafe fn process_string_set(
         return -1;
     }
     if no_rep {
-        DatasetAdd(set, decoded.as_ptr(), decoded.len() as u32);
+        SCDatasetAdd(set, decoded.as_ptr(), decoded.len() as u32);
     } else if let Ok(val) = v[1].to_string().parse::<u16>() {
-        let rep: DataRepType = DataRepType { value: val };
-        DatasetAddwRep(set, decoded.as_ptr(), decoded.len() as u32, &rep);
+        SCDatasetAddwRep(set, decoded.as_ptr(), decoded.len() as u32, &val);
     } else {
         SCFatalErrorOnInit!(
             "invalid datarep value {} in {}",
@@ -163,7 +144,7 @@ unsafe fn process_string_set(
 }
 
 unsafe fn process_md5_set(
-    set: &Dataset, v: Vec<&str>, set_name: &str, filename: &Path, no_rep: bool,
+    set: &mut Dataset, v: Vec<&str>, set_name: &str, filename: &Path, no_rep: bool,
 ) -> i32 {
     let md5_string = match hex::decode(v[0]) {
         Ok(rs) => rs,
@@ -171,10 +152,9 @@ unsafe fn process_md5_set(
     };
 
     if no_rep {
-        DatasetAdd(set, md5_string.as_ptr(), 16);
+        SCDatasetAdd(set, md5_string.as_ptr(), 16);
     } else if let Ok(val) = v[1].to_string().parse::<u16>() {
-        let rep: DataRepType = DataRepType { value: val };
-        DatasetAddwRep(set, md5_string.as_ptr(), 16, &rep);
+        SCDatasetAddwRep(set, md5_string.as_ptr(), 16, &val);
     } else {
         SCFatalErrorOnInit!(
             "invalid datarep value {} in {}",
@@ -187,7 +167,7 @@ unsafe fn process_md5_set(
 }
 
 unsafe fn process_sha256_set(
-    set: &Dataset, v: Vec<&str>, set_name: &str, filename: &Path, no_rep: bool,
+    set: &mut Dataset, v: Vec<&str>, set_name: &str, filename: &Path, no_rep: bool,
 ) -> i32 {
     let sha256_string = match hex::decode(v[0]) {
         Ok(rs) => rs,
@@ -195,10 +175,9 @@ unsafe fn process_sha256_set(
     };
 
     if no_rep {
-        DatasetAdd(set, sha256_string.as_ptr(), 32);
+        SCDatasetAdd(set, sha256_string.as_ptr(), 32);
     } else if let Ok(val) = v[1].to_string().parse::<u16>() {
-        let rep: DataRepType = DataRepType { value: val };
-        DatasetAddwRep(set, sha256_string.as_ptr(), 32, &rep);
+        SCDatasetAddwRep(set, sha256_string.as_ptr(), 32, &val);
     } else {
         SCFatalErrorOnInit!(
             "invalid datarep value {} in {}",
@@ -211,7 +190,7 @@ unsafe fn process_sha256_set(
 }
 
 unsafe fn process_ipv4_set(
-    set: &Dataset, v: Vec<&str>, set_name: &str, filename: &Path, no_rep: bool,
+    set: &mut Dataset, v: Vec<&str>, set_name: &str, filename: &Path, no_rep: bool,
 ) -> i32 {
     let ipv4 = match Ipv4Addr::from_str(v[0]) {
         Ok(a) => a,
@@ -221,10 +200,9 @@ unsafe fn process_ipv4_set(
         }
     };
     if no_rep {
-        DatasetAdd(set, ipv4.octets().as_ptr(), 4);
+        SCDatasetAdd(set, ipv4.octets().as_ptr(), 4);
     } else if let Ok(val) = v[1].to_string().parse::<u16>() {
-        let rep: DataRepType = DataRepType { value: val };
-        DatasetAddwRep(set, ipv4.octets().as_ptr(), 4, &rep);
+        SCDatasetAddwRep(set, ipv4.octets().as_ptr(), 4, &val);
     } else {
         SCFatalErrorOnInit!(
             "invalid datarep value {} in {}",
@@ -237,7 +215,7 @@ unsafe fn process_ipv4_set(
 }
 
 unsafe fn process_ipv6_set(
-    set: &Dataset, v: Vec<&str>, set_name: &str, filename: &Path, no_rep: bool,
+    set: &mut Dataset, v: Vec<&str>, set_name: &str, filename: &Path, no_rep: bool,
 ) -> i32 {
     let ipv6 = match Ipv6Addr::from_str(v[0]) {
         Ok(a) => a,
@@ -272,10 +250,9 @@ unsafe fn process_ipv6_set(
         .into();
     }
     if no_rep {
-        DatasetAdd(set, fin_ipv6.octets().as_ptr(), 16);
+        SCDatasetAdd(set, fin_ipv6.octets().as_ptr(), 16);
     } else if let Ok(val) = v[1].to_string().parse::<u16>() {
-        let rep: DataRepType = DataRepType { value: val };
-        DatasetAddwRep(set, fin_ipv6.octets().as_ptr(), 16, &rep);
+        SCDatasetAddwRep(set, fin_ipv6.octets().as_ptr(), 16, &val);
     } else {
         SCFatalErrorOnInit!(
             "invalid datarep value {} in {}",

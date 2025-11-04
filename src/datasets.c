@@ -895,7 +895,7 @@ static int DatasetLookupString(Dataset *set, const uint8_t *data, const uint32_t
     if (set == NULL)
         return -1;
 
-    StringType lookup = { .ptr = (uint8_t *)data, .len = data_len, .rep.value = 0 };
+    StringType lookup = { .ptr = (uint8_t *)data, .len = data_len, .rep = 0 };
     THashData *rdata = THashLookupFromHash(set->hash, &lookup);
     if (rdata) {
         DatasetUnlockData(rdata);
@@ -907,7 +907,7 @@ static int DatasetLookupString(Dataset *set, const uint8_t *data, const uint32_t
 static DataRepResultType DatasetLookupStringwRep(Dataset *set,
         const uint8_t *data, const uint32_t data_len, const DataRepType *rep)
 {
-    DataRepResultType rrep = { .found = false, .rep = { .value = 0 }};
+    DataRepResultType rrep = { .found = false, .rep = 0 };
 
     if (set == NULL)
         return rrep;
@@ -932,7 +932,7 @@ static int DatasetLookupIPv4(Dataset *set, const uint8_t *data, const uint32_t d
     if (data_len != 4)
         return -1;
 
-    IPv4Type lookup = { .rep.value = 0 };
+    IPv4Type lookup = { .rep = 0 };
     memcpy(lookup.ipv4, data, 4);
     THashData *rdata = THashLookupFromHash(set->hash, &lookup);
     if (rdata) {
@@ -945,7 +945,7 @@ static int DatasetLookupIPv4(Dataset *set, const uint8_t *data, const uint32_t d
 static DataRepResultType DatasetLookupIPv4wRep(
         Dataset *set, const uint8_t *data, const uint32_t data_len, const DataRepType *rep)
 {
-    DataRepResultType rrep = { .found = false, .rep = { .value = 0 } };
+    DataRepResultType rrep = { .found = false, .rep = 0 };
 
     if (set == NULL)
         return rrep;
@@ -953,7 +953,7 @@ static DataRepResultType DatasetLookupIPv4wRep(
     if (data_len != 4)
         return rrep;
 
-    IPv4Type lookup = { .rep.value = 0 };
+    IPv4Type lookup = { .rep = 0 };
     memcpy(lookup.ipv4, data, data_len);
     THashData *rdata = THashLookupFromHash(set->hash, &lookup);
     if (rdata) {
@@ -974,7 +974,7 @@ static int DatasetLookupIPv6(Dataset *set, const uint8_t *data, const uint32_t d
     if (data_len != 16 && data_len != 4)
         return -1;
 
-    IPv6Type lookup = { .rep.value = 0 };
+    IPv6Type lookup = { .rep = 0 };
     memcpy(lookup.ipv6, data, data_len);
     THashData *rdata = THashLookupFromHash(set->hash, &lookup);
     if (rdata) {
@@ -987,7 +987,7 @@ static int DatasetLookupIPv6(Dataset *set, const uint8_t *data, const uint32_t d
 static DataRepResultType DatasetLookupIPv6wRep(
         Dataset *set, const uint8_t *data, const uint32_t data_len, const DataRepType *rep)
 {
-    DataRepResultType rrep = { .found = false, .rep = { .value = 0 } };
+    DataRepResultType rrep = { .found = false, .rep = 0 };
 
     if (set == NULL)
         return rrep;
@@ -995,7 +995,7 @@ static DataRepResultType DatasetLookupIPv6wRep(
     if (data_len != 16 && data_len != 4)
         return rrep;
 
-    IPv6Type lookup = { .rep.value = 0 };
+    IPv6Type lookup = { .rep = 0 };
     memcpy(lookup.ipv6, data, data_len);
     THashData *rdata = THashLookupFromHash(set->hash, &lookup);
     if (rdata) {
@@ -1016,7 +1016,7 @@ static int DatasetLookupMd5(Dataset *set, const uint8_t *data, const uint32_t da
     if (data_len != 16)
         return -1;
 
-    Md5Type lookup = { .rep.value = 0 };
+    Md5Type lookup = { .rep = 0 };
     memcpy(lookup.md5, data, data_len);
     THashData *rdata = THashLookupFromHash(set->hash, &lookup);
     if (rdata) {
@@ -1029,7 +1029,7 @@ static int DatasetLookupMd5(Dataset *set, const uint8_t *data, const uint32_t da
 static DataRepResultType DatasetLookupMd5wRep(Dataset *set,
         const uint8_t *data, const uint32_t data_len, const DataRepType *rep)
 {
-    DataRepResultType rrep = { .found = false, .rep = { .value = 0 }};
+    DataRepResultType rrep = { .found = false, .rep = 0 };
 
     if (set == NULL)
         return rrep;
@@ -1037,7 +1037,7 @@ static DataRepResultType DatasetLookupMd5wRep(Dataset *set,
     if (data_len != 16)
         return rrep;
 
-    Md5Type lookup = { .rep.value = 0};
+    Md5Type lookup = { .rep = 0 };
     memcpy(lookup.md5, data, data_len);
     THashData *rdata = THashLookupFromHash(set->hash, &lookup);
     if (rdata) {
@@ -1058,7 +1058,7 @@ static int DatasetLookupSha256(Dataset *set, const uint8_t *data, const uint32_t
     if (data_len != 32)
         return -1;
 
-    Sha256Type lookup = { .rep.value = 0 };
+    Sha256Type lookup = { .rep = 0 };
     memcpy(lookup.sha256, data, data_len);
     THashData *rdata = THashLookupFromHash(set->hash, &lookup);
     if (rdata) {
@@ -1071,7 +1071,7 @@ static int DatasetLookupSha256(Dataset *set, const uint8_t *data, const uint32_t
 static DataRepResultType DatasetLookupSha256wRep(Dataset *set,
         const uint8_t *data, const uint32_t data_len, const DataRepType *rep)
 {
-    DataRepResultType rrep = { .found = false, .rep = { .value = 0 }};
+    DataRepResultType rrep = { .found = false, .rep = 0 };
 
     if (set == NULL)
         return rrep;
@@ -1079,7 +1079,7 @@ static DataRepResultType DatasetLookupSha256wRep(Dataset *set,
     if (data_len != 32)
         return rrep;
 
-    Sha256Type lookup = { .rep.value = 0 };
+    Sha256Type lookup = { .rep = 0 };
     memcpy(lookup.sha256, data, data_len);
     THashData *rdata = THashLookupFromHash(set->hash, &lookup);
     if (rdata) {
@@ -1124,7 +1124,7 @@ int DatasetLookup(Dataset *set, const uint8_t *data, const uint32_t data_len)
 DataRepResultType DatasetLookupwRep(Dataset *set, const uint8_t *data, const uint32_t data_len,
         const DataRepType *rep)
 {
-    DataRepResultType rrep = { .found = false, .rep = { .value = 0 }};
+    DataRepResultType rrep = { .found = false, .rep = 0 };
     if (set == NULL)
         return rrep;
 
@@ -1153,8 +1153,7 @@ static int DatasetAddString(Dataset *set, const uint8_t *data, const uint32_t da
     if (set == NULL)
         return -1;
 
-    StringType lookup = { .ptr = (uint8_t *)data, .len = data_len,
-        .rep.value = 0 };
+    StringType lookup = { .ptr = (uint8_t *)data, .len = data_len, .rep = 0 };
     struct THashDataGetResult res = THashGetFromHash(set->hash, &lookup);
     if (res.data) {
         DatasetUnlockData(res.data);
@@ -1194,7 +1193,7 @@ static int DatasetAddIPv4(Dataset *set, const uint8_t *data, const uint32_t data
         return -2;
     }
 
-    IPv4Type lookup = { .rep.value = 0 };
+    IPv4Type lookup = { .rep = 0 };
     memcpy(lookup.ipv4, data, 4);
     struct THashDataGetResult res = THashGetFromHash(set->hash, &lookup);
     if (res.data) {
@@ -1214,7 +1213,7 @@ static int DatasetAddIPv6(Dataset *set, const uint8_t *data, const uint32_t data
         return -2;
     }
 
-    IPv6Type lookup = { .rep.value = 0 };
+    IPv6Type lookup = { .rep = 0 };
     memcpy(lookup.ipv6, data, data_len);
     struct THashDataGetResult res = THashGetFromHash(set->hash, &lookup);
     if (res.data) {
@@ -1270,7 +1269,7 @@ static int DatasetAddMd5(Dataset *set, const uint8_t *data, const uint32_t data_
     if (data_len != 16)
         return -2;
 
-    Md5Type lookup = { .rep.value = 0 };
+    Md5Type lookup = { .rep = 0 };
     memcpy(lookup.md5, data, 16);
     struct THashDataGetResult res = THashGetFromHash(set->hash, &lookup);
     if (res.data) {
@@ -1326,7 +1325,7 @@ static int DatasetAddSha256(Dataset *set, const uint8_t *data, const uint32_t da
     if (data_len != 32)
         return -2;
 
-    Sha256Type lookup = { .rep.value = 0 };
+    Sha256Type lookup = { .rep = 0 };
     memcpy(lookup.sha256, data, 32);
     struct THashDataGetResult res = THashGetFromHash(set->hash, &lookup);
     if (res.data) {
@@ -1336,7 +1335,7 @@ static int DatasetAddSha256(Dataset *set, const uint8_t *data, const uint32_t da
     return -1;
 }
 
-int DatasetAdd(Dataset *set, const uint8_t *data, const uint32_t data_len)
+int SCDatasetAdd(Dataset *set, const uint8_t *data, const uint32_t data_len)
 {
     if (set == NULL)
         return -1;
@@ -1356,7 +1355,8 @@ int DatasetAdd(Dataset *set, const uint8_t *data, const uint32_t data_len)
     return -1;
 }
 
-int DatasetAddwRep(Dataset *set, const uint8_t *data, const uint32_t data_len, DataRepType *rep)
+int SCDatasetAddwRep(
+        Dataset *set, const uint8_t *data, const uint32_t data_len, const DataRepType *rep)
 {
     if (set == NULL)
         return -1;
@@ -1471,8 +1471,7 @@ static int DatasetRemoveString(Dataset *set, const uint8_t *data, const uint32_t
     if (set == NULL)
         return -1;
 
-    StringType lookup = { .ptr = (uint8_t *)data, .len = data_len,
-        .rep.value = 0 };
+    StringType lookup = { .ptr = (uint8_t *)data, .len = data_len, .rep = 0 };
     return THashRemoveFromHash(set->hash, &lookup);
 }
 
@@ -1484,7 +1483,7 @@ static int DatasetRemoveIPv4(Dataset *set, const uint8_t *data, const uint32_t d
     if (data_len != 4)
         return -2;
 
-    IPv4Type lookup = { .rep.value = 0 };
+    IPv4Type lookup = { .rep = 0 };
     memcpy(lookup.ipv4, data, 4);
     return THashRemoveFromHash(set->hash, &lookup);
 }
@@ -1497,7 +1496,7 @@ static int DatasetRemoveIPv6(Dataset *set, const uint8_t *data, const uint32_t d
     if (data_len != 16)
         return -2;
 
-    IPv6Type lookup = { .rep.value = 0 };
+    IPv6Type lookup = { .rep = 0 };
     memcpy(lookup.ipv6, data, 16);
     return THashRemoveFromHash(set->hash, &lookup);
 }
@@ -1510,7 +1509,7 @@ static int DatasetRemoveMd5(Dataset *set, const uint8_t *data, const uint32_t da
     if (data_len != 16)
         return -2;
 
-    Md5Type lookup = { .rep.value = 0 };
+    Md5Type lookup = { .rep = 0 };
     memcpy(lookup.md5, data, 16);
     return THashRemoveFromHash(set->hash, &lookup);
 }
@@ -1523,7 +1522,7 @@ static int DatasetRemoveSha256(Dataset *set, const uint8_t *data, const uint32_t
     if (data_len != 32)
         return -2;
 
-    Sha256Type lookup = { .rep.value = 0 };
+    Sha256Type lookup = { .rep = 0 };
     memcpy(lookup.sha256, data, 32);
     return THashRemoveFromHash(set->hash, &lookup);
 }
