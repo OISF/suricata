@@ -275,6 +275,7 @@ pub enum Nfs4OpenRequestContent<'a> {
     Exclusive4(&'a[u8]),
     Unchecked4(Nfs4Attr),
     Guarded4(Nfs4Attr),
+    Exclusive4_1(&'a [u8]),
 }
 
 fn nfs4_req_open_unchecked4(i: &[u8]) -> IResult<&[u8], Nfs4OpenRequestContent<'_>> {
@@ -289,13 +290,20 @@ fn nfs4_req_open_exclusive4(i: &[u8]) -> IResult<&[u8], Nfs4OpenRequestContent<'
     map(take(8_usize), Nfs4OpenRequestContent::Exclusive4)(i)
 }
 
+fn nfs4_req_open_exclusive4_1(i: &[u8]) -> IResult<&[u8], Nfs4OpenRequestContent<'_>> {
+    map(take(8_usize), Nfs4OpenRequestContent::Exclusive4_1)(i)
+}
+
 fn nfs4_req_open_type(i: &[u8]) -> IResult<&[u8], Nfs4OpenRequestContent<'_>> {
     let (i, mode) = be_u32(i)?;
     let (i, data) = match mode {
         0 => nfs4_req_open_unchecked4(i)?,
         1 => nfs4_req_open_guarded4(i)?,
         2 => nfs4_req_open_exclusive4(i)?,
-        _ => { return Err(Err::Error(make_error(i, ErrorKind::Switch))); }
+        3 => nfs4_req_open_exclusive4_1(i)?,
+        _ => {
+            return Err(Err::Error(make_error(i, ErrorKind::Switch)));
+        }
     };
     Ok((i, data))
 }
@@ -2069,6 +2077,51 @@ mod tests {
                 assert_eq!(getdevinfo_data, Some(getdevinfo))
             }
             _ => { panic!("Failure"); }
+        }
+    }
+
+    #[test]
+    fn test_nfs4_request_open_exclusive4_1() {
+        #[rustfmt::skip]
+        let buf: &[u8] = &[
+            0x00, 0x00, 0x00, 0x12, /*opcode*/
+            0x00, 0x00, 0x00, 0x00, /*_seq_id*/
+            0x00, 0x00, 0x00, 0x02, /*_share_access*/
+            0x00, 0x00, 0x00, 0x00, /*_share_deny*/
+            0x91, 0xe9, 0xf1, 0x68, 0x59, 0x18, 0x8d, 0xec, /*_client_id*/
+        // OWNER
+            0x00, 0x00, 0x00, 0x18, /*owner_len*/
+            0x6f, 0x70, 0x65, 0x6e, 0x20, 0x69, 0x64, 0x3a,
+            0x00, 0x00, 0x00, 0x74, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x01, 0x7a, 0xa1, 0x15, 0xa6, 0x3d, 0xaa,
+        // OPEN
+            0x00, 0x00, 0x00, 0x01, /*open_type: OPEN4_CREATE*/
+            0x00, 0x00, 0x00, 0x03, /*create_mode: EXCLUSIVE4_1*/
+            0x9a, 0xf1, 0xf6, 0x18, 0xdc, 0xe2, 0x00, 0x00, /*verifier*/
+            0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x08,  /*attr_mask*/
+            0x00, 0x00, 0x01, 0xa4, 0x00, 0x00, 0x00, 0x12, /*_reco_attr*/
+        // CLAIM_TYPE
+            0x00, 0x00, 0x00, 0x00, /*_claim_type: CLAIM_NULL*/
+            0x0, 0x0, 0x0, 0x8, 0x74, 0x65, 0x73, 0x74, 0x2e, 0x70, 0x6e, 0x67, /*filename*/
+        ];
+
+        let (_, filename_buf) = nfs4_parse_nfsstring(&buf[96..]).unwrap();
+
+        let (_, request) = nfs4_req_open(&buf[4..]).unwrap();
+        match request {
+            Nfs4RequestContent::Open(req_open) => {
+                assert_eq!(req_open.open_type, 1);
+                assert_eq!(req_open.filename, filename_buf);
+                assert_eq!(
+                    req_open.open_data,
+                    Some(Nfs4OpenRequestContent::Exclusive4_1(&buf[60..68]))
+                );
+            }
+            _ => {
+                panic!("Failure, {:?}", request);
+            }
         }
     }
 }
