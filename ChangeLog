@@ -1,3 +1,20 @@
+7.0.13 -- 2025-11-05
+
+Security #8067: lua: stack overflow from unbounded stack allocation in LuaPushStringBuffer (7.0.x backport)(HIGH - CVE 2025-64344)
+Security #8062: eve/http: stack overflow on large file transfers (7.0.x backport)(MODERATE - CVE 2025-64331)
+Security #8061: util/swf: stack overflow on larger compressed data  (7.0.x backport)(LOW - CVE 2025-64332)
+Security #8060: eve/http: stack overflow from big content type (7.0.x backport)(HIGH - CVE 2025-64333)
+Security #8029: eve/alert: heap buffer overflow on verdict (7.0.x backport)(MODERATE - CVE 2025-64330)
+Security #8080: unix-socket: use after free if client command is too long (7.0.x backport)
+Bug #8013: dpdk: compile warning ‘rte_eth_bond_members_get’ is deprecated (7.0.x backport)
+Bug #7999: detect: replace keyword leaks memory (7.0.x backport)
+Bug #7993: http2: wrong parsing of go away frames error code (7.0.x backport)
+Bug #7977: dpdk: fix the CPU exclude logic (7.0.x backport)
+Bug #7962: mime: incorrect decoding of quoted-printable text attachments (7.0.x backport)
+Bug #7924: output/json: invalid IKE logs (7.0.x backport)
+Bug #7906: eve/alert: incorrect verdict with pass + alert rule (7.0.x backport)
+Task #6522: github/actions: add DPDK 23.11 build (7.0.x backport)
+
 7.0.12 -- 2025-09-15
 
 Security #7852: tcp: syn resend with different seq leads to detection bypasss (7.0.x backport)(HIGH - CVE 2025-59147)
