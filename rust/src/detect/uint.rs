@@ -50,13 +50,20 @@ pub struct DetectUintData<T> {
     pub mode: DetectUintMode,
 }
 
+#[repr(C)]
+#[derive(Debug, PartialEq)]
+pub struct DetectUintIndexPrecise {
+    pub oob: bool,
+    pub pos: i32,
+}
+
 #[derive(Debug, PartialEq)]
 pub enum DetectUintIndex {
     Any,
     AllOrAbsent,
     All,
     OrAbsent,
-    Index((bool, i32)),
+    Index(DetectUintIndexPrecise),
     NumberMatches(DetectUintData<u32>),
     Count(DetectUintData<u32>),
 }
@@ -74,7 +81,13 @@ fn parse_uint_index_precise(s: &str) -> IResult<&str, DetectUintIndex> {
     let (s, oob) = opt(tag("oob_or"))(s)?;
     let (s, _) = opt(is_a(" "))(s)?;
     let (s, i32_index) = nom_i32(s)?;
-    Ok((s, DetectUintIndex::Index((oob.is_some(), i32_index))))
+    Ok((
+        s,
+        DetectUintIndex::Index(DetectUintIndexPrecise {
+            oob: oob.is_some(),
+            pos: i32_index,
+        }),
+    ))
 }
 
 fn parse_uint_index_nb(s: &str) -> IResult<&str, DetectUintIndex> {
@@ -112,7 +125,7 @@ fn parse_uint_subslice(parts: &[&str]) -> Option<(i32, i32)> {
     return Some((start, end));
 }
 
-fn parse_uint_count(s: &str) -> IResult<&str, DetectUintData<u32>> {
+fn parse_multi_count(s: &str) -> IResult<&str, DetectUintData<u32>> {
     let (s, _) = tag("count")(s)?;
     let (s, _) = opt(is_a(" "))(s)?;
     let (s, du32) = detect_parse_uint::<u32>(s)?;
@@ -129,7 +142,7 @@ fn parse_uint_index(parts: &[&str]) -> Option<DetectUintIndex> {
             // not only a literal, but some numeric value
             _ => return parse_uint_index_val(parts[1]),
         }
-    } else if let Ok((_, du)) = parse_uint_count(parts[0]) {
+    } else if let Ok((_, du)) = parse_multi_count(parts[0]) {
         DetectUintIndex::Count(du)
     } else {
         DetectUintIndex::Any
@@ -320,15 +333,15 @@ pub(crate) fn detect_uint_match_at_index<T, U: DetectIntType>(
             }
             return 0;
         }
-        DetectUintIndex::Index((oob, idx)) => {
-            let index = if *idx < 0 {
+        DetectUintIndex::Index(prec) => {
+            let index = if prec.pos < 0 {
                 // negative values for backward indexing.
-                ((subslice.len() as i32) + idx) as usize
+                ((subslice.len() as i32) + prec.pos) as usize
             } else {
-                *idx as usize
+                prec.pos as usize
             };
             if subslice.len() <= index {
-                if *oob && eof {
+                if prec.oob && eof {
                     return 1;
                 }
                 return 0;
