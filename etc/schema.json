@@ -5643,6 +5643,7 @@
             "properties": {
                 "app_layer": {
                     "type": "object",
+                    "description": "Module with observational and performance-related statistics from application layer protocol parsers and flows",
                     "additionalProperties": false,
                     "properties": {
                         "error": {
@@ -7068,6 +7069,7 @@
                 },
                 "defrag": {
                     "type": "object",
+                    "description": "Statistics for packet decoding engine",
                     "additionalProperties": false,
                     "properties": {
                         "ipv4": {
@@ -7287,6 +7289,7 @@
                 },
                 "file_store": {
                     "type": "object",
+                    "description": "Performance-related statistics for the file storing module",
                     "additionalProperties": false,
                     "properties": {
                         "fs_errors": {
