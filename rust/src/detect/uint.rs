@@ -126,6 +126,7 @@ fn parse_uint_subslice(parts: &[&str]) -> Option<(i32, i32)> {
 }
 
 fn parse_multi_count(s: &str) -> IResult<&str, DetectUintData<u32>> {
+    let (s, _) = opt(is_a(" "))(s)?;
     let (s, _) = tag("count")(s)?;
     let (s, _) = opt(is_a(" "))(s)?;
     let (s, du32) = detect_parse_uint::<u32>(s)?;
