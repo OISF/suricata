@@ -21,6 +21,7 @@
 #include "detect-parse.h"
 #include "app-layer-smtp.h"
 #include "detect-email.h"
+#include "detect-multi.h"
 #include "rust.h"
 #include "detect-engine-content-inspection.h"
 
@@ -205,6 +206,10 @@ static int DetectMimeEmailReceivedSetup(DetectEngineCtx *de_ctx, Signature *s, c
     if (SCDetectSignatureSetAppProto(s, ALPROTO_SMTP) < 0)
         return -1;
 
+    if (arg) {
+        return DetectMultiSetup(de_ctx, s, arg);
+    }
+
     return 0;
 }
 
@@ -215,6 +220,11 @@ static bool GetMimeEmailReceivedData(DetectEngineThreadCtx *det_ctx, const void 
 
     if (tx->mime_state == NULL) {
         return false;
+    }
+
+    if (idx == DETECT_COUNT_INDEX) {
+        *buf_len = SCDetectMimeEmailGetCount(tx->mime_state, "received");
+        return true;
     }
 
     return SCDetectMimeEmailGetDataArray(tx->mime_state, buf, buf_len, "received", idx) == 1;
@@ -330,7 +340,7 @@ void DetectEmailRegister(void)
     kw.desc = "'Received' field from an email";
     kw.url = "/rules/email-keywords.html#email.received";
     kw.Setup = DetectMimeEmailReceivedSetup;
-    kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_INFO_MULTI_BUFFER;
+    kw.flags = SIGMATCH_OPTIONAL_OPT | SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_INFO_MULTI_BUFFER;
     SCDetectHelperKeywordRegister(&kw);
     g_mime_email_received_buffer_id = SCDetectHelperMultiBufferMpmRegister("email.received",
             "MIME EMAIL RECEIVED", ALPROTO_SMTP, STREAM_TOSERVER, GetMimeEmailReceivedData);
