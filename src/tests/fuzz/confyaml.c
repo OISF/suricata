@@ -9,6 +9,8 @@ stream:\n\
 \n\
   checksum-validation: no\n\
   midstream: true\n\
+  reassembly:\n\
+    depth: 16 MiB\n\
 outputs:\n\
   - fast:\n\
       enabled: yes\n\
@@ -82,6 +84,16 @@ outputs:\n\
       force-filestore: yes\n\
 app-layer:\n\
   protocols:\n\
+    http:\n\
+      enabled: yes\n\
+      libhtp:\n\
+         default-config:\n\
+           response-body-limit: 4 MiB\n\
+           swf-decompression:\n\
+             enabled: yes\n\
+             type: both\n\
+             compress-depth: 2 MiB\n\
+             decompress-depth: 2 MiB\n\
     rdp:\n\
       enabled: yes\n\
     template:\n\
