@@ -223,6 +223,11 @@ jobs:
       - run: python3 scripts/eve-parity.py unmapped-fields
       - run: python3 scripts/eve-parity.py unmapped-keywords
 
+      - name: Build live library example
+        run: |
+          make
+        working-directory: examples/lib/live
+
       - name: Cleaning source directory for standalone plugin test.
         run: make clean
 
