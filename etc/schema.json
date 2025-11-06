@@ -5658,6 +5658,7 @@
             "properties": {
                 "app_layer": {
                     "type": "object",
+                    "description": "Module with observational and performance-related statistics from application layer protocol parsers and flows",
                     "additionalProperties": false,
                     "properties": {
                         "error": {
@@ -6195,6 +6196,7 @@
                 },
                 "capture": {
                     "type": "object",
+                    "description":"Observational statistics for packet capture module",
                     "additionalProperties": false,
                     "properties": {
                         "kernel_drops": {
@@ -7083,6 +7085,7 @@
                 },
                 "defrag": {
                     "type": "object",
+                    "description": "Statistics on IP (de)fragmentation",
                     "additionalProperties": false,
                     "properties": {
                         "ipv4": {
@@ -7242,6 +7245,7 @@
                 },
                 "exception_policy": {
                     "type": "object",
+                    "description": "Statistics on exception policies hit and applied",
                     "additionalProperties": false,
                     "properties": {
                         "app_layer": {
@@ -7302,6 +7306,7 @@
                 },
                 "file_store": {
                     "type": "object",
+                    "description": "Performance-related statistics for the file storing module",
                     "additionalProperties": false,
                     "properties": {
                         "fs_errors": {
@@ -7592,6 +7597,7 @@
                 },
                 "flow_bypassed": {
                     "type": "object",
+                    "description": "Observational statistics on flow bypassing",
                     "additionalProperties": false,
                     "properties": {
                         "bytes": {
@@ -7619,6 +7625,7 @@
                 },
                 "ftp": {
                     "type": "object",
+                    "description": "Performance statistics for global memory use and memory capacity for FTP app-layer parser",
                     "additionalProperties": false,
                     "properties": {
                         "memcap": {
@@ -7631,6 +7638,7 @@
                 },
                 "host": {
                     "type": "object",
+                    "description": "Performance statistics for global memory use and memory capacity for Host table",
                     "additionalProperties": false,
                     "properties": {
                         "memcap": {
@@ -7643,6 +7651,7 @@
                 },
                 "http": {
                     "type": "object",
+                    "description": "Performance statistics for global memory use and memory capacity for HTTP app-layer parser",
                     "additionalProperties": false,
                     "properties": {
                         "byterange": {
@@ -7667,6 +7676,7 @@
                 },
                 "ippair": {
                     "type": "object",
+                    "description": "Performance statistics for global memory use and memory capacity for IP Pair table",
                     "additionalProperties": false,
                     "properties": {
                         "memcap": {
@@ -7679,6 +7689,7 @@
                 },
                 "ips": {
                     "type": "object",
+                    "description": "Statistics for IPS mode",
                     "additionalProperties": false,
                     "properties": {
                         "accepted": {
@@ -7805,6 +7816,7 @@
                 },
                 "memcap": {
                     "type": "object",
+                    "description": "Performance statistics on global memomry capacity / usage. Calculated for flow, stream, stream-reassembly, app-layer http, defrag, ippair and host",
                     "additionalProperties": false,
                     "properties": {
                         "pressure": {
@@ -7820,6 +7832,7 @@
                 },
                 "pcap_log": {
                     "type": "object",
+                    "description": "Statistics for pcap logging",
                     "additionalProperties": false,
                     "properties": {
                         "filtered_bpf": {
@@ -7834,6 +7847,7 @@
                 },
                "stream": {
                     "type": "object",
+                    "description": "Observational statistics on TCP stream events",
                     "additionalProperties": false,
                     "properties": {
                         "3whs_ack_in_wrong_dir": {
@@ -8053,6 +8067,7 @@
                 },
                 "tcp": {
                     "type": "object",
+                    "description": "Statistics on TCP stream tracking and reassembly",
                     "additionalProperties": false,
                     "properties": {
                         "ack_unseen_data": {
