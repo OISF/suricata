@@ -12,9 +12,6 @@ stats.log file
   -------------------------------------------------------------------
   Counter                   | TM Name                   | Value
   -------------------------------------------------------------------
-  flow_mgr.closed_pruned    | FlowManagerThread         | 154033
-  flow_mgr.new_pruned       | FlowManagerThread         | 67800
-  flow_mgr.est_pruned       | FlowManagerThread         | 100921
   flow.memuse               | FlowManagerThread         | 6557568
   flow.spare                | FlowManagerThread         | 10002
   flow.emerg_mode_entered   | FlowManagerThread         | 0
