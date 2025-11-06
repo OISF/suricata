@@ -116,7 +116,6 @@ static json_t *GetSubObjectByKey(json_t *json, const char *key)
     while (current_key) {
         const char *dot = strchr(current_key, '.');
 
-        size_t key_len = dot ? (size_t)(dot - current_key) : strlen(current_key);
         char key_buffer[SIG_JSON_CONTENT_KEY_LEN + 1];
         strlcpy(key_buffer, current_key, SIG_JSON_CONTENT_KEY_LEN + 1);
 
