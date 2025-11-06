@@ -7832,6 +7832,226 @@
                         }
                     }
                 },
+               "stream": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+
+                        "3whs_ack_data_inject": {
+                            "type": "integer"
+                        },
+                        "3whs_ack_in_wrong_dir": {
+                            "type": "integer"
+                        },
+                        "3whs_async_wrong_seq": {
+                            "type": "integer"
+                        },
+                        "3whs_right_seq_wrong_ack_evasion": {
+                            "type": "integer"
+                        },
+                        "3whs_syn_flood": {
+                            "type": "integer"
+                        },
+                        "3whs_syn_resend_diff_seq_on_syn_recv": {
+                            "type": "integer"
+                        },
+                        "3whs_syn_toclient_on_syn_recv": {
+                            "type": "integer"
+                        },
+                        "3whs_synack_flood": {
+                            "type": "integer"
+                        },
+                        "3whs_synack_in_wrong_direction": {
+                            "type": "integer"
+                        },
+                        "3whs_synack_resend_with_diff_ack": {
+                            "type": "integer"
+                        },
+                        "3whs_synack_resend_with_diff_seq": {
+                            "type": "integer"
+                        },
+                        "3whs_synack_tfo_data_ignored": {
+                            "type": "integer"
+                        },
+                        "3whs_synack_toserver_on_syn_recv": {
+                            "type": "integer"
+                        },
+                        "3whs_synack_with_wrong_ack": {
+                            "type": "integer"
+                        },
+                        "3whs_wrong_seq_wrong_ack": {
+                            "type": "integer"
+                        },
+                        "4whs_invalid_ack": {
+                            "type": "integer"
+                        },
+                        "4whs_synack_with_wrong_ack": {
+                            "type": "integer"
+                        },
+                        "4whs_synack_with_wrong_syn": {
+                            "type": "integer"
+                        },
+                        "4whs_wrong_seq": {
+                            "type": "integer"
+                        },
+                        "closewait_ack_out_of_window": {
+                            "type": "integer"
+                        },
+                        "closewait_fin_out_of_window": {
+                            "type": "integer"
+                        },
+                        "closewait_invalid_ack": {
+                            "type": "integer"
+                        },
+                        "closewait_pkt_before_last_ack": {
+                            "type": "integer"
+                        },
+                        "closing_ack_wrong_seq": {
+                            "type": "integer"
+                        },
+                        "closing_invalid_ack": {
+                            "type": "integer"
+                        },
+                        "est_ack_zwp_data": {
+                            "type": "integer"
+                        },
+                        "est_invalid_ack": {
+                            "type": "integer"
+                        },
+                        "est_packet_out_of_window": {
+                            "type": "integer"
+                        },
+                        "est_pkt_before_last_ack": {
+                            "type": "integer"
+                        },
+                        "est_syn_resend": {
+                            "type": "integer"
+                        },
+                        "est_syn_resend_diff_seq": {
+                            "type": "integer"
+                        },
+                        "est_syn_toclient": {
+                            "type": "integer"
+                        },
+                        "est_synack_resend": {
+                            "type": "integer"
+                        },
+                        "est_synack_resend_with_diff_ack": {
+                            "type": "integer"
+                        },
+                        "est_synack_resend_with_diff_seq": {
+                            "type": "integer"
+                        },
+                        "est_synack_toserver": {
+                            "type": "integer"
+                        },
+                        "fin1_ack_wrong_seq": {
+                            "type": "integer"
+                        },
+                        "fin1_fin_wrong_seq": {
+                            "type": "integer"
+                        },
+                        "fin1_invalid_ack": {
+                            "type": "integer"
+                        },
+                        "fin2_ack_wrong_seq": {
+                            "type": "integer"
+                        },
+                        "fin2_fin_wrong_seq": {
+                            "type": "integer"
+                        },
+                        "fin2_invalid_ack": {
+                            "type": "integer"
+                        },
+                        "fin_but_no_session": {
+                            "type": "integer"
+                        },
+                        "fin_invalid_ack": {
+                            "type": "integer"
+                        },
+                        "fin_out_of_window": {
+                            "type": "integer"
+                        },
+                        "fin_syn": {
+                            "type": "integer"
+                        },
+                        "lastack_ack_wrong_seq": {
+                            "type": "integer"
+                        },
+                        "lastack_invalid_ack": {
+                            "type": "integer"
+                        },
+                        "pkt_bad_window_update": {
+                            "type": "integer"
+                        },
+                        "pkt_broken_ack": {
+                            "type": "integer"
+                        },
+                        "pkt_invalid_ack": {
+                            "type": "integer"
+                        },
+                        "pkt_invalid_timestamp": {
+                            "type": "integer"
+                        },
+                        "pkt_retransmission": {
+                            "type": "integer"
+                        },
+                        "pkt_spurious_retransmission": {
+                            "type": "integer"
+                        },
+                        "reassembly_depth_reached": {
+                            "type": "integer"
+                        },
+                        "reassembly_insert_invalid": {
+                            "type": "integer"
+                        },
+                        "reassembly_insert_limit": {
+                            "type": "integer"
+                        },
+                        "reassembly_insert_memcap": {
+                            "type": "integer"
+                        },
+                        "reassembly_no_segment": {
+                            "type": "integer"
+                        },
+                        "reassembly_overlap_different_data": {
+                            "type": "integer"
+                        },
+                        "reassembly_segment_before_base_seq": {
+                            "type": "integer"
+                        },
+                        "reassembly_seq_gap": {
+                            "type": "integer"
+                        },
+                        "reassembly_urgent_oob_limit_reached": {
+                            "type": "integer"
+                        },
+                        "rst_but_no_session": {
+                            "type": "integer"
+                        },
+                        "rst_invalid_ack": {
+                            "type": "integer"
+                        },
+                        "rst_with_data": {
+                            "type": "integer"
+                        },
+                        "shutdown_syn_resend": {
+                            "type": "integer"
+                        },
+                        "suspected_rst_inject": {
+                            "type": "integer"
+                        },
+                        "timewait_ack_wrong_seq": {
+                            "type": "integer"
+                        },
+                        "timewait_invalid_ack": {
+                            "type": "integer"
+                        },
+                        "wrong_thread": {
+                            "type": "integer"
+                        }
+                    }
+                },
                 "tcp": {
                     "type": "object",
                     "additionalProperties": false,
