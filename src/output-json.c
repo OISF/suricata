@@ -268,7 +268,7 @@ static void EveAddFlowVars(const Flow *f, SCJsonBuilder *js_root, SCJsonBuilder 
                         break;
                 }
 
-                DEBUG_VALIDATE_BUG_ON(fv->key_len > UINT16_MAX);
+                DEBUG_VALIDATE_BUG_ON(fv->keylen > UINT16_MAX);
                 uint8_t keybuf[fv->keylen + 1];
                 uint32_t offset = 0;
                 PrintStringsToBuffer(keybuf, &offset, fv->keylen + 1, fv->key, fv->keylen);
