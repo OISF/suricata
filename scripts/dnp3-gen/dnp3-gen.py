@@ -152,7 +152,7 @@ output_json_dnp3_objects_template = """/* Copyright (C) 2015 Open Information Se
 #include "output-json.h"
 
 // clang-format off
-void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
+void OutputJsonDNP3SetItem(SCJsonBuilder *js, DNP3Object *object,
     DNP3Point *point)
 {
 
