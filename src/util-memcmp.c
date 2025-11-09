@@ -736,7 +736,7 @@ static int MemcmpTest18 (void)
     for (; t != NULL; t++) {
         if (t->a == NULL)
             break;
-        int result = SCMemcmp(t->a, t->b, strlen(t->a));
+        int result = SCMemcmp((const uint8_t *)t->a, (const uint8_t *)t->b, strlen(t->a));
         FAIL_IF(result != t->cs_result);
     }
 

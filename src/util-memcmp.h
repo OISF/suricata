@@ -53,7 +53,7 @@ static inline int MemcmpLowercase(const uint8_t *s1, const uint8_t *s2, size_t n
 #if defined(__AVX512VL__) && defined(__AVX512BW__)
 #include <immintrin.h>
 #define SCMEMCMP_BYTES 16
-static inline int SCMemcmpAVX512_128(const void *s1, const void *s2, size_t len)
+static inline int SCMemcmpAVX512_128(const uint8_t *s1, const uint8_t *s2, size_t len)
 {
     size_t offset = 0;
     do {
@@ -77,7 +77,7 @@ static inline int SCMemcmpAVX512_128(const void *s1, const void *s2, size_t len)
 }
 #undef SCMEMCMP_BYTES
 #define SCMEMCMP_BYTES 32
-static inline int SCMemcmpAVX512_256(const void *s1, const void *s2, size_t len)
+static inline int SCMemcmpAVX512_256(const uint8_t *s1, const uint8_t *s2, size_t len)
 {
     size_t offset = 0;
     do {
@@ -101,7 +101,7 @@ static inline int SCMemcmpAVX512_256(const void *s1, const void *s2, size_t len)
 }
 #undef SCMEMCMP_BYTES
 #define SCMEMCMP_BYTES 64
-static inline int SCMemcmpAVX512_512(const void *s1, const void *s2, size_t len)
+static inline int SCMemcmpAVX512_512(const uint8_t *s1, const uint8_t *s2, size_t len)
 {
     size_t offset = 0;
     do {
@@ -378,7 +378,7 @@ static inline int SCMemcmpLowercaseAVX2(const uint8_t *s1, const uint8_t *s2, si
 #include <nmmintrin.h>
 #define SCMEMCMP_BYTES 16
 
-static inline int SCMemcmpSSE42(const void *s1, const void *s2, size_t n)
+static inline int SCMemcmpSSE42(const uint8_t *s1, const uint8_t *s2, size_t n)
 {
     int r = 0;
     /* counter for how far we already matched in the buffer */
@@ -464,7 +464,7 @@ static inline int SCMemcmpLowercaseSSE42(const void *s1, const void *s2, size_t 
 #include <pmmintrin.h> /* for SSE3 */
 #define SCMEMCMP_BYTES  16
 
-static inline int SCMemcmpSSE3(const void *s1, const void *s2, size_t len)
+static inline int SCMemcmpSSE3(const uint8_t *s1, const uint8_t *s2, size_t len)
 {
     size_t offset = 0;
     __m128i b1, b2, c;
@@ -698,7 +698,7 @@ static inline int SCMemcmpLT64(const void *s1, const void *s2, size_t len)
 }
 
 /* wrapper around memcmp to match the retvals of the SIMD implementations */
-static inline int SCMemcmp(const void *s1, const void *s2, size_t len)
+static inline int SCMemcmp(const uint8_t *s1, const uint8_t *s2, size_t len)
 {
 #if defined(__AVX512VL__) && defined(__AVX512BW__)
     if (len < 64) {
