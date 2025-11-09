@@ -170,6 +170,7 @@ int SCThresholdConfInitContext(DetectEngineCtx *de_ctx)
 #ifndef UNITTESTS
     FILE *fd = NULL;
 #else
+    filename = "<ut>";
     FILE *fd = g_ut_threshold_fp;
     if (fd == NULL) {
 #endif
