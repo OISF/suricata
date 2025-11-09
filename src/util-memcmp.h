@@ -122,6 +122,44 @@ static inline int SCMemcmpAVX512_512(const uint8_t *s1, const uint8_t *s2, size_
     return 0;
 }
 #undef SCMEMCMP_BYTES
+#define SCMEMCMP_BYTES 64
+static inline int SCMemcmpAVX512_2048(const uint8_t *s1, const uint8_t *s2, size_t len)
+{
+    size_t offset = 0;
+    do {
+        if (likely(len - offset < 256)) {
+            return SCMemcmpAVX512_512(s1 + offset, s2 + offset, len - offset);
+        }
+
+        /* unaligned loads */
+        __m512i b11 = _mm512_loadu_si512((const __m512i *)(s1 + offset + 0));
+        __m512i b12 = _mm512_loadu_si512((const __m512i *)(s1 + offset + 64));
+        __m512i b13 = _mm512_loadu_si512((const __m512i *)(s1 + offset + 128));
+        __m512i b14 = _mm512_loadu_si512((const __m512i *)(s1 + offset + 192));
+
+        __m512i b21 = _mm512_loadu_si512((const __m512i *)(s2 + offset + 0));
+        __m512i b22 = _mm512_loadu_si512((const __m512i *)(s2 + offset + 64));
+        __m512i b23 = _mm512_loadu_si512((const __m512i *)(s2 + offset + 128));
+        __m512i b24 = _mm512_loadu_si512((const __m512i *)(s2 + offset + 192));
+
+        union {
+            uint8_t r8[4];
+            uint32_t r32;
+        } res;
+        res.r8[0] = (uint8_t)(_mm512_cmpeq_epi8_mask(b11, b21) != UINT64_MAX);
+        res.r8[1] = (uint8_t)(_mm512_cmpeq_epi8_mask(b12, b22) != UINT64_MAX);
+        res.r8[2] = (uint8_t)(_mm512_cmpeq_epi8_mask(b13, b23) != UINT64_MAX);
+        res.r8[3] = (uint8_t)(_mm512_cmpeq_epi8_mask(b14, b24) != UINT64_MAX);
+        if (res.r32 != 0) {
+            return 1;
+        }
+
+        offset += 256;
+    } while (len > offset);
+
+    return 0;
+}
+#undef SCMEMCMP_BYTES
 #endif
 
 #if defined(__AVX512VL__) && defined(__AVX512BW__)
