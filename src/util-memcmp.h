@@ -146,10 +146,10 @@ static inline int SCMemcmpAVX512_2048(const uint8_t *s1, const uint8_t *s2, size
             uint8_t r8[4];
             uint32_t r32;
         } res;
-        res.r8[0] = (uint8_t)_mm512_cmpeq_epi8_mask(b11, b21) != UINT64_MAX;
-        res.r8[1] = (uint8_t)_mm512_cmpeq_epi8_mask(b12, b22) != UINT64_MAX;
-        res.r8[2] = (uint8_t)_mm512_cmpeq_epi8_mask(b13, b23) != UINT64_MAX;
-        res.r8[3] = (uint8_t)_mm512_cmpeq_epi8_mask(b14, b24) != UINT64_MAX;
+        res.r8[0] = (uint8_t)(_mm512_cmpeq_epi8_mask(b11, b21) != UINT64_MAX);
+        res.r8[1] = (uint8_t)(_mm512_cmpeq_epi8_mask(b12, b22) != UINT64_MAX);
+        res.r8[2] = (uint8_t)(_mm512_cmpeq_epi8_mask(b13, b23) != UINT64_MAX);
+        res.r8[3] = (uint8_t)(_mm512_cmpeq_epi8_mask(b14, b24) != UINT64_MAX);
         if (res.r32 != 0) {
             return 1;
         }
