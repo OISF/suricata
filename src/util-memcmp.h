@@ -53,7 +53,7 @@ static inline int MemcmpLowercase(const uint8_t *s1, const uint8_t *s2, size_t n
 #if defined(__AVX512VL__) && defined(__AVX512BW__)
 #include <immintrin.h>
 #define SCMEMCMP_BYTES 16
-static inline int SCMemcmpAVX512_128(const void *s1, const void *s2, size_t len)
+static inline int SCMemcmpAVX512_128(const uint8_t *s1, const uint8_t *s2, size_t len)
 {
     size_t offset = 0;
     do {
@@ -77,7 +77,7 @@ static inline int SCMemcmpAVX512_128(const void *s1, const void *s2, size_t len)
 }
 #undef SCMEMCMP_BYTES
 #define SCMEMCMP_BYTES 32
-static inline int SCMemcmpAVX512_256(const void *s1, const void *s2, size_t len)
+static inline int SCMemcmpAVX512_256(const uint8_t *s1, const uint8_t *s2, size_t len)
 {
     size_t offset = 0;
     do {
@@ -101,7 +101,7 @@ static inline int SCMemcmpAVX512_256(const void *s1, const void *s2, size_t len)
 }
 #undef SCMEMCMP_BYTES
 #define SCMEMCMP_BYTES 64
-static inline int SCMemcmpAVX512_512(const void *s1, const void *s2, size_t len)
+static inline int SCMemcmpAVX512_512(const uint8_t *s1, const uint8_t *s2, size_t len)
 {
     size_t offset = 0;
     do {
