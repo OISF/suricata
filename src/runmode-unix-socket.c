@@ -1235,7 +1235,7 @@ TmEcode UnixSocketHostbitAdd(json_t *cmd, json_t* answer, void *data_usused)
     if (inet_pton(AF_INET, ipaddress, &in) != 1) {
         uint32_t in6[4];
         memset(&in6, 0, sizeof(in6));
-        if (inet_pton(AF_INET6, ipaddress, &in) != 1) {
+        if (inet_pton(AF_INET6, ipaddress, &in6) != 1) {
             json_object_set_new(answer, "message", json_string("invalid address string"));
             return TM_ECODE_FAILED;
         } else {
@@ -1312,7 +1312,7 @@ TmEcode UnixSocketHostbitRemove(json_t *cmd, json_t* answer, void *data_unused)
     if (inet_pton(AF_INET, ipaddress, &in) != 1) {
         uint32_t in6[4];
         memset(&in6, 0, sizeof(in6));
-        if (inet_pton(AF_INET6, ipaddress, &in) != 1) {
+        if (inet_pton(AF_INET6, ipaddress, &in6) != 1) {
             json_object_set_new(answer, "message", json_string("invalid address string"));
             return TM_ECODE_FAILED;
         } else {
@@ -1385,7 +1385,7 @@ TmEcode UnixSocketHostbitList(json_t *cmd, json_t* answer, void *data_unused)
     if (inet_pton(AF_INET, ipaddress, &in) != 1) {
         uint32_t in6[4];
         memset(&in6, 0, sizeof(in6));
-        if (inet_pton(AF_INET6, ipaddress, &in) != 1) {
+        if (inet_pton(AF_INET6, ipaddress, &in6) != 1) {
             json_object_set_new(answer, "message", json_string("invalid address string"));
             return TM_ECODE_FAILED;
         } else {
