@@ -106,19 +106,17 @@ static inline int SCMemcmpAVX512_512(const uint8_t *s1, const uint8_t *s2, size_
     size_t offset = 0;
     do {
         if (likely(len - offset < SCMEMCMP_BYTES)) {
-            return SCMemcmpAVX512_256(s1, s2, len - offset);
+            return SCMemcmpAVX512_256(s1 + offset, s2 + offset, len - offset);
         }
 
         /* unaligned loads */
-        __m512i b1 = _mm512_loadu_si512((const __m512i *)s1);
-        __m512i b2 = _mm512_loadu_si512((const __m512i *)s2);
+        __m512i b1 = _mm512_loadu_si512((const __m512i *)(s1 + offset));
+        __m512i b2 = _mm512_loadu_si512((const __m512i *)(s2 + offset));
         if (_mm512_cmpeq_epi8_mask(b1, b2) != UINT64_MAX) {
             return 1;
         }
 
         offset += SCMEMCMP_BYTES;
-        s1 += SCMEMCMP_BYTES;
-        s2 += SCMEMCMP_BYTES;
     } while (len > offset);
 
     return 0;
