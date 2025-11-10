@@ -25,7 +25,7 @@ use suricata_sys::sys::{
 };
 
 use super::nfs::{NFSTransaction, NFSTransactionTypeData};
-use super::types::{NfsProc3, NfsProc4};
+use super::types::{NfsProc2, NfsProc3, NfsProc4};
 use crate::core::STREAM_TOSERVER;
 use crate::detect::uint::{
     detect_match_uint, detect_parse_uint_enum, detect_parse_uint_inclusive, DetectUintData,
@@ -40,6 +40,7 @@ static mut G_NFS_PROCEDURE_KW_ID: u16 = 0;
 static mut G_NFS_PROCEDURE_BUFFER_ID: c_int = 0;
 
 struct DetectNfsProcedureDataVersion {
+    v2: Option<DetectUintData<u32>>,
     v3: Option<DetectUintData<u32>>,
     v4: Option<DetectUintData<u32>>,
 }
@@ -53,13 +54,14 @@ fn nfs_procedure_parse_aux(s: &str) -> Option<DetectNfsProcedureData> {
     if let Ok((_, ctx)) = detect_parse_uint_inclusive::<u32>(s) {
         return Some(DetectNfsProcedureData::Num(ctx));
     }
+    let v2 = detect_parse_uint_enum::<u32, NfsProc2>(s);
     let v3 = detect_parse_uint_enum::<u32, NfsProc3>(s);
     let v4 = detect_parse_uint_enum::<u32, NfsProc4>(s);
-    if v3.is_none() && v4.is_none() {
+    if v2.is_none() && v3.is_none() && v4.is_none() {
         return None;
     }
     return Some(DetectNfsProcedureData::VersionLiteral(
-        DetectNfsProcedureDataVersion { v3, v4 },
+        DetectNfsProcedureDataVersion { v2, v3, v4 },
     ));
 }
 
@@ -104,7 +106,11 @@ unsafe extern "C" fn nfs_procedure_setup(
 fn nfs_procedure_match_val(proc: u32, nfs_version: u16, ctx: &DetectNfsProcedureData) -> bool {
     match ctx {
         DetectNfsProcedureData::VersionLiteral(ver) => {
-            if nfs_version < 4 {
+            if nfs_version < 3 {
+                if let Some(du32v2) = &ver.v2 {
+                    return detect_match_uint(du32v2, proc);
+                }
+            } else if nfs_version == 3 {
                 if let Some(du32v3) = &ver.v3 {
                     return detect_match_uint(du32v3, proc);
                 }
