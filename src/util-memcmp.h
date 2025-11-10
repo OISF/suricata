@@ -442,7 +442,6 @@ static inline int SCMemcmpLowercaseAVX512_512(const void *s1, const void *s2, si
 #if defined(__AVX2__)
 #include <immintrin.h>
 #define SCMEMCMP_BYTES 32
-
 static inline int SCMemcmpAVX2(const uint8_t *s1, const uint8_t *s2, size_t len)
 {
     size_t offset = 0;
@@ -458,6 +457,37 @@ static inline int SCMemcmpAVX2(const uint8_t *s1, const uint8_t *s2, size_t len)
 
         int r = _mm256_movemask_epi8(c);
         if (r != -1) {
+            return 1;
+        }
+
+        offset += SCMEMCMP_BYTES;
+    } while (len > offset);
+
+    return 0;
+}
+#undef SCMEMCMP_BYTES
+#define SCMEMCMP_BYTES 64
+static inline int SCMemcmpAVX2_512(const uint8_t *s1, const uint8_t *s2, size_t len)
+{
+    size_t offset = 0;
+
+    do {
+        if (likely(len - offset < SCMEMCMP_BYTES)) {
+            return SCMemcmpAVX2(s1 + offset, s2 + offset, len - offset);
+        }
+
+        __m256i a1 = _mm256_lddqu_si256((const __m256i *)(s1 + offset));
+        __m256i a2 = _mm256_lddqu_si256((const __m256i *)(s2 + offset));
+
+        __m256i b1 = _mm256_lddqu_si256((const __m256i *)(s1 + offset + 32));
+        __m256i b2 = _mm256_lddqu_si256((const __m256i *)(s2 + offset + 32));
+
+        __m256i c1 = _mm256_cmpeq_epi8(a1, a2);
+        __m256i c2 = _mm256_cmpeq_epi8(b1, b2);
+
+        int r = (_mm256_movemask_epi8(c1) != -1);
+        r += (_mm256_movemask_epi8(c2) != -1);
+        if (r != 0) {
             return 1;
         }
 
