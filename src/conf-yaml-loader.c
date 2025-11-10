@@ -174,7 +174,7 @@ static int ConfYamlParse(
     int done = 0;
     int seq_idx = 0;
     int retval = 0;
-    int was_empty = -1;
+    int nb_seq = -1;
     int include_count = 0;
 
     if (rlevel++ > RECURSION_LIMIT) {
@@ -246,16 +246,16 @@ static int ConfYamlParse(
                 char sequence_node_name[DEFAULT_NAME_LEN];
                 snprintf(sequence_node_name, DEFAULT_NAME_LEN, "%d", seq_idx++);
                 SCConfNode *seq_node = NULL;
-                if (was_empty < 0) {
-                    // initialize was_empty
-                    if (TAILQ_EMPTY(&parent->head)) {
-                        was_empty = 1;
-                    } else {
-                        was_empty = 0;
+                if (nb_seq < 0) {
+                    // initialize nb_seq
+                    nb_seq++;
+                    TAILQ_FOREACH (seq_node, &node->head, next) {
+                        nb_seq++;
                     }
+                    seq_node = NULL;
                 }
                 // we only check if the node's list was not empty at first
-                if (was_empty == 0) {
+                if (seq_idx < nb_seq) {
                     seq_node = SCConfNodeLookupChild(parent, sequence_node_name);
                 }
                 if (seq_node != NULL) {
@@ -398,16 +398,16 @@ static int ConfYamlParse(
                 char sequence_node_name[DEFAULT_NAME_LEN];
                 snprintf(sequence_node_name, DEFAULT_NAME_LEN, "%d", seq_idx++);
                 SCConfNode *seq_node = NULL;
-                if (was_empty < 0) {
-                    // initialize was_empty
-                    if (TAILQ_EMPTY(&node->head)) {
-                        was_empty = 1;
-                    } else {
-                        was_empty = 0;
+                if (nb_seq < 0) {
+                    // initialize nb_seq
+                    nb_seq++;
+                    TAILQ_FOREACH (seq_node, &node->head, next) {
+                        nb_seq++;
                     }
+                    seq_node = NULL;
                 }
                 // we only check if the node's list was not empty at first
-                if (was_empty == 0) {
+                if (seq_idx < nb_seq) {
                     seq_node = SCConfNodeLookupChild(node, sequence_node_name);
                 }
                 if (seq_node != NULL) {
