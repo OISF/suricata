@@ -2823,7 +2823,7 @@ jobs:
         run: python3 ./suricata-verify/run.py -q --debug-failed
       - run: ulimit -a
       - run: ulimit -l
-      - run: ulimit -l unlimited
+      - run: sudo ulimit -l unlimited || true
       - name: Running suricata-verify live tests
         run: sudo python3 ./suricata-verify/run.py --live lo --debug-failed
       - run: make install
