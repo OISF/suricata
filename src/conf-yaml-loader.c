@@ -256,6 +256,12 @@ static int ConfYamlParse(
                 }
                 // we only check if the node's list was not empty at first
                 if (was_empty == 0) {
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+                    // do not fuzz quadratic-complexity overlong sequence of scalars
+                    if (seq_idx > 256) {
+                        goto fail;
+                    }
+#endif
                     seq_node = SCConfNodeLookupChild(parent, sequence_node_name);
                 }
                 if (seq_node != NULL) {
@@ -408,6 +414,12 @@ static int ConfYamlParse(
                 }
                 // we only check if the node's list was not empty at first
                 if (was_empty == 0) {
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+                    // do not fuzz quadratic-complexity overlong sequence of scalars
+                    if (seq_idx > 256) {
+                        goto fail;
+                    }
+#endif
                     seq_node = SCConfNodeLookupChild(node, sequence_node_name);
                 }
                 if (seq_node != NULL) {
