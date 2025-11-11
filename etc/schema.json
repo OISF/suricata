@@ -6197,6 +6197,38 @@
                     "description":"Observational statistics for packet capture module",
                     "additionalProperties": false,
                     "properties": {
+                        "afpacket": {
+                            "type": "object",
+                            "description": "Statistics for AF_PACKET capture module",
+                            "additionalProperties": false,
+                            "properties": {
+                                "busy_loop_avg": {
+                                    "type": "integer"
+                                },
+                                "poll_data": {
+                                    "type": "integer"
+                                },
+                                "poll_errors": {
+                                    "type": "integer"
+                                },
+                                "poll_signal": {
+                                    "type": "integer"
+                                },
+                                "poll_timeout": {
+                                    "type": "integer"
+                                },
+                                "polls": {
+                                    "type": "integer"
+                                },
+                                "send_errors": {
+                                    "type": "integer"
+                                }
+                            }
+                        },
+                        "errors": {
+                            "type": "integer",
+                            "description": "Number of Suricata errors reported while reading capture module"
+                        },
                         "kernel_drops": {
                             "type": "integer"
                         },
@@ -7780,7 +7812,6 @@
                     "description": "Observational statistics on TCP stream events",
                     "additionalProperties": false,
                     "properties": {
-
                         "3whs_ack_data_inject": {
                             "type": "integer"
                         },
