@@ -7661,10 +7661,12 @@
                     "additionalProperties": false,
                     "properties": {
                         "memcap": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Global memory capacity reached for FTP parser"
                         },
                         "memuse": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Global memory usage for FTP parser"
                         }
                     }
                 },
@@ -7674,10 +7676,12 @@
                     "additionalProperties": false,
                     "properties": {
                         "memcap": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Global memory capacity reached for Host table"
                         },
                         "memuse": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Global memory usage for Host table"
                         }
                     }
                 },
@@ -7691,18 +7695,22 @@
                             "additionalProperties": false,
                             "properties": {
                                 "memcap": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "description": "Global memory capacity reached for Byte Range containers"
                                 },
                                 "memuse": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "description": "Global memory usage for Byte Range containers"
                                 }
                             }
                         },
                         "memcap": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Global memory capacity reached for HTTP parser"
                         },
                         "memuse": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Global memory usage for HTTP parser"
                         }
                     }
                 },
@@ -7712,10 +7720,12 @@
                     "additionalProperties": false,
                     "properties": {
                         "memcap": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Global memory capacity reached for IP Pair table"
                         },
                         "memuse": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Global memory usage for IP Pair table"
                         }
                     }
                 },
@@ -7848,7 +7858,7 @@
                 },
                 "memcap": {
                     "type": "object",
-                    "description": "Performance statistics on global memomry capacity / usage. Calculated for flow, stream, stream-reassembly, app-layer http, defrag, ippair and host",
+                    "description": "Performance statistics on global memory capacity / usage. Calculated for flow, stream, stream-reassembly, app-layer http, defrag, ippair and host",
                     "additionalProperties": false,
                     "properties": {
                         "pressure": {
