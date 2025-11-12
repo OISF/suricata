@@ -192,6 +192,9 @@ enum {
     /* stream has no segments for forced reassembly, but only segments that
      * have been sent for detection, but are stuck in the detection queues */
     STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION = 1,
+    /* stream has unprocessed data due to stream.reassembly.max-data-per-pkt
+     * configuration value. */
+    STREAM_HAS_UNPROCESSED_SEGMENTS_DATA = 2,
 };
 
 TmEcode StreamTcp (ThreadVars *, Packet *, void *, PacketQueueNoLock *);

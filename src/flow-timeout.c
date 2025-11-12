@@ -329,6 +329,22 @@ bool FlowNeedsReassembly(Flow *f)
         server == STREAM_HAS_UNPROCESSED_SEGMENTS_NONE) {
         return false;
     }
+    const uint8_t *mydata;
+    uint32_t mydata_len;
+    if (RB_EMPTY(&ssn->client.sb.sbb_tree)) {
+        StreamingBufferGetDataAtOffset(
+                &ssn->client.sb, &mydata, &mydata_len, STREAM_APP_PROGRESS(&ssn->client));
+        if (mydata_len > 0) {
+            client = STREAM_HAS_UNPROCESSED_SEGMENTS_DATA;
+        }
+    }
+    if (RB_EMPTY(&ssn->server.sb.sbb_tree)) {
+        StreamingBufferGetDataAtOffset(
+                &ssn->server.sb, &mydata, &mydata_len, STREAM_APP_PROGRESS(&ssn->server));
+        if (mydata_len > 0) {
+            server = STREAM_HAS_UNPROCESSED_SEGMENTS_DATA;
+        }
+    }
 
     f->ffr_ts = client;
     f->ffr_tc = server;
