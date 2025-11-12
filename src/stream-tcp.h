@@ -73,6 +73,8 @@ typedef struct TcpStreamCnf_ {
     uint8_t max_syn_queued;
 
     uint32_t reassembly_depth;  /**< Depth until when we reassemble the stream */
+    // Cap the data we process per packet
+    uint32_t reassembly_max_data_per_pkt;
 
     uint16_t reassembly_toserver_chunk_size;
     uint16_t reassembly_toclient_chunk_size;

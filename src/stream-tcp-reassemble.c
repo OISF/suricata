@@ -506,6 +506,17 @@ static int StreamTcpReassemblyConfig(bool quiet)
         }
         max_regions = max_r;
     }
+    uint32_t max_data_per_pkt = 0;
+    SCConfNode *mpp = SCConfGetNode("stream.reassembly.max-data-per-pkt");
+    if (mpp) {
+        uint32_t max_r = 0;
+        if (StringParseUint32(&max_r, 10, (uint16_t)strlen(mpp->val), mpp->val) < 0) {
+            SCLogError("max-data-per-pkt %s is invalid", mpp->val);
+            return -1;
+        }
+        max_data_per_pkt = max_r;
+    }
+
     if (!quiet)
         SCLogConfig("stream.reassembly \"max-regions\": %u", max_regions);
 
@@ -516,6 +527,7 @@ static int StreamTcpReassemblyConfig(bool quiet)
     stream_config.sbcnf.Calloc = ReassembleCalloc;
     stream_config.sbcnf.Realloc = StreamTcpReassembleRealloc;
     stream_config.sbcnf.Free = ReassembleFree;
+    stream_config.reassembly_max_data_per_pkt = max_data_per_pkt;
 
     return 0;
 }
@@ -1172,8 +1184,8 @@ static bool GetAppBuffer(const TcpStream *stream, const uint8_t **data, uint32_t
             *data_len = 0;
         }
     }
-    if (*data_len > UINT16_MAX) {
-        *data_len = UINT16_MAX;
+    if (*data_len > stream_config.reassembly_max_data_per_pkt) {
+        *data_len = stream_config.reassembly_max_data_per_pkt;
     }
     return gap_ahead;
 }
