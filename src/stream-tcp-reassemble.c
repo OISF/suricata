@@ -1172,6 +1172,9 @@ static bool GetAppBuffer(const TcpStream *stream, const uint8_t **data, uint32_t
             *data_len = 0;
         }
     }
+    if (*data_len > UINT16_MAX) {
+        *data_len = UINT16_MAX;
+    }
     return gap_ahead;
 }
 
