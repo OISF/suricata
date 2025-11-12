@@ -1184,7 +1184,8 @@ static bool GetAppBuffer(const TcpStream *stream, const uint8_t **data, uint32_t
             *data_len = 0;
         }
     }
-    if (*data_len > stream_config.reassembly_max_data_per_pkt) {
+    if (stream_config.reassembly_max_data_per_pkt > 0 &&
+            *data_len > stream_config.reassembly_max_data_per_pkt) {
         *data_len = stream_config.reassembly_max_data_per_pkt;
     }
     return gap_ahead;
