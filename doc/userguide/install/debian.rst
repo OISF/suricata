@@ -28,4 +28,20 @@ For Debian 10 (buster), for instance, run the following as ``root``::
 After Installation
 ******************
 
+Building from Source on Debian
+*****************************
+
+If you prefer to build Suricata from source on Debian, the `./configure` script allows customization. Run `./configure --help` for the full list. Key options include:
+
+Installation Options
+~~~~~~~~~~~~~~~~~~~~
+- ``--prefix=PREFIX``: Set install directory (default: /usr/local). Use /usr for system-wide install.
+- ``--sysconfdir=DIR``: Config files location (default: PREFIX/etc). E.g., /etc/suricata.
+
+Features
+~~~~~~~~
+- ``--enable-geoip``: GeoIP support (requires libmaxminddb-dev).
+- ``--enable-lua``: Lua scripting (requires lua5.3-dev).
+- ``--enable-ebpf``: Enable eBPF support (requires libbpf-dev).
+
 After installing you can proceed to the :ref:`Basic setup`.
