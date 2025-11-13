@@ -337,10 +337,10 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
 
     /* Sending the eBPF code to the kernel requires a large amount of
      * locked memory so we set it to unlimited to avoid a ENOPERM error */
-    struct rlimit r = { 0x1000000, 0x1000000 };
+    struct rlimit r = { 0x400000, 0x400000 };
     if (setrlimit(RLIMIT_MEMLOCK, &r) != 0) {
         SCLogError("Unable to lock memory: %s (%d)", strerror(errno), errno);
-        return -1;
+        // return -1;
     }
 
     /* Open the eBPF file and parse it */
