@@ -35,7 +35,7 @@ env:
   # A recent version of stable Rust that is known to pass build, test and other
   # verification steps in this workflow. This was added because using "stable"
   # could cause some steps to fail.
-  RUST_VERSION_KNOWN: "1.90.0"
+  RUST_VERSION_KNOWN: "1.91.0"
 
 jobs:
 
