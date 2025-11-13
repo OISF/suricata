@@ -133,7 +133,7 @@ static void *SimpleWorker(void *arg)
 done:
     pcap_close(fp);
 
-    /* Stop the engine. */
+    /* Signal main loop to shutdown. */
     EngineStop();
 
     /* Cleanup.
