@@ -20,7 +20,7 @@
  *
  * \author Lukas Sismis <lsismis@oisf.net>
  *
- * MPM pattern matcher that calls the Hyperscan regex matcher.
+ * Hyperscan cache helper utilities for MPM cache files.
  */
 
 #include "suricata-common.h"
@@ -34,17 +34,17 @@
 
 #ifdef BUILD_HYPERSCAN
 
+#include "rust.h"
 #include <hs.h>
 
-static const char *HSCacheConstructFPath(const char *folder_path, uint64_t hs_db_hash)
+static const char *HSCacheConstructFPath(const char *folder_path, const char *hs_db_hash)
 {
     static char hash_file_path[PATH_MAX];
 
     char hash_file_path_suffix[] = "_v1.hs";
-    char filename[PATH_MAX];
-    uint64_t r = snprintf(
-            filename, sizeof(filename), "%020" PRIu64 "%s", hs_db_hash, hash_file_path_suffix);
-    if (r != (uint64_t)(20 + strlen(hash_file_path_suffix)))
+    char filename[NAME_MAX];
+    uint64_t r = snprintf(filename, sizeof(filename), "%s%s", hs_db_hash, hash_file_path_suffix);
+    if (r != (uint64_t)(strlen(hs_db_hash) + strlen(hash_file_path_suffix)))
         return NULL;
 
     r = PathMerge(hash_file_path, sizeof(hash_file_path), folder_path, filename);
@@ -104,22 +104,22 @@ static char *HSReadStream(const char *file_path, size_t *buffer_sz)
  * Function to hash the searched pattern, only things relevant to Hyperscan
  * compilation are hashed.
  */
-static void SCHSCachePatternHash(const SCHSPattern *p, uint32_t *h1, uint32_t *h2)
+static void SCHSCachePatternHash(const SCHSPattern *p, SCSha256 *sha256)
 {
     BUG_ON(p->original_pat == NULL);
     BUG_ON(p->sids == NULL);
 
-    hashlittle2_safe(&p->len, sizeof(p->len), h1, h2);
-    hashlittle2_safe(&p->flags, sizeof(p->flags), h1, h2);
-    hashlittle2_safe(p->original_pat, p->len, h1, h2);
-    hashlittle2_safe(&p->id, sizeof(p->id), h1, h2);
-    hashlittle2_safe(&p->offset, sizeof(p->offset), h1, h2);
-    hashlittle2_safe(&p->depth, sizeof(p->depth), h1, h2);
-    hashlittle2_safe(&p->sids_size, sizeof(p->sids_size), h1, h2);
-    hashlittle2_safe(p->sids, p->sids_size * sizeof(SigIntId), h1, h2);
+    SCSha256Update(sha256, (const uint8_t *)&p->len, sizeof(p->len));
+    SCSha256Update(sha256, (const uint8_t *)&p->flags, sizeof(p->flags));
+    SCSha256Update(sha256, (const uint8_t *)p->original_pat, p->len);
+    SCSha256Update(sha256, (const uint8_t *)&p->id, sizeof(p->id));
+    SCSha256Update(sha256, (const uint8_t *)&p->offset, sizeof(p->offset));
+    SCSha256Update(sha256, (const uint8_t *)&p->depth, sizeof(p->depth));
+    SCSha256Update(sha256, (const uint8_t *)&p->sids_size, sizeof(p->sids_size));
+    SCSha256Update(sha256, (const uint8_t *)p->sids, p->sids_size * sizeof(SigIntId));
 }
 
-int HSLoadCache(hs_database_t **hs_db, uint64_t hs_db_hash, const char *dirpath)
+int HSLoadCache(hs_database_t **hs_db, const char *hs_db_hash, const char *dirpath)
 {
     const char *hash_file_static = HSCacheConstructFPath(dirpath, hs_db_hash);
     if (hash_file_static == NULL)
@@ -150,6 +150,10 @@ int HSLoadCache(hs_database_t **hs_db, uint64_t hs_db_hash, const char *dirpath)
         }
 
         ret = 0;
+        /* Touch file to update modification time so active caches are retained. */
+        if (SCTouchFile(hash_file_static) != 0) {
+            SCLogDebug("Failed to update mtime for %s", hash_file_static);
+        }
         goto freeup;
     }
 
@@ -161,7 +165,7 @@ freeup:
     return ret;
 }
 
-static int HSSaveCache(hs_database_t *hs_db, uint64_t hs_db_hash, const char *dstpath)
+static int HSSaveCache(hs_database_t *hs_db, const char *hs_db_hash, const char *dstpath)
 {
     static bool notified = false;
     char *db_stream = NULL;
@@ -220,14 +224,20 @@ cleanup:
     return ret;
 }
 
-uint64_t HSHashDb(const PatternDatabase *pd)
+int HSHashDb(const PatternDatabase *pd, char *hash, size_t hash_len)
 {
-    uint32_t hash[2] = { 0 };
-    hashword2(&pd->pattern_cnt, 1, &hash[0], &hash[1]);
+    SCSha256 *hasher = SCSha256New();
+    SCSha256Update(hasher, (const uint8_t *)&pd->pattern_cnt, sizeof(pd->pattern_cnt));
     for (uint32_t i = 0; i < pd->pattern_cnt; i++) {
-        SCHSCachePatternHash(pd->parray[i], &hash[0], &hash[1]);
+        SCHSCachePatternHash(pd->parray[i], hasher);
     }
-    return ((uint64_t)hash[1] << 32) | hash[0];
+
+    if (!SCSha256FinalizeToHex(hasher, hash, hash_len)) {
+        hasher = NULL;
+        SCLogDebug("sha256 hashing failed");
+        return -1;
+    }
+    return 0;
 }
 
 void HSSaveCacheIterator(void *data, void *aux)
@@ -244,10 +254,141 @@ void HSSaveCacheIterator(void *data, void *aux)
         return;
     }
 
-    if (HSSaveCache(pd->hs_db, HSHashDb(pd), iter_data->cache_path) == 0) {
+    char hs_db_hash[SC_SHA256_LEN * 2 + 1]; // * 2 for hex +1 for nul terminator
+    if (HSHashDb(pd, hs_db_hash, sizeof(hs_db_hash)) != 0) {
+        return;
+    }
+    if (HSSaveCache(pd->hs_db, hs_db_hash, iter_data->cache_path) == 0) {
         pd->cached = true; // for rule reloads
         iter_data->pd_stats->hs_dbs_cache_saved_cnt++;
     }
+}
+
+/**
+ * \brief Prune the HS cache directory of files older than cutoff time.
+ *
+ * \param dirpath        Path to the cache directory.
+ * \param cutoff         Time cutoff (files older than this will be removed).
+ * \param o_fconsidered  If non-NULL, on return will be set to the number of
+ *                       files considered for pruning.
+ *
+ * \retval Number of files removed on success, negative value on failure.
+ */
+static int32_t HSPruneFilesOlderThan(const char *dirpath, time_t cutoff, int32_t *o_fconsidered)
+{
+    DIR *dir = opendir(dirpath);
+    if (dir == NULL) {
+        return -1;
+    }
+    struct dirent *ent;
+    int32_t removed = 0, considered = 0;
+    char path[PATH_MAX];
+    while ((ent = readdir(dir)) != NULL) {
+        const char *name = ent->d_name;
+        size_t namelen = strlen(name);
+        if (namelen < 3 || strcmp(name + namelen - 3, ".hs") != 0)
+            continue;
+
+        if (PathMerge(path, sizeof(path), dirpath, name) != 0)
+            continue;
+        struct stat st;
+        if (stat(path, &st) != 0)
+            continue;
+        if (!S_ISREG(st.st_mode))
+            continue;
+        considered++;
+        if (st.st_mtime < cutoff) {
+            if (unlink(path) == 0) {
+                removed++;
+                SCLogDebug("Removed stale file %s (age %llds)", path,
+                        (long long)(time(NULL) - st.st_mtime));
+            } else {
+                SCLogWarning("Failed to prune \"%s\": %s", path, strerror(errno));
+            }
+        }
+    }
+    closedir(dir);
+    if (o_fconsidered)
+        *o_fconsidered = considered;
+    return removed;
+}
+
+int SCHSCachePrune(MpmConfig *mpm_conf)
+{
+    if (mpm_conf == NULL || mpm_conf->cache_dir_path == NULL)
+        return -1;
+    if (mpm_conf->cache_max_age_seconds == 0)
+        return 0; // disabled
+
+    const time_t now = time(NULL);
+    if (now == (time_t)-1) {
+        return -1;
+    }
+
+    if (mpm_conf->cache_max_age_seconds > (uint64_t)now) {
+        SCLogWarning("sgh-mpm-caching-max-age (%" PRIu64
+                     ") is larger than current time, disabling cache pruning",
+                mpm_conf->cache_max_age_seconds);
+        return 0;
+    }
+
+    const time_t cutoff = now - (time_t)mpm_conf->cache_max_age_seconds;
+    int32_t considered = 0;
+    int32_t removed = HSPruneFilesOlderThan(mpm_conf->cache_dir_path, cutoff, &considered);
+    if (removed < 0) {
+        // failed to open the directory
+        return -1;
+    }
+
+    PatternDatabaseCache *pd_cache_stats = mpm_conf->cache_stats;
+    pd_cache_stats->hs_dbs_cache_pruned_cnt = removed;
+    pd_cache_stats->hs_dbs_cache_pruned_considered_cnt = considered;
+    pd_cache_stats->hs_dbs_cache_pruned_cutoff = cutoff;
+    pd_cache_stats->cache_max_age_seconds = mpm_conf->cache_max_age_seconds;
+    return 0;
+}
+
+void *SCHSCacheStatsInit(void)
+{
+    PatternDatabaseCache *pd_cache_stats = SCCalloc(1, sizeof(PatternDatabaseCache));
+    if (pd_cache_stats == NULL) {
+        SCLogError("Failed to allocate memory for Hyperscan cache stats");
+        return NULL;
+    }
+    return pd_cache_stats;
+}
+
+void SCHSCacheStatsPrint(void *data)
+{
+    if (data == NULL) {
+        return;
+    }
+
+    PatternDatabaseCache *pd_cache_stats = (PatternDatabaseCache *)data;
+
+    char time_str[64];
+    struct tm *tm_info = localtime(&pd_cache_stats->hs_dbs_cache_pruned_cutoff);
+    if (tm_info != NULL) {
+        strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", tm_info);
+    } else {
+        snprintf(time_str, sizeof(time_str), "%" PRIu64 " seconds",
+                pd_cache_stats->cache_max_age_seconds);
+    }
+
+    SCLogNotice("Rule group caching - loaded: %u newly cached: %u total cacheable: %u pruned: "
+                "%u/%u cache files older than %s",
+            pd_cache_stats->hs_dbs_cache_loaded_cnt, pd_cache_stats->hs_dbs_cache_saved_cnt,
+            pd_cache_stats->hs_cacheable_dbs_cnt, pd_cache_stats->hs_dbs_cache_pruned_cnt,
+            pd_cache_stats->hs_dbs_cache_pruned_considered_cnt, time_str);
+}
+
+void SCHSCacheStatsDeinit(void *data)
+{
+    if (data == NULL) {
+        return;
+    }
+    PatternDatabaseCache *pd_cache_stats = (PatternDatabaseCache *)data;
+    SCFree(pd_cache_stats);
 }
 
 #endif /* BUILD_HYPERSCAN */
