@@ -29,6 +29,6 @@
 void FlowSendToLocalThread(Flow *f);
 bool FlowNeedsReassembly(Flow *f);
 void FlowWorkToDoCleanup(void);
-Packet *FlowPseudoPacketGet(int direction, Flow *f, const TcpSession *ssn);
+Packet *FlowPseudoPacketGet(ThreadVars *tv, int direction, Flow *f, const TcpSession *ssn);
 
 #endif /* SURICATA_FLOW_TIMEOUT_H */

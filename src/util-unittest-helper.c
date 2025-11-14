@@ -47,6 +47,7 @@
 #include "util-error.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
+#include "tmqh-packetpool.h"
 
 #if defined(UNITTESTS) || defined(FUZZ)
 Flow *TestHelperBuildFlow(int family, const char *src, const char *dst, Port sp, Port dp)
@@ -388,8 +389,10 @@ Packet *UTHBuildPacketFromEth(uint8_t *raw_eth, uint16_t pktsize)
         return NULL;
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
+    PacketPoolInit(&th_v);
 
     DecodeEthernet(&th_v, &dtv, p, raw_eth, pktsize);
+    PacketPoolDestroy(&th_v);
     return p;
 }
 
@@ -697,6 +700,7 @@ int UTHMatchPacketsWithResults(DetectEngineCtx *de_ctx, Packet **p, int num_pack
     DetectEngineThreadCtx *det_ctx = NULL;
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
+    PacketPoolInit(&th_v);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -711,6 +715,7 @@ int UTHMatchPacketsWithResults(DetectEngineCtx *de_ctx, Packet **p, int num_pack
 cleanup:
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     StatsThreadCleanup(&th_v);
+    PacketPoolDestroy(&th_v);
     return result;
 }
 
@@ -736,6 +741,7 @@ int UTHMatchPackets(DetectEngineCtx *de_ctx, Packet **p, int num_packets)
     DetectEngineThreadCtx *det_ctx = NULL;
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
+    PacketPoolInit(&th_v);
     SCSigRegisterSignatureOrderingFuncs(de_ctx);
     SCSigOrderSignatures(de_ctx);
     SCSigSignatureOrderingModuleCleanup(de_ctx);
@@ -751,6 +757,7 @@ int UTHMatchPackets(DetectEngineCtx *de_ctx, Packet **p, int num_packets)
      */
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     StatsThreadCleanup(&th_v);
+    PacketPoolDestroy(&th_v);
     return result;
 }
 
@@ -776,6 +783,7 @@ int UTHPacketMatchSigMpm(Packet *p, char *sig, uint16_t mpm_type)
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
+    PacketPoolInit(&th_v);
 
     if (mpm_type == MPM_AC) {
         SCConfSet("mpm-algo", "ac");
@@ -814,6 +822,7 @@ end:
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     StatsThreadCleanup(&th_v);
+    PacketPoolDestroy(&th_v);
     SCConfSet("mpm-algo", "auto");
     SCReturnInt(result);
 }
@@ -838,6 +847,7 @@ int UTHPacketMatchSig(Packet *p, const char *sig)
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
+    PacketPoolInit(&th_v);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -868,6 +878,7 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
     StatsThreadCleanup(&th_v);
+    PacketPoolDestroy(&th_v);
     return result;
 }
 
@@ -877,6 +888,7 @@ uint32_t UTHBuildPacketOfFlows(uint32_t start, uint32_t end, uint8_t dir)
     memset(&fls, 0, sizeof(fls));
     ThreadVars tv;
     memset(&tv, 0, sizeof(tv));
+    PacketPoolInit(&tv);
 
     uint32_t i = start;
     uint8_t payload[] = "Payload";
@@ -906,6 +918,7 @@ uint32_t UTHBuildPacketOfFlows(uint32_t start, uint32_t end, uint8_t dir)
         FlowFree(f);
     }
 
+    PacketPoolDestroy(&tv);
     return i;
 }
 

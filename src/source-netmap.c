@@ -674,7 +674,7 @@ static void NetmapProcessPacket(NetmapThreadVars *ntv, const struct nm_pkthdr *p
         }
     }
 
-    Packet *p = PacketPoolGetPacket();
+    Packet *p = PacketPoolGetPacket(ntv->tv);
     if (unlikely(p == NULL)) {
         return;
     }
@@ -812,7 +812,7 @@ static TmEcode ReceiveNetmapLoop(ThreadVars *tv, void *data, void *slot)
 
         /* make sure we have at least one packet in the packet pool,
          * to prevent us from alloc'ing packets at line rate */
-        PacketPoolWait();
+        PacketPoolWait(tv);
 
         int r = poll(&fds, 1, POLL_TIMEOUT);
         if (r < 0) {

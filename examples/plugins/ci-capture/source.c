@@ -65,8 +65,8 @@ static TmEcode ReceiveLoop(ThreadVars *tv, void *data, void *slot)
     /* Notify we are running and processing packets. */
     TmThreadsSetFlag(tv, THV_RUNNING);
 
-    PacketPoolWait();
-    Packet *p = PacketGetFromQueueOrAlloc();
+    PacketPoolWait(tv);
+    Packet *p = PacketGetFromQueueOrAlloc(tv);
     if (unlikely(p == NULL)) {
         return TM_ECODE_FAILED;
     }

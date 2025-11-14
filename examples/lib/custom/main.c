@@ -96,7 +96,7 @@ static void *SimpleWorker(void *arg)
             goto done;
         }
 
-        Packet *p = PacketGetFromQueueOrAlloc();
+        Packet *p = PacketGetFromQueueOrAlloc(tv);
         if (unlikely(p == NULL)) {
             /* Memory allocation error. */
             goto done;
