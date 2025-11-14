@@ -372,6 +372,7 @@ static SCError SCLogMessageGetBuffer(SCTime_t tval, bool color, SCLogOPType type
 
     /* make a copy of the format string as it will be modified below */
     const int add_M = strstr(log_format, "%M") == NULL;
+    DEBUG_VALIDATE_BUG_ON(strlen(log_format) > UINT16_MAX);
     char local_format[strlen(log_format) + add_M * 2 + 1];
     strlcpy(local_format, log_format, sizeof(local_format));
     if (add_M)

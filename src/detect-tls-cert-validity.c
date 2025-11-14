@@ -51,7 +51,8 @@
 /**
  *   [tls_notbefore|tls_notafter]:[<|>]<date string>[<><date string>];
  */
-#define PARSE_REGEX "^\\s*(<|>)?\\s*([ -:TW0-9]+)\\s*(?:(<>)\\s*([ -:TW0-9]+))?\\s*$"
+#define PARSE_REGEX                                                                                \
+    "^\\s*(<|>)?\\s*([ -:TW0-9]+[-:TW0-9]+)\\s*(?:(<>)\\s*([ -:TW0-9]+[-:TW0-9]+))?\\s*$"
 static DetectParseRegex parse_regex;
 
 static int DetectTlsValidityMatch (DetectEngineThreadCtx *, Flow *,
@@ -216,6 +217,8 @@ static time_t StringIsEpoch (char *string)
     return strtol(string, NULL, 10);
 }
 
+#define MAX_DATE_LEN 20
+
 /**
  * \internal
  * \brief Function to convert date string to epoch.
@@ -247,21 +250,6 @@ static time_t DateStringToEpoch (char *string)
     while (isspace(*string))
         string++;
 
-    size_t inlen, oldlen;
-
-    oldlen = inlen = strlen(string);
-
-    /* Skip trailing whitespace */
-    while (inlen > 0 && isspace(string[inlen - 1]))
-        inlen--;
-
-    char tmp[inlen + 1];
-
-    if (inlen < oldlen) {
-        strlcpy(tmp, string, inlen + 1);
-        string = tmp;
-    }
-
     time_t epoch = StringIsEpoch(string);
     if (epoch != LONG_MIN) {
         return epoch;
@@ -288,8 +276,8 @@ static DetectTlsValidityData *DetectTlsValidityParse (const char *rawstr)
 {
     DetectTlsValidityData *dd = NULL;
     char mode[2] = "";
-    char value1[20] = "";
-    char value2[20] = "";
+    char value1[MAX_DATE_LEN] = "";
+    char value2[MAX_DATE_LEN] = "";
     char range[3] = "";
 
     pcre2_match_data *match = NULL;

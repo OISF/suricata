@@ -59,9 +59,15 @@ static int DetectMsgSetup (DetectEngineCtx *de_ctx, Signature *s, const char *ms
     if (slen == 0)
         return -1;
 
-    char input[slen + 1];
-    strlcpy(input, msgstr, slen + 1);
-    char *str = input;
+    if (s->msg != NULL) {
+        SCLogError("duplicated 'msg' keyword detected");
+        return -1;
+    }
+
+    char *str = SCStrdup(msgstr);
+    if (str == NULL)
+        return -1;
+
     char converted = 0;
 
     {
@@ -107,17 +113,8 @@ static int DetectMsgSetup (DetectEngineCtx *de_ctx, Signature *s, const char *ms
         }
     }
 
-    if (s->msg != NULL) {
-        SCLogError("duplicated 'msg' keyword detected");
-        goto error;
-    }
-    s->msg = SCStrdup(str);
-    if (s->msg == NULL)
-        goto error;
+    s->msg = str;
     return 0;
-
-error:
-    return -1;
 }
 
 /* -------------------------------------Unittests-----------------------------*/
