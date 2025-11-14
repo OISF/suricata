@@ -44,16 +44,14 @@
     do {                                                                                           \
         Packet *tp = PacketTunnelPktSetup(                                                         \
                 tv, dtv, p, pkt + ETHERNET_HEADER_LEN, len - ETHERNET_HEADER_LEN, type);           \
-        if (tp != NULL) {                                                                          \
+        if (tp != NULL && !(tp->flags & PKT_IS_INVALID)) {                                         \
             PKT_SET_SRC(tp, PKT_SRC_DECODER_L2TP);                                                 \
             PacketEnqueueNoLock(&tv->decode_pq, tp);                                               \
             eth_found = true;                                                                      \
         }                                                                                          \
-        break;                                                                                     \
-    } while (0);
+    } while (0)
 
-/* Although L2TPv3 can do non-IP (like ATM), assume that there's a trailing ethernet header */
-#define L2TP_MIN_HEADER_LEN sizeof(L2TPoverUDPDataHdr) + sizeof(EthernetHdr)
+#define L2TP_MIN_HEADER_LEN sizeof(L2TPoverUDPDataHdr)
 
 typedef struct L2TPoverUDPDataHdr_ {
     uint8_t type;

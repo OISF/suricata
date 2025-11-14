@@ -145,8 +145,13 @@ int DecodeL2TP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *
         } else if (unlikely(l2tp_hdr->version != 3)) {
             SCLogDebug("L2TP Invalid. Type: %u Version: %u Reserved: %u", l2tp_hdr->type,
                     l2tp_hdr->version, l2tp_hdr->reserved);
-            ENGINE_SET_INVALID_EVENT(p, L2TP_INVALID_VER);
-            return g_l2tp_strict ? TM_ECODE_FAILED : TM_ECODE_OK;
+            if (g_l2tp_strict) {
+                ENGINE_SET_INVALID_EVENT(p, L2TP_INVALID_VER);
+                return TM_ECODE_FAILED;
+            } else {
+                ENGINE_SET_EVENT(p, L2TP_INVALID_VER);
+                return TM_ECODE_OK;
+            }
         } else if (unlikely(g_l2tp_strict && (l2tp_hdr->reserved != 0 || l2tp_hdr->type != 0))) {
             return TM_ECODE_FAILED;
         }
@@ -184,26 +189,34 @@ int DecodeL2TP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *
         uint16_t proto = SCNtohs(ethh->eth_type);
         switch (proto) {
             case ETHERNET_TYPE_IP:
-                L2TP_CHECK_INNER_TUNNEL(DECODE_TUNNEL_IPV4)
+                L2TP_CHECK_INNER_TUNNEL(DECODE_TUNNEL_IPV4);
+                break;
             case ETHERNET_TYPE_IPV6:
-                L2TP_CHECK_INNER_TUNNEL(DECODE_TUNNEL_IPV6)
+                L2TP_CHECK_INNER_TUNNEL(DECODE_TUNNEL_IPV6);
+                break;
             case ETHERNET_TYPE_ARP:
-                L2TP_CHECK_INNER_TUNNEL(DECODE_TUNNEL_ARP)
+                L2TP_CHECK_INNER_TUNNEL(DECODE_TUNNEL_ARP);
+                break;
             case ETHERNET_TYPE_VLAN:
             case ETHERNET_TYPE_8021AD:
             case ETHERNET_TYPE_8021QINQ:
-                L2TP_CHECK_INNER_TUNNEL(DECODE_TUNNEL_VLAN)
-            default: /* consume 4 bytes to detect all combinations of cookie/sublayer types */
-                len -= sizeof(uint32_t);
-                pkt += sizeof(uint32_t);
+                L2TP_CHECK_INNER_TUNNEL(DECODE_TUNNEL_VLAN);
                 break;
         }
+        /* consume 4 bytes to detect all combinations of cookie/sublayer types */
+        len -= sizeof(uint32_t);
+        pkt += sizeof(uint32_t);
     }
 
     if (!eth_found) {
         SCLogDebug("L2TP found unsupported Ethertype - expected IPv4, IPv6, VLAN, or ARP");
-        ENGINE_SET_INVALID_EVENT(p, L2TP_UNKNOWN_PAYLOAD_TYPE);
-        return TM_ECODE_OK;
+        if (g_l2tp_strict) {
+            ENGINE_SET_INVALID_EVENT(p, L2TP_UNKNOWN_PAYLOAD_TYPE);
+            return TM_ECODE_FAILED;
+        } else {
+            ENGINE_SET_EVENT(p, L2TP_UNKNOWN_PAYLOAD_TYPE);
+            return TM_ECODE_OK;
+        }
     }
 
     return TM_ECODE_OK;
@@ -478,7 +491,7 @@ decoder:\n\
 
 /**
  * \test DecodeL2TPTest07 tests a L2TPv3 over IP packet with a 8 byte cookie and a L2 sublayer w/an
- * OUI of 08-00-45 See
+ * OUI of 08-00-45 (edge case) See
  * https://github.com/OISF/suricata/pull/14023/files/db7449a7299226bf70199cd685c6a5af5ee58c74#r2435186058
  */
 static int DecodeL2TPTest07(void)
@@ -512,7 +525,7 @@ static int DecodeL2TPTest07(void)
     FAIL_IF(tv.decode_pq.top == NULL);
 
     Packet *tp = PacketDequeueNoLock(&tv.decode_pq);
-    FAIL_IF(p->l3.hdrs.ip4h == NULL);
+    FAIL_IF(tp->l3.hdrs.ip4h == NULL);
     FAIL_IF_NOT(tp->dp == 53);
 
     FlowShutdown();
