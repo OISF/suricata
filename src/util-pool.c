@@ -394,311 +394,146 @@ static void PoolTestFree(void *ptr)
 static int PoolTestInit01 (void)
 {
     Pool *p = PoolInit(10,5,10,PoolTestAlloc,NULL,NULL,PoolTestFree, NULL);
-    if (p == NULL)
-        return 0;
+    FAIL_IF_NOT(p != NULL);
 
     PoolFree(p);
-    return 1;
+    PASS;
 }
 
 static int PoolTestInit02 (void)
 {
-    int retval = 0;
-
     Pool *p = PoolInit(10,5,10,PoolTestAlloc,NULL,NULL,PoolTestFree, NULL);
-    if (p == NULL)
-        goto end;
+    FAIL_IF_NOT(p != NULL);
 
-    if (p->alloc_stack == NULL || p->empty_stack == NULL) {
-        printf("list(s) not properly initialized (a:%p e:%p): ",
-            p->alloc_stack, p->empty_stack);
-        retval = 0;
-        goto end;
-    }
+    FAIL_IF_NOT(p->alloc_stack != NULL);
 
-    if (p->Alloc != PoolTestAlloc) {
-        printf("Alloc func ptr %p != %p: ",
-            p->Alloc, PoolTestAlloc);
-        retval = 0;
-        goto end;
-    }
+    FAIL_IF_NOT(p->empty_stack != NULL);
 
-    if (p->Cleanup != PoolTestFree) {
-        printf("Free func ptr %p != %p: ",
-            p->Cleanup, PoolTestFree);
-        retval = 0;
-        goto end;
-    }
+    FAIL_IF_NOT(p->Alloc == PoolTestAlloc);
 
-    retval = 1;
-end:
-    if (p != NULL)
-        PoolFree(p);
-    return retval;
+    FAIL_IF_NOT(p->Cleanup == PoolTestFree);
+
+    PoolFree(p);
+    PASS;
 }
 
 static int PoolTestInit03 (void)
 {
-    int retval = 0;
-    void *data = NULL;
-
     Pool *p = PoolInit(10,5,10,PoolTestAlloc,NULL,NULL,PoolTestFree, NULL);
-    if (p == NULL)
-        goto end;
+    FAIL_IF_NOT(p != NULL);
 
-    data = PoolGet(p);
-    if (data == NULL) {
-        printf("PoolGet returned NULL: ");
-        retval = 0;
-        goto end;
-    }
+    void *data = PoolGet(p);
+    FAIL_IF_NOT(data != NULL);
 
-    if (p->alloc_stack_size != 4) {
-        printf("p->alloc_stack_size 4 != %" PRIu32 ": ", p->alloc_stack_size);
-        retval = 0;
-        goto end;
-    }
+    FAIL_IF_NOT(p->alloc_stack_size == 4);
 
-    if (p->empty_stack_size != 6) {
-        printf("p->empty_stack_size 6 != %" PRIu32 ": ", p->empty_stack_size);
-        retval = 0;
-        goto end;
-    }
+    FAIL_IF_NOT(p->empty_stack_size == 6);
 
-    retval = 1;
-end:
-    if (p != NULL)
-        PoolFree(p);
-    return retval;
+    PoolFree(p);
+    PASS;
 }
 
 static int PoolTestInit04 (void)
 {
-    int retval = 0;
-    char *str = NULL;
-
     Pool *p = PoolInit(10,5,strlen("test") + 1,NULL, PoolTestInitArg,(void *)"test",PoolTestFree, NULL);
-    if (p == NULL)
-        goto end;
+    FAIL_IF_NOT(p != NULL);
 
-    str = PoolGet(p);
-    if (str == NULL) {
-        printf("PoolGet returned NULL: ");
-        retval = 0;
-        goto end;
-    }
+    char *str = PoolGet(p);
+    FAIL_IF_NOT(str != NULL);
 
-    if (strcmp(str, "test") != 0) {
-        printf("Memory not properly initialized: ");
-        retval = 0;
-        goto end;
-    }
+    FAIL_IF_NOT(strcmp(str, "test") == 0);
 
-    if (p->alloc_stack_size != 4) {
-        printf("p->alloc_stack_size 4 != %" PRIu32 ": ", p->alloc_stack_size);
-        retval = 0;
-        goto end;
-    }
+    FAIL_IF_NOT(p->alloc_stack_size == 4);
 
-    if (p->empty_stack_size != 6) {
-        printf("p->empty_stack_size 6 != %" PRIu32 ": ", p->empty_stack_size);
-        retval = 0;
-        goto end;
-    }
+    FAIL_IF_NOT(p->empty_stack_size == 6);
 
-    retval = 1;
-end:
-    if (p != NULL)
-        PoolFree(p);
-    return retval;
+    PoolFree(p);
+    PASS;
 }
 
 static int PoolTestInit05 (void)
 {
-    int retval = 0;
-    void *data = NULL;
-
     Pool *p = PoolInit(10,5,10,PoolTestAlloc,NULL, NULL,PoolTestFree, NULL);
-    if (p == NULL)
-        goto end;
+    FAIL_IF_NOT(p != NULL);
 
-    data = PoolGet(p);
-    if (data == NULL) {
-        printf("PoolGet returned NULL: ");
-        retval = 0;
-        goto end;
-    }
+    void *data = PoolGet(p);
+    FAIL_IF_NOT(data != NULL);
 
-    if (p->alloc_stack_size != 4) {
-        printf("p->alloc_stack_size 4 != %" PRIu32 ": ", p->alloc_stack_size);
-        retval = 0;
-        goto end;
-    }
+    FAIL_IF_NOT(p->alloc_stack_size == 4);
 
-    if (p->empty_stack_size != 6) {
-        printf("p->empty_stack_size 6 != %" PRIu32 ": ", p->empty_stack_size);
-        retval = 0;
-        goto end;
-    }
+    FAIL_IF_NOT(p->empty_stack_size == 6);
 
     PoolReturn(p, data);
     data = NULL;
 
-    if (p->alloc_stack_size != 5) {
-        printf("p->alloc_stack_size 5 != %" PRIu32 ": ", p->alloc_stack_size);
-        retval = 0;
-        goto end;
-    }
+    FAIL_IF_NOT(p->alloc_stack_size == 5);
 
-    if (p->empty_stack_size != 5) {
-        printf("p->empty_stack_size 5 != %" PRIu32 ": ", p->empty_stack_size);
-        retval = 0;
-        goto end;
-    }
+    FAIL_IF_NOT(p->empty_stack_size == 5);
 
-    retval = 1;
-end:
-    if (p != NULL)
-        PoolFree(p);
-    return retval;
+    PoolFree(p);
+    PASS;
 }
 
 static int PoolTestInit06 (void)
 {
-    int retval = 0;
-    void *data = NULL;
-    void *data2 = NULL;
-
     Pool *p = PoolInit(1,0,10,PoolTestAlloc,NULL,NULL,PoolTestFree, NULL);
-    if (p == NULL)
-        goto end;
+    FAIL_IF_NOT(p != NULL);
 
-    if (p->allocated != 0) {
-        printf("p->allocated 0 != %" PRIu32 ": ", p->allocated);
-        retval = 0;
-        goto end;
-    }
+    FAIL_IF_NOT(p->allocated == 0);
 
-    data = PoolGet(p);
-    if (data == NULL) {
-        printf("PoolGet returned NULL: ");
-        retval = 0;
-        goto end;
-    }
+    void *data = PoolGet(p);
+    FAIL_IF_NOT(data != NULL);
 
-    if (p->allocated != 1) {
-        printf("p->allocated 1 != %" PRIu32 ": ", p->allocated);
-        retval = 0;
-        goto end;
-    }
+    FAIL_IF_NOT(p->allocated == 1);
 
-    data2 = PoolGet(p);
-    if (data2 != NULL) {
-        printf("PoolGet returned %p, expected NULL: ", data2);
-        retval = 0;
-        goto end;
-    }
+    void *data2 = PoolGet(p);
+    FAIL_IF_NOT(data2 == NULL);
 
     PoolReturn(p,data);
     data = NULL;
 
-    if (p->allocated != 1) {
-        printf("p->allocated 1 != %" PRIu32 ": ", p->allocated);
-        retval = 0;
-        goto end;
-    }
+    FAIL_IF_NOT(p->allocated == 1);
 
-    if (p->alloc_stack_size != 1) {
-        printf("p->alloc_stack_size 1 != %" PRIu32 ": ", p->alloc_stack_size);
-        retval = 0;
-        goto end;
-    }
+    FAIL_IF_NOT(p->alloc_stack_size == 1);
 
-    retval = 1;
-end:
-    if (p != NULL)
-        PoolFree(p);
-    return retval;
+    PoolFree(p);
+    PASS;
 }
 
 /** \test pool with unlimited size */
 static int PoolTestInit07 (void)
 {
-    int retval = 0;
-    void *data = NULL;
-    void *data2 = NULL;
-
     Pool *p = PoolInit(0,1,10,PoolTestAlloc,NULL,NULL,PoolTestFree, NULL);
-    if (p == NULL)
-        goto end;
+    FAIL_IF_NOT(p != NULL);
 
-    if (p->max_buckets != 0) {
-        printf("p->max_buckets 0 != %" PRIu32 ": ", p->max_buckets);
-        retval = 0;
-        goto end;
-    }
+    FAIL_IF_NOT(p->max_buckets == 0);
 
-    if (p->allocated != 1) {
-        printf("p->allocated 1 != %" PRIu32 ": ", p->allocated);
-        retval = 0;
-        goto end;
-    }
+    FAIL_IF_NOT(p->allocated == 1);
 
-    data = PoolGet(p);
-    if (data == NULL) {
-        printf("PoolGet returned NULL: ");
-        retval = 0;
-        goto end;
-    }
+    void *data = PoolGet(p);
+    FAIL_IF_NOT(data != NULL);
 
-    if (p->allocated != 1) {
-        printf("(2) p->allocated 1 != %" PRIu32 ": ", p->allocated);
-        retval = 0;
-        goto end;
-    }
+    FAIL_IF_NOT(p->allocated == 1);
 
-    data2 = PoolGet(p);
-    if (data2 == NULL) {
-        printf("PoolGet returned NULL: ");
-        retval = 0;
-        goto end;
-    }
+    void *data2 = PoolGet(p);
+    FAIL_IF_NOT(data2 != NULL);
 
-    if (p->allocated != 2) {
-        printf("(3) p->allocated 2 != %" PRIu32 ": ", p->allocated);
-        retval = 0;
-        goto end;
-    }
+    FAIL_IF_NOT(p->allocated == 2);
 
     PoolReturn(p,data);
     data = NULL;
 
-    if (p->allocated != 2) {
-        printf("(4) p->allocated 2 != %" PRIu32 ": ", p->allocated);
-        retval = 0;
-        goto end;
-    }
+    FAIL_IF_NOT(p->allocated == 2);
 
-    if (p->alloc_stack_size != 1) {
-        printf("p->alloc_stack_size 1 != %" PRIu32 ": ", p->alloc_stack_size);
-        retval = 0;
-        goto end;
-    }
+    FAIL_IF_NOT(p->alloc_stack_size == 1);
 
     PoolReturn(p,data2);
     data2 = NULL;
 
-    if (p->allocated != 1) {
-        printf("(5) p->allocated 1 != %" PRIu32 ": ", p->allocated);
-        retval = 0;
-        goto end;
-    }
+    FAIL_IF_NOT(p->allocated == 1);
 
-    retval = 1;
-end:
-    if (p != NULL)
-        PoolFree(p);
-    return retval;
+    PoolFree(p);
+    PASS;
 }
 #endif /* UNITTESTS */
 
