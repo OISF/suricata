@@ -2993,6 +2993,19 @@ see :doc:`../performance/packet-profiling`.
 Decoder
 -------
 
+L2TP
+~~~~~
+
+The L2TP decoder decodes L2TPv3 packets over UDP or IP. It is enabled by default.
+There is a strict option which defaults to disabled to check the reserved bits and type.
+
+::
+    decoder:
+      l2tp:
+        enabled: true
+        ports: $L2TP_PORTS # syntax: '[1701, 2193]'
+        strict: false # enforce checking of reserved bits
+
 Teredo
 ~~~~~~
 

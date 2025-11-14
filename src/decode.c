@@ -62,6 +62,7 @@
 #include "decode-erspan.h"
 #include "decode-teredo.h"
 #include "decode-arp.h"
+#include "decode-l2tp.h"
 
 #include "defrag-hash.h"
 
@@ -674,6 +675,8 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
     dtv->counter_ipv4inipv6 = StatsRegisterCounter("decoder.ipv4_in_ipv6", tv);
     dtv->counter_ipv6inipv6 = StatsRegisterCounter("decoder.ipv6_in_ipv6", tv);
     dtv->counter_mpls = StatsRegisterCounter("decoder.mpls", tv);
+    dtv->counter_l2tp = StatsRegisterCounter("decoder.l2tp", tv);
+    dtv->counter_l2tp_unsupported = StatsRegisterCounter("decoder.l2tp_unsupported", tv);
     dtv->counter_avg_pkt_size = StatsRegisterAvgCounter("decoder.avg_pkt_size", tv);
     dtv->counter_max_pkt_size = StatsRegisterMaxCounter("decoder.max_pkt_size", tv);
     dtv->counter_max_mac_addrs_src = StatsRegisterMaxCounter("decoder.max_mac_addrs_src", tv);
@@ -891,6 +894,9 @@ const char *PktSrcToString(enum PktSrcEnum pkt_src)
         case PKT_SRC_DECODER_VXLAN:
             pkt_src_str = "vxlan encapsulation";
             break;
+        case PKT_SRC_DECODER_L2TP:
+            pkt_src_str = "l2tp encapsulation";
+            break;
         case PKT_SRC_DETECT_RELOAD_FLUSH:
             pkt_src_str = "detect reload flush";
             break;
@@ -1058,6 +1064,7 @@ void DecodeGlobalConfig(void)
     DecodeGeneveConfig();
     DecodeVXLANConfig();
     DecodeERSPANConfig();
+    DecodeL2TPConfig();
     intmax_t value = 0;
     if (SCConfGetInt("decoder.max-layers", &value) == 1) {
         if (value < 0 || value > UINT8_MAX) {

@@ -318,6 +318,12 @@ enum {
     ARP_INVALID_PROTOCOL_SIZE, /**< arp proto size is not 4 */
     ARP_UNSUPPORTED_OPCODE,    /**< arp opcode is not listed */
 
+    /* L2TP EVENTS */
+    L2TP_PKT_TOO_SMALL,        /**< l2tp packet smaller than minimum size */
+    L2TP_INVALID_VER,          /**< l2tp packet version is not 1,2 or 3 */
+    L2TP_UNKNOWN_PAYLOAD_TYPE, /**< l2tp packet is missing a trailing ethernet header */
+    L2TP_INVALID_IP_PROTO,     /**< l2tp packet IPPROTO is not L2TP or UDP */
+
     /* should always be last! */
     DECODE_EVENT_MAX,
 };
