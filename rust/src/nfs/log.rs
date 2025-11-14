@@ -82,8 +82,14 @@ fn nfs_common_header(
     state: &NFSState, tx: &NFSTransaction, js: &mut JsonBuilder,
 ) -> Result<(), JsonError> {
     js.set_uint("version", state.nfs_version as u64)?;
-    if state.nfs_version < 4 {
+    if state.nfs_version == 3 {
         if let Some(proc) = NfsProc3::from_u(tx.procedure) {
+            js.set_string("procedure", &proc.to_str().to_uppercase())?;
+        } else {
+            js.set_string("procedure", &format!("{}", tx.procedure))?;
+        }
+    } else if state.nfs_version <= 2 {
+        if let Some(proc) = NfsProc2::from_u(tx.procedure) {
             js.set_string("procedure", &proc.to_str().to_uppercase())?;
         } else {
             js.set_string("procedure", &format!("{}", tx.procedure))?;
