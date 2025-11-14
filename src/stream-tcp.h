@@ -73,6 +73,8 @@ typedef struct TcpStreamCnf_ {
     uint8_t max_syn_queued;
 
     uint32_t reassembly_depth;  /**< Depth until when we reassemble the stream */
+    // Cap the data we process per packet
+    uint32_t reassembly_max_data_per_pkt;
 
     uint16_t reassembly_toserver_chunk_size;
     uint16_t reassembly_toclient_chunk_size;
@@ -190,6 +192,9 @@ enum {
     /* stream has no segments for forced reassembly, but only segments that
      * have been sent for detection, but are stuck in the detection queues */
     STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION = 1,
+    /* stream has unprocessed data due to stream.reassembly.max-data-per-pkt
+     * configuration value. */
+    STREAM_HAS_UNPROCESSED_SEGMENTS_DATA = 2,
 };
 
 TmEcode StreamTcp (ThreadVars *, Packet *, void *, PacketQueueNoLock *);
