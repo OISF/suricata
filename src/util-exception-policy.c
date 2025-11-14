@@ -137,7 +137,7 @@ enum ExceptionPolicy ExceptionPolicyTargetPolicy(uint8_t target_flag)
 
 void ExceptionPolicyApply(Packet *p, enum ExceptionPolicy policy, enum PacketDropReason drop_reason)
 {
-    SCLogDebug("start: pcap_cnt %" PRIu64 ", policy %u", p->pcap_cnt, policy);
+    SCLogDebug("start: pcap_cnt %" PRIu64 ", policy %u", PcapPacketCntGet(p), policy);
     if (p->flow) {
         p->flow->applied_exception_policy |= ExceptionPolicyFlag(drop_reason);
     }
