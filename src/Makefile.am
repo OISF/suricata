@@ -596,11 +596,12 @@ noinst_HEADERS = \
 	util-runmodes.h \
 	util-running-modes.h \
 	util-signal.h \
+	util-spm.h \
 	util-spm-bm.h \
 	util-spm-bs.h \
 	util-spm-bs2bm.h \
 	util-spm-hs.h \
-	util-spm.h \
+	util-spm-mm.h \
 	util-storage.h \
 	util-streaming-buffer.h \
 	util-sysfs.h \
@@ -1179,11 +1180,12 @@ libsuricata_c_a_SOURCES = \
 	util-runmodes.c \
 	util-running-modes.c \
 	util-signal.c \
+	util-spm.c \
 	util-spm-bm.c \
 	util-spm-bs.c \
 	util-spm-bs2bm.c \
 	util-spm-hs.c \
-	util-spm.c \
+	util-spm-mm.c \
 	util-storage.c \
 	util-streaming-buffer.c \
 	util-strlcatu.c \

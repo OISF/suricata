@@ -476,7 +476,7 @@ int MpmAddPattern(MpmCtx *mpm_ctx, const uint8_t *pat, uint16_t patlen, uint16_t
             goto error;
         mpm_ctx->memory_cnt++;
         mpm_ctx->memory_size += patlen;
-        memcpy_tolower(p->ci, pat, patlen);
+        MemcpyToLower(p->ci, pat, patlen);
 
         /* setup the case sensitive part of the pattern */
         if (p->flags & MPM_PATTERN_FLAG_NOCASE) {
