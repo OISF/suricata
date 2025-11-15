@@ -561,6 +561,10 @@ bool SCClassConfLoadClassificationConfigFile(DetectEngineCtx *de_ctx, FILE *fd)
 SCClassConfClasstype *SCClassConfGetClasstype(const char *ct_name,
                                               DetectEngineCtx *de_ctx)
 {
+    if (strlen(ct_name) > CLASSTYPE_NAME_MAX_LEN) {
+        DEBUG_VALIDATE_BUG_ON(strlen(ct_name) > CLASSTYPE_NAME_MAX_LEN);
+        return NULL;
+    }
     char name[strlen(ct_name) + 1];
     size_t s;
     for (s = 0; s < strlen(ct_name); s++)

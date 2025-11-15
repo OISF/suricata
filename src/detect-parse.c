@@ -2555,6 +2555,7 @@ static int SigValidateCheckBuffers(
         has_pmatch = true;
     }
 
+    DEBUG_VALIDATE_BUG_ON(nlists > UINT16_MAX);
     struct BufferVsDir {
         int ts;
         int tc;
