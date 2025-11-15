@@ -24,20 +24,19 @@
 #ifndef SURICATA_DECODE_IPV6_H
 #define SURICATA_DECODE_IPV6_H
 
-#define IPV6_HEADER_LEN            40
-#define	IPV6_MAXPACKET	           65535 /* maximum packet size */
-#define IPV6_MAX_OPT               40
+#define IPV6_HEADER_LEN 40
+#define IPV6_MAXPACKET  65535 /* maximum packet size */
+#define IPV6_MAX_OPT    40
 
-typedef struct IPV6Hdr_
-{
+typedef struct IPV6Hdr_ {
     union {
         struct ip6_un1_ {
             uint32_t ip6_un1_flow; /* 20 bits of flow-ID */
             uint16_t ip6_un1_plen; /* payload length */
-            uint8_t  ip6_un1_nxt;  /* next header */
-            uint8_t  ip6_un1_hlim; /* hop limit */
+            uint8_t ip6_un1_nxt;   /* next header */
+            uint8_t ip6_un1_hlim;  /* hop limit */
         } ip6_un1;
-        uint8_t ip6_un2_vfc;   /* 4 bits version, top 4 bits class */
+        uint8_t ip6_un2_vfc; /* 4 bits version, top 4 bits class */
     } ip6_hdrun;
 
     union {
@@ -49,25 +48,26 @@ typedef struct IPV6Hdr_
     } ip6_hdrun2;
 } IPV6Hdr;
 
-#define s_ip6_src                       ip6_hdrun2.ip6_un2.ip6_src
-#define s_ip6_dst                       ip6_hdrun2.ip6_un2.ip6_dst
-#define s_ip6_addrs                     ip6_hdrun2.ip6_addrs
+#define s_ip6_src   ip6_hdrun2.ip6_un2.ip6_src
+#define s_ip6_dst   ip6_hdrun2.ip6_un2.ip6_dst
+#define s_ip6_addrs ip6_hdrun2.ip6_addrs
 
-#define s_ip6_vfc                       ip6_hdrun.ip6_un2_vfc
-#define s_ip6_flow                      ip6_hdrun.ip6_un1.ip6_un1_flow
-#define s_ip6_plen                      ip6_hdrun.ip6_un1.ip6_un1_plen
-#define s_ip6_nxt                       ip6_hdrun.ip6_un1.ip6_un1_nxt
-#define s_ip6_hlim                      ip6_hdrun.ip6_un1.ip6_un1_hlim
+#define s_ip6_vfc  ip6_hdrun.ip6_un2_vfc
+#define s_ip6_flow ip6_hdrun.ip6_un1.ip6_un1_flow
+#define s_ip6_plen ip6_hdrun.ip6_un1.ip6_un1_plen
+#define s_ip6_nxt  ip6_hdrun.ip6_un1.ip6_un1_nxt
+#define s_ip6_hlim ip6_hdrun.ip6_un1.ip6_un1_hlim
 
-#define IPV6_GET_RAW_VER(ip6h)          (((ip6h)->s_ip6_vfc & 0xf0) >> 4)
-#define IPV6_GET_RAW_CLASS(ip6h)        ((SCNtohl((ip6h)->s_ip6_flow) & 0x0FF00000) >> 20)
-#define IPV6_GET_RAW_FLOW(ip6h)         (SCNtohl((ip6h)->s_ip6_flow) & 0x000FFFFF)
-#define IPV6_GET_RAW_NH(ip6h)           ((ip6h)->s_ip6_nxt)
-#define IPV6_GET_RAW_PLEN(ip6h)         (SCNtohs((ip6h)->s_ip6_plen))
-#define IPV6_GET_RAW_HLIM(ip6h)         ((ip6h)->s_ip6_hlim)
+#define IPV6_GET_RAW_VER(ip6h)   (((ip6h)->s_ip6_vfc & 0xf0) >> 4)
+#define IPV6_GET_RAW_CLASS(ip6h) ((SCNtohl((ip6h)->s_ip6_flow) & 0x0FF00000) >> 20)
+#define IPV6_GET_RAW_FLOW(ip6h)  (SCNtohl((ip6h)->s_ip6_flow) & 0x000FFFFF)
+#define IPV6_GET_RAW_NH(ip6h)    ((ip6h)->s_ip6_nxt)
+#define IPV6_GET_RAW_PLEN(ip6h)  (SCNtohs((ip6h)->s_ip6_plen))
+#define IPV6_GET_RAW_HLIM(ip6h)  ((ip6h)->s_ip6_hlim)
 
-#define IPV6_SET_RAW_VER(ip6h, value)   ((ip6h)->s_ip6_vfc = (((ip6h)->s_ip6_vfc & 0x0f) | (value << 4)))
-#define IPV6_SET_RAW_NH(ip6h, value)    ((ip6h)->s_ip6_nxt = (value))
+#define IPV6_SET_RAW_VER(ip6h, value)                                                              \
+    ((ip6h)->s_ip6_vfc = (((ip6h)->s_ip6_vfc & 0x0f) | (value << 4)))
+#define IPV6_SET_RAW_NH(ip6h, value) ((ip6h)->s_ip6_nxt = (value))
 
 #define IPV6_SET_L4PROTO(p, proto)   (p)->l3.vars.ip6.v.l4proto = (proto)
 #define IPV6_SET_EXTHDRS_LEN(p, len) (p)->l3.vars.ip6.v.exthdrs_len = (len)
@@ -76,25 +76,23 @@ typedef struct IPV6Hdr_
 #define IPV6_GET_EXTHDRS_LEN(p) ((p)->l3.vars.ip6.v.exthdrs_len)
 
 /** \brief get the highest proto/next header field we know */
-//#define IPV6_GET_UPPER_PROTO(p)         (p)->ip6eh.ip6_exthdrs_cnt ?
-//    (p)->ip6eh.ip6_exthdrs[(p)->ip6eh.ip6_exthdrs_cnt - 1].next : IPV6_GET_NH((p))
+// #define IPV6_GET_UPPER_PROTO(p)         (p)->ip6eh.ip6_exthdrs_cnt ?
+//     (p)->ip6eh.ip6_exthdrs[(p)->ip6eh.ip6_exthdrs_cnt - 1].next : IPV6_GET_NH((p))
 
 /* helper structure with parsed ipv6 info */
-typedef struct IPV6Vars_
-{
-    uint8_t l4proto;       /**< the proto after the extension headers
-                            *   store while decoding so we don't have
-                            *   to loop through the exthdrs all the time */
-    uint16_t exthdrs_len;  /**< length of the exthdrs */
+typedef struct IPV6Vars_ {
+    uint8_t l4proto;      /**< the proto after the extension headers
+                           *   store while decoding so we don't have
+                           *   to loop through the exthdrs all the time */
+    uint16_t exthdrs_len; /**< length of the exthdrs */
 } IPV6Vars;
 
 /* Fragment header */
-typedef struct IPV6FragHdr_
-{
-    uint8_t  ip6fh_nxt;             /* next header */
-    uint8_t  ip6fh_reserved;        /* reserved field */
-    uint16_t ip6fh_offlg;           /* offset, reserved, and flag */
-    uint32_t ip6fh_ident;           /* identification */
+typedef struct IPV6FragHdr_ {
+    uint8_t ip6fh_nxt;      /* next header */
+    uint8_t ip6fh_reserved; /* reserved field */
+    uint16_t ip6fh_offlg;   /* offset, reserved, and flag */
+    uint32_t ip6fh_ident;   /* identification */
 } __attribute__((__packed__)) IPV6FragHdr;
 
 #define IPV6_EXTHDR_GET_FH_NH(p)     (p)->l3.vars.ip6.eh.fh_nh
@@ -103,51 +101,46 @@ typedef struct IPV6FragHdr_
 #define IPV6_EXTHDR_GET_FH_ID(p)     (p)->l3.vars.ip6.eh.fh_id
 
 /* rfc 1826 */
-typedef struct IPV6AuthHdr_
-{
-    uint8_t ip6ah_nxt;              /* next header */
-    uint8_t ip6ah_len;              /* header length in units of 8 bytes, not
-                                        including first 8 bytes. */
-    uint16_t ip6ah_reserved;        /* reserved for future use */
-    uint32_t ip6ah_spi;             /* SECURITY PARAMETERS INDEX (SPI) */
-    uint32_t ip6ah_seq;             /* sequence number */
+typedef struct IPV6AuthHdr_ {
+    uint8_t ip6ah_nxt;       /* next header */
+    uint8_t ip6ah_len;       /* header length in units of 8 bytes, not
+                                 including first 8 bytes. */
+    uint16_t ip6ah_reserved; /* reserved for future use */
+    uint32_t ip6ah_spi;      /* SECURITY PARAMETERS INDEX (SPI) */
+    uint32_t ip6ah_seq;      /* sequence number */
 } __attribute__((__packed__)) IPV6AuthHdr;
 
 /* Hop-by-Hop header and Destination Options header use options that are
  * defined here. */
 
-#define IPV6OPT_PAD1                  0x00
-#define IPV6OPT_PADN                  0x01
-#define IPV6OPT_RA                    0x05
-#define IPV6OPT_JUMBO                 0xC2
-#define IPV6OPT_HAO                   0xC9
+#define IPV6OPT_PAD1  0x00
+#define IPV6OPT_PADN  0x01
+#define IPV6OPT_RA    0x05
+#define IPV6OPT_JUMBO 0xC2
+#define IPV6OPT_HAO   0xC9
 
 /* Home Address Option */
-typedef struct IPV6OptHAO_
-{
-    uint8_t ip6hao_type;             /* Option type */
-    uint8_t ip6hao_len;              /* Option Data len (excludes type and len) */
-    struct in6_addr ip6hao_hoa;       /* Home address. */
+typedef struct IPV6OptHAO_ {
+    uint8_t ip6hao_type;        /* Option type */
+    uint8_t ip6hao_len;         /* Option Data len (excludes type and len) */
+    struct in6_addr ip6hao_hoa; /* Home address. */
 } IPV6OptHAO;
 
 /* Router Alert Option */
-typedef struct IPV6OptRA_
-{
-    uint8_t ip6ra_type;             /* Option type */
-    uint8_t ip6ra_len;              /* Option Data len (excludes type and len) */
-    uint16_t ip6ra_value;           /* Router Alert value */
+typedef struct IPV6OptRA_ {
+    uint8_t ip6ra_type;   /* Option type */
+    uint8_t ip6ra_len;    /* Option Data len (excludes type and len) */
+    uint16_t ip6ra_value; /* Router Alert value */
 } IPV6OptRA;
 
 /* Jumbo Option */
-typedef struct IPV6OptJumbo_
-{
-    uint8_t ip6j_type;             /* Option type */
-    uint8_t ip6j_len;              /* Option Data len (excludes type and len) */
-    uint32_t ip6j_payload_len;     /* Jumbo Payload Length */
+typedef struct IPV6OptJumbo_ {
+    uint8_t ip6j_type;         /* Option type */
+    uint8_t ip6j_len;          /* Option Data len (excludes type and len) */
+    uint32_t ip6j_payload_len; /* Jumbo Payload Length */
 } IPV6OptJumbo;
 
-typedef struct IPV6ExtHdrs_
-{
+typedef struct IPV6ExtHdrs_ {
     bool rh_set;
     uint8_t rh_type;
 

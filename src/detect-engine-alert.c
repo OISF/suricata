@@ -119,7 +119,7 @@ static int PacketAlertHandle(const DetectEngineCtx *de_ctx, DetectEngineThreadCt
                 KEYWORD_PROFILING_START;
                 ret = PacketAlertThreshold(de_ctx, det_ctx, td, p, s, pa);
                 if (ret == 0 || ret == 2) {
-                    KEYWORD_PROFILING_END(det_ctx, DETECT_THRESHOLD ,0);
+                    KEYWORD_PROFILING_END(det_ctx, DETECT_THRESHOLD, 0);
                     /* It doesn't match threshold, remove it */
                     SCReturnInt(ret);
                 }

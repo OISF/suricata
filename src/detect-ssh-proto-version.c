@@ -27,7 +27,7 @@
 #include "detect-engine-register.h"
 #include "detect-ssh-proto-version.h"
 
-static int DetectSshVersionSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
+static int DetectSshVersionSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     SCLogError("ssh.protoversion is obsolete, use now ssh.proto");
     return -1;

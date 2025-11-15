@@ -33,7 +33,7 @@
 #include "detect-prefilter.h"
 #include "util-debug.h"
 
-static int DetectPrefilterSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectPrefilterSetup(DetectEngineCtx *, Signature *, const char *);
 
 void DetectPrefilterRegister(void)
 {
@@ -53,7 +53,7 @@ void DetectPrefilterRegister(void)
  *  \retval 0 ok
  *  \retval -1 failure
  */
-static int DetectPrefilterSetup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
+static int DetectPrefilterSetup(DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
 {
     SCEnter();
 
@@ -91,11 +91,9 @@ static int DetectPrefilterSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
 
         DetectContentData *cd = (DetectContentData *)sm->ctx;
         if ((cd->flags & DETECT_CONTENT_NEGATED) &&
-                ((cd->flags & DETECT_CONTENT_DISTANCE) ||
-                 (cd->flags & DETECT_CONTENT_WITHIN) ||
-                 (cd->flags & DETECT_CONTENT_OFFSET) ||
-                 (cd->flags & DETECT_CONTENT_DEPTH)))
-        {
+                ((cd->flags & DETECT_CONTENT_DISTANCE) || (cd->flags & DETECT_CONTENT_WITHIN) ||
+                        (cd->flags & DETECT_CONTENT_OFFSET) ||
+                        (cd->flags & DETECT_CONTENT_DEPTH))) {
             SCLogError("prefilter; cannot be "
                        "used with negated content, along with relative modifiers");
             SCReturnInt(-1);

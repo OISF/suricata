@@ -32,7 +32,7 @@
 /* Context for boyer moore */
 typedef struct BmCtx_ {
     uint16_t bmBc[ALPHABET_SIZE];
-    //C99 "flexible array member"
+    // C99 "flexible array member"
     uint16_t bmGs[]; // = SCMalloc(sizeof(int16_t)*(needlelen + 1));
 } BmCtx;
 

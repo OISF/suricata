@@ -63,13 +63,11 @@
 #include "util-lua-common.h"
 #include "util-lua-sandbox.h"
 
-static int DetectLuaMatch (DetectEngineThreadCtx *,
-        Packet *, const Signature *, const SigMatchCtx *);
-static int DetectLuaAppTxMatch (DetectEngineThreadCtx *det_ctx,
-                                Flow *f, uint8_t flags,
-                                void *state, void *txv, const Signature *s,
-                                const SigMatchCtx *ctx);
-static int DetectLuaSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectLuaMatch(
+        DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
+static int DetectLuaAppTxMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state,
+        void *txv, const Signature *s, const SigMatchCtx *ctx);
+static int DetectLuaSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectLuaRegisterTests(void);
 #endif
@@ -88,7 +86,7 @@ void DetectLuaRegister(void)
     sigmatch_table[DETECT_LUA].Match = DetectLuaMatch;
     sigmatch_table[DETECT_LUA].AppLayerTxMatch = DetectLuaAppTxMatch;
     sigmatch_table[DETECT_LUA].Setup = DetectLuaSetup;
-    sigmatch_table[DETECT_LUA].Free  = DetectLuaFree;
+    sigmatch_table[DETECT_LUA].Free = DetectLuaFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_LUA].RegisterTests = DetectLuaRegisterTests;
 #endif
@@ -109,16 +107,16 @@ void DetectLuaRegister(void)
 }
 
 /* Flags for DetectLuaThreadData. */
-#define FLAG_DATATYPE_PACKET                    BIT_U32(0)
-#define FLAG_DATATYPE_PAYLOAD                   BIT_U32(1)
-#define FLAG_DATATYPE_STREAM                    BIT_U32(2)
-#define FLAG_LIST_JA3                           BIT_U32(3)
-#define FLAG_LIST_JA3S                          BIT_U32(4)
-#define FLAG_DATATYPE_BUFFER                    BIT_U32(22)
-#define FLAG_ERROR_LOGGED                       BIT_U32(23)
-#define FLAG_BLOCKED_FUNCTION_LOGGED            BIT_U32(24)
-#define FLAG_INSTRUCTION_LIMIT_LOGGED           BIT_U32(25)
-#define FLAG_MEMORY_LIMIT_LOGGED                BIT_U32(26)
+#define FLAG_DATATYPE_PACKET          BIT_U32(0)
+#define FLAG_DATATYPE_PAYLOAD         BIT_U32(1)
+#define FLAG_DATATYPE_STREAM          BIT_U32(2)
+#define FLAG_LIST_JA3                 BIT_U32(3)
+#define FLAG_LIST_JA3S                BIT_U32(4)
+#define FLAG_DATATYPE_BUFFER          BIT_U32(22)
+#define FLAG_ERROR_LOGGED             BIT_U32(23)
+#define FLAG_BLOCKED_FUNCTION_LOGGED  BIT_U32(24)
+#define FLAG_INSTRUCTION_LIMIT_LOGGED BIT_U32(25)
+#define FLAG_MEMORY_LIMIT_LOGGED      BIT_U32(26)
 
 #define DEFAULT_LUA_ALLOC_LIMIT       500000
 #define DEFAULT_LUA_INSTRUCTION_LIMIT 500000
@@ -152,7 +150,6 @@ void LuaDumpStack(lua_State *state, const char *prefix)
             default:
                 printf("other %s", lua_typename(state, type));
                 break;
-
         }
         printf("\n");
     }
@@ -284,15 +281,16 @@ int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx, const Signature *s,
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectLuaMatch (DetectEngineThreadCtx *det_ctx,
-        Packet *p, const Signature *s, const SigMatchCtx *ctx)
+static int DetectLuaMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
     DetectLuaData *lua = (DetectLuaData *)ctx;
     if (lua == NULL)
         SCReturnInt(0);
 
-    DetectLuaThreadData *tlua = (DetectLuaThreadData *)DetectThreadCtxGetKeywordThreadCtx(det_ctx, lua->thread_ctx_id);
+    DetectLuaThreadData *tlua =
+            (DetectLuaThreadData *)DetectThreadCtxGetKeywordThreadCtx(det_ctx, lua->thread_ctx_id);
     if (tlua == NULL)
         SCReturnInt(0);
 
@@ -318,16 +316,16 @@ static int DetectLuaMatch (DetectEngineThreadCtx *det_ctx,
     SCReturnInt(DetectLuaRunMatch(det_ctx, lua, tlua));
 }
 
-static int DetectLuaAppMatchCommon (DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, void *state,
-        const Signature *s, const SigMatchCtx *ctx)
+static int DetectLuaAppMatchCommon(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, const Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
     DetectLuaData *lua = (DetectLuaData *)ctx;
     if (lua == NULL)
         SCReturnInt(0);
 
-    DetectLuaThreadData *tlua = (DetectLuaThreadData *)DetectThreadCtxGetKeywordThreadCtx(det_ctx, lua->thread_ctx_id);
+    DetectLuaThreadData *tlua =
+            (DetectLuaThreadData *)DetectThreadCtxGetKeywordThreadCtx(det_ctx, lua->thread_ctx_id);
     if (tlua == NULL)
         SCReturnInt(0);
 
@@ -351,10 +349,8 @@ static int DetectLuaAppMatchCommon (DetectEngineThreadCtx *det_ctx,
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectLuaAppTxMatch (DetectEngineThreadCtx *det_ctx,
-                                Flow *f, uint8_t flags,
-                                void *state, void *txv, const Signature *s,
-                                const SigMatchCtx *ctx)
+static int DetectLuaAppTxMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state,
+        void *txv, const Signature *s, const SigMatchCtx *ctx)
 {
     return DetectLuaAppMatchCommon(det_ctx, f, flags, state, s, ctx);
 }
@@ -459,7 +455,7 @@ static void DetectLuaThreadFree(void *ctx)
  * \retval lua pointer to DetectLuaData on success
  * \retval NULL on failure
  */
-static DetectLuaData *DetectLuaParse (DetectEngineCtx *de_ctx, const char *str)
+static DetectLuaData *DetectLuaParse(DetectEngineCtx *de_ctx, const char *str)
 {
     DetectLuaData *lua = NULL;
 
@@ -672,7 +668,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
+static int DetectLuaSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     /* First check if Lua rules are enabled, by default Lua in rules
      * is disabled. */
@@ -702,9 +698,8 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, const char *st
         goto error;
     }
 
-    lua->thread_ctx_id = DetectRegisterThreadCtxFuncs(de_ctx, "lua",
-            DetectLuaThreadInit, (void *)lua,
-            DetectLuaThreadFree, 0);
+    lua->thread_ctx_id = DetectRegisterThreadCtxFuncs(
+            de_ctx, "lua", DetectLuaThreadInit, (void *)lua, DetectLuaThreadFree, 0);
     if (lua->thread_ctx_id == -1)
         goto error;
 
@@ -816,12 +811,10 @@ static int LuaMatchTest01(void)
                           "return 0\n";
     char sig[] = "alert http1:request_complete any any -> any any (flow:to_server; lua:unittest; "
                  "sid:1;)";
-    uint8_t httpbuf1[] =
-        "POST / HTTP/1.1\r\n"
-        "Host: www.emergingthreats.net\r\n\r\n";
-    uint8_t httpbuf2[] =
-        "POST / HTTP/1.1\r\n"
-        "Host: www.openinfosecfoundation.org\r\n\r\n";
+    uint8_t httpbuf1[] = "POST / HTTP/1.1\r\n"
+                         "Host: www.emergingthreats.net\r\n\r\n";
+    uint8_t httpbuf2[] = "POST / HTTP/1.1\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
@@ -849,11 +842,11 @@ static int LuaMatchTest01(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     StreamTcpInitConfig(true);
 
@@ -1614,12 +1607,10 @@ static int LuaMatchTest04a(void)
                           "return 0\n";
     char sig[] = "alert http1:request_complete any any -> any any (flow:to_server; lua:unittest; "
                  "sid:1;)";
-    uint8_t httpbuf1[] =
-        "POST / HTTP/1.1\r\n"
-        "Host: www.emergingthreats.net\r\n\r\n";
-    uint8_t httpbuf2[] =
-        "POST / HTTP/1.1\r\n"
-        "Host: www.openinfosecfoundation.org\r\n\r\n";
+    uint8_t httpbuf1[] = "POST / HTTP/1.1\r\n"
+                         "Host: www.emergingthreats.net\r\n\r\n";
+    uint8_t httpbuf2[] = "POST / HTTP/1.1\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
@@ -1647,12 +1638,12 @@ static int LuaMatchTest04a(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     StreamTcpInitConfig(true);
 
@@ -1726,12 +1717,10 @@ static int LuaMatchTest05(void)
                           "return 0\n";
     char sig[] = "alert http1:request_complete any any -> any any (flow:to_server; lua:unittest; "
                  "sid:1;)";
-    uint8_t httpbuf1[] =
-        "POST / HTTP/1.1\r\n"
-        "Host: www.emergingthreats.net\r\n\r\n";
-    uint8_t httpbuf2[] =
-        "POST / HTTP/1.1\r\n"
-        "Host: www.openinfosecfoundation.org\r\n\r\n";
+    uint8_t httpbuf1[] = "POST / HTTP/1.1\r\n"
+                         "Host: www.emergingthreats.net\r\n\r\n";
+    uint8_t httpbuf2[] = "POST / HTTP/1.1\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
@@ -1759,12 +1748,12 @@ static int LuaMatchTest05(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     StreamTcpInitConfig(true);
 
@@ -1838,12 +1827,10 @@ static int LuaMatchTest05a(void)
                           "return 0\n";
     char sig[] = "alert http1:request_complete any any -> any any (flow:to_server; lua:unittest; "
                  "sid:1;)";
-    uint8_t httpbuf1[] =
-        "POST / HTTP/1.1\r\n"
-        "Host: www.emergingthreats.net\r\n\r\n";
-    uint8_t httpbuf2[] =
-        "POST / HTTP/1.1\r\n"
-        "Host: www.openinfosecfoundation.org\r\n\r\n";
+    uint8_t httpbuf1[] = "POST / HTTP/1.1\r\n"
+                         "Host: www.emergingthreats.net\r\n\r\n";
+    uint8_t httpbuf2[] = "POST / HTTP/1.1\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
@@ -1871,12 +1858,12 @@ static int LuaMatchTest05a(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     StreamTcpInitConfig(true);
 
@@ -1957,12 +1944,10 @@ static int LuaMatchTest06(void)
                           "return 0\n";
     char sig[] = "alert http1:request_complete any any -> any any (flow:to_server; lua:unittest; "
                  "sid:1;)";
-    uint8_t httpbuf1[] =
-        "POST / HTTP/1.1\r\n"
-        "Host: www.emergingthreats.net\r\n\r\n";
-    uint8_t httpbuf2[] =
-        "POST / HTTP/1.1\r\n"
-        "Host: www.openinfosecfoundation.org\r\n\r\n";
+    uint8_t httpbuf1[] = "POST / HTTP/1.1\r\n"
+                         "Host: www.emergingthreats.net\r\n\r\n";
+    uint8_t httpbuf2[] = "POST / HTTP/1.1\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
@@ -1990,12 +1975,12 @@ static int LuaMatchTest06(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     StreamTcpInitConfig(true);
 
@@ -2074,12 +2059,10 @@ static int LuaMatchTest06a(void)
                           "return 0\n";
     char sig[] = "alert http1:request_complete any any -> any any (flow:to_server; lua:unittest; "
                  "sid:1;)";
-    uint8_t httpbuf1[] =
-        "POST / HTTP/1.1\r\n"
-        "Host: www.emergingthreats.net\r\n\r\n";
-    uint8_t httpbuf2[] =
-        "POST / HTTP/1.1\r\n"
-        "Host: www.openinfosecfoundation.org\r\n\r\n";
+    uint8_t httpbuf1[] = "POST / HTTP/1.1\r\n"
+                         "Host: www.emergingthreats.net\r\n\r\n";
+    uint8_t httpbuf2[] = "POST / HTTP/1.1\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
@@ -2107,12 +2090,12 @@ static int LuaMatchTest06a(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     StreamTcpInitConfig(true);
 

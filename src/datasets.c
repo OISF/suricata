@@ -56,7 +56,7 @@ static void DatasetUpdateHashsize(const char *name, uint32_t hash_size);
 
 static inline void DatasetUnlockData(THashData *d)
 {
-    (void) THashDecrUsecnt(d);
+    (void)THashDecrUsecnt(d);
     THashDataUnlock(d);
 }
 static bool DatasetIsStatic(const char *save, const char *load);
@@ -384,8 +384,7 @@ int DatasetGetOrCreate(const char *name, enum DatasetTypes type, const char *sav
             return -1;
         }
 
-        if ((save == NULL || strlen(save) == 0) &&
-            (load == NULL || strlen(load) == 0)) {
+        if ((save == NULL || strlen(save) == 0) && (load == NULL || strlen(load) == 0)) {
             // OK, rule keyword doesn't have to set state/load,
             // even when yaml set has set it.
         } else {
@@ -533,8 +532,7 @@ static bool DatasetIsStatic(const char *save, const char *load)
     /* A set is static if it does not have any dynamic properties like
      * save and/or state defined but has load defined.
      * */
-    if ((load != NULL && strlen(load) > 0) &&
-            (save == NULL || strlen(save) == 0)) {
+    if ((load != NULL && strlen(load) > 0) && (save == NULL || strlen(save) == 0)) {
         return true;
     }
     return false;
@@ -650,7 +648,7 @@ int DatasetsInit(void)
 
         int list_pos = 0;
         SCConfNode *iter = NULL;
-        TAILQ_FOREACH(iter, &datasets->head, next) {
+        TAILQ_FOREACH (iter, &datasets->head, next) {
             if (iter->name == NULL) {
                 list_pos++;
                 continue;
@@ -791,7 +789,7 @@ void DatasetsDestroy(void)
 static int SaveCallback(void *ctx, const uint8_t *data, const uint32_t data_len)
 {
     FILE *fp = ctx;
-    //PrintRawDataFp(fp, data, data_len);
+    // PrintRawDataFp(fp, data, data_len);
     if (fp) {
         return (int)fwrite(data, data_len, 1, fp);
     }
@@ -904,10 +902,10 @@ static int DatasetLookupString(Dataset *set, const uint8_t *data, const uint32_t
     return 0;
 }
 
-static DataRepResultType DatasetLookupStringwRep(Dataset *set,
-        const uint8_t *data, const uint32_t data_len, const DataRepType *rep)
+static DataRepResultType DatasetLookupStringwRep(
+        Dataset *set, const uint8_t *data, const uint32_t data_len, const DataRepType *rep)
 {
-    DataRepResultType rrep = { .found = false, .rep = { .value = 0 }};
+    DataRepResultType rrep = { .found = false, .rep = { .value = 0 } };
 
     if (set == NULL)
         return rrep;
@@ -1026,10 +1024,10 @@ static int DatasetLookupMd5(Dataset *set, const uint8_t *data, const uint32_t da
     return 0;
 }
 
-static DataRepResultType DatasetLookupMd5wRep(Dataset *set,
-        const uint8_t *data, const uint32_t data_len, const DataRepType *rep)
+static DataRepResultType DatasetLookupMd5wRep(
+        Dataset *set, const uint8_t *data, const uint32_t data_len, const DataRepType *rep)
 {
-    DataRepResultType rrep = { .found = false, .rep = { .value = 0 }};
+    DataRepResultType rrep = { .found = false, .rep = { .value = 0 } };
 
     if (set == NULL)
         return rrep;
@@ -1037,7 +1035,7 @@ static DataRepResultType DatasetLookupMd5wRep(Dataset *set,
     if (data_len != 16)
         return rrep;
 
-    Md5Type lookup = { .rep.value = 0};
+    Md5Type lookup = { .rep.value = 0 };
     memcpy(lookup.md5, data, data_len);
     THashData *rdata = THashLookupFromHash(set->hash, &lookup);
     if (rdata) {
@@ -1068,10 +1066,10 @@ static int DatasetLookupSha256(Dataset *set, const uint8_t *data, const uint32_t
     return 0;
 }
 
-static DataRepResultType DatasetLookupSha256wRep(Dataset *set,
-        const uint8_t *data, const uint32_t data_len, const DataRepType *rep)
+static DataRepResultType DatasetLookupSha256wRep(
+        Dataset *set, const uint8_t *data, const uint32_t data_len, const DataRepType *rep)
 {
-    DataRepResultType rrep = { .found = false, .rep = { .value = 0 }};
+    DataRepResultType rrep = { .found = false, .rep = { .value = 0 } };
 
     if (set == NULL)
         return rrep;
@@ -1121,10 +1119,10 @@ int DatasetLookup(Dataset *set, const uint8_t *data, const uint32_t data_len)
     return -1;
 }
 
-DataRepResultType DatasetLookupwRep(Dataset *set, const uint8_t *data, const uint32_t data_len,
-        const DataRepType *rep)
+DataRepResultType DatasetLookupwRep(
+        Dataset *set, const uint8_t *data, const uint32_t data_len, const DataRepType *rep)
 {
-    DataRepResultType rrep = { .found = false, .rep = { .value = 0 }};
+    DataRepResultType rrep = { .found = false, .rep = { .value = 0 } };
     if (set == NULL)
         return rrep;
 
@@ -1153,8 +1151,7 @@ static int DatasetAddString(Dataset *set, const uint8_t *data, const uint32_t da
     if (set == NULL)
         return -1;
 
-    StringType lookup = { .ptr = (uint8_t *)data, .len = data_len,
-        .rep.value = 0 };
+    StringType lookup = { .ptr = (uint8_t *)data, .len = data_len, .rep.value = 0 };
     struct THashDataGetResult res = THashGetFromHash(set->hash, &lookup);
     if (res.data) {
         DatasetUnlockData(res.data);
@@ -1174,8 +1171,7 @@ static int DatasetAddStringwRep(
     if (set == NULL)
         return -1;
 
-    StringType lookup = { .ptr = (uint8_t *)data, .len = data_len,
-        .rep = *rep };
+    StringType lookup = { .ptr = (uint8_t *)data, .len = data_len, .rep = *rep };
     struct THashDataGetResult res = THashGetFromHash(set->hash, &lookup);
     if (res.data) {
         DatasetUnlockData(res.data);
@@ -1471,8 +1467,7 @@ static int DatasetRemoveString(Dataset *set, const uint8_t *data, const uint32_t
     if (set == NULL)
         return -1;
 
-    StringType lookup = { .ptr = (uint8_t *)data, .len = data_len,
-        .rep.value = 0 };
+    StringType lookup = { .ptr = (uint8_t *)data, .len = data_len, .rep.value = 0 };
     return THashRemoveFromHash(set->hash, &lookup);
 }
 

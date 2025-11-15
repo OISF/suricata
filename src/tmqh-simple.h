@@ -24,6 +24,6 @@
 #ifndef SURICATA_TMQH_SIMPLE_H
 #define SURICATA_TMQH_SIMPLE_H
 
-void TmqhSimpleRegister (void);
+void TmqhSimpleRegister(void);
 
 #endif /* SURICATA_TMQH_SIMPLE_H */

@@ -25,6 +25,6 @@
 #define SURICATA_DETECT_FILEMD5_H
 
 /* prototypes */
-void DetectFileMd5Register (void);
+void DetectFileMd5Register(void);
 
 #endif /* SURICATA_DETECT_FILEMD5_H */

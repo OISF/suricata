@@ -26,6 +26,6 @@
 #define SURICATA_DETECT_URICONTENT_H
 
 /* prototypes */
-void DetectUricontentRegister (void);
+void DetectUricontentRegister(void);
 
 #endif /* SURICATA_DETECT_URICONTENT_H */

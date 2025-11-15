@@ -59,8 +59,8 @@ typedef struct LogSmbLogThread_ {
     LogSmbFileCtx *smblog_ctx;
 } LogSmbLogThread;
 
-static int JsonSMBLogger(ThreadVars *tv, void *thread_data,
-    const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
+static int JsonSMBLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state,
+        void *tx, uint64_t tx_id)
 {
     LogSmbLogThread *thread = thread_data;
 

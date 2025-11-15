@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /**
  * \file
  *
@@ -46,8 +45,7 @@ static void DecodeTCPOptions(Packet *p, const uint8_t *pkt, uint16_t pktlen)
 
     const TCPHdr *tcph = PacketGetTCP(p);
     uint16_t plen = pktlen;
-    while (plen)
-    {
+    while (plen) {
         const uint8_t type = *pkt;
 
         /* single byte options */
@@ -57,13 +55,13 @@ static void DecodeTCPOptions(Packet *p, const uint8_t *pkt, uint16_t pktlen)
             pkt++;
             plen--;
 
-        /* multibyte options */
+            /* multibyte options */
         } else {
             if (plen < 2) {
                 break;
             }
 
-            const uint8_t olen = *(pkt+1);
+            const uint8_t olen = *(pkt + 1);
 
             /* we already know that the total options len is valid,
              * so here the len of the specific option must be bad.
@@ -74,8 +72,8 @@ static void DecodeTCPOptions(Packet *p, const uint8_t *pkt, uint16_t pktlen)
             }
 
             tcp_opts[tcp_opt_cnt].type = type;
-            tcp_opts[tcp_opt_cnt].len  = olen;
-            tcp_opts[tcp_opt_cnt].data = (olen > 2) ? (pkt+2) : NULL;
+            tcp_opts[tcp_opt_cnt].len = olen;
+            tcp_opts[tcp_opt_cnt].data = (olen > 2) ? (pkt + 2) : NULL;
 
             /* we are parsing the most commonly used opts to prevent
              * us from having to walk the opts list for these all the
@@ -83,10 +81,10 @@ static void DecodeTCPOptions(Packet *p, const uint8_t *pkt, uint16_t pktlen)
             switch (type) {
                 case TCP_OPT_WS:
                     if (olen != TCP_OPT_WS_LEN) {
-                        ENGINE_SET_EVENT(p,TCP_OPT_INVALID_LEN);
+                        ENGINE_SET_EVENT(p, TCP_OPT_INVALID_LEN);
                     } else {
                         if (p->l4.vars.tcp.wscale_set != 0) {
-                            ENGINE_SET_EVENT(p,TCP_OPT_DUPLICATE);
+                            ENGINE_SET_EVENT(p, TCP_OPT_DUPLICATE);
                         } else {
                             p->l4.vars.tcp.wscale_set = 1;
                             const uint8_t wscale = *(tcp_opts[tcp_opt_cnt].data);
@@ -100,10 +98,10 @@ static void DecodeTCPOptions(Packet *p, const uint8_t *pkt, uint16_t pktlen)
                     break;
                 case TCP_OPT_MSS:
                     if (olen != TCP_OPT_MSS_LEN) {
-                        ENGINE_SET_EVENT(p,TCP_OPT_INVALID_LEN);
+                        ENGINE_SET_EVENT(p, TCP_OPT_INVALID_LEN);
                     } else {
                         if (p->l4.vars.tcp.mss_set) {
-                            ENGINE_SET_EVENT(p,TCP_OPT_DUPLICATE);
+                            ENGINE_SET_EVENT(p, TCP_OPT_DUPLICATE);
                         } else {
                             p->l4.vars.tcp.mss_set = true;
                             p->l4.vars.tcp.mss = SCNtohs(*(uint16_t *)(tcp_opts[tcp_opt_cnt].data));
@@ -112,10 +110,10 @@ static void DecodeTCPOptions(Packet *p, const uint8_t *pkt, uint16_t pktlen)
                     break;
                 case TCP_OPT_SACKOK:
                     if (olen != TCP_OPT_SACKOK_LEN) {
-                        ENGINE_SET_EVENT(p,TCP_OPT_INVALID_LEN);
+                        ENGINE_SET_EVENT(p, TCP_OPT_INVALID_LEN);
                     } else {
                         if (TCP_GET_SACKOK(p)) {
-                            ENGINE_SET_EVENT(p,TCP_OPT_DUPLICATE);
+                            ENGINE_SET_EVENT(p, TCP_OPT_DUPLICATE);
                         } else {
                             p->l4.vars.tcp.sack_ok = true;
                         }
@@ -123,10 +121,10 @@ static void DecodeTCPOptions(Packet *p, const uint8_t *pkt, uint16_t pktlen)
                     break;
                 case TCP_OPT_TS:
                     if (olen != TCP_OPT_TS_LEN) {
-                        ENGINE_SET_EVENT(p,TCP_OPT_INVALID_LEN);
+                        ENGINE_SET_EVENT(p, TCP_OPT_INVALID_LEN);
                     } else {
                         if (p->l4.vars.tcp.ts_set) {
-                            ENGINE_SET_EVENT(p,TCP_OPT_DUPLICATE);
+                            ENGINE_SET_EVENT(p, TCP_OPT_DUPLICATE);
                         } else {
                             uint32_t values[2];
                             memcpy(&values, tcp_opts[tcp_opt_cnt].data, sizeof(values));
@@ -145,7 +143,7 @@ static void DecodeTCPOptions(Packet *p, const uint8_t *pkt, uint16_t pktlen)
                         ENGINE_SET_EVENT(p, TCP_OPT_INVALID_LEN);
                     } else {
                         if (p->l4.vars.tcp.sack_set) {
-                            ENGINE_SET_EVENT(p,TCP_OPT_DUPLICATE);
+                            ENGINE_SET_EVENT(p, TCP_OPT_DUPLICATE);
                         } else {
                             ptrdiff_t diff = tcp_opts[tcp_opt_cnt].data - (uint8_t *)tcph;
                             DEBUG_VALIDATE_BUG_ON(diff > UINT16_MAX);
@@ -159,10 +157,10 @@ static void DecodeTCPOptions(Packet *p, const uint8_t *pkt, uint16_t pktlen)
                     SCLogDebug("TFO option, len %u", olen);
                     if ((olen != 2) && (olen < TCP_OPT_TFO_MIN_LEN || olen > TCP_OPT_TFO_MAX_LEN ||
                                                !(((olen - 2) & 0x1) == 0))) {
-                        ENGINE_SET_EVENT(p,TCP_OPT_INVALID_LEN);
+                        ENGINE_SET_EVENT(p, TCP_OPT_INVALID_LEN);
                     } else {
                         if (p->l4.vars.tcp.tfo_set) {
-                            ENGINE_SET_EVENT(p,TCP_OPT_DUPLICATE);
+                            ENGINE_SET_EVENT(p, TCP_OPT_DUPLICATE);
                         } else {
                             p->l4.vars.tcp.tfo_set = true;
                         }
@@ -176,20 +174,20 @@ static void DecodeTCPOptions(Packet *p, const uint8_t *pkt, uint16_t pktlen)
                         uint16_t magic = SCNtohs(*(uint16_t *)tcp_opts[tcp_opt_cnt].data);
                         if (magic == 0xf989) {
                             if (p->l4.vars.tcp.tfo_set) {
-                                ENGINE_SET_EVENT(p,TCP_OPT_DUPLICATE);
+                                ENGINE_SET_EVENT(p, TCP_OPT_DUPLICATE);
                             } else {
                                 p->l4.vars.tcp.tfo_set = true;
                             }
                         }
                     } else {
-                        ENGINE_SET_EVENT(p,TCP_OPT_INVALID_LEN);
+                        ENGINE_SET_EVENT(p, TCP_OPT_INVALID_LEN);
                     }
                     break;
                 /* RFC 2385 MD5 option */
                 case TCP_OPT_MD5:
                     SCLogDebug("MD5 option, len %u", olen);
                     if (olen != 18) {
-                        ENGINE_SET_INVALID_EVENT(p,TCP_OPT_INVALID_LEN);
+                        ENGINE_SET_INVALID_EVENT(p, TCP_OPT_INVALID_LEN);
                     } else {
                         /* we can't validate the option as the key is out of band */
                         p->l4.vars.tcp.md5_option_present = true;
@@ -199,7 +197,7 @@ static void DecodeTCPOptions(Packet *p, const uint8_t *pkt, uint16_t pktlen)
                 case TCP_OPT_AO:
                     SCLogDebug("AU option, len %u", olen);
                     if (olen < 4) {
-                        ENGINE_SET_INVALID_EVENT(p,TCP_OPT_INVALID_LEN);
+                        ENGINE_SET_INVALID_EVENT(p, TCP_OPT_INVALID_LEN);
                     } else {
                         /* we can't validate the option as the key is out of band */
                         p->l4.vars.tcp.ao_option_present = true;
@@ -293,20 +291,15 @@ static int TCPCalculateValidChecksumtest01(void)
 {
     uint16_t csum = 0;
 
-    uint8_t raw_ipshdr[] = {
-        0x40, 0x8e, 0x7e, 0xb2, 0xc0, 0xa8, 0x01, 0x03};
+    uint8_t raw_ipshdr[] = { 0x40, 0x8e, 0x7e, 0xb2, 0xc0, 0xa8, 0x01, 0x03 };
 
-    uint8_t raw_tcp[] = {
-        0x00, 0x50, 0x8e, 0x16, 0x0d, 0x59, 0xcd, 0x3c,
-        0xcf, 0x0d, 0x21, 0x80, 0xa0, 0x12, 0x16, 0xa0,
-        0xfa, 0x03, 0x00, 0x00, 0x02, 0x04, 0x05, 0xb4,
-        0x04, 0x02, 0x08, 0x0a, 0x6e, 0x18, 0x78, 0x73,
-        0x01, 0x71, 0x74, 0xde, 0x01, 0x03, 0x03, 02};
+    uint8_t raw_tcp[] = { 0x00, 0x50, 0x8e, 0x16, 0x0d, 0x59, 0xcd, 0x3c, 0xcf, 0x0d, 0x21, 0x80,
+        0xa0, 0x12, 0x16, 0xa0, 0xfa, 0x03, 0x00, 0x00, 0x02, 0x04, 0x05, 0xb4, 0x04, 0x02, 0x08,
+        0x0a, 0x6e, 0x18, 0x78, 0x73, 0x01, 0x71, 0x74, 0xde, 0x01, 0x03, 0x03, 02 };
 
-    csum = *( ((uint16_t *)raw_tcp) + 8);
+    csum = *(((uint16_t *)raw_tcp) + 8);
 
-    FAIL_IF(TCPChecksum((uint16_t *)raw_ipshdr,
-            (uint16_t *)raw_tcp, sizeof(raw_tcp), csum) != 0);
+    FAIL_IF(TCPChecksum((uint16_t *)raw_ipshdr, (uint16_t *)raw_tcp, sizeof(raw_tcp), csum) != 0);
     PASS;
 }
 
@@ -314,20 +307,15 @@ static int TCPCalculateInvalidChecksumtest02(void)
 {
     uint16_t csum = 0;
 
-    uint8_t raw_ipshdr[] = {
-        0x40, 0x8e, 0x7e, 0xb2, 0xc0, 0xa8, 0x01, 0x03};
+    uint8_t raw_ipshdr[] = { 0x40, 0x8e, 0x7e, 0xb2, 0xc0, 0xa8, 0x01, 0x03 };
 
-    uint8_t raw_tcp[] = {
-        0x00, 0x50, 0x8e, 0x16, 0x0d, 0x59, 0xcd, 0x3c,
-        0xcf, 0x0d, 0x21, 0x80, 0xa0, 0x12, 0x16, 0xa0,
-        0xfa, 0x03, 0x00, 0x00, 0x02, 0x04, 0x05, 0xb4,
-        0x04, 0x02, 0x08, 0x0a, 0x6e, 0x18, 0x78, 0x73,
-        0x01, 0x71, 0x74, 0xde, 0x01, 0x03, 0x03, 03};
+    uint8_t raw_tcp[] = { 0x00, 0x50, 0x8e, 0x16, 0x0d, 0x59, 0xcd, 0x3c, 0xcf, 0x0d, 0x21, 0x80,
+        0xa0, 0x12, 0x16, 0xa0, 0xfa, 0x03, 0x00, 0x00, 0x02, 0x04, 0x05, 0xb4, 0x04, 0x02, 0x08,
+        0x0a, 0x6e, 0x18, 0x78, 0x73, 0x01, 0x71, 0x74, 0xde, 0x01, 0x03, 0x03, 03 };
 
-    csum = *( ((uint16_t *)raw_tcp) + 8);
+    csum = *(((uint16_t *)raw_tcp) + 8);
 
-    FAIL_IF(TCPChecksum((uint16_t *) raw_ipshdr,
-            (uint16_t *)raw_tcp, sizeof(raw_tcp), csum) == 0);
+    FAIL_IF(TCPChecksum((uint16_t *)raw_ipshdr, (uint16_t *)raw_tcp, sizeof(raw_tcp), csum) == 0);
     PASS;
 }
 
@@ -335,23 +323,17 @@ static int TCPV6CalculateValidChecksumtest03(void)
 {
     uint16_t csum = 0;
 
-    static uint8_t raw_ipv6[] = {
-        0x00, 0x60, 0x97, 0x07, 0x69, 0xea, 0x00, 0x00,
-        0x86, 0x05, 0x80, 0xda, 0x86, 0xdd, 0x60, 0x00,
-        0x00, 0x00, 0x00, 0x20, 0x06, 0x40, 0x3f, 0xfe,
-        0x05, 0x07, 0x00, 0x00, 0x00, 0x01, 0x02, 0x00,
-        0x86, 0xff, 0xfe, 0x05, 0x80, 0xda, 0x3f, 0xfe,
-        0x05, 0x01, 0x04, 0x10, 0x00, 0x00, 0x02, 0xc0,
-        0xdf, 0xff, 0xfe, 0x47, 0x03, 0x3e, 0x03, 0xfe,
-        0x00, 0x16, 0xd6, 0x76, 0xf5, 0x2d, 0x0c, 0x7a,
-        0x08, 0x77, 0x80, 0x10, 0x21, 0x5c, 0xc2, 0xf1,
-        0x00, 0x00, 0x01, 0x01, 0x08, 0x0a, 0x00, 0x08,
-        0xca, 0x5a, 0x00, 0x01, 0x69, 0x27};
+    static uint8_t raw_ipv6[] = { 0x00, 0x60, 0x97, 0x07, 0x69, 0xea, 0x00, 0x00, 0x86, 0x05, 0x80,
+        0xda, 0x86, 0xdd, 0x60, 0x00, 0x00, 0x00, 0x00, 0x20, 0x06, 0x40, 0x3f, 0xfe, 0x05, 0x07,
+        0x00, 0x00, 0x00, 0x01, 0x02, 0x00, 0x86, 0xff, 0xfe, 0x05, 0x80, 0xda, 0x3f, 0xfe, 0x05,
+        0x01, 0x04, 0x10, 0x00, 0x00, 0x02, 0xc0, 0xdf, 0xff, 0xfe, 0x47, 0x03, 0x3e, 0x03, 0xfe,
+        0x00, 0x16, 0xd6, 0x76, 0xf5, 0x2d, 0x0c, 0x7a, 0x08, 0x77, 0x80, 0x10, 0x21, 0x5c, 0xc2,
+        0xf1, 0x00, 0x00, 0x01, 0x01, 0x08, 0x0a, 0x00, 0x08, 0xca, 0x5a, 0x00, 0x01, 0x69, 0x27 };
 
-    csum = *( ((uint16_t *)(raw_ipv6 + 70)));
+    csum = *(((uint16_t *)(raw_ipv6 + 70)));
 
-    FAIL_IF(TCPV6Checksum((uint16_t *)(raw_ipv6 + 14 + 8),
-            (uint16_t *)(raw_ipv6 + 54), 32, csum) != 0);
+    FAIL_IF(TCPV6Checksum((uint16_t *)(raw_ipv6 + 14 + 8), (uint16_t *)(raw_ipv6 + 54), 32, csum) !=
+            0);
     PASS;
 }
 
@@ -359,34 +341,26 @@ static int TCPV6CalculateInvalidChecksumtest04(void)
 {
     uint16_t csum = 0;
 
-    static uint8_t raw_ipv6[] = {
-        0x00, 0x60, 0x97, 0x07, 0x69, 0xea, 0x00, 0x00,
-        0x86, 0x05, 0x80, 0xda, 0x86, 0xdd, 0x60, 0x00,
-        0x00, 0x00, 0x00, 0x20, 0x06, 0x40, 0x3f, 0xfe,
-        0x05, 0x07, 0x00, 0x00, 0x00, 0x01, 0x02, 0x00,
-        0x86, 0xff, 0xfe, 0x05, 0x80, 0xda, 0x3f, 0xfe,
-        0x05, 0x01, 0x04, 0x10, 0x00, 0x00, 0x02, 0xc0,
-        0xdf, 0xff, 0xfe, 0x47, 0x03, 0x3e, 0x03, 0xfe,
-        0x00, 0x16, 0xd6, 0x76, 0xf5, 0x2d, 0x0c, 0x7a,
-        0x08, 0x77, 0x80, 0x10, 0x21, 0x5c, 0xc2, 0xf1,
-        0x00, 0x00, 0x01, 0x01, 0x08, 0x0a, 0x00, 0x08,
-        0xca, 0x5a, 0x00, 0x01, 0x69, 0x28};
+    static uint8_t raw_ipv6[] = { 0x00, 0x60, 0x97, 0x07, 0x69, 0xea, 0x00, 0x00, 0x86, 0x05, 0x80,
+        0xda, 0x86, 0xdd, 0x60, 0x00, 0x00, 0x00, 0x00, 0x20, 0x06, 0x40, 0x3f, 0xfe, 0x05, 0x07,
+        0x00, 0x00, 0x00, 0x01, 0x02, 0x00, 0x86, 0xff, 0xfe, 0x05, 0x80, 0xda, 0x3f, 0xfe, 0x05,
+        0x01, 0x04, 0x10, 0x00, 0x00, 0x02, 0xc0, 0xdf, 0xff, 0xfe, 0x47, 0x03, 0x3e, 0x03, 0xfe,
+        0x00, 0x16, 0xd6, 0x76, 0xf5, 0x2d, 0x0c, 0x7a, 0x08, 0x77, 0x80, 0x10, 0x21, 0x5c, 0xc2,
+        0xf1, 0x00, 0x00, 0x01, 0x01, 0x08, 0x0a, 0x00, 0x08, 0xca, 0x5a, 0x00, 0x01, 0x69, 0x28 };
 
-    csum = *( ((uint16_t *)(raw_ipv6 + 70)));
+    csum = *(((uint16_t *)(raw_ipv6 + 70)));
 
-    FAIL_IF(TCPV6Checksum((uint16_t *)(raw_ipv6 + 14 + 8),
-            (uint16_t *)(raw_ipv6 + 54), 32, csum) == 0);
+    FAIL_IF(TCPV6Checksum((uint16_t *)(raw_ipv6 + 14 + 8), (uint16_t *)(raw_ipv6 + 54), 32, csum) ==
+            0);
     PASS;
 }
 
 /** \test Get the wscale of 2 */
 static int TCPGetWscaleTest01(void)
 {
-    static uint8_t raw_tcp[] = {0xda, 0xc1, 0x00, 0x50, 0xb6, 0x21, 0x7f, 0x58,
-                                0x00, 0x00, 0x00, 0x00, 0xa0, 0x02, 0x16, 0xd0,
-                                0x8a, 0xaf, 0x00, 0x00, 0x02, 0x04, 0x05, 0xb4,
-                                0x04, 0x02, 0x08, 0x0a, 0x00, 0x62, 0x88, 0x28,
-                                0x00, 0x00, 0x00, 0x00, 0x01, 0x03, 0x03, 0x02};
+    static uint8_t raw_tcp[] = { 0xda, 0xc1, 0x00, 0x50, 0xb6, 0x21, 0x7f, 0x58, 0x00, 0x00, 0x00,
+        0x00, 0xa0, 0x02, 0x16, 0xd0, 0x8a, 0xaf, 0x00, 0x00, 0x02, 0x04, 0x05, 0xb4, 0x04, 0x02,
+        0x08, 0x0a, 0x00, 0x62, 0x88, 0x28, 0x00, 0x00, 0x00, 0x00, 0x01, 0x03, 0x03, 0x02 };
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
     IPV4Hdr ip4h;
@@ -415,11 +389,9 @@ static int TCPGetWscaleTest01(void)
 /** \test Get the wscale of 15, so see if return 0 properly */
 static int TCPGetWscaleTest02(void)
 {
-    static uint8_t raw_tcp[] = {0xda, 0xc1, 0x00, 0x50, 0xb6, 0x21, 0x7f, 0x58,
-                                0x00, 0x00, 0x00, 0x00, 0xa0, 0x02, 0x16, 0xd0,
-                                0x8a, 0xaf, 0x00, 0x00, 0x02, 0x04, 0x05, 0xb4,
-                                0x04, 0x02, 0x08, 0x0a, 0x00, 0x62, 0x88, 0x28,
-                                0x00, 0x00, 0x00, 0x00, 0x01, 0x03, 0x03, 0x0f};
+    static uint8_t raw_tcp[] = { 0xda, 0xc1, 0x00, 0x50, 0xb6, 0x21, 0x7f, 0x58, 0x00, 0x00, 0x00,
+        0x00, 0xa0, 0x02, 0x16, 0xd0, 0x8a, 0xaf, 0x00, 0x00, 0x02, 0x04, 0x05, 0xb4, 0x04, 0x02,
+        0x08, 0x0a, 0x00, 0x62, 0x88, 0x28, 0x00, 0x00, 0x00, 0x00, 0x01, 0x03, 0x03, 0x0f };
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
     IPV4Hdr ip4h;
@@ -449,10 +421,9 @@ static int TCPGetWscaleTest02(void)
 /** \test Get the wscale, but it's missing, so see if return 0 properly */
 static int TCPGetWscaleTest03(void)
 {
-    static uint8_t raw_tcp[] = {0xda, 0xc1, 0x00, 0x50, 0xb6, 0x21, 0x7f, 0x59,
-                                0xdd, 0xa3, 0x6f, 0xf8, 0x80, 0x10, 0x05, 0xb4,
-                                0x7c, 0x70, 0x00, 0x00, 0x01, 0x01, 0x08, 0x0a,
-                                0x00, 0x62, 0x88, 0x9e, 0x00, 0x00, 0x00, 0x00};
+    static uint8_t raw_tcp[] = { 0xda, 0xc1, 0x00, 0x50, 0xb6, 0x21, 0x7f, 0x59, 0xdd, 0xa3, 0x6f,
+        0xf8, 0x80, 0x10, 0x05, 0xb4, 0x7c, 0x70, 0x00, 0x00, 0x01, 0x01, 0x08, 0x0a, 0x00, 0x62,
+        0x88, 0x9e, 0x00, 0x00, 0x00, 0x00 };
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
     IPV4Hdr ip4h;
@@ -480,15 +451,11 @@ static int TCPGetWscaleTest03(void)
 
 static int TCPGetSackTest01(void)
 {
-    static uint8_t raw_tcp[] = {
-        0x00, 0x50, 0x06, 0xa6, 0xfa, 0x87, 0x0b, 0xf5,
-        0xf1, 0x59, 0x02, 0xe0, 0xa0, 0x10, 0x3e, 0xbc,
-        0x1d, 0xe7, 0x00, 0x00, 0x01, 0x01, 0x05, 0x12,
-        0xf1, 0x59, 0x13, 0xfc, 0xf1, 0x59, 0x1f, 0x64,
-        0xf1, 0x59, 0x08, 0x94, 0xf1, 0x59, 0x0e, 0x48 };
-    static uint8_t raw_tcp_sack[] = {
-        0xf1, 0x59, 0x13, 0xfc, 0xf1, 0x59, 0x1f, 0x64,
-        0xf1, 0x59, 0x08, 0x94, 0xf1, 0x59, 0x0e, 0x48 };
+    static uint8_t raw_tcp[] = { 0x00, 0x50, 0x06, 0xa6, 0xfa, 0x87, 0x0b, 0xf5, 0xf1, 0x59, 0x02,
+        0xe0, 0xa0, 0x10, 0x3e, 0xbc, 0x1d, 0xe7, 0x00, 0x00, 0x01, 0x01, 0x05, 0x12, 0xf1, 0x59,
+        0x13, 0xfc, 0xf1, 0x59, 0x1f, 0x64, 0xf1, 0x59, 0x08, 0x94, 0xf1, 0x59, 0x0e, 0x48 };
+    static uint8_t raw_tcp_sack[] = { 0xf1, 0x59, 0x13, 0xfc, 0xf1, 0x59, 0x1f, 0x64, 0xf1, 0x59,
+        0x08, 0x94, 0xf1, 0x59, 0x0e, 0x48 };
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
 
@@ -528,14 +495,10 @@ static int TCPGetSackTest01(void)
 void DecodeTCPRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("TCPCalculateValidChecksumtest01",
-                   TCPCalculateValidChecksumtest01);
-    UtRegisterTest("TCPCalculateInvalidChecksumtest02",
-                   TCPCalculateInvalidChecksumtest02);
-    UtRegisterTest("TCPV6CalculateValidChecksumtest03",
-                   TCPV6CalculateValidChecksumtest03);
-    UtRegisterTest("TCPV6CalculateInvalidChecksumtest04",
-                   TCPV6CalculateInvalidChecksumtest04);
+    UtRegisterTest("TCPCalculateValidChecksumtest01", TCPCalculateValidChecksumtest01);
+    UtRegisterTest("TCPCalculateInvalidChecksumtest02", TCPCalculateInvalidChecksumtest02);
+    UtRegisterTest("TCPV6CalculateValidChecksumtest03", TCPV6CalculateValidChecksumtest03);
+    UtRegisterTest("TCPV6CalculateInvalidChecksumtest04", TCPV6CalculateInvalidChecksumtest04);
     UtRegisterTest("TCPGetWscaleTest01", TCPGetWscaleTest01);
     UtRegisterTest("TCPGetWscaleTest02", TCPGetWscaleTest02);
     UtRegisterTest("TCPGetWscaleTest03", TCPGetWscaleTest03);

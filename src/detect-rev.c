@@ -33,12 +33,12 @@
 #include "util-error.h"
 #include "util-unittest.h"
 
-static int DetectRevSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectRevSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectRevRegisterTests(void);
 #endif
 
-void DetectRevRegister (void)
+void DetectRevRegister(void)
 {
     sigmatch_table[DETECT_REV].name = "rev";
     sigmatch_table[DETECT_REV].desc = "set version of the rule";
@@ -49,7 +49,7 @@ void DetectRevRegister (void)
 #endif
 }
 
-static int DetectRevSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
+static int DetectRevSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     uint32_t rev = 0;
     if (ByteExtractStringUint32(&rev, 10, strlen(rawstr), rawstr) <= 0) {

@@ -35,7 +35,8 @@ void LuaPushTableKeyValueBoolean(lua_State *luastate, const char *key, bool valu
 void LuaPushTableKeyValueString(lua_State *luastate, const char *key, const char *value);
 void LuaPushTableKeyValueLString(
         lua_State *luastate, const char *key, const char *value, size_t len);
-void LuaPushTableKeyValueArray(lua_State *luastate, const char *key, const uint8_t *value, size_t len);
+void LuaPushTableKeyValueArray(
+        lua_State *luastate, const char *key, const uint8_t *value, size_t len);
 
 int LuaStateNeedProto(lua_State *luastate, AppProto alproto);
 

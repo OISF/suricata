@@ -48,18 +48,16 @@
 #include "detect-ssh-hassh-string.h"
 #include "rust.h"
 
-
-#define KEYWORD_NAME "ssh.hassh.string"
+#define KEYWORD_NAME  "ssh.hassh.string"
 #define KEYWORD_ALIAS "ssh-hassh-string"
-#define KEYWORD_DOC "ssh-keywords.html#hassh.string"
-#define BUFFER_NAME "ssh.hassh.string"
-#define BUFFER_DESC "Ssh Client Key Exchange methods For ssh Clients "
+#define KEYWORD_DOC   "ssh-keywords.html#hassh.string"
+#define BUFFER_NAME   "ssh.hassh.string"
+#define BUFFER_DESC   "Ssh Client Key Exchange methods For ssh Clients "
 static int g_ssh_hassh_string_buffer_id = 0;
 
-
 static InspectionBuffer *GetSshData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f,
-        const uint8_t flow_flags, void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t flow_flags, void *txv,
+        const int list_id)
 {
 
     SCEnter();
@@ -101,7 +99,7 @@ static int DetectSshHasshStringSetup(DetectEngineCtx *de_ctx, Signature *s, cons
 
     if (SCDetectSignatureSetAppProto(s, ALPROTO_SSH) < 0)
         return -1;
-        
+
     /* try to enable Hassh */
     SCSshEnableHassh();
 
@@ -114,13 +112,12 @@ static int DetectSshHasshStringSetup(DetectEngineCtx *de_ctx, Signature *s, cons
     }
 
     return 0;
-
 }
 
 /**
  * \brief Registration function for hassh.string keyword.
  */
-void DetectSshHasshStringRegister(void) 
+void DetectSshHasshStringRegister(void)
 {
     sigmatch_table[DETECT_SSH_HASSH_STRING].name = KEYWORD_NAME;
     sigmatch_table[DETECT_SSH_HASSH_STRING].alias = KEYWORD_ALIAS;

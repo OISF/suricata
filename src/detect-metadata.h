@@ -42,7 +42,7 @@ typedef struct DetectMetadataHead {
 } DetectMetadataHead;
 
 /* prototypes */
-void DetectMetadataRegister (void);
+void DetectMetadataRegister(void);
 
 void DetectMetadataFree(DetectMetadata *mdata);
 

@@ -39,8 +39,8 @@
 #include "output-json-dns.h"
 #include "rust.h"
 
-#define LOG_QUERIES    BIT_U64(0)
-#define LOG_ANSWERS    BIT_U64(1)
+#define LOG_QUERIES BIT_U64(0)
+#define LOG_ANSWERS BIT_U64(1)
 
 #define LOG_A          BIT_U64(2)
 #define LOG_NS         BIT_U64(3)
@@ -101,12 +101,13 @@
 #define LOG_ANY        BIT_U64(58)
 #define LOG_URI        BIT_U64(59)
 
-#define LOG_FORMAT_GROUPED     BIT_U64(60)
-#define LOG_FORMAT_DETAILED    BIT_U64(61)
-#define LOG_HTTPS              BIT_U64(62)
+#define LOG_FORMAT_GROUPED  BIT_U64(60)
+#define LOG_FORMAT_DETAILED BIT_U64(61)
+#define LOG_HTTPS           BIT_U64(62)
 
-#define LOG_FORMAT_ALL (LOG_FORMAT_GROUPED|LOG_FORMAT_DETAILED)
-#define LOG_ALL_RRTYPES (~(uint64_t)(LOG_QUERIES|LOG_ANSWERS|LOG_FORMAT_DETAILED|LOG_FORMAT_GROUPED))
+#define LOG_FORMAT_ALL (LOG_FORMAT_GROUPED | LOG_FORMAT_DETAILED)
+#define LOG_ALL_RRTYPES                                                                            \
+    (~(uint64_t)(LOG_QUERIES | LOG_ANSWERS | LOG_FORMAT_DETAILED | LOG_FORMAT_GROUPED))
 
 typedef enum {
     DNS_RRTYPE_A = 0,
@@ -342,8 +343,8 @@ out:
     return TM_ECODE_OK;
 }
 
-static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
-    const Packet *p, Flow *f, void *alstate, void *txptr, uint64_t tx_id)
+static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f,
+        void *alstate, void *txptr, uint64_t tx_id)
 {
     SCEnter();
 
@@ -375,8 +376,8 @@ static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
     SCReturnInt(TM_ECODE_OK);
 }
 
-static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
-    const Packet *p, Flow *f, void *alstate, void *txptr, uint64_t tx_id)
+static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f,
+        void *alstate, void *txptr, uint64_t tx_id)
 {
     SCEnter();
 
@@ -463,8 +464,7 @@ static TmEcode LogDnsLogThreadInit(ThreadVars *t, const void *initdata, void **d
     if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
 
-    if(initdata == NULL)
-    {
+    if (initdata == NULL) {
         SCLogDebug("Error getting context for EveLogDNS.  \"initdata\" argument NULL");
         goto error_exit;
     }
@@ -683,9 +683,8 @@ static OutputInitResult JsonDnsLogInitCtxSub(SCConfNode *conf, OutputCtx *parent
     return result;
 }
 
-
 #define MODULE_NAME "JsonDnsLog"
-void JsonDnsLogRegister (void)
+void JsonDnsLogRegister(void)
 {
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", MODULE_NAME, "eve-log.dns",
             JsonDnsLogInitCtxSub, ALPROTO_DNS, JsonDnsLogger, LogDnsLogThreadInit,

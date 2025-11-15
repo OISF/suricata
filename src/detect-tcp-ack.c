@@ -45,8 +45,8 @@
 
 /* prototypes */
 static int DetectAckSetup(DetectEngineCtx *, Signature *, const char *);
-static int DetectAckMatch(DetectEngineThreadCtx *,
-                          Packet *, const Signature *, const SigMatchCtx *);
+static int DetectAckMatch(
+        DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
 #ifdef UNITTESTS
 static void DetectAckRegisterTests(void);
 #endif
@@ -84,8 +84,8 @@ void DetectAckRegister(void)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectAckMatch(DetectEngineThreadCtx *det_ctx,
-                          Packet *p, const Signature *s, const SigMatchCtx *ctx)
+static int DetectAckMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
     const DetectU32Data *data = (const DetectU32Data *)ctx;
@@ -138,8 +138,7 @@ static void DetectAckFree(DetectEngineCtx *de_ctx, void *ptr)
 
 /* prefilter code */
 
-static void
-PrefilterPacketAckMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
+static void PrefilterPacketAckMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
 {
     DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
     const PrefilterPacketHeaderCtx *ctx = pectx;
@@ -168,7 +167,7 @@ static int PrefilterSetupTcpAck(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 static bool PrefilterTcpAckIsPrefilterable(const Signature *s)
 {
     const SigMatch *sm;
-    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_ACK:
                 return true;

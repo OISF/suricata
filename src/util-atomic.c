@@ -58,7 +58,7 @@ static int SCAtomicTest01(void)
 
     result = 1;
 
- end:
+end:
     return result;
 }
 

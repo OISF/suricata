@@ -228,7 +228,7 @@ int BuildCpusetWithCallback(
         const char *name, SCConfNode *node, void (*Callback)(int i, void *data), void *data)
 {
     SCConfNode *lnode;
-    TAILQ_FOREACH(lnode, &node->head, next) {
+    TAILQ_FOREACH (lnode, &node->head, next) {
         uint32_t i;
         uint32_t a, b;
         uint32_t stop = 0;
@@ -266,7 +266,7 @@ int BuildCpusetWithCallback(
             }
             b = a;
         }
-        for (i = a; i<= b; i++) {
+        for (i = a; i <= b; i++) {
             Callback(i, data);
         }
         if (stop) {
@@ -602,7 +602,7 @@ void AffinitySetupLoadFromConfig(void)
     }
 
     SCConfNode *affinity;
-    TAILQ_FOREACH(affinity, &root->head, next) {
+    TAILQ_FOREACH (affinity, &root->head, next) {
         char *v = AffinityConfigIsLegacy() ? affinity->val : affinity->name;
         const char *setname = GetAffinitySetName(v);
         if (setname == NULL) {

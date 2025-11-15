@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /**
  * \file
  *
@@ -49,16 +48,16 @@
 #include "detect-ssh-proto.h"
 #include "rust.h"
 
-#define KEYWORD_NAME "ssh.proto"
+#define KEYWORD_NAME        "ssh.proto"
 #define KEYWORD_NAME_LEGACY "ssh_proto"
-#define KEYWORD_DOC "ssh-keywords.html#ssh-proto"
-#define BUFFER_NAME "ssh.proto"
-#define BUFFER_DESC "ssh protocol version field"
+#define KEYWORD_DOC         "ssh-keywords.html#ssh-proto"
+#define BUFFER_NAME         "ssh.proto"
+#define BUFFER_DESC         "ssh protocol version field"
 static int g_buffer_id = 0;
 
 static InspectionBuffer *GetSshData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f,
-        const uint8_t flow_flags, void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t flow_flags, void *txv,
+        const int list_id)
 {
     SCEnter();
 

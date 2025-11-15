@@ -60,8 +60,7 @@
 #define BUFFER_DESC  "sip request uri"
 static int g_buffer_id = 0;
 
-static void DetectSipUriSetupCallback(const DetectEngineCtx *de_ctx,
-                                       Signature *s)
+static void DetectSipUriSetupCallback(const DetectEngineCtx *de_ctx, Signature *s)
 {
     SCLogDebug("callback invoked by %u", s->id);
     DetectUrilenApplyToContent(s, g_buffer_id);
@@ -79,8 +78,8 @@ static int DetectSipUriSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
 }
 
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f,
-        const uint8_t _flow_flags, void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
 {
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
@@ -114,8 +113,7 @@ void DetectSipUriRegister(void)
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 
-    DetectBufferTypeRegisterSetupCallback(BUFFER_NAME,
-            DetectSipUriSetupCallback);
+    DetectBufferTypeRegisterSetupCallback(BUFFER_NAME, DetectSipUriSetupCallback);
 
     DetectBufferTypeRegisterValidateCallback(BUFFER_NAME, DetectUrilenValidateContent);
 

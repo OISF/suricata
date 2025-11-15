@@ -129,7 +129,7 @@
 
 #endif /* UNITTESTS */
 
-void TmqhSetup (void);
+void TmqhSetup(void);
 
 #ifdef UNITTESTS
 static void RegisterUnittests(void)

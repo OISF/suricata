@@ -16,9 +16,9 @@
  */
 
 /** \file
-*
-*  \author Aleksey Katargin <gureedo@gmail.com>
-*/
+ *
+ *  \author Aleksey Katargin <gureedo@gmail.com>
+ */
 
 #ifndef SURICATA_RUNMODE_NETMAP_H
 #define SURICATA_RUNMODE_NETMAP_H

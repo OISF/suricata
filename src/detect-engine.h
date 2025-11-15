@@ -41,8 +41,8 @@ void DetectBufferTypeSupportsMultiInstance(const char *name);
 int DetectBufferTypeMaxId(void);
 void DetectBufferTypeCloseRegistration(void);
 void DetectBufferTypeSetDescriptionByName(const char *name, const char *desc);
-void DetectBufferTypeRegisterSetupCallback(const char *name,
-        void (*Callback)(const DetectEngineCtx *, Signature *));
+void DetectBufferTypeRegisterSetupCallback(
+        const char *name, void (*Callback)(const DetectEngineCtx *, Signature *));
 void DetectBufferTypeRegisterValidateCallback(
         const char *name, bool (*ValidateCallback)(const Signature *, const char **sigerror,
                                   const DetectBufferType *));
@@ -80,8 +80,8 @@ DetectEngineCtx *DetectEngineCtxInitStubForMT(void);
 void DetectEngineCtxFree(DetectEngineCtx *);
 int DetectEngineThreadCtxGetJsonContext(DetectEngineThreadCtx *det_ctx);
 
-int DetectRegisterThreadCtxGlobalFuncs(const char *name,
-        void *(*InitFunc)(void *), void *data, void (*FreeFunc)(void *));
+int DetectRegisterThreadCtxGlobalFuncs(
+        const char *name, void *(*InitFunc)(void *), void *data, void (*FreeFunc)(void *));
 void *DetectThreadCtxGetGlobalKeywordThreadCtx(DetectEngineThreadCtx *det_ctx, int id);
 
 TmEcode DetectEngineThreadCtxInit(ThreadVars *, void *, void **);
@@ -147,10 +147,9 @@ uint8_t DetectEngineInspectMultiBufferGeneric(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const DetectEngineAppInspectionEngine *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
-int DetectEngineInspectPktBufferGeneric(
-        DetectEngineThreadCtx *det_ctx,
-        const DetectEnginePktInspectionEngine *engine,
-        const Signature *s, Packet *p, uint8_t *alert_flags);
+int DetectEngineInspectPktBufferGeneric(DetectEngineThreadCtx *det_ctx,
+        const DetectEnginePktInspectionEngine *engine, const Signature *s, Packet *p,
+        uint8_t *alert_flags);
 
 /**
  * \brief Registers an app inspection engine.
@@ -171,8 +170,7 @@ void DetectAppLayerInspectEngineRegisterSingle(const char *name, AppProto alprot
 void DetectAppLayerMultiRegister(const char *name, AppProto alproto, uint32_t dir, int progress,
         InspectionMultiBufferGetDataPtr GetData, int priority);
 
-void DetectPktInspectEngineRegister(const char *name,
-        InspectionBufferGetPktDataPtr GetPktData,
+void DetectPktInspectEngineRegister(const char *name, InspectionBufferGetPktDataPtr GetPktData,
         InspectionBufferPktInspectFunc Callback);
 
 void DetectEngineFrameInspectEngineRegister(DetectEngineCtx *de_ctx, const char *name, int dir,
@@ -181,10 +179,8 @@ void DetectEngineFrameInspectEngineRegister(DetectEngineCtx *de_ctx, const char 
 int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature *s);
 void DetectEngineAppInspectionEngineSignatureFree(DetectEngineCtx *, Signature *s);
 
-bool DetectEnginePktInspectionRun(ThreadVars *tv,
-        DetectEngineThreadCtx *det_ctx, const Signature *s,
-        Flow *f, Packet *p,
-        uint8_t *alert_flags);
+bool DetectEnginePktInspectionRun(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, Flow *f, Packet *p, uint8_t *alert_flags);
 int DetectEnginePktInspectionSetup(Signature *s);
 
 void DetectEngineSetParseMetadata(void);

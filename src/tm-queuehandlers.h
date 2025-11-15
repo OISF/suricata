@@ -45,7 +45,7 @@ typedef struct Tmqh_ {
 
 extern Tmqh tmqh_table[TMQH_SIZE];
 
-void TmqhSetup (void);
+void TmqhSetup(void);
 void TmqhCleanup(void);
 int TmqhNameToID(const char *name);
 Tmqh *TmqhGetQueueHandlerByName(const char *name);

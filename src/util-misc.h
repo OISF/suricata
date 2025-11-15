@@ -53,7 +53,6 @@ void UtilMiscRegisterTests(void);
 void ParseSizeInit(void);
 void ParseSizeDeinit(void);
 
-void ShortenString(const char *input,
-    char *output, size_t output_size, char c);
+void ShortenString(const char *input, char *output, size_t output_size, char c);
 
 #endif /* SURICATA_UTIL_MISC_H */

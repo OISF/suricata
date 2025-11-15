@@ -283,7 +283,8 @@ void LuaStateSetDirection(lua_State *luastate, int direction)
 }
 
 /** \brief dump stack from lua state to screen */
-void LuaPrintStack(lua_State *state) {
+void LuaPrintStack(lua_State *state)
+{
     int size = lua_gettop(state);
     int i;
 
@@ -310,7 +311,6 @@ void LuaPrintStack(lua_State *state) {
             default:
                 printf("other %s", lua_typename(state, type));
                 break;
-
         }
         printf("\n");
     }

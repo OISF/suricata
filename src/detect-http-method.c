@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /**
  * \file
  *
@@ -69,8 +68,8 @@ void DetectHttpMethodFree(void *);
 static bool DetectHttpMethodValidateCallback(
         const Signature *s, const char **sigerror, const DetectBufferType *dbt);
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f,
-        const uint8_t _flow_flags, void *txv, const int list_id);
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id);
 static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
         const int list_id);
@@ -95,10 +94,11 @@ void DetectHttpMethodRegister(void)
 
     /* http.method sticky buffer */
     sigmatch_table[DETECT_HTTP_METHOD].name = "http.method";
-    sigmatch_table[DETECT_HTTP_METHOD].desc = "sticky buffer to match specifically and only on the HTTP method buffer";
+    sigmatch_table[DETECT_HTTP_METHOD].desc =
+            "sticky buffer to match specifically and only on the HTTP method buffer";
     sigmatch_table[DETECT_HTTP_METHOD].url = "/rules/http-keywords.html#http-method";
     sigmatch_table[DETECT_HTTP_METHOD].Setup = DetectHttpMethodSetupSticky;
-    sigmatch_table[DETECT_HTTP_METHOD].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_HTTP_METHOD].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister("http_method", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
             HTP_REQUEST_PROGRESS_LINE, DetectEngineInspectBufferGeneric, GetData);
@@ -112,11 +112,9 @@ void DetectHttpMethodRegister(void)
     DetectAppLayerMpmRegister("http_method", SIG_FLAG_TOSERVER, 4, PrefilterGenericMpmRegister,
             GetData2, ALPROTO_HTTP2, HTTP2StateDataClient);
 
-    DetectBufferTypeSetDescriptionByName("http_method",
-            "http request method");
+    DetectBufferTypeSetDescriptionByName("http_method", "http request method");
 
-    DetectBufferTypeRegisterValidateCallback("http_method",
-            DetectHttpMethodValidateCallback);
+    DetectBufferTypeRegisterValidateCallback("http_method", DetectHttpMethodValidateCallback);
 
     g_http_method_buffer_id = DetectBufferTypeGetByName("http_method");
 
@@ -200,8 +198,8 @@ static bool DetectHttpMethodValidateCallback(
 }
 
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f,
-        const uint8_t _flow_flags, void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
 {
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {

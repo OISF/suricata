@@ -27,4 +27,3 @@
 uint32_t HostTimeoutHash(SCTime_t ts);
 
 #endif
-

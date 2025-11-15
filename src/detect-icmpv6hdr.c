@@ -36,9 +36,9 @@
 #include "util-validate.h"
 
 /* prototypes */
-static int DetectICMPv6hdrSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectICMPv6hdrSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
-void DetectICMPv6hdrRegisterTests (void);
+void DetectICMPv6hdrRegisterTests(void);
 #endif
 
 static int g_icmpv6hdr_buffer_id = 0;
@@ -80,7 +80,7 @@ void DetectICMPv6hdrRegister(void)
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectICMPv6hdrSetup (DetectEngineCtx *de_ctx, Signature *s, const char *_unused)
+static int DetectICMPv6hdrSetup(DetectEngineCtx *de_ctx, Signature *s, const char *_unused)
 {
     // ICMPv6 comes only with IPv6
     s->proto.flags |= DETECT_PROTO_IPV6;

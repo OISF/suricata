@@ -27,8 +27,8 @@
 #include "decode.h"
 #include "tm-modules.h"
 
-#define DEFAULT_LOG_MODE_APPEND     "yes"
-#define DEFAULT_LOG_FILETYPE        "regular"
+#define DEFAULT_LOG_MODE_APPEND "yes"
+#define DEFAULT_LOG_FILETYPE    "regular"
 
 typedef struct OutputLoggerThreadStore_ {
     void *thread_data;

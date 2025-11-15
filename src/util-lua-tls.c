@@ -15,7 +15,6 @@
  * 02110-1301, USA.
  */
 
-
 /**
  * \file
  *
@@ -174,9 +173,12 @@ static int GetCertInfo(lua_State *luastate, bool client, const SSLState *ssl_sta
     SSLVersionToString(ssl_state->server_connp.version, ssl_version);
 
     int r = LuaPushStringBuffer(luastate, (uint8_t *)ssl_version, strlen(ssl_version));
-    r += LuaPushStringBuffer(luastate, (uint8_t *)connp->cert0_subject, strlen(connp->cert0_subject));
-    r += LuaPushStringBuffer(luastate, (uint8_t *)connp->cert0_issuerdn, strlen(connp->cert0_issuerdn));
-    r += LuaPushStringBuffer(luastate, (uint8_t *)connp->cert0_fingerprint, strlen(connp->cert0_fingerprint));
+    r += LuaPushStringBuffer(
+            luastate, (uint8_t *)connp->cert0_subject, strlen(connp->cert0_subject));
+    r += LuaPushStringBuffer(
+            luastate, (uint8_t *)connp->cert0_issuerdn, strlen(connp->cert0_issuerdn));
+    r += LuaPushStringBuffer(
+            luastate, (uint8_t *)connp->cert0_fingerprint, strlen(connp->cert0_fingerprint));
     return r;
 }
 
@@ -205,8 +207,8 @@ static int GetSNI(lua_State *luastate, const SSLState *ssl_state)
     if (ssl_state->client_connp.sni == NULL)
         return LuaCallbackError(luastate, "error: no server name indication");
 
-    return LuaPushStringBuffer(luastate, (uint8_t *)ssl_state->client_connp.sni,
-                               strlen(ssl_state->client_connp.sni));
+    return LuaPushStringBuffer(
+            luastate, (uint8_t *)ssl_state->client_connp.sni, strlen(ssl_state->client_connp.sni));
 }
 
 static int LuaTlsGetSNI(lua_State *luastate)
@@ -244,8 +246,7 @@ static int GetCertChain(lua_State *luastate, bool client)
     lua_newtable(luastate);
     SSLCertsChain *cert = NULL;
 
-    TAILQ_FOREACH(cert, &connp->certs, next)
-    {
+    TAILQ_FOREACH (cert, &connp->certs, next) {
         lua_pushinteger(luastate, u++);
 
         lua_newtable(luastate);

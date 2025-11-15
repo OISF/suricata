@@ -25,14 +25,13 @@
 #define SURICATA_DECODE_SCTP_H
 
 /** size of the packet header without any chunk headers */
-#define SCTP_HEADER_LEN                       12
+#define SCTP_HEADER_LEN 12
 
-typedef struct SCTPHdr_
-{
-    uint16_t sh_sport;     /* source port */
-    uint16_t sh_dport;     /* destination port */
-    uint32_t sh_vtag;      /* verification tag, defined per flow */
-    uint32_t sh_sum;       /* checksum, computed via crc32 */
+typedef struct SCTPHdr_ {
+    uint16_t sh_sport; /* source port */
+    uint16_t sh_dport; /* destination port */
+    uint32_t sh_vtag;  /* verification tag, defined per flow */
+    uint32_t sh_sum;   /* checksum, computed via crc32 */
 } __attribute__((__packed__)) SCTPHdr;
 
 void DecodeSCTPRegisterTests(void);

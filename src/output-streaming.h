@@ -26,11 +26,11 @@
 #ifndef SURICATA_OUTPUT_STREAMING_H
 #define SURICATA_OUTPUT_STREAMING_H
 
-#define OUTPUT_STREAMING_FLAG_OPEN          0x01
-#define OUTPUT_STREAMING_FLAG_CLOSE         0x02
-#define OUTPUT_STREAMING_FLAG_TOSERVER      0x04
-#define OUTPUT_STREAMING_FLAG_TOCLIENT      0x08
-#define OUTPUT_STREAMING_FLAG_TRANSACTION   0x10
+#define OUTPUT_STREAMING_FLAG_OPEN        0x01
+#define OUTPUT_STREAMING_FLAG_CLOSE       0x02
+#define OUTPUT_STREAMING_FLAG_TOSERVER    0x04
+#define OUTPUT_STREAMING_FLAG_TOCLIENT    0x08
+#define OUTPUT_STREAMING_FLAG_TRANSACTION 0x10
 
 enum SCOutputStreamingType {
     STREAMING_TCP_DATA,
@@ -64,7 +64,7 @@ int SCOutputRegisterStreamingLogger(LoggerId logger_id, const char *name, SCStre
         ThreadDeinitFunc ThreadDeinit);
 
 /** Internal function: private API. */
-void OutputStreamingLoggerRegister (void);
+void OutputStreamingLoggerRegister(void);
 
 /** Internal function: private API. */
 void OutputStreamingShutdown(void);

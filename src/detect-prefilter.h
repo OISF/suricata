@@ -25,6 +25,6 @@
 #define SURICATA_DETECT_PREFILTER_H
 
 /* prototypes */
-void DetectPrefilterRegister (void);
+void DetectPrefilterRegister(void);
 
 #endif /* SURICATA_DETECT_PREFILTER_H */

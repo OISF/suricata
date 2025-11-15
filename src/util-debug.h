@@ -29,7 +29,7 @@
 /**
  * \brief The various log levels
  * NOTE: when adding new level, don't forget to update SCLogMapLogLevelToSyslogLevel()
-  *      or it may result in logging to syslog with LOG_EMERG priority.
+ *      or it may result in logging to syslog with LOG_EMERG priority.
  */
 typedef enum {
     SC_LOG_NOTSET = -1,
@@ -102,7 +102,7 @@ typedef enum {
 
 /* The default syslog facility to be used */
 #define SC_LOG_DEF_SYSLOG_FACILITY_STR "local0"
-#define SC_LOG_DEF_SYSLOG_FACILITY LOG_LOCAL0
+#define SC_LOG_DEF_SYSLOG_FACILITY     LOG_LOCAL0
 
 /**
  * \brief Structure to be used when log_level override support would be provided
@@ -126,7 +126,7 @@ typedef struct SCLogOPIfaceCtx_ {
     /* the output file to be used if the interface is SC_LOG_IFACE_FILE */
     const char *file;
     /* the output file descriptor for the above file */
-    FILE * file_d;
+    FILE *file_d;
 
     /* registered to be set on a file rotation signal */
     int rotation_flag;
@@ -189,22 +189,22 @@ typedef struct SCLogConfig_ {
 } SCLogConfig;
 
 /* The different log format specifiers supported by the API */
-#define SC_LOG_FMT_TIME             'z' /* Timestamp in RFC3339 like format */
-#define SC_LOG_FMT_TIME_LEGACY      't' /* Timestamp in legacy format */
-#define SC_LOG_FMT_PID              'p' /* PID */
-#define SC_LOG_FMT_TID              'i' /* Thread ID */
-#define SC_LOG_FMT_TM               'm' /* Thread module name */
-#define SC_LOG_FMT_LOG_LEVEL        'd' /* Log level */
-#define SC_LOG_FMT_LOG_SLEVEL       'D' /* Log level */
-#define SC_LOG_FMT_FILE_NAME        'f' /* File name */
-#define SC_LOG_FMT_LINE             'l' /* Line number */
-#define SC_LOG_FMT_FUNCTION         'n' /* Function */
-#define SC_LOG_FMT_SUBSYSTEM        'S' /* Subsystem name */
-#define SC_LOG_FMT_THREAD_NAME      'T' /* thread name */
-#define SC_LOG_FMT_MESSAGE          'M' /* log message body */
+#define SC_LOG_FMT_TIME        'z' /* Timestamp in RFC3339 like format */
+#define SC_LOG_FMT_TIME_LEGACY 't' /* Timestamp in legacy format */
+#define SC_LOG_FMT_PID         'p' /* PID */
+#define SC_LOG_FMT_TID         'i' /* Thread ID */
+#define SC_LOG_FMT_TM          'm' /* Thread module name */
+#define SC_LOG_FMT_LOG_LEVEL   'd' /* Log level */
+#define SC_LOG_FMT_LOG_SLEVEL  'D' /* Log level */
+#define SC_LOG_FMT_FILE_NAME   'f' /* File name */
+#define SC_LOG_FMT_LINE        'l' /* Line number */
+#define SC_LOG_FMT_FUNCTION    'n' /* Function */
+#define SC_LOG_FMT_SUBSYSTEM   'S' /* Subsystem name */
+#define SC_LOG_FMT_THREAD_NAME 'T' /* thread name */
+#define SC_LOG_FMT_MESSAGE     'M' /* log message body */
 
 /* The log format prefix for the format specifiers */
-#define SC_LOG_FMT_PREFIX           '%'
+#define SC_LOG_FMT_PREFIX '%'
 
 /* Module and thread tagging */
 /* The module name, usually the containing source-module name */
@@ -276,33 +276,34 @@ void SCLogErr(int x, const char *file, const char *func, const int line, const c
 /* Avoid the overhead of using the debugging subsystem, in production mode */
 #ifndef DEBUG
 
-#define SCLogDebug(...)                 do { } while (0)
+#define SCLogDebug(...)                                                                            \
+    do {                                                                                           \
+    } while (0)
 
 #define SCEnter(...)
 
-#define SCReturn                        return
+#define SCReturn return
 
-#define SCReturnInt(x)                  return x
+#define SCReturnInt(x) return x
 
-#define SCReturnUInt(x)                 return x
+#define SCReturnUInt(x) return x
 
-#define SCReturnDbl(x)                  return x
+#define SCReturnDbl(x) return x
 
-#define SCReturnChar(x)                 return x
+#define SCReturnChar(x) return x
 
-#define SCReturnCharPtr(x)              return x
+#define SCReturnCharPtr(x) return x
 
-#define SCReturnCT(x, type)             return x
+#define SCReturnCT(x, type) return x
 
-#define SCReturnPtr(x, type)            return x
+#define SCReturnPtr(x, type) return x
 
-#define SCReturnBool(x)                 return x
+#define SCReturnBool(x) return x
 
-#define SCReturnStruct(x)                 return x
+#define SCReturnStruct(x) return x
 
 /* Please use it only for debugging purposes */
 #else
-
 
 /**
  * \brief Macro used to log DEBUG messages. Comes under the debugging subsystem,
@@ -323,13 +324,12 @@ void SCLogErr(int x, const char *file, const char *func, const int line, const c
  *
  * \retval f An argument can be supplied, although it is not used
  */
-#define SCEnter(f)            do {                                              \
-                                  if (sc_log_global_log_level >= SC_LOG_DEBUG &&\
-                                      SCLogCheckFDFilterEntry(__FUNCTION__))    \
-                                  {                                             \
-                                     SCLogDebug("Entering ... >>");             \
-                                  }                                             \
-                              } while(0)
+#define SCEnter(f)                                                                                 \
+    do {                                                                                           \
+        if (sc_log_global_log_level >= SC_LOG_DEBUG && SCLogCheckFDFilterEntry(__FUNCTION__)) {    \
+            SCLogDebug("Entering ... >>");                                                         \
+        }                                                                                          \
+    } while (0)
 
 /**
  * \brief Macro used to log debug messages on function exit.  Comes under the
@@ -339,13 +339,14 @@ void SCLogErr(int x, const char *file, const char *func, const int line, const c
  *        function_exit macro should be used for functions that don't return
  *        a value.
  */
-#define SCReturn              do {                                           \
-                                  if (sc_log_global_log_level >= SC_LOG_DEBUG) { \
-                                      SCLogDebug("Returning ... <<" );       \
-                                      SCLogCheckFDFilterExit(__FUNCTION__);  \
-                                  }                                          \
-                                  return;                                    \
-                              } while(0)
+#define SCReturn                                                                                   \
+    do {                                                                                           \
+        if (sc_log_global_log_level >= SC_LOG_DEBUG) {                                             \
+            SCLogDebug("Returning ... <<");                                                        \
+            SCLogCheckFDFilterExit(__FUNCTION__);                                                  \
+        }                                                                                          \
+        return;                                                                                    \
+    } while (0)
 
 /**
  * \brief Macro used to log debug messages on function exit.  Comes under the
@@ -357,13 +358,14 @@ void SCLogErr(int x, const char *file, const char *func, const int line, const c
  *
  * \retval x Variable of type 'integer' that has to be returned
  */
-#define SCReturnInt(x)        do {                                           \
-                                  if (sc_log_global_log_level >= SC_LOG_DEBUG) { \
-                                      SCLogDebug("Returning: %"PRIdMAX" ... <<", (intmax_t)x); \
-                                      SCLogCheckFDFilterExit(__FUNCTION__);  \
-                                  }                                          \
-                                  return x;                                  \
-                              } while(0)
+#define SCReturnInt(x)                                                                             \
+    do {                                                                                           \
+        if (sc_log_global_log_level >= SC_LOG_DEBUG) {                                             \
+            SCLogDebug("Returning: %" PRIdMAX " ... <<", (intmax_t)x);                             \
+            SCLogCheckFDFilterExit(__FUNCTION__);                                                  \
+        }                                                                                          \
+        return x;                                                                                  \
+    } while (0)
 
 /**
  * \brief Macro used to log debug messages on function exit.  Comes under the
@@ -375,13 +377,14 @@ void SCLogErr(int x, const char *file, const char *func, const int line, const c
  *
  * \retval x Variable of type 'unsigned integer' that has to be returned
  */
-#define SCReturnUInt(x)       do {                                           \
-                                  if (sc_log_global_log_level >= SC_LOG_DEBUG) { \
-                                      SCLogDebug("Returning: %"PRIuMAX" ... <<", (uintmax_t)x); \
-                                      SCLogCheckFDFilterExit(__FUNCTION__);  \
-                                  }                                          \
-                                  return x;                                  \
-                              } while(0)
+#define SCReturnUInt(x)                                                                            \
+    do {                                                                                           \
+        if (sc_log_global_log_level >= SC_LOG_DEBUG) {                                             \
+            SCLogDebug("Returning: %" PRIuMAX " ... <<", (uintmax_t)x);                            \
+            SCLogCheckFDFilterExit(__FUNCTION__);                                                  \
+        }                                                                                          \
+        return x;                                                                                  \
+    } while (0)
 
 /**
  * \brief Macro used to log debug messages on function exit.  Comes under the
@@ -393,13 +396,14 @@ void SCLogErr(int x, const char *file, const char *func, const int line, const c
  *
  * \retval x Variable of type 'float/double' that has to be returned
  */
-#define SCReturnDbl(x)        do {                                           \
-                                  if (sc_log_global_log_level >= SC_LOG_DEBUG) { \
-                                      SCLogDebug("Returning: %f ... <<", x); \
-                                      SCLogCheckFDFilterExit(__FUNCTION__);  \
-                                  }                                          \
-                                  return x;                                  \
-                              } while(0)
+#define SCReturnDbl(x)                                                                             \
+    do {                                                                                           \
+        if (sc_log_global_log_level >= SC_LOG_DEBUG) {                                             \
+            SCLogDebug("Returning: %f ... <<", x);                                                 \
+            SCLogCheckFDFilterExit(__FUNCTION__);                                                  \
+        }                                                                                          \
+        return x;                                                                                  \
+    } while (0)
 
 /**
  * \brief Macro used to log debug messages on function exit.  Comes under the
@@ -411,13 +415,14 @@ void SCLogErr(int x, const char *file, const char *func, const int line, const c
  *
  * \retval x Variable of type 'char' that has to be returned
  */
-#define SCReturnChar(x)       do {                                           \
-                                  if (sc_log_global_log_level >= SC_LOG_DEBUG) { \
-                                      SCLogDebug("Returning: %c ... <<", x); \
-                                      SCLogCheckFDFilterExit(__FUNCTION__);  \
-                                  }                                          \
-                                  return x;                                  \
-                              } while(0)
+#define SCReturnChar(x)                                                                            \
+    do {                                                                                           \
+        if (sc_log_global_log_level >= SC_LOG_DEBUG) {                                             \
+            SCLogDebug("Returning: %c ... <<", x);                                                 \
+            SCLogCheckFDFilterExit(__FUNCTION__);                                                  \
+        }                                                                                          \
+        return x;                                                                                  \
+    } while (0)
 
 /**
  * \brief Macro used to log debug messages on function exit.  Comes under the
@@ -429,16 +434,18 @@ void SCLogErr(int x, const char *file, const char *func, const int line, const c
  *
  * \retval x Pointer to the char string that has to be returned
  */
-#define SCReturnCharPtr(x)    do {                                           \
-                                  if (sc_log_global_log_level >= SC_LOG_DEBUG) { \
-                                      if ((x) != NULL) {                    \
-                                          SCLogDebug("Returning: %s ... <<", x); \
-                                      } else {                          \
-                                          SCLogDebug("Returning: NULL ... <<"); \
-                                      } SCLogCheckFDFilterExit(__FUNCTION__); \
-                                  }                                     \
-                                 return x;                                   \
-                              } while(0)
+#define SCReturnCharPtr(x)                                                                         \
+    do {                                                                                           \
+        if (sc_log_global_log_level >= SC_LOG_DEBUG) {                                             \
+            if ((x) != NULL) {                                                                     \
+                SCLogDebug("Returning: %s ... <<", x);                                             \
+            } else {                                                                               \
+                SCLogDebug("Returning: NULL ... <<");                                              \
+            }                                                                                      \
+            SCLogCheckFDFilterExit(__FUNCTION__);                                                  \
+        }                                                                                          \
+        return x;                                                                                  \
+    } while (0)
 
 /**
  * \brief Macro used to log debug messages on function exit.  Comes under the
@@ -452,14 +459,16 @@ void SCLogErr(int x, const char *file, const char *func, const int line, const c
  * \retval type Pointer to a character string holding the name of the custom
  *              type(the argument x) that has to be returned
  */
-#define SCReturnCT(x, type)   do {                                           \
-                                  if (sc_log_global_log_level >= SC_LOG_DEBUG) { \
-                                      SCLogDebug("Returning var of "         \
-                                              "type %s ... <<", type);       \
-                                      SCLogCheckFDFilterExit(__FUNCTION__);  \
-                                  }                                          \
-                                  return x;                                  \
-                              } while(0)
+#define SCReturnCT(x, type)                                                                        \
+    do {                                                                                           \
+        if (sc_log_global_log_level >= SC_LOG_DEBUG) {                                             \
+            SCLogDebug("Returning var of "                                                         \
+                       "type %s ... <<",                                                           \
+                    type);                                                                         \
+            SCLogCheckFDFilterExit(__FUNCTION__);                                                  \
+        }                                                                                          \
+        return x;                                                                                  \
+    } while (0)
 
 /**
  * \brief Macro used to log debug messages on function exit.  Comes under the
@@ -474,14 +483,16 @@ void SCLogErr(int x, const char *file, const char *func, const int line, const c
  * \retval type Pointer to a character string holding the name of the custom
  *              type(the argument x) that has to be returned
  */
-#define SCReturnPtr(x, type)  do {                                           \
-                                  if (sc_log_global_log_level >= SC_LOG_DEBUG) { \
-                                      SCLogDebug("Returning pointer %p of "  \
-                                              "type %s ... <<", x, type);    \
-                                      SCLogCheckFDFilterExit(__FUNCTION__);  \
-                                  }                                          \
-                                  return x;                                  \
-                              } while(0)
+#define SCReturnPtr(x, type)                                                                       \
+    do {                                                                                           \
+        if (sc_log_global_log_level >= SC_LOG_DEBUG) {                                             \
+            SCLogDebug("Returning pointer %p of "                                                  \
+                       "type %s ... <<",                                                           \
+                    x, type);                                                                      \
+            SCLogCheckFDFilterExit(__FUNCTION__);                                                  \
+        }                                                                                          \
+        return x;                                                                                  \
+    } while (0)
 
 /**
  * \brief Macro used to log debug messages on function exit.  Comes under the
@@ -493,21 +504,23 @@ void SCLogErr(int x, const char *file, const char *func, const int line, const c
  *
  * \retval x Variable of type 'bool' that has to be returned
  */
-#define SCReturnBool(x)        do {                                           \
-                                  if (sc_log_global_log_level >= SC_LOG_DEBUG) { \
-                                      SCLogDebug("Returning: %s ... <<", x ? "true" : "false"); \
-                                      SCLogCheckFDFilterExit(__FUNCTION__);  \
-                                  }                                          \
-                                  return x;                                  \
-                              } while(0)
+#define SCReturnBool(x)                                                                            \
+    do {                                                                                           \
+        if (sc_log_global_log_level >= SC_LOG_DEBUG) {                                             \
+            SCLogDebug("Returning: %s ... <<", x ? "true" : "false");                              \
+            SCLogCheckFDFilterExit(__FUNCTION__);                                                  \
+        }                                                                                          \
+        return x;                                                                                  \
+    } while (0)
 
-#define SCReturnStruct(x)     do {                                           \
-                                  if (sc_log_global_log_level >= SC_LOG_DEBUG) { \
-                                      SCLogDebug("Returning: ... <<");       \
-                                      SCLogCheckFDFilterExit(__FUNCTION__);  \
-                                  }                                          \
-                                  return x;                                  \
-                              } while(0)
+#define SCReturnStruct(x)                                                                          \
+    do {                                                                                           \
+        if (sc_log_global_log_level >= SC_LOG_DEBUG) {                                             \
+            SCLogDebug("Returning: ... <<");                                                       \
+            SCLogCheckFDFilterExit(__FUNCTION__);                                                  \
+        }                                                                                          \
+        return x;                                                                                  \
+    } while (0)
 
 #endif /* DEBUG */
 

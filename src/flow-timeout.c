@@ -125,7 +125,7 @@ static inline Packet *FlowPseudoPacketSetup(
         /* Check if we have enough room in direct data. We need ipv4 hdr + tcp hdr.
          * Force an allocation if it is not the case.
          */
-        if (GET_PKT_DIRECT_MAX_SIZE(p) <  40) {
+        if (GET_PKT_DIRECT_MAX_SIZE(p) < 40) {
             if (PacketCallocExtPkt(p, 40) == -1) {
                 goto error;
             }
@@ -140,7 +140,7 @@ static inline Packet *FlowPseudoPacketSetup(
         ip4h->ip_off = 0;
         ip4h->ip_ttl = 64;
         ip4h->ip_proto = IPPROTO_TCP;
-        //p->ip4h->ip_csum =
+        // p->ip4h->ip_csum =
         if (direction == 0) {
             ip4h->s_ip_src.s_addr = f->src.addr_data32[0];
             ip4h->s_ip_dst.s_addr = f->dst.addr_data32[0];
@@ -170,7 +170,7 @@ static inline Packet *FlowPseudoPacketSetup(
         /* Check if we have enough room in direct data. We need ipv6 hdr + tcp hdr.
          * Force an allocation if it is not the case.
          */
-        if (GET_PKT_DIRECT_MAX_SIZE(p) <  60) {
+        if (GET_PKT_DIRECT_MAX_SIZE(p) < 60) {
             if (PacketCallocExtPkt(p, 60) == -1) {
                 goto error;
             }
@@ -295,8 +295,7 @@ bool FlowNeedsReassembly(Flow *f)
 
     /* if state is not fully closed we assume that we haven't fully
      * inspected the app layer state yet */
-    if (ssn->state >= TCP_ESTABLISHED && ssn->state != TCP_CLOSED)
-    {
+    if (ssn->state >= TCP_ESTABLISHED && ssn->state != TCP_CLOSED) {
         client = STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
         server = STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
     }
@@ -305,12 +304,10 @@ bool FlowNeedsReassembly(Flow *f)
     if (f->alproto != ALPROTO_UNKNOWN && f->alstate != NULL) {
         const uint64_t total_txs = AppLayerParserGetTxCnt(f, f->alstate);
 
-        if (AppLayerParserGetTransactionActive(f, f->alparser, STREAM_TOCLIENT) < total_txs)
-        {
+        if (AppLayerParserGetTransactionActive(f, f->alparser, STREAM_TOCLIENT) < total_txs) {
             server = STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
         }
-        if (AppLayerParserGetTransactionActive(f, f->alparser, STREAM_TOSERVER) < total_txs)
-        {
+        if (AppLayerParserGetTransactionActive(f, f->alparser, STREAM_TOSERVER) < total_txs) {
             client = STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
         }
     }
@@ -326,7 +323,7 @@ bool FlowNeedsReassembly(Flow *f)
 
     /* nothing to do */
     if (client == STREAM_HAS_UNPROCESSED_SEGMENTS_NONE &&
-        server == STREAM_HAS_UNPROCESSED_SEGMENTS_NONE) {
+            server == STREAM_HAS_UNPROCESSED_SEGMENTS_NONE) {
         return false;
     }
 

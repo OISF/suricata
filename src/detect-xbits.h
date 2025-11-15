@@ -48,6 +48,6 @@ typedef struct DetectXbitsData_ {
 } DetectXbitsData;
 
 /* prototypes */
-void DetectXbitsRegister (void);
+void DetectXbitsRegister(void);
 
 #endif /* SURICATA_DETECT_XBITS_H */

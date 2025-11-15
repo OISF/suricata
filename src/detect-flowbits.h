@@ -43,6 +43,6 @@ typedef struct DetectFlowbitsData_ {
 } DetectFlowbitsData;
 
 /* prototypes */
-void DetectFlowbitsRegister (void);
+void DetectFlowbitsRegister(void);
 
 #endif /* SURICATA_DETECT_FLOWBITS_H */

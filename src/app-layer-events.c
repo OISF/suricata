@@ -45,21 +45,14 @@ int SCAppLayerGetEventIdByName(const char *event_name, SCEnumCharMap *table, uin
 
 /* events raised during protocol detection are stored in the
  * packets storage, not in the flow. */
-SCEnumCharMap app_layer_event_pkt_table[ ] = {
-    { "APPLAYER_MISMATCH_PROTOCOL_BOTH_DIRECTIONS",
-      APPLAYER_MISMATCH_PROTOCOL_BOTH_DIRECTIONS },
-    { "APPLAYER_WRONG_DIRECTION_FIRST_DATA",
-      APPLAYER_WRONG_DIRECTION_FIRST_DATA },
-    { "APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION",
-      APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION },
-    { "APPLAYER_PROTO_DETECTION_SKIPPED",
-      APPLAYER_PROTO_DETECTION_SKIPPED },
-    { "APPLAYER_NO_TLS_AFTER_STARTTLS",
-      APPLAYER_NO_TLS_AFTER_STARTTLS },
-    { "APPLAYER_UNEXPECTED_PROTOCOL",
-      APPLAYER_UNEXPECTED_PROTOCOL },
-    { NULL,
-      -1 },
+SCEnumCharMap app_layer_event_pkt_table[] = {
+    { "APPLAYER_MISMATCH_PROTOCOL_BOTH_DIRECTIONS", APPLAYER_MISMATCH_PROTOCOL_BOTH_DIRECTIONS },
+    { "APPLAYER_WRONG_DIRECTION_FIRST_DATA", APPLAYER_WRONG_DIRECTION_FIRST_DATA },
+    { "APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION", APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION },
+    { "APPLAYER_PROTO_DETECTION_SKIPPED", APPLAYER_PROTO_DETECTION_SKIPPED },
+    { "APPLAYER_NO_TLS_AFTER_STARTTLS", APPLAYER_NO_TLS_AFTER_STARTTLS },
+    { "APPLAYER_UNEXPECTED_PROTOCOL", APPLAYER_UNEXPECTED_PROTOCOL },
+    { NULL, -1 },
 };
 
 int AppLayerGetEventInfoById(
@@ -101,7 +94,6 @@ void SCAppLayerDecoderEventsSetEventRaw(AppLayerDecoderEvents **sevents, uint8_t
             return;
 
         *sevents = new_devents;
-
     }
     if ((*sevents)->cnt == UCHAR_MAX) {
         /* we're full */
@@ -112,8 +104,7 @@ void SCAppLayerDecoderEventsSetEventRaw(AppLayerDecoderEvents **sevents, uint8_t
         if (UCHAR_MAX - (*sevents)->cnt < steps)
             steps = UCHAR_MAX - (*sevents)->cnt < steps;
 
-        void *ptr = SCRealloc((*sevents)->events,
-                              ((*sevents)->cnt + steps) * sizeof(uint8_t));
+        void *ptr = SCRealloc((*sevents)->events, ((*sevents)->cnt + steps) * sizeof(uint8_t));
         if (ptr == NULL) {
             /* couldn't grow buffer, but no reason to free old
              * so we keep the events that may already be here */

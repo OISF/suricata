@@ -121,10 +121,9 @@ TmEcode ConfigCheckDataDirectory(const char *data_dir)
 SCConfNode *ConfFindDeviceConfig(SCConfNode *node, const char *iface)
 {
     SCConfNode *if_node, *item;
-    TAILQ_FOREACH(if_node, &node->head, next) {
-        TAILQ_FOREACH(item, &if_node->head, next) {
-            if (strcmp(item->name, "interface") == 0 &&
-                strcmp(item->val, iface) == 0) {
+    TAILQ_FOREACH (if_node, &node->head, next) {
+        TAILQ_FOREACH (item, &if_node->head, next) {
+            if (strcmp(item->name, "interface") == 0 && strcmp(item->val, iface) == 0) {
                 return if_node;
             }
         }

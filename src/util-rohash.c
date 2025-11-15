@@ -44,14 +44,14 @@
 
 /** item_size data beyond this header */
 typedef struct ROHashTableItem_ {
-    uint32_t pos;       /**< position relative to other values with same hash */
+    uint32_t pos; /**< position relative to other values with same hash */
     TAILQ_ENTRY(ROHashTableItem_) next;
 } ROHashTableItem;
 
 /** offset table */
 typedef struct ROHashTableOffsets_ {
-    uint32_t cnt;       /**< number of items for this hash */
-    uint32_t offset;    /**< position in the blob of the first item */
+    uint32_t cnt;    /**< number of items for this hash */
+    uint32_t offset; /**< position in the blob of the first item */
 } ROHashTableOffsets;
 
 /** \brief initialize a new rohash
@@ -189,7 +189,7 @@ int ROHashInitFinalize(ROHashTable *table)
     ROHashTableOffsets *os = (ROHashTableOffsets *)((uint8_t *)table + sizeof(ROHashTable));
 
     /* count items per hash value */
-    TAILQ_FOREACH(item, &table->head, next) {
+    TAILQ_FOREACH (item, &table->head, next) {
         uint32_t hash =
                 hashword((uint32_t *)((uint8_t *)item + sizeof(*item)), table->item_size / 4, 0) &
                 hashmask(table->hash_bits);
@@ -226,7 +226,7 @@ int ROHashInitFinalize(ROHashTable *table)
     }
 
     /* copy each value into the data block */
-    TAILQ_FOREACH(item, &table->head, next) {
+    TAILQ_FOREACH (item, &table->head, next) {
         uint32_t hash =
                 hashword((uint32_t *)((uint8_t *)item + sizeof(*item)), table->item_size / 4, 0) &
                 hashmask(table->hash_bits);

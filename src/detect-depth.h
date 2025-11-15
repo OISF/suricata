@@ -25,6 +25,6 @@
 #define SURICATA_DETECT_DEPTH_H
 
 /* prototypes */
-void DetectDepthRegister (void);
+void DetectDepthRegister(void);
 
 #endif /* SURICATA_DETECT_DEPTH_H */

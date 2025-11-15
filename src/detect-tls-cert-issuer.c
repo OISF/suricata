@@ -58,9 +58,8 @@ static int DetectTlsIssuerSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectTlsIssuerRegisterTests(void);
 #endif
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms,
-        Flow *f, const uint8_t flow_flags,
-        void *txv, const int list_id);
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
+        const int list_id);
 static int g_tls_cert_issuer_buffer_id = 0;
 
 /**
@@ -92,12 +91,10 @@ void DetectTlsIssuerRegister(void)
     DetectAppLayerMpmRegister("tls.cert_issuer", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
             GetData, ALPROTO_TLS, TLS_STATE_SERVER_CERT_DONE);
 
-    DetectBufferTypeSetDescriptionByName("tls.cert_issuer",
-            "TLS certificate issuer");
+    DetectBufferTypeSetDescriptionByName("tls.cert_issuer", "TLS certificate issuer");
 
     g_tls_cert_issuer_buffer_id = DetectBufferTypeGetByName("tls.cert_issuer");
 }
-
 
 /**
  * \brief this function setup the tls_cert_issuer modifier keyword used in the rule
@@ -121,8 +118,8 @@ static int DetectTlsIssuerSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
 }
 
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *f,
-        const uint8_t flow_flags, void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
+        const int list_id)
 {
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {

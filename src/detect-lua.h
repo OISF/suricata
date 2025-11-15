@@ -59,10 +59,9 @@ typedef struct DetectLuaData {
 } DetectLuaData;
 
 /* prototypes */
-void DetectLuaRegister (void);
-int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        const uint8_t *buffer, uint32_t buffer_len, uint32_t offset,
+void DetectLuaRegister(void);
+int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx, const Signature *s,
+        const SigMatchData *smd, const uint8_t *buffer, uint32_t buffer_len, uint32_t offset,
         Flow *f);
 
 void LuaDumpStack(lua_State *state, const char *prefix);

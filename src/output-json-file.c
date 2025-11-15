@@ -85,7 +85,7 @@ SCJsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, void *tx
 {
     enum SCOutputJsonLogDirection fdir = LOG_DIR_FLOW;
 
-    switch(dir) {
+    switch (dir) {
         case STREAM_TOCLIENT:
             fdir = LOG_DIR_FLOW_TOCLIENT;
             break;
@@ -241,15 +241,13 @@ static int JsonFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, co
     return 0;
 }
 
-
 static TmEcode JsonFileLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     JsonFileLogThread *aft = SCCalloc(1, sizeof(JsonFileLogThread));
     if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
 
-    if(initdata == NULL)
-    {
+    if (initdata == NULL) {
         SCLogDebug("Error getting context for EveLogFile.  \"initdata\" argument NULL");
         goto error_exit;
     }
@@ -349,7 +347,7 @@ static OutputInitResult OutputFileLogInitSub(SCConfNode *conf, OutputCtx *parent
     return result;
 }
 
-void JsonFileLogRegister (void)
+void JsonFileLogRegister(void)
 {
     /* register as child of eve-log */
     OutputRegisterFileSubModule(LOGGER_JSON_FILE, "eve-log", "JsonFileLog", "eve-log.files",

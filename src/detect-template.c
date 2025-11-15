@@ -35,16 +35,16 @@
 /**
  * \brief Regex for parsing our keyword options
  */
-#define PARSE_REGEX  "^\\s*([0-9]+)?\\s*,s*([0-9]+)?\\s*$"
+#define PARSE_REGEX "^\\s*([0-9]+)?\\s*,s*([0-9]+)?\\s*$"
 static DetectParseRegex parse_regex;
 
 /* Prototypes of functions registered in DetectTemplateRegister below */
-static int DetectTemplateMatch (DetectEngineThreadCtx *,
-        Packet *, const Signature *, const SigMatchCtx *);
-static int DetectTemplateSetup (DetectEngineCtx *, Signature *, const char *);
-static void DetectTemplateFree (DetectEngineCtx *, void *);
+static int DetectTemplateMatch(
+        DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
+static int DetectTemplateSetup(DetectEngineCtx *, Signature *, const char *);
+static void DetectTemplateFree(DetectEngineCtx *, void *);
 #ifdef UNITTESTS
-static void DetectTemplateRegisterTests (void);
+static void DetectTemplateRegisterTests(void);
 #endif
 
 /**
@@ -52,13 +52,15 @@ static void DetectTemplateRegisterTests (void);
  *
  * This function is called once in the 'lifetime' of the engine.
  */
-void DetectTemplateRegister(void) {
+void DetectTemplateRegister(void)
+{
     /* keyword name: this is how the keyword is used in a rule */
     sigmatch_table[DETECT_TEMPLATE].name = "template";
     /* description: listed in "suricata --list-keywords=all" */
     sigmatch_table[DETECT_TEMPLATE].desc = "give an introduction into how a detection module works";
     /* link to further documentation of the keyword. Normally on the Suricata redmine/wiki */
-    sigmatch_table[DETECT_TEMPLATE].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Suricata_Developers_Guide";
+    sigmatch_table[DETECT_TEMPLATE].url = "https://redmine.openinfosecfoundation.org/projects/"
+                                          "suricata/wiki/Suricata_Developers_Guide";
     /* match function is called when the signature is inspected on a packet */
     sigmatch_table[DETECT_TEMPLATE].Match = DetectTemplateMatch;
     /* setup function is called during signature parsing, when the template
@@ -86,11 +88,11 @@ void DetectTemplateRegister(void) {
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectTemplateMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
-                                const Signature *s, const SigMatchCtx *ctx)
+static int DetectTemplateMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     int ret = 0;
-    const DetectTemplateData *templated = (const DetectTemplateData *) ctx;
+    const DetectTemplateData *templated = (const DetectTemplateData *)ctx;
 #if 0
     if (PKT_IS_PSEUDOPKT(p)) {
         /* fake pkt */
@@ -107,9 +109,7 @@ static int DetectTemplateMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
 #endif
     /* packet payload access */
     if (p->payload != NULL && p->payload_len > 0) {
-        if (templated->arg1 == p->payload[0] &&
-            templated->arg2 == p->payload[p->payload_len - 1])
-        {
+        if (templated->arg1 == p->payload[0] && templated->arg2 == p->payload[p->payload_len - 1]) {
             ret = 1;
         }
     }
@@ -125,7 +125,7 @@ static int DetectTemplateMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
  * \retval templated pointer to DetectTemplateData on success
  * \retval NULL on failure
  */
-static DetectTemplateData *DetectTemplateParse (const char *templatestr)
+static DetectTemplateData *DetectTemplateParse(const char *templatestr)
 {
     char arg1[4] = "";
     char arg2[4] = "";
@@ -153,7 +153,7 @@ static DetectTemplateData *DetectTemplateParse (const char *templatestr)
     }
     SCLogDebug("Arg2 \"%s\"", arg2);
 
-    DetectTemplateData *templated = SCMalloc(sizeof (DetectTemplateData));
+    DetectTemplateData *templated = SCMalloc(sizeof(DetectTemplateData));
     if (unlikely(templated == NULL))
         goto error;
 
@@ -186,7 +186,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectTemplateSetup (DetectEngineCtx *de_ctx, Signature *s, const char *templatestr)
+static int DetectTemplateSetup(DetectEngineCtx *de_ctx, Signature *s, const char *templatestr)
 {
     DetectTemplateData *templated = DetectTemplateParse(templatestr);
     if (templated == NULL)

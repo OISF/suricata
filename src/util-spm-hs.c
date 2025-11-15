@@ -38,8 +38,8 @@
  * \internal
  * \brief Hyperscan match callback, called by hs_scan.
  */
-static int MatchEvent(unsigned int id, unsigned long long from,
-                      unsigned long long to, unsigned int flags, void *context)
+static int MatchEvent(unsigned int id, unsigned long long from, unsigned long long to,
+        unsigned int flags, void *context)
 {
     uint64_t *match_offset = context;
     DEBUG_VALIDATE_BUG_ON(*match_offset != UINT64_MAX);
@@ -65,9 +65,8 @@ static void HSDestroyCtx(SpmCtx *ctx)
     SCFree(ctx);
 }
 
-static int HSBuildDatabase(const uint8_t *needle, uint16_t needle_len,
-                            int nocase, SpmHsCtx *sctx,
-                            SpmGlobalThreadCtx *global_thread_ctx)
+static int HSBuildDatabase(const uint8_t *needle, uint16_t needle_len, int nocase, SpmHsCtx *sctx,
+        SpmGlobalThreadCtx *global_thread_ctx)
 {
     char *expr = HSRenderPattern(needle, needle_len);
     if (expr == NULL) {
@@ -79,8 +78,7 @@ static int HSBuildDatabase(const uint8_t *needle, uint16_t needle_len,
 
     hs_database_t *db = NULL;
     hs_compile_error_t *compile_err = NULL;
-    hs_error_t err = hs_compile(expr, flags, HS_MODE_BLOCK, NULL, &db,
-                                &compile_err);
+    hs_error_t err = hs_compile(expr, flags, HS_MODE_BLOCK, NULL, &db, &compile_err);
     if (err != HS_SUCCESS) {
         SCLogError("Unable to compile '%s' with Hyperscan, "
                    "returned %d.",
@@ -107,7 +105,7 @@ static int HSBuildDatabase(const uint8_t *needle, uint16_t needle_len,
 }
 
 static SpmCtx *HSInitCtx(const uint8_t *needle, uint16_t needle_len, int nocase,
-                         SpmGlobalThreadCtx *global_thread_ctx)
+        SpmGlobalThreadCtx *global_thread_ctx)
 {
     SpmCtx *ctx = SCCalloc(1, sizeof(SpmCtx));
     if (ctx == NULL) {
@@ -124,8 +122,7 @@ static SpmCtx *HSInitCtx(const uint8_t *needle, uint16_t needle_len, int nocase,
     }
     ctx->ctx = sctx;
 
-    if (HSBuildDatabase(needle, needle_len, nocase, sctx,
-                        global_thread_ctx) != 0) {
+    if (HSBuildDatabase(needle, needle_len, nocase, sctx, global_thread_ctx) != 0) {
         SCLogDebug("HSBuildDatabase failed.");
         HSDestroyCtx(ctx);
         return NULL;
@@ -134,8 +131,8 @@ static SpmCtx *HSInitCtx(const uint8_t *needle, uint16_t needle_len, int nocase,
     return ctx;
 }
 
-static uint8_t *HSScan(const SpmCtx *ctx, SpmThreadCtx *thread_ctx,
-                       const uint8_t *haystack, uint32_t haystack_len)
+static uint8_t *HSScan(
+        const SpmCtx *ctx, SpmThreadCtx *thread_ctx, const uint8_t *haystack, uint32_t haystack_len)
 {
     const SpmHsCtx *sctx = ctx->ctx;
     hs_scratch_t *scratch = thread_ctx->ctx;
@@ -145,8 +142,8 @@ static uint8_t *HSScan(const SpmCtx *ctx, SpmThreadCtx *thread_ctx,
     }
 
     uint64_t match_offset = UINT64_MAX;
-    hs_error_t err = hs_scan(sctx->db, (const char *)haystack, haystack_len, 0,
-                             scratch, MatchEvent, &match_offset);
+    hs_error_t err = hs_scan(
+            sctx->db, (const char *)haystack, haystack_len, 0, scratch, MatchEvent, &match_offset);
     if (err != HS_SUCCESS && err != HS_SCAN_TERMINATED) {
         /* An error value (other than HS_SCAN_TERMINATED) from hs_scan()
          * indicates that it was passed an invalid database or scratch region,

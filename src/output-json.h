@@ -34,7 +34,7 @@
 
 void OutputJsonRegister(void);
 
-#define JSON_ADDR_LEN 46
+#define JSON_ADDR_LEN  46
 #define JSON_PROTO_LEN 16
 
 /* A struct to contain address info for rendering to JSON. */

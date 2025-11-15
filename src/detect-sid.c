@@ -33,12 +33,12 @@
 #include "util-error.h"
 #include "util-unittest.h"
 
-static int DetectSidSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectSidSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectSidRegisterTests(void);
 #endif
 
-void DetectSidRegister (void)
+void DetectSidRegister(void)
 {
     sigmatch_table[DETECT_SID].name = "sid";
     sigmatch_table[DETECT_SID].desc = "set rule ID";
@@ -51,7 +51,7 @@ void DetectSidRegister (void)
 #endif
 }
 
-static int DetectSidSetup (DetectEngineCtx *de_ctx, Signature *s, const char *sidstr)
+static int DetectSidSetup(DetectEngineCtx *de_ctx, Signature *s, const char *sidstr)
 {
     uint32_t id = 0;
     if (ByteExtractStringUint32(&id, 10, strlen(sidstr), sidstr) <= 0) {
@@ -70,7 +70,7 @@ static int DetectSidSetup (DetectEngineCtx *de_ctx, Signature *s, const char *si
     s->id = id;
     return 0;
 
- error:
+error:
     return -1;
 }
 

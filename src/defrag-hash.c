@@ -30,9 +30,9 @@
 /** defrag tracker hash table */
 DefragTrackerHashRow *defragtracker_hash;
 DefragConfig defrag_config;
-SC_ATOMIC_DECLARE(uint64_t,defrag_memuse);
-SC_ATOMIC_DECLARE(unsigned int,defragtracker_counter);
-SC_ATOMIC_DECLARE(unsigned int,defragtracker_prune_idx);
+SC_ATOMIC_DECLARE(uint64_t, defrag_memuse);
+SC_ATOMIC_DECLARE(unsigned int, defragtracker_counter);
+SC_ATOMIC_DECLARE(unsigned int, defragtracker_prune_idx);
 
 static DefragTracker *DefragTrackerGetUsedDefragTracker(
         ThreadVars *tv, const DecodeThreadVars *dtv);
@@ -85,7 +85,7 @@ enum ExceptionPolicy DefragGetMemcapExceptionPolicy(void)
 void DefragTrackerMoveToSpare(DefragTracker *h)
 {
     DefragTrackerEnqueue(&defragtracker_spare_q, h);
-    (void) SC_ATOMIC_SUB(defragtracker_counter, 1);
+    (void)SC_ATOMIC_SUB(defragtracker_counter, 1);
 }
 
 static DefragTracker *DefragTrackerAlloc(void)
@@ -94,7 +94,7 @@ static DefragTracker *DefragTrackerAlloc(void)
         return NULL;
     }
 
-    (void) SC_ATOMIC_ADD(defrag_memuse, sizeof(DefragTracker));
+    (void)SC_ATOMIC_ADD(defrag_memuse, sizeof(DefragTracker));
 
     DefragTracker *dt = SCCalloc(1, sizeof(DefragTracker));
     if (unlikely(dt == NULL))
@@ -115,14 +115,12 @@ static void DefragTrackerFree(DefragTracker *dt)
 
         SCMutexDestroy(&dt->lock);
         SCFree(dt);
-        (void) SC_ATOMIC_SUB(defrag_memuse, sizeof(DefragTracker));
+        (void)SC_ATOMIC_SUB(defrag_memuse, sizeof(DefragTracker));
     }
 }
 
-#define DefragTrackerIncrUsecnt(dt) \
-    SC_ATOMIC_ADD((dt)->use_cnt, 1)
-#define DefragTrackerDecrUsecnt(dt) \
-    SC_ATOMIC_SUB((dt)->use_cnt, 1)
+#define DefragTrackerIncrUsecnt(dt) SC_ATOMIC_ADD((dt)->use_cnt, 1)
+#define DefragTrackerDecrUsecnt(dt) SC_ATOMIC_SUB((dt)->use_cnt, 1)
 
 static void DefragTrackerInit(DefragTracker *dt, Packet *p)
 {
@@ -146,12 +144,12 @@ static void DefragTrackerInit(DefragTracker *dt, Packet *p)
     dt->remove = 0;
     dt->seen_last = 0;
 
-    (void) DefragTrackerIncrUsecnt(dt);
+    (void)DefragTrackerIncrUsecnt(dt);
 }
 
 void DefragTrackerRelease(DefragTracker *t)
 {
-    (void) DefragTrackerDecrUsecnt(t);
+    (void)DefragTrackerDecrUsecnt(t);
     SCMutexUnlock(&t->lock);
 }
 
@@ -161,7 +159,7 @@ void DefragTrackerClearMemory(DefragTracker *dt)
 }
 
 #define DEFRAG_DEFAULT_HASHSIZE 4096
-#define DEFRAG_DEFAULT_MEMCAP 16777216
+#define DEFRAG_DEFAULT_MEMCAP   16777216
 #define DEFRAG_DEFAULT_PREALLOC 1000
 
 /** \brief initialize the configuration
@@ -178,9 +176,9 @@ void DefragInitConfig(bool quiet)
     DefragTrackerStackInit(&defragtracker_spare_q);
 
     /* set defaults */
-    defrag_config.hash_rand   = (uint32_t)RandomGet();
-    defrag_config.hash_size   = DEFRAG_DEFAULT_HASHSIZE;
-    defrag_config.prealloc    = DEFRAG_DEFAULT_PREALLOC;
+    defrag_config.hash_rand = (uint32_t)RandomGet();
+    defrag_config.hash_size = DEFRAG_DEFAULT_HASHSIZE;
+    defrag_config.prealloc = DEFRAG_DEFAULT_PREALLOC;
     SC_ATOMIC_SET(defrag_config.memcap, DEFRAG_DEFAULT_MEMCAP);
     defrag_config.memcap_policy = ExceptionPolicyParse("defrag.memcap-policy", false);
 
@@ -201,25 +199,23 @@ void DefragInitConfig(bool quiet)
         }
     }
     if ((SCConfGet("defrag.hash-size", &conf_val)) == 1) {
-        if (StringParseUint32(&configval, 10, strlen(conf_val),
-                                    conf_val) > 0) {
+        if (StringParseUint32(&configval, 10, strlen(conf_val), conf_val) > 0) {
             defrag_config.hash_size = configval;
         } else {
-            WarnInvalidConfEntry("defrag.hash-size", "%"PRIu32, defrag_config.hash_size);
+            WarnInvalidConfEntry("defrag.hash-size", "%" PRIu32, defrag_config.hash_size);
         }
     }
 
     if ((SCConfGet("defrag.trackers", &conf_val)) == 1) {
-        if (StringParseUint32(&configval, 10, strlen(conf_val),
-                                    conf_val) > 0) {
+        if (StringParseUint32(&configval, 10, strlen(conf_val), conf_val) > 0) {
             defrag_config.prealloc = configval;
         } else {
-            WarnInvalidConfEntry("defrag.trackers", "%"PRIu32, defrag_config.prealloc);
+            WarnInvalidConfEntry("defrag.trackers", "%" PRIu32, defrag_config.prealloc);
         }
     }
-    SCLogDebug("DefragTracker config from suricata.yaml: memcap: %"PRIu64", hash-size: "
-               "%"PRIu32", prealloc: %"PRIu32, SC_ATOMIC_GET(defrag_config.memcap),
-               defrag_config.hash_size, defrag_config.prealloc);
+    SCLogDebug("DefragTracker config from suricata.yaml: memcap: %" PRIu64 ", hash-size: "
+               "%" PRIu32 ", prealloc: %" PRIu32,
+            SC_ATOMIC_GET(defrag_config.memcap), defrag_config.hash_size, defrag_config.prealloc);
 
     /* alloc hash memory */
     uint64_t hash_size = defrag_config.hash_size * sizeof(DefragTrackerHashRow);
@@ -243,13 +239,13 @@ void DefragInitConfig(bool quiet)
     for (i = 0; i < defrag_config.hash_size; i++) {
         DRLOCK_INIT(&defragtracker_hash[i]);
     }
-    (void) SC_ATOMIC_ADD(defrag_memuse, (defrag_config.hash_size * sizeof(DefragTrackerHashRow)));
+    (void)SC_ATOMIC_ADD(defrag_memuse, (defrag_config.hash_size * sizeof(DefragTrackerHashRow)));
 
     if (!quiet) {
-        SCLogConfig("allocated %"PRIu64" bytes of memory for the defrag hash... "
-                  "%" PRIu32 " buckets of size %" PRIuMAX "",
-                  SC_ATOMIC_GET(defrag_memuse), defrag_config.hash_size,
-                  (uintmax_t)sizeof(DefragTrackerHashRow));
+        SCLogConfig("allocated %" PRIu64 " bytes of memory for the defrag hash... "
+                    "%" PRIu32 " buckets of size %" PRIuMAX "",
+                SC_ATOMIC_GET(defrag_memuse), defrag_config.hash_size,
+                (uintmax_t)sizeof(DefragTrackerHashRow));
     }
 
     if ((SCConfGet("defrag.prealloc", &conf_val)) == 1) {
@@ -271,7 +267,7 @@ void DefragInitConfig(bool quiet)
                     SCLogError("preallocating defrag failed: %s", strerror(errno));
                     exit(EXIT_FAILURE);
                 }
-                DefragTrackerEnqueue(&defragtracker_spare_q,h);
+                DefragTrackerEnqueue(&defragtracker_spare_q, h);
             }
             if (!quiet) {
                 SCLogConfig("preallocated %" PRIu32 " defrag trackers of size %" PRIuMAX "",
@@ -282,7 +278,7 @@ void DefragInitConfig(bool quiet)
     }
 
     if (!quiet) {
-        SCLogConfig("defrag memory usage: %"PRIu64" bytes, maximum: %"PRIu64,
+        SCLogConfig("defrag memory usage: %" PRIu64 " bytes, maximum: %" PRIu64,
                 SC_ATOMIC_GET(defrag_memuse), SC_ATOMIC_GET(defrag_config.memcap));
     }
 }
@@ -294,7 +290,7 @@ void DefragHashShutdown(void)
     DefragTracker *dt;
 
     /* free spare queue */
-    while((dt = DefragTrackerDequeue(&defragtracker_spare_q))) {
+    while ((dt = DefragTrackerDequeue(&defragtracker_spare_q))) {
         BUG_ON(SC_ATOMIC_GET(dt->use_cnt) > 0);
         DefragTrackerFree(dt);
     }
@@ -315,7 +311,7 @@ void DefragHashShutdown(void)
         SCFree(defragtracker_hash);
         defragtracker_hash = NULL;
     }
-    (void) SC_ATOMIC_SUB(defrag_memuse, defrag_config.hash_size * sizeof(DefragTrackerHashRow));
+    (void)SC_ATOMIC_SUB(defrag_memuse, defrag_config.hash_size * sizeof(DefragTrackerHashRow));
     DefragTrackerStackDestroy(&defragtracker_spare_q);
 }
 
@@ -509,7 +505,7 @@ static DefragTracker *DefragTrackerGetNew(ThreadVars *tv, DecodeThreadVars *dtv,
         /* tracker is initialized (recycled) but *unlocked* */
     }
 
-    (void) SC_ATOMIC_ADD(defragtracker_counter, 1);
+    (void)SC_ATOMIC_ADD(defragtracker_counter, 1);
     SCMutexLock(&dt->lock);
     return dt;
 }
@@ -544,7 +540,7 @@ DefragTracker *DefragGetTrackerFromHash(ThreadVars *tv, DecodeThreadVars *dtv, P
         hb->head = dt;
 
         /* got one, now lock, initialize and return */
-        DefragTrackerInit(dt,p);
+        DefragTrackerInit(dt, p);
 
         DRLOCK_UNLOCK(hb);
         return dt;
@@ -617,7 +613,7 @@ DefragTracker *DefragGetTrackerFromHash(ThreadVars *tv, DecodeThreadVars *dtv, P
  *
  *  \retval h *LOCKED* tracker or NULL
  */
-DefragTracker *DefragLookupTrackerFromHash (Packet *p)
+DefragTracker *DefragLookupTrackerFromHash(Packet *p)
 {
     DefragTracker *dt = NULL;
 
@@ -720,7 +716,7 @@ static DefragTracker *DefragTrackerGetUsedDefragTracker(ThreadVars *tv, const De
             StatsIncr(tv, dtv->counter_defrag_tracker_soft_reuse);
         }
 
-        (void) SC_ATOMIC_ADD(defragtracker_prune_idx, (defrag_config.hash_size - cnt));
+        (void)SC_ATOMIC_ADD(defragtracker_prune_idx, (defrag_config.hash_size - cnt));
         return dt;
     }
 

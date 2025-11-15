@@ -82,7 +82,7 @@ typedef struct VariableName_ {
 } VariableName;
 
 #define VARNAME_HASHSIZE 0x1000
-#define VARID_HASHSIZE 0x1000
+#define VARID_HASHSIZE   0x1000
 
 static SCMutex base_lock = SCMUTEX_INITIALIZER;
 static VarNameStore base = { .names = NULL, .ids = NULL, .max_id = 0 };

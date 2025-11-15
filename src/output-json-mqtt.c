@@ -45,7 +45,7 @@
 #include "output-json-mqtt.h"
 #include "rust.h"
 
-#define MQTT_LOG_PASSWORDS BIT_U32(0)
+#define MQTT_LOG_PASSWORDS     BIT_U32(0)
 #define MQTT_DEFAULT_FLAGS     (MQTT_LOG_PASSWORDS)
 #define MQTT_DEFAULT_MAXLOGLEN 1024
 
@@ -56,7 +56,7 @@ typedef struct LogMQTTFileCtx_ {
 
 typedef struct LogMQTTLogThread_ {
     LogMQTTFileCtx *mqttlog_ctx;
-    uint32_t        count;
+    uint32_t count;
     OutputJsonThreadCtx *ctx;
 } LogMQTTLogThread;
 
@@ -65,8 +65,8 @@ bool JsonMQTTAddMetadata(void *vtx, SCJsonBuilder *js)
     return SCMqttLoggerLog(vtx, MQTT_DEFAULT_FLAGS, MQTT_DEFAULT_MAXLOGLEN, js);
 }
 
-static int JsonMQTTLogger(ThreadVars *tv, void *thread_data,
-    const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
+static int JsonMQTTLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state,
+        void *tx, uint64_t tx_id)
 {
     LogMQTTLogThread *thread = thread_data;
     enum SCOutputJsonLogDirection dir;

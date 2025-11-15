@@ -34,7 +34,7 @@ void setenv(const char *name, const char *value, int overwrite);
 void unsetenv(const char *name);
 
 #if NTDDI_VERSION < NTDDI_VISTA
-const char* inet_ntop(int af, const void *src, char *dst, uint32_t cnt);
+const char *inet_ntop(int af, const void *src, char *dst, uint32_t cnt);
 int inet_pton(int af, const char *src, void *dst);
 #endif
 

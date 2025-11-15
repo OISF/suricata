@@ -25,6 +25,6 @@
 #define SURICATA_DETECT_PKTDATA_H
 
 /* prototypes */
-void DetectPktDataRegister (void);
+void DetectPktDataRegister(void);
 
 #endif /* SURICATA_DETECT_PKTDATA_H */

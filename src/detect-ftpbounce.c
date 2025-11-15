@@ -47,8 +47,7 @@
 #include "stream-tcp.h"
 #include "util-byte.h"
 
-static int DetectFtpbounceALMatch(DetectEngineThreadCtx *,
-        Flow *, uint8_t, void *, void *,
+static int DetectFtpbounceALMatch(DetectEngineThreadCtx *, Flow *, uint8_t, void *, void *,
         const Signature *, const SigMatchCtx *);
 
 static int DetectFtpbounceSetup(DetectEngineCtx *, Signature *, const char *);
@@ -104,7 +103,7 @@ static int DetectFtpbounceMatchArgs(
     if (offset + 7 >= payload_len)
         return 0;
 
-    c =(char*) payload;
+    c = (char *)payload;
     if (c == NULL) {
         SCLogDebug("No payload to check");
         return 0;
@@ -112,11 +111,12 @@ static int DetectFtpbounceMatchArgs(
 
     i = offset;
     /* Search for the first IP octect(Skips "PORT ") */
-    while (i < payload_len && !isdigit((unsigned char)c[i])) i++;
+    while (i < payload_len && !isdigit((unsigned char)c[i]))
+        i++;
 
-    for (;i < payload_len && octet_ascii_len < 4 ;i++) {
+    for (; i < payload_len && octet_ascii_len < 4; i++) {
         if (isdigit((unsigned char)c[i])) {
-            octet =(c[i] - '0') + octet * 10;
+            octet = (c[i] - '0') + octet * 10;
             octet_ascii_len++;
         } else {
             if (octet > 256) {
@@ -125,12 +125,13 @@ static int DetectFtpbounceMatchArgs(
             }
 
             if (isspace((unsigned char)c[i]))
-                while (i < payload_len && isspace((unsigned char)c[i]) ) i++;
+                while (i < payload_len && isspace((unsigned char)c[i]))
+                    i++;
 
             if (i < payload_len && c[i] == ',') { /* we have an octet */
                 noctet++;
                 octet_ascii_len = 0;
-                ip =(ip << 8) + octet;
+                ip = (ip << 8) + octet;
                 octet = 0;
             } else {
                 SCLogDebug("Unrecognized character '%c'", c[i]);
@@ -141,8 +142,7 @@ static int DetectFtpbounceMatchArgs(
                 ip = SCNtohl(ip);
 
                 if (ip != ip_orig) {
-                    SCLogDebug("Different ip, so Matched ip:%d <-> ip_orig:%d",
-                               ip, ip_orig);
+                    SCLogDebug("Different ip, so Matched ip:%d <-> ip_orig:%d", ip, ip_orig);
                     return 1;
                 }
                 SCLogDebug("Same ip, so no match here");
@@ -165,10 +165,8 @@ static int DetectFtpbounceMatchArgs(
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectFtpbounceALMatch(DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags,
-        void *state, void *txv,
-        const Signature *s, const SigMatchCtx *m)
+static int DetectFtpbounceALMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, void *txv, const Signature *s, const SigMatchCtx *m)
 {
     SCEnter();
 
@@ -180,9 +178,8 @@ static int DetectFtpbounceALMatch(DetectEngineThreadCtx *det_ctx,
 
     int ret = 0;
     if (ftp_state->command == FTP_COMMAND_PORT) {
-        ret = DetectFtpbounceMatchArgs(ftp_state->port_line,
-                  ftp_state->port_line_len, f->src.address.address_un_data32[0],
-                  ftp_state->arg_offset);
+        ret = DetectFtpbounceMatchArgs(ftp_state->port_line, ftp_state->port_line_len,
+                f->src.address.address_un_data32[0], ftp_state->arg_offset);
     }
 
     SCReturnInt(ret);

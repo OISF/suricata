@@ -16,10 +16,10 @@
  */
 
 /**
-* \ingroup netmap
-*
-* @{
-*/
+ * \ingroup netmap
+ *
+ * @{
+ */
 
 /**
  * \file
@@ -161,11 +161,11 @@ static int ParseNetmapSettings(
 
     if (ns->iface[0]) {
         size_t len = strlen(ns->iface);
-        if (ns->iface[len-1] == '+') {
+        if (ns->iface[len - 1] == '+') {
             SCLogWarning("%s: interface uses obsolete '+' notation. Using '^' instead", ns->iface);
-            ns->iface[len-1] = '^';
+            ns->iface[len - 1] = '^';
             ns->sw_ring = true;
-        } else if (ns->iface[len-1] == '^') {
+        } else if (ns->iface[len - 1] == '^') {
             ns->sw_ring = true;
         }
     }
@@ -180,8 +180,7 @@ static int ParseNetmapSettings(
 
     /* prefixed with netmap or vale means it's not a real interface
      * and we don't check offloading. */
-    if (strncmp(ns->iface, "netmap:", 7) != 0 &&
-            strncmp(ns->iface, "vale", 4) != 0) {
+    if (strncmp(ns->iface, "netmap:", 7) != 0 && strncmp(ns->iface, "vale", 4) != 0) {
         ns->real = true;
     }
 
@@ -191,7 +190,7 @@ static int ParseNetmapSettings(
                 iface, iface);
         goto finalize;
 
-    /* If there is no setting for current interface use default one as main iface */
+        /* If there is no setting for current interface use default one as main iface */
     } else if (if_root == NULL) {
         if_root = if_default;
         if_default = NULL;
@@ -295,7 +294,7 @@ static void *ParseNetmapConfig(const char *iface_name)
     aconf->DerefFunc = NetmapDerefConfig;
     strlcpy(aconf->iface_name, iface_name, sizeof(aconf->iface_name));
     SC_ATOMIC_INIT(aconf->ref);
-    (void) SC_ATOMIC_ADD(aconf->ref, 1);
+    (void)SC_ATOMIC_ADD(aconf->ref, 1);
 
     /* Find initial node */
     SCConfNode *netmap_node = SCConfGetNode("netmap");
@@ -356,7 +355,7 @@ static void *ParseNetmapConfig(const char *iface_name)
     }
 
     SC_ATOMIC_RESET(aconf->ref);
-    (void) SC_ATOMIC_ADD(aconf->ref, aconf->in.threads);
+    (void)SC_ATOMIC_ADD(aconf->ref, aconf->in.threads);
     SCLogPerf("%s: using %u threads", aconf->iface_name, aconf->in.threads);
 
     LiveDeviceHasNoStats();
@@ -414,8 +413,8 @@ int RunModeIdsNetmapAutoFp(void)
 }
 
 /**
-* \brief Single thread version of the netmap processing.
-*/
+ * \brief Single thread version of the netmap processing.
+ */
 int RunModeIdsNetmapSingle(void)
 {
     return NetmapRunModeInit(NETMAP_SINGLE);
@@ -450,11 +449,11 @@ int RunModeIdsNetmapSingle(void)
 }
 
 /**
-* \brief Workers version of the netmap processing.
-*
-* Start N threads with each thread doing all the work.
-*
-*/
+ * \brief Workers version of the netmap processing.
+ *
+ * Start N threads with each thread doing all the work.
+ *
+ */
 int RunModeIdsNetmapWorkers(void)
 {
     SCEnter();
@@ -464,5 +463,5 @@ int RunModeIdsNetmapWorkers(void)
 #endif // #ifdef HAVE_NETMAP
 
 /**
-* @}
-*/
+ * @}
+ */

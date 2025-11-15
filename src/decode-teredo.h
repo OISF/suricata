@@ -18,8 +18,8 @@
 #ifndef SURICATA_DECODE_TEREDO_H
 #define SURICATA_DECODE_TEREDO_H
 
-int DecodeTeredo(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-                 const uint8_t *pkt, uint16_t len);
+int DecodeTeredo(
+        ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint16_t len);
 void DecodeTeredoConfig(void);
 bool DecodeTeredoEnabledForPort(const uint16_t sp, const uint16_t dp);
 

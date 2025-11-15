@@ -37,7 +37,7 @@
 #include "util-unittest.h"
 #include "util-debug.h"
 
-static int DetectGidSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectGidSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void GidRegisterTests(void);
 #endif
@@ -46,14 +46,14 @@ static void GidRegisterTests(void);
  * \brief Registration function for gid: keyword
  */
 
-void DetectGidRegister (void)
+void DetectGidRegister(void)
 {
     sigmatch_table[DETECT_GID].name = "gid";
     sigmatch_table[DETECT_GID].desc = "give different groups of signatures another id value";
     sigmatch_table[DETECT_GID].url = "/rules/meta.html#gid-group-id";
     sigmatch_table[DETECT_GID].Match = NULL;
     sigmatch_table[DETECT_GID].Setup = DetectGidSetup;
-    sigmatch_table[DETECT_GID].Free  = NULL;
+    sigmatch_table[DETECT_GID].Free = NULL;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_GID].RegisterTests = GidRegisterTests;
 #endif
@@ -70,7 +70,7 @@ void DetectGidRegister (void)
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectGidSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
+static int DetectGidSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     uint32_t gid = 0;
     if (ByteExtractStringUint32(&gid, 10, strlen(rawstr), rawstr) <= 0) {
@@ -82,7 +82,7 @@ static int DetectGidSetup (DetectEngineCtx *de_ctx, Signature *s, const char *ra
 
     return 0;
 
- error:
+error:
     return -1;
 }
 
@@ -94,7 +94,7 @@ static int DetectGidSetup (DetectEngineCtx *de_ctx, Signature *s, const char *ra
 /**
  * \test GidTestParse01 is a test for a  valid gid value
  */
-static int GidTestParse01 (void)
+static int GidTestParse01(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -112,7 +112,7 @@ static int GidTestParse01 (void)
 /**
  * \test GidTestParse02 is a test for an invalid gid value
  */
-static int GidTestParse02 (void)
+static int GidTestParse02(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -127,7 +127,7 @@ static int GidTestParse02 (void)
 /**
  * \test Test a gid consisting of a single quote.
  */
-static int GidTestParse03 (void)
+static int GidTestParse03(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);

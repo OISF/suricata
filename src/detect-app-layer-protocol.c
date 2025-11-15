@@ -54,8 +54,7 @@ typedef struct DetectAppLayerProtocolData_ {
 } DetectAppLayerProtocolData;
 
 static int DetectAppLayerProtocolPacketMatch(
-        DetectEngineThreadCtx *det_ctx,
-        Packet *p, const Signature *s, const SigMatchCtx *ctx)
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
 
@@ -65,13 +64,13 @@ static int DetectAppLayerProtocolPacketMatch(
     /* if the sig is PD-only we only match when PD packet flags are set */
     if (s->type == SIG_TYPE_PDONLY &&
             (p->flags & (PKT_PROTO_DETECT_TS_DONE | PKT_PROTO_DETECT_TC_DONE)) == 0) {
-        SCLogDebug("packet %"PRIu64": flags not set", p->pcap_cnt);
+        SCLogDebug("packet %" PRIu64 ": flags not set", p->pcap_cnt);
         SCReturnInt(0);
     }
 
     const Flow *f = p->flow;
     if (f == NULL) {
-        SCLogDebug("packet %"PRIu64": no flow", p->pcap_cnt);
+        SCLogDebug("packet %" PRIu64 ": no flow", p->pcap_cnt);
         SCReturnInt(0);
     }
 
@@ -215,8 +214,8 @@ static DetectAppLayerProtocolData *DetectAppLayerProtocolParse(const char *arg, 
     return data;
 }
 
-static bool HasConflicts(const DetectAppLayerProtocolData *us,
-                          const DetectAppLayerProtocolData *them)
+static bool HasConflicts(
+        const DetectAppLayerProtocolData *us, const DetectAppLayerProtocolData *them)
 {
     /* mixing negated and non negated is illegal */
     if ((them->negated ^ us->negated) && them->mode == us->mode)
@@ -232,8 +231,7 @@ static bool HasConflicts(const DetectAppLayerProtocolData *us,
     return false;
 }
 
-static int DetectAppLayerProtocolSetup(DetectEngineCtx *de_ctx,
-        Signature *s, const char *arg)
+static int DetectAppLayerProtocolSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     DetectAppLayerProtocolData *data = NULL;
 
@@ -250,7 +248,7 @@ static int DetectAppLayerProtocolSetup(DetectEngineCtx *de_ctx,
         goto error;
 
     SigMatch *tsm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
-    for ( ; tsm != NULL; tsm = tsm->next) {
+    for (; tsm != NULL; tsm = tsm->next) {
         if (tsm->type == DETECT_APP_LAYER_PROTOCOL) {
             const DetectAppLayerProtocolData *them = (const DetectAppLayerProtocolData *)tsm->ctx;
 
@@ -283,23 +281,23 @@ static void DetectAppLayerProtocolFree(DetectEngineCtx *de_ctx, void *ptr)
 /** \internal
  *  \brief prefilter function for protocol detect matching
  */
-static void
-PrefilterPacketAppProtoMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
+static void PrefilterPacketAppProtoMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
 {
     const PrefilterPacketHeaderCtx *ctx = pectx;
 
     if (!PrefilterPacketHeaderExtraMatch(ctx, p)) {
-        SCLogDebug("packet %"PRIu64": extra match failed", p->pcap_cnt);
+        SCLogDebug("packet %" PRIu64 ": extra match failed", p->pcap_cnt);
         SCReturn;
     }
 
     if (p->flow == NULL) {
-        SCLogDebug("packet %"PRIu64": no flow, no alproto", p->pcap_cnt);
+        SCLogDebug("packet %" PRIu64 ": no flow, no alproto", p->pcap_cnt);
         SCReturn;
     }
 
-    if ((p->flags & (PKT_PROTO_DETECT_TS_DONE|PKT_PROTO_DETECT_TC_DONE)) == 0) {
-        SCLogDebug("packet %"PRIu64": flags not set", p->pcap_cnt);
+    if ((p->flags & (PKT_PROTO_DETECT_TS_DONE | PKT_PROTO_DETECT_TC_DONE)) == 0) {
+        SCLogDebug("packet %" PRIu64 ": flags not set", p->pcap_cnt);
         SCReturn;
     }
 
@@ -360,8 +358,7 @@ PrefilterPacketAppProtoMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const vo
     }
 }
 
-static void
-PrefilterPacketAppProtoSet(PrefilterPacketHeaderValue *v, void *smctx)
+static void PrefilterPacketAppProtoSet(PrefilterPacketHeaderValue *v, void *smctx)
 {
     const DetectAppLayerProtocolData *a = smctx;
     v->u16[0] = a->alproto;
@@ -369,8 +366,7 @@ PrefilterPacketAppProtoSet(PrefilterPacketHeaderValue *v, void *smctx)
     v->u8[3] = a->mode;
 }
 
-static bool
-PrefilterPacketAppProtoCompare(PrefilterPacketHeaderValue v, void *smctx)
+static bool PrefilterPacketAppProtoCompare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectAppLayerProtocolData *a = smctx;
     if (v.u16[0] == a->alproto && v.u8[2] == (uint8_t)a->negated && v.u8[3] == a->mode)
@@ -445,7 +441,7 @@ static int DetectAppLayerProtocolTest03(void)
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-            "(app-layer-protocol:http; sid:1;)");
+                                      "(app-layer-protocol:http; sid:1;)");
     FAIL_IF_NULL(s);
 
     FAIL_IF(s->alproto != ALPROTO_UNKNOWN);
@@ -469,7 +465,7 @@ static int DetectAppLayerProtocolTest04(void)
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-            "(app-layer-protocol:!http; sid:1;)");
+                                      "(app-layer-protocol:!http; sid:1;)");
     FAIL_IF_NULL(s);
     FAIL_IF(s->alproto != ALPROTO_UNKNOWN);
     FAIL_IF(s->flags & SIG_FLAG_APPLAYER);
@@ -494,7 +490,8 @@ static int DetectAppLayerProtocolTest05(void)
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+    s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any "
             "(app-layer-protocol:!http; app-layer-protocol:!smtp; sid:1;)");
     FAIL_IF_NULL(s);
     FAIL_IF(s->alproto != ALPROTO_UNKNOWN);
@@ -525,7 +522,7 @@ static int DetectAppLayerProtocolTest06(void)
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
-            "(app-layer-protocol:smtp; sid:1;)");
+                                      "(app-layer-protocol:smtp; sid:1;)");
     FAIL_IF_NOT_NULL(s);
     DetectEngineCtxFree(de_ctx);
     PASS;
@@ -539,7 +536,7 @@ static int DetectAppLayerProtocolTest07(void)
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
-            "(app-layer-protocol:!smtp; sid:1;)");
+                                      "(app-layer-protocol:!smtp; sid:1;)");
     FAIL_IF_NOT_NULL(s);
     DetectEngineCtxFree(de_ctx);
     PASS;
@@ -552,7 +549,8 @@ static int DetectAppLayerProtocolTest08(void)
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+    s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any "
             "(app-layer-protocol:!smtp; app-layer-protocol:http; sid:1;)");
     FAIL_IF_NOT_NULL(s);
     DetectEngineCtxFree(de_ctx);
@@ -566,7 +564,8 @@ static int DetectAppLayerProtocolTest09(void)
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+    s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any "
             "(app-layer-protocol:http; app-layer-protocol:!smtp; sid:1;)");
     FAIL_IF_NOT_NULL(s);
     DetectEngineCtxFree(de_ctx);
@@ -580,7 +579,8 @@ static int DetectAppLayerProtocolTest10(void)
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+    s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any "
             "(app-layer-protocol:smtp; app-layer-protocol:!http; sid:1;)");
     FAIL_IF_NOT_NULL(s);
     DetectEngineCtxFree(de_ctx);
@@ -616,7 +616,7 @@ static int DetectAppLayerProtocolTest13(void)
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-            "(app-layer-protocol:failed; sid:1;)");
+                                      "(app-layer-protocol:failed; sid:1;)");
     FAIL_IF_NULL(s);
 
     FAIL_IF(s->alproto != ALPROTO_UNKNOWN);
@@ -638,8 +638,9 @@ static int DetectAppLayerProtocolTest14(void)
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    Signature *s1 = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-            "(app-layer-protocol:http; flowbits:set,blah; sid:1;)");
+    Signature *s1 =
+            DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                                          "(app-layer-protocol:http; flowbits:set,blah; sid:1;)");
     FAIL_IF_NULL(s1);
     FAIL_IF(s1->alproto != ALPROTO_UNKNOWN);
     FAIL_IF_NULL(s1->init_data->smlists[DETECT_SM_LIST_MATCH]);
@@ -648,8 +649,9 @@ static int DetectAppLayerProtocolTest14(void)
     FAIL_IF(data->alproto != ALPROTO_HTTP);
     FAIL_IF(data->negated);
 
-    Signature *s2 = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-            "(app-layer-protocol:http; flow:to_client; sid:2;)");
+    Signature *s2 =
+            DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                                          "(app-layer-protocol:http; flow:to_client; sid:2;)");
     FAIL_IF_NULL(s2);
     FAIL_IF(s2->alproto != ALPROTO_UNKNOWN);
     FAIL_IF_NULL(s2->init_data->smlists[DETECT_SM_LIST_MATCH]);
@@ -659,7 +661,8 @@ static int DetectAppLayerProtocolTest14(void)
     FAIL_IF(data->negated);
 
     /* flow:established and other options not supported for PD-only */
-    Signature *s3 = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+    Signature *s3 = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any "
             "(app-layer-protocol:http; flow:to_client,established; sid:3;)");
     FAIL_IF_NULL(s3);
     FAIL_IF(s3->alproto != ALPROTO_UNKNOWN);
@@ -678,36 +681,21 @@ static int DetectAppLayerProtocolTest14(void)
     PASS;
 }
 
-
 static void DetectAppLayerProtocolRegisterTests(void)
 {
-    UtRegisterTest("DetectAppLayerProtocolTest01",
-                   DetectAppLayerProtocolTest01);
-    UtRegisterTest("DetectAppLayerProtocolTest02",
-                   DetectAppLayerProtocolTest02);
-    UtRegisterTest("DetectAppLayerProtocolTest03",
-                   DetectAppLayerProtocolTest03);
-    UtRegisterTest("DetectAppLayerProtocolTest04",
-                   DetectAppLayerProtocolTest04);
-    UtRegisterTest("DetectAppLayerProtocolTest05",
-                   DetectAppLayerProtocolTest05);
-    UtRegisterTest("DetectAppLayerProtocolTest06",
-                   DetectAppLayerProtocolTest06);
-    UtRegisterTest("DetectAppLayerProtocolTest07",
-                   DetectAppLayerProtocolTest07);
-    UtRegisterTest("DetectAppLayerProtocolTest08",
-                   DetectAppLayerProtocolTest08);
-    UtRegisterTest("DetectAppLayerProtocolTest09",
-                   DetectAppLayerProtocolTest09);
-    UtRegisterTest("DetectAppLayerProtocolTest10",
-                   DetectAppLayerProtocolTest10);
-    UtRegisterTest("DetectAppLayerProtocolTest11",
-                   DetectAppLayerProtocolTest11);
-    UtRegisterTest("DetectAppLayerProtocolTest12",
-                   DetectAppLayerProtocolTest12);
-    UtRegisterTest("DetectAppLayerProtocolTest13",
-                   DetectAppLayerProtocolTest13);
-    UtRegisterTest("DetectAppLayerProtocolTest14",
-                   DetectAppLayerProtocolTest14);
+    UtRegisterTest("DetectAppLayerProtocolTest01", DetectAppLayerProtocolTest01);
+    UtRegisterTest("DetectAppLayerProtocolTest02", DetectAppLayerProtocolTest02);
+    UtRegisterTest("DetectAppLayerProtocolTest03", DetectAppLayerProtocolTest03);
+    UtRegisterTest("DetectAppLayerProtocolTest04", DetectAppLayerProtocolTest04);
+    UtRegisterTest("DetectAppLayerProtocolTest05", DetectAppLayerProtocolTest05);
+    UtRegisterTest("DetectAppLayerProtocolTest06", DetectAppLayerProtocolTest06);
+    UtRegisterTest("DetectAppLayerProtocolTest07", DetectAppLayerProtocolTest07);
+    UtRegisterTest("DetectAppLayerProtocolTest08", DetectAppLayerProtocolTest08);
+    UtRegisterTest("DetectAppLayerProtocolTest09", DetectAppLayerProtocolTest09);
+    UtRegisterTest("DetectAppLayerProtocolTest10", DetectAppLayerProtocolTest10);
+    UtRegisterTest("DetectAppLayerProtocolTest11", DetectAppLayerProtocolTest11);
+    UtRegisterTest("DetectAppLayerProtocolTest12", DetectAppLayerProtocolTest12);
+    UtRegisterTest("DetectAppLayerProtocolTest13", DetectAppLayerProtocolTest13);
+    UtRegisterTest("DetectAppLayerProtocolTest14", DetectAppLayerProtocolTest14);
 }
 #endif /* UNITTESTS */

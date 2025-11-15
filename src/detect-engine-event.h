@@ -29,6 +29,6 @@ typedef struct DetectEngineEventData_ {
 } DetectEngineEventData;
 
 /* prototypes */
-void DetectEngineEventRegister (void);
+void DetectEngineEventRegister(void);
 
 #endif /*SURICATA_DETECT_ENGINE_EVENT_H */

@@ -116,7 +116,7 @@ typedef struct SCSigOrderFunc_ {
  *                anything
  */
 static void SCSigRegisterSignatureOrderingFunc(DetectEngineCtx *de_ctx,
-                                               int (*SWCompare)(SCSigSignatureWrapper *sw1, SCSigSignatureWrapper *sw2))
+        int (*SWCompare)(SCSigSignatureWrapper *sw1, SCSigSignatureWrapper *sw2))
 {
     SCSigOrderFunc *curr = NULL;
     SCSigOrderFunc *prev = NULL;
@@ -174,8 +174,7 @@ static inline int SCSigGetFlowbitsType(Signature *sig)
     while (sm != NULL) {
         if (sm->type == DETECT_FLOWBITS) {
             fb = (DetectFlowbitsData *)sm->ctx;
-            if (fb->cmd == DETECT_FLOWBITS_CMD_ISNOTSET ||
-                fb->cmd == DETECT_FLOWBITS_CMD_ISSET) {
+            if (fb->cmd == DETECT_FLOWBITS_CMD_ISNOTSET || fb->cmd == DETECT_FLOWBITS_CMD_ISSET) {
                 read++;
             } else {
 #ifdef DEBUG
@@ -191,9 +190,8 @@ static inline int SCSigGetFlowbitsType(Signature *sig)
     while (sm != NULL) {
         if (sm->type == DETECT_FLOWBITS) {
             fb = (DetectFlowbitsData *)sm->ctx;
-            if (fb->cmd == DETECT_FLOWBITS_CMD_SET ||
-                fb->cmd == DETECT_FLOWBITS_CMD_UNSET ||
-                fb->cmd == DETECT_FLOWBITS_CMD_TOGGLE) {
+            if (fb->cmd == DETECT_FLOWBITS_CMD_SET || fb->cmd == DETECT_FLOWBITS_CMD_UNSET ||
+                    fb->cmd == DETECT_FLOWBITS_CMD_TOGGLE) {
                 write++;
             } else {
 #ifdef DEBUG
@@ -249,9 +247,8 @@ static inline int SCSigGetFlowintType(Signature *sig)
     while (sm != NULL) {
         if (sm->type == DETECT_FLOWINT) {
             fi = (DetectFlowintData *)sm->ctx;
-            if (fi->modifier == FLOWINT_MODIFIER_SET ||
-                fi->modifier == FLOWINT_MODIFIER_ADD ||
-                fi->modifier == FLOWINT_MODIFIER_SUB) {
+            if (fi->modifier == FLOWINT_MODIFIER_SET || fi->modifier == FLOWINT_MODIFIER_ADD ||
+                    fi->modifier == FLOWINT_MODIFIER_SUB) {
                 write++;
             } else {
 #ifdef DEBUG
@@ -418,8 +415,7 @@ static inline int SCSigGetXbitsType(Signature *sig, enum VarTypes type)
         if (sm->type == DETECT_XBITS) {
             fb = (DetectXbitsData *)sm->ctx;
             if (fb->type == type) {
-                if (fb->cmd == DETECT_XBITS_CMD_ISNOTSET ||
-                        fb->cmd == DETECT_XBITS_CMD_ISSET) {
+                if (fb->cmd == DETECT_XBITS_CMD_ISNOTSET || fb->cmd == DETECT_XBITS_CMD_ISSET) {
                     read++;
                 } else {
 #ifdef DEBUG
@@ -437,8 +433,7 @@ static inline int SCSigGetXbitsType(Signature *sig, enum VarTypes type)
         if (sm->type == DETECT_HOSTBITS) {
             fb = (DetectXbitsData *)sm->ctx;
             if (fb->type == type) {
-                if (fb->cmd == DETECT_XBITS_CMD_SET ||
-                        fb->cmd == DETECT_XBITS_CMD_UNSET ||
+                if (fb->cmd == DETECT_XBITS_CMD_SET || fb->cmd == DETECT_XBITS_CMD_UNSET ||
                         fb->cmd == DETECT_XBITS_CMD_TOGGLE) {
                     write++;
                 } else {
@@ -531,9 +526,8 @@ static inline void SCSigProcessUserDataForIPPairbits(SCSigSignatureWrapper *sw)
 }
 
 /* Return 1 if sw1 comes before sw2 in the final list. */
-static int SCSigLessThan(SCSigSignatureWrapper *sw1,
-                         SCSigSignatureWrapper *sw2,
-                         SCSigOrderFunc *cmp_func_list)
+static int SCSigLessThan(
+        SCSigSignatureWrapper *sw1, SCSigSignatureWrapper *sw2, SCSigOrderFunc *cmp_func_list)
 {
     SCSigOrderFunc *funcs = cmp_func_list;
 
@@ -552,8 +546,7 @@ static int SCSigLessThan(SCSigSignatureWrapper *sw1,
 
 /* Merge sort based on a list of compare functions
  * debug asserts are here to guide scan-build */
-static SCSigSignatureWrapper *SCSigOrder(SCSigSignatureWrapper *sw,
-                                         SCSigOrderFunc *cmp_func_list)
+static SCSigSignatureWrapper *SCSigOrder(SCSigSignatureWrapper *sw, SCSigOrderFunc *cmp_func_list)
 {
     DEBUG_VALIDATE_BUG_ON(sw == NULL);
 
@@ -628,8 +621,7 @@ static SCSigSignatureWrapper *SCSigOrder(SCSigSignatureWrapper *sw,
  *               signatures have to be ordered.
  * \param sw     The new signature that has to be ordered based on its action
  */
-static int SCSigOrderByActionCompare(SCSigSignatureWrapper *sw1,
-                                     SCSigSignatureWrapper *sw2)
+static int SCSigOrderByActionCompare(SCSigSignatureWrapper *sw1, SCSigSignatureWrapper *sw2)
 {
     return ActionOrderVal(sw2->sig->action) - ActionOrderVal(sw1->sig->action);
 }
@@ -641,8 +633,7 @@ static int SCSigOrderByActionCompare(SCSigSignatureWrapper *sw1,
  *               signatures have to be ordered.
  * \param sw     The new signature that has to be ordered based on its flowbits
  */
-static int SCSigOrderByFlowbitsCompare(SCSigSignatureWrapper *sw1,
-                                       SCSigSignatureWrapper *sw2)
+static int SCSigOrderByFlowbitsCompare(SCSigSignatureWrapper *sw1, SCSigSignatureWrapper *sw2)
 {
     return sw1->user[DETECT_SIGORDER_FLOWBITS] - sw2->user[DETECT_SIGORDER_FLOWBITS];
 }
@@ -654,8 +645,7 @@ static int SCSigOrderByFlowbitsCompare(SCSigSignatureWrapper *sw1,
  *               signatures have to be ordered.
  * \param sw     The new signature that has to be ordered based on its flowvar
  */
-static int SCSigOrderByFlowvarCompare(SCSigSignatureWrapper *sw1,
-                                      SCSigSignatureWrapper *sw2)
+static int SCSigOrderByFlowvarCompare(SCSigSignatureWrapper *sw1, SCSigSignatureWrapper *sw2)
 {
     return sw1->user[DETECT_SIGORDER_FLOWVAR] - sw2->user[DETECT_SIGORDER_FLOWVAR];
 }
@@ -667,14 +657,12 @@ static int SCSigOrderByFlowvarCompare(SCSigSignatureWrapper *sw1,
  *               signatures have to be ordered.
  * \param sw     The new signature that has to be ordered based on its pktvar
  */
-static int SCSigOrderByPktvarCompare(SCSigSignatureWrapper *sw1,
-                                     SCSigSignatureWrapper *sw2)
+static int SCSigOrderByPktvarCompare(SCSigSignatureWrapper *sw1, SCSigSignatureWrapper *sw2)
 {
     return sw1->user[DETECT_SIGORDER_PKTVAR] - sw2->user[DETECT_SIGORDER_PKTVAR];
 }
 
-static int SCSigOrderByFlowintCompare(SCSigSignatureWrapper *sw1,
-                                      SCSigSignatureWrapper *sw2)
+static int SCSigOrderByFlowintCompare(SCSigSignatureWrapper *sw1, SCSigSignatureWrapper *sw2)
 {
     return sw1->user[DETECT_SIGORDER_FLOWINT] - sw2->user[DETECT_SIGORDER_FLOWINT];
 }
@@ -686,8 +674,7 @@ static int SCSigOrderByFlowintCompare(SCSigSignatureWrapper *sw1,
  *               signatures have to be ordered.
  * \param sw     The new signature that has to be ordered based on its hostbits
  */
-static int SCSigOrderByHostbitsCompare(SCSigSignatureWrapper *sw1,
-                                       SCSigSignatureWrapper *sw2)
+static int SCSigOrderByHostbitsCompare(SCSigSignatureWrapper *sw1, SCSigSignatureWrapper *sw2)
 {
     return sw1->user[DETECT_SIGORDER_HOSTBITS] - sw2->user[DETECT_SIGORDER_HOSTBITS];
 }
@@ -699,8 +686,7 @@ static int SCSigOrderByHostbitsCompare(SCSigSignatureWrapper *sw1,
  *               signatures have to be ordered.
  * \param sw     The new signature that has to be ordered based on its bits
  */
-static int SCSigOrderByIPPairbitsCompare(SCSigSignatureWrapper *sw1,
-                                         SCSigSignatureWrapper *sw2)
+static int SCSigOrderByIPPairbitsCompare(SCSigSignatureWrapper *sw1, SCSigSignatureWrapper *sw2)
 {
     return sw1->user[DETECT_SIGORDER_IPPAIRBITS] - sw2->user[DETECT_SIGORDER_IPPAIRBITS];
 }
@@ -712,8 +698,7 @@ static int SCSigOrderByIPPairbitsCompare(SCSigSignatureWrapper *sw1,
  *               signatures have to be ordered.
  * \param sw     The new signature that has to be ordered based on its priority
  */
-static int SCSigOrderByPriorityCompare(SCSigSignatureWrapper *sw1,
-                                       SCSigSignatureWrapper *sw2)
+static int SCSigOrderByPriorityCompare(SCSigSignatureWrapper *sw1, SCSigSignatureWrapper *sw2)
 {
     if (sw1->sig->prio > sw2->sig->prio) {
         return -1;
@@ -1000,60 +985,79 @@ static int SCSigOrderingTest02(void)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF(de_ctx == NULL);
 
-    sig = DetectEngineAppendSig(de_ctx,
-            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; rev:4; sid:1;)");
+    sig = DetectEngineAppendSig(
+            de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; "
+                    "content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; rev:4; sid:1;)");
+    FAIL_IF_NULL(sig);
+
+    sig = DetectEngineAppendSig(
+            de_ctx, "drop tcp any !21:902 -> any any (msg:\"Testing sigordering\"; "
+                    "content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; rev:4; sid:2;)");
+    FAIL_IF_NULL(sig);
+
+    sig = DetectEngineAppendSig(
+            de_ctx, "drop tcp any !21:902 -> any any (msg:\"Testing sigordering\"; "
+                    "content:\"220\"; offset:10; depth:4; pcre:\"/220[- ]/\"; rev:4; sid:3;)");
+    FAIL_IF_NULL(sig);
+
+    sig = DetectEngineAppendSig(
+            de_ctx, "pass tcp any !21:902 -> any any (msg:\"Testing sigordering\"; "
+                    "content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; "
+                    "flowvar:http_host,\"www.oisf.net\"; rev:4; priority:1; sid:4;)");
     FAIL_IF_NULL(sig);
 
     sig = DetectEngineAppendSig(de_ctx,
-            "drop tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; rev:4; sid:2;)");
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; "
+            "offset:0; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:1; sid:5;)");
+    FAIL_IF_NULL(sig);
+
+    sig = DetectEngineAppendSig(
+            de_ctx, "pass tcp any !21:902 -> any any (msg:\"Testing sigordering\"; "
+                    "pcre:\"/^User-Agent: (?P<flow_http_host>.*)\\r\\n/m\"; content:\"220\"; "
+                    "offset:10; depth:4; rev:4; priority:3; sid:6;)");
     FAIL_IF_NULL(sig);
 
     sig = DetectEngineAppendSig(de_ctx,
-            "drop tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:10; depth:4; pcre:\"/220[- ]/\"; rev:4; sid:3;)");
+            "pass tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; "
+            "offset:10; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:3; sid:7;)");
     FAIL_IF_NULL(sig);
 
     sig = DetectEngineAppendSig(de_ctx,
-            "pass tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; flowvar:http_host,\"www.oisf.net\"; rev:4; priority:1; sid:4;)");
+            "pass tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; "
+            "offset:10; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:2; sid:8;)");
     FAIL_IF_NULL(sig);
 
     sig = DetectEngineAppendSig(de_ctx,
-            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:1; sid:5;)");
+            "drop tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; "
+            "offset:10; depth:4; pcre:\"/^User-Agent: (?P<pkt_http_host>.*)\\r\\n/m\"; rev:4; "
+            "priority:3; flowbits:set,TEST.one; flowbits:noalert; sid:9;)");
     FAIL_IF_NULL(sig);
 
     sig = DetectEngineAppendSig(de_ctx,
-            "pass tcp any !21:902 -> any any (msg:\"Testing sigordering\"; pcre:\"/^User-Agent: (?P<flow_http_host>.*)\\r\\n/m\"; content:\"220\"; offset:10; depth:4; rev:4; priority:3; sid:6;)");
+            "pass tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; "
+            "offset:11; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:3; sid:10;)");
+    FAIL_IF_NULL(sig);
+
+    sig = DetectEngineAppendSig(
+            de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; "
+                    "content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; rev:4; sid:11;)");
+    FAIL_IF_NULL(sig);
+
+    sig = DetectEngineAppendSig(
+            de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; "
+                    "content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; rev:4; sid:12;)");
     FAIL_IF_NULL(sig);
 
     sig = DetectEngineAppendSig(de_ctx,
-            "pass tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:10; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:3; sid:7;)");
+            "drop tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; "
+            "offset:12; depth:4; pcre:\"/220[- ]/\"; rev:4; pktvar:http_host,\"www.oisf.net\"; "
+            "priority:2; flowbits:isnotset,TEST.two; sid:13;)");
     FAIL_IF_NULL(sig);
 
-    sig = DetectEngineAppendSig(de_ctx,
-            "pass tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:10; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:2; sid:8;)");
-    FAIL_IF_NULL(sig);
-
-    sig = DetectEngineAppendSig(de_ctx,
-            "drop tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:10; depth:4; pcre:\"/^User-Agent: (?P<pkt_http_host>.*)\\r\\n/m\"; rev:4; priority:3; flowbits:set,TEST.one; flowbits:noalert; sid:9;)");
-    FAIL_IF_NULL(sig);
-
-    sig = DetectEngineAppendSig(de_ctx,
-            "pass tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:3; sid:10;)");
-    FAIL_IF_NULL(sig);
-
-    sig = DetectEngineAppendSig(de_ctx,
-            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; rev:4; sid:11;)");
-    FAIL_IF_NULL(sig);
-
-    sig = DetectEngineAppendSig(de_ctx,
-            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; rev:4; sid:12;)");
-    FAIL_IF_NULL(sig);
-
-    sig = DetectEngineAppendSig(de_ctx,
-            "drop tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:12; depth:4; pcre:\"/220[- ]/\"; rev:4; pktvar:http_host,\"www.oisf.net\"; priority:2; flowbits:isnotset,TEST.two; sid:13;)");
-    FAIL_IF_NULL(sig);
-
-    sig = DetectEngineAppendSig(de_ctx,
-            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; offset:12; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:2; flowbits:set,TEST.two; sid:14;)");
+    sig = DetectEngineAppendSig(
+            de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; "
+                    "content:\"220\"; offset:12; depth:4; pcre:\"/220[- ]/\"; rev:4; priority:2; "
+                    "flowbits:set,TEST.two; sid:14;)");
     FAIL_IF_NULL(sig);
 
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByActionCompare);
@@ -1417,12 +1421,12 @@ static int SCSigOrderingTest05(void)
 
     sig = de_ctx->sig_list;
 
-    //#ifdef DEBUG
+    // #ifdef DEBUG
     while (sig != NULL) {
         printf("sid: %d\n", sig->id);
         sig = sig->next;
     }
-    //#endif
+    // #endif
 
     sig = de_ctx->sig_list;
 
@@ -2008,7 +2012,8 @@ static int SCSigOrderingTest12(void)
     de_ctx->flags |= DE_QUIET;
 
     const char *sigs[2];
-    sigs[0] = "alert tcp any any -> any any (content:\"test\"; dsize:>0; flowbits:isset,one; flowbits:set,two; sid:1;)";
+    sigs[0] = "alert tcp any any -> any any (content:\"test\"; dsize:>0; flowbits:isset,one; "
+              "flowbits:set,two; sid:1;)";
     sigs[1] = "alert tcp any any -> any any (content:\"test\"; dsize:>0; flowbits:set,one; sid:2;)";
     UTHAppendSigs(de_ctx, sigs, 2);
 
@@ -2029,8 +2034,8 @@ static int SCSigOrderingTest12(void)
 
     UTHMatchPackets(de_ctx, &p, 1);
 
-    uint32_t sids[2] = {1, 2};
-    uint32_t results[2] = {1, 1};
+    uint32_t sids[2] = { 1, 2 };
+    uint32_t results[2] = { 1, 1 };
     FAIL_IF_NOT(UTHCheckPacketMatchResults(p, sids, results, 2));
 
     UTHFreePackets(&p, 1);
@@ -2050,11 +2055,14 @@ static int SCSigOrderingTest13(void)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF(de_ctx == NULL);
 
-    sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flowbits:isset,bit1; flowbits:set,bit2; flowbits:set,bit3; sid:6;)");
+    sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flowbits:isset,bit1; "
+                                        "flowbits:set,bit2; flowbits:set,bit3; sid:6;)");
     FAIL_IF_NULL(sig);
-    sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flowbits:set,bit1; flowbits:set,bit2; sid:7;)");
+    sig = DetectEngineAppendSig(
+            de_ctx, "alert tcp any any -> any any (flowbits:set,bit1; flowbits:set,bit2; sid:7;)");
     FAIL_IF_NULL(sig);
-    sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flowbits:isset,bit1; flowbits:isset,bit2; flowbits:isset,bit3; sid:5;)");
+    sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flowbits:isset,bit1; "
+                                        "flowbits:isset,bit2; flowbits:isset,bit3; sid:5;)");
     FAIL_IF_NULL(sig);
 
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbitsCompare);

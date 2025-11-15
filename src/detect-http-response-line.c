@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /**
  * \file
  *
@@ -66,9 +65,8 @@ static int DetectHttpResponseLineSetup(DetectEngineCtx *, Signature *, const cha
 static void DetectHttpResponseLineRegisterTests(void);
 #endif
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms,
-        Flow *_f, const uint8_t _flow_flags,
-        void *txv, const int list_id);
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id);
 static int g_http_response_line_id = 0;
 
 static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
@@ -120,8 +118,7 @@ void DetectHttpResponseLineRegister(void)
     DetectAppLayerMpmRegister("http_response_line", SIG_FLAG_TOCLIENT, 2,
             PrefilterGenericMpmRegister, GetData2, ALPROTO_HTTP2, HTTP2StateDataServer);
 
-    DetectBufferTypeSetDescriptionByName("http_response_line",
-            "http response line");
+    DetectBufferTypeSetDescriptionByName("http_response_line", "http response line");
 
     g_http_response_line_id = DetectBufferTypeGetByName("http_response_line");
 }
@@ -151,9 +148,8 @@ static int DetectHttpResponseLineSetup(DetectEngineCtx *de_ctx, Signature *s, co
 }
 
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms,
-        Flow *_f, const uint8_t _flow_flags,
-        void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
 {
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
@@ -187,7 +183,7 @@ static int DetectHttpResponseLineTest01(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(http_response_line; content:\"200 OK\"; sid:1;)");
+                                       "(http_response_line; content:\"200 OK\"; sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
     DetectEngineCtxFree(de_ctx);

@@ -42,9 +42,9 @@
 
 static DetectParseRegex parse_regex;
 
-static int DetectMarkSetup (DetectEngineCtx *, Signature *, const char *);
-static int DetectMarkPacket(DetectEngineThreadCtx *det_ctx, Packet *p,
-        const Signature *s, const SigMatchCtx *ctx);
+static int DetectMarkSetup(DetectEngineCtx *, Signature *, const char *);
+static int DetectMarkPacket(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx);
 void DetectMarkDataFree(DetectEngineCtx *, void *ptr);
 #if defined UNITTESTS && defined NFQ
 static void MarkRegisterTests(void);
@@ -54,12 +54,12 @@ static void MarkRegisterTests(void);
  * \brief Registration function for nfq_set_mark: keyword
  */
 
-void DetectMarkRegister (void)
+void DetectMarkRegister(void)
 {
     sigmatch_table[DETECT_MARK].name = "nfq_set_mark";
     sigmatch_table[DETECT_MARK].Match = DetectMarkPacket;
     sigmatch_table[DETECT_MARK].Setup = DetectMarkSetup;
-    sigmatch_table[DETECT_MARK].Free  = DetectMarkDataFree;
+    sigmatch_table[DETECT_MARK].Free = DetectMarkDataFree;
 #if defined UNITTESTS && defined NFQ
     sigmatch_table[DETECT_MARK].RegisterTests = MarkRegisterTests;
 #endif
@@ -76,7 +76,7 @@ void DetectMarkRegister (void)
  * \retval 0 on success
  * \retval < 0 on failure
  */
-static void * DetectMarkParse (const char *rawstr)
+static void *DetectMarkParse(const char *rawstr)
 {
     int res = 0;
     size_t pcre2_len;
@@ -169,7 +169,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectMarkSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
+static int DetectMarkSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
 #ifndef NFQ
     return 0;
@@ -196,9 +196,8 @@ void DetectMarkDataFree(DetectEngineCtx *de_ctx, void *ptr)
     SCFree(data);
 }
 
-
-static int DetectMarkPacket(DetectEngineThreadCtx *det_ctx, Packet *p,
-        const Signature *s, const SigMatchCtx *ctx)
+static int DetectMarkPacket(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
 #ifdef NFQ
     const DetectMarkData *nf_data = (const DetectMarkData *)ctx;
@@ -209,8 +208,7 @@ static int DetectMarkPacket(DetectEngineThreadCtx *det_ctx, Packet *p,
              * packet anymore. */
 
             /* coverity[missing_lock] */
-            p->nfq_v.mark = (nf_data->mark & nf_data->mask)
-                | (p->nfq_v.mark & ~(nf_data->mask));
+            p->nfq_v.mark = (nf_data->mark & nf_data->mask) | (p->nfq_v.mark & ~(nf_data->mask));
             /* coverity[missing_lock] */
             p->nfq_v.mark_modified = true;
         } else {
@@ -220,8 +218,8 @@ static int DetectMarkPacket(DetectEngineThreadCtx *det_ctx, Packet *p,
             if (p->flags & PKT_REBUILT_FRAGMENT) {
                 Packet *tp = p->root ? p->root : p;
                 SCSpinLock(&tp->persistent.tunnel_lock);
-                tp->nfq_v.mark = (nf_data->mark & nf_data->mask)
-                    | (tp->nfq_v.mark & ~(nf_data->mask));
+                tp->nfq_v.mark =
+                        (nf_data->mark & nf_data->mask) | (tp->nfq_v.mark & ~(nf_data->mask));
                 tp->nfq_v.mark_modified = true;
                 SCSpinUnlock(&tp->persistent.tunnel_lock);
             }
@@ -240,7 +238,7 @@ static int DetectMarkPacket(DetectEngineThreadCtx *det_ctx, Packet *p,
  * \test MarkTestParse01 is a test for a valid mark value
  *
  */
-static int MarkTestParse01 (void)
+static int MarkTestParse01(void)
 {
     DetectMarkData *data;
 
@@ -258,7 +256,7 @@ static int MarkTestParse01 (void)
  * \test MarkTestParse02 is a test for an invalid mark value
  *
  */
-static int MarkTestParse02 (void)
+static int MarkTestParse02(void)
 {
     DetectMarkData *data;
 
@@ -274,7 +272,7 @@ static int MarkTestParse02 (void)
  * \test MarkTestParse03 is a test for a valid mark value
  *
  */
-static int MarkTestParse03 (void)
+static int MarkTestParse03(void)
 {
     DetectMarkData *data;
 
@@ -292,7 +290,7 @@ static int MarkTestParse03 (void)
  * \test MarkTestParse04 is a test for a invalid mark value
  *
  */
-static int MarkTestParse04 (void)
+static int MarkTestParse04(void)
 {
     DetectMarkData *data;
 

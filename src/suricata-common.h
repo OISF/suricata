@@ -146,20 +146,20 @@ extern "C"
 #endif
 
 #if HAVE_SCHED_H
-#include <sched.h>     /* for sched_setaffinity(2) */
+#include <sched.h> /* for sched_setaffinity(2) */
 #endif
 
 #ifdef HAVE_TYPE_U_LONG_NOT_DEFINED
-typedef unsigned long int u_long;
+    typedef unsigned long int u_long;
 #endif
 #ifdef HAVE_TYPE_U_INT_NOT_DEFINED
-typedef unsigned int u_int;
+    typedef unsigned int u_int;
 #endif
 #ifdef HAVE_TYPE_U_SHORT_NOT_DEFINED
-typedef unsigned short u_short;
+    typedef unsigned short u_short;
 #endif
 #ifdef HAVE_TYPE_U_CHAR_NOT_DEFINED
-typedef unsigned char u_char;
+    typedef unsigned char u_char;
 #endif
 
 #include <pcre2.h>
@@ -305,30 +305,33 @@ typedef unsigned char u_char;
 /* we need this to stringify the defines which are supplied at compiletime see:
    http://gcc.gnu.org/onlinedocs/gcc-3.4.1/cpp/Stringification.html#Stringification */
 #define xstr(s) str(s)
-#define str(s) #s
+#define str(s)  #s
 
-#if CPPCHECK==1
-    #define BUG_ON(x) if (((x))) exit(1)
+#if CPPCHECK == 1
+#define BUG_ON(x)                                                                                  \
+    if (((x)))                                                                                     \
+    exit(1)
 #else
-    #if defined HAVE_ASSERT_H && !defined NDEBUG
-    #include <assert.h>
-        #define BUG_ON(x) assert(!(x))
-    #else
-        #define BUG_ON(x) do {      \
-            if (((x))) {            \
-                fprintf(stderr, "BUG at %s:%d(%s)\n", __FILE__, __LINE__, __func__);    \
-                fprintf(stderr, "Code: '%s'\n", xstr((x)));                             \
-                exit(EXIT_FAILURE); \
-            }                       \
-        } while(0)
-    #endif
+#if defined HAVE_ASSERT_H && !defined NDEBUG
+#include <assert.h>
+#define BUG_ON(x) assert(!(x))
+#else
+#define BUG_ON(x)                                                                                  \
+    do {                                                                                           \
+        if (((x))) {                                                                               \
+            fprintf(stderr, "BUG at %s:%d(%s)\n", __FILE__, __LINE__, __func__);                   \
+            fprintf(stderr, "Code: '%s'\n", xstr((x)));                                            \
+            exit(EXIT_FAILURE);                                                                    \
+        }                                                                                          \
+    } while (0)
+#endif
 #endif
 
 /** type for the internal signature id. Since it's used in the matching engine
  *  extensively keeping this as small as possible reduces the overall memory
  *  footprint of the engine. Set to uint32_t if the engine needs to support
  *  more than 64k sigs. */
-//#define SigIntId uint16_t
+// #define SigIntId uint16_t
 #define SigIntId uint32_t
 
 /** same for pattern id's */
@@ -336,80 +339,79 @@ typedef unsigned char u_char;
 
 /** FreeBSD does not define __WORDSIZE, but it uses __LONG_BIT */
 #ifndef __WORDSIZE
-    #ifdef __LONG_BIT
-        #define __WORDSIZE __LONG_BIT
-    #else
-        #ifdef LONG_BIT
-            #define __WORDSIZE LONG_BIT
-        #endif
-    #endif
+#ifdef __LONG_BIT
+#define __WORDSIZE __LONG_BIT
+#else
+#ifdef LONG_BIT
+#define __WORDSIZE LONG_BIT
+#endif
+#endif
 #endif
 
 /** Windows does not define __WORDSIZE, but it uses __X86__ */
 #ifndef __WORDSIZE
-    #if defined(__X86__) || defined(_X86_) || defined(_M_IX86)
-        #define __WORDSIZE 32
-    #else
-        #if defined(__X86_64__) || defined(_X86_64_) || \
-            defined(__x86_64)   || defined(__x86_64__) || \
-            defined(__amd64)    || defined(__amd64__)
-            #define __WORDSIZE 64
-        #endif
-    #endif
+#if defined(__X86__) || defined(_X86_) || defined(_M_IX86)
+#define __WORDSIZE 32
+#else
+#if defined(__X86_64__) || defined(_X86_64_) || defined(__x86_64) || defined(__x86_64__) ||        \
+        defined(__amd64) || defined(__amd64__)
+#define __WORDSIZE 64
+#endif
+#endif
 #endif
 
 /** if not succesful yet try the data models */
 #ifndef __WORDSIZE
-    #if defined(_ILP32) || defined(__ILP32__)
-        #define __WORDSIZE 32
-    #endif
-    #if defined(_LP64) || defined(__LP64__)
-        #define __WORDSIZE 64
-    #endif
+#if defined(_ILP32) || defined(__ILP32__)
+#define __WORDSIZE 32
+#endif
+#if defined(_LP64) || defined(__LP64__)
+#define __WORDSIZE 64
+#endif
 #endif
 
 #ifndef __WORDSIZE
-    #warning Defaulting to __WORDSIZE 32
-    #define __WORDSIZE 32
+#warning Defaulting to __WORDSIZE 32
+#define __WORDSIZE 32
 #endif
 
 /** darwin doesn't defined __BYTE_ORDER and friends, but BYTE_ORDER */
 #ifndef __BYTE_ORDER
-    #if defined(BYTE_ORDER)
-        #define __BYTE_ORDER BYTE_ORDER
-    #elif defined(__BYTE_ORDER__)
-        #define __BYTE_ORDER __BYTE_ORDER__
-    #else
-        #error "byte order not detected"
-    #endif
+#if defined(BYTE_ORDER)
+#define __BYTE_ORDER BYTE_ORDER
+#elif defined(__BYTE_ORDER__)
+#define __BYTE_ORDER __BYTE_ORDER__
+#else
+#error "byte order not detected"
+#endif
 #endif
 
 #ifndef __LITTLE_ENDIAN
-    #if defined(LITTLE_ENDIAN)
-        #define __LITTLE_ENDIAN LITTLE_ENDIAN
-    #elif defined(__ORDER_LITTLE_ENDIAN__)
-        #define __LITTLE_ENDIAN __ORDER_LITTLE_ENDIAN__
-    #endif
+#if defined(LITTLE_ENDIAN)
+#define __LITTLE_ENDIAN LITTLE_ENDIAN
+#elif defined(__ORDER_LITTLE_ENDIAN__)
+#define __LITTLE_ENDIAN __ORDER_LITTLE_ENDIAN__
+#endif
 #endif
 
 #ifndef __BIG_ENDIAN
-    #if defined(BIG_ENDIAN)
-        #define __BIG_ENDIAN BIG_ENDIAN
-    #elif defined(__ORDER_BIG_ENDIAN__)
-        #define __BIG_ENDIAN __ORDER_BIG_ENDIAN__
-    #endif
+#if defined(BIG_ENDIAN)
+#define __BIG_ENDIAN BIG_ENDIAN
+#elif defined(__ORDER_BIG_ENDIAN__)
+#define __BIG_ENDIAN __ORDER_BIG_ENDIAN__
+#endif
 #endif
 
 #if !defined(__LITTLE_ENDIAN) && !defined(__BIG_ENDIAN)
-    #error "byte order: can't figure out big or little"
+#error "byte order: can't figure out big or little"
 #endif
 
 #ifndef MIN
-#define MIN(x, y) (((x)<(y))?(x):(y))
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
 #endif
 
 #ifndef MAX
-#define MAX(x, y) (((x)<(y))?(y):(x))
+#define MAX(x, y) (((x) < (y)) ? (y) : (x))
 #endif
 
 #define BIT_U8(n)  ((uint8_t)(1 << (n)))
@@ -427,100 +429,100 @@ typedef unsigned char u_char;
 #define ATTR_FMT_PRINTF(x, y)
 #endif
 
-#define SCNtohl(x) (uint32_t)ntohl((x))
-#define SCNtohs(x) (uint16_t)ntohs((x))
+#define SCNtohl(x) (uint32_t) ntohl((x))
+#define SCNtohs(x) (uint16_t) ntohs((x))
 
 /* swap flags if one of them is set, otherwise do nothing. */
-#define SWAP_FLAGS(flags, a, b)                     \
-    do {                                            \
-        if (((flags) & ((a)|(b))) == (a)) {         \
-            (flags) &= ~(a);                        \
-            (flags) |= (b);                         \
-        } else if (((flags) & ((a)|(b))) == (b)) {  \
-            (flags) &= ~(b);                        \
-            (flags) |= (a);                         \
-        }                                           \
-    } while(0)
+#define SWAP_FLAGS(flags, a, b)                                                                    \
+    do {                                                                                           \
+        if (((flags) & ((a) | (b))) == (a)) {                                                      \
+            (flags) &= ~(a);                                                                       \
+            (flags) |= (b);                                                                        \
+        } else if (((flags) & ((a) | (b))) == (b)) {                                               \
+            (flags) &= ~(b);                                                                       \
+            (flags) |= (a);                                                                        \
+        }                                                                                          \
+    } while (0)
 
-#define SWAP_VARS(type, a, b)           \
-    do {                                \
-        type t = (a);                   \
-        (a) = (b);                      \
-        (b) = t;                        \
+#define SWAP_VARS(type, a, b)                                                                      \
+    do {                                                                                           \
+        type t = (a);                                                                              \
+        (a) = (b);                                                                                 \
+        (b) = t;                                                                                   \
     } while (0)
 
 #include <ctype.h>
 #define u8_tolower(c) ((uint8_t)tolower((uint8_t)(c)))
 #define u8_toupper(c) ((uint8_t)toupper((uint8_t)(c)))
 
-typedef enum PacketProfileDetectId_ {
-    PROF_DETECT_SETUP,
-    PROF_DETECT_GETSGH,
-    PROF_DETECT_IPONLY,
-    PROF_DETECT_RULES,
-    PROF_DETECT_TX,
-    PROF_DETECT_PF_PKT,
-    PROF_DETECT_PF_PAYLOAD,
-    PROF_DETECT_PF_TX,
-    PROF_DETECT_PF_RECORD,
-    PROF_DETECT_PF_SORT1,
-    PROF_DETECT_PF_SORT2,
-    PROF_DETECT_NONMPMLIST,
-    PROF_DETECT_ALERT,
-    PROF_DETECT_TX_UPDATE,
-    PROF_DETECT_CLEANUP,
+    typedef enum PacketProfileDetectId_ {
+        PROF_DETECT_SETUP,
+        PROF_DETECT_GETSGH,
+        PROF_DETECT_IPONLY,
+        PROF_DETECT_RULES,
+        PROF_DETECT_TX,
+        PROF_DETECT_PF_PKT,
+        PROF_DETECT_PF_PAYLOAD,
+        PROF_DETECT_PF_TX,
+        PROF_DETECT_PF_RECORD,
+        PROF_DETECT_PF_SORT1,
+        PROF_DETECT_PF_SORT2,
+        PROF_DETECT_NONMPMLIST,
+        PROF_DETECT_ALERT,
+        PROF_DETECT_TX_UPDATE,
+        PROF_DETECT_CLEANUP,
 
-    PROF_DETECT_SIZE,
-} PacketProfileDetectId;
+        PROF_DETECT_SIZE,
+    } PacketProfileDetectId;
 
-/** \note update PacketProfileLoggerIdToString if you change anything here */
-typedef enum LoggerId {
-    LOGGER_UNDEFINED,
+    /** \note update PacketProfileLoggerIdToString if you change anything here */
+    typedef enum LoggerId {
+        LOGGER_UNDEFINED,
 
-    /* TX loggers first for low logger IDs */
-    LOGGER_HTTP,
-    LOGGER_TLS_STORE,
-    LOGGER_TLS_STORE_CLIENT,
-    LOGGER_TLS,
-    LOGGER_JSON_TX,
-    LOGGER_FILE,
-    LOGGER_FILEDATA,
+        /* TX loggers first for low logger IDs */
+        LOGGER_HTTP,
+        LOGGER_TLS_STORE,
+        LOGGER_TLS_STORE_CLIENT,
+        LOGGER_TLS,
+        LOGGER_JSON_TX,
+        LOGGER_FILE,
+        LOGGER_FILEDATA,
 
-    /** \warning Note that transaction loggers here with a value > 31
-        will not work. */
+        /** \warning Note that transaction loggers here with a value > 31
+            will not work. */
 
-    /* non-tx loggers below */
+        /* non-tx loggers below */
 
-    LOGGER_ALERT_DEBUG,
-    LOGGER_ALERT_FAST,
-    LOGGER_ALERT_SYSLOG,
-    LOGGER_JSON_ALERT,
-    LOGGER_JSON_ANOMALY,
-    LOGGER_JSON_DROP,
-    LOGGER_FILE_STORE,
-    LOGGER_JSON_FILE,
-    LOGGER_TCP_DATA,
-    LOGGER_JSON_FLOW,
-    LOGGER_JSON_NETFLOW,
-    LOGGER_STATS,
-    LOGGER_JSON_STATS,
-    LOGGER_PCAP,
-    LOGGER_JSON_METADATA,
-    LOGGER_JSON_FRAME,
-    LOGGER_JSON_STREAM,
-    LOGGER_JSON_ARP,
+        LOGGER_ALERT_DEBUG,
+        LOGGER_ALERT_FAST,
+        LOGGER_ALERT_SYSLOG,
+        LOGGER_JSON_ALERT,
+        LOGGER_JSON_ANOMALY,
+        LOGGER_JSON_DROP,
+        LOGGER_FILE_STORE,
+        LOGGER_JSON_FILE,
+        LOGGER_TCP_DATA,
+        LOGGER_JSON_FLOW,
+        LOGGER_JSON_NETFLOW,
+        LOGGER_STATS,
+        LOGGER_JSON_STATS,
+        LOGGER_PCAP,
+        LOGGER_JSON_METADATA,
+        LOGGER_JSON_FRAME,
+        LOGGER_JSON_STREAM,
+        LOGGER_JSON_ARP,
 
-    /* An ID that can be used by loggers registered by plugins and/or
-     * library users. */
-    LOGGER_USER,
+        /* An ID that can be used by loggers registered by plugins and/or
+         * library users. */
+        LOGGER_USER,
 
-    /* Must come last. */
-    LOGGER_SIZE,
-} LoggerId;
+        /* Must come last. */
+        LOGGER_SIZE,
+    } LoggerId;
 
-/* If we don't have Lua, create a typedef for lua_State so the
- * exported Lua functions don't fail the build. */
-typedef struct lua_State lua_State;
+    /* If we don't have Lua, create a typedef for lua_State so the
+     * exported Lua functions don't fail the build. */
+    typedef struct lua_State lua_State;
 
 #include "tm-threads-common.h"
 #include "util-optimize.h"
@@ -535,29 +537,29 @@ typedef struct lua_State lua_State;
 #include "tree.h"
 
 #ifndef HAVE_STRLCAT
-size_t strlcat(char *, const char *src, size_t siz);
+    size_t strlcat(char *, const char *src, size_t siz);
 #endif
 #ifndef HAVE_STRLCPY
-size_t strlcpy(char *dst, const char *src, size_t siz);
+    size_t strlcpy(char *dst, const char *src, size_t siz);
 #endif
 #ifndef HAVE_STRPTIME
-char *strptime(const char * __restrict, const char * __restrict, struct tm * __restrict);
+    char *strptime(const char *__restrict, const char *__restrict, struct tm *__restrict);
 #endif
 
 #ifndef HAVE_FWRITE_UNLOCKED
-#define SCFwriteUnlocked    fwrite
-#define SCFflushUnlocked    fflush
-#define SCClearErrUnlocked  clearerr
-#define SCFerrorUnlocked    ferror
+#define SCFwriteUnlocked   fwrite
+#define SCFflushUnlocked   fflush
+#define SCClearErrUnlocked clearerr
+#define SCFerrorUnlocked   ferror
 #else
-#define SCFwriteUnlocked    fwrite_unlocked
-#define SCFflushUnlocked    fflush_unlocked
-#define SCClearErrUnlocked  clearerr_unlocked
-#define SCFerrorUnlocked    ferror_unlocked
+#define SCFwriteUnlocked   fwrite_unlocked
+#define SCFflushUnlocked   fflush_unlocked
+#define SCClearErrUnlocked clearerr_unlocked
+#define SCFerrorUnlocked   ferror_unlocked
 #endif
-extern int coverage_unittests;
-extern int g_ut_modules;
-extern int g_ut_covered;
+    extern int coverage_unittests;
+    extern int g_ut_modules;
+    extern int g_ut_covered;
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
 

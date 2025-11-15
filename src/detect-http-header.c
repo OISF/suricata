@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /**
  * \file
  *
@@ -65,7 +64,7 @@ static void DetectHttpHeaderRegisterTests(void);
 static int g_http_header_buffer_id = 0;
 static int g_keyword_thread_id = 0;
 
-#define BUFFER_SIZE_STEP    1024
+#define BUFFER_SIZE_STEP 1024
 static HttpHeaderThreadDataConfig g_td_config = { BUFFER_SIZE_STEP };
 
 static uint8_t *GetBufferForTX(
@@ -258,7 +257,7 @@ static void PrefilterMpmHttpHeader(DetectEngineThreadCtx *det_ctx, const void *p
     const uint8_t *data = buffer->inspect;
 
     SCLogDebug("mpm'ing buffer:");
-    //PrintRawDataFp(stdout, data, data_len);
+    // PrintRawDataFp(stdout, data, data_len);
 
     if (data != NULL && data_len >= mpm_ctx->minlen) {
         (void)mpm_table[mpm_ctx->mpm_type].Search(
@@ -418,8 +417,10 @@ void DetectHttpHeaderRegister(void)
 
     /* http.header sticky buffer */
     sigmatch_table[DETECT_HTTP_HEADER].name = "http.header";
-    sigmatch_table[DETECT_HTTP_HEADER].desc = "sticky buffer to match on the normalized HTTP header-buffer";
-    sigmatch_table[DETECT_HTTP_HEADER].url = "/rules/http-keywords.html#http-header-and-http-raw-header";
+    sigmatch_table[DETECT_HTTP_HEADER].desc =
+            "sticky buffer to match on the normalized HTTP header-buffer";
+    sigmatch_table[DETECT_HTTP_HEADER].url =
+            "/rules/http-keywords.html#http-header-and-http-raw-header";
     sigmatch_table[DETECT_HTTP_HEADER].Setup = DetectHttpHeaderSetupSticky;
     sigmatch_table[DETECT_HTTP_HEADER].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_HTTP_HEADER].flags |= SIGMATCH_INFO_STICKY_BUFFER;
@@ -446,13 +447,12 @@ void DetectHttpHeaderRegister(void)
     DetectAppLayerMpmRegister("http_header", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
             GetBuffer2ForTX, ALPROTO_HTTP2, HTTP2StateDataServer);
 
-    DetectBufferTypeSetDescriptionByName("http_header",
-            "http headers");
+    DetectBufferTypeSetDescriptionByName("http_header", "http headers");
 
     g_http_header_buffer_id = DetectBufferTypeGetByName("http_header");
 
-    g_keyword_thread_id = DetectRegisterThreadCtxGlobalFuncs("http_header",
-            HttpHeaderThreadDataInit, &g_td_config, HttpHeaderThreadDataFree);
+    g_keyword_thread_id = DetectRegisterThreadCtxGlobalFuncs(
+            "http_header", HttpHeaderThreadDataInit, &g_td_config, HttpHeaderThreadDataFree);
 }
 
 static int g_http_request_header_buffer_id = 0;

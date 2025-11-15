@@ -46,9 +46,8 @@
  * \brief Regex for parsing "id" option, matching number or "number"
  */
 
-static int DetectIdMatch (DetectEngineThreadCtx *, Packet *,
-        const Signature *, const SigMatchCtx *);
-static int DetectIdSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectIdMatch(DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
+static int DetectIdSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectIdRegisterTests(void);
 #endif
@@ -60,14 +59,14 @@ static bool PrefilterIdIsPrefilterable(const Signature *s);
 /**
  * \brief Registration function for keyword: id
  */
-void DetectIdRegister (void)
+void DetectIdRegister(void)
 {
     sigmatch_table[DETECT_ID].name = "id";
     sigmatch_table[DETECT_ID].desc = "match on a specific IP ID value";
     sigmatch_table[DETECT_ID].url = "/rules/header-keywords.html#id";
     sigmatch_table[DETECT_ID].Match = DetectIdMatch;
     sigmatch_table[DETECT_ID].Setup = DetectIdSetup;
-    sigmatch_table[DETECT_ID].Free  = DetectIdFree;
+    sigmatch_table[DETECT_ID].Free = DetectIdFree;
     sigmatch_table[DETECT_ID].flags = SIGMATCH_INFO_UINT16;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_ID].RegisterTests = DetectIdRegisterTests;
@@ -87,8 +86,8 @@ void DetectIdRegister (void)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectIdMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
-                          const Signature *s, const SigMatchCtx *ctx)
+static int DetectIdMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
     const DetectU16Data *id_d = (const DetectU16Data *)ctx;
@@ -115,7 +114,7 @@ static int DetectIdMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectIdSetup (DetectEngineCtx *de_ctx, Signature *s, const char *idstr)
+int DetectIdSetup(DetectEngineCtx *de_ctx, Signature *s, const char *idstr)
 {
     DetectU16Data *id_d = SCDetectU16UnquoteParse(idstr);
     if (id_d == NULL)
@@ -144,8 +143,7 @@ void DetectIdFree(DetectEngineCtx *de_ctx, void *ptr)
 
 /* prefilter code */
 
-static void
-PrefilterPacketIdMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
+static void PrefilterPacketIdMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
 {
     DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
 
@@ -178,7 +176,7 @@ static int PrefilterSetupId(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 static bool PrefilterIdIsPrefilterable(const Signature *s)
 {
     const SigMatch *sm;
-    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_ID:
                 return true;
@@ -193,7 +191,7 @@ static bool PrefilterIdIsPrefilterable(const Signature *s)
  * \test DetectIdTestParse01 is a test to make sure that we parse the "id"
  *       option correctly when given valid id option
  */
-static int DetectIdTestParse01 (void)
+static int DetectIdTestParse01(void)
 {
     DetectU16Data *id_d = SCDetectU16UnquoteParse(" 35402 ");
 
@@ -210,7 +208,7 @@ static int DetectIdTestParse01 (void)
  *       option correctly when given an invalid id option
  *       it should return id_d = NULL
  */
-static int DetectIdTestParse02 (void)
+static int DetectIdTestParse02(void)
 {
     DetectU16Data *id_d = SCDetectU16UnquoteParse("65537");
 
@@ -224,7 +222,7 @@ static int DetectIdTestParse02 (void)
  *       option correctly when given an invalid id option
  *       it should return id_d = NULL
  */
-static int DetectIdTestParse03 (void)
+static int DetectIdTestParse03(void)
 {
     DetectU16Data *id_d = SCDetectU16UnquoteParse("12what?");
 
@@ -237,7 +235,7 @@ static int DetectIdTestParse03 (void)
  * \test DetectIdTestParse04 is a test to make sure that we parse the "id"
  *       option correctly when given valid id option but wrapped with "'s
  */
-static int DetectIdTestParse04 (void)
+static int DetectIdTestParse04(void)
 {
     /* yep, look if we trim blank spaces correctly and ignore "'s */
     DetectU16Data *id_d = SCDetectU16UnquoteParse(" \"35402\" ");
@@ -277,19 +275,19 @@ static int DetectIdTestMatch01(void)
     p[2]->l3.hdrs.ip4h->ip_id = htons(5101);
 
     const char *sigs[3];
-    sigs[0]= "alert ip any any -> any any (msg:\"Testing id 1\"; id:1234; sid:1;)";
-    sigs[1]= "alert ip any any -> any any (msg:\"Testing id 2\"; id:5678; sid:2;)";
-    sigs[2]= "alert ip any any -> any any (msg:\"Testing id 3\"; id:5101; sid:3;)";
+    sigs[0] = "alert ip any any -> any any (msg:\"Testing id 1\"; id:1234; sid:1;)";
+    sigs[1] = "alert ip any any -> any any (msg:\"Testing id 2\"; id:5678; sid:2;)";
+    sigs[2] = "alert ip any any -> any any (msg:\"Testing id 3\"; id:5101; sid:3;)";
 
-    uint32_t sid[3] = {1, 2, 3};
+    uint32_t sid[3] = { 1, 2, 3 };
 
-    uint32_t results[3][3] = {
-                              /* packet 0 match sid 1 but should not match sid 2 */
-                              {1, 0, 0},
-                              /* packet 1 should not match */
-                              {0, 1, 0},
-                              /* packet 2 should not match */
-                              {0, 0, 1} };
+    uint32_t results[3][3] = { /* packet 0 match sid 1 but should not match sid 2 */
+        { 1, 0, 0 },
+        /* packet 1 should not match */
+        { 0, 1, 0 },
+        /* packet 2 should not match */
+        { 0, 0, 1 }
+    };
 
     FAIL_IF_NOT(UTHGenericTest(p, 3, sigs, sid, (uint32_t *)results, 3));
 
@@ -308,6 +306,5 @@ void DetectIdRegisterTests(void)
     UtRegisterTest("DetectIdTestParse03", DetectIdTestParse03);
     UtRegisterTest("DetectIdTestParse04", DetectIdTestParse04);
     UtRegisterTest("DetectIdTestMatch01", DetectIdTestMatch01);
-
 }
 #endif /* UNITTESTS */

@@ -36,6 +36,6 @@ void *FlowWorkerGetThreadData(void *flow_worker);
 bool FlowWorkerGetFlushAck(void *flow_worker);
 void FlowWorkerSetFlushAck(void *flow_worker);
 
-void TmModuleFlowWorkerRegister (void);
+void TmModuleFlowWorkerRegister(void);
 
 #endif /* SURICATA_FLOW_WORKER_H */

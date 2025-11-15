@@ -28,7 +28,7 @@
 #include "defrag.h"
 
 /** Spinlocks or Mutex for the defrag tracker queues. */
-//#define DQLOCK_SPIN
+// #define DQLOCK_SPIN
 #define DQLOCK_MUTEX
 
 #ifdef DQLOCK_SPIN

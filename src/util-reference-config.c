@@ -42,8 +42,8 @@
 
 /* the hash functions */
 uint32_t SCRConfReferenceHashFunc(HashTable *ht, void *data, uint16_t datalen);
-char SCRConfReferenceHashCompareFunc(void *data1, uint16_t datalen1,
-                                     void *data2, uint16_t datalen2);
+char SCRConfReferenceHashCompareFunc(
+        void *data1, uint16_t datalen1, void *data2, uint16_t datalen2);
 void SCRConfReferenceHashFree(void *ch);
 
 /* used to get the reference.config file path */
@@ -81,7 +81,6 @@ void SCReferenceConfDeinit(DetectEngineCtx *de_ctx)
     }
 }
 
-
 /**
  * \brief Inits the context to be used by the Reference Config parsing API.
  *
@@ -101,8 +100,7 @@ static FILE *SCRConfInitContextAndLocalResources(DetectEngineCtx *de_ctx, FILE *
 {
     /* init the hash table to be used by the reference config references */
     de_ctx->reference_conf_ht = HashTableInit(128, SCRConfReferenceHashFunc,
-                                              SCRConfReferenceHashCompareFunc,
-                                              SCRConfReferenceHashFree);
+            SCRConfReferenceHashCompareFunc, SCRConfReferenceHashFree);
     if (de_ctx->reference_conf_ht == NULL) {
         SCLogError("Error initializing the hash "
                    "table");
@@ -129,7 +127,6 @@ static FILE *SCRConfInitContextAndLocalResources(DetectEngineCtx *de_ctx, FILE *
     return fd;
 }
 
-
 /**
  * \brief Returns the path for the Reference Config file.  We check if we
  *        can retrieve the path from the yaml conf file.  If it is not present,
@@ -145,8 +142,8 @@ static const char *SCRConfGetConfFilename(const DetectEngineCtx *de_ctx)
 
     if (de_ctx != NULL && strlen(de_ctx->config_prefix) > 0) {
         char config_value[256];
-        snprintf(config_value, sizeof(config_value),
-                 "%s.reference-config-file", de_ctx->config_prefix);
+        snprintf(config_value, sizeof(config_value), "%s.reference-config-file",
+                de_ctx->config_prefix);
 
         /* try loading prefix setting, fall back to global if that
          * fails. */
@@ -272,7 +269,7 @@ int SCRConfAddReference(DetectEngineCtx *de_ctx, const char *line)
 
     return 0;
 
- error:
+error:
     return -1;
 }
 
@@ -348,8 +345,7 @@ static bool SCRConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
  *
  * \retval ref Pointer to the new instance of SCRConfReference.
  */
-SCRConfReference *SCRConfAllocSCRConfReference(const char *system,
-                                               const char *url)
+SCRConfReference *SCRConfAllocSCRConfReference(const char *system, const char *url)
 {
     SCRConfReference *ref = NULL;
 
@@ -433,8 +429,7 @@ uint32_t SCRConfReferenceHashFunc(HashTable *ht, void *data, uint16_t datalen)
  * \retval 1 On data1 and data2 being equal.
  * \retval 0 On data1 and data2 not being equal.
  */
-char SCRConfReferenceHashCompareFunc(void *data1, uint16_t datalen1,
-                                     void *data2, uint16_t datalen2)
+char SCRConfReferenceHashCompareFunc(void *data1, uint16_t datalen1, void *data2, uint16_t datalen2)
 {
     SCRConfReference *ref1 = (SCRConfReference *)data1;
     SCRConfReference *ref2 = (SCRConfReference *)data2;
@@ -513,21 +508,18 @@ int SCRConfLoadReferenceConfigFile(DetectEngineCtx *de_ctx, FILE *fd)
  * \retval lookup_rconf_info Pointer to the SCRConfReference instance from
  *                           the hash table on success; NULL on failure.
  */
-SCRConfReference *SCRConfGetReference(const char *rconf_name,
-                                      DetectEngineCtx *de_ctx)
+SCRConfReference *SCRConfGetReference(const char *rconf_name, DetectEngineCtx *de_ctx)
 {
     SCRConfReference *ref_conf = SCRConfAllocSCRConfReference(rconf_name, NULL);
     if (ref_conf == NULL)
         return NULL;
-    SCRConfReference *lookup_ref_conf = HashTableLookup(de_ctx->reference_conf_ht,
-                                                        ref_conf, 0);
+    SCRConfReference *lookup_ref_conf = HashTableLookup(de_ctx->reference_conf_ht, ref_conf, 0);
 
     SCRConfDeAllocSCRConfReference(ref_conf);
     return lookup_ref_conf;
 }
 
 /*----------------------------------Unittests---------------------------------*/
-
 
 #ifdef UNITTESTS
 
@@ -537,12 +529,11 @@ SCRConfReference *SCRConfGetReference(const char *rconf_name,
  */
 FILE *SCRConfGenerateValidDummyReferenceConfigFD01(void)
 {
-    const char *buffer =
-        "config reference: one http://www.one.com\n"
-        "config reference: two http://www.two.com\n"
-        "config reference: three http://www.three.com\n"
-        "config reference: one http://www.one.com\n"
-        "config reference: three http://www.three.com\n";
+    const char *buffer = "config reference: one http://www.one.com\n"
+                         "config reference: two http://www.two.com\n"
+                         "config reference: three http://www.three.com\n"
+                         "config reference: one http://www.one.com\n"
+                         "config reference: three http://www.three.com\n";
 
     FILE *fd = SCFmemopen((void *)buffer, strlen(buffer), "r");
     if (fd == NULL)
@@ -557,12 +548,11 @@ FILE *SCRConfGenerateValidDummyReferenceConfigFD01(void)
  */
 FILE *SCRConfGenerateInvalidDummyReferenceConfigFD02(void)
 {
-    const char *buffer =
-        "config reference: one http://www.one.com\n"
-        "config_ reference: two http://www.two.com\n"
-        "config reference_: three http://www.three.com\n"
-        "config reference: four\n"
-        "config reference five http://www.five.com\n";
+    const char *buffer = "config reference: one http://www.one.com\n"
+                         "config_ reference: two http://www.two.com\n"
+                         "config reference_: three http://www.three.com\n"
+                         "config reference: four\n"
+                         "config reference five http://www.five.com\n";
 
     FILE *fd = SCFmemopen((void *)buffer, strlen(buffer), "r");
     if (fd == NULL)
@@ -577,11 +567,10 @@ FILE *SCRConfGenerateInvalidDummyReferenceConfigFD02(void)
  */
 FILE *SCRConfGenerateInvalidDummyReferenceConfigFD03(void)
 {
-    const char *buffer =
-        "config reference one http://www.one.com\n"
-        "config_ reference: two http://www.two.com\n"
-        "config reference_: three http://www.three.com\n"
-        "config reference: four\n";
+    const char *buffer = "config reference one http://www.one.com\n"
+                         "config_ reference: two http://www.two.com\n"
+                         "config reference_: three http://www.three.com\n"
+                         "config reference: four\n";
 
     FILE *fd = SCFmemopen((void *)buffer, strlen(buffer), "r");
     if (fd == NULL)
@@ -613,7 +602,7 @@ static int SCRConfTest01(void)
     if (result == 0)
         printf("FAILED: de_ctx->reference_conf_ht->count %u: ", de_ctx->reference_conf_ht->count);
 
- end:
+end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
     return result;
@@ -640,8 +629,7 @@ static int SCRConfTest02(void)
 
     result = (de_ctx->reference_conf_ht->count == 0);
 
-
- end:
+end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
     return result;
@@ -668,7 +656,7 @@ static int SCRConfTest03(void)
 
     result = (de_ctx->reference_conf_ht->count == 1);
 
- end:
+end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
     return result;
@@ -700,7 +688,7 @@ static int SCRConfTest04(void)
     result &= (SCRConfGetReference("three", de_ctx) != NULL);
     result &= (SCRConfGetReference("four", de_ctx) == NULL);
 
- end:
+end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
     return result;
@@ -734,7 +722,7 @@ static int SCRConfTest05(void)
     result &= (SCRConfGetReference("four", de_ctx) == NULL);
     result &= (SCRConfGetReference("five", de_ctx) == NULL);
 
- end:
+end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
     return result;
@@ -767,7 +755,7 @@ static int SCRConfTest06(void)
     result &= (SCRConfGetReference("four", de_ctx) == NULL);
     result &= (SCRConfGetReference("five", de_ctx) == NULL);
 
- end:
+end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
     return result;

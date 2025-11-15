@@ -62,7 +62,7 @@ Flow *FlowAlloc(void)
         return NULL;
     }
 
-    (void) SC_ATOMIC_ADD(flow_memuse, size);
+    (void)SC_ATOMIC_ADD(flow_memuse, size);
 
     f = SCCalloc(1, size);
     if (unlikely(f == NULL)) {
@@ -75,7 +75,6 @@ Flow *FlowAlloc(void)
     return f;
 }
 
-
 /**
  *  \brief cleanup & free the memory of a flow
  *
@@ -87,7 +86,7 @@ void FlowFree(Flow *f)
     SCFree(f);
 
     size_t size = sizeof(Flow) + FlowStorageSize();
-    (void) SC_ATOMIC_SUB(flow_memuse, size);
+    (void)SC_ATOMIC_SUB(flow_memuse, size);
 }
 
 /**
@@ -226,7 +225,7 @@ FlowStorageId GetFlowBypassInfoID(void)
 
 static void FlowBypassFree(void *x)
 {
-    FlowBypassInfo *fb = (FlowBypassInfo *) x;
+    FlowBypassInfo *fb = (FlowBypassInfo *)x;
 
     if (fb == NULL)
         return;
@@ -239,8 +238,7 @@ static void FlowBypassFree(void *x)
 
 void RegisterFlowBypassInfo(void)
 {
-    g_bypass_info_id = FlowStorageRegister("bypass_counters", sizeof(void *),
-                                              NULL, FlowBypassFree);
+    g_bypass_info_id = FlowStorageRegister("bypass_counters", sizeof(void *), NULL, FlowBypassFree);
 }
 
 void FlowEndCountersRegister(ThreadVars *t, FlowEndCounters *fec)

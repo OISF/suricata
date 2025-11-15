@@ -36,12 +36,9 @@ void UnixManagerThreadSpawn(int mode);
 void UnixSocketKillSocketThread(void);
 
 #ifdef BUILD_UNIX_SOCKET
-TmEcode UnixManagerRegisterCommand(const char * keyword,
-        TmEcode (*Func)(json_t *, json_t *, void *),
-        void *data, int flags);
-TmEcode UnixManagerRegisterBackgroundTask(
-        TmEcode (*Func)(void *),
-        void *data);
+TmEcode UnixManagerRegisterCommand(
+        const char *keyword, TmEcode (*Func)(json_t *, json_t *, void *), void *data, int flags);
+TmEcode UnixManagerRegisterBackgroundTask(TmEcode (*Func)(void *), void *data);
 #endif
 
 void TmModuleUnixManagerRegister(void);

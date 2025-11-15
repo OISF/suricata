@@ -80,15 +80,15 @@
 #include "source-pcap-file.h"
 #include "action-globals.h"
 
-//#define DEBUG
+// #define DEBUG
 
-#define STREAMTCP_DEFAULT_PREALLOC              2048
-#define STREAMTCP_DEFAULT_MEMCAP                (64 * 1024 * 1024)  /* 64mb */
-#define STREAMTCP_DEFAULT_REASSEMBLY_MEMCAP     (256 * 1024 * 1024) /* 256mb */
-#define STREAMTCP_DEFAULT_TOSERVER_CHUNK_SIZE   2560
-#define STREAMTCP_DEFAULT_TOCLIENT_CHUNK_SIZE   2560
-#define STREAMTCP_DEFAULT_MAX_SYN_QUEUED        10
-#define STREAMTCP_DEFAULT_MAX_SYNACK_QUEUED     5
+#define STREAMTCP_DEFAULT_PREALLOC            2048
+#define STREAMTCP_DEFAULT_MEMCAP              (64 * 1024 * 1024)  /* 64mb */
+#define STREAMTCP_DEFAULT_REASSEMBLY_MEMCAP   (256 * 1024 * 1024) /* 256mb */
+#define STREAMTCP_DEFAULT_TOSERVER_CHUNK_SIZE 2560
+#define STREAMTCP_DEFAULT_TOCLIENT_CHUNK_SIZE 2560
+#define STREAMTCP_DEFAULT_MAX_SYN_QUEUED      10
+#define STREAMTCP_DEFAULT_MAX_SYNACK_QUEUED   5
 
 /* Settings order as in the enum */
 // clang-format off
@@ -203,14 +203,14 @@ ExceptionPolicyStatsSetts stream_midstream_disabled_eps_stats = {
 // clang-format on
 
 static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *, TcpSession *, Packet *);
-void StreamTcpReturnStreamSegments (TcpStream *);
+void StreamTcpReturnStreamSegments(TcpStream *);
 void StreamTcpInitConfig(bool);
 int StreamTcpGetFlowState(void *);
-void StreamTcpSetOSPolicy(TcpStream*, Packet*);
+void StreamTcpSetOSPolicy(TcpStream *, Packet *);
 
-static int StreamTcpValidateTimestamp(TcpSession * , Packet *);
-static int StreamTcpHandleTimestamp(TcpSession * , Packet *);
-static int StreamTcpValidateRst(TcpSession * , Packet *);
+static int StreamTcpValidateTimestamp(TcpSession *, Packet *);
+static int StreamTcpHandleTimestamp(TcpSession *, Packet *);
+static int StreamTcpValidateRst(TcpSession *, Packet *);
 static inline int StreamTcpValidateAck(TcpSession *ssn, TcpStream *, Packet *);
 static int StreamTcpStateDispatch(
         ThreadVars *tv, Packet *p, StreamTcpThread *stt, TcpSession *ssn, const uint8_t state);
@@ -219,7 +219,8 @@ extern thread_local uint64_t t_pcapcnt;
 extern int g_detect_disabled;
 
 PoolThread *ssn_pool = NULL;
-static SCMutex ssn_pool_mutex = SCMUTEX_INITIALIZER; /**< init only, protect initializing and growing pool */
+static SCMutex ssn_pool_mutex =
+        SCMUTEX_INITIALIZER; /**< init only, protect initializing and growing pool */
 #ifdef DEBUG
 static uint64_t ssn_pool_cnt = 0; /** counts ssns, protected by ssn_pool_mutex */
 #endif
@@ -235,7 +236,7 @@ void StreamTcpInitMemuse(void)
 
 void StreamTcpIncrMemuse(uint64_t size)
 {
-    (void) SC_ATOMIC_ADD(st_memuse, size);
+    (void)SC_ATOMIC_ADD(st_memuse, size);
     SCLogDebug("STREAM %" PRIu64 ", incr %" PRIu64, StreamTcpMemuseCounter(), size);
 }
 
@@ -248,7 +249,7 @@ void StreamTcpDecrMemuse(uint64_t size)
     }
 #endif
 
-    (void) SC_ATOMIC_SUB(st_memuse, size);
+    (void)SC_ATOMIC_SUB(st_memuse, size);
 
 #if defined(DEBUG_VALIDATION) && defined(UNITTESTS)
     if (RunmodeIsUnittests()) {
@@ -385,7 +386,7 @@ void StreamTcpSessionClear(void *ssnptr)
  *
  *  \param p Packet used to identify the stream.
  */
-void StreamTcpSessionPktFree (Packet *p)
+void StreamTcpSessionPktFree(Packet *p)
 {
     SCEnter();
 
@@ -416,7 +417,7 @@ static void *StreamTcpSessionPoolAlloc(void)
     return ptr;
 }
 
-static int StreamTcpSessionPoolInit(void *data, void* initdata)
+static int StreamTcpSessionPoolInit(void *data, void *initdata)
 {
     memset(data, 0, sizeof(TcpSession));
     StreamTcpIncrMemuse((uint64_t)sizeof(TcpSession));
@@ -442,8 +443,8 @@ static void StreamTcpSessionPoolCleanup(void *s)
  */
 static inline bool StreamTcpInlineDropInvalid(void)
 {
-    return ((stream_config.flags & STREAMTCP_INIT_FLAG_INLINE)
-            && (stream_config.flags & STREAMTCP_INIT_FLAG_DROP_INVALID));
+    return ((stream_config.flags & STREAMTCP_INIT_FLAG_INLINE) &&
+            (stream_config.flags & STREAMTCP_INIT_FLAG_DROP_INVALID));
 }
 
 /** \internal
@@ -466,7 +467,7 @@ static int RandomGetWrap(void)
 
     do {
         r = RandomGet();
-    } while(r >= ULONG_MAX - (ULONG_MAX % RAND_MAX));
+    } while (r >= ULONG_MAX - (ULONG_MAX % RAND_MAX));
 
     return r % RAND_MAX;
 }
@@ -486,7 +487,6 @@ static const char *UrgentPolicyToString(enum TcpStreamUrgentHandling pol)
     return NULL;
 }
 
-
 /** \brief          To initialize the stream global configuration data
  *
  *  \param  quiet   It tells the mode of operation, if it is true nothing will
@@ -500,7 +500,7 @@ void StreamTcpInitConfig(bool quiet)
 
     SCLogDebug("Initializing Stream");
 
-    memset(&stream_config,  0, sizeof(stream_config));
+    memset(&stream_config, 0, sizeof(stream_config));
 
     SC_ATOMIC_INIT(stream_config.memcap);
     SC_ATOMIC_INIT(stream_config.reassembly_memcap);
@@ -519,14 +519,13 @@ void StreamTcpInitConfig(bool quiet)
         } else {
             stream_config.prealloc_sessions = STREAMTCP_DEFAULT_PREALLOC;
             if (SCConfGetNode("stream.prealloc-sessions") != NULL) {
-                WarnInvalidConfEntry("stream.prealloc_sessions",
-                                     "%"PRIu32,
-                                     stream_config.prealloc_sessions);
+                WarnInvalidConfEntry(
+                        "stream.prealloc_sessions", "%" PRIu32, stream_config.prealloc_sessions);
             }
         }
     }
     if (!quiet) {
-        SCLogConfig("stream \"prealloc-sessions\": %"PRIu32" (per thread)",
+        SCLogConfig("stream \"prealloc-sessions\": %" PRIu32 " (per thread)",
                 stream_config.prealloc_sessions);
     }
 
@@ -546,7 +545,7 @@ void StreamTcpInitConfig(bool quiet)
     }
 
     if (!quiet) {
-        SCLogConfig("stream \"memcap\": %"PRIu64, SC_ATOMIC_GET(stream_config.memcap));
+        SCLogConfig("stream \"memcap\": %" PRIu64, SC_ATOMIC_GET(stream_config.memcap));
     }
 
     int imidstream;
@@ -554,7 +553,8 @@ void StreamTcpInitConfig(bool quiet)
     stream_config.midstream = imidstream != 0;
 
     if (!quiet) {
-        SCLogConfig("stream \"midstream\" session pickups: %s", stream_config.midstream ? "enabled" : "disabled");
+        SCLogConfig("stream \"midstream\" session pickups: %s",
+                stream_config.midstream ? "enabled" : "disabled");
     }
 
     int async_oneside;
@@ -562,7 +562,8 @@ void StreamTcpInitConfig(bool quiet)
     stream_config.async_oneside = async_oneside != 0;
 
     if (!quiet) {
-        SCLogConfig("stream \"async-oneside\": %s", stream_config.async_oneside ? "enabled" : "disabled");
+        SCLogConfig("stream \"async-oneside\": %s",
+                stream_config.async_oneside ? "enabled" : "disabled");
     }
 
     int csum = 0;
@@ -571,15 +572,15 @@ void StreamTcpInitConfig(bool quiet)
         if (csum == 1) {
             stream_config.flags |= STREAMTCP_INIT_FLAG_CHECKSUM_VALIDATION;
         }
-    /* Default is that we validate the checksum of all the packets */
+        /* Default is that we validate the checksum of all the packets */
     } else {
         stream_config.flags |= STREAMTCP_INIT_FLAG_CHECKSUM_VALIDATION;
     }
 
     if (!quiet) {
         SCLogConfig("stream \"checksum-validation\": %s",
-                stream_config.flags & STREAMTCP_INIT_FLAG_CHECKSUM_VALIDATION ?
-                "enabled" : "disabled");
+                stream_config.flags & STREAMTCP_INIT_FLAG_CHECKSUM_VALIDATION ? "enabled"
+                                                                              : "disabled");
     }
 
     const char *temp_stream_inline_str;
@@ -610,8 +611,7 @@ void StreamTcpInitConfig(bool quiet)
 
     if (!quiet) {
         SCLogConfig("stream.\"inline\": %s",
-                    stream_config.flags & STREAMTCP_INIT_FLAG_INLINE
-                    ? "enabled" : "disabled");
+                stream_config.flags & STREAMTCP_INIT_FLAG_INLINE ? "enabled" : "disabled");
     }
 
     int bypass = 0;
@@ -623,8 +623,7 @@ void StreamTcpInitConfig(bool quiet)
 
     if (!quiet) {
         SCLogConfig("stream \"bypass\": %s",
-                    (stream_config.flags & STREAMTCP_INIT_FLAG_BYPASS)
-                    ? "enabled" : "disabled");
+                (stream_config.flags & STREAMTCP_INIT_FLAG_BYPASS) ? "enabled" : "disabled");
     }
 
     int drop_invalid = 0;
@@ -653,7 +652,8 @@ void StreamTcpInitConfig(bool quiet)
         stream_config.urgent_policy = TCP_STREAM_URGENT_DEFAULT;
     }
     if (!quiet) {
-        SCLogConfig("stream.reassembly.urgent.policy\": %s", UrgentPolicyToString(stream_config.urgent_policy));
+        SCLogConfig("stream.reassembly.urgent.policy\": %s",
+                UrgentPolicyToString(stream_config.urgent_policy));
     }
     if (stream_config.urgent_policy == TCP_STREAM_URGENT_OOB) {
         const char *temp_urgoobpol = NULL;
@@ -666,13 +666,15 @@ void StreamTcpInitConfig(bool quiet)
             } else if (strcmp(temp_urgoobpol, "gap") == 0) {
                 stream_config.urgent_oob_limit_policy = TCP_STREAM_URGENT_GAP;
             } else {
-                FatalError("stream.reassembly.urgent.oob-limit-policy: invalid value '%s'", temp_urgoobpol);
+                FatalError("stream.reassembly.urgent.oob-limit-policy: invalid value '%s'",
+                        temp_urgoobpol);
             }
         } else {
             stream_config.urgent_oob_limit_policy = TCP_STREAM_URGENT_DEFAULT;
         }
         if (!quiet) {
-            SCLogConfig("stream.reassembly.urgent.oob-limit-policy\": %s", UrgentPolicyToString(stream_config.urgent_oob_limit_policy));
+            SCLogConfig("stream.reassembly.urgent.oob-limit-policy\": %s",
+                    UrgentPolicyToString(stream_config.urgent_oob_limit_policy));
         }
     }
 
@@ -699,14 +701,14 @@ void StreamTcpInitConfig(bool quiet)
         stream_config.max_synack_queued = (uint8_t)STREAMTCP_DEFAULT_MAX_SYNACK_QUEUED;
     }
     if (!quiet) {
-        SCLogConfig("stream \"max-synack-queued\": %"PRIu8, stream_config.max_synack_queued);
+        SCLogConfig("stream \"max-synack-queued\": %" PRIu8, stream_config.max_synack_queued);
     }
 
     const char *temp_stream_reassembly_memcap_str;
     if (SCConfGet("stream.reassembly.memcap", &temp_stream_reassembly_memcap_str) == 1) {
         uint64_t stream_reassembly_memcap_copy;
-        if (ParseSizeStringU64(temp_stream_reassembly_memcap_str,
-                               &stream_reassembly_memcap_copy) < 0) {
+        if (ParseSizeStringU64(temp_stream_reassembly_memcap_str, &stream_reassembly_memcap_copy) <
+                0) {
             SCLogError("Error parsing "
                        "stream.reassembly.memcap "
                        "from conf file - %s.  Killing engine",
@@ -716,18 +718,18 @@ void StreamTcpInitConfig(bool quiet)
             SC_ATOMIC_SET(stream_config.reassembly_memcap, stream_reassembly_memcap_copy);
         }
     } else {
-        SC_ATOMIC_SET(stream_config.reassembly_memcap , STREAMTCP_DEFAULT_REASSEMBLY_MEMCAP);
+        SC_ATOMIC_SET(stream_config.reassembly_memcap, STREAMTCP_DEFAULT_REASSEMBLY_MEMCAP);
     }
 
     if (!quiet) {
-        SCLogConfig("stream.reassembly \"memcap\": %"PRIu64"",
-                    SC_ATOMIC_GET(stream_config.reassembly_memcap));
+        SCLogConfig("stream.reassembly \"memcap\": %" PRIu64 "",
+                SC_ATOMIC_GET(stream_config.reassembly_memcap));
     }
 
     const char *temp_stream_reassembly_depth_str;
     if (SCConfGet("stream.reassembly.depth", &temp_stream_reassembly_depth_str) == 1) {
-        if (ParseSizeStringU32(temp_stream_reassembly_depth_str,
-                               &stream_config.reassembly_depth) < 0) {
+        if (ParseSizeStringU32(temp_stream_reassembly_depth_str, &stream_config.reassembly_depth) <
+                0) {
             SCLogError("Error parsing "
                        "stream.reassembly.depth "
                        "from conf file - %s.  Killing engine",
@@ -739,7 +741,7 @@ void StreamTcpInitConfig(bool quiet)
     }
 
     if (!quiet) {
-        SCLogConfig("stream.reassembly \"depth\": %"PRIu32"", stream_config.reassembly_depth);
+        SCLogConfig("stream.reassembly \"depth\": %" PRIu32 "", stream_config.reassembly_depth);
     }
 
     int randomize = 0;
@@ -770,7 +772,7 @@ void StreamTcpInitConfig(bool quiet)
     if (SCConfGet("stream.reassembly.toserver-chunk-size",
                 &temp_stream_reassembly_toserver_chunk_size_str) == 1) {
         if (ParseSizeStringU16(temp_stream_reassembly_toserver_chunk_size_str,
-                               &stream_config.reassembly_toserver_chunk_size) < 0) {
+                    &stream_config.reassembly_toserver_chunk_size) < 0) {
             SCLogError("Error parsing "
                        "stream.reassembly.toserver-chunk-size "
                        "from conf file - %s.  Killing engine",
@@ -778,8 +780,7 @@ void StreamTcpInitConfig(bool quiet)
             exit(EXIT_FAILURE);
         }
     } else {
-        stream_config.reassembly_toserver_chunk_size =
-            STREAMTCP_DEFAULT_TOSERVER_CHUNK_SIZE;
+        stream_config.reassembly_toserver_chunk_size = STREAMTCP_DEFAULT_TOSERVER_CHUNK_SIZE;
     }
 
     if (randomize) {
@@ -792,7 +793,7 @@ void StreamTcpInitConfig(bool quiet)
     if (SCConfGet("stream.reassembly.toclient-chunk-size",
                 &temp_stream_reassembly_toclient_chunk_size_str) == 1) {
         if (ParseSizeStringU16(temp_stream_reassembly_toclient_chunk_size_str,
-                               &stream_config.reassembly_toclient_chunk_size) < 0) {
+                    &stream_config.reassembly_toclient_chunk_size) < 0) {
             SCLogError("Error parsing "
                        "stream.reassembly.toclient-chunk-size "
                        "from conf file - %s.  Killing engine",
@@ -800,8 +801,7 @@ void StreamTcpInitConfig(bool quiet)
             exit(EXIT_FAILURE);
         }
     } else {
-        stream_config.reassembly_toclient_chunk_size =
-            STREAMTCP_DEFAULT_TOCLIENT_CHUNK_SIZE;
+        stream_config.reassembly_toclient_chunk_size = STREAMTCP_DEFAULT_TOCLIENT_CHUNK_SIZE;
     }
 
     if (randomize) {
@@ -811,10 +811,10 @@ void StreamTcpInitConfig(bool quiet)
                         rdrange / 100);
     }
     if (!quiet) {
-        SCLogConfig("stream.reassembly \"toserver-chunk-size\": %"PRIu16,
-            stream_config.reassembly_toserver_chunk_size);
-        SCLogConfig("stream.reassembly \"toclient-chunk-size\": %"PRIu16,
-            stream_config.reassembly_toclient_chunk_size);
+        SCLogConfig("stream.reassembly \"toserver-chunk-size\": %" PRIu16,
+                stream_config.reassembly_toserver_chunk_size);
+        SCLogConfig("stream.reassembly \"toclient-chunk-size\": %" PRIu16,
+                stream_config.reassembly_toclient_chunk_size);
     }
 
     int enable_raw = 1;
@@ -852,12 +852,9 @@ void StreamTcpInitConfig(bool quiet)
         SCMutexLock(&ssn_pool_mutex);
         if (ssn_pool == NULL) {
             ssn_pool = PoolThreadInit(1, /* thread */
-                    0, /* unlimited */
-                    stream_config.prealloc_sessions,
-                    sizeof(TcpSession),
-                    StreamTcpSessionPoolAlloc,
-                    StreamTcpSessionPoolInit, NULL,
-                    StreamTcpSessionPoolCleanup, NULL);
+                    0,                   /* unlimited */
+                    stream_config.prealloc_sessions, sizeof(TcpSession), StreamTcpSessionPoolAlloc,
+                    StreamTcpSessionPoolInit, NULL, StreamTcpSessionPoolCleanup, NULL);
         }
         SCMutexUnlock(&ssn_pool_mutex);
     }
@@ -876,7 +873,7 @@ void StreamTcpFreeConfig(bool quiet)
     SCMutexUnlock(&ssn_pool_mutex);
     SCMutexDestroy(&ssn_pool_mutex);
 
-    SCLogDebug("ssn_pool_cnt %"PRIu64"", ssn_pool_cnt);
+    SCLogDebug("ssn_pool_cnt %" PRIu64 "", ssn_pool_cnt);
 }
 
 static bool IsReassemblyMemcapExceptionPolicyStatsValid(enum ExceptionPolicy exception_policy)
@@ -993,8 +990,7 @@ static TcpSession *StreamTcpNewSession(ThreadVars *tv, StreamTcpThread *stt, Pac
     return ssn;
 }
 
-static void StreamTcpPacketSetState(Packet *p, TcpSession *ssn,
-                                           uint8_t state)
+static void StreamTcpPacketSetState(Packet *p, TcpSession *ssn, uint8_t state)
 {
     if (state == ssn->state || PKT_IS_PSEUDOPKT(p))
         return;
@@ -1004,7 +1000,7 @@ static void StreamTcpPacketSetState(Packet *p, TcpSession *ssn,
     STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_STATE_UPDATE);
 
     /* update the flow state */
-    switch(ssn->state) {
+    switch (ssn->state) {
         case TCP_ESTABLISHED:
         case TCP_FIN_WAIT1:
         case TCP_FIN_WAIT2:
@@ -1065,39 +1061,45 @@ void StreamTcpSetOSPolicy(TcpStream *stream, Packet *p)
  *  \param stream stream to update
  *  \param ack ACK value to test and set
  */
-#define StreamTcpUpdateLastAck(ssn, stream, ack) { \
-    if (SEQ_GT((ack), (stream)->last_ack)) \
-    { \
-        SCLogDebug("ssn %p: last_ack set to %"PRIu32", moved %u forward", (ssn), (ack), (ack) - (stream)->last_ack); \
-        if ((SEQ_LEQ((stream)->last_ack, (stream)->next_seq) && SEQ_GT((ack),(stream)->next_seq))) { \
-            SCLogDebug("last_ack just passed next_seq: %u (was %u) > %u", (ack), (stream)->last_ack, (stream)->next_seq); \
-        } else { \
-            SCLogDebug("next_seq (%u) <> last_ack now %d", (stream)->next_seq, (int)(stream)->next_seq - (ack)); \
-        }\
-        (stream)->last_ack = (ack); \
-        StreamTcpSackPruneList((stream)); \
-    } else { \
-        SCLogDebug("ssn %p: no update: ack %u, last_ack %"PRIu32", next_seq %u (state %u)", \
-                    (ssn), (ack), (stream)->last_ack, (stream)->next_seq, (ssn)->state); \
-    }\
-}
+#define StreamTcpUpdateLastAck(ssn, stream, ack)                                                   \
+    {                                                                                              \
+        if (SEQ_GT((ack), (stream)->last_ack)) {                                                   \
+            SCLogDebug("ssn %p: last_ack set to %" PRIu32 ", moved %u forward", (ssn), (ack),      \
+                    (ack) - (stream)->last_ack);                                                   \
+            if ((SEQ_LEQ((stream)->last_ack, (stream)->next_seq) &&                                \
+                        SEQ_GT((ack), (stream)->next_seq))) {                                      \
+                SCLogDebug("last_ack just passed next_seq: %u (was %u) > %u", (ack),               \
+                        (stream)->last_ack, (stream)->next_seq);                                   \
+            } else {                                                                               \
+                SCLogDebug("next_seq (%u) <> last_ack now %d", (stream)->next_seq,                 \
+                        (int)(stream)->next_seq - (ack));                                          \
+            }                                                                                      \
+            (stream)->last_ack = (ack);                                                            \
+            StreamTcpSackPruneList((stream));                                                      \
+        } else {                                                                                   \
+            SCLogDebug("ssn %p: no update: ack %u, last_ack %" PRIu32 ", next_seq %u (state %u)",  \
+                    (ssn), (ack), (stream)->last_ack, (stream)->next_seq, (ssn)->state);           \
+        }                                                                                          \
+    }
 
-#define StreamTcpAsyncLastAckUpdate(ssn, stream) {                              \
-    if ((ssn)->flags & STREAMTCP_FLAG_ASYNC) {                                  \
-        if (SEQ_GT((stream)->next_seq, (stream)->last_ack)) {                   \
-            uint32_t ack_diff = (stream)->next_seq - (stream)->last_ack;        \
-            (stream)->last_ack += ack_diff;                                     \
-            SCLogDebug("ssn %p: ASYNC last_ack set to %"PRIu32", moved %u forward",     \
-                    (ssn), (stream)->next_seq, ack_diff);                               \
-        }                                                                       \
-    }                                                                           \
-}
+#define StreamTcpAsyncLastAckUpdate(ssn, stream)                                                   \
+    {                                                                                              \
+        if ((ssn)->flags & STREAMTCP_FLAG_ASYNC) {                                                 \
+            if (SEQ_GT((stream)->next_seq, (stream)->last_ack)) {                                  \
+                uint32_t ack_diff = (stream)->next_seq - (stream)->last_ack;                       \
+                (stream)->last_ack += ack_diff;                                                    \
+                SCLogDebug("ssn %p: ASYNC last_ack set to %" PRIu32 ", moved %u forward", (ssn),   \
+                        (stream)->next_seq, ack_diff);                                             \
+            }                                                                                      \
+        }                                                                                          \
+    }
 
-#define StreamTcpUpdateNextSeq(ssn, stream, seq) {                      \
-    (stream)->next_seq = seq;                                           \
-    SCLogDebug("ssn %p: next_seq %" PRIu32, (ssn), (stream)->next_seq); \
-    StreamTcpAsyncLastAckUpdate((ssn), (stream));                       \
-}
+#define StreamTcpUpdateNextSeq(ssn, stream, seq)                                                   \
+    {                                                                                              \
+        (stream)->next_seq = seq;                                                                  \
+        SCLogDebug("ssn %p: next_seq %" PRIu32, (ssn), (stream)->next_seq);                        \
+        StreamTcpAsyncLastAckUpdate((ssn), (stream));                                              \
+    }
 
 /**
  *  \brief macro to update next_win only if the new value is higher
@@ -1106,20 +1108,22 @@ void StreamTcpSetOSPolicy(TcpStream *stream, Packet *p)
  *  \param stream stream to update
  *  \param win window value to test and set
  */
-#define StreamTcpUpdateNextWin(ssn, stream, win) { \
-    uint32_t sacked_size__ = StreamTcpSackedSize((stream)); \
-    if (SEQ_GT(((win) + sacked_size__), (stream)->next_win)) { \
-        (stream)->next_win = ((win) + sacked_size__); \
-        SCLogDebug("ssn %p: next_win set to %"PRIu32, (ssn), (stream)->next_win); \
-    } \
-}
+#define StreamTcpUpdateNextWin(ssn, stream, win)                                                   \
+    {                                                                                              \
+        uint32_t sacked_size__ = StreamTcpSackedSize((stream));                                    \
+        if (SEQ_GT(((win) + sacked_size__), (stream)->next_win)) {                                 \
+            (stream)->next_win = ((win) + sacked_size__);                                          \
+            SCLogDebug("ssn %p: next_win set to %" PRIu32, (ssn), (stream)->next_win);             \
+        }                                                                                          \
+    }
 
 static inline void StreamTcpCloseSsnWithReset(Packet *p, TcpSession *ssn)
 {
     ssn->flags |= STREAMTCP_FLAG_CLOSED_BY_RST;
     StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
     SCLogDebug("ssn %p: (state: %s) Reset received and state changed to "
-            "TCP_CLOSED", ssn, StreamTcpStateAsString(ssn->state));
+               "TCP_CLOSED",
+            ssn, StreamTcpStateAsString(ssn->state));
 }
 
 static bool IsMidstreamExceptionPolicyStatsValid(enum ExceptionPolicy policy)
@@ -1329,7 +1333,8 @@ static int StreamTcpPacketStateNone(
         /* set the state */
         StreamTcpPacketSetState(p, ssn, TCP_SYN_RECV);
         SCLogDebug("ssn %p: =~ midstream picked ssn state is now "
-                "TCP_SYN_RECV", ssn);
+                   "TCP_SYN_RECV",
+                ssn);
         ssn->flags |= STREAMTCP_FLAG_MIDSTREAM;
         /* Flag used to change the direct in the later stage in the session */
         ssn->flags |= STREAMTCP_FLAG_MIDSTREAM_SYNACK;
@@ -1360,27 +1365,25 @@ static int StreamTcpPacketStateNone(
         if (TCP_HAS_WSCALE(p)) {
             ssn->client.wscale = TCP_GET_WSCALE(p);
             ssn->server.wscale = TCP_WSCALE_MAX;
-            SCLogDebug("ssn %p: wscale enabled. client %u server %u",
-                    ssn, ssn->client.wscale, ssn->server.wscale);
+            SCLogDebug("ssn %p: wscale enabled. client %u server %u", ssn, ssn->client.wscale,
+                    ssn->server.wscale);
         }
 
-        SCLogDebug("ssn %p: ssn->client.isn %"PRIu32", ssn->client.next_seq"
-                " %"PRIu32", ssn->client.last_ack %"PRIu32"", ssn,
-                ssn->client.isn, ssn->client.next_seq,
-                ssn->client.last_ack);
-        SCLogDebug("ssn %p: ssn->server.isn %"PRIu32", ssn->server.next_seq"
-                " %"PRIu32", ssn->server.last_ack %"PRIu32"", ssn,
-                ssn->server.isn, ssn->server.next_seq,
-                ssn->server.last_ack);
+        SCLogDebug("ssn %p: ssn->client.isn %" PRIu32 ", ssn->client.next_seq"
+                   " %" PRIu32 ", ssn->client.last_ack %" PRIu32 "",
+                ssn, ssn->client.isn, ssn->client.next_seq, ssn->client.last_ack);
+        SCLogDebug("ssn %p: ssn->server.isn %" PRIu32 ", ssn->server.next_seq"
+                   " %" PRIu32 ", ssn->server.last_ack %" PRIu32 "",
+                ssn, ssn->server.isn, ssn->server.next_seq, ssn->server.last_ack);
 
         /* Set the timestamp value for both streams, if packet has timestamp
          * option enabled.*/
         if (TCP_HAS_TS(p)) {
             ssn->server.last_ts = TCP_GET_TSVAL(p);
             ssn->client.last_ts = TCP_GET_TSECR(p);
-            SCLogDebug("ssn %p: ssn->server.last_ts %" PRIu32" "
-                    "ssn->client.last_ts %" PRIu32"", ssn,
-                    ssn->server.last_ts, ssn->client.last_ts);
+            SCLogDebug("ssn %p: ssn->server.last_ts %" PRIu32 " "
+                       "ssn->client.last_ts %" PRIu32 "",
+                    ssn, ssn->server.last_ts, ssn->client.last_ts);
 
             ssn->flags |= STREAMTCP_FLAG_TIMESTAMP;
 
@@ -1398,7 +1401,8 @@ static int StreamTcpPacketStateNone(
         if (TCP_GET_SACKOK(p)) {
             ssn->flags |= STREAMTCP_FLAG_SACKOK;
             SCLogDebug("ssn %p: SYN/ACK with SACK permitted, assuming "
-                    "SACK permitted for both sides", ssn);
+                       "SACK permitted for both sides",
+                    ssn);
         }
         return 0;
 
@@ -1464,9 +1468,9 @@ static int StreamTcpPacketStateNone(
         }
 
         SCLogDebug("ssn %p: ssn->client.isn %" PRIu32 ", "
-                "ssn->client.next_seq %" PRIu32 ", ssn->client.last_ack "
-                "%"PRIu32"", ssn, ssn->client.isn, ssn->client.next_seq,
-                ssn->client.last_ack);
+                   "ssn->client.next_seq %" PRIu32 ", ssn->client.last_ack "
+                   "%" PRIu32 "",
+                ssn, ssn->client.isn, ssn->client.next_seq, ssn->client.last_ack);
 
     } else if (tcph->th_flags & TH_ACK) {
         /* Drop reason will only be used if midstream policy is set to fail closed */
@@ -1497,7 +1501,8 @@ static int StreamTcpPacketStateNone(
         /* set the state */
         StreamTcpPacketSetState(p, ssn, TCP_ESTABLISHED);
         SCLogDebug("ssn %p: =~ midstream picked ssn state is now "
-                "TCP_ESTABLISHED", ssn);
+                   "TCP_ESTABLISHED",
+                ssn);
 
         ssn->flags = STREAMTCP_FLAG_MIDSTREAM;
         ssn->flags |= STREAMTCP_FLAG_MIDSTREAM_ESTABLISHED;
@@ -1518,8 +1523,8 @@ static int StreamTcpPacketStateNone(
         ssn->client.window = TCP_GET_RAW_WINDOW(tcph) << ssn->client.wscale;
         ssn->client.last_ack = TCP_GET_RAW_SEQ(tcph);
         ssn->client.next_win = ssn->client.last_ack + ssn->client.window;
-        SCLogDebug("ssn %p: ssn->client.isn %u, ssn->client.next_seq %u",
-                ssn, ssn->client.isn, ssn->client.next_seq);
+        SCLogDebug("ssn %p: ssn->client.isn %u, ssn->client.next_seq %u", ssn, ssn->client.isn,
+                ssn->client.next_seq);
 
         ssn->server.isn = TCP_GET_RAW_ACK(tcph) - 1;
         STREAMTCP_SET_RA_BASE_SEQ(&ssn->server, ssn->server.isn);
@@ -1527,21 +1532,21 @@ static int StreamTcpPacketStateNone(
         ssn->server.last_ack = TCP_GET_RAW_ACK(tcph);
         ssn->server.next_win = ssn->server.last_ack;
 
-        SCLogDebug("ssn %p: ssn->client.next_win %"PRIu32", "
-                "ssn->server.next_win %"PRIu32"", ssn,
-                ssn->client.next_win, ssn->server.next_win);
-        SCLogDebug("ssn %p: ssn->client.last_ack %"PRIu32", "
-                "ssn->server.last_ack %"PRIu32"", ssn,
-                ssn->client.last_ack, ssn->server.last_ack);
+        SCLogDebug("ssn %p: ssn->client.next_win %" PRIu32 ", "
+                   "ssn->server.next_win %" PRIu32 "",
+                ssn, ssn->client.next_win, ssn->server.next_win);
+        SCLogDebug("ssn %p: ssn->client.last_ack %" PRIu32 ", "
+                   "ssn->server.last_ack %" PRIu32 "",
+                ssn, ssn->client.last_ack, ssn->server.last_ack);
 
         /* Set the timestamp value for both streams, if packet has timestamp
          * option enabled.*/
         if (TCP_HAS_TS(p)) {
             ssn->client.last_ts = TCP_GET_TSVAL(p);
             ssn->server.last_ts = TCP_GET_TSECR(p);
-            SCLogDebug("ssn %p: ssn->server.last_ts %" PRIu32" "
-                    "ssn->client.last_ts %" PRIu32"", ssn,
-                    ssn->server.last_ts, ssn->client.last_ts);
+            SCLogDebug("ssn %p: ssn->server.last_ts %" PRIu32 " "
+                       "ssn->client.last_ts %" PRIu32 "",
+                    ssn, ssn->server.last_ts, ssn->client.last_ts);
 
             ssn->flags |= STREAMTCP_FLAG_TIMESTAMP;
 
@@ -1606,12 +1611,8 @@ static TcpStateQueue *StreamTcp3whsFindSynAckBySynAck(TcpSession *ssn, Packet *p
     StreamTcp3whsSynAckToStateQueue(p, &search);
 
     while (q != NULL) {
-        if (search.flags == q->flags &&
-            search.wscale == q->wscale &&
-            search.win == q->win &&
-            search.seq == q->seq &&
-            search.ack == q->ack &&
-            search.ts == q->ts) {
+        if (search.flags == q->flags && search.wscale == q->wscale && search.win == q->win &&
+                search.seq == q->seq && search.ack == q->ack && search.ts == q->ts) {
             return q;
         }
 
@@ -1665,8 +1666,7 @@ static TcpStateQueue *StreamTcp3whsFindSynAckByAck(TcpSession *ssn, Packet *p)
     TcpStateQueue *q = ssn->queue;
 
     while (q != NULL) {
-        if (seq == q->seq &&
-            ack == q->ack) {
+        if (seq == q->seq && ack == q->ack) {
             return q;
         }
 
@@ -1714,12 +1714,11 @@ static void StreamTcp3whsSynAckUpdate(TcpSession *ssn, Packet *p, TcpStateQueue 
     /* Set the timestamp values used to validate the timestamp of
      * received packets.*/
     if ((q->flags & STREAMTCP_QUEUE_FLAG_TS) &&
-            (ssn->client.flags & STREAMTCP_STREAM_FLAG_TIMESTAMP))
-    {
+            (ssn->client.flags & STREAMTCP_STREAM_FLAG_TIMESTAMP)) {
         ssn->server.last_ts = q->ts;
-        SCLogDebug("ssn %p: ssn->server.last_ts %" PRIu32" "
-                "ssn->client.last_ts %" PRIu32"", ssn,
-                ssn->server.last_ts, ssn->client.last_ts);
+        SCLogDebug("ssn %p: ssn->server.last_ts %" PRIu32 " "
+                   "ssn->client.last_ts %" PRIu32 "",
+                ssn, ssn->server.last_ts, ssn->client.last_ts);
         ssn->flags |= STREAMTCP_FLAG_TIMESTAMP;
         ssn->server.last_pkt_ts = q->pkt_ts;
         if (ssn->server.last_ts == 0)
@@ -1735,16 +1734,13 @@ static void StreamTcp3whsSynAckUpdate(TcpSession *ssn, Packet *p, TcpStateQueue 
 
     /** check for the presence of the ws ptr to determine if we
      *  support wscale at all */
-    if ((ssn->flags & STREAMTCP_FLAG_SERVER_WSCALE) &&
-            (q->flags & STREAMTCP_QUEUE_FLAG_WS))
-    {
+    if ((ssn->flags & STREAMTCP_FLAG_SERVER_WSCALE) && (q->flags & STREAMTCP_QUEUE_FLAG_WS)) {
         ssn->client.wscale = q->wscale;
     } else {
         ssn->client.wscale = 0;
     }
 
-    if ((ssn->flags & STREAMTCP_FLAG_CLIENT_SACKOK) &&
-            (q->flags & STREAMTCP_QUEUE_FLAG_SACK)) {
+    if ((ssn->flags & STREAMTCP_FLAG_CLIENT_SACKOK) && (q->flags & STREAMTCP_QUEUE_FLAG_SACK)) {
         ssn->flags |= STREAMTCP_FLAG_SACKOK;
         SCLogDebug("ssn %p: SACK permitted for session", ssn);
     } else {
@@ -1753,24 +1749,22 @@ static void StreamTcp3whsSynAckUpdate(TcpSession *ssn, Packet *p, TcpStateQueue 
 
     ssn->server.next_win = ssn->server.last_ack + ssn->server.window;
     ssn->client.next_win = ssn->client.last_ack + ssn->client.window;
-    SCLogDebug("ssn %p: ssn->server.next_win %" PRIu32 "", ssn,
-            ssn->server.next_win);
-    SCLogDebug("ssn %p: ssn->client.next_win %" PRIu32 "", ssn,
-            ssn->client.next_win);
+    SCLogDebug("ssn %p: ssn->server.next_win %" PRIu32 "", ssn, ssn->server.next_win);
+    SCLogDebug("ssn %p: ssn->client.next_win %" PRIu32 "", ssn, ssn->client.next_win);
     SCLogDebug("ssn %p: ssn->server.isn %" PRIu32 ", "
-            "ssn->server.next_seq %" PRIu32 ", "
-            "ssn->server.last_ack %" PRIu32 " "
-            "(ssn->client.last_ack %" PRIu32 ")", ssn,
-            ssn->server.isn, ssn->server.next_seq,
-            ssn->server.last_ack, ssn->client.last_ack);
+               "ssn->server.next_seq %" PRIu32 ", "
+               "ssn->server.last_ack %" PRIu32 " "
+               "(ssn->client.last_ack %" PRIu32 ")",
+            ssn, ssn->server.isn, ssn->server.next_seq, ssn->server.last_ack, ssn->client.last_ack);
 
     /* unset the 4WHS flag as we received this SYN/ACK as part of a
      * (so far) valid 3WHS */
     if (ssn->flags & STREAMTCP_FLAG_4WHS)
         SCLogDebug("ssn %p: STREAMTCP_FLAG_4WHS unset, normal SYN/ACK"
-                " so considering 3WHS", ssn);
+                   " so considering 3WHS",
+                ssn);
 
-    ssn->flags &=~ STREAMTCP_FLAG_4WHS;
+    ssn->flags &= ~STREAMTCP_FLAG_4WHS;
 }
 
 /** \internal
@@ -1789,9 +1783,7 @@ static inline bool StateSynSentValidateTimestamp(TcpSession *ssn, Packet *p)
     TcpStream *receiver_stream = &ssn->client;
     const uint32_t ts_echo = TCP_GET_TSECR(p);
     if ((receiver_stream->flags & STREAMTCP_STREAM_FLAG_TIMESTAMP) != 0) {
-        if (receiver_stream->last_ts != 0 && ts_echo != 0 &&
-            ts_echo != receiver_stream->last_ts)
-        {
+        if (receiver_stream->last_ts != 0 && ts_echo != 0 && ts_echo != receiver_stream->last_ts) {
             SCLogDebug("%" PRIu64 ": ssn %p: BAD TSECR echo %u recv %u", p->pcap_cnt, ssn, ts_echo,
                     receiver_stream->last_ts);
             return false;
@@ -2173,7 +2165,7 @@ static int StreamTcpPacketStateSynSent(
         /* clear ssn->queue on state change: TcpSession can be reused by SYN/ACK */
         StreamTcp3wsFreeQueue(ssn);
 
-        StreamTcp3whsSynAckUpdate(ssn, p, /* no queue override */NULL);
+        StreamTcp3whsSynAckUpdate(ssn, p, /* no queue override */ NULL);
         SCLogDebug("%" PRIu64 ": ssn %p: SYN/ACK on SYN_SENT state: accepted", p->pcap_cnt, ssn);
         return 0;
 
@@ -2305,7 +2297,8 @@ static int StreamTcpPacketStateSynSent(
         SCLogDebug("ssn %p: SYN packet on state SYN_SENT... resent", ssn);
         if (ssn->flags & STREAMTCP_FLAG_4WHS) {
             SCLogDebug("ssn %p: SYN packet on state SYN_SENT... resent of "
-                    "4WHS SYN", ssn);
+                       "4WHS SYN",
+                    ssn);
         }
 
         if (PKT_IS_TOCLIENT(p)) {
@@ -2355,15 +2348,13 @@ static int StreamTcpPacketStateSynSent(
             }
 
             SCLogDebug("ssn %p: 4WHS ssn->server.isn %" PRIu32 ", "
-                    "ssn->server.next_seq %" PRIu32 ", "
-                    "ssn->server.last_ack %"PRIu32"", ssn,
-                    ssn->server.isn, ssn->server.next_seq,
-                    ssn->server.last_ack);
+                       "ssn->server.next_seq %" PRIu32 ", "
+                       "ssn->server.last_ack %" PRIu32 "",
+                    ssn, ssn->server.isn, ssn->server.next_seq, ssn->server.last_ack);
             SCLogDebug("ssn %p: 4WHS ssn->client.isn %" PRIu32 ", "
-                    "ssn->client.next_seq %" PRIu32 ", "
-                    "ssn->client.last_ack %"PRIu32"", ssn,
-                    ssn->client.isn, ssn->client.next_seq,
-                    ssn->client.last_ack);
+                       "ssn->client.next_seq %" PRIu32 ", "
+                       "ssn->client.last_ack %" PRIu32 "",
+                    ssn, ssn->client.isn, ssn->client.next_seq, ssn->client.last_ack);
         } else if (PKT_IS_TOSERVER(p)) {
             /* on a SYN resend we queue up the SYN's until a SYN/ACK moves the state
              * to SYN_RECV. We update the ssn to the most recent, as it is most likely
@@ -2432,9 +2423,7 @@ static int StreamTcpPacketStateSynSent(
 
         /* Set the timestamp values used to validate the timestamp of
          * received packets.*/
-        if (TCP_HAS_TS(p) &&
-                (ssn->client.flags & STREAMTCP_STREAM_FLAG_TIMESTAMP))
-        {
+        if (TCP_HAS_TS(p) && (ssn->client.flags & STREAMTCP_STREAM_FLAG_TIMESTAMP)) {
             ssn->flags |= STREAMTCP_FLAG_TIMESTAMP;
             ssn->client.flags &= ~STREAMTCP_STREAM_FLAG_TIMESTAMP;
             ssn->client.last_pkt_ts = (uint32_t)SCTIME_SECS(p->ts);
@@ -2490,20 +2479,18 @@ static int StreamTcpPacketStateSynRecv(
             if (PKT_IS_TOSERVER(p)) {
                 if ((ssn->server.os_policy == OS_POLICY_LINUX) ||
                         (ssn->server.os_policy == OS_POLICY_OLD_LINUX) ||
-                        (ssn->server.os_policy == OS_POLICY_SOLARIS))
-                {
+                        (ssn->server.os_policy == OS_POLICY_SOLARIS)) {
                     reset = false;
                     SCLogDebug("Detection evasion has been attempted, so"
-                            " not resetting the connection !!");
+                               " not resetting the connection !!");
                 }
             } else {
                 if ((ssn->client.os_policy == OS_POLICY_LINUX) ||
                         (ssn->client.os_policy == OS_POLICY_OLD_LINUX) ||
-                        (ssn->client.os_policy == OS_POLICY_SOLARIS))
-                {
+                        (ssn->client.os_policy == OS_POLICY_SOLARIS)) {
                     reset = false;
                     SCLogDebug("Detection evasion has been attempted, so"
-                            " not resetting the connection !!");
+                               " not resetting the connection !!");
                 }
             }
         }
@@ -2526,7 +2513,7 @@ static int StreamTcpPacketStateSynRecv(
         if ((StreamTcpHandleFin(tv, stt, ssn, p)) == -1)
             return -1;
 
-    /* SYN/ACK */
+        /* SYN/ACK */
     } else if ((tcph->th_flags & (TH_SYN | TH_ACK)) == (TH_SYN | TH_ACK)) {
         SCLogDebug("ssn %p: SYN/ACK packet on state SYN_RECV. resent", ssn);
 
@@ -2583,12 +2570,12 @@ static int StreamTcpPacketStateSynRecv(
             TcpStateQueue *q = StreamTcp3whsFindSynAckByAck(ssn, p);
             if (q != NULL) {
                 SCLogDebug("ssn %p: here we update state against queued SYN/ACK", ssn);
-                StreamTcp3whsSynAckUpdate(ssn, p, /* using queue to update state */q);
+                StreamTcp3whsSynAckUpdate(ssn, p, /* using queue to update state */ q);
             } else {
-                SCLogDebug("ssn %p: none found, now checking ACK against original SYN/ACK (state)", ssn);
+                SCLogDebug("ssn %p: none found, now checking ACK against original SYN/ACK (state)",
+                        ssn);
             }
         }
-
 
         /* If the timestamp option is enabled for both the streams, then
          * validate the received packet timestamp value against the
@@ -2601,7 +2588,7 @@ static int StreamTcpPacketStateSynRecv(
         }
 
         if ((ssn->flags & STREAMTCP_FLAG_4WHS) && PKT_IS_TOCLIENT(p)) {
-            SCLogDebug("ssn %p: ACK received on 4WHS session",ssn);
+            SCLogDebug("ssn %p: ACK received on 4WHS session", ssn);
 
             if (!(SEQ_EQ(TCP_GET_RAW_SEQ(tcph), ssn->server.next_seq))) {
                 SCLogDebug("ssn %p: 4WHS wrong seq nr on packet", ssn);
@@ -2635,8 +2622,8 @@ static int StreamTcpPacketStateSynRecv(
             StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p);
 
             SCLogDebug("ssn %p: ssn->client.next_win %" PRIu32 ", "
-                    "ssn->client.last_ack %"PRIu32"", ssn,
-                    ssn->client.next_win, ssn->client.last_ack);
+                       "ssn->client.last_ack %" PRIu32 "",
+                    ssn, ssn->client.next_win, ssn->client.last_ack);
             return 0;
         }
 
@@ -2651,10 +2638,11 @@ static int StreamTcpPacketStateSynRecv(
              * direction */
             if (ssn->flags & STREAMTCP_FLAG_MIDSTREAM_SYNACK) {
                 SCLogDebug("ssn %p: ACK received on midstream SYN/ACK "
-                        "pickup session",ssn);
+                           "pickup session",
+                        ssn);
                 /* fall through */
             } else if (ssn->flags & STREAMTCP_FLAG_TCP_FAST_OPEN) {
-                SCLogDebug("ssn %p: ACK received on TFO session",ssn);
+                SCLogDebug("ssn %p: ACK received on TFO session", ssn);
                 /* fall through */
 
             } else {
@@ -2676,8 +2664,7 @@ static int StreamTcpPacketStateSynRecv(
                         return -1;
                     }
 
-                    SCLogDebug("ssn %p: ACK received in the wrong direction",
-                            ssn);
+                    SCLogDebug("ssn %p: ACK received in the wrong direction", ssn);
                     StreamTcpSetEvent(p, STREAM_3WHS_ACK_IN_WRONG_DIR);
                     return -1;
                 }
@@ -2710,8 +2697,7 @@ static int StreamTcpPacketStateSynRecv(
             if (ssn->flags & STREAMTCP_FLAG_MIDSTREAM) {
                 ssn->client.window = TCP_GET_RAW_WINDOW(tcph) << ssn->client.wscale;
                 ssn->client.next_win = ssn->client.last_ack + ssn->client.window;
-                ssn->server.next_win = ssn->server.last_ack +
-                    ssn->server.window;
+                ssn->server.next_win = ssn->server.last_ack + ssn->server.window;
                 if (!(ssn->flags & STREAMTCP_FLAG_MIDSTREAM_SYNACK)) {
                     /* window scaling for midstream pickups, we can't do much
                      * other than assume that it's set to the max value: 14 */
@@ -2777,8 +2763,7 @@ static int StreamTcpPacketStateSynRecv(
                likely to avoid the detection */
         } else if (SEQ_EQ(TCP_GET_RAW_SEQ(tcph), ssn->client.next_seq)) {
             ssn->flags |= STREAMTCP_FLAG_DETECTION_EVASION_ATTEMPT;
-            SCLogDebug("ssn %p: wrong ack nr on packet, possible evasion!!",
-                    ssn);
+            SCLogDebug("ssn %p: wrong ack nr on packet, possible evasion!!", ssn);
 
             StreamTcpSetEvent(p, STREAM_3WHS_RIGHT_SEQ_WRONG_ACK_EVASION);
             return -1;
@@ -2824,14 +2809,14 @@ static int StreamTcpPacketStateSynRecv(
             ssn->client.next_seq = TCP_GET_RAW_SEQ(tcph) + p->payload_len;
             StreamTcpUpdateLastAck(ssn, &ssn->server, TCP_GET_RAW_ACK(tcph));
 
-            SCLogDebug("ssn %p: ACK for missing data: ssn->client.next_seq %u", ssn, ssn->client.next_seq);
+            SCLogDebug("ssn %p: ACK for missing data: ssn->client.next_seq %u", ssn,
+                    ssn->client.next_seq);
             ssn->server.window = TCP_GET_RAW_WINDOW(tcph) << ssn->server.wscale;
             ssn->server.next_win = ssn->server.last_ack + ssn->server.window;
 
             if (ssn->flags & STREAMTCP_FLAG_MIDSTREAM) {
                 ssn->client.window = TCP_GET_RAW_WINDOW(tcph);
-                ssn->server.next_win = ssn->server.last_ack +
-                    ssn->server.window;
+                ssn->server.next_win = ssn->server.last_ack + ssn->server.window;
                 /* window scaling for midstream pickups, we can't do much
                  * other than assume that it's set to the max value: 14 */
                 ssn->server.wscale = TCP_WSCALE_MAX;
@@ -2873,8 +2858,8 @@ static int StreamTcpPacketStateSynRecv(
         }
 
         SCLogDebug("ssn %p: ssn->server.next_win %" PRIu32 ", "
-                "ssn->server.last_ack %"PRIu32"", ssn,
-                ssn->server.next_win, ssn->server.last_ack);
+                   "ssn->server.last_ack %" PRIu32 "",
+                ssn, ssn->server.next_win, ssn->server.last_ack);
     } else {
         SCLogDebug("ssn %p: default case", ssn);
     }
@@ -2924,7 +2909,7 @@ static int HandleEstablishedPacketToServer(
     if ((p->payload_len == 0 || p->payload_len == 1) && (seq == (ssn->client.next_seq - 1))) {
         SCLogDebug("ssn %p: pkt is keep alive", ssn);
 
-    /* normal pkt */
+        /* normal pkt */
     } else if (!(SEQ_GEQ((seq + p->payload_len), ssn->client.last_ack))) {
         if (ssn->flags & STREAMTCP_FLAG_ASYNC) {
             SCLogDebug("ssn %p: server => Asynchronous stream, packet SEQ"
@@ -2968,9 +2953,9 @@ static int HandleEstablishedPacketToServer(
             StreamTcpUpdateLastAck(ssn, &ssn->client, seq);
             ssn->flags |= STREAMTCP_FLAG_ASYNC;
 
-        /* if last ack is beyond next_seq, we have accepted ack's for missing data.
-         * In this case we do accept the data before last_ack if it is (partly)
-         * beyond next seq */
+            /* if last ack is beyond next_seq, we have accepted ack's for missing data.
+             * In this case we do accept the data before last_ack if it is (partly)
+             * beyond next seq */
         } else if (SEQ_GT(ssn->client.last_ack, ssn->client.next_seq) &&
                    SEQ_GT((seq + p->payload_len), ssn->client.next_seq)) {
             SCLogDebug("ssn %p: PKT SEQ %" PRIu32 " payload_len %" PRIu16
@@ -3014,8 +2999,7 @@ static int HandleEstablishedPacketToServer(
                 ssn, seq, ssn->client.next_win);
 
         ssn->server.window = window << ssn->server.wscale;
-        SCLogDebug("ssn %p: ssn->server.window %"PRIu32"", ssn,
-                    ssn->server.window);
+        SCLogDebug("ssn %p: ssn->server.window %" PRIu32 "", ssn, ssn->server.window);
 
         /* Check if the ACK value is sane and inside the window limit */
         if (tcph->th_flags & TH_ACK) {
@@ -3098,20 +3082,20 @@ static int HandleEstablishedPacketToClient(
     /* To get the server window value from the servers packet, when connection
        is picked up as midstream */
     if ((ssn->flags & STREAMTCP_FLAG_MIDSTREAM) &&
-            (ssn->flags & STREAMTCP_FLAG_MIDSTREAM_ESTABLISHED))
-    {
+            (ssn->flags & STREAMTCP_FLAG_MIDSTREAM_ESTABLISHED)) {
         ssn->server.window = window << ssn->server.wscale;
         ssn->server.next_win = ssn->server.last_ack + ssn->server.window;
         ssn->flags &= ~STREAMTCP_FLAG_MIDSTREAM_ESTABLISHED;
         SCLogDebug("ssn %p: adjusted midstream ssn->server.next_win to "
-                "%" PRIu32 "", ssn, ssn->server.next_win);
+                   "%" PRIu32 "",
+                ssn, ssn->server.next_win);
     }
 
     /* check for Keep Alive */
     if ((p->payload_len == 0 || p->payload_len == 1) && (seq == (ssn->server.next_seq - 1))) {
         SCLogDebug("ssn %p: pkt is keep alive", ssn);
 
-    /* normal pkt */
+        /* normal pkt */
     } else if (!(SEQ_GEQ((seq + p->payload_len), ssn->server.last_ack))) {
         if (ssn->flags & STREAMTCP_FLAG_ASYNC) {
 
@@ -3165,8 +3149,7 @@ static int HandleEstablishedPacketToClient(
                    "%" PRIu32 "",
                 ssn, seq, ssn->server.next_win);
         ssn->client.window = window << ssn->client.wscale;
-        SCLogDebug("ssn %p: ssn->client.window %"PRIu32"", ssn,
-                    ssn->client.window);
+        SCLogDebug("ssn %p: ssn->client.window %" PRIu32 "", ssn, ssn->client.window);
 
         if (tcph->th_flags & TH_ACK) {
             StreamTcpUpdateLastAck(ssn, &ssn->client, ack);
@@ -3415,8 +3398,7 @@ static int StreamTcpPacketStateEstablished(
 
             ssn->server.next_seq = ack;
             ssn->client.next_seq = seq + p->payload_len;
-            SCLogDebug("ssn %p: ssn->server.next_seq %" PRIu32 "", ssn,
-                    ssn->server.next_seq);
+            SCLogDebug("ssn %p: ssn->server.next_seq %" PRIu32 "", ssn, ssn->server.next_seq);
             ssn->client.window = window << ssn->client.wscale;
 
             if ((tcph->th_flags & TH_ACK) && StreamTcpValidateAck(ssn, &ssn->server, p) == 0)
@@ -3430,8 +3412,8 @@ static int StreamTcpPacketStateEstablished(
 
             StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
-                    "%" PRIu32 "", ssn, ssn->client.next_seq,
-                    ssn->server.last_ack);
+                       "%" PRIu32 "",
+                    ssn, ssn->client.next_seq, ssn->server.last_ack);
 
             /* don't return packets to pools here just yet, the pseudo
              * packet will take care, otherwise the normal session
@@ -3442,8 +3424,7 @@ static int StreamTcpPacketStateEstablished(
             ssn->server.next_seq = seq + p->payload_len + 1;
             ssn->client.next_seq = ack;
 
-            SCLogDebug("ssn %p: ssn->server.next_seq %" PRIu32 "", ssn,
-                    ssn->server.next_seq);
+            SCLogDebug("ssn %p: ssn->server.next_seq %" PRIu32 "", ssn, ssn->server.next_seq);
             ssn->server.window = window << ssn->server.wscale;
 
             if ((tcph->th_flags & TH_ACK) && StreamTcpValidateAck(ssn, &ssn->client, p) == 0)
@@ -3457,8 +3438,8 @@ static int StreamTcpPacketStateEstablished(
 
             StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p);
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
-                    "%" PRIu32 "", ssn, ssn->server.next_seq,
-                    ssn->client.last_ack);
+                       "%" PRIu32 "",
+                    ssn, ssn->server.next_seq, ssn->client.last_ack);
 
             /* don't return packets to pools here just yet, the pseudo
              * packet will take care, otherwise the normal session
@@ -3472,18 +3453,17 @@ static int StreamTcpPacketStateEstablished(
         }
 
         SCLogDebug("ssn (%p: FIN received SEQ"
-                " %" PRIu32 ", last ACK %" PRIu32 ", next win %"PRIu32","
-                " win %" PRIu32 "", ssn, ssn->server.next_seq,
-                ssn->client.last_ack, ssn->server.next_win,
+                   " %" PRIu32 ", last ACK %" PRIu32 ", next win %" PRIu32 ","
+                   " win %" PRIu32 "",
+                ssn, ssn->server.next_seq, ssn->client.last_ack, ssn->server.next_win,
                 ssn->server.window);
 
         if ((StreamTcpHandleFin(tv, stt, ssn, p)) == -1)
             return -1;
 
-    /* SYN/ACK */
+        /* SYN/ACK */
     } else if ((tcph->th_flags & (TH_SYN | TH_ACK)) == (TH_SYN | TH_ACK)) {
-        SCLogDebug("ssn %p: SYN/ACK packet on state ESTABLISHED... resent",
-                ssn);
+        SCLogDebug("ssn %p: SYN/ACK packet on state ESTABLISHED... resent", ssn);
 
         if (PKT_IS_TOSERVER(p)) {
             SCLogDebug("ssn %p: SYN/ACK-pkt to server in ESTABLISHED state", ssn);
@@ -3521,7 +3501,8 @@ static int StreamTcpPacketStateEstablished(
         }
 
         SCLogDebug("ssn %p: SYN/ACK packet on state ESTABLISHED... resent. "
-                "Likely due server not receiving final ACK in 3whs", ssn);
+                   "Likely due server not receiving final ACK in 3whs",
+                ssn);
         return 0;
 
     } else if (tcph->th_flags & TH_SYN) {
@@ -3564,9 +3545,9 @@ static int StreamTcpPacketStateEstablished(
             HandleEstablishedPacketToServer(tv, ssn, p, stt);
 
             SCLogDebug("ssn %p: next SEQ %" PRIu32 ", last ACK %" PRIu32 ","
-                    " next win %" PRIu32 ", win %" PRIu32 "", ssn,
-                    ssn->client.next_seq, ssn->server.last_ack
-                    ,ssn->client.next_win, ssn->client.window);
+                       " next win %" PRIu32 ", win %" PRIu32 "",
+                    ssn, ssn->client.next_seq, ssn->server.last_ack, ssn->client.next_win,
+                    ssn->client.window);
 
         } else { /* implied to client */
             if (!(ssn->flags & STREAMTCP_FLAG_3WHS_CONFIRMED)) {
@@ -3578,9 +3559,9 @@ static int StreamTcpPacketStateEstablished(
             HandleEstablishedPacketToClient(tv, ssn, p, stt);
 
             SCLogDebug("ssn %p: next SEQ %" PRIu32 ", last ACK %" PRIu32 ","
-                    " next win %" PRIu32 ", win %" PRIu32 "", ssn,
-                    ssn->server.next_seq, ssn->client.last_ack,
-                    ssn->server.next_win, ssn->server.window);
+                       " next win %" PRIu32 ", win %" PRIu32 "",
+                    ssn, ssn->server.next_seq, ssn->client.last_ack, ssn->server.next_win,
+                    ssn->server.window);
         }
     } else {
         SCLogDebug("ssn %p: default case", ssn);
@@ -3644,8 +3625,7 @@ static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *stt, TcpSession *
         /* if we accept the FIN, next_seq needs to reflect the FIN */
         ssn->client.next_seq = seq + p->payload_len;
 
-        SCLogDebug("ssn %p: ssn->client.next_seq %" PRIu32 "", ssn,
-                    ssn->client.next_seq);
+        SCLogDebug("ssn %p: ssn->client.next_seq %" PRIu32 "", ssn, ssn->client.next_seq);
         ssn->server.window = window << ssn->server.wscale;
 
         if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
@@ -3662,8 +3642,8 @@ static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *stt, TcpSession *
 
         StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
 
-        SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK %" PRIu32 "",
-                ssn, ssn->client.next_seq, ssn->server.last_ack);
+        SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK %" PRIu32 "", ssn,
+                ssn->client.next_seq, ssn->server.last_ack);
     } else { /* implied to client */
         SCLogDebug("ssn %p: pkt (%" PRIu32 ") is to client: SEQ %" PRIu32 ", "
                    "ACK %" PRIu32 "",
@@ -3713,8 +3693,8 @@ static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *stt, TcpSession *
 
         StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p);
 
-        SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK %" PRIu32 "",
-                ssn, ssn->server.next_seq, ssn->client.last_ack);
+        SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK %" PRIu32 "", ssn,
+                ssn->server.next_seq, ssn->client.last_ack);
     }
 
     return 0;
@@ -3829,8 +3809,8 @@ static int StreamTcpPacketStateFinWait1(
             StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
 
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
-                    "%" PRIu32 "", ssn, ssn->client.next_seq,
-                    ssn->server.last_ack);
+                       "%" PRIu32 "",
+                    ssn, ssn->client.next_seq, ssn->server.last_ack);
         } else { /* implied to client */
             SCLogDebug("ssn %p: pkt (%" PRIu32 ") is to client: SEQ "
                        "%" PRIu32 ", ACK %" PRIu32 "",
@@ -3887,8 +3867,8 @@ static int StreamTcpPacketStateFinWait1(
             StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p);
 
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
-                    "%" PRIu32 "", ssn, ssn->server.next_seq,
-                    ssn->client.last_ack);
+                       "%" PRIu32 "",
+                    ssn, ssn->server.next_seq, ssn->client.last_ack);
         }
 
     } else if (tcph->th_flags & TH_FIN) {
@@ -3949,8 +3929,8 @@ static int StreamTcpPacketStateFinWait1(
             StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
 
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
-                    "%" PRIu32 "", ssn, ssn->client.next_seq,
-                    ssn->server.last_ack);
+                       "%" PRIu32 "",
+                    ssn, ssn->client.next_seq, ssn->server.last_ack);
         } else { /* implied to client */
             SCLogDebug("ssn %p: pkt (%" PRIu32 ") is to client: SEQ "
                        "%" PRIu32 ", ACK %" PRIu32 "",
@@ -4004,8 +3984,8 @@ static int StreamTcpPacketStateFinWait1(
             StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p);
 
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
-                    "%" PRIu32 "", ssn, ssn->server.next_seq,
-                    ssn->client.last_ack);
+                       "%" PRIu32 "",
+                    ssn, ssn->server.next_seq, ssn->client.last_ack);
         }
     } else if (tcph->th_flags & TH_SYN) {
         SCLogDebug("ssn (%p): SYN pkt on FinWait1", ssn);
@@ -4087,8 +4067,8 @@ static int StreamTcpPacketStateFinWait1(
             StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
 
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
-                    "%" PRIu32 "", ssn, ssn->client.next_seq,
-                    ssn->server.last_ack);
+                       "%" PRIu32 "",
+                    ssn, ssn->client.next_seq, ssn->server.last_ack);
 
         } else { /* implied to client */
 
@@ -4155,8 +4135,8 @@ static int StreamTcpPacketStateFinWait1(
             StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p);
 
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
-                    "%" PRIu32 "", ssn, ssn->server.next_seq,
-                    ssn->client.last_ack);
+                       "%" PRIu32 "",
+                    ssn, ssn->server.next_seq, ssn->client.last_ack);
         }
     } else {
         SCLogDebug("ssn (%p): default case", ssn);
@@ -4276,8 +4256,8 @@ static int StreamTcpPacketStateFinWait2(
             StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
 
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
-                    "%" PRIu32 "", ssn, ssn->client.next_seq,
-                    ssn->server.last_ack);
+                       "%" PRIu32 "",
+                    ssn, ssn->client.next_seq, ssn->server.last_ack);
         } else { /* implied to client */
             SCLogDebug("ssn %p: pkt (%" PRIu32 ") is to client: SEQ "
                        "%" PRIu32 ", ACK %" PRIu32 "",
@@ -4329,8 +4309,8 @@ static int StreamTcpPacketStateFinWait2(
 
             StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p);
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
-                    "%" PRIu32 "", ssn, ssn->server.next_seq,
-                    ssn->client.last_ack);
+                       "%" PRIu32 "",
+                    ssn, ssn->server.next_seq, ssn->client.last_ack);
         }
 
     } else if (tcph->th_flags & TH_SYN) {
@@ -4398,8 +4378,8 @@ static int StreamTcpPacketStateFinWait2(
             StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
 
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
-                    "%" PRIu32 "", ssn, ssn->client.next_seq,
-                    ssn->server.last_ack);
+                       "%" PRIu32 "",
+                    ssn, ssn->client.next_seq, ssn->server.last_ack);
         } else { /* implied to client */
             SCLogDebug("ssn %p: pkt (%" PRIu32 ") is to client: SEQ "
                        "%" PRIu32 ", ACK %" PRIu32 "",
@@ -4453,8 +4433,8 @@ static int StreamTcpPacketStateFinWait2(
             StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p);
 
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
-                    "%" PRIu32 "", ssn, ssn->server.next_seq,
-                    ssn->client.last_ack);
+                       "%" PRIu32 "",
+                    ssn, ssn->server.next_seq, ssn->client.last_ack);
         }
     } else {
         SCLogDebug("ssn %p: default case", ssn);
@@ -4567,8 +4547,8 @@ static int StreamTcpPacketStateClosing(
 
             StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
-                    "%" PRIu32 "", ssn, ssn->client.next_seq,
-                    ssn->server.last_ack);
+                       "%" PRIu32 "",
+                    ssn, ssn->client.next_seq, ssn->server.last_ack);
         } else { /* implied to client */
             SCLogDebug("ssn %p: pkt (%" PRIu32 ") is to client: SEQ "
                        "%" PRIu32 ", ACK %" PRIu32 "",
@@ -4614,8 +4594,8 @@ static int StreamTcpPacketStateClosing(
 
             StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p);
             SCLogDebug("StreamTcpPacketStateClosing (%p): =+ next SEQ "
-                    "%" PRIu32 ", last ACK %" PRIu32 "", ssn,
-                    ssn->server.next_seq, ssn->client.last_ack);
+                       "%" PRIu32 ", last ACK %" PRIu32 "",
+                    ssn, ssn->server.next_seq, ssn->client.last_ack);
         }
     } else {
         SCLogDebug("ssn %p: default case", ssn);
@@ -4739,8 +4719,8 @@ static int StreamTcpPacketStateCloseWait(
 
             StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
-                    "%" PRIu32 "", ssn, ssn->client.next_seq,
-                    ssn->server.last_ack);
+                       "%" PRIu32 "",
+                    ssn, ssn->client.next_seq, ssn->server.last_ack);
         } else {
             SCLogDebug("ssn %p: pkt (%" PRIu32 ") is to client: SEQ "
                        "%" PRIu32 ", ACK %" PRIu32 "",
@@ -4791,8 +4771,8 @@ static int StreamTcpPacketStateCloseWait(
 
             StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p);
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
-                    "%" PRIu32 "", ssn, ssn->server.next_seq,
-                    ssn->client.last_ack);
+                       "%" PRIu32 "",
+                    ssn, ssn->server.next_seq, ssn->client.last_ack);
         }
 
     } else if (tcph->th_flags & TH_SYN) {
@@ -4857,8 +4837,8 @@ static int StreamTcpPacketStateCloseWait(
 
             StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
-                    "%" PRIu32 "", ssn, ssn->client.next_seq,
-                    ssn->server.last_ack);
+                       "%" PRIu32 "",
+                    ssn, ssn->client.next_seq, ssn->server.last_ack);
         } else {
             SCLogDebug("ssn %p: pkt (%" PRIu32 ") is to client: SEQ "
                        "%" PRIu32 ", ACK %" PRIu32 "",
@@ -4909,8 +4889,8 @@ static int StreamTcpPacketStateCloseWait(
 
             StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p);
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
-                    "%" PRIu32 "", ssn, ssn->server.next_seq,
-                    ssn->client.last_ack);
+                       "%" PRIu32 "",
+                    ssn, ssn->server.next_seq, ssn->client.last_ack);
         }
 
     } else {
@@ -5030,8 +5010,8 @@ static int StreamTcpPacketStateLastAck(
 
             StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
-                    "%" PRIu32 "", ssn, ssn->client.next_seq,
-                    ssn->server.last_ack);
+                       "%" PRIu32 "",
+                    ssn, ssn->client.next_seq, ssn->server.last_ack);
         }
     } else {
         SCLogDebug("ssn %p: default case", ssn);
@@ -5147,8 +5127,8 @@ static int StreamTcpPacketStateTimeWait(
 
             StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
-                    "%" PRIu32 "", ssn, ssn->client.next_seq,
-                    ssn->server.last_ack);
+                       "%" PRIu32 "",
+                    ssn, ssn->client.next_seq, ssn->server.last_ack);
         } else {
             SCLogDebug("ssn %p: pkt (%" PRIu32 ") is to client: SEQ "
                        "%" PRIu32 ", ACK %" PRIu32 "",
@@ -5197,8 +5177,8 @@ static int StreamTcpPacketStateTimeWait(
 
             StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->server, p);
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
-                    "%" PRIu32 "", ssn, ssn->server.next_seq,
-                    ssn->client.last_ack);
+                       "%" PRIu32 "",
+                    ssn, ssn->server.next_seq, ssn->client.last_ack);
         }
 
     } else {
@@ -5229,8 +5209,8 @@ static int StreamTcpPacketStateClosed(
     }
 
     SCLogDebug("stream %s ostream %s",
-            stream->flags & STREAMTCP_STREAM_FLAG_RST_RECV?"true":"false",
-            ostream->flags & STREAMTCP_STREAM_FLAG_RST_RECV ? "true":"false");
+            stream->flags & STREAMTCP_STREAM_FLAG_RST_RECV ? "true" : "false",
+            ostream->flags & STREAMTCP_STREAM_FLAG_RST_RECV ? "true" : "false");
 
     /* if we've seen a RST on our direction, but not on the other
      * see if we perhaps need to continue processing anyway. */
@@ -5265,8 +5245,9 @@ static void StreamTcpPacketCheckPostRst(TcpSession *ssn, Packet *p)
     }
 
     if (ostream->flags & STREAMTCP_STREAM_FLAG_RST_RECV) {
-        SCLogDebug("regular packet %"PRIu64" from same sender as "
-                "the previous RST. Looks like it injected!", p->pcap_cnt);
+        SCLogDebug("regular packet %" PRIu64 " from same sender as "
+                   "the previous RST. Looks like it injected!",
+                p->pcap_cnt);
         ostream->flags &= ~STREAMTCP_STREAM_FLAG_RST_RECV;
         ssn->flags &= ~STREAMTCP_FLAG_CLOSED_BY_RST;
         StreamTcpSetEvent(p, STREAM_SUSPECTED_RST_INJECT);
@@ -5309,12 +5290,12 @@ static int StreamTcpPacketIsKeepAlive(TcpSession *ssn, Packet *p)
     const uint32_t seq = TCP_GET_RAW_SEQ(tcph);
     const uint32_t ack = TCP_GET_RAW_ACK(tcph);
     if (ack == ostream->last_ack && seq == (stream->next_seq - 1)) {
-        SCLogDebug("packet is TCP keep-alive: %"PRIu64, p->pcap_cnt);
+        SCLogDebug("packet is TCP keep-alive: %" PRIu64, p->pcap_cnt);
         stream->flags |= STREAMTCP_STREAM_FLAG_KEEPALIVE;
         STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_KEEPALIVE);
         return 1;
     }
-    SCLogDebug("seq %u (%u), ack %u (%u)", seq,  (stream->next_seq - 1), ack, ostream->last_ack);
+    SCLogDebug("seq %u (%u), ack %u (%u)", seq, (stream->next_seq - 1), ack, ostream->last_ack);
     return 0;
 }
 
@@ -5357,13 +5338,15 @@ static int StreamTcpPacketIsKeepAliveACK(TcpSession *ssn, Packet *p)
     if (pkt_win != ostream->window)
         return 0;
 
-    if ((ostream->flags & STREAMTCP_STREAM_FLAG_KEEPALIVE) && ack == ostream->last_ack && seq == stream->next_seq) {
-        SCLogDebug("packet is TCP keep-aliveACK: %"PRIu64, p->pcap_cnt);
+    if ((ostream->flags & STREAMTCP_STREAM_FLAG_KEEPALIVE) && ack == ostream->last_ack &&
+            seq == stream->next_seq) {
+        SCLogDebug("packet is TCP keep-aliveACK: %" PRIu64, p->pcap_cnt);
         ostream->flags &= ~STREAMTCP_STREAM_FLAG_KEEPALIVE;
         STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_KEEPALIVEACK);
         return 1;
     }
-    SCLogDebug("seq %u (%u), ack %u (%u) FLAG_KEEPALIVE: %s", seq, stream->next_seq, ack, ostream->last_ack,
+    SCLogDebug("seq %u (%u), ack %u (%u) FLAG_KEEPALIVE: %s", seq, stream->next_seq, ack,
+            ostream->last_ack,
             ostream->flags & STREAMTCP_STREAM_FLAG_KEEPALIVE ? "set" : "not set");
     return 0;
 }
@@ -5430,7 +5413,7 @@ static int StreamTcpPacketIsWindowUpdate(TcpSession *ssn, Packet *p)
         return 0;
 
     if (ack == ostream->last_ack && seq == stream->next_seq) {
-        SCLogDebug("packet is TCP window update: %"PRIu64, p->pcap_cnt);
+        SCLogDebug("packet is TCP window update: %" PRIu64, p->pcap_cnt);
         STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_WINDOWUPDATE);
         return 1;
     }
@@ -5450,7 +5433,8 @@ static int StreamTcpPacketIsFinShutdownAck(TcpSession *ssn, Packet *p)
 
     if (p->flags & PKT_PSEUDO_STREAM_END)
         return 0;
-    if (!(ssn->state == TCP_TIME_WAIT || ssn->state == TCP_CLOSE_WAIT || ssn->state == TCP_LAST_ACK))
+    if (!(ssn->state == TCP_TIME_WAIT || ssn->state == TCP_CLOSE_WAIT ||
+                ssn->state == TCP_LAST_ACK))
         return 0;
     const TCPHdr *tcph = PacketGetTCP(p);
     if (tcph->th_flags != TH_ACK)
@@ -5469,8 +5453,8 @@ static int StreamTcpPacketIsFinShutdownAck(TcpSession *ssn, Packet *p)
     seq = TCP_GET_RAW_SEQ(tcph);
     ack = TCP_GET_RAW_ACK(tcph);
 
-    SCLogDebug("%"PRIu64", seq %u ack %u stream->next_seq %u ostream->next_seq %u",
-            p->pcap_cnt, seq, ack, stream->next_seq, ostream->next_seq);
+    SCLogDebug("%" PRIu64 ", seq %u ack %u stream->next_seq %u ostream->next_seq %u", p->pcap_cnt,
+            seq, ack, stream->next_seq, ostream->next_seq);
 
     if (SEQ_EQ(stream->next_seq + 1, seq) && SEQ_EQ(ack, ostream->next_seq + 1)) {
         return 1;
@@ -5526,15 +5510,14 @@ static int StreamTcpPacketIsBadWindowUpdate(TcpSession *ssn, Packet *p)
 
     if (pkt_win < ostream->window) {
         uint32_t diff = ostream->window - pkt_win;
-        if (diff > p->payload_len &&
-                SEQ_GT(ack, ostream->next_seq) &&
-                SEQ_GT(seq, stream->next_seq))
-        {
-            SCLogDebug("%"PRIu64", pkt_win %u, stream win %u, diff %u, dsize %u",
-                p->pcap_cnt, pkt_win, ostream->window, diff, p->payload_len);
-            SCLogDebug("%"PRIu64", pkt_win %u, stream win %u",
-                p->pcap_cnt, pkt_win, ostream->window);
-            SCLogDebug("%"PRIu64", seq %u ack %u ostream->next_seq %u ostream->last_ack %u, ostream->next_win %u, diff %u (%u)",
+        if (diff > p->payload_len && SEQ_GT(ack, ostream->next_seq) &&
+                SEQ_GT(seq, stream->next_seq)) {
+            SCLogDebug("%" PRIu64 ", pkt_win %u, stream win %u, diff %u, dsize %u", p->pcap_cnt,
+                    pkt_win, ostream->window, diff, p->payload_len);
+            SCLogDebug("%" PRIu64 ", pkt_win %u, stream win %u", p->pcap_cnt, pkt_win,
+                    ostream->window);
+            SCLogDebug("%" PRIu64 ", seq %u ack %u ostream->next_seq %u ostream->last_ack %u, "
+                                  "ostream->next_win %u, diff %u (%u)",
                     p->pcap_cnt, seq, ack, ostream->next_seq, ostream->last_ack, ostream->next_win,
                     ostream->next_seq - ostream->last_ack, stream->next_seq - stream->last_ack);
 
@@ -5545,16 +5528,15 @@ static int StreamTcpPacketIsBadWindowUpdate(TcpSession *ssn, Packet *p)
              * are rather arbitrary. */
             uint32_t adiff = ack - ostream->last_ack;
             if (((pkt_win > 1024) && (diff > (adiff + 32))) ||
-                ((pkt_win <= 1024) && (diff > adiff)))
-            {
+                    ((pkt_win <= 1024) && (diff > adiff))) {
                 SCLogDebug("pkt ACK %u is %u bytes beyond last_ack %u, shrinks window by %u "
-                        "(allowing 32 bytes extra): pkt WIN %u", ack, adiff, ostream->last_ack, diff, pkt_win);
+                           "(allowing 32 bytes extra): pkt WIN %u",
+                        ack, adiff, ostream->last_ack, diff, pkt_win);
                 SCLogDebug("%u - %u = %u (state %u)", diff, adiff, diff - adiff, ssn->state);
                 StreamTcpSetEvent(p, STREAM_PKT_BAD_WINDOW_UPDATE);
                 return 1;
             }
         }
-
     }
     SCLogDebug("seq %u (%u), ack %u (%u)", seq, stream->next_seq, ack, ostream->last_ack);
     return 0;
@@ -5661,14 +5643,13 @@ static inline void CheckThreadId(ThreadVars *tv, Packet *p, StreamTcpThread *stt
 }
 
 /* flow is and stays locked */
-int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
-                     PacketQueueNoLock *pq)
+int StreamTcpPacket(ThreadVars *tv, Packet *p, StreamTcpThread *stt, PacketQueueNoLock *pq)
 {
     SCEnter();
 
     DEBUG_ASSERT_FLOW_LOCKED(p->flow);
 
-    SCLogDebug("p->pcap_cnt %"PRIu64, p->pcap_cnt);
+    SCLogDebug("p->pcap_cnt %" PRIu64, p->pcap_cnt);
 
     TcpSession *ssn = (TcpSession *)p->flow->protoctx;
     const TCPHdr *tcph = PacketGetTCP(p);
@@ -5682,16 +5663,16 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
             ssn->server.tcp_flags |= tcph->th_flags;
 
         /* check if we need to unset the ASYNC flag */
-        if (ssn->flags & STREAMTCP_FLAG_ASYNC &&
-            ssn->client.tcp_flags != 0 &&
-            ssn->server.tcp_flags != 0)
-        {
+        if (ssn->flags & STREAMTCP_FLAG_ASYNC && ssn->client.tcp_flags != 0 &&
+                ssn->server.tcp_flags != 0) {
             SCLogDebug("ssn %p: removing ASYNC flag as we have packets on both sides", ssn);
             ssn->flags &= ~STREAMTCP_FLAG_ASYNC;
         }
     }
 
-    /* broken TCP http://ask.wireshark.org/questions/3183/acknowledgment-number-broken-tcp-the-acknowledge-field-is-nonzero-while-the-ack-flag-is-not-set */
+    /* broken TCP
+     * http://ask.wireshark.org/questions/3183/acknowledgment-number-broken-tcp-the-acknowledge-field-is-nonzero-while-the-ack-flag-is-not-set
+     */
     if (!(tcph->th_flags & TH_ACK) && TCP_GET_RAW_ACK(tcph) != 0) {
         StreamTcpSetEvent(p, STREAM_PKT_BROKEN_ACK);
     }
@@ -5721,7 +5702,7 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
         }
 
         if (ssn != NULL)
-            SCLogDebug("ssn->alproto %"PRIu16"", p->flow->alproto);
+            SCLogDebug("ssn->alproto %" PRIu16 "", p->flow->alproto);
     } else {
         /* special case for PKT_PSEUDO_STREAM_END packets:
          * bypass the state handling and various packet checks,
@@ -5771,7 +5752,7 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
          * a bad window update that we should ignore (and alert on) */
         if (StreamTcpPacketIsFinShutdownAck(ssn, p) == 0) {
             if (StreamTcpPacketIsWindowUpdate(ssn, p) == 0) {
-                if (StreamTcpPacketIsBadWindowUpdate(ssn,p))
+                if (StreamTcpPacketIsBadWindowUpdate(ssn, p))
                     goto skip;
                 if (StreamTcpPacketIsOutdatedAck(ssn, p))
                     goto skip;
@@ -5807,8 +5788,7 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
 
         /* streams that hit depth */
         if ((ssn->client.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) ||
-             (ssn->server.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED))
-        {
+                (ssn->server.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED)) {
             /* we can call bypass callback, if enabled */
             if (StreamTcpBypassEnabled()) {
                 PacketBypassCallback(p);
@@ -5816,25 +5796,21 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
         }
 
         if ((ssn->client.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) ||
-             (ssn->server.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED))
-        {
+                (ssn->server.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED)) {
             p->flags |= PKT_STREAM_NOPCAPLOG;
         }
 
         /* encrypted packets */
         if ((PKT_IS_TOSERVER(p) && (ssn->client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)) ||
-            (PKT_IS_TOCLIENT(p) && (ssn->server.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)))
-        {
+                (PKT_IS_TOCLIENT(p) && (ssn->server.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY))) {
             p->flags |= PKT_STREAM_NOPCAPLOG;
         }
 
         if (ssn->flags & STREAMTCP_FLAG_BYPASS) {
             PacketBypassCallback(p);
-        } else if (g_detect_disabled &&
-                (ssn->client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) &&
-                (ssn->server.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) &&
-                StreamTcpBypassEnabled())
-        {
+        } else if (g_detect_disabled && (ssn->client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) &&
+                   (ssn->server.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) &&
+                   StreamTcpBypassEnabled()) {
             /* if stream is dead and we have no detect engine at all, bypass. */
             SCLogDebug("bypass as stream is dead and we have no rules");
             PacketBypassCallback(p);
@@ -5892,7 +5868,7 @@ static inline int StreamTcpValidateChecksum(Packet *p)
     if (p->l4.csum != 0) {
         ret = 0;
         if (p->livedev) {
-            (void) SC_ATOMIC_ADD(p->livedev->invalid_checksums, 1);
+            (void)SC_ATOMIC_ADD(p->livedev->invalid_checksums, 1);
         } else if (p->pcap_cnt) {
             PcapIncreaseInvalidChecksum();
         }
@@ -5946,33 +5922,45 @@ static bool TcpSessionReuseDoneEnoughSyn(const Packet *p, const Flow *f, const T
             return true;
         }
         if (SEQ_EQ(ssn->client.isn, TCP_GET_RAW_SEQ(tcph))) {
-            SCLogDebug("steam starter packet %"PRIu64", ssn %p. Packet SEQ == Stream ISN. Retransmission. Don't reuse.", p->pcap_cnt, ssn);
+            SCLogDebug("steam starter packet %" PRIu64
+                       ", ssn %p. Packet SEQ == Stream ISN. Retransmission. Don't reuse.",
+                    p->pcap_cnt, ssn);
             return false;
         }
         if (ssn->state >= TCP_LAST_ACK) {
-            SCLogDebug("steam starter packet %"PRIu64", ssn %p state >= TCP_LAST_ACK (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
+            SCLogDebug("steam starter packet %" PRIu64
+                       ", ssn %p state >= TCP_LAST_ACK (%u). Reuse.",
+                    p->pcap_cnt, ssn, ssn->state);
             return true;
         } else if (ssn->state == TCP_NONE) {
-            SCLogDebug("steam starter packet %"PRIu64", ssn %p state == TCP_NONE (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
+            SCLogDebug("steam starter packet %" PRIu64 ", ssn %p state == TCP_NONE (%u). Reuse.",
+                    p->pcap_cnt, ssn, ssn->state);
             return true;
         } else { // < TCP_LAST_ACK
-            SCLogDebug("steam starter packet %"PRIu64", ssn %p state < TCP_LAST_ACK (%u). Don't reuse.", p->pcap_cnt, ssn, ssn->state);
+            SCLogDebug("steam starter packet %" PRIu64
+                       ", ssn %p state < TCP_LAST_ACK (%u). Don't reuse.",
+                    p->pcap_cnt, ssn, ssn->state);
             return false;
         }
 
     } else {
         if (ssn == NULL) {
-            SCLogDebug("steam starter packet %"PRIu64", ssn %p null. Reuse.", p->pcap_cnt, ssn);
+            SCLogDebug("steam starter packet %" PRIu64 ", ssn %p null. Reuse.", p->pcap_cnt, ssn);
             return true;
         }
         if (ssn->state >= TCP_LAST_ACK) {
-            SCLogDebug("steam starter packet %"PRIu64", ssn %p state >= TCP_LAST_ACK (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
+            SCLogDebug("steam starter packet %" PRIu64
+                       ", ssn %p state >= TCP_LAST_ACK (%u). Reuse.",
+                    p->pcap_cnt, ssn, ssn->state);
             return true;
         } else if (ssn->state == TCP_NONE) {
-            SCLogDebug("steam starter packet %"PRIu64", ssn %p state == TCP_NONE (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
+            SCLogDebug("steam starter packet %" PRIu64 ", ssn %p state == TCP_NONE (%u). Reuse.",
+                    p->pcap_cnt, ssn, ssn->state);
             return true;
         } else { // < TCP_LAST_ACK
-            SCLogDebug("steam starter packet %"PRIu64", ssn %p state < TCP_LAST_ACK (%u). Don't reuse.", p->pcap_cnt, ssn, ssn->state);
+            SCLogDebug("steam starter packet %" PRIu64
+                       ", ssn %p state < TCP_LAST_ACK (%u). Don't reuse.",
+                    p->pcap_cnt, ssn, ssn->state);
             return false;
         }
     }
@@ -5990,37 +5978,50 @@ static bool TcpSessionReuseDoneEnoughSynAck(const Packet *p, const Flow *f, cons
     const TCPHdr *tcph = PacketGetTCP(p);
     if (FlowGetPacketDirection(f, p) == TOCLIENT) {
         if (ssn == NULL) {
-            SCLogDebug("steam starter packet %"PRIu64", ssn %p null. No reuse.", p->pcap_cnt, ssn);
+            SCLogDebug(
+                    "steam starter packet %" PRIu64 ", ssn %p null. No reuse.", p->pcap_cnt, ssn);
             return false;
         }
         if (SEQ_EQ(ssn->server.isn, TCP_GET_RAW_SEQ(tcph))) {
-            SCLogDebug("steam starter packet %"PRIu64", ssn %p. Packet SEQ == Stream ISN. Retransmission. Don't reuse.", p->pcap_cnt, ssn);
+            SCLogDebug("steam starter packet %" PRIu64
+                       ", ssn %p. Packet SEQ == Stream ISN. Retransmission. Don't reuse.",
+                    p->pcap_cnt, ssn);
             return false;
         }
         if (ssn->state >= TCP_LAST_ACK) {
-            SCLogDebug("steam starter packet %"PRIu64", ssn %p state >= TCP_LAST_ACK (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
+            SCLogDebug("steam starter packet %" PRIu64
+                       ", ssn %p state >= TCP_LAST_ACK (%u). Reuse.",
+                    p->pcap_cnt, ssn, ssn->state);
             return true;
         } else if (ssn->state == TCP_NONE) {
-            SCLogDebug("steam starter packet %"PRIu64", ssn %p state == TCP_NONE (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
+            SCLogDebug("steam starter packet %" PRIu64 ", ssn %p state == TCP_NONE (%u). Reuse.",
+                    p->pcap_cnt, ssn, ssn->state);
             return true;
         } else { // < TCP_LAST_ACK
-            SCLogDebug("steam starter packet %"PRIu64", ssn %p state < TCP_LAST_ACK (%u). Don't reuse.", p->pcap_cnt, ssn, ssn->state);
+            SCLogDebug("steam starter packet %" PRIu64
+                       ", ssn %p state < TCP_LAST_ACK (%u). Don't reuse.",
+                    p->pcap_cnt, ssn, ssn->state);
             return false;
         }
 
     } else {
         if (ssn == NULL) {
-            SCLogDebug("steam starter packet %"PRIu64", ssn %p null. Reuse.", p->pcap_cnt, ssn);
+            SCLogDebug("steam starter packet %" PRIu64 ", ssn %p null. Reuse.", p->pcap_cnt, ssn);
             return true;
         }
         if (ssn->state >= TCP_LAST_ACK) {
-            SCLogDebug("steam starter packet %"PRIu64", ssn %p state >= TCP_LAST_ACK (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
+            SCLogDebug("steam starter packet %" PRIu64
+                       ", ssn %p state >= TCP_LAST_ACK (%u). Reuse.",
+                    p->pcap_cnt, ssn, ssn->state);
             return true;
         } else if (ssn->state == TCP_NONE) {
-            SCLogDebug("steam starter packet %"PRIu64", ssn %p state == TCP_NONE (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
+            SCLogDebug("steam starter packet %" PRIu64 ", ssn %p state == TCP_NONE (%u). Reuse.",
+                    p->pcap_cnt, ssn, ssn->state);
             return true;
         } else { // < TCP_LAST_ACK
-            SCLogDebug("steam starter packet %"PRIu64", ssn %p state < TCP_LAST_ACK (%u). Don't reuse.", p->pcap_cnt, ssn, ssn->state);
+            SCLogDebug("steam starter packet %" PRIu64
+                       ", ssn %p state < TCP_LAST_ACK (%u). Don't reuse.",
+                    p->pcap_cnt, ssn, ssn->state);
             return false;
         }
     }
@@ -6062,7 +6063,7 @@ bool TcpSessionPacketSsnReuse(const Packet *p, const Flow *f, const void *tcp_ss
     return false;
 }
 
-TmEcode StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueueNoLock *pq)
+TmEcode StreamTcp(ThreadVars *tv, Packet *p, void *data, PacketQueueNoLock *pq)
 {
     DEBUG_VALIDATE_BUG_ON(p->flow == NULL);
     if (unlikely(p->flow == NULL)) {
@@ -6153,30 +6154,31 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
     stt->ra_ctx->counter_tcp_stream_depth = StatsRegisterCounter("tcp.stream_depth_reached", tv);
     stt->ra_ctx->counter_tcp_reass_gap = StatsRegisterCounter("tcp.reassembly_gap", tv);
     stt->ra_ctx->counter_tcp_reass_overlap = StatsRegisterCounter("tcp.overlap", tv);
-    stt->ra_ctx->counter_tcp_reass_overlap_diff_data = StatsRegisterCounter("tcp.overlap_diff_data", tv);
+    stt->ra_ctx->counter_tcp_reass_overlap_diff_data =
+            StatsRegisterCounter("tcp.overlap_diff_data", tv);
 
-    stt->ra_ctx->counter_tcp_reass_data_normal_fail = StatsRegisterCounter("tcp.insert_data_normal_fail", tv);
-    stt->ra_ctx->counter_tcp_reass_data_overlap_fail = StatsRegisterCounter("tcp.insert_data_overlap_fail", tv);
+    stt->ra_ctx->counter_tcp_reass_data_normal_fail =
+            StatsRegisterCounter("tcp.insert_data_normal_fail", tv);
+    stt->ra_ctx->counter_tcp_reass_data_overlap_fail =
+            StatsRegisterCounter("tcp.insert_data_overlap_fail", tv);
     stt->ra_ctx->counter_tcp_urgent_oob = StatsRegisterCounter("tcp.urgent_oob_data", tv);
 
-    SCLogDebug("StreamTcp thread specific ctx online at %p, reassembly ctx %p",
-                stt, stt->ra_ctx);
+    SCLogDebug("StreamTcp thread specific ctx online at %p, reassembly ctx %p", stt, stt->ra_ctx);
 
     SCMutexLock(&ssn_pool_mutex);
     if (ssn_pool == NULL) {
         ssn_pool = PoolThreadInit(1, /* thread */
-                0, /* unlimited */
-                stream_config.prealloc_sessions,
-                sizeof(TcpSession),
-                StreamTcpSessionPoolAlloc,
-                StreamTcpSessionPoolInit, NULL,
-                StreamTcpSessionPoolCleanup, NULL);
+                0,                   /* unlimited */
+                stream_config.prealloc_sessions, sizeof(TcpSession), StreamTcpSessionPoolAlloc,
+                StreamTcpSessionPoolInit, NULL, StreamTcpSessionPoolCleanup, NULL);
         stt->ssn_pool_id = 0;
-        SCLogDebug("pool size %d, thread ssn_pool_id %d", PoolThreadSize(ssn_pool), stt->ssn_pool_id);
+        SCLogDebug(
+                "pool size %d, thread ssn_pool_id %d", PoolThreadSize(ssn_pool), stt->ssn_pool_id);
     } else {
         /* grow ssn_pool until we have a element for our thread id */
         stt->ssn_pool_id = PoolThreadExpand(ssn_pool);
-        SCLogDebug("pool size %d, thread ssn_pool_id %d", PoolThreadSize(ssn_pool), stt->ssn_pool_id);
+        SCLogDebug(
+                "pool size %d, thread ssn_pool_id %d", PoolThreadSize(ssn_pool), stt->ssn_pool_id);
     }
     SCMutexUnlock(&ssn_pool_mutex);
     if (stt->ssn_pool_id < 0 || ssn_pool == NULL) {
@@ -6315,7 +6317,7 @@ static int StreamTcpValidateRst(TcpSession *ssn, Packet *p)
 
     switch (os_policy) {
         case OS_POLICY_HPUX11:
-            if(PKT_IS_TOSERVER(p)){
+            if (PKT_IS_TOSERVER(p)) {
                 if (SEQ_GEQ(seq, ssn->client.next_seq)) {
                     SCLogDebug("reset is Valid! Packet SEQ: %" PRIu32 "", seq);
                     return 1;
@@ -6340,7 +6342,7 @@ static int StreamTcpValidateRst(TcpSession *ssn, Packet *p)
         case OS_POLICY_OLD_LINUX:
         case OS_POLICY_LINUX:
         case OS_POLICY_SOLARIS:
-            if(PKT_IS_TOSERVER(p)){
+            if (PKT_IS_TOSERVER(p)) {
                 if (SEQ_GEQ((seq + p->payload_len),
                             ssn->client.last_ack)) { /*window base is needed !!*/
                     if (SEQ_LT(seq, (ssn->client.next_seq + ssn->client.window))) {
@@ -6378,7 +6380,7 @@ static int StreamTcpValidateRst(TcpSession *ssn, Packet *p)
         case OS_POLICY_WINDOWS:
         case OS_POLICY_WINDOWS2K3:
         case OS_POLICY_VISTA:
-            if(PKT_IS_TOSERVER(p)) {
+            if (PKT_IS_TOSERVER(p)) {
                 if (SEQ_EQ(seq, ssn->client.next_seq)) {
                     SCLogDebug("reset is valid! Packet SEQ: %" PRIu32 "", seq);
                     return 1;
@@ -6419,7 +6421,7 @@ static int StreamTcpValidateRst(TcpSession *ssn, Packet *p)
  *  \retval 1 if the timestamp is valid
  *  \retval 0 if the timestamp is invalid
  */
-static int StreamTcpValidateTimestamp (TcpSession *ssn, Packet *p)
+static int StreamTcpValidateTimestamp(TcpSession *ssn, Packet *p)
 {
     SCEnter();
 
@@ -6497,28 +6499,27 @@ static int StreamTcpValidateTimestamp (TcpSession *ssn, Packet *p)
         if (check_ts) {
             int32_t result = 0;
 
-            SCLogDebug("ts %"PRIu32", last_ts %"PRIu32"", ts, last_ts);
+            SCLogDebug("ts %" PRIu32 ", last_ts %" PRIu32 "", ts, last_ts);
 
             if (receiver_stream->os_policy == OS_POLICY_LINUX || stream_config.liberal_timestamps) {
                 /* Linux accepts TS which are off by one.*/
-                result = (int32_t) ((ts - last_ts) + 1);
+                result = (int32_t)((ts - last_ts) + 1);
             } else {
-                result = (int32_t) (ts - last_ts);
+                result = (int32_t)(ts - last_ts);
             }
 
             SCLogDebug("result %" PRIi32 ", p->ts(secs) %" PRIuMAX "", result,
                     (uintmax_t)SCTIME_SECS(p->ts));
 
-            if (last_pkt_ts == 0 &&
-                    (ssn->flags & STREAMTCP_FLAG_MIDSTREAM))
-            {
+            if (last_pkt_ts == 0 && (ssn->flags & STREAMTCP_FLAG_MIDSTREAM)) {
                 last_pkt_ts = (uint32_t)SCTIME_SECS(p->ts);
             }
 
             if (result < 0) {
                 SCLogDebug("timestamp is not valid last_ts "
                            "%" PRIu32 " p->tcpvars->ts %" PRIu32 " result "
-                           "%" PRId32 "", last_ts, ts, result);
+                           "%" PRId32 "",
+                        last_ts, ts, result);
                 /* candidate for rejection */
                 ret = 0;
             } else if ((sender_stream->last_ts != 0) &&
@@ -6561,7 +6562,7 @@ invalid:
  *  \retval 1 if the timestamp is valid
  *  \retval 0 if the timestamp is invalid
  */
-static int StreamTcpHandleTimestamp (TcpSession *ssn, Packet *p)
+static int StreamTcpHandleTimestamp(TcpSession *ssn, Packet *p)
 {
     SCEnter();
 
@@ -6641,28 +6642,27 @@ static int StreamTcpHandleTimestamp (TcpSession *ssn, Packet *p)
         if (check_ts) {
             int32_t result = 0;
 
-            SCLogDebug("ts %"PRIu32", last_ts %"PRIu32"", ts, sender_stream->last_ts);
+            SCLogDebug("ts %" PRIu32 ", last_ts %" PRIu32 "", ts, sender_stream->last_ts);
 
             if (receiver_stream->os_policy == OS_POLICY_LINUX || stream_config.liberal_timestamps) {
                 /* Linux accepts TS which are off by one.*/
-                result = (int32_t) ((ts - sender_stream->last_ts) + 1);
+                result = (int32_t)((ts - sender_stream->last_ts) + 1);
             } else {
-                result = (int32_t) (ts - sender_stream->last_ts);
+                result = (int32_t)(ts - sender_stream->last_ts);
             }
 
             SCLogDebug("result %" PRIi32 ", p->ts(sec) %" PRIuMAX "", result,
                     (uintmax_t)SCTIME_SECS(p->ts));
 
-            if (sender_stream->last_pkt_ts == 0 &&
-                    (ssn->flags & STREAMTCP_FLAG_MIDSTREAM))
-            {
+            if (sender_stream->last_pkt_ts == 0 && (ssn->flags & STREAMTCP_FLAG_MIDSTREAM)) {
                 sender_stream->last_pkt_ts = (uint32_t)SCTIME_SECS(p->ts);
             }
 
             if (result < 0) {
                 SCLogDebug("timestamp is not valid sender_stream->last_ts "
                            "%" PRIu32 " p->tcpvars->ts %" PRIu32 " result "
-                           "%" PRId32 "", sender_stream->last_ts, ts, result);
+                           "%" PRId32 "",
+                        sender_stream->last_ts, ts, result);
                 /* candidate for rejection */
                 ret = 0;
             } else if ((sender_stream->last_ts != 0) &&
@@ -6736,8 +6736,7 @@ static inline int StreamTcpValidateAck(TcpSession *ssn, TcpStream *stream, Packe
         SCReturnInt(0);
 
     /* fast track */
-    if (SEQ_GT(ack, stream->last_ack) && SEQ_LEQ(ack, stream->next_win))
-    {
+    if (SEQ_GT(ack, stream->last_ack) && SEQ_LEQ(ack, stream->next_win)) {
         SCLogDebug("ssn %p: ACK %u in bounds > %u <= %u", ssn, ack, stream->last_ack,
                 stream->next_win);
         SCReturnInt(0);
@@ -6757,9 +6756,9 @@ static inline int StreamTcpValidateAck(TcpSession *ssn, TcpStream *stream, Packe
          * It doesn't work when the window is 0, need to think of a better way. */
 
         if (stream->window != 0 && SEQ_LT(ack, (stream->last_ack - stream->window))) {
-            SCLogDebug("ACK %"PRIu32" is before last_ack %"PRIu32" - window "
-                    "%"PRIu32" = %"PRIu32, ack, stream->last_ack,
-                    stream->window, stream->last_ack - stream->window);
+            SCLogDebug("ACK %" PRIu32 " is before last_ack %" PRIu32 " - window "
+                       "%" PRIu32 " = %" PRIu32,
+                    ack, stream->last_ack, stream->window, stream->last_ack - stream->window);
             goto invalid;
         }
 
@@ -6772,7 +6771,7 @@ static inline int StreamTcpValidateAck(TcpSession *ssn, TcpStream *stream, Packe
     }
 
     if (ssn->state > TCP_SYN_SENT && SEQ_GT(ack, stream->next_win)) {
-        SCLogDebug("ACK %"PRIu32" is after next_win %"PRIu32, ack, stream->next_win);
+        SCLogDebug("ACK %" PRIu32 " is after next_win %" PRIu32, ack, stream->next_win);
         goto invalid;
         /* a toclient RST as a response to SYN, next_win is 0, ack will be isn+1, just like
          * the syn ack */
@@ -6781,8 +6780,9 @@ static inline int StreamTcpValidateAck(TcpSession *ssn, TcpStream *stream, Packe
         SCReturnInt(0);
     }
 
-    SCLogDebug("default path leading to invalid: ACK %"PRIu32", last_ack %"PRIu32
-        " next_win %"PRIu32, ack, stream->last_ack, stream->next_win);
+    SCLogDebug("default path leading to invalid: ACK %" PRIu32 ", last_ack %" PRIu32
+               " next_win %" PRIu32,
+            ack, stream->last_ack, stream->next_win);
 invalid:
     StreamTcpSetEvent(p, STREAM_PKT_INVALID_ACK);
     SCReturnInt(-1);
@@ -6793,8 +6793,7 @@ invalid:
  * \param ssn TCP Session
  * \param direction direction to set the flag in: 0 toserver, 1 toclient
  */
-void StreamTcpUpdateAppLayerProgress(TcpSession *ssn, char direction,
-        const uint32_t progress)
+void StreamTcpUpdateAppLayerProgress(TcpSession *ssn, char direction, const uint32_t progress)
 {
     if (direction) {
         ssn->server.app_progress_rel += progress;
@@ -6827,8 +6826,8 @@ void StreamTcpSetSessionNoReassemblyFlag(TcpSession *ssn, char direction)
  */
 void StreamTcpSetDisableRawReassemblyFlag(TcpSession *ssn, char direction)
 {
-    direction ? (ssn->server.flags |= STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED) :
-                (ssn->client.flags |= STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED);
+    direction ? (ssn->server.flags |= STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED)
+              : (ssn->client.flags |= STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED);
 }
 
 /** \brief enable bypass
@@ -6848,9 +6847,8 @@ void StreamTcpSetSessionBypassFlag(TcpSession *ssn)
  *  \param pq packet queue to store the new pseudo packet in
  *  \param dir 0 ts 1 tc
  */
-static void StreamTcpPseudoPacketCreateDetectLogFlush(ThreadVars *tv,
-        StreamTcpThread *stt, Packet *parent,
-        TcpSession *ssn, PacketQueueNoLock *pq, int dir)
+static void StreamTcpPseudoPacketCreateDetectLogFlush(ThreadVars *tv, StreamTcpThread *stt,
+        Packet *parent, TcpSession *ssn, PacketQueueNoLock *pq, int dir)
 {
     SCEnter();
     Flow *f = parent->flow;
@@ -6915,7 +6913,7 @@ static void StreamTcpPseudoPacketCreateDetectLogFlush(ThreadVars *tv,
         /* Check if we have enough room in direct data. We need ipv4 hdr + tcp hdr.
          * Force an allocation if it is not the case.
          */
-        if (GET_PKT_DIRECT_MAX_SIZE(np) <  40) {
+        if (GET_PKT_DIRECT_MAX_SIZE(np) < 40) {
             if (PacketCallocExtPkt(np, 40) == -1) {
                 goto error;
             }
@@ -6960,7 +6958,7 @@ static void StreamTcpPseudoPacketCreateDetectLogFlush(ThreadVars *tv,
         /* Check if we have enough room in direct data. We need ipv6 hdr + tcp hdr.
          * Force an allocation if it is not the case.
          */
-        if (GET_PKT_DIRECT_MAX_SIZE(np) <  60) {
+        if (GET_PKT_DIRECT_MAX_SIZE(np) < 60) {
             if (PacketCallocExtPkt(np, 60) == -1) {
                 goto error;
             }
@@ -7041,16 +7039,16 @@ error:
  *         Flag TCP engine that data needs to be inspected regardless
  *         of how far we are wrt inspect limits.
  */
-void StreamTcpDetectLogFlush(ThreadVars *tv, StreamTcpThread *stt, Flow *f, Packet *p,
-        PacketQueueNoLock *pq)
+void StreamTcpDetectLogFlush(
+        ThreadVars *tv, StreamTcpThread *stt, Flow *f, Packet *p, PacketQueueNoLock *pq)
 {
     TcpSession *ssn = f->protoctx;
     ssn->client.flags |= STREAMTCP_STREAM_FLAG_TRIGGER_RAW;
     ssn->server.flags |= STREAMTCP_STREAM_FLAG_TRIGGER_RAW;
     bool ts = PKT_IS_TOSERVER(p) ? true : false;
     ts ^= StreamTcpInlineMode();
-    StreamTcpPseudoPacketCreateDetectLogFlush(tv, stt, p, ssn, pq, ts^0);
-    StreamTcpPseudoPacketCreateDetectLogFlush(tv, stt, p, ssn, pq, ts^1);
+    StreamTcpPseudoPacketCreateDetectLogFlush(tv, stt, p, ssn, pq, ts ^ 0);
+    StreamTcpPseudoPacketCreateDetectLogFlush(tv, stt, p, ssn, pq, ts ^ 1);
 }
 
 /**
@@ -7065,7 +7063,8 @@ void StreamTcpDetectLogFlush(ThreadVars *tv, StreamTcpThread *stt, Flow *f, Pack
  * \return -1 in case of error, the number of segment in case of success
  *
  */
-int StreamTcpSegmentForEach(const Packet *p, uint8_t flag, StreamSegmentCallback CallbackFunc, void *data)
+int StreamTcpSegmentForEach(
+        const Packet *p, uint8_t flag, StreamSegmentCallback CallbackFunc, void *data)
 {
     TcpStream *stream = NULL;
     int cnt = 0;
@@ -7086,7 +7085,8 @@ int StreamTcpSegmentForEach(const Packet *p, uint8_t flag, StreamSegmentCallback
 
     /* for IDS, return ack'd segments. For IPS all. */
     TcpSegment *seg;
-    RB_FOREACH(seg, TCPSEG, &stream->seg_tree) {
+    RB_FOREACH(seg, TCPSEG, &stream->seg_tree)
+    {
         if (!(stream_config.flags & STREAMTCP_INIT_FLAG_INLINE)) {
             if (PKT_IS_PSEUDOPKT(p)) {
                 /* use un-ACK'd data as well */
@@ -7222,7 +7222,6 @@ bool StreamTcpInlineMode(void)
 {
     return (stream_config.flags & STREAMTCP_INIT_FLAG_INLINE);
 }
-
 
 void TcpSessionSetReassemblyDepth(TcpSession *ssn, uint32_t size)
 {

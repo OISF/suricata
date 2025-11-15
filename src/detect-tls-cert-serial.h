@@ -25,6 +25,6 @@
 #define SURICATA_DETECT_TLS_CERT_SERIAL_H
 
 /* prototypes */
-void DetectTlsSerialRegister (void);
+void DetectTlsSerialRegister(void);
 
 #endif /* SURICATA_DETECT_TLS_CERT_SERIAL_H */

@@ -97,8 +97,7 @@ int SCOutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto, Tx
         op->tc_log_progress = 0;
     } else if (tc_log_progress < 0) {
         op->tc_log_progress =
-            AppLayerParserGetStateProgressCompletionStatus(alproto,
-                                                           STREAM_TOCLIENT);
+                AppLayerParserGetStateProgressCompletionStatus(alproto, STREAM_TOCLIENT);
     } else {
         op->tc_log_progress = tc_log_progress;
     }
@@ -107,8 +106,7 @@ int SCOutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto, Tx
         op->ts_log_progress = 0;
     } else if (ts_log_progress < 0) {
         op->ts_log_progress =
-            AppLayerParserGetStateProgressCompletionStatus(alproto,
-                                                           STREAM_TOSERVER);
+                AppLayerParserGetStateProgressCompletionStatus(alproto, STREAM_TOSERVER);
     } else {
         op->ts_log_progress = ts_log_progress;
     }
@@ -254,7 +252,7 @@ static void OutputTxLogList0(ThreadVars *tv, OutputTxLoggerThreadData *op_thread
         SCLogDebug("logger %p", logger);
 
         /* always invoke "wild card" tx loggers */
-        SCLogDebug("Logging tx_id %"PRIu64" to logger %d", tx_id, logger->logger_id);
+        SCLogDebug("Logging tx_id %" PRIu64 " to logger %d", tx_id, logger->logger_id);
         PACKET_PROFILING_LOGGER_START(p, logger->logger_id);
         logger->LogFunc(tv, store->thread_data, p, f, f->alstate, tx, tx_id);
         PACKET_PROFILING_LOGGER_END(p, logger->logger_id);
@@ -351,7 +349,7 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
 
     OutputTxLoggerThreadData *op_thread_data = (OutputTxLoggerThreadData *)thread_data;
 
-    Flow * const f = p->flow;
+    Flow *const f = p->flow;
     const uint8_t ipproto = f->proto;
     const AppProto alproto = f->alproto;
     SCLogDebug("pcap_cnt %u tx logging %u/%s", (uint32_t)p->pcap_cnt, alproto,
@@ -413,7 +411,7 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
         AppLayerGetTxIterTuple ires = IterFunc(ipproto, alproto, alstate, tx_id, total_txs, &state);
         if (ires.tx_ptr == NULL)
             break;
-        void * const tx = ires.tx_ptr;
+        void *const tx = ires.tx_ptr;
         tx_id = ires.tx_id;
         SCLogDebug("STARTING tx_id %" PRIu64 ", tx %p", tx_id, tx);
 
@@ -477,7 +475,7 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
         SCLogDebug("tx %p/%" PRIu64 " txd %p: log_flags %x logger_expectation %x", tx, tx_id, txd,
                 txd->config.log_flags, logger_expectation);
         if (txd->config.log_flags & BIT_U8(CONFIG_TYPE_TX)) {
-            SCLogDebug("SKIP tx %p/%"PRIu64, tx, tx_id);
+            SCLogDebug("SKIP tx %p/%" PRIu64, tx, tx_id);
             // so that AppLayerParserTransactionsCleanup can clean this tx
             txd->logged.flags |= logger_expectation;
             goto next_tx;
@@ -519,7 +517,7 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
         } else {
             gap = true;
         }
-next_tx:
+    next_tx:
         if (!ires.has_next)
             break;
         tx_id++;
@@ -528,7 +526,7 @@ next_tx:
     /* Update the last ID that has been logged with all
      * transactions before it. */
     if (logged) {
-        SCLogDebug("updating log tx_id %"PRIu64, max_id);
+        SCLogDebug("updating log tx_id %" PRIu64, max_id);
         AppLayerParserSetTransactionLogId(f->alparser, max_id + 1);
     }
 
@@ -652,8 +650,7 @@ static uint32_t OutputTxLoggerGetActiveCount(void)
     return cnt;
 }
 
-
-void OutputTxLoggerRegister (void)
+void OutputTxLoggerRegister(void)
 {
     BUG_ON(list);
     list = SCCalloc(g_alproto_max, sizeof(OutputTxLogger *));

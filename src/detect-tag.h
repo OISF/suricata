@@ -40,11 +40,7 @@
 #define DETECT_TAG_MAX_PKTS 256
 
 /* Type of tag: session or host */
-enum {
-    DETECT_TAG_TYPE_SESSION,
-    DETECT_TAG_TYPE_HOST,
-    DETECT_TAG_TYPE_MAX
-};
+enum { DETECT_TAG_TYPE_SESSION, DETECT_TAG_TYPE_HOST, DETECT_TAG_TYPE_MAX };
 
 enum {
     DETECT_TAG_DIR_SRC,
@@ -59,38 +55,38 @@ enum {
 
 /** This will be the rule options/parameters */
 typedef struct DetectTagData_ {
-    uint8_t type;          /**< tag type */
-    uint8_t direction;     /**< host direction */
-    uint32_t count;        /**< count */
-    uint8_t metric;        /**< metric */
+    uint8_t type;      /**< tag type */
+    uint8_t direction; /**< host direction */
+    uint32_t count;    /**< count */
+    uint8_t metric;    /**< metric */
 } DetectTagData;
 
 /** This is the installed data at the session/global or host table */
 typedef struct DetectTagDataEntry_ {
-    uint8_t flags:3;
-    uint8_t metric:5;
+    uint8_t flags : 3;
+    uint8_t metric : 5;
     uint8_t pad0;
-    uint16_t cnt_match;                 /**< number of times this tag was reset/updated */
+    uint16_t cnt_match; /**< number of times this tag was reset/updated */
 
-    uint32_t count;                     /**< count setting from rule */
-    uint32_t sid;                       /**< sid originating the tag */
-    uint32_t gid;                       /**< gid originating the tag */
+    uint32_t count; /**< count setting from rule */
+    uint32_t sid;   /**< sid originating the tag */
+    uint32_t gid;   /**< gid originating the tag */
     union {
-        uint32_t packets;               /**< number of packets (metric packets) */
-        uint32_t bytes;                 /**< number of bytes (metric bytes) */
+        uint32_t packets; /**< number of packets (metric packets) */
+        uint32_t bytes;   /**< number of bytes (metric bytes) */
     };
-    SCTime_t first_ts;                  /**< First time seen (for metric = seconds) */
-    SCTime_t last_ts;                   /**< Last time seen (to prune old sessions) */
-    struct DetectTagDataEntry_ *next;   /**< Pointer to the next tag of this
-                                         *   session/src_host/dst_host (if any from other rule) */
+    SCTime_t first_ts;                /**< First time seen (for metric = seconds) */
+    SCTime_t last_ts;                 /**< Last time seen (to prune old sessions) */
+    struct DetectTagDataEntry_ *next; /**< Pointer to the next tag of this
+                                       *   session/src_host/dst_host (if any from other rule) */
 } DetectTagDataEntry;
 
-#define TAG_ENTRY_FLAG_DIR_SRC          0x01
-#define TAG_ENTRY_FLAG_DIR_DST          0x02
-#define TAG_ENTRY_FLAG_SKIPPED_FIRST    0x04
+#define TAG_ENTRY_FLAG_DIR_SRC       0x01
+#define TAG_ENTRY_FLAG_DIR_DST       0x02
+#define TAG_ENTRY_FLAG_SKIPPED_FIRST 0x04
 
 /* prototypes */
-struct DetectEngineCtx_ ;
+struct DetectEngineCtx_;
 void DetectTagRegister(void);
 void DetectTagDataFree(struct DetectEngineCtx_ *, void *ptr);
 void DetectTagDataListFree(void *ptr);

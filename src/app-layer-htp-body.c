@@ -161,7 +161,7 @@ void HtpBodyPrune(HtpState *state, HtpBody *body, int direction)
         left_edge -= window;
 
     if (left_edge) {
-        SCLogDebug("sliding body to offset %"PRIu64, left_edge);
+        SCLogDebug("sliding body to offset %" PRIu64, left_edge);
         StreamingBufferSlideToOffset(body->sb, &htp_sbcfg, left_edge);
     }
 

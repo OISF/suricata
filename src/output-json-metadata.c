@@ -92,7 +92,7 @@ static bool JsonMetadataLogCondition(ThreadVars *tv, void *data, const Packet *p
     return p->pktvar != NULL;
 }
 
-void JsonMetadataLogRegister (void)
+void JsonMetadataLogRegister(void)
 {
     OutputPacketLoggerFunctions output_logger_functions = {
         .LogFunc = JsonMetadataLogger,

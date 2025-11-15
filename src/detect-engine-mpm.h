@@ -26,7 +26,6 @@
 
 #include "detect.h"
 
-
 void DetectMpmInitializeFrameMpms(DetectEngineCtx *de_ctx);
 int DetectMpmPrepareFrameMpms(DetectEngineCtx *de_ctx);
 void DetectMpmInitializePktMpms(DetectEngineCtx *de_ctx);
@@ -56,7 +55,8 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s);
 int MpmStoreInit(DetectEngineCtx *);
 void MpmStoreFree(DetectEngineCtx *);
 void MpmStoreReportStats(const DetectEngineCtx *de_ctx);
-MpmStore *MpmStorePrepareBuffer(DetectEngineCtx *de_ctx, SigGroupHead *sgh, enum MpmBuiltinBuffers buf);
+MpmStore *MpmStorePrepareBuffer(
+        DetectEngineCtx *de_ctx, SigGroupHead *sgh, enum MpmBuiltinBuffers buf);
 
 /**
  * \brief Figure out the FP and their respective content ids for all the
@@ -93,15 +93,12 @@ void DetectAppLayerMpmRegisterSingle(const char *name, int direction, int priori
 void DetectAppLayerMpmMultiRegister(const char *name, int direction, int priority,
         PrefilterRegisterFunc PrefilterRegister, InspectionMultiBufferGetDataPtr GetData,
         AppProto alproto, int tx_min_progress);
-void DetectAppLayerMpmRegisterByParentId(
-        DetectEngineCtx *de_ctx,
-        const int id, const int parent_id,
+void DetectAppLayerMpmRegisterByParentId(DetectEngineCtx *de_ctx, const int id, const int parent_id,
         DetectEngineTransforms *transforms);
 
 void DetectPktMpmRegister(const char *name, int priority, PrefilterRegisterFunc PrefilterRegister,
         InspectionBufferGetPktDataPtr GetData);
-void DetectPktMpmRegisterByParentId(DetectEngineCtx *de_ctx,
-        const int id, const int parent_id,
+void DetectPktMpmRegisterByParentId(DetectEngineCtx *de_ctx, const int id, const int parent_id,
         DetectEngineTransforms *transforms);
 
 void DetectFrameMpmRegister(const char *name, int direction, int priority,
@@ -115,7 +112,6 @@ void DetectEngineFrameMpmRegister(DetectEngineCtx *de_ctx, const char *name, int
         int (*PrefilterRegister)(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
                 const DetectBufferMpmRegistry *mpm_reg, int list_id),
         AppProto alproto, uint8_t type);
-
 
 int PrefilterGenericMpmFrameRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
         const DetectBufferMpmRegistry *mpm_reg, int list_id);

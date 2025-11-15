@@ -42,9 +42,9 @@ typedef struct stat SCStat;
 #endif
 
 #ifndef HAVE_NON_POSIX_MKDIR
-    #define SCMkDir(a, b) mkdir(a, b)
+#define SCMkDir(a, b) mkdir(a, b)
 #else
-    #define SCMkDir(a, b) mkdir(a)
+#define SCMkDir(a, b) mkdir(a)
 #endif
 
 int PathIsAbsolute(const char *);

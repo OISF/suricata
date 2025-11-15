@@ -61,10 +61,8 @@ int RunModeErfFileSingle(void)
 
     /* Basically the same setup as PCAP files. */
 
-    ThreadVars *tv = TmThreadCreatePacketHandler(thread_name_single,
-        "packetpool", "packetpool",
-        "packetpool", "packetpool",
-        "pktacqloop");
+    ThreadVars *tv = TmThreadCreatePacketHandler(thread_name_single, "packetpool", "packetpool",
+            "packetpool", "packetpool", "pktacqloop");
     if (tv == NULL) {
         printf("ERROR: TmThreadsCreate failed\n");
         exit(EXIT_FAILURE);
@@ -139,11 +137,8 @@ int RunModeErfFileAutoFp(void)
     }
 
     /* create the threads */
-    ThreadVars *tv =
-        TmThreadCreatePacketHandler(thread_name_autofp,
-                                    "packetpool", "packetpool",
-                                    queues, "flow",
-                                    "pktacqloop");
+    ThreadVars *tv = TmThreadCreatePacketHandler(
+            thread_name_autofp, "packetpool", "packetpool", queues, "flow", "pktacqloop");
     SCFree(queues);
 
     if (tv == NULL) {
@@ -183,11 +178,8 @@ int RunModeErfFileAutoFp(void)
 
         SCLogDebug("Assigning %s affinity to cpu %u", tname, cpu);
 
-        ThreadVars *tv_detect_ncpu =
-            TmThreadCreatePacketHandler(tname,
-                                        qname, "flow",
-                                        "packetpool", "packetpool",
-                                        "varslot");
+        ThreadVars *tv_detect_ncpu = TmThreadCreatePacketHandler(
+                tname, qname, "flow", "packetpool", "packetpool", "varslot");
         if (tv_detect_ncpu == NULL) {
             printf("ERROR: TmThreadsCreate failed\n");
             exit(EXIT_FAILURE);

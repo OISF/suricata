@@ -35,7 +35,7 @@ uint8_t SCSRepCatGetByShortname(const char *shortname);
 #include "util-radix6-tree.h"
 
 #define SREP_MAX_CATS 60
-#define SREP_MAX_VAL 127
+#define SREP_MAX_VAL  127
 
 typedef struct SRepCIDRTree_ {
     SCRadix4Tree srep_ipv4_tree[SREP_MAX_CATS];

@@ -28,6 +28,6 @@
  * Registration function for detection_filter: keyword
  */
 
-void DetectDetectionFilterRegister (void);
+void DetectDetectionFilterRegister(void);
 
 #endif /*SURICATA_DETECT_DETECTION_FILTER_H */

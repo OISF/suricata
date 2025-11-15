@@ -25,6 +25,6 @@
 #define SURICATA_DETECT_NOCASE_H
 
 /* prototypes */
-void DetectNocaseRegister (void);
+void DetectNocaseRegister(void);
 
 #endif /* SURICATA_DETECT_NOCASE_H */

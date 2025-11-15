@@ -34,26 +34,20 @@ typedef struct SigMatch_ SigMatch;
 typedef struct SigMatchData_ SigMatchData;
 
 /** Flags to indicate if the Signature parsing must be done
-*   switching the source and dest (for ip addresses and ports)
-*   or otherwise as normal */
-enum {
-    SIG_DIREC_NORMAL,
-    SIG_DIREC_SWITCHED
-};
+ *   switching the source and dest (for ip addresses and ports)
+ *   or otherwise as normal */
+enum { SIG_DIREC_NORMAL, SIG_DIREC_SWITCHED };
 
 /** Flags to indicate if are referencing the source of the Signature
-*   or the destination (for ip addresses and ports)*/
-enum {
-    SIG_DIREC_SRC,
-    SIG_DIREC_DST
-};
+ *   or the destination (for ip addresses and ports)*/
+enum { SIG_DIREC_SRC, SIG_DIREC_DST };
 
 /* prototypes */
 int SignatureInitDataBufferCheckExpand(Signature *s);
 Signature *SigAlloc(void);
 void SigFree(DetectEngineCtx *de_ctx, Signature *s);
 Signature *SigInit(DetectEngineCtx *, const char *sigstr);
-SigMatchData* SigMatchList2DataArray(SigMatch *head);
+SigMatchData *SigMatchList2DataArray(SigMatch *head);
 void SigParseRegisterTests(void);
 Signature *DetectEngineAppendSig(DetectEngineCtx *, const char *);
 Signature *DetectFirewallRuleAppendNew(DetectEngineCtx *, const char *);
@@ -65,12 +59,10 @@ int SigMatchListSMBelongsTo(const Signature *, const SigMatch *);
 int DetectParseDupSigHashInit(DetectEngineCtx *);
 void DetectParseDupSigHashFree(DetectEngineCtx *);
 
-int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx,
-        Signature *s, const char *arg, int sm_type, int sm_list,
-        AppProto alproto);
+int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg,
+        int sm_type, int sm_list, AppProto alproto);
 
-bool SigMatchSilentErrorEnabled(const DetectEngineCtx *de_ctx,
-        const enum DetectKeywordId id);
+bool SigMatchSilentErrorEnabled(const DetectEngineCtx *de_ctx, const enum DetectKeywordId id);
 bool SigMatchStrictEnabled(const enum DetectKeywordId id);
 
 const char *DetectListToHumanString(int list);

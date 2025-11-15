@@ -61,7 +61,8 @@ static int DetectReferenceSetup(DetectEngineCtx *, Signature *s, const char *str
 void DetectReferenceRegister(void)
 {
     sigmatch_table[DETECT_REFERENCE].name = "reference";
-    sigmatch_table[DETECT_REFERENCE].desc = "direct to places where information about the rule can be found";
+    sigmatch_table[DETECT_REFERENCE].desc =
+            "direct to places where information about the rule can be found";
     sigmatch_table[DETECT_REFERENCE].url = "/rules/meta.html#reference";
     sigmatch_table[DETECT_REFERENCE].Setup = DetectReferenceSetup;
 #ifdef UNITTESTS
@@ -215,8 +216,7 @@ error:
  * \retval  0 On Success.
  * \retval -1 On Failure.
  */
-static int DetectReferenceSetup(DetectEngineCtx *de_ctx, Signature *s,
-                                const char *rawstr)
+static int DetectReferenceSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     SCEnter();
 
@@ -228,7 +228,7 @@ static int DetectReferenceSetup(DetectEngineCtx *de_ctx, Signature *s,
 
     SCLogDebug("ref %s %s", ref->key, ref->reference);
 
-    if (s->references == NULL)  {
+    if (s->references == NULL) {
         s->references = ref;
     } else {
         sig_refs = s->references;
@@ -263,14 +263,15 @@ static int DetectReferenceParseTest01(void)
     FAIL_IF_NULL(fd);
     SCRConfLoadReferenceConfigFile(de_ctx, fd);
 
-    Signature *s = DetectEngineAppendSig(de_ctx, "alert icmp any any -> any any "
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert icmp any any -> any any "
             "(msg:\"One reference\"; reference:one,001-2010; sid:2;)");
     FAIL_IF_NULL(s);
     FAIL_IF_NULL(s->references);
 
     DetectReference *ref = s->references;
-    FAIL_IF (strcmp(ref->key, "http://www.one.com") != 0);
-    FAIL_IF (strcmp(ref->reference, "001-2010") != 0);
+    FAIL_IF(strcmp(ref->key, "http://www.one.com") != 0);
+    FAIL_IF(strcmp(ref->reference, "001-2010") != 0);
 
     DetectEngineCtxFree(de_ctx);
     PASS;
@@ -294,20 +295,20 @@ static int DetectReferenceParseTest02(void)
     SCRConfLoadReferenceConfigFile(de_ctx, fd);
 
     Signature *s = DetectEngineAppendSig(de_ctx, "alert icmp any any -> any any "
-                                   "(msg:\"Two references\"; "
-                                   "reference:one,openinfosecdoundation.txt; "
-                                   "reference:two,001-2010; sid:2;)");
+                                                 "(msg:\"Two references\"; "
+                                                 "reference:one,openinfosecdoundation.txt; "
+                                                 "reference:two,001-2010; sid:2;)");
     FAIL_IF_NULL(s);
     FAIL_IF_NULL(s->references);
     FAIL_IF_NULL(s->references->next);
 
     DetectReference *ref = s->references;
-    FAIL_IF (strcmp(ref->key, "http://www.one.com") != 0);
-    FAIL_IF (strcmp(ref->reference, "openinfosecdoundation.txt") != 0);
+    FAIL_IF(strcmp(ref->key, "http://www.one.com") != 0);
+    FAIL_IF(strcmp(ref->reference, "openinfosecdoundation.txt") != 0);
 
     ref = s->references->next;
-    FAIL_IF (strcmp(ref->key, "http://www.two.com") != 0);
-    FAIL_IF (strcmp(ref->reference, "001-2010") != 0);
+    FAIL_IF(strcmp(ref->key, "http://www.two.com") != 0);
+    FAIL_IF(strcmp(ref->reference, "001-2010") != 0);
 
     DetectEngineCtxFree(de_ctx);
     PASS;
@@ -331,8 +332,8 @@ static int DetectReferenceParseTest03(void)
     SCRConfLoadReferenceConfigFile(de_ctx, fd);
 
     Signature *s = DetectEngineAppendSig(de_ctx, "alert icmp any any -> any any "
-                                   "(msg:\"invalid ref\"; "
-                                   "reference:unknownkey,001-2010; sid:2;)");
+                                                 "(msg:\"invalid ref\"; "
+                                                 "reference:unknownkey,001-2010; sid:2;)");
     FAIL_IF_NULL(s);
     DetectEngineCtxFree(de_ctx);
     PASS;

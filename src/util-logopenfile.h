@@ -25,7 +25,7 @@
 #define SURICATA_UTIL_LOGOPENFILE_H
 
 #include "threads.h"
-#include "conf.h"            /* ConfNode   */
+#include "conf.h" /* ConfNode   */
 #include "util-buffer.h"
 #include "util-hash.h"
 
@@ -133,8 +133,8 @@ typedef struct LogFileCtx_ {
 
     /** Generic size_limit and size_current
      * They must be common to the threads accessing the same file */
-    uint64_t size_limit;    /**< file size limit */
-    uint64_t size_current;  /**< file current size */
+    uint64_t size_limit;   /**< file size limit */
+    uint64_t size_current; /**< file current size */
 
     /* flag to avoid multiple threads printing the same stats */
     uint8_t flags;
@@ -147,7 +147,7 @@ typedef struct LogFileCtx_ {
     uint8_t is_regular;
 
     /* JSON flags */
-    size_t json_flags;  /* passed to json_dump_callback() */
+    size_t json_flags; /* passed to json_dump_callback() */
 
     /* Flag set when file rotation notification is received. */
     int rotation_flag;
@@ -166,7 +166,7 @@ typedef struct LogFileCtx_ {
 } LogFileCtx;
 
 /* Min time (msecs) before trying to reconnect a Unix domain socket */
-#define LOGFILE_RECONN_MIN_TIME     500
+#define LOGFILE_RECONN_MIN_TIME 500
 
 /* flags for LogFileCtx */
 #define LOGFILE_ROTATE_INTERVAL 0x04

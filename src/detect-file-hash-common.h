@@ -37,8 +37,8 @@ typedef struct DetectFileHashData_ {
 int ReadHashString(uint8_t *, const char *, const char *, int, uint16_t);
 int LoadHashTable(ROHashTable *, const char *, const char *, int, uint32_t);
 
-int DetectFileHashMatch(DetectEngineThreadCtx *, Flow *, uint8_t,
-        File *, const Signature *, const SigMatchCtx *);
+int DetectFileHashMatch(
+        DetectEngineThreadCtx *, Flow *, uint8_t, File *, const Signature *, const SigMatchCtx *);
 int DetectFileHashSetup(DetectEngineCtx *, Signature *, const char *, uint16_t, int);
 void DetectFileHashFree(DetectEngineCtx *, void *);
 

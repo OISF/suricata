@@ -25,6 +25,6 @@
 #define SURICATA_DETECT_DISTANCE_H
 
 /* prototypes */
-void DetectDistanceRegister (void);
+void DetectDistanceRegister(void);
 
 #endif /* SURICATA_DETECT_DISTANCE_H */

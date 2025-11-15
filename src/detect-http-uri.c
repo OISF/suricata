@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /**
  * \file
  *
@@ -62,9 +61,8 @@ static void DetectHttpUriRegisterTests(void);
 #endif
 static void DetectHttpUriSetupCallback(const DetectEngineCtx *de_ctx, Signature *s);
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms,
-        Flow *_f, const uint8_t _flow_flags,
-        void *txv, const int list_id);
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id);
 static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
         const int list_id);
@@ -72,9 +70,8 @@ static int DetectHttpUriSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const
 static int DetectHttpRawUriSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectHttpRawUriSetupCallback(const DetectEngineCtx *de_ctx, Signature *s);
 static InspectionBuffer *GetRawData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms,
-        Flow *_f, const uint8_t _flow_flags,
-        void *txv, const int list_id);
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id);
 static int DetectHttpRawUriSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str);
 
 static int g_http_raw_uri_buffer_id = 0;
@@ -83,7 +80,7 @@ static int g_http_uri_buffer_id = 0;
 /**
  * \brief Registration function for keywords: http_uri and http.uri
  */
-void DetectHttpUriRegister (void)
+void DetectHttpUriRegister(void)
 {
     /* http_uri content modifier */
     sigmatch_table[DETECT_HTTP_URI_CM].name = "http_uri";
@@ -100,10 +97,11 @@ void DetectHttpUriRegister (void)
     /* http.uri sticky buffer */
     sigmatch_table[DETECT_HTTP_URI].name = "http.uri";
     sigmatch_table[DETECT_HTTP_URI].alias = "http.uri.normalized";
-    sigmatch_table[DETECT_HTTP_URI].desc = "sticky buffer to match specifically and only on the normalized HTTP URI buffer";
+    sigmatch_table[DETECT_HTTP_URI].desc =
+            "sticky buffer to match specifically and only on the normalized HTTP URI buffer";
     sigmatch_table[DETECT_HTTP_URI].url = "/rules/http-keywords.html#http-uri-and-http-uri-raw";
     sigmatch_table[DETECT_HTTP_URI].Setup = DetectHttpUriSetupSticky;
-    sigmatch_table[DETECT_HTTP_URI].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_HTTP_URI].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister("http_uri", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
             HTP_REQUEST_PROGRESS_LINE, DetectEngineInspectBufferGeneric, GetData);
@@ -117,11 +115,9 @@ void DetectHttpUriRegister (void)
     DetectAppLayerMpmRegister("http_uri", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetData2, ALPROTO_HTTP2, HTTP2StateDataClient);
 
-    DetectBufferTypeSetDescriptionByName("http_uri",
-            "http request uri");
+    DetectBufferTypeSetDescriptionByName("http_uri", "http request uri");
 
-    DetectBufferTypeRegisterSetupCallback("http_uri",
-            DetectHttpUriSetupCallback);
+    DetectBufferTypeRegisterSetupCallback("http_uri", DetectHttpUriSetupCallback);
 
     DetectBufferTypeRegisterValidateCallback("http_uri", DetectUrilenValidateContent);
 
@@ -137,10 +133,11 @@ void DetectHttpUriRegister (void)
 
     /* http.uri.raw sticky buffer */
     sigmatch_table[DETECT_HTTP_URI_RAW].name = "http.uri.raw";
-    sigmatch_table[DETECT_HTTP_URI_RAW].desc = "sticky buffer to match specifically and only on the raw HTTP URI buffer";
+    sigmatch_table[DETECT_HTTP_URI_RAW].desc =
+            "sticky buffer to match specifically and only on the raw HTTP URI buffer";
     sigmatch_table[DETECT_HTTP_URI_RAW].url = "/rules/http-keywords.html#http-uri-and-http-raw-uri";
     sigmatch_table[DETECT_HTTP_URI_RAW].Setup = DetectHttpRawUriSetupSticky;
-    sigmatch_table[DETECT_HTTP_URI_RAW].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_HTTP_URI_RAW].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister("http_raw_uri", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
             HTP_REQUEST_PROGRESS_LINE, DetectEngineInspectBufferGeneric, GetRawData);
@@ -155,11 +152,9 @@ void DetectHttpUriRegister (void)
     DetectAppLayerMpmRegister("http_raw_uri", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetData2, ALPROTO_HTTP2, HTTP2StateDataClient);
 
-    DetectBufferTypeSetDescriptionByName("http_raw_uri",
-            "raw http uri");
+    DetectBufferTypeSetDescriptionByName("http_raw_uri", "raw http uri");
 
-    DetectBufferTypeRegisterSetupCallback("http_raw_uri",
-            DetectHttpRawUriSetupCallback);
+    DetectBufferTypeRegisterSetupCallback("http_raw_uri", DetectHttpRawUriSetupCallback);
 
     DetectBufferTypeRegisterValidateCallback("http_raw_uri", DetectUrilenValidateContent);
 
@@ -183,8 +178,7 @@ int DetectHttpUriSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
             de_ctx, s, str, DETECT_HTTP_URI_CM, g_http_uri_buffer_id, ALPROTO_HTTP1);
 }
 
-static void DetectHttpUriSetupCallback(const DetectEngineCtx *de_ctx,
-                                       Signature *s)
+static void DetectHttpUriSetupCallback(const DetectEngineCtx *de_ctx, Signature *s)
 {
     SCLogDebug("callback invoked by %u", s->id);
     DetectUrilenApplyToContent(s, g_http_uri_buffer_id);
@@ -209,8 +203,8 @@ static int DetectHttpUriSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const
 }
 
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f,
-        const uint8_t _flow_flags, void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
 {
     SCEnter();
 
@@ -269,8 +263,7 @@ static int DetectHttpRawUriSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
             de_ctx, s, arg, DETECT_HTTP_RAW_URI, g_http_raw_uri_buffer_id, ALPROTO_HTTP1);
 }
 
-static void DetectHttpRawUriSetupCallback(const DetectEngineCtx *de_ctx,
-                                          Signature *s)
+static void DetectHttpRawUriSetupCallback(const DetectEngineCtx *de_ctx, Signature *s)
 {
     SCLogDebug("callback invoked by %u", s->id);
     DetectUrilenApplyToContent(s, g_http_raw_uri_buffer_id);
@@ -295,8 +288,8 @@ static int DetectHttpRawUriSetupSticky(DetectEngineCtx *de_ctx, Signature *s, co
 }
 
 static InspectionBuffer *GetRawData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f,
-        const uint8_t _flow_flags, void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
 {
     SCEnter();
 

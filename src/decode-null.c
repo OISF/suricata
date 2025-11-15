@@ -48,8 +48,7 @@
 #define AF_INET6_SOLARIS 26
 #define AF_INET6_WINSOCK 23
 
-int DecodeNull(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        const uint8_t *pkt, uint32_t len)
+int DecodeNull(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len)
 {
     DEBUG_VALIDATE_BUG_ON(pkt == NULL);
 
@@ -68,7 +67,7 @@ int DecodeNull(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 #else
     uint32_t type = *((uint32_t *)pkt);
 #endif
-    switch(type) {
+    switch (type) {
         case AF_INET:
             SCLogDebug("IPV4 Packet");
             if (GET_PKT_LEN(p) - HDR_SIZE > USHRT_MAX) {

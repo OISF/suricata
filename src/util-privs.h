@@ -22,7 +22,7 @@
  */
 
 #ifndef _UTIL_PRIVS_H
-#define	_UTIL_PRIVS_H
+#define _UTIL_PRIVS_H
 
 #define SC_CAP_NONE             0x01
 #define SC_CAP_SYS_ADMIN        0x02
@@ -52,17 +52,20 @@ void SCDropCaps(ThreadVars *tv);
         SCLogDebug("For thread \"%s\" CAP_IPC_LOCK has been set", tv->name); \
     } \
     if (tv->cap_flags & SC_CAP_NET_ADMIN) { \
-        capng_update(CAPNG_ADD, (capng_type_t) (CAPNG_EFFECTIVE | CAPNG_PERMITTED), CAP_NET_ADMIN); \
+        capng_update(CAPNG_ADD, (capng_type_t) (CAPNG_EFFECTIVE | CAPNG_PERMITTED), CAP_NET_ADMIN);
+\
         capng_apply(CAPNG_SELECT_CAPS); \
         SCLogDebug("For thread \"%s\" CAP_NET_ADMIN has been set", tv->name); \
     } \
     if (tv->cap_flags & SC_CAP_NET_BIND_SERVICE) { \
-        capng_update(CAPNG_ADD, (capng_type_t) (CAPNG_EFFECTIVE | CAPNG_PERMITTED), CAP_NET_BIND_SERVICE); \
+        capng_update(CAPNG_ADD, (capng_type_t) (CAPNG_EFFECTIVE | CAPNG_PERMITTED),
+CAP_NET_BIND_SERVICE); \
         capng_apply(CAPNG_SELECT_CAPS); \
         SCLogDebug("For thread \"%s\" CAP_NET_BIND_SERVICE has been set", tv->name); \
     } \
     if (tv->cap_flags & SC_CAP_NET_BROADCAST) { \
-        capng_update(CAPNG_ADD, (capng_type_t) (CAPNG_EFFECTIVE | CAPNG_PERMITTED), CAP_NET_BROADCAST); \
+        capng_update(CAPNG_ADD, (capng_type_t) (CAPNG_EFFECTIVE | CAPNG_PERMITTED),
+CAP_NET_BROADCAST); \
         capng_apply(CAPNG_SELECT_CAPS); \
         SCLogDebug("For thread \"%s\" CAP_NET_BROADCAST has been set", tv->name); \
     } \
@@ -72,18 +75,20 @@ void SCDropCaps(ThreadVars *tv);
         SCLogDebug("For thread \"%s\" CAP_NET_RAW has been set", tv->name); \
     } \
     if (tv->cap_flags & SC_CAP_SYS_ADMIN) { \
-        capng_update(CAPNG_ADD, (capng_type_t) (CAPNG_EFFECTIVE | CAPNG_PERMITTED), CAP_SYS_ADMIN); \
+        capng_update(CAPNG_ADD, (capng_type_t) (CAPNG_EFFECTIVE | CAPNG_PERMITTED), CAP_SYS_ADMIN);
+\
         capng_apply(CAPNG_SELECT_CAPS); \
         SCLogDebug("For thread \"%s\" CAP_SYS_ADMIN has been set", tv->name); \
     } \
     if (tv->cap_flags & SC_CAP_SYS_RAW_IO) { \
-        capng_update(CAPNG_ADD, (capng_type_t) (CAPNG_EFFECTIVE | CAPNG_PERMITTED), CAP_SYS_RAWIO); \
+        capng_update(CAPNG_ADD, (capng_type_t) (CAPNG_EFFECTIVE | CAPNG_PERMITTED), CAP_SYS_RAWIO);
+\
         capng_apply(CAPNG_SELECT_CAPS); \
         SCLogDebug("For thread \"%s\" CAP_SYS_RAWIO has been set", tv->name); \
     } \
 })
 */
-void SCDropMainThreadCaps(uint32_t , uint32_t );
+void SCDropMainThreadCaps(uint32_t, uint32_t);
 
 #else
 #define SCDropCaps(...)
@@ -99,5 +104,4 @@ int SCPledge(void);
 #define SCPledge(...)
 #endif /* __OpenBSD__ */
 
-#endif	/* _UTIL_PRIVS_H */
-
+#endif /* _UTIL_PRIVS_H */

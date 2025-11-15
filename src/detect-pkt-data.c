@@ -42,7 +42,7 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
-static int DetectPktDataSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectPktDataSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectPktDataTestRegister(void);
 #endif
@@ -71,7 +71,7 @@ void DetectPktDataRegister(void)
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectPktDataSetup (DetectEngineCtx *de_ctx, Signature *s, const char *unused)
+static int DetectPktDataSetup(DetectEngineCtx *de_ctx, Signature *s, const char *unused)
 {
     SCEnter();
     if (s->init_data->transforms.cnt) {
@@ -92,8 +92,8 @@ static int DetectPktDataTest02(void)
     de_ctx->flags |= DE_QUIET;
 
     Signature *sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-                               "(file_data; compress_whitespace; "
-                               " pkt_data; content:\"in pkt data\"; sid:1;)");
+                                                   "(file_data; compress_whitespace; "
+                                                   " pkt_data; content:\"in pkt data\"; sid:1;)");
     FAIL_IF_NOT_NULL(sig);
     DetectEngineCtxFree(de_ctx);
     PASS;

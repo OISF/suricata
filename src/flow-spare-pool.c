@@ -86,8 +86,7 @@ static void Validate(FlowSparePool *top, const uint32_t target)
     //     assert(top->next->queue.len == FLOW_SPARE_POOL_BLOCK_SIZE);
 
     uint32_t cnt = 0;
-    for (FlowSparePool *p = top; p != NULL; p = p->next)
-    {
+    for (FlowSparePool *p = top; p != NULL; p = p->next) {
         assert(p->queue.len);
         cnt += p->queue.len;
     }
@@ -193,7 +192,7 @@ FlowQueuePrivate FlowSpareGetFromPool(void)
         FlowQueuePrivate ret = p->queue;
         SCFree(p);
         return ret;
-    /* next should always be full if it exists */
+        /* next should always be full if it exists */
     } else if (flow_spare_pool->next != NULL) {
         FlowSparePool *p = flow_spare_pool->next;
         flow_spare_pool->next = p->next;
@@ -291,7 +290,7 @@ void FlowSparePoolUpdate(uint32_t size)
 void FlowSparePoolInit(void)
 {
     SCMutexLock(&flow_spare_pool_m);
-    for (uint32_t cnt = 0; cnt < flow_config.prealloc; ) {
+    for (uint32_t cnt = 0; cnt < flow_config.prealloc;) {
         FlowSparePool *p = FlowSpareGetPool();
         if (p == NULL) {
             FatalError("failed to initialize flow pool");
@@ -310,7 +309,7 @@ void FlowSparePoolInit(void)
 void FlowSparePoolDestroy(void)
 {
     SCMutexLock(&flow_spare_pool_m);
-    for (FlowSparePool *p = flow_spare_pool; p != NULL; ) {
+    for (FlowSparePool *p = flow_spare_pool; p != NULL;) {
         uint32_t cnt = 0;
         Flow *f;
         while ((f = FlowQueuePrivateGetFromTop(&p->queue))) {

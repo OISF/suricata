@@ -70,22 +70,22 @@ TODO:
     "(.+)?"                             /* Any remaining data. */
 static DetectParseRegex parse_regex;
 
-static int DetectHostbitMatch (DetectEngineThreadCtx *, Packet *,
-        const Signature *, const SigMatchCtx *);
-static int DetectHostbitSetup (DetectEngineCtx *, Signature *, const char *);
-void DetectHostbitFree (DetectEngineCtx *, void *);
+static int DetectHostbitMatch(
+        DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
+static int DetectHostbitSetup(DetectEngineCtx *, Signature *, const char *);
+void DetectHostbitFree(DetectEngineCtx *, void *);
 #ifdef UNITTESTS
 void HostBitsRegisterTests(void);
 #endif
 
-void DetectHostbitsRegister (void)
+void DetectHostbitsRegister(void)
 {
     sigmatch_table[DETECT_HOSTBITS].name = "hostbits";
     sigmatch_table[DETECT_HOSTBITS].desc = "operate on host flag";
-//    sigmatch_table[DETECT_HOSTBITS].url = "/rules/flow-keywords.html#flowbits";
+    //    sigmatch_table[DETECT_HOSTBITS].url = "/rules/flow-keywords.html#flowbits";
     sigmatch_table[DETECT_HOSTBITS].Match = DetectHostbitMatch;
     sigmatch_table[DETECT_HOSTBITS].Setup = DetectHostbitSetup;
-    sigmatch_table[DETECT_HOSTBITS].Free  = DetectHostbitFree;
+    sigmatch_table[DETECT_HOSTBITS].Free = DetectHostbitFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_HOSTBITS].RegisterTests = HostBitsRegisterTests;
 #endif
@@ -95,7 +95,7 @@ void DetectHostbitsRegister (void)
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
-static int DetectHostbitMatchToggle (Packet *p, const DetectXbitsData *fd)
+static int DetectHostbitMatchToggle(Packet *p, const DetectXbitsData *fd)
 {
     switch (fd->tracker) {
         case DETECT_XBITS_TRACK_IPSRC:
@@ -103,8 +103,7 @@ static int DetectHostbitMatchToggle (Packet *p, const DetectXbitsData *fd)
                 p->host_src = HostGetHostFromHash(&p->src);
                 if (p->host_src == NULL)
                     return 0;
-            }
-            else
+            } else
                 HostLock(p->host_src);
 
             HostBitToggle(p->host_src, fd->idx, SCTIME_ADD_SECS(p->ts, fd->expire));
@@ -115,8 +114,7 @@ static int DetectHostbitMatchToggle (Packet *p, const DetectXbitsData *fd)
                 p->host_dst = HostGetHostFromHash(&p->dst);
                 if (p->host_dst == NULL)
                     return 0;
-            }
-            else
+            } else
                 HostLock(p->host_dst);
 
             HostBitToggle(p->host_dst, fd->idx, SCTIME_ADD_SECS(p->ts, fd->expire));
@@ -127,7 +125,7 @@ static int DetectHostbitMatchToggle (Packet *p, const DetectXbitsData *fd)
 }
 
 /* return true even if bit not found */
-static int DetectHostbitMatchUnset (Packet *p, const DetectXbitsData *fd)
+static int DetectHostbitMatchUnset(Packet *p, const DetectXbitsData *fd)
 {
     switch (fd->tracker) {
         case DETECT_XBITS_TRACK_IPSRC:
@@ -138,7 +136,7 @@ static int DetectHostbitMatchUnset (Packet *p, const DetectXbitsData *fd)
             } else
                 HostLock(p->host_src);
 
-            HostBitUnset(p->host_src,fd->idx);
+            HostBitUnset(p->host_src, fd->idx);
             HostUnlock(p->host_src);
             break;
         case DETECT_XBITS_TRACK_IPDST:
@@ -149,14 +147,14 @@ static int DetectHostbitMatchUnset (Packet *p, const DetectXbitsData *fd)
             } else
                 HostLock(p->host_dst);
 
-            HostBitUnset(p->host_dst,fd->idx);
+            HostBitUnset(p->host_dst, fd->idx);
             HostUnlock(p->host_dst);
             break;
     }
     return 1;
 }
 
-static int DetectHostbitMatchSet (Packet *p, const DetectXbitsData *fd)
+static int DetectHostbitMatchSet(Packet *p, const DetectXbitsData *fd)
 {
     switch (fd->tracker) {
         case DETECT_XBITS_TRACK_IPSRC:
@@ -185,7 +183,7 @@ static int DetectHostbitMatchSet (Packet *p, const DetectXbitsData *fd)
     return 1;
 }
 
-static int DetectHostbitMatchIsset (Packet *p, const DetectXbitsData *fd)
+static int DetectHostbitMatchIsset(Packet *p, const DetectXbitsData *fd)
 {
     int r = 0;
     switch (fd->tracker) {
@@ -215,7 +213,7 @@ static int DetectHostbitMatchIsset (Packet *p, const DetectXbitsData *fd)
     return 0;
 }
 
-static int DetectHostbitMatchIsnotset (Packet *p, const DetectXbitsData *fd)
+static int DetectHostbitMatchIsnotset(Packet *p, const DetectXbitsData *fd)
 {
     int r = 0;
     switch (fd->tracker) {
@@ -249,15 +247,15 @@ int DetectXbitMatchHost(Packet *p, const DetectXbitsData *xd)
 {
     switch (xd->cmd) {
         case DETECT_XBITS_CMD_ISSET:
-            return DetectHostbitMatchIsset(p,xd);
+            return DetectHostbitMatchIsset(p, xd);
         case DETECT_XBITS_CMD_ISNOTSET:
-            return DetectHostbitMatchIsnotset(p,xd);
+            return DetectHostbitMatchIsnotset(p, xd);
         case DETECT_XBITS_CMD_SET:
-            return DetectHostbitMatchSet(p,xd);
+            return DetectHostbitMatchSet(p, xd);
         case DETECT_XBITS_CMD_UNSET:
-            return DetectHostbitMatchUnset(p,xd);
+            return DetectHostbitMatchUnset(p, xd);
         case DETECT_XBITS_CMD_TOGGLE:
-            return DetectHostbitMatchToggle(p,xd);
+            return DetectHostbitMatchToggle(p, xd);
         default:
             SCLogError("unknown cmd %" PRIu32 "", xd->cmd);
             return 0;
@@ -272,8 +270,8 @@ int DetectXbitMatchHost(Packet *p, const DetectXbitsData *xd)
  *        -1: error
  */
 
-static int DetectHostbitMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
-        const Signature *s, const SigMatchCtx *ctx)
+static int DetectHostbitMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectXbitsData *xd = (const DetectXbitsData *)ctx;
     if (xd == NULL)
@@ -282,8 +280,8 @@ static int DetectHostbitMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
     return DetectXbitMatchHost(p, xd);
 }
 
-static int DetectHostbitParse(const char *str, char *cmd, int cmd_len,
-    char *name, int name_len, char *dir, int dir_len)
+static int DetectHostbitParse(
+        const char *str, char *cmd, int cmd_len, char *name, int name_len, char *dir, int dir_len)
 {
     int rc;
     size_t pcre2len;
@@ -329,7 +327,7 @@ error:
     return 0;
 }
 
-int DetectHostbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
+int DetectHostbitSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     DetectXbitsData *cd = NULL;
     uint8_t fb_cmd = 0;
@@ -337,8 +335,8 @@ int DetectHostbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     char fb_cmd_str[16] = "", fb_name[256] = "";
     char hb_dir_str[16] = "";
 
-    if (!DetectHostbitParse(rawstr, fb_cmd_str, sizeof(fb_cmd_str),
-            fb_name, sizeof(fb_name), hb_dir_str, sizeof(hb_dir_str))) {
+    if (!DetectHostbitParse(rawstr, fb_cmd_str, sizeof(fb_cmd_str), fb_name, sizeof(fb_name),
+                hb_dir_str, sizeof(hb_dir_str))) {
         return -1;
     }
 
@@ -348,7 +346,7 @@ int DetectHostbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
         else if (strcmp(hb_dir_str, "dst") == 0)
             hb_dir = DETECT_XBITS_TRACK_IPDST;
         else if (strcmp(hb_dir_str, "both") == 0) {
-            //hb_dir = DETECT_XBITS_TRACK_IPBOTH;
+            // hb_dir = DETECT_XBITS_TRACK_IPBOTH;
             SCLogError("'both' not implemented");
             goto error;
         } else {
@@ -357,17 +355,17 @@ int DetectHostbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
         }
     }
 
-    if (strcmp(fb_cmd_str,"noalert") == 0) {
+    if (strcmp(fb_cmd_str, "noalert") == 0) {
         fb_cmd = DETECT_XBITS_CMD_NOALERT;
-    } else if (strcmp(fb_cmd_str,"isset") == 0) {
+    } else if (strcmp(fb_cmd_str, "isset") == 0) {
         fb_cmd = DETECT_XBITS_CMD_ISSET;
-    } else if (strcmp(fb_cmd_str,"isnotset") == 0) {
+    } else if (strcmp(fb_cmd_str, "isnotset") == 0) {
         fb_cmd = DETECT_XBITS_CMD_ISNOTSET;
-    } else if (strcmp(fb_cmd_str,"set") == 0) {
+    } else if (strcmp(fb_cmd_str, "set") == 0) {
         fb_cmd = DETECT_XBITS_CMD_SET;
-    } else if (strcmp(fb_cmd_str,"unset") == 0) {
+    } else if (strcmp(fb_cmd_str, "unset") == 0) {
         fb_cmd = DETECT_XBITS_CMD_UNSET;
-    } else if (strcmp(fb_cmd_str,"toggle") == 0) {
+    } else if (strcmp(fb_cmd_str, "toggle") == 0) {
         fb_cmd = DETECT_XBITS_CMD_TOGGLE;
     } else {
         SCLogError("ERROR: flowbits action \"%s\" is not supported.", fb_cmd_str);
@@ -404,14 +402,14 @@ int DetectHostbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     cd->type = VAR_TYPE_HOST_BIT;
     cd->expire = 300;
 
-    SCLogDebug("idx %" PRIu32 ", cmd %s, name %s",
-        cd->idx, fb_cmd_str, strlen(fb_name) ? fb_name : "(none)");
+    SCLogDebug("idx %" PRIu32 ", cmd %s, name %s", cd->idx, fb_cmd_str,
+            strlen(fb_name) ? fb_name : "(none)");
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
 
     switch (fb_cmd) {
-        /* case DETECT_XBITS_CMD_NOALERT can't happen here */
+            /* case DETECT_XBITS_CMD_NOALERT can't happen here */
 
         case DETECT_XBITS_CMD_ISNOTSET:
         case DETECT_XBITS_CMD_ISSET:
@@ -446,7 +444,7 @@ error:
     return -1;
 }
 
-void DetectHostbitFree (DetectEngineCtx *de_ctx, void *ptr)
+void DetectHostbitFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectXbitsData *fd = (DetectXbitsData *)ptr;
 
@@ -479,8 +477,8 @@ static int HostBitsTestParse01(void)
     char cmd[16] = "", name[256] = "", dir[16] = "";
 
     /* No direction. */
-    FAIL_IF(!DetectHostbitParse("isset,name", cmd, sizeof(cmd), name,
-            sizeof(name), dir, sizeof(dir)));
+    FAIL_IF(!DetectHostbitParse(
+            "isset,name", cmd, sizeof(cmd), name, sizeof(name), dir, sizeof(dir)));
     FAIL_IF(strcmp(cmd, "isset") != 0);
     FAIL_IF(strcmp(name, "name") != 0);
     FAIL_IF(strlen(dir));
@@ -489,8 +487,8 @@ static int HostBitsTestParse01(void)
     *cmd = '\0';
     *name = '\0';
     *dir = '\0';
-    FAIL_IF(!DetectHostbitParse("isset, name", cmd, sizeof(cmd), name,
-            sizeof(name), dir, sizeof(dir)));
+    FAIL_IF(!DetectHostbitParse(
+            "isset, name", cmd, sizeof(cmd), name, sizeof(name), dir, sizeof(dir)));
     FAIL_IF(strcmp(cmd, "isset") != 0);
     FAIL_IF(strcmp(name, "name") != 0);
 
@@ -498,8 +496,8 @@ static int HostBitsTestParse01(void)
     *cmd = '\0';
     *name = '\0';
     *dir = '\0';
-    FAIL_IF(!DetectHostbitParse("isset,name ", cmd, sizeof(cmd), name,
-            sizeof(name), dir, sizeof(dir)));
+    FAIL_IF(!DetectHostbitParse(
+            "isset,name ", cmd, sizeof(cmd), name, sizeof(name), dir, sizeof(dir)));
     FAIL_IF(strcmp(cmd, "isset") != 0);
     FAIL_IF(strcmp(name, "name") != 0);
 
@@ -507,8 +505,8 @@ static int HostBitsTestParse01(void)
     *cmd = '\0';
     *name = '\0';
     *dir = '\0';
-    FAIL_IF(!DetectHostbitParse("isset, name ", cmd, sizeof(cmd), name,
-            sizeof(name), dir, sizeof(dir)));
+    FAIL_IF(!DetectHostbitParse(
+            "isset, name ", cmd, sizeof(cmd), name, sizeof(name), dir, sizeof(dir)));
     FAIL_IF(strcmp(cmd, "isset") != 0);
     FAIL_IF(strcmp(name, "name") != 0);
 
@@ -516,8 +514,8 @@ static int HostBitsTestParse01(void)
     *cmd = '\0';
     *name = '\0';
     *dir = '\0';
-    FAIL_IF(!DetectHostbitParse("isset,name,src", cmd, sizeof(cmd), name,
-            sizeof(name), dir, sizeof(dir)));
+    FAIL_IF(!DetectHostbitParse(
+            "isset,name,src", cmd, sizeof(cmd), name, sizeof(name), dir, sizeof(dir)));
     FAIL_IF(strcmp(cmd, "isset") != 0);
     FAIL_IF(strcmp(name, "name") != 0);
     FAIL_IF(strcmp(dir, "src") != 0);
@@ -526,8 +524,8 @@ static int HostBitsTestParse01(void)
     *cmd = '\0';
     *name = '\0';
     *dir = '\0';
-    FAIL_IF(!DetectHostbitParse("isset, name ,src", cmd, sizeof(cmd), name,
-            sizeof(name), dir, sizeof(dir)));
+    FAIL_IF(!DetectHostbitParse(
+            "isset, name ,src", cmd, sizeof(cmd), name, sizeof(name), dir, sizeof(dir)));
     FAIL_IF(strcmp(cmd, "isset") != 0);
     FAIL_IF(strcmp(name, "name") != 0);
     FAIL_IF(strcmp(dir, "src") != 0);
@@ -536,8 +534,8 @@ static int HostBitsTestParse01(void)
     *cmd = '\0';
     *name = '\0';
     *dir = '\0';
-    FAIL_IF(!DetectHostbitParse("isset, name , src ", cmd, sizeof(cmd), name,
-            sizeof(name), dir, sizeof(dir)));
+    FAIL_IF(!DetectHostbitParse(
+            "isset, name , src ", cmd, sizeof(cmd), name, sizeof(name), dir, sizeof(dir)));
     FAIL_IF(strcmp(cmd, "isset") != 0);
     FAIL_IF(strcmp(name, "name") != 0);
     FAIL_IF(strcmp(dir, "src") != 0);
@@ -546,8 +544,8 @@ static int HostBitsTestParse01(void)
     *cmd = '\0';
     *name = '\0';
     *dir = '\0';
-    FAIL_IF(DetectHostbitParse("isset, name withspace ", cmd, sizeof(cmd), name,
-            sizeof(name), dir, sizeof(dir)));
+    FAIL_IF(DetectHostbitParse(
+            "isset, name withspace ", cmd, sizeof(cmd), name, sizeof(name), dir, sizeof(dir)));
 
     PASS;
 }
@@ -561,10 +559,9 @@ static int HostBitsTestParse01(void)
 
 static int HostBitsTestSig01(void)
 {
-    uint8_t *buf = (uint8_t *)
-                    "GET /one/ HTTP/1.1\r\n"
-                    "Host: one.example.org\r\n"
-                    "\r\n";
+    uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.1\r\n"
+                              "Host: one.example.org\r\n"
+                              "\r\n";
     uint16_t buflen = strlen((char *)buf);
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
@@ -587,7 +584,8 @@ static int HostBitsTestSig01(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (hostbits:set,abc; content:\"GET \"; sid:1;)");
+    s = de_ctx->sig_list = SigInit(
+            de_ctx, "alert ip any any -> any any (hostbits:set,abc; content:\"GET \"; sid:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
@@ -635,11 +633,11 @@ static int HostBitsTestSig02(void)
             "alert ip any any -> any any (hostbits:!isset,abc,dst; content:\"GET \"; sid:3;)");
     FAIL_IF_NOT_NULL(s);
 
-/* TODO reenable after both is supported
-    s = DetectEngineAppendSig(de_ctx,
-            "alert ip any any -> any any (hostbits:set,abc,both; content:\"GET \"; sid:3;)");
-    FAIL_IF_NULL(s);
-*/
+    /* TODO reenable after both is supported
+        s = DetectEngineAppendSig(de_ctx,
+                "alert ip any any -> any any (hostbits:set,abc,both; content:\"GET \"; sid:3;)");
+        FAIL_IF_NULL(s);
+    */
     s = DetectEngineAppendSig(de_ctx,
             "alert ip any any -> any any (hostbits:unset,abc,src; content:\"GET \"; sid:4;)");
     FAIL_IF_NULL(s);
@@ -661,10 +659,9 @@ static int HostBitsTestSig02(void)
 
 static int HostBitsTestSig03(void)
 {
-    uint8_t *buf = (uint8_t *)
-                    "GET /one/ HTTP/1.1\r\n"
-                    "Host: one.example.org\r\n"
-                    "\r\n";
+    uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.1\r\n"
+                              "Host: one.example.org\r\n"
+                              "\r\n";
     uint16_t buflen = strlen((char *)buf);
     Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
@@ -689,7 +686,8 @@ static int HostBitsTestSig03(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"isset option\"; hostbits:isset,fbt; content:\"GET \"; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx, "alert ip any any -> any any (msg:\"isset option\"; "
+                                           "hostbits:isset,fbt; content:\"GET \"; sid:1;)");
     FAIL_IF_NULL(s);
 
     idx = VarNameStoreRegister("fbt", VAR_TYPE_HOST_BIT);

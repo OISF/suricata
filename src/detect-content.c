@@ -56,14 +56,14 @@
 static void DetectContentRegisterTests(void);
 #endif
 
-void DetectContentRegister (void)
+void DetectContentRegister(void)
 {
     sigmatch_table[DETECT_CONTENT].name = "content";
     sigmatch_table[DETECT_CONTENT].desc = "match on payload content";
     sigmatch_table[DETECT_CONTENT].url = "/rules/payload-keywords.html#content";
     sigmatch_table[DETECT_CONTENT].Match = NULL;
     sigmatch_table[DETECT_CONTENT].Setup = DetectContentSetup;
-    sigmatch_table[DETECT_CONTENT].Free  = DetectContentFree;
+    sigmatch_table[DETECT_CONTENT].Free = DetectContentFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_CONTENT].RegisterTests = DetectContentRegisterTests;
 #endif
@@ -82,8 +82,8 @@ void DetectContentRegister (void)
  *  \retval -1 error
  *  \retval 0 ok
  */
-int DetectContentDataParse(const char *keyword, const char *contentstr,
-        uint8_t **pstr, uint16_t *plen)
+int DetectContentDataParse(
+        const char *keyword, const char *contentstr, uint8_t **pstr, uint16_t *plen)
 {
     char *str = NULL;
     size_t slen = 0;
@@ -98,7 +98,7 @@ int DetectContentDataParse(const char *keyword, const char *contentstr,
 
     SCLogDebug("\"%s\", len %" PRIuMAX, str, (uintmax_t)slen);
 
-    //SCLogDebug("DetectContentParse: \"%s\", len %" PRIu32 "", str, len);
+    // SCLogDebug("DetectContentParse: \"%s\", len %" PRIu32 "", str, len);
     char converted = 0;
 
     {
@@ -123,25 +123,21 @@ int DetectContentDataParse(const char *keyword, const char *contentstr,
                 } else {
                     bin = 1;
                 }
-            } else if(!escape && str[i] == '\\') {
+            } else if (!escape && str[i] == '\\') {
                 escape = 1;
             } else {
                 if (bin) {
-                    if (isdigit((unsigned char)str[i]) ||
-                            str[i] == 'A' || str[i] == 'a' ||
-                            str[i] == 'B' || str[i] == 'b' ||
-                            str[i] == 'C' || str[i] == 'c' ||
-                            str[i] == 'D' || str[i] == 'd' ||
-                            str[i] == 'E' || str[i] == 'e' ||
-                            str[i] == 'F' || str[i] == 'f')
-                    {
+                    if (isdigit((unsigned char)str[i]) || str[i] == 'A' || str[i] == 'a' ||
+                            str[i] == 'B' || str[i] == 'b' || str[i] == 'C' || str[i] == 'c' ||
+                            str[i] == 'D' || str[i] == 'd' || str[i] == 'E' || str[i] == 'e' ||
+                            str[i] == 'F' || str[i] == 'f') {
                         // SCLogDebug("part of binary: %c", str[i]);
 
                         binstr[binpos] = (char)str[i];
                         binpos++;
 
                         if (binpos == 2) {
-                            uint8_t c = strtol((char *)binstr, (char **) NULL, 16) & 0xFF;
+                            uint8_t c = strtol((char *)binstr, (char **)NULL, 16) & 0xFF;
                             binpos = 0;
                             str[x] = c;
                             x++;
@@ -149,19 +145,14 @@ int DetectContentDataParse(const char *keyword, const char *contentstr,
                         }
                     } else if (str[i] == ' ') {
                         // SCLogDebug("space as part of binary string");
-                    }
-                    else if (str[i] != ',') {
+                    } else if (str[i] != ',') {
                         SCLogError("Invalid hex code in "
                                    "content - %s, hex %c. Invalidating signature.",
                                 contentstr, str[i]);
                         goto error;
                     }
                 } else if (escape) {
-                    if (str[i] == ':' ||
-                        str[i] == ';' ||
-                        str[i] == '\\' ||
-                        str[i] == '\"')
-                    {
+                    if (str[i] == ':' || str[i] == ';' || str[i] == '\\' || str[i] == '\"') {
                         str[x] = str[i];
                         x++;
                     } else {
@@ -210,8 +201,8 @@ error:
  * \brief DetectContentParse
  * \initonly
  */
-DetectContentData *DetectContentParse(SpmGlobalThreadCtx *spm_global_thread_ctx,
-                                      const char *contentstr)
+DetectContentData *DetectContentParse(
+        SpmGlobalThreadCtx *spm_global_thread_ctx, const char *contentstr)
 {
     DetectContentData *cd = NULL;
     uint8_t *content = NULL;
@@ -234,8 +225,7 @@ DetectContentData *DetectContentParse(SpmGlobalThreadCtx *spm_global_thread_ctx,
     cd->content_len = len;
 
     /* Prepare SPM search context. */
-    cd->spm_ctx = SpmInitCtx(cd->content, cd->content_len, 0,
-                             spm_global_thread_ctx);
+    cd->spm_ctx = SpmInitCtx(cd->content, cd->content_len, 0, spm_global_thread_ctx);
     if (cd->spm_ctx == NULL) {
         SCFree(content);
         SCFree(cd);
@@ -249,11 +239,10 @@ DetectContentData *DetectContentParse(SpmGlobalThreadCtx *spm_global_thread_ctx,
 
     SCFree(content);
     return cd;
-
 }
 
-DetectContentData *DetectContentParseEncloseQuotes(SpmGlobalThreadCtx *spm_global_thread_ctx,
-                                                   const char *contentstr)
+DetectContentData *DetectContentParseEncloseQuotes(
+        SpmGlobalThreadCtx *spm_global_thread_ctx, const char *contentstr)
 {
     return DetectContentParse(spm_global_thread_ctx, contentstr);
 }
@@ -285,15 +274,16 @@ void DetectContentPrint(DetectContentData *cd)
             SCLogDebug("%c", cd->content[i]);
     }
 
-    SCLogDebug("Content_id: %"PRIu32, cd->id);
-    SCLogDebug("Content_len: %"PRIu16, cd->content_len);
-    SCLogDebug("Depth: %"PRIu16, cd->depth);
-    SCLogDebug("Offset: %"PRIu16, cd->offset);
-    SCLogDebug("Within: %"PRIi32, cd->within);
-    SCLogDebug("Distance: %"PRIi32, cd->distance);
+    SCLogDebug("Content_id: %" PRIu32, cd->id);
+    SCLogDebug("Content_len: %" PRIu16, cd->content_len);
+    SCLogDebug("Depth: %" PRIu16, cd->depth);
+    SCLogDebug("Offset: %" PRIu16, cd->offset);
+    SCLogDebug("Within: %" PRIi32, cd->within);
+    SCLogDebug("Distance: %" PRIi32, cd->distance);
     SCLogDebug("flags: %u ", cd->flags);
     SCLogDebug("negated: %s ", cd->flags & DETECT_CONTENT_NEGATED ? "true" : "false");
-    SCLogDebug("relative match next: %s ", cd->flags & DETECT_CONTENT_RELATIVE_NEXT ? "true" : "false");
+    SCLogDebug("relative match next: %s ",
+            cd->flags & DETECT_CONTENT_RELATIVE_NEXT ? "true" : "false");
 
     if (cd->replace && cd->replace_len) {
         char *tmprstr = SCMalloc(sizeof(char) * cd->replace_len + 1);
@@ -344,8 +334,7 @@ int DetectContentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *conten
     int sm_list = s->init_data->list;
     if (sm_list == DETECT_SM_LIST_NOTSET) {
         sm_list = DETECT_SM_LIST_PMATCH;
-    } else if (sm_list > DETECT_SM_LIST_MAX &&
-            0 == (cd->flags & DETECT_CONTENT_NEGATED)) {
+    } else if (sm_list > DETECT_SM_LIST_MAX && 0 == (cd->flags & DETECT_CONTENT_NEGATED)) {
         /* Check transform compatibility */
         const char *tstr;
         if (!DetectEngineBufferTypeValidateTransform(
@@ -834,8 +823,7 @@ static bool TestLastContent(const Signature *s, uint16_t o, uint16_t d)
         DetectEngineCtxFree(de_ctx);                                                               \
     }
 
-#define TEST_DONE \
-    PASS
+#define TEST_DONE PASS
 
 /** \test test propagation of depth/offset/distance/within */
 static int DetectContentDepthTest01(void)
@@ -854,37 +842,62 @@ static int DetectContentDepthTest01(void)
     TEST_RUN("content:\"abc\"; depth:6; content:\"xyz\"; distance:0; within:3; ", 3, 9);
 
     // multiple relative matches after anchored content
-    TEST_RUN("content:\"abc\"; depth:3; content:\"klm\"; distance:0; within:3; content:\"xyz\"; distance:0; within:3; ", 6, 9);
+    TEST_RUN("content:\"abc\"; depth:3; content:\"klm\"; distance:0; within:3; content:\"xyz\"; "
+             "distance:0; within:3; ",
+            6, 9);
     // test 'reset' due to unanchored content
-    TEST_RUN("content:\"abc\"; depth:3; content:\"klm\"; content:\"xyz\"; distance:0; within:3; ", 3, 0);
+    TEST_RUN("content:\"abc\"; depth:3; content:\"klm\"; content:\"xyz\"; distance:0; within:3; ",
+            3, 0);
     // test 'reset' due to unanchored pcre
-    TEST_RUN("content:\"abc\"; depth:3; pcre:/\"klm\"/; content:\"xyz\"; distance:0; within:3; ", 0, 0);
+    TEST_RUN("content:\"abc\"; depth:3; pcre:/\"klm\"/; content:\"xyz\"; distance:0; within:3; ", 0,
+            0);
     // test relative pcre. We can use previous offset+pattern len
-    TEST_RUN("content:\"abc\"; depth:3; pcre:/\"klm\"/R; content:\"xyz\"; distance:0; within:3; ", 3, 0);
-    TEST_RUN("content:\"abc\"; offset:3; depth:3; pcre:/\"klm\"/R; content:\"xyz\"; distance:0; within:3; ", 6, 0);
+    TEST_RUN("content:\"abc\"; depth:3; pcre:/\"klm\"/R; content:\"xyz\"; distance:0; within:3; ",
+            3, 0);
+    TEST_RUN("content:\"abc\"; offset:3; depth:3; pcre:/\"klm\"/R; content:\"xyz\"; distance:0; "
+             "within:3; ",
+            6, 0);
 
-    TEST_RUN("content:\"abc\"; depth:3; content:\"klm\"; within:3; content:\"xyz\"; within:3; ", 0, 9);
+    TEST_RUN("content:\"abc\"; depth:3; content:\"klm\"; within:3; content:\"xyz\"; within:3; ", 0,
+            9);
 
-    TEST_RUN("content:\"abc\"; depth:3; content:\"klm\"; distance:0; content:\"xyz\"; distance:0; ", 6, 0);
+    TEST_RUN("content:\"abc\"; depth:3; content:\"klm\"; distance:0; content:\"xyz\"; distance:0; ",
+            6, 0);
 
     // tests to see if anchored 'ends_with' is applied to other content as depth
     TEST_RUN("content:\"abc\"; depth:6; isdataat:!1,relative; content:\"klm\";", 0, 6);
-    TEST_RUN("content:\"abc\"; depth:3; content:\"klm\"; within:3; content:\"xyz\"; within:3; isdataat:!1,relative; content:\"def\"; ", 0, 9);
+    TEST_RUN("content:\"abc\"; depth:3; content:\"klm\"; within:3; content:\"xyz\"; within:3; "
+             "isdataat:!1,relative; content:\"def\"; ",
+            0, 9);
 
     TEST_RUN("content:\"|03|\"; depth:1; content:\"|e0|\"; distance:4; within:1;", 5, 6);
-    TEST_RUN("content:\"|03|\"; depth:1; content:\"|e0|\"; distance:4; within:1; content:\"Cookie|3a|\"; distance:5; within:7;", 11, 18);
+    TEST_RUN("content:\"|03|\"; depth:1; content:\"|e0|\"; distance:4; within:1; "
+             "content:\"Cookie|3a|\"; distance:5; within:7;",
+            11, 18);
 
-    TEST_RUN("content:\"this\"; content:\"is\"; within:6; content:\"big\"; within:8; content:\"string\"; within:8;", 0, 0);
+    TEST_RUN("content:\"this\"; content:\"is\"; within:6; content:\"big\"; within:8; "
+             "content:\"string\"; within:8;",
+            0, 0);
 
-    TEST_RUN("dsize:<80; content:!\"|00 22 02 00|\"; depth: 4; content:\"|00 00 04|\"; distance:8; within:3; content:\"|00 00 00 00 00|\"; distance:6; within:5;", 17, 80);
-    TEST_RUN("content:!\"|00 22 02 00|\"; depth: 4; content:\"|00 00 04|\"; distance:8; within:3; content:\"|00 00 00 00 00|\"; distance:6; within:5;", 17, 0);
+    TEST_RUN("dsize:<80; content:!\"|00 22 02 00|\"; depth: 4; content:\"|00 00 04|\"; distance:8; "
+             "within:3; content:\"|00 00 00 00 00|\"; distance:6; within:5;",
+            17, 80);
+    TEST_RUN("content:!\"|00 22 02 00|\"; depth: 4; content:\"|00 00 04|\"; distance:8; within:3; "
+             "content:\"|00 00 00 00 00|\"; distance:6; within:5;",
+            17, 0);
 
     TEST_RUN("content:\"|0d 0a 0d 0a|\"; content:\"code=\"; distance:0;", 4, 0);
-    TEST_RUN("content:\"|0d 0a 0d 0a|\"; content:\"code=\"; distance:0; content:\"xploit.class\"; distance:2; within:18;", 11, 0);
+    TEST_RUN("content:\"|0d 0a 0d 0a|\"; content:\"code=\"; distance:0; content:\"xploit.class\"; "
+             "distance:2; within:18;",
+            11, 0);
 
     TEST_RUN("content:\"|16 03|\"; depth:2; content:\"|55 04 0a|\"; distance:0;", 2, 0);
-    TEST_RUN("content:\"|16 03|\"; depth:2; content:\"|55 04 0a|\"; distance:0; content:\"|0d|LogMeIn, Inc.\"; distance:1; within:14;", 6, 0);
-    TEST_RUN("content:\"|16 03|\"; depth:2; content:\"|55 04 0a|\"; distance:0; content:\"|0d|LogMeIn, Inc.\"; distance:1; within:14; content:\".app\";", 0, 0);
+    TEST_RUN("content:\"|16 03|\"; depth:2; content:\"|55 04 0a|\"; distance:0; "
+             "content:\"|0d|LogMeIn, Inc.\"; distance:1; within:14;",
+            6, 0);
+    TEST_RUN("content:\"|16 03|\"; depth:2; content:\"|55 04 0a|\"; distance:0; "
+             "content:\"|0d|LogMeIn, Inc.\"; distance:1; within:14; content:\".app\";",
+            0, 0);
 
     TEST_RUN("content:\"=\"; offset:4; depth:9;", 4, 13);
     // low end: offset 4 + patlen 1 = 5. So 5 + distance 55 = 60.
@@ -926,11 +939,11 @@ static void DetectContentPrintAll(SigMatch *sm)
 
         SigMatch *first_sm = sm;
 
-       /* Print all of them */
+        /* Print all of them */
         for (; first_sm != NULL; first_sm = first_sm->next) {
             if (first_sm->type == DETECT_CONTENT) {
                 SCLogDebug("Printing SigMatch DETECT_CONTENT %d", ++i);
-                DetectContentPrint((DetectContentData*)first_sm->ctx);
+                DetectContentPrint((DetectContentData *)first_sm->ctx);
             }
         }
     }
@@ -943,7 +956,7 @@ static int g_dce_stub_data_buffer_id = 0;
 /**
  * \test DetectContentParseTest01 this is a test to make sure we can deal with escaped colons
  */
-static int DetectContentParseTest01 (void)
+static int DetectContentParseTest01(void)
 {
     const char *teststring = "abc\\:def";
     const char *teststringparsed = "abc:def";
@@ -961,7 +974,7 @@ static int DetectContentParseTest01 (void)
 /**
  * \test DetectContentParseTest02 this is a test to make sure we can deal with escaped semi-colons
  */
-static int DetectContentParseTest02 (void)
+static int DetectContentParseTest02(void)
 {
     const char *teststring = "abc\\;def";
     const char *teststringparsed = "abc;def";
@@ -979,7 +992,7 @@ static int DetectContentParseTest02 (void)
 /**
  * \test DetectContentParseTest03 this is a test to make sure we can deal with escaped double-quotes
  */
-static int DetectContentParseTest03 (void)
+static int DetectContentParseTest03(void)
 {
     const char *teststring = "abc\\\"def";
     const char *teststringparsed = "abc\"def";
@@ -997,7 +1010,7 @@ static int DetectContentParseTest03 (void)
 /**
  * \test DetectContentParseTest04 this is a test to make sure we can deal with escaped backslashes
  */
-static int DetectContentParseTest04 (void)
+static int DetectContentParseTest04(void)
 {
     const char *teststring = "abc\\\\def";
     const char *teststringparsed = "abc\\def";
@@ -1016,7 +1029,7 @@ static int DetectContentParseTest04 (void)
 /**
  * \test DetectContentParseTest05 test illegal escape
  */
-static int DetectContentParseTest05 (void)
+static int DetectContentParseTest05(void)
 {
     const char *teststring = "abc\\def";
     uint8_t spm_matcher = SinglePatternMatchDefaultMatcher();
@@ -1032,7 +1045,7 @@ static int DetectContentParseTest05 (void)
 /**
  * \test DetectContentParseTest06 test a binary content
  */
-static int DetectContentParseTest06 (void)
+static int DetectContentParseTest06(void)
 {
     const char *teststring = "a|42|c|44|e|46|";
     const char *teststringparsed = "abcdef";
@@ -1052,7 +1065,7 @@ static int DetectContentParseTest06 (void)
 /**
  * \test DetectContentParseTest07 test an empty content
  */
-static int DetectContentParseTest07 (void)
+static int DetectContentParseTest07(void)
 {
     const char *teststring = "";
     uint8_t spm_matcher = SinglePatternMatchDefaultMatcher();
@@ -1068,7 +1081,7 @@ static int DetectContentParseTest07 (void)
 /**
  * \test DetectContentParseTest08 test an empty content
  */
-static int DetectContentParseTest08 (void)
+static int DetectContentParseTest08(void)
 {
     const char *teststring = "";
     uint8_t spm_matcher = SinglePatternMatchDefaultMatcher();
@@ -1090,8 +1103,8 @@ static int DetectContentParseTest08 (void)
  * \retval return 1 if match
  * \retval return 0 if not
  */
-static int DetectContentLongPatternMatchTest(uint8_t *raw_eth_pkt, uint16_t pktsize, const char *sig,
-                      uint32_t sid)
+static int DetectContentLongPatternMatchTest(
+        uint8_t *raw_eth_pkt, uint16_t pktsize, const char *sig, uint32_t sid)
 {
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
@@ -1146,29 +1159,19 @@ static int DetectContentLongPatternMatchTestWrp(const char *sig, uint32_t sid)
      * "patterns between multiple chunks!"
      * (without quotes! :) )
      */
-    uint8_t raw_eth_pkt[] = {
-        0xff,0xff,0xff,0xff,0xff,0xff,0x00,0x00,
-        0x00,0x00,0x00,0x00,0x08,0x00,0x45,0x00,
-        0x00,0x85,0x00,0x01,0x00,0x00,0x40,0x06,
-        0x7c,0x70,0x7f,0x00,0x00,0x01,0x7f,0x00,
-        0x00,0x01,0x00,0x14,0x00,0x50,0x00,0x00,
-        0x00,0x00,0x00,0x00,0x00,0x00,0x50,0x02,
-        0x20,0x00,0xc9,0xad,0x00,0x00,0x48,0x69,
-        0x2c,0x20,0x74,0x68,0x69,0x73,0x20,0x69,
-        0x73,0x20,0x61,0x20,0x62,0x69,0x67,0x20,
-        0x74,0x65,0x73,0x74,0x20,0x74,0x6f,0x20,
-        0x63,0x68,0x65,0x63,0x6b,0x20,0x63,0x6f,
-        0x6e,0x74,0x65,0x6e,0x74,0x20,0x6d,0x61,
-        0x74,0x63,0x68,0x65,0x73,0x20,0x6f,0x66,
-        0x20,0x73,0x70,0x6c,0x69,0x74,0x74,0x65,
-        0x64,0x20,0x70,0x61,0x74,0x74,0x65,0x72,
-        0x6e,0x73,0x20,0x62,0x65,0x74,0x77,0x65,
-        0x65,0x6e,0x20,0x6d,0x75,0x6c,0x74,0x69,
-        0x70,0x6c,0x65,0x20,0x63,0x68,0x75,0x6e,
-        0x6b,0x73,0x21 }; /* end raw_eth_pkt */
+    uint8_t raw_eth_pkt[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x08, 0x00, 0x45, 0x00, 0x00, 0x85, 0x00, 0x01, 0x00, 0x00, 0x40, 0x06, 0x7c, 0x70,
+        0x7f, 0x00, 0x00, 0x01, 0x7f, 0x00, 0x00, 0x01, 0x00, 0x14, 0x00, 0x50, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x50, 0x02, 0x20, 0x00, 0xc9, 0xad, 0x00, 0x00, 0x48, 0x69,
+        0x2c, 0x20, 0x74, 0x68, 0x69, 0x73, 0x20, 0x69, 0x73, 0x20, 0x61, 0x20, 0x62, 0x69, 0x67,
+        0x20, 0x74, 0x65, 0x73, 0x74, 0x20, 0x74, 0x6f, 0x20, 0x63, 0x68, 0x65, 0x63, 0x6b, 0x20,
+        0x63, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x20, 0x6d, 0x61, 0x74, 0x63, 0x68, 0x65, 0x73,
+        0x20, 0x6f, 0x66, 0x20, 0x73, 0x70, 0x6c, 0x69, 0x74, 0x74, 0x65, 0x64, 0x20, 0x70, 0x61,
+        0x74, 0x74, 0x65, 0x72, 0x6e, 0x73, 0x20, 0x62, 0x65, 0x74, 0x77, 0x65, 0x65, 0x6e, 0x20,
+        0x6d, 0x75, 0x6c, 0x74, 0x69, 0x70, 0x6c, 0x65, 0x20, 0x63, 0x68, 0x75, 0x6e, 0x6b, 0x73,
+        0x21 }; /* end raw_eth_pkt */
 
-    return DetectContentLongPatternMatchTest(raw_eth_pkt, (uint16_t)sizeof(raw_eth_pkt),
-                             sig, sid);
+    return DetectContentLongPatternMatchTest(raw_eth_pkt, (uint16_t)sizeof(raw_eth_pkt), sig, sid);
 }
 
 /**
@@ -1177,7 +1180,7 @@ static int DetectContentLongPatternMatchTestWrp(const char *sig, uint32_t sid)
 static int DetectContentLongPatternMatchTest01(void)
 {
     const char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
-                " content:\"Hi, this is a big test\"; sid:1;)";
+                      " content:\"Hi, this is a big test\"; sid:1;)";
     return DetectContentLongPatternMatchTestWrp(sig, 1);
 }
 
@@ -1187,8 +1190,8 @@ static int DetectContentLongPatternMatchTest01(void)
 static int DetectContentLongPatternMatchTest02(void)
 {
     const char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
-                " content:\"Hi, this is a big test to check content matches of"
-                " splitted patterns between multiple chunks!\"; sid:1;)";
+                      " content:\"Hi, this is a big test to check content matches of"
+                      " splitted patterns between multiple chunks!\"; sid:1;)";
     return DetectContentLongPatternMatchTestWrp(sig, 1);
 }
 
@@ -1200,9 +1203,9 @@ static int DetectContentLongPatternMatchTest03(void)
 {
     /** The last chunk of the content should not match */
     const char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
-                " content:\"Hi, this is a big test to check content matches of"
-                " splitted patterns between multiple splitted chunks!\"; sid:1;)";
-    return (DetectContentLongPatternMatchTestWrp(sig, 1) == 0) ? 1: 0;
+                      " content:\"Hi, this is a big test to check content matches of"
+                      " splitted patterns between multiple splitted chunks!\"; sid:1;)";
+    return (DetectContentLongPatternMatchTestWrp(sig, 1) == 0) ? 1 : 0;
 }
 
 /**
@@ -1211,11 +1214,11 @@ static int DetectContentLongPatternMatchTest03(void)
 static int DetectContentLongPatternMatchTest04(void)
 {
     const char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
-                " content:\"Hi, this is\"; depth:15 ;content:\"a big test\"; "
-                " within:15; content:\"to check content matches of\"; "
-                " within:30; content:\"splitted patterns\"; distance:1; "
-                " within:30; "
-                " sid:1;)";
+                      " content:\"Hi, this is\"; depth:15 ;content:\"a big test\"; "
+                      " within:15; content:\"to check content matches of\"; "
+                      " within:30; content:\"splitted patterns\"; distance:1; "
+                      " within:30; "
+                      " sid:1;)";
     return DetectContentLongPatternMatchTestWrp(sig, 1);
 }
 
@@ -1227,15 +1230,15 @@ static int DetectContentLongPatternMatchTest04(void)
 static int DetectContentLongPatternMatchTest05(void)
 {
     const char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
-                " content:\"Hi, this is a big\"; depth:17; "
-                " isdataat:30, relative; "
-                " content:\"test\"; within: 5; distance:1; "
-                " isdataat:15, relative; "
-                " content:\"of splitted\"; within:37; distance:15; "
-                " isdataat:20,relative; "
-                " content:\"patterns\"; within:9; distance:1; "
-                " isdataat:10, relative; "
-                " sid:1;)";
+                      " content:\"Hi, this is a big\"; depth:17; "
+                      " isdataat:30, relative; "
+                      " content:\"test\"; within: 5; distance:1; "
+                      " isdataat:15, relative; "
+                      " content:\"of splitted\"; within:37; distance:15; "
+                      " isdataat:20,relative; "
+                      " content:\"patterns\"; within:9; distance:1; "
+                      " isdataat:10, relative; "
+                      " sid:1;)";
     return DetectContentLongPatternMatchTestWrp(sig, 1);
 }
 
@@ -1247,12 +1250,12 @@ static int DetectContentLongPatternMatchTest05(void)
 static int DetectContentLongPatternMatchTest06(void)
 {
     const char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
-                " content:\"Hi, this is a big test to check cont\"; depth:36;"
-                " content:\"ent matches\"; within:11; distance:0; "
-                " content:\"of splitted patterns between multiple\"; "
-                " within:38; distance:1; "
-                " content:\"chunks!\"; within: 8; distance:1; "
-                " sid:1;)";
+                      " content:\"Hi, this is a big test to check cont\"; depth:36;"
+                      " content:\"ent matches\"; within:11; distance:0; "
+                      " content:\"of splitted patterns between multiple\"; "
+                      " within:38; distance:1; "
+                      " content:\"chunks!\"; within: 8; distance:1; "
+                      " sid:1;)";
     return DetectContentLongPatternMatchTestWrp(sig, 1);
 }
 
@@ -1263,11 +1266,11 @@ static int DetectContentLongPatternMatchTest06(void)
 static int DetectContentLongPatternMatchTest07(void)
 {
     const char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
-                " content:\"chunks!\"; "
-                " content:\"content matches\"; offset:32; depth:47; "
-                " content:\"of splitted patterns between multiple\"; "
-                " content:\"Hi, this is a big\"; offset:0; depth:17; "
-                " sid:1;)";
+                      " content:\"chunks!\"; "
+                      " content:\"content matches\"; offset:32; depth:47; "
+                      " content:\"of splitted patterns between multiple\"; "
+                      " content:\"Hi, this is a big\"; offset:0; depth:17; "
+                      " sid:1;)";
     return DetectContentLongPatternMatchTestWrp(sig, 1);
 }
 
@@ -1278,12 +1281,12 @@ static int DetectContentLongPatternMatchTest07(void)
 static int DetectContentLongPatternMatchTest08(void)
 {
     const char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
-                " content:\"ent matches\"; "
-                " content:\"of splitted patterns between multiple\"; "
-                " within:38; distance:1; "
-                " content:\"chunks!\"; within: 8; distance:1; "
-                " content:\"Hi, this is a big test to check cont\"; depth:36;"
-                " sid:1;)";
+                      " content:\"ent matches\"; "
+                      " content:\"of splitted patterns between multiple\"; "
+                      " within:38; distance:1; "
+                      " content:\"chunks!\"; within: 8; distance:1; "
+                      " content:\"Hi, this is a big test to check cont\"; depth:36;"
+                      " sid:1;)";
     return DetectContentLongPatternMatchTestWrp(sig, 1);
 }
 
@@ -1294,13 +1297,13 @@ static int DetectContentLongPatternMatchTest08(void)
 static int DetectContentLongPatternMatchTest09(void)
 {
     const char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
-                " content:\"ent matches\"; "
-                " content:\"of splitted patterns between multiple\"; "
-                " offset:47; depth:85; "
-                " content:\"chunks!\"; within: 8; distance:1; "
-                " content:\"Hi, this is a big test to chec\"; depth:36;"
-                " content:\"k cont\"; distance:0; within:6;"
-                " sid:1;)";
+                      " content:\"ent matches\"; "
+                      " content:\"of splitted patterns between multiple\"; "
+                      " offset:47; depth:85; "
+                      " content:\"chunks!\"; within: 8; distance:1; "
+                      " content:\"Hi, this is a big test to chec\"; depth:36;"
+                      " content:\"k cont\"; distance:0; within:6;"
+                      " sid:1;)";
     return DetectContentLongPatternMatchTestWrp(sig, 1);
 }
 
@@ -1310,9 +1313,9 @@ static int DetectContentLongPatternMatchTest09(void)
 static int DetectContentLongPatternMatchTest10(void)
 {
     const char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
-                " content:\"Hi, this is a big test to check \"; "
-                " content:\"con\"; "
-                " sid:1;)";
+                      " content:\"Hi, this is a big test to check \"; "
+                      " content:\"con\"; "
+                      " sid:1;)";
     return DetectContentLongPatternMatchTestWrp(sig, 1);
 }
 
@@ -1322,9 +1325,9 @@ static int DetectContentLongPatternMatchTest10(void)
 static int DetectContentLongPatternMatchTest11(void)
 {
     const char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
-                " content:\"H\"; "
-                " content:\"i\"; "
-                " sid:1;)";
+                      " content:\"H\"; "
+                      " content:\"i\"; "
+                      " sid:1;)";
     return DetectContentLongPatternMatchTestWrp(sig, 1);
 }
 
@@ -1352,7 +1355,7 @@ static int DetectContentParseTest17(void)
 {
     int result = 0;
     const char *sigstr = "alert tcp any any -> any any (msg:\"Dummy\"; "
-        "content:\"one\"; content:\"two\"; within:2; sid:1;)";
+                         "content:\"one\"; content:\"two\"; within:2; sid:1;)";
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1488,9 +1491,8 @@ static int DetectContentParseTest20(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; content:\"\"; sid:238012;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert udp any any -> any any "
+                                       "(msg:\"test\"; content:\"\"; sid:238012;)");
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -1514,9 +1516,8 @@ static int DetectContentParseTest21(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; content:\"; sid:238012;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert udp any any -> any any "
+                                       "(msg:\"test\"; content:\"; sid:238012;)");
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -1540,9 +1541,8 @@ static int DetectContentParseTest22(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; content:\"boo; sid:238012;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert udp any any -> any any "
+                                       "(msg:\"test\"; content:\"boo; sid:238012;)");
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -1566,9 +1566,8 @@ static int DetectContentParseTest23(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; content:boo\"; sid:238012;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert udp any any -> any any "
+                                       "(msg:\"test\"; content:boo\"; sid:238012;)");
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -1594,9 +1593,8 @@ static int DetectContentParseTest24(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    s = de_ctx->sig_list = SigInit(de_ctx,
-                                   "alert udp any any -> any any "
-                                   "(msg:\"test\"; content:    !\"boo\"; sid:238012;)");
+    s = de_ctx->sig_list = SigInit(de_ctx, "alert udp any any -> any any "
+                                           "(msg:\"test\"; content:    !\"boo\"; sid:238012;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL: ");
         result = 0;
@@ -1631,9 +1629,8 @@ static int DetectContentParseTest25(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; content:\"|\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert udp any any -> any any "
+                                       "(msg:\"test\"; content:\"|\"; sid:1;)");
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -1657,9 +1654,8 @@ static int DetectContentParseTest26(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; content:\"|af\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert udp any any -> any any "
+                                       "(msg:\"test\"; content:\"|af\"; sid:1;)");
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -1683,9 +1679,8 @@ static int DetectContentParseTest27(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; content:\"af|\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert udp any any -> any any "
+                                       "(msg:\"test\"; content:\"af|\"; sid:1;)");
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -1709,9 +1704,8 @@ static int DetectContentParseTest28(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; content:\"|af|\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert udp any any -> any any "
+                                       "(msg:\"test\"; content:\"|af|\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -1735,9 +1729,8 @@ static int DetectContentParseTest29(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; content:\"aast|\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert udp any any -> any any "
+                                       "(msg:\"test\"; content:\"aast|\"; sid:1;)");
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -1761,9 +1754,8 @@ static int DetectContentParseTest30(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; content:\"aast|af\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert udp any any -> any any "
+                                       "(msg:\"test\"; content:\"aast|af\"; sid:1;)");
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -1787,9 +1779,8 @@ static int DetectContentParseTest31(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; content:\"aast|af|\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert udp any any -> any any "
+                                       "(msg:\"test\"; content:\"aast|af|\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -1813,9 +1804,8 @@ static int DetectContentParseTest32(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; content:\"|af|asdf\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert udp any any -> any any "
+                                       "(msg:\"test\"; content:\"|af|asdf\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -1839,9 +1829,8 @@ static int DetectContentParseTest33(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; content:\"|af|af|\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert udp any any -> any any "
+                                       "(msg:\"test\"; content:\"|af|af|\"; sid:1;)");
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -1865,9 +1854,8 @@ static int DetectContentParseTest34(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; content:\"|af|af|af\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert udp any any -> any any "
+                                       "(msg:\"test\"; content:\"|af|af|af\"; sid:1;)");
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -1891,9 +1879,8 @@ static int DetectContentParseTest35(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; content:\"|af|af|af|\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert udp any any -> any any "
+                                       "(msg:\"test\"; content:\"|af|af|af|\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -2081,9 +2068,8 @@ static int DetectContentParseTest45(void)
     FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"test\"; content:\"|ff|\" content:\"TEST\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                                       "(msg:\"test\"; content:\"|ff|\" content:\"TEST\"; sid:1;)");
     FAIL_IF_NOT_NULL(de_ctx->sig_list);
 
     DetectEngineCtxFree(de_ctx);
@@ -2141,10 +2127,10 @@ end:
 static int SigTest41TestNegatedContent(void)
 {
     return SigTestPositiveTestContent("alert tcp any any -> any any "
-            "(msg:\"HTTP URI cap\"; content:!\"GES\"; sid:1;)",
+                                      "(msg:\"HTTP URI cap\"; content:!\"GES\"; sid:1;)",
 
             (uint8_t *)"GET /one/ HTTP/1.1\r\n Host: one.example.org\r\n\r\n\r\n"
-            "GET /two/ HTTP/1.1\r\nHost: two.example.org\r\n\r\n\r\n");
+                       "GET /two/ HTTP/1.1\r\nHost: two.example.org\r\n\r\n\r\n");
 }
 
 /**
@@ -2154,10 +2140,12 @@ static int SigTest41TestNegatedContent(void)
  */
 static int SigTest41aTestNegatedContent(void)
 {
-    (void)SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; flow:to_server; content:\"GET\"; sid:1;)", (uint8_t *)"GET /one/ HTTP/1.1\r\n Host: one.example.org\r\n\r\n\r\nGET /two/ HTTP/1.1\r\nHost: two.example.org\r\n\r\n\r\n");
+    (void)SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; "
+                                     "flow:to_server; content:\"GET\"; sid:1;)",
+            (uint8_t *)"GET /one/ HTTP/1.1\r\n Host: one.example.org\r\n\r\n\r\nGET /two/ "
+                       "HTTP/1.1\r\nHost: two.example.org\r\n\r\n\r\n");
     return 1;
 }
-
 
 /**
  * \test A positive test that checks that the content string doesn't contain
@@ -2275,7 +2263,10 @@ static int SigTest50TestNegatedContent(void)
  */
 static int SigTest51TestNegatedContent(void)
 {
-    return SigTestNegativeTestContent("alert tcp any any -> any any (content:\"GET\"; content:!\"Host\"; distance:17; sid:1;)", (uint8_t *)"GET /one/ HTTP/1.1\r\nHost: one.example.org\r\n\r\n\r\nGET /two/ HTTP/1.1\r\nHost: two.example.org\r\n\r\n\r\n");
+    return SigTestNegativeTestContent("alert tcp any any -> any any (content:\"GET\"; "
+                                      "content:!\"Host\"; distance:17; sid:1;)",
+            (uint8_t *)"GET /one/ HTTP/1.1\r\nHost: one.example.org\r\n\r\n\r\nGET /two/ "
+                       "HTTP/1.1\r\nHost: two.example.org\r\n\r\n\r\n");
 }
 
 /**
@@ -2484,19 +2475,23 @@ static int SigTest73TestNegatedContent(void)
 
 static int SigTest74TestNegatedContent(void)
 {
-    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"USER\"; content:!\"PASS\"; sid:1;)",  (uint8_t *)"USER apple");
+    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; "
+                                      "content:\"USER\"; content:!\"PASS\"; sid:1;)",
+            (uint8_t *)"USER apple");
 }
 
 static int SigTest75TestNegatedContent(void)
 {
-    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"USER\"; content:\"!PASS\"; sid:1;)",  (uint8_t *)"USER !PASS");
+    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; "
+                                      "content:\"USER\"; content:\"!PASS\"; sid:1;)",
+            (uint8_t *)"USER !PASS");
 }
 
 static int SigTest76TestBug134(void)
 {
     uint8_t *buf = (uint8_t *)"test detect ${IFS} in traffic";
     uint16_t buflen = strlen((char *)buf);
-    Packet *p = UTHBuildPacket( buf, buflen, IPPROTO_TCP);
+    Packet *p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
     int result = 0;
     Flow f;
 
@@ -2510,8 +2505,8 @@ static int SigTest76TestBug134(void)
     p->flags |= PKT_HAS_FLOW;
 
     char sig[] = "alert tcp any any -> any 515 "
-            "(msg:\"detect IFS\"; flow:to_server,established; content:\"${IFS}\";"
-            " depth:50; offset:0; sid:900091; rev:1;)";
+                 "(msg:\"detect IFS\"; flow:to_server,established; content:\"${IFS}\";"
+                 " depth:50; offset:0; sid:900091; rev:1;)";
     if (UTHPacketMatchSigMpm(p, sig, MPM_AC) == 0) {
         result = 0;
         goto end;
@@ -2528,17 +2523,16 @@ end:
 
 static int SigTest77TestBug139(void)
 {
-    uint8_t buf[] = {
-        0x12, 0x23, 0x34, 0x35, 0x52, 0x52, 0x24, 0x42, 0x22, 0x24,
-        0x52, 0x24, 0x82, 0x00, 0x00, 0x00, 0x00, 0x00, 0x24, 0x34 };
+    uint8_t buf[] = { 0x12, 0x23, 0x34, 0x35, 0x52, 0x52, 0x24, 0x42, 0x22, 0x24, 0x52, 0x24, 0x82,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x24, 0x34 };
     uint16_t buflen = sizeof(buf);
-    Packet *p = UTHBuildPacket( buf, buflen, IPPROTO_UDP);
+    Packet *p = UTHBuildPacket(buf, buflen, IPPROTO_UDP);
     int result = 0;
 
     p->dp = 53;
     char sig[] = "alert udp any any -> any 53 (msg:\"dns testing\";"
-                    " content:\"|00 00|\"; depth:5; offset:13; sid:9436601;"
-                    " rev:1;)";
+                 " content:\"|00 00|\"; depth:5; offset:13; sid:9436601;"
+                 " rev:1;)";
     if (UTHPacketMatchSigMpm(p, sig, MPM_AC) == 0) {
         result = 0;
         goto end;
@@ -2554,110 +2548,69 @@ end:
 static int DetectLongContentTestCommon(const char *sig, uint32_t sid)
 {
     /* Packet with 512 A's in it for testing long content. */
-    static uint8_t pkt[739] = {
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x08, 0x00, 0x45, 0x00,
-        0x02, 0xd5, 0x4a, 0x18, 0x40, 0x00, 0x40, 0x06,
-        0xd7, 0xd6, 0x0a, 0x10, 0x01, 0x0b, 0x0a, 0x10,
-        0x01, 0x0a, 0xdb, 0x36, 0x00, 0x50, 0xca, 0xc5,
-        0xcc, 0xd1, 0x95, 0x77, 0x0f, 0x7d, 0x80, 0x18,
-        0x00, 0xe5, 0x77, 0x9d, 0x00, 0x00, 0x01, 0x01,
-        0x08, 0x0a, 0x1d, 0xe0, 0x86, 0xc6, 0xfc, 0x73,
-        0x49, 0xf3, 0x50, 0x4f, 0x53, 0x54, 0x20, 0x2f,
-        0x20, 0x48, 0x54, 0x54, 0x50, 0x2f, 0x31, 0x2e,
-        0x31, 0x0d, 0x0a, 0x55, 0x73, 0x65, 0x72, 0x2d,
-        0x41, 0x67, 0x65, 0x6e, 0x74, 0x3a, 0x20, 0x63,
-        0x75, 0x72, 0x6c, 0x2f, 0x37, 0x2e, 0x33, 0x37,
-        0x2e, 0x30, 0x0d, 0x0a, 0x48, 0x6f, 0x73, 0x74,
-        0x3a, 0x20, 0x31, 0x30, 0x2e, 0x31, 0x36, 0x2e,
-        0x31, 0x2e, 0x31, 0x30, 0x0d, 0x0a, 0x41, 0x63,
-        0x63, 0x65, 0x70, 0x74, 0x3a, 0x20, 0x2a, 0x2f,
-        0x2a, 0x0d, 0x0a, 0x43, 0x6f, 0x6e, 0x74, 0x65,
-        0x6e, 0x74, 0x2d, 0x4c, 0x65, 0x6e, 0x67, 0x74,
-        0x68, 0x3a, 0x20, 0x35, 0x32, 0x38, 0x0d, 0x0a,
-        0x43, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x2d,
-        0x54, 0x79, 0x70, 0x65, 0x3a, 0x20, 0x61, 0x70,
-        0x70, 0x6c, 0x69, 0x63, 0x61, 0x74, 0x69, 0x6f,
-        0x6e, 0x2f, 0x78, 0x2d, 0x77, 0x77, 0x77, 0x2d,
-        0x66, 0x6f, 0x72, 0x6d, 0x2d, 0x75, 0x72, 0x6c,
-        0x65, 0x6e, 0x63, 0x6f, 0x64, 0x65, 0x64, 0x0d,
-        0x0a, 0x0d, 0x0a, 0x58, 0x58, 0x58, 0x58, 0x58,
-        0x58, 0x58, 0x58, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-        0x41, 0x41, 0x41, 0x58, 0x58, 0x58, 0x58, 0x58,
-        0x58, 0x58, 0x58
-    };
+    static uint8_t pkt[739] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x08, 0x00, 0x45, 0x00, 0x02, 0xd5, 0x4a, 0x18, 0x40, 0x00, 0x40, 0x06, 0xd7, 0xd6,
+        0x0a, 0x10, 0x01, 0x0b, 0x0a, 0x10, 0x01, 0x0a, 0xdb, 0x36, 0x00, 0x50, 0xca, 0xc5, 0xcc,
+        0xd1, 0x95, 0x77, 0x0f, 0x7d, 0x80, 0x18, 0x00, 0xe5, 0x77, 0x9d, 0x00, 0x00, 0x01, 0x01,
+        0x08, 0x0a, 0x1d, 0xe0, 0x86, 0xc6, 0xfc, 0x73, 0x49, 0xf3, 0x50, 0x4f, 0x53, 0x54, 0x20,
+        0x2f, 0x20, 0x48, 0x54, 0x54, 0x50, 0x2f, 0x31, 0x2e, 0x31, 0x0d, 0x0a, 0x55, 0x73, 0x65,
+        0x72, 0x2d, 0x41, 0x67, 0x65, 0x6e, 0x74, 0x3a, 0x20, 0x63, 0x75, 0x72, 0x6c, 0x2f, 0x37,
+        0x2e, 0x33, 0x37, 0x2e, 0x30, 0x0d, 0x0a, 0x48, 0x6f, 0x73, 0x74, 0x3a, 0x20, 0x31, 0x30,
+        0x2e, 0x31, 0x36, 0x2e, 0x31, 0x2e, 0x31, 0x30, 0x0d, 0x0a, 0x41, 0x63, 0x63, 0x65, 0x70,
+        0x74, 0x3a, 0x20, 0x2a, 0x2f, 0x2a, 0x0d, 0x0a, 0x43, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74,
+        0x2d, 0x4c, 0x65, 0x6e, 0x67, 0x74, 0x68, 0x3a, 0x20, 0x35, 0x32, 0x38, 0x0d, 0x0a, 0x43,
+        0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x2d, 0x54, 0x79, 0x70, 0x65, 0x3a, 0x20, 0x61, 0x70,
+        0x70, 0x6c, 0x69, 0x63, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x2f, 0x78, 0x2d, 0x77, 0x77, 0x77,
+        0x2d, 0x66, 0x6f, 0x72, 0x6d, 0x2d, 0x75, 0x72, 0x6c, 0x65, 0x6e, 0x63, 0x6f, 0x64, 0x65,
+        0x64, 0x0d, 0x0a, 0x0d, 0x0a, 0x58, 0x58, 0x58, 0x58, 0x58, 0x58, 0x58, 0x58, 0x41, 0x41,
+        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+        0x58, 0x58, 0x58, 0x58, 0x58, 0x58, 0x58, 0x58 };
 
-    return DetectContentLongPatternMatchTest(pkt, (uint16_t)sizeof(pkt), sig,
-        sid);
+    return DetectContentLongPatternMatchTest(pkt, (uint16_t)sizeof(pkt), sig, sid);
 }
 
 static int DetectLongContentTest1(void)
 {
     /* Signature with 256 A's. */
-    const char *sig = "alert tcp any any -> any any (msg:\"Test Rule\"; content:\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"; sid:1;)";
+    const char *sig = "alert tcp any any -> any any (msg:\"Test Rule\"; "
+                      "content:"
+                      "\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"; sid:1;)";
 
     return DetectLongContentTestCommon(sig, 1);
 }
@@ -2665,7 +2618,15 @@ static int DetectLongContentTest1(void)
 static int DetectLongContentTest2(void)
 {
     /* Signature with 512 A's. */
-    const char *sig = "alert tcp any any -> any any (msg:\"Test Rule\"; content:\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"; sid:1;)";
+    const char *sig = "alert tcp any any -> any any (msg:\"Test Rule\"; "
+                      "content:"
+                      "\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"; sid:1;)";
 
     return DetectLongContentTestCommon(sig, 1);
 }
@@ -2673,7 +2634,15 @@ static int DetectLongContentTest2(void)
 static int DetectLongContentTest3(void)
 {
     /* Signature with 513 A's. */
-    const char *sig = "alert tcp any any -> any any (msg:\"Test Rule\"; content:\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"; sid:1;)";
+    const char *sig = "alert tcp any any -> any any (msg:\"Test Rule\"; "
+                      "content:"
+                      "\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"; sid:1;)";
 
     return !DetectLongContentTestCommon(sig, 1);
 }
@@ -2742,33 +2711,21 @@ static void DetectContentRegisterTests(void)
     UtRegisterTest("DetectContentParseTest45", DetectContentParseTest45);
 
     /* The reals */
-    UtRegisterTest("DetectContentLongPatternMatchTest01",
-                   DetectContentLongPatternMatchTest01);
-    UtRegisterTest("DetectContentLongPatternMatchTest02",
-                   DetectContentLongPatternMatchTest02);
-    UtRegisterTest("DetectContentLongPatternMatchTest03",
-                   DetectContentLongPatternMatchTest03);
-    UtRegisterTest("DetectContentLongPatternMatchTest04",
-                   DetectContentLongPatternMatchTest04);
-    UtRegisterTest("DetectContentLongPatternMatchTest05",
-                   DetectContentLongPatternMatchTest05);
-    UtRegisterTest("DetectContentLongPatternMatchTest06",
-                   DetectContentLongPatternMatchTest06);
-    UtRegisterTest("DetectContentLongPatternMatchTest07",
-                   DetectContentLongPatternMatchTest07);
-    UtRegisterTest("DetectContentLongPatternMatchTest08",
-                   DetectContentLongPatternMatchTest08);
-    UtRegisterTest("DetectContentLongPatternMatchTest09",
-                   DetectContentLongPatternMatchTest09);
-    UtRegisterTest("DetectContentLongPatternMatchTest10",
-                   DetectContentLongPatternMatchTest10);
-    UtRegisterTest("DetectContentLongPatternMatchTest11",
-                   DetectContentLongPatternMatchTest11);
+    UtRegisterTest("DetectContentLongPatternMatchTest01", DetectContentLongPatternMatchTest01);
+    UtRegisterTest("DetectContentLongPatternMatchTest02", DetectContentLongPatternMatchTest02);
+    UtRegisterTest("DetectContentLongPatternMatchTest03", DetectContentLongPatternMatchTest03);
+    UtRegisterTest("DetectContentLongPatternMatchTest04", DetectContentLongPatternMatchTest04);
+    UtRegisterTest("DetectContentLongPatternMatchTest05", DetectContentLongPatternMatchTest05);
+    UtRegisterTest("DetectContentLongPatternMatchTest06", DetectContentLongPatternMatchTest06);
+    UtRegisterTest("DetectContentLongPatternMatchTest07", DetectContentLongPatternMatchTest07);
+    UtRegisterTest("DetectContentLongPatternMatchTest08", DetectContentLongPatternMatchTest08);
+    UtRegisterTest("DetectContentLongPatternMatchTest09", DetectContentLongPatternMatchTest09);
+    UtRegisterTest("DetectContentLongPatternMatchTest10", DetectContentLongPatternMatchTest10);
+    UtRegisterTest("DetectContentLongPatternMatchTest11", DetectContentLongPatternMatchTest11);
 
     /* Negated content tests */
     UtRegisterTest("SigTest41TestNegatedContent", SigTest41TestNegatedContent);
-    UtRegisterTest("SigTest41aTestNegatedContent",
-                   SigTest41aTestNegatedContent);
+    UtRegisterTest("SigTest41aTestNegatedContent", SigTest41aTestNegatedContent);
     UtRegisterTest("SigTest42TestNegatedContent", SigTest42TestNegatedContent);
     UtRegisterTest("SigTest43TestNegatedContent", SigTest43TestNegatedContent);
     UtRegisterTest("SigTest44TestNegatedContent", SigTest44TestNegatedContent);

@@ -136,8 +136,7 @@ static int DNP3ReadUint24(const uint8_t **buf, uint32_t *len, uint32_t *out)
     }
 
 #if __BYTE_ORDER__ == __BIG_ENDIAN
-    *out = ((uint32_t)(*buf)[0] << 16) | ((uint32_t)(*buf)[1] << 8) |
-           (uint32_t)(*buf)[2];
+    *out = ((uint32_t)(*buf)[0] << 16) | ((uint32_t)(*buf)[1] << 8) | (uint32_t)(*buf)[2];
 #elif __BYTE_ORDER == __LITTLE_ENDIAN
     *out = ((uint32_t)(*buf)[0]) | ((uint32_t)(*buf)[1] << 8) | ((uint32_t)(*buf)[2] << 16);
 #endif
@@ -192,13 +191,11 @@ static int DNP3ReadUint48(const uint8_t **buf, uint32_t *len, uint64_t *out)
     }
 
 #if __BYTE_ORDER__ == __BIG_ENDIAN
-    *out = ((uint64_t)(*buf)[0] << 40) | ((uint64_t)(*buf)[1] << 32) |
-           ((uint64_t)(*buf)[2] << 24) | ((uint64_t)(*buf)[3] << 16) |
-           ((uint64_t)(*buf)[4] << 8) | (uint64_t)(*buf)[5];
+    *out = ((uint64_t)(*buf)[0] << 40) | ((uint64_t)(*buf)[1] << 32) | ((uint64_t)(*buf)[2] << 24) |
+           ((uint64_t)(*buf)[3] << 16) | ((uint64_t)(*buf)[4] << 8) | (uint64_t)(*buf)[5];
 #elif __BYTE_ORDER == __LITTLE_ENDIAN
-    *out = ((uint64_t)(*buf)[0]) | ((uint64_t)(*buf)[1] << 8) |
-           ((uint64_t)(*buf)[2] << 16) | ((uint64_t)(*buf)[3] << 24) |
-           ((uint64_t)(*buf)[4] << 32) | ((uint64_t)(*buf)[5] << 40);
+    *out = ((uint64_t)(*buf)[0]) | ((uint64_t)(*buf)[1] << 8) | ((uint64_t)(*buf)[2] << 16) |
+           ((uint64_t)(*buf)[3] << 24) | ((uint64_t)(*buf)[4] << 32) | ((uint64_t)(*buf)[5] << 40);
 #endif
 
     *buf += 6;
@@ -290,8 +287,7 @@ static int DNP3ReadFloat64(const uint8_t **buf, uint32_t *len, double *out)
 /**
  * \brief Get the prefix value and advance the buffer.
  */
-static int DNP3ReadPrefix(
-    const uint8_t **buf, uint32_t *len, uint8_t prefix_code, uint32_t *out)
+static int DNP3ReadPrefix(const uint8_t **buf, uint32_t *len, uint8_t prefix_code, uint32_t *out)
 {
     uint8_t prefix_len = 0;
 
@@ -353,7 +349,7 @@ static int DNP3ReadPrefix(
  * \retval 1 if successful, 0 on failure.
  */
 static int DNP3AddPoint(DNP3PointList *list, void *object, uint32_t point_index,
-    uint8_t prefix_code, uint32_t prefix)
+        uint8_t prefix_code, uint32_t prefix)
 {
     DNP3Point *point = SCCalloc(1, sizeof(*point));
     if (unlikely(point == NULL)) {
@@ -389,9 +385,8 @@ static int DNP3AddPoint(DNP3PointList *list, void *object, uint32_t point_index,
  *     ./scripts/dnp3-gen/dnp3-gen.py
  */
 
-static int DNP3DecodeObjectG1V1(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG1V1(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG1V1 *object = NULL;
     uint32_t bytes = (count / 8) + 1;
@@ -427,7 +422,6 @@ static int DNP3DecodeObjectG1V1(const uint8_t **buf, uint32_t *len,
             count--;
             point_index++;
         }
-
     }
 
     return 1;
@@ -438,15 +432,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG1V2(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG1V2(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG1V2 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -492,15 +485,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG2V1(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG2V1(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG2V1 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -535,15 +527,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG2V2(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG2V2(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG2V2 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -592,15 +583,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG2V3(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG2V3(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG2V3 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -649,9 +639,8 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG3V1(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG3V1(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG3V1 *object = NULL;
     uint32_t bytes = (count / 8) + 1;
@@ -687,7 +676,6 @@ static int DNP3DecodeObjectG3V1(const uint8_t **buf, uint32_t *len,
             count--;
             point_index++;
         }
-
     }
 
     return 1;
@@ -698,15 +686,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG3V2(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG3V2(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG3V2 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -751,15 +738,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG4V1(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG4V1(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG4V1 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -804,15 +790,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG4V2(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG4V2(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG4V2 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -860,15 +845,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG4V3(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG4V3(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG4V3 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -916,9 +900,8 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG10V1(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG10V1(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG10V1 *object = NULL;
     uint32_t bytes = (count / 8) + 1;
@@ -954,7 +937,6 @@ static int DNP3DecodeObjectG10V1(const uint8_t **buf, uint32_t *len,
             count--;
             point_index++;
         }
-
     }
 
     return 1;
@@ -965,15 +947,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG10V2(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG10V2(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG10V2 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -1019,15 +1000,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG11V1(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG11V1(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG11V1 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -1073,15 +1053,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG11V2(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG11V2(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG11V2 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -1130,15 +1109,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG12V1(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG12V1(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG12V1 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -1197,15 +1175,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG12V2(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG12V2(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG12V2 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -1264,9 +1241,8 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG12V3(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG12V3(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG12V3 *object = NULL;
     uint32_t bytes = (count / 8) + 1;
@@ -1302,7 +1278,6 @@ static int DNP3DecodeObjectG12V3(const uint8_t **buf, uint32_t *len,
             count--;
             point_index++;
         }
-
     }
 
     return 1;
@@ -1313,15 +1288,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG13V1(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG13V1(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG13V1 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -1361,15 +1335,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG13V2(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG13V2(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG13V2 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -1412,15 +1385,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG20V1(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG20V1(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG20V1 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -1469,15 +1441,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG20V2(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG20V2(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG20V2 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -1526,15 +1497,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG20V3(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG20V3(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG20V3 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -1583,15 +1553,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG20V4(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG20V4(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG20V4 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -1640,15 +1609,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG20V5(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG20V5(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG20V5 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -1683,15 +1651,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG20V6(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG20V6(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG20V6 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -1726,15 +1693,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG20V7(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG20V7(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG20V7 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -1769,15 +1735,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG20V8(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG20V8(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG20V8 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -1812,15 +1777,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG21V1(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG21V1(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG21V1 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -1869,15 +1833,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG21V2(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG21V2(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG21V2 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -1926,15 +1889,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG21V3(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG21V3(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG21V3 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -1983,15 +1945,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG21V4(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG21V4(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG21V4 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -2040,15 +2001,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG21V5(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG21V5(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG21V5 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -2100,15 +2060,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG21V6(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG21V6(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG21V6 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -2160,15 +2119,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG21V7(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG21V7(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG21V7 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -2220,15 +2178,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG21V8(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG21V8(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG21V8 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -2280,15 +2237,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG21V9(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG21V9(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG21V9 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -2323,15 +2279,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG21V10(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG21V10(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG21V10 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -2366,15 +2321,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG21V11(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG21V11(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG21V11 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -2409,15 +2363,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG21V12(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG21V12(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG21V12 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -2452,15 +2405,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG22V1(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG22V1(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG22V1 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -2509,15 +2461,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG22V2(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG22V2(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG22V2 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -2566,15 +2517,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG22V3(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG22V3(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG22V3 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -2623,15 +2573,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG22V4(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG22V4(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG22V4 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -2680,15 +2629,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG22V5(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG22V5(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG22V5 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -2740,15 +2688,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG22V6(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG22V6(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG22V6 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -2800,15 +2747,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG22V7(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG22V7(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG22V7 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -2860,15 +2806,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG22V8(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG22V8(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG22V8 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -2920,15 +2865,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG23V1(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG23V1(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG23V1 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -2977,15 +2921,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG23V2(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG23V2(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG23V2 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -3034,15 +2977,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG23V3(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG23V3(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG23V3 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -3091,15 +3033,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG23V4(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG23V4(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG23V4 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -3148,15 +3089,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG23V5(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG23V5(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG23V5 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -3208,15 +3148,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG23V6(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG23V6(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG23V6 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -3268,15 +3207,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG23V7(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG23V7(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG23V7 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -3328,15 +3266,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG23V8(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG23V8(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG23V8 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -3388,15 +3325,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG30V1(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG30V1(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG30V1 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -3445,15 +3381,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG30V2(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG30V2(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG30V2 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -3502,15 +3437,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG30V3(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG30V3(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG30V3 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -3545,15 +3479,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG30V4(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG30V4(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG30V4 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -3588,15 +3521,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG30V5(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG30V5(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG30V5 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -3645,15 +3577,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG30V6(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG30V6(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG30V6 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -3702,15 +3633,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG31V1(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG31V1(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG31V1 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -3759,15 +3689,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG31V2(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG31V2(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG31V2 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -3816,15 +3745,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG31V3(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG31V3(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG31V3 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -3876,15 +3804,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG31V4(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG31V4(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG31V4 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -3936,15 +3863,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG31V5(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG31V5(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG31V5 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -3979,15 +3905,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG31V6(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG31V6(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG31V6 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -4022,15 +3947,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG31V7(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG31V7(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG31V7 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -4079,15 +4003,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG31V8(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG31V8(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG31V8 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -4136,15 +4059,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG32V1(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG32V1(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG32V1 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -4193,15 +4115,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG32V2(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG32V2(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG32V2 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -4250,15 +4171,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG32V3(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG32V3(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG32V3 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -4310,15 +4230,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG32V4(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG32V4(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG32V4 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -4370,15 +4289,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG32V5(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG32V5(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG32V5 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -4427,15 +4345,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG32V6(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG32V6(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG32V6 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -4484,15 +4401,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG32V7(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG32V7(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG32V7 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -4544,15 +4460,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG32V8(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG32V8(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG32V8 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -4604,15 +4519,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG33V1(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG33V1(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG33V1 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -4661,15 +4575,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG33V2(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG33V2(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG33V2 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -4718,15 +4631,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG33V3(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG33V3(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG33V3 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -4778,15 +4690,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG33V4(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG33V4(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG33V4 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -4838,15 +4749,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG33V5(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG33V5(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG33V5 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -4895,15 +4805,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG33V6(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG33V6(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG33V6 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -4952,15 +4861,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG33V7(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG33V7(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG33V7 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -5012,15 +4920,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG33V8(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG33V8(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG33V8 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -5072,15 +4979,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG34V1(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG34V1(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG34V1 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -5115,15 +5021,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG34V2(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG34V2(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG34V2 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -5158,15 +5063,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG34V3(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG34V3(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG34V3 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -5201,15 +5105,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG40V1(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG40V1(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG40V1 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -5258,15 +5161,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG40V2(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG40V2(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG40V2 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -5315,15 +5217,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG40V3(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG40V3(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG40V3 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -5372,15 +5273,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG40V4(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG40V4(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG40V4 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -5429,15 +5329,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG41V1(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG41V1(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG41V1 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -5475,15 +5374,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG41V2(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG41V2(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG41V2 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -5521,15 +5419,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG41V3(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG41V3(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG41V3 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -5567,15 +5464,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG41V4(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG41V4(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG41V4 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -5613,15 +5509,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG42V1(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG42V1(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG42V1 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -5670,15 +5565,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG42V2(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG42V2(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG42V2 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -5727,15 +5621,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG42V3(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG42V3(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG42V3 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -5787,15 +5680,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG42V4(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG42V4(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG42V4 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -5847,15 +5739,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG42V5(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG42V5(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG42V5 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -5904,15 +5795,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG42V6(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG42V6(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG42V6 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -5961,15 +5851,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG42V7(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG42V7(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG42V7 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -6021,15 +5910,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG42V8(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG42V8(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG42V8 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -6081,15 +5969,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG43V1(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG43V1(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG43V1 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -6132,15 +6019,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG43V2(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG43V2(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG43V2 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -6183,15 +6069,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG43V3(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG43V3(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG43V3 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -6237,15 +6122,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG43V4(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG43V4(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG43V4 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -6291,15 +6175,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG43V5(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG43V5(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG43V5 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -6342,15 +6225,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG43V6(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG43V6(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG43V6 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -6393,15 +6275,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG43V7(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG43V7(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG43V7 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -6447,15 +6328,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG43V8(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG43V8(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG43V8 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -6501,15 +6381,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG50V1(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG50V1(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG50V1 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -6544,15 +6423,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG50V2(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG50V2(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG50V2 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -6590,15 +6468,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG50V3(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG50V3(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG50V3 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -6633,15 +6510,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG50V4(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG50V4(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG50V4 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -6682,15 +6558,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG51V1(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG51V1(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG51V1 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -6725,15 +6600,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG51V2(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG51V2(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG51V2 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -6768,15 +6642,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG52V1(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG52V1(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG52V1 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -6811,15 +6684,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG52V2(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG52V2(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG52V2 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -6854,15 +6726,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG70V1(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG70V1(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG70V1 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -6956,15 +6827,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG70V2(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG70V2(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG70V2 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -7031,15 +6901,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG70V3(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG70V3(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG70V3 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -7108,9 +6977,8 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG70V4(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG70V4(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG70V4 *object = NULL;
     uint32_t prefix = 0;
@@ -7121,7 +6989,7 @@ static int DNP3DecodeObjectG70V4(const uint8_t **buf, uint32_t *len,
         goto error;
     }
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -7184,9 +7052,8 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG70V5(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG70V5(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG70V5 *object = NULL;
     uint32_t prefix = 0;
@@ -7197,7 +7064,7 @@ static int DNP3DecodeObjectG70V5(const uint8_t **buf, uint32_t *len,
         goto error;
     }
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -7251,9 +7118,8 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG70V6(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG70V6(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG70V6 *object = NULL;
     uint32_t prefix = 0;
@@ -7264,7 +7130,7 @@ static int DNP3DecodeObjectG70V6(const uint8_t **buf, uint32_t *len,
         goto error;
     }
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -7321,15 +7187,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG70V7(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG70V7(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG70V7 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -7392,9 +7257,8 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG70V8(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG70V8(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG70V8 *object = NULL;
     uint32_t prefix = 0;
@@ -7405,7 +7269,7 @@ static int DNP3DecodeObjectG70V8(const uint8_t **buf, uint32_t *len,
         goto error;
     }
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -7453,9 +7317,8 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG80V1(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG80V1(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG80V1 *object = NULL;
     uint32_t bytes = (count / 8) + 1;
@@ -7491,7 +7354,6 @@ static int DNP3DecodeObjectG80V1(const uint8_t **buf, uint32_t *len,
             count--;
             point_index++;
         }
-
     }
 
     return 1;
@@ -7502,15 +7364,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG81V1(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG81V1(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG81V1 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -7556,15 +7417,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG83V1(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG83V1(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG83V1 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -7625,15 +7485,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG86V2(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG86V2(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG86V2 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -7679,15 +7538,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG102V1(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG102V1(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG102V1 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -7722,9 +7580,8 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG120V1(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG120V1(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG120V1 *object = NULL;
     uint32_t prefix = 0;
@@ -7735,7 +7592,7 @@ static int DNP3DecodeObjectG120V1(const uint8_t **buf, uint32_t *len,
         goto error;
     }
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -7801,9 +7658,8 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG120V2(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG120V2(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG120V2 *object = NULL;
     uint32_t prefix = 0;
@@ -7814,7 +7670,7 @@ static int DNP3DecodeObjectG120V2(const uint8_t **buf, uint32_t *len,
         goto error;
     }
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -7874,15 +7730,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG120V3(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG120V3(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG120V3 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -7920,15 +7775,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG120V4(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG120V4(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG120V4 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -7963,9 +7817,8 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG120V5(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG120V5(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG120V5 *object = NULL;
     uint32_t prefix = 0;
@@ -7976,7 +7829,7 @@ static int DNP3DecodeObjectG120V5(const uint8_t **buf, uint32_t *len,
         goto error;
     }
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -8064,9 +7917,8 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG120V6(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG120V6(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG120V6 *object = NULL;
     uint32_t prefix = 0;
@@ -8077,7 +7929,7 @@ static int DNP3DecodeObjectG120V6(const uint8_t **buf, uint32_t *len,
         goto error;
     }
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -8137,9 +7989,8 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG120V7(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG120V7(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG120V7 *object = NULL;
     uint32_t prefix = 0;
@@ -8150,7 +8001,7 @@ static int DNP3DecodeObjectG120V7(const uint8_t **buf, uint32_t *len,
         goto error;
     }
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -8213,9 +8064,8 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG120V8(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG120V8(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG120V8 *object = NULL;
     uint32_t prefix = 0;
@@ -8226,7 +8076,7 @@ static int DNP3DecodeObjectG120V8(const uint8_t **buf, uint32_t *len,
         goto error;
     }
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -8286,16 +8136,15 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG120V9(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG120V9(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG120V9 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
     uint32_t offset;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -8349,9 +8198,8 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG120V10(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG120V10(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG120V10 *object = NULL;
     uint32_t prefix = 0;
@@ -8361,7 +8209,7 @@ static int DNP3DecodeObjectG120V10(const uint8_t **buf, uint32_t *len,
         goto error;
     }
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -8459,9 +8307,8 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG120V11(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG120V11(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG120V11 *object = NULL;
     uint32_t prefix = 0;
@@ -8471,7 +8318,7 @@ static int DNP3DecodeObjectG120V11(const uint8_t **buf, uint32_t *len,
         goto error;
     }
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -8538,9 +8385,8 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG120V12(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG120V12(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG120V12 *object = NULL;
     uint32_t prefix = 0;
@@ -8550,7 +8396,7 @@ static int DNP3DecodeObjectG120V12(const uint8_t **buf, uint32_t *len,
         goto error;
     }
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -8607,9 +8453,8 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG120V13(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG120V13(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG120V13 *object = NULL;
     uint32_t prefix = 0;
@@ -8619,7 +8464,7 @@ static int DNP3DecodeObjectG120V13(const uint8_t **buf, uint32_t *len,
         goto error;
     }
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -8676,9 +8521,8 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG120V14(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG120V14(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG120V14 *object = NULL;
     uint32_t prefix = 0;
@@ -8689,7 +8533,7 @@ static int DNP3DecodeObjectG120V14(const uint8_t **buf, uint32_t *len,
         goto error;
     }
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -8743,9 +8587,8 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG120V15(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG120V15(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG120V15 *object = NULL;
     uint32_t prefix = 0;
@@ -8756,7 +8599,7 @@ static int DNP3DecodeObjectG120V15(const uint8_t **buf, uint32_t *len,
         goto error;
     }
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -8810,15 +8653,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG121V1(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG121V1(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG121V1 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -8870,15 +8712,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG122V1(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG122V1(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG122V1 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -8930,15 +8771,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG122V2(const uint8_t **buf, uint32_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG122V2(const uint8_t **buf, uint32_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG122V2 *object = NULL;
     uint32_t prefix = 0;
     uint32_t point_index = start;
 
-    if (*len < count/8) {
+    if (*len < count / 8) {
         goto error;
     }
     while (count--) {
@@ -8993,33 +8833,32 @@ error:
     return 0;
 }
 
-
 void DNP3FreeObjectPoint(int group, int variation, void *point)
 {
-    switch(DNP3_OBJECT_CODE(group, variation)) {
+    switch (DNP3_OBJECT_CODE(group, variation)) {
         case DNP3_OBJECT_CODE(83, 1): {
-            DNP3ObjectG83V1 *object = (DNP3ObjectG83V1 *) point;
+            DNP3ObjectG83V1 *object = (DNP3ObjectG83V1 *)point;
             if (object->data_objects != NULL) {
                 SCFree(object->data_objects);
             }
             break;
         }
         case DNP3_OBJECT_CODE(120, 1): {
-            DNP3ObjectG120V1 *object = (DNP3ObjectG120V1 *) point;
+            DNP3ObjectG120V1 *object = (DNP3ObjectG120V1 *)point;
             if (object->challenge_data != NULL) {
                 SCFree(object->challenge_data);
             }
             break;
         }
         case DNP3_OBJECT_CODE(120, 2): {
-            DNP3ObjectG120V2 *object = (DNP3ObjectG120V2 *) point;
+            DNP3ObjectG120V2 *object = (DNP3ObjectG120V2 *)point;
             if (object->mac_value != NULL) {
                 SCFree(object->mac_value);
             }
             break;
         }
         case DNP3_OBJECT_CODE(120, 5): {
-            DNP3ObjectG120V5 *object = (DNP3ObjectG120V5 *) point;
+            DNP3ObjectG120V5 *object = (DNP3ObjectG120V5 *)point;
             if (object->challenge_data != NULL) {
                 SCFree(object->challenge_data);
             }
@@ -9029,28 +8868,28 @@ void DNP3FreeObjectPoint(int group, int variation, void *point)
             break;
         }
         case DNP3_OBJECT_CODE(120, 6): {
-            DNP3ObjectG120V6 *object = (DNP3ObjectG120V6 *) point;
+            DNP3ObjectG120V6 *object = (DNP3ObjectG120V6 *)point;
             if (object->wrapped_key_data != NULL) {
                 SCFree(object->wrapped_key_data);
             }
             break;
         }
         case DNP3_OBJECT_CODE(120, 8): {
-            DNP3ObjectG120V8 *object = (DNP3ObjectG120V8 *) point;
+            DNP3ObjectG120V8 *object = (DNP3ObjectG120V8 *)point;
             if (object->certificate != NULL) {
                 SCFree(object->certificate);
             }
             break;
         }
         case DNP3_OBJECT_CODE(120, 9): {
-            DNP3ObjectG120V9 *object = (DNP3ObjectG120V9 *) point;
+            DNP3ObjectG120V9 *object = (DNP3ObjectG120V9 *)point;
             if (object->mac_value != NULL) {
                 SCFree(object->mac_value);
             }
             break;
         }
         case DNP3_OBJECT_CODE(120, 10): {
-            DNP3ObjectG120V10 *object = (DNP3ObjectG120V10 *) point;
+            DNP3ObjectG120V10 *object = (DNP3ObjectG120V10 *)point;
             if (object->user_public_key != NULL) {
                 SCFree(object->user_public_key);
             }
@@ -9060,35 +8899,35 @@ void DNP3FreeObjectPoint(int group, int variation, void *point)
             break;
         }
         case DNP3_OBJECT_CODE(120, 11): {
-            DNP3ObjectG120V11 *object = (DNP3ObjectG120V11 *) point;
+            DNP3ObjectG120V11 *object = (DNP3ObjectG120V11 *)point;
             if (object->master_challenge_data != NULL) {
                 SCFree(object->master_challenge_data);
             }
             break;
         }
         case DNP3_OBJECT_CODE(120, 12): {
-            DNP3ObjectG120V12 *object = (DNP3ObjectG120V12 *) point;
+            DNP3ObjectG120V12 *object = (DNP3ObjectG120V12 *)point;
             if (object->challenge_data != NULL) {
                 SCFree(object->challenge_data);
             }
             break;
         }
         case DNP3_OBJECT_CODE(120, 13): {
-            DNP3ObjectG120V13 *object = (DNP3ObjectG120V13 *) point;
+            DNP3ObjectG120V13 *object = (DNP3ObjectG120V13 *)point;
             if (object->encrypted_update_key_data != NULL) {
                 SCFree(object->encrypted_update_key_data);
             }
             break;
         }
         case DNP3_OBJECT_CODE(120, 14): {
-            DNP3ObjectG120V14 *object = (DNP3ObjectG120V14 *) point;
+            DNP3ObjectG120V14 *object = (DNP3ObjectG120V14 *)point;
             if (object->digital_signature != NULL) {
                 SCFree(object->digital_signature);
             }
             break;
         }
         case DNP3_OBJECT_CODE(120, 15): {
-            DNP3ObjectG120V15 *object = (DNP3ObjectG120V15 *) point;
+            DNP3ObjectG120V15 *object = (DNP3ObjectG120V15 *)point;
             if (object->mac != NULL) {
                 SCFree(object->mac);
             }
@@ -9106,616 +8945,464 @@ void DNP3FreeObjectPoint(int group, int variation, void *point)
  * \retval 0 on success. On failure a positive integer corresponding
  *     to a DNP3 application layer event will be returned.
  */
-int DNP3DecodeObject(int group, int variation, const uint8_t **buf,
-    uint32_t *len, uint8_t prefix_code, uint32_t start,
-    uint32_t count, DNP3PointList *points)
+int DNP3DecodeObject(int group, int variation, const uint8_t **buf, uint32_t *len,
+        uint8_t prefix_code, uint32_t start, uint32_t count, DNP3PointList *points)
 {
     int rc = 0;
 
     switch (DNP3_OBJECT_CODE(group, variation)) {
         case DNP3_OBJECT_CODE(1, 1):
-            rc = DNP3DecodeObjectG1V1(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG1V1(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(1, 2):
-            rc = DNP3DecodeObjectG1V2(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG1V2(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(2, 1):
-            rc = DNP3DecodeObjectG2V1(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG2V1(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(2, 2):
-            rc = DNP3DecodeObjectG2V2(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG2V2(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(2, 3):
-            rc = DNP3DecodeObjectG2V3(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG2V3(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(3, 1):
-            rc = DNP3DecodeObjectG3V1(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG3V1(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(3, 2):
-            rc = DNP3DecodeObjectG3V2(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG3V2(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(4, 1):
-            rc = DNP3DecodeObjectG4V1(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG4V1(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(4, 2):
-            rc = DNP3DecodeObjectG4V2(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG4V2(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(4, 3):
-            rc = DNP3DecodeObjectG4V3(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG4V3(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(10, 1):
-            rc = DNP3DecodeObjectG10V1(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG10V1(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(10, 2):
-            rc = DNP3DecodeObjectG10V2(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG10V2(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(11, 1):
-            rc = DNP3DecodeObjectG11V1(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG11V1(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(11, 2):
-            rc = DNP3DecodeObjectG11V2(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG11V2(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(12, 1):
-            rc = DNP3DecodeObjectG12V1(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG12V1(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(12, 2):
-            rc = DNP3DecodeObjectG12V2(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG12V2(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(12, 3):
-            rc = DNP3DecodeObjectG12V3(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG12V3(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(13, 1):
-            rc = DNP3DecodeObjectG13V1(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG13V1(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(13, 2):
-            rc = DNP3DecodeObjectG13V2(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG13V2(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(20, 1):
-            rc = DNP3DecodeObjectG20V1(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG20V1(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(20, 2):
-            rc = DNP3DecodeObjectG20V2(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG20V2(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(20, 3):
-            rc = DNP3DecodeObjectG20V3(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG20V3(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(20, 4):
-            rc = DNP3DecodeObjectG20V4(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG20V4(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(20, 5):
-            rc = DNP3DecodeObjectG20V5(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG20V5(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(20, 6):
-            rc = DNP3DecodeObjectG20V6(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG20V6(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(20, 7):
-            rc = DNP3DecodeObjectG20V7(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG20V7(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(20, 8):
-            rc = DNP3DecodeObjectG20V8(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG20V8(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(21, 1):
-            rc = DNP3DecodeObjectG21V1(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG21V1(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(21, 2):
-            rc = DNP3DecodeObjectG21V2(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG21V2(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(21, 3):
-            rc = DNP3DecodeObjectG21V3(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG21V3(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(21, 4):
-            rc = DNP3DecodeObjectG21V4(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG21V4(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(21, 5):
-            rc = DNP3DecodeObjectG21V5(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG21V5(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(21, 6):
-            rc = DNP3DecodeObjectG21V6(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG21V6(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(21, 7):
-            rc = DNP3DecodeObjectG21V7(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG21V7(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(21, 8):
-            rc = DNP3DecodeObjectG21V8(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG21V8(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(21, 9):
-            rc = DNP3DecodeObjectG21V9(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG21V9(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(21, 10):
-            rc = DNP3DecodeObjectG21V10(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG21V10(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(21, 11):
-            rc = DNP3DecodeObjectG21V11(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG21V11(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(21, 12):
-            rc = DNP3DecodeObjectG21V12(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG21V12(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(22, 1):
-            rc = DNP3DecodeObjectG22V1(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG22V1(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(22, 2):
-            rc = DNP3DecodeObjectG22V2(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG22V2(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(22, 3):
-            rc = DNP3DecodeObjectG22V3(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG22V3(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(22, 4):
-            rc = DNP3DecodeObjectG22V4(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG22V4(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(22, 5):
-            rc = DNP3DecodeObjectG22V5(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG22V5(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(22, 6):
-            rc = DNP3DecodeObjectG22V6(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG22V6(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(22, 7):
-            rc = DNP3DecodeObjectG22V7(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG22V7(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(22, 8):
-            rc = DNP3DecodeObjectG22V8(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG22V8(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(23, 1):
-            rc = DNP3DecodeObjectG23V1(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG23V1(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(23, 2):
-            rc = DNP3DecodeObjectG23V2(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG23V2(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(23, 3):
-            rc = DNP3DecodeObjectG23V3(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG23V3(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(23, 4):
-            rc = DNP3DecodeObjectG23V4(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG23V4(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(23, 5):
-            rc = DNP3DecodeObjectG23V5(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG23V5(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(23, 6):
-            rc = DNP3DecodeObjectG23V6(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG23V6(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(23, 7):
-            rc = DNP3DecodeObjectG23V7(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG23V7(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(23, 8):
-            rc = DNP3DecodeObjectG23V8(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG23V8(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(30, 1):
-            rc = DNP3DecodeObjectG30V1(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG30V1(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(30, 2):
-            rc = DNP3DecodeObjectG30V2(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG30V2(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(30, 3):
-            rc = DNP3DecodeObjectG30V3(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG30V3(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(30, 4):
-            rc = DNP3DecodeObjectG30V4(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG30V4(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(30, 5):
-            rc = DNP3DecodeObjectG30V5(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG30V5(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(30, 6):
-            rc = DNP3DecodeObjectG30V6(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG30V6(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(31, 1):
-            rc = DNP3DecodeObjectG31V1(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG31V1(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(31, 2):
-            rc = DNP3DecodeObjectG31V2(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG31V2(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(31, 3):
-            rc = DNP3DecodeObjectG31V3(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG31V3(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(31, 4):
-            rc = DNP3DecodeObjectG31V4(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG31V4(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(31, 5):
-            rc = DNP3DecodeObjectG31V5(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG31V5(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(31, 6):
-            rc = DNP3DecodeObjectG31V6(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG31V6(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(31, 7):
-            rc = DNP3DecodeObjectG31V7(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG31V7(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(31, 8):
-            rc = DNP3DecodeObjectG31V8(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG31V8(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(32, 1):
-            rc = DNP3DecodeObjectG32V1(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG32V1(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(32, 2):
-            rc = DNP3DecodeObjectG32V2(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG32V2(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(32, 3):
-            rc = DNP3DecodeObjectG32V3(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG32V3(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(32, 4):
-            rc = DNP3DecodeObjectG32V4(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG32V4(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(32, 5):
-            rc = DNP3DecodeObjectG32V5(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG32V5(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(32, 6):
-            rc = DNP3DecodeObjectG32V6(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG32V6(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(32, 7):
-            rc = DNP3DecodeObjectG32V7(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG32V7(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(32, 8):
-            rc = DNP3DecodeObjectG32V8(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG32V8(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(33, 1):
-            rc = DNP3DecodeObjectG33V1(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG33V1(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(33, 2):
-            rc = DNP3DecodeObjectG33V2(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG33V2(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(33, 3):
-            rc = DNP3DecodeObjectG33V3(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG33V3(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(33, 4):
-            rc = DNP3DecodeObjectG33V4(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG33V4(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(33, 5):
-            rc = DNP3DecodeObjectG33V5(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG33V5(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(33, 6):
-            rc = DNP3DecodeObjectG33V6(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG33V6(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(33, 7):
-            rc = DNP3DecodeObjectG33V7(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG33V7(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(33, 8):
-            rc = DNP3DecodeObjectG33V8(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG33V8(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(34, 1):
-            rc = DNP3DecodeObjectG34V1(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG34V1(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(34, 2):
-            rc = DNP3DecodeObjectG34V2(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG34V2(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(34, 3):
-            rc = DNP3DecodeObjectG34V3(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG34V3(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(40, 1):
-            rc = DNP3DecodeObjectG40V1(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG40V1(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(40, 2):
-            rc = DNP3DecodeObjectG40V2(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG40V2(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(40, 3):
-            rc = DNP3DecodeObjectG40V3(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG40V3(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(40, 4):
-            rc = DNP3DecodeObjectG40V4(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG40V4(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(41, 1):
-            rc = DNP3DecodeObjectG41V1(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG41V1(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(41, 2):
-            rc = DNP3DecodeObjectG41V2(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG41V2(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(41, 3):
-            rc = DNP3DecodeObjectG41V3(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG41V3(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(41, 4):
-            rc = DNP3DecodeObjectG41V4(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG41V4(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(42, 1):
-            rc = DNP3DecodeObjectG42V1(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG42V1(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(42, 2):
-            rc = DNP3DecodeObjectG42V2(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG42V2(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(42, 3):
-            rc = DNP3DecodeObjectG42V3(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG42V3(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(42, 4):
-            rc = DNP3DecodeObjectG42V4(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG42V4(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(42, 5):
-            rc = DNP3DecodeObjectG42V5(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG42V5(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(42, 6):
-            rc = DNP3DecodeObjectG42V6(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG42V6(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(42, 7):
-            rc = DNP3DecodeObjectG42V7(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG42V7(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(42, 8):
-            rc = DNP3DecodeObjectG42V8(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG42V8(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(43, 1):
-            rc = DNP3DecodeObjectG43V1(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG43V1(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(43, 2):
-            rc = DNP3DecodeObjectG43V2(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG43V2(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(43, 3):
-            rc = DNP3DecodeObjectG43V3(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG43V3(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(43, 4):
-            rc = DNP3DecodeObjectG43V4(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG43V4(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(43, 5):
-            rc = DNP3DecodeObjectG43V5(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG43V5(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(43, 6):
-            rc = DNP3DecodeObjectG43V6(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG43V6(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(43, 7):
-            rc = DNP3DecodeObjectG43V7(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG43V7(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(43, 8):
-            rc = DNP3DecodeObjectG43V8(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG43V8(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(50, 1):
-            rc = DNP3DecodeObjectG50V1(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG50V1(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(50, 2):
-            rc = DNP3DecodeObjectG50V2(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG50V2(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(50, 3):
-            rc = DNP3DecodeObjectG50V3(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG50V3(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(50, 4):
-            rc = DNP3DecodeObjectG50V4(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG50V4(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(51, 1):
-            rc = DNP3DecodeObjectG51V1(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG51V1(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(51, 2):
-            rc = DNP3DecodeObjectG51V2(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG51V2(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(52, 1):
-            rc = DNP3DecodeObjectG52V1(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG52V1(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(52, 2):
-            rc = DNP3DecodeObjectG52V2(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG52V2(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(70, 1):
-            rc = DNP3DecodeObjectG70V1(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG70V1(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(70, 2):
-            rc = DNP3DecodeObjectG70V2(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG70V2(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(70, 3):
-            rc = DNP3DecodeObjectG70V3(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG70V3(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(70, 4):
-            rc = DNP3DecodeObjectG70V4(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG70V4(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(70, 5):
-            rc = DNP3DecodeObjectG70V5(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG70V5(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(70, 6):
-            rc = DNP3DecodeObjectG70V6(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG70V6(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(70, 7):
-            rc = DNP3DecodeObjectG70V7(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG70V7(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(70, 8):
-            rc = DNP3DecodeObjectG70V8(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG70V8(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(80, 1):
-            rc = DNP3DecodeObjectG80V1(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG80V1(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(81, 1):
-            rc = DNP3DecodeObjectG81V1(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG81V1(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(83, 1):
-            rc = DNP3DecodeObjectG83V1(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG83V1(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(86, 2):
-            rc = DNP3DecodeObjectG86V2(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG86V2(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(102, 1):
-            rc = DNP3DecodeObjectG102V1(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG102V1(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(120, 1):
-            rc = DNP3DecodeObjectG120V1(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG120V1(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(120, 2):
-            rc = DNP3DecodeObjectG120V2(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG120V2(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(120, 3):
-            rc = DNP3DecodeObjectG120V3(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG120V3(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(120, 4):
-            rc = DNP3DecodeObjectG120V4(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG120V4(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(120, 5):
-            rc = DNP3DecodeObjectG120V5(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG120V5(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(120, 6):
-            rc = DNP3DecodeObjectG120V6(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG120V6(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(120, 7):
-            rc = DNP3DecodeObjectG120V7(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG120V7(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(120, 8):
-            rc = DNP3DecodeObjectG120V8(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG120V8(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(120, 9):
-            rc = DNP3DecodeObjectG120V9(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG120V9(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(120, 10):
-            rc = DNP3DecodeObjectG120V10(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG120V10(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(120, 11):
-            rc = DNP3DecodeObjectG120V11(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG120V11(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(120, 12):
-            rc = DNP3DecodeObjectG120V12(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG120V12(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(120, 13):
-            rc = DNP3DecodeObjectG120V13(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG120V13(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(120, 14):
-            rc = DNP3DecodeObjectG120V14(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG120V14(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(120, 15):
-            rc = DNP3DecodeObjectG120V15(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG120V15(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(121, 1):
-            rc = DNP3DecodeObjectG121V1(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG121V1(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(122, 1):
-            rc = DNP3DecodeObjectG122V1(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG122V1(buf, len, prefix_code, start, count, points);
             break;
         case DNP3_OBJECT_CODE(122, 2):
-            rc = DNP3DecodeObjectG122V2(buf, len, prefix_code, start, count,
-                points);
+            rc = DNP3DecodeObjectG122V2(buf, len, prefix_code, start, count, points);
             break;
         default:
             return DNP3_DECODER_EVENT_UNKNOWN_OBJECT;

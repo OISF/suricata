@@ -160,7 +160,7 @@ int8_t SRepCIDRGetIPRepDst(SRepCIDRTree *cidr_ctx, Packet *p, uint8_t cat, uint3
  *         a rule/reputation reload is complete. */
 void SRepReloadComplete(void)
 {
-    (void) SC_ATOMIC_ADD(srep_eversion, 1);
+    (void)SC_ATOMIC_ADD(srep_eversion, 1);
     SCLogDebug("effective Reputation version %u", SRepGetEffectiveVersion());
 }
 
@@ -176,7 +176,7 @@ void SRepFreeHostData(Host *h)
  *         reputation initialization is complete. */
 static void SRepInitComplete(void)
 {
-    (void) SC_ATOMIC_SET(srep_eversion, 1);
+    (void)SC_ATOMIC_SET(srep_eversion, 1);
     SCLogDebug("effective Reputation version %u", SRepGetEffectiveVersion());
 }
 
@@ -201,7 +201,8 @@ int SRepHostTimedOut(Host *h)
     SReputation *r = h->iprep;
     if (r->version < eversion) {
         SCLogDebug("host %p has reputation version %u, "
-                "effective version is %u", h, r->version, eversion);
+                   "effective version is %u",
+                h, r->version, eversion);
         SRepFreeHostData(h);
         return 1;
     }
@@ -212,7 +213,7 @@ int SRepHostTimedOut(Host *h)
 static int SRepCatSplitLine(char *line, uint8_t *cat, char *shortname, size_t shortname_len)
 {
     size_t line_len = strlen(line);
-    char *ptrs[2] = {NULL,NULL};
+    char *ptrs[2] = { NULL, NULL };
     int i = 0;
     int idx = 0;
     char *origline = line;
@@ -224,7 +225,7 @@ static int SRepCatSplitLine(char *line, uint8_t *cat, char *shortname, size_t sh
             ptrs[idx] = line;
             idx++;
 
-            line += (i+1);
+            line += (i + 1);
             i = 0;
 
             if (line >= origline + line_len)
@@ -258,10 +259,11 @@ static int SRepCatSplitLine(char *line, uint8_t *cat, char *shortname, size_t sh
  *  \retval 1 header
  *  \retval -1 bad line
  */
-static int SRepSplitLine(SRepCIDRTree *cidr_ctx, char *line, Address *ip, uint8_t *cat, uint8_t *value)
+static int SRepSplitLine(
+        SRepCIDRTree *cidr_ctx, char *line, Address *ip, uint8_t *cat, uint8_t *value)
 {
     size_t line_len = strlen(line);
-    char *ptrs[3] = {NULL,NULL,NULL};
+    char *ptrs[3] = { NULL, NULL, NULL };
     int i = 0;
     int idx = 0;
     char *origline = line;
@@ -274,7 +276,7 @@ static int SRepSplitLine(SRepCIDRTree *cidr_ctx, char *line, Address *ip, uint8_
             ptrs[idx] = line;
             idx++;
 
-            line += (i+1);
+            line += (i + 1);
             i = 0;
 
             if (line >= origline + line_len)
@@ -292,7 +294,7 @@ static int SRepSplitLine(SRepCIDRTree *cidr_ctx, char *line, Address *ip, uint8_
         return -1;
     }
 
-    //SCLogInfo("%s, %s, %s", ptrs[0], ptrs[1], ptrs[2]);
+    // SCLogInfo("%s, %s, %s", ptrs[0], ptrs[1], ptrs[2]);
 
     if (strcmp(ptrs[0], "ip") == 0)
         return 1;
@@ -364,16 +366,18 @@ int SRepLoadCatFileFromFD(FILE *fp)
 
     BUG_ON(SRepGetVersion() > 0);
 
-    while(fgets(line, (int)sizeof(line), fp) != NULL) {
+    while (fgets(line, (int)sizeof(line), fp) != NULL) {
         size_t len = strlen(line);
         if (len == 0)
             continue;
 
         /* ignore comments and empty lines */
-        if (line[0] == '\n' || line [0] == '\r' || line[0] == ' ' || line[0] == '#' || line[0] == '\t')
+        if (line[0] == '\n' || line[0] == '\r' || line[0] == ' ' || line[0] == '#' ||
+                line[0] == '\t')
             continue;
 
-        while (isspace((unsigned char)line[--len]));
+        while (isspace((unsigned char)line[--len]))
+            ;
 
         /* Check if we have a trailing newline, and remove it */
         len = strlen(line);
@@ -424,16 +428,18 @@ int SRepLoadFileFromFD(SRepCIDRTree *cidr_ctx, FILE *fp)
 {
     char line[8192] = "";
 
-    while(fgets(line, (int)sizeof(line), fp) != NULL) {
+    while (fgets(line, (int)sizeof(line), fp) != NULL) {
         size_t len = strlen(line);
         if (len == 0)
             continue;
 
         /* ignore comments and empty lines */
-        if (line[0] == '\n' || line [0] == '\r' || line[0] == ' ' || line[0] == '#' || line[0] == '\t')
+        if (line[0] == '\n' || line[0] == '\r' || line[0] == ' ' || line[0] == '#' ||
+                line[0] == '\t')
             continue;
 
-        while (isspace((unsigned char)line[--len]));
+        while (isspace((unsigned char)line[--len]))
+            ;
 
         /* Check if we have a trailing newline, and remove it */
         len = strlen(line);
@@ -468,7 +474,7 @@ int SRepLoadFileFromFD(SRepCIDRTree *cidr_ctx, FILE *fp)
                 SCLogError("failed to get a host, increase host.memcap");
                 break;
             } else {
-                //SCLogInfo("host %p", h);
+                // SCLogInfo("host %p", h);
 
                 if (h->iprep == NULL) {
                     h->iprep = SCCalloc(1, sizeof(SReputation));
@@ -488,8 +494,8 @@ int SRepLoadFileFromFD(SRepCIDRTree *cidr_ctx, FILE *fp)
                     rep->version = SRepGetVersion();
                     rep->rep[cat] = value;
 
-                    SCLogDebug("host %p iprep %p setting cat %u to value %u",
-                        h, h->iprep, cat, value);
+                    SCLogDebug(
+                            "host %p iprep %p setting cat %u to value %u", h, h->iprep, cat, value);
 #ifdef DEBUG
                     if (SCLogDebugEnabled()) {
                         int i;
@@ -497,8 +503,8 @@ int SRepLoadFileFromFD(SRepCIDRTree *cidr_ctx, FILE *fp)
                             if (rep->rep[i] == 0)
                                 continue;
 
-                            SCLogDebug("--> host %p iprep %p cat %d to value %u",
-                                    h, h->iprep, i, rep->rep[i]);
+                            SCLogDebug("--> host %p iprep %p cat %d to value %u", h, h->iprep, i,
+                                    rep->rep[i]);
                         }
                     }
 #endif
@@ -526,8 +532,7 @@ static char *SRepCompleteFilePath(char *file)
     if (PathIsRelative(file)) {
         if (SCConfGet("default-reputation-path", &defaultpath) == 1) {
             SCLogDebug("Default path: %s", defaultpath);
-            size_t path_len = sizeof(char) * (strlen(defaultpath) +
-                          strlen(file) + 2);
+            size_t path_len = sizeof(char) * (strlen(defaultpath) + strlen(file) + 2);
             path = SCMalloc(path_len);
             if (unlikely(path == NULL))
                 return NULL;
@@ -620,13 +625,13 @@ int SRepInit(DetectEngineCtx *de_ctx)
 
     /* ok, let's load reputation files from the general config */
     if (files != NULL) {
-        TAILQ_FOREACH(file, &files->head, next) {
+        TAILQ_FOREACH (file, &files->head, next) {
             char *sfile = SRepCompleteFilePath(file->val);
             if (sfile) {
                 SCLogInfo("Loading reputation file: %s", sfile);
 
                 int r = SRepLoadFile(cidr_ctx, sfile);
-                if (r < 0){
+                if (r < 0) {
                     if (de_ctx->failure_fatal) {
                         exit(EXIT_FAILURE);
                     }

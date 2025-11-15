@@ -80,8 +80,7 @@ static int Ja3BufferResizeIfFull(JA3Buffer *buffer, uint32_t len)
 {
     DEBUG_VALIDATE_BUG_ON(buffer == NULL);
 
-    while (buffer->used + len + 2 > buffer->size)
-    {
+    while (buffer->used + len + 2 > buffer->size) {
         buffer->size *= 2;
         char *tmp = SCRealloc(buffer->data, buffer->size);
         if (tmp == NULL) {
@@ -130,12 +129,11 @@ int Ja3BufferAppendBuffer(JA3Buffer **buffer1, JA3Buffer **buffer2)
     }
 
     if ((*buffer2)->used == 0) {
-        (*buffer1)->used += snprintf((*buffer1)->data + (*buffer1)->used,
-                                     (*buffer1)->size - (*buffer1)->used, ",");
+        (*buffer1)->used += snprintf(
+                (*buffer1)->data + (*buffer1)->used, (*buffer1)->size - (*buffer1)->used, ",");
     } else {
         (*buffer1)->used += snprintf((*buffer1)->data + (*buffer1)->used,
-                                     (*buffer1)->size - (*buffer1)->used, ",%s",
-                                     (*buffer2)->data);
+                (*buffer1)->size - (*buffer1)->used, ",%s", (*buffer2)->data);
     }
 
     Ja3BufferFree(buffer2);
@@ -196,8 +194,7 @@ int Ja3BufferAddValue(JA3Buffer **buffer, uint32_t value)
 
     if ((*buffer)->used == 0) {
         (*buffer)->used += snprintf((*buffer)->data, (*buffer)->size, "%u", value);
-    }
-    else {
+    } else {
         (*buffer)->used += snprintf(
                 (*buffer)->data + (*buffer)->used, (*buffer)->size - (*buffer)->used, "-%u", value);
     }

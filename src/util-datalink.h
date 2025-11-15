@@ -44,12 +44,12 @@
 
 /** libpcap shows us the way to linktype codes
  * \todo we need more & maybe put them in a separate file? */
-#define LINKTYPE_NULL      DLT_NULL
-#define LINKTYPE_ETHERNET  DLT_EN10MB
-#define LINKTYPE_LINUX_SLL 113
+#define LINKTYPE_NULL       DLT_NULL
+#define LINKTYPE_ETHERNET   DLT_EN10MB
+#define LINKTYPE_LINUX_SLL  113
 #define LINKTYPE_LINUX_SLL2 276
-#define LINKTYPE_PPP       9
-#define LINKTYPE_RAW       DLT_RAW
+#define LINKTYPE_PPP        9
+#define LINKTYPE_RAW        DLT_RAW
 /* http://www.tcpdump.org/linktypes.html defines DLT_RAW as 101, yet others don't.
  * Libpcap on at least OpenBSD returns 101 as datalink type for RAW pcaps though. */
 #define LINKTYPE_RAW2        101

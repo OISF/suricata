@@ -39,11 +39,10 @@
 #include "util-debug.h"
 #include "util-byte.h"
 
-
 /*prototypes*/
-static int DetectStreamSizeMatch (DetectEngineThreadCtx *, Packet *,
-        const Signature *, const SigMatchCtx *);
-static int DetectStreamSizeSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectStreamSizeMatch(
+        DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
+static int DetectStreamSizeSetup(DetectEngineCtx *, Signature *, const char *);
 void DetectStreamSizeFree(DetectEngineCtx *de_ctx, void *);
 #ifdef UNITTESTS
 static void DetectStreamSizeRegisterTests(void);
@@ -140,7 +139,7 @@ static int DetectStreamSizeMatch(
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectStreamSizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *streamstr)
+static int DetectStreamSizeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *streamstr)
 {
     DetectStreamSizeData *sd = SCDetectStreamSizeParse(streamstr);
     if (sd == NULL)
@@ -234,7 +233,7 @@ static bool PrefilterStreamSizeIsPrefilterable(const Signature *s)
  *  user options correctly, when given valid stream_size options.
  */
 
-static int DetectStreamSizeParseTest01 (void)
+static int DetectStreamSizeParseTest01(void)
 {
     int result = 0;
     DetectStreamSizeData *sd = NULL;
@@ -253,7 +252,7 @@ static int DetectStreamSizeParseTest01 (void)
  *  invalid stream_size options.
  */
 
-static int DetectStreamSizeParseTest02 (void)
+static int DetectStreamSizeParseTest02(void)
 {
     int result = 1;
     DetectStreamSizeData *sd = NULL;
@@ -272,7 +271,7 @@ static int DetectStreamSizeParseTest02 (void)
  *  packet correctly provided valid stream size.
  */
 
-static int DetectStreamSizeParseTest03 (void)
+static int DetectStreamSizeParseTest03(void)
 {
     TcpSession ssn;
     ThreadVars tv;
@@ -306,7 +305,7 @@ static int DetectStreamSizeParseTest03 (void)
     f.protoctx = &ssn;
     p->flow = &f;
     PacketSetTCP(p, (uint8_t *)&tcph);
-    sm.ctx = (SigMatchCtx*)sd;
+    sm.ctx = (SigMatchCtx *)sd;
 
     int result = DetectStreamSizeMatch(&dtx, p, &s, sm.ctx);
     FAIL_IF_NOT(result == 1);
@@ -320,7 +319,7 @@ static int DetectStreamSizeParseTest03 (void)
  *  stream_size against invalid packet parameters.
  */
 
-static int DetectStreamSizeParseTest04 (void)
+static int DetectStreamSizeParseTest04(void)
 {
     TcpSession ssn;
     ThreadVars tv;
@@ -354,7 +353,7 @@ static int DetectStreamSizeParseTest04 (void)
     f.protoctx = &ssn;
     p->flow = &f;
     UTHSetIPV4Hdr(p, &ip4h);
-    sm.ctx = (SigMatchCtx*)sd;
+    sm.ctx = (SigMatchCtx *)sd;
 
     FAIL_IF(DetectStreamSizeMatch(&dtx, p, &s, sm.ctx));
 

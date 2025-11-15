@@ -31,7 +31,8 @@
 #include "flow.h"
 
 /** \brief Transaction logger function pointer type. */
-typedef int (*TxLogger)(ThreadVars *, void *thread_data, const Packet *, Flow *f, void *state, void *tx, uint64_t tx_id);
+typedef int (*TxLogger)(ThreadVars *, void *thread_data, const Packet *, Flow *f, void *state,
+        void *tx, uint64_t tx_id);
 
 /** \brief Transaction logger condition function pointer type.
  *
@@ -79,7 +80,7 @@ int SCOutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto, Tx
         ThreadInitFunc, ThreadDeinitFunc);
 
 /** Internal function: private API. */
-void OutputTxLoggerRegister (void);
+void OutputTxLoggerRegister(void);
 
 /** Internal function: private API. */
 void OutputTxShutdown(void);

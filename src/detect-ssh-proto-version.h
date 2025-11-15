@@ -25,6 +25,6 @@
 #define SURICATA_DETECT_SSH_VERSION_H
 
 /* prototypes */
-void DetectSshVersionRegister (void);
+void DetectSshVersionRegister(void);
 
 #endif /* SURICATA_DETECT_SSH_VERSION_H */

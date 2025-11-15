@@ -18,8 +18,7 @@
 #ifndef SURICATA_DETECT_ENGINE_BUILD_H
 #define SURICATA_DETECT_ENGINE_BUILD_H
 
-void PacketCreateMask(Packet *p, SignatureMask *mask, AppProto alproto,
-        bool app_decoder_events);
+void PacketCreateMask(Packet *p, SignatureMask *mask, AppProto alproto, bool app_decoder_events);
 
 int SignatureIsFilestoring(const Signature *);
 int SignatureIsFilemagicInspecting(const Signature *);
@@ -37,6 +36,6 @@ int SigAddressCleanupStage1(DetectEngineCtx *de_ctx);
 void SigCleanSignatures(DetectEngineCtx *);
 
 int SigGroupBuild(DetectEngineCtx *);
-int SigGroupCleanup (DetectEngineCtx *de_ctx);
+int SigGroupCleanup(DetectEngineCtx *de_ctx);
 
 #endif /* SURICATA_DETECT_ENGINE_BUILD_H */

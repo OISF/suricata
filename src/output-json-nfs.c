@@ -71,8 +71,8 @@ bool EveNFSAddMetadata(const Flow *f, uint64_t tx_id, SCJsonBuilder *jb)
     return false;
 }
 
-static int JsonNFSLogger(ThreadVars *tv, void *thread_data,
-    const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
+static int JsonNFSLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state,
+        void *tx, uint64_t tx_id)
 {
     NFSTransaction *nfstx = tx;
     OutputJsonThreadCtx *thread = thread_data;

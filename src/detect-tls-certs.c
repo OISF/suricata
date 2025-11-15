@@ -136,8 +136,7 @@ void DetectTlsCertsRegister(void)
  * \retval  0 On success
  * \retval -1 On failure
  */
-static int DetectTlsCertsSetup(DetectEngineCtx *de_ctx, Signature *s,
-                               const char *str)
+static int DetectTlsCertsSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     if (SCDetectBufferSetActiveList(de_ctx, s, g_tls_certs_buffer_id) < 0)
         return -1;

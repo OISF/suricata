@@ -35,9 +35,9 @@
 #include "detect-ipv4hdr.h"
 
 /* prototypes */
-static int DetectIpv4hdrSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectIpv4hdrSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
-void DetectIpv4hdrRegisterTests (void);
+void DetectIpv4hdrRegisterTests(void);
 #endif
 
 static int g_ipv4hdr_buffer_id = 0;
@@ -79,7 +79,7 @@ void DetectIpv4hdrRegister(void)
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectIpv4hdrSetup (DetectEngineCtx *de_ctx, Signature *s, const char *_unused)
+static int DetectIpv4hdrSetup(DetectEngineCtx *de_ctx, Signature *s, const char *_unused)
 {
     s->proto.flags |= DETECT_PROTO_IPV4; // TODO
 

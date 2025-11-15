@@ -28,6 +28,6 @@
  * Registration function for fragbits: keyword
  */
 
-void DetectFragBitsRegister (void);
+void DetectFragBitsRegister(void);
 
 #endif /*SURICATA_DETECT_FRAGBITS_H */

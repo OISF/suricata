@@ -25,6 +25,6 @@
 #define SURICATA_DETECT_FTPBOUNCE_H
 
 /* prototypes */
-void DetectFtpbounceRegister (void);
+void DetectFtpbounceRegister(void);
 
 #endif /* SURICATA_DETECT_FTPBOUNCE_H */

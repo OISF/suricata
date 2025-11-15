@@ -27,7 +27,7 @@
 #include "util-memrchr.h"
 
 #ifndef HAVE_MEMRCHR
-void *memrchr (const void *s, int c, size_t n)
+void *memrchr(const void *s, int c, size_t n)
 {
     const char *end = s + n;
 
@@ -38,10 +38,10 @@ void *memrchr (const void *s, int c, size_t n)
     }
     return NULL;
 }
-#endif  /* HAVE_MEMRCHR */
+#endif /* HAVE_MEMRCHR */
 
 #ifdef UNITTESTS
-static int MemrchrTest01 (void)
+static int MemrchrTest01(void)
 {
     const char *haystack = "abcabc";
     char needle = 'b';

@@ -57,7 +57,7 @@ typedef struct FtpCommandInfo_ {
     FtpRequestCommand command_code;
 } FtpCommandInfo;
 
-typedef struct FTPTransaction_  {
+typedef struct FTPTransaction_ {
     /** id of this tx, starting at 0 */
     uint64_t tx_id;
 
@@ -72,8 +72,8 @@ typedef struct FTPTransaction_  {
     FtpCommandInfo command_descriptor;
 
     uint16_t dyn_port; /* dynamic port, if applicable */
-    bool done; /* transaction complete? */
-    bool active; /* active or passive mode */
+    bool done;         /* transaction complete? */
+    bool active;       /* active or passive mode */
 
     uint8_t direction;
 
@@ -88,7 +88,7 @@ typedef struct FtpState_ {
     bool active;
 
     FTPTransaction *curr_tx;
-    TAILQ_HEAD(, FTPTransaction_) tx_list;  /**< transaction list */
+    TAILQ_HEAD(, FTPTransaction_) tx_list; /**< transaction list */
     uint64_t tx_cnt;
 
     bool current_line_truncated_ts;

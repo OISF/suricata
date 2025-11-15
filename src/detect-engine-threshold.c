@@ -585,8 +585,8 @@ static int AddEntryToFlow(Flow *f, FlowThresholdEntryList *e, SCTime_t packet_ti
     return 0;
 }
 
-static int ThresholdHandlePacketSuppress(Packet *p,
-        const DetectThresholdData *td, uint32_t sid, uint32_t gid)
+static int ThresholdHandlePacketSuppress(
+        Packet *p, const DetectThresholdData *td, uint32_t sid, uint32_t gid)
 {
     int ret = 0;
     DetectAddress *m = NULL;
@@ -969,7 +969,7 @@ int PacketAlertThreshold(const DetectEngineCtx *de_ctx, DetectEngineThreadCtx *d
     }
 
     if (td->type == TYPE_SUPPRESS) {
-        ret = ThresholdHandlePacketSuppress(p,td,s->id,s->gid);
+        ret = ThresholdHandlePacketSuppress(p, td, s->id, s->gid);
     } else if (td->track == TRACK_SRC) {
         if (PacketIsIPv4(p) && (td->type == TYPE_LIMIT || td->type == TYPE_BOTH)) {
             int cache_ret = CheckCache(p, td->track, s->id, s->gid, s->rev);

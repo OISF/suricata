@@ -22,10 +22,9 @@
  */
 
 #ifndef _DETECT_HTTP_STAT_CODE_H
-#define	_DETECT_HTTP_STAT_CODE_H
+#define _DETECT_HTTP_STAT_CODE_H
 
 /* prototypes */
 void DetectHttpStatCodeRegister(void);
 
-#endif	/* _DETECT_HTTP_STAT_CODE_H */
-
+#endif /* _DETECT_HTTP_STAT_CODE_H */

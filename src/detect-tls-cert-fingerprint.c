@@ -58,11 +58,9 @@ static int DetectTlsFingerprintSetup(DetectEngineCtx *, Signature *, const char 
 static void DetectTlsFingerprintRegisterTests(void);
 #endif
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms,
-        Flow *f, const uint8_t flow_flags,
-        void *txv, const int list_id);
-static void DetectTlsFingerprintSetupCallback(const DetectEngineCtx *de_ctx,
-        Signature *s);
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
+        const int list_id);
+static void DetectTlsFingerprintSetupCallback(const DetectEngineCtx *de_ctx, Signature *s);
 static bool DetectTlsFingerprintValidateCallback(
         const Signature *s, const char **sigerror, const DetectBufferType *dbt);
 static int g_tls_cert_fingerprint_buffer_id = 0;
@@ -97,14 +95,13 @@ void DetectTlsFingerprintRegister(void)
     DetectAppLayerMpmRegister("tls.cert_fingerprint", SIG_FLAG_TOSERVER, 2,
             PrefilterGenericMpmRegister, GetData, ALPROTO_TLS, TLS_STATE_CLIENT_CERT_DONE);
 
-    DetectBufferTypeSetDescriptionByName("tls.cert_fingerprint",
-            "TLS certificate fingerprint");
+    DetectBufferTypeSetDescriptionByName("tls.cert_fingerprint", "TLS certificate fingerprint");
 
-    DetectBufferTypeRegisterSetupCallback("tls.cert_fingerprint",
-            DetectTlsFingerprintSetupCallback);
+    DetectBufferTypeRegisterSetupCallback(
+            "tls.cert_fingerprint", DetectTlsFingerprintSetupCallback);
 
-    DetectBufferTypeRegisterValidateCallback("tls.cert_fingerprint",
-            DetectTlsFingerprintValidateCallback);
+    DetectBufferTypeRegisterValidateCallback(
+            "tls.cert_fingerprint", DetectTlsFingerprintValidateCallback);
 
     g_tls_cert_fingerprint_buffer_id = DetectBufferTypeGetByName("tls.cert_fingerprint");
 }
@@ -119,8 +116,7 @@ void DetectTlsFingerprintRegister(void)
  * \retval 0  On success
  * \retval -1 On failure
  */
-static int DetectTlsFingerprintSetup(DetectEngineCtx *de_ctx, Signature *s,
-                                     const char *str)
+static int DetectTlsFingerprintSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     if (SCDetectBufferSetActiveList(de_ctx, s, g_tls_cert_fingerprint_buffer_id) < 0)
         return -1;
@@ -132,8 +128,8 @@ static int DetectTlsFingerprintSetup(DetectEngineCtx *de_ctx, Signature *s,
 }
 
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *f,
-        const uint8_t flow_flags, void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
+        const int list_id)
 {
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
@@ -208,8 +204,7 @@ static bool DetectTlsFingerprintValidateCallback(
     return true;
 }
 
-static void DetectTlsFingerprintSetupCallback(const DetectEngineCtx *de_ctx,
-                                              Signature *s)
+static void DetectTlsFingerprintSetupCallback(const DetectEngineCtx *de_ctx, Signature *s)
 {
     for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
         if (s->init_data->buffers[x].id != (uint32_t)g_tls_cert_fingerprint_buffer_id)

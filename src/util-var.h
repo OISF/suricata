@@ -61,7 +61,7 @@ typedef struct GenericVar_ {
 typedef struct XBit_ {
     uint16_t type; /* type, DETECT_XBITS in this case */
     uint8_t pad[2];
-    uint32_t idx;       /* name idx */
+    uint32_t idx; /* name idx */
     GenericVar *next;
     SCTime_t expire;
 } XBit;

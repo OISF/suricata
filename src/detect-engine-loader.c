@@ -148,11 +148,13 @@ static int DetectLoadSigFile(DetectEngineCtx *de_ctx, const char *sig_file, int 
         size_t len = strlen(line);
 
         /* ignore comments and empty lines */
-        if (line[0] == '\n' || line [0] == '\r' || line[0] == ' ' || line[0] == '#' || line[0] == '\t')
+        if (line[0] == '\n' || line[0] == '\r' || line[0] == ' ' || line[0] == '#' ||
+                line[0] == '\t')
             continue;
 
         /* Check for multiline rules. */
-        while (len > 0 && isspace((unsigned char)line[--len]));
+        while (len > 0 && isspace((unsigned char)line[--len]))
+            ;
         if (line[len] == '\\') {
             multiline++;
             offset = len;
@@ -190,7 +192,7 @@ static int DetectLoadSigFile(DetectEngineCtx *de_ctx, const char *sig_file, int 
                     EngineAnalysisRules(de_ctx, sig, line);
                 }
             }
-            SCLogDebug("signature %"PRIu32" loaded", sig->id);
+            SCLogDebug("signature %" PRIu32 " loaded", sig->id);
             good++;
         } else {
             if (!de_ctx->sigerror_silent) {
@@ -198,7 +200,8 @@ static int DetectLoadSigFile(DetectEngineCtx *de_ctx, const char *sig_file, int 
                            "file %s at line %" PRId32 "",
                         line, sig_file, lineno - multiline);
 
-                if (!SigStringAppend(&de_ctx->sig_stat, sig_file, line, de_ctx->sigerror, (lineno - multiline))) {
+                if (!SigStringAppend(&de_ctx->sig_stat, sig_file, line, de_ctx->sigerror,
+                            (lineno - multiline))) {
                     SCLogError("Error adding sig \"%s\" from "
                                "file %s at line %" PRId32 "",
                             line, sig_file, lineno - multiline);
@@ -265,9 +268,9 @@ static int ProcessSigFiles(DetectEngineCtx *de_ctx, char *pattern, SigFileLoader
         if (strcmp("/dev/null", fname) == 0)
             continue;
 #else
-        char *fname = pattern;
-        if (strcmp("/dev/null", fname) == 0)
-            return 0;
+    char *fname = pattern;
+    if (strcmp("/dev/null", fname) == 0)
+        return 0;
 #endif
         if (strlen(de_ctx->config_prefix) > 0) {
             SCLogConfig("tenant id %d: Loading rule file: %s", de_ctx->tenant_id, fname);
@@ -415,7 +418,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, bool sig_file_exc
                 SCLogWarning("Invalid rule-files configuration section: "
                              "expected a list of filenames.");
             } else {
-                TAILQ_FOREACH(file, &rule_files->head, next) {
+                TAILQ_FOREACH (file, &rule_files->head, next) {
                     sfile = DetectLoadCompleteSigPath(de_ctx, file->val);
                     good_sigs = bad_sigs = skipped_sigs = 0;
                     ret = ProcessSigFiles(
@@ -506,7 +509,7 @@ skip_regular_rules:
         mpm_table[de_ctx->mpm_matcher].CacheRuleset(de_ctx->mpm_cfg);
     }
 
- end:
+end:
     gettimeofday(&de_ctx->last_reload, NULL);
     if (SCRunmodeGet() == RUNMODE_ENGINE_ANALYSIS) {
         CleanupEngineAnalysis(de_ctx);
@@ -631,7 +634,7 @@ static void TmThreadWakeupDetectLoaderThreads(void)
     for (int i = 0; i < TVT_MAX; i++) {
         ThreadVars *tv = tv_root[i];
         while (tv != NULL) {
-            if (strncmp(tv->name,"DL#",3) == 0) {
+            if (strncmp(tv->name, "DL#", 3) == 0) {
                 BUG_ON(tv->ctrl_cond == NULL);
                 SCCtrlMutexLock(tv->ctrl_mutex);
                 pthread_cond_broadcast(tv->ctrl_cond);
@@ -652,7 +655,7 @@ void TmThreadContinueDetectLoaderThreads(void)
     for (int i = 0; i < TVT_MAX; i++) {
         ThreadVars *tv = tv_root[i];
         while (tv != NULL) {
-            if (strncmp(tv->name,"DL#",3) == 0)
+            if (strncmp(tv->name, "DL#", 3) == 0)
                 TmThreadContinue(tv);
 
             tv = tv->next;
@@ -691,7 +694,6 @@ static TmEcode DetectLoaderThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-
 static TmEcode DetectLoader(ThreadVars *th_v, void *thread_data)
 {
     DetectLoaderThreadData *ftd = (DetectLoaderThreadData *)thread_data;
@@ -707,7 +709,7 @@ static TmEcode DetectLoader(ThreadVars *th_v, void *thread_data)
         SCMutexLock(&loader->m);
 
         DetectLoaderTask *task = NULL, *tmptask = NULL;
-        TAILQ_FOREACH_SAFE(task, &loader->task_list, next, tmptask) {
+        TAILQ_FOREACH_SAFE (task, &loader->task_list, next, tmptask) {
             int r = task->Func(task->ctx, ftd->instance);
             loader->result |= r;
             TAILQ_REMOVE(&loader->task_list, task, next);
@@ -750,7 +752,7 @@ void DetectLoaderThreadSpawn(void)
 {
     for (int i = 0; i < num_loaders; i++) {
         char name[TM_THREAD_NAME_MAX];
-        snprintf(name, sizeof(name), "%s#%02d", thread_name_detect_loader, i+1);
+        snprintf(name, sizeof(name), "%s#%02d", thread_name_detect_loader, i + 1);
 
         ThreadVars *tv_loader = TmThreadCreateCmdThreadByName(name, "DetectLoader", 1);
         if (tv_loader == NULL) {
@@ -762,7 +764,7 @@ void DetectLoaderThreadSpawn(void)
     }
 }
 
-void TmModuleDetectLoaderRegister (void)
+void TmModuleDetectLoaderRegister(void)
 {
     tmm_modules[TMM_DETECTLOADER].name = "DetectLoader";
     tmm_modules[TMM_DETECTLOADER].ThreadInit = DetectLoaderThreadInit;

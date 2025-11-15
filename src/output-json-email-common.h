@@ -25,8 +25,8 @@
 #define SURICATA_OUTPUT_JSON_EMAIL_COMMON_H
 
 typedef struct OutputJsonEmailCtx_ {
-    uint32_t flags; /** Store mode */
-    uint64_t fields;/** Store fields */
+    uint32_t flags;  /** Store mode */
+    uint64_t fields; /** Store fields */
     OutputJsonCtx *eve_ctx;
 } OutputJsonEmailCtx;
 

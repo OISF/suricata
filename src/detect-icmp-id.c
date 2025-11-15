@@ -40,8 +40,8 @@
 #include "util-unittest-helper.h"
 #include "util-debug.h"
 
-static int DetectIcmpIdMatch(DetectEngineThreadCtx *, Packet *,
-        const Signature *, const SigMatchCtx *);
+static int DetectIcmpIdMatch(
+        DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
 static int DetectIcmpIdSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectIcmpIdRegisterTests(void);
@@ -53,7 +53,7 @@ static bool PrefilterIcmpIdIsPrefilterable(const Signature *s);
 /**
  * \brief Registration function for icode: icmp_id
  */
-void DetectIcmpIdRegister (void)
+void DetectIcmpIdRegister(void)
 {
     sigmatch_table[DETECT_ICMP_ID].name = "icmp_id";
     sigmatch_table[DETECT_ICMP_ID].desc = "check for a ICMP ID";
@@ -82,9 +82,9 @@ static inline bool GetIcmpId(Packet *p, uint16_t *id)
             case ICMP_INFO_REPLY:
             case ICMP_ADDRESS:
             case ICMP_ADDRESSREPLY:
-                SCLogDebug("ICMPV4_GET_ID(p) %"PRIu16" (network byte order), "
-                        "%"PRIu16" (host byte order)", ICMPV4_GET_ID(p),
-                        SCNtohs(ICMPV4_GET_ID(p)));
+                SCLogDebug("ICMPV4_GET_ID(p) %" PRIu16 " (network byte order), "
+                           "%" PRIu16 " (host byte order)",
+                        ICMPV4_GET_ID(p), SCNtohs(ICMPV4_GET_ID(p)));
 
                 pid = ICMPV4_GET_ID(p);
                 break;
@@ -96,9 +96,9 @@ static inline bool GetIcmpId(Packet *p, uint16_t *id)
         switch (ICMPV6_GET_TYPE(PacketGetICMPv6(p))) {
             case ICMP6_ECHO_REQUEST:
             case ICMP6_ECHO_REPLY:
-                SCLogDebug("ICMPV6_GET_ID(p) %"PRIu16" (network byte order), "
-                        "%"PRIu16" (host byte order)", ICMPV6_GET_ID(p),
-                        SCNtohs(ICMPV6_GET_ID(p)));
+                SCLogDebug("ICMPV6_GET_ID(p) %" PRIu16 " (network byte order), "
+                           "%" PRIu16 " (host byte order)",
+                        ICMPV6_GET_ID(p), SCNtohs(ICMPV6_GET_ID(p)));
 
                 pid = ICMPV6_GET_ID(p);
                 break;
@@ -126,8 +126,8 @@ static inline bool GetIcmpId(Packet *p, uint16_t *id)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectIcmpIdMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
-        const Signature *s, const SigMatchCtx *ctx)
+static int DetectIcmpIdMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     uint16_t pid;
 
@@ -148,7 +148,7 @@ static int DetectIcmpIdMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectIcmpIdSetup (DetectEngineCtx *de_ctx, Signature *s, const char *icmpidstr)
+static int DetectIcmpIdSetup(DetectEngineCtx *de_ctx, Signature *s, const char *icmpidstr)
 {
     DetectU16Data *iid = SCDetectU16UnquoteParse(icmpidstr);
     if (iid == NULL)
@@ -165,7 +165,6 @@ static int DetectIcmpIdSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
 error:
     DetectIcmpIdFree(de_ctx, iid);
     return -1;
-
 }
 
 /**
@@ -173,15 +172,14 @@ error:
  *
  * \param ptr pointer to DetectIcmpIdData
  */
-void DetectIcmpIdFree (DetectEngineCtx *de_ctx, void *ptr)
+void DetectIcmpIdFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     SCDetectU16Free(ptr);
 }
 
 /* prefilter code */
 
-static void
-PrefilterPacketIcmpIdMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
+static void PrefilterPacketIcmpIdMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
 {
     const PrefilterPacketHeaderCtx *ctx = pectx;
 
@@ -208,7 +206,7 @@ static int PrefilterSetupIcmpId(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 static bool PrefilterIcmpIdIsPrefilterable(const Signature *s)
 {
     const SigMatch *sm;
-    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_ICMP_ID:
                 return true;
@@ -224,7 +222,7 @@ static bool PrefilterIcmpIdIsPrefilterable(const Signature *s)
 /**
  * \test DetectIcmpIdParseTest01 is a test for setting a valid icmp_id value
  */
-static int DetectIcmpIdParseTest01 (void)
+static int DetectIcmpIdParseTest01(void)
 {
     DetectU16Data *iid = SCDetectU16UnquoteParse("300");
     FAIL_IF_NULL(iid);
@@ -237,7 +235,7 @@ static int DetectIcmpIdParseTest01 (void)
  * \test DetectIcmpIdParseTest02 is a test for setting a valid icmp_id value
  *       with spaces all around
  */
-static int DetectIcmpIdParseTest02 (void)
+static int DetectIcmpIdParseTest02(void)
 {
     DetectU16Data *iid = SCDetectU16UnquoteParse("  300  ");
     FAIL_IF_NULL(iid);
@@ -250,7 +248,7 @@ static int DetectIcmpIdParseTest02 (void)
  * \test DetectIcmpIdParseTest03 is a test for setting a valid icmp_id value
  *       with quotation marks
  */
-static int DetectIcmpIdParseTest03 (void)
+static int DetectIcmpIdParseTest03(void)
 {
     DetectU16Data *iid = SCDetectU16UnquoteParse("\"300\"");
     FAIL_IF_NULL(iid);
@@ -263,7 +261,7 @@ static int DetectIcmpIdParseTest03 (void)
  * \test DetectIcmpIdParseTest04 is a test for setting a valid icmp_id value
  *       with quotation marks and spaces all around
  */
-static int DetectIcmpIdParseTest04 (void)
+static int DetectIcmpIdParseTest04(void)
 {
     DetectU16Data *iid = SCDetectU16UnquoteParse("   \"   300 \"");
     FAIL_IF_NULL(iid);
@@ -276,7 +274,7 @@ static int DetectIcmpIdParseTest04 (void)
  * \test DetectIcmpIdParseTest05 is a test for setting an invalid icmp_id
  *       value with missing quotation marks
  */
-static int DetectIcmpIdParseTest05 (void)
+static int DetectIcmpIdParseTest05(void)
 {
     DetectU16Data *iid = SCDetectU16UnquoteParse("\"300");
     FAIL_IF_NOT_NULL(iid);
@@ -288,7 +286,7 @@ static int DetectIcmpIdParseTest05 (void)
  *       icmp_id keyword by creating 2 rules and matching a crafted packet
  *       against them. Only the first one shall trigger.
  */
-static int DetectIcmpIdMatchTest01 (void)
+static int DetectIcmpIdMatchTest01(void)
 {
     int result = 0;
     Packet *p = NULL;
@@ -340,7 +338,6 @@ cleanup:
 end:
     StatsThreadCleanup(&th_v);
     return result;
-
 }
 
 /**
@@ -349,16 +346,13 @@ end:
  *       against them. The packet is an ICMP packet with no "id" field,
  *       therefore the rule should not trigger.
  */
-static int DetectIcmpIdMatchTest02 (void)
+static int DetectIcmpIdMatchTest02(void)
 {
     int result = 0;
 
-    uint8_t raw_icmpv4[] = {
-        0x0b, 0x00, 0x8a, 0xdf, 0x00, 0x00, 0x00, 0x00,
-        0x45, 0x00, 0x00, 0x14, 0x25, 0x0c, 0x00, 0x00,
-        0xff, 0x11, 0x00, 0x00, 0x85, 0x64, 0xea, 0x5b,
-        0x51, 0xa6, 0xbb, 0x35, 0x59, 0x8a, 0x5a, 0xe2,
-        0x00, 0x14, 0x00, 0x00 };
+    uint8_t raw_icmpv4[] = { 0x0b, 0x00, 0x8a, 0xdf, 0x00, 0x00, 0x00, 0x00, 0x45, 0x00, 0x00, 0x14,
+        0x25, 0x0c, 0x00, 0x00, 0xff, 0x11, 0x00, 0x00, 0x85, 0x64, 0xea, 0x5b, 0x51, 0xa6, 0xbb,
+        0x35, 0x59, 0x8a, 0x5a, 0xe2, 0x00, 0x14, 0x00, 0x00 };
 
     Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
@@ -418,7 +412,7 @@ end:
     return result;
 }
 
-static void DetectIcmpIdRegisterTests (void)
+static void DetectIcmpIdRegisterTests(void)
 {
     UtRegisterTest("DetectIcmpIdParseTest01", DetectIcmpIdParseTest01);
     UtRegisterTest("DetectIcmpIdParseTest02", DetectIcmpIdParseTest02);

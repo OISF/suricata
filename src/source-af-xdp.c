@@ -29,7 +29,7 @@
  * AF_XDP socket acquisition support
  *
  */
-#define SC_PCAP_DONT_INCLUDE_PCAP_H  1
+#define SC_PCAP_DONT_INCLUDE_PCAP_H 1
 #include "suricata-common.h"
 #include "suricata.h"
 #include "decode.h"

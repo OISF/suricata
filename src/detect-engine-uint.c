@@ -47,8 +47,7 @@ DetectUintData_u32 *DetectU32Parse(const char *u32str)
     return SCDetectU32Parse(u32str);
 }
 
-void
-PrefilterPacketU32Set(PrefilterPacketHeaderValue *v, void *smctx)
+void PrefilterPacketU32Set(PrefilterPacketHeaderValue *v, void *smctx)
 {
     const DetectUintData_u32 *a = smctx;
     v->u8[0] = a->mode;
@@ -56,18 +55,15 @@ PrefilterPacketU32Set(PrefilterPacketHeaderValue *v, void *smctx)
     v->u32[2] = a->arg2;
 }
 
-bool
-PrefilterPacketU32Compare(PrefilterPacketHeaderValue v, void *smctx)
+bool PrefilterPacketU32Compare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectUintData_u32 *a = smctx;
-    if (v.u8[0] == a->mode &&
-        v.u32[1] == a->arg1 &&
-        v.u32[2] == a->arg2)
+    if (v.u8[0] == a->mode && v.u32[1] == a->arg1 && v.u32[2] == a->arg2)
         return true;
     return false;
 }
 
-//same as u32 but with u8
+// same as u32 but with u8
 int DetectU8Match(const uint8_t parg, const DetectUintData_u8 *du8)
 {
     return SCDetectU8Match(parg, du8);

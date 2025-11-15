@@ -45,8 +45,8 @@ IRB_PROTOTYPE(PI, SCPortIntervalNode, irb,
 int DetectPortParse(const DetectEngineCtx *, DetectPort **head, const char *str);
 
 DetectPort *DetectPortCopySingle(DetectEngineCtx *, DetectPort *);
-int DetectPortInsert(DetectEngineCtx *,DetectPort **, DetectPort *);
-void DetectPortCleanupList (const DetectEngineCtx *de_ctx, DetectPort *head);
+int DetectPortInsert(DetectEngineCtx *, DetectPort **, DetectPort *);
+void DetectPortCleanupList(const DetectEngineCtx *de_ctx, DetectPort *head);
 
 DetectPort *DetectPortLookupGroup(DetectPort *dp, uint16_t port);
 

@@ -31,8 +31,7 @@
 #include "util-exception-policy.h"
 
 /** Supported OS list and default OS policy is BSD */
-enum
-{
+enum {
     OS_POLICY_NONE = 1,
     OS_POLICY_BSD,
     OS_POLICY_BSD_RIGHT,
@@ -88,7 +87,7 @@ typedef struct TcpReassemblyThreadCtx_ {
     uint16_t counter_tcp_urgent_oob;
 } TcpReassemblyThreadCtx;
 
-#define OS_POLICY_DEFAULT   OS_POLICY_BSD
+#define OS_POLICY_DEFAULT OS_POLICY_BSD
 
 void StreamTcpReassembleInitMemuse(void);
 int StreamTcpReassembleHandleSegment(
@@ -99,9 +98,8 @@ void *StreamTcpReassembleRealloc(void *optr, size_t orig_size, size_t size);
 void StreamTcpReassembleRegisterTests(void);
 TcpReassemblyThreadCtx *StreamTcpReassembleInitThreadCtx(ThreadVars *tv);
 void StreamTcpReassembleFreeThreadCtx(TcpReassemblyThreadCtx *);
-int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
-                                 TcpSession *ssn, TcpStream *stream,
-                                 Packet *p, enum StreamUpdateDir dir);
+int StreamTcpReassembleAppLayer(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, TcpSession *ssn,
+        TcpStream *stream, Packet *p, enum StreamUpdateDir dir);
 
 void StreamTcpCreateTestPacket(uint8_t *, uint8_t, uint8_t, uint8_t);
 

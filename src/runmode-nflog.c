@@ -77,7 +77,7 @@ static void *ParseNflogConfig(const char *group)
     if (group_root == NULL && group_default == NULL) {
         SCLogInfo("Unable to find nflog config for "
                   "group \"%s\" or \"default\", using default value",
-                  group);
+                group);
         return nflogconf;
     }
 

@@ -24,8 +24,8 @@
 #ifndef SURICATA_SOURCE_NFQ_PROTOTYPES_H
 #define SURICATA_SOURCE_NFQ_PROTOTYPES_H
 
-void TmModuleReceiveNFQRegister (void);
-void TmModuleVerdictNFQRegister (void);
-void TmModuleDecodeNFQRegister (void);
+void TmModuleReceiveNFQRegister(void);
+void TmModuleVerdictNFQRegister(void);
+void TmModuleDecodeNFQRegister(void);
 
 #endif /* SURICATA_SOURCE_NFQ_PROTOTYPES_H */

@@ -25,6 +25,6 @@
 #define SURICATA_DETECT_NOALERT_H
 
 /* prototypes */
-void DetectNoalertRegister (void);
+void DetectNoalertRegister(void);
 
 #endif /* SURICATA_DETECT_NOALERT_H */

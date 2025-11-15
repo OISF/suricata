@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /**
  * \file
  *
@@ -49,16 +48,16 @@
 #include "detect-ssh-software.h"
 #include "rust.h"
 
-#define KEYWORD_NAME "ssh.software"
+#define KEYWORD_NAME        "ssh.software"
 #define KEYWORD_NAME_LEGACY "ssh_software"
-#define KEYWORD_DOC "ssh-keywords.html#ssh-software"
-#define BUFFER_NAME "ssh_software"
-#define BUFFER_DESC "ssh software field"
+#define KEYWORD_DOC         "ssh-keywords.html#ssh-software"
+#define BUFFER_NAME         "ssh_software"
+#define BUFFER_DESC         "ssh software field"
 static int g_buffer_id = 0;
 
 static InspectionBuffer *GetSshData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f,
-        const uint8_t flow_flags, void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t flow_flags, void *txv,
+        const int list_id)
 {
     SCEnter();
 
@@ -92,7 +91,6 @@ static int DetectSshSoftwareSetup(DetectEngineCtx *de_ctx, Signature *s, const c
 
     return 0;
 }
-
 
 void DetectSshSoftwareRegister(void)
 {

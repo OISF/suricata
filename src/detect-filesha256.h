@@ -26,6 +26,6 @@
 #define SURICATA_DETECT_FILESHA256_H
 
 /* prototypes */
-void DetectFileSha256Register (void);
+void DetectFileSha256Register(void);
 
 #endif /* SURICATA_DETECT_FILESHA256_H */

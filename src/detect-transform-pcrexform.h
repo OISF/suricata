@@ -25,6 +25,6 @@
 #define SURICATA_DETECT_TRANSFORM_PCREXFORM_H
 
 /* prototypes */
-void DetectTransformPcrexformRegister (void);
+void DetectTransformPcrexformRegister(void);
 
 #endif /* SURICATA_DETECT_TRANSFORM_PCREXFORM_H */

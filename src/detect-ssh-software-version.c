@@ -27,7 +27,7 @@
 #include "detect-engine-register.h"
 #include "detect-ssh-software-version.h"
 
-static int DetectSshSoftwareVersionSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
+static int DetectSshSoftwareVersionSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     SCLogError("ssh.softwareversion is obsolete, use now ssh.software");
     return -1;

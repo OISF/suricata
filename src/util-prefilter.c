@@ -48,7 +48,7 @@ int PmqSetup(PrefilterRuleStore *pmq)
     pmq->rule_id_array_cnt = 0;
 
     size_t bytes = pmq->rule_id_array_size * sizeof(SigIntId);
-    pmq->rule_id_array = (SigIntId*)SCMalloc(bytes);
+    pmq->rule_id_array = (SigIntId *)SCMalloc(bytes);
     if (pmq->rule_id_array == NULL) {
         pmq->rule_id_array_size = 0;
         SCReturnInt(-1);
@@ -66,21 +66,18 @@ int PmqSetup(PrefilterRuleStore *pmq)
  *  \param new_size number of Signature IDs needing to be stored.
  *
  */
-int
-PrefilterAddSidsResize(PrefilterRuleStore *pmq, uint32_t new_size)
+int PrefilterAddSidsResize(PrefilterRuleStore *pmq, uint32_t new_size)
 {
     /* Need to make the array bigger. Double the size needed to
      * also handle the case that sids_size might still be
      * larger than the old size.
      */
     new_size = new_size * 2;
-    SigIntId *new_array = (SigIntId*)SCRealloc(pmq->rule_id_array,
-                                               new_size * sizeof(SigIntId));
+    SigIntId *new_array = (SigIntId *)SCRealloc(pmq->rule_id_array, new_size * sizeof(SigIntId));
     if (unlikely(new_array == NULL)) {
         /* Try again just big enough. */
         new_size = new_size / 2;
-        new_array = (SigIntId*)SCRealloc(pmq->rule_id_array,
-                                         new_size * sizeof(SigIntId));
+        new_array = (SigIntId *)SCRealloc(pmq->rule_id_array, new_size * sizeof(SigIntId));
         if (unlikely(new_array == NULL)) {
 
             SCLogError("Failed to realloc PatternMatchQueue"
@@ -108,8 +105,8 @@ void PmqReset(PrefilterRuleStore *pmq)
 }
 
 /** \brief Cleanup a Pmq
-  * \param pmq Pattern matcher queue to be cleaned up.
-  */
+ * \param pmq Pattern matcher queue to be cleaned up.
+ */
 void PmqCleanup(PrefilterRuleStore *pmq)
 {
     if (pmq == NULL)
@@ -121,8 +118,8 @@ void PmqCleanup(PrefilterRuleStore *pmq)
 }
 
 /** \brief Cleanup and free a Pmq
-  * \param pmq Pattern matcher queue to be free'd.
-  */
+ * \param pmq Pattern matcher queue to be free'd.
+ */
 void PmqFree(PrefilterRuleStore *pmq)
 {
     if (pmq == NULL)

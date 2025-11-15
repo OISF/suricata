@@ -46,7 +46,7 @@
 #include "tmqh-packetpool.h"
 
 #define PCAP_STATE_DOWN 0
-#define PCAP_STATE_UP 1
+#define PCAP_STATE_UP   1
 
 #define PCAP_RECONNECT_TIMEOUT 500000
 
@@ -69,8 +69,7 @@ typedef struct PcapStats64_ {
 /**
  * \brief Structure to hold thread specific variables.
  */
-typedef struct PcapThreadVars_
-{
+typedef struct PcapThreadVars_ {
     /* thread specific handle */
     pcap_t *pcap_handle;
     /* handle state */
@@ -132,7 +131,7 @@ static SCMutex pcap_bpf_compile_lock = SCMUTEX_INITIALIZER;
 /**
  * \brief Registration Function for ReceivePcap.
  */
-void TmModuleReceivePcapRegister (void)
+void TmModuleReceivePcapRegister(void)
 {
     tmm_modules[TMM_RECEIVEPCAP].name = "ReceivePcap";
     tmm_modules[TMM_RECEIVEPCAP].ThreadInit = ReceivePcapThreadInit;
@@ -150,7 +149,7 @@ void TmModuleReceivePcapRegister (void)
 /**
  * \brief Registration Function for DecodePcap.
  */
-void TmModuleDecodePcapRegister (void)
+void TmModuleDecodePcapRegister(void)
 {
     tmm_modules[TMM_DECODEPCAP].name = "DecodePcap";
     tmm_modules[TMM_DECODEPCAP].ThreadInit = DecodePcapThreadInit;
@@ -184,8 +183,7 @@ static inline void UpdatePcapStatsValue64(uint64_t *last, uint32_t current32)
  * \brief Update 64 bit |last| stat values with values from |current|
  * 32 bit pcap_stat.
  */
-static inline void UpdatePcapStats64(
-        PcapStats64 *last, const struct pcap_stat *current)
+static inline void UpdatePcapStats64(PcapStats64 *last, const struct pcap_stat *current)
 {
     UpdatePcapStatsValue64(&last->ps_recv, current->ps_recv);
     UpdatePcapStatsValue64(&last->ps_drop, current->ps_drop);
@@ -198,13 +196,10 @@ static inline void PcapDumpCounters(PcapThreadVars *ptv)
     if (likely((pcap_stats(ptv->pcap_handle, &pcap_s) >= 0))) {
         UpdatePcapStats64(&ptv->last_stats64, &pcap_s);
 
-        StatsSetUI64(ptv->tv, ptv->capture_kernel_packets,
-                ptv->last_stats64.ps_recv);
-        StatsSetUI64(
-                ptv->tv, ptv->capture_kernel_drops, ptv->last_stats64.ps_drop);
+        StatsSetUI64(ptv->tv, ptv->capture_kernel_packets, ptv->last_stats64.ps_recv);
+        StatsSetUI64(ptv->tv, ptv->capture_kernel_drops, ptv->last_stats64.ps_drop);
         (void)SC_ATOMIC_SET(ptv->livedev->drop, ptv->last_stats64.ps_drop);
-        StatsSetUI64(ptv->tv, ptv->capture_kernel_ifdrops,
-                ptv->last_stats64.ps_ifdrop);
+        StatsSetUI64(ptv->tv, ptv->capture_kernel_ifdrops, ptv->last_stats64.ps_ifdrop);
     }
 }
 
@@ -341,7 +336,7 @@ static void PcapCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt)
 
     ptv->pkts++;
     ptv->bytes += h->caplen;
-    (void) SC_ATOMIC_ADD(ptv->livedev->pkts, 1);
+    (void)SC_ATOMIC_ADD(ptv->livedev->pkts, 1);
     p->livedev = ptv->livedev;
 
     if (unlikely(PacketCopyData(p, pkt, h->caplen))) {
@@ -351,8 +346,7 @@ static void PcapCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt)
 
     switch (ptv->checksum_mode) {
         case CHECKSUM_VALIDATION_AUTO:
-            if (ChecksumAutoModeCheck(ptv->pkts,
-                        SC_ATOMIC_GET(ptv->livedev->pkts),
+            if (ChecksumAutoModeCheck(ptv->pkts, SC_ATOMIC_GET(ptv->livedev->pkts),
                         SC_ATOMIC_GET(ptv->livedev->invalid_checksums))) {
                 ptv->checksum_mode = CHECKSUM_VALIDATION_DISABLE;
                 p->flags |= PKT_IGNORE_CHECKSUM;
@@ -411,8 +405,8 @@ static TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot)
          * us from alloc'ing packets at line rate */
         PacketPoolWait();
 
-        int r = pcap_dispatch(ptv->pcap_handle, packet_q_len,
-                          (pcap_handler)PcapCallbackLoop, (u_char *)ptv);
+        int r = pcap_dispatch(
+                ptv->pcap_handle, packet_q_len, (pcap_handler)PcapCallbackLoop, (u_char *)ptv);
         if (unlikely(r == 0 || r == PCAP_ERROR_BREAK || (r > 0 && r < packet_q_len))) {
             if (r == PCAP_ERROR_BREAK && ptv->cb_result == TM_ECODE_FAILED) {
                 SCReturnInt(TM_ECODE_FAILED);
@@ -535,12 +529,9 @@ static TmEcode ReceivePcapThreadInit(ThreadVars *tv, const void *initdata, void 
 
     pcapconfig->DerefFunc(pcapconfig);
 
-    ptv->capture_kernel_packets = StatsRegisterCounter("capture.kernel_packets",
-            ptv->tv);
-    ptv->capture_kernel_drops = StatsRegisterCounter("capture.kernel_drops",
-            ptv->tv);
-    ptv->capture_kernel_ifdrops = StatsRegisterCounter("capture.kernel_ifdrops",
-            ptv->tv);
+    ptv->capture_kernel_packets = StatsRegisterCounter("capture.kernel_packets", ptv->tv);
+    ptv->capture_kernel_drops = StatsRegisterCounter("capture.kernel_drops", ptv->tv);
+    ptv->capture_kernel_ifdrops = StatsRegisterCounter("capture.kernel_ifdrops", ptv->tv);
 
     *data = (void *)ptv;
     SCReturnInt(TM_ECODE_OK);
@@ -577,8 +568,7 @@ static void ReceivePcapThreadExitStats(ThreadVars *tv, void *data)
         UpdatePcapStats64(&ptv->last_stats64, &pcap_s);
         float drop_percent =
                 likely(ptv->last_stats64.ps_recv > 0)
-                        ? (((float)ptv->last_stats64.ps_drop) /
-                                  (float)ptv->last_stats64.ps_recv) *
+                        ? (((float)ptv->last_stats64.ps_drop) / (float)ptv->last_stats64.ps_recv) *
                                   100
                         : 0;
         SCLogInfo("%s: pcap total:%" PRIu64 " recv:%" PRIu64 " drop:%" PRIu64 " (%02.1f%%)",
@@ -675,25 +665,22 @@ void PcapTranslateIPToDevice(char *pcap_dev, size_t len)
         return;
     }
 
-    for (pcap_if_t *devsp = alldevsp; devsp ; devsp = devsp->next) {
-        for (pcap_addr_t *ip = devsp->addresses; ip ; ip = ip->next) {
+    for (pcap_if_t *devsp = alldevsp; devsp; devsp = devsp->next) {
+        for (pcap_addr_t *ip = devsp->addresses; ip; ip = ip->next) {
 
             if (ai_list->ai_family != ip->addr->sa_family) {
                 continue;
             }
 
             if (ip->addr->sa_family == AF_INET) {
-                if (memcmp(&((struct sockaddr_in*)ai_list->ai_addr)->sin_addr,
-                            &((struct sockaddr_in*)ip->addr)->sin_addr,
-                            sizeof(struct in_addr)))
-                {
+                if (memcmp(&((struct sockaddr_in *)ai_list->ai_addr)->sin_addr,
+                            &((struct sockaddr_in *)ip->addr)->sin_addr, sizeof(struct in_addr))) {
                     continue;
                 }
             } else if (ip->addr->sa_family == AF_INET6) {
-                if (memcmp(&((struct sockaddr_in6*)ai_list->ai_addr)->sin6_addr,
-                            &((struct sockaddr_in6*)ip->addr)->sin6_addr,
-                            sizeof(struct in6_addr)))
-                {
+                if (memcmp(&((struct sockaddr_in6 *)ai_list->ai_addr)->sin6_addr,
+                            &((struct sockaddr_in6 *)ip->addr)->sin6_addr,
+                            sizeof(struct in6_addr))) {
                     continue;
                 }
             } else {

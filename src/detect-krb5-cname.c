@@ -63,8 +63,7 @@ void DetectKrb5CNameRegister(void)
     DetectAppLayerMultiRegister(
             "krb5_cname", ALPROTO_KRB5, SIG_FLAG_TOCLIENT, 1, SCKrb5TxGetCname, 2);
 
-    DetectBufferTypeSetDescriptionByName("krb5_cname",
-            "Kerberos 5 ticket client name");
+    DetectBufferTypeSetDescriptionByName("krb5_cname", "Kerberos 5 ticket client name");
 
     g_krb5_cname_buffer_id = DetectBufferTypeGetByName("krb5_cname");
 

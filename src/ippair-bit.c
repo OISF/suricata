@@ -63,11 +63,11 @@ int IPPairHasBits(IPPair *ippair)
 }
 
 /** \retval 1 ippair timed out wrt xbits
-  * \retval 0 ippair still has active (non-expired) xbits */
+ * \retval 0 ippair still has active (non-expired) xbits */
 int IPPairBitsTimedoutCheck(IPPair *h, SCTime_t ts)
 {
     GenericVar *gv = IPPairGetStorageById(h, g_ippair_bit_storage_id);
-    for ( ; gv != NULL; gv = gv->next) {
+    for (; gv != NULL; gv = gv->next) {
         if (gv->type == DETECT_XBITS) {
             XBit *xb = (XBit *)gv;
             if (SCTIME_CMP_GT(xb->expire, ts))
@@ -81,7 +81,7 @@ int IPPairBitsTimedoutCheck(IPPair *h, SCTime_t ts)
 static XBit *IPPairBitGet(IPPair *h, uint32_t idx)
 {
     GenericVar *gv = IPPairGetStorageById(h, g_ippair_bit_storage_id);
-    for ( ; gv != NULL; gv = gv->next) {
+    for (; gv != NULL; gv = gv->next) {
         if (gv->type == DETECT_XBITS && gv->idx == idx) {
             return (XBit *)gv;
         }
@@ -183,10 +183,9 @@ int IPPairBitIsnotset(IPPair *h, uint32_t idx, SCTime_t ts)
     return 0;
 }
 
-
 /* TESTS */
 #ifdef UNITTESTS
-static int IPPairBitTest01 (void)
+static int IPPairBitTest01(void)
 {
     StorageCleanup();
     StorageInit();
@@ -198,7 +197,7 @@ static int IPPairBitTest01 (void)
 
     IPPairBitAdd(h, 0, SCTIME_FROM_SECS(0));
 
-    XBit *fb = IPPairBitGet(h,0);
+    XBit *fb = IPPairBitGet(h, 0);
     FAIL_IF_NULL(fb);
 
     IPPairFree(h);
@@ -207,7 +206,7 @@ static int IPPairBitTest01 (void)
     PASS;
 }
 
-static int IPPairBitTest02 (void)
+static int IPPairBitTest02(void)
 {
     StorageCleanup();
     StorageInit();
@@ -217,7 +216,7 @@ static int IPPairBitTest02 (void)
     IPPair *h = IPPairAlloc();
     FAIL_IF_NULL(h);
 
-    XBit *fb = IPPairBitGet(h,0);
+    XBit *fb = IPPairBitGet(h, 0);
     FAIL_IF_NOT_NULL(fb);
 
     IPPairFree(h);
@@ -226,7 +225,7 @@ static int IPPairBitTest02 (void)
     PASS;
 }
 
-static int IPPairBitTest03 (void)
+static int IPPairBitTest03(void)
 {
     StorageCleanup();
     StorageInit();
@@ -238,12 +237,12 @@ static int IPPairBitTest03 (void)
 
     IPPairBitAdd(h, 0, SCTIME_FROM_SECS(30));
 
-    XBit *fb = IPPairBitGet(h,0);
+    XBit *fb = IPPairBitGet(h, 0);
     FAIL_IF_NULL(fb);
 
     IPPairBitRemove(h, 0);
 
-    fb = IPPairBitGet(h,0);
+    fb = IPPairBitGet(h, 0);
     FAIL_IF_NOT_NULL(fb);
 
     IPPairFree(h);
@@ -252,7 +251,7 @@ static int IPPairBitTest03 (void)
     PASS;
 }
 
-static int IPPairBitTest04 (void)
+static int IPPairBitTest04(void)
 {
     StorageCleanup();
     StorageInit();
@@ -267,7 +266,7 @@ static int IPPairBitTest04 (void)
     IPPairBitAdd(h, 2, SCTIME_FROM_SECS(30));
     IPPairBitAdd(h, 3, SCTIME_FROM_SECS(30));
 
-    XBit *fb = IPPairBitGet(h,0);
+    XBit *fb = IPPairBitGet(h, 0);
     FAIL_IF_NULL(fb);
 
     IPPairFree(h);
@@ -276,7 +275,7 @@ static int IPPairBitTest04 (void)
     PASS;
 }
 
-static int IPPairBitTest05 (void)
+static int IPPairBitTest05(void)
 {
     StorageCleanup();
     StorageInit();
@@ -291,7 +290,7 @@ static int IPPairBitTest05 (void)
     IPPairBitAdd(h, 2, SCTIME_FROM_SECS(90));
     IPPairBitAdd(h, 3, SCTIME_FROM_SECS(90));
 
-    XBit *fb = IPPairBitGet(h,1);
+    XBit *fb = IPPairBitGet(h, 1);
     FAIL_IF_NULL(fb);
 
     IPPairFree(h);
@@ -300,7 +299,7 @@ static int IPPairBitTest05 (void)
     PASS;
 }
 
-static int IPPairBitTest06 (void)
+static int IPPairBitTest06(void)
 {
     StorageCleanup();
     StorageInit();
@@ -315,7 +314,7 @@ static int IPPairBitTest06 (void)
     IPPairBitAdd(h, 2, SCTIME_FROM_SECS(90));
     IPPairBitAdd(h, 3, SCTIME_FROM_SECS(90));
 
-    XBit *fb = IPPairBitGet(h,2);
+    XBit *fb = IPPairBitGet(h, 2);
     FAIL_IF_NULL(fb);
 
     IPPairFree(h);
@@ -324,7 +323,7 @@ static int IPPairBitTest06 (void)
     PASS;
 }
 
-static int IPPairBitTest07 (void)
+static int IPPairBitTest07(void)
 {
     StorageCleanup();
     StorageInit();
@@ -339,7 +338,7 @@ static int IPPairBitTest07 (void)
     IPPairBitAdd(h, 2, SCTIME_FROM_SECS(90));
     IPPairBitAdd(h, 3, SCTIME_FROM_SECS(90));
 
-    XBit *fb = IPPairBitGet(h,3);
+    XBit *fb = IPPairBitGet(h, 3);
     FAIL_IF_NULL(fb);
 
     IPPairFree(h);
@@ -348,7 +347,7 @@ static int IPPairBitTest07 (void)
     PASS;
 }
 
-static int IPPairBitTest08 (void)
+static int IPPairBitTest08(void)
 {
     StorageCleanup();
     StorageInit();
@@ -363,12 +362,12 @@ static int IPPairBitTest08 (void)
     IPPairBitAdd(h, 2, SCTIME_FROM_SECS(90));
     IPPairBitAdd(h, 3, SCTIME_FROM_SECS(90));
 
-    XBit *fb = IPPairBitGet(h,0);
+    XBit *fb = IPPairBitGet(h, 0);
     FAIL_IF_NULL(fb);
 
-    IPPairBitRemove(h,0);
+    IPPairBitRemove(h, 0);
 
-    fb = IPPairBitGet(h,0);
+    fb = IPPairBitGet(h, 0);
     FAIL_IF_NOT_NULL(fb);
 
     IPPairFree(h);
@@ -377,7 +376,7 @@ static int IPPairBitTest08 (void)
     PASS;
 }
 
-static int IPPairBitTest09 (void)
+static int IPPairBitTest09(void)
 {
     StorageCleanup();
     StorageInit();
@@ -392,12 +391,12 @@ static int IPPairBitTest09 (void)
     IPPairBitAdd(h, 2, SCTIME_FROM_SECS(90));
     IPPairBitAdd(h, 3, SCTIME_FROM_SECS(90));
 
-    XBit *fb = IPPairBitGet(h,1);
+    XBit *fb = IPPairBitGet(h, 1);
     FAIL_IF_NULL(fb);
 
-    IPPairBitRemove(h,1);
+    IPPairBitRemove(h, 1);
 
-    fb = IPPairBitGet(h,1);
+    fb = IPPairBitGet(h, 1);
     FAIL_IF_NOT_NULL(fb);
 
     IPPairFree(h);
@@ -406,7 +405,7 @@ static int IPPairBitTest09 (void)
     PASS;
 }
 
-static int IPPairBitTest10 (void)
+static int IPPairBitTest10(void)
 {
     StorageCleanup();
     StorageInit();
@@ -421,12 +420,12 @@ static int IPPairBitTest10 (void)
     IPPairBitAdd(h, 2, SCTIME_FROM_SECS(90));
     IPPairBitAdd(h, 3, SCTIME_FROM_SECS(90));
 
-    XBit *fb = IPPairBitGet(h,2);
+    XBit *fb = IPPairBitGet(h, 2);
     FAIL_IF_NULL(fb);
 
-    IPPairBitRemove(h,2);
+    IPPairBitRemove(h, 2);
 
-    fb = IPPairBitGet(h,2);
+    fb = IPPairBitGet(h, 2);
     FAIL_IF_NOT_NULL(fb);
 
     IPPairFree(h);
@@ -435,7 +434,7 @@ static int IPPairBitTest10 (void)
     PASS;
 }
 
-static int IPPairBitTest11 (void)
+static int IPPairBitTest11(void)
 {
     StorageCleanup();
     StorageInit();
@@ -450,12 +449,12 @@ static int IPPairBitTest11 (void)
     IPPairBitAdd(h, 2, SCTIME_FROM_SECS(90));
     IPPairBitAdd(h, 3, SCTIME_FROM_SECS(90));
 
-    XBit *fb = IPPairBitGet(h,3);
+    XBit *fb = IPPairBitGet(h, 3);
     FAIL_IF_NULL(fb);
 
-    IPPairBitRemove(h,3);
+    IPPairBitRemove(h, 3);
 
-    fb = IPPairBitGet(h,3);
+    fb = IPPairBitGet(h, 3);
     FAIL_IF_NOT_NULL(fb);
 
     IPPairFree(h);

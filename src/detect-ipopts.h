@@ -42,7 +42,7 @@ typedef struct DetectIpOptsData_ {
  * Registration function for ipopts: keyword
  */
 
-void DetectIpOptsRegister (void);
+void DetectIpOptsRegister(void);
 
 const char *IpOptsFlagToString(uint16_t flag);
 

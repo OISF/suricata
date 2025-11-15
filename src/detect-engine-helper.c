@@ -112,11 +112,11 @@ uint16_t SCDetectHelperKeywordRegister(const SCSigTableAppLiteElmt *kw)
     sigmatch_table[keyword_id].url = kw->url;
     sigmatch_table[keyword_id].flags = kw->flags;
     sigmatch_table[keyword_id].AppLayerTxMatch =
-            (int (*)(DetectEngineThreadCtx * det_ctx, Flow * f, uint8_t flags, void *alstate,
-                    void *txv, const Signature *s, const SigMatchCtx *ctx)) kw->AppLayerTxMatch;
+            (int (*)(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *alstate,
+                    void *txv, const Signature *s, const SigMatchCtx *ctx))kw->AppLayerTxMatch;
     sigmatch_table[keyword_id].Setup =
-            (int (*)(DetectEngineCtx * de, Signature * s, const char *raw)) kw->Setup;
-    sigmatch_table[keyword_id].Free = (void (*)(DetectEngineCtx * de, void *ptr)) kw->Free;
+            (int (*)(DetectEngineCtx *de, Signature *s, const char *raw))kw->Setup;
+    sigmatch_table[keyword_id].Free = (void (*)(DetectEngineCtx *de, void *ptr))kw->Free;
 
     return (uint16_t)keyword_id;
 }
@@ -137,14 +137,13 @@ int SCDetectHelperTransformRegister(const SCTransformTableElmt *kw)
     sigmatch_table[transform_id].desc = kw->desc;
     sigmatch_table[transform_id].url = kw->url;
     sigmatch_table[transform_id].flags = kw->flags;
-    sigmatch_table[transform_id].Transform =
-            (void (*)(DetectEngineThreadCtx * det_ctx, InspectionBuffer * buffer, void *options))
-                    kw->Transform;
+    sigmatch_table[transform_id].Transform = (void (*)(
+            DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer, void *options))kw->Transform;
     sigmatch_table[transform_id].TransformValidate = (bool (*)(
             const uint8_t *content, uint16_t content_len, void *context))kw->TransformValidate;
     sigmatch_table[transform_id].Setup =
-            (int (*)(DetectEngineCtx * de, Signature * s, const char *raw)) kw->Setup;
-    sigmatch_table[transform_id].Free = (void (*)(DetectEngineCtx * de, void *ptr)) kw->Free;
+            (int (*)(DetectEngineCtx *de, Signature *s, const char *raw))kw->Setup;
+    sigmatch_table[transform_id].Free = (void (*)(DetectEngineCtx *de, void *ptr))kw->Free;
     sigmatch_table[transform_id].TransformId =
             (void (*)(const uint8_t **id_data, uint32_t *length, void *context))kw->TransformId;
 

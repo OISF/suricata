@@ -33,20 +33,16 @@ static void DetectBase64DataRegisterTests(void);
 void DetectBase64DataRegister(void)
 {
     sigmatch_table[DETECT_BASE64_DATA].name = "base64_data";
-    sigmatch_table[DETECT_BASE64_DATA].desc =
-        "Content match base64 decoded data.";
-    sigmatch_table[DETECT_BASE64_DATA].url =
-        "/rules/base64-keywords.html#base64-data";
+    sigmatch_table[DETECT_BASE64_DATA].desc = "Content match base64 decoded data.";
+    sigmatch_table[DETECT_BASE64_DATA].url = "/rules/base64-keywords.html#base64-data";
     sigmatch_table[DETECT_BASE64_DATA].Setup = DetectBase64DataSetup;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_BASE64_DATA].RegisterTests =
-        DetectBase64DataRegisterTests;
+    sigmatch_table[DETECT_BASE64_DATA].RegisterTests = DetectBase64DataRegisterTests;
 #endif
     sigmatch_table[DETECT_BASE64_DATA].flags |= SIGMATCH_NOOPT;
 }
 
-static int DetectBase64DataSetup(DetectEngineCtx *de_ctx, Signature *s,
-    const char *str)
+static int DetectBase64DataSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     SigMatch *pm = NULL;
 

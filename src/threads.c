@@ -90,7 +90,7 @@ static int ThreadMacrosTest03RWLocks(void)
     FAIL_IF(SCRWLockWRLock(&rwl_write) != 0);
 /* OS X/macOS 10.10 (Yosemite) and newer return EDEADLK. Older versions
  * and other tested OS's return EBUSY. */
-#if __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__>=101000
+#if __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ >= 101000
     FAIL_IF(SCRWLockTryWRLock(&rwl_write) != EDEADLK);
 #else
     FAIL_IF(SCRWLockTryWRLock(&rwl_write) != EBUSY);
@@ -146,7 +146,7 @@ void ThreadMacrosRegisterTests(void)
     UtRegisterTest("ThreadMacrosTest02Spinlocks", ThreadMacrosTest02Spinlocks);
     UtRegisterTest("ThreadMacrosTest03RWLocks", ThreadMacrosTest03RWLocks);
     UtRegisterTest("ThreadMacrosTest04RWLocks", ThreadMacrosTest04RWLocks);
-//    UtRegisterTest("ThreadMacrosTest05RWLocks", ThreadMacrosTest05RWLocks);
+    //    UtRegisterTest("ThreadMacrosTest05RWLocks", ThreadMacrosTest05RWLocks);
     RegisterThreadStorageTests();
 #endif /* UNIT TESTS */
 }

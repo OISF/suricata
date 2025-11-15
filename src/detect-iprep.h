@@ -25,6 +25,6 @@
 #define SURICATA_DETECT_IPREP_H
 
 /* prototypes */
-void DetectIPRepRegister (void);
+void DetectIPRepRegister(void);
 
 #endif /* SURICATA_DETECT_IPREP_H */

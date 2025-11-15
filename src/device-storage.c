@@ -103,5 +103,3 @@ void LiveDevFreeStorage(LiveDevice *d)
     if (LiveDevStorageSize() > 0)
         StorageFreeAll(d->storage, STORAGE_DEVICE);
 }
-
-

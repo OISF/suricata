@@ -26,15 +26,15 @@
 
 #include "detect-parse.h"
 
-#define DETECT_PCRE_RELATIVE            0x00001
+#define DETECT_PCRE_RELATIVE 0x00001
 /* no-op other than in parsing */
-#define DETECT_PCRE_RAWBYTES            0x00002
-#define DETECT_PCRE_CASELESS            0x00004
+#define DETECT_PCRE_RAWBYTES 0x00002
+#define DETECT_PCRE_CASELESS 0x00004
 
-#define DETECT_PCRE_RELATIVE_NEXT       0x00040
-#define DETECT_PCRE_NEGATE              0x00080
+#define DETECT_PCRE_RELATIVE_NEXT 0x00040
+#define DETECT_PCRE_NEGATE        0x00080
 
-#define DETECT_PCRE_CAPTURE_MAX         8
+#define DETECT_PCRE_CAPTURE_MAX 8
 
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
 #define SC_MATCH_LIMIT_DEFAULT           350
@@ -56,10 +56,9 @@ typedef struct DetectPcreData_ {
 
 /* prototypes */
 
-int DetectPcrePayloadMatch(DetectEngineThreadCtx *,
-        const Signature *, const SigMatchData *,
+int DetectPcrePayloadMatch(DetectEngineThreadCtx *, const Signature *, const SigMatchData *,
         Packet *, Flow *, const uint8_t *, uint32_t);
 
-void DetectPcreRegister (void);
+void DetectPcreRegister(void);
 
 #endif /* SURICATA_DETECT_PCRE_H */

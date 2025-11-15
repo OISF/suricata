@@ -65,7 +65,7 @@ int SCMapEnumNameToValue(const char *enum_name, SCEnumCharMap *table)
  *
  * \retval result The enum_name for the enum_value supplied or NULL on failure
  */
-const char * SCMapEnumValueToName(int enum_value, SCEnumCharMap *table)
+const char *SCMapEnumValueToName(int enum_value, SCEnumCharMap *table)
 {
     if (table == NULL) {
         SCLogDebug("Invalid argument(s) passed into SCMapEnumValueToName");

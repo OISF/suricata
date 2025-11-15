@@ -34,8 +34,8 @@ typedef struct DetectBase64Decode_ {
 } DetectBase64Decode;
 
 static const char decode_pattern[] = "\\s*(bytes\\s+(\\d+),?)?"
-    "\\s*(offset\\s+(\\d+),?)?"
-    "\\s*(\\w+)?";
+                                     "\\s*(offset\\s+(\\d+),?)?"
+                                     "\\s*(\\w+)?";
 
 static DetectParseRegex decode_pcre;
 
@@ -48,15 +48,12 @@ static void DetectBase64DecodeRegisterTests(void);
 void DetectBase64DecodeRegister(void)
 {
     sigmatch_table[DETECT_BASE64_DECODE].name = "base64_decode";
-    sigmatch_table[DETECT_BASE64_DECODE].desc =
-        "Decodes base64 encoded data.";
-    sigmatch_table[DETECT_BASE64_DECODE].url =
-        "/rules/base64-keywords.html#base64-decode";
+    sigmatch_table[DETECT_BASE64_DECODE].desc = "Decodes base64 encoded data.";
+    sigmatch_table[DETECT_BASE64_DECODE].url = "/rules/base64-keywords.html#base64-decode";
     sigmatch_table[DETECT_BASE64_DECODE].Setup = DetectBase64DecodeSetup;
     sigmatch_table[DETECT_BASE64_DECODE].Free = DetectBase64DecodeFree;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_BASE64_DECODE].RegisterTests =
-        DetectBase64DecodeRegisterTests;
+    sigmatch_table[DETECT_BASE64_DECODE].RegisterTests = DetectBase64DecodeRegisterTests;
 #endif
     sigmatch_table[DETECT_BASE64_DECODE].flags |= SIGMATCH_OPTIONAL_OPT;
 
@@ -64,7 +61,7 @@ void DetectBase64DecodeRegister(void)
 }
 
 int DetectBase64DecodeDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
-    const SigMatchData *smd, const uint8_t *payload, uint32_t payload_len)
+        const SigMatchData *smd, const uint8_t *payload, uint32_t payload_len)
 {
     DetectBase64Decode *data = (DetectBase64Decode *)smd->ctx;
 
@@ -136,7 +133,7 @@ static int DetectBase64DecodeParse(
                 goto error;
             }
         }
-     }
+    }
 
     if (pcre_rc >= 5) {
         if (pcre2_substring_get_bynumber(match, 4, (PCRE2_UCHAR8 **)&offset_str, &pcre2_len) == 0) {
@@ -152,8 +149,7 @@ static int DetectBase64DecodeParse(
                 0) {
             if (strcmp(relative_str, "relative") == 0) {
                 *relative = 1;
-            }
-            else {
+            } else {
                 SCLogError("Invalid argument: \"%s\"", relative_str);
                 goto error;
             }
@@ -182,8 +178,7 @@ error:
     return retval;
 }
 
-static int DetectBase64DecodeSetup(DetectEngineCtx *de_ctx, Signature *s,
-    const char *str)
+static int DetectBase64DecodeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     uint16_t bytes = 0;
     uint32_t offset = 0;
@@ -207,16 +202,12 @@ static int DetectBase64DecodeSetup(DetectEngineCtx *de_ctx, Signature *s,
 
     if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
         sm_list = s->init_data->list;
-    }
-    else {
-        pm = DetectGetLastSMFromLists(s,
-                DETECT_CONTENT, DETECT_PCRE,
-                DETECT_BYTETEST, DETECT_BYTEJUMP, DETECT_BYTE_EXTRACT,
-                DETECT_ISDATAAT, -1);
+    } else {
+        pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, DETECT_PCRE, DETECT_BYTETEST,
+                DETECT_BYTEJUMP, DETECT_BYTE_EXTRACT, DETECT_ISDATAAT, -1);
         if (pm == NULL) {
             sm_list = DETECT_SM_LIST_PMATCH;
-        }
-        else {
+        } else {
             sm_list = SigMatchListSMBelongsTo(s, pm);
             if (sm_list < 0) {
                 goto error;
@@ -249,7 +240,6 @@ static void DetectBase64DecodeFree(DetectEngineCtx *de_ctx, void *ptr)
     DetectBase64Decode *data = ptr;
     SCFree(data);
 }
-
 
 #ifdef UNITTESTS
 #include "detect-engine.h"
@@ -289,24 +279,21 @@ static int DetectBase64TestDecodeParse(void)
         goto end;
     }
 
-    if (!DetectBase64DecodeParse("bytes 1, offset 2", &bytes, &offset,
-            &relative)) {
+    if (!DetectBase64DecodeParse("bytes 1, offset 2", &bytes, &offset, &relative)) {
         goto end;
     }
     if (bytes != 1 || offset != 2 || relative != 0) {
         goto end;
     }
 
-    if (!DetectBase64DecodeParse("bytes 1, offset 2, relative", &bytes, &offset,
-            &relative)) {
+    if (!DetectBase64DecodeParse("bytes 1, offset 2, relative", &bytes, &offset, &relative)) {
         goto end;
     }
     if (bytes != 1 || offset != 2 || relative != 1) {
         goto end;
     }
 
-    if (!DetectBase64DecodeParse("offset 2, relative", &bytes, &offset,
-            &relative)) {
+    if (!DetectBase64DecodeParse("offset 2, relative", &bytes, &offset, &relative)) {
         goto end;
     }
     if (bytes != 0 || offset != 2 || relative != 1) {
@@ -314,20 +301,17 @@ static int DetectBase64TestDecodeParse(void)
     }
 
     /* Misspelled relative. */
-    if (DetectBase64DecodeParse("bytes 1, offset 2, relatve", &bytes, &offset,
-            &relative)) {
+    if (DetectBase64DecodeParse("bytes 1, offset 2, relatve", &bytes, &offset, &relative)) {
         goto end;
     }
 
     /* Misspelled bytes. */
-    if (DetectBase64DecodeParse("byts 1, offset 2, relatve", &bytes, &offset,
-            &relative)) {
+    if (DetectBase64DecodeParse("byts 1, offset 2, relatve", &bytes, &offset, &relative)) {
         goto end;
     }
 
     /* Misspelled offset. */
-    if (DetectBase64DecodeParse("bytes 1, offst 2, relatve", &bytes, &offset,
-            &relative)) {
+    if (DetectBase64DecodeParse("bytes 1, offst 2, relatve", &bytes, &offset, &relative)) {
         goto end;
     }
 
@@ -368,8 +352,22 @@ static int DetectBase64DecodeTestDecode(void)
     int retval = 0;
 
     uint8_t payload[] = {
-        'S', 'G', 'V', 's', 'b', 'G', '8', 'g',
-        'V', '2', '9', 'y', 'b', 'G', 'Q', '=',
+        'S',
+        'G',
+        'V',
+        's',
+        'b',
+        'G',
+        '8',
+        'g',
+        'V',
+        '2',
+        '9',
+        'y',
+        'b',
+        'G',
+        'Q',
+        '=',
     };
 
     memset(&tv, 0, sizeof(tv));
@@ -378,10 +376,9 @@ static int DetectBase64DecodeTestDecode(void)
         goto end;
     }
 
-    de_ctx->sig_list = SigInit(de_ctx,
-        "alert tcp any any -> any any (msg:\"base64 test\"; "
-        "base64_decode; "
-        "sid:1; rev:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"base64 test\"; "
+                                       "base64_decode; "
+                                       "sid:1; rev:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -422,9 +419,30 @@ static int DetectBase64DecodeTestDecodeWithOffset(void)
     int retval = 0;
 
     uint8_t payload[] = {
-        'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a',
-        'S', 'G', 'V', 's', 'b', 'G', '8', 'g',
-        'V', '2', '9', 'y', 'b', 'G', 'Q', '=',
+        'a',
+        'a',
+        'a',
+        'a',
+        'a',
+        'a',
+        'a',
+        'a',
+        'S',
+        'G',
+        'V',
+        's',
+        'b',
+        'G',
+        '8',
+        'g',
+        'V',
+        '2',
+        '9',
+        'y',
+        'b',
+        'G',
+        'Q',
+        '=',
     };
     char decoded[] = "Hello World";
 
@@ -434,10 +452,9 @@ static int DetectBase64DecodeTestDecodeWithOffset(void)
         goto end;
     }
 
-    de_ctx->sig_list = SigInit(de_ctx,
-        "alert tcp any any -> any any (msg:\"base64 test\"; "
-        "base64_decode: offset 8; "
-        "sid:1; rev:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"base64 test\"; "
+                                       "base64_decode: offset 8; "
+                                       "sid:1; rev:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -483,8 +500,22 @@ static int DetectBase64DecodeTestDecodeLargeOffset(void)
     int retval = 0;
 
     uint8_t payload[] = {
-        'S', 'G', 'V', 's', 'b', 'G', '8', 'g',
-        'V', '2', '9', 'y', 'b', 'G', 'Q', '=',
+        'S',
+        'G',
+        'V',
+        's',
+        'b',
+        'G',
+        '8',
+        'g',
+        'V',
+        '2',
+        '9',
+        'y',
+        'b',
+        'G',
+        'Q',
+        '=',
     };
 
     memset(&tv, 0, sizeof(tv));
@@ -494,10 +525,9 @@ static int DetectBase64DecodeTestDecodeLargeOffset(void)
     }
 
     /* Offset is out of range. */
-    de_ctx->sig_list = SigInit(de_ctx,
-        "alert tcp any any -> any any (msg:\"base64 test\"; "
-        "base64_decode: bytes 16, offset 32; "
-        "sid:1; rev:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"base64 test\"; "
+                                       "base64_decode: bytes 16, offset 32; "
+                                       "sid:1; rev:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -538,9 +568,30 @@ static int DetectBase64DecodeTestDecodeRelative(void)
     int retval = 0;
 
     uint8_t payload[] = {
-        'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a',
-        'S', 'G', 'V', 's', 'b', 'G', '8', 'g',
-        'V', '2', '9', 'y', 'b', 'G', 'Q', '=',
+        'a',
+        'a',
+        'a',
+        'a',
+        'a',
+        'a',
+        'a',
+        'a',
+        'S',
+        'G',
+        'V',
+        's',
+        'b',
+        'G',
+        '8',
+        'g',
+        'V',
+        '2',
+        '9',
+        'y',
+        'b',
+        'G',
+        'Q',
+        '=',
     };
     char decoded[] = "Hello World";
 
@@ -550,11 +601,10 @@ static int DetectBase64DecodeTestDecodeRelative(void)
         goto end;
     }
 
-    de_ctx->sig_list = SigInit(de_ctx,
-        "alert tcp any any -> any any (msg:\"base64 test\"; "
-        "content:\"aaaaaaaa\"; "
-        "base64_decode: relative; "
-        "sid:1; rev:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"base64 test\"; "
+                                       "content:\"aaaaaaaa\"; "
+                                       "base64_decode: relative; "
+                                       "sid:1; rev:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -595,13 +645,11 @@ static void DetectBase64DecodeRegisterTests(void)
 
     UtRegisterTest("DetectBase64TestDecodeParse", DetectBase64TestDecodeParse);
     UtRegisterTest("DetectBase64DecodeTestSetup", DetectBase64DecodeTestSetup);
-    UtRegisterTest("DetectBase64DecodeTestDecode",
-                   DetectBase64DecodeTestDecode);
-    UtRegisterTest("DetectBase64DecodeTestDecodeWithOffset",
-                   DetectBase64DecodeTestDecodeWithOffset);
-    UtRegisterTest("DetectBase64DecodeTestDecodeLargeOffset",
-                   DetectBase64DecodeTestDecodeLargeOffset);
-    UtRegisterTest("DetectBase64DecodeTestDecodeRelative",
-                   DetectBase64DecodeTestDecodeRelative);
+    UtRegisterTest("DetectBase64DecodeTestDecode", DetectBase64DecodeTestDecode);
+    UtRegisterTest(
+            "DetectBase64DecodeTestDecodeWithOffset", DetectBase64DecodeTestDecodeWithOffset);
+    UtRegisterTest(
+            "DetectBase64DecodeTestDecodeLargeOffset", DetectBase64DecodeTestDecodeLargeOffset);
+    UtRegisterTest("DetectBase64DecodeTestDecodeRelative", DetectBase64DecodeTestDecodeRelative);
 }
 #endif /* UNITTESTS */

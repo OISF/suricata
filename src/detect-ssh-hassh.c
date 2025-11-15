@@ -49,18 +49,16 @@
 #include "detect-ssh-hassh.h"
 #include "rust.h"
 
-
-#define KEYWORD_NAME "ssh.hassh"
+#define KEYWORD_NAME  "ssh.hassh"
 #define KEYWORD_ALIAS "ssh-hassh"
-#define KEYWORD_DOC "ssh-keywords.html#hassh"
-#define BUFFER_NAME "ssh.hassh"
-#define BUFFER_DESC "Ssh Client Fingerprinting For Ssh Clients "
+#define KEYWORD_DOC   "ssh-keywords.html#hassh"
+#define BUFFER_NAME   "ssh.hassh"
+#define BUFFER_DESC   "Ssh Client Fingerprinting For Ssh Clients "
 static int g_ssh_hassh_buffer_id = 0;
 
-
 static InspectionBuffer *GetSshData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f,
-        const uint8_t flow_flags, void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t flow_flags, void *txv,
+        const int list_id)
 {
 
     SCEnter();
@@ -102,7 +100,7 @@ static int DetectSshHasshSetup(DetectEngineCtx *de_ctx, Signature *s, const char
 
     if (SCDetectSignatureSetAppProto(s, ALPROTO_SSH) < 0)
         return -1;
-        
+
     /* try to enable Hassh */
     SCSshEnableHassh();
 
@@ -115,11 +113,9 @@ static int DetectSshHasshSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     }
 
     return 0;
-
 }
 
-static void DetectSshHasshHashSetupCallback(const DetectEngineCtx *de_ctx,
-                                          Signature *s)
+static void DetectSshHasshHashSetupCallback(const DetectEngineCtx *de_ctx, Signature *s)
 {
     for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
         if (s->init_data->buffers[x].id != (uint32_t)g_ssh_hassh_buffer_id)
@@ -148,7 +144,7 @@ static void DetectSshHasshHashSetupCallback(const DetectEngineCtx *de_ctx,
 /**
  * \brief Registration function for hassh keyword.
  */
-void DetectSshHasshRegister(void) 
+void DetectSshHasshRegister(void)
 {
     sigmatch_table[DETECT_SSH_HASSH].name = KEYWORD_NAME;
     sigmatch_table[DETECT_SSH_HASSH].alias = KEYWORD_ALIAS;
@@ -168,4 +164,3 @@ void DetectSshHasshRegister(void)
     DetectBufferTypeRegisterSetupCallback(BUFFER_NAME, DetectSshHasshHashSetupCallback);
     DetectBufferTypeRegisterValidateCallback(BUFFER_NAME, DetectMd5ValidateCallback);
 }
-

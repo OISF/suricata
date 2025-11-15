@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /**
  * \file
  *
@@ -48,14 +47,14 @@
  * \retval TM_ECODE_OK or TM_ECODE_FAILED on serious error
  */
 
-int DecodeTEMPLATE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-                   const uint8_t *pkt, uint32_t len)
+int DecodeTEMPLATE(
+        ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len)
 {
     DEBUG_VALIDATE_BUG_ON(pkt == NULL);
 
     /* TODO add counter for your type of packet to DecodeThreadVars,
      * and register it in DecodeRegisterPerfCounters */
-    //StatsIncr(tv, dtv->counter_template);
+    // StatsIncr(tv, dtv->counter_template);
 
     /* Validation: make sure that the input data is big enough to hold
      *             the header */
@@ -63,7 +62,7 @@ int DecodeTEMPLATE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         /* in case of errors, we set events. Events are defined in
          * decode-events.h, and are then exposed to the detection
          * engine through detect-engine-events.h */
-        //ENGINE_SET_EVENT(p,TEMPLATE_HEADER_TOO_SMALL);
+        // ENGINE_SET_EVENT(p,TEMPLATE_HEADER_TOO_SMALL);
         return TM_ECODE_FAILED;
     }
     /* Each packet keeps a count of decoded layers
@@ -100,7 +99,7 @@ int DecodeTEMPLATE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         /* invoke the next decoder on the remainder of the data */
         return DecodeUDP(tv, dtv, p, (uint8_t *)pkt + hdr_len, (uint16_t)(len - hdr_len));
     } else {
-        //ENGINE_SET_EVENT(p,TEMPLATE_UNSUPPORTED_PROTOCOL);
+        // ENGINE_SET_EVENT(p,TEMPLATE_UNSUPPORTED_PROTOCOL);
         return TM_ECODE_FAILED;
     }
 

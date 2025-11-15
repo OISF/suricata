@@ -27,12 +27,11 @@
 #ifdef HAVE_LIBHIREDIS
 #include <hiredis/hiredis.h>
 
-
 #ifdef HAVE_LIBEVENT
 #include <hiredis/async.h>
 #endif /* HAVE_LIBEVENT */
 
-#include "conf.h"            /* ConfNode   */
+#include "conf.h" /* ConfNode   */
 
 enum RedisMode { REDIS_LIST, REDIS_CHANNEL };
 
@@ -42,9 +41,9 @@ typedef struct RedisSetup_ {
     const char *command;
     const char *key;
     const char *server;
-    uint16_t  port;
+    uint16_t port;
     int is_async;
-    int  batch_size;
+    int batch_size;
     char *stream_format;
 } RedisSetup;
 
@@ -56,7 +55,7 @@ typedef struct SCLogRedisContext_ {
     int connected;
 #endif /* HAVE_LIBEVENT */
     time_t tried;
-    int  batch_count;
+    int batch_count;
     time_t last_push;
 } SCLogRedisContext;
 

@@ -54,7 +54,7 @@ int HTPFileOpen(HtpState *s, HtpTxUserData *tx, const uint8_t *filename, uint16_
     uint16_t flags = 0;
     FileContainer *files = NULL;
 
-    SCLogDebug("data %p data_len %"PRIu32, data, data_len);
+    SCLogDebug("data %p data_len %" PRIu32, data, data_len);
 
     if (direction & STREAM_TOCLIENT) {
         files = &tx->files_tc;
@@ -361,11 +361,13 @@ static int HTPFileParserTest01(void)
 {
     uint8_t httpbuf1[] = "POST /upload.cgi HTTP/1.1\r\n"
                          "Host: www.server.lan\r\n"
-                         "Content-Type: multipart/form-data; boundary=---------------------------277531038314945\r\n"
+                         "Content-Type: multipart/form-data; "
+                         "boundary=---------------------------277531038314945\r\n"
                          "Content-Length: 215\r\n"
                          "\r\n"
                          "-----------------------------277531038314945\r\n"
-                         "Content-Disposition: form-data; name=\"uploadfile_0\"; filename=\"somepicture1.jpg\"\r\n"
+                         "Content-Disposition: form-data; name=\"uploadfile_0\"; "
+                         "filename=\"somepicture1.jpg\"\r\n"
                          "Content-Type: image/jpeg\r\n"
                          "\r\n";
 
@@ -418,7 +420,8 @@ static int HTPFileParserTest02(void)
 {
     uint8_t httpbuf1[] = "POST /upload.cgi HTTP/1.1\r\n"
                          "Host: www.server.lan\r\n"
-                         "Content-Type: multipart/form-data; boundary=---------------------------277531038314945\r\n"
+                         "Content-Type: multipart/form-data; "
+                         "boundary=---------------------------277531038314945\r\n"
                          "Content-Length: 337\r\n"
                          "\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
@@ -430,7 +433,8 @@ static int HTPFileParserTest02(void)
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
 
     uint8_t httpbuf3[] = "-----------------------------277531038314945\r\n"
-                         "Content-Disposition: form-data; name=\"uploadfile_0\"; filename=\"somepicture1.jpg\"\r\n"
+                         "Content-Disposition: form-data; name=\"uploadfile_0\"; "
+                         "filename=\"somepicture1.jpg\"\r\n"
                          "Content-Type: image/jpeg\r\n"
                          "\r\n";
     uint32_t httplen3 = sizeof(httpbuf3) - 1; /* minus the \0 */
@@ -497,7 +501,8 @@ static int HTPFileParserTest03(void)
 {
     uint8_t httpbuf1[] = "POST /upload.cgi HTTP/1.1\r\n"
                          "Host: www.server.lan\r\n"
-                         "Content-Type: multipart/form-data; boundary=---------------------------277531038314945\r\n"
+                         "Content-Type: multipart/form-data; "
+                         "boundary=---------------------------277531038314945\r\n"
                          "Content-Length: 337\r\n"
                          "\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
@@ -509,7 +514,8 @@ static int HTPFileParserTest03(void)
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
 
     uint8_t httpbuf3[] = "-----------------------------277531038314945\r\n"
-                         "Content-Disposition: form-data; name=\"uploadfile_0\"; filename=\"somepicture1.jpg\"\r\n"
+                         "Content-Disposition: form-data; name=\"uploadfile_0\"; "
+                         "filename=\"somepicture1.jpg\"\r\n"
                          "Content-Type: image/jpeg\r\n"
                          "\r\n";
     uint32_t httplen3 = sizeof(httpbuf3) - 1; /* minus the \0 */
@@ -595,7 +601,8 @@ static int HTPFileParserTest04(void)
 {
     uint8_t httpbuf1[] = "POST /upload.cgi HTTP/1.1\r\n"
                          "Host: www.server.lan\r\n"
-                         "Content-Type: multipart/form-data; boundary=---------------------------277531038314945\r\n"
+                         "Content-Type: multipart/form-data; "
+                         "boundary=---------------------------277531038314945\r\n"
                          "Content-Length: 373\r\n"
                          "\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
@@ -607,7 +614,8 @@ static int HTPFileParserTest04(void)
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
 
     uint8_t httpbuf3[] = "-----------------------------277531038314945\r\n"
-                         "Content-Disposition: form-data; name=\"uploadfile_0\"; filename=\"somepicture1.jpg\"\r\n"
+                         "Content-Disposition: form-data; name=\"uploadfile_0\"; "
+                         "filename=\"somepicture1.jpg\"\r\n"
                          "Content-Type: image/jpeg\r\n"
                          "\r\n";
     uint32_t httplen3 = sizeof(httpbuf3) - 1; /* minus the \0 */
@@ -692,21 +700,24 @@ static int HTPFileParserTest05(void)
 {
     uint8_t httpbuf1[] = "POST /upload.cgi HTTP/1.1\r\n"
                          "Host: www.server.lan\r\n"
-                         "Content-Type: multipart/form-data; boundary=---------------------------277531038314945\r\n"
+                         "Content-Type: multipart/form-data; "
+                         "boundary=---------------------------277531038314945\r\n"
                          "Content-Length: 544\r\n"
                          "\r\n"
                          "-----------------------------277531038314945\r\n"
-                         "Content-Disposition: form-data; name=\"uploadfile_0\"; filename=\"somepicture1.jpg\"\r\n"
+                         "Content-Disposition: form-data; name=\"uploadfile_0\"; "
+                         "filename=\"somepicture1.jpg\"\r\n"
                          "Content-Type: image/jpeg\r\n"
                          "\r\n"
                          "filecontent\r\n"
                          "-----------------------------277531038314945\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
-    uint8_t httpbuf2[] = "Content-Disposition: form-data; name=\"uploadfile_1\"; filename=\"somepicture2.jpg\"\r\n"
+    uint8_t httpbuf2[] = "Content-Disposition: form-data; name=\"uploadfile_1\"; "
+                         "filename=\"somepicture2.jpg\"\r\n"
                          "Content-Type: image/jpeg\r\n"
                          "\r\n"
                          "FILECONTENT\r\n"
-        "-----------------------------277531038314945--";
+                         "-----------------------------277531038314945--";
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
 
     TcpSession ssn;
@@ -769,21 +780,24 @@ static int HTPFileParserTest06(void)
 {
     uint8_t httpbuf1[] = "POST /upload.cgi HTTP/1.1\r\n"
                          "Host: www.server.lan\r\n"
-                         "Content-Type: multipart/form-data; boundary=---------------------------277531038314945\r\n"
+                         "Content-Type: multipart/form-data; "
+                         "boundary=---------------------------277531038314945\r\n"
                          "Content-Length: 544\r\n"
                          "\r\n"
                          "-----------------------------277531038314945\r\n"
-                         "Content-Disposition: form-data; name=\"uploadfile_0\"; filename=\"somepicture1.jpg\"\r\n"
+                         "Content-Disposition: form-data; name=\"uploadfile_0\"; "
+                         "filename=\"somepicture1.jpg\"\r\n"
                          "Content-Type: image/jpeg\r\n"
                          "\r\n"
                          "filecontent\r\n"
                          "-----------------------------27753103831494";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
-    uint8_t httpbuf2[] = "5\r\nContent-Disposition: form-data; name=\"uploadfile_1\"; filename=\"somepicture2.jpg\"\r\n"
+    uint8_t httpbuf2[] = "5\r\nContent-Disposition: form-data; name=\"uploadfile_1\"; "
+                         "filename=\"somepicture2.jpg\"\r\n"
                          "Content-Type: image/jpeg\r\n"
                          "\r\n"
                          "FILECONTENT\r\n"
-        "-----------------------------277531038314945--";
+                         "-----------------------------277531038314945--";
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
 
     TcpSession ssn;
@@ -906,11 +920,13 @@ static int HTPFileParserTest08(void)
 {
     uint8_t httpbuf1[] = "POST /upload.cgi HTTP/1.1\r\n"
                          "Host: www.server.lan\r\n"
-                         "Content-Type: multipart/form-data; boundary=---------------------------277531038314945\r\n"
+                         "Content-Type: multipart/form-data; "
+                         "boundary=---------------------------277531038314945\r\n"
                          "Content-Length: 215\r\n"
                          "\r\n"
                          "-----------------------------277531038314945\r\n"
-                         "Content-Disposition: form-data; name=\"uploadfile_0\"; filename=\"somepicture1.jpg\"\r\n"
+                         "Content-Disposition: form-data; name=\"uploadfile_0\"; "
+                         "filename=\"somepicture1.jpg\"\r\n"
                          "Content-Type: image/jpeg\r\n";
 
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
@@ -964,7 +980,8 @@ static int HTPFileParserTest09(void)
 {
     uint8_t httpbuf1[] = "POST /upload.cgi HTTP/1.1\r\n"
                          "Host: www.server.lan\r\n"
-                         "Content-Type: multipart/form-data; boundary=---------------------------277531038314945\r\n"
+                         "Content-Type: multipart/form-data; "
+                         "boundary=---------------------------277531038314945\r\n"
                          "Content-Length: 337\r\n"
                          "\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
@@ -976,7 +993,8 @@ static int HTPFileParserTest09(void)
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
 
     uint8_t httpbuf3[] = "-----------------------------277531038314945\r\n"
-                         "Content-Disposition: form-data; name=\"uploadfile_0\"; filename=\"somepicture1.jpg\"\r\n"
+                         "Content-Disposition: form-data; name=\"uploadfile_0\"; "
+                         "filename=\"somepicture1.jpg\"\r\n"
                          "Somereallylongheaderstr:\r\n"
                          "\r\n";
     uint32_t httplen3 = sizeof(httpbuf3) - 1; /* minus the \0 */
@@ -1042,7 +1060,8 @@ static int HTPFileParserTest10(void)
 {
     uint8_t httpbuf1[] = "POST /upload.cgi HTTP/1.1\r\n"
                          "Host: www.server.lan\r\n"
-                         "Content-Type: multipart/form-data; boundary=---------------------------277531038314945\r\n"
+                         "Content-Type: multipart/form-data; "
+                         "boundary=---------------------------277531038314945\r\n"
                          "Content-Length: 337\r\n"
                          "\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
@@ -1052,7 +1071,8 @@ static int HTPFileParserTest10(void)
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
 
     uint8_t httpbuf3[] = "-----------------------------277531038314945\r\n"
-                         "Content-Disposition: form-data; name=\"uploadfile_0\"; filename=\"somepicture1.jpg\"\r\n"
+                         "Content-Disposition: form-data; name=\"uploadfile_0\"; "
+                         "filename=\"somepicture1.jpg\"\r\n"
                          "Somereallylongheaderstr: with a good value\r\n"
                          "\r\n";
     uint32_t httplen3 = sizeof(httpbuf3) - 1; /* minus the \0 */
@@ -1113,49 +1133,52 @@ static int HTPFileParserTest10(void)
 /** \test filedata cut in two pieces */
 static int HTPFileParserTest11(void)
 {
-    uint8_t httpbuf1[] = "POST /upload.cgi HTTP/1.1\r\n"
-                         "Host: www.server.lan\r\n"
-                         "Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryBRDbP74mBhBxsIdo\r\n"
-                         "Content-Length: 1102\r\n"
-                         "\r\n";
+    uint8_t httpbuf1[] =
+            "POST /upload.cgi HTTP/1.1\r\n"
+            "Host: www.server.lan\r\n"
+            "Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryBRDbP74mBhBxsIdo\r\n"
+            "Content-Length: 1102\r\n"
+            "\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
 
     uint8_t httpbuf2[] = "------WebKitFormBoundaryBRDbP74mBhBxsIdo\r\n";
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
 
-    uint8_t httpbuf3[] = "Content-Disposition: form-data; name=\"PROGRESS_URL\"\r\n"
-                         "\r\n"
-                         "http://somserver.com/progress.php?UPLOAD_IDENTIFIER=XXXXXXXXX.XXXXXXXXXX.XXXXXXXX.XX.X\r\n"
-                         "------WebKitFormBoundaryBRDbP74mBhBxsIdo\r\n"
-                         "Content-Disposition: form-data; name=\"DESTINATION_DIR\"\r\n"
-                         "\r\n"
-                         "10\r\n"
-                         "------WebKitFormBoundaryBRDbP74mBhBxsIdo\r\n"
-                         "Content-Disposition: form-data; name=\"js_enabled\"\r\n"
-                         "\r\n"
-                         "1"
-                         "------WebKitFormBoundaryBRDbP74mBhBxsIdo\r\n"
-                         "Content-Disposition: form-data; name=\"signature\"\r\n"
-                         "\r\n"
-                         "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\r\n"
-                         "------WebKitFormBoundaryBRDbP74mBhBxsIdo\r\n"
-                         "Content-Disposition: form-data; name=\"upload_files\"\r\n"
-                         "\r\n"
-                         "------WebKitFormBoundaryBRDbP74mBhBxsIdo\r\n"
-                         "Content-Disposition: form-data; name=\"terms\"\r\n"
-                         "\r\n"
-                         "1"
-                         "------WebKitFormBoundaryBRDbP74mBhBxsIdo\r\n"
-                         "Content-Disposition: form-data; name=\"file[]\"\r\n"
-                         "\r\n"
-                         "------WebKitFormBoundaryBRDbP74mBhBxsIdo\r\n"
-                         "Content-Disposition: form-data; name=\"description[]\"\r\n"
-                         "\r\n"
-                         "------WebKitFormBoundaryBRDbP74mBhBxsIdo\r\n"
-                         "Content-Disposition: form-data; name=\"upload_file[]\"; filename=\"filename.doc\"\r\n"
-                         "Content-Type: application/msword\r\n"
-                         "\r\n"
-                         "FILE";
+    uint8_t httpbuf3[] =
+            "Content-Disposition: form-data; name=\"PROGRESS_URL\"\r\n"
+            "\r\n"
+            "http://somserver.com/"
+            "progress.php?UPLOAD_IDENTIFIER=XXXXXXXXX.XXXXXXXXXX.XXXXXXXX.XX.X\r\n"
+            "------WebKitFormBoundaryBRDbP74mBhBxsIdo\r\n"
+            "Content-Disposition: form-data; name=\"DESTINATION_DIR\"\r\n"
+            "\r\n"
+            "10\r\n"
+            "------WebKitFormBoundaryBRDbP74mBhBxsIdo\r\n"
+            "Content-Disposition: form-data; name=\"js_enabled\"\r\n"
+            "\r\n"
+            "1"
+            "------WebKitFormBoundaryBRDbP74mBhBxsIdo\r\n"
+            "Content-Disposition: form-data; name=\"signature\"\r\n"
+            "\r\n"
+            "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\r\n"
+            "------WebKitFormBoundaryBRDbP74mBhBxsIdo\r\n"
+            "Content-Disposition: form-data; name=\"upload_files\"\r\n"
+            "\r\n"
+            "------WebKitFormBoundaryBRDbP74mBhBxsIdo\r\n"
+            "Content-Disposition: form-data; name=\"terms\"\r\n"
+            "\r\n"
+            "1"
+            "------WebKitFormBoundaryBRDbP74mBhBxsIdo\r\n"
+            "Content-Disposition: form-data; name=\"file[]\"\r\n"
+            "\r\n"
+            "------WebKitFormBoundaryBRDbP74mBhBxsIdo\r\n"
+            "Content-Disposition: form-data; name=\"description[]\"\r\n"
+            "\r\n"
+            "------WebKitFormBoundaryBRDbP74mBhBxsIdo\r\n"
+            "Content-Disposition: form-data; name=\"upload_file[]\"; filename=\"filename.doc\"\r\n"
+            "Content-Type: application/msword\r\n"
+            "\r\n"
+            "FILE";
     uint32_t httplen3 = sizeof(httpbuf3) - 1; /* minus the \0 */
 
     uint8_t httpbuf4[] = "CONTENT\r\n"
@@ -1227,7 +1250,7 @@ static int HTPFileParserTest11(void)
     PASS;
 }
 
-void AppLayerHtpFileRegisterTests (void);
+void AppLayerHtpFileRegisterTests(void);
 #include "tests/app-layer-htp-file.c"
 #endif /* UNITTESTS */
 

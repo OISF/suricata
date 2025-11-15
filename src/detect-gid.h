@@ -30,6 +30,6 @@
  * Registration function for gid: keyword
  */
 
-void DetectGidRegister (void);
+void DetectGidRegister(void);
 
 #endif /*SURICATA_DETECT_GID_H */

@@ -84,7 +84,8 @@ const char *RunModeGetMainMode(void);
 
 void RunModeListRunmodes(void);
 int RunModeEngineIsIPS(int capture_mode, const char *runmode, const char *capture_plugin_name);
-void RunModeDispatch(int, const char *, const char *capture_plugin_name, const char *capture_plugin_args);
+void RunModeDispatch(
+        int, const char *, const char *capture_plugin_name, const char *capture_plugin_args);
 void RunModeRegisterRunModes(void);
 void RunModeRegisterNewRunMode(SCRunMode, const char *, const char *, int (*RunModeFunc)(void),
         int (*RunModeIsIPSEnabled)(void));

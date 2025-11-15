@@ -30,8 +30,7 @@
 #endif /* HAVE_NFLOG */
 
 #define NFLOG_GROUP_NAME_LENGTH 48
-typedef struct NflogGroupConfig_
-{
+typedef struct NflogGroupConfig_ {
     /* nflog's group */
     uint16_t group;
     /* netlink buffer size */
@@ -51,8 +50,7 @@ typedef struct NflogGroupConfig_
     void (*DerefFunc)(void *);
 } NflogGroupConfig;
 
-typedef struct NFLOGPacketVars_
-{
+typedef struct NFLOGPacketVars_ {
     uint32_t mark;
     uint32_t ifi;
     uint32_t ifo;

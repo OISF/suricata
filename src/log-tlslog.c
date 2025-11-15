@@ -69,7 +69,7 @@
 
 typedef struct LogTlsFileCtx_ {
     LogFileCtx *file_ctx;
-    uint32_t flags;  /** Store mode */
+    uint32_t flags; /** Store mode */
     LogCustomFormat *cf;
 } LogTlsFileCtx;
 
@@ -84,16 +84,12 @@ int TLSGetIPInformations(const Packet *p, char *srcip, socklen_t srcip_len, Port
     if ((PKT_IS_TOSERVER(p))) {
         switch (ipproto) {
             case AF_INET:
-                PrintInet(AF_INET, (const void *) GET_IPV4_SRC_ADDR_PTR(p),
-                          srcip, srcip_len);
-                PrintInet(AF_INET, (const void *) GET_IPV4_DST_ADDR_PTR(p),
-                          dstip, dstip_len);
+                PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, srcip_len);
+                PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, dstip_len);
                 break;
             case AF_INET6:
-                PrintInet(AF_INET6, (const void *) GET_IPV6_SRC_ADDR(p), srcip,
-                          srcip_len);
-                PrintInet(AF_INET6, (const void *) GET_IPV6_DST_ADDR(p), dstip,
-                          dstip_len);
+                PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, srcip_len);
+                PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, dstip_len);
                 break;
             default:
                 return 0;
@@ -103,16 +99,12 @@ int TLSGetIPInformations(const Packet *p, char *srcip, socklen_t srcip_len, Port
     } else {
         switch (ipproto) {
             case AF_INET:
-                PrintInet(AF_INET, (const void *) GET_IPV4_DST_ADDR_PTR(p),
-                          srcip, srcip_len);
-                PrintInet(AF_INET, (const void *) GET_IPV4_SRC_ADDR_PTR(p),
-                          dstip, dstip_len);
+                PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), srcip, srcip_len);
+                PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), dstip, dstip_len);
                 break;
             case AF_INET6:
-                PrintInet(AF_INET6, (const void *) GET_IPV6_DST_ADDR(p), srcip,
-                          srcip_len);
-                PrintInet(AF_INET6, (const void *) GET_IPV6_SRC_ADDR(p), dstip,
-                          dstip_len);
+                PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), srcip, srcip_len);
+                PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), dstip, dstip_len);
                 break;
             default:
                 return 0;
@@ -123,8 +115,7 @@ int TLSGetIPInformations(const Packet *p, char *srcip, socklen_t srcip_len, Port
     return 1;
 }
 
-static TmEcode LogTlsLogThreadInit(ThreadVars *t, const void *initdata,
-                                   void **data)
+static TmEcode LogTlsLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     LogTlsLogThread *aft = SCCalloc(1, sizeof(LogTlsLogThread));
     if (unlikely(aft == NULL))
@@ -143,7 +134,7 @@ static TmEcode LogTlsLogThreadInit(ThreadVars *t, const void *initdata,
     }
 
     /* Use the Output Context (file pointer and mutex) */
-    aft->tlslog_ctx = ((OutputCtx *) initdata)->data;
+    aft->tlslog_ctx = ((OutputCtx *)initdata)->data;
 
     *data = (void *)aft;
     return TM_ECODE_OK;
@@ -165,7 +156,7 @@ static TmEcode LogTlsLogThreadDeinit(ThreadVars *t, void *data)
 
 static void LogTlsLogDeInitCtx(OutputCtx *output_ctx)
 {
-    LogTlsFileCtx *tlslog_ctx = (LogTlsFileCtx *) output_ctx->data;
+    LogTlsFileCtx *tlslog_ctx = (LogTlsFileCtx *)output_ctx->data;
     LogFileFreeCtx(tlslog_ctx->file_ctx);
     LogCustomFormatFree(tlslog_ctx->cf);
     SCFree(tlslog_ctx);
@@ -181,7 +172,7 @@ static OutputInitResult LogTlsLogInitCtx(SCConfNode *conf)
     SCLogWarning("The tls-log output has been deprecated and will be removed in Suricata 9.0.");
 
     OutputInitResult result = { NULL, false };
-    LogFileCtx* file_ctx = LogFileNewCtx();
+    LogFileCtx *file_ctx = LogFileNewCtx();
 
     if (file_ctx == NULL) {
         SCLogError("LogTlsLogInitCtx: Couldn't "
@@ -266,14 +257,13 @@ static void LogTlsLogVersion(MemBuffer *buffer, uint16_t version)
 
 static void LogTlsLogDate(MemBuffer *buffer, const char *title, int64_t *date)
 {
-    char timebuf[64] = {0};
+    char timebuf[64] = { 0 };
     if (sc_x509_format_timestamp(*date, timebuf, sizeof(timebuf))) {
         MemBufferWriteString(buffer, "%s='%s'", title, timebuf);
     }
 }
 
-static void LogTlsLogString(MemBuffer *buffer, const char *title,
-                            const char *value)
+static void LogTlsLogString(MemBuffer *buffer, const char *title, const char *value)
 {
     MemBufferWriteString(buffer, "%s='%s'", title, value);
 }
@@ -283,18 +273,14 @@ static void LogTlsLogBasic(LogTlsLogThread *aft, SSLState *ssl_state, const SCTi
 {
     char timebuf[64];
     CreateTimeString(ts, timebuf, sizeof(timebuf));
-    MemBufferWriteString(aft->buffer,
-                         "%s %s:%d -> %s:%d  TLS:",
-                         timebuf, srcip, sp, dstip, dp);
+    MemBufferWriteString(aft->buffer, "%s %s:%d -> %s:%d  TLS:", timebuf, srcip, sp, dstip, dp);
 
     if (ssl_state->server_connp.cert0_subject != NULL) {
-        MemBufferWriteString(aft->buffer, " Subject='%s'",
-        ssl_state->server_connp.cert0_subject);
+        MemBufferWriteString(aft->buffer, " Subject='%s'", ssl_state->server_connp.cert0_subject);
     }
 
     if (ssl_state->server_connp.cert0_issuerdn != NULL) {
-        MemBufferWriteString(aft->buffer, " Issuerdn='%s'",
-                             ssl_state->server_connp.cert0_issuerdn);
+        MemBufferWriteString(aft->buffer, " Issuerdn='%s'", ssl_state->server_connp.cert0_issuerdn);
     }
 
     if (ssl_state->flags & SSL_AL_FLAG_SESSION_RESUMED) {
@@ -314,8 +300,7 @@ static void LogTlsLogExtended(LogTlsLogThread *aft, SSLState *ssl_state, const S
 {
     if (ssl_state->server_connp.cert0_fingerprint != NULL) {
         LOG_CF_WRITE_SPACE_SEPARATOR(aft->buffer);
-        LogTlsLogString(aft->buffer, "SHA1",
-                        ssl_state->server_connp.cert0_fingerprint);
+        LogTlsLogString(aft->buffer, "SHA1", ssl_state->server_connp.cert0_fingerprint);
     }
     if (ssl_state->client_connp.sni != NULL) {
         LOG_CF_WRITE_SPACE_SEPARATOR(aft->buffer);
@@ -323,8 +308,7 @@ static void LogTlsLogExtended(LogTlsLogThread *aft, SSLState *ssl_state, const S
     }
     if (ssl_state->server_connp.cert0_serial != NULL) {
         LOG_CF_WRITE_SPACE_SEPARATOR(aft->buffer);
-        LogTlsLogString(aft->buffer, "SERIAL",
-                        ssl_state->server_connp.cert0_serial);
+        LogTlsLogString(aft->buffer, "SERIAL", ssl_state->server_connp.cert0_serial);
     }
 
     LOG_CF_WRITE_SPACE_SEPARATOR(aft->buffer);
@@ -332,13 +316,11 @@ static void LogTlsLogExtended(LogTlsLogThread *aft, SSLState *ssl_state, const S
 
     if (ssl_state->server_connp.cert0_not_before != 0) {
         LOG_CF_WRITE_SPACE_SEPARATOR(aft->buffer);
-        LogTlsLogDate(aft->buffer, "NOTBEFORE",
-                      &ssl_state->server_connp.cert0_not_before);
+        LogTlsLogDate(aft->buffer, "NOTBEFORE", &ssl_state->server_connp.cert0_not_before);
     }
     if (ssl_state->server_connp.cert0_not_after != 0) {
         LOG_CF_WRITE_SPACE_SEPARATOR(aft->buffer);
-        LogTlsLogDate(aft->buffer, "NOTAFTER",
-                      &ssl_state->server_connp.cert0_not_after);
+        LogTlsLogDate(aft->buffer, "NOTAFTER", &ssl_state->server_connp.cert0_not_after);
     }
 }
 
@@ -350,107 +332,97 @@ static void LogTlsLogCustom(LogTlsLogThread *aft, SSLState *ssl_state, const SCT
     uint32_t i;
     char buf[64];
 
-    for (i = 0; i < tlslog_ctx->cf->cf_n; i++)
-    {
+    for (i = 0; i < tlslog_ctx->cf->cf_n; i++) {
         LogCustomFormatNode *node = tlslog_ctx->cf->cf_nodes[i];
         if (!node) /* Should never happen */
             continue;
 
         switch (node->type) {
             case LOG_CF_LITERAL:
-            /* LITERAL */
+                /* LITERAL */
                 MemBufferWriteString(aft->buffer, "%s", node->data);
                 break;
             case LOG_CF_TIMESTAMP:
-            /* TIMESTAMP */
+                /* TIMESTAMP */
                 LogCustomFormatWriteTimestamp(aft->buffer, node->data, ts);
                 break;
             case LOG_CF_TIMESTAMP_U:
-            /* TIMESTAMP USECONDS */
-            snprintf(buf, sizeof(buf), "%06u", (unsigned int)SCTIME_USECS(ts));
-            PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
-                    (uint8_t *)buf, MIN(strlen(buf), 6));
-            break;
+                /* TIMESTAMP USECONDS */
+                snprintf(buf, sizeof(buf), "%06u", (unsigned int)SCTIME_USECS(ts));
+                PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
+                        (uint8_t *)buf, MIN(strlen(buf), 6));
+                break;
             case LOG_CF_CLIENT_IP:
-            /* CLIENT IP ADDRESS */
-                PrintRawUriBuf((char *)aft->buffer->buffer,
-                               &aft->buffer->offset, aft->buffer->size,
-                               (uint8_t *)srcip,strlen(srcip));
+                /* CLIENT IP ADDRESS */
+                PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
+                        (uint8_t *)srcip, strlen(srcip));
                 break;
             case LOG_CF_SERVER_IP:
-            /* SERVER IP ADDRESS */
-                PrintRawUriBuf((char *)aft->buffer->buffer,
-                               &aft->buffer->offset, aft->buffer->size,
-                               (uint8_t *)dstip, strlen(dstip));
+                /* SERVER IP ADDRESS */
+                PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
+                        (uint8_t *)dstip, strlen(dstip));
                 break;
             case LOG_CF_CLIENT_PORT:
-            /* CLIENT PORT */
+                /* CLIENT PORT */
                 MemBufferWriteString(aft->buffer, "%" PRIu16 "", sp);
                 break;
             case LOG_CF_SERVER_PORT:
-            /* SERVER PORT */
+                /* SERVER PORT */
                 MemBufferWriteString(aft->buffer, "%" PRIu16 "", dp);
                 break;
             case LOG_TLS_CF_VERSION:
                 LogTlsLogVersion(aft->buffer, ssl_state->server_connp.version);
                 break;
             case LOG_TLS_CF_DATE_NOT_BEFORE:
-                LogTlsLogDate(aft->buffer, "NOTBEFORE",
-                              &ssl_state->server_connp.cert0_not_before);
+                LogTlsLogDate(aft->buffer, "NOTBEFORE", &ssl_state->server_connp.cert0_not_before);
                 break;
             case LOG_TLS_CF_DATE_NOT_AFTER:
-                LogTlsLogDate(aft->buffer, "NOTAFTER",
-                              &ssl_state->server_connp.cert0_not_after);
+                LogTlsLogDate(aft->buffer, "NOTAFTER", &ssl_state->server_connp.cert0_not_after);
                 break;
             case LOG_TLS_CF_SHA1:
                 if (ssl_state->server_connp.cert0_fingerprint != NULL) {
-                    MemBufferWriteString(aft->buffer, "%s",
-                            ssl_state->server_connp.cert0_fingerprint);
+                    MemBufferWriteString(
+                            aft->buffer, "%s", ssl_state->server_connp.cert0_fingerprint);
                 } else {
                     LOG_CF_WRITE_UNKNOWN_VALUE(aft->buffer);
                 }
                 break;
             case LOG_TLS_CF_SNI:
                 if (ssl_state->client_connp.sni != NULL) {
-                    MemBufferWriteString(aft->buffer, "%s",
-                                         ssl_state->client_connp.sni);
+                    MemBufferWriteString(aft->buffer, "%s", ssl_state->client_connp.sni);
                 } else {
                     LOG_CF_WRITE_UNKNOWN_VALUE(aft->buffer);
                 }
                 break;
             case LOG_TLS_CF_SUBJECT:
                 if (ssl_state->server_connp.cert0_subject != NULL) {
-                    MemBufferWriteString(aft->buffer, "%s",
-                            ssl_state->server_connp.cert0_subject);
+                    MemBufferWriteString(aft->buffer, "%s", ssl_state->server_connp.cert0_subject);
                 } else {
                     LOG_CF_WRITE_UNKNOWN_VALUE(aft->buffer);
                 }
                 break;
             case LOG_TLS_CF_ISSUER:
                 if (ssl_state->server_connp.cert0_issuerdn != NULL) {
-                    MemBufferWriteString(aft->buffer, "%s",
-                            ssl_state->server_connp.cert0_issuerdn);
+                    MemBufferWriteString(aft->buffer, "%s", ssl_state->server_connp.cert0_issuerdn);
                 } else {
                     LOG_CF_WRITE_UNKNOWN_VALUE(aft->buffer);
                 }
                 break;
             case LOG_TLS_CF_EXTENDED:
-            /* Extended format  */
+                /* Extended format  */
                 LogTlsLogExtended(aft, ssl_state, ts, srcip, sp, dstip, dp);
                 break;
             default:
-            /* NO MATCH */
+                /* NO MATCH */
                 MemBufferWriteString(aft->buffer, LOG_CF_NONE);
-                SCLogDebug("No matching parameter %%%c for custom tls log.",
-                           node->type);
+                SCLogDebug("No matching parameter %%%c for custom tls log.", node->type);
                 break;
         }
     }
 }
 
-
-static int LogTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
-                        Flow *f, void *state, void *tx, uint64_t tx_id)
+static int LogTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state,
+        void *tx, uint64_t tx_id)
 {
     LogTlsLogThread *aft = (LogTlsLogThread *)thread_data;
     LogTlsFileCtx *hlog = aft->tlslog_ctx;
@@ -462,9 +434,9 @@ static int LogTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
     }
 
     if (((hlog->flags & LOG_TLS_SESSION_RESUMPTION) == 0 ||
-            (ssl_state->flags & SSL_AL_FLAG_SESSION_RESUMED) == 0) &&
+                (ssl_state->flags & SSL_AL_FLAG_SESSION_RESUMED) == 0) &&
             (ssl_state->server_connp.cert0_issuerdn == NULL ||
-            ssl_state->server_connp.cert0_subject == NULL) &&
+                    ssl_state->server_connp.cert0_subject == NULL) &&
             ((ssl_state->flags & SSL_AL_FLAG_LOG_WITHOUT_CERT) == 0)) {
         return 0;
     }
@@ -472,8 +444,7 @@ static int LogTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
     char srcip[PRINT_BUF_LEN], dstip[PRINT_BUF_LEN];
 
     Port sp, dp;
-    if (!TLSGetIPInformations(p, srcip, PRINT_BUF_LEN, &sp, dstip,
-                              PRINT_BUF_LEN, &dp, ipproto)) {
+    if (!TLSGetIPInformations(p, srcip, PRINT_BUF_LEN, &sp, dstip, PRINT_BUF_LEN, &dp, ipproto)) {
         return 0;
     }
 
@@ -491,7 +462,7 @@ static int LogTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
     MemBufferWriteString(aft->buffer, "\n");
 
     hlog->file_ctx->Write((const char *)MEMBUFFER_BUFFER(aft->buffer),
-        MEMBUFFER_OFFSET(aft->buffer), hlog->file_ctx);
+            MEMBUFFER_OFFSET(aft->buffer), hlog->file_ctx);
 
     return 0;
 }

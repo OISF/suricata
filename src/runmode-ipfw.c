@@ -24,8 +24,6 @@
  * Handling of ipfw runmodes.
  */
 
-
-
 #include "suricata-common.h"
 #include "tm-threads.h"
 #include "conf.h"
@@ -65,10 +63,7 @@ int RunModeIpsIPFWAutoFp(void)
 
     LiveDeviceHasNoStats();
 
-    ret = RunModeSetIPSAutoFp(IPFWGetThread,
-            "ReceiveIPFW",
-            "VerdictIPFW",
-            "DecodeIPFW");
+    ret = RunModeSetIPSAutoFp(IPFWGetThread, "ReceiveIPFW", "VerdictIPFW", "DecodeIPFW");
 #endif /* IPFW */
     return ret;
 }
@@ -83,10 +78,7 @@ int RunModeIpsIPFWWorker(void)
 
     LiveDeviceHasNoStats();
 
-    ret = RunModeSetIPSWorker(IPFWGetThread,
-            "ReceiveIPFW",
-            "VerdictIPFW",
-            "DecodeIPFW");
+    ret = RunModeSetIPSWorker(IPFWGetThread, "ReceiveIPFW", "VerdictIPFW", "DecodeIPFW");
 #endif /* IPFW */
     return ret;
 }

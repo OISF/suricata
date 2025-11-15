@@ -43,9 +43,9 @@
 
 #include "util-debug.h"
 
-static int DetectFlagsMatch (DetectEngineThreadCtx *, Packet *,
-        const Signature *, const SigMatchCtx *);
-static int DetectFlagsSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectFlagsMatch(
+        DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
+static int DetectFlagsSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectFlagsFree(DetectEngineCtx *, void *);
 
 static bool PrefilterTcpFlagsIsPrefilterable(const Signature *s);
@@ -58,7 +58,7 @@ static void FlagsRegisterTests(void);
  * \brief Registration function for flags: keyword
  */
 
-void DetectFlagsRegister (void)
+void DetectFlagsRegister(void)
 {
     sigmatch_table[DETECT_FLAGS].name = "tcp.flags";
     sigmatch_table[DETECT_FLAGS].alias = "flags";
@@ -66,7 +66,7 @@ void DetectFlagsRegister (void)
     sigmatch_table[DETECT_FLAGS].url = "/rules/header-keywords.html#tcp-flags";
     sigmatch_table[DETECT_FLAGS].Match = DetectFlagsMatch;
     sigmatch_table[DETECT_FLAGS].Setup = DetectFlagsSetup;
-    sigmatch_table[DETECT_FLAGS].Free  = DetectFlagsFree;
+    sigmatch_table[DETECT_FLAGS].Free = DetectFlagsFree;
     sigmatch_table[DETECT_FLAGS].flags = SIGMATCH_SUPPORT_FIREWALL;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_FLAGS].RegisterTests = FlagsRegisterTests;
@@ -90,8 +90,8 @@ void DetectFlagsRegister (void)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectFlagsMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
-        const Signature *s, const SigMatchCtx *ctx)
+static int DetectFlagsMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
 
@@ -118,7 +118,7 @@ static int DetectFlagsMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectFlagsSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
+static int DetectFlagsSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     DetectU8Data *du8 = SCDetectTcpFlagsParse(rawstr);
     if (du8 == NULL)
@@ -152,10 +152,9 @@ static void DetectFlagsFree(DetectEngineCtx *de_ctx, void *de_ptr)
 int DetectFlagsSignatureNeedsSynPackets(const Signature *s)
 {
     const SigMatch *sm;
-    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
         switch (sm->type) {
-            case DETECT_FLAGS:
-            {
+            case DETECT_FLAGS: {
                 const DetectU8Data *fl = (const DetectU8Data *)sm->ctx;
 
                 if (DetectU8Match(TH_SYN, fl)) {
@@ -171,10 +170,9 @@ int DetectFlagsSignatureNeedsSynPackets(const Signature *s)
 int DetectFlagsSignatureNeedsSynOnlyPackets(const Signature *s)
 {
     const SigMatch *sm;
-    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
         switch (sm->type) {
-            case DETECT_FLAGS:
-            {
+            case DETECT_FLAGS: {
                 const DetectU8Data *fl = (const DetectU8Data *)sm->ctx;
 
                 if (!(fl->mode == DetectUintModeNegBitmask) && (fl->arg1 == TH_SYN)) {
@@ -187,8 +185,7 @@ int DetectFlagsSignatureNeedsSynOnlyPackets(const Signature *s)
     return 0;
 }
 
-static void
-PrefilterPacketFlagsMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
+static void PrefilterPacketFlagsMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
 {
     DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
     if (!(PacketIsTCP(p))) {
@@ -211,8 +208,7 @@ PrefilterPacketFlagsMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void 
     }
 }
 
-static void
-PrefilterPacketFlagsSet(PrefilterPacketHeaderValue *v, void *smctx)
+static void PrefilterPacketFlagsSet(PrefilterPacketHeaderValue *v, void *smctx)
 {
     const DetectU8Data *a = smctx;
     v->u8[0] = a->mode;
@@ -221,8 +217,7 @@ PrefilterPacketFlagsSet(PrefilterPacketHeaderValue *v, void *smctx)
     SCLogDebug("v->u8[0] = %02x", v->u8[0]);
 }
 
-static bool
-PrefilterPacketFlagsCompare(PrefilterPacketHeaderValue v, void *smctx)
+static bool PrefilterPacketFlagsCompare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectU8Data *a = smctx;
     if (v.u8[0] == a->mode && v.u8[1] == a->arg1 && v.u8[2] == a->arg2)
@@ -239,7 +234,7 @@ static int PrefilterSetupTcpFlags(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 static bool PrefilterTcpFlagsIsPrefilterable(const Signature *s)
 {
     const SigMatch *sm;
-    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_FLAGS:
                 return true;
@@ -259,7 +254,7 @@ static bool PrefilterTcpFlagsIsPrefilterable(const Signature *s)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int FlagsTestParse03 (void)
+static int FlagsTestParse03(void)
 {
     ThreadVars tv;
     IPV4Hdr ipv4h;
@@ -300,7 +295,7 @@ static int FlagsTestParse03 (void)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int FlagsTestParse04 (void)
+static int FlagsTestParse04(void)
 {
     ThreadVars tv;
     IPV4Hdr ipv4h;
@@ -340,7 +335,7 @@ static int FlagsTestParse04 (void)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int FlagsTestParse05 (void)
+static int FlagsTestParse05(void)
 {
     ThreadVars tv;
     IPV4Hdr ipv4h;
@@ -381,7 +376,7 @@ static int FlagsTestParse05 (void)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int FlagsTestParse06 (void)
+static int FlagsTestParse06(void)
 {
     ThreadVars tv;
     IPV4Hdr ipv4h;
@@ -422,7 +417,7 @@ static int FlagsTestParse06 (void)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int FlagsTestParse07 (void)
+static int FlagsTestParse07(void)
 {
     ThreadVars tv;
     IPV4Hdr ipv4h;
@@ -463,7 +458,7 @@ static int FlagsTestParse07 (void)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int FlagsTestParse08 (void)
+static int FlagsTestParse08(void)
 {
     ThreadVars tv;
     IPV4Hdr ipv4h;
@@ -503,7 +498,7 @@ static int FlagsTestParse08 (void)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int FlagsTestParse09 (void)
+static int FlagsTestParse09(void)
 {
     ThreadVars tv;
     IPV4Hdr ipv4h;
@@ -544,7 +539,7 @@ static int FlagsTestParse09 (void)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int FlagsTestParse10 (void)
+static int FlagsTestParse10(void)
 {
     ThreadVars tv;
     IPV4Hdr ipv4h;
@@ -585,7 +580,7 @@ static int FlagsTestParse10 (void)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int FlagsTestParse11 (void)
+static int FlagsTestParse11(void)
 {
     ThreadVars tv;
     IPV4Hdr ipv4h;
@@ -626,7 +621,7 @@ static int FlagsTestParse11 (void)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int FlagsTestParse12 (void)
+static int FlagsTestParse12(void)
 {
     ThreadVars tv;
     IPV4Hdr ipv4h;

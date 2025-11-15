@@ -54,8 +54,7 @@
 #include "util-byte.h"
 
 static int DetectPortCutNot(DetectPort *, DetectPort **);
-static int DetectPortCut(DetectEngineCtx *, DetectPort *, DetectPort *,
-                         DetectPort **);
+static int DetectPortCut(DetectEngineCtx *, DetectPort *, DetectPort *, DetectPort **);
 DetectPort *PortParse(const char *str);
 static bool DetectPortIsValidRange(char *, uint16_t *);
 
@@ -106,9 +105,9 @@ void DetectPortPrintList(DetectPort *head)
     SCLogDebug("= list start:");
     if (head != NULL) {
         for (cur = head; cur != NULL; cur = cur->next) {
-             DetectPortPrint(cur);
+            DetectPortPrint(cur);
 #ifdef DEBUG
-             cnt++;
+            cnt++;
 #endif
         }
         SCLogDebug(" ");
@@ -121,14 +120,14 @@ void DetectPortPrintList(DetectPort *head)
  *
  * \param head Pointer to the DetectPort list head
  */
-void DetectPortCleanupList (const DetectEngineCtx *de_ctx, DetectPort *head)
+void DetectPortCleanupList(const DetectEngineCtx *de_ctx, DetectPort *head)
 {
     if (head == NULL)
         return;
 
     DetectPort *cur, *next;
 
-    for (cur = head; cur != NULL; ) {
+    for (cur = head; cur != NULL;) {
         next = cur->next;
         cur->next = NULL;
         DetectPortFree(de_ctx, cur);
@@ -150,14 +149,13 @@ void DetectPortCleanupList (const DetectEngineCtx *de_ctx, DetectPort *head)
  *
  * \todo rewrite to avoid recursive calls
  * */
-int DetectPortInsert(DetectEngineCtx *de_ctx, DetectPort **head,
-                     DetectPort *new)
+int DetectPortInsert(DetectEngineCtx *de_ctx, DetectPort **head, DetectPort *new)
 {
     if (new == NULL)
         return 0;
 
-    //BUG_ON(new->next != NULL);
-    //BUG_ON(new->prev != NULL);
+    // BUG_ON(new->next != NULL);
+    // BUG_ON(new->prev != NULL);
 
     /* see if it already exists or overlaps with existing ports */
     if (*head != NULL) {
@@ -165,7 +163,7 @@ int DetectPortInsert(DetectEngineCtx *de_ctx, DetectPort **head,
         int r = 0;
 
         for (cur = *head; cur != NULL; cur = cur->next) {
-            r = DetectPortCmp(new,cur);
+            r = DetectPortCmp(new, cur);
             BUG_ON(r == PORT_ER);
 
             /* if so, handle that */
@@ -205,8 +203,8 @@ int DetectPortInsert(DetectEngineCtx *de_ctx, DetectPort **head,
                 }
                 return 1;
 
-            /* alright, those were the simple cases,
-             * lets handle the more complex ones now */
+                /* alright, those were the simple cases,
+                 * lets handle the more complex ones now */
 
             } else {
                 DetectPort *c = NULL;
@@ -232,11 +230,10 @@ int DetectPortInsert(DetectEngineCtx *de_ctx, DetectPort **head,
                         goto error;
                 }
                 return 1;
-
             }
         }
 
-    /* head is NULL, so get a group and set head to it */
+        /* head is NULL, so get a group and set head to it */
     } else {
         SCLogDebug("setting new head %p", new);
         *head = new;
@@ -259,8 +256,7 @@ error:
  * \retval 0 ok
  * \retval -1 error
  * */
-static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
-                         DetectPort *b, DetectPort **c)
+static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a, DetectPort *b, DetectPort **c)
 {
     uint16_t a_port1 = a->port;
     uint16_t a_port2 = a->port2;
@@ -270,7 +266,7 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
     /* default to NULL */
     *c = NULL;
 
-    int r = DetectPortCmp(a,b);
+    int r = DetectPortCmp(a, b);
     BUG_ON(r != PORT_ES && r != PORT_EB && r != PORT_LE && r != PORT_GE);
 
     /* get a place to temporary put sigs lists */
@@ -302,12 +298,12 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
         tmp_c->port = a_port2 + 1;
         tmp_c->port2 = b_port2;
 
-    /**
-     * We have 3 parts: [bbb[baba]aaa]
-     * part a: b_port1 <-> a_port1 - 1
-     * part b: a_port1 <-> b_port2
-     * part c: b_port2 + 1 <-> a_port2
-     */
+        /**
+         * We have 3 parts: [bbb[baba]aaa]
+         * part a: b_port1 <-> a_port1 - 1
+         * part b: a_port1 <-> b_port2
+         * part c: b_port2 + 1 <-> a_port2
+         */
     } else if (r == PORT_GE) {
         SCLogDebug("cut r == PORT_GE");
         a->port = b_port1;
@@ -325,23 +321,23 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
         tmp_c->port = b_port2 + 1;
         tmp_c->port2 = a_port2;
 
-    /**
-     * We have 2 or three parts:
-     *
-     * 2 part: [[abab]bbb] or [bbb[baba]]
-     * part a: a_port1 <-> a_port2
-     * part b: a_port2 + 1 <-> b_port2
-     *
-     * part a: b_port1 <-> a_port1 - 1
-     * part b: a_port1 <-> a_port2
-     *
-     * 3 part [bbb[aaa]bbb]
-     * becomes[aaa[bbb]ccc]
-     *
-     * part a: b_port1 <-> a_port1 - 1
-     * part b: a_port1 <-> a_port2
-     * part c: a_port2 + 1 <-> b_port2
-     */
+        /**
+         * We have 2 or three parts:
+         *
+         * 2 part: [[abab]bbb] or [bbb[baba]]
+         * part a: a_port1 <-> a_port2
+         * part b: a_port2 + 1 <-> b_port2
+         *
+         * part a: b_port1 <-> a_port1 - 1
+         * part b: a_port1 <-> a_port2
+         *
+         * 3 part [bbb[aaa]bbb]
+         * becomes[aaa[bbb]ccc]
+         *
+         * part a: b_port1 <-> a_port1 - 1
+         * part b: a_port1 <-> a_port2
+         * part c: a_port2 + 1 <-> b_port2
+         */
     } else if (r == PORT_ES) {
         SCLogDebug("cut r == PORT_ES");
         if (a_port1 == b_port1) {
@@ -349,7 +345,7 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
             a->port = a_port1;
             a->port2 = a_port2;
 
-            b->port  = a_port2 + 1;
+            b->port = a_port2 + 1;
             b->port2 = b_port2;
         } else if (a_port2 == b_port2) {
             SCLogDebug("2");
@@ -375,23 +371,23 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
             tmp_c->port = a_port2 + 1;
             tmp_c->port2 = b_port2;
         }
-    /**
-     * We have 2 or three parts:
-     *
-     * 2 part: [[baba]aaa] or [aaa[abab]]
-     * part a: b_port1 <-> b_port2
-     * part b: b_port2 + 1 <-> a_port2
-     *
-     * part a: a_port1 <-> b_port1 - 1
-     * part b: b_port1 <-> b_port2
-     *
-     * 3 part [aaa[bbb]aaa]
-     * becomes[aaa[bbb]ccc]
-     *
-     * part a: a_port1 <-> b_port2 - 1
-     * part b: b_port1 <-> b_port2
-     * part c: b_port2 + 1 <-> a_port2
-     */
+        /**
+         * We have 2 or three parts:
+         *
+         * 2 part: [[baba]aaa] or [aaa[abab]]
+         * part a: b_port1 <-> b_port2
+         * part b: b_port2 + 1 <-> a_port2
+         *
+         * part a: a_port1 <-> b_port1 - 1
+         * part b: b_port1 <-> b_port2
+         *
+         * 3 part [aaa[bbb]aaa]
+         * becomes[aaa[bbb]ccc]
+         *
+         * part a: a_port1 <-> b_port2 - 1
+         * part b: b_port1 <-> b_port2
+         * part c: b_port2 + 1 <-> a_port2
+         */
     } else if (r == PORT_EB) {
         SCLogDebug("cut r == PORT_EB");
         if (a_port1 == b_port1) {
@@ -511,27 +507,27 @@ int DetectPortCmp(DetectPort *a, DetectPort *b)
 
     /* PORT_EQ */
     if (a_port1 == b_port1 && a_port2 == b_port2) {
-        //SCLogDebug("PORT_EQ");
+        // SCLogDebug("PORT_EQ");
         return PORT_EQ;
-    /* PORT_ES */
+        /* PORT_ES */
     } else if (a_port1 >= b_port1 && a_port1 <= b_port2 && a_port2 <= b_port2) {
-        //SCLogDebug("PORT_ES");
+        // SCLogDebug("PORT_ES");
         return PORT_ES;
-    /* PORT_EB */
+        /* PORT_EB */
     } else if (a_port1 <= b_port1 && a_port2 >= b_port2) {
-        //SCLogDebug("PORT_EB");
+        // SCLogDebug("PORT_EB");
         return PORT_EB;
     } else if (a_port1 < b_port1 && a_port2 < b_port2 && a_port2 >= b_port1) {
-        //SCLogDebug("PORT_LE");
+        // SCLogDebug("PORT_LE");
         return PORT_LE;
     } else if (a_port1 < b_port1 && a_port2 < b_port2) {
-        //SCLogDebug("PORT_LT");
+        // SCLogDebug("PORT_LT");
         return PORT_LT;
     } else if (a_port1 > b_port1 && a_port1 <= b_port2 && a_port2 > b_port2) {
-        //SCLogDebug("PORT_GE");
+        // SCLogDebug("PORT_GE");
         return PORT_GE;
     } else if (a_port1 > b_port2) {
-        //SCLogDebug("PORT_GT");
+        // SCLogDebug("PORT_GT");
         return PORT_GT;
     }
 
@@ -547,7 +543,7 @@ int DetectPortCmp(DetectPort *a, DetectPort *b)
  * \retval Pointer to a DetectPort instance (copy of src)
  * \retval NULL on error
  * */
-DetectPort *DetectPortCopySingle(DetectEngineCtx *de_ctx,DetectPort *src)
+DetectPort *DetectPortCopySingle(DetectEngineCtx *de_ctx, DetectPort *src)
 {
     if (src == NULL)
         return NULL;
@@ -560,7 +556,7 @@ DetectPort *DetectPortCopySingle(DetectEngineCtx *de_ctx,DetectPort *src)
     dst->port = src->port;
     dst->port2 = src->port2;
 
-    SigGroupHeadCopySigs(de_ctx,src->sh,&dst->sh);
+    SigGroupHeadCopySigs(de_ctx, src->sh, &dst->sh);
     return dst;
 }
 
@@ -575,8 +571,7 @@ DetectPort *DetectPortCopySingle(DetectEngineCtx *de_ctx,DetectPort *src)
  * */
 static int DetectPortMatch(DetectPort *dp, uint16_t port)
 {
-    if (port >= dp->port &&
-        port <= dp->port2) {
+    if (port >= dp->port && port <= dp->port2) {
         return 1;
     }
 
@@ -594,10 +589,10 @@ void DetectPortPrint(DetectPort *dp)
 
     if (dp->flags & PORT_FLAG_ANY) {
         SCLogDebug("=> port %p: ANY", dp);
-//        printf("ANY");
+        //        printf("ANY");
     } else {
         SCLogDebug("=> port %p %" PRIu32 "-%" PRIu32 "", dp, dp->port, dp->port2);
-//        printf("%" PRIu32 "-%" PRIu32 "", dp->port, dp->port2);
+        //        printf("%" PRIu32 "-%" PRIu32 "", dp->port, dp->port2);
     }
 }
 
@@ -617,8 +612,8 @@ DetectPort *DetectPortLookupGroup(DetectPort *dp, uint16_t port)
 
     for (DetectPort *p = dp; p != NULL; p = p->next) {
         if (DetectPortMatch(p, port) == 1) {
-            //SCLogDebug("match, port %" PRIu32 ", dp ", port);
-            //DetectPortPrint(p); SCLogDebug("");
+            // SCLogDebug("match, port %" PRIu32 ", dp ", port);
+            // DetectPortPrint(p); SCLogDebug("");
             return p;
         }
     }
@@ -684,8 +679,8 @@ static int DetectPortParseInsert(DetectPort **head, DetectPort *new)
  * \retval 0 on success
  * \retval -1 on error
  */
-static int DetectPortParseInsertString(const DetectEngineCtx *de_ctx,
-        DetectPort **head, const char *s)
+static int DetectPortParseInsertString(
+        const DetectEngineCtx *de_ctx, DetectPort **head, const char *s)
 {
     DetectPort *port = NULL, *port_any = NULL;
     int r = 0;
@@ -771,10 +766,8 @@ error:
  * \retval  0 On successfully parsing.
  * \retval -1 On failure.
  */
-static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
-                             DetectPort **head, DetectPort **nhead,
-                             const char *s, int negate,
-                             ResolvedVariablesList *var_list, int recur)
+static int DetectPortParseDo(const DetectEngineCtx *de_ctx, DetectPort **head, DetectPort **nhead,
+        const char *s, int negate, ResolvedVariablesList *var_list, int recur)
 {
     size_t u = 0;
     size_t x = 0;
@@ -834,8 +827,7 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
             if (o_set == 1) {
                 o_set = 0;
             } else if (d_set == 1) {
-                char *temp_rule_var_port = NULL,
-                     *alloc_rule_var_port = NULL;
+                char *temp_rule_var_port = NULL, *alloc_rule_var_port = NULL;
 
                 port[x - 1] = '\0';
 
@@ -863,8 +855,8 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
                         goto error;
                 }
                 temp_rule_var_port = alloc_rule_var_port;
-                r = DetectPortParseDo(de_ctx, head, nhead, temp_rule_var_port,
-                                  (negate + n_set) % 2, var_list, recur);
+                r = DetectPortParseDo(de_ctx, head, nhead, temp_rule_var_port, (negate + n_set) % 2,
+                        var_list, recur);
                 if (r == -1) {
                     SCFree(alloc_rule_var_port);
                     goto error;
@@ -890,7 +882,7 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
             range = 0;
         } else if (depth == 0 && s[u] == '$') {
             d_set = 1;
-        } else if (depth == 0 && u == size-1) {
+        } else if (depth == 0 && u == size - 1) {
             range = 0;
             if (x == 1024) {
                 port[x - 1] = '\0';
@@ -907,8 +899,7 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
 
             x = 0;
             if (d_set == 1) {
-                char *temp_rule_var_port = NULL,
-                     *alloc_rule_var_port = NULL;
+                char *temp_rule_var_port = NULL, *alloc_rule_var_port = NULL;
 
                 rule_var_port = SCRuleVarsGetConfVar(de_ctx, port, SC_RULE_VARS_PORT_GROUPS);
                 if (rule_var_port == NULL)
@@ -934,8 +925,8 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
                         goto error;
                 }
                 temp_rule_var_port = alloc_rule_var_port;
-                r = DetectPortParseDo(de_ctx, head, nhead, temp_rule_var_port,
-                                  (negate + n_set) % 2, var_list, recur);
+                r = DetectPortParseDo(de_ctx, head, nhead, temp_rule_var_port, (negate + n_set) % 2,
+                        var_list, recur);
                 SCFree(alloc_rule_var_port);
                 if (r == -1)
                     goto error;
@@ -998,7 +989,7 @@ static int DetectPortIsCompletePortSpace(DetectPort *p)
     next_port = p->port2 + 1;
     p = p->next;
 
-    for ( ; p != NULL; p = p->next) {
+    for (; p != NULL; p = p->next) {
         if (p->port != next_port)
             return 0;
 
@@ -1020,8 +1011,8 @@ static int DetectPortIsCompletePortSpace(DetectPort *p)
  * \retval 0 on success
  * \retval -1 on error
  */
-static int DetectPortParseMergeNotPorts(const DetectEngineCtx *de_ctx,
-        DetectPort **head, DetectPort **nhead)
+static int DetectPortParseMergeNotPorts(
+        const DetectEngineCtx *de_ctx, DetectPort **head, DetectPort **nhead)
 {
     DetectPort *port = NULL;
     DetectPort *pg, *pg2;
@@ -1040,7 +1031,7 @@ static int DetectPortParseMergeNotPorts(const DetectEngineCtx *de_ctx,
      */
     if (*head == NULL && *nhead != NULL) {
         SCLogDebug("inserting 0:65535 into head");
-        r = DetectPortParseInsertString(de_ctx, head,"0:65535");
+        r = DetectPortParseInsertString(de_ctx, head, "0:65535");
         if (r < 0) {
             goto error;
         }
@@ -1118,10 +1109,10 @@ int DetectPortTestConfVars(void)
     }
 
     SCConfNode *seq_node;
-    TAILQ_FOREACH(seq_node, &port_vars_node->head, next) {
+    TAILQ_FOREACH (seq_node, &port_vars_node->head, next) {
         SCLogDebug("Testing %s - %s\n", seq_node->name, seq_node->val);
 
-        DetectPort *gh =  DetectPortInit();
+        DetectPort *gh = DetectPortInit();
         if (gh == NULL) {
             goto error;
         }
@@ -1137,7 +1128,7 @@ int DetectPortTestConfVars(void)
         }
 
         int r = DetectPortParseDo(NULL, &gh, &ghn, seq_node->val,
-                /* start with negate no */0, &var_list, 0);
+                /* start with negate no */ 0, &var_list, 0);
 
         CleanVariableResolveList(&var_list);
 
@@ -1167,10 +1158,9 @@ int DetectPortTestConfVars(void)
     }
 
     return 0;
- error:
+error:
     return -1;
 }
-
 
 /**
  * \brief Function for parsing port strings
@@ -1182,8 +1172,7 @@ int DetectPortTestConfVars(void)
  * \retval 0 on success
  * \retval -1 on error
  */
-int DetectPortParse(const DetectEngineCtx *de_ctx,
-                    DetectPort **head, const char *str)
+int DetectPortParse(const DetectEngineCtx *de_ctx, DetectPort **head, const char *str)
 {
     SCLogDebug("Port string to be parsed - str %s", str);
 
@@ -1266,7 +1255,7 @@ DetectPort *PortParse(const char *str)
         if (dp->port > dp->port2)
             goto error;
     } else {
-        if (strcasecmp(port,"any") == 0) {
+        if (strcasecmp(port, "any") == 0) {
             dp->port = 0;
             dp->port2 = 65535;
         } else {
@@ -1324,7 +1313,7 @@ static uint32_t DetectPortHashFunc(HashListTable *ht, void *data, uint16_t datal
     uint32_t hash = ((uint32_t)p->port << 16) | p->port2;
 
     hash %= ht->array_size;
-    SCLogDebug("hash %"PRIu32, hash);
+    SCLogDebug("hash %" PRIu32, hash);
     return hash;
 }
 
@@ -1340,8 +1329,7 @@ static uint32_t DetectPortHashFunc(HashListTable *ht, void *data, uint16_t datal
  * \retval 1 If the 2 DetectPort sent as args match.
  * \retval 0 If the 2 DetectPort sent as args do not match.
  */
-static char DetectPortCompareFunc(void *data1, uint16_t len1,
-                                  void *data2, uint16_t len2)
+static char DetectPortCompareFunc(void *data1, uint16_t len1, void *data2, uint16_t len2)
 {
     DetectPort *dp1 = (DetectPort *)data1;
     DetectPort *dp2 = (DetectPort *)data2;
@@ -1372,9 +1360,8 @@ static void DetectPortHashFreeFunc(void *ptr)
  */
 int DetectPortHashInit(DetectEngineCtx *de_ctx)
 {
-    de_ctx->dport_hash_table = HashListTableInit(4096, DetectPortHashFunc,
-                                                       DetectPortCompareFunc,
-                                                       DetectPortHashFreeFunc);
+    de_ctx->dport_hash_table = HashListTableInit(
+            4096, DetectPortHashFunc, DetectPortCompareFunc, DetectPortHashFreeFunc);
     if (de_ctx->dport_hash_table == NULL)
         return -1;
 
@@ -1438,10 +1425,10 @@ void DetectPortHashFree(DetectEngineCtx *de_ctx)
 /**
  * \test Check if a DetectPort is properly allocated
  */
-static int PortTestParse01 (void)
+static int PortTestParse01(void)
 {
     DetectPort *dd = NULL;
-    int r = DetectPortParse(NULL,&dd,"80");
+    int r = DetectPortParse(NULL, &dd, "80");
     FAIL_IF_NOT(r == 0);
     DetectPortFree(NULL, dd);
     PASS;
@@ -1450,12 +1437,12 @@ static int PortTestParse01 (void)
 /**
  * \test Check if two ports are properly allocated in the DetectPort group
  */
-static int PortTestParse02 (void)
+static int PortTestParse02(void)
 {
     DetectPort *dd = NULL;
-    int r = DetectPortParse(NULL,&dd,"80");
+    int r = DetectPortParse(NULL, &dd, "80");
     FAIL_IF_NOT(r == 0);
-    r = DetectPortParse(NULL,&dd,"22");
+    r = DetectPortParse(NULL, &dd, "22");
     FAIL_IF_NOT(r == 0);
     DetectPortCleanupList(NULL, dd);
     PASS;
@@ -1464,12 +1451,12 @@ static int PortTestParse02 (void)
 /**
  * \test Check if two port ranges are properly allocated in the DetectPort group
  */
-static int PortTestParse03 (void)
+static int PortTestParse03(void)
 {
     DetectPort *dd = NULL;
-    int r = DetectPortParse(NULL,&dd,"80:88");
+    int r = DetectPortParse(NULL, &dd, "80:88");
     FAIL_IF_NOT(r == 0);
-    r = DetectPortParse(NULL,&dd,"85:100");
+    r = DetectPortParse(NULL, &dd, "85:100");
     FAIL_IF_NOT(r == 0);
     DetectPortCleanupList(NULL, dd);
     PASS;
@@ -1478,10 +1465,10 @@ static int PortTestParse03 (void)
 /**
  * \test Check if a negated port range is properly allocated in the DetectPort
  */
-static int PortTestParse04 (void)
+static int PortTestParse04(void)
 {
     DetectPort *dd = NULL;
-    int r = DetectPortParse(NULL,&dd,"!80:81");
+    int r = DetectPortParse(NULL, &dd, "!80:81");
     FAIL_IF_NOT(r == 0);
     DetectPortCleanupList(NULL, dd);
     PASS;
@@ -1491,10 +1478,10 @@ static int PortTestParse04 (void)
  * \test Check if a negated port range is properly fragmented in the allowed
  *       real groups, ex !80:81 should allow 0:79 and 82:65535
  */
-static int PortTestParse05 (void)
+static int PortTestParse05(void)
 {
     DetectPort *dd = NULL;
-    int r = DetectPortParse(NULL,&dd,"!80:81");
+    int r = DetectPortParse(NULL, &dd, "!80:81");
     FAIL_IF_NOT(r == 0);
     FAIL_IF_NULL(dd->next);
     FAIL_IF_NOT(dd->port == 0);
@@ -1509,11 +1496,11 @@ static int PortTestParse05 (void)
  * \test Check if a negated port range is properly fragmented in the allowed
  *       real groups
  */
-static int PortTestParse07 (void)
+static int PortTestParse07(void)
 {
     DetectPort *dd = NULL;
 
-    int r = DetectPortParse(NULL,&dd,"!21:902");
+    int r = DetectPortParse(NULL, &dd, "!21:902");
     FAIL_IF_NOT(r == 0);
     FAIL_IF_NULL(dd->next);
 
@@ -1529,11 +1516,11 @@ static int PortTestParse07 (void)
 /**
  * \test Check if we dont allow invalid port range specification
  */
-static int PortTestParse08 (void)
+static int PortTestParse08(void)
 {
     DetectPort *dd = NULL;
 
-    int r = DetectPortParse(NULL,&dd,"[80:!80]");
+    int r = DetectPortParse(NULL, &dd, "[80:!80]");
     FAIL_IF(r == 0);
 
     DetectPortCleanupList(NULL, dd);
@@ -1543,11 +1530,11 @@ static int PortTestParse08 (void)
 /**
  * \test Check if we autocomplete correctly an open range
  */
-static int PortTestParse09 (void)
+static int PortTestParse09(void)
 {
     DetectPort *dd = NULL;
 
-    int r = DetectPortParse(NULL,&dd,"1024:");
+    int r = DetectPortParse(NULL, &dd, "1024:");
     FAIL_IF_NOT(r == 0);
     FAIL_IF_NULL(dd);
 
@@ -1561,10 +1548,10 @@ static int PortTestParse09 (void)
 /**
  * \test Test we don't allow a port that is too big
  */
-static int PortTestParse10 (void)
+static int PortTestParse10(void)
 {
     DetectPort *dd = NULL;
-    int r = DetectPortParse(NULL,&dd,"77777777777777777777777777777777777777777777");
+    int r = DetectPortParse(NULL, &dd, "77777777777777777777777777777777777777777777");
     FAIL_IF(r == 0);
     PASS;
 }
@@ -1572,11 +1559,11 @@ static int PortTestParse10 (void)
 /**
  * \test Test second port of range being too big
  */
-static int PortTestParse11 (void)
+static int PortTestParse11(void)
 {
     DetectPort *dd = NULL;
 
-    int r = DetectPortParse(NULL,&dd,"1024:65536");
+    int r = DetectPortParse(NULL, &dd, "1024:65536");
     FAIL_IF(r == 0);
     PASS;
 }
@@ -1584,10 +1571,10 @@ static int PortTestParse11 (void)
 /**
  * \test Test second port of range being just right
  */
-static int PortTestParse12 (void)
+static int PortTestParse12(void)
 {
     DetectPort *dd = NULL;
-    int r = DetectPortParse(NULL,&dd,"1024:65535");
+    int r = DetectPortParse(NULL, &dd, "1024:65535");
     FAIL_IF_NOT(r == 0);
     DetectPortFree(NULL, dd);
     PASS;
@@ -1596,10 +1583,10 @@ static int PortTestParse12 (void)
 /**
  * \test Test first port of range being too big
  */
-static int PortTestParse13 (void)
+static int PortTestParse13(void)
 {
     DetectPort *dd = NULL;
-    int r = DetectPortParse(NULL,&dd,"65536:65535");
+    int r = DetectPortParse(NULL, &dd, "65536:65535");
     FAIL_IF(r == 0);
     PASS;
 }
@@ -1607,7 +1594,7 @@ static int PortTestParse13 (void)
 /**
  * \test Test merging port groups
  */
-static int PortTestParse14 (void)
+static int PortTestParse14(void)
 {
     DetectPort *dd = NULL;
 
@@ -1629,11 +1616,11 @@ static int PortTestParse14 (void)
 /**
  * \test Test merging negated port groups
  */
-static int PortTestParse15 (void)
+static int PortTestParse15(void)
 {
     DetectPort *dd = NULL;
 
-    int r = DetectPortParse(NULL,&dd,"![0:100,1000:3000]");
+    int r = DetectPortParse(NULL, &dd, "![0:100,1000:3000]");
     FAIL_IF_NOT(r == 0);
     FAIL_IF_NULL(dd->next);
 
@@ -1646,10 +1633,10 @@ static int PortTestParse15 (void)
     PASS;
 }
 
-static int PortTestParse16 (void)
+static int PortTestParse16(void)
 {
     DetectPort *dd = NULL;
-    int r = DetectPortParse(NULL,&dd,"\
+    int r = DetectPortParse(NULL, &dd, "\
 [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[\
 1:65535\
 ]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]\
@@ -1657,7 +1644,7 @@ static int PortTestParse16 (void)
     FAIL_IF_NOT(r == 0);
     DetectPortFree(NULL, dd);
     dd = NULL;
-    r = DetectPortParse(NULL,&dd,"\
+    r = DetectPortParse(NULL, &dd, "\
 [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[\
 1:65535\
 ]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]\
@@ -1672,12 +1659,12 @@ static int PortTestParse16 (void)
 static int PortTestFunctions02(void)
 {
     DetectPort *head = NULL;
-    DetectPort *dp1= NULL;
-    DetectPort *dp2= NULL;
+    DetectPort *dp1 = NULL;
+    DetectPort *dp2 = NULL;
     int result = 0;
 
     /* Parse */
-    int r = DetectPortParse(NULL,&head, "![0:100,1000:65535]");
+    int r = DetectPortParse(NULL, &head, "![0:100,1000:65535]");
     if (r != 0 || head->next != NULL)
         goto end;
 
@@ -1721,9 +1708,9 @@ end:
  */
 static int PortTestFunctions03(void)
 {
-    DetectPort *dp1= NULL;
-    DetectPort *dp2= NULL;
-    DetectPort *dp3= NULL;
+    DetectPort *dp1 = NULL;
+    DetectPort *dp2 = NULL;
+    DetectPort *dp3 = NULL;
     int result = 0;
 
     int r = DetectPortParse(NULL, &dp1, "200:300");
@@ -1855,8 +1842,7 @@ static int PortTestFunctions07(void)
  * \retval return 1 if match
  * \retval return 0 if not
  */
-static int PortTestMatchReal(uint8_t *raw_eth_pkt, uint16_t pktsize, const char *sig,
-                      uint32_t sid)
+static int PortTestMatchReal(uint8_t *raw_eth_pkt, uint16_t pktsize, const char *sig, uint32_t sid)
 {
     int result = 0;
     FlowInitConfig(FLOW_QUIET);
@@ -1876,66 +1862,39 @@ static int PortTestMatchRealWrp(const char *sig, uint32_t sid)
      * tcp.sport=47370 tcp.dport=80
      * ip.src=192.168.28.131 ip.dst=192.168.1.1
      */
-    uint8_t raw_eth_pkt[] = {
-        0x00,0x50,0x56,0xea,0x00,0xbd,0x00,0x0c,
-        0x29,0x40,0xc8,0xb5,0x08,0x00,0x45,0x00,
-        0x01,0xa8,0xb9,0xbb,0x40,0x00,0x40,0x06,
-        0xe0,0xbf,0xc0,0xa8,0x1c,0x83,0xc0,0xa8,
-        0x01,0x01,0xb9,0x0a,0x00,0x50,0x6f,0xa2,
-        0x92,0xed,0x7b,0xc1,0xd3,0x4d,0x50,0x18,
-        0x16,0xd0,0xa0,0x6f,0x00,0x00,0x47,0x45,
-        0x54,0x20,0x2f,0x20,0x48,0x54,0x54,0x50,
-        0x2f,0x31,0x2e,0x31,0x0d,0x0a,0x48,0x6f,
-        0x73,0x74,0x3a,0x20,0x31,0x39,0x32,0x2e,
-        0x31,0x36,0x38,0x2e,0x31,0x2e,0x31,0x0d,
-        0x0a,0x55,0x73,0x65,0x72,0x2d,0x41,0x67,
-        0x65,0x6e,0x74,0x3a,0x20,0x4d,0x6f,0x7a,
-        0x69,0x6c,0x6c,0x61,0x2f,0x35,0x2e,0x30,
-        0x20,0x28,0x58,0x31,0x31,0x3b,0x20,0x55,
-        0x3b,0x20,0x4c,0x69,0x6e,0x75,0x78,0x20,
-        0x78,0x38,0x36,0x5f,0x36,0x34,0x3b,0x20,
-        0x65,0x6e,0x2d,0x55,0x53,0x3b,0x20,0x72,
-        0x76,0x3a,0x31,0x2e,0x39,0x2e,0x30,0x2e,
-        0x31,0x34,0x29,0x20,0x47,0x65,0x63,0x6b,
-        0x6f,0x2f,0x32,0x30,0x30,0x39,0x30,0x39,
-        0x30,0x32,0x31,0x37,0x20,0x55,0x62,0x75,
-        0x6e,0x74,0x75,0x2f,0x39,0x2e,0x30,0x34,
-        0x20,0x28,0x6a,0x61,0x75,0x6e,0x74,0x79,
-        0x29,0x20,0x46,0x69,0x72,0x65,0x66,0x6f,
-        0x78,0x2f,0x33,0x2e,0x30,0x2e,0x31,0x34,
-        0x0d,0x0a,0x41,0x63,0x63,0x65,0x70,0x74,
-        0x3a,0x20,0x74,0x65,0x78,0x74,0x2f,0x68,
-        0x74,0x6d,0x6c,0x2c,0x61,0x70,0x70,0x6c,
-        0x69,0x63,0x61,0x74,0x69,0x6f,0x6e,0x2f,
-        0x78,0x68,0x74,0x6d,0x6c,0x2b,0x78,0x6d,
-        0x6c,0x2c,0x61,0x70,0x70,0x6c,0x69,0x63,
-        0x61,0x74,0x69,0x6f,0x6e,0x2f,0x78,0x6d,
-        0x6c,0x3b,0x71,0x3d,0x30,0x2e,0x39,0x2c,
-        0x2a,0x2f,0x2a,0x3b,0x71,0x3d,0x30,0x2e,
-        0x38,0x0d,0x0a,0x41,0x63,0x63,0x65,0x70,
-        0x74,0x2d,0x4c,0x61,0x6e,0x67,0x75,0x61,
-        0x67,0x65,0x3a,0x20,0x65,0x6e,0x2d,0x75,
-        0x73,0x2c,0x65,0x6e,0x3b,0x71,0x3d,0x30,
-        0x2e,0x35,0x0d,0x0a,0x41,0x63,0x63,0x65,
-        0x70,0x74,0x2d,0x45,0x6e,0x63,0x6f,0x64,
-        0x69,0x6e,0x67,0x3a,0x20,0x67,0x7a,0x69,
-        0x70,0x2c,0x64,0x65,0x66,0x6c,0x61,0x74,
-        0x65,0x0d,0x0a,0x41,0x63,0x63,0x65,0x70,
-        0x74,0x2d,0x43,0x68,0x61,0x72,0x73,0x65,
-        0x74,0x3a,0x20,0x49,0x53,0x4f,0x2d,0x38,
-        0x38,0x35,0x39,0x2d,0x31,0x2c,0x75,0x74,
-        0x66,0x2d,0x38,0x3b,0x71,0x3d,0x30,0x2e,
-        0x37,0x2c,0x2a,0x3b,0x71,0x3d,0x30,0x2e,
-        0x37,0x0d,0x0a,0x4b,0x65,0x65,0x70,0x2d,
-        0x41,0x6c,0x69,0x76,0x65,0x3a,0x20,0x33,
-        0x30,0x30,0x0d,0x0a,0x43,0x6f,0x6e,0x6e,
-        0x65,0x63,0x74,0x69,0x6f,0x6e,0x3a,0x20,
-        0x6b,0x65,0x65,0x70,0x2d,0x61,0x6c,0x69,
-        0x76,0x65,0x0d,0x0a,0x0d,0x0a };
-        /* end raw_eth_pkt */
+    uint8_t raw_eth_pkt[] = { 0x00, 0x50, 0x56, 0xea, 0x00, 0xbd, 0x00, 0x0c, 0x29, 0x40, 0xc8,
+        0xb5, 0x08, 0x00, 0x45, 0x00, 0x01, 0xa8, 0xb9, 0xbb, 0x40, 0x00, 0x40, 0x06, 0xe0, 0xbf,
+        0xc0, 0xa8, 0x1c, 0x83, 0xc0, 0xa8, 0x01, 0x01, 0xb9, 0x0a, 0x00, 0x50, 0x6f, 0xa2, 0x92,
+        0xed, 0x7b, 0xc1, 0xd3, 0x4d, 0x50, 0x18, 0x16, 0xd0, 0xa0, 0x6f, 0x00, 0x00, 0x47, 0x45,
+        0x54, 0x20, 0x2f, 0x20, 0x48, 0x54, 0x54, 0x50, 0x2f, 0x31, 0x2e, 0x31, 0x0d, 0x0a, 0x48,
+        0x6f, 0x73, 0x74, 0x3a, 0x20, 0x31, 0x39, 0x32, 0x2e, 0x31, 0x36, 0x38, 0x2e, 0x31, 0x2e,
+        0x31, 0x0d, 0x0a, 0x55, 0x73, 0x65, 0x72, 0x2d, 0x41, 0x67, 0x65, 0x6e, 0x74, 0x3a, 0x20,
+        0x4d, 0x6f, 0x7a, 0x69, 0x6c, 0x6c, 0x61, 0x2f, 0x35, 0x2e, 0x30, 0x20, 0x28, 0x58, 0x31,
+        0x31, 0x3b, 0x20, 0x55, 0x3b, 0x20, 0x4c, 0x69, 0x6e, 0x75, 0x78, 0x20, 0x78, 0x38, 0x36,
+        0x5f, 0x36, 0x34, 0x3b, 0x20, 0x65, 0x6e, 0x2d, 0x55, 0x53, 0x3b, 0x20, 0x72, 0x76, 0x3a,
+        0x31, 0x2e, 0x39, 0x2e, 0x30, 0x2e, 0x31, 0x34, 0x29, 0x20, 0x47, 0x65, 0x63, 0x6b, 0x6f,
+        0x2f, 0x32, 0x30, 0x30, 0x39, 0x30, 0x39, 0x30, 0x32, 0x31, 0x37, 0x20, 0x55, 0x62, 0x75,
+        0x6e, 0x74, 0x75, 0x2f, 0x39, 0x2e, 0x30, 0x34, 0x20, 0x28, 0x6a, 0x61, 0x75, 0x6e, 0x74,
+        0x79, 0x29, 0x20, 0x46, 0x69, 0x72, 0x65, 0x66, 0x6f, 0x78, 0x2f, 0x33, 0x2e, 0x30, 0x2e,
+        0x31, 0x34, 0x0d, 0x0a, 0x41, 0x63, 0x63, 0x65, 0x70, 0x74, 0x3a, 0x20, 0x74, 0x65, 0x78,
+        0x74, 0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x2c, 0x61, 0x70, 0x70, 0x6c, 0x69, 0x63, 0x61, 0x74,
+        0x69, 0x6f, 0x6e, 0x2f, 0x78, 0x68, 0x74, 0x6d, 0x6c, 0x2b, 0x78, 0x6d, 0x6c, 0x2c, 0x61,
+        0x70, 0x70, 0x6c, 0x69, 0x63, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x2f, 0x78, 0x6d, 0x6c, 0x3b,
+        0x71, 0x3d, 0x30, 0x2e, 0x39, 0x2c, 0x2a, 0x2f, 0x2a, 0x3b, 0x71, 0x3d, 0x30, 0x2e, 0x38,
+        0x0d, 0x0a, 0x41, 0x63, 0x63, 0x65, 0x70, 0x74, 0x2d, 0x4c, 0x61, 0x6e, 0x67, 0x75, 0x61,
+        0x67, 0x65, 0x3a, 0x20, 0x65, 0x6e, 0x2d, 0x75, 0x73, 0x2c, 0x65, 0x6e, 0x3b, 0x71, 0x3d,
+        0x30, 0x2e, 0x35, 0x0d, 0x0a, 0x41, 0x63, 0x63, 0x65, 0x70, 0x74, 0x2d, 0x45, 0x6e, 0x63,
+        0x6f, 0x64, 0x69, 0x6e, 0x67, 0x3a, 0x20, 0x67, 0x7a, 0x69, 0x70, 0x2c, 0x64, 0x65, 0x66,
+        0x6c, 0x61, 0x74, 0x65, 0x0d, 0x0a, 0x41, 0x63, 0x63, 0x65, 0x70, 0x74, 0x2d, 0x43, 0x68,
+        0x61, 0x72, 0x73, 0x65, 0x74, 0x3a, 0x20, 0x49, 0x53, 0x4f, 0x2d, 0x38, 0x38, 0x35, 0x39,
+        0x2d, 0x31, 0x2c, 0x75, 0x74, 0x66, 0x2d, 0x38, 0x3b, 0x71, 0x3d, 0x30, 0x2e, 0x37, 0x2c,
+        0x2a, 0x3b, 0x71, 0x3d, 0x30, 0x2e, 0x37, 0x0d, 0x0a, 0x4b, 0x65, 0x65, 0x70, 0x2d, 0x41,
+        0x6c, 0x69, 0x76, 0x65, 0x3a, 0x20, 0x33, 0x30, 0x30, 0x0d, 0x0a, 0x43, 0x6f, 0x6e, 0x6e,
+        0x65, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x3a, 0x20, 0x6b, 0x65, 0x65, 0x70, 0x2d, 0x61, 0x6c,
+        0x69, 0x76, 0x65, 0x0d, 0x0a, 0x0d, 0x0a };
+    /* end raw_eth_pkt */
 
-    return PortTestMatchReal(raw_eth_pkt, (uint16_t)sizeof(raw_eth_pkt),
-                             sig, sid);
+    return PortTestMatchReal(raw_eth_pkt, (uint16_t)sizeof(raw_eth_pkt), sig, sid);
 }
 
 /**
@@ -1954,7 +1913,7 @@ static int PortTestMatchReal01(void)
 static int PortTestMatchReal02(void)
 {
     const char *sig = "alert tcp any 47370 -> any any (msg:\"Nothing..\";"
-                " content:\"GET\"; sid:1;)";
+                      " content:\"GET\"; sid:1;)";
     return PortTestMatchRealWrp(sig, 1);
 }
 
@@ -1964,7 +1923,7 @@ static int PortTestMatchReal02(void)
 static int PortTestMatchReal03(void)
 {
     const char *sig = "alert tcp any 47370 -> any 80 (msg:\"Nothing..\";"
-                " content:\"GET\"; sid:1;)";
+                      " content:\"GET\"; sid:1;)";
     return PortTestMatchRealWrp(sig, 1);
 }
 
@@ -1974,8 +1933,8 @@ static int PortTestMatchReal03(void)
 static int PortTestMatchReal04(void)
 {
     const char *sig = "alert tcp any any -> any !80 (msg:\"Nothing..\";"
-                " content:\"GET\"; sid:1;)";
-    return (PortTestMatchRealWrp(sig, 1) == 0)? 1 : 0;
+                      " content:\"GET\"; sid:1;)";
+    return (PortTestMatchRealWrp(sig, 1) == 0) ? 1 : 0;
 }
 
 /**
@@ -1984,8 +1943,8 @@ static int PortTestMatchReal04(void)
 static int PortTestMatchReal05(void)
 {
     const char *sig = "alert tcp any !47370 -> any any (msg:\"Nothing..\";"
-                " content:\"GET\"; sid:1;)";
-    return (PortTestMatchRealWrp(sig, 1) == 0)? 1 : 0;
+                      " content:\"GET\"; sid:1;)";
+    return (PortTestMatchRealWrp(sig, 1) == 0) ? 1 : 0;
 }
 
 /**
@@ -1994,8 +1953,8 @@ static int PortTestMatchReal05(void)
 static int PortTestMatchReal06(void)
 {
     const char *sig = "alert tcp any !47370 -> any !80 (msg:\"Nothing..\";"
-                " content:\"GET\"; sid:1;)";
-    return (PortTestMatchRealWrp(sig, 1) == 0)? 1 : 0;
+                      " content:\"GET\"; sid:1;)";
+    return (PortTestMatchRealWrp(sig, 1) == 0) ? 1 : 0;
 }
 
 /**
@@ -2004,7 +1963,7 @@ static int PortTestMatchReal06(void)
 static int PortTestMatchReal07(void)
 {
     const char *sig = "alert tcp any any -> any 70:100 (msg:\"Nothing..\";"
-                " content:\"GET\"; sid:1;)";
+                      " content:\"GET\"; sid:1;)";
     return PortTestMatchRealWrp(sig, 1);
 }
 
@@ -2014,7 +1973,7 @@ static int PortTestMatchReal07(void)
 static int PortTestMatchReal08(void)
 {
     const char *sig = "alert tcp any 47000:50000 -> any any (msg:\"Nothing..\";"
-                " content:\"GET\"; sid:1;)";
+                      " content:\"GET\"; sid:1;)";
     return PortTestMatchRealWrp(sig, 1);
 }
 
@@ -2024,7 +1983,7 @@ static int PortTestMatchReal08(void)
 static int PortTestMatchReal09(void)
 {
     const char *sig = "alert tcp any 47000:50000 -> any 70:100 (msg:\"Nothing..\";"
-                " content:\"GET\"; sid:1;)";
+                      " content:\"GET\"; sid:1;)";
     return PortTestMatchRealWrp(sig, 1);
 }
 
@@ -2034,8 +1993,8 @@ static int PortTestMatchReal09(void)
 static int PortTestMatchReal10(void)
 {
     const char *sig = "alert tcp any any -> any !70:100 (msg:\"Nothing..\";"
-                " content:\"GET\"; sid:1;)";
-    return (PortTestMatchRealWrp(sig, 1) == 0)? 1 : 0;
+                      " content:\"GET\"; sid:1;)";
+    return (PortTestMatchRealWrp(sig, 1) == 0) ? 1 : 0;
 }
 
 /**
@@ -2044,8 +2003,8 @@ static int PortTestMatchReal10(void)
 static int PortTestMatchReal11(void)
 {
     const char *sig = "alert tcp any !47000:50000 -> any any (msg:\"Nothing..\";"
-                " content:\"GET\"; sid:1;)";
-    return (PortTestMatchRealWrp(sig, 1) == 0)? 1 : 0;
+                      " content:\"GET\"; sid:1;)";
+    return (PortTestMatchRealWrp(sig, 1) == 0) ? 1 : 0;
 }
 
 /**
@@ -2054,8 +2013,8 @@ static int PortTestMatchReal11(void)
 static int PortTestMatchReal12(void)
 {
     const char *sig = "alert tcp any !47000:50000 -> any !70:100 (msg:\"Nothing..\";"
-                " content:\"GET\"; sid:1;)";
-    return (PortTestMatchRealWrp(sig, 1) == 0)? 1 : 0;
+                      " content:\"GET\"; sid:1;)";
+    return (PortTestMatchRealWrp(sig, 1) == 0) ? 1 : 0;
 }
 
 /**
@@ -2064,7 +2023,7 @@ static int PortTestMatchReal12(void)
 static int PortTestMatchReal13(void)
 {
     const char *sig = "alert tcp any 47000:50000 -> any !81: (msg:\"Nothing..\";"
-                " content:\"GET\"; sid:1;)";
+                      " content:\"GET\"; sid:1;)";
     return PortTestMatchRealWrp(sig, 1);
 }
 
@@ -2074,7 +2033,7 @@ static int PortTestMatchReal13(void)
 static int PortTestMatchReal14(void)
 {
     const char *sig = "alert tcp any !48000:50000 -> any :100 (msg:\"Nothing..\";"
-                " content:\"GET\"; sid:1;)";
+                      " content:\"GET\"; sid:1;)";
     return PortTestMatchRealWrp(sig, 1);
 }
 
@@ -2084,8 +2043,8 @@ static int PortTestMatchReal14(void)
 static int PortTestMatchReal15(void)
 {
     const char *sig = "alert tcp any :50000 -> any 81:100 (msg:\"Nothing..\";"
-                " content:\"GET\"; sid:1;)";
-    return (PortTestMatchRealWrp(sig, 1) == 0)? 1 : 0;
+                      " content:\"GET\"; sid:1;)";
+    return (PortTestMatchRealWrp(sig, 1) == 0) ? 1 : 0;
 }
 
 /**
@@ -2094,7 +2053,7 @@ static int PortTestMatchReal15(void)
 static int PortTestMatchReal16(void)
 {
     const char *sig = "alert tcp any 100: -> any ![0:79,81:65535] (msg:\"Nothing..\";"
-                " content:\"GET\"; sid:1;)";
+                      " content:\"GET\"; sid:1;)";
     return PortTestMatchRealWrp(sig, 1);
 }
 
@@ -2104,8 +2063,8 @@ static int PortTestMatchReal16(void)
 static int PortTestMatchReal17(void)
 {
     const char *sig = "alert tcp any ![0:39999,48000:50000] -> any ![0:80,82:65535] "
-                "(msg:\"Nothing..\"; content:\"GET\"; sid:1;)";
-    return (PortTestMatchRealWrp(sig, 1) == 0)? 1 : 0;
+                      "(msg:\"Nothing..\"; content:\"GET\"; sid:1;)";
+    return (PortTestMatchRealWrp(sig, 1) == 0) ? 1 : 0;
 }
 
 /**
@@ -2114,7 +2073,7 @@ static int PortTestMatchReal17(void)
 static int PortTestMatchReal18(void)
 {
     const char *sig = "alert tcp any ![0:39999,48000:50000] -> any 80 (msg:\"Nothing"
-                " at all\"; content:\"GET\"; sid:1;)";
+                      " at all\"; content:\"GET\"; sid:1;)";
     return PortTestMatchRealWrp(sig, 1);
 }
 
@@ -2124,7 +2083,7 @@ static int PortTestMatchReal18(void)
 static int PortTestMatchReal19(void)
 {
     const char *sig = "alert tcp any any -> any 80 (msg:\"Nothing..\";"
-                " content:\"GET\"; sid:1;)";
+                      " content:\"GET\"; sid:1;)";
     return PortTestMatchRealWrp(sig, 1);
 }
 

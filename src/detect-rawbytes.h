@@ -25,6 +25,6 @@
 #define SURICATA_DETECT_RAWBYTES_H
 
 /* prototypes */
-void DetectRawbytesRegister (void);
+void DetectRawbytesRegister(void);
 
 #endif /* SURICATA_DETECT_RAWBYTES_H */

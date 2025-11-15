@@ -35,9 +35,9 @@
 #include "detect-ipv6hdr.h"
 
 /* prototypes */
-static int DetectIpv6hdrSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectIpv6hdrSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
-void DetectIpv6hdrRegisterTests (void);
+void DetectIpv6hdrRegisterTests(void);
 #endif
 
 static int g_ipv6hdr_buffer_id = 0;
@@ -79,7 +79,7 @@ void DetectIpv6hdrRegister(void)
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectIpv6hdrSetup (DetectEngineCtx *de_ctx, Signature *s, const char *_unused)
+static int DetectIpv6hdrSetup(DetectEngineCtx *de_ctx, Signature *s, const char *_unused)
 {
     s->proto.flags |= DETECT_PROTO_IPV6; // TODO
 

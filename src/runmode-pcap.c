@@ -122,7 +122,7 @@ static void *ParsePcapConfig(const char *iface)
     if (if_root == NULL && if_default == NULL) {
         SCLogInfo("Unable to find pcap config for "
                   "interface %s, using default value",
-                  iface);
+                iface);
         return aconf;
     }
 
@@ -147,7 +147,7 @@ static void *ParsePcapConfig(const char *iface)
     if (aconf->threads == 0) {
         aconf->threads = 1;
     }
-    (void) SC_ATOMIC_ADD(aconf->ref, aconf->threads);
+    (void)SC_ATOMIC_ADD(aconf->ref, aconf->threads);
 
     if (aconf->buffer_size == 0) {
         const char *s_limit = NULL;
@@ -236,11 +236,8 @@ int RunModeIdsPcapSingle(void)
 
     (void)SCConfGet("pcap.single-pcap-dev", &live_dev);
 
-    ret = RunModeSetLiveCaptureSingle(ParsePcapConfig,
-                                    PcapConfigGeThreadsCount,
-                                    "ReceivePcap",
-                                    "DecodePcap", thread_name_single,
-                                    live_dev);
+    ret = RunModeSetLiveCaptureSingle(ParsePcapConfig, PcapConfigGeThreadsCount, "ReceivePcap",
+            "DecodePcap", thread_name_single, live_dev);
     if (ret != 0) {
         FatalError("Runmode start failed");
     }

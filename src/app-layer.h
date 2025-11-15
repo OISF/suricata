@@ -34,11 +34,9 @@
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
 
-
 #include "rust.h"
 
-#define APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER \
-    (~STREAM_TOSERVER & ~STREAM_TOCLIENT)
+#define APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER (~STREAM_TOSERVER & ~STREAM_TOCLIENT)
 
 /***** L7 layer dispatchers *****/
 
@@ -52,8 +50,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, Packet
 /**
  * \brief Handles an udp chunk.
  */
-int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *app_tctx,
-                      Packet *p, Flow *f);
+int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *app_tctx, Packet *p, Flow *f);
 
 /***** Utility *****/
 

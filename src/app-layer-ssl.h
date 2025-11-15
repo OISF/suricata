@@ -92,44 +92,44 @@ enum TlsStateServer {
 };
 
 /* Flag to indicate that server will now on send encrypted msgs */
-#define SSL_AL_FLAG_SERVER_CHANGE_CIPHER_SPEC   BIT_U32(0)
+#define SSL_AL_FLAG_SERVER_CHANGE_CIPHER_SPEC BIT_U32(0)
 /* Flag to indicate that client will now on send encrypted msgs */
-#define SSL_AL_FLAG_CLIENT_CHANGE_CIPHER_SPEC   BIT_U32(1)
-#define SSL_AL_FLAG_CHANGE_CIPHER_SPEC          BIT_U32(2)
+#define SSL_AL_FLAG_CLIENT_CHANGE_CIPHER_SPEC BIT_U32(1)
+#define SSL_AL_FLAG_CHANGE_CIPHER_SPEC        BIT_U32(2)
 
 /* SSL related flags */
-#define SSL_AL_FLAG_SSL_CLIENT_HS               BIT_U32(3)
-#define SSL_AL_FLAG_SSL_SERVER_HS               BIT_U32(4)
-#define SSL_AL_FLAG_SSL_CLIENT_MASTER_KEY       BIT_U32(5)
-#define SSL_AL_FLAG_SSL_CLIENT_SSN_ENCRYPTED    BIT_U32(6)
-#define SSL_AL_FLAG_SSL_SERVER_SSN_ENCRYPTED    BIT_U32(7)
-#define SSL_AL_FLAG_SSL_NO_SESSION_ID           BIT_U32(8)
+#define SSL_AL_FLAG_SSL_CLIENT_HS            BIT_U32(3)
+#define SSL_AL_FLAG_SSL_SERVER_HS            BIT_U32(4)
+#define SSL_AL_FLAG_SSL_CLIENT_MASTER_KEY    BIT_U32(5)
+#define SSL_AL_FLAG_SSL_CLIENT_SSN_ENCRYPTED BIT_U32(6)
+#define SSL_AL_FLAG_SSL_SERVER_SSN_ENCRYPTED BIT_U32(7)
+#define SSL_AL_FLAG_SSL_NO_SESSION_ID        BIT_U32(8)
 
 /* flags specific to detect-ssl-state keyword */
-#define SSL_AL_FLAG_STATE_CLIENT_HELLO          BIT_U32(9)
-#define SSL_AL_FLAG_STATE_SERVER_HELLO          BIT_U32(10)
-#define SSL_AL_FLAG_STATE_CLIENT_KEYX           BIT_U32(11)
-#define SSL_AL_FLAG_STATE_SERVER_KEYX           BIT_U32(12)
-#define SSL_AL_FLAG_STATE_UNKNOWN               BIT_U32(13)
+#define SSL_AL_FLAG_STATE_CLIENT_HELLO BIT_U32(9)
+#define SSL_AL_FLAG_STATE_SERVER_HELLO BIT_U32(10)
+#define SSL_AL_FLAG_STATE_CLIENT_KEYX  BIT_U32(11)
+#define SSL_AL_FLAG_STATE_SERVER_KEYX  BIT_U32(12)
+#define SSL_AL_FLAG_STATE_UNKNOWN      BIT_U32(13)
 
 /* flags specific to HeartBeat state */
-#define SSL_AL_FLAG_HB_INFLIGHT                 BIT_U32(15)
-#define SSL_AL_FLAG_HB_CLIENT_INIT              BIT_U32(16)
-#define SSL_AL_FLAG_HB_SERVER_INIT              BIT_U32(17)
+#define SSL_AL_FLAG_HB_INFLIGHT    BIT_U32(15)
+#define SSL_AL_FLAG_HB_CLIENT_INIT BIT_U32(16)
+#define SSL_AL_FLAG_HB_SERVER_INIT BIT_U32(17)
 
 /* Session resumed without a full handshake */
-#define SSL_AL_FLAG_SESSION_RESUMED             BIT_U32(20)
+#define SSL_AL_FLAG_SESSION_RESUMED BIT_U32(20)
 
 /* Encountered a supported_versions extension in client hello */
-#define SSL_AL_FLAG_CH_VERSION_EXTENSION        BIT_U32(21)
+#define SSL_AL_FLAG_CH_VERSION_EXTENSION BIT_U32(21)
 
 /* Log the session even without ever seeing a certificate. This is used
    to log TLSv1.3 sessions. */
-#define SSL_AL_FLAG_LOG_WITHOUT_CERT            BIT_U32(22)
+#define SSL_AL_FLAG_LOG_WITHOUT_CERT BIT_U32(22)
 
 /* Encountered a early data extension in client hello. This extension is
    used by 0-RTT. */
-#define SSL_AL_FLAG_EARLY_DATA                  BIT_U32(23)
+#define SSL_AL_FLAG_EARLY_DATA BIT_U32(23)
 
 /* flag to indicate that server random was filled */
 #define TLS_TS_RANDOM_SET BIT_U32(24)
@@ -140,20 +140,20 @@ enum TlsStateServer {
 #define SSL_AL_FLAG_NEED_CLIENT_CERT BIT_U32(26)
 
 /* config flags */
-#define SSL_TLS_LOG_PEM                         (1 << 0)
+#define SSL_TLS_LOG_PEM (1 << 0)
 
 /* extensions */
-#define SSL_EXTENSION_SNI                       0x0000
-#define SSL_EXTENSION_ELLIPTIC_CURVES           0x000a
-#define SSL_EXTENSION_EC_POINT_FORMATS          0x000b
-#define SSL_EXTENSION_SIGNATURE_ALGORITHMS      0x000d
-#define SSL_EXTENSION_ALPN                      0x0010
-#define SSL_EXTENSION_SESSION_TICKET            0x0023
-#define SSL_EXTENSION_EARLY_DATA                0x002a
-#define SSL_EXTENSION_SUPPORTED_VERSIONS        0x002b
+#define SSL_EXTENSION_SNI                  0x0000
+#define SSL_EXTENSION_ELLIPTIC_CURVES      0x000a
+#define SSL_EXTENSION_EC_POINT_FORMATS     0x000b
+#define SSL_EXTENSION_SIGNATURE_ALGORITHMS 0x000d
+#define SSL_EXTENSION_ALPN                 0x0010
+#define SSL_EXTENSION_SESSION_TICKET       0x0023
+#define SSL_EXTENSION_EARLY_DATA           0x002a
+#define SSL_EXTENSION_SUPPORTED_VERSIONS   0x002b
 
 /* SNI types */
-#define SSL_SNI_TYPE_HOST_NAME                  0
+#define SSL_SNI_TYPE_HOST_NAME 0
 
 /* TLS random bytes for the sticky buffer */
 #define TLS_RANDOM_LEN 32

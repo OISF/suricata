@@ -74,11 +74,11 @@ char *RunmodeAutoFpCreatePickupQueuesString(int n)
         if (strlen(queues) > 0)
             strlcat(queues, ",", queues_size);
 
-        snprintf(qname, sizeof(qname), "pickup%d", (int16_t)thread+1);
+        snprintf(qname, sizeof(qname), "pickup%d", (int16_t)thread + 1);
         strlcat(queues, qname, queues_size);
     }
 
-    SCLogDebug("%d %"PRIuMAX", queues %s", n, (uintmax_t)queues_size, queues);
+    SCLogDebug("%d %" PRIuMAX ", queues %s", n, (uintmax_t)queues_size, queues);
     return queues;
 }
 
@@ -115,10 +115,8 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
         for (uint16_t thread = 0; thread < threads_count; thread++) {
             const uint16_t thread_id = (uint16_t)(thread + 1);
             snprintf(tname, sizeof(tname), "%s#%02u", thread_name, thread_id);
-            ThreadVars *tv_receive =
-                TmThreadCreatePacketHandler(tname,
-                        "packetpool", "packetpool",
-                        queues, "flow", "pktacqloop");
+            ThreadVars *tv_receive = TmThreadCreatePacketHandler(
+                    tname, "packetpool", "packetpool", queues, "flow", "pktacqloop");
             if (tv_receive == NULL) {
                 FatalError("TmThreadsCreate failed");
             }
@@ -170,10 +168,8 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
                 snprintf(printable_threadname, printable_threadname_size, "%s#%02u-%s", thread_name,
                         thread_id, dev);
 
-                ThreadVars *tv_receive =
-                    TmThreadCreatePacketHandler(tname,
-                            "packetpool", "packetpool",
-                            queues, "flow", "pktacqloop");
+                ThreadVars *tv_receive = TmThreadCreatePacketHandler(
+                        tname, "packetpool", "packetpool", queues, "flow", "pktacqloop");
                 if (tv_receive == NULL) {
                     FatalError("TmThreadsCreate failed");
                 }
@@ -210,11 +206,8 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
         snprintf(qname, sizeof(qname), "pickup%u", thread_id);
         SCLogDebug("tname %s, qname %s", tname, qname);
 
-        ThreadVars *tv_detect_ncpu =
-            TmThreadCreatePacketHandler(tname,
-                                        qname, "flow",
-                                        "packetpool", "packetpool",
-                                        "varslot");
+        ThreadVars *tv_detect_ncpu = TmThreadCreatePacketHandler(
+                tname, qname, "flow", "packetpool", "packetpool", "varslot");
         if (tv_detect_ncpu == NULL) {
             FatalError("TmThreadsCreate failed");
         }
@@ -246,10 +239,8 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
 /**
  */
 static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc ModThreadsCount,
-                              const char *recv_mod_name,
-                              const char *decode_mod_name, const char *thread_name,
-                              const char *live_dev, void *aconf,
-                              unsigned char single_mode)
+        const char *recv_mod_name, const char *decode_mod_name, const char *thread_name,
+        const char *live_dev, void *aconf, unsigned char single_mode)
 {
     uint16_t threads_count;
     const uint16_t thread_max = TmThreadsGetWorkerThreadMax();
@@ -283,10 +274,8 @@ static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc Mod
             snprintf(printable_threadname, printable_threadname_size, "%s#%02u-%s", thread_name,
                     thread_id, live_dev);
         }
-        ThreadVars *tv = TmThreadCreatePacketHandler(tname,
-                "packetpool", "packetpool",
-                "packetpool", "packetpool",
-                "pktacqloop");
+        ThreadVars *tv = TmThreadCreatePacketHandler(
+                tname, "packetpool", "packetpool", "packetpool", "packetpool", "pktacqloop");
         if (tv == NULL) {
             FatalError("TmThreadsCreate failed");
         }
@@ -355,10 +344,8 @@ int RunModeSetLiveCaptureWorkers(ConfigIfaceParserFunc ConfigParser,
 }
 
 int RunModeSetLiveCaptureSingle(ConfigIfaceParserFunc ConfigParser,
-                              ConfigIfaceThreadsCountFunc ModThreadsCount,
-                              const char *recv_mod_name,
-                              const char *decode_mod_name, const char *thread_name,
-                              const char *live_dev)
+        ConfigIfaceThreadsCountFunc ModThreadsCount, const char *recv_mod_name,
+        const char *decode_mod_name, const char *thread_name, const char *live_dev)
 {
     const int nlive = LiveGetDeviceCount();
     const char *live_dev_c = NULL;
@@ -380,17 +367,14 @@ int RunModeSetLiveCaptureSingle(ConfigIfaceParserFunc ConfigParser,
             ModThreadsCount, recv_mod_name, decode_mod_name, thread_name, live_dev_c, aconf, 1);
 }
 
-
 /**
  */
-int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
-                        const char *recv_mod_name,
-                        const char *verdict_mod_name,
-                        const char *decode_mod_name)
+int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser, const char *recv_mod_name,
+        const char *verdict_mod_name, const char *decode_mod_name)
 {
     SCEnter();
     char tname[TM_THREAD_NAME_MAX];
-    TmModule *tm_module ;
+    TmModule *tm_module;
 
     const int nqueue = LiveGetDeviceCount();
     const uint16_t thread_max = TmThreadsGetWorkerThreadMax();
@@ -409,10 +393,8 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
         memset(tname, 0, sizeof(tname));
         snprintf(tname, sizeof(tname), "%s-%s", thread_name_autofp, cur_queue);
 
-        ThreadVars *tv_receive =
-            TmThreadCreatePacketHandler(tname,
-                    "packetpool", "packetpool",
-                    queues, "flow", "pktacqloop");
+        ThreadVars *tv_receive = TmThreadCreatePacketHandler(
+                tname, "packetpool", "packetpool", queues, "flow", "pktacqloop");
         if (tv_receive == NULL) {
             FatalError("TmThreadsCreate failed");
         }
@@ -420,7 +402,7 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
         if (tm_module == NULL) {
             FatalError("TmModuleGetByName failed for %s", recv_mod_name);
         }
-        TmSlotSetFuncAppend(tv_receive, tm_module, (void *) ConfigParser(i));
+        TmSlotSetFuncAppend(tv_receive, tm_module, (void *)ConfigParser(i));
 
         tm_module = TmModuleGetByName(decode_mod_name);
         if (tm_module == NULL) {
@@ -433,7 +415,6 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
         if (TmThreadSpawn(tv_receive) != TM_ECODE_OK) {
             FatalError("TmThreadSpawn failed");
         }
-
     }
     for (uint16_t thread = 0; thread < thread_max; thread++) {
         const uint16_t thread_id = (uint16_t)(thread + 1);
@@ -442,11 +423,8 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
         snprintf(qname, sizeof(qname), "pickup%u", thread_id);
         SCLogDebug("tname %s, qname %s", tname, qname);
 
-        ThreadVars *tv_detect_ncpu =
-            TmThreadCreatePacketHandler(tname,
-                                        qname, "flow",
-                                        "verdict-queue", "simple",
-                                        "varslot");
+        ThreadVars *tv_detect_ncpu = TmThreadCreatePacketHandler(
+                tname, qname, "flow", "verdict-queue", "simple", "varslot");
         if (tv_detect_ncpu == NULL) {
             FatalError("TmThreadsCreate failed");
         }
@@ -471,11 +449,8 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
         memset(tname, 0, sizeof(tname));
         snprintf(tname, sizeof(tname), "%s#%02d", thread_name_verdict, i);
 
-        ThreadVars *tv_verdict =
-            TmThreadCreatePacketHandler(tname,
-                                        "verdict-queue", "simple",
-                                        "packetpool", "packetpool",
-                                        "varslot");
+        ThreadVars *tv_verdict = TmThreadCreatePacketHandler(
+                tname, "verdict-queue", "simple", "packetpool", "packetpool", "varslot");
         if (tv_verdict == NULL) {
             FatalError("TmThreadsCreate failed");
         }
@@ -504,10 +479,8 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
 
 /**
  */
-int RunModeSetIPSWorker(ConfigIPSParserFunc ConfigParser,
-        const char *recv_mod_name,
-        const char *verdict_mod_name,
-        const char *decode_mod_name)
+int RunModeSetIPSWorker(ConfigIPSParserFunc ConfigParser, const char *recv_mod_name,
+        const char *verdict_mod_name, const char *decode_mod_name)
 {
     const int nqueue = LiveGetDeviceCount();
 
@@ -522,10 +495,8 @@ int RunModeSetIPSWorker(ConfigIPSParserFunc ConfigParser,
         memset(tname, 0, sizeof(tname));
         snprintf(tname, sizeof(tname), "%s-%s", thread_name_workers, cur_queue);
 
-        ThreadVars *tv = TmThreadCreatePacketHandler(tname,
-                "packetpool", "packetpool",
-                "packetpool", "packetpool",
-                "pktacqloop");
+        ThreadVars *tv = TmThreadCreatePacketHandler(
+                tname, "packetpool", "packetpool", "packetpool", "packetpool", "pktacqloop");
         if (tv == NULL) {
             FatalError("TmThreadsCreate failed");
         }
@@ -534,7 +505,7 @@ int RunModeSetIPSWorker(ConfigIPSParserFunc ConfigParser,
         if (tm_module == NULL) {
             FatalError("TmModuleGetByName failed for %s", recv_mod_name);
         }
-        TmSlotSetFuncAppend(tv, tm_module, (void *) ConfigParser(i));
+        TmSlotSetFuncAppend(tv, tm_module, (void *)ConfigParser(i));
 
         tm_module = TmModuleGetByName(decode_mod_name);
         if (tm_module == NULL) {
@@ -552,7 +523,7 @@ int RunModeSetIPSWorker(ConfigIPSParserFunc ConfigParser,
         if (tm_module == NULL) {
             FatalError("TmModuleGetByName %s failed", verdict_mod_name);
         }
-        TmSlotSetFuncAppend(tv, tm_module, (void *) ConfigParser(i));
+        TmSlotSetFuncAppend(tv, tm_module, (void *)ConfigParser(i));
 
         tm_module = TmModuleGetByName("RespondReject");
         if (tm_module == NULL) {

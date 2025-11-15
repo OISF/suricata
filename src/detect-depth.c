@@ -42,26 +42,28 @@
 #include "util-byte.h"
 #include "util-debug.h"
 
-static int DetectDepthSetup (DetectEngineCtx *, Signature *, const char *);
-static int DetectStartsWithSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectDepthSetup(DetectEngineCtx *, Signature *, const char *);
+static int DetectStartsWithSetup(DetectEngineCtx *, Signature *, const char *);
 
-void DetectDepthRegister (void)
+void DetectDepthRegister(void)
 {
     sigmatch_table[DETECT_DEPTH].name = "depth";
-    sigmatch_table[DETECT_DEPTH].desc = "designate how many bytes from the beginning of the payload will be checked";
+    sigmatch_table[DETECT_DEPTH].desc =
+            "designate how many bytes from the beginning of the payload will be checked";
     sigmatch_table[DETECT_DEPTH].url = "/rules/payload-keywords.html#depth";
     sigmatch_table[DETECT_DEPTH].Match = NULL;
     sigmatch_table[DETECT_DEPTH].Setup = DetectDepthSetup;
-    sigmatch_table[DETECT_DEPTH].Free  = NULL;
+    sigmatch_table[DETECT_DEPTH].Free = NULL;
 
     sigmatch_table[DETECT_STARTS_WITH].name = "startswith";
-    sigmatch_table[DETECT_STARTS_WITH].desc = "pattern must be at the start of a buffer (same as 'depth:<pattern len>')";
+    sigmatch_table[DETECT_STARTS_WITH].desc =
+            "pattern must be at the start of a buffer (same as 'depth:<pattern len>')";
     sigmatch_table[DETECT_STARTS_WITH].url = "/rules/payload-keywords.html#startswith";
     sigmatch_table[DETECT_STARTS_WITH].Setup = DetectStartsWithSetup;
     sigmatch_table[DETECT_STARTS_WITH].flags |= SIGMATCH_NOOPT;
 }
 
-static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, const char *depthstr)
+static int DetectDepthSetup(DetectEngineCtx *de_ctx, Signature *s, const char *depthstr)
 {
     const char *str = depthstr;
     SigMatch *pm = NULL;
@@ -115,8 +117,7 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
         cd->depth = index;
         cd->flags |= DETECT_CONTENT_DEPTH_VAR;
     } else {
-        if (StringParseUint16(&cd->depth, 0, 0, str) < 0)
-        {
+        if (StringParseUint16(&cd->depth, 0, 0, str) < 0) {
             SCLogError("invalid value for depth: %s.", str);
             goto end;
         }
@@ -133,11 +134,11 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
     cd->flags |= DETECT_CONTENT_DEPTH;
 
     ret = 0;
- end:
+end:
     return ret;
 }
 
-static int DetectStartsWithSetup (DetectEngineCtx *de_ctx, Signature *s, const char *unused)
+static int DetectStartsWithSetup(DetectEngineCtx *de_ctx, Signature *s, const char *unused)
 {
     SigMatch *pm = NULL;
     int ret = -1;
@@ -186,6 +187,6 @@ static int DetectStartsWithSetup (DetectEngineCtx *de_ctx, Signature *s, const c
     cd->flags |= DETECT_CONTENT_STARTS_WITH;
 
     ret = 0;
- end:
+end:
     return ret;
 }

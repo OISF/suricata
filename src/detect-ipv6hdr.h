@@ -26,4 +26,4 @@
 
 void DetectIpv6hdrRegister(void);
 
-#endif	/* _DETECT_IPV6HDR_H */
+#endif /* _DETECT_IPV6HDR_H */

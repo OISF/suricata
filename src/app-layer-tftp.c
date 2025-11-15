@@ -24,7 +24,6 @@
  * Parser for NTP application layer running on UDP port 69.
  */
 
-
 #include "suricata-common.h"
 #include "suricata.h"
 
@@ -190,36 +189,27 @@ void RegisterTFTPParsers(void)
 
         /* Register functions for state allocation and freeing. A
          * state is allocated for every new TFTP flow. */
-        AppLayerParserRegisterStateFuncs(IPPROTO_UDP, ALPROTO_TFTP,
-                                         TFTPStateAlloc, TFTPStateFree);
+        AppLayerParserRegisterStateFuncs(IPPROTO_UDP, ALPROTO_TFTP, TFTPStateAlloc, TFTPStateFree);
 
         /* Register request parser for parsing frame from server to client. */
-        AppLayerParserRegisterParser(IPPROTO_UDP, ALPROTO_TFTP,
-                                     STREAM_TOSERVER, TFTPParseRequest);
+        AppLayerParserRegisterParser(IPPROTO_UDP, ALPROTO_TFTP, STREAM_TOSERVER, TFTPParseRequest);
 
         /* Register response parser for parsing frames from server to client. */
-        AppLayerParserRegisterParser(IPPROTO_UDP, ALPROTO_TFTP,
-                                     STREAM_TOCLIENT, TFTPParseResponse);
+        AppLayerParserRegisterParser(IPPROTO_UDP, ALPROTO_TFTP, STREAM_TOCLIENT, TFTPParseResponse);
 
         /* Register a function to be called by the application layer
          * when a transaction is to be freed. */
-        AppLayerParserRegisterTxFreeFunc(IPPROTO_UDP, ALPROTO_TFTP,
-                                         TFTPStateTxFree);
+        AppLayerParserRegisterTxFreeFunc(IPPROTO_UDP, ALPROTO_TFTP, TFTPStateTxFree);
 
         /* Register a function to return the current transaction count. */
-        AppLayerParserRegisterGetTxCnt(IPPROTO_UDP, ALPROTO_TFTP,
-                                       TFTPGetTxCnt);
+        AppLayerParserRegisterGetTxCnt(IPPROTO_UDP, ALPROTO_TFTP, TFTPGetTxCnt);
 
         /* Transaction handling. */
         AppLayerParserRegisterStateProgressCompletionStatus(ALPROTO_TFTP, 1, 1);
-        AppLayerParserRegisterGetStateProgressFunc(IPPROTO_UDP,
-                                                   ALPROTO_TFTP,
-                                                   TFTPGetStateProgress);
-        AppLayerParserRegisterGetTx(IPPROTO_UDP, ALPROTO_TFTP,
-                                    TFTPGetTx);
+        AppLayerParserRegisterGetStateProgressFunc(IPPROTO_UDP, ALPROTO_TFTP, TFTPGetStateProgress);
+        AppLayerParserRegisterGetTx(IPPROTO_UDP, ALPROTO_TFTP, TFTPGetTx);
 
-        AppLayerParserRegisterGetEventInfo(IPPROTO_UDP, ALPROTO_TFTP,
-                                           TFTPStateGetEventInfo);
+        AppLayerParserRegisterGetEventInfo(IPPROTO_UDP, ALPROTO_TFTP, TFTPStateGetEventInfo);
 
         AppLayerParserRegisterTxDataFunc(IPPROTO_UDP, ALPROTO_TFTP, SCTftpGetTxData);
         AppLayerParserRegisterStateDataFunc(IPPROTO_UDP, ALPROTO_TFTP, SCTftpGetStateData);

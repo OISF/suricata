@@ -73,13 +73,8 @@ int PrefilterAppendPostRuleEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
                 DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p, Flow *f),
         void *pectx, void (*FreeFunc)(void *pectx), const char *name);
 
-void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
-        const SigGroupHead *sgh,
-        Packet *p,
-        const uint8_t ipproto,
-        const uint8_t flow_flags,
-        const AppProto alproto,
-        void *alstate,
+void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh, Packet *p,
+        const uint8_t ipproto, const uint8_t flow_flags, const AppProto alproto, void *alstate,
         DetectTransaction *tx);
 
 void PrefilterFreeEnginesList(PrefilterEngineList *list);

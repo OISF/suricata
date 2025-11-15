@@ -41,22 +41,22 @@
 #include "util-unittest.h"
 
 /** Enum map for the various OS flavours */
-SCEnumCharMap sc_hinfo_os_policy_map[ ] = {
-    { "none",        OS_POLICY_NONE },
-    { "bsd",         OS_POLICY_BSD },
-    { "bsd-right",   OS_POLICY_BSD_RIGHT },
-    { "old-linux",   OS_POLICY_OLD_LINUX },
-    { "linux",       OS_POLICY_LINUX },
+SCEnumCharMap sc_hinfo_os_policy_map[] = {
+    { "none", OS_POLICY_NONE },
+    { "bsd", OS_POLICY_BSD },
+    { "bsd-right", OS_POLICY_BSD_RIGHT },
+    { "old-linux", OS_POLICY_OLD_LINUX },
+    { "linux", OS_POLICY_LINUX },
     { "old-solaris", OS_POLICY_OLD_SOLARIS },
-    { "solaris",     OS_POLICY_SOLARIS },
-    { "hpux10",      OS_POLICY_HPUX10 },
-    { "hpux11",      OS_POLICY_HPUX11 },
-    { "irix",        OS_POLICY_IRIX },
-    { "macos",       OS_POLICY_MACOS },
-    { "windows",     OS_POLICY_WINDOWS },
-    { "vista",       OS_POLICY_VISTA },
-    { "windows2k3",  OS_POLICY_WINDOWS2K3 },
-    { NULL,          -1 },
+    { "solaris", OS_POLICY_SOLARIS },
+    { "hpux10", OS_POLICY_HPUX10 },
+    { "hpux11", OS_POLICY_HPUX11 },
+    { "irix", OS_POLICY_IRIX },
+    { "macos", OS_POLICY_MACOS },
+    { "windows", OS_POLICY_WINDOWS },
+    { "vista", OS_POLICY_VISTA },
+    { "windows2k3", OS_POLICY_WINDOWS2K3 },
+    { NULL, -1 },
 };
 
 /** Radix trees that hold the host OS information */
@@ -126,28 +126,27 @@ int SCHInfoAddHostOSInfo(const char *host_os, const char *host_os_ip_range, int 
     int *user_data = NULL;
     bool recursive = false;
 
-    if (host_os == NULL || host_os_ip_range == NULL ||
-            strlen(host_os_ip_range) == 0) {
+    if (host_os == NULL || host_os_ip_range == NULL || strlen(host_os_ip_range) == 0) {
         SCLogError("Invalid arguments");
         return -1;
     }
 
     /* the host os flavour that has to be sent as user data */
-    if ( (user_data = SCHInfoAllocUserDataOSPolicy(host_os)) == NULL) {
+    if ((user_data = SCHInfoAllocUserDataOSPolicy(host_os)) == NULL) {
         SCLogError("Invalid enum map inside");
         return -1;
     }
 
     /* if we have a default configuration set the appropriate values for the
      * netblocks */
-    if ( (strcasecmp(host_os_ip_range, "default")) == 0) {
+    if ((strcasecmp(host_os_ip_range, "default")) == 0) {
         if (is_ipv4)
             host_os_ip_range = "0.0.0.0/0";
         else
             host_os_ip_range = "::/0";
     }
 
-    if ( (ip_str = SCStrdup(host_os_ip_range)) == NULL) {
+    if ((ip_str = SCStrdup(host_os_ip_range)) == NULL) {
         FatalError("Error allocating memory");
     }
 
@@ -285,9 +284,9 @@ void SCHInfoLoadFromConfig(void)
         return;
 
     SCConfNode *policy;
-    TAILQ_FOREACH(policy, &root->head, next) {
+    TAILQ_FOREACH (policy, &root->head, next) {
         SCConfNode *host;
-        TAILQ_FOREACH(host, &policy->head, next) {
+        TAILQ_FOREACH (host, &policy->head, next) {
             int is_ipv4 = 1;
             if (host->val != NULL && strchr(host->val, ':') != NULL)
                 is_ipv4 = 0;
@@ -391,7 +390,7 @@ static int SCHInfoTestInvalidIPV4Address02(void)
 
     result = 1;
 
- end:
+end:
     SCHInfoCleanResources();
     SCHInfoRestoreContextBackup();
 
@@ -423,15 +422,14 @@ static int SCHInfoTestInvalidIPV6Address03(void)
     if (SCHInfoAddHostOSInfo("linux", "", SC_HINFO_IS_IPV6) != -1) {
         goto end;
     }
-    if (SCHInfoAddHostOSInfo("linux",
-                             "1921.6311:6241:6422:7352:ABBB:DDDD:EEEE/129",
-                             SC_HINFO_IS_IPV6) != -1) {
+    if (SCHInfoAddHostOSInfo(
+                "linux", "1921.6311:6241:6422:7352:ABBB:DDDD:EEEE/129", SC_HINFO_IS_IPV6) != -1) {
         goto end;
     }
 
     result = 1;
 
- end:
+end:
     SCHInfoCleanResources();
     SCHInfoRestoreContextBackup();
 
@@ -488,53 +486,53 @@ static int SCHInfoTestValidIPV4Address04(void)
     }
 
     if (SCHInfoGetHostOSFlavour("192.168.1.1") !=
-        SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("192.168.1.2") != -1) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("192.168.1.100") !=
-        SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("192.192.2.4") != -1) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("192.168.2.4") !=
-        SCMapEnumNameToValue("hpux10", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("hpux10", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("192.192.1.5") !=
-        SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("192.168.10.20") !=
-        SCMapEnumNameToValue("vista", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("vista", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("111.163.151.62") !=
-        SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("11.1.120.210") !=
-        SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("19.18.110.210") !=
-        SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("19.18.120.110") !=
-        SCMapEnumNameToValue("windows", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("windows", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("191.168.11.128") !=
-        SCMapEnumNameToValue("hpux11", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("hpux11", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("191.168.11.192") !=
-        SCMapEnumNameToValue("vista", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("vista", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("191.168.11.224") != -1) {
@@ -543,7 +541,7 @@ static int SCHInfoTestValidIPV4Address04(void)
 
     result = 1;
 
- end:
+end:
     SCHInfoCleanResources();
     SCHInfoRestoreContextBackup();
 
@@ -601,45 +599,45 @@ static int SCHInfoTestValidIPV4Address05(void)
     }
 
     if (SCHInfoGetHostOSFlavour("192.168.1.1") !=
-        SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("192.168.1.2") != -1) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("192.168.1.100") !=
-        SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("192.192.2.4") != -1) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("192.168.2.4") !=
-        SCMapEnumNameToValue("hpux10", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("hpux10", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("192.192.1.5") !=
-        SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("192.168.10.20") !=
-        SCMapEnumNameToValue("vista", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("vista", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("111.163.151.62") !=
-        SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("111.162.208.0") !=
-        SCMapEnumNameToValue("hpux11", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("hpux11", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("111.162.210.1") !=
-        SCMapEnumNameToValue("hpux11", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("hpux11", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("111.162.214.1") !=
-        SCMapEnumNameToValue("hpux11", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("hpux11", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("111.162.0.0") != -1) {
@@ -649,33 +647,33 @@ static int SCHInfoTestValidIPV4Address05(void)
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("111.162.240.1") !=
-        SCMapEnumNameToValue("windows", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("windows", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("111.162.214.100") !=
-        SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (inet_pton(AF_INET, "111.162.208.100", &in) < 0) {
         goto end;
     }
     if (SCHInfoGetIPv4HostOSFlavour((uint8_t *)&in) !=
-        SCMapEnumNameToValue("vista", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("vista", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("111.162.194.112") !=
-        SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("111.162.208.200") !=
-        SCMapEnumNameToValue("hpux11", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("hpux11", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (inet_pton(AF_INET, "111.162.208.200", &in) < 0) {
         goto end;
     }
     if (SCHInfoGetIPv4HostOSFlavour((uint8_t *)&in) !=
-        SCMapEnumNameToValue("hpux11", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("hpux11", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("111.162.200.201") != -1) {
@@ -684,7 +682,7 @@ static int SCHInfoTestValidIPV4Address05(void)
 
     result = 1;
 
- end:
+end:
     SCHInfoCleanResources();
     SCHInfoRestoreContextBackup();
 
@@ -703,115 +701,103 @@ static int SCHInfoTestValidIPV6Address06(void)
 
     int result = 0;
 
-    if (SCHInfoAddHostOSInfo("linux",
-                             "2351:2512:6211:6246:235A:6242:2352:62AD",
-                             SC_HINFO_IS_IPV6) == -1) {
+    if (SCHInfoAddHostOSInfo(
+                "linux", "2351:2512:6211:6246:235A:6242:2352:62AD", SC_HINFO_IS_IPV6) == -1) {
         goto end;
     }
-    if (SCHInfoAddHostOSInfo("windows",
-                             "6961:6121:2132:6241:423A:2135:2461:621D",
-                             SC_HINFO_IS_IPV6) == -1) {
+    if (SCHInfoAddHostOSInfo(
+                "windows", "6961:6121:2132:6241:423A:2135:2461:621D", SC_HINFO_IS_IPV6) == -1) {
         goto end;
     }
-    if (SCHInfoAddHostOSInfo("solaris",
-                             "DD13:613D:F312:62DD:6213:421A:6212:2652",
-                             SC_HINFO_IS_IPV6) == -1) {
+    if (SCHInfoAddHostOSInfo(
+                "solaris", "DD13:613D:F312:62DD:6213:421A:6212:2652", SC_HINFO_IS_IPV6) == -1) {
         goto end;
     }
-    if (SCHInfoAddHostOSInfo("hpux10",
-                             "9891:2131:2151:6426:1342:674D:622F:2342",
-                             SC_HINFO_IS_IPV6) == -1) {
+    if (SCHInfoAddHostOSInfo(
+                "hpux10", "9891:2131:2151:6426:1342:674D:622F:2342", SC_HINFO_IS_IPV6) == -1) {
         goto end;
     }
-    if (SCHInfoAddHostOSInfo("linux",
-                             "3525:2351:4223:6211:2311:2667:6242:2154",
-                             SC_HINFO_IS_IPV6) == -1) {
+    if (SCHInfoAddHostOSInfo(
+                "linux", "3525:2351:4223:6211:2311:2667:6242:2154", SC_HINFO_IS_IPV6) == -1) {
         goto end;
     }
-    if (SCHInfoAddHostOSInfo("vista",
-                             "1511:6211:6726:7777:1212:2333:6222:7722",
-                             SC_HINFO_IS_IPV6) == -1) {
+    if (SCHInfoAddHostOSInfo(
+                "vista", "1511:6211:6726:7777:1212:2333:6222:7722", SC_HINFO_IS_IPV6) == -1) {
         goto end;
     }
-    if (SCHInfoAddHostOSInfo("solaris",
-                             "2666:6222:7222:2335:6223:7722:3425:2362",
-                             SC_HINFO_IS_IPV6) == -1) {
+    if (SCHInfoAddHostOSInfo(
+                "solaris", "2666:6222:7222:2335:6223:7722:3425:2362", SC_HINFO_IS_IPV6) == -1) {
         goto end;
     }
-    if (SCHInfoAddHostOSInfo("solaris",
-                             "8762:2352:6241:7245:EE23:21AD:2312:622C",
-                             SC_HINFO_IS_IPV6) == -1) {
+    if (SCHInfoAddHostOSInfo(
+                "solaris", "8762:2352:6241:7245:EE23:21AD:2312:622C", SC_HINFO_IS_IPV6) == -1) {
         goto end;
     }
-    if (SCHInfoAddHostOSInfo("linux",
-                             "6422:EE1A:2621:34AD:2462:432D:642E:E13A",
-                             SC_HINFO_IS_IPV6) == -1) {
+    if (SCHInfoAddHostOSInfo(
+                "linux", "6422:EE1A:2621:34AD:2462:432D:642E:E13A", SC_HINFO_IS_IPV6) == -1) {
         goto end;
     }
-    if (SCHInfoAddHostOSInfo("windows",
-                             "3521:7622:6241:6242:7277:1234:2352:6234",
-                             SC_HINFO_IS_IPV6) == -1) {
+    if (SCHInfoAddHostOSInfo(
+                "windows", "3521:7622:6241:6242:7277:1234:2352:6234", SC_HINFO_IS_IPV6) == -1) {
         goto end;
     }
-    if (SCHInfoAddHostOSInfo("hpux11",
-                             "2141:6232:6252:2223:7734:2345:6245:6222",
-                             SC_HINFO_IS_IPV6) == -1) {
+    if (SCHInfoAddHostOSInfo(
+                "hpux11", "2141:6232:6252:2223:7734:2345:6245:6222", SC_HINFO_IS_IPV6) == -1) {
         goto end;
     }
-    if (SCHInfoAddHostOSInfo("vista",
-                             "5222:6432:6432:2322:6662:3423:4322:3245",
-                             SC_HINFO_IS_IPV6) == -1) {
+    if (SCHInfoAddHostOSInfo(
+                "vista", "5222:6432:6432:2322:6662:3423:4322:3245", SC_HINFO_IS_IPV6) == -1) {
         goto end;
     }
 
     if (SCHInfoGetHostOSFlavour("2351:2512:6211:6246:235A:6242:2352:62AD") !=
-        SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("2351:2512:6211:6246:235A:6242:2352:6FFFE") != -1) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("DD13:613D:F312:62DD:6213:421A:6212:2652") !=
-        SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("DD13:613D:F312:62DD:6213:421A:6212:2222") != -1) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("9891:2131:2151:6426:1342:674D:622F:2342") !=
-        SCMapEnumNameToValue("hpux10", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("hpux10", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("3525:2351:4223:6211:2311:2667:6242:2154") !=
-        SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("1511:6211:6726:7777:1212:2333:6222:7722") !=
-        SCMapEnumNameToValue("vista", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("vista", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("2666:6222:7222:2335:6223:7722:3425:2362") !=
-        SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:EE23:21AD:2312:622C") !=
-        SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("6422:EE1A:2621:34AD:2462:432D:642E:E13A") !=
-        SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("3521:7622:6241:6242:7277:1234:2352:6234") !=
-        SCMapEnumNameToValue("windows", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("windows", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("2141:6232:6252:2223:7734:2345:6245:6222") !=
-        SCMapEnumNameToValue("hpux11", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("hpux11", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("5222:6432:6432:2322:6662:3423:4322:3245") !=
-        SCMapEnumNameToValue("vista", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("vista", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("5222:6432:6432:2322:6662:3423:4322:DDDD") != -1) {
@@ -820,7 +806,7 @@ static int SCHInfoTestValidIPV6Address06(void)
 
     result = 1;
 
- end:
+end:
     SCHInfoCleanResources();
     SCHInfoRestoreContextBackup();
 
@@ -839,144 +825,132 @@ static int SCHInfoTestValidIPV6Address07(void)
 
     int result = 0;
 
-    if (SCHInfoAddHostOSInfo("linux",
-                             "2351:2512:6211:6246:235A:6242:2352:62AD",
-                             SC_HINFO_IS_IPV6) == -1) {
+    if (SCHInfoAddHostOSInfo(
+                "linux", "2351:2512:6211:6246:235A:6242:2352:62AD", SC_HINFO_IS_IPV6) == -1) {
         goto end;
     }
-    if (SCHInfoAddHostOSInfo("windows",
-                             "6961:6121:2132:6241:423A:2135:2461:621D",
-                             SC_HINFO_IS_IPV6) == -1) {
+    if (SCHInfoAddHostOSInfo(
+                "windows", "6961:6121:2132:6241:423A:2135:2461:621D", SC_HINFO_IS_IPV6) == -1) {
         goto end;
     }
-    if (SCHInfoAddHostOSInfo("solaris",
-                             "DD13:613D:F312:62DD:6213:421A:6212:2652",
-                             SC_HINFO_IS_IPV6) == -1) {
+    if (SCHInfoAddHostOSInfo(
+                "solaris", "DD13:613D:F312:62DD:6213:421A:6212:2652", SC_HINFO_IS_IPV6) == -1) {
         goto end;
     }
-    if (SCHInfoAddHostOSInfo("hpux10",
-                             "9891:2131:2151:6426:1342:674D:622F:2342",
-                             SC_HINFO_IS_IPV6) == -1) {
+    if (SCHInfoAddHostOSInfo(
+                "hpux10", "9891:2131:2151:6426:1342:674D:622F:2342", SC_HINFO_IS_IPV6) == -1) {
         goto end;
     }
-    if (SCHInfoAddHostOSInfo("linux",
-                             "3525:2351:4223:6211:2311:2667:6242:2154",
-                             SC_HINFO_IS_IPV6) == -1) {
+    if (SCHInfoAddHostOSInfo(
+                "linux", "3525:2351:4223:6211:2311:2667:6242:2154", SC_HINFO_IS_IPV6) == -1) {
         goto end;
     }
-    if (SCHInfoAddHostOSInfo("vista",
-                             "1511:6211:6726:7777:1212:2333:6222:7722",
-                             SC_HINFO_IS_IPV6) == -1) {
+    if (SCHInfoAddHostOSInfo(
+                "vista", "1511:6211:6726:7777:1212:2333:6222:7722", SC_HINFO_IS_IPV6) == -1) {
         goto end;
     }
-    if (SCHInfoAddHostOSInfo("solaris",
-                             "2666:6222:7222:2335:6223:7722:3425:2362",
-                             SC_HINFO_IS_IPV6) == -1) {
+    if (SCHInfoAddHostOSInfo(
+                "solaris", "2666:6222:7222:2335:6223:7722:3425:2362", SC_HINFO_IS_IPV6) == -1) {
         goto end;
     }
-    if (SCHInfoAddHostOSInfo("solaris",
-                             "8762:2352:6241:7245:EE23:21AD:2312:622C/68",
-                             SC_HINFO_IS_IPV6) == -1) {
+    if (SCHInfoAddHostOSInfo(
+                "solaris", "8762:2352:6241:7245:EE23:21AD:2312:622C/68", SC_HINFO_IS_IPV6) == -1) {
         goto end;
     }
-    if (SCHInfoAddHostOSInfo("linux",
-                             "8762:2352:6241:7245:EE23:21AD:2412:622C",
-                             SC_HINFO_IS_IPV6) == -1) {
+    if (SCHInfoAddHostOSInfo(
+                "linux", "8762:2352:6241:7245:EE23:21AD:2412:622C", SC_HINFO_IS_IPV6) == -1) {
         goto end;
     }
-    if (SCHInfoAddHostOSInfo("windows",
-                             "8762:2352:6241:7245:EE23:21AD:FFFF:622C",
-                             SC_HINFO_IS_IPV6) == -1) {
+    if (SCHInfoAddHostOSInfo(
+                "windows", "8762:2352:6241:7245:EE23:21AD:FFFF:622C", SC_HINFO_IS_IPV6) == -1) {
         goto end;
     }
-    if (SCHInfoAddHostOSInfo("hpux11",
-                             "8762:2352:6241:7245:EE23:21AD:2312:62FF",
-                             SC_HINFO_IS_IPV6) == -1) {
+    if (SCHInfoAddHostOSInfo(
+                "hpux11", "8762:2352:6241:7245:EE23:21AD:2312:62FF", SC_HINFO_IS_IPV6) == -1) {
         goto end;
     }
-    if (SCHInfoAddHostOSInfo("vista",
-                             "8762:2352:6241:7245:EE23:21AD:2121:1212",
-                             SC_HINFO_IS_IPV6) == -1) {
+    if (SCHInfoAddHostOSInfo(
+                "vista", "8762:2352:6241:7245:EE23:21AD:2121:1212", SC_HINFO_IS_IPV6) == -1) {
         goto end;
     }
 
     if (SCHInfoGetHostOSFlavour("2351:2512:6211:6246:235A:6242:2352:62AD") !=
-        SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("2351:2512:6211:6246:235A:6242:2352:6FFFE") != -1) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("DD13:613D:F312:62DD:6213:421A:6212:2652") !=
-        SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("DD13:613D:F312:62DD:6213:421A:6212:2222") != -1) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("9891:2131:2151:6426:1342:674D:622F:2342") !=
-        SCMapEnumNameToValue("hpux10", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("hpux10", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("3525:2351:4223:6211:2311:2667:6242:2154") !=
-        SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("1511:6211:6726:7777:1212:2333:6222:7722") !=
-        SCMapEnumNameToValue("vista", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("vista", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("2666:6222:7222:2335:6223:7722:3425:2362") !=
-        SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:EE23:21AD:2312:622C") !=
-        SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:EE23:21AD:2412:622C") !=
-        SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:EE23:21AD:FFFF:622C") !=
-        SCMapEnumNameToValue("windows", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("windows", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:EE23:21AD:2312:62FF") !=
-        SCMapEnumNameToValue("hpux11", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("hpux11", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:EE23:21AD:2121:1212") !=
-        SCMapEnumNameToValue("vista", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("vista", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("5222:6432:6432:2322:6662:3423:4322:DDDD") != -1) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:EE23:21AD:2121:1DDD") !=
-        SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:EE23:FFFF:2121:1DDD") !=
-        SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:EE23:21AD:2312:622C") !=
-        SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:EE00:0000:0000:0000") !=
-        SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:E000:0000:0000:0000") !=
-        SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
         goto end;
     }
 
     result = 1;
 
- end:
+end:
     SCHInfoCleanResources();
     SCHInfoRestoreContextBackup();
 
@@ -996,64 +970,52 @@ static int SCHInfoTestValidIPV6Address08(void)
     struct in6_addr in6;
     int result = 0;
 
-    if (SCHInfoAddHostOSInfo("linux",
-                             "2351:2512:6211:6246:235A:6242:2352:62AD",
-                             SC_HINFO_IS_IPV6) == -1) {
+    if (SCHInfoAddHostOSInfo(
+                "linux", "2351:2512:6211:6246:235A:6242:2352:62AD", SC_HINFO_IS_IPV6) == -1) {
         goto end;
     }
-    if (SCHInfoAddHostOSInfo("windows",
-                             "6961:6121:2132:6241:423A:2135:2461:621D",
-                             SC_HINFO_IS_IPV6) == -1) {
+    if (SCHInfoAddHostOSInfo(
+                "windows", "6961:6121:2132:6241:423A:2135:2461:621D", SC_HINFO_IS_IPV6) == -1) {
         goto end;
     }
-    if (SCHInfoAddHostOSInfo("solaris",
-                             "DD13:613D:F312:62DD:6213:421A:6212:2652",
-                             SC_HINFO_IS_IPV6) == -1) {
+    if (SCHInfoAddHostOSInfo(
+                "solaris", "DD13:613D:F312:62DD:6213:421A:6212:2652", SC_HINFO_IS_IPV6) == -1) {
         goto end;
     }
-    if (SCHInfoAddHostOSInfo("hpux10",
-                             "9891:2131:2151:6426:1342:674D:622F:2342",
-                             SC_HINFO_IS_IPV6) == -1) {
+    if (SCHInfoAddHostOSInfo(
+                "hpux10", "9891:2131:2151:6426:1342:674D:622F:2342", SC_HINFO_IS_IPV6) == -1) {
         goto end;
     }
-    if (SCHInfoAddHostOSInfo("linux",
-                             "3525:2351:4223:6211:2311:2667:6242:2154",
-                             SC_HINFO_IS_IPV6) == -1) {
+    if (SCHInfoAddHostOSInfo(
+                "linux", "3525:2351:4223:6211:2311:2667:6242:2154", SC_HINFO_IS_IPV6) == -1) {
         goto end;
     }
-    if (SCHInfoAddHostOSInfo("vista",
-                             "1511:6211:6726:7777:1212:2333:6222:7722",
-                             SC_HINFO_IS_IPV6) == -1) {
+    if (SCHInfoAddHostOSInfo(
+                "vista", "1511:6211:6726:7777:1212:2333:6222:7722", SC_HINFO_IS_IPV6) == -1) {
         goto end;
     }
-    if (SCHInfoAddHostOSInfo("solaris",
-                             "2666:6222:7222:2335:6223:7722:3425:2362",
-                             SC_HINFO_IS_IPV6) == -1) {
+    if (SCHInfoAddHostOSInfo(
+                "solaris", "2666:6222:7222:2335:6223:7722:3425:2362", SC_HINFO_IS_IPV6) == -1) {
         goto end;
     }
-    if (SCHInfoAddHostOSInfo("solaris",
-                             "8762:2352:6241:7245:EE23:21AD:2312:622C/68",
-                             SC_HINFO_IS_IPV6) == -1) {
+    if (SCHInfoAddHostOSInfo(
+                "solaris", "8762:2352:6241:7245:EE23:21AD:2312:622C/68", SC_HINFO_IS_IPV6) == -1) {
         goto end;
     }
-    if (SCHInfoAddHostOSInfo("linux",
-                             "8762:2352:6241:7245:EE23:21AD:2412:622C",
-                             SC_HINFO_IS_IPV6) == -1) {
+    if (SCHInfoAddHostOSInfo(
+                "linux", "8762:2352:6241:7245:EE23:21AD:2412:622C", SC_HINFO_IS_IPV6) == -1) {
         goto end;
     }
-    if (SCHInfoAddHostOSInfo("windows",
-                             "8762:2352:6241:7245:EE23:21AD:FFFF:622C",
-                             SC_HINFO_IS_IPV6) == -1) {
+    if (SCHInfoAddHostOSInfo(
+                "windows", "8762:2352:6241:7245:EE23:21AD:FFFF:622C", SC_HINFO_IS_IPV6) == -1) {
         goto end;
     }
-    if (SCHInfoAddHostOSInfo("hpux11",
-                             "8762:2352:6241:7245:EE23:21AD:2312:62FF",
-                             SC_HINFO_IS_IPV6) == -1) {
+    if (SCHInfoAddHostOSInfo(
+                "hpux11", "8762:2352:6241:7245:EE23:21AD:2312:62FF", SC_HINFO_IS_IPV6) == -1) {
         goto end;
     }
-    if (SCHInfoAddHostOSInfo("vista",
-                             "8762:2352:6241:7245:EE23:21AD:2121:1212",
-                             SC_HINFO_IS_IPV6) == -1) {
+    if (SCHInfoAddHostOSInfo(
+                "vista", "8762:2352:6241:7245:EE23:21AD:2121:1212", SC_HINFO_IS_IPV6) == -1) {
         goto end;
     }
     if (SCHInfoAddHostOSInfo("vista", "8.8.8.0/24", SC_HINFO_IS_IPV4) == -1) {
@@ -1064,89 +1026,89 @@ static int SCHInfoTestValidIPV6Address08(void)
     }
 
     if (SCHInfoGetHostOSFlavour("2351:2512:6211:6246:235A:6242:2352:62AD") !=
-        SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("2351:2512:6211:6246:235A:6242:2352:6FFF") !=
-        SCMapEnumNameToValue("irix", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("irix", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("DD13:613D:F312:62DD:6213:421A:6212:2652") !=
-        SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("DD13:613D:F312:62DD:6213:421A:6212:2222") !=
-        SCMapEnumNameToValue("irix", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("irix", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("9891:2131:2151:6426:1342:674D:622F:2342") !=
-        SCMapEnumNameToValue("hpux10", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("hpux10", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("3525:2351:4223:6211:2311:2667:6242:2154") !=
-        SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("1511:6211:6726:7777:1212:2333:6222:7722") !=
-        SCMapEnumNameToValue("vista", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("vista", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("2666:6222:7222:2335:6223:7722:3425:2362") !=
-        SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:EE23:21AD:2312:622C") !=
-        SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:EE23:21AD:2412:622C") !=
-        SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("linux", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:EE23:21AD:FFFF:622C") !=
-        SCMapEnumNameToValue("windows", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("windows", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:EE23:21AD:2312:62FF") !=
-        SCMapEnumNameToValue("hpux11", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("hpux11", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:EE23:21AD:2121:1212") !=
-        SCMapEnumNameToValue("vista", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("vista", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("5222:6432:6432:2322:6662:3423:4322:DDDD") !=
-        SCMapEnumNameToValue("irix", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("irix", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:EE23:21AD:2121:1DDD") !=
-        SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:EE23:FFFF:2121:1DDD") !=
-        SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:EE23:21AD:2312:622C") !=
-        SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("8762:2352:6241:7245:EE00:0000:0000:0000") !=
-        SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (inet_pton(AF_INET6, "8762:2352:6241:7245:E000:0000:0000:0000", &in6) < 0) {
         goto end;
     }
     if (SCHInfoGetIPv6HostOSFlavour((uint8_t *)&in6) !=
-        SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (inet_pton(AF_INET6, "AD23:2DDA:6D1D:A223:E235:0232:1241:1666", &in6) < 0) {
         goto end;
     }
     if (SCHInfoGetIPv6HostOSFlavour((uint8_t *)&in6) !=
-        SCMapEnumNameToValue("irix", sc_hinfo_os_policy_map)) {
+            SCMapEnumNameToValue("irix", sc_hinfo_os_policy_map)) {
         goto end;
     }
     if (SCHInfoGetHostOSFlavour("8.8.8.8") !=
@@ -1155,7 +1117,7 @@ static int SCHInfoTestValidIPV6Address08(void)
     }
     result = 1;
 
- end:
+end:
     SCHInfoCleanResources();
     SCHInfoRestoreContextBackup();
 
@@ -1228,14 +1190,14 @@ host-os-policy:\n\
 
     result = 1;
 
- end:
-     SCHInfoCleanResources();
-     SCConfDeInit();
-     SCConfRestoreContextBackup();
+end:
+    SCHInfoCleanResources();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
 
-     SCHInfoRestoreContextBackup();
+    SCHInfoRestoreContextBackup();
 
-     return result;
+    return result;
 }
 
 /**
@@ -1269,7 +1231,7 @@ host-os-policy:\n\
     int count = 0;
 
     SCConfNode *policy;
-    TAILQ_FOREACH(policy, &root->head, next) {
+    TAILQ_FOREACH (policy, &root->head, next) {
         switch (count) {
             case 0:
                 if (strcmp("one-two", policy->name) != 0)
@@ -1297,14 +1259,14 @@ host-os-policy:\n\
 
     result = 1;
 
- end:
-     SCHInfoCleanResources();
-     SCConfDeInit();
-     SCConfRestoreContextBackup();
+end:
+    SCHInfoCleanResources();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
 
-     SCHInfoRestoreContextBackup();
+    SCHInfoRestoreContextBackup();
 
-     return result;
+    return result;
 }
 
 /**
@@ -1336,7 +1298,7 @@ host-os-policy:\n\
         goto end;
 
     SCConfNode *policy;
-    TAILQ_FOREACH(policy, &root->head, next) {
+    TAILQ_FOREACH (policy, &root->head, next) {
         if (SCMapEnumNameToValue(policy->name, sc_hinfo_os_policy_map) == -1) {
             printf("Invalid enum map inside\n");
             goto end;
@@ -1345,13 +1307,13 @@ host-os-policy:\n\
 
     result = 1;
 
- end:
-     SCHInfoCleanResources();
-     SCConfDeInit();
-     SCConfRestoreContextBackup();
+end:
+    SCHInfoCleanResources();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
 
-     SCHInfoRestoreContextBackup();
-     return result;
+    SCHInfoRestoreContextBackup();
+    return result;
 }
 
 /**
@@ -1383,7 +1345,7 @@ host-os-policy:\n\
         goto end;
 
     SCConfNode *policy;
-    TAILQ_FOREACH(policy, &root->head, next) {
+    TAILQ_FOREACH (policy, &root->head, next) {
         if (SCMapEnumNameToValue(policy->name, sc_hinfo_os_policy_map) == -1) {
             printf("Invalid enum map inside\n");
             goto end;
@@ -1392,13 +1354,13 @@ host-os-policy:\n\
 
     result = 1;
 
- end:
-     SCHInfoCleanResources();
-     SCConfDeInit();
-     SCConfRestoreContextBackup();
+end:
+    SCHInfoCleanResources();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
 
-     SCHInfoRestoreContextBackup();
-     return result;
+    SCHInfoRestoreContextBackup();
+    return result;
 }
 
 /**
@@ -1424,13 +1386,13 @@ host-os-policy:\n\
     SCConfYamlLoadString(config, strlen(config));
     SCHInfoLoadFromConfig();
 
-    FAIL_IF (SCHInfoGetHostOSFlavour("0.0.0.1") != OS_POLICY_BSD_RIGHT);
-    FAIL_IF (SCHInfoGetHostOSFlavour("0.0.0.2") != OS_POLICY_OLD_LINUX);
-    FAIL_IF (SCHInfoGetHostOSFlavour("0.0.0.3") != OS_POLICY_OLD_SOLARIS);
-    FAIL_IF (SCHInfoGetHostOSFlavour("0.0.0.4") != OS_POLICY_WINDOWS);
-    FAIL_IF (SCHInfoGetHostOSFlavour("0.0.0.5") != OS_POLICY_LINUX);
-    FAIL_IF (SCHInfoGetHostOSFlavour("0.0.0.0") != -1);
-    FAIL_IF (SCHInfoGetHostOSFlavour("0.0.0.6") != -1);
+    FAIL_IF(SCHInfoGetHostOSFlavour("0.0.0.1") != OS_POLICY_BSD_RIGHT);
+    FAIL_IF(SCHInfoGetHostOSFlavour("0.0.0.2") != OS_POLICY_OLD_LINUX);
+    FAIL_IF(SCHInfoGetHostOSFlavour("0.0.0.3") != OS_POLICY_OLD_SOLARIS);
+    FAIL_IF(SCHInfoGetHostOSFlavour("0.0.0.4") != OS_POLICY_WINDOWS);
+    FAIL_IF(SCHInfoGetHostOSFlavour("0.0.0.5") != OS_POLICY_LINUX);
+    FAIL_IF(SCHInfoGetHostOSFlavour("0.0.0.0") != -1);
+    FAIL_IF(SCHInfoGetHostOSFlavour("0.0.0.6") != -1);
 
     SCHInfoCleanResources();
     SCConfDeInit();
@@ -1447,22 +1409,14 @@ void SCHInfoRegisterTests(void)
 #ifdef UNITTESTS
 
     UtRegisterTest("SCHInfoTestInvalidOSFlavour01", SCHInfoTestInvalidOSFlavour01);
-    UtRegisterTest("SCHInfoTestInvalidIPV4Address02",
-                   SCHInfoTestInvalidIPV4Address02);
-    UtRegisterTest("SCHInfoTestInvalidIPV6Address03",
-                   SCHInfoTestInvalidIPV6Address03);
-    UtRegisterTest("SCHInfoTestValidIPV4Address04",
-                   SCHInfoTestValidIPV4Address04);
-    UtRegisterTest("SCHInfoTestValidIPV4Address05",
-                   SCHInfoTestValidIPV4Address05);
-    UtRegisterTest("SCHInfoTestValidIPV6Address06",
-                   SCHInfoTestValidIPV6Address06);
-    UtRegisterTest("SCHInfoTestValidIPV6Address07",
-                   SCHInfoTestValidIPV6Address07);
-    UtRegisterTest("SCHInfoTestValidIPV6Address08",
-                   SCHInfoTestValidIPV6Address08);
-    UtRegisterTest("SCHInfoTestValidIPV4Address09",
-                   SCHInfoTestValidIPV4Address09);
+    UtRegisterTest("SCHInfoTestInvalidIPV4Address02", SCHInfoTestInvalidIPV4Address02);
+    UtRegisterTest("SCHInfoTestInvalidIPV6Address03", SCHInfoTestInvalidIPV6Address03);
+    UtRegisterTest("SCHInfoTestValidIPV4Address04", SCHInfoTestValidIPV4Address04);
+    UtRegisterTest("SCHInfoTestValidIPV4Address05", SCHInfoTestValidIPV4Address05);
+    UtRegisterTest("SCHInfoTestValidIPV6Address06", SCHInfoTestValidIPV6Address06);
+    UtRegisterTest("SCHInfoTestValidIPV6Address07", SCHInfoTestValidIPV6Address07);
+    UtRegisterTest("SCHInfoTestValidIPV6Address08", SCHInfoTestValidIPV6Address08);
+    UtRegisterTest("SCHInfoTestValidIPV4Address09", SCHInfoTestValidIPV4Address09);
 
     UtRegisterTest("SCHInfoTestLoadFromConfig01", SCHInfoTestLoadFromConfig01);
     UtRegisterTest("SCHInfoTestLoadFromConfig02", SCHInfoTestLoadFromConfig02);

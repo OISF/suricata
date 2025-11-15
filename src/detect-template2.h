@@ -22,10 +22,8 @@
  */
 
 #ifndef _DETECT_TEMPLATE2_H
-#define	_DETECT_TEMPLATE2_H
-
+#define _DETECT_TEMPLATE2_H
 
 void DetectTemplate2Register(void);
 
-#endif	/* _DETECT_TEMPLATE2_H */
-
+#endif /* _DETECT_TEMPLATE2_H */

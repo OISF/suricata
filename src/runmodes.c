@@ -105,8 +105,7 @@ typedef struct OutputFreeList_ {
 
     TAILQ_ENTRY(OutputFreeList_) entries;
 } OutputFreeList;
-static TAILQ_HEAD(, OutputFreeList_) output_free_list =
-    TAILQ_HEAD_INITIALIZER(output_free_list);
+static TAILQ_HEAD(, OutputFreeList_) output_free_list = TAILQ_HEAD_INITIALIZER(output_free_list);
 
 /**
  * \internal
@@ -188,7 +187,6 @@ static RunMode *RunModeGetCustomMode(enum SCRunModes runmode, const char *custom
     return NULL;
 }
 
-
 /**
  * Return the running mode
  *
@@ -259,29 +257,23 @@ void RunModeListRunmodes(void)
     printf("------------------------------------- Runmodes -------------------"
            "-----------------------\n");
 
-    printf("| %-17s | %-17s | %-10s \n",
-           "RunMode Type", "Custom Mode ", "Description");
+    printf("| %-17s | %-17s | %-10s \n", "RunMode Type", "Custom Mode ", "Description");
     printf("|-----------------------------------------------------------------"
            "-----------------------\n");
     int i = RUNMODE_UNKNOWN + 1;
     int j = 0;
-    for ( ; i < RUNMODE_USER_MAX; i++) {
+    for (; i < RUNMODE_USER_MAX; i++) {
         int mode_displayed = 0;
         for (j = 0; j < runmodes[i].cnt; j++) {
             if (mode_displayed == 1) {
                 printf("|                   ----------------------------------------------"
                        "-----------------------\n");
                 RunMode *runmode = &runmodes[i].runmodes[j];
-                printf("| %-17s | %-17s | %-27s \n",
-                       "",
-                       runmode->name,
-                       runmode->description);
+                printf("| %-17s | %-17s | %-27s \n", "", runmode->name, runmode->description);
             } else {
                 RunMode *runmode = &runmodes[i].runmodes[j];
-                printf("| %-17s | %-17s | %-27s \n",
-                       RunModeTranslateModeToName(runmode->runmode),
-                       runmode->name,
-                       runmode->description);
+                printf("| %-17s | %-17s | %-27s \n", RunModeTranslateModeToName(runmode->runmode),
+                        runmode->name, runmode->description);
             }
             if (mode_displayed == 0)
                 mode_displayed = 1;
@@ -472,8 +464,6 @@ int RunModeNeedsBypassManager(void)
     return g_runmode_needs_bypass;
 }
 
-
-
 /**
  * \brief Registers a new runmode.
  *
@@ -492,8 +482,8 @@ void RunModeRegisterNewRunMode(enum SCRunModes runmode, const char *name, const 
                 name);
     }
 
-    void *ptmp = SCRealloc(runmodes[runmode].runmodes,
-                     (runmodes[runmode].cnt + 1) * sizeof(RunMode));
+    void *ptmp =
+            SCRealloc(runmodes[runmode].runmodes, (runmodes[runmode].cnt + 1) * sizeof(RunMode));
     if (ptmp == NULL) {
         SCFree(runmodes[runmode].runmodes);
         runmodes[runmode].runmodes = NULL;
@@ -560,7 +550,7 @@ bool IsRunModeSystem(enum SCRunModes run_mode_to_check)
 
 bool IsRunModeOffline(enum SCRunModes run_mode_to_check)
 {
-    switch(run_mode_to_check) {
+    switch (run_mode_to_check) {
         case RUNMODE_CONF_TEST:
         case RUNMODE_PCAP_FILE:
         case RUNMODE_ERF_FILE:
@@ -674,7 +664,7 @@ static void RunModeInitializeEveOutput(
     }
 
     SCConfNode *type = NULL;
-    TAILQ_FOREACH(type, &types->head, next) {
+    TAILQ_FOREACH (type, &types->head, next) {
         int sub_count = 0;
         char subname[256];
 
@@ -697,7 +687,7 @@ static void RunModeInitializeEveOutput(
 
         /* Now setup all registers logger of this name. */
         OutputModule *sub_module;
-        TAILQ_FOREACH(sub_module, &output_modules, entries) {
+        TAILQ_FOREACH (sub_module, &output_modules, entries) {
             if (strcmp(subname, sub_module->conf_name) == 0) {
                 sub_count++;
 
@@ -710,8 +700,7 @@ static void RunModeInitializeEveOutput(
                 }
 
                 /* pass on parent output_ctx */
-                OutputInitResult result =
-                    sub_module->InitSubFunc(sub_output_config, parent_ctx);
+                OutputInitResult result = sub_module->InitSubFunc(sub_output_config, parent_ctx);
                 if (!result.ok || result.ctx == NULL) {
                     FatalError("unable to initialize sub-module %s", subname);
                 }
@@ -737,14 +726,14 @@ static void RunModeInitializeLuaOutput(
     BUG_ON(lua_module == NULL);
 
     SCConfNode *scripts = SCConfNodeLookupChild(conf, "scripts");
-    BUG_ON(scripts == NULL); //TODO
+    BUG_ON(scripts == NULL); // TODO
 
     OutputModule *m;
-    TAILQ_FOREACH(m, &parent_ctx->submodules, entries) {
+    TAILQ_FOREACH (m, &parent_ctx->submodules, entries) {
         SCLogDebug("m %p %s:%s", m, m->name, m->conf_name);
 
         SCConfNode *script = NULL;
-        TAILQ_FOREACH(script, &scripts->head, next) {
+        TAILQ_FOREACH (script, &scripts->head, next) {
             SCLogDebug("script %s", script->val);
             if (strcmp(script->val, m->conf_name) == 0) {
                 break;
@@ -785,7 +774,7 @@ void RunModeInitializeOutputs(void)
     // g_alproto_max is set to its final value
     LoggerId logger_bits[g_alproto_max];
     memset(logger_bits, 0, g_alproto_max * sizeof(LoggerId));
-    TAILQ_FOREACH(output, &outputs->head, next) {
+    TAILQ_FOREACH (output, &outputs->head, next) {
 
         output_config = SCConfNodeLookupChild(output, output->val);
         if (output_config == NULL) {
@@ -826,7 +815,7 @@ void RunModeInitializeOutputs(void)
 
         OutputModule *module;
         int count = 0;
-        TAILQ_FOREACH(module, &output_modules, entries) {
+        TAILQ_FOREACH (module, &output_modules, entries) {
             if (strcmp(module->conf_name, output->val) != 0) {
                 continue;
             }
@@ -879,7 +868,7 @@ void RunModeInitializeOutputs(void)
          * to be started using 'tls-log' config as own config */
         SCLogWarning("Please use 'tls-store' in YAML to configure TLS storage");
 
-        TAILQ_FOREACH(output, &outputs->head, next) {
+        TAILQ_FOREACH (output, &outputs->head, next) {
             output_config = SCConfNodeLookupChild(output, output->val);
 
             if (strcmp(output->val, "tls-log") == 0) {
@@ -937,8 +926,8 @@ void RunModeInitializeOutputs(void)
                         (g_filedata_logger_enabled);
         SCLogDebug("tcp %d udp %d", tcp, udp);
 
-        SCLogDebug("logger for %s: %s %s", AppProtoToString(a),
-                tcp ? "true" : "false", udp ? "true" : "false");
+        SCLogDebug("logger for %s: %s %s", AppProtoToString(a), tcp ? "true" : "false",
+                udp ? "true" : "false");
 
         SCLogDebug("logger bits for %s: %08x", AppProtoToString(a), logger_bits[a]);
         if (tcp)

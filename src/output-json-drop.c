@@ -175,9 +175,8 @@ static int DropLogJSON(ThreadVars *tv, JsonDropLogThread *aft, const Packet *p)
             if (unlikely(pa->s == NULL)) {
                 continue;
             }
-            if ((pa->action & (ACTION_REJECT|ACTION_REJECT_DST|ACTION_REJECT_BOTH)) ||
-               ((pa->action & ACTION_DROP) && EngineModeIsIPS()))
-            {
+            if ((pa->action & (ACTION_REJECT | ACTION_REJECT_DST | ACTION_REJECT_BOTH)) ||
+                    ((pa->action & ACTION_DROP) && EngineModeIsIPS())) {
                 AlertJsonHeader(p, pa, js, 0, &addr, NULL);
                 logged = 1;
                 break;
@@ -203,8 +202,7 @@ static TmEcode JsonDropLogThreadInit(ThreadVars *t, const void *initdata, void *
     if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
 
-    if(initdata == NULL)
-    {
+    if (initdata == NULL) {
         SCLogDebug("Error getting context for EveLogDrop.  \"initdata\" argument NULL");
         goto error_exit;
     }
@@ -388,7 +386,7 @@ static bool JsonDropLogCondition(ThreadVars *tv, void *data, const Packet *p)
     return true;
 }
 
-void JsonDropLogRegister (void)
+void JsonDropLogRegister(void)
 {
     OutputPacketLoggerFunctions output_logger_functions = {
         .LogFunc = JsonDropLogger,

@@ -43,16 +43,16 @@
 #include "util-pool.h"
 
 struct PoolThreadElement_ {
-    SCMutex lock;                   /**< lock, should have low contention */
-    Pool *pool;                     /**< actual pool */
+    SCMutex lock; /**< lock, should have low contention */
+    Pool *pool;   /**< actual pool */
 };
 // __attribute__((aligned(CLS))); <- VJ: breaks on clang 32bit, segv in PoolThreadTestGrow01
 
 typedef struct PoolThreadElement_ PoolThreadElement;
 
 typedef struct PoolThread_ {
-    size_t size;                    /**< size of the array */
-    PoolThreadElement *array;       /**< array of elements */
+    size_t size;              /**< size of the array */
+    PoolThreadElement *array; /**< array of elements */
 } PoolThread;
 
 /** per data item reserved data containing the
@@ -65,7 +65,9 @@ void PoolThreadRegisterTests(void);
  *  \note same as PoolInit() except for "threads"
  *  \param threads number of threads to use this
  *  \retval pt thread pool or NULL on error */
-PoolThread *PoolThreadInit(int threads, uint32_t size, uint32_t prealloc_size, uint32_t elt_size,  void *(*Alloc)(void), int (*Init)(void *, void *), void *InitData,  void (*Cleanup)(void *), void (*Free)(void *));
+PoolThread *PoolThreadInit(int threads, uint32_t size, uint32_t prealloc_size, uint32_t elt_size,
+        void *(*Alloc)(void), int (*Init)(void *, void *), void *InitData, void (*Cleanup)(void *),
+        void (*Free)(void *));
 
 /** \brief grow a thread pool by one
  *  \note copies settings from initial PoolThreadInit() call

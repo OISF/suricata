@@ -70,25 +70,23 @@
 
 #define MODULE_NAME "JsonAlertLog"
 
-#define LOG_JSON_PAYLOAD           BIT_U16(0)
-#define LOG_JSON_PACKET            BIT_U16(1)
-#define LOG_JSON_PAYLOAD_BASE64    BIT_U16(2)
-#define LOG_JSON_TAGGED_PACKETS    BIT_U16(3)
-#define LOG_JSON_APP_LAYER         BIT_U16(4)
-#define LOG_JSON_FLOW              BIT_U16(5)
-#define LOG_JSON_HTTP_BODY         BIT_U16(6)
-#define LOG_JSON_HTTP_BODY_BASE64  BIT_U16(7)
-#define LOG_JSON_RULE_METADATA     BIT_U16(8)
-#define LOG_JSON_RULE              BIT_U16(9)
-#define LOG_JSON_VERDICT           BIT_U16(10)
+#define LOG_JSON_PAYLOAD                  BIT_U16(0)
+#define LOG_JSON_PACKET                   BIT_U16(1)
+#define LOG_JSON_PAYLOAD_BASE64           BIT_U16(2)
+#define LOG_JSON_TAGGED_PACKETS           BIT_U16(3)
+#define LOG_JSON_APP_LAYER                BIT_U16(4)
+#define LOG_JSON_FLOW                     BIT_U16(5)
+#define LOG_JSON_HTTP_BODY                BIT_U16(6)
+#define LOG_JSON_HTTP_BODY_BASE64         BIT_U16(7)
+#define LOG_JSON_RULE_METADATA            BIT_U16(8)
+#define LOG_JSON_RULE                     BIT_U16(9)
+#define LOG_JSON_VERDICT                  BIT_U16(10)
 #define LOG_JSON_WEBSOCKET_PAYLOAD        BIT_U16(11)
 #define LOG_JSON_WEBSOCKET_PAYLOAD_BASE64 BIT_U16(12)
 #define LOG_JSON_PAYLOAD_LENGTH           BIT_U16(13)
 #define LOG_JSON_REFERENCE                BIT_U16(14)
 
-#define METADATA_DEFAULTS ( LOG_JSON_FLOW |                        \
-            LOG_JSON_APP_LAYER  |                                  \
-            LOG_JSON_RULE_METADATA)
+#define METADATA_DEFAULTS (LOG_JSON_FLOW | LOG_JSON_APP_LAYER | LOG_JSON_RULE_METADATA)
 
 #define JSON_BODY_LOGGING                                                                          \
     (LOG_JSON_HTTP_BODY | LOG_JSON_HTTP_BODY_BASE64 | LOG_JSON_WEBSOCKET_PAYLOAD |                 \
@@ -97,7 +95,7 @@
 #define JSON_STREAM_BUFFER_SIZE 4096
 
 typedef struct AlertJsonOutputCtx_ {
-    LogFileCtx* file_ctx;
+    LogFileCtx *file_ctx;
     uint16_t flags;
     uint32_t payload_buffer_size;
     HttpXFFCfg *xff_cfg;
@@ -107,7 +105,7 @@ typedef struct AlertJsonOutputCtx_ {
 
 typedef struct JsonAlertLogThread_ {
     MemBuffer *payload_buffer;
-    AlertJsonOutputCtx* json_output_ctx;
+    AlertJsonOutputCtx *json_output_ctx;
     OutputJsonThreadCtx *ctx;
 } JsonAlertLogThread;
 
@@ -670,11 +668,10 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         if ((xff_cfg != NULL) && !(xff_cfg->flags & XFF_DISABLED) && p->flow != NULL) {
             if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP1) {
                 if (pa->flags & PACKET_ALERT_FLAG_TX) {
-                    have_xff_ip = HttpXFFGetIPFromTx(p->flow, pa->tx_id, xff_cfg,
-                            xff_buffer, XFF_MAXLEN);
+                    have_xff_ip =
+                            HttpXFFGetIPFromTx(p->flow, pa->tx_id, xff_cfg, xff_buffer, XFF_MAXLEN);
                 } else {
-                    have_xff_ip = HttpXFFGetIP(p->flow, xff_cfg, xff_buffer,
-                            XFF_MAXLEN);
+                    have_xff_ip = HttpXFFGetIP(p->flow, xff_cfg, xff_buffer, XFF_MAXLEN);
                 }
             }
 
@@ -698,7 +695,6 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                 CreateEveHeader(p, LOG_DIR_PACKET, "alert", &addr, json_output_ctx->eve_ctx);
         if (unlikely(jb == NULL))
             return TM_ECODE_OK;
-
 
         /* alert */
         AlertJsonHeader(p, pa, jb, json_output_ctx->flags, &addr, xff_buffer);
@@ -751,9 +747,12 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         /* payload */
         if (json_output_ctx->flags &
                 (LOG_JSON_PAYLOAD | LOG_JSON_PAYLOAD_BASE64 | LOG_JSON_PAYLOAD_LENGTH)) {
-            int stream = (p->proto == IPPROTO_TCP) ?
-                         (pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_STREAM_MATCH) ?
-                         1 : 0) : 0;
+            int stream = (p->proto == IPPROTO_TCP)
+                                 ? (pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH |
+                                                        PACKET_ALERT_FLAG_STREAM_MATCH)
+                                                   ? 1
+                                                   : 0)
+                                 : 0;
             // should be impossible, as stream implies flow
             DEBUG_VALIDATE_BUG_ON(stream && p->flow == NULL);
 
@@ -795,8 +794,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         SCJbFree(jb);
     }
 
-    if ((p->flags & PKT_HAS_TAG) && (json_output_ctx->flags &
-            LOG_JSON_TAGGED_PACKETS)) {
+    if ((p->flags & PKT_HAS_TAG) && (json_output_ctx->flags & LOG_JSON_TAGGED_PACKETS)) {
         SCJsonBuilder *packetjs =
                 CreateEveHeader(p, LOG_DIR_PACKET, "packet", NULL, json_output_ctx->eve_ctx);
         if (unlikely(packetjs != NULL)) {
@@ -886,8 +884,7 @@ static TmEcode JsonAlertLogThreadInit(ThreadVars *t, const void *initdata, void 
     if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
 
-    if (initdata == NULL)
-    {
+    if (initdata == NULL) {
         SCLogDebug("Error getting context for EveLogAlert.  \"initdata\" argument NULL");
         goto error_exit;
     }
@@ -938,7 +935,7 @@ static void JsonAlertLogDeInitCtxSub(OutputCtx *output_ctx)
 {
     SCLogDebug("cleaning up sub output_ctx %p", output_ctx);
 
-    AlertJsonOutputCtx *json_output_ctx = (AlertJsonOutputCtx *) output_ctx->data;
+    AlertJsonOutputCtx *json_output_ctx = (AlertJsonOutputCtx *)output_ctx->data;
 
     if (json_output_ctx != NULL) {
         HttpXFFCfg *xff_cfg = json_output_ctx->xff_cfg;
@@ -979,8 +976,7 @@ static void JsonAlertLogSetupMetadata(AlertJsonOutputCtx *json_output_ctx, SCCon
                 SCConfNode *rule_metadata = SCConfNodeLookupChild(metadata, "rule");
                 if (rule_metadata) {
                     SetFlag(rule_metadata, "raw", LOG_JSON_RULE, &flags);
-                    SetFlag(rule_metadata, "metadata", LOG_JSON_RULE_METADATA,
-                            &flags);
+                    SetFlag(rule_metadata, "metadata", LOG_JSON_RULE_METADATA, &flags);
                     SetFlag(rule_metadata, "reference", LOG_JSON_REFERENCE, &flags);
                 }
                 SetFlag(metadata, "flow", LOG_JSON_FLOW, &flags);
@@ -1106,7 +1102,7 @@ error:
     return result;
 }
 
-void JsonAlertLogRegister (void)
+void JsonAlertLogRegister(void)
 {
     OutputPacketLoggerFunctions output_logger_functions = {
         .LogFunc = JsonAlertLogger,

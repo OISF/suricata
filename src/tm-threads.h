@@ -45,7 +45,7 @@ static inline void SleepUsec(uint64_t usec)
 #define SleepMsec(msec) usleep((msec) * 1000)
 #endif
 
-#define TM_QUEUE_NAME_MAX 16
+#define TM_QUEUE_NAME_MAX  16
 #define TM_THREAD_NAME_MAX 16
 
 typedef TmEcode (*TmSlotFunc)(ThreadVars *, Packet *, void *);
@@ -84,15 +84,13 @@ extern SCMutex tv_root_lock;
 
 void TmSlotSetFuncAppend(ThreadVars *, TmModule *, const void *);
 
-ThreadVars *TmThreadCreate(const char *, const char *, const char *, const char *, const char *, const char *,
-                           void *(fn_p)(void *), int);
-ThreadVars *TmThreadCreatePacketHandler(const char *, const char *, const char *, const char *, const char *,
-                                        const char *);
+ThreadVars *TmThreadCreate(const char *, const char *, const char *, const char *, const char *,
+        const char *, void *(fn_p)(void *), int);
+ThreadVars *TmThreadCreatePacketHandler(
+        const char *, const char *, const char *, const char *, const char *, const char *);
 ThreadVars *TmThreadCreateMgmtThread(const char *name, void *(fn_p)(void *), int);
-ThreadVars *TmThreadCreateMgmtThreadByName(const char *name, const char *module,
-                                     int mucond);
-ThreadVars *TmThreadCreateCmdThreadByName(const char *name, const char *module,
-                                     int mucond);
+ThreadVars *TmThreadCreateMgmtThreadByName(const char *name, const char *module, int mucond);
+ThreadVars *TmThreadCreateCmdThreadByName(const char *name, const char *module, int mucond);
 TmEcode TmThreadSpawn(ThreadVars *);
 TmEcode TmThreadLibSpawn(ThreadVars *);
 int TmThreadTimeoutLoop(ThreadVars *tv, TmSlot *s);
@@ -120,7 +118,7 @@ void TmThreadsSetFlag(ThreadVars *, uint32_t);
 void TmThreadsUnsetFlag(ThreadVars *, uint32_t);
 void TmThreadWaitForFlag(ThreadVars *, uint32_t);
 
-TmEcode TmThreadsSlotVarRun (ThreadVars *tv, Packet *p, TmSlot *slot);
+TmEcode TmThreadsSlotVarRun(ThreadVars *tv, Packet *p, TmSlot *slot);
 
 void TmThreadDisablePacketThreads(
         const uint16_t set, const uint16_t check, const uint8_t module_flags);

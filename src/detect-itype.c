@@ -39,9 +39,8 @@
 #include "util-unittest-helper.h"
 #include "util-debug.h"
 
-
-static int DetectITypeMatch(DetectEngineThreadCtx *, Packet *,
-        const Signature *, const SigMatchCtx *);
+static int DetectITypeMatch(
+        DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
 static int DetectITypeSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectITypeRegisterTests(void);
@@ -54,7 +53,7 @@ static bool PrefilterITypeIsPrefilterable(const Signature *s);
 /**
  * \brief Registration function for itype: keyword
  */
-void DetectITypeRegister (void)
+void DetectITypeRegister(void)
 {
     sigmatch_table[DETECT_ITYPE].name = "itype";
     sigmatch_table[DETECT_ITYPE].desc = "match on a specific ICMP type";
@@ -82,8 +81,8 @@ void DetectITypeRegister (void)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectITypeMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
-        const Signature *s, const SigMatchCtx *ctx)
+static int DetectITypeMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
 
@@ -148,8 +147,7 @@ void DetectITypeFree(DetectEngineCtx *de_ctx, void *ptr)
  * for each ICMP type. Each array element has the list of signatures
  * that need to be inspected. */
 
-static void PrefilterPacketITypeMatch(DetectEngineThreadCtx *det_ctx,
-        Packet *p, const void *pectx)
+static void PrefilterPacketITypeMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
 {
     DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
 
@@ -180,7 +178,7 @@ static int PrefilterSetupIType(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 static bool PrefilterITypeIsPrefilterable(const Signature *s)
 {
     const SigMatch *sm;
-    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_ITYPE:
                 return true;

@@ -58,9 +58,8 @@ static int DetectTlsSubjectSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectTlsSubjectRegisterTests(void);
 #endif
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms,
-        Flow *f, const uint8_t flow_flags,
-        void *txv, const int list_id);
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
+        const int list_id);
 static int g_tls_cert_subject_buffer_id = 0;
 
 /**
@@ -92,8 +91,7 @@ void DetectTlsSubjectRegister(void)
     DetectAppLayerMpmRegister("tls.cert_subject", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
             GetData, ALPROTO_TLS, TLS_STATE_SERVER_CERT_DONE);
 
-    DetectBufferTypeSetDescriptionByName("tls.cert_subject",
-            "TLS certificate subject");
+    DetectBufferTypeSetDescriptionByName("tls.cert_subject", "TLS certificate subject");
 
     g_tls_cert_subject_buffer_id = DetectBufferTypeGetByName("tls.cert_subject");
 }
@@ -120,8 +118,8 @@ static int DetectTlsSubjectSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
 }
 
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *f,
-        const uint8_t flow_flags, void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
+        const int list_id)
 {
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {

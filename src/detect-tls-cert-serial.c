@@ -58,11 +58,9 @@ static int DetectTlsSerialSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectTlsSerialRegisterTests(void);
 #endif
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms,
-        Flow *f, const uint8_t flow_flags,
-        void *txv, const int list_id);
-static void DetectTlsSerialSetupCallback(const DetectEngineCtx *de_ctx,
-        Signature *s);
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
+        const int list_id);
+static void DetectTlsSerialSetupCallback(const DetectEngineCtx *de_ctx, Signature *s);
 static bool DetectTlsSerialValidateCallback(
         const Signature *s, const char **sigerror, const DetectBufferType *dbt);
 static int g_tls_cert_serial_buffer_id = 0;
@@ -96,14 +94,11 @@ void DetectTlsSerialRegister(void)
     DetectAppLayerMpmRegister("tls.cert_serial", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetData, ALPROTO_TLS, TLS_STATE_CLIENT_CERT_DONE);
 
-    DetectBufferTypeSetDescriptionByName("tls.cert_serial",
-            "TLS certificate serial number");
+    DetectBufferTypeSetDescriptionByName("tls.cert_serial", "TLS certificate serial number");
 
-    DetectBufferTypeRegisterSetupCallback("tls.cert_serial",
-            DetectTlsSerialSetupCallback);
+    DetectBufferTypeRegisterSetupCallback("tls.cert_serial", DetectTlsSerialSetupCallback);
 
-    DetectBufferTypeRegisterValidateCallback("tls.cert_serial",
-            DetectTlsSerialValidateCallback);
+    DetectBufferTypeRegisterValidateCallback("tls.cert_serial", DetectTlsSerialValidateCallback);
 
     g_tls_cert_serial_buffer_id = DetectBufferTypeGetByName("tls.cert_serial");
 }
@@ -130,8 +125,8 @@ static int DetectTlsSerialSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
 }
 
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *f,
-        const uint8_t flow_flags, void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
+        const int list_id)
 {
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
@@ -198,8 +193,7 @@ static bool DetectTlsSerialValidateCallback(
     return true;
 }
 
-static void DetectTlsSerialSetupCallback(const DetectEngineCtx *de_ctx,
-                                         Signature *s)
+static void DetectTlsSerialSetupCallback(const DetectEngineCtx *de_ctx, Signature *s)
 {
     for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
         if (s->init_data->buffers[x].id != (uint32_t)g_tls_cert_serial_buffer_id)

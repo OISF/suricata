@@ -53,7 +53,7 @@
 static SCJsonBuilder *CreateEveHeaderFromNetFlow(const Flow *f, int dir)
 {
     char timebuf[64];
-    char srcip[46] = {0}, dstip[46] = {0};
+    char srcip[46] = { 0 }, dstip[46] = { 0 };
     Port sp, dp;
 
     SCJsonBuilder *js = SCJbNewObject();
@@ -126,7 +126,7 @@ static SCJsonBuilder *CreateEveHeaderFromNetFlow(const Flow *f, int dir)
 
     /* tuple */
     SCJbSetString(js, "src_ip", srcip);
-    switch(f->proto) {
+    switch (f->proto) {
         case IPPROTO_ICMP:
             break;
         case IPPROTO_UDP:
@@ -136,7 +136,7 @@ static SCJsonBuilder *CreateEveHeaderFromNetFlow(const Flow *f, int dir)
             break;
     }
     SCJbSetString(js, "dest_ip", dstip);
-    switch(f->proto) {
+    switch (f->proto) {
         case IPPROTO_ICMP:
             break;
         case IPPROTO_UDP:
@@ -150,7 +150,7 @@ static SCJsonBuilder *CreateEveHeaderFromNetFlow(const Flow *f, int dir)
         SCJbSetString(js, "proto", known_proto[f->proto]);
     } else {
         char proto[4];
-        snprintf(proto, sizeof(proto), "%"PRIu8"", f->proto);
+        snprintf(proto, sizeof(proto), "%" PRIu8 "", f->proto);
         SCJbSetString(js, "proto", proto);
     }
 
@@ -162,7 +162,6 @@ static SCJsonBuilder *CreateEveHeaderFromNetFlow(const Flow *f, int dir)
             if (dir == 1) {
                 type = f->icmp_d.type;
                 code = f->icmp_d.code;
-
             }
             SCJbSetUint(js, "icmp_type", type);
             SCJbSetUint(js, "icmp_code", code);
@@ -216,8 +215,7 @@ static void NetFlowLogEveToServer(SCJsonBuilder *js, Flow *f)
         TcpSession *ssn = f->protoctx;
 
         char hexflags[3];
-        snprintf(hexflags, sizeof(hexflags), "%02x",
-                ssn ? ssn->client.tcp_flags : 0);
+        snprintf(hexflags, sizeof(hexflags), "%02x", ssn ? ssn->client.tcp_flags : 0);
         SCJbSetString(js, "tcp_flags", hexflags);
 
         EveTcpFlags(ssn ? ssn->client.tcp_flags : 0, js);
@@ -269,8 +267,7 @@ static void NetFlowLogEveToClient(SCJsonBuilder *js, Flow *f)
         TcpSession *ssn = f->protoctx;
 
         char hexflags[3];
-        snprintf(hexflags, sizeof(hexflags), "%02x",
-                ssn ? ssn->server.tcp_flags : 0);
+        snprintf(hexflags, sizeof(hexflags), "%02x", ssn ? ssn->server.tcp_flags : 0);
         SCJbSetString(js, "tcp_flags", hexflags);
 
         EveTcpFlags(ssn ? ssn->server.tcp_flags : 0, js);

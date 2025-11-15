@@ -46,8 +46,7 @@
  *  \retval 0 shared data is the same (or no data is shared)
  *  \retval 1 shared data is different
  */
-int StreamTcpInlineSegmentCompare(const TcpStream *stream,
-        const Packet *p, const TcpSegment *seg)
+int StreamTcpInlineSegmentCompare(const TcpStream *stream, const Packet *p, const TcpSegment *seg)
 {
     SCEnter();
 
@@ -74,8 +73,7 @@ int StreamTcpInlineSegmentCompare(const TcpStream *stream,
     } else if (SEQ_GT(seg->seq, (pkt_seq + p->payload_len))) {
         SCReturnInt(0);
     } else {
-        SCLogDebug("p %u (%u), seg2 %u (%u)", pkt_seq,
-                p->payload_len, seg->seq, seg_datalen);
+        SCLogDebug("p %u (%u), seg2 %u (%u)", pkt_seq, p->payload_len, seg->seq, seg_datalen);
 
         uint32_t seg_seq = seg->seq;
         if (SEQ_LT(seg_seq, stream->base_seq)) {
@@ -118,8 +116,7 @@ int StreamTcpInlineSegmentCompare(const TcpStream *stream,
  *  \todo What about reassembled fragments?
  *  \todo What about unwrapped tunnel packets?
  */
-void StreamTcpInlineSegmentReplacePacket(const TcpStream *stream,
-        Packet *p, const TcpSegment *seg)
+void StreamTcpInlineSegmentReplacePacket(const TcpStream *stream, Packet *p, const TcpSegment *seg)
 {
     SCEnter();
 
@@ -159,7 +156,7 @@ void StreamTcpInlineSegmentReplacePacket(const TcpStream *stream,
     if (range) {
         /* update the packets payload. As payload is a ptr to either
          * p->pkt or p->ext_pkt that is updated as well */
-        memcpy(p->payload+poff, seg_data+toff, range);
+        memcpy(p->payload + poff, seg_data + toff, range);
 
         /* flag as modified so we can reinject / replace after
          * recalculating the checksum */

@@ -35,9 +35,9 @@
 #include "detect-udphdr.h"
 
 /* prototypes */
-static int DetectUdphdrSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectUdphdrSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
-void DetectUdphdrRegisterTests (void);
+void DetectUdphdrRegisterTests(void);
 #endif
 
 static int g_udphdr_buffer_id = 0;
@@ -78,7 +78,7 @@ void DetectUdphdrRegister(void)
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectUdphdrSetup (DetectEngineCtx *de_ctx, Signature *s, const char *_unused)
+static int DetectUdphdrSetup(DetectEngineCtx *de_ctx, Signature *s, const char *_unused)
 {
     if (!(DetectProtoContainsProto(&s->proto, IPPROTO_UDP)))
         return -1;

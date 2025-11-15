@@ -24,7 +24,7 @@
 #ifndef SURICATA_DECODE_CHDLC_H
 #define SURICATA_DECODE_CHDLC_H
 
-#define CHDLC_HEADER_LEN           4
+#define CHDLC_HEADER_LEN 4
 
 typedef struct CHDLCHdr_ {
     uint8_t address;

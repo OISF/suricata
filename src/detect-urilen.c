@@ -44,12 +44,11 @@
 #include "flow-util.h"
 #include "stream-tcp.h"
 
-
 /*prototypes*/
-static int DetectUrilenSetup (DetectEngineCtx *, Signature *, const char *);
-static void DetectUrilenFree (DetectEngineCtx *, void *);
+static int DetectUrilenSetup(DetectEngineCtx *, Signature *, const char *);
+static void DetectUrilenFree(DetectEngineCtx *, void *);
 #ifdef UNITTESTS
-static void DetectUrilenRegisterTests (void);
+static void DetectUrilenRegisterTests(void);
 #endif
 static int g_http_uri_buffer_id = 0;
 static int g_http_raw_uri_buffer_id = 0;
@@ -83,7 +82,7 @@ void DetectUrilenRegister(void)
  * \retval NULL on failure
  */
 
-static DetectUrilenData *DetectUrilenParse (const char *urilenstr)
+static DetectUrilenData *DetectUrilenParse(const char *urilenstr)
 {
     return SCDetectUrilenParse(urilenstr);
 }
@@ -98,7 +97,7 @@ static DetectUrilenData *DetectUrilenParse (const char *urilenstr)
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectUrilenSetup (DetectEngineCtx *de_ctx, Signature *s, const char *urilenstr)
+static int DetectUrilenSetup(DetectEngineCtx *de_ctx, Signature *s, const char *urilenstr)
 {
     SCEnter();
     DetectUrilenData *urilend = NULL;
@@ -389,8 +388,8 @@ static int DetectUrilenParseTest10(void)
  *
  */
 
-static int DetectUrilenInitTest(DetectEngineCtx **de_ctx, Signature **sig,
-                                DetectUrilenData **urilend, const char *str)
+static int DetectUrilenInitTest(
+        DetectEngineCtx **de_ctx, Signature **sig, DetectUrilenData **urilend, const char *str)
 {
     char fullstr[1024];
     int result = 0;
@@ -398,8 +397,10 @@ static int DetectUrilenInitTest(DetectEngineCtx **de_ctx, Signature **sig,
     *de_ctx = NULL;
     *sig = NULL;
 
-    if (snprintf(fullstr, 1024, "alert ip any any -> any any (msg:\"Urilen "
-                                "test\"; urilen:%s; sid:1;)", str) >= 1024) {
+    if (snprintf(fullstr, 1024,
+                "alert ip any any -> any any (msg:\"Urilen "
+                "test\"; urilen:%s; sid:1;)",
+                str) >= 1024) {
         goto end;
     }
 
@@ -477,7 +478,7 @@ static int DetectUrilenSigTest01(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);

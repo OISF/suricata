@@ -59,6 +59,6 @@ void DetectLoadersInit(void);
 
 void TmThreadContinueDetectLoaderThreads(void);
 void DetectLoaderThreadSpawn(void);
-void TmModuleDetectLoaderRegister (void);
+void TmModuleDetectLoaderRegister(void);
 
 #endif /* SURICATA_DETECT_ENGINE_LOADER_H */

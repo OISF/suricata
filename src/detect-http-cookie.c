@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /**
  * \file
  *
@@ -61,21 +60,19 @@
 #include "detect-http-cookie.h"
 #include "stream-tcp.h"
 
-static int DetectHttpCookieSetup (DetectEngineCtx *, Signature *, const char *);
-static int DetectHttpCookieSetupSticky (DetectEngineCtx *, Signature *, const char *);
+static int DetectHttpCookieSetup(DetectEngineCtx *, Signature *, const char *);
+static int DetectHttpCookieSetupSticky(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectHttpCookieRegisterTests(void);
 #endif
 static int g_http_cookie_buffer_id = 0;
 
 static InspectionBuffer *GetRequestData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms,
-        Flow *_f, const uint8_t _flow_flags,
-        void *txv, const int list_id);
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id);
 static InspectionBuffer *GetResponseData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms,
-        Flow *_f, const uint8_t _flow_flags,
-        void *txv, const int list_id);
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id);
 static InspectionBuffer *GetRequestData2(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
         const int list_id);
@@ -102,7 +99,8 @@ void DetectHttpCookieRegister(void)
 
     /* http.cookie sticky buffer */
     sigmatch_table[DETECT_HTTP_COOKIE].name = "http.cookie";
-    sigmatch_table[DETECT_HTTP_COOKIE].desc = "sticky buffer to match on the HTTP Cookie/Set-Cookie buffers";
+    sigmatch_table[DETECT_HTTP_COOKIE].desc =
+            "sticky buffer to match on the HTTP Cookie/Set-Cookie buffers";
     sigmatch_table[DETECT_HTTP_COOKIE].url = "/rules/http-keywords.html#http-cookie";
     sigmatch_table[DETECT_HTTP_COOKIE].Setup = DetectHttpCookieSetupSticky;
     sigmatch_table[DETECT_HTTP_COOKIE].flags |= SIGMATCH_NOOPT;
@@ -128,8 +126,7 @@ void DetectHttpCookieRegister(void)
     DetectAppLayerMpmRegister("http_cookie", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
             GetResponseData2, ALPROTO_HTTP2, HTTP2StateDataServer);
 
-    DetectBufferTypeSetDescriptionByName("http_cookie",
-            "http cookie header");
+    DetectBufferTypeSetDescriptionByName("http_cookie", "http cookie header");
 
     g_http_cookie_buffer_id = DetectBufferTypeGetByName("http_cookie");
 }
@@ -172,8 +169,8 @@ static int DetectHttpCookieSetupSticky(DetectEngineCtx *de_ctx, Signature *s, co
 }
 
 static InspectionBuffer *GetRequestData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f,
-        const uint8_t _flow_flags, void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
 {
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
@@ -199,8 +196,8 @@ static InspectionBuffer *GetRequestData(DetectEngineThreadCtx *det_ctx,
 }
 
 static InspectionBuffer *GetResponseData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f,
-        const uint8_t _flow_flags, void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
 {
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {

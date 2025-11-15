@@ -51,9 +51,8 @@ static void DetectDNP3ObjRegisterTests(void);
 #endif
 
 static InspectionBuffer *GetDNP3Data(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms,
-        Flow *_f, const uint8_t flow_flags,
-        void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t flow_flags, void *txv,
+        const int list_id)
 {
     SCLogDebug("list_id %d", list_id);
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
@@ -215,9 +214,8 @@ static void DetectDNP3Free(DetectEngineCtx *de_ctx, void *ptr)
     SCReturn;
 }
 
-static int DetectDNP3FuncMatch(DetectEngineThreadCtx *det_ctx,
-    Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
-    const SigMatchCtx *ctx)
+static int DetectDNP3FuncMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state,
+        void *txv, const Signature *s, const SigMatchCtx *ctx)
 {
     DNP3Transaction *tx = (DNP3Transaction *)txv;
     DetectU8Data *detect = (DetectU8Data *)ctx;
@@ -231,9 +229,8 @@ static int DetectDNP3FuncMatch(DetectEngineThreadCtx *det_ctx,
     return 0;
 }
 
-static int DetectDNP3ObjMatch(DetectEngineThreadCtx *det_ctx,
-    Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
-    const SigMatchCtx *ctx)
+static int DetectDNP3ObjMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state,
+        void *txv, const Signature *s, const SigMatchCtx *ctx)
 {
     DNP3Transaction *tx = (DNP3Transaction *)txv;
     DetectDNP3 *detect = (DetectDNP3 *)ctx;
@@ -247,9 +244,8 @@ static int DetectDNP3ObjMatch(DetectEngineThreadCtx *det_ctx,
 
     if (objects != NULL) {
         DNP3Object *object;
-        TAILQ_FOREACH(object, objects, next) {
-            if (object->group == detect->obj_group &&
-                object->variation == detect->obj_variation) {
+        TAILQ_FOREACH (object, objects, next) {
+            if (object->group == detect->obj_group && object->variation == detect->obj_variation) {
                 return 1;
             }
         }
@@ -258,9 +254,8 @@ static int DetectDNP3ObjMatch(DetectEngineThreadCtx *det_ctx,
     return 0;
 }
 
-static int DetectDNP3IndMatch(DetectEngineThreadCtx *det_ctx,
-    Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
-    const SigMatchCtx *ctx)
+static int DetectDNP3IndMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state,
+        void *txv, const Signature *s, const SigMatchCtx *ctx)
 {
     DNP3Transaction *tx = (DNP3Transaction *)txv;
     DetectU16Data *detect = (DetectU16Data *)ctx;

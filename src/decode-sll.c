@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /**
  * \file
  *
@@ -38,8 +37,7 @@
 #include "util-validate.h"
 #include "util-debug.h"
 
-int DecodeSll(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        const uint8_t *pkt, uint32_t len)
+int DecodeSll(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len)
 {
     DEBUG_VALIDATE_BUG_ON(pkt == NULL);
 
@@ -57,8 +55,8 @@ int DecodeSll(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
     SCLogDebug("p %p pkt %p sll_protocol %04x", p, pkt, SCNtohs(sllh->sll_protocol));
 
-    DecodeNetworkLayer(tv, dtv, SCNtohs(sllh->sll_protocol), p,
-            pkt + SLL_HEADER_LEN, len - SLL_HEADER_LEN);
+    DecodeNetworkLayer(
+            tv, dtv, SCNtohs(sllh->sll_protocol), p, pkt + SLL_HEADER_LEN, len - SLL_HEADER_LEN);
 
     return TM_ECODE_OK;
 }

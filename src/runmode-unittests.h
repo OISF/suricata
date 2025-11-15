@@ -23,7 +23,6 @@
 #ifndef SURICATA_UTIL_RUNMODE_UNITTESTS_H
 #define SURICATA_UTIL_RUNMODE_UNITTESTS_H
 
-__attribute__((noreturn))
-void RunUnittests(int list_unittests, const char *regex_arg);
+__attribute__((noreturn)) void RunUnittests(int list_unittests, const char *regex_arg);
 
 #endif /* SURICATA_UTIL_RUNMODE_UNITTESTS_H */

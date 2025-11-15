@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /**
  * \file
  *
@@ -67,9 +66,8 @@ static void DetectHttpUARegisterTests(void);
 static int g_http_ua_buffer_id = 0;
 static int DetectHttpUserAgentSetup(DetectEngineCtx *, Signature *, const char *);
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms,
-        Flow *_f, const uint8_t _flow_flags,
-        void *txv, const int list_id);
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id);
 static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
         const int list_id);
@@ -94,7 +92,8 @@ void DetectHttpUARegister(void)
 
     /* http.user_agent sticky buffer */
     sigmatch_table[DETECT_HTTP_UA].name = "http.user_agent";
-    sigmatch_table[DETECT_HTTP_UA].desc = "sticky buffer to match specifically and only on the HTTP User Agent buffer";
+    sigmatch_table[DETECT_HTTP_UA].desc =
+            "sticky buffer to match specifically and only on the HTTP User Agent buffer";
     sigmatch_table[DETECT_HTTP_UA].url = "/rules/http-keywords.html#http-user-agent";
     sigmatch_table[DETECT_HTTP_UA].Setup = DetectHttpUserAgentSetup;
     sigmatch_table[DETECT_HTTP_UA].flags |= SIGMATCH_NOOPT;
@@ -112,8 +111,7 @@ void DetectHttpUARegister(void)
     DetectAppLayerMpmRegister("http_user_agent", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetData2, ALPROTO_HTTP2, HTTP2StateDataClient);
 
-    DetectBufferTypeSetDescriptionByName("http_user_agent",
-            "http user agent");
+    DetectBufferTypeSetDescriptionByName("http_user_agent", "http user agent");
 
     g_http_ua_buffer_id = DetectBufferTypeGetByName("http_user_agent");
 }
@@ -156,8 +154,8 @@ static int DetectHttpUserAgentSetup(DetectEngineCtx *de_ctx, Signature *s, const
 }
 
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f,
-        const uint8_t _flow_flags, void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
 {
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {

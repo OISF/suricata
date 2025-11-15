@@ -32,6 +32,6 @@ typedef struct DetectPktvarData_ {
 } DetectPktvarData;
 
 /* prototypes */
-void DetectPktvarRegister (void);
+void DetectPktvarRegister(void);
 
 #endif /* SURICATA_DETECT_PKTVAR_H */

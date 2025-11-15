@@ -145,7 +145,6 @@ void RunModeIdsAFPRegister(void)
             RunModeIdsAFPAutoFp, AFPRunModeEnableIPS);
 }
 
-
 #ifdef HAVE_AF_PACKET
 
 static void AFPDerefConfig(void *conf)
@@ -199,7 +198,7 @@ static void *ParseAFPConfig(const char *iface)
     strlcpy(aconf->iface, iface, sizeof(aconf->iface));
     aconf->threads = 0;
     SC_ATOMIC_INIT(aconf->ref);
-    (void) SC_ATOMIC_ADD(aconf->ref, 1);
+    (void)SC_ATOMIC_ADD(aconf->ref, 1);
     aconf->buffer_size = 0;
     aconf->cluster_id = 1;
     aconf->cluster_type = cluster_type | PACKET_FANOUT_FLAG_DEFRAG;
@@ -447,8 +446,7 @@ static void *ParseAFPConfig(const char *iface)
     /* One shot loading of the eBPF file */
     if (aconf->ebpf_lb_file && cluster_type == PACKET_FANOUT_EBPF) {
         int ret = EBPFLoadFile(aconf->iface, aconf->ebpf_lb_file, "loadbalancer",
-                               &aconf->ebpf_lb_fd,
-                               &aconf->ebpf_t_config);
+                &aconf->ebpf_lb_fd, &aconf->ebpf_t_config);
         if (ret != 0) {
             SCLogWarning("%s: failed to load eBPF lb file", iface);
         }
@@ -484,8 +482,7 @@ static void *ParseAFPConfig(const char *iface)
     if (aconf->ebpf_filter_file) {
 #ifdef HAVE_PACKET_EBPF
         int ret = EBPFLoadFile(aconf->iface, aconf->ebpf_filter_file, "filter",
-                               &aconf->ebpf_filter_fd,
-                               &aconf->ebpf_t_config);
+                &aconf->ebpf_filter_fd, &aconf->ebpf_t_config);
         if (ret != 0) {
             SCLogWarning("%s: failed to load eBPF filter file", iface);
         }
@@ -513,9 +510,8 @@ static void *ParseAFPConfig(const char *iface)
                     SCLogError("%s: flow bypass alloc error", iface);
                 } else {
                     memcpy(ebt, &(aconf->ebpf_t_config), sizeof(struct ebpf_timeout_config));
-                    BypassedFlowManagerRegisterCheckFunc(NULL,
-                            EBPFCheckBypassedFlowCreate,
-                            (void *)ebt);
+                    BypassedFlowManagerRegisterCheckFunc(
+                            NULL, EBPFCheckBypassedFlowCreate, (void *)ebt);
                 }
             }
             BypassedFlowManagerRegisterUpdateFunc(EBPFUpdateFlow, NULL);
@@ -554,9 +550,8 @@ static void *ParseAFPConfig(const char *iface)
     /* One shot loading of the eBPF file */
     if (aconf->xdp_filter_file) {
 #ifdef HAVE_PACKET_XDP
-        int ret = EBPFLoadFile(aconf->iface, aconf->xdp_filter_file, "xdp",
-                               &aconf->xdp_filter_fd,
-                               &aconf->ebpf_t_config);
+        int ret = EBPFLoadFile(aconf->iface, aconf->xdp_filter_file, "xdp", &aconf->xdp_filter_fd,
+                &aconf->ebpf_t_config);
         switch (ret) {
             case 1:
                 SCLogInfo("%s: loaded pinned maps from sysfs", iface);
@@ -690,7 +685,7 @@ finalize:
         aconf->threads = 1;
     }
     SC_ATOMIC_RESET(aconf->ref);
-    (void) SC_ATOMIC_ADD(aconf->ref, aconf->threads);
+    (void)SC_ATOMIC_ADD(aconf->ref, aconf->threads);
 
     if (aconf->ring_size != 0) {
         if (aconf->ring_size * aconf->threads < (int)max_pending_packets) {
@@ -833,11 +828,8 @@ int RunModeIdsAFPSingle(void)
         FatalError("Unable to init peers list.");
     }
 
-    ret = RunModeSetLiveCaptureSingle(ParseAFPConfig,
-                                    AFPConfigGeThreadsCount,
-                                    "ReceiveAFP",
-                                    "DecodeAFP", thread_name_single,
-                                    live_dev);
+    ret = RunModeSetLiveCaptureSingle(ParseAFPConfig, AFPConfigGeThreadsCount, "ReceiveAFP",
+            "DecodeAFP", thread_name_single, live_dev);
     if (ret != 0) {
         FatalError("Unable to start runmode");
     }

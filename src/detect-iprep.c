@@ -52,22 +52,22 @@
 #include "reputation.h"
 #include "host.h"
 
-static int DetectIPRepMatch (DetectEngineThreadCtx *, Packet *,
-        const Signature *, const SigMatchCtx *);
-static int DetectIPRepSetup (DetectEngineCtx *, Signature *, const char *);
-void DetectIPRepFree (DetectEngineCtx *, void *);
+static int DetectIPRepMatch(
+        DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
+static int DetectIPRepSetup(DetectEngineCtx *, Signature *, const char *);
+void DetectIPRepFree(DetectEngineCtx *, void *);
 #ifdef UNITTESTS
 static void IPRepRegisterTests(void);
 #endif
 
-void DetectIPRepRegister (void)
+void DetectIPRepRegister(void)
 {
     sigmatch_table[DETECT_IPREP].name = "iprep";
     sigmatch_table[DETECT_IPREP].desc = "match on the IP reputation information for a host";
     sigmatch_table[DETECT_IPREP].url = "/rules/ip-reputation-rules.html#iprep";
     sigmatch_table[DETECT_IPREP].Match = DetectIPRepMatch;
     sigmatch_table[DETECT_IPREP].Setup = DetectIPRepSetup;
-    sigmatch_table[DETECT_IPREP].Free  = DetectIPRepFree;
+    sigmatch_table[DETECT_IPREP].Free = DetectIPRepFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_IPREP].RegisterTests = IPRepRegisterTests;
 #endif
@@ -145,8 +145,8 @@ static int8_t GetHostRepDst(Packet *p, uint8_t cat, uint32_t version)
  *         1: match
  *        -1: error
  */
-static int DetectIPRepMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
-        const Signature *s, const SigMatchCtx *ctx)
+static int DetectIPRepMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectIPRepData *rd = (const DetectIPRepData *)ctx;
     if (rd == NULL)
@@ -255,7 +255,7 @@ static int DetectIPRepMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
     return 0;
 }
 
-int DetectIPRepSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
+int DetectIPRepSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     DetectIPRepData *cd = SCDetectIPRepParse(rawstr);
     if (cd == NULL) {
@@ -281,7 +281,7 @@ error:
     return -1;
 }
 
-void DetectIPRepFree (DetectEngineCtx *de_ctx, void *ptr)
+void DetectIPRepFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectIPRepData *fd = (DetectIPRepData *)ptr;
     if (fd == NULL)
@@ -309,9 +309,8 @@ static FILE *DetectIPRepGenerateCategoriesDummy(void)
 static FILE *DetectIPRepGenerateCategoriesDummy2(void)
 {
     FILE *fd = NULL;
-    const char *buffer =
-        "1,BadHosts,Know bad hosts\n"
-        "2,GoodHosts,Know good hosts\n";
+    const char *buffer = "1,BadHosts,Know bad hosts\n"
+                         "2,GoodHosts,Know good hosts\n";
 
     fd = SCFmemopen((void *)buffer, strlen(buffer), "r");
     if (fd == NULL)
@@ -335,9 +334,8 @@ static FILE *DetectIPRepGenerateNetworksDummy(void)
 static FILE *DetectIPRepGenerateNetworksDummy2(void)
 {
     FILE *fd = NULL;
-    const char *buffer =
-        "0.0.0.0/0,1,10\n"
-        "192.168.0.0/16,2,127";
+    const char *buffer = "0.0.0.0/0,1,10\n"
+                         "192.168.0.0/16,2,127";
 
     fd = SCFmemopen((void *)buffer, strlen(buffer), "r");
     if (fd == NULL)

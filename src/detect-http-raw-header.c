@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /**
  * \file
  *
@@ -63,8 +62,8 @@ static bool DetectHttpRawHeaderValidateCallback(
         const Signature *s, const char **sigerror, const DetectBufferType *dbt);
 static int g_http_raw_header_buffer_id = 0;
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f,
-        const uint8_t flow_flags, void *txv, const int list_id);
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t flow_flags, void *txv,
+        const int list_id);
 static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f, const uint8_t flow_flags, void *txv,
         const int list_id);
@@ -95,10 +94,12 @@ void DetectHttpRawHeaderRegister(void)
 
     /* http.header.raw sticky buffer */
     sigmatch_table[DETECT_HTTP_RAW_HEADER].name = "http.header.raw";
-    sigmatch_table[DETECT_HTTP_RAW_HEADER].desc = "sticky buffer to match the raw HTTP header buffer";
-    sigmatch_table[DETECT_HTTP_RAW_HEADER].url = "/rules/http-keywords.html#http-header-and-http-raw-header";
+    sigmatch_table[DETECT_HTTP_RAW_HEADER].desc =
+            "sticky buffer to match the raw HTTP header buffer";
+    sigmatch_table[DETECT_HTTP_RAW_HEADER].url =
+            "/rules/http-keywords.html#http-header-and-http-raw-header";
     sigmatch_table[DETECT_HTTP_RAW_HEADER].Setup = DetectHttpRawHeaderSetupSticky;
-    sigmatch_table[DETECT_HTTP_RAW_HEADER].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_HTTP_RAW_HEADER].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister("http_raw_header", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
             HTP_REQUEST_PROGRESS_HEADERS + 1, DetectEngineInspectBufferGeneric, GetData);
@@ -122,11 +123,10 @@ void DetectHttpRawHeaderRegister(void)
     DetectAppLayerMpmRegister("http_raw_header", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
             GetData2, ALPROTO_HTTP2, HTTP2StateDataServer);
 
-    DetectBufferTypeSetDescriptionByName("http_raw_header",
-            "raw http headers");
+    DetectBufferTypeSetDescriptionByName("http_raw_header", "raw http headers");
 
-    DetectBufferTypeRegisterValidateCallback("http_raw_header",
-            DetectHttpRawHeaderValidateCallback);
+    DetectBufferTypeRegisterValidateCallback(
+            "http_raw_header", DetectHttpRawHeaderValidateCallback);
 
     g_http_raw_header_buffer_id = DetectBufferTypeGetByName("http_raw_header");
 }
@@ -171,11 +171,12 @@ static int DetectHttpRawHeaderSetupSticky(DetectEngineCtx *de_ctx, Signature *s,
 static bool DetectHttpRawHeaderValidateCallback(
         const Signature *s, const char **sigerror, const DetectBufferType *dbt)
 {
-    if ((s->flags & (SIG_FLAG_TOCLIENT|SIG_FLAG_TOSERVER)) == (SIG_FLAG_TOCLIENT|SIG_FLAG_TOSERVER)) {
+    if ((s->flags & (SIG_FLAG_TOCLIENT | SIG_FLAG_TOSERVER)) ==
+            (SIG_FLAG_TOCLIENT | SIG_FLAG_TOSERVER)) {
         *sigerror = "http_raw_header signature "
-                "without a flow direction. Use flow:to_server for "
-                "inspecting request headers or flow:to_client for "
-                "inspecting response headers.";
+                    "without a flow direction. Use flow:to_server for "
+                    "inspecting request headers or flow:to_client for "
+                    "inspecting response headers.";
 
         SCLogError("%s", *sigerror);
         SCReturnInt(false);
@@ -184,8 +185,8 @@ static bool DetectHttpRawHeaderValidateCallback(
 }
 
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f,
-        const uint8_t flow_flags, void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t flow_flags, void *txv,
+        const int list_id)
 {
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
@@ -194,12 +195,11 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
 
         const bool ts = ((flow_flags & STREAM_TOSERVER) != 0);
-        const uint8_t *data = ts ?
-            tx_ud->request_headers_raw : tx_ud->response_headers_raw;
+        const uint8_t *data = ts ? tx_ud->request_headers_raw : tx_ud->response_headers_raw;
         if (data == NULL)
             return NULL;
-        const uint32_t data_len = ts ?
-            tx_ud->request_headers_raw_len : tx_ud->response_headers_raw_len;
+        const uint32_t data_len =
+                ts ? tx_ud->request_headers_raw_len : tx_ud->response_headers_raw_len;
 
         InspectionBufferSetupAndApplyTransforms(
                 det_ctx, list_id, buffer, data, data_len, transforms);
@@ -253,8 +253,7 @@ static void PrefilterMpmHttpHeaderRaw(DetectEngineThreadCtx *det_ctx, const void
 
     const int list_id = ctx->list_id;
 
-    InspectionBuffer *buffer = GetData(det_ctx, ctx->transforms, f,
-            flags, txv, list_id);
+    InspectionBuffer *buffer = GetData(det_ctx, ctx->transforms, f, flags, txv, list_id);
     if (buffer == NULL)
         return;
 
@@ -262,7 +261,7 @@ static void PrefilterMpmHttpHeaderRaw(DetectEngineThreadCtx *det_ctx, const void
     const uint8_t *data = buffer->inspect;
 
     SCLogDebug("mpm'ing buffer:");
-    //PrintRawDataFp(stdout, data, data_len);
+    // PrintRawDataFp(stdout, data, data_len);
 
     if (data != NULL && data_len >= mpm_ctx->minlen) {
         (void)mpm_table[mpm_ctx->mpm_type].Search(

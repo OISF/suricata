@@ -56,13 +56,15 @@
 /**
  * \brief Regex for parsing our config keyword options
  */
-#define PARSE_REGEX  "^\\s*([A-z_]+)\\s*\\s*([A-z_]+)\\s*(?:,\\s*([A-z_]+)\\s+([A-z_]+))?\\s*(?:,\\s*([A-z_]+)\\s+([A-z_]+))?$"
+#define PARSE_REGEX                                                                                \
+    "^\\s*([A-z_]+)\\s*\\s*([A-z_]+)\\s*(?:,\\s*([A-z_]+)\\s+([A-z_]+))?\\s*(?:,\\s*([A-z_]+)\\s+" \
+    "([A-z_]+))?$"
 
 static DetectParseRegex parse_regex;
 
-static int DetectConfigPostMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
-        const Signature *s, const SigMatchCtx *ctx);
-static int DetectConfigSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectConfigPostMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx);
+static int DetectConfigSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectConfigFree(DetectEngineCtx *, void *);
 #ifdef UNITTESTS
 static void DetectConfigRegisterTests(void);
@@ -76,7 +78,7 @@ void DetectConfigRegister(void)
     sigmatch_table[DETECT_CONFIG].name = "config";
     sigmatch_table[DETECT_CONFIG].Match = DetectConfigPostMatch;
     sigmatch_table[DETECT_CONFIG].Setup = DetectConfigSetup;
-    sigmatch_table[DETECT_CONFIG].Free  = DetectConfigFree;
+    sigmatch_table[DETECT_CONFIG].Free = DetectConfigFree;
     sigmatch_table[DETECT_CONFIG].desc =
             "apply different configuration settings to a flow, packet or other unit";
     sigmatch_table[DETECT_CONFIG].url = "/rules/config.html";
@@ -97,8 +99,7 @@ void DetectConfigRegister(void)
  * \param tx_id Transaction ID within the flow.
  * \param config Pointer to the DetectConfigData structure containing configuration settings.
  */
-static void ConfigApplyTx(Flow *f,
-        const uint64_t tx_id, const DetectConfigData *config)
+static void ConfigApplyTx(Flow *f, const uint64_t tx_id, const DetectConfigData *config)
 {
     if (f->alstate == NULL) {
         return;
@@ -167,8 +168,7 @@ static void ConfigApplyPacket(Packet *p, const DetectConfigData *config)
  *
  * \retval 0 on success.
  */
-static int ConfigApply(DetectEngineThreadCtx *det_ctx,
-        Packet *p, const DetectConfigData *config)
+static int ConfigApply(DetectEngineThreadCtx *det_ctx, Packet *p, const DetectConfigData *config)
 {
     bool this_packet = false;
     bool this_tx = false;
@@ -190,7 +190,7 @@ static int ConfigApply(DetectEngineThreadCtx *det_ctx,
         SCLogDebug("packet logic here: %" PRIu64, p->pcap_cnt);
         ConfigApplyPacket(p, config);
     } else if (this_tx) {
-        SCLogDebug("tx logic here: tx_id %"PRIu64, det_ctx->tx_id);
+        SCLogDebug("tx logic here: tx_id %" PRIu64, det_ctx->tx_id);
         ConfigApplyTx(p->flow, det_ctx->tx_id, config);
     } else if (this_flow) {
         SCLogDebug("flow logic here");
@@ -212,8 +212,8 @@ static int ConfigApply(DetectEngineThreadCtx *det_ctx,
  * \param ctx Pointer to the match context, which contains the configuration data.
  * \return 1 indicating the configuration was successfully applied
  */
-static int DetectConfigPostMatch(DetectEngineThreadCtx *det_ctx,
-        Packet *p, const Signature *s, const SigMatchCtx *ctx)
+static int DetectConfigPostMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
     const DetectConfigData *config = (const DetectConfigData *)ctx;
@@ -423,11 +423,10 @@ static int DetectConfigTest01(void)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF(de_ctx == NULL);
     de_ctx->flags |= DE_QUIET;
-    Signature *s = DetectEngineAppendSig(de_ctx,
-            "config dns any any -> any any ("
-            "dns.query; content:\"common.domain.com\"; "
-            "config:logging disable, type tx, scope tx; "
-            "sid:1;)");
+    Signature *s = DetectEngineAppendSig(de_ctx, "config dns any any -> any any ("
+                                                 "dns.query; content:\"common.domain.com\"; "
+                                                 "config:logging disable, type tx, scope tx; "
+                                                 "sid:1;)");
     FAIL_IF_NULL(s);
     DetectEngineCtxFree(de_ctx);
     PASS;

@@ -37,29 +37,29 @@
  * If trylock returns 0 it got a lock. Which means
  * the flow was previously unlocked.
  */
-#define DEBUG_ASSERT_FLOW_LOCKED(f) do {            \
-    if ((f) != NULL) {                              \
-        int r = SCMutexTrylock(&(f)->m);            \
-        if (r == 0) {                               \
-            BUG_ON(1);                              \
-        }                                           \
-    }                                               \
-} while(0)
+#define DEBUG_ASSERT_FLOW_LOCKED(f)                                                                \
+    do {                                                                                           \
+        if ((f) != NULL) {                                                                         \
+            int r = SCMutexTrylock(&(f)->m);                                                       \
+            if (r == 0) {                                                                          \
+                BUG_ON(1);                                                                         \
+            }                                                                                      \
+        }                                                                                          \
+    } while (0)
 
 /** \brief validate the integrity of the flow
  *
  *  BUG_ON's on problems
  */
-#define DEBUG_VALIDATE_FLOW(f) do {                 \
-    if ((f) != NULL) {                              \
-        BUG_ON((f)->flags & FLOW_IPV4 &&            \
-               (f)->flags & FLOW_IPV6);             \
-        if ((f)->proto == IPPROTO_TCP) {            \
-            BUG_ON((f)->alstate != NULL &&          \
-                   (f)->alparser == NULL);          \
-        }                                           \
-    }                                               \
-} while(0)
+#define DEBUG_VALIDATE_FLOW(f)                                                                     \
+    do {                                                                                           \
+        if ((f) != NULL) {                                                                         \
+            BUG_ON((f)->flags &FLOW_IPV4 && (f)->flags & FLOW_IPV6);                               \
+            if ((f)->proto == IPPROTO_TCP) {                                                       \
+                BUG_ON((f)->alstate != NULL && (f)->alparser == NULL);                             \
+            }                                                                                      \
+        }                                                                                          \
+    } while (0)
 
 /** \brief validate the integrity of the packet
  *

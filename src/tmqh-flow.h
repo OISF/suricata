@@ -38,7 +38,7 @@ typedef struct TmqhFlowCtx_ {
     TmqhFlowMode *queues;
 } TmqhFlowCtx;
 
-void TmqhFlowRegister (void);
+void TmqhFlowRegister(void);
 void TmqhFlowRegisterTests(void);
 
 void TmqhFlowPrintAutofpHandler(void);

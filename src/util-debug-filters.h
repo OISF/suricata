@@ -72,7 +72,7 @@ typedef struct SCLogFGFilterFile_ {
 typedef struct SCLogFDFilterThreadList_ {
     int entered;
     pthread_t t;
-//    pid_t t;
+    //    pid_t t;
 
     struct SCLogFDFilterThreadList_ *next;
 } SCLogFDFilterThreadList;
@@ -85,7 +85,6 @@ typedef struct SCLogFDFilter_ {
 
     struct SCLogFDFilter_ *next;
 } SCLogFDFilter;
-
 
 extern int sc_log_fg_filters_present;
 
@@ -115,18 +114,11 @@ int SCLogMatchFDFilter(const char *);
 
 int SCLogPrintFGFilters(void);
 
-void SCLogAddToFGFFileList(SCLogFGFilterFile *,
-                                         const char *,
-                                         const char *, int,
-                                         int);
+void SCLogAddToFGFFileList(SCLogFGFilterFile *, const char *, const char *, int, int);
 
-void SCLogAddToFGFFuncList(SCLogFGFilterFile *,
-                                         SCLogFGFilterFunc *,
-                                         const char *, int);
+void SCLogAddToFGFFuncList(SCLogFGFilterFile *, SCLogFGFilterFunc *, const char *, int);
 
-void SCLogAddToFGFLineList(SCLogFGFilterFunc *,
-                                         SCLogFGFilterLine *,
-                                         int);
+void SCLogAddToFGFLineList(SCLogFGFilterFunc *, SCLogFGFilterLine *, int);
 
 void SCLogReleaseFDFilter(SCLogFDFilter *);
 #endif /* SURICATA_DEBUG_FILTERS_H */

@@ -24,7 +24,7 @@
 #ifndef SURICATA_DETECT_TLS_VERSION_H
 #define SURICATA_DETECT_TLS_VERSION_H
 
-#define DETECT_TLS_VERSION_FLAG_RAW  BIT_U8(0)
+#define DETECT_TLS_VERSION_FLAG_RAW BIT_U8(0)
 
 typedef struct DetectTlsVersionData_ {
     uint16_t ver; /** tls version to match */
@@ -32,6 +32,6 @@ typedef struct DetectTlsVersionData_ {
 } DetectTlsVersionData;
 
 /* prototypes */
-void DetectTlsVersionRegister (void);
+void DetectTlsVersionRegister(void);
 
 #endif /* SURICATA_DETECT_TLS_VERSION_H */

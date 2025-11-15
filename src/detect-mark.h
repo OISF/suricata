@@ -39,14 +39,14 @@
  */
 
 typedef struct DetectMarkData_ {
-    uint32_t mark;  /**< Rule mark */
-    uint32_t mask;  /**< Rule mask */
+    uint32_t mark; /**< Rule mark */
+    uint32_t mask; /**< Rule mask */
 } DetectMarkData;
 
 /**
  * Registration function for nfq_set_mark: keyword
  */
 
-void DetectMarkRegister (void);
+void DetectMarkRegister(void);
 
 #endif /*SURICATA_DETECT_MARK_H */

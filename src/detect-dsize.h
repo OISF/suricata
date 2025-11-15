@@ -27,7 +27,7 @@
 #include "detect-engine-uint.h"
 
 /* prototypes */
-void DetectDsizeRegister (void);
+void DetectDsizeRegister(void);
 
 int SigParseMaxRequiredDsize(const Signature *s);
 int SigParseGetMaxDsize(const Signature *s, uint16_t *dsize);

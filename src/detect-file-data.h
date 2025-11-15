@@ -25,7 +25,7 @@
 #define SURICATA_DETECT_FILEDATA_H
 
 /* prototypes */
-void DetectFiledataRegister (void);
+void DetectFiledataRegister(void);
 
 /* File handler registration */
 #define MAX_DETECT_ALPROTO_CNT 10

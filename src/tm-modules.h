@@ -29,12 +29,12 @@
 #include "decode.h"
 
 /* thread flags */
-#define TM_FLAG_RECEIVE_TM      0x01
-#define TM_FLAG_DECODE_TM       0x02
-#define TM_FLAG_FLOWWORKER_TM   0x04
-#define TM_FLAG_VERDICT_TM      0x08
-#define TM_FLAG_MANAGEMENT_TM   0x10
-#define TM_FLAG_COMMAND_TM      0x20
+#define TM_FLAG_RECEIVE_TM    0x01
+#define TM_FLAG_DECODE_TM     0x02
+#define TM_FLAG_FLOWWORKER_TM 0x04
+#define TM_FLAG_VERDICT_TM    0x08
+#define TM_FLAG_MANAGEMENT_TM 0x10
+#define TM_FLAG_COMMAND_TM    0x20
 
 /* all packet modules combined */
 #define TM_FLAG_PACKET_ALL                                                                         \
@@ -103,7 +103,7 @@ TmEcode TmModuleRegister(char *name, int (*module_func)(ThreadVars *, Packet *, 
 void TmModuleDebugList(void);
 void TmModuleRegisterTests(void);
 #ifdef PROFILING
-const char * TmModuleTmmIdToString(TmmId id);
+const char *TmModuleTmmIdToString(TmmId id);
 #endif
 void TmModuleRunInit(void);
 void TmModuleRunDeInit(void);

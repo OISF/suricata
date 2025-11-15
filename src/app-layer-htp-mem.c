@@ -57,7 +57,7 @@ void HTPParseMemcap(void)
         } else {
             SC_ATOMIC_SET(htp_config_memcap, memcap);
         }
-        SCLogInfo("HTTP memcap: %"PRIu64, SC_ATOMIC_GET(htp_config_memcap));
+        SCLogInfo("HTTP memcap: %" PRIu64, SC_ATOMIC_GET(htp_config_memcap));
     } else {
         /* default to unlimited */
         SC_ATOMIC_SET(htp_config_memcap, 0);
@@ -100,7 +100,7 @@ static int HTPCheckMemcap(uint64_t size)
     uint64_t memcapcopy = SC_ATOMIC_GET(htp_config_memcap);
     if (memcapcopy == 0 || size + SC_ATOMIC_GET(htp_memuse) <= memcapcopy)
         return 1;
-    (void) SC_ATOMIC_ADD(htp_memcap, 1);
+    (void)SC_ATOMIC_ADD(htp_memcap, 1);
     return 0;
 }
 

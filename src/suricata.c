@@ -172,7 +172,7 @@ SC_ATOMIC_DECLARE(unsigned int, engine_stage);
 volatile uint8_t suricata_ctl_flags = 0;
 
 /** Engine mode: inline (ENGINE_MODE_IPS) or just
-  * detection mode (ENGINE_MODE_IDS by default) */
+ * detection mode (ENGINE_MODE_IDS by default) */
 static enum EngineMode g_engine_mode = ENGINE_MODE_UNKNOWN;
 
 /** Host mode: set if box is sniffing only
@@ -198,7 +198,7 @@ int g_disable_randomness = 1;
 #endif
 
 /** determine (without branching) if we include the vlan_ids when hashing or
-  * comparing flows */
+ * comparing flows */
 uint16_t g_vlan_mask = 0xffff;
 
 /** determine (without branching) if we include the livedev ids when hashing or
@@ -491,8 +491,8 @@ static int SetBpfString(int argc, char *argv[])
 
     /* attempt to parse remaining args as bpf filter */
     tmpindex = argc;
-    while(argv[tmpindex] != NULL) {
-        bpf_len+=strlen(argv[tmpindex]) + 1;
+    while (argv[tmpindex] != NULL) {
+        bpf_len += strlen(argv[tmpindex]) + 1;
         tmpindex++;
     }
 
@@ -504,15 +504,15 @@ static int SetBpfString(int argc, char *argv[])
         return TM_ECODE_FAILED;
 
     tmpindex = optind;
-    while(argv[tmpindex] != NULL) {
-        strlcat(bpf_filter, argv[tmpindex],bpf_len);
-        if(argv[tmpindex + 1] != NULL) {
-            strlcat(bpf_filter," ", bpf_len);
+    while (argv[tmpindex] != NULL) {
+        strlcat(bpf_filter, argv[tmpindex], bpf_len);
+        if (argv[tmpindex + 1] != NULL) {
+            strlcat(bpf_filter, " ", bpf_len);
         }
         tmpindex++;
     }
 
-    if(strlen(bpf_filter) > 0) {
+    if (strlen(bpf_filter) > 0) {
         if (SCConfSetFinal("bpf-filter", bpf_filter) != 1) {
             SCLogError("Failed to set bpf filter.");
             SCFree(bpf_filter);
@@ -528,7 +528,7 @@ static void SetBpfStringFromFile(char *filename)
 {
     char *bpf_filter = NULL;
     char *bpf_comment_tmp = NULL;
-    char *bpf_comment_start =  NULL;
+    char *bpf_comment_start = NULL;
     size_t bpf_len = 0;
     SCStat st;
     FILE *fp = NULL;
@@ -563,29 +563,26 @@ static void SetBpfStringFromFile(char *filename)
     fclose(fp);
     bpf_filter[nm] = '\0';
 
-    if(strlen(bpf_filter) > 0) {
+    if (strlen(bpf_filter) > 0) {
         /*replace comments with space*/
         bpf_comment_start = bpf_filter;
-        while((bpf_comment_tmp = strchr(bpf_comment_start, '#')) != NULL) {
-            while((*bpf_comment_tmp !='\0') &&
-                (*bpf_comment_tmp != '\r') && (*bpf_comment_tmp != '\n'))
-            {
+        while ((bpf_comment_tmp = strchr(bpf_comment_start, '#')) != NULL) {
+            while ((*bpf_comment_tmp != '\0') && (*bpf_comment_tmp != '\r') &&
+                    (*bpf_comment_tmp != '\n')) {
                 *bpf_comment_tmp++ = ' ';
             }
             bpf_comment_start = bpf_comment_tmp;
         }
         /*remove remaining '\r' and '\n' */
-        while((bpf_comment_tmp = strchr(bpf_filter, '\r')) != NULL) {
+        while ((bpf_comment_tmp = strchr(bpf_filter, '\r')) != NULL) {
             *bpf_comment_tmp = ' ';
         }
-        while((bpf_comment_tmp = strchr(bpf_filter, '\n')) != NULL) {
+        while ((bpf_comment_tmp = strchr(bpf_filter, '\n')) != NULL) {
             *bpf_comment_tmp = ' ';
         }
         /* cut trailing spaces */
-        while (strlen(bpf_filter) > 0 &&
-                bpf_filter[strlen(bpf_filter)-1] == ' ')
-        {
-            bpf_filter[strlen(bpf_filter)-1] = '\0';
+        while (strlen(bpf_filter) > 0 && bpf_filter[strlen(bpf_filter) - 1] == ' ') {
+            bpf_filter[strlen(bpf_filter) - 1] = '\0';
         }
         if (strlen(bpf_filter) > 0) {
             if (SCConfSetFinal("bpf-filter", bpf_filter) != 1) {
@@ -631,8 +628,10 @@ static void PrintUsage(const char *progname)
 #ifdef BUILD_UNIX_SOCKET
     printf("\t--unix-socket[=<file>]               : use unix socket to control suricata work\n");
 #endif
-    printf("\t--runmode <runmode_id>               : specific runmode modification the engine should run.  The argument\n"
-           "\t                                       supplied should be the id for the runmode obtained by running\n"
+    printf("\t--runmode <runmode_id>               : specific runmode modification the engine "
+           "should run.  The argument\n"
+           "\t                                       supplied should be the id for the runmode "
+           "obtained by running\n"
            "\t                                       --list-runmodes\n");
 
     printf("\n  Capture and IPS:\n");
@@ -644,7 +643,8 @@ static void PrintUsage(const char *progname)
     printf("\t--pcap[=<dev>]                       : run in pcap mode, no value select interfaces "
            "from suricata.yaml\n");
 #ifdef HAVE_PCAP_SET_BUFF
-    printf("\t--pcap-buffer-size                   : size of the pcap buffer value from 0 - %i\n",INT_MAX);
+    printf("\t--pcap-buffer-size                   : size of the pcap buffer value from 0 - %i\n",
+            INT_MAX);
 #endif /* HAVE_SET_PCAP_BUFF */
 #ifdef NFQ
     printf("\t-q <qid[:qid]>                       : run in inline nfqueue mode (use colon to "
@@ -654,27 +654,32 @@ static void PrintUsage(const char *progname)
     printf("\t-d <divert port>                     : run in inline ipfw divert mode\n");
 #endif /* IPFW */
 #ifdef HAVE_AF_PACKET
-    printf("\t--af-packet[=<dev>]                  : run in af-packet mode, no value select interfaces from suricata.yaml\n");
+    printf("\t--af-packet[=<dev>]                  : run in af-packet mode, no value select "
+           "interfaces from suricata.yaml\n");
 #endif
 #ifdef HAVE_AF_XDP
     printf("\t--af-xdp[=<dev>]                     : run in af-xdp mode, no value select "
            "interfaces from suricata.yaml\n");
 #endif
 #ifdef HAVE_NETMAP
-    printf("\t--netmap[=<dev>]                     : run in netmap mode, no value select interfaces from suricata.yaml\n");
+    printf("\t--netmap[=<dev>]                     : run in netmap mode, no value select "
+           "interfaces from suricata.yaml\n");
 #endif
 #ifdef HAVE_PFRING
-    printf("\t--pfring[=<dev>]                     : run in pfring mode, use interfaces from suricata.yaml\n");
+    printf("\t--pfring[=<dev>]                     : run in pfring mode, use interfaces from "
+           "suricata.yaml\n");
     printf("\t--pfring-int <dev>                   : run in pfring mode, use interface <dev>\n");
     printf("\t--pfring-cluster-id <id>             : pfring cluster id \n");
-    printf("\t--pfring-cluster-type <type>         : pfring cluster type for PF_RING 4.1.2 and later cluster_round_robin|cluster_flow\n");
+    printf("\t--pfring-cluster-type <type>         : pfring cluster type for PF_RING 4.1.2 and "
+           "later cluster_round_robin|cluster_flow\n");
 #endif /* HAVE_PFRING */
 #ifdef HAVE_DPDK
     printf("\t--dpdk                               : run in dpdk mode, uses interfaces from "
            "suricata.yaml\n");
 #endif
 #ifdef HAVE_DAG
-    printf("\t--dag <dagX:Y>                       : process ERF records from DAG interface X, stream Y\n");
+    printf("\t--dag <dagX:Y>                       : process ERF records from DAG interface X, "
+           "stream Y\n");
 #endif
 #ifdef WINDIVERT
     printf("\t--windivert <filter>                 : run in inline WinDivert mode\n");
@@ -898,9 +903,9 @@ static void PrintBuildInfo(void)
 
     printf("%s, %s architecture\n", bits, endian);
 #ifdef __GNUC__
-    printf("GCC version %s, C version %"PRIiMAX"\n", __VERSION__, (intmax_t)__STDC_VERSION__);
+    printf("GCC version %s, C version %" PRIiMAX "\n", __VERSION__, (intmax_t)__STDC_VERSION__);
 #else
-    printf("C version %"PRIiMAX"\n", (intmax_t)__STDC_VERSION__);
+    printf("C version %" PRIiMAX "\n", (intmax_t)__STDC_VERSION__);
 #endif
 
 #if __SSP__ == 1
@@ -1155,7 +1160,7 @@ static void SCInstanceInit(SCInstance *suri, const char *progname)
     suri->verbose = 0;
     /* use -1 as unknown */
     suri->checksum_validation = -1;
-#if HAVE_DETECT_DISABLED==1
+#if HAVE_DETECT_DISABLED == 1
     g_detect_disabled = suri->disabled_detect = 1;
 #else
     g_detect_disabled = suri->disabled_detect = 0;
@@ -1205,8 +1210,7 @@ static TmEcode PrintVersion(void)
 static TmEcode LogVersion(SCInstance *suri)
 {
     const char *mode = suri->system ? "SYSTEM" : "USER";
-    SCLogNotice("This is %s version %s running in %s mode",
-            PROG_NAME, GetProgramVersion(), mode);
+    SCLogNotice("This is %s version %s running in %s mode", PROG_NAME, GetProgramVersion(), mode);
     return TM_ECODE_OK;
 }
 
@@ -1224,8 +1228,8 @@ static void SCPrintElapsedTime(struct timeval *start_time)
     memset(&end_time, 0, sizeof(end_time));
     gettimeofday(&end_time, NULL);
     uint64_t milliseconds = ((end_time.tv_sec - start_time->tv_sec) * 1000) +
-        (((1000000 + end_time.tv_usec - start_time->tv_usec) / 1000) - 1000);
-    SCLogInfo("time elapsed %.3fs", (float)milliseconds/(float)1000);
+                            (((1000000 + end_time.tv_usec - start_time->tv_usec) / 1000) - 1000);
+    SCLogInfo("time elapsed %.3fs", (float)milliseconds / (float)1000);
 }
 
 static int ParseCommandLineAfpacket(SCInstance *suri, const char *in_arg)
@@ -1324,7 +1328,7 @@ static int ParseCommandLinePcapLive(SCInstance *suri, const char *in_arg)
         /* some windows shells require escaping of the \ in \Device. Otherwise
          * the backslashes are stripped. We put them back here. */
         if (strlen(in_arg) > 9 && strncmp(in_arg, "DeviceNPF", 9) == 0) {
-            snprintf(suri->pcap_dev, sizeof(suri->pcap_dev), "\\Device\\NPF%s", in_arg+9);
+            snprintf(suri->pcap_dev, sizeof(suri->pcap_dev), "\\Device\\NPF%s", in_arg + 9);
         } else {
             strlcpy(suri->pcap_dev, in_arg, sizeof(suri->pcap_dev));
             PcapTranslateIPToDevice(suri->pcap_dev, sizeof(suri->pcap_dev));
@@ -1357,7 +1361,7 @@ static int ParseCommandLinePcapLive(SCInstance *suri, const char *in_arg)
 /**
  * Helper function to check if log directory is writable
  */
-static bool IsLogDirectoryWritable(const char* str)
+static bool IsLogDirectoryWritable(const char *str)
 {
     if (access(str, W_OK) == 0)
         return true;
@@ -1484,626 +1488,628 @@ TmEcode SCParseCommandLine(int argc, char **argv)
 
     while ((opt = getopt_long(argc, argv, short_opts, long_opts, &option_index)) != -1) {
         switch (opt) {
-        case 0:
-            if (strcmp((long_opts[option_index]).name, "help") == 0) {
-                suri->run_mode = RUNMODE_PRINT_USAGE;
-                return TM_ECODE_OK;
-            } else if (strcmp((long_opts[option_index]).name, "pfring") == 0 ||
-                       strcmp((long_opts[option_index]).name, "pfring-int") == 0) {
+            case 0:
+                if (strcmp((long_opts[option_index]).name, "help") == 0) {
+                    suri->run_mode = RUNMODE_PRINT_USAGE;
+                    return TM_ECODE_OK;
+                } else if (strcmp((long_opts[option_index]).name, "pfring") == 0 ||
+                           strcmp((long_opts[option_index]).name, "pfring-int") == 0) {
 #ifdef HAVE_PFRING
-                /* TODO: Which plugin? */
-                suri->run_mode = RUNMODE_PLUGIN;
-                suri->capture_plugin_name = "pfring";
-                if (optarg != NULL) {
-                    memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
-                    strlcpy(suri->pcap_dev, optarg,
-                            ((strlen(optarg) < sizeof(suri->pcap_dev)) ?
-                             (strlen(optarg) + 1) : sizeof(suri->pcap_dev)));
-                    LiveRegisterDeviceName(optarg);
-                }
-#else
-                SCLogError("PF_RING not enabled. Make sure "
-                           "to pass --enable-pfring to configure when building.");
-                return TM_ECODE_FAILED;
-#endif /* HAVE_PFRING */
-            } else if (strcmp((long_opts[option_index]).name, "pfring-cluster-id") == 0) {
-#ifdef HAVE_PFRING
-                if (SCConfSetFinal("pfring.cluster-id", optarg) != 1) {
-                    SCLogError("failed to set pfring.cluster-id");
-                    return TM_ECODE_FAILED;
-                }
-#else
-                SCLogError("PF_RING not enabled. Make sure "
-                           "to pass --enable-pfring to configure when building.");
-                return TM_ECODE_FAILED;
-#endif /* HAVE_PFRING */
-            } else if (strcmp((long_opts[option_index]).name, "pfring-cluster-type") == 0) {
-#ifdef HAVE_PFRING
-                if (SCConfSetFinal("pfring.cluster-type", optarg) != 1) {
-                    SCLogError("failed to set pfring.cluster-type");
-                    return TM_ECODE_FAILED;
-                }
-#else
-                SCLogError("PF_RING not enabled. Make sure "
-                           "to pass --enable-pfring to configure when building.");
-                return TM_ECODE_FAILED;
-#endif /* HAVE_PFRING */
-            } else if (strcmp((long_opts[option_index]).name, "capture-plugin") == 0) {
-                suri->run_mode = RUNMODE_PLUGIN;
-                suri->capture_plugin_name = optarg;
-            } else if (strcmp((long_opts[option_index]).name, "capture-plugin-args") == 0) {
-                suri->capture_plugin_args = optarg;
-            } else if (strcmp((long_opts[option_index]).name, "dpdk") == 0) {
-                if (ParseCommandLineDpdk(suri, optarg) != TM_ECODE_OK) {
-                    return TM_ECODE_FAILED;
-                }
-            } else if (strcmp((long_opts[option_index]).name, "af-packet") == 0) {
-                if (ParseCommandLineAfpacket(suri, optarg) != TM_ECODE_OK) {
-                    return TM_ECODE_FAILED;
-                }
-            } else if (strcmp((long_opts[option_index]).name, "af-xdp") == 0) {
-                if (ParseCommandLineAfxdp(suri, optarg) != TM_ECODE_OK) {
-                    return TM_ECODE_FAILED;
-                }
-            } else if (strcmp((long_opts[option_index]).name, "netmap") == 0) {
-#ifdef HAVE_NETMAP
-                if (suri->run_mode == RUNMODE_UNKNOWN) {
-                    suri->run_mode = RUNMODE_NETMAP;
-                    if (optarg) {
-                        LiveRegisterDeviceName(optarg);
+                    /* TODO: Which plugin? */
+                    suri->run_mode = RUNMODE_PLUGIN;
+                    suri->capture_plugin_name = "pfring";
+                    if (optarg != NULL) {
                         memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
                         strlcpy(suri->pcap_dev, optarg,
-                                ((strlen(optarg) < sizeof(suri->pcap_dev)) ?
-                                 (strlen(optarg) + 1) : sizeof(suri->pcap_dev)));
-                    }
-                } else if (suri->run_mode == RUNMODE_NETMAP) {
-                    if (optarg) {
+                                ((strlen(optarg) < sizeof(suri->pcap_dev))
+                                                ? (strlen(optarg) + 1)
+                                                : sizeof(suri->pcap_dev)));
                         LiveRegisterDeviceName(optarg);
-                    } else {
-                        SCLogInfo("Multiple netmap option without interface on each is useless");
-                        break;
                     }
-                } else {
-                    SCLogError("more than one run mode "
-                               "has been specified");
-                    PrintUsage(argv[0]);
-                    return TM_ECODE_FAILED;
-                }
 #else
-                SCLogError("NETMAP not enabled.");
-                return TM_ECODE_FAILED;
+                    SCLogError("PF_RING not enabled. Make sure "
+                               "to pass --enable-pfring to configure when building.");
+                    return TM_ECODE_FAILED;
+#endif /* HAVE_PFRING */
+                } else if (strcmp((long_opts[option_index]).name, "pfring-cluster-id") == 0) {
+#ifdef HAVE_PFRING
+                    if (SCConfSetFinal("pfring.cluster-id", optarg) != 1) {
+                        SCLogError("failed to set pfring.cluster-id");
+                        return TM_ECODE_FAILED;
+                    }
+#else
+                    SCLogError("PF_RING not enabled. Make sure "
+                               "to pass --enable-pfring to configure when building.");
+                    return TM_ECODE_FAILED;
+#endif /* HAVE_PFRING */
+                } else if (strcmp((long_opts[option_index]).name, "pfring-cluster-type") == 0) {
+#ifdef HAVE_PFRING
+                    if (SCConfSetFinal("pfring.cluster-type", optarg) != 1) {
+                        SCLogError("failed to set pfring.cluster-type");
+                        return TM_ECODE_FAILED;
+                    }
+#else
+                    SCLogError("PF_RING not enabled. Make sure "
+                               "to pass --enable-pfring to configure when building.");
+                    return TM_ECODE_FAILED;
+#endif /* HAVE_PFRING */
+                } else if (strcmp((long_opts[option_index]).name, "capture-plugin") == 0) {
+                    suri->run_mode = RUNMODE_PLUGIN;
+                    suri->capture_plugin_name = optarg;
+                } else if (strcmp((long_opts[option_index]).name, "capture-plugin-args") == 0) {
+                    suri->capture_plugin_args = optarg;
+                } else if (strcmp((long_opts[option_index]).name, "dpdk") == 0) {
+                    if (ParseCommandLineDpdk(suri, optarg) != TM_ECODE_OK) {
+                        return TM_ECODE_FAILED;
+                    }
+                } else if (strcmp((long_opts[option_index]).name, "af-packet") == 0) {
+                    if (ParseCommandLineAfpacket(suri, optarg) != TM_ECODE_OK) {
+                        return TM_ECODE_FAILED;
+                    }
+                } else if (strcmp((long_opts[option_index]).name, "af-xdp") == 0) {
+                    if (ParseCommandLineAfxdp(suri, optarg) != TM_ECODE_OK) {
+                        return TM_ECODE_FAILED;
+                    }
+                } else if (strcmp((long_opts[option_index]).name, "netmap") == 0) {
+#ifdef HAVE_NETMAP
+                    if (suri->run_mode == RUNMODE_UNKNOWN) {
+                        suri->run_mode = RUNMODE_NETMAP;
+                        if (optarg) {
+                            LiveRegisterDeviceName(optarg);
+                            memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
+                            strlcpy(suri->pcap_dev, optarg,
+                                    ((strlen(optarg) < sizeof(suri->pcap_dev))
+                                                    ? (strlen(optarg) + 1)
+                                                    : sizeof(suri->pcap_dev)));
+                        }
+                    } else if (suri->run_mode == RUNMODE_NETMAP) {
+                        if (optarg) {
+                            LiveRegisterDeviceName(optarg);
+                        } else {
+                            SCLogInfo(
+                                    "Multiple netmap option without interface on each is useless");
+                            break;
+                        }
+                    } else {
+                        SCLogError("more than one run mode "
+                                   "has been specified");
+                        PrintUsage(argv[0]);
+                        return TM_ECODE_FAILED;
+                    }
+#else
+                    SCLogError("NETMAP not enabled.");
+                    return TM_ECODE_FAILED;
 #endif
-            } else if (strcmp((long_opts[option_index]).name, "nflog") == 0) {
+                } else if (strcmp((long_opts[option_index]).name, "nflog") == 0) {
 #ifdef HAVE_NFLOG
-                if (suri->run_mode == RUNMODE_UNKNOWN) {
-                    suri->run_mode = RUNMODE_NFLOG;
-                    LiveBuildDeviceListCustom("nflog", "group");
-                }
+                    if (suri->run_mode == RUNMODE_UNKNOWN) {
+                        suri->run_mode = RUNMODE_NFLOG;
+                        LiveBuildDeviceListCustom("nflog", "group");
+                    }
 #else
-                SCLogError("NFLOG not enabled.");
-                return TM_ECODE_FAILED;
-#endif /* HAVE_NFLOG */
-            } else if (strcmp((long_opts[option_index]).name, "pcap") == 0) {
-                if (ParseCommandLinePcapLive(suri, optarg) != TM_ECODE_OK) {
+                    SCLogError("NFLOG not enabled.");
                     return TM_ECODE_FAILED;
+#endif /* HAVE_NFLOG */
+                } else if (strcmp((long_opts[option_index]).name, "pcap") == 0) {
+                    if (ParseCommandLinePcapLive(suri, optarg) != TM_ECODE_OK) {
+                        return TM_ECODE_FAILED;
+                    }
+                } else if (strcmp((long_opts[option_index]).name, "simulate-ips") == 0) {
+                    SCLogInfo("Setting IPS mode");
+                    EngineModeSetIPS();
+                } else if (strcmp((long_opts[option_index]).name, "init-errors-fatal") == 0) {
+                    if (SCConfSetFinal("engine.init-failure-fatal", "1") != 1) {
+                        SCLogError("failed to set engine init-failure-fatal");
+                        return TM_ECODE_FAILED;
+                    }
+#ifdef BUILD_UNIX_SOCKET
+                } else if (strcmp((long_opts[option_index]).name, "unix-socket") == 0) {
+                    if (suri->run_mode == RUNMODE_UNKNOWN) {
+                        suri->run_mode = RUNMODE_UNIX_SOCKET;
+                        if (optarg) {
+                            if (SCConfSetFinal("unix-command.filename", optarg) != 1) {
+                                SCLogError("failed to set unix-command.filename");
+                                return TM_ECODE_FAILED;
+                            }
+                        }
+                    } else {
+                        SCLogError("more than one run mode "
+                                   "has been specified");
+                        PrintUsage(argv[0]);
+                        return TM_ECODE_FAILED;
+                    }
+#endif
+                } else if (strcmp((long_opts[option_index]).name, "list-app-layer-protocols") ==
+                           0) {
+                    /* listing all supported app layer protocols */
+                } else if (strcmp((long_opts[option_index]).name, "list-app-layer-hooks") == 0) {
+                    /* listing all supported app layer hooks */
+                } else if (strcmp((long_opts[option_index]).name, "list-unittests") == 0) {
+#ifdef UNITTESTS
+                    suri->run_mode = RUNMODE_LIST_UNITTEST;
+#else
+                    SCLogError("unit tests not enabled. Make sure to pass --enable-unittests to "
+                               "configure when building");
+                    return TM_ECODE_FAILED;
+#endif /* UNITTESTS */
+                } else if (strcmp((long_opts[option_index]).name, "list-runmodes") == 0) {
+                    suri->run_mode = RUNMODE_LIST_RUNMODES;
+                    return TM_ECODE_OK;
+                } else if (strcmp((long_opts[option_index]).name, "list-keywords") == 0) {
+                    if (optarg) {
+                        if (strcmp("short", optarg) != 0) {
+                            suri->keyword_info = optarg;
+                        }
+                    }
+                } else if (strcmp((long_opts[option_index]).name, "runmode") == 0) {
+                    suri->runmode_custom_mode = optarg;
+                } else if (strcmp((long_opts[option_index]).name, "engine-analysis") == 0) {
+                    // do nothing for now
                 }
-            } else if (strcmp((long_opts[option_index]).name, "simulate-ips") == 0) {
-                SCLogInfo("Setting IPS mode");
-                EngineModeSetIPS();
-            } else if (strcmp((long_opts[option_index]).name, "init-errors-fatal") == 0) {
+#ifdef OS_WIN32
+                else if (strcmp((long_opts[option_index]).name, "service-install") == 0) {
+                    suri->run_mode = RUNMODE_INSTALL_SERVICE;
+                    return TM_ECODE_OK;
+                } else if (strcmp((long_opts[option_index]).name, "service-remove") == 0) {
+                    suri->run_mode = RUNMODE_REMOVE_SERVICE;
+                    return TM_ECODE_OK;
+                } else if (strcmp((long_opts[option_index]).name, "service-change-params") == 0) {
+                    suri->run_mode = RUNMODE_CHANGE_SERVICE_PARAMS;
+                    return TM_ECODE_OK;
+                }
+#endif /* OS_WIN32 */
+                else if (strcmp((long_opts[option_index]).name, "pidfile") == 0) {
+                    suri->pid_filename = SCStrdup(optarg);
+                    if (suri->pid_filename == NULL) {
+                        SCLogError("strdup failed: %s", strerror(errno));
+                        return TM_ECODE_FAILED;
+                    }
+                } else if (strcmp((long_opts[option_index]).name, "disable-detection") == 0) {
+                    g_detect_disabled = suri->disabled_detect = 1;
+                } else if (strcmp((long_opts[option_index]).name, "disable-hashing") == 0) {
+                    g_disable_hashing = true;
+                    // for rust
+                    SCDisableHashing();
+                } else if (strcmp((long_opts[option_index]).name, "fatal-unittests") == 0) {
+#ifdef UNITTESTS
+                    unittests_fatal = 1;
+#else
+                    SCLogError("unit tests not enabled. Make sure to pass --enable-unittests to "
+                               "configure when building");
+                    return TM_ECODE_FAILED;
+#endif /* UNITTESTS */
+                } else if (strcmp((long_opts[option_index]).name, "user") == 0) {
+#ifndef HAVE_LIBCAP_NG
+                    SCLogError("libcap-ng is required to"
+                               " drop privileges, but it was not compiled into Suricata.");
+                    return TM_ECODE_FAILED;
+#else
+                    suri->user_name = optarg;
+                    suri->do_setuid = true;
+#endif /* HAVE_LIBCAP_NG */
+                } else if (strcmp((long_opts[option_index]).name, "group") == 0) {
+#ifndef HAVE_LIBCAP_NG
+                    SCLogError("libcap-ng is required to"
+                               " drop privileges, but it was not compiled into Suricata.");
+                    return TM_ECODE_FAILED;
+#else
+                    suri->group_name = optarg;
+                    suri->do_setgid = true;
+#endif /* HAVE_LIBCAP_NG */
+                } else if (strcmp((long_opts[option_index]).name, "erf-in") == 0) {
+                    suri->run_mode = RUNMODE_ERF_FILE;
+                    if (SCConfSetFinal("erf-file.file", optarg) != 1) {
+                        SCLogError("failed to set erf-file.file");
+                        return TM_ECODE_FAILED;
+                    }
+                } else if (strcmp((long_opts[option_index]).name, "dag") == 0) {
+#ifdef HAVE_DAG
+                    if (suri->run_mode == RUNMODE_UNKNOWN) {
+                        suri->run_mode = RUNMODE_DAG;
+                    } else if (suri->run_mode != RUNMODE_DAG) {
+                        SCLogError("more than one run mode has been specified");
+                        PrintUsage(argv[0]);
+                        return TM_ECODE_FAILED;
+                    }
+                    LiveRegisterDeviceName(optarg);
+#else
+                    SCLogError("libdag and a DAG card are required"
+                               " to receive packets using --dag.");
+                    return TM_ECODE_FAILED;
+#endif /* HAVE_DAG */
+                } else if (strcmp((long_opts[option_index]).name, "napatech") == 0) {
+#ifdef HAVE_NAPATECH
+                    suri->run_mode = RUNMODE_PLUGIN;
+#else
+                    SCLogError("libntapi and a Napatech adapter are required"
+                               " to capture packets using --napatech.");
+                    return TM_ECODE_FAILED;
+#endif /* HAVE_NAPATECH */
+                } else if (strcmp((long_opts[option_index]).name, "pcap-buffer-size") == 0) {
+#ifdef HAVE_PCAP_SET_BUFF
+                    if (SCConfSetFinal("pcap.buffer-size", optarg) != 1) {
+                        SCLogError("failed to set pcap-buffer-size");
+                        return TM_ECODE_FAILED;
+                    }
+#else
+                    SCLogError("The version of libpcap you have"
+                               " doesn't support setting buffer size.");
+#endif /* HAVE_PCAP_SET_BUFF */
+                } else if (strcmp((long_opts[option_index]).name, "build-info") == 0) {
+                    suri->run_mode = RUNMODE_PRINT_BUILDINFO;
+                    return TM_ECODE_OK;
+                } else if (strcmp((long_opts[option_index]).name, "windivert-forward") == 0) {
+#ifdef WINDIVERT
+                    if (suri->run_mode == RUNMODE_UNKNOWN) {
+                        suri->run_mode = RUNMODE_WINDIVERT;
+                        if (WinDivertRegisterQueue(true, optarg) == -1) {
+                            exit(EXIT_FAILURE);
+                        }
+                    } else if (suri->run_mode == RUNMODE_WINDIVERT) {
+                        if (WinDivertRegisterQueue(true, optarg) == -1) {
+                            exit(EXIT_FAILURE);
+                        }
+                    } else {
+                        SCLogError("more than one run mode "
+                                   "has been specified");
+                        PrintUsage(argv[0]);
+                        exit(EXIT_FAILURE);
+                    }
+                } else if (strcmp((long_opts[option_index]).name, "windivert") == 0) {
+                    if (suri->run_mode == RUNMODE_UNKNOWN) {
+                        suri->run_mode = RUNMODE_WINDIVERT;
+                        if (WinDivertRegisterQueue(false, optarg) == -1) {
+                            exit(EXIT_FAILURE);
+                        }
+                    } else if (suri->run_mode == RUNMODE_WINDIVERT) {
+                        if (WinDivertRegisterQueue(false, optarg) == -1) {
+                            exit(EXIT_FAILURE);
+                        }
+                    } else {
+                        SCLogError("more than one run mode "
+                                   "has been specified");
+                        PrintUsage(argv[0]);
+                        exit(EXIT_FAILURE);
+                    }
+#else
+                    SCLogError("WinDivert not enabled. Make sure to pass --enable-windivert to "
+                               "configure when building.");
+                    return TM_ECODE_FAILED;
+#endif /* WINDIVERT */
+                } else if (strcmp((long_opts[option_index]).name, "reject-dev") == 0) {
+#ifdef HAVE_LIBNET11
+                    BUG_ON(optarg == NULL); /* for static analysis */
+                    extern char *g_reject_dev;
+                    extern uint16_t g_reject_dev_mtu;
+                    g_reject_dev = optarg;
+                    int mtu = GetIfaceMTU(g_reject_dev);
+                    if (mtu > 0) {
+                        g_reject_dev_mtu = (uint16_t)mtu;
+                    }
+#else
+                    SCLogError("Libnet 1.1 support not enabled. Compile Suricata with libnet "
+                               "support.");
+                    return TM_ECODE_FAILED;
+#endif
+                } else if (strcmp((long_opts[option_index]).name, "set") == 0) {
+                    if (optarg != NULL) {
+                        /* Quick validation. */
+                        char *val = strchr(optarg, '=');
+                        if (val == NULL) {
+                            FatalError("Invalid argument for --set, must be key=val.");
+                        }
+                        if (!SCConfSetFromString(optarg, 1)) {
+                            FatalError("failed to set configuration value %s", optarg);
+                        }
+                    }
+                } else if (strcmp((long_opts[option_index]).name, "pcap-file-continuous") == 0) {
+                    if (SCConfSetFinal("pcap-file.continuous", "true") != 1) {
+                        SCLogError("Failed to set pcap-file.continuous");
+                        return TM_ECODE_FAILED;
+                    }
+                } else if (strcmp((long_opts[option_index]).name, "pcap-file-delete") == 0) {
+                    if (SCConfSetFinal("pcap-file.delete-when-done", "true") != 1) {
+                        SCLogError("Failed to set pcap-file.delete-when-done");
+                        return TM_ECODE_FAILED;
+                    }
+                } else if (strcmp((long_opts[option_index]).name, "pcap-file-recursive") == 0) {
+                    if (SCConfSetFinal("pcap-file.recursive", "true") != 1) {
+                        SCLogError("failed to set pcap-file.recursive");
+                        return TM_ECODE_FAILED;
+                    }
+                } else if (strcmp((long_opts[option_index]).name, "pcap-file-buffer-size") == 0) {
+                    if (SCConfSetFinal("pcap-file.buffer-size", optarg) != 1) {
+                        SCLogError("failed to set pcap-file.buffer-size");
+                        return TM_ECODE_FAILED;
+                    }
+                } else if (strcmp((long_opts[option_index]).name, "data-dir") == 0) {
+                    if (optarg == NULL) {
+                        SCLogError("no option argument (optarg) for -d");
+                        return TM_ECODE_FAILED;
+                    }
+
+                    if (ConfigSetDataDirectory(optarg) != TM_ECODE_OK) {
+                        SCLogError("Failed to set data directory.");
+                        return TM_ECODE_FAILED;
+                    }
+                    if (ConfigCheckDataDirectory(optarg) != TM_ECODE_OK) {
+                        SCLogError("The data directory \"%s\""
+                                   " supplied at the command-line (-d %s) doesn't "
+                                   "exist. Shutting down the engine.",
+                                optarg, optarg);
+                        return TM_ECODE_FAILED;
+                    }
+                    suri->set_datadir = true;
+                } else if (strcmp((long_opts[option_index]).name, "strict-rule-keywords") == 0) {
+                    if (optarg == NULL) {
+                        suri->strict_rule_parsing_string = SCStrdup("all");
+                    } else {
+                        suri->strict_rule_parsing_string = SCStrdup(optarg);
+                    }
+                    if (suri->strict_rule_parsing_string == NULL) {
+                        FatalError("failed to duplicate 'strict' string");
+                    }
+                } else if (strcmp((long_opts[option_index]).name, "include") == 0) {
+                    if (suri->additional_configs == NULL) {
+                        suri->additional_configs = SCCalloc(2, sizeof(char *));
+                        if (suri->additional_configs == NULL) {
+                            FatalError("Failed to allocate memory for additional configuration "
+                                       "files: %s",
+                                    strerror(errno));
+                        }
+                        suri->additional_configs[0] = optarg;
+                    } else {
+                        for (int i = 0;; i++) {
+                            if (suri->additional_configs[i] == NULL) {
+                                const char **additional_configs = SCRealloc(
+                                        suri->additional_configs, (i + 2) * sizeof(char *));
+                                if (additional_configs == NULL) {
+                                    FatalError("Failed to allocate memory for additional "
+                                               "configuration "
+                                               "files: %s",
+                                            strerror(errno));
+                                } else {
+                                    suri->additional_configs = additional_configs;
+                                }
+                                suri->additional_configs[i] = optarg;
+                                suri->additional_configs[i + 1] = NULL;
+                                break;
+                            }
+                        }
+                    }
+                } else if (strcmp((long_opts[option_index]).name, "firewall-rules-exclusive") ==
+                           0) {
+                    if (suri->firewall_rule_file != NULL) {
+                        SCLogError("can't have multiple --firewall-rules-exclusive options");
+                        return TM_ECODE_FAILED;
+                    }
+                    suri->firewall_rule_file = optarg;
+                    suri->firewall_rule_file_exclusive = true;
+                    suri->is_firewall = true;
+                } else {
+                    int r = ExceptionSimulationCommandLineParser(
+                            (long_opts[option_index]).name, optarg);
+                    if (r < 0)
+                        return TM_ECODE_FAILED;
+                }
+                break;
+            case 'c':
+                suri->conf_filename = optarg;
+                break;
+            case 'T':
+                conf_test = 1;
                 if (SCConfSetFinal("engine.init-failure-fatal", "1") != 1) {
                     SCLogError("failed to set engine init-failure-fatal");
                     return TM_ECODE_FAILED;
                 }
-#ifdef BUILD_UNIX_SOCKET
-            } else if (strcmp((long_opts[option_index]).name , "unix-socket") == 0) {
-                if (suri->run_mode == RUNMODE_UNKNOWN) {
-                    suri->run_mode = RUNMODE_UNIX_SOCKET;
-                    if (optarg) {
-                        if (SCConfSetFinal("unix-command.filename", optarg) != 1) {
-                            SCLogError("failed to set unix-command.filename");
-                            return TM_ECODE_FAILED;
-                        }
-                    }
-                } else {
-                    SCLogError("more than one run mode "
-                               "has been specified");
-                    PrintUsage(argv[0]);
-                    return TM_ECODE_FAILED;
-                }
-#endif
-            }
-            else if(strcmp((long_opts[option_index]).name, "list-app-layer-protocols") == 0) {
-                /* listing all supported app layer protocols */
-            } else if (strcmp((long_opts[option_index]).name, "list-app-layer-hooks") == 0) {
-                /* listing all supported app layer hooks */
-            } else if (strcmp((long_opts[option_index]).name, "list-unittests") == 0) {
-#ifdef UNITTESTS
-                suri->run_mode = RUNMODE_LIST_UNITTEST;
-#else
-                SCLogError("unit tests not enabled. Make sure to pass --enable-unittests to "
-                           "configure when building");
-                return TM_ECODE_FAILED;
-#endif /* UNITTESTS */
-            } else if (strcmp((long_opts[option_index]).name, "list-runmodes") == 0) {
-                suri->run_mode = RUNMODE_LIST_RUNMODES;
-                return TM_ECODE_OK;
-            } else if (strcmp((long_opts[option_index]).name, "list-keywords") == 0) {
-                if (optarg) {
-                    if (strcmp("short", optarg) != 0) {
-                        suri->keyword_info = optarg;
-                    }
-                }
-            } else if (strcmp((long_opts[option_index]).name, "runmode") == 0) {
-                suri->runmode_custom_mode = optarg;
-            } else if (strcmp((long_opts[option_index]).name, "engine-analysis") == 0) {
-                // do nothing for now
-            }
-#ifdef OS_WIN32
-            else if (strcmp((long_opts[option_index]).name, "service-install") == 0) {
-                suri->run_mode = RUNMODE_INSTALL_SERVICE;
-                return TM_ECODE_OK;
-            } else if (strcmp((long_opts[option_index]).name, "service-remove") == 0) {
-                suri->run_mode = RUNMODE_REMOVE_SERVICE;
-                return TM_ECODE_OK;
-            } else if (strcmp((long_opts[option_index]).name, "service-change-params") == 0) {
-                suri->run_mode = RUNMODE_CHANGE_SERVICE_PARAMS;
-                return TM_ECODE_OK;
-            }
+                break;
+#ifndef OS_WIN32
+            case 'D':
+                suri->daemon = 1;
+                break;
 #endif /* OS_WIN32 */
-            else if (strcmp((long_opts[option_index]).name, "pidfile") == 0) {
-                suri->pid_filename = SCStrdup(optarg);
-                if (suri->pid_filename == NULL) {
-                    SCLogError("strdup failed: %s", strerror(errno));
-                    return TM_ECODE_FAILED;
-                }
-            } else if (strcmp((long_opts[option_index]).name, "disable-detection") == 0) {
-                g_detect_disabled = suri->disabled_detect = 1;
-            } else if (strcmp((long_opts[option_index]).name, "disable-hashing") == 0) {
-                g_disable_hashing = true;
-                // for rust
-                SCDisableHashing();
-            } else if (strcmp((long_opts[option_index]).name, "fatal-unittests") == 0) {
-#ifdef UNITTESTS
-                unittests_fatal = 1;
-#else
-                SCLogError("unit tests not enabled. Make sure to pass --enable-unittests to "
-                           "configure when building");
-                return TM_ECODE_FAILED;
-#endif /* UNITTESTS */
-            } else if (strcmp((long_opts[option_index]).name, "user") == 0) {
-#ifndef HAVE_LIBCAP_NG
-                SCLogError("libcap-ng is required to"
-                           " drop privileges, but it was not compiled into Suricata.");
-                return TM_ECODE_FAILED;
-#else
-                suri->user_name = optarg;
-                suri->do_setuid = true;
-#endif /* HAVE_LIBCAP_NG */
-            } else if (strcmp((long_opts[option_index]).name, "group") == 0) {
-#ifndef HAVE_LIBCAP_NG
-                SCLogError("libcap-ng is required to"
-                           " drop privileges, but it was not compiled into Suricata.");
-                return TM_ECODE_FAILED;
-#else
-                suri->group_name = optarg;
-                suri->do_setgid = true;
-#endif /* HAVE_LIBCAP_NG */
-            } else if (strcmp((long_opts[option_index]).name, "erf-in") == 0) {
-                suri->run_mode = RUNMODE_ERF_FILE;
-                if (SCConfSetFinal("erf-file.file", optarg) != 1) {
-                    SCLogError("failed to set erf-file.file");
-                    return TM_ECODE_FAILED;
-                }
-            } else if (strcmp((long_opts[option_index]).name, "dag") == 0) {
-#ifdef HAVE_DAG
-                if (suri->run_mode == RUNMODE_UNKNOWN) {
-                    suri->run_mode = RUNMODE_DAG;
-                }
-                else if (suri->run_mode != RUNMODE_DAG) {
-                    SCLogError("more than one run mode has been specified");
-                    PrintUsage(argv[0]);
-                    return TM_ECODE_FAILED;
-                }
-                LiveRegisterDeviceName(optarg);
-#else
-                SCLogError("libdag and a DAG card are required"
-                           " to receive packets using --dag.");
-                return TM_ECODE_FAILED;
-#endif /* HAVE_DAG */
-            } else if (strcmp((long_opts[option_index]).name, "napatech") == 0) {
-#ifdef HAVE_NAPATECH
-                suri->run_mode = RUNMODE_PLUGIN;
-#else
-                SCLogError("libntapi and a Napatech adapter are required"
-                           " to capture packets using --napatech.");
-                return TM_ECODE_FAILED;
-#endif /* HAVE_NAPATECH */
-            } else if (strcmp((long_opts[option_index]).name, "pcap-buffer-size") == 0) {
-#ifdef HAVE_PCAP_SET_BUFF
-                if (SCConfSetFinal("pcap.buffer-size", optarg) != 1) {
-                    SCLogError("failed to set pcap-buffer-size");
-                    return TM_ECODE_FAILED;
-                }
-#else
-                SCLogError("The version of libpcap you have"
-                           " doesn't support setting buffer size.");
-#endif /* HAVE_PCAP_SET_BUFF */
-            } else if (strcmp((long_opts[option_index]).name, "build-info") == 0) {
-                suri->run_mode = RUNMODE_PRINT_BUILDINFO;
+            case 'h':
+                suri->run_mode = RUNMODE_PRINT_USAGE;
                 return TM_ECODE_OK;
-            } else if (strcmp((long_opts[option_index]).name, "windivert-forward") == 0) {
-#ifdef WINDIVERT
-                if (suri->run_mode == RUNMODE_UNKNOWN) {
-                    suri->run_mode = RUNMODE_WINDIVERT;
-                    if (WinDivertRegisterQueue(true, optarg) == -1) {
-                        exit(EXIT_FAILURE);
-                    }
-                } else if (suri->run_mode == RUNMODE_WINDIVERT) {
-                    if (WinDivertRegisterQueue(true, optarg) == -1) {
-                        exit(EXIT_FAILURE);
-                    }
-                } else {
-                    SCLogError("more than one run mode "
-                               "has been specified");
-                    PrintUsage(argv[0]);
-                    exit(EXIT_FAILURE);
-                }
-            }
-            else if(strcmp((long_opts[option_index]).name, "windivert") == 0) {
-                if (suri->run_mode == RUNMODE_UNKNOWN) {
-                    suri->run_mode = RUNMODE_WINDIVERT;
-                    if (WinDivertRegisterQueue(false, optarg) == -1) {
-                        exit(EXIT_FAILURE);
-                    }
-                } else if (suri->run_mode == RUNMODE_WINDIVERT) {
-                    if (WinDivertRegisterQueue(false, optarg) == -1) {
-                        exit(EXIT_FAILURE);
-                    }
-                } else {
-                    SCLogError("more than one run mode "
-                               "has been specified");
-                    PrintUsage(argv[0]);
-                    exit(EXIT_FAILURE);
-                }
-#else
-                SCLogError("WinDivert not enabled. Make sure to pass --enable-windivert to "
-                           "configure when building.");
-                return TM_ECODE_FAILED;
-#endif /* WINDIVERT */
-            } else if(strcmp((long_opts[option_index]).name, "reject-dev") == 0) {
-#ifdef HAVE_LIBNET11
-                BUG_ON(optarg == NULL); /* for static analysis */
-                extern char *g_reject_dev;
-                extern uint16_t g_reject_dev_mtu;
-                g_reject_dev = optarg;
-                int mtu = GetIfaceMTU(g_reject_dev);
-                if (mtu > 0) {
-                    g_reject_dev_mtu = (uint16_t)mtu;
-                }
-#else
-                SCLogError("Libnet 1.1 support not enabled. Compile Suricata with libnet support.");
-                return TM_ECODE_FAILED;
-#endif
-            }
-            else if (strcmp((long_opts[option_index]).name, "set") == 0) {
-                if (optarg != NULL) {
-                    /* Quick validation. */
-                    char *val = strchr(optarg, '=');
-                    if (val == NULL) {
-                        FatalError("Invalid argument for --set, must be key=val.");
-                    }
-                    if (!SCConfSetFromString(optarg, 1)) {
-                        FatalError("failed to set configuration value %s", optarg);
-                    }
-                }
-            }
-            else if (strcmp((long_opts[option_index]).name, "pcap-file-continuous") == 0) {
-                if (SCConfSetFinal("pcap-file.continuous", "true") != 1) {
-                    SCLogError("Failed to set pcap-file.continuous");
-                    return TM_ECODE_FAILED;
-                }
-            }
-            else if (strcmp((long_opts[option_index]).name, "pcap-file-delete") == 0) {
-                if (SCConfSetFinal("pcap-file.delete-when-done", "true") != 1) {
-                    SCLogError("Failed to set pcap-file.delete-when-done");
-                    return TM_ECODE_FAILED;
-                }
-            }
-            else if (strcmp((long_opts[option_index]).name, "pcap-file-recursive") == 0) {
-                if (SCConfSetFinal("pcap-file.recursive", "true") != 1) {
-                    SCLogError("failed to set pcap-file.recursive");
-                    return TM_ECODE_FAILED;
-                }
-            } else if (strcmp((long_opts[option_index]).name, "pcap-file-buffer-size") == 0) {
-                if (SCConfSetFinal("pcap-file.buffer-size", optarg) != 1) {
-                    SCLogError("failed to set pcap-file.buffer-size");
-                    return TM_ECODE_FAILED;
-                }
-            } else if (strcmp((long_opts[option_index]).name, "data-dir") == 0) {
+            case 'i':
                 if (optarg == NULL) {
-                    SCLogError("no option argument (optarg) for -d");
+                    SCLogError("no option argument (optarg) for -i");
+                    return TM_ECODE_FAILED;
+                }
+#ifdef HAVE_AF_PACKET
+                if (ParseCommandLineAfpacket(suri, optarg) != TM_ECODE_OK) {
+                    return TM_ECODE_FAILED;
+                }
+#else /* not afpacket */
+                /* warn user if netmap is available */
+#if defined HAVE_NETMAP
+                int i = 0;
+#ifdef HAVE_NETMAP
+                i++;
+#endif
+                SCLogWarning("faster capture "
+                             "option%s %s available:"
+#ifdef HAVE_NETMAP
+                             " NETMAP (--netmap=%s)"
+#endif
+                             ". Use --pcap=%s to suppress this warning",
+                        i == 1 ? "" : "s", i == 1 ? "is" : "are"
+#ifdef HAVE_NETMAP
+                        ,
+                        optarg
+#endif
+                        ,
+                        optarg);
+#endif /* have faster methods */
+                if (ParseCommandLinePcapLive(suri, optarg) != TM_ECODE_OK) {
+                    return TM_ECODE_FAILED;
+                }
+#endif
+                break;
+            case 'l':
+                if (optarg == NULL) {
+                    SCLogError("no option argument (optarg) for -l");
                     return TM_ECODE_FAILED;
                 }
 
-                if (ConfigSetDataDirectory(optarg) != TM_ECODE_OK) {
-                    SCLogError("Failed to set data directory.");
+                if (ConfigSetLogDirectory(optarg) != TM_ECODE_OK) {
+                    SCLogError("Failed to set log directory.");
                     return TM_ECODE_FAILED;
                 }
-                if (ConfigCheckDataDirectory(optarg) != TM_ECODE_OK) {
-                    SCLogError("The data directory \"%s\""
-                               " supplied at the command-line (-d %s) doesn't "
+                if (ConfigCheckLogDirectoryExists(optarg) != TM_ECODE_OK) {
+                    SCLogError("The logging directory \"%s\""
+                               " supplied at the command-line (-l %s) doesn't "
                                "exist. Shutting down the engine.",
                             optarg, optarg);
                     return TM_ECODE_FAILED;
                 }
-                suri->set_datadir = true;
-            } else if (strcmp((long_opts[option_index]).name, "strict-rule-keywords") == 0) {
-                if (optarg == NULL) {
-                    suri->strict_rule_parsing_string = SCStrdup("all");
-                } else {
-                    suri->strict_rule_parsing_string = SCStrdup(optarg);
-                }
-                if (suri->strict_rule_parsing_string == NULL) {
-                    FatalError("failed to duplicate 'strict' string");
-                }
-            } else if (strcmp((long_opts[option_index]).name, "include") == 0) {
-                if (suri->additional_configs == NULL) {
-                    suri->additional_configs = SCCalloc(2, sizeof(char *));
-                    if (suri->additional_configs == NULL) {
-                        FatalError(
-                                "Failed to allocate memory for additional configuration files: %s",
-                                strerror(errno));
-                    }
-                    suri->additional_configs[0] = optarg;
-                } else {
-                    for (int i = 0;; i++) {
-                        if (suri->additional_configs[i] == NULL) {
-                            const char **additional_configs =
-                                    SCRealloc(suri->additional_configs, (i + 2) * sizeof(char *));
-                            if (additional_configs == NULL) {
-                                FatalError("Failed to allocate memory for additional configuration "
-                                           "files: %s",
-                                        strerror(errno));
-                            } else {
-                                suri->additional_configs = additional_configs;
-                            }
-                            suri->additional_configs[i] = optarg;
-                            suri->additional_configs[i + 1] = NULL;
-                            break;
-                        }
-                    }
-                }
-            } else if (strcmp((long_opts[option_index]).name, "firewall-rules-exclusive") == 0) {
-                if (suri->firewall_rule_file != NULL) {
-                    SCLogError("can't have multiple --firewall-rules-exclusive options");
+                if (!IsLogDirectoryWritable(optarg)) {
+                    SCLogError("The logging directory \"%s\""
+                               " supplied at the command-line (-l %s) is not "
+                               "writable. Shutting down the engine.",
+                            optarg, optarg);
                     return TM_ECODE_FAILED;
                 }
-                suri->firewall_rule_file = optarg;
-                suri->firewall_rule_file_exclusive = true;
-                suri->is_firewall = true;
-            } else {
-                int r = ExceptionSimulationCommandLineParser(
-                        (long_opts[option_index]).name, optarg);
-                if (r < 0)
-                    return TM_ECODE_FAILED;
-            }
-            break;
-        case 'c':
-            suri->conf_filename = optarg;
-            break;
-        case 'T':
-            conf_test = 1;
-            if (SCConfSetFinal("engine.init-failure-fatal", "1") != 1) {
-                SCLogError("failed to set engine init-failure-fatal");
-                return TM_ECODE_FAILED;
-            }
-            break;
-#ifndef OS_WIN32
-        case 'D':
-            suri->daemon = 1;
-            break;
-#endif /* OS_WIN32 */
-        case 'h':
-            suri->run_mode = RUNMODE_PRINT_USAGE;
-            return TM_ECODE_OK;
-        case 'i':
-            if (optarg == NULL) {
-                SCLogError("no option argument (optarg) for -i");
-                return TM_ECODE_FAILED;
-            }
-#ifdef HAVE_AF_PACKET
-            if (ParseCommandLineAfpacket(suri, optarg) != TM_ECODE_OK) {
-                return TM_ECODE_FAILED;
-            }
-#else /* not afpacket */
-            /* warn user if netmap is available */
-#if defined HAVE_NETMAP
-            int i = 0;
-#ifdef HAVE_NETMAP
-            i++;
-#endif
-            SCLogWarning("faster capture "
-                         "option%s %s available:"
-#ifdef HAVE_NETMAP
-                         " NETMAP (--netmap=%s)"
-#endif
-                         ". Use --pcap=%s to suppress this warning",
-                    i == 1 ? "" : "s", i == 1 ? "is" : "are"
-#ifdef HAVE_NETMAP
-                    ,
-                    optarg
-#endif
-                    ,
-                    optarg);
-#endif /* have faster methods */
-            if (ParseCommandLinePcapLive(suri, optarg) != TM_ECODE_OK) {
-                return TM_ECODE_FAILED;
-            }
-#endif
-            break;
-        case 'l':
-            if (optarg == NULL) {
-                SCLogError("no option argument (optarg) for -l");
-                return TM_ECODE_FAILED;
-            }
+                suri->set_logdir = true;
 
-            if (ConfigSetLogDirectory(optarg) != TM_ECODE_OK) {
-                SCLogError("Failed to set log directory.");
-                return TM_ECODE_FAILED;
-            }
-            if (ConfigCheckLogDirectoryExists(optarg) != TM_ECODE_OK) {
-                SCLogError("The logging directory \"%s\""
-                           " supplied at the command-line (-l %s) doesn't "
-                           "exist. Shutting down the engine.",
-                        optarg, optarg);
-                return TM_ECODE_FAILED;
-            }
-            if (!IsLogDirectoryWritable(optarg)) {
-                SCLogError("The logging directory \"%s\""
-                           " supplied at the command-line (-l %s) is not "
-                           "writable. Shutting down the engine.",
-                        optarg, optarg);
-                return TM_ECODE_FAILED;
-            }
-            suri->set_logdir = true;
-
-            break;
-        case 'q':
+                break;
+            case 'q':
 #ifdef NFQ
-            if (suri->run_mode == RUNMODE_UNKNOWN) {
-                suri->run_mode = RUNMODE_NFQ;
-                EngineModeSetIPS();
-                if (NFQParseAndRegisterQueues(optarg) == -1)
+                if (suri->run_mode == RUNMODE_UNKNOWN) {
+                    suri->run_mode = RUNMODE_NFQ;
+                    EngineModeSetIPS();
+                    if (NFQParseAndRegisterQueues(optarg) == -1)
+                        return TM_ECODE_FAILED;
+                } else if (suri->run_mode == RUNMODE_NFQ) {
+                    if (NFQParseAndRegisterQueues(optarg) == -1)
+                        return TM_ECODE_FAILED;
+                } else {
+                    SCLogError("more than one run mode "
+                               "has been specified");
+                    PrintUsage(argv[0]);
                     return TM_ECODE_FAILED;
-            } else if (suri->run_mode == RUNMODE_NFQ) {
-                if (NFQParseAndRegisterQueues(optarg) == -1)
-                    return TM_ECODE_FAILED;
-            } else {
-                SCLogError("more than one run mode "
-                           "has been specified");
-                PrintUsage(argv[0]);
-                return TM_ECODE_FAILED;
-            }
+                }
 #else
-            SCLogError("NFQUEUE not enabled. Make sure to pass --enable-nfqueue to configure when "
-                       "building.");
-            return TM_ECODE_FAILED;
+                SCLogError(
+                        "NFQUEUE not enabled. Make sure to pass --enable-nfqueue to configure when "
+                        "building.");
+                return TM_ECODE_FAILED;
 #endif /* NFQ */
-            break;
-        case 'd':
+                break;
+            case 'd':
 #ifdef IPFW
-            if (suri->run_mode == RUNMODE_UNKNOWN) {
-                suri->run_mode = RUNMODE_IPFW;
-                EngineModeSetIPS();
-                if (IPFWRegisterQueue(optarg) == -1)
+                if (suri->run_mode == RUNMODE_UNKNOWN) {
+                    suri->run_mode = RUNMODE_IPFW;
+                    EngineModeSetIPS();
+                    if (IPFWRegisterQueue(optarg) == -1)
+                        return TM_ECODE_FAILED;
+                } else if (suri->run_mode == RUNMODE_IPFW) {
+                    if (IPFWRegisterQueue(optarg) == -1)
+                        return TM_ECODE_FAILED;
+                } else {
+                    SCLogError("more than one run mode "
+                               "has been specified");
+                    PrintUsage(argv[0]);
                     return TM_ECODE_FAILED;
-            } else if (suri->run_mode == RUNMODE_IPFW) {
-                if (IPFWRegisterQueue(optarg) == -1)
-                    return TM_ECODE_FAILED;
-            } else {
-                SCLogError("more than one run mode "
-                           "has been specified");
-                PrintUsage(argv[0]);
-                return TM_ECODE_FAILED;
-            }
+                }
 #else
-            SCLogError("IPFW not enabled. Make sure to pass --enable-ipfw to configure when "
-                       "building.");
-            return TM_ECODE_FAILED;
+                SCLogError("IPFW not enabled. Make sure to pass --enable-ipfw to configure when "
+                           "building.");
+                return TM_ECODE_FAILED;
 #endif /* IPFW */
-            break;
-        case 'r':
-            BUG_ON(optarg == NULL); /* for static analysis */
-            if (suri->run_mode == RUNMODE_UNKNOWN) {
-                suri->run_mode = RUNMODE_PCAP_FILE;
-            } else {
-                SCLogError("more than one run mode "
-                           "has been specified");
-                PrintUsage(argv[0]);
-                return TM_ECODE_FAILED;
-            }
-            SCStat buf;
-            if (SCStatFn(optarg, &buf) != 0) {
-                SCLogError("pcap file '%s': %s", optarg, strerror(errno));
-                return TM_ECODE_FAILED;
-            }
-            if (SCConfSetFinal("pcap-file.file", optarg) != 1) {
-                SCLogError("ERROR: Failed to set pcap-file.file\n");
-                return TM_ECODE_FAILED;
-            }
+                break;
+            case 'r':
+                BUG_ON(optarg == NULL); /* for static analysis */
+                if (suri->run_mode == RUNMODE_UNKNOWN) {
+                    suri->run_mode = RUNMODE_PCAP_FILE;
+                } else {
+                    SCLogError("more than one run mode "
+                               "has been specified");
+                    PrintUsage(argv[0]);
+                    return TM_ECODE_FAILED;
+                }
+                SCStat buf;
+                if (SCStatFn(optarg, &buf) != 0) {
+                    SCLogError("pcap file '%s': %s", optarg, strerror(errno));
+                    return TM_ECODE_FAILED;
+                }
+                if (SCConfSetFinal("pcap-file.file", optarg) != 1) {
+                    SCLogError("ERROR: Failed to set pcap-file.file\n");
+                    return TM_ECODE_FAILED;
+                }
 
-            break;
-        case 's':
-            if (suri->sig_file != NULL) {
-                SCLogError("can't have multiple -s options or mix -s and -S.");
-                return TM_ECODE_FAILED;
-            }
-            suri->sig_file = optarg;
-            break;
-        case 'S':
-            if (suri->sig_file != NULL) {
-                SCLogError("can't have multiple -S options or mix -s and -S.");
-                return TM_ECODE_FAILED;
-            }
-            suri->sig_file = optarg;
-            suri->sig_file_exclusive = true;
-            break;
-        case 'u':
+                break;
+            case 's':
+                if (suri->sig_file != NULL) {
+                    SCLogError("can't have multiple -s options or mix -s and -S.");
+                    return TM_ECODE_FAILED;
+                }
+                suri->sig_file = optarg;
+                break;
+            case 'S':
+                if (suri->sig_file != NULL) {
+                    SCLogError("can't have multiple -S options or mix -s and -S.");
+                    return TM_ECODE_FAILED;
+                }
+                suri->sig_file = optarg;
+                suri->sig_file_exclusive = true;
+                break;
+            case 'u':
 #ifdef UNITTESTS
-            if (suri->run_mode == RUNMODE_UNKNOWN) {
-                suri->run_mode = RUNMODE_UNITTEST;
-            } else {
-                SCLogError("more than one run mode has"
-                           " been specified");
-                PrintUsage(argv[0]);
-                return TM_ECODE_FAILED;
-            }
+                if (suri->run_mode == RUNMODE_UNKNOWN) {
+                    suri->run_mode = RUNMODE_UNITTEST;
+                } else {
+                    SCLogError("more than one run mode has"
+                               " been specified");
+                    PrintUsage(argv[0]);
+                    return TM_ECODE_FAILED;
+                }
 #else
-            SCLogError("unit tests not enabled. Make sure to pass --enable-unittests to configure "
-                       "when building.");
-            return TM_ECODE_FAILED;
+                SCLogError(
+                        "unit tests not enabled. Make sure to pass --enable-unittests to configure "
+                        "when building.");
+                return TM_ECODE_FAILED;
 #endif /* UNITTESTS */
-            break;
-        case 'U':
+                break;
+            case 'U':
 #ifdef UNITTESTS
-            suri->regex_arg = optarg;
+                suri->regex_arg = optarg;
 
-            if(strlen(suri->regex_arg) == 0)
-                suri->regex_arg = NULL;
+                if (strlen(suri->regex_arg) == 0)
+                    suri->regex_arg = NULL;
 #endif
-            break;
-        case 'V':
-            suri->run_mode = RUNMODE_PRINT_VERSION;
-            return TM_ECODE_OK;
-        case 'F':
-            if (optarg == NULL) {
-                SCLogError("no option argument (optarg) for -F");
-                return TM_ECODE_FAILED;
-            }
+                break;
+            case 'V':
+                suri->run_mode = RUNMODE_PRINT_VERSION;
+                return TM_ECODE_OK;
+            case 'F':
+                if (optarg == NULL) {
+                    SCLogError("no option argument (optarg) for -F");
+                    return TM_ECODE_FAILED;
+                }
 
-            SetBpfStringFromFile(optarg);
-            break;
-        case 'v':
-            suri->verbose++;
-            break;
-        case 'k':
-            if (optarg == NULL) {
-                SCLogError("no option argument (optarg) for -k");
+                SetBpfStringFromFile(optarg);
+                break;
+            case 'v':
+                suri->verbose++;
+                break;
+            case 'k':
+                if (optarg == NULL) {
+                    SCLogError("no option argument (optarg) for -k");
+                    return TM_ECODE_FAILED;
+                }
+                if (!strcmp("all", optarg))
+                    suri->checksum_validation = 1;
+                else if (!strcmp("none", optarg))
+                    suri->checksum_validation = 0;
+                else {
+                    SCLogError("option '%s' invalid for -k", optarg);
+                    return TM_ECODE_FAILED;
+                }
+                break;
+            default:
+                PrintUsage(argv[0]);
                 return TM_ECODE_FAILED;
-            }
-            if (!strcmp("all", optarg))
-                suri->checksum_validation = 1;
-            else if (!strcmp("none", optarg))
-                suri->checksum_validation = 0;
-            else {
-                SCLogError("option '%s' invalid for -k", optarg);
-                return TM_ECODE_FAILED;
-            }
-            break;
-        default:
-            PrintUsage(argv[0]);
-            return TM_ECODE_FAILED;
         }
     }
 
@@ -2476,7 +2482,7 @@ static void SetupDelayedDetect(SCInstance *suri)
             SCConfNode *denode = NULL;
             SCConfNode *decnf = SCConfGetNode("detect-engine");
             if (decnf != NULL) {
-                TAILQ_FOREACH(denode, &decnf->head, next) {
+                TAILQ_FOREACH (denode, &decnf->head, next) {
                     if (strcmp(denode->val, "delayed-detect") == 0) {
                         (void)SCConfGetChildValueBool(
                                 denode, "delayed-detect", &suri->delayed_detect);
@@ -2490,7 +2496,6 @@ static void SetupDelayedDetect(SCInstance *suri)
     if (suri->delayed_detect) {
         SCLogInfo("Packets will start being processed before signatures are active.");
     }
-
 }
 
 static int LoadSignatures(DetectEngineCtx *de_ctx, SCInstance *suri)
@@ -2567,12 +2572,9 @@ static int ConfigGetCaptureValue(SCInstance *suri)
 
                     if (strip_trailing_plus) {
                         size_t len = strlen(dev);
-                        if (len &&
-                                (dev[len-1] == '+' ||
-                                 dev[len-1] == '^' ||
-                                 dev[len-1] == '*'))
-                        {
-                            dev[len-1] = '\0';
+                        if (len && (dev[len - 1] == '+' || dev[len - 1] == '^' ||
+                                           dev[len - 1] == '*')) {
+                            dev[len - 1] = '\0';
                         }
                     }
                     LiveDevice *ld = LiveGetDevice(dev);
@@ -2595,7 +2597,7 @@ static int ConfigGetCaptureValue(SCInstance *suri)
         }
     }
 
-    SCLogDebug("Default packet size set to %"PRIu32, default_packet_size);
+    SCLogDebug("Default packet size set to %" PRIu32, default_packet_size);
 
     return TM_ECODE_OK;
 }
@@ -2922,7 +2924,7 @@ int PostConfLoadedSetup(SCInstance *suri)
 void SuricataMainLoop(void)
 {
     SCInstance *suri = &suricata;
-    while(1) {
+    while (1) {
         if (sigterm_count || sigint_count) {
             suricata_ctl_flags |= SURICATA_STOP;
         }
@@ -2952,7 +2954,7 @@ void SuricataMainLoop(void)
             DetectEngineReloadSetIdle();
         }
 
-        usleep(10* 1000);
+        usleep(10 * 1000);
     }
 }
 
@@ -3071,7 +3073,7 @@ void SuricataInit(void)
     PostConfLoadedDetectSetup(&suricata);
     if (suricata.run_mode == RUNMODE_ENGINE_ANALYSIS) {
         goto out;
-    } else if (suricata.run_mode == RUNMODE_CONF_TEST){
+    } else if (suricata.run_mode == RUNMODE_CONF_TEST) {
         SCLogNotice("Configuration provided was successfully loaded. Exiting.");
         goto out;
     } else if (suricata.run_mode == RUNMODE_DUMP_FEATURES) {

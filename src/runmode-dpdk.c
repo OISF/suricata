@@ -55,7 +55,7 @@
 #ifdef HAVE_DPDK
 
 // Calculates the closest multiple of y from x
-#define ROUNDUP(x, y) ((((x) + ((y)-1)) / (y)) * (y))
+#define ROUNDUP(x, y) ((((x) + ((y) - 1)) / (y)) * (y))
 
 /* Maximum DPDK EAL parameters count. */
 #define EAL_ARGS 48

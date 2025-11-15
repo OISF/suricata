@@ -34,7 +34,7 @@
 
 #include "util-debug.h"
 
-static int DetectNocaseSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectNocaseSetup(DetectEngineCtx *, Signature *, const char *);
 
 void DetectNocaseRegister(void)
 {
@@ -54,7 +54,7 @@ void DetectNocaseRegister(void)
  *  \retval 0 ok
  *  \retval -1 failure
  */
-static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
+static int DetectNocaseSetup(DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
 {
     SCEnter();
 
@@ -76,6 +76,6 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
 
     DetectContentData *cd = (DetectContentData *)pm->ctx;
     ret = DetectContentConvertToNocase(de_ctx, cd);
- end:
+end:
     SCReturnInt(ret);
 }

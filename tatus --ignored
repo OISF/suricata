@@ -1,0 +1,25 @@
+[33mcommit dc9596ea7886cdcb60f20d60e61ae22e6ce2e7e5[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mconvert-tests-fail-pass[m[33m, [m[1;31morigin/convert-tests-fail-pass[m[33m)[m
+Author: Nickson Kihugu <nicksonkihugu1@gmail.com>
+Date:   Sat Nov 15 11:31:33 2025 +0300
+
+    Convert tests to FAIL/PASS API
+
+ .gitignore                                             |    2 [32m+[m
+ etc/suricata/classification.config                     |   51 [32m+[m
+ etc/suricata/reference.config                          |   44 [32m+[m
+ etc/suricata/suricata.yaml                             | 2345 [32m++++++++++++++++++++++++++++++[m
+ etc/suricata/threshold.config                          |   32 [32m+[m
+ lib/suricata/python/suricata/config/defaults.py        |    3 [32m+[m
+ share/doc/suricata/AUTHORS                             |    6 [32m+[m
+ share/doc/suricata/Basic_Setup.txt                     |  116 [32m++[m
+ share/doc/suricata/INSTALL                             |    5 [32m+[m
+ share/doc/suricata/NEWS                                |    1 [32m+[m
+ share/doc/suricata/README                              |    0
+ share/doc/suricata/Setting_up_IPSinline_for_Linux.txt  |   83 [32m++[m
+ share/doc/suricata/TODO                                |    3 [32m+[m
+ share/doc/suricata/Third_Party_Installation_Guides.txt |   10 [32m+[m
+ share/suricata/classification.config                   |   51 [32m+[m
+ share/suricata/reference.config                        |   44 [32m+[m
+ src/tests/detect.c                                     |  196 [32m+[m[31m--[m
+ var/log/suricata/eve.json                              |    0
+ 18 files changed, 2861 insertions(+), 131 deletions(-)

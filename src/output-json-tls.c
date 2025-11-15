@@ -160,9 +160,9 @@ static void JsonTlsLogSessionResumed(SCJsonBuilder *js, SSLState *ssl_state)
         /* Only log a session as 'resumed' if a certificate has not
            been seen, and the session is not TLSv1.3 or later. */
         if ((ssl_state->server_connp.cert0_issuerdn == NULL &&
-               ssl_state->server_connp.cert0_subject == NULL) &&
-               (ssl_state->flags & SSL_AL_FLAG_STATE_SERVER_HELLO) &&
-               ((ssl_state->flags & SSL_AL_FLAG_LOG_WITHOUT_CERT) == 0)) {
+                    ssl_state->server_connp.cert0_subject == NULL) &&
+                (ssl_state->flags & SSL_AL_FLAG_STATE_SERVER_HELLO) &&
+                ((ssl_state->flags & SSL_AL_FLAG_LOG_WITHOUT_CERT) == 0)) {
             SCJbSetBool(js, "session_resumed", true);
         }
     }
@@ -503,8 +503,8 @@ bool JsonTlsLogJSONExtended(void *vtx, SCJsonBuilder *tjs)
     return SCJbClose(tjs);
 }
 
-static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
-                         Flow *f, void *state, void *txptr, uint64_t tx_id)
+static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state,
+        void *txptr, uint64_t tx_id)
 {
     JsonTlsLogThread *aft = (JsonTlsLogThread *)thread_data;
     OutputTlsCtx *tls_ctx = aft->tlslog_ctx;
@@ -612,11 +612,10 @@ static OutputTlsCtx *OutputTlsInitCtx(SCConfNode *conf)
     if (custom) {
         tls_ctx->fields = 0;
         SCConfNode *field;
-        TAILQ_FOREACH(field, &custom->head, next)
-        {
+        TAILQ_FOREACH (field, &custom->head, next) {
             bool valid = false;
             TlsFields *valid_fields = tls_fields;
-            for ( ; valid_fields->name != NULL; valid_fields++) {
+            for (; valid_fields->name != NULL; valid_fields++) {
                 if (strcasecmp(field->val, valid_fields->name) == 0) {
                     tls_ctx->fields |= valid_fields->flag;
                     SCLogDebug("enabled %s", field->val);
@@ -636,8 +635,7 @@ static OutputTlsCtx *OutputTlsInitCtx(SCConfNode *conf)
         tls_ctx->session_resumed = true;
     }
 
-    if ((tls_ctx->fields & LOG_TLS_FIELD_CERTIFICATE) &&
-            (tls_ctx->fields & LOG_TLS_FIELD_CHAIN)) {
+    if ((tls_ctx->fields & LOG_TLS_FIELD_CERTIFICATE) && (tls_ctx->fields & LOG_TLS_FIELD_CHAIN)) {
         SCLogWarning("Both 'certificate' and 'chain' contains the top "
                      "certificate, so only one of them should be enabled "
                      "at a time");
@@ -687,8 +685,7 @@ static OutputInitResult OutputTlsLogInitSub(SCConfNode *conf, OutputCtx *parent_
 
     tls_ctx->eve_ctx = ojc;
 
-    if ((tls_ctx->fields & LOG_TLS_FIELD_CERTIFICATE) &&
-            (tls_ctx->fields & LOG_TLS_FIELD_CHAIN)) {
+    if ((tls_ctx->fields & LOG_TLS_FIELD_CERTIFICATE) && (tls_ctx->fields & LOG_TLS_FIELD_CHAIN)) {
         SCLogWarning("Both 'certificate' and 'chain' contains the top "
                      "certificate, so only one of them should be enabled "
                      "at a time");
@@ -704,7 +701,7 @@ static OutputInitResult OutputTlsLogInitSub(SCConfNode *conf, OutputCtx *parent_
     return result;
 }
 
-void JsonTlsLogRegister (void)
+void JsonTlsLogRegister(void)
 {
     /* register as child of eve-log */
     OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_TX, "eve-log", "JsonTlsLog", "eve-log.tls",

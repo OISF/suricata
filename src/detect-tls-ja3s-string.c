@@ -68,9 +68,8 @@ static int DetectJA3SetupNoSupport(DetectEngineCtx *a, Signature *b, const char 
 #ifdef HAVE_JA3
 static int DetectTlsJa3SStringSetup(DetectEngineCtx *, Signature *, const char *);
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-       const DetectEngineTransforms *transforms,
-       Flow *f, const uint8_t flow_flags,
-       void *txv, const int list_id);
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
+        const int list_id);
 static int g_tls_ja3s_str_buffer_id = 0;
 #endif
 
@@ -146,8 +145,8 @@ static int DetectTlsJa3SStringSetup(DetectEngineCtx *de_ctx, Signature *s, const
 }
 
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *f,
-        const uint8_t flow_flags, void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
+        const int list_id)
 {
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {

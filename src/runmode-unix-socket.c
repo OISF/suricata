@@ -138,9 +138,9 @@ static SCCtrlMutex unix_manager_pcap_last_processed_mutex;
  *
  * \retval 0 in case of error, 1 in case of success
  */
-static TmEcode UnixSocketPcapFilesList(json_t *cmd, json_t* answer, void *data)
+static TmEcode UnixSocketPcapFilesList(json_t *cmd, json_t *answer, void *data)
 {
-    PcapCommand *this = (PcapCommand *) data;
+    PcapCommand *this = (PcapCommand *)data;
     int i = 0;
     PcapFiles *file;
     json_t *jdata;
@@ -148,18 +148,18 @@ static TmEcode UnixSocketPcapFilesList(json_t *cmd, json_t* answer, void *data)
 
     jdata = json_object();
     if (jdata == NULL) {
-        json_object_set_new(answer, "message",
-                            json_string("internal error at json object creation"));
+        json_object_set_new(
+                answer, "message", json_string("internal error at json object creation"));
         return TM_ECODE_FAILED;
     }
     jarray = json_array();
     if (jarray == NULL) {
         json_decref(jdata);
-        json_object_set_new(answer, "message",
-                            json_string("internal error at json object creation"));
+        json_object_set_new(
+                answer, "message", json_string("internal error at json object creation"));
         return TM_ECODE_FAILED;
     }
-    TAILQ_FOREACH(file, &this->files, next) {
+    TAILQ_FOREACH (file, &this->files, next) {
         json_array_append_new(jarray, SCJsonString(file->filename));
         i++;
     }
@@ -169,26 +169,25 @@ static TmEcode UnixSocketPcapFilesList(json_t *cmd, json_t* answer, void *data)
     return TM_ECODE_OK;
 }
 
-static TmEcode UnixSocketPcapFilesNumber(json_t *cmd, json_t* answer, void *data)
+static TmEcode UnixSocketPcapFilesNumber(json_t *cmd, json_t *answer, void *data)
 {
-    PcapCommand *this = (PcapCommand *) data;
+    PcapCommand *this = (PcapCommand *)data;
     int i = 0;
     PcapFiles *file;
 
-    TAILQ_FOREACH(file, &this->files, next) {
+    TAILQ_FOREACH (file, &this->files, next) {
         i++;
     }
     json_object_set_new(answer, "message", json_integer(i));
     return TM_ECODE_OK;
 }
 
-static TmEcode UnixSocketPcapCurrent(json_t *cmd, json_t* answer, void *data)
+static TmEcode UnixSocketPcapCurrent(json_t *cmd, json_t *answer, void *data)
 {
-    PcapCommand *this = (PcapCommand *) data;
+    PcapCommand *this = (PcapCommand *)data;
 
     if (this->current_file != NULL && this->current_file->filename != NULL) {
-        json_object_set_new(answer, "message",
-                            json_string(this->current_file->filename));
+        json_object_set_new(answer, "message", json_string(this->current_file->filename));
     } else {
         json_object_set_new(answer, "message", json_string("None"));
     }
@@ -202,8 +201,7 @@ static TmEcode UnixSocketPcapLastProcessed(json_t *cmd, json_t *answer, void *da
     epoch_millis = SCTimespecAsEpochMillis(&unix_manager_pcap_last_processed);
     SCCtrlMutexUnlock(&unix_manager_pcap_last_processed_mutex);
 
-    json_object_set_new(answer, "message",
-                        json_integer(epoch_millis));
+    json_object_set_new(answer, "message", json_integer(epoch_millis));
 
     return TM_ECODE_OK;
 }
@@ -289,10 +287,9 @@ static TmEcode UnixListAddFile(PcapCommand *this, const char *filename, const ch
  * \param data pointer to data defining the context here a PcapCommand::
  * \param continuous If this should run in continuous mode
  */
-static TmEcode UnixSocketAddPcapFileImpl(json_t *cmd, json_t* answer, void *data,
-                                         bool continuous)
+static TmEcode UnixSocketAddPcapFileImpl(json_t *cmd, json_t *answer, void *data, bool continuous)
 {
-    PcapCommand *this = (PcapCommand *) data;
+    PcapCommand *this = (PcapCommand *)data;
     const char *filename;
     const char *output_dir;
     uint32_t tenant_id = 0;
@@ -304,14 +301,12 @@ static TmEcode UnixSocketAddPcapFileImpl(json_t *cmd, json_t* answer, void *data
     json_t *jarg = json_object_get(cmd, "filename");
     if (!json_is_string(jarg)) {
         SCLogError("filename is not a string");
-        json_object_set_new(answer, "message",
-                            json_string("filename is not a string"));
+        json_object_set_new(answer, "message", json_string("filename is not a string"));
         return TM_ECODE_FAILED;
     }
     filename = json_string_value(jarg);
     if (SCStatFn(filename, &st) != 0) {
-        json_object_set_new(answer, "message",
-                            json_string("filename does not exist"));
+        json_object_set_new(answer, "message", json_string("filename does not exist"));
         return TM_ECODE_FAILED;
     }
 
@@ -320,30 +315,26 @@ static TmEcode UnixSocketAddPcapFileImpl(json_t *cmd, json_t* answer, void *data
         if (!json_is_string(oarg)) {
             SCLogError("output-dir is not a string");
 
-            json_object_set_new(answer, "message",
-                                json_string("output-dir is not a string"));
+            json_object_set_new(answer, "message", json_string("output-dir is not a string"));
             return TM_ECODE_FAILED;
         }
         output_dir = json_string_value(oarg);
     } else {
         SCLogError("can't get output-dir");
 
-        json_object_set_new(answer, "message",
-                            json_string("output-dir param is mandatory"));
+        json_object_set_new(answer, "message", json_string("output-dir param is mandatory"));
         return TM_ECODE_FAILED;
     }
 
     if (SCStatFn(output_dir, &st) != 0) {
-        json_object_set_new(answer, "message",
-                            json_string("output-dir does not exist"));
+        json_object_set_new(answer, "message", json_string("output-dir does not exist"));
         return TM_ECODE_FAILED;
     }
 
     json_t *targ = json_object_get(cmd, "tenant");
     if (targ != NULL) {
         if (!json_is_integer(targ)) {
-            json_object_set_new(answer, "message",
-                                json_string("tenant is not a number"));
+            json_object_set_new(answer, "message", json_string("tenant is not a number"));
             return TM_ECODE_FAILED;
         }
         tenant_id = json_number_value(targ);
@@ -358,8 +349,7 @@ static TmEcode UnixSocketAddPcapFileImpl(json_t *cmd, json_t* answer, void *data
     if (delay_arg != NULL) {
         if (!json_is_integer(delay_arg)) {
             SCLogError("delay is not a integer");
-            json_object_set_new(answer, "message",
-                                json_string("delay is not a integer"));
+            json_object_set_new(answer, "message", json_string("delay is not a integer"));
             return TM_ECODE_FAILED;
         }
         delay = json_integer_value(delay_arg);
@@ -370,24 +360,21 @@ static TmEcode UnixSocketAddPcapFileImpl(json_t *cmd, json_t* answer, void *data
         if (!json_is_integer(interval_arg)) {
             SCLogError("poll-interval is not a integer");
 
-            json_object_set_new(answer, "message",
-                                json_string("poll-interval is not a integer"));
+            json_object_set_new(answer, "message", json_string("poll-interval is not a integer"));
             return TM_ECODE_FAILED;
         }
         poll_interval = json_integer_value(interval_arg);
     }
 
-    switch (UnixListAddFile(this, filename, output_dir, tenant_id, continuous,
-                           should_delete, delay, poll_interval)) {
+    switch (UnixListAddFile(this, filename, output_dir, tenant_id, continuous, should_delete, delay,
+            poll_interval)) {
         case TM_ECODE_FAILED:
         case TM_ECODE_DONE:
-            json_object_set_new(answer, "message",
-                                json_string("Unable to add file to list"));
+            json_object_set_new(answer, "message", json_string("Unable to add file to list"));
             return TM_ECODE_FAILED;
         case TM_ECODE_OK:
             SCLogInfo("Added file '%s' to list", filename);
-            json_object_set_new(answer, "message",
-                                json_string("Successfully added file to list"));
+            json_object_set_new(answer, "message", json_string("Successfully added file to list"));
             return TM_ECODE_OK;
     }
     return TM_ECODE_OK;
@@ -400,7 +387,7 @@ static TmEcode UnixSocketAddPcapFileImpl(json_t *cmd, json_t* answer, void *data
  * \param answer the json_t object that has to be used to answer
  * \param data pointer to data defining the context here a PcapCommand::
  */
-static TmEcode UnixSocketAddPcapFile(json_t *cmd, json_t* answer, void *data)
+static TmEcode UnixSocketAddPcapFile(json_t *cmd, json_t *answer, void *data)
 {
     bool continuous = false;
 
@@ -419,7 +406,7 @@ static TmEcode UnixSocketAddPcapFile(json_t *cmd, json_t* answer, void *data)
  * \param answer the json_t object that has to be used to answer
  * \param data pointer to data defining the context here a PcapCommand::
  */
-static TmEcode UnixSocketAddPcapFileContinuous(json_t *cmd, json_t* answer, void *data)
+static TmEcode UnixSocketAddPcapFileContinuous(json_t *cmd, json_t *answer, void *data)
 {
     return UnixSocketAddPcapFileImpl(cmd, answer, data, true);
 }
@@ -439,7 +426,7 @@ static TmEcode UnixSocketAddPcapFileContinuous(json_t *cmd, json_t* answer, void
  */
 static TmEcode UnixSocketPcapFilesCheck(void *data)
 {
-    PcapCommand *this = (PcapCommand *) data;
+    PcapCommand *this = (PcapCommand *)data;
     if (unix_manager_pcap_task_running == 1) {
         return TM_ECODE_OK;
     }
@@ -569,7 +556,7 @@ void RunModeUnixSocketRegister(void)
 TmEcode UnixSocketPcapFile(TmEcode tm, struct timespec *last_processed)
 {
 #ifdef BUILD_UNIX_SOCKET
-    if(last_processed) {
+    if (last_processed) {
         SCCtrlMutexLock(&unix_manager_pcap_last_processed_mutex);
         unix_manager_pcap_last_processed.tv_sec = last_processed->tv_sec;
         unix_manager_pcap_last_processed.tv_nsec = last_processed->tv_nsec;
@@ -584,7 +571,7 @@ TmEcode UnixSocketPcapFile(TmEcode tm, struct timespec *last_processed)
             SCLogInfo("Marking current task as failed");
             unix_manager_pcap_task_running = 0;
             unix_manager_pcap_task_failed = 1;
-            //if we return failed, we can't stop the thread and suricata will fail to close
+            // if we return failed, we can't stop the thread and suricata will fail to close
             return TM_ECODE_FAILED;
         case TM_ECODE_OK:
             if (unix_manager_pcap_task_interrupted == 1) {
@@ -607,7 +594,7 @@ TmEcode UnixSocketPcapFile(TmEcode tm, struct timespec *last_processed)
  * \param answer the json_t object that has to be used to answer
  * \param data pointer to data defining the context here a PcapCommand::
  */
-TmEcode UnixSocketDatasetAdd(json_t *cmd, json_t* answer, void *data)
+TmEcode UnixSocketDatasetAdd(json_t *cmd, json_t *answer, void *data)
 {
     /* 1 get dataset name */
     json_t *narg = json_object_get(cmd, "setname");
@@ -660,7 +647,7 @@ TmEcode UnixSocketDatasetAdd(json_t *cmd, json_t* answer, void *data)
     }
 }
 
-TmEcode UnixSocketDatasetRemove(json_t *cmd, json_t* answer, void *data)
+TmEcode UnixSocketDatasetRemove(json_t *cmd, json_t *answer, void *data)
 {
     /* 1 get dataset name */
     json_t *narg = json_object_get(cmd, "setname");
@@ -892,7 +879,7 @@ static bool JsonU32Value(json_t *jarg, uint32_t *ret)
  * \param answer the json_t object that has to be used to answer
  * \param data pointer to data defining the context here a PcapCommand::
  */
-TmEcode UnixSocketRegisterTenantHandler(json_t *cmd, json_t* answer, void *data)
+TmEcode UnixSocketRegisterTenantHandler(json_t *cmd, json_t *answer, void *data)
 {
     const char *htype;
     json_int_t traffic_id = -1;
@@ -978,7 +965,7 @@ TmEcode UnixSocketRegisterTenantHandler(json_t *cmd, json_t* answer, void *data)
  * \param answer the json_t object that has to be used to answer
  * \param data pointer to data defining the context here a PcapCommand::
  */
-TmEcode UnixSocketUnregisterTenantHandler(json_t *cmd, json_t* answer, void *data)
+TmEcode UnixSocketUnregisterTenantHandler(json_t *cmd, json_t *answer, void *data)
 {
     const char *htype;
     json_int_t traffic_id = -1;
@@ -1039,7 +1026,8 @@ TmEcode UnixSocketUnregisterTenantHandler(json_t *cmd, json_t* answer, void *dat
             return TM_ECODE_FAILED;
         }
 
-        SCLogInfo("VLAN handler: removing mapping of %u to tenant %u", (uint32_t)traffic_id, tenant_id);
+        SCLogInfo("VLAN handler: removing mapping of %u to tenant %u", (uint32_t)traffic_id,
+                tenant_id);
         r = DetectEngineTenantUnregisterVlanId(tenant_id, (uint16_t)traffic_id);
     }
     if (r != 0) {
@@ -1065,7 +1053,7 @@ TmEcode UnixSocketUnregisterTenantHandler(json_t *cmd, json_t* answer, void *dat
  * \param answer the json_t object that has to be used to answer
  * \param data pointer to data defining the context here a PcapCommand::
  */
-TmEcode UnixSocketRegisterTenant(json_t *cmd, json_t* answer, void *data)
+TmEcode UnixSocketRegisterTenant(json_t *cmd, json_t *answer, void *data)
 {
     const char *filename;
     SCStat st;
@@ -1138,7 +1126,7 @@ static int reload_cnt = 1;
  * \param answer the json_t object that has to be used to answer
  * \param data pointer to data defining the context here a PcapCommand::
  */
-TmEcode UnixSocketReloadTenant(json_t *cmd, json_t* answer, void *data)
+TmEcode UnixSocketReloadTenant(json_t *cmd, json_t *answer, void *data)
 {
     const char *filename = NULL;
     SCStat st;
@@ -1239,7 +1227,7 @@ TmEcode UnixSocketReloadTenants(json_t *cmd, json_t *answer, void *data)
  * \param answer the json_t object that has to be used to answer
  * \param data pointer to data defining the context here a PcapCommand::
  */
-TmEcode UnixSocketUnregisterTenant(json_t *cmd, json_t* answer, void *data)
+TmEcode UnixSocketUnregisterTenant(json_t *cmd, json_t *answer, void *data)
 {
     if (!(DetectEngineMultiTenantEnabled())) {
         SCLogInfo("error: multi-tenant support not enabled");
@@ -1297,7 +1285,7 @@ TmEcode UnixSocketUnregisterTenant(json_t *cmd, json_t* answer, void *data)
  * \param cmd the content of command Arguments as a json_t object
  * \param answer the json_t object that has to be used to answer
  */
-TmEcode UnixSocketHostbitAdd(json_t *cmd, json_t* answer, void *data_usused)
+TmEcode UnixSocketHostbitAdd(json_t *cmd, json_t *answer, void *data_usused)
 {
     /* 1 get ip address */
     json_t *jarg = json_object_get(cmd, "ipaddress");
@@ -1384,7 +1372,7 @@ TmEcode UnixSocketHostbitAdd(json_t *cmd, json_t* answer, void *data_usused)
  * \param cmd the content of command Arguments as a json_t object
  * \param answer the json_t object that has to be used to answer
  */
-TmEcode UnixSocketHostbitRemove(json_t *cmd, json_t* answer, void *data_unused)
+TmEcode UnixSocketHostbitRemove(json_t *cmd, json_t *answer, void *data_unused)
 {
     /* 1 get ip address */
     json_t *jarg = json_object_get(cmd, "ipaddress");
@@ -1453,11 +1441,12 @@ TmEcode UnixSocketHostbitRemove(json_t *cmd, json_t* answer, void *data_unused)
  * \param answer the json_t object that has to be used to answer
  *
  * Message looks like:
- * {"message": {"count": 1, "hostbits": [{"expire": 3222, "name": "firefox-users"}]}, "return": "OK"}
+ * {"message": {"count": 1, "hostbits": [{"expire": 3222, "name": "firefox-users"}]}, "return":
+ * "OK"}
  *
  * \retval r TM_ECODE_OK or TM_ECODE_FAILED
  */
-TmEcode UnixSocketHostbitList(json_t *cmd, json_t* answer, void *data_unused)
+TmEcode UnixSocketHostbitList(json_t *cmd, json_t *answer, void *data_unused)
 {
     /* 1 get ip address */
     json_t *jarg = json_object_get(cmd, "ipaddress");
@@ -1523,8 +1512,8 @@ TmEcode UnixSocketHostbitList(json_t *cmd, json_t* answer, void *data_unused)
             json_decref(jdata);
         if (jarray != NULL)
             json_decref(jarray);
-        json_object_set_new(answer, "message",
-                            json_string("internal error at json object creation"));
+        json_object_set_new(
+                answer, "message", json_string("internal error at json object creation"));
         return TM_ECODE_FAILED;
     }
 
@@ -1554,15 +1543,15 @@ TmEcode UnixSocketHostbitList(json_t *cmd, json_t* answer, void *data_unused)
 static void MemcapBuildValue(uint64_t val, char *str, uint32_t str_len)
 {
     if ((val / (1024 * 1024 * 1024)) != 0) {
-        snprintf(str, str_len, "%"PRIu64"gb", val / (1024*1024*1024));
+        snprintf(str, str_len, "%" PRIu64 "gb", val / (1024 * 1024 * 1024));
     } else if ((val / (1024 * 1024)) != 0) {
-        snprintf(str, str_len, "%"PRIu64"mb", val / (1024*1024));
+        snprintf(str, str_len, "%" PRIu64 "mb", val / (1024 * 1024));
     } else {
-        snprintf(str, str_len, "%"PRIu64"kb", val / (1024));
+        snprintf(str, str_len, "%" PRIu64 "kb", val / (1024));
     }
 }
 
-TmEcode UnixSocketSetMemcap(json_t *cmd, json_t* answer, void *data)
+TmEcode UnixSocketSetMemcap(json_t *cmd, json_t *answer, void *data)
 {
     char *memcap = NULL;
     char *value_str = NULL;
@@ -1587,8 +1576,8 @@ TmEcode UnixSocketSetMemcap(json_t *cmd, json_t* answer, void *data)
                    "memcap from unix socket: %s",
                 value_str);
         json_object_set_new(answer, "message",
-                            json_string("error parsing memcap specified, "
-                                        "value not changed"));
+                json_string("error parsing memcap specified, "
+                            "value not changed"));
         return TM_ECODE_FAILED;
     }
 
@@ -1598,27 +1587,26 @@ TmEcode UnixSocketSetMemcap(json_t *cmd, json_t* answer, void *data)
             char message[150];
 
             if (updated) {
-                snprintf(message, sizeof(message),
-                "memcap value for '%s' updated: %"PRIu64" %s",
-                memcaps[i].name, value,
-                (value == 0) ? "(unlimited)" : "");
+                snprintf(message, sizeof(message), "memcap value for '%s' updated: %" PRIu64 " %s",
+                        memcaps[i].name, value, (value == 0) ? "(unlimited)" : "");
                 json_object_set_new(answer, "message", json_string(message));
                 return TM_ECODE_OK;
             } else {
                 if (value == 0) {
-                    snprintf(message, sizeof(message),
-                             "Unlimited value is not allowed for '%s'", memcaps[i].name);
+                    snprintf(message, sizeof(message), "Unlimited value is not allowed for '%s'",
+                            memcaps[i].name);
                 } else {
                     if (memcaps[i].GetMemuseFunc()) {
                         char memuse[50];
                         MemcapBuildValue(memcaps[i].GetMemuseFunc(), memuse, sizeof(memuse));
                         snprintf(message, sizeof(message),
-                                 "memcap value specified for '%s' is less than the memory in use: %s",
-                                 memcaps[i].name, memuse);
+                                "memcap value specified for '%s' is less than the memory in use: "
+                                "%s",
+                                memcaps[i].name, memuse);
                     } else {
                         snprintf(message, sizeof(message),
-                                 "memcap value specified for '%s' is less than the memory in use",
-                                 memcaps[i].name);
+                                "memcap value specified for '%s' is less than the memory in use",
+                                memcaps[i].name);
                     }
                 }
                 json_object_set_new(answer, "message", json_string(message));
@@ -1628,7 +1616,7 @@ TmEcode UnixSocketSetMemcap(json_t *cmd, json_t* answer, void *data)
     }
 
     json_object_set_new(answer, "message",
-                        json_string("Memcap value not found. Use 'memcap-list' to show all"));
+            json_string("Memcap value not found. Use 'memcap-list' to show all"));
     return TM_ECODE_FAILED;
 }
 
@@ -1649,8 +1637,8 @@ TmEcode UnixSocketShowMemcap(json_t *cmd, json_t *answer, void *data)
             uint64_t val = memcaps[i].GetFunc();
             json_t *jobj = json_object();
             if (jobj == NULL) {
-                json_object_set_new(answer, "message",
-                                json_string("internal error at json object creation"));
+                json_object_set_new(
+                        answer, "message", json_string("internal error at json object creation"));
                 return TM_ECODE_FAILED;
             }
 
@@ -1667,7 +1655,7 @@ TmEcode UnixSocketShowMemcap(json_t *cmd, json_t *answer, void *data)
     }
 
     json_object_set_new(answer, "message",
-                        json_string("Memcap value not found. Use 'memcap-list' to show all"));
+            json_string("Memcap value not found. Use 'memcap-list' to show all"));
     return TM_ECODE_FAILED;
 }
 
@@ -1676,8 +1664,8 @@ TmEcode UnixSocketShowAllMemcap(json_t *cmd, json_t *answer, void *data)
     json_t *jmemcaps = json_array();
 
     if (jmemcaps == NULL) {
-        json_object_set_new(answer, "message",
-                            json_string("internal error at json array creation"));
+        json_object_set_new(
+                answer, "message", json_string("internal error at json array creation"));
         return TM_ECODE_FAILED;
     }
 
@@ -1685,8 +1673,8 @@ TmEcode UnixSocketShowAllMemcap(json_t *cmd, json_t *answer, void *data)
         json_t *jobj = json_object();
         if (jobj == NULL) {
             json_decref(jmemcaps);
-            json_object_set_new(answer, "message",
-                                json_string("internal error at json object creation"));
+            json_object_set_new(
+                    answer, "message", json_string("internal error at json object creation"));
             return TM_ECODE_FAILED;
         }
         char str[50];
@@ -1767,7 +1755,8 @@ static int RunModeUnixSocketMaster(void)
     SCCtrlMutexInit(&unix_manager_pcap_last_processed_mutex, NULL);
 
     UnixManagerRegisterCommand("pcap-file", UnixSocketAddPcapFile, pcapcmd, UNIX_CMD_TAKE_ARGS);
-    UnixManagerRegisterCommand("pcap-file-continuous", UnixSocketAddPcapFileContinuous, pcapcmd, UNIX_CMD_TAKE_ARGS);
+    UnixManagerRegisterCommand(
+            "pcap-file-continuous", UnixSocketAddPcapFileContinuous, pcapcmd, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("pcap-file-number", UnixSocketPcapFilesNumber, pcapcmd, 0);
     UnixManagerRegisterCommand("pcap-file-list", UnixSocketPcapFilesList, pcapcmd, 0);
     UnixManagerRegisterCommand("pcap-last-processed", UnixSocketPcapLastProcessed, pcapcmd, 0);
@@ -1787,7 +1776,3 @@ int RunModeUnixSocketIsActive(void)
 {
     return unix_socket_mode_is_running;
 }
-
-
-
-

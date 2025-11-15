@@ -25,6 +25,6 @@
 #define SURICATA_DETECT_NFS_VERSION_H
 
 /* prototypes */
-void DetectNfsVersionRegister (void);
+void DetectNfsVersionRegister(void);
 
 #endif /* SURICATA_DETECT_NFS_VERSION_H */

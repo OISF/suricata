@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /**
  * \file
  *
@@ -33,11 +32,11 @@
  * used by the origin server to handle the request.
  */
 
-#define KEYWORD_NAME "http.server"
-#define KEYWORD_DOC "http-keywords.html#http-server"
-#define BUFFER_NAME "http.server"
-#define BUFFER_DESC "http server header"
-#define HEADER_NAME "Server"
+#define KEYWORD_NAME     "http.server"
+#define KEYWORD_DOC      "http-keywords.html#http-server"
+#define BUFFER_NAME      "http.server"
+#define BUFFER_DESC      "http server header"
+#define HEADER_NAME      "Server"
 #define KEYWORD_ID       DETECT_HTTP_HEADER_SERVER
 #define KEYWORD_TOCLIENT 1
 

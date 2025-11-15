@@ -58,15 +58,15 @@
 /**
  * \brief Regex for parsing our flow options
  */
-#define PARSE_REGEX  "^\\s*([A-z_]+)\\s*(?:,\\s*([A-z_]+))?\\s*(?:,\\s*([A-z_]+))?\\s*$"
+#define PARSE_REGEX "^\\s*([A-z_]+)\\s*(?:,\\s*([A-z_]+))?\\s*(?:,\\s*([A-z_]+))?\\s*$"
 
 static DetectParseRegex parse_regex;
 
-static int DetectFilestoreMatch (DetectEngineThreadCtx *,
-        Flow *, uint8_t, File *, const Signature *, const SigMatchCtx *);
-static int DetectFilestorePostMatch(DetectEngineThreadCtx *det_ctx,
-        Packet *p, const Signature *s, const SigMatchCtx *ctx);
-static int DetectFilestoreSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectFilestoreMatch(
+        DetectEngineThreadCtx *, Flow *, uint8_t, File *, const Signature *, const SigMatchCtx *);
+static int DetectFilestorePostMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx);
+static int DetectFilestoreSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectFilestoreFree(DetectEngineCtx *, void *);
 #ifdef UNITTESTS
 static void DetectFilestoreRegisterTests(void);
@@ -83,7 +83,7 @@ void DetectFilestoreRegister(void)
     sigmatch_table[DETECT_FILESTORE].url = "/rules/file-keywords.html#filestore";
     sigmatch_table[DETECT_FILESTORE].FileMatch = DetectFilestoreMatch;
     sigmatch_table[DETECT_FILESTORE].Setup = DetectFilestoreSetup;
-    sigmatch_table[DETECT_FILESTORE].Free  = DetectFilestoreFree;
+    sigmatch_table[DETECT_FILESTORE].Free = DetectFilestoreFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_FILESTORE].RegisterTests = DetectFilestoreRegisterTests;
 #endif
@@ -91,7 +91,7 @@ void DetectFilestoreRegister(void)
 
     sigmatch_table[DETECT_FILESTORE_POSTMATCH].name = "__filestore__postmatch__";
     sigmatch_table[DETECT_FILESTORE_POSTMATCH].Match = DetectFilestorePostMatch;
-    sigmatch_table[DETECT_FILESTORE_POSTMATCH].Free  = DetectFilestoreFree;
+    sigmatch_table[DETECT_FILESTORE_POSTMATCH].Free = DetectFilestoreFree;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
@@ -150,7 +150,7 @@ static int FilestorePostMatchWithOptions(Packet *p, Flow *f, const DetectFilesto
             break;
     }
 
-    if (this_file)  {
+    if (this_file) {
         FileStoreFileById(fc, file_id);
     } else if (this_tx) {
         /* set in AppLayerTxData. Parsers and logger will propagate it to the
@@ -162,9 +162,9 @@ static int FilestorePostMatchWithOptions(Packet *p, Flow *f, const DetectFilesto
             if (toclient_dir) {
                 txd->file_flags |= FLOWFILE_STORE_TC;
             }
-                if (toserver_dir) {
-                    txd->file_flags |= FLOWFILE_STORE_TS;
-                }
+            if (toserver_dir) {
+                txd->file_flags |= FLOWFILE_STORE_TS;
+            }
         }
     } else if (this_flow) {
         /* set in flow and AppLayerStateData */
@@ -199,8 +199,8 @@ static int FilestorePostMatchWithOptions(Packet *p, Flow *f, const DetectFilesto
  *  When we are sure all parts of the signature matched, we run this function
  *  to finalize the filestore.
  */
-static int DetectFilestorePostMatch(DetectEngineThreadCtx *det_ctx,
-        Packet *p, const Signature *s, const SigMatchCtx *ctx)
+static int DetectFilestorePostMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
 
@@ -271,8 +271,8 @@ static int DetectFilestorePostMatch(DetectEngineThreadCtx *det_ctx,
  * \todo when we start supporting more protocols, the logic in this function
  *       needs to be put behind a api.
  */
-static int DetectFilestoreMatch (DetectEngineThreadCtx *det_ctx, Flow *f,
-        uint8_t flags, File *file, const Signature *s, const SigMatchCtx *m)
+static int DetectFilestoreMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, File *file,
+        const Signature *s, const SigMatchCtx *m)
 {
     uint32_t file_id = 0;
 
@@ -317,9 +317,9 @@ continue_after_realloc_fail:
     det_ctx->filestore[det_ctx->filestore_cnt].file_id = file_id;
     det_ctx->filestore[det_ctx->filestore_cnt].tx_id = det_ctx->tx_id;
 
-    SCLogDebug("%u, file %u, tx %"PRIu64, det_ctx->filestore_cnt,
-        det_ctx->filestore[det_ctx->filestore_cnt].file_id,
-        det_ctx->filestore[det_ctx->filestore_cnt].tx_id);
+    SCLogDebug("%u, file %u, tx %" PRIu64, det_ctx->filestore_cnt,
+            det_ctx->filestore[det_ctx->filestore_cnt].file_id,
+            det_ctx->filestore[det_ctx->filestore_cnt].tx_id);
 
     det_ctx->filestore_cnt++;
     SCReturnInt(1);
@@ -336,7 +336,7 @@ continue_after_realloc_fail:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
+static int DetectFilestoreSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     SCEnter();
 
@@ -351,8 +351,8 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
     /* Check on first-time loads (includes following a reload) */
     if (!warn_not_configured || (de_ctx->version != de_version)) {
         if (de_version != de_ctx->version) {
-            SCLogDebug("reload-detected; re-checking feature presence; DE version now %"PRIu32,
-                       de_ctx->version);
+            SCLogDebug("reload-detected; re-checking feature presence; DE version now %" PRIu32,
+                    de_ctx->version);
         }
         if (!RequiresFeature(FEATURE_OUTPUT_FILESTORE)) {
             SCLogWarning("One or more rule(s) depends on the "
@@ -364,7 +364,7 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
     }
 
     DetectFilestoreData *fd = NULL;
-    char *args[3] = {NULL,NULL,NULL};
+    char *args[3] = { NULL, NULL, NULL };
     int res = 0;
     size_t pcre2len;
     pcre2_match_data *match = NULL;
@@ -423,20 +423,14 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
         if (args[0] != NULL) {
             SCLogDebug("first arg %s", args[0]);
 
-            if (strcasecmp(args[0], "request") == 0 ||
-                    strcasecmp(args[0], "to_server") == 0)
-            {
+            if (strcasecmp(args[0], "request") == 0 || strcasecmp(args[0], "to_server") == 0) {
                 fd->direction = FILESTORE_DIR_TOSERVER;
                 fd->scope = FILESTORE_SCOPE_TX;
-            }
-            else if (strcasecmp(args[0], "response") == 0 ||
-                    strcasecmp(args[0], "to_client") == 0)
-            {
+            } else if (strcasecmp(args[0], "response") == 0 ||
+                       strcasecmp(args[0], "to_client") == 0) {
                 fd->direction = FILESTORE_DIR_TOCLIENT;
                 fd->scope = FILESTORE_SCOPE_TX;
-            }
-            else if (strcasecmp(args[0], "both") == 0)
-            {
+            } else if (strcasecmp(args[0], "both") == 0) {
                 fd->direction = FILESTORE_DIR_BOTH;
                 fd->scope = FILESTORE_SCOPE_TX;
             }
@@ -447,15 +441,11 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
         if (args[1] != NULL) {
             SCLogDebug("second arg %s", args[1]);
 
-            if (strcasecmp(args[1], "file") == 0)
-            {
+            if (strcasecmp(args[1], "file") == 0) {
                 fd->scope = FILESTORE_SCOPE_DEFAULT;
-            } else if (strcasecmp(args[1], "tx") == 0)
-            {
+            } else if (strcasecmp(args[1], "tx") == 0) {
                 fd->scope = FILESTORE_SCOPE_TX;
-            } else if (strcasecmp(args[1], "ssn") == 0 ||
-                       strcasecmp(args[1], "flow") == 0)
-            {
+            } else if (strcasecmp(args[1], "ssn") == 0 || strcasecmp(args[1], "flow") == 0) {
                 fd->scope = FILESTORE_SCOPE_SSN;
             }
         } else {

@@ -25,6 +25,6 @@
 #define SURICATA_DETECT_FILENAME_H
 
 /* prototypes */
-void DetectFilenameRegister (void);
+void DetectFilenameRegister(void);
 
 #endif /* SURICATA_DETECT_FILENAME_H */

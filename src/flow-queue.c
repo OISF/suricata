@@ -43,7 +43,7 @@ FlowQueue *FlowQueueNew(void)
     return q;
 }
 
-FlowQueue *FlowQueueInit (FlowQueue *q)
+FlowQueue *FlowQueueInit(FlowQueue *q)
 {
     if (q != NULL) {
         memset(q, 0, sizeof(FlowQueue));
@@ -57,7 +57,7 @@ FlowQueue *FlowQueueInit (FlowQueue *q)
  *
  *  \param q the flow queue to destroy
  */
-void FlowQueueDestroy (FlowQueue *q)
+void FlowQueueDestroy(FlowQueue *q)
 {
     FQLOCK_DESTROY(q);
 }
@@ -170,7 +170,7 @@ Flow *FlowQueuePrivateGetFromTop(FlowQueuePrivate *fqc)
  *  \param q queue
  *  \param f flow
  */
-void FlowEnqueue (FlowQueue *q, Flow *f)
+void FlowEnqueue(FlowQueue *q, Flow *f)
 {
 #ifdef DEBUG
     BUG_ON(q == NULL || f == NULL);
@@ -188,7 +188,7 @@ void FlowEnqueue (FlowQueue *q, Flow *f)
  *
  *  \retval f flow or NULL if empty list.
  */
-Flow *FlowDequeue (FlowQueue *q)
+Flow *FlowDequeue(FlowQueue *q)
 {
     FQLOCK_LOCK(q);
     Flow *f = FlowQueuePrivateGetFromTop(&q->priv);

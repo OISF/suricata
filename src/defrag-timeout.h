@@ -30,4 +30,3 @@ int DefragTrackerTimedOut(DefragTracker *dt, SCTime_t ts);
 uint32_t DefragTimeoutHash(SCTime_t ts);
 
 #endif
-

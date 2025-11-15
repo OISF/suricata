@@ -67,7 +67,7 @@ static FlowStorageId g_flow_expectation_id = { .id = -1 };
 
 SC_ATOMIC_DECLARE(uint32_t, expectation_count);
 
-#define EXPECTATION_TIMEOUT 30
+#define EXPECTATION_TIMEOUT   30
 #define EXPECTATION_MAX_LEVEL 10
 
 typedef struct Expectation_ {
@@ -96,7 +96,7 @@ typedef struct ExpectationList_ {
 static void ExpectationDataFree(void *e)
 {
     SCLogDebug("Free expectation data");
-    ExpectationData *ed = (ExpectationData *) e;
+    ExpectationData *ed = (ExpectationData *)e;
     if (ed->DFree) {
         ed->DFree(e);
     } else {
@@ -128,7 +128,7 @@ static void ExpectationListFree(void *el)
 
     if (exp_list->length > 0) {
         Expectation *exp = NULL, *pexp = NULL;
-        CIRCLEQ_FOREACH_SAFE(exp, &exp_list->list, entries, pexp) {
+        CIRCLEQ_FOREACH_SAFE (exp, &exp_list->list, entries, pexp) {
             CIRCLEQ_REMOVE(&exp_list->list, exp, entries);
             exp_list->length--;
             AppLayerFreeExpectation(exp);
@@ -181,10 +181,8 @@ static ExpectationList *AppLayerExpectationLookup(Flow *f, IPPair **ipp)
     return IPPairGetStorageById(*ipp, g_ippair_expectation_id);
 }
 
-
-static ExpectationList *AppLayerExpectationRemove(IPPair *ipp,
-                                                  ExpectationList *exp_list,
-                                                  Expectation *exp)
+static ExpectationList *AppLayerExpectationRemove(
+        IPPair *ipp, ExpectationList *exp_list, Expectation *exp)
 {
     CIRCLEQ_REMOVE(&exp_list->list, exp, entries);
     AppLayerFreeExpectation(exp);
@@ -216,8 +214,8 @@ static ExpectationList *AppLayerExpectationRemove(IPPair *ipp,
  * \return -1 if error
  * \return 0 if success
  */
-int AppLayerExpectationCreate(Flow *f, int direction, Port src, Port dst,
-                              AppProto alproto, void *data)
+int AppLayerExpectationCreate(
+        Flow *f, int direction, Port src, Port dst, AppProto alproto, void *data)
 {
     ExpectationList *exp_list = NULL;
     IPPair *ipp;
@@ -317,7 +315,7 @@ AppProto AppLayerExpectationHandle(Flow *f, uint8_t flags)
     if (exp_list == NULL)
         goto out;
 
-    CIRCLEQ_FOREACH_SAFE(exp, &exp_list->list, entries, lexp) {
+    CIRCLEQ_FOREACH_SAFE (exp, &exp_list->list, entries, lexp) {
         if ((exp->direction & flags) && ((exp->sp == 0) || (exp->sp == f->sp)) &&
                 ((exp->dp == 0) || (exp->dp == f->dp))) {
             alproto = exp->alproto;
@@ -374,7 +372,7 @@ void AppLayerExpectationClean(Flow *f)
     if (exp_list == NULL)
         goto out;
 
-    CIRCLEQ_FOREACH_SAFE(exp, &exp_list->list, entries, pexp) {
+    CIRCLEQ_FOREACH_SAFE (exp, &exp_list->list, entries, pexp) {
         /* Cleaning remove old entries */
         if (exp->orig_f == (void *)f) {
             exp_list = AppLayerExpectationRemove(ipp, exp_list, exp);

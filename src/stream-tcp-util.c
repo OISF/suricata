@@ -56,7 +56,8 @@ void StreamTcpUTDeinit(TcpReassemblyThreadCtx *ra_ctx)
     stream_config.flags &= ~STREAMTCP_INIT_FLAG_INLINE;
 }
 
-void StreamTcpUTInitInline(void) {
+void StreamTcpUTInitInline(void)
+{
     stream_config.flags |= STREAMTCP_INIT_FLAG_INLINE;
 }
 
@@ -83,7 +84,7 @@ void StreamTcpUTSetupStream(TcpStream *s, uint32_t isn)
 
     s->isn = isn;
     STREAMTCP_SET_RA_BASE_SEQ(s, isn);
-    s->base_seq = isn+1;
+    s->base_seq = isn + 1;
 
     StreamingBuffer x = STREAMING_BUFFER_INITIALIZER;
     s->sb = x;
@@ -95,7 +96,8 @@ void StreamTcpUTClearStream(TcpStream *s)
 }
 
 /** \brief wrapper for StreamTcpReassembleHandleSegmentHandleData */
-int StreamTcpUTAddPayload(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, TcpSession *ssn, TcpStream *stream, uint32_t seq, uint8_t *payload, uint16_t len)
+int StreamTcpUTAddPayload(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, TcpSession *ssn,
+        TcpStream *stream, uint32_t seq, uint8_t *payload, uint16_t len)
 {
     Packet *p = UTHBuildPacketReal(payload, len, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
     if (p == NULL) {
@@ -111,7 +113,8 @@ int StreamTcpUTAddPayload(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, TcpSes
     return 0;
 }
 
-int StreamTcpUTAddSegmentWithPayload(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, TcpStream *stream, uint32_t seq, uint8_t *payload, uint16_t len)
+int StreamTcpUTAddSegmentWithPayload(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
+        TcpStream *stream, uint32_t seq, uint8_t *payload, uint16_t len)
 {
     TcpSegment *s = StreamTcpGetSegment(tv, ra_ctx);
     if (s == NULL) {
@@ -134,7 +137,8 @@ int StreamTcpUTAddSegmentWithPayload(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
     return 0;
 }
 
-int StreamTcpUTAddSegmentWithByte(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, TcpStream *stream, uint32_t seq, uint8_t byte, uint16_t len)
+int StreamTcpUTAddSegmentWithByte(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, TcpStream *stream,
+        uint32_t seq, uint8_t byte, uint16_t len)
 {
     TcpSegment *s = StreamTcpGetSegment(tv, ra_ctx);
     if (s == NULL) {
@@ -178,7 +182,6 @@ end:
     return ret;
 }
 
-
 static int StreamTcpUtilStreamTest01(void)
 {
     TcpReassemblyThreadCtx *ra_ctx = NULL;
@@ -189,8 +192,8 @@ static int StreamTcpUtilStreamTest01(void)
     StreamTcpUTInit(&ra_ctx);
     StreamTcpUTSetupStream(&stream, 1);
 
-    FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &stream,  2, 'A', 5) == -1);
-    FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &stream,  7, 'B', 5) == -1);
+    FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &stream, 2, 'A', 5) == -1);
+    FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &stream, 7, 'B', 5) == -1);
     FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &stream, 12, 'C', 5) == -1);
 
     TcpSegment *seg = RB_MIN(TCPSEG, &stream.seg_tree);
@@ -220,9 +223,9 @@ static int StreamTcpUtilStreamTest02(void)
     StreamTcpUTInit(&ra_ctx);
     StreamTcpUTSetupStream(&stream, 1);
 
-    FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &stream,  7, 'B', 5) == -1);
+    FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &stream, 7, 'B', 5) == -1);
     FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &stream, 12, 'C', 5) == -1);
-    FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &stream,  2, 'A', 5) == -1);
+    FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &stream, 2, 'A', 5) == -1);
 
     TcpSegment *seg = RB_MIN(TCPSEG, &stream.seg_tree);
     FAIL_IF_NULL(seg);
@@ -251,4 +254,3 @@ void StreamTcpUtilRegisterTests(void)
     UtRegisterTest("StreamTcpUtilStreamTest02", StreamTcpUtilStreamTest02);
 #endif /* UNITTESTS */
 }
-

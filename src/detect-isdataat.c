@@ -51,18 +51,18 @@
 /**
  * \brief Regex for parsing our isdataat options
  */
-#define PARSE_REGEX  "^\\s*!?([^\\s,]+)\\s*(,\\s*relative)?\\s*(,\\s*rawbytes\\s*)?\\s*$"
+#define PARSE_REGEX "^\\s*!?([^\\s,]+)\\s*(,\\s*relative)?\\s*(,\\s*rawbytes\\s*)?\\s*$"
 
 static DetectParseRegex parse_regex;
 
-int DetectIsdataatSetup (DetectEngineCtx *, Signature *, const char *);
+int DetectIsdataatSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectIsdataatRegisterTests(void);
 static void DetectAbsentRegisterTests(void);
 #endif
 void DetectIsdataatFree(DetectEngineCtx *, void *);
 
-static int DetectEndsWithSetup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr);
+static int DetectEndsWithSetup(DetectEngineCtx *de_ctx, Signature *s, const char *nullstr);
 
 static void DetectAbsentFree(DetectEngineCtx *de_ctx, void *ptr)
 {
@@ -157,17 +157,19 @@ bool DetectAbsentValidateContentCallback(const Signature *s, const SignatureInit
 void DetectIsdataatRegister(void)
 {
     sigmatch_table[DETECT_ISDATAAT].name = "isdataat";
-    sigmatch_table[DETECT_ISDATAAT].desc = "check if there is still data at a specific part of the payload";
+    sigmatch_table[DETECT_ISDATAAT].desc =
+            "check if there is still data at a specific part of the payload";
     sigmatch_table[DETECT_ISDATAAT].url = "/rules/payload-keywords.html#isdataat";
     /* match is handled in DetectEngineContentInspection() */
     sigmatch_table[DETECT_ISDATAAT].Match = NULL;
     sigmatch_table[DETECT_ISDATAAT].Setup = DetectIsdataatSetup;
-    sigmatch_table[DETECT_ISDATAAT].Free  = DetectIsdataatFree;
+    sigmatch_table[DETECT_ISDATAAT].Free = DetectIsdataatFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_ISDATAAT].RegisterTests = DetectIsdataatRegisterTests;
 #endif
     sigmatch_table[DETECT_ENDS_WITH].name = "endswith";
-    sigmatch_table[DETECT_ENDS_WITH].desc = "make sure the previous content matches exactly at the end of the buffer";
+    sigmatch_table[DETECT_ENDS_WITH].desc =
+            "make sure the previous content matches exactly at the end of the buffer";
     sigmatch_table[DETECT_ENDS_WITH].url = "/rules/payload-keywords.html#endswith";
     sigmatch_table[DETECT_ENDS_WITH].Setup = DetectEndsWithSetup;
     sigmatch_table[DETECT_ENDS_WITH].flags = SIGMATCH_NOOPT;
@@ -194,13 +196,14 @@ void DetectIsdataatRegister(void)
  * \retval idad pointer to DetectIsdataatData on success
  * \retval NULL on failure
  */
-static DetectIsdataatData *DetectIsdataatParse (DetectEngineCtx *de_ctx, const char *isdataatstr, char **offset)
+static DetectIsdataatData *DetectIsdataatParse(
+        DetectEngineCtx *de_ctx, const char *isdataatstr, char **offset)
 {
     DetectIsdataatData *idad = NULL;
-    char *args[3] = {NULL,NULL,NULL};
+    char *args[3] = { NULL, NULL, NULL };
     int res = 0;
     size_t pcre2_len;
-    int i=0;
+    int i = 0;
 
     pcre2_match_data *match = NULL;
     int ret = DetectParsePcreExec(&parse_regex, &match, isdataatstr, 0, 0);
@@ -217,7 +220,6 @@ static DetectIsdataatData *DetectIsdataatParse (DetectEngineCtx *de_ctx, const c
             goto error;
         }
         args[0] = (char *)str_ptr;
-
 
         if (ret > 2) {
             res = pcre2_substring_get_bynumber(match, 2, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
@@ -254,8 +256,7 @@ static DetectIsdataatData *DetectIsdataatParse (DetectEngineCtx *de_ctx, const c
             if (*offset == NULL)
                 goto error;
         } else {
-            if (StringParseUint16(&idad->dataat, 10,
-                                        strlen(args[0]), args[0]) < 0 ) {
+            if (StringParseUint16(&idad->dataat, 10, strlen(args[0]), args[0]) < 0) {
                 SCLogError("isdataat out of range");
                 SCFree(idad);
                 idad = NULL;
@@ -263,10 +264,10 @@ static DetectIsdataatData *DetectIsdataatParse (DetectEngineCtx *de_ctx, const c
             }
         }
 
-        if (args[1] !=NULL) {
+        if (args[1] != NULL) {
             idad->flags |= ISDATAAT_RELATIVE;
 
-            if(args[2] !=NULL)
+            if (args[2] != NULL)
                 idad->flags |= ISDATAAT_RAWBYTES;
         }
 
@@ -274,21 +275,20 @@ static DetectIsdataatData *DetectIsdataatParse (DetectEngineCtx *de_ctx, const c
             idad->flags |= ISDATAAT_NEGATED;
         }
 
-        for (i = 0; i < (ret -1); i++) {
+        for (i = 0; i < (ret - 1); i++) {
             if (args[i] != NULL)
                 pcre2_substring_free((PCRE2_UCHAR8 *)args[i]);
         }
 
         pcre2_match_data_free(match);
         return idad;
-
     }
 
 error:
     if (match) {
         pcre2_match_data_free(match);
     }
-    for (i = 0; i < (ret -1) && i < 3; i++){
+    for (i = 0; i < (ret - 1) && i < 3; i++) {
         if (args[i] != NULL)
             pcre2_substring_free((PCRE2_UCHAR8 *)args[i]);
     }
@@ -296,7 +296,6 @@ error:
     if (idad != NULL)
         DetectIsdataatFree(de_ctx, idad);
     return NULL;
-
 }
 
 /**
@@ -309,7 +308,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, const char *isdataatstr)
+int DetectIsdataatSetup(DetectEngineCtx *de_ctx, Signature *s, const char *isdataatstr)
 {
     SigMatch *prev_pm = NULL;
     DetectIsdataatData *idad = NULL;
@@ -330,10 +329,8 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, const char *isda
             prev_pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, DETECT_PCRE, -1);
         }
     } else if (idad->flags & ISDATAAT_RELATIVE) {
-        prev_pm = DetectGetLastSMFromLists(s,
-            DETECT_CONTENT, DETECT_PCRE,
-            DETECT_BYTETEST, DETECT_BYTEJUMP, DETECT_BYTE_EXTRACT,
-            DETECT_ISDATAAT, DETECT_BYTEMATH, -1);
+        prev_pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, DETECT_PCRE, DETECT_BYTETEST,
+                DETECT_BYTEJUMP, DETECT_BYTE_EXTRACT, DETECT_ISDATAAT, DETECT_BYTEMATH, -1);
         if (prev_pm == NULL)
             sm_list = DETECT_SM_LIST_PMATCH;
         else {
@@ -361,10 +358,9 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, const char *isda
     }
 
     /* 'ends with' scenario */
-    if (prev_pm != NULL && prev_pm->type == DETECT_CONTENT &&
-        idad->dataat == 1 &&
-        (idad->flags & (ISDATAAT_RELATIVE|ISDATAAT_NEGATED)) == (ISDATAAT_RELATIVE|ISDATAAT_NEGATED))
-    {
+    if (prev_pm != NULL && prev_pm->type == DETECT_CONTENT && idad->dataat == 1 &&
+            (idad->flags & (ISDATAAT_RELATIVE | ISDATAAT_NEGATED)) ==
+                    (ISDATAAT_RELATIVE | ISDATAAT_NEGATED)) {
         DetectIsdataatFree(de_ctx, idad);
         DetectContentData *cd = (DetectContentData *)prev_pm->ctx;
         cd->flags |= DETECT_CONTENT_ENDS_WITH;
@@ -416,7 +412,7 @@ void DetectIsdataatFree(DetectEngineCtx *de_ctx, void *ptr)
     SCFree(idad);
 }
 
-static int DetectEndsWithSetup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
+static int DetectEndsWithSetup(DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
 {
     SigMatch *pm = NULL;
     int ret = -1;
@@ -435,7 +431,7 @@ static int DetectEndsWithSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
     cd->flags |= DETECT_CONTENT_ENDS_WITH;
 
     ret = 0;
- end:
+end:
     return ret;
 }
 
@@ -443,10 +439,10 @@ static int DetectEndsWithSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
 static int g_dce_stub_data_buffer_id = 0;
 
 /**
- * \test DetectIsdataatTestParse01 is a test to make sure that we return a correct IsdataatData structure
- *  when given valid isdataat opt
+ * \test DetectIsdataatTestParse01 is a test to make sure that we return a correct IsdataatData
+ * structure when given valid isdataat opt
  */
-static int DetectIsdataatTestParse01 (void)
+static int DetectIsdataatTestParse01(void)
 {
     int result = 0;
     DetectIsdataatData *idad = NULL;
@@ -460,10 +456,10 @@ static int DetectIsdataatTestParse01 (void)
 }
 
 /**
- * \test DetectIsdataatTestParse02 is a test to make sure that we return a correct IsdataatData structure
- *  when given valid isdataat opt
+ * \test DetectIsdataatTestParse02 is a test to make sure that we return a correct IsdataatData
+ * structure when given valid isdataat opt
  */
-static int DetectIsdataatTestParse02 (void)
+static int DetectIsdataatTestParse02(void)
 {
     int result = 0;
     DetectIsdataatData *idad = NULL;
@@ -477,10 +473,10 @@ static int DetectIsdataatTestParse02 (void)
 }
 
 /**
- * \test DetectIsdataatTestParse03 is a test to make sure that we return a correct IsdataatData structure
- *  when given valid isdataat opt
+ * \test DetectIsdataatTestParse03 is a test to make sure that we return a correct IsdataatData
+ * structure when given valid isdataat opt
  */
-static int DetectIsdataatTestParse03 (void)
+static int DetectIsdataatTestParse03(void)
 {
     int result = 0;
     DetectIsdataatData *idad = NULL;
@@ -529,9 +525,9 @@ static int DetectIsdataatTestParse06(void)
     de_ctx->flags |= DE_QUIET;
 
     Signature *s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing bytejump_body\"; "
-                               "content:\"one\"; "
-                               "isdataat:!4,relative; sid:1;)");
+                                                 "(msg:\"Testing bytejump_body\"; "
+                                                 "content:\"one\"; "
+                                                 "isdataat:!4,relative; sid:1;)");
     FAIL_IF(s == NULL);
 
     FAIL_IF(s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL);
@@ -545,9 +541,9 @@ static int DetectIsdataatTestParse06(void)
     FAIL_IF_NOT(data->flags & ISDATAAT_NEGATED);
 
     s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing bytejump_body\"; "
-                               "content:\"one\"; "
-                               "isdataat: !4,relative; sid:2;)");
+                                      "(msg:\"Testing bytejump_body\"; "
+                                      "content:\"one\"; "
+                                      "isdataat: !4,relative; sid:2;)");
     FAIL_IF(s == NULL);
 
     FAIL_IF(s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL);
@@ -567,7 +563,7 @@ static int DetectIsdataatTestParse06(void)
  * \test DetectIsdataatTestPacket01 is a test to check matches of
  * isdataat, and isdataat relative
  */
-static int DetectIsdataatTestPacket01 (void)
+static int DetectIsdataatTestPacket01(void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -577,27 +573,30 @@ static int DetectIsdataatTestPacket01 (void)
     p[1] = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_UDP);
     p[2] = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_ICMP);
 
-    if (p[0] == NULL || p[1] == NULL ||p[2] == NULL)
+    if (p[0] == NULL || p[1] == NULL || p[2] == NULL)
         goto end;
 
     const char *sigs[5];
-    sigs[0]= "alert ip any any -> any any (msg:\"Testing window 1\"; isdataat:6; sid:1;)";
-    sigs[1]= "alert ip any any -> any any (msg:\"Testing window 2\"; content:\"all\"; isdataat:1, relative; isdataat:6; sid:2;)";
-    sigs[2]= "alert ip any any -> any any (msg:\"Testing window 3\"; isdataat:8; sid:3;)";
-    sigs[3]= "alert ip any any -> any any (msg:\"Testing window 4\"; content:\"Hi\"; isdataat:5, relative; sid:4;)";
-    sigs[4]= "alert ip any any -> any any (msg:\"Testing window 4\"; content:\"Hi\"; isdataat:6, relative; sid:5;)";
+    sigs[0] = "alert ip any any -> any any (msg:\"Testing window 1\"; isdataat:6; sid:1;)";
+    sigs[1] = "alert ip any any -> any any (msg:\"Testing window 2\"; content:\"all\"; isdataat:1, "
+              "relative; isdataat:6; sid:2;)";
+    sigs[2] = "alert ip any any -> any any (msg:\"Testing window 3\"; isdataat:8; sid:3;)";
+    sigs[3] = "alert ip any any -> any any (msg:\"Testing window 4\"; content:\"Hi\"; isdataat:5, "
+              "relative; sid:4;)";
+    sigs[4] = "alert ip any any -> any any (msg:\"Testing window 4\"; content:\"Hi\"; isdataat:6, "
+              "relative; sid:5;)";
 
-    uint32_t sid[5] = {1, 2, 3, 4, 5};
+    uint32_t sid[5] = { 1, 2, 3, 4, 5 };
 
-    uint32_t results[3][5] = {
-                              /* packet 0 match sid 1 but should not match sid 2 */
-                              {1, 1, 0, 1, 0},
-                              /* packet 1 should not match */
-                              {1, 1, 0, 1, 0},
-                              /* packet 2 should not match */
-                              {1, 1, 0, 1, 0} };
+    uint32_t results[3][5] = { /* packet 0 match sid 1 but should not match sid 2 */
+        { 1, 1, 0, 1, 0 },
+        /* packet 1 should not match */
+        { 1, 1, 0, 1, 0 },
+        /* packet 2 should not match */
+        { 1, 1, 0, 1, 0 }
+    };
 
-    result = UTHGenericTest(p, 3, sigs, sid, (uint32_t *) results, 5);
+    result = UTHGenericTest(p, 3, sigs, sid, (uint32_t *)results, 5);
 
     UTHFreePackets(p, 3);
 end:
@@ -609,15 +608,15 @@ end:
  * isdataat, and isdataat relative works if the previous keyword is pcre
  * (bug 144)
  */
-static int DetectIsdataatTestPacket02 (void)
+static int DetectIsdataatTestPacket02(void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"GET /AllWorkAndNoPlayMakesWillADullBoy HTTP/1.0"
-                    "User-Agent: Wget/1.11.4"
-                    "Accept: */*"
-                    "Host: www.google.com"
-                    "Connection: Keep-Alive"
-                    "Date: Mon, 04 Jan 2010 17:29:39 GMT";
+                              "User-Agent: Wget/1.11.4"
+                              "Accept: */*"
+                              "Host: www.google.com"
+                              "Connection: Keep-Alive"
+                              "Date: Mon, 04 Jan 2010 17:29:39 GMT";
     uint16_t buflen = strlen((char *)buf);
     Packet *p;
     p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
@@ -626,8 +625,8 @@ static int DetectIsdataatTestPacket02 (void)
         goto end;
 
     char sig[] = "alert tcp any any -> any any (msg:\"pcre with"
-            " isdataat + relative\"; pcre:\"/A(ll|pp)WorkAndNoPlayMakesWillA"
-            "DullBoy/\"; isdataat:96,relative; sid:1;)";
+                 " isdataat + relative\"; pcre:\"/A(ll|pp)WorkAndNoPlayMakesWillA"
+                 "DullBoy/\"; isdataat:96,relative; sid:1;)";
 
     result = UTHPacketMatchSig(p, sig);
 
@@ -641,15 +640,15 @@ end:
  * isdataat, and isdataat relative works if the previous keyword is byte_jump
  * (bug 146)
  */
-static int DetectIsdataatTestPacket03 (void)
+static int DetectIsdataatTestPacket03(void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"GET /AllWorkAndNoPlayMakesWillADullBoy HTTP/1.0"
-                    "User-Agent: Wget/1.11.4"
-                    "Accept: */*"
-                    "Host: www.google.com"
-                    "Connection: Keep-Alive"
-                    "Date: Mon, 04 Jan 2010 17:29:39 GMT";
+                              "User-Agent: Wget/1.11.4"
+                              "Accept: */*"
+                              "Host: www.google.com"
+                              "Connection: Keep-Alive"
+                              "Date: Mon, 04 Jan 2010 17:29:39 GMT";
     uint16_t buflen = strlen((char *)buf);
     Packet *p;
     p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
@@ -658,8 +657,8 @@ static int DetectIsdataatTestPacket03 (void)
         goto end;
 
     char sig[] = "alert tcp any any -> any any (msg:\"byte_jump match = 0 "
-    "with distance content HTTP/1. relative against HTTP/1.0\"; byte_jump:1,"
-    "46,string,dec; isdataat:87,relative; sid:109; rev:1;)";
+                 "with distance content HTTP/1. relative against HTTP/1.0\"; byte_jump:1,"
+                 "46,string,dec; isdataat:87,relative; sid:109; rev:1;)";
 
     result = UTHPacketMatchSig(p, sig);
 

@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /**
  * \file
  *
@@ -68,8 +67,7 @@ static int DetectHttpClientBodySetupSticky(DetectEngineCtx *de_ctx, Signature *s
 #ifdef UNITTESTS
 static void DetectHttpClientBodyRegisterTests(void);
 #endif
-static void DetectHttpClientBodySetupCallback(const DetectEngineCtx *de_ctx,
-                                              Signature *s);
+static void DetectHttpClientBodySetupCallback(const DetectEngineCtx *de_ctx, Signature *s);
 static int g_http_client_body_buffer_id = 0;
 
 static uint8_t DetectEngineInspectBufferHttpBody(DetectEngineCtx *de_ctx,
@@ -99,7 +97,8 @@ void DetectHttpClientBodyRegister(void)
 
     /* http.request_body sticky buffer */
     sigmatch_table[DETECT_HTTP_REQUEST_BODY].name = "http.request_body";
-    sigmatch_table[DETECT_HTTP_REQUEST_BODY].desc = "sticky buffer to match the HTTP request body buffer";
+    sigmatch_table[DETECT_HTTP_REQUEST_BODY].desc =
+            "sticky buffer to match the HTTP request body buffer";
     sigmatch_table[DETECT_HTTP_REQUEST_BODY].url = "/rules/http-keywords.html#http-client-body";
     sigmatch_table[DETECT_HTTP_REQUEST_BODY].Setup = DetectHttpClientBodySetupSticky;
     sigmatch_table[DETECT_HTTP_REQUEST_BODY].flags |= SIGMATCH_NOOPT;
@@ -116,17 +115,14 @@ void DetectHttpClientBodyRegister(void)
     DetectAppLayerMpmRegister("http_client_body", SIG_FLAG_TOSERVER, 2,
             PrefilterMpmFiledataRegister, NULL, ALPROTO_HTTP2, HTTP2StateDataClient);
 
-    DetectBufferTypeSetDescriptionByName("http_client_body",
-            "http request body");
+    DetectBufferTypeSetDescriptionByName("http_client_body", "http request body");
 
-    DetectBufferTypeRegisterSetupCallback("http_client_body",
-            DetectHttpClientBodySetupCallback);
+    DetectBufferTypeRegisterSetupCallback("http_client_body", DetectHttpClientBodySetupCallback);
 
     g_http_client_body_buffer_id = DetectBufferTypeGetByName("http_client_body");
 }
 
-static void DetectHttpClientBodySetupCallback(const DetectEngineCtx *de_ctx,
-                                              Signature *s)
+static void DetectHttpClientBodySetupCallback(const DetectEngineCtx *de_ctx, Signature *s)
 {
     SCLogDebug("callback invoked by %u", s->id);
     AppLayerHtpEnableRequestBodyCallback();
@@ -256,7 +252,7 @@ static InspectionBuffer *HttpRequestBodyGetDataCallback(DetectEngineThreadCtx *d
 
     if (!htp_state->cfg->http_body_inline) {
         /* inspect the body if the transfer is complete or we have hit
-        * our body size limit */
+         * our body size limit */
         if ((htp_state->cfg->request.body_limit == 0 ||
                     body->content_len_so_far < htp_state->cfg->request.body_limit) &&
                 body->content_len_so_far < htp_state->cfg->request.inspect_min_size &&
@@ -280,7 +276,7 @@ static InspectionBuffer *HttpRequestBodyGetDataCallback(DetectEngineThreadCtx *d
     if (body->body_inspected > htp_state->cfg->request.inspect_min_size) {
         BUG_ON(body->content_len_so_far < body->body_inspected);
         uint64_t inspect_win = body->content_len_so_far - body->body_inspected;
-        SCLogDebug("inspect_win %"PRIu64, inspect_win);
+        SCLogDebug("inspect_win %" PRIu64, inspect_win);
         if (inspect_win < htp_state->cfg->request.inspect_window) {
             uint64_t inspect_short = htp_state->cfg->request.inspect_window - inspect_win;
             if (body->body_inspected < inspect_short)
@@ -295,8 +291,7 @@ static InspectionBuffer *HttpRequestBodyGetDataCallback(DetectEngineThreadCtx *d
     const uint8_t *data;
     uint32_t data_len;
 
-    StreamingBufferGetDataAtOffset(body->sb,
-            &data, &data_len, offset);
+    StreamingBufferGetDataAtOffset(body->sb, &data, &data_len, offset);
     InspectionBufferSetup(det_ctx, base_id, buffer, data, data_len);
     buffer->inspect_offset = offset;
     body->body_inspected = body->content_len_so_far;

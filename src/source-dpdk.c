@@ -95,7 +95,7 @@ TmEcode NoDPDKSupportExit(ThreadVars *tv, const void *initdata, void **data)
 #include "util-dpdk-bonding.h"
 #include <numa.h>
 
-#define BURST_SIZE 32
+#define BURST_SIZE                   32
 // interrupt mode constants
 #define MIN_ZERO_POLL_COUNT          10U
 #define MIN_ZERO_POLL_COUNT_TO_SLEEP 10U

@@ -110,8 +110,8 @@ int DetectAddressCmpIPv4(DetectAddress *a, DetectAddress *b)
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-int DetectAddressCutIPv4(DetectEngineCtx *de_ctx, DetectAddress *a,
-                         DetectAddress *b, DetectAddress **c)
+int DetectAddressCutIPv4(
+        DetectEngineCtx *de_ctx, DetectAddress *a, DetectAddress *b, DetectAddress **c)
 {
     uint32_t a_ip1 = SCNtohl(a->ip.addr_data32[0]);
     uint32_t a_ip2 = SCNtohl(a->ip2.addr_data32[0]);
@@ -143,10 +143,10 @@ int DetectAddressCutIPv4(DetectEngineCtx *de_ctx, DetectAddress *a,
     if (r == ADDRESS_LE) {
         SCLogDebug("DetectAddressCutIPv4: r == ADDRESS_LE");
 
-        a->ip.addr_data32[0]  = htonl(a_ip1);
+        a->ip.addr_data32[0] = htonl(a_ip1);
         a->ip2.addr_data32[0] = htonl(b_ip1 - 1);
 
-        b->ip.addr_data32[0]  = htonl(b_ip1);
+        b->ip.addr_data32[0] = htonl(b_ip1);
         b->ip2.addr_data32[0] = htonl(a_ip2);
 
         tmp_c = DetectAddressInit();
@@ -158,11 +158,11 @@ int DetectAddressCutIPv4(DetectEngineCtx *de_ctx, DetectAddress *a,
         tmp_c->ip2.addr_data32[0] = htonl(b_ip2);
         *c = tmp_c;
 
-    /* we have 3 parts: [bbb[baba]aaa]
-     * part a: b_ip1 <-> a_ip1 - 1
-     * part b: a_ip1 <-> b_ip2
-     * part c: b_ip2 + 1 <-> a_ip2
-     */
+        /* we have 3 parts: [bbb[baba]aaa]
+         * part a: b_ip1 <-> a_ip1 - 1
+         * part b: a_ip1 <-> b_ip2
+         * part c: b_ip2 + 1 <-> a_ip2
+         */
     } else if (r == ADDRESS_GE) {
         SCLogDebug("DetectAddressCutIPv4: r == ADDRESS_GE");
 
@@ -177,7 +177,7 @@ int DetectAddressCutIPv4(DetectEngineCtx *de_ctx, DetectAddress *a,
             goto error;
 
         tmp_c->ip.family = AF_INET;
-        tmp_c->ip.addr_data32[0]  = htonl(b_ip2 + 1);
+        tmp_c->ip.addr_data32[0] = htonl(b_ip2 + 1);
         tmp_c->ip2.addr_data32[0] = htonl(a_ip2);
         *c = tmp_c;
 
@@ -212,19 +212,19 @@ int DetectAddressCutIPv4(DetectEngineCtx *de_ctx, DetectAddress *a,
         } else if (a_ip2 == b_ip2) {
             SCLogDebug("DetectAddressCutIPv4: 2");
 
-            a->ip.addr_data32[0]   = htonl(b_ip1);
+            a->ip.addr_data32[0] = htonl(b_ip1);
             a->ip2.addr_data32[0] = htonl(a_ip1 - 1);
 
-            b->ip.addr_data32[0]   = htonl(a_ip1);
+            b->ip.addr_data32[0] = htonl(a_ip1);
             b->ip2.addr_data32[0] = htonl(a_ip2);
 
         } else {
             SCLogDebug("3");
 
-            a->ip.addr_data32[0]   = htonl(b_ip1);
+            a->ip.addr_data32[0] = htonl(b_ip1);
             a->ip2.addr_data32[0] = htonl(a_ip1 - 1);
 
-            b->ip.addr_data32[0]   = htonl(a_ip1);
+            b->ip.addr_data32[0] = htonl(a_ip1);
             b->ip2.addr_data32[0] = htonl(a_ip2);
 
             tmp_c = DetectAddressInit();
@@ -266,10 +266,10 @@ int DetectAddressCutIPv4(DetectEngineCtx *de_ctx, DetectAddress *a,
         } else if (a_ip2 == b_ip2) {
             SCLogDebug("DetectAddressCutIPv4: 2");
 
-            a->ip.addr_data32[0]   = htonl(a_ip1);
+            a->ip.addr_data32[0] = htonl(a_ip1);
             a->ip2.addr_data32[0] = htonl(b_ip1 - 1);
 
-            b->ip.addr_data32[0]   = htonl(b_ip1);
+            b->ip.addr_data32[0] = htonl(b_ip1);
             b->ip2.addr_data32[0] = htonl(b_ip2);
         } else {
             SCLogDebug("DetectAddressCutIPv4: 3");
@@ -330,7 +330,7 @@ int DetectAddressIsCompleteIPSpaceIPv4(DetectAddress *ag)
     next_ip = htonl(SCNtohl(ag->ip2.addr_data32[0]) + 1);
     ag = ag->next;
 
-    for ( ; ag != NULL; ag = ag->next) {
+    for (; ag != NULL; ag = ag->next) {
 
         if (ag->ip.addr_data32[0] != next_ip)
             return 0;
@@ -375,7 +375,7 @@ int DetectAddressCutNotIPv4(DetectAddress *a, DetectAddress **b)
     *b = NULL;
 
     if (a_ip1 != 0x00000000 && a_ip2 != 0xFFFFFFFF) {
-        a->ip.addr_data32[0]  = htonl(0x00000000);
+        a->ip.addr_data32[0] = htonl(0x00000000);
         a->ip2.addr_data32[0] = htonl(a_ip1 - 1);
 
         tmp_b = DetectAddressInit();
@@ -383,7 +383,7 @@ int DetectAddressCutNotIPv4(DetectAddress *a, DetectAddress **b)
             goto error;
 
         tmp_b->ip.family = AF_INET;
-        tmp_b->ip.addr_data32[0]  = htonl(a_ip2 + 1);
+        tmp_b->ip.addr_data32[0] = htonl(a_ip2 + 1);
         tmp_b->ip2.addr_data32[0] = htonl(0xFFFFFFFF);
         *b = tmp_b;
     } else if (a_ip1 == 0x00000000 && a_ip2 != 0xFFFFFFFF) {
@@ -394,7 +394,7 @@ int DetectAddressCutNotIPv4(DetectAddress *a, DetectAddress **b)
         a->ip2.addr_data32[0] = htonl(a_ip1 - 1);
     } else {
         goto error;
-     }
+    }
 
     return 0;
 
@@ -1008,14 +1008,10 @@ static int DetectAddressIPv4CutNot09(void)
 void DetectAddressIPv4Tests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectAddressIPv4TestAddressCmp01",
-                   DetectAddressIPv4TestAddressCmp01);
-    UtRegisterTest("DetectAddressIPv4IsCompleteIPSpace02",
-                   DetectAddressIPv4IsCompleteIPSpace02);
-    UtRegisterTest("DetectAddressIPv4IsCompleteIPSpace03",
-                   DetectAddressIPv4IsCompleteIPSpace03);
-    UtRegisterTest("DetectAddressIPv4IsCompleteIPSpace04",
-                   DetectAddressIPv4IsCompleteIPSpace04);
+    UtRegisterTest("DetectAddressIPv4TestAddressCmp01", DetectAddressIPv4TestAddressCmp01);
+    UtRegisterTest("DetectAddressIPv4IsCompleteIPSpace02", DetectAddressIPv4IsCompleteIPSpace02);
+    UtRegisterTest("DetectAddressIPv4IsCompleteIPSpace03", DetectAddressIPv4IsCompleteIPSpace03);
+    UtRegisterTest("DetectAddressIPv4IsCompleteIPSpace04", DetectAddressIPv4IsCompleteIPSpace04);
     UtRegisterTest("DetectAddressIPv4CutNot05", DetectAddressIPv4CutNot05);
     UtRegisterTest("DetectAddressIPv4CutNot06", DetectAddressIPv4CutNot06);
     UtRegisterTest("DetectAddressIPv4CutNot07", DetectAddressIPv4CutNot07);

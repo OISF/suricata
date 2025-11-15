@@ -166,7 +166,7 @@ static TmEcode OutputStatsLogThreadDeinit(ThreadVars *tv, void *thread_data)
     return TM_ECODE_OK;
 }
 
-void TmModuleStatsLoggerRegister (void)
+void TmModuleStatsLoggerRegister(void)
 {
     tmm_modules[TMM_STATSLOGGER].name = "__stats_logger__";
     tmm_modules[TMM_STATSLOGGER].ThreadInit = OutputStatsLogThreadInit;

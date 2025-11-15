@@ -49,20 +49,18 @@
 #include "detect-ssh-hassh-server.h"
 #include "rust.h"
 
-
-#define KEYWORD_NAME "ssh.hassh.server"
+#define KEYWORD_NAME  "ssh.hassh.server"
 #define KEYWORD_ALIAS "ssh-hassh-server"
-#define KEYWORD_DOC "ssh-keywords.html#ssh.hassh.server"
-#define BUFFER_NAME "ssh.hassh.server"
-#define BUFFER_DESC "Ssh Client Fingerprinting For Ssh Servers"
+#define KEYWORD_DOC   "ssh-keywords.html#ssh.hassh.server"
+#define BUFFER_NAME   "ssh.hassh.server"
+#define BUFFER_DESC   "Ssh Client Fingerprinting For Ssh Servers"
 static int g_ssh_hassh_buffer_id = 0;
 
-
 static InspectionBuffer *GetSshData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f,
-        const uint8_t flow_flags, void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t flow_flags, void *txv,
+        const int list_id)
 {
-    
+
     SCEnter();
 
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
@@ -103,7 +101,7 @@ static int DetectSshHasshServerSetup(DetectEngineCtx *de_ctx, Signature *s, cons
 
     if (SCDetectSignatureSetAppProto(s, ALPROTO_SSH) < 0)
         return -1;
-            
+
     /* try to enable Hassh */
     SCSshEnableHassh();
 
@@ -116,7 +114,6 @@ static int DetectSshHasshServerSetup(DetectEngineCtx *de_ctx, Signature *s, cons
     }
 
     return 0;
-
 }
 
 static void DetectSshHasshServerHashSetupCallback(const DetectEngineCtx *de_ctx, Signature *s)
@@ -148,7 +145,7 @@ static void DetectSshHasshServerHashSetupCallback(const DetectEngineCtx *de_ctx,
 /**
  * \brief Registration function for hasshServer keyword.
  */
-void DetectSshHasshServerRegister(void) 
+void DetectSshHasshServerRegister(void)
 {
     sigmatch_table[DETECT_SSH_HASSH_SERVER].name = KEYWORD_NAME;
     sigmatch_table[DETECT_SSH_HASSH_SERVER].alias = KEYWORD_ALIAS;

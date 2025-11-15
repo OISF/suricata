@@ -22,9 +22,8 @@
  */
 
 #ifndef _DETECT_STREAM_SIZE_H
-#define	_DETECT_STREAM_SIZE_H
+#define _DETECT_STREAM_SIZE_H
 
 void DetectStreamSizeRegister(void);
 
-#endif	/* _DETECT_STREAM_SIZE_H */
-
+#endif /* _DETECT_STREAM_SIZE_H */

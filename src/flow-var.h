@@ -30,8 +30,8 @@
 
 /** Available data types for Flowvars */
 
-#define FLOWVAR_TYPE_STR 1
-#define FLOWVAR_TYPE_INT 2
+#define FLOWVAR_TYPE_STR   1
+#define FLOWVAR_TYPE_INT   2
 #define FLOWVAR_TYPE_FLOAT 3
 
 typedef uint8_t FlowVarKeyLenType;
@@ -56,10 +56,10 @@ typedef struct FlowVar_ {
     uint16_t type; /* type, DETECT_FLOWVAR in this case */
     uint8_t datatype;
     FlowVarKeyLenType keylen;
-    uint32_t idx;       /* name idx */
-    GenericVar *next;   /* right now just implement this as a list,
-                         * in the long run we have think of something
-                         * faster. */
+    uint32_t idx;     /* name idx */
+    GenericVar *next; /* right now just implement this as a list,
+                       * in the long run we have think of something
+                       * faster. */
     union {
         FlowVarTypeStr fv_str;
         FlowVarTypeInt fv_int;

@@ -26,6 +26,6 @@
 #define SURICATA_DETECT_FILESHA1_H
 
 /* prototypes */
-void DetectFileSha1Register (void);
+void DetectFileSha1Register(void);
 
 #endif /* SURICATA_DETECT_FILESHA1_H */

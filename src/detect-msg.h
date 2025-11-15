@@ -25,6 +25,6 @@
 #define SURICATA_DETECT_MSG_H
 
 /* prototypes */
-void DetectMsgRegister (void);
+void DetectMsgRegister(void);
 
 #endif /* SURICATA_DETECT_MSG_H */

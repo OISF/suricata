@@ -48,9 +48,9 @@ typedef struct Dataset {
     char name[DATASET_NAME_MAX_LEN + 1];
     enum DatasetTypes type;
     uint32_t id;
-    bool from_yaml;                     /* Mark whether the set was retrieved from YAML */
-    bool hidden;                        /* Mark the old sets hidden in case of reload */
-    bool remove_key;                    /* Mark that value key should be removed from extra data */
+    bool from_yaml;  /* Mark whether the set was retrieved from YAML */
+    bool hidden;     /* Mark the old sets hidden in case of reload */
+    bool remove_key; /* Mark that value key should be removed from extra data */
     THashTableContext *hash;
 
     char load[PATH_MAX];
@@ -73,8 +73,8 @@ int DatasetGetOrCreate(const char *name, enum DatasetTypes type, const char *sav
 int DatasetAdd(Dataset *set, const uint8_t *data, const uint32_t data_len);
 int DatasetRemove(Dataset *set, const uint8_t *data, const uint32_t data_len);
 int DatasetLookup(Dataset *set, const uint8_t *data, const uint32_t data_len);
-DataRepResultType DatasetLookupwRep(Dataset *set, const uint8_t *data, const uint32_t data_len,
-        const DataRepType *rep);
+DataRepResultType DatasetLookupwRep(
+        Dataset *set, const uint8_t *data, const uint32_t data_len, const DataRepType *rep);
 
 void DatasetGetDefaultMemcap(uint64_t *memcap, uint32_t *hashsize);
 int DatasetParseIpv6String(Dataset *set, const char *line, struct in6_addr *in6);

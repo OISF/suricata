@@ -84,8 +84,8 @@ typedef struct MpmPattern_ {
 /* Indicates if this a global mpm_ctx.  Global mpm_ctx is the one that
  * is instantiated when we use "single".  Non-global is "full", i.e.
  * one per sgh. */
-#define MPMCTX_FLAGS_GLOBAL     BIT_U8(0)
-#define MPMCTX_FLAGS_NODEPTH    BIT_U8(1)
+#define MPMCTX_FLAGS_GLOBAL        BIT_U8(0)
+#define MPMCTX_FLAGS_NODEPTH       BIT_U8(1)
 #define MPMCTX_FLAGS_CACHE_TO_DISK BIT_U8(2)
 
 typedef struct MpmConfig_ {
@@ -137,13 +137,13 @@ typedef struct MpmCtxFactoryContainer_ {
 /** pattern is case insensitive */
 #define MPM_PATTERN_FLAG_NOCASE 0x01
 /** pattern has a depth setting */
-#define MPM_PATTERN_FLAG_DEPTH      0x04
+#define MPM_PATTERN_FLAG_DEPTH 0x04
 /** pattern has an offset setting */
 #define MPM_PATTERN_FLAG_OFFSET 0x08
 /** the ctx uses it's own internal id instead of
  *  what is passed through the API */
-#define MPM_PATTERN_CTX_OWNS_ID     0x20
-#define MPM_PATTERN_FLAG_ENDSWITH   0x40
+#define MPM_PATTERN_CTX_OWNS_ID   0x20
+#define MPM_PATTERN_FLAG_ENDSWITH 0x40
 
 #define MPM_FEATURE_FLAG_DEPTH    BIT_U8(0)
 #define MPM_FEATURE_FLAG_OFFSET   BIT_U8(1)
@@ -171,13 +171,15 @@ typedef struct MpmTableElmt_ {
      *  \param sid signature _internal_ id
      *  \param flags pattern flags
      */
-    int  (*AddPattern)(struct MpmCtx_ *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, SigIntId, uint8_t);
+    int (*AddPattern)(
+            struct MpmCtx_ *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, SigIntId, uint8_t);
     int (*AddPatternNocase)(struct MpmCtx_ *, const uint8_t *, uint16_t, uint16_t, uint16_t,
             uint32_t, SigIntId, uint8_t);
     int (*Prepare)(MpmConfig *, struct MpmCtx_ *);
     int (*CacheRuleset)(MpmConfig *);
     /** \retval cnt number of patterns that matches: once per pattern max. */
-    uint32_t (*Search)(const struct MpmCtx_ *, struct MpmThreadCtx_ *, PrefilterRuleStore *, const uint8_t *, uint32_t);
+    uint32_t (*Search)(const struct MpmCtx_ *, struct MpmThreadCtx_ *, PrefilterRuleStore *,
+            const uint8_t *, uint32_t);
     void (*PrintCtx)(struct MpmCtx_ *);
     void (*PrintThreadCtx)(struct MpmThreadCtx_ *);
 #ifdef UNITTESTS
@@ -205,9 +207,8 @@ void MpmInitCtx(MpmCtx *mpm_ctx, uint8_t matcher);
 void MpmInitThreadCtx(MpmThreadCtx *mpm_thread_ctx, uint16_t);
 void MpmDestroyThreadCtx(MpmThreadCtx *mpm_thread_ctx, const uint16_t matcher);
 
-int MpmAddPatternCS(struct MpmCtx_ *mpm_ctx, uint8_t *pat, uint16_t patlen,
-                    uint16_t offset, uint16_t depth,
-                    uint32_t pid, SigIntId sid, uint8_t flags);
+int MpmAddPatternCS(struct MpmCtx_ *mpm_ctx, uint8_t *pat, uint16_t patlen, uint16_t offset,
+        uint16_t depth, uint32_t pid, SigIntId sid, uint8_t flags);
 int SCMpmAddPatternCI(MpmCtx *mpm_ctx, const uint8_t *pat, uint16_t patlen, uint16_t offset,
         uint16_t depth, uint32_t pid, SigIntId sid, uint8_t flags);
 

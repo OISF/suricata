@@ -52,35 +52,35 @@
 #include "output-json.h"
 #include "output-json-email-common.h"
 
-#define LOG_EMAIL_DEFAULT       0
-#define LOG_EMAIL_EXTENDED      (1<<0)
-#define LOG_EMAIL_ARRAY         (1<<1) /* require array handling */
-#define LOG_EMAIL_COMMA         (1<<2) /* require array handling */
-#define LOG_EMAIL_BODY_MD5      (1<<3)
-#define LOG_EMAIL_SUBJECT_MD5   (1<<4)
+#define LOG_EMAIL_DEFAULT     0
+#define LOG_EMAIL_EXTENDED    (1 << 0)
+#define LOG_EMAIL_ARRAY       (1 << 1) /* require array handling */
+#define LOG_EMAIL_COMMA       (1 << 2) /* require array handling */
+#define LOG_EMAIL_BODY_MD5    (1 << 3)
+#define LOG_EMAIL_SUBJECT_MD5 (1 << 4)
 
 struct {
     const char *config_field;
     const char *email_field;
     uint32_t flags;
-} email_fields[] =  {
+} email_fields[] = {
     { "reply_to", "reply-to", LOG_EMAIL_DEFAULT },
-    { "bcc", "bcc", LOG_EMAIL_COMMA|LOG_EMAIL_EXTENDED },
+    { "bcc", "bcc", LOG_EMAIL_COMMA | LOG_EMAIL_EXTENDED },
     { "message_id", "message-id", LOG_EMAIL_EXTENDED },
     { "subject", "subject", LOG_EMAIL_EXTENDED },
     { "x_mailer", "x-mailer", LOG_EMAIL_EXTENDED },
     { "user_agent", "user-agent", LOG_EMAIL_EXTENDED },
     { "received", "received", LOG_EMAIL_ARRAY },
     { "x_originating_ip", "x-originating-ip", LOG_EMAIL_DEFAULT },
-    { "in_reply_to",  "in-reply-to", LOG_EMAIL_DEFAULT },
-    { "references",  "references", LOG_EMAIL_DEFAULT },
-    { "importance",  "importance", LOG_EMAIL_DEFAULT },
-    { "priority",  "priority", LOG_EMAIL_DEFAULT },
-    { "sensitivity",  "sensitivity", LOG_EMAIL_DEFAULT },
-    { "organization",  "organization", LOG_EMAIL_DEFAULT },
-    { "content_md5",  "content-md5", LOG_EMAIL_DEFAULT },
+    { "in_reply_to", "in-reply-to", LOG_EMAIL_DEFAULT },
+    { "references", "references", LOG_EMAIL_DEFAULT },
+    { "importance", "importance", LOG_EMAIL_DEFAULT },
+    { "priority", "priority", LOG_EMAIL_DEFAULT },
+    { "sensitivity", "sensitivity", LOG_EMAIL_DEFAULT },
+    { "organization", "organization", LOG_EMAIL_DEFAULT },
+    { "content_md5", "content-md5", LOG_EMAIL_DEFAULT },
     { "date", "date", LOG_EMAIL_DEFAULT },
-    { NULL, NULL, LOG_EMAIL_DEFAULT},
+    { NULL, NULL, LOG_EMAIL_DEFAULT },
 };
 
 static void EveEmailLogJSONMd5(
@@ -112,11 +112,10 @@ static void EveEmailLogJSONCustom(
         return;
     }
 
-    while(email_fields[f].config_field) {
-        if (((email_ctx->fields & (1ULL<<f)) != 0)
-              ||
-              ((email_ctx->flags & LOG_EMAIL_EXTENDED) && (email_fields[f].flags & LOG_EMAIL_EXTENDED))
-           ) {
+    while (email_fields[f].config_field) {
+        if (((email_ctx->fields & (1ULL << f)) != 0) ||
+                ((email_ctx->flags & LOG_EMAIL_EXTENDED) &&
+                        (email_fields[f].flags & LOG_EMAIL_EXTENDED))) {
             if (email_fields[f].flags & LOG_EMAIL_ARRAY) {
                 SCMimeSmtpLogFieldArray(
                         js, entity, email_fields[f].email_field, email_fields[f].config_field);
@@ -127,7 +126,6 @@ static void EveEmailLogJSONCustom(
                 SCMimeSmtpLogFieldString(
                         js, entity, email_fields[f].email_field, email_fields[f].config_field);
             }
-
         }
         f++;
     }
@@ -171,7 +169,7 @@ TmEcode EveEmailLogJson(JsonEmailLogThread *aft, SCJsonBuilder *js, const Packet
         void *state, void *vtx, uint64_t tx_id)
 {
     OutputJsonEmailCtx *email_ctx = aft->emaillog_ctx;
-    SMTPTransaction *tx = (SMTPTransaction *) vtx;
+    SMTPTransaction *tx = (SMTPTransaction *)vtx;
     SCJsonBuilderMark mark = { 0, 0, 0 };
 
     SCJbGetMark(js, &mark);
@@ -216,7 +214,7 @@ void OutputEmailInitConf(SCConfNode *conf, OutputJsonEmailCtx *email_ctx)
             }
         }
 
-        email_ctx->fields  = 0;
+        email_ctx->fields = 0;
         SCConfNode *custom;
         if ((custom = SCConfNodeLookupChild(conf, "custom")) != NULL) {
             SCConfNode *field;
@@ -233,7 +231,7 @@ void OutputEmailInitConf(SCConfNode *conf, OutputJsonEmailCtx *email_ctx)
             }
         }
 
-        email_ctx->flags  = 0;
+        email_ctx->flags = 0;
         SCConfNode *md5_conf;
         if ((md5_conf = SCConfNodeLookupChild(conf, "md5")) != NULL) {
             SCConfNode *field;

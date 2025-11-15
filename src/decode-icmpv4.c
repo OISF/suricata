@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /**
  * \file
  *
@@ -48,7 +47,7 @@
 /**
  * Note, this is the IP header, plus a bit of the original packet, not the whole thing!
  */
-static int DecodePartialIPV4(Packet* p, uint8_t* partial_packet, uint16_t len)
+static int DecodePartialIPV4(Packet *p, uint8_t *partial_packet, uint16_t len)
 {
     /** Check the sizes, the header must fit at least */
     if (len < IPV4_HEADER_LEN) {
@@ -57,7 +56,7 @@ static int DecodePartialIPV4(Packet* p, uint8_t* partial_packet, uint16_t len)
         return -1;
     }
 
-    IPV4Hdr *icmp4_ip4h = (IPV4Hdr*)partial_packet;
+    IPV4Hdr *icmp4_ip4h = (IPV4Hdr *)partial_packet;
 
     /** Check the embedded version */
     if (IPV4_GET_RAW_VER(icmp4_ip4h) != 4) {
@@ -75,7 +74,7 @@ static int DecodePartialIPV4(Packet* p, uint8_t* partial_packet, uint16_t len)
 
     switch (IPV4_GET_RAW_IPPROTO(icmp4_ip4h)) {
         case IPPROTO_TCP:
-            if (len >= IPV4_HEADER_LEN + TCP_HEADER_LEN ) {
+            if (len >= IPV4_HEADER_LEN + TCP_HEADER_LEN) {
                 TCPHdr *emb_tcph = (TCPHdr *)(partial_packet + IPV4_HEADER_LEN);
                 p->l4.vars.icmpv4.emb_sport = SCNtohs(emb_tcph->th_sport);
                 p->l4.vars.icmpv4.emb_dport = SCNtohs(emb_tcph->th_dport);
@@ -104,7 +103,7 @@ static int DecodePartialIPV4(Packet* p, uint8_t* partial_packet, uint16_t len)
 
             break;
         case IPPROTO_UDP:
-            if (len >= IPV4_HEADER_LEN + UDP_HEADER_LEN ) {
+            if (len >= IPV4_HEADER_LEN + UDP_HEADER_LEN) {
                 UDPHdr *emb_udph = (UDPHdr *)(partial_packet + IPV4_HEADER_LEN);
                 p->l4.vars.icmpv4.emb_sport = SCNtohs(emb_udph->uh_sport);
                 p->l4.vars.icmpv4.emb_dport = SCNtohs(emb_udph->uh_dport);
@@ -170,13 +169,13 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
             p->l4.vars.icmpv4.id = icmp4eh->id;
             p->l4.vars.icmpv4.seq = icmp4eh->seq;
             if (code != 0) {
-                ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
+                ENGINE_SET_EVENT(p, ICMPV4_UNKNOWN_CODE);
             }
             break;
 
         case ICMP_DEST_UNREACH:
             if (code > NR_ICMP_UNREACH) {
-                ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
+                ENGINE_SET_EVENT(p, ICMPV4_UNKNOWN_CODE);
             } else {
                 /* parse IP header plus 64 bytes */
                 if (len > ICMPV4_HEADER_PKT_OFFSET) {
@@ -191,7 +190,7 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
 
         case ICMP_SOURCE_QUENCH:
             if (code != 0) {
-                ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
+                ENGINE_SET_EVENT(p, ICMPV4_UNKNOWN_CODE);
             } else {
                 // parse IP header plus 64 bytes
                 if (len >= ICMPV4_HEADER_PKT_OFFSET) {
@@ -206,7 +205,7 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
 
         case ICMP_REDIRECT:
             if (code > ICMP_REDIR_HOSTTOS) {
-                ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
+                ENGINE_SET_EVENT(p, ICMPV4_UNKNOWN_CODE);
             } else {
                 // parse IP header plus 64 bytes
                 if (len > ICMPV4_HEADER_PKT_OFFSET) {
@@ -223,13 +222,13 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
             p->l4.vars.icmpv4.id = icmp4eh->id;
             p->l4.vars.icmpv4.seq = icmp4eh->seq;
             if (code != 0) {
-                ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
+                ENGINE_SET_EVENT(p, ICMPV4_UNKNOWN_CODE);
             }
             break;
 
         case ICMP_TIME_EXCEEDED:
             if (code > ICMP_EXC_FRAGTIME) {
-                ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
+                ENGINE_SET_EVENT(p, ICMPV4_UNKNOWN_CODE);
             } else {
                 // parse IP header plus 64 bytes
                 if (len > ICMPV4_HEADER_PKT_OFFSET) {
@@ -244,7 +243,7 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
 
         case ICMP_PARAMETERPROB:
             if (code != 0) {
-                ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
+                ENGINE_SET_EVENT(p, ICMPV4_UNKNOWN_CODE);
             } else {
                 // parse IP header plus 64 bytes
                 if (len > ICMPV4_HEADER_PKT_OFFSET) {
@@ -261,7 +260,7 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
             p->l4.vars.icmpv4.id = icmp4eh->id;
             p->l4.vars.icmpv4.seq = icmp4eh->seq;
             if (code != 0) {
-                ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
+                ENGINE_SET_EVENT(p, ICMPV4_UNKNOWN_CODE);
             }
 
             if (len < (sizeof(ICMPV4Timestamp) + ICMPV4_HEADER_LEN)) {
@@ -275,7 +274,7 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
             p->l4.vars.icmpv4.id = icmp4eh->id;
             p->l4.vars.icmpv4.seq = icmp4eh->seq;
             if (code != 0) {
-                ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
+                ENGINE_SET_EVENT(p, ICMPV4_UNKNOWN_CODE);
             }
 
             if (len < (sizeof(ICMPV4Timestamp) + ICMPV4_HEADER_LEN)) {
@@ -289,7 +288,7 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
             p->l4.vars.icmpv4.id = icmp4eh->id;
             p->l4.vars.icmpv4.seq = icmp4eh->seq;
             if (code != 0) {
-                ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
+                ENGINE_SET_EVENT(p, ICMPV4_UNKNOWN_CODE);
             }
             break;
 
@@ -297,7 +296,7 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
             p->l4.vars.icmpv4.id = icmp4eh->id;
             p->l4.vars.icmpv4.seq = icmp4eh->seq;
             if (code != 0) {
-                ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
+                ENGINE_SET_EVENT(p, ICMPV4_UNKNOWN_CODE);
             }
             break;
 
@@ -317,7 +316,7 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
             p->l4.vars.icmpv4.id = icmp4eh->id;
             p->l4.vars.icmpv4.seq = icmp4eh->seq;
             if (code != 0) {
-                ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
+                ENGINE_SET_EVENT(p, ICMPV4_UNKNOWN_CODE);
             }
             break;
 
@@ -325,7 +324,7 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
             p->l4.vars.icmpv4.id = icmp4eh->id;
             p->l4.vars.icmpv4.seq = icmp4eh->seq;
             if (code != 0) {
-                ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
+                ENGINE_SET_EVENT(p, ICMPV4_UNKNOWN_CODE);
             }
             break;
 
@@ -344,13 +343,17 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
 /** \retval type counterpart type or -1 */
 int ICMPv4GetCounterpart(uint8_t type)
 {
-#define CASE_CODE(t,r) case (t): return r; case (r): return t;
+#define CASE_CODE(t, r)                                                                            \
+    case (t):                                                                                      \
+        return r;                                                                                  \
+    case (r):                                                                                      \
+        return t;
     switch (type) {
-        CASE_CODE(ICMP_ECHO,            ICMP_ECHOREPLY);
-        CASE_CODE(ICMP_TIMESTAMP,       ICMP_TIMESTAMPREPLY);
-        CASE_CODE(ICMP_INFO_REQUEST,    ICMP_INFO_REPLY);
-        CASE_CODE(ICMP_ROUTERSOLICIT,   ICMP_ROUTERADVERT);
-        CASE_CODE(ICMP_ADDRESS,         ICMP_ADDRESSREPLY);
+        CASE_CODE(ICMP_ECHO, ICMP_ECHOREPLY);
+        CASE_CODE(ICMP_TIMESTAMP, ICMP_TIMESTAMPREPLY);
+        CASE_CODE(ICMP_INFO_REQUEST, ICMP_INFO_REPLY);
+        CASE_CODE(ICMP_ROUTERSOLICIT, ICMP_ROUTERADVERT);
+        CASE_CODE(ICMP_ADDRESS, ICMP_ADDRESSREPLY);
         default:
             return -1;
     }
@@ -365,14 +368,10 @@ int ICMPv4GetCounterpart(uint8_t type)
  */
 static int DecodeICMPV4test01(void)
 {
-    uint8_t raw_icmpv4[] = {
-        0x08, 0x00, 0x78, 0x47, 0xfc, 0x55, 0x00, 0x04,
-        0x52, 0xab, 0x86, 0x4a, 0x84, 0x50, 0x0e, 0x00,
-        0xab, 0xab, 0xab, 0xab, 0xab, 0xab, 0xab, 0xab,
-        0xab, 0xab, 0xab, 0xab, 0xab, 0xab, 0xab, 0xab,
-        0xab, 0xab, 0xab, 0xab, 0xab, 0xab, 0xab, 0xab,
-        0xab, 0xab, 0xab, 0xab, 0xab, 0xab, 0xab, 0xab,
-        0xab };
+    uint8_t raw_icmpv4[] = { 0x08, 0x00, 0x78, 0x47, 0xfc, 0x55, 0x00, 0x04, 0x52, 0xab, 0x86, 0x4a,
+        0x84, 0x50, 0x0e, 0x00, 0xab, 0xab, 0xab, 0xab, 0xab, 0xab, 0xab, 0xab, 0xab, 0xab, 0xab,
+        0xab, 0xab, 0xab, 0xab, 0xab, 0xab, 0xab, 0xab, 0xab, 0xab, 0xab, 0xab, 0xab, 0xab, 0xab,
+        0xab, 0xab, 0xab, 0xab, 0xab, 0xab, 0xab };
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
     ThreadVars tv;
@@ -415,14 +414,10 @@ static int DecodeICMPV4test01(void)
  */
 static int DecodeICMPV4test02(void)
 {
-    uint8_t raw_icmpv4[] = {
-        0x00, 0x00, 0x57, 0x64, 0xfb, 0x55, 0x00, 0x03,
-        0x43, 0xab, 0x86, 0x4a, 0xf6, 0x49, 0x02, 0x00,
-        0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
-        0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
-        0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
-        0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27,
-        0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f };
+    uint8_t raw_icmpv4[] = { 0x00, 0x00, 0x57, 0x64, 0xfb, 0x55, 0x00, 0x03, 0x43, 0xab, 0x86, 0x4a,
+        0xf6, 0x49, 0x02, 0x00, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12,
+        0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f, 0x20, 0x21,
+        0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f };
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
     ThreadVars tv;
@@ -464,12 +459,9 @@ static int DecodeICMPV4test02(void)
  */
 static int DecodeICMPV4test03(void)
 {
-    uint8_t raw_icmpv4[] = {
-        0x0b, 0x00, 0x6a, 0x3d, 0x00, 0x00, 0x00, 0x00,
-        0x45, 0x00, 0x00, 0x3c, 0x64, 0x15, 0x00, 0x00,
-        0x01, 0x11, 0xde, 0xfd, 0xc0, 0xa8, 0x01, 0x0d,
-        0xd1, 0x55, 0xe3, 0x93, 0x8b, 0x12, 0x82, 0xaa,
-        0x00, 0x28, 0x7c, 0xdd };
+    uint8_t raw_icmpv4[] = { 0x0b, 0x00, 0x6a, 0x3d, 0x00, 0x00, 0x00, 0x00, 0x45, 0x00, 0x00, 0x3c,
+        0x64, 0x15, 0x00, 0x00, 0x01, 0x11, 0xde, 0xfd, 0xc0, 0xa8, 0x01, 0x0d, 0xd1, 0x55, 0xe3,
+        0x93, 0x8b, 0x12, 0x82, 0xaa, 0x00, 0x28, 0x7c, 0xdd };
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
     ThreadVars tv;
@@ -527,14 +519,10 @@ static int DecodeICMPV4test03(void)
  */
 static int DecodeICMPV4test04(void)
 {
-    uint8_t raw_icmpv4[] = {
-        0x03, 0x0a, 0x36, 0xc3, 0x00, 0x00, 0x00, 0x00,
-        0x45, 0x00, 0x00, 0x3c, 0x62, 0xee, 0x40, 0x00,
-        0x33, 0x06, 0xb4, 0x8f, 0xc0, 0xa8, 0x01, 0x0d,
-        0x58, 0x60, 0x16, 0x29, 0xb1, 0x0a, 0x00, 0x32,
-        0x3e, 0x36, 0x38, 0x7c, 0x00, 0x00, 0x00, 0x00,
-        0xa0, 0x02, 0x16, 0xd0, 0x72, 0x04, 0x00, 0x00,
-        0x02, 0x04, 0x05, 0x8a, 0x04, 0x02, 0x08, 0x0a };
+    uint8_t raw_icmpv4[] = { 0x03, 0x0a, 0x36, 0xc3, 0x00, 0x00, 0x00, 0x00, 0x45, 0x00, 0x00, 0x3c,
+        0x62, 0xee, 0x40, 0x00, 0x33, 0x06, 0xb4, 0x8f, 0xc0, 0xa8, 0x01, 0x0d, 0x58, 0x60, 0x16,
+        0x29, 0xb1, 0x0a, 0x00, 0x32, 0x3e, 0x36, 0x38, 0x7c, 0x00, 0x00, 0x00, 0x00, 0xa0, 0x02,
+        0x16, 0xd0, 0x72, 0x04, 0x00, 0x00, 0x02, 0x04, 0x05, 0x8a, 0x04, 0x02, 0x08, 0x0a };
     Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
@@ -598,11 +586,43 @@ end:
 static int DecodeICMPV4test05(void)
 {
     uint8_t raw_icmpv4[] = {
-	0x0b, 0x00, 0x5c, 0x46, 0x00, 0x00, 0x00, 0x00, 0x45,
-	0x00, 0x00, 0x30, 0x02, 0x17, 0x40, 0x00, 0x01, 0x06,
-	0xd6, 0xbd, 0xc0, 0xa8, 0x02, 0x05, 0x3d, 0x23, 0xa1,
-	0x23, 0x04, 0x18, 0x00, 0x50, 0xd2, 0x08, 0xc2, 0x48,
-         };
+        0x0b,
+        0x00,
+        0x5c,
+        0x46,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x45,
+        0x00,
+        0x00,
+        0x30,
+        0x02,
+        0x17,
+        0x40,
+        0x00,
+        0x01,
+        0x06,
+        0xd6,
+        0xbd,
+        0xc0,
+        0xa8,
+        0x02,
+        0x05,
+        0x3d,
+        0x23,
+        0xa1,
+        0x23,
+        0x04,
+        0x18,
+        0x00,
+        0x50,
+        0xd2,
+        0x08,
+        0xc2,
+        0x48,
+    };
     Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
@@ -663,17 +683,13 @@ static int ICMPV4CalculateValidChecksumtest05(void)
 {
     uint16_t csum = 0;
 
-    uint8_t raw_icmpv4[] = {
-        0x08, 0x00, 0xab, 0x9b, 0x7f, 0x2b, 0x05, 0x2c,
-        0x3f, 0x72, 0x93, 0x4a, 0x00, 0x4d, 0x0a, 0x00,
-        0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
-        0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
-        0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
-        0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27,
-        0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f,
-        0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37};
+    uint8_t raw_icmpv4[] = { 0x08, 0x00, 0xab, 0x9b, 0x7f, 0x2b, 0x05, 0x2c, 0x3f, 0x72, 0x93, 0x4a,
+        0x00, 0x4d, 0x0a, 0x00, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12,
+        0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f, 0x20, 0x21,
+        0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f, 0x30,
+        0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37 };
 
-    csum = *( ((uint16_t *)raw_icmpv4) + 1);
+    csum = *(((uint16_t *)raw_icmpv4) + 1);
     return (csum == ICMPV4CalculateChecksum((uint16_t *)raw_icmpv4, sizeof(raw_icmpv4)));
 }
 
@@ -681,36 +697,28 @@ static int ICMPV4CalculateInvalidChecksumtest06(void)
 {
     uint16_t csum = 0;
 
-    uint8_t raw_icmpv4[] = {
-        0x08, 0x00, 0xab, 0x9b, 0x7f, 0x2b, 0x05, 0x2c,
-        0x3f, 0x72, 0x93, 0x4a, 0x00, 0x4d, 0x0a, 0x00,
-        0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
-        0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
-        0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
-        0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27,
-        0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f,
-        0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x38};
+    uint8_t raw_icmpv4[] = { 0x08, 0x00, 0xab, 0x9b, 0x7f, 0x2b, 0x05, 0x2c, 0x3f, 0x72, 0x93, 0x4a,
+        0x00, 0x4d, 0x0a, 0x00, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12,
+        0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f, 0x20, 0x21,
+        0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f, 0x30,
+        0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x38 };
 
-    csum = *( ((uint16_t *)raw_icmpv4) + 1);
+    csum = *(((uint16_t *)raw_icmpv4) + 1);
     return (csum != ICMPV4CalculateChecksum((uint16_t *)raw_icmpv4, sizeof(raw_icmpv4)));
 }
 
 static int ICMPV4InvalidType07(void)
 {
 
-    uint8_t raw_icmpv4[] = {
-        0xff, 0x00, 0xab, 0x9b, 0x7f, 0x2b, 0x05, 0x2c,
-        0x3f, 0x72, 0x93, 0x4a, 0x00, 0x4d, 0x0a, 0x00,
-        0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
-        0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
-        0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
-        0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27,
-        0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f,
-        0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x38};
+    uint8_t raw_icmpv4[] = { 0xff, 0x00, 0xab, 0x9b, 0x7f, 0x2b, 0x05, 0x2c, 0x3f, 0x72, 0x93, 0x4a,
+        0x00, 0x4d, 0x0a, 0x00, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12,
+        0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f, 0x20, 0x21,
+        0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f, 0x30,
+        0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x38 };
 
     Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
-    return 0;
+        return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
     int ret = 0;
@@ -733,7 +741,7 @@ static int ICMPV4InvalidType07(void)
 
     DecodeICMPV4(&tv, &dtv, p, raw_icmpv4, sizeof(raw_icmpv4));
 
-    if(ENGINE_ISSET_EVENT(p,ICMPV4_UNKNOWN_TYPE)) {
+    if (ENGINE_ISSET_EVENT(p, ICMPV4_UNKNOWN_TYPE)) {
         ret = 1;
     }
 
@@ -748,9 +756,7 @@ static int ICMPV4InvalidType07(void)
  */
 static int DecodeICMPV4test08(void)
 {
-    uint8_t raw_icmpv4[] = {
-        0x08, 0x00, 0x78, 0x47, 0xfc, 0x55, 0x00, 0x00
-    };
+    uint8_t raw_icmpv4[] = { 0x08, 0x00, 0x78, 0x47, 0xfc, 0x55, 0x00, 0x00 };
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
     ThreadVars tv;
@@ -798,10 +804,8 @@ void DecodeICMPV4RegisterTests(void)
     UtRegisterTest("DecodeICMPV4test03", DecodeICMPV4test03);
     UtRegisterTest("DecodeICMPV4test04", DecodeICMPV4test04);
     UtRegisterTest("DecodeICMPV4test05", DecodeICMPV4test05);
-    UtRegisterTest("ICMPV4CalculateValidChecksumtest05",
-                   ICMPV4CalculateValidChecksumtest05);
-    UtRegisterTest("ICMPV4CalculateInvalidChecksumtest06",
-                   ICMPV4CalculateInvalidChecksumtest06);
+    UtRegisterTest("ICMPV4CalculateValidChecksumtest05", ICMPV4CalculateValidChecksumtest05);
+    UtRegisterTest("ICMPV4CalculateInvalidChecksumtest06", ICMPV4CalculateInvalidChecksumtest06);
     UtRegisterTest("DecodeICMPV4InvalidType", ICMPV4InvalidType07);
     UtRegisterTest("DecodeICMPV4test08", DecodeICMPV4test08);
 #endif /* UNITTESTS */

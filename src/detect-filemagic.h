@@ -28,6 +28,6 @@
 /* prototypes */
 int FilemagicThreadLookup(magic_t *ctx, File *file);
 #endif
-void DetectFilemagicRegister (void);
+void DetectFilemagicRegister(void);
 
 #endif /* SURICATA_DETECT_FILEMAGIC_H */

@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /**
  * \file
  *
@@ -54,7 +53,7 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
 
     StatsIncr(tv, dtv->counter_gre);
 
-    if(len < GRE_HDR_LEN)    {
+    if (len < GRE_HDR_LEN) {
         ENGINE_SET_INVALID_EVENT(p, GRE_PKT_TOO_SMALL);
         return TM_ECODE_FAILED;
     }
@@ -100,17 +99,15 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
             if (GRE_FLAG_ISSET_CHKSUM(greh) || GRE_FLAG_ISSET_ROUTE(greh))
                 header_len += GRE_CHKSUM_LEN + GRE_OFFSET_LEN;
 
-            if (header_len > len)   {
+            if (header_len > len) {
                 ENGINE_SET_INVALID_EVENT(p, GRE_VERSION0_HDR_TOO_BIG);
                 return TM_ECODE_OK;
             }
 
             if (GRE_FLAG_ISSET_ROUTE(greh)) {
-                while (1)
-                {
+                while (1) {
                     if ((header_len + GRE_SRE_HDR_LEN) > len) {
-                        ENGINE_SET_INVALID_EVENT(p,
-                                                 GRE_VERSION0_MALFORMED_SRE_HDR);
+                        ENGINE_SET_INVALID_EVENT(p, GRE_VERSION0_MALFORMED_SRE_HDR);
                         return TM_ECODE_OK;
                     }
 
@@ -123,8 +120,7 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
 
                     header_len += gsre->sre_length;
                     if (header_len > len) {
-                        ENGINE_SET_INVALID_EVENT(p,
-                                                 GRE_VERSION0_MALFORMED_SRE_HDR);
+                        ENGINE_SET_INVALID_EVENT(p, GRE_VERSION0_MALFORMED_SRE_HDR);
                         return TM_ECODE_OK;
                     }
                 }
@@ -143,37 +139,37 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
              */
 
             if (GRE_FLAG_ISSET_CHKSUM(greh)) {
-                ENGINE_SET_INVALID_EVENT(p,GRE_VERSION1_CHKSUM);
+                ENGINE_SET_INVALID_EVENT(p, GRE_VERSION1_CHKSUM);
                 return TM_ECODE_OK;
             }
 
             if (GRE_FLAG_ISSET_ROUTE(greh)) {
-                ENGINE_SET_INVALID_EVENT(p,GRE_VERSION1_ROUTE);
+                ENGINE_SET_INVALID_EVENT(p, GRE_VERSION1_ROUTE);
                 return TM_ECODE_OK;
             }
 
             if (GRE_FLAG_ISSET_SSR(greh)) {
-                ENGINE_SET_INVALID_EVENT(p,GRE_VERSION1_SSR);
+                ENGINE_SET_INVALID_EVENT(p, GRE_VERSION1_SSR);
                 return TM_ECODE_OK;
             }
 
             if (GRE_FLAG_ISSET_RECUR(greh)) {
-                ENGINE_SET_INVALID_EVENT(p,GRE_VERSION1_RECUR);
+                ENGINE_SET_INVALID_EVENT(p, GRE_VERSION1_RECUR);
                 return TM_ECODE_OK;
             }
 
             if (GREV1_FLAG_ISSET_FLAGS(greh)) {
-                ENGINE_SET_INVALID_EVENT(p,GRE_VERSION1_FLAGS);
+                ENGINE_SET_INVALID_EVENT(p, GRE_VERSION1_FLAGS);
                 return TM_ECODE_OK;
             }
 
             if (GRE_GET_PROTO(greh) != GRE_PROTO_PPP) {
-                ENGINE_SET_INVALID_EVENT(p,GRE_VERSION1_WRONG_PROTOCOL);
+                ENGINE_SET_INVALID_EVENT(p, GRE_VERSION1_WRONG_PROTOCOL);
                 return TM_ECODE_OK;
             }
 
             if (!(GRE_FLAG_ISSET_KY(greh))) {
-                ENGINE_SET_INVALID_EVENT(p,GRE_VERSION1_NO_KEY);
+                ENGINE_SET_INVALID_EVENT(p, GRE_VERSION1_NO_KEY);
                 return TM_ECODE_OK;
             }
 
@@ -189,7 +185,7 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
             if (GREV1_FLAG_ISSET_ACK(greh))
                 header_len += GREV1_ACK_LEN;
 
-            if (header_len > len)   {
+            if (header_len > len) {
                 ENGINE_SET_INVALID_EVENT(p, GRE_VERSION1_HDR_TOO_BIG);
                 return TM_ECODE_OK;
             }
@@ -201,55 +197,50 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
     }
 
     switch (GRE_GET_PROTO(greh)) {
-        case ETHERNET_TYPE_IP:
-        {
-            Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + header_len,
-                    len - header_len, DECODE_TUNNEL_IPV4);
+        case ETHERNET_TYPE_IP: {
+            Packet *tp = PacketTunnelPktSetup(
+                    tv, dtv, p, pkt + header_len, len - header_len, DECODE_TUNNEL_IPV4);
             if (tp != NULL) {
                 PKT_SET_SRC(tp, PKT_SRC_DECODER_GRE);
-                PacketEnqueueNoLock(&tv->decode_pq,tp);
+                PacketEnqueueNoLock(&tv->decode_pq, tp);
             }
             break;
         }
 
-        case GRE_PROTO_PPP:
-        {
+        case GRE_PROTO_PPP: {
             if (gre_pptp_h && !gre_pptp_h->payload_length)
                 return TM_ECODE_OK;
 
-            Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + header_len,
-                    len - header_len, DECODE_TUNNEL_PPP);
+            Packet *tp = PacketTunnelPktSetup(
+                    tv, dtv, p, pkt + header_len, len - header_len, DECODE_TUNNEL_PPP);
             if (tp != NULL) {
                 PKT_SET_SRC(tp, PKT_SRC_DECODER_GRE);
-                PacketEnqueueNoLock(&tv->decode_pq,tp);
+                PacketEnqueueNoLock(&tv->decode_pq, tp);
             }
             break;
         }
 
-        case ETHERNET_TYPE_IPV6:
-        {
-            Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + header_len,
-                    len - header_len, DECODE_TUNNEL_IPV6);
+        case ETHERNET_TYPE_IPV6: {
+            Packet *tp = PacketTunnelPktSetup(
+                    tv, dtv, p, pkt + header_len, len - header_len, DECODE_TUNNEL_IPV6);
             if (tp != NULL) {
                 PKT_SET_SRC(tp, PKT_SRC_DECODER_GRE);
-                PacketEnqueueNoLock(&tv->decode_pq,tp);
+                PacketEnqueueNoLock(&tv->decode_pq, tp);
             }
             break;
         }
 
-        case ETHERNET_TYPE_VLAN:
-        {
-            Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + header_len,
-                    len - header_len, DECODE_TUNNEL_VLAN);
+        case ETHERNET_TYPE_VLAN: {
+            Packet *tp = PacketTunnelPktSetup(
+                    tv, dtv, p, pkt + header_len, len - header_len, DECODE_TUNNEL_VLAN);
             if (tp != NULL) {
                 PKT_SET_SRC(tp, PKT_SRC_DECODER_GRE);
-                PacketEnqueueNoLock(&tv->decode_pq,tp);
+                PacketEnqueueNoLock(&tv->decode_pq, tp);
             }
             break;
         }
 
-        case ETHERNET_TYPE_ERSPAN:
-        {
+        case ETHERNET_TYPE_ERSPAN: {
             // Determine if it's Type I or Type II based on the flags in the GRE header.
             // Type I:  0|0|0|0|0|00000|000000000|00000
             // Type II: 0|0|0|1|0|00000|000000000|00000
@@ -258,18 +249,17 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
                     GRE_FLAG_ISSET_SQ(greh) == 0 ? DECODE_TUNNEL_ERSPANI : DECODE_TUNNEL_ERSPANII);
             if (tp != NULL) {
                 PKT_SET_SRC(tp, PKT_SRC_DECODER_GRE);
-                PacketEnqueueNoLock(&tv->decode_pq,tp);
+                PacketEnqueueNoLock(&tv->decode_pq, tp);
             }
             break;
         }
 
-        case ETHERNET_TYPE_BRIDGE:
-        {
-            Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + header_len,
-                    len - header_len, DECODE_TUNNEL_ETHERNET);
+        case ETHERNET_TYPE_BRIDGE: {
+            Packet *tp = PacketTunnelPktSetup(
+                    tv, dtv, p, pkt + header_len, len - header_len, DECODE_TUNNEL_ETHERNET);
             if (tp != NULL) {
                 PKT_SET_SRC(tp, PKT_SRC_DECODER_GRE);
-                PacketEnqueueNoLock(&tv->decode_pq,tp);
+                PacketEnqueueNoLock(&tv->decode_pq, tp);
             }
             break;
         }
@@ -290,15 +280,14 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
     return TM_ECODE_OK;
 }
 
-
 #ifdef UNITTESTS
 /**
  * \test DecodeGRETest01 is a test for small gre packet
  */
 
-static int DecodeGREtest01 (void)
+static int DecodeGREtest01(void)
 {
-    uint8_t raw_gre[] = { 0x00 ,0x6e ,0x62 };
+    uint8_t raw_gre[] = { 0x00, 0x6e, 0x62 };
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
     ThreadVars tv;
@@ -318,23 +307,16 @@ static int DecodeGREtest01 (void)
  * \test DecodeGRETest02 is a test for wrong gre version
  */
 
-static int DecodeGREtest02 (void)
+static int DecodeGREtest02(void)
 {
-    uint8_t raw_gre[] = {
-        0x00, 0x6e, 0x62, 0xac, 0x40, 0x00, 0x40, 0x2f,
-        0xc2, 0xc7, 0x0a, 0x00, 0x00, 0x64, 0x0a, 0x00,
-        0x00, 0x8a, 0x30, 0x01, 0x0b, 0x00, 0x4e, 0x00,
-        0x00, 0x00, 0x18, 0x4a, 0x50, 0xff, 0x03, 0x00,
-        0x21, 0x45, 0x00, 0x00, 0x4a, 0x00, 0x00, 0x40,
-        0x00, 0x40, 0x11, 0x94, 0x22, 0x50, 0x7e, 0x2b,
-        0x2d, 0xc2, 0x6d, 0x68, 0x68, 0x80, 0x0e, 0x00,
-        0x35, 0x00, 0x36, 0x9f, 0x18, 0xdb, 0xc4, 0x01,
-        0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x01, 0x03, 0x73, 0x31, 0x36, 0x09, 0x73, 0x69,
-        0x74, 0x65, 0x6d, 0x65, 0x74, 0x65, 0x72, 0x03,
-        0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01,
-        0x00, 0x00, 0x29, 0x10, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00 };
+    uint8_t raw_gre[] = { 0x00, 0x6e, 0x62, 0xac, 0x40, 0x00, 0x40, 0x2f, 0xc2, 0xc7, 0x0a, 0x00,
+        0x00, 0x64, 0x0a, 0x00, 0x00, 0x8a, 0x30, 0x01, 0x0b, 0x00, 0x4e, 0x00, 0x00, 0x00, 0x18,
+        0x4a, 0x50, 0xff, 0x03, 0x00, 0x21, 0x45, 0x00, 0x00, 0x4a, 0x00, 0x00, 0x40, 0x00, 0x40,
+        0x11, 0x94, 0x22, 0x50, 0x7e, 0x2b, 0x2d, 0xc2, 0x6d, 0x68, 0x68, 0x80, 0x0e, 0x00, 0x35,
+        0x00, 0x36, 0x9f, 0x18, 0xdb, 0xc4, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x01, 0x03, 0x73, 0x31, 0x36, 0x09, 0x73, 0x69, 0x74, 0x65, 0x6d, 0x65, 0x74, 0x65, 0x72,
+        0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x29, 0x10, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00 };
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
     ThreadVars tv;
@@ -350,28 +332,20 @@ static int DecodeGREtest02 (void)
     PASS;
 }
 
-
 /**
  * \test DecodeGRETest03 is a test for valid gre packet
  */
 
-static int DecodeGREtest03 (void)
+static int DecodeGREtest03(void)
 {
-    uint8_t raw_gre[] = {
-        0x00, 0x6e, 0x62, 0xac, 0x40, 0x00, 0x40, 0x2f,
-        0xc2, 0xc7, 0x0a, 0x00, 0x00, 0x64, 0x0a, 0x00,
-        0x00, 0x8a, 0x30, 0x01, 0x88, 0x0b, 0x00, 0x4e,
-        0x00, 0x00, 0x00, 0x18, 0x4a, 0x50, 0xff, 0x03,
-        0x00, 0x21, 0x45, 0x00, 0x00, 0x4a, 0x00, 0x00,
-        0x40, 0x00, 0x40, 0x11, 0x94, 0x22, 0x50, 0x7e,
-        0x2b, 0x2d, 0xc2, 0x6d, 0x68, 0x68, 0x80, 0x0e,
-        0x00, 0x35, 0x00, 0x36, 0x9f, 0x18, 0xdb, 0xc4,
-        0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x01, 0x03, 0x73, 0x31, 0x36, 0x09, 0x73,
-        0x69, 0x74, 0x65, 0x6d, 0x65, 0x74, 0x65, 0x72,
-        0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00,
-        0x01, 0x00, 0x00, 0x29, 0x10, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00 };
+    uint8_t raw_gre[] = { 0x00, 0x6e, 0x62, 0xac, 0x40, 0x00, 0x40, 0x2f, 0xc2, 0xc7, 0x0a, 0x00,
+        0x00, 0x64, 0x0a, 0x00, 0x00, 0x8a, 0x30, 0x01, 0x88, 0x0b, 0x00, 0x4e, 0x00, 0x00, 0x00,
+        0x18, 0x4a, 0x50, 0xff, 0x03, 0x00, 0x21, 0x45, 0x00, 0x00, 0x4a, 0x00, 0x00, 0x40, 0x00,
+        0x40, 0x11, 0x94, 0x22, 0x50, 0x7e, 0x2b, 0x2d, 0xc2, 0x6d, 0x68, 0x68, 0x80, 0x0e, 0x00,
+        0x35, 0x00, 0x36, 0x9f, 0x18, 0xdb, 0xc4, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x01, 0x03, 0x73, 0x31, 0x36, 0x09, 0x73, 0x69, 0x74, 0x65, 0x6d, 0x65, 0x74, 0x65,
+        0x72, 0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x29, 0x10, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
     ThreadVars tv;

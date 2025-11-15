@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /**
  * \file
  *
@@ -39,8 +38,7 @@
 #include "util-unittest.h"
 #include "util-debug.h"
 
-int DecodeCHDLC(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-                   const uint8_t *pkt, uint32_t len)
+int DecodeCHDLC(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len)
 {
     DEBUG_VALIDATE_BUG_ON(pkt == NULL);
 
@@ -62,21 +60,20 @@ int DecodeCHDLC(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
     SCLogDebug("p %p pkt %p ether type %04x", p, pkt, SCNtohs(hdr->protocol));
 
-    DecodeNetworkLayer(tv, dtv, SCNtohs(hdr->protocol), p,
-            pkt + CHDLC_HEADER_LEN, len - CHDLC_HEADER_LEN);
+    DecodeNetworkLayer(
+            tv, dtv, SCNtohs(hdr->protocol), p, pkt + CHDLC_HEADER_LEN, len - CHDLC_HEADER_LEN);
 
     return TM_ECODE_OK;
 }
 
 #ifdef UNITTESTS
-static int DecodeCHDLCTest01 (void)
+static int DecodeCHDLCTest01(void)
 {
-    uint8_t raw[] = { 0x0f,0x00,0x08,0x00,  // HDLC
-        0x45,0x00,0x00,0x30,0x15,0x5a,0x40,0x00,0x80,0x06,
-        0x6c,0xd0,0xc0,0xa8,0x02,0x07,0x41,0x37,0x74,0xb7,
-        0x13,0x4a,0x00,0x50,0x9c,0x34,0x09,0x6c,0x00,0x00,
-        0x00,0x00,0x70,0x02,0x40,0x00,0x11,0x47,0x00,0x00,
-        0x02,0x04,0x05,0xb4,0x01,0x01,0x04,0x02 };
+    uint8_t raw[] = { 0x0f, 0x00, 0x08, 0x00, // HDLC
+        0x45, 0x00, 0x00, 0x30, 0x15, 0x5a, 0x40, 0x00, 0x80, 0x06, 0x6c, 0xd0, 0xc0, 0xa8, 0x02,
+        0x07, 0x41, 0x37, 0x74, 0xb7, 0x13, 0x4a, 0x00, 0x50, 0x9c, 0x34, 0x09, 0x6c, 0x00, 0x00,
+        0x00, 0x00, 0x70, 0x02, 0x40, 0x00, 0x11, 0x47, 0x00, 0x00, 0x02, 0x04, 0x05, 0xb4, 0x01,
+        0x01, 0x04, 0x02 };
 
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
@@ -84,7 +81,7 @@ static int DecodeCHDLCTest01 (void)
     DecodeThreadVars dtv;
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
-    memset(&tv,  0, sizeof(ThreadVars));
+    memset(&tv, 0, sizeof(ThreadVars));
 
     DecodeCHDLC(&tv, &dtv, p, raw, sizeof(raw));
 
@@ -96,7 +93,6 @@ static int DecodeCHDLCTest01 (void)
     PASS;
 }
 #endif /* UNITTESTS */
-
 
 /**
  * \brief Registers Ethernet unit tests

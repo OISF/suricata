@@ -66,31 +66,29 @@
  * \brief Regex for parsing "id" option, matching number or "number"
  */
 
-#define PARSE_REGEX  "^([A-z0-9\\s\\-\\.=,\\*@]+|\"[A-z0-9\\s\\-\\.=,\\*@]+\")\\s*$"
-#define PARSE_REGEX_FINGERPRINT  "^([A-z0-9\\:\\*]+|\"[A-z0-9\\:\\* ]+\")\\s*$"
+#define PARSE_REGEX             "^([A-z0-9\\s\\-\\.=,\\*@]+|\"[A-z0-9\\s\\-\\.=,\\*@]+\")\\s*$"
+#define PARSE_REGEX_FINGERPRINT "^([A-z0-9\\:\\*]+|\"[A-z0-9\\:\\* ]+\")\\s*$"
 
 static DetectParseRegex subject_parse_regex;
 static DetectParseRegex issuerdn_parse_regex;
 static DetectParseRegex fingerprint_parse_regex;
 
-static int DetectTlsSubjectMatch (DetectEngineThreadCtx *,
-        Flow *, uint8_t, void *, void *,
+static int DetectTlsSubjectMatch(DetectEngineThreadCtx *, Flow *, uint8_t, void *, void *,
         const Signature *, const SigMatchCtx *);
-static int DetectTlsSubjectSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectTlsSubjectSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectTlsSubjectFree(DetectEngineCtx *, void *);
 
-static int DetectTlsIssuerDNMatch (DetectEngineThreadCtx *,
-        Flow *, uint8_t, void *, void *,
+static int DetectTlsIssuerDNMatch(DetectEngineThreadCtx *, Flow *, uint8_t, void *, void *,
         const Signature *, const SigMatchCtx *);
-static int DetectTlsIssuerDNSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectTlsIssuerDNSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectTlsIssuerDNFree(DetectEngineCtx *, void *);
 
-static int DetectTlsFingerprintSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectTlsFingerprintSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectTlsFingerprintFree(DetectEngineCtx *, void *);
 
-static int DetectTlsStoreSetup (DetectEngineCtx *, Signature *, const char *);
-static int DetectTlsStorePostMatch (DetectEngineThreadCtx *det_ctx,
-        Packet *, const Signature *s, const SigMatchCtx *unused);
+static int DetectTlsStoreSetup(DetectEngineCtx *, Signature *, const char *);
+static int DetectTlsStorePostMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *, const Signature *s, const SigMatchCtx *unused);
 
 static int g_tls_cert_list_id = 0;
 static int g_tls_cert_fingerprint_list_id = 0;
@@ -98,7 +96,7 @@ static int g_tls_cert_fingerprint_list_id = 0;
 /**
  * \brief Registration function for keyword: tls.version
  */
-void DetectTlsRegister (void)
+void DetectTlsRegister(void)
 {
     sigmatch_table[DETECT_TLS_SUBJECT].name = "tls.subject";
     sigmatch_table[DETECT_TLS_SUBJECT].desc = "match TLS/SSL certificate Subject field";
@@ -161,9 +159,8 @@ void DetectTlsRegister (void)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectTlsSubjectMatch (DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, void *state, void *txv,
-        const Signature *s, const SigMatchCtx *m)
+static int DetectTlsSubjectMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, void *txv, const Signature *s, const SigMatchCtx *m)
 {
     SCEnter();
 
@@ -184,8 +181,8 @@ static int DetectTlsSubjectMatch (DetectEngineThreadCtx *det_ctx,
     }
 
     if (connp->cert0_subject != NULL) {
-        SCLogDebug("TLS: Subject is [%s], looking for [%s]\n",
-                   connp->cert0_subject, tls_data->subject);
+        SCLogDebug("TLS: Subject is [%s], looking for [%s]\n", connp->cert0_subject,
+                tls_data->subject);
 
         if (strstr(connp->cert0_subject, tls_data->subject) != NULL) {
             if (tls_data->flags & DETECT_CONTENT_NEGATED) {
@@ -216,7 +213,7 @@ static int DetectTlsSubjectMatch (DetectEngineThreadCtx *det_ctx,
  * \retval id_d pointer to DetectTlsData on success
  * \retval NULL on failure
  */
-static DetectTlsData *DetectTlsSubjectParse (DetectEngineCtx *de_ctx, const char *str, bool negate)
+static DetectTlsData *DetectTlsSubjectParse(DetectEngineCtx *de_ctx, const char *str, bool negate)
 {
     DetectTlsData *tls = NULL;
     size_t pcre2_len;
@@ -248,13 +245,13 @@ static DetectTlsData *DetectTlsSubjectParse (DetectEngineCtx *de_ctx, const char
     tls->subject = NULL;
     tls->flags = flag;
 
-    orig = SCStrdup((char*)str_ptr);
+    orig = SCStrdup((char *)str_ptr);
     if (unlikely(orig == NULL)) {
         goto error;
     }
     pcre2_substring_free((PCRE2_UCHAR *)str_ptr);
 
-    tmp_str=orig;
+    tmp_str = orig;
 
     /* Let's see if we need to escape "'s */
     if (tmp_str[0] == '"') {
@@ -283,7 +280,6 @@ error:
     if (tls != NULL)
         DetectTlsSubjectFree(de_ctx, tls);
     return NULL;
-
 }
 
 /**
@@ -297,7 +293,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectTlsSubjectSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
+static int DetectTlsSubjectSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     DetectTlsData *tls = NULL;
 
@@ -321,7 +317,6 @@ error:
     if (tls != NULL)
         DetectTlsSubjectFree(de_ctx, tls);
     return -1;
-
 }
 
 /**
@@ -350,9 +345,8 @@ static void DetectTlsSubjectFree(DetectEngineCtx *de_ctx, void *ptr)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectTlsIssuerDNMatch (DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, void *state, void *txv,
-        const Signature *s, const SigMatchCtx *m)
+static int DetectTlsIssuerDNMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, void *txv, const Signature *s, const SigMatchCtx *m)
 {
     SCEnter();
 
@@ -373,8 +367,8 @@ static int DetectTlsIssuerDNMatch (DetectEngineThreadCtx *det_ctx,
     }
 
     if (connp->cert0_issuerdn != NULL) {
-        SCLogDebug("TLS: IssuerDN is [%s], looking for [%s]\n",
-                   connp->cert0_issuerdn, tls_data->issuerdn);
+        SCLogDebug("TLS: IssuerDN is [%s], looking for [%s]\n", connp->cert0_issuerdn,
+                tls_data->issuerdn);
 
         if (strstr(connp->cert0_issuerdn, tls_data->issuerdn) != NULL) {
             if (tls_data->flags & DETECT_CONTENT_NEGATED) {
@@ -437,17 +431,16 @@ static DetectTlsData *DetectTlsIssuerDNParse(DetectEngineCtx *de_ctx, const char
     tls->issuerdn = NULL;
     tls->flags = flag;
 
-    orig = SCStrdup((char*)str_ptr);
+    orig = SCStrdup((char *)str_ptr);
     if (unlikely(orig == NULL)) {
         goto error;
     }
     pcre2_substring_free((PCRE2_UCHAR *)str_ptr);
 
-    tmp_str=orig;
+    tmp_str = orig;
 
     /* Let's see if we need to escape "'s */
-    if (tmp_str[0] == '"')
-    {
+    if (tmp_str[0] == '"') {
         tmp_str[strlen(tmp_str) - 1] = '\0';
         tmp_str += 1;
     }
@@ -473,7 +466,6 @@ error:
     if (tls != NULL)
         DetectTlsIssuerDNFree(de_ctx, tls);
     return NULL;
-
 }
 
 /**
@@ -487,7 +479,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectTlsIssuerDNSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
+static int DetectTlsIssuerDNSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     DetectTlsData *tls = NULL;
 
@@ -511,7 +503,6 @@ error:
     if (tls != NULL)
         DetectTlsIssuerDNFree(de_ctx, tls);
     return -1;
-
 }
 
 /**
@@ -547,7 +538,7 @@ static void DetectTlsIssuerDNFree(DetectEngineCtx *de_ctx, void *ptr)
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectTlsFingerprintSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
+static int DetectTlsFingerprintSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     if (DetectContentSetup(de_ctx, s, str) < 0) {
         return -1;
@@ -582,7 +573,7 @@ static void DetectTlsFingerprintFree(DetectEngineCtx *de_ctx, void *ptr)
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectTlsStoreSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
+static int DetectTlsStoreSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
 
     if (SCDetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
@@ -598,8 +589,8 @@ static int DetectTlsStoreSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
 }
 
 /** \warning modifies Flow::alstate */
-static int DetectTlsStorePostMatch (DetectEngineThreadCtx *det_ctx,
-        Packet *p, const Signature *s, const SigMatchCtx *unused)
+static int DetectTlsStorePostMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *unused)
 {
     SCEnter();
 

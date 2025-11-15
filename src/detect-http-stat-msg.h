@@ -22,10 +22,9 @@
  */
 
 #ifndef _DETECT_HTTP_STAT_MSG_H
-#define	_DETECT_HTTP_STAT_MSG_H
+#define _DETECT_HTTP_STAT_MSG_H
 
 /* prototypes */
 void DetectHttpStatMsgRegister(void);
 
-#endif	/* _DETECT_HTTP_STAT_MSG_H */
-
+#endif /* _DETECT_HTTP_STAT_MSG_H */

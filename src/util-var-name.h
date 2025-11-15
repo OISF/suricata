@@ -36,4 +36,3 @@ const char *VarNameStoreLookupById(const uint32_t id, const enum VarTypes type);
 uint32_t VarNameStoreLookupByName(const char *, const enum VarTypes type);
 
 #endif
-

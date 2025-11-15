@@ -25,6 +25,6 @@
 #define SURICATA_DETECT_SID_H
 
 /* prototypes */
-void DetectSidRegister (void);
+void DetectSidRegister(void);
 
 #endif /* SURICATA_DETECT_SID_H */

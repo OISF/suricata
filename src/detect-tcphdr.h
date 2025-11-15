@@ -26,4 +26,4 @@
 
 void DetectTcphdrRegister(void);
 
-#endif	/* _DETECT_TCPHDR_H */
+#endif /* _DETECT_TCPHDR_H */

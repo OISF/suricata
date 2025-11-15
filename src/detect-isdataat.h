@@ -30,8 +30,8 @@
 #define ISDATAAT_OFFSET_VAR 0x08
 
 typedef struct DetectIsdataatData_ {
-    uint16_t dataat;     /* data offset to match */
-    uint8_t flags; /* isdataat options*/
+    uint16_t dataat; /* data offset to match */
+    uint8_t flags;   /* isdataat options*/
 } DetectIsdataatData;
 
 typedef struct DetectAbsentData_ {
@@ -40,7 +40,7 @@ typedef struct DetectAbsentData_ {
 } DetectAbsentData;
 
 /* prototypes */
-void DetectIsdataatRegister (void);
+void DetectIsdataatRegister(void);
 
 bool DetectAbsentValidateContentCallback(const Signature *s, const SignatureInitDataBuffer *);
 

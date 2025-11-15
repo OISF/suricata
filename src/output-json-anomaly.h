@@ -30,4 +30,3 @@
 void JsonAnomalyLogRegister(void);
 
 #endif /* __OUTPUT_JSON_ALERT_H__ */
-

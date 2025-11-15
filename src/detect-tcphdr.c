@@ -35,9 +35,9 @@
 #include "detect-tcphdr.h"
 
 /* prototypes */
-static int DetectTcphdrSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectTcphdrSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
-void DetectTcphdrRegisterTests (void);
+void DetectTcphdrRegisterTests(void);
 #endif
 
 static int g_tcphdr_buffer_id = 0;
@@ -79,7 +79,7 @@ void DetectTcphdrRegister(void)
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectTcphdrSetup (DetectEngineCtx *de_ctx, Signature *s, const char *_unused)
+static int DetectTcphdrSetup(DetectEngineCtx *de_ctx, Signature *s, const char *_unused)
 {
     if (!(DetectProtoContainsProto(&s->proto, IPPROTO_TCP)))
         return -1;

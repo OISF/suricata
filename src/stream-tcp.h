@@ -35,10 +35,10 @@
 #define STREAM_VERBOSE false
 /* Flag to indicate that the checksum validation for the stream engine
    has been enabled */
-#define STREAMTCP_INIT_FLAG_CHECKSUM_VALIDATION    BIT_U8(0)
-#define STREAMTCP_INIT_FLAG_DROP_INVALID           BIT_U8(1)
-#define STREAMTCP_INIT_FLAG_BYPASS                 BIT_U8(2)
-#define STREAMTCP_INIT_FLAG_INLINE                 BIT_U8(3)
+#define STREAMTCP_INIT_FLAG_CHECKSUM_VALIDATION BIT_U8(0)
+#define STREAMTCP_INIT_FLAG_DROP_INVALID        BIT_U8(1)
+#define STREAMTCP_INIT_FLAG_BYPASS              BIT_U8(2)
+#define STREAMTCP_INIT_FLAG_INLINE              BIT_U8(3)
 /** flag to drop packets with URG flag set */
 #define STREAMTCP_INIT_FLAG_DROP_URG BIT_U8(4)
 
@@ -72,7 +72,7 @@ typedef struct TcpStreamCnf_ {
     bool streaming_log_api;
     uint8_t max_syn_queued;
 
-    uint32_t reassembly_depth;  /**< Depth until when we reassemble the stream */
+    uint32_t reassembly_depth; /**< Depth until when we reassemble the stream */
 
     uint16_t reassembly_toserver_chunk_size;
     uint16_t reassembly_toclient_chunk_size;
@@ -120,9 +120,9 @@ typedef struct StreamTcpThread_ {
 extern TcpStreamCnf stream_config;
 void StreamTcpInitConfig(bool);
 void StreamTcpFreeConfig(bool);
-void StreamTcpRegisterTests (void);
+void StreamTcpRegisterTests(void);
 
-void StreamTcpSessionPktFree (Packet *);
+void StreamTcpSessionPktFree(Packet *);
 
 void StreamTcpInitMemuse(void);
 void StreamTcpIncrMemuse(uint64_t);
@@ -132,9 +132,8 @@ uint64_t StreamTcpGetMemcap(void);
 int StreamTcpCheckMemcap(uint64_t);
 uint64_t StreamTcpMemuseCounter(void);
 
-int StreamTcpSegmentForEach(const Packet *p, uint8_t flag,
-                        StreamSegmentCallback CallbackFunc,
-                        void *data);
+int StreamTcpSegmentForEach(
+        const Packet *p, uint8_t flag, StreamSegmentCallback CallbackFunc, void *data);
 int StreamTcpSegmentForSession(
         const Packet *p, uint8_t flag, StreamSegmentCallback CallbackFunc, void *data);
 void StreamTcpReassembleConfigEnableOverlapCheck(void);
@@ -148,12 +147,12 @@ int StreamReassembleForFrame(TcpSession *ssn, TcpStream *stream, StreamReassembl
 int StreamReassembleLog(const TcpSession *ssn, const TcpStream *stream,
         StreamReassembleRawFunc Callback, void *cb_data, const uint64_t progress_in,
         uint64_t *progress_out, const bool eof);
-int StreamReassembleRaw(TcpSession *ssn, const Packet *p,
-        StreamReassembleRawFunc Callback, void *cb_data,
-        uint64_t *progress_out, bool respect_inspect_depth);
+int StreamReassembleRaw(TcpSession *ssn, const Packet *p, StreamReassembleRawFunc Callback,
+        void *cb_data, uint64_t *progress_out, bool respect_inspect_depth);
 void StreamReassembleRawUpdateProgress(TcpSession *ssn, Packet *p, const uint64_t progress);
 
-void StreamTcpDetectLogFlush(ThreadVars *tv, StreamTcpThread *stt, Flow *f, Packet *p, PacketQueueNoLock *pq);
+void StreamTcpDetectLogFlush(
+        ThreadVars *tv, StreamTcpThread *stt, Flow *f, Packet *p, PacketQueueNoLock *pq);
 
 const char *StreamTcpStateAsString(const enum TcpState);
 
@@ -164,14 +163,14 @@ enum ExceptionPolicy StreamMidstreamGetExceptionPolicy(void);
 /** ------- Inline functions: ------ */
 
 /**
-  * \brief If we are on IPS mode, and got a drop action triggered from
-  * the IP only module, or from a reassembled msg and/or from an
-  * applayer detection, then drop the rest of the packets of the
-  * same stream and avoid inspecting it any further
-  * \param p pointer to the Packet to check
-  * \retval 1 if we must drop this stream
-  * \retval 0 if the stream still legal
-  */
+ * \brief If we are on IPS mode, and got a drop action triggered from
+ * the IP only module, or from a reassembled msg and/or from an
+ * applayer detection, then drop the rest of the packets of the
+ * same stream and avoid inspecting it any further
+ * \param p pointer to the Packet to check
+ * \retval 1 if we must drop this stream
+ * \retval 0 if the stream still legal
+ */
 static inline int StreamTcpCheckFlowDrops(Packet *p)
 {
     /* If we are on IPS mode, and got a drop action triggered from
@@ -192,13 +191,12 @@ enum {
     STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION = 1,
 };
 
-TmEcode StreamTcp (ThreadVars *, Packet *, void *, PacketQueueNoLock *);
+TmEcode StreamTcp(ThreadVars *, Packet *, void *, PacketQueueNoLock *);
 uint8_t StreamNeedsReassembly(const TcpSession *ssn, uint8_t direction);
 TmEcode StreamTcpThreadInit(ThreadVars *, void *, void **);
 TmEcode StreamTcpThreadDeinit(ThreadVars *tv, void *data);
 
-int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
-                     PacketQueueNoLock *pq);
+int StreamTcpPacket(ThreadVars *tv, Packet *p, StreamTcpThread *stt, PacketQueueNoLock *pq);
 /* clear ssn and return to pool */
 void StreamTcpSessionClear(void *ssnptr);
 /* cleanup ssn, but don't free ssn */
@@ -211,8 +209,7 @@ bool StreamTcpInlineMode(void);
 
 bool TcpSessionPacketSsnReuse(const Packet *p, const Flow *f, const void *tcp_ssn);
 
-void StreamTcpUpdateAppLayerProgress(TcpSession *ssn, char direction,
-        const uint32_t progress);
+void StreamTcpUpdateAppLayerProgress(TcpSession *ssn, char direction, const uint32_t progress);
 
 uint64_t StreamTcpGetUsable(const TcpStream *stream, const bool eof);
 uint64_t StreamDataRightEdge(const TcpStream *stream, const bool eof);

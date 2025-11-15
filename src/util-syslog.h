@@ -23,7 +23,7 @@
  */
 
 #ifndef UTIL_SYSLOG_H
-#define	UTIL_SYSLOG_H
+#define UTIL_SYSLOG_H
 
 #include "util-enum.h"
 
@@ -36,4 +36,4 @@ SCEnumCharMap *SCSyslogGetLogLevelMap(void);
 #define DEFAULT_ALERT_SYSLOG_LEVEL        LOG_ERR
 #endif
 
-#endif	/* UTIL_SYSLOG_H */
+#endif /* UTIL_SYSLOG_H */

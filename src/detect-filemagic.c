@@ -62,7 +62,7 @@
 
 #ifndef HAVE_MAGIC
 
-static int DetectFilemagicSetupNoSupport (DetectEngineCtx *de_ctx, Signature *s, const char *str)
+static int DetectFilemagicSetupNoSupport(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     SCLogError("no libmagic support built in, needed for filemagic keyword");
     return -1;
@@ -74,10 +74,11 @@ static int DetectFilemagicSetupNoSupport (DetectEngineCtx *de_ctx, Signature *s,
 void DetectFilemagicRegister(void)
 {
     sigmatch_table[DETECT_FILEMAGIC].name = "filemagic";
-    sigmatch_table[DETECT_FILEMAGIC].desc = "match on the information libmagic returns about a file";
+    sigmatch_table[DETECT_FILEMAGIC].desc =
+            "match on the information libmagic returns about a file";
     sigmatch_table[DETECT_FILEMAGIC].url = "/rules/file-keywords.html#filemagic";
     sigmatch_table[DETECT_FILEMAGIC].Setup = DetectFilemagicSetupNoSupport;
-    sigmatch_table[DETECT_FILEMAGIC].flags = SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION;
+    sigmatch_table[DETECT_FILEMAGIC].flags = SIGMATCH_QUOTES_MANDATORY | SIGMATCH_HANDLE_NEGATION;
 }
 
 #else /* HAVE_MAGIC */
@@ -104,10 +105,11 @@ static uint8_t DetectEngineInspectFilemagic(DetectEngineCtx *de_ctx, DetectEngin
 void DetectFilemagicRegister(void)
 {
     sigmatch_table[DETECT_FILEMAGIC].name = "filemagic";
-    sigmatch_table[DETECT_FILEMAGIC].desc = "match on the information libmagic returns about a file";
+    sigmatch_table[DETECT_FILEMAGIC].desc =
+            "match on the information libmagic returns about a file";
     sigmatch_table[DETECT_FILEMAGIC].url = "/rules/file-keywords.html#filemagic";
     sigmatch_table[DETECT_FILEMAGIC].Setup = DetectFilemagicSetup;
-    sigmatch_table[DETECT_FILEMAGIC].flags = SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION;
+    sigmatch_table[DETECT_FILEMAGIC].flags = SIGMATCH_QUOTES_MANDATORY | SIGMATCH_HANDLE_NEGATION;
     sigmatch_table[DETECT_FILEMAGIC].alternative = DETECT_FILE_MAGIC;
 
     sigmatch_table[DETECT_FILE_MAGIC].name = "file.magic";
@@ -131,7 +133,7 @@ void DetectFilemagicRegister(void)
     SCLogDebug("registering filemagic rule option");
 }
 
-#define FILEMAGIC_MIN_SIZE  512
+#define FILEMAGIC_MIN_SIZE 512
 
 /**
  *  \brief run the magic check
@@ -151,8 +153,7 @@ int FilemagicThreadLookup(magic_t *ctx, File *file)
     uint32_t data_len = 0;
     uint64_t offset = 0;
 
-    StreamingBufferGetData(file->sb,
-                           &data, &data_len, &offset);
+    StreamingBufferGetData(file->sb, &data, &data_len, &offset);
     if (offset == 0) {
         if (FileDataSize(file) >= FILEMAGIC_MIN_SIZE) {
             file->magic = MagicThreadLookup(ctx, data, data_len);
@@ -205,7 +206,7 @@ static void DetectFilemagicThreadFree(void *ctx)
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectFilemagicSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
+static int DetectFilemagicSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     if (s->init_data->transforms.cnt) {
         SCLogError("previous transforms not consumed before 'filemagic'");
@@ -405,9 +406,8 @@ static int PrefilterMpmFilemagicRegister(DetectEngineCtx *de_ctx, SigGroupHead *
     pectx->mpm_ctx = mpm_ctx;
     pectx->transforms = &mpm_reg->transforms;
 
-    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxFilemagic,
-            mpm_reg->app_v2.alproto, mpm_reg->app_v2.tx_min_progress,
-            pectx, PrefilterMpmFilemagicFree, mpm_reg->pname);
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxFilemagic, mpm_reg->app_v2.alproto,
+            mpm_reg->app_v2.tx_min_progress, pectx, PrefilterMpmFilemagicFree, mpm_reg->pname);
 }
 
 #endif /* HAVE_MAGIC */

@@ -28,6 +28,6 @@
 #define SURICATA_DETECT_PRIORITY_H
 
 /* prototypes */
-void DetectPriorityRegister (void);
+void DetectPriorityRegister(void);
 
 #endif /* SURICATA_DETECT_PRIORITY_H */

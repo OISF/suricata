@@ -60,10 +60,9 @@
 #include "util-validate.h"
 #include "util-hash-string.h"
 
-static int PrefilterStoreGetId(DetectEngineCtx *de_ctx,
-        const char *name, void (*FreeFunc)(void *));
-static const PrefilterStore *PrefilterStoreGetStore(const DetectEngineCtx *de_ctx,
-        const uint32_t id);
+static int PrefilterStoreGetId(DetectEngineCtx *de_ctx, const char *name, void (*FreeFunc)(void *));
+static const PrefilterStore *PrefilterStoreGetStore(
+        const DetectEngineCtx *de_ctx, const uint32_t id);
 
 static inline void QuickSortSigIntId(SigIntId *sids, uint32_t n)
 {
@@ -92,13 +91,8 @@ static inline void QuickSortSigIntId(SigIntId *sids, uint32_t n)
 /**
  * \brief run prefilter engines on a transaction
  */
-void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
-        const SigGroupHead *sgh,
-        Packet *p,
-        const uint8_t ipproto,
-        const uint8_t flow_flags,
-        const AppProto alproto,
-        void *alstate,
+void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh, Packet *p,
+        const uint8_t ipproto, const uint8_t flow_flags, const AppProto alproto, void *alstate,
         DetectTransaction *tx)
 {
     /* reset rule store */
@@ -251,10 +245,8 @@ void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh, Packet *
     }
 
     /* run payload inspecting engines */
-    if (sgh->payload_engines &&
-        (p->payload_len || (p->flags & PKT_DETECT_HAS_STREAMDATA)) &&
-        !(p->flags & PKT_NOPAYLOAD_INSPECTION))
-    {
+    if (sgh->payload_engines && (p->payload_len || (p->flags & PKT_DETECT_HAS_STREAMDATA)) &&
+            !(p->flags & PKT_NOPAYLOAD_INSPECTION)) {
         PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_PAYLOAD);
         PrefilterEngine *engine = sgh->payload_engines;
         while (1) {
@@ -1200,7 +1192,7 @@ int PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     PrefilterEngineList *el;
     if (sgh->init->pkt_engines != NULL) {
         uint32_t cnt = 0;
-        for (el = sgh->init->pkt_engines ; el != NULL; el = el->next) {
+        for (el = sgh->init->pkt_engines; el != NULL; el = el->next) {
             cnt++;
         }
         sgh->pkt_engines = SCMallocAligned(cnt * sizeof(PrefilterEngine), CLS);
@@ -1210,7 +1202,7 @@ int PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         memset(sgh->pkt_engines, 0x00, (cnt * sizeof(PrefilterEngine)));
 
         PrefilterEngine *e = sgh->pkt_engines;
-        for (el = sgh->init->pkt_engines ; el != NULL; el = el->next) {
+        for (el = sgh->init->pkt_engines; el != NULL; el = el->next) {
             e->local_id = el->id;
             e->cb.Prefilter = el->Prefilter;
             e->ctx.pkt.mask = el->pkt_mask;
@@ -1229,7 +1221,7 @@ int PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     }
     if (sgh->init->payload_engines != NULL) {
         uint32_t cnt = 0;
-        for (el = sgh->init->payload_engines ; el != NULL; el = el->next) {
+        for (el = sgh->init->payload_engines; el != NULL; el = el->next) {
             cnt++;
         }
         sgh->payload_engines = SCMallocAligned(cnt * sizeof(PrefilterEngine), CLS);
@@ -1239,7 +1231,7 @@ int PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         memset(sgh->payload_engines, 0x00, (cnt * sizeof(PrefilterEngine)));
 
         PrefilterEngine *e = sgh->payload_engines;
-        for (el = sgh->init->payload_engines ; el != NULL; el = el->next) {
+        for (el = sgh->init->payload_engines; el != NULL; el = el->next) {
             e->local_id = el->id;
             e->cb.Prefilter = el->Prefilter;
             e->ctx.pkt.mask = el->pkt_mask;
@@ -1258,7 +1250,7 @@ int PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     }
     if (sgh->init->tx_engines != NULL) {
         uint32_t cnt = 0;
-        for (el = sgh->init->tx_engines ; el != NULL; el = el->next) {
+        for (el = sgh->init->tx_engines; el != NULL; el = el->next) {
             cnt++;
         }
         sgh->tx_engines = SCMallocAligned(cnt * sizeof(PrefilterEngine), CLS);
@@ -1269,7 +1261,7 @@ int PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 
         uint16_t local_id = 0;
         PrefilterEngine *e = sgh->tx_engines;
-        for (el = sgh->init->tx_engines ; el != NULL; el = el->next) {
+        for (el = sgh->init->tx_engines; el != NULL; el = el->next) {
             e->local_id = local_id++;
             e->alproto = el->alproto;
             e->ctx.tx_min_progress = el->tx_min_progress;
@@ -1404,8 +1396,7 @@ static uint32_t PrefilterStoreHashFunc(HashListTable *ht, void *data, uint16_t d
     return hash;
 }
 
-static char PrefilterStoreCompareFunc(void *data1, uint16_t len1,
-                                      void *data2, uint16_t len2)
+static char PrefilterStoreCompareFunc(void *data1, uint16_t len1, void *data2, uint16_t len2)
 {
     PrefilterStore *ctx1 = data1;
     PrefilterStore *ctx2 = data2;
@@ -1428,15 +1419,12 @@ void PrefilterInit(DetectEngineCtx *de_ctx)
 {
     BUG_ON(de_ctx->prefilter_hash_table != NULL);
 
-    de_ctx->prefilter_hash_table = HashListTableInit(256,
-            PrefilterStoreHashFunc,
-            PrefilterStoreCompareFunc,
-            PrefilterStoreFreeFunc);
+    de_ctx->prefilter_hash_table = HashListTableInit(
+            256, PrefilterStoreHashFunc, PrefilterStoreCompareFunc, PrefilterStoreFreeFunc);
     BUG_ON(de_ctx->prefilter_hash_table == NULL);
 }
 
-static int PrefilterStoreGetId(DetectEngineCtx *de_ctx,
-        const char *name, void (*FreeFunc)(void *))
+static int PrefilterStoreGetId(DetectEngineCtx *de_ctx, const char *name, void (*FreeFunc)(void *))
 {
     PrefilterStore ctx = { name, FreeFunc, 0 };
 
@@ -1470,14 +1458,14 @@ static int PrefilterStoreGetId(DetectEngineCtx *de_ctx,
 }
 
 /** \warning slow */
-static const PrefilterStore *PrefilterStoreGetStore(const DetectEngineCtx *de_ctx,
-        const uint32_t id)
+static const PrefilterStore *PrefilterStoreGetStore(
+        const DetectEngineCtx *de_ctx, const uint32_t id)
 {
 
     const PrefilterStore *store = NULL;
     if (de_ctx->prefilter_hash_table != NULL) {
         HashListTableBucket *hb = HashListTableGetListHead(de_ctx->prefilter_hash_table);
-        for ( ; hb != NULL; hb = HashListTableGetListNext(hb)) {
+        for (; hb != NULL; hb = HashListTableGetListNext(hb)) {
             PrefilterStore *ctx = HashListTableGetListData(hb);
             if (ctx->id == id) {
                 store = ctx;
@@ -1560,7 +1548,7 @@ static void PrefilterMpm(DetectEngineThreadCtx *det_ctx, const void *pectx, Pack
     const uint8_t *data = buffer->inspect;
 
     SCLogDebug("mpm'ing buffer:");
-    //PrintRawDataFp(stdout, data, data_len);
+    // PrintRawDataFp(stdout, data, data_len);
 
     if (data != NULL && data_len >= mpm_ctx->minlen) {
         (void)mpm_table[mpm_ctx->mpm_type].Search(
@@ -1586,9 +1574,8 @@ int PrefilterGenericMpmRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmC
     pectx->mpm_ctx = mpm_ctx;
     pectx->transforms = &mpm_reg->transforms;
 
-    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterMpm,
-        mpm_reg->app_v2.alproto, mpm_reg->app_v2.tx_min_progress,
-        pectx, PrefilterGenericMpmFree, mpm_reg->pname);
+    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterMpm, mpm_reg->app_v2.alproto,
+            mpm_reg->app_v2.tx_min_progress, pectx, PrefilterGenericMpmFree, mpm_reg->pname);
     if (r != 0) {
         SCFree(pectx);
     }
@@ -1685,8 +1672,7 @@ typedef struct PrefilterMpmPktCtx {
  *  \param txv tx to inspect
  *  \param pectx inspection context
  */
-static void PrefilterMpmPkt(DetectEngineThreadCtx *det_ctx,
-        Packet *p, const void *pectx)
+static void PrefilterMpmPkt(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
 {
     SCEnter();
 
@@ -1694,8 +1680,7 @@ static void PrefilterMpmPkt(DetectEngineThreadCtx *det_ctx,
     const MpmCtx *mpm_ctx = ctx->mpm_ctx;
     SCLogDebug("running on list %d", ctx->list_id);
 
-    InspectionBuffer *buffer = ctx->GetData(det_ctx, ctx->transforms,
-            p, ctx->list_id);
+    InspectionBuffer *buffer = ctx->GetData(det_ctx, ctx->transforms, p, ctx->list_id);
     if (buffer == NULL)
         return;
 
@@ -1703,7 +1688,7 @@ static void PrefilterMpmPkt(DetectEngineThreadCtx *det_ctx,
     const uint8_t *data = buffer->inspect;
 
     SCLogDebug("mpm'ing buffer:");
-    //PrintRawDataFp(stdout, data, data_len);
+    // PrintRawDataFp(stdout, data, data_len);
 
     if (data != NULL && data_len >= mpm_ctx->minlen) {
         (void)mpm_table[mpm_ctx->mpm_type].Search(

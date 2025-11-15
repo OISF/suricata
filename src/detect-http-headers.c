@@ -38,4 +38,3 @@ void DetectHttpHeadersRegister(void)
     RegisterHttpHeadersServer();
     RegisterHttpHeadersLocation();
 }
-

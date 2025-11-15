@@ -109,13 +109,14 @@ error:
 void SigGroupHeadStore(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
     void *ptmp;
-    //printf("de_ctx->sgh_array_cnt %u, de_ctx->sgh_array_size %u, de_ctx->sgh_array %p\n", de_ctx->sgh_array_cnt, de_ctx->sgh_array_size, de_ctx->sgh_array);
+    // printf("de_ctx->sgh_array_cnt %u, de_ctx->sgh_array_size %u, de_ctx->sgh_array %p\n",
+    // de_ctx->sgh_array_cnt, de_ctx->sgh_array_size, de_ctx->sgh_array);
     if (de_ctx->sgh_array_cnt < de_ctx->sgh_array_size) {
         de_ctx->sgh_array[de_ctx->sgh_array_cnt] = sgh;
     } else {
         int increase = 16;
-        ptmp = SCRealloc(de_ctx->sgh_array,
-                         sizeof(SigGroupHead *) * (increase + de_ctx->sgh_array_size));
+        ptmp = SCRealloc(
+                de_ctx->sgh_array, sizeof(SigGroupHead *) * (increase + de_ctx->sgh_array_size));
         if (ptmp == NULL) {
             SCFree(de_ctx->sgh_array);
             de_ctx->sgh_array = NULL;
@@ -198,7 +199,7 @@ static uint32_t SigGroupHeadHashFunc(HashListTable *ht, void *data, uint16_t dat
         hash += sgh->init->sig_array[b];
 
     hash %= ht->array_size;
-    SCLogDebug("hash %"PRIu32" (sig_size %"PRIu32")", hash, sgh->init->sig_size);
+    SCLogDebug("hash %" PRIu32 " (sig_size %" PRIu32 ")", hash, sgh->init->sig_size);
     return hash;
 }
 
@@ -214,8 +215,7 @@ static uint32_t SigGroupHeadHashFunc(HashListTable *ht, void *data, uint16_t dat
  * \retval 1 If the 2 SigGroupHeads sent as args match.
  * \retval 0 If the 2 SigGroupHeads sent as args do not match.
  */
-static char SigGroupHeadCompareFunc(void *data1, uint16_t len1, void *data2,
-                             uint16_t len2)
+static char SigGroupHeadCompareFunc(void *data1, uint16_t len1, void *data2, uint16_t len2)
 {
     SigGroupHead *sgh1 = (SigGroupHead *)data1;
     SigGroupHead *sgh2 = (SigGroupHead *)data2;
@@ -243,8 +243,8 @@ static char SigGroupHeadCompareFunc(void *data1, uint16_t len1, void *data2,
  */
 int SigGroupHeadHashInit(DetectEngineCtx *de_ctx)
 {
-    de_ctx->sgh_hash_table = HashListTableInit(4096, SigGroupHeadHashFunc,
-                                               SigGroupHeadCompareFunc, NULL);
+    de_ctx->sgh_hash_table =
+            HashListTableInit(4096, SigGroupHeadHashFunc, SigGroupHeadCompareFunc, NULL);
     if (de_ctx->sgh_hash_table == NULL)
         goto error;
 
@@ -284,8 +284,7 @@ SigGroupHead *SigGroupHeadHashLookup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
     SCEnter();
 
-    SigGroupHead *rsgh = HashListTableLookup(de_ctx->sgh_hash_table,
-                                             (void *)sgh, 0);
+    SigGroupHead *rsgh = HashListTableLookup(de_ctx->sgh_hash_table, (void *)sgh, 0);
 
     SCReturnPtr(rsgh, "SigGroupHead");
 }
@@ -316,8 +315,7 @@ void SigGroupHeadHashFree(DetectEngineCtx *de_ctx)
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-int SigGroupHeadAppendSig(const DetectEngineCtx *de_ctx, SigGroupHead **sgh,
-                          const Signature *s)
+int SigGroupHeadAppendSig(const DetectEngineCtx *de_ctx, SigGroupHead **sgh, const Signature *s)
 {
     if (de_ctx == NULL)
         return 0;
@@ -483,8 +481,7 @@ bool SigGroupHeadEqual(const SigGroupHead *sgha, const SigGroupHead *sghb)
     return true;
 }
 
-void SigGroupHeadSetProtoAndDirection(SigGroupHead *sgh,
-                                      uint8_t ipproto, int dir)
+void SigGroupHeadSetProtoAndDirection(SigGroupHead *sgh, uint8_t ipproto, int dir)
 {
     if (sgh && sgh->init) {
         SCLogDebug("setting proto %u and dir %d on sgh %p", ipproto, dir, sgh);
@@ -532,8 +529,7 @@ void SigGroupHeadPrintSigs(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
  * \retval  0 success
  * \retval -1 error
  */
-int SigGroupHeadBuildMatchArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
-                                uint32_t max_idx)
+int SigGroupHeadBuildMatchArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh, uint32_t max_idx)
 {
     Signature *s = NULL;
     uint32_t idx = 0;
@@ -550,7 +546,7 @@ int SigGroupHeadBuildMatchArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         return -1;
 
     for (sig = 0; sig < sgh->init->max_sig_id + 1; sig++) {
-        if (!(sgh->init->sig_array[(sig / 8)] & (1 << (sig % 8))) )
+        if (!(sgh->init->sig_array[(sig / 8)] & (1 << (sig % 8))))
             continue;
 
         s = de_ctx->sig_array[sig];
@@ -617,8 +613,7 @@ void SigGroupHeadSetupFiles(const DetectEngineCtx *de_ctx, SigGroupHead *sgh)
  * \retval 1 On successfully finding the sid in the SigGroupHead.
  * \retval 0 If the sid is not found in the SigGroupHead
  */
-int SigGroupHeadContainsSigId(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
-                              uint32_t sid)
+int SigGroupHeadContainsSigId(DetectEngineCtx *de_ctx, SigGroupHead *sgh, uint32_t sid)
 {
     SCEnter();
 
@@ -636,7 +631,7 @@ int SigGroupHeadContainsSigId(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         }
 
         /* Check if the SigGroupHead has an entry for the sid */
-        if ( !(sgh->init->sig_array[sig / 8] & (1 << (sig % 8))) )
+        if (!(sgh->init->sig_array[sig / 8] & (1 << (sig % 8))))
             continue;
 
         /* If we have reached here, we have an entry for sid in the SigGroupHead.

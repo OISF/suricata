@@ -25,6 +25,6 @@
 #define SURICATA_DETECT_OFFSET_H
 
 /* prototypes */
-void DetectOffsetRegister (void);
+void DetectOffsetRegister(void);
 
 #endif /* SURICATA_DETECT_OFFSET_H */

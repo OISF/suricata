@@ -18,7 +18,6 @@
 #ifndef SURICATA_UTIL_LUA_DNP3_OBJECTS_H
 #define SURICATA_UTIL_LUA_DNP3_OBJECTS_H
 
-void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
-    DNP3Point *item);
+void DNP3PushPoint(lua_State *luastate, DNP3Object *object, DNP3Point *item);
 
 #endif /* ! SURICATA_UTIL_LUA_DNP3_OBJECTS_H */

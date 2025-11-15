@@ -53,14 +53,13 @@
 /**
  * \brief Regex for parsing "id" option, matching number or "number"
  */
-#define PARSE_REGEX  "^\\s*([A-z0-9\\.]+|\"[A-z0-9\\.]+\")\\s*$"
+#define PARSE_REGEX "^\\s*([A-z0-9\\.]+|\"[A-z0-9\\.]+\")\\s*$"
 
 static DetectParseRegex parse_regex;
 
-static int DetectTlsVersionMatch (DetectEngineThreadCtx *,
-        Flow *, uint8_t, void *, void *,
+static int DetectTlsVersionMatch(DetectEngineThreadCtx *, Flow *, uint8_t, void *, void *,
         const Signature *, const SigMatchCtx *);
-static int DetectTlsVersionSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectTlsVersionSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectTlsVersionRegisterTests(void);
 #endif
@@ -70,7 +69,7 @@ static int g_tls_generic_list_id = 0;
 /**
  * \brief Registration function for keyword: tls.version
  */
-void DetectTlsVersionRegister (void)
+void DetectTlsVersionRegister(void)
 {
     sigmatch_table[DETECT_TLS_VERSION].name = "tls.version";
     sigmatch_table[DETECT_TLS_VERSION].desc = "match on TLS/SSL version";
@@ -99,9 +98,8 @@ void DetectTlsVersionRegister (void)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectTlsVersionMatch (DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, void *state, void *txv,
-        const Signature *s, const SigMatchCtx *m)
+static int DetectTlsVersionMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, void *txv, const Signature *s, const SigMatchCtx *m)
 {
     SCEnter();
 
@@ -120,7 +118,7 @@ static int DetectTlsVersionMatch (DetectEngineThreadCtx *det_ctx,
         version = ssl_state->server_connp.version;
         SCLogDebug("server (toclient) version is 0x%02X", version);
     } else if (flags & STREAM_TOSERVER) {
-        version =  ssl_state->client_connp.version;
+        version = ssl_state->client_connp.version;
         SCLogDebug("client (toserver) version is 0x%02X", version);
     }
 
@@ -147,7 +145,7 @@ static int DetectTlsVersionMatch (DetectEngineThreadCtx *det_ctx,
  * \retval id_d pointer to DetectTlsVersionData on success
  * \retval NULL on failure
  */
-static DetectTlsVersionData *DetectTlsVersionParse (DetectEngineCtx *de_ctx, const char *str)
+static DetectTlsVersionData *DetectTlsVersionParse(DetectEngineCtx *de_ctx, const char *str)
 {
     uint16_t temp;
     DetectTlsVersionData *tls = NULL;
@@ -179,8 +177,7 @@ static DetectTlsVersionData *DetectTlsVersionParse (DetectEngineCtx *de_ctx, con
         tmp_str = ver_ptr;
 
         /* Let's see if we need to scape "'s */
-        if (tmp_str[0] == '"')
-        {
+        if (tmp_str[0] == '"') {
             tmp_str[strlen(tmp_str) - 1] = '\0';
             tmp_str += 1;
         }
@@ -203,7 +200,7 @@ static DetectTlsVersionData *DetectTlsVersionParse (DetectEngineCtx *de_ctx, con
 
         tls->ver = temp;
 
-        SCLogDebug("will look for tls %"PRIu16"", tls->ver);
+        SCLogDebug("will look for tls %" PRIu16 "", tls->ver);
     }
 
     pcre2_match_data_free(match);
@@ -216,7 +213,6 @@ error:
     if (tls != NULL)
         DetectTlsVersionFree(de_ctx, tls);
     return NULL;
-
 }
 
 /**
@@ -230,7 +226,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectTlsVersionSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
+static int DetectTlsVersionSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     DetectTlsVersionData *tls = NULL;
 
@@ -259,7 +255,6 @@ error:
     if (tls != NULL)
         DetectTlsVersionFree(de_ctx, tls);
     return -1;
-
 }
 
 /**

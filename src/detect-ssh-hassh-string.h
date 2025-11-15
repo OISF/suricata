@@ -25,6 +25,6 @@
 #define SURICATA_DETECT_SSH_HASSH_STRING_H
 
 /* prototypes */
-void DetectSshHasshStringRegister (void);
+void DetectSshHasshStringRegister(void);
 
 #endif /* SURICATA_DETECT_SSH_HASSH_STRING_H */

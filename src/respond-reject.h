@@ -29,6 +29,6 @@ enum RejectDirection {
     REJECT_DIR_DST = 1,
 };
 
-void TmModuleRespondRejectRegister (void);
+void TmModuleRespondRejectRegister(void);
 
 #endif /* SURICATA_RESPOND_REJECT_H */

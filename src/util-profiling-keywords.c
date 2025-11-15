@@ -93,13 +93,14 @@ static void DoDump(SCProfileKeywordDetectCtx *rules_ctx, FILE *fp, const char *n
 {
     int i;
     fprintf(fp, "  ----------------------------------------------"
-            "------------------------------------------------------"
-            "----------------------------\n");
+                "------------------------------------------------------"
+                "----------------------------\n");
     fprintf(fp, "  Stats for: %s\n", name);
     fprintf(fp, "  ----------------------------------------------"
-            "------------------------------------------------------"
-            "----------------------------\n");
-    fprintf(fp, "  %-16s %-15s %-15s %-15s %-15s %-15s %-15s %-15s\n", "Keyword", "Ticks", "Checks", "Matches", "Max Ticks", "Avg", "Avg Match", "Avg No Match");
+                "------------------------------------------------------"
+                "----------------------------\n");
+    fprintf(fp, "  %-16s %-15s %-15s %-15s %-15s %-15s %-15s %-15s\n", "Keyword", "Ticks", "Checks",
+            "Matches", "Max Ticks", "Avg", "Avg Match", "Avg No Match");
     fprintf(fp, "  ---------------- "
                 "--------------- "
                 "--------------- "
@@ -108,7 +109,7 @@ static void DoDump(SCProfileKeywordDetectCtx *rules_ctx, FILE *fp, const char *n
                 "--------------- "
                 "--------------- "
                 "--------------- "
-        "\n");
+                "\n");
     for (i = 0; i < DETECT_TBLSIZE; i++) {
         SCProfileKeywordData *d = &rules_ctx->data[i];
         if (d == NULL || d->checks == 0)
@@ -128,20 +129,14 @@ static void DoDump(SCProfileKeywordDetectCtx *rules_ctx, FILE *fp, const char *n
         }
 
         fprintf(fp,
-            "  %-16s %-15"PRIu64" %-15"PRIu64" %-15"PRIu64" %-15"PRIu64" %-15.2f %-15.2f %-15.2f\n",
-            sigmatch_table[i].name,
-            ticks,
-            d->checks,
-            d->matches,
-            d->max,
-            avgticks,
-            avgticks_match,
-            avgticks_no_match);
+                "  %-16s %-15" PRIu64 " %-15" PRIu64 " %-15" PRIu64 " %-15" PRIu64
+                " %-15.2f %-15.2f %-15.2f\n",
+                sigmatch_table[i].name, ticks, d->checks, d->matches, d->max, avgticks,
+                avgticks_match, avgticks_no_match);
     }
 }
 
-static void
-SCProfilingKeywordDump(DetectEngineCtx *de_ctx)
+static void SCProfilingKeywordDump(DetectEngineCtx *de_ctx)
 {
     int i;
     FILE *fp;
@@ -166,15 +161,17 @@ SCProfilingKeywordDump(DetectEngineCtx *de_ctx)
             return;
         }
     } else {
-       fp = stdout;
+        fp = stdout;
     }
 
     fprintf(fp, "  ----------------------------------------------"
-            "------------------------------------------------------"
-            "----------------------------\n");
-    fprintf(fp, "  Date: %" PRId32 "/%" PRId32 "/%04d -- "
-            "%02d:%02d:%02d\n", tms->tm_mon + 1, tms->tm_mday, tms->tm_year + 1900,
-            tms->tm_hour,tms->tm_min, tms->tm_sec);
+                "------------------------------------------------------"
+                "----------------------------\n");
+    fprintf(fp,
+            "  Date: %" PRId32 "/%" PRId32 "/%04d -- "
+            "%02d:%02d:%02d\n",
+            tms->tm_mon + 1, tms->tm_mday, tms->tm_year + 1900, tms->tm_hour, tms->tm_min,
+            tms->tm_sec);
 
     /* global stats first */
     DoDump(de_ctx->profile_keyword_ctx, fp, "total");
@@ -198,7 +195,7 @@ SCProfilingKeywordDump(DetectEngineCtx *de_ctx)
         }
     }
 
-    fprintf(fp,"\n");
+    fprintf(fp, "\n");
     if (fp != stdout)
         fclose(fp);
 
@@ -212,8 +209,8 @@ SCProfilingKeywordDump(DetectEngineCtx *de_ctx)
  * \param ticks Number of CPU ticks for this rule.
  * \param match Did the rule match?
  */
-void
-SCProfilingKeywordUpdateCounter(DetectEngineThreadCtx *det_ctx, int id, uint64_t ticks, int match)
+void SCProfilingKeywordUpdateCounter(
+        DetectEngineThreadCtx *det_ctx, int id, uint64_t ticks, int match)
 {
     if (det_ctx != NULL && det_ctx->keyword_perf_data != NULL && id < DETECT_TBLSIZE) {
         SCProfileKeywordData *p = &det_ctx->keyword_perf_data[id];
@@ -228,7 +225,8 @@ SCProfilingKeywordUpdateCounter(DetectEngineThreadCtx *det_ctx, int id, uint64_t
             p->ticks_no_match += ticks;
 
         /* store per list (buffer type) as well */
-        if (det_ctx->keyword_perf_list >= 0) {// && det_ctx->keyword_perf_list < DETECT_SM_LIST_MAX) {
+        if (det_ctx->keyword_perf_list >=
+                0) { // && det_ctx->keyword_perf_list < DETECT_SM_LIST_MAX) {
             p = &det_ctx->keyword_perf_data_per_list[det_ctx->keyword_perf_list][id];
             p->checks++;
             p->matches += match;
@@ -307,16 +305,18 @@ void SCProfilingKeywordThreadSetup(SCProfileKeywordDetectCtx *ctx, DetectEngineT
 static void SCProfilingKeywordThreadMerge(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx)
 {
     if (de_ctx == NULL || de_ctx->profile_keyword_ctx == NULL ||
-        de_ctx->profile_keyword_ctx->data == NULL || det_ctx == NULL ||
-        det_ctx->keyword_perf_data == NULL)
+            de_ctx->profile_keyword_ctx->data == NULL || det_ctx == NULL ||
+            det_ctx->keyword_perf_data == NULL)
         return;
 
     int i;
     for (i = 0; i < DETECT_TBLSIZE; i++) {
         de_ctx->profile_keyword_ctx->data[i].checks += det_ctx->keyword_perf_data[i].checks;
         de_ctx->profile_keyword_ctx->data[i].matches += det_ctx->keyword_perf_data[i].matches;
-        de_ctx->profile_keyword_ctx->data[i].ticks_match += det_ctx->keyword_perf_data[i].ticks_match;
-        de_ctx->profile_keyword_ctx->data[i].ticks_no_match += det_ctx->keyword_perf_data[i].ticks_no_match;
+        de_ctx->profile_keyword_ctx->data[i].ticks_match +=
+                det_ctx->keyword_perf_data[i].ticks_match;
+        de_ctx->profile_keyword_ctx->data[i].ticks_no_match +=
+                det_ctx->keyword_perf_data[i].ticks_no_match;
         if (det_ctx->keyword_perf_data[i].max > de_ctx->profile_keyword_ctx->data[i].max)
             de_ctx->profile_keyword_ctx->data[i].max = det_ctx->keyword_perf_data[i].max;
     }
@@ -325,12 +325,18 @@ static void SCProfilingKeywordThreadMerge(DetectEngineCtx *de_ctx, DetectEngineT
     int j;
     for (j = 0; j < nlists; j++) {
         for (i = 0; i < DETECT_TBLSIZE; i++) {
-            de_ctx->profile_keyword_ctx_per_list[j]->data[i].checks += det_ctx->keyword_perf_data_per_list[j][i].checks;
-            de_ctx->profile_keyword_ctx_per_list[j]->data[i].matches += det_ctx->keyword_perf_data_per_list[j][i].matches;
-            de_ctx->profile_keyword_ctx_per_list[j]->data[i].ticks_match += det_ctx->keyword_perf_data_per_list[j][i].ticks_match;
-            de_ctx->profile_keyword_ctx_per_list[j]->data[i].ticks_no_match += det_ctx->keyword_perf_data_per_list[j][i].ticks_no_match;
-            if (det_ctx->keyword_perf_data_per_list[j][i].max > de_ctx->profile_keyword_ctx_per_list[j]->data[i].max)
-                de_ctx->profile_keyword_ctx_per_list[j]->data[i].max = det_ctx->keyword_perf_data_per_list[j][i].max;
+            de_ctx->profile_keyword_ctx_per_list[j]->data[i].checks +=
+                    det_ctx->keyword_perf_data_per_list[j][i].checks;
+            de_ctx->profile_keyword_ctx_per_list[j]->data[i].matches +=
+                    det_ctx->keyword_perf_data_per_list[j][i].matches;
+            de_ctx->profile_keyword_ctx_per_list[j]->data[i].ticks_match +=
+                    det_ctx->keyword_perf_data_per_list[j][i].ticks_match;
+            de_ctx->profile_keyword_ctx_per_list[j]->data[i].ticks_no_match +=
+                    det_ctx->keyword_perf_data_per_list[j][i].ticks_no_match;
+            if (det_ctx->keyword_perf_data_per_list[j][i].max >
+                    de_ctx->profile_keyword_ctx_per_list[j]->data[i].max)
+                de_ctx->profile_keyword_ctx_per_list[j]->data[i].max =
+                        det_ctx->keyword_perf_data_per_list[j][i].max;
         }
     }
 }
@@ -361,8 +367,7 @@ void SCProfilingKeywordThreadCleanup(DetectEngineThreadCtx *det_ctx)
  *
  * \param de_ctx The active DetectEngineCtx, used to get at the loaded rules.
  */
-void
-SCProfilingKeywordInitCounters(DetectEngineCtx *de_ctx)
+void SCProfilingKeywordInitCounters(DetectEngineCtx *de_ctx)
 {
     if (profiling_keyword_enabled == 0)
         return;
@@ -387,7 +392,7 @@ SCProfilingKeywordInitCounters(DetectEngineCtx *de_ctx)
         BUG_ON(de_ctx->profile_keyword_ctx_per_list[i]->data == NULL);
     }
 
-    SCLogPerf("Registered %"PRIu32" keyword profiling counters.", DETECT_TBLSIZE);
+    SCLogPerf("Registered %" PRIu32 " keyword profiling counters.", DETECT_TBLSIZE);
 }
 
 #endif /* PROFILING */

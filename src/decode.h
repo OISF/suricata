@@ -24,7 +24,7 @@
 #ifndef SURICATA_DECODE_H
 #define SURICATA_DECODE_H
 
-//#define DBG_THREADS
+// #define DBG_THREADS
 #define COUNTERS
 
 #include "suricata-common.h"
@@ -112,24 +112,25 @@ typedef struct AppLayerDecoderEvents_ AppLayerDecoderEvents;
 typedef struct Address_ {
     char family;
     union {
-        uint32_t        address_un_data32[4]; /* type-specific field */
-        uint16_t        address_un_data16[8]; /* type-specific field */
-        uint8_t         address_un_data8[16]; /* type-specific field */
+        uint32_t address_un_data32[4]; /* type-specific field */
+        uint16_t address_un_data16[8]; /* type-specific field */
+        uint8_t address_un_data8[16];  /* type-specific field */
         struct in6_addr address_un_in6;
     } address;
 } Address;
 
-#define addr_data32 address.address_un_data32
-#define addr_data16 address.address_un_data16
-#define addr_data8  address.address_un_data8
-#define addr_in6addr    address.address_un_in6
+#define addr_data32  address.address_un_data32
+#define addr_data16  address.address_un_data16
+#define addr_data8   address.address_un_data8
+#define addr_in6addr address.address_un_in6
 
-#define COPY_ADDRESS(a, b) do {                    \
-        (b)->family = (a)->family;                 \
-        (b)->addr_data32[0] = (a)->addr_data32[0]; \
-        (b)->addr_data32[1] = (a)->addr_data32[1]; \
-        (b)->addr_data32[2] = (a)->addr_data32[2]; \
-        (b)->addr_data32[3] = (a)->addr_data32[3]; \
+#define COPY_ADDRESS(a, b)                                                                         \
+    do {                                                                                           \
+        (b)->family = (a)->family;                                                                 \
+        (b)->addr_data32[0] = (a)->addr_data32[0];                                                 \
+        (b)->addr_data32[1] = (a)->addr_data32[1];                                                 \
+        (b)->addr_data32[2] = (a)->addr_data32[2];                                                 \
+        (b)->addr_data32[3] = (a)->addr_data32[3];                                                 \
     } while (0)
 
 /* Set the IPv4 addresses into the Addrs of the Packet.
@@ -176,21 +177,25 @@ typedef struct Address_ {
 
 /* Set the TCP ports into the Ports of the Packet.
  * Make sure p->tcph is initialized and validated. */
-#define SET_TCP_SRC_PORT(pkt, prt) do {            \
-        SET_PORT(TCP_GET_SRC_PORT((pkt)), *(prt)); \
+#define SET_TCP_SRC_PORT(pkt, prt)                                                                 \
+    do {                                                                                           \
+        SET_PORT(TCP_GET_SRC_PORT((pkt)), *(prt));                                                 \
     } while (0)
 
-#define SET_TCP_DST_PORT(pkt, prt) do {            \
-        SET_PORT(TCP_GET_DST_PORT((pkt)), *(prt)); \
+#define SET_TCP_DST_PORT(pkt, prt)                                                                 \
+    do {                                                                                           \
+        SET_PORT(TCP_GET_DST_PORT((pkt)), *(prt));                                                 \
     } while (0)
 
 /* Set the UDP ports into the Ports of the Packet.
  * Make sure p->udph is initialized and validated. */
-#define SET_UDP_SRC_PORT(pkt, prt) do {            \
-        SET_PORT(UDP_GET_SRC_PORT((pkt)), *(prt)); \
+#define SET_UDP_SRC_PORT(pkt, prt)                                                                 \
+    do {                                                                                           \
+        SET_PORT(UDP_GET_SRC_PORT((pkt)), *(prt));                                                 \
     } while (0)
-#define SET_UDP_DST_PORT(pkt, prt) do {            \
-        SET_PORT(UDP_GET_DST_PORT((pkt)), *(prt)); \
+#define SET_UDP_DST_PORT(pkt, prt)                                                                 \
+    do {                                                                                           \
+        SET_PORT(UDP_GET_DST_PORT((pkt)), *(prt));                                                 \
     } while (0)
 
 #define GET_IPV4_SRC_ADDR_U32(p) ((p)->src.addr_data32[0])
@@ -200,43 +205,43 @@ typedef struct Address_ {
 
 #define GET_IPV6_SRC_IN6ADDR(p) ((p)->src.addr_in6addr)
 #define GET_IPV6_DST_IN6ADDR(p) ((p)->dst.addr_in6addr)
-#define GET_IPV6_SRC_ADDR(p) ((p)->src.addr_data32)
-#define GET_IPV6_DST_ADDR(p) ((p)->dst.addr_data32)
-#define GET_TCP_SRC_PORT(p)  ((p)->sp)
-#define GET_TCP_DST_PORT(p)  ((p)->dp)
+#define GET_IPV6_SRC_ADDR(p)    ((p)->src.addr_data32)
+#define GET_IPV6_DST_ADDR(p)    ((p)->dst.addr_data32)
+#define GET_TCP_SRC_PORT(p)     ((p)->sp)
+#define GET_TCP_DST_PORT(p)     ((p)->dp)
 
 #define GET_PKT_LEN(p)             (p)->pktlen
 #define GET_PKT_DATA(p)            (((p)->ext_pkt == NULL) ? GET_PKT_DIRECT_DATA(p) : (p)->ext_pkt)
 #define GET_PKT_DIRECT_DATA(p)     (p)->pkt_data
 #define GET_PKT_DIRECT_MAX_SIZE(p) (default_packet_size)
 
-#define SET_PKT_LEN(p, len) do { \
-    (p)->pktlen = (len); \
+#define SET_PKT_LEN(p, len)                                                                        \
+    do {                                                                                           \
+        (p)->pktlen = (len);                                                                       \
     } while (0)
 
 /* Port is just a uint16_t */
 typedef uint16_t Port;
-#define SET_PORT(v, p) ((p) = (v))
-#define COPY_PORT(a,b) ((b) = (a))
+#define SET_PORT(v, p)  ((p) = (v))
+#define COPY_PORT(a, b) ((b) = (a))
 
-#define CMP_ADDR(a1, a2) \
-    (((a1)->addr_data32[3] == (a2)->addr_data32[3] && \
-      (a1)->addr_data32[2] == (a2)->addr_data32[2] && \
-      (a1)->addr_data32[1] == (a2)->addr_data32[1] && \
-      (a1)->addr_data32[0] == (a2)->addr_data32[0]))
-#define CMP_PORT(p1, p2) \
-    ((p1) == (p2))
+#define CMP_ADDR(a1, a2)                                                                           \
+    (((a1)->addr_data32[3] == (a2)->addr_data32[3] &&                                              \
+            (a1)->addr_data32[2] == (a2)->addr_data32[2] &&                                        \
+            (a1)->addr_data32[1] == (a2)->addr_data32[1] &&                                        \
+            (a1)->addr_data32[0] == (a2)->addr_data32[0]))
+#define CMP_PORT(p1, p2) ((p1) == (p2))
 
 /*Given a packet pkt offset to the start of the ip header in a packet
  *We determine the ip version. */
 #define IP_GET_RAW_VER(pkt) ((((pkt)[0] & 0xf0) >> 4))
 
-#define PKT_IS_TCP(p)       (((p)->tcph != NULL))
-#define PKT_IS_UDP(p)       (((p)->udph != NULL))
-#define PKT_IS_ICMPV4(p)    (((p)->icmpv4h != NULL))
-#define PKT_IS_ICMPV6(p)    (((p)->icmpv6h != NULL))
-#define PKT_IS_TOSERVER(p)  (((p)->flowflags & FLOW_PKT_TOSERVER))
-#define PKT_IS_TOCLIENT(p)  (((p)->flowflags & FLOW_PKT_TOCLIENT))
+#define PKT_IS_TCP(p)      (((p)->tcph != NULL))
+#define PKT_IS_UDP(p)      (((p)->udph != NULL))
+#define PKT_IS_ICMPV4(p)   (((p)->icmpv4h != NULL))
+#define PKT_IS_ICMPV6(p)   (((p)->icmpv6h != NULL))
+#define PKT_IS_TOSERVER(p) (((p)->flowflags & FLOW_PKT_TOSERVER))
+#define PKT_IS_TOCLIENT(p) (((p)->flowflags & FLOW_PKT_TOCLIENT))
 
 struct PacketContextData {
     char *json_string;
@@ -304,8 +309,8 @@ void PacketAlertFree(PacketAlert *pa);
 
 /** data structure to store decoder, defrag and stream events */
 typedef struct PacketEngineEvents_ {
-    uint8_t cnt;                                /**< number of events */
-    uint8_t events[PACKET_ENGINE_EVENT_MAX];   /**< array of events */
+    uint8_t cnt;                             /**< number of events */
+    uint8_t events[PACKET_ENGINE_EVENT_MAX]; /**< array of events */
 } PacketEngineEvents;
 
 typedef struct PktVar_ {
@@ -497,8 +502,7 @@ struct PacketL4 {
  *
  * sum of above 44/48 bytes
  */
-typedef struct Packet_
-{
+typedef struct Packet_ {
     /* Addresses, Ports and protocol
      * these are on top so we can use
      * the Packet as a hash key */
@@ -625,7 +629,6 @@ typedef struct Packet_
     /** packet number in the pcap file, matches wireshark */
     uint64_t pcap_cnt;
 
-
     /* engine events */
     PacketEngineEvents events;
 
@@ -694,7 +697,7 @@ static inline bool PacketIsIPv6(const Packet *p);
 
 /** highest mtu of the interfaces we monitor */
 #define DEFAULT_MTU 1500
-#define MINIMUM_MTU 68      /**< ipv4 minimum: rfc791 */
+#define MINIMUM_MTU 68 /**< ipv4 minimum: rfc791 */
 
 #define DEFAULT_PACKET_SIZE (DEFAULT_MTU + ETHERNET_HEADER_LEN)
 /* storage: maximum ip packet size + link header */
@@ -959,8 +962,7 @@ static inline bool PacketIsARP(const Packet *p)
 }
 
 /** \brief Structure to hold thread specific data for all decode modules */
-typedef struct DecodeThreadVars_
-{
+typedef struct DecodeThreadVars_ {
     /** Specific context for udp protocol detection (here atm) */
     AppLayerThreadCtx *app_tctx;
 
@@ -1061,22 +1063,25 @@ typedef struct DecodeThreadVars_
 void CaptureStatsUpdate(ThreadVars *tv, const Packet *p);
 void CaptureStatsSetup(ThreadVars *tv);
 
-#define PACKET_CLEAR_L4VARS(p) do {                         \
-        memset(&(p)->l4vars, 0x00, sizeof((p)->l4vars));    \
+#define PACKET_CLEAR_L4VARS(p)                                                                     \
+    do {                                                                                           \
+        memset(&(p)->l4vars, 0x00, sizeof((p)->l4vars));                                           \
     } while (0)
 
 /* if p uses extended data, free them */
-#define PACKET_FREE_EXTDATA(p) do {                 \
-        if ((p)->ext_pkt) {                         \
-            if (!((p)->flags & PKT_ZERO_COPY)) {    \
-                SCFree((p)->ext_pkt);               \
-            }                                       \
-            (p)->ext_pkt = NULL;                    \
-        }                                           \
-    } while(0)
+#define PACKET_FREE_EXTDATA(p)                                                                     \
+    do {                                                                                           \
+        if ((p)->ext_pkt) {                                                                        \
+            if (!((p)->flags & PKT_ZERO_COPY)) {                                                   \
+                SCFree((p)->ext_pkt);                                                              \
+            }                                                                                      \
+            (p)->ext_pkt = NULL;                                                                   \
+        }                                                                                          \
+    } while (0)
 
-#define TUNNEL_INCR_PKT_RTV_NOLOCK(p) do {                                          \
-        ((p)->root ? (p)->root->tunnel_rtv_cnt++ : (p)->tunnel_rtv_cnt++);          \
+#define TUNNEL_INCR_PKT_RTV_NOLOCK(p)                                                              \
+    do {                                                                                           \
+        ((p)->root ? (p)->root->tunnel_rtv_cnt++ : (p)->tunnel_rtv_cnt++);                         \
     } while (0)
 
 static inline void TUNNEL_INCR_PKT_TPR(Packet *p)
@@ -1114,15 +1119,14 @@ enum DecodeTunnelProto {
 };
 
 Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *parent,
-                             const uint8_t *pkt, uint32_t len, enum DecodeTunnelProto proto);
+        const uint8_t *pkt, uint32_t len, enum DecodeTunnelProto proto);
 Packet *PacketDefragPktSetup(Packet *parent, const uint8_t *pkt, uint32_t len, uint8_t proto);
 void PacketDefragPktSetupParent(Packet *parent);
 void DecodeRegisterPerfCounters(DecodeThreadVars *, ThreadVars *);
 Packet *PacketGetFromQueueOrAlloc(void);
 Packet *PacketGetFromAlloc(void);
 void PacketDecodeFinalize(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p);
-void PacketUpdateEngineEventCounters(ThreadVars *tv,
-        DecodeThreadVars *dtv, Packet *p);
+void PacketUpdateEngineEventCounters(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p);
 void PacketFree(Packet *p);
 void PacketFreeOrRelease(Packet *p);
 int PacketCallocExtPkt(Packet *p, int datalen);
@@ -1135,8 +1139,7 @@ void PacketSwap(Packet *p);
 
 DecodeThreadVars *DecodeThreadVarsAlloc(ThreadVars *);
 void DecodeThreadVarsFree(ThreadVars *, DecodeThreadVars *);
-void DecodeUpdatePacketCounters(ThreadVars *tv,
-                                const DecodeThreadVars *dtv, const Packet *p);
+void DecodeUpdatePacketCounters(ThreadVars *tv, const DecodeThreadVars *dtv, const Packet *p);
 const char *PacketDropReasonToString(enum PacketDropReason r);
 
 /* decoder functions */
@@ -1172,43 +1175,45 @@ int DecodeNSH(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint3
 int DecodeARP(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 
 #ifdef UNITTESTS
-void DecodeIPV6FragHeader(Packet *p, const uint8_t *pkt,
-                          uint16_t hdrextlen, uint16_t plen,
-                          uint16_t prev_hdrextlen);
+void DecodeIPV6FragHeader(
+        Packet *p, const uint8_t *pkt, uint16_t hdrextlen, uint16_t plen, uint16_t prev_hdrextlen);
 #endif
 
 void AddressDebugPrint(Address *);
 
-typedef int (*DecoderFunc)(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-         const uint8_t *pkt, uint32_t len);
+typedef int (*DecoderFunc)(
+        ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len);
 void DecodeGlobalConfig(void);
 void PacketAlertGetMaxConfig(void);
 void DecodeUnregisterCounters(void);
 
-#define ENGINE_SET_EVENT(p, e) do { \
-    SCLogDebug("p %p event %d", (p), e); \
-    if ((p)->events.cnt < PACKET_ENGINE_EVENT_MAX) { \
-        (p)->events.events[(p)->events.cnt] = e; \
-        (p)->events.cnt++; \
-    } \
-} while(0)
+#define ENGINE_SET_EVENT(p, e)                                                                     \
+    do {                                                                                           \
+        SCLogDebug("p %p event %d", (p), e);                                                       \
+        if ((p)->events.cnt < PACKET_ENGINE_EVENT_MAX) {                                           \
+            (p)->events.events[(p)->events.cnt] = e;                                               \
+            (p)->events.cnt++;                                                                     \
+        }                                                                                          \
+    } while (0)
 
-#define ENGINE_SET_INVALID_EVENT(p, e) do { \
-    p->flags |= PKT_IS_INVALID; \
-    ENGINE_SET_EVENT(p, e); \
-} while(0)
+#define ENGINE_SET_INVALID_EVENT(p, e)                                                             \
+    do {                                                                                           \
+        p->flags |= PKT_IS_INVALID;                                                                \
+        ENGINE_SET_EVENT(p, e);                                                                    \
+    } while (0)
 
-#define ENGINE_ISSET_EVENT(p, e) ({ \
-    int r = 0; \
-    uint8_t u; \
-    for (u = 0; u < (p)->events.cnt; u++) { \
-        if ((p)->events.events[u] == (e)) { \
-            r = 1; \
-            break; \
-        } \
-    } \
-    r; \
-})
+#define ENGINE_ISSET_EVENT(p, e)                                                                   \
+    ({                                                                                             \
+        int r = 0;                                                                                 \
+        uint8_t u;                                                                                 \
+        for (u = 0; u < (p)->events.cnt; u++) {                                                    \
+            if ((p)->events.events[u] == (e)) {                                                    \
+                r = 1;                                                                             \
+                break;                                                                             \
+            }                                                                                      \
+        }                                                                                          \
+        r;                                                                                         \
+    })
 
 #ifndef IPPROTO_IPIP
 #define IPPROTO_IPIP 4
@@ -1265,7 +1270,7 @@ void DecodeUnregisterCounters(void);
 
 // vacancy
 
-#define PKT_HAS_FLOW   BIT_U32(8)
+#define PKT_HAS_FLOW BIT_U32(8)
 /** Pseudo packet to end the stream */
 #define PKT_PSEUDO_STREAM_END BIT_U32(9)
 /** Packet is modified by the stream engine, we need to recalc the csum and       \
@@ -1320,9 +1325,8 @@ void DecodeUnregisterCounters(void);
 #define PKT_PSEUDO_LOG_FLUSH BIT_U32(31) /**< Detect/log flush for protocol upgrade */
 
 /** \brief return 1 if the packet is a pseudo packet */
-#define PKT_IS_PSEUDOPKT(p) \
-    ((p)->flags & (PKT_PSEUDO_STREAM_END|PKT_PSEUDO_DETECTLOG_FLUSH))
-#define PKT_IS_FLUSHPKT(p) ((p)->flags & (PKT_PSEUDO_LOG_FLUSH))
+#define PKT_IS_PSEUDOPKT(p) ((p)->flags & (PKT_PSEUDO_STREAM_END | PKT_PSEUDO_DETECTLOG_FLUSH))
+#define PKT_IS_FLUSHPKT(p)  ((p)->flags & (PKT_PSEUDO_LOG_FLUSH))
 
 #define PKT_SET_SRC(p, src_val) ((p)->pkt_src = src_val)
 
@@ -1417,8 +1421,8 @@ static inline bool VerdictTunnelPacket(Packet *p)
     return verdict;
 }
 
-static inline void DecodeLinkLayer(ThreadVars *tv, DecodeThreadVars *dtv,
-        const int datalink, Packet *p, const uint8_t *data, const uint32_t len)
+static inline void DecodeLinkLayer(ThreadVars *tv, DecodeThreadVars *dtv, const int datalink,
+        Packet *p, const uint8_t *data, const uint32_t len)
 {
     /* call the decoder */
     switch (datalink) {
@@ -1441,7 +1445,7 @@ static inline void DecodeLinkLayer(ThreadVars *tv, DecodeThreadVars *dtv,
         case LINKTYPE_NULL:
             DecodeNull(tv, dtv, p, data, len);
             break;
-       case LINKTYPE_CISCO_HDLC:
+        case LINKTYPE_CISCO_HDLC:
             DecodeCHDLC(tv, dtv, p, data, len);
             break;
         default:
@@ -1454,8 +1458,8 @@ static inline void DecodeLinkLayer(ThreadVars *tv, DecodeThreadVars *dtv,
 
 /** \brief decode network layer
  *  \retval bool true if successful, false if unknown */
-static inline bool DecodeNetworkLayer(ThreadVars *tv, DecodeThreadVars *dtv,
-        const uint16_t proto, Packet *p, const uint8_t *data, const uint32_t len)
+static inline bool DecodeNetworkLayer(ThreadVars *tv, DecodeThreadVars *dtv, const uint16_t proto,
+        Packet *p, const uint8_t *data, const uint32_t len)
 {
     switch (proto) {
         case ETHERNET_TYPE_IP: {
@@ -1478,7 +1482,7 @@ static inline bool DecodeNetworkLayer(ThreadVars *tv, DecodeThreadVars *dtv,
         case ETHERNET_TYPE_8021AD:
         case ETHERNET_TYPE_8021QINQ:
             if (p->vlan_idx > VLAN_MAX_LAYER_IDX) {
-                ENGINE_SET_EVENT(p,VLAN_HEADER_TOO_MANY_LAYERS);
+                ENGINE_SET_EVENT(p, VLAN_HEADER_TOO_MANY_LAYERS);
             } else {
                 DecodeVLAN(tv, dtv, p, data, len);
             }

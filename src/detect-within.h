@@ -25,6 +25,6 @@
 #define SURICATA_DETECT_WITHIN_H
 
 /* prototypes */
-void DetectWithinRegister (void);
+void DetectWithinRegister(void);
 
 #endif /* SURICATA_DETECT_WITHIN_H */

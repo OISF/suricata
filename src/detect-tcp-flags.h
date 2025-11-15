@@ -28,7 +28,7 @@
  * Registration function for flags: keyword
  */
 
-void DetectFlagsRegister (void);
+void DetectFlagsRegister(void);
 
 int DetectFlagsSignatureNeedsSynPackets(const Signature *s);
 int DetectFlagsSignatureNeedsSynOnlyPackets(const Signature *s);

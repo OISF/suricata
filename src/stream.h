@@ -35,9 +35,8 @@
 
 typedef int (*StreamSegmentCallback)(
         const Packet *, TcpSegment *, void *, const uint8_t *, uint32_t);
-int StreamSegmentForEach(const Packet *p, uint8_t flag,
-                         StreamSegmentCallback CallbackFunc,
-                         void *data);
+int StreamSegmentForEach(
+        const Packet *p, uint8_t flag, StreamSegmentCallback CallbackFunc, void *data);
 int StreamSegmentForSession(
         const Packet *p, uint8_t flag, StreamSegmentCallback CallbackFunc, void *data);
 

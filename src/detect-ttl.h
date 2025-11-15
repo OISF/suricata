@@ -22,10 +22,8 @@
  */
 
 #ifndef _DETECT_TTL_H
-#define	_DETECT_TTL_H
-
+#define _DETECT_TTL_H
 
 void DetectTtlRegister(void);
 
-#endif	/* _DETECT_TTL_H */
-
+#endif /* _DETECT_TTL_H */

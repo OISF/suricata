@@ -68,9 +68,8 @@ static int DetectJA3SetupNoSupport(DetectEngineCtx *a, Signature *b, const char 
 #ifdef HAVE_JA3
 static int DetectTlsJa3HashSetup(DetectEngineCtx *, Signature *, const char *);
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-       const DetectEngineTransforms *transforms,
-       Flow *f, const uint8_t flow_flags,
-       void *txv, const int list_id);
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
+        const int list_id);
 static void DetectTlsJa3HashSetupCallback(const DetectEngineCtx *de_ctx, Signature *s);
 static int g_tls_ja3_hash_buffer_id = 0;
 #endif
@@ -107,8 +106,7 @@ void DetectTlsJa3HashRegister(void)
 
     DetectBufferTypeSetDescriptionByName("ja3.hash", "TLS JA3 hash");
 
-    DetectBufferTypeRegisterSetupCallback("ja3.hash",
-            DetectTlsJa3HashSetupCallback);
+    DetectBufferTypeRegisterSetupCallback("ja3.hash", DetectTlsJa3HashSetupCallback);
 
     DetectBufferTypeRegisterValidateCallback("ja3.hash", DetectMd5ValidateCallback);
 
@@ -154,8 +152,8 @@ static int DetectTlsJa3HashSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
 }
 
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *f,
-        const uint8_t flow_flags, void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
+        const int list_id)
 {
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
@@ -175,8 +173,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
     return buffer;
 }
 
-static void DetectTlsJa3HashSetupCallback(const DetectEngineCtx *de_ctx,
-                                          Signature *s)
+static void DetectTlsJa3HashSetupCallback(const DetectEngineCtx *de_ctx, Signature *s)
 {
     for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
         if (s->init_data->buffers[x].id != (uint32_t)g_tls_ja3_hash_buffer_id)

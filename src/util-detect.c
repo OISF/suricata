@@ -55,9 +55,8 @@ SigString *SigStringAlloc(void)
  *
  * \retval 1 on success 0 on failure
  */
-static int SigStringAddSig(SigString *sig, const char *sig_file,
-                           const char *sig_str, const char *sig_error,
-                           int line)
+static int SigStringAddSig(
+        SigString *sig, const char *sig_file, const char *sig_str, const char *sig_error, int line)
 {
     if (sig_file == NULL || sig_str == NULL) {
         return 0;
@@ -101,8 +100,8 @@ static int SigStringAddSig(SigString *sig, const char *sig_file,
  *
  * \retval 1 on success 0 on failure
  */
-int SigStringAppend(SigFileLoaderStat *sig_stats, const char *sig_file,
-                    const char *sig_str, const char *sig_error, int line)
+int SigStringAppend(SigFileLoaderStat *sig_stats, const char *sig_file, const char *sig_str,
+        const char *sig_error, int line)
 {
     SigString *item = SigStringAlloc();
     if (item == NULL) {

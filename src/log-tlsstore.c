@@ -50,8 +50,8 @@ static char logging_dir_not_writable;
 #define LOGGING_WRITE_ISSUE_LIMIT 6
 
 typedef struct LogTlsStoreLogThread_ {
-    uint8_t*   enc_buf;
-    size_t     enc_buf_len;
+    uint8_t *enc_buf;
+    size_t enc_buf_len;
 } LogTlsStoreLogThread;
 
 static int CreateFileName(
@@ -78,12 +78,12 @@ static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *s
 {
 #define PEMHEADER "-----BEGIN CERTIFICATE-----\n"
 #define PEMFOOTER "-----END CERTIFICATE-----\n"
-    //Logging pem certificate
+    // Logging pem certificate
     char filename[PATH_MAX] = "";
-    FILE* fp = NULL;
-    FILE* fpmeta = NULL;
+    FILE *fp = NULL;
+    FILE *fpmeta = NULL;
     unsigned long pemlen;
-    unsigned char* pembase64ptr = NULL;
+    unsigned char *pembase64ptr = NULL;
     int ret;
     uint8_t *ptmp;
     SSLCertsChain *cert;
@@ -112,7 +112,7 @@ static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *s
     TAILQ_FOREACH (cert, &connp->certs, next) {
         pemlen = SCBase64EncodeBufferSize(cert->cert_len);
         if (pemlen > aft->enc_buf_len) {
-            ptmp = (uint8_t*) SCRealloc(aft->enc_buf, sizeof(uint8_t) * pemlen);
+            ptmp = (uint8_t *)SCRealloc(aft->enc_buf, sizeof(uint8_t) * pemlen);
             if (ptmp == NULL) {
                 SCFree(aft->enc_buf);
                 aft->enc_buf = NULL;
@@ -154,11 +154,11 @@ static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *s
     }
     fclose(fp);
 
-    //Logging certificate informations
+    // Logging certificate informations
     memcpy(filename + (strlen(filename) - 3), "meta", 4);
     fpmeta = fopen(filename, "w");
     if (fpmeta != NULL) {
-        #define PRINT_BUF_LEN 46
+#define PRINT_BUF_LEN 46
         char srcip[PRINT_BUF_LEN], dstip[PRINT_BUF_LEN];
         char timebuf[64];
         Port sp, dp;
@@ -168,7 +168,7 @@ static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *s
         if (fprintf(fpmeta, "TIME:              %s\n", timebuf) < 0)
             goto end_fwrite_fpmeta;
         if (p->pcap_cnt > 0) {
-            if (fprintf(fpmeta, "PCAP PKT NUM:      %"PRIu64"\n", p->pcap_cnt) < 0)
+            if (fprintf(fpmeta, "PCAP PKT NUM:      %" PRIu64 "\n", p->pcap_cnt) < 0)
                 goto end_fwrite_fpmeta;
         }
         if (fprintf(fpmeta, "SRC IP:            %s\n", srcip) < 0)
@@ -346,7 +346,7 @@ static TmEcode LogTlsStoreLogThreadInit(ThreadVars *t, const void *initdata, voi
     if (stat(tls_logfile_base_dir, &stat_buf) != 0) {
         int ret;
         /* coverity[toctou] */
-        ret = SCMkDir(tls_logfile_base_dir, S_IRWXU|S_IXGRP|S_IRGRP);
+        ret = SCMkDir(tls_logfile_base_dir, S_IRWXU | S_IXGRP | S_IRGRP);
         if (ret != 0) {
             int err = errno;
             if (err != EEXIST) {
@@ -355,10 +355,8 @@ static TmEcode LogTlsStoreLogThreadInit(ThreadVars *t, const void *initdata, voi
                 exit(EXIT_FAILURE);
             }
         } else {
-            SCLogInfo("Created certs drop directory %s",
-                    tls_logfile_base_dir);
+            SCLogInfo("Created certs drop directory %s", tls_logfile_base_dir);
         }
-
     }
 
     *data = (void *)aft;
@@ -411,12 +409,10 @@ static OutputInitResult LogTlsStoreLogInitCtx(SCConfNode *conf)
     const char *s_default_log_dir = SCConfigGetLogDirectory();
     const char *s_base_dir = SCConfNodeLookupChildValue(conf, "certs-log-dir");
     if (s_base_dir == NULL || strlen(s_base_dir) == 0) {
-        strlcpy(tls_logfile_base_dir,
-                s_default_log_dir, sizeof(tls_logfile_base_dir));
+        strlcpy(tls_logfile_base_dir, s_default_log_dir, sizeof(tls_logfile_base_dir));
     } else {
         if (PathIsAbsolute(s_base_dir)) {
-            strlcpy(tls_logfile_base_dir,
-                    s_base_dir, sizeof(tls_logfile_base_dir));
+            strlcpy(tls_logfile_base_dir, s_base_dir, sizeof(tls_logfile_base_dir));
         } else {
             if (PathMerge(tls_logfile_base_dir, sizeof(tls_logfile_base_dir), s_default_log_dir,
                         s_base_dir) < 0) {
@@ -436,7 +432,7 @@ static OutputInitResult LogTlsStoreLogInitCtx(SCConfNode *conf)
     SCReturnCT(result, "OutputInitResult");
 }
 
-void LogTlsStoreRegister (void)
+void LogTlsStoreRegister(void)
 {
     OutputRegisterTxModuleWithCondition(LOGGER_TLS_STORE, MODULE_NAME, "tls-store",
             LogTlsStoreLogInitCtx, ALPROTO_TLS, LogTlsStoreLogger, LogTlsStoreCondition,

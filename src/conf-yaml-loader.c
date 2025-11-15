@@ -65,8 +65,7 @@ enum conf_state {
  *
  * \retval none
  */
-static void
-Mangle(char *string)
+static void Mangle(char *string)
 {
     char *c;
 
@@ -79,8 +78,7 @@ Mangle(char *string)
  *
  * \param filename The configuration filename.
  */
-static void
-ConfYamlSetConfDirname(const char *filename)
+static void ConfYamlSetConfDirname(const char *filename)
 {
     char *ep;
 
@@ -93,8 +91,7 @@ ConfYamlSetConfDirname(const char *filename)
         if (conf_dirname == NULL) {
             FatalError("ERROR: Failed to allocate memory while loading configuration.");
         }
-    }
-    else {
+    } else {
         conf_dirname = SCStrdup(filename);
         if (conf_dirname == NULL) {
             FatalError("ERROR: Failed to allocate memory while loading configuration.");
@@ -126,10 +123,8 @@ int SCConfYamlHandleInclude(SCConfNode *parent, const char *filename)
 
     if (PathIsAbsolute(filename)) {
         strlcpy(include_filename, filename, sizeof(include_filename));
-    }
-    else {
-        snprintf(include_filename, sizeof(include_filename), "%s/%s",
-            conf_dirname, filename);
+    } else {
+        snprintf(include_filename, sizeof(include_filename), "%s/%s", conf_dirname, filename);
     }
 
     file = fopen(include_filename, "r");
@@ -196,8 +191,7 @@ static int ConfYamlParse(
             /* Verify YAML version - its more likely to be a valid
              * Suricata configuration file if the version is
              * correct. */
-            yaml_version_directive_t *ver =
-                event.data.document_start.version_directive;
+            yaml_version_directive_t *ver = event.data.document_start.version_directive;
             if (ver == NULL) {
                 SCLogError("ERROR: Invalid configuration file.");
                 SCLogError("The configuration file must begin with the following two lines: %%YAML "
@@ -210,12 +204,12 @@ static int ConfYamlParse(
                 SCLogError("ERROR: Invalid YAML version.  Must be 1.1");
                 goto fail;
             }
-        }
-        else if (event.type == YAML_SCALAR_EVENT) {
+        } else if (event.type == YAML_SCALAR_EVENT) {
             char *value = (char *)event.data.scalar.value;
             char *tag = (char *)event.data.scalar.tag;
             SCLogDebug("event.type=YAML_SCALAR_EVENT; state=%d; value=%s; "
-                "tag=%s; inseq=%d", state, value, tag, inseq);
+                       "tag=%s; inseq=%d",
+                    state, value, tag, inseq);
 
             /* Skip over empty scalar values while in KEY state. This
              * tends to only happen on an empty file, where a scalar
@@ -264,8 +258,7 @@ static int ConfYamlParse(
                      * re-added in the expected order for iteration.
                      */
                     TAILQ_REMOVE(&parent->head, seq_node, next);
-                }
-                else {
+                } else {
                     seq_node = SCConfNodeNew();
                     if (unlikely(seq_node == NULL)) {
                         goto fail;
@@ -286,16 +279,14 @@ static int ConfYamlParse(
                     }
                 }
                 TAILQ_INSERT_TAIL(&parent->head, seq_node, next);
-            }
-            else {
+            } else {
                 if (state == CONF_INCLUDE) {
                     SCLogInfo("Including configuration file %s.", value);
                     if (SCConfYamlHandleInclude(parent, value) != 0) {
                         goto fail;
                     }
                     state = CONF_KEY;
-                }
-                else if (state == CONF_KEY) {
+                } else if (state == CONF_KEY) {
 
                     if (strcmp(value, "include") == 0) {
                         state = CONF_INCLUDE;
@@ -359,11 +350,11 @@ static int ConfYamlParse(
                         }
                     }
                     state = CONF_VAL;
-                }
-                else {
+                } else {
                     if (value != NULL && (tag != NULL) && (strcmp(tag, "!include") == 0)) {
                         SCLogInfo("Including configuration file %s at "
-                            "parent node %s.", value, node->name);
+                                  "parent node %s.",
+                                value, node->name);
                         if (SCConfYamlHandleInclude(node, value) != 0)
                             goto fail;
                     } else if (!node->final && value != NULL) {
@@ -374,8 +365,7 @@ static int ConfYamlParse(
                     state = CONF_KEY;
                 }
             }
-        }
-        else if (event.type == YAML_SEQUENCE_START_EVENT) {
+        } else if (event.type == YAML_SEQUENCE_START_EVENT) {
             SCLogDebug("event.type=YAML_SEQUENCE_START_EVENT; state=%d", state);
             /* If we're processing a list of includes, use the current parent. */
             if (ConfYamlParse(parser, state == CONF_INCLUDE ? parent : node, 1, rlevel,
@@ -383,12 +373,10 @@ static int ConfYamlParse(
                 goto fail;
             node->is_seq = 1;
             state = CONF_KEY;
-        }
-        else if (event.type == YAML_SEQUENCE_END_EVENT) {
+        } else if (event.type == YAML_SEQUENCE_END_EVENT) {
             SCLogDebug("event.type=YAML_SEQUENCE_END_EVENT; state=%d", state);
             done = 1;
-        }
-        else if (event.type == YAML_MAPPING_START_EVENT) {
+        } else if (event.type == YAML_MAPPING_START_EVENT) {
             SCLogDebug("event.type=YAML_MAPPING_START_EVENT; state=%d", state);
             if (state == CONF_INCLUDE) {
                 SCLogError("Include fields cannot be a mapping: line %zu", parser->mark.line);
@@ -416,8 +404,7 @@ static int ConfYamlParse(
                      * re-added in the expected order for iteration.
                      */
                     TAILQ_REMOVE(&node->head, seq_node, next);
-                }
-                else {
+                } else {
                     seq_node = SCConfNodeNew();
                     if (unlikely(seq_node == NULL)) {
                         goto fail;
@@ -432,18 +419,15 @@ static int ConfYamlParse(
                 TAILQ_INSERT_TAIL(&node->head, seq_node, next);
                 if (ConfYamlParse(parser, seq_node, 0, rlevel, 0) != 0)
                     goto fail;
-            }
-            else {
+            } else {
                 if (ConfYamlParse(parser, node, inseq, rlevel, 0) != 0)
                     goto fail;
             }
             state = CONF_KEY;
-        }
-        else if (event.type == YAML_MAPPING_END_EVENT) {
+        } else if (event.type == YAML_MAPPING_END_EVENT) {
             SCLogDebug("event.type=YAML_MAPPING_END_EVENT; state=%d", state);
             done = 1;
-        }
-        else if (event.type == YAML_STREAM_END_EVENT) {
+        } else if (event.type == YAML_STREAM_END_EVENT) {
             SCLogDebug("event.type=YAML_STREAM_END_EVENT; state=%d", state);
             done = 1;
         }
@@ -605,8 +589,7 @@ int SCConfYamlLoadFileWithPrefix(const char *filename, const char *prefix)
 
 #ifdef UNITTESTS
 
-static int
-ConfYamlSequenceTest(void)
+static int ConfYamlSequenceTest(void)
 {
     char input[] = "\
 %YAML 1.1\n\
@@ -630,13 +613,12 @@ default-log-dir: /tmp\n\
     FAIL_IF(TAILQ_EMPTY(&node->head));
     int i = 0;
     SCConfNode *filename;
-    TAILQ_FOREACH(filename, &node->head, next) {
+    TAILQ_FOREACH (filename, &node->head, next) {
         if (i == 0) {
             FAIL_IF(strcmp(filename->val, "netbios.rules") != 0);
             FAIL_IF(SCConfNodeIsSequence(filename));
             FAIL_IF(filename->is_seq != 0);
-        }
-        else if (i == 1) {
+        } else if (i == 1) {
             FAIL_IF(strcmp(filename->val, "x11.rules") != 0);
             FAIL_IF(SCConfNodeIsSequence(filename));
         }
@@ -649,8 +631,7 @@ default-log-dir: /tmp\n\
     PASS;
 }
 
-static int
-ConfYamlLoggingOutputTest(void)
+static int ConfYamlLoggingOutputTest(void)
 {
     char input[] = "\
 %YAML 1.1\n\
@@ -715,8 +696,7 @@ logging:\n\
 /**
  * Try to load something that is not a valid YAML file.
  */
-static int
-ConfYamlNonYamlFileTest(void)
+static int ConfYamlNonYamlFileTest(void)
 {
     SCConfCreateContextBackup();
     SCConfInit();
@@ -729,8 +709,7 @@ ConfYamlNonYamlFileTest(void)
     PASS;
 }
 
-static int
-ConfYamlBadYamlVersionTest(void)
+static int ConfYamlBadYamlVersionTest(void)
 {
     char input[] = "\
 %YAML 9.9\n\
@@ -755,8 +734,7 @@ logging:\n\
     PASS;
 }
 
-static int
-ConfYamlSecondLevelSequenceTest(void)
+static int ConfYamlSecondLevelSequenceTest(void)
 {
     char input[] = "\
 %YAML 1.1\n\
@@ -815,27 +793,24 @@ libhtp:\n\
 /**
  * Test file inclusion support.
  */
-static int
-ConfYamlFileIncludeTest(void)
+static int ConfYamlFileIncludeTest(void)
 {
     FILE *config_file;
 
     const char config_filename[] = "ConfYamlFileIncludeTest-config.yaml";
-    const char config_file_contents[] =
-        "%YAML 1.1\n"
-        "---\n"
-        "# Include something at the root level.\n"
-        "include: ConfYamlFileIncludeTest-include.yaml\n"
-        "# Test including under a mapping.\n"
-        "mapping: !include ConfYamlFileIncludeTest-include.yaml\n";
+    const char config_file_contents[] = "%YAML 1.1\n"
+                                        "---\n"
+                                        "# Include something at the root level.\n"
+                                        "include: ConfYamlFileIncludeTest-include.yaml\n"
+                                        "# Test including under a mapping.\n"
+                                        "mapping: !include ConfYamlFileIncludeTest-include.yaml\n";
 
     const char include_filename[] = "ConfYamlFileIncludeTest-include.yaml";
-    const char include_file_contents[] =
-        "%YAML 1.1\n"
-        "---\n"
-        "host-mode: auto\n"
-        "unix-command:\n"
-        "  enabled: no\n";
+    const char include_file_contents[] = "%YAML 1.1\n"
+                                         "---\n"
+                                         "host-mode: auto\n"
+                                         "unix-command:\n"
+                                         "  enabled: no\n";
 
     SCConfCreateContextBackup();
     SCConfInit();
@@ -890,8 +865,7 @@ ConfYamlFileIncludeTest(void)
  * Test that a configuration section is overridden but subsequent
  * occurrences.
  */
-static int
-ConfYamlOverrideTest(void)
+static int ConfYamlOverrideTest(void)
 {
     char config[] = "%YAML 1.1\n"
                     "---\n"
@@ -952,16 +926,14 @@ ConfYamlOverrideTest(void)
  * Test that a configuration parameter loaded from YAML doesn't
  * override a 'final' value that may be set on the command line.
  */
-static int
-ConfYamlOverrideFinalTest(void)
+static int ConfYamlOverrideFinalTest(void)
 {
     SCConfCreateContextBackup();
     SCConfInit();
 
-    char config[] =
-        "%YAML 1.1\n"
-        "---\n"
-        "default-log-dir: /var/log\n";
+    char config[] = "%YAML 1.1\n"
+                    "---\n"
+                    "default-log-dir: /var/log\n";
 
     /* Set the log directory as if it was set on the command line. */
     FAIL_IF_NOT(SCConfSetFinal("default-log-dir", "/tmp"));
@@ -1060,8 +1032,7 @@ void SCConfYamlRegisterTests(void)
     UtRegisterTest("ConfYamlLoggingOutputTest", ConfYamlLoggingOutputTest);
     UtRegisterTest("ConfYamlNonYamlFileTest", ConfYamlNonYamlFileTest);
     UtRegisterTest("ConfYamlBadYamlVersionTest", ConfYamlBadYamlVersionTest);
-    UtRegisterTest("ConfYamlSecondLevelSequenceTest",
-                   ConfYamlSecondLevelSequenceTest);
+    UtRegisterTest("ConfYamlSecondLevelSequenceTest", ConfYamlSecondLevelSequenceTest);
     UtRegisterTest("ConfYamlFileIncludeTest", ConfYamlFileIncludeTest);
     UtRegisterTest("ConfYamlOverrideTest", ConfYamlOverrideTest);
     UtRegisterTest("ConfYamlOverrideFinalTest", ConfYamlOverrideFinalTest);

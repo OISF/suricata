@@ -27,160 +27,156 @@
 #include "decode-tcp.h"
 #include "decode-udp.h"
 
-#define ICMPV4_HEADER_LEN       8
+#define ICMPV4_HEADER_LEN 8
 
 #ifndef ICMP_ECHOREPLY
-#define ICMP_ECHOREPLY          0       /* Echo Reply                   */
+#define ICMP_ECHOREPLY 0 /* Echo Reply                   */
 #endif
 #ifndef ICMP_DEST_UNREACH
-#define ICMP_DEST_UNREACH       3       /* Destination Unreachable      */
+#define ICMP_DEST_UNREACH 3 /* Destination Unreachable      */
 #endif
 #ifndef ICMP_SOURCE_QUENCH
-#define ICMP_SOURCE_QUENCH      4       /* Source Quench                */
+#define ICMP_SOURCE_QUENCH 4 /* Source Quench                */
 #endif
 #ifndef ICMP_REDIRECT
-#define ICMP_REDIRECT           5       /* Redirect (change route)      */
+#define ICMP_REDIRECT 5 /* Redirect (change route)      */
 #endif
 #ifndef ICMP_ECHO
-#define ICMP_ECHO               8       /* Echo Request                 */
+#define ICMP_ECHO 8 /* Echo Request                 */
 #endif
 #ifndef ICMP_ROUTERADVERT
-#define ICMP_ROUTERADVERT       9
+#define ICMP_ROUTERADVERT 9
 #endif
 #ifndef ICMP_ROUTERSOLICIT
-#define ICMP_ROUTERSOLICIT      10
+#define ICMP_ROUTERSOLICIT 10
 #endif
 #ifndef ICMP_TIME_EXCEEDED
-#define ICMP_TIME_EXCEEDED      11      /* Time Exceeded                */
+#define ICMP_TIME_EXCEEDED 11 /* Time Exceeded                */
 #endif
 #ifndef ICMP_PARAMETERPROB
-#define ICMP_PARAMETERPROB      12      /* Parameter Problem            */
+#define ICMP_PARAMETERPROB 12 /* Parameter Problem            */
 #endif
 #ifndef ICMP_TIMESTAMP
-#define ICMP_TIMESTAMP          13      /* Timestamp Request            */
+#define ICMP_TIMESTAMP 13 /* Timestamp Request            */
 #endif
 #ifndef ICMP_TIMESTAMPREPLY
-#define ICMP_TIMESTAMPREPLY     14      /* Timestamp Reply              */
+#define ICMP_TIMESTAMPREPLY 14 /* Timestamp Reply              */
 #endif
 #ifndef ICMP_INFO_REQUEST
-#define ICMP_INFO_REQUEST       15      /* Information Request          */
+#define ICMP_INFO_REQUEST 15 /* Information Request          */
 #endif
 #ifndef ICMP_INFO_REPLY
-#define ICMP_INFO_REPLY         16      /* Information Reply            */
+#define ICMP_INFO_REPLY 16 /* Information Reply            */
 #endif
 #ifndef ICMP_ADDRESS
-#define ICMP_ADDRESS            17      /* Address Mask Request         */
+#define ICMP_ADDRESS 17 /* Address Mask Request         */
 #endif
 #ifndef ICMP_ADDRESSREPLY
-#define ICMP_ADDRESSREPLY       18      /* Address Mask Reply           */
+#define ICMP_ADDRESSREPLY 18 /* Address Mask Reply           */
 #endif
 #ifndef NR_ICMP_TYPES
-#define NR_ICMP_TYPES           18
+#define NR_ICMP_TYPES 18
 #endif
-
 
 /* Codes for UNREACH. */
 #ifndef ICMP_NET_UNREACH
-#define ICMP_NET_UNREACH        0       /* Network Unreachable          */
+#define ICMP_NET_UNREACH 0 /* Network Unreachable          */
 #endif
 #ifndef ICMP_HOST_UNREACH
-#define ICMP_HOST_UNREACH       1       /* Host Unreachable             */
+#define ICMP_HOST_UNREACH 1 /* Host Unreachable             */
 #endif
 #ifndef ICMP_PROT_UNREACH
-#define ICMP_PROT_UNREACH       2       /* Protocol Unreachable         */
+#define ICMP_PROT_UNREACH 2 /* Protocol Unreachable         */
 #endif
 #ifndef ICMP_PORT_UNREACH
-#define ICMP_PORT_UNREACH       3       /* Port Unreachable             */
+#define ICMP_PORT_UNREACH 3 /* Port Unreachable             */
 #endif
 #ifndef ICMP_FRAG_NEEDED
-#define ICMP_FRAG_NEEDED        4       /* Fragmentation Needed/DF set  */
+#define ICMP_FRAG_NEEDED 4 /* Fragmentation Needed/DF set  */
 #endif
 #ifndef ICMP_SR_FAILED
-#define ICMP_SR_FAILED          5       /* Source Route failed          */
+#define ICMP_SR_FAILED 5 /* Source Route failed          */
 #endif
 #ifndef ICMP_NET_UNKNOWN
-#define ICMP_NET_UNKNOWN        6
+#define ICMP_NET_UNKNOWN 6
 #endif
 #ifndef ICMP_HOST_UNKNOWN
-#define ICMP_HOST_UNKNOWN       7
+#define ICMP_HOST_UNKNOWN 7
 #endif
 #ifndef ICMP_HOST_ISOLATED
-#define ICMP_HOST_ISOLATED      8
+#define ICMP_HOST_ISOLATED 8
 #endif
 #ifndef ICMP_NET_ANO
-#define ICMP_NET_ANO            9
+#define ICMP_NET_ANO 9
 #endif
 #ifndef ICMP_HOST_ANO
-#define ICMP_HOST_ANO           10
+#define ICMP_HOST_ANO 10
 #endif
 #ifndef ICMP_NET_UNR_TOS
-#define ICMP_NET_UNR_TOS        11
+#define ICMP_NET_UNR_TOS 11
 #endif
 #ifndef ICMP_HOST_UNR_TOS
-#define ICMP_HOST_UNR_TOS       12
+#define ICMP_HOST_UNR_TOS 12
 #endif
 #ifndef ICMP_PKT_FILTERED
-#define ICMP_PKT_FILTERED       13      /* Packet filtered */
+#define ICMP_PKT_FILTERED 13 /* Packet filtered */
 #endif
 #ifndef ICMP_PREC_VIOLATION
-#define ICMP_PREC_VIOLATION     14      /* Precedence violation */
+#define ICMP_PREC_VIOLATION 14 /* Precedence violation */
 
 #endif
 #ifndef ICMP_PREC_CUTOFF
-#define ICMP_PREC_CUTOFF        15      /* Precedence cut off */
+#define ICMP_PREC_CUTOFF 15 /* Precedence cut off */
 #endif
 #ifndef NR_ICMP_UNREACH
-#define NR_ICMP_UNREACH         15      /* instead of hardcoding immediate value */
+#define NR_ICMP_UNREACH 15 /* instead of hardcoding immediate value */
 #endif
 
 /* Codes for REDIRECT. */
 #ifndef ICMP_REDIR_NET
-#define ICMP_REDIR_NET          0       /* Redirect Net                 */
+#define ICMP_REDIR_NET 0 /* Redirect Net                 */
 #endif
 #ifndef ICMP_REDIR_HOST
-#define ICMP_REDIR_HOST         1       /* Redirect Host                */
+#define ICMP_REDIR_HOST 1 /* Redirect Host                */
 #endif
 #ifndef ICMP_REDIR_NETTOS
-#define ICMP_REDIR_NETTOS       2       /* Redirect Net for TOS         */
+#define ICMP_REDIR_NETTOS 2 /* Redirect Net for TOS         */
 #endif
 #ifndef ICMP_REDIR_HOSTTOS
-#define ICMP_REDIR_HOSTTOS      3       /* Redirect Host for TOS        */
+#define ICMP_REDIR_HOSTTOS 3 /* Redirect Host for TOS        */
 #endif
 
 /* Codes for TIME_EXCEEDED. */
 #ifndef ICMP_EXC_TTL
-#define ICMP_EXC_TTL            0       /* TTL count exceeded           */
+#define ICMP_EXC_TTL 0 /* TTL count exceeded           */
 #endif
 #ifndef ICMP_EXC_FRAGTIME
-#define ICMP_EXC_FRAGTIME       1       /* Fragment Reass time exceeded */
+#define ICMP_EXC_FRAGTIME 1 /* Fragment Reass time exceeded */
 #endif
 
 /** marco for icmpv4 type access */
-#define ICMPV4_GET_TYPE(p)      (p)->icmpv4h->type
+#define ICMPV4_GET_TYPE(p) (p)->icmpv4h->type
 /** marco for icmpv4 code access */
-#define ICMPV4_GET_CODE(p)      (p)->icmpv4h->code
+#define ICMPV4_GET_CODE(p) (p)->icmpv4h->code
 
 /* ICMPv4 header structure */
-typedef struct ICMPV4Hdr_
-{
-    uint8_t  type;
-    uint8_t  code;
+typedef struct ICMPV4Hdr_ {
+    uint8_t type;
+    uint8_t code;
     uint16_t checksum;
 } ICMPV4Hdr;
 
 /* ICMPv4 header structure */
-typedef struct ICMPV4ExtHdr_
-{
-    uint8_t  type;
-    uint8_t  code;
+typedef struct ICMPV4ExtHdr_ {
+    uint8_t type;
+    uint8_t code;
     uint16_t checksum;
     uint16_t id;
     uint16_t seq;
 } ICMPV4ExtHdr;
 
 /* ICMPv4 vars */
-typedef struct ICMPV4Vars_
-{
+typedef struct ICMPV4Vars_ {
     uint16_t emb_ip4h_offset;
 
     uint16_t id;
@@ -223,12 +219,12 @@ typedef struct ICMPV4Timestamp_ {
 #define ICMPV4_HEADER_PKT_OFFSET 8
 
 /** macro for icmpv4 "type" access */
-#define ICMPV4_GET_TYPE(p)      (p)->icmpv4h->type
+#define ICMPV4_GET_TYPE(p) (p)->icmpv4h->type
 /** macro for icmpv4 "code" access */
-#define ICMPV4_GET_CODE(p)      (p)->icmpv4h->code
+#define ICMPV4_GET_CODE(p) (p)->icmpv4h->code
 /** macro for icmpv4 "csum" access */
-#define ICMPV4_GET_RAW_CSUM(p)  SCNtohs((p)->icmpv4h->checksum)
-#define ICMPV4_GET_CSUM(p)      (p)->icmpv4h->checksum
+#define ICMPV4_GET_RAW_CSUM(p) SCNtohs((p)->icmpv4h->checksum)
+#define ICMPV4_GET_CSUM(p)     (p)->icmpv4h->checksum
 
 /* If message is informational */
 
@@ -246,7 +242,7 @@ typedef struct ICMPV4Timestamp_ {
 #define ICMPV4_GET_HLEN_ICMPV4H(p) (p)->l4.vars.icmpv4.hlen
 
 /** macro for checking if a ICMP DEST UNREACH packet is valid for use
- *  in other parts of the engine, such as the flow engine. 
+ *  in other parts of the engine, such as the flow engine.
  *
  *  \warning use only _after_ the decoder has processed the packet
  */
@@ -289,20 +285,19 @@ static inline uint16_t ICMPV4CalculateChecksum(const uint16_t *pkt, uint16_t tle
     pkt += 2;
 
     while (tlen >= 32) {
-        csum += pkt[0] + pkt[1] + pkt[2] + pkt[3] + pkt[4] + pkt[5] + pkt[6] +
-            pkt[7] + pkt[8] + pkt[9] + pkt[10] + pkt[11] + pkt[12] + pkt[13] +
-            pkt[14] + pkt[15];
+        csum += pkt[0] + pkt[1] + pkt[2] + pkt[3] + pkt[4] + pkt[5] + pkt[6] + pkt[7] + pkt[8] +
+                pkt[9] + pkt[10] + pkt[11] + pkt[12] + pkt[13] + pkt[14] + pkt[15];
         tlen -= 32;
         pkt += 16;
     }
 
-    while(tlen >= 8) {
+    while (tlen >= 8) {
         csum += pkt[0] + pkt[1] + pkt[2] + pkt[3];
         tlen -= 8;
         pkt += 4;
     }
 
-    while(tlen >= 4) {
+    while (tlen >= 4) {
         csum += pkt[0] + pkt[1];
         tlen -= 4;
         pkt += 2;
@@ -322,7 +317,7 @@ static inline uint16_t ICMPV4CalculateChecksum(const uint16_t *pkt, uint16_t tle
     csum = (csum >> 16) + (csum & 0x0000FFFF);
     csum += (csum >> 16);
 
-    return (uint16_t) ~csum;
+    return (uint16_t)~csum;
 }
 
 int ICMPv4GetCounterpart(uint8_t type);

@@ -25,6 +25,6 @@
 #define SURICATA_DETECT_REV_H
 
 /* prototypes */
-void DetectRevRegister (void);
+void DetectRevRegister(void);
 
 #endif /* SURICATA_DETECT_REV_H */

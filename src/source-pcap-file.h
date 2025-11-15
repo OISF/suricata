@@ -24,8 +24,8 @@
 #ifndef SURICATA_SOURCE_PCAP_FILE_H
 #define SURICATA_SOURCE_PCAP_FILE_H
 
-void TmModuleReceivePcapFileRegister (void);
-void TmModuleDecodePcapFileRegister (void);
+void TmModuleReceivePcapFileRegister(void);
+void TmModuleDecodePcapFileRegister(void);
 
 void PcapIncreaseInvalidChecksum(void);
 

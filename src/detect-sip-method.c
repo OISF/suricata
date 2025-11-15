@@ -106,8 +106,8 @@ static bool DetectSipMethodValidateCallback(
 }
 
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f,
-        const uint8_t _flow_flags, void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
 {
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
@@ -142,8 +142,7 @@ void DetectSipMethodRegister(void)
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 
-    DetectBufferTypeRegisterValidateCallback(BUFFER_NAME,
-            DetectSipMethodValidateCallback);
+    DetectBufferTypeRegisterValidateCallback(BUFFER_NAME, DetectSipMethodValidateCallback);
 
     g_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
 

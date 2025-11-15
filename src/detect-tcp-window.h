@@ -19,6 +19,6 @@
 #define SURICATA_DETECT_WINDOW_H
 
 /* prototypes */
-void DetectWindowRegister (void);
+void DetectWindowRegister(void);
 
 #endif /* SURICATA_DETECT_WINDOW_H */

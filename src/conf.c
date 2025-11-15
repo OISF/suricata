@@ -286,8 +286,7 @@ int SCConfSetFromString(const char *input, int final)
         if (!SCConfSetFinal(name, val)) {
             goto done;
         }
-    }
-    else {
+    } else {
         if (!SCConfSet(name, val)) {
             goto done;
         }
@@ -353,8 +352,7 @@ int SCConfGet(const char *name, const char **vptr)
     if (node == NULL) {
         SCLogDebug("failed to lookup configuration parameter '%s'", name);
         return 0;
-    }
-    else {
+    } else {
         *vptr = node->val;
         return 1;
     }
@@ -367,8 +365,7 @@ int SCConfGetChildValue(const SCConfNode *base, const char *name, const char **v
     if (node == NULL) {
         SCLogDebug("failed to lookup configuration parameter '%s'", name);
         return 0;
-    }
-    else {
+    } else {
         if (node->val == NULL)
             return 0;
         *vptr = node->val;
@@ -536,7 +533,6 @@ int SCConfGetChildValueBoolWithDefault(
     return ret;
 }
 
-
 /**
  * \brief Check if a value is true.
  *
@@ -550,7 +546,7 @@ int SCConfGetChildValueBoolWithDefault(
  */
 int SCConfValIsTrue(const char *val)
 {
-    const char *trues[] = {"1", "yes", "true", "on"};
+    const char *trues[] = { "1", "yes", "true", "on" };
     size_t u;
 
     for (u = 0; u < sizeof(trues) / sizeof(trues[0]); u++) {
@@ -575,7 +571,7 @@ int SCConfValIsTrue(const char *val)
  */
 int SCConfValIsFalse(const char *val)
 {
-    const char *falses[] = {"0", "no", "false", "off"};
+    const char *falses[] = { "0", "no", "false", "off" };
     size_t u;
 
     for (u = 0; u < sizeof(falses) / sizeof(falses[0]); u++) {
@@ -712,7 +708,7 @@ void SCConfDeInit(void)
 
 static char *ConfPrintNameArray(char **name_arr, int level)
 {
-    static char name[128*128];
+    static char name[128 * 128];
     int i;
 
     name[0] = '\0';
@@ -736,18 +732,15 @@ void SCConfNodeDump(const SCConfNode *node, const char *prefix)
     static int level = -1;
 
     level++;
-    TAILQ_FOREACH(child, &node->head, next) {
+    TAILQ_FOREACH (child, &node->head, next) {
         name[level] = SCStrdup(child->name);
         if (unlikely(name[level] == NULL)) {
             continue;
         }
         if (prefix == NULL) {
-            printf("%s = %s\n", ConfPrintNameArray(name, level),
-                child->val);
-        }
-        else {
-            printf("%s.%s = %s\n", prefix,
-                ConfPrintNameArray(name, level), child->val);
+            printf("%s = %s\n", ConfPrintNameArray(name, level), child->val);
+        } else {
+            printf("%s.%s = %s\n", prefix, ConfPrintNameArray(name, level), child->val);
         }
         SCConfNodeDump(child, prefix);
         SCFree(name[level]);
@@ -801,7 +794,7 @@ SCConfNode *SCConfNodeLookupChild(const SCConfNode *node, const char *name)
         return NULL;
     }
 
-    TAILQ_FOREACH(child, &node->head, next) {
+    TAILQ_FOREACH (child, &node->head, next) {
         if (child->name != NULL && strcmp(child->name, name) == 0)
             return child;
     }
@@ -842,10 +835,10 @@ SCConfNode *SCConfNodeLookupKeyValue(const SCConfNode *base, const char *key, co
 {
     SCConfNode *child;
 
-    TAILQ_FOREACH(child, &base->head, next) {
+    TAILQ_FOREACH (child, &base->head, next) {
         if (!strncmp(child->val, key, strlen(child->val))) {
             SCConfNode *subchild;
-            TAILQ_FOREACH(subchild, &child->head, next) {
+            TAILQ_FOREACH (subchild, &child->head, next) {
                 if ((!strcmp(subchild->name, key)) && (!strcmp(subchild->val, value))) {
                     return child;
                 }
@@ -1094,16 +1087,22 @@ static int ConfTestGetBool(void)
     char name[] = "some-bool";
     const char *trues[] = {
         "1",
-        "on", "ON",
-        "yes", "YeS",
-        "true", "TRUE",
+        "on",
+        "ON",
+        "yes",
+        "YeS",
+        "true",
+        "TRUE",
     };
     const char *falses[] = {
         "0",
         "something",
-        "off", "OFF",
-        "false", "FalSE",
-        "no", "NO",
+        "off",
+        "OFF",
+        "false",
+        "FalSE",
+        "no",
+        "NO",
     };
     int val;
     size_t u;
@@ -1131,7 +1130,7 @@ static int ConfNodeLookupChildTest(void)
     SCConfNode *parent = SCConfNodeNew();
     SCConfNode *child;
 
-    for (u = 0; u < sizeof(test_vals)/sizeof(test_vals[0]); u++) {
+    for (u = 0; u < sizeof(test_vals) / sizeof(test_vals[0]); u++) {
         child = SCConfNodeNew();
         child->name = SCStrdup(test_vals[u]);
         child->val = SCStrdup(test_vals[u]);
@@ -1174,7 +1173,7 @@ static int ConfNodeLookupChildValueTest(void)
     SCConfNode *child;
     const char *value;
 
-    for (u = 0; u < sizeof(test_vals)/sizeof(test_vals[0]); u++) {
+    for (u = 0; u < sizeof(test_vals) / sizeof(test_vals[0]); u++) {
         child = SCConfNodeNew();
         child->name = SCStrdup(test_vals[u]);
         child->val = SCStrdup(test_vals[u]);
@@ -1203,7 +1202,7 @@ static int ConfNodeLookupChildValueTest(void)
 
 static int ConfGetChildValueWithDefaultTest(void)
 {
-    const char  *val = "";
+    const char *val = "";
     SCConfCreateContextBackup();
     SCConfInit();
     SCConfSet("af-packet.0.interface", "eth0");
@@ -1478,15 +1477,11 @@ void SCConfRegisterTests(void)
     UtRegisterTest("ConfTestGetInt", ConfTestGetInt);
     UtRegisterTest("ConfTestGetBool", ConfTestGetBool);
     UtRegisterTest("ConfNodeLookupChildTest", ConfNodeLookupChildTest);
-    UtRegisterTest("ConfNodeLookupChildValueTest",
-                   ConfNodeLookupChildValueTest);
+    UtRegisterTest("ConfNodeLookupChildValueTest", ConfNodeLookupChildValueTest);
     UtRegisterTest("ConfNodeRemoveTest", ConfNodeRemoveTest);
-    UtRegisterTest("ConfGetChildValueWithDefaultTest",
-                   ConfGetChildValueWithDefaultTest);
-    UtRegisterTest("ConfGetChildValueIntWithDefaultTest",
-                   ConfGetChildValueIntWithDefaultTest);
-    UtRegisterTest("ConfGetChildValueBoolWithDefaultTest",
-                   ConfGetChildValueBoolWithDefaultTest);
+    UtRegisterTest("ConfGetChildValueWithDefaultTest", ConfGetChildValueWithDefaultTest);
+    UtRegisterTest("ConfGetChildValueIntWithDefaultTest", ConfGetChildValueIntWithDefaultTest);
+    UtRegisterTest("ConfGetChildValueBoolWithDefaultTest", ConfGetChildValueBoolWithDefaultTest);
     UtRegisterTest("ConfGetNodeOrCreateTest", ConfGetNodeOrCreateTest);
     UtRegisterTest("ConfNodePruneTest", ConfNodePruneTest);
     UtRegisterTest("ConfNodeIsSequenceTest", ConfNodeIsSequenceTest);

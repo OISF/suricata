@@ -57,8 +57,8 @@ typedef struct DetectAppLayerEventData_ {
     uint8_t event_id;
 } DetectAppLayerEventData;
 
-static int DetectAppLayerEventPktMatch(DetectEngineThreadCtx *det_ctx,
-                                       Packet *p, const Signature *s, const SigMatchCtx *ctx);
+static int DetectAppLayerEventPktMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx);
 static int DetectAppLayerEventSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectAppLayerEventFree(DetectEngineCtx *, void *);
 static uint8_t DetectEngineAptEventInspect(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
@@ -118,13 +118,12 @@ static uint8_t DetectEngineAptEventInspect(DetectEngineCtx *de_ctx, DetectEngine
 
     r = 1;
 
- end:
+end:
     if (r == 1) {
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
     } else {
         if (AppLayerParserGetStateProgress(f->proto, alproto, tx, flags) ==
-            AppLayerParserGetStateProgressCompletionStatus(alproto, flags))
-        {
+                AppLayerParserGetStateProgressCompletionStatus(alproto, flags)) {
             return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
         } else {
             return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
@@ -132,18 +131,16 @@ static uint8_t DetectEngineAptEventInspect(DetectEngineCtx *de_ctx, DetectEngine
     }
 }
 
-
-static int DetectAppLayerEventPktMatch(DetectEngineThreadCtx *det_ctx,
-                                Packet *p, const Signature *s, const SigMatchCtx *ctx)
+static int DetectAppLayerEventPktMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectAppLayerEventData *aled = (const DetectAppLayerEventData *)ctx;
 
-    return AppLayerDecoderEventsIsEventSet(p->app_layer_events,
-                                           aled->event_id);
+    return AppLayerDecoderEventsIsEventSet(p->app_layer_events, aled->event_id);
 }
 
-static DetectAppLayerEventData *DetectAppLayerEventParsePkt(const char *arg,
-                                                            AppLayerEventType *event_type)
+static DetectAppLayerEventData *DetectAppLayerEventParsePkt(
+        const char *arg, AppLayerEventType *event_type)
 {
     uint8_t event_id = 0;
     if (AppLayerGetPktEventInfo(arg, &event_id) != 0) {

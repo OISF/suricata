@@ -98,13 +98,11 @@ typedef struct RootLogger_ {
 /* List of registered root loggers. These are registered at start up and
  * are independent of configuration. Later we will build a list of active
  * loggers based on configuration. */
-static TAILQ_HEAD(, RootLogger_) registered_loggers =
-    TAILQ_HEAD_INITIALIZER(registered_loggers);
+static TAILQ_HEAD(, RootLogger_) registered_loggers = TAILQ_HEAD_INITIALIZER(registered_loggers);
 
 /* List of active root loggers. This means that at least one logger is enabled
  * for each root logger type in the config. */
-static TAILQ_HEAD(, RootLogger_) active_loggers =
-    TAILQ_HEAD_INITIALIZER(active_loggers);
+static TAILQ_HEAD(, RootLogger_) active_loggers = TAILQ_HEAD_INITIALIZER(active_loggers);
 
 typedef struct LoggerThreadStoreNode_ {
     void *thread_data;
@@ -129,8 +127,8 @@ typedef struct OutputFileRolloverFlag_ {
 
 static SCMutex output_file_rotation_mutex = SCMUTEX_INITIALIZER;
 
-TAILQ_HEAD(, OutputFileRolloverFlag_) output_file_rotation_flags =
-    TAILQ_HEAD_INITIALIZER(output_file_rotation_flags);
+TAILQ_HEAD(, OutputFileRolloverFlag_)
+output_file_rotation_flags = TAILQ_HEAD_INITIALIZER(output_file_rotation_flags);
 
 /**
  * Callback function to be called when logging is ready.
@@ -165,8 +163,7 @@ void OutputRegisterLoggers(void);
  *
  * \retval Returns 0 on success, -1 on failure.
  */
-void OutputRegisterModule(const char *name, const char *conf_name,
-    OutputInitFunc InitFunc)
+void OutputRegisterModule(const char *name, const char *conf_name, OutputInitFunc InitFunc)
 {
     OutputModule *module = SCCalloc(1, sizeof(*module));
     if (unlikely(module == NULL))
@@ -642,7 +639,7 @@ OutputModule *OutputGetModuleByConfName(const char *conf_name)
 {
     OutputModule *module;
 
-    TAILQ_FOREACH(module, &output_modules, entries) {
+    TAILQ_FOREACH (module, &output_modules, entries) {
         if (strcmp(module->conf_name, conf_name) == 0)
             return module;
     }
@@ -716,8 +713,7 @@ void OutputUnregisterFileRotationFlag(int *flag)
 {
     OutputFileRolloverFlag *entry, *next;
     SCMutexLock(&output_file_rotation_mutex);
-    for (entry = TAILQ_FIRST(&output_file_rotation_flags); entry != NULL;
-         entry = next) {
+    for (entry = TAILQ_FIRST(&output_file_rotation_flags); entry != NULL; entry = next) {
         next = TAILQ_NEXT(entry, entries);
         if (entry->flag == flag) {
             TAILQ_REMOVE(&output_file_rotation_flags, entry, entries);
@@ -732,7 +728,8 @@ void OutputUnregisterFileRotationFlag(int *flag)
 /**
  * \brief Notifies all registered file rotation notification flags.
  */
-void OutputNotifyFileRotation(void) {
+void OutputNotifyFileRotation(void)
+{
     OutputFileRolloverFlag *flag = NULL;
     OutputFileRolloverFlag *tflag;
     SCMutexLock(&output_file_rotation_mutex);
@@ -824,13 +821,12 @@ TmEcode OutputLoggerThreadInit(ThreadVars *tv, const void *initdata, void **data
     *data = (void *)thread_store;
 
     RootLogger *logger;
-    TAILQ_FOREACH(logger, &active_loggers, entries) {
+    TAILQ_FOREACH (logger, &active_loggers, entries) {
 
         void *child_thread_data = NULL;
         if (logger->ThreadInit != NULL) {
             if (logger->ThreadInit(tv, initdata, &child_thread_data) == TM_ECODE_OK) {
-                LoggerThreadStoreNode *thread_store_node =
-                    SCCalloc(1, sizeof(*thread_store_node));
+                LoggerThreadStoreNode *thread_store_node = SCCalloc(1, sizeof(*thread_store_node));
                 if (thread_store_node == NULL) {
                     /* Undo everything, calling de-init will take care
                      * of that. */

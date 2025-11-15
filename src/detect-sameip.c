@@ -37,8 +37,8 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
-static int DetectSameipMatch(DetectEngineThreadCtx *, Packet *,
-                             const Signature *, const SigMatchCtx *);
+static int DetectSameipMatch(
+        DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
 static int DetectSameipSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectSameipRegisterTests(void);
@@ -50,7 +50,8 @@ static void DetectSameipRegisterTests(void);
 void DetectSameipRegister(void)
 {
     sigmatch_table[DETECT_SAMEIP].name = "sameip";
-    sigmatch_table[DETECT_SAMEIP].desc = "check if the IP address of the source is the same as the IP address of the destination";
+    sigmatch_table[DETECT_SAMEIP].desc = "check if the IP address of the source is the same as the "
+                                         "IP address of the destination";
     sigmatch_table[DETECT_SAMEIP].url = "/rules/header-keywords.html#sameip";
     sigmatch_table[DETECT_SAMEIP].Match = DetectSameipMatch;
     sigmatch_table[DETECT_SAMEIP].Setup = DetectSameipSetup;
@@ -72,8 +73,8 @@ void DetectSameipRegister(void)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectSameipMatch(DetectEngineThreadCtx *det_ctx,
-                             Packet *p, const Signature *s, const SigMatchCtx *ctx)
+static int DetectSameipMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     return CMP_ADDR(&p->src, &p->dst) ? 1 : 0;
 }
@@ -110,9 +111,8 @@ static int DetectSameipSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
  */
 static int DetectSameipSigTest01(void)
 {
-    uint8_t *buf = (uint8_t *)
-                    "GET / HTTP/1.0\r\n"
-                    "\r\n";
+    uint8_t *buf = (uint8_t *)"GET / HTTP/1.0\r\n"
+                              "\r\n";
     uint16_t buflen = strlen((char *)buf);
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;

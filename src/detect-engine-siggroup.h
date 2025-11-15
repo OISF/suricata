@@ -41,12 +41,10 @@ int SigGroupHeadHashInit(DetectEngineCtx *);
 void SigGroupHeadInitDataFree(SigGroupHeadInitData *sghid);
 void SigGroupHeadSetSigCnt(SigGroupHead *sgh, uint32_t max_idx);
 bool SigGroupHeadEqual(const SigGroupHead *, const SigGroupHead *);
-void SigGroupHeadSetProtoAndDirection(SigGroupHead *sgh,
-                                      uint8_t ipproto, int dir);
+void SigGroupHeadSetProtoAndDirection(SigGroupHead *sgh, uint8_t ipproto, int dir);
 int SigGroupHeadBuildMatchArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh, uint32_t max_idx);
 
-int SigGroupHeadContainsSigId (DetectEngineCtx *de_ctx, SigGroupHead *sgh,
-                               uint32_t sid);
+int SigGroupHeadContainsSigId(DetectEngineCtx *de_ctx, SigGroupHead *sgh, uint32_t sid);
 
 void SigGroupHeadRegisterTests(void);
 void SigGroupHeadPrintSigs(DetectEngineCtx *de_ctx, SigGroupHead *sgh);

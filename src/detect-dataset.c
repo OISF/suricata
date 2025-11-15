@@ -49,16 +49,16 @@
 #define DETECT_DATASET_CMD_ISNOTSET 2
 #define DETECT_DATASET_CMD_ISSET    3
 
-static int DetectDatasetSetup (DetectEngineCtx *, Signature *, const char *);
-void DetectDatasetFree (DetectEngineCtx *, void *);
+static int DetectDatasetSetup(DetectEngineCtx *, Signature *, const char *);
+void DetectDatasetFree(DetectEngineCtx *, void *);
 
-void DetectDatasetRegister (void)
+void DetectDatasetRegister(void)
 {
     sigmatch_table[DETECT_DATASET].name = "dataset";
     sigmatch_table[DETECT_DATASET].desc = "match sticky buffer against datasets (experimental)";
     sigmatch_table[DETECT_DATASET].url = "/rules/dataset-keywords.html#dataset";
     sigmatch_table[DETECT_DATASET].Setup = DetectDatasetSetup;
-    sigmatch_table[DETECT_DATASET].Free  = DetectDatasetFree;
+    sigmatch_table[DETECT_DATASET].Free = DetectDatasetFree;
 }
 
 /*
@@ -117,9 +117,8 @@ static int DetectDatajsonBufferMatch(DetectEngineThreadCtx *det_ctx, const Detec
     1 match
     0 no match
  */
-int DetectDatasetBufferMatch(DetectEngineThreadCtx *det_ctx,
-    const DetectDatasetData *sd,
-    const uint8_t *data, const uint32_t data_len)
+int DetectDatasetBufferMatch(DetectEngineThreadCtx *det_ctx, const DetectDatasetData *sd,
+        const uint8_t *data, const uint32_t data_len)
 {
     if (data == NULL || data_len == 0)
         return 0;
@@ -130,7 +129,7 @@ int DetectDatasetBufferMatch(DetectEngineThreadCtx *det_ctx,
 
     switch (sd->cmd) {
         case DETECT_DATASET_CMD_ISSET: {
-            //PrintRawDataFp(stdout, data, data_len);
+            // PrintRawDataFp(stdout, data, data_len);
             int r = DatasetLookup(sd->set, data, data_len);
             SCLogDebug("r %d", r);
             if (r == 1)
@@ -138,7 +137,7 @@ int DetectDatasetBufferMatch(DetectEngineThreadCtx *det_ctx,
             break;
         }
         case DETECT_DATASET_CMD_ISNOTSET: {
-            //PrintRawDataFp(stdout, data, data_len);
+            // PrintRawDataFp(stdout, data, data_len);
             int r = DatasetLookup(sd->set, data, data_len);
             SCLogDebug("r %d", r);
             if (r < 1)
@@ -146,7 +145,7 @@ int DetectDatasetBufferMatch(DetectEngineThreadCtx *det_ctx,
             break;
         }
         case DETECT_DATASET_CMD_SET: {
-            //PrintRawDataFp(stdout, data, data_len);
+            // PrintRawDataFp(stdout, data, data_len);
             int r = DatasetAdd(sd->set, data, data_len);
             if (r == 1)
                 return 1;
@@ -177,7 +176,7 @@ static int DetectDatasetParse(const char *str, char *cmd, int cmd_len, char *nam
     bool state_set = false;
     bool format_set = false;
 
-    char copy[strlen(str)+1];
+    char copy[strlen(str) + 1];
     strlcpy(copy, str, sizeof(copy));
     char *xsaveptr = NULL;
     char *key = strtok_r(copy, ",", &xsaveptr);
@@ -370,8 +369,7 @@ static void GetDirName(const char *in, char *out, size_t outs)
     strlcpy(out, dir, outs);
 }
 
-static int SetupLoadPath(const DetectEngineCtx *de_ctx,
-        char *load, size_t load_size)
+static int SetupLoadPath(const DetectEngineCtx *de_ctx, char *load, size_t load_size)
 {
     SCLogDebug("load %s", load);
 
@@ -413,8 +411,7 @@ static int SetupLoadPath(const DetectEngineCtx *de_ctx,
     return 0;
 }
 
-static int SetupSavePath(const DetectEngineCtx *de_ctx,
-        char *save, size_t save_size)
+static int SetupSavePath(const DetectEngineCtx *de_ctx, char *save, size_t save_size)
 {
     SCLogDebug("save %s", save);
 
@@ -458,7 +455,7 @@ static int SetupSavePath(const DetectEngineCtx *de_ctx,
     return 0;
 }
 
-int DetectDatasetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
+int DetectDatasetSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     DetectDatasetData *cd = NULL;
     uint8_t cmd = 0;
@@ -492,17 +489,17 @@ int DetectDatasetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
         return -1;
     }
 
-    if (strcmp(cmd_str,"isset") == 0) {
+    if (strcmp(cmd_str, "isset") == 0) {
         cmd = DETECT_DATASET_CMD_ISSET;
-    } else if (strcmp(cmd_str,"isnotset") == 0) {
+    } else if (strcmp(cmd_str, "isnotset") == 0) {
         cmd = DETECT_DATASET_CMD_ISNOTSET;
-    } else if (strcmp(cmd_str,"set") == 0) {
+    } else if (strcmp(cmd_str, "set") == 0) {
         if ((format == DATASET_FORMAT_JSON) || (format == DATASET_FORMAT_NDJSON)) {
             SCLogError("json format is not supported for 'set' command");
             return -1;
         }
         cmd = DETECT_DATASET_CMD_SET;
-    } else if (strcmp(cmd_str,"unset") == 0) {
+    } else if (strcmp(cmd_str, "unset") == 0) {
         if ((format == DATASET_FORMAT_JSON) || (format == DATASET_FORMAT_NDJSON)) {
             SCLogError("json format is not supported for 'unset' command");
             return -1;
@@ -533,15 +530,14 @@ int DetectDatasetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     if (strlen(save) == 0 && strlen(load) != 0) {
         if (SetupLoadPath(de_ctx, load, sizeof(load)) != 0)
             return -1;
-    /* if just 'save' is set, we use either full path or the
-     * data-dir */
+        /* if just 'save' is set, we use either full path or the
+         * data-dir */
     } else if (strlen(save) != 0 && strlen(load) == 0) {
         if (SetupSavePath(de_ctx, save, sizeof(save)) != 0)
             return -1;
-    /* use 'save' logic for 'state', but put the resulting
-     * path into 'load' as well. */
-    } else if (strlen(save) != 0 && strlen(load) != 0 &&
-            strcmp(save, load) == 0) {
+        /* use 'save' logic for 'state', but put the resulting
+         * path into 'load' as well. */
+    } else if (strlen(save) != 0 && strlen(load) != 0 && strcmp(save, load) == 0) {
         if (SetupSavePath(de_ctx, save, sizeof(save)) != 0)
             return -1;
         strlcpy(load, save, sizeof(load));
@@ -576,8 +572,7 @@ int DetectDatasetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     }
     cd->id = s;
 
-    SCLogDebug("cmd %s, name %s",
-        cmd_str, strlen(name) ? name : "(none)");
+    SCLogDebug("cmd %s, name %s", cmd_str, strlen(name) ? name : "(none)");
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
@@ -593,7 +588,7 @@ error:
     return -1;
 }
 
-void DetectDatasetFree (DetectEngineCtx *de_ctx, void *ptr)
+void DetectDatasetFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectDatasetData *fd = (DetectDatasetData *)ptr;
     if (fd == NULL)
