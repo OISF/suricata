@@ -222,20 +222,17 @@ void ShortenString(const char *input,
     if (half == 0 || half > output_size)
         return;
 
-    size_t spaces = (output_size - 1) - (half * 2);
-
     /* Add the first half to the new string */
     snprintf(output, half+1, "%s", input);
 
-    /* Add the amount of spaces wanted */
-    size_t length = half;
-    for (size_t i = half; i < half + spaces; i++) {
-        char s[2] = "";
-        snprintf(s, sizeof(s), "%c", c);
-        length = strlcat(output, s, output_size);
-    }
+    const size_t second_half_len = (output_size - 1) - half - 1;
 
-    snprintf(output + length, half + 1, "%s", input + (str_len - half));
+    /* Add space and the separator character */
+    const char *second_half_start = input + (str_len - second_half_len);
+
+    size_t remaining_size = output_size - half;
+
+    snprintf(output + half, remaining_size, "%c%s", c, second_half_start);
 }
 
 /*********************************Unittests********************************/
@@ -813,10 +810,56 @@ static int UtilMiscParseSizeStringTest02(void)
     PASS;
 }
 
+static int UtilMiscShortenStringTest01(void)
+{
+    char buffer[100];
+    const char *original = "abcdefghijklmnopqrstuvwxyz";
+    const char sep = '~';
+    const char *expected = NULL;
+
+    memset(buffer, 0, sizeof(buffer));
+    expected = "abc~wxyz";
+    ShortenString(original, buffer, 9, sep);
+    FAIL_IF_NOT(strcmp(buffer, expected) == 0);
+
+    memset(buffer, 0, sizeof(buffer));
+    expected = "abcd~wxyz";
+    ShortenString(original, buffer, 10, sep);
+    FAIL_IF_NOT(strcmp(buffer, expected) == 0);
+
+    memset(buffer, 0, sizeof(buffer));
+    expected = "a~z";
+    ShortenString(original, buffer, 4, sep);
+    FAIL_IF_NOT(strcmp(buffer, expected) == 0);
+
+    memset(buffer, 0, sizeof(buffer));
+    expected = "";
+    ShortenString(original, buffer, 3, sep);
+    FAIL_IF_NOT(strcmp(buffer, expected) == 0);
+
+    memset(buffer, 0, sizeof(buffer));
+    expected = "";
+    ShortenString(original, buffer, 2, sep);
+    FAIL_IF_NOT(strcmp(buffer, expected) == 0);
+
+    memset(buffer, 0, sizeof(buffer));
+    expected = "";
+    ShortenString(original, buffer, 1, sep);
+    FAIL_IF_NOT(strcmp(buffer, expected) == 0);
+
+    memset(buffer, 0, sizeof(buffer));
+    expected = "";
+    ShortenString(original, buffer, 0, sep);
+    FAIL_IF_NOT(strcmp(buffer, expected) == 0);
+
+    PASS;
+}
+
 void UtilMiscRegisterTests(void)
 {
     UtRegisterTest("UtilMiscParseSizeStringTest01",
                    UtilMiscParseSizeStringTest01);
     UtRegisterTest("UtilMiscParseSizeStringTest02", UtilMiscParseSizeStringTest02);
+    UtRegisterTest("UtilMiscShortenStringTest01", UtilMiscShortenStringTest01);
 }
 #endif /* UNITTESTS */
