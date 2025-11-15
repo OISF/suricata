@@ -1,4 +1,4 @@
-/* Copyright (C) 2021 Open Information Security Foundation
+/* Copyright (C) 2021-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -26,6 +26,7 @@
 
 #include "suricata-common.h"
 #include "util-dpdk.h"
+#include "util-dpdk-rte-flow.h"
 
 #ifdef HAVE_DPDK
 #include <rte_ethdev.h>
@@ -75,12 +76,14 @@ typedef struct DPDKIfaceConfig_ {
     uint32_t mempool_cache_size;
     DPDKDeviceResources *pkt_mempools;
     uint16_t linkup_timeout; // in seconds how long to wait for link to come up
+    RteFlowRuleStorage drop_filter;
     SC_ATOMIC_DECLARE(uint16_t, ref);
     /* threads bind queue id one by one */
     SC_ATOMIC_DECLARE(uint16_t, queue_id);
     SC_ATOMIC_DECLARE(uint16_t, inconsistent_numa_cnt);
     DPDKWorkerSync *workers_sync;
     void (*DerefFunc)(void *);
+    void (*RteRulesFree)(RteFlowRuleStorage *);
 
     struct rte_flow *flow[100];
 #endif
