@@ -780,11 +780,9 @@ static int SigTest15 (void)
                     "CONNECT 213.92.8.7:31204 HTTP/1.1";
     uint16_t buflen = strlen((char *)buf);
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
+    FAIL_IF_NULL(p);
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
-    int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
     p->src.family = AF_INET;
@@ -799,35 +797,28 @@ static int SigTest15 (void)
     SCConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any !$HTTP_PORTS (msg:\"ET POLICY Inbound HTTP CONNECT Attempt on Off-Port\"; content:\"CONNECT \"; nocase; depth:8; content:\" HTTP/1.\"; nocase; within:1000; sid:2008284; rev:2;)");
-    if (de_ctx->sig_list == NULL) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx->sig_list);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (PacketAlertCheck(p, 2008284))
-        result = 0;
-    else
-        result = 1;
+    PASS_IF(!PacketAlertCheck(p, 2008284));
+    FAIL;
 
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    DetectEngineCtxFree(de_ctx);
 end:
+    if (det_ctx)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
     SCConfDeInit();
     SCConfRestoreContextBackup();
     PacketFree(p);
     StatsThreadCleanup(&th_v);
-    return result;
 }
 
 static int SigTest16 (void)
@@ -838,7 +829,6 @@ static int SigTest16 (void)
     Packet *p = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
-    int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
@@ -850,34 +840,28 @@ static int SigTest16 (void)
     SCConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any !$HTTP_PORTS (msg:\"ET POLICY Inbound HTTP CONNECT Attempt on Off-Port\"; content:\"CONNECT \"; nocase; depth:8; content:\" HTTP/1.\"; nocase; within:1000; sid:2008284; rev:2;)");
-    if (de_ctx->sig_list == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx->sig_list);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (PacketAlertCheck(p, 2008284))
-        result = 1;
-    else
-        printf("sid:2008284 %s: ", PacketAlertCheck(p, 2008284) ? "OK" : "FAIL");
+    PASS_IF(!PacketAlertCheck(p, 2008284));
+    FAIL;
 
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    DetectEngineCtxFree(de_ctx);
 end:
+    if (det_ctx)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
     SCConfDeInit();
     SCConfRestoreContextBackup();
     UTHFreePackets(&p, 1);
     StatsThreadCleanup(&th_v);
-    return result;
 }
 
 static int SigTest17 (void)
@@ -925,8 +909,6 @@ static int SigTest17 (void)
     SCConfRestoreContextBackup();
     UTHFreePackets(&p, 1);
     StatsThreadCleanup(&th_v);
-
-    PASS;
 }
 
 static int SigTest18 (void)
@@ -935,11 +917,9 @@ static int SigTest18 (void)
                     "220 (vsFTPd 2.0.5)\r\n";
     uint16_t buflen = strlen((char *)buf);
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
+    FAIL_IF_NULL(p);
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
-    int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
     p->src.family = AF_INET;
@@ -951,33 +931,27 @@ static int SigTest18 (void)
     p->sp = 21;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any !21:902 -> any any (msg:\"ET MALWARE Suspicious 220 Banner on Local Port\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; sid:2003055; rev:4;)");
-    if (de_ctx->sig_list == NULL) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx->sig_list);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (!PacketAlertCheck(p, 2003055))
-        result = 1;
-    else
-        printf("signature shouldn't match, but did: ");
+    PASS_IF(!PacketAlertCheck(p, 2003055));
+    FAIL;
 
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    DetectEngineCtxFree(de_ctx);
 end:
+    if(det_ctx != NULL){
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    }
+    DetectEngineCtxFree(de_ctx);
     PacketFree(p);
     StatsThreadCleanup(&th_v);
-    return result;
 }
 
 static int SigTest19 (void)
@@ -986,11 +960,9 @@ static int SigTest19 (void)
                     "220 (vsFTPd 2.0.5)\r\n";
     uint16_t buflen = strlen((char *)buf);
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
+    FAIL_IF_NULL(p);
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
-    int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
     p->src.family = AF_INET;
@@ -1009,35 +981,28 @@ static int SigTest19 (void)
     SCConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert ip $HOME_NET any -> 1.2.3.4 any (msg:\"IP-ONLY test (1)\"; sid:999; rev:1;)");
-    if (de_ctx->sig_list == NULL) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx->sig_list);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (PacketAlertCheck(p, 999))
-        result = 1;
-    else
-        printf("signature didn't match, but should have: ");
-
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    DetectEngineCtxFree(de_ctx);
+    PASS_IF(!PacketAlertCheck(p, 999));
+    FAIL;
 end:
+    if(det_ctx != NULL){
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    }
+    DetectEngineCtxFree(de_ctx);
     SCConfDeInit();
     SCConfRestoreContextBackup();
     PacketFree(p);
     StatsThreadCleanup(&th_v);
-    return result;
 }
 
 static int SigTest20 (void)
@@ -1046,11 +1011,9 @@ static int SigTest20 (void)
                     "220 (vsFTPd 2.0.5)\r\n";
     uint16_t buflen = strlen((char *)buf);
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
+    FAIL_IF_NULL(p);
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
-    int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
     p->src.family = AF_INET;
@@ -1069,35 +1032,28 @@ static int SigTest20 (void)
     SCConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert ip $HOME_NET any -> [99.99.99.99,1.2.3.0/24,1.1.1.1,3.0.0.0/8] any (msg:\"IP-ONLY test (2)\"; sid:999; rev:1;)");
-    if (de_ctx->sig_list == NULL) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx->sig_list);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (PacketAlertCheck(p, 999))
-        result = 1;
-    else
-        printf("signature didn't match, but should have: ");
-
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    DetectEngineCtxFree(de_ctx);
+    PASS_IF(!PacketAlertCheck(p, 999));
+    FAIL;
 end:
+    if(det_ctx != NULL){
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    }
+    DetectEngineCtxFree(de_ctx);
     SCConfDeInit();
     SCConfRestoreContextBackup();
     PacketFree(p);
     StatsThreadCleanup(&th_v);
-    return result;
 }
 
 static int SigTest21 (void)
@@ -1130,38 +1086,26 @@ static int SigTest21 (void)
     p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT SET\"; content:\"/one/\"; flowbits:set,TEST.one; flowbits:noalert; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx->sig_list);
+
     de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT TEST\"; content:\"/two/\"; flowbits:isset,TEST.one; sid:2;)");
-    if (de_ctx->sig_list == NULL) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx->sig_list->next);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-    if (PacketAlertCheck(p1, 1)) {
-        printf("sid 1 alerted, but shouldn't: ");
-        goto end;
-    }
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-    if (!(PacketAlertCheck(p2, 2))) {
-        printf("sid 2 didn't alert, but should have: ");
-        goto end;
-    }
+    PASS_IF(!PacketAlertCheck(p1, 1));
+    FAIL;
 
-    result = 1;
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    PASS_IF(!PacketAlertCheck(p2, 2));
+    FAIL;
 end:
     if (de_ctx != NULL) {
         if (det_ctx != NULL) {
@@ -1173,7 +1117,6 @@ end:
     UTHFreePackets(&p2, 1);
     FLOW_DESTROY(&f);
     StatsThreadCleanup(&th_v);
-    return result;
 }
 
 static int SigTest22 (void)
@@ -1208,45 +1151,36 @@ static int SigTest22 (void)
     p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT SET\"; content:\"/one/\"; flowbits:set,TEST.one; flowbits:noalert; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx->sig_list);
+
     de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT TEST\"; content:\"/two/\"; flowbits:isset,TEST.abc; sid:2;)");
-    if (de_ctx->sig_list == NULL) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx->sig_list->next);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-    if (PacketAlertCheck(p1, 1)) {
-        printf("sid 1 alerted, but shouldn't: ");
-        goto end;
-    }
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-    if (!(PacketAlertCheck(p2, 2)))
-        result = 1;
-    else
-        printf("sid 2 alerted, but shouldn't: ");
+    PASS_IF(!PacketAlertCheck(p1, 1));
 
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    DetectEngineCtxFree(de_ctx);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    PASS_IF(!PacketAlertCheck(p2, 2));
+    FAIL;
 end:
+    if (de_ctx != NULL) {
+        if (det_ctx != NULL) {
+            DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+        }
+    }
+    DetectEngineCtxFree(de_ctx);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
     FLOW_DESTROY(&f);
     StatsThreadCleanup(&th_v);
-    return result;
 }
 
 static int SigTest23 (void)

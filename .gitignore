@@ -65,3 +65,12 @@ doc/userguide/*.1
 
 # Don't ignore *.rules in rules/
 !/rules/*.rules
+# local generated and installed files (dev only)
+/bin/
+/etc/
+/var/
+/share/
+/lib/suricata/
+/run/
+/log/
+/var/log/
