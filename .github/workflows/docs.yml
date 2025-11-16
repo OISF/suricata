@@ -137,3 +137,7 @@ jobs:
       - run: test -e doc/userguide/userguide.pdf
       - name: Building HTML documentation
         run: cd doc/userguide && make html
+      - name: Check EVE schema ordering
+        run: ./scripts/schema-sort.py --check ./etc/schema.json
+      - name: Check EVE schema has all additionalProperties
+        run: test $(cat etc/schema.json | jq 'paths( objects | (.type == "object" and (has("additionalProperties") | not) )) | join(".")' | wc -l) = "0"
