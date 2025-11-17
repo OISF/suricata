@@ -52,6 +52,9 @@ HttpRangeContainerBlock *SCHttpRangeContainerOpenFile(const unsigned char *key, 
 int SCHttpRangeAppendData(const StreamingBufferConfig *sbcfg, HttpRangeContainerBlock *c,
         const uint8_t *data, uint32_t len);
 
+bool SCHTPFileCloseHandleRange(const StreamingBufferConfig *sbcfg, FileContainer *, const uint16_t,
+        HttpRangeContainerBlock *, const uint8_t *, uint32_t);
+
 #ifndef SURICATA_BINDGEN_H
 
 #include "util-streaming-buffer.h"

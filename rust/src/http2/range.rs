@@ -16,9 +16,8 @@
 */
 
 use super::detect;
-use crate::core::{StreamingBufferConfig, SuricataFileContext};
+use crate::core::SuricataFileContext;
 use crate::direction::Direction;
-use crate::filecontainer::FileContainer;
 use crate::flow::Flow;
 use crate::http2::http2::HTTP2Transaction;
 use crate::http2::http2::SURICATA_HTTP2_FILE_CONFIG;
@@ -30,18 +29,9 @@ use nom7::combinator::{map_res, value};
 use nom7::error::{make_error, ErrorKind};
 use nom7::{Err, IResult};
 use std::str::FromStr;
-use suricata_sys::sys::{HttpRangeContainerBlock, SCHttpRangeContainerOpenFile, SCHttpRangeAppendData};
-
-// Defined in app-layer-htp-file.h
-#[allow(unused_doc_comments)]
-/// cbindgen:ignore
-extern "C" {
-    #[cfg(not(test))]
-    pub fn SCHTPFileCloseHandleRange(
-        sbcfg: &StreamingBufferConfig, fc: *mut FileContainer, flags: u16,
-        c: *mut HttpRangeContainerBlock, data: *const u8, data_len: u32,
-    ) -> bool;
-}
+use suricata_sys::sys::{
+    HttpRangeContainerBlock, SCHttpRangeAppendData, SCHttpRangeContainerOpenFile,
+};
 
 #[cfg(test)]
 #[allow(non_snake_case)]
@@ -49,6 +39,12 @@ pub(super) unsafe fn SCHttpRangeFreeBlock(_range: *mut HttpRangeContainerBlock) 
 #[cfg(not(test))]
 pub(super) use suricata_sys::sys::SCHttpRangeFreeBlock;
 
+#[cfg(test)]
+use crate::core::StreamingBufferConfig;
+#[cfg(test)]
+use crate::filecontainer::FileContainer;
+#[cfg(not(test))]
+pub(super) use suricata_sys::sys::SCHTPFileCloseHandleRange;
 #[cfg(test)]
 #[allow(non_snake_case)]
 pub(super) unsafe fn SCHTPFileCloseHandleRange(

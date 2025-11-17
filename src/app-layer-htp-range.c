@@ -627,3 +627,33 @@ void SCHttpRangeFreeBlock(HttpRangeContainerBlock *b)
         SCFree(b);
     }
 }
+
+/** \brief close range, add reassembled file if possible
+ *  \retval true if reassembled file was added
+ *  \retval false if no reassembled file was added
+ */
+bool SCHTPFileCloseHandleRange(const StreamingBufferConfig *sbcfg, FileContainer *files,
+        const uint16_t flags, HttpRangeContainerBlock *c, const uint8_t *data, uint32_t data_len)
+{
+    bool added = false;
+    if (SCHttpRangeAppendData(sbcfg, c, data, data_len) < 0) {
+        SCLogDebug("Failed to append data");
+    }
+    if (c->container) {
+        // we only call HttpRangeClose if we may some new data
+        // ie we do not call it if we skipped all this range request
+        THashDataLock(c->container->hdata);
+        if (c->container->error) {
+            SCLogDebug("range in ERROR state");
+        }
+        File *ranged = HttpRangeClose(sbcfg, c, flags);
+        if (ranged && files) {
+            /* HtpState owns the constructed file now */
+            FileContainerAdd(files, ranged);
+            added = true;
+        }
+        DEBUG_VALIDATE_BUG_ON(ranged && !files);
+        THashDataUnlock(c->container->hdata);
+    }
+    return added;
+}
