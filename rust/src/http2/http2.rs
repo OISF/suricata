@@ -26,6 +26,7 @@ use crate::conf::conf_get;
 use crate::core::*;
 use crate::direction::Direction;
 use crate::dns::dns::DnsVariant;
+use crate::filecontainer::FileContainerWrapper;
 use crate::filetracker::*;
 use crate::flow::Flow;
 use crate::frames::Frame;

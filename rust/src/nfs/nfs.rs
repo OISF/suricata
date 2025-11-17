@@ -36,6 +36,7 @@ use crate::core::*;
 use crate::direction::Direction;
 use crate::direction::DIR_BOTH;
 use crate::filetracker::*;
+use crate::filecontainer::FileContainerWrapper;
 use crate::flow::{Flow, flow_get_last_time};
 use crate::frames::*;
 
