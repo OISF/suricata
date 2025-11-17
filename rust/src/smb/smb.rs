@@ -50,6 +50,7 @@ use crate::flow::{Flow, FLOW_DIR_REVERSED, flow_get_flags, flow_get_last_time, f
 use crate::frames::*;
 use crate::conf::*;
 use crate::applayer::{AppLayerResult, AppLayerTxData, AppLayerEvent};
+use crate::filecontainer::FileContainerWrapper;
 
 use crate::smb::nbss_records::*;
 use crate::smb::smb1_records::*;

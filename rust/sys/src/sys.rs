@@ -897,6 +897,11 @@ pub struct File_ {
     _unused: [u8; 0],
 }
 pub type File = File_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct AppLayerTxData {
+    _unused: [u8; 0],
+}
 extern "C" {
     #[doc = " \\brief Given a protocol name, checks if the parser is enabled in\n        the conf file.\n\n \\param alproto_name Name of the app layer protocol.\n\n \\retval 1 If enabled.\n \\retval 0 If disabled."]
     pub fn SCAppLayerParserConfParserEnabled(
@@ -927,6 +932,9 @@ extern "C" {
 }
 extern "C" {
     pub fn SCAppLayerParserStateIssetFlag(pstate: *mut AppLayerParserState, flag: u16) -> u16;
+}
+extern "C" {
+    pub fn FileApplyTxFlags(txd: *const AppLayerTxData, direction: u8, file: *mut File);
 }
 extern "C" {
     pub fn SCAppLayerRegisterParserAlias(
@@ -1041,6 +1049,34 @@ extern "C" {
         data_len: u32,
     ) -> ::std::os::raw::c_int;
 }
+extern "C" {
+    #[doc = "  \\brief Open a new File\n\n  \\param ffc flow container\n  \\param sbcfg buffer config\n  \\param name filename character array\n  \\param name_len filename len\n  \\param data initial data\n  \\param data_len initial data len\n  \\param flags open flags\n\n  \\retval ff flowfile object\n\n  \\note filename is not a string, so it's not nul terminated.\n\n  If flags contains the FILE_USE_DETECT bit, the pruning code will\n  consider not just the content_stored tracker, but also content_inspected.\n  It's the responsibility of the API user to make sure this tracker is\n  properly updated."]
+    pub fn FileOpenFileWithId(
+        arg1: *mut FileContainer, arg2: *const StreamingBufferConfig, track_id: u32,
+        name: *const u8, name_len: u16, data: *const u8, data_len: u32, flags: u16,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn FileAppendDataById(
+        arg1: *mut FileContainer, sbcfg: *const StreamingBufferConfig, track_id: u32,
+        data: *const u8, data_len: u32,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn FileAppendGAPById(
+        ffc: *mut FileContainer, sbcfg: *const StreamingBufferConfig, track_id: u32,
+        data: *const u8, data_len: u32,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn FileCloseFileById(
+        arg1: *mut FileContainer, sbcfg: *const StreamingBufferConfig, track_id: u32,
+        data: *const u8, data_len: u32, flags: u16,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn FileContainerRecycle(arg1: *mut FileContainer, cfg: *const StreamingBufferConfig);
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct HttpRangeContainerBuffer {
@@ -1094,12 +1130,6 @@ extern "C" {
         sbcfg: *const StreamingBufferConfig, c: *mut HttpRangeContainerBlock, data: *const u8,
         len: u32,
     ) -> ::std::os::raw::c_int;
-}
-extern "C" {
-    pub fn SCHTPFileCloseHandleRange(
-        sbcfg: *const StreamingBufferConfig, arg1: *mut FileContainer, arg2: u16,
-        arg3: *mut HttpRangeContainerBlock, arg4: *const u8, arg5: u32,
-    ) -> bool;
 }
 pub type FrameId = i64;
 #[repr(C)]
