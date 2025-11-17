@@ -53,6 +53,38 @@ typedef struct FileContainer_ {
 int FileAppendData(FileContainer *, const StreamingBufferConfig *sbcfg, const uint8_t *data,
         uint32_t data_len);
 
+/**
+ *  \brief Open a new File
+ *
+ *  \param ffc flow container
+ *  \param sbcfg buffer config
+ *  \param name filename character array
+ *  \param name_len filename len
+ *  \param data initial data
+ *  \param data_len initial data len
+ *  \param flags open flags
+ *
+ *  \retval ff flowfile object
+ *
+ *  \note filename is not a string, so it's not nul terminated.
+ *
+ *  If flags contains the FILE_USE_DETECT bit, the pruning code will
+ *  consider not just the content_stored tracker, but also content_inspected.
+ *  It's the responsibility of the API user to make sure this tracker is
+ *  properly updated.
+ */
+int FileOpenFileWithId(FileContainer *, const StreamingBufferConfig *, uint32_t track_id,
+        const uint8_t *name, uint16_t name_len, const uint8_t *data, uint32_t data_len,
+        uint16_t flags);
+int FileAppendDataById(FileContainer *, const StreamingBufferConfig *sbcfg, uint32_t track_id,
+        const uint8_t *data, uint32_t data_len);
+int FileAppendGAPById(FileContainer *ffc, const StreamingBufferConfig *sbcfg, uint32_t track_id,
+        const uint8_t *data, uint32_t data_len);
+int FileCloseFileById(FileContainer *, const StreamingBufferConfig *sbcfg, uint32_t track_id,
+        const uint8_t *data, uint32_t data_len, uint16_t flags);
+
+void FileContainerRecycle(FileContainer *, const StreamingBufferConfig *cfg);
+
 #ifndef SURICATA_BINDGEN_H
 
 #include "flow.h"
@@ -141,33 +173,7 @@ typedef struct File_ {
 FileContainer *FileContainerAlloc(void);
 void FileContainerFree(FileContainer *, const StreamingBufferConfig *cfg);
 
-void FileContainerRecycle(FileContainer *, const StreamingBufferConfig *cfg);
-
 void FileContainerAdd(FileContainer *, File *);
-
-/**
- *  \brief Open a new File
- *
- *  \param ffc flow container
- *  \param sbcfg buffer config
- *  \param name filename character array
- *  \param name_len filename len
- *  \param data initial data
- *  \param data_len initial data len
- *  \param flags open flags
- *
- *  \retval ff flowfile object
- *
- *  \note filename is not a string, so it's not nul terminated.
- *
- *  If flags contains the FILE_USE_DETECT bit, the pruning code will
- *  consider not just the content_stored tracker, but also content_inspected.
- *  It's the responsibility of the API user to make sure this tracker is
- *  properly updated.
- */
-int FileOpenFileWithId(FileContainer *, const StreamingBufferConfig *,
-        uint32_t track_id, const uint8_t *name, uint16_t name_len,
-        const uint8_t *data, uint32_t data_len, uint16_t flags);
 
 /**
  *  \brief Close a File
@@ -182,15 +188,8 @@ int FileOpenFileWithId(FileContainer *, const StreamingBufferConfig *,
  */
 int FileCloseFile(FileContainer *, const StreamingBufferConfig *sbcfg, const uint8_t *data,
         uint32_t data_len, uint16_t flags);
-int FileCloseFileById(FileContainer *, const StreamingBufferConfig *sbcfg, uint32_t track_id,
-        const uint8_t *data, uint32_t data_len, uint16_t flags);
 int FileCloseFilePtr(File *ff, const StreamingBufferConfig *sbcfg, const uint8_t *data,
         uint32_t data_len, uint16_t flags);
-
-int FileAppendDataById(FileContainer *, const StreamingBufferConfig *sbcfg, uint32_t track_id,
-        const uint8_t *data, uint32_t data_len);
-int FileAppendGAPById(FileContainer *ffc, const StreamingBufferConfig *sbcfg, uint32_t track_id,
-        const uint8_t *data, uint32_t data_len);
 
 void FileSetInspectSizes(File *file, const uint32_t win, const uint32_t min);
 

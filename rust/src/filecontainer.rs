@@ -17,54 +17,16 @@
 
 //! This module handles file container operations (open, append, close).
 
-use std::os::raw::c_void;
 use std::ptr;
 
 use crate::core::*;
 
-#[repr(C)]
-#[derive(Debug)]
-pub struct FileContainer {
-    head: *mut c_void,
-    tail: *mut c_void,
-}
-
-impl Default for FileContainer {
-    fn default() -> Self {
-        Self {
-            head: ptr::null_mut(),
-            tail: ptr::null_mut(),
-        }
-    }
-}
-
-// Defined in util-file.h
-#[allow(unused_doc_comments)]
-/// cbindgen:ignore
-extern "C" {
-    #[cfg(not(test))]
-    pub fn FileContainerRecycle(file_container: &mut FileContainer, sbcfg: &StreamingBufferConfig);
-    #[cfg(not(test))]
-    pub fn FileAppendGAPById(
-        file_container: &mut FileContainer, sbcfg: &StreamingBufferConfig, track_id: u32,
-        data: *const u8, data_len: u32,
-    ) -> i32;
-    #[cfg(not(test))]
-    pub fn FileAppendDataById(
-        file_container: &mut FileContainer, sbcfg: &StreamingBufferConfig, track_id: u32,
-        data: *const u8, data_len: u32,
-    ) -> i32;
-    #[cfg(not(test))]
-    pub fn FileCloseFileById(
-        file_container: &mut FileContainer, sbcfg: &StreamingBufferConfig, track_id: u32,
-        data: *const u8, data_len: u32, flags: u16,
-    ) -> i32;
-    #[cfg(not(test))]
-    pub fn FileOpenFileWithId(
-        file_container: &mut FileContainer, sbcfg: &StreamingBufferConfig, track_id: u32,
-        name: *const u8, name_len: u16, data: *const u8, data_len: u32, flags: u16,
-    ) -> i32;
-}
+pub use suricata_sys::sys::FileContainer;
+#[cfg(not(test))]
+use suricata_sys::sys::{
+    FileAppendDataById, FileAppendGAPById, FileCloseFileById, FileContainerRecycle,
+    FileOpenFileWithId,
+};
 
 #[cfg(test)]
 #[allow(non_snake_case)]
@@ -103,15 +65,26 @@ pub(super) unsafe fn FileOpenFileWithId(
     0
 }
 
-impl FileContainer {
-    pub fn free(&mut self, cfg: &'static SuricataFileContext) {
+pub trait FileContainerWrapper {
+    fn free(&mut self, cfg: &'static SuricataFileContext);
+    fn file_open(
+        &mut self, cfg: &'static SuricataFileContext, track_id: u32, name: &[u8], flags: u16,
+    ) -> i32;
+    fn file_append(
+        &mut self, cfg: &'static SuricataFileContext, track_id: &u32, data: &[u8], is_gap: bool,
+    ) -> i32;
+    fn file_close(&mut self, cfg: &'static SuricataFileContext, track_id: &u32, flags: u16) -> i32;
+}
+
+impl FileContainerWrapper for FileContainer {
+    fn free(&mut self, cfg: &'static SuricataFileContext) {
         SCLogDebug!("freeing self");
         unsafe {
             FileContainerRecycle(self, cfg.files_sbcfg);
         }
     }
 
-    pub fn file_open(
+    fn file_open(
         &mut self, cfg: &'static SuricataFileContext, track_id: u32, name: &[u8], flags: u16,
     ) -> i32 {
         SCLogDebug!("FILE {:p} OPEN flags {:04X}", &self, flags);
@@ -130,7 +103,7 @@ impl FileContainer {
         }
     }
 
-    pub fn file_append(
+    fn file_append(
         &mut self, cfg: &'static SuricataFileContext, track_id: &u32, data: &[u8], is_gap: bool,
     ) -> i32 {
         SCLogDebug!("FILECONTAINER: append {}", data.len());
@@ -166,9 +139,7 @@ impl FileContainer {
         res
     }
 
-    pub fn file_close(
-        &mut self, cfg: &'static SuricataFileContext, track_id: &u32, flags: u16,
-    ) -> i32 {
+    fn file_close(&mut self, cfg: &'static SuricataFileContext, track_id: &u32, flags: u16) -> i32 {
         SCLogDebug!("FILECONTAINER: CLOSEing");
 
         unsafe { FileCloseFileById(self, cfg.files_sbcfg, *track_id, ptr::null(), 0u32, flags) }
