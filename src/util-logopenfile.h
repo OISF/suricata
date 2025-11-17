@@ -126,6 +126,9 @@ typedef struct LogFileCtx_ {
     /** The interval to rotate the log file */
     uint64_t rotate_interval;
 
+    /** Next context in time-based rotation list */
+    struct LogFileCtx_ *time_rotation_next;
+
     /**< Used by some alert loggers like the unified ones that append
      * the date onto the end of files. */
     char *prefix;
