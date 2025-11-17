@@ -1131,6 +1131,12 @@ extern "C" {
         len: u32,
     ) -> ::std::os::raw::c_int;
 }
+extern "C" {
+    pub fn SCHTPFileCloseHandleRange(
+        sbcfg: *const StreamingBufferConfig, arg1: *mut FileContainer, arg2: u16,
+        arg3: *mut HttpRangeContainerBlock, arg4: *const u8, arg5: u32,
+    ) -> bool;
+}
 pub type FrameId = i64;
 #[repr(C)]
 #[derive(Debug, Default, Copy, Clone)]
