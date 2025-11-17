@@ -48,11 +48,13 @@ int StringAsBase64(const void *s, char *out, size_t out_size)
     const StringType *str = s;
 
     unsigned long len = SCBase64EncodeBufferSize(str->len);
-    uint8_t encoded_data[len];
-    if (SCBase64Encode((unsigned char *)str->ptr, str->len, encoded_data, &len) != SC_BASE64_OK)
+    if (len + 2 > out_size) {
+        // linefeed and final zero
+        return 0;
+    }
+    if (SCBase64Encode((unsigned char *)str->ptr, str->len, (uint8_t *)out, &len) != SC_BASE64_OK)
         return 0;
 
-    strlcpy(out, (const char *)encoded_data, out_size);
     strlcat(out, "\n", out_size);
     return (int)strlen(out);
 }
