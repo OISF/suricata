@@ -19,10 +19,10 @@ Installing from the source distribution files gives the most control over the Su
 The Suricata source distribution files should be verified before building
 the source, see :doc:`verifying-source-files`.
 
-Basic steps::
+Basic steps using the Suricata 8.0.3 release as example::
 
-    tar xzvf suricata-7.0.0.tar.gz
-    cd suricata-7.0.0
+    tar xzvf suricata-8.0.3.tar.gz
+    cd suricata-8.0.3
     ./configure
     make
     make install
