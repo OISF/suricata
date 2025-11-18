@@ -39,15 +39,16 @@ Verifying the Suricata Distribution File
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To verify the contents of the Suricata distribution file the following command
-could be ran on the Suricata 7.0.5 distribution file::
+could be ran on the Suricata 8.0.0 distribution file. (Keep in mind that this
+should always be updated to the actual version and file names you are verifying.)::
 
-  $ gpg --verify suricata-7.0.5.tar.gz.sig suricata-7.0.5.tar.gz
+  $ gpg --verify suricata-8.0.0.tar.gz.sig suricata-8.0.0.tar.gz
 
 Depending on the trust level assigned to the OISF signing keys, something
 similar to the following output should be seen::
 
-  $ gpg --verify suricata-7.0.5.tar.gz.sig suricata-7.0.5.tar.gz
-  gpg: Signature made Tue 23 Apr 2024 11:58:56 AM UTC
+  $ gpg --verify suricata-8.0.0.tar.gz.sig suricata-8.0.0.tar.gz
+  gpg: Signature made Tue 08 Jul 2025 11:12:04 AM UTC
   gpg:                using RSA key B36FDAF2607E10E8FFA89E5E2BA9C98CCDF1E93A
   gpg: checking the trustdb
   gpg: marginals needed: 3  completes needed: 1  trust model: pgp
@@ -60,7 +61,7 @@ This indicates a valid signature and that the signing key is trusted.
 
 .. note:: If output from the `--verify` command is similar to the following::
 
-    gpg: Signature made Tue 23 Apr 2024 11:58:56 AM UTC
+    gpg: Signature made Tue 08 Jul 2025 11:12:04 AM UTC
     gpg:                using RSA key B36FDAF2607E10E8FFA89E5E2BA9C98CCDF1E93A
     gpg: Can't check signature: No public key
 
@@ -69,7 +70,7 @@ This indicates a valid signature and that the signing key is trusted.
 
 .. note:: If output from the `--verify` command is similar to the following::
 
-    gpg: Signature made Tue 23 Apr 2024 11:58:56 AM UTC
+    gpg: Signature made Tue 08 Jul 2025 11:12:04 AM UTC
     gpg:                using RSA key B36FDAF2607E10E8FFA89E5E2BA9C98CCDF1E93A
     gpg: Good signature from "Open Information Security Foundation (OISF)
     <releases@openinfosecfoundation.org>" [unknown]
