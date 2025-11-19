@@ -240,6 +240,10 @@ jobs:
       - name: Check EVE schema has all additionalProperties
         run: test $(cat etc/schema.json | jq 'paths( objects | (.type == "object" and (has("additionalProperties") | not) )) | join(".")' | wc -l) = "0"
 
+      - run: python3 scripts/eve-parity.py mapped-fields
+      - run: python3 scripts/eve-parity.py unmapped-fields
+      - run: python3 scripts/eve-parity.py unmapped-keywords
+
   almalinux-9:
     name: AlmaLinux 9 (schema)
     runs-on: ubuntu-latest

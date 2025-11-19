@@ -137,6 +137,3 @@ jobs:
       - run: test -e doc/userguide/userguide.pdf
       - name: Building HTML documentation
         run: cd doc/userguide && make html
-      - run: python3 scripts/eve-parity.py mapped-fields
-      - run: python3 scripts/eve-parity.py unmapped-fields
-      - run: python3 scripts/eve-parity.py unmapped-keywords
