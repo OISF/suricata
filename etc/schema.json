@@ -603,7 +603,7 @@
                             "type": "integer",
                             "suricata": {
                                 "keywords": [
-                                    "dnp3.func"
+                                    "dnp3_func"
                                 ]
                             }
                         },
@@ -729,7 +729,7 @@
                                     "type": "integer",
                                     "suricata": {
                                         "keywords": [
-                                            "dnp3.func"
+                                            "dnp3_func"
                                         ]
                                     }
                                 },
@@ -845,7 +845,7 @@
                                     "type": "integer",
                                     "suricata": {
                                         "keywords": [
-                                            "dnp3.func"
+                                            "dnp3_func"
                                         ]
                                     }
                                 },
