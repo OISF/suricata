@@ -89,7 +89,7 @@ def load_schema():
                 if not ref:
                     raise Exception("$ref not found: {}".format(props["$ref"]))
                 props = props | ref
-            if props["type"] in ["string", "integer", "boolean", "number"]:
+            if props["type"] in ["string", "integer", "boolean", "number", ["string", "number"]]:
                 # End of the line...
                 key = ".".join(path + [name])
                 keys[key] = props.get("suricata", {})
