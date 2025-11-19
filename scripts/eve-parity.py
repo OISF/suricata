@@ -71,7 +71,7 @@ def mapped_fields(keywords, keys):
         if "keywords" in keys[key] and keys[key]["keywords"]:
             for keyword in keys[key]["keywords"]:
                 if keyword not in keywords:
-                    errprint("ERROR: Unknown keyword: {}".format(keyword))
+                    raise Exception("ERROR: Unknown keyword: {}".format(keyword))
             print("{} -> [{}]".format(key, ", ".join(keys[key]["keywords"])))
 
 
@@ -144,10 +144,6 @@ def load_known_keywords():
 
             keywords.add(parts[0])
     return keywords
-
-
-def errprint(*args, **kwargs):
-    print(*args, file=sys.stderr, **kwargs)
 
 
 def find_ref(schema: dict, ref: str) -> dict:
