@@ -53,11 +53,9 @@ static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, 
 // Threaded eve.json identifier
 static SC_ATOMIC_DECL_AND_INIT_WITH_VAL(uint16_t, eve_file_id, 1);
 
-// Time-based log rotation globals
-static pthread_t time_rotation_thread;
-static SCMutex time_rotation_mutex = SCMUTEX_INITIALIZER;
-static LogFileCtx *time_rotation_list = NULL;
-static volatile bool time_rotation_running = false;
+// Log rotation globals
+static SCMutex log_rotation_mutex = SCMUTEX_INITIALIZER;
+static LogFileCtx *log_rotation_list = NULL;
 
 #ifdef BUILD_WITH_UNIXSOCKET
 /** \brief connect to the indicated local stream socket, logging any errors
@@ -417,78 +415,60 @@ error_exit:
         return false;
 }
 
-/** \brief Triggers rotation checks during zero-traffic periods
- *  \param arg not used
+/** \brief Check rotation for all registered log files
+ *
+ * This function is called periodically by the housekeeping thread to trigger
+ * rotation checks on all registered log contexts during zero-traffic periods.
  */
-static void *TimeBasedLogRotationThread(void *arg)
+void LogFileCheckRotations(void)
 {
-    while (time_rotation_running) {
-        sleep(1);
+    SCMutexLock(&log_rotation_mutex);
+    LogFileCtx *ctx = log_rotation_list;
 
-        SCMutexLock(&time_rotation_mutex);
-        LogFileCtx *ctx = time_rotation_list;
-
-        while (ctx != NULL) {
-            ctx->Write("", 0, ctx);
-            ctx = ctx->time_rotation_next;
-        }
-
-        SCMutexUnlock(&time_rotation_mutex);
+    while (ctx != NULL) {
+        ctx->Write("", 0, ctx);
+        ctx = ctx->log_rotation_next;
     }
-    return NULL;
+
+    SCMutexUnlock(&log_rotation_mutex);
 }
 
-static void RegisterTimeBasedLogRotation(LogFileCtx *log_ctx)
+static void RegisterContextForLogRotation(LogFileCtx *log_ctx)
 {
     if (!log_ctx->is_regular) {
         return;
     }
 
-    SCMutexLock(&time_rotation_mutex);
+    SCMutexLock(&log_rotation_mutex);
 
-    if (!time_rotation_running) {
-        time_rotation_running = true;
-        if (pthread_create(&time_rotation_thread, NULL, TimeBasedLogRotationThread, NULL) != 0) {
-            FatalError("Failed to create time-based log rotation thread");
-        }
-    }
+    log_ctx->log_rotation_next = log_rotation_list;
+    log_rotation_list = log_ctx;
 
-    log_ctx->time_rotation_next = time_rotation_list;
-    time_rotation_list = log_ctx;
-
-    SCMutexUnlock(&time_rotation_mutex);
+    SCMutexUnlock(&log_rotation_mutex);
 }
 
-static void UnregisterTimeBasedLogRotation(LogFileCtx *log_ctx)
+static void UnregisterContextForLogRotation(LogFileCtx *log_ctx)
 {
     if (!log_ctx->is_regular) {
         return;
     }
 
-    SCMutexLock(&time_rotation_mutex);
+    SCMutexLock(&log_rotation_mutex);
 
     // Remove from linked list
-    if (time_rotation_list == log_ctx) {
-        time_rotation_list = log_ctx->time_rotation_next;
+    if (log_rotation_list == log_ctx) {
+        log_rotation_list = log_ctx->log_rotation_next;
     } else {
-        LogFileCtx *prev = time_rotation_list;
-        while (prev && prev->time_rotation_next != log_ctx) {
-            prev = prev->time_rotation_next;
+        LogFileCtx *prev = log_rotation_list;
+        while (prev && prev->log_rotation_next != log_ctx) {
+            prev = prev->log_rotation_next;
         }
         if (prev) {
-            prev->time_rotation_next = log_ctx->time_rotation_next;
+            prev->log_rotation_next = log_ctx->log_rotation_next;
         }
     }
 
-    // Stop thread if list is empty
-    if (time_rotation_list == NULL && time_rotation_running) {
-        time_rotation_running = false;
-        SCMutexUnlock(&time_rotation_mutex);
-        pthread_join(time_rotation_thread, NULL);
-        return;
-    }
-
-    SCMutexUnlock(&time_rotation_mutex);
+    SCMutexUnlock(&log_rotation_mutex);
 }
 
 /** \brief open the indicated file, logging any errors
@@ -734,7 +714,7 @@ int SCConfLogOpenGeneric(
         SCLogError("Failed to allocate memory for filename");
         return -1;
     }
-    RegisterTimeBasedLogRotation(log_ctx);
+    RegisterContextForLogRotation(log_ctx);
 
 #ifdef BUILD_WITH_UNIXSOCKET
     /* If a socket and running live, do non-blocking writes. */
@@ -969,7 +949,7 @@ static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, 
         thread->Write = SCLogFileWriteNoLock;
         thread->Close = SCLogFileCloseNoLock;
         OutputRegisterFileRotationFlag(&thread->rotation_flag);
-        RegisterTimeBasedLogRotation(thread);
+        RegisterContextForLogRotation(thread);
     } else if (parent_ctx->type == LOGFILE_TYPE_FILETYPE) {
         entry->slot_number = SC_ATOMIC_ADD(eve_file_id, 1);
         SCLogDebug("%s - thread %d [slot %d]", log_path, entry->internal_thread_id,
@@ -1008,7 +988,7 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
         SCReturnInt(0);
     }
 
-    UnregisterTimeBasedLogRotation(lf_ctx);
+    UnregisterContextForLogRotation(lf_ctx);
 
     if (lf_ctx->type == LOGFILE_TYPE_FILETYPE && lf_ctx->filetype.filetype->ThreadDeinit) {
         lf_ctx->filetype.filetype->ThreadDeinit(
