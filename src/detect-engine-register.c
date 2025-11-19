@@ -352,6 +352,9 @@ static void PrintFeatureList(const SigTableElmt *e, char sep)
         if (flags & SIGMATCH_INFO_UINT64)
             printf("uint64");
         prev = 1;
+    } else {
+        DEBUG_VALIDATE_BUG_ON(flags & (SIGMATCH_INFO_MULTI_UINT | SIGMATCH_INFO_ENUM_UINT |
+                                              SIGMATCH_INFO_BITFLAGS_UINT));
     }
     if (e->Transform) {
         if (prev == 1)
