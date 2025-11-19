@@ -1008,17 +1008,6 @@ int FileCloseFilePtr(File *ff, const StreamingBufferConfig *sbcfg, const uint8_t
 
     ff->size += data_len;
     if (data != NULL) {
-        if (ff->flags & FILE_NOSTORE) {
-            /* no storage but hashing */
-            if (ff->md5_ctx)
-                SCMd5Update(ff->md5_ctx, data, data_len);
-            if (ff->sha1_ctx)
-                SCSha1Update(ff->sha1_ctx, data, data_len);
-            if (ff->sha256_ctx) {
-                SCLogDebug("file %p data %p data_len %u", ff, data, data_len);
-                SCSha256Update(ff->sha256_ctx, data, data_len);
-            }
-        }
         if (AppendData(sbcfg, ff, data, data_len) != 0) {
             ff->state = FILE_STATE_ERROR;
             SCReturnInt(-1);
