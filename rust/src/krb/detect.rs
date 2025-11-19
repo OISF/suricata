@@ -29,7 +29,7 @@ use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{
     detect_parse_uint_enum, DetectUintData, SCDetectU32Free, SCDetectU32Match,
 };
-use crate::detect::{SIGMATCH_INFO_ENUM_UINT, SIGMATCH_INFO_MULTI_UINT};
+use crate::detect::{SIGMATCH_INFO_ENUM_UINT, SIGMATCH_INFO_MULTI_UINT, SIGMATCH_INFO_UINT32};
 use kerberos_parser::krb5::EncryptionType;
 
 use nom8::branch::alt;
@@ -193,7 +193,8 @@ pub fn detect_parse_encryption_item(i: &str) -> IResult<&str, EncryptionType> {
     let (i, _) = opt(is_a(" ")).parse(i)?;
     let (i, e) = map_res(take_while1(is_alphanumeric_or_dash), |s: &str| {
         EncryptionType::from_str(s)
-    }).parse(i)?;
+    })
+    .parse(i)?;
     let (i, _) = opt(is_a(" ")).parse(i)?;
     let (i, _) = opt(char(',')).parse(i)?;
     return Ok((i, e));
@@ -436,7 +437,7 @@ pub unsafe extern "C" fn SCDetectKrb5MsgTypeRegister() {
         AppLayerTxMatch: Some(krb5_msg_type_match),
         Setup: Some(krb5_msg_type_setup),
         Free: Some(krb5_msg_type_free),
-        flags: SIGMATCH_INFO_MULTI_UINT | SIGMATCH_INFO_ENUM_UINT,
+        flags: SIGMATCH_INFO_MULTI_UINT | SIGMATCH_INFO_ENUM_UINT | SIGMATCH_INFO_UINT32,
     };
     G_KRB5_MSG_TYPE_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_KRB5_MSG_TYPE_BUFFER_ID = SCDetectHelperBufferRegister(
