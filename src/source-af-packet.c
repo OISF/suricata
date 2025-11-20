@@ -355,7 +355,7 @@ typedef struct AFPThreadVars_
     int ebpf_filter_fd;
     struct ebpf_timeout_config ebpf_t_config;
 #endif
-
+    time_t last_dump;
 } AFPThreadVars;
 
 static TmEcode ReceiveAFPThreadInit(ThreadVars *, const void *, void **);
@@ -609,8 +609,13 @@ void TmModuleDecodeAFPRegister (void)
 
 static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose, const bool peer_update);
 
-static inline void AFPDumpCounters(AFPThreadVars *ptv)
+static inline void AFPDumpCounters(AFPThreadVars *ptv, const bool force)
 {
+    time_t current_time = time(NULL);
+    if (!force && current_time == ptv->last_dump) {
+        return;
+    }
+    ptv->last_dump = current_time;
 #ifdef PACKET_STATISTICS
     struct tpacket_stats kstats;
     socklen_t len = sizeof (struct tpacket_stats);
@@ -631,6 +636,7 @@ static inline void AFPDumpCounters(AFPThreadVars *ptv)
         }
     }
 #endif
+    StatsSyncCounters(ptv->tv);
 }
 
 /**
@@ -943,9 +949,7 @@ next_frame:
                 break;
         }
     }
-    if (emergency_flush) {
-        AFPDumpCounters(ptv);
-    }
+    AFPDumpCounters(ptv, emergency_flush);
     SCReturnInt(AFP_READ_OK);
 }
 
@@ -1305,8 +1309,6 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
     struct pollfd fds;
     int r;
     TmSlot *s = (TmSlot *)slot;
-    time_t last_dump = 0;
-    time_t current_time;
     int (*AFPReadFunc) (AFPThreadVars *);
     uint64_t discarded_pkts = 0;
 
@@ -1422,11 +1424,7 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
             switch (r) {
                 case AFP_READ_OK:
                     /* Trigger one dump of stats every second */
-                    current_time = time(NULL);
-                    if (current_time != last_dump) {
-                        AFPDumpCounters(ptv);
-                        last_dump = current_time;
-                    }
+                    AFPDumpCounters(ptv, false);
                     break;
                 case AFP_READ_FAILURE:
                     /* AFPRead in error: best to reset the socket */
@@ -1437,17 +1435,12 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
                     StatsIncr(ptv->tv, ptv->capture_errors);
                     break;
                 case AFP_KERNEL_DROP:
-                    AFPDumpCounters(ptv);
+                    AFPDumpCounters(ptv, false);
                     break;
             }
         } else if (unlikely(r == 0)) {
             StatsIncr(ptv->tv, ptv->capture_afp_poll_timeout);
-            /* Trigger one dump of stats every second */
-            current_time = time(NULL);
-            if (current_time != last_dump) {
-                AFPDumpCounters(ptv);
-                last_dump = current_time;
-            }
+            AFPDumpCounters(ptv, false);
             /* poll timed out, lets see handle our timeout path */
             TmThreadsCaptureHandleTimeout(tv, NULL);
 
@@ -1457,11 +1450,9 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
             AFPSwitchState(ptv, AFP_STATE_DOWN);
             continue;
         }
-        StatsSyncCountersIfSignalled(tv);
     }
 
-    AFPDumpCounters(ptv);
-    StatsSyncCountersIfSignalled(tv);
+    AFPDumpCounters(ptv, true);
     SCReturnInt(TM_ECODE_OK);
 }
 
@@ -2693,7 +2684,7 @@ void ReceiveAFPThreadExitStats(ThreadVars *tv, void *data)
     AFPThreadVars *ptv = (AFPThreadVars *)data;
 
 #ifdef PACKET_STATISTICS
-    AFPDumpCounters(ptv);
+    AFPDumpCounters(ptv, true);
     SCLogPerf("%s: (%s) kernel: Packets %" PRIu64 ", dropped %" PRIu64 "", ptv->iface, tv->name,
             StatsGetLocalCounterValue(tv, ptv->capture_kernel_packets),
             StatsGetLocalCounterValue(tv, ptv->capture_kernel_drops));
