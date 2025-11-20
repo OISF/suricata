@@ -21,9 +21,11 @@
 
 use crate::applayer::*;
 use crate::conf::{conf_get, get_memval};
-use crate::core::{ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP, sc_app_layer_parser_trigger_raw_stream_inspection};
-use crate::flow::Flow;
+use crate::core::{
+    sc_app_layer_parser_trigger_raw_stream_inspection, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP,
+};
 use crate::direction;
+use crate::flow::Flow;
 use std;
 use std::collections::VecDeque;
 use std::ffi::CString;
@@ -242,7 +244,10 @@ impl POP3State {
                         tx.error_flags_to_events(msg.error_flags);
                         tx.request = Some(command);
                         self.transactions.push_back(tx);
-                        sc_app_layer_parser_trigger_raw_stream_inspection(flow, direction::Direction::ToServer as i32);
+                        sc_app_layer_parser_trigger_raw_stream_inspection(
+                            flow,
+                            direction::Direction::ToServer as i32,
+                        );
                     }
 
                     SCLogDebug!("request done");
@@ -354,7 +359,7 @@ impl POP3State {
                 let command = tx.request.as_ref().unwrap();
                 SCLogDebug!("command {:?}", command);
                 match command.keyword {
-                    sawp_pop3::Keyword::LIST|sawp_pop3::Keyword::UIDL => {
+                    sawp_pop3::Keyword::LIST | sawp_pop3::Keyword::UIDL => {
                         // LIST and UIDL are in single line mode if they
                         // have a argument
                         if !command.args.is_empty() {
@@ -378,7 +383,11 @@ impl POP3State {
 
                     // get the RETR octet size so we don't FP on the RETR data
                     // when looking for the end of message marker
-                    if is_retr && !header.is_empty() && header.starts_with(b"+OK ") && header.ends_with(b"octets") {
+                    if is_retr
+                        && !header.is_empty()
+                        && header.starts_with(b"+OK ")
+                        && header.ends_with(b"octets")
+                    {
                         let header_args = &header[4..];
                         SCLogDebug!("octets line");
 
@@ -427,11 +436,16 @@ impl POP3State {
             if multiline {
                 match find_end_of_message(start) {
                     Ok((rem, _eom)) => {
-                        SCLogDebug!("end of multiline message found: message size {}", start.len() - rem.len());
+                        SCLogDebug!(
+                            "end of multiline message found: message size {}",
+                            start.len() - rem.len()
+                        );
 
                         // for RETR, search for the final multiline end marker to skip past it
                         if is_retr && self.retr_data == 0 {
-                            SCLogDebug!("command is RETR, all data processed, skip past EOM marker");
+                            SCLogDebug!(
+                                "command is RETR, all data processed, skip past EOM marker"
+                            );
                             start = rem;
                             SCLogDebug!("start len {}", start.len());
 
@@ -474,7 +488,10 @@ impl POP3State {
 
                         tx.error_flags_to_events(msg.error_flags);
                         tx.complete = true;
-                        sc_app_layer_parser_trigger_raw_stream_inspection(flow, direction::Direction::ToClient as i32);
+                        sc_app_layer_parser_trigger_raw_stream_inspection(
+                            flow,
+                            direction::Direction::ToClient as i32,
+                        );
                         if response.status == sawp_pop3::Status::OK && tx.request.is_some() {
                             let command = tx.request.as_ref().unwrap();
                             SCLogDebug!("command {:?}", command);
@@ -596,8 +613,8 @@ unsafe extern "C" fn pop3_state_tx_free(state: *mut c_void, tx_id: u64) {
 }
 
 unsafe extern "C" fn pop3_parse_request(
-    flow: *mut Flow, state: *mut c_void, pstate: *mut AppLayerParserState, stream_slice: StreamSlice,
-    _data: *const c_void,
+    flow: *mut Flow, state: *mut c_void, pstate: *mut AppLayerParserState,
+    stream_slice: StreamSlice, _data: *const c_void,
 ) -> AppLayerResult {
     let eof = SCAppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0;
 
@@ -620,8 +637,8 @@ unsafe extern "C" fn pop3_parse_request(
 }
 
 unsafe extern "C" fn pop3_parse_response(
-    flow: *mut Flow, state: *mut c_void, pstate: *mut AppLayerParserState, stream_slice: StreamSlice,
-    _data: *const c_void,
+    flow: *mut Flow, state: *mut c_void, pstate: *mut AppLayerParserState,
+    stream_slice: StreamSlice, _data: *const c_void,
 ) -> AppLayerResult {
     let _eof = SCAppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0;
     let state = cast_pointer!(state, POP3State);
