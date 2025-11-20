@@ -129,34 +129,37 @@ impl State<POP3Transaction> for POP3State {
     }
 }
 
-use nom7::{
+use nom8::{
+    bytes::complete::{take_while, take_while_m_n},
     bytes::streaming::{tag, take_until},
-    IResult,
+    combinator::map_res,
+    {AsChar, IResult, Parser},
 };
 
 fn parse_unknown_message(input: &[u8]) -> IResult<&[u8], &[u8]> {
-    let (input, value) = take_until("\r\n")(input)?;
+    let (input, value) = take_until("\r\n").parse(input)?;
     let (input, _) = tag("\r\n")(input)?;
     return Ok((input, value));
 }
 
 fn find_end_of_header(input: &[u8]) -> IResult<&[u8], &[u8]> {
-    let (input, value) = take_until("\r\n")(input)?;
-    let (input, _) = tag("\r\n")(input)?;
+    let (input, value) = take_until("\r\n").parse(input)?;
+    let (input, _) = tag("\r\n").parse(input)?;
     return Ok((input, value));
 }
 
 fn find_end_of_message(input: &[u8]) -> IResult<&[u8], &[u8]> {
-    let (input, value) = take_until(".\r\n")(input)?;
-    let (input, _) = tag(".\r\n")(input)?;
+    let (input, value) = take_until(".\r\n").parse(input)?;
+    let (input, _) = tag(".\r\n").parse(input)?;
     return Ok((input, value));
 }
 
 fn parse_response_header_with_octets(input: &[u8]) -> IResult<&[u8], u32> {
-    let (input, size) = nom7::combinator::map_res(
-        nom7::bytes::complete::take_while_m_n(1, 10, |b: u8| b.is_ascii_digit()),
+    let (input, size) = map_res(
+        take_while_m_n(1, 10, |b: u8| b.is_ascii_digit()),
         std::str::from_utf8,
-    )(input)?;
+    )
+    .parse(input)?;
     let size: u32 = size.parse::<u32>().unwrap_or_default();
     SCLogDebug!("size {}", size);
     return Ok((input, size));
@@ -415,8 +418,8 @@ impl POP3State {
                     }
                 }
                 // partial header, lets return incomplete
-                Err(nom7::Err::Incomplete(needed)) => {
-                    if let nom7::Needed::Size(n) = needed {
+                Err(nom8::Err::Incomplete(needed)) => {
+                    if let nom8::Needed::Size(n) = needed {
                         SCLogDebug!("needed {}", n);
                         let consumed = input.len() - start.len();
                         let needed = start.len() + n.get();
