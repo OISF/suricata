@@ -2214,7 +2214,7 @@ fi
       if test "x$bindgen_ok" != "xyes"; then
         echo "  Warning: bindgen must be at least version $min_bindgen_version,"
         echo "      found $bindgen_version."
-        echo "  To update: cargo install --force bindgen"
+        echo "  To update: cargo install --force bindgen-cli"
         BINDGEN="no"
       fi
     fi
