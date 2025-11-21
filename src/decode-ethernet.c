@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2015 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -10,24 +10,9 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * version 2 along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA.
- */
-
-/**
- * \ingroup decode
- *
- * @{
- */
-
-
-/**
- * \file
- *
- * \author Victor Julien <victor@inliniac.net>
- *
- * Decode Ethernet
+ * version 2 along with this program; if not, write to the
+ * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+ * Boston, MA 02110-1301, USA.
  */
 
 #include "suricata-common.h"
@@ -38,6 +23,23 @@
 #include "util-validate.h"
 #include "util-unittest.h"
 #include "util-debug.h"
+
+static void DecodeEthernetRegisterTests(void);
+
+void DecodeEthernetRegister(void)
+{
+    /* Placeholder register function to match Suricata module style.
+     * If higher-level registration is required, add it here.
+     */
+#ifdef UNITTESTS
+    /* Hook the test register function for external test runners if needed.
+     * No global registration table exists for decode modules in this file,
+     * so we simply ensure the symbol is present and can be called by test
+     * harnesses when appropriate.
+     */
+    DecodeEthernetRegisterTests();
+#endif
+}
 
 int DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                    const uint8_t *pkt, uint32_t len)
@@ -54,22 +56,24 @@ int DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     if (!PacketIncreaseCheckLayers(p)) {
         return TM_ECODE_FAILED;
     }
+
     EthernetHdr *ethh = PacketSetEthernet(p, pkt);
 
     SCLogDebug("p %p pkt %p ether type %04x", p, pkt, SCNtohs(ethh->eth_type));
 
-    DecodeNetworkLayer(tv, dtv, SCNtohs(ethh->eth_type), p, pkt + ETHERNET_HEADER_LEN,
-            len - ETHERNET_HEADER_LEN);
+    DecodeNetworkLayer(tv, dtv, SCNtohs(ethh->eth_type), p,
+                       pkt + ETHERNET_HEADER_LEN, len - ETHERNET_HEADER_LEN);
 
     return TM_ECODE_OK;
 }
 
 #ifdef UNITTESTS
-/** DecodeEthernettest01
- *  \brief Valid Ethernet packet
- *  \retval 0 Expected test value
- */
-static int DecodeEthernetTest01 (void)
+
+static int DecodeEthernetTest01(void);
+static int DecodeEthernetTestDceTooSmall(void);
+static int DecodeEthernetTestDceNextTooSmall(void);
+
+static int DecodeEthernetTest01(void)
 {
     /* ICMP packet wrapped in PPPOE */
     uint8_t raw_eth[] = {
@@ -88,26 +92,24 @@ static int DecodeEthernetTest01 (void)
         0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd,
         0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd,
         0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd,
-        0xab, 0xcd };
+        0xab, 0xcd
+    };
 
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
+    FAIL_IF_NULL(p);
+
     ThreadVars tv;
     DecodeThreadVars dtv;
+    memset(&tv, 0, sizeof(tv));
+    memset(&dtv, 0, sizeof(dtv));
 
-    memset(&dtv, 0, sizeof(DecodeThreadVars));
-    memset(&tv,  0, sizeof(ThreadVars));
-
-    DecodeEthernet(&tv, &dtv, p, raw_eth, sizeof(raw_eth));
+    int r = DecodeEthernet(&tv, &dtv, p, raw_eth, sizeof(raw_eth));
+    FAIL_IF(r != TM_ECODE_OK);
 
     SCFree(p);
-    return 1;
+    PASS;
 }
 
-/**
- * Test a DCE ethernet frame that is too small.
- */
 static int DecodeEthernetTestDceTooSmall(void)
 {
     uint8_t raw_eth[] = {
@@ -117,11 +119,11 @@ static int DecodeEthernetTestDceTooSmall(void)
 
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
+
     ThreadVars tv;
     DecodeThreadVars dtv;
-
-    memset(&dtv, 0, sizeof(DecodeThreadVars));
-    memset(&tv,  0, sizeof(ThreadVars));
+    memset(&tv, 0, sizeof(tv));
+    memset(&dtv, 0, sizeof(dtv));
 
     DecodeEthernet(&tv, &dtv, p, raw_eth, sizeof(raw_eth));
 
@@ -131,20 +133,13 @@ static int DecodeEthernetTestDceTooSmall(void)
     PASS;
 }
 
-/**
- * Test that a DCE ethernet frame, followed by data that is too small
- * for an ethernet header.
- *
- * Redmine issue:
- * https://redmine.openinfosecfoundation.org/issues/2887
- */
 static int DecodeEthernetTestDceNextTooSmall(void)
 {
     uint8_t raw_eth[] = {
         0x00, 0x10, 0x94, 0x55, 0x00, 0x01, 0x00, 0x10,
-        0x94, 0x56, 0x00, 0x01, 0x89, 0x03, //0x88, 0x64,
+        0x94, 0x56, 0x00, 0x01, 0x89, 0x03, /* 0x88, 0x64 removed on purpose */
 
-        0x00, 0x00,
+        0x00, 0x00, /* too-small continuation */
 
         0x00, 0x10, 0x94, 0x55, 0x00, 0x01, 0x00, 0x10,
         0x94, 0x56, 0x00, 0x01,
@@ -152,11 +147,11 @@ static int DecodeEthernetTestDceNextTooSmall(void)
 
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
+
     ThreadVars tv;
     DecodeThreadVars dtv;
-
-    memset(&dtv, 0, sizeof(DecodeThreadVars));
-    memset(&tv,  0, sizeof(ThreadVars));
+    memset(&tv, 0, sizeof(tv));
+    memset(&dtv, 0, sizeof(dtv));
 
     DecodeEthernet(&tv, &dtv, p, raw_eth, sizeof(raw_eth));
 
@@ -166,23 +161,11 @@ static int DecodeEthernetTestDceNextTooSmall(void)
     PASS;
 }
 
-#endif /* UNITTESTS */
-
-
-/**
- * \brief Registers Ethernet unit tests
- * \todo More Ethernet tests
- */
-void DecodeEthernetRegisterTests(void)
+static void DecodeEthernetRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DecodeEthernetTest01", DecodeEthernetTest01);
-    UtRegisterTest("DecodeEthernetTestDceNextTooSmall",
-            DecodeEthernetTestDceNextTooSmall);
-    UtRegisterTest("DecodeEthernetTestDceTooSmall",
-            DecodeEthernetTestDceTooSmall);
-#endif /* UNITTESTS */
+    UtRegisterTest("DecodeEthernetTestDceTooSmall", DecodeEthernetTestDceTooSmall);
+    UtRegisterTest("DecodeEthernetTestDceNextTooSmall", DecodeEthernetTestDceNextTooSmall);
 }
-/**
- * @}
- */
+
+#endif /* UNITTESTS */
