@@ -3318,15 +3318,15 @@ jobs:
           path: prep
       - name: WinDivert
         run: |
-          curl -sL -O https://github.com/basil00/Divert/releases/download/v1.4.3/WinDivert-1.4.3-A.zip
-          unzip WinDivert-1.4.3-A.zip -d /windivert
-          cp /windivert/WinDivert-1.4.3-A/x86_64/* /usr/lib/
+          curl -sL -O https://github.com/basil00/Divert/releases/download/v2.2.2/WinDivert-2.2.2-A.zip
+          unzip WinDivert-2.2.2-A.zip -d /windivert
+          cp /windivert/WinDivert-2.2.2-A/x64/* /usr/lib/
           # hack: place dlls in cwd
-          cp /windivert/WinDivert-1.4.3-A/x86_64/*.dll .
+          cp /windivert/WinDivert-2.2.2-A/x64/*.dll .
       - name: Build
         run: |
           ./autogen.sh
-          CFLAGS="-ggdb -Werror" ./configure --enable-warnings --enable-gccprotect --disable-gccmarch-native --disable-shared --enable-windivert --with-windivert-include=/windivert/WinDivert-1.4.3-A/include --with-windivert-libraries=/windivert/WinDivert-1.4.3-A/x86_64
+          CFLAGS="-ggdb -Werror" ./configure --enable-warnings --enable-gccprotect --disable-gccmarch-native --disable-shared --enable-windivert --with-windivert-include=/windivert/WinDivert-2.2.2-A/include --with-windivert-libraries=/windivert/WinDivert-2.2.2-A/x64
           make -j3
       - name: Run
         run: |
