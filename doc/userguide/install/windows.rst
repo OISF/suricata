@@ -23,6 +23,10 @@ installed:
   "Npcap Installer" package as well as the "Npcap SDK" need to be
   installed. Download from https://npcap.com/.
 
+* WinDivert: This is required for IPS mode on Windows.
+  Download the binary package from https://www.reqrypt.org/windivert.html
+  and extract it for example in ``C:\windivert\``.
+
 MSYS2
 =====
 
@@ -95,6 +99,11 @@ Building
 .. note:: If intentionally building without ``Npcap`` support you can
           leave off the ``--with-libpcap`` configure options, and the
           MSYS2 libpcap will be used without live capture support.
+
+.. note:: If building with WinDivert, you may add ``--enable-windivert=yes``
+          then points to the extraction path using
+          ``--with-windivert-include=/c/windivert/include`` and
+          ``--with-windivert-libraries=/c/windivert/x64``.
 
 Installation
 ************
