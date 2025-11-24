@@ -198,7 +198,7 @@ void StatsDecr(ThreadVars *tv, uint16_t id)
 }
 
 /**
- * \brief Sets a value of type double to the local counter
+ * \brief set, so overwrite, the value of the local counter
  *
  * \param id  Index of the local counter in the counter array
  * \param pca Pointer to the StatsPrivateThreadContext
