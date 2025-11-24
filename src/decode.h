@@ -967,7 +967,7 @@ typedef struct DecodeThreadVars_
     /** stats/counters */
     uint16_t counter_pkts;
     uint16_t counter_bytes;
-    uint16_t counter_avg_pkt_size;
+    StatsCounterAvgId counter_avg_pkt_size;
     StatsCounterMaxId counter_max_pkt_size;
     StatsCounterMaxId counter_max_mac_addrs_src;
     StatsCounterMaxId counter_max_mac_addrs_dst;
@@ -1048,7 +1048,7 @@ typedef struct DecodeThreadVars_
     uint16_t counter_flow_spare_sync;
     uint16_t counter_flow_spare_sync_empty;
     uint16_t counter_flow_spare_sync_incomplete;
-    uint16_t counter_flow_spare_sync_avg;
+    StatsCounterAvgId counter_flow_spare_sync_avg;
 
     uint16_t counter_engine_events[DECODE_EVENT_MAX];
 

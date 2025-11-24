@@ -639,7 +639,8 @@ static inline Flow *FlowSpareSync(ThreadVars *tv, FlowLookupStruct *fls,
 #endif
         if (spare_sync) {
             if (f != NULL) {
-                StatsAddUI64(tv, fls->dtv->counter_flow_spare_sync_avg, fls->spare_queue.len+1);
+                StatsCounterAvgAddI64(
+                        tv, fls->dtv->counter_flow_spare_sync_avg, fls->spare_queue.len + 1);
                 if (fls->spare_queue.len < 99) {
                     /* When a new flow pool is fetched it has 100 flows in sync,
                      * so there should be 99 left if we're in full sync.

@@ -289,7 +289,7 @@ typedef struct AFPThreadVars_
     uint16_t capture_kernel_packets;
     uint16_t capture_kernel_drops;
     uint16_t capture_errors;
-    uint16_t afpacket_spin;
+    StatsCounterAvgId afpacket_spin;
     uint16_t capture_afp_poll;
     uint16_t capture_afp_poll_signal;
     uint16_t capture_afp_poll_timeout;
@@ -823,7 +823,7 @@ static inline int AFPReadFromRingWaitForPacket(AFPThreadVars *ptv)
     union thdr h;
     struct timeval start_time;
     gettimeofday(&start_time, NULL);
-    uint64_t busy_loop_iter = 0;
+    int64_t busy_loop_iter = 0;
 
     /* busy wait loop until we have packets available */
     while (1) {
@@ -851,7 +851,7 @@ static inline int AFPReadFromRingWaitForPacket(AFPThreadVars *ptv)
         break;
     }
     if (busy_loop_iter) {
-        StatsAddUI64(ptv->tv, ptv->afpacket_spin, busy_loop_iter);
+        StatsCounterAvgAddI64(ptv->tv, ptv->afpacket_spin, busy_loop_iter);
     }
     return AFP_READ_OK;
 }
