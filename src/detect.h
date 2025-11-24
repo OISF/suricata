@@ -1293,8 +1293,8 @@ typedef struct DetectEngineThreadCtx_ {
     /** id for suppressed alerts counter */
     uint16_t counter_alerts_suppressed;
 #ifdef PROFILING
-    uint16_t counter_mpm_list;
-    uint16_t counter_match_list;
+    StatsCounterAvgId counter_mpm_list;
+    StatsCounterAvgId counter_match_list;
 #endif
 
     struct {

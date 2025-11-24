@@ -1032,7 +1032,7 @@ typedef struct FlowRecyclerThreadData_ {
     void *output_thread_data;
 
     uint16_t counter_flows;
-    uint16_t counter_queue_avg;
+    StatsCounterAvgId counter_queue_avg;
     StatsCounterMaxId counter_queue_max;
 
     uint16_t counter_flow_active;
@@ -1112,7 +1112,7 @@ static TmEcode FlowRecycler(ThreadVars *th_v, void *thread_data)
         SC_ATOMIC_ADD(flowrec_busy,1);
         FlowQueuePrivate list = FlowQueueExtractPrivate(&flow_recycle_q);
 
-        StatsAddUI64(th_v, ftd->counter_queue_avg, list.len);
+        StatsCounterAvgAddI64(th_v, ftd->counter_queue_avg, (int64_t)list.len);
         StatsCounterMaxUpdateI64(th_v, ftd->counter_queue_max, (int64_t)list.len);
 
         const int bail = (TmThreadsCheckFlag(th_v, THV_KILL));

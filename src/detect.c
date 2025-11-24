@@ -600,7 +600,8 @@ static inline void DetectRunPrefilterPkt(ThreadVars *tv, const DetectEngineCtx *
     if (det_ctx->pmq.rule_id_array_cnt) {
 #ifdef PROFILING
         if (tv) {
-            StatsAddUI64(tv, det_ctx->counter_mpm_list, (uint64_t)det_ctx->pmq.rule_id_array_cnt);
+            StatsCounterAvgAddI64(
+                    tv, det_ctx->counter_mpm_list, (int64_t)det_ctx->pmq.rule_id_array_cnt);
         }
 #endif
         PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_SORT2);
@@ -664,8 +665,7 @@ static inline uint8_t DetectRulePacketRules(ThreadVars *const tv,
     SigIntId match_cnt = det_ctx->match_array_cnt;
 #ifdef PROFILING
     if (tv) {
-        StatsAddUI64(tv, det_ctx->counter_match_list,
-                             (uint64_t)match_cnt);
+        StatsCounterAvgAddI64(tv, det_ctx->counter_match_list, (int64_t)match_cnt);
     }
 #endif
     Signature **match_array = det_ctx->match_array;

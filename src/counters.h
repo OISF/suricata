@@ -30,6 +30,10 @@
 /* forward declaration of the ThreadVars structure */
 struct ThreadVars_;
 
+typedef struct StatsCounterAvgId {
+    uint16_t id;
+} StatsCounterAvgId;
+
 typedef struct StatsCounterMaxId {
     uint16_t id;
 } StatsCounterMaxId;
@@ -123,7 +127,7 @@ void StatsReleaseResources(void);
 
 /* counter registration functions */
 uint16_t StatsRegisterCounter(const char *, struct ThreadVars_ *);
-uint16_t StatsRegisterAvgCounter(const char *, struct ThreadVars_ *);
+StatsCounterAvgId StatsRegisterAvgCounter(const char *, struct ThreadVars_ *);
 StatsCounterMaxId StatsRegisterMaxCounter(const char *, struct ThreadVars_ *);
 uint16_t StatsRegisterGlobalCounter(const char *cname, uint64_t (*Func)(void));
 
@@ -134,6 +138,7 @@ void StatsIncr(struct ThreadVars_ *, uint16_t);
 void StatsDecr(struct ThreadVars_ *, uint16_t);
 
 void StatsCounterMaxUpdateI64(struct ThreadVars_ *tv, StatsCounterMaxId id, int64_t x);
+void StatsCounterAvgAddI64(struct ThreadVars_ *tv, StatsCounterAvgId id, int64_t x);
 
 /* utility functions */
 int StatsUpdateCounterArray(StatsPrivateThreadContext *, StatsPublicThreadContext *);

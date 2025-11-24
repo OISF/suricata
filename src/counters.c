@@ -247,6 +247,21 @@ void StatsCounterMaxUpdateI64(ThreadVars *tv, StatsCounterMaxId id, int64_t x)
     }
 }
 
+void StatsCounterAvgAddI64(ThreadVars *tv, StatsCounterAvgId id, int64_t x)
+{
+    StatsPrivateThreadContext *pca = &tv->perf_private_ctx;
+#if defined(UNITTESTS) || defined(FUZZ)
+    if (pca->initialized == 0)
+        return;
+#endif
+#ifdef DEBUG
+    BUG_ON((id.id < 1) || (id.id > pca->size));
+#endif
+
+    pca->head[id.id].value += x;
+    pca->head[id.id].updates++;
+}
+
 static SCConfNode *GetConfig(void)
 {
     SCConfNode *stats = SCConfGetNode("stats");
@@ -1008,13 +1023,14 @@ uint16_t StatsRegisterCounter(const char *name, struct ThreadVars_ *tv)
  * \retval id Counter id for the newly registered counter, or the already
  *            present counter
  */
-uint16_t StatsRegisterAvgCounter(const char *name, struct ThreadVars_ *tv)
+StatsCounterAvgId StatsRegisterAvgCounter(const char *name, struct ThreadVars_ *tv)
 {
     uint16_t id = StatsRegisterQualifiedCounter(name,
             (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->printable_name,
             &tv->perf_public_ctx,
             STATS_TYPE_AVERAGE, NULL);
-    return id;
+    StatsCounterAvgId s = { .id = id };
+    return s;
 }
 
 /**
