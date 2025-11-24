@@ -154,7 +154,6 @@ void StatsAddUI64(ThreadVars *tv, uint16_t id, uint64_t x)
     BUG_ON ((id < 1) || (id > pca->size));
 #endif
     pca->head[id].value += x;
-    pca->head[id].updates++;
 }
 
 /**
@@ -174,7 +173,6 @@ void StatsIncr(ThreadVars *tv, uint16_t id)
     BUG_ON ((id < 1) || (id > pca->size));
 #endif
     pca->head[id].value++;
-    pca->head[id].updates++;
 }
 
 /**
@@ -194,7 +192,6 @@ void StatsDecr(ThreadVars *tv, uint16_t id)
     BUG_ON((id < 1) || (id > pca->size));
 #endif
     pca->head[id].value--;
-    pca->head[id].updates++;
 }
 
 /**
@@ -214,14 +211,7 @@ void StatsSetUI64(ThreadVars *tv, uint16_t id, uint64_t x)
 #ifdef DEBUG
     BUG_ON ((id < 1) || (id > pca->size));
 #endif
-
-    if ((pca->head[id].pc->type == STATS_TYPE_MAXIMUM) && ((int64_t)x > pca->head[id].value)) {
-        pca->head[id].value = x;
-    } else if (pca->head[id].pc->type == STATS_TYPE_NORMAL) {
-        pca->head[id].value = x;
-    }
-
-    pca->head[id].updates++;
+    pca->head[id].value = x;
 }
 
 /**
