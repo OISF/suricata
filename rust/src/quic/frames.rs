@@ -19,12 +19,12 @@ use super::error::QuicError;
 use super::quic::QUIC_MAX_CRYPTO_FRAG_LEN;
 use crate::handshake::HandshakeParams;
 use crate::quic::parser::quic_var_uint;
-use nom7::bytes::complete::take;
-use nom7::combinator::{all_consuming, complete};
-use nom7::multi::{count, many0};
-use nom7::number::complete::{be_u16, be_u32, be_u8, le_u16, le_u32};
-use nom7::sequence::pair;
-use nom7::IResult;
+use nom8::bytes::complete::take;
+use nom8::combinator::{all_consuming, complete};
+use nom8::multi::{count, many0};
+use nom8::number::complete::{be_u16, be_u32, be_u8, le_u16, le_u32};
+use nom8::sequence::pair;
+use nom8::{IResult, Parser};
 use num::FromPrimitive;
 use std::fmt;
 use tls_parser::TlsMessage::Handshake;
@@ -412,19 +412,19 @@ fn parse_crypto_frame(input: &[u8]) -> IResult<&[u8], Frame, QuicError> {
         }
         _ => {}
     }
-    return Err(nom7::Err::Error(QuicError::InvalidPacket));
+    return Err(nom8::Err::Error(QuicError::InvalidPacket));
 }
 
 fn parse_tag(input: &[u8]) -> IResult<&[u8], StreamTag, QuicError> {
     let (rest, tag) = be_u32(input)?;
 
-    let tag = StreamTag::from_u32(tag).ok_or(nom7::Err::Error(QuicError::StreamTagNoMatch(tag)))?;
+    let tag = StreamTag::from_u32(tag).ok_or(nom8::Err::Error(QuicError::StreamTagNoMatch(tag)))?;
 
     Ok((rest, tag))
 }
 
 fn parse_tag_and_offset(input: &[u8]) -> IResult<&[u8], TagOffset, QuicError> {
-    pair(parse_tag, le_u32)(input)
+    pair(parse_tag, le_u32).parse(input)
 }
 
 fn parse_crypto_stream(input: &[u8]) -> IResult<&[u8], Vec<TagValue>, QuicError> {
@@ -434,7 +434,7 @@ fn parse_crypto_stream(input: &[u8]) -> IResult<&[u8], Vec<TagValue>, QuicError>
     let (rest, num_entries) = le_u16(rest)?;
     let (rest, _padding) = take(2usize)(rest)?;
 
-    let (rest, tags_offset) = count(complete(parse_tag_and_offset), num_entries.into())(rest)?;
+    let (rest, tags_offset) = count(complete(parse_tag_and_offset), num_entries.into()).parse(rest)?;
 
     // Convert (Tag, Offset) to (Tag, Value)
     let mut tags = Vec::new();
@@ -444,7 +444,7 @@ fn parse_crypto_stream(input: &[u8]) -> IResult<&[u8], Vec<TagValue>, QuicError>
         // offsets should be increasing
         let value_len = offset
             .checked_sub(previous_offset)
-            .ok_or(nom7::Err::Error(QuicError::InvalidPacket))?;
+            .ok_or(nom8::Err::Error(QuicError::InvalidPacket))?;
         let (new_rest, value) = take(value_len)(rest)?;
 
         previous_offset = offset;
@@ -484,7 +484,7 @@ fn parse_stream_frame(input: &[u8], frame_ty: u8) -> IResult<&[u8], Frame, QuicE
 
     let (rest, stream_data) = take(data_length)(rest)?;
 
-    let tags = if let Ok((_, tags)) = all_consuming(parse_crypto_stream)(stream_data) {
+    let tags = if let Ok((_, tags)) = all_consuming(parse_crypto_stream).parse(stream_data) {
         Some(tags)
     } else {
         None
@@ -505,11 +505,11 @@ fn parse_crypto_stream_frame(input: &[u8]) -> IResult<&[u8], Frame, QuicError> {
     let (rest, _offset) = quic_var_uint(input)?;
     let (rest, data_length) = quic_var_uint(rest)?;
     if data_length > u32::MAX as u64 {
-        return Err(nom7::Err::Error(QuicError::Unhandled));
+        return Err(nom8::Err::Error(QuicError::Unhandled));
     }
     let (rest, stream_data) = take(data_length as u32)(rest)?;
 
-    let tags = if let Ok((_, tags)) = all_consuming(parse_crypto_stream)(stream_data) {
+    let tags = if let Ok((_, tags)) = all_consuming(parse_crypto_stream).parse(stream_data) {
         Some(tags)
     } else {
         None
@@ -552,7 +552,7 @@ impl Frame {
     pub(crate) fn decode_frames<'a>(
         input: &'a [u8], past_frag: &'a [u8], past_fraglen: u32,
     ) -> IResult<&'a [u8], Vec<Frame>, QuicError> {
-        let (rest, mut frames) = all_consuming(many0(complete(Frame::decode_frame)))(input)?;
+        let (rest, mut frames) = all_consuming(many0(complete(Frame::decode_frame))).parse(input)?;
 
         // we use the already seen past fragment data
         let mut crypto_max_size = past_frag.len() as u64;

@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-use nom7::error::{ErrorKind, ParseError};
+use nom8::error::{ErrorKind, ParseError};
 use std::error::Error;
 use std::fmt;
 
@@ -54,12 +54,12 @@ impl fmt::Display for QuicError {
 
 impl Error for QuicError {}
 
-impl From<nom7::Err<QuicError>> for QuicError {
-    fn from(err: nom7::Err<QuicError>) -> Self {
+impl From<nom8::Err<QuicError>> for QuicError {
+    fn from(err: nom8::Err<QuicError>) -> Self {
         match err {
-            nom7::Err::Incomplete(_) => QuicError::Incomplete,
-            nom7::Err::Error(e) => e,
-            nom7::Err::Failure(e) => e,
+            nom8::Err::Incomplete(_) => QuicError::Incomplete,
+            nom8::Err::Error(e) => e,
+            nom8::Err::Failure(e) => e,
         }
     }
 }
