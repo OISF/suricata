@@ -1178,7 +1178,6 @@ static int StatsGetCounterArrayRange(uint16_t s_id, uint16_t e_id,
     i = 1;
     while ((pc != NULL) && (pc->id <= e_id)) {
         pca->head[i].pc = pc;
-        pca->head[i].id = pc->id;
         pc = pc->next;
         i++;
     }

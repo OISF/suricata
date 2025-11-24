@@ -83,9 +83,6 @@ typedef struct StatsLocalCounter_ {
     /* pointer to the counter that corresponds to this local counter */
     StatsCounter *pc;
 
-    /* local counter id of the above counter */
-    uint16_t id;
-
     /* total value of the adds/increments, or exact value in case of 'set' */
     int64_t value;
 
