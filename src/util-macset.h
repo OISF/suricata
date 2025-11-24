@@ -35,7 +35,7 @@ typedef int (*MacSetIteratorFunc)(uint8_t *addr, MacSetSide side, void*);
 MacSet *MacSetInit(int size);
 void MacSetAdd(MacSet *, const uint8_t *src_addr, const uint8_t *dst_addr);
 void MacSetAddWithCtr(MacSet *, const uint8_t *src_addr, const uint8_t *dst_addr, ThreadVars *tv,
-        uint16_t ctr_src, uint16_t ctr_dst);
+        StatsCounterMaxId ctr_src, StatsCounterMaxId ctr_dst);
 int     MacSetForEach(const MacSet*, MacSetIteratorFunc, void*);
 uint8_t *MacSetGetFirst(const MacSet *, MacSetSide);
 int     MacSetSize(const MacSet*);

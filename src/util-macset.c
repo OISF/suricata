@@ -118,14 +118,14 @@ FlowStorageId MacSetGetFlowStorageID(void)
 }
 
 static inline void MacUpdateEntry(
-        MacSet *ms, const uint8_t *addr, int side, ThreadVars *tv, uint16_t ctr)
+        MacSet *ms, const uint8_t *addr, int side, ThreadVars *tv, StatsCounterMaxId ctr)
 {
     switch (ms->state[side]) {
         case EMPTY_SET:
             memcpy(ms->singles[side], addr, sizeof(MacAddr));
             ms->state[side] = SINGLE_MAC;
             if (tv != NULL)
-                StatsSetUI64(tv, ctr, 1);
+                StatsCounterMaxUpdateI64(tv, ctr, 1);
             break;
         case SINGLE_MAC:
             if (unlikely(memcmp(addr, ms->singles[side], sizeof(MacAddr)) != 0)) {
@@ -146,7 +146,7 @@ static inline void MacUpdateEntry(
                 memcpy(ms->buf[side] + 1, addr, sizeof(MacAddr));
                 ms->last[side] = 2;
                 if (tv != NULL)
-                    StatsSetUI64(tv, ctr, 2);
+                    StatsCounterMaxUpdateI64(tv, ctr, 2);
                 ms->state[side] = MULTI_MAC;
             }
             break;
@@ -174,13 +174,13 @@ static inline void MacUpdateEntry(
             memcpy(ms->buf[side] + ms->last[side], addr, sizeof(MacAddr));
             ms->last[side]++;
             if (tv != NULL)
-                StatsSetUI64(tv, ctr, ms->last[side]);
+                StatsCounterMaxUpdateI64(tv, ctr, (int64_t)ms->last[side]);
             break;
     }
 }
 
 void MacSetAddWithCtr(MacSet *ms, const uint8_t *src_addr, const uint8_t *dst_addr, ThreadVars *tv,
-        uint16_t ctr_src, uint16_t ctr_dst)
+        StatsCounterMaxId ctr_src, StatsCounterMaxId ctr_dst)
 {
     if (ms == NULL)
         return;
@@ -190,7 +190,8 @@ void MacSetAddWithCtr(MacSet *ms, const uint8_t *src_addr, const uint8_t *dst_ad
 
 void MacSetAdd(MacSet *ms, const uint8_t *src_addr, const uint8_t *dst_addr)
 {
-    MacSetAddWithCtr(ms, src_addr, dst_addr, NULL, 0, 0);
+    StatsCounterMaxId no_counter = { .id = 0 };
+    MacSetAddWithCtr(ms, src_addr, dst_addr, NULL, no_counter, no_counter);
 }
 
 static inline int MacSetIterateSide(const MacSet *ms, MacSetIteratorFunc IterFunc,

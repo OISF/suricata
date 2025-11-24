@@ -655,14 +655,14 @@ typedef struct FlowCounters_ {
     uint16_t flow_mgr_flows_aside;
     uint16_t flow_mgr_flows_aside_needs_work;
 
-    uint16_t flow_mgr_rows_maxlen;
+    StatsCounterMaxId flow_mgr_rows_maxlen;
 
     uint16_t flow_bypassed_cnt_clo;
     uint16_t flow_bypassed_pkts;
     uint16_t flow_bypassed_bytes;
 
     uint16_t memcap_pressure;
-    uint16_t memcap_pressure_max;
+    StatsCounterMaxId memcap_pressure_max;
 } FlowCounters;
 
 typedef struct FlowManagerThreadData_ {
@@ -716,7 +716,7 @@ static void FlowCountersUpdate(
     StatsAddUI64(th_v, ftd->cnt.flow_bypassed_pkts, (uint64_t)counters->bypassed_pkts);
     StatsAddUI64(th_v, ftd->cnt.flow_bypassed_bytes, (uint64_t)counters->bypassed_bytes);
 
-    StatsSetUI64(th_v, ftd->cnt.flow_mgr_rows_maxlen, (uint64_t)counters->rows_maxlen);
+    StatsCounterMaxUpdateI64(th_v, ftd->cnt.flow_mgr_rows_maxlen, (int64_t)counters->rows_maxlen);
 }
 
 static TmEcode FlowManagerThreadInit(ThreadVars *t, const void *initdata, void **data)
@@ -832,7 +832,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
     uint32_t mp = MemcapsGetPressure() * 100;
     if (ftd->instance == 0) {
         StatsSetUI64(th_v, ftd->cnt.memcap_pressure, mp);
-        StatsSetUI64(th_v, ftd->cnt.memcap_pressure_max, mp);
+        StatsCounterMaxUpdateI64(th_v, ftd->cnt.memcap_pressure_max, (int64_t)mp);
     }
     GetWorkUnitSizing(rows, mp, false, &sleep_per_wu, &rows_per_wu, &rows_sec);
     StatsSetUI64(th_v, ftd->cnt.flow_mgr_rows_sec, rows_sec);
@@ -936,7 +936,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
             mp = MemcapsGetPressure() * 100;
             if (ftd->instance == 0) {
                 StatsSetUI64(th_v, ftd->cnt.memcap_pressure, mp);
-                StatsSetUI64(th_v, ftd->cnt.memcap_pressure_max, mp);
+                StatsCounterMaxUpdateI64(th_v, ftd->cnt.memcap_pressure_max, (int64_t)mp);
             }
             GetWorkUnitSizing(rows, mp, emerg, &sleep_per_wu, &rows_per_wu, &rows_sec);
             if (pmp != mp) {
@@ -1033,7 +1033,7 @@ typedef struct FlowRecyclerThreadData_ {
 
     uint16_t counter_flows;
     uint16_t counter_queue_avg;
-    uint16_t counter_queue_max;
+    StatsCounterMaxId counter_queue_max;
 
     uint16_t counter_flow_active;
     uint16_t counter_tcp_active_sessions;
@@ -1113,7 +1113,7 @@ static TmEcode FlowRecycler(ThreadVars *th_v, void *thread_data)
         FlowQueuePrivate list = FlowQueueExtractPrivate(&flow_recycle_q);
 
         StatsAddUI64(th_v, ftd->counter_queue_avg, list.len);
-        StatsSetUI64(th_v, ftd->counter_queue_max, list.len);
+        StatsCounterMaxUpdateI64(th_v, ftd->counter_queue_max, (int64_t)list.len);
 
         const int bail = (TmThreadsCheckFlag(th_v, THV_KILL));
 
