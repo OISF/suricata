@@ -33,6 +33,7 @@
 #define DETECT_FLOW_FLAG_NOSTREAM        BIT_U16(6)
 #define DETECT_FLOW_FLAG_NO_FRAG         BIT_U16(7)
 #define DETECT_FLOW_FLAG_ONLY_FRAG       BIT_U16(8)
+#define DETECT_FLOW_FLAG_ELEPHANT        BIT_U16(9)
 
 typedef struct DetectFlowData_ {
     uint16_t flags;     /* flags to match */

@@ -117,6 +117,10 @@ static inline int FlowMatch(const uint32_t pflags, const uint8_t pflowflags, con
         cnt++;
     }
 
+    if ((dflags & DETECT_FLOW_FLAG_ELEPHANT) && (pflowflags & FLOW_IS_ELEPHANT)) {
+        cnt++;
+    }
+
     return (match_cnt == cnt) ? 1 : 0;
 }
 
@@ -295,6 +299,13 @@ static DetectFlowData *DetectFlowParse(
                     goto error;
                 }
                 fd->flags |= DETECT_FLOW_FLAG_ONLY_FRAG;
+                fd->match_cnt++;
+            } else if (strcasecmp(args[i], "elephant") == 0) {
+                if (fd->flags & DETECT_FLOW_FLAG_ELEPHANT) {
+                    SCLogError("flow is already marked as elephant");
+                    goto error;
+                }
+                fd->flags |= DETECT_FLOW_FLAG_ELEPHANT;
                 fd->match_cnt++;
 
                 /* special case: these only affect parsing, not matching */
@@ -993,6 +1004,32 @@ static int DetectFlowTestParse22(void)
     PASS;
 }
 
+/**
+ * \test DetectFlowTestParse23 is a test for setting the elephant flow opt
+ */
+static int DetectFlowTestParse23(void)
+{
+    DetectFlowData *fd = DetectFlowParse(NULL, "elephant", 0);
+    FAIL_IF_NULL(fd);
+    FAIL_IF_NOT(fd->flags & DETECT_FLOW_FLAG_ELEPHANT);
+    FAIL_IF_NOT(fd->match_cnt == 1);
+    DetectFlowFree(NULL, fd);
+    PASS;
+}
+
+/**
+ * \test DetectFlowTestParse24 is a test for setting the to_server and elephant flow opts both
+ */
+static int DetectFlowTestParse24(void)
+{
+    DetectFlowData *fd = DetectFlowParse(NULL, "to_server,elephant", 0);
+    FAIL_IF_NULL(fd);
+    FAIL_IF_NOT(fd->flags & DETECT_FLOW_FLAG_TOSERVER && fd->flags & DETECT_FLOW_FLAG_ELEPHANT);
+    FAIL_IF_NOT(fd->match_cnt == 2);
+    DetectFlowFree(NULL, fd);
+    PASS;
+}
+
 static int DetectFlowSigTest01(void)
 {
     uint8_t *buf = (uint8_t *)"supernovaduper";
@@ -1157,6 +1194,8 @@ static void DetectFlowRegisterTests(void)
     UtRegisterTest("DetectFlowTestParseNocase20", DetectFlowTestParseNocase20);
     UtRegisterTest("DetectFlowTestParse21", DetectFlowTestParse21);
     UtRegisterTest("DetectFlowTestParse22", DetectFlowTestParse22);
+    UtRegisterTest("DetectFlowTestParse23", DetectFlowTestParse23);
+    UtRegisterTest("DetectFlowTestParse24", DetectFlowTestParse24);
     UtRegisterTest("DetectFlowTestParseNotEstablished",
         DetectFlowTestParseNotEstablished);
     UtRegisterTest("DetectFlowTestParseNoFrag", DetectFlowTestParseNoFrag);

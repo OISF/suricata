@@ -103,6 +103,8 @@ only_frag
   Match packets that have been reassembled from fragments.
 no_frag
   Match packets that have not been reassembled from fragments.
+elephant
+  Match on an elephant flow
 
 Multiple flow options can be combined, for example::
 
