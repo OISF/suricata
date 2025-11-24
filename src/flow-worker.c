@@ -89,7 +89,7 @@ typedef struct FlowWorkerThreadData_ {
 
     struct {
         uint16_t flows_injected;
-        uint16_t flows_injected_max;
+        StatsCounterMaxId flows_injected_max;
         uint16_t flows_removed;
         uint16_t flows_aside_needs_work;
         uint16_t flows_aside_pkt_inject;
@@ -485,7 +485,7 @@ static inline void FlowWorkerProcessInjectedFlows(
     if (injected.len > 0) {
         StatsAddUI64(tv, fw->cnt.flows_injected, (uint64_t)injected.len);
         if (p->pkt_src == PKT_SRC_WIRE)
-            StatsSetUI64(tv, fw->cnt.flows_injected_max, (uint64_t)injected.len);
+            StatsCounterMaxUpdateI64(tv, fw->cnt.flows_injected_max, (int64_t)injected.len);
 
         /* move to local queue so we can process over the course of multiple packets */
         FlowQueuePrivateAppendPrivate(&fw->fls.work_queue, &injected);

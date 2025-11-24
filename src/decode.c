@@ -779,7 +779,7 @@ void DecodeUpdatePacketCounters(ThreadVars *tv,
     //StatsIncr(tv, dtv->counter_pkts_per_sec);
     StatsAddUI64(tv, dtv->counter_bytes, GET_PKT_LEN(p));
     StatsAddUI64(tv, dtv->counter_avg_pkt_size, GET_PKT_LEN(p));
-    StatsSetUI64(tv, dtv->counter_max_pkt_size, GET_PKT_LEN(p));
+    StatsCounterMaxUpdateI64(tv, dtv->counter_max_pkt_size, GET_PKT_LEN(p));
 }
 
 /**

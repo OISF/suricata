@@ -224,6 +224,29 @@ void StatsSetUI64(ThreadVars *tv, uint16_t id, uint64_t x)
     pca->head[id].updates++;
 }
 
+/**
+ * \brief update the value of the localmax counter
+ *
+ * \param tv  ThreadVars holding the private counter structure
+ * \param id  Index of the local counter in the counter array
+ * \param x   The value to set for the counter
+ */
+void StatsCounterMaxUpdateI64(ThreadVars *tv, StatsCounterMaxId id, int64_t x)
+{
+    StatsPrivateThreadContext *pca = &tv->perf_private_ctx;
+#if defined(UNITTESTS) || defined(FUZZ)
+    if (pca->initialized == 0)
+        return;
+#endif
+#ifdef DEBUG
+    BUG_ON((id.id < 1) || (id.id > pca->size));
+#endif
+
+    if ((int64_t)x > pca->head[id.id].value) {
+        pca->head[id.id].value = x;
+    }
+}
+
 static SCConfNode *GetConfig(void)
 {
     SCConfNode *stats = SCConfGetNode("stats");
@@ -1005,13 +1028,14 @@ uint16_t StatsRegisterAvgCounter(const char *name, struct ThreadVars_ *tv)
  * \retval the counter id for the newly registered counter, or the already
  *         present counter
  */
-uint16_t StatsRegisterMaxCounter(const char *name, struct ThreadVars_ *tv)
+StatsCounterMaxId StatsRegisterMaxCounter(const char *name, struct ThreadVars_ *tv)
 {
     uint16_t id = StatsRegisterQualifiedCounter(name,
             (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->printable_name,
             &tv->perf_public_ctx,
             STATS_TYPE_MAXIMUM, NULL);
-    return id;
+    StatsCounterMaxId s = { .id = id };
+    return s;
 }
 
 /**
