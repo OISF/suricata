@@ -1063,11 +1063,12 @@ StatsCounterMaxId StatsRegisterMaxCounter(const char *name, struct ThreadVars_ *
  * \retval id Counter id for the newly registered counter, or the already
  *            present counter
  */
-uint16_t StatsRegisterGlobalCounter(const char *name, uint64_t (*Func)(void))
+StatsCounterGlobalId StatsRegisterGlobalCounter(const char *name, uint64_t (*Func)(void))
 {
+    StatsCounterGlobalId s = { .id = 0 };
 #if defined (UNITTESTS) || defined (FUZZ)
     if (stats_ctx == NULL)
-        return 0;
+        return s;
 #else
     BUG_ON(stats_ctx == NULL);
 #endif
@@ -1075,7 +1076,8 @@ uint16_t StatsRegisterGlobalCounter(const char *name, uint64_t (*Func)(void))
             &(stats_ctx->global_counter_ctx),
             STATS_TYPE_FUNC,
             Func);
-    return id;
+    s.id = id;
+    return s;
 }
 
 typedef struct CountersIdType_ {

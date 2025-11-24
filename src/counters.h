@@ -38,6 +38,10 @@ typedef struct StatsCounterMaxId {
     uint16_t id;
 } StatsCounterMaxId;
 
+typedef struct StatsCounterGlobalId {
+    uint16_t id;
+} StatsCounterGlobalId;
+
 /**
  * \brief Container to hold the counter variable
  */
@@ -129,7 +133,7 @@ void StatsReleaseResources(void);
 uint16_t StatsRegisterCounter(const char *, struct ThreadVars_ *);
 StatsCounterAvgId StatsRegisterAvgCounter(const char *, struct ThreadVars_ *);
 StatsCounterMaxId StatsRegisterMaxCounter(const char *, struct ThreadVars_ *);
-uint16_t StatsRegisterGlobalCounter(const char *cname, uint64_t (*Func)(void));
+StatsCounterGlobalId StatsRegisterGlobalCounter(const char *cname, uint64_t (*Func)(void));
 
 /* functions used to update local counter values */
 void StatsAddUI64(struct ThreadVars_ *, uint16_t, uint64_t);
