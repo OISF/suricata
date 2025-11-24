@@ -677,8 +677,8 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
     dtv->counter_max_pkt_size = StatsRegisterMaxCounter("decoder.max_pkt_size", tv);
     dtv->counter_max_mac_addrs_src = StatsRegisterMaxCounter("decoder.max_mac_addrs_src", tv);
     dtv->counter_max_mac_addrs_dst = StatsRegisterMaxCounter("decoder.max_mac_addrs_dst", tv);
-    dtv->counter_erspan = StatsRegisterMaxCounter("decoder.erspan", tv);
-    dtv->counter_nsh = StatsRegisterMaxCounter("decoder.nsh", tv);
+    dtv->counter_erspan = StatsRegisterCounter("decoder.erspan", tv);
+    dtv->counter_nsh = StatsRegisterCounter("decoder.nsh", tv);
     dtv->counter_flow_memcap = StatsRegisterCounter("flow.memcap", tv);
     ExceptionPolicySetStatsCounters(tv, &dtv->counter_flow_memcap_eps, &flow_memcap_eps_stats,
             FlowGetMemcapExceptionPolicy(), "exception_policy.flow.memcap.",
