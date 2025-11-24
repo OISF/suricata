@@ -697,7 +697,6 @@ static void StatsCopyCounterValue(StatsLocalCounter *pcae)
 static int StatsOutput(ThreadVars *tv)
 {
     const StatsThreadStore *sts = NULL;
-    const StatsCounter *pc = NULL;
     void *td = stats_thread_data;
 
     if (counters_global_id == 0)
@@ -762,7 +761,7 @@ static int StatsOutput(ThreadVars *tv)
                 max_id * sizeof(struct CountersMergeTable));
 
         SCMutexLock(&sts->ctx->m);
-        pc = sts->ctx->head;
+        const StatsCounter *pc = sts->ctx->head;
         while (pc != NULL) {
             SCLogDebug("Counter %s (%u:%u) value %"PRIu64,
                     pc->name, pc->id, pc->gid, pc->value);
