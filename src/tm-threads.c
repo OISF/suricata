@@ -951,7 +951,7 @@ ThreadVars *TmThreadCreate(const char *name, const char *inq_name, const char *i
         goto error;
 
     SC_ATOMIC_INIT(tv->flags);
-    SCMutexInit(&tv->perf_public_ctx.m, NULL);
+    SCSpinInit(&tv->perf_public_ctx.lock, 0);
 
     strlcpy(tv->name, name, sizeof(tv->name));
 

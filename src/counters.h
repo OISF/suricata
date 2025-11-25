@@ -102,8 +102,8 @@ typedef struct StatsPublicThreadContext_ {
 
     StatsLocalCounter *copy_of_private;
 
-    /* mutex to prevent simultaneous access during update_counter/output_stat */
-    SCMutex m;
+    /* lock to prevent simultaneous access during update_counter/output_stat */
+    SCSpinlock lock;
 } StatsPublicThreadContext;
 
 /**
