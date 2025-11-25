@@ -273,7 +273,7 @@ and the server replies with its answer.
 
 .. image:: intro/TCP-session.png
 
-Now, let's say we have a rule with the following header::
+Now, let's say you have a rule with the following header::
 
     alert tcp 1.2.3.4 1024 -> 5.6.7.8 80
 

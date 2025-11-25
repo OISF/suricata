@@ -82,7 +82,7 @@ and keep them updated. Signatures are also called rules, thus the name
 `rule-files`. With the tool ``suricata-update`` rules can be fetched, updated and
 managed to be provided for Suricata.
 
-In this guide we just run the default mode which fetches the ET Open ruleset::
+In this guide you just run the default mode which fetches the ET Open ruleset::
 
     sudo suricata-update
 
@@ -92,7 +92,7 @@ the default at the config and uses the sole ``suricata.rules`` file.
 Running Suricata
 ----------------
 
-With the rules installed, Suricata can run properly and thus we restart it::
+With the rules installed, Suricata can run properly and thus you restart it::
 
     sudo systemctl restart suricata
 
@@ -126,7 +126,7 @@ ID ``2100498`` from the ET Open ruleset is written specific for such test cases.
 
 The syntax and logic behind those signatures is covered in other chapters. This
 will alert on any IP traffic that has the content within its payload. This rule
-can be triggered quite easy. Before we trigger it, start ``tail`` to see updates to
+can be triggered quite easy. Before you trigger it, start ``tail`` to see updates to
 ``fast.log``.
 
 Rule trigger::

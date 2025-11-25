@@ -166,7 +166,7 @@ a particular stream and alert if it is over 5.
 This will count each occurrence and increment the var usernamecount
 and not generate an alert for each.
 
-Now say we want to generate an alert if there are more than five hits
+Now say you want to generate an alert if there are more than five hits
 in the stream.
 
 ::
@@ -176,7 +176,7 @@ in the stream.
 
 So we'll get an alert ONLY if usernamecount is over five.
 
-So now let's say we want to get an alert as above but NOT if there
+So now let's say you want to get an alert as above but NOT if there
 have been more occurrences of that username logging out. Assuming this
 particular protocol indicates a log out with "jonkman logout", let's
 try:
@@ -220,19 +220,18 @@ We are now incrementing the counter if it's set.
         content:"login failed"; flowint:loginfail, isset; flowint:loginfail, >, 5;)
 
 
-Now we'll generate an alert if we cross five login fails in the same
-stream.
+An alert will be generated when the login fail count exceeds five in the
+same stream.
 
-But let's also say we also need alert if there are two successful
-logins and a failed login after that.
+To alert on a failed login after two successful logins, use the
+following rules:
 
 ::
 
   alert tcp any any -> any any (msg:"Counting Good Logins";             \
         content:"login successful"; flowint:loginsuccess, +, 1; noalert;)
 
-Here we're counting good logins, so now we'll count good logins
-relevant to fails:
+The following rule counts successful logins to correlate with failures:
 
 ::
 
@@ -319,7 +318,7 @@ Signature example::
 
  alert tcp any any -> any any (msg:"Flow longer than one hour"; flow.age:>3600; flowbits: isnotset, onehourflow; flowbits: onehourflow, name; sid:1; rev:1;)
 
-In this example, we combine `flow.age` and `flowbits` to get an alert on the first packet after the flow's age is older than one hour.
+In this example, `flow.age` and `flowbits` are combined to generate an alert on the first packet after the flow's age exceeds one hour.
 
 flow.pkts
 ---------
