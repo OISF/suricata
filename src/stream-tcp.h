@@ -92,26 +92,26 @@ typedef struct TcpStreamCnf_ {
 typedef struct StreamTcpThread_ {
     int ssn_pool_id;
 
-    uint16_t counter_tcp_active_sessions;
-    uint16_t counter_tcp_sessions;
+    StatsCounterId counter_tcp_active_sessions;
+    StatsCounterId counter_tcp_sessions;
     /** sessions not picked up because memcap was reached */
-    uint16_t counter_tcp_ssn_memcap;
-    uint16_t counter_tcp_ssn_from_cache;
-    uint16_t counter_tcp_ssn_from_pool;
+    StatsCounterId counter_tcp_ssn_memcap;
+    StatsCounterId counter_tcp_ssn_from_cache;
+    StatsCounterId counter_tcp_ssn_from_pool;
     /** exception policy */
     ExceptionPolicyCounters counter_tcp_ssn_memcap_eps;
     /** pseudo packets processed */
-    uint16_t counter_tcp_pseudo;
+    StatsCounterId counter_tcp_pseudo;
     /** packets rejected because their csum is invalid */
-    uint16_t counter_tcp_invalid_checksum;
+    StatsCounterId counter_tcp_invalid_checksum;
     /** midstream pickups */
-    uint16_t counter_tcp_midstream_pickups;
+    StatsCounterId counter_tcp_midstream_pickups;
     /** exception policy stats */
     ExceptionPolicyCounters counter_tcp_midstream_eps;
     /** wrong thread */
-    uint16_t counter_tcp_wrong_thread;
+    StatsCounterId counter_tcp_wrong_thread;
     /** ack for unseen data */
-    uint16_t counter_tcp_ack_unseen_data;
+    StatsCounterId counter_tcp_ack_unseen_data;
 
     /** tcp reassembly thread data */
     TcpReassemblyThreadCtx *ra_ctx;

@@ -154,8 +154,8 @@ typedef struct NetmapThreadVars_
     uint64_t pkts;
     uint64_t bytes;
     uint64_t drops;
-    uint16_t capture_kernel_packets;
-    uint16_t capture_kernel_drops;
+    StatsCounterId capture_kernel_packets;
+    StatsCounterId capture_kernel_drops;
 } NetmapThreadVars;
 
 typedef TAILQ_HEAD(NetmapDeviceList_, NetmapDevice_) NetmapDeviceList;

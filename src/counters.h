@@ -30,6 +30,10 @@
 /* forward declaration of the ThreadVars structure */
 struct ThreadVars_;
 
+typedef struct StatsCounterId {
+    uint16_t id;
+} StatsCounterId;
+
 typedef struct StatsCounterAvgId {
     uint16_t id;
 } StatsCounterAvgId;
@@ -127,23 +131,23 @@ bool StatsEnabled(void);
 void StatsReleaseResources(void);
 
 /* counter registration functions */
-uint16_t StatsRegisterCounter(const char *, struct ThreadVars_ *);
+StatsCounterId StatsRegisterCounter(const char *, struct ThreadVars_ *);
 StatsCounterAvgId StatsRegisterAvgCounter(const char *, struct ThreadVars_ *);
 StatsCounterMaxId StatsRegisterMaxCounter(const char *, struct ThreadVars_ *);
 StatsCounterGlobalId StatsRegisterGlobalCounter(const char *cname, uint64_t (*Func)(void));
 
 /* functions used to update local counter values */
-void StatsAddUI64(struct ThreadVars_ *, uint16_t, uint64_t);
-void StatsSetUI64(struct ThreadVars_ *, uint16_t, uint64_t);
-void StatsIncr(struct ThreadVars_ *, uint16_t);
-void StatsDecr(struct ThreadVars_ *, uint16_t);
+void StatsAddUI64(struct ThreadVars_ *, StatsCounterId, uint64_t);
+void StatsSetUI64(struct ThreadVars_ *, StatsCounterId, uint64_t);
+void StatsIncr(struct ThreadVars_ *, StatsCounterId);
+void StatsDecr(struct ThreadVars_ *, StatsCounterId);
 
 void StatsCounterMaxUpdateI64(struct ThreadVars_ *tv, StatsCounterMaxId id, int64_t x);
 void StatsCounterAvgAddI64(struct ThreadVars_ *tv, StatsCounterAvgId id, int64_t x);
 
 /* utility functions */
 int StatsUpdateCounterArray(StatsPrivateThreadContext *, StatsPublicThreadContext *);
-uint64_t StatsGetLocalCounterValue(struct ThreadVars_ *, uint16_t);
+uint64_t StatsGetLocalCounterValue(struct ThreadVars_ *, StatsCounterId);
 int StatsSetupPrivate(struct ThreadVars_ *);
 void StatsThreadCleanup(struct ThreadVars_ *);
 

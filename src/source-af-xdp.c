@@ -188,14 +188,14 @@ typedef struct AFXDPThreadVars_ {
     /* Stats parameters */
     uint64_t pkts;
     uint64_t bytes;
-    uint16_t capture_afxdp_packets;
-    uint16_t capture_kernel_drops;
-    uint16_t capture_afxdp_poll;
-    uint16_t capture_afxdp_poll_timeout;
-    uint16_t capture_afxdp_poll_failed;
-    uint16_t capture_afxdp_empty_reads;
-    uint16_t capture_afxdp_failed_reads;
-    uint16_t capture_afxdp_acquire_pkt_failed;
+    StatsCounterId capture_afxdp_packets;
+    StatsCounterId capture_kernel_drops;
+    StatsCounterId capture_afxdp_poll;
+    StatsCounterId capture_afxdp_poll_timeout;
+    StatsCounterId capture_afxdp_poll_failed;
+    StatsCounterId capture_afxdp_empty_reads;
+    StatsCounterId capture_afxdp_failed_reads;
+    StatsCounterId capture_afxdp_acquire_pkt_failed;
 } AFXDPThreadVars;
 
 static TmEcode ReceiveAFXDPThreadInit(ThreadVars *, const void *, void **);

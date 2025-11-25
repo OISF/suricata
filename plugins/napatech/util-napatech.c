@@ -43,8 +43,8 @@
  * the adapter.
  */
 typedef struct FlowStatsCounters_ {
-    uint16_t active_bypass_flows;
-    uint16_t total_bypass_flows;
+    StatsCounterId active_bypass_flows;
+    StatsCounterId total_bypass_flows;
 } FlowStatsCounters;
 
 static int bypass_supported;

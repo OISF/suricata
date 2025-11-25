@@ -1287,11 +1287,11 @@ typedef struct DetectEngineThreadCtx_ {
     uint16_t filestore_cnt;
 
     /** id for alert counter */
-    uint16_t counter_alerts;
+    StatsCounterId counter_alerts;
     /** id for discarded alerts counter */
-    uint16_t counter_alerts_overflow;
+    StatsCounterId counter_alerts_overflow;
     /** id for suppressed alerts counter */
-    uint16_t counter_alerts_suppressed;
+    StatsCounterId counter_alerts_suppressed;
 #ifdef PROFILING
     StatsCounterAvgId counter_mpm_list;
     StatsCounterAvgId counter_match_list;
@@ -1372,16 +1372,16 @@ typedef struct DetectEngineThreadCtx_ {
     uint16_t events;
 
     /** stats id for lua rule errors */
-    uint16_t lua_rule_errors;
+    StatsCounterId lua_rule_errors;
 
     /** stats id for lua blocked function counts */
-    uint16_t lua_blocked_function_errors;
+    StatsCounterId lua_blocked_function_errors;
 
     /** stats if for lua instruction limit errors */
-    uint16_t lua_instruction_limit_errors;
+    StatsCounterId lua_instruction_limit_errors;
 
     /** stat of lua memory limit errors. */
-    uint16_t lua_memory_limit_errors;
+    StatsCounterId lua_memory_limit_errors;
 
 #ifdef DEBUG
     uint64_t pkt_stream_add_cnt;

@@ -64,28 +64,28 @@ typedef struct TcpReassemblyThreadCtx_ {
     int segment_thread_pool_id;
 
     /** TCP segments which are not being reassembled due to memcap was reached */
-    uint16_t counter_tcp_segment_memcap;
+    StatsCounterId counter_tcp_segment_memcap;
     /** times exception policy for stream reassembly memcap was applied **/
     ExceptionPolicyCounters counter_tcp_reas_eps;
 
-    uint16_t counter_tcp_segment_from_cache;
-    uint16_t counter_tcp_segment_from_pool;
+    StatsCounterId counter_tcp_segment_from_cache;
+    StatsCounterId counter_tcp_segment_from_pool;
 
     /** number of streams that stop reassembly because their depth is reached */
-    uint16_t counter_tcp_stream_depth;
+    StatsCounterId counter_tcp_stream_depth;
     /** count number of streams with a unrecoverable stream gap (missing pkts) */
-    uint16_t counter_tcp_reass_gap;
+    StatsCounterId counter_tcp_reass_gap;
 
     /** count packet data overlaps */
-    uint16_t counter_tcp_reass_overlap;
+    StatsCounterId counter_tcp_reass_overlap;
     /** count overlaps with different data */
-    uint16_t counter_tcp_reass_overlap_diff_data;
+    StatsCounterId counter_tcp_reass_overlap_diff_data;
 
-    uint16_t counter_tcp_reass_data_normal_fail;
-    uint16_t counter_tcp_reass_data_overlap_fail;
+    StatsCounterId counter_tcp_reass_data_normal_fail;
+    StatsCounterId counter_tcp_reass_data_overlap_fail;
 
     /** count OOB bytes */
-    uint16_t counter_tcp_urgent_oob;
+    StatsCounterId counter_tcp_urgent_oob;
 } TcpReassemblyThreadCtx;
 
 #define OS_POLICY_DEFAULT   OS_POLICY_BSD
