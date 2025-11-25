@@ -390,7 +390,26 @@ int THashWalk(THashTableContext *ctx, THashFormatFunc FormatterFunc, THashOutput
             char output_string[1024] = "";
             int size = FormatterFunc(h->data, output_string, sizeof(output_string));
             if (size > 0) {
-                if (OutputterFunc(output_ctx, (const uint8_t *)output_string, size) < 0) {
+                if (size > 1024) {
+                    // we did not provide enough space on the stack, let's allocate on the heap
+                    char *out_alloc = SCCalloc(1, size);
+                    if (out_alloc == NULL) {
+                        err = true;
+                        break;
+                    }
+                    size = FormatterFunc(h->data, out_alloc, size);
+                    if (size == 0) {
+                        err = true;
+                        SCFree(out_alloc);
+                        break;
+                    }
+                    if (OutputterFunc(output_ctx, (const uint8_t *)out_alloc, size) < 0) {
+                        err = true;
+                        SCFree(out_alloc);
+                        break;
+                    }
+                    SCFree(out_alloc);
+                } else if (OutputterFunc(output_ctx, (const uint8_t *)output_string, size) < 0) {
                     err = true;
                     break;
                 }

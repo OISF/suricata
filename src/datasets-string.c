@@ -50,8 +50,8 @@ int StringAsBase64(const void *s, char *out, size_t out_size)
 
     unsigned long len = Base64EncodeBufferSize(str->len);
     if (len + 2 > out_size) {
-        // linefeed and final zero
-        return 0;
+        // linefeed and final zero : signal we need more space
+        return len + 2;
     }
     if (Base64Encode((unsigned char *)str->ptr, str->len, (uint8_t *)out, &len) != SC_BASE64_OK)
         return 0;
