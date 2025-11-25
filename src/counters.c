@@ -126,6 +126,7 @@ static void StatsPublicThreadContextInit(StatsPublicThreadContext *t)
 static void StatsPublicThreadContextCleanup(StatsPublicThreadContext *t)
 {
     SCMutexLock(&t->m);
+    SCFree(t->copy_of_private);
     SCFree(t->pc_array);
     StatsReleaseCounters(t->head);
     t->head = NULL;
@@ -730,13 +731,25 @@ static int StatsOutput(ThreadVars *tv)
         memset(&thread_table, 0x00,
                 max_id * sizeof(struct CountersMergeTable));
 
-        SCMutexLock(&sts->ctx->m);
-        const StatsCounter *pc = sts->ctx->head;
-        while (pc != NULL) {
-            SCLogDebug("Counter %s (%u:%u) value %"PRIu64,
-                    pc->name, pc->id, pc->gid, pc->value);
+        StatsLocalCounter thread_table_from_private[max_id];
+        memset(&thread_table_from_private, 0x00, max_id * sizeof(StatsLocalCounter));
 
+        /* copy private table to a local variable to loop it w/o lock */
+        SCMutexLock(&sts->ctx->m);
+        uint16_t table_size = sts->ctx->curr_id + 1;
+        memcpy(&thread_table_from_private, sts->ctx->copy_of_private,
+                table_size * sizeof(StatsLocalCounter));
+        SCMutexUnlock(&sts->ctx->m);
+
+        /* loop counters and handle them. This includes the global counters, which
+         * access the StatsCounters but don't modify them. */
+        for (uint16_t i = 1; i < table_size; i++) {
+            const StatsCounter *pc = sts->ctx->pc_array[i];
             thread_table[pc->gid].type = pc->type;
+
+            table[pc->gid].name = pc->name;
+            table[pc->gid].short_name = pc->short_name;
+
             switch (pc->type) {
                 case STATS_TYPE_FUNC:
                     if (pc->Func != NULL)
@@ -744,16 +757,14 @@ static int StatsOutput(ThreadVars *tv)
                     break;
                 case STATS_TYPE_AVERAGE:
                 default:
-                    thread_table[pc->gid].value = pc->value;
+                    SCLogDebug("Counter %s (%u:%u) value %" PRIu64, pc->name, pc->id, pc->gid,
+                            thread_table_from_private[i].value);
+
+                    thread_table[pc->gid].value = thread_table_from_private[i].value;
                     break;
             }
-            thread_table[pc->gid].updates = pc->updates;
-            table[pc->gid].name = pc->name;
-            table[pc->gid].short_name = pc->short_name;
-
-            pc = pc->next;
+            thread_table[pc->gid].updates = thread_table_from_private[i].updates;
         }
-        SCMutexUnlock(&sts->ctx->m);
 
         /* update merge table */
         for (uint16_t c = 0; c < max_id; c++) {
@@ -1156,6 +1167,12 @@ static int StatsThreadRegister(const char *thread_name, StatsPublicThreadContext
         pctx->pc_array[pc->id] = pc;
     }
 
+    pctx->copy_of_private = SCCalloc(array_size, sizeof(StatsLocalCounter));
+    if (pctx->copy_of_private == NULL) {
+        SCMutexUnlock(&stats_ctx->sts_lock);
+        return 0;
+    }
+
     StatsThreadStore *temp = NULL;
     if ((temp = SCCalloc(1, sizeof(StatsThreadStore))) == NULL) {
         SCMutexUnlock(&stats_ctx->sts_lock);
@@ -1252,20 +1269,6 @@ int StatsSetupPrivate(ThreadVars *tv)
 }
 
 /**
- * \brief Copies the StatsCounter value from the local counter present in the
- *        StatsPrivateThreadContext to its corresponding global counterpart.  Used
- *        internally by StatsUpdateCounterArray()
- *
- * \param pcae     Pointer to the StatsPrivateThreadContext which holds the local
- *                 versions of the counters
- */
-static inline void StatsCopyCounterValue(StatsCounter *pc, StatsLocalCounter *pcae)
-{
-    pc->value = pcae->value;
-    pc->updates = pcae->updates;
-}
-
-/**
  * \brief the private stats store with the public stats store
  *
  * \param pca      Pointer to the StatsPrivateThreadContext
@@ -1282,13 +1285,14 @@ static int StatsUpdateCounterArray(StatsPrivateThreadContext *pca, StatsPublicTh
         return -1;
     }
 
-    SCMutexLock(&pctx->m);
-    StatsLocalCounter *pcae = pca->head;
-    for (uint32_t i = 1; i <= pca->size; i++) {
-        StatsCopyCounterValue(pctx->pc_array[i], &pcae[i]);
+    if (pca->size > 0) {
+        /* copy the whole table under lock to the public section
+         * and release the lock. The stats thread will copy it from
+         * there. */
+        SCMutexLock(&pctx->m);
+        memcpy(pctx->copy_of_private, pca->head, (pca->size + 1) * sizeof(StatsLocalCounter));
+        SCMutexUnlock(&pctx->m);
     }
-    SCMutexUnlock(&pctx->m);
-
     SC_ATOMIC_SET(pctx->sync_now, false);
     return 1;
 }
@@ -1537,9 +1541,9 @@ static int StatsTestUpdateGlobalCounter10(void)
 
     StatsUpdateCounterArray(pca, &tv.perf_public_ctx);
 
-    FAIL_IF_NOT(1 == tv.perf_public_ctx.head->value);
-    FAIL_IF_NOT(100 == tv.perf_public_ctx.head->next->value);
-    FAIL_IF_NOT(101 == tv.perf_public_ctx.head->next->next->value);
+    FAIL_IF_NOT(1 == tv.perf_public_ctx.copy_of_private[c1.id].value);
+    FAIL_IF_NOT(100 == tv.perf_public_ctx.copy_of_private[c2.id].value);
+    FAIL_IF_NOT(101 == tv.perf_public_ctx.copy_of_private[c3.id].value);
 
     StatsReleaseCounters(tv.perf_public_ctx.head);
     StatsReleasePrivateThreadContext(pca);
@@ -1567,10 +1571,10 @@ static int StatsTestCounterValues11(void)
 
     StatsUpdateCounterArray(pca, &tv.perf_public_ctx);
 
-    FAIL_IF_NOT(1 == tv.perf_public_ctx.head->value);
-    FAIL_IF_NOT(256 == tv.perf_public_ctx.head->next->value);
-    FAIL_IF_NOT(257 == tv.perf_public_ctx.head->next->next->value);
-    FAIL_IF_NOT(16843024 == tv.perf_public_ctx.head->next->next->next->value);
+    FAIL_IF_NOT(1 == tv.perf_public_ctx.copy_of_private[c1.id].value);
+    FAIL_IF_NOT(256 == tv.perf_public_ctx.copy_of_private[c2.id].value);
+    FAIL_IF_NOT(257 == tv.perf_public_ctx.copy_of_private[c3.id].value);
+    FAIL_IF_NOT(16843024 == tv.perf_public_ctx.copy_of_private[c4.id].value);
 
     StatsReleaseCounters(tv.perf_public_ctx.head);
     StatsReleasePrivateThreadContext(pca);
