@@ -1006,12 +1006,12 @@ static const char *PacketDropReasonToJsonString(enum PacketDropReason r)
 }
 
 typedef struct CaptureStats_ {
-    uint16_t counter_ips_accepted;
-    uint16_t counter_ips_blocked;
-    uint16_t counter_ips_rejected;
-    uint16_t counter_ips_replaced;
+    StatsCounterId counter_ips_accepted;
+    StatsCounterId counter_ips_blocked;
+    StatsCounterId counter_ips_rejected;
+    StatsCounterId counter_ips_replaced;
 
-    uint16_t counter_drop_reason[PKT_DROP_REASON_MAX];
+    StatsCounterId counter_drop_reason[PKT_DROP_REASON_MAX];
 } CaptureStats;
 
 thread_local CaptureStats t_capture_stats;

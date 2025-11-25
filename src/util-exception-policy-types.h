@@ -51,7 +51,7 @@ enum ExceptionPolicy {
 
 typedef struct ExceptionPolicyCounters_ {
     /* Follows enum order */
-    uint16_t eps_id[EXCEPTION_POLICY_MAX];
+    StatsCounterId eps_id[EXCEPTION_POLICY_MAX];
 } ExceptionPolicyCounters;
 
 typedef struct ExceptionPolicyStatsSetts_ {

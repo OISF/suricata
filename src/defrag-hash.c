@@ -452,8 +452,8 @@ static inline int DefragTrackerCompare(DefragTracker *t, Packet *p)
 static void DefragExceptionPolicyStatsIncr(
         ThreadVars *tv, DecodeThreadVars *dtv, enum ExceptionPolicy policy)
 {
-    uint16_t id = dtv->counter_defrag_memcap_eps.eps_id[policy];
-    if (likely(id > 0)) {
+    StatsCounterId id = dtv->counter_defrag_memcap_eps.eps_id[policy];
+    if (likely(id.id > 0)) {
         StatsIncr(tv, id);
     }
 }

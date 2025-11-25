@@ -86,9 +86,9 @@ struct PfringThreadVars_ {
     uint64_t bytes;
     uint64_t pkts;
 
-    uint16_t capture_kernel_packets;
-    uint16_t capture_kernel_drops;
-    uint16_t capture_bypassed;
+    StatsCounterId capture_kernel_packets;
+    StatsCounterId capture_kernel_drops;
+    StatsCounterId capture_bypassed;
 
     uint32_t flags;
 

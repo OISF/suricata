@@ -608,8 +608,8 @@ void StreamTcpReassembleFreeThreadCtx(TcpReassemblyThreadCtx *ra_ctx)
 static void StreamTcpReassembleExceptionPolicyStatsIncr(
         ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, enum ExceptionPolicy policy)
 {
-    uint16_t id = ra_ctx->counter_tcp_reas_eps.eps_id[policy];
-    if (likely(tv && id > 0)) {
+    StatsCounterId id = ra_ctx->counter_tcp_reas_eps.eps_id[policy];
+    if (likely(tv && id.id > 0)) {
         StatsIncr(tv, id);
     }
 }

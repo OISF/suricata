@@ -144,9 +144,9 @@ uint8_t FlowGetReverseProtoMapping(uint8_t rproto);
 /* flow end counter logic */
 
 typedef struct FlowEndCounters_ {
-    uint16_t flow_state[FLOW_STATE_SIZE];
-    uint16_t flow_tcp_state[TCP_CLOSED + 1];
-    uint16_t flow_tcp_liberal;
+    StatsCounterId flow_state[FLOW_STATE_SIZE];
+    StatsCounterId flow_tcp_state[TCP_CLOSED + 1];
+    StatsCounterId flow_tcp_liberal;
 } FlowEndCounters;
 
 static inline void FlowEndCountersUpdate(ThreadVars *tv, FlowEndCounters *fec, Flow *f)

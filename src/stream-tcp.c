@@ -898,8 +898,8 @@ static bool IsStreamTcpSessionMemcapExceptionPolicyStatsValid(enum ExceptionPoli
 static void StreamTcpSsnMemcapExceptionPolicyStatsIncr(
         ThreadVars *tv, StreamTcpThread *stt, enum ExceptionPolicy policy)
 {
-    const uint16_t id = stt->counter_tcp_ssn_memcap_eps.eps_id[policy];
-    if (likely(tv && id > 0)) {
+    const StatsCounterId id = stt->counter_tcp_ssn_memcap_eps.eps_id[policy];
+    if (likely(tv && id.id > 0)) {
         StatsIncr(tv, id);
     }
 }
@@ -1139,8 +1139,8 @@ static bool IsMidstreamExceptionPolicyStatsValid(enum ExceptionPolicy policy)
 static void StreamTcpMidstreamExceptionPolicyStatsIncr(
         ThreadVars *tv, StreamTcpThread *stt, enum ExceptionPolicy policy)
 {
-    const uint16_t id = stt->counter_tcp_midstream_eps.eps_id[policy];
-    if (likely(tv && id > 0)) {
+    const StatsCounterId id = stt->counter_tcp_midstream_eps.eps_id[policy];
+    if (likely(tv && id.id > 0)) {
         StatsIncr(tv, id);
     }
 }

@@ -194,8 +194,9 @@ typedef struct PcapLogData_ {
 typedef struct PcapLogThreadData_ {
     PcapLogData *pcap_log;
     MemBuffer *buf;
-    uint16_t counter_written;      /**< Counter for number of packets written */
-    uint16_t counter_filtered_bpf; /**< Counter for number of packets filtered out and not writen */
+    StatsCounterId counter_written; /**< Counter for number of packets written */
+    StatsCounterId
+            counter_filtered_bpf; /**< Counter for number of packets filtered out and not writen */
 } PcapLogThreadData;
 
 /* Pattern for extracting timestamp from pcap log files. */

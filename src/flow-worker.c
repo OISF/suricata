@@ -78,21 +78,21 @@ typedef struct FlowWorkerThreadData_ {
     void *output_thread; /* Output thread data. */
     void *output_thread_flow; /* Output thread data. */
 
-    uint16_t local_bypass_pkts;
-    uint16_t local_bypass_bytes;
-    uint16_t both_bypass_pkts;
-    uint16_t both_bypass_bytes;
+    StatsCounterId local_bypass_pkts;
+    StatsCounterId local_bypass_bytes;
+    StatsCounterId both_bypass_pkts;
+    StatsCounterId both_bypass_bytes;
     /** Queue to put pseudo packets that have been created by the stream (RST response) and by the
      * flush logic following a protocol change. */
     PacketQueueNoLock pq;
     FlowLookupStruct fls;
 
     struct {
-        uint16_t flows_injected;
+        StatsCounterId flows_injected;
         StatsCounterMaxId flows_injected_max;
-        uint16_t flows_removed;
-        uint16_t flows_aside_needs_work;
-        uint16_t flows_aside_pkt_inject;
+        StatsCounterId flows_removed;
+        StatsCounterId flows_aside_needs_work;
+        StatsCounterId flows_aside_pkt_inject;
     } cnt;
     FlowEndCounters fec;
 
