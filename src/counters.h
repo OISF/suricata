@@ -148,7 +148,6 @@ void StatsCounterMaxUpdateI64(struct ThreadVars_ *tv, StatsCounterMaxId id, int6
 void StatsCounterAvgAddI64(struct ThreadVars_ *tv, StatsCounterAvgId id, int64_t x);
 
 /* utility functions */
-int StatsUpdateCounterArray(StatsPrivateThreadContext *, StatsPublicThreadContext *);
 uint64_t StatsGetLocalCounterValue(struct ThreadVars_ *, StatsCounterId);
 int StatsSetupPrivate(struct ThreadVars_ *);
 void StatsThreadCleanup(struct ThreadVars_ *);
