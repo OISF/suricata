@@ -125,6 +125,7 @@ static void StatsPublicThreadContextInit(StatsPublicThreadContext *t)
 static void StatsPublicThreadContextCleanup(StatsPublicThreadContext *t)
 {
     SCMutexLock(&t->m);
+    SCFree(t->pc_array);
     StatsReleaseCounters(t->head);
     t->head = NULL;
     SC_ATOMIC_SET(t->sync_now, false);
@@ -660,22 +661,6 @@ static uint16_t StatsRegisterQualifiedCounter(const char *name, const char *tm_n
 }
 
 /**
- * \brief Copies the StatsCounter value from the local counter present in the
- *        StatsPrivateThreadContext to its corresponding global counterpart.  Used
- *        internally by StatsUpdateCounterArray()
- *
- * \param pcae     Pointer to the StatsPrivateThreadContext which holds the local
- *                 versions of the counters
- */
-static void StatsCopyCounterValue(StatsLocalCounter *pcae)
-{
-    StatsCounter *pc = pcae->pc;
-
-    pc->value = pcae->value;
-    pc->updates = pcae->updates;
-}
-
-/**
  * \brief The output interface for the Stats API
  */
 static int StatsOutput(ThreadVars *tv)
@@ -1159,6 +1144,16 @@ static int StatsThreadRegister(const char *thread_name, StatsPublicThreadContext
         pc = pc->next;
     }
 
+    size_t array_size = pctx->curr_id + 1;
+    pctx->pc_array = SCCalloc(array_size, sizeof(StatsCounter *));
+    if (pctx->pc_array == NULL) {
+        SCMutexUnlock(&stats_ctx->sts_lock);
+        return 0;
+    }
+    for (pc = pctx->head; pc != NULL; pc = pc->next) {
+        BUG_ON(pctx->pc_array[pc->id] != NULL);
+        pctx->pc_array[pc->id] = pc;
+    }
 
     StatsThreadStore *temp = NULL;
     if ((temp = SCCalloc(1, sizeof(StatsThreadStore))) == NULL) {
@@ -1219,7 +1214,6 @@ static int StatsGetCounterArrayRange(uint16_t s_id, uint16_t e_id,
 
     i = 1;
     while ((pc != NULL) && (pc->id <= e_id)) {
-        pca->head[i].pc = pc;
         pc = pc->next;
         i++;
     }
@@ -1257,6 +1251,20 @@ int StatsSetupPrivate(ThreadVars *tv)
 }
 
 /**
+ * \brief Copies the StatsCounter value from the local counter present in the
+ *        StatsPrivateThreadContext to its corresponding global counterpart.  Used
+ *        internally by StatsUpdateCounterArray()
+ *
+ * \param pcae     Pointer to the StatsPrivateThreadContext which holds the local
+ *                 versions of the counters
+ */
+static inline void StatsCopyCounterValue(StatsCounter *pc, StatsLocalCounter *pcae)
+{
+    pc->value = pcae->value;
+    pc->updates = pcae->updates;
+}
+
+/**
  * \brief the private stats store with the public stats store
  *
  * \param pca      Pointer to the StatsPrivateThreadContext
@@ -1276,7 +1284,7 @@ int StatsUpdateCounterArray(StatsPrivateThreadContext *pca, StatsPublicThreadCon
     SCMutexLock(&pctx->m);
     StatsLocalCounter *pcae = pca->head;
     for (uint32_t i = 1; i <= pca->size; i++) {
-        StatsCopyCounterValue(&pcae[i]);
+        StatsCopyCounterValue(pctx->pc_array[i], &pcae[i]);
     }
     SCMutexUnlock(&pctx->m);
 
