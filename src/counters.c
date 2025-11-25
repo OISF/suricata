@@ -103,6 +103,7 @@ bool stats_stream_events = false;
 static int StatsOutput(ThreadVars *tv);
 static int StatsThreadRegister(const char *thread_name, StatsPublicThreadContext *);
 void StatsReleaseCounters(StatsCounter *head);
+static int StatsUpdateCounterArray(StatsPrivateThreadContext *pca, StatsPublicThreadContext *pctx);
 
 /** stats table is filled each interval and passed to the
  *  loggers. Initialized at first use. */
@@ -1273,7 +1274,7 @@ static inline void StatsCopyCounterValue(StatsCounter *pc, StatsLocalCounter *pc
  * \retval  1 on success
  * \retval -1 on error
  */
-int StatsUpdateCounterArray(StatsPrivateThreadContext *pca, StatsPublicThreadContext *pctx)
+static int StatsUpdateCounterArray(StatsPrivateThreadContext *pca, StatsPublicThreadContext *pctx)
 {
 
     if (pca == NULL || pctx == NULL) {
