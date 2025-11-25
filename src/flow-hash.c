@@ -667,8 +667,8 @@ static void FlowExceptionPolicyStatsIncr(
         return;
     }
 #endif
-    uint16_t id = fls->dtv->counter_flow_memcap_eps.eps_id[policy];
-    if (likely(id > 0)) {
+    StatsCounterId id = fls->dtv->counter_flow_memcap_eps.eps_id[policy];
+    if (likely(id.id > 0)) {
         StatsIncr(tv, id);
     }
 }

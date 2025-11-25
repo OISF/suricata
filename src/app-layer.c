@@ -87,12 +87,12 @@ typedef struct AppLayerCounterNames_ {
 } AppLayerCounterNames;
 
 typedef struct AppLayerCounters_ {
-    uint16_t counter_id;
-    uint16_t counter_tx_id;
-    uint16_t gap_error_id;
-    uint16_t parser_error_id;
-    uint16_t internal_error_id;
-    uint16_t alloc_error_id;
+    StatsCounterId counter_id;
+    StatsCounterId counter_tx_id;
+    StatsCounterId gap_error_id;
+    StatsCounterId parser_error_id;
+    StatsCounterId internal_error_id;
+    StatsCounterId alloc_error_id;
     ExceptionPolicyCounters eps_error;
 } AppLayerCounters;
 
@@ -148,48 +148,48 @@ static inline int ProtoDetectDone(const Flow *f, const TcpSession *ssn, uint8_t 
  */
 static void AppLayerIncFlowCounter(ThreadVars *tv, Flow *f)
 {
-    const uint16_t id = applayer_counters[f->alproto][f->protomap].counter_id;
-    if (likely(tv && id > 0)) {
+    const StatsCounterId id = applayer_counters[f->alproto][f->protomap].counter_id;
+    if (likely(tv && id.id > 0)) {
         StatsIncr(tv, id);
     }
 }
 
 void AppLayerIncTxCounter(ThreadVars *tv, Flow *f, uint64_t step)
 {
-    const uint16_t id = applayer_counters[f->alproto][f->protomap].counter_tx_id;
-    if (likely(tv && id > 0)) {
+    const StatsCounterId id = applayer_counters[f->alproto][f->protomap].counter_tx_id;
+    if (likely(tv && id.id > 0)) {
         StatsAddUI64(tv, id, step);
     }
 }
 
 void AppLayerIncGapErrorCounter(ThreadVars *tv, Flow *f)
 {
-    const uint16_t id = applayer_counters[f->alproto][f->protomap].gap_error_id;
-    if (likely(tv && id > 0)) {
+    const StatsCounterId id = applayer_counters[f->alproto][f->protomap].gap_error_id;
+    if (likely(tv && id.id > 0)) {
         StatsIncr(tv, id);
     }
 }
 
 void AppLayerIncAllocErrorCounter(ThreadVars *tv, Flow *f)
 {
-    const uint16_t id = applayer_counters[f->alproto][f->protomap].alloc_error_id;
-    if (likely(tv && id > 0)) {
+    const StatsCounterId id = applayer_counters[f->alproto][f->protomap].alloc_error_id;
+    if (likely(tv && id.id > 0)) {
         StatsIncr(tv, id);
     }
 }
 
 void AppLayerIncParserErrorCounter(ThreadVars *tv, Flow *f)
 {
-    const uint16_t id = applayer_counters[f->alproto][f->protomap].parser_error_id;
-    if (likely(tv && id > 0)) {
+    const StatsCounterId id = applayer_counters[f->alproto][f->protomap].parser_error_id;
+    if (likely(tv && id.id > 0)) {
         StatsIncr(tv, id);
     }
 }
 
 void AppLayerIncInternalErrorCounter(ThreadVars *tv, Flow *f)
 {
-    const uint16_t id = applayer_counters[f->alproto][f->protomap].internal_error_id;
-    if (likely(tv && id > 0)) {
+    const StatsCounterId id = applayer_counters[f->alproto][f->protomap].internal_error_id;
+    if (likely(tv && id.id > 0)) {
         StatsIncr(tv, id);
     }
 }
@@ -201,14 +201,14 @@ static void AppLayerIncrErrorExcPolicyCounter(ThreadVars *tv, Flow *f, enum Exce
         return;
     }
 #endif
-    uint16_t id = applayer_counters[f->alproto][f->protomap].eps_error.eps_id[policy];
+    StatsCounterId id = applayer_counters[f->alproto][f->protomap].eps_error.eps_id[policy];
     /* for the summary values */
-    uint16_t g_id = eps_error_summary.eps_id[policy];
+    StatsCounterId g_id = eps_error_summary.eps_id[policy];
 
-    if (likely(id > 0)) {
+    if (likely(id.id > 0)) {
         StatsIncr(tv, id);
     }
-    if (likely(g_id > 0)) {
+    if (likely(g_id.id > 0)) {
         StatsIncr(tv, g_id);
     }
 }

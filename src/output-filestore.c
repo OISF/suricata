@@ -54,8 +54,8 @@ typedef struct OutputFilestoreCtx_ {
 
 typedef struct OutputFilestoreLogThread_ {
     OutputFilestoreCtx *ctx;
-    uint16_t counter_max_hits;
-    uint16_t fs_error_counter;
+    StatsCounterId counter_max_hits;
+    StatsCounterId fs_error_counter;
 } OutputFilestoreLogThread;
 
 enum WarnOnceTypes {

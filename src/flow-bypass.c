@@ -41,9 +41,9 @@
 #endif
 
 typedef struct BypassedFlowManagerThreadData_ {
-    uint16_t flow_bypassed_cnt_clo;
-    uint16_t flow_bypassed_pkts;
-    uint16_t flow_bypassed_bytes;
+    StatsCounterId flow_bypassed_cnt_clo;
+    StatsCounterId flow_bypassed_pkts;
+    StatsCounterId flow_bypassed_bytes;
 } BypassedFlowManagerThreadData;
 
 #define BYPASSFUNCMAX   4

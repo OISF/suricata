@@ -642,26 +642,26 @@ static uint32_t FlowCleanupHash(void)
 }
 
 typedef struct FlowCounters_ {
-    uint16_t flow_mgr_full_pass;
-    uint16_t flow_mgr_rows_sec;
+    StatsCounterId flow_mgr_full_pass;
+    StatsCounterId flow_mgr_rows_sec;
 
-    uint16_t flow_mgr_spare;
-    uint16_t flow_emerg_mode_enter;
-    uint16_t flow_emerg_mode_over;
+    StatsCounterId flow_mgr_spare;
+    StatsCounterId flow_emerg_mode_enter;
+    StatsCounterId flow_emerg_mode_over;
 
-    uint16_t flow_mgr_flows_checked;
-    uint16_t flow_mgr_flows_notimeout;
-    uint16_t flow_mgr_flows_timeout;
-    uint16_t flow_mgr_flows_aside;
-    uint16_t flow_mgr_flows_aside_needs_work;
+    StatsCounterId flow_mgr_flows_checked;
+    StatsCounterId flow_mgr_flows_notimeout;
+    StatsCounterId flow_mgr_flows_timeout;
+    StatsCounterId flow_mgr_flows_aside;
+    StatsCounterId flow_mgr_flows_aside_needs_work;
 
     StatsCounterMaxId flow_mgr_rows_maxlen;
 
-    uint16_t flow_bypassed_cnt_clo;
-    uint16_t flow_bypassed_pkts;
-    uint16_t flow_bypassed_bytes;
+    StatsCounterId flow_bypassed_cnt_clo;
+    StatsCounterId flow_bypassed_pkts;
+    StatsCounterId flow_bypassed_bytes;
 
-    uint16_t memcap_pressure;
+    StatsCounterId memcap_pressure;
     StatsCounterMaxId memcap_pressure_max;
 } FlowCounters;
 
@@ -673,8 +673,8 @@ typedef struct FlowManagerThreadData_ {
     FlowCounters cnt;
 
     FlowManagerTimeoutThread timeout;
-    uint16_t counter_defrag_timeout;
-    uint16_t counter_defrag_memuse;
+    StatsCounterId counter_defrag_timeout;
+    StatsCounterId counter_defrag_memuse;
 } FlowManagerThreadData;
 
 static void FlowCountersInit(ThreadVars *t, FlowCounters *fc)
@@ -1031,12 +1031,12 @@ void FlowManagerThreadSpawn(void)
 typedef struct FlowRecyclerThreadData_ {
     void *output_thread_data;
 
-    uint16_t counter_flows;
+    StatsCounterId counter_flows;
     StatsCounterAvgId counter_queue_avg;
     StatsCounterMaxId counter_queue_max;
 
-    uint16_t counter_flow_active;
-    uint16_t counter_tcp_active_sessions;
+    StatsCounterId counter_flow_active;
+    StatsCounterId counter_tcp_active_sessions;
     FlowEndCounters fec;
 } FlowRecyclerThreadData;
 

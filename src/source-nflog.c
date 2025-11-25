@@ -106,8 +106,8 @@ typedef struct NFLOGThreadVars_ {
     uint64_t bytes;
     uint32_t errs;
 
-    uint16_t capture_kernel_packets;
-    uint16_t capture_kernel_drops;
+    StatsCounterId capture_kernel_packets;
+    StatsCounterId capture_kernel_drops;
 } NFLOGThreadVars;
 
 /**

@@ -116,12 +116,12 @@ typedef struct DPDKThreadVars_ {
     ChecksumValidationMode checksum_mode;
     bool intr_enabled;
     /* references to packet and drop counters */
-    uint16_t capture_dpdk_packets;
-    uint16_t capture_dpdk_rx_errs;
-    uint16_t capture_dpdk_imissed;
-    uint16_t capture_dpdk_rx_no_mbufs;
-    uint16_t capture_dpdk_ierrors;
-    uint16_t capture_dpdk_tx_errs;
+    StatsCounterId capture_dpdk_packets;
+    StatsCounterId capture_dpdk_rx_errs;
+    StatsCounterId capture_dpdk_imissed;
+    StatsCounterId capture_dpdk_rx_no_mbufs;
+    StatsCounterId capture_dpdk_ierrors;
+    StatsCounterId capture_dpdk_tx_errs;
     unsigned int flags;
     uint16_t threads;
     /* for IPS */

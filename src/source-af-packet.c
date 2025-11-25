@@ -286,16 +286,16 @@ typedef struct AFPThreadVars_
     ChecksumValidationMode checksum_mode;
 
     /* references to packet and drop counters */
-    uint16_t capture_kernel_packets;
-    uint16_t capture_kernel_drops;
-    uint16_t capture_errors;
+    StatsCounterId capture_kernel_packets;
+    StatsCounterId capture_kernel_drops;
+    StatsCounterId capture_errors;
     StatsCounterAvgId afpacket_spin;
-    uint16_t capture_afp_poll;
-    uint16_t capture_afp_poll_signal;
-    uint16_t capture_afp_poll_timeout;
-    uint16_t capture_afp_poll_data;
-    uint16_t capture_afp_poll_err;
-    uint16_t capture_afp_send_err;
+    StatsCounterId capture_afp_poll;
+    StatsCounterId capture_afp_poll_signal;
+    StatsCounterId capture_afp_poll_timeout;
+    StatsCounterId capture_afp_poll_data;
+    StatsCounterId capture_afp_poll_err;
+    StatsCounterId capture_afp_send_err;
 
     uint64_t send_errors_logged; /**< snapshot of send errors logged. */
 

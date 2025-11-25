@@ -89,9 +89,9 @@ typedef struct PcapThreadVars_
     uint64_t pkts;
     uint64_t bytes;
 
-    uint16_t capture_kernel_packets;
-    uint16_t capture_kernel_drops;
-    uint16_t capture_kernel_ifdrops;
+    StatsCounterId capture_kernel_packets;
+    StatsCounterId capture_kernel_drops;
+    StatsCounterId capture_kernel_ifdrops;
 
     ThreadVars *tv;
     TmSlot *slot;
