@@ -120,20 +120,20 @@ bool StatsEnabled(void)
 
 static void StatsPublicThreadContextInit(StatsPublicThreadContext *t)
 {
-    SCMutexInit(&t->m, NULL);
+    SCSpinInit(&t->lock, 0);
 }
 
 static void StatsPublicThreadContextCleanup(StatsPublicThreadContext *t)
 {
-    SCMutexLock(&t->m);
+    SCSpinLock(&t->lock);
     SCFree(t->copy_of_private);
     SCFree(t->pc_array);
     StatsReleaseCounters(t->head);
     t->head = NULL;
     SC_ATOMIC_SET(t->sync_now, false);
     t->curr_id = 0;
-    SCMutexUnlock(&t->m);
-    SCMutexDestroy(&t->m);
+    SCSpinUnlock(&t->lock);
+    SCSpinDestroy(&t->lock);
 }
 
 /**
@@ -735,11 +735,11 @@ static int StatsOutput(ThreadVars *tv)
         memset(&thread_table_from_private, 0x00, max_id * sizeof(StatsLocalCounter));
 
         /* copy private table to a local variable to loop it w/o lock */
-        SCMutexLock(&sts->ctx->m);
+        SCSpinLock(&sts->ctx->lock);
         uint16_t table_size = sts->ctx->curr_id + 1;
         memcpy(&thread_table_from_private, sts->ctx->copy_of_private,
                 table_size * sizeof(StatsLocalCounter));
-        SCMutexUnlock(&sts->ctx->m);
+        SCSpinUnlock(&sts->ctx->lock);
 
         /* loop counters and handle them. This includes the global counters, which
          * access the StatsCounters but don't modify them. */
@@ -1289,9 +1289,9 @@ static int StatsUpdateCounterArray(StatsPrivateThreadContext *pca, StatsPublicTh
         /* copy the whole table under lock to the public section
          * and release the lock. The stats thread will copy it from
          * there. */
-        SCMutexLock(&pctx->m);
+        SCSpinLock(&pctx->lock);
         memcpy(pctx->copy_of_private, pca->head, (pca->size + 1) * sizeof(StatsLocalCounter));
-        SCMutexUnlock(&pctx->m);
+        SCSpinUnlock(&pctx->lock);
     }
     SC_ATOMIC_SET(pctx->sync_now, false);
     return 1;
