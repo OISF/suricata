@@ -69,9 +69,6 @@ typedef struct StatsThreadStore_ {
 
     StatsPublicThreadContext *ctx;
 
-    StatsPublicThreadContext **head;
-    uint32_t size;
-
     struct StatsThreadStore_ *next;
 } StatsThreadStore;
 
@@ -363,9 +360,6 @@ static void StatsReleaseCtx(void)
     sts = stats_ctx->sts;
 
     while (sts != NULL) {
-        if (sts->head != NULL)
-            SCFree(sts->head);
-
         temp = sts->next;
         SCFree(sts);
         sts = temp;
