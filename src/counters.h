@@ -58,10 +58,6 @@ typedef struct StatsCounter_ {
     /* global id, used in output */
     uint16_t gid;
 
-    /* counter value(s): copies from the 'private' counter */
-    int64_t value;      /**< sum of updates/increments, or 'set' value */
-    uint64_t updates;   /**< number of updates (for avg) */
-
     /* when using type STATS_TYPE_Q_FUNC this function is called once
      * to get the counter value, regardless of how many threads there are. */
     uint64_t (*Func)(void);
@@ -73,6 +69,17 @@ typedef struct StatsCounter_ {
     /* the next perfcounter for this tv's tm instance */
     struct StatsCounter_ *next;
 } StatsCounter;
+
+/**
+ * \brief Storage for local countes. This is what the thread updates in real time.
+ */
+typedef struct StatsLocalCounter_ {
+    /* total value of the adds/increments, or exact value in case of 'set' */
+    int64_t value;
+
+    /* no of times the local counter has been updated */
+    uint64_t updates;
+} StatsLocalCounter;
 
 /**
  * \brief Stats Context for a ThreadVars instance
@@ -91,22 +98,13 @@ typedef struct StatsPublicThreadContext_ {
      * thread counter id.
      * Size is `curr_id + 1` after all counters have been registered.
      * Ownership of counters is with `head` above. */
-    StatsCounter **pc_array;
+    const StatsCounter **pc_array;
+
+    StatsLocalCounter *copy_of_private;
 
     /* mutex to prevent simultaneous access during update_counter/output_stat */
     SCMutex m;
 } StatsPublicThreadContext;
-
-/**
- * \brief Storage for local countes. This is what the thread updates in real time.
- */
-typedef struct StatsLocalCounter_ {
-    /* total value of the adds/increments, or exact value in case of 'set' */
-    int64_t value;
-
-    /* no of times the local counter has been updated */
-    uint64_t updates;
-} StatsLocalCounter;
 
 /**
  * \brief used to hold the private version of the counters registered
