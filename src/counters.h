@@ -87,18 +87,20 @@ typedef struct StatsPublicThreadContext_ {
     /* holds the total no of counters already assigned for this perf context */
     uint16_t curr_id;
 
+    /* array of pointers to the StatsCounters in `head` above, indexed by the per
+     * thread counter id.
+     * Size is `curr_id + 1` after all counters have been registered.
+     * Ownership of counters is with `head` above. */
+    StatsCounter **pc_array;
+
     /* mutex to prevent simultaneous access during update_counter/output_stat */
     SCMutex m;
 } StatsPublicThreadContext;
 
 /**
- * \brief Storage for local counters, with a link to the public counter used
- *        for syncs
+ * \brief Storage for local countes. This is what the thread updates in real time.
  */
 typedef struct StatsLocalCounter_ {
-    /* pointer to the counter that corresponds to this local counter */
-    StatsCounter *pc;
-
     /* total value of the adds/increments, or exact value in case of 'set' */
     int64_t value;
 
