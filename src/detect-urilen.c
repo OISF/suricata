@@ -464,6 +464,7 @@ static int DetectUrilenSigTest01(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 

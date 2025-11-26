@@ -278,9 +278,9 @@ static int AlertFastLogTest01(void)
     uint16_t buflen = strlen((char *)buf);
     Packet *p = NULL;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
-
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
+
     p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -296,6 +296,7 @@ static int AlertFastLogTest01(void)
             "Classtype:unknown; sid:1;)");
 
     SigGroupBuild(de_ctx);
+    DetectEngineThreadCtx *det_ctx;
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
@@ -316,9 +317,9 @@ static int AlertFastLogTest02(void)
     uint16_t buflen = strlen((char *)buf);
     Packet *p = NULL;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
 
     p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
 
@@ -335,6 +336,7 @@ static int AlertFastLogTest02(void)
             "Classtype:unknown; sid:1;)");
 
     SigGroupBuild(de_ctx);
+    DetectEngineThreadCtx *det_ctx;
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);

@@ -379,6 +379,7 @@ static int ModbusParserTest03(void)
     FAIL_IF_NULL(alp_tctx);
 
     memset(&tv, 0, sizeof(ThreadVars));
+    StatsThreadInit(&tv);
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 
@@ -512,6 +513,7 @@ static int ModbusParserTest05(void)
     FAIL_IF_NULL(alp_tctx);
 
     memset(&tv, 0, sizeof(ThreadVars));
+    StatsThreadInit(&tv);
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 
@@ -581,6 +583,7 @@ static int ModbusParserTest06(void)
     FAIL_IF_NULL(alp_tctx);
 
     memset(&tv, 0, sizeof(ThreadVars));
+    StatsThreadInit(&tv);
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 
@@ -650,6 +653,7 @@ static int ModbusParserTest07(void)
     FAIL_IF_NULL(alp_tctx);
 
     memset(&tv, 0, sizeof(ThreadVars));
+    StatsThreadInit(&tv);
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 
@@ -720,6 +724,7 @@ static int ModbusParserTest08(void)
     FAIL_IF_NULL(alp_tctx);
 
     memset(&tv, 0, sizeof(ThreadVars));
+    StatsThreadInit(&tv);
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 
@@ -931,6 +936,7 @@ static int ModbusParserTest11(void)
     FAIL_IF(alp_tctx == NULL);
 
     memset(&tv, 0, sizeof(ThreadVars));
+    StatsThreadInit(&tv);
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 
@@ -999,6 +1005,7 @@ static int ModbusParserTest12(void)
     FAIL_IF_NULL(alp_tctx);
 
     memset(&tv, 0, sizeof(ThreadVars));
+    StatsThreadInit(&tv);
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 
@@ -1159,6 +1166,7 @@ static int ModbusParserTest15(void)
     FAIL_IF_NULL(alp_tctx);
 
     memset(&tv, 0, sizeof(ThreadVars));
+    StatsThreadInit(&tv);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -1241,6 +1249,7 @@ static int ModbusParserTest16(void)
     FAIL_IF_NULL(alp_tctx);
 
     memset(&tv, 0, sizeof(ThreadVars));
+    StatsThreadInit(&tv);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -1420,6 +1429,7 @@ static int ModbusParserTest19(void)
     FAIL_IF_NULL(alp_tctx);
 
     memset(&tv, 0, sizeof(ThreadVars));
+    StatsThreadInit(&tv);
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 

@@ -698,6 +698,7 @@ int UTHMatchPacketsWithResults(DetectEngineCtx *de_ctx, Packet **p, int num_pack
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
 
+    StatsThreadInit(&th_v);
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
@@ -736,6 +737,7 @@ int UTHMatchPackets(DetectEngineCtx *de_ctx, Packet **p, int num_packets)
     DetectEngineThreadCtx *det_ctx = NULL;
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     SCSigRegisterSignatureOrderingFuncs(de_ctx);
     SCSigOrderSignatures(de_ctx);
     SCSigSignatureOrderingModuleCleanup(de_ctx);
@@ -776,6 +778,7 @@ int UTHPacketMatchSigMpm(Packet *p, char *sig, uint16_t mpm_type)
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
 
     if (mpm_type == MPM_AC) {
         SCConfSet("mpm-algo", "ac");
@@ -838,6 +841,7 @@ int UTHPacketMatchSig(Packet *p, const char *sig)
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {

@@ -1536,6 +1536,7 @@ static int SCThresholdConfTest09(void)
 {
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
 
     ThresholdInit();
 
@@ -1633,6 +1634,7 @@ static int SCThresholdConfTest10(void)
 
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -1717,6 +1719,7 @@ static int SCThresholdConfTest11(void)
 
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -1823,6 +1826,7 @@ static int SCThresholdConfTest12(void)
 
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -1981,6 +1985,7 @@ static int SCThresholdConfTest14(void)
 
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
 
     FAIL_IF_NOT_NULL(g_ut_threshold_fp);
     g_ut_threshold_fp = SCThresholdConfGenerateValidDummyFD11();
@@ -2025,6 +2030,7 @@ static int SCThresholdConfTest15(void)
 
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
 
     DetectEngineThreadCtx *det_ctx = NULL;
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -2074,6 +2080,7 @@ static int SCThresholdConfTest16(void)
 
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
 
     DetectEngineThreadCtx *det_ctx = NULL;
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -2122,6 +2129,7 @@ static int SCThresholdConfTest17(void)
 
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
 
     DetectEngineThreadCtx *det_ctx = NULL;
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -2394,6 +2402,7 @@ static int SCThresholdConfTest22(void)
 {
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
 
     ThresholdInit();
 
@@ -2532,6 +2541,7 @@ static int SCThresholdConfTest23(void)
 {
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
 
     ThresholdInit();
 

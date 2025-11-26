@@ -63,6 +63,7 @@ static int DetectEngineHttpCookieTest01(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -130,6 +131,7 @@ static int DetectEngineHttpCookieTest02(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -197,6 +199,7 @@ static int DetectEngineHttpCookieTest03(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -264,6 +267,7 @@ static int DetectEngineHttpCookieTest04(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -331,6 +335,7 @@ static int DetectEngineHttpCookieTest05(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -398,6 +403,7 @@ static int DetectEngineHttpCookieTest06(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -465,6 +471,7 @@ static int DetectEngineHttpCookieTest07(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -532,6 +539,7 @@ static int DetectEngineHttpCookieTest08(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -599,6 +607,7 @@ static int DetectEngineHttpCookieTest09(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -666,6 +675,7 @@ static int DetectEngineHttpCookieTest10(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -734,6 +744,7 @@ static int DetectEngineHttpCookieTest11(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -802,6 +813,7 @@ static int DetectEngineHttpCookieTest12(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -870,6 +882,7 @@ static int DetectEngineHttpCookieTest13(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -938,6 +951,7 @@ static int DetectEngineHttpCookieTest14(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -1006,6 +1020,7 @@ static int DetectEngineHttpCookieTest15(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -1074,6 +1089,7 @@ static int DetectEngineHttpCookieTest16(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -1142,6 +1158,7 @@ static int DetectEngineHttpCookieTest17(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -1240,6 +1257,7 @@ static int DetectHttpCookieSigTest01(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -1307,6 +1325,7 @@ static int DetectHttpCookieSigTest02(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -1370,6 +1389,7 @@ static int DetectHttpCookieSigTest03(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -1433,6 +1453,7 @@ static int DetectHttpCookieSigTest04(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -1496,6 +1517,7 @@ static int DetectHttpCookieSigTest05(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -1559,6 +1581,7 @@ static int DetectHttpCookieSigTest06(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -1622,6 +1645,7 @@ static int DetectHttpCookieSigTest07(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -1694,6 +1718,7 @@ static int DetectHttpCookieSigTest08(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -1785,6 +1810,7 @@ static int DetectHttpCookieSigTest09(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 

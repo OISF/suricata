@@ -1592,6 +1592,7 @@ static int FlowBitsTestSig06(void)
     uint32_t idx = 0;
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(Flow));
     memset(&flowvar, 0, sizeof(GenericVar));
 
@@ -1666,6 +1667,7 @@ static int FlowBitsTestSig07(void)
     uint32_t idx = 0;
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(Flow));
     memset(&flowvar, 0, sizeof(GenericVar));
 
@@ -1742,6 +1744,7 @@ static int FlowBitsTestSig08(void)
     uint32_t idx = 0;
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(Flow));
     memset(&flowvar, 0, sizeof(GenericVar));
 

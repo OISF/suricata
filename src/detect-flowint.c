@@ -1115,6 +1115,7 @@ static int DetectFlowintTestPacket01Real(void)
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF(de_ctx == NULL);
@@ -1188,6 +1189,7 @@ static int DetectFlowintTestPacket02Real(void)
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF(de_ctx == NULL);
@@ -1264,6 +1266,7 @@ static int DetectFlowintTestPacket03Real(void)
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF(de_ctx == NULL);

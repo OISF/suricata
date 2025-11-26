@@ -2227,6 +2227,7 @@ static int SCHSTest29(void)
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();

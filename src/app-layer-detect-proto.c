@@ -3164,6 +3164,7 @@ static int AppLayerProtoDetectTest16(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
+    StatsThreadInit(&tv);
     memset(&ssn, 0, sizeof(TcpSession));
 
     p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
@@ -3260,6 +3261,7 @@ static int AppLayerProtoDetectTest17(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
+    StatsThreadInit(&tv);
     memset(&ssn, 0, sizeof(TcpSession));
 
     p = UTHBuildPacketSrcDstPorts(http_buf1, http_buf1_len, IPPROTO_TCP, 12345, 88);
@@ -3350,6 +3352,7 @@ static int AppLayerProtoDetectTest18(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
+    StatsThreadInit(&tv);
     memset(&ssn, 0, sizeof(TcpSession));
 
     p = UTHBuildPacket(http_buf1, http_buf1_len, IPPROTO_TCP);
@@ -3436,6 +3439,7 @@ static int AppLayerProtoDetectTest19(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
+    StatsThreadInit(&tv);
     memset(&ssn, 0, sizeof(TcpSession));
 
     p = UTHBuildPacketSrcDstPorts(http_buf1, http_buf1_len, IPPROTO_TCP, 12345, 88);

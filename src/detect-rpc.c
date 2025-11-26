@@ -479,6 +479,7 @@ static int DetectRpcTestSig01(void)
     DetectEngineThreadCtx *det_ctx;
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
 
     p = UTHBuildPacket(buf, buflen, IPPROTO_UDP);
 

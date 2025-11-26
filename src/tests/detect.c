@@ -144,6 +144,7 @@ static int SigTest03 (void)
     uint16_t buflen = strlen((char *)buf);
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     Packet *p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
     FAIL_IF_NULL(p);
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -177,6 +178,7 @@ static int SigTest04 (void)
     uint16_t buflen = strlen((char *)buf);
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     Packet *p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
     FAIL_IF_NULL(p);
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -210,6 +212,7 @@ static int SigTest05 (void)
     uint16_t buflen = strlen((char *)buf);
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     Packet *p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
     FAIL_IF_NULL(p);
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -250,6 +253,7 @@ static int SigTest06 (void)
     FAIL_IF_NULL(alp_tctx);
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -317,6 +321,7 @@ static int SigTest07 (void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
     p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
@@ -384,6 +389,7 @@ static int SigTest08 (void)
 
     memset(&f, 0, sizeof(Flow));
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&ssn, 0, sizeof(ssn));
 
     Packet *p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
@@ -451,6 +457,7 @@ static int SigTest09 (void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -513,6 +520,7 @@ static int SigTest10 (void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -574,6 +582,7 @@ static int SigTest11 (void)
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -613,16 +622,16 @@ static int SigTest11 (void)
     if (PacketAlertCheck(p, 1) && PacketAlertCheck(p, 2))
         result = 1;
 
- end:
-     FlowCleanupAppLayer(&f);
-     if (det_ctx)
-         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-     DetectEngineCtxFree(de_ctx);
-     UTHFreePackets(&p, 1);
-     StreamTcpFreeConfig(true);
-     FLOW_DESTROY(&f);
-     StatsThreadCleanup(&th_v);
-     return result;
+end:
+    FlowCleanupAppLayer(&f);
+    if (det_ctx)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    UTHFreePackets(&p, 1);
+    StreamTcpFreeConfig(true);
+    FLOW_DESTROY(&f);
+    StatsThreadCleanup(&th_v);
+    return result;
 }
 
 static int SigTest12 (void)
@@ -636,6 +645,7 @@ static int SigTest12 (void)
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     Flow f;
     memset(&f, 0, sizeof(Flow));
 
@@ -690,6 +700,7 @@ static int SigTest13 (void)
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     Flow f;
     memset(&f, 0, sizeof(Flow));
 
@@ -741,6 +752,7 @@ static int SigTest14 (void)
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
 
     p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
 
@@ -787,6 +799,7 @@ static int SigTest15 (void)
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
     p->payload = buf;
@@ -841,6 +854,7 @@ static int SigTest16 (void)
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&p, 0, sizeof(p));
 
     p = UTHBuildPacketSrcDstPorts((uint8_t *)buf, buflen, IPPROTO_TCP, 12345, 1234);
@@ -894,6 +908,7 @@ static int SigTest17 (void)
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
 
     p = UTHBuildPacketSrcDstPorts((uint8_t *)buf, buflen, IPPROTO_TCP, 12345, 80);
     FAIL_IF_NULL(p);
@@ -942,6 +957,7 @@ static int SigTest18 (void)
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
     p->payload = buf;
@@ -993,6 +1009,7 @@ static int SigTest19 (void)
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     p->src.family = AF_INET;
     p->src.addr_data32[0] = UTHSetIPv4Address("192.168.0.1");
     p->dst.addr_data32[0] = UTHSetIPv4Address("1.2.3.4");
@@ -1053,6 +1070,7 @@ static int SigTest20 (void)
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     p->src.family = AF_INET;
     p->src.addr_data32[0] = UTHSetIPv4Address("192.168.0.1");
     p->dst.addr_data32[0] = UTHSetIPv4Address("1.2.3.4");
@@ -1104,6 +1122,7 @@ static int SigTest21 (void)
 {
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
@@ -1180,6 +1199,7 @@ static int SigTest22 (void)
 {
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
@@ -1253,6 +1273,7 @@ static int SigTest23 (void)
 {
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
@@ -1351,6 +1372,7 @@ static int SigTest24IPV4Keyword(void)
     uint16_t buflen = strlen((char *)buf);
 
     memset(&th_v, 0, sizeof(ThreadVars));
+    StatsThreadInit(&th_v);
 
     PacketSetIPV4(p1, valid_raw_ipv4);
     p1->src.family = AF_INET;
@@ -1448,6 +1470,7 @@ static int SigTest25NegativeIPV4Keyword(void)
     uint16_t buflen = strlen((char *)buf);
 
     memset(&th_v, 0, sizeof(ThreadVars));
+    StatsThreadInit(&th_v);
 
     PacketSetIPV4(p1, valid_raw_ipv4);
     p1->src.family = AF_INET;
@@ -1548,6 +1571,7 @@ static int SigTest26TCPV4Keyword(void)
     DetectEngineThreadCtx *det_ctx = NULL;
 
     memset(&th_v, 0, sizeof(ThreadVars));
+    StatsThreadInit(&th_v);
 
     PacketCopyData(p1, raw_ipv4, sizeof(raw_ipv4));
     PacketCopyDataOffset(p1, GET_PKT_LEN(p1), valid_raw_tcp, sizeof(valid_raw_tcp));
@@ -1643,6 +1667,7 @@ static int SigTest26TCPV4AndNegativeIPV4Keyword(void)
     int result = 0;
 
     memset(&th_v, 0, sizeof(ThreadVars));
+    StatsThreadInit(&th_v);
 
     PacketCopyData(p1, raw_ipv4, sizeof(raw_ipv4));
     PacketCopyDataOffset(p1, GET_PKT_LEN(p1), valid_raw_tcp, sizeof(valid_raw_tcp));
@@ -1764,6 +1789,7 @@ static int SigTest26TCPV4AndIPV4Keyword(void)
     int result = 0;
 
     memset(&th_v, 0, sizeof(ThreadVars));
+    StatsThreadInit(&th_v);
 
     PacketCopyData(p1, raw_ipv4, sizeof(raw_ipv4));
     PacketCopyDataOffset(p1, GET_PKT_LEN(p1), valid_raw_tcp, sizeof(valid_raw_tcp));
@@ -1872,6 +1898,7 @@ static int SigTest27NegativeTCPV4Keyword(void)
     int result = 0;
 
     memset(&th_v, 0, sizeof(ThreadVars));
+    StatsThreadInit(&th_v);
 
     PacketCopyData(p1, raw_ipv4, sizeof(raw_ipv4));
     PacketCopyDataOffset(p1, GET_PKT_LEN(p1), valid_raw_tcp, sizeof(valid_raw_tcp));
@@ -1993,6 +2020,7 @@ static int SigTest28TCPV6Keyword(void)
     int result = 0;
 
     memset(&th_v, 0, sizeof(ThreadVars));
+    StatsThreadInit(&th_v);
 
     PacketSetIPV6(p1, valid_raw_ipv6 + 14);
     PacketSetTCP(p1, (valid_raw_ipv6 + 54));
@@ -2116,6 +2144,7 @@ static int SigTest29NegativeTCPV6Keyword(void)
     int result = 0;
 
     memset(&th_v, 0, sizeof(ThreadVars));
+    StatsThreadInit(&th_v);
 
     PacketSetIPV6(p1, valid_raw_ipv6 + 14);
     PacketSetTCP(p1, valid_raw_ipv6 + 54);
@@ -2231,6 +2260,7 @@ static int SigTest30UDPV4Keyword(void)
                     "\r\n\r\nyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy";
 
     memset(&th_v, 0, sizeof(ThreadVars));
+    StatsThreadInit(&th_v);
 
     PacketSetIPV4(p1, raw_ipv4);
     PacketSetUDP(p1, valid_raw_udp);
@@ -2334,6 +2364,7 @@ static int SigTest31NegativeUDPV4Keyword(void)
                     "\r\n\r\nyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy";
 
     memset(&th_v, 0, sizeof(ThreadVars));
+    StatsThreadInit(&th_v);
 
     PacketSetIPV4(p1, raw_ipv4);
     PacketSetUDP(p1, valid_raw_udp);
@@ -2442,6 +2473,7 @@ static int SigTest32UDPV6Keyword(void)
                     "\r\n\r\n";
 
     memset(&th_v, 0, sizeof(ThreadVars));
+    StatsThreadInit(&th_v);
 
     PacketSetIPV6(p1, valid_raw_ipv6 + 14);
     PacketSetUDP(p1, valid_raw_ipv6 + 54);
@@ -2538,6 +2570,7 @@ static int SigTest33NegativeUDPV6Keyword(void)
                     "\r\n\r\n";
 
     memset(&th_v, 0, sizeof(ThreadVars));
+    StatsThreadInit(&th_v);
 
     PacketSetIPV6(p1, valid_raw_ipv6 + 14);
     PacketSetUDP(p1, valid_raw_ipv6 + 54);
@@ -2651,6 +2684,7 @@ static int SigTest34ICMPV4Keyword(void)
     uint16_t buflen = strlen((char *)buf);
 
     memset(&th_v, 0, sizeof(ThreadVars));
+    StatsThreadInit(&th_v);
 
     IPV4Hdr *ip4h = PacketSetIPV4(p1, valid_raw_ipv4);
     ip4h->ip_verhl = 69;
@@ -2766,6 +2800,7 @@ static int SigTest35NegativeICMPV4Keyword(void)
     uint16_t buflen = strlen((char *)buf);
 
     memset(&th_v, 0, sizeof(ThreadVars));
+    StatsThreadInit(&th_v);
 
     IPV4Hdr *ip4h = PacketSetIPV4(p1, valid_raw_ipv4);
     ip4h->ip_verhl = 69;
@@ -2880,6 +2915,7 @@ static int SigTest38(void)
     uint16_t buflen = sizeof(buf);
 
     memset(&th_v, 0, sizeof(ThreadVars));
+    StatsThreadInit(&th_v);
 
     /* Copy raw data into packet */
     if (PacketCopyData(p1, raw_eth, ethlen) == -1) {
@@ -3003,6 +3039,7 @@ static int SigTest39(void)
     uint16_t buflen = sizeof(buf);
 
     memset(&th_v, 0, sizeof(ThreadVars));
+    StatsThreadInit(&th_v);
 
     Packet *p1 = PacketGetFromAlloc();
     FAIL_IF_NULL(p1);
@@ -3105,6 +3142,7 @@ static int SigTest36ContentAndIsdataatKeywords01 (void)
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
 
     FlowInitConfig(FLOW_QUIET);
     DecodeEthernet(&th_v, &dtv, p, raw_eth, sizeof(raw_eth));
@@ -3185,6 +3223,7 @@ static int SigTest37ContentAndIsdataatKeywords02 (void)
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
 
     FlowInitConfig(FLOW_QUIET);
     DecodeEthernet(&th_v, &dtv, p, raw_eth, sizeof(raw_eth));
@@ -3268,6 +3307,7 @@ static int SigTest40NoPacketInspection01(void)
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&pq, 0, sizeof(pq));
     memset(&f, 0, sizeof(f));
     memset(&tcphdr, 0, sizeof(tcphdr));
@@ -3332,6 +3372,7 @@ static int SigTest40NoPayloadInspection02(void)
     uint16_t buflen = strlen((char *)buf);
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
 
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
@@ -3384,6 +3425,7 @@ static int SigTestMemory01 (void)
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
     p->payload = buf;
@@ -3422,6 +3464,7 @@ static int SigTestMemory02 (void)
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -3456,6 +3499,7 @@ static int SigTestMemory03 (void)
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -3498,6 +3542,7 @@ static int SigTestContent01 (void)
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
 
     Packet *p = NULL;
     p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
@@ -3540,6 +3585,7 @@ static int SigTestContent02 (void)
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     Packet *p = NULL;
     p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
 
@@ -3591,6 +3637,7 @@ static int SigTestContent03 (void)
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     Packet *p = NULL;
     p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
 
@@ -3633,6 +3680,7 @@ static int SigTestContent04 (void)
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
 
     Packet *p = NULL;
     p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
@@ -3677,6 +3725,7 @@ static int SigTestContent05 (void)
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     Packet *p = NULL;
     p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
 
@@ -3736,6 +3785,7 @@ static int SigTestContent06 (void)
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     Packet *p = NULL;
     p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
 
@@ -3877,6 +3927,7 @@ static int SigTestWithin01 (void)
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
 
     DetectEngineThreadCtx *det_ctx = NULL;
 
@@ -3953,6 +4004,7 @@ static int SigTestDepthOffset01 (void)
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
 
     p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
 
@@ -3990,6 +4042,7 @@ static int SigTestDetectAlertCounter(void)
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
     memset(&tv, 0, sizeof(tv));
+    StatsThreadInit(&tv);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -4047,6 +4100,7 @@ static int SigTestDropFlow01(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
+    StatsThreadInit(&tv);
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 
@@ -4122,6 +4176,7 @@ static int SigTestDropFlow02(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
+    StatsThreadInit(&tv);
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 
@@ -4233,6 +4288,7 @@ static int SigTestDropFlow03(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
+    StatsThreadInit(&tv);
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 
@@ -4384,6 +4440,7 @@ static int SigTestPorts01(void)
     uint8_t payload[] = "AAAAAAAAAAAAAAAAAA";
 
     memset(&tv, 0, sizeof(ThreadVars));
+    StatsThreadInit(&tv);
 
     p1 = UTHBuildPacket(payload, sizeof(payload), IPPROTO_ICMP);
 
@@ -4429,6 +4486,7 @@ static int SigTestBug01(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     uint8_t payload[] = "!mymy";
     memset(&tv, 0, sizeof(ThreadVars));
+    StatsThreadInit(&tv);
 
     Packet *p1 = UTHBuildPacket(payload, sizeof(payload), IPPROTO_TCP);
     FAIL_IF_NULL(p1);

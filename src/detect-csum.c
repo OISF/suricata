@@ -935,6 +935,7 @@ static int DetectCsumICMPV6Test01(void)
     PacketCopyData(p, pkt, sizeof(pkt));
 
     memset(&tv, 0, sizeof(tv));
+    StatsThreadInit(&tv);
     memset(&dtv, 0, sizeof(dtv));
 
     StreamTcpInitConfig(true);

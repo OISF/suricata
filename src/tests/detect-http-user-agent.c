@@ -56,6 +56,7 @@ static int DetectEngineHttpUATest(
     FAIL_IF_NULL(alp_tctx);
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -443,6 +444,7 @@ static int DetectHttpUATest06(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -519,6 +521,7 @@ static int DetectHttpUATest07(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -609,6 +612,7 @@ static int DetectHttpUATest08(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -703,6 +707,7 @@ static int DetectHttpUATest09(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -796,6 +801,7 @@ static int DetectHttpUATest10(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -882,6 +888,7 @@ static int DetectHttpUATest11(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -953,6 +960,7 @@ static int DetectHttpUATest12(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -1025,6 +1033,7 @@ static int DetectHttpUATest13(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -1103,6 +1112,7 @@ static int DetectHttpUATest14(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 

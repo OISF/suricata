@@ -1981,6 +1981,7 @@ static int SCACTest29(void)
     DetectEngineThreadCtx *det_ctx = NULL;
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     Packet *p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
     FAIL_IF_NULL(p);
 
