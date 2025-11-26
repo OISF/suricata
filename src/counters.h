@@ -71,14 +71,11 @@ typedef struct StatsCounter_ {
 } StatsCounter;
 
 /**
- * \brief Storage for local countes. This is what the thread updates in real time.
+ * \brief counter type for local (private) increments.
+ * For AVG counters we use 2 to track values and updates.
  */
 typedef struct StatsLocalCounter_ {
-    /* total value of the adds/increments, or exact value in case of 'set' */
-    int64_t value;
-
-    /* no of times the local counter has been updated */
-    uint64_t updates;
+    int64_t v;
 } StatsLocalCounter;
 
 /**
