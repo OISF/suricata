@@ -1149,12 +1149,14 @@ static TmEcode UnixManagerThreadDeinit(ThreadVars *t, void *data)
 
 static TmEcode UnixManager(ThreadVars *th_v, void *thread_data)
 {
-    int ret;
-
     /* set the thread name */
     SCLogDebug("%s started...", th_v->name);
 
-    StatsSetupPrivate(th_v);
+    int r = StatsSetupPrivate(th_v);
+    if (r != 0) {
+        SCLogError("stats setup failed with code %d", r);
+        return TM_ECODE_FAILED;
+    }
 
     /* Set the threads capability */
     th_v->cap_flags = 0;
@@ -1163,7 +1165,7 @@ static TmEcode UnixManager(ThreadVars *th_v, void *thread_data)
     TmThreadsSetFlag(th_v, THV_INIT_DONE | THV_RUNNING);
 
     while (1) {
-        ret = UnixMain(&command);
+        int ret = UnixMain(&command);
         if (ret == 0) {
             SCLogError("Fatal error on unix socket");
         }
@@ -1183,7 +1185,6 @@ static TmEcode UnixManager(ThreadVars *th_v, void *thread_data)
     }
     return TM_ECODE_OK;
 }
-
 
 /** \brief Spawn the unix socket manager thread
  *
