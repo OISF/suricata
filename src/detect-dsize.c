@@ -588,20 +588,19 @@ static int DetectDsizeIcmpv6Test01(void)
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
 
-    ThreadVars tv;
     DecodeThreadVars dtv;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
 
-    memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(ThreadVars));
+    StatsThreadInit(&th_v);
 
     FlowInitConfig(FLOW_QUIET);
     p->src.family = AF_INET6;
     p->dst.family = AF_INET6;
 
-    DecodeIPV6(&tv, &dtv, p, raw_icmpv6, sizeof(raw_icmpv6));
+    DecodeIPV6(&th_v, &dtv, p, raw_icmpv6, sizeof(raw_icmpv6));
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);

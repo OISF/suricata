@@ -381,6 +381,7 @@ static int DetectDetectionFilterTestSig1(void)
     ThresholdInit();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
 
     Packet *p = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
 
@@ -438,6 +439,7 @@ static int DetectDetectionFilterTestSig2(void)
     ThresholdInit();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
 
     Packet *p = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
 
@@ -496,6 +498,7 @@ static int DetectDetectionFilterTestSig3(void)
     ThresholdInit();
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
 
     Packet *p = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
 

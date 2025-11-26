@@ -31,10 +31,11 @@
 
 extern thread_local uint32_t ut_inspection_recursion_counter;
 
-#define TEST_HEADER                                     \
-    ThreadVars tv;                                      \
-    memset(&tv, 0, sizeof(tv));                         \
-    Flow f;                                             \
+#define TEST_HEADER                                                                                \
+    ThreadVars tv;                                                                                 \
+    memset(&tv, 0, sizeof(tv));                                                                    \
+    StatsThreadInit(&tv);                                                                          \
+    Flow f;                                                                                        \
     memset(&f, 0, sizeof(f));
 
 #define TEST_RUN(buf, buflen, sig, match, steps)                                                   \

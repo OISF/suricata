@@ -166,6 +166,7 @@ static int DetectTtlTestSig1(void)
     IPV4Hdr ip4h;
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&ip4h, 0, sizeof(ip4h));
 
     p->src.family = AF_INET;

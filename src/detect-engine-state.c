@@ -467,6 +467,7 @@ static int DeStateSigTest01(void)
     FAIL_IF_NULL(alp_tctx);
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -554,6 +555,7 @@ static int DeStateSigTest02(void)
     FAIL_IF_NULL(alp_tctx);
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -666,6 +668,7 @@ static int DeStateSigTest03(void)
     FAIL_IF_NULL(alp_tctx);
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&ssn, 0, sizeof(ssn));
 
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -750,6 +753,7 @@ static int DeStateSigTest04(void)
     FAIL_IF_NULL(alp_tctx);
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&ssn, 0, sizeof(ssn));
 
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -831,6 +835,7 @@ static int DeStateSigTest05(void)
     FAIL_IF_NULL(alp_tctx);
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&ssn, 0, sizeof(ssn));
 
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -915,6 +920,7 @@ static int DeStateSigTest06(void)
     FAIL_IF_NULL(alp_tctx);
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&ssn, 0, sizeof(ssn));
 
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -1000,6 +1006,7 @@ static int DeStateSigTest07(void)
     FAIL_IF_NULL(alp_tctx);
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&ssn, 0, sizeof(ssn));
 
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -1100,6 +1107,7 @@ static int DeStateSigTest08(void)
     FAIL_IF_NULL(alp_tctx);
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&ssn, 0, sizeof(ssn));
 
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -1230,6 +1238,7 @@ static int DeStateSigTest09(void)
     FAIL_IF_NULL(alp_tctx);
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&ssn, 0, sizeof(ssn));
 
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -1358,6 +1367,7 @@ static int DeStateSigTest10(void)
     FAIL_IF_NULL(alp_tctx);
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     memset(&ssn, 0, sizeof(ssn));
 
     DetectEngineThreadCtx *det_ctx = NULL;

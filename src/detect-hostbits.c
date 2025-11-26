@@ -574,6 +574,7 @@ static int HostBitsTestSig01(void)
     DetectEngineCtx *de_ctx = NULL;
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
     p->payload = buf;
@@ -676,6 +677,7 @@ static int HostBitsTestSig03(void)
     int idx = 0;
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
     p->payload = buf;

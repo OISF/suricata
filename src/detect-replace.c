@@ -238,6 +238,7 @@ int DetectReplaceLongPatternMatchTest(uint8_t *raw_eth_pkt, uint16_t pktsize,
     ThreadVars th_v;
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     DetectEngineThreadCtx *det_ctx = NULL;
 
     if (pp == NULL) {

@@ -1389,6 +1389,7 @@ void AppLayerDeSetupCounters(void)
     memset(&pq, 0, sizeof(PacketQueueNoLock));                                                     \
     memset(&f, 0, sizeof(Flow));                                                                   \
     memset(&tv, 0, sizeof(ThreadVars));                                                            \
+    StatsThreadInit(&tv);                                                                          \
     memset(&tcph, 0, sizeof(TCPHdr));                                                              \
                                                                                                    \
     FLOW_INITIALIZE(&f);                                                                           \
