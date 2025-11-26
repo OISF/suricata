@@ -153,7 +153,7 @@ void StatsAddUI64(ThreadVars *tv, StatsCounterId id, uint64_t x)
 #ifdef DEBUG
     BUG_ON((id.id < 1) || (id.id > pca->size));
 #endif
-    pca->head[id.id].value += x;
+    pca->head[id.id].v += x;
 }
 
 /**
@@ -172,7 +172,7 @@ void StatsIncr(ThreadVars *tv, StatsCounterId id)
 #ifdef DEBUG
     BUG_ON((id.id < 1) || (id.id > pca->size));
 #endif
-    pca->head[id.id].value++;
+    pca->head[id.id].v++;
 }
 
 /**
@@ -191,7 +191,7 @@ void StatsDecr(ThreadVars *tv, StatsCounterId id)
 #ifdef DEBUG
     BUG_ON((id.id < 1) || (id.id > pca->size));
 #endif
-    pca->head[id.id].value--;
+    pca->head[id.id].v--;
 }
 
 /**
@@ -211,7 +211,7 @@ void StatsSetUI64(ThreadVars *tv, StatsCounterId id, uint64_t x)
 #ifdef DEBUG
     BUG_ON((id.id < 1) || (id.id > pca->size));
 #endif
-    pca->head[id.id].value = x;
+    pca->head[id.id].v = x;
 }
 
 /**
@@ -232,8 +232,8 @@ void StatsCounterMaxUpdateI64(ThreadVars *tv, StatsCounterMaxId id, int64_t x)
     BUG_ON((id.id < 1) || (id.id > pca->size));
 #endif
 
-    if ((int64_t)x > pca->head[id.id].value) {
-        pca->head[id.id].value = x;
+    if ((int64_t)x > pca->head[id.id].v) {
+        pca->head[id.id].v = x;
     }
 }
 
@@ -248,8 +248,8 @@ void StatsCounterAvgAddI64(ThreadVars *tv, StatsCounterAvgId id, int64_t x)
     BUG_ON((id.id < 1) || (id.id > pca->size));
 #endif
 
-    pca->head[id.id].value += x;
-    pca->head[id.id].updates++;
+    pca->head[id.id].v += x;
+    pca->head[id.id + 1].v++;
 }
 
 static SCConfNode *GetConfig(void)
@@ -643,6 +643,11 @@ static uint16_t StatsRegisterQualifiedCounter(const char *name, const char *tm_n
     /* assign a unique id to this StatsCounter.  The id is local to this
      * thread context.  Please note that the id start from 1, and not 0 */
     pc->id = ++(pctx->curr_id);
+
+    /* for AVG counters we use 2 indices into the tables: one for values,
+     * the other to track updates. */
+    if (type_q == STATS_TYPE_AVERAGE)
+        ++(pctx->curr_id);
     pc->name = name;
 
     /* Precalculate the short name */
@@ -756,14 +761,18 @@ static int StatsOutput(ThreadVars *tv)
                         thread_table[pc->gid].value = pc->Func();
                     break;
                 case STATS_TYPE_AVERAGE:
+                    thread_table[pc->gid].value = thread_table_from_private[i].v;
+                    thread_table[pc->gid].updates = thread_table_from_private[i + 1].v;
+                    /* skip updates row */
+                    i++;
+                    break;
                 default:
                     SCLogDebug("Counter %s (%u:%u) value %" PRIu64, pc->name, pc->id, pc->gid,
-                            thread_table_from_private[i].value);
+                            thread_table_from_private[i].v);
 
-                    thread_table[pc->gid].value = thread_table_from_private[i].value;
+                    thread_table[pc->gid].value = thread_table_from_private[i].v;
                     break;
             }
-            thread_table[pc->gid].updates = thread_table_from_private[i].updates;
         }
 
         /* update merge table */
@@ -1198,56 +1207,6 @@ static int StatsThreadRegister(const char *thread_name, StatsPublicThreadContext
 }
 
 /** \internal
- *  \brief Returns a counter array for counters in this id range(s_id - e_id)
- *
- *  \param s_id Counter id of the first counter to be added to the array
- *  \param e_id Counter id of the last counter to be added to the array
- *  \param pctx Pointer to the tv's StatsPublicThreadContext
- *
- *  \retval a counter-array in this(s_id-e_id) range for this TM instance
- */
-static int StatsGetCounterArrayRange(uint16_t s_id, uint16_t e_id,
-                                      StatsPublicThreadContext *pctx,
-                                      StatsPrivateThreadContext *pca)
-{
-    StatsCounter *pc = NULL;
-    uint32_t i = 0;
-
-    if (pctx == NULL || pca == NULL) {
-        SCLogDebug("pctx/pca is NULL");
-        return -1;
-    }
-
-    if (s_id < 1 || e_id < 1 || s_id > e_id) {
-        SCLogDebug("error with the counter ids");
-        return -1;
-    }
-
-    if (e_id > pctx->curr_id) {
-        SCLogDebug("end id is greater than the max id for this tv");
-        return -1;
-    }
-
-    if ((pca->head = SCCalloc(1, sizeof(StatsLocalCounter) * (e_id - s_id + 2))) == NULL) {
-        return -1;
-    }
-
-    pc = pctx->head;
-    while (pc->id != s_id)
-        pc = pc->next;
-
-    i = 1;
-    while ((pc != NULL) && (pc->id <= e_id)) {
-        pc = pc->next;
-        i++;
-    }
-    pca->size = i - 1;
-
-    pca->initialized = 1;
-    return 0;
-}
-
-/** \internal
  *  \brief Returns a counter array for all counters registered for this tm
  *         instance
  *
@@ -1256,14 +1215,22 @@ static int StatsGetCounterArrayRange(uint16_t s_id, uint16_t e_id,
  *  \retval pca Pointer to a counter-array for all counter of this tm instance
  *              on success; NULL on failure
  */
-static int StatsGetAllCountersArray(StatsPublicThreadContext *pctx, StatsPrivateThreadContext *private)
+static int StatsGetAllCountersArray(
+        StatsPublicThreadContext *pctx, StatsPrivateThreadContext *private)
 {
     if (pctx == NULL || private == NULL)
         return -1;
 
-    return StatsGetCounterArrayRange(1, pctx->curr_id, pctx, private);
-}
+    private->size = pctx->curr_id + 1;
 
+    private->head = SCCalloc(private->size, sizeof(StatsLocalCounter));
+    if (private->head == NULL) {
+        return -1;
+    }
+
+    private->initialized = 1;
+    return 0;
+}
 
 int StatsSetupPrivate(ThreadVars *tv)
 {
@@ -1307,7 +1274,7 @@ static int StatsUpdateCounterArray(StatsPrivateThreadContext *pca, StatsPublicTh
          * and release the lock. The stats thread will copy it from
          * there. */
         SCSpinLock(&pctx->lock);
-        memcpy(pctx->copy_of_private, pca->head, (pca->size + 1) * sizeof(StatsLocalCounter));
+        memcpy(pctx->copy_of_private, pca->head, pca->size * sizeof(StatsLocalCounter));
         SCSpinUnlock(&pctx->lock);
     }
     SC_ATOMIC_SET(pctx->sync_now, false);
@@ -1329,7 +1296,7 @@ uint64_t StatsGetLocalCounterValue(ThreadVars *tv, StatsCounterId id)
 #ifdef DEBUG
     BUG_ON((id.id < 1) || (id.id > pca->size));
 #endif
-    return pca->head[id.id].value;
+    return pca->head[id.id].v;
 }
 
 /**
@@ -1491,7 +1458,7 @@ static int StatsTestCntArraySize07(void)
     StatsIncr(&tv, id1);
     StatsIncr(&tv, id2);
 
-    FAIL_IF_NOT(pca->size == 2);
+    FAIL_IF_NOT(pca->size == 3);
 
     StatsThreadCleanup(&tv);
     PASS;
@@ -1509,7 +1476,7 @@ static int StatsTestUpdateCounter08(void)
 
     StatsIncr(&tv, c1);
     StatsAddUI64(&tv, c1, 100);
-    FAIL_IF_NOT(pca->head[c1.id].value == 101);
+    FAIL_IF_NOT(pca->head[c1.id].v == 101);
 
     StatsThreadCleanup(&tv);
     PASS;
@@ -1534,8 +1501,8 @@ static int StatsTestUpdateCounter09(void)
     StatsIncr(&tv, c5);
     StatsAddUI64(&tv, c5, 100);
 
-    FAIL_IF_NOT(pca->head[c1.id].value == 0);
-    FAIL_IF_NOT(pca->head[c5.id].value == 101);
+    FAIL_IF_NOT(pca->head[c1.id].v == 0);
+    FAIL_IF_NOT(pca->head[c5.id].v == 101);
 
     StatsThreadCleanup(&tv);
     PASS;
@@ -1562,9 +1529,9 @@ static int StatsTestUpdateGlobalCounter10(void)
 
     StatsUpdateCounterArray(pca, &tv.perf_public_ctx);
 
-    FAIL_IF_NOT(1 == tv.perf_public_ctx.copy_of_private[c1.id].value);
-    FAIL_IF_NOT(100 == tv.perf_public_ctx.copy_of_private[c2.id].value);
-    FAIL_IF_NOT(101 == tv.perf_public_ctx.copy_of_private[c3.id].value);
+    FAIL_IF_NOT(1 == tv.perf_public_ctx.copy_of_private[c1.id].v);
+    FAIL_IF_NOT(100 == tv.perf_public_ctx.copy_of_private[c2.id].v);
+    FAIL_IF_NOT(101 == tv.perf_public_ctx.copy_of_private[c3.id].v);
 
     StatsThreadCleanup(&tv);
     PASS;
@@ -1592,10 +1559,10 @@ static int StatsTestCounterValues11(void)
 
     StatsUpdateCounterArray(pca, &tv.perf_public_ctx);
 
-    FAIL_IF_NOT(1 == tv.perf_public_ctx.copy_of_private[c1.id].value);
-    FAIL_IF_NOT(256 == tv.perf_public_ctx.copy_of_private[c2.id].value);
-    FAIL_IF_NOT(257 == tv.perf_public_ctx.copy_of_private[c3.id].value);
-    FAIL_IF_NOT(16843024 == tv.perf_public_ctx.copy_of_private[c4.id].value);
+    FAIL_IF_NOT(1 == tv.perf_public_ctx.copy_of_private[c1.id].v);
+    FAIL_IF_NOT(256 == tv.perf_public_ctx.copy_of_private[c2.id].v);
+    FAIL_IF_NOT(257 == tv.perf_public_ctx.copy_of_private[c3.id].v);
+    FAIL_IF_NOT(16843024 == tv.perf_public_ctx.copy_of_private[c4.id].v);
 
     StatsThreadCleanup(&tv);
     PASS;
