@@ -116,6 +116,11 @@ typedef struct StatsPrivateThreadContext_ {
     int initialized;
 } StatsPrivateThreadContext;
 
+typedef struct StatsThreadContext_ {
+    StatsPublicThreadContext pub;
+    StatsPrivateThreadContext priv;
+} StatsThreadContext;
+
 /* the initialization functions */
 void StatsInit(void);
 void StatsSetupPostConfigPreOutput(void);

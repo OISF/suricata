@@ -120,13 +120,10 @@ typedef struct ThreadVars_ {
     /* counters */
 
     /** private counter store: counter updates modify this */
-    StatsPrivateThreadContext perf_private_ctx;
+    StatsThreadContext stats;
 
     /** pointer to the next thread */
     struct ThreadVars_ *next;
-
-    /** public counter store: counter syncs update this */
-    StatsPublicThreadContext perf_public_ctx;
 
     /* mutex and condition used by management threads */
 

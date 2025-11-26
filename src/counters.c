@@ -145,7 +145,7 @@ static void StatsPublicThreadContextCleanup(StatsPublicThreadContext *t)
  */
 void StatsAddUI64(ThreadVars *tv, StatsCounterId id, uint64_t x)
 {
-    StatsPrivateThreadContext *pca = &tv->perf_private_ctx;
+    StatsPrivateThreadContext *pca = &tv->stats.priv;
 #if defined (UNITTESTS) || defined (FUZZ)
     if (pca->initialized == 0)
         return;
@@ -164,7 +164,7 @@ void StatsAddUI64(ThreadVars *tv, StatsCounterId id, uint64_t x)
  */
 void StatsIncr(ThreadVars *tv, StatsCounterId id)
 {
-    StatsPrivateThreadContext *pca = &tv->perf_private_ctx;
+    StatsPrivateThreadContext *pca = &tv->stats.priv;
 #if defined (UNITTESTS) || defined (FUZZ)
     if (pca->initialized == 0)
         return;
@@ -183,7 +183,7 @@ void StatsIncr(ThreadVars *tv, StatsCounterId id)
  */
 void StatsDecr(ThreadVars *tv, StatsCounterId id)
 {
-    StatsPrivateThreadContext *pca = &tv->perf_private_ctx;
+    StatsPrivateThreadContext *pca = &tv->stats.priv;
 #if defined(UNITTESTS) || defined(FUZZ)
     if (pca->initialized == 0)
         return;
@@ -203,7 +203,7 @@ void StatsDecr(ThreadVars *tv, StatsCounterId id)
  */
 void StatsSetUI64(ThreadVars *tv, StatsCounterId id, uint64_t x)
 {
-    StatsPrivateThreadContext *pca = &tv->perf_private_ctx;
+    StatsPrivateThreadContext *pca = &tv->stats.priv;
 #if defined (UNITTESTS) || defined (FUZZ)
     if (pca->initialized == 0)
         return;
@@ -223,7 +223,7 @@ void StatsSetUI64(ThreadVars *tv, StatsCounterId id, uint64_t x)
  */
 void StatsCounterMaxUpdateI64(ThreadVars *tv, StatsCounterMaxId id, int64_t x)
 {
-    StatsPrivateThreadContext *pca = &tv->perf_private_ctx;
+    StatsPrivateThreadContext *pca = &tv->stats.priv;
 #if defined(UNITTESTS) || defined(FUZZ)
     if (pca->initialized == 0)
         return;
@@ -239,7 +239,7 @@ void StatsCounterMaxUpdateI64(ThreadVars *tv, StatsCounterMaxId id, int64_t x)
 
 void StatsCounterAvgAddI64(ThreadVars *tv, StatsCounterAvgId id, int64_t x)
 {
-    StatsPrivateThreadContext *pca = &tv->perf_private_ctx;
+    StatsPrivateThreadContext *pca = &tv->stats.priv;
 #if defined(UNITTESTS) || defined(FUZZ)
     if (pca->initialized == 0)
         return;
@@ -477,13 +477,13 @@ static void *StatsMgmtThread(void *arg)
 
 void StatsSyncCounters(ThreadVars *tv)
 {
-    StatsUpdateCounterArray(&tv->perf_private_ctx, &tv->perf_public_ctx);
+    StatsUpdateCounterArray(&tv->stats.priv, &tv->stats.pub);
 }
 
 void StatsSyncCountersIfSignalled(ThreadVars *tv)
 {
-    if (SC_ATOMIC_GET(tv->perf_public_ctx.sync_now)) {
-        StatsUpdateCounterArray(&tv->perf_private_ctx, &tv->perf_public_ctx);
+    if (SC_ATOMIC_GET(tv->stats.pub.sync_now)) {
+        StatsUpdateCounterArray(&tv->stats.priv, &tv->stats.pub);
     }
 }
 
@@ -541,12 +541,12 @@ static void *StatsWakeupThread(void *arg)
         SCMutexLock(&tv_root_lock);
         ThreadVars *tv = tv_root[TVT_PPT];
         while (tv != NULL) {
-            if (tv->perf_public_ctx.head == NULL) {
+            if (tv->stats.pub.head == NULL) {
                 tv = tv->next;
                 continue;
             }
 
-            SC_ATOMIC_SET(tv->perf_public_ctx.sync_now, true);
+            SC_ATOMIC_SET(tv->stats.pub.sync_now, true);
 
             if (tv->inq != NULL) {
                 PacketQueue *q = tv->inq->pq;
@@ -561,12 +561,12 @@ static void *StatsWakeupThread(void *arg)
         /* mgt threads for flow manager */
         tv = tv_root[TVT_MGMT];
         while (tv != NULL) {
-            if (tv->perf_public_ctx.head == NULL) {
+            if (tv->stats.pub.head == NULL) {
                 tv = tv->next;
                 continue;
             }
 
-            SC_ATOMIC_SET(tv->perf_public_ctx.sync_now, true);
+            SC_ATOMIC_SET(tv->stats.pub.sync_now, true);
 
             tv = tv->next;
         }
@@ -1004,8 +1004,7 @@ StatsCounterId StatsRegisterCounter(const char *name, struct ThreadVars_ *tv)
 {
     uint16_t id = StatsRegisterQualifiedCounter(name,
             (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->printable_name,
-            &tv->perf_public_ctx,
-            STATS_TYPE_NORMAL, NULL);
+            &tv->stats.pub, STATS_TYPE_NORMAL, NULL);
     StatsCounterId s = { .id = id };
     return s;
 }
@@ -1025,8 +1024,7 @@ StatsCounterAvgId StatsRegisterAvgCounter(const char *name, struct ThreadVars_ *
 {
     uint16_t id = StatsRegisterQualifiedCounter(name,
             (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->printable_name,
-            &tv->perf_public_ctx,
-            STATS_TYPE_AVERAGE, NULL);
+            &tv->stats.pub, STATS_TYPE_AVERAGE, NULL);
     StatsCounterAvgId s = { .id = id };
     return s;
 }
@@ -1046,8 +1044,7 @@ StatsCounterMaxId StatsRegisterMaxCounter(const char *name, struct ThreadVars_ *
 {
     uint16_t id = StatsRegisterQualifiedCounter(name,
             (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->printable_name,
-            &tv->perf_public_ctx,
-            STATS_TYPE_MAXIMUM, NULL);
+            &tv->stats.pub, STATS_TYPE_MAXIMUM, NULL);
     StatsCounterMaxId s = { .id = id };
     return s;
 }
@@ -1242,13 +1239,12 @@ static int StatsGetAllCountersArray(
 
 int StatsSetupPrivate(ThreadVars *tv)
 {
-    int r = StatsGetAllCountersArray(&(tv)->perf_public_ctx, &(tv)->perf_private_ctx);
+    int r = StatsGetAllCountersArray(&tv->stats.pub, &tv->stats.priv);
     if (r < 0) {
         return -1;
     }
 
-    r = StatsThreadRegister(
-            tv->printable_name ? tv->printable_name : tv->name, &(tv)->perf_public_ctx);
+    r = StatsThreadRegister(tv->printable_name ? tv->printable_name : tv->name, &tv->stats.pub);
     if (r != 1) {
         return -2;
     }
@@ -1263,7 +1259,7 @@ static void StatsThreadInitPublic(StatsPublicThreadContext *pctx)
 
 void StatsThreadInit(ThreadVars *tv)
 {
-    StatsThreadInitPublic(&tv->perf_public_ctx);
+    StatsThreadInitPublic(&tv->stats.pub);
 }
 
 /**
@@ -1306,7 +1302,7 @@ static int StatsUpdateCounterArray(StatsPrivateThreadContext *pca, StatsPublicTh
  */
 uint64_t StatsGetLocalCounterValue(ThreadVars *tv, StatsCounterId id)
 {
-    StatsPrivateThreadContext *pca = &tv->perf_private_ctx;
+    StatsPrivateThreadContext *pca = &tv->stats.priv;
 #ifdef DEBUG
     BUG_ON((id.id < 1) || (id.id > pca->size));
 #endif
@@ -1359,8 +1355,8 @@ static void StatsReleasePrivateThreadContext(StatsPrivateThreadContext *pca)
 
 void StatsThreadCleanup(ThreadVars *tv)
 {
-    StatsPublicThreadContextCleanup(&tv->perf_public_ctx);
-    StatsReleasePrivateThreadContext(&tv->perf_private_ctx);
+    StatsPublicThreadContextCleanup(&tv->stats.pub);
+    StatsReleasePrivateThreadContext(&tv->stats.priv);
 }
 
 /*----------------------------------Unit_Tests--------------------------------*/
@@ -1433,9 +1429,9 @@ static int StatsTestGetCntArray05(void)
     ThreadVars tv;
     memset(&tv, 0, sizeof(ThreadVars));
     StatsThreadInit(&tv);
-    StatsCounterId c1 = RegisterCounter("t1", "c1", &tv.perf_public_ctx);
+    StatsCounterId c1 = RegisterCounter("t1", "c1", &tv.stats.pub);
     FAIL_IF(c1.id != 1);
-    int r = StatsGetAllCountersArray(NULL, &tv.perf_private_ctx);
+    int r = StatsGetAllCountersArray(NULL, &tv.stats.priv);
     FAIL_IF_NOT(r == -1);
     StatsThreadCleanup(&tv);
     PASS;
@@ -1446,10 +1442,10 @@ static int StatsTestGetCntArray06(void)
     ThreadVars tv;
     memset(&tv, 0, sizeof(ThreadVars));
     StatsThreadInit(&tv);
-    StatsCounterId c1 = RegisterCounter("t1", "c1", &tv.perf_public_ctx);
+    StatsCounterId c1 = RegisterCounter("t1", "c1", &tv.stats.pub);
     FAIL_IF(c1.id != 1);
-    StatsThreadSetupPublic(&tv.perf_public_ctx);
-    int r = StatsGetAllCountersArray(&tv.perf_public_ctx, &tv.perf_private_ctx);
+    StatsThreadSetupPublic(&tv.stats.pub);
+    int r = StatsGetAllCountersArray(&tv.stats.pub, &tv.stats.priv);
     FAIL_IF_NOT(r == 0);
     StatsThreadCleanup(&tv);
     PASS;
@@ -1462,12 +1458,12 @@ static int StatsTestCntArraySize07(void)
     StatsThreadInit(&tv);
     StatsPrivateThreadContext *pca = NULL;
 
-    StatsCounterId id1 = RegisterCounter("t1", "c1", &tv.perf_public_ctx);
-    StatsCounterId id2 = RegisterCounter("t2", "c2", &tv.perf_public_ctx);
+    StatsCounterId id1 = RegisterCounter("t1", "c1", &tv.stats.pub);
+    StatsCounterId id2 = RegisterCounter("t2", "c2", &tv.stats.pub);
 
-    StatsThreadSetupPublic(&tv.perf_public_ctx);
-    StatsGetAllCountersArray(&tv.perf_public_ctx, &tv.perf_private_ctx);
-    pca = &tv.perf_private_ctx;
+    StatsThreadSetupPublic(&tv.stats.pub);
+    StatsGetAllCountersArray(&tv.stats.pub, &tv.stats.priv);
+    pca = &tv.stats.priv;
 
     StatsIncr(&tv, id1);
     StatsIncr(&tv, id2);
@@ -1483,10 +1479,10 @@ static int StatsTestUpdateCounter08(void)
     ThreadVars tv;
     memset(&tv, 0, sizeof(ThreadVars));
     StatsThreadInit(&tv);
-    StatsCounterId c1 = RegisterCounter("t1", "c1", &tv.perf_public_ctx);
-    StatsThreadSetupPublic(&tv.perf_public_ctx);
-    StatsGetAllCountersArray(&tv.perf_public_ctx, &tv.perf_private_ctx);
-    StatsPrivateThreadContext *pca = &tv.perf_private_ctx;
+    StatsCounterId c1 = RegisterCounter("t1", "c1", &tv.stats.pub);
+    StatsThreadSetupPublic(&tv.stats.pub);
+    StatsGetAllCountersArray(&tv.stats.pub, &tv.stats.priv);
+    StatsPrivateThreadContext *pca = &tv.stats.priv;
 
     StatsIncr(&tv, c1);
     StatsAddUI64(&tv, c1, 100);
@@ -1502,15 +1498,15 @@ static int StatsTestUpdateCounter09(void)
     memset(&tv, 0, sizeof(ThreadVars));
     StatsThreadInit(&tv);
 
-    StatsCounterId c1 = RegisterCounter("t1", "c1", &tv.perf_public_ctx);
-    RegisterCounter("t2", "c2", &tv.perf_public_ctx);
-    RegisterCounter("t3", "c3", &tv.perf_public_ctx);
-    RegisterCounter("t4", "c4", &tv.perf_public_ctx);
-    StatsCounterId c5 = RegisterCounter("t5", "c5", &tv.perf_public_ctx);
+    StatsCounterId c1 = RegisterCounter("t1", "c1", &tv.stats.pub);
+    RegisterCounter("t2", "c2", &tv.stats.pub);
+    RegisterCounter("t3", "c3", &tv.stats.pub);
+    RegisterCounter("t4", "c4", &tv.stats.pub);
+    StatsCounterId c5 = RegisterCounter("t5", "c5", &tv.stats.pub);
 
-    StatsThreadSetupPublic(&tv.perf_public_ctx);
-    StatsGetAllCountersArray(&tv.perf_public_ctx, &tv.perf_private_ctx);
-    StatsPrivateThreadContext *pca = &tv.perf_private_ctx;
+    StatsThreadSetupPublic(&tv.stats.pub);
+    StatsGetAllCountersArray(&tv.stats.pub, &tv.stats.priv);
+    StatsPrivateThreadContext *pca = &tv.stats.priv;
 
     StatsIncr(&tv, c5);
     StatsAddUI64(&tv, c5, 100);
@@ -1528,24 +1524,24 @@ static int StatsTestUpdateGlobalCounter10(void)
     memset(&tv, 0, sizeof(ThreadVars));
     StatsThreadInit(&tv);
 
-    StatsCounterId c1 = RegisterCounter("t1", "c1", &tv.perf_public_ctx);
-    StatsCounterId c2 = RegisterCounter("t2", "c2", &tv.perf_public_ctx);
-    StatsCounterId c3 = RegisterCounter("t3", "c3", &tv.perf_public_ctx);
+    StatsCounterId c1 = RegisterCounter("t1", "c1", &tv.stats.pub);
+    StatsCounterId c2 = RegisterCounter("t2", "c2", &tv.stats.pub);
+    StatsCounterId c3 = RegisterCounter("t3", "c3", &tv.stats.pub);
 
-    StatsThreadSetupPublic(&tv.perf_public_ctx);
-    StatsGetAllCountersArray(&tv.perf_public_ctx, &tv.perf_private_ctx);
-    StatsPrivateThreadContext *pca = &tv.perf_private_ctx;
+    StatsThreadSetupPublic(&tv.stats.pub);
+    StatsGetAllCountersArray(&tv.stats.pub, &tv.stats.priv);
+    StatsPrivateThreadContext *pca = &tv.stats.priv;
 
     StatsIncr(&tv, c1);
     StatsAddUI64(&tv, c2, 100);
     StatsIncr(&tv, c3);
     StatsAddUI64(&tv, c3, 100);
 
-    StatsUpdateCounterArray(pca, &tv.perf_public_ctx);
+    StatsUpdateCounterArray(pca, &tv.stats.pub);
 
-    FAIL_IF_NOT(1 == tv.perf_public_ctx.copy_of_private[c1.id].v);
-    FAIL_IF_NOT(100 == tv.perf_public_ctx.copy_of_private[c2.id].v);
-    FAIL_IF_NOT(101 == tv.perf_public_ctx.copy_of_private[c3.id].v);
+    FAIL_IF_NOT(1 == tv.stats.pub.copy_of_private[c1.id].v);
+    FAIL_IF_NOT(100 == tv.stats.pub.copy_of_private[c2.id].v);
+    FAIL_IF_NOT(101 == tv.stats.pub.copy_of_private[c3.id].v);
 
     StatsThreadCleanup(&tv);
     PASS;
@@ -1557,26 +1553,26 @@ static int StatsTestCounterValues11(void)
     memset(&tv, 0, sizeof(ThreadVars));
     StatsThreadInit(&tv);
 
-    StatsCounterId c1 = RegisterCounter("t1", "c1", &tv.perf_public_ctx);
-    StatsCounterId c2 = RegisterCounter("t2", "c2", &tv.perf_public_ctx);
-    StatsCounterId c3 = RegisterCounter("t3", "c3", &tv.perf_public_ctx);
-    StatsCounterId c4 = RegisterCounter("t4", "c4", &tv.perf_public_ctx);
+    StatsCounterId c1 = RegisterCounter("t1", "c1", &tv.stats.pub);
+    StatsCounterId c2 = RegisterCounter("t2", "c2", &tv.stats.pub);
+    StatsCounterId c3 = RegisterCounter("t3", "c3", &tv.stats.pub);
+    StatsCounterId c4 = RegisterCounter("t4", "c4", &tv.stats.pub);
 
-    StatsThreadSetupPublic(&tv.perf_public_ctx);
-    StatsGetAllCountersArray(&tv.perf_public_ctx, &tv.perf_private_ctx);
-    StatsPrivateThreadContext *pca = &tv.perf_private_ctx;
+    StatsThreadSetupPublic(&tv.stats.pub);
+    StatsGetAllCountersArray(&tv.stats.pub, &tv.stats.priv);
+    StatsPrivateThreadContext *pca = &tv.stats.priv;
 
     StatsIncr(&tv, c1);
     StatsAddUI64(&tv, c2, 256);
     StatsAddUI64(&tv, c3, 257);
     StatsAddUI64(&tv, c4, 16843024);
 
-    StatsUpdateCounterArray(pca, &tv.perf_public_ctx);
+    StatsUpdateCounterArray(pca, &tv.stats.pub);
 
-    FAIL_IF_NOT(1 == tv.perf_public_ctx.copy_of_private[c1.id].v);
-    FAIL_IF_NOT(256 == tv.perf_public_ctx.copy_of_private[c2.id].v);
-    FAIL_IF_NOT(257 == tv.perf_public_ctx.copy_of_private[c3.id].v);
-    FAIL_IF_NOT(16843024 == tv.perf_public_ctx.copy_of_private[c4.id].v);
+    FAIL_IF_NOT(1 == tv.stats.pub.copy_of_private[c1.id].v);
+    FAIL_IF_NOT(256 == tv.stats.pub.copy_of_private[c2.id].v);
+    FAIL_IF_NOT(257 == tv.stats.pub.copy_of_private[c3.id].v);
+    FAIL_IF_NOT(16843024 == tv.stats.pub.copy_of_private[c4.id].v);
 
     StatsThreadCleanup(&tv);
     PASS;
