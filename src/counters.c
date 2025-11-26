@@ -740,11 +740,18 @@ static int StatsOutput(ThreadVars *tv)
         memset(&thread_table_from_private, 0x00, max_id * sizeof(StatsLocalCounter));
 
         /* copy private table to a local variable to loop it w/o lock */
+        bool skip = false;
         SCSpinLock(&sts->ctx->lock);
         uint16_t table_size = sts->ctx->curr_id + 1;
-        memcpy(&thread_table_from_private, sts->ctx->copy_of_private,
-                table_size * sizeof(StatsLocalCounter));
+        if (sts->ctx->copy_of_private == NULL) {
+            skip = true;
+        } else {
+            memcpy(&thread_table_from_private, sts->ctx->copy_of_private,
+                    table_size * sizeof(StatsLocalCounter));
+        }
         SCSpinUnlock(&sts->ctx->lock);
+        if (skip)
+            goto next;
 
         /* loop counters and handle them. This includes the global counters, which
          * access the StatsCounters but don't modify them. */
@@ -829,6 +836,7 @@ static int StatsOutput(ThreadVars *tv)
             }
         }
 
+    next:
         sts = sts->next;
         thread--;
     }
@@ -1148,8 +1156,7 @@ static int StatsThreadSetupPublic(StatsPublicThreadContext *pctx)
 static int StatsThreadRegister(const char *thread_name, StatsPublicThreadContext *pctx)
 {
     if (stats_ctx == NULL) {
-        SCLogDebug("Counter module has been disabled");
-        return 0;
+        return 1;
     }
 
     if (thread_name == NULL || pctx == NULL) {
@@ -1184,6 +1191,7 @@ static int StatsThreadRegister(const char *thread_name, StatsPublicThreadContext
     }
 
     if (StatsThreadSetupPublic(pctx) != 0) {
+        SCLogDebug("failed to setup StatsThreadSetupPublic");
         SCMutexUnlock(&stats_ctx->sts_lock);
         return 0;
     }
@@ -1234,10 +1242,16 @@ static int StatsGetAllCountersArray(
 
 int StatsSetupPrivate(ThreadVars *tv)
 {
-    StatsGetAllCountersArray(&(tv)->perf_public_ctx, &(tv)->perf_private_ctx);
+    int r = StatsGetAllCountersArray(&(tv)->perf_public_ctx, &(tv)->perf_private_ctx);
+    if (r < 0) {
+        return -1;
+    }
 
-    StatsThreadRegister(tv->printable_name ? tv->printable_name : tv->name,
-        &(tv)->perf_public_ctx);
+    r = StatsThreadRegister(
+            tv->printable_name ? tv->printable_name : tv->name, &(tv)->perf_public_ctx);
+    if (r != 1) {
+        return -2;
+    }
     return 0;
 }
 
@@ -1269,7 +1283,7 @@ static int StatsUpdateCounterArray(StatsPrivateThreadContext *pca, StatsPublicTh
         return -1;
     }
 
-    if (pca->size > 0) {
+    if (pca->size > 0 && pctx->copy_of_private != NULL) {
         /* copy the whole table under lock to the public section
          * and release the lock. The stats thread will copy it from
          * there. */
