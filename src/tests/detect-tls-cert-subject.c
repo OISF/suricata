@@ -269,6 +269,7 @@ static int DetectTlsSubjectTest02(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
+    StatsThreadInit(&tv);
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 

@@ -633,6 +633,7 @@ static int ValidityTestDetect01(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
+    StatsThreadInit(&tv);
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 
@@ -955,6 +956,7 @@ static int ExpiredTestDetect01(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
+    StatsThreadInit(&tv);
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 
@@ -1257,6 +1259,7 @@ static int ValidTestDetect01(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
+    StatsThreadInit(&tv);
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 

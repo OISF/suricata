@@ -118,6 +118,7 @@ static int DetectSameipSigTest01(void)
     DetectEngineThreadCtx *det_ctx;
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
 
     /* First packet has same IPs */
     Packet *p1 = UTHBuildPacketSrcDst(buf, buflen, IPPROTO_TCP, "1.2.3.4", "1.2.3.4");

@@ -297,6 +297,7 @@ static int DetectIcmpIdMatchTest01 (void)
     DetectEngineThreadCtx *det_ctx = NULL;
 
     memset(&th_v, 0, sizeof(ThreadVars));
+    StatsThreadInit(&th_v);
 
     p = UTHBuildPacket(NULL, 0, IPPROTO_ICMP);
     p->l4.vars.icmpv4.id = htons(21781);
@@ -372,6 +373,7 @@ static int DetectIcmpIdMatchTest02 (void)
     memset(&ip4h, 0, sizeof(IPV4Hdr));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(ThreadVars));
+    StatsThreadInit(&th_v);
 
     FlowInitConfig(FLOW_QUIET);
 

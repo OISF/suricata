@@ -187,6 +187,7 @@ static int DetectAckSigTest01(void)
 {
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
     DetectEngineThreadCtx *det_ctx = NULL;
 
     /* TCP w/ack=42 */

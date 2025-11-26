@@ -4747,6 +4747,7 @@ static int SigTestBidirec04 (void)
     DetectEngineThreadCtx *det_ctx;
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
 
     FlowInitConfig(FLOW_QUIET);
     DecodeEthernet(&th_v, &dtv, p, rawpkt1_ether, sizeof(rawpkt1_ether));

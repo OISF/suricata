@@ -147,6 +147,7 @@ void StatsCounterAvgAddI64(struct ThreadVars_ *tv, StatsCounterAvgId id, int64_t
 
 /* utility functions */
 uint64_t StatsGetLocalCounterValue(struct ThreadVars_ *, StatsCounterId);
+void StatsThreadInit(struct ThreadVars_ *);
 int StatsSetupPrivate(struct ThreadVars_ *);
 void StatsThreadCleanup(struct ThreadVars_ *);
 

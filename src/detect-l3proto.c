@@ -126,6 +126,7 @@ static int DetectL3protoTestSig1(void)
     IPV4Hdr ip4h;
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
 
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
@@ -186,6 +187,7 @@ static int DetectL3protoTestSig2(void)
     IPV6Hdr ip6h;
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
 
     p->src.family = AF_INET6;
     p->dst.family = AF_INET6;
@@ -246,6 +248,7 @@ static int DetectL3protoTestSig3(void)
     IPV6Hdr ip6h;
 
     memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v);
 
     p->src.family = AF_INET6;
     p->dst.family = AF_INET6;
