@@ -114,15 +114,15 @@ static TmEcode BypassedFlowManager(ThreadVars *th_v, void *thread_data)
         }
 
         if (TmThreadsCheckFlag(th_v, THV_KILL)) {
-            StatsSyncCounters(th_v);
+            StatsSyncCounters(&th_v->stats);
             return TM_ECODE_OK;
         }
         for (i = 0; i < FLOW_BYPASS_DELAY * 100; i++) {
             if (TmThreadsCheckFlag(th_v, THV_KILL)) {
-                StatsSyncCounters(th_v);
+                StatsSyncCounters(&th_v->stats);
                 return TM_ECODE_OK;
             }
-            StatsSyncCountersIfSignalled(th_v);
+            StatsSyncCountersIfSignalled(&th_v->stats);
             SleepMsec(10);
         }
     }

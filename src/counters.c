@@ -475,15 +475,15 @@ static void *StatsMgmtThread(void *arg)
     return NULL;
 }
 
-void StatsSyncCounters(ThreadVars *tv)
+void StatsSyncCounters(StatsThreadContext *stats)
 {
-    StatsUpdateCounterArray(&tv->stats.priv, &tv->stats.pub);
+    StatsUpdateCounterArray(&stats->priv, &stats->pub);
 }
 
-void StatsSyncCountersIfSignalled(ThreadVars *tv)
+void StatsSyncCountersIfSignalled(StatsThreadContext *stats)
 {
-    if (SC_ATOMIC_GET(tv->stats.pub.sync_now)) {
-        StatsUpdateCounterArray(&tv->stats.priv, &tv->stats.pub);
+    if (SC_ATOMIC_GET(stats->pub.sync_now)) {
+        StatsUpdateCounterArray(&stats->priv, &stats->pub);
     }
 }
 

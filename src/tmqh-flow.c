@@ -99,7 +99,7 @@ Packet *TmqhInputFlow(ThreadVars *tv)
 {
     PacketQueue *q = tv->inq->pq;
 
-    StatsSyncCountersIfSignalled(tv);
+    StatsSyncCountersIfSignalled(&tv->stats);
 
     SCMutexLock(&q->mutex_q);
     if (q->len == 0) {

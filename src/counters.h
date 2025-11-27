@@ -153,8 +153,8 @@ void StatsThreadInit(StatsThreadContext *);
 int StatsSetupPrivate(StatsThreadContext *, const char *);
 void StatsThreadCleanup(StatsThreadContext *);
 
-void StatsSyncCounters(struct ThreadVars_ *tv);
-void StatsSyncCountersIfSignalled(struct ThreadVars_ *tv);
+void StatsSyncCounters(StatsThreadContext *);
+void StatsSyncCountersIfSignalled(StatsThreadContext *);
 
 #ifdef BUILD_UNIX_SOCKET
 TmEcode StatsOutputCounterSocket(json_t *cmd,

@@ -470,7 +470,7 @@ TmEcode ReceiveNFLOGLoop(ThreadVars *tv, void *data, void *slot)
         if (ret != 0)
             SCLogWarning("nflog_handle_packet error %" PRId32 "", ret);
 
-        StatsSyncCountersIfSignalled(tv);
+        StatsSyncCountersIfSignalled(&tv->stats);
     }
 
     SCReturnInt(TM_ECODE_OK);

@@ -1178,7 +1178,7 @@ static TmEcode UnixManager(ThreadVars *th_v, void *thread_data)
                 close(item->fd);
                 SCFree(item);
             }
-            StatsSyncCounters(th_v);
+            StatsSyncCounters(&th_v->stats);
             break;
         }
 

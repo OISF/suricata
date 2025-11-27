@@ -562,7 +562,7 @@ static inline int DumpStatsEverySecond(AFXDPThreadVars *ptv, time_t *last_dump)
         stats_dumped = 1;
     }
 
-    StatsSyncCountersIfSignalled(ptv->tv);
+    StatsSyncCountersIfSignalled(&ptv->tv->stats);
 
     return stats_dumped;
 }

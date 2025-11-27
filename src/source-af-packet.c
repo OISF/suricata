@@ -1457,11 +1457,11 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
             AFPSwitchState(ptv, AFP_STATE_DOWN);
             continue;
         }
-        StatsSyncCountersIfSignalled(tv);
+        StatsSyncCountersIfSignalled(&tv->stats);
     }
 
     AFPDumpCounters(ptv);
-    StatsSyncCountersIfSignalled(tv);
+    StatsSyncCountersIfSignalled(&tv->stats);
     SCReturnInt(TM_ECODE_OK);
 }
 
