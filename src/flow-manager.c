@@ -1113,7 +1113,7 @@ static TmEcode FlowRecycler(ThreadVars *th_v, void *thread_data)
         SC_ATOMIC_ADD(flowrec_busy,1);
         FlowQueuePrivate list = FlowQueueExtractPrivate(&flow_recycle_q);
 
-        StatsCounterAvgAddI64(th_v, ftd->counter_queue_avg, (int64_t)list.len);
+        StatsCounterAvgAddI64(&th_v->stats, ftd->counter_queue_avg, (int64_t)list.len);
         StatsCounterMaxUpdateI64(&th_v->stats, ftd->counter_queue_max, (int64_t)list.len);
 
         const int bail = (TmThreadsCheckFlag(th_v, THV_KILL));

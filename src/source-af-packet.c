@@ -851,7 +851,7 @@ static inline int AFPReadFromRingWaitForPacket(AFPThreadVars *ptv)
         break;
     }
     if (busy_loop_iter) {
-        StatsCounterAvgAddI64(ptv->tv, ptv->afpacket_spin, busy_loop_iter);
+        StatsCounterAvgAddI64(&ptv->tv->stats, ptv->afpacket_spin, busy_loop_iter);
     }
     return AFP_READ_OK;
 }
