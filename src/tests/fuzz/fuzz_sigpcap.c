@@ -30,6 +30,7 @@
 #include "util-file.h"
 #include "util-conf.h"
 #include "packet.h"
+#include "nallocinc.c"
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 
@@ -94,6 +95,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         max_pending_packets = 128;
         PacketPoolInit();
         SC_ATOMIC_SET(engine_stage, SURICATA_RUNTIME);
+        nalloc_init(NULL);
+        nalloc_restrict_file_prefix(3);
         initialized = 1;
     }
 
@@ -159,10 +162,11 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         return 0;
     }
 
+    nalloc_start(data, size);
     //loop over packets
     r = pcap_next_ex(pkts, &header, &pkt);
     p = PacketGetFromAlloc();
-    if (r <= 0 || header->ts.tv_sec >= INT_MAX - 3600 || header->ts.tv_usec < 0) {
+    if (p == NULL || r <= 0 || header->ts.tv_sec >= INT_MAX - 3600 || header->ts.tv_usec < 0) {
         goto bail;
     }
     p->ts = SCTIME_FROM_TIMEVAL(&header->ts);
@@ -203,6 +207,7 @@ bail:
     pcap_close(pkts);
     PacketFree(p);
     FlowReset();
+    nalloc_end();
 
     return 0;
 }

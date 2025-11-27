@@ -7,6 +7,7 @@
 #include "suricata-common.h"
 #include "suricata.h"
 #include "rust.h"
+#include "nallocinc.c"
 
 #define BLK_SIZE 2
 
@@ -35,13 +36,17 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         // global init
         InitGlobal();
         SCRunmodeSet(RUNMODE_UNITTEST);
+        nalloc_init(NULL);
+        // do not restrict nalloc
         initialized = 1;
     }
 
     if (size < BLK_SIZE)
         return 0;
 
+    nalloc_start(data, size);
     Base64FuzzTest(data, size);
+    nalloc_end();
 
     return 0;
 }
