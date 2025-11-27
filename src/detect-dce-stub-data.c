@@ -638,7 +638,7 @@ static int DetectDceStubDataTestParse02(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -745,7 +745,7 @@ static int DetectDceStubDataTestParse02(void)
     FLOW_DESTROY(&f);
 
     UTHFreePackets(&p, 1);
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     return result;
 }
 
@@ -1188,7 +1188,7 @@ static int DetectDceStubDataTestParse03(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -1242,7 +1242,7 @@ static int DetectDceStubDataTestParse03(void)
     FLOW_DESTROY(&f);
 
     UTHFreePackets(&p, 1);
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
@@ -1372,7 +1372,7 @@ static int DetectDceStubDataTestParse04(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -1555,7 +1555,7 @@ static int DetectDceStubDataTestParse04(void)
     FLOW_DESTROY(&f);
 
     UTHFreePackets(&p, 1);
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     return result;
 }
 
@@ -1658,7 +1658,7 @@ static int DetectDceStubDataTestParse05(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -1830,7 +1830,7 @@ static int DetectDceStubDataTestParse05(void)
     FLOW_DESTROY(&f);
 
     UTHFreePackets(&p, 1);
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     return result;
 }
 

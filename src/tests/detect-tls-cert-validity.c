@@ -633,7 +633,7 @@ static int ValidityTestDetect01(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
-    StatsThreadInit(&tv);
+    StatsThreadInit(&tv.stats);
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 
@@ -723,7 +723,7 @@ static int ValidityTestDetect01(void)
     DetectEngineThreadCtxDeinit(&tv, det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
-    StatsThreadCleanup(&tv);
+    StatsThreadCleanup(&tv.stats);
     PASS;
 }
 
@@ -956,7 +956,7 @@ static int ExpiredTestDetect01(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
-    StatsThreadInit(&tv);
+    StatsThreadInit(&tv.stats);
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 
@@ -1041,7 +1041,7 @@ static int ExpiredTestDetect01(void)
     DetectEngineThreadCtxDeinit(&tv, det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
-    StatsThreadCleanup(&tv);
+    StatsThreadCleanup(&tv.stats);
     PASS;
 }
 
@@ -1259,7 +1259,7 @@ static int ValidTestDetect01(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
-    StatsThreadInit(&tv);
+    StatsThreadInit(&tv.stats);
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 
@@ -1344,7 +1344,7 @@ static int ValidTestDetect01(void)
     DetectEngineThreadCtxDeinit(&tv, det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
-    StatsThreadCleanup(&tv);
+    StatsThreadCleanup(&tv.stats);
     PASS;
 }
 

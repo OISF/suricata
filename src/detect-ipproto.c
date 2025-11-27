@@ -1918,7 +1918,7 @@ static int DetectIPProtoTestSig2(void)
     p->proto = 0;
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     FlowInitConfig(FLOW_QUIET);
     DecodeEthernet(&th_v, &dtv, p, raw_eth, sizeof(raw_eth));
@@ -1943,7 +1943,7 @@ static int DetectIPProtoTestSig2(void)
     DetectEngineCtxFree(de_ctx);
     PacketFree(p);
     FlowShutdown();
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
@@ -1971,7 +1971,7 @@ static int DetectIPProtoTestSig3(void)
     p->proto = 0;
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     FlowInitConfig(FLOW_QUIET);
     DecodeEthernet(&th_v, &dtv, p, raw_eth, sizeof(raw_eth));
@@ -1996,7 +1996,7 @@ static int DetectIPProtoTestSig3(void)
     FlowShutdown();
 
     PacketFree(p);
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 

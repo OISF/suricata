@@ -260,7 +260,7 @@ static bool TmThreadsSlotPktAcqLoopInit(ThreadVars *tv)
         }
     }
 
-    StatsSetupPrivate(tv);
+    StatsSetupPrivate(&tv->stats, tv->printable_name ? tv->printable_name : tv->name);
 
     TmThreadsSetFlag(tv, THV_INIT_DONE);
 
@@ -475,7 +475,7 @@ static void *TmThreadsSlotVar(void *td)
         }
     }
 
-    StatsSetupPrivate(tv);
+    StatsSetupPrivate(&tv->stats, tv->printable_name ? tv->printable_name : tv->name);
 
     // Each 'worker' thread uses this func to process/decode the packet read.
     // Each decode method is different to receive methods in that they do not
@@ -564,7 +564,7 @@ static void *TmThreadsManagement(void *td)
         (void)SC_ATOMIC_SET(s->slot_data, slot_data);
     }
 
-    StatsSetupPrivate(tv);
+    StatsSetupPrivate(&tv->stats, tv->printable_name ? tv->printable_name : tv->name);
 
     TmThreadsSetFlag(tv, THV_INIT_DONE);
 
@@ -951,7 +951,7 @@ ThreadVars *TmThreadCreate(const char *name, const char *inq_name, const char *i
         goto error;
 
     SC_ATOMIC_INIT(tv->flags);
-    StatsThreadInit(tv);
+    StatsThreadInit(&tv->stats);
 
     strlcpy(tv->name, name, sizeof(tv->name));
 
@@ -1645,7 +1645,7 @@ static void TmThreadFree(ThreadVars *tv)
         SCFree(tv->flow_queue);
     }
 
-    StatsThreadCleanup(tv);
+    StatsThreadCleanup(&tv->stats);
 
     TmThreadDeinitMC(tv);
 

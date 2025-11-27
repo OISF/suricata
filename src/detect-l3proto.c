@@ -126,7 +126,7 @@ static int DetectL3protoTestSig1(void)
     IPV4Hdr ip4h;
 
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
@@ -167,7 +167,7 @@ static int DetectL3protoTestSig1(void)
     DetectEngineCtxFree(de_ctx);
 
     PacketFree(p);
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
@@ -187,7 +187,7 @@ static int DetectL3protoTestSig2(void)
     IPV6Hdr ip6h;
 
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     p->src.family = AF_INET6;
     p->dst.family = AF_INET6;
@@ -228,7 +228,7 @@ static int DetectL3protoTestSig2(void)
     DetectEngineCtxFree(de_ctx);
 
     PacketFree(p);
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
 
     PASS;
 }
@@ -248,7 +248,7 @@ static int DetectL3protoTestSig3(void)
     IPV6Hdr ip6h;
 
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     p->src.family = AF_INET6;
     p->dst.family = AF_INET6;
@@ -289,7 +289,7 @@ static int DetectL3protoTestSig3(void)
     DetectEngineCtxFree(de_ctx);
 
     PacketFree(p);
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
 
     PASS;
 }

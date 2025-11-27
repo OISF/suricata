@@ -594,7 +594,7 @@ static int DetectDsizeIcmpv6Test01(void)
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(ThreadVars));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     FlowInitConfig(FLOW_QUIET);
     p->src.family = AF_INET6;
@@ -629,7 +629,7 @@ static int DetectDsizeIcmpv6Test01(void)
 
     PacketFree(p);
     FlowShutdown();
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 

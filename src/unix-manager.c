@@ -1152,7 +1152,8 @@ static TmEcode UnixManager(ThreadVars *th_v, void *thread_data)
     /* set the thread name */
     SCLogDebug("%s started...", th_v->name);
 
-    int r = StatsSetupPrivate(th_v);
+    int r = StatsSetupPrivate(
+            &th_v->stats, th_v->printable_name ? th_v->printable_name : th_v->name);
     if (r != 0) {
         SCLogError("stats setup failed with code %d", r);
         return TM_ECODE_FAILED;

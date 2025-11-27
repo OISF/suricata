@@ -1001,7 +1001,7 @@ static int DetectFlowSigTest01(void)
     DecodeThreadVars dtv;
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     Packet *p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
     FAIL_IF_NULL(p);
@@ -1028,7 +1028,7 @@ static int DetectFlowSigTest01(void)
     DetectEngineCtxFree(de_ctx);
     UTHFreePacket(p);
 
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 

@@ -812,7 +812,7 @@ static int DetectByteMathPacket01(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
-    StatsThreadInit(&tv);
+    StatsThreadInit(&tv.stats);
     memset(&f, 0, sizeof(Flow));
 
     p = UTHBuildPacketReal(buf, sizeof(buf), IPPROTO_UDP,
@@ -897,7 +897,7 @@ static int DetectByteMathPacket01(void)
 
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
-    StatsThreadCleanup(&tv);
+    StatsThreadCleanup(&tv.stats);
     PASS;
 }
 
@@ -914,7 +914,7 @@ static int DetectByteMathPacket02(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
-    StatsThreadInit(&tv);
+    StatsThreadInit(&tv.stats);
     memset(&f, 0, sizeof(Flow));
 
     p = UTHBuildPacketReal(buf, sizeof(buf), IPPROTO_UDP, "192.168.1.5", "192.168.1.1", 41424, 53);
@@ -1000,7 +1000,7 @@ static int DetectByteMathPacket02(void)
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
 
-    StatsThreadCleanup(&tv);
+    StatsThreadCleanup(&tv.stats);
     PASS;
 }
 

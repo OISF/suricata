@@ -935,7 +935,7 @@ static int DetectCsumICMPV6Test01(void)
     PacketCopyData(p, pkt, sizeof(pkt));
 
     memset(&tv, 0, sizeof(tv));
-    StatsThreadInit(&tv);
+    StatsThreadInit(&tv.stats);
     memset(&dtv, 0, sizeof(dtv));
 
     StreamTcpInitConfig(true);
@@ -963,7 +963,7 @@ static int DetectCsumICMPV6Test01(void)
     DetectEngineThreadCtxDeinit(&tv, det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
-    StatsThreadCleanup(&tv);
+    StatsThreadCleanup(&tv.stats);
     PASS;
 }
 

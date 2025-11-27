@@ -552,7 +552,7 @@ static int XBitsTestSig01(void)
     DetectEngineCtx *de_ctx = NULL;
 
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
     p->payload = buf;
@@ -576,7 +576,7 @@ static int XBitsTestSig01(void)
     DetectEngineCtxFree(de_ctx);
     XBitsTestShutdown();
     PacketFree(p);
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     StatsReleaseResources();
     PASS;
 }

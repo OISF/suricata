@@ -358,7 +358,7 @@ static int DetectIPRepTest01(void)
 
     HostInitConfig(HOST_QUIET);
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     FAIL_IF_NULL(de_ctx);
     FAIL_IF_NULL(p);
@@ -394,7 +394,7 @@ static int DetectIPRepTest01(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     HostShutdown();
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
@@ -410,7 +410,7 @@ static int DetectIPRepTest02(void)
 
     HostInitConfig(HOST_QUIET);
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     FAIL_IF_NULL(de_ctx);
     FAIL_IF_NULL(p);
@@ -446,7 +446,7 @@ static int DetectIPRepTest02(void)
     DetectEngineCtxFree(de_ctx);
 
     HostShutdown();
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
@@ -462,7 +462,7 @@ static int DetectIPRepTest03(void)
 
     HostInitConfig(HOST_QUIET);
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     FAIL_IF_NULL(de_ctx);
     FAIL_IF_NULL(p);
@@ -498,7 +498,7 @@ static int DetectIPRepTest03(void)
     DetectEngineCtxFree(de_ctx);
 
     HostShutdown();
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
@@ -514,7 +514,7 @@ static int DetectIPRepTest04(void)
 
     HostInitConfig(HOST_QUIET);
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     FAIL_IF_NULL(de_ctx);
     FAIL_IF_NULL(p);
@@ -551,7 +551,7 @@ static int DetectIPRepTest04(void)
     DetectEngineCtxFree(de_ctx);
 
     HostShutdown();
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
@@ -567,7 +567,7 @@ static int DetectIPRepTest05(void)
 
     HostInitConfig(HOST_QUIET);
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     FAIL_IF_NULL(de_ctx);
     FAIL_IF_NULL(p);
@@ -603,7 +603,7 @@ static int DetectIPRepTest05(void)
     DetectEngineCtxFree(de_ctx);
 
     HostShutdown();
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
@@ -619,7 +619,7 @@ static int DetectIPRepTest06(void)
 
     HostInitConfig(HOST_QUIET);
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     FAIL_IF_NULL(de_ctx);
     FAIL_IF_NULL(p);
@@ -655,7 +655,7 @@ static int DetectIPRepTest06(void)
     DetectEngineCtxFree(de_ctx);
 
     HostShutdown();
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
@@ -671,7 +671,7 @@ static int DetectIPRepTest07(void)
 
     HostInitConfig(HOST_QUIET);
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     FAIL_IF_NULL(de_ctx);
     FAIL_IF_NULL(p);
@@ -707,7 +707,7 @@ static int DetectIPRepTest07(void)
     DetectEngineCtxFree(de_ctx);
 
     HostShutdown();
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
@@ -723,7 +723,7 @@ static int DetectIPRepTest08(void)
 
     HostInitConfig(HOST_QUIET);
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     FAIL_IF_NULL(de_ctx);
     FAIL_IF_NULL(p);
@@ -760,7 +760,7 @@ static int DetectIPRepTest08(void)
     DetectEngineCtxFree(de_ctx);
 
     HostShutdown();
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
@@ -776,7 +776,7 @@ static int DetectIPRepTest09(void)
 
     HostInitConfig(HOST_QUIET);
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     FAIL_IF_NULL(de_ctx);
     FAIL_IF_NULL(p);
@@ -813,7 +813,7 @@ static int DetectIPRepTest09(void)
     DetectEngineCtxFree(de_ctx);
 
     HostShutdown();
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
@@ -841,7 +841,7 @@ static int DetectIPRepTest10(void)
 
     HostInitConfig(HOST_QUIET);
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     FAIL_IF_NULL(de_ctx);
     FAIL_IF_NULL(p);
@@ -875,7 +875,7 @@ static int DetectIPRepTest10(void)
     DetectEngineCtxFree(de_ctx);
 
     HostShutdown();
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
@@ -891,7 +891,7 @@ static int DetectIPRepTest11(void)
 
     HostInitConfig(HOST_QUIET);
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     FAIL_IF_NULL(de_ctx);
     FAIL_IF_NULL(p);
@@ -925,7 +925,7 @@ static int DetectIPRepTest11(void)
     DetectEngineCtxFree(de_ctx);
 
     HostShutdown();
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 

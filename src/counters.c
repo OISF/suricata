@@ -1237,14 +1237,14 @@ static int StatsGetAllCountersArray(
     return 0;
 }
 
-int StatsSetupPrivate(ThreadVars *tv)
+int StatsSetupPrivate(StatsThreadContext *stats, const char *thread_name)
 {
-    int r = StatsGetAllCountersArray(&tv->stats.pub, &tv->stats.priv);
+    int r = StatsGetAllCountersArray(&stats->pub, &stats->priv);
     if (r < 0) {
         return -1;
     }
 
-    r = StatsThreadRegister(tv->printable_name ? tv->printable_name : tv->name, &tv->stats.pub);
+    r = StatsThreadRegister(thread_name, &stats->pub);
     if (r != 1) {
         return -2;
     }
@@ -1257,9 +1257,9 @@ static void StatsThreadInitPublic(StatsPublicThreadContext *pctx)
     SCSpinInit(&pctx->lock, 0);
 }
 
-void StatsThreadInit(ThreadVars *tv)
+void StatsThreadInit(StatsThreadContext *stats)
 {
-    StatsThreadInitPublic(&tv->stats.pub);
+    StatsThreadInitPublic(&stats->pub);
 }
 
 /**
@@ -1353,10 +1353,10 @@ static void StatsReleasePrivateThreadContext(StatsPrivateThreadContext *pca)
     }
 }
 
-void StatsThreadCleanup(ThreadVars *tv)
+void StatsThreadCleanup(StatsThreadContext *stats)
 {
-    StatsPublicThreadContextCleanup(&tv->stats.pub);
-    StatsReleasePrivateThreadContext(&tv->stats.priv);
+    StatsPublicThreadContextCleanup(&stats->pub);
+    StatsReleasePrivateThreadContext(&stats->priv);
 }
 
 /*----------------------------------Unit_Tests--------------------------------*/
@@ -1428,12 +1428,12 @@ static int StatsTestGetCntArray05(void)
 {
     ThreadVars tv;
     memset(&tv, 0, sizeof(ThreadVars));
-    StatsThreadInit(&tv);
+    StatsThreadInit(&tv.stats);
     StatsCounterId c1 = RegisterCounter("t1", "c1", &tv.stats.pub);
     FAIL_IF(c1.id != 1);
     int r = StatsGetAllCountersArray(NULL, &tv.stats.priv);
     FAIL_IF_NOT(r == -1);
-    StatsThreadCleanup(&tv);
+    StatsThreadCleanup(&tv.stats);
     PASS;
 }
 
@@ -1441,13 +1441,13 @@ static int StatsTestGetCntArray06(void)
 {
     ThreadVars tv;
     memset(&tv, 0, sizeof(ThreadVars));
-    StatsThreadInit(&tv);
+    StatsThreadInit(&tv.stats);
     StatsCounterId c1 = RegisterCounter("t1", "c1", &tv.stats.pub);
     FAIL_IF(c1.id != 1);
     StatsThreadSetupPublic(&tv.stats.pub);
     int r = StatsGetAllCountersArray(&tv.stats.pub, &tv.stats.priv);
     FAIL_IF_NOT(r == 0);
-    StatsThreadCleanup(&tv);
+    StatsThreadCleanup(&tv.stats);
     PASS;
 }
 
@@ -1455,7 +1455,7 @@ static int StatsTestCntArraySize07(void)
 {
     ThreadVars tv;
     memset(&tv, 0, sizeof(ThreadVars));
-    StatsThreadInit(&tv);
+    StatsThreadInit(&tv.stats);
     StatsPrivateThreadContext *pca = NULL;
 
     StatsCounterId id1 = RegisterCounter("t1", "c1", &tv.stats.pub);
@@ -1470,7 +1470,7 @@ static int StatsTestCntArraySize07(void)
 
     FAIL_IF_NOT(pca->size == 3);
 
-    StatsThreadCleanup(&tv);
+    StatsThreadCleanup(&tv.stats);
     PASS;
 }
 
@@ -1478,7 +1478,7 @@ static int StatsTestUpdateCounter08(void)
 {
     ThreadVars tv;
     memset(&tv, 0, sizeof(ThreadVars));
-    StatsThreadInit(&tv);
+    StatsThreadInit(&tv.stats);
     StatsCounterId c1 = RegisterCounter("t1", "c1", &tv.stats.pub);
     StatsThreadSetupPublic(&tv.stats.pub);
     StatsGetAllCountersArray(&tv.stats.pub, &tv.stats.priv);
@@ -1488,7 +1488,7 @@ static int StatsTestUpdateCounter08(void)
     StatsAddUI64(&tv, c1, 100);
     FAIL_IF_NOT(pca->head[c1.id].v == 101);
 
-    StatsThreadCleanup(&tv);
+    StatsThreadCleanup(&tv.stats);
     PASS;
 }
 
@@ -1496,7 +1496,7 @@ static int StatsTestUpdateCounter09(void)
 {
     ThreadVars tv;
     memset(&tv, 0, sizeof(ThreadVars));
-    StatsThreadInit(&tv);
+    StatsThreadInit(&tv.stats);
 
     StatsCounterId c1 = RegisterCounter("t1", "c1", &tv.stats.pub);
     RegisterCounter("t2", "c2", &tv.stats.pub);
@@ -1514,7 +1514,7 @@ static int StatsTestUpdateCounter09(void)
     FAIL_IF_NOT(pca->head[c1.id].v == 0);
     FAIL_IF_NOT(pca->head[c5.id].v == 101);
 
-    StatsThreadCleanup(&tv);
+    StatsThreadCleanup(&tv.stats);
     PASS;
 }
 
@@ -1522,7 +1522,7 @@ static int StatsTestUpdateGlobalCounter10(void)
 {
     ThreadVars tv;
     memset(&tv, 0, sizeof(ThreadVars));
-    StatsThreadInit(&tv);
+    StatsThreadInit(&tv.stats);
 
     StatsCounterId c1 = RegisterCounter("t1", "c1", &tv.stats.pub);
     StatsCounterId c2 = RegisterCounter("t2", "c2", &tv.stats.pub);
@@ -1543,7 +1543,7 @@ static int StatsTestUpdateGlobalCounter10(void)
     FAIL_IF_NOT(100 == tv.stats.pub.copy_of_private[c2.id].v);
     FAIL_IF_NOT(101 == tv.stats.pub.copy_of_private[c3.id].v);
 
-    StatsThreadCleanup(&tv);
+    StatsThreadCleanup(&tv.stats);
     PASS;
 }
 
@@ -1551,7 +1551,7 @@ static int StatsTestCounterValues11(void)
 {
     ThreadVars tv;
     memset(&tv, 0, sizeof(ThreadVars));
-    StatsThreadInit(&tv);
+    StatsThreadInit(&tv.stats);
 
     StatsCounterId c1 = RegisterCounter("t1", "c1", &tv.stats.pub);
     StatsCounterId c2 = RegisterCounter("t2", "c2", &tv.stats.pub);
@@ -1574,7 +1574,7 @@ static int StatsTestCounterValues11(void)
     FAIL_IF_NOT(257 == tv.stats.pub.copy_of_private[c3.id].v);
     FAIL_IF_NOT(16843024 == tv.stats.pub.copy_of_private[c4.id].v);
 
-    StatsThreadCleanup(&tv);
+    StatsThreadCleanup(&tv.stats);
     PASS;
 }
 

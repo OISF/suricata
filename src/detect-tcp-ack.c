@@ -187,7 +187,7 @@ static int DetectAckSigTest01(void)
 {
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
     DetectEngineThreadCtx *det_ctx = NULL;
 
     /* TCP w/ack=42 */
@@ -244,7 +244,7 @@ static int DetectAckSigTest01(void)
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 

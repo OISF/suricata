@@ -951,7 +951,7 @@ static int SigGroupHeadTest06(void)
     ThreadVars th_v;
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     Packet *p = UTHBuildPacketSrcDst(NULL, 0, IPPROTO_ICMP, "192.168.1.1", "1.2.3.4");
     FAIL_IF_NULL(p);
@@ -987,7 +987,7 @@ static int SigGroupHeadTest06(void)
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 #endif

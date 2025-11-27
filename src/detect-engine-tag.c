@@ -714,7 +714,7 @@ static int DetectTagTestPacket02 (void)
     DetectEngineThreadCtx *det_ctx = NULL;
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     StorageCleanup();
     StorageInit();
@@ -800,7 +800,7 @@ static int DetectTagTestPacket02 (void)
     HostShutdown();
     TagDestroyCtx();
     StorageCleanup();
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
@@ -819,7 +819,7 @@ static int DetectTagTestPacket03 (void)
     DetectEngineThreadCtx *det_ctx = NULL;
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     StorageCleanup();
     StorageInit();
@@ -902,7 +902,7 @@ static int DetectTagTestPacket03 (void)
     HostShutdown();
     TagDestroyCtx();
     StorageCleanup();
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
@@ -939,7 +939,7 @@ static int DetectTagTestPacket04 (void)
     DetectEngineThreadCtx *det_ctx = NULL;
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -1023,7 +1023,7 @@ static int DetectTagTestPacket04 (void)
     HostShutdown();
     TagDestroyCtx();
     StorageCleanup();
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
@@ -1060,7 +1060,7 @@ static int DetectTagTestPacket05 (void)
     DetectEngineThreadCtx *det_ctx = NULL;
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -1149,7 +1149,7 @@ static int DetectTagTestPacket05 (void)
     HostShutdown();
     TagDestroyCtx();
     StorageCleanup();
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
@@ -1186,7 +1186,7 @@ static int DetectTagTestPacket06 (void)
     DetectEngineThreadCtx *det_ctx = NULL;
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -1271,7 +1271,7 @@ static int DetectTagTestPacket06 (void)
     HostShutdown();
     TagDestroyCtx();
     StorageCleanup();
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
@@ -1308,7 +1308,7 @@ static int DetectTagTestPacket07 (void)
     DetectEngineThreadCtx *det_ctx = NULL;
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -1392,7 +1392,7 @@ static int DetectTagTestPacket07 (void)
     HostShutdown();
     TagDestroyCtx();
     StorageCleanup();
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 

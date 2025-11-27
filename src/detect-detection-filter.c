@@ -381,7 +381,7 @@ static int DetectDetectionFilterTestSig1(void)
     ThresholdInit();
 
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     Packet *p = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
 
@@ -420,7 +420,7 @@ static int DetectDetectionFilterTestSig1(void)
 
     UTHFreePackets(&p, 1);
     ThresholdDestroy();
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
@@ -439,7 +439,7 @@ static int DetectDetectionFilterTestSig2(void)
     ThresholdInit();
 
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     Packet *p = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
 
@@ -483,7 +483,7 @@ static int DetectDetectionFilterTestSig2(void)
 
     UTHFreePackets(&p, 1);
     ThresholdDestroy();
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
@@ -498,7 +498,7 @@ static int DetectDetectionFilterTestSig3(void)
     ThresholdInit();
 
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     Packet *p = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
 
@@ -560,7 +560,7 @@ static int DetectDetectionFilterTestSig3(void)
 
     UTHFreePackets(&p, 1);
     ThresholdDestroy();
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
