@@ -2652,9 +2652,9 @@ jobs:
       - name: Determine number of CPUs
         run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
-      - run: apt update
+      - run: sudo apt update
       - run: |
-          apt -y install \
+          sudo apt -y install \
               autoconf \
               automake \
               build-essential \
@@ -2684,7 +2684,6 @@ jobs:
               pkg-config \
               python3 \
               python3-yaml \
-              sudo \
               tcpreplay \
               zlib1g \
               zlib1g-dev \
