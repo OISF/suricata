@@ -1166,7 +1166,10 @@ static int StatsThreadRegister(const char *thread_name, StatsPublicThreadContext
         stats_ctx->counters_id_hash = HashTableInit(256, CountersIdHashFunc,
                                                               CountersIdHashCompareFunc,
                                                               CountersIdHashFreeFunc);
-        BUG_ON(stats_ctx->counters_id_hash == NULL);
+        if (stats_ctx->counters_id_hash == NULL) {
+            SCMutexUnlock(&stats_ctx->sts_lock);
+            return 0;
+        }
     }
     StatsCounter *pc = pctx->head;
     while (pc != NULL) {
@@ -1177,11 +1180,12 @@ static int StatsThreadRegister(const char *thread_name, StatsPublicThreadContext
             BUG_ON(id == NULL);
             id->id = counters_global_id++;
             id->string = pc->name;
-#ifdef DEBUG_VALIDATION
-            DEBUG_VALIDATE_BUG_ON(HashTableAdd(stats_ctx->counters_id_hash, id, sizeof(*id)) < 0);
-#else
-            HashTableAdd(stats_ctx->counters_id_hash, id, sizeof(*id));
-#endif
+            int r = HashTableAdd(stats_ctx->counters_id_hash, id, sizeof(*id));
+            DEBUG_VALIDATE_BUG_ON(r < 0);
+            if (r < 0) {
+                SCMutexUnlock(&stats_ctx->sts_lock);
+                return 0;
+            }
         }
         pc->gid = id->id;
         pc = pc->next;
