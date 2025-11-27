@@ -2696,8 +2696,8 @@ void ReceiveAFPThreadExitStats(ThreadVars *tv, void *data)
 #ifdef PACKET_STATISTICS
     AFPDumpCounters(ptv);
     SCLogPerf("%s: (%s) kernel: Packets %" PRIu64 ", dropped %" PRIu64 "", ptv->iface, tv->name,
-            StatsGetLocalCounterValue(tv, ptv->capture_kernel_packets),
-            StatsGetLocalCounterValue(tv, ptv->capture_kernel_drops));
+            StatsCounterGetLocalValue(&tv->stats, ptv->capture_kernel_packets),
+            StatsCounterGetLocalValue(&tv->stats, ptv->capture_kernel_drops));
 #endif
 }
 

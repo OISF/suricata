@@ -534,17 +534,12 @@ ReceiveErfDagThreadExitStats(ThreadVars *tv, void *data)
 {
     ErfDagThreadVars *ewtn = (ErfDagThreadVars *)data;
 
-    (void)SC_ATOMIC_SET(ewtn->livedev->pkts,
-        StatsGetLocalCounterValue(tv, ewtn->packets));
-    (void)SC_ATOMIC_SET(ewtn->livedev->drop,
-        StatsGetLocalCounterValue(tv, ewtn->drops));
+    (void)SC_ATOMIC_SET(ewtn->livedev->pkts, StatsCounterGetLocalValue(&tv->stats, ewtn->packets));
+    (void)SC_ATOMIC_SET(ewtn->livedev->drop, StatsCounterGetLocalValue(&tv->stats, ewtn->drops));
 
-    SCLogInfo("Stream: %d; Bytes: %"PRIu64"; Packets: %"PRIu64
-        "; Drops: %"PRIu64,
-        ewtn->dagstream,
-        ewtn->bytes,
-        StatsGetLocalCounterValue(tv, ewtn->packets),
-        StatsGetLocalCounterValue(tv, ewtn->drops));
+    SCLogInfo("Stream: %d; Bytes: %" PRIu64 "; Packets: %" PRIi64 "; Drops: %" PRIi64,
+            ewtn->dagstream, ewtn->bytes, StatsCounterGetLocalValue(&tv->stats, ewtn->packets),
+            StatsCounterGetLocalValue(&tv->stats, ewtn->drops));
 }
 
 /**
