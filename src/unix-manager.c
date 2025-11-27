@@ -1154,8 +1154,6 @@ static TmEcode UnixManager(ThreadVars *th_v, void *thread_data)
     /* set the thread name */
     SCLogDebug("%s started...", th_v->name);
 
-    StatsSetupPrivate(th_v);
-
     /* Set the threads capability */
     th_v->cap_flags = 0;
     SCDropCaps(th_v);
