@@ -1332,6 +1332,9 @@ void AppLayerRegisterThreadCounters(ThreadVars *tv)
                 applayer_counters[alproto][ipproto_map].counter_id =
                         StatsRegisterCounter(applayer_counter_names[alproto][ipproto_map].name, tv);
 
+                if (AppLayerParserProtoIsRegistered(ipproto, alproto) != 1)
+                    continue;
+
                 applayer_counters[alproto][ipproto_map].counter_tx_id = StatsRegisterCounter(
                         applayer_counter_names[alproto][ipproto_map].tx_name, tv);
 
