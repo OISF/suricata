@@ -44,6 +44,28 @@
 #include "util-unittest-helper.h"
 #include "util-debug.h"
 
+struct {
+    const char *name;
+    uint8_t proto;
+    uint8_t proto2;
+    uint8_t flags;
+} proto_table[] = {
+    { "tcp", IPPROTO_TCP, 0, 0 },
+    { "tcp-pkt", IPPROTO_TCP, 0, DETECT_PROTO_ONLY_PKT },
+    { "tcp-stream", IPPROTO_TCP, 0, DETECT_PROTO_ONLY_STREAM },
+    { "udp", IPPROTO_UDP, 0, 0 },
+    { "icmpv4", IPPROTO_ICMP, 0, 0 },
+    { "icmpv6", IPPROTO_ICMPV6, 0, 0 },
+    { "icmp", IPPROTO_ICMP, IPPROTO_ICMPV6, 0 },
+    { "sctp", IPPROTO_SCTP, 0, 0 },
+    { "ipv4", 0, 0, DETECT_PROTO_IPV4 | DETECT_PROTO_ANY },
+    { "ip4", 0, 0, DETECT_PROTO_IPV4 | DETECT_PROTO_ANY },
+    { "ipv6", 0, 0, DETECT_PROTO_IPV6 | DETECT_PROTO_ANY },
+    { "ip6", 0, 0, DETECT_PROTO_IPV6 | DETECT_PROTO_ANY },
+    { "ip", 0, 0, DETECT_PROTO_ANY },
+    { "pkthdr", 0, 0, DETECT_PROTO_ANY },
+};
+
 /**
  * \brief Parses a protocol sent as a string.
  *
@@ -55,56 +77,21 @@
  */
 int DetectProtoParse(DetectProto *dp, const char *str)
 {
-    if (strcasecmp(str, "tcp") == 0) {
-        dp->proto[IPPROTO_TCP / 8] |= 1 << (IPPROTO_TCP % 8);
-        SCLogDebug("TCP protocol detected");
-    } else if (strcasecmp(str, "tcp-pkt") == 0) {
-        dp->proto[IPPROTO_TCP / 8] |= 1 << (IPPROTO_TCP % 8);
-        SCLogDebug("TCP protocol detected, packets only");
-        dp->flags |= DETECT_PROTO_ONLY_PKT;
-    } else if (strcasecmp(str, "tcp-stream") == 0) {
-        dp->proto[IPPROTO_TCP / 8] |= 1 << (IPPROTO_TCP % 8);
-        SCLogDebug("TCP protocol detected, stream only");
-        dp->flags |= DETECT_PROTO_ONLY_STREAM;
-    } else if (strcasecmp(str, "udp") == 0) {
-        dp->proto[IPPROTO_UDP / 8] |= 1 << (IPPROTO_UDP % 8);
-        SCLogDebug("UDP protocol detected");
-    } else if (strcasecmp(str, "icmpv4") == 0) {
-        dp->proto[IPPROTO_ICMP / 8] |= 1 << (IPPROTO_ICMP % 8);
-        SCLogDebug("ICMPv4 protocol detected");
-    } else if (strcasecmp(str, "icmpv6") == 0) {
-        dp->proto[IPPROTO_ICMPV6 / 8] |= 1 << (IPPROTO_ICMPV6 % 8);
-        SCLogDebug("ICMPv6 protocol detected");
-    } else if (strcasecmp(str, "icmp") == 0) {
-        dp->proto[IPPROTO_ICMP / 8] |= 1 << (IPPROTO_ICMP % 8);
-        dp->proto[IPPROTO_ICMPV6 / 8] |= 1 << (IPPROTO_ICMPV6 % 8);
-        SCLogDebug("ICMP protocol detected, sig applies both to ICMPv4 and ICMPv6");
-    } else if (strcasecmp(str, "sctp") == 0) {
-        dp->proto[IPPROTO_SCTP / 8] |= 1 << (IPPROTO_SCTP % 8);
-        SCLogDebug("SCTP protocol detected");
-    } else if (strcasecmp(str,"ipv4") == 0 ||
-               strcasecmp(str,"ip4") == 0 ) {
-        dp->flags |= (DETECT_PROTO_IPV4 | DETECT_PROTO_ANY);
-        memset(dp->proto, 0xff, sizeof(dp->proto));
-        SCLogDebug("IPv4 protocol detected");
-    } else if (strcasecmp(str,"ipv6") == 0 ||
-               strcasecmp(str,"ip6") == 0 ) {
-        dp->flags |= (DETECT_PROTO_IPV6 | DETECT_PROTO_ANY);
-        memset(dp->proto, 0xff, sizeof(dp->proto));
-        SCLogDebug("IPv6 protocol detected");
-    } else if (strcasecmp(str,"ip") == 0 ||
-               strcasecmp(str,"pkthdr") == 0) {
-        /* Proto "ip" is treated as an "any" */
-        dp->flags |= DETECT_PROTO_ANY;
-        memset(dp->proto, 0xff, sizeof(dp->proto));
-        SCLogDebug("IP protocol detected");
-    } else {
-        goto error;
+    int found = -1;
+    for (size_t i = 0; i < ARRAY_SIZE(proto_table); i++) {
+        if (strcasecmp(str, proto_table[i].name) == 0) {
+            if (proto_table[i].proto != 0)
+                dp->proto[proto_table[i].proto / 8] |= 1 << (proto_table[i].proto % 8);
+            if (proto_table[i].proto2 != 0)
+                dp->proto[proto_table[i].proto2 / 8] |= 1 << (proto_table[i].proto2 % 8);
+            dp->flags |= proto_table[i].flags;
+            if (proto_table[i].flags & DETECT_PROTO_ANY)
+                memset(dp->proto, 0xff, sizeof(dp->proto));
+            found = 0;
+            break;
+        }
     }
-
-    return 0;
-error:
-    return -1;
+    return found;
 }
 
 /** \brief see if a DetectProto contains a certain proto
