@@ -291,20 +291,20 @@ static inline void DPDKDumpCounters(DPDKThreadVars *ptv)
             return;
         }
 
-        StatsSetUI64(ptv->tv, ptv->capture_dpdk_packets,
+        StatsCounterSetI64(&ptv->tv->stats, ptv->capture_dpdk_packets,
                 ptv->pkts + eth_stats.imissed + eth_stats.ierrors + eth_stats.rx_nombuf);
         SC_ATOMIC_SET(ptv->livedev->pkts,
                 eth_stats.ipackets + eth_stats.imissed + eth_stats.ierrors + eth_stats.rx_nombuf);
-        StatsSetUI64(ptv->tv, ptv->capture_dpdk_rx_errs,
+        StatsCounterSetI64(&ptv->tv->stats, ptv->capture_dpdk_rx_errs,
                 eth_stats.imissed + eth_stats.ierrors + eth_stats.rx_nombuf);
-        StatsSetUI64(ptv->tv, ptv->capture_dpdk_imissed, eth_stats.imissed);
-        StatsSetUI64(ptv->tv, ptv->capture_dpdk_rx_no_mbufs, eth_stats.rx_nombuf);
-        StatsSetUI64(ptv->tv, ptv->capture_dpdk_ierrors, eth_stats.ierrors);
-        StatsSetUI64(ptv->tv, ptv->capture_dpdk_tx_errs, eth_stats.oerrors);
+        StatsCounterSetI64(&ptv->tv->stats, ptv->capture_dpdk_imissed, eth_stats.imissed);
+        StatsCounterSetI64(&ptv->tv->stats, ptv->capture_dpdk_rx_no_mbufs, eth_stats.rx_nombuf);
+        StatsCounterSetI64(&ptv->tv->stats, ptv->capture_dpdk_ierrors, eth_stats.ierrors);
+        StatsCounterSetI64(&ptv->tv->stats, ptv->capture_dpdk_tx_errs, eth_stats.oerrors);
         SC_ATOMIC_SET(
                 ptv->livedev->drop, eth_stats.imissed + eth_stats.ierrors + eth_stats.rx_nombuf);
     } else {
-        StatsSetUI64(ptv->tv, ptv->capture_dpdk_packets, ptv->pkts);
+        StatsCounterSetI64(&ptv->tv->stats, ptv->capture_dpdk_packets, ptv->pkts);
     }
 }
 

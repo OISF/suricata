@@ -162,8 +162,8 @@ static void UpdateFlowStats(ThreadVars *tv, NtInfoStream_t hInfo, NtStatStream_t
                   hStat.u.flowData_v0.timeoutUnlearnDone;
     }
 
-    StatsSetUI64(tv, flow_counters.active_bypass_flows, programed - removed);
-    StatsSetUI64(tv, flow_counters.total_bypass_flows, programed);
+    StatsCounterSetI64(&tv->stats, flow_counters.active_bypass_flows, programed - removed);
+    StatsCounterSetI64(&tv->stats, flow_counters.total_bypass_flows, programed);
 }
 
 #endif /* NAPATECH_ENABLE_BYPASS */
@@ -344,10 +344,11 @@ static uint32_t UpdateStreamStats(ThreadVars *tv, NtInfoStream_t hInfo, NtStatSt
         if (enable_stream_stats) {
             StatsSetUI64(
                     tv, stream_counters[inst_id].pkts, current_stats[stream_id].current_packets);
-            StatsSetUI64(tv, stream_counters[inst_id].byte, current_stats[stream_id].current_bytes);
-            StatsSetUI64(tv, stream_counters[inst_id].drop_pkts,
+            StatsCounterSetI64(&tv->stats, stream_counters[inst_id].byte,
+                    current_stats[stream_id].current_bytes);
+            StatsCounterSetI64(&tv->stats, stream_counters[inst_id].drop_pkts,
                     current_stats[stream_id].current_drop_packets);
-            StatsSetUI64(tv, stream_counters[inst_id].drop_byte,
+            StatsCounterSetI64(&tv->stats, stream_counters[inst_id].drop_byte,
                     current_stats[stream_id].current_drop_bytes);
         }
 
@@ -366,12 +367,12 @@ static uint32_t UpdateStreamStats(ThreadVars *tv, NtInfoStream_t hInfo, NtStatSt
     }
 
 #ifndef NAPATECH_ENABLE_BYPASS
-    StatsSetUI64(tv, total_counters.pkts, total_stats.current_packets);
-    StatsSetUI64(tv, total_counters.byte, total_stats.current_bytes);
+    StatsCounterSetI64(&tv->stats, total_counters.pkts, total_stats.current_packets);
+    StatsCounterSetI64(&tv->stats, total_counters.byte, total_stats.current_bytes);
 #endif /* NAPATECH_ENABLE_BYPASS */
 
-    StatsSetUI64(tv, total_counters.drop_pkts, total_stats.current_drop_packets);
-    StatsSetUI64(tv, total_counters.drop_byte, total_stats.current_drop_bytes);
+    StatsCounterSetI64(&tv->stats, total_counters.drop_pkts, total_stats.current_drop_packets);
+    StatsCounterSetI64(&tv->stats, total_counters.drop_byte, total_stats.current_drop_bytes);
 
     total_stats.current_packets = 0;
     total_stats.current_bytes = 0;
@@ -442,19 +443,19 @@ static uint32_t UpdateStreamStats(ThreadVars *tv, NtInfoStream_t hInfo, NtStatSt
                 hStat.u.query_v3.data.adapter.aAdapters[adapter].color.aColor[2].octets;
     }
 
-    StatsSetUI64(tv, dispatch_host.pkts, total_dispatch_host_pkts);
-    StatsSetUI64(tv, dispatch_host.byte, total_dispatch_host_byte);
+    StatsCounterSetI64(&tv->stats, dispatch_host.pkts, total_dispatch_host_pkts);
+    StatsCounterSetI64(&tv->stats, dispatch_host.byte, total_dispatch_host_byte);
 
-    StatsSetUI64(tv, dispatch_drop.pkts, total_dispatch_drop_pkts);
-    StatsSetUI64(tv, dispatch_drop.byte, total_dispatch_drop_byte);
+    StatsCounterSetI64(&tv->stats, dispatch_drop.pkts, total_dispatch_drop_pkts);
+    StatsCounterSetI64(&tv->stats, dispatch_drop.byte, total_dispatch_drop_byte);
 
     if (is_inline) {
-        StatsSetUI64(tv, dispatch_fwd.pkts, total_dispatch_fwd_pkts);
-        StatsSetUI64(tv, dispatch_fwd.byte, total_dispatch_fwd_byte);
+        StatsCounterSetI64(&tv->stats, dispatch_fwd.pkts, total_dispatch_fwd_pkts);
+        StatsCounterSetI64(&tv->stats, dispatch_fwd.byte, total_dispatch_fwd_byte);
     }
 
-    StatsSetUI64(tv, total_counters.pkts, total_stats.current_packets);
-    StatsSetUI64(tv, total_counters.byte, total_stats.current_bytes);
+    StatsCounterSetI64(&tv->stats, total_counters.pkts, total_stats.current_packets);
+    StatsCounterSetI64(&tv->stats, total_counters.byte, total_stats.current_bytes);
 
 #endif /* NAPATECH_ENABLE_BYPASS */
 
@@ -591,37 +592,37 @@ static void *NapatechStatsLoop(void *arg)
 
     StatsSetupPrivate(tv);
 
-    StatsSetUI64(tv, total_counters.pkts, 0);
-    StatsSetUI64(tv, total_counters.byte, 0);
-    StatsSetUI64(tv, total_counters.drop_pkts, 0);
-    StatsSetUI64(tv, total_counters.drop_byte, 0);
+    StatsCounterSetI64(&tv->stats, total_counters.pkts, 0);
+    StatsCounterSetI64(&tv->stats, total_counters.byte, 0);
+    StatsCounterSetI64(&tv->stats, total_counters.drop_pkts, 0);
+    StatsCounterSetI64(&tv->stats, total_counters.drop_byte, 0);
 
 #ifdef NAPATECH_ENABLE_BYPASS
     if (bypass_supported) {
-        StatsSetUI64(tv, dispatch_host.pkts, 0);
-        StatsSetUI64(tv, dispatch_drop.pkts, 0);
+        StatsCounterSetI64(&tv->stats, dispatch_host.pkts, 0);
+        StatsCounterSetI64(&tv->stats, dispatch_drop.pkts, 0);
 
         if (is_inline) {
-            StatsSetUI64(tv, dispatch_fwd.pkts, 0);
+            StatsCounterSetI64(&tv->stats, dispatch_fwd.pkts, 0);
         }
 
-        StatsSetUI64(tv, dispatch_host.byte, 0);
-        StatsSetUI64(tv, dispatch_drop.byte, 0);
+        StatsCounterSetI64(&tv->stats, dispatch_host.byte, 0);
+        StatsCounterSetI64(&tv->stats, dispatch_drop.byte, 0);
         if (is_inline) {
-            StatsSetUI64(tv, dispatch_fwd.byte, 0);
+            StatsCounterSetI64(&tv->stats, dispatch_fwd.byte, 0);
         }
 
         if (enable_stream_stats) {
             for (int i = 0; i < stream_cnt; ++i) {
-                StatsSetUI64(tv, stream_counters[i].pkts, 0);
-                StatsSetUI64(tv, stream_counters[i].byte, 0);
-                StatsSetUI64(tv, stream_counters[i].drop_pkts, 0);
-                StatsSetUI64(tv, stream_counters[i].drop_byte, 0);
+                StatsCounterSetI64(&tv->stats, stream_counters[i].pkts, 0);
+                StatsCounterSetI64(&tv->stats, stream_counters[i].byte, 0);
+                StatsCounterSetI64(&tv->stats, stream_counters[i].drop_pkts, 0);
+                StatsCounterSetI64(&tv->stats, stream_counters[i].drop_byte, 0);
             }
         }
 
-        StatsSetUI64(tv, flow_counters.active_bypass_flows, 0);
-        StatsSetUI64(tv, flow_counters.total_bypass_flows, 0);
+        StatsCounterSetI64(&tv->stats, flow_counters.active_bypass_flows, 0);
+        StatsCounterSetI64(&tv->stats, flow_counters.total_bypass_flows, 0);
         UpdateFlowStats(tv, hInfo, hstat_stream, flow_counters, 1);
     }
 #endif /* NAPATECH_ENABLE_BYPASS */

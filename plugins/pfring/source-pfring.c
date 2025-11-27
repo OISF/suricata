@@ -155,14 +155,14 @@ static inline void PfringDumpCounters(PfringThreadVars *ptv)
         uint64_t th_drops = StatsGetLocalCounterValue(ptv->tv, ptv->capture_kernel_drops);
         LiveDevicePktsAdd(ptv->livedev, pfring_s.recv - th_pkts);
         LiveDeviceDropAdd(ptv->livedev, pfring_s.drop - th_drops);
-        StatsSetUI64(ptv->tv, ptv->capture_kernel_packets, pfring_s.recv);
-        StatsSetUI64(ptv->tv, ptv->capture_kernel_drops, pfring_s.drop);
+        StatsCounterSetI64(&ptv->tv->stats, ptv->capture_kernel_packets, pfring_s.recv);
+        StatsCounterSetI64(&ptv->tv->stats, ptv->capture_kernel_drops, pfring_s.drop);
 
 #ifdef HAVE_PF_RING_FLOW_OFFLOAD
         if (ptv->flags & PFRING_FLAGS_BYPASS) {
             uint64_t th_bypassed = StatsGetLocalCounterValue(ptv->tv, ptv->capture_bypassed);
             LiveDeviceBypassedAdd(ptv->livedev, pfring_s.shunt - th_bypassed);
-            StatsSetUI64(ptv->tv, ptv->capture_bypassed, pfring_s.shunt);
+            StatsCounterSetI64(&ptv->tv->stats, ptv->capture_bypassed, pfring_s.shunt);
         }
 #endif
     }

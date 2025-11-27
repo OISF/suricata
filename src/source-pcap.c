@@ -198,13 +198,11 @@ static inline void PcapDumpCounters(PcapThreadVars *ptv)
     if (likely((pcap_stats(ptv->pcap_handle, &pcap_s) >= 0))) {
         UpdatePcapStats64(&ptv->last_stats64, &pcap_s);
 
-        StatsSetUI64(ptv->tv, ptv->capture_kernel_packets,
-                ptv->last_stats64.ps_recv);
-        StatsSetUI64(
-                ptv->tv, ptv->capture_kernel_drops, ptv->last_stats64.ps_drop);
+        StatsCounterSetI64(&ptv->tv->stats, ptv->capture_kernel_packets, ptv->last_stats64.ps_recv);
+        StatsCounterSetI64(&ptv->tv->stats, ptv->capture_kernel_drops, ptv->last_stats64.ps_drop);
         (void)SC_ATOMIC_SET(ptv->livedev->drop, ptv->last_stats64.ps_drop);
-        StatsSetUI64(ptv->tv, ptv->capture_kernel_ifdrops,
-                ptv->last_stats64.ps_ifdrop);
+        StatsCounterSetI64(
+                &ptv->tv->stats, ptv->capture_kernel_ifdrops, ptv->last_stats64.ps_ifdrop);
     }
 }
 

@@ -197,13 +197,13 @@ void StatsDecr(ThreadVars *tv, StatsCounterId id)
 /**
  * \brief set, so overwrite, the value of the local counter
  *
+ * \param stats per thread counter structure
  * \param id  Index of the local counter in the counter array
- * \param pca Pointer to the StatsPrivateThreadContext
  * \param x   The value to set for the counter
  */
-void StatsSetUI64(ThreadVars *tv, StatsCounterId id, uint64_t x)
+void StatsCounterSetI64(StatsThreadContext *stats, StatsCounterId id, int64_t x)
 {
-    StatsPrivateThreadContext *pca = &tv->stats.priv;
+    StatsPrivateThreadContext *pca = &stats->priv;
 #if defined (UNITTESTS) || defined (FUZZ)
     if (pca->initialized == 0)
         return;
