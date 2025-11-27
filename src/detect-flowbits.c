@@ -1592,7 +1592,7 @@ static int FlowBitsTestSig06(void)
     uint32_t idx = 0;
 
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
     memset(&f, 0, sizeof(Flow));
     memset(&flowvar, 0, sizeof(GenericVar));
 
@@ -1637,7 +1637,7 @@ static int FlowBitsTestSig06(void)
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
@@ -1667,7 +1667,7 @@ static int FlowBitsTestSig07(void)
     uint32_t idx = 0;
 
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
     memset(&f, 0, sizeof(Flow));
     memset(&flowvar, 0, sizeof(GenericVar));
 
@@ -1713,7 +1713,7 @@ static int FlowBitsTestSig07(void)
     FLOW_DESTROY(&f);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
@@ -1744,7 +1744,7 @@ static int FlowBitsTestSig08(void)
     uint32_t idx = 0;
 
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
     memset(&f, 0, sizeof(Flow));
     memset(&flowvar, 0, sizeof(GenericVar));
 
@@ -1790,7 +1790,7 @@ static int FlowBitsTestSig08(void)
     FLOW_DESTROY(&f);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 

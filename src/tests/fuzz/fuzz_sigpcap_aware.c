@@ -113,7 +113,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         dtv = DecodeThreadVarsAlloc(&tv);
         DecodeRegisterPerfCounters(dtv, &tv);
         tmm_modules[TMM_FLOWWORKER].ThreadInit(&tv, NULL, &fwd);
-        StatsSetupPrivate(&tv);
+        StatsSetupPrivate(&tv.stats, NULL);
 
         extern uint32_t max_pending_packets;
         max_pending_packets = 128;

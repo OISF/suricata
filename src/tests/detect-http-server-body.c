@@ -82,7 +82,7 @@ static int RunTest(struct TestSteps *steps, const char *sig, const char *yaml)
     FAIL_IF_NULL(alp_tctx);
 
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -158,7 +158,7 @@ static int RunTest(struct TestSteps *steps, const char *sig, const char *yaml)
         SCConfRestoreContextBackup();
         EngineModeSetIDS();
     }
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
@@ -866,7 +866,7 @@ static int DetectEngineHttpServerBodyFileDataTest03(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -939,7 +939,7 @@ static int DetectEngineHttpServerBodyFileDataTest03(void)
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
@@ -2282,7 +2282,7 @@ static int DetectHttpServerBodyTest14(void)
     uint32_t httplen4 = sizeof(httpbuf4) - 1; /* minus the \0 */
 
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -2364,7 +2364,7 @@ static int DetectHttpServerBodyTest14(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
@@ -2400,7 +2400,7 @@ static int DetectHttpServerBodyTest15(void)
     uint32_t httplen4 = sizeof(httpbuf4) - 1; /* minus the \0 */
 
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -2472,7 +2472,7 @@ static int DetectHttpServerBodyTest15(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
@@ -2743,7 +2743,7 @@ static int DetectHttpServerBodyFileDataTest09(void)
     uint32_t httplen4 = sizeof(httpbuf4) - 1; /* minus the \0 */
 
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -2812,7 +2812,7 @@ static int DetectHttpServerBodyFileDataTest09(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
@@ -2848,7 +2848,7 @@ static int DetectHttpServerBodyFileDataTest10(void)
     uint32_t httplen4 = sizeof(httpbuf4) - 1; /* minus the \0 */
 
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -2917,7 +2917,7 @@ static int DetectHttpServerBodyFileDataTest10(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 

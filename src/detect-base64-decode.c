@@ -373,7 +373,7 @@ static int DetectBase64DecodeTestDecode(void)
     };
 
     memset(&tv, 0, sizeof(tv));
-    StatsThreadInit(&tv);
+    StatsThreadInit(&tv.stats);
 
     if ((de_ctx = DetectEngineCtxInit()) == NULL) {
         goto end;
@@ -410,7 +410,7 @@ end:
     if (p != NULL) {
         UTHFreePacket(p);
     }
-    StatsThreadCleanup(&tv);
+    StatsThreadCleanup(&tv.stats);
     return retval;
 }
 
@@ -430,7 +430,7 @@ static int DetectBase64DecodeTestDecodeWithOffset(void)
     char decoded[] = "Hello World";
 
     memset(&tv, 0, sizeof(tv));
-    StatsThreadInit(&tv);
+    StatsThreadInit(&tv.stats);
 
     if ((de_ctx = DetectEngineCtxInit()) == NULL) {
         goto end;
@@ -472,7 +472,7 @@ end:
     if (p != NULL) {
         UTHFreePacket(p);
     }
-    StatsThreadCleanup(&tv);
+    StatsThreadCleanup(&tv.stats);
     return retval;
 }
 
@@ -490,7 +490,7 @@ static int DetectBase64DecodeTestDecodeLargeOffset(void)
     };
 
     memset(&tv, 0, sizeof(tv));
-    StatsThreadInit(&tv);
+    StatsThreadInit(&tv.stats);
 
     if ((de_ctx = DetectEngineCtxInit()) == NULL) {
         goto end;
@@ -528,7 +528,7 @@ end:
     if (p != NULL) {
         UTHFreePacket(p);
     }
-    StatsThreadCleanup(&tv);
+    StatsThreadCleanup(&tv.stats);
     return retval;
 }
 
@@ -548,7 +548,7 @@ static int DetectBase64DecodeTestDecodeRelative(void)
     char decoded[] = "Hello World";
 
     memset(&tv, 0, sizeof(tv));
-    StatsThreadInit(&tv);
+    StatsThreadInit(&tv.stats);
 
     if ((de_ctx = DetectEngineCtxInit()) == NULL) {
         goto end;
@@ -589,7 +589,7 @@ end:
     if (p != NULL) {
         UTHFreePacket(p);
     }
-    StatsThreadCleanup(&tv);
+    StatsThreadCleanup(&tv.stats);
     return retval;
 }
 

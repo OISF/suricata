@@ -2297,7 +2297,7 @@ static int SCACTileTest29(void)
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
     p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -2335,7 +2335,7 @@ end:
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
     }
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     return result;
 }
 

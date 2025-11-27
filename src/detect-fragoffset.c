@@ -265,7 +265,7 @@ static int DetectFragOffsetMatchTest01 (void)
     memset(&ip4h, 0, sizeof(IPV4Hdr));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(ThreadVars));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     FlowInitConfig(FLOW_QUIET);
 
@@ -302,7 +302,7 @@ static int DetectFragOffsetMatchTest01 (void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     FlowShutdown();
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 

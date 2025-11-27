@@ -265,7 +265,7 @@ static int DetectTlsCertsTest02(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
-    StatsThreadInit(&tv);
+    StatsThreadInit(&tv.stats);
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 
@@ -350,7 +350,7 @@ static int DetectTlsCertsTest02(void)
     DetectEngineThreadCtxDeinit(&tv, det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
-    StatsThreadCleanup(&tv);
+    StatsThreadCleanup(&tv.stats);
     PASS;
 }
 

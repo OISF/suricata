@@ -698,7 +698,7 @@ int UTHMatchPacketsWithResults(DetectEngineCtx *de_ctx, Packet **p, int num_pack
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
 
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
@@ -711,7 +711,7 @@ int UTHMatchPacketsWithResults(DetectEngineCtx *de_ctx, Packet **p, int num_pack
     result = 1;
 cleanup:
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     return result;
 }
 
@@ -737,7 +737,7 @@ int UTHMatchPackets(DetectEngineCtx *de_ctx, Packet **p, int num_packets)
     DetectEngineThreadCtx *det_ctx = NULL;
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
     SCSigRegisterSignatureOrderingFuncs(de_ctx);
     SCSigOrderSignatures(de_ctx);
     SCSigSignatureOrderingModuleCleanup(de_ctx);
@@ -752,7 +752,7 @@ int UTHMatchPackets(DetectEngineCtx *de_ctx, Packet **p, int num_packets)
      * and others may not. That check will be outside
      */
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     return result;
 }
 
@@ -778,7 +778,7 @@ int UTHPacketMatchSigMpm(Packet *p, char *sig, uint16_t mpm_type)
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     if (mpm_type == MPM_AC) {
         SCConfSet("mpm-algo", "ac");
@@ -816,7 +816,7 @@ int UTHPacketMatchSigMpm(Packet *p, char *sig, uint16_t mpm_type)
 end:
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     SCConfSet("mpm-algo", "auto");
     SCReturnInt(result);
 }
@@ -841,7 +841,7 @@ int UTHPacketMatchSig(Packet *p, const char *sig)
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -871,7 +871,7 @@ end:
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     return result;
 }
 
