@@ -237,9 +237,9 @@ void StatsCounterMaxUpdateI64(StatsThreadContext *stats, StatsCounterMaxId id, i
     }
 }
 
-void StatsCounterAvgAddI64(ThreadVars *tv, StatsCounterAvgId id, int64_t x)
+void StatsCounterAvgAddI64(StatsThreadContext *stats, StatsCounterAvgId id, int64_t x)
 {
-    StatsPrivateThreadContext *pca = &tv->stats.priv;
+    StatsPrivateThreadContext *pca = &stats->priv;
 #if defined(UNITTESTS) || defined(FUZZ)
     if (pca->initialized == 0)
         return;
