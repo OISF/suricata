@@ -1201,13 +1201,12 @@ static inline bool StillAlive(const Flow *f, const SCTime_t ts)
 }
 
 #ifdef UNITTESTS
-    #define STATSADDUI64(cnt, value) \
-        if (tv && dtv) { \
-            StatsAddUI64(tv, dtv->cnt, (value)); \
-        }
+#define STATSADDUI64(cnt, value)                                                                   \
+    if (tv && dtv) {                                                                               \
+        StatsCounterAddI64(&tv->stats, dtv->cnt, (value));                                         \
+    }
 #else
-    #define STATSADDUI64(cnt, value) \
-        StatsAddUI64(tv, dtv->cnt, (value));
+#define STATSADDUI64(cnt, value) StatsCounterAddI64(&tv->stats, dtv->cnt, (value));
 #endif
 
 /** \internal

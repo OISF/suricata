@@ -1027,13 +1027,15 @@ static inline void DetectRunPostRules(ThreadVars *tv, const DetectEngineCtx *de_
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_ALERT);
     PacketAlertFinalize(de_ctx, det_ctx, p);
     if (p->alerts.cnt > 0) {
-        StatsAddUI64(tv, det_ctx->counter_alerts, (uint64_t)p->alerts.cnt);
+        StatsCounterAddI64(&tv->stats, det_ctx->counter_alerts, (uint64_t)p->alerts.cnt);
     }
     if (p->alerts.discarded > 0) {
-        StatsAddUI64(tv, det_ctx->counter_alerts_overflow, (uint64_t)p->alerts.discarded);
+        StatsCounterAddI64(
+                &tv->stats, det_ctx->counter_alerts_overflow, (uint64_t)p->alerts.discarded);
     }
     if (p->alerts.suppressed > 0) {
-        StatsAddUI64(tv, det_ctx->counter_alerts_suppressed, (uint64_t)p->alerts.suppressed);
+        StatsCounterAddI64(
+                &tv->stats, det_ctx->counter_alerts_suppressed, (uint64_t)p->alerts.suppressed);
     }
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_ALERT);
 
