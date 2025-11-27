@@ -98,7 +98,7 @@ static int DetectSslVersionMatch(DetectEngineThreadCtx *det_ctx,
 
     int ret = 0;
     uint16_t ver = 0;
-    uint8_t sig_ver = TLS_UNKNOWN;
+    bool sig_ver = false;
 
     const DetectSslVersionData *ssl = (const DetectSslVersionData *)m;
     SSLState *app_state = (SSLState *)state;
@@ -119,29 +119,29 @@ static int DetectSslVersionMatch(DetectEngineThreadCtx *det_ctx,
 
     switch (ver) {
         case SSL_VERSION_2:
-            if (ver == ssl->data[SSLv2].ver)
+            if (ssl->data[SSLv2])
                 ret = 1;
-            sig_ver = SSLv2;
+            sig_ver = true;
             break;
         case SSL_VERSION_3:
-            if (ver == ssl->data[SSLv3].ver)
+            if (ssl->data[SSLv3])
                 ret = 1;
-            sig_ver = SSLv3;
+            sig_ver = true;
             break;
         case TLS_VERSION_10:
-            if (ver == ssl->data[TLS10].ver)
+            if (ssl->data[TLS10])
                 ret = 1;
-            sig_ver = TLS10;
+            sig_ver = true;
             break;
         case TLS_VERSION_11:
-            if (ver == ssl->data[TLS11].ver)
+            if (ssl->data[TLS11])
                 ret = 1;
-            sig_ver = TLS11;
+            sig_ver = true;
             break;
         case TLS_VERSION_12:
-            if (ver == ssl->data[TLS12].ver)
+            if (ssl->data[TLS12])
                 ret = 1;
-            sig_ver = TLS12;
+            sig_ver = true;
             break;
         case TLS_VERSION_13_DRAFT28:
         case TLS_VERSION_13_DRAFT27:
@@ -157,35 +157,33 @@ static int DetectSslVersionMatch(DetectEngineThreadCtx *det_ctx,
         case TLS_VERSION_13_DRAFT17:
         case TLS_VERSION_13_DRAFT16:
         case TLS_VERSION_13_PRE_DRAFT16:
-            if (((ver >> 8) & 0xff) == 0x7f)
-                ver = TLS_VERSION_13;
-            /* fall through */
         case TLS_VERSION_13:
-            if (ver == ssl->data[TLS13].ver)
+            if (ssl->data[TLS13])
                 ret = 1;
-            sig_ver = TLS13;
+            sig_ver = true;
             break;
     }
 
-    if (sig_ver == TLS_UNKNOWN)
+    if (!sig_ver)
         SCReturnInt(0);
 
-    SCReturnInt(ret ^ ((ssl->data[sig_ver].flags & DETECT_SSL_VERSION_NEGATED) ? 1 : 0));
+    // matches if ret == 1 and negate is false
+    // or if ret == 0 and negate is true
+    SCReturnInt(ret ^ (ssl->negate ? 1 : 0));
 }
 
 struct SSLVersionKeywords {
     const char *word;
     int index;
-    uint16_t value;
 };
 
 struct SSLVersionKeywords ssl_version_keywords[TLS_SIZE] = {
-    { "sslv2", SSLv2, SSL_VERSION_2 },
-    { "sslv3", SSLv3, SSL_VERSION_3 },
-    { "tls1.0", TLS10, TLS_VERSION_10 },
-    { "tls1.1", TLS11, TLS_VERSION_11 },
-    { "tls1.2", TLS12, TLS_VERSION_12 },
-    { "tls1.3", TLS13, TLS_VERSION_13 },
+    { "sslv2", SSLv2 },
+    { "sslv3", SSLv3 },
+    { "tls1.0", TLS10 },
+    { "tls1.1", TLS11 },
+    { "tls1.2", TLS12 },
+    { "tls1.3", TLS13 },
 };
 
 /**
@@ -203,7 +201,6 @@ static DetectSslVersionData *DetectSslVersionParse(DetectEngineCtx *de_ctx, cons
     DetectSslVersionData *ssl = NULL;
     const char *tmp_str = str;
     size_t tmp_len = 0;
-    uint8_t found = 0;
 
     /* We have a correct ssl_version options */
     ssl = SCCalloc(1, sizeof(DetectSslVersionData));
@@ -218,13 +215,12 @@ static DetectSslVersionData *DetectSslVersionParse(DetectEngineCtx *de_ctx, cons
         SCLogError("Invalid empty value");
         goto error;
     }
+    if (tmp_str[0] == '!') {
+        ssl->negate = true;
+        tmp_str++;
+    }
     // iterate every version separated by comma
     while (tmp_str[0] != 0) {
-        uint8_t neg = 0;
-        if (tmp_str[0] == '!') {
-            neg = 1;
-            tmp_str++;
-        }
         // counts word length
         tmp_len = 0;
         while (tmp_str[tmp_len] != 0 && !isspace(tmp_str[tmp_len]) && tmp_str[tmp_len] != ',') {
@@ -235,29 +231,17 @@ static DetectSslVersionData *DetectSslVersionParse(DetectEngineCtx *de_ctx, cons
         for (size_t i = 0; i < TLS_SIZE; i++) {
             if (tmp_len == strlen(ssl_version_keywords[i].word) &&
                     strncasecmp(ssl_version_keywords[i].word, tmp_str, tmp_len) == 0) {
-                if (ssl->data[ssl_version_keywords[i].index].ver != 0) {
+                if (ssl->data[ssl_version_keywords[i].index]) {
                     SCLogError("Invalid duplicate value");
                     goto error;
                 }
-                ssl->data[ssl_version_keywords[i].index].ver = ssl_version_keywords[i].value;
-                if (neg == 1)
-                    ssl->data[ssl_version_keywords[i].index].flags |= DETECT_SSL_VERSION_NEGATED;
+                ssl->data[ssl_version_keywords[i].index] = true;
                 is_keyword = true;
                 break;
             }
         }
         if (!is_keyword) {
             SCLogError("Invalid unknown value");
-            goto error;
-        }
-
-        /* check consistency between negative and positive values :
-         * if there is a negative value, it overrides positive values
-         */
-        if (found == 0) {
-            found |= 1 << neg;
-        } else if (found != 1 << neg) {
-            SCLogError("Invalid value mixing negative and positive forms");
             goto error;
         }
 
