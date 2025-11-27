@@ -73,6 +73,15 @@ pub struct SCPlugin_ {
     pub author: *const ::std::os::raw::c_char,
     pub Init: ::std::option::Option<unsafe extern "C" fn()>,
 }
+impl Default for SCPlugin_ {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[doc = " Structure to define a Suricata plugin."]
 pub type SCPlugin = SCPlugin_;
 pub type SCPluginRegisterFunc = ::std::option::Option<unsafe extern "C" fn() -> *mut SCPlugin>;
@@ -111,6 +120,24 @@ pub struct SCCapturePlugin___bindgen_ty_1 {
     pub tqe_next: *mut SCCapturePlugin_,
     pub tqe_prev: *mut *mut SCCapturePlugin_,
 }
+impl Default for SCCapturePlugin___bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for SCCapturePlugin_ {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 pub type SCCapturePlugin = SCCapturePlugin_;
 extern "C" {
     pub fn SCPluginRegisterCapture(arg1: *mut SCCapturePlugin) -> ::std::os::raw::c_int;
@@ -130,6 +157,15 @@ pub struct SCAppLayerPlugin_ {
             jb: *mut ::std::os::raw::c_void,
         ) -> bool,
     >,
+}
+impl Default for SCAppLayerPlugin_ {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 pub type SCAppLayerPlugin = SCAppLayerPlugin_;
 extern "C" {
@@ -155,6 +191,15 @@ pub struct EveJsonSimpleAppLayerLogger {
     pub LogTx: EveJsonSimpleTxLogFunc,
     pub name: *const ::std::os::raw::c_char,
 }
+impl Default for EveJsonSimpleAppLayerLogger {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 extern "C" {
     pub fn SCEveJsonSimpleGetLogger(alproto: AppProto) -> *mut EveJsonSimpleAppLayerLogger;
 }
@@ -166,6 +211,15 @@ pub struct EveJsonTxLoggerRegistrationData {
     pub alproto: AppProto,
     pub dir: u8,
     pub LogTx: EveJsonSimpleTxLogFunc,
+}
+impl Default for EveJsonTxLoggerRegistrationData {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 extern "C" {
     pub fn SCOutputEvePreRegisterLogger(
@@ -230,6 +284,15 @@ pub struct InspectionBuffer {
     pub size: u32,
     pub orig_len: u32,
     pub orig: *const u8,
+}
+impl Default for InspectionBuffer {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -312,6 +375,15 @@ pub struct SCSigTableAppLiteElmt {
         ) -> ::std::os::raw::c_int,
     >,
 }
+impl Default for SCSigTableAppLiteElmt {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct SCTransformTableElmt {
@@ -350,6 +422,15 @@ pub struct SCTransformTableElmt {
             context: *mut ::std::os::raw::c_void,
         ),
     >,
+}
+impl Default for SCTransformTableElmt {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 extern "C" {
     pub fn SCDetectHelperNewKeywordId() -> ::std::os::raw::c_int;
@@ -390,7 +471,7 @@ extern "C" {
     ) -> ::std::os::raw::c_int;
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone)]
 pub struct DeStateStoreItem_ {
     pub flags: u32,
     pub sid: u32,
@@ -401,6 +482,15 @@ pub type DeStateStoreItem = DeStateStoreItem_;
 pub struct DeStateStore_ {
     pub store: [DeStateStoreItem; 15usize],
     pub next: *mut DeStateStore_,
+}
+impl Default for DeStateStore_ {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 pub type DeStateStore = DeStateStore_;
 #[repr(C)]
@@ -416,11 +506,29 @@ pub struct DetectEngineStateDirection_ {
     pub filestore_cnt: u16,
     pub flags: u8,
 }
+impl Default for DetectEngineStateDirection_ {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 pub type DetectEngineStateDirection = DetectEngineStateDirection_;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct DetectEngineState_ {
     pub dir_state: [DetectEngineStateDirection; 2usize],
+}
+impl Default for DetectEngineState_ {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 pub type DetectEngineState = DetectEngineState_;
 extern "C" {
@@ -495,11 +603,38 @@ pub struct SCConfNode___bindgen_ty_1 {
     pub tqh_first: *mut SCConfNode_,
     pub tqh_last: *mut *mut SCConfNode_,
 }
+impl Default for SCConfNode___bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct SCConfNode___bindgen_ty_2 {
     pub tqe_next: *mut SCConfNode_,
     pub tqe_prev: *mut *mut SCConfNode_,
+}
+impl Default for SCConfNode___bindgen_ty_2 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for SCConfNode_ {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[doc = " Structure of a configuration parameter."]
 pub type SCConfNode = [u64; 8usize];
@@ -804,6 +939,15 @@ pub struct SCEnumCharMap_ {
     pub enum_name: *const ::std::os::raw::c_char,
     pub enum_value: ::std::os::raw::c_int,
 }
+impl Default for SCEnumCharMap_ {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 pub type SCEnumCharMap = SCEnumCharMap_;
 extern "C" {
     pub fn SCMapEnumNameToValue(
@@ -823,6 +967,15 @@ pub struct AppLayerDecoderEvents_ {
     pub cnt: u8,
     pub events_buffer_size: u8,
     pub event_last_logged: u8,
+}
+impl Default for AppLayerDecoderEvents_ {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 extern "C" {
     pub fn SCAppLayerDecoderEventsSetEventRaw(sevents: *mut *mut AppLayerDecoderEvents, event: u8);
@@ -844,7 +997,7 @@ extern "C" {
     pub fn SCFileFlowFlagsToFlags(flow_file_flags: u16, direction: u8) -> u16;
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone)]
 pub struct StreamingBufferConfig_ {
     pub buf_size: u32,
     #[doc = "< max concurrent memory regions. 0 means no limit."]
@@ -870,6 +1023,15 @@ pub type StreamingBufferConfig = StreamingBufferConfig_;
 pub struct FileContainer_ {
     pub head: *mut File,
     pub tail: *mut File,
+}
+impl Default for FileContainer_ {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 pub type FileContainer = FileContainer_;
 extern "C" {
@@ -907,6 +1069,15 @@ pub struct HttpRangeContainerBlock {
     #[doc = " file container we are owning for now"]
     pub files: *mut FileContainer,
 }
+impl Default for HttpRangeContainerBlock {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 extern "C" {
     pub fn SCHttpRangeFreeBlock(b: *mut HttpRangeContainerBlock);
 }
@@ -924,9 +1095,15 @@ extern "C" {
         len: u32,
     ) -> ::std::os::raw::c_int;
 }
+extern "C" {
+    pub fn SCHTPFileCloseHandleRange(
+        sbcfg: *const StreamingBufferConfig, arg1: *mut FileContainer, arg2: u16,
+        arg3: *mut HttpRangeContainerBlock, arg4: *const u8, arg5: u32,
+    ) -> bool;
+}
 pub type FrameId = i64;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone)]
 pub struct Frame {
     #[doc = "< protocol specific field type. E.g. NBSS.HDR or SMB.DATA"]
     pub type_: u8,
@@ -980,6 +1157,15 @@ pub struct MpmPattern_ {
     pub sids: *mut u32,
     pub next: *mut MpmPattern_,
 }
+impl Default for MpmPattern_ {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 pub type MpmPattern = MpmPattern_;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -996,6 +1182,15 @@ pub struct MpmCtx_ {
     pub max_pat_id: u32,
     pub init_hash: *mut *mut MpmPattern,
 }
+impl Default for MpmCtx_ {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 pub type MpmCtx = MpmCtx_;
 extern "C" {
     pub fn SCMpmAddPatternCI(
@@ -1011,6 +1206,15 @@ pub struct GenericVar_ {
     pub pad: [u8; 2usize],
     pub idx: u32,
     pub next: *mut GenericVar_,
+}
+impl Default for GenericVar_ {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 pub type GenericVar = GenericVar_;
 extern "C" {

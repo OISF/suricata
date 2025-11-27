@@ -139,6 +139,7 @@ if HAVE_BINDGEN
 		--no-layout-tests \
 		--disable-header-comment \
 		--default-enum-style rust \
+		--with-derive-default \
 		--allowlist-type 'AppProto.*' \
 		--allowlist-function 'AppProto.*' \
 		--allowlist-function 'FileAppendData' \
