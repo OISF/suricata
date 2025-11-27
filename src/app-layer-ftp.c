@@ -912,6 +912,20 @@ static AppProto FTPUserProbingParser(
     return ALPROTO_FTP;
 }
 
+static AppProto FTPQuitProbingParser(
+        const Flow *f, uint8_t direction, const uint8_t *input, uint32_t len, uint8_t *rdir)
+{
+    // another check for minimum length
+    if (len < 5) {
+        return ALPROTO_UNKNOWN;
+    }
+    // begins by QUIT
+    if (SCMemcmp(input, "QUIT", 4) != 0) {
+        return ALPROTO_FAILED;
+    }
+    return ALPROTO_FTP;
+}
+
 static AppProto FTPServerProbingParser(
         const Flow *f, uint8_t direction, const uint8_t *input, uint32_t len, uint8_t *rdir)
 {
@@ -951,6 +965,7 @@ static int FTPRegisterPatternsForProtocolDetection(void)
                 STREAM_TOSERVER, FTPUserProbingParser, 5, 5) < 0) {
         return -1;
     }
+
     if (SCAppLayerProtoDetectPMRegisterPatternCI(
                 IPPROTO_TCP, ALPROTO_FTP, "PASS ", 5, 0, STREAM_TOSERVER) < 0) {
         return -1;
@@ -964,9 +979,9 @@ static int FTPRegisterPatternsForProtocolDetection(void)
     if (!SCAppLayerProtoDetectPPParseConfPorts(
                 "tcp", IPPROTO_TCP, "ftp", ALPROTO_FTP, 0, 5, NULL, FTPServerProbingParser)) {
         // STREAM_TOSERVER here means use 21 as flow destination port
-        // and NULL, FTPServerProbingParser means use probing parser to client
-        SCAppLayerProtoDetectPPRegister(IPPROTO_TCP, "21", ALPROTO_FTP, 0, 5, STREAM_TOSERVER, NULL,
-                FTPServerProbingParser);
+        // and FTPServerProbingParser is probing parser to client
+        SCAppLayerProtoDetectPPRegister(IPPROTO_TCP, "21", ALPROTO_FTP, 0, 5, STREAM_TOSERVER,
+                FTPQuitProbingParser, FTPServerProbingParser);
     }
     return 0;
 }
