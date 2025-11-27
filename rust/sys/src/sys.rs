@@ -917,6 +917,13 @@ extern "C" {
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {
+    pub fn SCAppLayerProtoDetectPMRegisterPatternCIwPP(
+        ipproto: u8, alproto: AppProto, pattern: *const ::std::os::raw::c_char, depth: u16,
+        offset: u16, direction: u8, PPFunc: ProbingParserFPtr, pp_min_depth: u16,
+        pp_max_depth: u16,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
     pub fn SCAppLayerRequestProtocolTLSUpgrade(f: *mut Flow) -> bool;
 }
 extern "C" {
