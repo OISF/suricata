@@ -7,6 +7,7 @@
 #include "suricata-common.h"
 #include "suricata.h"
 #include "conf-yaml-loader.h"
+#include "nallocinc.c"
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 
@@ -21,10 +22,14 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         //global init
         InitGlobal();
         SCRunmodeSet(RUNMODE_UNITTEST);
+        nalloc_init(NULL);
+        // do not restrict nalloc
         initialized = 1;
     }
 
+    nalloc_start(data, size);
     SCConfYamlLoadString((const char *)data, size);
+    nalloc_end();
 
     return 0;
 }
