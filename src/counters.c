@@ -1130,10 +1130,13 @@ static int StatsThreadSetupPublic(StatsPublicThreadContext *pctx)
         return -1;
     }
     for (StatsCounter *pc = pctx->head; pc != NULL; pc = pc->next) {
+        SCLogDebug("pc %s gid %u id %u", pc->name, pc->gid, pc->id);
         BUG_ON(pctx->pc_array[pc->id] != NULL);
         pctx->pc_array[pc->id] = pc;
     }
 
+    SCLogDebug("array_size %u memory %" PRIu64, (uint32_t)array_size,
+            (uint64_t)(array_size * sizeof(StatsLocalCounter)));
     pctx->copy_of_private = SCCalloc(array_size, sizeof(StatsLocalCounter));
     if (pctx->copy_of_private == NULL) {
         return -1;
@@ -1162,6 +1165,7 @@ static int StatsThreadRegister(const char *thread_name, StatsPublicThreadContext
     }
 
     SCMutexLock(&stats_ctx->sts_lock);
+    SCLogDebug("thread %s", thread_name);
     if (stats_ctx->counters_id_hash == NULL) {
         stats_ctx->counters_id_hash = HashTableInit(256, CountersIdHashFunc,
                                                               CountersIdHashCompareFunc,
