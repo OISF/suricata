@@ -1093,9 +1093,9 @@ static void Recycler(ThreadVars *tv, FlowRecyclerThreadData *ftd, Flow *f)
 
     FlowEndCountersUpdate(tv, &ftd->fec, f);
     if (f->proto == IPPROTO_TCP && f->protoctx != NULL) {
-        StatsDecr(tv, ftd->counter_tcp_active_sessions);
+        StatsCounterDecr(&tv->stats, ftd->counter_tcp_active_sessions);
     }
-    StatsDecr(tv, ftd->counter_flow_active);
+    StatsCounterDecr(&tv->stats, ftd->counter_flow_active);
     SCFlowRunFinishCallbacks(tv, f);
     FlowClearMemory(f, f->protomap);
     FLOWLOCK_UNLOCK(f);
