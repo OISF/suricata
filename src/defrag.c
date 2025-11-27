@@ -872,7 +872,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
             ENGINE_SET_EVENT(p, IPV6_FRAG_IGNORED);
         }
         if (tv != NULL && dtv != NULL) {
-            StatsIncr(tv, dtv->counter_defrag_no_frags);
+            StatsCounterIncr(&tv->stats, dtv->counter_defrag_no_frags);
         }
         goto error_remove_tracker;
     }
@@ -925,7 +925,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
         if (tracker->af == AF_INET) {
             r = Defrag4Reassemble(tv, tracker, p);
             if (r != NULL && tv != NULL && dtv != NULL) {
-                StatsIncr(tv, dtv->counter_defrag_ipv4_reassembled);
+                StatsCounterIncr(&tv->stats, dtv->counter_defrag_ipv4_reassembled);
                 const uint32_t len = GET_PKT_LEN(r) - (uint32_t)tracker->ip_hdr_offset;
                 DEBUG_VALIDATE_BUG_ON(len > UINT16_MAX);
                 if (DecodeIPV4(tv, dtv, r, GET_PKT_DATA(r) + tracker->ip_hdr_offset,
@@ -941,7 +941,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
         else if (tracker->af == AF_INET6) {
             r = Defrag6Reassemble(tv, tracker, p);
             if (r != NULL && tv != NULL && dtv != NULL) {
-                StatsIncr(tv, dtv->counter_defrag_ipv6_reassembled);
+                StatsCounterIncr(&tv->stats, dtv->counter_defrag_ipv6_reassembled);
                 const uint32_t len = GET_PKT_LEN(r) - (uint32_t)tracker->ip_hdr_offset;
                 DEBUG_VALIDATE_BUG_ON(len > UINT16_MAX);
                 if (DecodeIPV6(tv, dtv, r, GET_PKT_DATA(r) + tracker->ip_hdr_offset,
@@ -1085,16 +1085,16 @@ Defrag(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
     }
 
     if (af == AF_INET) {
-        StatsIncr(tv, dtv->counter_defrag_ipv4_fragments);
+        StatsCounterIncr(&tv->stats, dtv->counter_defrag_ipv4_fragments);
     } else if (af == AF_INET6) {
-        StatsIncr(tv, dtv->counter_defrag_ipv6_fragments);
+        StatsCounterIncr(&tv->stats, dtv->counter_defrag_ipv6_fragments);
     }
 
     /* return a locked tracker or NULL */
     tracker = DefragGetTracker(tv, dtv, p);
     if (tracker == NULL) {
         if (tv != NULL && dtv != NULL) {
-            StatsIncr(tv, dtv->counter_defrag_max_hit);
+            StatsCounterIncr(&tv->stats, dtv->counter_defrag_max_hit);
         }
         return NULL;
     }

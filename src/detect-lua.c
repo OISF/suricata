@@ -180,13 +180,13 @@ static int DetectLuaRunMatch(
         SCLuaSbState *context = SCLuaSbGetContext(tlua->luastate);
         uint32_t flag = 0;
         if (context->blocked_function_error) {
-            StatsIncr(det_ctx->tv, det_ctx->lua_blocked_function_errors);
+            StatsCounterIncr(&det_ctx->tv->stats, det_ctx->lua_blocked_function_errors);
             flag = FLAG_BLOCKED_FUNCTION_LOGGED;
         } else if (context->instruction_count_error) {
-            StatsIncr(det_ctx->tv, det_ctx->lua_instruction_limit_errors);
+            StatsCounterIncr(&det_ctx->tv->stats, det_ctx->lua_instruction_limit_errors);
             flag = FLAG_INSTRUCTION_LIMIT_LOGGED;
         } else if (context->memory_limit_error) {
-            StatsIncr(det_ctx->tv, det_ctx->lua_memory_limit_errors);
+            StatsCounterIncr(&det_ctx->tv->stats, det_ctx->lua_memory_limit_errors);
             reason = "memory limit exceeded";
             flag = FLAG_MEMORY_LIMIT_LOGGED;
         } else {
@@ -200,7 +200,7 @@ static int DetectLuaRunMatch(
             tlua->flags |= flag;
         }
 
-        StatsIncr(det_ctx->tv, det_ctx->lua_rule_errors);
+        StatsCounterIncr(&det_ctx->tv->stats, det_ctx->lua_rule_errors);
         while (lua_gettop(tlua->luastate) > 0) {
             lua_pop(tlua->luastate, 1);
         }

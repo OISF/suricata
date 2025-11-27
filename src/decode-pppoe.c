@@ -51,7 +51,7 @@ int DecodePPPOEDiscovery(
 {
     DEBUG_VALIDATE_BUG_ON(pkt == NULL);
 
-    StatsIncr(tv, dtv->counter_pppoe);
+    StatsCounterIncr(&tv->stats, dtv->counter_pppoe);
 
     if (len < PPPOE_DISCOVERY_HEADER_MIN_LEN) {
         ENGINE_SET_INVALID_EVENT(p, PPPOE_PKT_TOO_SMALL);
@@ -124,7 +124,7 @@ int DecodePPPOESession(
 {
     DEBUG_VALIDATE_BUG_ON(pkt == NULL);
 
-    StatsIncr(tv, dtv->counter_pppoe);
+    StatsCounterIncr(&tv->stats, dtv->counter_pppoe);
 
     if (len < PPPOE_SESSION_HEADER_MIN_LEN) {
         ENGINE_SET_INVALID_EVENT(p, PPPOE_PKT_TOO_SMALL);

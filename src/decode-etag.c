@@ -45,7 +45,7 @@ int DecodeETag(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *
 {
     DEBUG_VALIDATE_BUG_ON(pkt == NULL);
 
-    StatsIncr(tv, dtv->counter_etag);
+    StatsCounterIncr(&tv->stats, dtv->counter_etag);
 
     if (len < ETAG_HEADER_LEN) {
         ENGINE_SET_INVALID_EVENT(p, ETAG_HEADER_TOO_SMALL);

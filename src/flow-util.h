@@ -153,12 +153,12 @@ static inline void FlowEndCountersUpdate(ThreadVars *tv, FlowEndCounters *fec, F
 {
     if (f->proto == IPPROTO_TCP && f->protoctx != NULL) {
         TcpSession *ssn = f->protoctx;
-        StatsIncr(tv, fec->flow_tcp_state[ssn->state]);
+        StatsCounterIncr(&tv->stats, fec->flow_tcp_state[ssn->state]);
         if (ssn->flags & STREAMTCP_FLAG_LOSSY_BE_LIBERAL) {
-            StatsIncr(tv, fec->flow_tcp_liberal);
+            StatsCounterIncr(&tv->stats, fec->flow_tcp_liberal);
         }
     }
-    StatsIncr(tv, fec->flow_state[f->flow_state]);
+    StatsCounterIncr(&tv->stats, fec->flow_state[f->flow_state]);
 }
 
 void FlowEndCountersRegister(ThreadVars *t, FlowEndCounters *fec);

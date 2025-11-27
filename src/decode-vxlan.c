@@ -179,7 +179,7 @@ int DecodeVXLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 #endif
 
     /* Increment stats counter for VXLAN packets */
-    StatsIncr(tv, dtv->counter_vxlan);
+    StatsCounterIncr(&tv->stats, dtv->counter_vxlan);
 
     EthernetHdr *ethh = (EthernetHdr *)(pkt + VXLAN_HEADER_LEN);
     int decode_tunnel_proto = DECODE_TUNNEL_UNSET;

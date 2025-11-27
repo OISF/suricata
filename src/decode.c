@@ -236,7 +236,7 @@ void PacketFree(Packet *p)
 void PacketDecodeFinalize(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
 {
     if (p->flags & PKT_IS_INVALID) {
-        StatsIncr(tv, dtv->counter_invalid);
+        StatsCounterIncr(&tv->stats, dtv->counter_invalid);
     }
 }
 
@@ -250,7 +250,7 @@ void PacketUpdateEngineEventCounters(ThreadVars *tv,
             continue;
         else if (e > DECODE_EVENT_PACKET_MAX && !stats_stream_events)
             continue;
-        StatsIncr(tv, dtv->counter_engine_events[e]);
+        StatsCounterIncr(&tv->stats, dtv->counter_engine_events[e]);
     }
 }
 
@@ -775,8 +775,7 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
 void DecodeUpdatePacketCounters(ThreadVars *tv,
                                 const DecodeThreadVars *dtv, const Packet *p)
 {
-    StatsIncr(tv, dtv->counter_pkts);
-    //StatsIncr(tv, dtv->counter_pkts_per_sec);
+    StatsCounterIncr(&tv->stats, dtv->counter_pkts);
     StatsCounterAddI64(&tv->stats, dtv->counter_bytes, GET_PKT_LEN(p));
     StatsCounterAvgAddI64(&tv->stats, dtv->counter_avg_pkt_size, GET_PKT_LEN(p));
     StatsCounterMaxUpdateI64(&tv->stats, dtv->counter_max_pkt_size, GET_PKT_LEN(p));
@@ -1023,16 +1022,16 @@ void CaptureStatsUpdate(ThreadVars *tv, const Packet *p)
 
     CaptureStats *s = &t_capture_stats;
     if (unlikely(PacketCheckAction(p, ACTION_REJECT_ANY))) {
-        StatsIncr(tv, s->counter_ips_rejected);
+        StatsCounterIncr(&tv->stats, s->counter_ips_rejected);
     } else if (unlikely(PacketCheckAction(p, ACTION_DROP))) {
-        StatsIncr(tv, s->counter_ips_blocked);
+        StatsCounterIncr(&tv->stats, s->counter_ips_blocked);
     } else if (unlikely(p->flags & PKT_STREAM_MODIFIED)) {
-        StatsIncr(tv, s->counter_ips_replaced);
+        StatsCounterIncr(&tv->stats, s->counter_ips_replaced);
     } else {
-        StatsIncr(tv, s->counter_ips_accepted);
+        StatsCounterIncr(&tv->stats, s->counter_ips_accepted);
     }
     if (p->drop_reason != PKT_DROP_REASON_NOT_SET) {
-        StatsIncr(tv, s->counter_drop_reason[p->drop_reason]);
+        StatsCounterIncr(&tv->stats, s->counter_drop_reason[p->drop_reason]);
     }
 }
 

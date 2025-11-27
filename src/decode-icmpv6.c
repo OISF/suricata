@@ -179,7 +179,7 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 {
     const IPV6Hdr *ip6h = PacketGetIPv6(p);
     int full_hdr = 0;
-    StatsIncr(tv, dtv->counter_icmpv6);
+    StatsCounterIncr(&tv->stats, dtv->counter_icmpv6);
 
     if (len < ICMPV6_HEADER_LEN) {
         SCLogDebug("ICMPV6_PKT_TOO_SMALL");

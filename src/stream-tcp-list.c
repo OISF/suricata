@@ -538,7 +538,7 @@ static int DoHandleData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     /* we had an overlap with different data */
     if (result) {
         StreamTcpSetEvent(p, STREAM_REASSEMBLY_OVERLAP_DIFFERENT_DATA);
-        StatsIncr(tv, ra_ctx->counter_tcp_reass_overlap_diff_data);
+        StatsCounterIncr(&tv->stats, ra_ctx->counter_tcp_reass_overlap_diff_data);
     }
 
     /* insert the temp buffer now that we've (possibly) updated
@@ -546,7 +546,7 @@ static int DoHandleData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     int res = InsertSegmentDataCustom(stream, handle, buf, p->payload_len);
     if (res != SC_OK) {
         if (res == SC_ENOMEM) {
-            StatsIncr(tv, ra_ctx->counter_tcp_segment_memcap);
+            StatsCounterIncr(&tv->stats, ra_ctx->counter_tcp_segment_memcap);
             StreamTcpSetEvent(p, STREAM_REASSEMBLY_INSERT_MEMCAP);
         } else if (res == SC_ELIMIT) {
             StreamTcpSetEvent(p, STREAM_REASSEMBLY_INSERT_LIMIT);
@@ -649,11 +649,11 @@ int StreamTcpReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
         /* no overlap, straight data insert */
         int res = InsertSegmentDataCustom(stream, seg, pkt_data, pkt_datalen);
         if (res != SC_OK) {
-            StatsIncr(tv, ra_ctx->counter_tcp_reass_data_normal_fail);
+            StatsCounterIncr(&tv->stats, ra_ctx->counter_tcp_reass_data_normal_fail);
             StreamTcpRemoveSegmentFromStream(stream, seg);
             StreamTcpSegmentReturntoPool(seg);
             if (res == SC_ENOMEM) {
-                StatsIncr(tv, ra_ctx->counter_tcp_segment_memcap);
+                StatsCounterIncr(&tv->stats, ra_ctx->counter_tcp_segment_memcap);
                 SCReturnInt(-SC_ENOMEM);
             }
             SCReturnInt(-1);
@@ -667,12 +667,12 @@ int StreamTcpReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
         }
 
         /* XXX should we exclude 'retransmissions' here? */
-        StatsIncr(tv, ra_ctx->counter_tcp_reass_overlap);
+        StatsCounterIncr(&tv->stats, ra_ctx->counter_tcp_reass_overlap);
 
         /* now let's consider the data in the overlap case */
         int res = DoHandleData(tv, ra_ctx, stream, seg, dup_seg, p);
         if (res < 0) {
-            StatsIncr(tv, ra_ctx->counter_tcp_reass_data_overlap_fail);
+            StatsCounterIncr(&tv->stats, ra_ctx->counter_tcp_reass_data_overlap_fail);
 
             if (r == 1) // r == 2 mean seg wasn't added to stream
                 StreamTcpRemoveSegmentFromStream(stream, seg);

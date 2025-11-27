@@ -52,7 +52,7 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
     GRESreHdr *gsre = NULL;
     GREPPtPHd *gre_pptp_h = NULL;
 
-    StatsIncr(tv, dtv->counter_gre);
+    StatsCounterIncr(&tv->stats, dtv->counter_gre);
 
     if(len < GRE_HDR_LEN)    {
         ENGINE_SET_INVALID_EVENT(p, GRE_PKT_TOO_SMALL);

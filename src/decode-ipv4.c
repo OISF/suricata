@@ -515,7 +515,7 @@ static const IPV4Hdr *DecodeIPV4Packet(Packet *p, const uint8_t *pkt, uint16_t l
 int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         const uint8_t *pkt, uint16_t len)
 {
-    StatsIncr(tv, dtv->counter_ipv4);
+    StatsCounterIncr(&tv->stats, dtv->counter_ipv4);
 
     SCLogDebug("pkt %p len %"PRIu16"", pkt, len);
 
@@ -586,7 +586,7 @@ int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             if (tp != NULL) {
                 PKT_SET_SRC(tp, PKT_SRC_DECODER_IPV4);
                 PacketEnqueueNoLock(&tv->decode_pq, tp);
-                StatsIncr(tv, dtv->counter_ipv6inipv4);
+                StatsCounterIncr(&tv->stats, dtv->counter_ipv6inipv4);
             }
             FlowSetupPacket(p);
             break;
@@ -597,7 +597,7 @@ int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             if (tp != NULL) {
                 PKT_SET_SRC(tp, PKT_SRC_DECODER_IPV4);
                 PacketEnqueueNoLock(&tv->decode_pq, tp);
-                StatsIncr(tv, dtv->counter_ipv4inipv4);
+                StatsCounterIncr(&tv->stats, dtv->counter_ipv4inipv4);
             }
             FlowSetupPacket(p);
             break;

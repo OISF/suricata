@@ -65,7 +65,7 @@ int DecodeESP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
 {
     DEBUG_VALIDATE_BUG_ON(pkt == NULL);
 
-    StatsIncr(tv, dtv->counter_esp);
+    StatsCounterIncr(&tv->stats, dtv->counter_esp);
 
     if (!PacketIncreaseCheckLayers(p)) {
         return TM_ECODE_FAILED;

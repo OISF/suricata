@@ -900,7 +900,7 @@ static void StreamTcpSsnMemcapExceptionPolicyStatsIncr(
 {
     const StatsCounterId id = stt->counter_tcp_ssn_memcap_eps.eps_id[policy];
     if (likely(tv && id.id > 0)) {
-        StatsIncr(tv, id);
+        StatsCounterIncr(&tv->stats, id);
     }
 }
 
@@ -939,14 +939,14 @@ static TcpSession *StreamTcpNewSession(ThreadVars *tv, StreamTcpThread *stt, Pac
 #ifdef UNITTESTS
             if (tv)
 #endif
-                StatsIncr(tv, stt->counter_tcp_ssn_from_cache);
+                StatsCounterIncr(&tv->stats, stt->counter_tcp_ssn_from_cache);
         } else {
             p->flow->protoctx = PoolThreadGetById(ssn_pool, (uint16_t)id);
             if (p->flow->protoctx != NULL)
 #ifdef UNITTESTS
                 if (tv)
 #endif
-                    StatsIncr(tv, stt->counter_tcp_ssn_from_pool);
+                    StatsCounterIncr(&tv->stats, stt->counter_tcp_ssn_from_pool);
         }
 #ifdef DEBUG
         SCMutexLock(&ssn_pool_mutex);
@@ -1141,7 +1141,7 @@ static void StreamTcpMidstreamExceptionPolicyStatsIncr(
 {
     const StatsCounterId id = stt->counter_tcp_midstream_eps.eps_id[policy];
     if (likely(tv && id.id > 0)) {
-        StatsIncr(tv, id);
+        StatsCounterIncr(&tv->stats, id);
     }
 }
 
@@ -1218,12 +1218,12 @@ static int StreamTcpPacketStateNone(
         if (ssn == NULL) {
             ssn = StreamTcpNewSession(tv, stt, p, stt->ssn_pool_id);
             if (ssn == NULL) {
-                StatsIncr(tv, stt->counter_tcp_ssn_memcap);
+                StatsCounterIncr(&tv->stats, stt->counter_tcp_ssn_memcap);
                 return -1;
             }
-            StatsIncr(tv, stt->counter_tcp_sessions);
-            StatsIncr(tv, stt->counter_tcp_active_sessions);
-            StatsIncr(tv, stt->counter_tcp_midstream_pickups);
+            StatsCounterIncr(&tv->stats, stt->counter_tcp_sessions);
+            StatsCounterIncr(&tv->stats, stt->counter_tcp_active_sessions);
+            StatsCounterIncr(&tv->stats, stt->counter_tcp_midstream_pickups);
         }
         /* set the state */
         StreamTcpPacketSetState(p, ssn, TCP_FIN_WAIT1);
@@ -1313,12 +1313,12 @@ static int StreamTcpPacketStateNone(
         if (ssn == NULL) {
             ssn = StreamTcpNewSession(tv, stt, p, stt->ssn_pool_id);
             if (ssn == NULL) {
-                StatsIncr(tv, stt->counter_tcp_ssn_memcap);
+                StatsCounterIncr(&tv->stats, stt->counter_tcp_ssn_memcap);
                 return -1;
             }
-            StatsIncr(tv, stt->counter_tcp_sessions);
-            StatsIncr(tv, stt->counter_tcp_active_sessions);
-            StatsIncr(tv, stt->counter_tcp_midstream_pickups);
+            StatsCounterIncr(&tv->stats, stt->counter_tcp_sessions);
+            StatsCounterIncr(&tv->stats, stt->counter_tcp_active_sessions);
+            StatsCounterIncr(&tv->stats, stt->counter_tcp_midstream_pickups);
         }
 
         /* reverse packet and flow */
@@ -1406,12 +1406,12 @@ static int StreamTcpPacketStateNone(
         if (ssn == NULL) {
             ssn = StreamTcpNewSession(tv, stt, p, stt->ssn_pool_id);
             if (ssn == NULL) {
-                StatsIncr(tv, stt->counter_tcp_ssn_memcap);
+                StatsCounterIncr(&tv->stats, stt->counter_tcp_ssn_memcap);
                 return -1;
             }
 
-            StatsIncr(tv, stt->counter_tcp_sessions);
-            StatsIncr(tv, stt->counter_tcp_active_sessions);
+            StatsCounterIncr(&tv->stats, stt->counter_tcp_sessions);
+            StatsCounterIncr(&tv->stats, stt->counter_tcp_active_sessions);
         }
 
         /* set the state */
@@ -1487,12 +1487,12 @@ static int StreamTcpPacketStateNone(
         if (ssn == NULL) {
             ssn = StreamTcpNewSession(tv, stt, p, stt->ssn_pool_id);
             if (ssn == NULL) {
-                StatsIncr(tv, stt->counter_tcp_ssn_memcap);
+                StatsCounterIncr(&tv->stats, stt->counter_tcp_ssn_memcap);
                 return -1;
             }
-            StatsIncr(tv, stt->counter_tcp_sessions);
-            StatsIncr(tv, stt->counter_tcp_active_sessions);
-            StatsIncr(tv, stt->counter_tcp_midstream_pickups);
+            StatsCounterIncr(&tv->stats, stt->counter_tcp_sessions);
+            StatsCounterIncr(&tv->stats, stt->counter_tcp_active_sessions);
+            StatsCounterIncr(&tv->stats, stt->counter_tcp_midstream_pickups);
         }
         /* set the state */
         StreamTcpPacketSetState(p, ssn, TCP_ESTABLISHED);
@@ -3023,7 +3023,7 @@ static int HandleEstablishedPacketToServer(
             if ((ssn->flags & STREAMTCP_FLAG_ASYNC) == 0 &&
                     SEQ_GT(ssn->server.last_ack, ssn->server.next_seq)) {
                 STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_ACK_UNSEEN_DATA);
-                StatsIncr(tv, stt->counter_tcp_ack_unseen_data);
+                StatsCounterIncr(&tv->stats, stt->counter_tcp_ack_unseen_data);
             }
         }
 
@@ -3173,7 +3173,7 @@ static int HandleEstablishedPacketToClient(
             if ((ssn->flags & STREAMTCP_FLAG_ASYNC) == 0 &&
                     SEQ_GT(ssn->client.last_ack, ssn->client.next_seq)) {
                 STREAM_PKT_FLAG_SET(p, STREAM_PKT_FLAG_ACK_UNSEEN_DATA);
-                StatsIncr(tv, stt->counter_tcp_ack_unseen_data);
+                StatsCounterIncr(&tv->stats, stt->counter_tcp_ack_unseen_data);
             }
         }
 
@@ -5650,7 +5650,7 @@ static inline void CheckThreadId(ThreadVars *tv, Packet *p, StreamTcpThread *stt
         if (unlikely((FlowThreadId)tv->id != p->flow->thread_id[idx])) {
             SCLogDebug("wrong thread: flow has %u, we are %d", p->flow->thread_id[idx], tv->id);
             if (p->pkt_src == PKT_SRC_WIRE) {
-                StatsIncr(tv, stt->counter_tcp_wrong_thread);
+                StatsCounterIncr(&tv->stats, stt->counter_tcp_wrong_thread);
                 if ((p->flow->flags & FLOW_WRONG_THREAD) == 0) {
                     p->flow->flags |= FLOW_WRONG_THREAD;
                     StreamTcpSetEvent(p, STREAM_WRONG_THREAD);
@@ -6088,7 +6088,7 @@ TmEcode StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueueNoLock *pq)
     if (!(p->flags & PKT_PSEUDO_STREAM_END)) {
         if (stream_config.flags & STREAMTCP_INIT_FLAG_CHECKSUM_VALIDATION) {
             if (StreamTcpValidateChecksum(p) == 0) {
-                StatsIncr(tv, stt->counter_tcp_invalid_checksum);
+                StatsCounterIncr(&tv->stats, stt->counter_tcp_invalid_checksum);
                 return TM_ECODE_OK;
             }
         }
@@ -7027,7 +7027,7 @@ static void StreamTcpPseudoPacketCreateDetectLogFlush(ThreadVars *tv,
     SCLogDebug("np %p", np);
     PacketEnqueueNoLock(pq, np);
 
-    StatsIncr(tv, stt->counter_tcp_pseudo);
+    StatsCounterIncr(&tv->stats, stt->counter_tcp_pseudo);
     SCReturn;
 error:
     FlowDeReference(&np->flow);

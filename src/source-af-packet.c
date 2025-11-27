@@ -1390,7 +1390,7 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
          * us from alloc'ing packets at line rate */
         PacketPoolWait();
 
-        StatsIncr(ptv->tv, ptv->capture_afp_poll);
+        StatsCounterIncr(&ptv->tv->stats, ptv->capture_afp_poll);
 
         r = poll(&fds, 1, POLL_TIMEOUT);
 
@@ -1400,7 +1400,7 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
 
         if (r > 0 &&
                 (fds.revents & (POLLHUP|POLLRDHUP|POLLERR|POLLNVAL))) {
-            StatsIncr(ptv->tv, ptv->capture_afp_poll_signal);
+            StatsCounterIncr(&ptv->tv->stats, ptv->capture_afp_poll_signal);
             if (fds.revents & (POLLHUP | POLLRDHUP)) {
                 AFPSwitchState(ptv, AFP_STATE_DOWN);
                 continue;
@@ -1418,7 +1418,7 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
                 continue;
             }
         } else if (r > 0) {
-            StatsIncr(ptv->tv, ptv->capture_afp_poll_data);
+            StatsCounterIncr(&ptv->tv->stats, ptv->capture_afp_poll_data);
             r = AFPReadFunc(ptv);
             switch (r) {
                 case AFP_READ_OK:
@@ -1435,14 +1435,14 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
                     AFPSwitchState(ptv, AFP_STATE_DOWN);
                     continue;
                 case AFP_SURI_FAILURE:
-                    StatsIncr(ptv->tv, ptv->capture_errors);
+                    StatsCounterIncr(&ptv->tv->stats, ptv->capture_errors);
                     break;
                 case AFP_KERNEL_DROP:
                     AFPDumpCounters(ptv);
                     break;
             }
         } else if (unlikely(r == 0)) {
-            StatsIncr(ptv->tv, ptv->capture_afp_poll_timeout);
+            StatsCounterIncr(&ptv->tv->stats, ptv->capture_afp_poll_timeout);
             /* Trigger one dump of stats every second */
             current_time = time(NULL);
             if (current_time != last_dump) {
@@ -1453,7 +1453,7 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
             TmThreadsCaptureHandleTimeout(tv, NULL);
 
         } else if ((r < 0) && (errno != EINTR)) {
-            StatsIncr(ptv->tv, ptv->capture_afp_poll_err);
+            StatsCounterIncr(&ptv->tv->stats, ptv->capture_afp_poll_err);
             SCLogWarning("%s: poll failure: %s", ptv->iface, strerror(errno));
             AFPSwitchState(ptv, AFP_STATE_DOWN);
             continue;
@@ -2785,7 +2785,7 @@ TmEcode DecodeAFP(ThreadVars *tv, Packet *p, void *data)
     DecodeLinkLayer(tv, dtv, p->datalink, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
     /* post-decoding put vlan hdr back into the raw data) */
     if (afp_vlan_hdr) {
-        StatsIncr(tv, dtv->counter_vlan);
+        StatsCounterIncr(&tv->stats, dtv->counter_vlan);
         UpdateRawDataForVLANHdr(p);
     }
 

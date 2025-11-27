@@ -44,7 +44,7 @@ int DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 {
     DEBUG_VALIDATE_BUG_ON(pkt == NULL);
 
-    StatsIncr(tv, dtv->counter_eth);
+    StatsCounterIncr(&tv->stats, dtv->counter_eth);
 
     if (unlikely(len < ETHERNET_HEADER_LEN)) {
         ENGINE_SET_INVALID_EVENT(p, ETHERNET_PKT_TOO_SMALL);

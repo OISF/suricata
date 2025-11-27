@@ -454,7 +454,7 @@ static void DefragExceptionPolicyStatsIncr(
 {
     StatsCounterId id = dtv->counter_defrag_memcap_eps.eps_id[policy];
     if (likely(id.id > 0)) {
-        StatsIncr(tv, id);
+        StatsCounterIncr(&tv->stats, id);
     }
 }
 
@@ -570,7 +570,7 @@ DefragTracker *DefragGetTrackerFromHash(ThreadVars *tv, DecodeThreadVars *dtv, P
             SCMutexUnlock(&dt->lock);
 
             DefragTrackerMoveToSpare(dt);
-            StatsIncr(tv, dtv->counter_defrag_tracker_timeout);
+            StatsCounterIncr(&tv->stats, dtv->counter_defrag_tracker_timeout);
             goto tracker_removed;
         } else if (!dt->remove && DefragTrackerCompare(dt, p)) {
             /* found our tracker, keep locked & return */
@@ -715,9 +715,9 @@ static DefragTracker *DefragTrackerGetUsedDefragTracker(ThreadVars *tv, const De
         SCMutexUnlock(&dt->lock);
 
         if (incr_reuse_cnt) {
-            StatsIncr(tv, dtv->counter_defrag_tracker_hard_reuse);
+            StatsCounterIncr(&tv->stats, dtv->counter_defrag_tracker_hard_reuse);
         } else {
-            StatsIncr(tv, dtv->counter_defrag_tracker_soft_reuse);
+            StatsCounterIncr(&tv->stats, dtv->counter_defrag_tracker_soft_reuse);
         }
 
         (void) SC_ATOMIC_ADD(defragtracker_prune_idx, (defrag_config.hash_size - cnt));

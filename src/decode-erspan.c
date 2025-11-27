@@ -65,7 +65,7 @@ void DecodeERSPANConfig(void)
 int DecodeERSPANTypeI(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                       const uint8_t *pkt, uint32_t len)
 {
-    StatsIncr(tv, dtv->counter_erspan);
+    StatsCounterIncr(&tv->stats, dtv->counter_erspan);
 
     return DecodeEthernet(tv, dtv, p, pkt, len);
 }
@@ -77,7 +77,7 @@ int DecodeERSPAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
 {
     DEBUG_VALIDATE_BUG_ON(pkt == NULL);
 
-    StatsIncr(tv, dtv->counter_erspan);
+    StatsCounterIncr(&tv->stats, dtv->counter_erspan);
 
     if (len < sizeof(ErspanHdr)) {
         ENGINE_SET_EVENT(p,ERSPAN_HEADER_TOO_SMALL);

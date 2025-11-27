@@ -513,7 +513,7 @@ ProcessErfDagRecord(ErfDagThreadVars *ewtn, char *prec)
     uint64_t usecs = ts >> 32;
     p->ts = SCTIME_ADD_USECS(p->ts, usecs);
 
-    StatsIncr(ewtn->tv, ewtn->packets);
+    StatsCounterIncr(&ewtn->tv->stats, ewtn->packets);
     ewtn->bytes += wlen;
 
     if (TmThreadsSlotProcessPkt(ewtn->tv, ewtn->slot, p) != TM_ECODE_OK) {

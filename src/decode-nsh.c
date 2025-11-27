@@ -47,7 +47,7 @@ int DecodeNSH(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
 {
     DEBUG_VALIDATE_BUG_ON(pkt == NULL);
 
-    StatsIncr(tv, dtv->counter_nsh);
+    StatsCounterIncr(&tv->stats, dtv->counter_nsh);
 
     /* Check minimum header size */
     if (len < sizeof(NshHdr)) {

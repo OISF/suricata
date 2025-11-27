@@ -588,20 +588,20 @@ static inline void FlowUpdateCounter(ThreadVars *tv, DecodeThreadVars *dtv,
 #ifdef UNITTESTS
     if (tv && dtv) {
 #endif
-        StatsIncr(tv, dtv->counter_flow_total);
-        StatsIncr(tv, dtv->counter_flow_active);
+        StatsCounterIncr(&tv->stats, dtv->counter_flow_total);
+        StatsCounterIncr(&tv->stats, dtv->counter_flow_active);
         switch (proto){
             case IPPROTO_UDP:
-                StatsIncr(tv, dtv->counter_flow_udp);
+                StatsCounterIncr(&tv->stats, dtv->counter_flow_udp);
                 break;
             case IPPROTO_TCP:
-                StatsIncr(tv, dtv->counter_flow_tcp);
+                StatsCounterIncr(&tv->stats, dtv->counter_flow_tcp);
                 break;
             case IPPROTO_ICMP:
-                StatsIncr(tv, dtv->counter_flow_icmp4);
+                StatsCounterIncr(&tv->stats, dtv->counter_flow_icmp4);
                 break;
             case IPPROTO_ICMPV6:
-                StatsIncr(tv, dtv->counter_flow_icmp6);
+                StatsCounterIncr(&tv->stats, dtv->counter_flow_icmp6);
                 break;
         }
 #ifdef UNITTESTS
@@ -646,12 +646,12 @@ static inline Flow *FlowSpareSync(ThreadVars *tv, FlowLookupStruct *fls,
                      * so there should be 99 left if we're in full sync.
                      * If len is below 99, means the spare sync is incomplete */
                     /* Track these instances */
-                    StatsIncr(tv, fls->dtv->counter_flow_spare_sync_incomplete);
+                    StatsCounterIncr(&tv->stats, fls->dtv->counter_flow_spare_sync_incomplete);
                 }
             } else if (fls->spare_queue.len == 0) {
-                StatsIncr(tv, fls->dtv->counter_flow_spare_sync_empty);
+                StatsCounterIncr(&tv->stats, fls->dtv->counter_flow_spare_sync_empty);
             }
-            StatsIncr(tv, fls->dtv->counter_flow_spare_sync);
+            StatsCounterIncr(&tv->stats, fls->dtv->counter_flow_spare_sync);
         }
 #ifdef UNITTESTS
     }
@@ -669,7 +669,7 @@ static void FlowExceptionPolicyStatsIncr(
 #endif
     StatsCounterId id = fls->dtv->counter_flow_memcap_eps.eps_id[policy];
     if (likely(id.id > 0)) {
-        StatsIncr(tv, id);
+        StatsCounterIncr(&tv->stats, id);
     }
 }
 
@@ -697,7 +697,7 @@ static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, Packet *p)
 #ifdef DEBUG
     if (g_eps_flow_memcap != UINT64_MAX && g_eps_flow_memcap == p->pcap_cnt) {
         NoFlowHandleIPS(tv, fls, p);
-        StatsIncr(tv, fls->dtv->counter_flow_memcap);
+        StatsCounterIncr(&tv->stats, fls->dtv->counter_flow_memcap);
         return NULL;
     }
 #endif
@@ -726,7 +726,7 @@ static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, Packet *p)
 #ifdef UNITTESTS
                 if (tv != NULL && fls->dtv != NULL) {
 #endif
-                    StatsIncr(tv, fls->dtv->counter_flow_memcap);
+                    StatsCounterIncr(&tv->stats, fls->dtv->counter_flow_memcap);
 #ifdef UNITTESTS
                 }
 #endif
@@ -735,7 +735,7 @@ static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, Packet *p)
 #ifdef UNITTESTS
             if (tv != NULL && fls->dtv != NULL) {
 #endif
-                StatsIncr(tv, fls->dtv->counter_flow_get_used);
+                StatsCounterIncr(&tv->stats, fls->dtv->counter_flow_get_used);
 #ifdef UNITTESTS
             }
 #endif
@@ -750,7 +750,7 @@ static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, Packet *p)
 #ifdef UNITTESTS
             if (tv != NULL && fls->dtv != NULL) {
 #endif
-                StatsIncr(tv, fls->dtv->counter_flow_memcap);
+                StatsCounterIncr(&tv->stats, fls->dtv->counter_flow_memcap);
 #ifdef UNITTESTS
             }
 #endif
@@ -776,7 +776,7 @@ static Flow *TcpReuseReplace(ThreadVars *tv, FlowLookupStruct *fls, FlowBucket *
 #ifdef UNITTESTS
     if (tv != NULL && fls->dtv != NULL) {
 #endif
-        StatsIncr(tv, fls->dtv->counter_flow_tcp_reuse);
+        StatsCounterIncr(&tv->stats, fls->dtv->counter_flow_tcp_reuse);
 #ifdef UNITTESTS
     }
 #endif

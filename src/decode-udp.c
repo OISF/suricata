@@ -75,7 +75,7 @@ static int DecodeUDPPacket(ThreadVars *t, Packet *p, const uint8_t *pkt, uint16_
 int DecodeUDP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         const uint8_t *pkt, uint16_t len)
 {
-    StatsIncr(tv, dtv->counter_udp);
+    StatsCounterIncr(&tv->stats, dtv->counter_udp);
 
     if (unlikely(DecodeUDPPacket(tv, p, pkt,len) < 0)) {
         PacketClearL4(p);
