@@ -151,8 +151,8 @@ static inline void PfringDumpCounters(PfringThreadVars *ptv)
          * So to get the number of packet on the interface we can add
          * the newly seen packets and drops for this thread and add it
          * to the interface counter */
-        uint64_t th_pkts = StatsGetLocalCounterValue(ptv->tv, ptv->capture_kernel_packets);
-        uint64_t th_drops = StatsGetLocalCounterValue(ptv->tv, ptv->capture_kernel_drops);
+        uint64_t th_pkts = StatsCounterGetLocalValue(&ptv->tv->stats, ptv->capture_kernel_packets);
+        uint64_t th_drops = StatsCounterGetLocalValue(&ptv->tv->stats, ptv->capture_kernel_drops);
         LiveDevicePktsAdd(ptv->livedev, pfring_s.recv - th_pkts);
         LiveDeviceDropAdd(ptv->livedev, pfring_s.drop - th_drops);
         StatsCounterSetI64(&ptv->tv->stats, ptv->capture_kernel_packets, pfring_s.recv);
@@ -160,7 +160,8 @@ static inline void PfringDumpCounters(PfringThreadVars *ptv)
 
 #ifdef HAVE_PF_RING_FLOW_OFFLOAD
         if (ptv->flags & PFRING_FLAGS_BYPASS) {
-            uint64_t th_bypassed = StatsGetLocalCounterValue(ptv->tv, ptv->capture_bypassed);
+            uint64_t th_bypassed =
+                    StatsCounterGetLocalValue(&ptv->tv->stats, ptv->capture_bypassed);
             LiveDeviceBypassedAdd(ptv->livedev, pfring_s.shunt - th_bypassed);
             StatsCounterSetI64(&ptv->tv->stats, ptv->capture_bypassed, pfring_s.shunt);
         }
@@ -620,14 +621,14 @@ void ReceivePfringThreadExitStats(ThreadVars *tv, void *data)
     PfringThreadVars *ptv = (PfringThreadVars *)data;
 
     PfringDumpCounters(ptv);
-    SCLogPerf("(%s) Kernel: Packets %" PRIu64 ", dropped %" PRIu64 "", tv->name,
-            StatsGetLocalCounterValue(tv, ptv->capture_kernel_packets),
-            StatsGetLocalCounterValue(tv, ptv->capture_kernel_drops));
+    SCLogPerf("(%s) Kernel: Packets %" PRIi64 ", dropped %" PRIi64 "", tv->name,
+            StatsCounterGetLocalValue(&tv->stats, ptv->capture_kernel_packets),
+            StatsCounterGetLocalValue(&tv->stats, ptv->capture_kernel_drops));
     SCLogPerf("(%s) Packets %" PRIu64 ", bytes %" PRIu64 "", tv->name, ptv->pkts, ptv->bytes);
 #ifdef HAVE_PF_RING_FLOW_OFFLOAD
     if (ptv->flags & PFRING_FLAGS_BYPASS) {
-        SCLogPerf("(%s) Bypass: Packets %" PRIu64 "", tv->name,
-                StatsGetLocalCounterValue(tv, ptv->capture_bypassed));
+        SCLogPerf("(%s) Bypass: Packets %" PRIi64 "", tv->name,
+                StatsCounterGetLocalValue(&tv->stats, ptv->capture_bypassed));
     }
 #endif
 }

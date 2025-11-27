@@ -249,15 +249,16 @@ static inline void AFXDPDumpCounters(AFXDPThreadVars *ptv)
         uint64_t rx_dropped = stats.rx_dropped + stats.rx_invalid_descs + stats.rx_ring_full;
 
         StatsCounterAddI64(&ptv->tv->stats, ptv->capture_kernel_drops,
-                rx_dropped - StatsGetLocalCounterValue(ptv->tv, ptv->capture_kernel_drops));
+                rx_dropped - StatsCounterGetLocalValue(&ptv->tv->stats, ptv->capture_kernel_drops));
         StatsCounterAddI64(&ptv->tv->stats, ptv->capture_afxdp_packets, ptv->pkts);
 
         (void)SC_ATOMIC_SET(ptv->livedev->drop, rx_dropped);
         (void)SC_ATOMIC_ADD(ptv->livedev->pkts, ptv->pkts);
 
         SCLogDebug("(%s) Kernel: Packets %" PRIu64 ", bytes %" PRIu64 ", dropped %" PRIu64 "",
-                ptv->tv->name, StatsGetLocalCounterValue(ptv->tv, ptv->capture_afxdp_packets),
-                ptv->bytes, StatsGetLocalCounterValue(ptv->tv, ptv->capture_kernel_drops));
+                ptv->tv->name,
+                StatsCounterGetLocalValue(&ptv->tv->stats, ptv->capture_afxdp_packets), ptv->bytes,
+                StatsCounterGetLocalValue(&ptv->tv->stats, ptv->capture_kernel_drops));
 
         ptv->pkts = 0;
     }
@@ -904,8 +905,8 @@ static void ReceiveAFXDPThreadExitStats(ThreadVars *tv, void *data)
     AFXDPDumpCounters(ptv);
 
     SCLogPerf("(%s) Kernel: Packets %" PRIu64 ", bytes %" PRIu64 ", dropped %" PRIu64 "", tv->name,
-            StatsGetLocalCounterValue(tv, ptv->capture_afxdp_packets), ptv->bytes,
-            StatsGetLocalCounterValue(tv, ptv->capture_kernel_drops));
+            StatsCounterGetLocalValue(&tv->stats, ptv->capture_afxdp_packets), ptv->bytes,
+            StatsCounterGetLocalValue(&tv->stats, ptv->capture_kernel_drops));
 }
 
 /**

@@ -4060,20 +4060,20 @@ static int SigTestDetectAlertCounter(void)
 
     p = UTHBuildPacket((uint8_t *)"boo", strlen("boo"), IPPROTO_TCP);
     Detect(&tv, p, det_ctx);
-    FAIL_IF_NOT(StatsGetLocalCounterValue(&tv, det_ctx->counter_alerts) == 1);
+    FAIL_IF_NOT(StatsCounterGetLocalValue(&tv.stats, det_ctx->counter_alerts) == 1);
 
     Detect(&tv, p, det_ctx);
-    FAIL_IF_NOT(StatsGetLocalCounterValue(&tv, det_ctx->counter_alerts) == 2);
+    FAIL_IF_NOT(StatsCounterGetLocalValue(&tv.stats, det_ctx->counter_alerts) == 2);
     UTHFreePackets(&p, 1);
 
     p = UTHBuildPacket((uint8_t *)"roo", strlen("roo"), IPPROTO_TCP);
     Detect(&tv, p, det_ctx);
-    FAIL_IF_NOT(StatsGetLocalCounterValue(&tv, det_ctx->counter_alerts) == 2);
+    FAIL_IF_NOT(StatsCounterGetLocalValue(&tv.stats, det_ctx->counter_alerts) == 2);
     UTHFreePackets(&p, 1);
 
     p = UTHBuildPacket((uint8_t *)"laboosa", strlen("laboosa"), IPPROTO_TCP);
     Detect(&tv, p, det_ctx);
-    FAIL_IF_NOT(StatsGetLocalCounterValue(&tv, det_ctx->counter_alerts) == 3);
+    FAIL_IF_NOT(StatsCounterGetLocalValue(&tv.stats, det_ctx->counter_alerts) == 3);
     UTHFreePackets(&p, 1);
 
     DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);

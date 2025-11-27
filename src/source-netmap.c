@@ -867,10 +867,10 @@ static void ReceiveNetmapThreadExitStats(ThreadVars *tv, void *data)
     NetmapThreadVars *ntv = (NetmapThreadVars *)data;
 
     NetmapDumpCounters(ntv);
-    SCLogPerf("%s: (%s) packets %" PRIu64 ", dropped %" PRIu64 ", bytes %" PRIu64 "",
+    SCLogPerf("%s: (%s) packets %" PRIi64 ", dropped %" PRIi64 ", bytes %" PRIu64 "",
             ntv->ifsrc->ifname, tv->name,
-            StatsGetLocalCounterValue(tv, ntv->capture_kernel_packets),
-            StatsGetLocalCounterValue(tv, ntv->capture_kernel_drops), ntv->bytes);
+            StatsCounterGetLocalValue(&tv->stats, ntv->capture_kernel_packets),
+            StatsCounterGetLocalValue(&tv->stats, ntv->capture_kernel_drops), ntv->bytes);
 }
 
 /**

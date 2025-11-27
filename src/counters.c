@@ -1308,9 +1308,9 @@ static int StatsUpdateCounterArray(StatsPrivateThreadContext *pca, StatsPublicTh
  * \retval  0 on success.
  * \retval -1 on error.
  */
-uint64_t StatsGetLocalCounterValue(ThreadVars *tv, StatsCounterId id)
+int64_t StatsCounterGetLocalValue(StatsThreadContext *stats, StatsCounterId id)
 {
-    StatsPrivateThreadContext *pca = &tv->stats.priv;
+    StatsPrivateThreadContext *pca = &stats->priv;
 #ifdef DEBUG
     BUG_ON((id.id < 1) || (id.id > pca->size));
 #endif
