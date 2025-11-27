@@ -143,9 +143,9 @@ static void StatsPublicThreadContextCleanup(StatsPublicThreadContext *t)
  * \param pca Counter array that holds the local counter for this TM
  * \param x   Value to add to this local counter
  */
-void StatsAddUI64(ThreadVars *tv, StatsCounterId id, uint64_t x)
+void StatsCounterAddI64(StatsThreadContext *stats, StatsCounterId id, int64_t x)
 {
-    StatsPrivateThreadContext *pca = &tv->stats.priv;
+    StatsPrivateThreadContext *pca = &stats->priv;
 #if defined (UNITTESTS) || defined (FUZZ)
     if (pca->initialized == 0)
         return;
@@ -1493,7 +1493,7 @@ static int StatsTestUpdateCounter08(void)
     StatsPrivateThreadContext *pca = &tv.stats.priv;
 
     StatsIncr(&tv, c1);
-    StatsAddUI64(&tv, c1, 100);
+    StatsCounterAddI64(&tv.stats, c1, 100);
     FAIL_IF_NOT(pca->head[c1.id].v == 101);
 
     StatsThreadCleanup(&tv.stats);
@@ -1517,7 +1517,7 @@ static int StatsTestUpdateCounter09(void)
     StatsPrivateThreadContext *pca = &tv.stats.priv;
 
     StatsIncr(&tv, c5);
-    StatsAddUI64(&tv, c5, 100);
+    StatsCounterAddI64(&tv.stats, c5, 100);
 
     FAIL_IF_NOT(pca->head[c1.id].v == 0);
     FAIL_IF_NOT(pca->head[c5.id].v == 101);
@@ -1541,9 +1541,9 @@ static int StatsTestUpdateGlobalCounter10(void)
     StatsPrivateThreadContext *pca = &tv.stats.priv;
 
     StatsIncr(&tv, c1);
-    StatsAddUI64(&tv, c2, 100);
+    StatsCounterAddI64(&tv.stats, c2, 100);
     StatsIncr(&tv, c3);
-    StatsAddUI64(&tv, c3, 100);
+    StatsCounterAddI64(&tv.stats, c3, 100);
 
     StatsUpdateCounterArray(pca, &tv.stats.pub);
 
@@ -1571,9 +1571,9 @@ static int StatsTestCounterValues11(void)
     StatsPrivateThreadContext *pca = &tv.stats.priv;
 
     StatsIncr(&tv, c1);
-    StatsAddUI64(&tv, c2, 256);
-    StatsAddUI64(&tv, c3, 257);
-    StatsAddUI64(&tv, c4, 16843024);
+    StatsCounterAddI64(&tv.stats, c2, 256);
+    StatsCounterAddI64(&tv.stats, c3, 257);
+    StatsCounterAddI64(&tv.stats, c4, 16843024);
 
     StatsUpdateCounterArray(pca, &tv.stats.pub);
 

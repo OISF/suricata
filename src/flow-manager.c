@@ -704,17 +704,22 @@ static void FlowCountersInit(ThreadVars *t, FlowCounters *fc)
 static void FlowCountersUpdate(
         ThreadVars *th_v, const FlowManagerThreadData *ftd, const FlowTimeoutCounters *counters)
 {
-    StatsAddUI64(th_v, ftd->cnt.flow_mgr_flows_checked, (uint64_t)counters->flows_checked);
-    StatsAddUI64(th_v, ftd->cnt.flow_mgr_flows_notimeout, (uint64_t)counters->flows_notimeout);
+    StatsCounterAddI64(
+            &th_v->stats, ftd->cnt.flow_mgr_flows_checked, (int64_t)counters->flows_checked);
+    StatsCounterAddI64(
+            &th_v->stats, ftd->cnt.flow_mgr_flows_notimeout, (int64_t)counters->flows_notimeout);
 
-    StatsAddUI64(th_v, ftd->cnt.flow_mgr_flows_timeout, (uint64_t)counters->flows_timeout);
-    StatsAddUI64(th_v, ftd->cnt.flow_mgr_flows_aside, (uint64_t)counters->flows_aside);
-    StatsAddUI64(th_v, ftd->cnt.flow_mgr_flows_aside_needs_work,
-            (uint64_t)counters->flows_aside_needs_work);
+    StatsCounterAddI64(
+            &th_v->stats, ftd->cnt.flow_mgr_flows_timeout, (int64_t)counters->flows_timeout);
+    StatsCounterAddI64(&th_v->stats, ftd->cnt.flow_mgr_flows_aside, (int64_t)counters->flows_aside);
+    StatsCounterAddI64(&th_v->stats, ftd->cnt.flow_mgr_flows_aside_needs_work,
+            (int64_t)counters->flows_aside_needs_work);
 
-    StatsAddUI64(th_v, ftd->cnt.flow_bypassed_cnt_clo, (uint64_t)counters->bypassed_count);
-    StatsAddUI64(th_v, ftd->cnt.flow_bypassed_pkts, (uint64_t)counters->bypassed_pkts);
-    StatsAddUI64(th_v, ftd->cnt.flow_bypassed_bytes, (uint64_t)counters->bypassed_bytes);
+    StatsCounterAddI64(
+            &th_v->stats, ftd->cnt.flow_bypassed_cnt_clo, (int64_t)counters->bypassed_count);
+    StatsCounterAddI64(&th_v->stats, ftd->cnt.flow_bypassed_pkts, (int64_t)counters->bypassed_pkts);
+    StatsCounterAddI64(
+            &th_v->stats, ftd->cnt.flow_bypassed_bytes, (int64_t)counters->bypassed_bytes);
 
     StatsCounterMaxUpdateI64(
             &th_v->stats, ftd->cnt.flow_mgr_rows_maxlen, (int64_t)counters->rows_maxlen);
@@ -951,7 +956,8 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
                 StatsSetUI64(th_v, ftd->counter_defrag_memuse, DefragTrackerGetMemcap());
                 uint32_t defrag_cnt = DefragTimeoutHash(ts);
                 if (defrag_cnt) {
-                    StatsAddUI64(th_v, ftd->counter_defrag_timeout, defrag_cnt);
+                    StatsCounterAddI64(
+                            &th_v->stats, ftd->counter_defrag_timeout, (int64_t)defrag_cnt);
                 }
                 HostTimeoutHash(ts);
                 IPPairTimeoutHash(ts);
@@ -1121,7 +1127,7 @@ static TmEcode FlowRecycler(ThreadVars *th_v, void *thread_data)
         /* Get the time */
         SCLogDebug("ts %" PRIdMAX "", (intmax_t)SCTIME_SECS(TimeGet()));
 
-        uint64_t cnt = 0;
+        int64_t cnt = 0;
         Flow *f;
         while ((f = FlowQueuePrivateGetFromTop(&list)) != NULL) {
             Recycler(th_v, ftd, f);
@@ -1138,7 +1144,7 @@ static TmEcode FlowRecycler(ThreadVars *th_v, void *thread_data)
         }
         if (cnt > 0) {
             recycled_cnt += cnt;
-            StatsAddUI64(th_v, ftd->counter_flows, cnt);
+            StatsCounterAddI64(&th_v->stats, ftd->counter_flows, cnt);
         }
         SC_ATOMIC_SUB(flowrec_busy,1);
 

@@ -426,7 +426,7 @@ ProcessErfDagRecords(ErfDagThreadVars *ewtn, uint8_t *top, uint32_t *pkts_read)
             break;
         case ERF_TYPE_ETH:
             if (dr->lctr) {
-                StatsAddUI64(ewtn->tv, ewtn->drops, SCNtohs(dr->lctr));
+                StatsCounterAddI64(&ewtn->tv->stats, ewtn->drops, SCNtohs(dr->lctr));
             }
             break;
         default:

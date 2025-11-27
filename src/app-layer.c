@@ -154,11 +154,11 @@ static void AppLayerIncFlowCounter(ThreadVars *tv, Flow *f)
     }
 }
 
-void AppLayerIncTxCounter(ThreadVars *tv, Flow *f, uint64_t step)
+void AppLayerIncTxCounter(ThreadVars *tv, Flow *f, int64_t step)
 {
     const StatsCounterId id = applayer_counters[f->alproto][f->protomap].counter_tx_id;
     if (likely(tv && id.id > 0)) {
-        StatsAddUI64(tv, id, step);
+        StatsCounterAddI64(&tv->stats, id, step);
     }
 }
 

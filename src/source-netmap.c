@@ -486,8 +486,8 @@ error:
  */
 static inline void NetmapDumpCounters(NetmapThreadVars *ntv)
 {
-    StatsAddUI64(ntv->tv, ntv->capture_kernel_packets, ntv->pkts);
-    StatsAddUI64(ntv->tv, ntv->capture_kernel_drops, ntv->drops);
+    StatsCounterAddI64(&ntv->tv->stats, ntv->capture_kernel_packets, ntv->pkts);
+    StatsCounterAddI64(&ntv->tv->stats, ntv->capture_kernel_drops, ntv->drops);
     (void) SC_ATOMIC_ADD(ntv->livedev->drop, ntv->drops);
     (void) SC_ATOMIC_ADD(ntv->livedev->pkts, ntv->pkts);
     ntv->drops = 0;
