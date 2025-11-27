@@ -28,6 +28,7 @@
 #include "tmqh-packetpool.h"
 #include "util-conf.h"
 #include "packet.h"
+#include "nallocinc.c"
 
 #include <fuzz_pcap.h>
 
@@ -49,6 +50,8 @@ char *filepath = NULL;
 int LLVMFuzzerInitialize(const int *argc, char ***argv)
 {
     filepath = dirname(strdup((*argv)[0]));
+    nalloc_init((*argv)[0]);
+    nalloc_restrict_file_prefix(3);
     return 0;
 }
 
@@ -116,6 +119,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         return 0;
     }
 
+    nalloc_start(data, size);
     // loop over packets
     r = FPC_next(&pkts, &header, &pkt);
     p = PacketGetFromAlloc();
@@ -160,6 +164,7 @@ bail:
         PacketFree(p);
     }
     FlowReset();
+    nalloc_end();
 
     return 0;
 }

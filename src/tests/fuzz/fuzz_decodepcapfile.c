@@ -15,6 +15,7 @@
 #include "conf-yaml-loader.h"
 #include "util-time.h"
 #include "util-conf.h"
+#include "nallocinc.c"
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 
@@ -83,6 +84,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         PacketPoolInit();
         SC_ATOMIC_SET(engine_stage, SURICATA_RUNTIME);
 
+        nalloc_init(NULL);
+        // do not restrict nalloc
         initialized = 1;
     }
 
@@ -91,11 +94,13 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         return 0;
     }
 
+    nalloc_start(data, size);
     if (tmm_modules[TMM_RECEIVEPCAPFILE].ThreadInit(tv, "/tmp/fuzz.pcap", &ptv) == TM_ECODE_OK && ptv != NULL) {
         suricata_ctl_flags = 0;
         tmm_modules[TMM_RECEIVEPCAPFILE].PktAcqLoop(tv, ptv, tv->tm_slots);
         tmm_modules[TMM_RECEIVEPCAPFILE].ThreadDeinit(tv, ptv);
     }
+    nalloc_end();
 
     return 0;
 }

@@ -7,6 +7,7 @@
 #include "suricata-common.h"
 #include "suricata.h"
 #include "rust.h"
+#include "nallocinc.c"
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 
@@ -21,6 +22,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         //global init
         InitGlobal();
         SCRunmodeSet(RUNMODE_UNITTEST);
+        nalloc_init(NULL);
+        // do not restrict nalloc
         initialized = 1;
     }
 
@@ -29,6 +32,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     StreamingBufferConfig sbcfg = STREAMING_BUFFER_CONFIG_INITIALIZER;
     MimeStateSMTP *state = SCMimeSmtpStateInit(files, &sbcfg);
     const uint8_t * buffer = data;
+    nalloc_start(data, size);
     while (1) {
         uint8_t * next = memchr(buffer, '\n', size);
         if (next == NULL) {
@@ -49,6 +53,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     /* De Init parser */
     SCMimeSmtpStateFree(state);
     FileContainerFree(files, &sbcfg);
+    nalloc_end();
 
     return 0;
 }
