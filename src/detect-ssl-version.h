@@ -39,13 +39,9 @@ enum {
     TLS_UNKNOWN = 7,
 };
 
-typedef struct SSLVersionData_ {
-    uint16_t ver; /** ssl version to match */
-    uint8_t flags;
-} SSLVersionData;
-
 typedef struct DetectSslVersionData_ {
-    SSLVersionData data[TLS_SIZE];
+    bool negate;
+    bool data[TLS_SIZE];
 } DetectSslVersionData;
 
 /* prototypes */

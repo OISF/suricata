@@ -33,7 +33,7 @@ static int DetectSslVersionTestParse01(void)
     DetectSslVersionData *ssl = NULL;
     ssl = DetectSslVersionParse(NULL, "SSlv3");
     FAIL_IF_NULL(ssl);
-    FAIL_IF_NOT(ssl->data[SSLv3].ver == SSL_VERSION_3);
+    FAIL_IF_NOT(ssl->data[SSLv3]);
     DetectSslVersionFree(NULL, ssl);
     PASS;
 }
@@ -73,13 +73,13 @@ static int DetectSslVersionTestParse03(void)
     DetectSslVersionData *ssl = NULL;
     ssl = DetectSslVersionParse(NULL, "SSlv3 , tls1.0");
     FAIL_IF_NULL(ssl);
-    FAIL_IF_NOT(ssl->data[SSLv3].ver == SSL_VERSION_3);
-    FAIL_IF_NOT(ssl->data[TLS10].ver == TLS_VERSION_10);
+    FAIL_IF_NOT(ssl->data[SSLv3]);
+    FAIL_IF_NOT(ssl->data[TLS10]);
     DetectSslVersionFree(NULL, ssl);
     ssl = DetectSslVersionParse(NULL, " !tls1.2");
     FAIL_IF_NULL(ssl);
-    FAIL_IF_NOT(ssl->data[TLS12].ver == TLS_VERSION_12);
-    FAIL_IF_NOT(ssl->data[TLS12].flags & DETECT_SSL_VERSION_NEGATED);
+    FAIL_IF_NOT(ssl->data[TLS12]);
+    FAIL_IF_NOT(ssl->negate);
     DetectSslVersionFree(NULL, ssl);
     PASS;
 }
