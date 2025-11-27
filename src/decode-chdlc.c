@@ -44,7 +44,7 @@ int DecodeCHDLC(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 {
     DEBUG_VALIDATE_BUG_ON(pkt == NULL);
 
-    StatsIncr(tv, dtv->counter_chdlc);
+    StatsCounterIncr(&tv->stats, dtv->counter_chdlc);
 
     if (unlikely(len < CHDLC_HEADER_LEN)) {
         ENGINE_SET_INVALID_EVENT(p, CHDLC_PKT_TOO_SMALL);

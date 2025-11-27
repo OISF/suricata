@@ -141,7 +141,7 @@ StatsCounterGlobalId StatsRegisterGlobalCounter(const char *cname, uint64_t (*Fu
 /* functions used to update local counter values */
 void StatsCounterAddI64(StatsThreadContext *, StatsCounterId, int64_t);
 void StatsCounterSetI64(StatsThreadContext *, StatsCounterId, int64_t);
-void StatsIncr(struct ThreadVars_ *, StatsCounterId);
+void StatsCounterIncr(StatsThreadContext *, StatsCounterId);
 void StatsDecr(struct ThreadVars_ *, StatsCounterId);
 
 void StatsCounterMaxUpdateI64(StatsThreadContext *, StatsCounterMaxId id, int64_t x);

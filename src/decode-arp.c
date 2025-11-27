@@ -28,7 +28,7 @@
 
 int DecodeARP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len)
 {
-    StatsIncr(tv, dtv->counter_arp);
+    StatsCounterIncr(&tv->stats, dtv->counter_arp);
 
     if (unlikely(len < ARP_HEADER_MIN_LEN)) {
         ENGINE_SET_INVALID_EVENT(p, ARP_PKT_TOO_SMALL);

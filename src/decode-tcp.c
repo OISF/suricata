@@ -250,15 +250,15 @@ static int DecodeTCPPacket(
 
     /* update counters */
     if ((tcph->th_flags & (TH_SYN | TH_ACK)) == (TH_SYN | TH_ACK)) {
-        StatsIncr(tv, dtv->counter_tcp_synack);
+        StatsCounterIncr(&tv->stats, dtv->counter_tcp_synack);
     } else if (tcph->th_flags & (TH_SYN)) {
-        StatsIncr(tv, dtv->counter_tcp_syn);
+        StatsCounterIncr(&tv->stats, dtv->counter_tcp_syn);
     }
     if (tcph->th_flags & (TH_RST)) {
-        StatsIncr(tv, dtv->counter_tcp_rst);
+        StatsCounterIncr(&tv->stats, dtv->counter_tcp_rst);
     }
     if (tcph->th_flags & (TH_URG)) {
-        StatsIncr(tv, dtv->counter_tcp_urg);
+        StatsCounterIncr(&tv->stats, dtv->counter_tcp_urg);
     }
 
 #ifdef DEBUG
@@ -272,7 +272,7 @@ static int DecodeTCPPacket(
 
 int DecodeTCP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint16_t len)
 {
-    StatsIncr(tv, dtv->counter_tcp);
+    StatsCounterIncr(&tv->stats, dtv->counter_tcp);
 
     if (unlikely(DecodeTCPPacket(tv, dtv, p, pkt, len) < 0)) {
         SCLogDebug("invalid TCP packet");

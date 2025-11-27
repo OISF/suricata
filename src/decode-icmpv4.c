@@ -142,7 +142,7 @@ static int DecodePartialIPV4(Packet* p, uint8_t* partial_packet, uint16_t len)
  */
 int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len)
 {
-    StatsIncr(tv, dtv->counter_icmpv4);
+    StatsCounterIncr(&tv->stats, dtv->counter_icmpv4);
 
     if (len < ICMPV4_HEADER_LEN) {
         ENGINE_SET_INVALID_EVENT(p, ICMPV4_PKT_TOO_SMALL);

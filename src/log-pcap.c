@@ -513,12 +513,12 @@ static inline int PcapWrite(
     if (pl->bpfp) {
         if (pcap_offline_filter(pl->bpfp, pl->h, data) == 0) {
             SCLogDebug("Packet doesn't match filter, will not be logged.");
-            StatsIncr(tv, td->counter_filtered_bpf);
+            StatsCounterIncr(&tv->stats, td->counter_filtered_bpf);
             return TM_ECODE_OK;
         }
     }
 
-    StatsIncr(tv, td->counter_written);
+    StatsCounterIncr(&tv->stats, td->counter_written);
 
     pcap_dump((u_char *)pl->pcap_dumper, pl->h, data);
     if (pl->compression.format == PCAP_LOG_COMPRESSION_FORMAT_NONE) {

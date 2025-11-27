@@ -55,7 +55,7 @@ int DecodeMPLS(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     int label;
     uint8_t event = 0;
 
-    StatsIncr(tv, dtv->counter_mpls);
+    StatsCounterIncr(&tv->stats, dtv->counter_mpls);
 
     if (!PacketIncreaseCheckLayers(p)) {
         return TM_ECODE_FAILED;

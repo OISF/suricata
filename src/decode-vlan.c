@@ -59,11 +59,11 @@ int DecodeVLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     uint16_t proto;
 
     if (p->vlan_idx == 0)
-        StatsIncr(tv, dtv->counter_vlan);
+        StatsCounterIncr(&tv->stats, dtv->counter_vlan);
     else if (p->vlan_idx == 1)
-        StatsIncr(tv, dtv->counter_vlan_qinq);
+        StatsCounterIncr(&tv->stats, dtv->counter_vlan_qinq);
     else if (p->vlan_idx == 2)
-        StatsIncr(tv, dtv->counter_vlan_qinqinq);
+        StatsCounterIncr(&tv->stats, dtv->counter_vlan_qinqinq);
 
     if(len < VLAN_HEADER_LEN)    {
         ENGINE_SET_INVALID_EVENT(p, VLAN_HEADER_TOO_SMALL);
@@ -108,7 +108,7 @@ int DecodeIEEE8021ah(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 {
     DEBUG_VALIDATE_BUG_ON(pkt == NULL);
 
-    StatsIncr(tv, dtv->counter_ieee8021ah);
+    StatsCounterIncr(&tv->stats, dtv->counter_ieee8021ah);
 
     if (len < IEEE8021AH_HEADER_LEN) {
         ENGINE_SET_INVALID_EVENT(p, IEEE8021AH_HEADER_TOO_SMALL);

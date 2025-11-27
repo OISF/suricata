@@ -222,7 +222,7 @@ int DecodeGeneve(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
 #endif
 
     /* Increment stats counter for Geneve packets */
-    StatsIncr(tv, dtv->counter_geneve);
+    StatsCounterIncr(&tv->stats, dtv->counter_geneve);
 
     /* Determine first protocol encapsulated after Geneve header */
     eth_type = SCNtohs(geneve_hdr->eth_type);

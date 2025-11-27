@@ -162,9 +162,9 @@ void StatsCounterAddI64(StatsThreadContext *stats, StatsCounterId id, int64_t x)
  * \param id  Index of the counter in the counter array
  * \param pca Counter array that holds the local counters for this TM
  */
-void StatsIncr(ThreadVars *tv, StatsCounterId id)
+void StatsCounterIncr(StatsThreadContext *stats, StatsCounterId id)
 {
-    StatsPrivateThreadContext *pca = &tv->stats.priv;
+    StatsPrivateThreadContext *pca = &stats->priv;
 #if defined (UNITTESTS) || defined (FUZZ)
     if (pca->initialized == 0)
         return;
@@ -1473,8 +1473,8 @@ static int StatsTestCntArraySize07(void)
     StatsGetAllCountersArray(&tv.stats.pub, &tv.stats.priv);
     pca = &tv.stats.priv;
 
-    StatsIncr(&tv, id1);
-    StatsIncr(&tv, id2);
+    StatsCounterIncr(&tv.stats, id1);
+    StatsCounterIncr(&tv.stats, id2);
 
     FAIL_IF_NOT(pca->size == 3);
 
@@ -1492,7 +1492,7 @@ static int StatsTestUpdateCounter08(void)
     StatsGetAllCountersArray(&tv.stats.pub, &tv.stats.priv);
     StatsPrivateThreadContext *pca = &tv.stats.priv;
 
-    StatsIncr(&tv, c1);
+    StatsCounterIncr(&tv.stats, c1);
     StatsCounterAddI64(&tv.stats, c1, 100);
     FAIL_IF_NOT(pca->head[c1.id].v == 101);
 
@@ -1516,7 +1516,7 @@ static int StatsTestUpdateCounter09(void)
     StatsGetAllCountersArray(&tv.stats.pub, &tv.stats.priv);
     StatsPrivateThreadContext *pca = &tv.stats.priv;
 
-    StatsIncr(&tv, c5);
+    StatsCounterIncr(&tv.stats, c5);
     StatsCounterAddI64(&tv.stats, c5, 100);
 
     FAIL_IF_NOT(pca->head[c1.id].v == 0);
@@ -1540,9 +1540,9 @@ static int StatsTestUpdateGlobalCounter10(void)
     StatsGetAllCountersArray(&tv.stats.pub, &tv.stats.priv);
     StatsPrivateThreadContext *pca = &tv.stats.priv;
 
-    StatsIncr(&tv, c1);
+    StatsCounterIncr(&tv.stats, c1);
     StatsCounterAddI64(&tv.stats, c2, 100);
-    StatsIncr(&tv, c3);
+    StatsCounterIncr(&tv.stats, c3);
     StatsCounterAddI64(&tv.stats, c3, 100);
 
     StatsUpdateCounterArray(pca, &tv.stats.pub);
@@ -1570,7 +1570,7 @@ static int StatsTestCounterValues11(void)
     StatsGetAllCountersArray(&tv.stats.pub, &tv.stats.priv);
     StatsPrivateThreadContext *pca = &tv.stats.priv;
 
-    StatsIncr(&tv, c1);
+    StatsCounterIncr(&tv.stats, c1);
     StatsCounterAddI64(&tv.stats, c2, 256);
     StatsCounterAddI64(&tv.stats, c3, 257);
     StatsCounterAddI64(&tv.stats, c4, 16843024);

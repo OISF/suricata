@@ -90,7 +90,7 @@ static TmEcode DecodeLib(ThreadVars *tv, Packet *p, void *data)
 
     /* If suri has set vlan during reading, we increase vlan counter */
     if (p->vlan_idx) {
-        StatsIncr(tv, dtv->counter_vlan);
+        StatsCounterIncr(&tv->stats, dtv->counter_vlan);
     }
 
     /* call the decoder */

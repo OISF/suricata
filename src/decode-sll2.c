@@ -41,7 +41,7 @@ int DecodeSll2(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *
 {
     DEBUG_VALIDATE_BUG_ON(pkt == NULL);
 
-    StatsIncr(tv, dtv->counter_sll2);
+    StatsCounterIncr(&tv->stats, dtv->counter_sll2);
 
     if (unlikely(len < SLL2_HEADER_LEN)) {
         ENGINE_SET_INVALID_EVENT(p, SLL2_PKT_TOO_SMALL);

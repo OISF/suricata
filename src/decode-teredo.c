@@ -190,7 +190,7 @@ int DecodeTeredo(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                 PKT_SET_SRC(tp, PKT_SRC_DECODER_TEREDO);
                 /* add the tp to the packet queue. */
                 PacketEnqueueNoLock(&tv->decode_pq,tp);
-                StatsIncr(tv, dtv->counter_teredo);
+                StatsCounterIncr(&tv->stats, dtv->counter_teredo);
                 return TM_ECODE_OK;
             }
         }

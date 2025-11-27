@@ -1512,7 +1512,7 @@ static inline bool DecodeNetworkLayer(ThreadVars *tv, DecodeThreadVars *dtv,
             break;
         default:
             SCLogDebug("unknown ether type: %" PRIx16 "", proto);
-            StatsIncr(tv, dtv->counter_ethertype_unknown);
+            StatsCounterIncr(&tv->stats, dtv->counter_ethertype_unknown);
             ENGINE_SET_EVENT(p, ETHERNET_UNKNOWN_ETHERTYPE);
             return false;
     }
