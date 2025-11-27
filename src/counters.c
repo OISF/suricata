@@ -102,7 +102,7 @@ bool stats_stream_events = false;
 
 static int StatsOutput(ThreadVars *tv);
 static int StatsThreadRegister(const char *thread_name, StatsPublicThreadContext *);
-void StatsReleaseCounters(StatsCounter *head);
+static void StatsReleaseCounters(StatsCounter *head);
 static int StatsUpdateCounterArray(StatsPrivateThreadContext *pca, StatsPublicThreadContext *pctx);
 
 /** stats table is filled each interval and passed to the
@@ -1324,7 +1324,7 @@ void StatsReleaseResources(void)
  * \param head Pointer to the head of the list of perf counters that have to
  *             be freed
  */
-void StatsReleaseCounters(StatsCounter *head)
+static void StatsReleaseCounters(StatsCounter *head)
 {
     StatsCounter *pc = NULL;
 
