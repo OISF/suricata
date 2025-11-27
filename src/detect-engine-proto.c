@@ -66,6 +66,13 @@ struct {
     { "pkthdr", 0, 0, DETECT_PROTO_ANY },
 };
 
+void DetectEngineProtoList(void)
+{
+    for (size_t i = 0; i < ARRAY_SIZE(proto_table); i++) {
+        printf("%s\n", proto_table[i].name);
+    }
+}
+
 /**
  * \brief Parses a protocol sent as a string.
  *

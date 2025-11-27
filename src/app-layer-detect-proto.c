@@ -1696,6 +1696,22 @@ int AppLayerProtoDetectSetup(void)
     SCReturnInt(0);
 }
 
+void AppProtoDetectListNames(void)
+{
+    if (alpd_ctx.alproto_names[ALPROTO_HTTP1] || alpd_ctx.alproto_names[ALPROTO_HTTP2]) {
+        printf("http\n");
+    }
+    for (size_t i = 0; i < alpd_ctx.alproto_names_len; i++) {
+        if (alpd_ctx.alproto_names[i]) {
+            if (i == ALPROTO_HTTP1) {
+                printf("http1\n");
+            } else {
+                printf("%s\n", alpd_ctx.alproto_names[i]);
+            }
+        }
+    }
+}
+
 /**
  * \todo incomplete.  Need more work.
  */

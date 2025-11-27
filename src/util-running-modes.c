@@ -25,6 +25,7 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 #include "detect-engine.h"
+#include "detect-parse.h"
 #include "util-unittest.h"
 #include "util-debug.h"
 #include "conf-yaml-loader.h"
@@ -51,6 +52,19 @@ int ListAppLayerProtocols(const char *conf_filename)
     SpmTableSetup();
     AppLayerSetup();
     AppLayerListSupportedProtocols();
+
+    return TM_ECODE_DONE;
+}
+
+int ListRuleProtocols(const char *conf_filename)
+{
+    EngineModeSetIDS();
+    if (SCConfYamlLoadFile(conf_filename) != -1)
+        SCLogLoadConfig(0, 0, 0, 0);
+    MpmTableSetup();
+    SpmTableSetup();
+    AppLayerSetup();
+    DetectListSupportedProtocols();
 
     return TM_ECODE_DONE;
 }

@@ -125,6 +125,8 @@ you can pick from. These are:
 * websocket
 * pgsql
 
+This list of protocols can be obtained via ``suricata --list-rule-protos``.
+
 The availability of these protocols depends on whether the protocol
 is enabled in the configuration file, suricata.yaml.
 

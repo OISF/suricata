@@ -1365,6 +1365,13 @@ static int SigParseProtoHookApp(Signature *s, const char *proto_hook, const char
     return 0;
 }
 
+void DetectListSupportedProtocols(void)
+{
+    printf("=========Supported Rule Protocols=========\n");
+    DetectEngineProtoList();
+    AppProtoDetectListNames();
+}
+
 /**
  * \brief Parses the protocol supplied by the Signature.
  *
