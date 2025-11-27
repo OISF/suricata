@@ -682,7 +682,7 @@ TmEcode DecodePfring(ThreadVars *tv, Packet *p, void *data)
 
     /* If suri has set vlan during reading, we increase vlan counter */
     if (p->vlan_idx) {
-        StatsIncr(tv, dtv->counter_vlan);
+        StatsCounterIncr(&tv->stats, dtv->counter_vlan);
     }
 
     DecodeEthernet(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p));

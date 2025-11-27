@@ -53,7 +53,7 @@ int DecodeVNTag(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t 
 {
     DEBUG_VALIDATE_BUG_ON(pkt == NULL);
 
-    StatsIncr(tv, dtv->counter_vntag);
+    StatsCounterIncr(&tv->stats, dtv->counter_vntag);
 
     if (len < VNTAG_HEADER_LEN) {
         ENGINE_SET_INVALID_EVENT(p, VNTAG_HEADER_TOO_SMALL);

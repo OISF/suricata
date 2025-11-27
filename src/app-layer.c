@@ -150,7 +150,7 @@ static void AppLayerIncFlowCounter(ThreadVars *tv, Flow *f)
 {
     const StatsCounterId id = applayer_counters[f->alproto][f->protomap].counter_id;
     if (likely(tv && id.id > 0)) {
-        StatsIncr(tv, id);
+        StatsCounterIncr(&tv->stats, id);
     }
 }
 
@@ -166,7 +166,7 @@ void AppLayerIncGapErrorCounter(ThreadVars *tv, Flow *f)
 {
     const StatsCounterId id = applayer_counters[f->alproto][f->protomap].gap_error_id;
     if (likely(tv && id.id > 0)) {
-        StatsIncr(tv, id);
+        StatsCounterIncr(&tv->stats, id);
     }
 }
 
@@ -174,7 +174,7 @@ void AppLayerIncAllocErrorCounter(ThreadVars *tv, Flow *f)
 {
     const StatsCounterId id = applayer_counters[f->alproto][f->protomap].alloc_error_id;
     if (likely(tv && id.id > 0)) {
-        StatsIncr(tv, id);
+        StatsCounterIncr(&tv->stats, id);
     }
 }
 
@@ -182,7 +182,7 @@ void AppLayerIncParserErrorCounter(ThreadVars *tv, Flow *f)
 {
     const StatsCounterId id = applayer_counters[f->alproto][f->protomap].parser_error_id;
     if (likely(tv && id.id > 0)) {
-        StatsIncr(tv, id);
+        StatsCounterIncr(&tv->stats, id);
     }
 }
 
@@ -190,7 +190,7 @@ void AppLayerIncInternalErrorCounter(ThreadVars *tv, Flow *f)
 {
     const StatsCounterId id = applayer_counters[f->alproto][f->protomap].internal_error_id;
     if (likely(tv && id.id > 0)) {
-        StatsIncr(tv, id);
+        StatsCounterIncr(&tv->stats, id);
     }
 }
 
@@ -206,10 +206,10 @@ static void AppLayerIncrErrorExcPolicyCounter(ThreadVars *tv, Flow *f, enum Exce
     StatsCounterId g_id = eps_error_summary.eps_id[policy];
 
     if (likely(id.id > 0)) {
-        StatsIncr(tv, id);
+        StatsCounterIncr(&tv->stats, id);
     }
     if (likely(g_id.id > 0)) {
-        StatsIncr(tv, g_id);
+        StatsCounterIncr(&tv->stats, g_id);
     }
 }
 

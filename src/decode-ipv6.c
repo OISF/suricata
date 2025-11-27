@@ -54,7 +54,7 @@ static void DecodeIPv4inIPv6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, c
         if (tp != NULL) {
             PKT_SET_SRC(tp, PKT_SRC_DECODER_IPV6);
             PacketEnqueueNoLock(&tv->decode_pq,tp);
-            StatsIncr(tv, dtv->counter_ipv4inipv6);
+            StatsCounterIncr(&tv->stats, dtv->counter_ipv4inipv6);
         }
         FlowSetupPacket(p);
     } else {
@@ -79,7 +79,7 @@ static int DecodeIP6inIP6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         if (tp != NULL) {
             PKT_SET_SRC(tp, PKT_SRC_DECODER_IPV6);
             PacketEnqueueNoLock(&tv->decode_pq,tp);
-            StatsIncr(tv, dtv->counter_ipv6inipv6);
+            StatsCounterIncr(&tv->stats, dtv->counter_ipv6inipv6);
         }
         FlowSetupPacket(p);
     } else {
@@ -548,7 +548,7 @@ static const IPV6Hdr *DecodeIPV6Packet(
 
 int DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint16_t len)
 {
-    StatsIncr(tv, dtv->counter_ipv6);
+    StatsCounterIncr(&tv->stats, dtv->counter_ipv6);
 
     if (!PacketIncreaseCheckLayers(p)) {
         return TM_ECODE_FAILED;

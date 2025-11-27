@@ -53,7 +53,7 @@ int DecodeNull(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 {
     DEBUG_VALIDATE_BUG_ON(pkt == NULL);
 
-    StatsIncr(tv, dtv->counter_null);
+    StatsCounterIncr(&tv->stats, dtv->counter_null);
 
     if (unlikely(len < HDR_SIZE)) {
         ENGINE_SET_INVALID_EVENT(p, LTNULL_PKT_TOO_SMALL);

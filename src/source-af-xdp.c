@@ -731,16 +731,16 @@ static TmEcode ReceiveAFXDPLoop(ThreadVars *tv, void *data, void *slot)
          * performance. xdp_busy_poll must be disabled for kernels < 5.11
          */
         if (!ptv->xsk.enable_busy_poll) {
-            StatsIncr(ptv->tv, ptv->capture_afxdp_poll);
+            StatsCounterIncr(&ptv->tv->stats, ptv->capture_afxdp_poll);
 
             r = poll(&ptv->xsk.fd, 1, POLL_TIMEOUT);
 
             /* Report poll results */
             if (r <= 0) {
                 if (r == 0) {
-                    StatsIncr(ptv->tv, ptv->capture_afxdp_poll_timeout);
+                    StatsCounterIncr(&ptv->tv->stats, ptv->capture_afxdp_poll_timeout);
                 } else if (r < 0) {
-                    StatsIncr(ptv->tv, ptv->capture_afxdp_poll_failed);
+                    StatsCounterIncr(&ptv->tv->stats, ptv->capture_afxdp_poll_failed);
                     SCLogWarning("poll failed with retval %d", r);
                     AFXDPSwitchState(ptv, AFXDP_STATE_DOWN);
                 }
@@ -752,7 +752,7 @@ static TmEcode ReceiveAFXDPLoop(ThreadVars *tv, void *data, void *slot)
 
         rcvd = xsk_ring_cons__peek(&ptv->xsk.rx, ptv->xsk.busy_poll_budget, &idx_rx);
         if (!rcvd) {
-            StatsIncr(ptv->tv, ptv->capture_afxdp_empty_reads);
+            StatsCounterIncr(&ptv->tv->stats, ptv->capture_afxdp_empty_reads);
             ssize_t ret = WakeupSocket(ptv);
             if (ret < 0) {
                 SCLogWarning("recv failed with retval %ld", ret);
@@ -764,7 +764,7 @@ static TmEcode ReceiveAFXDPLoop(ThreadVars *tv, void *data, void *slot)
 
         uint32_t res = xsk_ring_prod__reserve(&ptv->umem.fq, rcvd, &idx_fq);
         while (res != rcvd) {
-            StatsIncr(ptv->tv, ptv->capture_afxdp_failed_reads);
+            StatsCounterIncr(&ptv->tv->stats, ptv->capture_afxdp_failed_reads);
             ssize_t ret = WakeupSocket(ptv);
             if (ret < 0) {
                 SCLogWarning("recv failed with retval %ld", ret);
@@ -779,7 +779,7 @@ static TmEcode ReceiveAFXDPLoop(ThreadVars *tv, void *data, void *slot)
         for (uint32_t i = 0; i < rcvd; i++) {
             p = PacketGetFromQueueOrAlloc();
             if (unlikely(p == NULL)) {
-                StatsIncr(ptv->tv, ptv->capture_afxdp_acquire_pkt_failed);
+                StatsCounterIncr(&ptv->tv->stats, ptv->capture_afxdp_acquire_pkt_failed);
                 continue;
             }
 
@@ -931,7 +931,7 @@ static TmEcode DecodeAFXDP(ThreadVars *tv, Packet *p, void *data)
 
     /* If suri has set vlan during reading, we increase vlan counter */
     if (p->vlan_idx) {
-        StatsIncr(tv, dtv->counter_vlan);
+        StatsCounterIncr(&tv->stats, dtv->counter_vlan);
     }
 
     /* call the decoder */

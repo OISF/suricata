@@ -866,7 +866,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
             next_run_ms = 0;
             prev_emerg = true;
             SCLogNotice("Flow emergency mode entered...");
-            StatsIncr(th_v, ftd->cnt.flow_emerg_mode_enter);
+            StatsCounterIncr(&th_v->stats, ftd->cnt.flow_emerg_mode_enter);
         }
         if (ts_ms >= next_run_ms) {
             if (ftd->instance == 0) {
@@ -886,7 +886,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
             if (emerg) {
                 /* in emergency mode, do a full pass of the hash table */
                 FlowTimeoutHash(&ftd->timeout, ts, ftd->min, ftd->max, &counters);
-                StatsIncr(th_v, ftd->cnt.flow_mgr_full_pass);
+                StatsCounterIncr(&th_v->stats, ftd->cnt.flow_mgr_full_pass);
             } else {
                 SCLogDebug("hash %u:%u slice starting at %u with %u rows", ftd->min, ftd->max, pos,
                         rows_per_wu);
@@ -895,7 +895,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
                 FlowTimeoutHashInChunks(&ftd->timeout, ts, ftd->min, ftd->max, &counters,
                         rows_per_wu, &pos, ftd->instance);
                 if (ppos > pos) {
-                    StatsIncr(th_v, ftd->cnt.flow_mgr_full_pass);
+                    StatsCounterIncr(&th_v->stats, ftd->cnt.flow_mgr_full_pass);
                 }
             }
 
@@ -933,7 +933,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
                             (uintmax_t)SCTIME_SECS(ts), (uintmax_t)SCTIME_USECS(ts),
                             spare_pool_len * 100 / MAX(flow_config.prealloc, 1));
 
-                    StatsIncr(th_v, ftd->cnt.flow_emerg_mode_over);
+                    StatsCounterIncr(&th_v->stats, ftd->cnt.flow_emerg_mode_over);
                 }
             }
 

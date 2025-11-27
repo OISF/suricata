@@ -44,7 +44,7 @@ int DecodeRaw(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 {
     DEBUG_VALIDATE_BUG_ON(pkt == NULL);
 
-    StatsIncr(tv, dtv->counter_raw);
+    StatsCounterIncr(&tv->stats, dtv->counter_raw);
 
     /* If it is ipv4 or ipv6 it should at least be the size of ipv4 */
     if (unlikely(len < IPV4_HEADER_LEN)) {

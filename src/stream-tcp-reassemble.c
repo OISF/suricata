@@ -610,7 +610,7 @@ static void StreamTcpReassembleExceptionPolicyStatsIncr(
 {
     StatsCounterId id = ra_ctx->counter_tcp_reas_eps.eps_id[policy];
     if (likely(tv && id.id > 0)) {
-        StatsIncr(tv, id);
+        StatsCounterIncr(&tv->stats, id);
     }
 }
 
@@ -804,7 +804,7 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
             }
             urg_data = 1; /* only treat last 1 byte as out of band. */
             if (stream_config.urgent_policy == TCP_STREAM_URGENT_OOB) {
-                StatsIncr(tv, ra_ctx->counter_tcp_urgent_oob);
+                StatsCounterIncr(&tv->stats, ra_ctx->counter_tcp_urgent_oob);
             }
 
             /* depending on hitting the OOB limit, update urg_data or not */
@@ -831,7 +831,7 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
     if (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) {
         StreamTcpSetEvent(p, STREAM_REASSEMBLY_DEPTH_REACHED);
         /* increment stream depth counter */
-        StatsIncr(tv, ra_ctx->counter_tcp_stream_depth);
+        StatsCounterIncr(&tv->stats, ra_ctx->counter_tcp_stream_depth);
         p->app_update_direction = UPDATE_DIR_PACKET;
     }
     if (size == 0) {
@@ -1299,7 +1299,7 @@ static int ReassembleUpdateAppLayer(ThreadVars *tv, TcpReassemblyThreadCtx *ra_c
 
             StreamTcpSetEvent(p, STREAM_REASSEMBLY_SEQ_GAP);
             (*stream)->flags |= STREAMTCP_STREAM_FLAG_HAS_GAP;
-            StatsIncr(tv, ra_ctx->counter_tcp_reass_gap);
+            StatsCounterIncr(&tv->stats, ra_ctx->counter_tcp_reass_gap);
             ssn->flags |= STREAMTCP_FLAG_LOSSY_BE_LIBERAL;
 
             /* AppLayerHandleTCPData has likely updated progress. */
@@ -2121,7 +2121,7 @@ TcpSegment *StreamTcpGetSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx)
 {
     TcpSegment *seg = StreamTcpThreadCacheGetSegment();
     if (seg) {
-        StatsIncr(tv, ra_ctx->counter_tcp_segment_from_cache);
+        StatsCounterIncr(&tv->stats, ra_ctx->counter_tcp_segment_from_cache);
         memset(&seg->sbseg, 0, sizeof(seg->sbseg));
         return seg;
     }
@@ -2132,10 +2132,10 @@ TcpSegment *StreamTcpGetSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx)
     if (seg == NULL) {
         /* Increment the counter to show that we are not able to serve the
            segment request due to memcap limit */
-        StatsIncr(tv, ra_ctx->counter_tcp_segment_memcap);
+        StatsCounterIncr(&tv->stats, ra_ctx->counter_tcp_segment_memcap);
     } else {
         memset(&seg->sbseg, 0, sizeof(seg->sbseg));
-        StatsIncr(tv, ra_ctx->counter_tcp_segment_from_pool);
+        StatsCounterIncr(&tv->stats, ra_ctx->counter_tcp_segment_from_pool);
     }
 
     return seg;

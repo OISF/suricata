@@ -363,7 +363,7 @@ static inline void FlowUpdateFlowRate(
                         f);
                 f->flags |= FLOW_IS_ELEPHANT;
                 if (tv != NULL) {
-                    StatsIncr(tv, dtv->counter_flow_elephant);
+                    StatsCounterIncr(&tv->stats, dtv->counter_flow_elephant);
                 }
             }
         }

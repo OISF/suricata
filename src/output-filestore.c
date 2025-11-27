@@ -149,18 +149,18 @@ static void OutputFilestoreFinalizeFiles(ThreadVars *tv, const OutputFilestoreLo
     if (SCPathExists(final_filename)) {
         OutputFilestoreUpdateFileTime(tmp_filepath, final_filename);
         if (unlink(tmp_filepath) != 0) {
-            StatsIncr(tv, oft->fs_error_counter);
+            StatsCounterIncr(&tv->stats, oft->fs_error_counter);
             WARN_ONCE(WOT_UNLINK, "Failed to remove temporary file %s: %s", tmp_filepath,
                     strerror(errno));
         }
     } else if (rename(tmp_filepath, final_filename) != 0) {
-        StatsIncr(tv, oft->fs_error_counter);
+        StatsCounterIncr(&tv->stats, oft->fs_error_counter);
         WARN_ONCE(WOT_RENAME, "Failed to rename %s to %s: %s", tmp_filepath, final_filename,
                 strerror(errno));
         if (unlink(tmp_filepath) != 0) {
             /* Just increment, don't log as has_fs_errors would
              * already be set above. */
-            StatsIncr(tv, oft->fs_error_counter);
+            StatsCounterIncr(&tv->stats, oft->fs_error_counter);
         }
         return;
     }
@@ -213,7 +213,7 @@ static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet
 
         file_fd = open(filename, O_CREAT | O_TRUNC | O_NOFOLLOW | O_WRONLY, 0644);
         if (file_fd == -1) {
-            StatsIncr(tv, aft->fs_error_counter);
+            StatsCounterIncr(&tv->stats, aft->fs_error_counter);
             SCLogWarning("Filestore (v2) failed to create %s: %s", filename, strerror(errno));
             return -1;
         }
@@ -223,7 +223,7 @@ static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet
             ff->fd = file_fd;
         } else {
             if (FileGetMaxOpenFiles() > 0) {
-                StatsIncr(tv, aft->counter_max_hits);
+                StatsCounterIncr(&tv->stats, aft->counter_max_hits);
             }
             ff->fd = -1;
         }
@@ -237,7 +237,7 @@ static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet
                 return -1;
             file_fd = open(filename, O_APPEND | O_NOFOLLOW | O_WRONLY);
             if (file_fd == -1) {
-                StatsIncr(tv, aft->fs_error_counter);
+                StatsCounterIncr(&tv->stats, aft->fs_error_counter);
                 WARN_ONCE(WOT_OPEN, "Filestore (v2) failed to open file %s: %s", filename,
                         strerror(errno));
                 return -1;
@@ -254,7 +254,7 @@ static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet
             char tmp_filename[PATH_MAX] = "";
             snprintf(tmp_filename, sizeof(tmp_filename), "file.%u", ff->file_store_id);
             (void)PathMerge(filename, sizeof(filename), ctx->tmpdir, tmp_filename);
-            StatsIncr(tv, aft->fs_error_counter);
+            StatsCounterIncr(&tv->stats, aft->fs_error_counter);
             WARN_ONCE(WOT_WRITE, "Filestore (v2) failed to write to %s: %s", filename,
                     strerror(errno));
             if (ff->fd != -1) {
