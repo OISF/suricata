@@ -716,7 +716,8 @@ static void FlowCountersUpdate(
     StatsAddUI64(th_v, ftd->cnt.flow_bypassed_pkts, (uint64_t)counters->bypassed_pkts);
     StatsAddUI64(th_v, ftd->cnt.flow_bypassed_bytes, (uint64_t)counters->bypassed_bytes);
 
-    StatsCounterMaxUpdateI64(th_v, ftd->cnt.flow_mgr_rows_maxlen, (int64_t)counters->rows_maxlen);
+    StatsCounterMaxUpdateI64(
+            &th_v->stats, ftd->cnt.flow_mgr_rows_maxlen, (int64_t)counters->rows_maxlen);
 }
 
 static TmEcode FlowManagerThreadInit(ThreadVars *t, const void *initdata, void **data)
@@ -832,7 +833,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
     uint32_t mp = MemcapsGetPressure() * 100;
     if (ftd->instance == 0) {
         StatsSetUI64(th_v, ftd->cnt.memcap_pressure, mp);
-        StatsCounterMaxUpdateI64(th_v, ftd->cnt.memcap_pressure_max, (int64_t)mp);
+        StatsCounterMaxUpdateI64(&th_v->stats, ftd->cnt.memcap_pressure_max, (int64_t)mp);
     }
     GetWorkUnitSizing(rows, mp, false, &sleep_per_wu, &rows_per_wu, &rows_sec);
     StatsSetUI64(th_v, ftd->cnt.flow_mgr_rows_sec, rows_sec);
@@ -936,7 +937,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
             mp = MemcapsGetPressure() * 100;
             if (ftd->instance == 0) {
                 StatsSetUI64(th_v, ftd->cnt.memcap_pressure, mp);
-                StatsCounterMaxUpdateI64(th_v, ftd->cnt.memcap_pressure_max, (int64_t)mp);
+                StatsCounterMaxUpdateI64(&th_v->stats, ftd->cnt.memcap_pressure_max, (int64_t)mp);
             }
             GetWorkUnitSizing(rows, mp, emerg, &sleep_per_wu, &rows_per_wu, &rows_sec);
             if (pmp != mp) {
@@ -1113,7 +1114,7 @@ static TmEcode FlowRecycler(ThreadVars *th_v, void *thread_data)
         FlowQueuePrivate list = FlowQueueExtractPrivate(&flow_recycle_q);
 
         StatsCounterAvgAddI64(th_v, ftd->counter_queue_avg, (int64_t)list.len);
-        StatsCounterMaxUpdateI64(th_v, ftd->counter_queue_max, (int64_t)list.len);
+        StatsCounterMaxUpdateI64(&th_v->stats, ftd->counter_queue_max, (int64_t)list.len);
 
         const int bail = (TmThreadsCheckFlag(th_v, THV_KILL));
 
