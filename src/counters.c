@@ -178,12 +178,12 @@ void StatsCounterIncr(StatsThreadContext *stats, StatsCounterId id)
 /**
  * \brief Decrements the local counter
  *
+ * \param stats per thread counter structure
  * \param id  Index of the counter in the counter array
- * \param pca Counter array that holds the local counters for this TM
  */
-void StatsDecr(ThreadVars *tv, StatsCounterId id)
+void StatsCounterDecr(StatsThreadContext *stats, StatsCounterId id)
 {
-    StatsPrivateThreadContext *pca = &tv->stats.priv;
+    StatsPrivateThreadContext *pca = &stats->priv;
 #if defined(UNITTESTS) || defined(FUZZ)
     if (pca->initialized == 0)
         return;
