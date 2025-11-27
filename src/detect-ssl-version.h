@@ -25,8 +25,6 @@
 #ifndef DETECT_SSL_VERSION_H
 #define	DETECT_SSL_VERSION_H
 
-#define DETECT_SSL_VERSION_NEGATED   0x01
-
 enum {
     SSLv2 = 0,
     SSLv3 = 1,
@@ -36,16 +34,13 @@ enum {
     TLS13 = 5,
 
     TLS_SIZE = 6,
-    TLS_UNKNOWN = 7,
 };
 
-typedef struct SSLVersionData_ {
-    uint16_t ver; /** ssl version to match */
-    uint8_t flags;
-} SSLVersionData;
-
 typedef struct DetectSslVersionData_ {
-    SSLVersionData data[TLS_SIZE];
+    // negate is global : `tls1.1, !tls1.0` does not make sense
+    bool negate;
+    // index is ssl version to match on
+    bool data[TLS_SIZE];
 } DetectSslVersionData;
 
 /* prototypes */
