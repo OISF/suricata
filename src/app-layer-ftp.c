@@ -909,6 +909,9 @@ static AppProto FTPUserProbingParser(
         // POP traffic begins by same "USER" pattern as FTP
         return ALPROTO_FAILED;
     }
+    if (f->dp == 25) {
+        return ALPROTO_FAILED;
+    }
     return ALPROTO_FTP;
 }
 
@@ -951,6 +954,11 @@ static int FTPRegisterPatternsForProtocolDetection(void)
                 STREAM_TOSERVER, FTPUserProbingParser, 5, 5) < 0) {
         return -1;
     }
+    if (SCAppLayerProtoDetectPMRegisterPatternCIwPP(IPPROTO_TCP, ALPROTO_FTP, "QUIT", 4, 0,
+                STREAM_TOSERVER, FTPUserProbingParser, 4, 4) < 0) {
+        return -1;
+    }
+
     if (SCAppLayerProtoDetectPMRegisterPatternCI(
                 IPPROTO_TCP, ALPROTO_FTP, "PASS ", 5, 0, STREAM_TOSERVER) < 0) {
         return -1;

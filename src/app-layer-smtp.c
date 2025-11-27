@@ -1679,6 +1679,17 @@ static int SMTPStateGetEventInfoById(
     return 0;
 }
 
+// This probing parser checks the port after ambiguous patterns
+// that may be used by other protocols such as FTP
+static AppProto SMTPClientProbingParserCheckPort(
+        const Flow *f, uint8_t direction, const uint8_t *input, uint32_t len, uint8_t *rdir)
+{
+    if (f->dp == 21) {
+        return ALPROTO_FAILED;
+    }
+    return ALPROTO_SMTP;
+}
+
 static AppProto SMTPServerProbingParser(
         const Flow *f, uint8_t direction, const uint8_t *input, uint32_t len, uint8_t *rdir)
 {
@@ -1729,10 +1740,11 @@ static int SMTPRegisterPatternsForProtocolDetection(void)
                 IPPROTO_TCP, ALPROTO_SMTP, "HELO", 4, 0, STREAM_TOSERVER) < 0) {
         return -1;
     }
-    if (SCAppLayerProtoDetectPMRegisterPatternCI(
-                IPPROTO_TCP, ALPROTO_SMTP, "QUIT", 4, 0, STREAM_TOSERVER) < 0) {
+    if (SCAppLayerProtoDetectPMRegisterPatternCIwPP(IPPROTO_TCP, ALPROTO_SMTP, "QUIT", 4, 0,
+                STREAM_TOSERVER, SMTPClientProbingParserCheckPort, 4, 4) < 0) {
         return -1;
     }
+
     if (!SCAppLayerProtoDetectPPParseConfPorts(
                 "tcp", IPPROTO_TCP, "smtp", ALPROTO_SMTP, 0, 5, NULL, SMTPServerProbingParser)) {
         // STREAM_TOSERVER means here use 25 as flow destination port
