@@ -89,6 +89,9 @@ int SCAppLayerProtoDetectPMRegisterPatternCSwPP(uint8_t ipproto, AppProto alprot
  */
 int SCAppLayerProtoDetectPMRegisterPatternCI(uint8_t ipproto, AppProto alproto, const char *pattern,
         uint16_t depth, uint16_t offset, uint8_t direction);
+int SCAppLayerProtoDetectPMRegisterPatternCIwPP(uint8_t ipproto, AppProto alproto,
+        const char *pattern, uint16_t depth, uint16_t offset, uint8_t direction,
+        ProbingParserFPtr PPFunc, uint16_t pp_min_depth, uint16_t pp_max_depth);
 
 /***** Setup/General Registration *****/
 
