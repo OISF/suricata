@@ -748,6 +748,9 @@ extern "C" {
         default_enabled: bool,
     ) -> ::std::os::raw::c_int;
 }
+extern "C" {
+    pub fn AppProtoDetectListNames();
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct AppLayerParserState_ {

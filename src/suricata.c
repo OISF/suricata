@@ -717,6 +717,7 @@ static void PrintUsage(const char *progname)
     printf("\t--list-keywords[=all|csv|<kword>]    : list keywords implemented by the engine\n");
     printf("\t--list-runmodes                      : list supported runmodes\n");
     printf("\t--list-app-layer-protos              : list supported app layer protocols\n");
+    printf("\t--list-rule-protos                   : list supported rule protocols\n");
     printf("\t--list-app-layer-hooks               : list supported app layer hooks for use in "
            "rules\n");
     printf("\t--dump-config                        : show the running configuration\n");
@@ -1374,6 +1375,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
     int dump_config = 0;
     int dump_features = 0;
     int list_app_layer_protocols = 0;
+    int list_rule_protocols = 0;
     int list_app_layer_hooks = 0;
     int list_unittests = 0;
     int list_runmodes = 0;
@@ -1423,6 +1425,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
         {"pcap-buffer-size", required_argument, 0, 0},
         {"unittest-filter", required_argument, 0, 'U'},
         {"list-app-layer-protos", 0, &list_app_layer_protocols, 1},
+        {"list-rule-protos", 0, &list_rule_protocols, 1},
         {"list-app-layer-hooks", 0, &list_app_layer_hooks, 1},
         {"list-unittests", 0, &list_unittests, 1},
         {"list-runmodes", 0, &list_runmodes, 1},
@@ -2121,6 +2124,8 @@ TmEcode SCParseCommandLine(int argc, char **argv)
 
     if (list_app_layer_protocols)
         suri->run_mode = RUNMODE_LIST_APP_LAYERS;
+    if (list_rule_protocols)
+        suri->run_mode = RUNMODE_LIST_RULE_PROTOS;
     if (list_app_layer_hooks)
         suri->run_mode = RUNMODE_LIST_APP_LAYER_HOOKS;
     if (list_keywords)
@@ -2393,6 +2398,12 @@ int SCStartInternalRunMode(int argc, char **argv)
     switch (suri->run_mode) {
         case RUNMODE_LIST_KEYWORDS:
             return ListKeywords(suri->keyword_info);
+        case RUNMODE_LIST_RULE_PROTOS:
+            if (suri->conf_filename != NULL) {
+                return ListRuleProtocols(suri->conf_filename);
+            } else {
+                return ListRuleProtocols(DEFAULT_CONF_FILE);
+            }
         case RUNMODE_LIST_APP_LAYERS:
             if (suri->conf_filename != NULL) {
                 return ListAppLayerProtocols(suri->conf_filename);

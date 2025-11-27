@@ -193,6 +193,8 @@ void AppLayerProtoDetectSupportedAppProtocols(AppProto *alprotos);
 
 void AppLayerRegisterExpectationProto(uint8_t proto, AppProto alproto);
 
+void AppProtoDetectListNames(void);
+
 /***** Unittests *****/
 
 #ifdef UNITTESTS

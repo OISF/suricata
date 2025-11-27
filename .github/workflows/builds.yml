@@ -1522,6 +1522,10 @@ jobs:
         env:
           LLVM_PROFILE_FILE: "/tmp/lah.profraw"
       - run: llvm-profdata-19 merge -o lah.profdata /tmp/lah.profraw
+      - run: ./src/suricata --list-rule-protos -l /tmp
+        env:
+          LLVM_PROFILE_FILE: "/tmp/lah.profraw"
+      - run: llvm-profdata-19 merge -o lah.profdata /tmp/lah.profraw
       - run: ./src/suricata --dump-features -c suricata.yaml -l /tmp
         env:
           LLVM_PROFILE_FILE: "/tmp/dumpfeatures.profraw"
