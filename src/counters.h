@@ -142,7 +142,7 @@ StatsCounterGlobalId StatsRegisterGlobalCounter(const char *cname, uint64_t (*Fu
 void StatsCounterAddI64(StatsThreadContext *, StatsCounterId, int64_t);
 void StatsCounterSetI64(StatsThreadContext *, StatsCounterId, int64_t);
 void StatsCounterIncr(StatsThreadContext *, StatsCounterId);
-void StatsDecr(struct ThreadVars_ *, StatsCounterId);
+void StatsCounterDecr(StatsThreadContext *, StatsCounterId);
 
 void StatsCounterMaxUpdateI64(StatsThreadContext *, StatsCounterMaxId id, int64_t x);
 void StatsCounterAvgAddI64(StatsThreadContext *, StatsCounterAvgId id, int64_t x);

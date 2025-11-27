@@ -183,9 +183,9 @@ static void CheckWorkQueue(ThreadVars *tv, FlowWorkerThreadData *fw, FlowTimeout
 
         FlowEndCountersUpdate(tv, &fw->fec, f);
         if (f->proto == IPPROTO_TCP && f->protoctx != NULL) {
-            StatsDecr(tv, fw->dtv->counter_tcp_active_sessions);
+            StatsCounterDecr(&tv->stats, fw->dtv->counter_tcp_active_sessions);
         }
-        StatsDecr(tv, fw->dtv->counter_flow_active);
+        StatsCounterDecr(&tv->stats, fw->dtv->counter_flow_active);
 
         FlowClearMemory (f, f->protomap);
         FLOWLOCK_UNLOCK(f);
