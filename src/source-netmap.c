@@ -825,7 +825,7 @@ static TmEcode ReceiveNetmapLoop(ThreadVars *tv, void *data, void *slot)
             /* no events, timeout */
             /* sync counters */
             NetmapDumpCounters(ntv);
-            StatsSyncCountersIfSignalled(tv);
+            StatsSyncCountersIfSignalled(&tv->stats);
 
             /* poll timed out, lets handle the timeout */
             TmThreadsCaptureHandleTimeout(tv, NULL);
@@ -848,11 +848,11 @@ static TmEcode ReceiveNetmapLoop(ThreadVars *tv, void *data, void *slot)
         }
 
         NetmapDumpCounters(ntv);
-        StatsSyncCountersIfSignalled(tv);
+        StatsSyncCountersIfSignalled(&tv->stats);
     }
 
     NetmapDumpCounters(ntv);
-    StatsSyncCountersIfSignalled(tv);
+    StatsSyncCountersIfSignalled(&tv->stats);
     SCReturnInt(TM_ECODE_OK);
 }
 

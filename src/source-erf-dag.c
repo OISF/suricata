@@ -362,7 +362,7 @@ ReceiveErfDagLoop(ThreadVars *tv, void *data, void *slot)
             SCReturnInt(TM_ECODE_FAILED);
         }
 
-        StatsSyncCountersIfSignalled(tv);
+        StatsSyncCountersIfSignalled(&tv->stats);
 
         SCLogDebug("Read %d records from stream: %d, DAG: %s",
             pkts_read, dtv->dagstream, dtv->dagname);

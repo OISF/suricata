@@ -396,7 +396,7 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
             TmqhOutputPacketpool(ptv->tv, p);
             SCReturnInt(TM_ECODE_FAILED);
         }
-        StatsSyncCountersIfSignalled(tv);
+        StatsSyncCountersIfSignalled(&tv->stats);
     }
 
     return TM_ECODE_OK;

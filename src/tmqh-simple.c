@@ -48,7 +48,7 @@ Packet *TmqhInputSimple(ThreadVars *t)
 {
     PacketQueue *q = t->inq->pq;
 
-    StatsSyncCountersIfSignalled(t);
+    StatsSyncCountersIfSignalled(&t->stats);
 
     SCMutexLock(&q->mutex_q);
 
