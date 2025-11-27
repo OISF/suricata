@@ -248,9 +248,9 @@ static inline void AFXDPDumpCounters(AFXDPThreadVars *ptv)
     if (getsockopt(fd, SOL_XDP, XDP_STATISTICS, &stats, &len) >= 0) {
         uint64_t rx_dropped = stats.rx_dropped + stats.rx_invalid_descs + stats.rx_ring_full;
 
-        StatsAddUI64(ptv->tv, ptv->capture_kernel_drops,
+        StatsCounterAddI64(&ptv->tv->stats, ptv->capture_kernel_drops,
                 rx_dropped - StatsGetLocalCounterValue(ptv->tv, ptv->capture_kernel_drops));
-        StatsAddUI64(ptv->tv, ptv->capture_afxdp_packets, ptv->pkts);
+        StatsCounterAddI64(&ptv->tv->stats, ptv->capture_afxdp_packets, ptv->pkts);
 
         (void)SC_ATOMIC_SET(ptv->livedev->drop, rx_dropped);
         (void)SC_ATOMIC_ADD(ptv->livedev->pkts, ptv->pkts);

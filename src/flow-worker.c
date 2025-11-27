@@ -206,7 +206,7 @@ static void CheckWorkQueue(ThreadVars *tv, FlowWorkerThreadData *fw, FlowTimeout
         FlowSparePoolReturnFlows(&ret_queue);
     }
 
-    StatsAddUI64(tv, fw->cnt.flows_removed, (uint64_t)i);
+    StatsCounterAddI64(&tv->stats, fw->cnt.flows_removed, (int64_t)i);
 }
 
 /** \brief handle flow for packet
@@ -221,8 +221,8 @@ static inline TmEcode FlowUpdate(ThreadVars *tv, FlowWorkerThreadData *fw, Packe
     switch (state) {
 #ifdef CAPTURE_OFFLOAD
         case FLOW_STATE_CAPTURE_BYPASSED: {
-            StatsAddUI64(tv, fw->both_bypass_pkts, 1);
-            StatsAddUI64(tv, fw->both_bypass_bytes, GET_PKT_LEN(p));
+            StatsCounterAddI64(&tv->stats, fw->both_bypass_pkts, 1);
+            StatsCounterAddI64(&tv->stats, fw->both_bypass_bytes, GET_PKT_LEN(p));
             Flow *f = p->flow;
             FlowDeReference(&p->flow);
             FLOWLOCK_UNLOCK(f);
@@ -230,8 +230,8 @@ static inline TmEcode FlowUpdate(ThreadVars *tv, FlowWorkerThreadData *fw, Packe
         }
 #endif
         case FLOW_STATE_LOCAL_BYPASSED: {
-            StatsAddUI64(tv, fw->local_bypass_pkts, 1);
-            StatsAddUI64(tv, fw->local_bypass_bytes, GET_PKT_LEN(p));
+            StatsCounterAddI64(&tv->stats, fw->local_bypass_pkts, 1);
+            StatsCounterAddI64(&tv->stats, fw->local_bypass_bytes, GET_PKT_LEN(p));
             Flow *f = p->flow;
             FlowDeReference(&p->flow);
             FLOWLOCK_UNLOCK(f);
@@ -346,12 +346,12 @@ static inline void UpdateCounters(ThreadVars *tv,
         FlowWorkerThreadData *fw, const FlowTimeoutCounters *counters)
 {
     if (counters->flows_aside_needs_work) {
-        StatsAddUI64(tv, fw->cnt.flows_aside_needs_work,
-                (uint64_t)counters->flows_aside_needs_work);
+        StatsCounterAddI64(&tv->stats, fw->cnt.flows_aside_needs_work,
+                (int64_t)counters->flows_aside_needs_work);
     }
     if (counters->flows_aside_pkt_inject) {
-        StatsAddUI64(tv, fw->cnt.flows_aside_pkt_inject,
-                (uint64_t)counters->flows_aside_pkt_inject);
+        StatsCounterAddI64(&tv->stats, fw->cnt.flows_aside_pkt_inject,
+                (int64_t)counters->flows_aside_pkt_inject);
     }
 }
 
@@ -483,7 +483,7 @@ static inline void FlowWorkerProcessInjectedFlows(
     if (SC_ATOMIC_GET(tv->flow_queue->non_empty))
         injected = FlowQueueExtractPrivate(tv->flow_queue);
     if (injected.len > 0) {
-        StatsAddUI64(tv, fw->cnt.flows_injected, (uint64_t)injected.len);
+        StatsCounterAddI64(&tv->stats, fw->cnt.flows_injected, (int64_t)injected.len);
         if (p->pkt_src == PKT_SRC_WIRE)
             StatsCounterMaxUpdateI64(&tv->stats, fw->cnt.flows_injected_max, (int64_t)injected.len);
 

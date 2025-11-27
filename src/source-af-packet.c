@@ -297,7 +297,7 @@ typedef struct AFPThreadVars_
     StatsCounterId capture_afp_poll_err;
     StatsCounterId capture_afp_send_err;
 
-    uint64_t send_errors_logged; /**< snapshot of send errors logged. */
+    int64_t send_errors_logged; /**< snapshot of send errors logged. */
 
     /* handle state */
     uint8_t afp_state;
@@ -619,14 +619,15 @@ static inline void AFPDumpCounters(AFPThreadVars *ptv)
         SCLogDebug("(%s) Kernel: Packets %" PRIu32 ", dropped %" PRIu32 "",
                 ptv->tv->name,
                 kstats.tp_packets, kstats.tp_drops);
-        StatsAddUI64(ptv->tv, ptv->capture_kernel_packets, kstats.tp_packets);
-        StatsAddUI64(ptv->tv, ptv->capture_kernel_drops, kstats.tp_drops);
+        StatsCounterAddI64(&ptv->tv->stats, ptv->capture_kernel_packets, kstats.tp_packets);
+        StatsCounterAddI64(&ptv->tv->stats, ptv->capture_kernel_drops, kstats.tp_drops);
         (void) SC_ATOMIC_ADD(ptv->livedev->drop, (uint64_t) kstats.tp_drops);
         (void) SC_ATOMIC_ADD(ptv->livedev->pkts, (uint64_t) kstats.tp_packets);
 
-        const uint64_t value = SC_ATOMIC_GET(ptv->mpeer->send_errors);
+        const int64_t value = SC_ATOMIC_GET(ptv->mpeer->send_errors);
         if (value > ptv->send_errors_logged) {
-            StatsAddUI64(ptv->tv, ptv->capture_afp_send_err, value - ptv->send_errors_logged);
+            StatsCounterAddI64(
+                    &ptv->tv->stats, ptv->capture_afp_send_err, value - ptv->send_errors_logged);
             ptv->send_errors_logged = value;
         }
     }
@@ -1348,13 +1349,13 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
          socklen_t len = sizeof (struct tpacket_stats);
          if (getsockopt(ptv->socket, SOL_PACKET, PACKET_STATISTICS,
                      &kstats, &len) > -1) {
-             uint64_t pkts = 0;
+             int64_t pkts = 0;
              SCLogDebug("(%s) Kernel socket startup: Packets %" PRIu32
                      ", dropped %" PRIu32 "",
                      ptv->tv->name,
                      kstats.tp_packets, kstats.tp_drops);
              pkts = kstats.tp_packets - discarded_pkts - kstats.tp_drops;
-             StatsAddUI64(ptv->tv, ptv->capture_kernel_packets, pkts);
+             StatsCounterAddI64(&ptv->tv->stats, ptv->capture_kernel_packets, pkts);
              (void) SC_ATOMIC_ADD(ptv->livedev->pkts, pkts);
          }
 #endif
