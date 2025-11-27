@@ -279,7 +279,7 @@ static int AlertFastLogTest01(void)
     Packet *p = NULL;
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
 
@@ -306,7 +306,7 @@ static int AlertFastLogTest01(void)
     UTHFreePackets(&p, 1);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
@@ -319,7 +319,7 @@ static int AlertFastLogTest02(void)
     ThreadVars th_v;
 
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
 
@@ -346,7 +346,7 @@ static int AlertFastLogTest02(void)
     UTHFreePackets(&p, 1);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 

@@ -166,7 +166,7 @@ static int DetectTtlTestSig1(void)
     IPV4Hdr ip4h;
 
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
     memset(&ip4h, 0, sizeof(ip4h));
 
     p->src.family = AF_INET;
@@ -203,7 +203,7 @@ static int DetectTtlTestSig1(void)
     PacketFree(p);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 

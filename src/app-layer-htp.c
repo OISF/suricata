@@ -5536,7 +5536,7 @@ libhtp:\n\
     FAIL_IF_NULL(alp_tctx);
 
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -5631,7 +5631,7 @@ libhtp:\n\
     SCConfDeInit();
     SCConfRestoreContextBackup();
     HtpConfigRestoreBackup();
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 

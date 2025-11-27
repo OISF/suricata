@@ -1536,7 +1536,7 @@ static int SCThresholdConfTest09(void)
 {
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     ThresholdInit();
 
@@ -1608,7 +1608,7 @@ static int SCThresholdConfTest09(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     ThresholdDestroy();
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
@@ -1634,7 +1634,7 @@ static int SCThresholdConfTest10(void)
 
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -1700,7 +1700,7 @@ static int SCThresholdConfTest10(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     ThresholdDestroy();
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
@@ -1719,7 +1719,7 @@ static int SCThresholdConfTest11(void)
 
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -1807,7 +1807,7 @@ static int SCThresholdConfTest11(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     ThresholdDestroy();
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
@@ -1826,7 +1826,7 @@ static int SCThresholdConfTest12(void)
 
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -1914,7 +1914,7 @@ static int SCThresholdConfTest12(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     ThresholdDestroy();
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
@@ -1985,7 +1985,7 @@ static int SCThresholdConfTest14(void)
 
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     FAIL_IF_NOT_NULL(g_ut_threshold_fp);
     g_ut_threshold_fp = SCThresholdConfGenerateValidDummyFD11();
@@ -2010,7 +2010,7 @@ static int SCThresholdConfTest14(void)
     DetectEngineCtxFree(de_ctx);
 
     ThresholdDestroy();
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
@@ -2030,7 +2030,7 @@ static int SCThresholdConfTest15(void)
 
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     DetectEngineThreadCtx *det_ctx = NULL;
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -2060,7 +2060,7 @@ static int SCThresholdConfTest15(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     ThresholdDestroy();
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
@@ -2080,7 +2080,7 @@ static int SCThresholdConfTest16(void)
 
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     DetectEngineThreadCtx *det_ctx = NULL;
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -2109,7 +2109,7 @@ static int SCThresholdConfTest16(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     ThresholdDestroy();
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
@@ -2129,7 +2129,7 @@ static int SCThresholdConfTest17(void)
 
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     DetectEngineThreadCtx *det_ctx = NULL;
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -2159,7 +2159,7 @@ static int SCThresholdConfTest17(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     ThresholdDestroy();
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
@@ -2402,7 +2402,7 @@ static int SCThresholdConfTest22(void)
 {
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     ThresholdInit();
 
@@ -2508,7 +2508,7 @@ static int SCThresholdConfTest22(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     ThresholdDestroy();
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
@@ -2541,7 +2541,7 @@ static int SCThresholdConfTest23(void)
 {
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     ThresholdInit();
 
@@ -2591,7 +2591,7 @@ static int SCThresholdConfTest23(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     ThresholdDestroy();
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 #endif /* UNITTESTS */

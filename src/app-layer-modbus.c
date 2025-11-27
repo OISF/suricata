@@ -379,7 +379,7 @@ static int ModbusParserTest03(void)
     FAIL_IF_NULL(alp_tctx);
 
     memset(&tv, 0, sizeof(ThreadVars));
-    StatsThreadInit(&tv);
+    StatsThreadInit(&tv.stats);
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 
@@ -457,7 +457,7 @@ static int ModbusParserTest03(void)
     DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
-    StatsThreadCleanup(&tv);
+    StatsThreadCleanup(&tv.stats);
     PASS;
 }
 
@@ -513,7 +513,7 @@ static int ModbusParserTest05(void)
     FAIL_IF_NULL(alp_tctx);
 
     memset(&tv, 0, sizeof(ThreadVars));
-    StatsThreadInit(&tv);
+    StatsThreadInit(&tv.stats);
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 
@@ -565,7 +565,7 @@ static int ModbusParserTest05(void)
     DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
-    StatsThreadCleanup(&tv);
+    StatsThreadCleanup(&tv.stats);
     PASS;
 }
 
@@ -583,7 +583,7 @@ static int ModbusParserTest06(void)
     FAIL_IF_NULL(alp_tctx);
 
     memset(&tv, 0, sizeof(ThreadVars));
-    StatsThreadInit(&tv);
+    StatsThreadInit(&tv.stats);
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 
@@ -635,7 +635,7 @@ static int ModbusParserTest06(void)
     DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
-    StatsThreadCleanup(&tv);
+    StatsThreadCleanup(&tv.stats);
     PASS;
 }
 
@@ -653,7 +653,7 @@ static int ModbusParserTest07(void)
     FAIL_IF_NULL(alp_tctx);
 
     memset(&tv, 0, sizeof(ThreadVars));
-    StatsThreadInit(&tv);
+    StatsThreadInit(&tv.stats);
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 
@@ -706,7 +706,7 @@ static int ModbusParserTest07(void)
     DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
-    StatsThreadCleanup(&tv);
+    StatsThreadCleanup(&tv.stats);
     PASS;
 }
 
@@ -724,7 +724,7 @@ static int ModbusParserTest08(void)
     FAIL_IF_NULL(alp_tctx);
 
     memset(&tv, 0, sizeof(ThreadVars));
-    StatsThreadInit(&tv);
+    StatsThreadInit(&tv.stats);
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 
@@ -788,7 +788,7 @@ static int ModbusParserTest08(void)
     DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
-    StatsThreadCleanup(&tv);
+    StatsThreadCleanup(&tv.stats);
     PASS;
 }
 
@@ -936,7 +936,7 @@ static int ModbusParserTest11(void)
     FAIL_IF(alp_tctx == NULL);
 
     memset(&tv, 0, sizeof(ThreadVars));
-    StatsThreadInit(&tv);
+    StatsThreadInit(&tv.stats);
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 
@@ -987,7 +987,7 @@ static int ModbusParserTest11(void)
     DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
-    StatsThreadCleanup(&tv);
+    StatsThreadCleanup(&tv.stats);
     SCFree(input);
     PASS;
 }
@@ -1005,7 +1005,7 @@ static int ModbusParserTest12(void)
     FAIL_IF_NULL(alp_tctx);
 
     memset(&tv, 0, sizeof(ThreadVars));
-    StatsThreadInit(&tv);
+    StatsThreadInit(&tv.stats);
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 
@@ -1058,7 +1058,7 @@ static int ModbusParserTest12(void)
     DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
-    StatsThreadCleanup(&tv);
+    StatsThreadCleanup(&tv.stats);
     PASS;
 }
 
@@ -1166,7 +1166,7 @@ static int ModbusParserTest15(void)
     FAIL_IF_NULL(alp_tctx);
 
     memset(&tv, 0, sizeof(ThreadVars));
-    StatsThreadInit(&tv);
+    StatsThreadInit(&tv.stats);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -1231,7 +1231,7 @@ static int ModbusParserTest15(void)
     DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
-    StatsThreadCleanup(&tv);
+    StatsThreadCleanup(&tv.stats);
     PASS;
 }
 
@@ -1249,7 +1249,7 @@ static int ModbusParserTest16(void)
     FAIL_IF_NULL(alp_tctx);
 
     memset(&tv, 0, sizeof(ThreadVars));
-    StatsThreadInit(&tv);
+    StatsThreadInit(&tv.stats);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -1322,7 +1322,7 @@ static int ModbusParserTest16(void)
     DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
-    StatsThreadCleanup(&tv);
+    StatsThreadCleanup(&tv.stats);
     PASS;
 }
 
@@ -1429,7 +1429,7 @@ static int ModbusParserTest19(void)
     FAIL_IF_NULL(alp_tctx);
 
     memset(&tv, 0, sizeof(ThreadVars));
-    StatsThreadInit(&tv);
+    StatsThreadInit(&tv.stats);
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 
@@ -1482,7 +1482,7 @@ static int ModbusParserTest19(void)
     DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
-    StatsThreadCleanup(&tv);
+    StatsThreadCleanup(&tv.stats);
     PASS;
 }
 #endif /* UNITTESTS */

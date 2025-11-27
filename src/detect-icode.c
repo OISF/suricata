@@ -333,7 +333,7 @@ static int DetectICodeMatchTest01(void)
     DetectEngineThreadCtx *det_ctx;
 
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     Packet *p = UTHBuildPacket(NULL, 0, IPPROTO_ICMP);
     FAIL_IF_NULL(p);
@@ -374,7 +374,7 @@ static int DetectICodeMatchTest01(void)
     DetectEngineCtxFree(de_ctx);
 
     UTHFreePackets(&p, 1);
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 

@@ -95,7 +95,7 @@ static int DcePayloadTest15(void)
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
-    StatsThreadInit(&tv);
+    StatsThreadInit(&tv.stats);
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 
@@ -140,7 +140,7 @@ static int DcePayloadTest15(void)
     DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
-    StatsThreadCleanup(&tv);
+    StatsThreadCleanup(&tv.stats);
     PASS;
 }
 
@@ -179,7 +179,7 @@ static int DcePayloadTest16(void)
 
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
     memset(&tv, 0, sizeof(ThreadVars));
-    StatsThreadInit(&tv);
+    StatsThreadInit(&tv.stats);
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 
@@ -224,7 +224,7 @@ static int DcePayloadTest16(void)
     DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
-    StatsThreadCleanup(&tv);
+    StatsThreadCleanup(&tv.stats);
     PASS;
 }
 
@@ -263,7 +263,7 @@ static int DcePayloadTest17(void)
 
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
     memset(&tv, 0, sizeof(ThreadVars));
-    StatsThreadInit(&tv);
+    StatsThreadInit(&tv.stats);
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 
@@ -308,7 +308,7 @@ static int DcePayloadTest17(void)
     DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
-    StatsThreadCleanup(&tv);
+    StatsThreadCleanup(&tv.stats);
     PASS;
 }
 
@@ -346,7 +346,7 @@ static int DcePayloadTest18(void)
 
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
     memset(&tv, 0, sizeof(ThreadVars));
-    StatsThreadInit(&tv);
+    StatsThreadInit(&tv.stats);
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 
@@ -391,7 +391,7 @@ static int DcePayloadTest18(void)
     DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
-    StatsThreadCleanup(&tv);
+    StatsThreadCleanup(&tv.stats);
     PASS;
 }
 
@@ -429,7 +429,7 @@ static int DcePayloadTest19(void)
 
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
     memset(&tv, 0, sizeof(ThreadVars));
-    StatsThreadInit(&tv);
+    StatsThreadInit(&tv.stats);
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 
@@ -474,7 +474,7 @@ static int DcePayloadTest19(void)
     DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
-    StatsThreadCleanup(&tv);
+    StatsThreadCleanup(&tv.stats);
     PASS;
 }
 
@@ -512,7 +512,7 @@ static int DcePayloadTest20(void)
 
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
     memset(&tv, 0, sizeof(ThreadVars));
-    StatsThreadInit(&tv);
+    StatsThreadInit(&tv.stats);
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 
@@ -557,7 +557,7 @@ static int DcePayloadTest20(void)
     DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
-    StatsThreadCleanup(&tv);
+    StatsThreadCleanup(&tv.stats);
     PASS;
 }
 

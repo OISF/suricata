@@ -1094,7 +1094,7 @@ static int DetectContentLongPatternMatchTest(uint8_t *raw_eth_pkt, uint16_t pkts
     DetectEngineThreadCtx *det_ctx = NULL;
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     FlowInitConfig(FLOW_QUIET);
     DecodeEthernet(&th_v, &dtv, p, raw_eth_pkt, pktsize);
@@ -1126,7 +1126,7 @@ static int DetectContentLongPatternMatchTest(uint8_t *raw_eth_pkt, uint16_t pkts
     FlowShutdown();
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     return result;
 }
 
@@ -1905,7 +1905,7 @@ static int SigTestPositiveTestContent(const char *rule, uint8_t *buf)
     DetectEngineThreadCtx *det_ctx = NULL;
 
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
     Packet *p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
     FAIL_IF_NULL(p);
 
@@ -1927,7 +1927,7 @@ static int SigTestPositiveTestContent(const char *rule, uint8_t *buf)
     UTHFreePackets(&p, 1);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
@@ -2094,7 +2094,7 @@ static int SigTestNegativeTestContent(const char *rule, uint8_t *buf)
     DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
     memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v);
+    StatsThreadInit(&th_v.stats);
 
     p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
 
@@ -2126,7 +2126,7 @@ end:
     if (de_ctx != NULL) {
         DetectEngineCtxFree(de_ctx);
     }
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     return result;
 }
 
