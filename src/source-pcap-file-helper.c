@@ -168,7 +168,7 @@ TmEcode PcapFileDispatch(PcapFileFileVars *ptv)
             SCLogError("Pcap callback PcapFileCallbackLoop failed for %s", ptv->filename);
             loop_result = TM_ECODE_FAILED;
         }
-        StatsSyncCountersIfSignalled(ptv->shared->tv);
+        StatsSyncCountersIfSignalled(&ptv->shared->tv->stats);
     }
 
     SCReturnInt(loop_result);

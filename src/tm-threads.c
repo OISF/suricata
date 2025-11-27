@@ -199,7 +199,7 @@ int TmThreadTimeoutLoop(ThreadVars *tv, TmSlot *s)
         }
     }
     SCLogDebug("flow end loop complete");
-    StatsSyncCounters(tv);
+    StatsSyncCounters(&tv->stats);
 
     return r;
 }
@@ -275,7 +275,7 @@ bool SCTmThreadsSlotPacketLoopFinish(ThreadVars *tv)
     TmSlot *s = tv->tm_slots;
     bool rc = true;
 
-    StatsSyncCounters(tv);
+    StatsSyncCounters(&tv->stats);
 
     TmThreadsSetFlag(tv, THV_FLOW_LOOP);
 
@@ -524,7 +524,7 @@ static void *TmThreadsSlotVar(void *td)
     if (!SCTmThreadsSlotPacketLoopFinish(tv)) {
         goto error;
     }
-    StatsSyncCounters(tv);
+    StatsSyncCounters(&tv->stats);
 
     pthread_exit(NULL);
     return NULL;
@@ -575,7 +575,7 @@ static void *TmThreadsManagement(void *td)
     }
 
     if (TmThreadsCheckFlag(tv, THV_KILL)) {
-        StatsSyncCounters(tv);
+        StatsSyncCounters(&tv->stats);
     }
 
     TmThreadsSetFlag(tv, THV_RUNNING_DONE);

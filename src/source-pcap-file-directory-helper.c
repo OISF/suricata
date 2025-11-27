@@ -531,7 +531,7 @@ TmEcode PcapDirectoryDispatch(PcapFileDirectoryVars *ptv)
         }
     }
 
-    StatsSyncCountersIfSignalled(ptv->shared->tv);
+    StatsSyncCountersIfSignalled(&ptv->shared->tv->stats);
 
     if (status == TM_ECODE_FAILED) {
         SCLogError("Directory %s run mode failed", ptv->filename);

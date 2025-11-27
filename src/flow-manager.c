@@ -961,7 +961,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
         }
 
         if (TmThreadsCheckFlag(th_v, THV_KILL)) {
-            StatsSyncCounters(th_v);
+            StatsSyncCounters(&th_v->stats);
             break;
         }
 
@@ -992,7 +992,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
 
         SCLogDebug("woke up... %s", SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY ? "emergency":"");
 
-        StatsSyncCountersIfSignalled(th_v);
+        StatsSyncCountersIfSignalled(&th_v->stats);
     }
     return TM_ECODE_OK;
 }
@@ -1172,9 +1172,9 @@ static TmEcode FlowRecycler(ThreadVars *th_v, void *thread_data)
 
         SCLogDebug("woke up...");
 
-        StatsSyncCountersIfSignalled(th_v);
+        StatsSyncCountersIfSignalled(&th_v->stats);
     }
-    StatsSyncCounters(th_v);
+    StatsSyncCounters(&th_v->stats);
     SCLogPerf("%"PRIu64" flows processed", recycled_cnt);
     return TM_ECODE_OK;
 }
