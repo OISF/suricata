@@ -229,6 +229,10 @@ Example::
   alert tls any any -> any any (msg:"match SSLv2 and SSLv3"; \
     ssl_version:sslv2,sslv3; sid:200031;)
 
+The list can be prefixed with ``!`` to match if version is different than
+all the versions listed in the signature. Such a negation does not match
+on a yet undetermined version.
+
 tls.fingerprint
 ---------------
 
