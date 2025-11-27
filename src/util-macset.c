@@ -125,7 +125,7 @@ static inline void MacUpdateEntry(
             memcpy(ms->singles[side], addr, sizeof(MacAddr));
             ms->state[side] = SINGLE_MAC;
             if (tv != NULL)
-                StatsCounterMaxUpdateI64(tv, ctr, 1);
+                StatsCounterMaxUpdateI64(&tv->stats, ctr, 1);
             break;
         case SINGLE_MAC:
             if (unlikely(memcmp(addr, ms->singles[side], sizeof(MacAddr)) != 0)) {
@@ -146,7 +146,7 @@ static inline void MacUpdateEntry(
                 memcpy(ms->buf[side] + 1, addr, sizeof(MacAddr));
                 ms->last[side] = 2;
                 if (tv != NULL)
-                    StatsCounterMaxUpdateI64(tv, ctr, 2);
+                    StatsCounterMaxUpdateI64(&tv->stats, ctr, 2);
                 ms->state[side] = MULTI_MAC;
             }
             break;
@@ -174,7 +174,7 @@ static inline void MacUpdateEntry(
             memcpy(ms->buf[side] + ms->last[side], addr, sizeof(MacAddr));
             ms->last[side]++;
             if (tv != NULL)
-                StatsCounterMaxUpdateI64(tv, ctr, (int64_t)ms->last[side]);
+                StatsCounterMaxUpdateI64(&tv->stats, ctr, (int64_t)ms->last[side]);
             break;
     }
 }

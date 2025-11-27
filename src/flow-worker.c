@@ -485,7 +485,7 @@ static inline void FlowWorkerProcessInjectedFlows(
     if (injected.len > 0) {
         StatsAddUI64(tv, fw->cnt.flows_injected, (uint64_t)injected.len);
         if (p->pkt_src == PKT_SRC_WIRE)
-            StatsCounterMaxUpdateI64(tv, fw->cnt.flows_injected_max, (int64_t)injected.len);
+            StatsCounterMaxUpdateI64(&tv->stats, fw->cnt.flows_injected_max, (int64_t)injected.len);
 
         /* move to local queue so we can process over the course of multiple packets */
         FlowQueuePrivateAppendPrivate(&fw->fls.work_queue, &injected);
