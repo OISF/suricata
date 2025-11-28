@@ -679,26 +679,27 @@ typedef struct FlowManagerThreadData_ {
 
 static void FlowCountersInit(ThreadVars *t, FlowCounters *fc)
 {
-    fc->flow_mgr_full_pass = StatsRegisterCounter("flow.mgr.full_hash_pass", t);
-    fc->flow_mgr_rows_sec = StatsRegisterCounter("flow.mgr.rows_per_sec", t);
+    fc->flow_mgr_full_pass = StatsRegisterCounter("flow.mgr.full_hash_pass", &t->stats);
+    fc->flow_mgr_rows_sec = StatsRegisterCounter("flow.mgr.rows_per_sec", &t->stats);
 
-    fc->flow_mgr_spare = StatsRegisterCounter("flow.spare", t);
-    fc->flow_emerg_mode_enter = StatsRegisterCounter("flow.emerg_mode_entered", t);
-    fc->flow_emerg_mode_over = StatsRegisterCounter("flow.emerg_mode_over", t);
+    fc->flow_mgr_spare = StatsRegisterCounter("flow.spare", &t->stats);
+    fc->flow_emerg_mode_enter = StatsRegisterCounter("flow.emerg_mode_entered", &t->stats);
+    fc->flow_emerg_mode_over = StatsRegisterCounter("flow.emerg_mode_over", &t->stats);
 
-    fc->flow_mgr_rows_maxlen = StatsRegisterMaxCounter("flow.mgr.rows_maxlen", t);
-    fc->flow_mgr_flows_checked = StatsRegisterCounter("flow.mgr.flows_checked", t);
-    fc->flow_mgr_flows_notimeout = StatsRegisterCounter("flow.mgr.flows_notimeout", t);
-    fc->flow_mgr_flows_timeout = StatsRegisterCounter("flow.mgr.flows_timeout", t);
-    fc->flow_mgr_flows_aside = StatsRegisterCounter("flow.mgr.flows_evicted", t);
-    fc->flow_mgr_flows_aside_needs_work = StatsRegisterCounter("flow.mgr.flows_evicted_needs_work", t);
+    fc->flow_mgr_rows_maxlen = StatsRegisterMaxCounter("flow.mgr.rows_maxlen", &t->stats);
+    fc->flow_mgr_flows_checked = StatsRegisterCounter("flow.mgr.flows_checked", &t->stats);
+    fc->flow_mgr_flows_notimeout = StatsRegisterCounter("flow.mgr.flows_notimeout", &t->stats);
+    fc->flow_mgr_flows_timeout = StatsRegisterCounter("flow.mgr.flows_timeout", &t->stats);
+    fc->flow_mgr_flows_aside = StatsRegisterCounter("flow.mgr.flows_evicted", &t->stats);
+    fc->flow_mgr_flows_aside_needs_work =
+            StatsRegisterCounter("flow.mgr.flows_evicted_needs_work", &t->stats);
 
-    fc->flow_bypassed_cnt_clo = StatsRegisterCounter("flow_bypassed.closed", t);
-    fc->flow_bypassed_pkts = StatsRegisterCounter("flow_bypassed.pkts", t);
-    fc->flow_bypassed_bytes = StatsRegisterCounter("flow_bypassed.bytes", t);
+    fc->flow_bypassed_cnt_clo = StatsRegisterCounter("flow_bypassed.closed", &t->stats);
+    fc->flow_bypassed_pkts = StatsRegisterCounter("flow_bypassed.pkts", &t->stats);
+    fc->flow_bypassed_bytes = StatsRegisterCounter("flow_bypassed.bytes", &t->stats);
 
-    fc->memcap_pressure = StatsRegisterCounter("memcap.pressure", t);
-    fc->memcap_pressure_max = StatsRegisterMaxCounter("memcap.pressure_max", t);
+    fc->memcap_pressure = StatsRegisterCounter("memcap.pressure", &t->stats);
+    fc->memcap_pressure_max = StatsRegisterMaxCounter("memcap.pressure_max", &t->stats);
 }
 
 static void FlowCountersUpdate(
@@ -753,8 +754,8 @@ static TmEcode FlowManagerThreadInit(ThreadVars *t, const void *initdata, void *
     *data = ftd;
 
     FlowCountersInit(t, &ftd->cnt);
-    ftd->counter_defrag_timeout = StatsRegisterCounter("defrag.mgr.tracker_timeout", t);
-    ftd->counter_defrag_memuse = StatsRegisterCounter("defrag.memuse", t);
+    ftd->counter_defrag_timeout = StatsRegisterCounter("defrag.mgr.tracker_timeout", &t->stats);
+    ftd->counter_defrag_memuse = StatsRegisterCounter("defrag.memuse", &t->stats);
 
     PacketPoolInit();
     return TM_ECODE_OK;
@@ -1060,12 +1061,12 @@ static TmEcode FlowRecyclerThreadInit(ThreadVars *t, const void *initdata, void 
     }
     SCLogDebug("output_thread_data %p", ftd->output_thread_data);
 
-    ftd->counter_flows = StatsRegisterCounter("flow.recycler.recycled", t);
-    ftd->counter_queue_avg = StatsRegisterAvgCounter("flow.recycler.queue_avg", t);
-    ftd->counter_queue_max = StatsRegisterMaxCounter("flow.recycler.queue_max", t);
+    ftd->counter_flows = StatsRegisterCounter("flow.recycler.recycled", &t->stats);
+    ftd->counter_queue_avg = StatsRegisterAvgCounter("flow.recycler.queue_avg", &t->stats);
+    ftd->counter_queue_max = StatsRegisterMaxCounter("flow.recycler.queue_max", &t->stats);
 
-    ftd->counter_flow_active = StatsRegisterCounter("flow.active", t);
-    ftd->counter_tcp_active_sessions = StatsRegisterCounter("tcp.active_sessions", t);
+    ftd->counter_flow_active = StatsRegisterCounter("flow.active", &t->stats);
+    ftd->counter_tcp_active_sessions = StatsRegisterCounter("tcp.active_sessions", &t->stats);
 
     FlowEndCountersRegister(t, &ftd->fec);
 

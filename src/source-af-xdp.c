@@ -660,15 +660,19 @@ static TmEcode ReceiveAFXDPThreadInit(ThreadVars *tv, const void *initdata, void
     ptv->napi_defer_hard_irqs = afxdpconfig->napi_defer_hard_irqs;
 
     /* Stats registration */
-    ptv->capture_afxdp_packets = StatsRegisterCounter("capture.afxdp_packets", ptv->tv);
-    ptv->capture_kernel_drops = StatsRegisterCounter("capture.kernel_drops", ptv->tv);
-    ptv->capture_afxdp_poll = StatsRegisterCounter("capture.afxdp.poll", ptv->tv);
-    ptv->capture_afxdp_poll_timeout = StatsRegisterCounter("capture.afxdp.poll_timeout", ptv->tv);
-    ptv->capture_afxdp_poll_failed = StatsRegisterCounter("capture.afxdp.poll_failed", ptv->tv);
-    ptv->capture_afxdp_empty_reads = StatsRegisterCounter("capture.afxdp.empty_reads", ptv->tv);
-    ptv->capture_afxdp_failed_reads = StatsRegisterCounter("capture.afxdp.failed_reads", ptv->tv);
+    ptv->capture_afxdp_packets = StatsRegisterCounter("capture.afxdp_packets", &ptv->tv->stats);
+    ptv->capture_kernel_drops = StatsRegisterCounter("capture.kernel_drops", &ptv->tv->stats);
+    ptv->capture_afxdp_poll = StatsRegisterCounter("capture.afxdp.poll", &ptv->tv->stats);
+    ptv->capture_afxdp_poll_timeout =
+            StatsRegisterCounter("capture.afxdp.poll_timeout", &ptv->tv->stats);
+    ptv->capture_afxdp_poll_failed =
+            StatsRegisterCounter("capture.afxdp.poll_failed", &ptv->tv->stats);
+    ptv->capture_afxdp_empty_reads =
+            StatsRegisterCounter("capture.afxdp.empty_reads", &ptv->tv->stats);
+    ptv->capture_afxdp_failed_reads =
+            StatsRegisterCounter("capture.afxdp.failed_reads", &ptv->tv->stats);
     ptv->capture_afxdp_acquire_pkt_failed =
-            StatsRegisterCounter("capture.afxdp.acquire_pkt_failed", ptv->tv);
+            StatsRegisterCounter("capture.afxdp.acquire_pkt_failed", &ptv->tv->stats);
 
     /* Reserve memory for umem  */
     if (AcquireBuffer(ptv) != TM_ECODE_OK) {

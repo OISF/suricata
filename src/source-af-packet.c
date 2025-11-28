@@ -2634,21 +2634,23 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, const void *initdata, void **data)
 #endif
 
 #ifdef PACKET_STATISTICS
-    ptv->capture_kernel_packets = StatsRegisterCounter("capture.kernel_packets",
-            ptv->tv);
-    ptv->capture_kernel_drops = StatsRegisterCounter("capture.kernel_drops",
-            ptv->tv);
-    ptv->capture_errors = StatsRegisterCounter("capture.errors",
-            ptv->tv);
+    ptv->capture_kernel_packets = StatsRegisterCounter("capture.kernel_packets", &ptv->tv->stats);
+    ptv->capture_kernel_drops = StatsRegisterCounter("capture.kernel_drops", &ptv->tv->stats);
+    ptv->capture_errors = StatsRegisterCounter("capture.errors", &ptv->tv->stats);
 
-    ptv->afpacket_spin = StatsRegisterAvgCounter("capture.afpacket.busy_loop_avg", ptv->tv);
+    ptv->afpacket_spin = StatsRegisterAvgCounter("capture.afpacket.busy_loop_avg", &ptv->tv->stats);
 
-    ptv->capture_afp_poll = StatsRegisterCounter("capture.afpacket.polls", ptv->tv);
-    ptv->capture_afp_poll_signal = StatsRegisterCounter("capture.afpacket.poll_signal", ptv->tv);
-    ptv->capture_afp_poll_timeout = StatsRegisterCounter("capture.afpacket.poll_timeout", ptv->tv);
-    ptv->capture_afp_poll_data = StatsRegisterCounter("capture.afpacket.poll_data", ptv->tv);
-    ptv->capture_afp_poll_err = StatsRegisterCounter("capture.afpacket.poll_errors", ptv->tv);
-    ptv->capture_afp_send_err = StatsRegisterCounter("capture.afpacket.send_errors", ptv->tv);
+    ptv->capture_afp_poll = StatsRegisterCounter("capture.afpacket.polls", &ptv->tv->stats);
+    ptv->capture_afp_poll_signal =
+            StatsRegisterCounter("capture.afpacket.poll_signal", &ptv->tv->stats);
+    ptv->capture_afp_poll_timeout =
+            StatsRegisterCounter("capture.afpacket.poll_timeout", &ptv->tv->stats);
+    ptv->capture_afp_poll_data =
+            StatsRegisterCounter("capture.afpacket.poll_data", &ptv->tv->stats);
+    ptv->capture_afp_poll_err =
+            StatsRegisterCounter("capture.afpacket.poll_errors", &ptv->tv->stats);
+    ptv->capture_afp_send_err =
+            StatsRegisterCounter("capture.afpacket.send_errors", &ptv->tv->stats);
 #endif
 
     ptv->copy_mode = afpconfig->copy_mode;

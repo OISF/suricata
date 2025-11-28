@@ -573,10 +573,10 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, const void *initdata, void **dat
         }
     }
 
-    ptv->capture_kernel_packets = StatsRegisterCounter("capture.kernel_packets", ptv->tv);
-    ptv->capture_kernel_drops = StatsRegisterCounter("capture.kernel_drops", ptv->tv);
+    ptv->capture_kernel_packets = StatsRegisterCounter("capture.kernel_packets", &ptv->tv->stats);
+    ptv->capture_kernel_drops = StatsRegisterCounter("capture.kernel_drops", &ptv->tv->stats);
 #ifdef HAVE_PF_RING_FLOW_OFFLOAD
-    ptv->capture_bypassed = StatsRegisterCounter("capture.bypassed", ptv->tv);
+    ptv->capture_bypassed = StatsRegisterCounter("capture.bypassed", &ptv->tv->stats);
 #endif
 
     /* If kernel is older than 3.0, VLAN is not stripped so we don't

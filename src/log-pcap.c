@@ -1053,8 +1053,8 @@ static TmEcode PcapLogDataInit(ThreadVars *t, const void *initdata, void **data)
     if (unlikely(td == NULL))
         return TM_ECODE_FAILED;
 
-    td->counter_written = StatsRegisterCounter("pcap_log.written", t);
-    td->counter_filtered_bpf = StatsRegisterCounter("pcap_log.filtered_bpf", t);
+    td->counter_written = StatsRegisterCounter("pcap_log.written", &t->stats);
+    td->counter_filtered_bpf = StatsRegisterCounter("pcap_log.filtered_bpf", &t->stats);
 
     if (pl->mode == LOGMODE_MULTI)
         td->pcap_log = PcapLogDataCopy(pl);
