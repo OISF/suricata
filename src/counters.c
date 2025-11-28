@@ -599,7 +599,6 @@ static void StatsReleaseCounter(StatsCounter *pc)
  * \brief Registers a counter.
  *
  * \param name    Name of the counter, to be registered
- * \param tm_name  Thread module to which this counter belongs
  * \param pctx     StatsPublicThreadContext for this tm-tv instance
  * \param type_q   Qualifier describing the type of counter to be registered
  *
@@ -607,9 +606,8 @@ static void StatsReleaseCounter(StatsCounter *pc)
  *         present counter on success
  * \retval 0 on failure
  */
-static uint16_t StatsRegisterQualifiedCounter(const char *name, const char *tm_name,
-                                              StatsPublicThreadContext *pctx,
-                                              int type_q, uint64_t (*Func)(void))
+static uint16_t StatsRegisterQualifiedCounter(
+        const char *name, StatsPublicThreadContext *pctx, int type_q, uint64_t (*Func)(void))
 {
     StatsCounter **head = &pctx->head;
     StatsCounter *temp = NULL;
@@ -1002,8 +1000,7 @@ void StatsSpawnThreads(void)
  */
 StatsCounterId StatsRegisterCounter(const char *name, struct ThreadVars_ *tv)
 {
-    uint16_t id = StatsRegisterQualifiedCounter(
-            name, tv->printable_name, &tv->stats.pub, STATS_TYPE_NORMAL, NULL);
+    uint16_t id = StatsRegisterQualifiedCounter(name, &tv->stats.pub, STATS_TYPE_NORMAL, NULL);
     StatsCounterId s = { .id = id };
     return s;
 }
@@ -1021,8 +1018,7 @@ StatsCounterId StatsRegisterCounter(const char *name, struct ThreadVars_ *tv)
  */
 StatsCounterAvgId StatsRegisterAvgCounter(const char *name, struct ThreadVars_ *tv)
 {
-    uint16_t id = StatsRegisterQualifiedCounter(
-            name, tv->printable_name, &tv->stats.pub, STATS_TYPE_AVERAGE, NULL);
+    uint16_t id = StatsRegisterQualifiedCounter(name, &tv->stats.pub, STATS_TYPE_AVERAGE, NULL);
     StatsCounterAvgId s = { .id = id };
     return s;
 }
@@ -1040,8 +1036,7 @@ StatsCounterAvgId StatsRegisterAvgCounter(const char *name, struct ThreadVars_ *
  */
 StatsCounterMaxId StatsRegisterMaxCounter(const char *name, struct ThreadVars_ *tv)
 {
-    uint16_t id = StatsRegisterQualifiedCounter(
-            name, tv->printable_name, &tv->stats.pub, STATS_TYPE_MAXIMUM, NULL);
+    uint16_t id = StatsRegisterQualifiedCounter(name, &tv->stats.pub, STATS_TYPE_MAXIMUM, NULL);
     StatsCounterMaxId s = { .id = id };
     return s;
 }
@@ -1064,10 +1059,8 @@ StatsCounterGlobalId StatsRegisterGlobalCounter(const char *name, uint64_t (*Fun
 #else
     BUG_ON(stats_ctx == NULL);
 #endif
-    uint16_t id = StatsRegisterQualifiedCounter(name, NULL,
-            &(stats_ctx->global_counter_ctx),
-            STATS_TYPE_FUNC,
-            Func);
+    uint16_t id = StatsRegisterQualifiedCounter(
+            name, &(stats_ctx->global_counter_ctx), STATS_TYPE_FUNC, Func);
     s.id = id;
     return s;
 }
@@ -1371,8 +1364,6 @@ void StatsThreadCleanup(StatsThreadContext *stats)
  * \brief Registers a normal, unqualified counter
  *
  * \param name   Name of the counter, to be registered
- * \param tm_name Name of the engine module under which the counter has to be
- *                registered
  * \param type    Datatype of this counter variable
  * \param pctx    StatsPublicThreadContext corresponding to the tm_name key under which the
  *                key has to be registered
@@ -1383,8 +1374,7 @@ void StatsThreadCleanup(StatsThreadContext *stats)
 static StatsCounterId RegisterCounter(
         const char *name, const char *tm_name, StatsPublicThreadContext *pctx)
 {
-    uint16_t id = StatsRegisterQualifiedCounter(name, tm_name, pctx,
-                                                STATS_TYPE_NORMAL, NULL);
+    uint16_t id = StatsRegisterQualifiedCounter(name, pctx, STATS_TYPE_NORMAL, NULL);
     StatsCounterId s = { .id = id };
     return s;
 }
