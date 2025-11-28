@@ -226,8 +226,6 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
 
         TmThreadSetCPU(tv_detect_ncpu, WORKER_CPU_SET);
 
-        TmThreadSetGroupName(tv_detect_ncpu, "Detect");
-
         tm_module = TmModuleGetByName("RespondReject");
         if (tm_module == NULL) {
             FatalError("TmModuleGetByName RespondReject failed");
@@ -458,8 +456,6 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
         TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, NULL);
 
         TmThreadSetCPU(tv_detect_ncpu, WORKER_CPU_SET);
-
-        TmThreadSetGroupName(tv_detect_ncpu, "Detect");
 
         if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {
             FatalError("TmThreadSpawn failed");

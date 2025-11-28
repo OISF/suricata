@@ -209,8 +209,6 @@ int RunModeFilePcapAutoFp(void)
         }
         TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, NULL);
 
-        TmThreadSetGroupName(tv_detect_ncpu, "Detect");
-
         TmThreadSetCPU(tv_detect_ncpu, WORKER_CPU_SET);
 
         if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {

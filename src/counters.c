@@ -1002,9 +1002,8 @@ void StatsSpawnThreads(void)
  */
 StatsCounterId StatsRegisterCounter(const char *name, struct ThreadVars_ *tv)
 {
-    uint16_t id = StatsRegisterQualifiedCounter(name,
-            (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->printable_name,
-            &tv->stats.pub, STATS_TYPE_NORMAL, NULL);
+    uint16_t id = StatsRegisterQualifiedCounter(
+            name, tv->printable_name, &tv->stats.pub, STATS_TYPE_NORMAL, NULL);
     StatsCounterId s = { .id = id };
     return s;
 }
@@ -1022,9 +1021,8 @@ StatsCounterId StatsRegisterCounter(const char *name, struct ThreadVars_ *tv)
  */
 StatsCounterAvgId StatsRegisterAvgCounter(const char *name, struct ThreadVars_ *tv)
 {
-    uint16_t id = StatsRegisterQualifiedCounter(name,
-            (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->printable_name,
-            &tv->stats.pub, STATS_TYPE_AVERAGE, NULL);
+    uint16_t id = StatsRegisterQualifiedCounter(
+            name, tv->printable_name, &tv->stats.pub, STATS_TYPE_AVERAGE, NULL);
     StatsCounterAvgId s = { .id = id };
     return s;
 }
@@ -1042,9 +1040,8 @@ StatsCounterAvgId StatsRegisterAvgCounter(const char *name, struct ThreadVars_ *
  */
 StatsCounterMaxId StatsRegisterMaxCounter(const char *name, struct ThreadVars_ *tv)
 {
-    uint16_t id = StatsRegisterQualifiedCounter(name,
-            (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->printable_name,
-            &tv->stats.pub, STATS_TYPE_MAXIMUM, NULL);
+    uint16_t id = StatsRegisterQualifiedCounter(
+            name, tv->printable_name, &tv->stats.pub, STATS_TYPE_MAXIMUM, NULL);
     StatsCounterMaxId s = { .id = id };
     return s;
 }
