@@ -550,10 +550,8 @@ static TmEcode ReceiveNetmapThreadInit(ThreadVars *tv, const void *initdata, voi
     }
 
     /* basic counters */
-    ntv->capture_kernel_packets = StatsRegisterCounter("capture.kernel_packets",
-            ntv->tv);
-    ntv->capture_kernel_drops = StatsRegisterCounter("capture.kernel_drops",
-            ntv->tv);
+    ntv->capture_kernel_packets = StatsRegisterCounter("capture.kernel_packets", &ntv->tv->stats);
+    ntv->capture_kernel_drops = StatsRegisterCounter("capture.kernel_drops", &ntv->tv->stats);
 
     if (aconf->in.bpf_filter) {
         SCLogConfig("%s: using BPF '%s'", ntv->ifsrc->ifname, aconf->in.bpf_filter);

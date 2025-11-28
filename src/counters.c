@@ -998,9 +998,9 @@ void StatsSpawnThreads(void)
  * \retval id Counter id for the newly registered counter, or the already
  *            present counter
  */
-StatsCounterId StatsRegisterCounter(const char *name, struct ThreadVars_ *tv)
+StatsCounterId StatsRegisterCounter(const char *name, StatsThreadContext *stats)
 {
-    uint16_t id = StatsRegisterQualifiedCounter(name, &tv->stats.pub, STATS_TYPE_NORMAL, NULL);
+    uint16_t id = StatsRegisterQualifiedCounter(name, &stats->pub, STATS_TYPE_NORMAL, NULL);
     StatsCounterId s = { .id = id };
     return s;
 }
@@ -1016,9 +1016,9 @@ StatsCounterId StatsRegisterCounter(const char *name, struct ThreadVars_ *tv)
  * \retval id Counter id for the newly registered counter, or the already
  *            present counter
  */
-StatsCounterAvgId StatsRegisterAvgCounter(const char *name, struct ThreadVars_ *tv)
+StatsCounterAvgId StatsRegisterAvgCounter(const char *name, StatsThreadContext *stats)
 {
-    uint16_t id = StatsRegisterQualifiedCounter(name, &tv->stats.pub, STATS_TYPE_AVERAGE, NULL);
+    uint16_t id = StatsRegisterQualifiedCounter(name, &stats->pub, STATS_TYPE_AVERAGE, NULL);
     StatsCounterAvgId s = { .id = id };
     return s;
 }
@@ -1034,9 +1034,9 @@ StatsCounterAvgId StatsRegisterAvgCounter(const char *name, struct ThreadVars_ *
  * \retval the counter id for the newly registered counter, or the already
  *         present counter
  */
-StatsCounterMaxId StatsRegisterMaxCounter(const char *name, struct ThreadVars_ *tv)
+StatsCounterMaxId StatsRegisterMaxCounter(const char *name, StatsThreadContext *stats)
 {
-    uint16_t id = StatsRegisterQualifiedCounter(name, &tv->stats.pub, STATS_TYPE_MAXIMUM, NULL);
+    uint16_t id = StatsRegisterQualifiedCounter(name, &stats->pub, STATS_TYPE_MAXIMUM, NULL);
     StatsCounterMaxId s = { .id = id };
     return s;
 }

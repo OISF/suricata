@@ -6111,18 +6111,18 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     *data = (void *)stt;
 
-    stt->counter_tcp_active_sessions = StatsRegisterCounter("tcp.active_sessions", tv);
-    stt->counter_tcp_sessions = StatsRegisterCounter("tcp.sessions", tv);
-    stt->counter_tcp_ssn_memcap = StatsRegisterCounter("tcp.ssn_memcap_drop", tv);
-    stt->counter_tcp_ssn_from_cache = StatsRegisterCounter("tcp.ssn_from_cache", tv);
-    stt->counter_tcp_ssn_from_pool = StatsRegisterCounter("tcp.ssn_from_pool", tv);
+    stt->counter_tcp_active_sessions = StatsRegisterCounter("tcp.active_sessions", &tv->stats);
+    stt->counter_tcp_sessions = StatsRegisterCounter("tcp.sessions", &tv->stats);
+    stt->counter_tcp_ssn_memcap = StatsRegisterCounter("tcp.ssn_memcap_drop", &tv->stats);
+    stt->counter_tcp_ssn_from_cache = StatsRegisterCounter("tcp.ssn_from_cache", &tv->stats);
+    stt->counter_tcp_ssn_from_pool = StatsRegisterCounter("tcp.ssn_from_pool", &tv->stats);
     ExceptionPolicySetStatsCounters(tv, &stt->counter_tcp_ssn_memcap_eps, &stream_memcap_eps_stats,
             stream_config.ssn_memcap_policy, "exception_policy.tcp.ssn_memcap.",
             IsStreamTcpSessionMemcapExceptionPolicyStatsValid);
 
-    stt->counter_tcp_pseudo = StatsRegisterCounter("tcp.pseudo", tv);
-    stt->counter_tcp_invalid_checksum = StatsRegisterCounter("tcp.invalid_checksum", tv);
-    stt->counter_tcp_midstream_pickups = StatsRegisterCounter("tcp.midstream_pickups", tv);
+    stt->counter_tcp_pseudo = StatsRegisterCounter("tcp.pseudo", &tv->stats);
+    stt->counter_tcp_invalid_checksum = StatsRegisterCounter("tcp.invalid_checksum", &tv->stats);
+    stt->counter_tcp_midstream_pickups = StatsRegisterCounter("tcp.midstream_pickups", &tv->stats);
     if (stream_config.midstream) {
         ExceptionPolicySetStatsCounters(tv, &stt->counter_tcp_midstream_eps,
                 &stream_midstream_enabled_eps_stats, stream_config.midstream_policy,
@@ -6133,31 +6133,37 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
                 "exception_policy.tcp.midstream.", IsMidstreamExceptionPolicyStatsValid);
     }
 
-    stt->counter_tcp_wrong_thread = StatsRegisterCounter("tcp.pkt_on_wrong_thread", tv);
-    stt->counter_tcp_ack_unseen_data = StatsRegisterCounter("tcp.ack_unseen_data", tv);
+    stt->counter_tcp_wrong_thread = StatsRegisterCounter("tcp.pkt_on_wrong_thread", &tv->stats);
+    stt->counter_tcp_ack_unseen_data = StatsRegisterCounter("tcp.ack_unseen_data", &tv->stats);
 
     /* init reassembly ctx */
     stt->ra_ctx = StreamTcpReassembleInitThreadCtx(tv);
     if (stt->ra_ctx == NULL)
         SCReturnInt(TM_ECODE_FAILED);
 
-    stt->ra_ctx->counter_tcp_segment_memcap = StatsRegisterCounter("tcp.segment_memcap_drop", tv);
+    stt->ra_ctx->counter_tcp_segment_memcap =
+            StatsRegisterCounter("tcp.segment_memcap_drop", &tv->stats);
 
     ExceptionPolicySetStatsCounters(tv, &stt->ra_ctx->counter_tcp_reas_eps,
             &stream_reassembly_memcap_eps_stats, stream_config.reassembly_memcap_policy,
             "exception_policy.tcp.reassembly.", IsReassemblyMemcapExceptionPolicyStatsValid);
 
     stt->ra_ctx->counter_tcp_segment_from_cache =
-            StatsRegisterCounter("tcp.segment_from_cache", tv);
-    stt->ra_ctx->counter_tcp_segment_from_pool = StatsRegisterCounter("tcp.segment_from_pool", tv);
-    stt->ra_ctx->counter_tcp_stream_depth = StatsRegisterCounter("tcp.stream_depth_reached", tv);
-    stt->ra_ctx->counter_tcp_reass_gap = StatsRegisterCounter("tcp.reassembly_gap", tv);
-    stt->ra_ctx->counter_tcp_reass_overlap = StatsRegisterCounter("tcp.overlap", tv);
-    stt->ra_ctx->counter_tcp_reass_overlap_diff_data = StatsRegisterCounter("tcp.overlap_diff_data", tv);
+            StatsRegisterCounter("tcp.segment_from_cache", &tv->stats);
+    stt->ra_ctx->counter_tcp_segment_from_pool =
+            StatsRegisterCounter("tcp.segment_from_pool", &tv->stats);
+    stt->ra_ctx->counter_tcp_stream_depth =
+            StatsRegisterCounter("tcp.stream_depth_reached", &tv->stats);
+    stt->ra_ctx->counter_tcp_reass_gap = StatsRegisterCounter("tcp.reassembly_gap", &tv->stats);
+    stt->ra_ctx->counter_tcp_reass_overlap = StatsRegisterCounter("tcp.overlap", &tv->stats);
+    stt->ra_ctx->counter_tcp_reass_overlap_diff_data =
+            StatsRegisterCounter("tcp.overlap_diff_data", &tv->stats);
 
-    stt->ra_ctx->counter_tcp_reass_data_normal_fail = StatsRegisterCounter("tcp.insert_data_normal_fail", tv);
-    stt->ra_ctx->counter_tcp_reass_data_overlap_fail = StatsRegisterCounter("tcp.insert_data_overlap_fail", tv);
-    stt->ra_ctx->counter_tcp_urgent_oob = StatsRegisterCounter("tcp.urgent_oob_data", tv);
+    stt->ra_ctx->counter_tcp_reass_data_normal_fail =
+            StatsRegisterCounter("tcp.insert_data_normal_fail", &tv->stats);
+    stt->ra_ctx->counter_tcp_reass_data_overlap_fail =
+            StatsRegisterCounter("tcp.insert_data_overlap_fail", &tv->stats);
+    stt->ra_ctx->counter_tcp_urgent_oob = StatsRegisterCounter("tcp.urgent_oob_data", &tv->stats);
 
     SCLogDebug("StreamTcp thread specific ctx online at %p, reassembly ctx %p",
                 stt, stt->ra_ctx);

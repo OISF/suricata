@@ -253,16 +253,18 @@ static TmEcode FlowWorkerThreadInit(ThreadVars *tv, const void *initdata, void *
     SC_ATOMIC_INITPTR(fw->detect_thread);
     SC_ATOMIC_SET(fw->detect_thread, NULL);
 
-    fw->local_bypass_pkts = StatsRegisterCounter("flow_bypassed.local_pkts", tv);
-    fw->local_bypass_bytes = StatsRegisterCounter("flow_bypassed.local_bytes", tv);
-    fw->both_bypass_pkts = StatsRegisterCounter("flow_bypassed.local_capture_pkts", tv);
-    fw->both_bypass_bytes = StatsRegisterCounter("flow_bypassed.local_capture_bytes", tv);
+    fw->local_bypass_pkts = StatsRegisterCounter("flow_bypassed.local_pkts", &tv->stats);
+    fw->local_bypass_bytes = StatsRegisterCounter("flow_bypassed.local_bytes", &tv->stats);
+    fw->both_bypass_pkts = StatsRegisterCounter("flow_bypassed.local_capture_pkts", &tv->stats);
+    fw->both_bypass_bytes = StatsRegisterCounter("flow_bypassed.local_capture_bytes", &tv->stats);
 
-    fw->cnt.flows_aside_needs_work = StatsRegisterCounter("flow.wrk.flows_evicted_needs_work", tv);
-    fw->cnt.flows_aside_pkt_inject = StatsRegisterCounter("flow.wrk.flows_evicted_pkt_inject", tv);
-    fw->cnt.flows_removed = StatsRegisterCounter("flow.wrk.flows_evicted", tv);
-    fw->cnt.flows_injected = StatsRegisterCounter("flow.wrk.flows_injected", tv);
-    fw->cnt.flows_injected_max = StatsRegisterMaxCounter("flow.wrk.flows_injected_max", tv);
+    fw->cnt.flows_aside_needs_work =
+            StatsRegisterCounter("flow.wrk.flows_evicted_needs_work", &tv->stats);
+    fw->cnt.flows_aside_pkt_inject =
+            StatsRegisterCounter("flow.wrk.flows_evicted_pkt_inject", &tv->stats);
+    fw->cnt.flows_removed = StatsRegisterCounter("flow.wrk.flows_evicted", &tv->stats);
+    fw->cnt.flows_injected = StatsRegisterCounter("flow.wrk.flows_injected", &tv->stats);
+    fw->cnt.flows_injected_max = StatsRegisterMaxCounter("flow.wrk.flows_injected_max", &tv->stats);
 
     fw->fls.dtv = fw->dtv = DecodeThreadVarsAlloc(tv);
     if (fw->dtv == NULL) {

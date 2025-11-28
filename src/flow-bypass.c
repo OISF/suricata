@@ -139,9 +139,9 @@ static TmEcode BypassedFlowManagerThreadInit(ThreadVars *t, const void *initdata
 
     *data = ftd;
 
-    ftd->flow_bypassed_cnt_clo = StatsRegisterCounter("flow_bypassed.closed", t);
-    ftd->flow_bypassed_pkts = StatsRegisterCounter("flow_bypassed.pkts", t);
-    ftd->flow_bypassed_bytes = StatsRegisterCounter("flow_bypassed.bytes", t);
+    ftd->flow_bypassed_cnt_clo = StatsRegisterCounter("flow_bypassed.closed", &t->stats);
+    ftd->flow_bypassed_pkts = StatsRegisterCounter("flow_bypassed.pkts", &t->stats);
+    ftd->flow_bypassed_bytes = StatsRegisterCounter("flow_bypassed.bytes", &t->stats);
 
     return TM_ECODE_OK;
 }

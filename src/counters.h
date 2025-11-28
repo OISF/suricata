@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2015 Open Information Security Foundation
+/* Copyright (C) 2007-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -26,9 +26,6 @@
 #define SURICATA_COUNTERS_H
 
 #include "threads.h"
-
-/* forward declaration of the ThreadVars structure */
-struct ThreadVars_;
 
 typedef struct StatsCounterId {
     uint16_t id;
@@ -133,9 +130,9 @@ bool StatsEnabled(void);
 void StatsReleaseResources(void);
 
 /* counter registration functions */
-StatsCounterId StatsRegisterCounter(const char *, struct ThreadVars_ *);
-StatsCounterAvgId StatsRegisterAvgCounter(const char *, struct ThreadVars_ *);
-StatsCounterMaxId StatsRegisterMaxCounter(const char *, struct ThreadVars_ *);
+StatsCounterId StatsRegisterCounter(const char *, StatsThreadContext *);
+StatsCounterAvgId StatsRegisterAvgCounter(const char *, StatsThreadContext *);
+StatsCounterMaxId StatsRegisterMaxCounter(const char *, StatsThreadContext *);
 StatsCounterGlobalId StatsRegisterGlobalCounter(const char *cname, uint64_t (*Func)(void));
 
 /* functions used to update local counter values */

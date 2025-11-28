@@ -294,12 +294,12 @@ static TmEcode OutputFilestoreLogThreadInit(ThreadVars *t, const void *initdata,
     OutputFilestoreCtx *ctx = ((OutputCtx *)initdata)->data;
     aft->ctx = ctx;
 
-    aft->counter_max_hits = StatsRegisterCounter("file_store.open_files_max_hit", t);
+    aft->counter_max_hits = StatsRegisterCounter("file_store.open_files_max_hit", &t->stats);
 
     /* File system type errors (open, write, rename) will only be
      * logged once. But this stat will be incremented for every
      * occurrence. */
-    aft->fs_error_counter = StatsRegisterCounter("file_store.fs_errors", t);
+    aft->fs_error_counter = StatsRegisterCounter("file_store.fs_errors", &t->stats);
 
     *data = (void *)aft;
     return TM_ECODE_OK;

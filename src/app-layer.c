@@ -1312,7 +1312,7 @@ void AppLayerRegisterThreadCounters(ThreadVars *tv)
         for (enum ExceptionPolicy i = EXCEPTION_POLICY_NOT_SET + 1; i < EXCEPTION_POLICY_MAX; i++) {
             if (IsAppLayerErrorExceptionPolicyStatsValid(i)) {
                 eps_error_summary.eps_id[i] =
-                        StatsRegisterCounter(app_layer_error_eps_stats.eps_name[i], tv);
+                        StatsRegisterCounter(app_layer_error_eps_stats.eps_name[i], &tv->stats);
             }
         }
     }
@@ -1323,25 +1323,25 @@ void AppLayerRegisterThreadCounters(ThreadVars *tv)
 
         for (AppProto alproto = 0; alproto < g_alproto_max; alproto++) {
             if (alprotos[alproto] == 1) {
-                applayer_counters[alproto][ipproto_map].counter_id =
-                        StatsRegisterCounter(applayer_counter_names[alproto][ipproto_map].name, tv);
+                applayer_counters[alproto][ipproto_map].counter_id = StatsRegisterCounter(
+                        applayer_counter_names[alproto][ipproto_map].name, &tv->stats);
 
                 if (AppLayerParserProtoIsRegistered(ipproto, alproto) != 1)
                     continue;
 
                 applayer_counters[alproto][ipproto_map].counter_tx_id = StatsRegisterCounter(
-                        applayer_counter_names[alproto][ipproto_map].tx_name, tv);
+                        applayer_counter_names[alproto][ipproto_map].tx_name, &tv->stats);
 
                 if (ipproto == IPPROTO_TCP) {
                     applayer_counters[alproto][ipproto_map].gap_error_id = StatsRegisterCounter(
-                            applayer_counter_names[alproto][ipproto_map].gap_error, tv);
+                            applayer_counter_names[alproto][ipproto_map].gap_error, &tv->stats);
                 }
                 applayer_counters[alproto][ipproto_map].alloc_error_id = StatsRegisterCounter(
-                        applayer_counter_names[alproto][ipproto_map].alloc_error, tv);
+                        applayer_counter_names[alproto][ipproto_map].alloc_error, &tv->stats);
                 applayer_counters[alproto][ipproto_map].parser_error_id = StatsRegisterCounter(
-                        applayer_counter_names[alproto][ipproto_map].parser_error, tv);
+                        applayer_counter_names[alproto][ipproto_map].parser_error, &tv->stats);
                 applayer_counters[alproto][ipproto_map].internal_error_id = StatsRegisterCounter(
-                        applayer_counter_names[alproto][ipproto_map].internal_error, tv);
+                        applayer_counter_names[alproto][ipproto_map].internal_error, &tv->stats);
                 /* We don't log stats counters if exception policy is `ignore`/`not set` */
                 if (g_stats_eps_per_app_proto_errors &&
                         g_applayerparser_error_policy != EXCEPTION_POLICY_NOT_SET) {
@@ -1350,17 +1350,18 @@ void AppLayerRegisterThreadCounters(ThreadVars *tv)
                         if (IsAppLayerErrorExceptionPolicyStatsValid(i)) {
                             applayer_counters[alproto][ipproto_map]
                                     .eps_error.eps_id[i] = StatsRegisterCounter(
-                                    applayer_counter_names[alproto][ipproto_map].eps_name[i], tv);
+                                    applayer_counter_names[alproto][ipproto_map].eps_name[i],
+                                    &tv->stats);
                         }
                     }
                 }
             } else if (alproto == ALPROTO_FAILED) {
-                applayer_counters[alproto][ipproto_map].counter_id =
-                        StatsRegisterCounter(applayer_counter_names[alproto][ipproto_map].name, tv);
+                applayer_counters[alproto][ipproto_map].counter_id = StatsRegisterCounter(
+                        applayer_counter_names[alproto][ipproto_map].name, &tv->stats);
 
                 if (ipproto == IPPROTO_TCP) {
                     applayer_counters[alproto][ipproto_map].gap_error_id = StatsRegisterCounter(
-                            applayer_counter_names[alproto][ipproto_map].gap_error, tv);
+                            applayer_counter_names[alproto][ipproto_map].gap_error, &tv->stats);
                 }
             }
         }

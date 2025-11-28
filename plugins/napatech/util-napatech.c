@@ -585,8 +585,10 @@ static void *NapatechStatsLoop(void *arg)
 #ifdef NAPATECH_ENABLE_BYPASS
     FlowStatsCounters flow_counters;
     if (bypass_supported) {
-        flow_counters.active_bypass_flows = StatsRegisterCounter("napa_bypass.active_flows", tv);
-        flow_counters.total_bypass_flows = StatsRegisterCounter("napa_bypass.total_flows", tv);
+        flow_counters.active_bypass_flows =
+                StatsRegisterCounter("napa_bypass.active_flows", &tv->stats);
+        flow_counters.total_bypass_flows =
+                StatsRegisterCounter("napa_bypass.total_flows", &tv->stats);
     }
 #endif /* NAPATECH_ENABLE_BYPASS */
 

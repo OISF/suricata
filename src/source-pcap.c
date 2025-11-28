@@ -533,12 +533,9 @@ static TmEcode ReceivePcapThreadInit(ThreadVars *tv, const void *initdata, void 
 
     pcapconfig->DerefFunc(pcapconfig);
 
-    ptv->capture_kernel_packets = StatsRegisterCounter("capture.kernel_packets",
-            ptv->tv);
-    ptv->capture_kernel_drops = StatsRegisterCounter("capture.kernel_drops",
-            ptv->tv);
-    ptv->capture_kernel_ifdrops = StatsRegisterCounter("capture.kernel_ifdrops",
-            ptv->tv);
+    ptv->capture_kernel_packets = StatsRegisterCounter("capture.kernel_packets", &ptv->tv->stats);
+    ptv->capture_kernel_drops = StatsRegisterCounter("capture.kernel_drops", &ptv->tv->stats);
+    ptv->capture_kernel_ifdrops = StatsRegisterCounter("capture.kernel_ifdrops", &ptv->tv->stats);
 
     *data = (void *)ptv;
     SCReturnInt(TM_ECODE_OK);

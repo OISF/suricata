@@ -3393,31 +3393,34 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data)
     }
 
     /** alert counter setup */
-    det_ctx->counter_alerts = StatsRegisterCounter("detect.alert", tv);
-    det_ctx->counter_alerts_overflow = StatsRegisterCounter("detect.alert_queue_overflow", tv);
-    det_ctx->counter_alerts_suppressed = StatsRegisterCounter("detect.alerts_suppressed", tv);
+    det_ctx->counter_alerts = StatsRegisterCounter("detect.alert", &tv->stats);
+    det_ctx->counter_alerts_overflow =
+            StatsRegisterCounter("detect.alert_queue_overflow", &tv->stats);
+    det_ctx->counter_alerts_suppressed =
+            StatsRegisterCounter("detect.alerts_suppressed", &tv->stats);
 
     /* Register counter for Lua rule errors. */
-    det_ctx->lua_rule_errors = StatsRegisterCounter("detect.lua.errors", tv);
+    det_ctx->lua_rule_errors = StatsRegisterCounter("detect.lua.errors", &tv->stats);
 
     /* Register a counter for Lua blocked function attempts. */
     det_ctx->lua_blocked_function_errors =
-            StatsRegisterCounter("detect.lua.blocked_function_errors", tv);
+            StatsRegisterCounter("detect.lua.blocked_function_errors", &tv->stats);
 
     /* Register a counter for Lua instruction limit errors. */
     det_ctx->lua_instruction_limit_errors =
-            StatsRegisterCounter("detect.lua.instruction_limit_errors", tv);
+            StatsRegisterCounter("detect.lua.instruction_limit_errors", &tv->stats);
 
     /* Register a counter for Lua memory limit errors. */
-    det_ctx->lua_memory_limit_errors = StatsRegisterCounter("detect.lua.memory_limit_errors", tv);
+    det_ctx->lua_memory_limit_errors =
+            StatsRegisterCounter("detect.lua.memory_limit_errors", &tv->stats);
 
     det_ctx->json_content = NULL;
     det_ctx->json_content_capacity = 0;
     det_ctx->json_content_len = 0;
 
 #ifdef PROFILING
-    det_ctx->counter_mpm_list = StatsRegisterAvgCounter("detect.mpm_list", tv);
-    det_ctx->counter_match_list = StatsRegisterAvgCounter("detect.match_list", tv);
+    det_ctx->counter_mpm_list = StatsRegisterAvgCounter("detect.mpm_list", &tv->stats);
+    det_ctx->counter_match_list = StatsRegisterAvgCounter("detect.match_list", &tv->stats);
 #endif
 
     if (DetectEngineMultiTenantEnabled()) {
@@ -3473,12 +3476,14 @@ DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
     }
 
     /** alert counter setup */
-    det_ctx->counter_alerts = StatsRegisterCounter("detect.alert", tv);
-    det_ctx->counter_alerts_overflow = StatsRegisterCounter("detect.alert_queue_overflow", tv);
-    det_ctx->counter_alerts_suppressed = StatsRegisterCounter("detect.alerts_suppressed", tv);
+    det_ctx->counter_alerts = StatsRegisterCounter("detect.alert", &tv->stats);
+    det_ctx->counter_alerts_overflow =
+            StatsRegisterCounter("detect.alert_queue_overflow", &tv->stats);
+    det_ctx->counter_alerts_suppressed =
+            StatsRegisterCounter("detect.alerts_suppressed", &tv->stats);
 #ifdef PROFILING
-    det_ctx->counter_mpm_list = StatsRegisterAvgCounter("detect.mpm_list", tv);
-    det_ctx->counter_match_list = StatsRegisterAvgCounter("detect.match_list", tv);
+    det_ctx->counter_mpm_list = StatsRegisterAvgCounter("detect.mpm_list", &tv->stats);
+    det_ctx->counter_match_list = StatsRegisterAvgCounter("detect.match_list", &tv->stats);
 #endif
 
     if (mt && DetectEngineMultiTenantEnabledWithLock()) {

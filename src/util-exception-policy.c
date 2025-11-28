@@ -384,7 +384,7 @@ void ExceptionPolicySetStatsCounters(ThreadVars *tv, ExceptionPolicyCounters *co
             if (isExceptionPolicyValid(i)) {
                 snprintf(setting->eps_name[i], sizeof(setting->eps_name[i]), "%s%s", default_str,
                         ExceptionPolicyEnumToString(i, true));
-                counter->eps_id[i] = StatsRegisterCounter(setting->eps_name[i], tv);
+                counter->eps_id[i] = StatsRegisterCounter(setting->eps_name[i], &tv->stats);
             }
         }
     }

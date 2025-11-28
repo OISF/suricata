@@ -632,90 +632,100 @@ static bool IsFlowMemcapExceptionPolicyStatsValid(enum ExceptionPolicy policy)
 void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
 {
     /* register counters */
-    dtv->counter_pkts = StatsRegisterCounter("decoder.pkts", tv);
-    dtv->counter_bytes = StatsRegisterCounter("decoder.bytes", tv);
-    dtv->counter_invalid = StatsRegisterCounter("decoder.invalid", tv);
-    dtv->counter_ipv4 = StatsRegisterCounter("decoder.ipv4", tv);
-    dtv->counter_ipv6 = StatsRegisterCounter("decoder.ipv6", tv);
-    dtv->counter_eth = StatsRegisterCounter("decoder.ethernet", tv);
-    dtv->counter_arp = StatsRegisterCounter("decoder.arp", tv);
-    dtv->counter_ethertype_unknown = StatsRegisterCounter("decoder.unknown_ethertype", tv);
-    dtv->counter_chdlc = StatsRegisterCounter("decoder.chdlc", tv);
-    dtv->counter_raw = StatsRegisterCounter("decoder.raw", tv);
-    dtv->counter_null = StatsRegisterCounter("decoder.null", tv);
-    dtv->counter_sll = StatsRegisterCounter("decoder.sll", tv);
-    dtv->counter_sll2 = StatsRegisterCounter("decoder.sll2", tv);
-    dtv->counter_tcp = StatsRegisterCounter("decoder.tcp", tv);
+    dtv->counter_pkts = StatsRegisterCounter("decoder.pkts", &tv->stats);
+    dtv->counter_bytes = StatsRegisterCounter("decoder.bytes", &tv->stats);
+    dtv->counter_invalid = StatsRegisterCounter("decoder.invalid", &tv->stats);
+    dtv->counter_ipv4 = StatsRegisterCounter("decoder.ipv4", &tv->stats);
+    dtv->counter_ipv6 = StatsRegisterCounter("decoder.ipv6", &tv->stats);
+    dtv->counter_eth = StatsRegisterCounter("decoder.ethernet", &tv->stats);
+    dtv->counter_arp = StatsRegisterCounter("decoder.arp", &tv->stats);
+    dtv->counter_ethertype_unknown = StatsRegisterCounter("decoder.unknown_ethertype", &tv->stats);
+    dtv->counter_chdlc = StatsRegisterCounter("decoder.chdlc", &tv->stats);
+    dtv->counter_raw = StatsRegisterCounter("decoder.raw", &tv->stats);
+    dtv->counter_null = StatsRegisterCounter("decoder.null", &tv->stats);
+    dtv->counter_sll = StatsRegisterCounter("decoder.sll", &tv->stats);
+    dtv->counter_sll2 = StatsRegisterCounter("decoder.sll2", &tv->stats);
+    dtv->counter_tcp = StatsRegisterCounter("decoder.tcp", &tv->stats);
 
-    dtv->counter_tcp_syn = StatsRegisterCounter("tcp.syn", tv);
-    dtv->counter_tcp_synack = StatsRegisterCounter("tcp.synack", tv);
-    dtv->counter_tcp_rst = StatsRegisterCounter("tcp.rst", tv);
-    dtv->counter_tcp_urg = StatsRegisterCounter("tcp.urg", tv);
+    dtv->counter_tcp_syn = StatsRegisterCounter("tcp.syn", &tv->stats);
+    dtv->counter_tcp_synack = StatsRegisterCounter("tcp.synack", &tv->stats);
+    dtv->counter_tcp_rst = StatsRegisterCounter("tcp.rst", &tv->stats);
+    dtv->counter_tcp_urg = StatsRegisterCounter("tcp.urg", &tv->stats);
 
-    dtv->counter_udp = StatsRegisterCounter("decoder.udp", tv);
-    dtv->counter_sctp = StatsRegisterCounter("decoder.sctp", tv);
-    dtv->counter_esp = StatsRegisterCounter("decoder.esp", tv);
-    dtv->counter_icmpv4 = StatsRegisterCounter("decoder.icmpv4", tv);
-    dtv->counter_icmpv6 = StatsRegisterCounter("decoder.icmpv6", tv);
-    dtv->counter_ppp = StatsRegisterCounter("decoder.ppp", tv);
-    dtv->counter_pppoe = StatsRegisterCounter("decoder.pppoe", tv);
-    dtv->counter_geneve = StatsRegisterCounter("decoder.geneve", tv);
-    dtv->counter_gre = StatsRegisterCounter("decoder.gre", tv);
-    dtv->counter_vlan = StatsRegisterCounter("decoder.vlan", tv);
-    dtv->counter_vlan_qinq = StatsRegisterCounter("decoder.vlan_qinq", tv);
-    dtv->counter_vlan_qinqinq = StatsRegisterCounter("decoder.vlan_qinqinq", tv);
-    dtv->counter_vxlan = StatsRegisterCounter("decoder.vxlan", tv);
-    dtv->counter_vntag = StatsRegisterCounter("decoder.vntag", tv);
-    dtv->counter_etag = StatsRegisterCounter("decoder.etag", tv);
-    dtv->counter_ieee8021ah = StatsRegisterCounter("decoder.ieee8021ah", tv);
-    dtv->counter_teredo = StatsRegisterCounter("decoder.teredo", tv);
-    dtv->counter_ipv4inipv4 = StatsRegisterCounter("decoder.ipv4_in_ipv4", tv);
-    dtv->counter_ipv6inipv4 = StatsRegisterCounter("decoder.ipv6_in_ipv4", tv);
-    dtv->counter_ipv4inipv6 = StatsRegisterCounter("decoder.ipv4_in_ipv6", tv);
-    dtv->counter_ipv6inipv6 = StatsRegisterCounter("decoder.ipv6_in_ipv6", tv);
-    dtv->counter_mpls = StatsRegisterCounter("decoder.mpls", tv);
-    dtv->counter_avg_pkt_size = StatsRegisterAvgCounter("decoder.avg_pkt_size", tv);
-    dtv->counter_max_pkt_size = StatsRegisterMaxCounter("decoder.max_pkt_size", tv);
-    dtv->counter_max_mac_addrs_src = StatsRegisterMaxCounter("decoder.max_mac_addrs_src", tv);
-    dtv->counter_max_mac_addrs_dst = StatsRegisterMaxCounter("decoder.max_mac_addrs_dst", tv);
-    dtv->counter_erspan = StatsRegisterCounter("decoder.erspan", tv);
-    dtv->counter_nsh = StatsRegisterCounter("decoder.nsh", tv);
-    dtv->counter_flow_memcap = StatsRegisterCounter("flow.memcap", tv);
+    dtv->counter_udp = StatsRegisterCounter("decoder.udp", &tv->stats);
+    dtv->counter_sctp = StatsRegisterCounter("decoder.sctp", &tv->stats);
+    dtv->counter_esp = StatsRegisterCounter("decoder.esp", &tv->stats);
+    dtv->counter_icmpv4 = StatsRegisterCounter("decoder.icmpv4", &tv->stats);
+    dtv->counter_icmpv6 = StatsRegisterCounter("decoder.icmpv6", &tv->stats);
+    dtv->counter_ppp = StatsRegisterCounter("decoder.ppp", &tv->stats);
+    dtv->counter_pppoe = StatsRegisterCounter("decoder.pppoe", &tv->stats);
+    dtv->counter_geneve = StatsRegisterCounter("decoder.geneve", &tv->stats);
+    dtv->counter_gre = StatsRegisterCounter("decoder.gre", &tv->stats);
+    dtv->counter_vlan = StatsRegisterCounter("decoder.vlan", &tv->stats);
+    dtv->counter_vlan_qinq = StatsRegisterCounter("decoder.vlan_qinq", &tv->stats);
+    dtv->counter_vlan_qinqinq = StatsRegisterCounter("decoder.vlan_qinqinq", &tv->stats);
+    dtv->counter_vxlan = StatsRegisterCounter("decoder.vxlan", &tv->stats);
+    dtv->counter_vntag = StatsRegisterCounter("decoder.vntag", &tv->stats);
+    dtv->counter_etag = StatsRegisterCounter("decoder.etag", &tv->stats);
+    dtv->counter_ieee8021ah = StatsRegisterCounter("decoder.ieee8021ah", &tv->stats);
+    dtv->counter_teredo = StatsRegisterCounter("decoder.teredo", &tv->stats);
+    dtv->counter_ipv4inipv4 = StatsRegisterCounter("decoder.ipv4_in_ipv4", &tv->stats);
+    dtv->counter_ipv6inipv4 = StatsRegisterCounter("decoder.ipv6_in_ipv4", &tv->stats);
+    dtv->counter_ipv4inipv6 = StatsRegisterCounter("decoder.ipv4_in_ipv6", &tv->stats);
+    dtv->counter_ipv6inipv6 = StatsRegisterCounter("decoder.ipv6_in_ipv6", &tv->stats);
+    dtv->counter_mpls = StatsRegisterCounter("decoder.mpls", &tv->stats);
+    dtv->counter_avg_pkt_size = StatsRegisterAvgCounter("decoder.avg_pkt_size", &tv->stats);
+    dtv->counter_max_pkt_size = StatsRegisterMaxCounter("decoder.max_pkt_size", &tv->stats);
+    dtv->counter_max_mac_addrs_src =
+            StatsRegisterMaxCounter("decoder.max_mac_addrs_src", &tv->stats);
+    dtv->counter_max_mac_addrs_dst =
+            StatsRegisterMaxCounter("decoder.max_mac_addrs_dst", &tv->stats);
+    dtv->counter_erspan = StatsRegisterCounter("decoder.erspan", &tv->stats);
+    dtv->counter_nsh = StatsRegisterCounter("decoder.nsh", &tv->stats);
+    dtv->counter_flow_memcap = StatsRegisterCounter("flow.memcap", &tv->stats);
     ExceptionPolicySetStatsCounters(tv, &dtv->counter_flow_memcap_eps, &flow_memcap_eps_stats,
             FlowGetMemcapExceptionPolicy(), "exception_policy.flow.memcap.",
             IsFlowMemcapExceptionPolicyStatsValid);
 
-    dtv->counter_tcp_active_sessions = StatsRegisterCounter("tcp.active_sessions", tv);
-    dtv->counter_flow_total = StatsRegisterCounter("flow.total", tv);
-    dtv->counter_flow_active = StatsRegisterCounter("flow.active", tv);
-    dtv->counter_flow_tcp = StatsRegisterCounter("flow.tcp", tv);
-    dtv->counter_flow_udp = StatsRegisterCounter("flow.udp", tv);
-    dtv->counter_flow_icmp4 = StatsRegisterCounter("flow.icmpv4", tv);
-    dtv->counter_flow_icmp6 = StatsRegisterCounter("flow.icmpv6", tv);
-    dtv->counter_flow_tcp_reuse = StatsRegisterCounter("flow.tcp_reuse", tv);
-    dtv->counter_flow_elephant = StatsRegisterCounter("flow.elephant", tv);
-    dtv->counter_flow_get_used = StatsRegisterCounter("flow.get_used", tv);
-    dtv->counter_flow_get_used_eval = StatsRegisterCounter("flow.get_used_eval", tv);
-    dtv->counter_flow_get_used_eval_reject = StatsRegisterCounter("flow.get_used_eval_reject", tv);
-    dtv->counter_flow_get_used_eval_busy = StatsRegisterCounter("flow.get_used_eval_busy", tv);
-    dtv->counter_flow_get_used_failed = StatsRegisterCounter("flow.get_used_failed", tv);
+    dtv->counter_tcp_active_sessions = StatsRegisterCounter("tcp.active_sessions", &tv->stats);
+    dtv->counter_flow_total = StatsRegisterCounter("flow.total", &tv->stats);
+    dtv->counter_flow_active = StatsRegisterCounter("flow.active", &tv->stats);
+    dtv->counter_flow_tcp = StatsRegisterCounter("flow.tcp", &tv->stats);
+    dtv->counter_flow_udp = StatsRegisterCounter("flow.udp", &tv->stats);
+    dtv->counter_flow_icmp4 = StatsRegisterCounter("flow.icmpv4", &tv->stats);
+    dtv->counter_flow_icmp6 = StatsRegisterCounter("flow.icmpv6", &tv->stats);
+    dtv->counter_flow_tcp_reuse = StatsRegisterCounter("flow.tcp_reuse", &tv->stats);
+    dtv->counter_flow_elephant = StatsRegisterCounter("flow.elephant", &tv->stats);
+    dtv->counter_flow_get_used = StatsRegisterCounter("flow.get_used", &tv->stats);
+    dtv->counter_flow_get_used_eval = StatsRegisterCounter("flow.get_used_eval", &tv->stats);
+    dtv->counter_flow_get_used_eval_reject =
+            StatsRegisterCounter("flow.get_used_eval_reject", &tv->stats);
+    dtv->counter_flow_get_used_eval_busy =
+            StatsRegisterCounter("flow.get_used_eval_busy", &tv->stats);
+    dtv->counter_flow_get_used_failed = StatsRegisterCounter("flow.get_used_failed", &tv->stats);
 
-    dtv->counter_flow_spare_sync_avg = StatsRegisterAvgCounter("flow.wrk.spare_sync_avg", tv);
-    dtv->counter_flow_spare_sync = StatsRegisterCounter("flow.wrk.spare_sync", tv);
-    dtv->counter_flow_spare_sync_incomplete = StatsRegisterCounter("flow.wrk.spare_sync_incomplete", tv);
-    dtv->counter_flow_spare_sync_empty = StatsRegisterCounter("flow.wrk.spare_sync_empty", tv);
+    dtv->counter_flow_spare_sync_avg =
+            StatsRegisterAvgCounter("flow.wrk.spare_sync_avg", &tv->stats);
+    dtv->counter_flow_spare_sync = StatsRegisterCounter("flow.wrk.spare_sync", &tv->stats);
+    dtv->counter_flow_spare_sync_incomplete =
+            StatsRegisterCounter("flow.wrk.spare_sync_incomplete", &tv->stats);
+    dtv->counter_flow_spare_sync_empty =
+            StatsRegisterCounter("flow.wrk.spare_sync_empty", &tv->stats);
 
-    dtv->counter_defrag_ipv4_fragments =
-        StatsRegisterCounter("defrag.ipv4.fragments", tv);
-    dtv->counter_defrag_ipv4_reassembled = StatsRegisterCounter("defrag.ipv4.reassembled", tv);
-    dtv->counter_defrag_ipv6_fragments =
-        StatsRegisterCounter("defrag.ipv6.fragments", tv);
-    dtv->counter_defrag_ipv6_reassembled = StatsRegisterCounter("defrag.ipv6.reassembled", tv);
-    dtv->counter_defrag_max_hit = StatsRegisterCounter("defrag.max_trackers_reached", tv);
-    dtv->counter_defrag_no_frags = StatsRegisterCounter("defrag.max_frags_reached", tv);
-    dtv->counter_defrag_tracker_soft_reuse = StatsRegisterCounter("defrag.tracker_soft_reuse", tv);
-    dtv->counter_defrag_tracker_hard_reuse = StatsRegisterCounter("defrag.tracker_hard_reuse", tv);
-    dtv->counter_defrag_tracker_timeout = StatsRegisterCounter("defrag.wrk.tracker_timeout", tv);
+    dtv->counter_defrag_ipv4_fragments = StatsRegisterCounter("defrag.ipv4.fragments", &tv->stats);
+    dtv->counter_defrag_ipv4_reassembled =
+            StatsRegisterCounter("defrag.ipv4.reassembled", &tv->stats);
+    dtv->counter_defrag_ipv6_fragments = StatsRegisterCounter("defrag.ipv6.fragments", &tv->stats);
+    dtv->counter_defrag_ipv6_reassembled =
+            StatsRegisterCounter("defrag.ipv6.reassembled", &tv->stats);
+    dtv->counter_defrag_max_hit = StatsRegisterCounter("defrag.max_trackers_reached", &tv->stats);
+    dtv->counter_defrag_no_frags = StatsRegisterCounter("defrag.max_frags_reached", &tv->stats);
+    dtv->counter_defrag_tracker_soft_reuse =
+            StatsRegisterCounter("defrag.tracker_soft_reuse", &tv->stats);
+    dtv->counter_defrag_tracker_hard_reuse =
+            StatsRegisterCounter("defrag.tracker_hard_reuse", &tv->stats);
+    dtv->counter_defrag_tracker_timeout =
+            StatsRegisterCounter("defrag.wrk.tracker_timeout", &tv->stats);
 
     ExceptionPolicySetStatsCounters(tv, &dtv->counter_defrag_memcap_eps, &defrag_memcap_eps_stats,
             DefragGetMemcapExceptionPolicy(), "exception_policy.defrag.memcap.",
@@ -761,13 +771,11 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
                                "table name add failed");
                 found = add;
             }
-            dtv->counter_engine_events[i] = StatsRegisterCounter(
-                    found, tv);
+            dtv->counter_engine_events[i] = StatsRegisterCounter(found, &tv->stats);
 
             SCMutexUnlock(&g_counter_table_mutex);
         } else {
-            dtv->counter_engine_events[i] = StatsRegisterCounter(
-                    DEvents[i].event_name, tv);
+            dtv->counter_engine_events[i] = StatsRegisterCounter(DEvents[i].event_name, &tv->stats);
         }
     }
 }
@@ -1039,14 +1047,14 @@ void CaptureStatsSetup(ThreadVars *tv)
 {
     if (EngineModeIsIPS()) {
         CaptureStats *s = &t_capture_stats;
-        s->counter_ips_accepted = StatsRegisterCounter("ips.accepted", tv);
-        s->counter_ips_blocked = StatsRegisterCounter("ips.blocked", tv);
-        s->counter_ips_rejected = StatsRegisterCounter("ips.rejected", tv);
-        s->counter_ips_replaced = StatsRegisterCounter("ips.replaced", tv);
+        s->counter_ips_accepted = StatsRegisterCounter("ips.accepted", &tv->stats);
+        s->counter_ips_blocked = StatsRegisterCounter("ips.blocked", &tv->stats);
+        s->counter_ips_rejected = StatsRegisterCounter("ips.rejected", &tv->stats);
+        s->counter_ips_replaced = StatsRegisterCounter("ips.replaced", &tv->stats);
         for (int i = PKT_DROP_REASON_NOT_SET; i < PKT_DROP_REASON_MAX; i++) {
             const char *name = PacketDropReasonToJsonString(i);
             if (name != NULL)
-                s->counter_drop_reason[i] = StatsRegisterCounter(name, tv);
+                s->counter_drop_reason[i] = StatsRegisterCounter(name, &tv->stats);
         }
     }
 }
