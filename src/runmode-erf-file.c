@@ -212,8 +212,6 @@ int RunModeErfFileAutoFp(void)
             }
         }
 
-        TmThreadSetGroupName(tv_detect_ncpu, "Detect");
-
         if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {
             printf("ERROR: TmThreadSpawn failed\n");
             exit(EXIT_FAILURE);

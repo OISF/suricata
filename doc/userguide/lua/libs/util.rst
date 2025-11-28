@@ -22,7 +22,6 @@ Functions
 
       - ``id`` (number): Thread ID
       - ``name`` (string): Thread name 
-      - ``group_name`` (string): Thread group name
             
    Example::
 
@@ -31,4 +30,3 @@ Functions
        local info = util.thread_info()
        print("Thread ID: " .. info.id)
        print("Thread Name: " .. info.name)
-       print("Thread Group: " .. info.group_name)

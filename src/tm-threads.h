@@ -100,7 +100,6 @@ void TmThreadKillThreadsFamily(int family);
 void TmThreadKillThreads(void);
 void TmThreadClearThreadsFamily(int family);
 void TmThreadAppend(ThreadVars *, int);
-void TmThreadSetGroupName(ThreadVars *tv, const char *name);
 
 TmEcode TmThreadSetCPUAffinity(ThreadVars *, uint16_t);
 TmEcode TmThreadSetThreadPriority(ThreadVars *, int);

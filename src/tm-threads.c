@@ -1649,10 +1649,6 @@ static void TmThreadFree(ThreadVars *tv)
 
     TmThreadDeinitMC(tv);
 
-    if (tv->thread_group_name) {
-        SCFree(tv->thread_group_name);
-    }
-
     if (tv->printable_name) {
         SCFree(tv->printable_name);
     }
@@ -1676,24 +1672,6 @@ static void TmThreadFree(ThreadVars *tv)
 
     TmThreadsUnregisterThread(tv->id);
     SCFree(tv);
-}
-
-void TmThreadSetGroupName(ThreadVars *tv, const char *name)
-{
-    char *thread_group_name = NULL;
-
-    if (name == NULL)
-        return;
-
-    if (tv == NULL)
-        return;
-
-    thread_group_name = SCStrdup(name);
-    if (unlikely(thread_group_name == NULL)) {
-        SCLogError("error allocating memory");
-        return;
-    }
-    tv->thread_group_name = thread_group_name;
 }
 
 void TmThreadClearThreadsFamily(int family)

@@ -65,7 +65,6 @@ typedef struct ThreadVars_ {
 
     char name[16];
     char *printable_name;
-    char *thread_group_name;
 
     uint8_t thread_setup_flags;
 

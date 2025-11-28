@@ -48,10 +48,6 @@ static int LuaUtilThreadInfo(lua_State *luastate)
     lua_pushstring(luastate, tv->name);
     lua_settable(luastate, -3);
 
-    lua_pushstring(luastate, "group_name");
-    lua_pushstring(luastate, tv->thread_group_name);
-    lua_settable(luastate, -3);
-
     return 1;
 }
 
