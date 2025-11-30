@@ -1845,7 +1845,6 @@ detect:
 #
 # The supported algorithms are:
 # "ac"      - Aho-Corasick, default implementation
-# "ac-bs"   - Aho-Corasick, reduced memory implementation
 # "ac-ks"   - Aho-Corasick, "Ken Steele" variant
 # "hs"      - Hyperscan, available when built with Hyperscan support
 #

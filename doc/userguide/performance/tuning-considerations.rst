@@ -17,7 +17,7 @@ The memory is set up at start and the usage is as follows:
 
     number_of.threads X max-pending-packets X (default-packet-size + ~750 bytes)
 
-mpm-algo: <ac|hs|ac-bs|ac-ks>
+mpm-algo: <ac|hs|ac-ks>
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Controls the pattern matcher algorithm. AC (``Aho–Corasick``) is the default.
@@ -54,7 +54,7 @@ detect.sgh-mpm-context: <auto|single|full>
 
 The multi pattern matcher can have it's context per signature group
 (full) or globally (single). Auto selects between single and full
-based on the **mpm-algo** selected. ac, ac-bs, ac-ks, hs default to "single". 
+based on the **mpm-algo** selected. ac, ac-ks, hs default to "single". 
 Setting this to "full" with ``mpm-algo: ac`` or ``mpm-algo: ac-ks`` offers 
 better performance. Setting this to "full" with ``mpm-algo: hs`` is not 
 recommended as it leads to much higher startup time. Instead with Hyperscan 
