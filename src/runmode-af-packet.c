@@ -1,4 +1,4 @@
-/* Copyright (C) 2011-2020 Open Information Security Foundation
+/* Copyright (C) 2011-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -670,6 +670,19 @@ static void *ParseAFPConfig(const char *iface)
         SCLogConfig("%s: disabling promiscuous mode", aconf->iface);
         aconf->promisc = 0;
     }
+
+    (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "disable-hwtimestamp", &boolval);
+    if (boolval) {
+#ifdef HAVE_HW_TIMESTAMPING
+        SCLogConfig("%s: disabling hardware timestamping", aconf->iface);
+#endif
+        aconf->flags |= AFP_DISABLE_HWTIMESTAMP;
+    }
+#ifdef HAVE_HW_TIMESTAMPING
+    if ((aconf->flags & AFP_DISABLE_HWTIMESTAMP) == 0) {
+        SCLogConfig("%s: enabling hardware timestamping", aconf->iface);
+    }
+#endif
 
     if (ConfGetChildValueWithDefault(if_root, if_default, "checksum-checks", &tmpctype) == 1) {
         if (strcmp(tmpctype, "auto") == 0) {
