@@ -3,6 +3,7 @@ Using Capture Hardware
 
 .. toctree::
 
+   af-packet
    endace-dag
    napatech
    myricom
