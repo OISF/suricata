@@ -32,8 +32,6 @@
 
 #ifdef BUILD_HYPERSCAN
 
-#include <hs.h>
-
 /**
  * \internal
  * \brief Hyperscan match callback, called by hs_scan.
@@ -82,9 +80,7 @@ static int HSBuildDatabase(const uint8_t *needle, uint16_t needle_len,
     hs_error_t err = hs_compile(expr, flags, HS_MODE_BLOCK, NULL, &db,
                                 &compile_err);
     if (err != HS_SUCCESS) {
-        SCLogError("Unable to compile '%s' with Hyperscan, "
-                   "returned %d.",
-                expr, err);
+        HSLogCompileError(expr, compile_err, err);
         return -1;
     }
 
