@@ -81,6 +81,7 @@ static int HSBuildDatabase(const uint8_t *needle, uint16_t needle_len,
                                 &compile_err);
     if (err != HS_SUCCESS) {
         HSLogCompileError(expr, compile_err, err);
+        SCFree(expr);
         return -1;
     }
 
