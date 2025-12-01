@@ -41,11 +41,15 @@ extern uint32_t max_pending_packets;
 #define MAX_PENDING_RETURN_PACKETS 32
 static uint32_t max_pending_return_packets = MAX_PENDING_RETURN_PACKETS;
 
-thread_local PktPool thread_pkt_pool;
-
-static inline PktPool *GetThreadPacketPool(void)
+static inline PktPool *GetThreadPacketPool(ThreadVars *tv)
 {
-    return &thread_pkt_pool;
+    if (tv == NULL) {
+        return NULL;
+    }
+
+    /* Pool must be explicitly initialized via PacketPoolInit() */
+    DEBUG_VALIDATE_BUG_ON(tv->pkt_pool == NULL);
+    return tv->pkt_pool;
 }
 
 /**
@@ -68,9 +72,9 @@ static void UpdateReturnThreshold(PktPool *pool)
     }
 }
 
-void PacketPoolWait(void)
+void PacketPoolWait(ThreadVars *tv)
 {
-    PktPool *my_pool = GetThreadPacketPool();
+    PktPool *my_pool = GetThreadPacketPool(tv);
 
     if (my_pool->head == NULL) {
         SC_ATOMIC_SET(my_pool->return_stack.return_threshold, 1);
@@ -90,9 +94,9 @@ void PacketPoolWait(void)
  *
  *  \warning Use *only* at init, not at packet runtime
  */
-static void PacketPoolStorePacket(Packet *p)
+static void PacketPoolStorePacket(ThreadVars *tv, Packet *p)
 {
-    p->pool = GetThreadPacketPool();
+    p->pool = GetThreadPacketPool(tv);
     p->ReleasePacket = PacketPoolReturnPacket;
     PacketPoolReturnPacket(p);
 }
@@ -115,9 +119,9 @@ static void PacketPoolGetReturnedPackets(PktPool *pool)
  * the local stack.
  *  \retval Packet pointer, or NULL on failure.
  */
-Packet *PacketPoolGetPacket(void)
+Packet *PacketPoolGetPacket(ThreadVars *tv)
 {
-    PktPool *pool = GetThreadPacketPool();
+    PktPool *pool = GetThreadPacketPool(tv);
     DEBUG_VALIDATE_BUG_ON(pool->initialized == 0);
     DEBUG_VALIDATE_BUG_ON(pool->destroyed == 1);
     if (pool->head) {
@@ -167,7 +171,6 @@ Packet *PacketPoolGetPacket(void)
  */
 void PacketPoolReturnPacket(Packet *p)
 {
-    PktPool *my_pool = GetThreadPacketPool();
     PktPool *pool = p->pool;
     if (pool == NULL) {
         PacketFree(p);
@@ -179,73 +182,52 @@ void PacketPoolReturnPacket(Packet *p)
 #ifdef DEBUG_VALIDATION
     BUG_ON(pool->initialized == 0);
     BUG_ON(pool->destroyed == 1);
-    BUG_ON(my_pool->initialized == 0);
-    BUG_ON(my_pool->destroyed == 1);
 #endif /* DEBUG_VALIDATION */
 
-    if (pool == my_pool) {
-        /* Push back onto this thread's own stack, so no locking. */
-        p->next = my_pool->head;
-        my_pool->head = p;
-        my_pool->cnt++;
-    } else {
-        PktPool *pending_pool = my_pool->pending_pool;
-        if (pending_pool == NULL || pending_pool == pool) {
-            if (pending_pool == NULL) {
-                /* No pending packet, so store the current packet. */
-                p->next = NULL;
-                my_pool->pending_pool = pool;
-                my_pool->pending_head = p;
-                my_pool->pending_tail = p;
-                my_pool->pending_count = 1;
-            } else if (pending_pool == pool) {
-                /* Another packet for the pending pool list. */
-                p->next = my_pool->pending_head;
-                my_pool->pending_head = p;
-                my_pool->pending_count++;
-            }
-
-            const uint32_t threshold = SC_ATOMIC_GET(pool->return_stack.return_threshold);
-            if (my_pool->pending_count >= threshold) {
-                /* Return the entire list of pending packets. */
-                SCMutexLock(&pool->return_stack.mutex);
-                my_pool->pending_tail->next = pool->return_stack.head;
-                pool->return_stack.head = my_pool->pending_head;
-                pool->return_stack.cnt += my_pool->pending_count;
-                SCCondSignal(&pool->return_stack.cond);
-                SCMutexUnlock(&pool->return_stack.mutex);
-                /* Clear the list of pending packets to return. */
-                my_pool->pending_pool = NULL;
-                my_pool->pending_head = NULL;
-                my_pool->pending_tail = NULL;
-                my_pool->pending_count = 0;
-            }
-        } else {
-            /* Push onto return stack for this pool */
-            SCMutexLock(&pool->return_stack.mutex);
-            p->next = pool->return_stack.head;
-            pool->return_stack.head = p;
-            pool->return_stack.cnt++;
-            SCCondSignal(&pool->return_stack.cond);
-            SCMutexUnlock(&pool->return_stack.mutex);
-        }
+    /* Fast path: if this thread own the pool, return directly
+     * without locking. */
+    /* TODO: Is `t` valid in all paths to this code? */
+    if (pool->tv != NULL && pthread_equal(pthread_self(), pool->tv->t)) {
+        p->next = pool->head;
+        pool->head = p;
+        pool->cnt++;
+        return;
     }
+
+    /* Push onto the return stack of pool that owns this packet,
+     * requires locking. */
+    SCMutexLock(&pool->return_stack.mutex);
+    p->next = pool->return_stack.head;
+    pool->return_stack.head = p;
+    pool->return_stack.cnt++;
+    SCCondSignal(&pool->return_stack.cond);
+    SCMutexUnlock(&pool->return_stack.mutex);
 }
 
-void PacketPoolInit(void)
+void PacketPoolInit(ThreadVars *tv)
 {
-    PktPool *my_pool = GetThreadPacketPool();
+    /* Allocate the packet pool structure */
+    if (tv->pkt_pool == NULL) {
+        tv->pkt_pool = SCCalloc(1, sizeof(PktPool));
+        if (tv->pkt_pool == NULL) {
+            FatalError("Failed to allocate packet pool");
+        }
+        /* Set back-reference to owner ThreadVars for multi-instance support */
+        tv->pkt_pool->tv = tv;
+    }
+
+    PktPool *pool = GetThreadPacketPool(tv);
 
 #ifdef DEBUG_VALIDATION
-    BUG_ON(my_pool->initialized);
-    my_pool->initialized = 1;
-    my_pool->destroyed = 0;
+    BUG_ON(pool->initialized);
+    pool->initialized = 1;
+    pool->destroyed = 0;
 #endif /* DEBUG_VALIDATION */
 
-    SCMutexInit(&my_pool->return_stack.mutex, NULL);
-    SCCondInit(&my_pool->return_stack.cond, NULL);
-    SC_ATOMIC_INIT(my_pool->return_stack.return_threshold);
-    SC_ATOMIC_SET(my_pool->return_stack.return_threshold, 32);
+    SCMutexInit(&pool->return_stack.mutex, NULL);
+    SCCondInit(&pool->return_stack.cond, NULL);
+    SC_ATOMIC_INIT(pool->return_stack.return_threshold);
+    SC_ATOMIC_SET(pool->return_stack.return_threshold, 32);
 
     /* pre allocate packets */
     SCLogDebug("preallocating packets... packet size %" PRIuMAX "",
@@ -255,17 +237,17 @@ void PacketPoolInit(void)
         if (unlikely(p == NULL)) {
             FatalError("Fatal error encountered while allocating a packet. Exiting...");
         }
-        PacketPoolStorePacket(p);
+        PacketPoolStorePacket(tv, p);
     }
 
     //SCLogInfo("preallocated %"PRIiMAX" packets. Total memory %"PRIuMAX"",
     //        max_pending_packets, (uintmax_t)(max_pending_packets*SIZE_OF_PACKET));
 }
 
-void PacketPoolDestroy(void)
+void PacketPoolDestroy(ThreadVars *tv)
 {
     Packet *p = NULL;
-    PktPool *my_pool = GetThreadPacketPool();
+    PktPool *my_pool = GetThreadPacketPool(tv);
 
 #ifdef DEBUG_VALIDATION
     BUG_ON(my_pool && my_pool->destroyed);
@@ -287,19 +269,29 @@ void PacketPoolDestroy(void)
         my_pool->pending_tail = NULL;
     }
 
-    while ((p = PacketPoolGetPacket()) != NULL) {
+    while ((p = PacketPoolGetPacket(tv)) != NULL) {
         PacketFree(p);
     }
 
 #ifdef DEBUG_VALIDATION
-    my_pool->initialized = 0;
-    my_pool->destroyed = 1;
+    if (my_pool) {
+        my_pool->initialized = 0;
+        my_pool->destroyed = 1;
+    }
 #endif /* DEBUG_VALIDATION */
+
+    /* Free the pool structure itself */
+    if (tv && tv->pkt_pool != NULL) {
+        SCMutexDestroy(&tv->pkt_pool->return_stack.mutex);
+        SCCondDestroy(&tv->pkt_pool->return_stack.cond);
+        SCFree(tv->pkt_pool);
+        tv->pkt_pool = NULL;
+    }
 }
 
 Packet *TmqhInputPacketpool(ThreadVars *tv)
 {
-    return PacketPoolGetPacket();
+    return PacketPoolGetPacket(tv);
 }
 
 void TmqhOutputPacketpool(ThreadVars *t, Packet *p)

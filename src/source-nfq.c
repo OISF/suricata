@@ -551,7 +551,7 @@ static int NFQCallBack(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
     int ret;
 
     /* grab a packet */
-    Packet *p = PacketGetFromQueueOrAlloc();
+    Packet *p = PacketGetFromQueueOrAlloc(tv);
     if (p == NULL) {
         return -1;
     }

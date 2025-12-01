@@ -39,6 +39,7 @@
 #include "util-validate.h"
 #include "util-unittest.h"
 #include "util-debug.h"
+#include "tmqh-packetpool.h"
 
 #define VXLAN_HEADER_LEN sizeof(VXLANHeader)
 
@@ -249,6 +250,7 @@ static int DecodeVXLANtest01 (void)
     DecodeThreadVars dtv;
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
+    PacketPoolInit(&tv);
 
     DecodeVXLANConfigPorts(VXLAN_DEFAULT_PORT_S);
     FlowInitConfig(FLOW_QUIET);
@@ -264,6 +266,7 @@ static int DecodeVXLANtest01 (void)
     FlowShutdown();
     PacketFree(p);
     PacketFreeOrRelease(tp);
+    PacketPoolDestroy(&tv);
     PASS;
 }
 
@@ -288,6 +291,7 @@ static int DecodeVXLANtest02 (void)
     DecodeThreadVars dtv;
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
+    PacketPoolInit(&tv);
 
     DecodeVXLANConfigPorts("1");
     FlowInitConfig(FLOW_QUIET);
@@ -299,6 +303,7 @@ static int DecodeVXLANtest02 (void)
     DecodeVXLANConfigPorts(VXLAN_DEFAULT_PORT_S); /* reset */
     FlowShutdown();
     PacketFree(p);
+    PacketPoolDestroy(&tv);
     PASS;
 }
 
@@ -342,6 +347,7 @@ decoder:\n\
     DecodeThreadVars dtv;
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
+    PacketPoolInit(&tv);
 
     DecodeVXLANConfig();
     DecodeVXLANConfigPorts(VXLAN_DEFAULT_PORT_S);
@@ -360,6 +366,7 @@ decoder:\n\
     PacketFreeOrRelease(tp);
     SCConfDeInit();
     SCConfRestoreContextBackup();
+    PacketPoolDestroy(&tv);
     PASS;
 }
 
@@ -399,6 +406,7 @@ decoder:\n\
     DecodeThreadVars dtv;
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
+    PacketPoolInit(&tv);
 
     DecodeVXLANConfig();
     DecodeVXLANConfigPorts(VXLAN_DEFAULT_PORT_S);
@@ -417,6 +425,7 @@ decoder:\n\
     PacketFreeOrRelease(tp);
     SCConfDeInit();
     SCConfRestoreContextBackup();
+    PacketPoolDestroy(&tv);
     PASS;
 }
 
@@ -457,6 +466,7 @@ decoder:\n\
     DecodeThreadVars dtv;
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
+    PacketPoolInit(&tv);
 
     DecodeVXLANConfig();
     DecodeVXLANConfigPorts(VXLAN_DEFAULT_PORT_S);
@@ -471,6 +481,7 @@ decoder:\n\
     PacketFree(p);
     SCConfDeInit();
     SCConfRestoreContextBackup();
+    PacketPoolDestroy(&tv);
     PASS;
 }
 
@@ -511,6 +522,7 @@ decoder:\n\
     DecodeThreadVars dtv;
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
+    PacketPoolInit(&tv);
 
     DecodeVXLANConfig();
     DecodeVXLANConfigPorts(VXLAN_DEFAULT_PORT_S);
@@ -529,6 +541,7 @@ decoder:\n\
     PacketFreeOrRelease(tp);
     SCConfDeInit();
     SCConfRestoreContextBackup();
+    PacketPoolDestroy(&tv);
     PASS;
 }
 
@@ -551,6 +564,7 @@ static int DecodeVXLANtest07(void)
     DecodeThreadVars dtv;
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
+    PacketPoolInit(&tv);
 
     DecodeVXLANConfigPorts(VXLAN_DEFAULT_PORT_S);
     FlowInitConfig(FLOW_QUIET);
@@ -565,6 +579,7 @@ static int DecodeVXLANtest07(void)
 
     FlowShutdown();
     PacketFree(p);
+    PacketPoolDestroy(&tv);
     PASS;
 }
 #endif /* UNITTESTS */

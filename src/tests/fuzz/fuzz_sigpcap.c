@@ -92,7 +92,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 
         extern uint32_t max_pending_packets;
         max_pending_packets = 128;
-        PacketPoolInit();
+        PacketPoolInit(&tv);
         SC_ATOMIC_SET(engine_stage, SURICATA_RUNTIME);
         initialized = 1;
     }

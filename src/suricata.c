@@ -2335,8 +2335,12 @@ void PostRunDeinit(const int runmode, struct timeval *start_time)
 
     TmThreadsUnsealThreads();
 
-    /* needed by FlowWorkToDoCleanup */
-    PacketPoolInit();
+    /* Create a minimal ThreadVars for main thread cleanup packet pool.
+     * Needed by FlowWorkToDoCleanup to generate pseudo-packets. */
+    ThreadVars cleanup_tv = {
+        .t = pthread_self(),
+    };
+    PacketPoolInit(&cleanup_tv);
 
     /* handle graceful shutdown of the flow engine, it's helper
      * threads and the packet threads */
@@ -2361,7 +2365,7 @@ void PostRunDeinit(const int runmode, struct timeval *start_time)
     TmThreadKillThreadsFamily(TVT_PPT);
     TmThreadClearThreadsFamily(TVT_PPT);
 
-    PacketPoolDestroy();
+    PacketPoolDestroy(&cleanup_tv);
 
     /* mgt and ppt threads killed, we can run non thread-safe
      * shutdown functions */

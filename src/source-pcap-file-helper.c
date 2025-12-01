@@ -69,7 +69,7 @@ void PcapFileCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt)
     }
 #endif
     PcapFileFileVars *ptv = (PcapFileFileVars *)user;
-    Packet *p = PacketGetFromQueueOrAlloc();
+    Packet *p = PacketGetFromQueueOrAlloc(ptv->shared->tv);
 
     if (unlikely(p == NULL)) {
         SCReturn;
@@ -147,7 +147,7 @@ TmEcode PcapFileDispatch(PcapFileFileVars *ptv)
 
         /* make sure we have at least one packet in the packet pool, to prevent
          * us from alloc'ing packets at line rate */
-        PacketPoolWait();
+        PacketPoolWait(ptv->shared->tv);
 
         /* Right now we just support reading packets one at a time. */
         int r = pcap_dispatch(ptv->pcap_handle, packet_q_len,

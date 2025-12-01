@@ -294,10 +294,10 @@ void PacketFreeOrRelease(Packet *p)
  *
  *  \retval p packet, NULL on error
  */
-Packet *PacketGetFromQueueOrAlloc(void)
+Packet *PacketGetFromQueueOrAlloc(ThreadVars *tv)
 {
     /* try the pool first */
-    Packet *p = PacketPoolGetPacket();
+    Packet *p = PacketPoolGetPacket(tv);
 
     if (p == NULL) {
         /* non fatal, we're just not processing a packet then */
@@ -407,7 +407,7 @@ Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *pare
     }
 
     /* get us a packet */
-    Packet *p = PacketGetFromQueueOrAlloc();
+    Packet *p = PacketGetFromQueueOrAlloc(tv);
     if (unlikely(p == NULL)) {
         SCReturnPtr(NULL, "Packet");
     }
@@ -474,12 +474,13 @@ Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *pare
  *
  *  \retval p the pseudo packet or NULL if out of memory
  */
-Packet *PacketDefragPktSetup(Packet *parent, const uint8_t *pkt, uint32_t len, uint8_t proto)
+Packet *PacketDefragPktSetup(
+        ThreadVars *tv, Packet *parent, const uint8_t *pkt, uint32_t len, uint8_t proto)
 {
     SCEnter();
 
     /* get us a packet */
-    Packet *p = PacketGetFromQueueOrAlloc();
+    Packet *p = PacketGetFromQueueOrAlloc(tv);
     if (unlikely(p == NULL)) {
         SCReturnPtr(NULL, "Packet");
     }

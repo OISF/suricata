@@ -353,7 +353,7 @@ static TmEcode ReceiveDPDKLoopInit(ThreadVars *tv, DPDKThreadVars *ptv)
     // Indicate that the thread is actually running its application level
     // code (i.e., it can poll packets)
     TmThreadsSetFlag(tv, THV_RUNNING);
-    PacketPoolWait();
+    PacketPoolWait(tv);
 
     rte_eth_stats_reset(ptv->port_id);
     rte_eth_xstats_reset(ptv->port_id);
@@ -416,7 +416,7 @@ static inline bool RXPacketCountHeuristic(ThreadVars *tv, DPDKThreadVars *ptv, u
  */
 static inline Packet *PacketInitFromMbuf(DPDKThreadVars *ptv, struct rte_mbuf *mbuf)
 {
-    Packet *p = PacketGetFromQueueOrAlloc();
+    Packet *p = PacketGetFromQueueOrAlloc(ptv->tv);
     if (unlikely(p == NULL)) {
         return NULL;
     }

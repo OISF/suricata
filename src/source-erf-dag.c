@@ -396,7 +396,7 @@ ProcessErfDagRecords(ErfDagThreadVars *ewtn, uint8_t *top, uint32_t *pkts_read)
 
         /* Make sure we have at least one packet in the packet pool,
          * to prevent us from alloc'ing packets at line rate. */
-        PacketPoolWait();
+        PacketPoolWait(tv);
 
         prec = (char *)ewtn->btm;
         dr = (dag_record_t*)prec;
@@ -486,7 +486,7 @@ ProcessErfDagRecord(ErfDagThreadVars *ewtn, char *prec)
     /* skip over extension headers */
     pload = (erf_payload_t *)(prec + dag_record_size + (8 * hdr_num));
 
-    p = PacketGetFromQueueOrAlloc();
+    p = PacketGetFromQueueOrAlloc(ewtn->tv);
     if (p == NULL) {
         SCLogError("Failed to allocate a Packet on stream: %d, DAG: %s", ewtn->dagstream,
                 ewtn->dagname);

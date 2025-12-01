@@ -1115,10 +1115,11 @@ enum DecodeTunnelProto {
 
 Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *parent,
                              const uint8_t *pkt, uint32_t len, enum DecodeTunnelProto proto);
-Packet *PacketDefragPktSetup(Packet *parent, const uint8_t *pkt, uint32_t len, uint8_t proto);
+Packet *PacketDefragPktSetup(
+        ThreadVars *tv, Packet *parent, const uint8_t *pkt, uint32_t len, uint8_t proto);
 void PacketDefragPktSetupParent(Packet *parent);
 void DecodeRegisterPerfCounters(DecodeThreadVars *, ThreadVars *);
-Packet *PacketGetFromQueueOrAlloc(void);
+Packet *PacketGetFromQueueOrAlloc(ThreadVars *tv);
 Packet *PacketGetFromAlloc(void);
 void PacketDecodeFinalize(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p);
 void PacketUpdateEngineEventCounters(ThreadVars *tv,
