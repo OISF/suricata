@@ -134,6 +134,7 @@
 #include "util-path.h"
 #include "util-pidfile.h"
 #include "util-plugin.h"
+#include "util-print.h"
 #include "util-privs.h"
 #include "util-profiling.h"
 #include "util-proto-name.h"
@@ -2932,6 +2933,12 @@ int PostConfLoadedSetup(SCInstance *suri)
                    "Shutting down the engine",
                 suri->log_dir, suri->conf_filename);
         SCReturnInt(TM_ECODE_FAILED);
+    }
+
+    SCConfNode *shorten_ipv6 = SCConfGetNode("global.ipv6-addr-shorten");
+    if (shorten_ipv6 && shorten_ipv6->val && SCConfValIsTrue(shorten_ipv6->val)) {
+        SCLogConfig("IPv6 addresses will be shortened in output per RFC 5952");
+        SetPrintShortenedInetV6(true);
     }
 
     if (suri->disabled_detect) {
