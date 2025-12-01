@@ -635,18 +635,13 @@ static void *ParseAFPConfig(const char *iface)
         aconf->promisc = 0;
     }
 
-    (void)SCConfGetChildValueBoolWithDefault(if_root, if_default, "disable-hwtimestamp", &boolval);
+    (void)SCConfGetChildValueBoolWithDefault(if_root, if_default, "enable-hwtimestamp", &boolval);
     if (boolval) {
 #ifdef HAVE_HW_TIMESTAMPING
-        SCLogConfig("%s: disabling hardware timestamping", aconf->iface);
-#endif
-        aconf->flags |= AFP_DISABLE_HWTIMESTAMP;
-    }
-#ifdef HAVE_HW_TIMESTAMPING
-    if ((aconf->flags & AFP_DISABLE_HWTIMESTAMP) == 0) {
         SCLogConfig("%s: enabling hardware timestamping", aconf->iface);
-    }
 #endif
+        aconf->flags |= AFP_ENABLE_HWTIMESTAMP;
+    }
 
     if (SCConfGetChildValueWithDefault(if_root, if_default, "checksum-checks", &tmpctype) == 1) {
         if (strcmp(tmpctype, "auto") == 0) {
