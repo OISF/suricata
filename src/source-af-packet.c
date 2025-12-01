@@ -1736,11 +1736,13 @@ static int AFPSetupRing(AFPThreadVars *ptv, char *devname)
     }
 
 #ifdef HAVE_HW_TIMESTAMPING
-    if ((ptv->flags & AFP_DISABLE_HWTIMESTAMP) == 0) {
+    if (ptv->flags & AFP_ENABLE_HWTIMESTAMP) {
         int req = SOF_TIMESTAMPING_RAW_HARDWARE;
         if (setsockopt(ptv->socket, SOL_PACKET, PACKET_TIMESTAMP, (void *)&req, sizeof(req)) < 0) {
             SCLogWarning("%s: failed to activate hardware timestamping on packet socket: %s",
                     devname, strerror(errno));
+        } else {
+            SCLogConfig("%s: hardware timestamping enabled", devname);
         }
     } else {
         SCLogConfig("%s: hardware timestamping disabled", devname);
