@@ -84,6 +84,7 @@ static int HSBuildDatabase(const uint8_t *needle, uint16_t needle_len,
         SCLogError("Unable to compile '%s' with Hyperscan, "
                    "returned %d.",
                 expr, err);
+        SCFree(expr);
         return -1;
     }
 
