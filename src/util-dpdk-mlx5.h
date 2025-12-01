@@ -29,6 +29,7 @@
 #ifdef HAVE_DPDK
 
 int mlx5DeviceSetRSS(int port_id, uint16_t nb_rx_queues, char *port_name);
+int mlx5DeviceCheckDropFilterLimits(uint32_t rte_flow_rule_count, char **err_msg);
 
 #endif /* HAVE_DPDK */
 
