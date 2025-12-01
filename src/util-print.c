@@ -30,6 +30,8 @@
 #include "util-validate.h"
 #include "rust.h"
 
+static bool g_shorten_ipv6 = false;
+
 /**
  *  \brief print a buffer as hex on a single line
  *
@@ -208,6 +210,11 @@ void PrintStringsToBuffer(uint8_t *dst_buf, uint32_t *dst_buf_offset_ptr, uint32
 
 static const char *PrintInetIPv6(const void *src, char *dst, socklen_t size)
 {
+    if (g_shorten_ipv6) {
+        (void)ipv6_shorten(src, dst, size);
+        return dst;
+    }
+
     char s_part[6];
     uint16_t x[8];
     memcpy(&x, src, 16);
@@ -250,6 +257,11 @@ const char *PrintInet(int af, const void *src, char *dst, socklen_t size)
             SCLogError("Unsupported protocol: %d", af);
     }
     return NULL;
+}
+
+void SetPrintInetV6(bool shorten)
+{
+    g_shorten_ipv6 = shorten;
 }
 
 void PrintHexString(char *str, size_t size, uint8_t *buf, size_t buf_len)
