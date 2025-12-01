@@ -23,9 +23,15 @@
  * Support functions for Hyperscan library integration.
  */
 
+#ifdef BUILD_HYPERSCAN
 #ifndef SURICATA_UTIL_HYPERSCAN__H
 #define SURICATA_UTIL_HYPERSCAN__H
 
+#include <hs.h>
+
 char *HSRenderPattern(const uint8_t *pat, uint16_t pat_len);
 
+void HSLogCompileError(char *expr, hs_compile_error_t *compile_err, hs_error_t err);
+
 #endif /* SURICATA_UTIL_HYPERSCAN__H */
+#endif /* BUILD_HYPERSCAN */
