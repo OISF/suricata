@@ -26,6 +26,12 @@
 #ifndef SURICATA_UTIL_HYPERSCAN__H
 #define SURICATA_UTIL_HYPERSCAN__H
 
+#ifdef BUILD_HYPERSCAN
+#include <hs.h>
+
 char *HSRenderPattern(const uint8_t *pat, uint16_t pat_len);
 
+void HSLogCompileError(const char *expr, hs_compile_error_t *compile_err, hs_error_t err);
+
+#endif /* BUILD_HYPERSCAN */
 #endif /* SURICATA_UTIL_HYPERSCAN__H */

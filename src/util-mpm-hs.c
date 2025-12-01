@@ -49,8 +49,6 @@
 
 #ifdef BUILD_HYPERSCAN
 
-#include <hs.h>
-
 void SCHSInitCtx(MpmCtx *);
 void SCHSInitThreadCtx(MpmCtx *, MpmThreadCtx *);
 void SCHSDestroyCtx(MpmCtx *);
@@ -607,15 +605,6 @@ static int HSGlobalPatternDatabaseInit(void)
     return 0;
 }
 
-static void HSLogCompileError(hs_compile_error_t *compile_err)
-{
-    SCLogError("failed to compile hyperscan database");
-    if (compile_err) {
-        SCLogError("compile error: %s", compile_err->message);
-        hs_free_compile_error(compile_err);
-    }
-}
-
 static int HSScratchAlloc(const hs_database_t *db)
 {
     SCMutexLock(&g_scratch_proto_mutex);
@@ -737,7 +726,7 @@ static int PatternDatabaseCompile(PatternDatabase *pd, SCHSCompileData *cd)
             (const hs_expr_ext_t *const *)cd->ext, cd->pattern_cnt, HS_MODE_BLOCK, NULL, &pd->hs_db,
             &compile_err);
     if (err != HS_SUCCESS) {
-        HSLogCompileError(compile_err);
+        HSLogCompileError("multiple patterns", compile_err, err);
         return -1;
     }
 
