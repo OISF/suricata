@@ -96,7 +96,7 @@ static SCLogRedisContext *SCLogRedisContextAsyncAlloc(void)
     ctx->sync = NULL;
     ctx->async   = NULL;
     ctx->ev_base = NULL;
-    ctx->connected = 0;
+    ctx->state = REDIS_STATE_DISCONNECTED;
     ctx->batch_count = 0;
     ctx->last_push = 0;
     ctx->tried = 0;
@@ -116,13 +116,67 @@ static void SCRedisAsyncCommandCallback(redisAsyncContext *ac, void *r, void *pr
     SCLogRedisContext *ctx = log_ctx->redis;
 
     if (reply == NULL) {
-        if (ctx->connected > 0)
+        if (ctx->state != REDIS_STATE_DISCONNECTED)
             SCLogInfo("Missing reply from redis, disconnected.");
-        ctx->connected = 0;
+        ctx->state = REDIS_STATE_DISCONNECTED;
     } else {
-        ctx->connected = 1;
         event_base_loopbreak(ctx->ev_base);
     }
+}
+
+/** \brief SCRedisAsyncAuthCallback() Callback when AUTH reply from redis happens.
+ *  \param ac redis async context
+ *  \param r redis reply
+ *  \param privdata opaque data with pointer to LogFileCtx
+ */
+static void SCRedisAsyncAuthCallback(redisAsyncContext *ac, void *r, void *privdata)
+{
+    redisReply *reply = r;
+    LogFileCtx *log_ctx = privdata;
+    SCLogRedisContext *ctx = log_ctx->redis;
+
+    if (reply == NULL) {
+        if (ctx->tried == 0) {
+            SCLogWarning("Failed to connect to Redis... (will keep trying)");
+        }
+        ctx->state = REDIS_STATE_DISCONNECTED;
+        ctx->tried = time(NULL);
+    } else {
+        if (reply->type != REDIS_REPLY_ERROR) {
+            SCLogInfo("Redis authenticated successfully.");
+            ctx->state = REDIS_STATE_AUTHENTICATED;
+            ctx->tried = 0;
+        } else {
+            if (ctx->tried == 0) {
+                SCLogWarning("Redis AUTH failed: %s (will keep trying)", reply->str);
+            }
+            ctx->state = REDIS_STATE_AUTH_FAILED;
+            ctx->tried = time(NULL);
+        }
+    }
+    event_base_loopbreak(ctx->ev_base);
+}
+
+/** \brief SCLogAsyncRedisSendAuth() - Authenticates with redis
+ *  \param log_ctx Log file context allocated by caller
+ */
+static void SCLogAsyncRedisSendAuth(LogFileCtx *log_ctx)
+{
+    SCLogRedisContext *ctx = log_ctx->redis;
+
+    /* only try to reauth once per second */
+    if (ctx->tried >= time(NULL)) {
+        return;
+    }
+
+    if (log_ctx->redis_setup.username != NULL) {
+        redisAsyncCommand(ctx->async, SCRedisAsyncAuthCallback, log_ctx, "AUTH %s %s",
+                log_ctx->redis_setup.username, log_ctx->redis_setup.password);
+    } else {
+        redisAsyncCommand(ctx->async, SCRedisAsyncAuthCallback, log_ctx, "AUTH %s",
+                log_ctx->redis_setup.password);
+    }
+    event_base_dispatch(ctx->ev_base);
 }
 
 /** \brief SCRedisAsyncEchoCommandCallback() Callback for an ECHO command reply
@@ -136,24 +190,35 @@ static void SCRedisAsyncEchoCommandCallback(redisAsyncContext *ac, void *r, void
     redisReply *reply = r;
     SCLogRedisContext * ctx = privdata;
 
-    if (reply) {
-       if (ctx->connected == 0) {
-          SCLogNotice("Connected to Redis.");
-          ctx->connected = 1;
-          ctx->tried = 0;
-       }
+    if (reply == NULL) {
+        if (ctx->tried == 0) {
+            SCLogWarning("Failed to connect to Redis... (will keep trying)");
+        }
+        ctx->state = REDIS_STATE_DISCONNECTED;
+        ctx->tried = time(NULL);
     } else {
-       ctx->connected = 0;
-       if (ctx->tried == 0) {
-           SCLogWarning("Failed to connect to Redis... (will keep trying)");
-       }
-       ctx->tried = time(NULL);
+        if (reply->type != REDIS_REPLY_ERROR) {
+            SCLogNotice("Connected to Redis.");
+            ctx->state = REDIS_STATE_CONNECTED;
+            ctx->tried = 0;
+        } else {
+            if (strncmp(reply->str, "NOAUTH", 6) == 0) {
+                if (ctx->tried == 0) {
+                    SCLogWarning("Redis authentication required, but not configured.");
+                }
+            } else {
+                if (ctx->tried == 0) {
+                    SCLogWarning("Redis ECHO command failed: %s", reply->str);
+                }
+            }
+            ctx->state = REDIS_STATE_ECHO_FAILED;
+            ctx->tried = time(NULL);
+        }
     }
     event_base_loopbreak(ctx->ev_base);
 }
 
-/** \brief SCRedisAsyncEchoCommandCallback() Callback for an QUIT command reply
- *         Emits and awaits response for an async ECHO command.
+/** \brief SCLogAsyncRedisSendEcho() - Emits and awaits response for an async ECHO command.
  *         It's used for check if redis is alive.
  *  \param ctx redis context
  */
@@ -181,7 +246,7 @@ static void SCRedisAsyncQuitCommandCallback(redisAsyncContext *ac, void *r, void
  */
 static void SCLogAsyncRedisSendQuit(SCLogRedisContext * ctx)
 {
-    if (ctx->connected) {
+    if (ctx->state != REDIS_STATE_DISCONNECTED) {
         redisAsyncCommand(ctx->async, SCRedisAsyncQuitCommandCallback, ctx, "QUIT");
         SCLogInfo("QUIT Command sent to redis. Connection will terminate!");
     }
@@ -191,7 +256,7 @@ static void SCLogAsyncRedisSendQuit(SCLogRedisContext * ctx)
     ctx->async = NULL;
     event_base_free(ctx->ev_base);
     ctx->ev_base = NULL;
-    ctx->connected = 0;
+    ctx->state = REDIS_STATE_DISCONNECTED;
 }
 
 /** \brief SCConfLogReopenAsyncRedis() Open or re-opens connection to redis for logging.
@@ -247,6 +312,16 @@ static int SCConfLogReopenAsyncRedis(LogFileCtx *log_ctx)
     return 0;
 }
 
+/** \brief SCLogAsyncRedisIsReady() Determines whether is ready to send data.
+ *  \param file_ctx Log file context allocated by caller
+ */
+static inline bool SCLogAsyncRedisIsReady(LogFileCtx *file_ctx)
+{
+    SCLogRedisContext *ctx = file_ctx->redis;
+
+    return file_ctx->redis_setup.password ? ctx->state == REDIS_STATE_AUTHENTICATED
+                                          : ctx->state == REDIS_STATE_CONNECTED;
+}
 
 /** \brief SCLogRedisWriteAsync() writes string to redis output in async mode
  *  \param file_ctx Log file context allocated by caller
@@ -256,17 +331,25 @@ static int SCLogRedisWriteAsync(LogFileCtx *file_ctx, const char *string, size_t
 {
     SCLogRedisContext *ctx = file_ctx->redis;
 
-    if (! ctx->connected) {
-        if (SCConfLogReopenAsyncRedis(file_ctx) == -1) {
-            return -1;
+    if (!SCLogAsyncRedisIsReady(file_ctx)) {
+        if (ctx->state == REDIS_STATE_DISCONNECTED) {
+            if (SCConfLogReopenAsyncRedis(file_ctx) == -1) {
+                return -1;
+            }
         }
         if (ctx->tried == 0) {
-           SCLogNotice("Trying to connect to Redis");
+            SCLogNotice("Trying to connect to Redis");
         }
-        SCLogAsyncRedisSendEcho(ctx);
+        if (file_ctx->redis_setup.password == NULL) {
+            // Just verify the connection is alive with ECHO
+            SCLogAsyncRedisSendEcho(ctx);
+        } else {
+            // Send AUTH to authenticate and verify the connection is alive
+            SCLogAsyncRedisSendAuth(file_ctx);
+        }
     }
 
-    if (!ctx->connected) {
+    if (!SCLogAsyncRedisIsReady(file_ctx)) {
         return -1;
     }
 
@@ -322,6 +405,47 @@ static int SCConfLogReopenSyncRedis(LogFileCtx *log_ctx)
         return -1;
     }
     SCLogInfo("Connected to redis server [%s].", log_ctx->redis_setup.server);
+
+    if (log_ctx->redis_setup.password != NULL) {
+        redisReply *reply;
+        if (log_ctx->redis_setup.username != NULL) {
+            reply = redisCommand(ctx->sync, "AUTH %s %s", log_ctx->redis_setup.username,
+                    log_ctx->redis_setup.password);
+        } else {
+            reply = redisCommand(ctx->sync, "AUTH %s", log_ctx->redis_setup.password);
+        }
+
+        if (reply == NULL || reply->type == REDIS_REPLY_ERROR) {
+            SCLogWarning("Redis AUTH failed: %s", reply ? reply->str : ctx->sync->errstr);
+            if (reply) {
+                freeReplyObject(reply);
+            }
+            redisFree(ctx->sync);
+            ctx->sync = NULL;
+            ctx->tried = time(NULL);
+            return -1;
+        }
+        freeReplyObject(reply);
+        SCLogInfo("Redis authenticated successfully.");
+    }
+
+    /* Check if we are really ready to write logs */
+    redisReply *reply = redisCommand(ctx->sync, "ECHO suricata");
+    if (reply == NULL || reply->type == REDIS_REPLY_ERROR) {
+        if (strncmp(reply->str, "NOAUTH", 6) == 0) {
+            SCLogWarning("Redis authentication required, but not configured.");
+        } else {
+            SCLogWarning("Redis ECHO failed: %s", reply ? reply->str : ctx->sync->errstr);
+        }
+        if (reply) {
+            freeReplyObject(reply);
+        }
+        redisFree(ctx->sync);
+        ctx->sync = NULL;
+        ctx->tried = time(NULL);
+        return -1;
+    }
+    freeReplyObject(reply);
 
     log_ctx->redis = ctx;
     log_ctx->Close = SCLogFileCloseRedis;
@@ -473,6 +597,8 @@ int SCConfLogOpenRedis(SCConfNode *redis_node, void *lf_ctx)
     if (redis_node) {
         log_ctx->redis_setup.server = SCConfNodeLookupChildValue(redis_node, "server");
         log_ctx->redis_setup.key = SCConfNodeLookupChildValue(redis_node, "key");
+        log_ctx->redis_setup.username = SCConfNodeLookupChildValue(redis_node, "username");
+        log_ctx->redis_setup.password = SCConfNodeLookupChildValue(redis_node, "password");
 
         redis_port = SCConfNodeLookupChildValue(redis_node, "port");
         redis_mode = SCConfNodeLookupChildValue(redis_node, "mode");
@@ -489,6 +615,10 @@ int SCConfLogOpenRedis(SCConfNode *redis_node, void *lf_ctx)
         redis_mode = "list";
     if (!log_ctx->redis_setup.key) {
         log_ctx->redis_setup.key = redis_default_key;
+    }
+    if (log_ctx->redis_setup.username && !log_ctx->redis_setup.password) {
+        SCLogWarning("Redis username configured without password; ignoring username.");
+        log_ctx->redis_setup.username = NULL;
     }
 
 #ifndef HAVE_LIBEVENT
@@ -585,7 +715,7 @@ void SCLogFileCloseRedis(LogFileCtx *log_ctx)
     if (log_ctx->redis_setup.is_async) {
 #if HAVE_LIBEVENT == 1
         if (ctx->async) {
-            if (ctx->connected > 0) {
+            if (ctx->state != REDIS_STATE_DISCONNECTED) {
                 SCLogAsyncRedisSendQuit(ctx);
             }
             if (ctx->ev_base != NULL) {
