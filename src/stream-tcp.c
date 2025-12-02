@@ -1065,22 +1065,26 @@ void StreamTcpSetOSPolicy(TcpStream *stream, Packet *p)
  *  \param stream stream to update
  *  \param ack ACK value to test and set
  */
-#define StreamTcpUpdateLastAck(ssn, stream, ack) { \
-    if (SEQ_GT((ack), (stream)->last_ack)) \
-    { \
-        SCLogDebug("ssn %p: last_ack set to %"PRIu32", moved %u forward", (ssn), (ack), (ack) - (stream)->last_ack); \
-        if ((SEQ_LEQ((stream)->last_ack, (stream)->next_seq) && SEQ_GT((ack),(stream)->next_seq))) { \
-            SCLogDebug("last_ack just passed next_seq: %u (was %u) > %u", (ack), (stream)->last_ack, (stream)->next_seq); \
-        } else { \
-            SCLogDebug("next_seq (%u) <> last_ack now %d", (stream)->next_seq, (int)(stream)->next_seq - (ack)); \
-        }\
-        (stream)->last_ack = (ack); \
-        StreamTcpSackPruneList((stream)); \
-    } else { \
-        SCLogDebug("ssn %p: no update: ack %u, last_ack %"PRIu32", next_seq %u (state %u)", \
-                    (ssn), (ack), (stream)->last_ack, (stream)->next_seq, (ssn)->state); \
-    }\
-}
+#define StreamTcpUpdateLastAck(ssn, stream, ack)                                                   \
+    {                                                                                              \
+        if (SEQ_GT((ack), (stream)->last_ack) && SEQ_GT(ack, (stream)->base_seq)) {                \
+            SCLogDebug("ssn %p: last_ack set to %" PRIu32 ", moved %u forward", (ssn), (ack),      \
+                    (ack) - (stream)->last_ack);                                                   \
+            if ((SEQ_LEQ((stream)->last_ack, (stream)->next_seq) &&                                \
+                        SEQ_GT((ack), (stream)->next_seq))) {                                      \
+                SCLogDebug("last_ack just passed next_seq: %u (was %u) > %u", (ack),               \
+                        (stream)->last_ack, (stream)->next_seq);                                   \
+            } else {                                                                               \
+                SCLogDebug("next_seq (%u) <> last_ack now %d", (stream)->next_seq,                 \
+                        (int)(stream)->next_seq - (ack));                                          \
+            }                                                                                      \
+            (stream)->last_ack = (ack);                                                            \
+            StreamTcpSackPruneList((stream));                                                      \
+        } else {                                                                                   \
+            SCLogDebug("ssn %p: no update: ack %u, last_ack %" PRIu32 ", next_seq %u (state %u)",  \
+                    (ssn), (ack), (stream)->last_ack, (stream)->next_seq, (ssn)->state);           \
+        }                                                                                          \
+    }
 
 #define StreamTcpAsyncLastAckUpdate(ssn, stream) {                              \
     if ((ssn)->flags & STREAMTCP_FLAG_ASYNC) {                                  \
