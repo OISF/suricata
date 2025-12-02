@@ -1535,6 +1535,20 @@ the default behavior).
 
 Each supported protocol has a dedicated subsection under ``protocols``.
 
+Default IPv6 address output format
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+IPv6 addresses are output in their long form by default. To output addresses in their shortened form,
+per RFC-5952, set the following configuration variable to ``yes``::
+
+  global:
+      ipv6-addr-shorten: yes
+
+Here's an example of a IPv6 address with its shortened value::
+
+  ``fe80:0000:0000:0000:020c:29ff:faf2:ab42``
+  ``fe80::20c:29ff:faf2:ab42``
+
 Asn1_max_frames
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
