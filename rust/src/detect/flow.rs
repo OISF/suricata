@@ -25,7 +25,6 @@ use std::ffi::CStr;
 #[allow(non_camel_case_types)]
 #[derive(PartialEq, Eq, Clone, Debug)]
 #[repr(u8)]
-/// This data structure is also used in detect-flow-pkts.c
 pub enum DetectFlowDir {
     DETECT_FLOW_TOSERVER = 1,
     DETECT_FLOW_TOCLIENT = 2,
@@ -128,6 +127,26 @@ fn detect_parse_flow_bytes_dir(i: &str, dir: DetectFlowDir) -> IResult<&str, Det
             dir,
         },
     ));
+}
+
+// Just a public wrapper around the direction parsing
+#[no_mangle]
+pub unsafe extern "C" fn SCDetectFlowDir(
+    dir_str: *const std::os::raw::c_char,
+) -> *mut DetectFlowDir {
+    let dir = CStr::from_ptr(dir_str);
+    if let Ok(d) = dir.to_str() {
+        if let Ok((_, parsed)) = detect_parse_flow_direction(d) {
+            let boxed = Box::new(parsed);
+            return Box::into_raw(boxed) as *mut _;
+        }
+    }
+    return std::ptr::null_mut();
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCDetectFlowDirFree(ctx: &mut DetectFlowDir) {
+    std::mem::drop(Box::from_raw(ctx));
 }
 
 #[no_mangle]
