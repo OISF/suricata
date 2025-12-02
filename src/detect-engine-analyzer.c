@@ -1076,6 +1076,27 @@ static void DumpMatches(RuleAnalyzer *ctx, SCJsonBuilder *js, const SigMatchData
                 SCJbClose(js);
                 break;
             }
+            case DETECT_FLOW_ELEPHANT: {
+                const DetectFlowDir *dfd = (const DetectFlowDir *)smd->ctx;
+                const uint8_t dir = *dfd;
+                SCJbOpenObject(js, "flow_elephant");
+                switch (dir) {
+                    case DETECT_FLOW_TOSERVER:
+                        SCJbSetString(js, "dir", "toserver");
+                        break;
+                    case DETECT_FLOW_TOCLIENT:
+                        SCJbSetString(js, "dir", "toclient");
+                        break;
+                    case DETECT_FLOW_TOEITHER:
+                        SCJbSetString(js, "dir", "either");
+                        break;
+                    case DETECT_FLOW_TOBOTH:
+                        SCJbSetString(js, "dir", "both");
+                        break;
+                }
+                SCJbClose(js);
+                break;
+            }
         }
         SCJbClose(js);
 
