@@ -2082,6 +2082,10 @@
                 "elephant": {
                     "type": "boolean"
                 },
+                "elephant_direction": {
+                    "type": "array",
+                    "description": "Direction(s) in which flow was found to be elephant"
+                },
                 "emergency": {
                     "type": "boolean"
                 },
@@ -7433,6 +7437,14 @@
                         "elephant": {
                             "type": "integer",
                             "description": "Total number of elephant flows"
+                        },
+                        "elephant_toclient": {
+                            "type": "integer",
+                            "description": "Total number of elephant flows in toclient direction"
+                        },
+                        "elephant_toserver": {
+                            "type": "integer",
+                            "description": "Total number of elephant flows in toserver direction"
                         },
                         "emerg_mode_entered": {
                             "type": "integer",
