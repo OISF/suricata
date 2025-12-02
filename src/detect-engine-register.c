@@ -121,6 +121,7 @@
 #include "detect-flow.h"
 #include "detect-flow-age.h"
 #include "detect-flow-pkts.h"
+#include "detect-flow-elephant.h"
 #include "detect-requires.h"
 #include "detect-tcp-window.h"
 #include "detect-tcp-wscale.h"
@@ -635,6 +636,7 @@ void SigTableSetup(void)
     DetectFlowBytesRegister();
     DetectFlowBytesToServerRegister();
     DetectFlowBytesToClientRegister();
+    DetectFlowElephantRegister();
     DetectRequiresRegister();
     DetectWindowRegister();
     DetectRpcRegister();
