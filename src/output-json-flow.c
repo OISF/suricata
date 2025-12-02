@@ -342,8 +342,10 @@ static void EveFlowLogJSON(OutputJsonThreadCtx *aft, SCJsonBuilder *jb, Flow *f)
     if (f->flags & FLOW_WRONG_THREAD)
         JB_SET_TRUE(jb, "wrong_thread");
 
-    if (f->flags & FLOW_IS_ELEPHANT)
-        JB_SET_TRUE(jb, "elephant");
+    if (f->flags & FLOW_IS_ELEPHANT_TOSERVER)
+        JB_SET_TRUE(jb, "elephant_toserver");
+    if (f->flags & FLOW_IS_ELEPHANT_TOCLIENT)
+        JB_SET_TRUE(jb, "elephant_toclient");
 
     if (f->flags & FLOW_ACTION_DROP) {
         JB_SET_STRING(jb, "action", "drop");

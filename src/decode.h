@@ -1038,7 +1038,8 @@ typedef struct DecodeThreadVars_
     StatsCounterId counter_flow_icmp4;
     StatsCounterId counter_flow_icmp6;
     StatsCounterId counter_flow_tcp_reuse;
-    StatsCounterId counter_flow_elephant;
+    StatsCounterId counter_flow_elephant_toserver;
+    StatsCounterId counter_flow_elephant_toclient;
     StatsCounterId counter_flow_get_used;
     StatsCounterId counter_flow_get_used_eval;
     StatsCounterId counter_flow_get_used_eval_reject;
