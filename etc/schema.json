@@ -2079,7 +2079,10 @@
                 "dest_port": {
                     "type": "integer"
                 },
-                "elephant": {
+                "elephant_toclient": {
+                    "type": "boolean"
+                },
+                "elephant_toserver": {
                     "type": "boolean"
                 },
                 "emergency": {
@@ -7360,9 +7363,13 @@
                             "type": "integer",
                             "description": "Number of currently active flows"
                         },
-                        "elephant": {
+                        "elephant_toclient": {
                             "type": "integer",
-                            "description": "Total number of elephant flows"
+                            "description": "Total number of elephant flows in toclient direction"
+                        },
+                        "elephant_toserver": {
+                            "type": "integer",
+                            "description": "Total number of elephant flows in toserver direction"
                         },
                         "emerg_mode_entered": {
                             "type": "integer",
