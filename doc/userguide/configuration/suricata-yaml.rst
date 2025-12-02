@@ -2087,6 +2087,9 @@ Default Configuration Example
     # This value is overridden by the SC_LOG_LEVEL env var.
     default-log-level: notice
 
+    # Shorten IPv6 addresses per RFC5952 before logging. The default is no
+    #ipv6-addr-shorten: no
+
     # The default output format.  Optional parameter, should default to
     # something reasonable if not provided.  Can be overridden in an
     # output section.  You can leave this out to get the default.
@@ -2185,6 +2188,14 @@ The last three options, f, l and n, are mainly convenient for developers.
 
 The log-format can be overridden in the command line by the
 environment variable: ``SC_LOG_FORMAT``.
+
+Default IPv6 address output format
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+IPv6 addresses are output in their long form by default. To output addresses in their shortened form,
+per RFC-5952, set the following configuration variable to ``yes``::
+
+  ipv6-addr-shorten: yes
 
 Output Filter
 ~~~~~~~~~~~~~
