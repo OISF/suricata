@@ -47,6 +47,11 @@ Logging Changes
   E.g., previously, ``ether_type`` values were logged in host order;  an ethertype value of ``0xfbb7``
   (network order) was logged as `47099`` (``0xb7fb``). This ethertype value will be logged as ``64439``.
 
+- The output format for IPv6 addresses can be configured. By default, they are presented in their
+  long form. e.g, ``fe80:0000:0000:0000:020c:29ff:faf2:ab42``. There's a configuration variable
+  that will cause the short form, per RFC 5952 to be output: ``fe80::20c:29ff:faf2:ab42`` instead.
+  Set ``logging.ipv6-addr-shorten=yes`` for short form IPv6 addresses in all output.
+
 Other Changes
 ~~~~~~~~~~~~~
 - ``engine-analysis`` output has been changed for keywords that now use the generic integers framework
