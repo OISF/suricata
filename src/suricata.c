@@ -3000,6 +3000,15 @@ int InitGlobal(void)
 
 void SuricataPreInit(const char *progname)
 {
+    UtilCpuEnableSparcMisalignEmulation();
+    /*
+     * 'ta 6' tells the kernel to synthesize any unaligned accesses this process
+     * makes, instead of just signalling an error and terminating the process.
+     */
+#ifdef __sparc
+    __asm("ta 6");
+#endif
+
     SCInstanceInit(&suricata, progname);
 
     if (InitGlobal() != 0) {
@@ -3129,7 +3138,7 @@ void SuricataPostInit(void)
 #endif
 
     if (limit_nproc) {
-#if defined(HAVE_SYS_RESOURCE_H)
+#if defined(HAVE_SYS_RESOURCE_H) && defined(RLIMIT_NPROC)
 #ifdef linux
         if (geteuid() == 0) {
             SCLogWarning("setrlimit has no effect when running as root.");
