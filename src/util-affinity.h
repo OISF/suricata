@@ -75,7 +75,7 @@ typedef struct ThreadsAffinityType_ {
     struct ThreadsAffinityType_ *parent; // e.g. worker-cpu-set for interfaces
     SCMutex taf_mutex;
 
-#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun
+#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined __sun
     cpu_set_t cpu_set;
     cpu_set_t lowprio_cpu;
     cpu_set_t medprio_cpu;

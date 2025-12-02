@@ -244,7 +244,7 @@ enum {
     unsigned long _scgetthread_tid = (unsigned long)tpid; \
     _scgetthread_tid; \
 })
-#elif defined(sun)
+#elif defined(__sun)
 #include <thread.h>
 #define SCGetThreadIdLong(...) ({ \
     thread_t tmpthid = thr_self(); \
@@ -302,9 +302,7 @@ extern thread_local char t_thread_name[THREAD_NAME_LEN + 1];
             SCLogDebug("Error setting thread name \"%s\": %s", tname, strerror(errno));            \
     })
 #else
-#define SCSetThreadName(n) ({ \
-    strlcpy(t_thread_name, n, sizeof(t_thread_name)); \
-}
+#define SCSetThreadName(n) ({ strlcpy(t_thread_name, n, sizeof(t_thread_name)); })
 #endif
 
 

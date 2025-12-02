@@ -28,30 +28,16 @@
 #include "util-syslog.h"
 
 /* holds the string-enum mapping for the syslog facility in SCLogOPIfaceCtx */
-SCEnumCharMap sc_syslog_facility_map[] = {
-    { "auth",           LOG_AUTH },
-    { "authpriv",       LOG_AUTHPRIV },
-    { "cron",           LOG_CRON },
-    { "daemon",         LOG_DAEMON },
-    { "ftp",            LOG_FTP },
-    { "kern",           LOG_KERN },
-    { "lpr",            LOG_LPR },
-    { "mail",           LOG_MAIL },
-    { "news",           LOG_NEWS },
-    { "security",       LOG_AUTH },
-    { "syslog",         LOG_SYSLOG },
-    { "user",           LOG_USER },
-    { "uucp",           LOG_UUCP },
-    { "local0",         LOG_LOCAL0 },
-    { "local1",         LOG_LOCAL1 },
-    { "local2",         LOG_LOCAL2 },
-    { "local3",         LOG_LOCAL3 },
-    { "local4",         LOG_LOCAL4 },
-    { "local5",         LOG_LOCAL5 },
-    { "local6",         LOG_LOCAL6 },
-    { "local7",         LOG_LOCAL7 },
-    { NULL,             -1         }
-};
+SCEnumCharMap sc_syslog_facility_map[] = { { "auth", LOG_AUTH }, { "authpriv", LOG_AUTHPRIV },
+    { "cron", LOG_CRON }, { "daemon", LOG_DAEMON },
+#if defined(LOG_FTP)
+    { "ftp", LOG_FTP },
+#endif
+    { "kern", LOG_KERN }, { "lpr", LOG_LPR }, { "mail", LOG_MAIL }, { "news", LOG_NEWS },
+    { "security", LOG_AUTH }, { "syslog", LOG_SYSLOG }, { "user", LOG_USER }, { "uucp", LOG_UUCP },
+    { "local0", LOG_LOCAL0 }, { "local1", LOG_LOCAL1 }, { "local2", LOG_LOCAL2 },
+    { "local3", LOG_LOCAL3 }, { "local4", LOG_LOCAL4 }, { "local5", LOG_LOCAL5 },
+    { "local6", LOG_LOCAL6 }, { "local7", LOG_LOCAL7 }, { NULL, -1 } };
 
 /** \brief returns the syslog facility enum map */
 SCEnumCharMap *SCSyslogGetFacilityMap(void)
