@@ -2079,7 +2079,10 @@
                 "dest_port": {
                     "type": "integer"
                 },
-                "elephant": {
+                "elephant_toserver": {
+                    "type": "boolean"
+                },
+                "elephant_toclient": {
                     "type": "boolean"
                 },
                 "emergency": {
