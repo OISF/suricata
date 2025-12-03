@@ -154,11 +154,12 @@ What branch to work on
 There are 2 or 3 active branches:
 
     * main-x.x.x (e.g. main-7.0.x)
+    * main-x.x.x (e.g. main-8.0.x)
     * main
 
-The former is a stable branch. The latter is the development branch.
+The first two are stable branches. The latter is the development branch.
 
-The stable branch should only be worked on for important bug fixes. Those are
+Stable branches should only be worked on for important bug fixes. Those are
 mainly expected from more experienced contributors.
 
 Development of new features or large scale redesign is done in the development
