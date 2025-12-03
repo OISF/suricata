@@ -25,6 +25,7 @@
 #define SURICATA_UTIL_DEBUG_H
 
 #include "util-error.h"
+#include "util-enum.h"
 
 /**
  * \brief The various log levels
@@ -43,6 +44,8 @@ typedef enum {
     SC_LOG_DEBUG,
     SC_LOG_LEVEL_MAX,
 } SCLogLevel;
+
+extern SCEnumCharMap sc_log_level_map[];
 
 SCError SCLogMessage(const SCLogLevel, const char *, const unsigned int, const char *, const char *,
         const char *message);
