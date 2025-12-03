@@ -3001,13 +3001,6 @@ int InitGlobal(void)
 void SuricataPreInit(const char *progname)
 {
     UtilCpuEnableSparcMisalignEmulation();
-    /*
-     * 'ta 6' tells the kernel to synthesize any unaligned accesses this process
-     * makes, instead of just signalling an error and terminating the process.
-     */
-#ifdef __sparc
-    __asm("ta 6");
-#endif
 
     SCInstanceInit(&suricata, progname);
 
