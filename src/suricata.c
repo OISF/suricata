@@ -121,6 +121,7 @@
 #include "util-device-private.h"
 #include "util-dpdk.h"
 #include "util-ebpf.h"
+#include "util-enum.h"
 #include "util-exception-policy.h"
 #include "util-host-os-info.h"
 #include "util-hugepages.h"
@@ -3066,7 +3067,8 @@ void SuricataInit(void)
         SCLogInfo("Running suricata under test mode");
 
     if (suricata.verbose) {
-        SCLogInfo("Running with verbose level %d", suricata.verbose);
+        SCLogInfo(
+                "Running with verbose level %s", SCLogLevel2Name(suricata.verbose + SC_LOG_NOTICE));
     }
 
     if (ParseInterfacesList(suricata.aux_run_mode, suricata.pcap_dev) != TM_ECODE_OK) {
