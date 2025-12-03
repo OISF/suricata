@@ -1068,6 +1068,11 @@ static inline void SCLogSetLogLevel(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
     sc_log_global_log_level = sc_lc->log_level;
 }
 
+const char *SCLogLevel2Name(const SCLogLevel lvl)
+{
+    return SCMapEnumValueToName(lvl, sc_log_level_map);
+}
+
 SCLogLevel SCLogGetLogLevel(void)
 {
     return sc_log_global_log_level;
