@@ -26,6 +26,8 @@
 #include "suricata-common.h"
 #include "suricata.h"
 
+#include "util-debug.h"
+
 #ifdef BUILD_HYPERSCAN
 #include "util-hyperscan.h"
 
@@ -54,6 +56,17 @@ char *HSRenderPattern(const uint8_t *pat, uint16_t pat_len)
     }
     *sp = '\0';
     return str;
+}
+
+void HSLogCompileError(char *expr, hs_compile_error_t *compile_err, hs_error_t err)
+{
+    SCLogError("Unable to compile '%s' with Hyperscan, "
+               "returned %d.",
+            expr, err);
+    if (compile_err) {
+        SCLogError("compile error: %s", compile_err->message);
+        hs_free_compile_error(compile_err);
+    }
 }
 
 #endif /* BUILD_HYPERSCAN */
