@@ -2448,13 +2448,21 @@ int SCStartInternalRunMode(int argc, char **argv)
     return TM_ECODE_OK;
 }
 
-int SCFinalizeRunMode(void)
+int SCFinalizeRunMode(int argc)
 {
     SCInstance *suri = &suricata;
+
     switch (suri->run_mode) {
         case RUNMODE_UNKNOWN:
+            /* Only warn if user passed arguments */
+            if (argc > 1) {
+                SCLogWarning("Please specify a runmode or capture option. "
+                             "Use --list-runmodes to see available runmodes.");
+            }
+
             PrintUsage(suri->progname);
             return TM_ECODE_FAILED;
+
         default:
             break;
     }
