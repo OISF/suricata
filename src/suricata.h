@@ -232,7 +232,7 @@ int InitGlobal(void);
 void GlobalsDestroy(void);
 int PostConfLoadedSetup(SCInstance *suri);
 void PostConfLoadedDetectSetup(SCInstance *suri);
-int SCFinalizeRunMode(void);
+int SCFinalizeRunMode(int argc);
 TmEcode SCParseCommandLine(int argc, char **argv);
 int SCStartInternalRunMode(int argc, char **argv);
 TmEcode SCLoadYamlConfig(void);
