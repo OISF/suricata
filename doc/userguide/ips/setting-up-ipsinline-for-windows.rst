@@ -4,17 +4,10 @@ Setting up IPS/inline for Windows
 This guide explains how to work with Suricata in layer 4 inline mode using
 WinDivert on Windows.
 
-First start by compiling Suricata with WinDivert support. For instructions, see
-`Windows Installation
-<https://redmine.openinfosecfoundation.org/attachments/download/1175/SuricataWinInstallationGuide_v1.4.3.pdf>`_.
-This documentation has not yet been updated with WinDivert information, so make
-sure to add the following flags before configuring Suricata with ``configure``:
+First start by compiling Suricata with WinDivert support.
+For building instructions, see :doc:`../install/windows`.
 
-::
-  
-  --enable-windivert=yes --with-windivert-include=<include-dir> --with-windivert-libraries=<libraries-dir>
-
-WinDivert.dll and WinDivert.sys must be in the same directory as the Suricata
+``WinDivert.dll`` and ``WinDivert.sys`` must be in the same directory as the Suricata
 executable. WinDivert automatically installs the driver when it is run. For more
 information about WinDivert, see https://www.reqrypt.org/windivert-doc.html.
 
