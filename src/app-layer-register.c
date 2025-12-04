@@ -36,7 +36,8 @@
 
 static const char * IpProtoToString(int ip_proto);
 
-AppProto AppLayerRegisterProtocolDetection(const struct AppLayerParser *p, int enable_default)
+AppProto SCAppLayerRegisterProtocolDetection(
+        const struct AppLayerProtocolDetect *p, int enable_default)
 {
     AppProto alproto;
     const char *ip_proto_str = NULL;
