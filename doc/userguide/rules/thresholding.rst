@@ -123,9 +123,9 @@ Syntax::
 
     threshold: type backoff, track by_flow, count <C>, multiplier <M>;
 
-``track``: backoff is only supported for ``by_flow``
-``count``: number of alerts before the first match generates an alert.
-``multiplier``: value to multiply ``count`` with each time the next value is reached
+* ``track``: backoff is only supported for ``by_flow``
+* ``count``: number of alerts before the first match generates an alert.
+* ``multiplier``: value to multiply ``count`` with each time the next value is reached
 
 A count of 1 with a multiplier of 10 would generate alerts for matching packets::
 
