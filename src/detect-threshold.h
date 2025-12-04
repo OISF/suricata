@@ -60,7 +60,7 @@ typedef struct DetectThresholdData_ {
     uint8_t new_action; /**< new_action alert|drop|pass|log|sdrop|reject */
     uint32_t timeout;   /**< timeout */
     uint32_t flags;     /**< flags used to set option */
-    uint32_t multiplier; /**< backoff multiplier */
+    uint16_t multiplier; /**< backoff multiplier */
     DetectAddressHead addrs;
 } DetectThresholdData;
 
