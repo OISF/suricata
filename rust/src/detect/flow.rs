@@ -29,6 +29,7 @@ pub enum DetectFlowDir {
     DETECT_FLOW_TOSERVER = 1,
     DETECT_FLOW_TOCLIENT = 2,
     DETECT_FLOW_TOEITHER = 3,
+    DETECT_FLOW_TOBOTH = 4,
 }
 
 #[derive(Debug, PartialEq)]
@@ -52,6 +53,7 @@ fn detect_parse_flow_direction(i: &str) -> IResult<&str, DetectFlowDir> {
         value(DetectFlowDir::DETECT_FLOW_TOSERVER, tag("toserver")),
         value(DetectFlowDir::DETECT_FLOW_TOCLIENT, tag("toclient")),
         value(DetectFlowDir::DETECT_FLOW_TOEITHER, tag("either")),
+        value(DetectFlowDir::DETECT_FLOW_TOBOTH, tag("both")),
     ))
     .parse(i)?;
     return Ok((i, fd));
