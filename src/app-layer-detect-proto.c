@@ -1837,6 +1837,11 @@ bool AppLayerRequestProtocolChange(Flow *f, uint16_t dp, AppProto expect_proto)
     return true;
 }
 
+bool SCAppLayerRequestProtocolChangeUnknown(Flow *f, uint16_t dp)
+{
+    return AppLayerRequestProtocolChange(f, dp, ALPROTO_UNKNOWN);
+}
+
 /** \brief request applayer to wrap up this protocol and rerun protocol
  *         detection with expectation of TLS. Used by STARTTLS.
  *
