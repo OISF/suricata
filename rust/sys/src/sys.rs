@@ -939,6 +939,32 @@ extern "C" {
 extern "C" {
     pub fn FileApplyTxFlags(txd: *const AppLayerTxData, direction: u8, file: *mut File);
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct AppLayerDetect {
+    pub name: *const ::std::os::raw::c_char,
+    pub default_port: *const ::std::os::raw::c_char,
+    pub ip_proto: u8,
+    pub ProbeTS: ProbingParserFPtr,
+    pub ProbeTC: ProbingParserFPtr,
+    pub min_depth: u16,
+    pub max_depth: u16,
+}
+impl Default for AppLayerDetect {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+extern "C" {
+    #[doc = " \\brief App layer protocol detection function.\n\n \\param parser The parser declaration structure.\n \\param enable_default A boolean to indicate if default port configuration should be used if none given\n\n \\retval The AppProto constant if successful. On error, this function never returns."]
+    pub fn SCAppLayerRegisterProtocolDetection(
+        parser: *const AppLayerDetect, enable_default: ::std::os::raw::c_int,
+    ) -> AppProto;
+}
 extern "C" {
     pub fn SCAppLayerRegisterParserAlias(
         proto_name: *const ::std::os::raw::c_char, proto_alias: *const ::std::os::raw::c_char,

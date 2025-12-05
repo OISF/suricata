@@ -78,6 +78,16 @@ typedef struct AppLayerParser {
     AppLayerParserGetStateNameByIdFn GetStateNameById;
 } AppLayerParser;
 
+typedef struct AppLayerDetect {
+    const char *name;
+    const char *default_port;
+    uint8_t ip_proto;
+    ProbingParserFPtr ProbeTS;
+    ProbingParserFPtr ProbeTC;
+    uint16_t min_depth;
+    uint16_t max_depth;
+} AppLayerDetect;
+
 /**
  * \brief App layer protocol detection function.
  *
@@ -86,7 +96,8 @@ typedef struct AppLayerParser {
  *
  * \retval The AppProto constant if successful. On error, this function never returns.
  */
-AppProto AppLayerRegisterProtocolDetection(const struct AppLayerParser *parser, int enable_default);
+AppProto SCAppLayerRegisterProtocolDetection(
+        const struct AppLayerDetect *parser, int enable_default);
 
 /**
  * \brief App layer protocol registration function.
