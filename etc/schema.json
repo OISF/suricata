@@ -3754,6 +3754,34 @@
                     "type": "object",
                     "description":"Observational statistics for packet capture module",
                     "properties": {
+                        "afpacket": {
+                            "type": "object",
+                            "description": "Statistics for AF_PACKET capture module",
+                            "additionalProperties": false,
+                            "properties": {
+                                "busy_loop_avg": {
+                                    "type": "integer"
+                                },
+                                "poll_data": {
+                                    "type": "integer"
+                                },
+                                "poll_errors": {
+                                    "type": "integer"
+                                },
+                                "poll_signal": {
+                                    "type": "integer"
+                                },
+                                "poll_timeout": {
+                                    "type": "integer"
+                                },
+                                "polls": {
+                                    "type": "integer"
+                                },
+                                "send_errors": {
+                                    "type": "integer"
+                                }
+                            }
+                        },
                         "kernel_packets": {
                             "type": "integer"
                         },
