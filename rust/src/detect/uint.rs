@@ -50,13 +50,20 @@ pub struct DetectUintData<T> {
     pub mode: DetectUintMode,
 }
 
+#[repr(C)]
+#[derive(Debug, PartialEq)]
+pub struct DetectUintIndexPrecise {
+    pub oob: bool,
+    pub pos: i32,
+}
+
 #[derive(Debug, PartialEq)]
 pub enum DetectUintIndex {
     Any,
     AllOrAbsent,
     All,
     OrAbsent,
-    Index((bool, i32)),
+    Index(DetectUintIndexPrecise),
     NumberMatches(DetectUintData<u32>),
     Count(DetectUintData<u32>),
 }
@@ -74,7 +81,13 @@ fn parse_uint_index_precise(s: &str) -> IResult<&str, DetectUintIndex> {
     let (s, oob) = opt(tag("oob_or")).parse(s)?;
     let (s, _) = opt(is_a(" ")).parse(s)?;
     let (s, i32_index) = nom_i32.parse(s)?;
-    Ok((s, DetectUintIndex::Index((oob.is_some(), i32_index))))
+    Ok((
+        s,
+        DetectUintIndex::Index(DetectUintIndexPrecise {
+            oob: oob.is_some(),
+            pos: i32_index,
+        }),
+    ))
 }
 
 fn parse_uint_index_nb(s: &str) -> IResult<&str, DetectUintIndex> {
@@ -112,7 +125,8 @@ fn parse_uint_subslice(parts: &[&str]) -> Option<(i32, i32)> {
     return Some((start, end));
 }
 
-fn parse_uint_count(s: &str) -> IResult<&str, DetectUintData<u32>> {
+fn parse_multi_count(s: &str) -> IResult<&str, DetectUintData<u32>> {
+    let (s, _) = opt(is_a(" ")).parse(s)?;
     let (s, _) = tag("count").parse(s)?;
     let (s, _) = opt(is_a(" ")).parse(s)?;
     let (s, du32) = detect_parse_uint::<u32>(s)?;
@@ -129,7 +143,7 @@ fn parse_uint_index(parts: &[&str]) -> Option<DetectUintIndex> {
             // not only a literal, but some numeric value
             _ => return parse_uint_index_val(parts[1]),
         }
-    } else if let Ok((_, du)) = parse_uint_count(parts[0]) {
+    } else if let Ok((_, du)) = parse_multi_count(parts[0]) {
         DetectUintIndex::Count(du)
     } else {
         DetectUintIndex::Any
@@ -320,15 +334,15 @@ pub(crate) fn detect_uint_match_at_index<T, U: DetectIntType>(
             }
             return 0;
         }
-        DetectUintIndex::Index((oob, idx)) => {
-            let index = if *idx < 0 {
+        DetectUintIndex::Index(prec) => {
+            let index = if prec.pos < 0 {
                 // negative values for backward indexing.
-                ((subslice.len() as i32) + idx) as usize
+                ((subslice.len() as i32) + prec.pos) as usize
             } else {
-                *idx as usize
+                prec.pos as usize
             };
             if subslice.len() <= index {
-                if *oob && eof {
+                if prec.oob && eof {
                     return 1;
                 }
                 return 0;
@@ -986,6 +1000,91 @@ pub unsafe extern "C" fn SCDetectU16Match(
 pub unsafe extern "C" fn SCDetectU16Free(ctx: &mut DetectUintData<u16>) {
     // Just unbox...
     std::mem::drop(Box::from_raw(ctx));
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCDetectMultiCountParse(ustr: *const std::os::raw::c_char) -> *mut c_void {
+    let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
+    if let Ok(s) = ft_name.to_str() {
+        if let Ok((_, ctx)) = parse_multi_count(s) {
+            let boxed = Box::new(ctx);
+            return Box::into_raw(boxed) as *mut c_void;
+        }
+    }
+    return std::ptr::null_mut();
+}
+
+/// just a u8 for FFI
+#[derive(PartialEq, Eq, Clone, Debug)]
+#[repr(u8)]
+pub enum DetectMultiIndex {
+    DetectMultiIndexAny,
+    DetectMultiIndexAbsentOr,
+    DetectMultiIndexAll,
+    DetectMultiIndexAllOrAbsent,
+    DetectMultiIndexNb,
+    DetectMultiIndexPrecise,
+    DetectMultiIndexError,
+}
+
+impl DetectUintIndex {
+    // just borrow
+    fn index(&self) -> DetectMultiIndex {
+        match self {
+            DetectUintIndex::All => DetectMultiIndex::DetectMultiIndexAll,
+            DetectUintIndex::AllOrAbsent => DetectMultiIndex::DetectMultiIndexAllOrAbsent,
+            DetectUintIndex::Any => DetectMultiIndex::DetectMultiIndexAny,
+            DetectUintIndex::OrAbsent => DetectMultiIndex::DetectMultiIndexAbsentOr,
+            DetectUintIndex::NumberMatches(_) => DetectMultiIndex::DetectMultiIndexNb,
+            DetectUintIndex::Index(_) => DetectMultiIndex::DetectMultiIndexPrecise,
+            DetectUintIndex::Count(_) => DetectMultiIndex::DetectMultiIndexError,
+        }
+    }
+
+    // take ownership and move
+    fn into_box(self) -> *mut c_void {
+        match self {
+            DetectUintIndex::NumberMatches(du32) => {
+                let boxed = Box::new(du32);
+                Box::into_raw(boxed) as *mut c_void
+            }
+            DetectUintIndex::Index(prec) => {
+                let boxed = Box::new(prec);
+                Box::into_raw(boxed) as *mut c_void
+            }
+            _ => std::ptr::null_mut(),
+        }
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCDetectMultiIndexFree(ctx: &mut DetectUintIndexPrecise) {
+    std::mem::drop(Box::from_raw(ctx));
+}
+
+fn parse_multi_index(s: &str) -> Option<DetectUintIndex> {
+    match s {
+        "all" => Some(DetectUintIndex::All),
+        "all_or_absent" => Some(DetectUintIndex::AllOrAbsent),
+        "any" => Some(DetectUintIndex::Any),
+        "absent_or" => Some(DetectUintIndex::OrAbsent),
+        // not only a literal, but some numeric value
+        _ => return parse_uint_index_val(s),
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCDetectMultiIndexParse(
+    ustr: *const std::os::raw::c_char, it: *mut DetectMultiIndex,
+) -> *mut c_void {
+    let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
+    if let Ok(s) = ft_name.to_str() {
+        if let Some(ctx) = parse_multi_index(s) {
+            *it = ctx.index();
+            return ctx.into_box();
+        }
+    }
+    return std::ptr::null_mut();
 }
 
 #[cfg(test)]
