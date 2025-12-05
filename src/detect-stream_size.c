@@ -218,14 +218,7 @@ static int PrefilterSetupStreamSize(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 
 static bool PrefilterStreamSizeIsPrefilterable(const Signature *s)
 {
-    const SigMatch *sm;
-    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
-        switch (sm->type) {
-            case DETECT_STREAM_SIZE:
-                return true;
-        }
-    }
-    return false;
+    return PrefilterIsPrefilterableById(s, DETECT_STREAM_SIZE);
 }
 
 #ifdef UNITTESTS
