@@ -40,6 +40,11 @@ static int DetectFlowPktsMatch(
             return 1;
         }
         return DetectU32Match(p->flow->todstpktcnt, &df->pkt_data);
+    } else if (df->dir == DETECT_FLOW_TOBOTH) {
+        if (DetectU32Match(p->flow->tosrcpktcnt, &df->pkt_data) &&
+                DetectU32Match(p->flow->todstpktcnt, &df->pkt_data)) {
+            return 1;
+        }
     }
     return 0;
 }
@@ -209,6 +214,11 @@ static int DetectFlowBytesMatch(
             return 1;
         }
         return DetectU64Match(p->flow->todstbytecnt, &df->byte_data);
+    } else if (df->dir == DETECT_FLOW_TOBOTH) {
+        if (DetectU64Match(p->flow->tosrcbytecnt, &df->byte_data) &&
+                DetectU64Match(p->flow->todstbytecnt, &df->byte_data)) {
+            return 1;
+        }
     }
     return 0;
 }
