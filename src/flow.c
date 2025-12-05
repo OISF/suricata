@@ -351,7 +351,9 @@ static inline void FlowUpdateFlowRate(
 {
     if (FlowRateStorageEnabled()) {
         /* No need to update the struct if flow is already marked as elephant flow */
-        if (f->flags & FLOW_IS_ELEPHANT)
+        if ((dir == TOSERVER) && (f->flags & FLOW_IS_ELEPHANT_TOSERVER))
+            return;
+        if ((dir == TOCLIENT) && (f->flags & FLOW_IS_ELEPHANT_TOCLIENT))
             return;
         FlowRateStore *frs = FlowGetStorageById(f, FlowRateGetStorageID());
         if (frs != NULL) {
@@ -361,7 +363,11 @@ static inline void FlowUpdateFlowRate(
                 SCLogDebug("Flow rate for flow %p exceeds the configured values, marking it as an "
                            "elephant flow",
                         f);
-                f->flags |= FLOW_IS_ELEPHANT;
+                if (dir == TOSERVER) {
+                    f->flags |= FLOW_IS_ELEPHANT_TOSERVER;
+                } else {
+                    f->flags |= FLOW_IS_ELEPHANT_TOCLIENT;
+                }
                 if (tv != NULL) {
                     StatsCounterIncr(&tv->stats, dtv->counter_flow_elephant);
                 }

@@ -56,12 +56,11 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOW_TC_APP_UPDATE_NEXT BIT_U32(2)
 
 /** Flow is marked an elephant flow */
-#define FLOW_IS_ELEPHANT BIT_U32(3)
+#define FLOW_IS_ELEPHANT_TOSERVER BIT_U32(3)
+#define FLOW_IS_ELEPHANT_TOCLIENT BIT_U32(4)
 
 /** All packets in this flow should be accepted */
-#define FLOW_ACTION_ACCEPT BIT_U32(4)
-
-// vacancy bit 5
+#define FLOW_ACTION_ACCEPT BIT_U32(5)
 
 /** Packet payloads belonging to this flow should not be inspected */
 #define FLOW_NOPAYLOAD_INSPECTION       BIT_U32(6)

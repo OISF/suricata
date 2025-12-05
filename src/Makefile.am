@@ -171,6 +171,7 @@ noinst_HEADERS = \
 	detect-flow-age.h \
 	detect-flow-pkts.h \
 	detect-flow.h \
+	detect-flow-elephant.h \
 	detect-flowbits.h \
 	detect-flowint.h \
 	detect-flowvar.h \
@@ -771,6 +772,7 @@ libsuricata_c_a_SOURCES = \
 	detect-flow-age.c \
 	detect-flow-pkts.c \
 	detect-flow.c \
+	detect-flow-elephant.c \
 	detect-flowbits.c \
 	detect-flowint.c \
 	detect-flowvar.c \
