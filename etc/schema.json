@@ -5293,10 +5293,12 @@
                     "description": "Performance statistics for global memory use and memory capacity for FTP app-layer parser",
                     "properties": {
                         "memcap": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Global memory capacity reached for FTP parser"
                         },
                         "memuse": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Global memory usage for FTP parser"
                         }
                     },
                     "additionalProperties": false
@@ -5306,10 +5308,12 @@
                     "description": "Performance statistics for global memory use and memory capacity for HTTP app-layer parser",
                     "properties": {
                         "memcap": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Global memory capacity reached for HTTP parser"
                         },
                         "memuse": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Global memory usage for HTTP parser"
                         }
                     },
                     "additionalProperties": false
