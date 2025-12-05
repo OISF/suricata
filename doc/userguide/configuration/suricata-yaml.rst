@@ -1536,7 +1536,7 @@ the default behavior).
 Each supported protocol has a dedicated subsection under ``protocols``.
 
 Asn1_max_frames
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~
 
 Asn1 (`Abstract Syntax One
 <http://en.wikipedia.org/wiki/Abstract_Syntax_Notation_One>`_) is a
@@ -2024,7 +2024,7 @@ default is 1 MB.
         max-msg-length: 1mb
 
 SMTP
-~~~~~~
+~~~~
 
 SMTP parsers can extract files from attachments.
 It is also possible to extract raw conversations as files with the
@@ -3091,6 +3091,32 @@ to display the diagnostic message if a signal unexpectedly terminates Suricata -
         # message with the offending stacktrace if enabled.
         #stacktrace-on-signal: on
 
+
+subslice
+~~~~~~~~
+
+The subslice transform works on an input buffer and accepts two options to specify
+the ``offset`` and ``nbytes`` value to specify the subslice of the input buffer to
+produce. If the ``offset`` and ``nbytes`` value *exceeds* the input buffer length,
+the transform has two options. Option 1 is to produce an empty buffer since the subslice
+options can't apply. The second option is to truncate the input buffer and apply
+the subslice as though ``offset`` and ``nbytes`` *matched the buffer length*.This behavior
+is controlled by a configuration variable ``subslice.truncate``. The default value is ``yes``
+to truncate the input buffer. If set to ``no``, when the values exceed the buffer
+length, ``bsize:0`` would match.
+
+::
+
+    # Indicate subslice transform behavior if the buffer is smaller
+    # than offset + nbytes.
+    # The subslice transform accepts 2 parameters -- offset and nbytes.
+    # When nbytes + offset exceeds the buffer, the transform can
+    # - Do nothing
+    # - Truncate the subslice by adjusting nbytes so nbytes + offset = input buffer len
+    # The default is to truncate (on). Set to off to not truncate and produce an
+    # empty buffer (bsize:0 will match).
+    subslice:
+      truncate: on
 
 .. _deprecation policy: https://suricata.io/about/deprecation-policy/
 
