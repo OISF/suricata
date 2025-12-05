@@ -14,6 +14,7 @@
 #include "conf-yaml-loader.h"
 #include "util-conf.h"
 #include "rust.h"
+#include "nallocinc.c"
 
 #define HEADER_LEN 6
 
@@ -42,11 +43,13 @@ SC_ATOMIC_EXTERN(unsigned int, engine_stage);
 
 int LLVMFuzzerInitialize(int *argc, char ***argv)
 {
-    target_suffix = strrchr((*argv)[0], '_');
+    target_suffix = getenv("FUZZ_APPLAYER");
     // else
     if (!target_suffix) {
-        target_suffix = getenv("FUZZ_APPLAYER");
+        target_suffix = strrchr((*argv)[0], '_');
     }
+    nalloc_init((*argv)[0]);
+    nalloc_restrict_file_prefix(3);
     return 0;
 }
 
@@ -120,6 +123,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         f->alproto = data[0];
     }
 
+    nalloc_start(data, size);
     FLOWLOCK_WRLOCK(f);
     /*
      * We want to fuzz multiple calls to AppLayerParserParse
@@ -203,6 +207,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 bail:
     FLOWLOCK_UNLOCK(f);
     FlowFree(f);
+    nalloc_end();
 
     return 0;
 }

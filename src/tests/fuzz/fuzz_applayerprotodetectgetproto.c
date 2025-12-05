@@ -12,6 +12,7 @@
 #include "app-layer.h"
 #include "util-unittest-helper.h"
 #include "conf-yaml-loader.h"
+#include "nallocinc.c"
 
 #define HEADER_LEN 6
 
@@ -41,6 +42,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         AppLayerSetup();
         alpd_tctx = AppLayerProtoDetectGetCtxThread();
         SC_ATOMIC_SET(engine_stage, SURICATA_RUNTIME);
+        nalloc_init(NULL);
+        // do not restrict nalloc
     }
 
     if (size < HEADER_LEN) {
@@ -61,8 +64,10 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     if (data[0] & STREAM_TOSERVER) {
         flags = STREAM_TOSERVER;
     }
+    nalloc_start(data, size);
     AppLayerProtoDetectGetProto(alpd_tctx, f, data + HEADER_LEN, (uint32_t)(size - HEADER_LEN),
             f->proto, flags, &reverse);
+    nalloc_end();
     FlowFree(f);
 
     return 0;

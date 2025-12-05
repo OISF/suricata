@@ -29,6 +29,7 @@
 #include "tmqh-packetpool.h"
 #include "util-conf.h"
 #include "packet.h"
+#include "nallocinc.c"
 
 #include <fuzz_pcap.h>
 
@@ -119,6 +120,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         max_pending_packets = 128;
         PacketPoolInit();
         SC_ATOMIC_SET(engine_stage, SURICATA_RUNTIME);
+        nalloc_init(NULL);
+        nalloc_restrict_file_prefix(3);
         initialized = 1;
     }
 
@@ -155,10 +158,11 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 
     DetectEngineThreadCtxDeinit(NULL, old_det_ctx);
 
+    nalloc_start(data, size);
     // loop over packets
     r = FPC_next(&pkts, &header, &pkt);
     p = PacketGetFromAlloc();
-    if (r <= 0 || header.ts.tv_sec >= INT_MAX - 3600) {
+    if (p == NULL || r <= 0 || header.ts.tv_sec >= INT_MAX - 3600) {
         goto bail;
     }
     p->pkt_src = PKT_SRC_WIRE;
@@ -197,6 +201,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 bail:
     PacketFree(p);
     FlowReset();
+    nalloc_end();
 
     return 0;
 }
