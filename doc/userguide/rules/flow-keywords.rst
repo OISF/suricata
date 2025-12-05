@@ -336,6 +336,8 @@ following directions:
 
 * either
 
+* both
+
 Syntax::
 
  flow.pkts:<direction>,[op]<number>
@@ -368,6 +370,8 @@ following directions:
 * toserver
 
 * either
+
+* both
 
 Syntax::
 
