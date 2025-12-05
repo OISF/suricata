@@ -502,8 +502,29 @@ skip_regular_rules:
 
     ret = 0;
 
+    if (mpm_table[de_ctx->mpm_matcher].CacheStatsInit != NULL) {
+        de_ctx->mpm_cfg->cache_stats = mpm_table[de_ctx->mpm_matcher].CacheStatsInit();
+        if (de_ctx->mpm_cfg->cache_stats == NULL) {
+            ret = -1;
+            goto end;
+        }
+    }
+
     if (mpm_table[de_ctx->mpm_matcher].CacheRuleset != NULL) {
         mpm_table[de_ctx->mpm_matcher].CacheRuleset(de_ctx->mpm_cfg);
+    }
+
+    if (mpm_table[de_ctx->mpm_matcher].CachePrune != NULL) {
+        mpm_table[de_ctx->mpm_matcher].CachePrune(de_ctx->mpm_cfg);
+    }
+
+    if (mpm_table[de_ctx->mpm_matcher].CacheStatsPrint != NULL) {
+        mpm_table[de_ctx->mpm_matcher].CacheStatsPrint(de_ctx->mpm_cfg->cache_stats);
+    }
+
+    if (mpm_table[de_ctx->mpm_matcher].CacheStatsDeinit != NULL) {
+        mpm_table[de_ctx->mpm_matcher].CacheStatsDeinit(de_ctx->mpm_cfg->cache_stats);
+        de_ctx->mpm_cfg->cache_stats = NULL;
     }
 
  end:
