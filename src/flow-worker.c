@@ -101,6 +101,9 @@ typedef struct FlowWorkerThreadData_ {
 static void FlowWorkerFlowTimeout(
         ThreadVars *tv, Packet *p, FlowWorkerThreadData *fw, DetectEngineThreadCtx *det_ctx);
 
+static inline void FlowWorkerStreamTCPUpdate(ThreadVars *tv, FlowWorkerThreadData *fw, Packet *p,
+        DetectEngineThreadCtx *det_ctx, const bool timeout);
+
 /**
  * \internal
  * \brief Forces reassembly for flow if it needs it.
@@ -132,6 +135,23 @@ static int FlowFinish(ThreadVars *tv, Flow *f, FlowWorkerThreadData *fw, void *d
             PacketPoolReturnPacket(p);
             cnt++;
         }
+    } else if (client == STREAM_HAS_UNPROCESSED_SEGMENTS_DATA) {
+        Packet *p = FlowPseudoPacketGet(0, f, ssn);
+        if (p != NULL) {
+            PKT_SET_SRC(p, PKT_SRC_FFR);
+            FlowWorkerStreamTCPUpdate(tv, fw, p, detect_thread, true);
+            PacketUpdateEngineEventCounters(tv, fw->dtv, p);
+            if (detect_thread != NULL) {
+                FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_DETECT);
+                Detect(tv, p, detect_thread);
+                FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_DETECT);
+            }
+            // Outputs.
+            OutputLoggerLog(tv, p, fw->output_thread);
+            FlowDeReference(&p->flow);
+            PacketPoolReturnPacket(p);
+            cnt = -1;
+        }
     }
 
     /* handle toclient */
@@ -142,8 +162,32 @@ static int FlowFinish(ThreadVars *tv, Flow *f, FlowWorkerThreadData *fw, void *d
             p->flowflags |= FLOW_PKT_LAST_PSEUDO;
             FlowWorkerFlowTimeout(tv, p, fw, detect_thread);
             PacketPoolReturnPacket(p);
-            f->flags |= FLOW_TIMEOUT_REASSEMBLY_DONE;
-            cnt++;
+            if (cnt < 0) {
+                cnt--;
+            } else {
+                cnt++;
+            }
+        }
+    } else if (server == STREAM_HAS_UNPROCESSED_SEGMENTS_DATA) {
+        Packet *p = FlowPseudoPacketGet(1, f, ssn);
+        if (p != NULL) {
+            PKT_SET_SRC(p, PKT_SRC_FFR);
+            FlowWorkerStreamTCPUpdate(tv, fw, p, detect_thread, true);
+            PacketUpdateEngineEventCounters(tv, fw->dtv, p);
+            if (detect_thread != NULL) {
+                FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_DETECT);
+                Detect(tv, p, detect_thread);
+                FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_DETECT);
+            }
+            // Outputs.
+            OutputLoggerLog(tv, p, fw->output_thread);
+            FlowDeReference(&p->flow);
+            PacketPoolReturnPacket(p);
+            if (cnt <= 0) {
+                cnt--;
+            } else {
+                cnt = -2;
+            }
         }
     }
 
@@ -170,6 +214,13 @@ static void CheckWorkQueue(ThreadVars *tv, FlowWorkerThreadData *fw, FlowTimeout
                 /* read detect thread in case we're doing a reload */
                 void *detect_thread = SC_ATOMIC_GET(fw->detect_thread);
                 int cnt = FlowFinish(tv, f, fw, detect_thread);
+                if (cnt < 0) {
+                    // flow has still data to process in multiple pseudo packets
+                    counters->flows_aside_pkt_inject -= cnt;
+                    counters->flows_aside_needs_work++;
+                    FLOWLOCK_UNLOCK(f);
+                    continue;
+                }
                 counters->flows_aside_pkt_inject += cnt;
                 counters->flows_aside_needs_work++;
             }
