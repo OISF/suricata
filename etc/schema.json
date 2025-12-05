@@ -3747,10 +3747,12 @@
             "optional": true,
             "properties": {
                 "uptime": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "Suricata engine's uptime"
                 },
                 "capture": {
                     "type": "object",
+                    "description":"Observational statistics for packet capture module",
                     "properties": {
                         "kernel_packets": {
                             "type": "integer"
@@ -3764,13 +3766,16 @@
                     }
                 },
                 "memcap_pressure": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "Percentage of memcaps used by flow, stream, stream-reassembly and app-layer-http"
                 },
                 "memcap_pressure_max": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "Maximum pressure seen by the engine"
                 },
                 "app_layer": {
                     "type": "object",
+                    "description": "Module with observational and performance-related statistics from application layer protocol parsers and flows",
                     "properties": {
                         "expectations": {
                             "type": "integer"
@@ -4116,6 +4121,7 @@
                 },
                 "ips": {
                     "type": "object",
+                    "description": "Statistics for IPS mode",
                     "properties": {
                         "accepted": {
                             "type": "integer"
@@ -4190,6 +4196,7 @@
                 },
                 "decoder": {
                     "type": "object",
+                    "description": "Statistics for packet decoding engine",
                     "properties": {
                         "avg_pkt_size": {
                             "type": "integer"
@@ -4865,6 +4872,7 @@
                 },
                 "defrag": {
                     "type": "object",
+                    "description": "Statistics on IP (de)fragmentation",
                     "properties": {
                         "max_frag_hits": {
                             "type": "integer"
@@ -4904,6 +4912,7 @@
                 },
                 "detect": {
                     "type": "object",
+                    "description": "Statistics related to the detection engines",
                     "properties": {
                         "alert": {
                             "type": "integer"
@@ -4956,6 +4965,7 @@
                 },
                 "exception_policy": {
                     "type": "object",
+                    "description": "Statistics on exception policies hit and applied",
                     "properties": {
                         "app_layer": {
                             "type": "object",
@@ -5003,6 +5013,7 @@
                 },
                 "file_store": {
                     "type": "object",
+                    "description": "Performance-related statistics for the file storing module",
                     "properties": {
                         "fs_errors": {
                             "type": "integer"
@@ -5018,6 +5029,7 @@
                 },
                 "flow": {
                     "type": "object",
+                    "description": "Stats on flow-related diagnostics",
                     "properties": {
                         "active": {
                             "type": "integer"
@@ -5222,6 +5234,7 @@
                 },
                 "flow_bypassed": {
                     "type": "object",
+                    "description": "Observational statistics on flow bypassing",
                     "properties": {
                         "bytes": {
                             "type": "integer"
@@ -5249,6 +5262,7 @@
                 },
                 "ftp": {
                     "type": "object",
+                    "description": "Performance statistics for global memory use and memory capacity for FTP app-layer parser",
                     "properties": {
                         "memcap": {
                             "type": "integer"
@@ -5261,6 +5275,7 @@
                 },
                 "http": {
                     "type": "object",
+                    "description": "Performance statistics for global memory use and memory capacity for HTTP app-layer parser",
                     "properties": {
                         "memcap": {
                             "type": "integer"
@@ -5273,6 +5288,7 @@
                 },
                "stream": {
                     "type": "object",
+                    "description": "Observational statistics on TCP stream events",
                     "additionalProperties": false,
                     "properties": {
 
@@ -5493,6 +5509,7 @@
                 },
                 "tcp": {
                     "type": "object",
+                    "description": "Statistics on TCP stream tracking and reassembly",
                     "properties": {
                         "ack_unseen_data": {
                             "type": "integer"
