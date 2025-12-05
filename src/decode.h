@@ -622,10 +622,6 @@ typedef struct Packet_
     struct Host_ *host_src;
     struct Host_ *host_dst;
 
-    /** packet number in the pcap file, matches wireshark */
-    uint64_t pcap_cnt;
-
-
     /* engine events */
     PacketEngineEvents events;
 
@@ -1518,5 +1514,9 @@ static inline bool DecodeNetworkLayer(ThreadVars *tv, DecodeThreadVars *dtv,
     }
     return true;
 }
+
+uint64_t PcapPacketCntGet(const Packet *p);
+void PcapPacketCntSet(Packet *p, uint64_t pcap_cnt);
+void PcapPacketCntReset(Packet *p);
 
 #endif /* SURICATA_DECODE_H */
