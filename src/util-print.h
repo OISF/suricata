@@ -39,6 +39,7 @@
         }                                                               \
     } while (0)
 
+void SetPrintInetV6(bool shorten);
 void PrintBufferRawLineHex(char *, int *,int, const uint8_t *, uint32_t);
 void PrintRawUriFp(FILE *, const uint8_t *, uint32_t);
 void PrintRawUriBuf(char *, uint32_t *, uint32_t, const uint8_t *, size_t);
