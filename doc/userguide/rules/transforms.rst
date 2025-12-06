@@ -386,3 +386,67 @@ the buffer.
        local sub = string.sub(input, offset + 1, offset + bytes)
        return string.upper(sub), bytes
    end
+
+subslice
+--------
+
+This transform creates a slice of the input buffer.
+
+The subslice transform requires parameters:
+
+  * `offset` Specifies the starting offset at which to create the
+    subslice. When negative, expresses how far from the end of the
+    input buffer to begin. [REQUIRED]
+  * `nbytes` Specifies the size of the subslice. When negative,
+    specifies that the subslice will end that many bytes from
+    the end of the input buffer. [OPTIONAL]
+
+Specify the subslice desired -- `nbytes` is optional:
+
+Format::
+
+     subslice: offset <,nbytes>;
+
+When `nbytes` is not specified, the size of the subslice will be the size
+of the input buffer minus the `offset` value. The value of ``offset`` must
+
+The following examples use an input buffer of ``This is Suricata``.
+
+Examples
+
+The subslice will be a copy of the input buffer but omit the input buffer's first byte.
+The subslice is ``his is Suricata``::
+
+    subslice: 1;
+
+This example creates the subslice ``This is Suric``::
+
+    subslice: 0, 13;
+
+This example starts at offset ``10`` and ends at 5 bytes from the end
+of the buffer which creates a subslice from offset ``10`` to offset ``12``.
+The length of the input buffer is ``17`` bytes; ``5`` bytes from the end
+is ``12``::
+
+    subslice: 10, -5;
+
+This example will create a subslice from the last 3 bytes of the input
+buffer and create ``ata``::
+
+    subslice: -3;
+
+When the buffer has less bytes than ``offset + nbytes``, the transform
+will either trim the resulting buffer as though ``offset + nbytes == buffer_length``
+or produce an empty buffer on which `bsize:0` would match. The behavior
+s controlled by the ``subslice.truncate`` configuration variable.
+
+This example receives an input buffer with the value ``curl/7.64.1`` and
+produces ``curl/7.64.1``::
+
+    subslice: 0,30;
+
+With truncation off, i.e.,, ``subslice.truncate=no``, the buffer produced
+by the transform with the same input buffer would be the empty
+string: ``""`` and ``bsize:0`` would match::
+
+    subslice: 0,30;
