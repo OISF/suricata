@@ -181,8 +181,8 @@ What branch to work on
 
 There are usually 2 or 3 active branches:
 
-    * master-x.x.x (e.g. master-6.0.x)
     * main-x.x.x (e.g. main-7.0.x)
+    * main-x.x.x (e.g. main-8.0.x)
     * main
 
 The ones with version numbers are stable branches. **main** is the development branch.
