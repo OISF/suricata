@@ -293,12 +293,19 @@ This transform allows a Lua script to apply a transformation
 to a buffer.
 
 Lua scripts that are used for transformations *must* contain a function
-named ``transform``.
+named ``transform``. The function signature is::
+
+    -- transform function arguments:
+    --   input - the buffer to be transformed. Use #input to determine byte count
+    --   args - The arguments from the rule. Access each as args[0], args[1], ...
+    function transform(input, args)
 
 Lua scripts can have other functions; Suricata only invokes the ``transform`` function.
 
 Lua transforms can be passed optional arguments -- see the examples below -- but they
-are not required to do so. Arguments are comma-separated.
+are not required to do so. Specify comma-separated arguments in the rule, e.g::
+
+    luaxform:transform.lua, bytes 0, offset 2
 
 A Lua transform function is not invoked if the buffer is empty or the Lua framework is
 not accessible (rare).
@@ -357,7 +364,8 @@ the buffer.
    -- Arguments supported
    local bytes_key = "bytes"
    local offset_key = "offset"
-   function transform(input_len, input, argc, args)
+
+   function transform(input, args)
        local bytes = #input
        local offset = 0
 
