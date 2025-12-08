@@ -611,6 +611,11 @@ int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         case IPPROTO_ICMPV6:
             ENGINE_SET_INVALID_EVENT(p, IPV4_WITH_ICMPV6);
             break;
+
+        default:
+            SCLogDebug("unknown protocol type: %" PRIx8 "", p->proto);
+            StatsCounterIncr(&tv->stats, dtv->counter_ipv4_unknown_proto);
+            ENGINE_SET_EVENT(p, IPV4_PROTO_UNKNOWN);
     }
 
     return TM_ECODE_OK;
