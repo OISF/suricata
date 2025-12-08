@@ -547,7 +547,7 @@ pub unsafe extern "C" fn SCRegisterTelnetParser() {
         parser.name,
     ) != 0
     {
-        let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
+        let alproto = applayer_register_protocol_detection(&parser, 1);
         ALPROTO_TELNET = alproto;
         if SCAppLayerParserConfParserEnabled(
             ip_proto_str.as_ptr(),

@@ -446,14 +446,14 @@ pub unsafe extern "C" fn SCRegisterSnmpParser() {
     SCOutputEvePreRegisterLogger(reg_data);
     SCSigTablePreRegister(Some(detect_snmp_register));
     // port 161
-    _ = AppLayerRegisterProtocolDetection(&parser, 1);
+    _ = applayer_register_protocol_detection(&parser, 1);
     if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let _ = AppLayerRegisterParser(&parser, ALPROTO_SNMP);
     }
     // port 162
     let default_port_traps = CString::new("162").unwrap();
     parser.default_port = default_port_traps.as_ptr();
-    let _ = AppLayerRegisterProtocolDetection(&parser, 1);
+    let _ = applayer_register_protocol_detection(&parser, 1);
     if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let _ = AppLayerRegisterParser(&parser, ALPROTO_SNMP);
     }

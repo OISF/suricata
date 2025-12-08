@@ -1570,7 +1570,7 @@ pub unsafe extern "C" fn SCRegisterHttp2Parser() {
     let ip_proto_str = CString::new("tcp").unwrap();
 
     if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
-        let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
+        let alproto = applayer_register_protocol_detection(&parser, 1);
         ALPROTO_HTTP2 = alproto;
         if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
@@ -1607,7 +1607,7 @@ pub unsafe extern "C" fn SCRegisterHttp2Parser() {
     parser.probe_tc = None;
     parser.default_port = std::ptr::null();
     if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
-        let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
+        let alproto = applayer_register_protocol_detection(&parser, 1);
         ALPROTO_DOH2 = alproto;
         if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);

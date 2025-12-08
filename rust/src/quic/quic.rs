@@ -583,7 +583,7 @@ pub unsafe extern "C" fn SCRegisterQuicParser() {
     let ip_proto_str = CString::new("udp").unwrap();
 
     if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
-        let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
+        let alproto = applayer_register_protocol_detection(&parser, 1);
         ALPROTO_QUIC = alproto;
         if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);

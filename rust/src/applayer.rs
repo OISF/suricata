@@ -539,7 +539,7 @@ extern "C" {
 
 use suricata_sys::sys::{AppLayerProtocolDetect, SCAppLayerRegisterProtocolDetection};
 
-pub fn AppLayerRegisterProtocolDetection(parser: &RustParser, enable_default: c_int) -> AppProto {
+pub fn applayer_register_protocol_detection(parser: &RustParser, enable_default: c_int) -> AppProto {
     let det = AppLayerProtocolDetect{
         name: parser.name,
         default_port: parser.default_port,

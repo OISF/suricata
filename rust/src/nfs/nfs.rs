@@ -2328,7 +2328,7 @@ pub unsafe extern "C" fn SCRegisterNfsParser() {
     let ip_proto_str = CString::new("tcp").unwrap();
 
     if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
-        let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
+        let alproto = applayer_register_protocol_detection(&parser, 1);
         ALPROTO_NFS = alproto;
 
         let midstream = conf_get_bool("stream.midstream");
@@ -2419,7 +2419,7 @@ pub unsafe extern "C" fn SCRegisterNfsUdpParser() {
     let ip_proto_str = CString::new("udp").unwrap();
 
     if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
-        let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
+        let alproto = applayer_register_protocol_detection(&parser, 1);
         ALPROTO_NFS = alproto;
 
         if SCAppLayerProtoDetectPPParseConfPorts(
