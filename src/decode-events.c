@@ -87,6 +87,10 @@ const struct DecodeEvents_ DEvents[] = {
             "decoder.ipv4.icmpv6",
             IPV4_WITH_ICMPV6,
     },
+    {
+            "decoder.ipv4.unknown_protocol",
+            IPV4_PROTO_UNKNOWN,
+    },
 
     /* ICMP EVENTS */
     {

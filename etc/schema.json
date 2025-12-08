@@ -6624,6 +6624,10 @@
                                             "type": "integer",
                                             "description": "Number of IPv4 packets flagged invalid due to unknown IP option"
                                         },
+                                        "unknown_protocol": {
+                                            "type": "integer",
+                                            "description": "Number of IPv4 packets with unknown protocol"
+                                        },
                                         "pkt_too_small": {
                                             "type": "integer",
                                             "description": "Number of IPv4 packets flagged invalid due to size smaller than minimum header size"
