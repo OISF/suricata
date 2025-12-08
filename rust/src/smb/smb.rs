@@ -2385,7 +2385,7 @@ pub unsafe extern "C" fn SCRegisterSmbParser() {
         parser.name,
     ) != 0
     {
-        let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
+        let alproto = applayer_register_protocol_detection(&parser, 1);
         ALPROTO_SMB = alproto;
         if register_pattern_probe() < 0 {
             return;
