@@ -921,7 +921,7 @@ pub unsafe extern "C" fn SCRfbRegisterParser() {
     let ip_proto_str = CString::new("tcp").unwrap();
 
     if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
-        let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
+        let alproto = applayer_register_protocol_detection(&parser, 1);
         ALPROTO_RFB = alproto;
         if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
