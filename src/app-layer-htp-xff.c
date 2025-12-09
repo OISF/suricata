@@ -107,37 +107,11 @@ static int ParseXFFString(char *input, char *output, int output_size)
     return 0;
 }
 
-/**
- * \brief Function to return XFF IP if any in the selected transaction. The
- * caller needs to lock the flow.
- * \retval 1 if the IP has been found and returned in dstbuf
- * \retval 0 if the IP has not being found or error
- */
-int HttpXFFGetIPFromTx(const Flow *f, uint64_t tx_id, HttpXFFCfg *xff_cfg,
-        char *dstbuf, int dstbuflen)
+static int HttpXFFGetIPFromTxAux(
+        const Flow *f, htp_tx_t *tx, HttpXFFCfg *xff_cfg, char *dstbuf, int dstbuflen)
 {
     uint8_t xff_chain[XFF_CHAIN_MAXLEN];
-    HtpState *htp_state = NULL;
-    htp_tx_t *tx = NULL;
-    uint64_t total_txs = 0;
     uint8_t *p_xff = NULL;
-
-    htp_state = (HtpState *)FlowGetAppState(f);
-
-    if (htp_state == NULL) {
-        SCLogDebug("no http state, XFF IP cannot be retrieved");
-        return 0;
-    }
-
-    total_txs = AppLayerParserGetTxCnt(f, htp_state);
-    if (tx_id >= total_txs)
-        return 0;
-
-    tx = AppLayerParserGetTx(f->proto, ALPROTO_HTTP1, htp_state, tx_id);
-    if (tx == NULL) {
-        SCLogDebug("tx is NULL, XFF cannot be retrieved");
-        return 0;
-    }
 
     htp_header_t *h_xff = NULL;
     if (tx->request_headers != NULL) {
@@ -173,6 +147,38 @@ int HttpXFFGetIPFromTx(const Flow *f, uint64_t tx_id, HttpXFFCfg *xff_cfg,
 }
 
 /**
+ * \brief Function to return XFF IP if any in the selected transaction. The
+ * caller needs to lock the flow.
+ * \retval 1 if the IP has been found and returned in dstbuf
+ * \retval 0 if the IP has not being found or error
+ */
+int HttpXFFGetIPFromTx(
+        const Flow *f, uint64_t tx_id, HttpXFFCfg *xff_cfg, char *dstbuf, int dstbuflen)
+{
+    HtpState *htp_state = NULL;
+    uint64_t total_txs = 0;
+    htp_tx_t *tx = NULL;
+
+    htp_state = (HtpState *)FlowGetAppState(f);
+
+    if (htp_state == NULL) {
+        SCLogDebug("no http state, XFF IP cannot be retrieved");
+        return 0;
+    }
+
+    total_txs = AppLayerParserGetTxCnt(f, htp_state);
+    if (tx_id >= total_txs)
+        return 0;
+
+    tx = AppLayerParserGetTx(f->proto, ALPROTO_HTTP1, htp_state, tx_id);
+    if (tx == NULL) {
+        SCLogDebug("tx is NULL, XFF cannot be retrieved");
+        return 0;
+    }
+    return HttpXFFGetIPFromTxAux(f, tx, xff_cfg, dstbuf, dstbuflen);
+}
+
+/**
  *  \brief Function to return XFF IP if any. The caller needs to lock the flow.
  *  \retval 1 if the IP has been found and returned in dstbuf
  *  \retval 0 if the IP has not being found or error
@@ -190,9 +196,20 @@ int HttpXFFGetIP(const Flow *f, HttpXFFCfg *xff_cfg, char *dstbuf, int dstbuflen
     }
 
     total_txs = AppLayerParserGetTxCnt(f, htp_state);
-    for (; tx_id < total_txs; tx_id++) {
-        if (HttpXFFGetIPFromTx(f, tx_id, xff_cfg, dstbuf, dstbuflen) == 1)
+    AppLayerGetTxIteratorFunc IterFunc = AppLayerGetTxIterator(f->proto, f->alproto);
+    AppLayerGetTxIterState state;
+    memset(&state, 0, sizeof(state));
+
+    while (1) {
+        AppLayerGetTxIterTuple ires =
+                IterFunc(f->proto, f->alproto, f->alstate, tx_id, total_txs, &state);
+        if (ires.tx_ptr == NULL)
+            break;
+
+        if (HttpXFFGetIPFromTxAux(f, ires.tx_ptr, xff_cfg, dstbuf, dstbuflen) == 1)
             return 1;
+
+        tx_id = ires.tx_id + 1;
     }
 
 end:
