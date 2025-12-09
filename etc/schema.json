@@ -2258,21 +2258,31 @@
                     "additionalProperties": false,
                     "properties": {
                         "end": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Range end in Content-Range header"
                         },
                         "raw": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Raw Content-Range header"
                         },
                         "size": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Total length of document in Content-Range header"
                         },
                         "start": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Range start in Content-Range header"
                         }
                     }
                 },
                 "hostname": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "The domain name of the server, the Host header",
+                    "suricata": {
+                        "keywords": [
+                            "http.host", "http.host.raw"
+                        ]
+                    }
                 },
                 "http2": {
                     "type": "object",
@@ -2360,37 +2370,82 @@
                     }
                 },
                 "http_content_type": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "The media type of the resource or data, the Content-Type header",
+                    "suricata": {
+                        "keywords": [
+                            "http.content_type"
+                        ]
+                    }
                 },
                 "http_method": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "The HTTP request method",
+                    "suricata": {
+                        "keywords": [
+                            "http.method"
+                        ]
+                    }
                 },
                 "http_port": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "The port in the Host header if any"
                 },
                 "http_refer": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "An absolute or partial address of the web page that makes the request., the Referer header",
+                    "suricata": {
+                        "keywords": [
+                            "http.referer"
+                        ]
+                    }
                 },
                 "http_response_body": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Base64 of the response body",
+                    "suricata": {
+                        "keywords": [
+                            "file.data"
+                        ]
+                    }
                 },
                 "http_response_body_printable": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "The ascii-printable characters of the response body",
+                    "suricata": {
+                        "keywords": [
+                            "file.data"
+                        ]
+                    }
                 },
                 "http_user_agent": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "a characteristic string that lets servers and network peers identify the application, operating system, vendor, and/or version of the requesting user agent, the User-Agent header",
+                    "suricata": {
+                        "keywords": [
+                            "http.user_agent"
+                        ]
+                    }
                 },
                 "length": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "The response message length"
                 },
                 "org_src_ip": {
                     "type": "string"
                 },
                 "protocol": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "The HTTP protocol with its version",
+                    "suricata": {
+                        "keywords": [
+                            "http.protocol"
+                        ]
+                    }
                 },
                 "redirect": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "the URL to redirect a page to, the Location header"
                 },
                 "request_headers": {
                     "type": "array",
@@ -2441,26 +2496,47 @@
                     }
                 },
                 "status": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "Status as integer value",
+                    "suricata": {
+                        "keywords": [
+                            "http.stat_code"
+                        ]
+                    }
                 },
                 "status_string": {
                     "type": "string",
-                    "description": "Status string when it is not a valid integer (like 2XX)"
+                    "description": "Status string when it is not a valid integer (like 2XX)",
+                    "suricata": {
+                        "keywords": [
+                            "http.stat_code"
+                        ]
+                    }
                 },
                 "true_client_ip": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "the True-Client-IP header"
                 },
                 "url": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "the HTTP request URI",
+                    "suricata": {
+                        "keywords": [
+                            "http.uri", "http.uri.raw", "urilen"
+                        ]
+                    }
                 },
                 "version": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "HTTP major version : 2 when HTTP/2 is used"
                 },
                 "x_bluecoat_via": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "the X-BlueCoat-Via header"
                 },
                 "xff": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "a de-facto standard header for identifying the originating IP address of a client connecting to a web server through a proxy server, the X-Forwarded-For header request header"
                 }
             }
         },
