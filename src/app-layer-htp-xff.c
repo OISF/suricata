@@ -180,7 +180,7 @@ int HttpXFFGetIPFromTx(const Flow *f, uint64_t tx_id, HttpXFFCfg *xff_cfg,
 int HttpXFFGetIP(const Flow *f, HttpXFFCfg *xff_cfg, char *dstbuf, int dstbuflen)
 {
     HtpState *htp_state = NULL;
-    uint64_t tx_id = 0;
+    uint64_t tx_id = AppLayerParserGetMinId(f->alparser);
     uint64_t total_txs = 0;
 
     htp_state = (HtpState *)FlowGetAppState(f);
