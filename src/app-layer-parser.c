@@ -705,6 +705,13 @@ uint64_t AppLayerParserGetTransactionLogId(AppLayerParserState *pstate)
     SCReturnCT((pstate == NULL) ? 0 : pstate->log_id, "uint64_t");
 }
 
+uint64_t AppLayerParserGetMinId(AppLayerParserState *pstate)
+{
+    SCEnter();
+
+    SCReturnCT((pstate == NULL) ? 0 : pstate->min_id, "uint64_t");
+}
+
 void AppLayerParserSetTransactionLogId(AppLayerParserState *pstate, uint64_t tx_id)
 {
     SCEnter();
