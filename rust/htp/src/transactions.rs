@@ -33,9 +33,15 @@ impl Transactions {
         // that transaction is started), or zero if neither
         // request or response transaction exist yet
         let tx_to_check = std::cmp::max(self.request, self.response);
-        match self.get(tx_to_check) {
+        match self.transactions.back() {
             // Transaction is created, check if it is started
-            Some(tx) => tx.index.wrapping_add(tx.is_started() as usize),
+            Some(tx) => {
+                if tx.index == tx_to_check {
+                    tx.index.wrapping_add(tx.is_started() as usize)
+                } else {
+                    tx_to_check
+                }
+            }
             // Transaction doesn't exist yet, so the index is the size
             None => tx_to_check,
         }
