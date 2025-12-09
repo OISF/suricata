@@ -35,6 +35,13 @@ def sort_properties(obj, path=""):
     else:
         return obj
 
+def check_duplicate(pairs):
+    dct = OrderedDict()
+    for key, value in pairs:
+        if key in dct:
+            raise Exception("{} is duplicate in pairs", key, pairs)
+        dct[key] = value
+    return dct
 
 def check_properties_sorted(obj, path=""):
     """Check if all 'properties' keys have their contents sorted alphabetically."""
@@ -88,7 +95,7 @@ def main():
 
     try:
         with open(args.schema_file, "r") as f:
-            schema = json.load(f, object_pairs_hook=OrderedDict)
+            schema = json.load(f, object_pairs_hook=check_duplicate)
     except Exception as e:
         print(f"Error reading schema file: {e}", file=sys.stderr)
         sys.exit(1)

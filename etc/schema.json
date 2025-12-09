@@ -3503,7 +3503,6 @@
                     "minItems": 1,
                     "items": {
                         "type": "object",
-                        "additionalProperties": false,
                         "properties": {
                             "uid": {
                                 "type": "string"
