@@ -1464,6 +1464,7 @@ static int StreamTcpPacketStateNone(
                         ssn->client.isn, ssn->client.base_seq, ssn->client.next_seq,
                         p->payload_len);
                 StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p);
+                p->flags |= PKT_STREAM_EST;
             }
         }
 
