@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2024 Open Information Security Foundation
+/* Copyright (C) 2007-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -56,8 +56,9 @@ enum {
     STATS_TYPE_AVERAGE = 2,
     STATS_TYPE_MAXIMUM = 3,
     STATS_TYPE_FUNC = 4,
+    STATS_TYPE_DERIVE_DIV = 5,
 
-    STATS_TYPE_MAX = 5,
+    STATS_TYPE_MAX = 6,
 };
 
 /**
@@ -595,6 +596,20 @@ static void StatsReleaseCounter(StatsCounter *pc)
     }
 }
 
+/** \internal
+ *  \brief Get ID for counters referenced in a derive counter
+ *  \retval id (>=1) or 0 on error
+ */
+static uint16_t GetIdByName(const StatsPublicThreadContext *pctx, const char *name)
+{
+    for (const StatsCounter *c = pctx->head; c != NULL; c = c->next) {
+        if (strcmp(name, c->name) == 0) {
+            return c->id;
+        }
+    }
+    return 0;
+}
+
 /**
  * \brief Registers a counter.
  *
@@ -606,8 +621,8 @@ static void StatsReleaseCounter(StatsCounter *pc)
  *         present counter on success
  * \retval 0 on failure
  */
-static uint16_t StatsRegisterQualifiedCounter(
-        const char *name, StatsPublicThreadContext *pctx, int type_q, uint64_t (*Func)(void))
+static uint16_t StatsRegisterQualifiedCounter(const char *name, StatsPublicThreadContext *pctx,
+        int type_q, uint64_t (*Func)(void), const char *dname1, const char *dname2)
 {
     StatsCounter **head = &pctx->head;
     StatsCounter *temp = NULL;
@@ -634,14 +649,27 @@ static uint16_t StatsRegisterQualifiedCounter(
     if (temp != NULL)
         return(temp->id);
 
+    uint16_t did1 = 0;
+    uint16_t did2 = 0;
+    if (type_q == STATS_TYPE_DERIVE_DIV) {
+        did1 = GetIdByName(pctx, dname1);
+        did2 = GetIdByName(pctx, dname2);
+        if (did1 == 0 || did2 == 0) {
+            return 0;
+        }
+    }
+
     /* if we reach this point we don't have a counter registered by this name */
     if ((pc = SCCalloc(1, sizeof(StatsCounter))) == NULL)
         return 0;
 
     /* assign a unique id to this StatsCounter.  The id is local to this
      * thread context.  Please note that the id start from 1, and not 0 */
-    pc->id = ++(pctx->curr_id);
-
+    if (type_q == STATS_TYPE_DERIVE_DIV) {
+        pc->id = ++pctx->derive_id;
+    } else {
+        pc->id = ++(pctx->curr_id);
+    }
     /* for AVG counters we use 2 indices into the tables: one for values,
      * the other to track updates. */
     if (type_q == STATS_TYPE_AVERAGE)
@@ -655,6 +683,8 @@ static uint16_t StatsRegisterQualifiedCounter(
 
     pc->type = type_q;
     pc->Func = Func;
+    pc->did1 = did1;
+    pc->did2 = did2;
 
     /* we now add the counter to the list */
     if (prev == NULL)
@@ -740,7 +770,7 @@ static int StatsOutput(ThreadVars *tv)
         /* copy private table to a local variable to loop it w/o lock */
         bool skip = false;
         SCSpinLock(&sts->ctx->lock);
-        uint16_t table_size = sts->ctx->curr_id + 1;
+        const uint16_t table_size = sts->ctx->curr_id + sts->ctx->derive_id + 1;
         if (sts->ctx->copy_of_private == NULL) {
             skip = true;
         } else {
@@ -770,6 +800,14 @@ static int StatsOutput(ThreadVars *tv)
                     thread_table[pc->gid].updates = thread_table_from_private[i + 1].v;
                     /* skip updates row */
                     i++;
+                    break;
+                case STATS_TYPE_DERIVE_DIV:
+                    SCLogDebug("counter %u/%u is derived from counters %u / %u: %" PRIu64, pc->id,
+                            pc->gid, pc->did1, pc->did2,
+                            thread_table_from_private[pc->did1].v /
+                                    thread_table_from_private[pc->did2].v);
+                    thread_table[pc->gid].value = thread_table_from_private[pc->did1].v;
+                    thread_table[pc->gid].updates = thread_table_from_private[pc->did2].v;
                     break;
                 default:
                     SCLogDebug("Counter %s (%u:%u) value %" PRIu64, pc->name, pc->id, pc->gid,
@@ -824,6 +862,7 @@ static int StatsOutput(ThreadVars *tv)
 
             switch (e->type) {
                 case STATS_TYPE_AVERAGE:
+                case STATS_TYPE_DERIVE_DIV:
                     if (e->value > 0 && e->updates > 0) {
                         r->value = (uint64_t)(e->value / e->updates);
                     }
@@ -853,6 +892,7 @@ static int StatsOutput(ThreadVars *tv)
                     table[x].value = m->value;
                 break;
             case STATS_TYPE_AVERAGE:
+            case STATS_TYPE_DERIVE_DIV:
                 if (m->value > 0 && m->updates > 0) {
                     table[x].value = (uint64_t)(m->value / m->updates);
                 }
@@ -1000,7 +1040,8 @@ void StatsSpawnThreads(void)
  */
 StatsCounterId StatsRegisterCounter(const char *name, StatsThreadContext *stats)
 {
-    uint16_t id = StatsRegisterQualifiedCounter(name, &stats->pub, STATS_TYPE_NORMAL, NULL);
+    uint16_t id =
+            StatsRegisterQualifiedCounter(name, &stats->pub, STATS_TYPE_NORMAL, NULL, NULL, NULL);
     StatsCounterId s = { .id = id };
     return s;
 }
@@ -1018,7 +1059,8 @@ StatsCounterId StatsRegisterCounter(const char *name, StatsThreadContext *stats)
  */
 StatsCounterAvgId StatsRegisterAvgCounter(const char *name, StatsThreadContext *stats)
 {
-    uint16_t id = StatsRegisterQualifiedCounter(name, &stats->pub, STATS_TYPE_AVERAGE, NULL);
+    uint16_t id =
+            StatsRegisterQualifiedCounter(name, &stats->pub, STATS_TYPE_AVERAGE, NULL, NULL, NULL);
     StatsCounterAvgId s = { .id = id };
     return s;
 }
@@ -1036,7 +1078,8 @@ StatsCounterAvgId StatsRegisterAvgCounter(const char *name, StatsThreadContext *
  */
 StatsCounterMaxId StatsRegisterMaxCounter(const char *name, StatsThreadContext *stats)
 {
-    uint16_t id = StatsRegisterQualifiedCounter(name, &stats->pub, STATS_TYPE_MAXIMUM, NULL);
+    uint16_t id =
+            StatsRegisterQualifiedCounter(name, &stats->pub, STATS_TYPE_MAXIMUM, NULL, NULL, NULL);
     StatsCounterMaxId s = { .id = id };
     return s;
 }
@@ -1060,7 +1103,35 @@ StatsCounterGlobalId StatsRegisterGlobalCounter(const char *name, uint64_t (*Fun
     BUG_ON(stats_ctx == NULL);
 #endif
     uint16_t id = StatsRegisterQualifiedCounter(
-            name, &(stats_ctx->global_counter_ctx), STATS_TYPE_FUNC, Func);
+            name, &(stats_ctx->global_counter_ctx), STATS_TYPE_FUNC, Func, NULL, NULL);
+    s.id = id;
+    return s;
+}
+
+/**
+ * \brief Registers a counter which calculates the div of 2 counters
+ *
+ * \param name Name of the counter, to be registered
+ * \param dname1 First counter name
+ * \param dname2 Second counter name
+ *
+ * Both counters need to already be registered in this thread.
+ *
+ * \retval id Counter id for the newly registered counter, or the already
+ *            present counter
+ */
+StatsCounterDeriveId StatsRegisterDeriveDivCounter(
+        const char *name, const char *dname1, const char *dname2, StatsThreadContext *stats)
+{
+    StatsCounterDeriveId s = { .id = 0 };
+#if defined(UNITTESTS) || defined(FUZZ)
+    if (stats_ctx == NULL)
+        return s;
+#else
+    BUG_ON(stats_ctx == NULL);
+#endif
+    uint16_t id = StatsRegisterQualifiedCounter(
+            name, &stats->pub, STATS_TYPE_DERIVE_DIV, NULL, dname1, dname2);
     s.id = id;
     return s;
 }
@@ -1114,15 +1185,29 @@ static void CountersIdHashFreeFunc(void *data)
 
 static int StatsThreadSetupPublic(StatsPublicThreadContext *pctx)
 {
-    size_t array_size = pctx->curr_id + 1;
+    size_t array_size = pctx->curr_id + pctx->derive_id + 1;
     pctx->pc_array = SCCalloc(array_size, sizeof(StatsCounter *));
     if (pctx->pc_array == NULL) {
         return -1;
     }
+    /* regular counters that get direct updates by their id as idx */
     for (StatsCounter *pc = pctx->head; pc != NULL; pc = pc->next) {
-        SCLogDebug("pc %s gid %u id %u", pc->name, pc->gid, pc->id);
-        BUG_ON(pctx->pc_array[pc->id] != NULL);
-        pctx->pc_array[pc->id] = pc;
+        if (pc->type != STATS_TYPE_DERIVE_DIV) {
+            SCLogDebug("pc %s gid %u id %u", pc->name, pc->gid, pc->id);
+            BUG_ON(pctx->pc_array[pc->id] != NULL);
+            pctx->pc_array[pc->id] = pc;
+        }
+    }
+    /* derive counters are not updated by the thread itself and will be put
+     * at the end of the array */
+    for (StatsCounter *pc = pctx->head; pc != NULL; pc = pc->next) {
+        if (pc->type == STATS_TYPE_DERIVE_DIV) {
+            uint16_t id = pctx->curr_id + pc->id;
+            SCLogDebug("STATS_TYPE_DERIVE_DIV: pc %s gid %u pc->id %u id %u", pc->name, pc->gid,
+                    pc->id, id);
+            BUG_ON(pctx->pc_array[id] != NULL);
+            pctx->pc_array[id] = pc;
+        }
     }
 
     SCLogDebug("array_size %u memory %" PRIu64, (uint32_t)array_size,
@@ -1374,7 +1459,7 @@ void StatsThreadCleanup(StatsThreadContext *stats)
 static StatsCounterId RegisterCounter(
         const char *name, const char *tm_name, StatsPublicThreadContext *pctx)
 {
-    uint16_t id = StatsRegisterQualifiedCounter(name, pctx, STATS_TYPE_NORMAL, NULL);
+    uint16_t id = StatsRegisterQualifiedCounter(name, pctx, STATS_TYPE_NORMAL, NULL, NULL, NULL);
     StatsCounterId s = { .id = id };
     return s;
 }
