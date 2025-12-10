@@ -1643,8 +1643,10 @@ static int StreamReassembleRawInline(TcpSession *ssn, const Packet *p,
     }
 
     const TCPHdr *tcph = PacketGetTCP(p);
-    uint64_t packet_leftedge_abs =
-            STREAM_BASE_OFFSET(stream) + (TCP_GET_RAW_SEQ(tcph) - stream->base_seq);
+    /* use packet SEQ, but account for TFO needing a + 1 */
+    const uint32_t tfo_add = (TCP_HAS_TFO(p));
+    const uint32_t pkt_seq = TCP_GET_RAW_SEQ(tcph) + tfo_add;
+    uint64_t packet_leftedge_abs = STREAM_BASE_OFFSET(stream) + (pkt_seq - stream->base_seq);
     uint64_t packet_rightedge_abs = packet_leftedge_abs + p->payload_len;
     SCLogDebug("packet_leftedge_abs %"PRIu64", rightedge %"PRIu64,
             packet_leftedge_abs, packet_rightedge_abs);
