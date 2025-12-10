@@ -217,6 +217,26 @@ Notes:
    * ``REJECT`` will make Suricata send a Reset-packet unreach error to the sender
      of the matching packet.
 
+Exception Policies Interactions
+===============================
+
+In certain scenarios, one exception policy being applied might trigger another
+exception. The midstream session policy seems the most prone to be triggered,
+by its definition.
+
+If a setting can be applied to packets in **IPS mode** with a drop effect, this
+can result in following packets for the affected flow(s) being considered as a
+midstream session, thus triggering the related policy.
+
+In particular, these interactions seem probable for the following policies,
+**if set to drop-packet**:
+
+   * Stream Memcap
+   * Stream Reassembly Memcap
+   * Flow Memcap
+   * Defrag Memcap
+   * Application Layer Protocol Error
+
 .. _eps_output:
 
 Log Output
