@@ -2383,9 +2383,6 @@
                 "length": {
                     "type": "integer"
                 },
-                "org_src_ip": {
-                    "type": "string"
-                },
                 "protocol": {
                     "type": "string"
                 },
@@ -2447,16 +2444,10 @@
                     "type": "string",
                     "description": "Status string when it is not a valid integer (like 2XX)"
                 },
-                "true_client_ip": {
-                    "type": "string"
-                },
                 "url": {
                     "type": "string"
                 },
                 "version": {
-                    "type": "string"
-                },
-                "x_bluecoat_via": {
                     "type": "string"
                 },
                 "xff": {
