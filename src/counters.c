@@ -51,7 +51,7 @@
  * \brief Different kinds of qualifier that can be used to modify the behaviour
  *        of the counter to be registered
  */
-enum {
+enum StatsType {
     STATS_TYPE_NORMAL = 1,
     STATS_TYPE_AVERAGE = 2,
     STATS_TYPE_MAXIMUM = 3,
@@ -622,7 +622,7 @@ static uint16_t GetIdByName(const StatsPublicThreadContext *pctx, const char *na
  * \retval 0 on failure
  */
 static uint16_t StatsRegisterQualifiedCounter(const char *name, StatsPublicThreadContext *pctx,
-        int type_q, uint64_t (*Func)(void), const char *dname1, const char *dname2)
+        enum StatsType type_q, uint64_t (*Func)(void), const char *dname1, const char *dname2)
 {
     StatsCounter **head = &pctx->head;
     StatsCounter *temp = NULL;
@@ -738,7 +738,7 @@ static int StatsOutput(ThreadVars *tv)
     /** temporary local table to merge the per thread counters,
      *  especially needed for the average counters */
     struct CountersMergeTable {
-        int type;
+        enum StatsType type;
         int64_t value;
         uint64_t updates;
     } merge_table[max_id];
@@ -818,7 +818,7 @@ static int StatsOutput(ThreadVars *tv)
 
         /* update merge table */
         for (uint16_t c = 0; c < max_id; c++) {
-            struct CountersMergeTable *e = &thread_table[c];
+            const struct CountersMergeTable *e = &thread_table[c];
             /* thread only sets type if it has a counter
              * of this type. */
             if (e->type == 0)
@@ -843,7 +843,7 @@ static int StatsOutput(ThreadVars *tv)
 
         /* update per thread stats table */
         for (uint16_t c = 0; c < max_id; c++) {
-            struct CountersMergeTable *e = &thread_table[c];
+            const struct CountersMergeTable *e = &thread_table[c];
             /* thread only sets type if it has a counter
              * of this type. */
             if (e->type == 0)
@@ -883,7 +883,7 @@ static int StatsOutput(ThreadVars *tv)
         table[x].value = 0;
         table[x].tm_name = "Total";
 
-        struct CountersMergeTable *m = &merge_table[x];
+        const struct CountersMergeTable *m = &merge_table[x];
         switch (m->type) {
             case STATS_TYPE_MAXIMUM:
                 if (m->value > table[x].value)
