@@ -90,11 +90,11 @@ typedef struct StatsLocalCounter_ {
  * \brief Stats Context for a ThreadVars instance
  */
 typedef struct StatsPublicThreadContext_ {
-    /* flag set by the wakeup thread, to inform the client threads to sync */
-    SC_ATOMIC_DECLARE(bool, sync_now);
-
     /* pointer to the head of a list of counters assigned under this context */
     StatsCounter *head;
+
+    /* flag set by the wakeup thread, to inform the client threads to sync */
+    SC_ATOMIC_DECLARE(bool, sync_now);
 
     /* holds the total no of counters already assigned for this perf context */
     uint16_t curr_id;
