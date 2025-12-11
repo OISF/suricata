@@ -8,6 +8,7 @@ Extending Suricata
    decoder/index.rst
    app-layer/index.rst
    detect/index.rst
+   exception-policies/index.rst
    output/index.rst
    output/eve-filetypes.rst
    output/eve-hooks.rst
