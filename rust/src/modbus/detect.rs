@@ -16,7 +16,6 @@
  */
 
 use super::modbus::ModbusTransaction;
-use crate::debug_validate_bug_on;
 use lazy_static::lazy_static;
 use regex::Regex;
 use sawp_modbus::{AccessType, CodeCategory, Data, Flags, FunctionCode, Message};
