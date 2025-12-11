@@ -817,6 +817,9 @@ static void PrintBuildInfo(void)
 #ifdef PROFILE_LOCKING
     strlcat(features, "PROFILE_LOCKING ", sizeof(features));
 #endif
+#ifdef BUILD_UNIX_SOCKET
+    strlcat(features, "UNIX_SOCKET ", sizeof(features));
+#endif
 #if defined(TLS_C11) || defined(TLS_GNU)
     strlcat(features, "TLS ", sizeof(features));
 #endif
