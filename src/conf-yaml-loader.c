@@ -540,7 +540,7 @@ int SCConfYamlLoadString(const char *string, size_t len)
 
     if (yaml_parser_initialize(&parser) != 1) {
         fprintf(stderr, "Failed to initialize yaml parser.\n");
-        exit(EXIT_FAILURE);
+        return -1;
     }
     yaml_parser_set_input_string(&parser, (const unsigned char *)string, len);
     ret = ConfYamlParse(&parser, root, 0, 0, 0);
