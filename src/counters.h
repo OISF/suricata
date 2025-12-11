@@ -53,7 +53,7 @@ typedef struct StatsCounterDeriveId {
  * \brief Container to hold the counter variable
  */
 typedef struct StatsCounter_ {
-    int type;
+    int type;   /**< enum StatsType from counters.c */
 
     /* local id for this counter in this thread */
     uint16_t id;
@@ -66,7 +66,7 @@ typedef struct StatsCounter_ {
     uint16_t did1;
     uint16_t did2;
 
-    /* when using type STATS_TYPE_Q_FUNC this function is called once
+    /* when using type STATS_TYPE_FUNC this function is called once
      * to get the counter value, regardless of how many threads there are. */
     uint64_t (*Func)(void);
 
