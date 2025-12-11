@@ -131,15 +131,17 @@ extern "C"
 
 #define NALLOC_PREFIX_MAX 1024
 
-    static void nalloc_restrict_file_prefix(uint8_t levels_up)
+    __attribute__((noinline)) static void nalloc_restrict_file_prefix(uint8_t levels_up)
     {
-        snprintf(nalloc_prefix_dir, PATH_MAX, "%s", __FILE__);
+#ifdef NALLOC_ASAN
+        void *pc = __builtin_return_address(0);
+        __sanitizer_symbolize_pc(pc, "%s", nalloc_prefix_dir, sizeof(nalloc_prefix_dir) - 1);
         uint16_t slashes[levels_up];
         uint8_t slash_off = 0;
         // /src/suricata/src/test/fuzz/file.c -3 levels -> /src/suricata/src/
         for (uint16_t i = 0; i < PATH_MAX; i++) {
             if (nalloc_prefix_dir[i] == 0) {
-                uint32_t cut = slashes[(slash_off + 1) % levels_up];
+                uint32_t cut = slashes[slash_off];
                 nalloc_prefix_dir[cut] = 0;
                 nalloc_prefix = nalloc_prefix_dir;
                 nalloc_prefix_len = cut;
@@ -150,6 +152,7 @@ extern "C"
                 slash_off = (slash_off + 1) % levels_up;
             }
         }
+#endif
     }
 
     // Generic init, using env variables to get parameters
