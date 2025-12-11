@@ -91,6 +91,8 @@ From the C side, ``decode-ethernet.c`` offers an good example:
         PASS;
     }
 
+.. _testing-suricata-verify:
+
 Suricata-Verify
 ===============
 
