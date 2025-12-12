@@ -557,6 +557,32 @@ pub enum SCError {
     SC_ENOENT = 5,
     SC_ERR_MAX = 6,
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct SCEnumCharMap_ {
+    pub enum_name: *const ::std::os::raw::c_char,
+    pub enum_value: ::std::os::raw::c_int,
+}
+impl Default for SCEnumCharMap_ {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type SCEnumCharMap = SCEnumCharMap_;
+extern "C" {
+    pub fn SCMapEnumNameToValue(
+        arg1: *const ::std::os::raw::c_char, arg2: *mut SCEnumCharMap,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCMapEnumValueToName(
+        arg1: ::std::os::raw::c_int, arg2: *mut SCEnumCharMap,
+    ) -> *const ::std::os::raw::c_char;
+}
 #[repr(i32)]
 #[doc = " \\brief The various log levels\n NOTE: when adding new level, don't forget to update SCLogMapLogLevelToSyslogLevel()\n      or it may result in logging to syslog with LOG_EMERG priority."]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
@@ -571,6 +597,9 @@ pub enum SCLogLevel {
     SC_LOG_CONFIG = 6,
     SC_LOG_DEBUG = 7,
     SC_LOG_LEVEL_MAX = 8,
+}
+extern "C" {
+    pub fn SCLogLevel2Name(lvl: SCLogLevel) -> *const ::std::os::raw::c_char;
 }
 extern "C" {
     pub fn SCLogMessage(
@@ -943,32 +972,6 @@ extern "C" {
     pub fn SCAppLayerRegisterParserAlias(
         proto_name: *const ::std::os::raw::c_char, proto_alias: *const ::std::os::raw::c_char,
     ) -> ::std::os::raw::c_int;
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct SCEnumCharMap_ {
-    pub enum_name: *const ::std::os::raw::c_char,
-    pub enum_value: ::std::os::raw::c_int,
-}
-impl Default for SCEnumCharMap_ {
-    fn default() -> Self {
-        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-pub type SCEnumCharMap = SCEnumCharMap_;
-extern "C" {
-    pub fn SCMapEnumNameToValue(
-        arg1: *const ::std::os::raw::c_char, arg2: *mut SCEnumCharMap,
-    ) -> ::std::os::raw::c_int;
-}
-extern "C" {
-    pub fn SCMapEnumValueToName(
-        arg1: ::std::os::raw::c_int, arg2: *mut SCEnumCharMap,
-    ) -> *const ::std::os::raw::c_char;
 }
 #[doc = " \\brief Data structure to store app layer decoder events."]
 #[repr(C)]
