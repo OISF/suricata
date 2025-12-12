@@ -217,7 +217,7 @@ uint8_t g_recurlvl_mask = 0xff;
  * support */
 bool g_disable_hashing = false;
 
-/* snapshot of the system's hugepages before system intitialization. */
+/* snapshot of the system's hugepages before system initialization. */
 SystemHugepageSnapshot *prerun_snap = NULL;
 
 /** add per-proto app-layer error counters for exception policies stats? disabled by default */
@@ -3055,7 +3055,7 @@ void SuricataInit(void)
     SetupUserMode(&suricata);
     InitRunAs(&suricata);
 
-    /* Since our config is now loaded we can finish configurating the
+    /* Since our config is now loaded we can finish configuring the
      * logging module. */
     SCLogLoadConfig(suricata.daemon, suricata.verbose, suricata.userid, suricata.groupid);
 
