@@ -195,14 +195,7 @@ static int PrefilterSetupDsize(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 
 static bool PrefilterDsizeIsPrefilterable(const Signature *s)
 {
-    const SigMatch *sm;
-    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
-        switch (sm->type) {
-            case DETECT_DSIZE:
-                return true;
-        }
-    }
-    return false;
+    return PrefilterIsPrefilterableById(s, DETECT_DSIZE);
 }
 
 /** \brief get max dsize "depth"
