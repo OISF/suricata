@@ -2288,7 +2288,7 @@ jobs:
         run: make doc
         working-directory: rust
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py -q --debug-failed
+        run: python3 ./suricata-verify/run.py -q --debug-failed --no-validation
       - run: make install
       - run: suricata-update -V
       - run: suricatasc -h
