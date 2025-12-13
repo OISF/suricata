@@ -24,6 +24,7 @@
  */
 
 #include "suricata-common.h"
+#include "counters.h"
 #include "detect.h"
 #include "pkt-var.h"
 #include "conf.h"
@@ -65,6 +66,9 @@ typedef struct JsonHttpLogThread_ {
     LogHttpFileCtx *httplog_ctx;
     uint32_t uri_cnt;
     OutputJsonThreadCtx *ctx;
+    StatsCounterId cnt_total;
+    StatsCounterId cnt_total_size;
+    StatsCounterMaxId cnt_max_size;
 } JsonHttpLogThread;
 
 #define MAX_SIZE_HEADER_NAME  256
@@ -478,8 +482,12 @@ static int JsonHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     }
 
     OutputJsonBuilderBuffer(tv, p, p->flow, js, jhl->ctx);
+    size_t size = SCJbLen(js);
     SCJbFree(js);
 
+    StatsCounterIncr(&tv->stats, jhl->cnt_total);
+    StatsCounterAddI64(&tv->stats, jhl->cnt_total_size, (int64_t)size);
+    StatsCounterMaxUpdateI64(&tv->stats, jhl->cnt_max_size, (int64_t)size);
     SCReturnInt(TM_ECODE_OK);
 }
 
@@ -606,6 +614,12 @@ static TmEcode JsonHttpLogThreadInit(ThreadVars *t, const void *initdata, void *
     if (!aft->ctx) {
         goto error_exit;
     }
+
+    aft->cnt_total = StatsRegisterCounter("eve.http.total", &t->stats);
+    aft->cnt_total_size = StatsRegisterCounter("eve.http.bytes.total", &t->stats);
+    aft->cnt_max_size = StatsRegisterMaxCounter("eve.http.bytes.max", &t->stats);
+    (void)StatsRegisterDeriveDivCounter(
+            "eve.http.bytes.avg", "eve.http.bytes.total", "eve.http.total", &t->stats);
 
     *data = (void *)aft;
     return TM_ECODE_OK;
