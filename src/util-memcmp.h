@@ -899,7 +899,7 @@ static inline int SCMemcmpLowercaseSSE3andload(const void *s1, const void *s2, s
 #if defined(__ARM_FEATURE_SVE)
 #include <arm_sve.h>
 
-static inline int SCMemcmpSVE(const void *s1, const void *s2, size_t len)
+static inline int SCMemcmpSVE(const uint8_t *s1, const uint8_t *s2, size_t len)
 {
     uint64_t i = 0;
     int vec_size = svcntb();
@@ -924,7 +924,7 @@ static inline int SCMemcmpSVE(const void *s1, const void *s2, size_t len)
 #define UPPER_HIGH  0x5A /* "Z" */
 #define UPPER_DELTA 0x20
 
-static inline int SCMemcmpLowercaseNeon(const void *s1, const void *s2, size_t len)
+static inline int SCMemcmpLowercaseNeon(const uint8_t *s1, const uint8_t *s2, size_t len)
 {
     size_t offset = 0;
     uint8x16_t b1, mask1, mask2, delta, b3, equiv;
