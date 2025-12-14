@@ -632,7 +632,7 @@ int main(int argc, char **argv)
     Run(&th_v, sigs1, 100000, "common", argv[1]);
     Run(&th_v, sigs2, 100000, "edge", argv[1]);
 
-    StatsThreadCleanup(&th_v);
+    StatsThreadCleanup(&th_v.stats);
     GlobalsDestroy();
     return EXIT_SUCCESS;
 }
