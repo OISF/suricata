@@ -37,6 +37,12 @@ dedicated new configuration.
 Upgrading to 9.0.0
 ------------------
 
+Major Changes
+~~~~~~~~~~~~~
+- Encrypted quic traffic bypass is now independently controlled through
+  ``app-layer.protocols.quic.encryption-handling`` setting. The setting can either
+  be ``bypass``, ``track-only`` or ``full``.
+
 Logging Changes
 ~~~~~~~~~~~~~~~
 - The format of IKEv1 proposal attributes has been changed to handle
