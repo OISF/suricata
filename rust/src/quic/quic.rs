@@ -21,6 +21,8 @@ use super::{
     frames::{Frame, QuicTlsExtension, StreamTag},
     parser::{quic_pkt_num, QuicData, QuicHeader, QuicType},
 };
+use crate::conf::conf_get;
+use crate::ssh::ssh::SshEncryptionHandling;
 use crate::{
     applayer::{self, *},
     direction::Direction,
@@ -35,11 +37,15 @@ use std::collections::VecDeque;
 use std::ffi::CString;
 use suricata_sys::sys::{
     AppLayerParserState, AppProto, SCAppLayerParserConfParserEnabled,
-    SCAppLayerParserRegisterLogger, SCAppLayerProtoDetectConfProtoDetectionEnabled,
+    SCAppLayerParserRegisterLogger, SCAppLayerParserStateSetFlag,
+    SCAppLayerProtoDetectConfProtoDetectionEnabled,
 };
 use tls_parser::TlsExtensionType;
 
 static mut ALPROTO_QUIC: AppProto = ALPROTO_UNKNOWN;
+
+static mut ENCRYPTION_BYPASS_ENABLED: SshEncryptionHandling =
+    SshEncryptionHandling::SSH_HANDLE_ENCRYPTION_TRACK_ONLY;
 
 const DEFAULT_DCID_LEN: usize = 16;
 const PKT_NUM_BUF_MAX_LEN: usize = 4;
@@ -251,7 +257,10 @@ impl QuicState {
         return Err(());
     }
 
-    fn handle_frames(&mut self, data: QuicData, header: QuicHeader, to_server: bool) {
+    fn handle_frames(
+        &mut self, data: QuicData, header: QuicHeader, to_server: bool,
+        pstate: *mut AppLayerParserState,
+    ) {
         let mut sni: Option<Vec<u8>> = None;
         let mut ua: Option<Vec<u8>> = None;
         let mut ja3: Option<String> = None;
@@ -311,9 +320,27 @@ impl QuicState {
                     }
                     extv.extend_from_slice(&c.extv);
                     if to_server {
-                        self.hello_ts = true
+                        self.hello_ts = true;
                     } else {
-                        self.hello_tc = true
+                        self.hello_tc = true;
+                    }
+                    if self.hello_tc && self.hello_ts {
+                        let flags = match unsafe { ENCRYPTION_BYPASS_ENABLED } {
+                            SshEncryptionHandling::SSH_HANDLE_ENCRYPTION_BYPASS => {
+                                APP_LAYER_PARSER_NO_INSPECTION
+                                    | APP_LAYER_PARSER_NO_REASSEMBLY
+                                    | APP_LAYER_PARSER_BYPASS_READY
+                            }
+                            SshEncryptionHandling::SSH_HANDLE_ENCRYPTION_TRACK_ONLY => {
+                                APP_LAYER_PARSER_NO_INSPECTION
+                            }
+                            _ => 0,
+                        };
+                        if flags != 0 {
+                            unsafe {
+                                SCAppLayerParserStateSetFlag(pstate, flags);
+                            }
+                        }
                     }
                 }
                 _ => {}
@@ -330,7 +357,7 @@ impl QuicState {
         self.transactions.push_back(tx);
     }
 
-    fn parse(&mut self, input: &[u8], to_server: bool) -> bool {
+    fn parse(&mut self, input: &[u8], to_server: bool, pstate: *mut AppLayerParserState) -> bool {
         // so as to loop over multiple quic headers in one packet
         let mut buf = input;
         while !buf.is_empty() {
@@ -415,7 +442,7 @@ impl QuicState {
                     }
                     match QuicData::from_bytes(framebuf, past_frag, past_fraglen) {
                         Ok(data) => {
-                            self.handle_frames(data, header, to_server);
+                            self.handle_frames(data, header, to_server, pstate);
                         }
                         Err(_e) => {
                             self.set_event_notx(QuicEvent::ErrorOnData, header, to_server);
@@ -467,13 +494,13 @@ unsafe extern "C" fn quic_probing_parser(
 }
 
 unsafe extern "C" fn quic_parse_tc(
-    _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
+    _flow: *mut Flow, state: *mut std::os::raw::c_void, pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, QuicState);
     let buf = stream_slice.as_slice();
 
-    if state.parse(buf, false) {
+    if state.parse(buf, false, pstate) {
         return AppLayerResult::ok();
     } else {
         return AppLayerResult::err();
@@ -481,13 +508,13 @@ unsafe extern "C" fn quic_parse_tc(
 }
 
 unsafe extern "C" fn quic_parse_ts(
-    _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
+    _flow: *mut Flow, state: *mut std::os::raw::c_void, pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, QuicState);
     let buf = stream_slice.as_slice();
 
-    if state.parse(buf, true) {
+    if state.parse(buf, true, pstate) {
         return AppLayerResult::ok();
     } else {
         return AppLayerResult::err();
@@ -587,6 +614,18 @@ pub unsafe extern "C" fn SCRegisterQuicParser() {
         ALPROTO_QUIC = alproto;
         if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
+            if let Some(val) = conf_get("app-layer.protocols.quic.encryption-handling") {
+                let eh = match val {
+                    "full" => SshEncryptionHandling::SSH_HANDLE_ENCRYPTION_FULL,
+                    "track-only" => SshEncryptionHandling::SSH_HANDLE_ENCRYPTION_TRACK_ONLY,
+                    "bypass" => SshEncryptionHandling::SSH_HANDLE_ENCRYPTION_BYPASS,
+                    _ => {
+                        SCLogWarning!("Unknown value {} for quic.encryption-handling.", val);
+                        SshEncryptionHandling::SSH_HANDLE_ENCRYPTION_TRACK_ONLY
+                    }
+                };
+                unsafe { ENCRYPTION_BYPASS_ENABLED = eh };
+            }
         }
         SCLogDebug!("Rust quic parser registered.");
         SCAppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_QUIC);
