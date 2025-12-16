@@ -844,6 +844,15 @@ static void PrintBuildInfo(void)
 
     /* SIMD stuff */
     memset(features, 0x00, sizeof(features));
+#if defined(__AVX512VL__)
+    strlcat(features, "AVX512VL ", sizeof(features));
+#endif
+#if defined(__AVX512BW__)
+    strlcat(features, "AVX512BW ", sizeof(features));
+#endif
+#if defined(__AVX2__)
+    strlcat(features, "AVX2 ", sizeof(features));
+#endif
 #if defined(__SSE4_2__)
     strlcat(features, "SSE_4_2 ", sizeof(features));
 #endif
@@ -855,6 +864,12 @@ static void PrintBuildInfo(void)
 #endif
 #if defined(__SSE2__)
     strlcat(features, "SSE_2 ", sizeof(features));
+#endif
+#if defined(__ARM_FEATURE_SVE)
+    strlcat(features, "SVE ", sizeof(features));
+#endif
+#if defined(__ARM_NEON)
+    strlcat(features, "NEON ", sizeof(features));
 #endif
     if (strlen(features) == 0) {
         strlcat(features, "none", sizeof(features));
