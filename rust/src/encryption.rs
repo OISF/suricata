@@ -23,3 +23,16 @@ pub enum EncryptionHandling {
     ENCRYPTION_HANDLING_BYPASS = 1,     // Skip processing of flow, bypass if possible
     ENCRYPTION_HANDLING_FULL = 2,       // Handle fully like any other protocol
 }
+
+impl std::str::FromStr for EncryptionHandling {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "full" => Ok(EncryptionHandling::ENCRYPTION_HANDLING_FULL),
+            "track-only" => Ok(EncryptionHandling::ENCRYPTION_HANDLING_TRACK_ONLY),
+            "bypass" => Ok(EncryptionHandling::ENCRYPTION_HANDLING_BYPASS),
+            _ => Err(()),
+        }
+    }
+}
