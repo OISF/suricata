@@ -19,7 +19,7 @@ use super::parser;
 use crate::applayer::*;
 use crate::core::*;
 use crate::direction::Direction;
-use crate::encryption::SshEncryptionHandling;
+use crate::encryption::EncryptionHandling;
 use crate::flow::Flow;
 use crate::frames::Frame;
 use nom8::Err;
@@ -34,14 +34,14 @@ use suricata_sys::sys::{
 static mut ALPROTO_SSH: AppProto = ALPROTO_UNKNOWN;
 static HASSH_ENABLED: AtomicBool = AtomicBool::new(false);
 
-static mut ENCRYPTION_BYPASS_ENABLED: SshEncryptionHandling =
-    SshEncryptionHandling::SSH_HANDLE_ENCRYPTION_TRACK_ONLY;
+static mut ENCRYPTION_BYPASS_ENABLED: EncryptionHandling =
+    EncryptionHandling::ENCRYPTION_HANDLING_TRACK_ONLY;
 
 fn hassh_is_enabled() -> bool {
     HASSH_ENABLED.load(Ordering::Relaxed)
 }
 
-fn encryption_bypass_mode() -> SshEncryptionHandling {
+fn encryption_bypass_mode() -> EncryptionHandling {
     unsafe { ENCRYPTION_BYPASS_ENABLED }
 }
 
@@ -219,12 +219,12 @@ impl SSHState {
                                 let mut flags = 0;
 
                                 match encryption_bypass_mode() {
-                                    SshEncryptionHandling::SSH_HANDLE_ENCRYPTION_BYPASS => {
+                                    EncryptionHandling::ENCRYPTION_HANDLING_BYPASS => {
                                         flags |= APP_LAYER_PARSER_NO_INSPECTION
                                             | APP_LAYER_PARSER_NO_REASSEMBLY
                                             | APP_LAYER_PARSER_BYPASS_READY;
                                     }
-                                    SshEncryptionHandling::SSH_HANDLE_ENCRYPTION_TRACK_ONLY => {
+                                    EncryptionHandling::ENCRYPTION_HANDLING_TRACK_ONLY => {
                                         flags |= APP_LAYER_PARSER_NO_INSPECTION;
                                     }
                                     _ => {}
@@ -594,7 +594,7 @@ pub extern "C" fn SCSshHasshIsEnabled() -> bool {
 }
 
 #[no_mangle]
-pub extern "C" fn SCSshEnableBypass(mode: SshEncryptionHandling) {
+pub extern "C" fn SCSshEnableBypass(mode: EncryptionHandling) {
     unsafe {
         ENCRYPTION_BYPASS_ENABLED = mode;
     }

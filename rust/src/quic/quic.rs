@@ -22,7 +22,7 @@ use super::{
     parser::{quic_pkt_num, QuicData, QuicHeader, QuicType},
 };
 use crate::conf::conf_get;
-use crate::encryption::SshEncryptionHandling;
+use crate::encryption::EncryptionHandling;
 use crate::{
     applayer::{self, *},
     direction::Direction,
@@ -44,8 +44,8 @@ use tls_parser::TlsExtensionType;
 
 static mut ALPROTO_QUIC: AppProto = ALPROTO_UNKNOWN;
 
-static mut ENCRYPTION_BYPASS_ENABLED: SshEncryptionHandling =
-    SshEncryptionHandling::SSH_HANDLE_ENCRYPTION_TRACK_ONLY;
+static mut ENCRYPTION_BYPASS_ENABLED: EncryptionHandling =
+    EncryptionHandling::ENCRYPTION_HANDLING_TRACK_ONLY;
 
 const DEFAULT_DCID_LEN: usize = 16;
 const PKT_NUM_BUF_MAX_LEN: usize = 4;
@@ -326,12 +326,12 @@ impl QuicState {
                     }
                     if self.hello_tc && self.hello_ts {
                         let flags = match unsafe { ENCRYPTION_BYPASS_ENABLED } {
-                            SshEncryptionHandling::SSH_HANDLE_ENCRYPTION_BYPASS => {
+                            EncryptionHandling::ENCRYPTION_HANDLING_BYPASS => {
                                 APP_LAYER_PARSER_NO_INSPECTION
                                     | APP_LAYER_PARSER_NO_REASSEMBLY
                                     | APP_LAYER_PARSER_BYPASS_READY
                             }
-                            SshEncryptionHandling::SSH_HANDLE_ENCRYPTION_TRACK_ONLY => {
+                            EncryptionHandling::ENCRYPTION_HANDLING_TRACK_ONLY => {
                                 APP_LAYER_PARSER_NO_INSPECTION
                             }
                             _ => 0,
@@ -616,12 +616,12 @@ pub unsafe extern "C" fn SCRegisterQuicParser() {
             let _ = AppLayerRegisterParser(&parser, alproto);
             if let Some(val) = conf_get("app-layer.protocols.quic.encryption-handling") {
                 let eh = match val {
-                    "full" => SshEncryptionHandling::SSH_HANDLE_ENCRYPTION_FULL,
-                    "track-only" => SshEncryptionHandling::SSH_HANDLE_ENCRYPTION_TRACK_ONLY,
-                    "bypass" => SshEncryptionHandling::SSH_HANDLE_ENCRYPTION_BYPASS,
+                    "full" => EncryptionHandling::ENCRYPTION_HANDLING_FULL,
+                    "track-only" => EncryptionHandling::ENCRYPTION_HANDLING_TRACK_ONLY,
+                    "bypass" => EncryptionHandling::ENCRYPTION_HANDLING_BYPASS,
                     _ => {
                         SCLogWarning!("Unknown value {} for quic.encryption-handling.", val);
-                        SshEncryptionHandling::SSH_HANDLE_ENCRYPTION_TRACK_ONLY
+                        EncryptionHandling::ENCRYPTION_HANDLING_TRACK_ONLY
                     }
                 };
                 unsafe { ENCRYPTION_BYPASS_ENABLED = eh };
