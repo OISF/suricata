@@ -205,8 +205,7 @@ static int GetSNI(lua_State *luastate, const SSLState *ssl_state)
     if (ssl_state->client_connp.sni == NULL)
         return LuaCallbackError(luastate, "error: no server name indication");
 
-    return LuaPushStringBuffer(luastate, (uint8_t *)ssl_state->client_connp.sni,
-                               strlen(ssl_state->client_connp.sni));
+    return LuaPushStringBuffer(luastate, ssl_state->client_connp.sni, ssl_state->client_connp.sni_len);
 }
 
 static int LuaTlsGetSNI(lua_State *luastate)

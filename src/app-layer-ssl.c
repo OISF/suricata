@@ -990,19 +990,18 @@ static inline int TLSDecodeHSHelloExtensionSni(SSLState *ssl_state,
         return (int)(input - initial_input);
     }
 
-    const size_t sni_strlen = sni_len + 1;
+    ssl_state->curr_connp->sni_len = sni_len;
     ssl_state->curr_connp->sni = SCMalloc(sni_len);
     if (unlikely(ssl_state->curr_connp->sni == NULL))
         return -1;
 
     const size_t consumed = input - initial_input;
-    if (SafeMemcpy(ssl_state->curr_connp->sni, 0, sni_strlen,
+    if (SafeMemcpy(ssl_state->curr_connp->sni, 0, sni_len,
                 initial_input, consumed, input_len, sni_len) != 0) {
         SCFree(ssl_state->curr_connp->sni);
         ssl_state->curr_connp->sni = NULL;
         return -1;
     }
-    ssl_state->curr_connp->sni[sni_strlen-1] = 0;
     input += sni_len;
 
     return (int)(input - initial_input);

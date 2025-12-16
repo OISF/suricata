@@ -203,7 +203,8 @@ typedef struct SSLStateConnp_ {
     SSLSubjectAltName *cert0_sans;
     uint32_t cert0_sans_num;
     /* ssl server name indication extension */
-    char *sni;
+    uint8_t *sni;
+    uint16_t sni_len;
 
     char *session_id;
 

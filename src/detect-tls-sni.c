@@ -1,4 +1,4 @@
-/* Copyright (C) 2007 Open Information Security Foundation
+/* Copyright (C) 2007-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -120,7 +120,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
             return NULL;
         }
 
-        const uint32_t data_len = (uint32_t)strlen(ssl_state->client_connp.sni);
+        const uint32_t data_len = ssl_state->client_connp.sni_len;
         const uint8_t *data = (uint8_t *)ssl_state->client_connp.sni;
 
         InspectionBufferSetupAndApplyTransforms(
