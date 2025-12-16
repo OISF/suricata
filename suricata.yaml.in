@@ -1941,26 +1941,27 @@ threading:
   #stack-size: 8 MiB
 
 # Profiling settings. Only effective if Suricata has been built with
-# the --enable-profiling configure flag.
-#
+# the --enable-profiling configure flag. Note that profiling is not
+# compiled in by default as it does have a performance impact.
 profiling:
   # Run profiling for every X-th packet. The default is 1, which means we
   # profile every packet. If set to 1024, one packet is profiled for every
   # 1024 received. The sample rate must be a power of 2.
   #sample-rate: 1024
 
-  # rule profiling
+  # Rule profiling. Can be enabled with --enable-profiling-rules.
   rules:
 
-    # Profiling can be disabled here, but it will still have a
-    # performance impact if compiled in.
-    enabled: yes
+    # Rule profiling can be enabled or disabled here. It still has to
+    # be "activated" either with the "active" field below, or with
+    # unix socket commands. Disabled by default.
+    #enabled: no
     filename: rule_perf.log
     append: yes
     # Set active to yes to enable rules profiling at start
     # if set to no (default), the rules profiling will have to be started
     # via unix socket commands.
-    #active:no
+    #active: no
 
     # Sort options: ticks, avgticks, checks, matches, maxticks
     # If commented out all the sort options will be used.
