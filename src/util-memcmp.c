@@ -990,7 +990,7 @@ static int MemcmpTest18 (void)
     for (; t != NULL; t++) {
         if (t->a == NULL)
             break;
-        int result = SCMemcmpLowercase(t->a, t->b, strlen(t->a));
+        int result = SCMemcmpLowercase((const uint8_t *)t->a, (const uint8_t *)t->b, strlen(t->a));
         FAIL_IF(result != t->result);
     }
     PASS;
