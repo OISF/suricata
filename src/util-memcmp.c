@@ -665,6 +665,19 @@ static int MemcmpTestExactSCMemcmpAVX512_6144(void)
     return 1;
 }
 
+static int MemcmpTestExactSCMemcmpSVE(void)
+{
+#ifdef PROFILING
+#if defined(__ARM_FEATURE_SVE)
+    DRIVER(SCMemcmpSVE);
+    PktDriver(SCMemcmpSVE, PKT_SMALL);
+    PktDriver(SCMemcmpSVE, PKT_ETH);
+    PktDriver(SCMemcmpSVE, PKT_JUMBO);
+#endif
+#endif
+    return 1;
+}
+
 static int MemcmpTestLowercaseDefault(void)
 {
 #ifdef PROFILING
@@ -746,6 +759,16 @@ static int MemcmpTestLowercaseAVX512_512(void)
 #ifdef PROFILING
 #if defined(__AVX512VL__) && defined(__AVX512BW__)
     DRIVER(SCMemcmpLowercaseAVX512_512);
+#endif
+#endif
+    PASS;
+}
+
+static int MemcmpTestLowercaseNeon(void)
+{
+#ifdef PROFILING
+#if defined(__ARM_NEON)
+    DRIVER(SCMemcmpLowercaseNeon);
 #endif
 #endif
     PASS;
@@ -1006,6 +1029,7 @@ void MemcmpRegisterTests(void)
     UtRegisterTest("MemcmpTestExactSCMemcmpAVX512_2048", MemcmpTestExactSCMemcmpAVX512_2048);
     UtRegisterTest("MemcmpTestExactSCMemcmpAVX512_4096", MemcmpTestExactSCMemcmpAVX512_4096);
     UtRegisterTest("MemcmpTestExactSCMemcmpAVX512_6144", MemcmpTestExactSCMemcmpAVX512_6144);
+    UtRegisterTest("MemcmpTestExactSCMemcmpSVE", MemcmpTestExactSCMemcmpSVE);
     UtRegisterTest("MemcmpTestLowercaseDefault", MemcmpTestLowercaseDefault);
     UtRegisterTest("MemcmpTestLowercaseNoSIMD", MemcmpTestLowercaseNoSIMD);
     UtRegisterTest("MemcmpTestLowercaseSSE3", MemcmpTestLowercaseSSE3);
@@ -1015,6 +1039,7 @@ void MemcmpRegisterTests(void)
     UtRegisterTest("MemcmpTestLowercaseAVX2", MemcmpTestLowercaseAVX2);
     UtRegisterTest("MemcmpTestLowercaseAVX512_256", MemcmpTestLowercaseAVX512_256);
     UtRegisterTest("MemcmpTestLowercaseAVX512_512", MemcmpTestLowercaseAVX512_512);
+    UtRegisterTest("MemcmpTestLowercaseNeon", MemcmpTestLowercaseNeon);
     UtRegisterTest("MemcmpTest18", MemcmpTest18);
 }
 #endif /* UNITTESTS */
