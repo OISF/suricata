@@ -189,8 +189,6 @@ static int MemcmpTest13 (void)
 
 #include "util-cpu.h"
 
-#define TEST_RUNS 1000000
-
 #ifdef PROFILING
 /* patterns used with SCMemcmpLowercase throughout the engine */
 const char *used[] = {
@@ -367,45 +365,40 @@ static inline int TestWrapMemcmp(const uint8_t *s1, const uint8_t *s2, size_t le
     uint8_t *big = SCCalloc(1, BIGSZ);                                                             \
     memset(big, 'a', BIGSZ);                                                                       \
     int res = 0;                                                                                   \
-    uint64_t cnt = 0;                                                                              \
     uint64_t ticks_start = UtilCpuGetTicks();                                                      \
     for (int t = 0; t < TEST_RUNS; t++) {                                                          \
         for (int i = 0; used[i] != NULL; i++) {                                                    \
             size_t alen = strlen(used[i]) - 1;                                                     \
             for (int j = 0; used[j] != NULL; j++) {                                                \
                 size_t blen = strlen(used[j]) - 1;                                                 \
-                cnt++;                                                                             \
                 res += (f)((uint8_t *)used[i], (uint8_t *)used[j], (alen < blen) ? alen : blen);   \
             }                                                                                      \
         }                                                                                          \
     }                                                                                              \
     uint64_t ticks_end = UtilCpuGetTicks();                                                        \
-    printf("real: %3" PRIu64 " - ", ((uint64_t)(ticks_end - ticks_start)) / cnt);                  \
+    printf("real: %6" PRIu64 "k - ", ((uint64_t)(ticks_end - ticks_start)) / 1000);                \
     if (res != (504 * TEST_RUNS)) {                                                                \
-        SCLogNotice("%d %" PRIu64 "\n", res, ((uint64_t)(ticks_end - ticks_start)) / cnt);         \
+        SCLogNotice("%d %" PRIu64 "k\n", res, ((uint64_t)(ticks_end - ticks_start)) / 1000);       \
         return 0;                                                                                  \
     }                                                                                              \
     res = 0;                                                                                       \
-    cnt = 0;                                                                                       \
     ticks_start = UtilCpuGetTicks();                                                               \
     for (int t = 0; t < TEST_RUNS; t++) {                                                          \
         for (int i = 0; syn[i] != NULL; i++) {                                                     \
             size_t alen = strlen(syn[i]) - 1;                                                      \
             for (int j = 0; syn[j] != NULL; j++) {                                                 \
                 size_t blen = strlen(syn[j]) - 1;                                                  \
-                cnt++;                                                                             \
                 res += (f)((uint8_t *)syn[i], (uint8_t *)syn[j], (alen < blen) ? alen : blen);     \
             }                                                                                      \
         }                                                                                          \
     }                                                                                              \
     ticks_end = UtilCpuGetTicks();                                                                 \
-    printf("syn: %3" PRIu64 " - ", ((uint64_t)(ticks_end - ticks_start)) / cnt);                   \
+    printf("syn: %6" PRIu64 "k - ", ((uint64_t)(ticks_end - ticks_start)) / 1000);                 \
     if (res != (128 * TEST_RUNS)) {                                                                \
-        SCLogNotice("%d %" PRIu64 "\n", res, ((uint64_t)(ticks_end - ticks_start)) / cnt);         \
+        SCLogNotice("%d %" PRIu64 "k\n", res, ((uint64_t)(ticks_end - ticks_start)) / 1000);       \
         return 0;                                                                                  \
     }                                                                                              \
     res = 0;                                                                                       \
-    cnt = 0;                                                                                       \
     ticks_start = UtilCpuGetTicks();                                                               \
     for (int t = 0; t < 10; t++) {                                                                 \
         for (int i = 0; used[i] != NULL; i++) {                                                    \
@@ -414,19 +407,17 @@ static inline int TestWrapMemcmp(const uint8_t *s1, const uint8_t *s2, size_t le
                 if (BIGSZ - j < alen)                                                              \
                     continue;                                                                      \
                 uint8_t *b = big + j;                                                              \
-                cnt++;                                                                             \
                 res += (f)((uint8_t *)used[i], b, alen);                                           \
             }                                                                                      \
         }                                                                                          \
     }                                                                                              \
     ticks_end = UtilCpuGetTicks();                                                                 \
-    printf("stream1: %3" PRIu64 " - ", ((uint64_t)(ticks_end - ticks_start)) / cnt);               \
+    printf("stream1: %6" PRIu64 "k - ", ((uint64_t)(ticks_end - ticks_start)) / 1000);             \
     if (res != 241171330) {                                                                        \
-        SCLogNotice("%d %" PRIu64 "\n", res, ((uint64_t)(ticks_end - ticks_start)) / cnt);         \
+        SCLogNotice("%d %" PRIu64 "k\n", res, ((uint64_t)(ticks_end - ticks_start)) / 1000);       \
         return 0;                                                                                  \
     }                                                                                              \
     res = 0;                                                                                       \
-    cnt = 0;                                                                                       \
     ticks_start = UtilCpuGetTicks();                                                               \
     for (int t = 0; t < 10; t++) {                                                                 \
         for (int i = 0; syn[i] != NULL; i++) {                                                     \
@@ -436,15 +427,14 @@ static inline int TestWrapMemcmp(const uint8_t *s1, const uint8_t *s2, size_t le
                 if (BIGSZ - j < alen)                                                              \
                     continue;                                                                      \
                 uint8_t *b = big + j;                                                              \
-                cnt++;                                                                             \
                 res += (f)((uint8_t *)syn[i], b, alen);                                            \
             }                                                                                      \
         }                                                                                          \
     }                                                                                              \
     ticks_end = UtilCpuGetTicks();                                                                 \
-    printf("stream2: %3" PRIu64 " - ", ((uint64_t)(ticks_end - ticks_start)) / cnt);               \
+    printf("stream2: %6" PRIu64 "k - ", ((uint64_t)(ticks_end - ticks_start)) / 1000);             \
     if (res != 125747460) {                                                                        \
-        SCLogNotice("%d %" PRIu64 "\n", res, ((uint64_t)(ticks_end - ticks_start)) / cnt);         \
+        SCLogNotice("%d %" PRIu64 "k\n", res, ((uint64_t)(ticks_end - ticks_start)) / 1000);       \
         return 0;                                                                                  \
     }                                                                                              \
     SCFree(big);
@@ -453,6 +443,7 @@ static inline int TestWrapMemcmp(const uint8_t *s1, const uint8_t *s2, size_t le
 // #undef BIGSZ
 
 #ifdef PROFILING
+#define TEST_RUNS 1000000
 #define PKT_SMALL 64
 #define PKT_ETH   1418
 #define PKT_JUMBO 9000
@@ -499,6 +490,10 @@ static int PktDriver(TestFunc FPtr, size_t size)
     return 1;
 }
 #endif
+
+#undef TEST_RUNS
+
+#define TEST_RUNS 10000 // for DRIVER macro
 
 static int MemcmpTestExactLibcMemcmp(void)
 {
