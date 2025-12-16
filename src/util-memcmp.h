@@ -846,7 +846,7 @@ static inline int SCMemcmpLowercaseSSE3and(const uint8_t *s1, const uint8_t *s2,
 }
 
 /* sp and + loadu */
-static inline int SCMemcmpLowercaseSSE3andload(const void *s1, const void *s2, size_t len)
+static inline int SCMemcmpLowercaseSSE3andload(const uint8_t *s1, const uint8_t *s2, size_t len)
 {
     size_t offset = 0;
     __m128i b1, b2, mask1, mask2, uc_low, uc_high, zero20;
