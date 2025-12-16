@@ -36,8 +36,8 @@
  *  \warning *ONLY* the 2nd pattern is converted to lowercase
  */
 
-static inline int SCMemcmpLT32(const void *s1, const void *s2, size_t len);
-static inline int SCMemcmpLowercaseLT32(const void *s1, const void *s2, size_t len);
+static inline int SCMemcmpLT32(const uint8_t *s1, const uint8_t *s2, size_t len);
+static inline int SCMemcmpLowercaseLT32(const uint8_t *s1, const uint8_t *s2, size_t len);
 
 static inline int MemcmpLowercase(const uint8_t *s1, const uint8_t *s2, size_t n)
 {
@@ -977,7 +977,7 @@ static inline int SCMemcmpLowercaseNeon(const uint8_t *s1, const uint8_t *s2, si
 
 /* No SIMD support, fall back to plain memcmp and a home grown lowercase one */
 
-static inline int SCMemcmpLT32(const void *s1, const void *s2, size_t len)
+static inline int SCMemcmpLT32(const uint8_t *s1, const uint8_t *s2, size_t len)
 {
     if (len < 16) {
         return memcmp(s1, s2, len) == 0 ? 0 : 1;
@@ -994,7 +994,7 @@ static inline int SCMemcmpLT32(const void *s1, const void *s2, size_t len)
 #endif
 }
 
-static inline int SCMemcmpLT64(const void *s1, const void *s2, size_t len)
+static inline int SCMemcmpLT64(const uint8_t *s1, const uint8_t *s2, size_t len)
 {
     if (len < 32) {
         return SCMemcmpLT32(s1, s2, len);
@@ -1034,7 +1034,7 @@ static inline int SCMemcmp(const uint8_t *s1, const uint8_t *s2, size_t len)
 #endif
 }
 
-static inline int SCMemcmpLowercaseLT32(const void *s1, const void *s2, size_t len)
+static inline int SCMemcmpLowercaseLT32(const uint8_t *s1, const uint8_t *s2, size_t len)
 {
     if (len < 16) {
         return MemcmpLowercase(s1, s2, len);
@@ -1048,7 +1048,7 @@ static inline int SCMemcmpLowercaseLT32(const void *s1, const void *s2, size_t l
 #endif
 }
 
-static inline int SCMemcmpLowercaseLT64(const void *s1, const void *s2, size_t len)
+static inline int SCMemcmpLowercaseLT64(const uint8_t *s1, const uint8_t *s2, size_t len)
 {
     if (len < 32) {
         return SCMemcmpLowercaseLT32(s1, s2, len);
@@ -1066,7 +1066,7 @@ static inline int SCMemcmpLowercaseLT64(const void *s1, const void *s2, size_t l
 #endif
 }
 
-static inline int SCMemcmpLowercase(const void *s1, const void *s2, size_t len)
+static inline int SCMemcmpLowercase(const uint8_t *s1, const uint8_t *s2, size_t len)
 {
 #if defined(__AVX512VL__) && defined(__AVX512BW__)
     if (len < 64) {
@@ -1087,7 +1087,7 @@ static inline int SCMemcmpLowercase(const void *s1, const void *s2, size_t len)
 #endif
 }
 
-static inline int SCBufferCmp(const void *s1, size_t len1, const void *s2, size_t len2)
+static inline int SCBufferCmp(const uint8_t *s1, size_t len1, const uint8_t *s2, size_t len2)
 {
     if (len1 == len2) {
         return SCMemcmp(s1, s2, len1);
