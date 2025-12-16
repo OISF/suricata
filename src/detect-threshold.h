@@ -47,6 +47,11 @@
 #define TH_ACTION_SDROP     0x10
 #define TH_ACTION_REJECT    0x20
 
+/* distinct counting support (for detection_filter) */
+#define DF_UNIQUE_NONE     0
+#define DF_UNIQUE_SRC_PORT 1
+#define DF_UNIQUE_DST_PORT 2
+
 /**
  * \typedef DetectThresholdData
  * A typedef for DetectThresholdData_
@@ -61,6 +66,7 @@ typedef struct DetectThresholdData_ {
     uint32_t timeout;   /**< timeout */
     uint32_t flags;     /**< flags used to set option */
     uint32_t multiplier; /**< backoff multiplier */
+    uint8_t unique_on;   /**< distinct counting on specific field (DF_UNIQUE_*) */
     DetectAddressHead addrs;
 } DetectThresholdData;
 
