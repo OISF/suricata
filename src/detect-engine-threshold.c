@@ -55,6 +55,39 @@
 #include "util-hash.h"
 #include "util-thash.h"
 #include "util-hash-lookup3.h"
+#include "counters.h"
+
+static SC_ATOMIC_DECLARE(uint64_t, threshold_bitmap_alloc_fail);
+static SC_ATOMIC_DECLARE(uint64_t, threshold_bitmap_memuse);
+
+/* UNITTESTS-only test seam to force allocation failure and query counters */
+#ifdef UNITTESTS
+void ThresholdForceAllocFail(int v);
+uint64_t ThresholdGetBitmapMemuse(void);
+uint64_t ThresholdGetBitmapAllocFail(void);
+
+static int g_threshold_force_alloc_fail = 0;
+
+void ThresholdForceAllocFail(int v)
+{
+    g_threshold_force_alloc_fail = v;
+}
+
+uint64_t ThresholdGetBitmapMemuse(void)
+{
+    return SC_ATOMIC_GET(threshold_bitmap_memuse);
+}
+
+uint64_t ThresholdGetBitmapAllocFail(void)
+{
+    return SC_ATOMIC_GET(threshold_bitmap_alloc_fail);
+}
+#endif
+
+/* bitmap settings for exact distinct counting of 16-bit ports */
+#define DF_PORT_BITMAP_SIZE (65536u / 8u)
+#define DF_PORT_BYTE_IDX(p) ((uint32_t)((p) >> 3))
+#define DF_PORT_BIT_MASK(p) ((uint8_t)(1u << ((p)&7u)))
 
 struct Thresholds {
     THashTableContext *thash;
@@ -63,9 +96,44 @@ struct Thresholds {
 static int ThresholdsInit(struct Thresholds *t);
 static void ThresholdsDestroy(struct Thresholds *t);
 
+static uint64_t ThresholdBitmapAllocFailCounter(void)
+{
+    return SC_ATOMIC_GET(threshold_bitmap_alloc_fail);
+}
+
+static uint64_t ThresholdBitmapMemuseCounter(void)
+{
+    return SC_ATOMIC_GET(threshold_bitmap_memuse);
+}
+
+static uint64_t ThresholdMemuseCounter(void)
+{
+    if (ctx.thash == NULL)
+        return 0;
+    return SC_ATOMIC_GET(ctx.thash->memuse);
+}
+
+static uint64_t ThresholdMemcapCounter(void)
+{
+    if (ctx.thash == NULL)
+        return 0;
+    return SC_ATOMIC_GET(ctx.thash->config.memcap);
+}
+
 void ThresholdInit(void)
 {
+    SC_ATOMIC_INIT(threshold_bitmap_alloc_fail);
+    SC_ATOMIC_INIT(threshold_bitmap_memuse);
     ThresholdsInit(&ctx);
+}
+
+void ThresholdRegisterGlobalCounters(void)
+{
+    StatsRegisterGlobalCounter("detect.thresholds.memuse", ThresholdMemuseCounter);
+    StatsRegisterGlobalCounter("detect.thresholds.memcap", ThresholdMemcapCounter);
+    StatsRegisterGlobalCounter("detect.thresholds.bitmap_memuse", ThresholdBitmapMemuseCounter);
+    StatsRegisterGlobalCounter(
+            "detect.thresholds.bitmap_alloc_fail", ThresholdBitmapAllocFailCounter);
 }
 
 void ThresholdDestroy(void)
@@ -95,6 +163,8 @@ typedef struct ThresholdEntry_ {
             SCTime_t tv1;  /**< Var for time control */
             Address addr;  /* used for src/dst/either tracking */
             Address addr2; /* used for both tracking */
+            /* distinct counting state (for detection_filter unique_on ports) */
+            uint8_t *distinct_bitmap_union; /* 8192 bytes (65536 bits) */
         };
     };
 
@@ -109,9 +179,83 @@ static int ThresholdEntrySet(void *dst, void *src)
     return 0;
 }
 
+static void ThresholdDistinctInit(ThresholdEntry *te, const DetectThresholdData *td)
+{
+    if (td->type != TYPE_DETECTION || td->unique_on == DF_UNIQUE_NONE) {
+        return;
+    }
+    DEBUG_VALIDATE_BUG_ON(td->seconds == 0);
+
+    const uint32_t bitmap_size = DF_PORT_BITMAP_SIZE;
+    te->current_count = 0;
+#ifdef UNITTESTS
+    if (g_threshold_force_alloc_fail) {
+        SC_ATOMIC_ADD(threshold_bitmap_alloc_fail, 1);
+        te->distinct_bitmap_union = NULL;
+        return;
+    }
+#endif
+    /* Check memcap before allocating bitmap.
+     * Bitmap memory is bounded by detect.thresholds.memcap via thash.
+     * Note: if ctx.thash is NULL (e.g. init failed or unittests), we bypass
+     * the memcap check but still attempt allocation unless forced to fail. */
+    if (ctx.thash != NULL && !THASH_CHECK_MEMCAP(ctx.thash, bitmap_size)) {
+        SC_ATOMIC_ADD(threshold_bitmap_alloc_fail, 1);
+        te->distinct_bitmap_union = NULL;
+        return;
+    }
+
+    te->distinct_bitmap_union = SCCalloc(1, bitmap_size);
+    if (te->distinct_bitmap_union == NULL) {
+        SC_ATOMIC_ADD(threshold_bitmap_alloc_fail, 1);
+    } else {
+        /* Track bitmap memory in thash memuse for proper accounting */
+        if (ctx.thash != NULL) {
+            (void)SC_ATOMIC_ADD(ctx.thash->memuse, bitmap_size);
+        }
+        SC_ATOMIC_ADD(threshold_bitmap_memuse, bitmap_size);
+    }
+}
+
+static void ThresholdDistinctReset(ThresholdEntry *te)
+{
+    const uint32_t bitmap_size = DF_PORT_BITMAP_SIZE;
+    if (te->distinct_bitmap_union) {
+        memset(te->distinct_bitmap_union, 0x00, bitmap_size);
+    }
+    te->current_count = 0;
+}
+
+static inline void ThresholdDistinctAddPort(ThresholdEntry *te, uint16_t port)
+{
+    const uint32_t byte_index = DF_PORT_BYTE_IDX(port);
+    const uint8_t bit_mask = DF_PORT_BIT_MASK(port);
+    if (te->distinct_bitmap_union) {
+        bool already = (te->distinct_bitmap_union[byte_index] & bit_mask);
+        if (!already) {
+            te->distinct_bitmap_union[byte_index] =
+                    (uint8_t)(te->distinct_bitmap_union[byte_index] | bit_mask);
+            te->current_count++;
+        }
+    }
+}
+
 static void ThresholdEntryFree(void *ptr)
 {
-    // nothing to free, base data is part of hash
+    if (ptr == NULL)
+        return;
+
+    ThresholdEntry *e = ptr;
+    if (e->distinct_bitmap_union) {
+        const uint32_t bitmap_size = DF_PORT_BITMAP_SIZE;
+        /* Decrement bitmap memory from thash memuse */
+        if (ctx.thash != NULL) {
+            (void)SC_ATOMIC_SUB(ctx.thash->memuse, bitmap_size);
+        }
+        SC_ATOMIC_SUB(threshold_bitmap_memuse, bitmap_size);
+        SCFree(e->distinct_bitmap_union);
+        e->distinct_bitmap_union = NULL;
+    }
 }
 
 static inline uint32_t HashAddress(const Address *a)
@@ -585,8 +729,8 @@ static int AddEntryToFlow(Flow *f, FlowThresholdEntryList *e, SCTime_t packet_ti
     return 0;
 }
 
-static int ThresholdHandlePacketSuppress(Packet *p,
-        const DetectThresholdData *td, uint32_t sid, uint32_t gid)
+static int ThresholdHandlePacketSuppress(
+        Packet *p, const DetectThresholdData *td, uint32_t sid, uint32_t gid)
 {
     int ret = 0;
     DetectAddress *m = NULL;
@@ -664,15 +808,14 @@ static uint32_t BackoffCalcNextValue(const uint32_t cur, const uint32_t m)
  *  \retval 1 normal match
  *  \retval 0 no match
  */
-static int ThresholdSetup(const DetectThresholdData *td, ThresholdEntry *te,
-        const SCTime_t packet_time, const uint32_t sid, const uint32_t gid, const uint32_t rev,
-        const uint32_t tenant_id)
+static int ThresholdSetup(const DetectThresholdData *td, ThresholdEntry *te, const Packet *p,
+        const uint32_t sid, const uint32_t gid, const uint32_t rev)
 {
     te->key[SID] = sid;
     te->key[GID] = gid;
     te->key[REV] = rev;
     te->key[TRACK] = td->track;
-    te->key[TENANT] = tenant_id;
+    te->key[TENANT] = p->tenant_id;
 
     te->seconds = td->seconds;
     te->current_count = 1;
@@ -682,8 +825,22 @@ static int ThresholdSetup(const DetectThresholdData *td, ThresholdEntry *te,
             te->backoff.next_value = td->count;
             break;
         default:
-            te->tv1 = packet_time;
+            te->tv1 = p->ts;
             te->tv_timeout = SCTIME_INITIALIZER;
+            ThresholdDistinctInit(te, td);
+            /* If unique_on is enabled, we must add the current packet's port to the bitmap.
+             * ThresholdDistinctInit resets current_count to 0, so we must add the port
+             * or restore the count if allocation failed. */
+            if (td->type == TYPE_DETECTION && td->unique_on != DF_UNIQUE_NONE) {
+                if (te->distinct_bitmap_union) {
+                    uint16_t port = (td->unique_on == DF_UNIQUE_SRC_PORT) ? p->sp : p->dp;
+                    ThresholdDistinctAddPort(te, port);
+                } else {
+                    /* Allocation failed (or test mode), fallback to classic counting.
+                     * We must set current_count to 1 for this first packet. */
+                    te->current_count = 1;
+                }
+            }
             break;
     }
 
@@ -779,21 +936,38 @@ static int ThresholdCheckUpdate(const DetectEngineCtx *de_ctx, const DetectThres
                 }
             }
             break;
-        case TYPE_DETECTION:
+        case TYPE_DETECTION: {
             SCLogDebug("detection_filter");
 
             if (SCTIME_CMP_LTE(p->ts, entry)) {
                 /* within timeout */
-                te->current_count++;
-                if (te->current_count > td->count) {
-                    ret = 1;
+                if (td->unique_on != DF_UNIQUE_NONE && te->distinct_bitmap_union) {
+                    uint16_t port = (td->unique_on == DF_UNIQUE_SRC_PORT) ? p->sp : p->dp;
+                    ThresholdDistinctAddPort(te, port);
+                    if (te->current_count > td->count) {
+                        ret = 1;
+                    }
+                } else {
+                    te->current_count++;
+                    if (te->current_count > td->count) {
+                        ret = 1;
+                    }
                 }
             } else {
-                /* expired, reset */
+                /* expired, reset to new window starting now */
                 te->tv1 = p->ts;
-                te->current_count = 1;
+                ThresholdDistinctReset(te);
+
+                /* record current packet's distinct port as the first in the new window */
+                if (td->unique_on != DF_UNIQUE_NONE && te->distinct_bitmap_union) {
+                    uint16_t port = (td->unique_on == DF_UNIQUE_SRC_PORT) ? p->sp : p->dp;
+                    ThresholdDistinctAddPort(te, port);
+                } else {
+                    te->current_count = 1;
+                }
             }
             break;
+        }
         case TYPE_RATE: {
             SCLogDebug("rate_filter");
             const uint8_t original_action = pa->action;
@@ -902,7 +1076,7 @@ static int ThresholdGetFromHash(const DetectEngineCtx *de_ctx, struct Thresholds
         ThresholdEntry *te = res.data->data;
         if (res.is_new) {
             // new threshold, set up
-            r = ThresholdSetup(td, te, p->ts, s->id, s->gid, s->rev, p->tenant_id);
+            r = ThresholdSetup(td, te, p, s->id, s->gid, s->rev);
         } else {
             // existing, check/update
             r = ThresholdCheckUpdate(de_ctx, td, te, p, s->id, s->gid, s->rev, pa);
@@ -933,7 +1107,7 @@ static int ThresholdHandlePacketFlow(const DetectEngineCtx *de_ctx, Flow *f, Pac
             return 0;
 
         // new threshold, set up
-        ret = ThresholdSetup(td, &new->threshold, p->ts, sid, gid, rev, p->tenant_id);
+        ret = ThresholdSetup(td, &new->threshold, p, sid, gid, rev);
 
         if (AddEntryToFlow(f, new, p->ts) == -1) {
             SCFree(new);
@@ -969,7 +1143,7 @@ int PacketAlertThreshold(const DetectEngineCtx *de_ctx, DetectEngineThreadCtx *d
     }
 
     if (td->type == TYPE_SUPPRESS) {
-        ret = ThresholdHandlePacketSuppress(p,td,s->id,s->gid);
+        ret = ThresholdHandlePacketSuppress(p, td, s->id, s->gid);
     } else if (td->track == TRACK_SRC) {
         if (PacketIsIPv4(p) && (td->type == TYPE_LIMIT || td->type == TYPE_BOTH)) {
             int cache_ret = CheckCache(p, td->track, s->id, s->gid, s->rev);

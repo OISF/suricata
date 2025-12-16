@@ -47,6 +47,13 @@
 #define TH_ACTION_SDROP     0x10
 #define TH_ACTION_REJECT    0x20
 
+/* distinct counting support (for detection_filter) */
+enum DetectThresholdUniqueOn {
+    DF_UNIQUE_NONE = 0,
+    DF_UNIQUE_SRC_PORT,
+    DF_UNIQUE_DST_PORT,
+};
+
 /**
  * \typedef DetectThresholdData
  * A typedef for DetectThresholdData_
@@ -61,6 +68,8 @@ typedef struct DetectThresholdData_ {
     uint32_t timeout;   /**< timeout */
     uint32_t flags;     /**< flags used to set option */
     uint32_t multiplier; /**< backoff multiplier */
+    enum DetectThresholdUniqueOn
+            unique_on; /**< distinct counting on specific field (DF_UNIQUE_*) */
     DetectAddressHead addrs;
 } DetectThresholdData;
 
