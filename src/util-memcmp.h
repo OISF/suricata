@@ -398,7 +398,7 @@ static char scmemcmp_upper_hi64[64] __attribute__((aligned(64))) = {
  *  \param s2 buffer in mixed case
  *  \param len buffer length in bytes
  */
-static inline int SCMemcmpLowercaseAVX512_512(const void *s1, const void *s2, size_t len)
+static inline int SCMemcmpLowercaseAVX512_512(const uint8_t *s1, const uint8_t *s2, size_t len)
 {
     size_t offset = 0;
     __m512i upper1 = _mm512_load_si512((const __m512i *)scmemcmp_upper_low64);
