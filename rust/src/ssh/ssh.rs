@@ -19,6 +19,7 @@ use super::parser;
 use crate::applayer::*;
 use crate::core::*;
 use crate::direction::Direction;
+use crate::encryption::SshEncryptionHandling;
 use crate::flow::Flow;
 use crate::frames::Frame;
 use nom8::Err;
@@ -29,15 +30,6 @@ use suricata_sys::sys::{
     SCAppLayerParserRegisterLogger, SCAppLayerParserStateSetFlag,
     SCAppLayerProtoDetectConfProtoDetectionEnabled,
 };
-
-#[repr(C)]
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-#[allow(non_camel_case_types)]
-pub enum SshEncryptionHandling {
-    SSH_HANDLE_ENCRYPTION_TRACK_ONLY = 0, // Disable raw content inspection, continue tracking
-    SSH_HANDLE_ENCRYPTION_BYPASS = 1,     // Skip processing of flow, bypass if possible
-    SSH_HANDLE_ENCRYPTION_FULL = 2,       // Handle fully like any other protocol
-}
 
 static mut ALPROTO_SSH: AppProto = ALPROTO_UNKNOWN;
 static HASSH_ENABLED: AtomicBool = AtomicBool::new(false);
