@@ -655,7 +655,7 @@ static char scmemcmp_space[16] __attribute__((aligned(16))) = {
  *  \param s1 buffer already in lowercase
  *  \param s2 buffer with mixed upper and lowercase
  */
-static inline int SCMemcmpLowercaseSSE42(const void *s1, const void *s2, size_t n)
+static inline int SCMemcmpLowercaseSSE42(const uint8_t *s1, const uint8_t *s2, size_t n)
 {
     /* counter for how far we already matched in the buffer */
     size_t m = 0;
