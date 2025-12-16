@@ -56,7 +56,7 @@ extern int profiling_output_to_file;
 int profiling_rules_enabled = 0;
 static char profiling_file_name[PATH_MAX] = "";
 static const char *profiling_file_mode = "a";
-static int profiling_rule_json = 0;
+static bool profiling_rule_json = true;
 
 /**
  * Sort orders for dumping profiled rules.
@@ -157,8 +157,9 @@ void SCProfilingRulesGlobalInit(void)
 
                 profiling_output_to_file = 1;
             }
-            if (SCConfNodeChildValueIsTrue(conf, "json")) {
-                profiling_rule_json = 1;
+
+            if (SCConfNodeChildValueIsFalse(conf, "json")) {
+                profiling_rule_json = false;
             }
         }
     }

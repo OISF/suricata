@@ -1970,8 +1970,8 @@ profiling:
     # Limit the number of sids for which stats are shown at exit (per sort).
     limit: 10
 
-    # output to json
-    json: yes
+    # output to json, default = yes.
+    #json: yes
 
   # per keyword profiling
   keywords:
