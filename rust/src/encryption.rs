@@ -18,8 +18,8 @@
 #[repr(C)]
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[allow(non_camel_case_types)]
-pub enum SshEncryptionHandling {
-    SSH_HANDLE_ENCRYPTION_TRACK_ONLY = 0, // Disable raw content inspection, continue tracking
-    SSH_HANDLE_ENCRYPTION_BYPASS = 1,     // Skip processing of flow, bypass if possible
-    SSH_HANDLE_ENCRYPTION_FULL = 2,       // Handle fully like any other protocol
+pub enum EncryptionHandling {
+    ENCRYPTION_HANDLING_TRACK_ONLY = 0, // Disable raw content inspection, continue tracking
+    ENCRYPTION_HANDLING_BYPASS = 1,     // Skip processing of flow, bypass if possible
+    ENCRYPTION_HANDLING_FULL = 2,       // Handle fully like any other protocol
 }
