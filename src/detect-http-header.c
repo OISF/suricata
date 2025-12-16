@@ -103,11 +103,13 @@ static uint8_t *GetBufferForTX(
         size_t size2 = htp_header_value_len(h);
 
         if (flags & STREAM_TOSERVER) {
-            if (size1 == 6 && SCMemcmpLowercase("cookie", htp_header_name_ptr(h), 6) == 0) {
+            if (size1 == 6 &&
+                    SCMemcmpLowercase((const uint8_t *)"cookie", htp_header_name_ptr(h), 6) == 0) {
                 continue;
             }
         } else {
-            if (size1 == 10 && SCMemcmpLowercase("set-cookie", htp_header_name_ptr(h), 10) == 0) {
+            if (size1 == 10 && SCMemcmpLowercase((const uint8_t *)"set-cookie",
+                                       htp_header_name_ptr(h), 10) == 0) {
                 continue;
             }
         }
