@@ -800,7 +800,7 @@ static char scmemcmp_sse3_spaces[16] __attribute__((aligned(16))) = {
 // clang-format on
 
 /* use spaces table with _mm_and_si128 */
-static inline int SCMemcmpLowercaseSSE3and(const void *s1, const void *s2, size_t len)
+static inline int SCMemcmpLowercaseSSE3and(const uint8_t *s1, const uint8_t *s2, size_t len)
 {
     size_t offset = 0;
     __m128i b1, b2, mask1, mask2, uc_low, uc_high, zero20;
