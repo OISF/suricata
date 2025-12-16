@@ -96,7 +96,7 @@ outputs:
 
   # Extensible Event Format (nicknamed EVE) event log in JSON format
   - eve-log:
-      enabled: @e_enable_evelog@
+      enabled: yes
       filetype: regular #regular|syslog|unix_dgram|unix_stream|redis
       filename: eve.json
       # Enable for multi-threaded eve.json output; output files are amended with
@@ -1971,7 +1971,7 @@ profiling:
     limit: 10
 
     # output to json
-    json: @e_enable_evelog@
+    json: yes
 
   # per keyword profiling
   keywords:
