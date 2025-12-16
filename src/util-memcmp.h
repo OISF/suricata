@@ -315,7 +315,7 @@ static char scmemcmp_avx512_upper_hi32[32] __attribute__((aligned(32))) = {
  *  \param s2 buffer in mixed case
  *  \param len buffer length in bytes
  *  AVX512 because of _mm256_cmpeq_epi8_mask */
-static inline int SCMemcmpLowercaseAVX512_256(const void *s1, const void *s2, size_t len)
+static inline int SCMemcmpLowercaseAVX512_256(const uint8_t *s1, const uint8_t *s2, size_t len)
 {
     size_t offset = 0;
 
