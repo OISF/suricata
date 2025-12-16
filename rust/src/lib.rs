@@ -93,6 +93,7 @@ pub mod utils;
 pub mod ja4;
 pub mod tls_version;
 pub mod handshake;
+pub mod encryption;
 
 pub mod lua;
 

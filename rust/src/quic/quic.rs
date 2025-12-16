@@ -22,7 +22,7 @@ use super::{
     parser::{quic_pkt_num, QuicData, QuicHeader, QuicType},
 };
 use crate::conf::conf_get;
-use crate::ssh::ssh::SshEncryptionHandling;
+use crate::encryption::SshEncryptionHandling;
 use crate::{
     applayer::{self, *},
     direction::Direction,
