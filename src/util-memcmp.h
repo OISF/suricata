@@ -938,12 +938,12 @@ static inline int SCMemcmpLowercaseNeon(const uint8_t *s1, const uint8_t *s2, si
 
     do {
         if (likely(len - offset < SCMEMCMP_BYTES)) {
-            return MemcmpLowercase(s1, s2, len - offset);
+            return MemcmpLowercase(s1 + offset, s2 + offset, len - offset);
         }
 
         /* unaligned loading of the bytes to compare */
-        b1 = vld1q_u8(s1);
-        b2 = vld1q_u8(s2);
+        b1 = vld1q_u8(s1 + offset);
+        b2 = vld1q_u8(s2 + offset);
 
         /* mark all chars bigger than upper1 */
         mask1 = vcgeq_u8(b2, upper1);
@@ -969,8 +969,6 @@ static inline int SCMemcmpLowercaseNeon(const uint8_t *s1, const uint8_t *s2, si
             return 1;
         }
         offset += SCMEMCMP_BYTES;
-        s1 += SCMEMCMP_BYTES;
-        s2 += SCMEMCMP_BYTES;
     } while (len > offset);
 
     return 0;
