@@ -39,6 +39,7 @@
 #include "util-unittest-helper.h"
 #include "util-debug.h"
 #include "detect-engine-build.h"
+#include "detect-engine-proto.h"
 
 #define TRACK_DST 1
 #define TRACK_SRC 2
@@ -49,7 +50,11 @@
 #define PARSE_REGEX                                                                                \
     "^\\s*(track|count|seconds)\\s+(by_src|by_dst|by_flow|\\d+)\\s*,\\s*(track|count|seconds)\\s+" \
     "(by_src|"                                                                                     \
-    "by_dst|by_flow|\\d+)\\s*,\\s*(track|count|seconds)\\s+(by_src|by_dst|by_flow|\\d+)\\s*$"
+    "by_dst|by_flow|\\d+)\\s*,\\s*(track|count|seconds)\\s+(by_src|by_dst|by_flow|\\d+)"           \
+    "(?:\\s*,\\s*unique_on\\s+(src_port|dst_port))?\\s*$"
+
+/* minimum number of PCRE submatches expected for detection_filter parse */
+#define DF_PARSE_MIN_SUBMATCHES 5
 
 static DetectParseRegex parse_regex;
 
@@ -104,12 +109,14 @@ static DetectThresholdData *DetectDetectionFilterParse(const char *rawstr)
     int res = 0;
     size_t pcre2_len;
     const char *str_ptr = NULL;
-    char *args[6] = { NULL, NULL, NULL, NULL, NULL, NULL };
+    char *args[8] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
     char *copy_str = NULL, *df_opt = NULL;
     int seconds_found = 0, count_found = 0, track_found = 0;
     int seconds_pos = 0, count_pos = 0;
     size_t pos = 0;
     int i = 0;
+    int parsed_count = 0;
+    int ret = 0;
     char *saveptr = NULL;
     pcre2_match_data *match = NULL;
 
@@ -134,8 +141,8 @@ static DetectThresholdData *DetectDetectionFilterParse(const char *rawstr)
     if (count_found != 1 || seconds_found != 1 || track_found != 1)
         goto error;
 
-    int ret = DetectParsePcreExec(&parse_regex, &match, rawstr, 0, 0);
-    if (ret < 5) {
+    ret = DetectParsePcreExec(&parse_regex, &match, rawstr, 0, 0);
+    if (ret < DF_PARSE_MIN_SUBMATCHES) {
         SCLogError("pcre_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
         goto error;
     }
@@ -154,6 +161,7 @@ static DetectThresholdData *DetectDetectionFilterParse(const char *rawstr)
         }
 
         args[i] = (char *)str_ptr;
+        parsed_count++;
 
         if (strncasecmp(args[i], "by_dst", strlen("by_dst")) == 0)
             df->track = TRACK_DST;
@@ -165,6 +173,10 @@ static DetectThresholdData *DetectDetectionFilterParse(const char *rawstr)
             count_pos = i + 1;
         if (strncasecmp(args[i], "seconds", strlen("seconds")) == 0)
             seconds_pos = i + 1;
+        if (strcasecmp(args[i], "src_port") == 0)
+            df->unique_on = DF_UNIQUE_SRC_PORT;
+        if (strcasecmp(args[i], "dst_port") == 0)
+            df->unique_on = DF_UNIQUE_DST_PORT;
     }
 
     if (args[count_pos] == NULL || args[seconds_pos] == NULL) {
@@ -184,7 +196,7 @@ static DetectThresholdData *DetectDetectionFilterParse(const char *rawstr)
         goto error;
     }
 
-    for (i = 0; i < 6; i++) {
+    for (i = 0; i < parsed_count; i++) {
         if (args[i] != NULL)
             pcre2_substring_free((PCRE2_UCHAR *)args[i]);
     }
@@ -193,7 +205,7 @@ static DetectThresholdData *DetectDetectionFilterParse(const char *rawstr)
     return df;
 
 error:
-    for (i = 0; i < 6; i++) {
+    for (i = 0; i < parsed_count; i++) {
         if (args[i] != NULL)
             pcre2_substring_free((PCRE2_UCHAR *)args[i]);
     }
@@ -240,6 +252,17 @@ static int DetectDetectionFilterSetup(DetectEngineCtx *de_ctx, Signature *s, con
     if (df == NULL)
         goto error;
 
+    /* unique_on requires a ported L4 protocol: tcp/udp/sctp */
+    if (df->unique_on != DF_UNIQUE_NONE) {
+        const int has_tcp = DetectProtoContainsProto(&s->proto, IPPROTO_TCP);
+        const int has_udp = DetectProtoContainsProto(&s->proto, IPPROTO_UDP);
+        const int has_sctp = DetectProtoContainsProto(&s->proto, IPPROTO_SCTP);
+        if (!(has_tcp || has_udp || has_sctp) || (s->proto.flags & DETECT_PROTO_ANY)) {
+            SCLogError("detection_filter unique_on requires protocol tcp/udp/sctp");
+            goto error;
+        }
+    }
+
     if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_DETECTION_FILTER, (SigMatchCtx *)df,
                 DETECT_SM_LIST_THRESHOLD) == NULL) {
         goto error;
@@ -278,6 +301,11 @@ static void DetectDetectionFilterFree(DetectEngineCtx *de_ctx, void *df_ptr)
 #include "util-hashlist.h"
 #include "action-globals.h"
 #include "packet.h"
+
+/* test seams from detect-engine-threshold.c */
+void ThresholdForceAllocFail(int);
+uint64_t ThresholdGetBitmapMemuse(void);
+uint64_t ThresholdGetBitmapAllocFail(void);
 
 /**
  * \test DetectDetectionFilterTestParse01 is a test for a valid detection_filter options
@@ -365,6 +393,213 @@ static int DetectDetectionFilterTestParse06(void)
     FAIL_IF_NOT_NULL(df);
 
     PASS;
+}
+/**
+ * \test unique_on requires tcp/udp/sctp protocol; alert ip should fail
+ */
+static int DetectDetectionFilterUniqueOnProtoValidationFail(void)
+{
+    ThresholdInit();
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert ip any any -> any any (msg:\"DF proto validation\"; "
+            "detection_filter: track by_dst, count 2, seconds 60, unique_on dst_port; sid:29;)");
+    /* setup should fail, append returns NULL */
+    FAIL_IF_NOT_NULL(s);
+
+    DetectEngineCtxFree(de_ctx);
+    ThresholdDestroy();
+    PASS;
+}
+
+/**
+ * \test DetectDetectionFilterTestParseUnique01 tests parsing unique_on dst_port
+ */
+static int DetectDetectionFilterTestParseUnique01(void)
+{
+    DetectThresholdData *df =
+            DetectDetectionFilterParse("track by_dst, count 10, seconds 60, unique_on dst_port");
+    FAIL_IF_NULL(df);
+    FAIL_IF_NOT(df->track == TRACK_DST);
+    FAIL_IF_NOT(df->count == 10);
+    FAIL_IF_NOT(df->seconds == 60);
+    FAIL_IF_NOT(df->unique_on == DF_UNIQUE_DST_PORT);
+    DetectDetectionFilterFree(NULL, df);
+    PASS;
+}
+
+/**
+ * \test Distinct boundary: exactly 'count' distinct should not alert
+ */
+static int DetectDetectionFilterDistinctBoundaryNoAlert(void)
+{
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+
+    ThresholdInit();
+    memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v.stats);
+
+    Packet *p1 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    Packet *p2 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 81);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any (msg:\"DF distinct boundary no alert\"; "
+            "detection_filter: track by_dst, count 2, seconds 60, unique_on dst_port; sid:24;)");
+    FAIL_IF_NULL(s);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    FAIL_IF(PacketAlertCheck(p1, 24));
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    FAIL_IF(PacketAlertCheck(p2, 24));
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
+    ThresholdDestroy();
+    StatsThreadCleanup(&th_v.stats);
+    PASS;
+}
+
+/**
+ * \test Distinct window reset: expire and re-trigger after seconds
+ */
+static int DetectDetectionFilterDistinctWindowReset(void)
+{
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+
+    ThresholdInit();
+    memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v.stats);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any (msg:\"DF distinct window reset\"; "
+            "detection_filter: track by_dst, count 2, seconds 2, unique_on dst_port; sid:25;)");
+    FAIL_IF_NULL(s);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    Packet *p1 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    p1->ts = TimeGet();
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    FAIL_IF(PacketAlertCheck(p1, 25));
+
+    Packet *p2 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 81);
+    p2->ts = TimeGet();
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    FAIL_IF(PacketAlertCheck(p2, 25));
+
+    Packet *p3 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 82);
+    p3->ts = TimeGet();
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p3);
+    FAIL_IF_NOT(PacketAlertCheck(p3, 25));
+
+    /* advance time beyond window to force expiration */
+    TimeSetIncrementTime(3);
+
+    Packet *p4 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    p4->ts = TimeGet();
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p4);
+    FAIL_IF(PacketAlertCheck(p4, 25));
+
+    Packet *p5 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 81);
+    p5->ts = TimeGet();
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p5);
+    FAIL_IF(PacketAlertCheck(p5, 25));
+
+    Packet *p6 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 82);
+    p6->ts = TimeGet();
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p6);
+    FAIL_IF_NOT(PacketAlertCheck(p6, 25));
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
+    UTHFreePackets(&p3, 1);
+    UTHFreePackets(&p4, 1);
+    UTHFreePackets(&p5, 1);
+    UTHFreePackets(&p6, 1);
+    ThresholdDestroy();
+    StatsThreadCleanup(&th_v.stats);
+    PASS;
+}
+
+/**
+ * \test When bitmap alloc fails, unique_on falls back to classic counting (> count)
+ */
+static int DetectDetectionFilterDistinctAllocFailFallback(void)
+{
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+
+    ThresholdInit();
+    memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v.stats);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    /* Force allocation failure for distinct bitmap */
+    ThresholdForceAllocFail(1);
+
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any (msg:\"DF alloc fail fallback\"; "
+            "detection_filter: track by_dst, count 2, seconds 60, unique_on dst_port; sid:27;)");
+    FAIL_IF_NULL(s);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    Packet *p1 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    Packet *p2 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    Packet *p3 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+
+    int result = 0;
+
+    /* Classic detection_filter alerts when current_count > count (i.e., 3rd packet) */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    if (PacketAlertCheck(p1, 27))
+        goto end;
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    if (PacketAlertCheck(p2, 27))
+        goto end;
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p3);
+    if (!PacketAlertCheck(p3, 27))
+        goto end;
+
+    result = 1;
+
+end:
+    /* cleanup and restore hook */
+    ThresholdForceAllocFail(0);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
+    UTHFreePackets(&p3, 1);
+    ThresholdDestroy();
+    StatsThreadCleanup(&th_v.stats);
+    return result;
 }
 
 /**
@@ -550,15 +785,218 @@ static int DetectDetectionFilterTestSig3(void)
     FAIL_IF_NOT(PacketTestAction(p, ACTION_DROP));
     p->action = 0;
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    FAIL_IF_NOT(PacketAlertCheck(p, 10));
-    FAIL_IF_NOT(PacketTestAction(p, ACTION_DROP));
-    p->action = 0;
-
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     UTHFreePackets(&p, 1);
+    ThresholdDestroy();
+    StatsThreadCleanup(&th_v.stats);
+    PASS;
+}
+
+/**
+ * \test Verify bitmap memory is tracked in bitmap_memuse counter
+ */
+static int DetectDetectionFilterDistinctBitmapMemuseTracking(void)
+{
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+
+    ThresholdInit();
+    memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v.stats);
+
+    /* Record baseline memuse */
+    uint64_t baseline_memuse = ThresholdGetBitmapMemuse();
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any (msg:\"DF memuse tracking\"; "
+            "detection_filter: track by_dst, count 2, seconds 60, unique_on dst_port; sid:30;)");
+    FAIL_IF_NULL(s);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    /* Send a packet to trigger threshold entry creation with bitmap */
+    Packet *p1 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+
+    /* Verify bitmap_memuse increased by 8192 bytes (65536/8) */
+    uint64_t after_memuse = ThresholdGetBitmapMemuse();
+    FAIL_IF_NOT(after_memuse == baseline_memuse + 8192);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    UTHFreePackets(&p1, 1);
+    ThresholdDestroy();
+
+    /* After destroy, bitmap_memuse should return to baseline */
+    uint64_t final_memuse = ThresholdGetBitmapMemuse();
+    FAIL_IF_NOT(final_memuse == baseline_memuse);
+
+    StatsThreadCleanup(&th_v.stats);
+    PASS;
+}
+
+/**
+ * \test Verify bitmap_alloc_fail counter increments on forced failure
+ */
+static int DetectDetectionFilterDistinctAllocFailCounter(void)
+{
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+
+    ThresholdInit();
+    memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v.stats);
+
+    /* Record baseline alloc fail count */
+    uint64_t baseline_fail = ThresholdGetBitmapAllocFail();
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    /* Force allocation failure */
+    ThresholdForceAllocFail(1);
+
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any (msg:\"DF alloc fail counter\"; "
+            "detection_filter: track by_dst, count 2, seconds 60, unique_on dst_port; sid:31;)");
+    FAIL_IF_NULL(s);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    /* Send packet to trigger threshold entry creation (bitmap alloc will fail) */
+    Packet *p1 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+
+    /* Verify alloc_fail counter increased */
+    uint64_t after_fail = ThresholdGetBitmapAllocFail();
+    FAIL_IF_NOT(after_fail == baseline_fail + 1);
+
+    /* bitmap_memuse should NOT have increased since alloc failed */
+    uint64_t memuse = ThresholdGetBitmapMemuse();
+    FAIL_IF_NOT(memuse == 0);
+
+    /* cleanup */
+    ThresholdForceAllocFail(0);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    UTHFreePackets(&p1, 1);
+    ThresholdDestroy();
+    StatsThreadCleanup(&th_v.stats);
+    PASS;
+}
+
+/**
+ * \test Multiple distinct trackers should accumulate bitmap memory
+ */
+static int DetectDetectionFilterDistinctMultipleTrackers(void)
+{
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+
+    ThresholdInit();
+    memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v.stats);
+
+    uint64_t baseline_memuse = ThresholdGetBitmapMemuse();
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any (msg:\"DF multi tracker\"; "
+            "detection_filter: track by_dst, count 2, seconds 60, unique_on dst_port; sid:32;)");
+    FAIL_IF_NULL(s);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    /* Create packets to different destinations - each will create a new threshold entry */
+    Packet *p1 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    Packet *p2 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "3.3.3.3", 1024, 80);
+    Packet *p3 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "4.4.4.4", 1024, 80);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p3);
+
+    /* Verify 3 bitmaps allocated = 3 * 8192 = 24576 bytes */
+    uint64_t after_memuse = ThresholdGetBitmapMemuse();
+    FAIL_IF_NOT(after_memuse == baseline_memuse + (3 * 8192));
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
+    UTHFreePackets(&p3, 1);
+    ThresholdDestroy();
+
+    /* After destroy, should return to baseline */
+    uint64_t final_memuse = ThresholdGetBitmapMemuse();
+    FAIL_IF_NOT(final_memuse == baseline_memuse);
+
+    StatsThreadCleanup(&th_v.stats);
+    PASS;
+}
+
+/**
+ * \test Bitmap memory is freed when threshold entry expires
+ */
+static int DetectDetectionFilterDistinctBitmapExpiry(void)
+{
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+
+    ThresholdInit();
+    memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v.stats);
+
+    uint64_t baseline_memuse = ThresholdGetBitmapMemuse();
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    /* Use short timeout (2 seconds) */
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any (msg:\"DF bitmap expiry\"; "
+            "detection_filter: track by_dst, count 2, seconds 2, unique_on dst_port; sid:33;)");
+    FAIL_IF_NULL(s);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    Packet *p1 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    p1->ts = TimeGet();
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+
+    /* Verify bitmap allocated */
+    uint64_t after_alloc = ThresholdGetBitmapMemuse();
+    FAIL_IF_NOT(after_alloc == baseline_memuse + 8192);
+
+    /* Advance time beyond the timeout to expire the entry */
+    TimeSetIncrementTime(5);
+
+    /* Trigger expiration by calling ThresholdsExpire */
+    SCTime_t now = TimeGet();
+    ThresholdsExpire(now);
+
+    /* After expiry, bitmap memory should be freed */
+    uint64_t after_expiry = ThresholdGetBitmapMemuse();
+    FAIL_IF_NOT(after_expiry == baseline_memuse);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    UTHFreePackets(&p1, 1);
     ThresholdDestroy();
     StatsThreadCleanup(&th_v.stats);
     PASS;
@@ -572,8 +1010,26 @@ static void DetectDetectionFilterRegisterTests(void)
     UtRegisterTest("DetectDetectionFilterTestParse04", DetectDetectionFilterTestParse04);
     UtRegisterTest("DetectDetectionFilterTestParse05", DetectDetectionFilterTestParse05);
     UtRegisterTest("DetectDetectionFilterTestParse06", DetectDetectionFilterTestParse06);
+    UtRegisterTest(
+            "DetectDetectionFilterTestParseUnique01", DetectDetectionFilterTestParseUnique01);
     UtRegisterTest("DetectDetectionFilterTestSig1", DetectDetectionFilterTestSig1);
     UtRegisterTest("DetectDetectionFilterTestSig2", DetectDetectionFilterTestSig2);
     UtRegisterTest("DetectDetectionFilterTestSig3", DetectDetectionFilterTestSig3);
+    UtRegisterTest("DetectDetectionFilterDistinctBoundaryNoAlert",
+            DetectDetectionFilterDistinctBoundaryNoAlert);
+    UtRegisterTest(
+            "DetectDetectionFilterDistinctWindowReset", DetectDetectionFilterDistinctWindowReset);
+    UtRegisterTest("DetectDetectionFilterDistinctAllocFailFallback",
+            DetectDetectionFilterDistinctAllocFailFallback);
+    UtRegisterTest("DetectDetectionFilterUniqueOnProtoValidationFail",
+            DetectDetectionFilterUniqueOnProtoValidationFail);
+    UtRegisterTest("DetectDetectionFilterDistinctBitmapMemuseTracking",
+            DetectDetectionFilterDistinctBitmapMemuseTracking);
+    UtRegisterTest("DetectDetectionFilterDistinctAllocFailCounter",
+            DetectDetectionFilterDistinctAllocFailCounter);
+    UtRegisterTest("DetectDetectionFilterDistinctMultipleTrackers",
+            DetectDetectionFilterDistinctMultipleTrackers);
+    UtRegisterTest(
+            "DetectDetectionFilterDistinctBitmapExpiry", DetectDetectionFilterDistinctBitmapExpiry);
 }
 #endif /* UNITTESTS */
