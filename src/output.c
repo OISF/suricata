@@ -56,7 +56,6 @@
 #include "output-json-http.h"
 #include "output-json-dns.h"
 #include "output-json-mdns.h"
-#include "log-tlslog.h"
 #include "log-tlsstore.h"
 #include "output-json-tls.h"
 #include "log-pcap.h"
@@ -1112,7 +1111,6 @@ void OutputRegisterLoggers(void)
             OutputJsonLogInitSub, ALPROTO_HTTP2, JsonGenericDirFlowLogger, HTTP2StateClosed,
             HTTP2StateClosed, JsonLogThreadInit, JsonLogThreadDeinit);
     /* tls log */
-    LogTlsLogRegister();
     JsonTlsLogRegister();
     LogTlsStoreRegister();
     /* ssh */
