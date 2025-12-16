@@ -82,6 +82,7 @@ const char *SCConfNodeLookupChildValue(const SCConfNode *node, const char *key);
 void SCConfNodeRemove(SCConfNode *);
 void SCConfRegisterTests(void);
 int SCConfNodeChildValueIsTrue(const SCConfNode *node, const char *key);
+int SCConfNodeChildValueIsFalse(const SCConfNode *node, const char *key);
 int SCConfValIsTrue(const char *val);
 int SCConfValIsFalse(const char *val);
 void SCConfNodePrune(SCConfNode *node);

@@ -759,6 +759,11 @@ extern "C" {
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {
+    pub fn SCConfNodeChildValueIsFalse(
+        node: *const SCConfNode, key: *const ::std::os::raw::c_char,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
     pub fn SCConfValIsTrue(val: *const ::std::os::raw::c_char) -> ::std::os::raw::c_int;
 }
 extern "C" {

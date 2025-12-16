@@ -875,6 +875,26 @@ int SCConfNodeChildValueIsTrue(const SCConfNode *node, const char *key)
 }
 
 /**
+ * \brief Test if a configuration node has a false value.
+ *
+ * If the field does not exist, or has anything other than a false
+ * value, this function will return 0.
+ *
+ * \param node The parent configuration node.
+ * \param name The name of the child node to test.
+ *
+ * \retval 1 if the child node has a false value, otherwise 0.
+ */
+int SCConfNodeChildValueIsFalse(const SCConfNode *node, const char *key)
+{
+    const char *val;
+
+    val = SCConfNodeLookupChildValue(node, key);
+
+    return val != NULL ? SCConfValIsFalse(val) : 0;
+}
+
+/**
  *  \brief Create the path for an include entry
  *  \param file The name of the file
  *  \retval str Pointer to the string path + sig_file
