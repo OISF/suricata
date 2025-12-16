@@ -366,7 +366,6 @@ noinst_HEADERS = \
 	log-pcap.h \
 	log-stats.h \
 	log-tcp-data.h \
-	log-tlslog.h \
 	log-tlsstore.h \
 	output-eve-bindgen.h \
 	output-eve-null.h \
@@ -962,7 +961,6 @@ libsuricata_c_a_SOURCES = \
 	log-pcap.c \
 	log-stats.c \
 	log-tcp-data.c \
-	log-tlslog.c \
 	log-tlsstore.c \
 	output-eve-null.c \
 	output-eve-stream.c \
