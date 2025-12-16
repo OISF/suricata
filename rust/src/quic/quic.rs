@@ -35,6 +35,7 @@ use crate::{
 };
 use std::collections::VecDeque;
 use std::ffi::CString;
+use std::str::FromStr;
 use suricata_sys::sys::{
     AppLayerParserState, AppProto, SCAppLayerParserConfParserEnabled,
     SCAppLayerParserRegisterLogger, SCAppLayerParserStateSetFlag,
@@ -614,16 +615,11 @@ pub unsafe extern "C" fn SCRegisterQuicParser() {
         if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
             if let Some(val) = conf_get("app-layer.protocols.quic.encryption-handling") {
-                let eh = match val {
-                    "full" => EncryptionHandling::ENCRYPTION_HANDLING_FULL,
-                    "track-only" => EncryptionHandling::ENCRYPTION_HANDLING_TRACK_ONLY,
-                    "bypass" => EncryptionHandling::ENCRYPTION_HANDLING_BYPASS,
-                    _ => {
-                        SCLogWarning!("Unknown value {} for quic.encryption-handling.", val);
-                        EncryptionHandling::ENCRYPTION_HANDLING_TRACK_ONLY
-                    }
-                };
-                unsafe { ENCRYPTION_BYPASS_ENABLED = eh };
+                if let Ok(eh) = EncryptionHandling::from_str(val) {
+                    unsafe { ENCRYPTION_BYPASS_ENABLED = eh };
+                } else {
+                    SCLogError!("Unknown value {} for quic.encryption-handling.", val);
+                }
             }
         }
         SCLogDebug!("Rust quic parser registered.");
