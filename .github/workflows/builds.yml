@@ -375,14 +375,9 @@ jobs:
       # especially without debug feature
       - run: cargo clippy
         working-directory: rust
-      - run: cargo fmt --check
-        working-directory: rust/suricatactl
-      - run: cargo fmt --check
-        working-directory: rust/suricatasc
-      - run: cargo fmt --check
-        working-directory: rust/sys
-      - run: cargo fmt --check
-        working-directory: rust/derive
+      - name: Check Rust formatting
+        run: cargo fmt --check
+        working-directory: rust
       - name: Check if Cargo.lock.in is up to date
         run: |
           cp rust/Cargo.lock rust/Cargo.lock.in
@@ -392,12 +387,6 @@ jobs:
               echo "::error ::Cargo.lock.in needs to be updated"
               exit 1
           fi
-      # does not work in other subdirectories for now
-      - run: cargo fmt --check
-        working-directory: rust/htp
-      # The ffi crate is cargo fmt clean.
-      - run: cargo fmt --check
-        working-directory: rust/ffi
 
       - run: make -j ${{ env.CPUS }} distcheck
         env:
