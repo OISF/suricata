@@ -241,17 +241,17 @@ impl FromBencode for BitTorrentDHTResponse {
                     id = value.try_into_bytes().context("id").map(Some)?;
                 }
                 (b"nodes", value) => {
-                    let (_, decoded_nodes) =
-                        nom8::multi::many0(parse_node).parse(value.try_into_bytes().context("nodes")?)
-                            .map_err(|_| Error::malformed_content("nodes.node"))?;
+                    let (_, decoded_nodes) = nom8::multi::many0(parse_node)
+                        .parse(value.try_into_bytes().context("nodes")?)
+                        .map_err(|_| Error::malformed_content("nodes.node"))?;
                     if !decoded_nodes.is_empty() {
                         nodes = Some(decoded_nodes);
                     }
                 }
                 (b"nodes6", value) => {
-                    let (_, decoded_nodes) =
-                        nom8::multi::many0(parse_node6).parse(value.try_into_bytes().context("nodes6")?)
-                            .map_err(|_| Error::malformed_content("nodes6.nodes6"))?;
+                    let (_, decoded_nodes) = nom8::multi::many0(parse_node6)
+                        .parse(value.try_into_bytes().context("nodes6")?)
+                        .map_err(|_| Error::malformed_content("nodes6.nodes6"))?;
                     if !decoded_nodes.is_empty() {
                         nodes6 = Some(decoded_nodes);
                     }

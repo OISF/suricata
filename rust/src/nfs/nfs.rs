@@ -35,9 +35,9 @@ use crate::conf::*;
 use crate::core::*;
 use crate::direction::Direction;
 use crate::direction::DIR_BOTH;
-use crate::filetracker::*;
 use crate::filecontainer::FileContainerWrapper;
-use crate::flow::{Flow, flow_get_last_time};
+use crate::filetracker::*;
+use crate::flow::{flow_get_last_time, Flow};
 use crate::frames::*;
 
 use crate::nfs::nfs2_records::*;
@@ -965,7 +965,9 @@ impl NFSState {
         return None;
     }
 
-    pub fn process_write_record<'b>(&mut self, flow: *mut Flow, r: &RpcPacket<'b>, w: &Nfs3RequestWrite<'b>) -> u32 {
+    pub fn process_write_record<'b>(
+        &mut self, flow: *mut Flow, r: &RpcPacket<'b>, w: &Nfs3RequestWrite<'b>,
+    ) -> u32 {
         let mut fill_bytes = 0;
         let pad = w.count % 4;
         if pad != 0 {
@@ -1007,7 +1009,10 @@ impl NFSState {
                         tx.is_last = true;
                         tx.response_done = true;
                         tx.is_file_closed = true;
-                        sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
+                        sc_app_layer_parser_trigger_raw_stream_inspection(
+                            flow,
+                            Direction::ToClient as i32,
+                        );
                     }
                     true
                 } else {
@@ -1038,7 +1043,10 @@ impl NFSState {
                     tx.is_last = true;
                     tx.request_done = true;
                     tx.is_file_closed = true;
-                    sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
+                    sc_app_layer_parser_trigger_raw_stream_inspection(
+                        flow,
+                        Direction::ToServer as i32,
+                    );
                 }
             }
         }
@@ -1132,7 +1140,9 @@ impl NFSState {
 
     // update in progress chunks for file transfers
     // return how much data we consumed
-    fn filetracker_update(&mut self, flow: *mut Flow, direction: Direction, data: &[u8], gap_size: u32) -> u32 {
+    fn filetracker_update(
+        &mut self, flow: *mut Flow, direction: Direction, data: &[u8], gap_size: u32,
+    ) -> u32 {
         let mut chunk_left = if direction == Direction::ToServer {
             self.ts_chunk_left
         } else {
@@ -1235,7 +1245,10 @@ impl NFSState {
                                 tx.id
                             );
                             if !flow.is_null() {
-                                sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
+                                sc_app_layer_parser_trigger_raw_stream_inspection(
+                                    flow,
+                                    Direction::ToClient as i32,
+                                );
                             }
                         } else {
                             tx.request_done = true;
@@ -1245,7 +1258,10 @@ impl NFSState {
                                 tx.id
                             );
                             if !flow.is_null() {
-                                sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
+                                sc_app_layer_parser_trigger_raw_stream_inspection(
+                                    flow,
+                                    Direction::ToServer as i32,
+                                );
                             }
                         }
                     }
@@ -1354,14 +1370,20 @@ impl NFSState {
                         tx.nfs_response_status = reply.status;
                         tx.is_last = true;
                         tx.request_done = true;
-                        sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
+                        sc_app_layer_parser_trigger_raw_stream_inspection(
+                            flow,
+                            Direction::ToServer as i32,
+                        );
 
                         /* if this is a partial record we will close the tx
                          * when we've received the final data */
                         if !is_partial {
                             tx.response_done = true;
                             SCLogDebug!("TX {} is DONE", tx.id);
-                            sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
+                            sc_app_layer_parser_trigger_raw_stream_inspection(
+                                flow,
+                                Direction::ToClient as i32,
+                            );
                         }
                     }
                     true
@@ -1397,14 +1419,20 @@ impl NFSState {
                     tx.nfs_response_status = reply.status;
                     tx.is_last = true;
                     tx.request_done = true;
-                    sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
+                    sc_app_layer_parser_trigger_raw_stream_inspection(
+                        flow,
+                        Direction::ToServer as i32,
+                    );
 
                     /* if this is a partial record we will close the tx
                      * when we've received the final data */
                     if !is_partial {
                         tx.response_done = true;
                         SCLogDebug!("TX {} is DONE", tx.id);
-                        sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
+                        sc_app_layer_parser_trigger_raw_stream_inspection(
+                            flow,
+                            Direction::ToClient as i32,
+                        );
                     }
                 }
             }
@@ -1453,7 +1481,8 @@ impl NFSState {
     pub fn parse_tcp_data_ts_gap(&mut self, gap_size: u32) -> AppLayerResult {
         SCLogDebug!("parse_tcp_data_ts_gap ({})", gap_size);
         let gap = vec![0; gap_size as usize];
-        let consumed = self.filetracker_update(std::ptr::null_mut(), Direction::ToServer, &gap, gap_size);
+        let consumed =
+            self.filetracker_update(std::ptr::null_mut(), Direction::ToServer, &gap, gap_size);
         if consumed > gap_size {
             SCLogDebug!("consumed more than GAP size: {} > {}", consumed, gap_size);
             return AppLayerResult::ok();
@@ -1467,7 +1496,8 @@ impl NFSState {
     pub fn parse_tcp_data_tc_gap(&mut self, gap_size: u32) -> AppLayerResult {
         SCLogDebug!("parse_tcp_data_tc_gap ({})", gap_size);
         let gap = vec![0; gap_size as usize];
-        let consumed = self.filetracker_update(std::ptr::null_mut(), Direction::ToClient, &gap, gap_size);
+        let consumed =
+            self.filetracker_update(std::ptr::null_mut(), Direction::ToClient, &gap, gap_size);
         if consumed > gap_size {
             SCLogDebug!("consumed more than GAP size: {} > {}", consumed, gap_size);
             return AppLayerResult::ok();
@@ -1480,8 +1510,8 @@ impl NFSState {
 
     /// Handle partial records
     fn parse_tcp_partial_data_ts<'b>(
-        &mut self, flow: *mut Flow, base_input: &'b [u8], cur_i: &'b [u8], phdr: &RpcRequestPacketPartial,
-        rec_size: usize,
+        &mut self, flow: *mut Flow, base_input: &'b [u8], cur_i: &'b [u8],
+        phdr: &RpcRequestPacketPartial, rec_size: usize,
     ) -> AppLayerResult {
         // special case: avoid buffering file write blobs
         // as these can be large.
@@ -1670,7 +1700,8 @@ impl NFSState {
 
     /// Handle partial records
     fn parse_tcp_partial_data_tc<'b>(
-        &mut self, flow: *mut Flow, base_input: &'b [u8], cur_i: &'b [u8], phdr: &RpcPacketHeader, rec_size: usize,
+        &mut self, flow: *mut Flow, base_input: &'b [u8], cur_i: &'b [u8], phdr: &RpcPacketHeader,
+        rec_size: usize,
     ) -> AppLayerResult {
         // special case: avoid buffering file read blobs
         // as these can be large.
@@ -1854,9 +1885,7 @@ impl NFSState {
         AppLayerResult::ok()
     }
     /// Parsing function
-    pub fn parse_udp_ts(
-        &mut self, flow: *mut Flow, stream_slice: &StreamSlice,
-    ) -> AppLayerResult {
+    pub fn parse_udp_ts(&mut self, flow: *mut Flow, stream_slice: &StreamSlice) -> AppLayerResult {
         let input = stream_slice.as_slice();
         SCLogDebug!("parse_udp_ts ({})", input.len());
         self.add_rpc_udp_ts_pdu(flow, stream_slice, input, input.len() as i64);
@@ -1896,9 +1925,7 @@ impl NFSState {
     }
 
     /// Parsing function
-    pub fn parse_udp_tc(
-        &mut self, flow: *mut Flow, stream_slice: &StreamSlice,
-    ) -> AppLayerResult {
+    pub fn parse_udp_tc(&mut self, flow: *mut Flow, stream_slice: &StreamSlice) -> AppLayerResult {
         let input = stream_slice.as_slice();
         SCLogDebug!("parse_udp_tc ({})", input.len());
         self.add_rpc_udp_tc_pdu(flow, stream_slice, input, input.len() as i64);

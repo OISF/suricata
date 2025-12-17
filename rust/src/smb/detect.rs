@@ -83,9 +83,7 @@ pub unsafe extern "C" fn SCSmbTxGetStubData(
 }
 
 #[no_mangle]
-pub extern "C" fn SCSmbTxMatchDceOpnum(
-    tx: &SMBTransaction, dce_data: &mut DCEOpnumData,
-) -> u8 {
+pub extern "C" fn SCSmbTxMatchDceOpnum(tx: &SMBTransaction, dce_data: &mut DCEOpnumData) -> u8 {
     SCLogDebug!("SCSmbTxMatchDceOpnum: start");
     if let Some(SMBTransactionTypeData::DCERPC(ref x)) = tx.type_data {
         if x.req_cmd == DCERPC_TYPE_REQUEST {

@@ -158,7 +158,8 @@ fn parse_bytemath(input: &str) -> IResult<&str, DetectByteMathData, RuleParseErr
     let (_, values) = nom8::multi::separated_list1(
         tag(","),
         preceded(multispace0, nom8::bytes::complete::is_not(",")),
-    ).parse(input)?;
+    )
+    .parse(input)?;
 
     if values.len() < DETECT_BYTEMATH_FIXED_PARAM_COUNT
         || values.len() > DETECT_BYTEMATH_MAX_PARAM_COUNT

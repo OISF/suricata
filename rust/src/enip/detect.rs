@@ -18,8 +18,8 @@
 use nom8::character::complete::{char, digit1, space0};
 use nom8::combinator::{map_opt, opt, verify};
 use nom8::error::{make_error, ErrorKind};
-use nom8::Parser;
 use nom8::IResult;
+use nom8::Parser;
 
 use std::os::raw::{c_int, c_void};
 
@@ -84,7 +84,8 @@ fn enip_parse_cip_service(i: &str) -> IResult<&str, DetectCipServiceData> {
     let (i, _) = space0.parse(i)?;
     let (i, service) = verify(map_opt(digit1, |s: &str| s.parse::<u8>().ok()), |&v| {
         v < 0x80
-    }).parse(i)?;
+    })
+    .parse(i)?;
     let mut class = None;
     let mut attribute = None;
     let (i, _) = space0.parse(i)?;

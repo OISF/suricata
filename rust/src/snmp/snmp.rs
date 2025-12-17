@@ -17,25 +17,26 @@
 
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
+use super::detect::detect_snmp_register;
+use super::log::snmp_log_json_response;
+use crate::applayer::{self, *};
+use crate::core::{self, *};
 use crate::direction::Direction;
 use crate::flow::Flow;
 use crate::snmp::snmp_parser::*;
-use crate::core::{self, *};
-use crate::applayer::{self, *};
-use super::log::snmp_log_json_response;
-use super::detect::detect_snmp_register;
 use std;
 use std::ffi::CString;
 
 use asn1_rs::Oid;
 use der_parser::ber::BerObjectContent;
 use der_parser::der::parse_der_sequence;
+use nom7::error::{make_error, ErrorKind};
 use nom7::{Err, IResult};
-use nom7::error::{ErrorKind, make_error};
 use suricata_sys::sys::{
     AppLayerParserState, AppProto, AppProtoNewProtoFromString, EveJsonTxLoggerRegistrationData,
-    SCAppLayerParserRegisterLogger, SCAppLayerProtoDetectConfProtoDetectionEnabled,
-    SCOutputEvePreRegisterLogger, SCOutputJsonLogDirection, SCSigTablePreRegister, SCAppLayerParserConfParserEnabled,
+    SCAppLayerParserConfParserEnabled, SCAppLayerParserRegisterLogger,
+    SCAppLayerProtoDetectConfProtoDetectionEnabled, SCOutputEvePreRegisterLogger,
+    SCOutputJsonLogDirection, SCSigTablePreRegister,
 };
 
 #[derive(AppLayerEvent)]
@@ -64,7 +65,7 @@ pub(super) struct SNMPPduInfo<'a> {
 
     pub err: ErrorStatus,
 
-    pub trap_type: Option<(TrapType,Oid<'a>,NetworkAddress)>,
+    pub trap_type: Option<(TrapType, Oid<'a>, NetworkAddress)>,
 
     pub vars: Vec<Oid<'a>>,
 }
@@ -120,11 +121,11 @@ impl<'a> SNMPState<'a> {
 
 impl<'a> Default for SNMPPduInfo<'a> {
     fn default() -> SNMPPduInfo<'a> {
-        SNMPPduInfo{
+        SNMPPduInfo {
             pdu_type: PduType(0),
             err: ErrorStatus::NoError,
             trap_type: None,
-            vars: Vec::new()
+            vars: Vec::new(),
         }
     }
 }
@@ -148,11 +149,10 @@ impl<'a> SNMPState<'a> {
         match *pdu {
             SnmpPdu::Generic(ref pdu) => {
                 pdu_info.err = pdu.err;
-            },
-            SnmpPdu::Bulk(_) => {
-            },
-            SnmpPdu::TrapV1(ref t)    => {
-                pdu_info.trap_type = Some((t.generic_trap,t.enterprise.clone(),t.agent_addr));
+            }
+            SnmpPdu::Bulk(_) => {}
+            SnmpPdu::TrapV1(ref t) => {
+                pdu_info.trap_type = Some((t.generic_trap, t.enterprise.clone(), t.agent_addr));
             }
         }
 
@@ -166,7 +166,11 @@ impl<'a> SNMPState<'a> {
         let mut tx = self.new_tx(_direction);
         // in the message, version is encoded as 0 (version 1) or 1 (version 2)
         if self.version != msg.version + 1 {
-            SCLogDebug!("SNMP version mismatch: expected {}, received {}", self.version, msg.version+1);
+            SCLogDebug!(
+                "SNMP version mismatch: expected {}, received {}",
+                self.version,
+                msg.version + 1
+            );
             self.set_event_tx(&mut tx, SNMPEvent::VersionMismatch);
         }
         self.add_pdu_info(&msg.pdu, &mut tx);
@@ -178,22 +182,26 @@ impl<'a> SNMPState<'a> {
     fn handle_snmp_v3(&mut self, msg: SnmpV3Message<'a>, _direction: Direction) -> i32 {
         let mut tx = self.new_tx(_direction);
         if self.version != msg.version {
-            SCLogDebug!("SNMP version mismatch: expected {}, received {}", self.version, msg.version);
+            SCLogDebug!(
+                "SNMP version mismatch: expected {}, received {}",
+                self.version,
+                msg.version
+            );
             self.set_event_tx(&mut tx, SNMPEvent::VersionMismatch);
         }
         match msg.data {
             ScopedPduData::Plaintext(pdu) => {
                 self.add_pdu_info(&pdu.data, &mut tx);
-            },
-            _                             => {
+            }
+            _ => {
                 tx.encrypted = true;
             }
         }
         match msg.security_params {
             SecurityParameters::USM(usm) => {
                 tx.usm = Some(usm.msg_user_name);
-            },
-            _                            => {
+            }
+            _ => {
                 self.set_event_tx(&mut tx, SNMPEvent::UnknownSecurityModel);
             }
         }
@@ -211,14 +219,15 @@ impl<'a> SNMPState<'a> {
             }
         }
         match parse_snmp_generic_message(i) {
-            Ok((_rem,SnmpGenericMessage::V1(msg))) |
-            Ok((_rem,SnmpGenericMessage::V2(msg))) => self.handle_snmp_v12(msg, direction),
-            Ok((_rem,SnmpGenericMessage::V3(msg))) => self.handle_snmp_v3(msg, direction),
+            Ok((_rem, SnmpGenericMessage::V1(msg))) | Ok((_rem, SnmpGenericMessage::V2(msg))) => {
+                self.handle_snmp_v12(msg, direction)
+            }
+            Ok((_rem, SnmpGenericMessage::V3(msg))) => self.handle_snmp_v3(msg, direction),
             Err(_e) => {
                 SCLogDebug!("parse_snmp failed: {:?}", _e);
                 self.set_event(SNMPEvent::MalformedData);
                 -1
-            },
+            }
         }
     }
 
@@ -234,7 +243,10 @@ impl<'a> SNMPState<'a> {
     }
 
     fn get_tx_by_id(&mut self, tx_id: u64) -> Option<&SNMPTransaction<'_>> {
-        self.transactions.iter().rev().find(|&tx| tx.id == tx_id + 1)
+        self.transactions
+            .iter()
+            .rev()
+            .find(|&tx| tx.id == tx_id + 1)
     }
 
     fn free_tx(&mut self, tx_id: u64) {
@@ -273,7 +285,9 @@ impl<'a> SNMPTransaction<'a> {
 }
 
 /// Returns *mut SNMPState
-extern "C" fn snmp_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
+extern "C" fn snmp_state_new(
+    _orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
+) -> *mut std::os::raw::c_void {
     let state = SNMPState::new();
     let boxed = Box::new(state);
     return Box::into_raw(boxed) as *mut _;
@@ -282,113 +296,112 @@ extern "C" fn snmp_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto
 /// Params:
 /// - state: *mut SNMPState as void pointer
 extern "C" fn snmp_state_free(state: *mut std::os::raw::c_void) {
-    let mut snmp_state = unsafe{ Box::from_raw(state as *mut SNMPState) };
+    let mut snmp_state = unsafe { Box::from_raw(state as *mut SNMPState) };
     snmp_state.free();
 }
 
-unsafe extern "C" fn snmp_parse_request(_flow: *mut Flow,
-                                       state: *mut std::os::raw::c_void,
-                                       _pstate: *mut AppLayerParserState,
-                                       stream_slice: StreamSlice,
-                                       _data: *const std::os::raw::c_void,
-                                       ) -> AppLayerResult {
-    let state = cast_pointer!(state,SNMPState);
-    state.parse(stream_slice.as_slice(), Direction::ToServer).into()
+unsafe extern "C" fn snmp_parse_request(
+    _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
+    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
+) -> AppLayerResult {
+    let state = cast_pointer!(state, SNMPState);
+    state
+        .parse(stream_slice.as_slice(), Direction::ToServer)
+        .into()
 }
 
-unsafe extern "C" fn snmp_parse_response(_flow: *mut Flow,
-                                       state: *mut std::os::raw::c_void,
-                                       _pstate: *mut AppLayerParserState,
-                                       stream_slice: StreamSlice,
-                                       _data: *const std::os::raw::c_void,
-                                       ) -> AppLayerResult {
-    let state = cast_pointer!(state,SNMPState);
-    state.parse(stream_slice.as_slice(), Direction::ToClient).into()
+unsafe extern "C" fn snmp_parse_response(
+    _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
+    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
+) -> AppLayerResult {
+    let state = cast_pointer!(state, SNMPState);
+    state
+        .parse(stream_slice.as_slice(), Direction::ToClient)
+        .into()
 }
 
-unsafe extern "C" fn snmp_state_get_tx(state: *mut std::os::raw::c_void,
-                                      tx_id: u64)
-                                      -> *mut std::os::raw::c_void
-{
-    let state = cast_pointer!(state,SNMPState);
+unsafe extern "C" fn snmp_state_get_tx(
+    state: *mut std::os::raw::c_void, tx_id: u64,
+) -> *mut std::os::raw::c_void {
+    let state = cast_pointer!(state, SNMPState);
     match state.get_tx_by_id(tx_id) {
         Some(tx) => tx as *const _ as *mut _,
-        None     => std::ptr::null_mut(),
+        None => std::ptr::null_mut(),
     }
 }
 
-unsafe extern "C" fn snmp_state_get_tx_count(state: *mut std::os::raw::c_void)
-                                            -> u64
-{
-    let state = cast_pointer!(state,SNMPState);
+unsafe extern "C" fn snmp_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+    let state = cast_pointer!(state, SNMPState);
     state.tx_id
 }
 
-unsafe extern "C" fn snmp_state_tx_free(state: *mut std::os::raw::c_void,
-                                       tx_id: u64)
-{
-    let state = cast_pointer!(state,SNMPState);
+unsafe extern "C" fn snmp_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+    let state = cast_pointer!(state, SNMPState);
     state.free_tx(tx_id);
 }
 
-extern "C" fn snmp_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void,
-                                                 _direction: u8)
-                                                 -> std::os::raw::c_int
-{
+extern "C" fn snmp_tx_get_alstate_progress(
+    _tx: *mut std::os::raw::c_void, _direction: u8,
+) -> std::os::raw::c_int {
     1
 }
 
-pub(super) static mut ALPROTO_SNMP : AppProto = ALPROTO_UNKNOWN;
+pub(super) static mut ALPROTO_SNMP: AppProto = ALPROTO_UNKNOWN;
 
 // Read PDU sequence and extract version, if similar to SNMP definition
-fn parse_pdu_envelope_version(i:&[u8]) -> IResult<&[u8],u32> {
+fn parse_pdu_envelope_version(i: &[u8]) -> IResult<&[u8], u32> {
     match parse_der_sequence(i) {
-        Ok((_,x))     => {
+        Ok((_, x)) => {
             #[allow(clippy::single_match)]
             match x.content {
                 BerObjectContent::Sequence(ref v) => {
                     if v.len() == 3 {
-                        match v[0].as_u32()  {
-                            Ok(0) => { return Ok((i,1)); }, // possibly SNMPv1
-                            Ok(1) => { return Ok((i,2)); }, // possibly SNMPv2c
-                            _     => ()
+                        match v[0].as_u32() {
+                            Ok(0) => {
+                                return Ok((i, 1));
+                            } // possibly SNMPv1
+                            Ok(1) => {
+                                return Ok((i, 2));
+                            } // possibly SNMPv2c
+                            _ => (),
                         }
                     } else if v.len() == 4 && v[0].as_u32() == Ok(3) {
-                        return Ok((i,3)); // possibly SNMPv3
+                        return Ok((i, 3)); // possibly SNMPv3
                     }
-                },
-                _ => ()
+                }
+                _ => (),
             };
             Err(Err::Error(make_error(i, ErrorKind::Verify)))
-        },
+        }
         Err(Err::Incomplete(i)) => Err(Err::Incomplete(i)),
-        Err(Err::Failure(_)) |
-        Err(Err::Error(_))      => Err(Err::Error(make_error(i,ErrorKind::Verify)))
+        Err(Err::Failure(_)) | Err(Err::Error(_)) => {
+            Err(Err::Error(make_error(i, ErrorKind::Verify)))
+        }
     }
 }
 
-unsafe extern "C" fn snmp_probing_parser(_flow: *const Flow,
-                                         _direction: u8,
-                                         input:*const u8,
-                                         input_len: u32,
-                                         _rdir: *mut u8) -> AppProto {
+unsafe extern "C" fn snmp_probing_parser(
+    _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
+) -> AppProto {
     if input.is_null() {
         return ALPROTO_UNKNOWN;
     }
-    let slice = build_slice!(input,input_len as usize);
+    let slice = build_slice!(input, input_len as usize);
     let alproto = ALPROTO_SNMP;
-    if slice.len() < 4 { return ALPROTO_UNKNOWN; }
+    if slice.len() < 4 {
+        return ALPROTO_UNKNOWN;
+    }
     match parse_pdu_envelope_version(slice) {
-        Ok((_,_))               => alproto,
+        Ok((_, _)) => alproto,
         Err(Err::Incomplete(_)) => ALPROTO_UNKNOWN,
-        _                       => ALPROTO_FAILED,
+        _ => ALPROTO_FAILED,
     }
 }
 
 export_tx_data_get!(snmp_get_tx_data, SNMPTransaction);
 export_state_data_get!(snmp_get_state_data, SNMPState);
 
-const PARSER_NAME : &[u8] = b"snmp\0";
+const PARSER_NAME: &[u8] = b"snmp\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn SCRegisterSnmpParser() {
