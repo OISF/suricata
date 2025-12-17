@@ -502,15 +502,15 @@ static int TlsDecodeHSCertificate(SSLState *ssl_state, SSLStateConnp *connp,
             goto error;
         }
 
-        connp->cert0_sans_len = SCX509GetSubjectAltNameLen(x509);
-        char **sans = SCCalloc(connp->cert0_sans_len, sizeof(char *));
-        if (sans == NULL) {
+        connp->cert0_sans_num = SCX509GetSubjectAltNameLen(x509);
+        connp->cert0_sans = SCCalloc(connp->cert0_sans_num, sizeof(SSLSubjectAltName));
+        if (connp->cert0_sans == NULL) {
             goto error;
         }
-        for (uint16_t i = 0; i < connp->cert0_sans_len; i++) {
-            sans[i] = SCX509GetSubjectAltNameAt(x509, i);
+        for (uint16_t i = 0; i < connp->cert0_sans_num; i++) {
+            SCX509GetSubjectAltNameAt(
+                    x509, i, &connp->cert0_sans[i].san, &connp->cert0_sans[i].san_len);
         }
-        connp->cert0_sans = sans;
 
         SCX509GetSerial(x509, &connp->cert0_serial, &connp->cert0_serial_len);
         if (connp->cert0_serial == NULL) {
@@ -2834,8 +2834,8 @@ static void *SSLStateAlloc(void *orig_state, AppProto proto_orig)
 static void SSLStateCertSANFree(SSLStateConnp *connp)
 {
     if (connp->cert0_sans) {
-        for (uint16_t i = 0; i < connp->cert0_sans_len; i++) {
-            SCRustCStringFree(connp->cert0_sans[i]);
+        for (uint16_t i = 0; i < connp->cert0_sans_num; i++) {
+            SCX509ArrayFree(connp->cert0_sans[i].san, connp->cert0_sans[i].san_len);
         }
         SCFree(connp->cert0_sans);
     }
