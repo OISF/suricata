@@ -96,6 +96,7 @@ static int HSBuildDatabase(const uint8_t *needle, uint16_t needle_len,
         /* If scratch allocation failed, this is not recoverable:  other SPM
          * contexts may need this scratch space. */
         SCLogError("Unable to alloc scratch for Hyperscan, returned %d.", err);
+        hs_free_database(db);
         return -1;
     }
     global_thread_ctx->ctx = scratch;
