@@ -739,6 +739,16 @@ static int MemcmpTestLowercaseAVX2(void)
     return 1;
 }
 
+static int MemcmpTestLowercaseAVX512_128(void)
+{
+#ifdef PROFILING
+#if defined(__AVX512VL__) && defined(__AVX512BW__)
+    DRIVER(SCMemcmpLowercaseAVX512_128);
+#endif
+#endif
+    return 1;
+}
+
 static int MemcmpTestLowercaseAVX512_256(void)
 {
 #ifdef PROFILING
@@ -1032,6 +1042,7 @@ void MemcmpRegisterTests(void)
     UtRegisterTest("MemcmpTestLowercaseSSE3andload", MemcmpTestLowercaseSSE3andload);
     UtRegisterTest("MemcmpTestLowercaseSSE42", MemcmpTestLowercaseSSE42);
     UtRegisterTest("MemcmpTestLowercaseAVX2", MemcmpTestLowercaseAVX2);
+    UtRegisterTest("MemcmpTestLowercaseAVX512_128", MemcmpTestLowercaseAVX512_128);
     UtRegisterTest("MemcmpTestLowercaseAVX512_256", MemcmpTestLowercaseAVX512_256);
     UtRegisterTest("MemcmpTestLowercaseAVX512_512", MemcmpTestLowercaseAVX512_512);
     UtRegisterTest("MemcmpTestLowercaseNeon", MemcmpTestLowercaseNeon);
