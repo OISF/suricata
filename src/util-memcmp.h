@@ -286,6 +286,59 @@ static inline int SCMemcmpAVX512_6144(const uint8_t *s1, const uint8_t *s2, size
 #undef SCMEMCMP_BYTES
 #endif
 
+#if defined(__AVX512VBMI2__)
+#include <immintrin.h>
+static inline int SCMemcmpAVX512_LT16(const uint8_t *s1, const uint8_t *s2, size_t len)
+{
+    if (len >= 16) {
+        return SCMemcmpAVX512_128(s1, s2, len);
+    }
+    // const uint16_t load_mask = (uint16_t)((uint16_t)0xFFFF << (uint16_t)(16 - len));
+    const uint16_t load_mask = (1 << len) - 1;
+
+    /* unaligned loads */
+    __m128i b1 = _mm_maskz_expandloadu_epi8(load_mask, (const __m128i *)s1);
+    __m128i b2 = _mm_maskz_expandloadu_epi8(load_mask, (const __m128i *)s2);
+    if (_mm_cmpeq_epi8_mask(b1, b2) != 0x0000FFFF) {
+        return 1;
+    }
+
+    return 0;
+}
+static inline int SCMemcmpAVX512_LT32(const uint8_t *s1, const uint8_t *s2, size_t len)
+{
+    if (len >= 32) {
+        return SCMemcmpAVX512_256(s1, s2, len);
+    }
+    const uint32_t load_mask = (uint32_t)((1UL << (uint32_t)(len)) - 1);
+
+    /* unaligned loads */
+    __m256i b1 = _mm256_maskz_expandloadu_epi8(load_mask, (const __m256i *)s1);
+    __m256i b2 = _mm256_maskz_expandloadu_epi8(load_mask, (const __m256i *)s2);
+    if (_mm256_cmpeq_epi8_mask(b1, b2) != 0xFFFFFFFF) {
+        return 1;
+    }
+
+    return 0;
+}
+static inline int SCMemcmpAVX512_LT64(const uint8_t *s1, const uint8_t *s2, size_t len)
+{
+    if (len >= 64) {
+        return SCMemcmpAVX512_512(s1, s2, len);
+    }
+    const uint64_t load_mask = (uint64_t)((1ULL << (uint64_t)(len)) - 1);
+
+    /* unaligned loads */
+    __m512i b1 = _mm512_maskz_expandloadu_epi8(load_mask, (const __m512i *)s1);
+    __m512i b2 = _mm512_maskz_expandloadu_epi8(load_mask, (const __m512i *)s2);
+    if (_mm512_cmpeq_epi8_mask(b1, b2) != UINT64_MAX) {
+        return 1;
+    }
+
+    return 0;
+}
+#endif
+
 #if defined(__AVX512VL__) && defined(__AVX512BW__)
 #include <immintrin.h>
 #define SCMEMCMP_BYTES 32

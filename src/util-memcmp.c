@@ -582,6 +582,42 @@ static int MemcmpTestExactSCMemcmpAVX2_1024(void)
     return 1;
 }
 
+static int MemcmpTestExactSCMemcmpAVX512_LT16(void)
+{
+#ifdef PROFILING
+#if defined(__AVX512VBMI2__)
+    DRIVER(SCMemcmpAVX512_LT16);
+    PktDriver(SCMemcmpAVX512_LT16, PKT_SMALL);
+    PktDriver(SCMemcmpAVX512_LT16, PKT_ETH);
+    PktDriver(SCMemcmpAVX512_LT16, PKT_JUMBO);
+#endif
+#endif
+    return 1;
+}
+static int MemcmpTestExactSCMemcmpAVX512_LT32(void)
+{
+#ifdef PROFILING
+#if defined(__AVX512VBMI2__)
+    DRIVER(SCMemcmpAVX512_LT32);
+    PktDriver(SCMemcmpAVX512_LT32, PKT_SMALL);
+    PktDriver(SCMemcmpAVX512_LT32, PKT_ETH);
+    PktDriver(SCMemcmpAVX512_LT32, PKT_JUMBO);
+#endif
+#endif
+    return 1;
+}
+static int MemcmpTestExactSCMemcmpAVX512_LT64(void)
+{
+#ifdef PROFILING
+#if defined(__AVX512VBMI2__)
+    DRIVER(SCMemcmpAVX512_LT64);
+    PktDriver(SCMemcmpAVX512_LT64, PKT_SMALL);
+    PktDriver(SCMemcmpAVX512_LT64, PKT_ETH);
+    PktDriver(SCMemcmpAVX512_LT64, PKT_JUMBO);
+#endif
+#endif
+    return 1;
+}
 static int MemcmpTestExactSCMemcmpAVX512_128(void)
 {
 #ifdef PROFILING
@@ -1058,6 +1094,9 @@ void MemcmpRegisterTests(void)
     UtRegisterTest("MemcmpTestExactSCMemcmpAVX2", MemcmpTestExactSCMemcmpAVX2);
     UtRegisterTest("MemcmpTestExactSCMemcmpAVX2_512", MemcmpTestExactSCMemcmpAVX2_512);
     UtRegisterTest("MemcmpTestExactSCMemcmpAVX2_1024", MemcmpTestExactSCMemcmpAVX2_1024);
+    UtRegisterTest("MemcmpTestExactSCMemcmpAVX512_LT16", MemcmpTestExactSCMemcmpAVX512_LT16);
+    UtRegisterTest("MemcmpTestExactSCMemcmpAVX512_LT32", MemcmpTestExactSCMemcmpAVX512_LT32);
+    UtRegisterTest("MemcmpTestExactSCMemcmpAVX512_LT64", MemcmpTestExactSCMemcmpAVX512_LT64);
     UtRegisterTest("MemcmpTestExactSCMemcmpAVX512_128", MemcmpTestExactSCMemcmpAVX512_128);
     UtRegisterTest("MemcmpTestExactSCMemcmpAVX512_256", MemcmpTestExactSCMemcmpAVX512_256);
     UtRegisterTest("MemcmpTestExactSCMemcmpAVX512_512", MemcmpTestExactSCMemcmpAVX512_512);
