@@ -19,10 +19,8 @@
 
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
-use crate::common::rust_string_to_c;
 use nom7::Err;
 use std;
-use std::os::raw::c_char;
 use std::fmt;
 use x509_parser::prelude::*;
 use crate::x509::GeneralName;
@@ -115,18 +113,21 @@ pub unsafe extern "C" fn SCX509GetSubjectAltNameLen(ptr: *const X509) -> u16 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCX509GetSubjectAltNameAt(ptr: *const X509, idx: u16) -> *mut c_char {
+pub unsafe extern "C" fn SCX509GetSubjectAltNameAt(ptr: *const X509, idx: u16, san: *mut *mut u8, san_len: *mut u32) {
     if ptr.is_null() {
-        return std::ptr::null_mut();
+        *san_len = 0;
+        *san = std::ptr::null_mut();
+        return;
     }
     let x509 = cast_pointer! {ptr, X509};
     let san_list = x509.0.tbs_certificate.subject_alternative_name();
     if let Ok(Some(sans)) = san_list {
         let general_name = &sans.value.general_names[idx as usize];
         let dns_name = SCGeneralName(general_name);
-        return rust_string_to_c(dns_name.to_string());
+        let dn = dns_name.to_string().into_bytes();
+        *san_len = dn.len() as u32;
+        *san = Box::into_raw(dn.into_boxed_slice()) as *mut u8;
     }
-    return std::ptr::null_mut();
 }
 
 #[no_mangle]

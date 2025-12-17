@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2011-2012 ANSSI
- * Copyright (C) 2022 Open Information Security Foundation
+ * Copyright (C) 2022-2025 Open Information Security Foundation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
