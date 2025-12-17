@@ -188,7 +188,8 @@ static void JsonTlsLogFingerprint(SCJsonBuilder *js, SSLState *ssl_state)
 static void JsonTlsLogSni(SCJsonBuilder *js, SSLState *ssl_state)
 {
     if (ssl_state->client_connp.sni) {
-        SCJbSetString(js, "sni", ssl_state->client_connp.sni);
+        SCJbSetStringFromBytes(
+                js, "sni", ssl_state->client_connp.sni, ssl_state->client_connp.sni_len);
     }
 }
 

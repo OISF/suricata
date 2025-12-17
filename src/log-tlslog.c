@@ -335,8 +335,12 @@ static void LogTlsLogExtended(LogTlsLogThread *aft, SSLState *ssl_state, const S
                         ssl_state->server_connp.cert0_fingerprint);
     }
     if (ssl_state->client_connp.sni != NULL) {
+        char *sni = CreateStringFromByteArray(
+                ssl_state->client_connp.sni, ssl_state->client_connp.sni_len);
         LOG_CF_WRITE_SPACE_SEPARATOR(aft->buffer);
-        LogTlsLogString(aft->buffer, "SNI", ssl_state->client_connp.sni);
+        LogTlsLogString(aft->buffer, "SNI", sni ? sni : "<ERROR>");
+
+        SCFree(sni);
     }
     if (ssl_state->server_connp.cert0_serial != NULL) {
         char *serial = CreateStringFromByteArray(
