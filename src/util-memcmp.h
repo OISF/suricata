@@ -439,6 +439,79 @@ static inline int SCMemcmpLowercaseAVX512_512(const uint8_t *s1, const uint8_t *
 }
 #undef SCMEMCMP_BYTES
 #endif
+
+#if defined(__AVX512VL__) && defined(__AVX512VBMI2__)
+#include <immintrin.h>
+/* sp and + loadu
+ * AVX512 due to _mm_cmpeq_epi8_mask */
+static inline int SCMemcmpLowercaseAVX512_LT32(const uint8_t *s1, const uint8_t *s2, size_t len)
+{
+    if (len >= 32) {
+        return SCMemcmpLowercaseAVX512_256(s1, s2, len);
+    }
+
+    const uint32_t load_mask = (uint32_t)((1UL << (uint32_t)(len)) - 1);
+
+    /* unaligned loading of the bytes to compare */
+    __m256i b2 = _mm256_maskz_expandloadu_epi8(load_mask, (const __m256i *)s2);
+    /* setup registers for upper to lower conversion */
+    __m256i upper1 = _mm256_load_si256((const __m256i *)scmemcmp_avx512_upper_low32);
+    __m256i upper2 = _mm256_load_si256((const __m256i *)scmemcmp_avx512_upper_hi32);
+    __m256i spaces = _mm256_load_si256((const __m256i *)scmemcmp_avx512_space32);
+
+    /* mark all chars bigger than uc_low */
+    __m256i mask1 = _mm256_cmpgt_epi8(b2, upper1);
+    /* mark all chars lower than uc_high */
+    __m256i mask2 = _mm256_cmpgt_epi8(upper2, b2);
+    /* merge the two, leaving only those that are true in both */
+    mask1 = _mm256_cmpeq_epi8(mask1, mask2);
+    /* sub delta leaves 0x20 only for uppercase positions, the
+       rest is 0x00 due to the saturation (reuse mask1 reg)*/
+    mask1 = _mm256_and_si256(spaces, mask1);
+    /* add to b2, converting uppercase to lowercase */
+    b2 = _mm256_add_epi8(b2, mask1);
+
+    /* now all is lowercase, let's do the actual compare (reuse mask1 reg) */
+    __m256i b1 = _mm256_maskz_expandloadu_epi8(load_mask, (const __m256i *)s1);
+    if (_mm256_cmpeq_epi8_mask(b1, b2) != 0xFFFFFFFF) {
+        return 1;
+    }
+
+    return 0;
+}
+static inline int SCMemcmpLowercaseAVX512_LT64(const uint8_t *s1, const uint8_t *s2, size_t len)
+{
+    if (len >= 64) {
+        return SCMemcmpLowercaseAVX512_512(s1, s2, len);
+    }
+
+    const uint64_t load_mask = (uint64_t)((1ULL << (uint64_t)(len)) - 1);
+
+    /* unaligned loading of the bytes to compare */
+    __m512i b2 = _mm512_maskz_expandloadu_epi8(load_mask, (const __m512i *)s2);
+    __m512i upper1 = _mm512_load_si512((const __m512i *)scmemcmp_upper_low64);
+    __m512i upper2 = _mm512_load_si512((const __m512i *)scmemcmp_upper_hi64);
+    /* setup registers for upper to lower conversion */
+    uint64_t m1 = _mm512_cmp_epi8_mask(upper1, b2, _MM_CMPINT_LT);
+    /* mark all chars lower than upper2 */
+    uint64_t m2 = _mm512_cmp_epi8_mask(b2, upper2, _MM_CMPINT_LT);
+    /* merge the two, leaving only those that are true in both */
+    uint64_t m3 = m1 & m2;
+    /* use mask to create array of 0x20 and 0x00's */
+    __m512i mask =
+            _mm512_mask_loadu_epi8(_mm512_setzero_si512(), m3, (const __m512i *)scmemcmp_space64);
+    /* add to b2, converting uppercase to lowercase */
+    b2 = _mm512_add_epi8(b2, mask);
+
+    /* now all is lowercase, let's do the actual compare (reuse mask1 reg) */
+    __m512i b1 = _mm512_maskz_expandloadu_epi8(load_mask, (const __m512i *)s1);
+    if (_mm512_cmpeq_epi8_mask(b1, b2) != UINT64_MAX) {
+        return 1;
+    }
+
+    return 0;
+}
+#endif
 #if defined(__AVX2__)
 #include <immintrin.h>
 #define SCMEMCMP_BYTES 32
@@ -933,6 +1006,48 @@ static inline int SCMemcmpLowercaseAVX512_128(const uint8_t *s1, const uint8_t *
         s1 += SCMEMCMP_BYTES;
         s2 += SCMEMCMP_BYTES;
     } while (len > offset);
+
+    return 0;
+}
+#endif
+
+#if defined(__AVX512VL__) && defined(__AVX512VBMI2__)
+#include <immintrin.h>
+/* sp and + loadu
+ * AVX512 due to _mm_cmpeq_epi8_mask */
+static inline int SCMemcmpLowercaseAVX512_LT16(const uint8_t *s1, const uint8_t *s2, size_t len)
+{
+    if (len >= 16) {
+        return SCMemcmpLowercaseAVX512_128(s1, s2, len);
+    }
+    __m128i b1, b2, mask1, mask2, uc_low, uc_high, zero20;
+
+    // const uint16_t load_mask = (uint16_t)((uint16_t)0xFFFF >> (uint16_t)(len));
+    const uint16_t load_mask = (1 << len) - 1;
+
+    /* unaligned loading of the bytes to compare */
+    b2 = _mm_maskz_expandloadu_epi8(load_mask, (const __m128i *)s2);
+    /* setup registers for upper to lower conversion */
+    uc_low = _mm_load_si128((const __m128i *)scmemcmp_sse3_uc_low);
+    uc_high = _mm_load_si128((const __m128i *)scmemcmp_sse3_uc_high);
+    zero20 = _mm_load_si128((const __m128i *)scmemcmp_sse3_spaces);
+
+    /* mark all chars bigger than uc_low */
+    mask1 = _mm_cmpgt_epi8(b2, uc_low);
+    /* mark all chars lower than uc_high */
+    mask2 = _mm_cmplt_epi8(b2, uc_high);
+    /* merge the two, leaving only those that are true in both */
+    mask1 = _mm_cmpeq_epi8(mask1, mask2);
+    /* sub delta leaves 0x20 only for uppercase positions, the
+       rest is 0x00 due to the saturation (reuse mask1 reg)*/
+    mask1 = _mm_and_si128(zero20, mask1);
+    /* add to b2, converting uppercase to lowercase */
+    b2 = _mm_add_epi8(b2, mask1);
+
+    /* now all is lowercase, let's do the actual compare (reuse mask1 reg) */
+    b1 = _mm_maskz_expandloadu_epi8(load_mask, (const __m128i *)s1);
+    if (_mm_cmpeq_epi8_mask(b1, b2) != 0xFFFF)
+        return 1;
 
     return 0;
 }

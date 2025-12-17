@@ -850,6 +850,9 @@ static void PrintBuildInfo(void)
 #if defined(__AVX512BW__)
     strlcat(features, "AVX512BW ", sizeof(features));
 #endif
+#if defined(__AVX512VBMI2__)
+    strlcat(features, "AVX512VBMI2 ", sizeof(features));
+#endif
 #if defined(__AVX2__)
     strlcat(features, "AVX2 ", sizeof(features));
 #endif
