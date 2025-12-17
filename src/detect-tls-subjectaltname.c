@@ -63,13 +63,13 @@ static bool TlsSubjectAltNameGetData(DetectEngineThreadCtx *det_ctx, const void 
 
     connp = &ssl_state->server_connp;
 
-    if (idx >= connp->cert0_sans_len) {
+    if (idx >= connp->cert0_sans_num) {
         return false;
     }
 
-    *buf = (const uint8_t *)connp->cert0_sans[idx];
+    *buf = (const uint8_t *)connp->cert0_sans[idx].san;
     if (*buf) {
-        *buf_len = (uint32_t)strlen(connp->cert0_sans[idx]);
+        *buf_len = connp->cert0_sans[idx].san_len;
     } else {
         // happens if the altname had a zero character in it
         *buf_len = 0;

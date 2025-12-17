@@ -155,10 +155,11 @@ static void JsonTlsLogIssuer(SCJsonBuilder *js, SSLState *ssl_state)
 
 static void JsonTlsLogSAN(SCJsonBuilder *js, SSLState *ssl_state)
 {
-    if (ssl_state->server_connp.cert0_sans_len > 0) {
+    if (ssl_state->server_connp.cert0_sans_num > 0) {
         SCJbOpenArray(js, "subjectaltname");
-        for (uint16_t i = 0; i < ssl_state->server_connp.cert0_sans_len; i++) {
-            SCJbAppendString(js, ssl_state->server_connp.cert0_sans[i]);
+        for (uint16_t i = 0; i < ssl_state->server_connp.cert0_sans_num; i++) {
+            SCJbAppendStringFromBytes(js, ssl_state->server_connp.cert0_sans[i].san,
+                    ssl_state->server_connp.cert0_sans[i].san_len);
         }
         SCJbClose(js);
     }
