@@ -1088,8 +1088,6 @@ static char CountersIdHashCompareFunc(void *data1, uint16_t datalen1,
 {
     CountersIdType *t1 = (CountersIdType *)data1;
     CountersIdType *t2 = (CountersIdType *)data2;
-    size_t len1 = 0;
-    size_t len2 = 0;
 
     if (t1 == NULL || t2 == NULL)
         return 0;
@@ -1097,14 +1095,7 @@ static char CountersIdHashCompareFunc(void *data1, uint16_t datalen1,
     if (t1->string == NULL || t2->string == NULL)
         return 0;
 
-    len1 = strlen(t1->string);
-    len2 = strlen(t2->string);
-
-    if (len1 == len2 && memcmp(t1->string, t2->string, len1) == 0) {
-        return 1;
-    }
-
-    return 0;
+    return strcmp(t1->string, t2->string) == 0;
 }
 
 static void CountersIdHashFreeFunc(void *data)
