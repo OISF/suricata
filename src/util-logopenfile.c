@@ -206,6 +206,31 @@ static void SCLogFileFlush(LogFileCtx *log_ctx)
 }
 
 /**
+ * \brief Handle log file rotation checks and updates
+ * \param log_ctx Log file context
+ * \retval true if rotation occurred
+ */
+static bool HandleLogRotation(LogFileCtx *log_ctx)
+{
+    time_t now = time(NULL);
+
+    if (log_ctx->rotation_flag) {
+        log_ctx->rotation_flag = 0;
+        SCConfLogReopen(log_ctx);
+        if (log_ctx->flags & LOGFILE_ROTATE_INTERVAL) {
+            log_ctx->rotate_time = now + log_ctx->rotate_interval;
+        }
+        return true;
+    } else if ((log_ctx->flags & LOGFILE_ROTATE_INTERVAL) && now >= log_ctx->rotate_time) {
+        SCConfLogReopen(log_ctx);
+        log_ctx->rotate_time = now + log_ctx->rotate_interval;
+        return true;
+    }
+
+    return false;
+}
+
+/**
  * \brief Write buffer to log file.
  * \retval 0 on failure; otherwise, the return value of fwrite_unlocked (number of
  * characters successfully written).
@@ -216,19 +241,7 @@ static int SCLogFileWriteNoLock(const char *buffer, int buffer_len, LogFileCtx *
 
     DEBUG_VALIDATE_BUG_ON(log_ctx->is_sock);
 
-    /* Check for rotation. */
-    if (log_ctx->rotation_flag) {
-        log_ctx->rotation_flag = 0;
-        SCConfLogReopen(log_ctx);
-    }
-
-    if (log_ctx->flags & LOGFILE_ROTATE_INTERVAL) {
-        time_t now = time(NULL);
-        if (now >= log_ctx->rotate_time) {
-            SCConfLogReopen(log_ctx);
-            log_ctx->rotate_time = now + log_ctx->rotate_interval;
-        }
-    }
+    HandleLogRotation(log_ctx);
 
     if (log_ctx->fp) {
         SCClearErrUnlocked(log_ctx->fp);
