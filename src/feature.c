@@ -55,8 +55,6 @@ static char FeatureHashCompareFunc(void *data1, uint16_t datalen1,
 {
     FeatureEntryType *f1 = (FeatureEntryType *)data1;
     FeatureEntryType *f2 = (FeatureEntryType *)data2;
-    size_t len1 = 0;
-    size_t len2 = 0;
 
     if (f1 == NULL || f2 == NULL)
         return 0;
@@ -64,10 +62,7 @@ static char FeatureHashCompareFunc(void *data1, uint16_t datalen1,
     if (f1->feature == NULL || f2->feature == NULL)
         return 0;
 
-    len1 = strlen(f1->feature);
-    len2 = strlen(f2->feature);
-
-    return (len1 == len2 && memcmp(f1->feature, f2->feature, len1) == 0);
+    return strcmp(f1->feature, f2->feature) == 0;
 }
 
 static void FeatureHashFreeFunc(void *data)
