@@ -144,7 +144,7 @@ The Frame API calls parameters represent:
 - ``frame_type``: type of frame it's being registering (defined in an enum, as shown further above)
 - ``tx_id``: an optional transaction id, if the frame belongs to a transaction. May be set later like `frame_len`
 
-``StreamSlice`` contains the input data to the parser, alongside other Stream-related data important in parsing context. Definition  is found in *applayer.rs*:
+``StreamSlice`` contains the input data to the parser, alongside other Stream-related data important in parsing context. Definition is found in *applayer.rs*:
 
 .. literalinclude:: ../../../../../rust/src/applayer.rs
     :caption: rust/src/applayer.rs

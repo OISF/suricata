@@ -206,7 +206,7 @@ static int NetmaskCount(RADIX_NODE_TYPE *node)
  * \param prefix      Pointer to the ip prefix that is being checked.
  * \param netmask     The netmask value for which we will have to return the user_data
  * \param exact_match Bool flag which indicates if we should check if the prefix
- *                    holds proper netblock  or not.
+ *                    holds proper netblock or not.
  * \param[out] user_data_result user data pointer
  *
  * \retval 1 On match.

@@ -394,7 +394,7 @@ static int EngineEventTestParse03 (void)
 }
 
 /**
- * \test EngineEventTestParse04 is a test for an  invalid upper case decode-event value
+ * \test EngineEventTestParse04 is a test for an invalid upper case decode-event value
  */
 static int EngineEventTestParse04 (void)
 {
@@ -408,7 +408,7 @@ static int EngineEventTestParse04 (void)
 }
 
 /**
- * \test EngineEventTestParse05 is a test for an  invalid char into the decode-event value
+ * \test EngineEventTestParse05 is a test for an invalid char into the decode-event value
  */
 static int EngineEventTestParse05 (void)
 {

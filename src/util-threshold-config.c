@@ -2469,7 +2469,7 @@ static int SCThresholdConfTest22(void)
     p1->ts = TimeGet();
     p2->ts = p3->ts = p1->ts;
 
-    /* All should be alerted, only p1 must be dropped  due to rate_filter*/
+    /* All should be alerted, only p1 must be dropped due to rate_filter*/
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
     FAIL_IF_NOT(PacketTestAction(p1, ACTION_DROP));
     FAIL_IF(PacketAlertCheck(p1, 10) != 1);

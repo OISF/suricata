@@ -268,7 +268,7 @@ static bool PcapLogCondition(ThreadVars *tv, void *thread_data, const Packet *p)
 /**
  * \brief Function to close pcaplog file
  *
- * \param t Thread Variable containing  input/output queue, cpu affinity etc.
+ * \param t Thread Variable containing input/output queue, cpu affinity etc.
  * \param pl PcapLog thread variable.
  */
 static int PcapLogCloseFile(ThreadVars *t, PcapLogData *pl)
@@ -343,7 +343,7 @@ static void PcapFileNameFree(PcapFileName *pf)
 /**
  * \brief Function to rotate pcaplog file
  *
- * \param t Thread Variable containing  input/output queue, cpu affinity etc.
+ * \param t Thread Variable containing input/output queue, cpu affinity etc.
  * \param pl PcapLog thread variable.
  *
  * \retval 0 on success
@@ -1210,7 +1210,7 @@ static void PcapLogDataFree(PcapLogData *pl)
 /**
  *  \brief Thread deinit function.
  *
- *  \param t Thread Variable containing  input/output queue, cpu affinity etc.
+ *  \param t Thread Variable containing input/output queue, cpu affinity etc.
  *  \param data PcapLog thread data.
  *  \retval TM_ECODE_OK on success
  *  \retval TM_ECODE_FAILED on failure
