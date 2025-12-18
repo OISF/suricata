@@ -526,7 +526,7 @@ of the interface ::
     xdp-mode: hw
     use-percpu-hash: no
 
-The load  balancing will be done on IP pairs inside the eBPF code, so
+The load balancing will be done on IP pairs inside the eBPF code, so
 using `cluster_qm` as cluster type is a good idea ::
 
     cluster-type: cluster_qm
