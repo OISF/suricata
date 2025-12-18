@@ -20,7 +20,7 @@
  *
  * \author Eric Leblond <eric@regit.org>
  *
- * Implements the mark keyword. Based  on detect-gid
+ * Implements the mark keyword. Based on detect-gid
  * by Breno Silva <breno.silva@gmail.com>
  */
 

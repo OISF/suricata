@@ -413,7 +413,7 @@ static int DecodePPPOEtest06(void)
 }
 
 /** DecodePPPOEtest07
- *  \brief Valid PPPOE packet with 8 bit protocol field - check the valid  ICMP type is accepted
+ *  \brief Valid PPPOE packet with 8 bit protocol field - check the valid ICMP type is accepted
  *  \retval 1 Expected test value
  */
 static int DecodePPPOEtest07(void)
@@ -468,7 +468,7 @@ static int DecodePPPOEtest08(void)
 }
 
 /** DecodePPPOEtest09
- *  \brief Valid PPPOE packet with 16 bit protocol field - check the valid  ICMP type is accepted
+ *  \brief Valid PPPOE packet with 16 bit protocol field - check the valid ICMP type is accepted
  *  \retval 1 Expected test value
  */
 static int DecodePPPOEtest09(void)

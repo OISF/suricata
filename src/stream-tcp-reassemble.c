@@ -3773,8 +3773,8 @@ void StreamTcpReassembleRegisterTests(void)
                    StreamTcpReassembleTest25);
     UtRegisterTest("StreamTcpReassembleTest26 -- Gap at middle Reassembly Test",
                    StreamTcpReassembleTest26);
-    UtRegisterTest("StreamTcpReassembleTest27 -- Gap at after  Reassembly Test",
-                   StreamTcpReassembleTest27);
+    UtRegisterTest(
+            "StreamTcpReassembleTest27 -- Gap at after Reassembly Test", StreamTcpReassembleTest27);
     UtRegisterTest("StreamTcpReassembleTest28 -- Gap at Start IDS missed packet Reassembly Test",
                    StreamTcpReassembleTest28);
     UtRegisterTest("StreamTcpReassembleTest29 -- Gap at Middle IDS missed packet Reassembly Test",
