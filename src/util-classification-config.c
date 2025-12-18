@@ -478,8 +478,6 @@ char SCClassConfClasstypeHashCompareFunc(void *data1, uint16_t datalen1,
 {
     SCClassConfClasstype *ct1 = (SCClassConfClasstype *)data1;
     SCClassConfClasstype *ct2 = (SCClassConfClasstype *)data2;
-    size_t len1 = 0;
-    size_t len2 = 0;
 
     if (ct1 == NULL || ct2 == NULL)
         return 0;
@@ -487,10 +485,7 @@ char SCClassConfClasstypeHashCompareFunc(void *data1, uint16_t datalen1,
     if (ct1->classtype == NULL || ct2->classtype == NULL)
         return 0;
 
-    len1 = strlen(ct1->classtype);
-    len2 = strlen(ct2->classtype);
-
-    if (len1 == len2 && memcmp(ct1->classtype, ct2->classtype, len1) == 0) {
+    if (strcmp(ct1->classtype, ct2->classtype) == 0) {
         SCLogDebug("Match found inside Classification-Config hash function");
         return 1;
     }
