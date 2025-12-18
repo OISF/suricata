@@ -2399,7 +2399,7 @@ memory pools per interface. The total size of all mempools of the interface is
 set with the ``mempool-size``. The recommend size of the memory pool can be
 auto-calculated by setting ``mempool-size: auto``. If ``mempool-size`` is set
 manually (to e.g. ``mempool-size: 65536``), the value is divided by the number of
-worker  cores of the interface (on 4 worker threads, each worker is assigned
+worker cores of the interface (on 4 worker threads, each worker is assigned
 with a mempool containing 16383 packet objects).
 Memory (in bytes) for interface's memory pools is calculated as:
 ``mempool-size`` * ``mtu``.

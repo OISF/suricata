@@ -53,7 +53,7 @@ org/projects/suricata/issues>`_. Tickets help us keep track of the work done,
 indicate when changes need backports etc.
 
 They are also important if you would like to see your new feature officially
-added to our tool: the ticket documents your ideas so  we can analyze how do they
+added to our tool: the ticket documents your ideas so we can analyze how do they
 fit in our plans for Suricata, and, if the feature is accepted, we can properly
 track progress etc.
 
@@ -149,7 +149,7 @@ The team and/or community members can then consider offering help. It is best
 to indicate this prior to doing the actual work, because we will reject features
 if no one steps up.
 
-It is also important to note that *community supported* features  will be
+It is also important to note that *community supported* features will be
 disabled by default, and if it brings in new dependencies (libraries or Rust
 crates) those will also be optional and disabled by default.
 

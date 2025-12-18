@@ -241,9 +241,9 @@ In the af-packet section of suricata.yaml config :
     block-size: 1048576
 
 That way 36 worker threads can be mapped (18 per each af-packet interface slot) 
-in total per CPUs NUMA 1 range - 18-35,54-71. That part is done via the  
+in total per CPUs NUMA 1 range - 18-35,54-71. That part is done via the 
 ``worker-cpu-set`` affinity settings. ``ring-size`` and ``block-size`` in the 
-config section  above are decent default values to start with. Those can be 
+config section above are decent default values to start with. Those can be 
 better adjusted if needed as explained in :doc:`tuning-considerations`.
     
 AMD based systems
@@ -359,7 +359,7 @@ this config is positioned on NUMA 0 so starting with 15 RSS queues on that
 NUMA node and keeping those off for other tools in the system could offer the 
 best advantage. 
 
-.. note:: Performance and optimization of the whole system can be affected upon regular NIC driver and pkg/kernel upgrades so it should be monitored regularly and tested out in QA/test environments first. As a general suggestion it is always recommended to run the latest stable firmware and drivers as  instructed and provided by the particular NIC vendor. 
+.. note:: Performance and optimization of the whole system can be affected upon regular NIC driver and pkg/kernel upgrades so it should be monitored regularly and tested out in QA/test environments first. As a general suggestion it is always recommended to run the latest stable firmware and drivers as instructed and provided by the particular NIC vendor. 
 
 Other considerations
 ~~~~~~~~~~~~~~~~~~~~

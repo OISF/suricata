@@ -3142,7 +3142,7 @@ static uint32_t DetectParseDupSigHashFunc(HashListTable *ht, void *data, uint16_
 }
 
 /**
- * \brief The Compare function to be used by the  hash table -
+ * \brief The Compare function to be used by the hash table -
  *        DetectEngineCtx->dup_sig_hash_table.
  *
  * \param data1 Pointer to the first SigDuplWrapper.

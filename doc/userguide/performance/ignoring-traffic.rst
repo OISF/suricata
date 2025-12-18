@@ -7,7 +7,7 @@ may be trusted, or perhaps a backup stream should be ignored.
 Capture Filters (BPF)
 ---------------------
 
-Through BPFs the capture methods pcap, af-packet, netmap  and pf_ring can be
+Through BPFs the capture methods pcap, af-packet, netmap and pf_ring can be
 told what to send to Suricata, and what not. For example a simple
 filter 'tcp' will only capture tcp packets.
 

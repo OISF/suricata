@@ -359,7 +359,7 @@ on one network interface card.
 With host stack mode, Netmap establishes a pair of host stack mode rings (one each for RX and TX). Packets
 pass through the host operating system network protocol stack. Ingress network packets flow from the network
 interface card to the network protocol stack and then into the host stack mode rings. Outbound packets
-flow from the  host stack mode rings to the network protocol stack and finally, to the network interface card.
+flow from the host stack mode rings to the network protocol stack and finally, to the network interface card.
 Suricata receives packets from the host stack mode rings and, in IPS mode, places packets to be transmitted into
 the host stack mode rings. Packets transmitted by Suricata into the host stack mode rings are available for
 other host OS applications.

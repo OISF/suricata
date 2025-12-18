@@ -468,7 +468,7 @@ void SCRConfReferenceHashFree(void *data)
  * \brief Loads the Reference info from the reference.config file.
  *
  *        The reference.config file contains references that can be used in
- *        Signatures.  Each line of the file should  have the following format -
+ *        Signatures.  Each line of the file should have the following format -
  *        config reference: system_name, reference_url.
  *
  * \param de_ctx Pointer to the Detection Engine Context that should be updated

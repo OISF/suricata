@@ -174,7 +174,7 @@ static int DetectDceStubDataSetup(DetectEngineCtx *de_ctx, Signature *s, const c
 #include "detect-engine-alert.h"
 
 /**
- * \test Test a valid dce_stub_data entry with  bind, bind_ack, request frags.
+ * \test Test a valid dce_stub_data entry with bind, bind_ack, request frags.
  */
 static int DetectDceStubDataTestParse02(void)
 {

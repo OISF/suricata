@@ -1185,7 +1185,7 @@ static int StreamTcpPacketIsRetransmission(TcpStream *stream, Packet *p)
  *          packets while the session state is None which means a newly
  *          initialized structure, or a fully closed session.
  *
- *  \param  tv      Thread Variable containing  input/output queue, cpu affinity
+ *  \param  tv      Thread Variable containing input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
  *  \param  stt     Stream Thread module registered to handle the stream handling
  *
@@ -2128,7 +2128,7 @@ failure:
  *          SYN, SYN/ACK, RST packets and correspondingly changes the connection
  *          state.
  *
- *  \param  tv      Thread Variable containing  input/output queue, cpu affinity
+ *  \param  tv      Thread Variable containing input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
  *  \param  stt     Stream Thread module registered to handle the stream handling
  */
@@ -2465,7 +2465,7 @@ static int StreamTcpPacketStateSynSent(
  *          SYN, SYN/ACK, ACK, FIN, RST packets and correspondingly changes
  *          the connection state.
  *
- *  \param  tv      Thread Variable containing  input/output queue, cpu affinity
+ *  \param  tv      Thread Variable containing input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
  *  \param  stt     Stream Thread module registered to handle the stream handling
  *
@@ -2894,7 +2894,7 @@ static int StreamTcpPacketStateSynRecv(
  *
  *  Timestamp has already been checked at this point.
  *
- *  \param  tv      Thread Variable containing  input/output queue, cpu affinity etc.
+ *  \param  tv      Thread Variable containing input/output queue, cpu affinity etc.
  *  \param  ssn     Pointer to the current TCP session
  *  \param  p       Packet which has to be handled in this TCP state.
  *  \param  stt     Stream Thread module registered to handle the stream handling
@@ -3069,7 +3069,7 @@ static int HandleEstablishedPacketToServer(
  *
  *  Timestamp has already been checked at this point.
  *
- *  \param  tv      Thread Variable containing  input/output queue, cpu affinity etc.
+ *  \param  tv      Thread Variable containing input/output queue, cpu affinity etc.
  *  \param  ssn     Pointer to the current TCP session
  *  \param  p       Packet which has to be handled in this TCP state.
  *  \param  stt     Stream Thread module registered to handle the stream handling
@@ -3396,7 +3396,7 @@ static int StreamTcpPacketIsSpuriousRetransmission(const TcpSession *ssn, Packet
  *          state. The function handles the data inside packets and call
  *          StreamTcpReassembleHandleSegment(tv, ) to handle the reassembling.
  *
- *  \param  tv      Thread Variable containing  input/output queue, cpu affinity etc.
+ *  \param  tv      Thread Variable containing input/output queue, cpu affinity etc.
  *  \param  p       Packet which has to be handled in this TCP state.
  *  \param  stt     Stream Thread module registered to handle the stream handling
  */
@@ -3597,7 +3597,7 @@ static int StreamTcpPacketStateEstablished(
  *  \brief  Function to handle the FIN packets for states TCP_SYN_RECV and
  *          TCP_ESTABLISHED and changes to another TCP state as required.
  *
- *  \param  tv      Thread Variable containing  input/output queue, cpu affinity
+ *  \param  tv      Thread Variable containing input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
  *  \param  stt     Stream Thread module registered to handle the stream handling
  *
@@ -3729,7 +3729,7 @@ static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *stt, TcpSession *
  *          ACK, FIN, RST packets and correspondingly changes the connection
  *          state.
  *
- *  \param  tv      Thread Variable containing  input/output queue, cpu affinity
+ *  \param  tv      Thread Variable containing input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
  *  \param  stt     Stream Thread module registered to handle the stream handling
  *
@@ -4174,7 +4174,7 @@ static int StreamTcpPacketStateFinWait1(
  *          ACK, RST, FIN packets and correspondingly changes the connection
  *          state.
  *
- *  \param  tv      Thread Variable containing  input/output queue, cpu affinity
+ *  \param  tv      Thread Variable containing input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
  *  \param  stt     Stream Thread module registered to handle the stream handling
  */
@@ -4472,7 +4472,7 @@ static int StreamTcpPacketStateFinWait2(
  *          the connection goes to TCP_TIME_WAIT state. The state has been
  *          reached as both end application has been closed.
  *
- *  \param  tv      Thread Variable containing  input/output queue, cpu affinity
+ *  \param  tv      Thread Variable containing input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
  *  \param  stt     Stream Thread module registered to handle the stream handling
  */
@@ -4633,7 +4633,7 @@ static int StreamTcpPacketStateClosing(
  *          packet from server the connection goes to TCP_LAST_ACK state.
  *          The state is possible only for server host.
  *
- *  \param  tv      Thread Variable containing  input/output queue, cpu affinity
+ *  \param  tv      Thread Variable containing input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
  *  \param  stt     Stream Thread module registered to handle the stream handling
  */
@@ -4928,7 +4928,7 @@ static int StreamTcpPacketStateCloseWait(
  *          the connection goes to TCP_CLOSED state and stream memory is
  *          returned back to pool. The state is possible only for server host.
  *
- *  \param  tv      Thread Variable containing  input/output queue, cpu affinity
+ *  \param  tv      Thread Variable containing input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
  *  \param  stt     Stream Thread module registered to handle the stream handling
  */
@@ -5049,7 +5049,7 @@ static int StreamTcpPacketStateLastAck(
  *          the connection goes to TCP_CLOSED state and stream memory is
  *          returned back to pool.
  *
- *  \param  tv      Thread Variable containing  input/output queue, cpu affinity
+ *  \param  tv      Thread Variable containing input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
  *  \param  stt     Stream Thread module registered to handle the stream handling
  */

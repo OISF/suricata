@@ -15,7 +15,7 @@ There are a few ways of testing Suricata:
 - **Static and dynamic analysis tools**: to help in finding bugs, memory leaks and other issues (like     `scan-build <https://clang-analyzer.llvm.org/scan-build.html#scanbuild_basicusage>`_, from `clang`,     which is also used for our C formatting checks; or ASAN, which checks for memory issues);
 - **Fuzz testing**: especially good for uncovering existing, often non-trivial bugs. For more on how to fuzz test Suricata, check :doc:`fuzz-testing`;
 - **CI checks**: each PR submitted to the project's public repositories will be run against a suit of Continuous Integration
-  workflows, as part of our QA process. Those cover: formatting and commit checks; fuzz tests (CI Fuzz), and several  builds. See our `github workflows <https://github.com/OISF/suricata/tree/main/.github/workflows>`_ for details and those in
+  workflows, as part of our QA process. Those cover: formatting and commit checks; fuzz tests (CI Fuzz), and several builds. See our `github workflows <https://github.com/OISF/suricata/tree/main/.github/workflows>`_ for details and those in
   action at `<https://github.com/OISF/suricata/actions>`_.
 
   .. note:: If you can run unit tests or other checks and report failures in our `issue tracker <https://redmine.openinfosecfoundation.org/projects/suricata/issues>`_, that is rather useful and appreciated!
