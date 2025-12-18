@@ -1135,6 +1135,37 @@ static inline int SCMemcmpSVE(const uint8_t *s1, const uint8_t *s2, size_t len)
 
 #define SCMEMCMP_BYTES 16
 
+static inline int SCMemcmpNeon(const uint8_t *s1, const uint8_t *s2, size_t len)
+{
+    size_t offset = 0;
+    uint8x16_t b1, b2, equiv;
+    uint64_t eqt, eqb;
+
+    do {
+        if (likely(len - offset < SCMEMCMP_BYTES)) {
+            return memcmp(s1 + offset, s2 + offset, len - offset) ? 1 : 0;
+        }
+
+        /* unaligned loading of the bytes to compare */
+        b1 = vld1q_u8(s1 + offset);
+        b2 = vld1q_u8(s2 + offset);
+
+        /* do the actual compare */
+        equiv = vceqq_u8(b1, b2);
+
+        /* move the values to a GP */
+        eqb = vgetq_lane_u64(vreinterpretq_u64_u8(equiv), 0);
+        eqt = vgetq_lane_u64(vreinterpretq_u64_u8(equiv), 1);
+
+        if (!(~eqb == 0 && ~eqt == 0)) {
+            return 1;
+        }
+        offset += SCMEMCMP_BYTES;
+    } while (len > offset);
+
+    return 0;
+}
+
 #define UPPER_LOW   0x41 /* "A" */
 #define UPPER_HIGH  0x5A /* "Z" */
 #define UPPER_DELTA 0x20
