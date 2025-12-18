@@ -438,8 +438,6 @@ char SCRConfReferenceHashCompareFunc(void *data1, uint16_t datalen1,
 {
     SCRConfReference *ref1 = (SCRConfReference *)data1;
     SCRConfReference *ref2 = (SCRConfReference *)data2;
-    size_t len1 = 0;
-    size_t len2 = 0;
 
     if (ref1 == NULL || ref2 == NULL)
         return 0;
@@ -447,10 +445,7 @@ char SCRConfReferenceHashCompareFunc(void *data1, uint16_t datalen1,
     if (ref1->system == NULL || ref2->system == NULL)
         return 0;
 
-    len1 = strlen(ref1->system);
-    len2 = strlen(ref2->system);
-
-    if (len1 == len2 && memcmp(ref1->system, ref2->system, len1) == 0) {
+    if (strcmp(ref1->system, ref2->system) == 0) {
         SCLogDebug("Match found inside Reference-Config hash function");
         return 1;
     }
