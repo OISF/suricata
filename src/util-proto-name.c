@@ -375,10 +375,7 @@ static char ProtoNameHashCompareFunc(void *data1, uint16_t datalen1, void *data2
     if (p1->name == NULL || p2->name == NULL)
         return 0;
 
-    size_t len1 = strlen(p1->name);
-    size_t len2 = strlen(p2->name);
-
-    return len1 == len2 && memcmp(p1->name, p2->name, len1) == 0;
+    return strcmp(p1->name, p2->name) == 0;
 }
 
 static void ProtoNameAddEntry(const char *proto_name, const uint8_t proto_number)
