@@ -1131,6 +1131,39 @@ static inline int SCMemcmpSVE(const uint8_t *s1, const uint8_t *s2, size_t len)
     } while (svptest_any(svptrue_b64(), pg));
     return 0;
 }
+
+static inline int SCMemcmpLowercaseSVE(const uint8_t *s1, const uint8_t *s2, size_t len)
+{
+    uint64_t i = 0;
+    int vec_size = svcntb();
+
+    svuint8_t A = svdup_u8(0x41);
+    svuint8_t Z = svdup_u8(0x5A);
+
+    svbool_t pg = svwhilelt_b8(i, len);
+    do {
+        /* unaligned loading of the bytes to compare */
+        svuint8_t b1 = svld1(pg, s1 + i);
+        svuint8_t b2 = svld1(pg, s2 + i);
+
+        /* create a predicate of uppercase chars */
+        svbool_t mask = svcmpge_u8(pg, b2, A);
+        mask = svcmple_u8(mask, b2, Z);
+
+        /* add 0x20 to each upper case value */
+        b2 = svadd_m(mask, b2, 0x20);
+
+        /* compare all bytes */
+        svbool_t match = svcmpne(pg, b1, b2);
+        if (svptest_any(pg, match))
+            return 1;
+
+        i += vec_size;
+        pg = svwhilelt_b8(i, len);
+    } while (svptest_any(svptrue_b64(), pg));
+    return 0;
+}
+
 #endif
 
 #define SCMEMCMP_BYTES 16
