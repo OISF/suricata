@@ -878,6 +878,9 @@ static void PrintBuildInfo(void)
         strlcat(features, "none", sizeof(features));
     }
     printf("SIMD support: %s\n", features);
+#if defined(__ARM_FEATURE_SVE)
+    printf("ARM64 SVE vector size: %d\n", UtilCpuArmSVEWidth());
+#endif
 
     /* atomics stuff */
     memset(features, 0x00, sizeof(features));
