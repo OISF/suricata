@@ -116,6 +116,7 @@
 #include "decode-vntag.h"
 #include "decode-vxlan.h"
 #include "decode-pppoe.h"
+#include "source-pcap-file-helper.h"
 
 #include "output-json-stats.h"
 
@@ -212,6 +213,7 @@ static void RegisterUnittests(void)
     StreamingBufferRegisterTests();
     MacSetRegisterTests();
     FlowRateRegisterTests();
+    SourcePcapFileHelperRegisterTests();
 #ifdef OS_WIN32
     Win32SyscallRegisterTests();
 #endif

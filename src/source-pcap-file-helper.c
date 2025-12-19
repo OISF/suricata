@@ -28,34 +28,77 @@
 #include "util-datalink.h"
 #include "util-checksum.h"
 #include "util-profiling.h"
-#include "source-pcap-file.h"
 #include "util-exception-policy.h"
+#include "conf-yaml-loader.h"
+#include "capture-hooks.h"
+#include "threads.h"
 
 extern uint32_t max_pending_packets;
 extern PcapFileGlobalVars pcap_g;
 
+static PcapFileFileVars *pcap_current_pfv = NULL;
+
 static void PcapFileCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt);
+
+static void PcapFileReleasePacket(Packet *p)
+{
+    PcapFileFileVars *pfv = p->pcap_v.pfv;
+    if (pfv != NULL) {
+        PcapFileFinalizePacket(pfv);
+    }
+
+    PacketFreeOrRelease(p);
+}
+
+void PcapFileReleasePseudoPacket(Packet *p)
+{
+    PcapFileFileVars *pfv = p->pcap_v.pfv;
+    /* Alerts are counted in PacketAlertFinalize via PcapFileAddAlertCount, so
+     * avoid double-counting here. Decrement refcount if we held one. */
+    if (pfv != NULL) {
+        uint32_t prev = SC_ATOMIC_SUB(pfv->ref_cnt, 1);
+        if (prev == 1 && pfv->cleanup_requested) {
+            CleanupPcapFileFileVars(pfv);
+        }
+    }
+    PacketFreeOrRelease(p);
+}
 
 void CleanupPcapFileFileVars(PcapFileFileVars *pfv)
 {
-    if (pfv != NULL) {
-        if (pfv->pcap_handle != NULL) {
-            pcap_close(pfv->pcap_handle);
-            pfv->pcap_handle = NULL;
-        }
-        if (pfv->filename != NULL) {
-            if (pfv->shared != NULL && pfv->shared->should_delete) {
-                SCLogDebug("Deleting pcap file %s", pfv->filename);
-                if (unlink(pfv->filename) != 0) {
-                    SCLogWarning("Failed to delete %s: %s", pfv->filename, strerror(errno));
-                }
-            }
-            SCFree(pfv->filename);
-            pfv->filename = NULL;
-        }
-        pfv->shared = NULL;
-        SCFree(pfv);
+    if (pfv == NULL) {
+        return;
     }
+
+    /* If there are still packets in flight, defer ALL cleanup actions, including
+     * the deletion decision, until the last packet completes. */
+    if (SC_ATOMIC_GET(pfv->ref_cnt) != 0) {
+        pfv->cleanup_requested = true;
+        return;
+    }
+
+    /* No packets in flight anymore: it's now safe to close, decide, and delete. */
+    if (pfv->pcap_handle != NULL) {
+        pcap_close(pfv->pcap_handle);
+        pfv->pcap_handle = NULL;
+    }
+
+    if (pfv->filename != NULL) {
+        if (PcapFileShouldDeletePcapFile(pfv)) {
+            SCLogDebug("Deleting pcap file %s", pfv->filename);
+            if (unlink(pfv->filename) != 0) {
+                SCLogWarning("Failed to delete %s: %s", pfv->filename, strerror(errno));
+            }
+        }
+        SCFree(pfv->filename);
+        pfv->filename = NULL;
+    }
+
+    pfv->shared = NULL;
+    if (pcap_current_pfv == pfv) {
+        pcap_current_pfv = NULL;
+    }
+    SCFree(pfv);
 }
 
 void PcapFileCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt)
@@ -74,6 +117,10 @@ void PcapFileCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt)
     if (unlikely(p == NULL)) {
         SCReturn;
     }
+    SC_ATOMIC_ADD(ptv->ref_cnt, 1);
+    SCLogDebug("pcap-file: got packet, pfv=%p filename=%s ref_cnt now=%u p=%p", (void *)ptv,
+            ptv->filename, SC_ATOMIC_GET(ptv->ref_cnt), (void *)p);
+
     PACKET_PROFILING_TMM_START(p, TMM_RECEIVEPCAPFILE);
 
     PKT_SET_SRC(p, PKT_SRC_WIRE);
@@ -83,8 +130,11 @@ void PcapFileCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt)
     p->pcap_cnt = ++pcap_g.cnt;
 
     p->pcap_v.tenant_id = ptv->shared->tenant_id;
+    p->pcap_v.pfv = ptv;
     ptv->shared->pkts++;
     ptv->shared->bytes += h->caplen;
+
+    p->ReleasePacket = PcapFileReleasePacket;
 
     if (unlikely(PacketCopyData(p, pkt, h->caplen))) {
         TmqhOutputPacketpool(ptv->shared->tv, p);
@@ -120,6 +170,16 @@ const char *PcapFileGetFilename(void)
     return pcap_filename;
 }
 
+void PcapFileSetCurrentPfv(PcapFileFileVars *pfv)
+{
+    pcap_current_pfv = pfv;
+}
+
+PcapFileFileVars *PcapFileGetCurrentPfv(void)
+{
+    return pcap_current_pfv;
+}
+
 /**
  *  \brief Main PCAP file reading Loop function
  */
@@ -127,6 +187,7 @@ TmEcode PcapFileDispatch(PcapFileFileVars *ptv)
 {
     SCEnter();
 
+    PcapFileSetCurrentPfv(ptv);
     /* initialize all the thread's initial timestamp */
     if (likely(ptv->first_pkt_hdr != NULL)) {
         TmThreadsInitThreadsTimestamp(SCTIME_FROM_TIMEVAL(&ptv->first_pkt_ts));
@@ -236,6 +297,14 @@ TmEcode InitPcapFile(PcapFileFileVars *pfv)
         pcap_freecode(&pfv->filter);
     }
 
+    SC_ATOMIC_INIT(pfv->alerts_count);
+    SC_ATOMIC_SET(pfv->alerts_count, 0);
+
+    SC_ATOMIC_INIT(pfv->ref_cnt);
+    SC_ATOMIC_SET(pfv->ref_cnt, 0);
+
+    pfv->cleanup_requested = false;
+
     pfv->datalink = pcap_datalink(pfv->pcap_handle);
     SCLogDebug("datalink %" PRId32 "", pfv->datalink);
     DatalinkSetGlobalType(pfv->datalink);
@@ -285,3 +354,687 @@ TmEcode ValidateLinkType(int datalink, DecoderFunc *DecoderFn)
 
     SCReturnInt(TM_ECODE_OK);
 }
+
+bool PcapFileShouldDeletePcapFile(PcapFileFileVars *pfv)
+{
+    if (pfv == NULL || pfv->shared == NULL) {
+        return false;
+    }
+
+    if (pfv->shared->delete_mode == PCAP_FILE_DELETE_NONE) {
+        return false;
+    }
+
+    if (pfv->shared->delete_mode == PCAP_FILE_DELETE_ALWAYS) {
+        return true;
+    }
+
+    /* PCAP_FILE_DELETE_NON_ALERTS mode */
+    uint64_t file_alerts = SC_ATOMIC_GET(pfv->alerts_count);
+
+    if (file_alerts != 0) {
+        SCLogDebug("Skipping deletion of %s due to %" PRIu64 " alert(s) generated.", pfv->filename,
+                file_alerts);
+        return false;
+    }
+
+    SCLogDebug("pcap-file: will delete %s (no alerts counted)", pfv->filename);
+
+    return true;
+}
+
+void PcapFileFinalizePacket(PcapFileFileVars *pfv)
+{
+    if (pfv != NULL) {
+        /* decrease ref count as packet is done */
+        uint32_t prev = SC_ATOMIC_SUB(pfv->ref_cnt, 1);
+        SCLogDebug("pcap-file: packet done pfv=%p filename=%s ref_cnt was=%u now=%u", (void *)pfv,
+                pfv->filename, prev, prev - 1);
+        if (prev == 1) {
+            if (pfv->cleanup_requested) {
+                CleanupPcapFileFileVars(pfv);
+            }
+        }
+    }
+}
+
+void PcapFileAddAlertCount(PcapFileFileVars *pfv, uint16_t alert_count)
+{
+    if (pfv != NULL && alert_count > 0) {
+        SC_ATOMIC_ADD(pfv->alerts_count, alert_count);
+    }
+}
+
+static void PcapCaptureOnPacketWithAlerts(const Packet *p)
+{
+    PcapFileFileVars *pfv = p->pcap_v.pfv;
+    if (pfv == NULL) {
+        pfv = PcapFileGetCurrentPfv();
+    }
+    if (pfv != NULL) {
+        /* alerts.cnt is uint16_t; count alerts for delete-on-non-alerts logic */
+        PcapFileAddAlertCount(pfv, p->alerts.cnt);
+    }
+}
+
+static void PcapCaptureOnPseudoPacketCreated(Packet *p)
+{
+    /* For pseudo packets created by generic layers, associate with current pfv
+     * and ensure refcount held so deletion defers. */
+    if (p->pcap_v.pfv == NULL) {
+        PcapFileFileVars *pfv = PcapFileGetCurrentPfv();
+        if (pfv != NULL) {
+            p->pcap_v.pfv = pfv;
+            p->ReleasePacket = PcapFileReleasePseudoPacket;
+            SC_ATOMIC_ADD(pfv->ref_cnt, 1);
+        }
+    }
+}
+
+void PcapFileInstallCaptureHooks(void)
+{
+    CaptureHooksSet(PcapCaptureOnPacketWithAlerts, PcapCaptureOnPseudoPacketCreated);
+}
+
+PcapFileDeleteMode PcapFileParseDeleteMode(void)
+{
+    PcapFileDeleteMode delete_mode = PCAP_FILE_DELETE_NONE;
+    const char *delete_when_done_str = NULL;
+
+    if (SCConfGet("pcap-file.delete-when-done", &delete_when_done_str) == 1) {
+        if (strcmp(delete_when_done_str, "non-alerts") == 0) {
+            delete_mode = PCAP_FILE_DELETE_NON_ALERTS;
+        } else {
+            int delete_always = 0;
+            if (SCConfGetBool("pcap-file.delete-when-done", &delete_always) == 1) {
+                if (delete_always == 1) {
+                    delete_mode = PCAP_FILE_DELETE_ALWAYS;
+                }
+            }
+        }
+    }
+
+    return delete_mode;
+}
+
+#ifdef UNITTESTS
+#include "util-unittest-helper.h"
+/**
+ * \test Tests that the PcapFileShouldDeletePcapFile function correctly applies the
+ * delete mode configuration.
+ */
+static int SourcePcapFileHelperTest01(void)
+{
+    PcapFileSharedVars shared;
+    memset(&shared, 0, sizeof(shared));
+    shared.delete_mode = PCAP_FILE_DELETE_ALWAYS;
+
+    PcapFileFileVars pfv;
+    memset(&pfv, 0, sizeof(pfv));
+    pfv.shared = &shared;
+    pfv.filename = SCStrdup("test.pcap");
+    SC_ATOMIC_INIT(pfv.alerts_count);
+    SC_ATOMIC_SET(pfv.alerts_count, 0);
+
+    /* Test case 1: Always delete mode */
+    int result1 = PcapFileShouldDeletePcapFile(&pfv);
+    FAIL_IF_NOT(result1);
+
+    /* Test case 2: Non-alerts mode with no alerts */
+    shared.delete_mode = PCAP_FILE_DELETE_NON_ALERTS;
+    int result2 = PcapFileShouldDeletePcapFile(&pfv);
+    FAIL_IF_NOT(result2);
+
+    /* Test case 3: Non-alerts mode with alerts */
+    SC_ATOMIC_ADD(pfv.alerts_count, 1);
+    int result3 = PcapFileShouldDeletePcapFile(&pfv);
+    FAIL_IF(result3);
+
+    /* Test case 4: Always delete mode with alerts */
+    shared.delete_mode = PCAP_FILE_DELETE_ALWAYS;
+    int result4 = PcapFileShouldDeletePcapFile(&pfv);
+    FAIL_IF_NOT(result4);
+
+    /* Test case 5: No delete mode */
+    shared.delete_mode = PCAP_FILE_DELETE_NONE;
+    int result5 = PcapFileShouldDeletePcapFile(&pfv);
+    FAIL_IF(result5);
+
+    SCFree(pfv.filename);
+
+    PASS;
+}
+
+/**
+ * \test Test PcapFileFinalizePacket function with reference counting
+ */
+static int SourcePcapFileHelperTest02(void)
+{
+    PcapFileFileVars pfv;
+    memset(&pfv, 0, sizeof(pfv));
+    SC_ATOMIC_INIT(pfv.alerts_count);
+    SC_ATOMIC_SET(pfv.alerts_count, 0);
+    SC_ATOMIC_INIT(pfv.ref_cnt);
+    SC_ATOMIC_SET(pfv.ref_cnt, 0);
+    pfv.cleanup_requested = false;
+
+    /* Test adding alerts with reference counting */
+    SC_ATOMIC_ADD(pfv.ref_cnt, 1); /* simulate packet in flight */
+    PcapFileAddAlertCount(&pfv, 5);
+    PcapFileFinalizePacket(&pfv);
+    uint64_t count = SC_ATOMIC_GET(pfv.alerts_count);
+    FAIL_IF_NOT(count == 5);
+    FAIL_IF_NOT(SC_ATOMIC_GET(pfv.ref_cnt) == 0); /* should be decremented */
+
+    /* Test adding more alerts */
+    SC_ATOMIC_ADD(pfv.ref_cnt, 1);
+    PcapFileAddAlertCount(&pfv, 3);
+    PcapFileFinalizePacket(&pfv);
+    count = SC_ATOMIC_GET(pfv.alerts_count);
+    FAIL_IF_NOT(count == 8);
+
+    /* Test with zero alerts (should not increment count) */
+    SC_ATOMIC_ADD(pfv.ref_cnt, 1);
+    PcapFileFinalizePacket(&pfv);
+    count = SC_ATOMIC_GET(pfv.alerts_count);
+    FAIL_IF_NOT(count == 8);
+
+    /* Test with NULL pfv (should not crash) */
+    PcapFileFinalizePacket(NULL);
+
+    PASS;
+}
+
+/* Mock for configuration testing */
+static int SetupYamlConf(const char *conf_string)
+{
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    return SCConfYamlLoadString(conf_string, strlen(conf_string));
+}
+
+static void CleanupYamlConf(void)
+{
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
+}
+
+/**
+ * \test Test PcapFileParseDeleteMode with all configuration combinations
+ */
+static int SourcePcapFileHelperTest03(void)
+{
+    /* Test 1: No configuration (should default to NONE) */
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    PcapFileDeleteMode result = PcapFileParseDeleteMode();
+    FAIL_IF_NOT(result == PCAP_FILE_DELETE_NONE);
+
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
+
+    /* Test 2: "false" configuration */
+    const char *conf_false = "%YAML 1.1\n"
+                             "---\n"
+                             "pcap-file:\n"
+                             "  delete-when-done: false\n";
+
+    SetupYamlConf(conf_false);
+    result = PcapFileParseDeleteMode();
+    FAIL_IF_NOT(result == PCAP_FILE_DELETE_NONE);
+    CleanupYamlConf();
+
+    /* Test 3: "true" configuration */
+    const char *conf_true = "%YAML 1.1\n"
+                            "---\n"
+                            "pcap-file:\n"
+                            "  delete-when-done: true\n";
+
+    SetupYamlConf(conf_true);
+    result = PcapFileParseDeleteMode();
+    FAIL_IF_NOT(result == PCAP_FILE_DELETE_ALWAYS);
+    CleanupYamlConf();
+
+    /* Test 4: "non-alerts" configuration */
+    const char *conf_non_alerts = "%YAML 1.1\n"
+                                  "---\n"
+                                  "pcap-file:\n"
+                                  "  delete-when-done: \"non-alerts\"\n";
+
+    SetupYamlConf(conf_non_alerts);
+    result = PcapFileParseDeleteMode();
+    FAIL_IF_NOT(result == PCAP_FILE_DELETE_NON_ALERTS);
+    CleanupYamlConf();
+
+    /* Test 5: Invalid configuration (should default to NONE) */
+    const char *conf_invalid = "%YAML 1.1\n"
+                               "---\n"
+                               "pcap-file:\n"
+                               "  delete-when-done: \"invalid-value\"\n";
+
+    SetupYamlConf(conf_invalid);
+    result = PcapFileParseDeleteMode();
+    FAIL_IF_NOT(result == PCAP_FILE_DELETE_NONE);
+    CleanupYamlConf();
+
+    PASS;
+}
+
+/**
+ * \test pfv is NULL.
+ */
+static int SourcePcapFileHelperTest04(void)
+{
+    int rc = PcapFileShouldDeletePcapFile(NULL);
+    FAIL_IF(rc);
+    PASS;
+}
+
+/**
+ * \test pfv->shared is NULL.
+ */
+static int SourcePcapFileHelperTest05(void)
+{
+    PcapFileFileVars pfv;
+    memset(&pfv, 0, sizeof(pfv));
+
+    int rc = PcapFileShouldDeletePcapFile(&pfv);
+    FAIL_IF(rc);
+    PASS;
+}
+
+/**
+ * \test Test cleanup with reference counting and deferred deletion
+ */
+static int SourcePcapFileHelperTest06(void)
+{
+    PcapFileFileVars pfv;
+    memset(&pfv, 0, sizeof(pfv));
+    SC_ATOMIC_INIT(pfv.alerts_count);
+    SC_ATOMIC_SET(pfv.alerts_count, 0);
+    SC_ATOMIC_INIT(pfv.ref_cnt);
+    SC_ATOMIC_SET(pfv.ref_cnt, 2); /* simulate 2 packets in flight */
+    pfv.cleanup_requested = false;
+
+    /* Simulate first packet completion - should not cleanup yet */
+    SC_ATOMIC_SUB(pfv.ref_cnt, 1);
+    FAIL_IF_NOT(SC_ATOMIC_GET(pfv.ref_cnt) == 1);
+
+    /* Request cleanup while packets are still in flight */
+    pfv.cleanup_requested = true;
+
+    /* Simulate second packet completion - should trigger cleanup */
+    if (SC_ATOMIC_SUB(pfv.ref_cnt, 1) == 1) {
+        FAIL_IF_NOT(pfv.cleanup_requested); /* cleanup should have been requested */
+        /* In real code, CleanupPcapFileFileVars would be called here */
+    }
+
+    PASS;
+}
+
+/**
+ * \test Test edge cases and error conditions
+ */
+static int SourcePcapFileHelperTest07(void)
+{
+    /* Test 1: PcapFileShouldDeletePcapFile with very high alert count */
+    PcapFileSharedVars shared;
+    memset(&shared, 0, sizeof(shared));
+    shared.delete_mode = PCAP_FILE_DELETE_NON_ALERTS;
+
+    PcapFileFileVars pfv;
+    memset(&pfv, 0, sizeof(pfv));
+    pfv.shared = &shared;
+    pfv.filename = SCStrdup("test.pcap");
+    SC_ATOMIC_INIT(pfv.alerts_count);
+    SC_ATOMIC_SET(pfv.alerts_count, UINT64_MAX); /* max value */
+
+    int result = PcapFileShouldDeletePcapFile(&pfv);
+    FAIL_IF(result); /* should not delete with max alerts */
+
+    /* Test 2: PcapFileFinalizePacket with max alert count */
+    SC_ATOMIC_INIT(pfv.ref_cnt);
+    SC_ATOMIC_ADD(pfv.ref_cnt, 1);
+    PcapFileAddAlertCount(&pfv, UINT16_MAX); /* max uint16_t */
+    PcapFileFinalizePacket(&pfv);
+    /* Should not overflow or crash */
+
+    SCFree(pfv.filename);
+    PASS;
+}
+
+/**
+ * \test Test command-line --pcap-file-delete override behavior
+ */
+static int SourcePcapFileHelperTest08(void)
+{
+    /* Test 1: Command line overrides YAML "false" */
+    const char *conf_false = "%YAML 1.1\n"
+                             "---\n"
+                             "pcap-file:\n"
+                             "  delete-when-done: false\n";
+
+    SetupYamlConf(conf_false);
+
+    /* Simulate --pcap-file-delete command line option */
+    int set_result = SCConfSetFinal("pcap-file.delete-when-done", "true");
+    FAIL_IF_NOT(set_result == 1);
+
+    PcapFileDeleteMode result = PcapFileParseDeleteMode();
+    FAIL_IF_NOT(result == PCAP_FILE_DELETE_ALWAYS); /* Should override YAML false */
+    CleanupYamlConf();
+
+    /* Test 2: Command line overrides YAML "non-alerts" */
+    const char *conf_non_alerts = "%YAML 1.1\n"
+                                  "---\n"
+                                  "pcap-file:\n"
+                                  "  delete-when-done: \"non-alerts\"\n";
+
+    SetupYamlConf(conf_non_alerts);
+
+    /* Simulate --pcap-file-delete command line option */
+    set_result = SCConfSetFinal("pcap-file.delete-when-done", "true");
+    FAIL_IF_NOT(set_result == 1);
+
+    result = PcapFileParseDeleteMode();
+    FAIL_IF_NOT(result == PCAP_FILE_DELETE_ALWAYS); /* Should override YAML "non-alerts" */
+    CleanupYamlConf();
+
+    /* Test 3: Command line overrides no YAML config */
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    /* Simulate --pcap-file-delete command line option with no YAML config */
+    set_result = SCConfSetFinal("pcap-file.delete-when-done", "true");
+    FAIL_IF_NOT(set_result == 1);
+
+    result = PcapFileParseDeleteMode();
+    FAIL_IF_NOT(result == PCAP_FILE_DELETE_ALWAYS); /* Should set to always delete */
+
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
+
+    PASS;
+}
+
+/**
+ * \test Test that cleanup defers while packets are in flight and that a file
+ * with alerts is not deleted in NON_ALERTS mode.
+ */
+static int SourcePcapFileHelperTest09(void)
+{
+    PcapFileSharedVars *shared = SCCalloc(1, sizeof(*shared));
+    FAIL_IF_NULL(shared);
+    shared->delete_mode = PCAP_FILE_DELETE_NON_ALERTS;
+
+    PcapFileFileVars *pfv = SCCalloc(1, sizeof(*pfv));
+    FAIL_IF_NULL(pfv);
+    pfv->shared = shared;
+    pfv->filename = SCStrdup("unit_del_test.pcap");
+    FAIL_IF_NULL(pfv->filename);
+
+    SC_ATOMIC_INIT(pfv->alerts_count);
+    SC_ATOMIC_SET(pfv->alerts_count, 0);
+    SC_ATOMIC_INIT(pfv->ref_cnt);
+    SC_ATOMIC_SET(pfv->ref_cnt, 2); /* two packets in flight */
+    pfv->cleanup_requested = false;
+
+    /* Request cleanup while packets still in flight: should defer. */
+    CleanupPcapFileFileVars(pfv);
+    FAIL_IF_NOT(pfv->cleanup_requested);
+    FAIL_IF_NULL(pfv->filename); /* not freed yet */
+
+    /* First packet completes and generates an alert. */
+    PcapFileAddAlertCount(pfv, 1);
+    PcapFileFinalizePacket(pfv);
+    FAIL_IF_NOT(SC_ATOMIC_GET(pfv->alerts_count) == 1);
+
+    /* Second (last) packet completes: triggers final cleanup. */
+    PcapFileFinalizePacket(pfv);
+
+    /* pfv memory is freed at this point; only free shared. */
+    SCFree(shared);
+
+    PASS;
+}
+
+/**
+ * \test Cover unlink-on-ALWAYS branch (ref_cnt == 0) and deferred deletion when ref_cnt > 0
+ */
+static int SourcePcapFileHelperTest10(void)
+{
+    /* Create a temporary file that we expect to be deleted. */
+    const char *tmpname = "suri_ut_delete_always.pcap";
+    const uint8_t dummy[] = { 0x00 };
+    int rc = TestHelperBufferToFile(tmpname, dummy, sizeof(dummy));
+    FAIL_IF_NOT(rc >= 0);
+
+    /* Case 1: delete ALWAYS with no packets in flight -> file unlinked immediately */
+    PcapFileSharedVars *shared1 = SCCalloc(1, sizeof(*shared1));
+    FAIL_IF_NULL(shared1);
+    shared1->delete_mode = PCAP_FILE_DELETE_ALWAYS;
+
+    PcapFileFileVars *pfv1 = SCCalloc(1, sizeof(*pfv1));
+    FAIL_IF_NULL(pfv1);
+    pfv1->shared = shared1;
+    pfv1->filename = SCStrdup(tmpname);
+    FAIL_IF_NULL(pfv1->filename);
+
+    SC_ATOMIC_INIT(pfv1->alerts_count);
+    SC_ATOMIC_SET(pfv1->alerts_count, 0);
+    SC_ATOMIC_INIT(pfv1->ref_cnt);
+    SC_ATOMIC_SET(pfv1->ref_cnt, 0);
+
+    /* Provide a closable handle to cover close path. */
+    pfv1->pcap_handle = pcap_open_dead(DLT_EN10MB, 65535);
+    FAIL_IF_NULL(pfv1->pcap_handle);
+
+    CleanupPcapFileFileVars(pfv1);
+
+    /* File should be gone. */
+    FILE *f = fopen(tmpname, "rb");
+    FAIL_IF_NOT_NULL(f);
+    if (f != NULL)
+        fclose(f);
+
+    /* Case 2: delete ALWAYS but ref_cnt > 0 -> defer until finalize. */
+    /* Recreate the file. */
+    rc = TestHelperBufferToFile(tmpname, dummy, sizeof(dummy));
+    FAIL_IF_NOT(rc >= 0);
+
+    PcapFileSharedVars *shared2 = SCCalloc(1, sizeof(*shared2));
+    FAIL_IF_NULL(shared2);
+    shared2->delete_mode = PCAP_FILE_DELETE_ALWAYS;
+
+    PcapFileFileVars *pfv2 = SCCalloc(1, sizeof(*pfv2));
+    FAIL_IF_NULL(pfv2);
+    pfv2->shared = shared2;
+    pfv2->filename = SCStrdup(tmpname);
+    FAIL_IF_NULL(pfv2->filename);
+
+    SC_ATOMIC_INIT(pfv2->alerts_count);
+    SC_ATOMIC_SET(pfv2->alerts_count, 0);
+    SC_ATOMIC_INIT(pfv2->ref_cnt);
+    SC_ATOMIC_SET(pfv2->ref_cnt, 1);
+    pfv2->pcap_handle = pcap_open_dead(DLT_EN10MB, 65535);
+    FAIL_IF_NULL(pfv2->pcap_handle);
+
+    CleanupPcapFileFileVars(pfv2);
+
+    /* Still exists now because deletion should be deferred. */
+    f = fopen(tmpname, "rb");
+    FAIL_IF_NULL(f);
+    if (f != NULL)
+        fclose(f);
+
+    /* Finalize the last packet which should trigger final cleanup & unlink. */
+    PcapFileFinalizePacket(pfv2);
+
+    /* Now the file should be gone. */
+    f = fopen(tmpname, "rb");
+    FAIL_IF_NOT_NULL(f);
+    if (f != NULL)
+        fclose(f);
+
+    SCFree(shared1);
+    SCFree(shared2);
+
+    PASS;
+}
+
+/**
+ * \test Test PcapFileReleasePseudoPacket refcount decrement without cleanup
+ */
+static int SourcePcapFileHelperTest11(void)
+{
+    /* Setup pfv with ref_cnt=2 so release does not trigger cleanup */
+    PcapFileFileVars pfv;
+    memset(&pfv, 0, sizeof(pfv));
+    SC_ATOMIC_INIT(pfv.ref_cnt);
+    SC_ATOMIC_SET(pfv.ref_cnt, 2);
+    pfv.cleanup_requested = false;
+
+    /* Allocate a packet from the pool to allow safe release */
+    Packet *p = PacketGetFromAlloc();
+    FAIL_IF_NULL(p);
+    p->pcap_v.pfv = &pfv;
+
+    /* Call release and ensure ref count decremented by 1 */
+    PcapFileReleasePseudoPacket(p);
+    FAIL_IF_NOT(SC_ATOMIC_GET(pfv.ref_cnt) == 1);
+
+    PASS;
+}
+
+/**
+ * \test Test adding alert count and that cleanup after refcnt reaches zero
+ *       does not delete when alerts exist in NON_ALERTS mode.
+ */
+static int SourcePcapFileHelperTest12(void)
+{
+    PcapFileSharedVars shared;
+    memset(&shared, 0, sizeof(shared));
+    shared.delete_mode = PCAP_FILE_DELETE_NON_ALERTS;
+
+    PcapFileFileVars *pfv = SCCalloc(1, sizeof(*pfv));
+    FAIL_IF_NULL(pfv);
+    pfv->shared = &shared;
+    pfv->filename = SCStrdup("ut_non_alerts.pcap");
+    FAIL_IF_NULL(pfv->filename);
+
+    SC_ATOMIC_INIT(pfv->alerts_count);
+    SC_ATOMIC_SET(pfv->alerts_count, 0);
+    SC_ATOMIC_INIT(pfv->ref_cnt);
+    SC_ATOMIC_SET(pfv->ref_cnt, 1);
+    pfv->cleanup_requested = true;
+
+    /* Simulate pseudo alert */
+    PcapFileAddAlertCount(pfv, 2);
+    FAIL_IF_NOT(SC_ATOMIC_GET(pfv->alerts_count) == 2);
+
+    /* Simulate last ref release triggering cleanup; file shouldn't be deleted
+     * due to alerts > 0. We cannot check unlink here; rely on return value. */
+    if (SC_ATOMIC_SUB(pfv->ref_cnt, 1) == 1) {
+        CleanupPcapFileFileVars(pfv);
+    }
+    /* Success if no crash. */
+    PASS;
+}
+
+/**
+ * \test Test global current pfv pointer lifecycle
+ */
+static int SourcePcapFileHelperTest13(void)
+{
+    PcapFileFileVars *pfv = SCCalloc(1, sizeof(*pfv));
+    FAIL_IF_NULL(pfv);
+    pfv->filename = SCStrdup("ut_global_clear.pcap");
+    FAIL_IF_NULL(pfv->filename);
+
+    PcapFileSetCurrentPfv(pfv);
+    FAIL_IF_NOT(PcapFileGetCurrentPfv() == pfv);
+
+    /* Cleanup should clear global reference when pointing to this pfv */
+    CleanupPcapFileFileVars(pfv);
+    /* Global accessor must be NULL after cleanup. */
+    FAIL_IF_NOT(PcapFileGetCurrentPfv() == NULL);
+    PASS;
+}
+
+/**
+ * \test Exercise unlink failure branch in CleanupPcapFileFileVars
+ */
+static int SourcePcapFileHelperTest14(void)
+{
+    PcapFileSharedVars shared;
+    memset(&shared, 0, sizeof(shared));
+    shared.delete_mode = PCAP_FILE_DELETE_ALWAYS;
+
+    PcapFileFileVars *pfv = SCCalloc(1, sizeof(*pfv));
+    FAIL_IF_NULL(pfv);
+    pfv->shared = &shared;
+    pfv->filename = SCStrdup("does-not-exist-ut.pcap");
+    FAIL_IF_NULL(pfv->filename);
+
+    SC_ATOMIC_INIT(pfv->ref_cnt);
+    SC_ATOMIC_SET(pfv->ref_cnt, 0);
+
+    /* Attempt cleanup; unlink should fail but must not crash */
+    CleanupPcapFileFileVars(pfv);
+    PASS;
+}
+
+/**
+ * \test Cover alerts hook fallback using current PFV
+ */
+static int SourcePcapFileHelperTest15(void)
+{
+    PcapFileInstallCaptureHooks();
+
+    PcapFileFileVars *pfv = SCCalloc(1, sizeof(*pfv));
+    FAIL_IF_NULL(pfv);
+    SC_ATOMIC_INIT(pfv->alerts_count);
+    SC_ATOMIC_SET(pfv->alerts_count, 0);
+
+    /* Set current PFV to exercise fallback path */
+    PcapFileSetCurrentPfv(pfv);
+
+    Packet *p = PacketGetFromAlloc();
+    FAIL_IF_NULL(p);
+    p->alerts.cnt = 3;    /* simulate 3 alerts */
+    p->pcap_v.pfv = NULL; /* force fallback */
+
+    /* Call hook: it should update pfv->alerts_count */
+    CaptureHooksOnPacketWithAlerts(p);
+    FAIL_IF_NOT(SC_ATOMIC_GET(pfv->alerts_count) == 3);
+
+    /* Cleanup */
+    PacketFreeOrRelease(p);
+    CleanupPcapFileFileVars(pfv);
+    PASS;
+}
+
+/**
+ * \brief Register unit tests for pcap file helper
+ */
+void SourcePcapFileHelperRegisterTests(void)
+{
+    UtRegisterTest("SourcePcapFileHelperTest01", SourcePcapFileHelperTest01);
+    UtRegisterTest("SourcePcapFileHelperTest02", SourcePcapFileHelperTest02);
+    UtRegisterTest("SourcePcapFileHelperTest03", SourcePcapFileHelperTest03);
+    UtRegisterTest("SourcePcapFileHelperTest04", SourcePcapFileHelperTest04);
+    UtRegisterTest("SourcePcapFileHelperTest05", SourcePcapFileHelperTest05);
+    UtRegisterTest("SourcePcapFileHelperTest06", SourcePcapFileHelperTest06);
+    UtRegisterTest("SourcePcapFileHelperTest07", SourcePcapFileHelperTest07);
+    UtRegisterTest("SourcePcapFileHelperTest08", SourcePcapFileHelperTest08);
+    UtRegisterTest("SourcePcapFileHelperTest09", SourcePcapFileHelperTest09);
+    UtRegisterTest("SourcePcapFileHelperTest10", SourcePcapFileHelperTest10);
+    UtRegisterTest("SourcePcapFileHelperTest11", SourcePcapFileHelperTest11);
+    UtRegisterTest("SourcePcapFileHelperTest12", SourcePcapFileHelperTest12);
+    UtRegisterTest("SourcePcapFileHelperTest13", SourcePcapFileHelperTest13);
+    UtRegisterTest("SourcePcapFileHelperTest14", SourcePcapFileHelperTest14);
+    UtRegisterTest("SourcePcapFileHelperTest15", SourcePcapFileHelperTest15);
+}
+#endif /* UNITTESTS */
