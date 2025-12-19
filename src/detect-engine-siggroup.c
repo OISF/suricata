@@ -376,9 +376,9 @@ static void MergeBitarrays(const uint8_t *src, uint8_t *dst, const uint32_t size
 }
 #elif defined(__ARM_NEON)
 #include <arm_neon.h>
+#define BYTES 16
 static void MergeBitarrays(const uint8_t *src, uint8_t *dst, const uint32_t size)
 {
-#define BYTES 16
     const uint8_t *srcptr = src;
     uint8_t *dstptr = dst;
     for (uint32_t i = 0; i < size; i += BYTES) {
@@ -387,6 +387,21 @@ static void MergeBitarrays(const uint8_t *src, uint8_t *dst, const uint32_t size
         d = vorrq_u8(s, d);
         vst1q_u8(dstptr + i, d);
     }
+}
+#undef BYTES
+#define BYTES 8
+static uint64_t Popcnt(const uint8_t *array, const uint32_t size)
+{
+    uint64_t cnt = 0;
+    const uint8_t *a = array;
+    for (uint32_t i = 0; i < size; i += BYTES) {
+        uint8x8_t d = vld1_u8(a + i);
+        d = vcnt_u8(d);
+        for (uint8_t x = 0; x < 8; x++) {
+            cnt += d[x];
+        }
+    }
+    return cnt;
 }
 #endif
 
@@ -460,7 +475,7 @@ static uint32_t Popcnt(const uint8_t *array, const uint32_t size)
 void SigGroupHeadSetSigCnt(SigGroupHead *sgh, uint32_t max_idx)
 {
     sgh->init->max_sig_id = MAX(max_idx, sgh->init->max_sig_id);
-#ifdef HAVE_POPCNT64
+#if defined(HAVE_POPCNT64) || defined(__ARM_NEON)
     sgh->init->sig_cnt = Popcnt(sgh->init->sig_array, sgh->init->sig_size);
 #else
     uint32_t cnt = 0;
