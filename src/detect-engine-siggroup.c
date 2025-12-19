@@ -358,7 +358,7 @@ int SigGroupHeadClearSigs(SigGroupHead *sgh)
     return 0;
 }
 
-#ifdef __SSE2__
+#if defined(__SSE2__)
 #include <emmintrin.h>
 static void MergeBitarrays(const uint8_t *src, uint8_t *dst, const uint32_t size)
 {
@@ -372,6 +372,20 @@ static void MergeBitarrays(const uint8_t *src, uint8_t *dst, const uint32_t size
         _mm_store_si128((__m128i *)dstptr, d);
         srcptr += BYTES;
         dstptr += BYTES;
+    }
+}
+#elif defined(__ARM_NEON)
+#include <arm_neon.h>
+static void MergeBitarrays(const uint8_t *src, uint8_t *dst, const uint32_t size)
+{
+#define BYTES 16
+    const uint8_t *srcptr = src;
+    uint8_t *dstptr = dst;
+    for (uint32_t i = 0; i < size; i += BYTES) {
+        uint8x16_t s = vld1q_u8(srcptr + i);
+        uint8x16_t d = vld1q_u8(dstptr + i);
+        d = vorrq_u8(s, d);
+        vst1q_u8(dstptr + i, d);
     }
 }
 #endif
@@ -399,7 +413,7 @@ int SigGroupHeadCopySigs(DetectEngineCtx *de_ctx, SigGroupHead *src, SigGroupHea
     }
     DEBUG_VALIDATE_BUG_ON(src->init->sig_size != (*dst)->init->sig_size);
 
-#ifdef __SSE2__
+#if defined(__SSE2__) || defined(__ARM_NEON)
     MergeBitarrays(src->init->sig_array, (*dst)->init->sig_array, src->init->sig_size);
 #else
     /* do the copy */
