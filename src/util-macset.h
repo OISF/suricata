@@ -41,6 +41,7 @@ void MacSetFree(MacSet *);
 void MacSetRegisterFlowStorage(void);
 FlowStorageId MacSetGetFlowStorageID(void);
 bool MacSetFlowStorageEnabled(void);
+void MacSetSwap(MacSet *);
 void MacSetRegisterTests(void);
 
 #endif /* __UTIL_MACSET_H__ */
