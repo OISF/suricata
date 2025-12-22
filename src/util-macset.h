@@ -25,25 +25,22 @@
 #define SURICATA_UTIL_MACSET_H
 
 typedef struct MacSet_ MacSet;
-typedef enum {
-    MAC_SET_SRC = 0,
-    MAC_SET_DST
-} MacSetSide;
+typedef enum { MAC_SET_SRC = 0, MAC_SET_DST } MacSetSide;
 
-typedef int (*MacSetIteratorFunc)(uint8_t *addr, MacSetSide side, void*);
+typedef int (*MacSetIteratorFunc)(uint8_t *addr, MacSetSide side, void *);
 
 MacSet *MacSetInit(int size);
 void MacSetAdd(MacSet *, const uint8_t *src_addr, const uint8_t *dst_addr);
 void MacSetAddWithCtr(MacSet *, const uint8_t *src_addr, const uint8_t *dst_addr, ThreadVars *tv,
         StatsCounterMaxId ctr_src, StatsCounterMaxId ctr_dst);
-int     MacSetForEach(const MacSet*, MacSetIteratorFunc, void*);
+int MacSetForEach(const MacSet *, MacSetIteratorFunc, void *);
 uint8_t *MacSetGetFirst(const MacSet *, MacSetSide);
-int     MacSetSize(const MacSet*);
-void    MacSetReset(MacSet*);
-void    MacSetFree(MacSet*);
-void    MacSetRegisterFlowStorage(void);
+int MacSetSize(const MacSet *);
+void MacSetReset(MacSet *);
+void MacSetFree(MacSet *);
+void MacSetRegisterFlowStorage(void);
 FlowStorageId MacSetGetFlowStorageID(void);
-bool    MacSetFlowStorageEnabled(void);
-void    MacSetRegisterTests(void);
+bool MacSetFlowStorageEnabled(void);
+void MacSetRegisterTests(void);
 
 #endif /* SURICATA_UTIL_MACSET_H */
