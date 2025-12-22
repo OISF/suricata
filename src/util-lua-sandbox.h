@@ -88,4 +88,47 @@ void SCLuaSbResetInstructionCounter(lua_State *sb);
  */
 void SCLuaSbLoadLibs(lua_State *L);
 
+/* alloc_limit (max-bytes) handling. To give the script the full budget
+ * during it's execution, temporary disable the limit and then restore
+ * it with the existing use as baseline
+ *
+ * ```
+ *     // get configured limit and reset active limit to 0
+ *     const uint64_t cfg_limit = SCLuaSbResetBytesLimit(tlua->luastate);
+ *     // push some data to the state
+ *     LuaPushStringBuffer(tlua->luastate, input, (size_t)input_len);
+ *     // restore the limit, which may now be lower than `alloc_bytes`.
+ *     SCLuaSbRestoreBytesLimit(tlua->luastate, cfg_limit);
+ *     // update allowance to take `alloc_bytes` as the baseline, so
+ *     // effectively: sb->alloc_bytes + sb->alloc_limit
+ *     SCLuaSbUpdateBytesLimit(tlua->luastate);
+ *
+ *     ... run script, lua_pcall...
+ *
+ *     while (lua_gettop(tlua->luastate) > 0) {
+ *         lua_pop(tlua->luastate, 1);
+ *     }
+ *     // restore the original alloc_limit
+ *     SCLuaSbRestoreBytesLimit(tlua->luastate, cfg_limit);
+ * ```
+ */
+
+/*
+ * Resets the byte limit and returns the existing limit.
+ * Meant to be used to temporarily disable the limit during preparation
+ * time for a script to run. */
+uint64_t SCLuaSbResetBytesLimit(lua_State *L);
+
+/*
+ * Update the alloc_limit to take the pre-script initialization bytes
+ * as the base line.
+ */
+void SCLuaSbUpdateBytesLimit(lua_State *L);
+
+/*
+ * Set the bytes limit. Meant to be used with the value returned from
+ * `SCLuaSbResetBytesLimit`
+ */
+void SCLuaSbRestoreBytesLimit(lua_State *L, const uint64_t cfg_limit);
+
 #endif /*  SURICATA_UTIL_LUA_SANDBOX_H */
