@@ -115,3 +115,46 @@ int ListAppLayerHooks(const char *conf_filename)
     }
     return TM_ECODE_DONE;
 }
+
+int ListAppLayerFrames(const char *conf_filename)
+{
+    EngineModeSetIDS();
+    if (SCConfYamlLoadFile(conf_filename) != -1)
+        SCLogLoadConfig(0, 0, 0, 0);
+    MpmTableSetup();
+    SpmTableSetup();
+    AppLayerSetup();
+
+    AppProto alprotos[g_alproto_max];
+    AppLayerProtoDetectSupportedAppProtocols(alprotos);
+
+    printf("=========Supported App Layer Frames=========\n");
+    for (AppProto a = 0; a < g_alproto_max; a++) {
+        if (alprotos[a] != 1)
+            continue;
+
+        const char *alproto_name = AppProtoToString(a);
+        if (strcmp(alproto_name, "http") == 0)
+            alproto_name = "http1";
+        SCLogDebug("alproto %u/%s", a, alproto_name);
+
+        bool tcp_stream_once = false;
+        for (uint32_t i = 0; i < 255; i++) {
+            const char *name = AppLayerParserGetFrameNameById(IPPROTO_TCP, a, (uint8_t)i);
+            if (name == NULL)
+                break;
+            if (!tcp_stream_once) {
+                printf("tcp: %s.stream\n", alproto_name);
+                tcp_stream_once = true;
+            }
+            printf("tcp: %s.%s\n", alproto_name, name);
+        }
+        for (uint32_t i = 0; i < 255; i++) {
+            const char *name = AppLayerParserGetFrameNameById(IPPROTO_UDP, a, (uint8_t)i);
+            if (name == NULL)
+                break;
+            printf("udp: %s.%s\n", alproto_name, name);
+        }
+    }
+    return TM_ECODE_DONE;
+}

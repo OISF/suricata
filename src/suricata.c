@@ -719,6 +719,8 @@ static void PrintUsage(const char *progname)
     printf("\t--list-app-layer-protos              : list supported app layer protocols\n");
     printf("\t--list-app-layer-hooks               : list supported app layer hooks for use in "
            "rules\n");
+    printf("\t--list-app-layer-frames              : list supported app layer frames for use with "
+           "'frame' keyword\n");
     printf("\t--dump-config                        : show the running configuration\n");
     printf("\t--dump-features                      : display provided features\n");
     printf("\t--build-info                         : display build information\n");
@@ -1375,6 +1377,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
     int dump_features = 0;
     int list_app_layer_protocols = 0;
     int list_app_layer_hooks = 0;
+    int list_app_layer_frames = 0;
     int list_unittests = 0;
     int list_runmodes = 0;
     int list_keywords = 0;
@@ -1424,6 +1427,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
         {"unittest-filter", required_argument, 0, 'U'},
         {"list-app-layer-protos", 0, &list_app_layer_protocols, 1},
         {"list-app-layer-hooks", 0, &list_app_layer_hooks, 1},
+        {"list-app-layer-frames", 0, &list_app_layer_frames, 1},
         {"list-unittests", 0, &list_unittests, 1},
         {"list-runmodes", 0, &list_runmodes, 1},
         {"list-keywords", optional_argument, &list_keywords, 1},
@@ -2123,6 +2127,8 @@ TmEcode SCParseCommandLine(int argc, char **argv)
         suri->run_mode = RUNMODE_LIST_APP_LAYERS;
     if (list_app_layer_hooks)
         suri->run_mode = RUNMODE_LIST_APP_LAYER_HOOKS;
+    if (list_app_layer_frames)
+        suri->run_mode = RUNMODE_LIST_APP_LAYER_FRAMES;
     if (list_keywords)
         suri->run_mode = RUNMODE_LIST_KEYWORDS;
     if (list_unittests)
@@ -2404,6 +2410,12 @@ int SCStartInternalRunMode(int argc, char **argv)
                 return ListAppLayerHooks(suri->conf_filename);
             } else {
                 return ListAppLayerHooks(DEFAULT_CONF_FILE);
+            }
+        case RUNMODE_LIST_APP_LAYER_FRAMES:
+            if (suri->conf_filename != NULL) {
+                return ListAppLayerFrames(suri->conf_filename);
+            } else {
+                return ListAppLayerFrames(DEFAULT_CONF_FILE);
             }
         case RUNMODE_PRINT_VERSION:
             PrintVersion();
