@@ -294,6 +294,29 @@ void MacSetFree(MacSet *ms)
     (void) SC_ATOMIC_SUB(flow_memuse, total_free);
 }
 
+void MacSetSwap(MacSet *ms)
+{
+    if (ms == NULL)
+        return;
+
+    MacAddr tmp_single;
+    memcpy(tmp_single, ms->singles[0], sizeof(MacAddr));
+    memcpy(ms->singles[0], ms->singles[1], sizeof(MacAddr));
+    memcpy(ms->singles[1], tmp_single, sizeof(MacAddr));
+
+    MacSetState tmp_state = ms->state[0];
+    ms->state[0] = ms->state[1];
+    ms->state[1] = tmp_state;
+
+    MacAddr *tmp_buf = ms->buf[0];
+    ms->buf[0] = ms->buf[1];
+    ms->buf[1] = tmp_buf;
+
+    int tmp_last = ms->last[0];
+    ms->last[0] = ms->last[1];
+    ms->last[1] = tmp_last;
+}
+
 #ifdef UNITTESTS
 
 static int CheckTest1Membership(uint8_t *addr, MacSetSide side, void *data)

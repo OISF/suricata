@@ -269,6 +269,11 @@ void FlowSwap(Flow *f)
 
     SWAP_VARS(uint32_t, f->todstpktcnt, f->tosrcpktcnt);
     SWAP_VARS(uint64_t, f->todstbytecnt, f->tosrcbytecnt);
+
+    MacSet *ms = FlowGetStorageById(f, MacSetGetFlowStorageID());
+    if (ms != NULL) {
+        MacSetSwap(ms);
+    }
 }
 
 /**
