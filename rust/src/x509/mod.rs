@@ -20,14 +20,14 @@
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
 use crate::common::rust_string_to_c;
+use crate::x509::GeneralName;
 use nom7::Err;
 use std;
-use std::os::raw::c_char;
 use std::fmt;
+use std::os::raw::c_char;
 use x509_parser::prelude::*;
-use crate::x509::GeneralName;
-mod time;
 mod log;
+mod time;
 
 #[repr(u32)]
 pub enum X509DecodeError {
@@ -56,7 +56,7 @@ impl fmt::Display for SCGeneralName<'_> {
             GeneralName::DNSName(s) => write!(f, "{}", s),
             GeneralName::URI(s) => write!(f, "{}", s),
             GeneralName::IPAddress(s) => write!(f, "{:?}", s),
-            _ => write!(f, "{}", self.0)
+            _ => write!(f, "{}", self.0),
         }
     }
 }
@@ -68,9 +68,7 @@ impl fmt::Display for SCGeneralName<'_> {
 /// input must be a valid buffer of at least input_len bytes
 #[no_mangle]
 pub unsafe extern "C" fn SCX509Decode(
-    input: *const u8,
-    input_len: u32,
-    err_code: *mut u32,
+    input: *const u8, input_len: u32, err_code: *mut u32,
 ) -> *mut X509 {
     let slice = std::slice::from_raw_parts(input, input_len as usize);
     let res = X509Certificate::from_der(slice);
@@ -154,9 +152,7 @@ pub unsafe extern "C" fn SCX509GetSerial(ptr: *const X509) -> *mut c_char {
 /// ptr must be a valid object obtained using `SCX509Decode`
 #[no_mangle]
 pub unsafe extern "C" fn SCX509GetValidity(
-    ptr: *const X509,
-    not_before: *mut i64,
-    not_after: *mut i64,
+    ptr: *const X509, not_before: *mut i64, not_after: *mut i64,
 ) -> i32 {
     if ptr.is_null() {
         return -1;

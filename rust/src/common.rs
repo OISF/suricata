@@ -142,9 +142,7 @@ pub fn to_hex(input: &[u8]) -> String {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCToHex(
-    output: *mut u8, out_len: usize, input: *const u8, in_len: usize,
-) {
+pub unsafe extern "C" fn SCToHex(output: *mut u8, out_len: usize, input: *const u8, in_len: usize) {
     if out_len < 2 * in_len + 1 {
         return;
     }

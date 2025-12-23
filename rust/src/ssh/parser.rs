@@ -80,7 +80,8 @@ pub fn ssh_parse_line(i: &[u8]) -> IResult<&[u8], &[u8]> {
     terminated(
         take_while(is_not_lineend),
         alt((tag("\n"), tag("\r\n"), parser)),
-    ).parse(i)
+    )
+    .parse(i)
 }
 
 #[derive(PartialEq, Eq)]

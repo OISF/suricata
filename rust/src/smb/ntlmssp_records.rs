@@ -20,9 +20,9 @@ use nom8::bytes::streaming::take;
 use nom8::combinator::{cond, rest, verify};
 use nom8::error::{make_error, ErrorKind};
 use nom8::number::streaming::{le_u16, le_u32, le_u8};
-use nom8::Parser;
 use nom8::Err;
 use nom8::IResult;
+use nom8::Parser;
 use std::fmt;
 
 #[derive(Debug, PartialEq, Eq)]

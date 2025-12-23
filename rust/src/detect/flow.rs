@@ -53,7 +53,8 @@ fn detect_parse_flow_direction(i: &str) -> IResult<&str, DetectFlowDir> {
         value(DetectFlowDir::DETECT_FLOW_TOSERVER, tag("toserver")),
         value(DetectFlowDir::DETECT_FLOW_TOCLIENT, tag("toclient")),
         value(DetectFlowDir::DETECT_FLOW_TOEITHER, tag("either")),
-    )).parse(i)?;
+    ))
+    .parse(i)?;
     return Ok((i, fd));
 }
 

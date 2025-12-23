@@ -23,7 +23,7 @@ pub fn fsctl_func_to_string(f: u32) -> String {
         0x00060194 => "FSCTL_DFS_GET_REFERRALS",
         0x000601B0 => "FSCTL_DFS_GET_REFERRALS_EX",
         0x00090000 => "FSCTL_REQUEST_OPLOCK_LEVEL_1",
-        0x00090004 => "FSCTL_REQUEST_OPLOCK_LEVEL_2", 
+        0x00090004 => "FSCTL_REQUEST_OPLOCK_LEVEL_2",
         0x00090008 => "FSCTL_REQUEST_BATCH_OPLOCK",
         0x0009000C => "FSCTL_OPLOCK_BREAK_ACKNOWLEDGE",
         0x00090010 => "FSCTL_OPBATCH_ACK_CLOSE_PENDING",
@@ -38,7 +38,7 @@ pub fn fsctl_func_to_string(f: u32) -> String {
         0x0009003C => "FSCTL_GET_COMPRESSION",
         0x0009004F => "FSCTL_MARK_AS_SYSTEM_HIVE",
         0x00090050 => "FSCTL_OPLOCK_BREAK_ACK_NO_2",
-        0x00090054 => "FSCTL_INVALIDATE_VOLUMES", 
+        0x00090054 => "FSCTL_INVALIDATE_VOLUMES",
         0x00090058 => "FSCTL_QUERY_FAT_BPB",
         0x0009005C => "FSCTL_REQUEST_FILTER_OPLOCK",
         0x00090060 => "FSCTL_FILESYSTEM_GET_STATISTICS",
@@ -48,7 +48,7 @@ pub fn fsctl_func_to_string(f: u32) -> String {
         0x00090073 => "FSCTL_GET_RETRIEVAL_POINTERS",
         0x00090074 => "FSCTL_MOVE_FILE",
         0x00090078 => "FSCTL_IS_VOLUME_DIRTY",
-        0x0009007C => "FSCTL_GET_HFS_INFORMATION", 
+        0x0009007C => "FSCTL_GET_HFS_INFORMATION",
         0x00090083 => "FSCTL_ALLOW_EXTENDED_DASD_IO",
         0x00090087 => "FSCTL_READ_PROPERTY_DATA",
         0x0009008B => "FSCTL_WRITE_PROPERTY_DATA",
@@ -109,6 +109,9 @@ pub fn fsctl_func_to_string(f: u32) -> String {
         0x001440F2 => "FSCTL_SRV_COPYCHUNK",
         0x001441bb => "FSCTL_SRV_READ_HASH",
         0x001480F2 => "FSCTL_SRV_COPYCHUNK_WRITE",
-        _ => { return (f).to_string(); },
-    }.to_string()
+        _ => {
+            return (f).to_string();
+        }
+    }
+    .to_string()
 }

@@ -254,7 +254,8 @@ fn mime_parse_headers<'a>(
     let mut errored = false;
     let mut input = i;
     while !input.is_empty() {
-        if let Ok((input2, line)) = take_until::<_, &[u8], nom8::error::Error<&[u8]>>("\r\n").parse(input)
+        if let Ok((input2, line)) =
+            take_until::<_, &[u8], nom8::error::Error<&[u8]>>("\r\n").parse(input)
         {
             if let Ok((value, name)) = mime_parse_header_line(line) {
                 if slice_equals_lowercase(name, "content-disposition".as_bytes()) {
