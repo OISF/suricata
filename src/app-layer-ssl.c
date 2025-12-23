@@ -1620,6 +1620,9 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, const uint8_t *input,
         case SSLV3_HS_CLIENT_HELLO:
             ssl_state->current_flags = SSL_AL_FLAG_STATE_CLIENT_HELLO;
 
+            if (ssl_state->curr_connp->hs == NULL)
+                ssl_state->curr_connp->hs = SCTLSHandshakeNew();
+
             rc = TLSDecodeHandshakeHello(ssl_state, input, input_len);
             if (rc < 0)
                 return rc;
@@ -1629,6 +1632,9 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, const uint8_t *input,
             ssl_state->current_flags = SSL_AL_FLAG_STATE_SERVER_HELLO;
 
             DEBUG_VALIDATE_BUG_ON(ssl_state->curr_connp->message_length != input_len);
+            if (ssl_state->curr_connp->hs == NULL)
+                ssl_state->curr_connp->hs = SCTLSHandshakeNew();
+
             rc = TLSDecodeHandshakeHello(ssl_state, input, input_len);
             if (rc < 0)
                 return rc;
@@ -2823,8 +2829,6 @@ static void *SSLStateAlloc(void *orig_state, AppProto proto_orig)
     SSLState *ssl_state = SCCalloc(1, sizeof(SSLState));
     if (unlikely(ssl_state == NULL))
         return NULL;
-    ssl_state->client_connp.hs = SCTLSHandshakeNew();
-    ssl_state->server_connp.hs = SCTLSHandshakeNew();
     TAILQ_INIT(&ssl_state->server_connp.certs);
     TAILQ_INIT(&ssl_state->client_connp.certs);
 
