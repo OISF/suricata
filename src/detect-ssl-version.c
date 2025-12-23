@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -16,7 +16,7 @@
  */
 
 /**
- * \file   detect-ssl-version.c
+ * \file
  *
  * \author Gurvinder Singh <gurvindersinghdahiya@gmail.com>
  *
@@ -49,7 +49,6 @@
 
 #include "stream-tcp.h"
 #include "app-layer-ssl.h"
-
 
 static int DetectSslVersionMatch(DetectEngineThreadCtx *,
         Flow *, uint8_t, void *, void *,
@@ -101,7 +100,7 @@ static int DetectSslVersionMatch(DetectEngineThreadCtx *det_ctx,
     bool sig_ver = false;
 
     const DetectSslVersionData *ssl = (const DetectSslVersionData *)m;
-    SSLState *app_state = (SSLState *)state;
+    const SSLState *app_state = (SSLState *)state;
     if (app_state == NULL) {
         SCLogDebug("no app state, no match");
         SCReturnInt(0);
@@ -198,12 +197,11 @@ struct SSLVersionKeywords ssl_version_keywords[TLS_SIZE] = {
  */
 static DetectSslVersionData *DetectSslVersionParse(DetectEngineCtx *de_ctx, const char *str)
 {
-    DetectSslVersionData *ssl = NULL;
     const char *tmp_str = str;
     size_t tmp_len = 0;
 
     /* We have a correct ssl_version options */
-    ssl = SCCalloc(1, sizeof(DetectSslVersionData));
+    DetectSslVersionData *ssl = SCCalloc(1, sizeof(DetectSslVersionData));
     if (unlikely(ssl == NULL))
         goto error;
 
@@ -257,7 +255,6 @@ error:
     if (ssl != NULL)
         DetectSslVersionFree(de_ctx, ssl);
     return NULL;
-
 }
 
 /**
@@ -273,28 +270,23 @@ error:
  */
 static int DetectSslVersionSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    DetectSslVersionData *ssl = NULL;
-
     if (SCDetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
         return -1;
 
-    ssl = DetectSslVersionParse(de_ctx, str);
+    DetectSslVersionData *ssl = DetectSslVersionParse(de_ctx, str);
     if (ssl == NULL)
-        goto error;
+        return -1;
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
 
     if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_SSL_VERSION, (SigMatchCtx *)ssl, g_tls_generic_list_id) == NULL) {
-        goto error;
-    }
-    return 0;
-
-error:
-    if (ssl != NULL)
         DetectSslVersionFree(de_ctx, ssl);
-    return -1;
+        return -1;
+    }
+
+    return 0;
 }
 
 /**
