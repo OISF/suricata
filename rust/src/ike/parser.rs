@@ -281,7 +281,8 @@ pub fn parse_security_association(i: &[u8]) -> IResult<&[u8], SecurityAssociatio
     let (i, situation) = cond(domain_of_interpretation == 1, take(4_usize)).parse(i)?;
     let (i, data) = cond(domain_of_interpretation == 1 && start_i.len() >= 8, |b| {
         take(start_i.len() - 8).parse(b)
-    }).parse(i)?;
+    })
+    .parse(i)?;
     Ok((
         i,
         SecurityAssociationPayload {
@@ -306,7 +307,8 @@ pub fn parse_proposal(i: &[u8]) -> IResult<&[u8], ProposalPayload<'_>> {
     let (i, spi) = take(spi_size as usize)(i)?;
     let (i, payload_data) = cond((start_i.len() - 4) >= usize::from(spi_size), |b| {
         take((start_i.len() - 4) - spi_size as usize).parse(b)
-    }).parse(i)?;
+    })
+    .parse(i)?;
     let payload = ProposalPayload {
         _proposal_number: proposal_number,
         _proposal_type: proposal_type,
@@ -448,7 +450,8 @@ pub fn parse_sa_attribute(i: &[u8]) -> IResult<&[u8], Vec<SaAttribute>> {
         let (i, variable_attribute_value) = cond(
             format.0 == 0 && attribute_length_or_value != 4,
             take(attribute_length_or_value),
-        ).parse(i)?;
+        )
+        .parse(i)?;
         let attr = SaAttribute {
             attribute_format: format.0,
             attribute_type: get_attribute_type(format.1),
@@ -470,8 +473,7 @@ pub fn parse_sa_attribute(i: &[u8]) -> IResult<&[u8], Vec<SaAttribute>> {
                 _ => None,
             },
             hex_value: match format.0 {
-                0 => variable_attribute_value
-                    .map(to_hex),
+                0 => variable_attribute_value.map(to_hex),
                 _ => None,
             },
         };
@@ -489,7 +491,8 @@ pub fn parse_ikev1_payload_list(i: &[u8]) -> IResult<&[u8], Vec<IsakmpPayload<'_
         let (i, next_payload) = be_u8(i)?;
         let (i, reserved) = be_u8(i)?;
         let (i, payload_length) = be_u16(i)?;
-        let (i, payload_data) = cond(payload_length >= 4, |b| take(payload_length - 4).parse(b)).parse(i)?;
+        let (i, payload_data) =
+            cond(payload_length >= 4, |b| take(payload_length - 4).parse(b)).parse(i)?;
         Ok((
             i,
             IsakmpPayload {
@@ -556,7 +559,9 @@ pub fn parse_payload(
                 transforms,
                 vendor_ids,
                 payload_types,
-            ).is_err() {
+            )
+            .is_err()
+            {
                 SCLogDebug!("Error parsing SecurityAssociation");
                 return Err(());
             }
@@ -572,7 +577,9 @@ pub fn parse_payload(
                 transforms,
                 vendor_ids,
                 payload_types,
-            ).is_err() {
+            )
+            .is_err()
+            {
                 SCLogDebug!("Error parsing Proposal");
                 return Err(());
             }
@@ -632,7 +639,9 @@ fn parse_proposal_payload(
                             transforms,
                             vendor_ids,
                             payload_types,
-                        ).is_err() {
+                        )
+                        .is_err()
+                        {
                             SCLogDebug!("Error parsing transform payload");
                             return Err(());
                         }
@@ -683,7 +692,9 @@ fn parse_security_association_payload(
                                     transforms,
                                     vendor_ids,
                                     payload_types,
-                                ).is_err() {
+                                )
+                                .is_err()
+                                {
                                     SCLogDebug!("Error parsing proposal payload");
                                     return Err(());
                                 }

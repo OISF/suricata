@@ -252,7 +252,8 @@ fn probe(input: &[u8]) -> nom::IResult<&[u8], ()> {
     nom::sequence::terminated(
         nom::bytes::complete::take_while1(|c: u8| c.is_dec_digit()),
         nom::bytes::complete::tag(":"),
-    ).parse(prefix)?;
+    )
+    .parse(prefix)?;
     Ok((rem, ()))
 }
 

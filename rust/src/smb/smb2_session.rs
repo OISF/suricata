@@ -15,13 +15,12 @@
  * 02110-1301, USA.
  */
 
-use crate::smb::smb2_records::*;
-use crate::smb::smb::*;
-use crate::smb::events::*;
 use crate::smb::auth::*;
+use crate::smb::events::*;
+use crate::smb::smb::*;
+use crate::smb::smb2_records::*;
 
-pub fn smb2_session_setup_request(state: &mut SMBState, r: &Smb2Record)
-{
+pub fn smb2_session_setup_request(state: &mut SMBState, r: &Smb2Record) {
     SCLogDebug!("SMB2_COMMAND_SESSION_SETUP: r.data.len() {}", r.data.len());
     #[allow(clippy::single_match)]
     match parse_smb2_request_session_setup(r.data) {
@@ -41,37 +40,34 @@ pub fn smb2_session_setup_request(state: &mut SMBState, r: &Smb2Record)
                     }
                 }
             }
-        },
-            _ => {
-//                events.push(SMBEvent::MalformedData);
-        },
+        }
+        _ => {
+            //                events.push(SMBEvent::MalformedData);
+        }
     }
 }
 
-fn smb2_session_setup_update_tx(tx: &mut SMBTransaction, r: &Smb2Record)
-{
+fn smb2_session_setup_update_tx(tx: &mut SMBTransaction, r: &Smb2Record) {
     tx.hdr = SMBCommonHdr::from2(r, SMBHDR_TYPE_HEADER); // to overwrite ssn_id 0
     tx.set_status(r.nt_status, false);
     tx.response_done = true;
 }
 
-pub fn smb2_session_setup_response(state: &mut SMBState, r: &Smb2Record)
-{
+pub fn smb2_session_setup_response(state: &mut SMBState, r: &Smb2Record) {
     // try exact match with session id already set (e.g. NTLMSSP AUTH phase)
-    let found = r.session_id != 0 && match state.get_sessionsetup_tx(
-                SMBCommonHdr::from2(r, SMBHDR_TYPE_HEADER))
-    {
-        Some(tx) => {
-            smb2_session_setup_update_tx(tx, r);
-            SCLogDebug!("smb2_session_setup_response: tx {:?}", tx);
-            true
-        },
-        None => { false },
-    };
+    let found = r.session_id != 0
+        && match state.get_sessionsetup_tx(SMBCommonHdr::from2(r, SMBHDR_TYPE_HEADER)) {
+            Some(tx) => {
+                smb2_session_setup_update_tx(tx, r);
+                SCLogDebug!("smb2_session_setup_response: tx {:?}", tx);
+                true
+            }
+            None => false,
+        };
     // otherwise try match with ssn id 0 (e.g. NTLMSSP_NEGOTIATE)
     if !found {
-        if let Some(tx) = state.get_sessionsetup_tx(
-                SMBCommonHdr::new(SMBHDR_TYPE_HEADER, 0, 0, r.message_id))
+        if let Some(tx) =
+            state.get_sessionsetup_tx(SMBCommonHdr::new(SMBHDR_TYPE_HEADER, 0, 0, r.message_id))
         {
             smb2_session_setup_update_tx(tx, r);
             SCLogDebug!("smb2_session_setup_response: tx {:?}", tx);

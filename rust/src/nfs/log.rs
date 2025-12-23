@@ -15,12 +15,12 @@
  * 02110-1301, USA.
  */
 
+use crate::detect::EnumString;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use crate::nfs::nfs::*;
 use crate::nfs::types::*;
 use crc::crc32;
 use std::string::String;
-use crate::detect::EnumString;
 
 #[no_mangle]
 pub extern "C" fn SCNfsTxLoggingIsFiltered(state: &mut NFSState, tx: &NFSTransaction) -> u8 {

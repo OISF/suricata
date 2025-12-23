@@ -61,7 +61,7 @@ jobs:
                 sudo \
                 which \
                 zlib-devel
-      - run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.91.0 -y
+      - run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.92.0 -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: cargo install bindgen-cli --version 0.66.0
       - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
@@ -94,12 +94,9 @@ jobs:
       # especially without debug feature
       - run: cargo clippy
         working-directory: rust
-      - run: cargo fmt --check
-        working-directory: rust/suricatactl
-      - run: cargo fmt --check
-        working-directory: rust/suricatasc
-      - run: cargo fmt --check
-        working-directory: rust/sys
+      - name: Check Rust formatting
+        run: cargo fmt --check
+        working-directory: rust
       - name: Check if Cargo.lock.in is up to date
         run: |
           cp rust/Cargo.lock rust/Cargo.lock.in
@@ -109,6 +106,3 @@ jobs:
               echo "::error ::Cargo.lock.in needs to be updated"
               exit 1
           fi
-      # does not work in other subdirectories for now
-      - run: cargo fmt --check
-        working-directory: rust/htp

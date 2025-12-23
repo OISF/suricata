@@ -15,27 +15,27 @@
  * 02110-1301, USA.
  */
 
-use nom8::bits::bits;
 use crate::smb::error::SmbError;
+use nom8::bits::bits;
 use nom8::bits::streaming::take as take_bits;
 use nom8::bytes::streaming::take;
 use nom8::combinator::{cond, rest};
 use nom8::multi::count;
+use nom8::number::streaming::{be_u16, le_u16, le_u32, le_u8, u16, u32};
 use nom8::number::Endianness;
-use nom8::number::streaming::{be_u16, le_u8, le_u16, le_u32, u16, u32};
 use nom8::Parser;
 use nom8::{Err, IResult};
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct DceRpcResponseRecord<'a> {
-    pub data: &'a[u8],
+    pub data: &'a [u8],
 }
 
 /// parse a packet type 'response' DCERPC record. Implemented
 /// as function to be able to pass the fraglen in.
-pub fn parse_dcerpc_response_record(i:&[u8], frag_len: u16 )
-    -> IResult<&[u8], DceRpcResponseRecord<'_>, SmbError>
-{
+pub fn parse_dcerpc_response_record(
+    i: &[u8], frag_len: u16,
+) -> IResult<&[u8], DceRpcResponseRecord<'_>, SmbError> {
     if frag_len < 24 {
         return Err(Err::Error(SmbError::RecordTooSmall));
     }
@@ -45,33 +45,41 @@ pub fn parse_dcerpc_response_record(i:&[u8], frag_len: u16 )
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct DceRpcRequestRecord<'a> {
     pub opnum: u16,
     pub context_id: u16,
-    pub data: &'a[u8],
+    pub data: &'a [u8],
 }
 
 /// parse a packet type 'request' DCERPC record. Implemented
 /// as function to be able to pass the fraglen in.
-pub fn parse_dcerpc_request_record(i:&[u8], frag_len: u16, little: bool)
-    -> IResult<&[u8], DceRpcRequestRecord<'_>, SmbError>
-{
+pub fn parse_dcerpc_request_record(
+    i: &[u8], frag_len: u16, little: bool,
+) -> IResult<&[u8], DceRpcRequestRecord<'_>, SmbError> {
     if frag_len < 24 {
         return Err(Err::Error(SmbError::RecordTooSmall));
     }
     let (i, _) = take(4_usize).parse(i)?;
-    let endian = if little { Endianness::Little } else { Endianness::Big };
+    let endian = if little {
+        Endianness::Little
+    } else {
+        Endianness::Big
+    };
     let (i, context_id) = u16(endian).parse(i)?;
     let (i, opnum) = u16(endian).parse(i)?;
     let (i, data) = take(frag_len - 24).parse(i)?;
-    let record = DceRpcRequestRecord { opnum, context_id, data };
+    let record = DceRpcRequestRecord {
+        opnum,
+        context_id,
+        data,
+    };
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct DceRpcBindIface<'a> {
-    pub iface: &'a[u8],
+    pub iface: &'a [u8],
     pub ver: u16,
     pub ver_min: u16,
 }
@@ -85,7 +93,7 @@ pub fn parse_dcerpc_bind_iface(i: &[u8]) -> IResult<&[u8], DceRpcBindIface<'_>> 
     let (i, ver_min) = le_u16.parse(i)?;
     let (i, _) = take(20_usize).parse(i)?;
     let res = DceRpcBindIface {
-        iface:interface,
+        iface: interface,
         ver,
         ver_min,
     };
@@ -101,14 +109,14 @@ pub fn parse_dcerpc_bind_iface_big(i: &[u8]) -> IResult<&[u8], DceRpcBindIface<'
     let (i, ver) = be_u16.parse(i)?;
     let (i, _) = take(20_usize).parse(i)?;
     let res = DceRpcBindIface {
-        iface:interface,
+        iface: interface,
         ver,
         ver_min,
     };
     Ok((i, res))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct DceRpcBindRecord<'a> {
     pub num_ctx_items: u8,
     pub ifaces: Vec<DceRpcBindIface<'a>>,
@@ -142,11 +150,11 @@ pub fn parse_dcerpc_bind_record_big(i: &[u8]) -> IResult<&[u8], DceRpcBindRecord
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct DceRpcBindAckResult<'a> {
     pub ack_result: u16,
     pub ack_reason: u16,
-    pub transfer_syntax: &'a[u8],
+    pub transfer_syntax: &'a [u8],
     pub syntax_version: u32,
 }
 
@@ -164,7 +172,7 @@ pub fn parse_dcerpc_bindack_result(i: &[u8]) -> IResult<&[u8], DceRpcBindAckResu
     Ok((i, res))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct DceRpcBindAckRecord<'a> {
     pub num_results: u8,
     pub results: Vec<DceRpcBindAckResult<'a>>,
@@ -188,7 +196,7 @@ pub fn parse_dcerpc_bindack_record(i: &[u8]) -> IResult<&[u8], DceRpcBindAckReco
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct DceRpcRecord<'a> {
     pub version_major: u8,
     pub version_minor: u8,
@@ -203,25 +211,27 @@ pub struct DceRpcRecord<'a> {
     pub packet_type: u8,
 
     pub call_id: u32,
-    pub data: &'a[u8],
+    pub data: &'a [u8],
 }
 
-fn parse_dcerpc_flags1(i:&[u8]) -> IResult<&[u8],(u8,u8,u8)> {
+fn parse_dcerpc_flags1(i: &[u8]) -> IResult<&[u8], (u8, u8, u8)> {
     use nom8::error::Error;
     bits::<_, _, Error<_>, _, _>((
         take_bits(6u8),
-        take_bits(1u8),   // last (1)
+        take_bits(1u8), // last (1)
         take_bits(1u8),
-    )).parse(i)
+    ))
+    .parse(i)
 }
 
-fn parse_dcerpc_flags2(i:&[u8]) -> IResult<&[u8],(u32,u32,u32)> {
+fn parse_dcerpc_flags2(i: &[u8]) -> IResult<&[u8], (u32, u32, u32)> {
     use nom8::error::Error;
     bits::<_, _, Error<_>, _, _>((
-       take_bits(3u32),
-       take_bits(1u32),     // endianness
-       take_bits(28u32),
-    )).parse(i)
+        take_bits(3u32),
+        take_bits(1u32), // endianness
+        take_bits(28u32),
+    ))
+    .parse(i)
 }
 
 pub fn parse_dcerpc_record(i: &[u8]) -> IResult<&[u8], DceRpcRecord<'_>> {
@@ -230,7 +240,11 @@ pub fn parse_dcerpc_record(i: &[u8]) -> IResult<&[u8], DceRpcRecord<'_>> {
     let (i, packet_type) = le_u8.parse(i)?;
     let (i, packet_flags) = parse_dcerpc_flags1(i)?;
     let (i, data_rep) = parse_dcerpc_flags2(i)?;
-    let endian = if data_rep.1 == 0 { Endianness::Big } else { Endianness::Little };
+    let endian = if data_rep.1 == 0 {
+        Endianness::Big
+    } else {
+        Endianness::Little
+    };
     let (i, frag_len) = u16(endian).parse(i)?;
     let (i, _auth) = u16(endian).parse(i)?;
     let (i, call_id) = u32(endian).parse(i)?;

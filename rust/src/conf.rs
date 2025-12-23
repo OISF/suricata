@@ -32,12 +32,12 @@ use std::str;
 use suricata_sys::sys::SCConfGet;
 use suricata_sys::sys::SCConfGetChildValue;
 use suricata_sys::sys::SCConfGetChildValueBool;
-use suricata_sys::sys::SCConfGetNode;
-use suricata_sys::sys::SCConfNode;
-use suricata_sys::sys::SCConfNodeLookupChild;
 use suricata_sys::sys::SCConfGetFirstNode;
 use suricata_sys::sys::SCConfGetNextNode;
+use suricata_sys::sys::SCConfGetNode;
 use suricata_sys::sys::SCConfGetValueNode;
+use suricata_sys::sys::SCConfNode;
+use suricata_sys::sys::SCConfNodeLookupChild;
 
 pub fn conf_get_node(key: &str) -> Option<ConfNode> {
     let key = if let Ok(key) = CString::new(key) {
@@ -212,7 +212,8 @@ pub fn get_memval(arg: &str) -> Result<u64, &'static str> {
     let r: IResult<&str, (f64, &str)> = (
         preceded(multispace0, double),
         preceded(multispace0, verify(not_line_ending, |c: &str| c.len() < 4)),
-    ).parse(arg);
+    )
+        .parse(arg);
     if let Ok(r) = r {
         val = (r.1).0;
         unit = (r.1).1;
