@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -106,13 +106,12 @@ static int DetectTlsVersionMatch (DetectEngineThreadCtx *det_ctx,
     SCEnter();
 
     const DetectTlsVersionData *tls_data = (const DetectTlsVersionData *)m;
-    SSLState *ssl_state = (SSLState *)state;
+    const SSLState *ssl_state = (SSLState *)state;
     if (ssl_state == NULL) {
         SCLogDebug("no tls state, no match");
         SCReturnInt(0);
     }
 
-    int ret = 0;
     uint16_t version = 0;
     SCLogDebug("looking for tls_data->ver 0x%02X (flags 0x%02X)", tls_data->ver, flags);
 
@@ -131,11 +130,7 @@ static int DetectTlsVersionMatch (DetectEngineThreadCtx *det_ctx,
         }
     }
 
-    if (tls_data->ver == version) {
-        ret = 1;
-    }
-
-    SCReturnInt(ret);
+    SCReturnInt((tls_data->ver == version));
 }
 
 /**
@@ -232,14 +227,12 @@ error:
  */
 static int DetectTlsVersionSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    DetectTlsVersionData *tls = NULL;
-
     if (SCDetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
         return -1;
 
-    tls = DetectTlsVersionParse(de_ctx, str);
+    DetectTlsVersionData *tls = DetectTlsVersionParse(de_ctx, str);
     if (tls == NULL)
-        goto error;
+        return -1;
 
     /* keyword supports multiple hooks, so attach to the hook specified in the rule. */
     int list = g_tls_generic_list_id;
@@ -250,16 +243,11 @@ static int DetectTlsVersionSetup (DetectEngineCtx *de_ctx, Signature *s, const c
     }
 
     if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_TLS_VERSION, (SigMatchCtx *)tls, list) == NULL) {
-        goto error;
+        DetectTlsVersionFree(de_ctx, tls);
+        return -1;
     }
 
     return 0;
-
-error:
-    if (tls != NULL)
-        DetectTlsVersionFree(de_ctx, tls);
-    return -1;
-
 }
 
 /**
