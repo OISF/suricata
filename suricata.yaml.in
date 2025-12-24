@@ -1264,6 +1264,17 @@ app-layer:
     mdns:
       enabled: yes
 
+# Indicate subslice transform behavior if the buffer is smaller
+# than offset + nbytes.
+# The subslice transform accepts 2 parameters -- offset and nbytes.
+# When nbytes + offset exceeds the buffer, the transform can
+# - Do nothing
+# - Truncate the subslice by adjusting nbytes so nbytes + offset = input buffer len
+# The default is to truncate (on). Set to off to not truncate and produce an
+# empty buffer (bsize:0 will match).
+subslice:
+  truncate: on
+
 # Limit for the maximum number of asn1 frames to decode (default 256)
 asn1-max-frames: 256
 
