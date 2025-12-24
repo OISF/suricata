@@ -47,6 +47,7 @@
 
 #include "tree.h"
 
+#include "util-enum.h"
 #include "util-var-name.h"
 #include "util-unittest.h"
 #include "util-debug.h"
@@ -89,6 +90,124 @@ void DetectFlowbitsRegister (void)
             DETECT_TABLE_PACKET_PRE_STREAM_FLAG | DETECT_TABLE_PACKET_FILTER_FLAG |
             DETECT_TABLE_PACKET_TD_FLAG | DETECT_TABLE_APP_FILTER_FLAG | DETECT_TABLE_APP_TD_FLAG;
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
+}
+
+static bool DetectFlowbitIsPostmatch(uint8_t cmd)
+{
+    DEBUG_VALIDATE_BUG_ON(cmd >= DETECT_FLOWBITS_CMD_MAX);
+
+    switch (cmd) {
+        case DETECT_FLOWBITS_CMD_TOGGLE:
+        case DETECT_FLOWBITS_CMD_SET:
+        case DETECT_FLOWBITS_CMD_UNSET:
+            return true;
+    }
+    return false;
+}
+
+static inline int DetectFlowbitValidateDo(Signature *s, uint8_t cmd, uint32_t idx)
+{
+    bool postmatch = DetectFlowbitIsPostmatch(cmd);
+    SigMatch *list = postmatch ? s->init_data->smlists[DETECT_SM_LIST_POSTMATCH]
+                               : s->init_data->smlists[DETECT_SM_LIST_MATCH];
+
+    for (SigMatch *sm = list; sm != NULL; sm = sm->next) {
+        if (sm->type != DETECT_FLOWBITS)
+            continue;
+
+        DetectFlowbitsData *fd = (DetectFlowbitsData *)sm->ctx;
+        if ((fd->idx == idx) && (fd->cmd == cmd))
+            return -1;
+    }
+    return 0;
+}
+
+static int DetectFlowbitValidate(Signature *s, DetectFlowbitsData *fd)
+{
+    switch (fd->cmd) {
+        case DETECT_FLOWBITS_CMD_UNSET: {
+            if (DetectFlowbitValidateDo(s, DETECT_FLOWBITS_CMD_TOGGLE, fd->idx) == -1) {
+                SCLogWarning("invalid flowbit command combination in the same signature: unset and "
+                             "toggle");
+                return -1;
+            }
+
+            if (DetectFlowbitValidateDo(s, DETECT_FLOWBITS_CMD_SET, fd->idx) == -1) {
+                SCLogWarning(
+                        "invalid flowbit command combination in the same signature: unset and set");
+                return -1;
+            }
+            if (DetectFlowbitValidateDo(s, DETECT_FLOWBITS_CMD_ISNOTSET, fd->idx) == -1) {
+                SCLogWarning("invalid flowbit command combination in the same signature: unset and "
+                             "isnotset");
+                return -1;
+            }
+            break;
+        }
+        case DETECT_FLOWBITS_CMD_TOGGLE: {
+            if (DetectFlowbitValidateDo(s, DETECT_FLOWBITS_CMD_UNSET, fd->idx) == -1) {
+                SCLogWarning("invalid flowbit command combination in the same signature: toggle "
+                             "and unset");
+                return -1;
+            }
+
+            if (DetectFlowbitValidateDo(s, DETECT_FLOWBITS_CMD_SET, fd->idx) == -1) {
+                SCLogWarning("invalid flowbit command combination in the same signature: toggle "
+                             "and set");
+                return -1;
+            }
+            break;
+        }
+        case DETECT_FLOWBITS_CMD_SET: {
+            if (DetectFlowbitValidateDo(s, DETECT_FLOWBITS_CMD_ISSET, fd->idx) == -1) {
+                SCLogWarning(
+                        "invalid flowbit command combination in the same signature: set and isset");
+                return -1;
+            }
+            if (DetectFlowbitValidateDo(s, DETECT_FLOWBITS_CMD_UNSET, fd->idx) == -1) {
+                SCLogWarning(
+                        "invalid flowbit command combination in the same signature: set and unset");
+                return -1;
+            }
+
+            if (DetectFlowbitValidateDo(s, DETECT_FLOWBITS_CMD_TOGGLE, fd->idx) == -1) {
+                SCLogWarning("invalid flowbit command combination in the same signature: set and "
+                             "toggle");
+                return -1;
+            }
+            break;
+        }
+        case DETECT_FLOWBITS_CMD_ISSET: {
+            if (DetectFlowbitValidateDo(s, DETECT_FLOWBITS_CMD_SET, fd->idx) == -1) {
+                SCLogWarning(
+                        "invalid flowbit command combination in the same signature: isset and set");
+                return -1;
+            }
+            if (DetectFlowbitValidateDo(s, DETECT_FLOWBITS_CMD_ISNOTSET, fd->idx) == -1) {
+                SCLogWarning("invalid flowbit command combination in the same signature: isset and "
+                             "isnotset");
+                return -1;
+            }
+            break;
+        }
+        case DETECT_FLOWBITS_CMD_ISNOTSET: {
+            if (DetectFlowbitValidateDo(s, DETECT_FLOWBITS_CMD_UNSET, fd->idx) == -1) {
+                SCLogWarning("invalid flowbit command combination in the same signature: isnotset "
+                             "and unset");
+                return -1;
+            }
+            if (DetectFlowbitValidateDo(s, DETECT_FLOWBITS_CMD_ISSET, fd->idx) == -1) {
+                SCLogWarning("invalid flowbit command combination in the same signature: isnotset "
+                             "and isset");
+                return -1;
+            }
+            break;
+        }
+        default:
+            break;
+    }
+
+    return 0;
 }
 
 static int FlowbitOrAddData(DetectEngineCtx *de_ctx, DetectFlowbitsData *cd, char *arrptr)
@@ -363,6 +482,11 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
         SCLogDebug("idx %" PRIu32 ", cmd %s, name %s",
             cd->idx, fb_cmd_str, strlen(fb_name) ? fb_name : "(none)");
     }
+
+    if (DetectFlowbitValidate(s, cd) != 0) {
+        goto error;
+    }
+
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
 
