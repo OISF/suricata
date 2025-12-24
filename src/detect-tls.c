@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2011-2012 ANSSI
- * Copyright (C) 2022 Open Information Security Foundation
+ * Copyright (C) 2022-2025 Open Information Security Foundation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -187,7 +187,9 @@ static int DetectTlsSubjectMatch (DetectEngineThreadCtx *det_ctx,
         SCLogDebug("TLS: Subject is [%s], looking for [%s]\n",
                    connp->cert0_subject, tls_data->subject);
 
-        if (strstr(connp->cert0_subject, tls_data->subject) != NULL) {
+        if (SpmSearch(connp->cert0_subject, connp->cert0_subject_len,
+                    (const uint8_t *)tls_data->subject,
+                    (uint16_t)strlen(tls_data->subject)) != NULL) {
             if (tls_data->flags & DETECT_CONTENT_NEGATED) {
                 ret = 0;
             } else {
@@ -376,7 +378,9 @@ static int DetectTlsIssuerDNMatch (DetectEngineThreadCtx *det_ctx,
         SCLogDebug("TLS: IssuerDN is [%s], looking for [%s]\n",
                    connp->cert0_issuerdn, tls_data->issuerdn);
 
-        if (strstr(connp->cert0_issuerdn, tls_data->issuerdn) != NULL) {
+        if (SpmSearch(connp->cert0_issuerdn, connp->cert0_issuerdn_len,
+                    (const uint8_t *)tls_data->issuerdn,
+                    (uint16_t)strlen(tls_data->issuerdn)) != NULL) {
             if (tls_data->flags & DETECT_CONTENT_NEGATED) {
                 ret = 0;
             } else {

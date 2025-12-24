@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -138,8 +138,8 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
             return NULL;
         }
 
-        const uint32_t data_len = (uint32_t)strlen(connp->cert0_issuerdn);
-        const uint8_t *data = (uint8_t *)connp->cert0_issuerdn;
+        const uint32_t data_len = connp->cert0_issuerdn_len;
+        const uint8_t *data = connp->cert0_issuerdn;
 
         InspectionBufferSetupAndApplyTransforms(
                 det_ctx, list_id, buffer, data, data_len, transforms);

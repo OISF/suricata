@@ -1,4 +1,4 @@
-/* Copyright (C) 2019-2020 Open Information Security Foundation
+/* Copyright (C) 2019-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,10 +19,8 @@
 
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
-use crate::common::rust_string_to_c;
 use nom7::Err;
 use std;
-use std::os::raw::c_char;
 use std::fmt;
 use x509_parser::prelude::*;
 use crate::x509::GeneralName;
@@ -85,13 +83,17 @@ pub unsafe extern "C" fn SCX509Decode(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCX509GetSubject(ptr: *const X509) -> *mut c_char {
+pub unsafe extern "C" fn SCX509GetSubject(ptr: *const X509, subject_name: *mut *mut u8, subject_len: *mut u32) {
     if ptr.is_null() {
-        return std::ptr::null_mut();
+        *subject_len = 0;
+        *subject_name = std::ptr::null_mut();
+        return;
     }
     let x509 = cast_pointer! {ptr, X509};
-    let subject = x509.0.tbs_certificate.subject.to_string();
-    rust_string_to_c(subject)
+    let subject = x509.0.tbs_certificate.subject().to_string().into_bytes();
+
+    *subject_len = subject.len() as u32;
+    *subject_name = Box::into_raw(subject.into_boxed_slice()) as *mut u8;
 }
 
 #[no_mangle]
@@ -111,40 +113,50 @@ pub unsafe extern "C" fn SCX509GetSubjectAltNameLen(ptr: *const X509) -> u16 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCX509GetSubjectAltNameAt(ptr: *const X509, idx: u16) -> *mut c_char {
+pub unsafe extern "C" fn SCX509GetSubjectAltNameAt(ptr: *const X509, idx: u16, san: *mut *mut u8, san_len: *mut u32) {
     if ptr.is_null() {
-        return std::ptr::null_mut();
+        *san_len = 0;
+        *san = std::ptr::null_mut();
+        return;
     }
     let x509 = cast_pointer! {ptr, X509};
     let san_list = x509.0.tbs_certificate.subject_alternative_name();
     if let Ok(Some(sans)) = san_list {
         let general_name = &sans.value.general_names[idx as usize];
         let dns_name = SCGeneralName(general_name);
-        return rust_string_to_c(dns_name.to_string());
+        let dn = dns_name.to_string().into_bytes();
+        *san_len = dn.len() as u32;
+        *san = Box::into_raw(dn.into_boxed_slice()) as *mut u8;
     }
-    return std::ptr::null_mut();
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCX509GetIssuer(ptr: *const X509) -> *mut c_char {
+pub unsafe extern "C" fn SCX509GetIssuer(ptr: *const X509, issuer_name: *mut *mut u8, issuer_len: *mut u32) {
     if ptr.is_null() {
-        return std::ptr::null_mut();
+        *issuer_len = 0;
+        *issuer_name = std::ptr::null_mut();
+        return;
     }
     let x509 = cast_pointer! {ptr, X509};
-    let issuer = x509.0.tbs_certificate.issuer.to_string();
-    rust_string_to_c(issuer)
+    let issuer = x509.0.tbs_certificate.issuer.to_string().into_bytes();
+
+    *issuer_len = issuer.len() as u32;
+    *issuer_name = Box::into_raw(issuer.into_boxed_slice()) as *mut u8;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCX509GetSerial(ptr: *const X509) -> *mut c_char {
+pub unsafe extern "C" fn SCX509GetSerial(ptr: *const X509, serial_num: *mut *mut u8, serial_len: *mut u32) {
     if ptr.is_null() {
-        return std::ptr::null_mut();
+        *serial_len = 0;
+        *serial_num = std::ptr::null_mut();
+        return;
     }
     let x509 = cast_pointer! {ptr, X509};
     let raw_serial = x509.0.tbs_certificate.raw_serial();
     let v: Vec<_> = raw_serial.iter().map(|x| format!("{:02X}", x)).collect();
     let serial = v.join(":");
-    rust_string_to_c(serial)
+    *serial_len = serial.len() as u32;
+    *serial_num = Box::into_raw(serial.into_bytes().into_boxed_slice()) as *mut u8;
 }
 
 /// Extract validity from input X.509 object
@@ -180,6 +192,14 @@ pub unsafe extern "C" fn SCX509Free(ptr: *mut X509) {
         return;
     }
     drop(Box::from_raw(ptr));
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCX509ArrayFree(ptr: *mut u8, len: u32) {
+    if ptr.is_null() {
+        return;
+    }
+    drop(Box::from_raw(std::ptr::slice_from_raw_parts_mut(ptr, len as usize)));
 }
 
 fn x509_parse_error_to_errcode(e: &Err<X509Error>) -> X509DecodeError {
