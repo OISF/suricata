@@ -192,7 +192,12 @@ static void JsonTlsLogSerial(SCJsonBuilder *js, SSLState *ssl_state)
 static void JsonTlsLogVersion(SCJsonBuilder *js, SSLState *ssl_state)
 {
     char ssl_version[SSL_VERSION_MAX_STRLEN];
-    SSLVersionToString(ssl_state->server_connp.version, ssl_version);
+    /* log server version, but fall back to client if we don't have it yet */
+    if (ssl_state->server_connp.version != 0) {
+        SSLVersionToString(ssl_state->server_connp.version, ssl_version);
+    } else {
+        SSLVersionToString(ssl_state->client_connp.version, ssl_version);
+    }
     SCJbSetString(js, "version", ssl_version);
 }
 
