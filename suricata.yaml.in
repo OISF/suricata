@@ -1242,6 +1242,8 @@ app-layer:
 
     quic:
       enabled: yes
+      # see tls for the different values
+      #encryption-handling: track-only
 
     dhcp:
       enabled: yes
