@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -114,13 +114,13 @@ static int DetectSslStateMatch(DetectEngineThreadCtx *det_ctx,
         const Signature *s, const SigMatchCtx *m)
 {
     const DetectSslStateData *ssd = (const DetectSslStateData *)m;
-    SSLState *ssl_state = (SSLState *)alstate;
+    const SSLState *ssl_state = (SSLState *)alstate;
     if (ssl_state == NULL) {
         SCLogDebug("no app state, no match");
         return 0;
     }
 
-    uint32_t ssl_flags = ssl_state->current_flags;
+    const uint32_t ssl_flags = ssl_state->current_flags;
 
     if ((ssd->flags & ssl_flags) ^ ssd->mask) {
         return 1;
@@ -145,7 +145,6 @@ static DetectSslStateData *DetectSslStateParse(const char *arg)
     char str2[64];
     int negate = 0;
     uint32_t flags = 0, mask = 0;
-    DetectSslStateData *ssd = NULL;
 
     pcre2_match_data *match = NULL;
     int ret = DetectParsePcreExec(&parse_regex1, &match, arg, 0, 0);
@@ -273,7 +272,8 @@ static DetectSslStateData *DetectSslStateParse(const char *arg)
         pcre2_match_data_free(match2);
     }
 
-    if ( (ssd = SCMalloc(sizeof(DetectSslStateData))) == NULL) {
+    DetectSslStateData *ssd = SCCalloc(1, sizeof(DetectSslStateData));
+    if (ssd == NULL) {
         goto error;
     }
     ssd->flags = flags;
@@ -302,25 +302,19 @@ error:
  */
 static int DetectSslStateSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    DetectSslStateData *ssd = NULL;
-
     if (SCDetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
         return -1;
 
-    ssd = DetectSslStateParse(arg);
+    DetectSslStateData *ssd = DetectSslStateParse(arg);
     if (ssd == NULL)
-        goto error;
+        return -1;
 
     if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_SSL_STATE, (SigMatchCtx *)ssd, g_tls_generic_list_id) == NULL) {
-        goto error;
+        DetectSslStateFree(de_ctx, ssd);
+        return -1;
     }
     return 0;
-
-error:
-    if (ssd != NULL)
-        DetectSslStateFree(de_ctx, ssd);
-    return -1;
 }
 
 /**
