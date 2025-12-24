@@ -980,7 +980,8 @@ void EBPFBuildCPUSet(SCConfNode *node, char *iface)
                         BPF_ANY);
         return;
     }
-    if (BuildCpusetWithCallback("xdp-cpu-redirect", node, EBPFRedirectMapAddCPU, iface) < 0) {
+    if (AffinityBuildCpusetWithCallback("xdp-cpu-redirect", node, EBPFRedirectMapAddCPU, iface) <
+            0) {
         SCLogWarning("Failed to parse XDP CPU redirect configuration");
         return;
     }
