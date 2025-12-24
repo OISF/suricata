@@ -53,6 +53,7 @@
 #include "util-spm-bs2bm.h"
 #include "util-spm-bm.h"
 #include "util-spm-hs.h"
+#include "util-spm-mm.h"
 #include "util-clock.h"
 #ifdef BUILD_HYPERSCAN
 #include "hs.h"
@@ -89,6 +90,12 @@ uint8_t SinglePatternMatchDefaultMatcher(void)
                        "not compiled into Suricata.");
         }
 #endif
+#ifndef HAVE_MEMMEM
+        if ((spm_algo != NULL) && (strcmp(spm_algo, "mm") == 0)) {
+            FatalError("Memmem (mm) support for spm-algo is "
+                       "not compiled into Suricata.");
+        }
+#endif
         SCLogError("Invalid spm algo supplied "
                    "in the yaml conf file: \"%s\"",
                 spm_algo);
@@ -98,8 +105,8 @@ uint8_t SinglePatternMatchDefaultMatcher(void)
 default_matcher:
     /* When Suricata is built with Hyperscan support, default to using it for
      * SPM. */
-#ifdef BUILD_HYPERSCAN
-    #ifdef HAVE_HS_VALID_PLATFORM
+#if defined(BUILD_HYPERSCAN)
+#ifdef HAVE_HS_VALID_PLATFORM
     /* Enable runtime check for SSSE3. Do not use Hyperscan SPM matcher if
      * check is not successful. */
         if (hs_valid_platform() != HS_SUCCESS) {
@@ -110,9 +117,11 @@ default_matcher:
         } else {
             return SPM_HS;
         }
-    #else
-        return SPM_HS;
-    #endif
+#else
+    return SPM_HS;
+#endif
+#elif defined(HAVE_MEMMEM)
+    return SPM_MM;
 #else
     /* Otherwise, default to Boyer-Moore */
     return SPM_BM;
@@ -124,6 +133,7 @@ void SpmTableSetup(void)
     memset(spm_table, 0, sizeof(spm_table));
 
     SpmBMRegister();
+    SpmMMRegister();
 #ifdef BUILD_HYPERSCAN
     #ifdef HAVE_HS_VALID_PLATFORM
         if (hs_valid_platform() == HS_SUCCESS) {

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,23 +18,24 @@
 /**
  * \file
  *
- * \author Pablo Rincon Crespo <pablo.rincon.crespo@gmail.com>
  */
 
-#ifndef SURICATA_UTIL_CPU_H
-#define SURICATA_UTIL_CPU_H
+#ifndef SURICATA_UTIL_SPM_MM
+#define SURICATA_UTIL_SPM_MM
 
-/* Processors configured: */
-uint16_t UtilCpuGetNumProcessorsConfigured(void);
-/* Processors online: */
-uint16_t UtilCpuGetNumProcessorsOnline(void);
+#ifdef HAVE_MEMMEM
 
-void UtilCpuPrintSummary(void);
+typedef struct SpmMmCtx_ {
+    uint32_t needle_len;
+    int nocase;
+    uint8_t needle[];
+} SpmMmCtx;
 
-uint64_t UtilCpuGetTicks(void);
+uint8_t *MMScan(const SpmCtx *ctx, SpmThreadCtx *_thread_ctx, const uint8_t *haystack,
+        uint32_t haystack_len);
 
-#if defined(__ARM_FEATURE_SVE)
-int UtilCpuArmSVEWidth(void);
-#endif
+#endif /* HAVE_MEMMEM */
 
-#endif /* SURICATA_UTIL_CPU_H */
+void SpmMMRegister(void);
+
+#endif /* SURICATA_UTIL_SPM_MM */

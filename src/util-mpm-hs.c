@@ -474,8 +474,8 @@ static char SCHSPatternCompare(const SCHSPattern *p1, const SCHSPattern *p2)
         return 0;
     }
 
-    if (SCMemcmp(p1->sids, p2->sids, p1->sids_size * sizeof(p1->sids[0])) !=
-        0) {
+    if (SCMemcmp((const uint8_t *)p1->sids, (const uint8_t *)p2->sids,
+                p1->sids_size * sizeof(p1->sids[0])) != 0) {
         return 0;
     }
 
