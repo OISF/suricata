@@ -1645,6 +1645,16 @@ int SCAppLayerProtoDetectPMRegisterPatternCSwPP(uint8_t ipproto, AppProto alprot
     SCReturnInt(r);
 }
 
+int SCAppLayerProtoDetectPMRegisterPatternCIwPP(uint8_t ipproto, AppProto alproto,
+        const char *pattern, uint16_t depth, uint16_t offset, uint8_t direction,
+        ProbingParserFPtr PPFunc, uint16_t pp_min_depth, uint16_t pp_max_depth)
+{
+    SCEnter();
+    int r = AppLayerProtoDetectPMRegisterPattern(ipproto, alproto, pattern, depth, offset,
+            direction, 0 /* case-insensitive */, PPFunc, pp_min_depth, pp_max_depth);
+    SCReturnInt(r);
+}
+
 int SCAppLayerProtoDetectPMRegisterPatternCI(uint8_t ipproto, AppProto alproto, const char *pattern,
         uint16_t depth, uint16_t offset, uint8_t direction)
 {
