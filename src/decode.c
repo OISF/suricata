@@ -673,6 +673,8 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
     dtv->counter_ipv6inipv4 = StatsRegisterCounter("decoder.ipv6_in_ipv4", &tv->stats);
     dtv->counter_ipv4inipv6 = StatsRegisterCounter("decoder.ipv4_in_ipv6", &tv->stats);
     dtv->counter_ipv6inipv6 = StatsRegisterCounter("decoder.ipv6_in_ipv6", &tv->stats);
+    dtv->counter_ipv4_unknown_proto =
+            StatsRegisterCounter("decoder.ipv4.unknown_protocol", &tv->stats);
     dtv->counter_mpls = StatsRegisterCounter("decoder.mpls", &tv->stats);
     dtv->counter_avg_pkt_size = StatsRegisterAvgCounter("decoder.avg_pkt_size", &tv->stats);
     dtv->counter_max_pkt_size = StatsRegisterMaxCounter("decoder.max_pkt_size", &tv->stats);

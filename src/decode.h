@@ -1012,6 +1012,7 @@ typedef struct DecodeThreadVars_
     StatsCounterId counter_ipv6inipv4;
     StatsCounterId counter_ipv4inipv6;
     StatsCounterId counter_ipv6inipv6;
+    StatsCounterId counter_ipv4_unknown_proto;
     StatsCounterId counter_erspan;
     StatsCounterId counter_nsh;
 

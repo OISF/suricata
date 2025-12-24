@@ -6705,6 +6705,10 @@
                                             "type": "integer",
                                             "description": "Number of IPv4 packets flagged invalid due to truncated packet"
                                         },
+                                        "unknown_protocol": {
+                                            "type": "integer",
+                                            "description": "Number of IPv4 packets with unknown protocol"
+                                        },
                                         "wrong_ip_version": {
                                             "type": "integer",
                                             "description": "Number of IPv4 packets flagged invalid due to having wrong IP version in IP options"
