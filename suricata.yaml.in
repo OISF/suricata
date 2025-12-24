@@ -1690,6 +1690,7 @@ flow-timeouts:
 #
 #     max-regions: 8            # maximum number of concurrent regions per streaming buffer
 #                               # defaults to 8, if no configuration was provided. 0 means no limit.
+#     max-data-per-pkt: 65535   # maximum data processed per packet
 
 stream:
   memcap: 64 MiB
@@ -1712,6 +1713,7 @@ stream:
     #raw: yes
     #segment-prealloc: 2048
     #check-overlap-different-data: true
+    #max-data-per-pkt: 0
 
 # Host table:
 #
