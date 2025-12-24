@@ -43,11 +43,17 @@ typedef struct StatsCounterGlobalId {
     uint16_t id;
 } StatsCounterGlobalId;
 
+/* derive counters are counters that are derived from 2 other
+ * counters. */
+typedef struct StatsCounterDeriveId {
+    uint16_t id;
+} StatsCounterDeriveId;
+
 /**
  * \brief Container to hold the counter variable
  */
 typedef struct StatsCounter_ {
-    int type;
+    int type; /**< enum StatsType from counters.c */
 
     /* local id for this counter in this thread */
     uint16_t id;
@@ -55,7 +61,12 @@ typedef struct StatsCounter_ {
     /* global id, used in output */
     uint16_t gid;
 
-    /* when using type STATS_TYPE_Q_FUNC this function is called once
+    /* derive id's: thread specific id's for the 2 counters part
+     * of this derive counter. */
+    uint16_t did1;
+    uint16_t did2;
+
+    /* when using type STATS_TYPE_FUNC this function is called once
      * to get the counter value, regardless of how many threads there are. */
     uint64_t (*Func)(void);
 
@@ -79,14 +90,18 @@ typedef struct StatsLocalCounter_ {
  * \brief Stats Context for a ThreadVars instance
  */
 typedef struct StatsPublicThreadContext_ {
-    /* flag set by the wakeup thread, to inform the client threads to sync */
-    SC_ATOMIC_DECLARE(bool, sync_now);
-
     /* pointer to the head of a list of counters assigned under this context */
     StatsCounter *head;
 
+    /* flag set by the wakeup thread, to inform the client threads to sync */
+    SC_ATOMIC_DECLARE(bool, sync_now);
+
     /* holds the total no of counters already assigned for this perf context */
     uint16_t curr_id;
+
+    /* separate id space for derive counters. These are set up per thread, but should not be part
+     * the StatsLocalCounter array as they are not updated in the thread directly. */
+    uint16_t derive_id;
 
     /* array of pointers to the StatsCounters in `head` above, indexed by the per
      * thread counter id.
@@ -134,6 +149,9 @@ StatsCounterId StatsRegisterCounter(const char *, StatsThreadContext *);
 StatsCounterAvgId StatsRegisterAvgCounter(const char *, StatsThreadContext *);
 StatsCounterMaxId StatsRegisterMaxCounter(const char *, StatsThreadContext *);
 StatsCounterGlobalId StatsRegisterGlobalCounter(const char *cname, uint64_t (*Func)(void));
+
+StatsCounterDeriveId StatsRegisterDeriveDivCounter(
+        const char *cname, const char *dname1, const char *dname2, StatsThreadContext *);
 
 /* functions used to update local counter values */
 void StatsCounterAddI64(StatsThreadContext *, StatsCounterId, int64_t);
