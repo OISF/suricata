@@ -73,7 +73,7 @@ static void *LuaAlloc(void *ud, void *ptr, size_t osize, size_t nsize)
         /* Resizing existing data. */
         ssize_t diff = nsize - osize;
 
-        if (ctx->alloc_bytes + diff > ctx->alloc_limit) {
+        if (ctx->alloc_limit != 0 && ctx->alloc_bytes + diff > ctx->alloc_limit) {
             /* This request will exceed the allocation limit. Act as
              * though allocation failed. */
             ctx->memory_limit_error = true;
@@ -379,6 +379,33 @@ static void HookFunc(lua_State *L, lua_Debug *ar)
     if (sb->instruction_limit > 0 && sb->instruction_count > sb->instruction_limit) {
         sb->instruction_count_error = true;
         luaL_error(L, "instruction limit exceeded");
+    }
+}
+
+uint64_t SCLuaSbResetBytesLimit(lua_State *L)
+{
+    uint64_t cfg_limit = 0;
+    SCLuaSbState *sb = SCLuaSbGetContext(L);
+    if (sb != NULL) {
+        cfg_limit = sb->alloc_limit;
+        sb->alloc_limit = 0;
+    }
+    return cfg_limit;
+}
+
+void SCLuaSbUpdateBytesLimit(lua_State *L)
+{
+    SCLuaSbState *sb = SCLuaSbGetContext(L);
+    if (sb != NULL) {
+        sb->alloc_limit = sb->alloc_bytes + sb->alloc_limit;
+    }
+}
+
+void SCLuaSbRestoreBytesLimit(lua_State *L, const uint64_t cfg_limit)
+{
+    SCLuaSbState *sb = SCLuaSbGetContext(L);
+    if (sb != NULL) {
+        sb->alloc_limit = cfg_limit;
     }
 }
 

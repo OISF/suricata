@@ -255,6 +255,10 @@ int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx, const Signature *s,
     if (tlua == NULL)
         SCReturnInt(0);
 
+    /* disable bytes limit temporarily to allow the setup of buffer and other data the script will
+     * use. */
+    const uint64_t cfg_limit = SCLuaSbResetBytesLimit(tlua->luastate);
+
     LuaExtensionsMatchSetup(tlua->luastate, lua, det_ctx, f, /* no packet in the ctx */ NULL, s, 0);
 
     /* prepare data to pass to script */
@@ -269,7 +273,13 @@ int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx, const Signature *s,
     LuaPushStringBuffer(tlua->luastate, (const uint8_t *)buffer, (size_t)buffer_len);
     lua_settable(tlua->luastate, -3);
 
-    SCReturnInt(DetectLuaRunMatch(det_ctx, lua, tlua));
+    /* restore configured bytes limit and account for the allocations done for the setup above. */
+    SCLuaSbRestoreBytesLimit(tlua->luastate, cfg_limit);
+    SCLuaSbUpdateBytesLimit(tlua->luastate);
+    int r = DetectLuaRunMatch(det_ctx, lua, tlua);
+    /* restore configured limit */
+    SCLuaSbRestoreBytesLimit(tlua->luastate, cfg_limit);
+    SCReturnInt(r);
 }
 
 /**
@@ -303,6 +313,10 @@ static int DetectLuaMatch (DetectEngineThreadCtx *det_ctx,
     else if (p->flowflags & FLOW_PKT_TOCLIENT)
         flags = STREAM_TOCLIENT;
 
+    /* disable bytes limit temporarily to allow the setup of buffer and other data the script will
+     * use. */
+    const uint64_t cfg_limit = SCLuaSbResetBytesLimit(tlua->luastate);
+
     LuaStateSetThreadVars(tlua->luastate, det_ctx->tv);
 
     LuaExtensionsMatchSetup(tlua->luastate, lua, det_ctx, p->flow, p, s, flags);
@@ -315,7 +329,13 @@ static int DetectLuaMatch (DetectEngineThreadCtx *det_ctx,
     lua_getglobal(tlua->luastate, "match");
     lua_newtable(tlua->luastate); /* stack at -1 */
 
-    SCReturnInt(DetectLuaRunMatch(det_ctx, lua, tlua));
+    /* restore configured bytes limit and account for the allocations done for the setup above. */
+    SCLuaSbRestoreBytesLimit(tlua->luastate, cfg_limit);
+    SCLuaSbUpdateBytesLimit(tlua->luastate);
+    int r = DetectLuaRunMatch(det_ctx, lua, tlua);
+    /* restore configured limit */
+    SCLuaSbRestoreBytesLimit(tlua->luastate, cfg_limit);
+    SCReturnInt(r);
 }
 
 static int DetectLuaAppMatchCommon (DetectEngineThreadCtx *det_ctx,
@@ -331,13 +351,23 @@ static int DetectLuaAppMatchCommon (DetectEngineThreadCtx *det_ctx,
     if (tlua == NULL)
         SCReturnInt(0);
 
+    /* disable bytes limit temporarily to allow the setup of buffer and other data the script will
+     * use. */
+    const uint64_t cfg_limit = SCLuaSbResetBytesLimit(tlua->luastate);
+
     /* setup extension data for use in lua c functions */
     LuaExtensionsMatchSetup(tlua->luastate, lua, det_ctx, f, NULL, s, flags);
 
     lua_getglobal(tlua->luastate, "match");
     lua_newtable(tlua->luastate); /* stack at -1 */
 
-    SCReturnInt(DetectLuaRunMatch(det_ctx, lua, tlua));
+    /* restore configured bytes limit and account for the allocations done for the setup above. */
+    SCLuaSbRestoreBytesLimit(tlua->luastate, cfg_limit);
+    SCLuaSbUpdateBytesLimit(tlua->luastate);
+    int r = DetectLuaRunMatch(det_ctx, lua, tlua);
+    /* restore configured limit */
+    SCLuaSbRestoreBytesLimit(tlua->luastate, cfg_limit);
+    SCReturnInt(r);
 }
 
 /**

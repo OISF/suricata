@@ -261,8 +261,7 @@ static int DetectTransformLuaxformSetup(DetectEngineCtx *de_ctx, Signature *s, c
     /* First check if Lua rules are enabled, by default Lua in rules
      * is disabled. */
     int enabled = 0;
-    (void)SCConfGetBool("security.lua.allow-rules", &enabled);
-    if (!enabled) {
+    if (SCConfGetBool("security.lua.allow-rules", &enabled) == 1 && !enabled) {
         SCLogError("Lua rules disabled by security configuration: security.lua.allow-rules");
         SCReturnInt(-1);
     }
@@ -321,8 +320,13 @@ static void TransformLuaxform(
     const uint8_t *input = buffer->inspect;
     const uint32_t input_len = buffer->inspect_len;
 
+    /* disable bytes limit temporarily to allow the setup of buffer and other data the script will
+     * use. */
+    const uint64_t cfg_limit = SCLuaSbResetBytesLimit(tlua->luastate);
+
     /* Lua script args are: buffer, rule args table */
     LuaPushStringBuffer(tlua->luastate, input, (size_t)input_len);
+
     /*
      * Add provided arguments for lua script (these are optionally
      * provided by the rule writer).
@@ -336,6 +340,9 @@ static void TransformLuaxform(
         lua_settable(tlua->luastate, -3);
     }
 
+    /* restore configured bytes limit and account for the allocations done for the setup above. */
+    SCLuaSbRestoreBytesLimit(tlua->luastate, cfg_limit);
+    SCLuaSbUpdateBytesLimit(tlua->luastate);
     SCLuaSbResetInstructionCounter(tlua->luastate);
 
     if (LUA_OK != lua_pcall(tlua->luastate, 2, 2, 0)) {
@@ -363,6 +370,7 @@ error:
     while (lua_gettop(tlua->luastate) > 0) {
         lua_pop(tlua->luastate, 1);
     }
+    SCLuaSbRestoreBytesLimit(tlua->luastate, cfg_limit);
 }
 
 void DetectTransformLuaxformRegister(void)
