@@ -22,6 +22,7 @@
 #ifndef UTIL_EXCEPTION_POLICY_TYPES_H
 #define UTIL_EXCEPTION_POLICY_TYPES_H
 
+// exception policy docs tag start: exception policy types
 enum ExceptionPolicy {
     EXCEPTION_POLICY_NOT_SET = 0,
     EXCEPTION_POLICY_AUTO,
@@ -33,6 +34,7 @@ enum ExceptionPolicy {
     EXCEPTION_POLICY_REJECT,     /**< reject src */
     EXCEPTION_POLICY_REJECT_BOTH /**< reject both src and dest */
 };
+// exception policy docs tag end: exception policy types
 
 #define EXCEPTION_POLICY_MAX (EXCEPTION_POLICY_REJECT_BOTH + 1)
 
