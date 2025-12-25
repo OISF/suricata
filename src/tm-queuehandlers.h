@@ -40,7 +40,9 @@ typedef struct Tmqh_ {
     void (*OutHandler)(ThreadVars *, Packet *);
     void *(*OutHandlerCtxSetup)(const char *);
     void (*OutHandlerCtxFree)(void *);
+#ifdef UNITTESTS
     void (*RegisterTests)(void);
+#endif
 } Tmqh;
 
 extern Tmqh tmqh_table[TMQH_SIZE];

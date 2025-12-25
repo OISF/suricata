@@ -46,7 +46,9 @@ void TmqhOutputFlowIPPair(ThreadVars *t, Packet *p);
 static void TmqhOutputFlowFTPHash(ThreadVars *t, Packet *p);
 void *TmqhOutputFlowSetupCtx(const char *queue_str);
 void TmqhOutputFlowFreeCtx(void *ctx);
+#ifdef UNITTESTS
 void TmqhFlowRegisterTests(void);
+#endif
 
 void TmqhFlowRegister(void)
 {
@@ -54,8 +56,9 @@ void TmqhFlowRegister(void)
     tmqh_table[TMQH_FLOW].InHandler = TmqhInputFlow;
     tmqh_table[TMQH_FLOW].OutHandlerCtxSetup = TmqhOutputFlowSetupCtx;
     tmqh_table[TMQH_FLOW].OutHandlerCtxFree = TmqhOutputFlowFreeCtx;
+#ifdef UNITTESTS
     tmqh_table[TMQH_FLOW].RegisterTests = TmqhFlowRegisterTests;
-
+#endif
     const char *scheduler = NULL;
     if (SCConfGet("autofp-scheduler", &scheduler) == 1) {
         if (strcasecmp(scheduler, "round-robin") == 0) {
@@ -391,16 +394,12 @@ static int TmqhOutputFlowSetupCtxTest03(void)
     PASS;
 }
 
-#endif /* UNITTESTS */
-
 void TmqhFlowRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("TmqhOutputFlowSetupCtxTest01",
                    TmqhOutputFlowSetupCtxTest01);
     UtRegisterTest("TmqhOutputFlowSetupCtxTest02",
                    TmqhOutputFlowSetupCtxTest02);
-    UtRegisterTest("TmqhOutputFlowSetupCtxTest03",
-                   TmqhOutputFlowSetupCtxTest03);
-#endif
+    UtRegisterTest("TmqhOutputFlowSetupCtxTest03", TmqhOutputFlowSetupCtxTest03);
 }
+#endif /* UNITTESTS */
