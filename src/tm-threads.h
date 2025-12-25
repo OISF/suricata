@@ -27,6 +27,7 @@
 
 #include "tmqh-packetpool.h"
 #include "tm-threads-common.h"
+#include "tm-queuehandlers.h"
 #include "tm-modules.h"
 #include "flow.h" // for the FlowQueue
 
@@ -275,6 +276,18 @@ static inline void TmThreadsCaptureBreakLoop(ThreadVars *tv)
             tm->PktAcqBreakLoop(tv, SC_ATOMIC_GET(s->slot_data));
         }
         TmThreadsSetFlag(tv, THV_CAPTURE_INJECT_PKT);
+    }
+}
+
+static inline void TmThreadFlushOutQueue(ThreadVars *tv)
+{
+    if (tv->outctx != NULL && tv->outq_id != TMQH_NOT_SET) {
+        Tmqh *qh = TmqhGetQueueHandlerByID(tv->outq_id);
+        if (qh != NULL) {
+            if (qh->OutFlush != NULL) {
+                qh->OutFlush(tv);
+            }
+        }
     }
 }
 

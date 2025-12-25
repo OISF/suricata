@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -44,11 +44,14 @@ PacketQueueNoLock TmqhInputFlow(ThreadVars *t);
 void TmqhOutputFlowHash(ThreadVars *t, Packet *p);
 void TmqhOutputFlowIPPair(ThreadVars *t, Packet *p);
 static void TmqhOutputFlowFTPHash(ThreadVars *t, Packet *p);
+static void TmqhOutputFlush(ThreadVars *tv);
 void *TmqhOutputFlowSetupCtx(const char *queue_str);
 void TmqhOutputFlowFreeCtx(void *ctx);
 #ifdef UNITTESTS
 void TmqhFlowRegisterTests(void);
 #endif
+
+static uint16_t g_sync_pkts = 8;
 
 void TmqhFlowRegister(void)
 {
@@ -82,13 +85,19 @@ void TmqhFlowRegister(void)
     } else {
         tmqh_table[TMQH_FLOW].OutHandler = TmqhOutputFlowHash;
     }
+    intmax_t sync_pkts;
+    if (SCConfGetInt("autofp-batch-size", &sync_pkts) != 1)
+        sync_pkts = 8;
+    g_sync_pkts = (uint16_t)sync_pkts;
+    SCLogNotice("autofp-block-size: %u", g_sync_pkts);
+    tmqh_table[TMQH_FLOW].OutFlush = TmqhOutputFlush;
 }
 
 void TmqhFlowPrintAutofpHandler(void)
 {
-#define PRINT_IF_FUNC(f, msg)                       \
-    if (tmqh_table[TMQH_FLOW].OutHandler == (f))    \
-        SCLogConfig("AutoFP mode using \"%s\" flow load balancer", (msg))
+#define PRINT_IF_FUNC(f, msg)                                                                      \
+    if (tmqh_table[TMQH_FLOW].OutHandler == (f))                                                   \
+    SCLogConfig("AutoFP mode using \"%s\" flow load balancer", (msg))
 
     PRINT_IF_FUNC(TmqhOutputFlowHash, "Hash");
     PRINT_IF_FUNC(TmqhOutputFlowIPPair, "IPPair");
@@ -145,6 +154,7 @@ static int StoreQueueId(TmqhFlowCtx *ctx, char *name)
         memset(ctx->queues + (ctx->size - 1), 0, sizeof(TmqhFlowMode));
     }
     ctx->queues[ctx->size - 1].q = tmq->pq;
+    SCLogNotice("size %d, mem %u", ctx->size, (uint32_t)(ctx->size * sizeof(TmqhFlowMode)));
 
     return 0;
 }
@@ -169,6 +179,8 @@ void *TmqhOutputFlowSetupCtx(const char *queue_str)
     TmqhFlowCtx *ctx = SCCalloc(1, sizeof(TmqhFlowCtx));
     if (unlikely(ctx == NULL))
         return NULL;
+    SCLogNotice("ctx %p", ctx);
+    ctx->last_flow_qid = 0xffff;
 
     char *str = SCStrdup(queue_str);
     if (unlikely(str == NULL)) {
@@ -178,16 +190,16 @@ void *TmqhOutputFlowSetupCtx(const char *queue_str)
 
     /* parse the comma separated string */
     do {
-        char *comma = strchr(tstr,',');
+        char *comma = strchr(tstr, ',');
         if (comma != NULL) {
             *comma = '\0';
             char *qname = tstr;
-            int r = StoreQueueId(ctx,qname);
+            int r = StoreQueueId(ctx, qname);
             if (r < 0)
                 goto error;
         } else {
             char *qname = tstr;
-            int r = StoreQueueId(ctx,qname);
+            int r = StoreQueueId(ctx, qname);
             if (r < 0)
                 goto error;
         }
@@ -208,10 +220,38 @@ void TmqhOutputFlowFreeCtx(void *ctx)
 {
     TmqhFlowCtx *fctx = (TmqhFlowCtx *)ctx;
 
-    SCLogPerf("AutoFP - Total flow handler queues - %" PRIu16,
-              fctx->size);
+    SCLogPerf("AutoFP - Total flow handler queues - %" PRIu16, fctx->size);
     SCFree(fctx->queues);
     SCFree(fctx);
+}
+
+static void Flush(ThreadVars *tv, TmqhFlowCtx *ctx, const uint32_t new_qid)
+{
+    SCLogDebug("flushing %p with new_qid %x last_flow_hash_cnt %u last_flow_qid %x", ctx, new_qid,
+            ctx->last_flow_hash_cnt, ctx->last_flow_qid);
+    const uint32_t old_qid = ctx->last_flow_qid;
+    ctx->last_flow_qid = new_qid;
+    ctx->last_flow_hash_cnt = 1;
+    const uint32_t qid = old_qid;
+    if (qid < ctx->size) {
+        SCLogDebug("flushing %p qid %x", ctx, qid);
+
+        PacketQueue *q = ctx->queues[qid].q;
+        SCMutexLock(&q->mutex_q);
+        do {
+            Packet *p = PacketDequeueNoLock(&ctx->last_flow_hash_queue);
+            PacketEnqueue(q, p);
+        } while (ctx->last_flow_hash_queue.len > 0);
+        SCCondSignal(&q->cond_q);
+        SCMutexUnlock(&q->mutex_q);
+    }
+}
+
+static void TmqhOutputFlush(ThreadVars *tv)
+{
+    TmqhFlowCtx *ctx = (TmqhFlowCtx *)tv->outctx;
+
+    Flush(tv, ctx, 0xffff);
 }
 
 void TmqhOutputFlowHash(ThreadVars *tv, Packet *p)
@@ -220,8 +260,21 @@ void TmqhOutputFlowHash(ThreadVars *tv, Packet *p)
     TmqhFlowCtx *ctx = (TmqhFlowCtx *)tv->outctx;
 
     if (p->flags & PKT_WANTS_FLOW) {
-        uint32_t hash = p->flow_hash;
+        const uint32_t hash = p->flow_hash;
         qid = hash % ctx->size;
+
+        if (qid != ctx->last_flow_qid || ctx->last_flow_hash_cnt == g_sync_pkts) {
+            Flush(tv, ctx, qid);
+        } else {
+            ctx->last_flow_hash_cnt++;
+            if (ctx->last_flow_hash_cnt_max < ctx->last_flow_hash_cnt) {
+                ctx->last_flow_hash_cnt_max = ctx->last_flow_hash_cnt;
+                SCLogNotice("max same hash cnt %u", ctx->last_flow_hash_cnt_max);
+            }
+            PacketEnqueueNoLock(&ctx->last_flow_hash_queue, p);
+            return;
+        }
+
     } else {
         qid = ctx->last++;
 

@@ -944,6 +944,7 @@ next_frame:
                 break;
         }
     }
+    TmThreadFlushOutQueue(ptv->tv);
     if (emergency_flush) {
         AFPDumpCounters(ptv);
     }
@@ -1084,9 +1085,11 @@ static int AFPReadFromRingV3(AFPThreadVars *ptv)
         ptv->frame_offset = (ptv->frame_offset + 1) % ptv->req.v3.tp_block_nr;
         /* return to maintenance task after one loop on the ring */
         if (ptv->frame_offset == 0) {
+            TmThreadFlushOutQueue(ptv->tv);
             SCReturnInt(AFP_READ_OK);
         }
     }
+    TmThreadFlushOutQueue(ptv->tv);
     SCReturnInt(AFP_READ_OK);
 }
 

@@ -40,6 +40,7 @@ typedef struct Tmqh_ {
     PacketQueueNoLock (*InHandler)(ThreadVars *);
     void (*InShutdownHandler)(ThreadVars *);
     void (*OutHandler)(ThreadVars *, Packet *);
+    void (*OutFlush)(ThreadVars *);
     void *(*OutHandlerCtxSetup)(const char *);
     void (*OutHandlerCtxFree)(void *);
 #ifdef UNITTESTS
