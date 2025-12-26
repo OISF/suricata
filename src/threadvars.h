@@ -103,7 +103,7 @@ typedef struct ThreadVars_ {
     /** outgoing queue and handler */
     Tmq *outq;
     void *outctx;
-    void (*tmqh_out)(struct ThreadVars_ *, struct Packet_ *);
+    void (*TmqhOutFn)(struct ThreadVars_ *, struct Packet_ *);
 
     /** Queue for decoders to temporarily store extra packets they
      *  generate. These packets are generated as part of the tunnel

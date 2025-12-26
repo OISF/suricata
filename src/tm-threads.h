@@ -180,7 +180,7 @@ static inline bool TmThreadsHandleInjectedPackets(ThreadVars *tv)
                 TmThreadsSlotProcessPktFail(tv, extra_p);
                 break;
             }
-            tv->tmqh_out(tv, extra_p);
+            tv->TmqhOutFn(tv, extra_p);
         }
         return true;
     } else {
@@ -194,7 +194,7 @@ static inline bool TmThreadsHandleInjectedPackets(ThreadVars *tv)
 static inline TmEcode TmThreadsSlotProcessPkt(ThreadVars *tv, TmSlot *s, Packet *p)
 {
     if (s == NULL) {
-        tv->tmqh_out(tv, p);
+        tv->TmqhOutFn(tv, p);
         return TM_ECODE_OK;
     }
 
@@ -204,7 +204,7 @@ static inline TmEcode TmThreadsSlotProcessPkt(ThreadVars *tv, TmSlot *s, Packet 
         return TM_ECODE_FAILED;
     }
 
-    tv->tmqh_out(tv, p);
+    tv->TmqhOutFn(tv, p);
 
     TmThreadsHandleInjectedPackets(tv);
 
@@ -257,7 +257,7 @@ static inline void TmThreadsCaptureHandleTimeout(ThreadVars *tv, Packet *p)
     /* packet could have been passed to us that we won't use
      * return it to the pool. */
     if (p != NULL)
-        tv->tmqh_out(tv, p);
+        tv->TmqhOutFn(tv, p);
 }
 
 static inline void TmThreadsCaptureBreakLoop(ThreadVars *tv)

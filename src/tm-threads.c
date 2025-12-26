@@ -316,11 +316,11 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
     TmEcode r = TM_ECODE_OK;
 
     /* check if we are setup properly */
-    if (s == NULL || s->PktAcqLoop == NULL || tv->TmqhInFn == NULL || tv->tmqh_out == NULL) {
+    if (s == NULL || s->PktAcqLoop == NULL || tv->TmqhInFn == NULL || tv->TmqhOutFn == NULL) {
         SCLogError("TmSlot or ThreadVars badly setup: s=%p,"
                    " PktAcqLoop=%p, TmqhInFn=%p,"
-                   " tmqh_out=%p",
-                s, s ? s->PktAcqLoop : NULL, tv->TmqhInFn, tv->tmqh_out);
+                   " TmqhOutFn=%p",
+                s, s ? s->PktAcqLoop : NULL, tv->TmqhInFn, tv->TmqhOutFn);
         TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
         pthread_exit(NULL);
         return NULL;
@@ -386,10 +386,10 @@ static void *TmThreadsLib(void *td)
     TmSlot *s = tv->tm_slots;
 
     /* check if we are setup properly */
-    if (s == NULL || tv->TmqhInFn == NULL || tv->tmqh_out == NULL) {
+    if (s == NULL || tv->TmqhInFn == NULL || tv->TmqhOutFn == NULL) {
         SCLogError("TmSlot or ThreadVars badly setup: s=%p, TmqhInFn=%p,"
-                   " tmqh_out=%p",
-                s, tv->TmqhInFn, tv->tmqh_out);
+                   " TmqhOutFn=%p",
+                s, tv->TmqhInFn, tv->TmqhOutFn);
         TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
         return NULL;
     }
@@ -428,7 +428,7 @@ static void *TmThreadsSlotVar(void *td)
     SCDropCaps(tv);
 
     /* check if we are setup properly */
-    if (s == NULL || tv->TmqhInFn == NULL || tv->tmqh_out == NULL) {
+    if (s == NULL || tv->TmqhInFn == NULL || tv->TmqhOutFn == NULL) {
         TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
         pthread_exit(NULL);
         return NULL;
@@ -513,7 +513,7 @@ static void *TmThreadsSlotVar(void *td)
             }
 
             /* output the packet */
-            tv->tmqh_out(tv, p);
+            tv->TmqhOutFn(tv, p);
 
             /* now handle the stream pq packets */
             TmThreadsHandleInjectedPackets(tv);
@@ -1005,7 +1005,7 @@ ThreadVars *TmThreadCreate(const char *name, const char *inq_name, const char *i
         if (tmqh == NULL)
             goto error;
 
-        tv->tmqh_out = tmqh->OutHandler;
+        tv->TmqhOutFn = tmqh->OutHandler;
         tv->outq_id = (uint8_t)id;
 
         if (outq_name != NULL && strcmp(outq_name, "packetpool") != 0) {
