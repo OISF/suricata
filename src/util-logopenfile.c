@@ -53,6 +53,10 @@ static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, 
 // Threaded eve.json identifier
 static SC_ATOMIC_DECL_AND_INIT_WITH_VAL(uint16_t, eve_file_id, 1);
 
+// Log rotation globals
+static SCMutex log_rotation_mutex = SCMUTEX_INITIALIZER;
+static LogFileCtx *log_rotation_list = NULL;
+
 #ifdef BUILD_WITH_UNIXSOCKET
 /** \brief connect to the indicated local stream socket, logging any errors
  *  \param path filesystem path to connect to
@@ -206,6 +210,35 @@ static void SCLogFileFlush(LogFileCtx *log_ctx)
 }
 
 /**
+ * \brief Handle log file rotation checks and updates
+ * \param log_ctx Log file context
+ * \retval true if rotation occurred
+ */
+static bool HandleLogRotation(LogFileCtx *log_ctx)
+{
+    bool need_rotation = false;
+    time_t now = time(NULL);
+
+    if (log_ctx->rotation_flag) {
+        log_ctx->rotation_flag = 0;
+        need_rotation = true;
+    }
+
+    if ((log_ctx->flags & LOGFILE_ROTATE_INTERVAL) && now >= log_ctx->rotate_time) {
+        need_rotation = true;
+    }
+
+    if (need_rotation) {
+        SCConfLogReopen(log_ctx);
+        if (log_ctx->flags & LOGFILE_ROTATE_INTERVAL) {
+            log_ctx->rotate_time = now + log_ctx->rotate_interval;
+        }
+    }
+
+    return need_rotation;
+}
+
+/**
  * \brief Write buffer to log file.
  * \retval 0 on failure; otherwise, the return value of fwrite_unlocked (number of
  * characters successfully written).
@@ -216,21 +249,9 @@ static int SCLogFileWriteNoLock(const char *buffer, int buffer_len, LogFileCtx *
 
     DEBUG_VALIDATE_BUG_ON(log_ctx->is_sock);
 
-    /* Check for rotation. */
-    if (log_ctx->rotation_flag) {
-        log_ctx->rotation_flag = 0;
-        SCConfLogReopen(log_ctx);
-    }
+    HandleLogRotation(log_ctx);
 
-    if (log_ctx->flags & LOGFILE_ROTATE_INTERVAL) {
-        time_t now = time(NULL);
-        if (now >= log_ctx->rotate_time) {
-            SCConfLogReopen(log_ctx);
-            log_ctx->rotate_time = now + log_ctx->rotate_interval;
-        }
-    }
-
-    if (log_ctx->fp) {
+    if (buffer_len > 0 && log_ctx->fp) {
         SCClearErrUnlocked(log_ctx->fp);
         if (1 != SCFwriteUnlocked(buffer, buffer_len, 1, log_ctx->fp)) {
             /* Only the first error is logged */
@@ -392,6 +413,62 @@ error_exit:
         SCFree(parent_ctx->threads);
         parent_ctx->threads = NULL;
         return false;
+}
+
+/** \brief Check rotation for all registered log files
+ *
+ * This function is called periodically by the housekeeping thread to trigger
+ * rotation checks on all registered log contexts during zero-traffic periods.
+ */
+void LogFileCheckRotations(void)
+{
+    SCMutexLock(&log_rotation_mutex);
+    LogFileCtx *ctx = log_rotation_list;
+
+    while (ctx != NULL) {
+        ctx->Write("", 0, ctx);
+        ctx = ctx->log_rotation_next;
+    }
+
+    SCMutexUnlock(&log_rotation_mutex);
+}
+
+static void RegisterContextForLogRotation(LogFileCtx *log_ctx)
+{
+    if (!log_ctx->is_regular) {
+        return;
+    }
+
+    SCMutexLock(&log_rotation_mutex);
+
+    log_ctx->log_rotation_next = log_rotation_list;
+    log_rotation_list = log_ctx;
+
+    SCMutexUnlock(&log_rotation_mutex);
+}
+
+static void UnregisterContextForLogRotation(LogFileCtx *log_ctx)
+{
+    if (!log_ctx->is_regular) {
+        return;
+    }
+
+    SCMutexLock(&log_rotation_mutex);
+
+    // Remove from linked list
+    if (log_rotation_list == log_ctx) {
+        log_rotation_list = log_ctx->log_rotation_next;
+    } else {
+        LogFileCtx *prev = log_rotation_list;
+        while (prev && prev->log_rotation_next != log_ctx) {
+            prev = prev->log_rotation_next;
+        }
+        if (prev) {
+            prev->log_rotation_next = log_ctx->log_rotation_next;
+        }
+    }
+
+    SCMutexUnlock(&log_rotation_mutex);
 }
 
 /** \brief open the indicated file, logging any errors
@@ -637,6 +714,7 @@ int SCConfLogOpenGeneric(
         SCLogError("Failed to allocate memory for filename");
         return -1;
     }
+    RegisterContextForLogRotation(log_ctx);
 
 #ifdef BUILD_WITH_UNIXSOCKET
     /* If a socket and running live, do non-blocking writes. */
@@ -871,6 +949,7 @@ static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, 
         thread->Write = SCLogFileWriteNoLock;
         thread->Close = SCLogFileCloseNoLock;
         OutputRegisterFileRotationFlag(&thread->rotation_flag);
+        RegisterContextForLogRotation(thread);
     } else if (parent_ctx->type == LOGFILE_TYPE_FILETYPE) {
         entry->slot_number = SC_ATOMIC_ADD(eve_file_id, 1);
         SCLogDebug("%s - thread %d [slot %d]", log_path, entry->internal_thread_id,
@@ -908,6 +987,8 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
     if (lf_ctx == NULL) {
         SCReturnInt(0);
     }
+
+    UnregisterContextForLogRotation(lf_ctx);
 
     if (lf_ctx->type == LOGFILE_TYPE_FILETYPE && lf_ctx->filetype.filetype->ThreadDeinit) {
         lf_ctx->filetype.filetype->ThreadDeinit(
