@@ -88,7 +88,7 @@ typedef struct ThreadVars_ {
 
     /** incoming queue and handler */
     Tmq *inq;
-    struct Packet_ * (*tmqh_in)(struct ThreadVars_ *);
+    struct Packet_ *(*TmqhInFn)(struct ThreadVars_ *);
 
     SC_ATOMIC_DECLARE(uint32_t, flags);
 

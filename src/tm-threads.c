@@ -316,11 +316,11 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
     TmEcode r = TM_ECODE_OK;
 
     /* check if we are setup properly */
-    if (s == NULL || s->PktAcqLoop == NULL || tv->tmqh_in == NULL || tv->tmqh_out == NULL) {
+    if (s == NULL || s->PktAcqLoop == NULL || tv->TmqhInFn == NULL || tv->tmqh_out == NULL) {
         SCLogError("TmSlot or ThreadVars badly setup: s=%p,"
-                   " PktAcqLoop=%p, tmqh_in=%p,"
+                   " PktAcqLoop=%p, TmqhInFn=%p,"
                    " tmqh_out=%p",
-                s, s ? s->PktAcqLoop : NULL, tv->tmqh_in, tv->tmqh_out);
+                s, s ? s->PktAcqLoop : NULL, tv->TmqhInFn, tv->tmqh_out);
         TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
         pthread_exit(NULL);
         return NULL;
@@ -386,10 +386,10 @@ static void *TmThreadsLib(void *td)
     TmSlot *s = tv->tm_slots;
 
     /* check if we are setup properly */
-    if (s == NULL || tv->tmqh_in == NULL || tv->tmqh_out == NULL) {
-        SCLogError("TmSlot or ThreadVars badly setup: s=%p, tmqh_in=%p,"
+    if (s == NULL || tv->TmqhInFn == NULL || tv->tmqh_out == NULL) {
+        SCLogError("TmSlot or ThreadVars badly setup: s=%p, TmqhInFn=%p,"
                    " tmqh_out=%p",
-                s, tv->tmqh_in, tv->tmqh_out);
+                s, tv->TmqhInFn, tv->tmqh_out);
         TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
         return NULL;
     }
@@ -428,7 +428,7 @@ static void *TmThreadsSlotVar(void *td)
     SCDropCaps(tv);
 
     /* check if we are setup properly */
-    if (s == NULL || tv->tmqh_in == NULL || tv->tmqh_out == NULL) {
+    if (s == NULL || tv->TmqhInFn == NULL || tv->tmqh_out == NULL) {
         TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
         pthread_exit(NULL);
         return NULL;
@@ -490,7 +490,7 @@ static void *TmThreadsSlotVar(void *td)
 
     while (run) {
         /* input a packet */
-        p = tv->tmqh_in(tv);
+        p = tv->TmqhInFn(tv);
 
         /* if we didn't get a packet see if we need to do some housekeeping */
         if (unlikely(p == NULL)) {
@@ -987,9 +987,9 @@ ThreadVars *TmThreadCreate(const char *name, const char *inq_name, const char *i
         if (tmqh == NULL)
             goto error;
 
-        tv->tmqh_in = tmqh->InHandler;
+        tv->TmqhInFn = tmqh->InHandler;
         tv->inq_id = (uint8_t)id;
-        SCLogDebug("tv->tmqh_in %p", tv->tmqh_in);
+        SCLogDebug("tv->TmqhInFn %p", tv->TmqhInFn);
     }
 
     /* set the outgoing queue */
