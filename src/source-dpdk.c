@@ -460,25 +460,74 @@ static inline Packet *PacketInitFromMbuf(DPDKThreadVars *ptv, struct rte_mbuf *m
     return p;
 }
 
-static inline void DPDKSegmentedMbufWarning(struct rte_mbuf *mbuf)
+static inline void DPDKSegmentedMbufWarning(void)
 {
     static thread_local bool segmented_mbufs_warned = false;
-    if (!segmented_mbufs_warned && !rte_pktmbuf_is_contiguous(mbuf)) {
-        char warn_s[] = "Segmented mbufs detected! Redmine Ticket #6012 "
-                        "Check your configuration or report the issue";
+    if (unlikely(!segmented_mbufs_warned)) {
         enum rte_proc_type_t eal_t = rte_eal_process_type();
         if (eal_t == RTE_PROC_SECONDARY) {
-            SCLogWarning("%s. To avoid segmented mbufs, "
-                         "try to increase mbuf size in your primary application",
-                    warn_s);
-        } else if (eal_t == RTE_PROC_PRIMARY) {
-            SCLogWarning("%s. To avoid segmented mbufs, "
-                         "try to increase MTU in your suricata.yaml",
-                    warn_s);
+            SCLogWarning("Segmented mbufs detected! Suricata handles them but for better "
+                         "performance, try to increase mbuf size in your primary application");
+        } else {
+            SCLogWarning("Segmented mbufs detected! Suricata handles them but for better "
+                         "performance, try to increase MTU in your suricata.yaml");
         }
-
         segmented_mbufs_warned = true;
     }
+}
+
+static inline void DPDKSegmentedMbufTooLargeWarning(uint32_t pkt_len)
+{
+    static thread_local bool size_warned = false;
+    if (unlikely(!size_warned)) {
+        SCLogWarning("Segmented mbuf larger than max payload size (%u > %d), packet will be "
+                     "truncated",
+                pkt_len, MAX_PAYLOAD_SIZE);
+        size_warned = true;
+    }
+}
+
+/**
+ * \brief Handle segmented (chained) mbufs by linearizing them
+ *
+ * For segmented mbufs, attempts to linearize the data into a contiguous buffer.
+ * First tries rte_pktmbuf_linearize() which copies all segment data into the
+ * first segment. If that fails (not enough tailroom), copies data into the
+ * packet's internal buffer.
+ *
+ * \param p Pointer to the Packet structure
+ * \param mbuf Pointer to the DPDK mbuf
+ * \return 0 on success, -1 on failure
+ */
+static inline int DPDKSegmentedMbufHandle(Packet *p, struct rte_mbuf *mbuf)
+{
+    if (rte_pktmbuf_linearize(mbuf) == 0) {
+        PacketSetData(p, rte_pktmbuf_mtod(mbuf, uint8_t *), rte_pktmbuf_pkt_len(mbuf));
+        return 0;
+    }
+
+    /* Linearization failed (not enough tailroom), copy to packet buffer */
+    uint32_t pkt_len = rte_pktmbuf_pkt_len(mbuf);
+    uint32_t copy_len = pkt_len;
+    if (unlikely(pkt_len > MAX_PAYLOAD_SIZE)) {
+        DPDKSegmentedMbufTooLargeWarning(pkt_len);
+        copy_len = MAX_PAYLOAD_SIZE;
+    }
+
+    uint32_t offset = 0;
+    for (struct rte_mbuf *seg = mbuf; seg != NULL && offset < copy_len; seg = seg->next) {
+        uint32_t seg_len = rte_pktmbuf_data_len(seg);
+        uint32_t to_copy = (offset + seg_len > copy_len) ? (copy_len - offset) : seg_len;
+        if (PacketCopyDataOffset(p, offset, rte_pktmbuf_mtod(seg, uint8_t *), to_copy) != 0) {
+            SCLogWarning("Failed to copy segmented mbuf data at offset %u", offset);
+            return -1;
+        }
+        offset += to_copy;
+    }
+
+    SET_PKT_LEN(p, copy_len);
+
+    return 0;
 }
 
 static void HandleShutdown(DPDKThreadVars *ptv)
@@ -546,9 +595,19 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
                 rte_pktmbuf_free(ptv->received_mbufs[i]);
                 continue;
             }
-            DPDKSegmentedMbufWarning(ptv->received_mbufs[i]);
-            PacketSetData(p, rte_pktmbuf_mtod(p->dpdk_v.mbuf, uint8_t *),
-                    rte_pktmbuf_pkt_len(p->dpdk_v.mbuf));
+
+            if (likely(rte_pktmbuf_is_contiguous(p->dpdk_v.mbuf))) {
+                PacketSetData(p, rte_pktmbuf_mtod(p->dpdk_v.mbuf, uint8_t *),
+                        rte_pktmbuf_pkt_len(p->dpdk_v.mbuf));
+            } else {
+                /* Slow path: segmented mbuf, needs linearization or copy */
+                DPDKSegmentedMbufWarning();
+                if (DPDKSegmentedMbufHandle(p, p->dpdk_v.mbuf) != 0) {
+                    TmqhOutputPacketpool(ptv->tv, p);
+                    continue;
+                }
+            }
+
             if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
                 TmqhOutputPacketpool(ptv->tv, p);
                 DPDKFreeMbufArray(ptv->received_mbufs, nb_rx - i - 1, i + 1);
