@@ -277,3 +277,23 @@ bool SCPathContainsTraversal(const char *path)
 #endif
     return strstr(path, pattern) != NULL;
 }
+
+/**
+ * \brief Update access and modification time of an existing file to 'now'.
+ * \param path The file path to touch
+ * \retval 0 on success, -1 on failure
+ */
+int SCTouchFile(const char *path)
+{
+    if (path == NULL || path[0] == '\0') {
+        errno = EINVAL;
+        return -1;
+    }
+#ifndef OS_WIN32
+    struct utimbuf ub;
+    ub.actime = ub.modtime = time(NULL);
+    if (utime(path, &ub) == 0)
+        return 0;
+#endif
+    return -1;
+}

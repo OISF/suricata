@@ -27,6 +27,12 @@
 #include "detect.h"
 #include "suricata.h"
 
+enum DetectEngineMpmCacheOp {
+    DETECT_ENGINE_MPM_CACHE_OP_SAVE = 0,
+    DETECT_ENGINE_MPM_CACHE_OP_PRUNE,
+    DETECT_ENGINE_MPM_CACHE_OP_SAVE_AND_PRUNE,
+};
+
 const char *DetectTableToString(enum DetectTable table);
 
 /* start up registry funcs */
@@ -88,6 +94,7 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *, void *, void **);
 TmEcode DetectEngineThreadCtxDeinit(ThreadVars *, void *);
 bool DetectEngineMpmCachingEnabled(void);
 const char *DetectEngineMpmCachingGetPath(void);
+void DetectEngineMpmCacheService(enum DetectEngineMpmCacheOp op);
 /* faster as a macro than a inline function on my box -- VJ */
 #define DetectEngineGetMaxSigId(de_ctx) ((de_ctx)->signum)
 void DetectEngineResetMaxSigId(DetectEngineCtx *);

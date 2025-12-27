@@ -967,6 +967,8 @@ TmEcode UnixSocketRegisterTenantHandler(json_t *cmd, json_t* answer, void *data)
         return TM_ECODE_FAILED;
     }
 
+    DetectEngineMpmCacheService(DETECT_ENGINE_MPM_CACHE_OP_SAVE);
+
     json_object_set_new(answer, "message", json_string("handler added"));
     return TM_ECODE_OK;
 }
@@ -1054,6 +1056,8 @@ TmEcode UnixSocketUnregisterTenantHandler(json_t *cmd, json_t* answer, void *dat
         return TM_ECODE_FAILED;
     }
 
+    DetectEngineMpmCacheService(DETECT_ENGINE_MPM_CACHE_OP_PRUNE);
+
     json_object_set_new(answer, "message", json_string("handler removed"));
     return TM_ECODE_OK;
 }
@@ -1126,6 +1130,8 @@ TmEcode UnixSocketRegisterTenant(json_t *cmd, json_t* answer, void *data)
         return TM_ECODE_FAILED;
     }
 
+    DetectEngineMpmCacheService(DETECT_ENGINE_MPM_CACHE_OP_SAVE);
+
     json_object_set_new(answer, "message", json_string("adding tenant succeeded"));
     return TM_ECODE_OK;
 }
@@ -1193,6 +1199,8 @@ TmEcode UnixSocketReloadTenant(json_t *cmd, json_t* answer, void *data)
         return TM_ECODE_FAILED;
     }
 
+    DetectEngineMpmCacheService(DETECT_ENGINE_MPM_CACHE_OP_SAVE_AND_PRUNE);
+
     json_object_set_new(answer, "message", json_string("reloading tenant succeeded"));
     return TM_ECODE_OK;
 }
@@ -1226,6 +1234,7 @@ TmEcode UnixSocketReloadTenants(json_t *cmd, json_t *answer, void *data)
         return TM_ECODE_FAILED;
     }
 
+    DetectEngineMpmCacheService(DETECT_ENGINE_MPM_CACHE_OP_SAVE_AND_PRUNE);
     SCLogNotice("reload-tenants complete");
 
     json_object_set_new(answer, "message", json_string("reloading tenants succeeded"));
@@ -1283,6 +1292,8 @@ TmEcode UnixSocketUnregisterTenant(json_t *cmd, json_t* answer, void *data)
         // TODO cleanup
         return TM_ECODE_FAILED;
     }
+
+    DetectEngineMpmCacheService(DETECT_ENGINE_MPM_CACHE_OP_PRUNE);
 
     /* walk free list, freeing the removed de_ctx */
     DetectEnginePruneFreeList();

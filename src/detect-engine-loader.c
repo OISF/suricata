@@ -502,10 +502,6 @@ skip_regular_rules:
 
     ret = 0;
 
-    if (mpm_table[de_ctx->mpm_matcher].CacheRuleset != NULL) {
-        mpm_table[de_ctx->mpm_matcher].CacheRuleset(de_ctx->mpm_cfg);
-    }
-
  end:
     gettimeofday(&de_ctx->last_reload, NULL);
     if (SCRunmodeGet() == RUNMODE_ENGINE_ANALYSIS) {
