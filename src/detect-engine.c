@@ -2495,6 +2495,20 @@ static DetectEngineCtx *DetectEngineCtxInitReal(
     de_ctx->filemagic_thread_ctx_id = -1;
     de_ctx->tenant_id = tenant_id;
 
+    de_ctx->mpm_matcher = PatternMatchDefaultMatcher();
+    de_ctx->spm_matcher = SinglePatternMatchDefaultMatcher();
+
+    if (mpm_table[de_ctx->mpm_matcher].ConfigInit) {
+        de_ctx->mpm_cfg = mpm_table[de_ctx->mpm_matcher].ConfigInit();
+        if (de_ctx->mpm_cfg == NULL) {
+            goto error;
+        }
+    }
+    if (DetectEngineMpmCachingEnabled() && mpm_table[de_ctx->mpm_matcher].ConfigCacheDirSet) {
+        mpm_table[de_ctx->mpm_matcher].ConfigCacheDirSet(
+                de_ctx->mpm_cfg, DetectEngineMpmCachingGetPath());
+    }
+
     if (type == DETECT_ENGINE_TYPE_DD_STUB || type == DETECT_ENGINE_TYPE_MT_STUB) {
         de_ctx->version = DetectEngineGetVersion();
         SCLogDebug("stub %u with version %u", type, de_ctx->version);
@@ -2511,23 +2525,8 @@ static DetectEngineCtx *DetectEngineCtxInitReal(
     }
     de_ctx->failure_fatal = (failure_fatal == 1);
 
-    de_ctx->mpm_matcher = PatternMatchDefaultMatcher();
-    de_ctx->spm_matcher = SinglePatternMatchDefaultMatcher();
-    SCLogConfig("pattern matchers: MPM: %s, SPM: %s",
-        mpm_table[de_ctx->mpm_matcher].name,
-        spm_table[de_ctx->spm_matcher].name);
-
-    if (mpm_table[de_ctx->mpm_matcher].ConfigInit) {
-        de_ctx->mpm_cfg = mpm_table[de_ctx->mpm_matcher].ConfigInit();
-        if (de_ctx->mpm_cfg == NULL) {
-            goto error;
-        }
-    }
-    if (DetectEngineMpmCachingEnabled() && mpm_table[de_ctx->mpm_matcher].ConfigCacheDirSet) {
-        mpm_table[de_ctx->mpm_matcher].ConfigCacheDirSet(
-                de_ctx->mpm_cfg, DetectEngineMpmCachingGetPath());
-    }
-
+    SCLogConfig("pattern matchers: MPM: %s, SPM: %s", mpm_table[de_ctx->mpm_matcher].name,
+            spm_table[de_ctx->spm_matcher].name);
     de_ctx->spm_global_thread_ctx = SpmInitGlobalThreadCtx(de_ctx->spm_matcher);
     if (de_ctx->spm_global_thread_ctx == NULL) {
         SCLogDebug("Unable to alloc SpmGlobalThreadCtx.");
