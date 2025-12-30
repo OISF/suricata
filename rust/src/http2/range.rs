@@ -49,7 +49,7 @@ pub(super) use suricata_sys::sys::SCHTPFileCloseHandleRange;
 #[allow(non_snake_case)]
 pub(super) unsafe fn SCHTPFileCloseHandleRange(
     _sbcfg: &StreamingBufferConfig, _fc: *mut FileContainer, _flags: u16,
-    _c: *mut HttpRangeContainerBlock, _data: *const u8, _data_len: u32,
+    _c: *mut HttpRangeContainerBlock, _data: *mut u8, _data_len: u32,
 ) -> bool {
     true
 }

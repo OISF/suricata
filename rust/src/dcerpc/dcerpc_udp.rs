@@ -239,7 +239,7 @@ impl DCERPCUDPState {
 unsafe extern "C" fn parse(
     _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice,
-    _data: *const std::os::raw::c_void,
+    _data: *mut std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, DCERPCUDPState);
     if !stream_slice.is_gap() {

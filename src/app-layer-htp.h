@@ -35,6 +35,7 @@
 
 #include "rust.h"
 #include "app-layer-frames.h"
+#include "app-layer-parser.h"
 
 #include "htp/htp_rs.h"
 

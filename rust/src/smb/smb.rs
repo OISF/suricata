@@ -2017,7 +2017,7 @@ unsafe extern "C" fn smb_parse_request_tcp(flow: *mut Flow,
                                        state: *mut ffi::c_void,
                                        _pstate: *mut AppLayerParserState,
                                        stream_slice: StreamSlice,
-                                       _data: *const std::os::raw::c_void,
+                                       _data: *mut std::os::raw::c_void,
                                        )
                                        -> AppLayerResult
 {
@@ -2052,7 +2052,7 @@ unsafe extern "C" fn smb_parse_response_tcp(flow: *mut Flow,
                                         state: *mut ffi::c_void,
                                         _pstate: *mut AppLayerParserState,
                                         stream_slice: StreamSlice,
-                                        _data: *const ffi::c_void,
+                                        _data: *mut ffi::c_void,
                                         )
                                         -> AppLayerResult
 {

@@ -123,25 +123,6 @@ impl BitTorrentDHTState {
 
         return status;
     }
-
-    fn tx_iterator(
-        &mut self, min_tx_id: u64, state: &mut u64,
-    ) -> Option<(&BitTorrentDHTTransaction, u64, bool)> {
-        let mut index = *state as usize;
-        let len = self.transactions.len();
-
-        while index < len {
-            let tx = &self.transactions[index];
-            if tx.tx_id < min_tx_id + 1 {
-                index += 1;
-                continue;
-            }
-            *state = index as u64;
-            return Some((tx, tx.tx_id - 1, (len - index) > 1));
-        }
-
-        return None;
-    }
 }
 
 // C exports.
@@ -168,7 +149,7 @@ unsafe extern "C" fn state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64)
 
 unsafe extern "C" fn parse_ts(
     _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
-    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *mut std::os::raw::c_void,
 ) -> AppLayerResult {
     return parse(
         _flow,
@@ -182,7 +163,7 @@ unsafe extern "C" fn parse_ts(
 
 unsafe extern "C" fn parse_tc(
     _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
-    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *mut std::os::raw::c_void,
 ) -> AppLayerResult {
     return parse(
         _flow,
@@ -196,7 +177,7 @@ unsafe extern "C" fn parse_tc(
 
 unsafe extern "C" fn parse(
     _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
-    stream_slice: StreamSlice, _data: *const std::os::raw::c_void, direction: Direction,
+    stream_slice: StreamSlice, _data: *mut std::os::raw::c_void, direction: Direction,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, BitTorrentDHTState);
     let buf = stream_slice.as_slice();
@@ -235,20 +216,19 @@ unsafe extern "C" fn tx_get_alstate_progress(
     return 0;
 }
 
-unsafe extern "C" fn state_get_tx_iterator(
-    _ipproto: u8, _alproto: AppProto, state: *mut std::os::raw::c_void, min_tx_id: u64,
-    _max_tx_id: u64, istate: &mut u64,
-) -> applayer::AppLayerGetTxIterTuple {
-    let state = cast_pointer!(state, BitTorrentDHTState);
-    match state.tx_iterator(min_tx_id, istate) {
-        Some((tx, out_tx_id, has_next)) => {
-            let c_tx = tx as *const _ as *mut _;
-            let ires = applayer::AppLayerGetTxIterTuple::with_values(c_tx, out_tx_id, has_next);
-            return ires;
-        }
-        None => {
-            return applayer::AppLayerGetTxIterTuple::not_found();
-        }
+impl State<BitTorrentDHTTransaction> for BitTorrentDHTState {
+    fn get_transaction_count(&self) -> usize {
+        self.transactions.len()
+    }
+
+    fn get_transaction_by_index(&self, index: usize) -> Option<&BitTorrentDHTTransaction> {
+        self.transactions.get(index)
+    }
+}
+
+impl Transaction for BitTorrentDHTTransaction {
+    fn id(&self) -> u64 {
+        self.tx_id
     }
 }
 
@@ -280,7 +260,9 @@ pub unsafe extern "C" fn SCRegisterBittorrentDhtUdpParser() {
         localstorage_new: None,
         localstorage_free: None,
         get_tx_files: None,
-        get_tx_iterator: Some(state_get_tx_iterator),
+        get_tx_iterator: Some(
+            applayer::state_get_tx_iterator::<BitTorrentDHTState, BitTorrentDHTTransaction>,
+        ),
         get_tx_data,
         get_state_data,
         apply_tx_config: None,

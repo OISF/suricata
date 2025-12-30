@@ -67,7 +67,7 @@ typedef struct AppLayerParser {
 
     AppLayerStateData *(*GetStateData)(void *state);
     AppLayerTxData *(*GetTxData)(void *tx);
-    bool (*ApplyTxConfig)(void *state, void *tx, int mode, AppLayerTxConfig);
+    void (*ApplyTxConfig)(void *state, void *tx, int mode, AppLayerTxConfig);
 
     uint32_t flags;
 
@@ -113,7 +113,7 @@ AppProto SCAppLayerRegisterProtocolDetection(
  *
  * \retval 0 if successful. On error, this function never returns.
  */
-int AppLayerRegisterParser(const struct AppLayerParser *p, AppProto alproto);
+int SCAppLayerRegisterParser(const struct AppLayerParser *p, AppProto alproto);
 
 int SCAppLayerRegisterParserAlias(const char *proto_name, const char *proto_alias);
 

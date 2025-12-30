@@ -183,25 +183,6 @@ impl QuicState {
         self.transactions.push_back(tx);
     }
 
-    fn tx_iterator(
-        &mut self, min_tx_id: u64, state: &mut u64,
-    ) -> Option<(&QuicTransaction, u64, bool)> {
-        let mut index = *state as usize;
-        let len = self.transactions.len();
-
-        while index < len {
-            let tx = &self.transactions[index];
-            if tx.tx_id < min_tx_id + 1 {
-                index += 1;
-                continue;
-            }
-            *state = index as u64;
-            return Some((tx, tx.tx_id - 1, (len - index) > 1));
-        }
-
-        return None;
-    }
-
     fn decrypt<'a>(
         &mut self, to_server: bool, header: &QuicHeader, framebuf: &'a [u8], buf: &'a [u8],
         hlen: usize, output: &'a mut Vec<u8>,
@@ -468,7 +449,7 @@ unsafe extern "C" fn quic_probing_parser(
 
 unsafe extern "C" fn quic_parse_tc(
     _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
-    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *mut std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, QuicState);
     let buf = stream_slice.as_slice();
@@ -482,7 +463,7 @@ unsafe extern "C" fn quic_parse_tc(
 
 unsafe extern "C" fn quic_parse_ts(
     _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
-    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *mut std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, QuicState);
     let buf = stream_slice.as_slice();
@@ -520,28 +501,27 @@ unsafe extern "C" fn quic_tx_get_alstate_progress(
     return 1;
 }
 
-unsafe extern "C" fn quic_state_get_tx_iterator(
-    _ipproto: u8, _alproto: AppProto, state: *mut std::os::raw::c_void, min_tx_id: u64,
-    _max_tx_id: u64, istate: &mut u64,
-) -> applayer::AppLayerGetTxIterTuple {
-    let state = cast_pointer!(state, QuicState);
-    match state.tx_iterator(min_tx_id, istate) {
-        Some((tx, out_tx_id, has_next)) => {
-            let c_tx = tx as *const _ as *mut _;
-            let ires = applayer::AppLayerGetTxIterTuple::with_values(c_tx, out_tx_id, has_next);
-            return ires;
-        }
-        None => {
-            return applayer::AppLayerGetTxIterTuple::not_found();
-        }
-    }
-}
-
 export_tx_data_get!(quic_get_tx_data, QuicTransaction);
 export_state_data_get!(quic_get_state_data, QuicState);
 
 // Parser name as a C style string.
 const PARSER_NAME: &[u8] = b"quic\0";
+
+impl State<QuicTransaction> for QuicState {
+    fn get_transaction_count(&self) -> usize {
+        self.transactions.len()
+    }
+
+    fn get_transaction_by_index(&self, index: usize) -> Option<&QuicTransaction> {
+        self.transactions.get(index)
+    }
+}
+
+impl Transaction for QuicTransaction {
+    fn id(&self) -> u64 {
+        self.tx_id
+    }
+}
 
 #[no_mangle]
 pub unsafe extern "C" fn SCRegisterQuicParser() {
@@ -569,7 +549,9 @@ pub unsafe extern "C" fn SCRegisterQuicParser() {
         localstorage_new: None,
         localstorage_free: None,
         get_tx_files: None,
-        get_tx_iterator: Some(quic_state_get_tx_iterator),
+        get_tx_iterator: Some(
+            applayer::state_get_tx_iterator::<QuicState, QuicTransaction>,
+        ),
         get_tx_data: quic_get_tx_data,
         get_state_data: quic_get_state_data,
         apply_tx_config: None,

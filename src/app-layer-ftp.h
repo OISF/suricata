@@ -26,6 +26,7 @@
 #define SURICATA_APP_LAYER_FTP_H
 
 #include "rust.h"
+#include "app-layer-parser.h"
 
 struct FtpCommand;
 

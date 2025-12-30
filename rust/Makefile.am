@@ -140,12 +140,14 @@ if HAVE_BINDGEN
 		--disable-header-comment \
 		--default-enum-style rust \
 		--with-derive-default \
+		--with-derive-eq \
 		--allowlist-type 'AppProto.*' \
 		--allowlist-function 'AppProto.*' \
 		--allowlist-function 'File.*' \
 		--allowlist-type 'SC.*' \
 		--allowlist-function 'SC.*' \
 		--allowlist-var 'SC.*' \
+		--no-copy 'AppLayerTxData' \
 		--opaque-type 'SCConfNode' \
 		$(abs_top_srcdir)/src/bindgen.h \
 		-- \

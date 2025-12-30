@@ -51,6 +51,11 @@ enum {
     APPLAYER_UNEXPECTED_PROTOCOL,
 };
 
+typedef enum AppLayerEventType {
+    APP_LAYER_EVENT_TYPE_TRANSACTION = 1,
+    APP_LAYER_EVENT_TYPE_PACKET = 2,
+} AppLayerEventType;
+
 int AppLayerGetPktEventInfo(const char *event_name, uint8_t *event_id);
 
 int AppLayerGetEventInfoById(

@@ -35,7 +35,7 @@ pub(super) unsafe fn FileContainerRecycle(_fc: &mut FileContainer, _sbcfg: &Stre
 #[cfg(test)]
 #[allow(non_snake_case)]
 pub(super) unsafe fn FileAppendGAPById(
-    _fc: &mut FileContainer, _sbcfg: &StreamingBufferConfig, _track_id: u32, _data: *const u8,
+    _fc: &mut FileContainer, _sbcfg: &StreamingBufferConfig, _track_id: u32, _data: *mut u8,
     _data_len: u32,
 ) -> i32 {
     0
@@ -43,7 +43,7 @@ pub(super) unsafe fn FileAppendGAPById(
 #[cfg(test)]
 #[allow(non_snake_case)]
 pub(super) unsafe fn FileAppendDataById(
-    _fc: &mut FileContainer, _sbcfg: &StreamingBufferConfig, _track_id: u32, _data: *const u8,
+    _fc: &mut FileContainer, _sbcfg: &StreamingBufferConfig, _track_id: u32, _data: *mut u8,
     _data_len: u32,
 ) -> i32 {
     0
@@ -51,7 +51,7 @@ pub(super) unsafe fn FileAppendDataById(
 #[cfg(test)]
 #[allow(non_snake_case)]
 pub(super) unsafe fn FileCloseFileById(
-    _fc: &mut FileContainer, _sbcfg: &StreamingBufferConfig, _track_id: u32, _data: *const u8,
+    _fc: &mut FileContainer, _sbcfg: &StreamingBufferConfig, _track_id: u32, _data: *mut u8,
     _data_len: u32, _flags: u16,
 ) -> i32 {
     0
@@ -60,7 +60,7 @@ pub(super) unsafe fn FileCloseFileById(
 #[allow(non_snake_case)]
 pub(super) unsafe fn FileOpenFileWithId(
     _fc: &mut FileContainer, _sbcfg: &StreamingBufferConfig, _track_id: u32, _name: *const u8,
-    _name_len: u16, _data: *const u8, _data_len: u32, _flags: u16,
+    _name_len: u16, _data: *mut u8, _data_len: u32, _flags: u16,
 ) -> i32 {
     0
 }
