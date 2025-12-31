@@ -53,7 +53,7 @@
 #include "flow-storage.h"
 #include "util-exception-policy.h"
 
-static SCJsonBuilder *CreateEveHeaderFromFlow(const Flow *f)
+static SCJsonBuilder *CreateEveHeaderFromFlow(const Flow *f, const OutputJsonCommonSettings *cfg)
 {
     char timebuf[64];
     char srcip[46] = {0}, dstip[46] = {0};
@@ -92,6 +92,13 @@ static SCJsonBuilder *CreateEveHeaderFromFlow(const Flow *f)
 
     /* time */
     SCJbSetString(jb, "timestamp", timebuf);
+
+#ifdef HAVE_GEOIP
+    if (cfg != NULL && cfg->geoip_enabled) {
+        SCGeoIPGet(jb, srcip, "geoip_src");
+        SCGeoIPGet(jb, dstip, "geoip_dst");
+    }
+#endif /* HAVE_GEOIP */
 
     CreateEveFlowId(jb, (const Flow *)f);
 
@@ -432,7 +439,7 @@ static int JsonFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
     /* reset */
     MemBufferReset(thread->buffer);
 
-    SCJsonBuilder *jb = CreateEveHeaderFromFlow(f);
+    SCJsonBuilder *jb = CreateEveHeaderFromFlow(f, &thread->ctx->cfg);
     if (unlikely(jb == NULL)) {
         SCReturnInt(TM_ECODE_OK);
     }
