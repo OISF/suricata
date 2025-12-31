@@ -216,8 +216,8 @@ static bool GeoEnrichmentInit(SCConfNode *conf)
             SCLogConfig("Opened GeoLite2 database successfully, path %s", geoip_db_s);
             return true;
         } else {
-            SCLogWarning("Failed to open GeoLite2 database, path %s, error message %s",
-                    geoip_db_s, MMDB_strerror(mmdb_status));
+            SCLogWarning("Failed to open GeoLite2 database, path %s, error message %s", geoip_db_s,
+                    MMDB_strerror(mmdb_status));
             return false;
         }
     }
