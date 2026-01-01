@@ -124,7 +124,7 @@ pub struct AppLayerTxData {
     flags: u8,
 
     /// logger flags for tx logging api
-    logged: LoggerFlags,
+    logged: u32,
 
     /// track file open/logs so we can know how long to keep the tx
     pub files_opened: u32,
@@ -203,7 +203,7 @@ impl AppLayerTxData {
     pub fn new() -> Self {
         Self {
             config: AppLayerTxConfig::new(),
-            logged: LoggerFlags::new(),
+            logged: 0,
             files_opened: 0,
             files_logged: 0,
             files_stored: 0,
@@ -230,7 +230,7 @@ impl AppLayerTxData {
         };
         Self {
             config: AppLayerTxConfig::new(),
-            logged: LoggerFlags::new(),
+            logged: 0,
             files_opened: 0,
             files_logged: 0,
             files_stored: 0,
@@ -587,29 +587,6 @@ impl AppLayerGetTxIterTuple {
             tx_ptr: std::ptr::null_mut(), tx_id: 0, has_next: false,
         }
     }
-}
-
-/// LoggerFlags tracks which loggers have already been executed.
-#[repr(C)]
-#[derive(Default, Debug,PartialEq, Eq)]
-pub struct LoggerFlags {
-    flags: u32,
-}
-
-impl LoggerFlags {
-
-    pub fn new() -> Self {
-        Default::default()
-    }
-
-    pub fn get(&self) -> u32 {
-        self.flags
-    }
-
-    pub fn set(&mut self, bits: u32) {
-        self.flags = bits;
-    }
-
 }
 
 /// AppLayerEvent trait that will be implemented on enums that
