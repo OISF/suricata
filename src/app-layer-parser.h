@@ -215,7 +215,7 @@ void AppLayerParserRegisterGetStateFuncs(uint8_t ipproto, AppProto alproto,
 void AppLayerParserRegisterTxDataFunc(uint8_t ipproto, AppProto alproto,
         AppLayerTxData *(*GetTxData)(void *tx));
 void AppLayerParserRegisterApplyTxConfigFunc(uint8_t ipproto, AppProto alproto,
-        bool (*ApplyTxConfig)(void *state, void *tx, int mode, AppLayerTxConfig));
+        void (*ApplyTxConfig)(void *state, void *tx, int mode, AppLayerTxConfig));
 void AppLayerParserRegisterStateDataFunc(
         uint8_t ipproto, AppProto alproto, AppLayerStateData *(*GetStateData)(void *state));
 
