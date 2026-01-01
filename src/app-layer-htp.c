@@ -787,7 +787,7 @@ error:
  *  \retval On success returns 1 or on failure returns -1.
  */
 static AppLayerResult HTPHandleRequestData(Flow *f, void *htp_state, AppLayerParserState *pstate,
-        StreamSlice stream_slice, void *local_data)
+        StreamSlice stream_slice, const void *local_data)
 {
     SCEnter();
     int ret = 0;
@@ -853,7 +853,7 @@ static AppLayerResult HTPHandleRequestData(Flow *f, void *htp_state, AppLayerPar
  *  \retval On success returns 1 or on failure returns -1
  */
 static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state, AppLayerParserState *pstate,
-        StreamSlice stream_slice, void *local_data)
+        StreamSlice stream_slice, const void *local_data)
 {
     SCEnter();
     int ret = 0;

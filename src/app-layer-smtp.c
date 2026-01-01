@@ -858,7 +858,7 @@ static inline bool IsReplyToCommand(const SMTPState *state, const uint8_t cmd)
 }
 
 static int SMTPProcessReply(
-        SMTPState *state, Flow *f, SMTPThreadCtx *td, SMTPInput *input, const SMTPLine *line)
+        SMTPState *state, Flow *f, const SMTPThreadCtx *td, SMTPInput *input, const SMTPLine *line)
 {
     SCEnter();
 
@@ -1389,7 +1389,7 @@ static int SMTPPreProcessCommands(
 }
 
 static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
-        AppLayerParserState *pstate, StreamSlice stream_slice, SMTPThreadCtx *thread_data)
+        AppLayerParserState *pstate, StreamSlice stream_slice, const SMTPThreadCtx *thread_data)
 {
     SCEnter();
 
@@ -1480,7 +1480,7 @@ static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
 }
 
 static AppLayerResult SMTPParseClientRecord(Flow *f, void *alstate, AppLayerParserState *pstate,
-        StreamSlice stream_slice, void *local_data)
+        StreamSlice stream_slice, const void *local_data)
 {
     SCEnter();
 
@@ -1489,7 +1489,7 @@ static AppLayerResult SMTPParseClientRecord(Flow *f, void *alstate, AppLayerPars
 }
 
 static AppLayerResult SMTPParseServerRecord(Flow *f, void *alstate, AppLayerParserState *pstate,
-        StreamSlice stream_slice, void *local_data)
+        StreamSlice stream_slice, const void *local_data)
 {
     SCEnter();
 

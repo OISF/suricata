@@ -2803,13 +2803,13 @@ static AppLayerResult SSLDecode(Flow *f, uint8_t direction, void *alstate,
 }
 
 static AppLayerResult SSLParseClientRecord(Flow *f, void *alstate, AppLayerParserState *pstate,
-        StreamSlice stream_slice, void *local_data)
+        StreamSlice stream_slice, const void *local_data)
 {
     return SSLDecode(f, 0 /* toserver */, alstate, pstate, stream_slice);
 }
 
 static AppLayerResult SSLParseServerRecord(Flow *f, void *alstate, AppLayerParserState *pstate,
-        StreamSlice stream_slice, void *local_data)
+        StreamSlice stream_slice, const void *local_data)
 {
     return SSLDecode(f, 1 /* toclient */, alstate, pstate, stream_slice);
 }

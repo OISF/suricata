@@ -333,7 +333,7 @@ static AppLayerResult FTPGetLineForDirection(
  * \retval 1 when the command is parsed, 0 otherwise
  */
 static int FTPParseRequestCommand(
-        FTPThreadCtx *td, FtpLineState *line, FtpCommandInfo *cmd_descriptor)
+        const FTPThreadCtx *td, FtpLineState *line, FtpCommandInfo *cmd_descriptor)
 {
     SCEnter();
 
@@ -410,9 +410,9 @@ static uint32_t CopyCommandLine(uint8_t **dest, FtpLineState *line)
  * \retval APP_LAYER_ERROR when a unrecoverable error was encountered
  */
 static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserState *pstate,
-        StreamSlice stream_slice, void *local_data)
+        StreamSlice stream_slice, const void *local_data)
 {
-    FTPThreadCtx *thread_data = local_data;
+    const FTPThreadCtx *thread_data = local_data;
 
     SCEnter();
     /* PrintRawDataFp(stdout, input,input_len); */
@@ -615,7 +615,7 @@ static inline bool FTPIsPPR(const uint8_t *input, uint32_t input_len)
  * \retval 1 when the command is parsed, 0 otherwise
  */
 static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstate,
-        StreamSlice stream_slice, void *local_data)
+        StreamSlice stream_slice, const void *local_data)
 {
     FtpState *state = (FtpState *)ftp_state;
 
@@ -982,7 +982,7 @@ static StreamingBufferConfig sbcfg = STREAMING_BUFFER_CONFIG_INITIALIZER;
  * \retval 1 when the command is parsed, 0 otherwise
  */
 static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
-        AppLayerParserState *pstate, StreamSlice stream_slice, void *local_data, uint8_t direction)
+        AppLayerParserState *pstate, StreamSlice stream_slice, uint8_t direction)
 {
     const uint8_t *input = StreamSliceGetData(&stream_slice);
     uint32_t input_len = StreamSliceGetDataLen(&stream_slice);
@@ -1105,15 +1105,15 @@ out:
 }
 
 static AppLayerResult FTPDataParseRequest(Flow *f, void *ftp_state, AppLayerParserState *pstate,
-        StreamSlice stream_slice, void *local_data)
+        StreamSlice stream_slice, const void *local_data)
 {
-    return FTPDataParse(f, ftp_state, pstate, stream_slice, local_data, STREAM_TOSERVER);
+    return FTPDataParse(f, ftp_state, pstate, stream_slice, STREAM_TOSERVER);
 }
 
 static AppLayerResult FTPDataParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstate,
-        StreamSlice stream_slice, void *local_data)
+        StreamSlice stream_slice, const void *local_data)
 {
-    return FTPDataParse(f, ftp_state, pstate, stream_slice, local_data, STREAM_TOCLIENT);
+    return FTPDataParse(f, ftp_state, pstate, stream_slice, STREAM_TOCLIENT);
 }
 
 #ifdef DEBUG

@@ -129,7 +129,7 @@ enum ExceptionPolicy AppLayerErrorGetExceptionPolicy(void);
 
 /** \brief Prototype for parsing functions */
 typedef AppLayerResult (*AppLayerParserFPtr)(Flow *f, void *protocol_state,
-        AppLayerParserState *pstate, StreamSlice stream_slice, void *local_storage);
+        AppLayerParserState *pstate, StreamSlice stream_slice, const void *local_storage);
 
 typedef struct AppLayerGetTxIterState {
     union {

@@ -89,7 +89,7 @@ static AppProto TFTPProbingParser(
 }
 
 static AppLayerResult TFTPParseRequest(Flow *f, void *state, AppLayerParserState *pstate,
-        StreamSlice stream_slice, void *local_data)
+        StreamSlice stream_slice, const void *local_data)
 {
     const uint8_t *input = StreamSliceGetData(&stream_slice);
     uint32_t input_len = StreamSliceGetDataLen(&stream_slice);
@@ -119,7 +119,7 @@ static AppLayerResult TFTPParseRequest(Flow *f, void *state, AppLayerParserState
  * \brief Response parsing is not implemented
  */
 static AppLayerResult TFTPParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
-        StreamSlice stream_slice, void *local_data)
+        StreamSlice stream_slice, const void *local_data)
 {
     SCReturnStruct(APP_LAYER_OK);
 }
