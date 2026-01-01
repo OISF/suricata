@@ -102,7 +102,7 @@ typedef struct AppLayerParserProtoCtx_
 
     AppLayerStateData *(*GetStateData)(void *state);
     AppLayerTxData *(*GetTxData)(void *tx);
-    bool (*ApplyTxConfig)(void *state, void *tx, int mode, AppLayerTxConfig);
+    void (*ApplyTxConfig)(void *state, void *tx, int mode, AppLayerTxConfig);
 
     void (*SetStreamDepthFlag)(void *tx, uint8_t flags);
 
@@ -610,7 +610,7 @@ void AppLayerParserRegisterStateDataFunc(
 }
 
 void AppLayerParserRegisterApplyTxConfigFunc(uint8_t ipproto, AppProto alproto,
-        bool (*ApplyTxConfig)(void *state, void *tx, int mode, AppLayerTxConfig))
+        void (*ApplyTxConfig)(void *state, void *tx, int mode, AppLayerTxConfig))
 {
     SCEnter();
 
