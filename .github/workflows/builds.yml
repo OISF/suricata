@@ -62,7 +62,7 @@ jobs:
           cargo install --target x86_64-unknown-linux-musl --debug cbindgen
           cp $HOME/.cargo/bin/cbindgen .
       - name: Uploading prep archive
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
           name: cbindgen
           path: .
@@ -562,13 +562,13 @@ jobs:
       # container name directly in an artifact, as artifacts can't
       # have ':' in the name.
       - if: ${{ matrix.container == 'fedora:43' &&  env.skip != 'true' }}
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         name: Uploading RPMs
         with:
           name: rpms-fedora-43
           path: suricata-rpms/devel/rpms
       - if: ${{ matrix.container == 'almalinux:9' && env.skip != 'true' }}
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         name: Uploading RPMs
         with:
           name: rpms-epel-9
@@ -2903,7 +2903,7 @@ jobs:
         run: |
           mkdir dist
           mv suricata-*.tar.gz dist
-      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         name: Uploading distribution
         with:
           name: dist
