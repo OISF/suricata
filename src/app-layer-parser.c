@@ -734,7 +734,7 @@ inline uint8_t AppLayerParserGetTxDetectProgress(AppLayerTxData *txd, const uint
 
 static inline uint32_t GetTxLogged(AppLayerTxData *txd)
 {
-    return txd->logged.flags;
+    return txd->logged;
 }
 
 void AppLayerParserSetTransactionInspectId(const Flow *f, AppLayerParserState *pstate,

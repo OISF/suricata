@@ -224,12 +224,12 @@ static inline void OutputTxLogFiles(ThreadVars *tv, OutputFileLoggerThreadData *
     if (!is_file_tx || tx_done) {
         SCLogDebug("is_file_tx %d tx_done %d", is_file_tx, tx_done);
         if (file_td) {
-            txd->logged.flags |= BIT_U32(LOGGER_FILE);
-            SCLogDebug("setting LOGGER_FILE => %08x", txd->logged.flags);
+            txd->logged |= BIT_U32(LOGGER_FILE);
+            SCLogDebug("setting LOGGER_FILE => %08x", txd->logged);
         }
         if (filedata_td) {
-            txd->logged.flags |= BIT_U32(LOGGER_FILEDATA);
-            SCLogDebug("setting LOGGER_FILEDATA => %08x", txd->logged.flags);
+            txd->logged |= BIT_U32(LOGGER_FILEDATA);
+            SCLogDebug("setting LOGGER_FILEDATA => %08x", txd->logged);
         }
     } else {
         SCLogDebug("pcap_cnt %" PRIu64 " flow %p tx %p tx_id %" PRIu64
@@ -452,16 +452,16 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
                 }
             } else if (support_files) {
                 if (op_thread_data->file) {
-                    txd->logged.flags |= BIT_U32(LOGGER_FILE);
-                    SCLogDebug("not a file_tx: setting LOGGER_FILE => %08x", txd->logged.flags);
+                    txd->logged |= BIT_U32(LOGGER_FILE);
+                    SCLogDebug("not a file_tx: setting LOGGER_FILE => %08x", txd->logged);
                 }
                 if (op_thread_data->filedata) {
-                    txd->logged.flags |= BIT_U32(LOGGER_FILEDATA);
-                    SCLogDebug("not a file_tx: setting LOGGER_FILEDATA => %08x", txd->logged.flags);
+                    txd->logged |= BIT_U32(LOGGER_FILEDATA);
+                    SCLogDebug("not a file_tx: setting LOGGER_FILEDATA => %08x", txd->logged);
                 }
             }
         }
-        SCLogDebug("logger: expect %08x, have %08x", logger_expectation, txd->logged.flags);
+        SCLogDebug("logger: expect %08x, have %08x", logger_expectation, txd->logged);
         if (!txd->updated_tc && !txd->updated_ts && !(tx_progress_ts == complete_ts) &&
                 !(tx_progress_tc == complete_tc) && !ts_eof && !tc_eof) {
             gap = true;
@@ -479,20 +479,20 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
         if (txd->config.log_flags & BIT_U8(CONFIG_TYPE_TX)) {
             SCLogDebug("SKIP tx %p/%"PRIu64, tx, tx_id);
             // so that AppLayerParserTransactionsCleanup can clean this tx
-            txd->logged.flags |= logger_expectation;
+            txd->logged |= logger_expectation;
             goto next_tx;
         }
 
-        if (txd->logged.flags == logger_expectation) {
+        if (txd->logged == logger_expectation) {
             SCLogDebug("fully logged");
             /* tx already fully logged */
             goto next_tx;
         }
 
-        SCLogDebug("logger: expect %08x, have %08x", logger_expectation, txd->logged.flags);
+        SCLogDebug("logger: expect %08x, have %08x", logger_expectation, txd->logged);
         const OutputTxLogger *logger = list[alproto];
         const OutputLoggerThreadStore *store = op_thread_data->store[alproto];
-        struct Ctx ctx = { .tx_logged = txd->logged.flags, .tx_logged_old = txd->logged.flags };
+        struct Ctx ctx = { .tx_logged = txd->logged, .tx_logged_old = txd->logged };
         SCLogDebug("logger: expect %08x, have %08x", logger_expectation, ctx.tx_logged);
 
         OutputTxLogCallLoggers(tv, op_thread_data, logger, store, p, f, alstate, tx, tx_id, alproto,
@@ -502,7 +502,7 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
         if (ctx.tx_logged != ctx.tx_logged_old) {
             SCLogDebug("logger: storing %08x (was %08x)", ctx.tx_logged, ctx.tx_logged_old);
             DEBUG_VALIDATE_BUG_ON(txd == NULL);
-            txd->logged.flags |= ctx.tx_logged;
+            txd->logged |= ctx.tx_logged;
         }
 
         /* If all loggers logged set a flag and update the last tx_id
