@@ -505,7 +505,7 @@ pub type ParseFn      = unsafe extern "C" fn (flow: *mut Flow,
                                        stream_slice: StreamSlice,
                                        data: *const c_void) -> AppLayerResult;
 pub type ProbeFn      = unsafe extern "C" fn (flow: *const Flow, flags: u8, input:*const u8, input_len: u32, rdir: *mut u8) -> AppProto;
-pub type StateAllocFn = extern "C" fn (*mut c_void, AppProto) -> *mut c_void;
+pub type StateAllocFn = unsafe extern "C" fn (*mut c_void, AppProto) -> *mut c_void;
 pub type StateFreeFn  = unsafe extern "C" fn (*mut c_void);
 pub type StateTxFreeFn  = unsafe extern "C" fn (*mut c_void, u64);
 pub type StateGetTxFn            = unsafe extern "C" fn (*mut c_void, u64) -> *mut c_void;
@@ -513,8 +513,8 @@ pub type StateGetTxCntFn         = unsafe extern "C" fn (*mut c_void) -> u64;
 pub type StateGetProgressFn = unsafe extern "C" fn (*mut c_void, u8) -> c_int;
 pub type GetEventInfoFn     = unsafe extern "C" fn (*const c_char, event_id: *mut u8, *mut AppLayerEventType) -> c_int;
 pub type GetEventInfoByIdFn = unsafe extern "C" fn (event_id: u8, *mut *const c_char, *mut AppLayerEventType) -> c_int;
-pub type LocalStorageNewFn  = extern "C" fn () -> *mut c_void;
-pub type LocalStorageFreeFn = extern "C" fn (*mut c_void);
+pub type LocalStorageNewFn  = unsafe extern "C" fn () -> *mut c_void;
+pub type LocalStorageFreeFn = unsafe extern "C" fn (*mut c_void);
 pub type GetTxFilesFn       = unsafe extern "C" fn (*mut c_void, u8) -> AppLayerGetFileState;
 pub type GetTxIteratorFn    = unsafe extern "C" fn (ipproto: u8, alproto: AppProto,
                                              state: *mut c_void,
