@@ -101,14 +101,6 @@ pub struct AppLayerTxConfig {
     log_flags: u8,
 }
 
-impl AppLayerTxConfig {
-    pub fn new() -> Self {
-        Self {
-            log_flags: 0,
-        }
-    }
-}
-
 #[repr(C)]
 #[derive(Debug, PartialEq, Eq)]
 pub struct AppLayerTxData {
@@ -202,7 +194,7 @@ impl AppLayerTxData {
     /// directions.
     pub fn new() -> Self {
         Self {
-            config: AppLayerTxConfig::new(),
+            config: AppLayerTxConfig::default(),
             logged: 0,
             files_opened: 0,
             files_logged: 0,
@@ -229,7 +221,7 @@ impl AppLayerTxData {
             Direction::ToClient => (APP_LAYER_TX_SKIP_INSPECT_TS, false, true),
         };
         Self {
-            config: AppLayerTxConfig::new(),
+            config: AppLayerTxConfig::default(),
             logged: 0,
             files_opened: 0,
             files_logged: 0,
