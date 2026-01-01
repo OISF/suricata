@@ -63,7 +63,7 @@ extern "C" {
 pub const SC_API_VERSION: u64 = 2304;
 #[doc = " Structure to define a Suricata plugin."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct SCPlugin_ {
     pub version: u64,
     pub suricata_version: *const ::std::os::raw::c_char,
@@ -86,7 +86,7 @@ impl Default for SCPlugin_ {
 pub type SCPlugin = SCPlugin_;
 pub type SCPluginRegisterFunc = ::std::option::Option<unsafe extern "C" fn() -> *mut SCPlugin>;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct SCCapturePlugin_ {
     pub name: *mut ::std::os::raw::c_char,
     pub Init: ::std::option::Option<
@@ -115,7 +115,7 @@ pub struct SCCapturePlugin_ {
     pub entries: SCCapturePlugin___bindgen_ty_1,
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct SCCapturePlugin___bindgen_ty_1 {
     pub tqe_next: *mut SCCapturePlugin_,
     pub tqe_prev: *mut *mut SCCapturePlugin_,
@@ -143,7 +143,7 @@ extern "C" {
     pub fn SCPluginRegisterCapture(arg1: *mut SCCapturePlugin) -> ::std::os::raw::c_int;
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct SCAppLayerPlugin_ {
     pub name: *const ::std::os::raw::c_char,
     pub Register: ::std::option::Option<unsafe extern "C" fn()>,
@@ -186,7 +186,7 @@ pub type EveJsonSimpleTxLogFunc = ::std::option::Option<
     ) -> bool,
 >;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct EveJsonSimpleAppLayerLogger {
     pub LogTx: EveJsonSimpleTxLogFunc,
     pub name: *const ::std::os::raw::c_char,
@@ -204,7 +204,7 @@ extern "C" {
     pub fn SCEveJsonSimpleGetLogger(alproto: AppProto) -> *mut EveJsonSimpleAppLayerLogger;
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct EveJsonTxLoggerRegistrationData {
     pub confname: *const ::std::os::raw::c_char,
     pub logname: *const ::std::os::raw::c_char,
@@ -266,7 +266,7 @@ extern "C" {
     ) -> ::std::os::raw::c_int;
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct InspectionBuffer {
     #[doc = "< active pointer, points either to ::buf or ::orig"]
     pub inspect: *const u8,
@@ -340,7 +340,7 @@ pub type InspectionSingleBufferGetDataPtr = ::std::option::Option<
 >;
 #[doc = " App-layer light version of SigTableElmt"]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct SCSigTableAppLiteElmt {
     #[doc = " keyword name"]
     pub name: *const ::std::os::raw::c_char,
@@ -385,7 +385,7 @@ impl Default for SCSigTableAppLiteElmt {
     }
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct SCTransformTableElmt {
     pub name: *const ::std::os::raw::c_char,
     pub desc: *const ::std::os::raw::c_char,
@@ -481,14 +481,14 @@ extern "C" {
     pub fn SCDetectRegisterBufferLowerMd5Callbacks(name: *const ::std::os::raw::c_char);
 }
 #[repr(C)]
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct DeStateStoreItem_ {
     pub flags: u32,
     pub sid: u32,
 }
 pub type DeStateStoreItem = DeStateStoreItem_;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct DeStateStore_ {
     pub store: [DeStateStoreItem; 15usize],
     pub next: *mut DeStateStore_,
@@ -504,7 +504,7 @@ impl Default for DeStateStore_ {
 }
 pub type DeStateStore = DeStateStore_;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct DetectEngineStateDirection_ {
     #[doc = "< head of the list"]
     pub head: *mut DeStateStore,
@@ -527,7 +527,7 @@ impl Default for DetectEngineStateDirection_ {
 }
 pub type DetectEngineStateDirection = DetectEngineStateDirection_;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct DetectEngineState_ {
     pub dir_state: [DetectEngineStateDirection; 2usize],
 }
@@ -571,7 +571,7 @@ pub enum SCError {
     SC_ERR_MAX = 6,
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct SCEnumCharMap_ {
     pub enum_name: *const ::std::os::raw::c_char,
     pub enum_value: ::std::os::raw::c_int,
@@ -629,7 +629,7 @@ extern "C" {
 }
 #[doc = " Structure of a configuration parameter."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct SCConfNode_ {
     pub name: *mut ::std::os::raw::c_char,
     pub val: *mut ::std::os::raw::c_char,
@@ -640,7 +640,7 @@ pub struct SCConfNode_ {
     pub next: SCConfNode___bindgen_ty_2,
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct SCConfNode___bindgen_ty_1 {
     pub tqh_first: *mut SCConfNode_,
     pub tqh_last: *mut *mut SCConfNode_,
@@ -655,7 +655,7 @@ impl Default for SCConfNode___bindgen_ty_1 {
     }
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct SCConfNode___bindgen_ty_2 {
     pub tqe_next: *mut SCConfNode_,
     pub tqe_prev: *mut *mut SCConfNode_,
@@ -947,7 +947,7 @@ extern "C" {
 }
 #[doc = " \\brief Data structure to store app layer decoder events."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct AppLayerDecoderEvents_ {
     pub events: *mut u8,
     pub cnt: u8,
@@ -1064,7 +1064,7 @@ extern "C" {
 }
 #[doc = " First part of AppLayerParser, needed only for protocol detection"]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct AppLayerProtocolDetect {
     #[doc = " name of the app-layer"]
     pub name: *const ::std::os::raw::c_char,
@@ -1108,7 +1108,7 @@ extern "C" {
     pub fn SCFileFlowFlagsToFlags(flow_file_flags: u16, direction: u8) -> u16;
 }
 #[repr(C)]
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct StreamingBufferConfig_ {
     pub buf_size: u32,
     #[doc = "< max concurrent memory regions. 0 means no limit."]
@@ -1130,7 +1130,7 @@ pub struct StreamingBufferConfig_ {
 }
 pub type StreamingBufferConfig = StreamingBufferConfig_;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct FileContainer_ {
     pub head: *mut File,
     pub tail: *mut File,
@@ -1197,7 +1197,7 @@ pub struct HTTPContentRange {
 }
 #[doc = " A structure representing a single range request :\n either skipping, buffering, or appending\n As this belongs to a flow, appending data to it is ensured to be thread-safe\n Only one block per file has the pointer to the container"]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct HttpRangeContainerBlock {
     #[doc = " state where we skip content"]
     pub toskip: u64,
@@ -1242,7 +1242,7 @@ extern "C" {
 }
 pub type FrameId = i64;
 #[repr(C)]
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct Frame {
     #[doc = "< protocol specific field type. E.g. NBSS.HDR or SMB.DATA"]
     pub type_: u8,
@@ -1282,7 +1282,7 @@ extern "C" {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct MpmPattern_ {
     pub len: u16,
     pub flags: u8,
@@ -1307,7 +1307,7 @@ impl Default for MpmPattern_ {
 }
 pub type MpmPattern = MpmPattern_;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct MpmCtx_ {
     pub ctx: *mut ::std::os::raw::c_void,
     pub mpm_type: u8,
@@ -1338,7 +1338,7 @@ extern "C" {
     ) -> ::std::os::raw::c_int;
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct GenericVar_ {
     #[doc = "< variable type, uses detection sm_type"]
     pub type_: u16,
