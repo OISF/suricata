@@ -20,7 +20,7 @@ jobs:
     container: ubuntu:20.04
     steps:
       - name: Caching ~/.cargo
-        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb
         with:
           path: ~/.cargo
           key: commit-check-cargo
