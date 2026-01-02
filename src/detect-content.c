@@ -219,7 +219,7 @@ DetectContentData *DetectContentParse(SpmGlobalThreadCtx *spm_global_thread_ctx,
     cd = SCCalloc(1, sizeof(DetectContentData) + len);
     if (unlikely(cd == NULL)) {
         SCFree(content);
-        exit(EXIT_FAILURE);
+        return NULL;
     }
 
     cd->content = (uint8_t *)cd + sizeof(DetectContentData);

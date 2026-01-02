@@ -2289,7 +2289,7 @@ static DetectMatchAddressIPv4 *SigBuildAddressMatchArrayIPv4(
     }
     DetectMatchAddressIPv4 *addr_match4 = SCCalloc(cnt, sizeof(DetectMatchAddressIPv4));
     if (addr_match4 == NULL) {
-        exit(EXIT_FAILURE);
+        return NULL;
     }
 
     uint16_t idx = 0;
@@ -2315,7 +2315,7 @@ static DetectMatchAddressIPv6 *SigBuildAddressMatchArrayIPv6(
 
     DetectMatchAddressIPv6 *addr_match6 = SCCalloc(cnt, sizeof(DetectMatchAddressIPv6));
     if (addr_match6 == NULL) {
-        exit(EXIT_FAILURE);
+        return NULL;
     }
 
     uint16_t idx = 0;
