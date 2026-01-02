@@ -26,6 +26,7 @@
 
 #include "rust.h"
 #include "app-layer-frames.h"
+#include "app-layer-parser.h"
 #include "util-streaming-buffer.h"
 
 /* Limit till the data would be buffered in current line */

@@ -35,6 +35,7 @@
 #include "util-var.h"
 #include "util-debug.h"
 #include "rust.h"
+#include "app-layer-parser.h"
 
 static XBit *TxBitGet(AppLayerTxData *txd, uint32_t idx)
 {

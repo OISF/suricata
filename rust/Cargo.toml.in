@@ -92,3 +92,4 @@ htp = { package = "suricata-htp", path = "./htp", version = "@PACKAGE_VERSION@" 
 
 [dev-dependencies]
 test-case = "~3.3.1"
+suricata-sys = { path = "./sys", version = "@PACKAGE_VERSION@", features = ["suritest"] }

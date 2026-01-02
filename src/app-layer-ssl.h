@@ -28,6 +28,7 @@
 
 #include "util-ja3.h"
 #include "rust.h"
+#include "app-layer-parser.h"
 
 enum TlsFrameTypes {
     TLS_FRAME_PDU = 0, /**< whole PDU, so header + data */

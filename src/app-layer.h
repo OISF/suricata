@@ -34,7 +34,6 @@
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
 
-
 #include "rust.h"
 
 #define APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER \
@@ -144,15 +143,5 @@ void AppLayerIncGapErrorCounter(ThreadVars *tv, Flow *f);
 void AppLayerIncAllocErrorCounter(ThreadVars *tv, Flow *f);
 void AppLayerIncParserErrorCounter(ThreadVars *tv, Flow *f);
 void AppLayerIncInternalErrorCounter(ThreadVars *tv, Flow *f);
-
-static inline const uint8_t *StreamSliceGetData(const StreamSlice *stream_slice)
-{
-    return stream_slice->input;
-}
-
-static inline uint32_t StreamSliceGetDataLen(const StreamSlice *stream_slice)
-{
-    return stream_slice->input_len;
-}
 
 #endif

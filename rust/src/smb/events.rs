@@ -16,6 +16,7 @@
  */
 
 use crate::smb::smb::*;
+use crate::applayer::AppLayerTxDataImpl;
 
 #[derive(AppLayerEvent)]
 pub enum SMBEvent {

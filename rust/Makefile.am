@@ -147,6 +147,7 @@ if HAVE_BINDGEN
 		--allowlist-type 'SC.*' \
 		--allowlist-function 'SC.*' \
 		--allowlist-var 'SC.*' \
+		--no-copy 'AppLayerTxData' \
 		--opaque-type 'SCConfNode' \
 		$(abs_top_srcdir)/src/bindgen.h \
 		-- \
