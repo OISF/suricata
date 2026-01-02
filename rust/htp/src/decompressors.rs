@@ -912,45 +912,45 @@ impl Write for InnerDecompressor {
         // references. Any calls using `self.writer` should be avoided while the
         // writer is in this state.
         } else if let Some(mut writer) = self.writer.take() {
-            match writer.write(data) {
-                Ok(consumed) => {
-                    let result = if consumed == 0 {
-                        // This could indicate that we have reached the end
-                        // of the stream. Any data after the first end of
-                        // stream (such as in multipart gzip) is ignored and
-                        // we pretend to have consumed this data.
-                        Ok(data.len())
-                    } else {
-                        Ok(consumed)
-                    };
-                    self.writer.replace(writer);
-                    result
-                }
-                Err(e) => {
-                    match e.kind() {
-                        std::io::ErrorKind::WriteZero => {
-                            self.flush_writer(&mut writer)?;
-                            // Recursion: the buffer was flushed until `WriteZero`
-                            // stopped occuring.
-                            self.writer.replace(writer);
-                            self.write(data)
-                        }
-                        _ => {
-                            if self.restarts == 0 {
-                                let written = self.try_finish(&mut writer);
-                                if written {
-                                    // error, but some data has been written, stop here
-                                    return Err(e);
-                                }
+            loop {
+                match writer.write(data) {
+                    Ok(consumed) => {
+                        let result = if consumed == 0 {
+                            // This could indicate that we have reached the end
+                            // of the stream. Any data after the first end of
+                            // stream (such as in multipart gzip) is ignored and
+                            // we pretend to have consumed this data.
+                            Ok(data.len())
+                        } else {
+                            Ok(consumed)
+                        };
+                        self.writer.replace(writer);
+                        return result;
+                    }
+                    Err(e) => {
+                        match e.kind() {
+                            std::io::ErrorKind::WriteZero => {
+                                self.flush_writer(&mut writer)?;
+                                // Recursion: the buffer was flushed until `WriteZero`
+                                // stopped occuring.
                             }
-                            // try to restart, any data in the temp buffer will be
-                            // discarded
-                            if self.restart().is_err() {
-                                self.try_passthrough(data)
-                            } else {
-                                // Recursion: restart will fail after a small
-                                // number of attempts
-                                self.write(data)
+                            _ => {
+                                if self.restarts == 0 {
+                                    let written = self.try_finish(&mut writer);
+                                    if written {
+                                        // error, but some data has been written, stop here
+                                        return Err(e);
+                                    }
+                                }
+                                // try to restart, any data in the temp buffer will be
+                                // discarded
+                                if self.restart().is_err() {
+                                    return self.try_passthrough(data);
+                                } else {
+                                    // Recursion: restart will fail after a small
+                                    // number of attempts
+                                    return self.write(data);
+                                }
                             }
                         }
                     }
