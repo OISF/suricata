@@ -180,10 +180,10 @@ void AffinitySetupLoadFromConfig(void)
     }
 
     TAILQ_FOREACH(affinity, &root->head, next) {
-        if (strcmp(affinity->val, "decode-cpu-set") == 0 ||
-            strcmp(affinity->val, "stream-cpu-set") == 0 ||
-            strcmp(affinity->val, "reject-cpu-set") == 0 ||
-            strcmp(affinity->val, "output-cpu-set") == 0) {
+        if (affinity->val == NULL || strcmp(affinity->val, "decode-cpu-set") == 0 ||
+                strcmp(affinity->val, "stream-cpu-set") == 0 ||
+                strcmp(affinity->val, "reject-cpu-set") == 0 ||
+                strcmp(affinity->val, "output-cpu-set") == 0) {
             continue;
         }
 
