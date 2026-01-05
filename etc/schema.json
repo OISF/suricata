@@ -6509,7 +6509,7 @@
                                         },
                                         "version0_malformed_sre_hdr": {
                                             "type": "integer",
-                                            "description": "Number of packets of with version 0 and  malformed SRE header for GRE"
+                                            "description": "Number of packets of with version 0 and malformed SRE header for GRE"
                                         },
                                         "version0_recur": {
                                             "type": "integer",
@@ -6529,7 +6529,7 @@
                                         },
                                         "version1_malformed_sre_hdr": {
                                             "type": "integer",
-                                            "description": "Number of packets with version 1 and  malformed SRE header for GRE"
+                                            "description": "Number of packets with version 1 and malformed SRE header for GRE"
                                         },
                                         "version1_no_key": {
                                             "type": "integer",
@@ -7096,11 +7096,11 @@
                         },
                         "max_mac_addrs_dst": {
                             "type": "integer",
-                            "description": "Maximum  amount of destination MAC addresses seen per flow (only if ethernet header logging enabled)"
+                            "description": "Maximum amount of destination MAC addresses seen per flow (only if ethernet header logging enabled)"
                         },
                         "max_mac_addrs_src": {
                             "type": "integer",
-                            "description": "Maximum  amount of source MAC addresses seen per flow (only if ethernet header logging enabled)"
+                            "description": "Maximum amount of source MAC addresses seen per flow (only if ethernet header logging enabled)"
                         },
                         "max_pkt_size": {
                             "type": "integer",

@@ -2111,7 +2111,7 @@ error:
 TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
 {
     struct bpf_program filter;
-    struct sock_fprog  fcode;
+    struct sock_fprog fcode;
     int rc;
 
 #ifdef HAVE_PACKET_EBPF

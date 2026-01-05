@@ -538,7 +538,7 @@ We use ``/* foobar */`` style and try to avoid ``//`` style.
 File names
 **********
 
-File names are all lowercase and have a .c. .h  or .rs (Rust) extension.
+File names are all lowercase and have a .c .h or .rs (Rust) extension.
 
 Most files have a _subsystem_ prefix, e.g. ``detect-dsize.c, util-ip.c``
 

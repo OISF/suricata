@@ -42,7 +42,7 @@ static int DetectParseTest01 (void)
 }
 
 /**
- * \test DetectParseTestNoOpt  is a regression test to make sure that we reject
+ * \test DetectParseTestNoOpt is a regression test to make sure that we reject
  * any signature where a NOOPT rule option is given a value. This can hide rule
  * errors which make other options disappear, eg: foo: bar: baz; where "foo" is
  * the NOOPT option, we will end up with a signature which is missing "bar".

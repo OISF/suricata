@@ -135,7 +135,7 @@ static TmEcode NapatechStreamDeInit(void)
 }
 
 /**
- * \brief Register the Napatech  receiver (reader) module.
+ * \brief Register the Napatech receiver (reader) module.
  */
 void TmModuleReceiveNapatechRegister(int slot)
 {

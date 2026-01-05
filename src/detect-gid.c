@@ -92,7 +92,7 @@ static int DetectGidSetup (DetectEngineCtx *de_ctx, Signature *s, const char *ra
 
 #ifdef UNITTESTS
 /**
- * \test GidTestParse01 is a test for a  valid gid value
+ * \test GidTestParse01 is a test for a valid gid value
  */
 static int GidTestParse01 (void)
 {
