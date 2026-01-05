@@ -862,7 +862,7 @@ int NapatechGetStreamConfig(NapatechStreamConfig stream_config[])
                 continue;
             }
 
-            /* if we get here it is an active  stream */
+            /* if we get here it is an active stream */
             stream_config[instance_cnt].stream_id = stream_id++;
             stream_config[instance_cnt].is_active = true;
             instance_cnt++;

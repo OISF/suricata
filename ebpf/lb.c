@@ -54,7 +54,7 @@ static __always_inline int ipv4_hash(struct __sk_buff *skb)
     //char fmt2[] = "Got hash %u\n";
     //bpf_trace_printk(fmt2, sizeof(fmt2), src + dst);
 #endif
-    return  src + dst;
+    return src + dst;
 }
 
 static inline __u32 ipv6_addr_hash(struct __sk_buff *ctx, __u64 off)

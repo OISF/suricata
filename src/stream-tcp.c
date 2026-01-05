@@ -2388,7 +2388,7 @@ static int StreamTcpPacketStateSynSent(
             StreamTcp3whsStoreSynApplyToSsn(ssn, &syn_pkt);
         }
     } else if (tcph->th_flags & TH_ACK) {
-        /* Handle the asynchronous stream, when we receive a  SYN packet
+        /* Handle the asynchronous stream, when we receive a SYN packet
            and now instead of receiving a SYN/ACK we receive a ACK from the
            same host, which sent the SYN, this suggests the ASYNC streams.*/
         if (!stream_config.async_oneside)

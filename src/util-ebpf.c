@@ -837,7 +837,7 @@ static int EBPFForEachFlowV6Table(ThreadVars *th_v,
             bytes_cnt += BPF_PERCPU(values_array, i).bytes;
         }
         /* Get the corresponding Flow in the Flow table to compare and update
-         * its counters  and lastseen if needed */
+         * its counters and lastseen if needed */
         FlowKey flow_key;
         if (tcfg->mode == AFP_MODE_XDP_BYPASS) {
             flow_key.sp = ntohs(next_key.port16[0]);
@@ -992,7 +992,7 @@ void EBPFBuildCPUSet(SCConfNode *node, char *iface)
  * Setup peer interface in XDP system
  *
  * Ths function set up the peer interface in the XDP maps used by the
- * bypass filter. The first map tx_peer has  type device map and is
+ * bypass filter. The first map tx_peer has type device map and is
  * used to store the peer. The second map tx_peer_int is used by the
  * code to check if we have a peer defined for this interface.
  *

@@ -335,7 +335,7 @@ static DetectBytetestData *DetectBytetestParse(
         goto error;
     }
 
-    /* Subtract two since two values  are conjoined */
+    /* Subtract two since two values are conjoined */
     for (i = 0; i < (ret - 1); i++) {
         res = pcre2_substring_get_bynumber(match, i + 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         if (res < 0) {

@@ -351,7 +351,7 @@ static int DetectStreamEventSetup (DetectEngineCtx *de_ctx, Signature *s, const 
 #ifdef UNITTESTS
 
 /**
- * \test EngineEventTestParse01 is a test for a  valid decode-event value
+ * \test EngineEventTestParse01 is a test for a valid decode-event value
  */
 static int EngineEventTestParse01 (void)
 {
@@ -364,9 +364,8 @@ static int EngineEventTestParse01 (void)
     PASS;
 }
 
-
 /**
- * \test EngineEventTestParse02 is a test for a  valid upper + lower case decode-event value
+ * \test EngineEventTestParse02 is a test for a valid upper + lower case decode-event value
  */
 static int EngineEventTestParse02 (void)
 {
@@ -380,7 +379,7 @@ static int EngineEventTestParse02 (void)
 }
 
 /**
- * \test EngineEventTestParse03 is a test for a  valid upper case decode-event value
+ * \test EngineEventTestParse03 is a test for a valid upper case decode-event value
  */
 static int EngineEventTestParse03 (void)
 {

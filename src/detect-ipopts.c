@@ -255,7 +255,7 @@ void DetectIpOptsFree(DetectEngineCtx *de_ctx, void *de_ptr)
 
 #ifdef UNITTESTS
 /**
- * \test IpOptsTestParse01 is a test for a  valid ipopts value
+ * \test IpOptsTestParse01 is a test for a valid ipopts value
  */
 static int IpOptsTestParse01 (void)
 {
