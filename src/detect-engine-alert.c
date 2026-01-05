@@ -261,6 +261,22 @@ void AlertQueueFree(DetectEngineThreadCtx *det_ctx)
     det_ctx->alert_queue_capacity = 0;
 }
 
+static inline uint16_t AlertQueueExpandDo(DetectEngineThreadCtx *det_ctx, uint16_t new_cap)
+{
+    DEBUG_VALIDATE_BUG_ON(det_ctx->alert_queue_capacity >= new_cap);
+
+    void *tmp_queue = SCRealloc(det_ctx->alert_queue, new_cap * sizeof(PacketAlert));
+    if (unlikely(tmp_queue == NULL)) {
+        /* queue capacity didn't change */
+        return det_ctx->alert_queue_capacity;
+    }
+    det_ctx->alert_queue = tmp_queue;
+    det_ctx->alert_queue_capacity = new_cap;
+    SCLogDebug("Alert queue size expanded: %u elements, bytes: %" PRIuMAX "",
+            det_ctx->alert_queue_capacity, (uintmax_t)(new_cap * sizeof(PacketAlert)));
+    return new_cap;
+}
+
 /** \internal
  * \retval the new capacity
  */
@@ -270,18 +286,17 @@ static uint16_t AlertQueueExpand(DetectEngineThreadCtx *det_ctx)
     if (unlikely(g_eps_is_alert_queue_fail_mode))
         return det_ctx->alert_queue_capacity;
 #endif
-    uint16_t new_cap = det_ctx->alert_queue_capacity * 2;
-    void *tmp_queue = SCRealloc(det_ctx->alert_queue, (size_t)(sizeof(PacketAlert) * new_cap));
-    if (unlikely(tmp_queue == NULL)) {
-        /* queue capacity didn't change */
+    if (det_ctx->alert_queue_capacity == UINT16_MAX) {
         return det_ctx->alert_queue_capacity;
     }
-    det_ctx->alert_queue = tmp_queue;
-    det_ctx->alert_queue_capacity = new_cap;
-    SCLogDebug("Alert queue size doubled: %u elements, bytes: %" PRIuMAX "",
-            det_ctx->alert_queue_capacity,
-            (uintmax_t)(sizeof(PacketAlert) * det_ctx->alert_queue_capacity));
-    return new_cap;
+
+    uint16_t new_cap;
+    if (det_ctx->alert_queue_capacity > (UINT16_MAX / 2)) {
+        new_cap = UINT16_MAX;
+    } else {
+        new_cap = det_ctx->alert_queue_capacity * 2;
+    }
+    return AlertQueueExpandDo(det_ctx, new_cap);
 }
 
 static inline int PacketAlertSetContext(
