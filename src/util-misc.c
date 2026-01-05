@@ -28,7 +28,7 @@
 #include "util-unittest.h"
 #include "util-misc.h"
 
-#define PARSE_REGEX "^\\s*(\\d+(?:.\\d+)?)\\s*([a-zA-Z]{2})?\\s*$"
+#define PARSE_REGEX "^\\s*(\\d+(?:.\\d+)?)\\s*([a-zA-Z]{2,3})?\\s*$"
 static pcre2_code *parse_regex = NULL;
 static pcre2_match_data *parse_regex_match = NULL;
 
@@ -126,11 +126,11 @@ static int ParseSizeString(const char *size, double *res)
             goto end;
         }
 
-        if (strcasecmp(str2, "kb") == 0) {
+        if (strcasecmp(str2, "kb") == 0 || strcmp(str2, "KiB") == 0) {
             *res *= 1024;
-        } else if (strcasecmp(str2, "mb") == 0) {
+        } else if (strcasecmp(str2, "mb") == 0 || strcmp(str2, "MiB") == 0) {
             *res *= 1024 * 1024;
-        } else if (strcasecmp(str2, "gb") == 0) {
+        } else if (strcasecmp(str2, "gb") == 0 || strcmp(str2, "GiB") == 0) {
             *res *= 1024 * 1024 * 1024;
         } else {
             /* Bad unit. */
@@ -770,9 +770,54 @@ static int UtilMiscParseSizeStringTest01(void)
     PASS;
 }
 
+static int UtilMiscParseSizeStringTest02(void)
+{
+    const char *str;
+    double result;
+
+    str = "10kib";
+    result = 0;
+    FAIL_IF_NOT(ParseSizeString(str, &result) == -1);
+
+    str = "10Kib";
+    result = 0;
+    FAIL_IF_NOT(ParseSizeString(str, &result) == -1);
+
+    str = "10KiB";
+    result = 0;
+    FAIL_IF_NOT(ParseSizeString(str, &result) == 0);
+    FAIL_IF(result != 10 * 1024);
+
+    str = "10mib";
+    result = 0;
+    FAIL_IF_NOT(ParseSizeString(str, &result) == -1);
+
+    str = "10gib";
+    result = 0;
+    FAIL_IF_NOT(ParseSizeString(str, &result) == -1);
+
+    str = " 10.5 KiB ";
+    result = 0;
+    FAIL_IF_NOT(ParseSizeString(str, &result) == 0);
+    FAIL_IF(result != 10.5 * 1024);
+
+    str = " 10.5 MiB ";
+    result = 0;
+    FAIL_IF_NOT(ParseSizeString(str, &result) == 0);
+    FAIL_IF(result != 10.5 * 1024 * 1024);
+
+    str = " 10.5 GiB ";
+    result = 0;
+    FAIL_IF_NOT(ParseSizeString(str, &result) == 0);
+    FAIL_IF(result != 10.5 * 1024 * 1024 * 1024);
+
+    PASS;
+}
+
 void UtilMiscRegisterTests(void)
 {
     UtRegisterTest("UtilMiscParseSizeStringTest01",
                    UtilMiscParseSizeStringTest01);
+    UtRegisterTest("UtilMiscParseSizeStringTest02", UtilMiscParseSizeStringTest02);
 }
 #endif /* UNITTESTS */
