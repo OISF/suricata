@@ -289,6 +289,9 @@ impl Parser {
         }
     }
 
+    // limits quadratic complexity when each new packet just keeps adding a folded line
+    const MAX_NB_FOLD : u8 = 128;
+
     /// Parse a complete header value, including any folded headers
     fn value(&self) -> impl Fn(&[u8]) -> IResult<&[u8], Value> + '_ {
         move |input| {
@@ -298,6 +301,7 @@ impl Parser {
             if let Some(fold) = fold {
                 let mut i = rest;
                 let mut ofold = fold;
+                let mut nbfold = 0u8;
                 loop {
                     if self.side == Side::Response {
                         // Peek ahead for ambiguous name with lws vs. value with folding
@@ -340,7 +344,10 @@ impl Parser {
                         // eol empty fold double eol is enfo of headers
                         rest = rest2;
                     }
-                    if let Some(fold) = fold {
+                    nbfold += 1;
+                    if nbfold >= Self::MAX_NB_FOLD {
+                        return Ok((rest, Value::new(&value, flags)));
+                    } else if let Some(fold) = fold {
                         ofold = fold;
                     } else {
                         return Ok((rest, Value::new(&value, flags)));
