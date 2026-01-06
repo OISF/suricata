@@ -32,7 +32,9 @@ use std;
 use std::cmp;
 use std::ffi::CString;
 use std::collections::VecDeque;
-use crate::conf::conf_get;
+use crate::conf::{conf_get, get_memval};
+
+pub static mut DCERPC_MAX_STUB_SIZE: u32 = 1048576;
 
 // Constant DCERPC UDP Header length
 pub const DCERPC_HDR_LEN: u16 = 16;
@@ -177,6 +179,11 @@ pub fn get_req_type_for_resp(t: u8) -> u8 {
         _ => DCERPC_TYPE_UNKNOWN,
     }
 }
+#[inline(always)]
+pub fn cfg_max_stub_size() -> u32 {
+    unsafe { DCERPC_MAX_STUB_SIZE }
+}
+
 
 #[derive(Default, Debug)]
 pub struct DCERPCTransaction {
@@ -1018,7 +1025,12 @@ fn evaluate_stub_params(
     }
 
     let input_slice = &input[..stub_len as usize];
-    stub_data_buffer.extend_from_slice(input_slice);
+    let max_size = cfg_max_stub_size() as usize;
+    if (stub_data_buffer.len() + input_slice.len()) < max_size {
+        stub_data_buffer.extend_from_slice(input_slice);
+    } else if stub_data_buffer.len() < max_size {
+        stub_data_buffer.extend_from_slice(&input_slice[..max_size - stub_data_buffer.len()]);
+    }
 
     stub_len
 }
@@ -1267,6 +1279,21 @@ pub unsafe extern "C" fn SCRegisterDcerpcParser() {
             }
         }
         SCLogDebug!("Rust DCERPC parser registered.");
+        let retval = conf_get("app-layer.protocols.dcerpc.max-stub-size");
+        if let Some(val) = retval {
+            match get_memval(val) {
+                Ok(retval) => {
+                    if retval > 0 {
+                        DCERPC_MAX_STUB_SIZE = retval as u32;
+                    } else {
+                        SCLogError!("Invalid max-stub-size value");
+                    }
+                }
+                Err(_) => {
+                    SCLogError!("Invalid max-stub-size value");
+                }
+            }
+        }
     } else {
         SCLogDebug!("Protocol detector and parser disabled for DCERPC.");
     }
