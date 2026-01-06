@@ -29,3 +29,8 @@ alert dnp3 any any -> any any (msg:"SURICATA DNP3 Unknown object"; \
 alert dnp3 any any -> any any (msg:"SURICATA DNP3 Too many points in message"; \
       app-layer-event:dnp3.too_many_points; \
       classtype:protocol-command-decode; sid:2270005; rev:1;)
+
+# Too many objects.
+alert dnp3 any any -> any any (msg:"SURICATA DNP3 Too many objects"; \
+      app-layer-event:dnp3.too_many_objects; \
+      classtype:protocol-command-decode; sid:2270006; rev:1;)

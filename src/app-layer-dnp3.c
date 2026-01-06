@@ -101,6 +101,9 @@ static uint64_t dnp3_max_tx = 32;
 /* The maximum number of points allowed per message (configurable). */
 static uint64_t max_points = 16384;
 
+/* The maximum number of objects allowed per message (configurable). */
+static uint64_t dnp3_max_objects = 2048;
+
 /* Decoder event map. */
 SCEnumCharMap dnp3_decoder_event_table[] = {
     { "FLOODED", DNP3_DECODER_EVENT_FLOODED },
@@ -110,6 +113,7 @@ SCEnumCharMap dnp3_decoder_event_table[] = {
     { "MALFORMED", DNP3_DECODER_EVENT_MALFORMED },
     { "UNKNOWN_OBJECT", DNP3_DECODER_EVENT_UNKNOWN_OBJECT },
     { "TOO_MANY_POINTS", DNP3_DECODER_EVENT_TOO_MANY_POINTS },
+    { "TOO_MANY_OBJECTS", DNP3_DECODER_EVENT_TOO_MANY_OBJECTS },
     { NULL, -1 },
 };
 
@@ -714,6 +718,7 @@ static int DNP3DecodeApplicationObjects(DNP3Transaction *tx, const uint8_t *buf,
 {
     int retval = 0;
     uint64_t point_count = 0;
+    uint64_t object_count = 0;
 
     if (buf == NULL || len == 0) {
         return 1;
@@ -727,6 +732,12 @@ static int DNP3DecodeApplicationObjects(DNP3Transaction *tx, const uint8_t *buf,
         }
         DNP3ObjHeader *header = (DNP3ObjHeader *)buf;
         offset += sizeof(DNP3ObjHeader);
+
+        /* Check if we've exceeded the maximum number of objects. */
+        if (++object_count > dnp3_max_objects) {
+            DNP3SetEventTx(tx, DNP3_DECODER_EVENT_TOO_MANY_OBJECTS);
+            goto done;
+        }
 
         DNP3Object *object = DNP3ObjectAlloc();
         if (unlikely(object == NULL)) {
@@ -1633,6 +1644,13 @@ void RegisterDNP3Parsers(void)
         if (ConfGetInt("app-layer.protocols.dnp3.max-points", &value)) {
             if (value > 0) {
                 max_points = (uint64_t)value;
+            }
+        }
+
+        /* Parse max-objects configuration. */
+        if (ConfGetInt("app-layer.protocols.dnp3.max-objects", &value)) {
+            if (value > 0) {
+                dnp3_max_objects = (uint64_t)value;
             }
         }
     } else {
