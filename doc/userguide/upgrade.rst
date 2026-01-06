@@ -34,6 +34,16 @@ also check all the new features that have been added but are not covered by
 this guide. Those features are either not enabled by default or require
 dedicated new configuration.
 
+Upgrading to 7.0.14
+-------------------
+
+Other Changes
+~~~~~~~~~~~~~
+- ``dnp3`` has reduced the default maximum number of outstanding
+  transactions from 500 down to 32. A ``max-tx`` parameter has been
+  added to the ``dnp3`` parser for users that need a larger number of
+  in-flight transactions.
+
 Upgrading to 7.0.12
 -------------------
 
