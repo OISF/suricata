@@ -1,4 +1,4 @@
-/* Copyright (C) 2020 Open Information Security Foundation
+/* Copyright (C) 2020-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,7 +19,7 @@ use crate::applayer::{self, *};
 use crate::core::{self, Direction, DIR_BOTH};
 use crate::dcerpc::dcerpc::{
     DCERPCTransaction, DCERPC_MAX_TX, DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE, PFCL1_FRAG, PFCL1_LASTFRAG,
-    rs_dcerpc_get_alstate_progress, ALPROTO_DCERPC, PARSER_NAME,
+    rs_dcerpc_get_alstate_progress, ALPROTO_DCERPC, PARSER_NAME, cfg_max_stub_size,
 };
 use nom7::Err;
 use std;
@@ -169,18 +169,27 @@ impl DCERPCUDPState {
             tx.tx_data.updated_ts = true;
             let done = (hdr.flags1 & PFCL1_FRAG) == 0 || (hdr.flags1 & PFCL1_LASTFRAG) != 0;
 
+            let max_size = cfg_max_stub_size() as usize;
             match hdr.pkt_type {
                 DCERPC_TYPE_REQUEST => {
-                    tx.stub_data_buffer_ts.extend_from_slice(input);
                     tx.frag_cnt_ts += 1;
+                    if input.len() + tx.stub_data_buffer_ts.len() < max_size {
+                        tx.stub_data_buffer_ts.extend_from_slice(input);
+                    } else if tx.stub_data_buffer_ts.len() < max_size {
+                        tx.stub_data_buffer_ts.extend_from_slice(&input[..max_size - tx.stub_data_buffer_ts.len()]);
+                    }
                     if done {
                         tx.req_done = true;
                     }
                     return true;
                 }
                 DCERPC_TYPE_RESPONSE => {
-                    tx.stub_data_buffer_tc.extend_from_slice(input);
                     tx.frag_cnt_tc += 1;
+                    if input.len() + tx.stub_data_buffer_tc.len() < max_size {
+                        tx.stub_data_buffer_tc.extend_from_slice(input);
+                    } else if tx.stub_data_buffer_tc.len() < max_size {
+                        tx.stub_data_buffer_tc.extend_from_slice(&input[..max_size - tx.stub_data_buffer_tc.len()]);
+                    }
                     if done {
                         tx.resp_done = true;
                     }
@@ -396,7 +405,6 @@ pub unsafe extern "C" fn rs_dcerpc_udp_register_parser() {
         SCLogDebug!("Protocol detecter and parser disabled for DCERPC/UDP.");
     }
 }
-
 
 #[cfg(test)]
 mod tests {

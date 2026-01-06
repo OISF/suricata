@@ -81,6 +81,8 @@ pub static mut SMB_CFG_MAX_WRITE_SIZE: u32 = 16777216;
 pub static mut SMB_CFG_MAX_WRITE_QUEUE_SIZE: u32 = 67108864;
 pub static mut SMB_CFG_MAX_WRITE_QUEUE_CNT: u32 = 64;
 
+pub static mut SMB_DCERPC_MAX_STUB_SIZE: u32 = 1048576;
+
 static mut ALPROTO_SMB: AppProto = ALPROTO_UNKNOWN;
 
 static mut SMB_MAX_TX: usize = 1024;
@@ -2438,6 +2440,21 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
                 SCLogError!("Invalid value for smb.max-tx");
             }
         }
+       let retval = conf_get("app-layer.protocols.smb.dcerpc.max-stub-size");
+       if let Some(val) = retval {
+           match get_memval(val) {
+               Ok(retval) => {
+                    if retval > 0 {
+                        SMB_DCERPC_MAX_STUB_SIZE = retval as u32;
+                    } else {
+                        SCLogError!("Invalid max-stub-size value");
+                    }
+               }
+               Err(_) => {
+                    SCLogError!("Invalid max-stub-size value");
+               }
+           }
+       }
         SCLogConfig!("read: max record size: {}, max queued chunks {}, max queued size {}",
                 SMB_CFG_MAX_READ_SIZE, SMB_CFG_MAX_READ_QUEUE_CNT, SMB_CFG_MAX_READ_QUEUE_SIZE);
         SCLogConfig!("write: max record size: {}, max queued chunks {}, max queued size {}",
@@ -2446,3 +2463,9 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
         SCLogDebug!("Protocol detector and parser disabled for SMB.");
     }
 }
+
+#[inline(always)]
+pub fn cfg_max_stub_size() -> u32 {
+    unsafe { SMB_DCERPC_MAX_STUB_SIZE }
+}
+
