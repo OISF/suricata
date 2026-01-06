@@ -1426,7 +1426,7 @@ static int DNP3GetAlstateProgress(void *tx, uint8_t direction)
         SCReturnInt(1);
     }
 
-    if (dnp3tx->complete)
+    if (dnp3tx->done)
         retval = 1;
 
     SCReturnInt(retval);
