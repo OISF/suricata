@@ -56,6 +56,11 @@ Other Changes
   - tcp.seq
   - tcp.window
 
+- ``dnp3`` has reduced the default maximum number of outstanding
+  transactions from 500 down to 32. A ``max-tx`` parameter has been
+  added to the ``dnp3`` parser for users that need a larger number of
+  in-flight transactions.
+
 Upgrading to 8.0.1
 ------------------
 
