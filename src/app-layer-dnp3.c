@@ -25,6 +25,7 @@
 #include "suricata.h"
 #include "util-unittest.h"
 
+#include "util-byte.h"
 #include "util-spm-bs.h"
 #include "util-enum.h"
 
@@ -36,9 +37,6 @@
 
 #include "app-layer-dnp3.h"
 #include "app-layer-dnp3-objects.h"
-
-/* Default number of unreplied requests to be considered a flood. */
-#define DNP3_DEFAULT_REQ_FLOOD_COUNT 500
 
 #define DNP3_DEFAULT_PORT "20000"
 
@@ -84,6 +82,14 @@ enum {
 
 /* Extract the range code from the object qualifier. */
 #define DNP3_OBJ_RANGE(x)  (x & 0xf)
+
+/* Default number of unreplied requests to be considered a flood.
+ *
+ * DNP3 is a request/response SCADA protocol with typically only 1-2
+ * transactions in flight. But set a limit high enough to allow for
+ * some pipelining but reduce the chance of memory exhaustion
+ * attacks. */
+static uint64_t dnp3_max_tx = 32;
 
 /* Decoder event map. */
 SCEnumCharMap dnp3_decoder_event_table[] = {
@@ -502,7 +508,7 @@ static DNP3Transaction *DNP3TxAlloc(DNP3State *dnp3, bool request)
     TAILQ_INSERT_TAIL(&dnp3->tx_list, tx, next);
 
     /* Check for flood state. */
-    if (dnp3->unreplied > DNP3_DEFAULT_REQ_FLOOD_COUNT) {
+    if (dnp3->unreplied > dnp3_max_tx && !dnp3->flooded) {
         DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_FLOODED);
         dnp3->flooded = 1;
     }
@@ -1374,7 +1380,7 @@ static void DNP3StateTxFree(void *state, uint64_t tx_id)
         dnp3->unreplied--;
 
         /* Check flood state. */
-        if (dnp3->flooded && dnp3->unreplied < DNP3_DEFAULT_REQ_FLOOD_COUNT) {
+        if (dnp3->flooded && dnp3->unreplied < dnp3_max_tx) {
             dnp3->flooded = 0;
         }
 
@@ -1420,8 +1426,7 @@ static int DNP3GetAlstateProgress(void *tx, uint8_t direction)
     int retval = 0;
 
     /* If flooded, "ack" old transactions. */
-    if (dnp3->flooded && (dnp3->transaction_max -
-            dnp3tx->tx_num >= DNP3_DEFAULT_REQ_FLOOD_COUNT)) {
+    if (dnp3->flooded && (dnp3->transaction_max - dnp3tx->tx_num >= dnp3_max_tx)) {
         SCLogDebug("flooded: returning tx as done.");
         SCReturnInt(1);
     }
@@ -1585,6 +1590,12 @@ void RegisterDNP3Parsers(void)
         AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_DNP3,
             DNP3GetTxData);
         AppLayerParserRegisterStateDataFunc(IPPROTO_TCP, ALPROTO_DNP3, DNP3GetStateData);
+
+        /* Parse max-tx configuration. */
+        intmax_t value = 0;
+        if (SCConfGetInt("app-layer.protocols.dnp3.max-tx", &value)) {
+            dnp3_max_tx = (uint64_t)value;
+        }
     } else {
         SCLogConfig("Parser disabled for protocol %s. "
             "Protocol detection still on.", proto_name);
@@ -2232,7 +2243,7 @@ static int DNP3ParserTestFlooded(void)
     FAIL_IF_NOT(tx->done);
     FAIL_IF_NOT(DNP3GetAlstateProgress(tx, STREAM_TOSERVER));
 
-    for (int i = 0; i < DNP3_DEFAULT_REQ_FLOOD_COUNT - 1; i++) {
+    for (uint64_t i = 0; i < dnp3_max_tx - 1; i++) {
         SCMutexLock(&flow.m);
         FAIL_IF(AppLayerParserParse(NULL, alp_tctx, &flow, ALPROTO_DNP3,
                 STREAM_TOSERVER, request, sizeof(request)));

@@ -1231,6 +1231,7 @@ app-layer:
       enabled: no
       detection-ports:
         dp: 20000
+      #max-tx: 32
 
     # SCADA EtherNet/IP and CIP protocol support
     enip:
