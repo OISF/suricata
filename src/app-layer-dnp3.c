@@ -98,15 +98,19 @@ enum {
  * attacks. */
 static uint64_t dnp3_max_tx = 32;
 
+/* The maximum number of points allowed per message (configurable). */
+static uint64_t max_points = 16384;
+
 /* Decoder event map. */
 SCEnumCharMap dnp3_decoder_event_table[] = {
-    {"FLOODED",           DNP3_DECODER_EVENT_FLOODED},
-    {"LEN_TOO_SMALL",     DNP3_DECODER_EVENT_LEN_TOO_SMALL},
-    {"BAD_LINK_CRC",      DNP3_DECODER_EVENT_BAD_LINK_CRC},
-    {"BAD_TRANSPORT_CRC", DNP3_DECODER_EVENT_BAD_TRANSPORT_CRC},
-    {"MALFORMED",         DNP3_DECODER_EVENT_MALFORMED},
-    {"UNKNOWN_OBJECT",    DNP3_DECODER_EVENT_UNKNOWN_OBJECT},
-    {NULL, -1},
+    { "FLOODED", DNP3_DECODER_EVENT_FLOODED },
+    { "LEN_TOO_SMALL", DNP3_DECODER_EVENT_LEN_TOO_SMALL },
+    { "BAD_LINK_CRC", DNP3_DECODER_EVENT_BAD_LINK_CRC },
+    { "BAD_TRANSPORT_CRC", DNP3_DECODER_EVENT_BAD_TRANSPORT_CRC },
+    { "MALFORMED", DNP3_DECODER_EVENT_MALFORMED },
+    { "UNKNOWN_OBJECT", DNP3_DECODER_EVENT_UNKNOWN_OBJECT },
+    { "TOO_MANY_POINTS", DNP3_DECODER_EVENT_TOO_MANY_POINTS },
+    { NULL, -1 },
 };
 
 /* Calculate the next transport sequence number. */
@@ -709,6 +713,7 @@ static int DNP3DecodeApplicationObjects(DNP3Transaction *tx, const uint8_t *buf,
     uint32_t len, DNP3ObjectList *objects)
 {
     int retval = 0;
+    uint64_t point_count = 0;
 
     if (buf == NULL || len == 0) {
         return 1;
@@ -837,6 +842,13 @@ static int DNP3DecodeApplicationObjects(DNP3Transaction *tx, const uint8_t *buf,
 
         if (object->variation == 0 || object->count == 0) {
             goto next;
+        }
+
+        /* Check if we've exceeded the maximum number of points per message. */
+        point_count += object->count;
+        if (point_count > max_points) {
+            DNP3SetEventTx(tx, DNP3_DECODER_EVENT_TOO_MANY_POINTS);
+            goto done;
         }
 
         int event = DNP3DecodeObject(header->group, header->variation, &buf,
@@ -1615,6 +1627,13 @@ void RegisterDNP3Parsers(void)
         intmax_t value = 0;
         if (ConfGetInt("app-layer.protocols.dnp3.max-tx", &value)) {
             dnp3_max_tx = (uint64_t)value;
+        }
+
+        /* Parse max-points configuration. */
+        if (ConfGetInt("app-layer.protocols.dnp3.max-points", &value)) {
+            if (value > 0) {
+                max_points = (uint64_t)value;
+            }
         }
     } else {
         SCLogConfig("Parser disabled for protocol %s. "

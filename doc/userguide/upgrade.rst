@@ -39,10 +39,11 @@ Upgrading to 7.0.14
 
 Other Changes
 ~~~~~~~~~~~~~
-- ``dnp3`` has reduced the default maximum number of outstanding
-  transactions from 500 down to 32. A ``max-tx`` parameter has been
-  added to the ``dnp3`` parser for users that need a larger number of
-  in-flight transactions.
+- ``dnp3`` has reduced the maximum number of open transactions from
+  500 down to 32, and the maximum number of points per message from
+  unbounded to 16384. Configuration options, ``max-tx`` and
+  ``max-points`` have been added for users who may need to change
+  these defaults.
 
 Upgrading to 7.0.12
 -------------------
