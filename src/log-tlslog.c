@@ -257,6 +257,19 @@ filectx_error:
     return result;
 }
 
+char *CreateStringFromByteArray(uint8_t *arr, uint32_t len)
+{
+    uint32_t str_len = len + 1;
+    char *final = SCCalloc(str_len, sizeof(char));
+    if (final == NULL) {
+        return NULL;
+    }
+    memcpy(final, arr, len);
+    final[str_len - 1] = '\0';
+
+    return final;
+}
+
 static void LogTlsLogVersion(MemBuffer *buffer, uint16_t version)
 {
     char ssl_version[SSL_VERSION_MAX_STRLEN];
