@@ -632,7 +632,8 @@ static void SetupOutput(
     if (module->PacketLogFunc) {
         SCLogDebug("%s is a packet logger", module->name);
         SCOutputRegisterPacketLogger(module->logger_id, module->name, module->PacketLogFunc,
-                module->PacketConditionFunc, output_ctx, module->ThreadInit, module->ThreadDeinit);
+                module->PacketConditionFunc, module->PacketFlushFunc, output_ctx,
+                module->ThreadInit, module->ThreadDeinit);
     } else if (module->TxLogFunc) {
         SCLogDebug("%s is a tx logger", module->name);
         SCOutputRegisterTxLogger(module->logger_id, module->name, module->alproto,

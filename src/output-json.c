@@ -993,7 +993,10 @@ int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer)
 void OutputJsonFlush(OutputJsonThreadCtx *ctx)
 {
     LogFileCtx *file_ctx = ctx->file_ctx;
-    LogFileFlush(file_ctx);
+    // buffer_size of 0 means "non-buffered" so don't flush
+    if (file_ctx->buffer_size) {
+        LogFileFlush(file_ctx);
+    }
 }
 
 void OutputJsonBuilderBuffer(
