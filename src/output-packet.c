@@ -41,6 +41,7 @@ typedef struct OutputPacketLoggerThreadData_ {
 typedef struct OutputPacketLogger_ {
     PacketLogger LogFunc;
     PacketLogCondition ConditionFunc;
+    PacketLogger FlushFunc;
     /** Data that will be passed to the ThreadInit callback. */
     void *initdata;
     struct OutputPacketLogger_ *next;
@@ -53,14 +54,15 @@ typedef struct OutputPacketLogger_ {
 static OutputPacketLogger *list = NULL;
 
 int SCOutputRegisterPacketLogger(LoggerId logger_id, const char *name, PacketLogger LogFunc,
-        PacketLogCondition ConditionFunc, void *initdata, ThreadInitFunc ThreadInit,
-        ThreadDeinitFunc ThreadDeinit)
+        PacketLogCondition ConditionFunc, PacketLogger FlushFunc, void *initdata,
+        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
 {
     OutputPacketLogger *op = SCCalloc(1, sizeof(*op));
     if (op == NULL)
         return -1;
 
     op->LogFunc = LogFunc;
+    op->FlushFunc = FlushFunc;
     op->ConditionFunc = ConditionFunc;
     op->initdata = initdata;
     op->name = name;
@@ -79,6 +81,35 @@ int SCOutputRegisterPacketLogger(LoggerId logger_id, const char *name, PacketLog
 
     SCLogDebug("OutputRegisterPacketLogger happy");
     return 0;
+}
+
+static TmEcode OutputPacketFlush(ThreadVars *tv, Packet *p, void *thread_data)
+{
+    DEBUG_VALIDATE_BUG_ON(thread_data == NULL);
+
+    if (list == NULL) {
+        /* No child loggers. */
+        return TM_ECODE_OK;
+    }
+
+    OutputPacketLoggerThreadData *op_thread_data = (OutputPacketLoggerThreadData *)thread_data;
+    OutputPacketLogger *logger = list;
+    OutputLoggerThreadStore *store = op_thread_data->store;
+
+    DEBUG_VALIDATE_BUG_ON(logger == NULL && store != NULL);
+    DEBUG_VALIDATE_BUG_ON(logger != NULL && store == NULL);
+    DEBUG_VALIDATE_BUG_ON(logger == NULL && store == NULL);
+    while (logger && store) {
+        if (logger->FlushFunc) {
+            SCLogDebug("%s: calling flush func", tv->name);
+            logger->FlushFunc(tv, store->thread_data, p);
+        }
+
+        logger = logger->next;
+        store = store->next;
+    }
+
+    return TM_ECODE_OK;
 }
 
 static TmEcode OutputPacketLog(ThreadVars *tv, Packet *p, void *thread_data)
@@ -194,7 +225,7 @@ static uint32_t OutputPacketLoggerGetActiveCount(void)
 void OutputPacketLoggerRegister(void)
 {
     OutputRegisterRootLogger(OutputPacketLogThreadInit, OutputPacketLogThreadDeinit,
-            OutputPacketLog, OutputPacketLoggerGetActiveCount);
+            OutputPacketLog, OutputPacketFlush, OutputPacketLoggerGetActiveCount);
 }
 
 void OutputPacketShutdown(void)

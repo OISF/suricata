@@ -189,9 +189,19 @@ static TmEcode JsonMQTTLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
+static int JsonMQTTLoggerFlush(ThreadVars *tv, void *thread_data, const Packet *p)
+{
+    LogMQTTLogThread *td = (LogMQTTLogThread *)thread_data;
+    if (td && td->ctx) {
+        SCLogDebug("%s flushing %s", tv->name, ((LogFileCtx *)(td->ctx->file_ctx))->filename);
+        OutputJsonFlush(td->ctx);
+    }
+    return 0;
+}
+
 void JsonMQTTLogRegister(void)
 {
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonMQTTLog", "eve-log.mqtt",
-            OutputMQTTLogInitSub, ALPROTO_MQTT, JsonMQTTLogger, JsonMQTTLogThreadInit,
-            JsonMQTTLogThreadDeinit);
+            OutputMQTTLogInitSub, ALPROTO_MQTT, JsonMQTTLogger, JsonMQTTLoggerFlush,
+            JsonMQTTLogThreadInit, JsonMQTTLogThreadDeinit);
 }

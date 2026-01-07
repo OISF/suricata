@@ -110,7 +110,7 @@ void JsonNFSLogRegister(void)
 {
     /* Register as an eve sub-module. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonNFSLog", "eve-log.nfs", NFSLogInitSub,
-            ALPROTO_NFS, JsonNFSLogger, JsonLogThreadInit, JsonLogThreadDeinit);
+            ALPROTO_NFS, JsonNFSLogger, OutputJsonLogFlush, JsonLogThreadInit, JsonLogThreadDeinit);
 
     SCLogDebug("NFS JSON logger registered.");
 }

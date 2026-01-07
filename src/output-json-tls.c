@@ -616,6 +616,16 @@ static TmEcode JsonTlsLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
+static int JsonTlsLoggerFlush(ThreadVars *tv, void *thread_data, const Packet *p)
+{
+    JsonTlsLogThread *td = (JsonTlsLogThread *)thread_data;
+    if (td && td->ctx) {
+        SCLogDebug("%s flushing %s", tv->name, ((LogFileCtx *)(td->ctx->file_ctx))->filename);
+        OutputJsonFlush(td->ctx);
+    }
+    return 0;
+}
+
 static OutputTlsCtx *OutputTlsInitCtx(SCConfNode *conf)
 {
     OutputTlsCtx *tls_ctx = SCCalloc(1, sizeof(OutputTlsCtx));
@@ -735,6 +745,7 @@ void JsonTlsLogRegister (void)
 {
     /* register as child of eve-log */
     OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_TX, "eve-log", "JsonTlsLog", "eve-log.tls",
-            OutputTlsLogInitSub, ALPROTO_TLS, JsonTlsLogger, TLS_STATE_SERVER_HANDSHAKE_DONE,
-            TLS_STATE_CLIENT_HANDSHAKE_DONE, JsonTlsLogThreadInit, JsonTlsLogThreadDeinit);
+            OutputTlsLogInitSub, ALPROTO_TLS, JsonTlsLogger, JsonTlsLoggerFlush,
+            TLS_STATE_SERVER_HANDSHAKE_DONE, TLS_STATE_CLIENT_HANDSHAKE_DONE, JsonTlsLogThreadInit,
+            JsonTlsLogThreadDeinit);
 }
