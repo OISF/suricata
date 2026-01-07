@@ -391,7 +391,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, bool sig_file_exc
         SetupEngineAnalysis(de_ctx, &fp_engine_analysis_set, &rule_engine_analysis_set);
     }
 
-    if (de_ctx->firewall_rule_file_exclusive) {
+    if (EngineModeIsFirewall() || de_ctx->firewall_rule_file_exclusive) {
         if (LoadFirewallRuleFiles(de_ctx) < 0) {
             if (de_ctx->failure_fatal) {
                 exit(EXIT_FAILURE);
