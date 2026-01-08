@@ -838,7 +838,7 @@ unsafe extern "C" fn state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64)
 
 unsafe extern "C" fn parse_request(
     flow: *mut Flow, state: *mut std::os::raw::c_void, pstate: *mut AppLayerParserState,
-    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *mut std::os::raw::c_void,
 ) -> AppLayerResult {
     if stream_slice.is_empty() {
         if SCAppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0 {
@@ -861,7 +861,7 @@ unsafe extern "C" fn parse_request(
 
 unsafe extern "C" fn parse_response(
     flow: *mut Flow, state: *mut std::os::raw::c_void, pstate: *mut AppLayerParserState,
-    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *mut std::os::raw::c_void,
 ) -> AppLayerResult {
     if stream_slice.is_empty() {
         if SCAppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0 {

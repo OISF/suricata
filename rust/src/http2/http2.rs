@@ -1463,7 +1463,7 @@ unsafe extern "C" fn http2_state_tx_free(state: *mut std::os::raw::c_void, tx_id
 
 unsafe extern "C" fn http2_parse_ts(
     flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
-    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *mut std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, HTTP2State);
     return state.parse_ts(flow, stream_slice);
@@ -1471,7 +1471,7 @@ unsafe extern "C" fn http2_parse_ts(
 
 unsafe extern "C" fn http2_parse_tc(
     flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
-    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *mut std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, HTTP2State);
     return state.parse_tc(flow, stream_slice);

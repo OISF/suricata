@@ -579,7 +579,7 @@ unsafe extern "C" fn ldap_state_tx_free(state: *mut c_void, tx_id: u64) {
 
 unsafe extern "C" fn ldap_parse_request(
     flow: *mut Flow, state: *mut c_void, pstate: *mut AppLayerParserState,
-    stream_slice: StreamSlice, _data: *const c_void,
+    stream_slice: StreamSlice, _data: *mut c_void,
 ) -> AppLayerResult {
     if stream_slice.is_empty() {
         if SCAppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0 {
@@ -600,7 +600,7 @@ unsafe extern "C" fn ldap_parse_request(
 
 unsafe extern "C" fn ldap_parse_response(
     flow: *mut Flow, state: *mut c_void, pstate: *mut AppLayerParserState,
-    stream_slice: StreamSlice, _data: *const c_void,
+    stream_slice: StreamSlice, _data: *mut c_void,
 ) -> AppLayerResult {
     if stream_slice.is_empty() {
         if SCAppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0 {
@@ -620,7 +620,7 @@ unsafe extern "C" fn ldap_parse_response(
 
 unsafe extern "C" fn ldap_parse_request_udp(
     flow: *mut Flow, state: *mut c_void, _pstate: *mut AppLayerParserState,
-    stream_slice: StreamSlice, _data: *const c_void,
+    stream_slice: StreamSlice, _data: *mut c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, LdapState);
     state.parse_request_udp(flow, stream_slice)
@@ -628,7 +628,7 @@ unsafe extern "C" fn ldap_parse_request_udp(
 
 unsafe extern "C" fn ldap_parse_response_udp(
     flow: *mut Flow, state: *mut c_void, _pstate: *mut AppLayerParserState,
-    stream_slice: StreamSlice, _data: *const c_void,
+    stream_slice: StreamSlice, _data: *mut c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, LdapState);
     state.parse_response_udp(flow, stream_slice)

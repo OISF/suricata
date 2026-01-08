@@ -453,7 +453,7 @@ extern "C" fn ssh_state_tx_free(_state: *mut std::os::raw::c_void, _tx_id: u64) 
 
 unsafe extern "C" fn ssh_parse_request(
     flow: *mut Flow, state: *mut std::os::raw::c_void, pstate: *mut AppLayerParserState,
-    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *mut std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = &mut cast_pointer!(state, SSHState);
     let buf = stream_slice.as_slice();
@@ -468,7 +468,7 @@ unsafe extern "C" fn ssh_parse_request(
 
 unsafe extern "C" fn ssh_parse_response(
     flow: *mut Flow, state: *mut std::os::raw::c_void, pstate: *mut AppLayerParserState,
-    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *mut std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = &mut cast_pointer!(state, SSHState);
     let buf = stream_slice.as_slice();
