@@ -495,7 +495,7 @@ pub type ParseFn      = unsafe extern "C" fn (flow: *mut Flow,
                                        state: *mut c_void,
                                        pstate: *mut AppLayerParserState,
                                        stream_slice: StreamSlice,
-                                       data: *const c_void) -> AppLayerResult;
+                                       data: *mut c_void) -> AppLayerResult;
 pub type ProbeFn      = unsafe extern "C" fn (flow: *const Flow, flags: u8, input:*const u8, input_len: u32, rdir: *mut u8) -> AppProto;
 pub type StateAllocFn = unsafe extern "C" fn (*mut c_void, AppProto) -> *mut c_void;
 pub type StateFreeFn  = unsafe extern "C" fn (*mut c_void);
