@@ -181,7 +181,7 @@ extern "C" fn ntp_state_free(state: *mut std::os::raw::c_void) {
 
 unsafe extern "C" fn ntp_parse_request(
     _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
-    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *mut std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, NTPState);
     if state.parse(stream_slice.as_slice(), Direction::ToServer) < 0 {
@@ -192,7 +192,7 @@ unsafe extern "C" fn ntp_parse_request(
 
 unsafe extern "C" fn ntp_parse_response(
     _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
-    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *mut std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, NTPState);
     if state.parse(stream_slice.as_slice(), Direction::ToClient) < 0 {

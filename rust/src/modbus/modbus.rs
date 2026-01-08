@@ -341,7 +341,7 @@ unsafe extern "C" fn modbus_state_tx_free(state: *mut std::os::raw::c_void, tx_i
 
 unsafe extern "C" fn modbus_parse_request(
     flow: *mut Flow, state: *mut std::os::raw::c_void, pstate: *mut AppLayerParserState,
-    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *mut std::os::raw::c_void,
 ) -> AppLayerResult {
     let buf = stream_slice.as_slice();
     if buf.is_empty() {
@@ -358,7 +358,7 @@ unsafe extern "C" fn modbus_parse_request(
 
 unsafe extern "C" fn modbus_parse_response(
     flow: *mut Flow, state: *mut std::os::raw::c_void, pstate: *mut AppLayerParserState,
-    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *mut std::os::raw::c_void,
 ) -> AppLayerResult {
     let buf = stream_slice.as_slice();
     if buf.is_empty() {

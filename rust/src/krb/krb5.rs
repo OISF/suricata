@@ -453,7 +453,7 @@ unsafe extern "C" fn krb5_probing_parser_tcp(
 
 unsafe extern "C" fn krb5_parse_request(
     flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
-    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *mut std::os::raw::c_void,
 ) -> AppLayerResult {
     let buf = stream_slice.as_slice();
     let state = cast_pointer!(state, KRB5State);
@@ -465,7 +465,7 @@ unsafe extern "C" fn krb5_parse_request(
 
 unsafe extern "C" fn krb5_parse_response(
     flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
-    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *mut std::os::raw::c_void,
 ) -> AppLayerResult {
     let buf = stream_slice.as_slice();
     let state = cast_pointer!(state, KRB5State);
@@ -477,7 +477,7 @@ unsafe extern "C" fn krb5_parse_response(
 
 unsafe extern "C" fn krb5_parse_request_tcp(
     flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
-    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *mut std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, KRB5State);
     let buf = stream_slice.as_slice();
@@ -535,7 +535,7 @@ unsafe extern "C" fn krb5_parse_request_tcp(
 
 unsafe extern "C" fn krb5_parse_response_tcp(
     flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
-    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *mut std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, KRB5State);
     let buf = stream_slice.as_slice();
