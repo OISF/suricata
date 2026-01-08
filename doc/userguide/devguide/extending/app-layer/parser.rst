@@ -38,7 +38,7 @@ In Rust, the callbacks are similar.
             _pstate: *mut AppLayerParserState,
             input: *const u8,
             input_len: u32,
-            _data: *const std::os::raw::c_void,
+            _data: *mut std::os::raw::c_void,
             _flags: u8)
     -> AppLayerResult
 

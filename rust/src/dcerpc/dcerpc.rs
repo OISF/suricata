@@ -1027,7 +1027,7 @@ fn evaluate_stub_params(
 unsafe extern "C" fn parse_request(
     flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice,
-    _data: *const std::os::raw::c_void,
+    _data: *mut std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, DCERPCState);
     let flags = stream_slice.flags();
@@ -1051,7 +1051,7 @@ unsafe extern "C" fn parse_request(
 unsafe extern "C" fn parse_response(
     flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice,
-    _data: *const std::os::raw::c_void,
+    _data: *mut std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, DCERPCState);
     let flags = stream_slice.flags();

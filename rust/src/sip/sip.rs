@@ -450,7 +450,7 @@ pub static mut ALPROTO_SIP: AppProto = ALPROTO_UNKNOWN;
 
 unsafe extern "C" fn sip_parse_request(
     flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
-    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *mut std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, SIPState);
     state.parse_request(flow, stream_slice).into()
@@ -458,7 +458,7 @@ unsafe extern "C" fn sip_parse_request(
 
 unsafe extern "C" fn sip_parse_request_tcp(
     flow: *mut Flow, state: *mut std::os::raw::c_void, pstate: *mut AppLayerParserState,
-    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *mut std::os::raw::c_void,
 ) -> AppLayerResult {
     if stream_slice.is_empty() {
         if SCAppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0 {
@@ -474,7 +474,7 @@ unsafe extern "C" fn sip_parse_request_tcp(
 
 unsafe extern "C" fn sip_parse_response(
     flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
-    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *mut std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, SIPState);
     state.parse_response(flow, stream_slice).into()
@@ -482,7 +482,7 @@ unsafe extern "C" fn sip_parse_response(
 
 unsafe extern "C" fn sip_parse_response_tcp(
     flow: *mut Flow, state: *mut std::os::raw::c_void, pstate: *mut AppLayerParserState,
-    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *mut std::os::raw::c_void,
 ) -> AppLayerResult {
     if stream_slice.is_empty() {
         if SCAppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0 {

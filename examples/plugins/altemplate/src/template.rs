@@ -300,7 +300,7 @@ unsafe extern "C" fn template_state_tx_free(state: *mut c_void, tx_id: u64) {
 
 unsafe extern "C" fn template_parse_request(
     _flow: *mut Flow, state: *mut c_void, pstate: *mut AppLayerParserState,
-    stream_slice: StreamSlice, _data: *const c_void,
+    stream_slice: StreamSlice, _data: *mut c_void,
 ) -> AppLayerResult {
     let eof = SCAppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0;
 
@@ -324,7 +324,7 @@ unsafe extern "C" fn template_parse_request(
 
 unsafe extern "C" fn template_parse_response(
     _flow: *mut Flow, state: *mut c_void, pstate: *mut AppLayerParserState,
-    stream_slice: StreamSlice, _data: *const c_void,
+    stream_slice: StreamSlice, _data: *mut c_void,
 ) -> AppLayerResult {
     let _eof = SCAppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0;
     let state = cast_pointer!(state, TemplateState);

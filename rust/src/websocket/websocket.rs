@@ -348,7 +348,7 @@ unsafe extern "C" fn websocket_state_tx_free(state: *mut c_void, tx_id: u64) {
 
 unsafe extern "C" fn websocket_parse_request(
     flow: *mut Flow, state: *mut c_void, _pstate: *mut AppLayerParserState,
-    stream_slice: StreamSlice, _data: *const c_void,
+    stream_slice: StreamSlice, _data: *mut c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, WebSocketState);
     state.parse(stream_slice, Direction::ToServer, flow)
@@ -356,7 +356,7 @@ unsafe extern "C" fn websocket_parse_request(
 
 unsafe extern "C" fn websocket_parse_response(
     flow: *mut Flow, state: *mut c_void, _pstate: *mut AppLayerParserState,
-    stream_slice: StreamSlice, _data: *const c_void,
+    stream_slice: StreamSlice, _data: *mut c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, WebSocketState);
     state.parse(stream_slice, Direction::ToClient, flow)

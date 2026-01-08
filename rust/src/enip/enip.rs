@@ -498,7 +498,7 @@ unsafe extern "C" fn enip_state_tx_free(state: *mut c_void, tx_id: u64) {
 
 unsafe extern "C" fn enip_parse_request_udp(
     flow: *mut Flow, state: *mut c_void, _pstate: *mut AppLayerParserState,
-    stream_slice: StreamSlice, _data: *const c_void,
+    stream_slice: StreamSlice, _data: *mut c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, EnipState);
     state.parse_udp(stream_slice, true, flow)
@@ -506,7 +506,7 @@ unsafe extern "C" fn enip_parse_request_udp(
 
 unsafe extern "C" fn enip_parse_response_udp(
     flow: *mut Flow, state: *mut c_void, _pstate: *mut AppLayerParserState,
-    stream_slice: StreamSlice, _data: *const c_void,
+    stream_slice: StreamSlice, _data: *mut c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, EnipState);
     state.parse_udp(stream_slice, false, flow)
@@ -514,7 +514,7 @@ unsafe extern "C" fn enip_parse_response_udp(
 
 unsafe extern "C" fn enip_parse_request_tcp(
     flow: *mut Flow, state: *mut c_void, pstate: *mut AppLayerParserState,
-    stream_slice: StreamSlice, _data: *const c_void,
+    stream_slice: StreamSlice, _data: *mut c_void,
 ) -> AppLayerResult {
     let eof = SCAppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0;
     if eof {
@@ -533,7 +533,7 @@ unsafe extern "C" fn enip_parse_request_tcp(
 
 unsafe extern "C" fn enip_parse_response_tcp(
     flow: *mut Flow, state: *mut c_void, pstate: *mut AppLayerParserState,
-    stream_slice: StreamSlice, _data: *const c_void,
+    stream_slice: StreamSlice, _data: *mut c_void,
 ) -> AppLayerResult {
     let eof = SCAppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0;
     if eof {

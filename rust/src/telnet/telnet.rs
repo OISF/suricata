@@ -422,7 +422,7 @@ unsafe extern "C" fn telnet_parse_request(
     state: *mut std::os::raw::c_void,
     pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice,
-    _data: *const std::os::raw::c_void
+    _data: *mut std::os::raw::c_void
 ) -> AppLayerResult {
     let eof = SCAppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0;
 
@@ -449,7 +449,7 @@ unsafe extern "C" fn telnet_parse_response(
     state: *mut std::os::raw::c_void,
     pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice,
-    _data: *const std::os::raw::c_void
+    _data: *mut std::os::raw::c_void
 ) -> AppLayerResult {
     let _eof = SCAppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0;
     let state = cast_pointer!(state, TelnetState);
