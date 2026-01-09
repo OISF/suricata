@@ -81,7 +81,8 @@ static int ConfigSetThreads(DPDKIfaceConfig *iconf, const char *entry_str);
 static int ConfigSetRxQueues(DPDKIfaceConfig *iconf, uint16_t nb_queues, uint16_t max_queues);
 static int ConfigSetTxQueues(
         DPDKIfaceConfig *iconf, uint16_t nb_queues, uint16_t max_queues, bool iface_sends_pkts);
-static int ConfigSetMempoolSize(DPDKIfaceConfig *iconf, const char *entry_str);
+static int ConfigSetMempoolSize(
+        DPDKIfaceConfig *iconf, const char *entry_str, const struct rte_eth_dev_info *dev_info);
 static int ConfigSetMempoolCacheSize(DPDKIfaceConfig *iconf, const char *entry_str);
 static int ConfigSetRxDescriptors(DPDKIfaceConfig *iconf, const char *entry_str, uint16_t max_desc);
 static int ConfigSetTxDescriptors(
@@ -539,7 +540,18 @@ static uint32_t MempoolSizeCalculate(
     return sz;
 }
 
-static int ConfigSetMempoolSize(DPDKIfaceConfig *iconf, const char *entry_str)
+static void MempoolSizeDeviceAdjust(
+        uint16_t port_id, const struct rte_eth_dev_info *dev_info, uint32_t *mp_sz)
+{
+    if (dev_info != NULL) {
+        if (strcmp(dev_info->driver_name, "net_bonding") == 0) {
+            BondingMempoolSizeAdjust(port_id, mp_sz);
+        }
+    }
+}
+
+static int ConfigSetMempoolSize(
+        DPDKIfaceConfig *iconf, const char *entry_str, const struct rte_eth_dev_info *dev_info)
 {
     SCEnter();
     if (entry_str == NULL || entry_str[0] == '\0' || strcmp(entry_str, "auto") == 0) {
@@ -565,6 +577,7 @@ static int ConfigSetMempoolSize(DPDKIfaceConfig *iconf, const char *entry_str)
 
         iconf->mempool_size = MempoolSizeCalculate(
                 iconf->nb_rx_queues, iconf->nb_rx_desc, iconf->nb_tx_queues, iconf->nb_tx_desc);
+        MempoolSizeDeviceAdjust(iconf->port_id, dev_info, &iconf->mempool_size);
         SCReturnInt(0);
     }
 
@@ -574,15 +587,16 @@ static int ConfigSetMempoolSize(DPDKIfaceConfig *iconf, const char *entry_str)
         SCReturnInt(-EINVAL);
     }
 
-    if (MempoolSizeCalculate(
-                iconf->nb_rx_queues, iconf->nb_rx_desc, iconf->nb_tx_queues, iconf->nb_tx_desc) >
+    uint32_t required_mp_size = MempoolSizeCalculate(
+            iconf->nb_rx_queues, iconf->nb_rx_desc, iconf->nb_tx_queues, iconf->nb_tx_desc);
+    MempoolSizeDeviceAdjust(iconf->port_id, dev_info, &required_mp_size);
+
+    if (required_mp_size >
             iconf->mempool_size + 1) { // +1 to mask mempool size advice given in Suricata 7.0.x -
                                        // mp_size should be n = (2^q - 1)
         SCLogError("%s: mempool size is likely too small for the number of descriptors and queues, "
                    "set to \"auto\" or adjust to the value of \"%" PRIu32 "\"",
-                iconf->iface,
-                MempoolSizeCalculate(iconf->nb_rx_queues, iconf->nb_rx_desc, iconf->nb_tx_queues,
-                        iconf->nb_tx_desc));
+                iconf->iface, required_mp_size);
         SCReturnInt(-ERANGE);
     }
 
@@ -950,8 +964,8 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
 
     retval = SCConfGetChildValueWithDefault(
                      if_root, if_default, dpdk_yaml.mempool_size, &entry_str) != 1
-                     ? ConfigSetMempoolSize(iconf, DPDK_CONFIG_DEFAULT_MEMPOOL_SIZE)
-                     : ConfigSetMempoolSize(iconf, entry_str);
+                     ? ConfigSetMempoolSize(iconf, DPDK_CONFIG_DEFAULT_MEMPOOL_SIZE, &dev_info)
+                     : ConfigSetMempoolSize(iconf, entry_str, &dev_info);
     if (retval < 0)
         SCReturnInt(retval);
 

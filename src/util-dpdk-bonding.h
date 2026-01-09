@@ -31,6 +31,7 @@
 int32_t BondingIsBond(uint16_t pid);
 uint16_t BondingMemberDevicesGet(
         uint16_t bond_pid, uint16_t bonded_devs[], uint16_t bonded_devs_length);
+void BondingMempoolSizeAdjust(uint16_t bond_pid, uint32_t *mempool_size);
 int32_t BondingAllDevicesSameDriver(uint16_t bond_pid);
 const char *BondingDeviceDriverGet(uint16_t bond_pid);
 
