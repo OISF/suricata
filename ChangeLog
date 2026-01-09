@@ -1,3 +1,22 @@
+7.0.14 -- 2026-01-09
+
+Security #8209: eve/alert: http xff handling can lead to denial of service (7.0.x backport)(LOW - CVE 2026-22261)
+Security #8200: dnp3: unbounded transaction growth (7.0.x backport)(HIGH - CVE 2026-22259)
+Security #8198: dcerpc: unbounded fragment buffering leads to memory exhaustion (7.0.x backport)(CRITICAL - CVE 2026-22258)
+Security #8192: detect/alert: heap-use-after-free on alert queue expansion (7.0.x backport)(HIGH - CVE 2026-22264)
+Security #8112: datasets: stack overflow (7.0.x backport)(HIGH - CVE 2026-22262)
+Bug #8196: flow: mac addresses are not swapped (7.0.x backport)
+Bug #8158: tls: ssl_version keyword negation (!) not working (7.0.x backport)
+Bug #8121: file: wrong hash on small multipart files (7.0.x backport)
+Bug #8104: unix-socket: hostbit commands ipv6 parsing issues (7.0.x backport)
+Bug #7907: eve/alert: verdict reports "alert" when traffic is allowed implicitly/passively (7.0.x backport)
+Optimization #8108: conf: timeout on too many scalar events (7.0.x backport)
+Feature #8145: af-packet: runtime option/flag to disable hardware timestamp support (7.0.x backport)
+Feature #8101: nfs: NFSv4 should support 4.1's new enums (7.0.x backport)
+Feature #6681: flow: midstream exception policy "reject-both" support (7.0.x backport)
+Task #8092: schema: allow stream events for stats (7.0.x backport)
+Documentation #7939: docs: update backports policy for suri 7 (7.0.x backport)
+
 7.0.13 -- 2025-11-05
 
 Security #8067: lua: stack overflow from unbounded stack allocation in LuaPushStringBuffer (7.0.x backport)(HIGH - CVE 2025-64344)
