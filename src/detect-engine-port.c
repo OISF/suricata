@@ -273,12 +273,6 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
     int r = DetectPortCmp(a,b);
     BUG_ON(r != PORT_ES && r != PORT_EB && r != PORT_LE && r != PORT_GE);
 
-    /* get a place to temporary put sigs lists */
-    DetectPort *tmp = DetectPortInit();
-    if (tmp == NULL) {
-        goto error;
-    }
-
     /**
      * We have 3 parts: [aaa[abab]bbb]
      * part a: a_port1 <-> b_port1 - 1
@@ -429,14 +423,9 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
         }
     }
 
-    if (tmp != NULL) {
-        DetectPortFree(de_ctx, tmp);
-    }
     return 0;
 
 error:
-    if (tmp != NULL)
-        DetectPortFree(de_ctx, tmp);
     return -1;
 }
 
