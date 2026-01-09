@@ -290,7 +290,6 @@ noinst_HEADERS = \
 	detect-ssh-proto-version.h \
 	detect-ssh-proto.h \
 	detect-ssh-software-version.h \
-	detect-ssh-software.h \
 	detect-ssl-state.h \
 	detect-ssl-version.h \
 	detect-stream_size.h \
@@ -889,7 +888,6 @@ libsuricata_c_a_SOURCES = \
 	detect-ssh-proto-version.c \
 	detect-ssh-proto.c \
 	detect-ssh-software-version.c \
-	detect-ssh-software.c \
 	detect-ssl-state.c \
 	detect-ssl-version.c \
 	detect-stream_size.c \
