@@ -1,3 +1,37 @@
+8.0.3 -- 2026-01-09
+
+Security #8202: http: quadratic complexity in headers parsing over multiple packets (8.0.x backport)(HIGH - CVE 2026-22263)
+Security #8199: dnp3: unbounded transaction growth (8.0.x backport)(HIGH - CVE 2026-22259)
+Security #8197: dcerpc: unbounded fragment buffering leads to memory exhaustion (8.0.x backport)(CRITICAL - CVE 2026-22258)
+Security #8191: detect/alert: heap-use-after-free on alert queue expansion (8.0.x backport)(HIGH - CVE 2026-22264)
+Security #8186: http: infinite recursion in decompression (8.0.x backport)(HIGH - CVE 2026-22260)
+Security #8157: eve/alert: http xff handling can lead to denial of service (8.0.x backport)(MODERATE - CVE 2026-22261)
+Security #8111: datasets: stack overflow (8.0.x backport)(HIGH - CVE 2026-22262)
+Bug #8211: rust: update lru crate to address RUSTSEC-2026-0002 (8.0.x backport)
+Bug #8188: tcp: fast open packet not fully handled (8.0.x backport)
+Bug #8180: eve/tls: version not logged for client hello only session (8.0.x backport)
+Bug #8178: flow: mac addresses are not swapped (8.0.x backport)
+Bug #8177: xbits: no error on invalid 'expire' values (8.0.x backport)
+Bug #8176: lua: crash with luaxform and arguments (8.0.x backport)
+Bug #8155: tls: ssl_version keyword negation (!) not working (8.0.x backport)
+Bug #8152: stream/reassembly: BUG_ON triggered from AdjustToAcked in debug mode (8.0.x backport)
+Bug #8151: nfs: NFS3/NFS2 procedure conflict (8.0.x backport)
+Bug #8134: configure: hint for installing bindgen is outdated (8.0.x backport)
+Bug #8120: file: wrong hash on small multipart files (8.0.x backport)
+Bug #8103: unix-socket: hostbit commands ipv6 parsing issues (8.0.x backport)
+Bug #8074: util/time: wrong parameter used in function (8.0.x backport)
+Bug #7709: pop3: parse error blocks sessions
+Optimization #8107: conf: timeout on too many scalar events (8.0.x backport)
+Feature #8175: frames: add --list-frames option (8.0.x backport)
+Feature #8144: af-packet: runtime option/flag to disable hardware timestamp support (8.0.x backport)
+Feature #8100: nfs: NFSv4 should support 4.1's new enums (8.0.x backport)
+Task #8148: psl: crate should be updated on every release (8.0.x backport)
+Task #8091: schema: allow stream events for stats (8.0.x backport)
+Documentation #8136: luaxform: options incorrectly described (8.0.x backport)
+Documentation #8079: transform/luaxform: documentation states it supports init function (8.0.x backport)
+Documentation #7938: docs: update backports policy for suri 7 (8.0.x backport)
+Documentation #7931: userguide: update & improve exception policy section (8.0.x backport)
+
 8.0.2 -- 2025-11-05
 
 Security #8066: lua: stack overflow from unbounded stack allocation in LuaPushStringBuffer (8.0.x backport)(HIGH - CVE 2025-64344)
