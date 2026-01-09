@@ -15,9 +15,16 @@
  * 02110-1301, USA.
  */
 
-use super::ssh::SSHTransaction;
+use super::ssh::{SSHConnectionState, SSHTransaction, ALPROTO_SSH};
+use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
+use crate::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
 use crate::direction::Direction;
+use std::os::raw::{c_int, c_void};
 use std::ptr;
+use suricata_sys::sys::{
+    DetectEngineCtx, SCDetectBufferSetActiveList, SCDetectHelperBufferProgressMpmRegister,
+    SCDetectHelperKeywordAliasRegister, SCDetectSignatureSetAppProto, Signature,
+};
 
 #[no_mangle]
 pub unsafe extern "C" fn SCSshTxGetProtocol(
@@ -50,8 +57,8 @@ pub unsafe extern "C" fn SCSshTxGetProtocol(
 
 #[no_mangle]
 pub unsafe extern "C" fn SCSshTxGetSoftware(
-    tx: *mut std::os::raw::c_void, buffer: *mut *const u8, buffer_len: *mut u32, direction: u8,
-) -> u8 {
+    tx: *const c_void, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> bool {
     let tx = cast_pointer!(tx, SSHTransaction);
     match direction.into() {
         Direction::ToServer => {
@@ -59,7 +66,7 @@ pub unsafe extern "C" fn SCSshTxGetSoftware(
             if !m.is_empty() {
                 *buffer = m.as_ptr();
                 *buffer_len = m.len() as u32;
-                return 1;
+                return true;
             }
         }
         Direction::ToClient => {
@@ -67,14 +74,13 @@ pub unsafe extern "C" fn SCSshTxGetSoftware(
             if !m.is_empty() {
                 *buffer = m.as_ptr();
                 *buffer_len = m.len() as u32;
-                return 1;
+                return true;
             }
         }
     }
     *buffer = ptr::null();
     *buffer_len = 0;
-
-    return 0;
+    return false;
 }
 
 #[no_mangle]
@@ -133,4 +139,41 @@ pub unsafe extern "C" fn SCSshTxGetHasshString(
     *buffer_len = 0;
 
     return 0;
+}
+
+unsafe extern "C" fn ssh_software_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_SSH) != 0 {
+        return -1;
+    }
+    if SCDetectBufferSetActiveList(de, s, G_SSH_SOFTWARE_BUFFER_ID) < 0 {
+        return -1;
+    }
+    return 0;
+}
+
+static mut G_SSH_SOFTWARE_BUFFER_ID: c_int = 0;
+
+#[no_mangle]
+pub unsafe extern "C" fn SCDetectSshRegister() {
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("ssh.software"),
+        desc: String::from("ssh.software sticky buffer"),
+        url: String::from("/rules/ssh-keywords.html#ssh-software"),
+        setup: ssh_software_setup,
+    };
+    let ssh_software_kw_id = helper_keyword_register_sticky_buffer(&kw);
+    G_SSH_SOFTWARE_BUFFER_ID = SCDetectHelperBufferProgressMpmRegister(
+        b"ssh_software\0".as_ptr() as *const libc::c_char,
+        b"ssh software field\0".as_ptr() as *const libc::c_char,
+        ALPROTO_SSH,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        Some(SCSshTxGetSoftware),
+        SSHConnectionState::SshStateBannerDone as c_int,
+    );
+    SCDetectHelperKeywordAliasRegister(
+        ssh_software_kw_id,
+        b"ssh_software\0".as_ptr() as *const libc::c_char,
+    );
 }

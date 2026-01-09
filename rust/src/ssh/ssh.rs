@@ -31,7 +31,7 @@ use suricata_sys::sys::{
     SCAppLayerProtoDetectConfProtoDetectionEnabled,
 };
 
-static mut ALPROTO_SSH: AppProto = ALPROTO_UNKNOWN;
+pub(super) static mut ALPROTO_SSH: AppProto = ALPROTO_UNKNOWN;
 static HASSH_ENABLED: AtomicBool = AtomicBool::new(false);
 
 static mut ENCRYPTION_BYPASS_ENABLED: EncryptionHandling =
