@@ -212,7 +212,6 @@ enum {
     PORT_GT,      /* bigger               [bbb] [aaa] */
 };
 
-#define PORT_FLAG_ANY           0x01 /**< 'any' special port */
 #define PORT_FLAG_NOT           0x02 /**< negated port */
 #define PORT_SIGGROUPHEAD_COPY  0x04 /**< sgh is a ptr copy */
 

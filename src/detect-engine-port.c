@@ -496,14 +496,6 @@ static int DetectPortCutNot(DetectPort *a, DetectPort **b)
  * */
 int DetectPortCmp(DetectPort *a, DetectPort *b)
 {
-    /* check any */
-    if ((a->flags & PORT_FLAG_ANY) && (b->flags & PORT_FLAG_ANY))
-        return PORT_EQ;
-    if ((a->flags & PORT_FLAG_ANY) && !(b->flags & PORT_FLAG_ANY))
-        return PORT_LT;
-    if (!(a->flags & PORT_FLAG_ANY) && (b->flags & PORT_FLAG_ANY))
-        return PORT_GT;
-
     uint16_t a_port1 = a->port;
     uint16_t a_port2 = a->port2;
     uint16_t b_port1 = b->port;
@@ -592,13 +584,7 @@ void DetectPortPrint(DetectPort *dp)
     if (dp == NULL)
         return;
 
-    if (dp->flags & PORT_FLAG_ANY) {
-        SCLogDebug("=> port %p: ANY", dp);
-//        printf("ANY");
-    } else {
-        SCLogDebug("=> port %p %" PRIu32 "-%" PRIu32 "", dp, dp->port, dp->port2);
-//        printf("%" PRIu32 "-%" PRIu32 "", dp->port, dp->port2);
-    }
+    SCLogDebug("=> port %p %" PRIu32 "-%" PRIu32 "", dp, dp->port, dp->port2);
 }
 
 /**
@@ -687,9 +673,8 @@ static int DetectPortParseInsert(DetectPort **head, DetectPort *new)
 static int DetectPortParseInsertString(const DetectEngineCtx *de_ctx,
         DetectPort **head, const char *s)
 {
-    DetectPort *port = NULL, *port_any = NULL;
+    DetectPort *port = NULL;
     int r = 0;
-    bool is_port_any = false;
 
     SCLogDebug("head %p, *head %p, s %s", head, *head, s);
 
@@ -698,10 +683,6 @@ static int DetectPortParseInsertString(const DetectEngineCtx *de_ctx,
     if (port == NULL) {
         SCLogError(" failed to parse port \"%s\"", s);
         return -1;
-    }
-
-    if (port->flags & PORT_FLAG_ANY) {
-        is_port_any = true;
     }
 
     /** handle the not case, we apply the negation then insert the part(s) */
@@ -726,26 +707,12 @@ static int DetectPortParseInsertString(const DetectEngineCtx *de_ctx,
     if (r < 0)
         goto error;
 
-    /** if any, insert [0:65535] */
-    if (r == 1 && is_port_any) {
-        SCLogDebug("inserting 0:65535 as port is \"any\"");
-
-        port_any = PortParse("0:65535");
-        if (port_any == NULL)
-            goto error;
-
-        if (DetectPortParseInsert(head, port_any) < 0)
-            goto error;
-    }
-
     return 0;
 
 error:
     SCLogError("DetectPortParseInsertString error");
     if (port != NULL)
         DetectPortCleanupList(de_ctx, port);
-    if (port_any != NULL)
-        DetectPortCleanupList(de_ctx, port_any);
     return -1;
 }
 
