@@ -614,10 +614,11 @@ static int ConfigSetMempoolCacheSize(DPDKIfaceConfig *iconf, const char *entry_s
             SCReturnInt(-EINVAL);
         }
 
-        iconf->mempool_cache_size = MempoolCacheSizeCalculate(iconf->mempool_size);
+        iconf->mempool_cache_size_auto = true;
         SCReturnInt(0);
     }
 
+    iconf->mempool_cache_size_auto = false;
     if (StringParseUint32(&iconf->mempool_cache_size, 10, 0, entry_str) < 0) {
         SCLogError("%s: mempool cache size entry contain non-numerical characters - \"%s\"",
                 iconf->iface, entry_str);
@@ -1455,7 +1456,8 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
     uint16_t mbuf_size = ROUNDUP(mtu_size, 1024) + RTE_PKTMBUF_HEADROOM;
     // ceil the div so e.g. mp_size of 262144 and 262143 both lead to 65535 on 4 rx queues
     uint32_t q_mp_sz = (iconf->mempool_size + iconf->nb_rx_queues - 1) / iconf->nb_rx_queues - 1;
-    uint32_t q_mp_cache_sz = MempoolCacheSizeCalculate(q_mp_sz);
+    uint32_t q_mp_cache_sz = iconf->mempool_cache_size_auto ? MempoolCacheSizeCalculate(q_mp_sz)
+                                                            : iconf->mempool_cache_size;
     SCLogInfo("%s: creating %u packet mempools of size %u, cache size %u, mbuf size %u",
             iconf->iface, iconf->nb_rx_queues, q_mp_sz, q_mp_cache_sz, mbuf_size);
     for (int i = 0; i < iconf->nb_rx_queues; i++) {
