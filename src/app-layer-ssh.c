@@ -163,7 +163,7 @@ static int SSHParserTestUtilCheck(const char *protoexp, const char *softexp, voi
     }
 
     if (softexp != NULL) {
-        if (SCSshTxGetSoftware(tx, &software, &s_len, flags) != 1)
+        if (SCSshTxGetSoftware(tx, flags, &software, &s_len) != 1)
             return 1;
         if (software == NULL)
             return 1;
@@ -309,7 +309,7 @@ static int SSHParserTest03(void)
     uint32_t dummy_len = 0;
     if (SCSshTxGetProtocol(tx, &dummy, &dummy_len, STREAM_TOSERVER) != 0)
         goto end;
-    if (SCSshTxGetSoftware(tx, &dummy, &dummy_len, STREAM_TOSERVER) != 0)
+    if (SCSshTxGetSoftware(tx, STREAM_TOSERVER, &dummy, &dummy_len) != 0)
         goto end;
 
     result = 1;
@@ -464,7 +464,7 @@ static int SSHParserTest06(void)
     uint32_t dummy_len = 0;
     if (SCSshTxGetProtocol(tx, &dummy, &dummy_len, STREAM_TOCLIENT) != 0)
         goto end;
-    if (SCSshTxGetSoftware(tx, &dummy, &dummy_len, STREAM_TOCLIENT) != 0)
+    if (SCSshTxGetSoftware(tx, STREAM_TOCLIENT, &dummy, &dummy_len) != 0)
         goto end;
 
     result = 1;
@@ -1558,7 +1558,7 @@ static int SSHParserTest25(void)
     FAIL_IF(SCSshTxGetFlags(tx, STREAM_TOSERVER) == SshStateBannerDone);
     const uint8_t *dummy = NULL;
     uint32_t dummy_len = 0;
-    FAIL_IF(SCSshTxGetSoftware(tx, &dummy, &dummy_len, STREAM_TOCLIENT) != 0);
+    FAIL_IF(SCSshTxGetSoftware(tx, STREAM_TOCLIENT, &dummy, &dummy_len) != 0);
 
     FLOW_DESTROY(&f);
     AppLayerParserThreadCtxFree(alp_tctx);

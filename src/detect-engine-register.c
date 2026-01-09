@@ -236,7 +236,6 @@
 #include "detect-tls-version.h"
 #include "detect-ssh-proto.h"
 #include "detect-ssh-proto-version.h"
-#include "detect-ssh-software.h"
 #include "detect-ssh-software-version.h"
 #include "detect-ssh-hassh.h"
 #include "detect-ssh-hassh-server.h"
@@ -716,7 +715,6 @@ void SigTableSetup(void)
     DetectAsn1Register();
     DetectSshProtocolRegister();
     DetectSshVersionRegister();
-    DetectSshSoftwareRegister();
     DetectSshSoftwareVersionRegister();
     DetectSshHasshRegister();
     DetectSshHasshServerRegister();
@@ -803,6 +801,7 @@ void SigTableSetup(void)
     SCDetectSdpRegister();
     SCDetectDNSRegister();
     SCDetectPgsqlRegister();
+    SCDetectSshRegister();
 
     for (size_t i = 0; i < preregistered_callbacks_nb; i++) {
         PreregisteredCallbacks[i]();
