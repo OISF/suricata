@@ -212,15 +212,7 @@ int DetectPortInsert(DetectEngineCtx *de_ctx, DetectPort **head,
                 DetectPort *c = NULL;
                 r = DetectPortCut(de_ctx, cur, new, &c);
                 if (r == -1)
-                    goto error;
-
-                r = DetectPortInsert(de_ctx, head, new);
-                if (r == -1) {
-                    if (c != NULL) {
-                        DetectPortFree(de_ctx, c);
-                    }
-                    goto error;
-                }
+                    return -1;
 
                 if (c != NULL) {
                     SCLogDebug("inserting C (%p)", c);
@@ -228,9 +220,17 @@ int DetectPortInsert(DetectEngineCtx *de_ctx, DetectPort **head,
                         DetectPortPrint(c);
                     }
                     r = DetectPortInsert(de_ctx, head, c);
-                    if (r == -1)
-                        goto error;
+                    if (r == -1) {
+                        DetectPortFree(de_ctx, c);
+                        return -1;
+                    }
                 }
+
+                r = DetectPortInsert(de_ctx, head, new);
+                if (r == -1) {
+                    return -1;
+                }
+
                 return 1;
 
             }
@@ -243,9 +243,6 @@ int DetectPortInsert(DetectEngineCtx *de_ctx, DetectPort **head,
     }
 
     return 1;
-error:
-    /* XXX */
-    return -1;
 }
 
 /**
