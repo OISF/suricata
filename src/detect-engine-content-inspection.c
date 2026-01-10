@@ -694,6 +694,8 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
         if (DetectBase64DecodeDoMatch(det_ctx, s, smd, buffer, buffer_len)) {
             if (s->sm_arrays[DETECT_SM_LIST_BASE64_DATA] != NULL) {
                 if (det_ctx->base64_decoded_len) {
+                    /* reset buffer offset, as we treat this like a new buffer */
+                    det_ctx->buffer_offset = 0;
                     KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
                     int r = DetectEngineContentInspectionInternal(det_ctx, ctx, s,
                             s->sm_arrays[DETECT_SM_LIST_BASE64_DATA], NULL, f,
