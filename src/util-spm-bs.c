@@ -37,6 +37,8 @@
  * \brief Basic search improved. Limits are better handled, so
  * it doesn't start searches that wont fit in the remaining buffer
  *
+ * Use libc's memmem if available.
+ *
  * \param haystack pointer to the buffer to search in
  * \param haystack_len length limit of the buffer
  * \param needle pointer to the pattern we ar searching for
@@ -47,7 +49,9 @@
 uint8_t *BasicSearch(const uint8_t *haystack, uint32_t haystack_len, const uint8_t *needle, uint16_t needle_len)
 {
     SCEnter();
-
+#ifdef HAVE_MEMMEM
+    return memmem(haystack, haystack_len, needle, needle_len);
+#else
     const uint8_t *h, *n;
     const uint8_t *hmax = haystack + haystack_len;
     const uint8_t *nmax = needle + needle_len;
@@ -86,6 +90,7 @@ uint8_t *BasicSearch(const uint8_t *haystack, uint32_t haystack_len, const uint8
     }
 
     SCReturnPtr(NULL, "uint8_t");
+#endif /* HAVE_MEMMEM */
 }
 
 /**
