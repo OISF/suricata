@@ -102,7 +102,7 @@ static TmEcode ThreadDeinit(ThreadVars *tv, void *data)
 static void OnLoggingReady(void *arg)
 {
     SCOutputRegisterPacketLogger(LOGGER_USER, "custom-packet-logger", CustomPacketLogger,
-            CustomPacketLoggerCondition, NULL, ThreadInit, ThreadDeinit);
+            CustomPacketLoggerCondition, NULL, NULL, ThreadInit, ThreadDeinit);
     SCOutputRegisterFlowLogger(
             "custom-flow-logger", CustomFlowLogger, NULL, ThreadInit, ThreadDeinit);
     SCOutputRegisterTxLogger(LOGGER_USER, "custom-dns-logger", ALPROTO_DNS, CustomDnsLogger, NULL,
