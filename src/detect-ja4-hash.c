@@ -127,7 +127,7 @@ static int DetectJa4HashSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
 
     /* check if JA4 enabling had an effect */
     if (!RunmodeIsUnittests() && !SSLJA4IsEnabled()) {
-        if (!SigMatchSilentErrorEnabled(de_ctx, DETECT_JA4_HASH)) {
+        if (!SCSigMatchSilentErrorEnabled(de_ctx, DETECT_JA4_HASH)) {
             SCLogError("JA4 support is not enabled");
         }
         return -2;

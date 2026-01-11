@@ -15,7 +15,9 @@
  * 02110-1301, USA.
  */
 
-use super::ssh::{SSHConnectionState, SSHTransaction, ALPROTO_SSH};
+use super::ssh::{
+    SCSshEnableHassh, SCSshHasshIsEnabled, SSHConnectionState, SSHTransaction, ALPROTO_SSH,
+};
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
 use crate::direction::Direction;
@@ -24,7 +26,7 @@ use std::ptr;
 use suricata_sys::sys::{
     DetectEngineCtx, SCDetectBufferSetActiveList, SCDetectHelperBufferProgressMpmRegister,
     SCDetectHelperKeywordAliasRegister, SCDetectHelperKeywordRegister,
-    SCDetectSignatureSetAppProto, SCSigTableAppLiteElmt, Signature,
+    SCDetectSignatureSetAppProto, SCSigMatchSilentErrorEnabled, SCSigTableAppLiteElmt, Signature,
 };
 
 #[no_mangle]
@@ -115,8 +117,8 @@ pub unsafe extern "C" fn SCSshTxGetHassh(
 
 #[no_mangle]
 pub unsafe extern "C" fn SCSshTxGetHasshString(
-    tx: *mut std::os::raw::c_void, buffer: *mut *const u8, buffer_len: *mut u32, direction: u8,
-) -> u8 {
+    tx: *const c_void, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> bool {
     let tx = cast_pointer!(tx, SSHTransaction);
     match direction.into() {
         Direction::ToServer => {
@@ -124,7 +126,7 @@ pub unsafe extern "C" fn SCSshTxGetHasshString(
             if !m.is_empty() {
                 *buffer = m.as_ptr();
                 *buffer_len = m.len() as u32;
-                return 1;
+                return true;
             }
         }
         Direction::ToClient => {
@@ -132,14 +134,14 @@ pub unsafe extern "C" fn SCSshTxGetHasshString(
             if !m.is_empty() {
                 *buffer = m.as_ptr();
                 *buffer_len = m.len() as u32;
-                return 1;
+                return true;
             }
         }
     }
     *buffer = ptr::null();
     *buffer_len = 0;
 
-    return 0;
+    return false;
 }
 
 unsafe extern "C" fn ssh_software_setup(
@@ -166,6 +168,50 @@ unsafe extern "C" fn ssh_proto_setup(
     return 0;
 }
 
+unsafe extern "C" fn ssh_hassh_string_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_SSH) != 0 {
+        return -1;
+    }
+    if SCDetectBufferSetActiveList(de, s, G_SSH_HASSH_STR_BUFFER_ID) < 0 {
+        return -1;
+    }
+    /* try to enable Hassh */
+    SCSshEnableHassh();
+
+    /* Check if Hassh is disabled */
+    if !SCSshHasshIsEnabled() {
+        if !SCSigMatchSilentErrorEnabled(de, DETECT_SSH_HASSH_STRING) {
+            SCLogError!("hassh support is not enabled");
+        }
+        return -2;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn ssh_hassh_server_string_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_SSH) != 0 {
+        return -1;
+    }
+    if SCDetectBufferSetActiveList(de, s, G_SSH_HASSH_SRV_STR_BUFFER_ID) < 0 {
+        return -1;
+    }
+    /* try to enable Hassh */
+    SCSshEnableHassh();
+
+    /* Check if Hassh is disabled */
+    if !SCSshHasshIsEnabled() {
+        if !SCSigMatchSilentErrorEnabled(de, DETECT_SSH_HASSH_SERVER_STRING) {
+            SCLogError!("hassh support is not enabled");
+        }
+        return -2;
+    }
+    return 0;
+}
+
 unsafe extern "C" fn ssh_software_obsolete_setup(
     _de: *mut DetectEngineCtx, _s: *mut Signature, _raw: *const std::os::raw::c_char,
 ) -> c_int {
@@ -182,6 +228,11 @@ unsafe extern "C" fn ssh_proto_obsolete_setup(
 
 static mut G_SSH_SOFTWARE_BUFFER_ID: c_int = 0;
 static mut G_SSH_PROTO_BUFFER_ID: c_int = 0;
+static mut G_SSH_HASSH_STR_BUFFER_ID: c_int = 0;
+static mut G_SSH_HASSH_SRV_STR_BUFFER_ID: c_int = 0;
+
+static mut DETECT_SSH_HASSH_STRING: u16 = 0;
+static mut DETECT_SSH_HASSH_SERVER_STRING: u16 = 0;
 
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectSshRegister() {
@@ -245,5 +296,45 @@ pub unsafe extern "C" fn SCDetectSshRegister() {
     SCDetectHelperKeywordAliasRegister(
         ssh_proto_kw_id,
         b"ssh_proto\0".as_ptr() as *const libc::c_char,
+    );
+
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("ssh.hassh.string"),
+        desc: String::from("ssh.hassh.string sticky buffer"),
+        url: String::from("/rules/ssh-keywords.html#hassh.string"),
+        setup: ssh_hassh_string_setup,
+    };
+    DETECT_SSH_HASSH_STRING = helper_keyword_register_sticky_buffer(&kw);
+    G_SSH_HASSH_STR_BUFFER_ID = SCDetectHelperBufferProgressMpmRegister(
+        b"ssh.hassh.string\0".as_ptr() as *const libc::c_char,
+        b"Ssh Client Key Exchange methods For ssh Clients\0".as_ptr() as *const libc::c_char,
+        ALPROTO_SSH,
+        STREAM_TOSERVER,
+        Some(SCSshTxGetHasshString),
+        SSHConnectionState::SshStateBannerDone as c_int,
+    );
+    SCDetectHelperKeywordAliasRegister(
+        DETECT_SSH_HASSH_STRING,
+        b"ssh-hassh-string\0".as_ptr() as *const libc::c_char,
+    );
+
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("ssh.hassh.server.string"),
+        desc: String::from("ssh.hassh.server.string sticky buffer"),
+        url: String::from("/rules/ssh-keywords.html#ssh.hassh.server.string"),
+        setup: ssh_hassh_server_string_setup,
+    };
+    DETECT_SSH_HASSH_SERVER_STRING = helper_keyword_register_sticky_buffer(&kw);
+    G_SSH_HASSH_SRV_STR_BUFFER_ID = SCDetectHelperBufferProgressMpmRegister(
+        b"ssh.hassh.server.string\0".as_ptr() as *const libc::c_char,
+        b"Ssh Client Key Exchange methods For ssh Servers\0".as_ptr() as *const libc::c_char,
+        ALPROTO_SSH,
+        STREAM_TOCLIENT,
+        Some(SCSshTxGetHasshString),
+        SSHConnectionState::SshStateBannerDone as c_int,
+    );
+    SCDetectHelperKeywordAliasRegister(
+        DETECT_SSH_HASSH_SERVER_STRING,
+        b"ssh-hassh-server-string\0".as_ptr() as *const libc::c_char,
     );
 }
