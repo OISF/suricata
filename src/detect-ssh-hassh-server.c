@@ -109,7 +109,7 @@ static int DetectSshHasshServerSetup(DetectEngineCtx *de_ctx, Signature *s, cons
 
     /* Check if Hassh is disabled */
     if (!RunmodeIsUnittests() && !SCSshHasshIsEnabled()) {
-        if (!SigMatchSilentErrorEnabled(de_ctx, DETECT_SSH_HASSH_SERVER)) {
+        if (!SCSigMatchSilentErrorEnabled(de_ctx, DETECT_SSH_HASSH_SERVER)) {
             SCLogError("hassh support is not enabled");
         }
         return -2;
