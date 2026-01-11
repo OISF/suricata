@@ -283,9 +283,7 @@ noinst_HEADERS = \
 	detect-smb-share.h \
 	detect-smb-version.h \
 	detect-smtp.h \
-	detect-ssh-hassh-server-string.h \
 	detect-ssh-hassh-server.h \
-	detect-ssh-hassh-string.h \
 	detect-ssh-hassh.h \
 	detect-ssl-state.h \
 	detect-ssl-version.h \
@@ -878,9 +876,7 @@ libsuricata_c_a_SOURCES = \
 	detect-smb-share.c \
 	detect-smb-version.c \
 	detect-smtp.c \
-	detect-ssh-hassh-server-string.c \
 	detect-ssh-hassh-server.c \
-	detect-ssh-hassh-string.c \
 	detect-ssh-hassh.c \
 	detect-ssl-state.c \
 	detect-ssl-version.c \
