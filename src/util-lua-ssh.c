@@ -66,7 +66,7 @@ static int LuaSshTxGetProto(lua_State *L, uint8_t flags)
         lua_pushnil(L);
         return 1;
     }
-    if (SCSshTxGetProtocol(ltx->tx, &buf, &b_len, flags) != 1) {
+    if (!SCSshTxGetProtocol(ltx->tx, flags, &buf, &b_len)) {
         lua_pushnil(L);
         return 1;
     }
