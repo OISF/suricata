@@ -144,7 +144,7 @@ static int LuaSshTxGetHasshString(lua_State *L, uint8_t flags)
         lua_pushnil(L);
         return 1;
     }
-    if (SCSshTxGetHasshString(ltx->tx, &buf, &b_len, flags) != 1) {
+    if (SCSshTxGetHasshString(ltx->tx, flags, &buf, &b_len) != 1) {
         lua_pushnil(L);
         return 1;
     }

@@ -142,7 +142,7 @@ static int DetectTlsJa3SHashSetup(DetectEngineCtx *de_ctx, Signature *s, const c
 
     /* Check if JA3 is disabled */
     if (!RunmodeIsUnittests() && Ja3IsDisabled("rule")) {
-        if (!SigMatchSilentErrorEnabled(de_ctx, DETECT_TLS_JA3S_HASH)) {
+        if (!SCSigMatchSilentErrorEnabled(de_ctx, DETECT_TLS_JA3S_HASH)) {
             SCLogError("ja3(s) support is not enabled");
         }
         return -2;

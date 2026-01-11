@@ -327,8 +327,7 @@ static SigTableElmt *SigTableGet(char *name)
     return NULL;
 }
 
-bool SigMatchSilentErrorEnabled(const DetectEngineCtx *de_ctx,
-        const enum DetectKeywordId id)
+bool SCSigMatchSilentErrorEnabled(const DetectEngineCtx *de_ctx, uint16_t id)
 {
     return de_ctx->sm_types_silent_error[id];
 }
