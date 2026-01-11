@@ -23,7 +23,8 @@ use std::os::raw::{c_int, c_void};
 use std::ptr;
 use suricata_sys::sys::{
     DetectEngineCtx, SCDetectBufferSetActiveList, SCDetectHelperBufferProgressMpmRegister,
-    SCDetectHelperKeywordAliasRegister, SCDetectSignatureSetAppProto, Signature,
+    SCDetectHelperKeywordAliasRegister, SCDetectHelperKeywordRegister,
+    SCDetectSignatureSetAppProto, SCSigTableAppLiteElmt, Signature,
 };
 
 #[no_mangle]
@@ -153,6 +154,20 @@ unsafe extern "C" fn ssh_software_setup(
     return 0;
 }
 
+unsafe extern "C" fn ssh_software_obsolete_setup(
+    _de: *mut DetectEngineCtx, _s: *mut Signature, _raw: *const std::os::raw::c_char,
+) -> c_int {
+    SCLogError!("ssh.softwareversion is obsolete, use now ssh.software");
+    return -1;
+}
+
+unsafe extern "C" fn ssh_proto_obsolete_setup(
+    _de: *mut DetectEngineCtx, _s: *mut Signature, _raw: *const std::os::raw::c_char,
+) -> c_int {
+    SCLogError!("ssh.softwareversion is obsolete, use now ssh.software");
+    return -1;
+}
+
 static mut G_SSH_SOFTWARE_BUFFER_ID: c_int = 0;
 
 #[no_mangle]
@@ -176,4 +191,26 @@ pub unsafe extern "C" fn SCDetectSshRegister() {
         ssh_software_kw_id,
         b"ssh_software\0".as_ptr() as *const libc::c_char,
     );
+
+    let kw = SCSigTableAppLiteElmt {
+        name: b"ssh.softwareversion\0".as_ptr() as *const libc::c_char,
+        desc: b"obsolete keyword, use now ssh.software\0".as_ptr() as *const libc::c_char,
+        url: std::ptr::null(),
+        AppLayerTxMatch: None,
+        Setup: Some(ssh_software_obsolete_setup),
+        Free: None,
+        flags: 0,
+    };
+    _ = SCDetectHelperKeywordRegister(&kw);
+
+    let kw = SCSigTableAppLiteElmt {
+        name: b"ssh.protoversion\0".as_ptr() as *const libc::c_char,
+        desc: b"obsolete keyword, use now ssh.proto\0".as_ptr() as *const libc::c_char,
+        url: std::ptr::null(),
+        AppLayerTxMatch: None,
+        Setup: Some(ssh_proto_obsolete_setup),
+        Free: None,
+        flags: 0,
+    };
+    _ = SCDetectHelperKeywordRegister(&kw);
 }
