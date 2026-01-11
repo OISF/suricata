@@ -144,7 +144,7 @@ static int SSHParserTestUtilCheck(const char *protoexp, const char *softexp, voi
     const uint8_t *software = NULL;
     uint32_t s_len = 0;
 
-    if (SCSshTxGetProtocol(tx, &protocol, &p_len, flags) != 1) {
+    if (SCSshTxGetProtocol(tx, flags, &protocol, &p_len) != 1) {
         printf("Version string not parsed correctly return: ");
         return 1;
     }
@@ -307,7 +307,7 @@ static int SSHParserTest03(void)
     }
     const uint8_t *dummy = NULL;
     uint32_t dummy_len = 0;
-    if (SCSshTxGetProtocol(tx, &dummy, &dummy_len, STREAM_TOSERVER) != 0)
+    if (SCSshTxGetProtocol(tx, STREAM_TOSERVER, &dummy, &dummy_len) != 0)
         goto end;
     if (SCSshTxGetSoftware(tx, STREAM_TOSERVER, &dummy, &dummy_len) != 0)
         goto end;
@@ -462,7 +462,7 @@ static int SSHParserTest06(void)
     }
     const uint8_t *dummy = NULL;
     uint32_t dummy_len = 0;
-    if (SCSshTxGetProtocol(tx, &dummy, &dummy_len, STREAM_TOCLIENT) != 0)
+    if (SCSshTxGetProtocol(tx, STREAM_TOCLIENT, &dummy, &dummy_len) != 0)
         goto end;
     if (SCSshTxGetSoftware(tx, STREAM_TOCLIENT, &dummy, &dummy_len) != 0)
         goto end;
