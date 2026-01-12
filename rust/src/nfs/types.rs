@@ -348,3 +348,33 @@ pub fn nfs4_procedure_string(procedure: u32) -> String {
 }
 
 pub const NFS4_OK: u32 = 0;
+
+pub(super) fn nfs_is_read(version: u16, proc: u32) -> bool {
+    match version
+    {
+        2 => proc == (NfsProc2::READ as u32),
+        3 => proc == NFSPROC3_READ,
+        4 => proc == NFSPROC4_READ,
+        _ => false,
+    }
+}
+
+pub(super) fn nfs_is_write(version: u16, proc: u32) -> bool {
+    match version
+    {
+        2 => proc == (NfsProc2::WRITE as u32),
+        3 => proc == NFSPROC3_WRITE,
+        4 => proc == NFSPROC4_WRITE,
+        _ => false,
+    }
+}
+
+pub(super) fn nfs_is_rename(version: u16, proc: u32) -> bool {
+    match version
+    {
+        2 => proc == (NfsProc2::RENAME as u32),
+        3 => proc == NFSPROC3_RENAME,
+        4 => proc == NFSPROC4_RENAME,
+        _ => false,
+    }
+}
