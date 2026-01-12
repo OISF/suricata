@@ -321,3 +321,33 @@ pub enum NfsProc4 {
 }
 
 pub const NFS4_OK: u32 = 0;
+
+pub(super) fn nfs_is_read(version: u16, proc: u32) -> bool {
+    match version
+    {
+        2 => proc == (NfsProc2::READ as u32),
+        3 => proc == (NfsProc3::READ as u32),
+        4 => proc == (NfsProc4::READ as u32),
+        _ => false,
+    }
+}
+
+pub(super) fn nfs_is_write(version: u16, proc: u32) -> bool {
+    match version
+    {
+        2 => proc == (NfsProc2::WRITE as u32),
+        3 => proc == (NfsProc3::WRITE as u32),
+        4 => proc == (NfsProc4::WRITE as u32),
+        _ => false,
+    }
+}
+
+pub(super) fn nfs_is_rename(version: u16, proc: u32) -> bool {
+    match version
+    {
+        2 => proc == (NfsProc2::RENAME as u32),
+        3 => proc == (NfsProc3::RENAME as u32),
+        4 => proc == (NfsProc4::RENAME as u32),
+        _ => false,
+    }
+}
