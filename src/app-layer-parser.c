@@ -354,8 +354,8 @@ int SCAppLayerParserConfParserEnabled(const char *ipproto, const char *alproto_n
     if (RunmodeIsUnittests())
         goto enabled;
 
-    r = snprintf(param, sizeof(param), "%s%s%s", "app-layer.protocols.",
-                 alproto_name, ".enabled");
+    r = snprintf(param, sizeof(param), "%s%s%s%s%s", "app-layer.protocols.", alproto_name, ".",
+            ipproto, ".enabled");
     if (r < 0) {
         FatalError("snprintf failure.");
     } else if (r > (int)sizeof(param)) {
@@ -365,8 +365,8 @@ int SCAppLayerParserConfParserEnabled(const char *ipproto, const char *alproto_n
     node = SCConfGetNode(param);
     if (node == NULL) {
         SCLogDebug("Entry for %s not found.", param);
-        r = snprintf(param, sizeof(param), "%s%s%s%s%s", "app-layer.protocols.",
-                     alproto_name, ".", ipproto, ".enabled");
+        r = snprintf(
+                param, sizeof(param), "%s%s%s", "app-layer.protocols.", alproto_name, ".enabled");
         if (r < 0) {
             FatalError("snprintf failure.");
         } else if (r > (int)sizeof(param)) {
