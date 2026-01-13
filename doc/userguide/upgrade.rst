@@ -62,6 +62,11 @@ Other Changes
   from unbounded to 2048. Configuration options, ``max-tx``,
   ``max-points``, and ``max-objects`` have been added for users who
   may need to change these defaults.
+- In DPDK capture mode, management threads need to be explicitly defined and
+  they cannot overlap with worker CPU affinity. Previously, Suricata only
+  warned if overlap was present.
+- DPDK EAL lcore arguments cannot be used. Suricata now manages the
+  lcore assignments itself based on the CPU affinity configuration.
 
 Upgrading to 8.0.1
 ------------------
