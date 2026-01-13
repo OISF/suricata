@@ -144,6 +144,7 @@ if HAVE_BINDGEN
 		--allowlist-function 'AppProto.*' \
 		--allowlist-function 'File.*' \
 		--allowlist-type 'SC.*' \
+		--allowlist-type 'AppLayerEventType' \
 		--allowlist-function 'SC.*' \
 		--allowlist-var 'SC.*' \
 		--opaque-type 'SCConfNode' \

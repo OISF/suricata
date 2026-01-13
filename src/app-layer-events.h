@@ -30,7 +30,7 @@
 /**
  * \brief Data structure to store app layer decoder events.
  */
-struct AppLayerDecoderEvents_ {
+typedef struct AppLayerDecoderEvents_ {
     /* array of events */
     uint8_t *events;
     /* number of events in the above buffer */
@@ -39,7 +39,7 @@ struct AppLayerDecoderEvents_ {
     uint8_t events_buffer_size;
     /* last logged */
     uint8_t event_last_logged;
-};
+} AppLayerDecoderEvents;
 
 /* app layer pkt level events */
 enum {
@@ -50,6 +50,11 @@ enum {
     APPLAYER_NO_TLS_AFTER_STARTTLS,
     APPLAYER_UNEXPECTED_PROTOCOL,
 };
+
+typedef enum AppLayerEventType {
+    APP_LAYER_EVENT_TYPE_TRANSACTION = 1,
+    APP_LAYER_EVENT_TYPE_PACKET = 2,
+} AppLayerEventType;
 
 int AppLayerGetPktEventInfo(const char *event_name, uint8_t *event_id);
 
