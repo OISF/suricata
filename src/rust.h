@@ -23,6 +23,7 @@ typedef struct HttpRangeContainerBlock HttpRangeContainerBlock;
 typedef struct Dataset Dataset;
 
 typedef struct DetectEngineState_ DetectEngineState;
+typedef enum AppLayerEventType AppLayerEventType;
 
 // may be improved by smaller include
 #include "detect.h"

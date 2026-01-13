@@ -26,6 +26,7 @@
 #define SURICATA_APP_LAYER_PARSER_H
 
 #include "app-layer-protos.h"
+#include "app-layer-events.h"
 // Forward declarations for bindgen
 enum ConfigAction;
 typedef struct Flow_ Flow;
@@ -40,7 +41,6 @@ typedef struct AppLayerResult AppLayerResult;
 typedef struct AppLayerGetTxIterTuple AppLayerGetTxIterTuple;
 typedef struct AppLayerGetFileState AppLayerGetFileState;
 typedef struct AppLayerTxData AppLayerTxData;
-typedef enum AppLayerEventType AppLayerEventType;
 typedef struct AppLayerStateData AppLayerStateData;
 typedef struct AppLayerTxConfig AppLayerTxConfig;
 

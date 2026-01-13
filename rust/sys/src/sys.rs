@@ -920,14 +920,49 @@ extern "C" {
 extern "C" {
     pub fn AppProtoDetectListNames();
 }
+#[doc = " \\brief Data structure to store app layer decoder events."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct AppLayerDecoderEvents_ {
+    pub events: *mut u8,
+    pub cnt: u8,
+    pub events_buffer_size: u8,
+    pub event_last_logged: u8,
+}
+impl Default for AppLayerDecoderEvents_ {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[doc = " \\brief Data structure to store app layer decoder events."]
+pub type AppLayerDecoderEvents = AppLayerDecoderEvents_;
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub enum AppLayerEventType {
+    APP_LAYER_EVENT_TYPE_TRANSACTION = 1,
+    APP_LAYER_EVENT_TYPE_PACKET = 2,
+}
+extern "C" {
+    pub fn SCAppLayerDecoderEventsSetEventRaw(sevents: *mut *mut AppLayerDecoderEvents, event: u8);
+}
+extern "C" {
+    pub fn SCAppLayerDecoderEventsFreeEvents(events: *mut *mut AppLayerDecoderEvents);
+}
+extern "C" {
+    pub fn SCAppLayerGetEventIdByName(
+        event_name: *const ::std::os::raw::c_char, table: *mut SCEnumCharMap, event_id: *mut u8,
+    ) -> ::std::os::raw::c_int;
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct AppLayerParserState_ {
     _unused: [u8; 0],
 }
 pub type AppLayerParserState = AppLayerParserState_;
-#[doc = " \\brief Data structure to store app layer decoder events."]
-pub type AppLayerDecoderEvents = AppLayerDecoderEvents_;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct File_ {
@@ -1008,35 +1043,6 @@ extern "C" {
 extern "C" {
     pub fn SCAppLayerRegisterParserAlias(
         proto_name: *const ::std::os::raw::c_char, proto_alias: *const ::std::os::raw::c_char,
-    ) -> ::std::os::raw::c_int;
-}
-#[doc = " \\brief Data structure to store app layer decoder events."]
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct AppLayerDecoderEvents_ {
-    pub events: *mut u8,
-    pub cnt: u8,
-    pub events_buffer_size: u8,
-    pub event_last_logged: u8,
-}
-impl Default for AppLayerDecoderEvents_ {
-    fn default() -> Self {
-        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-extern "C" {
-    pub fn SCAppLayerDecoderEventsSetEventRaw(sevents: *mut *mut AppLayerDecoderEvents, event: u8);
-}
-extern "C" {
-    pub fn SCAppLayerDecoderEventsFreeEvents(events: *mut *mut AppLayerDecoderEvents);
-}
-extern "C" {
-    pub fn SCAppLayerGetEventIdByName(
-        event_name: *const ::std::os::raw::c_char, table: *mut SCEnumCharMap, event_id: *mut u8,
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {
