@@ -985,6 +985,35 @@ extern "C" {
         ipproto: *const ::std::os::raw::c_char, alproto_name: *const ::std::os::raw::c_char,
     ) -> ::std::os::raw::c_int;
 }
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct AppLayerGetTxIterState {
+    pub un: AppLayerGetTxIterState__bindgen_ty_1,
+}
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub union AppLayerGetTxIterState__bindgen_ty_1 {
+    pub ptr: *mut ::std::os::raw::c_void,
+    pub u64_: u64,
+}
+impl Default for AppLayerGetTxIterState__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for AppLayerGetTxIterState {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 extern "C" {
     pub fn SCAppLayerParserReallocCtx(alproto: AppProto) -> ::std::os::raw::c_int;
 }

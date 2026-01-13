@@ -30,7 +30,8 @@ use crate::core::StreamingBufferConfig;
 // AppLayerEvent from this module.
 pub use suricata_derive::AppLayerEvent;
 use suricata_sys::sys::{
-    AppLayerDecoderEvents, AppLayerParserState, AppProto, DetectEngineState, GenericVar,
+    AppLayerDecoderEvents, AppLayerGetTxIterState, AppLayerParserState, AppProto,
+    DetectEngineState, GenericVar,
 };
 #[cfg(not(test))]
 use suricata_sys::sys::{
@@ -512,7 +513,7 @@ pub type GetTxIteratorFn    = unsafe extern "C" fn (ipproto: u8, alproto: AppPro
                                              state: *mut c_void,
                                              min_tx_id: u64,
                                              max_tx_id: u64,
-                                             istate: &mut u64)
+                                             istate: *mut AppLayerGetTxIterState)
                                              -> AppLayerGetTxIterTuple;
 pub type GetTxDataFn = unsafe extern "C" fn(*mut c_void) -> *mut AppLayerTxData;
 pub type GetStateDataFn = unsafe extern "C" fn(*mut c_void) -> *mut AppLayerStateData;
@@ -698,10 +699,10 @@ pub trait State<Tx: Transaction> {
 
 pub unsafe extern "C" fn state_get_tx_iterator<S: State<Tx>, Tx: Transaction>(
     _ipproto: u8, _alproto: AppProto, state: *mut std::os::raw::c_void, min_tx_id: u64,
-    _max_tx_id: u64, istate: &mut u64,
+    _max_tx_id: u64, istate: *mut AppLayerGetTxIterState,
 ) -> AppLayerGetTxIterTuple {
     let state = cast_pointer!(state, S);
-    state.get_transaction_iterator(min_tx_id, istate)
+    state.get_transaction_iterator(min_tx_id, &mut (*istate).un.u64_)
 }
 
 /// AppLayerFrameType trait.
