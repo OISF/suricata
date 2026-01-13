@@ -1989,6 +1989,14 @@ present, and ``encryption-handling`` is not, ``false`` is interpreted as
 ``encryption-handling: track-only`` and ``true`` is interpreted as
 ``encryption-handling: bypass``.
 
+SSH
+~~~
+
+Besides ``encryption-handling``, ssh parser offers the ``hassh`` option
+with 3 values
+- yes : enables hassh logging
+- auto : hassh be enabled if rules use hassh keywords
+- no : disables hassh and will refuse to load rules that use hassh keywords
 
 Modbus
 ~~~~~~

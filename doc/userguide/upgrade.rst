@@ -73,6 +73,11 @@ Other Changes
   See :ref:`Hyperscan caching configuration
   <hyperscan-cache-configuration>` for more information.
 
+- The ``no`` option in ``app-layer.protocols.ssh.hassh`` is now
+  really enforced and there will be no hassh computation
+  even if rules try to use it.
+
+
 Upgrading to 8.0.1
 ------------------
 
