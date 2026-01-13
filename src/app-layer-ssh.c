@@ -96,6 +96,7 @@ void RegisterSSHParsers(void)
             enable_hassh = SSH_CONFIG_DEFAULT_HASSH;
         } else if (SCConfValIsFalse(strval)) {
             enable_hassh = SSH_CONFIG_DEFAULT_HASSH;
+            SCSshDisableHassh();
         } else if (SCConfValIsTrue(strval)) {
             enable_hassh = true;
         }

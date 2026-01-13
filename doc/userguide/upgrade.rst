@@ -69,6 +69,11 @@ Other Changes
   ``max-points``, and ``max-objects`` have been added for users who
   may need to change these defaults.
 
+- The ``no`` option in ``app-layer.protocols.ssh.hassh`` is now
+  really enforced and there will be no hassh computation
+  even if rules try to use it.
+
+
 Upgrading to 8.0.1
 ------------------
 
