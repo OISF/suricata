@@ -290,7 +290,7 @@ impl Parser {
     }
 
     // limits quadratic complexity when each new packet just keeps adding a folded line
-    const MAX_NB_FOLD : u8 = 128;
+    const MAX_NB_FOLD: u8 = 128;
 
     /// Parse a complete header value, including any folded headers
     fn value(&self) -> impl Fn(&[u8]) -> IResult<&[u8], Value> + '_ {
