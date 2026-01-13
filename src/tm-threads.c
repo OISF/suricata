@@ -320,7 +320,6 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
                    " tmqh_out=%p",
                 s, s ? s->PktAcqLoop : NULL, tv->tmqh_in, tv->tmqh_out);
         TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
-        pthread_exit(NULL);
         return NULL;
     }
 
@@ -349,11 +348,9 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
     }
 
     SCLogDebug("%s ending", tv->name);
-    pthread_exit((void *) 0);
     return NULL;
 
 error:
-    pthread_exit(NULL);
     return NULL;
 }
 
@@ -428,7 +425,6 @@ static void *TmThreadsSlotVar(void *td)
     /* check if we are setup properly */
     if (s == NULL || tv->tmqh_in == NULL || tv->tmqh_out == NULL) {
         TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
-        pthread_exit(NULL);
         return NULL;
     }
 
@@ -454,7 +450,6 @@ static void *TmThreadsSlotVar(void *td)
             tv->flow_queue = FlowQueueNew();
             if (tv->flow_queue == NULL) {
                 TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
-                pthread_exit(NULL);
                 return NULL;
             }
         /* setup a queue */
@@ -469,7 +464,6 @@ static void *TmThreadsSlotVar(void *td)
             tv->flow_queue = FlowQueueNew();
             if (tv->flow_queue == NULL) {
                 TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
-                pthread_exit(NULL);
                 return NULL;
             }
         }
@@ -526,12 +520,10 @@ static void *TmThreadsSlotVar(void *td)
     }
     StatsSyncCounters(&tv->stats);
 
-    pthread_exit(NULL);
     return NULL;
 
 error:
     tv->stream_pq = NULL;
-    pthread_exit(NULL);
     return NULL;
 }
 
@@ -558,7 +550,6 @@ static void *TmThreadsManagement(void *td)
         r = s->SlotThreadInit(tv, s->slot_initdata, &slot_data);
         if (r != TM_ECODE_OK) {
             TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
-            pthread_exit(NULL);
             return NULL;
         }
         (void)SC_ATOMIC_SET(s->slot_data, slot_data);
@@ -589,13 +580,11 @@ static void *TmThreadsManagement(void *td)
         r = s->SlotThreadDeinit(tv, SC_ATOMIC_GET(s->slot_data));
         if (r != TM_ECODE_OK) {
             TmThreadsSetFlag(tv, THV_CLOSED);
-            pthread_exit(NULL);
             return NULL;
         }
     }
 
     TmThreadsSetFlag(tv, THV_CLOSED);
-    pthread_exit((void *) 0);
     return NULL;
 }
 
