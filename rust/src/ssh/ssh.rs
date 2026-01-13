@@ -41,6 +41,7 @@ pub enum SshEncryptionHandling {
 
 static mut ALPROTO_SSH: AppProto = ALPROTO_UNKNOWN;
 static HASSH_ENABLED: AtomicBool = AtomicBool::new(false);
+static HASSH_DISABLED: AtomicBool = AtomicBool::new(false);
 
 static mut ENCRYPTION_BYPASS_ENABLED: SshEncryptionHandling =
     SshEncryptionHandling::SSH_HANDLE_ENCRYPTION_TRACK_ONLY;
@@ -593,12 +594,19 @@ pub unsafe extern "C" fn SCRegisterSshParser() {
 
 #[no_mangle]
 pub extern "C" fn SCSshEnableHassh() {
-    HASSH_ENABLED.store(true, Ordering::Relaxed)
+    if !HASSH_DISABLED.load(Ordering::Relaxed) {
+        HASSH_ENABLED.store(true, Ordering::Relaxed)
+    }
 }
 
 #[no_mangle]
 pub extern "C" fn SCSshHasshIsEnabled() -> bool {
     hassh_is_enabled()
+}
+
+#[no_mangle]
+pub extern "C" fn SCSshDisableHassh() {
+    HASSH_DISABLED.store(true, Ordering::Relaxed)
 }
 
 #[no_mangle]
