@@ -33,7 +33,7 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    if (SCFinalizeRunMode() != TM_ECODE_OK) {
+    if (SCFinalizeRunMode(argc) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
 
