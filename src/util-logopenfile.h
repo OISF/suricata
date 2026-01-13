@@ -126,6 +126,9 @@ typedef struct LogFileCtx_ {
     /** The interval to rotate the log file */
     uint64_t rotate_interval;
 
+    /** Next context in log rotation list */
+    struct LogFileCtx_ *log_rotation_next;
+
     /**< Used by some alert loggers like the unified ones that append
      * the date onto the end of files. */
     char *prefix;
@@ -183,5 +186,6 @@ LogFileCtx *LogFileEnsureExists(ThreadId thread_id, LogFileCtx *lf_ctx);
 int SCConfLogOpenGeneric(SCConfNode *conf, LogFileCtx *, const char *, int);
 int SCConfLogReopen(LogFileCtx *);
 bool SCLogOpenThreadedFile(const char *log_path, const char *append, LogFileCtx *parent_ctx);
+void LogFileCheckRotations(void);
 
 #endif /* SURICATA_UTIL_LOGOPENFILE_H */

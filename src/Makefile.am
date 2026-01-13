@@ -362,7 +362,7 @@ noinst_HEADERS = \
 	ippair-timeout.h \
 	ippair.h \
 	log-cf-common.h \
-	log-flush.h \
+	log-maintenance.h \
 	log-httplog.h \
 	log-pcap.h \
 	log-stats.h \
@@ -958,7 +958,7 @@ libsuricata_c_a_SOURCES = \
 	ippair-timeout.c \
 	ippair.c \
 	log-cf-common.c \
-	log-flush.c \
+	log-maintenance.c \
 	log-httplog.c \
 	log-pcap.c \
 	log-stats.c \

@@ -20,7 +20,7 @@
  *
  * \author Jeff Lucovsky <jlucovsky@oisf.net>
  */
-#ifndef SURICATA_LOG_FLUSH_H__
-#define SURICATA_LOG_FLUSH_H__
-void LogFlushThreads(void);
-#endif /* SURICATA_LOG_FLUSH_H__ */
+#ifndef SURICATA_LOG_MAINTENANCE_H__
+#define SURICATA_LOG_MAINTENANCE_H__
+void LogMaintenanceThreadSpawn(void);
+#endif /* SURICATA_LOG_MAINTENANCE_H__ */
