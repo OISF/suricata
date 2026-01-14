@@ -46,6 +46,7 @@
 #include "util-signal.h"
 #include "queue.h"
 #include "util-validate.h"
+#include "util-dpdk-threading.h"
 
 #ifdef PROFILE_LOCKING
 thread_local uint64_t mutex_lock_contention;
@@ -1228,6 +1229,26 @@ static bool ThreadStillHasPackets(ThreadVars *tv)
     return false;
 }
 
+static void TmThreadJoinPthread(ThreadVars *tv)
+{
+    /* Join the thread and flag as dead, unless the thread ID is 0 as
+     * its not a thread created by Suricata. */
+    if (tv->t) {
+        pthread_join(tv->t, NULL);
+    }
+}
+
+static void TmThreadJoin(ThreadVars *tv)
+{
+    if (SCRunmodeGet() == RUNMODE_DPDK && tv->type == TVT_PPT) {
+        DpdkThreadJoin(tv);
+    } else {
+        TmThreadJoinPthread(tv);
+    }
+
+    SCLogDebug("thread %s stopped", tv->name);
+}
+
 /**
  * \brief Kill a thread.
  *
@@ -1286,12 +1307,7 @@ static int TmThreadKillThread(ThreadVars *tv)
         }
     }
 
-    /* Join the thread and flag as dead, unless the thread ID is 0 as
-     * its not a thread created by Suricata. */
-    if (tv->t) {
-        pthread_join(tv->t, NULL);
-        SCLogDebug("thread %s stopped", tv->name);
-    }
+    TmThreadJoin(tv);
     TmThreadsSetFlag(tv, THV_DEAD);
     return 1;
 }
@@ -1686,17 +1702,9 @@ void TmThreadClearThreadsFamily(int family)
     SCMutexUnlock(&tv_root_lock);
 }
 
-/**
- * \brief Spawns a thread associated with the ThreadVars instance tv
- *
- * \retval TM_ECODE_OK on success and TM_ECODE_FAILED on failure
- */
-TmEcode TmThreadSpawn(ThreadVars *tv)
+static void TmThreadSpawnPthread(ThreadVars *tv)
 {
     pthread_attr_t attr;
-    if (tv->tm_func == NULL) {
-        FatalError("No thread function set");
-    }
 
     /* Initialize and set thread detached attribute */
     pthread_attr_init(&attr);
@@ -1732,6 +1740,26 @@ TmEcode TmThreadSpawn(ThreadVars *tv)
         }
     }
 #endif
+
+    pthread_attr_destroy(&attr);
+}
+
+/**
+ * \brief Spawns a thread associated with the ThreadVars instance tv
+ *
+ * \retval TM_ECODE_OK on success and TM_ECODE_FAILED on failure
+ */
+TmEcode TmThreadSpawn(ThreadVars *tv)
+{
+    if (tv->tm_func == NULL) {
+        FatalError("No thread function set");
+    }
+
+    if (SCRunmodeGet() == RUNMODE_DPDK && tv->type == TVT_PPT) {
+        DpdkThreadSpawn(tv);
+    } else {
+        TmThreadSpawnPthread(tv);
+    }
 
     TmThreadWaitForFlag(tv, THV_INIT_DONE | THV_RUNNING_DONE);
 

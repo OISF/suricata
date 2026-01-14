@@ -57,7 +57,10 @@ struct TmSlot_;
 
 /** \brief Per thread variable structure */
 typedef struct ThreadVars_ {
-    pthread_t t;
+    union {
+        pthread_t t;
+        uint16_t lcore_id;
+    };
     /** function pointer to the function that runs the packet pipeline for
      *  this thread. It is passed directly to pthread_create(), hence the
      *  void pointers in and out. */
