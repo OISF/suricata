@@ -61,6 +61,7 @@ Request Keywords:
  * :ref:`http.accept`
  * :ref:`http.accept_enc`
  * :ref:`http.accept_lang`
+ * :ref:`http.form`
  * :ref:`http.host`
  * :ref:`http.host.raw`
  * :ref:`http.method`
@@ -241,6 +242,18 @@ Example HTTP Request::
   to buffer contents, see :ref:`http.normalization` for additional details.
 
 .. _http.host:
+
+http.form
+---------
+
+Matching on the HTTP form data, wether it is encoded in the URI
+or in the request body with Content-Type: application/x-www-form-urlencoded
+is possible with the single keyword ``http.form``.
+
+Normalization (urldecode) is done.
+
+.. note:: ``http.form`` supports multiple buffer matching, see
+  :doc:`multi-buffer-matching`.
 
 http.host
 ---------
