@@ -25,6 +25,7 @@ pub mod error;
 pub mod float;
 pub mod flow;
 pub mod fragbits;
+pub mod http;
 pub mod iprep;
 pub mod parser;
 pub mod requires;
