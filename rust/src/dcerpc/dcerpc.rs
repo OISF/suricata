@@ -1,4 +1,4 @@
-/* Copyright (C) 2020-2024 Open Information Security Foundation
+/* Copyright (C) 2020-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -920,10 +920,19 @@ impl DCERPCState {
                 return AppLayerResult::err();
             }
         } else {
+            // Case when there wasn't enough data the first time stream_slice was parsed but
+            // there was enough to parse and save the header
             frag_bytes_consumed = DCERPC_HDR_LEN;
         }
 
         let fraglen = self.get_hdr_fraglen().unwrap_or(0);
+        if fraglen == 0 {
+            SCLogDebug!("Erroneous fragment length");
+            return AppLayerResult::err();
+        } else if fraglen == DCERPC_HDR_LEN {
+            // input only consists of the header and that was consumed, so, return early
+            return AppLayerResult::ok();
+        }
 
         if (cur_i.len() + frag_bytes_consumed as usize) < fraglen as usize {
             SCLogDebug!("Possibly fragmented data, waiting for more..");
@@ -937,16 +946,19 @@ impl DCERPCState {
         }
         let current_call_id = self.get_hdr_call_id().unwrap_or(0);
 
+        let body_len = (fraglen - frag_bytes_consumed) as usize;
+        debug_validate_bug_on!(body_len > cur_i.len());
+        debug_validate_bug_on!(body_len < parsed as usize);
         match self.get_hdr_type() {
             Some(x) => match x {
                 DCERPC_TYPE_BIND | DCERPC_TYPE_ALTER_CONTEXT => {
-                    retval = self.process_bind_pdu(&cur_i[parsed as usize..]);
+                    retval = self.process_bind_pdu(&cur_i[parsed as usize..body_len]);
                     if retval == -1 {
                         return AppLayerResult::err();
                     }
                 }
                 DCERPC_TYPE_BINDACK | DCERPC_TYPE_ALTER_CONTEXT_RESP => {
-                    retval = self.process_bindack_pdu(&cur_i[parsed as usize..]);
+                    retval = self.process_bindack_pdu(&cur_i[parsed as usize..body_len]);
                     if retval == -1 {
                         return AppLayerResult::err();
                     }
@@ -966,7 +978,7 @@ impl DCERPCState {
                     }
                 }
                 DCERPC_TYPE_REQUEST => {
-                    retval = self.process_request_pdu(&cur_i[parsed as usize..]);
+                    retval = self.process_request_pdu(&cur_i[parsed as usize..body_len]);
                     if retval < 0 {
                         return AppLayerResult::err();
                     }
@@ -986,7 +998,7 @@ impl DCERPCState {
                         }
                     };
                     retval = self.handle_common_stub(
-                        &cur_i[parsed as usize..],
+                        &cur_i[parsed as usize..body_len],
                         0,
                         Direction::ToClient,
                     );
