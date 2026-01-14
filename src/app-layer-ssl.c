@@ -490,35 +490,33 @@ static int TlsDecodeHSCertificate(SSLState *ssl_state, SSLStateConnp *connp,
             goto next;
         }
 
-        char *str = SCX509GetSubject(x509);
-        if (str == NULL) {
+        SCX509GetSubject(x509, &connp->cert0_subject, &connp->cert0_subject_len);
+        if (connp->cert0_subject == NULL) {
             err_code = ERR_EXTRACT_SUBJECT;
             goto error;
         }
-        connp->cert0_subject = str;
 
-        str = SCX509GetIssuer(x509);
-        if (str == NULL) {
+        SCX509GetIssuer(x509, &connp->cert0_issuerdn, &connp->cert0_issuerdn_len);
+        if (connp->cert0_issuerdn == NULL) {
             err_code = ERR_EXTRACT_ISSUER;
             goto error;
         }
-        connp->cert0_issuerdn = str;
 
-        connp->cert0_sans_len = SCX509GetSubjectAltNameLen(x509);
-        char **sans = SCCalloc(connp->cert0_sans_len, sizeof(char *));
-        if (sans == NULL) {
+        connp->cert0_sans_num = SCX509GetSubjectAltNameLen(x509);
+        connp->cert0_sans = SCCalloc(connp->cert0_sans_num, sizeof(SSLSubjectAltName));
+        if (connp->cert0_sans == NULL) {
             goto error;
         }
-        for (uint16_t i = 0; i < connp->cert0_sans_len; i++) {
-            sans[i] = SCX509GetSubjectAltNameAt(x509, i);
+        for (uint16_t i = 0; i < connp->cert0_sans_num; i++) {
+            SCX509GetSubjectAltNameAt(
+                    x509, i, &connp->cert0_sans[i].san, &connp->cert0_sans[i].san_len);
         }
-        connp->cert0_sans = sans;
-        str = SCX509GetSerial(x509);
-        if (str == NULL) {
+
+        SCX509GetSerial(x509, &connp->cert0_serial, &connp->cert0_serial_len);
+        if (connp->cert0_serial == NULL) {
             err_code = ERR_INVALID_SERIAL;
             goto error;
         }
-        connp->cert0_serial = str;
 
         rc = SCX509GetValidity(x509, &connp->cert0_not_before, &connp->cert0_not_after);
         if (rc != 0) {
@@ -954,20 +952,18 @@ static inline int TLSDecodeHSHelloExtensionSni(SSLState *ssl_state,
         return (int)(input - initial_input);
     }
 
-    const size_t sni_strlen = sni_len + 1;
-    ssl_state->curr_connp->sni = SCMalloc(sni_strlen);
+    ssl_state->curr_connp->sni_len = sni_len;
+    ssl_state->curr_connp->sni = SCMalloc(sni_len);
     if (unlikely(ssl_state->curr_connp->sni == NULL))
         return -1;
 
     const size_t consumed = input - initial_input;
-    if (SafeMemcpy(ssl_state->curr_connp->sni, 0, sni_strlen,
-                initial_input, consumed, input_len, sni_len) != 0) {
+    if (SafeMemcpy(ssl_state->curr_connp->sni, 0, sni_len, initial_input, consumed, input_len,
+                sni_len) != 0) {
         SCFree(ssl_state->curr_connp->sni);
         ssl_state->curr_connp->sni = NULL;
         return -1;
     }
-    ssl_state->curr_connp->sni[sni_strlen-1] = 0;
-
     input += sni_len;
 
     return (int)(input - initial_input);
@@ -1620,6 +1616,9 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, const uint8_t *input,
         case SSLV3_HS_CLIENT_HELLO:
             ssl_state->current_flags = SSL_AL_FLAG_STATE_CLIENT_HELLO;
 
+            if (ssl_state->curr_connp->hs == NULL)
+                ssl_state->curr_connp->hs = SCTLSHandshakeNew();
+
             rc = TLSDecodeHandshakeHello(ssl_state, input, input_len);
             if (rc < 0)
                 return rc;
@@ -1629,6 +1628,9 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, const uint8_t *input,
             ssl_state->current_flags = SSL_AL_FLAG_STATE_SERVER_HELLO;
 
             DEBUG_VALIDATE_BUG_ON(ssl_state->curr_connp->message_length != input_len);
+            if (ssl_state->curr_connp->hs == NULL)
+                ssl_state->curr_connp->hs = SCTLSHandshakeNew();
+
             rc = TLSDecodeHandshakeHello(ssl_state, input, input_len);
             if (rc < 0)
                 return rc;
@@ -2823,12 +2825,6 @@ static void *SSLStateAlloc(void *orig_state, AppProto proto_orig)
     SSLState *ssl_state = SCCalloc(1, sizeof(SSLState));
     if (unlikely(ssl_state == NULL))
         return NULL;
-    ssl_state->client_connp.cert_log_flag = 0;
-    ssl_state->server_connp.cert_log_flag = 0;
-    memset(ssl_state->client_connp.random, 0, TLS_RANDOM_LEN);
-    memset(ssl_state->server_connp.random, 0, TLS_RANDOM_LEN);
-    ssl_state->client_connp.hs = SCTLSHandshakeNew();
-    ssl_state->server_connp.hs = SCTLSHandshakeNew();
     TAILQ_INIT(&ssl_state->server_connp.certs);
     TAILQ_INIT(&ssl_state->client_connp.certs);
 
@@ -2838,8 +2834,8 @@ static void *SSLStateAlloc(void *orig_state, AppProto proto_orig)
 static void SSLStateCertSANFree(SSLStateConnp *connp)
 {
     if (connp->cert0_sans) {
-        for (uint16_t i = 0; i < connp->cert0_sans_len; i++) {
-            SCRustCStringFree(connp->cert0_sans[i]);
+        for (uint16_t i = 0; i < connp->cert0_sans_num; i++) {
+            SCX509ArrayFree(connp->cert0_sans[i].san, connp->cert0_sans[i].san_len);
         }
         SCFree(connp->cert0_sans);
     }
@@ -2855,11 +2851,14 @@ static void SSLStateFree(void *p)
     SSLCertsChain *item;
 
     if (ssl_state->client_connp.cert0_subject)
-        SCRustCStringFree(ssl_state->client_connp.cert0_subject);
+        SCX509ArrayFree(
+                ssl_state->client_connp.cert0_subject, ssl_state->client_connp.cert0_subject_len);
     if (ssl_state->client_connp.cert0_issuerdn)
-        SCRustCStringFree(ssl_state->client_connp.cert0_issuerdn);
+        SCX509ArrayFree(
+                ssl_state->client_connp.cert0_issuerdn, ssl_state->client_connp.cert0_issuerdn_len);
     if (ssl_state->client_connp.cert0_serial)
-        SCRustCStringFree(ssl_state->client_connp.cert0_serial);
+        SCX509ArrayFree(
+                ssl_state->client_connp.cert0_serial, ssl_state->client_connp.cert0_serial_len);
     if (ssl_state->client_connp.cert0_fingerprint)
         SCFree(ssl_state->client_connp.cert0_fingerprint);
     if (ssl_state->client_connp.sni)
@@ -2870,11 +2869,14 @@ static void SSLStateFree(void *p)
         SCFree(ssl_state->client_connp.hs_buffer);
 
     if (ssl_state->server_connp.cert0_subject)
-        SCRustCStringFree(ssl_state->server_connp.cert0_subject);
+        SCX509ArrayFree(
+                ssl_state->server_connp.cert0_subject, ssl_state->server_connp.cert0_subject_len);
     if (ssl_state->server_connp.cert0_issuerdn)
-        SCRustCStringFree(ssl_state->server_connp.cert0_issuerdn);
+        SCX509ArrayFree(
+                ssl_state->server_connp.cert0_issuerdn, ssl_state->server_connp.cert0_issuerdn_len);
     if (ssl_state->server_connp.cert0_serial)
-        SCRustCStringFree(ssl_state->server_connp.cert0_serial);
+        SCX509ArrayFree(
+                ssl_state->server_connp.cert0_serial, ssl_state->server_connp.cert0_serial_len);
     if (ssl_state->server_connp.cert0_fingerprint)
         SCFree(ssl_state->server_connp.cert0_fingerprint);
     if (ssl_state->server_connp.sni)

@@ -18,7 +18,7 @@
 // written by Victor Julien
 
 use uuid;
-use crate::smb::smb::*;
+use crate::smb::smb::{cfg_max_stub_size, *};
 use crate::smb::smb2::*;
 use crate::smb::dcerpc_records::*;
 use crate::smb::events::*;
@@ -205,10 +205,15 @@ pub fn smb_write_dcerpc_record(state: &mut SMBState,
                                 SCLogDebug!("previous CMD {} found at tx {} => {:?}",
                                         dcer.packet_type, tx.id, tx);
                                 if let Some(SMBTransactionTypeData::DCERPC(ref mut tdn)) = tx.type_data {
-                                    SCLogDebug!("additional frag of size {}", recr.data.len());
-                                    tdn.stub_data_ts.extend_from_slice(recr.data);
-                                    tdn.frag_cnt_ts += 1;
-                                    SCLogDebug!("stub_data now {}", tdn.stub_data_ts.len());
+                                    tdn.frag_cnt_ts = tdn.frag_cnt_ts.saturating_add(1);
+                                    let max_size = cfg_max_stub_size() as usize;
+                                    if recr.data.len() + tdn.stub_data_ts.len() < max_size {
+                                        SCLogDebug!("additional frag of size {}", recr.data.len());
+                                        tdn.stub_data_ts.extend_from_slice(recr.data);
+                                        SCLogDebug!("stub_data now {}", tdn.stub_data_ts.len());
+                                    } else if tdn.stub_data_ts.len() < max_size {
+                                        tdn.stub_data_ts.extend_from_slice(&recr.data[..max_size - tdn.stub_data_ts.len()]);
+                                    }
                                 }
                                 if dcer.last_frag {
                                     SCLogDebug!("last frag set, so request side of DCERPC closed");
@@ -240,12 +245,17 @@ pub fn smb_write_dcerpc_record(state: &mut SMBState,
                             SCLogDebug!("DCERPC: REQUEST {:?}", recr);
                             if let Some(SMBTransactionTypeData::DCERPC(ref mut tdn)) = tx.type_data {
                                 SCLogDebug!("first frag size {}", recr.data.len());
-                                tdn.stub_data_ts.extend_from_slice(recr.data);
                                 tdn.opnum = recr.opnum;
                                 tdn.context_id = recr.context_id;
-                                tdn.frag_cnt_ts += 1;
-                                SCLogDebug!("DCERPC: REQUEST opnum {} stub data len {}",
-                                        tdn.opnum, tdn.stub_data_ts.len());
+                                tdn.frag_cnt_ts = tdn.frag_cnt_ts.saturating_add(1);
+                                let max_size = cfg_max_stub_size() as usize;
+                                if tdn.stub_data_ts.len() + recr.data.len() < max_size {
+                                    tdn.stub_data_ts.extend_from_slice(recr.data);
+                                    SCLogDebug!("DCERPC: REQUEST opnum {} stub data len {}",
+                                            tdn.opnum, tdn.stub_data_ts.len());
+                                } else if tdn.stub_data_ts.len() < max_size {
+                                    tdn.stub_data_ts.extend_from_slice(&recr.data[..max_size - tdn.stub_data_ts.len()]);
+                                }
                             }
                             if dcer.last_frag {
                                 tx.request_done = true;
@@ -407,8 +417,13 @@ fn dcerpc_response_handle(tx: &mut SMBTransaction,
                     if let Some(SMBTransactionTypeData::DCERPC(ref mut tdn)) = tx.type_data {
                         SCLogDebug!("CMD 11 found at tx {}", tx.id);
                         tdn.set_result(DCERPC_TYPE_RESPONSE);
-                        tdn.stub_data_tc.extend_from_slice(respr.data);
-                        tdn.frag_cnt_tc += 1;
+                        let max_size = cfg_max_stub_size() as usize;
+                        tdn.frag_cnt_tc = tdn.frag_cnt_tc.saturating_add(1);
+                        if tdn.stub_data_tc.len() + respr.data.len() < max_size {
+                            tdn.stub_data_tc.extend_from_slice(respr.data);
+                        } else if tdn.stub_data_tc.len() < max_size {
+                            tdn.stub_data_tc.extend_from_slice(&respr.data[..max_size - tdn.stub_data_tc.len()]);
+                        }
                     }
                     tx.vercmd.set_ntstatus(ntstatus);
                     tx.response_done = dcer.last_frag;

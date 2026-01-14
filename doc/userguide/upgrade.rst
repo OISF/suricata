@@ -56,6 +56,13 @@ Other Changes
   - tcp.seq
   - tcp.window
 
+- ``dnp3`` has reduced the maximum number of open transactions from
+  500 down to 32, the maximum number of points per message from
+  unbounded to 16384, and the maximum number of objects per message
+  from unbounded to 2048. Configuration options, ``max-tx``,
+  ``max-points``, and ``max-objects`` have been added for users who
+  may need to change these defaults.
+
 Upgrading to 8.0.1
 ------------------
 

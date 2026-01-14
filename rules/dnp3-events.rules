@@ -24,3 +24,15 @@ alert dnp3 any any -> any any (msg:"SURICATA DNP3 Bad transport CRC"; \
 # Unknown object.
 alert dnp3 any any -> any any (msg:"SURICATA DNP3 Unknown object"; \
       app-layer-event:dnp3.unknown_object; classtype:protocol-command-decode; sid:2270004; rev:2;)
+
+# Too many points in a message.
+alert dnp3 any any -> any any (msg:"SURICATA DNP3 Too many points in message"; \
+      app-layer-event:dnp3.too_many_points; \
+      threshold:type backoff, track by_flow, count 1, multiplier 10; \
+      classtype:protocol-command-decode; sid:2270005; rev:1;)
+
+# Too many objects.
+alert dnp3 any any -> any any (msg:"SURICATA DNP3 Too many objects"; \
+      app-layer-event:dnp3.too_many_objects; \
+      threshold:type backoff, track by_flow, count 1, multiplier 10; \
+      classtype:protocol-command-decode; sid:2270006; rev:1;)

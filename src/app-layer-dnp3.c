@@ -25,6 +25,7 @@
 #include "suricata.h"
 #include "util-unittest.h"
 
+#include "util-byte.h"
 #include "util-spm-bs.h"
 #include "util-enum.h"
 
@@ -36,9 +37,6 @@
 
 #include "app-layer-dnp3.h"
 #include "app-layer-dnp3-objects.h"
-
-/* Default number of unreplied requests to be considered a flood. */
-#define DNP3_DEFAULT_REQ_FLOOD_COUNT 500
 
 #define DNP3_DEFAULT_PORT "20000"
 
@@ -85,15 +83,31 @@ enum {
 /* Extract the range code from the object qualifier. */
 #define DNP3_OBJ_RANGE(x)  (x & 0xf)
 
+/* Default number of unreplied requests to be considered a flood.
+ *
+ * DNP3 is a request/response SCADA protocol with typically only 1-2
+ * transactions in flight. But set a limit high enough to allow for
+ * some pipelining but reduce the chance of memory exhaustion
+ * attacks. */
+static uint64_t dnp3_max_tx = 32;
+
+/* The maximum number of points allowed per message (configurable). */
+static uint64_t max_points = 16384;
+
+/* The maximum number of objects allowed per message (configurable). */
+static uint64_t dnp3_max_objects = 2048;
+
 /* Decoder event map. */
 SCEnumCharMap dnp3_decoder_event_table[] = {
-    {"FLOODED",           DNP3_DECODER_EVENT_FLOODED},
-    {"LEN_TOO_SMALL",     DNP3_DECODER_EVENT_LEN_TOO_SMALL},
-    {"BAD_LINK_CRC",      DNP3_DECODER_EVENT_BAD_LINK_CRC},
-    {"BAD_TRANSPORT_CRC", DNP3_DECODER_EVENT_BAD_TRANSPORT_CRC},
-    {"MALFORMED",         DNP3_DECODER_EVENT_MALFORMED},
-    {"UNKNOWN_OBJECT",    DNP3_DECODER_EVENT_UNKNOWN_OBJECT},
-    {NULL, -1},
+    { "FLOODED", DNP3_DECODER_EVENT_FLOODED },
+    { "LEN_TOO_SMALL", DNP3_DECODER_EVENT_LEN_TOO_SMALL },
+    { "BAD_LINK_CRC", DNP3_DECODER_EVENT_BAD_LINK_CRC },
+    { "BAD_TRANSPORT_CRC", DNP3_DECODER_EVENT_BAD_TRANSPORT_CRC },
+    { "MALFORMED", DNP3_DECODER_EVENT_MALFORMED },
+    { "UNKNOWN_OBJECT", DNP3_DECODER_EVENT_UNKNOWN_OBJECT },
+    { "TOO_MANY_POINTS", DNP3_DECODER_EVENT_TOO_MANY_POINTS },
+    { "TOO_MANY_OBJECTS", DNP3_DECODER_EVENT_TOO_MANY_OBJECTS },
+    { NULL, -1 },
 };
 
 /* Calculate the next transport sequence number. */
@@ -502,7 +516,7 @@ static DNP3Transaction *DNP3TxAlloc(DNP3State *dnp3, bool request)
     TAILQ_INSERT_TAIL(&dnp3->tx_list, tx, next);
 
     /* Check for flood state. */
-    if (dnp3->unreplied > DNP3_DEFAULT_REQ_FLOOD_COUNT) {
+    if (dnp3->unreplied > dnp3_max_tx && !dnp3->flooded) {
         DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_FLOODED);
         dnp3->flooded = 1;
     }
@@ -692,6 +706,8 @@ static int DNP3DecodeApplicationObjects(DNP3Transaction *tx, const uint8_t *buf,
     uint32_t len, DNP3ObjectList *objects)
 {
     int retval = 0;
+    uint64_t point_count = 0;
+    uint64_t object_count = 0;
 
     if (buf == NULL || len == 0) {
         return 1;
@@ -705,6 +721,12 @@ static int DNP3DecodeApplicationObjects(DNP3Transaction *tx, const uint8_t *buf,
         }
         DNP3ObjHeader *header = (DNP3ObjHeader *)buf;
         offset += sizeof(DNP3ObjHeader);
+
+        /* Check if we've exceeded the maximum number of objects. */
+        if (++object_count > dnp3_max_objects) {
+            DNP3SetEventTx(tx, DNP3_DECODER_EVENT_TOO_MANY_OBJECTS);
+            goto done;
+        }
 
         DNP3Object *object = DNP3ObjectAlloc();
         if (unlikely(object == NULL)) {
@@ -820,6 +842,13 @@ static int DNP3DecodeApplicationObjects(DNP3Transaction *tx, const uint8_t *buf,
 
         if (object->variation == 0 || object->count == 0) {
             goto next;
+        }
+
+        /* Check if we've exceeded the maximum number of points per message. */
+        point_count += object->count;
+        if (point_count > max_points) {
+            DNP3SetEventTx(tx, DNP3_DECODER_EVENT_TOO_MANY_POINTS);
+            goto done;
         }
 
         int event = DNP3DecodeObject(header->group, header->variation, &buf,
@@ -1374,7 +1403,7 @@ static void DNP3StateTxFree(void *state, uint64_t tx_id)
         dnp3->unreplied--;
 
         /* Check flood state. */
-        if (dnp3->flooded && dnp3->unreplied < DNP3_DEFAULT_REQ_FLOOD_COUNT) {
+        if (dnp3->flooded && dnp3->unreplied < dnp3_max_tx) {
             dnp3->flooded = 0;
         }
 
@@ -1420,13 +1449,12 @@ static int DNP3GetAlstateProgress(void *tx, uint8_t direction)
     int retval = 0;
 
     /* If flooded, "ack" old transactions. */
-    if (dnp3->flooded && (dnp3->transaction_max -
-            dnp3tx->tx_num >= DNP3_DEFAULT_REQ_FLOOD_COUNT)) {
+    if (dnp3->flooded && (dnp3->transaction_max - dnp3tx->tx_num >= dnp3_max_tx)) {
         SCLogDebug("flooded: returning tx as done.");
         SCReturnInt(1);
     }
 
-    if (dnp3tx->complete)
+    if (dnp3tx->done)
         retval = 1;
 
     SCReturnInt(retval);
@@ -1585,6 +1613,26 @@ void RegisterDNP3Parsers(void)
         AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_DNP3,
             DNP3GetTxData);
         AppLayerParserRegisterStateDataFunc(IPPROTO_TCP, ALPROTO_DNP3, DNP3GetStateData);
+
+        /* Parse max-tx configuration. */
+        intmax_t value = 0;
+        if (SCConfGetInt("app-layer.protocols.dnp3.max-tx", &value)) {
+            dnp3_max_tx = (uint64_t)value;
+        }
+
+        /* Parse max-points configuration. */
+        if (SCConfGetInt("app-layer.protocols.dnp3.max-points", &value)) {
+            if (value > 0) {
+                max_points = (uint64_t)value;
+            }
+        }
+
+        /* Parse max-objects configuration. */
+        if (SCConfGetInt("app-layer.protocols.dnp3.max-objects", &value)) {
+            if (value > 0) {
+                dnp3_max_objects = (uint64_t)value;
+            }
+        }
     } else {
         SCLogConfig("Parser disabled for protocol %s. "
             "Protocol detection still on.", proto_name);
@@ -2234,7 +2282,7 @@ static int DNP3ParserTestFlooded(void)
     FAIL_IF_NOT(tx->done);
     FAIL_IF_NOT(DNP3GetAlstateProgress(tx, STREAM_TOSERVER));
 
-    for (int i = 0; i < DNP3_DEFAULT_REQ_FLOOD_COUNT - 1; i++) {
+    for (uint64_t i = 0; i < dnp3_max_tx - 1; i++) {
         SCMutexLock(&flow.m);
         FAIL_IF(AppLayerParserParse(NULL, alp_tctx, &flow, ALPROTO_DNP3,
                 STREAM_TOSERVER, request, sizeof(request)));

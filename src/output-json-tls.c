@@ -132,23 +132,34 @@ typedef struct JsonTlsLogThread_ {
 static void JsonTlsLogSubject(SCJsonBuilder *js, SSLState *ssl_state)
 {
     if (ssl_state->server_connp.cert0_subject) {
-        SCJbSetString(js, "subject", ssl_state->server_connp.cert0_subject);
+        if (ssl_state->server_connp.cert0_subject_len == 0) {
+            SCJbSetString(js, "subject", "");
+        } else {
+            SCJbSetStringFromBytes(js, "subject", ssl_state->server_connp.cert0_subject,
+                    ssl_state->server_connp.cert0_subject_len);
+        }
     }
 }
 
 static void JsonTlsLogIssuer(SCJsonBuilder *js, SSLState *ssl_state)
 {
     if (ssl_state->server_connp.cert0_issuerdn) {
-        SCJbSetString(js, "issuerdn", ssl_state->server_connp.cert0_issuerdn);
+        if (ssl_state->server_connp.cert0_issuerdn_len == 0) {
+            SCJbSetString(js, "issuerdn", "");
+        } else {
+            SCJbSetStringFromBytes(js, "issuerdn", ssl_state->server_connp.cert0_issuerdn,
+                    ssl_state->server_connp.cert0_issuerdn_len);
+        }
     }
 }
 
 static void JsonTlsLogSAN(SCJsonBuilder *js, SSLState *ssl_state)
 {
-    if (ssl_state->server_connp.cert0_sans_len > 0) {
+    if (ssl_state->server_connp.cert0_sans_num > 0) {
         SCJbOpenArray(js, "subjectaltname");
-        for (uint16_t i = 0; i < ssl_state->server_connp.cert0_sans_len; i++) {
-            SCJbAppendString(js, ssl_state->server_connp.cert0_sans[i]);
+        for (uint16_t i = 0; i < ssl_state->server_connp.cert0_sans_num; i++) {
+            SCJbAppendStringFromBytes(js, ssl_state->server_connp.cert0_sans[i].san,
+                    ssl_state->server_connp.cert0_sans[i].san_len);
         }
         SCJbClose(js);
     }
@@ -178,21 +189,28 @@ static void JsonTlsLogFingerprint(SCJsonBuilder *js, SSLState *ssl_state)
 static void JsonTlsLogSni(SCJsonBuilder *js, SSLState *ssl_state)
 {
     if (ssl_state->client_connp.sni) {
-        SCJbSetString(js, "sni", ssl_state->client_connp.sni);
+        SCJbSetStringFromBytes(
+                js, "sni", ssl_state->client_connp.sni, ssl_state->client_connp.sni_len);
     }
 }
 
 static void JsonTlsLogSerial(SCJsonBuilder *js, SSLState *ssl_state)
 {
     if (ssl_state->server_connp.cert0_serial) {
-        SCJbSetString(js, "serial", ssl_state->server_connp.cert0_serial);
+        SCJbSetStringFromBytes(js, "serial", ssl_state->server_connp.cert0_serial,
+                ssl_state->server_connp.cert0_serial_len);
     }
 }
 
 static void JsonTlsLogVersion(SCJsonBuilder *js, SSLState *ssl_state)
 {
     char ssl_version[SSL_VERSION_MAX_STRLEN];
-    SSLVersionToString(ssl_state->server_connp.version, ssl_version);
+    /* log server version, but fall back to client if we don't have it yet */
+    if (ssl_state->server_connp.version != 0) {
+        SSLVersionToString(ssl_state->server_connp.version, ssl_version);
+    } else {
+        SSLVersionToString(ssl_state->client_connp.version, ssl_version);
+    }
     SCJbSetString(js, "version", ssl_version);
 }
 
@@ -333,16 +351,25 @@ static void JsonTlsLogClientCert(
         SCJsonBuilder *js, SSLStateConnp *connp, const bool log_cert, const bool log_chain)
 {
     if (connp->cert0_subject != NULL) {
-        SCJbSetString(js, "subject", connp->cert0_subject);
+        if (connp->cert0_subject_len == 0) {
+            SCJbSetString(js, "subject", "");
+        } else {
+            SCJbSetStringFromBytes(js, "subject", connp->cert0_subject, connp->cert0_subject_len);
+        }
     }
     if (connp->cert0_issuerdn != NULL) {
-        SCJbSetString(js, "issuerdn", connp->cert0_issuerdn);
+        if (connp->cert0_issuerdn_len == 0) {
+            SCJbSetString(js, "issuerdn", "");
+        } else {
+            SCJbSetStringFromBytes(
+                    js, "issuerdn", connp->cert0_issuerdn, connp->cert0_issuerdn_len);
+        }
     }
     if (connp->cert0_fingerprint) {
         SCJbSetString(js, "fingerprint", connp->cert0_fingerprint);
     }
     if (connp->cert0_serial) {
-        SCJbSetString(js, "serial", connp->cert0_serial);
+        SCJbSetStringFromBytes(js, "serial", connp->cert0_serial, connp->cert0_serial_len);
     }
     if (connp->cert0_not_before != 0) {
         char timebuf[64];

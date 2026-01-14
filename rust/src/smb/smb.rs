@@ -101,6 +101,8 @@ pub static mut SMB_CFG_MAX_FRAG_CACHE_SIZE: usize = 128;
 /// For SMBState::ssn2vec_cache
 pub static mut SMB_CFG_MAX_SSN2VEC_CACHE_SIZE: usize = 512;
 
+pub static mut SMB_DCERPC_MAX_STUB_SIZE: u32 = 1048576;
+
 static mut ALPROTO_SMB: AppProto = ALPROTO_UNKNOWN;
 
 static mut SMB_MAX_TX: usize = 1024;
@@ -2513,6 +2515,21 @@ pub unsafe extern "C" fn SCRegisterSmbParser() {
                 SCLogError!("Invalid max-dcerpc-frag-cache-size value");
             }
         }
+       let retval = conf_get("app-layer.protocols.smb.dcerpc.max-stub-size");
+       if let Some(val) = retval {
+           match get_memval(val) {
+               Ok(retval) => {
+                    if retval > 0 {
+                        SMB_DCERPC_MAX_STUB_SIZE = retval as u32;
+                    } else {
+                        SCLogError!("Invalid max-stub-size value");
+                    }
+               }
+               Err(_) => {
+                    SCLogError!("Invalid max-stub-size value");
+               }
+           }
+       }
         let retval = conf_get("app-layer.protocols.smb.max-session-cache-size");
         if let Some(val) = retval {
             if let Ok(v) = val.parse::<usize>() {
@@ -2583,3 +2600,9 @@ fn cfg_max_write_queue_size() -> u32 {
 fn cfg_max_guid_cache_size() -> usize {
     unsafe { SMB_CFG_MAX_GUID_CACHE_SIZE }
 }
+
+#[inline(always)]
+pub fn cfg_max_stub_size() -> u32 {
+    unsafe { SMB_DCERPC_MAX_STUB_SIZE }
+}
+

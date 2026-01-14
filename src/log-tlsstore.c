@@ -1,4 +1,4 @@
-/* Copyright (C) 2014 Open Information Security Foundation
+/* Copyright (C) 2014-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -35,11 +35,11 @@
 #include "app-layer-ssl.h"
 
 #include "output.h"
-#include "log-tlslog.h"
 
 #include "util-conf.h"
 #include "util-path.h"
 #include "util-time.h"
+#include "util-print.h"
 
 #define MODULE_NAME "LogTlsStoreLog"
 
@@ -71,6 +71,56 @@ static int CreateFileName(
     if (PathMerge(filename, filename_size, tls_logfile_base_dir, file) < 0)
         return 0;
     return 1;
+}
+
+static int TLSGetIPInformations(const Packet *p, char *srcip, socklen_t srcip_len, Port *sp,
+        char *dstip, socklen_t dstip_len, Port *dp, int ipproto)
+{
+    if ((PKT_IS_TOSERVER(p))) {
+        switch (ipproto) {
+            case AF_INET:
+                PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, srcip_len);
+                PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, dstip_len);
+                break;
+            case AF_INET6:
+                PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, srcip_len);
+                PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, dstip_len);
+                break;
+            default:
+                return 0;
+        }
+        *sp = p->sp;
+        *dp = p->dp;
+    } else {
+        switch (ipproto) {
+            case AF_INET:
+                PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), srcip, srcip_len);
+                PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), dstip, dstip_len);
+                break;
+            case AF_INET6:
+                PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), srcip, srcip_len);
+                PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), dstip, dstip_len);
+                break;
+            default:
+                return 0;
+        }
+        *sp = p->dp;
+        *dp = p->sp;
+    }
+    return 1;
+}
+
+static inline char *CreateStringFromByteArray(uint8_t *arr, uint32_t len)
+{
+    uint32_t str_len = len + 1;
+    char *final = SCCalloc(str_len, sizeof(char));
+    if (final == NULL) {
+        return NULL;
+    }
+    memcpy(final, arr, len);
+    final[str_len - 1] = '\0';
+
+    return final;
 }
 
 static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *state,
@@ -184,11 +234,18 @@ static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *s
                 goto end_fwrite_fpmeta;
         }
 
-        if (fprintf(fpmeta,
-                    "TLS SUBJECT:       %s\n"
-                    "TLS ISSUERDN:      %s\n"
-                    "TLS FINGERPRINT:   %s\n",
-                    connp->cert0_subject, connp->cert0_issuerdn, connp->cert0_fingerprint) < 0)
+        char *subject = CreateStringFromByteArray(connp->cert0_subject, connp->cert0_subject_len);
+        char *issuerdn =
+                CreateStringFromByteArray(connp->cert0_issuerdn, connp->cert0_issuerdn_len);
+        int r = fprintf(fpmeta,
+                "TLS SUBJECT:       %s\n"
+                "TLS ISSUERDN:      %s\n"
+                "TLS FINGERPRINT:   %s\n",
+                subject ? subject : "<ERROR>", issuerdn ? issuerdn : "<ERROR>",
+                connp->cert0_fingerprint);
+        SCFree(subject);
+        SCFree(issuerdn);
+        if (r < 0)
             goto end_fwrite_fpmeta;
 
         fclose(fpmeta);

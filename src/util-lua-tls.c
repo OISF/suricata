@@ -174,8 +174,8 @@ static int GetCertInfo(lua_State *luastate, bool client, const SSLState *ssl_sta
     SSLVersionToString(ssl_state->server_connp.version, ssl_version);
 
     int r = LuaPushStringBuffer(luastate, (uint8_t *)ssl_version, strlen(ssl_version));
-    r += LuaPushStringBuffer(luastate, (uint8_t *)connp->cert0_subject, strlen(connp->cert0_subject));
-    r += LuaPushStringBuffer(luastate, (uint8_t *)connp->cert0_issuerdn, strlen(connp->cert0_issuerdn));
+    r += LuaPushStringBuffer(luastate, connp->cert0_subject, connp->cert0_subject_len);
+    r += LuaPushStringBuffer(luastate, connp->cert0_issuerdn, connp->cert0_issuerdn_len);
     r += LuaPushStringBuffer(luastate, (uint8_t *)connp->cert0_fingerprint, strlen(connp->cert0_fingerprint));
     return r;
 }
@@ -205,8 +205,8 @@ static int GetSNI(lua_State *luastate, const SSLState *ssl_state)
     if (ssl_state->client_connp.sni == NULL)
         return LuaCallbackError(luastate, "error: no server name indication");
 
-    return LuaPushStringBuffer(luastate, (uint8_t *)ssl_state->client_connp.sni,
-                               strlen(ssl_state->client_connp.sni));
+    return LuaPushStringBuffer(
+            luastate, ssl_state->client_connp.sni, ssl_state->client_connp.sni_len);
 }
 
 static int LuaTlsGetSNI(lua_State *luastate)
@@ -291,8 +291,7 @@ static int GetCertSerial(lua_State *luastate, bool client)
     if (connp->cert0_serial == NULL)
         return LuaCallbackError(luastate, "error: no certificate serial");
 
-    return LuaPushStringBuffer(
-            luastate, (uint8_t *)connp->cert0_serial, strlen(connp->cert0_serial));
+    return LuaPushStringBuffer(luastate, connp->cert0_serial, connp->cert0_serial_len);
 }
 
 static int LuaTlsGetServerCertSerial(lua_State *luastate)
