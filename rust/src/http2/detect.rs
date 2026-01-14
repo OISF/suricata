@@ -488,6 +488,33 @@ fn http2_tx_get_req_line(tx: &mut HTTP2Transaction) {
     tx.req_line.extend(req_line)
 }
 
+pub(crate) unsafe extern "C" fn http2_form_get_data(
+    _de: *mut DetectEngineThreadCtx, tx: *const c_void, _flow_flags: u8, local_id: u32,
+    buffer: *mut *const u8, buffer_len: *mut u32,
+) -> bool {
+    let tx = cast_pointer!(tx, HTTP2Transaction);
+    if local_id == 0 {
+        if let Ok(value) = http2_frames_get_header_firstvalue(tx, Direction::ToServer, ":path") {
+            if let Some(start) = value.into_iter().position(|x| *x == b'?') {
+                let value = &value[start+1..];
+                let value = if let Some(end) = value.into_iter().position(|x| *x == b'#') {
+                    &value[..end]
+                } else {
+                    value
+                };
+                println!("lol {:?}", value);
+                *buffer = value.as_ptr(); //unsafe
+                *buffer_len = value.len() as u32;
+                return true;
+            }
+        }
+    }
+    //TODO else
+    *buffer = std::ptr::null();
+    *buffer_len = 0;
+    false
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn SCHttp2TxGetRequestLine(
     tx: &mut HTTP2Transaction, buffer: *mut *const u8, buffer_len: *mut u32,
