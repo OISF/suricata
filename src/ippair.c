@@ -696,7 +696,8 @@ static IPPair *IPPairGetUsedIPPair(void)
     uint32_t idx = SC_ATOMIC_GET(ippair_prune_idx) % ippair_config.hash_size;
     uint32_t cnt = ippair_config.hash_size;
 
-    while (cnt--) {
+    while (cnt) {
+        --cnt;
         if (++idx >= ippair_config.hash_size)
             idx = 0;
 
