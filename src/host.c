@@ -659,9 +659,8 @@ Host *HostLookupHostFromHash (Address *a)
 static Host *HostGetUsedHost(void)
 {
     uint32_t idx = SC_ATOMIC_GET(host_prune_idx) % host_config.hash_size;
-    uint32_t cnt = host_config.hash_size;
 
-    while (cnt--) {
+    for (uint32_t i = 0; i < host_config.hash_size; i++) {
         if (++idx >= host_config.hash_size)
             idx = 0;
 
@@ -707,7 +706,7 @@ static Host *HostGetUsedHost(void)
 
         SCMutexUnlock(&h->m);
 
-        (void) SC_ATOMIC_ADD(host_prune_idx, (host_config.hash_size - cnt));
+        (void) SC_ATOMIC_ADD(host_prune_idx, i);
         return h;
     }
 

@@ -821,9 +821,8 @@ THashData *THashLookupFromHash (THashTableContext *ctx, void *data)
 static THashData *THashGetUsed(THashTableContext *ctx, uint32_t data_size)
 {
     uint32_t idx = SC_ATOMIC_GET(ctx->prune_idx) % ctx->config.hash_size;
-    uint32_t cnt = ctx->config.hash_size;
 
-    while (cnt--) {
+    for (uint32_t i = 0; i < ctx->config.hash_size; i++) {
         if (++idx >= ctx->config.hash_size)
             idx = 0;
 
@@ -874,7 +873,7 @@ static THashData *THashGetUsed(THashTableContext *ctx, uint32_t data_size)
         }
         SCMutexUnlock(&h->m);
 
-        (void) SC_ATOMIC_ADD(ctx->prune_idx, (ctx->config.hash_size - cnt));
+        (void) SC_ATOMIC_ADD(ctx->prune_idx, i);
         if (data_size > 0)
             (void)SC_ATOMIC_ADD(ctx->memuse, data_size);
         return h;

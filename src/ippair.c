@@ -694,9 +694,8 @@ IPPair *IPPairLookupIPPairFromHash (Address *a, Address *b)
 static IPPair *IPPairGetUsedIPPair(void)
 {
     uint32_t idx = SC_ATOMIC_GET(ippair_prune_idx) % ippair_config.hash_size;
-    uint32_t cnt = ippair_config.hash_size;
 
-    while (cnt--) {
+    for (uint32_t i = 0; i < ippair_config.hash_size; i++) {
         if (++idx >= ippair_config.hash_size)
             idx = 0;
 
@@ -742,7 +741,7 @@ static IPPair *IPPairGetUsedIPPair(void)
 
         SCMutexUnlock(&h->m);
 
-        (void) SC_ATOMIC_ADD(ippair_prune_idx, (ippair_config.hash_size - cnt));
+        (void) SC_ATOMIC_ADD(ippair_prune_idx, i);
         return h;
     }
 
