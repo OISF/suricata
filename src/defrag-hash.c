@@ -671,9 +671,8 @@ DefragTracker *DefragLookupTrackerFromHash (Packet *p)
 static DefragTracker *DefragTrackerGetUsedDefragTracker(ThreadVars *tv, const DecodeThreadVars *dtv)
 {
     uint32_t idx = SC_ATOMIC_GET(defragtracker_prune_idx) % defrag_config.hash_size;
-    uint32_t cnt = defrag_config.hash_size;
 
-    while (cnt--) {
+    for (uint32_t i = 0; i < defrag_config.hash_size; i++) {
         if (++idx >= defrag_config.hash_size)
             idx = 0;
 
@@ -720,7 +719,7 @@ static DefragTracker *DefragTrackerGetUsedDefragTracker(ThreadVars *tv, const De
             StatsCounterIncr(&tv->stats, dtv->counter_defrag_tracker_soft_reuse);
         }
 
-        (void) SC_ATOMIC_ADD(defragtracker_prune_idx, (defrag_config.hash_size - cnt));
+        (void)SC_ATOMIC_ADD(defragtracker_prune_idx, i);
         return dt;
     }
 

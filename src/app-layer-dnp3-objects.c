@@ -449,7 +449,7 @@ static int DNP3DecodeObjectG1V2(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -503,7 +503,7 @@ static int DNP3DecodeObjectG2V1(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -546,7 +546,7 @@ static int DNP3DecodeObjectG2V2(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -603,7 +603,7 @@ static int DNP3DecodeObjectG2V3(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -709,7 +709,7 @@ static int DNP3DecodeObjectG3V2(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -762,7 +762,7 @@ static int DNP3DecodeObjectG4V1(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -815,7 +815,7 @@ static int DNP3DecodeObjectG4V2(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -871,7 +871,7 @@ static int DNP3DecodeObjectG4V3(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -976,7 +976,7 @@ static int DNP3DecodeObjectG10V2(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -1030,7 +1030,7 @@ static int DNP3DecodeObjectG11V1(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -1084,7 +1084,7 @@ static int DNP3DecodeObjectG11V2(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -1141,7 +1141,7 @@ static int DNP3DecodeObjectG12V1(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -1208,7 +1208,7 @@ static int DNP3DecodeObjectG12V2(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -1324,7 +1324,7 @@ static int DNP3DecodeObjectG13V1(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -1372,7 +1372,7 @@ static int DNP3DecodeObjectG13V2(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -1423,7 +1423,7 @@ static int DNP3DecodeObjectG20V1(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -1480,7 +1480,7 @@ static int DNP3DecodeObjectG20V2(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -1537,7 +1537,7 @@ static int DNP3DecodeObjectG20V3(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -1594,7 +1594,7 @@ static int DNP3DecodeObjectG20V4(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -1651,7 +1651,7 @@ static int DNP3DecodeObjectG20V5(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -1694,7 +1694,7 @@ static int DNP3DecodeObjectG20V6(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -1737,7 +1737,7 @@ static int DNP3DecodeObjectG20V7(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -1780,7 +1780,7 @@ static int DNP3DecodeObjectG20V8(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -1823,7 +1823,7 @@ static int DNP3DecodeObjectG21V1(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -1880,7 +1880,7 @@ static int DNP3DecodeObjectG21V2(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -1937,7 +1937,7 @@ static int DNP3DecodeObjectG21V3(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -1994,7 +1994,7 @@ static int DNP3DecodeObjectG21V4(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -2051,7 +2051,7 @@ static int DNP3DecodeObjectG21V5(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -2111,7 +2111,7 @@ static int DNP3DecodeObjectG21V6(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -2171,7 +2171,7 @@ static int DNP3DecodeObjectG21V7(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -2231,7 +2231,7 @@ static int DNP3DecodeObjectG21V8(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -2291,7 +2291,7 @@ static int DNP3DecodeObjectG21V9(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -2334,7 +2334,7 @@ static int DNP3DecodeObjectG21V10(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -2377,7 +2377,7 @@ static int DNP3DecodeObjectG21V11(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -2420,7 +2420,7 @@ static int DNP3DecodeObjectG21V12(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -2463,7 +2463,7 @@ static int DNP3DecodeObjectG22V1(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -2520,7 +2520,7 @@ static int DNP3DecodeObjectG22V2(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -2577,7 +2577,7 @@ static int DNP3DecodeObjectG22V3(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -2634,7 +2634,7 @@ static int DNP3DecodeObjectG22V4(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -2691,7 +2691,7 @@ static int DNP3DecodeObjectG22V5(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -2751,7 +2751,7 @@ static int DNP3DecodeObjectG22V6(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -2811,7 +2811,7 @@ static int DNP3DecodeObjectG22V7(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -2871,7 +2871,7 @@ static int DNP3DecodeObjectG22V8(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -2931,7 +2931,7 @@ static int DNP3DecodeObjectG23V1(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -2988,7 +2988,7 @@ static int DNP3DecodeObjectG23V2(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -3045,7 +3045,7 @@ static int DNP3DecodeObjectG23V3(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -3102,7 +3102,7 @@ static int DNP3DecodeObjectG23V4(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -3159,7 +3159,7 @@ static int DNP3DecodeObjectG23V5(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -3219,7 +3219,7 @@ static int DNP3DecodeObjectG23V6(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -3279,7 +3279,7 @@ static int DNP3DecodeObjectG23V7(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -3339,7 +3339,7 @@ static int DNP3DecodeObjectG23V8(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -3399,7 +3399,7 @@ static int DNP3DecodeObjectG30V1(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -3456,7 +3456,7 @@ static int DNP3DecodeObjectG30V2(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -3513,7 +3513,7 @@ static int DNP3DecodeObjectG30V3(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -3556,7 +3556,7 @@ static int DNP3DecodeObjectG30V4(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -3599,7 +3599,7 @@ static int DNP3DecodeObjectG30V5(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -3656,7 +3656,7 @@ static int DNP3DecodeObjectG30V6(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -3713,7 +3713,7 @@ static int DNP3DecodeObjectG31V1(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -3770,7 +3770,7 @@ static int DNP3DecodeObjectG31V2(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -3827,7 +3827,7 @@ static int DNP3DecodeObjectG31V3(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -3887,7 +3887,7 @@ static int DNP3DecodeObjectG31V4(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -3947,7 +3947,7 @@ static int DNP3DecodeObjectG31V5(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -3990,7 +3990,7 @@ static int DNP3DecodeObjectG31V6(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -4033,7 +4033,7 @@ static int DNP3DecodeObjectG31V7(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -4090,7 +4090,7 @@ static int DNP3DecodeObjectG31V8(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -4147,7 +4147,7 @@ static int DNP3DecodeObjectG32V1(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -4204,7 +4204,7 @@ static int DNP3DecodeObjectG32V2(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -4261,7 +4261,7 @@ static int DNP3DecodeObjectG32V3(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -4321,7 +4321,7 @@ static int DNP3DecodeObjectG32V4(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -4381,7 +4381,7 @@ static int DNP3DecodeObjectG32V5(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -4438,7 +4438,7 @@ static int DNP3DecodeObjectG32V6(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -4495,7 +4495,7 @@ static int DNP3DecodeObjectG32V7(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -4555,7 +4555,7 @@ static int DNP3DecodeObjectG32V8(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -4615,7 +4615,7 @@ static int DNP3DecodeObjectG33V1(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -4672,7 +4672,7 @@ static int DNP3DecodeObjectG33V2(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -4729,7 +4729,7 @@ static int DNP3DecodeObjectG33V3(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -4789,7 +4789,7 @@ static int DNP3DecodeObjectG33V4(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -4849,7 +4849,7 @@ static int DNP3DecodeObjectG33V5(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -4906,7 +4906,7 @@ static int DNP3DecodeObjectG33V6(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -4963,7 +4963,7 @@ static int DNP3DecodeObjectG33V7(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -5023,7 +5023,7 @@ static int DNP3DecodeObjectG33V8(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -5083,7 +5083,7 @@ static int DNP3DecodeObjectG34V1(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -5126,7 +5126,7 @@ static int DNP3DecodeObjectG34V2(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -5169,7 +5169,7 @@ static int DNP3DecodeObjectG34V3(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -5212,7 +5212,7 @@ static int DNP3DecodeObjectG40V1(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -5269,7 +5269,7 @@ static int DNP3DecodeObjectG40V2(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -5326,7 +5326,7 @@ static int DNP3DecodeObjectG40V3(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -5383,7 +5383,7 @@ static int DNP3DecodeObjectG40V4(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -5440,7 +5440,7 @@ static int DNP3DecodeObjectG41V1(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -5486,7 +5486,7 @@ static int DNP3DecodeObjectG41V2(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -5532,7 +5532,7 @@ static int DNP3DecodeObjectG41V3(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -5578,7 +5578,7 @@ static int DNP3DecodeObjectG41V4(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -5624,7 +5624,7 @@ static int DNP3DecodeObjectG42V1(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -5681,7 +5681,7 @@ static int DNP3DecodeObjectG42V2(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -5738,7 +5738,7 @@ static int DNP3DecodeObjectG42V3(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -5798,7 +5798,7 @@ static int DNP3DecodeObjectG42V4(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -5858,7 +5858,7 @@ static int DNP3DecodeObjectG42V5(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -5915,7 +5915,7 @@ static int DNP3DecodeObjectG42V6(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -5972,7 +5972,7 @@ static int DNP3DecodeObjectG42V7(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -6032,7 +6032,7 @@ static int DNP3DecodeObjectG42V8(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -6092,7 +6092,7 @@ static int DNP3DecodeObjectG43V1(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -6143,7 +6143,7 @@ static int DNP3DecodeObjectG43V2(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -6194,7 +6194,7 @@ static int DNP3DecodeObjectG43V3(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -6248,7 +6248,7 @@ static int DNP3DecodeObjectG43V4(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -6302,7 +6302,7 @@ static int DNP3DecodeObjectG43V5(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -6353,7 +6353,7 @@ static int DNP3DecodeObjectG43V6(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -6404,7 +6404,7 @@ static int DNP3DecodeObjectG43V7(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -6458,7 +6458,7 @@ static int DNP3DecodeObjectG43V8(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -6512,7 +6512,7 @@ static int DNP3DecodeObjectG50V1(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -6555,7 +6555,7 @@ static int DNP3DecodeObjectG50V2(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -6601,7 +6601,7 @@ static int DNP3DecodeObjectG50V3(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -6644,7 +6644,7 @@ static int DNP3DecodeObjectG50V4(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -6693,7 +6693,7 @@ static int DNP3DecodeObjectG51V1(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -6736,7 +6736,7 @@ static int DNP3DecodeObjectG51V2(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -6779,7 +6779,7 @@ static int DNP3DecodeObjectG52V1(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -6822,7 +6822,7 @@ static int DNP3DecodeObjectG52V2(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -6865,7 +6865,7 @@ static int DNP3DecodeObjectG70V1(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -6967,7 +6967,7 @@ static int DNP3DecodeObjectG70V2(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -7042,7 +7042,7 @@ static int DNP3DecodeObjectG70V3(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -7124,7 +7124,7 @@ static int DNP3DecodeObjectG70V4(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -7200,7 +7200,7 @@ static int DNP3DecodeObjectG70V5(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -7267,7 +7267,7 @@ static int DNP3DecodeObjectG70V6(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -7332,7 +7332,7 @@ static int DNP3DecodeObjectG70V7(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -7408,7 +7408,7 @@ static int DNP3DecodeObjectG70V8(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -7513,7 +7513,7 @@ static int DNP3DecodeObjectG81V1(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -7567,7 +7567,7 @@ static int DNP3DecodeObjectG83V1(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -7636,7 +7636,7 @@ static int DNP3DecodeObjectG86V2(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -7690,7 +7690,7 @@ static int DNP3DecodeObjectG102V1(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -7738,7 +7738,7 @@ static int DNP3DecodeObjectG120V1(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -7817,7 +7817,7 @@ static int DNP3DecodeObjectG120V2(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -7885,7 +7885,7 @@ static int DNP3DecodeObjectG120V3(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -7931,7 +7931,7 @@ static int DNP3DecodeObjectG120V4(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -7979,7 +7979,7 @@ static int DNP3DecodeObjectG120V5(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -8080,7 +8080,7 @@ static int DNP3DecodeObjectG120V6(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -8153,7 +8153,7 @@ static int DNP3DecodeObjectG120V7(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -8229,7 +8229,7 @@ static int DNP3DecodeObjectG120V8(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -8298,7 +8298,7 @@ static int DNP3DecodeObjectG120V9(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -8364,7 +8364,7 @@ static int DNP3DecodeObjectG120V10(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -8474,7 +8474,7 @@ static int DNP3DecodeObjectG120V11(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -8553,7 +8553,7 @@ static int DNP3DecodeObjectG120V12(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -8622,7 +8622,7 @@ static int DNP3DecodeObjectG120V13(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -8692,7 +8692,7 @@ static int DNP3DecodeObjectG120V14(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -8759,7 +8759,7 @@ static int DNP3DecodeObjectG120V15(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -8821,7 +8821,7 @@ static int DNP3DecodeObjectG121V1(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -8881,7 +8881,7 @@ static int DNP3DecodeObjectG122V1(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
@@ -8941,7 +8941,7 @@ static int DNP3DecodeObjectG122V2(const uint8_t **buf, uint32_t *len,
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
