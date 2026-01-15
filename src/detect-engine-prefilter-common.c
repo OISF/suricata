@@ -172,10 +172,15 @@ static void ApplyToU8Hash(PrefilterPacketU8HashCtx *ctx, PrefilterPacketHeaderVa
         }
         case DetectUintModeLte: {
             uint8_t x = v.u8[1];
-            do {
-                SigsArray *sa = ctx->array[x];
+
+            SigsArray *sa = ctx->array[x];
+            sa->sigs[sa->offset++] = s->iid;
+
+            while (x) {
+                --x;
+                sa = ctx->array[x];
                 sa->sigs[sa->offset++] = s->iid;
-            } while (x--);
+            }
 
             break;
         }
