@@ -334,7 +334,7 @@ static inline void DetectPrefilterCopyDeDup(
     Signature **sig_array = de_ctx->sig_array;
     Signature **match_array = det_ctx->match_array;
     SigIntId previous_id = (SigIntId)-1;
-    while (final_cnt-- > 0) {
+    for (uint32_t i = 0; i < final_cnt; i++) {
         SigIntId id = *pf_ptr++;
         Signature *s = sig_array[id];
 
@@ -682,7 +682,7 @@ static inline uint8_t DetectRulePacketRules(ThreadVars *const tv,
         next_s = *match_array++;
         next_sflags = next_s->flags;
     }
-    while (match_cnt--) {
+    for (; match_cnt > 0; match_cnt--) {
         RULE_PROFILING_START(p);
         bool break_out_of_packet_filter = false;
         uint8_t alert_flags = 0;
@@ -889,10 +889,9 @@ next:
         RULE_PROFILING_END(det_ctx, s, smatch, p);
 
         /* fw accept:packet or accept:flow means we're done here */
-        if (break_out_of_packet_filter)
+        if (break_out_of_packet_filter) {
             break;
-
-        continue;
+        }
     }
 
     /* if no rule told us to accept, and no rule explicitly dropped, we invoke the default drop
