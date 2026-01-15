@@ -823,7 +823,8 @@ static THashData *THashGetUsed(THashTableContext *ctx, uint32_t data_size)
     uint32_t idx = SC_ATOMIC_GET(ctx->prune_idx) % ctx->config.hash_size;
     uint32_t cnt = ctx->config.hash_size;
 
-    while (cnt--) {
+    while (cnt) {
+        --cnt;
         if (++idx >= ctx->config.hash_size)
             idx = 0;
 
