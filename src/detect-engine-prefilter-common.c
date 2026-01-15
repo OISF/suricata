@@ -161,11 +161,12 @@ static void ApplyToU8Hash(PrefilterPacketU8HashCtx *ctx, PrefilterPacketHeaderVa
             }
         case PREFILTER_U8HASH_MODE_LT:
             {
-                uint8_t x = v.u8[1] - 1;
-                do {
+                uint8_t x = v.u8[1];
+                while (x) {
+                    --x;
                     SigsArray *sa = ctx->array[x];
                     sa->sigs[sa->offset++] = s->iid;
-                } while (x--);
+                };
 
                 break;
         }
