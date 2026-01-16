@@ -441,6 +441,10 @@ static void HTPSetEvent(HtpState *s, HtpTxUserData *htud,
     if (tx != NULL) {
         htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
         SCAppLayerDecoderEventsSetEventRaw(&htud->tx_data.events, e);
+        if (dir & STREAM_TOCLIENT)
+            htud->tx_data.updated_tc = true;
+        if (dir & STREAM_TOSERVER)
+            htud->tx_data.updated_ts = true;
         s->events++;
         return;
     }
