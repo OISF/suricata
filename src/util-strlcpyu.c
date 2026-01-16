@@ -47,11 +47,11 @@ size_t strlcpy(char *dst, const char *src, size_t siz)
     register size_t n = siz;
 
     /* Copy as many bytes as will fit */
-    if (n != 0 && --n != 0) {
-        do {
+    if (n != 0) {
+        while (--n) {
             if ((*d++ = *s++) == 0)
                 break;
-        } while (--n != 0);
+        }
     }
 
     /* Not enough room in dst, add NUL and traverse rest of src */

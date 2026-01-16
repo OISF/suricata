@@ -334,7 +334,8 @@ static inline void DetectPrefilterCopyDeDup(
     Signature **sig_array = de_ctx->sig_array;
     Signature **match_array = det_ctx->match_array;
     SigIntId previous_id = (SigIntId)-1;
-    while (final_cnt-- > 0) {
+    while (final_cnt) {
+        --final_cnt;
         SigIntId id = *pf_ptr++;
         Signature *s = sig_array[id];
 
@@ -682,7 +683,8 @@ static inline uint8_t DetectRulePacketRules(ThreadVars *const tv,
         next_s = *match_array++;
         next_sflags = next_s->flags;
     }
-    while (match_cnt--) {
+    while (match_cnt) {
+        --match_cnt;
         RULE_PROFILING_START(p);
         bool break_out_of_packet_filter = false;
         uint8_t alert_flags = 0;

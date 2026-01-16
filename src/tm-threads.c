@@ -179,7 +179,8 @@ int TmThreadTimeoutLoop(ThreadVars *tv, TmSlot *s)
         uint32_t len = tv->stream_pq->len;
         SCMutexUnlock(&tv->stream_pq->mutex_q);
         if (len > 0) {
-            while (len--) {
+            while (len) {
+                --len;
                 SCMutexLock(&tv->stream_pq->mutex_q);
                 Packet *p = PacketDequeue(tv->stream_pq);
                 SCMutexUnlock(&tv->stream_pq->mutex_q);

@@ -673,7 +673,8 @@ static DefragTracker *DefragTrackerGetUsedDefragTracker(ThreadVars *tv, const De
     uint32_t idx = SC_ATOMIC_GET(defragtracker_prune_idx) % defrag_config.hash_size;
     uint32_t cnt = defrag_config.hash_size;
 
-    while (cnt--) {
+    while (cnt) {
+        --cnt;
         if (++idx >= defrag_config.hash_size)
             idx = 0;
 

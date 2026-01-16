@@ -661,7 +661,8 @@ static Host *HostGetUsedHost(void)
     uint32_t idx = SC_ATOMIC_GET(host_prune_idx) % host_config.hash_size;
     uint32_t cnt = host_config.hash_size;
 
-    while (cnt--) {
+    while (cnt) {
+        --cnt;
         if (++idx >= host_config.hash_size)
             idx = 0;
 
