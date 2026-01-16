@@ -1560,8 +1560,14 @@ void DumpPatterns(DetectEngineCtx *de_ctx)
         return;
 
     SCJsonBuilder *root_jb = SCJbNewObject();
-    SCJsonBuilder *arrays[de_ctx->buffer_type_id];
-    memset(&arrays, 0, sizeof(SCJsonBuilder *) * de_ctx->buffer_type_id);
+    if (root_jb == NULL) {
+        return;
+    }
+    SCJsonBuilder **arrays = SCCalloc(sizeof(SCJsonBuilder *), de_ctx->buffer_type_id);
+    if (arrays == NULL) {
+        SCJbFree(root_jb);
+        return;
+    }
 
     SCJbOpenArray(root_jb, "buffers");
 
@@ -1629,6 +1635,7 @@ void DumpPatterns(DetectEngineCtx *de_ctx)
     }
     SCMutexUnlock(&g_rules_analyzer_write_m);
     SCJbFree(root_jb);
+    SCFree(arrays);
 
     HashListTableFree(de_ctx->pattern_hash_table);
     de_ctx->pattern_hash_table = NULL;
