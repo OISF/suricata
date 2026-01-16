@@ -440,6 +440,8 @@ static void HTPSetEvent(HtpState *s, HtpTxUserData *htud,
         tx = HTPStateGetTx(s, tx_id - 1);
     if (tx != NULL) {
         htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+        htud->tx_data.updated_tc = true;
+        htud->tx_data.updated_ts = true;
         SCAppLayerDecoderEventsSetEventRaw(&htud->tx_data.events, e);
         s->events++;
         return;
