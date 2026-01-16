@@ -1149,6 +1149,7 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
         return;
 
     const int nlists = s->init_data->max_content_list_id + 1;
+    DEBUG_VALIDATE_BUG_ON(nlists > UINT16_MAX);
     int pos_sm_list[nlists];
     int neg_sm_list[nlists];
     memset(pos_sm_list, 0, nlists * sizeof(int));
