@@ -111,20 +111,18 @@ fn nfs_log_response(
 
     js.set_string("status", &nfs3_status_string(tx.nfs_response_status))?;
 
-    if state.nfs_version <= 3 {
-        if tx.procedure == NFSPROC3_READ {
-            js.open_object("read")?;
-            nfs_file_object(tx, js)?;
-            js.close()?;
-        } else if tx.procedure == NFSPROC3_WRITE {
-            js.open_object("write")?;
-            nfs_file_object(tx, js)?;
-            js.close()?;
-        } else if tx.procedure == NFSPROC3_RENAME {
-            js.open_object("rename")?;
-            nfs_rename_object(tx, js)?;
-            js.close()?;
-        }
+    if nfs_is_read(state.nfs_version, tx.procedure) {
+        js.open_object("read")?;
+        nfs_file_object(tx, js)?;
+        js.close()?;
+    } else if nfs_is_write(state.nfs_version, tx.procedure) {
+        js.open_object("write")?;
+        nfs_file_object(tx, js)?;
+        js.close()?;
+    } else if nfs_is_rename(state.nfs_version, tx.procedure) {
+        js.open_object("rename")?;
+        nfs_rename_object(tx, js)?;
+        js.close()?;
     }
     Ok(())
 }
