@@ -158,6 +158,12 @@ Example::
   alert tls any any -> any any (msg:"match cert NotAfter"; \
     tls_cert_notafter:>2015; sid:200006;)
 
+For omitted formats, the first date is assumed.
+
+``YYYY-MM`` => ``YYYY-MM-01``.
+
+``YYYY`` => ``YYYY-01-01``.
+
 tls_cert_expired
 ----------------
 

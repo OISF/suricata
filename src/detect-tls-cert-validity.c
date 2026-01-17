@@ -233,17 +233,18 @@ static time_t DateStringToEpoch (char *string)
     int r = 0;
     struct tm tm;
     const char *patterns[] = {
-            /* ISO 8601 */
-            "%Y-%m",
-            "%Y-%m-%d",
-            "%Y-%m-%d %H",
-            "%Y-%m-%d %H:%M",
-            "%Y-%m-%d %H:%M:%S",
-            "%Y-%m-%dT%H",
-            "%Y-%m-%dT%H:%M",
-            "%Y-%m-%dT%H:%M:%S",
-            "%H:%M",
-            "%H:%M:%S",
+        /* ISO 8601 */
+        "%Y",
+        "%Y-%m",
+        "%Y-%m-%d",
+        "%Y-%m-%d %H",
+        "%Y-%m-%d %H:%M",
+        "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%dT%H",
+        "%Y-%m-%dT%H:%M",
+        "%Y-%m-%dT%H:%M:%S",
+        "%H:%M",
+        "%H:%M:%S",
     };
 
     /* Skip leading whitespace.  */
@@ -251,11 +252,12 @@ static time_t DateStringToEpoch (char *string)
         string++;
 
     time_t epoch = StringIsEpoch(string);
-    if (epoch != LONG_MIN) {
+    // inlen == 4 will get interpreted as a year
+    if (epoch != LONG_MIN && strlen(string) != 4) {
         return epoch;
     }
 
-    r = SCStringPatternToTime(string, patterns, 10, &tm);
+    r = SCStringPatternToTime(string, patterns, 11, &tm);
 
     if (r != 0)
         return LONG_MIN;
