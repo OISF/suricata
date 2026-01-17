@@ -24,6 +24,7 @@ use crate::smb::smb::*;
 use crate::smb::dcerpc::*;
 use crate::smb::events::*;
 use crate::smb::files::*;
+use crate::flow::Flow;
 
 use crate::smb::smb1_records::*;
 use crate::smb::smb1_session::*;
@@ -181,7 +182,7 @@ fn smb1_command_is_andx(c: u8) -> bool {
     }
 }
 
-fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, andx_offset: &mut usize) {
+fn smb1_request_record_one(state: &mut SMBState, flow: *mut Flow, r: &SmbRecord, command: u8, andx_offset: &mut usize) {
     let mut events : Vec<SMBEvent> = Vec::new();
     let mut no_response_expected = false;
 
@@ -197,7 +198,7 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
                     let mut oldname = rd.oldname;
                     oldname.retain(|&i|i != 0x00);
 
-                    let tx = state.new_rename_tx(Vec::new(), oldname, newname);
+                    let tx = state.new_rename_tx(flow, Vec::new(), oldname, newname);
                     tx.hdr = tx_hdr;
                     tx.request_done = true;
                     tx.vercmd.set_smb1_cmd(SMB1_COMMAND_RENAME);
@@ -226,7 +227,7 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
                                             SCLogDebug!("TRANS2 SET_FILE_INFO DATA DISPOSITION DONE {:?}", disp);
                                             let tx_hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
 
-                                            let tx = state.new_setpathinfo_tx(pd.oldname,
+                                            let tx = state.new_setpathinfo_tx(flow, pd.oldname,
                                                     rd.subcmd, pd.loi, disp.delete);
                                             tx.hdr = tx_hdr;
                                             tx.request_done = true;
@@ -256,7 +257,7 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
 
                                             let fid : Vec<u8> = Vec::new();
 
-                                            let tx = state.new_rename_tx(fid, pd.oldname, newname);
+                                            let tx = state.new_rename_tx(flow, fid, pd.oldname, newname);
                                             tx.hdr = tx_hdr;
                                             tx.request_done = true;
                                             tx.vercmd.set_smb1_cmd(SMB1_COMMAND_TRANS2);
@@ -309,7 +310,7 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
                                                 Some(n) => n.to_vec(),
                                                 None => b"<unknown>".to_vec(),
                                             };
-                                            let tx = state.new_setfileinfo_tx(filename, pd.fid.to_vec(),
+                                            let tx = state.new_setfileinfo_tx(flow, filename, pd.fid.to_vec(),
                                                     rd.subcmd, pd.loi, disp.delete);
                                             tx.hdr = tx_hdr;
                                             tx.request_done = true;
@@ -344,7 +345,7 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
                                                 Some(n) => n.to_vec(),
                                                 None => b"<unknown>".to_vec(),
                                             };
-                                            let tx = state.new_rename_tx(pd.fid.to_vec(), oldname, newname);
+                                            let tx = state.new_rename_tx(flow, pd.fid.to_vec(), oldname, newname);
                                             tx.hdr = tx_hdr;
                                             tx.request_done = true;
                                             tx.vercmd.set_smb1_cmd(SMB1_COMMAND_TRANS2);
@@ -416,11 +417,11 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
         SMB1_COMMAND_WRITE_ANDX |
         SMB1_COMMAND_WRITE |
         SMB1_COMMAND_WRITE_AND_CLOSE => {
-            smb1_write_request_record(state, r, *andx_offset, command, 0);
+            smb1_write_request_record(state, flow, r, *andx_offset, command, 0);
             true // tx handling in func
         },
         SMB1_COMMAND_TRANS => {
-            smb1_trans_request_record(state, r);
+            smb1_trans_request_record(state, flow, r);
             true
         },
         SMB1_COMMAND_NEGOTIATE_PROTOCOL => {
@@ -451,7 +452,7 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
                         None => { false },
                     };
                     if !found {
-                        let tx = state.new_negotiate_tx(1);
+                        let tx = state.new_negotiate_tx(flow, 1);
                         if let Some(SMBTransactionTypeData::NEGOTIATE(ref mut tdn)) = tx.type_data {
                             tdn.dialects = dialects;
                         }
@@ -481,7 +482,7 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
                     state.ssn2vec_cache.put(name_key, name_val);
 
                     let tx_hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
-                    let tx = state.new_create_tx(&cr.file_name,
+                    let tx = state.new_create_tx(flow, &cr.file_name,
                             cr.disposition, del, dir, tx_hdr);
                     tx.vercmd.set_smb1_cmd(command);
                     SCLogDebug!("TS CREATE TX {} created", tx.id);
@@ -572,7 +573,7 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
     };
     if !have_tx && smb1_create_new_tx(command) {
         let tx_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
-        let tx = state.new_generic_tx(1, command as u16, tx_key);
+        let tx = state.new_generic_tx(flow, 1, command as u16, tx_key);
         SCLogDebug!("tx {} created for {}/{}", tx.id, command, &smb1_command_string(command));
         tx.set_events(events);
         if no_response_expected {
@@ -581,13 +582,13 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
     }
 }
 
-pub fn smb1_request_record(state: &mut SMBState, r: &SmbRecord) -> u32 {
+pub fn smb1_request_record(state: &mut SMBState, flow: *mut Flow, r: &SmbRecord) -> u32 {
     SCLogDebug!("record: command {}: record {:?}", r.command, r);
 
     let mut andx_offset = SMB1_HEADER_SIZE;
     let mut command = r.command;
     loop {
-        smb1_request_record_one(state, r, command, &mut andx_offset);
+        smb1_request_record_one(state, flow, r, command, &mut andx_offset);
 
         // continue for next andx command if any
         if smb1_command_is_andx(command) {
@@ -607,7 +608,7 @@ pub fn smb1_request_record(state: &mut SMBState, r: &SmbRecord) -> u32 {
     0
 }
 
-fn smb1_response_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, andx_offset: &mut usize) {
+fn smb1_response_record_one(state: &mut SMBState, flow: *mut Flow, r: &SmbRecord, command: u8, andx_offset: &mut usize) {
     SCLogDebug!("record: command {} status {} -> {:?}", r.command, r.nt_status, r);
 
     let key_ssn_id = r.ssn_id;
@@ -618,7 +619,7 @@ fn smb1_response_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, an
 
     let have_tx = match command {
         SMB1_COMMAND_READ_ANDX => {
-            smb1_read_response_record(state, r, *andx_offset, 0);
+            smb1_read_response_record(state, flow, r, *andx_offset, 0);
             true // tx handling in func
         },
         SMB1_COMMAND_NEGOTIATE_PROTOCOL => {
@@ -774,7 +775,7 @@ fn smb1_response_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, an
             false
         },
         SMB1_COMMAND_TRANS => {
-            smb1_trans_response_record(state, r);
+            smb1_trans_response_record(state, flow, r);
             true
         },
         SMB1_COMMAND_SESSION_SETUP_ANDX => {
@@ -820,11 +821,11 @@ fn smb1_response_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, an
     }
 }
 
-pub fn smb1_response_record(state: &mut SMBState, r: &SmbRecord) -> u32 {
+pub fn smb1_response_record(state: &mut SMBState, flow: *mut Flow, r: &SmbRecord) -> u32 {
     let mut andx_offset = SMB1_HEADER_SIZE;
     let mut command = r.command;
     loop {
-        smb1_response_record_one(state, r, command, &mut andx_offset);
+        smb1_response_record_one(state, flow, r, command, &mut andx_offset);
 
         // continue for next andx command if any
         if smb1_command_is_andx(command) {
@@ -844,7 +845,7 @@ pub fn smb1_response_record(state: &mut SMBState, r: &SmbRecord) -> u32 {
     0
 }
 
-pub fn smb1_trans_request_record(state: &mut SMBState, r: &SmbRecord)
+pub fn smb1_trans_request_record(state: &mut SMBState, flow: *mut Flow, r: &SmbRecord)
 {
     let mut events : Vec<SMBEvent> = Vec::new();
 
@@ -880,10 +881,10 @@ pub fn smb1_trans_request_record(state: &mut SMBState, r: &SmbRecord)
             events.push(SMBEvent::MalformedData);
         },
     }
-    smb1_request_record_generic(state, r, events);
+    smb1_request_record_generic(state, flow, r, events);
 }
 
-pub fn smb1_trans_response_record(state: &mut SMBState, r: &SmbRecord)
+pub fn smb1_trans_response_record(state: &mut SMBState, flow: *mut Flow, r: &SmbRecord)
 {
     let mut events : Vec<SMBEvent> = Vec::new();
 
@@ -923,11 +924,11 @@ pub fn smb1_trans_response_record(state: &mut SMBState, r: &SmbRecord)
     }
 
     // generic tx as well. Set events if needed.
-    smb1_response_record_generic(state, r, events);
+    smb1_response_record_generic(state, flow, r, events);
 }
 
 /// Handle WRITE, WRITE_ANDX, WRITE_AND_CLOSE request records
-pub fn smb1_write_request_record(state: &mut SMBState, r: &SmbRecord, andx_offset: usize, command: u8, nbss_remaining: u32)
+pub fn smb1_write_request_record(state: &mut SMBState, flow: *mut Flow, r: &SmbRecord, andx_offset: usize, command: u8, nbss_remaining: u32)
 {
     let mut events : Vec<SMBEvent> = Vec::new();
 
@@ -1018,10 +1019,10 @@ pub fn smb1_write_request_record(state: &mut SMBState, r: &SmbRecord, andx_offse
             events.push(SMBEvent::MalformedData);
         },
     }
-    smb1_request_record_generic(state, r, events);
+    smb1_request_record_generic(state, flow, r, events);
 }
 
-pub fn smb1_read_response_record(state: &mut SMBState, r: &SmbRecord, andx_offset: usize, nbss_remaining: u32)
+pub fn smb1_read_response_record(state: &mut SMBState, flow: *mut Flow, r: &SmbRecord, andx_offset: usize, nbss_remaining: u32)
 {
     let mut events : Vec<SMBEvent> = Vec::new();
 
@@ -1113,16 +1114,16 @@ pub fn smb1_read_response_record(state: &mut SMBState, r: &SmbRecord, andx_offse
     }
 
     // generic tx as well. Set events if needed.
-    smb1_response_record_generic(state, r, events);
+    smb1_response_record_generic(state, flow, r, events);
 }
 
 /// create a tx for a command / response pair if we're
 /// configured to do so, or if this is a tx especially
 /// for setting an event.
-fn smb1_request_record_generic(state: &mut SMBState, r: &SmbRecord, events: Vec<SMBEvent>) {
+fn smb1_request_record_generic(state: &mut SMBState, flow: *mut Flow, r: &SmbRecord, events: Vec<SMBEvent>) {
     if smb1_create_new_tx(r.command) || !events.is_empty() {
         let tx_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
-        let tx = state.new_generic_tx(1, r.command as u16, tx_key);
+        let tx = state.new_generic_tx(flow, 1, r.command as u16, tx_key);
         tx.set_events(events);
     }
 }
@@ -1130,7 +1131,7 @@ fn smb1_request_record_generic(state: &mut SMBState, r: &SmbRecord, events: Vec<
 /// update or create a tx for a command / response pair based
 /// on the response. We only create a tx for the response side
 /// if we didn't already update a tx, and we have to set events
-fn smb1_response_record_generic(state: &mut SMBState, r: &SmbRecord, events: Vec<SMBEvent>) {
+fn smb1_response_record_generic(state: &mut SMBState, flow: *mut Flow, r: &SmbRecord, events: Vec<SMBEvent>) {
     let tx_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
     if let Some(tx) = state.get_generic_tx(1, r.command as u16, &tx_key) {
         tx.request_done = true;
@@ -1141,7 +1142,7 @@ fn smb1_response_record_generic(state: &mut SMBState, r: &SmbRecord, events: Vec
         return;
     }
     if !events.is_empty() {
-        let tx = state.new_generic_tx(1, r.command as u16, tx_key);
+        let tx = state.new_generic_tx(flow, 1, r.command as u16, tx_key);
         tx.request_done = true;
         tx.response_done = true;
         SCLogDebug!("tx {} cmd {} is done", tx.id, r.command);

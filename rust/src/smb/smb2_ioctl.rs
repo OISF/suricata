@@ -23,6 +23,7 @@ use crate::smb::events::*;
 #[cfg(feature = "debug")]
 use crate::smb::funcs::*;
 use crate::smb::smb_status::*;
+use crate::flow::Flow;
 
 #[derive(Debug)]
 pub struct SMBTransactionIoctl {
@@ -57,7 +58,7 @@ impl SMBState {
 }
 
 // IOCTL responses ASYNC don't set the tree id
-pub fn smb2_ioctl_request_record(state: &mut SMBState, r: &Smb2Record)
+pub fn smb2_ioctl_request_record(state: &mut SMBState, flow: *mut Flow, r: &Smb2Record)
 {
     let hdr = SMBCommonHdr::from2(r, SMBHDR_TYPE_HEADER);
     match parse_smb2_request_ioctl(r.data) {
@@ -79,7 +80,7 @@ pub fn smb2_ioctl_request_record(state: &mut SMBState, r: &Smb2Record)
             }
         },
         _ => {
-            let tx = state.new_generic_tx(2, r.command, hdr);
+            let tx = state.new_generic_tx(flow, 2, r.command, hdr);
             tx.set_event(SMBEvent::MalformedData);
         },
     };
