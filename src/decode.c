@@ -206,6 +206,8 @@ static int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const 
             return DecodeERSPAN(tv, dtv, p, pkt, len);
         case DECODE_TUNNEL_ERSPANI:
             return DecodeERSPANTypeI(tv, dtv, p, pkt, len);
+        case DECODE_TUNNEL_VXLAN:
+            return DecodeEthernet(tv, dtv, p, pkt, len);
         case DECODE_TUNNEL_NSH:
             return DecodeNSH(tv, dtv, p, pkt, len);
         case DECODE_TUNNEL_ARP:
@@ -395,7 +397,7 @@ inline int PacketCopyData(Packet *p, const uint8_t *pktdata, uint32_t pktlen)
  *  \retval p the pseudo packet or NULL if out of memory
  */
 Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *parent,
-                             const uint8_t *pkt, uint32_t len, enum DecodeTunnelProto proto)
+        const uint8_t *pkt, uint32_t len, enum DecodeTunnelProto proto)
 {
     int ret;
 
@@ -426,13 +428,14 @@ Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *pare
     /* set the root ptr to the lowest layer */
     if (parent->root != NULL) {
         p->root = parent->root;
-        BUG_ON(parent->ttype != PacketTunnelChild);
+        BUG_ON(!PacketIsTunnelChild(parent));
     } else {
         p->root = parent;
         parent->ttype = PacketTunnelRoot;
     }
     /* tell new packet it's part of a tunnel */
     p->ttype = PacketTunnelChild;
+    p->tproto = (uint8_t)proto;
 
     ret = DecodeTunnel(tv, dtv, p, GET_PKT_DATA(p),
                        GET_PKT_LEN(p), proto);
@@ -487,7 +490,7 @@ Packet *PacketDefragPktSetup(Packet *parent, const uint8_t *pkt, uint32_t len, u
     /* set the root ptr to the lowest layer */
     if (parent->root != NULL) {
         p->root = parent->root;
-        BUG_ON(parent->ttype != PacketTunnelChild);
+        BUG_ON(!PacketIsTunnelChild(parent));
     } else {
         p->root = parent;
         // we set parent->ttype later
