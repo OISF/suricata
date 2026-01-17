@@ -18,6 +18,7 @@
 use nom8::Err;
 
 use crate::direction::Direction;
+use crate::flow::Flow;
 use crate::smb::smb::*;
 use crate::smb::smb2_records::*;
 use crate::smb::smb2_session::*;
@@ -407,7 +408,7 @@ pub fn smb2_write_request_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
     }
 }
 
-pub fn smb2_request_record(state: &mut SMBState, r: &Smb2Record)
+pub fn smb2_request_record(state: &mut SMBState, flow: *mut Flow, r: &Smb2Record)
 {
     SCLogDebug!("SMBv2 request record, command {} tree {} session {}",
             &smb2_command_string(r.command), r.tree_id, r.session_id);
@@ -430,7 +431,7 @@ pub fn smb2_request_record(state: &mut SMBState, r: &Smb2Record)
                                 Some(n) => { n.to_vec() },
                                 None => { b"<unknown>".to_vec() },
                             };
-                            let tx = state.new_rename_tx(rd.guid.to_vec(), oldname, newname);
+                            let tx = state.new_rename_tx(flow, rd.guid.to_vec(), oldname, newname);
                             tx.hdr = tx_hdr;
                             tx.request_done = true;
                             tx.vercmd.set_smb2_cmd(SMB2_COMMAND_SET_INFO);
@@ -454,7 +455,7 @@ pub fn smb2_request_record(state: &mut SMBState, r: &Smb2Record)
                                     }
                                 },
                             };
-                            let tx = state.new_setfileinfo_tx(fname, rd.guid.to_vec(), rd.class as u16, rd.infolvl as u16, dis.delete);
+                            let tx = state.new_setfileinfo_tx(flow, fname, rd.guid.to_vec(), rd.class as u16, rd.infolvl as u16, dis.delete);
                             tx.hdr = tx_hdr;
                             tx.request_done = true;
                             tx.vercmd.set_smb2_cmd(SMB2_COMMAND_SET_INFO);

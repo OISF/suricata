@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2022 Open Information Security Foundation
+/* Copyright (C) 2017-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -348,7 +348,7 @@ impl SMBTransactionSetFilePathInfo {
 }
 
 impl SMBState {
-    pub fn new_setfileinfo_tx(&mut self, filename: Vec<u8>, fid: Vec<u8>,
+    pub fn new_setfileinfo_tx(&mut self, flow: *mut Flow, filename: Vec<u8>, fid: Vec<u8>,
             subcmd: u16, loi: u16, delete_on_close: bool)
         -> &mut SMBTransaction
     {
@@ -358,15 +358,17 @@ impl SMBState {
                     SMBTransactionSetFilePathInfo::new(
                         filename, fid, subcmd, loi, delete_on_close)));
         tx.request_done = true;
+        sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
         tx.response_done = self.tc_trunc; // no response expected if tc is truncated
-
+        /* if tc is truncated, nothing to trigger inspection on; if it's not, it's not ready to
+         * trigger inspection on */
         SCLogDebug!("SMB: TX SETFILEPATHINFO created: ID {}", tx.id);
         self.transactions.push_back(tx);
         let tx_ref = self.transactions.back_mut();
         return tx_ref.unwrap();
     }
 
-    pub fn new_setpathinfo_tx(&mut self, filename: Vec<u8>,
+    pub fn new_setpathinfo_tx(&mut self, flow: *mut Flow, filename: Vec<u8>,
             subcmd: u16, loi: u16, delete_on_close: bool)
         -> &mut SMBTransaction
     {
@@ -377,7 +379,10 @@ impl SMBState {
                     SMBTransactionSetFilePathInfo::new(filename, fid,
                         subcmd, loi, delete_on_close)));
         tx.request_done = true;
+        sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
         tx.response_done = self.tc_trunc; // no response expected if tc is truncated
+        /* if tc is truncated, nothing to trigger inspection on; if it's not, it's not ready to
+         * trigger inspection on */
 
         SCLogDebug!("SMB: TX SETFILEPATHINFO created: ID {}", tx.id);
         self.transactions.push_back(tx);
@@ -402,7 +407,7 @@ impl SMBTransactionRename {
 }
 
 impl SMBState {
-    pub fn new_rename_tx(&mut self, fuid: Vec<u8>, oldname: Vec<u8>, newname: Vec<u8>)
+    pub fn new_rename_tx(&mut self, flow: *mut Flow, fuid: Vec<u8>, oldname: Vec<u8>, newname: Vec<u8>)
         -> &mut SMBTransaction
     {
         let mut tx = self.new_tx();
@@ -410,7 +415,10 @@ impl SMBState {
         tx.type_data = Some(SMBTransactionTypeData::RENAME(
                     SMBTransactionRename::new(fuid, oldname, newname)));
         tx.request_done = true;
+        sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
         tx.response_done = self.tc_trunc; // no response expected if tc is truncated
+        /* if tc is truncated, nothing to trigger inspection on; if it's not, it's not ready to
+         * trigger inspection on */
 
         SCLogDebug!("SMB: TX RENAME created: ID {}", tx.id);
         self.transactions.push_back(tx);
@@ -936,6 +944,8 @@ impl SMBState {
         tx.type_data = None;
         tx.request_done = true;
         tx.response_done = self.tc_trunc; // no response expected if tc is truncated
+        /* if tc is truncated, nothing to trigger inspection on; if it's not, it's not ready to
+         * trigger inspection on */
         tx.hdr = key;
 
         SCLogDebug!("SMB: TX GENERIC created: ID {} tx list {} {:?}",
@@ -1012,6 +1022,8 @@ impl SMBState {
                     SMBTransactionNegotiate::new(smb_ver)));
         tx.request_done = true;
         tx.response_done = self.tc_trunc; // no response expected if tc is truncated
+        /* if tc is truncated, nothing to trigger inspection on; if it's not, it's not ready to
+         * trigger inspection on */
 
         SCLogDebug!("SMB: TX NEGOTIATE created: ID {} SMB ver {}", tx.id, smb_ver);
         self.transactions.push_back(tx);
@@ -1048,6 +1060,8 @@ impl SMBState {
                     SMBTransactionTreeConnect::new(name.to_vec())));
         tx.request_done = true;
         tx.response_done = self.tc_trunc; // no response expected if tc is truncated
+        /* if tc is truncated, nothing to trigger inspection on; if it's not, it's not ready to
+         * trigger inspection on */
 
         SCLogDebug!("SMB: TX TREECONNECT created: ID {} NAME {}",
                 tx.id, String::from_utf8_lossy(&name));
@@ -1086,6 +1100,8 @@ impl SMBState {
                                 del, dir)));
         tx.request_done = true;
         tx.response_done = self.tc_trunc; // no response expected if tc is truncated
+        /* if tc is truncated, nothing to trigger inspection on; if it's not, it's not ready to
+         * trigger inspection on */
 
         self.transactions.push_back(tx);
         let tx_ref = self.transactions.back_mut();
@@ -1457,7 +1473,7 @@ impl SMBState {
                                             let pdu_frame = self.add_smb1_ts_pdu_frame(flow, stream_slice, nbss_hdr.data, nbss_hdr.length as i64);
                                             self.add_smb1_ts_hdr_data_frames(flow, stream_slice, nbss_hdr.data, nbss_hdr.length as i64);
                                             if smb_record.is_request() {
-                                                smb1_request_record(self, smb_record);
+                                                smb1_request_record(self, flow, smb_record);
                                             } else {
                                                 // If we received a response when expecting a request, set an event
                                                 // on the PDU frame instead of handling the response.
@@ -1486,7 +1502,7 @@ impl SMBState {
                                                 self.add_smb2_ts_hdr_data_frames(flow, stream_slice, nbss_data, record_len, smb_record.header_len as i64);
                                                 SCLogDebug!("nbss_data_rem {}", nbss_data_rem.len());
                                                 if smb_record.is_request() {
-                                                    smb2_request_record(self, smb_record);
+                                                    smb2_request_record(self, flow, smb_record);
                                                 } else {
                                                     // If we received a response when expecting a request, set an event
                                                     // on the PDU frame instead of handling the response.

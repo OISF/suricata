@@ -24,6 +24,7 @@ use crate::smb::smb::*;
 use crate::smb::dcerpc::*;
 use crate::smb::events::*;
 use crate::smb::files::*;
+use crate::flow::Flow;
 
 use crate::smb::smb1_records::*;
 use crate::smb::smb1_session::*;
@@ -181,7 +182,7 @@ fn smb1_command_is_andx(c: u8) -> bool {
     }
 }
 
-fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, andx_offset: &mut usize) {
+fn smb1_request_record_one(state: &mut SMBState, flow: *mut Flow, r: &SmbRecord, command: u8, andx_offset: &mut usize) {
     let mut events : Vec<SMBEvent> = Vec::new();
     let mut no_response_expected = false;
 
@@ -197,7 +198,7 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
                     let mut oldname = rd.oldname;
                     oldname.retain(|&i|i != 0x00);
 
-                    let tx = state.new_rename_tx(Vec::new(), oldname, newname);
+                    let tx = state.new_rename_tx(flow, Vec::new(), oldname, newname);
                     tx.hdr = tx_hdr;
                     tx.request_done = true;
                     tx.vercmd.set_smb1_cmd(SMB1_COMMAND_RENAME);
@@ -226,7 +227,7 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
                                             SCLogDebug!("TRANS2 SET_FILE_INFO DATA DISPOSITION DONE {:?}", disp);
                                             let tx_hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
 
-                                            let tx = state.new_setpathinfo_tx(pd.oldname,
+                                            let tx = state.new_setpathinfo_tx(flow, pd.oldname,
                                                     rd.subcmd, pd.loi, disp.delete);
                                             tx.hdr = tx_hdr;
                                             tx.request_done = true;
@@ -256,7 +257,7 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
 
                                             let fid : Vec<u8> = Vec::new();
 
-                                            let tx = state.new_rename_tx(fid, pd.oldname, newname);
+                                            let tx = state.new_rename_tx(flow, fid, pd.oldname, newname);
                                             tx.hdr = tx_hdr;
                                             tx.request_done = true;
                                             tx.vercmd.set_smb1_cmd(SMB1_COMMAND_TRANS2);
@@ -309,7 +310,7 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
                                                 Some(n) => n.to_vec(),
                                                 None => b"<unknown>".to_vec(),
                                             };
-                                            let tx = state.new_setfileinfo_tx(filename, pd.fid.to_vec(),
+                                            let tx = state.new_setfileinfo_tx(flow, filename, pd.fid.to_vec(),
                                                     rd.subcmd, pd.loi, disp.delete);
                                             tx.hdr = tx_hdr;
                                             tx.request_done = true;
@@ -344,7 +345,7 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
                                                 Some(n) => n.to_vec(),
                                                 None => b"<unknown>".to_vec(),
                                             };
-                                            let tx = state.new_rename_tx(pd.fid.to_vec(), oldname, newname);
+                                            let tx = state.new_rename_tx(flow, pd.fid.to_vec(), oldname, newname);
                                             tx.hdr = tx_hdr;
                                             tx.request_done = true;
                                             tx.vercmd.set_smb1_cmd(SMB1_COMMAND_TRANS2);
@@ -581,13 +582,13 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
     }
 }
 
-pub fn smb1_request_record(state: &mut SMBState, r: &SmbRecord) -> u32 {
+pub fn smb1_request_record(state: &mut SMBState, flow: *mut Flow, r: &SmbRecord) -> u32 {
     SCLogDebug!("record: command {}: record {:?}", r.command, r);
 
     let mut andx_offset = SMB1_HEADER_SIZE;
     let mut command = r.command;
     loop {
-        smb1_request_record_one(state, r, command, &mut andx_offset);
+        smb1_request_record_one(state, flow, r, command, &mut andx_offset);
 
         // continue for next andx command if any
         if smb1_command_is_andx(command) {
