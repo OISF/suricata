@@ -157,5 +157,6 @@ alert pkthdr any any -> any any (msg:"SURICATA packet with too many layers"; dec
 # Capture events.
 alert pkthdr any any -> any any (msg:"SURICATA AF-PACKET truncated packet"; decode-event:afpacket.trunc_pkt; classtype:protocol-command-decode; sid:2200122; rev:1;)
 
-# next sid is 2200125
+alert ipv4 any any -> any any (msg:"SURICATA IPv4 unknown protocol"; decode-event:ipv4.unknown_protocol; threshold: type limit, track by_src, seconds 60, count 1;classtype:protocol-command-decode; sid:2200125;)
+# next sid is 2200126
 

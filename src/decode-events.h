@@ -46,6 +46,7 @@ enum {
     IPV4_OPT_UNKNOWN,      /**< unknown ip option */
     IPV4_WRONG_IP_VER,     /**< wrong ip version in ip options */
     IPV4_WITH_ICMPV6,      /**< IPv4 packet with ICMPv6 header */
+    IPV4_PROTO_UNKNOWN,    /**< IPv4 packet with unknown protocol*/
 
     /* ICMP EVENTS */
     ICMPV4_PKT_TOO_SMALL,    /**< icmpv4 packet smaller than minimum size */
