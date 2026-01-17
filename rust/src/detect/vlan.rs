@@ -17,7 +17,7 @@
 
 use super::uint::{
     detect_parse_array_uint, detect_uint_match_at_index, DetectUintArrayData, DetectUintData,
-    DetectUintIndex,
+    DetectUintIndex, DetectUintIndexPrecise,
 };
 use std::ffi::{c_int, c_void, CStr};
 
@@ -49,7 +49,7 @@ pub fn detect_parse_vlan_id(s: &str) -> Option<DetectUintArrayData<u16>> {
             SCLogError!("vlan id should be less than 4096");
             return None;
         }
-        match a.index {
+        match &a.index {
             DetectUintIndex::All => {
                 // keep previous behavior that vlan.id: all matched only if there was vlan
                 return Some(DetectUintArrayData {
@@ -59,8 +59,8 @@ pub fn detect_parse_vlan_id(s: &str) -> Option<DetectUintArrayData<u16>> {
                     end: a.end,
                 });
             }
-            DetectUintIndex::Index((_, i)) => {
-                if !(-VLAN_MAX_LAYERS..=VLAN_MAX_LAYERS - 1).contains(&i) {
+            DetectUintIndex::Index(prec) => {
+                if !(-VLAN_MAX_LAYERS..=VLAN_MAX_LAYERS - 1).contains(&prec.pos) {
                     SCLogError!(
                         "vlan id index should belong in range {:?}",
                         (-VLAN_MAX_LAYERS..=VLAN_MAX_LAYERS - 1)
@@ -110,7 +110,10 @@ pub unsafe extern "C" fn SCDetectVlanIdPrefilterMatch(
         DETECT_VLAN_ID_ALL => DetectUintIndex::All,
         DETECT_VLAN_ID_ALL_OR_ABSENT => DetectUintIndex::AllOrAbsent,
         DETECT_VLAN_ID_OR_ABSENT => DetectUintIndex::OrAbsent,
-        i => DetectUintIndex::Index((false, i.into())),
+        i => DetectUintIndex::Index(DetectUintIndexPrecise {
+            oob: false,
+            pos: i.into(),
+        }),
     };
 
     let ctx = DetectUintArrayData {
@@ -127,12 +130,12 @@ pub unsafe extern "C" fn SCDetectVlanIdPrefilterMatch(
 pub unsafe extern "C" fn SCDetectVlanIdPrefilter(
     ctx: &DetectUintArrayData<u16>,
 ) -> DetectVlanIdDataPrefilter {
-    let layer = match ctx.index {
+    let layer = match &ctx.index {
         DetectUintIndex::Any => DETECT_VLAN_ID_ANY,
         DetectUintIndex::All => DETECT_VLAN_ID_ALL,
         DetectUintIndex::AllOrAbsent => DETECT_VLAN_ID_ALL_OR_ABSENT,
         DetectUintIndex::OrAbsent => DETECT_VLAN_ID_OR_ABSENT,
-        DetectUintIndex::Index((_, i)) => i as i8,
+        DetectUintIndex::Index(prec) => prec.pos as i8,
         DetectUintIndex::NumberMatches(_) => DETECT_VLAN_ID_ERROR,
         DetectUintIndex::Count(_) => DETECT_VLAN_ID_ERROR,
     };
@@ -148,13 +151,13 @@ pub unsafe extern "C" fn SCDetectVlanIdPrefilterable(ctx: *const c_void) -> bool
     if ctx.start != 0 || ctx.end != 0 {
         return false;
     }
-    match ctx.index {
+    match &ctx.index {
         DetectUintIndex::Any => true,
         DetectUintIndex::All => true,
         DetectUintIndex::AllOrAbsent => true,
         DetectUintIndex::OrAbsent => true,
         // do not prefilter for precise index with "or out of bounds"
-        DetectUintIndex::Index((oob, _)) => !oob,
+        DetectUintIndex::Index(prec) => !prec.oob,
         DetectUintIndex::NumberMatches(_) => false,
         DetectUintIndex::Count(_) => false,
     }
@@ -214,7 +217,7 @@ mod test {
                     arg2: 0,
                     mode: DetectUintMode::DetectUintModeEqual,
                 },
-                index: DetectUintIndex::Index((false, 1)),
+                index: DetectUintIndex::Index(DetectUintIndexPrecise { oob: false, pos: 1 }),
                 start: 0,
                 end: 0,
             }
@@ -227,7 +230,7 @@ mod test {
                     arg2: 0,
                     mode: DetectUintMode::DetectUintModeEqual,
                 },
-                index: DetectUintIndex::Index((false, -1)),
+                index: DetectUintIndex::Index(DetectUintIndexPrecise { oob: false, pos: -1 }),
                 start: 0,
                 end: 0,
             }
@@ -240,7 +243,7 @@ mod test {
                     arg2: 0,
                     mode: DetectUintMode::DetectUintModeNe,
                 },
-                index: DetectUintIndex::Index((false, 2)),
+                index: DetectUintIndex::Index(DetectUintIndexPrecise { oob: false, pos: 2 }),
                 start: 0,
                 end: 0,
             }
@@ -253,7 +256,7 @@ mod test {
                     arg2: 0,
                     mode: DetectUintMode::DetectUintModeGt,
                 },
-                index: DetectUintIndex::Index((false, 2)),
+                index: DetectUintIndex::Index(DetectUintIndexPrecise { oob: false, pos: 2 }),
                 start: 0,
                 end: 0,
             }
@@ -266,7 +269,7 @@ mod test {
                     arg2: 300,
                     mode: DetectUintMode::DetectUintModeRange,
                 },
-                index: DetectUintIndex::Index((false, 0)),
+                index: DetectUintIndex::Index(DetectUintIndexPrecise { oob: false, pos: 0 }),
                 start: 0,
                 end: 0,
             }
@@ -279,7 +282,7 @@ mod test {
                     arg2: 0,
                     mode: DetectUintMode::DetectUintModeEqual,
                 },
-                index: DetectUintIndex::Index((false, 2)),
+                index: DetectUintIndex::Index(DetectUintIndexPrecise { oob: false, pos: 2 }),
                 start: 0,
                 end: 0,
             }
