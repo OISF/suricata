@@ -1904,25 +1904,25 @@ int SCAppLayerProtoDetectConfProtoDetectionEnabledDefault(
     default_enabled = true;
 #endif
 
-    r = snprintf(param, sizeof(param), "%s%s%s", "app-layer.protocols.",
-                 alproto, ".enabled");
+    r = snprintf(param, sizeof(param), "%s%s%s%s%s", "app-layer.protocols.", alproto, ".", ipproto,
+            ".enabled");
     if (r < 0) {
         FatalError("snprintf failure.");
     } else if (r > (int)sizeof(param)) {
         FatalError("buffer not big enough to write param.");
     }
+    SCLogDebug("Looking for %s", param);
 
     node = SCConfGetNode(param);
     if (node == NULL) {
-        SCLogDebug("Entry for %s not found.", param);
-        r = snprintf(param, sizeof(param), "%s%s%s%s%s", "app-layer.protocols.",
-                     alproto, ".", ipproto, ".enabled");
+        r = snprintf(param, sizeof(param), "%s%s%s", "app-layer.protocols.", alproto, ".enabled");
         if (r < 0) {
             FatalError("snprintf failure.");
         } else if (r > (int)sizeof(param)) {
             FatalError("buffer not big enough to write param.");
         }
 
+        SCLogDebug("Looking for %s", param);
         node = SCConfGetNode(param);
         if (node == NULL) {
             SCLogDebug("Entry for %s not found.", param);
@@ -1933,7 +1933,6 @@ int SCAppLayerProtoDetectConfProtoDetectionEnabledDefault(
             }
         }
     }
-
     if (node->val) {
         if (SCConfValIsTrue(node->val)) {
             goto enabled;
