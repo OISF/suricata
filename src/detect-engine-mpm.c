@@ -1149,6 +1149,7 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
         return;
 
     const int nlists = s->init_data->max_content_list_id + 1;
+    DEBUG_VALIDATE_BUG_ON(nlists > UINT16_MAX);
     int pos_sm_list[nlists];
     int neg_sm_list[nlists];
     memset(pos_sm_list, 0, nlists * sizeof(int));
@@ -1733,11 +1734,12 @@ MpmStore *MpmStorePrepareBuffer(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
     uint32_t cnt = 0;
     int direction = 0;
     uint32_t max_sid = DetectEngineGetMaxSigId(de_ctx) / 8 + 1;
-    uint8_t sids_array[max_sid];
-    memset(sids_array, 0x00, max_sid);
     int sgh_mpm_context = 0;
     int sm_list = DETECT_SM_LIST_PMATCH;
-
+    uint8_t *sids_array = SCCalloc(1, max_sid);
+    if (sids_array == NULL) {
+        return NULL;
+    }
     switch (buf) {
         case MPMB_TCP_PKT_TS:
         case MPMB_TCP_PKT_TC:
@@ -1826,8 +1828,10 @@ MpmStore *MpmStorePrepareBuffer(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         }
     }
 
-    if (cnt == 0)
+    if (cnt == 0) {
+        SCFree(sids_array);
         return NULL;
+    }
 
     MpmStore lookup = { sids_array, max_sid, direction, buf, sm_list, 0, 0, NULL };
 
@@ -1839,6 +1843,7 @@ MpmStore *MpmStorePrepareBuffer(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         uint8_t *sids = SCCalloc(1, max_sid);
         if (sids == NULL) {
             SCFree(copy);
+            SCFree(sids_array);
             return NULL;
         }
 
@@ -1852,8 +1857,10 @@ MpmStore *MpmStorePrepareBuffer(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
 
         MpmStoreSetup(de_ctx, copy);
         MpmStoreAdd(de_ctx, copy);
+        SCFree(sids_array);
         return copy;
     } else {
+        SCFree(sids_array);
         return result;
     }
 }

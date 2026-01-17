@@ -895,6 +895,12 @@ int DatajsonAddSerialized(Dataset *set, const char *value, const char *json)
     int ret = -1;
     switch (set->type) {
         case DATASET_TYPE_STRING: {
+            if (strlen(value) > UINT16_MAX) {
+                // size check before stack allocation
+                // should never happen as unix socket callers limits it to 4k
+                SCFree(jvalue.value);
+                return -1;
+            }
             uint32_t decoded_size = SCBase64DecodeBufferSize((uint32_t)strlen(value));
             uint8_t decoded[decoded_size];
             uint32_t num_decoded = SCBase64Decode(
