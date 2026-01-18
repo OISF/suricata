@@ -42,6 +42,7 @@
 #define DETECT_BYTEJUMP_END       BIT_U16(8) /**< "from_end" jump */
 #define DETECT_BYTEJUMP_NBYTES_VAR BIT_U16(9) /**< nbytes string*/
 #define DETECT_BYTEJUMP_OFFSET_VAR BIT_U16(10) /**< byte extract value enabled */
+#define DETECT_BYTEJUMP_BITMASK    BIT_U16(11) /**< bitmask value */
 
 typedef struct DetectBytejumpData_ {
     uint8_t nbytes;                   /**< Number of bytes to compare */
@@ -50,6 +51,8 @@ typedef struct DetectBytejumpData_ {
     int32_t offset;                   /**< Offset in payload to extract value */
     int32_t post_offset;              /**< Offset to adjust post-jump */
     uint16_t multiplier;              /**< Multiplier for nbytes (multiplier n)*/
+    uint32_t bitmask_value;           /**< bitmask value */
+    uint32_t bitmask_shift_count;     /**< bitmask shift value*/
 } DetectBytejumpData;
 
 /* prototypes */

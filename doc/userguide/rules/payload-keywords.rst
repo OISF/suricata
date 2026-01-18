@@ -542,6 +542,8 @@ byte_jump
 ---------
 
 The ``byte_jump`` keyword allows for the ability to select a ``<num of bytes>`` from an ``<offset>`` and moves the detection pointer to that position.  Content matches will then be based off the new position.
+The ``bitmask`` value is applied to the extracted value before jumping. Additionally, the result of the bitmask operation is
+right-shifted by the number of trailing zeroes in the bitmask value.
 
 Format::
 
