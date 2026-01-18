@@ -29,6 +29,7 @@
 #include "detect-threshold.h"
 
 void ThresholdInit(void);
+void ThresholdRegisterGlobalCounters(void);
 void ThresholdDestroy(void);
 
 uint32_t ThresholdsExpire(const SCTime_t ts);
