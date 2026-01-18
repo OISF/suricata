@@ -764,6 +764,7 @@ impl DCERPCState {
     pub fn handle_input_data(&mut self, stream_slice: StreamSlice, direction: Direction) -> AppLayerResult {
         let retval;
         let mut cur_i = stream_slice.as_slice();
+        let mut consumed = 0u32;
 
         // Skip the record since this means that its in the middle of a known length record
         if (self.ts_gap && direction == Direction::ToServer) || (self.tc_gap && direction == Direction::ToClient) {
@@ -773,6 +774,7 @@ impl DCERPCState {
                     SCLogDebug!("DCERPC record found");
                     let offset = cur_i.len() - pg.len();
                     cur_i = &cur_i[offset..];
+                    consumed = offset as u32;
                     match direction {
                         Direction::ToServer => {
                             self.ts_gap = false;
@@ -783,7 +785,7 @@ impl DCERPCState {
                     }
                 },
                 _ => {
-                    let mut consumed = cur_i.len() as u32;
+                    consumed = cur_i.len() as u32;
                     // At least 2 bytes are required to know if a new record is beginning
                     if consumed < 2 {
                         consumed = 0;
@@ -819,11 +821,11 @@ impl DCERPCState {
                 Err(Err::Incomplete(_)) => {
                     // Insufficient data.
                     SCLogDebug!("Insufficient data while parsing DCERPC header");
-                    return AppLayerResult::incomplete(0, DCERPC_HDR_LEN as u32);
+                    return AppLayerResult::incomplete(consumed, DCERPC_HDR_LEN as u32);
                 }
                 Err(Err::Error(Error{code:ErrorKind::Eof, ..})) => {
                     SCLogDebug!("EoF reached while parsing DCERPC header");
-                    return AppLayerResult::incomplete(0, DCERPC_HDR_LEN as u32);
+                    return AppLayerResult::incomplete(consumed, DCERPC_HDR_LEN as u32);
                 }
                 Err(_) => {
                     // Error, probably malformed data.
@@ -836,7 +838,7 @@ impl DCERPCState {
 
         if cur_i.len() < fraglen as usize {
             SCLogDebug!("Possibly fragmented data, waiting for more..");
-            return AppLayerResult::incomplete(0u32, fraglen.into());
+            return AppLayerResult::incomplete(consumed, fraglen.into());
         }
 
         let hdrtype = hdr.hdrtype;
