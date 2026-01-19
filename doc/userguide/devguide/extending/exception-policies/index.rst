@@ -125,11 +125,11 @@ https://github.com/OISF/suricata/pull/7791, especially commit
 Testing
 *******
 
-For any significant fixes new features, tests are required. For Exception
+For any significant fixes or new features, tests are required. For Exception
 Policies, please add Suricata-Verify tests. To learn more about testing Suricata
 refer to:
 
     - :ref:`Suricata Testing: Suricata Verify<testing-suricata-verify>`
     - Suricata-verify: https://github.com/OISF/suricata-verify/blob/master/README.md
     - Suricata Testing 101 - Building Robust Security Tools (SuriCon 2024 talk
-      by Haleema Khan and Modupe Falodun): https://youtu.be/9gOGkrSIcXQ?si=gANUv8Im5dw8qBk3
+      by Haleema Khan and Modupe Falodun): https://www.youtube.com/watch?v=9gOGkrSIcXQ
