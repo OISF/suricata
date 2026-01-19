@@ -695,7 +695,7 @@ static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, Packet *p)
 {
     const bool emerg = ((SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY) != 0);
 #ifdef DEBUG
-    if (g_eps_flow_memcap != UINT64_MAX && g_eps_flow_memcap == p->pcap_cnt) {
+    if (g_eps_flow_memcap != UINT64_MAX && g_eps_flow_memcap == PcapPacketCntGet(p)) {
         NoFlowHandleIPS(tv, fls, p);
         StatsCounterIncr(&tv->stats, fls->dtv->counter_flow_memcap);
         return NULL;

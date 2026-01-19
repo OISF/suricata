@@ -4583,17 +4583,17 @@ static int DetectEngineHttpHeaderTest34(void)
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
     p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    p1->pcap_cnt = 1;
+    PcapPacketCntSet(p1, 1);
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
     p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    p2->pcap_cnt = 2;
+    PcapPacketCntSet(p2, 2);
     p3->flow = &f;
     p3->flowflags |= FLOW_PKT_TOSERVER;
     p3->flowflags |= FLOW_PKT_ESTABLISHED;
     p3->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    p3->pcap_cnt = 3;
+    PcapPacketCntSet(p3, 3);
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -4699,17 +4699,17 @@ static int DetectEngineHttpHeaderTest35(void)
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
     p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    p1->pcap_cnt = 1;
+    PcapPacketCntSet(p1, 1);
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
     p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    p2->pcap_cnt = 2;
+    PcapPacketCntSet(p2, 2);
     p3->flow = &f;
     p3->flowflags |= FLOW_PKT_TOSERVER;
     p3->flowflags |= FLOW_PKT_ESTABLISHED;
     p3->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    p3->pcap_cnt = 3;
+    PcapPacketCntSet(p3, 3);
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
