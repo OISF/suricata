@@ -859,8 +859,9 @@ SCJsonBuilder *CreateEveHeader(const Packet *p, enum SCOutputJsonLogDirection di
     }
 
     /* pcap_cnt */
-    if (p->pcap_cnt != 0) {
-        SCJbSetUint(js, "pcap_cnt", p->pcap_cnt);
+    uint64_t pcap_cnt = PcapPacketCntGet(p);
+    if (pcap_cnt != 0) {
+        SCJbSetUint(js, "pcap_cnt", pcap_cnt);
     }
 
     if (event_type) {
