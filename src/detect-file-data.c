@@ -558,7 +558,7 @@ static void PrefilterTxFiledata(DetectEngineThreadCtx *det_ctx, const void *pect
                 local_file_id++;
                 continue;
             }
-            SCLogDebug("[%" PRIu64 "] buffer size %u", p->pcap_cnt, buffer->inspect_len);
+            SCLogDebug("[%" PRIu64 "] buffer size %u", PcapPacketCntGet(p), buffer->inspect_len);
 
             if (buffer->inspect_len >= mpm_ctx->minlen) {
                 uint32_t prev_rule_id_array_cnt = det_ctx->pmq.rule_id_array_cnt;
