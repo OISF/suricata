@@ -32,8 +32,8 @@ void PcapTranslateIPToDevice(char *pcap_dev, size_t len);
 #define LIBPCAP_PROMISC     1
 
 /* per packet Pcap vars */
-typedef struct PcapPacketVars_
-{
+typedef struct PcapPacketVars_ {
+    uint64_t pcap_cnt;
     uint32_t tenant_id;
 } PcapPacketVars;
 
