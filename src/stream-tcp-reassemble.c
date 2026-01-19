@@ -75,9 +75,8 @@
 static SCMutex segment_pool_memuse_mutex;
 static uint64_t segment_pool_memuse = 0;
 static uint64_t segment_pool_memcnt = 0;
-#endif
-
 thread_local uint64_t t_pcapcnt = UINT64_MAX;
+#endif
 
 PoolThread *segment_thread_pool = NULL;
 /* init only, protect initializing and growing pool */
