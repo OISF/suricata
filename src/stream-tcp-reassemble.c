@@ -1087,8 +1087,6 @@ static void GetSessionSize(TcpSession *ssn, Packet *p)
         size = GetStreamSize(&ssn->client);
         size += GetStreamSize(&ssn->server);
 
-        //if (size > 900000)
-        //    SCLogInfo("size %"PRIu64", packet %"PRIu64, size, p->pcap_cnt);
         SCLogDebug("size %"PRIu64", packet %"PRIu64, size, p->pcap_cnt);
     }
 }
