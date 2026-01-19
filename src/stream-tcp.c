@@ -215,12 +215,12 @@ static inline int StreamTcpValidateAck(TcpSession *ssn, TcpStream *, Packet *);
 static int StreamTcpStateDispatch(
         ThreadVars *tv, Packet *p, StreamTcpThread *stt, TcpSession *ssn, const uint8_t state);
 
-extern thread_local uint64_t t_pcapcnt;
 extern int g_detect_disabled;
 
 PoolThread *ssn_pool = NULL;
 static SCMutex ssn_pool_mutex = SCMUTEX_INITIALIZER; /**< init only, protect initializing and growing pool */
 #ifdef DEBUG
+extern thread_local uint64_t t_pcapcnt;
 static uint64_t ssn_pool_cnt = 0; /** counts ssns, protected by ssn_pool_mutex */
 #endif
 
@@ -6080,7 +6080,10 @@ TmEcode StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueueNoLock *pq)
             p->flow ? (FlowGetPacketDirection(p->flow, p) == TOSERVER ? "toserver" : "toclient")
                     : "noflow",
             PktSrcToString(p->pkt_src));
+
+#ifdef DEBUG
     t_pcapcnt = p->pcap_cnt;
+#endif /* DEBUG */
 
     if (!(PacketIsTCP(p))) {
         return TM_ECODE_OK;
