@@ -285,10 +285,8 @@ static void AlertJsonTunnel(const Packet *p, SCJsonBuilder *js)
     SCJbOpenObject(js, "tunnel");
 
     enum PktSrcEnum pkt_src;
-    uint64_t pcap_cnt;
     JsonAddrInfo addr = json_addr_info_zero;
     JsonAddrInfoInit(p->root, 0, &addr);
-    pcap_cnt = p->root->pcap_cnt;
     pkt_src = p->root->pkt_src;
 
     SCJbSetString(js, "src_ip", addr.src_ip);
@@ -298,6 +296,7 @@ static void AlertJsonTunnel(const Packet *p, SCJsonBuilder *js)
     SCJbSetString(js, "proto", addr.proto);
 
     SCJbSetUint(js, "depth", p->recursion_level);
+    uint64_t pcap_cnt = PcapPacketCntGet(p->root);
     if (pcap_cnt != 0) {
         SCJbSetUint(js, "pcap_cnt", pcap_cnt);
     }
@@ -542,8 +541,8 @@ void EveAddVerdict(SCJsonBuilder *jb, const Packet *p, const uint8_t alert_actio
     SCJbOpenObject(jb, "verdict");
 
     const uint8_t packet_action = PacketGetAction(p);
-    SCLogDebug("%" PRIu64 ": packet_action %02x alert_action %02x", p->pcap_cnt, packet_action,
-            alert_action);
+    SCLogDebug("%" PRIu64 ": packet_action %02x alert_action %02x", PcapPacketCntGet(p),
+            packet_action, alert_action);
     /* add verdict info */
     if (packet_action & ACTION_REJECT_ANY) {
         // check rule to define type of reject packet sent

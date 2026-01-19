@@ -1521,4 +1521,12 @@ static inline bool DecodeNetworkLayer(ThreadVars *tv, DecodeThreadVars *dtv,
     return true;
 }
 
+// temporary macro to get pcap packet count to reduce the number of changes
+// in the follow-up commit
+#define PcapPacketCntGet(p) (p)->pcap_cnt
+#define PcapPacketCntSet(p, cnt)                                                                   \
+    do {                                                                                           \
+        (p)->pcap_cnt = (cnt);                                                                     \
+    } while (0)
+
 #endif /* SURICATA_DECODE_H */
