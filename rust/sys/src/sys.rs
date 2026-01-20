@@ -1055,6 +1055,24 @@ impl Default for AppLayerGetTxIterTuple {
         }
     }
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct StreamSlice {
+    pub input: *const u8,
+    pub input_len: u32,
+    #[doc = " STREAM_* flags"]
+    pub flags: u8,
+    pub offset: u64,
+}
+impl Default for StreamSlice {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 extern "C" {
     pub fn SCAppLayerParserReallocCtx(alproto: AppProto) -> ::std::os::raw::c_int;
 }

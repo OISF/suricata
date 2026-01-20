@@ -147,6 +147,24 @@ typedef struct AppLayerGetTxIterTuple {
     bool has_next;
 } AppLayerGetTxIterTuple;
 
+typedef struct StreamSlice {
+    const uint8_t *input;
+    uint32_t input_len;
+    /// STREAM_* flags
+    uint8_t flags;
+    uint64_t offset;
+} StreamSlice;
+
+static inline const uint8_t *StreamSliceGetData(const StreamSlice *stream_slice)
+{
+    return stream_slice->input;
+}
+
+static inline uint32_t StreamSliceGetDataLen(const StreamSlice *stream_slice)
+{
+    return stream_slice->input_len;
+}
+
 /** \brief tx iterator prototype */
 typedef AppLayerGetTxIterTuple (*AppLayerGetTxIteratorFunc)
        (const uint8_t ipproto, const AppProto alproto,

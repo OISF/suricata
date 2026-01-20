@@ -19,6 +19,8 @@
 
 use crate::applayer::StreamSlice;
 #[cfg(not(test))]
+use crate::applayer::StreamSliceRust;
+#[cfg(not(test))]
 use crate::core::STREAM_TOSERVER;
 use crate::direction::Direction;
 use crate::flow::Flow;

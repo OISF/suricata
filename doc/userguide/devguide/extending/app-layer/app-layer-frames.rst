@@ -146,11 +146,11 @@ The Frame API calls parameters represent:
 
 ``StreamSlice`` contains the input data to the parser, alongside other Stream-related data important in parsing context. Definition is found in *applayer.rs*:
 
-.. literalinclude:: ../../../../../rust/src/applayer.rs
-    :caption: rust/src/applayer.rs
-    :language: rust
-    :start-at: pub struct StreamSlice
-    :end-before: impl StreamSlice
+.. literalinclude:: ../../../../../src/app-layer-parser.h
+    :caption: src/app-layer-parser.h
+    :language: C
+    :start-at: typedef struct StreamSlice {
+    :end-before: static inline
 
 
 C code
