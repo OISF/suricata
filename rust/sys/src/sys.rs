@@ -1073,6 +1073,13 @@ impl Default for StreamSlice {
         }
     }
 }
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+pub struct AppLayerResult {
+    pub status: i32,
+    pub consumed: u32,
+    pub needed: u32,
+}
 extern "C" {
     pub fn SCAppLayerParserReallocCtx(alproto: AppProto) -> ::std::os::raw::c_int;
 }

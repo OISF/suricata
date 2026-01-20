@@ -410,7 +410,7 @@ pub unsafe extern "C" fn SCRegisterDcerpcUdpParser() {
 
 #[cfg(test)]
 mod tests {
-    use crate::applayer::AppLayerResult;
+    use crate::applayer::{AppLayerResult, AppLayerResultRust};
     use crate::dcerpc::dcerpc_udp::DCERPCUDPState;
     use crate::dcerpc::parser;
 
