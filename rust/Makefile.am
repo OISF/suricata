@@ -151,7 +151,9 @@ if HAVE_BINDGEN
 		--allowlist-type 'AppLayerStateData' \
 		--allowlist-type 'AppLayerGetTxIterTuple' \
 		--allowlist-type 'AppLayerResult' \
+		--allowlist-type 'AppLayerTxData' \
 		--allowlist-type 'StreamSlice' \
+		--no-copy 'AppLayerTxData' \
 		--allowlist-function 'SC.*' \
 		--allowlist-var 'SC.*' \
 		--opaque-type 'SCConfNode' \

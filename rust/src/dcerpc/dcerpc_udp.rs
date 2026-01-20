@@ -94,8 +94,8 @@ impl DCERPCUDPState {
             for tx_old in &mut self.transactions.range_mut(self.tx_index_completed..) {
                 index += 1;
                 if !tx_old.req_done || !tx_old.resp_done {
-                    tx_old.tx_data.updated_tc = true;
-                    tx_old.tx_data.updated_ts = true;
+                    tx_old.tx_data.0.updated_tc = true;
+                    tx_old.tx_data.0.updated_ts = true;
                     tx_old.req_done = true;
                     tx_old.resp_done = true;
                     break;
@@ -171,8 +171,8 @@ impl DCERPCUDPState {
         }
 
         if let Some(tx) = otx {
-            tx.tx_data.updated_tc = true;
-            tx.tx_data.updated_ts = true;
+            tx.tx_data.0.updated_tc = true;
+            tx.tx_data.0.updated_ts = true;
             let done = (hdr.flags1 & PFCL1_FRAG) == 0 || (hdr.flags1 & PFCL1_LASTFRAG) != 0;
 
             let max_size = cfg_max_stub_size() as usize;
@@ -277,10 +277,10 @@ unsafe extern "C" fn state_transaction_free(
 
 unsafe extern "C" fn get_tx_data(
     tx: *mut std::os::raw::c_void)
-    -> *mut AppLayerTxData
+    -> *mut suricata_sys::sys::AppLayerTxData
 {
     let tx = cast_pointer!(tx, DCERPCTransaction);
-    return &mut tx.tx_data;
+    return &mut tx.tx_data.0;
 }
 
 unsafe extern "C" fn get_tx(

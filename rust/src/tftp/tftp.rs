@@ -25,7 +25,7 @@ use nom8::combinator::map_res;
 use nom8::bytes::streaming::{tag, take_while};
 use nom8::number::streaming::be_u8;
 
-use crate::applayer::{AppLayerTxData,AppLayerStateData};
+use crate::applayer::{AppLayerTxData, AppLayerStateData};
 
 const READREQUEST:  u8 = 1;
 const WRITEREQUEST: u8 = 2;
@@ -176,10 +176,10 @@ pub unsafe extern "C" fn SCTftpParseRequest(state: &mut TFTPState,
 #[no_mangle]
 pub unsafe extern "C" fn SCTftpGetTxData(
     tx: *mut std::os::raw::c_void)
-    -> *mut AppLayerTxData
+    -> *mut suricata_sys::sys::AppLayerTxData
 {
     let tx = cast_pointer!(tx, TFTPTransaction);
-    return &mut tx.tx_data;
+    return &mut tx.tx_data.0;
 }
 
 #[no_mangle]

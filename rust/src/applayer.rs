@@ -28,20 +28,16 @@ use std::ffi::CStr;
 // AppLayerEvent from this module.
 pub use suricata_derive::AppLayerEvent;
 use suricata_sys::sys::{
-    AppLayerDecoderEvents, AppLayerGetTxIterState, AppLayerParserState, AppProto,
-    DetectEngineState, GenericVar,
+    AppLayerGetTxIterState, AppLayerParserState, AppProto,
 };
 
 pub use suricata_sys::sys::{
     AppLayerGetFileState, AppLayerGetTxIterTuple, AppLayerResult, AppLayerStateData,
-    StreamSlice,
+    AppLayerTxConfig, StreamSlice,
 };
 
 #[cfg(not(test))]
-use suricata_sys::sys::{
-    SCAppLayerDecoderEventsFreeEvents, SCAppLayerDecoderEventsSetEventRaw, SCDetectEngineStateFree,
-    SCGenericVarFree,
-};
+use suricata_sys::sys::SCAppLayerDecoderEventsSetEventRaw;
 
 /// Cast pointer to a variable, as a mutable reference to an object
 ///
@@ -101,123 +97,18 @@ impl StreamSliceRust for StreamSlice {
     }
 }
 
-#[repr(C)]
-#[derive(Default, Debug,PartialEq, Eq)]
-pub struct AppLayerTxConfig {
-    /// config: log flags
-    log_flags: u8,
-}
-
-#[repr(C)]
-#[derive(Debug, PartialEq, Eq)]
-pub struct AppLayerTxData {
-    /// config: log flags
-    pub config: AppLayerTxConfig,
-
-    /// The tx has been updated and needs to be processed : detection, logging, cleaning
-    /// It can then be skipped until new data arrives.
-    /// There is a boolean for both directions : to server and to client
-    pub updated_tc: bool,
-    pub updated_ts: bool,
-
-    flags: u8,
-
-    /// logger flags for tx logging api
-    logged: u32,
-
-    /// track file open/logs so we can know how long to keep the tx
-    pub files_opened: u32,
-    pub files_logged: u32,
-    pub files_stored: u32,
-
-    pub file_flags: u16,
-
-    /// Indicated if a file tracking tx, and if so in which direction:
-    ///  0: not a file tx
-    /// STREAM_TOSERVER: file tx, files only in toserver dir
-    /// STREAM_TOCLIENT: file tx , files only in toclient dir
-    /// STREAM_TOSERVER|STREAM_TOCLIENT: files possible in both dirs
-    pub file_tx: u8,
-    /// Number of times this tx data has already been logged for signatures
-    /// not using application layer keywords
-    pub guessed_applayer_logged: u8,
-
-    /// detection engine progress tracking for use by detection engine
-    /// Reflects the "progress" of prefilter engines into this TX, where
-    /// the value is offset by 1. So if for progress state 0 the engines
-    /// are done, the value here will be 1. So a value of 0 means, no
-    /// progress tracked yet.
-    ///
-    detect_progress_ts: u8,
-    detect_progress_tc: u8,
-
-    de_state: *mut DetectEngineState,
-    pub events: *mut AppLayerDecoderEvents,
-    txbits: *mut GenericVar,
-}
-
-impl Default for AppLayerTxData {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl Drop for AppLayerTxData {
-    fn drop(&mut self) {
-        self.cleanup();
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn SCAppLayerTxDataCleanup(txd: *mut AppLayerTxData) {
-    let txd = cast_pointer!(txd, AppLayerTxData);
-    txd.cleanup()
-}
+#[derive(Debug, Default, Eq, PartialEq)]
+pub struct AppLayerTxData(pub suricata_sys::sys::AppLayerTxData);
 
 impl AppLayerTxData {
-    #[cfg(not(test))]
-    pub fn cleanup(&mut self) {
-        if !self.de_state.is_null() {
-            unsafe {
-                SCDetectEngineStateFree(self.de_state);
-            }
-        }
-        if !self.events.is_null() {
-            unsafe {
-                SCAppLayerDecoderEventsFreeEvents(&mut self.events);
-            }
-        }
-        if !self.txbits.is_null() {
-            unsafe {
-                SCGenericVarFree(self.txbits);
-            }
-        }
-    }
-
-    #[cfg(test)]
-    pub fn cleanup(&mut self) {}
-
     /// Create new AppLayerTxData for a transaction that covers both
     /// directions.
     pub fn new() -> Self {
-        Self {
-            config: AppLayerTxConfig::default(),
-            logged: 0,
-            files_opened: 0,
-            files_logged: 0,
-            files_stored: 0,
-            file_flags: 0,
-            file_tx: 0,
-            guessed_applayer_logged: 0,
+        Self (suricata_sys::sys::AppLayerTxData {
             updated_tc: true,
             updated_ts: true,
-            flags: 0,
-            detect_progress_ts: 0,
-            detect_progress_tc: 0,
-            de_state: std::ptr::null_mut(),
-            events: std::ptr::null_mut(),
-            txbits: std::ptr::null_mut(),
-        }
+            ..Default::default()
+        })
     }
 
     /// Create new AppLayerTxData for a transaction in a single
@@ -227,61 +118,48 @@ impl AppLayerTxData {
             Direction::ToServer => (APP_LAYER_TX_SKIP_INSPECT_TC, true, false),
             Direction::ToClient => (APP_LAYER_TX_SKIP_INSPECT_TS, false, true),
         };
-        Self {
-            config: AppLayerTxConfig::default(),
-            logged: 0,
-            files_opened: 0,
-            files_logged: 0,
-            files_stored: 0,
-            file_flags: 0,
-            file_tx: 0,
-            guessed_applayer_logged: 0,
+        Self (suricata_sys::sys::AppLayerTxData{
             updated_tc,
             updated_ts,
-            detect_progress_ts: 0,
-            detect_progress_tc: 0,
             flags,
-            de_state: std::ptr::null_mut(),
-            events: std::ptr::null_mut(),
-            txbits: std::ptr::null_mut(),
-        }
+            ..Default::default()
+        })
     }
 
     pub fn init_files_opened(&mut self) {
-        self.files_opened = 1;
+        self.0.files_opened = 1;
     }
 
     pub fn incr_files_opened(&mut self) {
-        self.files_opened += 1;
+        self.0.files_opened += 1;
     }
 
     pub fn set_event(&mut self, _event: u8) {
         #[cfg(not(test))]
         unsafe {
-            SCAppLayerDecoderEventsSetEventRaw(&mut self.events, _event);
+            SCAppLayerDecoderEventsSetEventRaw(&mut self.0.events, _event);
         }
     }
 
     pub fn update_file_flags(&mut self, state_flags: u16) {
-        if (self.file_flags & state_flags) != state_flags {
-            SCLogDebug!("updating tx file_flags {:04x} with state flags {:04x}", self.file_flags, state_flags);
-            let mut nf = state_flags;
-            // With keyword filestore:both,flow :
-            // There may be some opened unclosed file in one direction without filestore
-            // As such it has tx file_flags had FLOWFILE_NO_STORE_TS or TC
-            // But a new file in the other direction may trigger filestore:both,flow
-            // And thus set state_flags FLOWFILE_STORE_TS
-            // If the file was opened without storing it, do not try to store just the end of it
-            if (self.file_flags & FLOWFILE_NO_STORE_TS) != 0 && (state_flags & FLOWFILE_STORE_TS) != 0 {
-                nf &= !FLOWFILE_STORE_TS;
-            }
-            if (self.file_flags & FLOWFILE_NO_STORE_TC) != 0 && (state_flags & FLOWFILE_STORE_TC) != 0 {
-                nf &= !FLOWFILE_STORE_TC;
-            }
-            self.file_flags |= nf;
+        unsafe {
+            SCTxDataUpdateFileFlags(&mut self.0, state_flags);
         }
     }
 }
+
+#[cfg(not(test))]
+use suricata_sys::sys::SCAppLayerTxDataCleanup;
+
+impl Drop for AppLayerTxData {
+    fn drop(&mut self) {
+        #[cfg(not(test))]
+        unsafe {
+            SCAppLayerTxDataCleanup(&mut self.0);
+        }
+    }
+}
+
 
 // need to keep in sync with C flow.h
 pub const FLOWFILE_NO_STORE_TS: u16 = BIT_U16!(2);
@@ -290,18 +168,34 @@ pub const FLOWFILE_STORE_TS: u16 = BIT_U16!(12);
 pub const FLOWFILE_STORE_TC: u16 = BIT_U16!(13);
 
 #[no_mangle]
-pub unsafe extern "C" fn SCTxDataUpdateFileFlags(txd: &mut AppLayerTxData, state_flags: u16) {
-    txd.update_file_flags(state_flags);
+pub unsafe extern "C" fn SCTxDataUpdateFileFlags(txd: &mut suricata_sys::sys::AppLayerTxData, state_flags: u16) {
+    if (txd.file_flags & state_flags) != state_flags {
+        SCLogDebug!("updating tx file_flags {:04x} with state flags {:04x}", txd.file_flags, state_flags);
+        let mut nf = state_flags;
+        // With keyword filestore:both,flow :
+        // There may be some opened unclosed file in one direction without filestore
+        // As such it has tx file_flags had FLOWFILE_NO_STORE_TS or TC
+        // But a new file in the other direction may trigger filestore:both,flow
+        // And thus set state_flags FLOWFILE_STORE_TS
+        // If the file was opened without storing it, do not try to store just the end of it
+        if (txd.file_flags & FLOWFILE_NO_STORE_TS) != 0 && (state_flags & FLOWFILE_STORE_TS) != 0 {
+            nf &= !FLOWFILE_STORE_TS;
+        }
+        if (txd.file_flags & FLOWFILE_NO_STORE_TC) != 0 && (state_flags & FLOWFILE_STORE_TC) != 0 {
+            nf &= !FLOWFILE_STORE_TC;
+        }
+        txd.file_flags |= nf;
+    }
 }
 
 #[macro_export]
 macro_rules!export_tx_data_get {
     ($name:ident, $type:ty) => {
         unsafe extern "C" fn $name(tx: *mut std::os::raw::c_void)
-            -> *mut $crate::applayer::AppLayerTxData
+            -> *mut suricata_sys::sys::AppLayerTxData
         {
             let tx = &mut *(tx as *mut $type);
-            &mut tx.tx_data
+            &mut tx.tx_data.0
         }
     }
 }
@@ -485,7 +379,7 @@ pub type GetTxIteratorFn    = unsafe extern "C" fn (ipproto: u8, alproto: AppPro
                                              max_tx_id: u64,
                                              istate: *mut AppLayerGetTxIterState)
                                              -> AppLayerGetTxIterTuple;
-pub type GetTxDataFn = unsafe extern "C" fn(*mut c_void) -> *mut AppLayerTxData;
+pub type GetTxDataFn = unsafe extern "C" fn(*mut c_void) -> *mut suricata_sys::sys::AppLayerTxData;
 pub type GetStateDataFn = unsafe extern "C" fn(*mut c_void) -> *mut AppLayerStateData;
 pub type ApplyTxConfigFn = unsafe extern "C" fn (*mut c_void, *mut c_void, c_int, AppLayerTxConfig);
 pub type GetFrameIdByName = unsafe extern "C" fn(*const c_char) -> c_int;
