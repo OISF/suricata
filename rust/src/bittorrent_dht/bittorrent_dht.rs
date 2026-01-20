@@ -106,15 +106,15 @@ impl BitTorrentDHTState {
         }
     }
 
-    pub fn parse(&mut self, input: &[u8], _direction: Direction) -> bool {
+    pub fn parse(&mut self, input: &[u8], _direction: Direction) -> AppLayerResult {
         if !Self::is_dht(input) {
-            return true;
+            return AppLayerResult::ok();
         }
         let mut tx = self.new_tx(_direction);
-        let mut status = true;
+        let mut status = AppLayerResult::ok();
 
         if let Err(_e) = parse_bittorrent_dht_packet(input, &mut tx) {
-            status = false;
+            status = AppLayerResult::err();
             tx.set_event(BitTorrentDHTEvent::MalformedPacket);
             SCLogDebug!("BitTorrent DHT Parsing Error: {}", _e);
         }
@@ -181,7 +181,7 @@ unsafe extern "C" fn parse(
 ) -> AppLayerResult {
     let state = cast_pointer!(state, BitTorrentDHTState);
     let buf = stream_slice.as_slice();
-    state.parse(buf, direction).into()
+    state.parse(buf, direction)
 }
 
 unsafe extern "C" fn state_get_tx(

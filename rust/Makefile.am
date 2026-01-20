@@ -150,6 +150,7 @@ if HAVE_BINDGEN
 		--allowlist-type 'AppLayerGetTxIterState' \
 		--allowlist-type 'AppLayerStateData' \
 		--allowlist-type 'AppLayerGetTxIterTuple' \
+		--allowlist-type 'AppLayerResult' \
 		--allowlist-type 'StreamSlice' \
 		--allowlist-function 'SC.*' \
 		--allowlist-var 'SC.*' \
