@@ -32,7 +32,10 @@ use suricata_sys::sys::{
     DetectEngineState, GenericVar,
 };
 
-pub use suricata_sys::sys::{AppLayerGetFileState, AppLayerStateData, AppLayerGetTxIterTuple};
+pub use suricata_sys::sys::{
+    AppLayerGetFileState, AppLayerStateData, AppLayerGetTxIterTuple, StreamSlice,
+};
+
 #[cfg(not(test))]
 use suricata_sys::sys::{
     SCAppLayerDecoderEventsFreeEvents, SCAppLayerDecoderEventsSetEventRaw, SCDetectEngineStateFree,
@@ -47,20 +50,22 @@ macro_rules! cast_pointer {
     ($ptr:ident, $ty:ty) => ( &mut *($ptr as *mut $ty) );
 }
 
-#[repr(C)]
-pub struct StreamSlice {
-    input: *const u8,
-    input_len: u32,
-    /// STREAM_* flags
-    flags: u8,
-    offset: u64,
+pub trait StreamSliceRust {
+    #[cfg(test)]
+    fn from_slice(slice: &[u8], flags: u8, offset: u64) -> Self;
+    fn is_gap(&self) -> bool;
+    fn gap_size(&self) -> u32;
+    fn as_slice(&self) -> &[u8];
+    fn is_empty(&self) -> bool;
+    fn len(&self) -> u32;
+    fn offset_from(&self, slice: &[u8]) -> u32;
+    fn flags(&self) -> u8;
 }
 
-impl StreamSlice {
-
+impl StreamSliceRust for StreamSlice {
     /// Create a StreamSlice from a Rust slice. Useful in unit tests.
     #[cfg(test)]
-    pub fn from_slice(slice: &[u8], flags: u8, offset: u64) -> Self {
+    fn from_slice(slice: &[u8], flags: u8, offset: u64) -> Self {
         Self {
             input: slice.as_ptr(),
             input_len: slice.len() as u32,
@@ -69,28 +74,28 @@ impl StreamSlice {
         }
     }
 
-    pub fn is_gap(&self) -> bool {
+    fn is_gap(&self) -> bool {
         self.input.is_null() && self.input_len > 0
     }
-    pub fn gap_size(&self) -> u32 {
+    fn gap_size(&self) -> u32 {
         self.input_len
     }
-    pub fn as_slice(&self) -> &[u8] {
+    fn as_slice(&self) -> &[u8] {
         if self.input.is_null() && self.input_len == 0 {
             return &[];
         }
         unsafe { std::slice::from_raw_parts(self.input, self.input_len as usize) }
     }
-    pub fn is_empty(&self) -> bool {
+    fn is_empty(&self) -> bool {
         self.input_len == 0
     }
-    pub fn len(&self) -> u32 {
+    fn len(&self) -> u32 {
         self.input_len
     }
-    pub fn offset_from(&self, slice: &[u8]) -> u32 {
+    fn offset_from(&self, slice: &[u8]) -> u32 {
         self.len() - slice.len() as u32
     }
-    pub fn flags(&self) -> u8 {
+    fn flags(&self) -> u8 {
         self.flags
     }
 }

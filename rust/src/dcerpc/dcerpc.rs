@@ -1208,7 +1208,7 @@ pub unsafe extern "C" fn SCRegisterDcerpcParser() {
 
 #[cfg(test)]
 mod tests {
-    use crate::applayer::{AppLayerResult, StreamSlice};
+    use crate::applayer::{AppLayerResult, StreamSlice, StreamSliceRust};
     use crate::core::*;
     use crate::dcerpc::dcerpc::DCERPCState;
     use crate::direction::Direction;
