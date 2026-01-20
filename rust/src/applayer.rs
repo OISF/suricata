@@ -32,7 +32,7 @@ use suricata_sys::sys::{
     DetectEngineState, GenericVar,
 };
 
-pub use suricata_sys::sys::{AppLayerGetFileState, AppLayerStateData};
+pub use suricata_sys::sys::{AppLayerGetFileState, AppLayerStateData, AppLayerGetTxIterTuple};
 #[cfg(not(test))]
 use suricata_sys::sys::{
     SCAppLayerDecoderEventsFreeEvents, SCAppLayerDecoderEventsSetEventRaw, SCDetectEngineStateFree,
@@ -544,20 +544,18 @@ pub const _APP_LAYER_TX_INSPECTED_TS: u8 = BIT_U8!(2);
 pub const _APP_LAYER_TX_INSPECTED_TC: u8 = BIT_U8!(3);
 pub const APP_LAYER_TX_ACCEPT: u8 = BIT_U8!(4);
 
-#[repr(C)]
-pub struct AppLayerGetTxIterTuple {
-    tx_ptr: *mut std::os::raw::c_void,
-    tx_id: u64,
-    has_next: bool,
+pub trait AppLayerGetTxIterTupleRust {
+    fn with_values(tx_ptr: *mut std::os::raw::c_void, tx_id: u64, has_next: bool) -> Self;
+    fn not_found() -> Self;
 }
 
-impl AppLayerGetTxIterTuple {
-    pub fn with_values(tx_ptr: *mut std::os::raw::c_void, tx_id: u64, has_next: bool) -> AppLayerGetTxIterTuple {
+impl AppLayerGetTxIterTupleRust for AppLayerGetTxIterTuple {
+    fn with_values(tx_ptr: *mut std::os::raw::c_void, tx_id: u64, has_next: bool) -> AppLayerGetTxIterTuple {
         AppLayerGetTxIterTuple {
             tx_ptr, tx_id, has_next,
         }
     }
-    pub fn not_found() -> AppLayerGetTxIterTuple {
+    fn not_found() -> AppLayerGetTxIterTuple {
         AppLayerGetTxIterTuple {
             tx_ptr: std::ptr::null_mut(), tx_id: 0, has_next: false,
         }

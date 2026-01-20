@@ -149,6 +149,7 @@ if HAVE_BINDGEN
 		--allowlist-type 'AppLayerGetFileState' \
 		--allowlist-type 'AppLayerGetTxIterState' \
 		--allowlist-type 'AppLayerStateData' \
+		--allowlist-type 'AppLayerGetTxIterTuple' \
 		--allowlist-function 'SC.*' \
 		--allowlist-var 'SC.*' \
 		--opaque-type 'SCConfNode' \

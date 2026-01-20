@@ -141,6 +141,12 @@ typedef struct AppLayerStateData {
     uint16_t file_flags;
 } AppLayerStateData;
 
+typedef struct AppLayerGetTxIterTuple {
+    void *tx_ptr;
+    uint64_t tx_id;
+    bool has_next;
+} AppLayerGetTxIterTuple;
+
 /** \brief tx iterator prototype */
 typedef AppLayerGetTxIterTuple (*AppLayerGetTxIteratorFunc)
        (const uint8_t ipproto, const AppProto alproto,
