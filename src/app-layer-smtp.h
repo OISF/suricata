@@ -25,6 +25,7 @@
 #define SURICATA_APP_LAYER_SMTP_H
 
 #include "rust.h"
+#include "app-layer-parser.h"
 #include "app-layer-frames.h"
 #include "util-streaming-buffer.h"
 

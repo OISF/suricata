@@ -132,7 +132,7 @@ impl State<RdpTransaction> for RdpState {
 impl RdpState {
     fn new() -> Self {
         Self {
-            state_data: AppLayerStateData::new(),
+            state_data: AppLayerStateData::default(),
             next_id: 0,
             transactions: VecDeque::new(),
             tls_parsing: false,

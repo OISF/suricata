@@ -98,7 +98,7 @@ impl Default for TelnetState {
 impl TelnetState {
     pub fn new() -> Self {
         Self {
-            state_data: AppLayerStateData::new(),
+            state_data: AppLayerStateData::default(),
             tx_id: 0,
             transactions: Vec::new(),
             request_gap: false,

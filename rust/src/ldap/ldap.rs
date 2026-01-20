@@ -120,7 +120,7 @@ impl State<LdapTransaction> for LdapState {
 impl LdapState {
     pub fn new() -> Self {
         Self {
-            state_data: AppLayerStateData::new(),
+            state_data: AppLayerStateData::default(),
             tx_id: 0,
             transactions: VecDeque::new(),
             request_frame: None,

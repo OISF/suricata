@@ -417,7 +417,7 @@ impl NFSState {
     /// Allocation function for a new TLS parser instance
     pub fn new() -> NFSState {
         NFSState {
-            state_data: AppLayerStateData::new(),
+            state_data: AppLayerStateData::default(),
             requestmap: HashMap::new(),
             namemap: HashMap::new(),
             transactions: Vec::new(),

@@ -1034,6 +1034,11 @@ impl Default for AppLayerGetTxIterState {
         }
     }
 }
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+pub struct AppLayerStateData {
+    pub file_flags: u16,
+}
 extern "C" {
     pub fn SCAppLayerParserReallocCtx(alproto: AppProto) -> ::std::os::raw::c_int;
 }

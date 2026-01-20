@@ -797,7 +797,7 @@ impl SMBState {
     /// Allocation function for a new TLS parser instance
     pub fn new() -> Self {
         Self {
-            state_data:AppLayerStateData::new(),
+            state_data:AppLayerStateData::default(),
             ssn2vec_cache:LruCache::new(NonZeroUsize::new(unsafe { SMB_CFG_MAX_SSN2VEC_CACHE_SIZE }).unwrap()),
             guid2name_cache:LruCache::new(NonZeroUsize::new(unsafe { SMB_CFG_MAX_GUID_CACHE_SIZE }).unwrap()),
             read_offset_cache:LruCache::new(NonZeroUsize::new(unsafe { SMB_CFG_MAX_READ_OFFSET_CACHE_SIZE }).unwrap()),

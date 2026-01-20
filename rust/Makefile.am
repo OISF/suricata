@@ -148,6 +148,7 @@ if HAVE_BINDGEN
 		--allowlist-type 'AppLayerEventType' \
 		--allowlist-type 'AppLayerGetFileState' \
 		--allowlist-type 'AppLayerGetTxIterState' \
+		--allowlist-type 'AppLayerStateData' \
 		--allowlist-function 'SC.*' \
 		--allowlist-var 'SC.*' \
 		--opaque-type 'SCConfNode' \

@@ -34,6 +34,7 @@
 #define SURICATA_APP_LAYER_HTP_H
 
 #include "rust.h"
+#include "app-layer-parser.h"
 #include "app-layer-frames.h"
 
 #include "htp/htp_rs.h"

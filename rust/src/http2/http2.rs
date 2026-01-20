@@ -596,7 +596,7 @@ impl Default for HTTP2State {
 impl HTTP2State {
     pub fn new() -> Self {
         Self {
-            state_data: AppLayerStateData::new(),
+            state_data: AppLayerStateData::default(),
             tx_id: 0,
             request_frame_size: 0,
             response_frame_size: 0,
