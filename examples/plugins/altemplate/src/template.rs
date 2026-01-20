@@ -26,6 +26,7 @@ use std;
 use std::collections::VecDeque;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_int, c_void};
+ use suricata::applayer::{AppLayerResultRust, StreamSliceRust};
 use suricata::applayer::{
     applayer_register_protocol_detection, state_get_tx_iterator, AppLayerEvent,
     AppLayerRegisterParser, AppLayerResult, AppLayerStateData, AppLayerTxData, RustParser, State,
@@ -221,7 +222,7 @@ impl TemplateState {
                     start = rem;
 
                     if let Some(tx) = self.find_request() {
-                        tx.tx_data.updated_tc = true;
+                        tx.tx_data.0.updated_tc = true;
                         tx.response = Some(response);
                         SCLogNotice!("Found response for request:");
                         SCLogNotice!("- Request: {:?}", tx.request);

@@ -1001,6 +1001,41 @@ extern "C" {
     ) -> ::std::os::raw::c_int;
 }
 #[repr(C)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+pub struct AppLayerResult {
+    pub status: i32,
+    pub consumed: u32,
+    pub needed: u32,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct StreamSlice {
+    pub input: *const u8,
+    pub input_len: u32,
+    #[doc = " STREAM_* flags"]
+    pub flags: u8,
+    pub offset: u64,
+}
+impl Default for StreamSlice {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[doc = " \\brief Prototype for parsing functions"]
+pub type AppLayerParserFPtr = ::std::option::Option<
+    unsafe extern "C" fn(
+        f: *mut Flow,
+        protocol_state: *mut ::std::os::raw::c_void,
+        pstate: *mut AppLayerParserState,
+        stream_slice: StreamSlice,
+        local_storage: *mut ::std::os::raw::c_void,
+    ) -> AppLayerResult,
+>;
+#[repr(C)]
 #[derive(Copy, Clone)]
 pub struct AppLayerGetTxIterState {
     pub un: AppLayerGetTxIterState__bindgen_ty_1,
@@ -1051,31 +1086,6 @@ impl Default for AppLayerGetTxIterTuple {
     }
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct StreamSlice {
-    pub input: *const u8,
-    pub input_len: u32,
-    #[doc = " STREAM_* flags"]
-    pub flags: u8,
-    pub offset: u64,
-}
-impl Default for StreamSlice {
-    fn default() -> Self {
-        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-#[repr(C)]
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
-pub struct AppLayerResult {
-    pub status: i32,
-    pub consumed: u32,
-    pub needed: u32,
-}
-#[repr(C)]
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct AppLayerTxConfig {
     #[doc = " config: log flags"]
@@ -1121,6 +1131,22 @@ impl Default for AppLayerTxData {
 extern "C" {
     pub fn SCAppLayerTxDataCleanup(txd: *mut AppLayerTxData);
 }
+#[doc = "  \\param name progress name to get the id for\n  \\param direction STREAM_TOSERVER/STREAM_TOCLIENT"]
+pub type AppLayerParserGetStateIdByNameFn = ::std::option::Option<
+    unsafe extern "C" fn(
+        name: *const ::std::os::raw::c_char,
+        direction: u8,
+    ) -> ::std::os::raw::c_int,
+>;
+#[doc = "  \\param id progress value id to get the name for\n  \\param direction STREAM_TOSERVER/STREAM_TOCLIENT"]
+pub type AppLayerParserGetStateNameByIdFn = ::std::option::Option<
+    unsafe extern "C" fn(id: ::std::os::raw::c_int, direction: u8) -> *const ::std::os::raw::c_char,
+>;
+pub type AppLayerParserGetFrameIdByNameFn = ::std::option::Option<
+    unsafe extern "C" fn(frame_name: *const ::std::os::raw::c_char) -> ::std::os::raw::c_int,
+>;
+pub type AppLayerParserGetFrameNameByIdFn =
+    ::std::option::Option<unsafe extern "C" fn(id: u8) -> *const ::std::os::raw::c_char>;
 extern "C" {
     pub fn SCAppLayerParserReallocCtx(alproto: AppProto) -> ::std::os::raw::c_int;
 }
@@ -1148,6 +1174,103 @@ extern "C" {
 }
 extern "C" {
     pub fn FileApplyTxFlags(txd: *const AppLayerTxData, direction: u8, file: *mut File);
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct AppLayerParser {
+    pub name: *const ::std::os::raw::c_char,
+    pub default_port: *const ::std::os::raw::c_char,
+    pub ip_proto: u8,
+    pub ProbeTS: ProbingParserFPtr,
+    pub ProbeTC: ProbingParserFPtr,
+    pub min_depth: u16,
+    pub max_depth: u16,
+    pub StateAlloc: ::std::option::Option<
+        unsafe extern "C" fn(
+            arg1: *mut ::std::os::raw::c_void,
+            arg2: AppProto,
+        ) -> *mut ::std::os::raw::c_void,
+    >,
+    pub StateFree: ::std::option::Option<unsafe extern "C" fn(arg1: *mut ::std::os::raw::c_void)>,
+    pub ParseTS: AppLayerParserFPtr,
+    pub ParseTC: AppLayerParserFPtr,
+    pub StateGetTxCnt:
+        ::std::option::Option<unsafe extern "C" fn(alstate: *mut ::std::os::raw::c_void) -> u64>,
+    pub StateGetTx: ::std::option::Option<
+        unsafe extern "C" fn(
+            alstate: *mut ::std::os::raw::c_void,
+            tx_id: u64,
+        ) -> *mut ::std::os::raw::c_void,
+    >,
+    pub StateTransactionFree:
+        ::std::option::Option<unsafe extern "C" fn(arg1: *mut ::std::os::raw::c_void, arg2: u64)>,
+    pub complete_ts: ::std::os::raw::c_int,
+    pub complete_tc: ::std::os::raw::c_int,
+    pub StateGetProgress: ::std::option::Option<
+        unsafe extern "C" fn(
+            alstate: *mut ::std::os::raw::c_void,
+            direction: u8,
+        ) -> ::std::os::raw::c_int,
+    >,
+    pub StateGetEventInfo: ::std::option::Option<
+        unsafe extern "C" fn(
+            event_name: *const ::std::os::raw::c_char,
+            event_id: *mut u8,
+            event_type: *mut AppLayerEventType,
+        ) -> ::std::os::raw::c_int,
+    >,
+    pub StateGetEventInfoById: ::std::option::Option<
+        unsafe extern "C" fn(
+            event_id: u8,
+            event_name: *mut *const ::std::os::raw::c_char,
+            event_type: *mut AppLayerEventType,
+        ) -> ::std::os::raw::c_int,
+    >,
+    pub LocalStorageAlloc:
+        ::std::option::Option<unsafe extern "C" fn() -> *mut ::std::os::raw::c_void>,
+    pub LocalStorageFree:
+        ::std::option::Option<unsafe extern "C" fn(arg1: *mut ::std::os::raw::c_void)>,
+    pub GetTxFiles: ::std::option::Option<
+        unsafe extern "C" fn(arg1: *mut ::std::os::raw::c_void, arg2: u8) -> AppLayerGetFileState,
+    >,
+    pub GetTxIterator: ::std::option::Option<
+        unsafe extern "C" fn(
+            ipproto: u8,
+            alproto: AppProto,
+            alstate: *mut ::std::os::raw::c_void,
+            min_tx_id: u64,
+            max_tx_id: u64,
+            istate: *mut AppLayerGetTxIterState,
+        ) -> AppLayerGetTxIterTuple,
+    >,
+    pub GetStateData: ::std::option::Option<
+        unsafe extern "C" fn(state: *mut ::std::os::raw::c_void) -> *mut AppLayerStateData,
+    >,
+    pub GetTxData: ::std::option::Option<
+        unsafe extern "C" fn(tx: *mut ::std::os::raw::c_void) -> *mut AppLayerTxData,
+    >,
+    pub ApplyTxConfig: ::std::option::Option<
+        unsafe extern "C" fn(
+            state: *mut ::std::os::raw::c_void,
+            tx: *mut ::std::os::raw::c_void,
+            mode: ::std::os::raw::c_int,
+            arg1: AppLayerTxConfig,
+        ),
+    >,
+    pub flags: u32,
+    pub GetFrameIdByName: AppLayerParserGetFrameIdByNameFn,
+    pub GetFrameNameById: AppLayerParserGetFrameNameByIdFn,
+    pub GetStateIdByName: AppLayerParserGetStateIdByNameFn,
+    pub GetStateNameById: AppLayerParserGetStateNameByIdFn,
+}
+impl Default for AppLayerParser {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[doc = " First part of AppLayerParser, needed only for protocol detection"]
 #[repr(C)]
@@ -1180,6 +1303,12 @@ extern "C" {
     pub fn SCAppLayerRegisterProtocolDetection(
         parser: *const AppLayerProtocolDetect, enable_default: ::std::os::raw::c_int,
     ) -> AppProto;
+}
+extern "C" {
+    #[doc = " \\brief App layer protocol registration function.\n\n \\param parser The parser declaration structure.\n \\param alproto The application layer protocol identifier.\n\n \\retval 0 if successful. On error, this function never returns."]
+    pub fn SCAppLayerRegisterParser(
+        p: *const AppLayerParser, alproto: AppProto,
+    ) -> ::std::os::raw::c_int;
 }
 extern "C" {
     pub fn SCAppLayerRegisterParserAlias(
