@@ -2088,7 +2088,7 @@ static void PrepareMpms(DetectEngineCtx *de_ctx, SigGroupHead *sh)
     const int max_buffer_id = de_ctx->buffer_type_id + 1;
     const uint32_t max_sid = DetectEngineGetMaxSigId(de_ctx) / 8 + 1;
 
-    AppProto **engines = SCCalloc(max_buffer_id * g_alproto_max, sizeof(AppProto));
+    AppProto **engines = SCCalloc(max_buffer_id, sizeof(AppProto[g_alproto_max]));
     BUG_ON(engines == NULL);
     int *engines_idx = SCCalloc(max_buffer_id, sizeof(int));
     BUG_ON(engines_idx == NULL);
