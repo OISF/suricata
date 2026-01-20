@@ -387,11 +387,52 @@ pub type GetFrameNameById = unsafe extern "C" fn(u8) -> *const c_char;
 pub type GetStateIdByName = unsafe extern "C" fn(*const c_char, u8) -> c_int;
 pub type GetStateNameById = unsafe extern "C" fn(c_int, u8) -> *const c_char;
 
-// Defined in app-layer-register.h
-#[allow(unused_doc_comments)]
-/// cbindgen:ignore
-extern "C" {
-    pub fn AppLayerRegisterParser(parser: *const RustParser, alproto: AppProto) -> c_int;
+use suricata_sys::sys::{AppLayerParser, SCAppLayerRegisterParser};
+
+#[allow(non_snake_case)]
+pub fn AppLayerRegisterParser(parser: &RustParser, alproto: AppProto) -> c_int {
+    let det = AppLayerParser{
+        name: parser.name,
+        default_port: parser.default_port,
+        ip_proto: parser.ipproto,
+        ProbeTS: parser.probe_ts,
+        ProbeTC: parser.probe_tc,
+        min_depth: parser.min_depth,
+        max_depth: parser.max_depth,
+
+        StateAlloc: Some(parser.state_new),
+        StateFree: Some(parser.state_free),
+
+        ParseTS: Some(parser.parse_ts),
+        ParseTC: Some(parser.parse_tc),
+
+        StateGetTxCnt: Some(parser.get_tx_count),
+        StateGetTx: Some(parser.get_tx),
+        StateTransactionFree: Some(parser.tx_free),
+
+        complete_ts: parser.tx_comp_st_ts,
+        complete_tc: parser.tx_comp_st_tc,
+        StateGetProgress: Some(parser.tx_get_progress),
+
+        StateGetEventInfo: parser.get_eventinfo,
+        StateGetEventInfoById: parser.get_eventinfo_byid,
+        LocalStorageAlloc: parser.localstorage_new,
+        LocalStorageFree: parser.localstorage_free,
+
+        GetTxFiles: parser.get_tx_files,
+        GetTxIterator: parser.get_tx_iterator,
+        GetStateData: Some(parser.get_state_data),
+        GetTxData: Some(parser.get_tx_data),
+        ApplyTxConfig: parser.apply_tx_config,
+
+        flags: parser.flags,
+
+        GetFrameIdByName: parser.get_frame_id_by_name,
+        GetFrameNameById: parser.get_frame_name_by_id,
+        GetStateIdByName: parser.get_state_id_by_name,
+        GetStateNameById: parser.get_state_name_by_id,
+    };
+    unsafe {SCAppLayerRegisterParser(&det, alproto) }
 }
 
 use suricata_sys::sys::{AppLayerProtocolDetect, SCAppLayerRegisterProtocolDetection};
