@@ -41,7 +41,6 @@ typedef struct AppLayerResult AppLayerResult;
 typedef struct AppLayerGetTxIterTuple AppLayerGetTxIterTuple;
 typedef struct AppLayerGetFileState AppLayerGetFileState;
 typedef struct AppLayerTxData AppLayerTxData;
-typedef struct AppLayerStateData AppLayerStateData;
 typedef struct AppLayerTxConfig AppLayerTxConfig;
 
 /* Flags for AppLayerParserState. */
@@ -137,6 +136,10 @@ typedef struct AppLayerGetTxIterState {
         uint64_t u64;
     } un;
 } AppLayerGetTxIterState;
+
+typedef struct AppLayerStateData {
+    uint16_t file_flags;
+} AppLayerStateData;
 
 /** \brief tx iterator prototype */
 typedef AppLayerGetTxIterTuple (*AppLayerGetTxIteratorFunc)

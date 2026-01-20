@@ -31,7 +31,8 @@ use suricata_sys::sys::{
     AppLayerDecoderEvents, AppLayerGetTxIterState, AppLayerParserState, AppProto,
     DetectEngineState, GenericVar,
 };
-pub use suricata_sys::sys::AppLayerGetFileState;
+
+pub use suricata_sys::sys::{AppLayerGetFileState, AppLayerStateData};
 #[cfg(not(test))]
 use suricata_sys::sys::{
     SCAppLayerDecoderEventsFreeEvents, SCAppLayerDecoderEventsSetEventRaw, SCDetectEngineStateFree,
@@ -295,20 +296,6 @@ macro_rules!export_tx_data_get {
         {
             let tx = &mut *(tx as *mut $type);
             &mut tx.tx_data
-        }
-    }
-}
-
-#[repr(C)]
-#[derive(Default,Debug,PartialEq, Eq,Copy,Clone)]
-pub struct AppLayerStateData {
-    pub file_flags: u16,
-}
-
-impl AppLayerStateData {
-    pub fn new() -> Self {
-        Self {
-            file_flags: 0,
         }
     }
 }

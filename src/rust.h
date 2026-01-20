@@ -24,6 +24,7 @@ typedef struct Dataset Dataset;
 
 typedef struct DetectEngineState_ DetectEngineState;
 typedef enum AppLayerEventType AppLayerEventType;
+typedef struct AppLayerStateData AppLayerStateData;
 
 // may be improved by smaller include
 #include "detect.h"

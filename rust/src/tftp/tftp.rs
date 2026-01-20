@@ -89,7 +89,7 @@ impl TFTPTransaction {
 
 #[no_mangle]
 pub extern "C" fn SCTftpStateAlloc() -> *mut std::os::raw::c_void {
-    let state = TFTPState { state_data: AppLayerStateData::new(), transactions : Vec::new(), tx_id: 0, };
+    let state = TFTPState { state_data: AppLayerStateData::default(), transactions : Vec::new(), tx_id: 0, };
     let boxed = Box::new(state);
     return Box::into_raw(boxed) as *mut _;
 }

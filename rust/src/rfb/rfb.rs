@@ -137,7 +137,7 @@ impl Default for RFBState {
 impl RFBState {
     pub fn new() -> Self {
         Self {
-            state_data: AppLayerStateData::new(),
+            state_data: AppLayerStateData::default(),
             tx_id: 0,
             transactions: Vec::new(),
             state: parser::RFBGlobalState::TCServerProtocolVersion,

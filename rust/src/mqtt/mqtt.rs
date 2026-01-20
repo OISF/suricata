@@ -139,7 +139,7 @@ impl Default for MQTTState {
 impl MQTTState {
     pub fn new() -> Self {
         Self {
-            state_data: AppLayerStateData::new(),
+            state_data: AppLayerStateData::default(),
             tx_id: 0,
             protocol_version: 0,
             transactions: VecDeque::new(),
