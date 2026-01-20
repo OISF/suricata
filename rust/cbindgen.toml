@@ -76,7 +76,6 @@ include = [
     "StreamSlice",
     "AppLayerResult",
     "AppLayerStateData",
-    "AppLayerGetFileState",
     "AppLayerGetTxIterTuple",
     "RdpState",
     "SIPState",

@@ -146,6 +146,7 @@ if HAVE_BINDGEN
 		--allowlist-function 'File.*' \
 		--allowlist-type 'SC.*' \
 		--allowlist-type 'AppLayerEventType' \
+		--allowlist-type 'AppLayerGetFileState' \
 		--allowlist-type 'AppLayerGetTxIterState' \
 		--allowlist-function 'SC.*' \
 		--allowlist-var 'SC.*' \
