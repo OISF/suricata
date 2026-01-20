@@ -33,7 +33,8 @@ use suricata_sys::sys::{
 };
 
 pub use suricata_sys::sys::{
-    AppLayerGetFileState, AppLayerStateData, AppLayerGetTxIterTuple, StreamSlice,
+    AppLayerGetFileState, AppLayerGetTxIterTuple, AppLayerResult, AppLayerStateData,
+    StreamSlice,
 };
 
 #[cfg(not(test))]
@@ -317,33 +318,20 @@ macro_rules!export_state_data_get {
     }
 }
 
-#[repr(C)]
-#[derive(Default,Debug,PartialEq, Eq,Copy,Clone)]
-pub struct AppLayerResult {
-    pub status: i32,
-    pub consumed: u32,
-    pub needed: u32,
+pub trait AppLayerResultRust {
+    fn incomplete(consumed: u32, needed: u32) -> Self;
+    fn is_ok(&self) -> bool;
+    fn is_err(&self) -> bool;
+    fn is_incomplete(&self) -> bool;
 }
 
-impl AppLayerResult {
-    /// parser has successfully processed in the input, and has consumed all of it
-    pub fn ok() -> Self {
-        Default::default()
-    }
-    /// parser has hit an unrecoverable error. Returning this to the API
-    /// leads to no further calls to the parser.
-    pub fn err() -> Self {
-        return Self {
-            status: -1,
-            ..Default::default()
-        };
-    }
+impl AppLayerResultRust for AppLayerResult {
     /// parser needs more data. Through 'consumed' it will indicate how many
     /// of the input bytes it has consumed. Through 'needed' it will indicate
     /// how many more bytes it needs before getting called again.
     /// Note: consumed should never be more than the input len
     ///       needed + consumed should be more than the input len
-    pub fn incomplete(consumed: u32, needed: u32) -> Self {
+    fn incomplete(consumed: u32, needed: u32) -> Self {
         return Self {
             status: 1,
             consumed,
@@ -351,36 +339,16 @@ impl AppLayerResult {
         };
     }
 
-    pub fn is_ok(self) -> bool {
+    fn is_ok(&self) -> bool {
         self.status == 0
     }
 
-    pub fn is_err(self) -> bool {
+    fn is_err(&self) -> bool {
         self.status == -1
     }
 
-    pub fn is_incomplete(self) -> bool {
+    fn is_incomplete(&self) -> bool {
         self.status == 1
-    }
-}
-
-impl From<bool> for AppLayerResult {
-    fn from(v: bool) -> Self {
-        if !v {
-            Self::err()
-        } else {
-            Self::ok()
-        }
-    }
-}
-
-impl From<i32> for AppLayerResult {
-    fn from(v: i32) -> Self {
-        if v < 0 {
-            Self::err()
-        } else {
-            Self::ok()
-        }
     }
 }
 

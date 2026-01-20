@@ -22,3 +22,40 @@
 
 pub mod jsonbuilder;
 pub mod sys;
+
+use crate::sys::AppLayerResult;
+
+impl AppLayerResult {
+    /// parser has successfully processed in the input, and has consumed all of it
+    pub fn ok() -> Self {
+        Default::default()
+    }
+    /// parser has hit an unrecoverable error. Returning this to the API
+    /// leads to no further calls to the parser.
+    pub fn err() -> Self {
+        return Self {
+            status: -1,
+            ..Default::default()
+        };
+    }
+}
+
+impl From<bool> for AppLayerResult {
+    fn from(v: bool) -> Self {
+        if !v {
+            Self::err()
+        } else {
+            Self::ok()
+        }
+    }
+}
+
+impl From<i32> for AppLayerResult {
+    fn from(v: i32) -> Self {
+        if v < 0 {
+            Self::err()
+        } else {
+            Self::ok()
+        }
+    }
+}
