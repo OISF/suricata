@@ -36,10 +36,7 @@ typedef struct AppLayerDecoderEvents_ AppLayerDecoderEvents;
 typedef struct ThreadVars_ ThreadVars;
 typedef struct File_ File;
 typedef enum LoggerId LoggerId;
-// Forward declarations from rust
-typedef struct StreamSlice StreamSlice;
-typedef struct AppLayerResult AppLayerResult;
-typedef struct AppLayerGetTxIterTuple AppLayerGetTxIterTuple;
+// Forward declarations from util-file.h
 typedef struct AppLayerGetFileState AppLayerGetFileState;
 
 /* Flags for AppLayerParserState. */
@@ -125,6 +122,30 @@ int SCAppLayerParserConfParserEnabled(const char *ipproto, const char *alproto_n
 
 enum ExceptionPolicy AppLayerErrorGetExceptionPolicy(void);
 
+typedef struct AppLayerResult {
+    int32_t status;
+    uint32_t consumed;
+    uint32_t needed;
+} AppLayerResult;
+
+typedef struct StreamSlice {
+    const uint8_t *input;
+    uint32_t input_len;
+    /// STREAM_* flags
+    uint8_t flags;
+    uint64_t offset;
+} StreamSlice;
+
+static inline const uint8_t *StreamSliceGetData(const StreamSlice *stream_slice)
+{
+    return stream_slice->input;
+}
+
+static inline uint32_t StreamSliceGetDataLen(const StreamSlice *stream_slice)
+{
+    return stream_slice->input_len;
+}
+
 /** \brief Prototype for parsing functions */
 typedef AppLayerResult (*AppLayerParserFPtr)(Flow *f, void *protocol_state,
         AppLayerParserState *pstate, StreamSlice stream_slice, void *local_storage);
@@ -145,30 +166,6 @@ typedef struct AppLayerGetTxIterTuple {
     uint64_t tx_id;
     bool has_next;
 } AppLayerGetTxIterTuple;
-
-typedef struct StreamSlice {
-    const uint8_t *input;
-    uint32_t input_len;
-    /// STREAM_* flags
-    uint8_t flags;
-    uint64_t offset;
-} StreamSlice;
-
-static inline const uint8_t *StreamSliceGetData(const StreamSlice *stream_slice)
-{
-    return stream_slice->input;
-}
-
-static inline uint32_t StreamSliceGetDataLen(const StreamSlice *stream_slice)
-{
-    return stream_slice->input_len;
-}
-
-typedef struct AppLayerResult {
-    int32_t status;
-    uint32_t consumed;
-    uint32_t needed;
-} AppLayerResult;
 
 typedef struct AppLayerTxConfig {
     /// config: log flags
