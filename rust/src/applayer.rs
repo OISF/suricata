@@ -20,11 +20,9 @@
 use std;
 use crate::core::{self,AppLayerEventType, STREAM_TOSERVER};
 use crate::direction::Direction;
-use crate::filecontainer::FileContainer;
 use crate::flow::Flow;
 use std::os::raw::{c_void,c_char,c_int};
 use std::ffi::CStr;
-use crate::core::StreamingBufferConfig;
 
 // Make the AppLayerEvent derive macro available to users importing
 // AppLayerEvent from this module.
@@ -33,6 +31,7 @@ use suricata_sys::sys::{
     AppLayerDecoderEvents, AppLayerGetTxIterState, AppLayerParserState, AppProto,
     DetectEngineState, GenericVar,
 };
+pub use suricata_sys::sys::AppLayerGetFileState;
 #[cfg(not(test))]
 use suricata_sys::sys::{
     SCAppLayerDecoderEventsFreeEvents, SCAppLayerDecoderEventsSetEventRaw, SCDetectEngineStateFree,
@@ -478,16 +477,12 @@ macro_rules! build_slice {
     ($buf:ident, $len:expr) => ( std::slice::from_raw_parts($buf, $len) );
 }
 
-/// helper for the GetTxFilesFn. Not meant to be embedded as the config
-/// pointer is passed around in the API.
-#[allow(non_snake_case)]
-#[repr(C)]
-pub struct AppLayerGetFileState {
-    pub fc: *mut FileContainer,
-    pub cfg: *const StreamingBufferConfig,
+pub trait AppLayerGetFileStateRust {
+    fn err() -> Self;
 }
-impl AppLayerGetFileState {
-    pub fn err() -> AppLayerGetFileState {
+
+impl AppLayerGetFileStateRust for AppLayerGetFileState {
+    fn err() -> AppLayerGetFileState {
         AppLayerGetFileState { fc: std::ptr::null_mut(), cfg: std::ptr::null() }
     }
 }

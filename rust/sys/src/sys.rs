@@ -1145,6 +1145,22 @@ impl Default for FileContainer_ {
     }
 }
 pub type FileContainer = FileContainer_;
+#[doc = " helper for the GetTxFilesFn. Not meant to be embedded as the config\n pointer is passed around in the API."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct AppLayerGetFileState {
+    pub fc: *mut FileContainer,
+    pub cfg: *const StreamingBufferConfig,
+}
+impl Default for AppLayerGetFileState {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 extern "C" {
     #[doc = "  \\brief Store a chunk of file data in the flow. The open \"flowfile\"\n         will be used.\n\n  \\param ffc the container\n  \\param data data chunk\n  \\param data_len data chunk len\n\n  \\retval 0 ok\n  \\retval -1 error"]
     pub fn FileAppendData(
