@@ -26,6 +26,7 @@ use std;
 use std::collections::VecDeque;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_int, c_void};
+ use suricata::applayer::{AppLayerResultRust, AppLayerTxDataRust, StreamSliceRust};
 use suricata::applayer::{
     applayer_register_protocol_detection, state_get_tx_iterator, AppLayerEvent,
     AppLayerRegisterParser, AppLayerResult, AppLayerStateData, AppLayerTxData, RustParser, State,
