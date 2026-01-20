@@ -744,6 +744,19 @@ static inline uint32_t GetTxLogged(AppLayerTxData *txd)
     return txd->logged;
 }
 
+void SCAppLayerTxDataCleanup(AppLayerTxData *txd)
+{
+    if (txd->de_state) {
+        SCDetectEngineStateFree(txd->de_state);
+    }
+    if (txd->events) {
+        SCAppLayerDecoderEventsFreeEvents(&txd->events);
+    }
+    if (txd->txbits) {
+        SCGenericVarFree(txd->txbits);
+    }
+}
+
 void AppLayerParserSetTransactionInspectId(const Flow *f, AppLayerParserState *pstate,
                                            void *alstate, const uint8_t flags,
                                            bool tag_txs_as_inspected)

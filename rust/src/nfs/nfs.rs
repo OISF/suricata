@@ -263,8 +263,8 @@ impl NFSTransaction {
     }
 
     pub fn free(&mut self) {
-        debug_validate_bug_on!(self.tx_data.files_opened > 1);
-        debug_validate_bug_on!(self.tx_data.files_logged > 1);
+        debug_validate_bug_on!(self.tx_data.0.files_opened > 1);
+        debug_validate_bug_on!(self.tx_data.0.files_logged > 1);
     }
 }
 
@@ -454,8 +454,8 @@ impl NFSState {
             // set at least one another transaction to the drop state
             for tx_old in &mut self.transactions {
                 if !tx_old.request_done || !tx_old.response_done {
-                    tx_old.tx_data.updated_tc = true;
-                    tx_old.tx_data.updated_ts = true;
+                    tx_old.tx_data.0.updated_tc = true;
+                    tx_old.tx_data.0.updated_ts = true;
                     tx_old.request_done = true;
                     tx_old.response_done = true;
                     tx_old.is_file_closed = true;
@@ -515,8 +515,8 @@ impl NFSState {
         &mut self, flow: *mut Flow, xid: u32, rpc_status: u32, nfs_status: u32, resp_handle: &[u8],
     ) {
         if let Some(mytx) = self.get_tx_by_xid(xid) {
-            mytx.tx_data.updated_tc = true;
-            mytx.tx_data.updated_ts = true;
+            mytx.tx_data.0.updated_tc = true;
+            mytx.tx_data.0.updated_ts = true;
             mytx.response_done = true;
             mytx.rpc_response_status = rpc_status;
             mytx.nfs_response_status = nfs_status;
@@ -923,10 +923,10 @@ impl NFSState {
             d.direction = direction;
             d.file_tracker.tx_id = tx.id - 1;
             tx.tx_data.update_file_flags(self.state_data.file_flags);
-            d.update_file_flags(tx.tx_data.file_flags);
+            d.update_file_flags(tx.tx_data.0.file_flags);
         }
         tx.tx_data.init_files_opened();
-        tx.tx_data.file_tx = if direction == Direction::ToServer {
+        tx.tx_data.0.file_tx = if direction == Direction::ToServer {
             STREAM_TOSERVER
         } else {
             STREAM_TOCLIENT
@@ -953,10 +953,10 @@ impl NFSState {
                     && tx.file_handle == fh
                 {
                     tx.tx_data.update_file_flags(self.state_data.file_flags);
-                    d.update_file_flags(tx.tx_data.file_flags);
+                    d.update_file_flags(tx.tx_data.0.file_flags);
                     SCLogDebug!("Found NFS file TX with ID {} XID {:04X}", tx.id, tx.xid);
-                    tx.tx_data.updated_tc = true;
-                    tx.tx_data.updated_ts = true;
+                    tx.tx_data.0.updated_tc = true;
+                    tx.tx_data.0.updated_ts = true;
                     return Some(tx);
                 }
             }
@@ -2039,9 +2039,9 @@ unsafe extern "C" fn nfs_tx_get_alstate_progress(
     }
 }
 
-unsafe extern "C" fn nfs_get_tx_data(tx: *mut std::os::raw::c_void) -> *mut AppLayerTxData {
+unsafe extern "C" fn nfs_get_tx_data(tx: *mut std::os::raw::c_void) -> *mut suricata_sys::sys::AppLayerTxData {
     let tx = cast_pointer!(tx, NFSTransaction);
-    return &mut tx.tx_data;
+    return &mut tx.tx_data.0;
 }
 
 export_state_data_get!(nfs_get_state_data, NFSState);

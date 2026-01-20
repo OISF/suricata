@@ -27,6 +27,7 @@
 
 #include "app-layer-protos.h"
 #include "app-layer-events.h"
+#include "detect-engine-state.h"
 // Forward declarations for bindgen
 enum ConfigAction;
 typedef struct Flow_ Flow;
@@ -40,8 +41,6 @@ typedef struct StreamSlice StreamSlice;
 typedef struct AppLayerResult AppLayerResult;
 typedef struct AppLayerGetTxIterTuple AppLayerGetTxIterTuple;
 typedef struct AppLayerGetFileState AppLayerGetFileState;
-typedef struct AppLayerTxData AppLayerTxData;
-typedef struct AppLayerTxConfig AppLayerTxConfig;
 
 /* Flags for AppLayerParserState. */
 // flag available                               BIT_U16(0)
@@ -170,6 +169,61 @@ typedef struct AppLayerResult {
     uint32_t consumed;
     uint32_t needed;
 } AppLayerResult;
+
+typedef struct AppLayerTxConfig {
+    /// config: log flags
+    uint8_t log_flags;
+} AppLayerTxConfig;
+
+typedef struct GenericVar_ GenericVar;
+
+typedef struct AppLayerTxData {
+    /// config: log flags
+    AppLayerTxConfig config;
+
+    /// The tx has been updated and needs to be processed : detection, logging, cleaning
+    /// It can then be skipped until new data arrives.
+    /// There is a boolean for both directions : to server and to client
+    bool updated_tc;
+    bool updated_ts;
+
+    uint8_t flags;
+
+    /// logger flags for tx logging api
+    uint32_t logged;
+
+    /// track file open/logs so we can know how long to keep the tx
+    uint32_t files_opened;
+    uint32_t files_logged;
+    uint32_t files_stored;
+
+    uint16_t file_flags;
+
+    /// Indicated if a file tracking tx, and if so in which direction:
+    ///  0: not a file tx
+    /// STREAM_TOSERVER: file tx, files only in toserver dir
+    /// STREAM_TOCLIENT: file tx , files only in toclient dir
+    /// STREAM_TOSERVER|STREAM_TOCLIENT: files possible in both dirs
+    uint8_t file_tx;
+    /// Number of times this tx data has already been logged for signatures
+    /// not using application layer keywords
+    uint8_t guessed_applayer_logged;
+
+    /// detection engine progress tracking for use by detection engine
+    /// Reflects the "progress" of prefilter engines into this TX, where
+    /// the value is offset by 1. So if for progress state 0 the engines
+    /// are done, the value here will be 1. So a value of 0 means, no
+    /// progress tracked yet.
+    ///
+    uint8_t detect_progress_ts;
+    uint8_t detect_progress_tc;
+
+    DetectEngineState *de_state;
+    AppLayerDecoderEvents *events;
+    GenericVar *txbits;
+} AppLayerTxData;
+
+void SCAppLayerTxDataCleanup(AppLayerTxData *txd);
 
 /** \brief tx iterator prototype */
 typedef AppLayerGetTxIterTuple (*AppLayerGetTxIteratorFunc)

@@ -981,11 +981,6 @@ pub struct File_ {
     _unused: [u8; 0],
 }
 pub type File = File_;
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct AppLayerTxData {
-    _unused: [u8; 0],
-}
 extern "C" {
     #[doc = " \\brief Given a protocol name, checks if the parser is enabled in\n        the conf file.\n\n \\param alproto_name Name of the app layer protocol.\n\n \\retval 1 If enabled.\n \\retval 0 If disabled."]
     pub fn SCAppLayerParserConfParserEnabled(
@@ -1066,6 +1061,52 @@ pub struct AppLayerResult {
     pub status: i32,
     pub consumed: u32,
     pub needed: u32,
+}
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+pub struct AppLayerTxConfig {
+    #[doc = " config: log flags"]
+    pub log_flags: u8,
+}
+pub type GenericVar = GenericVar_;
+#[repr(C)]
+#[derive(Debug, PartialEq, Eq)]
+pub struct AppLayerTxData {
+    #[doc = " config: log flags"]
+    pub config: AppLayerTxConfig,
+    #[doc = " The tx has been updated and needs to be processed : detection, logging, cleaning\n It can then be skipped until new data arrives.\n There is a boolean for both directions : to server and to client"]
+    pub updated_tc: bool,
+    pub updated_ts: bool,
+    pub flags: u8,
+    #[doc = " logger flags for tx logging api"]
+    pub logged: u32,
+    #[doc = " track file open/logs so we can know how long to keep the tx"]
+    pub files_opened: u32,
+    pub files_logged: u32,
+    pub files_stored: u32,
+    pub file_flags: u16,
+    #[doc = " Indicated if a file tracking tx, and if so in which direction:\n  0: not a file tx\n STREAM_TOSERVER: file tx, files only in toserver dir\n STREAM_TOCLIENT: file tx , files only in toclient dir\n STREAM_TOSERVER|STREAM_TOCLIENT: files possible in both dirs"]
+    pub file_tx: u8,
+    #[doc = " Number of times this tx data has already been logged for signatures\n not using application layer keywords"]
+    pub guessed_applayer_logged: u8,
+    #[doc = " detection engine progress tracking for use by detection engine\n Reflects the \"progress\" of prefilter engines into this TX, where\n the value is offset by 1. So if for progress state 0 the engines\n are done, the value here will be 1. So a value of 0 means, no\n progress tracked yet.\n"]
+    pub detect_progress_ts: u8,
+    pub detect_progress_tc: u8,
+    pub de_state: *mut DetectEngineState,
+    pub events: *mut AppLayerDecoderEvents,
+    pub txbits: *mut GenericVar,
+}
+impl Default for AppLayerTxData {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+extern "C" {
+    pub fn SCAppLayerTxDataCleanup(txd: *mut AppLayerTxData);
 }
 extern "C" {
     pub fn SCAppLayerParserReallocCtx(alproto: AppProto) -> ::std::os::raw::c_int;
@@ -1404,7 +1445,6 @@ impl Default for GenericVar_ {
         }
     }
 }
-pub type GenericVar = GenericVar_;
 extern "C" {
     pub fn SCGenericVarFree(arg1: *mut GenericVar);
 }
