@@ -122,7 +122,7 @@ impl SIPState {
     }
 
     // app-layer-frame-documentation tag start: parse_request
-    fn parse_request(&mut self, flow: *mut Flow, stream_slice: StreamSlice) -> bool {
+    fn parse_request(&mut self, flow: *mut Flow, stream_slice: StreamSlice) -> AppLayerResult {
         let input = stream_slice.as_slice();
         let _pdu = Frame::new(
             flow,
@@ -143,16 +143,16 @@ impl SIPState {
                     tx.request_line = req_line;
                 }
                 self.transactions.push_back(tx);
-                return true;
+                return AppLayerResult::ok();
             }
             // app-layer-frame-documentation tag end: parse_request
             Err(Err::Incomplete(_)) => {
                 self.set_event(SIPEvent::IncompleteData);
-                return false;
+                return AppLayerResult::err();
             }
             Err(_) => {
                 self.set_event(SIPEvent::InvalidData);
-                return false;
+                return AppLayerResult::err();
             }
         }
     }
@@ -222,7 +222,7 @@ impl SIPState {
         return AppLayerResult::ok();
     }
 
-    fn parse_response(&mut self, flow: *mut Flow, stream_slice: StreamSlice) -> bool {
+    fn parse_response(&mut self, flow: *mut Flow, stream_slice: StreamSlice) -> AppLayerResult {
         let input = stream_slice.as_slice();
         let _pdu = Frame::new(
             flow,
@@ -243,15 +243,15 @@ impl SIPState {
                     tx.response_line = resp_line;
                 }
                 self.transactions.push_back(tx);
-                return true;
+                return AppLayerResult::ok();
             }
             Err(Err::Incomplete(_)) => {
                 self.set_event(SIPEvent::IncompleteData);
-                return false;
+                return AppLayerResult::err();
             }
             Err(_) => {
                 self.set_event(SIPEvent::InvalidData);
-                return false;
+                return AppLayerResult::err();
             }
         }
     }
@@ -453,7 +453,7 @@ unsafe extern "C" fn sip_parse_request(
     stream_slice: StreamSlice, _data: *mut std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, SIPState);
-    state.parse_request(flow, stream_slice).into()
+    state.parse_request(flow, stream_slice)
 }
 
 unsafe extern "C" fn sip_parse_request_tcp(
@@ -477,7 +477,7 @@ unsafe extern "C" fn sip_parse_response(
     stream_slice: StreamSlice, _data: *mut std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, SIPState);
-    state.parse_response(flow, stream_slice).into()
+    state.parse_response(flow, stream_slice)
 }
 
 unsafe extern "C" fn sip_parse_response_tcp(

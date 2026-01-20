@@ -165,6 +165,12 @@ static inline uint32_t StreamSliceGetDataLen(const StreamSlice *stream_slice)
     return stream_slice->input_len;
 }
 
+typedef struct AppLayerResult {
+    int32_t status;
+    uint32_t consumed;
+    uint32_t needed;
+} AppLayerResult;
+
 /** \brief tx iterator prototype */
 typedef AppLayerGetTxIterTuple (*AppLayerGetTxIteratorFunc)
        (const uint8_t ipproto, const AppProto alproto,
