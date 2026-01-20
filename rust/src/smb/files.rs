@@ -97,10 +97,10 @@ impl SMBState {
             d.file_name = file_name.to_vec();
             d.file_tracker.tx_id = tx.id - 1;
             tx.tx_data.update_file_flags(self.state_data.file_flags);
-            d.update_file_flags(tx.tx_data.file_flags);
+            d.update_file_flags(tx.tx_data.0.file_flags);
         }
         tx.tx_data.init_files_opened();
-        tx.tx_data.file_tx = if direction == Direction::ToServer { STREAM_TOSERVER } else { STREAM_TOCLIENT }; // TODO direction to flag func?
+        tx.tx_data.0.file_tx = if direction == Direction::ToServer { STREAM_TOSERVER } else { STREAM_TOCLIENT }; // TODO direction to flag func?
         SCLogDebug!("SMB: new_file_tx: TX FILE created: ID {} NAME {}",
                 tx.id, String::from_utf8_lossy(file_name));
         self.transactions.push_back(tx);
@@ -126,10 +126,10 @@ impl SMBState {
                 SCLogDebug!("SMB: Found SMB file TX with ID {}", tx.id);
                 if let Some(SMBTransactionTypeData::FILE(ref mut d)) = tx.type_data {
                     tx.tx_data.update_file_flags(self.state_data.file_flags);
-                    d.update_file_flags(tx.tx_data.file_flags);
+                    d.update_file_flags(tx.tx_data.0.file_flags);
                 }
-                tx.tx_data.updated_tc = true;
-                tx.tx_data.updated_ts = true;
+                tx.tx_data.0.updated_tc = true;
+                tx.tx_data.0.updated_ts = true;
                 return Some(tx);
             }
         }
@@ -154,10 +154,10 @@ impl SMBState {
                 SCLogDebug!("SMB: Found SMB file TX with ID {}", tx.id);
                 if let Some(SMBTransactionTypeData::FILE(ref mut d)) = tx.type_data {
                     tx.tx_data.update_file_flags(self.state_data.file_flags);
-                    d.update_file_flags(tx.tx_data.file_flags);
+                    d.update_file_flags(tx.tx_data.0.file_flags);
                 }
-                tx.tx_data.updated_tc = true;
-                tx.tx_data.updated_ts = true;
+                tx.tx_data.0.updated_tc = true;
+                tx.tx_data.0.updated_ts = true;
                 return Some(tx);
             }
         }

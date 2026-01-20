@@ -177,8 +177,8 @@ impl RFBState {
         let tx_id = self.tx_id;
         let r = self.transactions.iter_mut().find(|tx| tx.tx_id == tx_id);
         if let Some(tx) = r {
-            tx.tx_data.updated_tc = true;
-            tx.tx_data.updated_ts = true;
+            tx.tx_data.0.updated_tc = true;
+            tx.tx_data.0.updated_ts = true;
             return Some(tx);
         }
         return None;

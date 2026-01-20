@@ -197,8 +197,8 @@ impl POP3State {
         if self.transactions.len() > unsafe { POP3_MAX_TX } {
             for tx_old in &mut self.transactions {
                 if !tx_old.complete {
-                    tx_old.tx_data.updated_tc = true;
-                    tx_old.tx_data.updated_ts = true;
+                    tx_old.tx_data.0.updated_tc = true;
+                    tx_old.tx_data.0.updated_ts = true;
                     tx_old.complete = true;
                     tx_old
                         .tx_data

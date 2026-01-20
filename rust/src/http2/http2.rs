@@ -685,7 +685,7 @@ impl HTTP2State {
         for tx in &mut self.transactions {
             if tx.tx_id == tx_id + 1 {
                 tx.tx_data.update_file_flags(self.state_data.file_flags);
-                tx.update_file_flags(tx.tx_data.file_flags);
+                tx.update_file_flags(tx.tx_data.0.file_flags);
                 return Some(tx);
             }
         }
@@ -741,8 +741,8 @@ impl HTTP2State {
                     tx_old.set_event(HTTP2Event::TooManyStreams);
                     // use a distinct state, even if we do not log it
                     tx_old.state = HTTP2TransactionState::HTTP2StateTodrop;
-                    tx_old.tx_data.updated_tc = true;
-                    tx_old.tx_data.updated_ts = true;
+                    tx_old.tx_data.0.updated_tc = true;
+                    tx_old.tx_data.0.updated_ts = true;
                 }
                 return None;
             }
@@ -775,9 +775,9 @@ impl HTTP2State {
 
             let tx = &mut self.transactions[index - 1];
             tx.tx_data.update_file_flags(self.state_data.file_flags);
-            tx.update_file_flags(tx.tx_data.file_flags);
-            tx.tx_data.updated_tc = true;
-            tx.tx_data.updated_ts = true;
+            tx.update_file_flags(tx.tx_data.0.file_flags);
+            tx.tx_data.0.updated_tc = true;
+            tx.tx_data.0.updated_ts = true;
             return Some(tx);
         } else {
             // do not use SETTINGS_MAX_CONCURRENT_STREAMS as it can grow too much
@@ -790,8 +790,8 @@ impl HTTP2State {
                     tx_old.set_event(HTTP2Event::TooManyStreams);
                     // use a distinct state, even if we do not log it
                     tx_old.state = HTTP2TransactionState::HTTP2StateTodrop;
-                    tx_old.tx_data.updated_tc = true;
-                    tx_old.tx_data.updated_ts = true;
+                    tx_old.tx_data.0.updated_tc = true;
+                    tx_old.tx_data.0.updated_ts = true;
                 }
                 return None;
             }
@@ -801,8 +801,8 @@ impl HTTP2State {
             tx.stream_id = sid;
             tx.state = HTTP2TransactionState::HTTP2StateOpen;
             tx.tx_data.update_file_flags(self.state_data.file_flags);
-            tx.update_file_flags(tx.tx_data.file_flags);
-            tx.tx_data.file_tx = STREAM_TOSERVER | STREAM_TOCLIENT; // might hold files in both directions
+            tx.update_file_flags(tx.tx_data.0.file_flags);
+            tx.tx_data.0.file_tx = STREAM_TOSERVER | STREAM_TOCLIENT; // might hold files in both directions
             self.transactions.push_back(tx);
             return Some(self.transactions.back_mut().unwrap());
         }

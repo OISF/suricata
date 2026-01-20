@@ -158,8 +158,8 @@ impl LdapState {
         if self.transactions.len() > unsafe { LDAP_MAX_TX } {
             for tx_old in &mut self.transactions {
                 if !tx_old.complete {
-                    tx_old.tx_data.updated_tc = true;
-                    tx_old.tx_data.updated_ts = true;
+                    tx_old.tx_data.0.updated_tc = true;
+                    tx_old.tx_data.0.updated_ts = true;
                     tx_old.complete = true;
                     tx_old
                         .tx_data
@@ -311,7 +311,7 @@ impl LdapState {
                     if let Some(tx) = self.find_request(response.message_id) {
                         tx.complete |= tx_is_complete(&response.protocol_op, Direction::ToClient);
                         let tx_id = tx.id();
-                        tx.tx_data.updated_tc = true;
+                        tx.tx_data.0.updated_tc = true;
                         tx.responses.push(response.to_static());
                         sc_app_layer_parser_trigger_raw_stream_inspection(
                             flow,

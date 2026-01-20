@@ -675,7 +675,7 @@ impl DNSState {
                 if let Some(ref mut config) = &mut self.config {
                     if let Some(response) = &tx.response {
                         if let Some(config) = config.remove(&response.header.tx_id) {
-                            tx.tx_data.config = config;
+                            tx.tx_data.0.config = config;
                         }
                     }
                 }
@@ -1022,9 +1022,9 @@ pub extern "C" fn SCDnsTxIsResponse(tx: &mut DNSTransaction) -> bool {
 
 pub(crate) unsafe extern "C" fn state_get_tx_data(
     tx: *mut std::os::raw::c_void,
-) -> *mut AppLayerTxData {
+) -> *mut suricata_sys::sys::AppLayerTxData {
     let tx = cast_pointer!(tx, DNSTransaction);
-    return &mut tx.tx_data;
+    return &mut tx.tx_data.0;
 }
 
 pub(crate) unsafe extern "C" fn dns_get_state_data(
