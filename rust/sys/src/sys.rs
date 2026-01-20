@@ -1026,6 +1026,22 @@ impl Default for AppLayerGetTxIterState {
 pub struct AppLayerStateData {
     pub file_flags: u16,
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct AppLayerGetTxIterTuple {
+    pub tx_ptr: *mut ::std::os::raw::c_void,
+    pub tx_id: u64,
+    pub has_next: bool,
+}
+impl Default for AppLayerGetTxIterTuple {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 extern "C" {
     pub fn SCAppLayerParserReallocCtx(alproto: AppProto) -> ::std::os::raw::c_int;
 }
