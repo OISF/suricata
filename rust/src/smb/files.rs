@@ -16,7 +16,7 @@
  */
 
 use std;
-use crate::applayer::AppLayerGetFileStateRust;
+use crate::applayer::{AppLayerGetFileStateRust, AppLayerTxDataRust};
 use crate::core::*;
 use crate::direction::Direction;
 use crate::filetracker::*;

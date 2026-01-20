@@ -15,6 +15,7 @@
  * 02110-1301, USA.
  */
 
+use crate::applayer::AppLayerTxDataRust;
 use crate::smb::smb::*;
 
 #[derive(AppLayerEvent)]

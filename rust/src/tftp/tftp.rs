@@ -25,7 +25,7 @@ use nom8::combinator::map_res;
 use nom8::bytes::streaming::{tag, take_while};
 use nom8::number::streaming::be_u8;
 
-use crate::applayer::{AppLayerTxData,AppLayerStateData};
+use crate::applayer::{AppLayerTxData, AppLayerTxDataRust, AppLayerStateData};
 
 const READREQUEST:  u8 = 1;
 const WRITEREQUEST: u8 = 2;

@@ -23,7 +23,7 @@
 pub mod jsonbuilder;
 pub mod sys;
 
-use crate::sys::AppLayerResult;
+use crate::sys::{AppLayerResult, AppLayerTxData};
 
 impl AppLayerResult {
     /// parser has successfully processed in the input, and has consumed all of it
@@ -56,6 +56,18 @@ impl From<i32> for AppLayerResult {
             Self::err()
         } else {
             Self::ok()
+        }
+    }
+}
+
+#[cfg(not(feature = "suritest"))]
+use crate::sys::SCAppLayerTxDataCleanup;
+
+impl Drop for AppLayerTxData {
+    fn drop(&mut self) {
+        #[cfg(not(feature = "suritest"))]
+        unsafe {
+            SCAppLayerTxDataCleanup(self);
         }
     }
 }

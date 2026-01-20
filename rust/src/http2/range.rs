@@ -16,6 +16,7 @@
 */
 
 use super::detect;
+use crate::applayer::AppLayerTxDataRust;
 use crate::core::SuricataFileContext;
 use crate::direction::Direction;
 use crate::flow::Flow;
