@@ -1,1 +1,2 @@
 sphinx_rtd_theme
+urllib3==2.6.3  # pinned due to requests -> urllib3 snyk vulnerability
