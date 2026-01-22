@@ -394,3 +394,22 @@ the buffer.
        local sub = string.sub(input, offset + 1, offset + bytes)
        return string.upper(sub), bytes
    end
+
+gunzip
+------
+
+Takes the buffer, applies gunzip decompression.
+
+This transform takes an optional argument which is a comma-separated list of key-values.
+The only key being interperted is ``max-size``, which is the max output size.
+Default for max-size is 1024.
+Value 0 is forbidden for max-size (there is no unlimited value).
+
+This example alerts if ``http.uri`` contains base64-encoded gzipped value
+Example::
+
+    alert http any any -> any any (msg:"from_base64 + gunzip";
+            http.uri; content:"/gzb64?value="; fast_pattern;
+            from_base64: offset 13 ;
+            gunzip; content:"This is compressed then base64-encoded"; startswith; endswith;
+            sid:2; rev:1;)
