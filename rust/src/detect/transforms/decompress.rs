@@ -17,7 +17,7 @@
 
 use crate::detect::uint::detect_parse_uint_with_unit;
 use crate::detect::SIGMATCH_OPTIONAL_OPT;
-use flate2::bufread::GzDecoder;
+use flate2::bufread::{ZlibDecoder, GzDecoder};
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, InspectionBuffer, SCDetectHelperTransformRegister,
     SCDetectSignatureAddTransform, SCInspectionBufferCheckAndExpand, SCInspectionBufferTruncate,
@@ -29,6 +29,7 @@ use std::io::Read;
 use std::os::raw::{c_int, c_void};
 
 static mut G_TRANSFORM_GUNZIP_ID: c_int = 0;
+static mut G_TRANSFORM_ZLIB_DEFLATE_ID: c_int = 0;
 
 #[derive(Debug, PartialEq)]
 struct DetectTransformDecompressData {
@@ -171,6 +172,65 @@ unsafe extern "C" fn decompress_id(data: *mut *const u8, length: *mut u32, ctx: 
     *length = std::mem::size_of::<DetectTransformDecompressData>() as u32; // 4
 }
 
+unsafe extern "C" fn zlib_deflate_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, opt_str: *const std::os::raw::c_char,
+) -> c_int {
+    let ctx = decompress_parse(opt_str);
+    if ctx.is_null() {
+        return -1;
+    }
+    let r = SCDetectSignatureAddTransform(s, G_TRANSFORM_ZLIB_DEFLATE_ID, ctx);
+    if r != 0 {
+        decompress_free(de, ctx);
+    }
+    return r;
+}
+
+fn zlib_deflate_transform_do(input: &[u8], output: &mut [u8]) -> Option<u32> {
+    let mut gz = ZlibDecoder::new(input);
+    return match gz.read(output) {
+        Ok(n) => Some(n as u32),
+        _ => None,
+    };
+}
+
+unsafe extern "C" fn zlib_deflate_transform(
+    _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, ctx: *mut c_void,
+) {
+    let input = (*buffer).inspect;
+    let input_len = (*buffer).inspect_len;
+    if input.is_null() || input_len == 0 {
+        return;
+    }
+    let input = build_slice!(input, input_len as usize);
+    let ctx = cast_pointer!(ctx, DetectTransformDecompressData);
+
+    let output = SCInspectionBufferCheckAndExpand(buffer, ctx.max_size);
+    if output.is_null() {
+        // allocation failure
+        return;
+    }
+    let same = std::ptr::eq(output, input.as_ptr());
+    let mut tmp = Vec::new();
+    let buf = if same {
+        // need a temporary buffer as we cannot do the transfom in place
+        tmp.resize(ctx.max_size as usize, 0);
+        &mut tmp
+    } else {
+        std::slice::from_raw_parts_mut(output, ctx.max_size as usize)
+    };
+
+    if let Some(nb) = zlib_deflate_transform_do(input, buf) {
+        if same {
+            std::ptr::copy_nonoverlapping(buf.as_ptr(), output, ctx.max_size as usize);
+        }
+        SCInspectionBufferTruncate(buffer, nb);
+    } else {
+        // decompression failure
+        SCInspectionBufferTruncate(buffer, 0);
+    }
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn DetectTransformGunzipRegister() {
     let kw = SCTransformTableElmt {
@@ -188,6 +248,27 @@ pub unsafe extern "C" fn DetectTransformGunzipRegister() {
         G_TRANSFORM_GUNZIP_ID = SCDetectHelperTransformRegister(&kw);
         if G_TRANSFORM_GUNZIP_ID < 0 {
             SCLogWarning!("Failed registering transform gunzip");
+        }
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn DetectTransformZlibDeflateRegister() {
+    let kw = SCTransformTableElmt {
+        name: b"zlib_deflate\0".as_ptr() as *const libc::c_char,
+        desc: b"modify buffer via zlib decompression\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/transforms.html#zlib_deflate\0".as_ptr() as *const libc::c_char,
+        Setup: Some(zlib_deflate_setup),
+        flags: SIGMATCH_OPTIONAL_OPT,
+        Transform: Some(zlib_deflate_transform),
+        Free: Some(decompress_free),
+        TransformValidate: None,
+        TransformId: Some(decompress_id),
+    };
+    unsafe {
+        G_TRANSFORM_ZLIB_DEFLATE_ID = SCDetectHelperTransformRegister(&kw);
+        if G_TRANSFORM_ZLIB_DEFLATE_ID < 0 {
+            SCLogWarning!("Failed registering transform zlib_deflate");
         }
     }
 }
