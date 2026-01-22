@@ -361,32 +361,43 @@ int SCHSCachePruneEvaluate(MpmConfig *mpm_conf, HashTable *inuse_caches)
     }
 
     struct dirent *ent;
+    FILE *file = NULL;
     char path[PATH_MAX];
     uint32_t considered = 0, removed = 0;
     const time_t cutoff = now - (time_t)mpm_conf->cache_max_age_seconds;
     while ((ent = readdir(dir)) != NULL) {
         const char *name = ent->d_name;
         size_t namelen = strlen(name);
-        if (namelen < 3 || strcmp(name + namelen - 3, ".hs") != 0)
-            continue;
+        if (namelen < 3 || strcmp(name + namelen - 3, ".hs") != 0) {
+            goto loop_cleanup;
+        }
 
-        if (PathMerge(path, ARRAY_SIZE(path), mpm_conf->cache_dir_path, name) != 0)
-            continue;
+        if (PathMerge(path, ARRAY_SIZE(path), mpm_conf->cache_dir_path, name) != 0) {
+            goto loop_cleanup;
+        }
 
-        struct stat st;
-        if (stat(path, &st) != 0 || !S_ISREG(st.st_mode))
-            continue;
+        file = fopen(path, "r");
+        if (file == NULL) {
+            goto loop_cleanup;
+        }
+
+        SCStat st;
+        if (SCFstatFn(fileno(file), &st) != 0 || !S_ISREG(st.st_mode)) {
+            goto loop_cleanup;
+        }
 
         considered++;
 
         const bool prune_by_age = HSPruneFileByAge(st.st_mtime, cutoff);
         const bool prune_by_version = HSPruneFileByVersion(name);
-        if (!prune_by_age && !prune_by_version)
-            continue;
+        if (!prune_by_age && !prune_by_version) {
+            goto loop_cleanup;
+        }
 
         void *cache_inuse = HashTableLookup(inuse_caches, path, (uint16_t)strlen(path));
-        if (cache_inuse != NULL)
-            continue; // in use
+        if (cache_inuse != NULL) {
+            goto loop_cleanup; // in use
+        }
 
         if (unlink(path) == 0) {
             removed++;
@@ -395,6 +406,11 @@ int SCHSCachePruneEvaluate(MpmConfig *mpm_conf, HashTable *inuse_caches)
                     prune_by_version ? "incompatible version" : "");
         } else {
             SCLogWarning("Failed to prune \"%s\": %s", path, strerror(errno));
+        }
+    loop_cleanup:
+        if (file) {
+            fclose(file);
+            file = NULL;
         }
     }
     closedir(dir);
