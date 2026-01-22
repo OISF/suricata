@@ -157,7 +157,7 @@ static void DetectRun(ThreadVars *th_v,
     /* run tx/state inspection. Don't call for ICMP error msgs. */
     if (pflow && pflow->alstate && likely(pflow->proto == p->proto)) {
         if (p->proto == IPPROTO_TCP) {
-            if ((p->flags & PKT_STREAM_EST) == 0) {
+            if ((p->flags & PKT_STREAM_EST) == 0 && !stream_config.midstream) {
                 SCLogDebug("packet %" PRIu64 ": skip tcp non-established", p->pcap_cnt);
                 DetectRunAppendDefaultAccept(det_ctx, p);
                 goto end;
