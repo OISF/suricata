@@ -116,10 +116,20 @@ unsafe extern "C" fn gunzip_setup(
 
 fn gunzip_transform_do(input: &[u8], output: &mut [u8]) -> Option<u32> {
     let mut gz = GzDecoder::new(input);
-    return match gz.read(output) {
-        Ok(n) => Some(n as u32),
-        _ => None,
-    };
+    let mut offset = 0u32;
+    loop {
+        match gz.read(&mut output[offset as usize..]) {
+            Ok(0) => {
+                return Some(offset);
+            }
+            Ok(n) => {
+                offset += n as u32;
+            }
+            _ => {
+                return None;
+            }
+        }
+    }
 }
 
 unsafe extern "C" fn gunzip_transform(
@@ -178,8 +188,14 @@ unsafe extern "C" fn zlib_deflate_setup(
 fn zlib_deflate_transform_do(input: &[u8], output: &mut [u8]) -> Option<u32> {
     let mut gz = ZlibDecoder::new(input);
     return match gz.read(output) {
-        Ok(n) => Some(n as u32),
-        _ => None,
+        Ok(n) => {
+            println!("zlib ok {n} for {}", output.len());
+            Some(n as u32)
+        }
+        Err(e) => {
+            println!("zlib err {:?}", e);
+            None
+        }
     };
 }
 
