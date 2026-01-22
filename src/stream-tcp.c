@@ -1503,6 +1503,9 @@ static int StreamTcpPacketStateNone(
         StreamTcpPacketSetState(p, ssn, TCP_ESTABLISHED);
         SCLogDebug("ssn %p: =~ midstream picked ssn state is now "
                 "TCP_ESTABLISHED", ssn);
+        /* Since we're picking this session mid-stream, update the packet flag, so that detection
+         * will inspect it */
+        p->flags |= PKT_STREAM_EST;
 
         ssn->flags = STREAMTCP_FLAG_MIDSTREAM;
         ssn->flags |= STREAMTCP_FLAG_MIDSTREAM_ESTABLISHED;
