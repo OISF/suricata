@@ -522,26 +522,27 @@ impl POP3State {
                         tx.error_flags_to_events(msg.error_flags);
                         tx.complete = true;
                         sc_app_layer_parser_trigger_raw_stream_inspection(flow, direction::Direction::ToClient as i32);
-                        if response.status == sawp_pop3::Status::OK && tx.request.is_some() {
-                            let command = tx.request.as_ref().unwrap();
-                            SCLogDebug!("command {:?}", command);
-                            match &command.keyword {
-                                sawp_pop3::Keyword::STLS => {
-                                    unsafe {
-                                        SCAppLayerRequestProtocolTLSUpgrade(flow);
-                                    };
-                                }
-                                sawp_pop3::Keyword::RETR => {
-                                    // Don't hold onto the whole email body
+                        if response.status == sawp_pop3::Status::OK {
+                            if let Some(command) = &tx.request {
+                                SCLogDebug!("command {:?}", command);
+                                match &command.keyword {
+                                    sawp_pop3::Keyword::STLS => {
+                                        unsafe {
+                                            SCAppLayerRequestProtocolTLSUpgrade(flow);
+                                        };
+                                    }
+                                    sawp_pop3::Keyword::RETR => {
+                                        // Don't hold onto the whole email body
 
-                                    // TODO: pass off to mime parser
-                                    response.data.clear();
+                                        // TODO: pass off to mime parser
+                                        response.data.clear();
+                                    }
+                                    sawp_pop3::Keyword::AUTH => {
+                                        SCLogDebug!("OK on AUTH, expect base64 blob");
+                                        auth_ok = true;
+                                    }
+                                    _ => {}
                                 }
-                                sawp_pop3::Keyword::AUTH => {
-                                    SCLogDebug!("OK on AUTH, expect base64 blob");
-                                    auth_ok = true;
-                                }
-                                _ => {}
                             }
                         }
                         tx.response = Some(response);
