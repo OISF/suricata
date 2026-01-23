@@ -1474,14 +1474,37 @@
                         "type": "string"
                     }
                 },
+                "command": {
+                    "type": "string",
+                    "suricata": {
+                        "keywords": [
+                            "email.command"
+                        ]
+                    }
+                },
                 "date": {
-                    "type": "string"
+                    "type": "string",
+                    "suricata": {
+                        "keywords": [
+                            "email.date"
+                        ]
+                    }
                 },
                 "from": {
-                    "type": "string"
+                    "type": "string",
+                    "suricata": {
+                        "keywords": [
+                            "email.from"
+                        ]
+                    }
                 },
                 "message_id": {
-                    "type": "string"
+                    "type": "string",
+                    "suricata": {
+                        "keywords": [
+                            "email.message_id"
+                        ]
+                    }
                 },
                 "received": {
                     "type": "array",
@@ -1494,7 +1517,12 @@
                     "type": "string"
                 },
                 "subject": {
-                    "type": "string"
+                    "type": "string",
+                    "suricata": {
+                        "keywords": [
+                            "email.subject"
+                        ]
+                    }
                 },
                 "subject_md5": {
                     "type": "string"
@@ -1504,6 +1532,11 @@
                     "minItems": 1,
                     "items": {
                         "type": "string"
+                    },
+                    "suricata": {
+                        "keywords": [
+                            "email.to"
+                        ]
                     }
                 },
                 "url": {
@@ -1514,7 +1547,12 @@
                     }
                 },
                 "x_mailer": {
-                    "type": "string"
+                    "type": "string",
+                    "suricata": {
+                        "keywords": [
+                            "email.x_mailer"
+                        ]
+                    }
                 }
             }
         },
@@ -2829,6 +2867,37 @@
                 },
                 "version_minor": {
                     "type": "integer"
+                }
+            }
+        },
+        "imap": {
+            "type": "object",
+            "description": "IMAP transaction data",
+            "additionalProperties": false,
+            "properties": {
+                "requests": {
+                    "type": "array",
+                    "description": "Array of IMAP request lines in this transaction",
+                    "items": {
+                        "type": "string"
+                    },
+                    "suricata": {
+                        "keywords": [
+                            "imap.request"
+                        ]
+                    }
+                },
+                "responses": {
+                    "type": "array",
+                    "description": "Array of IMAP response lines in this transaction",
+                    "items": {
+                        "type": "string"
+                    },
+                    "suricata": {
+                        "keywords": [
+                            "imap.response"
+                        ]
+                    }
                 }
             }
         },
