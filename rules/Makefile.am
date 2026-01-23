@@ -11,6 +11,7 @@ files.rules \
 ftp-events.rules \
 http-events.rules \
 http2-events.rules \
+imap-events.rules \
 ipsec-events.rules \
 kerberos-events.rules \
 ldap-events.rules \
