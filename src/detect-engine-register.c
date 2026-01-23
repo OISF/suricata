@@ -234,8 +234,6 @@
 #include "detect-tls.h"
 #include "detect-tls-cert-validity.h"
 #include "detect-tls-version.h"
-#include "detect-ssh-hassh.h"
-#include "detect-ssh-hassh-server.h"
 #include "detect-http-stat-code.h"
 #include "detect-ssl-version.h"
 #include "detect-ssl-state.h"
@@ -708,8 +706,6 @@ void SigTableSetup(void)
     DetectBsizeRegister();
     DetectDetectionFilterRegister();
     DetectAsn1Register();
-    DetectSshHasshRegister();
-    DetectSshHasshServerRegister();
     DetectSslStateRegister();
     DetectSslVersionRegister();
     DetectByteExtractRegister();

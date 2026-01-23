@@ -477,6 +477,9 @@ extern "C" {
         kw: *const SCTransformTableElmt,
     ) -> ::std::os::raw::c_int;
 }
+extern "C" {
+    pub fn SCDetectRegisterBufferLowerMd5Callbacks(name: *const ::std::os::raw::c_char);
+}
 #[repr(C)]
 #[derive(Debug, Default, Copy, Clone)]
 pub struct DeStateStoreItem_ {
