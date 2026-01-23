@@ -45,8 +45,10 @@ static int LuaPacketGC(lua_State *luastate)
 {
     SCLogDebug("gc:start");
     struct LuaPacket *s = (struct LuaPacket *)lua_touserdata(luastate, 1);
-    SCLogDebug("packet %p", s->p);
-    s->p = NULL;
+    if (s != NULL) {
+        SCLogDebug("packet %p", s->p);
+        s->p = NULL;
+    }
     SCLogDebug("gc:done");
     return 0;
 }

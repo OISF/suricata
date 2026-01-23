@@ -45,8 +45,10 @@ static int LuaFlowGC(lua_State *luastate)
 {
     SCLogDebug("gc:start");
     struct LuaFlow *s = (struct LuaFlow *)lua_touserdata(luastate, 1);
-    SCLogDebug("flow %p", s->f);
-    s->f = NULL;
+    if (s != NULL) {
+        SCLogDebug("flow %p", s->f);
+        s->f = NULL;
+    }
     SCLogDebug("gc:done");
     return 0;
 }
