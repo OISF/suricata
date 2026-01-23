@@ -93,4 +93,6 @@ int SCDetectHelperMultiBufferProgressMpmRegister(const char *name, const char *d
 
 int SCDetectHelperTransformRegister(const SCTransformTableElmt *kw);
 
+void SCDetectRegisterBufferLowerMd5Callbacks(const char *name);
+
 #endif /* SURICATA_DETECT_ENGINE_HELPER_H */

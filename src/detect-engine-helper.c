@@ -169,3 +169,9 @@ int SCDetectHelperTransformRegister(const SCTransformTableElmt *kw)
 
     return transform_id;
 }
+
+void SCDetectRegisterBufferLowerMd5Callbacks(const char *name)
+{
+    DetectBufferTypeRegisterSetupCallback(name, DetectLowerSetupCallback);
+    DetectBufferTypeRegisterValidateCallback(name, DetectMd5ValidateCallback);
+}
