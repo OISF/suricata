@@ -853,8 +853,7 @@ pub fn smb1_trans_request_record(state: &mut SMBState, r: &SmbRecord)
 
             /* if we have a fid, store it so the response can pick it up */
             let mut pipe_dcerpc = false;
-            if rd.pipe.is_some() {
-                let pipe = rd.pipe.unwrap();
+            if let Some(pipe) = rd.pipe {
                 state.ssn2vec_map.insert(SMBCommonHdr::from1(r, SMBHDR_TYPE_GUID),
                         pipe.fid.to_vec());
 
