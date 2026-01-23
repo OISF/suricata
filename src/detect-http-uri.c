@@ -60,7 +60,8 @@
 #ifdef UNITTESTS
 static void DetectHttpUriRegisterTests(void);
 #endif
-static void DetectHttpUriSetupCallback(const DetectEngineCtx *de_ctx, Signature *s);
+static void DetectHttpUriSetupCallback(
+        const DetectEngineCtx *de_ctx, Signature *s, const DetectBufferType *map);
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms,
         Flow *_f, const uint8_t _flow_flags,
@@ -70,7 +71,8 @@ static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
         const int list_id);
 static int DetectHttpUriSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str);
 static int DetectHttpRawUriSetup(DetectEngineCtx *, Signature *, const char *);
-static void DetectHttpRawUriSetupCallback(const DetectEngineCtx *de_ctx, Signature *s);
+static void DetectHttpRawUriSetupCallback(
+        const DetectEngineCtx *de_ctx, Signature *s, const DetectBufferType *map);
 static InspectionBuffer *GetRawData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms,
         Flow *_f, const uint8_t _flow_flags,
@@ -183,8 +185,8 @@ int DetectHttpUriSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
             de_ctx, s, str, DETECT_HTTP_URI_CM, g_http_uri_buffer_id, ALPROTO_HTTP1);
 }
 
-static void DetectHttpUriSetupCallback(const DetectEngineCtx *de_ctx,
-                                       Signature *s)
+static void DetectHttpUriSetupCallback(
+        const DetectEngineCtx *de_ctx, Signature *s, const DetectBufferType *map)
 {
     SCLogDebug("callback invoked by %u", s->id);
     DetectUrilenApplyToContent(s, g_http_uri_buffer_id);
@@ -269,8 +271,8 @@ static int DetectHttpRawUriSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
             de_ctx, s, arg, DETECT_HTTP_RAW_URI, g_http_raw_uri_buffer_id, ALPROTO_HTTP1);
 }
 
-static void DetectHttpRawUriSetupCallback(const DetectEngineCtx *de_ctx,
-                                          Signature *s)
+static void DetectHttpRawUriSetupCallback(
+        const DetectEngineCtx *de_ctx, Signature *s, const DetectBufferType *map)
 {
     SCLogDebug("callback invoked by %u", s->id);
     DetectUrilenApplyToContent(s, g_http_raw_uri_buffer_id);

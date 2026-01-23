@@ -68,8 +68,8 @@ static int DetectHttpClientBodySetupSticky(DetectEngineCtx *de_ctx, Signature *s
 #ifdef UNITTESTS
 static void DetectHttpClientBodyRegisterTests(void);
 #endif
-static void DetectHttpClientBodySetupCallback(const DetectEngineCtx *de_ctx,
-                                              Signature *s);
+static void DetectHttpClientBodySetupCallback(
+        const DetectEngineCtx *de_ctx, Signature *s, const DetectBufferType *map);
 static int g_http_client_body_buffer_id = 0;
 
 static uint8_t DetectEngineInspectBufferHttpBody(DetectEngineCtx *de_ctx,
@@ -125,8 +125,8 @@ void DetectHttpClientBodyRegister(void)
     g_http_client_body_buffer_id = DetectBufferTypeGetByName("http_client_body");
 }
 
-static void DetectHttpClientBodySetupCallback(const DetectEngineCtx *de_ctx,
-                                              Signature *s)
+static void DetectHttpClientBodySetupCallback(
+        const DetectEngineCtx *de_ctx, Signature *s, const DetectBufferType *map)
 {
     SCLogDebug("callback invoked by %u", s->id);
     AppLayerHtpEnableRequestBodyCallback();

@@ -60,8 +60,8 @@
 #define BUFFER_DESC  "sip request uri"
 static int g_buffer_id = 0;
 
-static void DetectSipUriSetupCallback(const DetectEngineCtx *de_ctx,
-                                       Signature *s)
+static void DetectSipUriSetupCallback(
+        const DetectEngineCtx *de_ctx, Signature *s, const DetectBufferType *map)
 {
     SCLogDebug("callback invoked by %u", s->id);
     DetectUrilenApplyToContent(s, g_buffer_id);
