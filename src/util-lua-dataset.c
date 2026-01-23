@@ -42,8 +42,10 @@ static int LuaDatasetGC(lua_State *luastate)
 {
     SCLogDebug("gc:start");
     struct LuaDataset *s = (struct LuaDataset *)lua_touserdata(luastate, 1);
-    SCLogDebug("deref %s", s->set->name);
-    s->set = NULL;
+    if (s != NULL) {
+        SCLogDebug("deref %s", s->set->name);
+        s->set = NULL;
+    }
     SCLogDebug("gc:done");
     return 0;
 }
