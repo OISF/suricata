@@ -1075,7 +1075,8 @@ app-layer:
         content-inspect-min-size: 32768
         content-inspect-window: 4096
     imap:
-      enabled: detection-only
+      enabled: yes
+      # max-tx: 256
     pop3:
       enabled: yes
       detection-ports:

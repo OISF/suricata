@@ -142,6 +142,7 @@ pub mod ldap;
 pub mod flow;
 pub use suricata_ffi::direction;
 pub mod llmnr;
+pub mod imap;
 
 #[allow(unused_imports)]
 pub use suricata_lua_sys;
