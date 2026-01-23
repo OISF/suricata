@@ -55,7 +55,6 @@
 #include "app-layer-tftp.h"
 #include "app-layer-ike.h"
 #include "app-layer-http2.h"
-#include "app-layer-imap.h"
 
 struct AppLayerParserThreadCtx_ {
     void *(*alproto_local_storage)[FLOW_PROTO_MAX];
@@ -1832,7 +1831,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     SCRegisterRdpParser();
     RegisterHTTP2Parsers();
     SCRegisterTelnetParser();
-    RegisterIMAPParsers();
+    SCRegisterImapParser();
 
     for (size_t i = 0; i < preregistered_callbacks_nb; i++) {
         PreRegisteredCallbacks[i]();
