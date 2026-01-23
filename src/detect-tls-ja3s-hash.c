@@ -68,11 +68,8 @@ static int DetectJA3SetupNoSupport(DetectEngineCtx *a, Signature *b, const char 
 #ifdef HAVE_JA3
 static int DetectTlsJa3SHashSetup(DetectEngineCtx *, Signature *, const char *);
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-       const DetectEngineTransforms *transforms,
-       Flow *f, const uint8_t flow_flags,
-       void *txv, const int list_id);
-static void DetectTlsJa3SHashSetupCallback(
-        const DetectEngineCtx *de_ctx, Signature *s, const DetectBufferType *map);
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
+        const int list_id);
 static int g_tls_ja3s_hash_buffer_id = 0;
 #endif
 
@@ -107,8 +104,7 @@ void DetectTlsJa3SHashRegister(void)
 
     DetectBufferTypeSetDescriptionByName("ja3s.hash", "TLS JA3S hash");
 
-    DetectBufferTypeRegisterSetupCallback("ja3s.hash",
-            DetectTlsJa3SHashSetupCallback);
+    DetectBufferTypeRegisterSetupCallback("ja3s.hash", DetectLowerSetupCallback);
 
     DetectBufferTypeRegisterValidateCallback("ja3s.hash", DetectMd5ValidateCallback);
 
@@ -174,35 +170,4 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
     return buffer;
 }
 
-static void DetectTlsJa3SHashSetupCallback(
-        const DetectEngineCtx *de_ctx, Signature *s, const DetectBufferType *map)
-{
-    for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
-        if (s->init_data->buffers[x].id != (uint32_t)g_tls_ja3s_hash_buffer_id)
-            continue;
-        SigMatch *sm = s->init_data->buffers[x].head;
-        for (; sm != NULL; sm = sm->next) {
-            if (sm->type != DETECT_CONTENT)
-                continue;
-
-            DetectContentData *cd = (DetectContentData *)sm->ctx;
-
-            bool changed = false;
-            uint32_t u;
-            for (u = 0; u < cd->content_len; u++) {
-                if (isupper(cd->content[u])) {
-                    cd->content[u] = u8_tolower(cd->content[u]);
-                    changed = true;
-                }
-            }
-
-            /* recreate the context if changes were made */
-            if (changed) {
-                SpmDestroyCtx(cd->spm_ctx);
-                cd->spm_ctx =
-                        SpmInitCtx(cd->content, cd->content_len, 1, de_ctx->spm_global_thread_ctx);
-            }
-        }
-    }
-}
 #endif
