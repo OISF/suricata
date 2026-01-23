@@ -61,8 +61,8 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms,
         Flow *f, const uint8_t flow_flags,
         void *txv, const int list_id);
-static void DetectTlsFingerprintSetupCallback(const DetectEngineCtx *de_ctx,
-        Signature *s);
+static void DetectTlsFingerprintSetupCallback(
+        const DetectEngineCtx *de_ctx, Signature *s, const DetectBufferType *map);
 static bool DetectTlsFingerprintValidateCallback(
         const Signature *s, const char **sigerror, const DetectBufferType *dbt);
 static int g_tls_cert_fingerprint_buffer_id = 0;
@@ -208,8 +208,8 @@ static bool DetectTlsFingerprintValidateCallback(
     return true;
 }
 
-static void DetectTlsFingerprintSetupCallback(const DetectEngineCtx *de_ctx,
-                                              Signature *s)
+static void DetectTlsFingerprintSetupCallback(
+        const DetectEngineCtx *de_ctx, Signature *s, const DetectBufferType *map)
 {
     for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
         if (s->init_data->buffers[x].id != (uint32_t)g_tls_cert_fingerprint_buffer_id)

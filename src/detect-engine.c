@@ -1461,7 +1461,7 @@ bool DetectEngineBufferTypeSupportsFramesGetById(const DetectEngineCtx *de_ctx, 
 }
 
 void DetectBufferTypeRegisterSetupCallback(const char *name,
-        void (*SetupCallback)(const DetectEngineCtx *, Signature *))
+        void (*SetupCallback)(const DetectEngineCtx *, Signature *, const DetectBufferType *))
 {
     BUG_ON(g_buffer_type_reg_closed);
     DetectBufferTypeRegister(name);
@@ -1474,7 +1474,7 @@ void DetectEngineBufferRunSetupCallback(const DetectEngineCtx *de_ctx, const int
 {
     const DetectBufferType *map = DetectEngineBufferTypeGetById(de_ctx, id);
     if (map && map->SetupCallback) {
-        map->SetupCallback(de_ctx, s);
+        map->SetupCallback(de_ctx, s, map);
     }
 }
 

@@ -118,8 +118,8 @@ static int DetectSshHasshSetup(DetectEngineCtx *de_ctx, Signature *s, const char
 
 }
 
-static void DetectSshHasshHashSetupCallback(const DetectEngineCtx *de_ctx,
-                                          Signature *s)
+static void DetectSshHasshHashSetupCallback(
+        const DetectEngineCtx *de_ctx, Signature *s, const DetectBufferType *map)
 {
     for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
         if (s->init_data->buffers[x].id != (uint32_t)g_ssh_hassh_buffer_id)

@@ -71,7 +71,8 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
        const DetectEngineTransforms *transforms,
        Flow *f, const uint8_t flow_flags,
        void *txv, const int list_id);
-static void DetectTlsJa3HashSetupCallback(const DetectEngineCtx *de_ctx, Signature *s);
+static void DetectTlsJa3HashSetupCallback(
+        const DetectEngineCtx *de_ctx, Signature *s, const DetectBufferType *map);
 static int g_tls_ja3_hash_buffer_id = 0;
 #endif
 
@@ -175,8 +176,8 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
     return buffer;
 }
 
-static void DetectTlsJa3HashSetupCallback(const DetectEngineCtx *de_ctx,
-                                          Signature *s)
+static void DetectTlsJa3HashSetupCallback(
+        const DetectEngineCtx *de_ctx, Signature *s, const DetectBufferType *map)
 {
     for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
         if (s->init_data->buffers[x].id != (uint32_t)g_tls_ja3_hash_buffer_id)
