@@ -2726,6 +2726,50 @@
             },
             "optional": true
         },
+        "imap": {
+            "type": "object",
+            "description": "IMAP transaction data",
+            "additionalProperties": false,
+            "properties": {
+                "email": {
+                    "type": "object",
+                    "description": "Parsed email data from the IMAP transaction",
+                    "additionalProperties": false,
+                    "properties": {
+                        "body": {
+                            "type": "string",
+                            "description": "Email body content"
+                        },
+                        "direction": {
+                            "type": "string",
+                            "description": "Direction of the email data (to_server or to_client)"
+                        },
+                        "headers": {
+                            "type": "object",
+                            "description": "Email headers as key-value pairs",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "requests": {
+                    "type": "array",
+                    "description": "Array of IMAP request lines in this transaction",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "responses": {
+                    "type": "array",
+                    "description": "Array of IMAP response lines in this transaction",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            },
+            "optional": true
+        },
         "in_iface": {
             "type": "string"
         },
