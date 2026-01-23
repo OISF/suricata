@@ -994,6 +994,7 @@ void OutputRegisterRootLoggers(void)
     // underscore instead of dash for bittorrent_dht
     RegisterSimpleJsonApplayerLogger(ALPROTO_BITTORRENT_DHT,
             (EveJsonSimpleTxLogFunc)SCBittorrentDhtLogger, "bittorrent_dht");
+    RegisterSimpleJsonApplayerLogger(ALPROTO_IMAP, (EveJsonSimpleTxLogFunc)SCImapLoggerLog, NULL);
 
     OutputPacketLoggerRegister();
     OutputFiledataLoggerRegister();
@@ -1240,6 +1241,10 @@ void OutputRegisterLoggers(void)
     JsonArpLogRegister();
     /* LLMNR JSON logger */
     JsonLLMNRLogRegister();
+    /* IMAP JSON logger. */
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonImapLog", "eve-log.imap",
+            OutputJsonLogInitSub, ALPROTO_IMAP, JsonGenericDirFlowLogger, JsonLogThreadInit,
+            JsonLogThreadDeinit);
 
     for (size_t i = 0; i < preregistered_loggers_nb; i++) {
         OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", preregistered_loggers[i].logname,
