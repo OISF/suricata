@@ -347,6 +347,7 @@ outputs:
         - pop3
         - llmnr
         #- modbus
+        - imap
         - arp:
             enabled: no        # Many events can be logged. Disabled by default
         - dhcp:
