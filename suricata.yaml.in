@@ -338,6 +338,7 @@ outputs:
         - quic
         - ldap
         - pop3
+        - imap
         - arp:
             enabled: no        # Many events can be logged. Disabled by default
         - dhcp:
