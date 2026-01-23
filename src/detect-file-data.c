@@ -58,8 +58,8 @@ static int DetectFiledataSetup (DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectFiledataRegisterTests(void);
 #endif
-static void DetectFiledataSetupCallback(const DetectEngineCtx *de_ctx,
-                                        Signature *s);
+static void DetectFiledataSetupCallback(
+        const DetectEngineCtx *de_ctx, Signature *s, const DetectBufferType *map);
 static int g_file_data_buffer_id = 0;
 
 /* file API */
@@ -240,8 +240,8 @@ static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
     return 0;
 }
 
-static void DetectFiledataSetupCallback(const DetectEngineCtx *de_ctx,
-                                        Signature *s)
+static void DetectFiledataSetupCallback(
+        const DetectEngineCtx *de_ctx, Signature *s, const DetectBufferType *map)
 {
     if (s->alproto == ALPROTO_HTTP1 || s->alproto == ALPROTO_UNKNOWN ||
             s->alproto == ALPROTO_HTTP) {

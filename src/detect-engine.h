@@ -42,7 +42,7 @@ int DetectBufferTypeMaxId(void);
 void DetectBufferTypeCloseRegistration(void);
 void DetectBufferTypeSetDescriptionByName(const char *name, const char *desc);
 void DetectBufferTypeRegisterSetupCallback(const char *name,
-        void (*Callback)(const DetectEngineCtx *, Signature *));
+        void (*Callback)(const DetectEngineCtx *, Signature *, const DetectBufferType *));
 void DetectBufferTypeRegisterValidateCallback(
         const char *name, bool (*ValidateCallback)(const Signature *, const char **sigerror,
                                   const DetectBufferType *));

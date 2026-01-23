@@ -455,7 +455,8 @@ typedef struct DetectBufferType_ {
     bool frame;  /**< is about Frame inspection */
     bool supports_transforms;
     bool multi_instance; /**< buffer supports multiple buffer instances per tx */
-    void (*SetupCallback)(const struct DetectEngineCtx_ *, struct Signature_ *);
+    void (*SetupCallback)(
+            const struct DetectEngineCtx_ *, struct Signature_ *, const struct DetectBufferType_ *);
     bool (*ValidateCallback)(
             const struct Signature_ *, const char **sigerror, const struct DetectBufferType_ *);
     DetectEngineTransforms transforms;
