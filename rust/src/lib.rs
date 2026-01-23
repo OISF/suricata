@@ -133,6 +133,7 @@ pub mod util;
 pub mod websocket;
 pub mod x509;
 pub use suricata_ffi::direction;
+pub mod imap;
 pub mod llmnr;
 
 #[allow(unused_imports)]
