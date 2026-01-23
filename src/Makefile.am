@@ -36,7 +36,6 @@ noinst_HEADERS = \
 	app-layer-htp.h \
 	app-layer-http2.h \
 	app-layer-ike.h \
-	app-layer-imap.h \
 	app-layer-modbus.h \
 	app-layer-nfs-tcp.h \
 	app-layer-nfs-udp.h \
@@ -626,7 +625,6 @@ libsuricata_c_a_SOURCES = \
 	app-layer-htp.c \
 	app-layer-http2.c \
 	app-layer-ike.c \
-	app-layer-imap.c \
 	app-layer-modbus.c \
 	app-layer-nfs-tcp.c \
 	app-layer-nfs-udp.c \
