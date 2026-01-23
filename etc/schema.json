@@ -2832,6 +2832,27 @@
                 }
             }
         },
+        "imap": {
+            "type": "object",
+            "description": "IMAP transaction data",
+            "additionalProperties": false,
+            "properties": {
+                "requests": {
+                    "type": "array",
+                    "description": "Array of IMAP request lines in this transaction",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "responses": {
+                    "type": "array",
+                    "description": "Array of IMAP response lines in this transaction",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
         "in_iface": {
             "type": "string"
         },
