@@ -5117,6 +5117,37 @@ bool DetectMd5ValidateCallback(
     return true;
 }
 
+void DetectLowerSetupCallback(
+        const DetectEngineCtx *de_ctx, Signature *s, const DetectBufferType *map)
+{
+    for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
+        if (s->init_data->buffers[x].id != (uint32_t)map->id)
+            continue;
+        SigMatch *sm = s->init_data->buffers[x].head;
+        for (; sm != NULL; sm = sm->next) {
+            if (sm->type != DETECT_CONTENT)
+                continue;
+
+            DetectContentData *cd = (DetectContentData *)sm->ctx;
+
+            bool changed = false;
+            uint32_t u;
+            for (u = 0; u < cd->content_len; u++) {
+                if (isupper(cd->content[u])) {
+                    cd->content[u] = u8_tolower(cd->content[u]);
+                    changed = true;
+                }
+            }
+
+            if (changed) {
+                SpmDestroyCtx(cd->spm_ctx);
+                cd->spm_ctx =
+                        SpmInitCtx(cd->content, cd->content_len, 1, de_ctx->spm_global_thread_ctx);
+            }
+        }
+    }
+}
+
 void SCDetectEngineRegisterRateFilterCallback(SCDetectRateFilterFunc fn, void *arg)
 {
     DetectEngineCtx *de_ctx = DetectEngineGetCurrent();

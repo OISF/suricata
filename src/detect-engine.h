@@ -205,6 +205,8 @@ void DetectEngineStateResetTxs(Flow *f);
 
 bool DetectMd5ValidateCallback(
         const Signature *s, const char **sigerror, const DetectBufferType *map);
+void DetectLowerSetupCallback(
+        const DetectEngineCtx *de_ctx, Signature *s, const DetectBufferType *map);
 
 void DeStateRegisterTests(void);
 
