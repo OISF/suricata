@@ -30,3 +30,7 @@ comment:
 
 github_checks:
   annotations: false
+
+fixes:
+  - "/__w/suricata/::"
+  - "/home/runner/work/suricata/::"
