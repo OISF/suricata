@@ -1897,6 +1897,132 @@ jobs:
       - run: |
           ./qa/unix.sh "suricata-verify/"
 
+  ubuntu-latest-namespace-ips:
+    name: Ubuntu 24.04 (afpacket IPS tests in namespaces)
+    runs-on: ubuntu-latest
+    needs: [prepare-deps, prepare-cbindgen]
+    container:
+      image: ubuntu:24.04
+      options: --privileged
+    steps:
+      - name: Cache ~/.cargo
+        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb
+        with:
+          path: ~/.cargo/registry
+          key: cargo-registry
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
+
+      - name: Install dependencies
+        run: |
+          apt update
+          apt -y install \
+                libpcre2-dev \
+                build-essential \
+                autoconf \
+                automake \
+                llvm-19-dev \
+                clang-19 \
+                git \
+                hwloc \
+                libhwloc-dev \
+                jq \
+                inetutils-ping \
+                libc++-dev \
+                libc++abi-dev \
+                libtool \
+                libpcap-dev \
+                libnet1-dev \
+                libyaml-0-2 \
+                libyaml-dev \
+                libcap-ng-dev \
+                libcap-ng0 \
+                libmagic-dev \
+                libnetfilter-queue-dev \
+                libnetfilter-queue1 \
+                libnfnetlink-dev \
+                libnfnetlink0 \
+                libnuma-dev \
+                libhiredis-dev \
+                libjansson-dev \
+                libevent-dev \
+                libevent-pthreads-2.1-7 \
+                make \
+                parallel \
+                python3-yaml \
+                software-properties-common \
+                sudo \
+                zlib1g \
+                zlib1g-dev \
+                exuberant-ctags \
+                unzip \
+                curl \
+                time \
+                wget \
+                caddy \
+                ethtool \
+                iproute2 \
+                iptables \
+                tshark
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        with:
+          name: prep
+          path: prep
+      # packaged Rust version is too old for coverage, so get from rustup. 1.85.1 matches
+      # LLVM 19
+      - name: Install Rust
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.85.1 -y
+      - uses: ./.github/actions/install-cbindgen
+      - run: ./autogen.sh
+      - run: ./configure --disable-shared --localstatedir=/var --prefix=/usr --sysconfdir=/etc --enable-nfqueue
+        env:
+          CC: "clang-19"
+          CXX: "clang++-19"
+          RUSTFLAGS: "-C instrument-coverage"
+          CFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0"
+          CXXFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0"
+      - run: make -j ${{ env.CPUS }}
+        env:
+          CC: "clang-19"
+          CXX: "clang++-19"
+          RUSTFLAGS: "-C instrument-coverage"
+          CFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0"
+          CXXFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0"
+
+      - run: |
+          ./.github/workflows/netns/afp-ips-netns-bridge.sh "2" "workers" ".github/workflows/netns/ips-netns.yaml"
+        env:
+          LLVM_PROFILE_FILE: "/tmp/afp-ips.profraw"
+      - run: llvm-profdata-19 merge -o afp-ips.profdata /tmp/afp-ips.profraw
+
+      - run: |
+          ./.github/workflows/netns/afp-ips-netns-bridge.sh "2" "autofp" ".github/workflows/netns/ips-netns.yaml"
+        env:
+          LLVM_PROFILE_FILE: "/tmp/afp-ips-autofp.profraw"
+      - run: llvm-profdata-19 merge -o afp-ips-autofp.profdata /tmp/afp-ips-autofp.profraw
+
+      - run: |
+          ./.github/workflows/netns/nfq-ips-netns-route.sh "autofp" ".github/workflows/netns/ips-netns.yaml"
+        env:
+          LLVM_PROFILE_FILE: "/tmp/nfq-ips.profraw"
+      - run: llvm-profdata-19 merge -o nfq-ips.profdata /tmp/nfq-ips.profraw
+
+      - run: |
+          ./.github/workflows/netns/nfq-ips-netns-route.sh "workers" ".github/workflows/netns/ips-netns.yaml"
+        env:
+          LLVM_PROFILE_FILE: "/tmp/nfq-ips-workers.profraw"
+      - run: llvm-profdata-19 merge -o nfq-ips-workers.profdata /tmp/nfq-ips-workers.profraw
+
+      - run: llvm-profdata-19 merge -o combined.profdata afp-ips.profdata nfq-ips.profdata afp-ips-autofp.profdata nfq-ips-workers.profdata
+      - run: llvm-cov-19 show ./src/suricata -instr-profile=combined.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de
+        with:
+          fail_ci_if_error: false
+          flags: netns
+          verbose: true
+
   ubuntu-24-04-asan-afpdpdk:
     name: Ubuntu 24.04 (afpacket and dpdk live tests with ASAN)
     runs-on: ubuntu-latest
