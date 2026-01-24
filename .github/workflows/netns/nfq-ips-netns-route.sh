@@ -26,6 +26,11 @@ uname -a
 ip r
 echo "* printing some diagnostics... done"
 
+NAMESPACES=$(ip netns list|cut -d' ' -f1)
+for NS in $NAMESPACES; do
+    ip netns delete $NS
+done
+
 # remove eve.json from previous run
 if [ -f eve.json ]; then
     rm eve.json
