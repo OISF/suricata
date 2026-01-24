@@ -142,8 +142,8 @@ ip netns exec $dutns iptables -I FORWARD 1 -j NFQUEUE
 echo "* enabling forwarding in the dut... done"
 
 # set first rule file
-#cp .github/workflows/live/icmp.rules suricata.rules
-RULES="/dev/null" # w/o -S the unix socket won't get created?
+cp .github/workflows/netns/drop-icmp.rules suricata.rules
+RULES="suricata.rules"
 
 echo "* starting Suricata in the \"dut\" namespace..."
 # Start Suricata, SIGINT after 120 secords. Will close it earlier through
@@ -175,6 +175,20 @@ ip netns exec $clientns \
     wget https://10.10.20.2/index.html
 echo "* running wget in the \"client\" namespace... done"
 
+echo "* running ping in the \"client\" namespace..."
+set +e
+ip netns exec $clientns \
+    ping -c 10 10.10.10.20
+PINGRES=$?
+set -e
+echo "* running ping in the \"client\" namespace... done"
+
+# pings should have been dropped, so ping reports error
+if [ $PINGRES != 1 ]; then
+    echo "ERROR ping should have failed"
+    RES=1
+fi
+
 # give stats time to get updated
 sleep 10
 
@@ -184,6 +198,11 @@ if [ $STATSCHECK = false ]; then
     echo "ERROR no packets captured"
     RES=1
 fi
+STATSCHECK=$(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.ips.blocked != 10')
+if [ $STATSCHECK = false ]; then
+    echo "ERROR should have seen 10 blocked"
+    RES=1
+fi
 
 kill -INT $CADDYPID
 wait $CADDYPID
@@ -191,9 +210,8 @@ ip netns exec $dutns \
     ${SURICATASC} -c "shutdown" /var/run/suricata/suricata-command.socket
 wait $SURIPID
 
-cat ./eve.json | jq 'select(.tls)'
-cat ./eve.json | jq 'select(.stats)|.stats.ips'
-cat ./eve.json | jq 'select(.stats)|.stats.capture'
+cat ./eve.json | jq -c 'select(.tls)'|tail -n1|jq
+cat ./eve.json | jq -c 'select(.stats)|.stats.ips'|tail -n1|jq
 
 echo "* done: $RES"
 exit $RES

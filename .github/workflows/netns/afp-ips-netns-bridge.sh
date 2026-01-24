@@ -163,6 +163,7 @@ ip netns exec $clientns \
 PINGRES=$?
 set -e
 
+# pings should have been dropped, so ping reports error
 if [ $PINGRES != 1 ]; then
     echo "ERROR ping should have failed"
     RES=1
@@ -189,9 +190,9 @@ ip netns exec $dutns \
     ${SURICATASC} -c "shutdown" /var/run/suricata/suricata-command.socket
 wait $SURIPID
 
-cat ./eve.json | jq 'select(.tls)'
-cat ./eve.json | jq 'select(.stats)|.stats.ips'
-cat ./eve.json | jq 'select(.stats)|.stats.capture'
+cat ./eve.json | jq -c 'select(.tls)'|tail -n1|jq
+cat ./eve.json | jq -c 'select(.stats)|.stats.ips'|tail -n1|jq
+cat ./eve.json | jq -c 'select(.stats)|.stats.capture'|tail -n1|jq
 
 echo "* done: $RES"
 exit $RES
