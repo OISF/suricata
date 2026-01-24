@@ -141,12 +141,12 @@ echo "* starting Caddy in the \"server\" namespace... done"
 
 echo "* running curl in the \"client\" namespace..."
 ip netns exec client \
-    curl -O https://10.10.10.20/
+    curl -O https://10.10.10.20/index.html
 echo "* running curl in the \"client\" namespace... done"
 
 echo "* running wget in the \"client\" namespace..."
 ip netns exec client \
-    wget https://10.10.10.20/
+    wget https://10.10.10.20/index.html
 echo "* running wget in the \"client\" namespace... done"
 
 # check stats and alerts
