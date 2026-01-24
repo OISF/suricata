@@ -140,7 +140,8 @@ sleep 10
 echo "* starting Caddy in the \"server\" namespace... done"
 
 echo "* running curl in the \"client\" namespace..."
-curl https://10.10.10.20/
+ip netns exec client \
+    curl https://10.10.10.20/
 echo "* running curl in the \"client\" namespace... done"
 
 # check stats and alerts
