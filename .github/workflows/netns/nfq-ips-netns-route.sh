@@ -11,14 +11,13 @@
 set -e
 set -x
 
-if [ $# -ne "3" ]; then
-    echo "ERROR call with 2 args: tpacket version (2/3) and runmode (single/autofp/workers)"
+if [ $# -ne "2" ]; then
+    echo "ERROR call with 2 args: runmode (single/autofp/workers) and yaml"
     exit 1;
 fi
 
-TPACKET=$1
-RUNMODE=$2
-YAML=$3
+RUNMODE=$1
+YAML=$2
 
 # dump some info
 echo "* printing some diagnostics..."
@@ -44,13 +43,17 @@ RES=0
 #
 # [ client ]$clientif - $dutclientif[ dut ]$dutserverif - $serverif[ server ]
 #
-# By copying packets between the dut interfaces, Suricata becomes the bridge.
+# By routing packets between the dut interfaces, Suricata becomes the router.
 #
 clientns=client
 serverns=server
 dutns=dut
-clientip="10.10.10.10/24"
-serverip='10.10.10.20/24'
+clientip="10.10.10.2/24"
+clientnet="10.10.10.0/24"
+serverip='10.10.20.2/24'
+servernet="10.10.20.0/24"
+dutclientip="10.10.10.1/24"
+dutserverip='10.10.20.1/24'
 clientif=client
 serverif=server
 dutclientif=dut_client
@@ -96,27 +99,42 @@ ip netns exec $serverns ip ad
 ip netns exec $dutns ip ad
 echo "* list namespaces and interfaces within them... done"
 
-# bring up interfaces. Client and server get IP's.
-# Disable rx and tx csum offload on all sides.
+# bring up interfaces. All interfaces get IP's.
 
 echo "* setup client interface..."
 ip netns exec $clientns ip addr add $clientip dev ptp-$clientif
-ip netns exec $clientns ethtool -K ptp-$clientif rx off tx off
 ip netns exec $clientns ip link set ptp-$clientif up
 echo "* setup client interface... done"
 
 echo "* setup server interface..."
 ip netns exec $serverns ip addr add $serverip dev ptp-$serverif
-ip netns exec $serverns ethtool -K ptp-$serverif rx off tx off
 ip netns exec $serverns ip link set ptp-$serverif up
 echo "* setup server interface... done"
 
 echo "* setup dut interfaces..."
-ip netns exec $dutns ethtool -K ptp-$dutclientif rx off tx off
-ip netns exec $dutns ethtool -K ptp-$dutserverif rx off tx off
+ip netns exec $dutns ip addr add $dutclientip dev ptp-$dutclientif
+ip netns exec $dutns ip addr add $dutserverip dev ptp-$dutserverif
 ip netns exec $dutns ip link set ptp-$dutclientif up
 ip netns exec $dutns ip link set ptp-$dutserverif up
 echo "* setup dut interfaces... done"
+
+echo "* setup client/server routes..."
+# routes:
+#
+# client can reach servernet through the client side ip of the dut
+via_ip=$(echo $dutclientip|cut -f1 -d'/')
+ip netns exec $clientns ip route add $servernet via $via_ip dev ptp-$clientif
+#
+# server can reach clientnet through the server side ip of the dut
+via_ip=$(echo $dutserverip|cut -f1 -d'/')
+ip netns exec $serverns ip route add $clientnet via $via_ip dev ptp-$serverif
+echo "* setup client/server routes... done"
+
+echo "* enabling forwarding in the dut..."
+# forward all
+ip netns exec $dutns sysctl net.ipv4.ip_forward=1
+ip netns exec $dutns iptables -I FORWARD 1 -j NFQUEUE
+echo "* enabling forwarding in the dut... done"
 
 # set first rule file
 #cp .github/workflows/live/icmp.rules suricata.rules
@@ -127,7 +145,7 @@ echo "* starting Suricata in the \"dut\" namespace..."
 # the unix socket.
 timeout --kill-after=240 --preserve-status 120 \
     ip netns exec $dutns \
-        ./src/suricata -c $YAML -l ./ --af-packet -v \
+        ./src/suricata -c $YAML -l ./ -q 0 -v \
             --set default-rule-path=. --runmode=$RUNMODE -S $RULES &
 SURIPID=$!
 sleep 10
@@ -137,26 +155,26 @@ echo "* starting Caddy..."
 # Start Caddy in the server namespace
 timeout --kill-after=240 --preserve-status 120 \
     ip netns exec $serverns \
-        caddy file-server --domain 10.10.10.20 --browse &
+        caddy file-server --domain 10.10.20.2 --browse &
 CADDYPID=$!
 sleep 10
 echo "* starting Caddy in the \"server\" namespace... done"
 
 echo "* running curl in the \"client\" namespace..."
 ip netns exec $clientns \
-    curl -O https://10.10.10.20/index.html
+    curl -O https://10.10.20.2/index.html
 echo "* running curl in the \"client\" namespace... done"
 
 echo "* running wget in the \"client\" namespace..."
 ip netns exec $clientns \
-    wget https://10.10.10.20/index.html
+    wget https://10.10.20.2/index.html
 echo "* running wget in the \"client\" namespace... done"
 
 # give stats time to get updated
 sleep 10
 
 # check stats and alerts
-STATSCHECK=$(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.capture.kernel_packets > 0')
+STATSCHECK=$(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.ips.accepted > 0')
 if [ $STATSCHECK = false ]; then
     echo "ERROR no packets captured"
     RES=1

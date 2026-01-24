@@ -1978,7 +1978,9 @@ jobs:
         env:
           CC: "clang-18"
       - run: |
-          sudo ./.github/workflows/netns/afp-ips-netns-bridge.sh "2" "workers" ".github/workflows/netns/afp-ips-netns-bridge.yaml"
+          sudo ./.github/workflows/netns/afp-ips-netns-bridge.sh "2" "workers" ".github/workflows/netns/ips-netns.yaml"
+      - run: |
+          sudo ./.github/workflows/netns/nfq-ips-netns-route.sh "autofp" ".github/workflows/netns/ips-netns.yaml"
 
   ubuntu-24-04-asan-afpdpdk:
     name: Ubuntu 24.04 (afpacket and dpdk live tests with ASAN)
