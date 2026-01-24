@@ -1999,6 +1999,7 @@ jobs:
       - run: ls -l /tmp/
       - run: llvm-profdata-19 merge -o combined.profdata $(find /tmp/ -name '*.profraw')
       - run: llvm-cov-19 show ./src/suricata -instr-profile=combined.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
+      - run: cat coverage.txt
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de
         with:
