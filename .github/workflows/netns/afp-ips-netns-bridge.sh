@@ -141,8 +141,13 @@ echo "* starting Caddy in the \"server\" namespace... done"
 
 echo "* running curl in the \"client\" namespace..."
 ip netns exec client \
-    curl https://10.10.10.20/
+    curl -O https://10.10.10.20/
 echo "* running curl in the \"client\" namespace... done"
+
+echo "* running wget in the \"client\" namespace..."
+ip netns exec client \
+    wget https://10.10.10.20/
+echo "* running wget in the \"client\" namespace... done"
 
 # check stats and alerts
 STATSCHECK=$(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.capture.kernel_packets > 0')
@@ -152,7 +157,7 @@ if [ $STATSCHECK = false ]; then
 fi
 
 kill -INT $CADDYPID
-wait $PINGPID
+wait $CADDYPID
 ${SURICATASC} -c "shutdown" /var/run/suricata/suricata-command.socket
 wait $SURIPID
 
