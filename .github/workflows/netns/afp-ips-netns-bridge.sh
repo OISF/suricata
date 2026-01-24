@@ -11,14 +11,14 @@
 #set -e
 set -x
 
-if [ $# -ne "2" ]; then
+if [ $# -ne "3" ]; then
     echo "ERROR call with 2 args: tpacket version (2/3) and runmode (single/autofp/workers)"
     exit 1;
 fi
 
 TPACKET=$1
 RUNMODE=$2
-YAML="afp-ips-netns-bridge.yaml"
+YAML=$3
 
 # dump some info
 echo "* printing some diagnostics..."
