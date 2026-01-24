@@ -1912,8 +1912,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          apt update
-          apt -y install \
+          sudo apt update
+          sudo apt -y install \
                 libpcre2-dev \
                 build-essential \
                 autoconf \
@@ -1978,7 +1978,7 @@ jobs:
         env:
           CC: "clang-18"
       - run: |
-          ./.github/workflows/netns/afp-ips-netns-bridge.sh "2" "workers"
+          sudo ./.github/workflows/netns/afp-ips-netns-bridge.sh "2" "workers"
 
   ubuntu-24-04-asan-afpdpdk:
     name: Ubuntu 24.04 (afpacket and dpdk live tests with ASAN)
