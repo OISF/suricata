@@ -120,13 +120,14 @@ echo "* setup dut interfaces... done"
 
 # set first rule file
 #cp .github/workflows/live/icmp.rules suricata.rules
+RULES="/dev/null" # w/o -S the unix socket won't get created?
 
 echo "* starting Suricata in the \"dut\" namespace..."
 # Start Suricata, SIGINT after 120 secords. Will close it earlier through
 # the unix socket.
 timeout --kill-after=240 --preserve-status 120 \
     ip netns exec dut ./src/suricata -c $YAML -l ./ --af-packet -v \
-        --set default-rule-path=. --runmode=$RUNMODE --disable-detection &
+        --set default-rule-path=. --runmode=$RUNMODE -S $RULES &
 SURIPID=$!
 sleep 10
 echo "* starting Suricata... done"
