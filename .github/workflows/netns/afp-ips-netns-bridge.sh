@@ -158,7 +158,8 @@ fi
 
 kill -INT $CADDYPID
 wait $CADDYPID
-${SURICATASC} -c "shutdown" /var/run/suricata/suricata-command.socket
+ip netns exec dut \
+    ${SURICATASC} -c "shutdown" /var/run/suricata/suricata-command.socket
 wait $SURIPID
 
 cat ./eve.json | jq 'select(.tls)'
