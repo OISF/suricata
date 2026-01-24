@@ -101,6 +101,9 @@ outputs:
             #null-values: false    # False will NOT log stats counters: 0
         - flow
 
+unix-command:
+  enabled: auto
+
 af-packet:
   - interface: ptp-dut_client
     cluster-id: 1
