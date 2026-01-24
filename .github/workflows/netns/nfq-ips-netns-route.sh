@@ -178,7 +178,7 @@ echo "* running wget in the \"client\" namespace... done"
 echo "* running ping in the \"client\" namespace..."
 set +e
 ip netns exec $clientns \
-    ping -c 10 10.10.10.20
+    ping -c 10 $serverip
 PINGRES=$?
 set -e
 echo "* running ping in the \"client\" namespace... done"
@@ -193,6 +193,9 @@ fi
 sleep 10
 
 # check stats and alerts
+ACCEPTED=$(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.ips.accepted')
+BLOCKED=$(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.ips.blocked')
+echo "ACCEPTED $ACCEPTED BLOCKED $BLOCKED"
 STATSCHECK=$(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.ips.accepted > 0')
 if [ $STATSCHECK = false ]; then
     echo "ERROR no packets captured"
