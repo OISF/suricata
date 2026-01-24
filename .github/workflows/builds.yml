@@ -1897,6 +1897,89 @@ jobs:
       - run: |
           ./qa/unix.sh "suricata-verify/"
 
+  ubuntu-latest-namespace-ips:
+    name: Ubuntu Latest (afpacket IPS tests in namespaces)
+    runs-on: ubuntu-latest
+    needs: [prepare-deps, prepare-cbindgen]
+    steps:
+      - name: Cache ~/.cargo
+        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb
+        with:
+          path: ~/.cargo/registry
+          key: cargo-registry
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
+
+      - name: Install dependencies
+        run: |
+          apt update
+          apt -y install \
+                libpcre2-dev \
+                build-essential \
+                autoconf \
+                automake \
+                llvm-18-dev \
+                cargo \
+                cbindgen \
+                clang-18 \
+                git \
+                hwloc \
+                libhwloc-dev \
+                jq \
+                inetutils-ping \
+                libc++-dev \
+                libc++abi-dev \
+                libtool \
+                libpcap-dev \
+                libnet1-dev \
+                libyaml-0-2 \
+                libyaml-dev \
+                libcap-ng-dev \
+                libcap-ng0 \
+                libmagic-dev \
+                libnetfilter-queue-dev \
+                libnetfilter-queue1 \
+                libnfnetlink-dev \
+                libnfnetlink0 \
+                libnuma-dev \
+                libhiredis-dev \
+                libjansson-dev \
+                libevent-dev \
+                libevent-pthreads-2.1-7 \
+                make \
+                parallel \
+                python3-yaml \
+                rustc \
+                software-properties-common \
+                sudo \
+                zlib1g \
+                zlib1g-dev \
+                exuberant-ctags \
+                unzip \
+                curl \
+                time \
+                wget \
+                caddy \
+                ethtool \
+                iproute2 \
+                dpdk-dev
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+      - run: git config --global --add safe.directory /__w/suricata/suricata
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        with:
+          name: prep
+          path: prep
+      - run: ./autogen.sh
+      - run: ./configure --enable-dpdk --disable-shared --enable-gccprotect --localstatedir=/var --prefix=/usr --sysconfdir=/etc
+        env:
+          CC: "clang-18"
+          CFLAGS: "-g"
+      - run: make -j ${{ env.CPUS }}
+        env:
+          CC: "clang-18"
+      - run: |
+          ./.github/workflows/netns/afp-ips-netns-bridge.sh "2" "workers"
+
   ubuntu-24-04-asan-afpdpdk:
     name: Ubuntu 24.04 (afpacket and dpdk live tests with ASAN)
     runs-on: ubuntu-latest
