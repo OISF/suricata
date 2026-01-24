@@ -1970,7 +1970,7 @@ jobs:
           name: prep
           path: prep
       - run: ./autogen.sh
-      - run: ./configure --enable-dpdk --disable-shared --enable-gccprotect --localstatedir=/var --prefix=/usr --sysconfdir=/etc
+      - run: ./configure --enable-dpdk --disable-shared --enable-gccprotect --localstatedir=/var --prefix=/usr --sysconfdir=/etc --enable-nfqueue
         env:
           CC: "clang-18"
           CFLAGS: "-g"
