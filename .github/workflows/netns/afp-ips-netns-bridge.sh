@@ -8,7 +8,7 @@
 # 1st: "2" or "3" to indicate the tpacket version.
 # 2nd: runmode string (single/autofp/workers)
 
-#set -e
+set -e
 set -x
 
 if [ $# -ne "3" ]; then
@@ -134,7 +134,7 @@ echo "* starting Suricata... done"
 echo "* starting Caddy..."
 # Start Caddy in the server namespace
 timeout --kill-after=240 --preserve-status 120 \
-    ip netns exec server caddy file-server --domain 10.10.10.20 --browse
+    ip netns exec server caddy file-server --domain 10.10.10.20 --browse &
 CADDYPID=$!
 sleep 10
 echo "* starting Caddy in the \"server\" namespace... done"
