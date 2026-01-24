@@ -1986,10 +1986,12 @@ jobs:
           RUSTFLAGS: "-C instrument-coverage"
           CFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0"
           CXXFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0"
+      - run: ls -l /tmp/
       - run: |
           sudo LLVM_PROFILE_FILE=/tmp/afp-ips.profraw ./.github/workflows/netns/afp-ips-netns-bridge.sh "2" "workers" ".github/workflows/netns/ips-netns.yaml"
         env:
           LLVM_PROFILE_FILE: "/tmp/afp-ips.profraw"
+      - run: ls -l /tmp/
       - run: |
           sudo LLVM_PROFILE_FILE=/tmp/nfq-ips.profraw ./.github/workflows/netns/nfq-ips-netns-route.sh "autofp" ".github/workflows/netns/ips-netns.yaml"
         env:
