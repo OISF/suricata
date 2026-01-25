@@ -2005,6 +2005,9 @@ jobs:
       - run: ls -l /tmp/
       - run: llvm-profdata-19 merge -o combined.profdata afp-ips.profdata nfq-ips.profdata
       - run: llvm-cov-19 show ./src/suricata -instr-profile=combined.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
+      - run: ls -l
+      - run: echo $(realpath coverage.txt)
+      - run: find / -name coverage.txt
       - run: sed -i 's/\/home\/runner\/work/\/__w/g' coverage.txt
       - run: sed -i 's/\/home\/runner\/.cargo/\/github\/home\/.cargo/g' coverage.txt
       - run: cat coverage.txt
@@ -2015,8 +2018,8 @@ jobs:
           flags: netns
           path: /__w
           verbose: true
-          directory: /__w
-          working-directory: /__w
+          directory: /__w/suricata/suricata
+          working-directory: /__w/suricata/suricata
 
   ubuntu-24-04-asan-afpdpdk:
     name: Ubuntu 24.04 (afpacket and dpdk live tests with ASAN)
