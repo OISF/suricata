@@ -32,5 +32,5 @@ github_checks:
   annotations: false
 
 fixes:
-  - "/__w/suricata/::"
-  - "/home/runner/work/suricata/::"
+  - "/__w/suricata/suricata/::"
+  - "/home/runner/work/suricata/suricata/::"
