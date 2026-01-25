@@ -1902,6 +1902,8 @@ jobs:
     name: Ubuntu Latest (afpacket IPS tests in namespaces)
     runs-on: ubuntu-latest
     needs: [prepare-deps, prepare-cbindgen]
+    defaults:
+      working-directory: /__w/suricata/suricata
     steps:
       - name: Cache ~/.cargo
         uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb
