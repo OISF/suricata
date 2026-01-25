@@ -912,6 +912,58 @@ TmEcode TmThreadSetupOptions(ThreadVars *tv)
     return TM_ECODE_OK;
 }
 
+static void TmThreadSpawnPthread(ThreadVars *tv)
+{
+    pthread_attr_t attr;
+
+    /* Initialize and set thread detached attribute */
+    pthread_attr_init(&attr);
+
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+
+    /* Adjust thread stack size if configured */
+    if (threading_set_stack_size) {
+        SCLogDebug("Setting per-thread stack size to %" PRIu64, threading_set_stack_size);
+        if (pthread_attr_setstacksize(&attr, (size_t)threading_set_stack_size)) {
+            FatalError("Unable to increase stack size to %" PRIu64 " in thread attributes",
+                    threading_set_stack_size);
+        }
+    }
+
+    pthread_t *t = (pthread_t *)&tv->thread_id;
+    int rc = pthread_create(t, &attr, tv->tm_func, (void *)tv);
+    if (rc) {
+        FatalError("Unable to create thread %s with pthread_create(): retval %d: %s", tv->name, rc,
+                strerror(errno));
+    }
+
+#if DEBUG && HAVE_PTHREAD_GETATTR_NP
+    if (threading_set_stack_size) {
+        if (pthread_getattr_np(*t, &attr) == 0) {
+            size_t stack_size;
+            void *stack_addr;
+            pthread_attr_getstack(&attr, &stack_addr, &stack_size);
+            SCLogDebug("stack: %p;  size %" PRIu64, stack_addr, (uintmax_t)stack_size);
+        } else {
+            SCLogDebug("Unable to retrieve current stack-size for display; return code from "
+                       "pthread_getattr_np() is %" PRId32,
+                    rc);
+        }
+    }
+#endif
+
+    pthread_attr_destroy(&attr);
+}
+
+static void TmThreadJoinPthread(ThreadVars *tv)
+{
+    /* Join the thread and flag as dead, unless the thread ID is 0 as
+     * its not a thread created by Suricata. */
+    if (tv->thread_id != 0) {
+        pthread_join((pthread_t)tv->thread_id, NULL);
+    }
+}
+
 /**
  * \brief Creates and returns the TV instance for a new thread.
  *
@@ -946,6 +998,9 @@ ThreadVars *TmThreadCreate(const char *name, const char *inq_name, const char *i
     StatsThreadInit(&tv->stats);
 
     strlcpy(tv->name, name, sizeof(tv->name));
+    /* default spawn and join functions */
+    tv->tm_spawn = TmThreadSpawnPthread;
+    tv->tm_join = TmThreadJoinPthread;
 
     /* default state for every newly created thread */
     TmThreadsSetFlag(tv, THV_PAUSE);
@@ -1286,11 +1341,8 @@ static int TmThreadKillThread(ThreadVars *tv)
         }
     }
 
-    /* Join the thread and flag as dead, unless the thread ID is 0 as
-     * its not a thread created by Suricata. */
-    if (tv->t) {
-        pthread_join(tv->t, NULL);
-        SCLogDebug("thread %s stopped", tv->name);
+    if (tv->tm_join != NULL) {
+        tv->tm_join(tv);
     }
     TmThreadsSetFlag(tv, THV_DEAD);
     return 1;
@@ -1693,45 +1745,14 @@ void TmThreadClearThreadsFamily(int family)
  */
 TmEcode TmThreadSpawn(ThreadVars *tv)
 {
-    pthread_attr_t attr;
     if (tv->tm_func == NULL) {
         FatalError("No thread function set");
     }
 
-    /* Initialize and set thread detached attribute */
-    pthread_attr_init(&attr);
-
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-
-    /* Adjust thread stack size if configured */
-    if (threading_set_stack_size) {
-        SCLogDebug("Setting per-thread stack size to %" PRIu64, threading_set_stack_size);
-        if (pthread_attr_setstacksize(&attr, (size_t)threading_set_stack_size)) {
-            FatalError("Unable to increase stack size to %" PRIu64 " in thread attributes",
-                    threading_set_stack_size);
-        }
+    if (tv->tm_spawn == NULL) {
+        FatalError("No thread spawn function set");
     }
-
-    int rc = pthread_create(&tv->t, &attr, tv->tm_func, (void *)tv);
-    if (rc) {
-        FatalError("Unable to create thread %s with pthread_create(): retval %d: %s", tv->name, rc,
-                strerror(errno));
-    }
-
-#if DEBUG && HAVE_PTHREAD_GETATTR_NP
-    if (threading_set_stack_size) {
-        if (pthread_getattr_np(tv->t, &attr) == 0) {
-            size_t stack_size;
-            void *stack_addr;
-            pthread_attr_getstack(&attr, &stack_addr, &stack_size);
-            SCLogDebug("stack: %p;  size %" PRIu64, stack_addr, (uintmax_t)stack_size);
-        } else {
-            SCLogDebug("Unable to retrieve current stack-size for display; return code from "
-                       "pthread_getattr_np() is %" PRId32,
-                    rc);
-        }
-    }
-#endif
+    tv->tm_spawn(tv);
 
     TmThreadWaitForFlag(tv, THV_INIT_DONE | THV_RUNNING_DONE);
 
