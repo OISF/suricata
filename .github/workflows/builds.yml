@@ -1559,6 +1559,7 @@ jobs:
         with:
           fail_ci_if_error: false
           flags: unittests
+          verbose: true
 
   ubuntu-22-04-cov-pcapunix:
     name: Ubuntu 22.04 (unix socket mode coverage)
@@ -2013,6 +2014,9 @@ jobs:
           fail_ci_if_error: false
           flags: netns
           path: /__w
+          verbose: true
+          directory: /__w
+          working-directory: /__w
 
   ubuntu-24-04-asan-afpdpdk:
     name: Ubuntu 24.04 (afpacket and dpdk live tests with ASAN)
