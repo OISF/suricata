@@ -1976,7 +1976,9 @@ jobs:
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.85.1 -y
       - uses: ./.github/actions/install-cbindgen
       - run: ./autogen.sh
+        path: /__w/suricata/suricata/
       - run: ./configure --disable-shared --localstatedir=/var --prefix=/usr --sysconfdir=/etc --enable-nfqueue
+        path: /__w/suricata/suricata/
         env:
           CC: "clang-19"
           CXX: "clang++-19"
@@ -1984,6 +1986,7 @@ jobs:
           CFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0"
           CXXFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0"
       - run: make -j ${{ env.CPUS }}
+        path: /__w/suricata/suricata/
         env:
           CC: "clang-19"
           CXX: "clang++-19"
@@ -1993,24 +1996,34 @@ jobs:
       - run: ls -l /tmp/
       - run: |
           sudo LLVM_PROFILE_FILE=/tmp/afp-ips.profraw ./.github/workflows/netns/afp-ips-netns-bridge.sh "2" "workers" ".github/workflows/netns/ips-netns.yaml"
+        path: /__w/suricata/suricata/
         env:
           LLVM_PROFILE_FILE: "/tmp/afp-ips.profraw"
       - run: llvm-profdata-19 merge -o afp-ips.profdata /tmp/afp-ips.profraw
+        path: /__w/suricata/suricata/
       - run: ls -l /tmp/
       - run: |
           sudo LLVM_PROFILE_FILE=/tmp/nfq-ips.profraw ./.github/workflows/netns/nfq-ips-netns-route.sh "autofp" ".github/workflows/netns/ips-netns.yaml"
+        path: /__w/suricata/suricata/
         env:
           LLVM_PROFILE_FILE: "/tmp/nfq-ips.profraw"
       - run: llvm-profdata-19 merge -o nfq-ips.profdata /tmp/nfq-ips.profraw
+        path: /__w/suricata/suricata/
       - run: ls -l /tmp/
       - run: llvm-profdata-19 merge -o combined.profdata afp-ips.profdata nfq-ips.profdata
+        path: /__w/suricata/suricata/
       - run: llvm-cov-19 show ./src/suricata -instr-profile=combined.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
+        path: /__w/suricata/suricata/
       - run: ls -l
+        path: /__w/suricata/suricata/
       - run: echo $(realpath coverage.txt)
+        path: /__w/suricata/suricata/
       - run: find / -name coverage.txt
+        path: /__w/suricata/suricata/
       - run: sed -i 's/\/home\/runner\/work/\/__w/g' coverage.txt
       - run: sed -i 's/\/home\/runner\/.cargo/\/github\/home\/.cargo/g' coverage.txt
       - run: cat coverage.txt
+        path: /__w/suricata/suricata/
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de
         with:
