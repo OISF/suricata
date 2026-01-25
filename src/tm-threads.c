@@ -859,8 +859,11 @@ TmEcode TmThreadSetupOptions(ThreadVars *tv)
     }
 
 #if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun
-    if (tv->thread_setup_flags & THREAD_SET_PRIORITY)
+    if (tv->thread_setup_flags & THREAD_SET_PRIORITY) {
         TmThreadSetPrio(tv);
+        SCLogPerf("Setting prio %d for thread \"%s\", thread id %lu", tv->thread_priority, tv->name,
+                SCGetThreadIdLong());
+    }
     if (tv->thread_setup_flags & THREAD_SET_AFFTYPE) {
         ThreadsAffinityType *taf = &thread_affinity[tv->cpu_affinity];
         bool use_iface_affinity = RunmodeIsAutofp() && tv->cpu_affinity == RECEIVE_CPU_SET &&
