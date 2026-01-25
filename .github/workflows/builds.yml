@@ -1960,6 +1960,9 @@ jobs:
                 ethtool \
                 iproute2 \
                 dpdk-dev
+      - run: sudo mkdir /__w
+      - run: sudo chown runner:runner /__w
+      - run: cd /__w
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
