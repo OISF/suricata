@@ -2012,6 +2012,7 @@ jobs:
         with:
           fail_ci_if_error: false
           flags: netns
+          path: /__w
 
   ubuntu-24-04-asan-afpdpdk:
     name: Ubuntu 24.04 (afpacket and dpdk live tests with ASAN)
