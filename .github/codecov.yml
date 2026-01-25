@@ -31,6 +31,27 @@ comment:
 github_checks:
   annotations: false
 
+# codecov didn't like the new 'netns' report, say it was unusable. Sadly it
+# didn't specify why, but the site says pathing issues are common.
+#
+# Paths from a regular (container based) report:
+#     16 /github/home/.cargo/registry
+#    782 /__w/suricata/suricata
+#    207 /__w/suricata/suricata/rust
+# Paths from a vm based report:
+#    640 /home/runner/.cargo/registry
+#    787 /home/runner/work/suricata/suricata
+#    207 /home/runner/work/suricata/suricata/rust
+#
 fixes:
+  # container based paths
+  - "/github/home/.cargo/::.cargo/"
   - "/__w/suricata/suricata/::"
+  # vm based paths
+  - "/home/runner/.cargo/::.cargo/"
   - "/home/runner/work/suricata/suricata/::"
+
+# seems we can ignore the registry, not sure if ignore runs before or after path fixing
+ignore:
+  - "**/.cargo/registry/**"
+  - ".cargo/registry/**"
