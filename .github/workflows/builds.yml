@@ -1898,7 +1898,7 @@ jobs:
           ./qa/unix.sh "suricata-verify/"
 
   ubuntu-latest-namespace-ips:
-    name: Ubuntu Latest (afpacket IPS tests in namespaces)
+    name: Ubuntu 24.04 (afpacket IPS tests in namespaces)
     runs-on: ubuntu-latest
     needs: [prepare-deps, prepare-cbindgen]
     container:

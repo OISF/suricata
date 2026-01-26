@@ -37,10 +37,24 @@ uname -a
 ip r
 echo "* printing some diagnostics... done"
 
+clientns=client
+serverns=server
+dutns=dut
+clientip="10.10.10.10/24"
+serverip='10.10.10.20/24'
+clientif=client
+serverif=server
+dutclientif=dut_client
+dutserverif=dut_server
+
+echo "* removing old namespaces..."
 NAMESPACES=$(ip netns list|cut -d' ' -f1)
 for NS in $NAMESPACES; do
-    ip netns delete $NS
+    if [ $NS = $dutns ] || [ $NS = $clientns ] || [ $NS = $serverns ]; then
+        ip netns delete $NS
+    fi
 done
+echo "* removing old namespaces... done"
 
 # remove eve.json from previous run
 if [ -f eve.json ]; then
@@ -54,16 +68,6 @@ else
 fi
 
 RES=0
-
-clientns=client
-serverns=server
-dutns=dut
-clientip="10.10.10.10/24"
-serverip='10.10.10.20/24'
-clientif=client
-serverif=server
-dutclientif=dut_client
-dutserverif=dut_server
 
 # adding namespaces
 echo "* creating namespaces..."
@@ -132,8 +136,8 @@ cp .github/workflows/netns/drop-icmp.rules suricata.rules
 RULES="suricata.rules"
 
 echo "* starting Suricata in the \"dut\" namespace..."
-# Start Suricata, SIGINT after 120 secords. Will close it earlier through
-# the unix socket.
+# Start Suricata in the dut namespace, then SIGINT after 240 secords. Will
+# close it earlier through the unix socket.
 timeout --kill-after=300 --preserve-status 240 \
     ip netns exec $dutns \
         ./src/suricata -c $YAML -l ./ --af-packet -v \
@@ -161,11 +165,14 @@ ip netns exec $clientns \
     wget https://10.10.10.20/index.html
 echo "* running wget in the \"client\" namespace... done"
 
+ping_ip=$(echo $serverip|cut -f1 -d'/')
+echo "* running ping $ping_ip in the \"client\" namespace..."
 set +e
 ip netns exec $clientns \
-    ping -c 10 10.10.10.20
+    ping -c 10 $ping_ip
 PINGRES=$?
 set -e
+echo "* running ping in the \"client\" namespace... done"
 
 # pings should have been dropped, so ping reports error
 if [ $PINGRES != 1 ]; then
@@ -176,27 +183,35 @@ fi
 # give stats time to get updated
 sleep 10
 
-# check stats and alerts
-STATSCHECK=$(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.capture.kernel_packets > 0')
-if [ $STATSCHECK = false ]; then
+ACCEPTED=$(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.ips.accepted')
+BLOCKED=$(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.ips.blocked')
+KERNEL_PACKETS=$(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.capture.kernel_packets')
+echo "ACCEPTED $ACCEPTED BLOCKED $BLOCKED KERNEL_PACKETS $KERNEL_PACKETS"
+
+if [ $KERNEL_PACKETS -gt 0 ]; then
     echo "ERROR no packets captured"
     RES=1
 fi
-STATSCHECK=$(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.ips.blocked != 10')
-if [ $STATSCHECK = false ]; then
+if [ $BLOCKED -ne 10 ]; then
     echo "ERROR should have seen 10 blocked"
     RES=1
 fi
 
+echo "* shutting down..."
 kill -INT $CADDYPID
 wait $CADDYPID
 ip netns exec $dutns \
     ${SURICATASC} -c "shutdown" /var/run/suricata/suricata-command.socket
 wait $SURIPID
+echo "* shutting down... done"
 
+echo "* dumping some stats..."
 cat ./eve.json | jq -c 'select(.tls)'|tail -n1|jq
 cat ./eve.json | jq -c 'select(.stats)|.stats.ips'|tail -n1|jq
 cat ./eve.json | jq -c 'select(.stats)|.stats.capture'|tail -n1|jq
+cat ./eve.json | jq
+echo "* dumping some stats... done"
+
 
 echo "* done: $RES"
 exit $RES

@@ -37,24 +37,6 @@ uname -a
 ip r
 echo "* printing some diagnostics... done"
 
-NAMESPACES=$(ip netns list|cut -d' ' -f1)
-for NS in $NAMESPACES; do
-    ip netns delete $NS
-done
-
-# remove eve.json from previous run
-if [ -f eve.json ]; then
-    rm eve.json
-fi
-
-if [ -e ./rust/target/release/suricatasc ]; then
-    SURICATASC=./rust/target/release/suricatasc
-else
-    SURICATASC=./rust/target/debug/suricatasc
-fi
-
-RES=0
-
 clientns=client
 serverns=server
 dutns=dut
@@ -68,6 +50,28 @@ clientif=client
 serverif=server
 dutclientif=dut_client
 dutserverif=dut_server
+
+echo "* removing old namespaces..."
+NAMESPACES=$(ip netns list|cut -d' ' -f1)
+for NS in $NAMESPACES; do
+    if [ $NS = $dutns ] || [ $NS = $clientns ] || [ $NS = $serverns ]; then
+        ip netns delete $NS
+    fi
+done
+echo "* removing old namespaces... done"
+
+# remove eve.json from previous run
+if [ -f eve.json ]; then
+    rm eve.json
+fi
+
+if [ -e ./rust/target/release/suricatasc ]; then
+    SURICATASC=./rust/target/release/suricatasc
+else
+    SURICATASC=./rust/target/debug/suricatasc
+fi
+
+RES=0
 
 # adding namespaces
 echo "* creating namespaces..."
@@ -151,9 +155,9 @@ cp .github/workflows/netns/drop-icmp.rules suricata.rules
 RULES="suricata.rules"
 
 echo "* starting Suricata in the \"dut\" namespace..."
-# Start Suricata, SIGINT after 120 secords. Will close it earlier through
-# the unix socket.
-timeout --kill-after=240 --preserve-status 120 \
+# Start Suricata in the dut namespace, then SIGINT after 240 secords. Will
+# close it earlier through the unix socket.
+timeout --kill-after=300 --preserve-status 240 \
     ip netns exec $dutns \
         ./src/suricata -c $YAML -l ./ -q 0 -v \
             --set default-rule-path=. --runmode=$RUNMODE -S $RULES &
@@ -211,14 +215,19 @@ if [ $BLOCKED -ne 10 ]; then
     RES=1
 fi
 
+echo "* shutting down..."
 kill -INT $CADDYPID
 wait $CADDYPID
 ip netns exec $dutns \
     ${SURICATASC} -c "shutdown" /var/run/suricata/suricata-command.socket
 wait $SURIPID
+echo "* shutting down... done"
 
+echo "* dumping some stats..."
 cat ./eve.json | jq -c 'select(.tls)'|tail -n1|jq
 cat ./eve.json | jq -c 'select(.stats)|.stats.ips'|tail -n1|jq
+cat ./eve.json | jq
+echo "* dumping some stats... done"
 
 echo "* done: $RES"
 exit $RES
