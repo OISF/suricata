@@ -502,7 +502,6 @@ pub(crate) unsafe extern "C" fn http2_form_get_data(
                 } else {
                     value
                 };
-                println!("lol {:?}", value);
                 *buffer = value.as_ptr(); //unsafe
                 *buffer_len = value.len() as u32;
                 return true;

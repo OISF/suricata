@@ -16,16 +16,17 @@
  */
 
 use crate::core::STREAM_TOSERVER;
+use crate::detect::transforms::urldecode::G_TRANSFORM_URL_DECODE_ID;
 use crate::detect::{helper_keyword_register_multi_buffer, SigTableElmtStickyBuffer};
+use crate::http2::detect::http2_form_get_data;
 use std::os::raw::{c_int, c_void};
 use std::ptr;
 use suricata_sys::sys::AppProtoEnum::{ALPROTO_HTTP, ALPROTO_HTTP1, ALPROTO_HTTP2};
 use suricata_sys::sys::{
     AppProto, DetectEngineCtx, DetectEngineThreadCtx, SCDetectBufferSetActiveList,
-    SCDetectHelperMultiBufferMpmRegister, SCDetectSignatureSetAppProto, Signature,
+    SCDetectHelperMultiBufferMpmRegister, SCDetectSignatureAddTransform,
+    SCDetectSignatureSetAppProto, Signature,
 };
-use crate::http2::detect::http2_form_get_data;
-
 
 static mut G_HTTP_FORM_BUFFER_ID: c_int = 0;
 
@@ -38,7 +39,7 @@ unsafe extern "C" fn http_form_setup(
     if SCDetectBufferSetActiveList(de, s, G_HTTP_FORM_BUFFER_ID) < 0 {
         return -1;
     }
-    return 0;
+    return SCDetectSignatureAddTransform(s, G_TRANSFORM_URL_DECODE_ID, ptr::null_mut());
 }
 
 unsafe extern "C" fn http1_form_get_data(

@@ -25,7 +25,7 @@ use suricata_sys::sys::{
 use std::os::raw::{c_int, c_void};
 use std::ptr;
 
-static mut G_TRANSFORM_URL_DECODE_ID: c_int = 0;
+pub(crate) static mut G_TRANSFORM_URL_DECODE_ID: c_int = 0;
 
 unsafe extern "C" fn url_decode_setup(
     _de: *mut DetectEngineCtx, s: *mut Signature, _opt: *const std::os::raw::c_char,
