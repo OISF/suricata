@@ -1916,8 +1916,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt update
-          sudo apt -y install \
+          apt update
+          apt -y install \
                 libpcre2-dev \
                 build-essential \
                 autoconf \
