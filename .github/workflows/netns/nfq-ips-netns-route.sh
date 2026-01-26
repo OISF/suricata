@@ -175,10 +175,11 @@ ip netns exec $clientns \
     wget https://10.10.20.2/index.html
 echo "* running wget in the \"client\" namespace... done"
 
-echo "* running ping in the \"client\" namespace..."
+ping_ip=$(echo $serverip|cut -f1 -d'/')
+echo "* running ping $ping_ip in the \"client\" namespace..."
 set +e
 ip netns exec $clientns \
-    ping -c 10 $serverip
+    ping -c 10 $ping_ip
 PINGRES=$?
 set -e
 echo "* running ping in the \"client\" namespace... done"
@@ -196,13 +197,11 @@ sleep 10
 ACCEPTED=$(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.ips.accepted')
 BLOCKED=$(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.ips.blocked')
 echo "ACCEPTED $ACCEPTED BLOCKED $BLOCKED"
-STATSCHECK=$(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.ips.accepted > 0')
-if [ $STATSCHECK = false ]; then
+if [ $ACCEPTED -eq 0 ]; then
     echo "ERROR no packets captured"
     RES=1
 fi
-STATSCHECK=$(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.ips.blocked != 10')
-if [ $STATSCHECK = false ]; then
+if [ $ACCEPTED -ne 10 ]; then
     echo "ERROR should have seen 10 blocked"
     RES=1
 fi
