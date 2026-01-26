@@ -374,7 +374,15 @@ int SCHSCachePruneEvaluate(MpmConfig *mpm_conf, HashTable *inuse_caches)
             continue;
 
         struct stat st;
-        if (stat(path, &st) != 0 || !S_ISREG(st.st_mode))
+        /* TOCTOU: race window between stat and unlink is acceptable here.
+         * On Linux somebody can still modify (use the cache file) between the
+         * fstat and unlink, on Windows (HS not supported there but still relevant)
+         * TOC-TOU happens when closing the file descriptor and unlinking the file.
+         * Cache mechanism is best-effort and e.g. not pruning or pruning an extra
+         * cache file is not problematic.
+         * Stat is used here to ease file handling as fstat doesn't bring any benefit */
+        /* coverity[toctou] */
+        if (SCStatFn(path, &st) != 0 || !S_ISREG(st.st_mode))
             continue;
 
         considered++;
@@ -388,7 +396,8 @@ int SCHSCachePruneEvaluate(MpmConfig *mpm_conf, HashTable *inuse_caches)
         if (cache_inuse != NULL)
             continue; // in use
 
-        if (unlink(path) == 0) {
+        /* coverity[toctou] */
+        if (unlink(path) == 0 || errno == ENOENT) {
             removed++;
             SCLogDebug("File %s removed because of %s%s%s", path, prune_by_age ? "age" : "",
                     prune_by_age && prune_by_version ? " and " : "",
