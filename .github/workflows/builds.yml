@@ -1902,9 +1902,6 @@ jobs:
     name: Ubuntu Latest (afpacket IPS tests in namespaces)
     runs-on: ubuntu-latest
     needs: [prepare-deps, prepare-cbindgen]
-    defaults:
-      run:
-        working-directory: /__w/suricata/suricata
     steps:
       - name: Cache ~/.cargo
         uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb
@@ -1972,7 +1969,7 @@ jobs:
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
         with:
           name: prep
-          path: prep
+          path: /__w/suricata/suricata/prep
       # packaged Rust version is too old for coverage, so get from rustup. 1.85.1 matches
       # LLVM 19
       - name: Install Rust
