@@ -45,13 +45,14 @@ github_checks:
 #
 fixes:
   # container based paths
-  - "/github/home/.cargo/::.cargo/"
-  - "/__w/suricata/suricata/::"
+  #- "/github/home/.cargo/::.cargo/"
+  #- "/__w/suricata/suricata/::"
   # vm based paths
-  - "/home/runner/.cargo/::.cargo/"
-  - "/home/runner/work/suricata/suricata/::"
+  - "/home/runner/.cargo/::/github/home/.cargo/"
+  - "/home/runner/work/suricata/::/__w/suricata/"
 
 # seems we can ignore the registry, not sure if ignore runs before or after path fixing
 ignore:
   - "**/.cargo/registry/**"
-  - ".cargo/registry/**"
+  - "/github/home/.cargo/registry/**"
+  - "/home/runner/.cargo/registry/**"
