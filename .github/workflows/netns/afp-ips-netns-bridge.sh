@@ -188,8 +188,12 @@ BLOCKED=$(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.st
 KERNEL_PACKETS=$(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.capture.kernel_packets')
 echo "ACCEPTED $ACCEPTED BLOCKED $BLOCKED KERNEL_PACKETS $KERNEL_PACKETS"
 
-if [ $KERNEL_PACKETS -gt 0 ]; then
+if [ $KERNEL_PACKETS -eq 0 ]; then
     echo "ERROR no packets captured"
+    RES=1
+fi
+if [ $ACCEPTED -eq 0 ]; then
+    echo "ERROR should have seen non-0 accepted"
     RES=1
 fi
 if [ $BLOCKED -ne 10 ]; then
