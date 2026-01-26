@@ -1902,6 +1902,9 @@ jobs:
     name: Ubuntu Latest (afpacket IPS tests in namespaces)
     runs-on: ubuntu-latest
     needs: [prepare-deps, prepare-cbindgen]
+    container:
+      image: ubuntu:24.04
+      options: --privileged
     steps:
       - name: Cache ~/.cargo
         uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb
@@ -1987,12 +1990,12 @@ jobs:
           CFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0"
           CXXFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0"
       - run: |
-          sudo LLVM_PROFILE_FILE=/tmp/afp-ips.profraw ./.github/workflows/netns/afp-ips-netns-bridge.sh "2" "workers" ".github/workflows/netns/ips-netns.yaml"
+          ./.github/workflows/netns/afp-ips-netns-bridge.sh "2" "workers" ".github/workflows/netns/ips-netns.yaml"
         env:
           LLVM_PROFILE_FILE: "/tmp/afp-ips.profraw"
       - run: llvm-profdata-19 merge -o afp-ips.profdata /tmp/afp-ips.profraw
       - run: |
-          sudo LLVM_PROFILE_FILE=/tmp/nfq-ips.profraw ./.github/workflows/netns/nfq-ips-netns-route.sh "autofp" ".github/workflows/netns/ips-netns.yaml"
+          ./.github/workflows/netns/nfq-ips-netns-route.sh "autofp" ".github/workflows/netns/ips-netns.yaml"
         env:
           LLVM_PROFILE_FILE: "/tmp/nfq-ips.profraw"
       - run: llvm-profdata-19 merge -o nfq-ips.profdata /tmp/nfq-ips.profraw
