@@ -1963,7 +1963,8 @@ jobs:
                 ethtool \
                 iproute2 \
                 iptables \
-                tshark
+                tshark \
+                openvswitch-switch
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
         with:
@@ -2014,7 +2015,19 @@ jobs:
           LLVM_PROFILE_FILE: "/tmp/nfq-ips-workers.profraw"
       - run: llvm-profdata-19 merge -o nfq-ips-workers.profdata /tmp/nfq-ips-workers.profraw
 
-      - run: llvm-profdata-19 merge -o combined.profdata afp-ips.profdata nfq-ips.profdata afp-ips-autofp.profdata nfq-ips-workers.profdata
+      - run: |
+          ./.github/workflows/netns/afp-ids-netns-ovs-span.sh "3" "workers" ".github/workflows/netns/ids-netns.yaml"
+        env:
+          LLVM_PROFILE_FILE: "/tmp/afp-ids-ovs-span-workers.profraw"
+      - run: llvm-profdata-19 merge -o afp-ids-ovs-span-workers.profdata /tmp/afp-ids-ovs-span-workers.profraw
+
+      - run: |
+          ./.github/workflows/netns/afp-ids-netns-ovs-span.sh "3" "autofp" ".github/workflows/netns/ids-netns.yaml"
+        env:
+          LLVM_PROFILE_FILE: "/tmp/afp-ids-ovs-span-autofp.profraw"
+      - run: llvm-profdata-19 merge -o afp-ids-ovs-span-autofp.profdata /tmp/afp-ids-ovs-span-autofp.profraw
+
+      - run: llvm-profdata-19 merge -o combined.profdata afp-ips.profdata nfq-ips.profdata afp-ips-autofp.profdata nfq-ips-workers.profdata afp-ids-ovs-span-workers.profdata afp-ids-ovs-span-autofp.profdata
       - run: llvm-cov-19 show ./src/suricata -instr-profile=combined.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de
