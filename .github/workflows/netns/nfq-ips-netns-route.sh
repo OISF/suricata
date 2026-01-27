@@ -165,6 +165,14 @@ SURIPID=$!
 sleep 10
 echo "* starting Suricata... done"
 
+echo "* starting tshark on in the server namespace..."
+timeout --kill-after=240 --preserve-status 180 \
+    ip netns exec $serverns \
+        tshark -i ptp-$serverif -T json > tshark-server.json &
+TSHARKSERVERPID=$!
+sleep 5
+echo "* starting tshark on in the server namespace... done, pid $TSHARKSERVERPID"
+
 echo "* starting Caddy..."
 # Start Caddy in the server namespace
 timeout --kill-after=240 --preserve-status 120 \
@@ -202,6 +210,11 @@ fi
 # give stats time to get updated
 sleep 10
 
+echo "* shutting down tshark..."
+kill -INT $TSHARKSERVERPID
+wait $TSHARKSERVERPID
+echo "* shutting down tshark... done"
+
 # check stats and alerts
 ACCEPTED=$(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.ips.accepted')
 BLOCKED=$(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.ips.blocked')
@@ -214,6 +227,15 @@ if [ $BLOCKED -ne 10 ]; then
     echo "ERROR should have seen 10 blocked"
     RES=1
 fi
+
+# validate that we didn't receive pings
+SERVER_RECV_PING=$(jq -c '.[]' ./tshark-server.json|jq 'select(._source.layers.icmp."icmp.type"=="8")'|wc -l)
+echo "* server pings received check (should be 0): $SERVER_RECV_PING"
+if [ $SERVER_RECV_PING -ne 0 ]; then
+    jq '.[]' ./tshark-server.json | jq 'select(._source.layers.icmp)'
+    RES=1
+fi
+echo "* server pings received check... done"
 
 echo "* shutting down..."
 kill -INT $CADDYPID

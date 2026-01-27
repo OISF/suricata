@@ -214,6 +214,7 @@ if [ $BLOCKED -ne 10 ]; then
     RES=1
 fi
 
+# validate that we didn't receive pings
 SERVER_RECV_PING=$(jq -c '.[]' ./tshark-server.json|jq 'select(._source.layers.icmp."icmp.type"=="8")'|wc -l)
 echo "* server pings received check (should be 0): $SERVER_RECV_PING"
 if [ $SERVER_RECV_PING -ne 0 ]; then
