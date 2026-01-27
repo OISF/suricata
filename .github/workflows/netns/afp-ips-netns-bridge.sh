@@ -149,7 +149,7 @@ echo "* starting Suricata... done"
 echo "* starting tshark on in the server namespace..."
 timeout --kill-after=240 --preserve-status 180 \
     ip netns exec $serverns \
-        tshark -i $serverif -T json > tshark-server.json &
+        tshark -i ptp-$serverif -T json > tshark-server.json &
 TSHARKSERVERPID=$!
 sleep 5
 echo "* starting tshark on in the server namespace... done, pid $TSHARKSERVERPID"
