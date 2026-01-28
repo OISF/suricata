@@ -163,59 +163,19 @@ static InspectionBuffer *GetBuffer2ForTX(DetectEngineThreadCtx *det_ctx,
     return buffer;
 }
 
-/** \internal
- *  \brief custom inspect function to utilize the cached headers
- */
-static uint8_t DetectEngineInspectBufferHttpHeader(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const DetectEngineAppInspectionEngine *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
+static InspectionBuffer *GetData1(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t flow_flags, void *txv,
+        const int list_id)
 {
-    SCEnter();
-
-    const int list_id = engine->sm_list;
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
-    bool eof = (AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) >
-                engine->max_progress);
     if (buffer->inspect == NULL) {
-        SCLogDebug("setting up inspect buffer %d", list_id);
-
-        /* if prefilter didn't already run, we need to consider transformations */
-        const DetectEngineTransforms *transforms = NULL;
-        if (!engine->mpm) {
-            transforms = engine->v2.transforms;
-        }
-
-        uint32_t rawdata_len = 0;
-        uint8_t *rawdata = GetBufferForTX(txv, det_ctx, f, flags, &rawdata_len);
-        if (rawdata_len == 0) {
-            SCLogDebug("no data");
-            if (engine->match_on_null && eof) {
-                return DETECT_ENGINE_INSPECT_SIG_MATCH;
-            }
-            goto end;
-        }
-        /* setup buffer and apply transforms */
+        uint32_t data_len = 0;
+        uint8_t *data = GetBufferForTX(txv, det_ctx, f, flags, &data_len);
         InspectionBufferSetupAndApplyTransforms(
-                det_ctx, list_id, buffer, rawdata, rawdata_len, transforms);
+                det_ctx, list_id, buffer, data, data_len, transforms);
     }
 
-    const uint32_t data_len = buffer->inspect_len;
-    const uint8_t *data = buffer->inspect;
-    const uint64_t offset = buffer->inspect_offset;
-
-    /* Inspect all the uricontents fetched on each
-     * transaction at the app layer */
-    const bool match = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd, NULL, f,
-            (uint8_t *)data, data_len, offset, DETECT_CI_FLAGS_SINGLE,
-            DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
-    if (match) {
-        return DETECT_ENGINE_INSPECT_SIG_MATCH;
-    }
-end:
-    if (eof) {
-        return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
-    }
-    return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+    return buffer;
 }
 
 typedef struct PrefilterMpmHttpHeaderCtx {
@@ -425,13 +385,13 @@ void DetectHttpHeaderRegister(void)
     sigmatch_table[DETECT_HTTP_HEADER].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister("http_header", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
-            HTP_REQUEST_PROGRESS_HEADERS, DetectEngineInspectBufferHttpHeader, NULL);
+            HTP_REQUEST_PROGRESS_HEADERS, DetectEngineInspectBufferGeneric, GetData1);
     DetectAppLayerMpmRegister("http_header", SIG_FLAG_TOSERVER, 2,
             PrefilterMpmHttpHeaderRequestRegister, NULL, ALPROTO_HTTP1,
             0); /* not used, registered twice: HEADERS/TRAILER */
 
     DetectAppLayerInspectEngineRegister("http_header", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
-            HTP_RESPONSE_PROGRESS_HEADERS, DetectEngineInspectBufferHttpHeader, NULL);
+            HTP_RESPONSE_PROGRESS_HEADERS, DetectEngineInspectBufferGeneric, GetData1);
     DetectAppLayerMpmRegister("http_header", SIG_FLAG_TOCLIENT, 2,
             PrefilterMpmHttpHeaderResponseRegister, NULL, ALPROTO_HTTP1,
             0); /* not used, registered twice: HEADERS/TRAILER */
