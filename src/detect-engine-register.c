@@ -775,6 +775,8 @@ void SigTableSetup(void)
     DetectTransformFromBase64DecodeRegister();
     SCDetectTransformDomainRegister();
     DetectTransformLuaxformRegister();
+    DetectTransformGunzipRegister();
+    DetectTransformZlibDeflateRegister();
 
     DetectFileHandlerRegister();
 
