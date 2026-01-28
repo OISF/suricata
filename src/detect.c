@@ -2270,7 +2270,7 @@ static void DetectFlow(ThreadVars *tv,
         skip = (p->flags & PKT_NOPACKET_INSPECTION || f->flags & (FLOW_ACTION_PASS));
     }
     if (skip) {
-        /* enfore prior accept:flow */
+        /* enforce prior accept:flow */
         if (f->flags & FLOW_ACTION_ACCEPT) {
             p->action |= ACTION_ACCEPT;
         }
