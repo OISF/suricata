@@ -148,11 +148,22 @@ static TmEcode LogSmbLogThreadDeinit(ThreadVars *t, void *data)
     return r;
 }
 
+static int JsonSMBLoggerFlush(ThreadVars *tv, void *thread_data, const Packet *p)
+{
+    LogSmbLogThread *td = (LogSmbLogThread *)thread_data;
+    if (td && td->ctx) {
+        SCLogDebug("%s flushing %s", tv->name, ((LogFileCtx *)(td->ctx->file_ctx))->filename);
+        OutputJsonFlush(td->ctx);
+    }
+    return 0;
+}
+
 void JsonSMBLogRegister(void)
 {
     /* Register as an eve sub-module. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonSMBLog", "eve-log.smb", SMBLogInitSub,
-            ALPROTO_SMB, JsonSMBLogger, LogSmbLogThreadInit, LogSmbLogThreadDeinit);
+            ALPROTO_SMB, JsonSMBLogger, JsonSMBLoggerFlush, LogSmbLogThreadInit,
+            LogSmbLogThreadDeinit);
 
     SCLogDebug("SMB JSON logger registered.");
 }

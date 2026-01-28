@@ -189,9 +189,19 @@ static TmEcode JsonSmtpLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
+static int JsonSmtpLoggerFlush(ThreadVars *tv, void *thread_data, const Packet *p)
+{
+    JsonEmailLogThread *td = (JsonEmailLogThread *)thread_data;
+    if (td && td->ctx) {
+        SCLogDebug("%s flushing %s", tv->name, ((LogFileCtx *)(td->ctx->file_ctx))->filename);
+        OutputJsonFlush(td->ctx);
+    }
+    return 0;
+}
+
 void JsonSmtpLogRegister (void) {
     /* register as child of eve-log */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonSmtpLog", "eve-log.smtp",
-            OutputSmtpLogInitSub, ALPROTO_SMTP, JsonSmtpLogger, JsonSmtpLogThreadInit,
-            JsonSmtpLogThreadDeinit);
+            OutputSmtpLogInitSub, ALPROTO_SMTP, JsonSmtpLogger, JsonSmtpLoggerFlush,
+            JsonSmtpLogThreadInit, JsonSmtpLogThreadDeinit);
 }

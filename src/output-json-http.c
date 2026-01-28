@@ -633,11 +633,19 @@ static TmEcode JsonHttpLogThreadDeinit(ThreadVars *t, void *data)
     SCFree(aft);
     return TM_ECODE_OK;
 }
-
+static int JsonHttpLoggerFlush(ThreadVars *tv, void *thread_data, const Packet *p)
+{
+    JsonHttpLogThread *td = (JsonHttpLogThread *)thread_data;
+    if (td && td->ctx) {
+        SCLogDebug("%s flushing %s", tv->name, ((LogFileCtx *)(td->ctx->file_ctx))->filename);
+        OutputJsonFlush(td->ctx);
+    }
+    return 0;
+}
 void JsonHttpLogRegister (void)
 {
     /* register as child of eve-log */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonHttpLog", "eve-log.http",
-            OutputHttpLogInitSub, ALPROTO_HTTP1, JsonHttpLogger, JsonHttpLogThreadInit,
-            JsonHttpLogThreadDeinit);
+            OutputHttpLogInitSub, ALPROTO_HTTP1, JsonHttpLogger, JsonHttpLoggerFlush,
+            JsonHttpLogThreadInit, JsonHttpLogThreadDeinit);
 }

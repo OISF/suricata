@@ -632,12 +632,14 @@ static void SetupOutput(
     if (module->PacketLogFunc) {
         SCLogDebug("%s is a packet logger", module->name);
         SCOutputRegisterPacketLogger(module->logger_id, module->name, module->PacketLogFunc,
-                module->PacketConditionFunc, output_ctx, module->ThreadInit, module->ThreadDeinit);
+                module->PacketConditionFunc, module->PacketFlushFunc, output_ctx,
+                module->ThreadInit, module->ThreadDeinit);
     } else if (module->TxLogFunc) {
         SCLogDebug("%s is a tx logger", module->name);
         SCOutputRegisterTxLogger(module->logger_id, module->name, module->alproto,
-                module->TxLogFunc, output_ctx, module->tc_log_progress, module->ts_log_progress,
-                module->TxLogCondition, module->ThreadInit, module->ThreadDeinit);
+                module->TxLogFunc, module->TxFlushFunc, output_ctx, module->tc_log_progress,
+                module->ts_log_progress, module->TxLogCondition, module->ThreadInit,
+                module->ThreadDeinit);
         /* Not used with wild card loggers */
         if (module->alproto != ALPROTO_UNKNOWN) {
             logger_bits[module->alproto] |= BIT_U32(module->logger_id);
