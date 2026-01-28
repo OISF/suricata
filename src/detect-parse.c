@@ -2621,15 +2621,14 @@ static int SigValidateCheckBuffers(
                 /* only allow rules to use the hook for engines at that
                  * exact progress for now. */
                 if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_APP) {
-                    if ((s->flags & SIG_FLAG_TOSERVER) && (app->dir == 0) &&
-                            app->progress != s->init_data->hook.t.app.app_progress) {
-                        SCLogError("engine progress value %d doesn't match hook %u", app->progress,
+                    bool samedir = ((s->flags & SIG_FLAG_TOSERVER) && (app->dir == 0)) ||
+                                   ((s->flags & SIG_FLAG_TOCLIENT) && (app->dir == 1));
+                    if (samedir &&
+                            (app->min_progress > s->init_data->hook.t.app.app_progress ||
+                                    app->max_progress < s->init_data->hook.t.app.app_progress)) {
+                        SCLogError("engine progress value %d-%d doesn't match hook %u",
+                                app->min_progress, app->max_progress,
                                 s->init_data->hook.t.app.app_progress);
-                        SCReturnInt(0);
-                    }
-                    if ((s->flags & SIG_FLAG_TOCLIENT) && (app->dir == 1) &&
-                            app->progress != s->init_data->hook.t.app.app_progress) {
-                        SCLogError("engine progress value doesn't match hook");
                         SCReturnInt(0);
                     }
                 }

@@ -174,8 +174,8 @@ static uint8_t DetectEngineInspectBufferHttpHeader(DetectEngineCtx *de_ctx,
 
     const int list_id = engine->sm_list;
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
-    bool eof =
-            (AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) > engine->progress);
+    bool eof = (AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) >
+                engine->max_progress);
     if (buffer->inspect == NULL) {
         SCLogDebug("setting up inspect buffer %d", list_id);
 
