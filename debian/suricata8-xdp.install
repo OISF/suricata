@@ -1,0 +1,8 @@
+opt/suricata8/bin/*
+opt/suricata8/lib/*
+opt/suricata8/share/doc/suricata/*
+opt/suricata8/share/suricata/classification.config /opt/suricata8/etc
+opt/suricata8/share/suricata/reference.config /opt/suricata8/etc
+opt/suricata8/share/suricata/env.config /opt/suricata8/etc
+suricata.yaml /opt/suricata8/etc
+

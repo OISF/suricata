@@ -33,33 +33,27 @@ endif
 %:
 	dh $@ --parallel
 override_dh_auto_configure:
-	#if [ ! -d libhtp ]; then git clone https://github.com/OISF/libhtp.git -b 0.5.x; fi
-	git submodule init
-	git submodule update
 	./autogen.sh
-	dh_auto_configure -- CC=clang-4.0 CXX=clang++-4.0 \
+	dh_auto_configure -- CC=clang-10 CXX=clang++-10 \
 		CFLAGS="$(CFLAGS)" \
 		--prefix=/usr/ --sysconfdir=/etc/ --localstatedir=/var/ \
 		--enable-ebpf \
-		--enable-pfring \
 		--enable-nfqueue \
 		--disable-gccmarch-native \
 		--enable-geoip \
 		--with-libnss-libraries=/usr/lib \
 		--with-libnss-includes=/usr/include/nss/ \
 		--with-libnspr-libraries=/usr/lib \
-		--with-libnspr-includes=/usr/include/nspr \
-		--with-libpfring-includes=/usr/local/pfring/include \
-		--with-libpfring-libraries=/usr/local/pfring/lib
+		--with-libnspr-includes=/usr/include/nspr
 override_dh_auto_install:
-	dh_auto_install -- prefix=/usr
+	dh_auto_install -- prefix=/opt/suricata8
 	# remove the dependency_libs field (see wiki.debian.org/ReleaseGoals/LAFileRemoval)
-	sed -i "/dependency_libs/ s/'.*'/''/" `find $(CURDIR)/debian -name '*.la'`
+	find $(CURDIR)/debian -name '*.la' -exec sed -i "/dependency_libs/ s/'.*'/''/" {} + || true
 override_dh_shlibdeps:
-	dh_shlibdeps --dpkg-shlibdeps-params=--ignore-missing-info
+	dh_shlibdeps --dpkg-shlibdeps-params=--ignore-missing-info -l/opt/suricata8/lib
 .PHONY: override_dh_strip
 override_dh_strip:
-	dh_strip --dbg-package=suricata-xdp-dbg
+	dh_strip --dbg-package=suricata8-xdp-dbg
 
 ifeq ($(SANITIZER),address)
 

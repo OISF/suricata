@@ -5,4 +5,5 @@ EXTRA_DIST =	schema.json \
 		suricata.service.in
 
 dist_etcdata_DATA =	classification.config \
-			reference.config
+			reference.config \
+			env.config
