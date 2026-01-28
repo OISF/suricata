@@ -42,7 +42,7 @@ typedef struct HttpHeaderThreadData_ {
 void *HttpHeaderThreadDataInit(void *data);
 void HttpHeaderThreadDataFree(void *data);
 
-HttpHeaderBuffer *HttpHeaderGetBufferSpace(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+HttpHeaderBuffer *HttpHeaderGetBufferSpace(DetectEngineThreadCtx *det_ctx, uint8_t flags,
         const int keyword_id, HttpHeaderThreadData **ret_hdr_td);
 
 int HttpHeaderExpandBuffer(HttpHeaderThreadData *td, HttpHeaderBuffer *buf, size_t size);
