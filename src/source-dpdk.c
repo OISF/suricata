@@ -136,7 +136,6 @@ typedef struct DPDKThreadVars_ {
 } DPDKThreadVars;
 
 static TmEcode ReceiveDPDKThreadInit(ThreadVars *, const void *, void **);
-static void ReceiveDPDKThreadExitStats(ThreadVars *, void *);
 static TmEcode ReceiveDPDKThreadDeinit(ThreadVars *, void *);
 static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot);
 
@@ -247,7 +246,7 @@ void TmModuleReceiveDPDKRegister(void)
     tmm_modules[TMM_RECEIVEDPDK].Func = NULL;
     tmm_modules[TMM_RECEIVEDPDK].PktAcqLoop = ReceiveDPDKLoop;
     tmm_modules[TMM_RECEIVEDPDK].PktAcqBreakLoop = NULL;
-    tmm_modules[TMM_RECEIVEDPDK].ThreadExitPrintStats = ReceiveDPDKThreadExitStats;
+    tmm_modules[TMM_RECEIVEDPDK].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_RECEIVEDPDK].ThreadDeinit = ReceiveDPDKThreadDeinit;
     tmm_modules[TMM_RECEIVEDPDK].cap_flags = SC_CAP_NET_RAW;
     tmm_modules[TMM_RECEIVEDPDK].flags = TM_FLAG_RECEIVE_TM;
@@ -337,6 +336,54 @@ static void DPDKReleasePacket(Packet *p)
     PacketFreeOrRelease(p);
 }
 
+static void PrintDPDKPortXstats(uint16_t port_id, const char *port_name)
+{
+    struct rte_eth_xstat *xstats;
+    struct rte_eth_xstat_name *xstats_names;
+
+    int32_t ret = rte_eth_xstats_get(port_id, NULL, 0);
+    if (ret < 0) {
+        SCLogPerf("%s: unable to obtain rte_eth_xstats (%s)", port_name, rte_strerror(-ret));
+        return;
+    }
+    uint16_t len = (uint16_t)ret;
+
+    xstats = SCCalloc(len, sizeof(*xstats));
+    if (xstats == NULL) {
+        SCLogWarning("Failed to allocate memory for the rte_eth_xstat structure");
+        return;
+    }
+
+    ret = rte_eth_xstats_get(port_id, xstats, len);
+    if (ret < 0 || ret > len) {
+        SCFree(xstats);
+        SCLogPerf("%s: unable to obtain rte_eth_xstats (%s)", port_name, rte_strerror(-ret));
+        return;
+    }
+    xstats_names = SCCalloc(len, sizeof(*xstats_names));
+    if (xstats_names == NULL) {
+        SCFree(xstats);
+        SCLogWarning("Failed to allocate memory for the rte_eth_xstat_name array");
+        return;
+    }
+    ret = rte_eth_xstats_get_names(port_id, xstats_names, len);
+    if (ret < 0 || ret > len) {
+        SCFree(xstats);
+        SCFree(xstats_names);
+        SCLogPerf(
+                "%s: unable to obtain names of rte_eth_xstats (%s)", port_name, rte_strerror(-ret));
+        return;
+    }
+    for (int32_t i = 0; i < len; i++) {
+        if (xstats[i].value > 0)
+            SCLogPerf("Port %u (%s) - %s: %" PRIu64, port_id, port_name, xstats_names[i].name,
+                    xstats[i].value);
+    }
+
+    SCFree(xstats);
+    SCFree(xstats_names);
+}
+
 /**
  *  \brief Main DPDK reading Loop function
  */
@@ -371,13 +418,14 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
     while (1) {
         if (unlikely(suricata_ctl_flags != 0)) {
             SCLogDebug("Stopping Suricata!");
+            DPDKDumpCounters(ptv);
             if (ptv->queue_id == 0) {
+                PrintDPDKPortXstats(ptv->port_id, ptv->livedev->dev);
                 rte_eth_dev_stop(ptv->port_id);
                 if (ptv->copy_mode == DPDK_COPY_MODE_TAP || ptv->copy_mode == DPDK_COPY_MODE_IPS) {
                     rte_eth_dev_stop(ptv->out_port_id);
                 }
             }
-            DPDKDumpCounters(ptv);
             break;
         }
 
@@ -597,80 +645,6 @@ fail:
     if (ptv != NULL)
         SCFree(ptv);
     SCReturnInt(TM_ECODE_FAILED);
-}
-
-static void PrintDPDKPortXstats(uint32_t port_id, const char *port_name)
-{
-    struct rte_eth_xstat *xstats;
-    struct rte_eth_xstat_name *xstats_names;
-
-    int32_t len = rte_eth_xstats_get(port_id, NULL, 0);
-    if (len < 0)
-        FatalError("Error (%s) getting count of rte_eth_xstats failed on port %s",
-                rte_strerror(-len), port_name);
-
-    xstats = SCCalloc(len, sizeof(*xstats));
-    if (xstats == NULL)
-        FatalError("Failed to allocate memory for the rte_eth_xstat structure");
-
-    int32_t ret = rte_eth_xstats_get(port_id, xstats, len);
-    if (ret < 0 || ret > len) {
-        SCFree(xstats);
-        FatalError("Error (%s) getting rte_eth_xstats failed on port %s", rte_strerror(-ret),
-                port_name);
-    }
-    xstats_names = SCCalloc(len, sizeof(*xstats_names));
-    if (xstats_names == NULL) {
-        SCFree(xstats);
-        FatalError("Failed to allocate memory for the rte_eth_xstat_name array");
-    }
-    ret = rte_eth_xstats_get_names(port_id, xstats_names, len);
-    if (ret < 0 || ret > len) {
-        SCFree(xstats);
-        SCFree(xstats_names);
-        FatalError("Error (%s) getting names of rte_eth_xstats failed on port %s",
-                rte_strerror(-ret), port_name);
-    }
-    for (int32_t i = 0; i < len; i++) {
-        if (xstats[i].value > 0)
-            SCLogPerf("Port %u (%s) - %s: %" PRIu64, port_id, port_name, xstats_names[i].name,
-                    xstats[i].value);
-    }
-
-    SCFree(xstats);
-    SCFree(xstats_names);
-}
-
-/**
- * \brief This function prints stats to the screen at exit.
- * \param tv pointer to ThreadVars
- * \param data pointer that gets cast into DPDKThreadVars for ptv
- */
-static void ReceiveDPDKThreadExitStats(ThreadVars *tv, void *data)
-{
-    SCEnter();
-    int retval;
-    DPDKThreadVars *ptv = (DPDKThreadVars *)data;
-
-    if (ptv->queue_id == 0) {
-        struct rte_eth_stats eth_stats;
-        PrintDPDKPortXstats(ptv->port_id, ptv->livedev->dev);
-        retval = rte_eth_stats_get(ptv->port_id, &eth_stats);
-        if (unlikely(retval != 0)) {
-            SCLogError("%s: failed to get stats (%s)", ptv->livedev->dev, strerror(-retval));
-            SCReturn;
-        }
-        SCLogPerf("%s: total RX stats: packets %" PRIu64 " bytes: %" PRIu64 " missed: %" PRIu64
-                  " errors: %" PRIu64 " nombufs: %" PRIu64,
-                ptv->livedev->dev, eth_stats.ipackets, eth_stats.ibytes, eth_stats.imissed,
-                eth_stats.ierrors, eth_stats.rx_nombuf);
-        if (ptv->copy_mode == DPDK_COPY_MODE_TAP || ptv->copy_mode == DPDK_COPY_MODE_IPS)
-            SCLogPerf("%s: total TX stats: packets %" PRIu64 " bytes: %" PRIu64 " errors: %" PRIu64,
-                    ptv->livedev->dev, eth_stats.opackets, eth_stats.obytes, eth_stats.oerrors);
-    }
-
-    DPDKDumpCounters(ptv);
-    SCLogPerf("(%s) received packets %" PRIu64, tv->name, ptv->pkts);
 }
 
 /**
