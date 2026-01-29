@@ -70,8 +70,8 @@ int PrefilterMpmFiledataRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, Mpm
 typedef struct {
     AppProto alproto;
     int direction;
-    int to_client_progress;
-    int to_server_progress;
+    uint8_t to_client_progress;
+    uint8_t to_server_progress;
 } DetectFileHandlerProtocol_t;
 
 /* Table with all filehandler registrations */
@@ -97,7 +97,7 @@ DetectFileHandlerProtocol_t al_protocols[ALPROTO_WITHFILES_MAX] = {
 };
 
 void DetectFileRegisterProto(
-        AppProto alproto, int direction, int to_client_progress, int to_server_progress)
+        AppProto alproto, int direction, uint8_t to_client_progress, uint8_t to_server_progress)
 {
     size_t i = 0;
     while (i < ALPROTO_WITHFILES_MAX && al_protocols[i].alproto != ALPROTO_UNKNOWN) {

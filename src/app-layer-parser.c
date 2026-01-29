@@ -1119,12 +1119,12 @@ void *AppLayerParserGetTx(uint8_t ipproto, AppProto alproto, void *alstate, uint
     SCReturnPtr(r, "void *");
 }
 
-int AppLayerParserGetStateProgressCompletionStatus(AppProto alproto,
-                                                   uint8_t direction)
+uint8_t AppLayerParserGetStateProgressCompletionStatus(AppProto alproto, uint8_t direction)
 {
     SCEnter();
     int r = StateGetProgressCompletionStatus(alproto, direction);
-    SCReturnInt(r);
+    // TODO convert StateGetProgressCompletionStatus and more to uint8_t
+    return (uint8_t)r;
 }
 
 int AppLayerParserGetEventInfo(uint8_t ipproto, AppProto alproto, const char *event_name,

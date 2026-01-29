@@ -1443,7 +1443,7 @@ static DetectTransaction GetDetectTx(const uint8_t ipproto, const AppProto alpro
         .de_state = tx_dir_state,
         .detect_progress = detect_progress,
         .detect_progress_orig = detect_progress,
-        .tx_progress = tx_progress,
+        .tx_progress = (uint8_t)tx_progress,
         .tx_end_state = tx_end_state,
     };
     return tx;

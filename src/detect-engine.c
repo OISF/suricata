@@ -195,7 +195,7 @@ void DetectPktInspectEngineRegister(const char *name,
  *
  *  \note errors are fatal */
 static void AppLayerInspectEngineRegisterInternal(const char *name, AppProto alproto, uint32_t dir,
-        int progress, InspectEngineFuncPtr Callback, InspectionBufferGetDataPtr GetData,
+        uint8_t progress, InspectEngineFuncPtr Callback, InspectionBufferGetDataPtr GetData,
         InspectionSingleBufferGetDataPtr GetDataSingle,
         InspectionMultiBufferGetDataPtr GetMultiData)
 {
@@ -209,8 +209,7 @@ static void AppLayerInspectEngineRegisterInternal(const char *name, AppProto alp
     SCLogDebug("name %s id %d", name, sm_list);
 
     if ((alproto == ALPROTO_FAILED) || (!(dir == SIG_FLAG_TOSERVER || dir == SIG_FLAG_TOCLIENT)) ||
-            (sm_list < DETECT_SM_LIST_MATCH) || (sm_list >= SHRT_MAX) ||
-            (progress < 0 || progress >= SHRT_MAX) || (Callback == NULL)) {
+            (sm_list < DETECT_SM_LIST_MATCH) || (sm_list >= SHRT_MAX) || (Callback == NULL)) {
         SCLogError("Invalid arguments");
         BUG_ON(1);
     } else if (Callback == DetectEngineInspectBufferGeneric && GetData == NULL) {
@@ -248,7 +247,7 @@ static void AppLayerInspectEngineRegisterInternal(const char *name, AppProto alp
     new_engine->dir = direction;
     new_engine->sm_list = (uint16_t)sm_list;
     new_engine->sm_list_base = (uint16_t)sm_list;
-    new_engine->progress = (int16_t)progress;
+    new_engine->progress = progress;
     new_engine->v2.Callback = Callback;
     if (Callback == DetectEngineInspectBufferGeneric) {
         new_engine->v2.GetData = GetData;
@@ -271,7 +270,7 @@ static void AppLayerInspectEngineRegisterInternal(const char *name, AppProto alp
 }
 
 void DetectAppLayerInspectEngineRegister(const char *name, AppProto alproto, uint32_t dir,
-        int progress, InspectEngineFuncPtr Callback, InspectionBufferGetDataPtr GetData)
+        uint8_t progress, InspectEngineFuncPtr Callback, InspectionBufferGetDataPtr GetData)
 {
     /* before adding, check that we don't add a duplicate entry, which will
      * propagate all the way into the packet runtime if allowed. */
@@ -293,7 +292,7 @@ void DetectAppLayerInspectEngineRegister(const char *name, AppProto alproto, uin
 }
 
 void DetectAppLayerInspectEngineRegisterSingle(const char *name, AppProto alproto, uint32_t dir,
-        int progress, InspectEngineFuncPtr Callback, InspectionSingleBufferGetDataPtr GetData)
+        uint8_t progress, InspectEngineFuncPtr Callback, InspectionSingleBufferGetDataPtr GetData)
 {
     /* before adding, check that we don't add a duplicate entry, which will
      * propagate all the way into the packet runtime if allowed. */
@@ -876,7 +875,7 @@ int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature
 
         DetectEngineAppInspectionEngine t = {
             .alproto = s->init_data->hook.t.app.alproto,
-            .progress = (uint16_t)s->init_data->hook.t.app.app_progress,
+            .progress = s->init_data->hook.t.app.app_progress,
             .sm_list = (uint16_t)s->init_data->hook.sm_list,
             .sm_list_base = (uint16_t)s->init_data->hook.sm_list,
             .dir = dir,
@@ -2096,7 +2095,7 @@ uint8_t DetectEngineInspectBufferGeneric(DetectEngineCtx *de_ctx, DetectEngineTh
 
 // wrapper for both DetectAppLayerInspectEngineRegister and DetectAppLayerMpmRegister
 // with cast of callback function
-void DetectAppLayerMultiRegister(const char *name, AppProto alproto, uint32_t dir, int progress,
+void DetectAppLayerMultiRegister(const char *name, AppProto alproto, uint32_t dir, uint8_t progress,
         InspectionMultiBufferGetDataPtr GetData, int priority)
 {
     AppLayerInspectEngineRegisterInternal(name, alproto, dir, progress,
