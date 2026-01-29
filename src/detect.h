@@ -423,7 +423,7 @@ typedef struct DetectEngineAppInspectionEngine_ {
     bool match_on_null;
     uint16_t sm_list;
     uint16_t sm_list_base; /**< base buffer being transformed */
-    int16_t progress;
+    uint8_t progress;
 
     struct {
         union {
@@ -580,7 +580,7 @@ typedef struct SignatureHook_ {
             AppProto alproto;
             /** progress value of the app-layer hook specified in the rule. Sets the app_proto
              *  specific progress value. */
-            int app_progress;
+            uint8_t app_progress;
         } app;
         struct {
             enum SignatureHookPkt ph;
@@ -791,7 +791,7 @@ typedef struct DetectBufferMpmRegistry_ {
                 InspectionMultiBufferGetDataPtr GetMultiData;
             };
             AppProto alproto;
-            int tx_min_progress;
+            uint8_t tx_min_progress;
         } app_v2;
 
         /* pkt matching: use if type == DETECT_BUFFER_MPM_TYPE_PKT */
