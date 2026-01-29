@@ -422,7 +422,8 @@ typedef struct DetectEngineAppInspectionEngine_ {
     bool match_on_null;
     uint16_t sm_list;
     uint16_t sm_list_base; /**< base buffer being transformed */
-    uint8_t progress;
+    uint8_t min_progress;
+    uint8_t max_progress;
 
     struct {
         union {

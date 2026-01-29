@@ -350,7 +350,7 @@ int PrefilterAppendPayloadEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
 }
 
 int PrefilterAppendTxEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
-        PrefilterTxFn PrefilterTxFunc, AppProto alproto, uint8_t tx_min_progress, void *pectx,
+        PrefilterTxFn PrefilterTxFunc, AppProto alproto, int8_t tx_min_progress, void *pectx,
         void (*FreeFunc)(void *pectx), const char *name)
 {
     if (sgh == NULL || PrefilterTxFunc == NULL || pectx == NULL)
@@ -364,8 +364,6 @@ int PrefilterAppendTxEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
     e->PrefilterTx = PrefilterTxFunc;
     e->pectx = pectx;
     e->alproto = alproto;
-    // TODO change function prototype ?
-    DEBUG_VALIDATE_BUG_ON(tx_min_progress > INT8_MAX);
     e->tx_min_progress = tx_min_progress;
     e->Free = FreeFunc;
 
@@ -990,7 +988,7 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
                     if (list_id == app_state_list_id)
                         sig_list = app_state_list_id;
                     if (TxNonPFAddSig(de_ctx, tx_engines_hash, app->alproto, app->dir,
-                                app->progress, sig_list, buf->name, s) != 0) {
+                                app->min_progress, sig_list, buf->name, s) != 0) {
                         goto error;
                     }
                     tx_non_pf = true;
@@ -1082,10 +1080,11 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         }
 
         /* register special progress value to indicate we need to run it all the time */
-        uint8_t engine_progress = t->progress;
+        DEBUG_VALIDATE_BUG_ON(t->progress > INT8_MAX);
+        int8_t engine_progress = (int8_t)t->progress;
         if (t->sig_list == app_state_list_id) {
             SCLogDebug("engine %s for state list", t->engine_name);
-            engine_progress = UINT8_MAX;
+            engine_progress = -1;
         }
 
         struct PrefilterNonPFDataTx *data =
