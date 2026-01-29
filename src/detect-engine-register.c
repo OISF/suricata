@@ -203,7 +203,6 @@
 #include "detect-sip-method.h"
 #include "detect-sip-uri.h"
 #include "detect-target.h"
-#include "detect-quic-ua.h"
 #include "detect-quic-cyu-hash.h"
 #include "detect-quic-cyu-string.h"
 #include "detect-ja4-hash.h"
@@ -733,7 +732,6 @@ void SigTableSetup(void)
     DetectSipMethodRegister();
     DetectSipUriRegister();
     DetectTargetRegister();
-    DetectQuicUaRegister();
     DetectQuicCyuHashRegister();
     DetectQuicCyuStringRegister();
     DetectJa4HashRegister();
