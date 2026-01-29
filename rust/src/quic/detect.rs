@@ -15,11 +15,16 @@
  * 02110-1301, USA.
  */
 
+use super::quic::ALPROTO_QUIC;
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
+use crate::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
 use crate::quic::quic::QuicTransaction;
-use std::os::raw::c_void;
+use std::os::raw::{c_int, c_void};
 use std::ptr;
-use suricata_sys::sys::DetectEngineThreadCtx;
+use suricata_sys::sys::{
+    DetectEngineCtx, DetectEngineThreadCtx, SCDetectBufferSetActiveList,
+    SCDetectHelperBufferMpmRegister, SCDetectSignatureSetAppProto, Signature,
+};
 
 #[no_mangle]
 pub unsafe extern "C" fn SCQuicTxGetUa(
@@ -85,19 +90,19 @@ pub unsafe extern "C" fn SCQuicTxGetJa4(
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn SCQuicTxGetVersion(
-    tx: &QuicTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
-) -> u8 {
+unsafe extern "C" fn quic_tx_get_version(
+    tx: *const c_void, _flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> bool {
+    let tx = cast_pointer!(tx, QuicTransaction);
     if tx.header.flags.is_long {
         let s = &tx.header.version_buf;
         *buffer = s.as_ptr();
         *buffer_len = s.len() as u32;
-        1
+        true
     } else {
         *buffer = ptr::null();
         *buffer_len = 0;
-        0
+        false
     }
 }
 
@@ -144,4 +149,36 @@ pub unsafe extern "C" fn SCQuicTxGetCyuString(
 
         false
     }
+}
+
+unsafe extern "C" fn quic_version_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_QUIC) != 0 {
+        return -1;
+    }
+    if SCDetectBufferSetActiveList(de, s, G_QUIC_VERSION_BUFFER_ID) < 0 {
+        return -1;
+    }
+    return 0;
+}
+
+static mut G_QUIC_VERSION_BUFFER_ID: c_int = 0;
+
+#[no_mangle]
+pub unsafe extern "C" fn SCDetectQuicRegister() {
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("quic.version"),
+        desc: String::from("match Quic version"),
+        url: String::from("/rules/quic-keywords.html#quic-version"),
+        setup: quic_version_setup,
+    };
+    helper_keyword_register_sticky_buffer(&kw);
+    G_QUIC_VERSION_BUFFER_ID = SCDetectHelperBufferMpmRegister(
+        b"quic_version\0".as_ptr() as *const libc::c_char,
+        b"quic version\0".as_ptr() as *const libc::c_char,
+        ALPROTO_QUIC,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        Some(quic_tx_get_version),
+    );
 }

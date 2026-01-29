@@ -43,7 +43,7 @@ use suricata_sys::sys::{
 };
 use tls_parser::TlsExtensionType;
 
-static mut ALPROTO_QUIC: AppProto = ALPROTO_UNKNOWN;
+pub(super) static mut ALPROTO_QUIC: AppProto = ALPROTO_UNKNOWN;
 
 static mut ENCRYPTION_BYPASS_ENABLED: EncryptionHandling =
     EncryptionHandling::ENCRYPTION_HANDLING_TRACK_ONLY;

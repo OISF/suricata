@@ -205,7 +205,6 @@
 #include "detect-target.h"
 #include "detect-quic-sni.h"
 #include "detect-quic-ua.h"
-#include "detect-quic-version.h"
 #include "detect-quic-cyu-hash.h"
 #include "detect-quic-cyu-string.h"
 #include "detect-ja4-hash.h"
@@ -737,7 +736,6 @@ void SigTableSetup(void)
     DetectTargetRegister();
     DetectQuicSniRegister();
     DetectQuicUaRegister();
-    DetectQuicVersionRegister();
     DetectQuicCyuHashRegister();
     DetectQuicCyuStringRegister();
     DetectJa4HashRegister();
@@ -788,6 +786,7 @@ void SigTableSetup(void)
     SCDetectDNSRegister();
     SCDetectPgsqlRegister();
     SCDetectSshRegister();
+    SCDetectQuicRegister();
 
     for (size_t i = 0; i < preregistered_callbacks_nb; i++) {
         PreregisteredCallbacks[i]();

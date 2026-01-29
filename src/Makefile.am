@@ -268,7 +268,6 @@ noinst_HEADERS = \
 	detect-quic-cyu-string.h \
 	detect-quic-sni.h \
 	detect-quic-ua.h \
-	detect-quic-version.h \
 	detect-rawbytes.h \
 	detect-reference.h \
 	detect-replace.h \
@@ -860,7 +859,6 @@ libsuricata_c_a_SOURCES = \
 	detect-quic-cyu-string.c \
 	detect-quic-sni.c \
 	detect-quic-ua.c \
-	detect-quic-version.c \
 	detect-rawbytes.c \
 	detect-reference.c \
 	detect-replace.c \
