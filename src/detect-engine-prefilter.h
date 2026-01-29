@@ -63,7 +63,7 @@ void PrefilterPostRuleMatch(
 int PrefilterAppendPayloadEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         PrefilterPktFn PrefilterFunc, void *pectx, void (*FreeFunc)(void *pectx), const char *name);
 int PrefilterAppendTxEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
-        PrefilterTxFn PrefilterTxFunc, const AppProto alproto, const uint8_t tx_min_progress,
+        PrefilterTxFn PrefilterTxFunc, const AppProto alproto, const int8_t tx_min_progress,
         void *pectx, void (*FreeFunc)(void *pectx), const char *name);
 int PrefilterAppendFrameEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         PrefilterFrameFn PrefilterFrameFunc, AppProto alproto, uint8_t frame_type, void *pectx,
