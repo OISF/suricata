@@ -27,7 +27,7 @@ use std::ptr;
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, SCDetectBufferSetActiveList,
     SCDetectHelperBufferMpmRegister, SCDetectHelperMultiBufferMpmRegister,
-    SCDetectSignatureSetAppProto, Signature,
+    SCDetectRegisterBufferLowerMd5Callbacks, SCDetectSignatureSetAppProto, Signature,
 };
 
 unsafe extern "C" fn quic_tx_get_ua(
@@ -110,8 +110,7 @@ unsafe extern "C" fn quic_tx_get_version(
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn SCQuicTxGetCyuHash(
+unsafe extern "C" fn quic_tx_get_cyu_hash(
     _de: *mut DetectEngineThreadCtx, tx: *const c_void, _flags: u8, i: u32, buffer: *mut *const u8,
     buffer_len: *mut u32,
 ) -> bool {
@@ -202,10 +201,23 @@ unsafe extern "C" fn quic_cyu_string_setup(
     return 0;
 }
 
+unsafe extern "C" fn quic_cyu_hash_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_QUIC) != 0 {
+        return -1;
+    }
+    if SCDetectBufferSetActiveList(de, s, G_QUIC_CYU_HASH_BUFFER_ID) < 0 {
+        return -1;
+    }
+    return 0;
+}
+
 static mut G_QUIC_VERSION_BUFFER_ID: c_int = 0;
 static mut G_QUIC_SNI_BUFFER_ID: c_int = 0;
 static mut G_QUIC_UA_BUFFER_ID: c_int = 0;
 static mut G_QUIC_CYU_STR_BUFFER_ID: c_int = 0;
+static mut G_QUIC_CYU_HASH_BUFFER_ID: c_int = 0;
 
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectQuicRegister() {
@@ -268,4 +280,20 @@ pub unsafe extern "C" fn SCDetectQuicRegister() {
         STREAM_TOSERVER,
         Some(quic_tx_get_cyu_string),
     );
+
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("quic.cyu.hash"),
+        desc: String::from("sticky buffer to match on the QUIC CYU hash"),
+        url: String::from("/rules/quic-keywords.html#quic-cyu-hash"),
+        setup: quic_cyu_hash_setup,
+    };
+    helper_keyword_register_multi_buffer(&kw);
+    G_QUIC_CYU_HASH_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
+        b"quic.cyu.hash\0".as_ptr() as *const libc::c_char,
+        b"QUIC CYU Hash\0".as_ptr() as *const libc::c_char,
+        ALPROTO_QUIC,
+        STREAM_TOSERVER,
+        Some(quic_tx_get_cyu_hash),
+    );
+    SCDetectRegisterBufferLowerMd5Callbacks(b"quic.cyu.hash\0".as_ptr() as *const libc::c_char);
 }

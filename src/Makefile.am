@@ -264,7 +264,6 @@ noinst_HEADERS = \
 	detect-pktvar.h \
 	detect-prefilter.h \
 	detect-priority.h \
-	detect-quic-cyu-hash.h \
 	detect-rawbytes.h \
 	detect-reference.h \
 	detect-replace.h \
@@ -852,7 +851,6 @@ libsuricata_c_a_SOURCES = \
 	detect-pktvar.c \
 	detect-prefilter.c \
 	detect-priority.c \
-	detect-quic-cyu-hash.c \
 	detect-rawbytes.c \
 	detect-reference.c \
 	detect-replace.c \
