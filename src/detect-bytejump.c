@@ -47,18 +47,20 @@
 /**
  * \brief Regex for parsing our options
  */
-#define PARSE_REGEX  "^\\s*" \
-                     "([^\\s,]+\\s*,\\s*[^\\s,]+)" \
-                     "(?:\\s*,\\s*((?:multiplier|post_offset)\\s+[^\\s,]+|[^\\s,]+))?" \
-                     "(?:\\s*,\\s*((?:multiplier|post_offset)\\s+[^\\s,]+|[^\\s,]+))?" \
-                     "(?:\\s*,\\s*((?:multiplier|post_offset)\\s+[^\\s,]+|[^\\s,]+))?" \
-                     "(?:\\s*,\\s*((?:multiplier|post_offset)\\s+[^\\s,]+|[^\\s,]+))?" \
-                     "(?:\\s*,\\s*((?:multiplier|post_offset)\\s+[^\\s,]+|[^\\s,]+))?" \
-                     "(?:\\s*,\\s*((?:multiplier|post_offset)\\s+[^\\s,]+|[^\\s,]+))?" \
-                     "(?:\\s*,\\s*((?:multiplier|post_offset)\\s+[^\\s,]+|[^\\s,]+))?" \
-                     "(?:\\s*,\\s*((?:multiplier|post_offset)\\s+[^\\s,]+|[^\\s,]+))?" \
-                     "(?:\\s*,\\s*((?:multiplier|post_offset)\\s+[^\\s,]+|[^\\s,]+))?" \
-                     "\\s*$"
+#define PARSE_REGEX                                                                                \
+    "^\\s*"                                                                                        \
+    "([^\\s,]+\\s*,\\s*[^\\s,]+)"                                                                  \
+    "(?:\\s*,\\s*((?:multiplier|post_offset|bitmask)\\s+[^\\s,]+|[^\\s,]+))?"                      \
+    "(?:\\s*,\\s*((?:multiplier|post_offset|bitmask)\\s+[^\\s,]+|[^\\s,]+))?"                      \
+    "(?:\\s*,\\s*((?:multiplier|post_offset|bitmask)\\s+[^\\s,]+|[^\\s,]+))?"                      \
+    "(?:\\s*,\\s*((?:multiplier|post_offset|bitmask)\\s+[^\\s,]+|[^\\s,]+))?"                      \
+    "(?:\\s*,\\s*((?:multiplier|post_offset|bitmask)\\s+[^\\s,]+|[^\\s,]+))?"                      \
+    "(?:\\s*,\\s*((?:multiplier|post_offset|bitmask)\\s+[^\\s,]+|[^\\s,]+))?"                      \
+    "(?:\\s*,\\s*((?:multiplier|post_offset|bitmask)\\s+[^\\s,]+|[^\\s,]+))?"                      \
+    "(?:\\s*,\\s*((?:multiplier|post_offset|bitmask)\\s+[^\\s,]+|[^\\s,]+))?"                      \
+    "(?:\\s*,\\s*((?:multiplier|post_offset|bitmask)\\s+[^\\s,]+|[^\\s,]+))?"                      \
+    "(?:\\s*,\\s*((?:multiplier|post_offset|bitmask)\\s+[^\\s,]+|[^\\s,]+))?"                      \
+    "\\s*$"
 
 static DetectParseRegex parse_regex;
 
@@ -209,6 +211,19 @@ bool DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
     SCLogDebug("VAL: (%" PRIu64 " x %" PRIu32 ") + %" PRIi32 " + %" PRId32, val, data->multiplier,
             extbytes, data->post_offset);
 
+    /* Apply the bitmask value and bitmask shift count; note, the bitmask is applied
+     * before the multiplier per snort */
+    if (data->flags & DETECT_BYTEJUMP_BITMASK) {
+        SCLogDebug("[before bitmask] val: %" PRIi64 " bitmask_value: %" PRIx32, val,
+                data->bitmask_value);
+        val &= data->bitmask_value;
+        if (val && data->bitmask_shift_count) {
+            val = val >> data->bitmask_shift_count;
+        }
+        SCLogDebug("[after bitmask] val: %" PRIi64 " bitmask_value: %" PRIx32, val,
+                data->bitmask_value);
+    }
+
     /* Adjust the jump value based on flags */
     val *= data->multiplier;
     if (flags & DETECT_BYTEJUMP_ALIGN) {
@@ -216,6 +231,7 @@ bool DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
             val += 4 - (val % 4);
         }
     }
+
     val += data->post_offset;
     SCLogDebug("val: %" PRIi64 " post_offset: %" PRIi32, val, data->post_offset);
 
@@ -263,7 +279,7 @@ static DetectBytejumpData *DetectBytejumpParse(
         DetectEngineCtx *de_ctx, const char *optstr, char **nbytes_str, char **offset)
 {
     DetectBytejumpData *data = NULL;
-    char args[10][64];
+    char args[11][64];
     int res = 0;
     size_t pcre2len;
     int numargs = 0;
@@ -277,7 +293,7 @@ static DetectBytejumpData *DetectBytejumpParse(
 
     /* Execute the regex and populate args with captures. */
     int ret = DetectParsePcreExec(&parse_regex, &match, optstr, 0, 0);
-    if (ret < 2 || ret > 10) {
+    if (ret < 2 || ret > 11) {
         SCLogError("parse error, ret %" PRId32 ", string \"%s\"", ret, optstr);
         goto error;
     }
@@ -417,6 +433,17 @@ static DetectBytejumpData *DetectBytejumpParse(
                 goto error;
             }
             SCLogDebug("post_offset: %s [%d]", optstr, data->post_offset);
+        } else if (strncasecmp("bitmask ", args[i], 8) == 0) {
+            data->flags |= DETECT_BYTEJUMP_BITMASK;
+            if (ByteExtractStringUint32(&data->bitmask_value, 0, 0, args[i] + strlen("bitmask ")) <=
+                    0) {
+                SCLogError("Malformed bitmask: %s", optstr);
+                goto error;
+            }
+            if (data->bitmask_value == 0) {
+                SCLogError("Invalid bitmask value: %d", data->bitmask_value);
+                goto error;
+            }
         } else if (strcasecmp("dce", args[i]) == 0) {
             data->flags |= DETECT_BYTEJUMP_DCE;
         } else {
@@ -446,6 +473,17 @@ static DetectBytejumpData *DetectBytejumpParse(
                     optstr);
             goto error;
         }
+    }
+
+    data->bitmask_shift_count = 0;
+    if (data->flags & DETECT_BYTEJUMP_BITMASK) {
+        uint32_t bmask = data->bitmask_value;
+        while (!(bmask & 0x1)) {
+            bmask = bmask >> 1;
+            data->bitmask_shift_count++;
+        }
+        SCLogDebug("bitmask value 0x%x -> shift value %d", data->bitmask_value,
+                data->bitmask_shift_count);
     }
 
     pcre2_match_data_free(match);
@@ -1004,6 +1042,80 @@ static int DetectBytejumpTestParse14(void)
     PASS;
 }
 
+static int DetectBytejumpTestParse15(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s =
+            DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                                          "(msg:\"Testing bytejump_body\"; "
+                                          "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                                          "dce_stub_data; "
+                                          "content:\"one\"; distance:0; "
+                                          "byte_jump:4,0,align,multiplier 2, "
+                                          "post_offset -16,relative,bitmask 0x8f40,dce; sid:1;)");
+    FAIL_IF_NULL(s);
+    SigMatch *sm = DetectBufferGetFirstSigMatch(s, g_dce_stub_data_buffer_id);
+    FAIL_IF_NULL(sm);
+    FAIL_IF_NOT(sm->type == DETECT_CONTENT);
+    FAIL_IF_NULL(sm->next);
+    sm = sm->next;
+    FAIL_IF_NOT(sm->type == DETECT_BYTEJUMP);
+
+    DetectBytejumpData *bd = (DetectBytejumpData *)sm->ctx;
+    FAIL_IF_NOT(bd->flags & DETECT_BYTEJUMP_DCE);
+    FAIL_IF_NOT(bd->flags & DETECT_BYTEJUMP_RELATIVE);
+    FAIL_IF(bd->flags & DETECT_BYTEJUMP_STRING);
+    FAIL_IF(bd->flags & DETECT_BYTEJUMP_BIG);
+    FAIL_IF(bd->flags & DETECT_BYTEJUMP_LITTLE);
+
+    FAIL_IF_NOT(bd->flags & DETECT_BYTEJUMP_BITMASK);
+    FAIL_IF_NOT(bd->bitmask_value == 0x8f40);
+    FAIL_IF_NOT(bd->bitmask_shift_count == 6);
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
+static int DetectBytejumpTestParse16(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s =
+            DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                                          "(msg:\"Testing bytejump_body\"; "
+                                          "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                                          "dce_stub_data; "
+                                          "content:\"one\"; distance:0; "
+                                          "byte_jump:4,0,align,multiplier 2, "
+                                          "post_offset -16,relative,bitmask 5304,dce; sid:1;)");
+    FAIL_IF_NULL(s);
+    SigMatch *sm = DetectBufferGetFirstSigMatch(s, g_dce_stub_data_buffer_id);
+    FAIL_IF_NULL(sm);
+    FAIL_IF_NOT(sm->type == DETECT_CONTENT);
+    FAIL_IF_NULL(sm->next);
+    sm = sm->next;
+    FAIL_IF_NOT(sm->type == DETECT_BYTEJUMP);
+
+    DetectBytejumpData *bd = (DetectBytejumpData *)sm->ctx;
+    FAIL_IF_NOT(bd->flags & DETECT_BYTEJUMP_DCE);
+    FAIL_IF_NOT(bd->flags & DETECT_BYTEJUMP_RELATIVE);
+    FAIL_IF(bd->flags & DETECT_BYTEJUMP_STRING);
+    FAIL_IF(bd->flags & DETECT_BYTEJUMP_BIG);
+    FAIL_IF(bd->flags & DETECT_BYTEJUMP_LITTLE);
+
+    FAIL_IF_NOT(bd->flags & DETECT_BYTEJUMP_BITMASK);
+    FAIL_IF_NOT(bd->bitmask_value == 5304);
+    FAIL_IF_NOT(bd->bitmask_shift_count == 3);
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
 /**
  * \test DetectByteJumpTestPacket01 is a test to check matches of
  * byte_jump and byte_jump relative works if the previous keyword is pcre
@@ -1215,6 +1327,8 @@ static void DetectBytejumpRegisterTests(void)
     UtRegisterTest("DetectBytejumpTestParse12", DetectBytejumpTestParse12);
     UtRegisterTest("DetectBytejumpTestParse13", DetectBytejumpTestParse13);
     UtRegisterTest("DetectBytejumpTestParse14", DetectBytejumpTestParse14);
+    UtRegisterTest("DetectBytejumpTestParse15", DetectBytejumpTestParse15);
+    UtRegisterTest("DetectBytejumpTestParse16", DetectBytejumpTestParse16);
 
     UtRegisterTest("DetectByteJumpTestPacket01", DetectByteJumpTestPacket01);
     UtRegisterTest("DetectByteJumpTestPacket02", DetectByteJumpTestPacket02);
