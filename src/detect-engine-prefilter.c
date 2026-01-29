@@ -1082,8 +1082,15 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
                     const bool run_always = buf != NULL && buf->run_always;
                     const uint8_t sub_state = app->sub_state;
                     if (TxNonPFAddSig(de_ctx, tx_engines_hash, app->alproto, sub_state, app->dir,
-                                app->progress, sig_list, buf->name, s, run_always) != 0) {
+                                app->min_progress, sig_list, buf->name, s, run_always) != 0) {
                         goto error;
+                    }
+                    if (app->max_progress > app->min_progress) {
+                        if (TxNonPFAddSig(de_ctx, tx_engines_hash, app->alproto, sub_state,
+                                    app->dir, app->max_progress, sig_list, buf->name, s,
+                                    run_always) != 0) {
+                            goto error;
+                        }
                     }
                     tx_non_pf = true;
                 }
