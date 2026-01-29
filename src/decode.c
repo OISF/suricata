@@ -71,6 +71,7 @@
 #include "util-profiling.h"
 #include "util-validate.h"
 #include "util-debug.h"
+#include "util-device-private.h"
 #include "util-exception-policy.h"
 #include "action-globals.h"
 
@@ -183,10 +184,10 @@ void PacketAlertFree(PacketAlert *pa_array)
 }
 
 static int DecodeTunnel(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t,
-        enum DecodeTunnelProto) WARN_UNUSED;
+        enum SCPacketTunnelProto) WARN_UNUSED;
 
 static int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt,
-        uint32_t len, enum DecodeTunnelProto proto)
+        uint32_t len, enum SCPacketTunnelProto proto)
 {
     switch (proto) {
         case DECODE_TUNNEL_PPP:
@@ -206,6 +207,8 @@ static int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const 
             return DecodeERSPAN(tv, dtv, p, pkt, len);
         case DECODE_TUNNEL_ERSPANI:
             return DecodeERSPANTypeI(tv, dtv, p, pkt, len);
+        case DECODE_TUNNEL_VXLAN:
+            return DecodeVXLANtunnel(tv, dtv, p, pkt, len);
         case DECODE_TUNNEL_NSH:
             return DecodeNSH(tv, dtv, p, pkt, len);
         case DECODE_TUNNEL_ARP:
@@ -226,6 +229,13 @@ void PacketFree(Packet *p)
     SCFree(p);
 }
 
+static bool PacketIsInTunnelIface(Packet *p)
+{
+    if (p->livedev) {
+        return p->livedev->skip_non_tunnel;
+    }
+    return false;
+}
 /**
  * \brief Finalize decoding of a packet
  *
@@ -237,6 +247,10 @@ void PacketDecodeFinalize(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
 {
     if (p->flags & PKT_IS_INVALID) {
         StatsCounterIncr(&tv->stats, dtv->counter_invalid);
+    }
+    if (p->tunnel_id == 0 && PacketIsInTunnelIface(p)) {
+        // skips non-tunnel packets
+        p->flags |= PKT_SKIP_WORK;
     }
 }
 
@@ -384,6 +398,34 @@ inline int PacketCopyData(Packet *p, const uint8_t *pktdata, uint32_t pktlen)
     return PacketCopyDataOffset(p, 0, pktdata, pktlen);
 }
 
+static void *decode_tunnels_map;
+
+void PacketGetTunnelId(Packet *p, uint32_t session)
+{
+    bool packet_in_tunnel_iface = PacketIsInTunnelIface(p);
+    if (decode_tunnels_map == NULL || p->root == NULL || !PacketIsIPv4(p->root)) {
+        p->tunnel_id = PKT_TUNNEL_UNKNOWN;
+        if (packet_in_tunnel_iface) {
+            p->flags |= PKT_SKIP_WORK;
+        }
+        return;
+    }
+    struct flowtunnel_keys k = {};
+    k.src = htonl(GET_IPV4_SRC_ADDR_U32(p->root));
+    k.dst = htonl(GET_IPV4_DST_ADDR_U32(p->root));
+    k.session = session;
+    k.tunnel_proto = (uint8_t)p->tproto;
+    p->tunnel_id = DecodeTunnelsId(decode_tunnels_map, k);
+    if (packet_in_tunnel_iface && p->tunnel_id == PKT_TUNNEL_UNKNOWN) {
+        p->flags |= PKT_SKIP_WORK;
+    }
+}
+
+void *DecodeTunnelsGetMapIter(void)
+{
+    return DecodeTunnelsIterStart(decode_tunnels_map);
+}
+
 /**
  *  \brief Setup a pseudo packet (tunnel)
  *
@@ -395,7 +437,7 @@ inline int PacketCopyData(Packet *p, const uint8_t *pktdata, uint32_t pktlen)
  *  \retval p the pseudo packet or NULL if out of memory
  */
 Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *parent,
-                             const uint8_t *pkt, uint32_t len, enum DecodeTunnelProto proto)
+        const uint8_t *pkt, uint32_t len, enum SCPacketTunnelProto proto)
 {
     int ret;
 
@@ -422,17 +464,21 @@ Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *pare
     p->datalink = DLT_RAW;
     p->tenant_id = parent->tenant_id;
     p->livedev = parent->livedev;
-
+#ifdef HAVE_PACKET_EBPF
+    // need to copy BypassPacketsFlow callback and such
+    AFPReadCopyBypass(p, parent);
+#endif
     /* set the root ptr to the lowest layer */
     if (parent->root != NULL) {
         p->root = parent->root;
-        BUG_ON(parent->ttype != PacketTunnelChild);
+        BUG_ON(!PacketIsTunnelChild(parent));
     } else {
         p->root = parent;
         parent->ttype = PacketTunnelRoot;
     }
     /* tell new packet it's part of a tunnel */
     p->ttype = PacketTunnelChild;
+    p->tproto = (uint8_t)proto;
 
     ret = DecodeTunnel(tv, dtv, p, GET_PKT_DATA(p),
                        GET_PKT_LEN(p), proto);
@@ -487,7 +533,7 @@ Packet *PacketDefragPktSetup(Packet *parent, const uint8_t *pkt, uint32_t len, u
     /* set the root ptr to the lowest layer */
     if (parent->root != NULL) {
         p->root = parent->root;
-        BUG_ON(parent->ttype != PacketTunnelChild);
+        BUG_ON(!PacketIsTunnelChild(parent));
     } else {
         p->root = parent;
         // we set parent->ttype later
@@ -611,6 +657,7 @@ void DecodeUnregisterCounters(void)
         g_counter_table = NULL;
     }
     SCMutexUnlock(&g_counter_table_mutex);
+    DecodeTunnelsFree(decode_tunnels_map);
 }
 
 static bool IsDefragMemcapExceptionPolicyStatsValid(enum ExceptionPolicy policy)
@@ -1071,6 +1118,21 @@ void DecodeGlobalConfig(void)
     DecodeGeneveConfig();
     DecodeVXLANConfig();
     DecodeERSPANConfig();
+    decode_tunnels_map = DecodeTunnelsConfig();
+    SCConfNode *tunnel_ifaces_node = SCConfGetNode("decoder.tunnel-ifaces");
+    if (tunnel_ifaces_node != NULL) {
+        SCConfNode *child = NULL;
+        TAILQ_FOREACH (child, &tunnel_ifaces_node->head, next) {
+            if (child->val != NULL) {
+                LiveDevice *ld = LiveGetDevice(child->val);
+                if (ld != NULL) {
+                    ld->skip_non_tunnel = true;
+                } else {
+                    SCLogWarning("%s is not a registered device", child->val);
+                }
+            }
+        }
+    }
     intmax_t value = 0;
     if (SCConfGetInt("decoder.max-layers", &value) == 1) {
         if (value < 0 || value > UINT8_MAX) {
