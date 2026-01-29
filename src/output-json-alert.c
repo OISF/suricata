@@ -96,6 +96,11 @@
 
 #define JSON_STREAM_BUFFER_SIZE 4096
 
+typedef struct ClasstypeFilter_ {
+    char **classtype_names;
+    uint32_t count;
+} ClasstypeFilter;
+
 typedef struct AlertJsonOutputCtx_ {
     LogFileCtx* file_ctx;
     uint16_t flags;
@@ -103,6 +108,7 @@ typedef struct AlertJsonOutputCtx_ {
     HttpXFFCfg *xff_cfg;
     HttpXFFCfg *parent_xff_cfg;
     OutputJsonCtx *eve_ctx;
+    ClasstypeFilter *payload_classtype_filter;
 } AlertJsonOutputCtx;
 
 typedef struct JsonAlertLogThread_ {
@@ -642,6 +648,36 @@ static bool AlertJsonStreamData(const AlertJsonOutputCtx *json_output_ctx, JsonA
     return false;
 }
 
+/**
+ * \brief Check if alert's classtype matches the payload extraction filter if filtering is configured
+ * \param filter ClasstypeFilter to check (can be NULL)
+ * \param pa PacketAlert containing the signature
+ * \return true if payload should be extracted, false otherwise
+ */
+static bool ShouldDumpPayloadInAlert(const ClasstypeFilter *filter, const PacketAlert *pa)
+{
+    // No filter configured = always extract based on payload flags (default behavior)
+    if (filter == NULL) {
+        return true;
+    }
+
+    // No classtype in alert, yet filtering is configured -> no extraction
+    if (pa->s == NULL || pa->s->classtype == NULL) {
+        return false;
+    }
+
+    // Check if classtype in alert matches any in the filter list
+    const char *alert_classtype = pa->s->classtype;
+    for (uint32_t i = 0; i < filter->count; i++) {
+        if (strcasecmp(filter->classtype_names[i], alert_classtype) == 0) {
+            return true;
+        }
+    }
+
+    // No match on specified alert classtype
+    return false;
+}
+
 static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 {
     AlertJsonOutputCtx *json_output_ctx = aft->json_output_ctx;
@@ -747,8 +783,11 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             }
         }
 
+        bool should_dump_payload = ShouldDumpPayloadInAlert(
+            json_output_ctx->payload_classtype_filter, pa);
+
         /* payload */
-        if (json_output_ctx->flags &
+        if (should_dump_payload && json_output_ctx->flags &
                 (LOG_JSON_PAYLOAD | LOG_JSON_PAYLOAD_BASE64 | LOG_JSON_PAYLOAD_LENGTH)) {
             int stream = (p->proto == IPPROTO_TCP) ?
                          (pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_STREAM_MATCH) ?
@@ -933,6 +972,27 @@ static TmEcode JsonAlertLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
+/**
+ * \brief Free classtype filter structure
+ */
+static void ClasstypeFilterFree(ClasstypeFilter *filter)
+{
+    if (filter == NULL) {
+        return;
+    }
+
+    if (filter->classtype_names != NULL) {
+        for (uint32_t i = 0; i < filter->count; i++) {
+            if (filter->classtype_names[i] != NULL) {
+                SCFree(filter->classtype_names[i]);
+            }
+        }
+        SCFree(filter->classtype_names);
+    }
+
+    SCFree(filter);
+}
+
 static void JsonAlertLogDeInitCtxSub(OutputCtx *output_ctx)
 {
     SCLogDebug("cleaning up sub output_ctx %p", output_ctx);
@@ -944,9 +1004,83 @@ static void JsonAlertLogDeInitCtxSub(OutputCtx *output_ctx)
         if (xff_cfg != NULL) {
             SCFree(xff_cfg);
         }
+        ClasstypeFilterFree(json_output_ctx->payload_classtype_filter);
         SCFree(json_output_ctx);
     }
     SCFree(output_ctx);
+}
+
+/**
+ * \brief Parse payload-only-classtypes filter from YAML
+ * \param conf Configuration node
+ * \return ClasstypeFilter* on success, NULL if not configured or empty
+ */
+static ClasstypeFilter *JsonAlertParsePayloadClasstypeFilter(SCConfNode *conf)
+{
+    if (conf == NULL) {
+        return NULL;
+    }
+
+    SCConfNode *payload_extraction_node = SCConfNodeLookupChild(conf, "payload-only-classtypes");
+    if (payload_extraction_node == NULL) {
+        return NULL;
+    }
+
+    if (!SCConfNodeIsSequence(payload_extraction_node)) {
+        SCLogError("payload-only-classtypes must be a list of classtype names");
+        return NULL;
+    }
+
+    SCConfNode *item;
+    uint32_t count = 0;
+    TAILQ_FOREACH(item, &payload_extraction_node->head, next) {
+        if (item->val != NULL && strlen(item->val) > 0) {
+            count++;
+        }
+    }
+
+    if (count == 0) {
+        SCLogDebug("payload_extraction is empty - treating as not configured");
+        return NULL;
+    }
+
+    ClasstypeFilter *filter = SCCalloc(1, sizeof(ClasstypeFilter));
+    if (filter == NULL) {
+        return NULL;
+    }
+
+    filter->classtype_names = SCCalloc(count, sizeof(char *));
+    if (filter->classtype_names == NULL) {
+        SCFree(filter);
+        return NULL;
+    }
+
+    uint32_t idx = 0;
+    TAILQ_FOREACH(item, &payload_extraction_node->head, next) {
+        if (item->val == NULL || strlen(item->val) == 0) {
+            continue;
+        }
+
+        filter->classtype_names[idx] = SCStrdup(item->val);
+        if (filter->classtype_names[idx] == NULL) {
+            for (uint32_t i = 0; i < idx; i++) {
+                SCFree(filter->classtype_names[i]);
+            }
+            SCFree(filter->classtype_names);
+            SCFree(filter);
+            return NULL;
+        }
+        idx++;
+    }
+
+    filter->count = idx;
+
+    SCLogInfo("payload_extraction filter enabled for %u classtype(s)", filter->count);
+    for (uint32_t i = 0; i < filter->count; i++) {
+        SCLogDebug("  - %s", filter->classtype_names[i]);
+    }
+
+    return filter;
 }
 
 static void SetFlag(const SCConfNode *conf, const char *name, uint16_t flag, uint16_t *out_flags)
@@ -998,6 +1132,8 @@ static void JsonAlertLogSetupMetadata(AlertJsonOutputCtx *json_output_ctx, SCCon
         SetFlag(conf, "websocket-payload", LOG_JSON_WEBSOCKET_PAYLOAD_BASE64, &flags);
         SetFlag(conf, "verdict", LOG_JSON_VERDICT, &flags);
         SetFlag(conf, "payload-length", LOG_JSON_PAYLOAD_LENGTH, &flags);
+
+        json_output_ctx->payload_classtype_filter = JsonAlertParsePayloadClasstypeFilter(conf);
 
         /* Check for obsolete flags and warn that they have no effect. */
         static const char *deprecated_flags[] = { "http", "tls", "ssh", "smtp", "dnp3", "app-layer",

@@ -125,6 +125,7 @@ Metadata::
 
         - alert:
             #payload: yes             # enable dumping payload in Base64
+            #payload-only-classtypes: [] # dump payload only for specified classtypes (empty = all)
             #payload-buffer-size: 4kb # max size of payload buffer to output in eve-log
             #payload-printable: yes   # enable dumping payload in printable (lossy) format
             #payload-length: yes      # enable dumping payload length, including the gaps

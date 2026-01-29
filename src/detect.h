@@ -737,6 +737,8 @@ typedef struct Signature_ {
 
     /** classification message */
     char *class_msg;
+    /** classtype */
+    char *classtype;
     /** Reference */
     DetectReference *references;
     /** Metadata */
