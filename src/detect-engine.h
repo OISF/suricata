@@ -166,6 +166,10 @@ int DetectEngineInspectPktBufferGeneric(
 void DetectAppLayerInspectEngineRegister(const char *name, AppProto alproto, uint32_t dir,
         uint8_t progress, InspectEngineFuncPtr Callback2, InspectionBufferGetDataPtr GetData);
 
+void DetectAppLayerInspectEngineRegisterMax(const char *name, AppProto alproto, uint32_t dir,
+        uint8_t min_progress, uint8_t max_progress, InspectEngineFuncPtr Callback2,
+        InspectionBufferGetDataPtr GetData);
+
 void DetectAppLayerInspectEngineRegisterSingle(const char *name, AppProto alproto, uint32_t dir,
         uint8_t progress, InspectEngineFuncPtr Callback2, InspectionSingleBufferGetDataPtr GetData);
 
