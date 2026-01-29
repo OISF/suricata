@@ -312,8 +312,8 @@ static uint8_t DetectEngineInspectBufferHttpBody(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const DetectEngineAppInspectionEngine *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
-    bool eof =
-            (AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) > engine->progress);
+    bool eof = (AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) >
+                engine->max_progress);
     const InspectionBuffer *buffer = HttpRequestBodyGetDataCallback(
             det_ctx, engine->v2.transforms, f, flags, txv, engine->sm_list, engine->sm_list_base);
     if (buffer == NULL || buffer->inspect == NULL) {
