@@ -137,7 +137,7 @@ impl Default for RFBState {
 impl RFBState {
     pub fn new() -> Self {
         Self {
-            state_data: AppLayerStateData::new(),
+            state_data: AppLayerStateData::default(),
             tx_id: 0,
             transactions: Vec::new(),
             state: parser::RFBGlobalState::TCServerProtocolVersion,
@@ -177,8 +177,8 @@ impl RFBState {
         let tx_id = self.tx_id;
         let r = self.transactions.iter_mut().find(|tx| tx.tx_id == tx_id);
         if let Some(tx) = r {
-            tx.tx_data.updated_tc = true;
-            tx.tx_data.updated_ts = true;
+            tx.tx_data.0.updated_tc = true;
+            tx.tx_data.0.updated_ts = true;
             return Some(tx);
         }
         return None;

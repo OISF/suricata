@@ -162,7 +162,7 @@ impl<'a> SNMPState<'a> {
         tx.info = Some(pdu_info);
     }
 
-    fn handle_snmp_v12(&mut self, msg: SnmpMessage<'a>, _direction: Direction) -> i32 {
+    fn handle_snmp_v12(&mut self, msg: SnmpMessage<'a>, _direction: Direction) -> AppLayerResult {
         let mut tx = self.new_tx(_direction);
         // in the message, version is encoded as 0 (version 1) or 1 (version 2)
         if self.version != msg.version + 1 {
@@ -172,10 +172,10 @@ impl<'a> SNMPState<'a> {
         self.add_pdu_info(&msg.pdu, &mut tx);
         tx.community = Some(msg.community);
         self.transactions.push(tx);
-        0
+        AppLayerResult::ok()
     }
 
-    fn handle_snmp_v3(&mut self, msg: SnmpV3Message<'a>, _direction: Direction) -> i32 {
+    fn handle_snmp_v3(&mut self, msg: SnmpV3Message<'a>, _direction: Direction) -> AppLayerResult {
         let mut tx = self.new_tx(_direction);
         if self.version != msg.version {
             SCLogDebug!("SNMP version mismatch: expected {}, received {}", self.version, msg.version);
@@ -198,13 +198,13 @@ impl<'a> SNMPState<'a> {
             }
         }
         self.transactions.push(tx);
-        0
+        AppLayerResult::ok()
     }
 
     /// Parse an SNMP request message
     ///
     /// Returns 0 if successful, or -1 on error
-    fn parse(&mut self, i: &'a [u8], direction: Direction) -> i32 {
+    fn parse(&mut self, i: &'a [u8], direction: Direction) -> AppLayerResult {
         if self.version == 0 {
             if let Ok((_, x)) = parse_pdu_envelope_version(i) {
                 self.version = x;
@@ -217,7 +217,7 @@ impl<'a> SNMPState<'a> {
             Err(_e) => {
                 SCLogDebug!("parse_snmp failed: {:?}", _e);
                 self.set_event(SNMPEvent::MalformedData);
-                -1
+                AppLayerResult::err()
             },
         }
     }
@@ -293,7 +293,7 @@ unsafe extern "C" fn snmp_parse_request(_flow: *mut Flow,
                                        _data: *mut std::os::raw::c_void,
                                        ) -> AppLayerResult {
     let state = cast_pointer!(state,SNMPState);
-    state.parse(stream_slice.as_slice(), Direction::ToServer).into()
+    state.parse(stream_slice.as_slice(), Direction::ToServer)
 }
 
 unsafe extern "C" fn snmp_parse_response(_flow: *mut Flow,
@@ -303,7 +303,7 @@ unsafe extern "C" fn snmp_parse_response(_flow: *mut Flow,
                                        _data: *mut std::os::raw::c_void,
                                        ) -> AppLayerResult {
     let state = cast_pointer!(state,SNMPState);
-    state.parse(stream_slice.as_slice(), Direction::ToClient).into()
+    state.parse(stream_slice.as_slice(), Direction::ToClient)
 }
 
 unsafe extern "C" fn snmp_state_get_tx(state: *mut std::os::raw::c_void,

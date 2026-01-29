@@ -91,7 +91,7 @@ AppProto SCAppLayerRegisterProtocolDetection(
     return alproto;
 }
 
-int AppLayerRegisterParser(const struct AppLayerParser *p, AppProto alproto)
+int SCAppLayerRegisterParser(const struct AppLayerParser *p, AppProto alproto)
 {
     const char *ip_proto_str = NULL;
 

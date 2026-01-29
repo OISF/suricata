@@ -114,7 +114,7 @@ impl Default for KRB5State {
 impl KRB5State {
     pub fn new() -> KRB5State {
         Self {
-            state_data: AppLayerStateData::new(),
+            state_data: AppLayerStateData::default(),
             req_id: 0,
             record_ts: 0,
             defrag_buf_ts: Vec::new(),

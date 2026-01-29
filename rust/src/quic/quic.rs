@@ -141,7 +141,7 @@ pub struct QuicState {
 impl Default for QuicState {
     fn default() -> Self {
         Self {
-            state_data: AppLayerStateData::new(),
+            state_data: AppLayerStateData::default(),
             max_tx_id: 0,
             keys: None,
             crypto_frag_tc: Vec::new(),

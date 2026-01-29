@@ -145,14 +145,4 @@ void AppLayerIncAllocErrorCounter(ThreadVars *tv, Flow *f);
 void AppLayerIncParserErrorCounter(ThreadVars *tv, Flow *f);
 void AppLayerIncInternalErrorCounter(ThreadVars *tv, Flow *f);
 
-static inline const uint8_t *StreamSliceGetData(const StreamSlice *stream_slice)
-{
-    return stream_slice->input;
-}
-
-static inline uint32_t StreamSliceGetDataLen(const StreamSlice *stream_slice)
-{
-    return stream_slice->input_len;
-}
-
 #endif

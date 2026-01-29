@@ -25,6 +25,7 @@
 #define SURICATA_APP_LAYER_DNP3_H
 
 #include "rust.h"
+#include "app-layer-parser.h"
 #if __BYTE_ORDER == __BIG_ENDIAN
 #include "util-byte.h"
 #endif

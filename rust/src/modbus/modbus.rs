@@ -130,8 +130,8 @@ impl ModbusState {
         for tx in &mut self.transactions {
             if let Some(req) = &tx.request {
                 if tx.response.is_none() && resp.matches(req) {
-                    tx.tx_data.updated_tc = true;
-                    tx.tx_data.updated_ts = true;
+                    tx.tx_data.0.updated_tc = true;
+                    tx.tx_data.0.updated_ts = true;
                     return Some(tx);
                 }
             }
@@ -147,8 +147,8 @@ impl ModbusState {
         for tx in &mut self.transactions {
             if let Some(resp) = &tx.response {
                 if tx.request.is_none() && req.matches(resp) {
-                    tx.tx_data.updated_tc = true;
-                    tx.tx_data.updated_ts = true;
+                    tx.tx_data.0.updated_tc = true;
+                    tx.tx_data.0.updated_ts = true;
                     return Some(tx);
                 }
             }
@@ -196,8 +196,8 @@ impl ModbusState {
                             match self.find_response_and_validate(&mut msg) {
                                 Some(tx) => {
                                     tx.set_events_from_flags(&msg.error_flags);
-                                    tx.tx_data.updated_tc = true;
-                                    tx.tx_data.updated_ts = true;
+                                    tx.tx_data.0.updated_tc = true;
+                                    tx.tx_data.0.updated_ts = true;
                                     tx.request = Some(msg);
                                     if !flow.is_null() {
                                         sc_app_layer_parser_trigger_raw_stream_inspection(
@@ -236,8 +236,8 @@ impl ModbusState {
                                 } else {
                                     tx.set_events_from_flags(&msg.error_flags);
                                 }
-                                tx.tx_data.updated_tc = true;
-                                tx.tx_data.updated_ts = true;
+                                tx.tx_data.0.updated_tc = true;
+                                tx.tx_data.0.updated_ts = true;
                                 tx.response = Some(msg);
                                 if !flow.is_null() {
                                     sc_app_layer_parser_trigger_raw_stream_inspection(
@@ -398,9 +398,9 @@ unsafe extern "C" fn modbus_tx_get_alstate_progress(
 
 unsafe extern "C" fn modbus_state_get_tx_data(
     tx: *mut std::os::raw::c_void,
-) -> *mut AppLayerTxData {
+) -> *mut suricata_sys::sys::AppLayerTxData {
     let tx = cast_pointer!(tx, ModbusTransaction);
-    &mut tx.tx_data
+    &mut tx.tx_data.0
 }
 
 export_state_data_get!(modbus_get_state_data, ModbusState);

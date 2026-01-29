@@ -39,6 +39,13 @@ typedef struct FileContainer_ {
     File *tail;
 } FileContainer;
 
+/// helper for the GetTxFilesFn. Not meant to be embedded as the config
+/// pointer is passed around in the API.
+typedef struct AppLayerGetFileState {
+    FileContainer *fc;
+    const StreamingBufferConfig *cfg;
+} AppLayerGetFileState;
+
 /**
  *  \brief Store a chunk of file data in the flow. The open "flowfile"
  *         will be used.
