@@ -204,7 +204,6 @@
 #include "detect-sip-uri.h"
 #include "detect-target.h"
 #include "detect-quic-cyu-hash.h"
-#include "detect-quic-cyu-string.h"
 #include "detect-ja4-hash.h"
 #include "detect-ftp-command.h"
 #include "detect-entropy.h"
@@ -733,7 +732,6 @@ void SigTableSetup(void)
     DetectSipUriRegister();
     DetectTargetRegister();
     DetectQuicCyuHashRegister();
-    DetectQuicCyuStringRegister();
     DetectJa4HashRegister();
     DetectFtpCommandRegister();
     DetectFtpCommandDataRegister();
