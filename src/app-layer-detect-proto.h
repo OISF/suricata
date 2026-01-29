@@ -198,6 +198,8 @@ void AppLayerRegisterExpectationProto(uint8_t proto, AppProto alproto);
 
 void AppProtoDetectListNames(void);
 
+bool AppLayerProtoDetectHasProbingParsers(uint8_t ipproto, uint16_t port, AppProto alproto);
+
 /***** Unittests *****/
 
 #ifdef UNITTESTS

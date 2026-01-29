@@ -460,6 +460,21 @@ static AppLayerProtoDetectProbingParserPort *AppLayerProtoDetectGetProbingParser
     SCReturnPtr(pp_port, "AppLayerProtoDetectProbingParserPort *");
 }
 
+bool AppLayerProtoDetectHasProbingParsers(uint8_t ipproto, uint16_t port, AppProto alproto)
+{
+    AppLayerProtoDetectProbingParserPort *p =
+            AppLayerProtoDetectGetProbingParsers(alpd_ctx.ctx_pp, ipproto, port);
+    if (p == NULL)
+        return false;
+    AppLayerProtoDetectProbingParserElement *dp = p->dp;
+    while (dp) {
+        if (dp->alproto == alproto) {
+            return true;
+        }
+        dp = dp->next;
+    }
+    return false;
+}
 
 /**
  * \brief Call the probing expectation to see if there is some for this flow.
