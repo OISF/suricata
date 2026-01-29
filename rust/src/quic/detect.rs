@@ -41,18 +41,18 @@ pub unsafe extern "C" fn SCQuicTxGetUa(
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn SCQuicTxGetSni(
-    tx: &QuicTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
-) -> u8 {
+unsafe extern "C" fn quic_tx_get_sni(
+    tx: *const c_void, _flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> bool {
+    let tx = cast_pointer!(tx, QuicTransaction);
     if let Some(sni) = &tx.sni {
         *buffer = sni.as_ptr();
         *buffer_len = sni.len() as u32;
-        1
+        true
     } else {
         *buffer = ptr::null();
         *buffer_len = 0;
-        0
+        false
     }
 }
 
@@ -163,7 +163,20 @@ unsafe extern "C" fn quic_version_setup(
     return 0;
 }
 
+unsafe extern "C" fn quic_sni_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_QUIC) != 0 {
+        return -1;
+    }
+    if SCDetectBufferSetActiveList(de, s, G_QUIC_SNI_BUFFER_ID) < 0 {
+        return -1;
+    }
+    return 0;
+}
+
 static mut G_QUIC_VERSION_BUFFER_ID: c_int = 0;
+static mut G_QUIC_SNI_BUFFER_ID: c_int = 0;
 
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectQuicRegister() {
@@ -180,5 +193,20 @@ pub unsafe extern "C" fn SCDetectQuicRegister() {
         ALPROTO_QUIC,
         STREAM_TOSERVER | STREAM_TOCLIENT,
         Some(quic_tx_get_version),
+    );
+
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("quic.sni"),
+        desc: String::from("match Quic sni"),
+        url: String::from("/rules/quic-keywords.html#quic-sni"),
+        setup: quic_sni_setup,
+    };
+    helper_keyword_register_sticky_buffer(&kw);
+    G_QUIC_SNI_BUFFER_ID = SCDetectHelperBufferMpmRegister(
+        b"quic_sni\0".as_ptr() as *const libc::c_char,
+        b"quic sni\0".as_ptr() as *const libc::c_char,
+        ALPROTO_QUIC,
+        STREAM_TOSERVER,
+        Some(quic_tx_get_sni),
     );
 }
