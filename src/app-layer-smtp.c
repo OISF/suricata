@@ -1684,7 +1684,7 @@ static int SMTPStateGetEventInfoById(
 static AppProto SMTPClientProbingParserCheckPort(
         const Flow *f, uint8_t direction, const uint8_t *input, uint32_t len, uint8_t *rdir)
 {
-    if (f->dp == 21) {
+    if (AppLayerProtoDetectHasProbingParsers(IPPROTO_TCP, f->dp, ALPROTO_FTP)) {
         return ALPROTO_FAILED;
     }
     return ALPROTO_SMTP;
