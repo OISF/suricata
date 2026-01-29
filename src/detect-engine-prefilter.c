@@ -1015,7 +1015,7 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
                     if (list_id == app_state_list_id)
                         sig_list = app_state_list_id;
                     if (TxNonPFAddSig(de_ctx, tx_engines_hash, app->alproto, app->dir,
-                                app->progress, sig_list, buf->name, s) != 0) {
+                                app->min_progress, sig_list, buf->name, s) != 0) {
                         goto error;
                     }
                     tx_non_pf = true;
