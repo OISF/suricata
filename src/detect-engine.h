@@ -164,12 +164,12 @@ int DetectEngineInspectPktBufferGeneric(
  * \param Callback The engine callback.
  */
 void DetectAppLayerInspectEngineRegister(const char *name, AppProto alproto, uint32_t dir,
-        int progress, InspectEngineFuncPtr Callback2, InspectionBufferGetDataPtr GetData);
+        uint8_t progress, InspectEngineFuncPtr Callback2, InspectionBufferGetDataPtr GetData);
 
 void DetectAppLayerInspectEngineRegisterSingle(const char *name, AppProto alproto, uint32_t dir,
-        int progress, InspectEngineFuncPtr Callback2, InspectionSingleBufferGetDataPtr GetData);
+        uint8_t progress, InspectEngineFuncPtr Callback2, InspectionSingleBufferGetDataPtr GetData);
 
-void DetectAppLayerMultiRegister(const char *name, AppProto alproto, uint32_t dir, int progress,
+void DetectAppLayerMultiRegister(const char *name, AppProto alproto, uint32_t dir, uint8_t progress,
         InspectionMultiBufferGetDataPtr GetData, int priority);
 
 void DetectPktInspectEngineRegister(const char *name,
