@@ -422,7 +422,12 @@ typedef struct DetectEngineAppInspectionEngine_ {
     bool match_on_null;
     uint16_t sm_list;
     uint16_t sm_list_base; /**< base buffer being transformed */
-    uint8_t progress;
+    // An app-layer inspection engine may run at different progresses.
+    // Even if most engines run at only one progress (min_progress=max_progress)
+    // http_header keyword may run for headers and trailers progress for example
+    uint8_t min_progress;
+    // max_progress allows us to not give up on matching too soon
+    uint8_t max_progress;
 
     struct {
         union {

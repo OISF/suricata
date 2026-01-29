@@ -1242,23 +1242,33 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
 
             /* engines are sorted per progress, except that the one with
              * mpm/prefilter enabled is first */
-            if (tx->tx_progress < engine->progress) {
-                SCLogDebug("tx progress %d < engine progress %d",
-                        tx->tx_progress, engine->progress);
+            if (tx->tx_progress < engine->min_progress) {
+                SCLogDebug("tx progress %d < engine progress %d", tx->tx_progress,
+                        engine->min_progress);
                 break;
             }
             if (engine->mpm) {
-                if (tx->tx_progress > engine->progress) {
+                if (tx->tx_progress > engine->max_progress) {
                     TRACE_SID_TXS(s->id, tx,
-                            "engine->mpm: t->tx_progress %u > engine->progress %u, so set "
+                            "engine->mpm: t->tx_progress %u > engine->max_progress %u, so set "
                             "mpm_before_progress",
-                            tx->tx_progress, engine->progress);
+                            tx->tx_progress, engine->max_progress);
                     mpm_before_progress = true;
-                } else if (tx->tx_progress == engine->progress) {
+                } else if (tx->tx_progress == engine->min_progress) {
+                    // do not use >= min progress && <= max_progress here
+                    // because mpm_in_progress is used to optimize and
+                    // not store partially (so far) matching signature as next
+                    // packet with next progress will re-run mpm.
+                    // But for a rule with
+                    // a http1 header as fast_pattern/mpm
+                    // a http1 method, and some content on client body
+                    // when we are in body progress and do not match yet the content
+                    // we will not re-run http_header prefilter for headers progress
+                    // so we need to store signature
                     TRACE_SID_TXS(s->id, tx,
-                            "engine->mpm: t->tx_progress %u == engine->progress %u, so set "
+                            "engine->mpm: t->tx_progress %u == engine->min_progress %u, so set "
                             "mpm_in_progress",
-                            tx->tx_progress, engine->progress);
+                            tx->tx_progress, engine->min_progress);
                     mpm_in_progress = true;
                 }
             }
@@ -1275,13 +1285,13 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
             } else if (engine->v2.Callback == NULL) {
                 /* TODO is this the cleanest way to support a non-app sig on a app hook? */
 
-                if (tx->tx_progress > engine->progress) {
+                if (tx->tx_progress > engine->max_progress) {
                     mpm_before_progress = true; // TODO needs a new name now
                 }
 
                 /* we don't have to store a "hook" match, also don't want to keep any state to make
                  * sure the hook gets invoked again until tx progress progresses. */
-                if (tx->tx_progress <= engine->progress)
+                if (tx->tx_progress <= engine->max_progress)
                     return DETECT_ENGINE_INSPECT_SIG_MATCH;
 
                 /* if progress > engine progress, track state to avoid additional matches */
