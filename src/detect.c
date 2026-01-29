@@ -1361,14 +1361,14 @@ static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
                         "skip because engine alproto %s sub_state %u != tx_type %u (engine "
                         "progress %u)",
                         AppProtoToString(engine->alproto), engine->sub_state, tx->tx_type,
-                        engine->progress);
+                        engine->min_progress);
                 engine = engine->next;
                 continue;
             }
             TRACE_SID_TXS(s->id, tx,
                     "inspecting engine alproto %s sub_state %u == tx_type %u (engine progress %u)",
                     AppProtoToString(engine->alproto), engine->sub_state, tx->tx_type,
-                    engine->progress);
+                    engine->min_progress);
 
             void *tx_ptr = DetectGetInnerTx(tx->tx_ptr, f->alproto, engine->alproto, flow_flags);
             if (tx_ptr == NULL) {
@@ -1387,23 +1387,33 @@ static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
 
             /* engines are sorted per progress, except that the one with
              * mpm/prefilter enabled is first */
-            if (tx->tx_progress < engine->progress) {
-                SCLogDebug("tx progress %d < engine progress %d",
-                        tx->tx_progress, engine->progress);
+            if (tx->tx_progress < engine->min_progress) {
+                SCLogDebug("tx progress %d < engine progress %d", tx->tx_progress,
+                        engine->min_progress);
                 break;
             }
             if (engine->mpm) {
-                if (tx->tx_progress > engine->progress) {
+                if (tx->tx_progress > engine->max_progress) {
                     TRACE_SID_TXS(s->id, tx,
-                            "engine->mpm: t->tx_progress %u > engine->progress %u, so set "
+                            "engine->mpm: t->tx_progress %u > engine->max_progress %u, so set "
                             "mpm_before_progress",
-                            tx->tx_progress, engine->progress);
+                            tx->tx_progress, engine->max_progress);
                     mpm_before_progress = true;
-                } else if (tx->tx_progress == engine->progress) {
+                } else if (tx->tx_progress == engine->min_progress) {
+                    // do not use >= min progress && <= max_progress here
+                    // because mpm_in_progress is used to optimize and
+                    // not store partially (so far) matching signature as next
+                    // packet with next progress will re-run mpm.
+                    // But for a rule with
+                    // a http1 header as fast_pattern/mpm
+                    // a http1 method, and some content on client body
+                    // when we are in body progress and do not match yet the content
+                    // we will not re-run http_header prefilter for headers progress
+                    // so we need to store signature
                     TRACE_SID_TXS(s->id, tx,
-                            "engine->mpm: t->tx_progress %u == engine->progress %u, so set "
+                            "engine->mpm: t->tx_progress %u == engine->min_progress %u, so set "
                             "mpm_in_progress",
-                            tx->tx_progress, engine->progress);
+                            tx->tx_progress, engine->min_progress);
                     if ((p->flags & PKT_PSEUDO_DETECTLOG_FLUSH) == 0) {
                         mpm_in_progress = true;
                     }
@@ -1422,13 +1432,14 @@ static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
             } else if (engine->v2.Callback == NULL) {
                 /* TODO is this the cleanest way to support a non-app sig on a app hook? */
 
-                if (tx->tx_progress > engine->progress) {
+                if (tx->tx_progress > engine->max_progress) {
                     mpm_before_progress = true; // TODO needs a new name now
                 }
 
                 /* we don't have to store a "hook" match, also don't want to keep any state to make
                  * sure the hook gets invoked again until tx progress progresses. */
-                if ((s->flags & SIG_FLAG_FW_HOOK_LTE) == 0 && tx->tx_progress <= engine->progress) {
+                if ((s->flags & SIG_FLAG_FW_HOOK_LTE) == 0 &&
+                        tx->tx_progress <= engine->max_progress) {
                     return 1; // DETECT_ENGINE_INSPECT_SIG_MATCH;
                 }
 

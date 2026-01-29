@@ -311,7 +311,7 @@ static uint8_t DetectEngineInspectFilemagic(DetectEngineCtx *de_ctx, DetectEngin
     FileContainer *ffc = files.fc;
     if (ffc == NULL || ffc->head == NULL) {
         const bool eof = (AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) >
-                          engine->progress);
+                          engine->max_progress);
         if (eof && engine->match_on_null) {
             return DETECT_ENGINE_INSPECT_SIG_MATCH;
         }

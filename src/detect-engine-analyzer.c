@@ -1460,10 +1460,15 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
             SCJbSetString(ctx.js, "direction", direction);
             SCJbSetBool(ctx.js, "is_mpm", app->mpm);
             SCJbSetString(ctx.js, "app_proto", AppProtoToString(app->alproto));
-            SCJbSetUint(ctx.js, "progress", app->progress);
             if (app->sub_state)
                 SCJbSetString(ctx.js, "sub_state",
                         AppLayerParserGetSubStateName(app->alproto, app->sub_state));
+            if (app->max_progress != app->min_progress) {
+                SCJbSetUint(ctx.js, "min_progress", app->min_progress);
+                SCJbSetUint(ctx.js, "max_progress", app->max_progress);
+            } else {
+                SCJbSetUint(ctx.js, "progress", app->min_progress);
+            }
 
             if (app->v2.transforms != NULL) {
                 SCJbOpenArray(ctx.js, "transforms");
