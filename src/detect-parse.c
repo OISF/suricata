@@ -1156,9 +1156,9 @@ void DetectRegisterAppLayerHookLists(void)
             alproto_name = "http1";
         SCLogDebug("alproto %u/%s", a, alproto_name);
 
-        const int max_progress_ts =
+        const uint8_t max_progress_ts =
                 AppLayerParserGetStateProgressCompletionStatus(a, STREAM_TOSERVER);
-        const int max_progress_tc =
+        const uint8_t max_progress_tc =
                 AppLayerParserGetStateProgressCompletionStatus(a, STREAM_TOCLIENT);
 
         char ts_tx_started[64];
@@ -1191,7 +1191,7 @@ void DetectRegisterAppLayerHookLists(void)
         SCLogDebug("- hook %s:%s list %s (%u)", alproto_name, "response_name", tc_tx_complete,
                 (uint32_t)strlen(tc_tx_complete));
 
-        for (int p = 0; p <= max_progress_ts; p++) {
+        for (uint8_t p = 0; p <= max_progress_ts; p++) {
             const char *name = AppLayerParserGetStateNameById(
                     IPPROTO_TCP /* TODO no ipproto */, a, p, STREAM_TOSERVER);
             if (name != NULL && !IsBuiltIn(name)) {
@@ -1204,7 +1204,7 @@ void DetectRegisterAppLayerHookLists(void)
                         list_name, a, SIG_FLAG_TOSERVER, p, DetectEngineInspectGenericList, NULL);
             }
         }
-        for (int p = 0; p <= max_progress_tc; p++) {
+        for (uint8_t p = 0; p <= max_progress_tc; p++) {
             const char *name = AppLayerParserGetStateNameById(
                     IPPROTO_TCP /* TODO no ipproto */, a, p, STREAM_TOCLIENT);
             if (name != NULL && !IsBuiltIn(name)) {
@@ -1299,7 +1299,7 @@ static int SigParseProtoHookPkt(Signature *s, const char *proto_hook, const char
     return 0;
 }
 
-static SignatureHook SetAppHook(const AppProto alproto, int progress)
+static SignatureHook SetAppHook(const AppProto alproto, uint8_t progress)
 {
     SignatureHook h = {
         .type = SIGNATURE_HOOK_TYPE_APP,
@@ -1335,7 +1335,7 @@ static int SigParseProtoHookApp(Signature *s, const char *proto_hook, const char
                 IPPROTO_TCP /* TODO */, s->alproto, h, STREAM_TOSERVER);
         if (progress_ts >= 0) {
             s->flags |= SIG_FLAG_TOSERVER;
-            s->init_data->hook = SetAppHook(s->alproto, progress_ts);
+            s->init_data->hook = SetAppHook(s->alproto, (uint8_t)progress_ts);
         } else {
             const int progress_tc = AppLayerParserGetStateIdByName(
                     IPPROTO_TCP /* TODO */, s->alproto, h, STREAM_TOCLIENT);
@@ -1343,7 +1343,7 @@ static int SigParseProtoHookApp(Signature *s, const char *proto_hook, const char
                 return -1;
             }
             s->flags |= SIG_FLAG_TOCLIENT;
-            s->init_data->hook = SetAppHook(s->alproto, progress_tc);
+            s->init_data->hook = SetAppHook(s->alproto, (uint8_t)progress_tc);
         }
     }
 
@@ -1360,7 +1360,7 @@ static int SigParseProtoHookApp(Signature *s, const char *proto_hook, const char
             SignatureHookTypeToString(s->init_data->hook.type), s->init_data->hook.t.app.alproto,
             s->init_data->hook.t.app.app_progress);
 
-    s->app_progress_hook = (uint8_t)s->init_data->hook.t.app.app_progress;
+    s->app_progress_hook = s->init_data->hook.t.app.app_progress;
     return 0;
 }
 

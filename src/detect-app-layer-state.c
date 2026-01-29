@@ -140,7 +140,7 @@ end:
 }
 
 // TODO dedup with detect-parse.c
-static SignatureHook SetAppHook(const AppProto alproto, int progress)
+static SignatureHook SetAppHook(const AppProto alproto, uint8_t progress)
 {
     SignatureHook h = {
         .type = SIGNATURE_HOOK_TYPE_APP,
@@ -175,7 +175,7 @@ static int DetectAppLayerStateSetup(DetectEngineCtx *de_ctx, Signature *s, const
                 IPPROTO_TCP /* TODO */, s->alproto, h, STREAM_TOSERVER);
         if (progress_ts >= 0) {
             s->flags |= SIG_FLAG_TOSERVER;
-            s->init_data->hook = SetAppHook(s->alproto, progress_ts);
+            s->init_data->hook = SetAppHook(s->alproto, (uint8_t)progress_ts);
         } else {
             const int progress_tc = AppLayerParserGetStateIdByName(
                     IPPROTO_TCP /* TODO */, s->alproto, h, STREAM_TOCLIENT);
@@ -183,7 +183,7 @@ static int DetectAppLayerStateSetup(DetectEngineCtx *de_ctx, Signature *s, const
                 return -1;
             }
             s->flags |= SIG_FLAG_TOCLIENT;
-            s->init_data->hook = SetAppHook(s->alproto, progress_tc);
+            s->init_data->hook = SetAppHook(s->alproto, (uint8_t)progress_tc);
         }
         SCLogDebug("hook %u", s->init_data->hook.t.app.app_progress);
         return 0;
