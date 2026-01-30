@@ -257,6 +257,7 @@ impl LdapState {
                     return AppLayerResult::incomplete(consumed as u32, needed as u32);
                 }
                 Err(_) => {
+                    self.set_event(LdapEvent::InvalidData);
                     return AppLayerResult::err();
                 }
             }
