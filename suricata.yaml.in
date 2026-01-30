@@ -116,6 +116,8 @@ outputs:
       #redis:
       #  server: 127.0.0.1
       #  port: 6379
+      #  username: null ## ACL username; if null (default), no username is used
+      #  password: null ## AUTH password; if null (default), authentication is disabled
       #  async: true ## if redis replies are read asynchronously
       #  mode: list ## possible values: list|lpush (default), rpush, channel|publish, xadd|stream
       #             ## lpush and rpush are using a Redis list. "list" is an alias for lpush
