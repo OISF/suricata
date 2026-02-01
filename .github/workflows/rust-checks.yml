@@ -73,7 +73,7 @@ jobs:
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Install Cargo Audit
         run: cargo install cargo-audit
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
       - name: Configure Suricata
         run: |
           ./autogen.sh
@@ -143,7 +143,7 @@ jobs:
                 sudo \
                 which \
                 zlib-devel
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
       - name: Install Minimum Supported Rust Version
         run: |
           curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $(awk -F '"' '/rust-version/ { print $2 }' rust/Cargo.toml.in)
