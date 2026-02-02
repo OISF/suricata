@@ -8231,9 +8231,6 @@
                         "insert_data_overlap_fail": {
                             "type": "integer"
                         },
-                        "insert_list_fail": {
-                            "type": "integer"
-                        },
                         "invalid_checksum": {
                             "type": "integer"
                         },
