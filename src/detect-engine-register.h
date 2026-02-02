@@ -354,6 +354,8 @@ extern int DETECT_TBLSIZE_IDX;
 #define SIGMATCH_BAN_FIREWALL_RULE (1UL << (21))
 /** keyword cannot be used in firewall mode */
 #define SIGMATCH_BAN_FIREWALL_MODE (1UL << (22))
+/** transform can fail (return no data) */
+#define SIGMATCH_TRANSFORM_CAN_FAIL (1UL << (23))
 
 int SigTableList(const char *keyword);
 void SigTableCleanup(void);
