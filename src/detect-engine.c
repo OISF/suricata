@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -2373,7 +2373,7 @@ InspectionBuffer *DetectGetMultiData(struct DetectEngineThreadCtx_ *det_ctx,
         return NULL;
     }
     InspectionBufferSetupMulti(det_ctx, buffer, transforms, data, data_len);
-    buffer->flags = DETECT_CI_FLAGS_SINGLE;
+    buffer->flags |= DETECT_CI_FLAGS_SINGLE;
     return buffer;
 }
 
