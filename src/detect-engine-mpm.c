@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1233,8 +1233,8 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
         }
 
         for (SigMatch *sm = s->init_data->buffers[x].head; sm != NULL; sm = sm->next) {
-            // a buffer with absent keyword cannot be used as fast_pattern
-            if (sm->type == DETECT_ABSENT)
+            // a buffer with absent or transform_result cannot use fast_pattern
+            if (sm->type == DETECT_ABSENT || sm->type == DETECT_TRANSFORM_RESULT)
                 break;
             if (sm->type != DETECT_CONTENT)
                 continue;
