@@ -1,4 +1,4 @@
-/* Copyright (C) 2020-2024 Open Information Security Foundation
+/* Copyright (C) 2020-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -837,6 +837,18 @@ impl DCERPCState {
             };
         let parsed = DCERPC_HDR_LEN;
         let fraglen = hdr.frag_length;
+        match fraglen.cmp(&parsed) {
+            cmp::Ordering::Less => {
+                // fragment length should at least be header length
+                SCLogDebug!("Erroneous fragment length");
+                return AppLayerResult::err();
+            },
+            cmp::Ordering::Equal => {
+                // input only consists of the header and that was consumed, so, return early
+                return AppLayerResult::ok();
+            }
+            cmp::Ordering::Greater => {}
+        }
 
         // rem == bytes consumed to move past gap; so those were not a part of the fragment
         if rem < fraglen as u32 {
@@ -853,67 +865,68 @@ impl DCERPCState {
         }
         let current_call_id = hdr.call_id;
 
+        debug_validate_bug_on!(parsed > fraglen);
         match hdrtype {
-                DCERPC_TYPE_BIND | DCERPC_TYPE_ALTER_CONTEXT => {
-                    retval = self.process_bind_pdu(&cur_i[parsed as usize..], &hdr);
-                    if retval == -1 {
-                        return AppLayerResult::err();
-                    }
+            DCERPC_TYPE_BIND | DCERPC_TYPE_ALTER_CONTEXT => {
+                retval = self.process_bind_pdu(&cur_i[parsed as usize..fraglen as usize], &hdr);
+                if retval == -1 {
+                    return AppLayerResult::err();
                 }
-                DCERPC_TYPE_BINDACK | DCERPC_TYPE_ALTER_CONTEXT_RESP => {
-                    retval = self.process_bindack_pdu(&cur_i[parsed as usize..]);
-                    if retval == -1 {
-                        return AppLayerResult::err();
-                    }
-                    let tx = if let Some(tx) = self.get_tx_by_call_id(current_call_id, Direction::ToClient, hdrtype) {
+            }
+            DCERPC_TYPE_BINDACK | DCERPC_TYPE_ALTER_CONTEXT_RESP => {
+                retval = self.process_bindack_pdu(&cur_i[parsed as usize..fraglen as usize]);
+                if retval == -1 {
+                    return AppLayerResult::err();
+                }
+                let tx = if let Some(tx) = self.get_tx_by_call_id(current_call_id, Direction::ToClient, hdrtype) {
+                    tx.resp_cmd = hdrtype;
+                    tx
+                } else {
+                    let mut tx = self.create_tx(&hdr);
+                    tx.resp_cmd = hdrtype;
+                    self.transactions.push_back(tx);
+                    self.transactions.back_mut().unwrap()
+                };
+                tx.resp_done = true;
+                tx.frag_cnt_tc = 1;
+                if let Some(flow) = self.flow {
+                    sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
+                }
+            }
+            DCERPC_TYPE_REQUEST => {
+                retval = self.process_request_pdu(&cur_i[parsed as usize..fraglen as usize], &hdr);
+                if retval < 0 {
+                    return AppLayerResult::err();
+                }
+                // In case the response came first, the transaction would complete later when
+                // the corresponding request also comes through
+            }
+            DCERPC_TYPE_RESPONSE => {
+                let transaction = self.get_tx_by_call_id(current_call_id, Direction::ToClient, hdrtype);
+                match transaction {
+                    Some(tx) => {
                         tx.resp_cmd = hdrtype;
-                        tx
-                    } else {
+                    }
+                    None => {
                         let mut tx = self.create_tx(&hdr);
                         tx.resp_cmd = hdrtype;
                         self.transactions.push_back(tx);
-                        self.transactions.back_mut().unwrap()
-                    };
-                    tx.resp_done = true;
-                    tx.frag_cnt_tc = 1;
-                    if let Some(flow) = self.flow {
-                        sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
                     }
-                }
-                DCERPC_TYPE_REQUEST => {
-                    retval = self.process_request_pdu(&cur_i[parsed as usize..], &hdr);
-                    if retval < 0 {
-                        return AppLayerResult::err();
-                    }
-                    // In case the response came first, the transaction would complete later when
-                    // the corresponding request also comes through
-                }
-                DCERPC_TYPE_RESPONSE => {
-                    let transaction = self.get_tx_by_call_id(current_call_id, Direction::ToClient, hdrtype);
-                    match transaction {
-                        Some(tx) => {
-                            tx.resp_cmd = hdrtype;
-                        }
-                        None => {
-                            let mut tx = self.create_tx(&hdr);
-                            tx.resp_cmd = hdrtype;
-                            self.transactions.push_back(tx);
-                        }
-                    };
-                    retval = self.handle_common_stub(
-                        &cur_i[parsed as usize..],
-                        0,
-                        Direction::ToClient,
-                        &hdr,
-                    );
-                    if retval < 0 {
-                        return AppLayerResult::err();
-                    }
-                }
-                _ => {
-                    SCLogDebug!("Unrecognized packet type: {:?}", hdrtype);
+                };
+                retval = self.handle_common_stub(
+                    &cur_i[parsed as usize..fraglen as usize],
+                    0,
+                    Direction::ToClient,
+                    &hdr,
+                );
+                if retval < 0 {
                     return AppLayerResult::err();
                 }
+            }
+            _ => {
+                SCLogDebug!("Unrecognized packet type: {:?}", hdrtype);
+                return AppLayerResult::err();
+            }
         }
 
         self.post_gap_housekeeping(direction);
