@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -79,17 +79,22 @@ static int DetectAbsentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
     if (DetectBufferGetActiveList(de_ctx, s) == -1)
         return -1;
 
-    bool or_else;
+    bool or_else = false;
+    bool error_or = false;
+
     if (optstr == NULL) {
         or_else = false;
     } else if (strcmp(optstr, "or_else") == 0) {
         or_else = true;
+    } else if (strcmp(optstr, "error_or") == 0) {
+        or_else = true;
+        error_or = true;
     } else {
         SCLogError("unhandled value for absent keyword: %s", optstr);
         return -1;
     }
     if (s->init_data->curbuf == NULL || s->init_data->list != (int)s->init_data->curbuf->id) {
-        SCLogError("unspected buffer for absent keyword");
+        SCLogError("inspected buffer for absent keyword");
         return -1;
     }
     const DetectBufferType *b = DetectEngineBufferTypeGetById(de_ctx, s->init_data->list);
@@ -106,6 +111,7 @@ static int DetectAbsentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
         return -1;
 
     dad->or_else = or_else;
+    dad->error_or = error_or;
 
     if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_ABSENT, (SigMatchCtx *)dad, s->init_data->list) == NULL) {
@@ -119,20 +125,23 @@ bool DetectAbsentValidateContentCallback(const Signature *s, const SignatureInit
 {
     bool has_other = false;
     bool only_absent = false;
-    bool has_absent = false;
+    bool has_absent_with_option = false;
     for (const SigMatch *sm = b->head; sm != NULL; sm = sm->next) {
         if (sm->type == DETECT_ABSENT) {
-            has_absent = true;
             const DetectAbsentData *dad = (const DetectAbsentData *)sm->ctx;
             if (!dad->or_else) {
                 only_absent = true;
+            } else {
+                has_absent_with_option = true;
             }
         } else {
             has_other = true;
             if (sm->type == DETECT_CONTENT) {
                 const DetectContentData *cd = (DetectContentData *)sm->ctx;
-                if (has_absent && (cd->flags & DETECT_CONTENT_FAST_PATTERN)) {
-                    SCLogError("signature can't have absent and fast_pattern on the same buffer");
+                if (has_absent_with_option && (cd->flags & DETECT_CONTENT_FAST_PATTERN)) {
+                    SCLogError(
+                            "signature can't have absent with options and fast_pattern on the same "
+                            "buffer");
                     return false;
                 }
             }
@@ -143,9 +152,9 @@ bool DetectAbsentValidateContentCallback(const Signature *s, const SignatureInit
         SCLogError("signature can't have a buffer tested absent and tested with other keywords "
                    "such as content");
         return false;
-    } else if (has_absent && !only_absent && !has_other) {
-        SCLogError(
-                "signature with absent: or_else expects other keywords to test on such as content");
+    } else if (has_absent_with_option && !has_other) {
+        SCLogError("signature with absent: or_else/error_or expects other keywords to test on such "
+                   "as content");
         return false;
     }
     return true;
