@@ -689,6 +689,12 @@ extern "C" {
         det_ctx: *mut DetectEngineThreadCtx, id: ::std::os::raw::c_int,
     ) -> *mut ::std::os::raw::c_void;
 }
+pub const DETECT_CI_FLAGS_START: u8 = 1;
+pub const DETECT_CI_FLAGS_END: u8 = 2;
+#[doc = "< transformation/decode error occurred"]
+pub const DETECT_CI_FLAGS_ERROR: u8 = 16;
+#[doc = " buffer is a single, non-streaming, buffer. Data sent to the content\n  inspection function contains both start and end of the data."]
+pub const DETECT_CI_FLAGS_SINGLE: u8 = 3;
 #[repr(C)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct InspectionBuffer {
@@ -737,6 +743,9 @@ extern "C" {
 }
 extern "C" {
     pub fn SCInspectionBufferTruncate(buffer: *mut InspectionBuffer, buf_len: u32);
+}
+extern "C" {
+    pub fn SCInspectionBufferSetError(buffer: *mut InspectionBuffer);
 }
 extern "C" {
     pub fn SCInspectionBufferGet(
