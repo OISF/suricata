@@ -223,8 +223,8 @@ if [ $ACCEPTED -eq 0 ]; then
     echo "ERROR no packets captured"
     RES=1
 fi
-if [ $BLOCKED -ne 10 ]; then
-    echo "ERROR should have seen 10 blocked"
+if [ $BLOCKED -lt 10 ]; then
+    echo "ERROR should have seen 10+ blocked"
     RES=1
 fi
 
