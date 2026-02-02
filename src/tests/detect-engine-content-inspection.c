@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2017 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -316,6 +316,42 @@ static int DetectEngineContentInspectionTest17(void)
     TEST_FOOTER;
 }
 
+/** \test SCInspectionBufferSetError keeps the data, and setting the buffer up
+ *        again clears the error flag */
+static int DetectEngineContentInspectionTest18(void)
+{
+    const uint8_t data[] = "Zm9vYmFy!!";
+    const uint32_t data_len = sizeof(data) - 1;
+    InspectionBuffer buffer;
+    memset(&buffer, 0, sizeof(buffer));
+#ifdef DEBUG_VALIDATION
+    buffer.multi = true;
+#endif
+
+    InspectionBufferSetupMulti(NULL, &buffer, NULL, data, data_len);
+    FAIL_IF(buffer.flags & DETECT_CI_FLAGS_ERROR);
+    SCInspectionBufferSetError(&buffer);
+    FAIL_IF_NOT(buffer.flags & DETECT_CI_FLAGS_ERROR);
+    FAIL_IF_NOT(buffer.inspect == data);
+    FAIL_IF_NOT(buffer.inspect_len == data_len);
+    FAIL_IF_NOT(buffer.initialized);
+
+    InspectionBufferSetupMulti(NULL, &buffer, NULL, data, data_len);
+    FAIL_IF(buffer.flags & DETECT_CI_FLAGS_ERROR);
+
+    SCInspectionBufferSetError(&buffer);
+    buffer.initialized = false;
+    InspectionBufferSetupMultiEmpty(&buffer);
+    FAIL_IF(buffer.flags & DETECT_CI_FLAGS_ERROR);
+
+    /* the error flag must not share a bit with the start/end flags or with
+     * the DCE_LE/DCE_BE flags that rust/src/dcerpc/detect.rs sets */
+    FAIL_IF(DETECT_CI_FLAGS_ERROR & (DETECT_CI_FLAGS_SINGLE | BIT_U8(2) | BIT_U8(3)));
+
+    InspectionBufferFree(&buffer);
+    PASS;
+}
+
 void DetectEngineContentInspectionRegisterTests(void)
 {
     UtRegisterTest("DetectEngineContentInspectionTest01",
@@ -348,6 +384,8 @@ void DetectEngineContentInspectionRegisterTests(void)
             DetectEngineContentInspectionTest14);
     UtRegisterTest("DetectEngineContentInspectionTest17 negative distance",
             DetectEngineContentInspectionTest17);
+    UtRegisterTest(
+            "DetectEngineContentInspectionTest18 error flag", DetectEngineContentInspectionTest18);
 }
 
 #undef TEST_HEADER
