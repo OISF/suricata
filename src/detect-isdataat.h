@@ -44,6 +44,7 @@ typedef struct DetectAbsentData_ {
 /* prototypes */
 void DetectIsdataatRegister (void);
 
-bool DetectAbsentValidateContentCallback(const Signature *s, const SignatureInitDataBuffer *);
+bool DetectAbsentValidateContentCallback(
+        const DetectEngineCtx *de_ctx, const Signature *s, const SignatureInitDataBuffer *);
 
 #endif /* SURICATA_DETECT_ISDATAAT_H */
