@@ -331,9 +331,11 @@ static uint8_t DetectEngineInspectFilemagic(DetectEngineCtx *de_ctx, DetectEngin
             continue;
         }
 
+        uint8_t ciflags = DETECT_CI_FLAGS_SINGLE;
+        ciflags |= buffer->flags;
         const bool match = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd, NULL, f,
                 buffer->inspect, buffer->inspect_len, buffer->inspect_offset,
-                DETECT_CI_FLAGS_SINGLE, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
+                ciflags, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
         if (match) {
             return DETECT_ENGINE_INSPECT_SIG_MATCH;
         } else {

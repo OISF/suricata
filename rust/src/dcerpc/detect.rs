@@ -427,15 +427,15 @@ unsafe extern "C" fn dcerpc_tx_get_stub_data(
                 tx.stub_data_buffer_tc.len() as u32,
             )
         };
+        SCInspectionBufferSetupAndApplyTransforms(
+            det_ctx, list_id, buffer, data, data_len, transforms,
+        );
+
         if tx.endianness > 0 {
             (*buffer).flags |= DETECT_CI_FLAGS_DCE_LE;
         } else {
             (*buffer).flags |= DETECT_CI_FLAGS_DCE_BE;
         }
-
-        SCInspectionBufferSetupAndApplyTransforms(
-            det_ctx, list_id, buffer, data, data_len, transforms,
-        );
     }
     return buffer;
 }
