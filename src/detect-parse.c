@@ -2733,7 +2733,7 @@ static int SigValidateCheckBuffers(
         if (!DetectBsizeValidateContentCallback(s, b)) {
             SCReturnInt(0);
         }
-        if (!DetectAbsentValidateContentCallback(s, b)) {
+        if (!DetectAbsentValidateContentCallback(de_ctx, s, b)) {
             SCReturnInt(0);
         }
     }
