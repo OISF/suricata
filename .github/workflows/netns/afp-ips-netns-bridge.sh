@@ -244,7 +244,6 @@ echo "* dumping some stats..."
 cat ./eve.json | jq -c 'select(.tls)'|tail -n1|jq
 cat ./eve.json | jq -c 'select(.stats)|.stats.ips'|tail -n1|jq
 cat ./eve.json | jq -c 'select(.stats)|.stats.capture'|tail -n1|jq
-cat ./eve.json | jq
 echo "* dumping some stats... done"
 
 
