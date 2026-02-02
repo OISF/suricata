@@ -22,8 +22,8 @@
  */
 
 #include "suricata-common.h"
-#include "detect-engine-inspect-buffer.h"
 #include "detect.h"
+#include "detect-engine-content-inspection.h"
 
 #include "util-validate.h"
 
@@ -240,6 +240,14 @@ void SCInspectionBufferTruncate(InspectionBuffer *buffer, uint32_t buf_len)
     DEBUG_VALIDATE_BUG_ON(buf_len > buffer->size);
     buffer->inspect = buffer->buf;
     buffer->inspect_len = buf_len;
+    buffer->initialized = true;
+}
+
+void SCInspectionBufferSetError(InspectionBuffer *buffer)
+{
+    buffer->flags |= DETECT_CI_FLAGS_ERROR;
+    buffer->inspect = NULL;
+    buffer->inspect_len = 0;
     buffer->initialized = true;
 }
 

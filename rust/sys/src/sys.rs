@@ -682,6 +682,9 @@ extern "C" {
 extern "C" {
     pub fn SCInspectionBufferTruncate(buffer: *mut InspectionBuffer, buf_len: u32);
 }
+extern "C" {
+    pub fn SCInspectionBufferSetError(buffer: *mut InspectionBuffer);
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct SigMatchCtx_ {
