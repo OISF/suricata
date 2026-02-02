@@ -1454,15 +1454,6 @@
                 "from": {
                     "type": "string"
                 },
-                "has_exe_url": {
-                    "type": "boolean"
-                },
-                "has_ipv4_url": {
-                    "type": "boolean"
-                },
-                "has_ipv6_url": {
-                    "type": "boolean"
-                },
                 "message_id": {
                     "type": "string"
                 },
