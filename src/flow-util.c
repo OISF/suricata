@@ -218,6 +218,55 @@ void FlowInit(ThreadVars *tv, Flow *f, const Packet *p)
     SCReturn;
 }
 
+void FlowInitFromFlow(ThreadVars *tv, Flow* f, const Flow* old_f, const Packet* p) {
+    SCEnter();
+    SCLogDebug("flow %p old_flow", f, old_f);
+
+    f->proto = old_f->proto;
+    f->recursion_level = old_f->recursion_level;
+    memcpy(&f->vlan_id[0], &p->vlan_id[0], sizeof(f->vlan_id));
+    f->vlan_idx = old_f->vlan_idx;
+
+    f->thread_id[0] = (FlowThreadId)tv->id;
+
+    f->livedev = old_f->livedev;
+
+    f->src = old_f->src;
+    f->dst = old_f->dst;
+    f->sp = old_f->sp;
+    f->dp = old_f->dp;
+
+    // Copy only the direction bit, not all flags to avoid carrying over
+    // app-layer state flags that prevent logging (AWN-78421)
+    f->flags = old_f->flags & FLOW_DIR_REVERSED;
+
+    f->flow_hash = old_f->flow_hash;
+
+    //reset ttl and let it re-calculate it from packets in new flow.
+    f->min_ttl_toserver = f->max_ttl_toserver = 0;
+    f->min_ttl_toclient = f->max_ttl_toclient = 0;
+
+    f->startts = p->ts;
+
+    f->protomap = FlowGetProtoMapping(f->proto);
+    f->timeout_policy = FlowGetTimeoutPolicy(f);
+
+    if (MacSetFlowStorageEnabled()) {
+        DEBUG_VALIDATE_BUG_ON(FlowGetStorageById(f, MacSetGetFlowStorageID()) != NULL);
+        MacSet *ms = MacSetInit(10);
+        FlowSetStorageById(f, MacSetGetFlowStorageID(), ms);
+    }
+
+    if (FlowRateStorageEnabled()) {
+        DEBUG_VALIDATE_BUG_ON(FlowGetStorageById(f, FlowRateGetStorageID()) != NULL);
+        FlowRateStore *frs = FlowRateStoreInit();
+        FlowSetStorageById(f, FlowRateGetStorageID(), frs);
+    }
+
+    SCFlowRunInitCallbacks(tv, f, p);
+    SCReturn;
+}
+
 FlowStorageId g_bypass_info_id = { .id = -1 };
 
 FlowStorageId GetFlowBypassInfoID(void)

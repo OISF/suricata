@@ -244,6 +244,15 @@ static inline void TcpStreamFlowSwap(Flow *f)
  */
 void FlowSwap(Flow *f)
 {
+    // AWN Patch : During flow rotation for long lived flows, 
+    // existing flow flags are copied to new flow and tcp states are set to None.
+    // This can cause FlowSwap to be called again but we should not swap
+    //  the data again if FLOW_DIR_REVERSED is alread set 
+    if (f->flags & FLOW_DIR_REVERSED) {
+        SCLogDebug("Flow flags already swapped and hence, not swapping it again");     
+        return;
+    }
+    SCLogDebug("Swapping Flow Flags.");
     f->flags |= FLOW_DIR_REVERSED;
 
     SWAP_VARS(uint32_t, f->probing_parser_toserver_alproto_masks,

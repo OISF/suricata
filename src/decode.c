@@ -580,6 +580,15 @@ void PacketBypassCallback(Packet *p)
 /** \brief switch direction of a packet */
 void PacketSwap(Packet *p)
 {
+    // AWN Patch : During flow rotation for long lived flows, 
+    // existing flow flags are copied to new flow and packet flags are accordingly set.
+    // and hence, if FLOW_DIR_REVERSED flag in flow flags is already set, 
+    // we should not set swap the packet again. Guard it.
+    if (p->flow->flags & FLOW_DIR_REVERSED) {
+        SCLogDebug("packet flow flags already swapped and hence, not swapping it again");
+        return;
+    }
+    SCLogDebug("Swapping packet flow flags.");
     if (PKT_IS_TOSERVER(p)) {
         p->flowflags &= ~FLOW_PKT_TOSERVER;
         p->flowflags |= FLOW_PKT_TOCLIENT;
