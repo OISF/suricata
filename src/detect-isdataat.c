@@ -121,11 +121,14 @@ static int DetectAbsentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
     return 0;
 }
 
-bool DetectAbsentValidateContentCallback(const Signature *s, const SignatureInitDataBuffer *b)
+bool DetectAbsentValidateContentCallback(
+        const DetectEngineCtx *de_ctx, const Signature *s, const SignatureInitDataBuffer *b)
 {
     bool has_other = false;
     bool only_absent = false;
     bool has_absent_with_option = false;
+    bool has_error_or = false;
+    bool has_or_else_only = false;
     for (const SigMatch *sm = b->head; sm != NULL; sm = sm->next) {
         if (sm->type == DETECT_ABSENT) {
             const DetectAbsentData *dad = (const DetectAbsentData *)sm->ctx;
@@ -133,6 +136,10 @@ bool DetectAbsentValidateContentCallback(const Signature *s, const SignatureInit
                 only_absent = true;
             } else {
                 has_absent_with_option = true;
+                if (dad->error_or)
+                    has_error_or = true;
+                else
+                    has_or_else_only = true;
             }
         } else {
             has_other = true;
@@ -157,6 +164,31 @@ bool DetectAbsentValidateContentCallback(const Signature *s, const SignatureInit
                    "as content");
         return false;
     }
+
+    if (has_error_or || has_or_else_only) {
+        const DetectBufferType *map = DetectEngineBufferTypeGetById(de_ctx, b->id);
+        if (map) {
+            bool found_can_fail = false;
+            for (int i = 0; i < map->transforms.cnt; i++) {
+                int transform = map->transforms.transforms[i].transform;
+                if (sigmatch_table[transform].flags & SIGMATCH_TRANSFORM_CAN_FAIL) {
+                    found_can_fail = true;
+                    break;
+                }
+            }
+            if (has_error_or && !found_can_fail) {
+                SCLogError("absent: error_or requires a transform that can fail "
+                           "(e.g. from_base64)");
+                return false;
+            }
+            if (has_or_else_only && found_can_fail) {
+                SCLogError("absent: or_else on a buffer with a transform that can fail; "
+                           "use error_or instead");
+                return false;
+            }
+        }
+    }
+
     return true;
 }
 
