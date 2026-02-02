@@ -238,12 +238,21 @@ fi
 echo "* server pings received check... done"
 
 echo "* shutting down..."
+set +e
 kill -INT $CADDYPID
 wait $CADDYPID
+CADDYRES=$?
+set -e
 ip netns exec $dutns \
     ${SURICATASC} -c "shutdown" /var/run/suricata/suricata-command.socket
 wait $SURIPID
 echo "* shutting down... done"
+
+# Caddy sometimes exits uncleanly. Warn about it but otherwise
+# it can be ignored.
+if [ $CADDYRES -ne 0 ]; then
+    echo "WARNING Caddy exited with error $CADDYRES"
+fi
 
 echo "* dumping some stats..."
 cat ./eve.json | jq -c 'select(.tls)'|tail -n1|jq
