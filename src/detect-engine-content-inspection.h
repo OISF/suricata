@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2023 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -44,6 +44,7 @@ enum DetectContentInspectionType {
 // next ones come from rust dcerpc
 // #define DETECT_CI_FLAGS_DCE_LE  BIT_U8(2)   /**< DCERPC record in little endian */
 // #define DETECT_CI_FLAGS_DCE_BE  BIT_U8(3)   /**< DCERPC record in big endian */
+#define DETECT_CI_FLAGS_ERROR BIT_U8(4) /**< transformation/decode error occurred */
 
 /** buffer is a single, non-streaming, buffer. Data sent to the content
  *  inspection function contains both start and end of the data. */
