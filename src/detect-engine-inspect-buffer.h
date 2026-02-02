@@ -24,6 +24,23 @@
 #ifndef SURICATA_DETECT_ENGINE_INSPECT_BUFFER_H
 #define SURICATA_DETECT_ENGINE_INSPECT_BUFFER_H
 
+#include <stdint.h>
+
+/* DETECT_CI_FLAGS_* are bit flags on InspectionBuffer.flags. Defined as
+ * static const so bindgen can mirror them as u8 constants in sys.rs. */
+static const uint8_t DETECT_CI_FLAGS_START =
+        1 << 0; /**< indication that current buffer is the start of the data */
+static const uint8_t DETECT_CI_FLAGS_END =
+        1 << 1; /**< indication that current buffer is the end of the data */
+// next ones come from rust dcerpc
+// static const uint8_t DETECT_CI_FLAGS_DCE_LE = 1 << 2; /**< DCERPC record in little endian */
+// static const uint8_t DETECT_CI_FLAGS_DCE_BE = 1 << 3; /**< DCERPC record in big endian */
+static const uint8_t DETECT_CI_FLAGS_ERROR = 1 << 4; /**< transformation/decode error occurred */
+
+/** buffer is a single, non-streaming, buffer. Data sent to the content
+ *  inspection function contains both start and end of the data. */
+static const uint8_t DETECT_CI_FLAGS_SINGLE = (1 << 0) | (1 << 1);
+
 /* inspection buffer is a simple structure that is passed between prefilter,
  * transformation functions and inspection functions.
  * Initially setup with 'orig' ptr and len, transformations can then take
@@ -62,6 +79,7 @@ void SCInspectionBufferSetupAndApplyTransforms(DetectEngineThreadCtx *det_ctx, c
 void InspectionBufferFree(InspectionBuffer *buffer);
 uint8_t *SCInspectionBufferCheckAndExpand(InspectionBuffer *buffer, uint32_t min_size);
 void SCInspectionBufferTruncate(InspectionBuffer *buffer, uint32_t buf_len);
+void SCInspectionBufferSetError(InspectionBuffer *buffer);
 void InspectionBufferCopy(InspectionBuffer *buffer, uint8_t *buf, uint32_t buf_len);
 void InspectionBufferApplyTransforms(DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer,
         const DetectEngineTransforms *transforms);
