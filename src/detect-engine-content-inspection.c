@@ -811,7 +811,8 @@ bool DetectEngineContentInspectionBuffer(DetectEngineCtx *de_ctx, DetectEngineTh
 
 bool DetectContentInspectionMatchOnAbsentBuffer(const SigMatchData *smd)
 {
-    // we will match on NULL buffers there is one absent
+    // we will match on NULL buffers if there is one absent keyword
+    // absent: error_or does NOT match on absent buffers (only on transform errors)
     bool absent_data = false;
     while (1) {
         if (smd->type == DETECT_ABSENT) {
