@@ -323,7 +323,10 @@ fn parse_quic_handshake(msg: TlsMessage) -> Option<Frame> {
                 let mut ja3 = String::with_capacity(256);
                 ja3.push_str(&u16::from(ch.version).to_string());
                 ja3.push(',');
-                let mut hs = HandshakeParams { quic: true, ..Default::default() };
+                let mut hs = HandshakeParams {
+                    quic: true,
+                    ..Default::default()
+                };
                 let mut dash = false;
                 for c in &ch.ciphers {
                     if dash {
@@ -434,7 +437,8 @@ fn parse_crypto_stream(input: &[u8]) -> IResult<&[u8], Vec<TagValue>, QuicError>
     let (rest, num_entries) = le_u16(rest)?;
     let (rest, _padding) = take(2usize)(rest)?;
 
-    let (rest, tags_offset) = count(complete(parse_tag_and_offset), num_entries.into()).parse(rest)?;
+    let (rest, tags_offset) =
+        count(complete(parse_tag_and_offset), num_entries.into()).parse(rest)?;
 
     // Convert (Tag, Offset) to (Tag, Value)
     let mut tags = Vec::new();
@@ -552,7 +556,8 @@ impl Frame {
     pub(crate) fn decode_frames<'a>(
         input: &'a [u8], past_frag: &'a [u8], past_fraglen: u32,
     ) -> IResult<&'a [u8], Vec<Frame>, QuicError> {
-        let (rest, mut frames) = all_consuming(many0(complete(Frame::decode_frame))).parse(input)?;
+        let (rest, mut frames) =
+            all_consuming(many0(complete(Frame::decode_frame))).parse(input)?;
 
         // we use the already seen past fragment data
         let mut crypto_max_size = past_frag.len() as u64;

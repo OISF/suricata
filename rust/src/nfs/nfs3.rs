@@ -18,8 +18,8 @@
 // written by Victor Julien
 
 use crate::direction::Direction;
-use crate::nfs::nfs::*;
 use crate::flow::Flow;
+use crate::nfs::nfs::*;
 use crate::nfs::nfs3_records::*;
 use crate::nfs::rpc_records::*;
 use crate::nfs::types::*;
@@ -196,7 +196,9 @@ impl NFSState {
         self.requestmap.insert(r.hdr.xid, xidmap);
     }
 
-    pub fn process_reply_record_v3(&mut self, flow: *mut Flow, r: &RpcReplyPacket, xidmap: &mut NFSRequestXidMap) {
+    pub fn process_reply_record_v3(
+        &mut self, flow: *mut Flow, r: &RpcReplyPacket, xidmap: &mut NFSRequestXidMap,
+    ) {
         let mut nfs_status = 0;
         let mut resp_handle = Vec::new();
 

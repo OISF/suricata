@@ -19,5 +19,5 @@
 
 // written by Clément Galland <clement.galland@epita.fr>
 
-pub mod tftp;
 pub mod log;
+pub mod tftp;

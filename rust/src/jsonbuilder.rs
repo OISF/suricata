@@ -587,17 +587,17 @@ impl JsonBuilder {
                 b'\r' => {
                     self.push_str("\\r")?;
                 }
-                b'\n'=> {
+                b'\n' => {
                     self.push_str("\\n")?;
                 }
-                b'"'=> {
+                b'"' => {
                     self.push_str("\\\"")?;
                 }
-                b'\\'=> {
+                b'\\' => {
                     self.push_str("\\\\")?;
                 }
                 _ => {
-                    if !x.is_ascii() || x.is_ascii_control()  {
+                    if !x.is_ascii() || x.is_ascii_control() {
                         self.push('.')?;
                     } else {
                         self.push(x as char)?;
