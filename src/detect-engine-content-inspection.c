@@ -110,8 +110,8 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
         const uint64_t stream_start_offset, const uint8_t flags,
         const enum DetectContentInspectionType inspection_mode)
 {
-    SCLogDebug("DetectEngineContentInspectionInternal: entry with flags=0x%02x", flags);
     SCEnter();
+    SCLogDebug("flags=0x%02x", flags);
     KEYWORD_PROFILING_START;
 
     ctx->recursion.count++;
@@ -121,10 +121,7 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
     }
 
     // we want the ability to match on bsize: 0
-    // BUT: if we have an error flag, we need to continue so absent_or can match on it
-    if (smd != NULL && (flags & DETECT_CI_FLAGS_ERROR)) {
-        // Don't return early - continue to the keyword matching
-    } else if (smd == NULL || buffer == NULL) {
+    if (smd == NULL || (buffer == NULL && !(flags & DETECT_CI_FLAGS_ERROR))) {
         KEYWORD_PROFILING_END(det_ctx, smd->type, 0);
         SCReturnInt(0);
     }
@@ -397,31 +394,25 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
         } while(1);
 
     } else if (smd->type == DETECT_ABSENT) {
-        const DetectAbsentData *id = (DetectAbsentData *)smd->ctx;
-        if (!id->or_else) {
-            // we match only on absent buffer
-            goto no_match;
+        const DetectAbsentData *dad = (const DetectAbsentData *)smd->ctx;
+        switch (dad->mode) {
+            case DETECT_ABSENT_MUST_ERROR:
+                if (flags & DETECT_CI_FLAGS_ERROR) {
+                    SCLogDebug("absent: must_error: error flag match");
+                    goto final_match;
+                }
+                goto no_match;
+            case DETECT_ABSENT_ONLY:
+                goto no_match;
+            case DETECT_ABSENT_ERROR_OR:
+                if (flags & DETECT_CI_FLAGS_ERROR) {
+                    SCLogDebug("absent: error_or: error flag match");
+                    goto final_match;
+                }
+                /* fall through */
+            case DETECT_ABSENT_OR_ELSE:
+                goto match;
         }
-        if (id->error_or) {
-            // absent: error_or matches on transform error OR content match
-            if (flags & DETECT_CI_FLAGS_ERROR) {
-                SCLogDebug("absent: error_or: error flag match, returning 1");
-                KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
-                SCReturnInt(1);
-            }
-            // Otherwise check if the next keyword matches
-            if (!smd->is_last) {
-                KEYWORD_PROFILING_END(det_ctx, smd->type, 0);
-                int r = DetectEngineContentInspectionInternal(det_ctx, ctx, s, smd + 1, p, f,
-                        buffer, buffer_len, stream_start_offset, flags, inspection_mode);
-                SCReturnInt(r);
-            }
-            // If it's the last keyword and no error, no match
-            SCLogDebug("absent: error_or: no error flag, returning no_match");
-            goto no_match;
-        }
-        // absent: or_else (regular OR logic for absent buffers)
-        goto match;
     } else if (smd->type == DETECT_ISDATAAT) {
         SCLogDebug("inspecting isdataat");
 
@@ -817,8 +808,8 @@ bool DetectContentInspectionMatchOnAbsentBuffer(const SigMatchData *smd)
     while (1) {
         if (smd->type == DETECT_ABSENT) {
             const DetectAbsentData *dad = (const DetectAbsentData *)smd->ctx;
-            // Only match on absent buffer if not using error_or
-            if (!dad->error_or) {
+            // Only match on absent buffer for ONLY and OR_ELSE modes
+            if (dad->mode == DETECT_ABSENT_ONLY || dad->mode == DETECT_ABSENT_OR_ELSE) {
                 absent_data = true;
             }
             break;
