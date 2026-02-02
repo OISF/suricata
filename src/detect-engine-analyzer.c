@@ -864,8 +864,14 @@ static void DumpMatches(RuleAnalyzer *ctx, SCJsonBuilder *js, const SigMatchData
             }
             case DETECT_ABSENT: {
                 const DetectAbsentData *dad = (const DetectAbsentData *)smd->ctx;
+                static const char *absent_mode_strings[] = {
+                    [DETECT_ABSENT_ONLY] = "only",
+                    [DETECT_ABSENT_OR_ELSE] = "or_else",
+                    [DETECT_ABSENT_ERROR_OR] = "error_or",
+                    [DETECT_ABSENT_MUST_ERROR] = "must_error",
+                };
                 SCJbOpenObject(js, "absent");
-                SCJbSetBool(js, "or_else", dad->or_else);
+                SCJbSetString(js, "mode", absent_mode_strings[dad->mode]);
                 SCJbClose(js);
                 break;
             }

@@ -79,16 +79,16 @@ static int DetectAbsentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
     if (DetectBufferGetActiveList(de_ctx, s) == -1)
         return -1;
 
-    bool or_else = false;
-    bool error_or = false;
+    enum DetectAbsentMode mode = DETECT_ABSENT_ONLY;
 
     if (optstr == NULL) {
-        or_else = false;
+        mode = DETECT_ABSENT_ONLY;
     } else if (strcmp(optstr, "or_else") == 0) {
-        or_else = true;
+        mode = DETECT_ABSENT_OR_ELSE;
     } else if (strcmp(optstr, "error_or") == 0) {
-        or_else = true;
-        error_or = true;
+        mode = DETECT_ABSENT_ERROR_OR;
+    } else if (strcmp(optstr, "must_error") == 0) {
+        mode = DETECT_ABSENT_MUST_ERROR;
     } else {
         SCLogError("unhandled value for absent keyword: %s", optstr);
         return -1;
@@ -110,8 +110,7 @@ static int DetectAbsentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
     if (unlikely(dad == NULL))
         return -1;
 
-    dad->or_else = or_else;
-    dad->error_or = error_or;
+    dad->mode = mode;
 
     if (SCSigMatchAppendSMToList(
                 de_ctx, s, DETECT_ABSENT, (SigMatchCtx *)dad, s->init_data->list) == NULL) {
@@ -121,18 +120,33 @@ static int DetectAbsentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
     return 0;
 }
 
-bool DetectAbsentValidateContentCallback(const Signature *s, const SignatureInitDataBuffer *b)
+bool DetectAbsentValidateContentCallback(
+        const DetectEngineCtx *de_ctx, const Signature *s, const SignatureInitDataBuffer *b)
 {
     bool has_other = false;
     bool only_absent = false;
     bool has_absent_with_option = false;
+    bool has_error_or = false;
+    bool has_or_else_only = false;
+    bool has_must_error = false;
     for (const SigMatch *sm = b->head; sm != NULL; sm = sm->next) {
         if (sm->type == DETECT_ABSENT) {
             const DetectAbsentData *dad = (const DetectAbsentData *)sm->ctx;
-            if (!dad->or_else) {
-                only_absent = true;
-            } else {
-                has_absent_with_option = true;
+            switch (dad->mode) {
+                case DETECT_ABSENT_MUST_ERROR:
+                    has_must_error = true;
+                    break;
+                case DETECT_ABSENT_ONLY:
+                    only_absent = true;
+                    break;
+                case DETECT_ABSENT_ERROR_OR:
+                    has_absent_with_option = true;
+                    has_error_or = true;
+                    break;
+                case DETECT_ABSENT_OR_ELSE:
+                    has_absent_with_option = true;
+                    has_or_else_only = true;
+                    break;
             }
         } else {
             has_other = true;
@@ -157,6 +171,34 @@ bool DetectAbsentValidateContentCallback(const Signature *s, const SignatureInit
                    "as content");
         return false;
     }
+    if (has_must_error && has_other) {
+        SCLogError("absent: must_error cannot be combined with other keywords");
+        return false;
+    }
+    if (has_error_or || has_or_else_only || has_must_error) {
+        const DetectBufferType *map = DetectEngineBufferTypeGetById(de_ctx, b->id);
+        if (map) {
+            bool found_can_fail = false;
+            for (int i = 0; i < map->transforms.cnt; i++) {
+                int transform = map->transforms.transforms[i].transform;
+                if (sigmatch_table[transform].flags & SIGMATCH_TRANSFORM_CAN_FAIL) {
+                    found_can_fail = true;
+                    break;
+                }
+            }
+            if ((has_error_or || has_must_error) && !found_can_fail) {
+                SCLogError("absent: error_or/must_error requires a transform that can fail "
+                           "(e.g. from_base64)");
+                return false;
+            }
+            if (has_or_else_only && found_can_fail) {
+                SCLogError("absent: or_else on a buffer with a transform that can fail; "
+                           "use error_or instead");
+                return false;
+            }
+        }
+    }
+
     return true;
 }
 
@@ -725,8 +767,114 @@ static int DetectAbsentTestParse01(void)
     PASS;
 }
 
+/**
+ * \test error_or and must_error validation
+ */
+static int DetectAbsentTestParse02(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF(de_ctx == NULL);
+    de_ctx->flags |= DE_QUIET;
+
+    /* error_or without a failing transform should fail */
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert http any any -> any any "
+            "(msg:\"error_or without failing transform\"; http.user_agent; "
+            "absent: error_or; content:\"one\"; sid:1;)");
+    FAIL_IF(s != NULL);
+
+    /* must_error without a failing transform should fail */
+    s = DetectEngineAppendSig(de_ctx,
+            "alert http any any -> any any "
+            "(msg:\"must_error without failing transform\"; http.user_agent; "
+            "absent: must_error; sid:2;)");
+    FAIL_IF(s != NULL);
+
+    /* must_error with content on same buffer should fail */
+    s = DetectEngineAppendSig(de_ctx,
+            "alert http any any -> any any "
+            "(msg:\"must_error with content\"; http.uri; "
+            "from_base64: mode strict; absent: must_error; content:\"test\"; sid:3;)");
+    FAIL_IF(s != NULL);
+
+    /* or_else on buffer with failing transform should fail */
+    s = DetectEngineAppendSig(de_ctx,
+            "alert http any any -> any any "
+            "(msg:\"or_else with failing transform\"; http.uri; "
+            "from_base64: mode strict; absent: or_else; content:\"test\"; sid:4;)");
+    FAIL_IF(s != NULL);
+
+    /* invalid absent option should fail */
+    s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
+                                      "(msg:\"invalid absent option\"; http.user_agent; "
+                                      "absent: invalid; sid:5;)");
+    FAIL_IF(s != NULL);
+
+    /* or_else without other keywords should fail */
+    s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
+                                      "(msg:\"or_else alone\"; http.user_agent; "
+                                      "absent: or_else; sid:6;)");
+    FAIL_IF(s != NULL);
+
+    /* error_or without other keywords should fail */
+    s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
+                                      "(msg:\"error_or alone\"; http.uri; "
+                                      "from_base64: mode strict; absent: error_or; sid:7;)");
+    FAIL_IF(s != NULL);
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
+/**
+ * \test Valid absent configurations should succeed
+ */
+static int DetectAbsentTestParse03(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF(de_ctx == NULL);
+    de_ctx->flags |= DE_QUIET;
+
+    /* valid: bare absent */
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
+                                                 "(msg:\"bare absent\"; http.user_agent; "
+                                                 "absent; sid:1;)");
+    FAIL_IF(s == NULL);
+
+    /* valid: or_else with content */
+    s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
+                                      "(msg:\"or_else with content\"; http.user_agent; "
+                                      "absent: or_else; content:!\"one\"; sid:2;)");
+    FAIL_IF(s == NULL);
+
+    /* valid: error_or with failing transform and content */
+    s = DetectEngineAppendSig(de_ctx,
+            "alert http any any -> any any "
+            "(msg:\"error_or with from_base64\"; http.uri; "
+            "from_base64: mode strict; absent: error_or; content:\"test\"; sid:3;)");
+    FAIL_IF(s == NULL);
+
+    /* valid: must_error standalone with failing transform */
+    s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
+                                      "(msg:\"must_error standalone\"; http.uri; "
+                                      "from_base64: mode strict; absent: must_error; sid:4;)");
+    FAIL_IF(s == NULL);
+
+    /* valid: must_error cross-buffer */
+    s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
+                                      "(msg:\"must_error cross-buffer\"; http.uri; "
+                                      "from_base64: mode strict; absent: must_error; "
+                                      "http.host; content:\"test\"; sid:5;)");
+    FAIL_IF(s == NULL);
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
 void DetectAbsentRegisterTests(void)
 {
     UtRegisterTest("DetectAbsentTestParse01", DetectAbsentTestParse01);
+    UtRegisterTest("DetectAbsentTestParse02", DetectAbsentTestParse02);
+    UtRegisterTest("DetectAbsentTestParse03", DetectAbsentTestParse03);
 }
 #endif
