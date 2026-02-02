@@ -37,6 +37,8 @@ typedef struct DetectIsdataatData_ {
 typedef struct DetectAbsentData_ {
     /** absent or try to match with other keywords (false means only absent) */
     bool or_else;
+    /** match on transform error or content match (only valid when or_else is true) */
+    bool error_or;
 } DetectAbsentData;
 
 /* prototypes */
