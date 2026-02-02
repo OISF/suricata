@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2025 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -872,10 +872,12 @@ static void DumpMatches(RuleAnalyzer *ctx, SCJsonBuilder *js, const SigMatchData
                 SCJbClose(js);
                 break;
             }
-            case DETECT_ABSENT: {
+            case DETECT_ABSENT:
+            case DETECT_TRANSFORM_RESULT: {
                 const DetectAbsentData *dad = (const DetectAbsentData *)smd->ctx;
-                SCJbOpenObject(js, "absent");
-                SCJbSetBool(js, "or_else", dad->or_else);
+                SCJbOpenObject(
+                        js, smd->type == DETECT_TRANSFORM_RESULT ? "transform_result" : "absent");
+                SCJbSetString(js, "mode", DetectAbsentModeStr(dad->mode));
                 SCJbClose(js);
                 break;
             }

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2023 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -391,13 +391,35 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
                     prev_offset);
         } while(1);
 
-    } else if (smd->type == DETECT_ABSENT) {
-        const DetectAbsentData *id = (DetectAbsentData *)smd->ctx;
-        if (!id->or_else) {
-            // we match only on absent buffer
-            goto no_match;
+    } else if (smd->type == DETECT_ABSENT || smd->type == DETECT_TRANSFORM_RESULT) {
+        const DetectAbsentData *dad = (const DetectAbsentData *)smd->ctx;
+        switch (dad->mode) {
+            case DETECT_ABSENT_MUST_ERROR:
+                if (flags & DETECT_CI_FLAGS_ERROR) {
+                    SCLogDebug("transform_result: must_error: error flag match");
+                    goto final_match;
+                }
+                goto no_match;
+            case DETECT_ABSENT_ONLY:
+                goto no_match;
+            case DETECT_ABSENT_ERROR_OR:
+                if (flags & DETECT_CI_FLAGS_ERROR) {
+                    SCLogDebug("transform_result: error_or: error flag match");
+                    goto final_match;
+                }
+                /* fall through */
+            case DETECT_ABSENT_OR_ELSE:
+                goto match;
+            case DETECT_ABSENT_MUST_SUCCEED:
+                if (flags & DETECT_CI_FLAGS_ERROR) {
+                    SCLogDebug("transform_result: must_succeed: error flag, no match");
+                    goto no_match;
+                }
+                goto match;
+            default:
+                DEBUG_VALIDATE_BUG_ON(1);
+                goto no_match;
         }
-        goto match;
     } else if (smd->type == DETECT_ISDATAAT) {
         SCLogDebug("inspecting isdataat");
 
@@ -787,12 +809,18 @@ bool DetectEngineContentInspectionBuffer(DetectEngineCtx *de_ctx, DetectEngineTh
 
 bool DetectContentInspectionMatchOnAbsentBuffer(const SigMatchData *smd)
 {
-    // we will match on NULL buffers if there is one absent keyword
-    // absent: error_or does NOT match on absent buffers (only on transform errors)
+    // match on NULL buffers if the buffer carries absent, or
+    // transform_result: error_or, which matches an absent buffer as
+    // absent: or_else does. must_succeed and must_error never match one.
     bool absent_data = false;
     while (1) {
         if (smd->type == DETECT_ABSENT) {
             absent_data = true;
+            break;
+        }
+        if (smd->type == DETECT_TRANSFORM_RESULT) {
+            const DetectAbsentData *dad = (const DetectAbsentData *)smd->ctx;
+            absent_data = dad->mode == DETECT_ABSENT_ERROR_OR;
             break;
         }
         if (smd->is_last) {
