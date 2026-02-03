@@ -267,6 +267,10 @@ line breaks, and any non base64 alphabet.
 
 Mode ``strict`` will fail if an invalid character is found in the encoded bytes.
 
+.. note:: When ``from_base64`` encounters data it cannot decode (e.g., in ``strict`` mode
+   or invalid base64 data in ``rfc4648`` mode), it sets an error flag on the inspection buffer.
+   This error can be detected using the ``absent: error_or`` keyword.
+
 The following examples will alert when the buffer contents match (see the
 last ``content`` value for the expected strings).
 
