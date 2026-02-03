@@ -167,6 +167,46 @@ on.
     alert http any any -> any any (http_request_line; to_sha256; \
         content:"\|54A9 7A8A B09C 1B81 3725 2214 51D3 F997 F015 9DD7 049E E5AD CED3 945A FC79 7401\|"; sid:1;)
 
+.. _transform-error-signaling:
+
+Error-Signaling Transforms
+--------------------------
+
+Some transforms can signal an error when they cannot complete their operation. The transform
+then sets an error flag on the inspection buffer and leaves its input unchanged, so later
+transforms and keywords see the data the failed transform received. When the failing
+transform is the first on the buffer, that is the original buffer content.
+
+The following transforms can signal errors. Each also signals one when it cannot get memory
+for its result.
+
+- :ref:`pcrexform <pcrexform>` signals an error when the regular expression does not match
+  or its capture group cannot be extracted. An empty buffer is left as it is, and a capture
+  of nothing leaves an empty buffer; neither is an error.
+- :ref:`from_base64 <from_base64>` signals an error when a non-empty input is not decoded:
+  ``offset`` is at or past the end of the buffer, ``bytes`` is larger than the input left
+  after ``offset``, or decoding produces nothing. Input that decodes in part is not an error.
+- :ref:`gunzip <gunzip>` and :ref:`zlib_deflate <zlib_deflate>` signal an error when the
+  input does not decompress.
+
+The ``transform_result`` keyword matches on the transform outcome:
+
+- ``transform_result: error_or`` matches if the transform signals an error, if the buffer
+  is absent, or if the keywords after it match.
+- ``transform_result: must_error`` matches only when the transform signals an error. No
+  other keyword is allowed on the same buffer. It does not match when the buffer is absent.
+- ``transform_result: must_succeed`` does not match when the transform signals an error, so
+  the keywords after it only see decoded or extracted data. It does not match when the
+  buffer is absent.
+
+On ``file.data``, ``http.response_body`` and ``http.request_body``, a large body or file is
+inspected in windows, and ``must_error`` and ``error_or`` only react to an error when the
+whole body or file is inspected at once.
+
+See :ref:`rules-keyword-transform-result` for full documentation and examples of each option.
+
+.. _pcrexform:
+
 pcrexform
 ---------
 
@@ -174,6 +214,9 @@ Takes the buffer, applies the required regular expression, and outputs the *firs
 
 .. note:: this transform requires a mandatory option string containing a regular expression.
 
+If the regular expression does not match the buffer content, the transform signals an error
+and leaves its input unchanged. See :ref:`transform-error-signaling` for how to
+detect or guard against transform failures using ``transform_result``.
 
 This example alerts if ``http.request_line`` contains ``/dropper.php``:
 
@@ -181,6 +224,20 @@ This example alerts if ``http.request_line`` contains ``/dropper.php``:
 
     alert http any any -> any any (msg:"HTTP with pcrexform"; http.request_line; \
         pcrexform:"[a-zA-Z]+\s+(.*)\s+HTTP"; content:"/dropper.php"; sid:1;)
+
+This example relies on the input being kept when ``pcrexform`` fails. It reduces a name with
+a subdomain to its last two labels (``www.example.com`` becomes ``example.com``); a name with
+no subdomain does not match the expression and is kept as it is. Either way the buffer is
+exactly ``example.com``::
+
+    alert dns any any -> any any (msg:"example.com or a subdomain of it"; \
+        dns.query; pcrexform:"\.([^\.]+\.[^\.]+)$"; content:"example.com"; \
+        startswith; endswith; sid:1;)
+
+This example alerts if ``pcrexform`` fails to match (e.g., unexpected request line format)::
+
+    alert http any any -> any any (msg:"pcrexform match failure"; http.request_line; \
+        pcrexform:"[a-zA-Z]+\s+(.*)\s+HTTP"; transform_result: must_error; sid:2;)
 
 url_decode
 ----------
@@ -302,6 +359,13 @@ Mode ``rfc2045`` applies RFC 2045 decoding logic which supports strings, includi
 line breaks, and any non base64 alphabet.
 
 Mode ``strict`` will fail if an invalid character is found in the encoded bytes.
+
+.. note:: When a non-empty input is not decoded, ``from_base64`` signals an error and leaves
+   its input unchanged. That happens when ``offset`` is at or past the end
+   of the buffer, when ``bytes`` is larger than the input left after ``offset``, or when
+   decoding produces nothing (for example, ``strict`` mode rejecting a character outside the
+   base64 alphabet). See :ref:`transform-error-signaling` for how to detect or guard
+   against decode failures using ``transform_result``.
 
 The following examples will alert when the buffer contents match (see the
 last ``content`` value for the expected strings).
@@ -431,6 +495,8 @@ the buffer.
        return string.upper(sub), bytes
    end
 
+.. _gunzip:
+
 gunzip
 ------
 
@@ -444,6 +510,9 @@ If the decompressed data were to be larger than max-size,
 the transform will decompress data up to max-size.
 Value 0 is forbidden for max-size (there is no unlimited value).
 
+If the input is not gzip data, the transform signals an error and leaves its input
+unchanged. See :ref:`transform-error-signaling`.
+
 This example alerts if ``http.uri`` contains base64-encoded gzipped value:
 
 .. container:: example-rule
@@ -453,6 +522,8 @@ This example alerts if ``http.uri`` contains base64-encoded gzipped value:
             from_base64: offset 13 ;
             gunzip: max-size 1024; content:"This is compressed then base64-encoded"; startswith; endswith;
             sid:2; rev:1;)
+
+.. _zlib_deflate:
 
 zlib_deflate
 ------------
@@ -466,6 +537,9 @@ Default for max-size is 1024.
 If the decompressed data were to be larger than max-size,
 the transform will decompress data up to max-size.
 Value 0 is forbidden for max-size (there is no unlimited value).
+
+If the input is not zlib data, the transform signals an error and leaves its input
+unchanged. See :ref:`transform-error-signaling`.
 
 This example alerts if ``http.uri`` contains base64-encoded zlib-compressed value:
 
