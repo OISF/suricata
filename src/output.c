@@ -39,7 +39,7 @@
 #include "util-error.h"
 #include "util-debug.h"
 #include "output.h"
-#include "output-eve-bindgen.h"
+#include "output-eve.h"
 
 #include "alert-fastlog.h"
 #include "alert-debuglog.h"

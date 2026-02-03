@@ -28,8 +28,7 @@
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "detect-engine-register.h"
-#include "output.h"
-#include "output-eve-bindgen.h"
+#include "output-eve.h"
 
 #include <dlfcn.h>
 
