@@ -171,6 +171,250 @@ pub type SCAppLayerPlugin = SCAppLayerPlugin_;
 extern "C" {
     pub fn SCPluginRegisterAppLayer(arg1: *mut SCAppLayerPlugin) -> ::std::os::raw::c_int;
 }
+#[doc = " Structure of a configuration parameter."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct SCConfNode_ {
+    pub name: *mut ::std::os::raw::c_char,
+    pub val: *mut ::std::os::raw::c_char,
+    pub is_seq: ::std::os::raw::c_int,
+    pub final_: ::std::os::raw::c_int,
+    pub parent: *mut SCConfNode_,
+    pub head: SCConfNode___bindgen_ty_1,
+    pub next: SCConfNode___bindgen_ty_2,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct SCConfNode___bindgen_ty_1 {
+    pub tqh_first: *mut SCConfNode_,
+    pub tqh_last: *mut *mut SCConfNode_,
+}
+impl Default for SCConfNode___bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct SCConfNode___bindgen_ty_2 {
+    pub tqe_next: *mut SCConfNode_,
+    pub tqe_prev: *mut *mut SCConfNode_,
+}
+impl Default for SCConfNode___bindgen_ty_2 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for SCConfNode_ {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[doc = " Structure of a configuration parameter."]
+pub type SCConfNode = [u64; 8usize];
+extern "C" {
+    pub fn SCConfInit();
+}
+extern "C" {
+    pub fn SCConfDeInit();
+}
+extern "C" {
+    pub fn SCConfGetRootNode() -> *mut SCConfNode;
+}
+extern "C" {
+    pub fn SCConfGet(
+        name: *const ::std::os::raw::c_char, vptr: *mut *const ::std::os::raw::c_char,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCConfGetInt(
+        name: *const ::std::os::raw::c_char, val: *mut intmax_t,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCConfGetBool(
+        name: *const ::std::os::raw::c_char, val: *mut ::std::os::raw::c_int,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCConfGetDouble(
+        name: *const ::std::os::raw::c_char, val: *mut f64,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCConfGetFloat(
+        name: *const ::std::os::raw::c_char, val: *mut f32,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCConfGetTime(
+        name: *const ::std::os::raw::c_char, val: *mut u64,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCConfSet(
+        name: *const ::std::os::raw::c_char, val: *const ::std::os::raw::c_char,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCConfSetFromString(
+        input: *const ::std::os::raw::c_char, final_: ::std::os::raw::c_int,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCConfSetFinal(
+        name: *const ::std::os::raw::c_char, val: *const ::std::os::raw::c_char,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCConfDump();
+}
+extern "C" {
+    pub fn SCConfNodeDump(node: *const SCConfNode, prefix: *const ::std::os::raw::c_char);
+}
+extern "C" {
+    pub fn SCConfNodeNew() -> *mut SCConfNode;
+}
+extern "C" {
+    pub fn SCConfNodeFree(arg1: *mut SCConfNode);
+}
+extern "C" {
+    pub fn SCConfGetNode(key: *const ::std::os::raw::c_char) -> *mut SCConfNode;
+}
+extern "C" {
+    pub fn SCConfCreateContextBackup();
+}
+extern "C" {
+    pub fn SCConfRestoreContextBackup();
+}
+extern "C" {
+    pub fn SCConfNodeLookupChild(
+        node: *const SCConfNode, key: *const ::std::os::raw::c_char,
+    ) -> *mut SCConfNode;
+}
+extern "C" {
+    pub fn SCConfNodeLookupChildValue(
+        node: *const SCConfNode, key: *const ::std::os::raw::c_char,
+    ) -> *const ::std::os::raw::c_char;
+}
+extern "C" {
+    pub fn SCConfNodeRemove(arg1: *mut SCConfNode);
+}
+extern "C" {
+    pub fn SCConfRegisterTests();
+}
+extern "C" {
+    pub fn SCConfNodeChildValueIsTrue(
+        node: *const SCConfNode, key: *const ::std::os::raw::c_char,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCConfNodeChildValueIsFalse(
+        node: *const SCConfNode, key: *const ::std::os::raw::c_char,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCConfValIsTrue(val: *const ::std::os::raw::c_char) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCConfValIsFalse(val: *const ::std::os::raw::c_char) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCConfNodePrune(node: *mut SCConfNode);
+}
+extern "C" {
+    pub fn SCConfRemove(name: *const ::std::os::raw::c_char) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCConfNodeHasChildren(node: *const SCConfNode) -> bool;
+}
+extern "C" {
+    pub fn SCConfGetChildWithDefault(
+        base: *const SCConfNode, dflt: *const SCConfNode, name: *const ::std::os::raw::c_char,
+    ) -> *mut SCConfNode;
+}
+extern "C" {
+    pub fn SCConfNodeLookupKeyValue(
+        base: *const SCConfNode, key: *const ::std::os::raw::c_char,
+        value: *const ::std::os::raw::c_char,
+    ) -> *mut SCConfNode;
+}
+extern "C" {
+    pub fn SCConfGetChildValue(
+        base: *const SCConfNode, name: *const ::std::os::raw::c_char,
+        vptr: *mut *const ::std::os::raw::c_char,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCConfGetChildValueInt(
+        base: *const SCConfNode, name: *const ::std::os::raw::c_char, val: *mut intmax_t,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCConfGetChildValueBool(
+        base: *const SCConfNode, name: *const ::std::os::raw::c_char,
+        val: *mut ::std::os::raw::c_int,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCConfGetChildValueWithDefault(
+        base: *const SCConfNode, dflt: *const SCConfNode, name: *const ::std::os::raw::c_char,
+        vptr: *mut *const ::std::os::raw::c_char,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCConfGetChildValueIntWithDefault(
+        base: *const SCConfNode, dflt: *const SCConfNode, name: *const ::std::os::raw::c_char,
+        val: *mut intmax_t,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCConfGetChildValueBoolWithDefault(
+        base: *const SCConfNode, dflt: *const SCConfNode, name: *const ::std::os::raw::c_char,
+        val: *mut ::std::os::raw::c_int,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCConfNodeIsSequence(node: *const SCConfNode) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCConfSetIfaceNode(
+        ifaces_node_name: *const ::std::os::raw::c_char, iface: *const ::std::os::raw::c_char,
+    ) -> *mut SCConfNode;
+}
+extern "C" {
+    pub fn SCConfSetRootAndDefaultNodes(
+        ifaces_node_name: *const ::std::os::raw::c_char, iface: *const ::std::os::raw::c_char,
+        if_root: *mut *mut SCConfNode, if_default: *mut *mut SCConfNode,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCConfNodeGetNodeOrCreate(
+        parent: *mut SCConfNode, name: *const ::std::os::raw::c_char, final_: ::std::os::raw::c_int,
+    ) -> *mut SCConfNode;
+}
+extern "C" {
+    pub fn SCConfGetFirstNode(parent: *const SCConfNode) -> *mut SCConfNode;
+}
+extern "C" {
+    pub fn SCConfGetNextNode(node: *const SCConfNode) -> *mut SCConfNode;
+}
+extern "C" {
+    pub fn SCConfGetValueNode(node: *const SCConfNode) -> *const ::std::os::raw::c_char;
+}
+pub type ThreadId = u32;
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub enum SCOutputJsonLogDirection {
@@ -226,6 +470,74 @@ extern "C" {
         reg_data: EveJsonTxLoggerRegistrationData,
     ) -> ::std::os::raw::c_int;
 }
+#[doc = " \\brief Structure used to define an EVE output file type.\n\n EVE filetypes implement an object with a file-like interface and\n are used to output EVE log records to files, syslog, or\n database. They can be built-in such as the syslog (see\n SyslogInitialize()) and nullsink (see NullLogInitialize()) outputs,\n registered by a library user or dynamically loaded as a plugin.\n\n The life cycle of an EVE filetype is:\n   - Init: called once for each EVE instance using this filetype\n   - ThreadInit: called once for each output thread\n   - Write: called for each log record\n   - ThreadDeinit: called once for each output thread on exit\n   - Deinit: called once for each EVE instance using this filetype on exit\n\n Examples:\n - built-in syslog: \\ref src/output-eve-syslog.c\n - built-in nullsink: \\ref src/output-eve-null.c\n - example plugin: \\ref examples/plugins/c-json-filetype/filetype.c\n\n ### Multi-Threaded Note:\n\n The EVE logging system can be configured by the Suricata user to\n run in threaded or non-threaded modes. In the default non-threaded\n mode, ThreadInit will only be called once and the filetype does not\n need to be concerned with threads.\n\n However, in **threaded** mode, ThreadInit will be called multiple\n times and the filetype needs to be thread aware and thread-safe. If\n utilizing a unique resource such as a file for each thread then you\n may be naturally thread safe. However, if sharing a single file\n handle across all threads then your filetype will have to take care\n of locking, etc."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct SCEveFileType_ {
+    #[doc = " \\brief The name of the output, used in the configuration.\n\n This name is used by the configuration file to specify the EVE\n filetype used.\n\n For example:\n\n \\code{.yaml}\n outputs:\n   - eve-log:\n       filetype: my-output-name\n \\endcode"]
+    pub name: *const ::std::os::raw::c_char,
+    #[doc = " \\brief Function to initialize this filetype.\n\n \\param conf The ConfNode of the `eve-log` configuration\n     section this filetype is being initialized for\n\n \\param threaded Flag to specify if the EVE sub-systems is in\n     threaded mode or not\n\n \\param init_data An output pointer for filetype specific data\n\n \\retval 0 on success, -1 on failure"]
+    pub Init: ::std::option::Option<
+        unsafe extern "C" fn(
+            conf: *const SCConfNode,
+            threaded: bool,
+            init_data: *mut *mut ::std::os::raw::c_void,
+        ) -> ::std::os::raw::c_int,
+    >,
+    #[doc = " \\brief Initialize thread specific data.\n\n Initialize any thread specific data. For example, if\n implementing a file output you might open the files here, so\n you have one output file per thread.\n\n \\param init_data Data setup during Init\n\n \\param thread_id A unique ID to differentiate this thread from\n     others. If EVE is not in threaded mode this will be called\n     once with a ThreadId of 0. In threaded mode the ThreadId of\n     0 correlates to the main Suricata thread.\n\n \\param thread_data Output pointer for any data required by this\n     thread.\n\n \\retval 0 on success, -1 on failure"]
+    pub ThreadInit: ::std::option::Option<
+        unsafe extern "C" fn(
+            init_data: *const ::std::os::raw::c_void,
+            thread_id: ThreadId,
+            thread_data: *mut *mut ::std::os::raw::c_void,
+        ) -> ::std::os::raw::c_int,
+    >,
+    #[doc = " \\brief Called for each EVE log record.\n\n The Write function is called for each log EVE log record. The\n provided buffer contains a fully formatted EVE record in JSON\n format.\n\n \\param buffer The fully formatted JSON EVE log record\n\n \\param buffer_len The length of the buffer\n\n \\param init_data The data setup in the call to Init\n\n \\param thread_data The data setup in the call to ThreadInit\n\n \\retval 0 on success, -1 on failure"]
+    pub Write: ::std::option::Option<
+        unsafe extern "C" fn(
+            buffer: *const ::std::os::raw::c_char,
+            buffer_len: ::std::os::raw::c_int,
+            init_data: *const ::std::os::raw::c_void,
+            thread_data: *mut ::std::os::raw::c_void,
+        ) -> ::std::os::raw::c_int,
+    >,
+    #[doc = " \\brief Called to deinitialize each thread.\n\n This function will be called for each thread. It is where any\n resources allocated in ThreadInit should be released.\n\n \\param init_data The data setup in Init\n\n \\param thread_data The data setup in ThreadInit"]
+    pub ThreadDeinit: ::std::option::Option<
+        unsafe extern "C" fn(
+            init_data: *const ::std::os::raw::c_void,
+            thread_data: *mut ::std::os::raw::c_void,
+        ),
+    >,
+    #[doc = " \\brief Final call to deinitialize this filetype.\n\n Called, usually on exit to deinitialize and free any resources\n allocated during Init.\n\n \\param init_data Data setup in the call to Init."]
+    pub Deinit: ::std::option::Option<unsafe extern "C" fn(init_data: *mut ::std::os::raw::c_void)>,
+    pub entries: SCEveFileType___bindgen_ty_1,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct SCEveFileType___bindgen_ty_1 {
+    pub tqe_next: *mut SCEveFileType_,
+    pub tqe_prev: *mut *mut SCEveFileType_,
+}
+impl Default for SCEveFileType___bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for SCEveFileType_ {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[doc = " \\brief Structure used to define an EVE output file type.\n\n EVE filetypes implement an object with a file-like interface and\n are used to output EVE log records to files, syslog, or\n database. They can be built-in such as the syslog (see\n SyslogInitialize()) and nullsink (see NullLogInitialize()) outputs,\n registered by a library user or dynamically loaded as a plugin.\n\n The life cycle of an EVE filetype is:\n   - Init: called once for each EVE instance using this filetype\n   - ThreadInit: called once for each output thread\n   - Write: called for each log record\n   - ThreadDeinit: called once for each output thread on exit\n   - Deinit: called once for each EVE instance using this filetype on exit\n\n Examples:\n - built-in syslog: \\ref src/output-eve-syslog.c\n - built-in nullsink: \\ref src/output-eve-null.c\n - example plugin: \\ref examples/plugins/c-json-filetype/filetype.c\n\n ### Multi-Threaded Note:\n\n The EVE logging system can be configured by the Suricata user to\n run in threaded or non-threaded modes. In the default non-threaded\n mode, ThreadInit will only be called once and the filetype does not\n need to be concerned with threads.\n\n However, in **threaded** mode, ThreadInit will be called multiple\n times and the filetype needs to be thread aware and thread-safe. If\n utilizing a unique resource such as a file for each thread then you\n may be naturally thread safe. However, if sharing a single file\n handle across all threads then your filetype will have to take care\n of locking, etc."]
+pub type SCEveFileType = SCEveFileType_;
 extern "C" {
     pub fn SCSigTablePreRegister(
         KeywordsRegister: ::std::option::Option<unsafe extern "C" fn()>,
@@ -626,249 +938,6 @@ extern "C" {
 }
 extern "C" {
     pub fn SCLogGetLogLevel() -> SCLogLevel;
-}
-#[doc = " Structure of a configuration parameter."]
-#[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct SCConfNode_ {
-    pub name: *mut ::std::os::raw::c_char,
-    pub val: *mut ::std::os::raw::c_char,
-    pub is_seq: ::std::os::raw::c_int,
-    pub final_: ::std::os::raw::c_int,
-    pub parent: *mut SCConfNode_,
-    pub head: SCConfNode___bindgen_ty_1,
-    pub next: SCConfNode___bindgen_ty_2,
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct SCConfNode___bindgen_ty_1 {
-    pub tqh_first: *mut SCConfNode_,
-    pub tqh_last: *mut *mut SCConfNode_,
-}
-impl Default for SCConfNode___bindgen_ty_1 {
-    fn default() -> Self {
-        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct SCConfNode___bindgen_ty_2 {
-    pub tqe_next: *mut SCConfNode_,
-    pub tqe_prev: *mut *mut SCConfNode_,
-}
-impl Default for SCConfNode___bindgen_ty_2 {
-    fn default() -> Self {
-        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-impl Default for SCConfNode_ {
-    fn default() -> Self {
-        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-#[doc = " Structure of a configuration parameter."]
-pub type SCConfNode = [u64; 8usize];
-extern "C" {
-    pub fn SCConfInit();
-}
-extern "C" {
-    pub fn SCConfDeInit();
-}
-extern "C" {
-    pub fn SCConfGetRootNode() -> *mut SCConfNode;
-}
-extern "C" {
-    pub fn SCConfGet(
-        name: *const ::std::os::raw::c_char, vptr: *mut *const ::std::os::raw::c_char,
-    ) -> ::std::os::raw::c_int;
-}
-extern "C" {
-    pub fn SCConfGetInt(
-        name: *const ::std::os::raw::c_char, val: *mut intmax_t,
-    ) -> ::std::os::raw::c_int;
-}
-extern "C" {
-    pub fn SCConfGetBool(
-        name: *const ::std::os::raw::c_char, val: *mut ::std::os::raw::c_int,
-    ) -> ::std::os::raw::c_int;
-}
-extern "C" {
-    pub fn SCConfGetDouble(
-        name: *const ::std::os::raw::c_char, val: *mut f64,
-    ) -> ::std::os::raw::c_int;
-}
-extern "C" {
-    pub fn SCConfGetFloat(
-        name: *const ::std::os::raw::c_char, val: *mut f32,
-    ) -> ::std::os::raw::c_int;
-}
-extern "C" {
-    pub fn SCConfGetTime(
-        name: *const ::std::os::raw::c_char, val: *mut u64,
-    ) -> ::std::os::raw::c_int;
-}
-extern "C" {
-    pub fn SCConfSet(
-        name: *const ::std::os::raw::c_char, val: *const ::std::os::raw::c_char,
-    ) -> ::std::os::raw::c_int;
-}
-extern "C" {
-    pub fn SCConfSetFromString(
-        input: *const ::std::os::raw::c_char, final_: ::std::os::raw::c_int,
-    ) -> ::std::os::raw::c_int;
-}
-extern "C" {
-    pub fn SCConfSetFinal(
-        name: *const ::std::os::raw::c_char, val: *const ::std::os::raw::c_char,
-    ) -> ::std::os::raw::c_int;
-}
-extern "C" {
-    pub fn SCConfDump();
-}
-extern "C" {
-    pub fn SCConfNodeDump(node: *const SCConfNode, prefix: *const ::std::os::raw::c_char);
-}
-extern "C" {
-    pub fn SCConfNodeNew() -> *mut SCConfNode;
-}
-extern "C" {
-    pub fn SCConfNodeFree(arg1: *mut SCConfNode);
-}
-extern "C" {
-    pub fn SCConfGetNode(key: *const ::std::os::raw::c_char) -> *mut SCConfNode;
-}
-extern "C" {
-    pub fn SCConfCreateContextBackup();
-}
-extern "C" {
-    pub fn SCConfRestoreContextBackup();
-}
-extern "C" {
-    pub fn SCConfNodeLookupChild(
-        node: *const SCConfNode, key: *const ::std::os::raw::c_char,
-    ) -> *mut SCConfNode;
-}
-extern "C" {
-    pub fn SCConfNodeLookupChildValue(
-        node: *const SCConfNode, key: *const ::std::os::raw::c_char,
-    ) -> *const ::std::os::raw::c_char;
-}
-extern "C" {
-    pub fn SCConfNodeRemove(arg1: *mut SCConfNode);
-}
-extern "C" {
-    pub fn SCConfRegisterTests();
-}
-extern "C" {
-    pub fn SCConfNodeChildValueIsTrue(
-        node: *const SCConfNode, key: *const ::std::os::raw::c_char,
-    ) -> ::std::os::raw::c_int;
-}
-extern "C" {
-    pub fn SCConfNodeChildValueIsFalse(
-        node: *const SCConfNode, key: *const ::std::os::raw::c_char,
-    ) -> ::std::os::raw::c_int;
-}
-extern "C" {
-    pub fn SCConfValIsTrue(val: *const ::std::os::raw::c_char) -> ::std::os::raw::c_int;
-}
-extern "C" {
-    pub fn SCConfValIsFalse(val: *const ::std::os::raw::c_char) -> ::std::os::raw::c_int;
-}
-extern "C" {
-    pub fn SCConfNodePrune(node: *mut SCConfNode);
-}
-extern "C" {
-    pub fn SCConfRemove(name: *const ::std::os::raw::c_char) -> ::std::os::raw::c_int;
-}
-extern "C" {
-    pub fn SCConfNodeHasChildren(node: *const SCConfNode) -> bool;
-}
-extern "C" {
-    pub fn SCConfGetChildWithDefault(
-        base: *const SCConfNode, dflt: *const SCConfNode, name: *const ::std::os::raw::c_char,
-    ) -> *mut SCConfNode;
-}
-extern "C" {
-    pub fn SCConfNodeLookupKeyValue(
-        base: *const SCConfNode, key: *const ::std::os::raw::c_char,
-        value: *const ::std::os::raw::c_char,
-    ) -> *mut SCConfNode;
-}
-extern "C" {
-    pub fn SCConfGetChildValue(
-        base: *const SCConfNode, name: *const ::std::os::raw::c_char,
-        vptr: *mut *const ::std::os::raw::c_char,
-    ) -> ::std::os::raw::c_int;
-}
-extern "C" {
-    pub fn SCConfGetChildValueInt(
-        base: *const SCConfNode, name: *const ::std::os::raw::c_char, val: *mut intmax_t,
-    ) -> ::std::os::raw::c_int;
-}
-extern "C" {
-    pub fn SCConfGetChildValueBool(
-        base: *const SCConfNode, name: *const ::std::os::raw::c_char,
-        val: *mut ::std::os::raw::c_int,
-    ) -> ::std::os::raw::c_int;
-}
-extern "C" {
-    pub fn SCConfGetChildValueWithDefault(
-        base: *const SCConfNode, dflt: *const SCConfNode, name: *const ::std::os::raw::c_char,
-        vptr: *mut *const ::std::os::raw::c_char,
-    ) -> ::std::os::raw::c_int;
-}
-extern "C" {
-    pub fn SCConfGetChildValueIntWithDefault(
-        base: *const SCConfNode, dflt: *const SCConfNode, name: *const ::std::os::raw::c_char,
-        val: *mut intmax_t,
-    ) -> ::std::os::raw::c_int;
-}
-extern "C" {
-    pub fn SCConfGetChildValueBoolWithDefault(
-        base: *const SCConfNode, dflt: *const SCConfNode, name: *const ::std::os::raw::c_char,
-        val: *mut ::std::os::raw::c_int,
-    ) -> ::std::os::raw::c_int;
-}
-extern "C" {
-    pub fn SCConfNodeIsSequence(node: *const SCConfNode) -> ::std::os::raw::c_int;
-}
-extern "C" {
-    pub fn SCConfSetIfaceNode(
-        ifaces_node_name: *const ::std::os::raw::c_char, iface: *const ::std::os::raw::c_char,
-    ) -> *mut SCConfNode;
-}
-extern "C" {
-    pub fn SCConfSetRootAndDefaultNodes(
-        ifaces_node_name: *const ::std::os::raw::c_char, iface: *const ::std::os::raw::c_char,
-        if_root: *mut *mut SCConfNode, if_default: *mut *mut SCConfNode,
-    ) -> ::std::os::raw::c_int;
-}
-extern "C" {
-    pub fn SCConfNodeGetNodeOrCreate(
-        parent: *mut SCConfNode, name: *const ::std::os::raw::c_char, final_: ::std::os::raw::c_int,
-    ) -> *mut SCConfNode;
-}
-extern "C" {
-    pub fn SCConfGetFirstNode(parent: *const SCConfNode) -> *mut SCConfNode;
-}
-extern "C" {
-    pub fn SCConfGetNextNode(node: *const SCConfNode) -> *mut SCConfNode;
-}
-extern "C" {
-    pub fn SCConfGetValueNode(node: *const SCConfNode) -> *const ::std::os::raw::c_char;
 }
 pub type ProbingParserFPtr = ::std::option::Option<
     unsafe extern "C" fn(
