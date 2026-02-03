@@ -1265,6 +1265,22 @@ OutputInitResult OutputJsonInitCtx(SCConfNode *conf)
         } else {
             json_ctx->cfg.include_suricata_version = false;
         }
+        const char *eve_version = SCConfNodeLookupChildValue(conf, "version");
+        if (eve_version != NULL) {
+            if (StringParseUint16(&json_ctx->cfg.eve_version, 10, 0, eve_version) < 0) {
+                FatalError("Failed to initialize JSON output, "
+                           "invalid EVE version: %s",
+                        eve_version);
+            }
+            if (json_ctx->cfg.eve_version > EVE_MAX_VERSION) {
+                SCLogWarning("Configured EVE version %u is higher than "
+                             "maximum supported version %u, using max version.",
+                        json_ctx->cfg.eve_version, EVE_MAX_VERSION);
+                json_ctx->cfg.eve_version = EVE_MAX_VERSION;
+            }
+        } else {
+            json_ctx->cfg.eve_version = 1;
+        }
 
         /* See if we want to enable the community id */
         const SCConfNode *community_id = SCConfNodeLookupChild(conf, "community-id");

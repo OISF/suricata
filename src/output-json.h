@@ -37,6 +37,8 @@ void OutputJsonRegister(void);
 #define JSON_ADDR_LEN 46
 #define JSON_PROTO_LEN 16
 
+#define EVE_MAX_VERSION 2
+
 /* A struct to contain address info for rendering to JSON. */
 typedef struct JsonAddrInfo_ {
     char src_ip[JSON_ADDR_LEN];
@@ -67,6 +69,7 @@ typedef struct OutputJsonCommonSettings_ {
     bool include_ethernet;
     bool include_suricata_version;
     uint16_t community_id_seed;
+    uint16_t eve_version;
 } OutputJsonCommonSettings;
 
 /*
