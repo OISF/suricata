@@ -167,6 +167,37 @@ on.
     alert http any any -> any any (http_request_line; to_sha256; \
         content:"\|54A9 7A8A B09C 1B81 3725 2214 51D3 F997 F015 9DD7 049E E5AD CED3 945A FC79 7401\|"; sid:1;)
 
+.. _transform-error-signaling:
+
+Error-Signaling Transforms
+--------------------------
+
+Some transforms can signal an error when they cannot complete their operation. When an error
+is signaled, the transform sets an error flag on the inspection buffer and the original buffer
+content is preserved unchanged. Content keywords following a failed transform therefore match
+against the original (pre-transform) data.
+
+The following transforms can signal errors:
+
+- :ref:`pcrexform <pcrexform>` signals an error when the regular expression does not match
+  or its capture group cannot be extracted.
+- :ref:`from_base64 <from_base64>` signals an error when a non-empty input decodes to
+  nothing. Input that decodes in part is not an error.
+
+The ``transform_result`` keyword matches on the transform outcome:
+
+- ``transform_result: error_or`` matches if the transform signals an error, OR if subsequent keywords
+  match. Does not match on a truly-absent buffer (use ``absent: or_else`` for that branch).
+- ``transform_result: must_error`` matches only when the transform signals an error; no other content
+  keyword is allowed on the same buffer. Does not match on a truly-absent buffer.
+- ``transform_result: must_succeed`` rejects the match when the transform signals an error, ensuring
+  content keywords only run against successfully-transformed data. Does not match on a truly-absent
+  buffer.
+
+See :ref:`rules-keyword-transform-result` for full documentation and examples of each option.
+
+.. _pcrexform:
+
 pcrexform
 ---------
 
@@ -174,6 +205,9 @@ Takes the buffer, applies the required regular expression, and outputs the *firs
 
 .. note:: this transform requires a mandatory option string containing a regular expression.
 
+If the regular expression does not match the buffer content, the transform signals an error
+and the original buffer content is preserved. See :ref:`transform-error-signaling` for how to
+detect or guard against transform failures using ``transform_result``.
 
 This example alerts if ``http.request_line`` contains ``/dropper.php``:
 
@@ -181,6 +215,19 @@ This example alerts if ``http.request_line`` contains ``/dropper.php``:
 
     alert http any any -> any any (msg:"HTTP with pcrexform"; http.request_line; \
         pcrexform:"[a-zA-Z]+\s+(.*)\s+HTTP"; content:"/dropper.php"; sid:1;)
+
+This example relies on the original content being kept when ``pcrexform`` fails. It extracts
+the top-level domain from a subdomain (e.g., ``www.example.com`` → ``example.com``), and when
+there is no subdomain the original query is kept. Either way, ``content:"example.com"``
+matches::
+
+    alert dns any any -> any any (msg:"TLD match"; \
+        dns.query; pcrexform:"\.([^\.]+\.[^\.]+)$"; content:"example.com"; sid:1;)
+
+This example alerts if ``pcrexform`` fails to match (e.g., unexpected request line format)::
+
+    alert http any any -> any any (msg:"pcrexform match failure"; http.request_line; \
+        pcrexform:"[a-zA-Z]+\s+(.*)\s+HTTP"; transform_result: must_error; sid:2;)
 
 url_decode
 ----------
@@ -302,6 +349,11 @@ Mode ``rfc2045`` applies RFC 2045 decoding logic which supports strings, includi
 line breaks, and any non base64 alphabet.
 
 Mode ``strict`` will fail if an invalid character is found in the encoded bytes.
+
+.. note:: When a non-empty input decodes to nothing (for example, ``strict`` mode rejecting a
+   character outside the base64 alphabet), ``from_base64`` signals an error and the original
+   buffer content is preserved. See :ref:`transform-error-signaling` for how to detect or guard
+   against decode failures using ``transform_result``.
 
 The following examples will alert when the buffer contents match (see the
 last ``content`` value for the expected strings).
