@@ -337,26 +337,125 @@ These differences are also discussed in :doc:`differences-from-snort`.
 A discussion of this difference can be found at
 https://redmine.openinfosecfoundation.org/issues/8031
 
+.. _rules-keyword-absent:
+
 absent
 ------
 
-The keyword ``absent`` checks that a sticky buffer does not exist.
-It can be used without any argument to match only on absent buffer :
+The keyword ``absent`` checks that a sticky buffer does not exist. It takes
+either no argument (match only on absent buffer) or ``or_else`` (match on
+absent buffer or fall through to subsequent keywords).
 
-Example of ``absent`` in a rule:
+For transform-outcome matching (``must_succeed``, ``must_error``,
+``error_or``), see :ref:`rules-keyword-transform-result`.
+
+absent (no argument)
+~~~~~~~~~~~~~~~~~~~~
+
+Match only when the buffer is absent (NULL). No other content-style
+keyword is allowed on the same buffer.
 
 .. container:: example-rule
 
    alert http any any -> any any (msg:"HTTP request without referer";  :example-rule-emphasis:`http.referer; absent;` sid:1; rev:1;)
 
+absent: or_else
+~~~~~~~~~~~~~~~
 
-It can take an argument "or_else" to match on absent buffer or on what comes next such as negated content, for instance :
+Match when the buffer is absent (NULL) OR when subsequent keywords match,
+for example a negated content.
 
 .. container:: example-rule
 
-   alert http any any -> any any (msg:"HTTP request without referer";  :example-rule-emphasis:`http.referer; absent: or_else;` content: !"abc"; sid:1; rev:1;)
+   alert http any any -> any any (msg:"HTTP request without referer";  :example-rule-emphasis:`http.referer; absent: or_else;` \
+       content: !"abc"; sid:1; rev:1;)
 
-For files (i.e ``file.data``), absent means there are no files in the transaction.
+``or_else`` cannot be combined with a transform that can signal an error
+(``from_base64``, ``pcrexform``); use ``transform_result: error_or``
+instead.
+
+For files (i.e. ``file.data``), absent means there are no files in the
+transaction.
+
+.. _rules-keyword-transform-result:
+
+transform_result
+----------------
+
+``transform_result`` matches on the outcome of a preceding transform.
+When a transform cannot complete, it sets an error flag on the inspection
+buffer and leaves the original bytes in place, so keywords after it inspect
+the untransformed data. ``transform_result`` reacts to that flag; it does not
+match on a truly-absent buffer.
+
+The keyword takes one of ``must_succeed``, ``must_error``, or ``error_or``
+and requires a transform that can fail on the same buffer. Currently the
+transforms that can signal errors are ``from_base64`` and ``pcrexform``.
+See :ref:`transform-error-signaling`.
+
+transform_result: must_succeed
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Reject the match if the transform signals an error. Subsequent keywords
+run only against successfully-transformed data, which prevents a content
+match from running against the pre-transform bytes after a failed
+``from_base64``.
+
+.. container:: example-rule
+
+   alert http any any -> any any (msg:"Detect malware only in decoded base64"; file.data; \
+       from_base64; :example-rule-emphasis:`transform_result: must_succeed;` content:"malware"; sid:1; rev:1;)
+
+transform_result: must_error
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Match only when the transform signals an error. No other keyword is
+allowed on the same buffer, but other sticky buffers can follow to combine
+error detection with further matching conditions.
+
+.. container:: example-rule
+
+   alert http any any -> any any (msg:"Detect base64 decode failure"; file.data; \
+       from_base64; :example-rule-emphasis:`transform_result: must_error;` sid:1; rev:1;)
+
+Example combining with a second sticky buffer::
+
+   alert http any any -> any any (msg:"base64 error and bad host"; \
+       http.uri; from_base64: mode strict; transform_result: must_error; \
+       http.host; content:"suspicious.example.com"; sid:1;)
+
+transform_result: error_or
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Match when the transform signals an error OR when subsequent keywords
+match. Unlike ``absent: or_else``, this does not match on a truly-absent
+buffer; use ``absent: or_else`` for that branch (on a buffer without a
+can-fail transform).
+
+.. container:: example-rule
+
+   alert http any any -> any any (msg:"Detect base64 decode error or malicious content"; file.data; \
+       from_base64; :example-rule-emphasis:`transform_result: error_or;` content:"malicious"; sid:1; rev:1;)
+
+Rule-writing constraints
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+The following constraints apply to both ``absent`` and
+``transform_result`` and are enforced at rule-load time:
+
+* The keyword must come first on its buffer, right after the sticky
+  buffer selector; a transform may appear between the two.
+* Only one ``absent`` or ``transform_result`` is allowed per buffer,
+  and the two cannot be mixed on the same buffer.
+* ``fast_pattern`` cannot be used on a buffer that carries ``absent``
+  or ``transform_result``.
+* ``absent`` and ``transform_result`` do not work on frame buffers.
+* ``transform_result`` requires a transform that can signal errors
+  on the same buffer (``from_base64`` or ``pcrexform``).
+* ``absent: or_else`` cannot be paired with a can-fail transform; use
+  ``transform_result: error_or`` instead.
+* ``must_error`` cannot be combined with other keywords on the same
+  buffer, but other sticky buffers can follow.
 
 bsize
 -----

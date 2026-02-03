@@ -127,6 +127,14 @@ Logging Changes
   ``client_hello_done`` is now ``client_hello``). See
   :doc:`firewall/tls-state-migration` for the old-to-new mapping.
 
+- Engine analysis (``rules.json``): the ``absent`` object emitted per keyword
+  changed from ``{"or_else": true|false}`` to ``{"mode": "only|or_else"}``.
+  The new ``transform_result`` keyword emits
+  ``{"transform_result": {"mode": "error_or|must_error|must_succeed"}}``
+  under the same per-keyword object. Consumers reading the boolean ``or_else``
+  field should switch to the string ``mode`` field, and recognize both the
+  ``absent`` and ``transform_result`` objects.
+
 Removals
 ~~~~~~~~
 
@@ -155,6 +163,17 @@ Keyword Changes
   and the new ``error`` / ``state`` fields of the ssh eve record.
   See :doc:`rules/ssh-keywords` for the full state and failure
   semantics.
+
+- ``absent: or_else`` is now rejected on a buffer whose transform can signal
+  an error (``from_base64``, ``pcrexform``), and such a rule fails to load.
+  Use ``transform_result: error_or`` instead; see
+  :ref:`rules-keyword-transform-result`.
+
+- ``from_base64`` decodes the input when ``bytes`` equals the input left after
+  ``offset``; 8.0 left such a buffer undecoded. When ``offset`` is at or past
+  the end of the buffer, or ``bytes`` is larger than the input left after
+  ``offset``, the buffer is still left undecoded and the transform now signals
+  an error that ``transform_result`` can match on.
 
 Other Changes
 ~~~~~~~~~~~~~
