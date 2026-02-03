@@ -63,6 +63,11 @@ Logging Changes
   ``stats.app_layer.*.ftp-data`` becomes ``stats.app_layer.*.ftp_data``,
   and same for bittorrent_dht
 
+- Engine analysis (``rules.json``): the ``absent`` object emitted per keyword
+  changed from ``{"or_else": true|false}`` to ``{"mode": "only|or_else|error_or|must_error|must_succeed"}``
+  to accommodate the new ``absent`` modes. Consumers reading the boolean
+  ``or_else`` field should switch to the string ``mode`` field.
+
 Removals
 ~~~~~~~~
 
