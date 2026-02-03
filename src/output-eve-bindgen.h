@@ -23,8 +23,8 @@
  *
  */
 
-#ifndef SURICATA_OUTPUT_PUBLIC_H
-#define SURICATA_OUTPUT_PUBLIC_H
+#ifndef SURICATA_OUTPUT_EVE_BINDGEN_H
+#define SURICATA_OUTPUT_EVE_BINDGEN_H
 
 #include "app-layer-protos.h"
 
@@ -54,4 +54,4 @@ typedef struct EveJsonTxLoggerRegistrationData {
 
 int SCOutputEvePreRegisterLogger(EveJsonTxLoggerRegistrationData reg_data);
 
-#endif /* ! SURICATA_OUTPUT_PUBLIC_H */
+#endif /* ! SURICATA_OUTPUT_EVEN_BINDGEN_H */
