@@ -167,6 +167,33 @@ on.
     alert http any any -> any any (http_request_line; to_sha256; \
         content:"\|54A9 7A8A B09C 1B81 3725 2214 51D3 F997 F015 9DD7 049E E5AD CED3 945A FC79 7401\|"; sid:1;)
 
+.. _transform-error-signaling:
+
+Error-Signaling Transforms
+--------------------------
+
+Some transforms can signal an error when they cannot complete their operation. When an error
+is signaled, the transform sets an error flag on the inspection buffer and the original buffer
+content is preserved unchanged. Content keywords following a failed transform therefore match
+against the original (pre-transform) data, which provides pass-through semantics by default.
+
+The following transforms can signal errors:
+
+- :ref:`pcrexform <pcrexform>` — signals an error when the regular expression does not match
+- :ref:`from_base64 <from_base64>` — signals an error when the data cannot be decoded
+
+The ``absent`` keyword can be used to detect or guard against these failures:
+
+- ``absent: error_or`` — matches if the transform signals an error, OR if subsequent keywords match
+- ``absent: must_error`` — matches only when the transform signals an error; no other content keywords
+  are allowed on the same buffer
+- ``absent: must_succeed`` — rejects the match if the transform signals an error, ensuring content
+  keywords only run against successfully-transformed data
+
+See :ref:`rules-keyword-absent` for full documentation and examples of each mode.
+
+.. _pcrexform:
+
 pcrexform
 ---------
 
@@ -174,6 +201,9 @@ Takes the buffer, applies the required regular expression, and outputs the *firs
 
 .. note:: this transform requires a mandatory option string containing a regular expression.
 
+If the regular expression does not match the buffer content, the transform signals an error
+and the original buffer content is preserved. See :ref:`transform-error-signaling` for how to
+detect or guard against transform failures using ``absent``.
 
 This example alerts if ``http.request_line`` contains ``/dropper.php``
 .. container:: example-rule
@@ -272,6 +302,11 @@ Mode ``rfc2045`` applies RFC 2045 decoding logic which supports strings, includi
 line breaks, and any non base64 alphabet.
 
 Mode ``strict`` will fail if an invalid character is found in the encoded bytes.
+
+.. note:: When ``from_base64`` encounters data it cannot decode (e.g., in ``strict`` mode
+   or invalid base64 data in ``rfc4648`` mode), it signals an error and the original buffer
+   content is preserved. See :ref:`transform-error-signaling` for how to detect or guard
+   against decode failures using ``absent``.
 
 The following examples will alert when the buffer contents match (see the
 last ``content`` value for the expected strings).

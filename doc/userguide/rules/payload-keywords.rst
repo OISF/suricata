@@ -337,6 +337,8 @@ These differences are also discussed in :doc:`differences-from-snort`.
 A discussion of this difference can be found at
 https://redmine.openinfosecfoundation.org/issues/8031
 
+.. _rules-keyword-absent:
+
 absent
 ------
 
@@ -354,7 +356,67 @@ It can take an argument "or_else" to match on absent buffer or on what comes nex
 
 .. container:: example-rule
 
-   alert http any any -> any any (msg:"HTTP request without referer";  :example-rule-emphasis:`http.referer; absent: or_else;` content: !"abc"; sid:1; rev:1;)
+   alert http any any -> any any (msg:"HTTP request without referer";  :example-rule-emphasis:`http.referer; absent: or_else;` \
+       content: !"abc"; sid:1; rev:1;)
+
+It can also take an argument "error_or" to match on transform errors or on subsequent content matches.
+This is useful for detecting when data transformations fail (e.g., invalid base64 encoding) or when the
+decoded data matches a pattern:
+
+.. container:: example-rule
+
+   alert http any any -> any any (msg:"Detect base64 decode error or malicious content"; file.data; \
+       from_base64; :example-rule-emphasis:`absent: error_or;` content:"malicious"; sid:1; rev:1;)
+
+It can also take an argument "must_error" to match only when a transform fails.
+Unlike ``error_or``, there is no fallthrough to subsequent keywords — if the transform succeeds,
+the match fails:
+
+.. container:: example-rule
+
+   alert http any any -> any any (msg:"Detect base64 decode failure"; file.data; \
+       from_base64; :example-rule-emphasis:`absent: must_error;` sid:1; rev:1;)
+
+It can also take an argument "must_succeed" to ensure that subsequent keywords only match
+against successfully-transformed data. If a transform failure is detected, the match is
+rejected — preventing false positives from matching against the original (pre-transform) buffer:
+
+.. container:: example-rule
+
+   alert http any any -> any any (msg:"Detect malware only in decoded base64"; file.data; \
+       from_base64; :example-rule-emphasis:`absent: must_succeed;` content:"malware"; sid:1; rev:1;)
+
+The options differ as follows:
+
+* ``or_else`` matches if the buffer is absent (NULL) OR if subsequent keywords match
+* ``error_or`` matches if a transform operation fails (sets error flag) OR if subsequent keywords match
+* ``must_error`` matches only if a transform operation fails; no other keywords are allowed on the
+  same buffer, but other sticky buffers can follow
+* ``must_succeed`` rejects the match if a transform fails; subsequent keywords only run on
+  successfully-transformed data
+
+When a transform like ``from_base64`` encounters invalid data, it sets an error flag on the inspection
+buffer but leaves the buffer intact to preserve prefilter capability. Without ``must_succeed``, a rule
+inspecting content on the transformed buffer could inadvertently match against the original data.
+The ``absent: must_succeed`` keyword prevents this by failing the match whenever the error flag is set.
+
+.. note:: The ``error_or``, ``must_error``, and ``must_succeed`` options require the buffer to have a
+   transform that can fail. Currently, the transforms that can signal errors are ``from_base64`` and
+   ``pcrexform``. Using these options on a buffer without such a transform will cause a rule loading
+   error.
+
+   Conversely, ``or_else`` cannot be used on a buffer with a transform that can fail.
+   Use ``error_or`` instead to properly handle potential transform errors.
+
+   ``must_error`` cannot be combined with other keywords such as content on the same buffer.
+   However, it can be followed by other sticky buffers to combine error detection with
+   additional matching conditions.
+
+This example alerts when base64 decoding fails on the URI and the host matches::
+
+   alert http any any -> any any (msg:"base64 error and bad host"; \
+       http.uri; from_base64: mode strict; absent: must_error; \
+       http.host; content:"suspicious.example.com"; sid:1;)
 
 For files (i.e ``file.data``), absent means there are no files in the transaction.
 
