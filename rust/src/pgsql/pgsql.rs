@@ -416,14 +416,18 @@ impl PgsqlState {
                         tx.tx_data.updated_ts = true;
                         if let Some(state) = new_state {
                             if state == PgsqlStateProgress::FirstCopyDataInReceived
-                            || state == PgsqlStateProgress::ConsolidatingCopyDataIn {
+                                || state == PgsqlStateProgress::ConsolidatingCopyDataIn
+                            {
                                 // here we're actually only counting how many messages were received.
                                 // frontends are not forced to send one row per message
                                 if let PgsqlFEMessage::ConsolidatedCopyDataIn(ref msg) = request {
                                     tx.sum_data_size(msg.data_size);
                                     tx.incr_row_cnt();
                                 }
-                            } else if (state == PgsqlStateProgress::CopyDoneReceived || state == PgsqlStateProgress::CopyFailReceived) && tx.get_row_cnt() > 0 {
+                            } else if (state == PgsqlStateProgress::CopyDoneReceived
+                                || state == PgsqlStateProgress::CopyFailReceived)
+                                && tx.get_row_cnt() > 0
+                            {
                                 let consolidated_copy_data = PgsqlFEMessage::ConsolidatedCopyDataIn(
                                     ConsolidatedDataRowPacket {
                                         identifier: b'd',
@@ -658,13 +662,14 @@ impl PgsqlState {
                                 && tx.get_row_cnt() > 0
                             {
                                 // let's summarize the info from the data_rows in one response
-                                let consolidated_copy_data = PgsqlBEMessage::ConsolidatedCopyDataOut(
-                                    ConsolidatedDataRowPacket {
-                                        identifier: b'd',
-                                        row_cnt: tx.get_row_cnt(),
-                                        data_size: tx.data_size, // total byte count of all data_row messages combined
-                                    },
-                                );
+                                let consolidated_copy_data =
+                                    PgsqlBEMessage::ConsolidatedCopyDataOut(
+                                        ConsolidatedDataRowPacket {
+                                            identifier: b'd',
+                                            row_cnt: tx.get_row_cnt(),
+                                            data_size: tx.data_size, // total byte count of all data_row messages combined
+                                        },
+                                    );
                                 tx.responses.push(consolidated_copy_data);
                                 tx.responses.push(response);
                                 // reset values

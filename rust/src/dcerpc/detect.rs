@@ -212,7 +212,7 @@ pub extern "C" fn SCDcerpcIfaceMatch(
     }
 
     if !(tx.req_cmd == DCERPC_TYPE_REQUEST || tx.resp_cmd == DCERPC_TYPE_RESPONSE) {
-            return 0;
+        return 0;
     }
 
     return match_backuuid(tx, state, if_data);

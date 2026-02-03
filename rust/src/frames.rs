@@ -25,9 +25,9 @@ use crate::flow::Flow;
 
 #[cfg(not(test))]
 use std::os::raw::c_void;
+use suricata_sys::sys::{SCAppLayerFrameAddEventById, SCAppLayerFrameSetLengthById};
 #[cfg(not(test))]
 use suricata_sys::sys::{SCAppLayerFrameNewByRelativeOffset, SCAppLayerFrameSetTxIdById};
-use suricata_sys::sys::{SCAppLayerFrameAddEventById, SCAppLayerFrameSetLengthById};
 
 pub struct Frame {
     pub id: i64,

@@ -19,9 +19,9 @@
 
 use std::{ffi::CString, path::Path};
 
-use suricata_sys::sys::{SCFatalErrorOnInitStatic, SCLogLevel};
 #[cfg(not(test))]
 use suricata_sys::sys::{SCError, SCLogMessage};
+use suricata_sys::sys::{SCFatalErrorOnInitStatic, SCLogLevel};
 
 pub static mut LEVEL: SCLogLevel = SCLogLevel::SC_LOG_NOTSET;
 

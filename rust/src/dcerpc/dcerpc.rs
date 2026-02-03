@@ -16,6 +16,7 @@
  */
 
 use crate::applayer::{self, *};
+use crate::conf::{conf_get, get_memval};
 use crate::core::{self, *};
 use crate::dcerpc::parser;
 use crate::direction::{Direction, DIR_BOTH};
@@ -24,15 +25,14 @@ use crate::frames::*;
 use nom8::error::{Error, ErrorKind};
 use nom8::number::Endianness;
 use nom8::{Err, IResult, Needed};
+use std;
+use std::cmp;
+use std::collections::VecDeque;
+use std::ffi::CString;
 use suricata_sys::sys::{
     AppLayerParserState, AppProto, SCAppLayerParserConfParserEnabled,
     SCAppLayerProtoDetectConfProtoDetectionEnabled, SCAppLayerProtoDetectPMRegisterPatternCSwPP,
 };
-use std;
-use std::cmp;
-use std::ffi::CString;
-use std::collections::VecDeque;
-use crate::conf::{conf_get, get_memval};
 
 pub static mut DCERPC_MAX_STUB_SIZE: u32 = 1048576;
 
@@ -184,7 +184,6 @@ pub fn cfg_max_stub_size() -> u32 {
     unsafe { DCERPC_MAX_STUB_SIZE }
 }
 
-
 #[derive(Default, Debug)]
 pub struct DCERPCTransaction {
     pub id: u64, // internal transaction ID
@@ -228,7 +227,7 @@ impl DCERPCTransaction {
             activityuuid: Vec::new(),
             tx_data: AppLayerTxData::new(),
             ..Default::default()
-        }
+        };
     }
 
     pub fn get_req_ctxid(&self) -> u16 {
@@ -355,7 +354,7 @@ impl DCERPCState {
     pub fn new() -> Self {
         return Self {
             ..Default::default()
-        }
+        };
     }
 
     fn create_tx(&mut self, hdr: &DCERPCHdr) -> DCERPCTransaction {
@@ -384,13 +383,14 @@ impl DCERPCState {
     }
 
     pub fn free_tx(&mut self, tx_id: u64) {
-        SCLogDebug!("Freeing TX with ID {} TX.ID {}", tx_id, tx_id+1);
+        SCLogDebug!("Freeing TX with ID {} TX.ID {}", tx_id, tx_id + 1);
         let len = self.transactions.len();
         let mut found = false;
         let mut index = 0;
         for i in 0..len {
             let tx = &self.transactions[i];
-            if tx.id == tx_id { //+ 1 {
+            if tx.id == tx_id {
+                //+ 1 {
                 found = true;
                 index = i;
                 SCLogDebug!("tx {} progress {}/{}", tx.id, tx.req_done, tx.resp_done);
@@ -398,8 +398,14 @@ impl DCERPCState {
             }
         }
         if found {
-            SCLogDebug!("freeing TX with ID {} TX.ID {} at index {} left: {} max id: {}",
-                            tx_id, tx_id+1, index, self.transactions.len(), self.tx_id);
+            SCLogDebug!(
+                "freeing TX with ID {} TX.ID {} at index {} left: {} max id: {}",
+                tx_id,
+                tx_id + 1,
+                index,
+                self.transactions.len(),
+                self.tx_id
+            );
             self.tx_index_completed = 0;
             self.transactions.remove(index);
         }
@@ -433,7 +439,9 @@ impl DCERPCState {
     ///
     /// Return value:
     /// Option mutable reference to DCERPCTransaction
-    pub fn get_tx_by_call_id(&mut self, call_id: u32, dir: Direction, cmd: u8) -> Option<&mut DCERPCTransaction> {
+    pub fn get_tx_by_call_id(
+        &mut self, call_id: u32, dir: Direction, cmd: u8,
+    ) -> Option<&mut DCERPCTransaction> {
         for tx in &mut self.transactions {
             let found = tx.call_id == call_id;
             if found {
@@ -466,7 +474,12 @@ impl DCERPCState {
     }
 
     fn post_gap_housekeeping(&mut self, dir: Direction) {
-        SCLogDebug!("ts ssn gap: {:?}, tc ssn gap: {:?}, dir: {:?}", self.ts_ssn_gap, self.tc_ssn_gap, dir);
+        SCLogDebug!(
+            "ts ssn gap: {:?}, tc ssn gap: {:?}, dir: {:?}",
+            self.ts_ssn_gap,
+            self.tc_ssn_gap,
+            dir
+        );
         if self.ts_ssn_gap && dir == Direction::ToServer {
             for tx in &mut self.transactions {
                 if tx.id >= self.tx_id {
@@ -502,7 +515,7 @@ impl DCERPCState {
         }
     }
 
-    pub fn search_dcerpc_record<'a>(&mut self, i: &'a[u8]) -> IResult<&'a[u8], &'a[u8]> {
+    pub fn search_dcerpc_record<'a>(&mut self, i: &'a [u8]) -> IResult<&'a [u8], &'a [u8]> {
         let mut d = i;
         while d.len() >= 2 {
             if d[0] == 0x05 && d[1] == 0x00 {
@@ -513,8 +526,14 @@ impl DCERPCState {
         Err(Err::Incomplete(Needed::new(2_usize - d.len())))
     }
 
-    pub fn handle_bindctxitem(&mut self, input: &[u8], uuid_internal_id: u16, hdr: &DCERPCHdr) -> i32 {
-        let endianness = if hdr.packed_drep[0] & 0x10 == 0 { Endianness::Big } else { Endianness::Little };
+    pub fn handle_bindctxitem(
+        &mut self, input: &[u8], uuid_internal_id: u16, hdr: &DCERPCHdr,
+    ) -> i32 {
+        let endianness = if hdr.packed_drep[0] & 0x10 == 0 {
+            Endianness::Big
+        } else {
+            Endianness::Little
+        };
         match parser::parse_bindctx_item(input, endianness) {
             Ok((leftover_bytes, ctxitem)) => {
                 let mut uuidentry = DCERPCUuidEntry::new();
@@ -566,7 +585,10 @@ impl DCERPCState {
                 tx.req_cmd = hdr.hdrtype;
                 tx.req_done = true;
                 if let Some(flow) = self.flow {
-                    sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
+                    sc_app_layer_parser_trigger_raw_stream_inspection(
+                        flow,
+                        Direction::ToServer as i32,
+                    );
                 }
                 tx.frag_cnt_ts = 1;
                 self.transactions.push_back(tx);
@@ -620,7 +642,9 @@ impl DCERPCState {
         }
     }
 
-    pub fn handle_stub_data(&mut self, input: &[u8], input_len: usize, dir: Direction, hdr: &DCERPCHdr) -> u16 {
+    pub fn handle_stub_data(
+        &mut self, input: &[u8], input_len: usize, dir: Direction, hdr: &DCERPCHdr,
+    ) -> u16 {
         let retval;
         let hdrpfcflags = hdr.pfc_flags;
         let padleft = self.padleft;
@@ -636,40 +660,46 @@ impl DCERPCState {
 
         // Update the stub params based on the packet type
         match hdrtype {
-                DCERPC_TYPE_REQUEST => {
-                    retval = evaluate_stub_params(
-                        input,
-                        input_len,
-                        hdrpfcflags,
-                        padleft,
-                        &mut tx.stub_data_buffer_ts,
-                        &mut tx.stub_data_buffer_reset_ts,
+            DCERPC_TYPE_REQUEST => {
+                retval = evaluate_stub_params(
+                    input,
+                    input_len,
+                    hdrpfcflags,
+                    padleft,
+                    &mut tx.stub_data_buffer_ts,
+                    &mut tx.stub_data_buffer_reset_ts,
+                );
+                tx.req_done = tx.stub_data_buffer_reset_ts;
+                tx.frag_cnt_ts += 1;
+                if let Some(flow) = self.flow {
+                    sc_app_layer_parser_trigger_raw_stream_inspection(
+                        flow,
+                        Direction::ToServer as i32,
                     );
-                    tx.req_done = tx.stub_data_buffer_reset_ts;
-                    tx.frag_cnt_ts += 1;
-                    if let Some(flow) = self.flow {
-                        sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
-                    }
                 }
-                DCERPC_TYPE_RESPONSE => {
-                    retval = evaluate_stub_params(
-                        input,
-                        input_len,
-                        hdrpfcflags,
-                        padleft,
-                        &mut tx.stub_data_buffer_tc,
-                        &mut tx.stub_data_buffer_reset_tc,
+            }
+            DCERPC_TYPE_RESPONSE => {
+                retval = evaluate_stub_params(
+                    input,
+                    input_len,
+                    hdrpfcflags,
+                    padleft,
+                    &mut tx.stub_data_buffer_tc,
+                    &mut tx.stub_data_buffer_reset_tc,
+                );
+                tx.resp_done = tx.stub_data_buffer_reset_tc;
+                tx.frag_cnt_tc += 1;
+                if let Some(flow) = self.flow {
+                    sc_app_layer_parser_trigger_raw_stream_inspection(
+                        flow,
+                        Direction::ToClient as i32,
                     );
-                    tx.resp_done = tx.stub_data_buffer_reset_tc;
-                    tx.frag_cnt_tc += 1;
-                    if let Some(flow) = self.flow {
-                        sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
-                    }
                 }
-                _ => {
-                    SCLogDebug!("Unrecognized packet type");
-                    return 0;
-                }
+            }
+            _ => {
+                SCLogDebug!("Unrecognized packet type");
+                return 0;
+            }
         }
         // Update the remaining fragment length
         self.padleft -= retval;
@@ -687,7 +717,9 @@ impl DCERPCState {
     /// Return value:
     /// * Success: Number of bytes successfully parsed.
     /// * Failure: -1 in case fragment length defined by header mismatches the data.
-    pub fn handle_common_stub(&mut self, input: &[u8], bytes_consumed: usize, dir: Direction, hdr: &DCERPCHdr) -> i32 {
+    pub fn handle_common_stub(
+        &mut self, input: &[u8], bytes_consumed: usize, dir: Direction, hdr: &DCERPCHdr,
+    ) -> i32 {
         let fraglen = hdr.frag_length;
         if (fraglen as usize) < bytes_consumed + (DCERPC_HDR_LEN as usize) {
             return -1;
@@ -718,12 +750,17 @@ impl DCERPCState {
     }
 
     pub fn process_request_pdu(&mut self, input: &[u8], hdr: &DCERPCHdr) -> i32 {
-        let endianness = if hdr.packed_drep[0] & 0x10 == 0 { Endianness::Big } else { Endianness::Little };
+        let endianness = if hdr.packed_drep[0] & 0x10 == 0 {
+            Endianness::Big
+        } else {
+            Endianness::Little
+        };
         match parser::parse_dcerpc_request(input, endianness) {
             Ok((leftover_input, request)) => {
                 let call_id = hdr.call_id;
                 let hdr_type = hdr.hdrtype;
-                let mut transaction = self.get_tx_by_call_id(call_id, Direction::ToServer, hdr_type);
+                let mut transaction =
+                    self.get_tx_by_call_id(call_id, Direction::ToServer, hdr_type);
                 match transaction {
                     Some(ref mut tx) => {
                         tx.req_cmd = hdr_type;
@@ -761,13 +798,17 @@ impl DCERPCState {
         }
     }
 
-    pub fn handle_input_data(&mut self, stream_slice: StreamSlice, direction: Direction) -> AppLayerResult {
+    pub fn handle_input_data(
+        &mut self, stream_slice: StreamSlice, direction: Direction,
+    ) -> AppLayerResult {
         let retval;
         let mut cur_i = stream_slice.as_slice();
         let mut consumed = 0u32;
 
         // Skip the record since this means that its in the middle of a known length record
-        if (self.ts_gap && direction == Direction::ToServer) || (self.tc_gap && direction == Direction::ToClient) {
+        if (self.ts_gap && direction == Direction::ToServer)
+            || (self.tc_gap && direction == Direction::ToClient)
+        {
             SCLogDebug!("Trying to catch up after GAP (input {})", cur_i.len());
             match self.search_dcerpc_record(cur_i) {
                 Ok((_, pg)) => {
@@ -778,12 +819,12 @@ impl DCERPCState {
                     match direction {
                         Direction::ToServer => {
                             self.ts_gap = false;
-                        },
+                        }
                         Direction::ToClient => {
                             self.tc_gap = false;
                         }
                     }
-                },
+                }
                 _ => {
                     consumed = cur_i.len() as u32;
                     // At least 2 bytes are required to know if a new record is beginning
@@ -794,7 +835,7 @@ impl DCERPCState {
                     }
                     SCLogDebug!("DCERPC record NOT found");
                     return AppLayerResult::incomplete(consumed, 2);
-                },
+                }
             }
         }
 
@@ -805,34 +846,37 @@ impl DCERPCState {
         // Check if header data was complete. In case of EoF or incomplete data, wait for more
         // data else return error
         let hdr = match parser::parse_dcerpc_header(cur_i) {
-                Ok((_leftover_bytes, header)) => {
-                    if header.rpc_vers != 5
-                        || (header.rpc_vers_minor != 0 && header.rpc_vers_minor != 1)
-                    {
-                        SCLogDebug!(
-                            "DCERPC Header did not validate. Major version: {:?} Minor version: {:?}",
-                            header.rpc_vers,
-                            header.rpc_vers_minor
-                        );
-                        return AppLayerResult::err();
-                    }
-                    header
-                }
-                Err(Err::Incomplete(_)) => {
-                    // Insufficient data.
-                    SCLogDebug!("Insufficient data while parsing DCERPC header");
-                    return AppLayerResult::incomplete(consumed, DCERPC_HDR_LEN as u32);
-                }
-                Err(Err::Error(Error{code:ErrorKind::Eof, ..})) => {
-                    SCLogDebug!("EoF reached while parsing DCERPC header");
-                    return AppLayerResult::incomplete(consumed, DCERPC_HDR_LEN as u32);
-                }
-                Err(_) => {
-                    // Error, probably malformed data.
-                    SCLogDebug!("An error occurred while parsing DCERPC header");
+            Ok((_leftover_bytes, header)) => {
+                if header.rpc_vers != 5
+                    || (header.rpc_vers_minor != 0 && header.rpc_vers_minor != 1)
+                {
+                    SCLogDebug!(
+                        "DCERPC Header did not validate. Major version: {:?} Minor version: {:?}",
+                        header.rpc_vers,
+                        header.rpc_vers_minor
+                    );
                     return AppLayerResult::err();
                 }
-            };
+                header
+            }
+            Err(Err::Incomplete(_)) => {
+                // Insufficient data.
+                SCLogDebug!("Insufficient data while parsing DCERPC header");
+                return AppLayerResult::incomplete(consumed, DCERPC_HDR_LEN as u32);
+            }
+            Err(Err::Error(Error {
+                code: ErrorKind::Eof,
+                ..
+            })) => {
+                SCLogDebug!("EoF reached while parsing DCERPC header");
+                return AppLayerResult::incomplete(consumed, DCERPC_HDR_LEN as u32);
+            }
+            Err(_) => {
+                // Error, probably malformed data.
+                SCLogDebug!("An error occurred while parsing DCERPC header");
+                return AppLayerResult::err();
+            }
+        };
         let parsed = DCERPC_HDR_LEN;
         let fraglen = hdr.frag_length;
 
@@ -843,74 +887,101 @@ impl DCERPCState {
 
         let hdrtype = hdr.hdrtype;
 
-        let _hdr = Frame::new(flow, &stream_slice, cur_i, parsed as i64, DCERPCFrameType::Hdr as u8, None);
-        let _pdu = Frame::new(flow, &stream_slice, cur_i, fraglen as i64, DCERPCFrameType::Pdu as u8, None);
+        let _hdr = Frame::new(
+            flow,
+            &stream_slice,
+            cur_i,
+            parsed as i64,
+            DCERPCFrameType::Hdr as u8,
+            None,
+        );
+        let _pdu = Frame::new(
+            flow,
+            &stream_slice,
+            cur_i,
+            fraglen as i64,
+            DCERPCFrameType::Pdu as u8,
+            None,
+        );
         if fraglen >= DCERPC_HDR_LEN && cur_i.len() > DCERPC_HDR_LEN as usize {
-            let _data = Frame::new(flow, &stream_slice, &cur_i[DCERPC_HDR_LEN as usize..], (fraglen - DCERPC_HDR_LEN) as i64, DCERPCFrameType::Data as u8, None);
+            let _data = Frame::new(
+                flow,
+                &stream_slice,
+                &cur_i[DCERPC_HDR_LEN as usize..],
+                (fraglen - DCERPC_HDR_LEN) as i64,
+                DCERPCFrameType::Data as u8,
+                None,
+            );
         }
         let current_call_id = hdr.call_id;
 
         match hdrtype {
-                DCERPC_TYPE_BIND | DCERPC_TYPE_ALTER_CONTEXT => {
-                    retval = self.process_bind_pdu(&cur_i[parsed as usize..], &hdr);
-                    if retval == -1 {
-                        return AppLayerResult::err();
-                    }
+            DCERPC_TYPE_BIND | DCERPC_TYPE_ALTER_CONTEXT => {
+                retval = self.process_bind_pdu(&cur_i[parsed as usize..], &hdr);
+                if retval == -1 {
+                    return AppLayerResult::err();
                 }
-                DCERPC_TYPE_BINDACK | DCERPC_TYPE_ALTER_CONTEXT_RESP => {
-                    retval = self.process_bindack_pdu(&cur_i[parsed as usize..]);
-                    if retval == -1 {
-                        return AppLayerResult::err();
-                    }
-                    let tx = if let Some(tx) = self.get_tx_by_call_id(current_call_id, Direction::ToClient, hdrtype) {
+            }
+            DCERPC_TYPE_BINDACK | DCERPC_TYPE_ALTER_CONTEXT_RESP => {
+                retval = self.process_bindack_pdu(&cur_i[parsed as usize..]);
+                if retval == -1 {
+                    return AppLayerResult::err();
+                }
+                let tx = if let Some(tx) =
+                    self.get_tx_by_call_id(current_call_id, Direction::ToClient, hdrtype)
+                {
+                    tx.resp_cmd = hdrtype;
+                    tx
+                } else {
+                    let mut tx = self.create_tx(&hdr);
+                    tx.resp_cmd = hdrtype;
+                    self.transactions.push_back(tx);
+                    self.transactions.back_mut().unwrap()
+                };
+                tx.resp_done = true;
+                tx.frag_cnt_tc = 1;
+                if let Some(flow) = self.flow {
+                    sc_app_layer_parser_trigger_raw_stream_inspection(
+                        flow,
+                        Direction::ToClient as i32,
+                    );
+                }
+            }
+            DCERPC_TYPE_REQUEST => {
+                retval = self.process_request_pdu(&cur_i[parsed as usize..], &hdr);
+                if retval < 0 {
+                    return AppLayerResult::err();
+                }
+                // In case the response came first, the transaction would complete later when
+                // the corresponding request also comes through
+            }
+            DCERPC_TYPE_RESPONSE => {
+                let transaction =
+                    self.get_tx_by_call_id(current_call_id, Direction::ToClient, hdrtype);
+                match transaction {
+                    Some(tx) => {
                         tx.resp_cmd = hdrtype;
-                        tx
-                    } else {
+                    }
+                    None => {
                         let mut tx = self.create_tx(&hdr);
                         tx.resp_cmd = hdrtype;
                         self.transactions.push_back(tx);
-                        self.transactions.back_mut().unwrap()
-                    };
-                    tx.resp_done = true;
-                    tx.frag_cnt_tc = 1;
-                    if let Some(flow) = self.flow {
-                        sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
                     }
-                }
-                DCERPC_TYPE_REQUEST => {
-                    retval = self.process_request_pdu(&cur_i[parsed as usize..], &hdr);
-                    if retval < 0 {
-                        return AppLayerResult::err();
-                    }
-                    // In case the response came first, the transaction would complete later when
-                    // the corresponding request also comes through
-                }
-                DCERPC_TYPE_RESPONSE => {
-                    let transaction = self.get_tx_by_call_id(current_call_id, Direction::ToClient, hdrtype);
-                    match transaction {
-                        Some(tx) => {
-                            tx.resp_cmd = hdrtype;
-                        }
-                        None => {
-                            let mut tx = self.create_tx(&hdr);
-                            tx.resp_cmd = hdrtype;
-                            self.transactions.push_back(tx);
-                        }
-                    };
-                    retval = self.handle_common_stub(
-                        &cur_i[parsed as usize..],
-                        0,
-                        Direction::ToClient,
-                        &hdr,
-                    );
-                    if retval < 0 {
-                        return AppLayerResult::err();
-                    }
-                }
-                _ => {
-                    SCLogDebug!("Unrecognized packet type: {:?}", hdrtype);
+                };
+                retval = self.handle_common_stub(
+                    &cur_i[parsed as usize..],
+                    0,
+                    Direction::ToClient,
+                    &hdr,
+                );
+                if retval < 0 {
                     return AppLayerResult::err();
                 }
+            }
+            _ => {
+                SCLogDebug!("Unrecognized packet type: {:?}", hdrtype);
+                return AppLayerResult::err();
+            }
         }
 
         self.post_gap_housekeeping(direction);
@@ -919,10 +990,9 @@ impl DCERPCState {
 }
 
 fn evaluate_stub_params(
-    input: &[u8], input_len: usize, hdrflags: u8, lenleft: u16,
-    stub_data_buffer: &mut Vec<u8>,stub_data_buffer_reset: &mut bool,
+    input: &[u8], input_len: usize, hdrflags: u8, lenleft: u16, stub_data_buffer: &mut Vec<u8>,
+    stub_data_buffer_reset: &mut bool,
 ) -> u16 {
-
     let fragtype = hdrflags & (PFC_FIRST_FRAG | PFC_LAST_FRAG);
     // min of usize and u16 is a valid u16
     let stub_len: u16 = cmp::min(lenleft as usize, input_len) as u16;
@@ -946,19 +1016,24 @@ fn evaluate_stub_params(
 
 unsafe extern "C" fn parse_request(
     flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
-    stream_slice: StreamSlice,
-    _data: *mut std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *mut std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, DCERPCState);
     let flags = stream_slice.flags();
 
-    SCLogDebug!("Handling request: input_len {} flags {:x} EOF {}",
-            stream_slice.len(), flags, flags & core::STREAM_EOF != 0);
+    SCLogDebug!(
+        "Handling request: input_len {} flags {:x} EOF {}",
+        stream_slice.len(),
+        flags,
+        flags & core::STREAM_EOF != 0
+    );
     if flags & core::STREAM_EOF != 0 && stream_slice.is_empty() {
         return AppLayerResult::ok();
     }
     /* START with MIDSTREAM set: record might be starting the middle. */
-    if flags & (core::STREAM_START|core::STREAM_MIDSTREAM) == (core::STREAM_START|core::STREAM_MIDSTREAM) {
+    if flags & (core::STREAM_START | core::STREAM_MIDSTREAM)
+        == (core::STREAM_START | core::STREAM_MIDSTREAM)
+    {
         state.ts_gap = true;
     }
     if !stream_slice.is_gap() {
@@ -970,8 +1045,7 @@ unsafe extern "C" fn parse_request(
 
 unsafe extern "C" fn parse_response(
     flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
-    stream_slice: StreamSlice,
-    _data: *mut std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *mut std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, DCERPCState);
     let flags = stream_slice.flags();
@@ -980,7 +1054,9 @@ unsafe extern "C" fn parse_response(
         return AppLayerResult::ok();
     }
     /* START with MIDSTREAM set: record might be starting the middle. */
-    if flags & (core::STREAM_START|core::STREAM_MIDSTREAM) == (core::STREAM_START|core::STREAM_MIDSTREAM) {
+    if flags & (core::STREAM_START | core::STREAM_MIDSTREAM)
+        == (core::STREAM_START | core::STREAM_MIDSTREAM)
+    {
         state.tc_gap = true;
     }
     if !stream_slice.is_gap() {
@@ -990,14 +1066,16 @@ unsafe extern "C" fn parse_response(
     AppLayerResult::err()
 }
 
-extern "C" fn state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
+extern "C" fn state_new(
+    _orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
+) -> *mut std::os::raw::c_void {
     let state = DCERPCState::new();
     let boxed = Box::new(state);
     return Box::into_raw(boxed) as *mut _;
 }
 
 extern "C" fn state_free(state: *mut std::os::raw::c_void) {
-    std::mem::drop(unsafe { Box::from_raw(state as *mut DCERPCState)} );
+    std::mem::drop(unsafe { Box::from_raw(state as *mut DCERPCState) });
 }
 
 unsafe extern "C" fn state_transaction_free(state: *mut std::os::raw::c_void, tx_id: u64) {
@@ -1006,7 +1084,7 @@ unsafe extern "C" fn state_transaction_free(state: *mut std::os::raw::c_void, tx
     dce_state.free_tx(tx_id);
 }
 
- unsafe extern "C" fn get_tx(
+unsafe extern "C" fn get_tx(
     vtx: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let dce_state = cast_pointer!(vtx, DCERPCState);
@@ -1021,8 +1099,9 @@ unsafe extern "C" fn get_tx_cnt(vtx: *mut std::os::raw::c_void) -> u64 {
     dce_state.tx_id
 }
 
-pub(super) unsafe extern "C" fn get_alstate_progress(tx: *mut std::os::raw::c_void, direction: u8
-                                                 )-> std::os::raw::c_int {
+pub(super) unsafe extern "C" fn get_alstate_progress(
+    tx: *mut std::os::raw::c_void, direction: u8,
+) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, DCERPCTransaction);
     if direction == u8::from(Direction::ToServer) && tx.req_done {
         SCLogDebug!("tx {} TOSERVER progress 1 => {:?}", tx.call_id, tx);
@@ -1035,10 +1114,7 @@ pub(super) unsafe extern "C" fn get_alstate_progress(tx: *mut std::os::raw::c_vo
     return 0;
 }
 
-unsafe extern "C" fn get_tx_data(
-    tx: *mut std::os::raw::c_void)
-    -> *mut AppLayerTxData
-{
+unsafe extern "C" fn get_tx_data(tx: *mut std::os::raw::c_void) -> *mut AppLayerTxData {
     let tx = cast_pointer!(tx, DCERPCTransaction);
     return &mut tx.tx_data;
 }
@@ -1067,26 +1143,26 @@ fn probe(input: &[u8]) -> (bool, bool) {
     match parser::parse_dcerpc_header(input) {
         Ok((_, hdr)) => {
             let is_request = hdr.hdrtype == 0x00 || hdr.hdrtype == 0x0e;
-            let is_dcerpc = hdr.rpc_vers == 0x05 &&
-                hdr.rpc_vers_minor == 0x00 &&
-                hdr.packed_drep[0] & 0xee == 0 &&
-                hdr.packed_drep[1] <= 3;
+            let is_dcerpc = hdr.rpc_vers == 0x05
+                && hdr.rpc_vers_minor == 0x00
+                && hdr.packed_drep[0] & 0xee == 0
+                && hdr.packed_drep[1] <= 3;
             return (is_dcerpc, is_request);
-        },
+        }
         Err(_) => (false, false),
     }
 }
 
-unsafe extern "C" fn probe_tcp(_f: *const Flow, direction: u8, input: *const u8,
-                                      len: u32, rdir: *mut u8) -> AppProto
-{
+unsafe extern "C" fn probe_tcp(
+    _f: *const Flow, direction: u8, input: *const u8, len: u32, rdir: *mut u8,
+) -> AppProto {
     SCLogDebug!("Probing packet for DCERPC");
     if len == 0 || input.is_null() {
         return core::ALPROTO_UNKNOWN;
     }
     let slice: &[u8] = std::slice::from_raw_parts(input as *mut u8, len as usize);
     //is_incomplete is checked by caller
-    let (is_dcerpc, is_request, ) = probe(slice);
+    let (is_dcerpc, is_request) = probe(slice);
     if is_dcerpc {
         let dir = if is_request {
             Direction::ToServer
@@ -1103,15 +1179,33 @@ unsafe extern "C" fn probe_tcp(_f: *const Flow, direction: u8, input: *const u8,
 
 fn register_pattern_probe() -> i8 {
     unsafe {
-        if SCAppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_DCERPC,
-                                                     b"|05 00|\0".as_ptr() as *const std::os::raw::c_char, 2, 0,
-                                                     Direction::ToServer.into(), Some(probe_tcp), 0, 0) < 0 {
+        if SCAppLayerProtoDetectPMRegisterPatternCSwPP(
+            IPPROTO_TCP,
+            ALPROTO_DCERPC,
+            b"|05 00|\0".as_ptr() as *const std::os::raw::c_char,
+            2,
+            0,
+            Direction::ToServer.into(),
+            Some(probe_tcp),
+            0,
+            0,
+        ) < 0
+        {
             SCLogDebug!("TOSERVER => SCAppLayerProtoDetectPMRegisterPatternCSwPP FAILED");
             return -1;
         }
-        if SCAppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_DCERPC,
-                                                     b"|05 00|\0".as_ptr() as *const std::os::raw::c_char, 2, 0,
-                                                     Direction::ToClient.into(), Some(probe_tcp), 0, 0) < 0 {
+        if SCAppLayerProtoDetectPMRegisterPatternCSwPP(
+            IPPROTO_TCP,
+            ALPROTO_DCERPC,
+            b"|05 00|\0".as_ptr() as *const std::os::raw::c_char,
+            2,
+            0,
+            Direction::ToClient.into(),
+            Some(probe_tcp),
+            0,
+            0,
+        ) < 0
+        {
             SCLogDebug!("TOCLIENT => SCAppLayerProtoDetectPMRegisterPatternCSwPP FAILED");
             return -1;
         }
@@ -1146,7 +1240,7 @@ pub unsafe extern "C" fn SCRegisterDcerpcParser() {
         tx_comp_st_tc: 1,
         tx_get_progress: get_alstate_progress,
         get_eventinfo: None,
-        get_eventinfo_byid : None,
+        get_eventinfo_byid: None,
         localstorage_new: None,
         localstorage_free: None,
         get_tx_files: None,
@@ -1163,21 +1257,13 @@ pub unsafe extern "C" fn SCRegisterDcerpcParser() {
 
     let ip_proto_str = CString::new("tcp").unwrap();
 
-    if SCAppLayerProtoDetectConfProtoDetectionEnabled(
-        ip_proto_str.as_ptr(),
-        parser.name,
-    ) != 0
-    {
+    if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = applayer_register_protocol_detection(&parser, 1);
         ALPROTO_DCERPC = alproto;
         if register_pattern_probe() < 0 {
             return;
         }
-        if SCAppLayerParserConfParserEnabled(
-            ip_proto_str.as_ptr(),
-            parser.name,
-        ) != 0
-        {
+        if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
         if let Some(val) = conf_get("app-layer.protocols.dcerpc.max-tx") {
@@ -1210,11 +1296,11 @@ pub unsafe extern "C" fn SCRegisterDcerpcParser() {
 
 #[cfg(test)]
 mod tests {
+    use super::parser;
     use crate::applayer::{AppLayerResult, StreamSlice};
     use crate::core::*;
     use crate::dcerpc::dcerpc::DCERPCState;
     use crate::direction::Direction;
-    use super::parser;
     use std::cmp;
 
     #[test]
@@ -1630,7 +1716,10 @@ mod tests {
         let mut dcerpc_state = DCERPCState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(StreamSlice::from_slice(request, STREAM_TOSERVER, 0), Direction::ToServer)
+            dcerpc_state.handle_input_data(
+                StreamSlice::from_slice(request, STREAM_TOSERVER, 0),
+                Direction::ToServer
+            )
         );
         let tx = &dcerpc_state.transactions[0];
         assert_eq!(11, tx.ctxid);
@@ -1661,11 +1750,17 @@ mod tests {
         let mut dcerpc_state = DCERPCState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(StreamSlice::from_slice(bind1, STREAM_TOSERVER, 0), Direction::ToServer)
+            dcerpc_state.handle_input_data(
+                StreamSlice::from_slice(bind1, STREAM_TOSERVER, 0),
+                Direction::ToServer
+            )
         );
         assert_eq!(
             AppLayerResult::ok(), // TODO ASK if this is correct?
-            dcerpc_state.handle_input_data(StreamSlice::from_slice(bind2, STREAM_TOSERVER, 0), Direction::ToServer)
+            dcerpc_state.handle_input_data(
+                StreamSlice::from_slice(bind2, STREAM_TOSERVER, 0),
+                Direction::ToServer
+            )
         );
     }
 
@@ -1688,7 +1783,10 @@ mod tests {
         ];
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(StreamSlice::from_slice(bindbuf, STREAM_TOSERVER, 0), Direction::ToServer)
+            dcerpc_state.handle_input_data(
+                StreamSlice::from_slice(bindbuf, STREAM_TOSERVER, 0),
+                Direction::ToServer
+            )
         );
         if let Some(ref bind) = dcerpc_state.bind {
             let bind_uuid = &bind.uuid_list[0].uuid;
@@ -1722,7 +1820,10 @@ mod tests {
         let mut dcerpc_state = DCERPCState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(StreamSlice::from_slice(bindbuf, STREAM_TOSERVER, 0), Direction::ToServer)
+            dcerpc_state.handle_input_data(
+                StreamSlice::from_slice(bindbuf, STREAM_TOSERVER, 0),
+                Direction::ToServer
+            )
         );
     }
 
@@ -1741,7 +1842,10 @@ mod tests {
         let mut dcerpc_state = DCERPCState::new();
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(StreamSlice::from_slice(bind_ack, STREAM_TOSERVER, 0), Direction::ToServer)
+            dcerpc_state.handle_input_data(
+                StreamSlice::from_slice(bind_ack, STREAM_TOSERVER, 0),
+                Direction::ToServer
+            )
         );
     }
 
@@ -1992,11 +2096,17 @@ mod tests {
         ];
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(StreamSlice::from_slice(bind1, STREAM_TOSERVER, 0), Direction::ToServer)
+            dcerpc_state.handle_input_data(
+                StreamSlice::from_slice(bind1, STREAM_TOSERVER, 0),
+                Direction::ToServer
+            )
         );
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(StreamSlice::from_slice(bind_ack1, STREAM_TOSERVER, 0), Direction::ToServer)
+            dcerpc_state.handle_input_data(
+                StreamSlice::from_slice(bind_ack1, STREAM_TOSERVER, 0),
+                Direction::ToServer
+            )
         );
         if let Some(ref back) = dcerpc_state.bindack {
             assert_eq!(1, back.accepted_uuid_list.len());
@@ -2005,11 +2115,17 @@ mod tests {
         }
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(StreamSlice::from_slice(bind2, STREAM_TOSERVER, 0), Direction::ToServer)
+            dcerpc_state.handle_input_data(
+                StreamSlice::from_slice(bind2, STREAM_TOSERVER, 0),
+                Direction::ToServer
+            )
         );
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(StreamSlice::from_slice(bind_ack2, STREAM_TOSERVER, 0), Direction::ToServer)
+            dcerpc_state.handle_input_data(
+                StreamSlice::from_slice(bind_ack2, STREAM_TOSERVER, 0),
+                Direction::ToServer
+            )
         );
         if let Some(ref back) = dcerpc_state.bindack {
             assert_eq!(1, back.accepted_uuid_list.len());
@@ -2018,11 +2134,17 @@ mod tests {
         }
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(StreamSlice::from_slice(bind3, STREAM_TOSERVER, 0), Direction::ToServer)
+            dcerpc_state.handle_input_data(
+                StreamSlice::from_slice(bind3, STREAM_TOSERVER, 0),
+                Direction::ToServer
+            )
         );
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(StreamSlice::from_slice(bind_ack3, STREAM_TOSERVER, 0), Direction::ToServer)
+            dcerpc_state.handle_input_data(
+                StreamSlice::from_slice(bind_ack3, STREAM_TOSERVER, 0),
+                Direction::ToServer
+            )
         );
         if let Some(ref back) = dcerpc_state.bindack {
             assert_eq!(1, back.accepted_uuid_list.len());
@@ -2074,11 +2196,17 @@ mod tests {
         ];
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(StreamSlice::from_slice(bind, STREAM_TOSERVER, 0), Direction::ToServer)
+            dcerpc_state.handle_input_data(
+                StreamSlice::from_slice(bind, STREAM_TOSERVER, 0),
+                Direction::ToServer
+            )
         );
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(StreamSlice::from_slice(bindack, STREAM_TOSERVER, 0), Direction::ToServer)
+            dcerpc_state.handle_input_data(
+                StreamSlice::from_slice(bindack, STREAM_TOSERVER, 0),
+                Direction::ToServer
+            )
         );
         if let Some(ref back) = dcerpc_state.bindack {
             assert_eq!(1, back.accepted_uuid_list.len());
@@ -2087,11 +2215,17 @@ mod tests {
         }
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(StreamSlice::from_slice(alter_context, STREAM_TOSERVER, 0), Direction::ToServer)
+            dcerpc_state.handle_input_data(
+                StreamSlice::from_slice(alter_context, STREAM_TOSERVER, 0),
+                Direction::ToServer
+            )
         );
         assert_eq!(
             AppLayerResult::ok(),
-            dcerpc_state.handle_input_data(StreamSlice::from_slice(alter_context_resp, STREAM_TOSERVER, 0), Direction::ToServer)
+            dcerpc_state.handle_input_data(
+                StreamSlice::from_slice(alter_context_resp, STREAM_TOSERVER, 0),
+                Direction::ToServer
+            )
         );
         if let Some(ref back) = dcerpc_state.bindack {
             assert_eq!(1, back.accepted_uuid_list.len());
