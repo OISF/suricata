@@ -35,8 +35,6 @@
 #include "conf.h"
 #include "output-eve-bindgen.h"
 
-bool SCRegisterEveFileType(SCEveFileType *);
-
 SCEveFileType *SCEveFindFileType(const char *name);
 
 /** \brief Function type for EVE callbacks.
