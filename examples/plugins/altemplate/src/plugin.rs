@@ -2,7 +2,7 @@ use super::template::template_register_parser;
 use crate::detect::detect_template_register;
 use crate::log::template_logger_log;
 use std::ffi::CString;
-use suricata::{SCLogError, SCLogNotice};
+use suricata_ffi::{SCLogError, SCLogNotice};
 use suricata_sys::sys::{
     SCAppLayerPlugin, SCOutputJsonLogDirection, SCPlugin, SCPluginRegisterAppLayer, SC_API_VERSION,
     SC_PACKAGE_VERSION,
