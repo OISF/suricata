@@ -16,4 +16,5 @@
  */
 
 pub mod debug;
+pub mod eve;
 pub mod plugin;
