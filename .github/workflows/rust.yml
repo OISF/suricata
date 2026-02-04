@@ -112,3 +112,6 @@ jobs:
       # does not work in other subdirectories for now
       - run: cargo fmt --check
         working-directory: rust/htp
+      # The ffi crate is cargo fmt clean.
+      - run: cargo fmt --check
+        working-directory: rust/ffi
