@@ -5805,10 +5805,6 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
 
     skip:
         StreamTcpPacketCheckPostRst(ssn, p);
-
-        if (ssn->state >= TCP_ESTABLISHED) {
-            p->flags |= PKT_STREAM_EST;
-        }
     }
 
     if (ssn != NULL) {
