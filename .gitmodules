@@ -1,0 +1,4 @@
+[submodule "suricata-verify"]
+path = suricata-verify
+url = git@github.com:rtkwlf/suricata-verify.git
+branch = awn-suricata-verify-6.0.17
