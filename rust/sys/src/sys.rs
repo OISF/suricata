@@ -470,6 +470,41 @@ extern "C" {
         reg_data: EveJsonTxLoggerRegistrationData,
     ) -> ::std::os::raw::c_int;
 }
+#[doc = " \\brief Function type for EVE file-type initialization."]
+pub type SCEveFileTypeInitFunc = ::std::option::Option<
+    unsafe extern "C" fn(
+        conf: *const SCConfNode,
+        threaded: bool,
+        init_data: *mut *mut ::std::os::raw::c_void,
+    ) -> ::std::os::raw::c_int,
+>;
+#[doc = " \\brief Function type for EVE file-type thread initialization."]
+pub type SCEveFileTypeThreadInitFunc = ::std::option::Option<
+    unsafe extern "C" fn(
+        init_data: *const ::std::os::raw::c_void,
+        thread_id: ThreadId,
+        thread_data: *mut *mut ::std::os::raw::c_void,
+    ) -> ::std::os::raw::c_int,
+>;
+#[doc = " \\brief Function type for EVE file-type writes."]
+pub type SCEveFileTypeWriteFunc = ::std::option::Option<
+    unsafe extern "C" fn(
+        buffer: *const ::std::os::raw::c_char,
+        buffer_len: ::std::os::raw::c_int,
+        init_data: *const ::std::os::raw::c_void,
+        thread_data: *mut ::std::os::raw::c_void,
+    ) -> ::std::os::raw::c_int,
+>;
+#[doc = " \\brief Function type for EVE file-type thread deinitialization."]
+pub type SCEveFileTypeThreadDeinitFunc = ::std::option::Option<
+    unsafe extern "C" fn(
+        init_data: *const ::std::os::raw::c_void,
+        thread_data: *mut ::std::os::raw::c_void,
+    ),
+>;
+#[doc = " \\brief Function type for EVE file-type deinitialization."]
+pub type SCEveFileTypeDeinitFunc =
+    ::std::option::Option<unsafe extern "C" fn(init_data: *mut ::std::os::raw::c_void)>;
 #[doc = " \\brief Structure used to define an EVE output file type.\n\n EVE filetypes implement an object with a file-like interface and\n are used to output EVE log records to files, syslog, or\n database. They can be built-in such as the syslog (see\n SyslogInitialize()) and nullsink (see NullLogInitialize()) outputs,\n registered by a library user or dynamically loaded as a plugin.\n\n The life cycle of an EVE filetype is:\n   - Init: called once for each EVE instance using this filetype\n   - ThreadInit: called once for each output thread\n   - Write: called for each log record\n   - ThreadDeinit: called once for each output thread on exit\n   - Deinit: called once for each EVE instance using this filetype on exit\n\n Examples:\n - built-in syslog: \\ref src/output-eve-syslog.c\n - built-in nullsink: \\ref src/output-eve-null.c\n - example plugin: \\ref examples/plugins/c-json-filetype/filetype.c\n\n ### Multi-Threaded Note:\n\n The EVE logging system can be configured by the Suricata user to\n run in threaded or non-threaded modes. In the default non-threaded\n mode, ThreadInit will only be called once and the filetype does not\n need to be concerned with threads.\n\n However, in **threaded** mode, ThreadInit will be called multiple\n times and the filetype needs to be thread aware and thread-safe. If\n utilizing a unique resource such as a file for each thread then you\n may be naturally thread safe. However, if sharing a single file\n handle across all threads then your filetype will have to take care\n of locking, etc."]
 #[repr(C)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -477,39 +512,15 @@ pub struct SCEveFileType_ {
     #[doc = " \\brief The name of the output, used in the configuration.\n\n This name is used by the configuration file to specify the EVE\n filetype used.\n\n For example:\n\n \\code{.yaml}\n outputs:\n   - eve-log:\n       filetype: my-output-name\n \\endcode"]
     pub name: *const ::std::os::raw::c_char,
     #[doc = " \\brief Function to initialize this filetype.\n\n \\param conf The ConfNode of the `eve-log` configuration\n     section this filetype is being initialized for\n\n \\param threaded Flag to specify if the EVE sub-systems is in\n     threaded mode or not\n\n \\param init_data An output pointer for filetype specific data\n\n \\retval 0 on success, -1 on failure"]
-    pub Init: ::std::option::Option<
-        unsafe extern "C" fn(
-            conf: *const SCConfNode,
-            threaded: bool,
-            init_data: *mut *mut ::std::os::raw::c_void,
-        ) -> ::std::os::raw::c_int,
-    >,
+    pub Init: SCEveFileTypeInitFunc,
     #[doc = " \\brief Initialize thread specific data.\n\n Initialize any thread specific data. For example, if\n implementing a file output you might open the files here, so\n you have one output file per thread.\n\n \\param init_data Data setup during Init\n\n \\param thread_id A unique ID to differentiate this thread from\n     others. If EVE is not in threaded mode this will be called\n     once with a ThreadId of 0. In threaded mode the ThreadId of\n     0 correlates to the main Suricata thread.\n\n \\param thread_data Output pointer for any data required by this\n     thread.\n\n \\retval 0 on success, -1 on failure"]
-    pub ThreadInit: ::std::option::Option<
-        unsafe extern "C" fn(
-            init_data: *const ::std::os::raw::c_void,
-            thread_id: ThreadId,
-            thread_data: *mut *mut ::std::os::raw::c_void,
-        ) -> ::std::os::raw::c_int,
-    >,
+    pub ThreadInit: SCEveFileTypeThreadInitFunc,
     #[doc = " \\brief Called for each EVE log record.\n\n The Write function is called for each log EVE log record. The\n provided buffer contains a fully formatted EVE record in JSON\n format.\n\n \\param buffer The fully formatted JSON EVE log record\n\n \\param buffer_len The length of the buffer\n\n \\param init_data The data setup in the call to Init\n\n \\param thread_data The data setup in the call to ThreadInit\n\n \\retval 0 on success, -1 on failure"]
-    pub Write: ::std::option::Option<
-        unsafe extern "C" fn(
-            buffer: *const ::std::os::raw::c_char,
-            buffer_len: ::std::os::raw::c_int,
-            init_data: *const ::std::os::raw::c_void,
-            thread_data: *mut ::std::os::raw::c_void,
-        ) -> ::std::os::raw::c_int,
-    >,
+    pub Write: SCEveFileTypeWriteFunc,
     #[doc = " \\brief Called to deinitialize each thread.\n\n This function will be called for each thread. It is where any\n resources allocated in ThreadInit should be released.\n\n \\param init_data The data setup in Init\n\n \\param thread_data The data setup in ThreadInit"]
-    pub ThreadDeinit: ::std::option::Option<
-        unsafe extern "C" fn(
-            init_data: *const ::std::os::raw::c_void,
-            thread_data: *mut ::std::os::raw::c_void,
-        ),
-    >,
+    pub ThreadDeinit: SCEveFileTypeThreadDeinitFunc,
     #[doc = " \\brief Final call to deinitialize this filetype.\n\n Called, usually on exit to deinitialize and free any resources\n allocated during Init.\n\n \\param init_data Data setup in the call to Init."]
-    pub Deinit: ::std::option::Option<unsafe extern "C" fn(init_data: *mut ::std::os::raw::c_void)>,
+    pub Deinit: SCEveFileTypeDeinitFunc,
     pub entries: SCEveFileType___bindgen_ty_1,
 }
 #[repr(C)]
