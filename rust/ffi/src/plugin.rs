@@ -15,5 +15,12 @@
  * 02110-1301, USA.
  */
 
-pub mod debug;
-pub mod plugin;
+//! Plugin utility module.
+
+use suricata_sys::sys::SCLogGetLogLevel;
+
+pub fn init() {
+    unsafe {
+        crate::debug::set_log_level(SCLogGetLogLevel());
+    }
+}

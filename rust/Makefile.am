@@ -1,4 +1,5 @@
-SUBDIRS =	htp \
+SUBDIRS =	ffi \
+		htp \
 		sys \
 		suricatasc \
 		suricatactl
@@ -11,6 +12,7 @@ EXTRA_DIST =	.cargo/config.toml.in \
 		derive/Cargo.toml \
 		dist/htp/htp_rs.h \
 		dist/rust-bindings.h \
+		ffi \
 		htp \
 		src \
 		suricatactl \
