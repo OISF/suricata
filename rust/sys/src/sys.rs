@@ -539,6 +539,9 @@ impl Default for SCEveFileType_ {
 #[doc = " \\brief Structure used to define an EVE output file type.\n\n EVE filetypes implement an object with a file-like interface and\n are used to output EVE log records to files, syslog, or\n database. They can be built-in such as the syslog (see\n SyslogInitialize()) and nullsink (see NullLogInitialize()) outputs,\n registered by a library user or dynamically loaded as a plugin.\n\n The life cycle of an EVE filetype is:\n   - Init: called once for each EVE instance using this filetype\n   - ThreadInit: called once for each output thread\n   - Write: called for each log record\n   - ThreadDeinit: called once for each output thread on exit\n   - Deinit: called once for each EVE instance using this filetype on exit\n\n Examples:\n - built-in syslog: \\ref src/output-eve-syslog.c\n - built-in nullsink: \\ref src/output-eve-null.c\n - example plugin: \\ref examples/plugins/c-json-filetype/filetype.c\n\n ### Multi-Threaded Note:\n\n The EVE logging system can be configured by the Suricata user to\n run in threaded or non-threaded modes. In the default non-threaded\n mode, ThreadInit will only be called once and the filetype does not\n need to be concerned with threads.\n\n However, in **threaded** mode, ThreadInit will be called multiple\n times and the filetype needs to be thread aware and thread-safe. If\n utilizing a unique resource such as a file for each thread then you\n may be naturally thread safe. However, if sharing a single file\n handle across all threads then your filetype will have to take care\n of locking, etc."]
 pub type SCEveFileType = SCEveFileType_;
 extern "C" {
+    pub fn SCRegisterEveFileType(arg1: *mut SCEveFileType) -> bool;
+}
+extern "C" {
     pub fn SCSigTablePreRegister(
         KeywordsRegister: ::std::option::Option<unsafe extern "C" fn()>,
     ) -> ::std::os::raw::c_int;
