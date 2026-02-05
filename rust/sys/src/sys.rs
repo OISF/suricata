@@ -555,6 +555,9 @@ extern "C" {
     pub fn SCSigMatchSilentErrorEnabled(de_ctx: *const DetectEngineCtx, id: u16) -> bool;
 }
 extern "C" {
+    pub fn SCDetectGetLastSMFromLists(s: *const Signature, ...) -> *mut SigMatch;
+}
+extern "C" {
     pub fn SCDetectSignatureSetAppProto(
         s: *mut Signature, alproto: AppProto,
     ) -> ::std::os::raw::c_int;

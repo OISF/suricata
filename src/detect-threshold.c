@@ -291,7 +291,7 @@ static int DetectThresholdSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     SigMatch *tmpm = NULL;
 
     /* checks if there is a previous instance of detection_filter */
-    tmpm = DetectGetLastSMFromLists(s, DETECT_THRESHOLD, DETECT_DETECTION_FILTER, -1);
+    tmpm = SCDetectGetLastSMFromLists(s, DETECT_THRESHOLD, DETECT_DETECTION_FILTER, -1);
     if (tmpm != NULL) {
         if (tmpm->type == DETECT_DETECTION_FILTER) {
             SCLogError("\"detection_filter\" and "

@@ -119,7 +119,7 @@ static int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
 {
     DetectU16Data *dd = NULL;
 
-    if (DetectGetLastSMFromLists(s, DETECT_DSIZE, -1)) {
+    if (SCDetectGetLastSMFromLists(s, DETECT_DSIZE, -1)) {
         SCLogError("Can't use 2 or more dsizes in "
                    "the same sig.  Invalidating signature.");
         return -1;

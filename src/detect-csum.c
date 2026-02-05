@@ -872,23 +872,26 @@ static int DetectCsumInvalidArgsTestParse02(void)
 }
 #undef TEST2
 
-#define TEST3(kwstr, kwtype) { \
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();\
-    FAIL_IF_NULL(de_ctx);\
-    Signature *s = DetectEngineAppendSig(de_ctx, "alert ip any any -> any any ("mystr(kwstr)"-csum:valid; sid:1;)");\
-    FAIL_IF_NULL(s);\
-    SigMatch *sm = DetectGetLastSMFromLists(s, (kwtype), -1);\
-    FAIL_IF_NULL(sm);\
-    FAIL_IF_NULL(sm->ctx);\
-    FAIL_IF_NOT(((DetectCsumData *)sm->ctx)->valid == 1);\
-    s = DetectEngineAppendSig(de_ctx, "alert ip any any -> any any ("mystr(kwstr)"-csum:INVALID; sid:2;)");\
-    FAIL_IF_NULL(s);\
-    sm = DetectGetLastSMFromLists(s, (kwtype), -1);\
-    FAIL_IF_NULL(sm);\
-    FAIL_IF_NULL(sm->ctx);\
-    FAIL_IF_NOT(((DetectCsumData *)sm->ctx)->valid == 0);\
-    DetectEngineCtxFree(de_ctx);\
-}
+#define TEST3(kwstr, kwtype)                                                                       \
+    {                                                                                              \
+        DetectEngineCtx *de_ctx = DetectEngineCtxInit();                                           \
+        FAIL_IF_NULL(de_ctx);                                                                      \
+        Signature *s = DetectEngineAppendSig(                                                      \
+                de_ctx, "alert ip any any -> any any (" mystr(kwstr) "-csum:valid; sid:1;)");      \
+        FAIL_IF_NULL(s);                                                                           \
+        SigMatch *sm = SCDetectGetLastSMFromLists(s, (kwtype), -1);                                \
+        FAIL_IF_NULL(sm);                                                                          \
+        FAIL_IF_NULL(sm->ctx);                                                                     \
+        FAIL_IF_NOT(((DetectCsumData *)sm->ctx)->valid == 1);                                      \
+        s = DetectEngineAppendSig(                                                                 \
+                de_ctx, "alert ip any any -> any any (" mystr(kwstr) "-csum:INVALID; sid:2;)");    \
+        FAIL_IF_NULL(s);                                                                           \
+        sm = SCDetectGetLastSMFromLists(s, (kwtype), -1);                                          \
+        FAIL_IF_NULL(sm);                                                                          \
+        FAIL_IF_NULL(sm->ctx);                                                                     \
+        FAIL_IF_NOT(((DetectCsumData *)sm->ctx)->valid == 0);                                      \
+        DetectEngineCtxFree(de_ctx);                                                               \
+    }
 
 static int DetectCsumValidArgsTestParse03(void)
 {
