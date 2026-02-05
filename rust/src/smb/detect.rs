@@ -28,43 +28,43 @@ use std::os::raw::{c_char, c_int, c_void};
 use std::ptr;
 use suricata_sys::sys::{
     DetectEngineCtx, SCDetectBufferSetActiveList, SCDetectHelperBufferMpmRegister,
-    SCDetectSignatureSetAppProto, Signature,
+    SCDetectHelperKeywordAliasRegister, SCDetectSignatureSetAppProto, Signature,
 };
 
-#[no_mangle]
-pub unsafe extern "C" fn SCSmbTxGetShare(
-    tx: &SMBTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
-) -> u8 {
+unsafe extern "C" fn smb_tx_get_share(
+    tx: *const c_void, _flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> bool {
+    let tx = cast_pointer!(tx, SMBTransaction);
     if let Some(SMBTransactionTypeData::TREECONNECT(ref x)) = tx.type_data {
         SCLogDebug!("is_pipe {}", x.is_pipe);
         if !x.is_pipe {
             *buffer = x.share_name.as_ptr();
             *buffer_len = x.share_name.len() as u32;
-            return 1;
+            return true;
         }
     }
 
     *buffer = ptr::null();
     *buffer_len = 0;
-    return 0;
+    return false;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn SCSmbTxGetNamedPipe(
-    tx: &SMBTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
-) -> u8 {
+unsafe extern "C" fn smb_tx_get_named_pipe(
+    tx: *const c_void, _flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> bool {
+    let tx = cast_pointer!(tx, SMBTransaction);
     if let Some(SMBTransactionTypeData::TREECONNECT(ref x)) = tx.type_data {
         SCLogDebug!("is_pipe {}", x.is_pipe);
         if x.is_pipe {
             *buffer = x.share_name.as_ptr();
             *buffer_len = x.share_name.len() as u32;
-            return 1;
+            return true;
         }
     }
 
     *buffer = ptr::null();
     *buffer_len = 0;
-    return 0;
+    return false;
 }
 
 #[no_mangle]
@@ -257,8 +257,34 @@ unsafe extern "C" fn smb_ntlmssp_domain_setup(
     return 0;
 }
 
+unsafe extern "C" fn smb_share_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_SMB) != 0 {
+        return -1;
+    }
+    if SCDetectBufferSetActiveList(de, s, G_SMB_SHARE_BUFFER_ID) < 0 {
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn smb_named_pipe_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_SMB) != 0 {
+        return -1;
+    }
+    if SCDetectBufferSetActiveList(de, s, G_SMB_NAMED_PIPE_BUFFER_ID) < 0 {
+        return -1;
+    }
+    return 0;
+}
+
 static mut G_SMB_NTLMSSP_USER_BUFFER_ID: c_int = 0;
 static mut G_SMB_NTLMSSP_DOMAIN_BUFFER_ID: c_int = 0;
+static mut G_SMB_SHARE_BUFFER_ID: c_int = 0;
+static mut G_SMB_NAMED_PIPE_BUFFER_ID: c_int = 0;
 
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectSmbRegister() {
@@ -290,6 +316,44 @@ pub unsafe extern "C" fn SCDetectSmbRegister() {
         ALPROTO_SMB,
         STREAM_TOSERVER,
         Some(smb_tx_get_ntlmssp_domain),
+    );
+
+    let kw_share = SigTableElmtStickyBuffer {
+        name: String::from("smb.share"),
+        desc: String::from("sticky buffer to match on SMB share name in tree connect"),
+        url: String::from("/rules/smb-keywords.html#smb-share"),
+        setup: smb_share_setup,
+    };
+    let share_keyword_id = helper_keyword_register_sticky_buffer(&kw_share);
+    G_SMB_SHARE_BUFFER_ID = SCDetectHelperBufferMpmRegister(
+        b"smb_share\0".as_ptr() as *const libc::c_char,
+        b"smb share\0".as_ptr() as *const libc::c_char,
+        ALPROTO_SMB,
+        STREAM_TOSERVER,
+        Some(smb_tx_get_share),
+    );
+    SCDetectHelperKeywordAliasRegister(
+        share_keyword_id,
+        b"smb_share\0".as_ptr() as *const libc::c_char,
+    );
+
+    let kw_named_pipe = SigTableElmtStickyBuffer {
+        name: String::from("smb.named_pipe"),
+        desc: String::from("sticky buffer to match on SMB named pipe in tree connect"),
+        url: String::from("/rules/smb-keywords.html#smb-named-pipe"),
+        setup: smb_named_pipe_setup,
+    };
+    let named_pipe_keyword_id = helper_keyword_register_sticky_buffer(&kw_named_pipe);
+    G_SMB_NAMED_PIPE_BUFFER_ID = SCDetectHelperBufferMpmRegister(
+        b"smb_named_pipe\0".as_ptr() as *const libc::c_char,
+        b"smb named pipe\0".as_ptr() as *const libc::c_char,
+        ALPROTO_SMB,
+        STREAM_TOSERVER,
+        Some(smb_tx_get_named_pipe),
+    );
+    SCDetectHelperKeywordAliasRegister(
+        named_pipe_keyword_id,
+        b"smb_named_pipe\0".as_ptr() as *const libc::c_char,
     );
 }
 
