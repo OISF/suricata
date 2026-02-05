@@ -274,7 +274,6 @@ noinst_HEADERS = \
 	detect-sid.h \
 	detect-sip-method.h \
 	detect-sip-uri.h \
-	detect-smb-version.h \
 	detect-smtp.h \
 	detect-ssl-state.h \
 	detect-ssl-version.h \
@@ -859,7 +858,6 @@ libsuricata_c_a_SOURCES = \
 	detect-sid.c \
 	detect-sip-method.c \
 	detect-sip-uri.c \
-	detect-smb-version.c \
 	detect-smtp.c \
 	detect-ssl-state.c \
 	detect-ssl-version.c \
