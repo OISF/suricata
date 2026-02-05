@@ -103,7 +103,7 @@ pub static mut SMB_CFG_MAX_SSN2VEC_CACHE_SIZE: usize = 512;
 
 pub static mut SMB_DCERPC_MAX_STUB_SIZE: u32 = 1048576;
 
-static mut ALPROTO_SMB: AppProto = ALPROTO_UNKNOWN;
+pub(super) static mut ALPROTO_SMB: AppProto = ALPROTO_UNKNOWN;
 
 static mut SMB_MAX_TX: usize = 1024;
 
