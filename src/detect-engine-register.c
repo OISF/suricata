@@ -77,7 +77,6 @@
 
 #include "detect-config.h"
 
-#include "detect-smb-version.h"
 #include "detect-smtp.h"
 
 #include "detect-base64-decode.h"
@@ -685,7 +684,6 @@ void SigTableSetup(void)
     DetectDceIfaceRegister();
     DetectDceOpnumRegister();
     DetectDceStubDataRegister();
-    DetectSmbVersionRegister();
     DetectTlsRegister();
     DetectTlsValidityRegister();
     DetectTlsVersionRegister();
