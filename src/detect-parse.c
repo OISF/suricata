@@ -560,7 +560,7 @@ SigMatch *DetectGetLastSMFromMpmLists(const DetectEngineCtx *de_ctx, const Signa
  *
  * \retval Pointer to Last sm.
  */
-SigMatch *DetectGetLastSMFromLists(const Signature *s, ...)
+SigMatch *SCDetectGetLastSMFromLists(const Signature *s, ...)
 {
     SigMatch *sm_last = NULL;
     SigMatch *sm_new;

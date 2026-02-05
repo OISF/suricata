@@ -68,7 +68,7 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
     int ret = -1;
 
     /* retrieve the sm to apply the depth against */
-    pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
+    pm = SCDetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
     if (pm == NULL) {
         SCLogError("depth needs "
                    "preceding content, uricontent option, http_client_body, "
@@ -143,7 +143,7 @@ static int DetectStartsWithSetup (DetectEngineCtx *de_ctx, Signature *s, const c
     int ret = -1;
 
     /* retrieve the sm to apply the depth against */
-    pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
+    pm = SCDetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
     if (pm == NULL) {
         SCLogError("startswith needs a "
                    "preceding content option.");

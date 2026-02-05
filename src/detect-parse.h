@@ -79,7 +79,7 @@ void SigTableApplyStrictCommandLineOption(const char *str);
 
 SigMatch *DetectGetLastSM(const Signature *);
 SigMatch *DetectGetLastSMFromMpmLists(const DetectEngineCtx *de_ctx, const Signature *s);
-SigMatch *DetectGetLastSMFromLists(const Signature *s, ...);
+SigMatch *SCDetectGetLastSMFromLists(const Signature *s, ...);
 SigMatch *DetectGetLastSMByListPtr(const Signature *s, SigMatch *sm_list, ...);
 SigMatch *DetectGetLastSMByListId(const Signature *s, int list_id, ...);
 

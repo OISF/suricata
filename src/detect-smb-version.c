@@ -74,7 +74,7 @@ static int DetectSmbVersionSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
         return -1;
     }
 
-    if (DetectGetLastSMFromLists(s, DETECT_SMB_VERSION, -1)) {
+    if (SCDetectGetLastSMFromLists(s, DETECT_SMB_VERSION, -1)) {
         SCLogError("Can't use 2 or more smb.version declarations in "
                    "the same sig. Invalidating signature.");
         return -1;
