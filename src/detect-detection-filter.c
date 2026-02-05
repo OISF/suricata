@@ -236,13 +236,13 @@ static int DetectDetectionFilterSetup(DetectEngineCtx *de_ctx, Signature *s, con
     SigMatch *tmpm = NULL;
 
     /* checks if there's a previous instance of threshold */
-    tmpm = DetectGetLastSMFromLists(s, DETECT_THRESHOLD, -1);
+    tmpm = SCDetectGetLastSMFromLists(s, DETECT_THRESHOLD, -1);
     if (tmpm != NULL) {
         SCLogError("\"detection_filter\" and \"threshold\" are not allowed in the same rule");
         SCReturnInt(-1);
     }
     /* checks there's no previous instance of detection_filter */
-    tmpm = DetectGetLastSMFromLists(s, DETECT_DETECTION_FILTER, -1);
+    tmpm = SCDetectGetLastSMFromLists(s, DETECT_DETECTION_FILTER, -1);
     if (tmpm != NULL) {
         SCLogError("At most one \"detection_filter\" is allowed per rule");
         SCReturnInt(-1);
