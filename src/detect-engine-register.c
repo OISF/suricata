@@ -77,7 +77,6 @@
 
 #include "detect-config.h"
 
-#include "detect-smb-share.h"
 #include "detect-smb-version.h"
 #include "detect-smtp.h"
 
@@ -686,8 +685,6 @@ void SigTableSetup(void)
     DetectDceIfaceRegister();
     DetectDceOpnumRegister();
     DetectDceStubDataRegister();
-    DetectSmbNamedPipeRegister();
-    DetectSmbShareRegister();
     DetectSmbVersionRegister();
     DetectTlsRegister();
     DetectTlsValidityRegister();
