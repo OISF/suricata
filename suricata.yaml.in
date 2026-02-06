@@ -1078,6 +1078,12 @@ app-layer:
     imap:
       enabled: yes
       # max-tx: 256
+      # mime:
+        # Set to yes to compute the md5 of the mail body. You will then
+        # be able to journalize it.
+        # Set it to no to disable it.
+        # Default is auto: not enabled until a rule needs it
+        # body-md5: auto
     pop3:
       enabled: yes
       detection-ports:
