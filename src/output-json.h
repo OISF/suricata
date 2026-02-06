@@ -38,6 +38,7 @@ void OutputJsonRegister(void);
 #define JSON_PROTO_LEN 16
 
 #define EVE_MAX_VERSION              2
+#define EVE_MIN_LOG_VERSION          2
 #define EVE_VERSION_GLOBAL_APP_PROTO 2
 
 /* A struct to contain address info for rendering to JSON. */

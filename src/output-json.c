@@ -410,6 +410,9 @@ void EveAddCommonOptions(const OutputJsonCommonSettings *cfg, const Packet *p, c
     if (cfg->include_community_id && f != NULL) {
         CreateEveCommunityFlowId(js, f, cfg->community_id_seed);
     }
+    if (cfg->eve_version >= EVE_MIN_LOG_VERSION) {
+        SCJbSetUint(js, "v", cfg->eve_version);
+    }
     if (f != NULL && f->tenant_id > 0) {
         SCJbSetUint(js, "tenant_id", f->tenant_id);
     }
