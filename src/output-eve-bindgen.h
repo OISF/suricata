@@ -54,4 +54,4 @@ typedef struct EveJsonTxLoggerRegistrationData {
 
 int SCOutputEvePreRegisterLogger(EveJsonTxLoggerRegistrationData reg_data);
 
-#endif /* ! SURICATA_OUTPUT_EVEN_BINDGEN_H */
+#endif /* ! SURICATA_OUTPUT_EVE_BINDGEN_H */
