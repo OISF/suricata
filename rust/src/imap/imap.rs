@@ -23,6 +23,10 @@ use crate::core::*;
 use crate::direction::Direction;
 use crate::flow::Flow;
 use crate::frames::*;
+use digest::Digest;
+use md5::Md5;
+use suricata_derive::AppLayerState;
+
 use crate::imap::parser::{
     extract_literal_from_arguments, imap_parse_message, parse_continuation_data,
     parse_email_content, peek_untagged, sequence_set_contains, EmailData, FetchBodySection,
@@ -50,6 +54,8 @@ static IMAP_MAX_RETAINED_BYTES_PER_TX: usize = 10 * 1024 * 1024;
 static IMAP_MAX_RETAINED_BYTES_PER_STATE: usize = 100 * 1024 * 1024;
 
 static mut IMAP_MAX_TX: usize = IMAP_MAX_TX_DEFAULT;
+static mut IMAP_MIME_BODY_MD5_ENABLED: bool = false;
+static mut IMAP_MIME_BODY_MD5_DISABLED: bool = false;
 
 pub(super) static mut ALPROTO_IMAP: AppProto = ALPROTO_UNKNOWN;
 
@@ -83,6 +89,7 @@ pub struct ImapParsedEmail {
     pub body: Vec<u8>,
     pub headers: Vec<ImapParsedHeader>,
     pub direction: u8,
+    pub body_md5: Option<String>,
 }
 
 impl ImapParsedEmail {
@@ -110,10 +117,20 @@ fn extract_command(request: &ImapMessage) -> Vec<u8> {
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(AppLayerState, Copy, Clone, Debug, PartialOrd, PartialEq, Eq)]
+#[suricata(alstate_strip_prefix = "ImapState")]
+pub enum ImapStateProgress {
+    ImapStateInProgress = 0,
+    ImapStateComplete = 1,
+}
+
+#[derive(Debug)]
 pub struct ImapTransaction {
     pub tx_id: u64,
     pub complete: bool,
+
+    progress_ts: ImapStateProgress,
+    progress_tc: ImapStateProgress,
 
     pub requests: Vec<ImapMessage>,
     pub responses: Vec<ImapMessage>,
@@ -135,6 +152,8 @@ impl ImapTransaction {
         Self {
             tx_id: 0,
             complete: false,
+            progress_ts: ImapStateProgress::ImapStateInProgress,
+            progress_tc: ImapStateProgress::ImapStateInProgress,
             requests: Vec::new(),
             responses: Vec::new(),
             request_lines: Vec::new(),
@@ -195,6 +214,12 @@ impl ImapTransaction {
     }
 }
 
+impl Default for ImapTransaction {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Transaction for ImapTransaction {
     fn id(&self) -> u64 {
         self.tx_id
@@ -204,11 +229,18 @@ impl Transaction for ImapTransaction {
 fn build_parsed_email(
     email: EmailData, command: Vec<u8>, direction: u8,
 ) -> (ImapParsedEmail, bool) {
+    let body_md5 = if unsafe { IMAP_MIME_BODY_MD5_ENABLED } && !email.email_body.is_empty() {
+        let hash = Md5::digest(&email.email_body);
+        Some(format!("{:x}", hash))
+    } else {
+        None
+    };
     let mut parsed_email = ImapParsedEmail {
         command,
         body: email.email_body,
         headers: Vec::new(),
         direction,
+        body_md5,
     };
     for (name, values) in email.headers {
         for value in values {
@@ -804,6 +836,8 @@ impl ImapState {
                     tx_old.tx_data.0.updated_tc = true;
                     tx_old.tx_data.0.updated_ts = true;
                     tx_old.complete = true;
+                    tx_old.progress_ts = ImapStateProgress::ImapStateComplete;
+                    tx_old.progress_tc = ImapStateProgress::ImapStateComplete;
                     tx_old
                         .tx_data
                         .set_event(ImapEvent::TooManyTransactions as u8);
@@ -815,6 +849,21 @@ impl ImapState {
         self.tx_id += 1;
         tx.tx_id = self.tx_id;
         return Some(tx);
+    }
+
+    fn new_tx_for_direction(&mut self, direction: Direction) -> Option<ImapTransaction> {
+        self.new_tx().map(|mut tx| {
+            tx.tx_data = AppLayerTxData::for_direction(direction);
+            match direction {
+                Direction::ToServer => {
+                    tx.progress_tc = ImapStateProgress::ImapStateComplete;
+                }
+                Direction::ToClient => {
+                    tx.progress_ts = ImapStateProgress::ImapStateComplete;
+                }
+            }
+            tx
+        })
     }
 
     fn set_event(&mut self, e: ImapEvent) {
@@ -1404,7 +1453,7 @@ impl ImapState {
                         } else {
                             /* No matching request (e.g. midstream/async-oneside mode).
                              * Create a new transaction for this tagged response. */
-                            let tx = self.new_tx();
+                            let tx = self.new_tx_for_direction(Direction::ToClient);
                             if tx.is_none() {
                                 return AppLayerResult::err();
                             }
@@ -1498,7 +1547,7 @@ impl ImapState {
                             if is_continuation {
                                 self.continuation_tx_id = None;
                             }
-                            let tx = self.new_tx();
+                            let tx = self.new_tx_for_direction(Direction::ToClient);
                             if tx.is_none() {
                                 return AppLayerResult::err();
                             }
@@ -1707,12 +1756,12 @@ unsafe extern "C" fn imap_state_get_tx_count(state: *mut c_void) -> u64 {
     return state.tx_id;
 }
 
-unsafe extern "C" fn imap_tx_get_alstate_progress(tx: *mut c_void, _direction: u8) -> c_int {
+unsafe extern "C" fn imap_tx_get_alstate_progress(tx: *mut c_void, direction: u8) -> c_int {
     let tx = cast_pointer!(tx, ImapTransaction);
-    if tx.complete {
-        return 1;
+    if direction == STREAM_TOSERVER {
+        return tx.progress_ts as c_int;
     }
-    return 0;
+    return tx.progress_tc as c_int;
 }
 
 export_tx_data_get!(imap_get_tx_data, ImapTransaction);
@@ -1836,8 +1885,8 @@ pub unsafe extern "C" fn SCRegisterImapParser() {
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
         get_frame_id_by_name: Some(ImapFrameType::ffi_id_from_name),
         get_frame_name_by_id: Some(ImapFrameType::ffi_name_from_id),
-        get_state_id_by_name: None,
-        get_state_name_by_id: None,
+        get_state_id_by_name: Some(ImapStateProgress::ffi_id_from_name),
+        get_state_name_by_id: Some(ImapStateProgress::ffi_name_from_id),
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();
@@ -1859,8 +1908,36 @@ pub unsafe extern "C" fn SCRegisterImapParser() {
                 SCLogError!("Invalid value for imap.max-tx");
             }
         }
+        if let Some(val) = conf_get("app-layer.protocols.imap.mime.body-md5") {
+            if val == "true" || val == "yes" {
+                IMAP_MIME_BODY_MD5_ENABLED = true;
+            } else if val == "false" || val == "no" {
+                IMAP_MIME_BODY_MD5_DISABLED = true;
+            } else if val != "auto" {
+                SCLogWarning!("Unknown value for imap.mime.body-md5: {}", val);
+            }
+        }
         SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_IMAP);
     } else {
         SCLogDebug!("Protocol detection and parser disabled for IMAP/TCP.");
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCImapMimeBodyMd5IsEnabled() -> bool {
+    IMAP_MIME_BODY_MD5_ENABLED
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCImapMimeBodyMd5IsDisabled() -> bool {
+    IMAP_MIME_BODY_MD5_DISABLED
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCImapMimeConfigBodyMd5(val: bool) {
+    if val {
+        IMAP_MIME_BODY_MD5_ENABLED = true;
+    } else {
+        IMAP_MIME_BODY_MD5_DISABLED = true;
     }
 }
