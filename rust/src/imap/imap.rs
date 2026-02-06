@@ -23,6 +23,10 @@ use crate::core::*;
 use crate::direction::Direction;
 use crate::flow::Flow;
 use crate::frames::*;
+use digest::Digest;
+use md5::Md5;
+use suricata_derive::AppLayerState;
+
 use crate::imap::parser::{
     extract_literal_from_arguments, imap_parse_message, parse_continuation_data,
     parse_email_content, EmailData, ImapCommand, ImapMessage, ImapMessageType, ImapResponseStatus,
@@ -47,6 +51,8 @@ static IMAP_MAX_LINES: usize = 512;
 static IMAP_MAX_MSGS_PER_TX: usize = 512;
 
 static mut IMAP_MAX_TX: usize = IMAP_MAX_TX_DEFAULT;
+static mut IMAP_MIME_BODY_MD5_ENABLED: bool = false;
+static mut IMAP_MIME_BODY_MD5_DISABLED: bool = false;
 
 pub(super) static mut ALPROTO_IMAP: AppProto = ALPROTO_UNKNOWN;
 
@@ -75,6 +81,7 @@ pub struct ImapParsedEmail {
     pub header_names: Vec<Vec<u8>>,
     pub header_values: Vec<Vec<u8>>,
     pub direction: u8,
+    pub body_md5: Option<String>,
 }
 
 fn extract_command_from_requests(requests: &[ImapMessage]) -> Vec<u8> {
@@ -89,6 +96,13 @@ fn extract_command_from_requests(requests: &[ImapMessage]) -> Vec<u8> {
         }
     }
     Vec::new()
+}
+
+#[derive(AppLayerState, Copy, Clone, PartialOrd, PartialEq, Eq)]
+#[suricata(alstate_strip_prefix = "ImapState")]
+pub enum ImapStateProgress {
+    ImapStateInProgress = 0,
+    ImapStateComplete = 1,
 }
 
 #[derive(Default, Debug)]
@@ -179,6 +193,12 @@ impl Transaction for ImapTransaction {
 fn build_parsed_email(
     email: &EmailData, command: Vec<u8>, direction: u8,
 ) -> (ImapParsedEmail, bool) {
+    let body_md5 = if unsafe { IMAP_MIME_BODY_MD5_ENABLED } && !email.email_body.is_empty() {
+        let hash = Md5::digest(&email.email_body);
+        Some(format!("{:x}", hash))
+    } else {
+        None
+    };
     let mut parsed_email = ImapParsedEmail {
         command,
         body: email.email_body.clone(),
@@ -186,6 +206,7 @@ fn build_parsed_email(
         header_names: Vec::new(),
         header_values: Vec::new(),
         direction,
+        body_md5,
     };
     for (name, values) in &email.headers {
         for value in values {
@@ -1036,8 +1057,8 @@ pub unsafe extern "C" fn SCRegisterImapParser() {
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
         get_frame_id_by_name: Some(ImapFrameType::ffi_id_from_name),
         get_frame_name_by_id: Some(ImapFrameType::ffi_name_from_id),
-        get_state_id_by_name: None,
-        get_state_name_by_id: None,
+        get_state_id_by_name: Some(ImapStateProgress::ffi_id_from_name),
+        get_state_name_by_id: Some(ImapStateProgress::ffi_name_from_id),
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();
@@ -1059,8 +1080,36 @@ pub unsafe extern "C" fn SCRegisterImapParser() {
                 SCLogError!("Invalid value for imap.max-tx");
             }
         }
+        if let Some(val) = conf_get("app-layer.protocols.imap.mime.body-md5") {
+            if val == "true" || val == "yes" {
+                IMAP_MIME_BODY_MD5_ENABLED = true;
+            } else if val == "false" || val == "no" {
+                IMAP_MIME_BODY_MD5_DISABLED = true;
+            } else if val != "auto" {
+                SCLogWarning!("Unknown value for imap.mime.body-md5: {}", val);
+            }
+        }
         SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_IMAP);
     } else {
         SCLogDebug!("Protocol detection and parser disabled for IMAP/TCP.");
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCImapMimeBodyMd5IsEnabled() -> bool {
+    IMAP_MIME_BODY_MD5_ENABLED
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCImapMimeBodyMd5IsDisabled() -> bool {
+    IMAP_MIME_BODY_MD5_DISABLED
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCImapMimeConfigBodyMd5(val: bool) {
+    if val {
+        IMAP_MIME_BODY_MD5_ENABLED = true;
+    } else {
+        IMAP_MIME_BODY_MD5_DISABLED = true;
     }
 }

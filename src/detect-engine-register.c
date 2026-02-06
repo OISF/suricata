@@ -762,6 +762,7 @@ void SigTableSetup(void)
     SCDetectSipRegister();
     SCDetectTemplateRegister();
     SCDetectLdapRegister();
+    SCDetectImapRegister();
     SCDetectSdpRegister();
     SCDetectDNSRegister();
     SCDetectPgsqlRegister();
