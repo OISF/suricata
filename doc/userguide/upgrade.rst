@@ -77,6 +77,10 @@ Other Changes
   really enforced and there will be no hassh computation
   even if rules try to use it.
 
+- Any inconsistent protocol enable/disable settings will issue a warning and would
+  favor ipproto specific settings over protocol's global enable/disable settings. e.g.
+  ``app-layer.protocols.sip.tcp.enabled`` would be read and preferred over
+  ``app-layer.protocols.sip.enabled``.
 
 Upgrading to 8.0.1
 ------------------

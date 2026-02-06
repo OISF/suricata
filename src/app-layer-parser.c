@@ -346,55 +346,73 @@ int SCAppLayerParserConfParserEnabled(const char *ipproto, const char *alproto_n
 {
     SCEnter();
 
-    int enabled = 1;
     char param[100];
-    SCConfNode *node;
+    SCConfNode *g_proto, *i_proto;
+    bool g_enabled = false;
+    bool i_enabled = false;
     int r;
 
     if (RunmodeIsUnittests())
-        goto enabled;
+        SCReturnInt(1);
 
-    r = snprintf(param, sizeof(param), "%s%s%s", "app-layer.protocols.",
-                 alproto_name, ".enabled");
+    r = snprintf(param, sizeof(param), "%s%s%s%s%s", "app-layer.protocols.", alproto_name, ".",
+            ipproto, ".enabled");
+    if (r < 0) {
+        FatalError("snprintf failure.");
+    } else if (r > (int)sizeof(param)) {
+        FatalError("buffer not big enough to write param.");
+    }
+    SCLogDebug("Looking for %s", param);
+
+    i_proto = SCConfGetNode(param);
+    if (i_proto && i_proto->val) {
+        if (SCConfValIsTrue(i_proto->val)) {
+            i_enabled = true;
+        } else if (SCConfValIsFalse(i_proto->val)) {
+            i_enabled = false;
+        } else if (strcasecmp(i_proto->val, "detection-only") == 0) {
+            i_enabled = false;
+        } else {
+            FatalError("Invalid value found for %s.", param);
+        }
+    }
+
+    r = snprintf(param, sizeof(param), "%s%s%s", "app-layer.protocols.", alproto_name, ".enabled");
     if (r < 0) {
         FatalError("snprintf failure.");
     } else if (r > (int)sizeof(param)) {
         FatalError("buffer not big enough to write param.");
     }
 
-    node = SCConfGetNode(param);
-    if (node == NULL) {
-        SCLogDebug("Entry for %s not found.", param);
-        r = snprintf(param, sizeof(param), "%s%s%s%s%s", "app-layer.protocols.",
-                     alproto_name, ".", ipproto, ".enabled");
-        if (r < 0) {
-            FatalError("snprintf failure.");
-        } else if (r > (int)sizeof(param)) {
-            FatalError("buffer not big enough to write param.");
-        }
-
-        node = SCConfGetNode(param);
-        if (node == NULL) {
-            SCLogDebug("Entry for %s not found.", param);
-            goto enabled;
+    SCLogDebug("Looking for %s", param);
+    g_proto = SCConfGetNode(param);
+    if (g_proto && g_proto->val) {
+        if (SCConfValIsTrue(g_proto->val)) {
+            g_enabled = true;
+        } else if (SCConfValIsFalse(g_proto->val)) {
+            g_enabled = false;
+        } else if (strcasecmp(g_proto->val, "detection-only") == 0) {
+            g_enabled = false;
+        } else {
+            FatalError("Invalid value found for %s", param);
         }
     }
 
-    if (SCConfValIsTrue(node->val)) {
-        goto enabled;
-    } else if (SCConfValIsFalse(node->val)) {
-        goto disabled;
-    } else if (strcasecmp(node->val, "detection-only") == 0) {
-        goto disabled;
-    } else {
-        SCLogError("Invalid value found for %s.", param);
-        exit(EXIT_FAILURE);
+    if ((i_proto && g_proto) && (i_enabled ^ g_enabled)) {
+        /* these checks are also performed for detection-only, no need to issue double warning */
+        SCLogDebug("Inconsistent global (%s) and respective ipproto (%s) settings found for "
+                   "alproto %s and ipproto %s",
+                g_enabled ? "TRUE" : "FALSE", i_enabled ? "TRUE" : "FALSE", alproto_name, ipproto);
     }
 
- disabled:
-    enabled = 0;
- enabled:
-    SCReturnInt(enabled);
+    if (i_proto) {
+        SCReturnInt(i_enabled);
+    }
+    if (g_proto) {
+        SCReturnInt(g_enabled);
+    }
+
+    SCReturnInt(1);
 }
 
 /***** Parser related registration *****/
