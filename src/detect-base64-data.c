@@ -51,7 +51,7 @@ static int DetectBase64DataSetup(DetectEngineCtx *de_ctx, Signature *s,
     SigMatch *pm = NULL;
 
     /* Check for a preceding base64_decode. */
-    pm = DetectGetLastSMFromLists(s, DETECT_BASE64_DECODE, -1);
+    pm = SCDetectGetLastSMFromLists(s, DETECT_BASE64_DECODE, -1);
     if (pm == NULL) {
         SCLogError("\"base64_data\" keyword seen without preceding base64_decode.");
         return -1;

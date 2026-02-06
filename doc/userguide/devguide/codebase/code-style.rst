@@ -301,8 +301,7 @@ Structs, unions and enums should have the opening brace on the same line:
 
     enum {
         DETECT_TAG_TYPE_SESSION,
-        DETECT_TAG_TYPE_HOST,
-        DETECT_TAG_TYPE_MAX
+        DETECT_TAG_TYPE_HOST
     };
 
 clang-format:

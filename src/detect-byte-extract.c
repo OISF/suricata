@@ -268,13 +268,12 @@ static int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, const c
         sm_list = s->init_data->list;
 
         if (data->flags & DETECT_BYTE_EXTRACT_FLAG_RELATIVE) {
-            prev_pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, DETECT_PCRE, -1);
+            prev_pm = SCDetectGetLastSMFromLists(s, DETECT_CONTENT, DETECT_PCRE, -1);
         }
     } else if (data->endian == EndianDCE) {
         if (data->flags & DETECT_BYTE_EXTRACT_FLAG_RELATIVE) {
-            prev_pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, DETECT_PCRE,
-                    DETECT_BYTETEST, DETECT_BYTEJUMP, DETECT_BYTE_EXTRACT,
-                    DETECT_BYTEMATH, DETECT_ISDATAAT, -1);
+            prev_pm = SCDetectGetLastSMFromLists(s, DETECT_CONTENT, DETECT_PCRE, DETECT_BYTETEST,
+                    DETECT_BYTEJUMP, DETECT_BYTE_EXTRACT, DETECT_BYTEMATH, DETECT_ISDATAAT, -1);
             if (prev_pm == NULL) {
                 sm_list = DETECT_SM_LIST_PMATCH;
             } else {
@@ -290,10 +289,8 @@ static int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, const c
             goto error;
 
     } else if (data->flags & DETECT_BYTE_EXTRACT_FLAG_RELATIVE) {
-        prev_pm = DetectGetLastSMFromLists(s,
-                DETECT_CONTENT, DETECT_PCRE,
-                DETECT_BYTETEST, DETECT_BYTEJUMP, DETECT_BYTE_EXTRACT,
-                DETECT_BYTEMATH, DETECT_ISDATAAT, -1);
+        prev_pm = SCDetectGetLastSMFromLists(s, DETECT_CONTENT, DETECT_PCRE, DETECT_BYTETEST,
+                DETECT_BYTEJUMP, DETECT_BYTE_EXTRACT, DETECT_BYTEMATH, DETECT_ISDATAAT, -1);
         if (prev_pm == NULL) {
             sm_list = DETECT_SM_LIST_PMATCH;
         } else {

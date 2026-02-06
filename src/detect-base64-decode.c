@@ -209,10 +209,8 @@ static int DetectBase64DecodeSetup(DetectEngineCtx *de_ctx, Signature *s,
         sm_list = s->init_data->list;
     }
     else {
-        pm = DetectGetLastSMFromLists(s,
-                DETECT_CONTENT, DETECT_PCRE,
-                DETECT_BYTETEST, DETECT_BYTEJUMP, DETECT_BYTE_EXTRACT,
-                DETECT_ISDATAAT, -1);
+        pm = SCDetectGetLastSMFromLists(s, DETECT_CONTENT, DETECT_PCRE, DETECT_BYTETEST,
+                DETECT_BYTEJUMP, DETECT_BYTE_EXTRACT, DETECT_ISDATAAT, -1);
         if (pm == NULL) {
             sm_list = DETECT_SM_LIST_PMATCH;
         }

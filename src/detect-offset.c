@@ -56,7 +56,7 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *offset
     const char *str = offsetstr;
 
     /* retrieve the sm to apply the offset against */
-    SigMatch *pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
+    SigMatch *pm = SCDetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
     if (pm == NULL) {
         SCLogError("offset needs preceding content option.");
         return -1;

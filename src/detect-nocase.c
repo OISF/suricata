@@ -67,7 +67,7 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     }
 
     /* retrieve the sm to apply the nocase against */
-    pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
+    pm = SCDetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
     if (pm == NULL) {
         SCLogError("nocase needs "
                    "preceding content option");

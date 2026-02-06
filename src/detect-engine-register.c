@@ -21,7 +21,6 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#include "detect-smb-ntlmssp.h"
 #include "suricata-common.h"
 #include "suricata.h"
 #include "detect.h"
@@ -78,8 +77,6 @@
 
 #include "detect-config.h"
 
-#include "detect-smb-share.h"
-#include "detect-smb-version.h"
 #include "detect-smtp.h"
 
 #include "detect-base64-decode.h"
@@ -687,11 +684,6 @@ void SigTableSetup(void)
     DetectDceIfaceRegister();
     DetectDceOpnumRegister();
     DetectDceStubDataRegister();
-    DetectSmbNamedPipeRegister();
-    DetectSmbShareRegister();
-    DetectSmbNtlmsspUserRegister();
-    DetectSmbNtlmsspDomainRegister();
-    DetectSmbVersionRegister();
     DetectTlsRegister();
     DetectTlsValidityRegister();
     DetectTlsVersionRegister();
@@ -779,6 +771,7 @@ void SigTableSetup(void)
     SCDetectPgsqlRegister();
     SCDetectSshRegister();
     SCDetectQuicRegister();
+    SCDetectSmbRegister();
 
     for (size_t i = 0; i < preregistered_callbacks_nb; i++) {
         PreregisteredCallbacks[i]();

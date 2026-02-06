@@ -144,7 +144,7 @@ static int DetectFileextSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
     }
     SCFree(dotstr);
 
-    SigMatch *sm = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
+    SigMatch *sm = SCDetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
     if (sm == NULL)
         return -1;
 
@@ -182,7 +182,7 @@ static int DetectFilenameSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
         return -1;
     }
 
-    SigMatch *sm = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
+    SigMatch *sm = SCDetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
     if (sm == NULL)
         return -1;
 

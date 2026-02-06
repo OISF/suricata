@@ -15,49 +15,59 @@
  * 02110-1301, USA.
  */
 
+use super::smb::ALPROTO_SMB;
+use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::dcerpc::dcerpc::DCERPC_TYPE_REQUEST;
 use crate::dcerpc::detect::{DCEIfaceData, DCEOpnumData, DETECT_DCE_OPNUM_RANGE_UNINITIALIZED};
 use crate::detect::uint::detect_match_uint;
+use crate::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
 use crate::direction::Direction;
 use crate::smb::smb::*;
 use std::ffi::CStr;
-use std::os::raw::{c_char, c_void};
+use std::os::raw::{c_char, c_int, c_uint, c_void};
 use std::ptr;
+use suricata_sys::sys::{
+    DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
+    SCDetectGetLastSMFromLists, SCDetectHelperBufferMpmRegister, SCDetectHelperBufferRegister,
+    SCDetectHelperKeywordAliasRegister, SCDetectHelperKeywordRegister,
+    SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList, SCSigTableAppLiteElmt, SigMatchCtx,
+    Signature,
+};
 
-#[no_mangle]
-pub unsafe extern "C" fn SCSmbTxGetShare(
-    tx: &SMBTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
-) -> u8 {
+unsafe extern "C" fn smb_tx_get_share(
+    tx: *const c_void, _flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> bool {
+    let tx = cast_pointer!(tx, SMBTransaction);
     if let Some(SMBTransactionTypeData::TREECONNECT(ref x)) = tx.type_data {
         SCLogDebug!("is_pipe {}", x.is_pipe);
         if !x.is_pipe {
             *buffer = x.share_name.as_ptr();
             *buffer_len = x.share_name.len() as u32;
-            return 1;
+            return true;
         }
     }
 
     *buffer = ptr::null();
     *buffer_len = 0;
-    return 0;
+    return false;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn SCSmbTxGetNamedPipe(
-    tx: &SMBTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
-) -> u8 {
+unsafe extern "C" fn smb_tx_get_named_pipe(
+    tx: *const c_void, _flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> bool {
+    let tx = cast_pointer!(tx, SMBTransaction);
     if let Some(SMBTransactionTypeData::TREECONNECT(ref x)) = tx.type_data {
         SCLogDebug!("is_pipe {}", x.is_pipe);
         if x.is_pipe {
             *buffer = x.share_name.as_ptr();
             *buffer_len = x.share_name.len() as u32;
-            return 1;
+            return true;
         }
     }
 
     *buffer = ptr::null();
     *buffer_len = 0;
-    return 0;
+    return false;
 }
 
 #[no_mangle]
@@ -83,9 +93,7 @@ pub unsafe extern "C" fn SCSmbTxGetStubData(
 }
 
 #[no_mangle]
-pub extern "C" fn SCSmbTxMatchDceOpnum(
-    tx: &SMBTransaction, dce_data: &mut DCEOpnumData,
-) -> u8 {
+pub extern "C" fn SCSmbTxMatchDceOpnum(tx: &SMBTransaction, dce_data: &mut DCEOpnumData) -> u8 {
     SCLogDebug!("SCSmbTxMatchDceOpnum: start");
     if let Some(SMBTransactionTypeData::DCERPC(ref x)) = tx.type_data {
         if x.req_cmd == DCERPC_TYPE_REQUEST {
@@ -150,53 +158,41 @@ pub extern "C" fn SCSmbTxGetDceIface(
     return 0;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn SCSmbTxGetNtlmsspUser(
-    tx: &SMBTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
-) -> u8 {
+unsafe extern "C" fn smb_tx_get_ntlmssp_user(
+    tx: *const c_void, _flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> bool {
+    let tx = cast_pointer!(tx, SMBTransaction);
     if let Some(SMBTransactionTypeData::SESSIONSETUP(ref x)) = tx.type_data {
         if let Some(ref ntlmssp) = x.ntlmssp {
             *buffer = ntlmssp.user.as_ptr();
             *buffer_len = ntlmssp.user.len() as u32;
-            return 1;
+            return true;
         }
     }
 
     *buffer = ptr::null();
     *buffer_len = 0;
-    return 0;
+    return false;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn SCSmbTxGetNtlmsspDomain(
-    tx: &SMBTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
-) -> u8 {
+unsafe extern "C" fn smb_tx_get_ntlmssp_domain(
+    tx: *const c_void, _flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> bool {
+    let tx = cast_pointer!(tx, SMBTransaction);
     if let Some(SMBTransactionTypeData::SESSIONSETUP(ref x)) = tx.type_data {
         if let Some(ref ntlmssp) = x.ntlmssp {
             *buffer = ntlmssp.domain.as_ptr();
             *buffer_len = ntlmssp.domain.len() as u32;
-            return 1;
+            return true;
         }
     }
 
     *buffer = ptr::null();
     *buffer_len = 0;
-    return 0;
+    return false;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn SCSmbVersionMatch(tx: &SMBTransaction, version_data: &mut u8) -> u8 {
-    let version = tx.vercmd.get_version();
-    SCLogDebug!("smb_version: version returned: {}", version);
-    if version == *version_data {
-        return 1;
-    }
-
-    return 0;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn SCSmbVersionParse(carg: *const c_char) -> *mut c_void {
+unsafe extern "C" fn smb_version_parse(carg: *const c_char) -> *mut c_void {
     if carg.is_null() {
         return std::ptr::null_mut();
     }
@@ -223,9 +219,204 @@ fn parse_version_data(arg: &str) -> Result<u8, ()> {
     return Ok(version);
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn SCSmbVersionFree(ptr: *mut c_void) {
+unsafe extern "C" fn smb_version_free(_de_ctx: *mut DetectEngineCtx, ptr: *mut c_void) {
     std::mem::drop(Box::from_raw(ptr as *mut u8));
+}
+
+unsafe extern "C" fn smb_ntlmssp_user_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_SMB) != 0 {
+        return -1;
+    }
+    if SCDetectBufferSetActiveList(de, s, G_SMB_NTLMSSP_USER_BUFFER_ID) < 0 {
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn smb_ntlmssp_domain_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_SMB) != 0 {
+        return -1;
+    }
+    if SCDetectBufferSetActiveList(de, s, G_SMB_NTLMSSP_DOMAIN_BUFFER_ID) < 0 {
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn smb_share_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_SMB) != 0 {
+        return -1;
+    }
+    if SCDetectBufferSetActiveList(de, s, G_SMB_SHARE_BUFFER_ID) < 0 {
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn smb_named_pipe_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_SMB) != 0 {
+        return -1;
+    }
+    if SCDetectBufferSetActiveList(de, s, G_SMB_NAMED_PIPE_BUFFER_ID) < 0 {
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn smb_version_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const std::os::raw::c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_SMB) != 0 {
+        return -1;
+    }
+
+    if !SCDetectGetLastSMFromLists(s, G_SMB_VERSION_KW_ID as c_uint, -1).is_null() {
+        SCLogError!(
+            "Can't use 2 or more smb.version declarations in the same sig. Invalidating signature."
+        );
+        return -1;
+    }
+
+    let dod = smb_version_parse(raw);
+    if dod.is_null() {
+        return -1;
+    }
+
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_SMB_VERSION_KW_ID,
+        dod as *mut SigMatchCtx,
+        G_SMB_VERSION_BUFFER_ID,
+    )
+    .is_null()
+    {
+        smb_version_free(std::ptr::null_mut(), dod);
+        return -1;
+    }
+
+    return 0;
+}
+
+unsafe extern "C" fn smb_version_match(
+    _det_ctx: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _s: *const Signature, m: *const SigMatchCtx,
+) -> c_int {
+    let tx = cast_pointer!(tx, SMBTransaction);
+    let version_data = m as *const u8;
+
+    let version = tx.vercmd.get_version();
+    SCLogDebug!("smb_version: version returned: {}", version);
+    if version == *version_data {
+        return 1;
+    }
+
+    return 0;
+}
+
+static mut G_SMB_NTLMSSP_USER_BUFFER_ID: c_int = 0;
+static mut G_SMB_NTLMSSP_DOMAIN_BUFFER_ID: c_int = 0;
+static mut G_SMB_SHARE_BUFFER_ID: c_int = 0;
+static mut G_SMB_NAMED_PIPE_BUFFER_ID: c_int = 0;
+static mut G_SMB_VERSION_KW_ID: u16 = 0;
+static mut G_SMB_VERSION_BUFFER_ID: c_int = 0;
+
+#[no_mangle]
+pub unsafe extern "C" fn SCDetectSmbRegister() {
+    let kw_user = SigTableElmtStickyBuffer {
+        name: String::from("smb.ntlmssp_user"),
+        desc: String::from("sticky buffer to match on SMB ntlmssp user in session setup"),
+        url: String::from("/rules/smb-keywords.html#smb-ntlmssp-user"),
+        setup: smb_ntlmssp_user_setup,
+    };
+    helper_keyword_register_sticky_buffer(&kw_user);
+    G_SMB_NTLMSSP_USER_BUFFER_ID = SCDetectHelperBufferMpmRegister(
+        b"smb_ntlmssp_user\0".as_ptr() as *const libc::c_char,
+        b"smb ntlmssp user\0".as_ptr() as *const libc::c_char,
+        ALPROTO_SMB,
+        STREAM_TOSERVER,
+        Some(smb_tx_get_ntlmssp_user),
+    );
+
+    let kw_domain = SigTableElmtStickyBuffer {
+        name: String::from("smb.ntlmssp_domain"),
+        desc: String::from("sticky buffer to match on SMB ntlmssp domain in session setup"),
+        url: String::from("/rules/smb-keywords.html#smb-ntlmssp-domain"),
+        setup: smb_ntlmssp_domain_setup,
+    };
+    helper_keyword_register_sticky_buffer(&kw_domain);
+    G_SMB_NTLMSSP_DOMAIN_BUFFER_ID = SCDetectHelperBufferMpmRegister(
+        b"smb_ntlmssp_domain\0".as_ptr() as *const libc::c_char,
+        b"smb ntlmssp domain\0".as_ptr() as *const libc::c_char,
+        ALPROTO_SMB,
+        STREAM_TOSERVER,
+        Some(smb_tx_get_ntlmssp_domain),
+    );
+
+    let kw_share = SigTableElmtStickyBuffer {
+        name: String::from("smb.share"),
+        desc: String::from("sticky buffer to match on SMB share name in tree connect"),
+        url: String::from("/rules/smb-keywords.html#smb-share"),
+        setup: smb_share_setup,
+    };
+    let share_keyword_id = helper_keyword_register_sticky_buffer(&kw_share);
+    G_SMB_SHARE_BUFFER_ID = SCDetectHelperBufferMpmRegister(
+        b"smb_share\0".as_ptr() as *const libc::c_char,
+        b"smb share\0".as_ptr() as *const libc::c_char,
+        ALPROTO_SMB,
+        STREAM_TOSERVER,
+        Some(smb_tx_get_share),
+    );
+    SCDetectHelperKeywordAliasRegister(
+        share_keyword_id,
+        b"smb_share\0".as_ptr() as *const libc::c_char,
+    );
+
+    let kw_named_pipe = SigTableElmtStickyBuffer {
+        name: String::from("smb.named_pipe"),
+        desc: String::from("sticky buffer to match on SMB named pipe in tree connect"),
+        url: String::from("/rules/smb-keywords.html#smb-named-pipe"),
+        setup: smb_named_pipe_setup,
+    };
+    let named_pipe_keyword_id = helper_keyword_register_sticky_buffer(&kw_named_pipe);
+    G_SMB_NAMED_PIPE_BUFFER_ID = SCDetectHelperBufferMpmRegister(
+        b"smb_named_pipe\0".as_ptr() as *const libc::c_char,
+        b"smb named pipe\0".as_ptr() as *const libc::c_char,
+        ALPROTO_SMB,
+        STREAM_TOSERVER,
+        Some(smb_tx_get_named_pipe),
+    );
+    SCDetectHelperKeywordAliasRegister(
+        named_pipe_keyword_id,
+        b"smb_named_pipe\0".as_ptr() as *const libc::c_char,
+    );
+
+    // Register smb.version keyword (match function)
+    let version_kw = SCSigTableAppLiteElmt {
+        name: b"smb.version\0".as_ptr() as *const libc::c_char,
+        desc: b"smb keyword to match on SMB version\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/smb-keywords.html#smb-version\0".as_ptr() as *const libc::c_char,
+        Setup: Some(smb_version_setup),
+        flags: 0,
+        AppLayerTxMatch: Some(smb_version_match),
+        Free: Some(smb_version_free),
+    };
+
+    G_SMB_VERSION_KW_ID = SCDetectHelperKeywordRegister(&version_kw);
+
+    G_SMB_VERSION_BUFFER_ID = SCDetectHelperBufferRegister(
+        b"smb_version\0".as_ptr() as *const libc::c_char,
+        ALPROTO_SMB,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+    );
 }
 
 #[cfg(test)]

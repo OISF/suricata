@@ -327,13 +327,11 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, const char *isda
         sm_list = s->init_data->list;
 
         if (idad->flags & ISDATAAT_RELATIVE) {
-            prev_pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, DETECT_PCRE, -1);
+            prev_pm = SCDetectGetLastSMFromLists(s, DETECT_CONTENT, DETECT_PCRE, -1);
         }
     } else if (idad->flags & ISDATAAT_RELATIVE) {
-        prev_pm = DetectGetLastSMFromLists(s,
-            DETECT_CONTENT, DETECT_PCRE,
-            DETECT_BYTETEST, DETECT_BYTEJUMP, DETECT_BYTE_EXTRACT,
-            DETECT_ISDATAAT, DETECT_BYTEMATH, -1);
+        prev_pm = SCDetectGetLastSMFromLists(s, DETECT_CONTENT, DETECT_PCRE, DETECT_BYTETEST,
+                DETECT_BYTEJUMP, DETECT_BYTE_EXTRACT, DETECT_ISDATAAT, DETECT_BYTEMATH, -1);
         if (prev_pm == NULL)
             sm_list = DETECT_SM_LIST_PMATCH;
         else {
@@ -422,7 +420,7 @@ static int DetectEndsWithSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
     int ret = -1;
 
     /* retrieve the sm to apply the depth against */
-    pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
+    pm = SCDetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
     if (pm == NULL) {
         SCLogError("endswith needs a "
                    "preceding content option");

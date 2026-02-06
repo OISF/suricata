@@ -57,8 +57,6 @@ enum StatsType {
     STATS_TYPE_MAXIMUM = 3,
     STATS_TYPE_FUNC = 4,
     STATS_TYPE_DERIVE_DIV = 5,
-
-    STATS_TYPE_MAX = 6,
 };
 
 /**

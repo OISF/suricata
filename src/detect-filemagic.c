@@ -218,7 +218,7 @@ static int DetectFilemagicSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
         return -1;
     }
 
-    SigMatch *sm = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
+    SigMatch *sm = SCDetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
     if (sm == NULL)
         return -1;
 

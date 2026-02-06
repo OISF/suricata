@@ -40,11 +40,7 @@
 #define DETECT_TAG_MAX_PKTS 256
 
 /* Type of tag: session or host */
-enum {
-    DETECT_TAG_TYPE_SESSION,
-    DETECT_TAG_TYPE_HOST,
-    DETECT_TAG_TYPE_MAX
-};
+enum { DETECT_TAG_TYPE_SESSION, DETECT_TAG_TYPE_HOST };
 
 enum {
     DETECT_TAG_DIR_SRC,

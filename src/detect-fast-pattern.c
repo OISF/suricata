@@ -217,7 +217,7 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const c
     pcre2_match_data *match = NULL;
 
     SigMatch *pm1 = DetectGetLastSMFromMpmLists(de_ctx, s);
-    SigMatch *pm2 = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
+    SigMatch *pm2 = SCDetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
     if (pm1 == NULL && pm2 == NULL) {
         SCLogError("fast_pattern found inside "
                    "the rule, without a content context. Please use a "
