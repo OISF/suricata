@@ -23,6 +23,10 @@ use crate::core::*;
 use crate::direction::Direction;
 use crate::flow::Flow;
 use crate::frames::*;
+use digest::Digest;
+use md5::Md5;
+use suricata_derive::AppLayerState;
+
 use crate::imap::parser::{
     parse_command, parse_command_continuation, parse_continuation_data, parse_email_content,
     parse_response, parse_response_continuation, peek_untagged, probe_command_prefix,
@@ -36,7 +40,6 @@ use std;
 use std::collections::VecDeque;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_int, c_void};
-use suricata_derive::AppLayerState;
 use suricata_sys::sys::{
     AppLayerParserState, AppProto, SCAppLayerParserConfParserEnabled,
     SCAppLayerParserRegisterLogger, SCAppLayerParserStateIssetFlag,
@@ -53,6 +56,8 @@ const IMAP_MAX_RETAINED_BYTES_PER_STATE: usize = 100 * 1024 * 1024;
 const IMAP_MAX_LINE_BYTES_PER_STATE: usize = 100 * 1024 * 1024;
 
 static mut IMAP_MAX_TX: usize = IMAP_MAX_TX_DEFAULT;
+static mut IMAP_MIME_BODY_MD5_ENABLED: bool = false;
+static mut IMAP_MIME_BODY_MD5_DISABLED: bool = false;
 
 pub(super) static mut ALPROTO_IMAP: AppProto = ALPROTO_UNKNOWN;
 
@@ -79,6 +84,7 @@ pub struct ImapParsedEmail {
     pub body: Vec<u8>,
     pub headers: Vec<EmailHeader>,
     pub direction: u8,
+    pub body_md5: Option<String>,
 }
 
 impl ImapParsedEmail {
@@ -255,6 +261,7 @@ impl ImapTransaction {
             body: email.email_body,
             headers: email.headers,
             direction,
+            body_md5: None,
         };
         let budget =
             retain_limit.min(IMAP_MAX_RETAINED_BYTES_PER_TX.saturating_sub(self.retained_bytes));
@@ -269,6 +276,13 @@ impl ImapTransaction {
             email.body.shrink_to_fit();
             self.mark_data_limit();
         }
+        // Hash the final retained body, after applying all retention limits.
+        email.body_md5 = if unsafe { IMAP_MIME_BODY_MD5_ENABLED } && !email.body.is_empty() {
+            let hash = Md5::digest(&email.body);
+            Some(format!("{:x}", hash))
+        } else {
+            None
+        };
         self.retained_bytes = self.retained_bytes.saturating_add(email.retained_size());
         self.parsed_emails.push(email);
     }
@@ -1744,6 +1758,25 @@ unsafe extern "C" fn imap_tx_get_alstate_progress(tx: *mut c_void, direction: u8
     return tx.progress_tc as c_int;
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn SCImapMimeBodyMd5IsEnabled() -> bool {
+    IMAP_MIME_BODY_MD5_ENABLED
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCImapMimeBodyMd5IsDisabled() -> bool {
+    IMAP_MIME_BODY_MD5_DISABLED
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCImapMimeConfigBodyMd5(val: bool) {
+    if val {
+        IMAP_MIME_BODY_MD5_ENABLED = true;
+    } else {
+        IMAP_MIME_BODY_MD5_DISABLED = true;
+    }
+}
+
 export_tx_data_get!(imap_get_tx_data, ImapTransaction);
 export_state_data_get!(imap_get_state_data, ImapState);
 
@@ -1853,6 +1886,15 @@ pub unsafe extern "C" fn SCRegisterImapParser() {
                 }
             } else {
                 SCLogError!("Invalid value for imap.max-tx");
+            }
+        }
+        if let Some(val) = conf_get("app-layer.protocols.imap.mime.body-md5") {
+            if val == "true" || val == "yes" {
+                IMAP_MIME_BODY_MD5_ENABLED = true;
+            } else if val == "false" || val == "no" {
+                IMAP_MIME_BODY_MD5_DISABLED = true;
+            } else if val != "auto" {
+                SCLogWarning!("Unknown value for imap.mime.body-md5: {}", val);
             }
         }
         SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_IMAP);
