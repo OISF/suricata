@@ -358,7 +358,7 @@ int SigGroupHeadClearSigs(SigGroupHead *sgh)
     return 0;
 }
 
-#ifdef __SSE2__
+#if defined(__SSE2__)
 #include <emmintrin.h>
 static void MergeBitarrays(const uint8_t *src, uint8_t *dst, const uint32_t size)
 {
@@ -373,6 +373,35 @@ static void MergeBitarrays(const uint8_t *src, uint8_t *dst, const uint32_t size
         srcptr += BYTES;
         dstptr += BYTES;
     }
+}
+#elif defined(__ARM_NEON)
+#include <arm_neon.h>
+#define BYTES 16
+static void MergeBitarrays(const uint8_t *src, uint8_t *dst, const uint32_t size)
+{
+    const uint8_t *srcptr = src;
+    uint8_t *dstptr = dst;
+    for (uint32_t i = 0; i < size; i += BYTES) {
+        uint8x16_t s = vld1q_u8(srcptr + i);
+        uint8x16_t d = vld1q_u8(dstptr + i);
+        d = vorrq_u8(s, d);
+        vst1q_u8(dstptr + i, d);
+    }
+}
+#undef BYTES
+#define BYTES 8
+static uint64_t Popcnt(const uint8_t *array, const uint32_t size)
+{
+    uint64_t cnt = 0;
+    const uint8_t *a = array;
+    for (uint32_t i = 0; i < size; i += BYTES) {
+        uint8x8_t d = vld1_u8(a + i);
+        d = vcnt_u8(d);
+        for (uint8_t x = 0; x < 8; x++) {
+            cnt += d[x];
+        }
+    }
+    return cnt;
 }
 #endif
 
@@ -399,7 +428,7 @@ int SigGroupHeadCopySigs(DetectEngineCtx *de_ctx, SigGroupHead *src, SigGroupHea
     }
     DEBUG_VALIDATE_BUG_ON(src->init->sig_size != (*dst)->init->sig_size);
 
-#ifdef __SSE2__
+#if defined(__SSE2__) || defined(__ARM_NEON)
     MergeBitarrays(src->init->sig_array, (*dst)->init->sig_array, src->init->sig_size);
 #else
     /* do the copy */
@@ -446,7 +475,7 @@ static uint32_t Popcnt(const uint8_t *array, const uint32_t size)
 void SigGroupHeadSetSigCnt(SigGroupHead *sgh, uint32_t max_idx)
 {
     sgh->init->max_sig_id = MAX(max_idx, sgh->init->max_sig_id);
-#ifdef HAVE_POPCNT64
+#if defined(HAVE_POPCNT64) || defined(__ARM_NEON)
     sgh->init->sig_cnt = Popcnt(sgh->init->sig_array, sgh->init->sig_size);
 #else
     uint32_t cnt = 0;

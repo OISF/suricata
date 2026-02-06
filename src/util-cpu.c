@@ -204,3 +204,11 @@ uint64_t UtilCpuGetTicks(void)
 #endif
     return val;
 }
+
+#if defined(__ARM_FEATURE_SVE)
+#include <arm_sve.h>
+int UtilCpuArmSVEWidth(void)
+{
+    return svcntb();
+}
+#endif
