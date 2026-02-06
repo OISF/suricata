@@ -77,6 +77,11 @@ Other Changes
   really enforced and there will be no hassh computation
   even if rules try to use it.
 
+- In DPDK capture mode, management threads need to be explicitly defined and
+  they cannot overlap with worker CPU affinity. Previously, Suricata only
+  warned if overlap was present.
+- DPDK EAL lcore arguments cannot be used. Suricata now manages the
+  lcore assignments itself based on the CPU affinity configuration.
 
 Upgrading to 8.0.1
 ------------------
