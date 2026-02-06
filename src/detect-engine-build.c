@@ -1724,6 +1724,8 @@ int SigPrepareStage1(DetectEngineCtx *de_ctx)
 {
     uint32_t cnt_iponly = 0;
     uint32_t cnt_payload = 0;
+    uint32_t cnt_packet = 0;
+    uint32_t cnt_packet_stream = 0;
     uint32_t cnt_applayer = 0;
     uint32_t cnt_deonly = 0;
 
@@ -1752,6 +1754,12 @@ int SigPrepareStage1(DetectEngineCtx *de_ctx)
         } else if (SignatureIsInspectingPayload(de_ctx, s) == 1) {
             SCLogDebug("Signature %"PRIu32" is considered \"Payload inspecting\"", s->id);
             cnt_payload++;
+        } else if (s->type == SIG_TYPE_PKT) {
+            SCLogDebug("Signature %" PRIu32 " is considered \"Packet inspecting\"", s->id);
+            cnt_packet++;
+        } else if (s->type == SIG_TYPE_PKT_STREAM) {
+            SCLogDebug("Signature %" PRIu32 " is considered \"Packet-stream inspecting\"", s->id);
+            cnt_packet_stream++;
         } else if (s->type == SIG_TYPE_DEONLY) {
             SCLogDebug("Signature %"PRIu32" is considered \"Decoder Event only\"", s->id);
             cnt_deonly++;
@@ -1812,14 +1820,19 @@ int SigPrepareStage1(DetectEngineCtx *de_ctx)
         if (strlen(de_ctx->config_prefix) > 0)
             SCLogInfo("tenant id %d: %" PRIu32 " signatures processed. %" PRIu32 " are IP-only "
                       "rules, %" PRIu32 " are inspecting packet payload, %" PRIu32
-                      " inspect application layer, %" PRIu32 " are decoder event only",
+                      " inspect application layer, %" PRIu32 " are decoder event only, %" PRIu32
+                      " are packet inspecting,"
+                      " %" PRIu32 " are packet-stream inspecting",
                     de_ctx->tenant_id, de_ctx->sig_cnt, cnt_iponly, cnt_payload, cnt_applayer,
-                    cnt_deonly);
+                    cnt_deonly, cnt_packet, cnt_packet_stream);
         else
             SCLogInfo("%" PRIu32 " signatures processed. %" PRIu32 " are IP-only "
                       "rules, %" PRIu32 " are inspecting packet payload, %" PRIu32
-                      " inspect application layer, %" PRIu32 " are decoder event only",
-                    de_ctx->sig_cnt, cnt_iponly, cnt_payload, cnt_applayer, cnt_deonly);
+                      " inspect application layer, %" PRIu32 " are decoder event only %" PRIu32
+                      " are packet inspecting,"
+                      " %" PRIu32 " are packet-stream inspecting",
+                    de_ctx->sig_cnt, cnt_iponly, cnt_payload, cnt_applayer, cnt_deonly, cnt_packet,
+                    cnt_packet_stream);
 
         SCLogConfig("building signature grouping structure, stage 1: "
                "preprocessing rules... complete");

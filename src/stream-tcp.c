@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2025 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -5731,6 +5731,7 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
         if (StreamTcpPacketStateNone(tv, p, stt, ssn) == -1) {
             goto error;
         }
+        ssn = (TcpSession *)p->flow->protoctx;
 
         if (ssn != NULL)
             SCLogDebug("ssn->alproto %"PRIu16"", p->flow->alproto);
@@ -5804,10 +5805,6 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
 
     skip:
         StreamTcpPacketCheckPostRst(ssn, p);
-
-        if (ssn->state >= TCP_ESTABLISHED) {
-            p->flags |= PKT_STREAM_EST;
-        }
     }
 
     if (ssn != NULL) {
@@ -5815,6 +5812,12 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
         if (p->flags & PKT_STREAM_MODIFIED) {
             ReCalculateChecksum(p);
         }
+
+        /* if ssn was set in this run (e.g. midstream cases), reflect TCP state on the packet */
+        if (ssn->state >= TCP_ESTABLISHED) {
+            p->flags |= PKT_STREAM_EST;
+        }
+
         /* check for conditions that may make us not want to log this packet */
 
         /* streams that hit depth */
