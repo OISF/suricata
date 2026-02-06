@@ -790,8 +790,9 @@ TmEcode OutputLoggerFlush(ThreadVars *tv, Packet *p, void *thread_data)
     RootLogger *logger = TAILQ_FIRST(&active_loggers);
     LoggerThreadStoreNode *thread_store_node = TAILQ_FIRST(thread_store);
     while (logger && thread_store_node) {
-        if (logger->FlushFunc)
+        if (logger->FlushFunc) {
             logger->FlushFunc(tv, p, thread_store_node->thread_data);
+        }
 
         logger = TAILQ_NEXT(logger, entries);
         thread_store_node = TAILQ_NEXT(thread_store_node, entries);
@@ -871,7 +872,7 @@ TmEcode OutputLoggerThreadDeinit(ThreadVars *tv, void *thread_data)
 }
 
 void OutputRegisterRootLogger(ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
-        OutputLogFunc LogFunc, OutputGetActiveCountFunc ActiveCntFunc)
+        OutputLogFunc LogFunc, OutputFlushFunc FlushFunc, OutputGetActiveCountFunc ActiveCntFunc)
 {
     BUG_ON(LogFunc == NULL);
 
@@ -882,6 +883,7 @@ void OutputRegisterRootLogger(ThreadInitFunc ThreadInit, ThreadDeinitFunc Thread
     logger->ThreadInit = ThreadInit;
     logger->ThreadDeinit = ThreadDeinit;
     logger->LogFunc = LogFunc;
+    logger->FlushFunc = FlushFunc;
     logger->ActiveCntFunc = ActiveCntFunc;
     TAILQ_INSERT_TAIL(&registered_loggers, logger, entries);
 }
@@ -896,6 +898,7 @@ static void OutputRegisterActiveLogger(RootLogger *reg)
     logger->ThreadDeinit = reg->ThreadDeinit;
     logger->LogFunc = reg->LogFunc;
     logger->ActiveCntFunc = reg->ActiveCntFunc;
+    logger->FlushFunc = reg->FlushFunc;
     TAILQ_INSERT_TAIL(&active_loggers, logger, entries);
 }
 
