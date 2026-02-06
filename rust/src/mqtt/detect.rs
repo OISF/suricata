@@ -21,7 +21,7 @@ use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{
     detect_match_uint, detect_parse_array_uint_enum, detect_parse_uint_bitflags,
     detect_uint_match_at_index, DetectBitflagModifier, DetectUintArrayData, DetectUintData,
-    SCDetectU8Free, SCDetectU8Parse,
+    DetectUintIndex, SCDetectU8ArrayFree, SCDetectU8ArrayParse, SCDetectU8Free, SCDetectU8Parse,
 };
 use crate::detect::{
     helper_keyword_register_multi_buffer, helper_keyword_register_sticky_buffer,
@@ -440,7 +440,7 @@ unsafe extern "C" fn mqtt_reason_code_setup(
     if SCDetectSignatureSetAppProto(s, ALPROTO_MQTT) != 0 {
         return -1;
     }
-    let ctx = SCDetectU8Parse(raw) as *mut c_void;
+    let ctx = SCDetectU8ArrayParse(raw) as *mut c_void;
     if ctx.is_null() {
         return -1;
     }
@@ -464,19 +464,61 @@ unsafe extern "C" fn mqtt_reason_code_match(
     tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, MQTTTransaction);
-    let ctx = cast_pointer!(ctx, DetectUintData<u8>);
+    let ctx = cast_pointer!(ctx, DetectUintArrayData<u8>);
+    if ctx.index != DetectUintIndex::Any {
+        let mut vals = Vec::new();
+        for msg in tx.msg.iter() {
+            match msg.op {
+                MQTTOperation::PUBACK(ref v)
+                | MQTTOperation::PUBREL(ref v)
+                | MQTTOperation::PUBREC(ref v)
+                | MQTTOperation::PUBCOMP(ref v) => {
+                    if let Some(rcode) = v.reason_code {
+                        vals.push(rcode);
+                    }
+                }
+                MQTTOperation::AUTH(ref v) => {
+                    vals.push(v.reason_code);
+                }
+                MQTTOperation::CONNACK(ref v) => {
+                    vals.push(v.return_code);
+                }
+                MQTTOperation::DISCONNECT(ref v) => {
+                    if let Some(rcode) = v.reason_code {
+                        vals.push(rcode);
+                    }
+                }
+                MQTTOperation::UNSUBACK(ref unsuback) => {
+                    if let Some(ref reason_codes) = unsuback.reason_codes {
+                        for rc in reason_codes.iter() {
+                            vals.push(*rc);
+                        }
+                    }
+                }
+                MQTTOperation::SUBACK(ref suback) => {
+                    // in SUBACK these are stored as "QOS granted" historically
+                    for rc in suback.qoss.iter() {
+                        vals.push(*rc);
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        return detect_uint_match_at_index::<u8, u8>(&vals, ctx, |v| Some(*v), tx.complete);
+    }
     if let Some(v) = mqtt_tx_get_reason_code(tx) {
-        if detect_match_uint(ctx, v) {
+        if detect_match_uint(&ctx.du, v) {
             return 1;
         }
     }
-    return mqtt_tx_suback_unsuback_has_reason_code(tx, ctx);
+    return mqtt_tx_suback_unsuback_has_reason_code(tx, &ctx.du);
 }
 
 unsafe extern "C" fn mqtt_reason_code_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     // Just unbox...
-    let ctx = cast_pointer!(ctx, DetectUintData<u8>);
-    SCDetectU8Free(ctx);
+    let ctx = cast_pointer!(ctx, DetectUintArrayData<u8>);
+    SCDetectU8ArrayFree(ctx);
 }
 
 unsafe extern "C" fn mqtt_parse_qos(ustr: *const std::os::raw::c_char) -> *mut u8 {
