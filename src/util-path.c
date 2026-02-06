@@ -199,7 +199,7 @@ bool SCPathExists(const char *path)
  */
 bool SCIsRegularDirectory(const struct dirent *const dir_entry)
 {
-#ifndef OS_WIN32
+#if !defined(OS_WIN32) && !defined(__sun)
     if ((dir_entry->d_type == DT_DIR) &&
         (strcmp(dir_entry->d_name, ".") != 0) &&
         (strcmp(dir_entry->d_name, "..") != 0)) {
@@ -217,7 +217,7 @@ bool SCIsRegularDirectory(const struct dirent *const dir_entry)
  */
 bool SCIsRegularFile(const struct dirent *const dir_entry)
 {
-#ifndef OS_WIN32
+#if defined(DT_REG)
     return dir_entry->d_type == DT_REG;
 #endif
     return false;
