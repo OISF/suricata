@@ -28,7 +28,7 @@
 #include "util-buffer.h"
 #include "util-logopenfile.h"
 #include "output.h"
-#include "output-eve-bindgen.h"
+#include "output-eve.h"
 
 #include "app-layer-htp-xff.h"
 
