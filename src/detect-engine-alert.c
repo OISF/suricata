@@ -37,6 +37,7 @@
 #include "util-validate.h"
 
 #include "action-globals.h"
+#include "capture-hooks.h"
 
 /** tag signature we use for tag alerts */
 static Signature g_tag_signature;
@@ -581,6 +582,12 @@ static inline void PacketAlertFinalizeProcessQueue(
             FlowSetHasAlertsFlag(p->flow);
             p->flags |= PKT_FIRST_ALERTS;
         }
+    }
+
+    /* Notify capture layer about packets with real alerts (not pass-only),
+     * so capture impl can update per-capture context (e.g. pcap-file alert counts). */
+    if (alerted) {
+        CaptureHooksOnPacketWithAlerts(p);
     }
 }
 
