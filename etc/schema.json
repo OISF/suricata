@@ -2849,6 +2849,11 @@
                     "description": "Array of IMAP request lines in this transaction",
                     "items": {
                         "type": "string"
+                    },
+                    "suricata": {
+                        "keywords": [
+                            "imap.request"
+                        ]
                     }
                 },
                 "responses": {
@@ -2856,6 +2861,11 @@
                     "description": "Array of IMAP response lines in this transaction",
                     "items": {
                         "type": "string"
+                    },
+                    "suricata": {
+                        "keywords": [
+                            "imap.response"
+                        ]
                     }
                 }
             }
