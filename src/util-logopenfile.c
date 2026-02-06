@@ -205,6 +205,26 @@ static void SCLogFileFlush(LogFileCtx *log_ctx)
     SCMutexUnlock(&log_ctx->fp_mutex);
 }
 
+#include <string.h>
+#include <stdbool.h>
+
+static bool ExtractEventType(const char *json, const char **value, size_t *len)
+{
+    const char *p = strstr(json, "\"event_type\":\"");
+    if (p == NULL)
+        return false;
+
+    p += sizeof("\"event_type\":\"") - 1;
+
+    const char *end = strchr(p, '"');
+    if (end == NULL)
+        return false;
+
+    *value = p;
+    *len = (size_t)(end - p);
+    return true;
+}
+
 /**
  * \brief Handle log file rotation checks and updates
  * \param log_ctx Log file context
@@ -262,6 +282,10 @@ static int SCLogFileWriteNoLock(const char *buffer, int buffer_len, LogFileCtx *
         if (log_ctx->buffer_size && log_ctx->bytes_since_last_flush >= log_ctx->buffer_size) {
             SCLogDebug("%s: flushing %" PRIu64 " during write", log_ctx->filename,
                     log_ctx->bytes_since_last_flush);
+            const char *et = NULL;
+            size_t len;
+            ExtractEventType(buffer, &et, &len);
+            SCLogDebug("file: %s; event_type: %.*s", log_ctx->filename, (int)len, et);
             SCLogFileFlushNoLock(log_ctx);
         }
     }

@@ -142,10 +142,20 @@ static TmEcode JsonDHCPLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
+static int JsonDHCPLoggerFlush(ThreadVars *tv, void *thread_data, const Packet *p)
+{
+    LogDHCPLogThread *td = (LogDHCPLogThread *)thread_data;
+    if (td && td->thread) {
+        SCLogDebug("%s flushing %s", tv->name, ((LogFileCtx *)(td->thread->file_ctx))->filename);
+        OutputJsonFlush(td->thread);
+    }
+    return 0;
+}
+
 void JsonDHCPLogRegister(void)
 {
     /* Register as an eve sub-module. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonDHCPLog", "eve-log.dhcp",
-            OutputDHCPLogInitSub, ALPROTO_DHCP, JsonDHCPLogger, JsonDHCPLogThreadInit,
-            JsonDHCPLogThreadDeinit);
+            OutputDHCPLogInitSub, ALPROTO_DHCP, JsonDHCPLogger, JsonDHCPLoggerFlush,
+            JsonDHCPLogThreadInit, JsonDHCPLogThreadDeinit);
 }

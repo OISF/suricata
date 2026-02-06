@@ -271,9 +271,9 @@ error:
  * \retval Returns 0 on success, -1 on failure.
  */
 static void OutputRegisterTxModuleWrapper(LoggerId id, const char *name, const char *conf_name,
-        OutputInitFunc InitFunc, AppProto alproto, TxLogger TxLogFunc, int tc_log_progress,
-        int ts_log_progress, TxLoggerCondition TxLogCondition, ThreadInitFunc ThreadInit,
-        ThreadDeinitFunc ThreadDeinit)
+        OutputInitFunc InitFunc, AppProto alproto, TxLogger TxLogFunc, TxLoggerFlush TxFlushFunc,
+        int tc_log_progress, int ts_log_progress, TxLoggerCondition TxLogCondition,
+        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
 {
     if (unlikely(TxLogFunc == NULL)) {
         goto error;
@@ -289,6 +289,7 @@ static void OutputRegisterTxModuleWrapper(LoggerId id, const char *name, const c
     module->conf_name = conf_name;
     module->InitFunc = InitFunc;
     module->TxLogFunc = TxLogFunc;
+    module->TxFlushFunc = TxFlushFunc;
     module->TxLogCondition = TxLogCondition;
     module->alproto = alproto;
     module->tc_log_progress = tc_log_progress;
@@ -305,8 +306,8 @@ error:
 
 static void OutputRegisterTxSubModuleWrapper(LoggerId id, const char *parent_name, const char *name,
         const char *conf_name, OutputInitSubFunc InitFunc, AppProto alproto, TxLogger TxLogFunc,
-        int tc_log_progress, int ts_log_progress, TxLoggerCondition TxLogCondition,
-        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
+        TxLoggerFlush TxFlushFunc, int tc_log_progress, int ts_log_progress,
+        TxLoggerCondition TxLogCondition, ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
 {
     if (unlikely(TxLogFunc == NULL)) {
         goto error;
@@ -323,6 +324,7 @@ static void OutputRegisterTxSubModuleWrapper(LoggerId id, const char *parent_nam
     module->parent_name = parent_name;
     module->InitSubFunc = InitFunc;
     module->TxLogFunc = TxLogFunc;
+    module->TxFlushFunc = TxFlushFunc;
     module->TxLogCondition = TxLogCondition;
     module->alproto = alproto;
     module->tc_log_progress = tc_log_progress;
@@ -349,7 +351,7 @@ void OutputRegisterTxModuleWithCondition(LoggerId id, const char *name, const ch
         OutputInitFunc InitFunc, AppProto alproto, TxLogger TxLogFunc,
         TxLoggerCondition TxLogCondition, ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
 {
-    OutputRegisterTxModuleWrapper(id, name, conf_name, InitFunc, alproto, TxLogFunc, -1, -1,
+    OutputRegisterTxModuleWrapper(id, name, conf_name, InitFunc, alproto, TxLogFunc, NULL, -1, -1,
             TxLogCondition, ThreadInit, ThreadDeinit);
 }
 
@@ -358,7 +360,7 @@ void OutputRegisterTxSubModuleWithCondition(LoggerId id, const char *parent_name
         TxLoggerCondition TxLogCondition, ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
 {
     OutputRegisterTxSubModuleWrapper(id, parent_name, name, conf_name, InitFunc, alproto, TxLogFunc,
-            -1, -1, TxLogCondition, ThreadInit, ThreadDeinit);
+            NULL, -1, -1, TxLogCondition, ThreadInit, ThreadDeinit);
 }
 
 /**
@@ -373,17 +375,17 @@ void OutputRegisterTxModuleWithProgress(LoggerId id, const char *name, const cha
         OutputInitFunc InitFunc, AppProto alproto, TxLogger TxLogFunc, int tc_log_progress,
         int ts_log_progress, ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
 {
-    OutputRegisterTxModuleWrapper(id, name, conf_name, InitFunc, alproto, TxLogFunc,
+    OutputRegisterTxModuleWrapper(id, name, conf_name, InitFunc, alproto, TxLogFunc, NULL,
             tc_log_progress, ts_log_progress, NULL, ThreadInit, ThreadDeinit);
 }
 
 void OutputRegisterTxSubModuleWithProgress(LoggerId id, const char *parent_name, const char *name,
         const char *conf_name, OutputInitSubFunc InitFunc, AppProto alproto, TxLogger TxLogFunc,
-        int tc_log_progress, int ts_log_progress, ThreadInitFunc ThreadInit,
-        ThreadDeinitFunc ThreadDeinit)
+        TxLoggerFlush TxFlushFunc, int tc_log_progress, int ts_log_progress,
+        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
 {
     OutputRegisterTxSubModuleWrapper(id, parent_name, name, conf_name, InitFunc, alproto, TxLogFunc,
-            tc_log_progress, ts_log_progress, NULL, ThreadInit, ThreadDeinit);
+            NULL, tc_log_progress, ts_log_progress, NULL, ThreadInit, ThreadDeinit);
 }
 
 /**
@@ -398,16 +400,16 @@ void OutputRegisterTxModule(LoggerId id, const char *name, const char *conf_name
         OutputInitFunc InitFunc, AppProto alproto, TxLogger TxLogFunc, ThreadInitFunc ThreadInit,
         ThreadDeinitFunc ThreadDeinit)
 {
-    OutputRegisterTxModuleWrapper(id, name, conf_name, InitFunc, alproto, TxLogFunc, -1, -1, NULL,
-            ThreadInit, ThreadDeinit);
+    OutputRegisterTxModuleWrapper(id, name, conf_name, InitFunc, alproto, TxLogFunc, NULL, -1, -1,
+            NULL, ThreadInit, ThreadDeinit);
 }
 
 void OutputRegisterTxSubModule(LoggerId id, const char *parent_name, const char *name,
         const char *conf_name, OutputInitSubFunc InitFunc, AppProto alproto, TxLogger TxLogFunc,
-        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
+        TxLoggerFlush TxFlushFunc, ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
 {
     OutputRegisterTxSubModuleWrapper(id, parent_name, name, conf_name, InitFunc, alproto, TxLogFunc,
-            -1, -1, NULL, ThreadInit, ThreadDeinit);
+            TxFlushFunc, -1, -1, NULL, ThreadInit, ThreadDeinit);
 }
 
 /**
@@ -790,8 +792,9 @@ TmEcode OutputLoggerFlush(ThreadVars *tv, Packet *p, void *thread_data)
     RootLogger *logger = TAILQ_FIRST(&active_loggers);
     LoggerThreadStoreNode *thread_store_node = TAILQ_FIRST(thread_store);
     while (logger && thread_store_node) {
-        if (logger->FlushFunc)
+        if (logger->FlushFunc) {
             logger->FlushFunc(tv, p, thread_store_node->thread_data);
+        }
 
         logger = TAILQ_NEXT(logger, entries);
         thread_store_node = TAILQ_NEXT(thread_store_node, entries);
@@ -871,7 +874,7 @@ TmEcode OutputLoggerThreadDeinit(ThreadVars *tv, void *thread_data)
 }
 
 void OutputRegisterRootLogger(ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
-        OutputLogFunc LogFunc, OutputGetActiveCountFunc ActiveCntFunc)
+        OutputLogFunc LogFunc, OutputFlushFunc FlushFunc, OutputGetActiveCountFunc ActiveCntFunc)
 {
     BUG_ON(LogFunc == NULL);
 
@@ -882,6 +885,7 @@ void OutputRegisterRootLogger(ThreadInitFunc ThreadInit, ThreadDeinitFunc Thread
     logger->ThreadInit = ThreadInit;
     logger->ThreadDeinit = ThreadDeinit;
     logger->LogFunc = LogFunc;
+    logger->FlushFunc = FlushFunc;
     logger->ActiveCntFunc = ActiveCntFunc;
     TAILQ_INSERT_TAIL(&registered_loggers, logger, entries);
 }
@@ -896,6 +900,7 @@ static void OutputRegisterActiveLogger(RootLogger *reg)
     logger->ThreadDeinit = reg->ThreadDeinit;
     logger->LogFunc = reg->LogFunc;
     logger->ActiveCntFunc = reg->ActiveCntFunc;
+    logger->FlushFunc = reg->FlushFunc;
     TAILQ_INSERT_TAIL(&active_loggers, logger, entries);
 }
 
@@ -1108,7 +1113,7 @@ void OutputRegisterLoggers(void)
     LogHttpLogRegister();
     JsonHttpLogRegister();
     OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_TX, "eve-log", "LogHttp2Log", "eve-log.http2",
-            OutputJsonLogInitSub, ALPROTO_HTTP2, JsonGenericDirFlowLogger, HTTP2StateClosed,
+            OutputJsonLogInitSub, ALPROTO_HTTP2, JsonGenericDirFlowLogger, NULL, HTTP2StateClosed,
             HTTP2StateClosed, JsonLogThreadInit, JsonLogThreadDeinit);
     /* tls log */
     JsonTlsLogRegister();
@@ -1128,8 +1133,8 @@ void OutputRegisterLoggers(void)
     JsonMdnsLogRegister();
     /* modbus */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonModbusLog", "eve-log.modbus",
-            OutputJsonLogInitSub, ALPROTO_MODBUS, JsonGenericDirFlowLogger, JsonLogThreadInit,
-            JsonLogThreadDeinit);
+            OutputJsonLogInitSub, ALPROTO_MODBUS, JsonGenericDirFlowLogger, OutputJsonLogFlush,
+            JsonLogThreadInit, JsonLogThreadDeinit);
 
     SCLogDebug("modbus json logger registered.");
     /* tcp streaming data */
@@ -1153,17 +1158,17 @@ void OutputRegisterLoggers(void)
     JsonNFSLogRegister();
     /* TFTP JSON logger. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonTFTPLog", "eve-log.tftp",
-            OutputJsonLogInitSub, ALPROTO_TFTP, JsonGenericDirPacketLogger, JsonLogThreadInit,
-            JsonLogThreadDeinit);
+            OutputJsonLogInitSub, ALPROTO_TFTP, JsonGenericDirPacketLogger, OutputJsonLogFlush,
+            JsonLogThreadInit, JsonLogThreadDeinit);
 
     SCLogDebug("TFTP JSON logger registered.");
     /* FTP and FTP-DATA JSON loggers. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonFTPLog", "eve-log.ftp",
-            OutputJsonLogInitSub, ALPROTO_FTP, JsonGenericDirFlowLogger, JsonLogThreadInit,
-            JsonLogThreadDeinit);
+            OutputJsonLogInitSub, ALPROTO_FTP, JsonGenericDirFlowLogger, OutputJsonLogFlush,
+            JsonLogThreadInit, JsonLogThreadDeinit);
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonFTPLog", "eve-log.ftp",
-            OutputJsonLogInitSub, ALPROTO_FTPDATA, JsonGenericDirFlowLogger, JsonLogThreadInit,
-            JsonLogThreadDeinit);
+            OutputJsonLogInitSub, ALPROTO_FTPDATA, JsonGenericDirFlowLogger, OutputJsonLogFlush,
+            JsonLogThreadInit, JsonLogThreadDeinit);
     SCLogDebug("FTP JSON logger registered.");
 
     /* SMB JSON logger. */
@@ -1172,14 +1177,14 @@ void OutputRegisterLoggers(void)
     JsonIKELogRegister();
     /* KRB5 JSON logger. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonKRB5Log", "eve-log.krb5",
-            OutputJsonLogInitSub, ALPROTO_KRB5, JsonGenericDirPacketLogger, JsonLogThreadInit,
-            JsonLogThreadDeinit);
+            OutputJsonLogInitSub, ALPROTO_KRB5, JsonGenericDirPacketLogger, OutputJsonLogFlush,
+            JsonLogThreadInit, JsonLogThreadDeinit);
 
     SCLogDebug("KRB5 JSON logger registered.");
     /* QUIC JSON logger. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonQuicLog", "eve-log.quic",
-            OutputJsonLogInitSub, ALPROTO_QUIC, JsonGenericDirPacketLogger, JsonLogThreadInit,
-            JsonLogThreadDeinit);
+            OutputJsonLogInitSub, ALPROTO_QUIC, JsonGenericDirPacketLogger, OutputJsonLogFlush,
+            JsonLogThreadInit, JsonLogThreadDeinit);
 
     SCLogDebug("quic json logger registered.");
     /* DHCP JSON logger. */
@@ -1187,48 +1192,48 @@ void OutputRegisterLoggers(void)
 
     /* SIP JSON logger. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonSIPLog", "eve-log.sip",
-            OutputJsonLogInitSub, ALPROTO_SIP, JsonGenericDirPacketLogger, JsonLogThreadInit,
-            JsonLogThreadDeinit);
+            OutputJsonLogInitSub, ALPROTO_SIP, JsonGenericDirPacketLogger, OutputJsonLogFlush,
+            JsonLogThreadInit, JsonLogThreadDeinit);
 
     SCLogDebug("SIP JSON logger registered.");
     /* RFB JSON logger. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonRFBLog", "eve-log.rfb",
-            OutputJsonLogInitSub, ALPROTO_RFB, JsonGenericDirPacketLogger, JsonLogThreadInit,
-            JsonLogThreadDeinit);
+            OutputJsonLogInitSub, ALPROTO_RFB, JsonGenericDirPacketLogger, OutputJsonLogFlush,
+            JsonLogThreadInit, JsonLogThreadDeinit);
     /* MQTT JSON logger. */
     JsonMQTTLogRegister();
     /* Pgsql JSON logger. */
     JsonPgsqlLogRegister();
     /* WebSocket JSON logger. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonWebSocketLog", "eve-log.websocket",
-            OutputJsonLogInitSub, ALPROTO_WEBSOCKET, JsonGenericDirPacketLogger, JsonLogThreadInit,
-            JsonLogThreadDeinit);
+            OutputJsonLogInitSub, ALPROTO_WEBSOCKET, JsonGenericDirPacketLogger, OutputJsonLogFlush,
+            JsonLogThreadInit, JsonLogThreadDeinit);
     /* Enip JSON logger. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonEnipLog", "eve-log.enip",
-            OutputJsonLogInitSub, ALPROTO_ENIP, JsonGenericDirFlowLogger, JsonLogThreadInit,
-            JsonLogThreadDeinit);
+            OutputJsonLogInitSub, ALPROTO_ENIP, JsonGenericDirFlowLogger, OutputJsonLogFlush,
+            JsonLogThreadInit, JsonLogThreadDeinit);
     /* Ldap JSON logger. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonLdapLog", "eve-log.ldap",
-            OutputJsonLogInitSub, ALPROTO_LDAP, JsonGenericDirFlowLogger, JsonLogThreadInit,
-            JsonLogThreadDeinit);
+            OutputJsonLogInitSub, ALPROTO_LDAP, JsonGenericDirFlowLogger, OutputJsonLogFlush,
+            JsonLogThreadInit, JsonLogThreadDeinit);
     /* DoH2 JSON logger. */
     JsonDoh2LogRegister();
     /* POP3 JSON logger */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonPop3Log", "eve-log.pop3",
-            OutputJsonLogInitSub, ALPROTO_POP3, JsonGenericDirFlowLogger, JsonLogThreadInit,
-            JsonLogThreadDeinit);
+            OutputJsonLogInitSub, ALPROTO_POP3, JsonGenericDirFlowLogger, OutputJsonLogFlush,
+            JsonLogThreadInit, JsonLogThreadDeinit);
     /* Mdns JSON logger. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonMdnsLog", "eve-log.template",
-            OutputJsonLogInitSub, ALPROTO_MDNS, JsonGenericDirPacketLogger, JsonLogThreadInit,
-            JsonLogThreadDeinit);
+            OutputJsonLogInitSub, ALPROTO_MDNS, JsonGenericDirPacketLogger, OutputJsonLogFlush,
+            JsonLogThreadInit, JsonLogThreadDeinit);
     /* Template JSON logger. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonTemplateLog", "eve-log.template",
-            OutputJsonLogInitSub, ALPROTO_TEMPLATE, JsonGenericDirPacketLogger, JsonLogThreadInit,
-            JsonLogThreadDeinit);
+            OutputJsonLogInitSub, ALPROTO_TEMPLATE, JsonGenericDirPacketLogger, OutputJsonLogFlush,
+            JsonLogThreadInit, JsonLogThreadDeinit);
     /* RDP JSON logger. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonRdpLog", "eve-log.rdp",
-            OutputJsonLogInitSub, ALPROTO_RDP, JsonGenericDirPacketLogger, JsonLogThreadInit,
-            JsonLogThreadDeinit);
+            OutputJsonLogInitSub, ALPROTO_RDP, JsonGenericDirPacketLogger, OutputJsonLogFlush,
+            JsonLogThreadInit, JsonLogThreadDeinit);
     SCLogDebug("rdp json logger registered.");
     /* DCERPC JSON logger. */
     JsonDCERPCLogRegister();
@@ -1239,7 +1244,8 @@ void OutputRegisterLoggers(void)
         /* Register as an eve sub-module. */
         OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonBitTorrentDHTLog",
                 "eve-log.bittorrent-dht", OutputJsonLogInitSub, ALPROTO_BITTORRENT_DHT,
-                JsonGenericDirPacketLogger, JsonLogThreadInit, JsonLogThreadDeinit);
+                JsonGenericDirPacketLogger, OutputJsonLogFlush, JsonLogThreadInit,
+                JsonLogThreadDeinit);
     }
     /* ARP JSON logger */
     JsonArpLogRegister();
@@ -1248,7 +1254,7 @@ void OutputRegisterLoggers(void)
         OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", preregistered_loggers[i].logname,
                 preregistered_loggers[i].confname, OutputJsonLogInitSub,
                 preregistered_loggers[i].alproto, JsonLoggerFromDir(preregistered_loggers[i].dir),
-                JsonLogThreadInit, JsonLogThreadDeinit);
+                OutputJsonLogFlush, JsonLogThreadInit, JsonLogThreadDeinit);
         SCLogDebug(
                 "%s JSON logger registered.", AppProtoToString(preregistered_loggers[i].alproto));
         RegisterSimpleJsonApplayerLogger(preregistered_loggers[i].alproto,

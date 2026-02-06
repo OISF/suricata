@@ -179,10 +179,20 @@ static TmEcode JsonIKELogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
+static int JsonIKELoggerFlush(ThreadVars *tv, void *thread_data, const Packet *p)
+{
+    LogIKELogThread *td = (LogIKELogThread *)thread_data;
+    if (td && td->ctx) {
+        SCLogDebug("%s flushing %s", tv->name, ((LogFileCtx *)(td->ctx->file_ctx))->filename);
+        OutputJsonFlush(td->ctx);
+    }
+    return 0;
+}
+
 void JsonIKELogRegister(void)
 {
     /* Register as an eve sub-module. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonIKELog", "eve-log.ike",
-            OutputIKELogInitSub, ALPROTO_IKE, JsonIKELogger, JsonIKELogThreadInit,
-            JsonIKELogThreadDeinit);
+            OutputIKELogInitSub, ALPROTO_IKE, JsonIKELogger, JsonIKELoggerFlush,
+            JsonIKELogThreadInit, JsonIKELogThreadDeinit);
 }

@@ -68,8 +68,8 @@ void JsonDCERPCLogRegister(void)
 {
     /* Register as an eve sub-module. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonDCERPCLog", "eve-log.dcerpc",
-            DCERPCLogInitSub, ALPROTO_DCERPC, JsonDCERPCLogger, JsonLogThreadInit,
-            JsonLogThreadDeinit);
+            DCERPCLogInitSub, ALPROTO_DCERPC, JsonDCERPCLogger, OutputJsonLogFlush,
+            JsonLogThreadInit, JsonLogThreadDeinit);
 
     SCLogDebug("DCERPC JSON logger registered.");
 }
