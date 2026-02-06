@@ -17,6 +17,7 @@
 
 // Author: Giuseppe Longo <glongo@oisf.net>
 
+pub mod detect;
 pub mod imap;
 pub mod logger;
 pub mod parser;
