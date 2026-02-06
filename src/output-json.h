@@ -37,6 +37,10 @@ void OutputJsonRegister(void);
 #define JSON_ADDR_LEN 46
 #define JSON_PROTO_LEN 16
 
+#define EVE_MAX_VERSION              2
+#define EVE_MIN_LOG_VERSION          2
+#define EVE_VERSION_GLOBAL_APP_PROTO 2
+
 /* A struct to contain address info for rendering to JSON. */
 typedef struct JsonAddrInfo_ {
     char src_ip[JSON_ADDR_LEN];
@@ -67,6 +71,7 @@ typedef struct OutputJsonCommonSettings_ {
     bool include_ethernet;
     bool include_suricata_version;
     uint16_t community_id_seed;
+    uint16_t eve_version;
 } OutputJsonCommonSettings;
 
 /*
@@ -110,6 +115,7 @@ void EveAddCommonOptions(const OutputJsonCommonSettings *cfg, const Packet *p, c
         SCJsonBuilder *js, enum SCOutputJsonLogDirection dir);
 int OutputJsonLogFlush(ThreadVars *tv, void *thread_data, const Packet *p);
 void EveAddMetadata(const Packet *p, const Flow *f, SCJsonBuilder *js);
+void EveAddAppProto(const Flow *f, SCJsonBuilder *js);
 
 int OutputJSONMemBufferCallback(const char *str, size_t size, void *data);
 
