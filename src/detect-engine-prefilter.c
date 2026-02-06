@@ -350,7 +350,7 @@ int PrefilterAppendPayloadEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
 }
 
 int PrefilterAppendTxEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
-        PrefilterTxFn PrefilterTxFunc, AppProto alproto, int tx_min_progress, void *pectx,
+        PrefilterTxFn PrefilterTxFunc, AppProto alproto, int8_t tx_min_progress, void *pectx,
         void (*FreeFunc)(void *pectx), const char *name)
 {
     if (sgh == NULL || PrefilterTxFunc == NULL || pectx == NULL)
@@ -364,9 +364,7 @@ int PrefilterAppendTxEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
     e->PrefilterTx = PrefilterTxFunc;
     e->pectx = pectx;
     e->alproto = alproto;
-    // TODO change function prototype ?
-    DEBUG_VALIDATE_BUG_ON(tx_min_progress > INT8_MAX);
-    e->tx_min_progress = (uint8_t)tx_min_progress;
+    e->tx_min_progress = tx_min_progress;
     e->Free = FreeFunc;
 
     if (sgh->init->tx_engines == NULL) {
@@ -700,7 +698,7 @@ static void NonPFNamesFree(void *data)
 struct TxNonPFData {
     AppProto alproto;
     int dir;      /**< 0: toserver, 1: toclient */
-    int progress; /**< progress state value to register at */
+    uint8_t progress; /**< progress state value to register at */
     int sig_list; /**< special handling: normally 0, but for special cases (app-layer-state,
                      app-layer-event) use the list id to create separate engines */
     uint32_t sigs_cnt;
@@ -730,7 +728,7 @@ static void TxNonPFFree(void *data)
 }
 
 static int TxNonPFAddSig(DetectEngineCtx *de_ctx, HashListTable *tx_engines_hash,
-        const AppProto alproto, const int dir, const int16_t progress, const int sig_list,
+        const AppProto alproto, const int dir, const uint8_t progress, const int sig_list,
         const char *name, const Signature *s)
 {
     const uint32_t max_sids = DetectEngineGetMaxSigId(de_ctx);
@@ -990,7 +988,7 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
                     if (list_id == app_state_list_id)
                         sig_list = app_state_list_id;
                     if (TxNonPFAddSig(de_ctx, tx_engines_hash, app->alproto, app->dir,
-                                app->progress, sig_list, buf->name, s) != 0) {
+                                app->min_progress, sig_list, buf->name, s) != 0) {
                         goto error;
                     }
                     tx_non_pf = true;
@@ -1005,8 +1003,8 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
                     dir == 0 ? STREAM_TOSERVER : STREAM_TOCLIENT);
 
             if (TxNonPFAddSig(de_ctx, tx_engines_hash, s->alproto, dir,
-                        (int16_t)s->init_data->hook.t.app.app_progress, s->init_data->hook.sm_list,
-                        pname, s) != 0) {
+                        s->init_data->hook.t.app.app_progress, s->init_data->hook.sm_list, pname,
+                        s) != 0) {
                 goto error;
             }
             tx_non_pf = true;
@@ -1082,7 +1080,8 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         }
 
         /* register special progress value to indicate we need to run it all the time */
-        int engine_progress = t->progress;
+        DEBUG_VALIDATE_BUG_ON(t->progress > INT8_MAX);
+        int8_t engine_progress = (int8_t)t->progress;
         if (t->sig_list == app_state_list_id) {
             SCLogDebug("engine %s for state list", t->engine_name);
             engine_progress = -1;
