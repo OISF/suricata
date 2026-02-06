@@ -62,6 +62,7 @@ void InspectionBufferSetupAndApplyTransforms(DetectEngineThreadCtx *det_ctx, con
 void InspectionBufferFree(InspectionBuffer *buffer);
 uint8_t *SCInspectionBufferCheckAndExpand(InspectionBuffer *buffer, uint32_t min_size);
 void SCInspectionBufferTruncate(InspectionBuffer *buffer, uint32_t buf_len);
+void SCInspectionBufferSetError(InspectionBuffer *buffer);
 void InspectionBufferCopy(InspectionBuffer *buffer, uint8_t *buf, uint32_t buf_len);
 void InspectionBufferApplyTransforms(DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer,
         const DetectEngineTransforms *transforms);
