@@ -87,6 +87,8 @@ jobs:
           IGNORES+=(--ignore RUSTSEC-2020-0036)
           # failure, via bendy
           IGNORES+=(--ignore RUSTSEC-2019-0036)
+          # time crate update
+          IGNORES+=(--ignore RUSTSEC-2026-0009)
 
           cargo audit -D warnings "${IGNORES[@]}"
 
