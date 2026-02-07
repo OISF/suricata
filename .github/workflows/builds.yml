@@ -2010,6 +2010,12 @@ jobs:
       - run: llvm-profdata-19 merge -o afp-ips-bond1.profdata /tmp/afp-ips-bond1.profraw
 
       - run: |
+          ./.github/workflows/netns/afp-ips-netns-bond-bridge2.sh "2" "workers" ".github/workflows/netns/ips-netns-bond2.yaml"
+        env:
+          LLVM_PROFILE_FILE: "/tmp/afp-ips-bond2.profraw"
+      - run: llvm-profdata-19 merge -o afp-ips-bond2.profdata /tmp/afp-ips-bond2.profraw
+
+      - run: |
           ./.github/workflows/netns/nfq-ips-netns-route.sh "autofp" ".github/workflows/netns/ips-netns.yaml"
         env:
           LLVM_PROFILE_FILE: "/tmp/nfq-ips.profraw"
@@ -2021,7 +2027,7 @@ jobs:
           LLVM_PROFILE_FILE: "/tmp/nfq-ips-workers.profraw"
       - run: llvm-profdata-19 merge -o nfq-ips-workers.profdata /tmp/nfq-ips-workers.profraw
 
-      - run: llvm-profdata-19 merge -o combined.profdata afp-ips.profdata nfq-ips.profdata afp-ips-autofp.profdata nfq-ips-workers.profdata afp-ips-bond1.profdata
+      - run: llvm-profdata-19 merge -o combined.profdata afp-ips.profdata nfq-ips.profdata afp-ips-autofp.profdata nfq-ips-workers.profdata afp-ips-bond1.profdata afp-ips-bond2.profdata
       - run: llvm-cov-19 show ./src/suricata -instr-profile=combined.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de
