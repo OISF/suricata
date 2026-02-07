@@ -39,6 +39,10 @@ if DEBUG
 RUST_FEATURES +=	debug
 endif
 
+if HAVE_MIMETYPE
+RUST_FEATURES +=	filemimetype
+endif
+
 if DEBUG_VALIDATION
 RUST_FEATURES +=	debug-validate
 endif

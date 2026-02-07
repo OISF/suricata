@@ -161,6 +161,7 @@ noinst_HEADERS = \
 	detect-fast-pattern.h \
 	detect-file-data.h \
 	detect-file-hash-common.h \
+	detect-file-mimetype.h \
 	detect-filemagic.h \
 	detect-filemd5.h \
 	detect-filename.h \
@@ -551,6 +552,7 @@ noinst_HEADERS = \
 	util-memcmp.h \
 	util-memcpy.h \
 	util-memrchr.h \
+	util-mimetype.h \
 	util-misc.h \
 	util-mpm-ac-ks.h \
 	util-mpm-ac-queue.h \
@@ -749,6 +751,7 @@ libsuricata_c_a_SOURCES = \
 	detect-fast-pattern.c \
 	detect-file-data.c \
 	detect-file-hash-common.c \
+	detect-file-mimetype.c \
 	detect-filemagic.c \
 	detect-filemd5.c \
 	detect-filename.c \
@@ -1119,6 +1122,7 @@ libsuricata_c_a_SOURCES = \
 	util-mem.c \
 	util-memcmp.c \
 	util-memrchr.c \
+	util-mimetype.c \
 	util-misc.c \
 	util-mpm-ac-ks-small.c \
 	util-mpm-ac-ks.c \
