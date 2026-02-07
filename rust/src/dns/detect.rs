@@ -173,7 +173,7 @@ unsafe extern "C" fn dns_opcode_free(_de: *mut DetectEngineCtx, ctx: *mut c_void
     SCDetectU8Free(ctx);
 }
 
-unsafe extern "C" fn dns_rcode_parse(ustr: *const std::os::raw::c_char) -> *mut DetectUintData<u8> {
+unsafe extern "C" fn dns_rcode_parse(ustr: *const std::os::raw::c_char) -> *mut DetectUintData<u16> {
     let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
     if let Ok(s) = ft_name.to_str() {
         if let Some(ctx) = detect_parse_uint_enum::<u16, DNSRcode>(s) {
