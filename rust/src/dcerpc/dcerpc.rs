@@ -762,21 +762,31 @@ impl DCERPCState {
         }
     }
 
-    pub fn handle_input_data(&mut self, stream_slice: StreamSlice, direction: Direction) -> AppLayerResult {
-        let retval;
-        let mut cur_i = stream_slice.as_slice();
-        let mut consumed = 0u32;
-        let mut rem = cur_i.len() as u32;
+    /// Common function to handle gap or mimic a gap like situation.
+    ///
+    /// Arguments:
+    /// * `i`: input bytes.
+    /// * `direction`: direction that is currently being dealt with.
+    /// * `skip_error_record`: true if a record is to be skipped and treated like
+    ///   a gap. false if a record is actually meant to be handled like a gap.
+    ///
+    /// Return value: Tuple - (parsed, retval)
+    /// * parsed : Number of bytes successfully parsed/skipped.
+    /// * retval: -1 in case the parsed bytes should be skipped, 0 otherwise.
+    fn handle_gap (&mut self, i: &[u8], direction: Direction, skip_error_record: bool) -> (u32, i8) {
+        let mut consumed;
 
+        if !skip_error_record && ((!self.ts_gap && !self.tc_gap) || ((self.ts_gap && direction == Direction::ToClient) || (self.tc_gap && direction == Direction::ToServer))) {
+            return (0, 0);
+        }
         // Skip the record since this means that its in the middle of a known length record
-        if (self.ts_gap && direction == Direction::ToServer) || (self.tc_gap && direction == Direction::ToClient) {
-            SCLogDebug!("Trying to catch up after GAP (input {})", cur_i.len());
-            match self.search_dcerpc_record(cur_i) {
-                Ok((_, pg)) => {
-                    SCLogDebug!("DCERPC record found");
-                    let offset = cur_i.len() - pg.len();
-                    cur_i = &cur_i[offset..];
-                    consumed = offset as u32;
+        SCLogDebug!("Trying to catch up after GAP (input {})", i.len());
+        match self.search_dcerpc_record(i) {
+            Ok((_, pg)) => {
+                SCLogDebug!("DCERPC record found");
+                let offset = i.len() - pg.len();
+                consumed = offset as u32;
+                if !skip_error_record {
                     match direction {
                         Direction::ToServer => {
                             self.ts_gap = false;
@@ -785,20 +795,36 @@ impl DCERPCState {
                             self.tc_gap = false;
                         }
                     }
-                },
-                _ => {
-                    consumed = cur_i.len() as u32;
-                    // At least 2 bytes are required to know if a new record is beginning
-                    if consumed < 2 {
-                        consumed = 0;
-                    } else {
-                        consumed -= 1;
-                    }
-                    SCLogDebug!("DCERPC record NOT found");
-                    return AppLayerResult::incomplete(consumed, 2);
-                },
-            }
+                }
+            },
+            _ => {
+                consumed = i.len() as u32;
+                // At least 2 bytes are required to know if a new record is beginning
+                if consumed < 2 {
+                    consumed = 0;
+                } else {
+                    consumed -= 1;
+                }
+                SCLogDebug!("DCERPC record NOT found");
+                return (consumed, -1);
+            },
         }
+
+        (consumed, 0)
+    }
+
+    pub fn handle_input_data(&mut self, stream_slice: StreamSlice, direction: Direction) -> AppLayerResult {
+        let retval;
+        let mut cur_i = stream_slice.as_slice();
+        let mut rem = cur_i.len() as u32;
+
+        SCLogDebug!("ts_gap: {:?}; direction: {:?}; tc_gap: {:?}", self.ts_gap, direction, self.tc_gap);
+        let (nb, ret) = self.handle_gap(cur_i, direction, false /* handling the actual gap */);
+        let mut consumed = nb;
+        if ret == -1 {
+            return AppLayerResult::incomplete(consumed, 2);
+        }
+        cur_i = &cur_i[consumed as usize..];
         rem -= consumed;
 
         let mut flow = std::ptr::null_mut();
@@ -817,7 +843,11 @@ impl DCERPCState {
                             header.rpc_vers,
                             header.rpc_vers_minor
                         );
-                        return AppLayerResult::err();
+                        SCLogDebug!("mimicing gap for invalid header");
+                        let (nb, _ret) = self.handle_gap(cur_i, direction, true /* mimicing a gap */);
+                        consumed += nb;
+                        /* no need to update rem/cur_i as it won't be used anymore */
+                        return AppLayerResult::incomplete(consumed, rem - consumed);
                     }
                     header
                 }
@@ -859,10 +889,10 @@ impl DCERPCState {
 
         let hdrtype = hdr.hdrtype;
 
-        let _hdr = Frame::new(flow, &stream_slice, &cur_i[consumed as usize..], DCERPC_HDR_LEN as i64, DCERPCFrameType::Hdr as u8, None);
-        let _pdu = Frame::new(flow, &stream_slice, &cur_i[consumed as usize..], fraglen as i64, DCERPCFrameType::Pdu as u8, None);
+        let _hdr = Frame::new(flow, &stream_slice, cur_i, DCERPC_HDR_LEN as i64, DCERPCFrameType::Hdr as u8, None);
+        let _pdu = Frame::new(flow, &stream_slice, cur_i, fraglen as i64, DCERPCFrameType::Pdu as u8, None);
         if fraglen >= DCERPC_HDR_LEN && rem > DCERPC_HDR_LEN as u32 {
-            let _data = Frame::new(flow, &stream_slice, &cur_i[(consumed + DCERPC_HDR_LEN as u32) as usize..], (fraglen - DCERPC_HDR_LEN) as i64, DCERPCFrameType::Data as u8, None);
+            let _data = Frame::new(flow, &stream_slice, &cur_i[DCERPC_HDR_LEN as usize..], (fraglen - DCERPC_HDR_LEN) as i64, DCERPCFrameType::Data as u8, None);
         }
         let current_call_id = hdr.call_id;
 
