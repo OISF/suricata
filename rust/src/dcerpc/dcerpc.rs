@@ -762,21 +762,20 @@ impl DCERPCState {
         }
     }
 
-    pub fn handle_input_data(&mut self, stream_slice: StreamSlice, direction: Direction) -> AppLayerResult {
-        let retval;
-        let mut cur_i = stream_slice.as_slice();
-        let mut consumed = 0u32;
-        let mut rem = cur_i.len() as u32;
+    fn handle_gap<'a> (&mut self, i: &'a[u8], direction: Direction, mimic: bool) -> (u32, i8) {
+        let mut consumed;
 
+        if !mimic && ((self.ts_gap && direction != Direction::ToServer) || (self.tc_gap && direction != Direction::ToClient)) {
+            return (0, 0);
+        }
         // Skip the record since this means that its in the middle of a known length record
-        if (self.ts_gap && direction == Direction::ToServer) || (self.tc_gap && direction == Direction::ToClient) {
-            SCLogDebug!("Trying to catch up after GAP (input {})", cur_i.len());
-            match self.search_dcerpc_record(cur_i) {
-                Ok((_, pg)) => {
-                    SCLogDebug!("DCERPC record found");
-                    let offset = cur_i.len() - pg.len();
-                    cur_i = &cur_i[offset..];
-                    consumed = offset as u32;
+        SCLogDebug!("Trying to catch up after GAP (input {})", i.len());
+        match self.search_dcerpc_record(i) {
+            Ok((_, pg)) => {
+                SCLogDebug!("DCERPC record found");
+                let offset = i.len() - pg.len();
+                consumed = offset as u32;
+                if !mimic {
                     match direction {
                         Direction::ToServer => {
                             self.ts_gap = false;
@@ -785,20 +784,35 @@ impl DCERPCState {
                             self.tc_gap = false;
                         }
                     }
-                },
-                _ => {
-                    consumed = cur_i.len() as u32;
-                    // At least 2 bytes are required to know if a new record is beginning
-                    if consumed < 2 {
-                        consumed = 0;
-                    } else {
-                        consumed -= 1;
-                    }
-                    SCLogDebug!("DCERPC record NOT found");
-                    return AppLayerResult::incomplete(consumed, 2);
-                },
-            }
+                }
+            },
+            _ => {
+                consumed = i.len() as u32;
+                // At least 2 bytes are required to know if a new record is beginning
+                if consumed < 2 {
+                    consumed = 0;
+                } else {
+                    consumed -= 1;
+                }
+                SCLogDebug!("DCERPC record NOT found");
+                return (consumed, -1);
+            },
         }
+
+        (consumed, 0)
+    }
+
+    pub fn handle_input_data(&mut self, stream_slice: StreamSlice, direction: Direction) -> AppLayerResult {
+        let retval;
+        let mut cur_i = stream_slice.as_slice();
+        let mut rem = cur_i.len() as u32;
+
+        let (nb, ret) = self.handle_gap(cur_i, direction, false /* handling the actual gap */);
+        let mut consumed = nb;
+        if ret == -1 {
+            return AppLayerResult::incomplete(consumed, 2);
+        }
+        cur_i = &cur_i[consumed as usize..];
         rem -= consumed;
 
         let mut flow = std::ptr::null_mut();
@@ -817,7 +831,13 @@ impl DCERPCState {
                             header.rpc_vers,
                             header.rpc_vers_minor
                         );
-                        return AppLayerResult::err();
+
+                        let (nb, ret) = self.handle_gap(cur_i, direction, true /* mimicing a gap */);
+                        consumed += nb;
+                        /* no need to update rem/cur_i as it won't be used anymore */
+                        if ret == -1 {
+                            return AppLayerResult::incomplete(consumed, 2);
+                        }
                     }
                     header
                 }
