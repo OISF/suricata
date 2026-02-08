@@ -1275,6 +1275,14 @@ app-layer:
     mdns:
       enabled: yes
 
+#
+# Settings that affect Suricata on a global level.
+#
+global:
+
+  # Shorten IPv6 addresses per RFC 5952 before logging. The default is no
+  #ipv6-addr-shorten: no
+
 # Limit for the maximum number of asn1 frames to decode (default 256)
 asn1-max-frames: 256
 
