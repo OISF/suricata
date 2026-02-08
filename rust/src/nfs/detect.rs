@@ -29,7 +29,6 @@ use super::types::{NfsProc2, NfsProc3, NfsProc4};
 use crate::core::STREAM_TOSERVER;
 use crate::detect::uint::{
     detect_match_uint, detect_parse_uint_enum, detect_parse_uint_inclusive, DetectUintData,
-    SCDetectU32Free,
 };
 use crate::detect::{SIGMATCH_INFO_ENUM_UINT, SIGMATCH_INFO_MULTI_UINT, SIGMATCH_INFO_UINT32};
 
@@ -67,7 +66,7 @@ fn nfs_procedure_parse_aux(s: &str) -> Option<DetectNfsProcedureData> {
 
 unsafe extern "C" fn nfs_procedure_parse(
     ustr: *const std::os::raw::c_char,
-) -> *mut DetectUintData<u32> {
+) -> *mut DetectNfsProcedureData {
     let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
     if let Ok(s) = ft_name.to_str() {
         if let Some(ctx) = nfs_procedure_parse_aux(s) {
@@ -156,8 +155,8 @@ unsafe extern "C" fn nfs_procedure_match(
 }
 
 unsafe extern "C" fn nfs_procedure_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
-    let ctx = cast_pointer!(ctx, DetectUintData<u32>);
-    SCDetectU32Free(ctx);
+    let ctx = cast_pointer!(ctx, DetectNfsProcedureData);
+    std::mem::drop(Box::from_raw(ctx));
 }
 
 #[no_mangle]
