@@ -542,11 +542,14 @@ unsafe extern "C" fn mqtt_qos_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) 
 unsafe extern "C" fn mqtt_parse_bool(ustr: *const std::os::raw::c_char) -> *mut bool {
     let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
     if let Ok(s) = ft_name.to_str() {
-        if let Ok(ctx) = u8::from_str(s.trim()) {
-            if ctx <= 2 {
-                let boxed = Box::new(ctx);
-                return Box::into_raw(boxed) as *mut _;
-            }
+        if let Ok(raw) = u8::from_str(s.trim()) {
+            let value = match raw {
+                0 => false,
+                1 => true,
+                _ => return std::ptr::null_mut(),
+            };
+            let boxed = Box::new(value);
+            return Box::into_raw(boxed);
         }
     }
     return std::ptr::null_mut();
