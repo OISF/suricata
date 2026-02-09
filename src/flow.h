@@ -366,7 +366,7 @@ typedef struct Flow_
             uint8_t code;   /**< icmp code */
         } icmp_d;
     };
-    uint8_t proto;
+    uint8_t proto; /**< ip proto of the flow */
     uint8_t recursion_level;
     uint16_t vlan_id[VLAN_MAX_LAYERS];
 
@@ -392,12 +392,12 @@ typedef struct Flow_
     uint32_t flow_hash;
 
     /** timeout in seconds by policy, add to Flow::lastts to get actual time this times out.
-     * Ignored in emergency mode. */
+     *  Ignored in emergency mode. */
     uint32_t timeout_policy;
 
-    /* time stamp of last update (last packet). Set/updated under the
-     * flow and flow hash row locks, safe to read under either the
-     * flow lock or flow hash row lock. */
+    /** time stamp of last update (last packet). Set/updated under the
+     *  flow and flow hash row locks, safe to read under either the
+     *  flow lock or flow hash row lock. */
     SCTime_t lastts;
 
     FlowStateType flow_state;
