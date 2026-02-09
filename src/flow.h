@@ -395,6 +395,12 @@ typedef struct Flow_
 
     uint64_t flags; /**< generic flags */
 
+    uint16_t file_flags; /**< file tracking/extraction flags */
+
+    /** destination port to be used in protocol detection. This is meant
+     *  for use with STARTTLS and HTTP CONNECT detection */
+    uint16_t protodetect_dp; /**< 0 if not used */
+
     /** timeout in seconds by policy, add to Flow::lastts to get actual time this times out.
      *  Ignored in emergency mode. */
     uint32_t timeout_policy;
@@ -412,12 +418,6 @@ typedef struct Flow_
 
     uint32_t probing_parser_toserver_alproto_masks;
     uint32_t probing_parser_toclient_alproto_masks;
-
-    uint16_t file_flags;    /**< file tracking/extraction flags */
-
-    /** destination port to be used in protocol detection. This is meant
-     *  for use with STARTTLS and HTTP CONNECT detection */
-    uint16_t protodetect_dp; /**< 0 if not used */
 
     /* Parent flow id for protocol like ftp */
     int64_t parent_id;
