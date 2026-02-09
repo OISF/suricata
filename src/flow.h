@@ -384,12 +384,13 @@ typedef struct Flow_
     /** Thread ID for the stream/detect portion of this flow */
     FlowThreadId thread_id[2];
 
+    /** flow hash - the flow hash before hash table size mod. Used for calculating
+     *  the flow_id. */
+    uint32_t flow_hash;
+
     struct Flow_ *next; /* (hash) list next */
     /** Incoming interface */
     struct LiveDevice_ *livedev;
-
-    /** flow hash - the flow hash before hash table size mod. */
-    uint32_t flow_hash;
 
     /** timeout in seconds by policy, add to Flow::lastts to get actual time this times out.
      *  Ignored in emergency mode. */
