@@ -16,7 +16,7 @@
  */
 
 // Flow flags
-pub const FLOW_DIR_REVERSED: u32 = BIT_U32!(26);
+pub const FLOW_DIR_REVERSED: u64 = BIT_U64!(26);
 
 /// Opaque flow type (defined in C)
 pub(crate) use suricata_sys::sys::{
@@ -35,7 +35,7 @@ pub fn flow_get_last_time(flow: &Flow) -> std::time::Duration {
 }
 
 /// Return the flow flags.
-pub fn flow_get_flags(flow: &Flow) -> u32 {
+pub fn flow_get_flags(flow: &Flow) -> u64 {
     unsafe { SCFlowGetFlags(flow) }
 }
 

@@ -1242,14 +1242,14 @@ uint16_t SCFlowGetDestinationPort(const Flow *flow)
 {
     return flow->dp;
 }
+
 /**
  * \brief Get flow flags.
  *
  * A function to get the flow flags useful when the caller only has an
  * opaque pointer to the flow structure.
  */
-
-uint32_t SCFlowGetFlags(const Flow *flow)
+uint64_t SCFlowGetFlags(const Flow *flow)
 {
     return flow->flags;
 }

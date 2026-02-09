@@ -48,78 +48,78 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 /* per flow flags */
 
 /** At least one packet from the source address was seen */
-#define FLOW_TO_SRC_SEEN                BIT_U32(0)
+#define FLOW_TO_SRC_SEEN BIT_U64(0)
 /** At least one packet from the destination address was seen */
-#define FLOW_TO_DST_SEEN                BIT_U32(1)
+#define FLOW_TO_DST_SEEN BIT_U64(1)
 
 /** next packet in toclient direction will act on updated app-layer state */
-#define FLOW_TC_APP_UPDATE_NEXT BIT_U32(2)
+#define FLOW_TC_APP_UPDATE_NEXT BIT_U64(2)
 
 /** Flow is marked an elephant flow */
-#define FLOW_IS_ELEPHANT_TOSERVER BIT_U32(3)
-#define FLOW_IS_ELEPHANT_TOCLIENT BIT_U32(4)
+#define FLOW_IS_ELEPHANT_TOSERVER BIT_U64(3)
+#define FLOW_IS_ELEPHANT_TOCLIENT BIT_U64(4)
 
 /** All packets in this flow should be accepted */
-#define FLOW_ACTION_ACCEPT BIT_U32(5)
+#define FLOW_ACTION_ACCEPT BIT_U64(5)
 
 /** Packet payloads belonging to this flow should not be inspected */
-#define FLOW_NOPAYLOAD_INSPECTION       BIT_U32(6)
+#define FLOW_NOPAYLOAD_INSPECTION BIT_U64(6)
 
 /** All packets in this flow should be dropped */
-#define FLOW_ACTION_DROP                BIT_U32(7)
+#define FLOW_ACTION_DROP BIT_U64(7)
 
 /** Sgh for toserver direction set (even if it's NULL) */
-#define FLOW_SGH_TOSERVER               BIT_U32(8)
+#define FLOW_SGH_TOSERVER BIT_U64(8)
 /** Sgh for toclient direction set (even if it's NULL) */
-#define FLOW_SGH_TOCLIENT               BIT_U32(9)
+#define FLOW_SGH_TOCLIENT BIT_U64(9)
 
 /** packet to server direction has been logged in drop file (only in IPS mode) */
-#define FLOW_TOSERVER_DROP_LOGGED       BIT_U32(10)
+#define FLOW_TOSERVER_DROP_LOGGED BIT_U64(10)
 /** packet to client direction has been logged in drop file (only in IPS mode) */
-#define FLOW_TOCLIENT_DROP_LOGGED       BIT_U32(11)
+#define FLOW_TOCLIENT_DROP_LOGGED BIT_U64(11)
 
 /** flow has alerts */
-#define FLOW_HAS_ALERTS                 BIT_U32(12)
+#define FLOW_HAS_ALERTS BIT_U64(12)
 
 /** Pattern matcher alproto detection done */
-#define FLOW_TS_PM_ALPROTO_DETECT_DONE  BIT_U32(13)
+#define FLOW_TS_PM_ALPROTO_DETECT_DONE BIT_U64(13)
 /** Probing parser alproto detection done */
-#define FLOW_TS_PP_ALPROTO_DETECT_DONE  BIT_U32(14)
+#define FLOW_TS_PP_ALPROTO_DETECT_DONE BIT_U64(14)
 /** Expectation alproto detection done */
-#define FLOW_TS_PE_ALPROTO_DETECT_DONE  BIT_U32(15)
+#define FLOW_TS_PE_ALPROTO_DETECT_DONE BIT_U64(15)
 /** Pattern matcher alproto detection done */
-#define FLOW_TC_PM_ALPROTO_DETECT_DONE  BIT_U32(16)
+#define FLOW_TC_PM_ALPROTO_DETECT_DONE BIT_U64(16)
 /** Probing parser alproto detection done */
-#define FLOW_TC_PP_ALPROTO_DETECT_DONE  BIT_U32(17)
+#define FLOW_TC_PP_ALPROTO_DETECT_DONE BIT_U64(17)
 /** Expectation alproto detection done */
-#define FLOW_TC_PE_ALPROTO_DETECT_DONE  BIT_U32(18)
-#define FLOW_TIMEOUT_REASSEMBLY_DONE    BIT_U32(19)
+#define FLOW_TC_PE_ALPROTO_DETECT_DONE BIT_U64(18)
+#define FLOW_TIMEOUT_REASSEMBLY_DONE   BIT_U64(19)
 
 /** flow is ipv4 */
-#define FLOW_IPV4                       BIT_U32(20)
+#define FLOW_IPV4 BIT_U64(20)
 /** flow is ipv6 */
-#define FLOW_IPV6                       BIT_U32(21)
+#define FLOW_IPV6 BIT_U64(21)
 
-#define FLOW_PROTO_DETECT_TS_DONE       BIT_U32(22)
-#define FLOW_PROTO_DETECT_TC_DONE       BIT_U32(23)
+#define FLOW_PROTO_DETECT_TS_DONE BIT_U64(22)
+#define FLOW_PROTO_DETECT_TC_DONE BIT_U64(23)
 
 /** Indicate that alproto detection for flow should be done again */
-#define FLOW_CHANGE_PROTO               BIT_U32(24)
+#define FLOW_CHANGE_PROTO BIT_U64(24)
 
-#define FLOW_WRONG_THREAD               BIT_U32(25)
+#define FLOW_WRONG_THREAD BIT_U64(25)
 /** Protocol detection told us flow is picked up in wrong direction (midstream) */
-#define FLOW_DIR_REVERSED               BIT_U32(26)
+#define FLOW_DIR_REVERSED BIT_U64(26)
 /** Indicate that the flow did trigger an expectation creation */
-#define FLOW_HAS_EXPECTATION            BIT_U32(27)
+#define FLOW_HAS_EXPECTATION BIT_U64(27)
 
 /** All packets in this flow should be passed */
-#define FLOW_ACTION_PASS BIT_U32(28)
+#define FLOW_ACTION_PASS BIT_U64(28)
 
-#define FLOW_TS_APP_UPDATED BIT_U32(29)
-#define FLOW_TC_APP_UPDATED BIT_U32(30)
+#define FLOW_TS_APP_UPDATED BIT_U64(29)
+#define FLOW_TC_APP_UPDATED BIT_U64(30)
 
 /** next packet in toserver direction will act on updated app-layer state */
-#define FLOW_TS_APP_UPDATE_NEXT BIT_U32(31)
+#define FLOW_TS_APP_UPDATE_NEXT BIT_U64(31)
 
 /* File flags */
 
@@ -393,6 +393,8 @@ typedef struct Flow_
 
     struct Flow_ *next; /* (hash) list next */
 
+    uint64_t flags; /**< generic flags */
+
     /** timeout in seconds by policy, add to Flow::lastts to get actual time this times out.
      *  Ignored in emergency mode. */
     uint32_t timeout_policy;
@@ -410,8 +412,6 @@ typedef struct Flow_
 
     uint32_t probing_parser_toserver_alproto_masks;
     uint32_t probing_parser_toclient_alproto_masks;
-
-    uint32_t flags;         /**< generic flags */
 
     uint16_t file_flags;    /**< file tracking/extraction flags */
 
