@@ -422,6 +422,9 @@ typedef struct Flow_
     /* Parent flow id for protocol like ftp */
     int64_t parent_id;
 
+    /** protocol specific data pointer, e.g. for TcpSession */
+    void *protoctx;
+
 #ifdef FLOWLOCK_RWLOCK
     SCRWLock r;
 #elif defined FLOWLOCK_MUTEX
@@ -429,9 +432,6 @@ typedef struct Flow_
 #else
     #error Enable FLOWLOCK_RWLOCK or FLOWLOCK_MUTEX
 #endif
-
-    /** protocol specific data pointer, e.g. for TcpSession */
-    void *protoctx;
 
     /** mapping to Flow's protocol specific protocols for timeouts
         and state and free functions. */
