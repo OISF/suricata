@@ -388,9 +388,10 @@ typedef struct Flow_
      *  the flow_id. */
     uint32_t flow_hash;
 
-    struct Flow_ *next; /* (hash) list next */
     /** Incoming interface */
     struct LiveDevice_ *livedev;
+
+    struct Flow_ *next; /* (hash) list next */
 
     /** timeout in seconds by policy, add to Flow::lastts to get actual time this times out.
      *  Ignored in emergency mode. */
