@@ -1597,7 +1597,7 @@ extern "C" {
     pub fn SCFlowGetLastTimeAsParts(flow: *const Flow, secs: *mut u64, usecs: *mut u64);
 }
 extern "C" {
-    pub fn SCFlowGetFlags(flow: *const Flow) -> u32;
+    pub fn SCFlowGetFlags(flow: *const Flow) -> u64;
 }
 extern "C" {
     pub fn SCFlowGetSourcePort(flow: *const Flow) -> u16;
