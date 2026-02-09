@@ -1226,6 +1226,7 @@ uint16_t FlowGetDestinationPort(Flow *flow)
 {
     return flow->dp;
 }
+
 /**
  * \brief Get flow flags.
  *
@@ -1233,7 +1234,7 @@ uint16_t FlowGetDestinationPort(Flow *flow)
  * opaque pointer to the flow structure.
  */
 
-uint32_t FlowGetFlags(Flow *flow)
+uint64_t FlowGetFlags(Flow *flow)
 {
     return flow->flags;
 }
