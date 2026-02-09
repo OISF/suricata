@@ -22,7 +22,7 @@
 typedef struct Flow_ Flow;
 
 void SCFlowGetLastTimeAsParts(const Flow *flow, uint64_t *secs, uint64_t *usecs);
-uint32_t SCFlowGetFlags(const Flow *flow);
+uint64_t SCFlowGetFlags(const Flow *flow);
 uint16_t SCFlowGetSourcePort(const Flow *flow);
 uint16_t SCFlowGetDestinationPort(const Flow *flow);
 
