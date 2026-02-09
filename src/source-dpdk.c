@@ -482,50 +482,47 @@ static inline void DPDKSegmentedMbufWarning(struct rte_mbuf *mbuf)
 
 static void PrintDPDKPortXstats(uint16_t port_id, const char *port_name)
 {
-    struct rte_eth_xstat *xstats;
-    struct rte_eth_xstat_name *xstats_names;
-
-    int32_t ret = rte_eth_xstats_get(port_id, NULL, 0);
+    int ret = rte_eth_xstats_get(port_id, NULL, 0);
     if (ret < 0) {
         SCLogPerf("%s: unable to obtain rte_eth_xstats (%s)", port_name, rte_strerror(-ret));
         return;
     }
-    uint16_t len = (uint16_t)ret;
-
-    xstats = SCCalloc(len, sizeof(*xstats));
+    unsigned int len = (unsigned int)ret;
+    struct rte_eth_xstat_name *xstats_names = NULL;
+    struct rte_eth_xstat *xstats = SCCalloc(len, sizeof(*xstats));
     if (xstats == NULL) {
         SCLogWarning("Failed to allocate memory for the rte_eth_xstat structure");
         return;
     }
 
     ret = rte_eth_xstats_get(port_id, xstats, len);
-    if (ret < 0 || ret > len) {
-        SCFree(xstats);
-        SCLogPerf("%s: unable to obtain rte_eth_xstats (%s)", port_name, rte_strerror(-ret));
-        return;
+    if (ret < 0 || (unsigned int)ret > len) {
+        SCLogPerf("%s: unable to obtain rte_eth_xstats (%s)", port_name,
+                ret < 0 ? rte_strerror(-ret) : "table size too small");
+        goto cleanup;
     }
     xstats_names = SCCalloc(len, sizeof(*xstats_names));
     if (xstats_names == NULL) {
-        SCFree(xstats);
         SCLogWarning("Failed to allocate memory for the rte_eth_xstat_name array");
-        return;
+        goto cleanup;
     }
     ret = rte_eth_xstats_get_names(port_id, xstats_names, len);
-    if (ret < 0 || ret > len) {
-        SCFree(xstats);
-        SCFree(xstats_names);
-        SCLogPerf(
-                "%s: unable to obtain names of rte_eth_xstats (%s)", port_name, rte_strerror(-ret));
-        return;
+    if (ret < 0 || (unsigned int)ret > len) {
+        SCLogPerf("%s: unable to obtain names of rte_eth_xstats (%s)", port_name,
+                ret < 0 ? rte_strerror(-ret) : "table size too small");
+        goto cleanup;
     }
-    for (int32_t i = 0; i < len; i++) {
+    for (unsigned int i = 0; i < len; i++) {
         if (xstats[i].value > 0)
             SCLogPerf("Port %u (%s) - %s: %" PRIu64, port_id, port_name, xstats_names[i].name,
                     xstats[i].value);
     }
 
-    SCFree(xstats);
-    SCFree(xstats_names);
+cleanup:
+    if (xstats != NULL)
+        SCFree(xstats);
+    if (xstats_names != NULL)
+        SCFree(xstats_names);
 }
 
 static void HandleShutdown(DPDKThreadVars *ptv)
