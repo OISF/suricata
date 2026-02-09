@@ -123,7 +123,7 @@ unsafe extern "C" fn rfb_sec_type_free(_de: *mut DetectEngineCtx, ctx: *mut c_vo
 
 unsafe extern "C" fn rfb_parse_sec_result(
     ustr: *const std::os::raw::c_char,
-) -> *mut DetectUintData<u8> {
+) -> *mut DetectUintData<u32> {
     let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
     if let Ok(s) = ft_name.to_str() {
         if let Some(ctx) = detect_parse_uint_enum::<u32, RFBSecurityResultStatus>(s) {
