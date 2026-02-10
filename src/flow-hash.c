@@ -693,7 +693,7 @@ static inline void NoFlowHandleIPS(ThreadVars *tv, FlowLookupStruct *fls, Packet
 static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, Packet *p)
 {
     const bool emerg = ((SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY) != 0);
-#ifdef DEBUG
+#ifdef QA_SIMULATION
     if (g_eps_flow_memcap != UINT64_MAX && g_eps_flow_memcap == p->pcap_cnt) {
         NoFlowHandleIPS(tv, fls, p);
         StatsIncr(tv, fls->dtv->counter_flow_memcap);

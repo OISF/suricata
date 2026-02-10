@@ -468,7 +468,7 @@ static void DefragExceptionPolicyStatsIncr(
  */
 static DefragTracker *DefragTrackerGetNew(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
 {
-#ifdef DEBUG
+#ifdef QA_SIMULATION
     if (g_eps_defrag_memcap != UINT64_MAX && g_eps_defrag_memcap == p->pcap_cnt) {
         SCLogNotice("simulating memcap hit for packet %" PRIu64, p->pcap_cnt);
         ExceptionPolicyApply(p, defrag_config.memcap_policy, PKT_DROP_REASON_DEFRAG_MEMCAP);
