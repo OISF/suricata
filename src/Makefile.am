@@ -73,6 +73,7 @@ noinst_HEADERS = \
 	decode-gre.h \
 	decode-icmpv4.h \
 	decode-icmpv6.h \
+	decode-igmp.h \
 	decode-ipv4.h \
 	decode-ipv6.h \
 	decode-mpls.h \
@@ -660,6 +661,7 @@ libsuricata_c_a_SOURCES = \
 	decode-gre.c \
 	decode-icmpv4.c \
 	decode-icmpv6.c \
+	decode-igmp.c \
 	decode-ipv4.c \
 	decode-ipv6.c \
 	decode-mpls.c \
