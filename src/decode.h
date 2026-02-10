@@ -85,6 +85,7 @@ enum PktSrcEnum {
 #include "decode-ipv6.h"
 #include "decode-icmpv4.h"
 #include "decode-icmpv6.h"
+#include "decode-igmp.h"
 #include "decode-tcp.h"
 #include "decode-udp.h"
 #include "decode-sctp.h"
@@ -456,6 +457,7 @@ enum PacketL4Types {
     PACKET_L4_UDP,
     PACKET_L4_ICMPV4,
     PACKET_L4_ICMPV6,
+    PACKET_L4_IGMP,
     PACKET_L4_SCTP,
     PACKET_L4_GRE,
     PACKET_L4_ESP,
@@ -473,11 +475,13 @@ struct PacketL4 {
         SCTPHdr *sctph;
         GREHdr *greh;
         ESPHdr *esph;
+        IGMPHdr *igmph;
     } hdrs;
     union L4Vars {
         TCPVars tcp;
         ICMPV4Vars icmpv4;
         ICMPV6Vars icmpv6;
+        IGMPVars igmp;
     } vars;
 };
 
@@ -954,6 +958,25 @@ static inline bool PacketIsARP(const Packet *p)
     return p->l3.type == PACKET_L3_ARP;
 }
 
+static inline IGMPHdr *PacketSetIGMP(Packet *p, const uint8_t *buf)
+{
+    DEBUG_VALIDATE_BUG_ON(p->l4.type != PACKET_L4_UNKNOWN);
+    p->l4.type = PACKET_L4_IGMP;
+    p->l4.hdrs.igmph = (IGMPHdr *)buf;
+    return p->l4.hdrs.igmph;
+}
+
+static inline const IGMPHdr *PacketGetIGMP(const Packet *p)
+{
+    DEBUG_VALIDATE_BUG_ON(p->l4.type != PACKET_L4_IGMP);
+    return p->l4.hdrs.igmph;
+}
+
+static inline bool PacketIsIGMP(const Packet *p)
+{
+    return p->l4.type == PACKET_L4_IGMP;
+}
+
 /** \brief Structure to hold thread specific data for all decode modules */
 typedef struct DecodeThreadVars_
 {
@@ -982,6 +1005,7 @@ typedef struct DecodeThreadVars_
     StatsCounterId counter_udp;
     StatsCounterId counter_icmpv4;
     StatsCounterId counter_icmpv6;
+    StatsCounterId counter_igmp;
     StatsCounterId counter_arp;
     StatsCounterId counter_ethertype_unknown;
 
@@ -1170,6 +1194,7 @@ int DecodeCHDLC(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uin
 int DecodeTEMPLATE(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeNSH(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeARP(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
+int DecodeIGMP(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 
 #ifdef UNITTESTS
 void DecodeIPV6FragHeader(Packet *p, const uint8_t *pkt,
