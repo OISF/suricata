@@ -751,6 +751,7 @@ static void PrintBuildInfo(void)
 {
     const char *bits;
     const char *endian;
+    /* If all current features are enabled, features string would be 341 characters long */
     char features[2048] = "";
     const char *tls;
 
@@ -760,6 +761,9 @@ static void PrintBuildInfo(void)
 #endif
 #ifdef DEBUG_VALIDATION
     strlcat(features, "DEBUG_VALIDATION ", sizeof(features));
+#endif
+#ifdef QA_SIMULATION
+    strlcat(features, "QA_SIMULATION ", sizeof(features));
 #endif
 #ifdef UNITTESTS
     strlcat(features, "UNITTESTS ", sizeof(features));
