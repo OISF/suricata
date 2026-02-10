@@ -75,6 +75,8 @@
 static SCMutex segment_pool_memuse_mutex;
 static uint64_t segment_pool_memuse = 0;
 static uint64_t segment_pool_memcnt = 0;
+#endif
+#ifdef QA_SIMULATION
 thread_local uint64_t t_pcapcnt = UINT64_MAX;
 #endif
 
@@ -162,7 +164,7 @@ uint64_t StreamTcpReassembleMemuseGlobalCounter(void)
  */
 int StreamTcpReassembleCheckMemcap(uint64_t size)
 {
-#ifdef DEBUG
+#ifdef QA_SIMULATION
     if (unlikely((g_eps_stream_reassembly_memcap != UINT64_MAX &&
                   g_eps_stream_reassembly_memcap == t_pcapcnt))) {
         SCLogNotice("simulating memcap reached condition for packet %" PRIu64, t_pcapcnt);
