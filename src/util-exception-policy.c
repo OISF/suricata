@@ -390,7 +390,7 @@ void ExceptionPolicySetStatsCounters(ThreadVars *tv, ExceptionPolicyCounters *co
     }
 }
 
-#ifndef DEBUG
+#ifndef SIMULATION
 
 int ExceptionSimulationCommandLineParser(const char *name, const char *arg)
 {
