@@ -38,7 +38,7 @@ void ExceptionPolicySetStatsCounters(ThreadVars *tv, ExceptionPolicyCounters *co
         const char *default_str, bool (*isExceptionPolicyValid)(enum ExceptionPolicy));
 
 extern enum ExceptionPolicy g_eps_master_switch;
-#ifdef DEBUG
+#ifdef SIMULATION
 extern uint64_t g_eps_applayer_error_offset_ts;
 extern uint64_t g_eps_applayer_error_offset_tc;
 extern uint64_t g_eps_pcap_packet_loss;

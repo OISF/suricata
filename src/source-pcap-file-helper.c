@@ -61,7 +61,7 @@ void CleanupPcapFileFileVars(PcapFileFileVars *pfv)
 void PcapFileCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt)
 {
     SCEnter();
-#ifdef DEBUG
+#ifdef SIMULATION
     if (unlikely((pcap_g.cnt + 1ULL) == g_eps_pcap_packet_loss)) {
         SCLogNotice("skipping packet %" PRIu64, g_eps_pcap_packet_loss);
         pcap_g.cnt++;

@@ -1373,7 +1373,7 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
                 &stream_slice);
         HandleStreamFrames(f, stream_slice, input, input_len, flags);
 
-#ifdef DEBUG
+#ifdef SIMULATION
         if (((stream_slice.flags & STREAM_TOSERVER) &&
                     stream_slice.offset >= g_eps_applayer_error_offset_ts)) {
             SCLogNotice("putting parser %s into an error state from toserver offset %" PRIu64,
