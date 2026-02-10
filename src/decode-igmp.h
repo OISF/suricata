@@ -32,6 +32,7 @@ typedef struct IGMPHdr_ {
 typedef struct IGMPVars_ {
     uint16_t hlen; /**< length of the header */
     uint8_t version;
+    bool rgmp; /**< is this really a RFC 3488 RGMP packet */
 } IGMPVars;
 
 #endif /* SURICATA_DECODE_IGMP_H */
