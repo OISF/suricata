@@ -537,6 +537,14 @@
     ])
     AM_CONDITIONAL([DEBUG_VALIDATION], [test "x$enable_debug_validation" = "xyes"])
 
+  # enable simulation mode
+    AC_ARG_ENABLE(simulation,
+           AS_HELP_STRING([--enable-simulation], [Enable simulation mode]),[enable_simulation=$enableval],[enable_simulation=no])
+    AS_IF([test "x$enable_simulation" = "xyes"], [
+        AC_DEFINE([SIMULATION],[1],[Enable simulation mode])
+    ])
+    AM_CONDITIONAL([SIMULATION], [test "x$enable_simulation" = "xyes"])
+
   # profiling support
     AC_ARG_ENABLE(profiling,
            AS_HELP_STRING([--enable-profiling], [Enable performance profiling]),[enable_profiling=$enableval],[enable_profiling=no])

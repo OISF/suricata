@@ -761,6 +761,9 @@ static void PrintBuildInfo(void)
 #ifdef DEBUG_VALIDATION
     strlcat(features, "DEBUG_VALIDATION ", sizeof(features));
 #endif
+#ifdef SIMULATION
+    strlcat(features, "SIMULATION ", sizeof(features));
+#endif
 #ifdef UNITTESTS
     strlcat(features, "UNITTESTS ", sizeof(features));
 #endif
