@@ -926,10 +926,17 @@ SCJsonBuilder *CreateEveHeader(const Packet *p, enum SCOutputJsonLogDirection di
             break;
         case IPPROTO_IGMP:
             if (PacketIsIGMP(p)) {
-                SCJbOpenObject(js, "igmp");
-                SCJbSetUint(js, "type", PacketGetIGMP(p)->type);
-                SCJbSetUint(js, "version", p->l4.vars.igmp.version);
-                SCJbClose(js);
+                SCLogDebug("rgmp %s", BOOL2STR(p->l4.vars.igmp.rgmp));
+                if (!p->l4.vars.igmp.rgmp) {
+                    SCJbOpenObject(js, "igmp");
+                    SCJbSetUint(js, "type", PacketGetIGMP(p)->type);
+                    SCJbSetUint(js, "version", p->l4.vars.igmp.version);
+                    SCJbClose(js);
+                } else {
+                    SCJbOpenObject(js, "rgmp");
+                    SCJbSetUint(js, "type", PacketGetIGMP(p)->type);
+                    SCJbClose(js);
+                }
             }
             break;
     }
