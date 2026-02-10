@@ -219,9 +219,9 @@ extern int g_detect_disabled;
 
 PoolThread *ssn_pool = NULL;
 static SCMutex ssn_pool_mutex = SCMUTEX_INITIALIZER; /**< init only, protect initializing and growing pool */
-#ifdef DEBUG
-extern thread_local uint64_t t_pcapcnt;
+#if defined(DEBUG) || defined(QA_SIMULATION)
 static uint64_t ssn_pool_cnt = 0; /** counts ssns, protected by ssn_pool_mutex */
+extern thread_local uint64_t t_pcapcnt;
 #endif
 
 TcpStreamCnf stream_config;
@@ -948,12 +948,12 @@ static TcpSession *StreamTcpNewSession(ThreadVars *tv, StreamTcpThread *stt, Pac
 #endif
                     StatsCounterIncr(&tv->stats, stt->counter_tcp_ssn_from_pool);
         }
-#ifdef DEBUG
+#if defined(DEBUG) || defined(QA_SIMULATION)
         SCMutexLock(&ssn_pool_mutex);
         if (p->flow->protoctx != NULL)
             ssn_pool_cnt++;
         SCMutexUnlock(&ssn_pool_mutex);
-
+#ifdef QA_SIMULATION
         if (unlikely((g_eps_stream_ssn_memcap != UINT64_MAX &&
                       g_eps_stream_ssn_memcap == t_pcapcnt))) {
             SCLogNotice("simulating memcap reached condition for packet %" PRIu64, t_pcapcnt);
@@ -961,6 +961,7 @@ static TcpSession *StreamTcpNewSession(ThreadVars *tv, StreamTcpThread *stt, Pac
             StreamTcpSsnMemcapExceptionPolicyStatsIncr(tv, stt, stream_config.ssn_memcap_policy);
             return NULL;
         }
+#endif
 #endif
         ssn = (TcpSession *)p->flow->protoctx;
         if (ssn == NULL) {
@@ -6120,9 +6121,9 @@ TmEcode StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueueNoLock *pq)
                     : "noflow",
             PktSrcToString(p->pkt_src));
 
-#ifdef DEBUG
+#ifdef QA_SIMULATION
     t_pcapcnt = PcapPacketCntGet(p);
-#endif /* DEBUG */
+#endif
 
     if (!(PacketIsTCP(p))) {
         return TM_ECODE_OK;

@@ -29,7 +29,7 @@
 #include "flow.h"
 #include "flow-private.h"
 
-#ifdef DEBUG
+#ifdef QA_SIMULATION
 #include "util-exception-policy.h"
 #endif
 
@@ -283,7 +283,7 @@ static inline uint16_t AlertQueueExpandDo(DetectEngineThreadCtx *det_ctx, uint16
  */
 static uint16_t AlertQueueExpand(DetectEngineThreadCtx *det_ctx)
 {
-#ifdef DEBUG
+#ifdef QA_SIMULATION
     if (unlikely(g_eps_is_alert_queue_fail_mode))
         return det_ctx->alert_queue_capacity;
 #endif
