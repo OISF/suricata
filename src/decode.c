@@ -657,6 +657,7 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
     dtv->counter_esp = StatsRegisterCounter("decoder.esp", &tv->stats);
     dtv->counter_icmpv4 = StatsRegisterCounter("decoder.icmpv4", &tv->stats);
     dtv->counter_icmpv6 = StatsRegisterCounter("decoder.icmpv6", &tv->stats);
+    dtv->counter_igmp = StatsRegisterCounter("decoder.igmp", &tv->stats);
     dtv->counter_ppp = StatsRegisterCounter("decoder.ppp", &tv->stats);
     dtv->counter_pppoe = StatsRegisterCounter("decoder.pppoe", &tv->stats);
     dtv->counter_geneve = StatsRegisterCounter("decoder.geneve", &tv->stats);
