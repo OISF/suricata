@@ -537,6 +537,14 @@
     ])
     AM_CONDITIONAL([DEBUG_VALIDATION], [test "x$enable_debug_validation" = "xyes"])
 
+  # enable qa-simulation mode -- disabled by default
+    AC_ARG_ENABLE(qa-simulation,
+           AS_HELP_STRING([--enable-qa-simulation], [Enable qa-simulation mode]))
+    AS_IF([test "x$enable_qa_simulation" = "xyes"], [
+        AC_DEFINE([QA_SIMULATION],[1],[Enable qa-simulation mode])
+    ])
+    AM_CONDITIONAL([QA_SIMULATION], [test "x$enable_qa_simulation" = "xyes"])
+
   # profiling support
     AC_ARG_ENABLE(profiling,
            AS_HELP_STRING([--enable-profiling], [Enable performance profiling]),[enable_profiling=$enableval],[enable_profiling=no])
@@ -2643,6 +2651,7 @@ Development settings:
   Unit tests enabled:                      ${enable_unittests}
   Debug output enabled:                    ${enable_debug}
   Debug validation enabled:                ${enable_debug_validation}
+  QA-simulation enabled:                   ${enable_qa_simulation}
   Fuzz targets enabled:                    ${enable_fuzztargets}
 
 Generic build parameters:
