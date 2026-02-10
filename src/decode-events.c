@@ -614,6 +614,20 @@ const struct DecodeEvents_ DEvents[] = {
             NSH_UNKNOWN_PAYLOAD,
     },
 
+    /* IGMP events */
+    {
+            "decoder.igmp.pkt_too_small",
+            IGMP_PKT_TOO_SMALL,
+    },
+    {
+            "decoder.igmp.v3_pkt_too_small",
+            IGMP_V3_PKT_TOO_SMALL,
+    },
+    {
+            "decoder.igmp.malformed",
+            IGMP_MALFORMED,
+    },
+
     /* GENERIC EVENTS */
     {
             "decoder.too_many_layers",

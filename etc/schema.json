@@ -6619,6 +6619,24 @@
                                         }
                                     }
                                 },
+                                "igmp": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "malformed": {
+                                            "type": "integer",
+                                            "description": "IGMP with malformed data"
+                                        },
+                                        "pkt_too_small": {
+                                            "type": "integer",
+                                            "description": "IGMP packets too small to fit a IGMP header"
+                                        },
+                                        "v3_pkt_too_small": {
+                                            "type": "integer",
+                                            "description": "IGMPv3 packets too small to fit a IGMP header"
+                                        }
+                                    }
+                                },
                                 "ipraw": {
                                     "type": "object",
                                     "additionalProperties": false,
@@ -7057,6 +7075,10 @@
                         "ieee8021ah": {
                             "type": "integer",
                             "description": "Number of IEEE802.1ah packets decoded"
+                        },
+                        "igmp": {
+                            "type": "integer",
+                            "description": "Number of IGMP packets decoded"
                         },
                         "invalid": {
                             "type": "integer",

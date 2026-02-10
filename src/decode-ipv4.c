@@ -611,6 +611,9 @@ int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         case IPPROTO_ICMPV6:
             ENGINE_SET_INVALID_EVENT(p, IPV4_WITH_ICMPV6);
             break;
+        case IPPROTO_IGMP:
+            DecodeIGMP(tv, dtv, p, data, data_len);
+            break;
 
         default:
             SCLogDebug("unknown protocol type: %" PRIx8 "", p->proto);
