@@ -5106,6 +5106,20 @@
             },
             "optional": true
         },
+        "rgmp": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "type": {
+                    "type": "integer",
+                    "suricata": {
+                        "keywords": [
+                            "igmp.type"
+                        ]
+                    }
+                }
+            }
+        },
         "rpc": {
             "type": "object",
             "additionalProperties": false,

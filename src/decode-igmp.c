@@ -34,6 +34,9 @@
  * Divided by 4 bytes per address. */
 #define IGMP_V3_MAX_N_SOURCES (65535 - 24 - 12) / 4
 
+/* RGMP requires a specific dest address 224.0.0.25. */
+#define RGMP_DEST_ADDRESS 0xe0000019
+
 typedef struct IGMPv3MemberQueryHdr_ {
     uint8_t type;
     uint8_t max_resp_time;
@@ -76,6 +79,22 @@ int DecodeIGMP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *
     const IGMPHdr *igmp = PacketSetIGMP(p, pkt);
     p->proto = IPPROTO_IGMP;
     uint8_t version;
+
+    /* see if we're RGMP (RFC 3488):
+     * "All RGMP messages are sent with TTL 1, to destination address 224.0.0.25."
+     */
+    bool rgmp = false;
+    if (PacketIsIPv4(p)) {
+        const IPV4Hdr *ip4h = PacketGetIPv4(p);
+        const uint8_t pttl = IPV4_GET_RAW_IPTTL(ip4h);
+        /* if packet is of the correct length (header size 8) to the correct address
+         * and has a ttl of 1, we consider it RGMP. */
+        if (len == 8 && RGMP_DEST_ADDRESS == SCNtohl(p->dst.address.address_un_data32[0]) &&
+                pttl == 1) {
+            SCLogDebug("RGMP (RFC 3488)");
+            rgmp = true;
+        }
+    }
 
     /* For IGMPv3 Membership Query, we need to handle additional fields */
     if (igmp->type == IGMP_TYPE_MEMBERSHIP_QUERY) {
@@ -172,6 +191,7 @@ int DecodeIGMP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *
         p->payload_len = (uint16_t)(len - sizeof(IGMPHdr));
     }
     p->l4.vars.igmp.version = version;
+    p->l4.vars.igmp.rgmp = rgmp;
 
     return TM_ECODE_OK;
 }
