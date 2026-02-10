@@ -90,6 +90,12 @@ static int DetectICMPV6CsumMatch(DetectEngineThreadCtx *,
 static int DetectICMPV6CsumSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectICMPV6CsumFree(DetectEngineCtx *, void *);
 
+/* prototypes for the "igmp-csum" rule keyword */
+static int DetectIGMPCsumMatch(
+        DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
+static int DetectIGMPCsumSetup(DetectEngineCtx *, Signature *, const char *);
+static void DetectIGMPCsumFree(DetectEngineCtx *, void *);
+
 #ifdef UNITTESTS
 static void DetectCsumRegisterTests(void);
 #endif
@@ -182,6 +188,12 @@ void DetectCsumRegister (void)
     sigmatch_table[DETECT_ICMPV6_CSUM].Setup = DetectICMPV6CsumSetup;
     sigmatch_table[DETECT_ICMPV6_CSUM].Free  = DetectICMPV6CsumFree;
     sigmatch_table[DETECT_ICMPV6_CSUM].desc = "match on IPv6/ICMPv6 checksum";
+
+    sigmatch_table[DETECT_IGMP_CSUM].name = "igmp-csum";
+    sigmatch_table[DETECT_IGMP_CSUM].Match = DetectIGMPCsumMatch;
+    sigmatch_table[DETECT_IGMP_CSUM].Setup = DetectIGMPCsumSetup;
+    sigmatch_table[DETECT_IGMP_CSUM].Free = DetectIGMPCsumFree;
+    sigmatch_table[DETECT_IGMP_CSUM].desc = "match on IPv4/IGMP checksum";
 }
 
 /**
@@ -792,6 +804,86 @@ error:
 }
 
 static void DetectICMPV6CsumFree(DetectEngineCtx *de_ctx, void *ptr)
+{
+    SCFree(ptr);
+}
+
+/**
+ * \brief Checks if the packet sent as the argument, has a valid or invalid
+ *        igmp checksum, based on whether igmp-csum option for this rule
+ *        has been supplied with "valid" or "invalid" argument
+ *
+ * \param t       Pointer to the tv for this detection module instance
+ * \param det_ctx Pointer to the detection engine thread context
+ * \param p       Pointer to the Packet currently being matched
+ * \param s       Pointer to the Signature, the packet is being currently
+ *                matched with
+ * \param m       Pointer to the keyword_structure(SigMatch) from the above
+ *                Signature, the Packet is being currently matched with
+ *
+ * \retval 1 if the Packet contents match the keyword option; 0 otherwise
+ */
+static int DetectIGMPCsumMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
+{
+    const DetectCsumData *cd = (const DetectCsumData *)ctx;
+
+    if (!PacketIsIPv4(p) || !PacketIsIGMP(p) || p->proto != IPPROTO_IGMP)
+        return 0;
+
+    if (p->flags & PKT_IGNORE_CHECKSUM) {
+        return cd->valid;
+    }
+
+    const IGMPHdr *igmph = PacketGetIGMP(p);
+    if (!p->l4.csum_set) {
+        const IPV4Hdr *ip4h = PacketGetIPv4(p);
+        p->l4.csum = ICMPV4CalculateChecksum(
+                (uint16_t *)igmph, IPV4_GET_RAW_IPLEN(ip4h) - IPV4_GET_RAW_HLEN(ip4h));
+        p->l4.csum_set = true;
+    }
+    if (p->l4.csum == igmph->checksum && cd->valid == 1)
+        return 1;
+    else if (p->l4.csum != igmph->checksum && cd->valid == 0)
+        return 1;
+    else
+        return 0;
+}
+
+/**
+ * \brief Creates a SigMatch for the icmpv4-csum keyword being sent as argument,
+ *        and appends it to the Signature(s).  Accepts 2 values for the
+ *        keyword - "valid" and "invalid", both with and without quotes
+ *
+ * \param de_ctx    Pointer to the detection engine context
+ * \param s         Pointer to signature for the current Signature being parsed
+ *                  from the rules
+ * \param csum_str  Pointer to the string holding the keyword value
+ *
+ * \retval 0 on success, -1 on failure
+ */
+static int DetectIGMPCsumSetup(DetectEngineCtx *de_ctx, Signature *s, const char *csum_str)
+{
+    DetectCsumData *cd = SCCalloc(1, sizeof(DetectCsumData));
+    if (cd == NULL)
+        return -1;
+
+    if (DetectCsumParseArg(csum_str, cd) == 0)
+        goto error;
+
+    if (SCSigMatchAppendSMToList(
+                de_ctx, s, DETECT_IGMP_CSUM, (SigMatchCtx *)cd, DETECT_SM_LIST_MATCH) == NULL) {
+        goto error;
+    }
+
+    return 0;
+
+error:
+    DetectIGMPCsumFree(de_ctx, cd);
+    return -1;
+}
+
+static void DetectIGMPCsumFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     SCFree(ptr);
 }
