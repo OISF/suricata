@@ -163,7 +163,7 @@ uint64_t StreamTcpReassembleMemuseGlobalCounter(void)
  */
 int StreamTcpReassembleCheckMemcap(uint64_t size)
 {
-#ifdef DEBUG
+#ifdef QA_SIMULATION
     if (unlikely((g_eps_stream_reassembly_memcap != UINT64_MAX &&
                   g_eps_stream_reassembly_memcap == t_pcapcnt))) {
         SCLogNotice("simulating memcap reached condition for packet %" PRIu64, t_pcapcnt);
