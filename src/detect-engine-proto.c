@@ -57,6 +57,7 @@ struct {
     { "icmpv4", IPPROTO_ICMP, 0, 0 },
     { "icmpv6", IPPROTO_ICMPV6, 0, 0 },
     { "icmp", IPPROTO_ICMP, IPPROTO_ICMPV6, 0 },
+    { "igmp", IPPROTO_IGMP, 0, 0 },
     { "sctp", IPPROTO_SCTP, 0, 0 },
     { "ipv4", 0, 0, DETECT_PROTO_IPV4 | DETECT_PROTO_ANY },
     { "ip4", 0, 0, DETECT_PROTO_IPV4 | DETECT_PROTO_ANY },
