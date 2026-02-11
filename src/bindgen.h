@@ -67,4 +67,6 @@
 #include "feature.h"
 #include "datasets.h"
 
+#include "jsonbuilder.h"
+
 #endif
