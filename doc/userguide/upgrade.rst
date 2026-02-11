@@ -42,6 +42,7 @@ Major Changes
 - Encrypted quic traffic bypass is now independently controlled through
   ``app-layer.protocols.quic.encryption-handling`` setting. The setting can either
   be ``bypass``, ``track-only`` or ``full``.
+- IMAP parser, logger and sticky buffers have been introduced.
 
 Logging Changes
 ~~~~~~~~~~~~~~~
