@@ -39,6 +39,7 @@ Suricata Rules
    quic-keywords
    nfs-keywords
    smtp-keywords
+   imap-keywords
    websocket-keywords
    app-layer
    decode-layer
