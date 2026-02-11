@@ -155,6 +155,7 @@
 #include "detect-icmp-seq.h"
 #include "detect-icmpv4hdr.h"
 #include "detect-igmphdr.h"
+#include "detect-igmp-type.h"
 #include "detect-dce-iface.h"
 #include "detect-dce-opnum.h"
 #include "detect-dce-stub-data.h"
@@ -666,6 +667,7 @@ void SigTableSetup(void)
     DetectIcmpSeqRegister();
     DetectIcmpv4HdrRegister();
     DetectIGMPHdrRegister();
+    DetectIGMPTypeRegister();
     DetectDceIfaceRegister();
     DetectDceOpnumRegister();
     DetectDceStubDataRegister();
