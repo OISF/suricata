@@ -50,6 +50,13 @@ Major Changes
   also covers FTP-DATA file buffering. An invalid value also keeps the 64 MiB
   default. Set it to ``0`` to remove the limit.
 - LLMNR protocol parser, logger and sticky buffers are implemented.
+- IMAP protocol parser, logger and sticky buffers are implemented, replacing
+  the detection-only support. With the default configuration
+  (``app-layer.protocols.imap.enabled: yes``) IMAP flows are parsed, logged as
+  ``imap`` EVE records and reassembled completely: set
+  ``app-layer.protocols.imap.stream-depth`` to limit the reassembly. A
+  configuration that keeps ``enabled: detection-only`` still only detects the
+  protocol. See :doc:`rules/imap-keywords`.
 - ``pgsql`` is no longer enabled by default. Previously, if the
   ``app-layer.protocols.pgsql`` section was absent from suricata.yaml, the
   parser would be enabled. It's now disabled by default. Simply enabling its EVE
