@@ -3388,3 +3388,32 @@ Example ::
     "min_ttl": 1,
     "max_ttl": 1
   }
+
+Event type: IMAP
+----------------
+
+Fields
+~~~~~~
+
+* "requests": Array of IMAP request lines sent by the client. Each entry is
+  formatted as "tag command arguments". ``LOGIN`` arguments and SASL initial
+  responses on ``AUTHENTICATE`` commands are replaced with ``<redacted>``.
+  Client responses to SASL continuation requests are not logged. A line that
+  may be the data of a ``LOGIN`` or ``AUTHENTICATE`` literal, when the
+  continuation request of the server was not seen, is logged as
+  ``<redacted>``.
+* "responses": Array of IMAP response lines from the server.
+* "reply_truncated": Set to true when a response line of the transaction was
+  longer than 8192 octets and was logged truncated. Not logged otherwise.
+
+Example ::
+
+  "imap": {
+    "requests": [
+      "8 UID fetch 1 (UID RFC822.SIZE BODY.PEEK[])"
+    ],
+    "responses": [
+      "* 1 FETCH (UID 1 RFC822.SIZE 452 BODY[] {452})",
+      "8 OK UID FETCH completed"
+    ]
+  }
