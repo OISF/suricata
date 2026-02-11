@@ -159,6 +159,11 @@ alert pkthdr any any -> any any (msg:"SURICATA packet with too many layers"; dec
 # Capture events.
 alert pkthdr any any -> any any (msg:"SURICATA AF-PACKET truncated packet"; decode-event:afpacket.trunc_pkt; classtype:protocol-command-decode; sid:2200122; rev:1;)
 
+# IGMP
+alert igmp any any -> any any (msg:"SURICATA IGMP packet too small"; decode-event:igmp.pkt_too_small; classtype:protocol-command-decode; sid:2200127; rev:1;)
+alert igmp any any -> any any (msg:"SURICATA IGMPv3 packet too small"; decode-event:igmp.v3_pkt_too_small; classtype:protocol-command-decode; sid:2200128; rev:1;)
+alert igmp any any -> any any (msg:"SURICATA IGMP malformed packet"; decode-event:igmp.malformed; classtype:protocol-command-decode; sid:2200129; rev:1;)
+
 alert ipv4 any any -> any any (msg:"SURICATA IPv4 unknown protocol"; decode-event:ipv4.unknown_protocol; threshold: type limit, track by_src, seconds 60, count 1;classtype:protocol-command-decode; sid:2200125;)
-# next sid is 2200127
+# next sid is 2200130
 
