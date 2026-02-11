@@ -10,6 +10,8 @@ Matches the MIME ``From`` field of an email.
 
 Comparison is case-sensitive.
 
+Works with both SMTP and IMAP protocols.
+
 Syntax::
 
  email.from; content:"<content to match against>";
@@ -33,6 +35,8 @@ email.subject
 Matches the MIME ``Subject`` field of an email.
 
 Comparison is case-sensitive.
+
+Works with both SMTP and IMAP protocols.
 
 Syntax::
 
@@ -58,6 +62,8 @@ Matches the MIME ``To`` field of an email.
 
 Comparison is case-sensitive.
 
+Works with both SMTP and IMAP protocols.
+
 Syntax::
 
  email.to; content:"<content to match against>";
@@ -81,6 +87,8 @@ email.cc
 Matches the MIME ``Cc`` field of an email.
 
 Comparison is case-sensitive.
+
+Works with both SMTP and IMAP protocols.
 
 Syntax::
 
@@ -106,6 +114,8 @@ Matches the MIME ``Date`` field of an email.
 
 Comparison is case-sensitive.
 
+Works with both SMTP and IMAP protocols.
+
 Syntax::
 
  email.date; content:"<content to match against>";
@@ -129,6 +139,8 @@ email.message_id
 Matches the MIME ``Message-Id`` field of an email.
 
 Comparison is case-sensitive.
+
+Works with both SMTP and IMAP protocols.
 
 Syntax::
 
@@ -154,6 +166,8 @@ Matches the MIME ``X-Mailer`` field of an email.
 
 Comparison is case-sensitive.
 
+Works with both SMTP and IMAP protocols.
+
 Syntax::
 
  email.x_mailer; content:"<content to match against>";
@@ -177,6 +191,8 @@ email.url
 Matches ``URL`` extracted of an email.
 
 Comparison is case-sensitive.
+
+This keyword works with SMTP only.
 
 Syntax::
 
@@ -203,6 +219,8 @@ email.received
 Matches ``Received`` field of an email.
 
 Comparison is case-sensitive.
+
+Works with both SMTP and IMAP protocols.
 
 Syntax::
 
