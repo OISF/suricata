@@ -3251,3 +3251,50 @@ Example ::
     "min_ttl": 1,
     "max_ttl": 1
   }
+
+Event type: IMAP
+----------------
+
+Fields
+~~~~~~
+
+* "requests": Array of IMAP request lines sent by the client. Each entry is formatted as "tag command arguments".
+* "responses": Array of IMAP response lines from the server.
+
+When email content is extracted from the IMAP transaction (e.g. via FETCH or APPEND),
+an ``email`` sub-object is included with the following fields:
+
+* "command": The IMAP command that triggered email extraction (e.g. "fetch", "append").
+* "from": Sender address from the email From header.
+* "to": Array of recipients from the email To header.
+* "cc": Array of recipients from the email Cc header.
+* "subject": Email subject line.
+* "date": Email date string.
+* "message_id": Email Message-ID header value.
+* "x_mailer": Email X-Mailer header value, identifying the sending client software.
+* "received": Array of Received header values tracing the email delivery path.
+
+Example ::
+
+  "imap": {
+    "requests": [
+      "8 UID fetch 1 (UID RFC822.SIZE BODY.PEEK[])"
+    ],
+    "responses": [
+      "* 1 FETCH (UID 1 RFC822.SIZE 452 BODY[] {452})",
+      "8 OK UID FETCH completed"
+    ]
+  },
+  "email": {
+    "command": "fetch",
+    "from": "DI <digitalinvestigator@networksims.com>",
+    "to": [
+      "w.buchanan@napier.ac.uk"
+    ],
+    "cc": [
+      "w_j_buchanan@hotmail.com"
+    ],
+    "subject": "Testing",
+    "date": "Thu, 22 Aug 2013 20:17:55 +0100",
+    "message_id": "<521663E3.7090401@networksims.com>"
+  }
