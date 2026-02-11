@@ -414,6 +414,29 @@ extern "C" {
 extern "C" {
     pub fn SCConfGetValueNode(node: *const SCConfNode) -> *const ::std::os::raw::c_char;
 }
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+pub struct ThreadVars_ {
+    _unused: [u8; 0],
+}
+pub type ThreadVars = u8;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct Flow_ {
+    _unused: [u8; 0],
+}
+pub type Flow = Flow_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct SCJsonBuilder {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct Packet_ {
+    _unused: [u8; 0],
+}
+pub type Packet = Packet_;
 pub type ThreadId = u32;
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
@@ -553,6 +576,31 @@ extern "C" {
     pub fn SCRegisterEveFileType(arg1: *mut SCEveFileType) -> bool;
 }
 extern "C" {
+    pub fn SCEveFindFileType(name: *const ::std::os::raw::c_char) -> *mut SCEveFileType;
+}
+#[doc = " \\brief Function type for EVE callbacks.\n\n The function type for callbacks registered with\n SCEveRegisterCallback. This function will be called with the\n SCJsonBuilder just prior to the top-level object being closed. New\n fields may be added, however, there is no way to alter existing\n objects already added to the SCJsonBuilder.\n\n \\param tv The ThreadVars for the thread performing the logging.\n \\param p Packet if available.\n \\param f Flow if available.\n \\param user User data provided during callback registration."]
+pub type SCEveUserCallbackFn = ::std::option::Option<
+    unsafe extern "C" fn(
+        tv: *mut ThreadVars,
+        p: *const Packet,
+        f: *mut Flow,
+        jb: *mut SCJsonBuilder,
+        user: *mut ::std::os::raw::c_void,
+    ),
+>;
+extern "C" {
+    #[doc = " \\brief Register a callback for adding extra information to EVE logs.\n\n Allow users to register a callback for each EVE log. The callback\n is called just before the root object on the SCJsonBuilder is to be\n closed.\n\n New objects and fields can be appended, but existing entries cannot be modified.\n\n Packet and Flow will be provided if available, but will otherwise be\n NULL.\n\n Limitations: At this time the callbacks will only be called for EVE\n loggers that use SCJsonBuilder, notably this means it won't be called\n for stats records at this time.\n\n \\returns true if callback is registered, false is not due to memory\n     allocation error."]
+    pub fn SCEveRegisterCallback(
+        fn_: SCEveUserCallbackFn, user: *mut ::std::os::raw::c_void,
+    ) -> bool;
+}
+extern "C" {
+    #[doc = " \\internal\n\n Run EVE callbacks."]
+    pub fn SCEveRunCallbacks(
+        tv: *mut ThreadVars, p: *const Packet, f: *mut Flow, jb: *mut SCJsonBuilder,
+    );
+}
+extern "C" {
     pub fn SCSigTablePreRegister(
         KeywordsRegister: ::std::option::Option<unsafe extern "C" fn()>,
     ) -> ::std::os::raw::c_int;
@@ -634,12 +682,6 @@ extern "C" {
 extern "C" {
     pub fn SCInspectionBufferTruncate(buffer: *mut InspectionBuffer, buf_len: u32);
 }
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct Flow_ {
-    _unused: [u8; 0],
-}
-pub type Flow = Flow_;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct SigMatchCtx_ {
@@ -1708,11 +1750,6 @@ extern "C" {
     pub fn SCDatasetAddwRep(
         set: *mut Dataset, data: *const u8, data_len: u32, rep: *const DataRepType,
     ) -> ::std::os::raw::c_int;
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct SCJsonBuilder {
-    _unused: [u8; 0],
 }
 #[doc = " A \"mark\" or saved state for a JsonBuilder object.\n\n The name is full, and the types are u64 as this object is used\n directly in C as well."]
 #[repr(C)]
