@@ -228,6 +228,7 @@ noinst_HEADERS = \
 	detect-icmpv6hdr.h \
 	detect-icode.h \
 	detect-id.h \
+	detect-igmphdr.h \
 	detect-ipaddr.h \
 	detect-ipopts.h \
 	detect-ipproto.h \
@@ -806,6 +807,7 @@ libsuricata_c_a_SOURCES = \
 	detect-icmpv6hdr.c \
 	detect-icode.c \
 	detect-id.c \
+	detect-igmphdr.c \
 	detect-ipaddr.c \
 	detect-ipopts.c \
 	detect-ipproto.c \
@@ -1174,6 +1176,7 @@ EXTRA_DIST = \
 	tests/detect-http2.c \
 	tests/detect-icmpv6-mtu.c \
 	tests/detect-icmpv6hdr.c \
+	tests/detect-igmphdr.c \
 	tests/detect-template.c \
 	tests/detect-transform-pcrexform.c \
 	tests/detect-ttl.c \
