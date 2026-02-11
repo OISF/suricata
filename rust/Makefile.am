@@ -152,6 +152,8 @@ if HAVE_BINDGEN
 		--allowlist-function 'SC.*' \
 		--allowlist-var 'SC.*' \
 		--opaque-type 'SCConfNode' \
+		--allowlist-type 'ThreadVars.?' \
+		--opaque-type 'ThreadVars.?' \
 		$(abs_top_srcdir)/src/bindgen.h \
 		-- \
 		-DHAVE_CONFIG_H -I../src -I../rust/gen $(CPPFLAGS)
