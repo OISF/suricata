@@ -49,6 +49,7 @@ enum DetectKeywordId {
     DETECT_ICMP_ID,
     DETECT_ICMP_SEQ,
     DETECT_ICMPV4HDR,
+    DETECT_IGMPHDR,
     DETECT_DSIZE,
 
     DETECT_FLOW,

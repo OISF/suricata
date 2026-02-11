@@ -227,6 +227,7 @@ noinst_HEADERS = \
 	detect-icmpv6hdr.h \
 	detect-icode.h \
 	detect-id.h \
+	detect-igmphdr.h \
 	detect-ike-chosen-sa.h \
 	detect-ike-exch-type.h \
 	detect-ike-key-exchange-payload-length.h \
@@ -815,6 +816,7 @@ libsuricata_c_a_SOURCES = \
 	detect-icmpv6hdr.c \
 	detect-icode.c \
 	detect-id.c \
+	detect-igmphdr.c \
 	detect-ike-chosen-sa.c \
 	detect-ike-exch-type.c \
 	detect-ike-key-exchange-payload-length.c \
@@ -1194,6 +1196,7 @@ EXTRA_DIST = \
 	tests/detect-http2.c \
 	tests/detect-icmpv6-mtu.c \
 	tests/detect-icmpv6hdr.c \
+	tests/detect-igmphdr.c \
 	tests/detect-template.c \
 	tests/detect-transform-pcrexform.c \
 	tests/detect-ttl.c \
