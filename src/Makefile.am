@@ -228,6 +228,7 @@ noinst_HEADERS = \
 	detect-icode.h \
 	detect-id.h \
 	detect-igmphdr.h \
+	detect-igmp-type.h \
 	detect-ike-chosen-sa.h \
 	detect-ike-exch-type.h \
 	detect-ike-key-exchange-payload-length.h \
@@ -817,6 +818,7 @@ libsuricata_c_a_SOURCES = \
 	detect-icode.c \
 	detect-id.c \
 	detect-igmphdr.c \
+	detect-igmp-type.c \
 	detect-ike-chosen-sa.c \
 	detect-ike-exch-type.c \
 	detect-ike-key-exchange-payload-length.c \
