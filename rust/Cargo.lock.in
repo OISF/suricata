@@ -1582,6 +1582,7 @@ dependencies = [
  "sha2",
  "snmp-parser",
  "suricata-derive",
+ "suricata-ffi",
  "suricata-htp",
  "suricata-lua-sys",
  "suricata-sys",
