@@ -18,46 +18,16 @@
 // same file as rust/src/applayertemplate/logger.rs except
 // different paths for use statements
 // open_object using altemplate instead of just template
-// Addition of SCJsonBuilderWrapper to look like a rust app-layer
-// even if we must use C API for SCJsonBuilder (because of its rust repr)
+// use the plugin-facing FFI JsonBuilder wrapper
 
 use super::template::TemplateTransaction;
-use std::ffi::CString;
 use suricata::cast_pointer;
-use suricata_sys::sys::{SCJbClose, SCJbOpenObject, SCJbSetString, SCJsonBuilder};
+use suricata_ffi::jsonbuilder::{Error as JsonError, JsonBuilder};
+use suricata_sys::sys::SCJsonBuilder;
 
 use std;
 
-// syntax sugar around C API of SCJsonBuilder to feel like a normal app-layer in log_template
-pub struct SCJsonBuilderWrapper {
-    inner: *mut SCJsonBuilder,
-}
-
-impl SCJsonBuilderWrapper {
-    fn close(&mut self) -> Result<(), ()> {
-        if unsafe { !SCJbClose(self.inner) } {
-            return Err(());
-        }
-        Ok(())
-    }
-    fn open_object(&mut self, key: &str) -> Result<(), ()> {
-        let keyc = CString::new(key).unwrap();
-        if unsafe { !SCJbOpenObject(self.inner, keyc.as_ptr()) } {
-            return Err(());
-        }
-        Ok(())
-    }
-    fn set_string(&mut self, key: &str, val: &str) -> Result<(), ()> {
-        let keyc = CString::new(key).unwrap();
-        let valc = CString::new(val.escape_default().to_string()).unwrap();
-        if unsafe { !SCJbSetString(self.inner, keyc.as_ptr(), valc.as_ptr()) } {
-            return Err(());
-        }
-        Ok(())
-    }
-}
-
-fn log_template(tx: &TemplateTransaction, js: &mut SCJsonBuilderWrapper) -> Result<(), ()> {
+fn log_template(tx: &TemplateTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
     js.open_object("altemplate")?;
     if let Some(ref request) = tx.request {
         js.set_string("request", request)?;
@@ -74,6 +44,6 @@ pub(super) unsafe extern "C" fn template_logger_log(
 ) -> bool {
     let tx = cast_pointer!(tx, TemplateTransaction);
     let js = cast_pointer!(js, SCJsonBuilder);
-    let mut js = SCJsonBuilderWrapper { inner: js };
+    let mut js = JsonBuilder::from_raw(js);
     log_template(tx, &mut js).is_ok()
 }
