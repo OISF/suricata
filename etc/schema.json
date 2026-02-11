@@ -2545,6 +2545,23 @@
                 ]
             }
         },
+        "igmp": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "type": {
+                    "type": "integer",
+                    "suricata": {
+                        "keywords": [
+                            "igmp.type"
+                        ]
+                    }
+                },
+                "version": {
+                    "type": "integer"
+                }
+            }
+        },
         "ike": {
             "type": "object",
             "additionalProperties": false,
