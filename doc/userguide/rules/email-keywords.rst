@@ -10,6 +10,8 @@ Matches the MIME ``From`` field of an email.
 
 Comparison is case-sensitive.
 
+Works with both SMTP and IMAP protocols.
+
 Syntax::
 
  email.from; content:"<content to match against>";
@@ -33,6 +35,8 @@ email.subject
 Matches the MIME ``Subject`` field of an email.
 
 Comparison is case-sensitive.
+
+Works with both SMTP and IMAP protocols.
 
 Syntax::
 
@@ -58,6 +62,8 @@ Matches the MIME ``To`` field of an email.
 
 Comparison is case-sensitive.
 
+Works with both SMTP and IMAP protocols.
+
 Syntax::
 
  email.to; content:"<content to match against>";
@@ -81,6 +87,8 @@ email.cc
 Matches the MIME ``Cc`` field of an email.
 
 Comparison is case-sensitive.
+
+Works with both SMTP and IMAP protocols.
 
 Syntax::
 
@@ -106,6 +114,8 @@ Matches the MIME ``Date`` field of an email.
 
 Comparison is case-sensitive.
 
+Works with both SMTP and IMAP protocols.
+
 Syntax::
 
  email.date; content:"<content to match against>";
@@ -129,6 +139,8 @@ email.message_id
 Matches the MIME ``Message-Id`` field of an email.
 
 Comparison is case-sensitive.
+
+Works with both SMTP and IMAP protocols.
 
 Syntax::
 
@@ -154,6 +166,8 @@ Matches the MIME ``X-Mailer`` field of an email.
 
 Comparison is case-sensitive.
 
+Works with both SMTP and IMAP protocols.
+
 Syntax::
 
  email.x_mailer; content:"<content to match against>";
@@ -177,6 +191,8 @@ email.url
 Matches ``URL`` extracted of an email.
 
 Comparison is case-sensitive.
+
+This keyword works with SMTP only.
 
 Syntax::
 
@@ -204,6 +220,8 @@ Matches ``Received`` field of an email.
 
 Comparison is case-sensitive.
 
+Works with both SMTP and IMAP protocols.
+
 Syntax::
 
  email.received; content:"<content to match against>";
@@ -222,6 +240,150 @@ Example of a signature that would alert if a packet contains the MIME field ``re
 .. container:: example-rule
 
   alert smtp any any -> any any (msg:"Test mime email received"; :example-rule-emphasis:`email.received; content:"from [65.201.218.30] (helo=COZOXORY.club)by 173-66-46-112.wash.fios.verizon.net with esmtpa (Exim 4.86)(envelope-from )id 71cF63a9for mirjam@abrakadabra.ch\; Mon, 29 Jul 2019 17:01:45 +0000";` sid:1;)
+
+email.command
+-------------
+
+Matches on the lowercased IMAP command name associated with an email transfer.
+For example, ``append`` when the client uploads a message, or ``fetch`` when a
+message is retrieved from the server.
+
+This keyword works with IMAP only.
+
+Syntax::
+
+ email.command; content:"<command>";
+
+``email.command`` is a 'sticky buffer' and can be used as a ``fast_pattern``.
+
+This keyword maps to the EVE field ``email.command``
+
+Examples
+^^^^^^^^
+
+Example of a signature that would alert if an email is being uploaded via APPEND:
+
+.. container:: example-rule
+
+  alert imap any any -> any any (msg:"IMAP APPEND email"; :example-rule-emphasis:`email.command; content:"append";` sid:1;)
+
+Example of a signature that would alert if an email is being fetched:
+
+.. container:: example-rule
+
+  alert imap any any -> any any (msg:"IMAP FETCH email"; :example-rule-emphasis:`email.command; content:"fetch";` sid:1;)
+
+email.body
+----------
+
+Matches on the body content of an email transferred over IMAP.
+
+This keyword works with IMAP only.
+
+Syntax::
+
+ email.body; content:"<content to match against>";
+
+``email.body`` is a 'sticky buffer' and can be used as a ``fast_pattern``.
+
+Example
+^^^^^^^
+
+Example of a signature that would alert if the email body contains "confidential":
+
+.. container:: example-rule
+
+  alert imap any any -> any any (msg:"IMAP email body match"; :example-rule-emphasis:`email.body; content:"confidential";` sid:1;)
+
+Email Header Normalization
+--------------------------
+
+Email headers are normalized before matching:
+
+- **Header names** are converted to lowercase with hyphens replaced by underscores
+  (e.g. ``Content-Type`` becomes ``content_type``).
+- **Header values** have leading and trailing whitespace trimmed.
+- **Folded headers** (multi-line headers per RFC 5322) are unfolded: the CRLF and
+  leading whitespace of continuation lines are replaced by a single space
+  (e.g. ``Subject: very long\r\n  value`` becomes ``very long value``).
+- When the same header appears multiple times, each occurrence is exposed as a
+  separate buffer.
+
+The ``email.header`` buffer combines these as ``name: value`` (with a colon and
+space separator), so a header originally written as ``Content-Type: text/plain``
+is presented as ``content_type: text/plain``.
+
+email.header
+------------
+
+Matches on email headers in normalized ``name: value`` format.
+
+This keyword works with IMAP only.
+
+Syntax::
+
+ email.header; content:"<content to match against>";
+
+``email.header`` is a 'sticky buffer' and can be used as a ``fast_pattern``.
+
+``email.header`` supports multiple buffer matching, see :doc:`multi-buffer-matching`.
+
+Example
+^^^^^^^
+
+Example of a signature that would alert if the email has a subject header:
+
+.. container:: example-rule
+
+  alert imap any any -> any any (msg:"IMAP email header match"; :example-rule-emphasis:`email.header; content:"subject";` sid:1;)
+
+email.header.name
+-----------------
+
+Matches on email header names only (normalized: lowercase, hyphens replaced by underscores).
+
+This keyword works with IMAP only.
+
+Syntax::
+
+ email.header.name; content:"<content to match against>";
+
+``email.header.name`` is a 'sticky buffer' and can be used as a ``fast_pattern``.
+
+``email.header.name`` supports multiple buffer matching, see :doc:`multi-buffer-matching`.
+
+Example
+^^^^^^^
+
+Example of a signature that would alert if the email contains a "subject" header:
+
+.. container:: example-rule
+
+  alert imap any any -> any any (msg:"IMAP email header name match"; :example-rule-emphasis:`email.header.name; content:"subject";` sid:1;)
+
+email.header.value
+------------------
+
+Matches on email header values only (trimmed of leading/trailing whitespace, folded lines unfolded).
+
+This keyword works with IMAP only.
+
+Syntax::
+
+ email.header.value; content:"<content to match against>";
+
+``email.header.value`` is a 'sticky buffer' and can be used as a ``fast_pattern``.
+
+``email.header.value`` supports multiple buffer matching, see :doc:`multi-buffer-matching`.
+
+Example
+^^^^^^^
+
+Example of a signature that would alert if an email header value contains a specific address:
+
+.. container:: example-rule
+
+  alert imap any any -> any any (msg:"IMAP email header value match"; :example-rule-emphasis:`email.header.value; content:"user@example.com";` sid:1;)
 
 email.body_md5
 --------------
