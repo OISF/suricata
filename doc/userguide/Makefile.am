@@ -1,3 +1,7 @@
+# Don't simply use the directory "install" to include the files in
+# install/. That name in EXTRA_DIST triggers "make dist" to run "make
+# install". Which can lead to a permission denied error, or worse,
+# files actually installed when they shouldn't be.
 EXTRA_DIST = \
 	_generated \
 	_static \
@@ -17,7 +21,11 @@ EXTRA_DIST = \
 	upgrade.rst \
 	initscripts.rst \
 	install.rst \
-	install \
+	install/debian.rst \
+	install/other.rst \
+	install/rpm.rst \
+	install/ubuntu.rst \
+	install/windows.rst \
 	ips \
 	licenses \
 	lua \
