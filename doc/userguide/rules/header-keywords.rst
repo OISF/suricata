@@ -52,6 +52,9 @@ esec       IP Extended Security
 lsrr       Loose Source Routing
 ssrr       Strict Source Routing
 satid      Stream Identifier
+qs         Quick-Start
+rtralt     Router Alert
+cipso      Commercial Security
 any        any IP options are set
 =========  =============================
 
