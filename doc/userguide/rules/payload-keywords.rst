@@ -288,7 +288,26 @@ It can take an argument "or_else" to match on absent buffer or on what comes nex
 
 .. container:: example-rule
 
-   alert http any any -> any any (msg:"HTTP request without referer";  :example-rule-emphasis:`http.referer; absent: or_else;` content: !"abc"; sid:1; rev:1;)
+   alert http any any -> any any (msg:"HTTP request without referer";  :example-rule-emphasis:`http.referer; absent: or_else;` \
+       content: !"abc"; sid:1; rev:1;)
+
+It can also take an argument "error_or" to match on transform errors or on subsequent content matches.
+This is useful for detecting when data transformations fail (e.g., invalid base64 encoding) or when the
+decoded data matches a pattern:
+
+.. container:: example-rule
+
+   alert http any any -> any any (msg:"Detect base64 decode error or malicious content"; file.data; \
+       from_base64; :example-rule-emphasis:`absent: error_or;` content:"malicious"; sid:1; rev:1;)
+
+The ``error_or`` option differs from ``or_else`` in that:
+
+* ``or_else`` matches if the buffer is absent (NULL) OR if subsequent keywords match
+* ``error_or`` matches if a transform operation fails (sets error flag) OR if subsequent keywords match
+
+When a transform like ``from_base64`` encounters invalid data, it sets an error flag on the inspection buffer.
+The ``absent: error_or`` keyword detects this error condition and matches immediately, or continues to
+evaluate subsequent keywords if no error occurred.
 
 For files (i.e ``file.data``), absent means there are no files in the transaction.
 

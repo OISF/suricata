@@ -25,14 +25,16 @@ use crate::utils::base64::get_decoded_buffer_size;
 
 #[cfg(test)]
 use crate::detect::transforms::base64::tests::{
-    SCInspectionBufferCheckAndExpand, SCInspectionBufferTruncate,
+    SCInspectionBufferCheckAndExpand, SCInspectionBufferSetError, SCInspectionBufferTruncate,
 };
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, InspectionBuffer, SCDetectHelperTransformRegister,
     SCDetectSignatureAddTransform, SCTransformTableElmt, Signature,
 };
 #[cfg(not(test))]
-use suricata_sys::sys::{SCInspectionBufferCheckAndExpand, SCInspectionBufferTruncate};
+use suricata_sys::sys::{
+    SCInspectionBufferCheckAndExpand, SCInspectionBufferSetError, SCInspectionBufferTruncate,
+};
 
 use nom8::bytes::complete::tag;
 use nom8::character::complete::multispace0;
@@ -99,7 +101,8 @@ fn parse_transform_base64(
     let (_, values) = nom8::multi::separated_list1(
         tag(","),
         preceded(multispace0, nom8::bytes::complete::is_not(",")),
-    ).parse(input)?;
+    )
+    .parse(input)?;
 
     // Too many options?
     if values.len() > DETECT_TRANSFORM_BASE64_MAX_PARAM_COUNT {
@@ -255,10 +258,10 @@ unsafe extern "C" fn base64_transform(
         input = &input[ctx.offset as usize..];
     }
     if ctx.nbytes > 0 {
-        if ctx.nbytes as usize >= input.len() {
-            return;
+        let nbytes = ctx.nbytes as usize;
+        if nbytes < input.len() {
+            input = &input[..nbytes];
         }
-        input = &input[..ctx.nbytes as usize];
     }
 
     let output_len = get_decoded_buffer_size(input.len() as u32);
@@ -272,6 +275,8 @@ unsafe extern "C" fn base64_transform(
     let num_decoded = SCBase64Decode(input.as_ptr(), input.len(), ctx.mode, output);
     if num_decoded > 0 {
         SCInspectionBufferTruncate(buffer, num_decoded);
+    } else {
+        SCInspectionBufferSetError(buffer);
     }
 }
 
@@ -299,6 +304,8 @@ pub unsafe extern "C" fn DetectTransformFromBase64DecodeRegister() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const DETECT_CI_FLAGS_ERROR: u8 = 1 << 4;
 
     #[test]
     fn test_parser_invalid() {
@@ -411,6 +418,14 @@ mod tests {
         (*buffer).inspect_len = buf_len;
     }
 
+    #[allow(non_snake_case)]
+    pub(crate) unsafe fn SCInspectionBufferSetError(buffer: *mut InspectionBuffer) {
+        (*buffer).flags |= DETECT_CI_FLAGS_ERROR;
+        (*buffer).inspect = std::ptr::null();
+        (*buffer).inspect_len = 0;
+        (*buffer).initialized = true;
+    }
+
     fn test_base64_sample(sig: &str, buf: &[u8], out: &[u8]) {
         let mut ibuf: InspectionBuffer = unsafe { std::mem::zeroed() };
         let mut input = Vec::new();
@@ -426,9 +441,31 @@ mod tests {
                 &mut ctx as *mut DetectTransformFromBase64Data as *mut c_void,
             );
         }
+        assert!(!ibuf.inspect.is_null());
         let ibufi = ibuf.inspect;
         let output = unsafe { build_slice!(ibufi, ibuf.inspect_len as usize) };
         assert_eq!(output, out);
+    }
+
+    fn test_base64_error_flag(sig: &str, buf: &[u8]) {
+        let mut ibuf: InspectionBuffer = unsafe { std::mem::zeroed() };
+        let mut input = Vec::new();
+        input.extend_from_slice(buf);
+        ibuf.inspect = input.as_ptr();
+        ibuf.inspect_len = input.len() as u32;
+        ibuf.flags = 0;
+        let (_, mut ctx) = parse_transform_base64(sig).unwrap();
+        unsafe {
+            base64_transform(
+                std::ptr::null_mut(),
+                &mut ibuf as *mut InspectionBuffer,
+                &mut ctx as *mut DetectTransformFromBase64Data as *mut c_void,
+            );
+        }
+        assert_eq!(ibuf.flags & DETECT_CI_FLAGS_ERROR, DETECT_CI_FLAGS_ERROR);
+        assert!(ibuf.initialized);
+        assert_eq!(ibuf.inspect_len, 0);
+        assert!(ibuf.inspect.is_null());
     }
 
     #[test]
@@ -437,14 +474,10 @@ mod tests {
         test_base64_sample("", b"VGhpcyBpcyBTdXJpY2F0YQ==", b"This is Suricata");
         /* Simple success case with RFC2045 -- check buffer */
         test_base64_sample("mode rfc2045", b"Zm 9v Ym Fy", b"foobar");
-        /* Decode failure case -- ensure no change to buffer */
-        test_base64_sample("mode strict", b"This is Suricata\n", b"This is Suricata\n");
-        /* bytes > len so --> no transform */
-        test_base64_sample(
-            "bytes 25",
-            b"VGhpcyBpcyBTdXJpY2F0YQ==",
-            b"VGhpcyBpcyBTdXJpY2F0YQ==",
-        );
+        /* Decode failure case -- should set error flag */
+        test_base64_error_flag("mode strict", b"This is Suricata\n");
+        /* bytes > len so --> decode full input */
+        test_base64_sample("bytes 25", b"VGhpcyBpcyBTdXJpY2F0YQ==", b"This is Suricata");
         /* offset > len so --> no transform */
         test_base64_sample(
             "offset 25",
@@ -461,13 +494,16 @@ mod tests {
             b"SGVs bG8 gV29y bGQ=",
             b"Hello Wor",
         );
-        /* input is not base64 encoded */
-        test_base64_sample(
-            "mode rfc2045",
-            b"This is not base64-encoded",
-            &[
-                78, 24, 172, 138, 201, 232, 181, 182, 172, 123, 174, 30, 157, 202, 29,
-            ],
-        );
+        /* input is not base64 encoded: decode should error */
+        test_base64_error_flag("mode rfc2045", b"!!!!");
+    }
+
+    #[test]
+    fn test_base64_transform_decode_error_sets_flag() {
+        /* Invalid at start: decode fails -> error flag */
+        test_base64_error_flag("mode strict", b"!!!!");
+
+        /* Invalid at start: decode fails -> error flag */
+        test_base64_error_flag("mode rfc4648", b"!!!!");
     }
 }

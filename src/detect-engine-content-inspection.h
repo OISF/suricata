@@ -43,6 +43,7 @@ enum DetectContentInspectionType {
                                              *   is the end of the data */
 #define DETECT_CI_FLAGS_DCE_LE  BIT_U8(2)   /**< DCERPC record in little endian */
 #define DETECT_CI_FLAGS_DCE_BE  BIT_U8(3)   /**< DCERPC record in big endian */
+#define DETECT_CI_FLAGS_ERROR   BIT_U8(4)   /**< transformation/decode error occurred */
 
 /** buffer is a single, non-streaming, buffer. Data sent to the content
  *  inspection function contains both start and end of the data. */

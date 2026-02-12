@@ -866,6 +866,7 @@ static void DumpMatches(RuleAnalyzer *ctx, SCJsonBuilder *js, const SigMatchData
                 const DetectAbsentData *dad = (const DetectAbsentData *)smd->ctx;
                 SCJbOpenObject(js, "absent");
                 SCJbSetBool(js, "or_else", dad->or_else);
+                SCJbSetBool(js, "error_or", dad->error_or);
                 SCJbClose(js);
                 break;
             }
