@@ -60,6 +60,7 @@
 #include "flow-storage.h"
 #include "util-validate.h"
 #include "action-globals.h"
+#include "rust.h"
 
 #ifdef HAVE_AF_PACKET
 
@@ -736,6 +737,16 @@ static inline int AFPSuriFailure(AFPThreadVars *ptv, union thdr h)
     }
     SCReturnInt(AFP_SURI_FAILURE);
 }
+
+#ifdef HAVE_PACKET_EBPF
+void AFPReadCopyBypass(Packet *dst, Packet *src)
+{
+    dst->BypassPacketsFlow = src->BypassPacketsFlow;
+    dst->afp_v.v4_map_fd = src->afp_v.v4_map_fd;
+    dst->afp_v.v6_map_fd = src->afp_v.v6_map_fd;
+    dst->afp_v.nr_cpus = src->afp_v.nr_cpus;
+}
+#endif
 
 static inline void AFPReadApplyBypass(const AFPThreadVars *ptv, Packet *p)
 {
@@ -2238,6 +2249,22 @@ static int AFPSetFlowStorage(Packet *p, int map_fd, void *key0, void* key1,
     return 1;
 }
 
+// unsupported by ebpf : tunnel with multiple layers of vlans inside
+#define FlowKeyIpFill(k, p)                                                                        \
+    {                                                                                              \
+        (k)->ip_proto = ((p)->proto == IPPROTO_TCP) ? 1 : 0;                                       \
+        (k)->vlan0 = (p)->vlan_id[0];                                                              \
+        if ((p)->tunnel_id) {                                                                      \
+            if ((p)->vlan_id[1]) {                                                                 \
+                return 0;                                                                          \
+            }                                                                                      \
+            (k)->tunnel = 1;                                                                       \
+            (k)->vlan1_or_tunnel_id = (p)->tunnel_id;                                              \
+        } else {                                                                                   \
+            (k)->vlan1_or_tunnel_id = (p)->vlan_id[1];                                             \
+        }                                                                                          \
+    }
+
 /**
  * Bypass function for AF_PACKET capture in eBPF mode
  *
@@ -2266,10 +2293,9 @@ static int AFPBypassCallback(Packet *p)
     if (p->flow == NULL) {
         return 0;
     }
-    /* Bypassing tunneled packets is currently not supported
-     * because we can't discard the inner packet only due to
-     * primitive parsing in eBPF */
-    if (PacketIsTunnel(p)) {
+    /* Bypassing tunneled packets is now supported based on the
+     * configured tunnel with their ids */
+    if (p->tunnel_id == PKT_TUNNEL_UNKNOWN) {
         return 0;
     }
     if (PacketIsIPv4(p)) {
@@ -2284,17 +2310,9 @@ static int AFPBypassCallback(Packet *p)
         }
         keys[0]->src = htonl(GET_IPV4_SRC_ADDR_U32(p));
         keys[0]->dst = htonl(GET_IPV4_DST_ADDR_U32(p));
+        FlowKeyIpFill(keys[0], p);
         keys[0]->port16[0] = p->sp;
         keys[0]->port16[1] = p->dp;
-        keys[0]->vlan0 = p->vlan_id[0];
-        keys[0]->vlan1 = p->vlan_id[1];
-        keys[0]->vlan2 = p->vlan_id[2];
-
-        if (p->proto == IPPROTO_TCP) {
-            keys[0]->ip_proto = 1;
-        } else {
-            keys[0]->ip_proto = 0;
-        }
         if (AFPInsertHalfFlow(p->afp_v.v4_map_fd, keys[0],
                               p->afp_v.nr_cpus) == 0) {
             LiveDevAddBypassFail(p->livedev, 1, AF_INET);
@@ -2312,11 +2330,7 @@ static int AFPBypassCallback(Packet *p)
         keys[1]->dst = htonl(GET_IPV4_SRC_ADDR_U32(p));
         keys[1]->port16[0] = p->dp;
         keys[1]->port16[1] = p->sp;
-        keys[1]->vlan0 = p->vlan_id[0];
-        keys[1]->vlan1 = p->vlan_id[1];
-        keys[1]->vlan2 = p->vlan_id[2];
-
-        keys[1]->ip_proto = keys[0]->ip_proto;
+        FlowKeyIpFill(keys[1], p);
         if (AFPInsertHalfFlow(p->afp_v.v4_map_fd, keys[1],
                               p->afp_v.nr_cpus) == 0) {
             EBPFDeleteKey(p->afp_v.v4_map_fd, keys[0]);
@@ -2347,15 +2361,7 @@ static int AFPBypassCallback(Packet *p)
         }
         keys[0]->port16[0] = p->sp;
         keys[0]->port16[1] = p->dp;
-        keys[0]->vlan0 = p->vlan_id[0];
-        keys[0]->vlan1 = p->vlan_id[1];
-        keys[0]->vlan2 = p->vlan_id[2];
-
-        if (p->proto == IPPROTO_TCP) {
-            keys[0]->ip_proto = 1;
-        } else {
-            keys[0]->ip_proto = 0;
-        }
+        FlowKeyIpFill(keys[0], p);
         if (AFPInsertHalfFlow(p->afp_v.v6_map_fd, keys[0],
                               p->afp_v.nr_cpus) == 0) {
             LiveDevAddBypassFail(p->livedev, 1, AF_INET6);
@@ -2375,11 +2381,7 @@ static int AFPBypassCallback(Packet *p)
         }
         keys[1]->port16[0] = p->dp;
         keys[1]->port16[1] = p->sp;
-        keys[1]->vlan0 = p->vlan_id[0];
-        keys[1]->vlan1 = p->vlan_id[1];
-        keys[1]->vlan2 = p->vlan_id[2];
-
-        keys[1]->ip_proto = keys[0]->ip_proto;
+        FlowKeyIpFill(keys[1], p);
         if (AFPInsertHalfFlow(p->afp_v.v6_map_fd, keys[1],
                               p->afp_v.nr_cpus) == 0) {
             EBPFDeleteKey(p->afp_v.v6_map_fd, keys[0]);
@@ -2420,10 +2422,9 @@ static int AFPXDPBypassCallback(Packet *p)
     if (p->flow == NULL) {
         return 0;
     }
-    /* Bypassing tunneled packets is currently not supported
-     * because we can't discard the inner packet only due to
-     * primitive parsing in eBPF */
-    if (PacketIsTunnel(p)) {
+    /* Bypassing tunneled packets is now supported based on the
+     * configured tunnel with their ids */
+    if (p->tunnel_id == PKT_TUNNEL_UNKNOWN) {
         return 0;
     }
     if (PacketIsIPv4(p)) {
@@ -2443,14 +2444,7 @@ static int AFPXDPBypassCallback(Packet *p)
          * (as in eBPF filter) so we need to pass from host to network order */
         keys[0]->port16[0] = htons(p->sp);
         keys[0]->port16[1] = htons(p->dp);
-        keys[0]->vlan0 = p->vlan_id[0];
-        keys[0]->vlan1 = p->vlan_id[1];
-        keys[0]->vlan2 = p->vlan_id[2];
-        if (p->proto == IPPROTO_TCP) {
-            keys[0]->ip_proto = 1;
-        } else {
-            keys[0]->ip_proto = 0;
-        }
+        FlowKeyIpFill(keys[0], p);
         if (AFPInsertHalfFlow(p->afp_v.v4_map_fd, keys[0],
                               p->afp_v.nr_cpus) == 0) {
             LiveDevAddBypassFail(p->livedev, 1, AF_INET);
@@ -2468,10 +2462,7 @@ static int AFPXDPBypassCallback(Packet *p)
         keys[1]->dst = p->src.addr_data32[0];
         keys[1]->port16[0] = htons(p->dp);
         keys[1]->port16[1] = htons(p->sp);
-        keys[1]->vlan0 = p->vlan_id[0];
-        keys[1]->vlan1 = p->vlan_id[1];
-        keys[1]->vlan2 = p->vlan_id[2];
-        keys[1]->ip_proto = keys[0]->ip_proto;
+        FlowKeyIpFill(keys[1], p);
         if (AFPInsertHalfFlow(p->afp_v.v4_map_fd, keys[1],
                               p->afp_v.nr_cpus) == 0) {
             EBPFDeleteKey(p->afp_v.v4_map_fd, keys[0]);
@@ -2501,14 +2492,7 @@ static int AFPXDPBypassCallback(Packet *p)
         }
         keys[0]->port16[0] = htons(p->sp);
         keys[0]->port16[1] = htons(p->dp);
-        keys[0]->vlan0 = p->vlan_id[0];
-        keys[0]->vlan1 = p->vlan_id[1];
-        keys[0]->vlan2 = p->vlan_id[2];
-        if (p->proto == IPPROTO_TCP) {
-            keys[0]->ip_proto = 1;
-        } else {
-            keys[0]->ip_proto = 0;
-        }
+        FlowKeyIpFill(keys[0], p);
         if (AFPInsertHalfFlow(p->afp_v.v6_map_fd, keys[0],
                               p->afp_v.nr_cpus) == 0) {
             LiveDevAddBypassFail(p->livedev, 1, AF_INET6);
@@ -2528,10 +2512,7 @@ static int AFPXDPBypassCallback(Packet *p)
         }
         keys[1]->port16[0] = htons(p->dp);
         keys[1]->port16[1] = htons(p->sp);
-        keys[1]->vlan0 = p->vlan_id[0];
-        keys[1]->vlan1 = p->vlan_id[1];
-        keys[1]->vlan2 = p->vlan_id[2];
-        keys[1]->ip_proto = keys[0]->ip_proto;
+        FlowKeyIpFill(keys[1], p);
         if (AFPInsertHalfFlow(p->afp_v.v6_map_fd, keys[1],
                               p->afp_v.nr_cpus) == 0) {
             EBPFDeleteKey(p->afp_v.v6_map_fd, keys[0]);
