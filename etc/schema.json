@@ -7362,6 +7362,43 @@
                         }
                     }
                 },
+                "eve": {
+                    "type": "object",
+                    "description":"EVE logging statistics",
+                    "additionalProperties": false,
+                    "properties": {
+                        "http": {
+                            "type": "object",
+                            "description": "Statistics for EVE HTTP records",
+                            "additionalProperties": false,
+                            "properties": {
+                                "bytes": {
+                                    "type": "object",
+                                    "description": "Statistics for EVE HTTP record sizes in bytes",
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "avg": {
+                                            "type": "integer",
+                                            "description": "Avererage record size in bytes"
+                                        },
+                                        "max": {
+                                            "type": "integer",
+                                            "description": "Max size of a single record in bytes"
+                                        },
+                                        "total": {
+                                            "type": "integer",
+                                            "description": "Number of HTTP records generated"
+                                        }
+                                    }
+                                },
+                                "total": {
+                                    "type": "integer",
+                                    "description": "Number of HTTP records generated"
+                                }
+                            }
+                        }
+                    }
+                },
                 "exception_policy": {
                     "type": "object",
                     "description": "Statistics on exception policies hit and applied",
