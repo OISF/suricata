@@ -115,7 +115,7 @@ static void *OldParsePfringConfig(const char *iface)
         pfconf->threads = 1;
     } else {
         if (threadsstr != NULL) {
-            if (StringParseUnt16(&pfconf->threads, 10, 0, threadsstr) < 0) {
+            if (StringParseUint16(&pfconf->threads, 10, 0, threadsstr) < 0) {
                 SCLogWarning("Invalid value for "
                              "pfring.threads: '%s'. Resetting to 1.",
                         threadsstr);
