@@ -23,7 +23,7 @@
 #include "runmode-pfring.h"
 #include "util-device.h"
 
-void InitCapturePlugin(const char *args, int plugin_slot, int receive_slot, int decode_slot)
+static void InitCapturePlugin(const char *args, int plugin_slot, int receive_slot, int decode_slot)
 {
     LiveBuildDeviceList("plugin");
     RunModeIdsPfringRegister(plugin_slot);
@@ -31,7 +31,7 @@ void InitCapturePlugin(const char *args, int plugin_slot, int receive_slot, int 
     TmModuleDecodePfringRegister(decode_slot);
 }
 
-void SCPluginInit(void)
+static void SCPluginInit(void)
 {
     SCCapturePlugin *plugin = SCCalloc(1, sizeof(SCCapturePlugin));
     if (plugin == NULL) {
@@ -53,7 +53,7 @@ const SCPlugin PluginRegistration = {
     .Init = SCPluginInit,
 };
 
-const SCPlugin *SCPluginRegister()
+const SCPlugin *SCPluginRegister(void)
 {
     return &PluginRegistration;
 }
