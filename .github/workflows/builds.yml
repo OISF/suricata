@@ -245,7 +245,7 @@ jobs:
         run: test $(cat etc/schema.json | jq 'paths( objects | (.type == "object" and (has("additionalProperties") | not) )) | join(".")' | wc -l) = "0"
 
   almalinux-9:
-    name: AlmaLinux 9 (schema)
+    name: AlmaLinux 9 (schema, rust-checks)
     runs-on: ubuntu-latest
     container: almalinux:9
     needs: [prepare-deps, prepare-cbindgen]
@@ -267,8 +267,8 @@ jobs:
           dnf -y install \
                 autoconf \
                 automake \
-                cargo-vendor \
                 cbindgen \
+                clang-devel \
                 diffutils \
                 numactl-devel \
                 dpdk-devel \
@@ -297,7 +297,6 @@ jobs:
                 python3-devel \
                 python3-sphinx \
                 python3-yaml \
-                rust-toolset \
                 sudo \
                 which \
                 zlib-devel
@@ -315,6 +314,11 @@ jobs:
                 texlive-capt-of \
                 texlive-needspace
 
+      - name: Install Rust
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $RUST_VERSION_KNOWN -y
+      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - run: cargo install bindgen-cli --version 0.66.0
+
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: ./.github/actions/install-cbindgen
@@ -330,6 +334,54 @@ jobs:
         run: |
           ./autogen.sh
           CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-warnings
+
+      - name: Checking bindgen output
+        working-directory: rust
+        run: |
+          bindgen --version
+          make check-bindgen-bindings
+          diff=$(git diff sys)
+          if [ "${diff}" ]; then
+              echo "${diff}"
+              echo "::error ::Bindgen bindings appear to be out of date"
+              exit 1
+          fi
+      - run: cargo clippy --all-features --fix --allow-no-vcs
+        working-directory: rust
+      - run: |
+          diff=$(git diff)
+          if [ "${diff}" ]; then
+              echo "${diff}"
+              echo "::error ::Clippy --fix made changes, please fix"
+              exit 1
+          fi
+      - run: cargo clippy --all-features --all-targets
+        working-directory: rust
+      # especially without debug feature
+      - run: cargo clippy
+        working-directory: rust
+      - run: cargo fmt --check
+        working-directory: rust/suricatactl
+      - run: cargo fmt --check
+        working-directory: rust/suricatasc
+      - run: cargo fmt --check
+        working-directory: rust/sys
+      - name: Check if Cargo.lock.in is up to date
+        run: |
+          cp rust/Cargo.lock rust/Cargo.lock.in
+          diff=$(git diff rust/Cargo.lock.in)
+          if [ "${diff}" ]; then
+              echo "${diff}"
+              echo "::error ::Cargo.lock.in needs to be updated"
+              exit 1
+          fi
+      # does not work in other subdirectories for now
+      - run: cargo fmt --check
+        working-directory: rust/htp
+      # The ffi crate is cargo fmt clean.
+      - run: cargo fmt --check
+        working-directory: rust/ffi
+
       - run: make -j ${{ env.CPUS }} distcheck
         env:
           DISTCHECK_CONFIGURE_FLAGS: "--enable-unittests --enable-debug --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk"
