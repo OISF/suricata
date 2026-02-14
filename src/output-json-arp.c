@@ -105,7 +105,6 @@ void JsonArpLogRegister(void)
 {
     OutputPacketLoggerFunctions output_logger_functions = {
         .LogFunc = JsonArpLogger,
-        .FlushFunc = NULL,
         .ConditionFunc = JsonArpLogCondition,
         .ThreadInitFunc = JsonLogThreadInit,
         .ThreadDeinitFunc = JsonLogThreadDeinit,
