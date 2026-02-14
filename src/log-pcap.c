@@ -221,7 +221,6 @@ void PcapLogRegister(void)
 {
     OutputPacketLoggerFunctions output_logger_functions = {
         .LogFunc = PcapLog,
-        .FlushFunc = NULL,
         .ConditionFunc = PcapLogCondition,
         .ThreadInitFunc = PcapLogDataInit,
         .ThreadDeinitFunc = PcapLogDataDeinit,
