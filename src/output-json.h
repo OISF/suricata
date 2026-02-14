@@ -108,7 +108,6 @@ TmEcode JsonLogThreadDeinit(ThreadVars *t, void *data);
 
 void EveAddCommonOptions(const OutputJsonCommonSettings *cfg, const Packet *p, const Flow *f,
         SCJsonBuilder *js, enum SCOutputJsonLogDirection dir);
-int OutputJsonLogFlush(ThreadVars *tv, void *thread_data, const Packet *p);
 void EveAddMetadata(const Packet *p, const Flow *f, SCJsonBuilder *js);
 
 int OutputJSONMemBufferCallback(const char *str, size_t size, void *data);
@@ -116,6 +115,5 @@ int OutputJSONMemBufferCallback(const char *str, size_t size, void *data);
 OutputJsonThreadCtx *CreateEveThreadCtx(ThreadVars *t, OutputJsonCtx *ctx);
 void FreeEveThreadCtx(OutputJsonThreadCtx *ctx);
 void JSONFormatAndAddMACAddr(SCJsonBuilder *js, const char *key, const uint8_t *val, bool is_array);
-void OutputJsonFlush(OutputJsonThreadCtx *ctx);
 
 #endif /* SURICATA_OUTPUT_JSON_H */

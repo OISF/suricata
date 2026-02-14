@@ -854,14 +854,6 @@ static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const 
     return TM_ECODE_OK;
 }
 
-static int JsonAlertFlush(ThreadVars *tv, void *thread_data, const Packet *p)
-{
-    JsonAlertLogThread *aft = thread_data;
-    SCLogDebug("%s flushing %s", tv->name, ((LogFileCtx *)(aft->ctx->file_ctx))->filename);
-    OutputJsonFlush(aft->ctx);
-    return 0;
-}
-
 static int JsonAlertLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 {
     JsonAlertLogThread *aft = thread_data;
@@ -1109,7 +1101,6 @@ void JsonAlertLogRegister (void)
 {
     OutputPacketLoggerFunctions output_logger_functions = {
         .LogFunc = JsonAlertLogger,
-        .FlushFunc = JsonAlertFlush,
         .ConditionFunc = JsonAlertLogCondition,
         .ThreadInitFunc = JsonAlertLogThreadInit,
         .ThreadDeinitFunc = JsonAlertLogThreadDeinit,
