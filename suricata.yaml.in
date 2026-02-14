@@ -590,14 +590,14 @@ outputs:
       #   - script1.lua
 
 heartbeat:
-  # The output-flush-interval value governs how often Suricata will instruct the
-  # detection threads to flush their EVE output. Specify the value in seconds [1-60]
-  # and Suricata will initiate EVE log output flushes at that interval. A value
-  # of 0 means no EVE log output flushes are initiated. When the EVE output
+  # The output-flush-interval value governs how often Suricata will flush
+  # EVE output. Specify the value in seconds [1-60] and Suricata will
+  # flush all active EVE log files at that interval. A value of 0 means
+  # no EVE log output flushes are initiated. When the EVE output
   # buffer-size value is non-zero, some EVE output that was written may remain
   # buffered. The output-flush-interval governs how much buffered data exists.
   #
-  # The default value is: 0 (never instruct detection threads to flush output)
+  # The default value is: 0 (no periodic flushing)
   #output-flush-interval: 0
 
 # Logging configuration.  This is not about logging IDS alerts/events, but
