@@ -1,4 +1,4 @@
-/* Copyright (C) 2024 Open Information Security Foundation
+/* Copyright (C) 2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -23,100 +23,23 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
-#include "detect.h"
-#include "detect-engine.h"
-#include "flow-worker.h"
 #include "log-flush.h"
+#include "util-logopenfile.h"
 #include "tm-threads.h"
 #include "conf.h"
 #include "conf-yaml-loader.h"
 #include "util-privs.h"
 
 /**
- * \brief Trigger detect threads to flush their output logs
+ * \brief Trigger flush of all registered log files
  *
  * This function is intended to be called at regular intervals to force
- * buffered log data to be persisted
+ * buffered log data to be persisted. With the new design, this simply calls
+ * LogFileFlushAll() which directly flushes all registered file contexts.
  */
 static void WorkerFlushLogs(void)
 {
-    SCEnter();
-
-    /* count detect threads in use */
-    uint32_t no_of_detect_tvs = TmThreadCountThreadsByTmmFlags(TM_FLAG_FLOWWORKER_TM);
-    /* can be zero in unix socket mode */
-    if (no_of_detect_tvs == 0) {
-        return;
-    }
-
-    /* prepare swap structures */
-    void *fw_threads[no_of_detect_tvs];
-    ThreadVars *detect_tvs[no_of_detect_tvs];
-    memset(fw_threads, 0x00, (no_of_detect_tvs * sizeof(void *)));
-    memset(detect_tvs, 0x00, (no_of_detect_tvs * sizeof(ThreadVars *)));
-
-    /* start by initiating the log flushes */
-
-    uint32_t i = 0;
-    SCMutexLock(&tv_root_lock);
-    /* get reference to tv's and setup fw_threads array */
-    for (ThreadVars *tv = tv_root[TVT_PPT]; tv != NULL; tv = tv->next) {
-        if ((tv->tmm_flags & TM_FLAG_FLOWWORKER_TM) == 0) {
-            continue;
-        }
-        for (TmSlot *s = tv->tm_slots; s != NULL; s = s->slot_next) {
-            TmModule *tm = TmModuleGetById(s->tm_id);
-            if (!(tm->flags & TM_FLAG_FLOWWORKER_TM)) {
-                continue;
-            }
-
-            if (suricata_ctl_flags != 0) {
-                SCMutexUnlock(&tv_root_lock);
-                goto error;
-            }
-
-            fw_threads[i] = FlowWorkerGetThreadData(SC_ATOMIC_GET(s->slot_data));
-            if (fw_threads[i]) {
-                FlowWorkerSetFlushAck(fw_threads[i]);
-                SCLogDebug("Setting flush-ack for thread %s[i=%d]", tv->printable_name, i);
-                detect_tvs[i] = tv;
-            }
-
-            i++;
-            break;
-        }
-    }
-    BUG_ON(i != no_of_detect_tvs);
-
-    SCMutexUnlock(&tv_root_lock);
-
-    SCLogDebug("Creating flush pseudo packets for %d threads", no_of_detect_tvs);
-    InjectPacketsForFlush(detect_tvs, no_of_detect_tvs);
-
-    uint32_t threads_done = 0;
-retry:
-    for (i = 0; i < no_of_detect_tvs; i++) {
-        if (suricata_ctl_flags != 0) {
-            threads_done = no_of_detect_tvs;
-            break;
-        }
-        SleepMsec(1);
-        if (fw_threads[i] && FlowWorkerGetFlushAck(fw_threads[i])) {
-            SCLogDebug("thread slot %d has ack'd flush request", i);
-            threads_done++;
-        } else if (detect_tvs[i]) {
-            SCLogDebug("thread slot %d not yet ack'd flush request", i);
-            TmThreadsCaptureBreakLoop(detect_tvs[i]);
-        }
-    }
-    if (threads_done < no_of_detect_tvs) {
-        threads_done = 0;
-        SleepMsec(250);
-        goto retry;
-    }
-
-error:
-    return;
+    LogFileFlushAll();
 }
 
 static int OutputFlushInterval(void)
