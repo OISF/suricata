@@ -86,7 +86,6 @@
 
 typedef struct RootLogger_ {
     OutputLogFunc LogFunc;
-    OutputFlushFunc FlushFunc;
     ThreadInitFunc ThreadInit;
     ThreadDeinitFunc ThreadDeinit;
     OutputGetActiveCountFunc ActiveCntFunc;
@@ -210,7 +209,6 @@ void OutputRegisterPacketModule(LoggerId id, const char *name, const char *conf_
     module->conf_name = conf_name;
     module->InitFunc = InitFunc;
     module->PacketLogFunc = output_module_functions->LogFunc;
-    module->PacketFlushFunc = output_module_functions->FlushFunc;
     module->PacketConditionFunc = output_module_functions->ConditionFunc;
     module->ThreadInit = output_module_functions->ThreadInitFunc;
     module->ThreadDeinit = output_module_functions->ThreadDeinitFunc;
@@ -250,7 +248,6 @@ void OutputRegisterPacketSubModule(LoggerId id, const char *parent_name, const c
     module->parent_name = parent_name;
     module->InitSubFunc = InitFunc;
     module->PacketLogFunc = output_logger_functions->LogFunc;
-    module->PacketFlushFunc = output_logger_functions->FlushFunc;
     module->PacketConditionFunc = output_logger_functions->ConditionFunc;
     module->ThreadInit = output_logger_functions->ThreadInitFunc;
     module->ThreadDeinit = output_logger_functions->ThreadDeinitFunc;
@@ -782,21 +779,6 @@ void SCOnLoggingReady(void)
             (*node->callback)(node->arg);
         }
     }
-}
-
-TmEcode OutputLoggerFlush(ThreadVars *tv, Packet *p, void *thread_data)
-{
-    LoggerThreadStore *thread_store = (LoggerThreadStore *)thread_data;
-    RootLogger *logger = TAILQ_FIRST(&active_loggers);
-    LoggerThreadStoreNode *thread_store_node = TAILQ_FIRST(thread_store);
-    while (logger && thread_store_node) {
-        if (logger->FlushFunc)
-            logger->FlushFunc(tv, p, thread_store_node->thread_data);
-
-        logger = TAILQ_NEXT(logger, entries);
-        thread_store_node = TAILQ_NEXT(thread_store_node, entries);
-    }
-    return TM_ECODE_OK;
 }
 
 TmEcode OutputLoggerLog(ThreadVars *tv, Packet *p, void *thread_data)

@@ -30,18 +30,6 @@
 #include "conf-yaml-loader.h"
 #include "util-privs.h"
 
-/**
- * \brief Trigger flush of all registered log files
- *
- * This function is intended to be called at regular intervals to force
- * buffered log data to be persisted. With the new design, this simply calls
- * LogFileFlushAll() which directly flushes all registered file contexts.
- */
-static void WorkerFlushLogs(void)
-{
-    LogFileFlushAll();
-}
-
 int OutputFlushInterval(void)
 {
     intmax_t output_flush_interval = 0;
