@@ -119,7 +119,7 @@ error:
     return;
 }
 
-static int OutputFlushInterval(void)
+int OutputFlushInterval(void)
 {
     intmax_t output_flush_interval = 0;
     if (SCConfGetInt("heartbeat.output-flush-interval", &output_flush_interval) == 0) {
