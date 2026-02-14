@@ -78,7 +78,6 @@ void AlertFastLogRegister(void)
 {
     OutputPacketLoggerFunctions output_logger_functions = {
         .LogFunc = AlertFastLogger,
-        .FlushFunc = NULL,
         .ConditionFunc = AlertFastLogCondition,
         .ThreadInitFunc = AlertFastLogThreadInit,
         .ThreadDeinitFunc = AlertFastLogThreadDeinit,
