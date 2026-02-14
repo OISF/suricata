@@ -31,6 +31,7 @@
 #include "conf.h"
 #include "conf-yaml-loader.h"
 #include "util-privs.h"
+#include "util-logopenfile.h"
 
 /**
  * \brief Trigger detect threads to flush their output logs
@@ -119,7 +120,7 @@ error:
     return;
 }
 
-static int OutputFlushInterval(void)
+int OutputFlushInterval(void)
 {
     intmax_t output_flush_interval = 0;
     if (SCConfGetInt("heartbeat.output-flush-interval", &output_flush_interval) == 0) {
@@ -168,7 +169,7 @@ static void *LogFlusherWakeupThread(void *arg)
 
         if (++wait_count == flush_wait_count) {
             worker_flush_count++;
-            WorkerFlushLogs();
+            LogFileFlushAll();
             wait_count = 0;
         }
 
