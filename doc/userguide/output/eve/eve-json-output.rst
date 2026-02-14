@@ -32,9 +32,9 @@ may be held in memory and written a short time later opening the possibility -- 
 loss.
 
 Hence, a heartbeat mechanism is introduced to limit the amount of time buffered data may exist before being
-flushed.  Control is provided to instruct Suricata's detection threads to flush their EVE output. With default
+flushed.  A heartbeat thread periodically flushes all active EVE log files directly. With default
 values, there is no change in output buffering and flushing behavior. ``output-flush-interval`` controls
-how often Suricata's detect threads will flush output in a heartbeat fashion. A value of ``0`` means
+how often Suricata will flush EVE output in a heartbeat fashion. A value of ``0`` means
 "never"; non-zero values must be in ``[1-60]`` seconds.
 
 Flushing should be considered when ``outputs.buffer-size`` is greater than 0 to limit the amount and
