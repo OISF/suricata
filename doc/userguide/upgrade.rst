@@ -34,6 +34,25 @@ also check all the new features that have been added but are not covered by
 this guide. Those features are either not enabled by default or require
 dedicated new configuration.
 
+Upgrading to 8.0.5
+------------------
+
+Other Changes
+~~~~~~~~~~~~~
+
+- We've made a change in the way that background EVE flushing driven by the
+  heartbeat mechanism operates. The heartbeat mechanism provides a way to
+  periodically flush EVE outputs when ``eve-log.buffer-size`` is non-zero and
+  ``heartbeat.output-flush-interval`` is non-zero.
+
+  There is no change to the functionality enabled by the heartbeat mechanism; we
+  overhauled and simplified the implementation. Developers maintaining
+  out-of-tree output plugins may need to update their code in order for the
+  plugin to compile and load, due to the removal of the packet-logger
+  ``FlushFunc`` registration field and related helpers (``OutputJsonFlush``,
+  ``OutputJsonLogFlush``, ``OutputLoggerFlush``). Periodic heartbeat flushing is
+  specific to EVE output types and handled entirely within the EVE logic.
+
 Upgrading to 8.0.3
 ------------------
 
