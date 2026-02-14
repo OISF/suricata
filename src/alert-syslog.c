@@ -387,7 +387,6 @@ void AlertSyslogRegister (void)
 #ifndef OS_WIN32
     OutputPacketLoggerFunctions output_logger_functions = {
         .LogFunc = AlertSyslogLogger,
-        .FlushFunc = NULL,
         .ConditionFunc = AlertSyslogCondition,
         .ThreadInitFunc = AlertSyslogThreadInit,
         .ThreadDeinitFunc = AlertSyslogThreadDeinit,
