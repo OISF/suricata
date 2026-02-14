@@ -503,8 +503,8 @@ pub unsafe extern "C" fn rs_krb5_parse_request_tcp(_flow: *const core::Flow,
             if state.parse(cur_i, Direction::ToServer) < 0 {
                 return AppLayerResult::err();
             }
-            state.record_ts = 0;
             cur_i = &cur_i[state.record_ts..];
+            state.record_ts = 0;
         } else {
             // more fragments required
             state.defrag_buf_ts.extend_from_slice(cur_i);
@@ -561,8 +561,8 @@ pub unsafe extern "C" fn rs_krb5_parse_response_tcp(_flow: *const core::Flow,
             if state.parse(cur_i, Direction::ToClient) < 0 {
                 return AppLayerResult::err();
             }
-            state.record_tc = 0;
             cur_i = &cur_i[state.record_tc..];
+            state.record_tc = 0;
         } else {
             // more fragments required
             state.defrag_buf_tc.extend_from_slice(cur_i);
