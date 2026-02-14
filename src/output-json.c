@@ -991,12 +991,6 @@ int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer)
     return 0;
 }
 
-void OutputJsonFlush(OutputJsonThreadCtx *ctx)
-{
-    LogFileCtx *file_ctx = ctx->file_ctx;
-    LogFileFlush(file_ctx);
-}
-
 void OutputJsonBuilderBuffer(
         ThreadVars *tv, const Packet *p, Flow *f, SCJsonBuilder *js, OutputJsonThreadCtx *ctx)
 {
