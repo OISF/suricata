@@ -92,6 +92,8 @@ outputs:
       enabled: yes
       filename: fast.log
       append: yes
+      # Shorten IPv6 addresses per RFC5952 as they are added to the fast log. The default is no.
+      # ipv6-addr-shorten: no
       #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
 
   # Extensible Event Format (nicknamed EVE) event log in JSON format
@@ -146,6 +148,9 @@ outputs:
 
       # include the name of the input pcap file in pcap file processing mode
       pcap-file: false
+
+      # Shorten IPv6 addresses per RFC5952 as they are added to the eve-log. The default is no.
+      # ipv6-addr-shorten: no
 
       # Community Flow ID
       # Adds a 'community_id' field to EVE records. These are meant to give
@@ -467,6 +472,8 @@ outputs:
       enabled: no
       filename: alert-debug.log
       append: yes
+      # Shorten IPv6 addresses per RFC5952 as they are added to the alert log. The default is no.
+      # ipv6-addr-shorten: no
       #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
 
   # Stats.log contains data from various counters of the Suricata engine.

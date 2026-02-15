@@ -510,6 +510,12 @@ int SCConfLogOpenGeneric(
         snprintf(log_path, PATH_MAX, "%s/%s", log_dir, filename);
     }
 
+    /* Shorten IPv6 addresses */
+    const char *shorten = SCConfNodeLookupChildValue(conf, "ipv6-addr-shorten");
+    log_ctx->shorten_ipv6 = false;
+    if (shorten != NULL && SCConfValIsTrue(shorten))
+        log_ctx->shorten_ipv6 = true;
+
     /* Rotate log file based on time */
     const char *rotate_int = SCConfNodeLookupChildValue(conf, "rotate-interval");
     if (rotate_int != NULL) {
