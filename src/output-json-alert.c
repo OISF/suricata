@@ -276,7 +276,7 @@ void AlertJsonHeader(const Packet *p, const PacketAlert *pa, SCJsonBuilder *js, 
     SCJbClose(js);
 }
 
-static void AlertJsonTunnel(const Packet *p, SCJsonBuilder *js)
+static void AlertJsonTunnel(const Packet *p, SCJsonBuilder *js, OutputJsonCommonSettings *cfg)
 {
     if (p->root == NULL) {
         return;
@@ -286,7 +286,7 @@ static void AlertJsonTunnel(const Packet *p, SCJsonBuilder *js)
 
     enum PktSrcEnum pkt_src;
     JsonAddrInfo addr = json_addr_info_zero;
-    JsonAddrInfoInit(p->root, 0, &addr);
+    JsonAddrInfoInit(p->root, 0, &addr, cfg);
     pkt_src = p->root->pkt_src;
 
     SCJbSetString(js, "src_ip", addr.src_ip);
@@ -658,7 +658,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
         /* First initialize the address info (5-tuple). */
         JsonAddrInfo addr = json_addr_info_zero;
-        JsonAddrInfoInit(p, LOG_DIR_PACKET, &addr);
+        JsonAddrInfoInit(p, LOG_DIR_PACKET, &addr, &json_output_ctx->eve_ctx->cfg);
 
         /* Check for XFF, overwriting address info if needed. */
         HttpXFFCfg *xff_cfg = json_output_ctx->xff_cfg != NULL ? json_output_ctx->xff_cfg
@@ -703,7 +703,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         AlertJsonHeader(p, pa, jb, json_output_ctx->flags, &addr, xff_buffer);
 
         if (PacketIsTunnel(p)) {
-            AlertJsonTunnel(p, jb);
+            AlertJsonTunnel(p, jb, &json_output_ctx->eve_ctx->cfg);
         }
 
         if (p->flow != NULL) {
@@ -830,7 +830,7 @@ static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const 
         AlertJsonHeader(p, pa, jb, json_output_ctx->flags, NULL, NULL);
 
         if (PacketIsTunnel(p)) {
-            AlertJsonTunnel(p, jb);
+            AlertJsonTunnel(p, jb, &json_output_ctx->eve_ctx->cfg);
         }
 
         /* base64-encoded full packet */
