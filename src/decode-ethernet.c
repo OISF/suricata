@@ -66,7 +66,7 @@ int DecodeEthernet(
 #ifdef UNITTESTS
 /** DecodeEthernettest01
  *  \brief Valid Ethernet packet
- *  \retval 0 Expected test value
+ *  Uses FAIL_IF / PASS API
  */
 static int DecodeEthernetTest01(void)
 {
@@ -82,8 +82,7 @@ static int DecodeEthernetTest01(void)
         0xcd, 0xab, 0xcd, 0xab, 0xcd };
 
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
+    FAIL_IF(unlikely(p == NULL))
     ThreadVars tv;
     DecodeThreadVars dtv;
 
@@ -93,7 +92,7 @@ static int DecodeEthernetTest01(void)
     DecodeEthernet(&tv, &dtv, p, raw_eth, sizeof(raw_eth));
 
     PacketFree(p);
-    return 1;
+    PASS;
 }
 
 /**
