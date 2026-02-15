@@ -146,11 +146,14 @@ typedef struct LogFileCtx_ {
      * allow for rotation. */
     uint8_t is_regular;
 
-    /* JSON flags */
-    size_t json_flags;  /* passed to json_dump_callback() */
+    /* Shorten ipv6 addresses? */
+    bool shorten_ipv6;
 
     /* Flag set when file rotation notification is received. */
     int rotation_flag;
+
+    /* JSON flags */
+    size_t json_flags;  /* passed to json_dump_callback() */
 
     /* if set to true EVE will add a pcap file record */
     bool is_pcap_offline;
