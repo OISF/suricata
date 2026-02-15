@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -49,6 +49,7 @@ void PrintStringsToBuffer(uint8_t *dst_buf, uint32_t *dst_buf_offset_ptr, uint32
                           const uint8_t *src_buf, const uint32_t src_buf_len);
 void PrintRawLineHexBuf(char *, uint32_t, const uint8_t *, uint32_t );
 const char *PrintInet(int , const void *, char *, socklen_t);
+const char *PrintInetIPv6(const void *, char *, socklen_t, bool);
 void PrintHexString(char *str, size_t size, uint8_t *buf, size_t buf_len);
 
 #endif /* SURICATA_UTIL_PRINT_H */
