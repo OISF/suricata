@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2023 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -206,8 +206,15 @@ void PrintStringsToBuffer(uint8_t *dst_buf, uint32_t *dst_buf_offset_ptr, uint32
     dst_buf[dst_buf_size - 1] = 0;
 }
 
-static const char *PrintInetIPv6(const void *src, char *dst, socklen_t size)
+const char *PrintInetIPv6(const void *src, char *dst, socklen_t size, bool compress_ipv6)
 {
+    if (compress_ipv6) {
+        if (SCIPv6Compress(src, dst, size)) {
+            return dst;
+        }
+        // If we can't compress it, use expanded-form */
+    }
+
     char s_part[6];
     uint16_t x[8];
     memcpy(&x, src, 16);
@@ -245,7 +252,7 @@ const char *PrintInet(int af, const void *src, char *dst, socklen_t size)
 #endif
         case AF_INET6:
             /* Format IPv6 without deleting zeroes */
-            return PrintInetIPv6(src, dst, size);
+            return PrintInetIPv6(src, dst, size, false);
         default:
             SCLogError("Unsupported protocol: %d", af);
     }
