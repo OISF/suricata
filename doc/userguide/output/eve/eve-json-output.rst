@@ -22,6 +22,13 @@ packet with ethernet header.
 If ``suricata-version`` is set to yes, then Suricata version, with its git
 revision if available, will be added to events as ``suricata_version``.
 
+If ``ipv6-addr-shorten`` is set to yes, then IPv6 addresses will be displayed in their shortened form
+according to RFC-5952. The default is ``no`` (display IPv6 addresses in their long form).
+Here's an example of an IPv6 address displayed with its shortened value::
+
+  ``fe80:0000:0000:0000:020c:29ff:faf2:ab42``
+  ``fe80::20c:29ff:faf2:ab42``
+
 Output Buffering
 ~~~~~~~~~~~~~~~~
 
