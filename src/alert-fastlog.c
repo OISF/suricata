@@ -121,8 +121,8 @@ int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p)
         PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
         PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
     } else if (PacketIsIPv6(p)) {
-        PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
-        PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
+        PrintInetIPv6((const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip), aft->file_ctx->shorten_ipv6);
+        PrintInetIPv6((const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip), aft->file_ctx->shorten_ipv6);
     } else {
         decoder_event = 1;
     }
