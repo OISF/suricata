@@ -180,8 +180,10 @@ static TmEcode AlertDebugLogger(ThreadVars *tv, const Packet *p, void *thread_da
         PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
     } else {
         DEBUG_VALIDATE_BUG_ON(!(PacketIsIPv6(p)));
-        PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
-        PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
+        PrintInetIPv6((const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip),
+                aft->file_ctx->compress_ipv6);
+        PrintInetIPv6((const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip),
+                aft->file_ctx->compress_ipv6);
     }
 
     MemBufferWriteString(aft->buffer, "SRC IP:            %s\n"
