@@ -303,7 +303,7 @@ static int EveStreamLogger(ThreadVars *tv, void *thread_data, const Packet *p)
     EveStreamOutputCtx *ctx = td->stream_ctx;
 
     JsonAddrInfo addr = json_addr_info_zero;
-    JsonAddrInfoInit(p, LOG_DIR_PACKET, &addr);
+    JsonAddrInfoInit(p, LOG_DIR_PACKET, &addr, &ctx->eve_ctx->cfg);
 
     SCJsonBuilder *js = CreateEveHeader(p, LOG_DIR_PACKET, "stream_tcp", &addr, ctx->eve_ctx);
     if (unlikely(js == NULL))
