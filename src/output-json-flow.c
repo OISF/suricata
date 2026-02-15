@@ -53,7 +53,7 @@
 #include "flow-storage.h"
 #include "util-exception-policy.h"
 
-static SCJsonBuilder *CreateEveHeaderFromFlow(const Flow *f)
+static SCJsonBuilder *CreateEveHeaderFromFlow(const Flow *f, OutputJsonCommonSettings *cfg)
 {
     char timebuf[64];
     char srcip[46] = {0}, dstip[46] = {0};
@@ -73,8 +73,8 @@ static SCJsonBuilder *CreateEveHeaderFromFlow(const Flow *f)
             PrintInet(AF_INET, (const void *)&(f->src.addr_data32[0]), srcip, sizeof(srcip));
             PrintInet(AF_INET, (const void *)&(f->dst.addr_data32[0]), dstip, sizeof(dstip));
         } else if (FLOW_IS_IPV6(f)) {
-            PrintInet(AF_INET6, (const void *)&(f->src.address), srcip, sizeof(srcip));
-            PrintInet(AF_INET6, (const void *)&(f->dst.address), dstip, sizeof(dstip));
+            PrintInetIPv6((const void *)&(f->src.address), srcip, sizeof(srcip), cfg->compress_ipv6);
+            PrintInetIPv6((const void *)&(f->dst.address), dstip, sizeof(dstip), cfg->compress_ipv6);
         }
         sp = f->sp;
         dp = f->dp;
@@ -83,8 +83,8 @@ static SCJsonBuilder *CreateEveHeaderFromFlow(const Flow *f)
             PrintInet(AF_INET, (const void *)&(f->dst.addr_data32[0]), srcip, sizeof(srcip));
             PrintInet(AF_INET, (const void *)&(f->src.addr_data32[0]), dstip, sizeof(dstip));
         } else if (FLOW_IS_IPV6(f)) {
-            PrintInet(AF_INET6, (const void *)&(f->dst.address), srcip, sizeof(srcip));
-            PrintInet(AF_INET6, (const void *)&(f->src.address), dstip, sizeof(dstip));
+            PrintInetIPv6((const void *)&(f->dst.address), srcip, sizeof(srcip), cfg->compress_ipv6);
+            PrintInetIPv6((const void *)&(f->src.address), dstip, sizeof(dstip), cfg->compress_ipv6);
         }
         sp = f->dp;
         dp = f->sp;
@@ -432,7 +432,7 @@ static int JsonFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
     /* reset */
     MemBufferReset(thread->buffer);
 
-    SCJsonBuilder *jb = CreateEveHeaderFromFlow(f);
+    SCJsonBuilder *jb = CreateEveHeaderFromFlow(f, &thread->ctx->cfg);
     if (unlikely(jb == NULL)) {
         SCReturnInt(TM_ECODE_OK);
     }
