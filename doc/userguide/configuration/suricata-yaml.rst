@@ -362,6 +362,8 @@ There are several types of output. The general structure is:
       enabled: yes
       filename: fast.log
       append: yes/no
+      # Compress IPv6 addresses per RFC5952 as they are added to the fast log. The default is no.
+      ipv6-compress: yes/no
 
 Enabling all of the logs, will result in a much lower performance and
 the use of more disc space, so enable only the outputs you need.
@@ -385,6 +387,8 @@ appearance of a single fast.log-file line:
      filename: fast.log     #The name of the file in the default logging directory.
      append: yes/no         #If this option is set to yes, the last filled fast.log-file will not be
                             #overwritten while restarting Suricata.
+     # Compress IPv6 addresses per RFC5952 as they are added to the fast log. The default is no.
+     ipv6-compress: yes/no
 
 .. _suricata-yaml-outputs-eve:
 
@@ -540,13 +544,13 @@ In multi mode the filename takes a few special variables:
   - %n representing the thread number
   - %i representing the thread id
   - %t representing the timestamp (secs or secs.usecs based on 'ts-format')
-  
+
   Example: filename: pcap.%n.%t
 
 .. note:: It is possible to use directories but the directories are not
   created by Suricata. For example ``filename: pcaps/%n/log.%s`` will log into
   the pre-existing ``pcaps`` directory and per thread sub directories.
-  
+
 .. note:: that the limit and max-files settings are enforced per thread. So the
   size limit using 8 threads with 1000mb files and 2000 files is about 16TiB.
 
@@ -565,6 +569,8 @@ because of the amount of information it has to store.
       filename: alert-debug.log   #The name of the file in the default logging directory.
       append: yes/no              #If this option is set to yes, the last filled fast.log-file will not be
                                   # overwritten while restarting Suricata.
+      # Compress IPv6 addresses per RFC5952 as they are added to the debug log log. The default is no.
+      ipv6-compress: yes/no
 
 Stats
 ~~~~~
