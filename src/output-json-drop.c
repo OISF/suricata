@@ -90,7 +90,7 @@ static int DropLogJSON(ThreadVars *tv, JsonDropLogThread *aft, const Packet *p)
     JsonDropOutputCtx *drop_ctx = aft->drop_ctx;
 
     JsonAddrInfo addr = json_addr_info_zero;
-    JsonAddrInfoInit(p, LOG_DIR_PACKET, &addr);
+    JsonAddrInfoInit(p, LOG_DIR_PACKET, &addr, &drop_ctx->eve_ctx->cfg);
 
     SCJsonBuilder *js = CreateEveHeader(p, LOG_DIR_PACKET, "drop", &addr, drop_ctx->eve_ctx);
     if (unlikely(js == NULL))

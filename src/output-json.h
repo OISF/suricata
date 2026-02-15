@@ -50,8 +50,6 @@ typedef struct JsonAddrInfo_ {
 
 extern const JsonAddrInfo json_addr_info_zero;
 
-void JsonAddrInfoInit(const Packet *p, enum SCOutputJsonLogDirection dir, JsonAddrInfo *addr);
-
 /* Suggested output buffer size */
 #define JSON_OUTPUT_BUFFER_SIZE 65535
 
@@ -65,9 +63,13 @@ typedef struct OutputJsonCommonSettings_ {
     bool include_metadata;
     bool include_community_id;
     bool include_ethernet;
+    bool compress_ipv6;
     bool include_suricata_version;
     uint16_t community_id_seed;
 } OutputJsonCommonSettings;
+
+void JsonAddrInfoInit(const Packet *p, enum SCOutputJsonLogDirection dir, JsonAddrInfo *addr,
+        OutputJsonCommonSettings *cfg);
 
 /*
  * Global configuration context data
