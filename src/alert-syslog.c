@@ -272,8 +272,10 @@ static TmEcode AlertSyslogIPv6(ThreadVars *tv, const Packet *p, void *data)
     }
 
     char srcip[46], dstip[46];
-    PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
-    PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
+    PrintInetIPv6(
+            (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip), ast->file_ctx->compress_ipv6);
+    PrintInetIPv6(
+            (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip), ast->file_ctx->compress_ipv6);
 
     for (int i = 0; i < p->alerts.cnt; i++) {
         const PacketAlert *pa = &p->alerts.alerts[i];
