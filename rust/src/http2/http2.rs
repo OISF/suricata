@@ -45,6 +45,7 @@ use suricata_sys::sys::{
     SCAppLayerProtoDetectConfProtoDetectionEnabled, SCFileFlowFlagsToFlags,
     SCHTTP2MimicHttp1Request,
 };
+use suricata_sys::sys::AppProtoEnum::ALPROTO_HTTP1;
 
 static mut ALPROTO_HTTP2: AppProto = ALPROTO_UNKNOWN;
 static mut ALPROTO_DOH2: AppProto = ALPROTO_UNKNOWN;
@@ -1441,13 +1442,12 @@ unsafe extern "C" fn http2_probing_parser_tc(
 // is typically not unsafe.
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 extern "C" fn http2_state_new(
-    orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
+    orig_state: *mut std::os::raw::c_void, orig_proto: AppProto,
 ) -> *mut std::os::raw::c_void {
     let state = HTTP2State::new();
     let boxed = Box::new(state);
     let r = Box::into_raw(boxed) as *mut _;
-    if !orig_state.is_null() {
-        //we could check ALPROTO_HTTP1 == orig_proto
+    if !orig_state.is_null() && orig_proto == ALPROTO_HTTP1 as u16 {
         unsafe {
             SCHTTP2MimicHttp1Request(orig_state, r);
         }
