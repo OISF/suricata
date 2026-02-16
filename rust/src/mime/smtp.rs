@@ -336,6 +336,8 @@ fn mime_smtp_find_url_strings(ctx: &mut MimeStateSMTP, input_new: &[u8]) {
             ctx.decoded_line.clear()
         }
     } else if let Some(x) = input.iter().rev().take(new_len).position(|&x| x == b'\n') {
+        // take the position in the not-reversed list
+        let x = input.len() - 1 - x;
         input = &input[..x];
         mime_smtp_extract_urls(&mut ctx.urls, input);
         if !ctx.decoded_line.is_empty() {
