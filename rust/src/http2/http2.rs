@@ -33,6 +33,8 @@ use std::fmt;
 use std::io;
 
 static mut ALPROTO_HTTP2: AppProto = ALPROTO_UNKNOWN;
+// defined in app-layer-protos.h
+const ALPROTO_HTTP1: AppProto = 1;
 
 const HTTP2_DEFAULT_MAX_FRAME_SIZE: u32 = 16384;
 const HTTP2_MAX_HANDLED_FRAME_SIZE: usize = 65536;
@@ -1245,13 +1247,12 @@ extern "C" {
 #[no_mangle]
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn rs_http2_state_new(
-    orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
+    orig_state: *mut std::os::raw::c_void, orig_proto: AppProto,
 ) -> *mut std::os::raw::c_void {
     let state = HTTP2State::new();
     let boxed = Box::new(state);
     let r = Box::into_raw(boxed) as *mut _;
-    if !orig_state.is_null() {
-        //we could check ALPROTO_HTTP1 == orig_proto
+    if !orig_state.is_null() && orig_proto == ALPROTO_HTTP1 as u16 {
         unsafe {
             HTTP2MimicHttp1Request(orig_state, r);
         }
