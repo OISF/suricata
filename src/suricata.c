@@ -3183,6 +3183,10 @@ void SuricataPostInit(void)
     SC_ATOMIC_SET(engine_stage, SURICATA_RUNTIME);
     PacketPoolPostRunmodes();
 
+    /* pledge before allowing threads to continue to avoid an issue with pcap file directory mode,
+     * see ticket #8300. */
+    SCPledge();
+
     /* Un-pause all the paused threads */
     TmThreadContinueThreads();
 
@@ -3202,5 +3206,4 @@ void SuricataPostInit(void)
         SystemHugepageSnapshotDestroy(prerun_snap);
         SystemHugepageSnapshotDestroy(postrun_snap);
     }
-    SCPledge();
 }
