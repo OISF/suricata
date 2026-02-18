@@ -818,10 +818,12 @@ fn http2_header_trimspaces(value: &[u8]) -> &[u8] {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_tx_get_headers(
+pub unsafe extern "C" fn SCHttp2TxGetHeaders(
     tx: &mut HTTP2Transaction, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+    tbuf: *mut c_void,
 ) -> u8 {
-    let mut vec = Vec::new();
+    let tbuf = cast_pointer!(tbuf, Http2ThreadBuf);
+    tbuf.data = Vec::new();
     let frames = if direction & Direction::ToServer as u8 != 0 {
         &tx.frames_ts
     } else {
@@ -832,20 +834,18 @@ pub unsafe extern "C" fn rs_http2_tx_get_headers(
             for block in blocks.iter() {
                 if !http2_header_iscookie(direction.into(), &block.name) {
                     // we do not escape linefeeds nor : in headers names
-                    vec.extend_from_slice(&block.name);
-                    vec.extend_from_slice(b": ");
-                    vec.extend_from_slice(http2_header_trimspaces(&block.value));
-                    vec.extend_from_slice(b"\r\n");
+                    tbuf.data.extend_from_slice(&block.name);
+                    tbuf.data.extend_from_slice(b": ");
+                    tbuf.data
+                        .extend_from_slice(http2_header_trimspaces(&block.value));
+                    tbuf.data.extend_from_slice(b"\r\n");
                 }
             }
         }
     }
-    if !vec.is_empty() {
-        tx.escaped.push(vec);
-        let idx = tx.escaped.len() - 1;
-        let value = &tx.escaped[idx];
-        *buffer = value.as_ptr(); //unsafe
-        *buffer_len = value.len() as u32;
+    if !tbuf.data.is_empty() {
+        *buffer = tbuf.data.as_ptr(); //unsafe
+        *buffer_len = tbuf.data.len() as u32;
         return 1;
     }
     return 0;

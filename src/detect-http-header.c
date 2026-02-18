@@ -63,6 +63,7 @@ static void DetectHttpHeaderRegisterTests(void);
 #endif
 static int g_http_header_buffer_id = 0;
 static int g_keyword_thread_id = 0;
+static int g_http2_thread_id = 0;
 
 #define BUFFER_SIZE_STEP    1024
 static HttpHeaderThreadDataConfig g_td_config = { BUFFER_SIZE_STEP };
@@ -153,7 +154,10 @@ static InspectionBuffer *GetBuffer2ForTX(DetectEngineThreadCtx *det_ctx,
         uint32_t b_len = 0;
         const uint8_t *b = NULL;
 
-        if (rs_http2_tx_get_headers(txv, flow_flags, &b, &b_len) != 1)
+        void *thread_buf = DetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, g_http2_thread_id);
+        if (thread_buf == NULL)
+            return NULL;
+        if (SCHttp2TxGetHeaders(txv, flow_flags, &b, &b_len, thread_buf) != 1)
             return NULL;
         if (b == NULL || b_len == 0)
             return NULL;
@@ -464,6 +468,8 @@ void DetectHttpHeaderRegister(void)
 
     g_keyword_thread_id = DetectRegisterThreadCtxGlobalFuncs("http_header",
             HttpHeaderThreadDataInit, &g_td_config, HttpHeaderThreadDataFree);
+    g_http2_thread_id = DetectRegisterThreadCtxGlobalFuncs(
+            "http2.header", SCHttp2ThreadBufDataInit, NULL, SCHttp2ThreadBufDataFree);
 }
 
 static int g_http_request_header_buffer_id = 0;
