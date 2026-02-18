@@ -302,11 +302,11 @@ As an example, consider a 32 byte payload:
 
 Another example, consider the following payload:
 
-      +-------------------------------+
-Index | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
-      +-------------------------------+
-Value | a | b | c | d | e | f | g | h |
-      +-------------------------------+
++-------+---+---+---+---+---+---+---+---+
+| Index | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
++-------+---+---+---+---+---+---+---+---+
+| Value | a | b | c | d | e | f | g | h |
++-------+---+---+---+---+---+---+---+---+
 
 Then the following rules match the payload as follows:
 
