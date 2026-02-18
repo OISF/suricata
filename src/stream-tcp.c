@@ -89,6 +89,8 @@
 #define STREAMTCP_DEFAULT_TOCLIENT_CHUNK_SIZE   2560
 #define STREAMTCP_DEFAULT_MAX_SYN_QUEUED        10
 #define STREAMTCP_DEFAULT_MAX_SYNACK_QUEUED     5
+// 1 MiB
+#define STREAM_DEPTH_DEFAULT 1024 * 1024
 
 /* Settings order as in the enum */
 // clang-format off
@@ -735,7 +737,7 @@ void StreamTcpInitConfig(bool quiet)
             exit(EXIT_FAILURE);
         }
     } else {
-        stream_config.reassembly_depth = 0;
+        stream_config.reassembly_depth = STREAM_DEPTH_DEFAULT;
     }
 
     if (!quiet) {
