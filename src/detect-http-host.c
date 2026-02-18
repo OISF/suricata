@@ -81,6 +81,8 @@ static InspectionBuffer *GetRawData2(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
         const int list_id);
 static int g_http_host_buffer_id = 0;
+static int g_http2_thread_id = 0;
+static int g_http2_raw_thread_id = 0;
 
 /**
  * \brief Registers the keyword handlers for the "http_host" keyword.
@@ -123,6 +125,9 @@ void DetectHttpHHRegister(void)
     DetectBufferTypeSetDescriptionByName("http_host",
             "http host");
 
+    g_http2_thread_id = DetectRegisterThreadCtxGlobalFuncs(
+            "http_host", SCHttp2ThreadBufDataInit, NULL, SCHttp2ThreadBufDataFree);
+
     g_http_host_buffer_id = DetectBufferTypeGetByName("http_host");
 
     /* http_raw_host content modifier */
@@ -154,6 +159,9 @@ void DetectHttpHHRegister(void)
 
     DetectBufferTypeSetDescriptionByName("http_raw_host",
             "http raw host header");
+
+    g_http2_raw_thread_id = DetectRegisterThreadCtxGlobalFuncs(
+            "http_raw_host", SCHttp2ThreadBufDataInit, NULL, SCHttp2ThreadBufDataFree);
 
     g_http_raw_host_buffer_id = DetectBufferTypeGetByName("http_raw_host");
 }
@@ -263,8 +271,10 @@ static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
     if (buffer->inspect == NULL) {
         uint32_t b_len = 0;
         const uint8_t *b = NULL;
-
-        if (rs_http2_tx_get_host_norm(txv, &b, &b_len) != 1)
+        void *thread_buf = DetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, g_http2_thread_id);
+        if (thread_buf == NULL)
+            return NULL;
+        if (SCHttp2TxGetHostNorm(txv, &b, &b_len, thread_buf) != 1)
             return NULL;
         if (b == NULL || b_len == 0)
             return NULL;
@@ -284,8 +294,11 @@ static InspectionBuffer *GetRawData2(DetectEngineThreadCtx *det_ctx,
     if (buffer->inspect == NULL) {
         uint32_t b_len = 0;
         const uint8_t *b = NULL;
+        void *thread_buf = DetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, g_http2_raw_thread_id);
+        if (thread_buf == NULL)
+            return NULL;
 
-        if (rs_http2_tx_get_host(txv, &b, &b_len) != 1)
+        if (SCHttp2TxGetHost(txv, &b, &b_len, thread_buf) != 1)
             return NULL;
         if (b == NULL || b_len == 0)
             return NULL;
