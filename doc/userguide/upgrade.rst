@@ -42,6 +42,8 @@ Major Changes
 - Encrypted quic traffic bypass is now independently controlled through
   ``app-layer.protocols.quic.encryption-handling`` setting. The setting can either
   be ``bypass``, ``track-only`` or ``full``.
+- Default value for ``stream.reassembly.depth`` when the value is not specified in
+  suricata.yaml is now 1 MiB instead of 0/unlimited.
 
 Logging Changes
 ~~~~~~~~~~~~~~~

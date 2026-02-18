@@ -1670,8 +1670,9 @@ flow-timeouts:
 #     memcap-policy: ignore     # The exception policy value can be "drop-flow",
 #                               # "pass-flow", "bypass", "drop-packet", "pass-packet",
 #                               # "reject" or "ignore" default is "ignore"
-#     depth: 1 MiB               # Can be specified in KiB, MiB, GiB.  Just a number
+#     depth: 1 MiB              # Can be specified in KiB, MiB, GiB.  Just a number
 #                               # indicates it's in bytes.
+#                               # 1 MiB is the default when this value is not specified
 #     toserver-chunk-size: 2560 # inspect raw stream in chunks of at least
 #                               # this size.  Can be specified in KiB, MiB, GiB.
 #                               # Just a number indicates it's in bytes.
@@ -1717,7 +1718,7 @@ stream:
       oob-limit-policy: drop
     memcap: 256 MiB
     #memcap-policy: ignore
-    depth: 1 MiB                # reassemble 1 MiB into a stream
+    #depth: 1 MiB                # reassemble 1 MiB into a stream
     toserver-chunk-size: 2560
     toclient-chunk-size: 2560
     randomize-chunk-size: yes
