@@ -1013,6 +1013,8 @@ app-layer:
       #max-table-size: 65536
       # Maximum reassembly size for header + continuation frames
       #max-reassembly-size: 102400
+      # Maximum number of frames per tx
+      #max-frames: 65536
     smtp:
       enabled: yes
       raw-extraction: no
