@@ -700,11 +700,29 @@ fn http2_escape_header(blocks: &[parser::HTTP2FrameHeaderBlock], i: u32) -> Vec<
     return vec;
 }
 
+#[derive(Default)]
+struct Http2ThreadBuf {
+    data: Vec<u8>,
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCHttp2ThreadBufDataInit(_cfg: *mut c_void) -> *mut c_void {
+    let boxed = Box::new(Http2ThreadBuf::default());
+    return Box::into_raw(boxed) as *mut c_void;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCHttp2ThreadBufDataFree(ctx: *mut c_void) {
+    std::mem::drop(Box::from_raw(ctx as *mut Http2ThreadBuf));
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn SCHttp2TxGetHeaderNames(
     tx: &mut HTTP2Transaction, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+    tbuf: *mut c_void,
 ) -> u8 {
-    let mut vec = vec![b'\r', b'\n'];
+    let tbuf = cast_pointer!(tbuf, Http2ThreadBuf);
+    tbuf.data = vec![b'\r', b'\n'];
     let frames = if direction & Direction::ToServer as u8 != 0 {
         &tx.frames_ts
     } else {
@@ -714,18 +732,15 @@ pub unsafe extern "C" fn SCHttp2TxGetHeaderNames(
         if let Some(blocks) = http2_header_blocks(frame) {
             for block in blocks.iter() {
                 // we do not escape linefeeds in headers names
-                vec.extend_from_slice(&block.name);
-                vec.extend_from_slice(b"\r\n");
+                tbuf.data.extend_from_slice(&block.name);
+                tbuf.data.extend_from_slice(b"\r\n");
             }
         }
     }
-    if vec.len() > 2 {
-        vec.extend_from_slice(b"\r\n");
-        tx.escaped.push(vec);
-        let idx = tx.escaped.len() - 1;
-        let value = &tx.escaped[idx];
-        *buffer = value.as_ptr(); //unsafe
-        *buffer_len = value.len() as u32;
+    if tbuf.data.len() > 2 {
+        tbuf.data.extend_from_slice(b"\r\n");
+        *buffer = tbuf.data.as_ptr(); //unsafe
+        *buffer_len = tbuf.data.len() as u32;
         return 1;
     }
     return 0;
