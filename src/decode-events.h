@@ -229,6 +229,11 @@ enum {
     NSH_UNSUPPORTED_TYPE,
     NSH_UNKNOWN_PAYLOAD,
 
+    /* IGMP events */
+    IGMP_PKT_TOO_SMALL,    /**< packet too small to fit the basic IGMP header */
+    IGMP_V3_PKT_TOO_SMALL, /**< packet too small to fit the IGMPv3 header */
+    IGMP_MALFORMED,
+
     /* generic events */
     GENERIC_TOO_MANY_LAYERS,
 

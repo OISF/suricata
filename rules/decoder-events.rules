@@ -120,6 +120,8 @@ alert icmp any any -> any any (msg:"SURICATA ICMPv4 invalid checksum"; icmpv4-cs
 alert tcp any any -> any any (msg:"SURICATA TCPv6 invalid checksum"; tcpv6-csum:invalid; classtype:protocol-command-decode; sid:2200077; rev:2;)
 alert udp any any -> any any (msg:"SURICATA UDPv6 invalid checksum"; udpv6-csum:invalid; classtype:protocol-command-decode; sid:2200078; rev:2;)
 alert icmp any any -> any any (msg:"SURICATA ICMPv6 invalid checksum"; icmpv6-csum:invalid; classtype:protocol-command-decode; sid:2200079; rev:2;)
+alert igmp any any -> any any (msg:"SURICATA IGMP invalid checksum"; igmp-csum:invalid; classtype:protocol-command-decode; sid:2200126; rev:1;)
+
 # IPv4 in IPv6 rules
 alert pkthdr any any -> any any (msg:"SURICATA IPv4-in-IPv6 packet too short"; decode-event:ipv6.ipv4_in_ipv6_too_small; classtype:protocol-command-decode; sid:2200082; rev:2;)
 alert pkthdr any any -> any any (msg:"SURICATA IPv4-in-IPv6 invalid protocol"; decode-event:ipv6.ipv4_in_ipv6_wrong_version; classtype:protocol-command-decode; sid:2200083; rev:2;)
@@ -157,6 +159,11 @@ alert pkthdr any any -> any any (msg:"SURICATA packet with too many layers"; dec
 # Capture events.
 alert pkthdr any any -> any any (msg:"SURICATA AF-PACKET truncated packet"; decode-event:afpacket.trunc_pkt; classtype:protocol-command-decode; sid:2200122; rev:1;)
 
+# IGMP
+alert igmp any any -> any any (msg:"SURICATA IGMP packet too small"; decode-event:igmp.pkt_too_small; classtype:protocol-command-decode; sid:2200127; rev:1;)
+alert igmp any any -> any any (msg:"SURICATA IGMPv3 packet too small"; decode-event:igmp.v3_pkt_too_small; classtype:protocol-command-decode; sid:2200128; rev:1;)
+alert igmp any any -> any any (msg:"SURICATA IGMP malformed packet"; decode-event:igmp.malformed; classtype:protocol-command-decode; sid:2200129; rev:1;)
+
 alert ipv4 any any -> any any (msg:"SURICATA IPv4 unknown protocol"; decode-event:ipv4.unknown_protocol; threshold: type limit, track by_src, seconds 60, count 1;classtype:protocol-command-decode; sid:2200125;)
-# next sid is 2200126
+# next sid is 2200130
 

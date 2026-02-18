@@ -74,7 +74,6 @@ void DetectFlagsRegister (void)
     sigmatch_table[DETECT_FLAGS].SupportsPrefilter = PrefilterTcpFlagsIsPrefilterable;
     sigmatch_table[DETECT_FLAGS].SetupPrefilter = PrefilterSetupTcpFlags;
     sigmatch_table[DETECT_FLAGS].flags = SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_BITFLAGS_UINT;
-    ;
 }
 
 /**
