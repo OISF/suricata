@@ -476,6 +476,8 @@ static int g_http_request_header_buffer_id = 0;
 static int g_http_response_header_buffer_id = 0;
 static int g_request_header_thread_id = 0;
 static int g_response_header_thread_id = 0;
+static int g_h2_request_header_thread_id = 0;
+static int g_h2_response_header_thread_id = 0;
 
 static InspectionBuffer *GetHttp2HeaderData(DetectEngineThreadCtx *det_ctx, const uint8_t flags,
         const DetectEngineTransforms *transforms, Flow *_f, const struct MpmListIdDataArgs *cbdata,
@@ -492,8 +494,18 @@ static InspectionBuffer *GetHttp2HeaderData(DetectEngineThreadCtx *det_ctx, cons
 
     uint32_t b_len = 0;
     const uint8_t *b = NULL;
+    int kw_thread_id;
+    if (flags & STREAM_TOSERVER) {
+        kw_thread_id = g_h2_request_header_thread_id;
+    } else {
+        kw_thread_id = g_h2_response_header_thread_id;
+    }
+    void *hdr_td = DetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, kw_thread_id);
+    if (unlikely(hdr_td == NULL)) {
+        return NULL;
+    }
 
-    if (rs_http2_tx_get_header(cbdata->txv, flags, cbdata->local_id, &b, &b_len) != 1) {
+    if (SCHttp2TxGetHeader(hdr_td, cbdata->txv, flags, cbdata->local_id, &b, &b_len) != 1) {
         InspectionBufferSetupMultiEmpty(buffer);
         return NULL;
     }
@@ -824,6 +836,8 @@ void DetectHttpRequestHeaderRegister(void)
     DetectBufferTypeSupportsMultiInstance("http_request_header");
     g_request_header_thread_id = DetectRegisterThreadCtxGlobalFuncs("http_request_header",
             HttpMultiBufHeaderThreadDataInit, NULL, HttpMultiBufHeaderThreadDataFree);
+    g_h2_request_header_thread_id = DetectRegisterThreadCtxGlobalFuncs("http2_request_header",
+            SCHttp2ThreadMultiBufDataInit, NULL, SCHttp2ThreadMultiBufDataFree);
 }
 
 static int DetectHTTPResponseHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
@@ -861,6 +875,8 @@ void DetectHttpResponseHeaderRegister(void)
     DetectBufferTypeSupportsMultiInstance("http_response_header");
     g_response_header_thread_id = DetectRegisterThreadCtxGlobalFuncs("http_response_header",
             HttpMultiBufHeaderThreadDataInit, NULL, HttpMultiBufHeaderThreadDataFree);
+    g_h2_response_header_thread_id = DetectRegisterThreadCtxGlobalFuncs("http2_response_header",
+            SCHttp2ThreadMultiBufDataInit, NULL, SCHttp2ThreadMultiBufDataFree);
 }
 
 /************************************Unittests*********************************/

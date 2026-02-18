@@ -760,7 +760,8 @@ pub unsafe extern "C" fn SCHttp2TxGetHeaderNames(
     tbuf: *mut c_void,
 ) -> u8 {
     let tbuf = cast_pointer!(tbuf, Http2ThreadBuf);
-    tbuf.data = vec![b'\r', b'\n'];
+    tbuf.data.clear();
+    tbuf.data.extend_from_slice(b"\r\n");
     let frames = if direction & Direction::ToServer as u8 != 0 {
         &tx.frames_ts
     } else {
@@ -823,7 +824,7 @@ pub unsafe extern "C" fn SCHttp2TxGetHeaders(
     tbuf: *mut c_void,
 ) -> u8 {
     let tbuf = cast_pointer!(tbuf, Http2ThreadBuf);
-    tbuf.data = Vec::new();
+    tbuf.data.clear();
     let frames = if direction & Direction::ToServer as u8 != 0 {
         &tx.frames_ts
     } else {
@@ -857,7 +858,7 @@ pub unsafe extern "C" fn SCHttp2TxGetHeadersRaw(
     tbuf: *mut c_void,
 ) -> u8 {
     let tbuf = cast_pointer!(tbuf, Http2ThreadBuf);
-    tbuf.data = Vec::new();
+    tbuf.data.clear();
     let frames = if direction & Direction::ToServer as u8 != 0 {
         &tx.frames_ts
     } else {
@@ -882,20 +883,42 @@ pub unsafe extern "C" fn SCHttp2TxGetHeadersRaw(
     return 0;
 }
 
+#[derive(Default)]
+struct Http2ThreadMultiBuf {
+    data: Vec<Vec<u8>>,
+}
+
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_tx_get_header(
-    tx: &mut HTTP2Transaction, direction: u8, nb: u32, buffer: *mut *const u8, buffer_len: *mut u32,
+pub unsafe extern "C" fn SCHttp2ThreadMultiBufDataInit(_cfg: *mut c_void) -> *mut c_void {
+    let boxed = Box::new(Http2ThreadMultiBuf::default());
+    return Box::into_raw(boxed) as *mut c_void;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCHttp2ThreadMultiBufDataFree(ctx: *mut c_void) {
+    std::mem::drop(Box::from_raw(ctx as *mut Http2ThreadMultiBuf));
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCHttp2TxGetHeader(
+    tbuf: *mut c_void, tx: *const c_void, direction: u8, nb: u32, buffer: *mut *const u8,
+    buffer_len: *mut u32,
 ) -> u8 {
+    let tbuf = cast_pointer!(tbuf, Http2ThreadMultiBuf);
+    let tx = cast_pointer!(tx, HTTP2Transaction);
     let mut pos = 0_u32;
+    if nb == 0 {
+        tbuf.data.clear();
+    }
     match direction.into() {
         Direction::ToServer => {
             for i in 0..tx.frames_ts.len() {
                 if let Some(blocks) = http2_header_blocks(&tx.frames_ts[i]) {
                     if nb < pos + blocks.len() as u32 {
                         let ehdr = http2_escape_header(blocks, nb - pos);
-                        tx.escaped.push(ehdr);
-                        let idx = tx.escaped.len() - 1;
-                        let value = &tx.escaped[idx];
+                        tbuf.data.push(ehdr);
+                        let idx = tbuf.data.len() - 1;
+                        let value = &tbuf.data[idx];
                         *buffer = value.as_ptr(); //unsafe
                         *buffer_len = value.len() as u32;
                         return 1;
@@ -910,9 +933,9 @@ pub unsafe extern "C" fn rs_http2_tx_get_header(
                 if let Some(blocks) = http2_header_blocks(&tx.frames_tc[i]) {
                     if nb < pos + blocks.len() as u32 {
                         let ehdr = http2_escape_header(blocks, nb - pos);
-                        tx.escaped.push(ehdr);
-                        let idx = tx.escaped.len() - 1;
-                        let value = &tx.escaped[idx];
+                        tbuf.data.push(ehdr);
+                        let idx = tbuf.data.len() - 1;
+                        let value = &tbuf.data[idx];
                         *buffer = value.as_ptr(); //unsafe
                         *buffer_len = value.len() as u32;
                         return 1;
