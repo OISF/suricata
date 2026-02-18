@@ -330,6 +330,8 @@ Then the following rules match the payload as follows:
 | ``payload:"c"; isdataat:6,relative;``  | No     |
 +----------------------------------------+--------+
 
+These differences are also discussed in :doc:`differences-from-snort`.
+
 A discussion of this difference can be found at
 https://redmine.openinfosecfoundation.org/issues/8031
 
