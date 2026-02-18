@@ -67,6 +67,7 @@ static int DetectHttpCookieSetupSticky (DetectEngineCtx *, Signature *, const ch
 static void DetectHttpCookieRegisterTests(void);
 #endif
 static int g_http_cookie_buffer_id = 0;
+static int g_http2_thread_id = 0;
 
 static InspectionBuffer *GetRequestData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms,
@@ -130,6 +131,9 @@ void DetectHttpCookieRegister(void)
 
     DetectBufferTypeSetDescriptionByName("http_cookie",
             "http cookie header");
+
+    g_http2_thread_id = DetectRegisterThreadCtxGlobalFuncs(
+            "http_cookie", SCHttp2ThreadBufDataInit, NULL, SCHttp2ThreadBufDataFree);
 
     g_http_cookie_buffer_id = DetectBufferTypeGetByName("http_cookie");
 }
@@ -234,7 +238,10 @@ static InspectionBuffer *GetRequestData2(DetectEngineThreadCtx *det_ctx,
         uint32_t b_len = 0;
         const uint8_t *b = NULL;
 
-        if (SCHttp2TxGetCookie(txv, STREAM_TOSERVER, &b, &b_len) != 1)
+        void *thread_buf = DetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, g_http2_thread_id);
+        if (thread_buf == NULL)
+            return NULL;
+        if (SCHttp2TxGetCookie(txv, STREAM_TOSERVER, &b, &b_len, thread_buf) != 1)
             return NULL;
         if (b == NULL || b_len == 0)
             return NULL;
@@ -254,7 +261,10 @@ static InspectionBuffer *GetResponseData2(DetectEngineThreadCtx *det_ctx,
         uint32_t b_len = 0;
         const uint8_t *b = NULL;
 
-        if (SCHttp2TxGetCookie(txv, STREAM_TOCLIENT, &b, &b_len) != 1)
+        void *thread_buf = DetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, g_http2_thread_id);
+        if (thread_buf == NULL)
+            return NULL;
+        if (SCHttp2TxGetCookie(txv, STREAM_TOCLIENT, &b, &b_len, thread_buf) != 1)
             return NULL;
         if (b == NULL || b_len == 0)
             return NULL;
