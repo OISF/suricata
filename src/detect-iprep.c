@@ -72,7 +72,7 @@ void DetectIPRepRegister (void)
     sigmatch_table[DETECT_IPREP].RegisterTests = IPRepRegisterTests;
 #endif
     /* this is compatible to ip-only signatures */
-    sigmatch_table[DETECT_IPREP].flags |= SIGMATCH_IPONLY_COMPAT;
+    sigmatch_table[DETECT_IPREP].flags |= SIGMATCH_IPONLY_COMPAT | SIGMATCH_SUPPORT_FIREWALL;
 }
 
 static inline int8_t GetRep(const SReputation *r, const uint8_t cat, const uint32_t version)
