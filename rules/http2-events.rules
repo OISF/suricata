@@ -24,3 +24,5 @@ alert http2 any any -> any any (msg:"SURICATA HTTP2 reassembly limit reached"; f
 alert http2 any any -> any any (msg:"SURICATA HTTP2 dns request too long"; flow:established,to_server; app-layer-event:http2.dns_request_too_long; classtype:protocol-command-decode; sid:2290016; rev:1;)
 alert http2 any any -> any any (msg:"SURICATA HTTP2 dns response too long"; flow:established,to_client; app-layer-event:http2.dns_response_too_long; classtype:protocol-command-decode; sid:2290017; rev:1;)
 alert http2 any any -> any any (msg:"SURICATA HTTP2 data on stream zero"; flow:established; app-layer-event:http2.data_stream_zero; classtype:protocol-command-decode; sid:2290018; rev:1;)
+# disabled by default, as it can happen in legit cases depending on the max-frames config value
+# alert http2 any any -> any any (msg:"SURICATA HTTP2 too many frames"; flow:established; app-layer-event:http2.too_many_frames; classtype:protocol-command-decode; sid:2290019; rev:1;)
