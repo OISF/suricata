@@ -1,4 +1,4 @@
-/* Copyright (C) 2024 Open Information Security Foundation
+/* Copyright (C) 2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,14 +15,9 @@
  * 02110-1301, USA.
  */
 
-/**
- * \file
- *
- * \author Mahmoud Maatuq <mahmoudmatook.mm@gmail.com>
- *
- */
+// Author: Giuseppe Longo <glongo@oisf.net>
 
-#ifndef SURICATA_APP_LAYER_IMAP_H
-#define SURICATA_APP_LAYER_IMAP_H
-void RegisterIMAPParsers(void);
-#endif
+pub mod detect;
+pub mod imap;
+pub mod logger;
+pub mod parser;

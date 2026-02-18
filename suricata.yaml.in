@@ -338,6 +338,7 @@ outputs:
         - quic
         - ldap
         - pop3
+        - imap
         - arp:
             enabled: no        # Many events can be logged. Disabled by default
         - dhcp:
@@ -1057,7 +1058,7 @@ app-layer:
         content-inspect-min-size: 32768
         content-inspect-window: 4096
     imap:
-      enabled: detection-only
+      enabled: yes
     pop3:
       enabled: yes
       detection-ports:
