@@ -362,7 +362,7 @@ int SCHSCachePruneEvaluate(MpmConfig *mpm_conf, HashTable *inuse_caches)
 
     struct dirent *ent;
     char path[PATH_MAX];
-    uint32_t considered = 0, removed = 0;
+    uint32_t considered = 0, removed_by_age = 0, removed_by_version = 0;
     const time_t cutoff = now - (time_t)mpm_conf->cache_max_age_seconds;
     while ((ent = readdir(dir)) != NULL) {
         const char *name = ent->d_name;
@@ -399,7 +399,10 @@ int SCHSCachePruneEvaluate(MpmConfig *mpm_conf, HashTable *inuse_caches)
         /* coverity[toctou] */
         int ret = unlink(path);
         if (ret == 0 || (ret == -1 && errno == ENOENT)) {
-            removed++;
+            if (prune_by_version)
+                removed_by_version++;
+            else if (prune_by_age)
+                removed_by_age++;
             SCLogDebug("File %s removed because of %s%s%s", path, prune_by_age ? "age" : "",
                     prune_by_age && prune_by_version ? " and " : "",
                     prune_by_version ? "incompatible version" : "");
@@ -411,7 +414,8 @@ int SCHSCachePruneEvaluate(MpmConfig *mpm_conf, HashTable *inuse_caches)
 
     PatternDatabaseCache *pd_cache_stats = mpm_conf->cache_stats;
     if (pd_cache_stats) {
-        pd_cache_stats->hs_dbs_cache_pruned_cnt = removed;
+        pd_cache_stats->hs_dbs_cache_pruned_by_age_cnt = removed_by_age;
+        pd_cache_stats->hs_dbs_cache_pruned_by_version_cnt = removed_by_version;
         pd_cache_stats->hs_dbs_cache_pruned_considered_cnt = considered;
         pd_cache_stats->hs_dbs_cache_pruned_cutoff = cutoff;
         pd_cache_stats->cache_max_age_seconds = mpm_conf->cache_max_age_seconds;
@@ -448,17 +452,23 @@ void SCHSCacheStatsPrint(void *data)
     }
 
     if (pd_cache_stats->hs_cacheable_dbs_cnt) {
-        SCLogInfo("Rule group caching - loaded: %u newly cached: %u total cacheable: %u",
+        SCLogPerf("rule group caching - loaded: %u newly cached: %u total cacheable: %u",
                 pd_cache_stats->hs_dbs_cache_loaded_cnt, pd_cache_stats->hs_dbs_cache_saved_cnt,
                 pd_cache_stats->hs_cacheable_dbs_cnt);
     }
     if (pd_cache_stats->hs_dbs_cache_pruned_considered_cnt) {
-        SCLogInfo("Rule group cache pruning removed %u/%u of HS caches due to "
-                  "version-incompatibility (not v%s) or "
-                  "age (older than %s)",
-                pd_cache_stats->hs_dbs_cache_pruned_cnt,
-                pd_cache_stats->hs_dbs_cache_pruned_considered_cnt, HS_CACHE_FILE_VERSION,
-                time_str);
+        if (pd_cache_stats->hs_dbs_cache_pruned_by_version_cnt) {
+            SCLogInfo("rule group cache pruning removed %u/%u of HS caches due to "
+                      "version-incompatibility (not v%s)",
+                    pd_cache_stats->hs_dbs_cache_pruned_by_version_cnt,
+                    pd_cache_stats->hs_dbs_cache_pruned_considered_cnt, HS_CACHE_FILE_VERSION);
+        }
+        if (pd_cache_stats->hs_dbs_cache_pruned_by_age_cnt) {
+            SCLogInfo("rule group cache pruning removed %u/%u of HS caches due to "
+                      "age (older than %s)",
+                    pd_cache_stats->hs_dbs_cache_pruned_by_age_cnt,
+                    pd_cache_stats->hs_dbs_cache_pruned_considered_cnt, time_str);
+        }
     }
 }
 
