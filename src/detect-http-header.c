@@ -424,6 +424,8 @@ static int g_http_request_header_buffer_id = 0;
 static int g_http_response_header_buffer_id = 0;
 static int g_request_header_thread_id = 0;
 static int g_response_header_thread_id = 0;
+static int g_h2_request_header_thread_id = 0;
+static int g_h2_response_header_thread_id = 0;
 
 typedef struct HttpMultiBufItem {
     uint8_t *buffer;
@@ -460,6 +462,22 @@ static void HttpMultiBufHeaderThreadDataFree(void *data)
     }
     SCFree(td->items);
     SCFree(td);
+}
+
+static bool GetHttp2HeaderData(DetectEngineThreadCtx *det_ctx, const void *txv, const uint8_t flags,
+        uint32_t local_id, const uint8_t **buf, uint32_t *buf_len)
+{
+    int kw_thread_id;
+    if (flags & STREAM_TOSERVER) {
+        kw_thread_id = g_h2_request_header_thread_id;
+    } else {
+        kw_thread_id = g_h2_response_header_thread_id;
+    }
+    void *hdr_td = DetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, kw_thread_id);
+    if (unlikely(hdr_td == NULL)) {
+        return false;
+    }
+    return SCHttp2TxGetHeader(hdr_td, txv, flags, local_id, buf, buf_len);
 }
 
 static bool GetHttp1HeaderData(DetectEngineThreadCtx *det_ctx, const void *txv, const uint8_t flags,
@@ -557,7 +575,7 @@ void DetectHttpRequestHeaderRegister(void)
             SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_INFO_MULTI_BUFFER;
 
     DetectAppLayerMultiRegister("http_request_header", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
-            HTTP2StateOpen, SCHttp2TxGetHeader, 2);
+            HTTP2StateOpen, GetHttp2HeaderData, 2);
     DetectAppLayerMultiRegister("http_request_header", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
             HTP_REQUEST_PROGRESS_HEADERS, GetHttp1HeaderData, 2);
 
@@ -566,6 +584,8 @@ void DetectHttpRequestHeaderRegister(void)
     DetectBufferTypeSupportsMultiInstance("http_request_header");
     g_request_header_thread_id = DetectRegisterThreadCtxGlobalFuncs("http_request_header",
             HttpMultiBufHeaderThreadDataInit, NULL, HttpMultiBufHeaderThreadDataFree);
+    g_h2_request_header_thread_id = DetectRegisterThreadCtxGlobalFuncs("http2_request_header",
+            SCHttp2ThreadMultiBufDataInit, NULL, SCHttp2ThreadMultiBufDataFree);
 }
 
 static int DetectHTTPResponseHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
@@ -590,7 +610,7 @@ void DetectHttpResponseHeaderRegister(void)
             SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_INFO_MULTI_BUFFER;
 
     DetectAppLayerMultiRegister("http_response_header", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
-            HTTP2StateOpen, SCHttp2TxGetHeader, 2);
+            HTTP2StateOpen, GetHttp2HeaderData, 2);
     DetectAppLayerMultiRegister("http_response_header", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
             HTP_RESPONSE_PROGRESS_HEADERS, GetHttp1HeaderData, 2);
 
@@ -599,6 +619,8 @@ void DetectHttpResponseHeaderRegister(void)
     DetectBufferTypeSupportsMultiInstance("http_response_header");
     g_response_header_thread_id = DetectRegisterThreadCtxGlobalFuncs("http_response_header",
             HttpMultiBufHeaderThreadDataInit, NULL, HttpMultiBufHeaderThreadDataFree);
+    g_h2_response_header_thread_id = DetectRegisterThreadCtxGlobalFuncs("http2_response_header",
+            SCHttp2ThreadMultiBufDataInit, NULL, SCHttp2ThreadMultiBufDataFree);
 }
 
 /************************************Unittests*********************************/
