@@ -467,18 +467,6 @@ impl DCERPCState {
         self.bytes_consumed = 0;
     }
 
-    pub fn extend_buffer(&mut self, buffer: &[u8], direction: Direction) {
-        match direction {
-            Direction::ToServer => {
-                self.buffer_ts.extend_from_slice(buffer);
-            }
-            Direction::ToClient => {
-                self.buffer_tc.extend_from_slice(buffer);
-            }
-        }
-        self.data_needed_for_dir = direction;
-    }
-
     pub fn reset_direction(&mut self, direction: Direction) {
         if direction == Direction::ToServer {
             self.data_needed_for_dir = Direction::ToClient;
@@ -952,24 +940,24 @@ impl DCERPCState {
             self.data_needed_for_dir = direction;
         }
 
-        let buffer = match direction {
+        let mut buffer = match direction {
             Direction::ToServer => {
                 if self.buffer_ts.len() + input_len > 1024 * 1024 {
                     SCLogDebug!("DCERPC TOSERVER stream: Buffer Overflow");
                     return AppLayerResult::err();
                 }
-                v = self.buffer_ts.split_off(0);
+                v = std::mem::take(&mut self.buffer_ts);
                 v.extend_from_slice(cur_i);
-                v.as_slice()
+                v
             }
             Direction::ToClient => {
                 if self.buffer_tc.len() + input_len > 1024 * 1024 {
                     SCLogDebug!("DCERPC TOCLIENT stream: Buffer Overflow");
                     return AppLayerResult::err();
                 }
-                v = self.buffer_tc.split_off(0);
+                v = std::mem::take(&mut self.buffer_tc);
                 v.extend_from_slice(cur_i);
-                v.as_slice()
+                v
             }
         };
 
@@ -983,9 +971,16 @@ impl DCERPCState {
         // Check if header data was complete. In case of EoF or incomplete data, wait for more
         // data else return error
         if self.bytes_consumed < DCERPC_HDR_LEN.into() && input_len > 0 {
-            parsed = self.process_header(buffer);
+            parsed = self.process_header(buffer.as_slice());
             if parsed == -1 {
-                self.extend_buffer(buffer, direction);
+                match direction {
+                    Direction::ToServer => {
+                        self.buffer_ts = std::mem::take(&mut buffer);
+                    }
+                    Direction::ToClient => {
+                        self.buffer_tc = std::mem::take(&mut buffer);
+                    }
+                }
                 return AppLayerResult::ok();
             }
             if parsed == -2 {
@@ -998,7 +993,14 @@ impl DCERPCState {
 
         if (buffer.len()) < fraglen as usize {
             SCLogDebug!("Possibly fragmented data, waiting for more..");
-            self.extend_buffer(buffer, direction);
+                match direction {
+                    Direction::ToServer => {
+                        self.buffer_ts = std::mem::take(&mut buffer);
+                    }
+                    Direction::ToClient => {
+                        self.buffer_tc = std::mem::take(&mut buffer);
+                    }
+                }
             return AppLayerResult::ok();
         } else {
             self.query_completed = true;
