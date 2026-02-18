@@ -49,9 +49,7 @@ pub struct KRB5State {
     pub req_id: u8,
 
     pub record_ts: usize,
-    pub defrag_buf_ts: Vec<u8>,
     pub record_tc: usize,
-    pub defrag_buf_tc: Vec<u8>,
 
     /// List of transactions for this session
     transactions: Vec<KRB5Transaction>,
@@ -117,9 +115,7 @@ impl KRB5State {
             state_data: AppLayerStateData::new(),
             req_id: 0,
             record_ts: 0,
-            defrag_buf_ts: Vec::new(),
             record_tc: 0,
-            defrag_buf_tc: Vec::new(),
             transactions: Vec::new(),
             tx_id: 0,
         }
@@ -480,27 +476,8 @@ unsafe extern "C" fn krb5_parse_request_tcp(
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, KRB5State);
-    let buf = stream_slice.as_slice();
-
-    let mut v: Vec<u8>;
-    let tcp_buffer = match state.record_ts {
-        0 => buf,
-        _ => {
-            // sanity check to avoid memory exhaustion
-            if state.defrag_buf_ts.len() + buf.len() > 100000 {
-                SCLogDebug!(
-                    "krb5_parse_request_tcp: TCP buffer exploded {} {}",
-                    state.defrag_buf_ts.len(),
-                    buf.len()
-                );
-                return AppLayerResult::err();
-            }
-            v = state.defrag_buf_ts.split_off(0);
-            v.extend_from_slice(buf);
-            v.as_slice()
-        }
-    };
-    let mut cur_i = tcp_buffer;
+    let mut cur_i = stream_slice.as_slice();
+    let start_len = cur_i.len();
     while !cur_i.is_empty() {
         if state.record_ts == 0 {
             match be_u32(cur_i) as IResult<&[u8], u32> {
@@ -509,8 +486,7 @@ unsafe extern "C" fn krb5_parse_request_tcp(
                     cur_i = rem;
                 }
                 Err(Err::Incomplete(_)) => {
-                    state.defrag_buf_ts.extend_from_slice(cur_i);
-                    return AppLayerResult::ok();
+                    return AppLayerResult::incomplete((start_len - cur_i.len()) as u32, 4u32);
                 }
                 _ => {
                     SCLogDebug!("krb5_parse_request_tcp: reading record mark failed!");
@@ -526,8 +502,10 @@ unsafe extern "C" fn krb5_parse_request_tcp(
             state.record_ts = 0;
         } else {
             // more fragments required
-            state.defrag_buf_ts.extend_from_slice(cur_i);
-            return AppLayerResult::ok();
+            return AppLayerResult::incomplete(
+                (start_len - cur_i.len()) as u32,
+                state.record_ts as u32,
+            );
         }
     }
     AppLayerResult::ok()
@@ -538,27 +516,8 @@ unsafe extern "C" fn krb5_parse_response_tcp(
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, KRB5State);
-    let buf = stream_slice.as_slice();
-
-    let mut v: Vec<u8>;
-    let tcp_buffer = match state.record_tc {
-        0 => buf,
-        _ => {
-            // sanity check to avoid memory exhaustion
-            if state.defrag_buf_tc.len() + buf.len() > 100000 {
-                SCLogDebug!(
-                    "krb5_parse_response_tcp: TCP buffer exploded {} {}",
-                    state.defrag_buf_tc.len(),
-                    buf.len()
-                );
-                return AppLayerResult::err();
-            }
-            v = state.defrag_buf_tc.split_off(0);
-            v.extend_from_slice(buf);
-            v.as_slice()
-        }
-    };
-    let mut cur_i = tcp_buffer;
+    let mut cur_i = stream_slice.as_slice();
+    let start_len = cur_i.len();
     while !cur_i.is_empty() {
         if state.record_tc == 0 {
             match be_u32(cur_i) as IResult<&[u8], _> {
@@ -567,8 +526,7 @@ unsafe extern "C" fn krb5_parse_response_tcp(
                     cur_i = rem;
                 }
                 Err(Err::Incomplete(_)) => {
-                    state.defrag_buf_tc.extend_from_slice(cur_i);
-                    return AppLayerResult::ok();
+                    return AppLayerResult::incomplete((start_len - cur_i.len()) as u32, 4u32);
                 }
                 _ => {
                     SCLogDebug!("reading record mark failed!");
@@ -584,8 +542,10 @@ unsafe extern "C" fn krb5_parse_response_tcp(
             state.record_tc = 0;
         } else {
             // more fragments required
-            state.defrag_buf_tc.extend_from_slice(cur_i);
-            return AppLayerResult::ok();
+            return AppLayerResult::incomplete(
+                (start_len - cur_i.len()) as u32,
+                state.record_tc as u32,
+            );
         }
     }
     AppLayerResult::ok()
