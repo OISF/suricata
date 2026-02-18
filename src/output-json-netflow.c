@@ -176,9 +176,14 @@ static SCJsonBuilder *CreateEveHeaderFromNetFlow(const Flow *f, int dir)
 }
 
 /* JSON format logging */
-static void NetFlowLogEveToServer(SCJsonBuilder *js, Flow *f)
+static void NetFlowLogEveToServer(SCJsonBuilder *js, Flow *f, OutputJsonThreadCtx *json_outout_ctx)
 {
-    SCJbSetString(js, "app_proto", AppProtoToString(f->alproto_ts ? f->alproto_ts : f->alproto));
+    if (json_outout_ctx->ctx->cfg.eve_version < EVE_VERSION_GLOBAL_APP_PROTO) {
+        SCJbSetString(
+                js, "app_proto", AppProtoToString(f->alproto_ts ? f->alproto_ts : f->alproto));
+    } else {
+        EveAddAppProto(f, js);
+    }
 
     SCJbOpenObject(js, "netflow");
 
@@ -226,9 +231,14 @@ static void NetFlowLogEveToServer(SCJsonBuilder *js, Flow *f)
     }
 }
 
-static void NetFlowLogEveToClient(SCJsonBuilder *js, Flow *f)
+static void NetFlowLogEveToClient(SCJsonBuilder *js, Flow *f, OutputJsonThreadCtx *json_output_ctx)
 {
-    SCJbSetString(js, "app_proto", AppProtoToString(f->alproto_tc ? f->alproto_tc : f->alproto));
+    if (json_output_ctx->ctx->cfg.eve_version < EVE_VERSION_GLOBAL_APP_PROTO) {
+        SCJbSetString(
+                js, "app_proto", AppProtoToString(f->alproto_tc ? f->alproto_tc : f->alproto));
+    } else {
+        EveAddAppProto(f, js);
+    }
 
     SCJbOpenObject(js, "netflow");
 
@@ -287,7 +297,7 @@ static int JsonNetFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
     SCJsonBuilder *jb = CreateEveHeaderFromNetFlow(f, 0);
     if (unlikely(jb == NULL))
         return TM_ECODE_OK;
-    NetFlowLogEveToServer(jb, f);
+    NetFlowLogEveToServer(jb, f, jhl);
     EveAddCommonOptions(&jhl->ctx->cfg, NULL, f, jb, LOG_DIR_FLOW_TOSERVER);
     OutputJsonBuilderBuffer(tv, NULL, f, jb, jhl);
     SCJbFree(jb);
@@ -297,7 +307,7 @@ static int JsonNetFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
         jb = CreateEveHeaderFromNetFlow(f, 1);
         if (unlikely(jb == NULL))
             return TM_ECODE_OK;
-        NetFlowLogEveToClient(jb, f);
+        NetFlowLogEveToClient(jb, f, jhl);
         EveAddCommonOptions(&jhl->ctx->cfg, NULL, f, jb, LOG_DIR_FLOW_TOCLIENT);
         OutputJsonBuilderBuffer(tv, NULL, f, jb, jhl);
         SCJbFree(jb);

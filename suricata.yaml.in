@@ -143,6 +143,7 @@ outputs:
       #metadata: no
       # Include suricata version. Default no.
       #suricata-version: yes
+      version: 2
 
       # include the name of the input pcap file in pcap file processing mode
       pcap-file: false

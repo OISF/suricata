@@ -410,6 +410,9 @@ void EveAddCommonOptions(const OutputJsonCommonSettings *cfg, const Packet *p, c
     if (cfg->include_community_id && f != NULL) {
         CreateEveCommunityFlowId(js, f, cfg->community_id_seed);
     }
+    if (cfg->eve_version >= EVE_MIN_LOG_VERSION) {
+        SCJbSetUint(js, "v", cfg->eve_version);
+    }
     if (f != NULL && f->tenant_id > 0) {
         SCJbSetUint(js, "tenant_id", f->tenant_id);
     }
@@ -831,6 +834,28 @@ static int CreateJSONEther(
     return 0;
 }
 
+void EveAddAppProto(const Flow *f, SCJsonBuilder *js)
+{
+    if (f == NULL) {
+        return;
+    }
+    if (f->alproto) {
+        SCJbSetString(js, "app_proto", AppProtoToString(f->alproto));
+    }
+    if (f->alproto_ts && f->alproto_ts != f->alproto) {
+        SCJbSetString(js, "app_proto_ts", AppProtoToString(f->alproto_ts));
+    }
+    if (f->alproto_tc && f->alproto_tc != f->alproto) {
+        SCJbSetString(js, "app_proto_tc", AppProtoToString(f->alproto_tc));
+    }
+    if (f->alproto_orig != f->alproto && f->alproto_orig != ALPROTO_UNKNOWN) {
+        SCJbSetString(js, "app_proto_orig", AppProtoToString(f->alproto_orig));
+    }
+    if (f->alproto_expect != f->alproto && f->alproto_expect != ALPROTO_UNKNOWN) {
+        SCJbSetString(js, "app_proto_expected", AppProtoToString(f->alproto_expect));
+    }
+}
+
 SCJsonBuilder *CreateEveHeader(const Packet *p, enum SCOutputJsonLogDirection dir,
         const char *event_type, JsonAddrInfo *addr, OutputJsonCtx *eve_ctx)
 {
@@ -847,6 +872,10 @@ SCJsonBuilder *CreateEveHeader(const Packet *p, enum SCOutputJsonLogDirection di
     SCJbSetString(js, "timestamp", timebuf);
 
     CreateEveFlowId(js, f);
+
+    if (eve_ctx != NULL && eve_ctx->cfg.eve_version >= EVE_VERSION_GLOBAL_APP_PROTO) {
+        EveAddAppProto(f, js);
+    }
 
     /* sensor id */
     if (sensor_id >= 0) {
@@ -1242,6 +1271,22 @@ OutputInitResult OutputJsonInitCtx(SCConfNode *conf)
             json_ctx->cfg.include_suricata_version = true;
         } else {
             json_ctx->cfg.include_suricata_version = false;
+        }
+        const char *eve_version = SCConfNodeLookupChildValue(conf, "version");
+        if (eve_version != NULL) {
+            if (StringParseUint16(&json_ctx->cfg.eve_version, 10, 0, eve_version) < 0) {
+                FatalError("Failed to initialize JSON output, "
+                           "invalid EVE version: %s",
+                        eve_version);
+            }
+            if (json_ctx->cfg.eve_version > EVE_MAX_VERSION) {
+                SCLogWarning("Configured EVE version %u is higher than "
+                             "maximum supported version %u, using max version.",
+                        json_ctx->cfg.eve_version, EVE_MAX_VERSION);
+                json_ctx->cfg.eve_version = EVE_MAX_VERSION;
+            }
+        } else {
+            json_ctx->cfg.eve_version = 1;
         }
 
         /* See if we want to enable the community id */
