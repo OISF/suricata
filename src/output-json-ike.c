@@ -66,7 +66,7 @@ bool EveIKEAddMetadata(const Flow *f, uint64_t tx_id, SCJsonBuilder *js)
 {
     IKEState *state = FlowGetAppState(f);
     if (state) {
-        IKETransaction *tx = AppLayerParserGetTx(f->proto, ALPROTO_IKE, state, tx_id);
+        void *tx = AppLayerParserGetTx(f->proto, ALPROTO_IKE, state, tx_id);
         if (tx) {
             return SCIkeLoggerLog(state, tx, LOG_IKE_EXTENDED, js);
         }
