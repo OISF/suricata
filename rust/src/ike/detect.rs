@@ -62,27 +62,20 @@ pub extern "C" fn SCIkeStateGetNonce(
     return 0;
 }
 
-#[no_mangle]
-pub extern "C" fn SCIkeStateGetKeyExchange(
-    tx: &IKETransaction, buffer: *mut *const u8, buffer_len: *mut u32,
-) -> u8 {
-    debug_validate_bug_on!(buffer.is_null() || buffer_len.is_null());
-
+unsafe extern "C" fn ike_tx_get_key_exchange(
+    tx: *const c_void, _flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> bool {
+    let tx = cast_pointer!(tx, IKETransaction);
     if tx.ike_version == 1 && !tx.hdr.ikev1_header.key_exchange.is_empty() {
         let p = &tx.hdr.ikev1_header.key_exchange;
-        unsafe {
-            *buffer = p.as_ptr();
-            *buffer_len = p.len() as u32;
-        }
-        return 1;
+        *buffer = p.as_ptr();
+        *buffer_len = p.len() as u32;
+        return true;
     }
 
-    unsafe {
-        *buffer = ptr::null();
-        *buffer_len = 0;
-    }
-
-    return 0;
+    *buffer = ptr::null();
+    *buffer_len = 0;
+    return false;
 }
 
 #[no_mangle]
@@ -341,6 +334,7 @@ unsafe extern "C" fn ike_detect_payload_len_free(_de: *mut DetectEngineCtx, ctx:
 
 static mut G_IKE_SPI_INITIATOR_BUFFER_ID: c_int = 0;
 static mut G_IKE_SPI_RESPONDER_BUFFER_ID: c_int = 0;
+static mut G_IKE_KEY_EXCHANGE_BUFFER_ID: c_int = 0;
 static mut G_IKE_EXCHTYPE_KW_ID: u16 = 0;
 static mut G_IKE_EXCHTYPE_BUFFER_ID: c_int = 0;
 static mut G_IKE_PAYLOAD_LEN_KW_ID: u16 = 0;
@@ -424,6 +418,21 @@ pub unsafe extern "C" fn SCDetectIkeRegister() {
         STREAM_TOCLIENT,
         Some(ike_tx_get_spi_responder),
     );
+
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("ike.key_exchange_payload"),
+        desc: String::from("sticky buffer to match on the IKE key_exchange_payload"),
+        url: String::from("/rules/ike-keywords.html#ike-key_exchange_payload"),
+        setup: ike_key_exchange_setup,
+    };
+    helper_keyword_register_sticky_buffer(&kw);
+    G_IKE_KEY_EXCHANGE_BUFFER_ID = SCDetectHelperBufferMpmRegister(
+        b"ike.key_exchange_payload\0".as_ptr() as *const libc::c_char,
+        b"ike key_exchange payload\0".as_ptr() as *const libc::c_char,
+        ALPROTO_IKE,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        Some(ike_tx_get_key_exchange),
+    );
 }
 
 unsafe extern "C" fn ike_spi_initiator_setup(
@@ -451,5 +460,17 @@ unsafe extern "C" fn ike_spi_responder_setup(
         return -1;
     }
 
+    return 0;
+}
+
+unsafe extern "C" fn ike_key_exchange_setup(
+    de_ctx: *mut DetectEngineCtx, s: *mut Signature, _str: *const c_char,
+) -> c_int {
+    if SCDetectBufferSetActiveList(de_ctx, s, G_IKE_KEY_EXCHANGE_BUFFER_ID) < 0 {
+        return -1;
+    }
+    if SCDetectSignatureSetAppProto(s, ALPROTO_IKE) < 0 {
+        return -1;
+    }
     return 0;
 }
