@@ -300,6 +300,8 @@ static int DetectnDPIProtocolSetup(DetectEngineCtx *de_ctx, Signature *s, const 
                 DETECT_SM_LIST_MATCH) == NULL) {
         goto error;
     }
+
+    s->flags |= SIG_FLAG_REQUIRE_FLOW;
     return 0;
 
 error:
@@ -434,6 +436,8 @@ static int DetectnDPIRiskSetup(DetectEngineCtx *de_ctx, Signature *s, const char
                 DETECT_SM_LIST_MATCH) == NULL) {
         goto error;
     }
+
+    s->flags |= SIG_FLAG_REQUIRE_FLOW;
     return 0;
 
 error:
