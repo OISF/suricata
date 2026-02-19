@@ -2,6 +2,7 @@ codecov:
   require_ci_to_pass: false
   notify:
     after_n_builds: 6
+  disable_default_path_fixes: true
 
 coverage:
   precision: 2
