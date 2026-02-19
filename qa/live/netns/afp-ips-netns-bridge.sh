@@ -132,7 +132,7 @@ ip netns exec $dutns ip link set ptp-$dutserverif up
 echo "* setup dut interfaces... done"
 
 # set first rule file
-cp .github/workflows/netns/drop-icmp.rules suricata.rules
+cp qa/live/netns/drop-icmp.rules suricata.rules
 RULES="suricata.rules"
 
 echo "* starting Suricata in the \"dut\" namespace..."

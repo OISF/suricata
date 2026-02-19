@@ -1,21 +1,23 @@
 #!/bin/bash
 
-# Script to test live IDS capabilities for PCAP. Starts a ping, starts suricata,
+# Script to test live IDS capabilities for AF_PACKET. Starts a ping, starts suricata,
 # checks stats and alerts. Then issues a reload with a new rule file, checks stats and
 # new alerts. Then shuts suricata down.
 
-# Call with following argument:
-# runmode string (single/autofp/workers)
+# Call with following arguments:
+# 1st: "2" or "3" to indicate the tpacket version.
+# 2nd: runmode string (single/autofp/workers)
 
 #set -e
 set -x
 
-if [ $# -ne "1" ]; then
-    echo "ERROR call with 1 args: runmode (single/autofp/workers)"
+if [ $# -ne "2" ]; then
+    echo "ERROR call with 2 args: tpacket version (2/3) and runmode (single/autofp/workers)"
     exit 1;
 fi
 
-RUNMODE=$1
+TPACKET=$1
+RUNMODE=$2
 
 # dump some info
 uname -a
@@ -34,7 +36,6 @@ fi
 
 RES=0
 
-export PYTHONPATH=python/
 # Get listen interface and "ping" target address
 IFACE=$(ip r|grep default|awk '{print $5}')
 echo $IFACE
@@ -45,12 +46,20 @@ ping $GW &
 PINGPID=$!
 
 # set first rule file
-cp .github/workflows/live/icmp.rules suricata.rules
+cp qa/live/icmp.rules suricata.rules
+
+if [ $TPACKET = "2" ]; then
+    V3=true
+else
+    V3=false
+fi
 
 # Start Suricata, SIGINT after 120 secords. Will close it earlier through
 # the unix socket.
 timeout --kill-after=240 --preserve-status 120 \
-    ./src/suricata -c suricata.yaml -l ./ --pcap=$IFACE --set "pcap.bpf-filter=icmp" -v --set default-rule-path=. --runmode=$RUNMODE &
+    ./src/suricata -c suricata.yaml -l ./ --af-packet=$IFACE -v \
+        --set af-packet.1.bpf-filter=icmp \
+        --set af-packet.1.tpacket-v3=$V3 --set default-rule-path=. --runmode=$RUNMODE &
 SURIPID=$!
 
 sleep 15
@@ -81,33 +90,10 @@ if [ $CHECK -ne 2 ]; then
     RES=1
 fi
 
-JSON=$(${SURICATASC} -c "dataset-add ipv6-list ip 192.168.1.1" /var/run/suricata/suricata-command.socket)
-echo $JSON
-if [ "$(echo $JSON | jq -r .message)" != "data added" ]; then
-    echo "ERROR unix socket dataset add failed"
-    RES=1
-fi
-
-# look it up in IPv4 in IPv6 notation
-JSON=$(${SURICATASC} -c "dataset-lookup ipv6-list ip ::ffff:c0a8:0101" /var/run/suricata/suricata-command.socket)
-echo $JSON
-if [ "$(echo $JSON | jq -r .message)" != "item found in set" ]; then
-    echo "ERROR unix socket dataset lookup failed"
-    RES=1
-fi
-
-# fail to add junk
-JSON=$(${SURICATASC} -c "dataset-add ipv6-list ip ::ffff:c0a8:0z0z" /var/run/suricata/suricata-command.socket)
-echo $JSON
-if [ "$(echo $JSON | jq -r .message)" != "failed to add data" ]; then
-    echo "ERROR unix socket dataset added junk"
-    RES=1
-fi
-
 echo "SURIPID $SURIPID PINGPID $PINGPID"
 
 # set second rule file for the reload
-cp .github/workflows/live/icmp2.rules suricata.rules
+cp qa/live/icmp2.rules suricata.rules
 
 # trigger the reload
 JSON=$(${SURICATASC} -c "iface-list" /var/run/suricata/suricata-command.socket)
@@ -124,7 +110,7 @@ ${SURICATASC} -c "reload-rules" /var/run/suricata/suricata-command.socket
 JSON=$(${SURICATASC} -c "iface-bypassed-stat" /var/run/suricata/suricata-command.socket)
 echo $JSON
 JSON=$(${SURICATASC} -c "capture-mode" /var/run/suricata/suricata-command.socket)
-if [ "$(echo $JSON | jq -r .message)" != "PCAP_DEV" ]; then
+if [ "$(echo $JSON | jq -r .message)" != "AF_PACKET_DEV" ]; then
     echo "ERROR unix socket capture mode check failed"
     RES=1
 fi

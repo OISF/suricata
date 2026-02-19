@@ -1869,12 +1869,12 @@ jobs:
           RUSTFLAGS: "-C instrument-coverage"
       # IDS config
       - run: |
-          ./.github/workflows/live/dpdk.sh "qa/live/dpdk/suricata-null-ids.yaml"
+          ./qa/live/dpdk.sh "qa/live/dpdk/suricata-null-ids.yaml"
         env:
           LLVM_PROFILE_FILE: "/tmp/dpdk-ids.profraw"
       # IPS config
       - run: |
-          ./.github/workflows/live/dpdk.sh ".github/workflows/dpdk/suricata-null-ips.yaml"
+          ./qa/live/dpdk.sh "qa/live/dpdk/suricata-null-ips.yaml"
         env:
           LLVM_PROFILE_FILE: "/tmp/dpdk-ips.profraw"
       # DPDK configuration checks
@@ -1883,32 +1883,32 @@ jobs:
           LLVM_PROFILE_FILE: "/tmp/dpdk-testsuite-%p.profraw"
       # AF_PACKET tests
       - run: |
-          ./.github/workflows/live/afp-ids.sh "2" "autofp"
+          ./qa/live/afp-ids.sh "2" "autofp"
         env:
           LLVM_PROFILE_FILE: "/tmp/afp2-ids-autofp.profraw"
       - run: |
-          ./.github/workflows/live/afp-ids.sh "2" "workers"
+          ./qa/live/afp-ids.sh "2" "workers"
         env:
           LLVM_PROFILE_FILE: "/tmp/afp2-ids-workers.profraw"
       - run: |
-          ./.github/workflows/live/afp-ids.sh "3" "autofp"
+          ./qa/live/afp-ids.sh "3" "autofp"
         env:
           LLVM_PROFILE_FILE: "/tmp/afp3-ids-autofp.profraw"
       - run: |
-          ./.github/workflows/live/afp-ids.sh "3" "workers"
+          ./qa/live/afp-ids.sh "3" "workers"
         env:
           LLVM_PROFILE_FILE: "/tmp/afp3-ids-workers.profraw"
       # PCAP
       - run: |
-          ./.github/workflows/live/pcap.sh "autofp"
+          ./qa/live/pcap.sh "autofp"
         env:
           LLVM_PROFILE_FILE: "/tmp/pcap-autofp.profraw"
       - run: |
-          ./.github/workflows/live/pcap.sh "single"
+          ./qa/live/pcap.sh "single"
         env:
           LLVM_PROFILE_FILE: "/tmp/pcap-single.profraw"
       - run: |
-          ./.github/workflows/live/multi-tenant.sh "autofp"
+          ./qa/live/multi-tenant.sh "autofp"
         env:
           LLVM_PROFILE_FILE: "/tmp/mt-autofp.profraw"
       - run: llvm-profdata-19 merge -o default.profdata $(find /tmp/ -name '*.profraw')
@@ -2117,37 +2117,37 @@ jobs:
           CXXFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0"
 
       - run: |
-          ./.github/workflows/netns/afp-ips-netns-bridge.sh "2" "workers" ".github/workflows/netns/ips-netns.yaml"
+          ./qa/live/netns/afp-ips-netns-bridge.sh "2" "workers" "qa/live/netns/ips-netns.yaml"
         env:
           LLVM_PROFILE_FILE: "/tmp/afp-ips.profraw"
       - run: llvm-profdata-19 merge -o afp-ips.profdata /tmp/afp-ips.profraw
 
       - run: |
-          ./.github/workflows/netns/afp-ips-netns-bridge.sh "2" "autofp" ".github/workflows/netns/ips-netns.yaml"
+          ./qa/live/netns/afp-ips-netns-bridge.sh "2" "autofp" "qa/live/netns/ips-netns.yaml"
         env:
           LLVM_PROFILE_FILE: "/tmp/afp-ips-autofp.profraw"
       - run: llvm-profdata-19 merge -o afp-ips-autofp.profdata /tmp/afp-ips-autofp.profraw
 
       - run: |
-          ./.github/workflows/netns/afp-ips-netns-bond-bridge.sh "2" "workers" ".github/workflows/netns/ips-netns-bond.yaml"
+          ./qa/live/netns/afp-ips-netns-bond-bridge.sh "2" "workers" "qa/live/netns/ips-netns-bond.yaml"
         env:
           LLVM_PROFILE_FILE: "/tmp/afp-ips-bond1.profraw"
       - run: llvm-profdata-19 merge -o afp-ips-bond1.profdata /tmp/afp-ips-bond1.profraw
 
       - run: |
-          ./.github/workflows/netns/afp-ips-netns-bond-bridge2.sh "2" "workers" ".github/workflows/netns/ips-netns-bond2.yaml"
+          ./qa/live/netns/afp-ips-netns-bond-bridge2.sh "2" "workers" "qa/live/netns/ips-netns-bond2.yaml"
         env:
           LLVM_PROFILE_FILE: "/tmp/afp-ips-bond2.profraw"
       - run: llvm-profdata-19 merge -o afp-ips-bond2.profdata /tmp/afp-ips-bond2.profraw
 
       - run: |
-          ./.github/workflows/netns/nfq-ips-netns-route.sh "autofp" ".github/workflows/netns/ips-netns.yaml"
+          ./qa/live/netns/nfq-ips-netns-route.sh "autofp" "qa/live/netns/ips-netns.yaml"
         env:
           LLVM_PROFILE_FILE: "/tmp/nfq-ips.profraw"
       - run: llvm-profdata-19 merge -o nfq-ips.profdata /tmp/nfq-ips.profraw
 
       - run: |
-          ./.github/workflows/netns/nfq-ips-netns-route.sh "workers" ".github/workflows/netns/ips-netns.yaml"
+          ./qa/live/netns/nfq-ips-netns-route.sh "workers" "qa/live/netns/ips-netns.yaml"
         env:
           LLVM_PROFILE_FILE: "/tmp/nfq-ips-workers.profraw"
       - run: llvm-profdata-19 merge -o nfq-ips-workers.profdata /tmp/nfq-ips-workers.profraw
@@ -2262,27 +2262,27 @@ jobs:
           CC: "clang-18"
       # IDS config
       - run: |
-          ./.github/workflows/live/dpdk.sh "qa/live/dpdk/suricata-null-ids.yaml"
+          ./qa/live/dpdk.sh "qa/live/dpdk/suricata-null-ids.yaml"
       # IPS config
       - run: |
-          ./.github/workflows/live/dpdk.sh ".github/workflows/dpdk/suricata-null-ips.yaml"
+          ./qa/live/dpdk.sh "qa/live/dpdk/suricata-null-ips.yaml"
       # DPDK configuration checks
       - run: ./qa/live/dpdk/dpdk-testsuite.sh
       # AF_PACKET tests
       - run: |
-          ./.github/workflows/live/afp-ids.sh "2" "autofp"
+          ./qa/live/afp-ids.sh "2" "autofp"
       - run: |
-          ./.github/workflows/live/afp-ids.sh "2" "workers"
+          ./qa/live/afp-ids.sh "2" "workers"
       - run: |
-          ./.github/workflows/live/afp-ids.sh "3" "autofp"
+          ./qa/live/afp-ids.sh "3" "autofp"
       - run: |
-          ./.github/workflows/live/afp-ids.sh "3" "workers"
+          ./qa/live/afp-ids.sh "3" "workers"
       - run: |
-          ./.github/workflows/live/pcap.sh "autofp"
+          ./qa/live/pcap.sh "autofp"
       - run: |
-          ./.github/workflows/live/pcap.sh "single"
+          ./qa/live/pcap.sh "single"
       - run: |
-          ./.github/workflows/live/multi-tenant.sh "autofp"
+          ./qa/live/multi-tenant.sh "autofp"
 
   ubuntu-24-04-cov-fuzz:
     name: Ubuntu 24.04 (fuzz corpus coverage)
@@ -2954,10 +2954,10 @@ jobs:
       - run: make check
       # IDS config
       - run: |
-          ./.github/workflows/live/dpdk.sh "qa/live/dpdk/suricata-null-ids.yaml"
+          ./qa/live/dpdk.sh "qa/live/dpdk/suricata-null-ids.yaml"
       # IPS config
       - run: |
-          ./.github/workflows/live/dpdk.sh ".github/workflows/dpdk/suricata-null-ips.yaml"
+          ./qa/live/dpdk.sh "qa/live/dpdk/suricata-null-ips.yaml"
       # DPDK configuration checks
       - run: ./qa/live/dpdk/dpdk-testsuite.sh
 
