@@ -121,6 +121,8 @@ static char *CraftPreformattedJSON(const DetectMetadata *head)
     if (cnt == 0)
         return NULL;
 
+    // a rule can not have that many metadata
+    DEBUG_VALIDATE_BUG_ON(cnt > DETECT_MAX_RULE_SIZE);
     const DetectMetadata *array[cnt];
     int i = 0;
     for (const DetectMetadata *m = head; m != NULL; m = m->next) {
