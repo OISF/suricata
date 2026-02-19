@@ -39,27 +39,20 @@ use suricata_sys::sys::{
     Signature,
 };
 
-#[no_mangle]
-pub extern "C" fn SCIkeStateGetNonce(
-    tx: &IKETransaction, buffer: *mut *const u8, buffer_len: *mut u32,
-) -> u8 {
-    debug_validate_bug_on!(buffer.is_null() || buffer_len.is_null());
-
+unsafe extern "C" fn ike_get_nonce_data(
+    tx: *const c_void, _flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> bool {
+    let tx = cast_pointer!(tx, IKETransaction);
     if tx.ike_version == 1 && !tx.hdr.ikev1_header.nonce.is_empty() {
         let p = &tx.hdr.ikev1_header.nonce;
-        unsafe {
-            *buffer = p.as_ptr();
-            *buffer_len = p.len() as u32;
-        }
-        return 1;
+        *buffer = p.as_ptr();
+        *buffer_len = p.len() as u32;
+        return true;
     }
 
-    unsafe {
-        *buffer = ptr::null();
-        *buffer_len = 0;
-    }
-
-    return 0;
+    *buffer = ptr::null();
+    *buffer_len = 0;
+    return false;
 }
 
 unsafe extern "C" fn ike_tx_get_key_exchange(
@@ -334,6 +327,18 @@ unsafe extern "C" fn ike_detect_payload_len_free(_de: *mut DetectEngineCtx, ctx:
     SCDetectU32Free(ctx);
 }
 
+unsafe extern "C" fn ike_nonce_payload_setup(
+    de_ctx: *mut DetectEngineCtx, s: *mut Signature, _str: *const c_char,
+) -> c_int {
+    if SCDetectBufferSetActiveList(de_ctx, s, G_IKE_NONCE_PAYLOAD_BUFFER_ID) < 0 {
+        return -1;
+    }
+    if SCDetectSignatureSetAppProto(s, ALPROTO_IKE) < 0 {
+        return -1;
+    }
+    return 0;
+}
+
 static mut G_IKE_SPI_INITIATOR_BUFFER_ID: c_int = 0;
 static mut G_IKE_SPI_RESPONDER_BUFFER_ID: c_int = 0;
 static mut G_IKE_KEY_EXCHANGE_BUFFER_ID: c_int = 0;
@@ -341,9 +346,27 @@ static mut G_IKE_EXCHTYPE_KW_ID: u16 = 0;
 static mut G_IKE_EXCHTYPE_BUFFER_ID: c_int = 0;
 static mut G_IKE_PAYLOAD_LEN_KW_ID: u16 = 0;
 static mut G_IKE_PAYLOAD_LEN_BUFFER_ID: c_int = 0;
+static mut G_IKE_NONCE_PAYLOAD_BUFFER_ID: c_int = 0;
 
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectIkeRegister() {
+    // Register sticky buffer for ike.nonce_payload
+    let kw_nonce = SigTableElmtStickyBuffer {
+        name: String::from("ike.nonce_payload"),
+        desc: String::from("sticky buffer to match on the IKE nonce_payload"),
+        url: String::from("/rules/ike-keywords.html#ike-nonce_payload"),
+        setup: ike_nonce_payload_setup,
+    };
+    helper_keyword_register_sticky_buffer(&kw_nonce);
+
+    // Register buffer for both directions
+    G_IKE_NONCE_PAYLOAD_BUFFER_ID = SCDetectHelperBufferMpmRegister(
+        b"ike.nonce_payload\0".as_ptr() as *const libc::c_char,
+        b"ike nonce payload\0".as_ptr() as *const libc::c_char,
+        ALPROTO_IKE,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        Some(ike_get_nonce_data),
+    );
     // Register ike.nonce_payload_length keyword
     let kw = SCSigTableAppLiteElmt {
         name: b"ike.nonce_payload_length\0".as_ptr() as *const libc::c_char,

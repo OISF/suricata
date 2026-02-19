@@ -283,7 +283,6 @@ enum DetectKeywordId {
 
     DETECT_IKE_VENDOR,
     DETECT_IKE_CHOSEN_SA,
-    DETECT_IKE_NONCE,
 
     DETECT_JA4_HASH,
 
