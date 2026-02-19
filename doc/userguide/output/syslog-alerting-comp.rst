@@ -5,6 +5,10 @@ Suricata can alert via syslog which is a very handy feature for central log coll
 
 However, there are different syslog daemons and there can be parsing issues with the syslog format a SIEM expects and what syslog format Suricata sends. The syslog format from Suricata is dependent on the syslog daemon running on the Suricata sensor but often the format it sends is not the format the SIEM expects and cannot parse it properly.
 
+.. attention:: The syslog output is deprecated in Suricata 8.0 and
+               will be removed in Suricata 9.0. Please migrate to the
+               ``eve`` output which has the ability to send to syslog.
+
 Popular syslog daemons
 ----------------------
 
