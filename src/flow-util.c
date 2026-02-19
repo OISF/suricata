@@ -45,6 +45,7 @@
 #include "decode-icmpv4.h"
 
 #include "util-validate.h"
+#include "source-pcap-file-helper.h"
 
 /** \brief allocate a flow
  *
@@ -213,6 +214,11 @@ void FlowInit(ThreadVars *tv, Flow *f, const Packet *p)
     }
 
     SCFlowRunInitCallbacks(tv, f, p);
+
+    if (p->pcap_v.pfv != NULL) {
+        f->pcap_file_vars = p->pcap_v.pfv;
+        PcapFileRef(f->pcap_file_vars);
+    }
 
     SCReturn;
 }

@@ -490,6 +490,9 @@ typedef struct Flow_
     uint64_t todstbytecnt;
     uint64_t tosrcbytecnt;
 
+    /** pcap file vars, used for associating flows with their source pcap file */
+    void *pcap_file_vars;
+
     Storage storage[];
 } Flow;
 

@@ -46,6 +46,9 @@
 #include "flow-bypass.h"
 #include "flow-spare-pool.h"
 #include "flow-callbacks.h"
+#include "source-pcap-file-helper.h"
+#include "flow-timeout.h"
+#include "tmqh-packetpool.h"
 
 #include "stream-tcp-private.h"
 
@@ -1131,6 +1134,11 @@ int FlowClearMemory(Flow* f, uint8_t proto_map)
         flow_freefuncs[proto_map].Freefunc(f->protoctx);
     }
 
+    if (f->pcap_file_vars != NULL) {
+        PcapFileUnref(f->pcap_file_vars);
+        f->pcap_file_vars = NULL;
+    }
+
     FlowFreeStorage(f);
 
     FLOW_RECYCLE(f);
@@ -1461,6 +1469,124 @@ static int FlowTest09 (void)
     return result;
 }
 
+/**
+ * \test Verify that pcap_file_vars remains NULL when a non-pcap
+ *       packet creates a flow (no pfv on the packet).
+ */
+static int FlowTest10(void)
+{
+    FlowInitConfig(FLOW_QUIET);
+
+    Packet *p = UTHBuildPacket((uint8_t *)"a", 1, IPPROTO_TCP);
+    FAIL_IF_NULL(p);
+
+    Flow *f = FlowAlloc();
+    FAIL_IF_NULL(f);
+
+    ThreadVars tv;
+    memset(&tv, 0, sizeof(tv));
+    FlowInit(&tv, f, p);
+
+    /* pfv must stay NULL for non-pcap packets */
+    FAIL_IF(f->pcap_file_vars != NULL);
+
+    FlowClearMemory(f, f->protomap);
+    FlowFree(f);
+    UTHFreePacket(p);
+    FlowShutdown();
+    PASS;
+}
+
+/**
+ * \test Verify that FlowInit increments the pfv ref_cnt and
+ *       FlowClearMemory decrements it correctly.
+ */
+static int FlowTest11(void)
+{
+    FlowInitConfig(FLOW_QUIET);
+
+    PcapFileFileVars pfv;
+    memset(&pfv, 0, sizeof(pfv));
+    SC_ATOMIC_INIT(pfv.ref_cnt);
+    SC_ATOMIC_SET(pfv.ref_cnt, 1);
+    pfv.cleanup_requested = false;
+
+    Packet *p = UTHBuildPacket((uint8_t *)"a", 1, IPPROTO_TCP);
+    FAIL_IF_NULL(p);
+    p->pcap_v.pfv = &pfv;
+
+    Flow *f = FlowAlloc();
+    FAIL_IF_NULL(f);
+
+    ThreadVars tv;
+    memset(&tv, 0, sizeof(tv));
+    FlowInit(&tv, f, p);
+
+    /* FlowInit should have incremented ref_cnt from 1 to 2 */
+    FAIL_IF_NOT(SC_ATOMIC_GET(pfv.ref_cnt) == 2);
+    FAIL_IF_NOT(f->pcap_file_vars == &pfv);
+
+    /* FlowClearMemory should decrement ref_cnt from 2 to 1 */
+    FlowClearMemory(f, f->protomap);
+    FlowFree(f);
+
+    FAIL_IF_NOT(SC_ATOMIC_GET(pfv.ref_cnt) == 1);
+
+    p->pcap_v.pfv = NULL;
+    UTHFreePacket(p);
+    FlowShutdown();
+    PASS;
+}
+
+/**
+ * \test Verify that FlowPseudoPacketGet assigns pfv to the pseudo-packet
+ *       without adding an extra ref_cnt (the flow's existing reference is
+ *       sufficient to keep pfv alive for the packet's inline lifetime).
+ */
+static int FlowTest12(void)
+{
+    FlowInitConfig(FLOW_QUIET);
+    PacketPoolInit();
+
+    PcapFileFileVars pfv;
+    memset(&pfv, 0, sizeof(pfv));
+    SC_ATOMIC_INIT(pfv.ref_cnt);
+    SC_ATOMIC_SET(pfv.ref_cnt, 1);
+    pfv.cleanup_requested = false;
+
+    Flow *f = FlowAlloc();
+    FAIL_IF_NULL(f);
+    f->flags |= FLOW_IPV4; // Ensure flow is IPv4 to avoid crash in FlowPseudoPacketSetup
+    f->src.addr_data32[0] = 0x01020304;
+    f->dst.addr_data32[0] = 0x05060708;
+
+    f->pcap_file_vars = &pfv;
+    PcapFileRef(&pfv); /* simulate flow's own ref; ref_cnt now 2 */
+
+    TcpSession ssn;
+    memset(&ssn, 0, sizeof(ssn));
+
+    Packet *p = FlowPseudoPacketGet(0, f, &ssn);
+    FAIL_IF_NULL(p);
+
+    /* FlowPseudoPacketGet must set pfv but must NOT add an extra ref:
+     * the flow already holds one, and FlowFinish uses PacketPoolReturnPacket
+     * which never calls p->ReleasePacket, so adding a ref here would leak. */
+    FAIL_IF_NOT(SC_ATOMIC_GET(pfv.ref_cnt) == 2);
+    FAIL_IF_NOT(p->pcap_v.pfv == &pfv);
+
+    /* Return packet to pool (as FlowFinish does); ref_cnt must stay at 2. */
+    PacketPoolReturnPacket(p);
+
+    FAIL_IF_NOT(SC_ATOMIC_GET(pfv.ref_cnt) == 2);
+
+    FlowClearMemory(f, f->protomap);
+    FlowFree(f);
+    PacketPoolDestroy();
+    FlowShutdown();
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 /**
@@ -1478,7 +1604,9 @@ void FlowRegisterTests (void)
                    FlowTest08);
     UtRegisterTest("FlowTest09 -- Test flow Allocations when it reach memcap",
                    FlowTest09);
-
+    UtRegisterTest("FlowTest10 -- pcap_file_vars NULL on non-pcap packet", FlowTest10);
+    UtRegisterTest("FlowTest11 -- pcap_file_vars refcounting", FlowTest11);
+    UtRegisterTest("FlowTest12 -- pcap_file_vars pseudo packet refcounting", FlowTest12);
     RegisterFlowStorageTests();
 #endif /* UNITTESTS */
 }

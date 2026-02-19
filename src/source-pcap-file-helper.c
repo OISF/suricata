@@ -305,6 +305,9 @@ TmEcode InitPcapFile(PcapFileFileVars *pfv)
 
     pfv->cleanup_requested = false;
 
+    /* Cache delete_mode so deferred cleanup can read it after shared is freed. */
+    pfv->delete_mode = (pfv->shared != NULL) ? pfv->shared->delete_mode : PCAP_FILE_DELETE_NONE;
+
     pfv->datalink = pcap_datalink(pfv->pcap_handle);
     SCLogDebug("datalink %" PRId32 "", pfv->datalink);
     DatalinkSetGlobalType(pfv->datalink);
@@ -357,15 +360,18 @@ TmEcode ValidateLinkType(int datalink, DecoderFunc *DecoderFn)
 
 bool PcapFileShouldDeletePcapFile(PcapFileFileVars *pfv)
 {
-    if (pfv == NULL || pfv->shared == NULL) {
+    if (pfv == NULL) {
         return false;
     }
 
-    if (pfv->shared->delete_mode == PCAP_FILE_DELETE_NONE) {
+    /* Use the cached delete_mode: pfv->shared may already be freed when this
+     * is called from the deferred-cleanup path (after ReceivePcapFileThreadDeinit
+     * frees ptv which contains shared). */
+    if (pfv->delete_mode == PCAP_FILE_DELETE_NONE) {
         return false;
     }
 
-    if (pfv->shared->delete_mode == PCAP_FILE_DELETE_ALWAYS) {
+    if (pfv->delete_mode == PCAP_FILE_DELETE_ALWAYS) {
         return true;
     }
 
@@ -457,6 +463,23 @@ PcapFileDeleteMode PcapFileParseDeleteMode(void)
     return delete_mode;
 }
 
+void PcapFileRef(PcapFileFileVars *pfv)
+{
+    if (pfv != NULL) {
+        SC_ATOMIC_ADD(pfv->ref_cnt, 1);
+    }
+}
+
+void PcapFileUnref(PcapFileFileVars *pfv)
+{
+    if (pfv != NULL) {
+        uint32_t prev = SC_ATOMIC_SUB(pfv->ref_cnt, 1);
+        if (prev == 1 && pfv->cleanup_requested) {
+            CleanupPcapFileFileVars(pfv);
+        }
+    }
+}
+
 #ifdef UNITTESTS
 #include "util-unittest-helper.h"
 /**
@@ -472,6 +495,7 @@ static int SourcePcapFileHelperTest01(void)
     PcapFileFileVars pfv;
     memset(&pfv, 0, sizeof(pfv));
     pfv.shared = &shared;
+    pfv.delete_mode = shared.delete_mode; /* cache, as InitPcapFile would */
     pfv.filename = SCStrdup("test.pcap");
     SC_ATOMIC_INIT(pfv.alerts_count);
     SC_ATOMIC_SET(pfv.alerts_count, 0);
@@ -482,6 +506,7 @@ static int SourcePcapFileHelperTest01(void)
 
     /* Test case 2: Non-alerts mode with no alerts */
     shared.delete_mode = PCAP_FILE_DELETE_NON_ALERTS;
+    pfv.delete_mode = PCAP_FILE_DELETE_NON_ALERTS;
     int result2 = PcapFileShouldDeletePcapFile(&pfv);
     FAIL_IF_NOT(result2);
 
@@ -492,11 +517,13 @@ static int SourcePcapFileHelperTest01(void)
 
     /* Test case 4: Always delete mode with alerts */
     shared.delete_mode = PCAP_FILE_DELETE_ALWAYS;
+    pfv.delete_mode = PCAP_FILE_DELETE_ALWAYS;
     int result4 = PcapFileShouldDeletePcapFile(&pfv);
     FAIL_IF_NOT(result4);
 
     /* Test case 5: No delete mode */
     shared.delete_mode = PCAP_FILE_DELETE_NONE;
+    pfv.delete_mode = PCAP_FILE_DELETE_NONE;
     int result5 = PcapFileShouldDeletePcapFile(&pfv);
     FAIL_IF(result5);
 
@@ -687,6 +714,7 @@ static int SourcePcapFileHelperTest07(void)
     PcapFileFileVars pfv;
     memset(&pfv, 0, sizeof(pfv));
     pfv.shared = &shared;
+    pfv.delete_mode = PCAP_FILE_DELETE_NON_ALERTS; /* as InitPcapFile would cache */
     pfv.filename = SCStrdup("test.pcap");
     SC_ATOMIC_INIT(pfv.alerts_count);
     SC_ATOMIC_SET(pfv.alerts_count, UINT64_MAX); /* max value */
@@ -772,6 +800,7 @@ static int SourcePcapFileHelperTest09(void)
     PcapFileFileVars *pfv = SCCalloc(1, sizeof(*pfv));
     FAIL_IF_NULL(pfv);
     pfv->shared = shared;
+    pfv->delete_mode = PCAP_FILE_DELETE_NON_ALERTS; /* as InitPcapFile would cache */
     pfv->filename = SCStrdup("unit_del_test.pcap");
     FAIL_IF_NULL(pfv->filename);
 
@@ -819,6 +848,7 @@ static int SourcePcapFileHelperTest10(void)
     PcapFileFileVars *pfv1 = SCCalloc(1, sizeof(*pfv1));
     FAIL_IF_NULL(pfv1);
     pfv1->shared = shared1;
+    pfv1->delete_mode = PCAP_FILE_DELETE_ALWAYS; /* as InitPcapFile would cache */
     pfv1->filename = SCStrdup(tmpname);
     FAIL_IF_NULL(pfv1->filename);
 
@@ -851,6 +881,7 @@ static int SourcePcapFileHelperTest10(void)
     PcapFileFileVars *pfv2 = SCCalloc(1, sizeof(*pfv2));
     FAIL_IF_NULL(pfv2);
     pfv2->shared = shared2;
+    pfv2->delete_mode = PCAP_FILE_DELETE_ALWAYS; /* as InitPcapFile would cache */
     pfv2->filename = SCStrdup(tmpname);
     FAIL_IF_NULL(pfv2->filename);
 
@@ -1017,6 +1048,97 @@ static int SourcePcapFileHelperTest15(void)
 }
 
 /**
+ * \test Verify that PcapFileShouldDeletePcapFile uses the cached pfv->delete_mode
+ *       and does not touch pfv->shared, which may be NULL (freed) in the deferred
+ *       cleanup path (Bug 2 regression test).
+ */
+static int SourcePcapFileHelperTest18(void)
+{
+    /* ALWAYS: shared freed (NULL) but delete_mode cached -> must delete */
+    PcapFileFileVars pfv;
+    memset(&pfv, 0, sizeof(pfv));
+    pfv.delete_mode = PCAP_FILE_DELETE_ALWAYS;
+    pfv.shared = NULL; /* simulates ptv freed by ReceivePcapFileThreadDeinit */
+    SC_ATOMIC_INIT(pfv.alerts_count);
+    SC_ATOMIC_SET(pfv.alerts_count, 0);
+
+    FAIL_IF_NOT(PcapFileShouldDeletePcapFile(&pfv));
+
+    /* NON_ALERTS, no alerts: shared freed -> must delete */
+    pfv.delete_mode = PCAP_FILE_DELETE_NON_ALERTS;
+    FAIL_IF_NOT(PcapFileShouldDeletePcapFile(&pfv));
+
+    /* NON_ALERTS, with alerts: shared freed -> must NOT delete */
+    SC_ATOMIC_ADD(pfv.alerts_count, 1);
+    FAIL_IF(PcapFileShouldDeletePcapFile(&pfv));
+
+    /* NONE: shared freed -> must NOT delete */
+    pfv.delete_mode = PCAP_FILE_DELETE_NONE;
+    SC_ATOMIC_SET(pfv.alerts_count, 0);
+    FAIL_IF(PcapFileShouldDeletePcapFile(&pfv));
+
+    PASS;
+}
+
+/**
+ * \test Verify the full deferred-cleanup-with-freed-shared scenario (Bug 2).
+ *
+ *       Timeline mimicked:
+ *       1. pfv set up, delete_mode cached as NON_ALERTS, no alerts.
+ *       2. CleanupPcapFileFileVars called while ref_cnt > 0 -> deferred.
+ *       3. The "shared" struct is freed (ReceivePcapFileThreadDeinit frees ptv).
+ *       4. Last reference released (PcapFileUnref from FlowClearMemory) ->
+ *          final cleanup fires using only pfv->delete_mode -> file deleted.
+ */
+static int SourcePcapFileHelperTest19(void)
+{
+    const char *tmpname = "suri_ut_deferred_no_shared.pcap";
+    const uint8_t dummy[] = { 0x00 };
+    int rc = TestHelperBufferToFile(tmpname, dummy, sizeof(dummy));
+    FAIL_IF_NOT(rc >= 0);
+
+    /* Allocate shared separately so we can free it independently of pfv. */
+    PcapFileSharedVars *shared = SCCalloc(1, sizeof(*shared));
+    FAIL_IF_NULL(shared);
+    shared->delete_mode = PCAP_FILE_DELETE_NON_ALERTS;
+
+    PcapFileFileVars *pfv = SCCalloc(1, sizeof(*pfv));
+    FAIL_IF_NULL(pfv);
+    pfv->shared = shared;
+    pfv->delete_mode = PCAP_FILE_DELETE_NON_ALERTS; /* cached as InitPcapFile does */
+    pfv->filename = SCStrdup(tmpname);
+    FAIL_IF_NULL(pfv->filename);
+    pfv->pcap_handle = pcap_open_dead(DLT_EN10MB, 65535);
+    FAIL_IF_NULL(pfv->pcap_handle);
+    SC_ATOMIC_INIT(pfv->alerts_count);
+    SC_ATOMIC_SET(pfv->alerts_count, 0);
+    SC_ATOMIC_INIT(pfv->ref_cnt);
+    SC_ATOMIC_SET(pfv->ref_cnt, 1); /* flow holds a reference */
+    pfv->cleanup_requested = false;
+
+    /* Step 2: thread deinit triggers cleanup while flow ref is still active. */
+    CleanupPcapFileFileVars(pfv);
+    FAIL_IF_NOT(pfv->cleanup_requested); /* must be deferred */
+
+    /* Step 3: simulate ptv freed – pfv->shared is now a dangling pointer.
+     * We free it and NULL it out; the fix must not read pfv->shared below. */
+    SCFree(shared);
+    pfv->shared = NULL;
+
+    /* Step 4: flow releases its reference -> triggers final cleanup.
+     * PcapFileShouldDeletePcapFile must use pfv->delete_mode, not pfv->shared. */
+    PcapFileUnref(pfv); /* prev==1, cleanup_requested==true -> CleanupPcapFileFileVars */
+
+    /* File must be deleted (NON_ALERTS mode, zero alerts). */
+    FILE *f = fopen(tmpname, "rb");
+    FAIL_IF_NOT_NULL(f);
+    if (f != NULL)
+        fclose(f);
+
+    PASS;
+}
+
+/**
  * \brief Register unit tests for pcap file helper
  */
 void SourcePcapFileHelperRegisterTests(void)
@@ -1036,5 +1158,7 @@ void SourcePcapFileHelperRegisterTests(void)
     UtRegisterTest("SourcePcapFileHelperTest13", SourcePcapFileHelperTest13);
     UtRegisterTest("SourcePcapFileHelperTest14", SourcePcapFileHelperTest14);
     UtRegisterTest("SourcePcapFileHelperTest15", SourcePcapFileHelperTest15);
+    UtRegisterTest("SourcePcapFileHelperTest18", SourcePcapFileHelperTest18);
+    UtRegisterTest("SourcePcapFileHelperTest19", SourcePcapFileHelperTest19);
 }
 #endif /* UNITTESTS */

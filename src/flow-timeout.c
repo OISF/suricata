@@ -42,6 +42,7 @@
 #include "flow-timeout.h"
 #include "pkt-var.h"
 #include "host.h"
+#include "source-pcap-file-helper.h"
 
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
@@ -96,6 +97,16 @@ static inline Packet *FlowPseudoPacketSetup(
 
     if (f->flags & FLOW_NOPAYLOAD_INSPECTION) {
         DecodeSetNoPayloadInspectionFlag(p);
+    }
+
+    if (f->pcap_file_vars != NULL) {
+        /* Assign pfv for filename tracking. No extra PcapFileRef here: the
+         * flow already holds a reference (from FlowInit) that keeps pfv alive
+         * for the entire duration of FlowFinish, which completes before
+         * FlowClearMemory releases the flow's reference.  Using
+         * PacketPoolReturnPacket directly (as FlowFinish does) would skip
+         * p->ReleasePacket anyway, so adding a ref here just leaks ref_cnt. */
+        p->pcap_v.pfv = f->pcap_file_vars;
     }
 
     if (direction == 0)
