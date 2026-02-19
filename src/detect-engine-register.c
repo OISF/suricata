@@ -233,7 +233,6 @@
 #include "detect-dnp3.h"
 #include "detect-ike-vendor.h"
 #include "detect-ike-chosen-sa.h"
-#include "detect-ike-nonce-payload.h"
 #include "detect-vlan.h"
 #include "detect-email.h"
 
@@ -587,7 +586,6 @@ void SigTableSetup(void)
 
     DetectIkeVendorRegister();
     DetectIkeChosenSaRegister();
-    DetectIkeNonceRegister();
 
     DetectTlsSniRegister();
     DetectTlsIssuerRegister();
