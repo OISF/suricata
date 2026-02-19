@@ -48,6 +48,7 @@ Match on an attribute value of the chosen Security Association (SA) by the Respo
 IKEv2 supports ``alg_enc``, ``alg_auth``, ``alg_prf`` and ``alg_dh``.
 
 If there is more than one chosen SA the event ``MultipleServerProposal`` is set. The attributes of the first SA are used for this keyword.
+You can also use other modes than equality, as in :ref:`integer keywords <rules-integer-keywords>`.
 
 
 Examples::
