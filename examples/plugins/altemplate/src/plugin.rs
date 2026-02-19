@@ -9,7 +9,7 @@ use suricata_sys::sys::{
 };
 
 extern "C" fn altemplate_plugin_init() {
-    suricata::plugin::init();
+    suricata_ffi::plugin::init();
     SCLogNotice!("Initializing altemplate plugin");
     let plugin = SCAppLayerPlugin {
         name: b"altemplate\0".as_ptr() as *const libc::c_char,
