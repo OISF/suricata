@@ -20,9 +20,13 @@
 use super::ike::ALPROTO_IKE;
 use super::ipsec_parser::IkeV2Transform;
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
-use crate::detect::uint::{detect_match_uint, DetectUintData, SCDetectU8Free, SCDetectU8Parse};
+use crate::detect::uint::{
+    detect_match_uint, DetectUintData, SCDetectU32Free, SCDetectU32Parse, SCDetectU8Free,
+    SCDetectU8Parse,
+};
 use crate::detect::{
-    helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer, SIGMATCH_INFO_UINT8,
+    helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer, SIGMATCH_INFO_UINT32,
+    SIGMATCH_INFO_UINT8,
 };
 use crate::ike::ike::*;
 use std::ffi::CStr;
@@ -31,7 +35,8 @@ use std::ptr;
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, SCDetectBufferSetActiveList,
     SCDetectHelperBufferMpmRegister, SCDetectHelperBufferRegister, SCDetectHelperKeywordRegister,
-    SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList, SCSigTableAppLiteElmt, Signature,
+    SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList, SCSigTableAppLiteElmt, SigMatchCtx,
+    Signature,
 };
 
 #[no_mangle]
@@ -170,21 +175,6 @@ pub extern "C" fn SCIkeStateGetSaAttribute(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCIkeStateGetKeyExchangePayloadLength(
-    tx: &IKETransaction, value: *mut u32,
-) -> u8 {
-    debug_validate_bug_on!(value.is_null());
-
-    if tx.ike_version == 1 && !tx.hdr.ikev1_header.key_exchange.is_empty() {
-        *value = tx.hdr.ikev1_header.key_exchange.len() as u32;
-        return 1;
-    }
-
-    *value = 0;
-    return 0;
-}
-
-#[no_mangle]
 pub unsafe extern "C" fn SCIkeStateGetNoncePayloadLength(
     tx: &IKETransaction, value: *mut u32,
 ) -> u8 {
@@ -231,7 +221,7 @@ unsafe extern "C" fn ike_detect_exchtype_setup(
         de,
         s,
         G_IKE_EXCHTYPE_KW_ID,
-        ctx as *mut suricata_sys::sys::SigMatchCtx,
+        ctx as *mut SigMatchCtx,
         G_IKE_EXCHTYPE_BUFFER_ID,
     )
     .is_null()
@@ -244,7 +234,7 @@ unsafe extern "C" fn ike_detect_exchtype_setup(
 
 unsafe extern "C" fn ike_detect_exchtype_match(
     _de: *mut DetectEngineThreadCtx, _f: *mut crate::flow::Flow, _flags: u8, _state: *mut c_void,
-    tx: *mut c_void, _sig: *const Signature, ctx: *const suricata_sys::sys::SigMatchCtx,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, IKETransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u8>);
@@ -273,14 +263,59 @@ unsafe extern "C" fn ike_detect_exchtype_free(_de: *mut DetectEngineCtx, ctx: *m
     SCDetectU8Free(ctx);
 }
 
+unsafe extern "C" fn ike_detect_payload_len_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_IKE) != 0 {
+        return -1;
+    }
+    let ctx = SCDetectU32Parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_IKE_PAYLOAD_LEN_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_IKE_PAYLOAD_LEN_BUFFER_ID,
+    )
+    .is_null()
+    {
+        ike_detect_payload_len_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn ike_detect_payload_len_match(
+    _de: *mut DetectEngineThreadCtx, _f: *mut crate::flow::Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
+) -> c_int {
+    let tx = cast_pointer!(tx, IKETransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u32>);
+    if tx.ike_version == 1 && !tx.hdr.ikev1_header.key_exchange.is_empty() {
+        if detect_match_uint(ctx, tx.hdr.ikev1_header.key_exchange.len() as u32) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+unsafe extern "C" fn ike_detect_payload_len_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
+    let ctx = cast_pointer!(ctx, DetectUintData<u32>);
+    SCDetectU32Free(ctx);
+}
+
 static mut G_IKE_SPI_INITIATOR_BUFFER_ID: c_int = 0;
 static mut G_IKE_SPI_RESPONDER_BUFFER_ID: c_int = 0;
 static mut G_IKE_EXCHTYPE_KW_ID: u16 = 0;
 static mut G_IKE_EXCHTYPE_BUFFER_ID: c_int = 0;
+static mut G_IKE_PAYLOAD_LEN_KW_ID: u16 = 0;
+static mut G_IKE_PAYLOAD_LEN_BUFFER_ID: c_int = 0;
 
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectIkeRegister() {
-    // Inline registration for ike.exchtype keyword
     let kw = SCSigTableAppLiteElmt {
         name: b"ike.exchtype\0".as_ptr() as *const libc::c_char,
         desc: b"match IKE exchange type\0".as_ptr() as *const libc::c_char,
@@ -293,6 +328,22 @@ pub unsafe extern "C" fn SCDetectIkeRegister() {
     G_IKE_EXCHTYPE_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_IKE_EXCHTYPE_BUFFER_ID = SCDetectHelperBufferRegister(
         b"ike.exchtype\0".as_ptr() as *const libc::c_char,
+        ALPROTO_IKE,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+    );
+    let kw = SCSigTableAppLiteElmt {
+        name: b"ike.key_exchange_payload_length\0".as_ptr() as *const libc::c_char,
+        desc: b"match IKE key exchange payload length\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/ike-keywords.html#ike-key-exchange-payload-length\0".as_ptr()
+            as *const libc::c_char,
+        AppLayerTxMatch: Some(ike_detect_payload_len_match),
+        Setup: Some(ike_detect_payload_len_setup),
+        Free: Some(ike_detect_payload_len_free),
+        flags: SIGMATCH_INFO_UINT32,
+    };
+    G_IKE_PAYLOAD_LEN_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    G_IKE_PAYLOAD_LEN_BUFFER_ID = SCDetectHelperBufferRegister(
+        b"ike.key_exchange_payload_length\0".as_ptr() as *const libc::c_char,
         ALPROTO_IKE,
         STREAM_TOSERVER | STREAM_TOCLIENT,
     );
