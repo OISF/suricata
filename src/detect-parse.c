@@ -1889,6 +1889,7 @@ static int SigParse(DetectEngineCtx *de_ctx, Signature *s, const char *sigstr,
     /* we can have no options, so make sure we have them */
     if (strlen(parser->opts) > 0) {
         size_t buffer_size = strlen(parser->opts) + 1;
+        DEBUG_VALIDATE_BUG_ON(buffer_size > DETECT_MAX_RULE_SIZE);
         char input[buffer_size];
         char output[buffer_size];
         memset(input, 0x00, buffer_size);
