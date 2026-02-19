@@ -17,12 +17,18 @@
 
 // Author: Frank Honza <frank.honza@dcso.de>
 
+use super::ike::ALPROTO_IKE;
 use super::ipsec_parser::IkeV2Transform;
+use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
+use crate::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
 use crate::ike::ike::*;
 use std::ffi::CStr;
-use std::os::raw::c_void;
+use std::os::raw::{c_char, c_int, c_void};
 use std::ptr;
-use suricata_sys::sys::DetectEngineThreadCtx;
+use suricata_sys::sys::{
+    DetectEngineCtx, DetectEngineThreadCtx, SCDetectBufferSetActiveList,
+    SCDetectHelperBufferMpmRegister, SCDetectSignatureSetAppProto, Signature,
+};
 
 #[no_mangle]
 pub extern "C" fn SCIkeStateGetExchType(tx: &IKETransaction, exch_type: *mut u8) -> u8 {
@@ -43,32 +49,6 @@ pub extern "C" fn SCIkeStateGetExchType(tx: &IKETransaction, exch_type: *mut u8)
     }
 
     return 0;
-}
-
-#[no_mangle]
-pub extern "C" fn SCIkeStateGetSpiInitiator(
-    tx: &IKETransaction, buffer: *mut *const u8, buffer_len: *mut u32,
-) -> u8 {
-    debug_validate_bug_on!(buffer.is_null() || buffer_len.is_null());
-
-    unsafe {
-        *buffer = tx.hdr.spi_initiator.as_ptr();
-        *buffer_len = tx.hdr.spi_initiator.len() as u32;
-    }
-    return 1;
-}
-
-#[no_mangle]
-pub extern "C" fn SCIkeStateGetSpiResponder(
-    tx: &IKETransaction, buffer: *mut *const u8, buffer_len: *mut u32,
-) -> u8 {
-    debug_validate_bug_on!(buffer.is_null() || buffer_len.is_null());
-
-    unsafe {
-        *buffer = tx.hdr.spi_responder.as_ptr();
-        *buffer_len = tx.hdr.spi_responder.len() as u32;
-    }
-    return 1;
 }
 
 #[no_mangle]
@@ -233,5 +213,87 @@ pub unsafe extern "C" fn SCIkeStateGetNoncePayloadLength(
     }
 
     *value = 0;
+    return 0;
+}
+
+unsafe extern "C" fn ike_tx_get_spi_initiator(
+    tx: *const c_void, _flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> bool {
+    let tx = cast_pointer!(tx, IKETransaction);
+    *buffer = tx.hdr.spi_initiator.as_ptr();
+    *buffer_len = tx.hdr.spi_initiator.len() as u32;
+    return true;
+}
+
+unsafe extern "C" fn ike_tx_get_spi_responder(
+    tx: *const c_void, _flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> bool {
+    let tx = cast_pointer!(tx, IKETransaction);
+    *buffer = tx.hdr.spi_responder.as_ptr();
+    *buffer_len = tx.hdr.spi_responder.len() as u32;
+    return true;
+}
+
+static mut G_IKE_SPI_INITIATOR_BUFFER_ID: c_int = 0;
+static mut G_IKE_SPI_RESPONDER_BUFFER_ID: c_int = 0;
+
+#[no_mangle]
+pub unsafe extern "C" fn SCDetectIkeRegister() {
+    let kw_initiator = SigTableElmtStickyBuffer {
+        name: String::from("ike.init_spi"),
+        desc: String::from("sticky buffer to match on the IKE spi initiator"),
+        url: String::from("/rules/ike-keywords.html#ike-init_spi"),
+        setup: ike_spi_initiator_setup,
+    };
+    helper_keyword_register_sticky_buffer(&kw_initiator);
+    G_IKE_SPI_INITIATOR_BUFFER_ID = SCDetectHelperBufferMpmRegister(
+        b"ike_init_spi\0".as_ptr() as *const libc::c_char,
+        b"ike init spi\0".as_ptr() as *const libc::c_char,
+        ALPROTO_IKE,
+        STREAM_TOSERVER,
+        Some(ike_tx_get_spi_initiator),
+    );
+
+    let kw_responder = SigTableElmtStickyBuffer {
+        name: String::from("ike.resp_spi"),
+        desc: String::from("sticky buffer to match on the IKE spi responder"),
+        url: String::from("/rules/ike-keywords.html#ike-resp_spi"),
+        setup: ike_spi_responder_setup,
+    };
+    helper_keyword_register_sticky_buffer(&kw_responder);
+    G_IKE_SPI_RESPONDER_BUFFER_ID = SCDetectHelperBufferMpmRegister(
+        b"ike_resp_spi\0".as_ptr() as *const libc::c_char,
+        b"ike resp spi\0".as_ptr() as *const libc::c_char,
+        ALPROTO_IKE,
+        STREAM_TOCLIENT,
+        Some(ike_tx_get_spi_responder),
+    );
+}
+
+unsafe extern "C" fn ike_spi_initiator_setup(
+    de_ctx: *mut DetectEngineCtx, s: *mut Signature, _str: *const c_char,
+) -> c_int {
+    if SCDetectBufferSetActiveList(de_ctx, s, G_IKE_SPI_INITIATOR_BUFFER_ID) < 0 {
+        return -1;
+    }
+
+    if SCDetectSignatureSetAppProto(s, ALPROTO_IKE) < 0 {
+        return -1;
+    }
+
+    return 0;
+}
+
+unsafe extern "C" fn ike_spi_responder_setup(
+    de_ctx: *mut DetectEngineCtx, s: *mut Signature, _str: *const c_char,
+) -> c_int {
+    if SCDetectBufferSetActiveList(de_ctx, s, G_IKE_SPI_RESPONDER_BUFFER_ID) < 0 {
+        return -1;
+    }
+
+    if SCDetectSignatureSetAppProto(s, ALPROTO_IKE) < 0 {
+        return -1;
+    }
+
     return 0;
 }
