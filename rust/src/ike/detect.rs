@@ -20,36 +20,19 @@
 use super::ike::ALPROTO_IKE;
 use super::ipsec_parser::IkeV2Transform;
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
-use crate::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
+use crate::detect::uint::{detect_match_uint, DetectUintData, SCDetectU8Free, SCDetectU8Parse};
+use crate::detect::{
+    helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer, SIGMATCH_INFO_UINT8,
+};
 use crate::ike::ike::*;
 use std::ffi::CStr;
 use std::os::raw::{c_char, c_int, c_void};
 use std::ptr;
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, SCDetectBufferSetActiveList,
-    SCDetectHelperBufferMpmRegister, SCDetectSignatureSetAppProto, Signature,
+    SCDetectHelperBufferMpmRegister, SCDetectHelperBufferRegister, SCDetectHelperKeywordRegister,
+    SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList, SCSigTableAppLiteElmt, Signature,
 };
-
-#[no_mangle]
-pub extern "C" fn SCIkeStateGetExchType(tx: &IKETransaction, exch_type: *mut u8) -> u8 {
-    debug_validate_bug_on!(exch_type.is_null());
-
-    if tx.ike_version == 1 {
-        if let Some(r) = tx.hdr.ikev1_header.exchange_type {
-            unsafe {
-                *exch_type = r;
-            }
-            return 1;
-        }
-    } else if tx.ike_version == 2 {
-        unsafe {
-            *exch_type = tx.hdr.ikev2_header.exch_type.0;
-        }
-        return 1;
-    }
-
-    return 0;
-}
 
 #[no_mangle]
 pub extern "C" fn SCIkeStateGetNonce(
@@ -234,11 +217,85 @@ unsafe extern "C" fn ike_tx_get_spi_responder(
     return true;
 }
 
+unsafe extern "C" fn ike_detect_exchtype_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_IKE) != 0 {
+        return -1;
+    }
+    let ctx = SCDetectU8Parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_IKE_EXCHTYPE_KW_ID,
+        ctx as *mut suricata_sys::sys::SigMatchCtx,
+        G_IKE_EXCHTYPE_BUFFER_ID,
+    )
+    .is_null()
+    {
+        ike_detect_exchtype_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn ike_detect_exchtype_match(
+    _de: *mut DetectEngineThreadCtx, _f: *mut crate::flow::Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const suricata_sys::sys::SigMatchCtx,
+) -> c_int {
+    let tx = cast_pointer!(tx, IKETransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u8>);
+    let mut exch_type: u8 = 0;
+    let found = if tx.ike_version == 1 {
+        if let Some(r) = tx.hdr.ikev1_header.exchange_type {
+            exch_type = r;
+            true
+        } else {
+            false
+        }
+    } else if tx.ike_version == 2 {
+        exch_type = tx.hdr.ikev2_header.exch_type.0;
+        true
+    } else {
+        false
+    };
+    if found && detect_match_uint(ctx, exch_type) {
+        return 1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn ike_detect_exchtype_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
+    let ctx = cast_pointer!(ctx, DetectUintData<u8>);
+    SCDetectU8Free(ctx);
+}
+
 static mut G_IKE_SPI_INITIATOR_BUFFER_ID: c_int = 0;
 static mut G_IKE_SPI_RESPONDER_BUFFER_ID: c_int = 0;
+static mut G_IKE_EXCHTYPE_KW_ID: u16 = 0;
+static mut G_IKE_EXCHTYPE_BUFFER_ID: c_int = 0;
 
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectIkeRegister() {
+    // Inline registration for ike.exchtype keyword
+    let kw = SCSigTableAppLiteElmt {
+        name: b"ike.exchtype\0".as_ptr() as *const libc::c_char,
+        desc: b"match IKE exchange type\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/ike-keywords.html#ike-exchtype\0".as_ptr() as *const libc::c_char,
+        AppLayerTxMatch: Some(ike_detect_exchtype_match),
+        Setup: Some(ike_detect_exchtype_setup),
+        Free: Some(ike_detect_exchtype_free),
+        flags: SIGMATCH_INFO_UINT8,
+    };
+    G_IKE_EXCHTYPE_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    G_IKE_EXCHTYPE_BUFFER_ID = SCDetectHelperBufferRegister(
+        b"ike.exchtype\0".as_ptr() as *const libc::c_char,
+        ALPROTO_IKE,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+    );
     let kw_initiator = SigTableElmtStickyBuffer {
         name: String::from("ike.init_spi"),
         desc: String::from("sticky buffer to match on the IKE spi initiator"),
