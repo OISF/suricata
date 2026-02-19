@@ -65,8 +65,8 @@ ping $GW &
 PINGPID=$!
 
 # set first rule file
-cp .github/workflows/live/icmp.rules suricata.rules
-cp .github/workflows/live/{suricata-mt.yaml,tenant-1.yaml} .
+cp qa/live/icmp.rules suricata.rules
+cp qa/live/{suricata-mt.yaml,tenant-1.yaml} .
 
 # Start Suricata, SIGINT after 120 secords. Will close it earlier through
 # the unix socket.

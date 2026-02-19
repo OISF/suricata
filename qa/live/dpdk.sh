@@ -30,7 +30,7 @@ fi
 RES=0
 
 # set first rule file
-cp .github/workflows/live/icmp.rules suricata.rules
+cp qa/live/icmp.rules suricata.rules
 
 # Start Suricata, SIGINT after 120 secords. Will close it earlier through
 # the unix socket.
@@ -50,7 +50,7 @@ fi
 echo "SURIPID $SURIPID"
 
 # set second rule file for the reload
-cp .github/workflows/live/icmp2.rules suricata.rules
+cp qa/live/icmp2.rules suricata.rules
 
 # trigger the reload
 ${SURICATASC} -c "reload-rules" /var/run/suricata/suricata-command.socket
