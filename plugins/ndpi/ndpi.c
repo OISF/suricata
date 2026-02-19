@@ -92,18 +92,18 @@ static void OnFlowInit(ThreadVars *tv, Flow *f, const Packet *p, void *_data)
 
 static void OnFlowUpdate(ThreadVars *tv, Flow *f, Packet *p, void *_data)
 {
-    struct NdpiThreadContext *threadctx = ThreadGetStorageById(tv, thread_storage_id);
-    struct NdpiFlowContext *flowctx = FlowGetStorageById(f, flow_storage_id);
-    uint16_t ip_len = 0;
-    void *ip_ptr = NULL;
-
-    if (!threadctx->ndpi || !flowctx->ndpi_flow) {
-        return;
-    }
-
     /* Ignore packets that have a different protocol than the
      * flow. This can happen with ICMP unreachable packets. */
     if (p->proto != f->proto) {
+        return;
+    }
+
+    uint16_t ip_len = 0;
+    void *ip_ptr = NULL;
+    struct NdpiThreadContext *threadctx = ThreadGetStorageById(tv, thread_storage_id);
+    struct NdpiFlowContext *flowctx = FlowGetStorageById(f, flow_storage_id);
+
+    if (!threadctx->ndpi || !flowctx->ndpi_flow) {
         return;
     }
 
