@@ -231,7 +231,6 @@
 #include "detect-ssl-state.h"
 #include "detect-modbus.h"
 #include "detect-dnp3.h"
-#include "detect-ike-vendor.h"
 #include "detect-ike-chosen-sa.h"
 #include "detect-vlan.h"
 #include "detect-email.h"
@@ -584,7 +583,6 @@ void SigTableSetup(void)
     DetectModbusRegister();
     DetectDNP3Register();
 
-    DetectIkeVendorRegister();
     DetectIkeChosenSaRegister();
 
     DetectTlsSniRegister();

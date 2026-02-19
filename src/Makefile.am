@@ -228,7 +228,6 @@ noinst_HEADERS = \
 	detect-icode.h \
 	detect-id.h \
 	detect-ike-chosen-sa.h \
-	detect-ike-vendor.h \
 	detect-ipaddr.h \
 	detect-ipopts.h \
 	detect-ipproto.h \
@@ -807,7 +806,6 @@ libsuricata_c_a_SOURCES = \
 	detect-icode.c \
 	detect-id.c \
 	detect-ike-chosen-sa.c \
-	detect-ike-vendor.c \
 	detect-ipaddr.c \
 	detect-ipopts.c \
 	detect-ipproto.c \
