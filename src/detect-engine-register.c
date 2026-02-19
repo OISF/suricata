@@ -231,7 +231,6 @@
 #include "detect-ssl-state.h"
 #include "detect-modbus.h"
 #include "detect-dnp3.h"
-#include "detect-ike-exch-type.h"
 #include "detect-ike-vendor.h"
 #include "detect-ike-chosen-sa.h"
 #include "detect-ike-key-exchange-payload-length.h"
@@ -589,7 +588,6 @@ void SigTableSetup(void)
     DetectModbusRegister();
     DetectDNP3Register();
 
-    DetectIkeExchTypeRegister();
     DetectIkeVendorRegister();
     DetectIkeChosenSaRegister();
     DetectIkeKeyExchangePayloadLengthRegister();
