@@ -232,7 +232,6 @@
 #include "detect-modbus.h"
 #include "detect-dnp3.h"
 #include "detect-ike-exch-type.h"
-#include "detect-ike-spi.h"
 #include "detect-ike-vendor.h"
 #include "detect-ike-chosen-sa.h"
 #include "detect-ike-key-exchange-payload-length.h"
@@ -591,7 +590,6 @@ void SigTableSetup(void)
     DetectDNP3Register();
 
     DetectIkeExchTypeRegister();
-    DetectIkeSpiRegister();
     DetectIkeVendorRegister();
     DetectIkeChosenSaRegister();
     DetectIkeKeyExchangePayloadLengthRegister();
@@ -774,6 +772,7 @@ void SigTableSetup(void)
     SCDetectSshRegister();
     SCDetectQuicRegister();
     SCDetectSmbRegister();
+    SCDetectIkeRegister();
 
     for (size_t i = 0; i < preregistered_callbacks_nb; i++) {
         PreregisteredCallbacks[i]();

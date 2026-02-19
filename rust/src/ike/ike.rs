@@ -360,7 +360,7 @@ extern "C" fn ike_tx_get_alstate_progress(
     return 1;
 }
 
-static mut ALPROTO_IKE: AppProto = ALPROTO_UNKNOWN;
+pub(super) static mut ALPROTO_IKE: AppProto = ALPROTO_UNKNOWN;
 
 // Parser name as a C style string.
 const PARSER_NAME: &[u8] = b"ike\0";
