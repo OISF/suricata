@@ -16,6 +16,7 @@
  */
 
 use crate::common::to_hex;
+use crate::detect::EnumString;
 use core::fmt;
 use nom8::bytes::streaming::take;
 use nom8::combinator::{complete, cond, map};
@@ -129,49 +130,25 @@ pub struct VendorPayload<'a> {
 }
 
 // Attributes inside Transform
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, EnumStringU16, PartialEq)]
 pub enum AttributeType {
     Unknown = 0,
-    EncryptionAlgorithm = 1,
-    HashAlgorithm = 2,
-    AuthenticationMethod = 3,
-    GroupDescription = 4,
-    GroupType = 5,
-    GroupPrime = 6,
-    GroupGeneratorOne = 7,
-    GroupGeneratorTwo = 8,
-    GroupCurveA = 9,
-    GroupCurveB = 10,
-    LifeType = 11,
-    LifeDuration = 12,
-    Prf = 13,
-    KeyLength = 14,
-    FieldSize = 15,
-    GroupOrder = 16,
-}
-
-impl fmt::Display for AttributeType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            AttributeType::EncryptionAlgorithm => write!(f, "alg_enc"),
-            AttributeType::HashAlgorithm => write!(f, "alg_hash"),
-            AttributeType::AuthenticationMethod => write!(f, "alg_auth"),
-            AttributeType::GroupDescription => write!(f, "alg_dh"),
-            AttributeType::GroupType => write!(f, "sa_group_type"),
-            AttributeType::GroupPrime => write!(f, "sa_group_prime"),
-            AttributeType::GroupGeneratorOne => write!(f, "sa_group_generator_one"),
-            AttributeType::GroupGeneratorTwo => write!(f, "sa_group_generator_two"),
-            AttributeType::GroupCurveA => write!(f, "sa_group_curve_a"),
-            AttributeType::GroupCurveB => write!(f, "sa_group_curve_b"),
-            AttributeType::LifeType => write!(f, "sa_life_type"),
-            AttributeType::LifeDuration => write!(f, "sa_life_duration"),
-            AttributeType::Prf => write!(f, "alg_prf"),
-            AttributeType::KeyLength => write!(f, "sa_key_length"),
-            AttributeType::FieldSize => write!(f, "sa_field_size"),
-            AttributeType::GroupOrder => write!(f, "sa_group_order"),
-            _ => write!(f, "unknown"),
-        }
-    }
+    AlgEnc = 1,
+    AlgHash = 2,
+    AlgAuth = 3,
+    AlgDh = 4,
+    SaGroupType = 5,
+    SaGroupPrime = 6,
+    SaGroupGeneratorOne = 7,
+    SaGroupGeneratorTwo = 8,
+    SaGroupCurveA = 9,
+    SaGroupCurveB = 10,
+    SaLifeType = 11,
+    SaLifeDuration = 12,
+    AlgPrf = 13,
+    SaKeyLength = 14,
+    SaFieldSize = 15,
+    SaGroupOrder = 16,
 }
 
 #[derive(Debug, Clone)]
@@ -337,28 +314,6 @@ pub fn parse_vendor_id(i: &[u8], length: u16) -> IResult<&[u8], VendorPayload<'_
     map(take(length), |v| VendorPayload { vendor_id: v }).parse(i)
 }
 
-fn get_attribute_type(v: u16) -> AttributeType {
-    match v {
-        1 => AttributeType::EncryptionAlgorithm,
-        2 => AttributeType::HashAlgorithm,
-        3 => AttributeType::AuthenticationMethod,
-        4 => AttributeType::GroupDescription,
-        5 => AttributeType::GroupType,
-        6 => AttributeType::GroupPrime,
-        7 => AttributeType::GroupGeneratorOne,
-        8 => AttributeType::GroupGeneratorTwo,
-        9 => AttributeType::GroupCurveA,
-        10 => AttributeType::GroupCurveB,
-        11 => AttributeType::LifeType,
-        12 => AttributeType::LifeDuration,
-        13 => AttributeType::Prf,
-        14 => AttributeType::KeyLength,
-        15 => AttributeType::FieldSize,
-        16 => AttributeType::GroupOrder,
-        _ => AttributeType::Unknown,
-    }
-}
-
 fn get_encryption_algorithm(v: u16) -> AttributeValue {
     match v {
         1 => AttributeValue::EncDesCbc,
@@ -449,9 +404,15 @@ pub fn parse_sa_attribute(i: &[u8]) -> IResult<&[u8], Vec<SaAttribute>> {
             format.0 == 0 && attribute_length_or_value != 4,
             take(attribute_length_or_value),
         ).parse(i)?;
+        let at = AttributeType::from_u(format.1);
+        let attribute_type = if let Some(a) = at {
+            a
+        } else {
+            AttributeType::Unknown
+        };
         let attr = SaAttribute {
             attribute_format: format.0,
-            attribute_type: get_attribute_type(format.1),
+            attribute_type: attribute_type,
             attribute_value: match format.1 {
                 1 => get_encryption_algorithm(attribute_length_or_value),
                 2 => get_hash_algorithm(attribute_length_or_value),

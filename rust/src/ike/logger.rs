@@ -17,6 +17,7 @@
 
 use super::ike::{IKEState, IKETransaction};
 use super::ipsec_parser::IKEV2_FLAG_INITIATOR;
+use crate::detect::EnumString;
 use crate::direction::Direction;
 use crate::ike::parser::{ExchangeType, IsakmpPayloadType, SaAttribute};
 use crate::jsonbuilder::{JsonBuilder, JsonError};
@@ -37,7 +38,7 @@ const IKE_LOG_VERSION: u8 = 2;
 fn add_attributes(transform: &Vec<SaAttribute>, js: &mut JsonBuilder) -> Result<(), JsonError> {
     for attribute in transform {
         js.start_object()?;
-        js.set_string("key", &attribute.attribute_type.to_string())?;
+        js.set_string("key", &attribute.attribute_type.to_str())?;
         js.set_string("value", &attribute.attribute_value.to_string())?;
 
         if let Some(v) = attribute.numeric_value {

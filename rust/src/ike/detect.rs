@@ -19,16 +19,20 @@
 
 use super::ike::ALPROTO_IKE;
 use super::ipsec_parser::IkeV2Transform;
+use super::parser::AttributeType;
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{
-    detect_match_uint, DetectUintData, SCDetectU32Free, SCDetectU32Parse, SCDetectU8Free,
-    SCDetectU8Parse,
+    detect_match_uint, detect_parse_uint, DetectUintData, SCDetectU32Free, SCDetectU32Parse,
+    SCDetectU8Free, SCDetectU8Parse,
 };
 use crate::detect::{
-    helper_keyword_register_multi_buffer, helper_keyword_register_sticky_buffer,
+    helper_keyword_register_multi_buffer, helper_keyword_register_sticky_buffer, EnumString,
     SigTableElmtStickyBuffer, SIGMATCH_INFO_UINT32, SIGMATCH_INFO_UINT8,
 };
 use crate::ike::ike::*;
+use nom8::bytes::complete::take_while;
+use nom8::combinator::map_opt;
+use nom8::{AsChar, Parser};
 use std::ffi::CStr;
 use std::os::raw::{c_char, c_int, c_void};
 use std::ptr;
@@ -88,77 +92,6 @@ unsafe extern "C" fn ike_tx_get_vendor(
     return false;
 }
 
-#[no_mangle]
-pub extern "C" fn SCIkeStateGetSaAttribute(
-    tx: &IKETransaction, sa_type: *const std::os::raw::c_char, value: *mut u32,
-) -> u8 {
-    debug_validate_bug_on!(value.is_null());
-    let mut ret_val = 0;
-    let mut ret_code = 0;
-    let sa_type_s: Result<_, _>;
-
-    unsafe { sa_type_s = CStr::from_ptr(sa_type).to_str() }
-    SCLogDebug!("{:#?}", sa_type_s);
-
-    if let Ok(sa) = sa_type_s {
-        if tx.ike_version == 1 {
-            if !tx.hdr.ikev1_transforms.is_empty() {
-                // there should be only one chosen server_transform, check event
-                if let Some(server_transform) = tx.hdr.ikev1_transforms.first() {
-                    for attr in server_transform {
-                        if attr.attribute_type.to_string() == sa {
-                            if let Some(numeric_value) = attr.numeric_value {
-                                ret_val = numeric_value;
-                                ret_code = 1;
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-        } else if tx.ike_version == 2 {
-            for attr in tx.hdr.ikev2_transforms.iter() {
-                match attr {
-                    IkeV2Transform::Encryption(e) => {
-                        if sa == "alg_enc" {
-                            ret_val = e.0 as u32;
-                            ret_code = 1;
-                            break;
-                        }
-                    }
-                    IkeV2Transform::Auth(e) => {
-                        if sa == "alg_auth" {
-                            ret_val = e.0 as u32;
-                            ret_code = 1;
-                            break;
-                        }
-                    }
-                    IkeV2Transform::PRF(ref e) => {
-                        if sa == "alg_prf" {
-                            ret_val = e.0 as u32;
-                            ret_code = 1;
-                            break;
-                        }
-                    }
-                    IkeV2Transform::DH(ref e) => {
-                        if sa == "alg_dh" {
-                            ret_val = e.0 as u32;
-                            ret_code = 1;
-                            break;
-                        }
-                    }
-                    _ => (),
-                }
-            }
-        }
-    }
-
-    unsafe {
-        *value = ret_val;
-    }
-    return ret_code;
-}
-
 unsafe extern "C" fn ike_tx_get_spi_initiator(
     tx: *const c_void, _flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
@@ -175,6 +108,132 @@ unsafe extern "C" fn ike_tx_get_spi_responder(
     *buffer = tx.hdr.spi_responder.as_ptr();
     *buffer_len = tx.hdr.spi_responder.len() as u32;
     return true;
+}
+
+#[derive(Debug, PartialEq)]
+struct DetectIkeChosenSa {
+    attribute: AttributeType,
+    value: DetectUintData<u32>,
+}
+
+fn ike_detect_chosen_sa_parse_aux(i: &str) -> Option<DetectIkeChosenSa> {
+    let (i, attribute) = map_opt(
+        take_while::<_, &str, nom8::error::Error<_>>(|c: char| c.is_alpha() || c == '_'),
+        |s: &str| AttributeType::from_str(s),
+    )
+    .parse(i)
+    .ok()?;
+    let (_i, value) = detect_parse_uint(i).ok()?;
+    Some(DetectIkeChosenSa { attribute, value })
+}
+
+unsafe fn ike_detect_chosen_sa_parse(
+    str: *const std::os::raw::c_char,
+) -> *mut std::os::raw::c_void {
+    let ft_name: &CStr = CStr::from_ptr(str); //unsafe
+    if let Ok(s) = ft_name.to_str() {
+        if let Some(ctx) = ike_detect_chosen_sa_parse_aux(s) {
+            let boxed = Box::new(ctx);
+            return Box::into_raw(boxed) as *mut _;
+        }
+    }
+    return std::ptr::null_mut();
+}
+
+unsafe extern "C" fn ike_detect_chosen_sa_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_IKE) != 0 {
+        return -1;
+    }
+    let ctx = ike_detect_chosen_sa_parse(raw);
+    if ctx.is_null() {
+        return -1;
+    }
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_IKE_CHOSEN_SA_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_IKE_CHOSEN_SA_BUFFER_ID,
+    )
+    .is_null()
+    {
+        ike_detect_chosen_sa_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn ike_detect_chosen_sa_match(
+    _de: *mut DetectEngineThreadCtx, _f: *mut crate::flow::Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
+) -> c_int {
+    let tx = cast_pointer!(tx, IKETransaction);
+    let ctx = cast_pointer!(ctx, DetectIkeChosenSa);
+
+    if tx.ike_version == 1 {
+        if !tx.hdr.ikev1_transforms.is_empty() {
+            // there should be only one chosen server_transform, check event
+            if let Some(server_transform) = tx.hdr.ikev1_transforms.first() {
+                for attr in server_transform {
+                    if attr.attribute_type == ctx.attribute {
+                        if let Some(numeric_value) = attr.numeric_value {
+                            if detect_match_uint(&ctx.value, numeric_value) {
+                                return 1;
+                            }
+                            return 0;
+                        }
+                    }
+                }
+            }
+        }
+    } else if tx.ike_version == 2 {
+        for attr in tx.hdr.ikev2_transforms.iter() {
+            match attr {
+                IkeV2Transform::Encryption(e) => {
+                    if ctx.attribute == AttributeType::AlgEnc {
+                        if detect_match_uint(&ctx.value, e.0.into()) {
+                            return 1;
+                        }
+                        return 0;
+                    }
+                }
+                IkeV2Transform::Auth(e) => {
+                    if ctx.attribute == AttributeType::AlgAuth {
+                        if detect_match_uint(&ctx.value, e.0.into()) {
+                            return 1;
+                        }
+                        return 0;
+                    }
+                }
+                IkeV2Transform::PRF(ref e) => {
+                    if ctx.attribute == AttributeType::AlgPrf {
+                        if detect_match_uint(&ctx.value, e.0.into()) {
+                            return 1;
+                        }
+                        return 0;
+                    }
+                }
+                IkeV2Transform::DH(ref e) => {
+                    if ctx.attribute == AttributeType::AlgDh {
+                        if detect_match_uint(&ctx.value, e.0.into()) {
+                            return 1;
+                        }
+                        return 0;
+                    }
+                }
+                _ => (),
+            }
+        }
+    }
+
+    return 0;
+}
+
+unsafe extern "C" fn ike_detect_chosen_sa_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
+    let ctx = cast_pointer!(ctx, DetectIkeChosenSa);
+    std::mem::drop(Box::from_raw(ctx));
 }
 
 unsafe extern "C" fn ike_detect_exchtype_setup(
@@ -347,6 +406,8 @@ static mut G_IKE_EXCHTYPE_BUFFER_ID: c_int = 0;
 static mut G_IKE_PAYLOAD_LEN_KW_ID: u16 = 0;
 static mut G_IKE_PAYLOAD_LEN_BUFFER_ID: c_int = 0;
 static mut G_IKE_NONCE_PAYLOAD_BUFFER_ID: c_int = 0;
+static mut G_IKE_CHOSEN_SA_KW_ID: u16 = 0;
+static mut G_IKE_CHOSEN_SA_BUFFER_ID: c_int = 0;
 
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectIkeRegister() {
@@ -397,6 +458,21 @@ pub unsafe extern "C" fn SCDetectIkeRegister() {
         b"ike.exchtype\0".as_ptr() as *const libc::c_char,
         ALPROTO_IKE,
         STREAM_TOSERVER | STREAM_TOCLIENT,
+    );
+    let kw = SCSigTableAppLiteElmt {
+        name: b"ike.chosen_sa_attribute\0".as_ptr() as *const libc::c_char,
+        desc: b"match IKE chosen SA Attribute\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/ike-keywords.html#ike-chosen_sa_attribute\0".as_ptr() as *const libc::c_char,
+        AppLayerTxMatch: Some(ike_detect_chosen_sa_match),
+        Setup: Some(ike_detect_chosen_sa_setup),
+        Free: Some(ike_detect_chosen_sa_free),
+        flags: 0,
+    };
+    G_IKE_CHOSEN_SA_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    G_IKE_CHOSEN_SA_BUFFER_ID = SCDetectHelperBufferRegister(
+        b"ike.chosen_sa_attribute\0".as_ptr() as *const libc::c_char,
+        ALPROTO_IKE,
+        STREAM_TOCLIENT,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"ike.key_exchange_payload_length\0".as_ptr() as *const libc::c_char,
@@ -524,4 +600,39 @@ unsafe extern "C" fn ike_vendor_setup(
         return -1;
     }
     return 0;
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+    use crate::detect::uint::DetectUintMode;
+
+    #[test]
+    fn test_ike_detect_chosen_sa_parse_aux() {
+        let r0 = ike_detect_chosen_sa_parse_aux("alg_hash=2").unwrap();
+        assert_eq!(
+            r0,
+            DetectIkeChosenSa {
+                attribute: AttributeType::AlgHash,
+                value: DetectUintData::<u32> {
+                    mode: DetectUintMode::DetectUintModeEqual,
+                    arg1: 2,
+                    arg2: 0,
+                },
+            }
+        );
+        let r1 = ike_detect_chosen_sa_parse_aux("alg_hash!=2").unwrap();
+        assert_eq!(
+            r1,
+            DetectIkeChosenSa {
+                attribute: AttributeType::AlgHash,
+                value: DetectUintData::<u32> {
+                    mode: DetectUintMode::DetectUintModeNe,
+                    arg1: 2,
+                    arg2: 0,
+                },
+            }
+        );
+    }
 }
