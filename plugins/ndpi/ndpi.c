@@ -181,11 +181,21 @@ static void OnThreadInit(ThreadVars *tv, void *_data)
 static int DetectnDPIProtocolPacketMatch(
         DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
-    const Flow *f = p->flow;
-    struct NdpiFlowContext *flowctx = FlowGetStorageById(f, flow_storage_id);
-    const DetectnDPIProtocolData *data = (const DetectnDPIProtocolData *)ctx;
-
     SCEnter();
+
+    const Flow *f = p->flow;
+    if (f == NULL) {
+        SCLogDebug("packet %" PRIu64 ": no flow", p->pcap_cnt);
+        SCReturnInt(0);
+    }
+
+    struct NdpiFlowContext *flowctx = FlowGetStorageById(f, flow_storage_id);
+    if (flowctx == NULL) {
+        SCLogDebug("packet %" PRIu64 ": no flowctx", PcapPacketCntGet(p));
+        SCReturnInt(0);
+    }
+
+    const DetectnDPIProtocolData *data = (const DetectnDPIProtocolData *)ctx;
 
     /* if the sig is PD-only we only match when PD packet flags are set */
     /*
@@ -198,11 +208,6 @@ static int DetectnDPIProtocolPacketMatch(
 
     if (!flowctx->detection_completed) {
         SCLogDebug("packet %" PRIu64 ": ndpi protocol not yet detected", p->pcap_cnt);
-        SCReturnInt(0);
-    }
-
-    if (f == NULL) {
-        SCLogDebug("packet %" PRIu64 ": no flow", p->pcap_cnt);
         SCReturnInt(0);
     }
 
@@ -311,19 +316,24 @@ static void DetectnDPIProtocolFree(DetectEngineCtx *de_ctx, void *ptr)
 static int DetectnDPIRiskPacketMatch(
         DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
-    const Flow *f = p->flow;
-    struct NdpiFlowContext *flowctx = FlowGetStorageById(f, flow_storage_id);
-    const DetectnDPIRiskData *data = (const DetectnDPIRiskData *)ctx;
-
     SCEnter();
 
-    if (!flowctx->detection_completed) {
-        SCLogDebug("packet %" PRIu64 ": ndpi risks not yet detected", p->pcap_cnt);
+    const Flow *f = p->flow;
+    if (f == NULL) {
+        SCLogDebug("packet %" PRIu64 ": no flow", p->pcap_cnt);
         SCReturnInt(0);
     }
 
-    if (f == NULL) {
-        SCLogDebug("packet %" PRIu64 ": no flow", p->pcap_cnt);
+    struct NdpiFlowContext *flowctx = FlowGetStorageById(f, flow_storage_id);
+    if (flowctx == NULL) {
+        SCLogDebug("packet %" PRIu64 ": no flowctx", p->pcap_cnt);
+        SCReturnInt(0);
+    }
+
+    const DetectnDPIRiskData *data = (const DetectnDPIRiskData *)ctx;
+
+    if (!flowctx->detection_completed) {
+        SCLogDebug("packet %" PRIu64 ": ndpi risks not yet detected", p->pcap_cnt);
         SCReturnInt(0);
     }
 
