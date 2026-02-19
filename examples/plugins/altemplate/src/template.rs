@@ -26,26 +26,26 @@ use std;
 use std::collections::VecDeque;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_int, c_void};
- use suricata::applayer::{AppLayerResultRust, StreamSliceRust};
 use suricata::applayer::{
-    applayer_register_protocol_detection, state_get_tx_iterator, AppLayerEvent,
-    AppLayerRegisterParser, AppLayerResult, AppLayerStateData, AppLayerTxData, RustParser, State,
-    StreamSlice, Transaction, APP_LAYER_PARSER_EOF_TC, APP_LAYER_PARSER_EOF_TS,
-    APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
+    state_get_tx_iterator, AppLayerEvent, AppLayerTxData, State, Transaction,
+    APP_LAYER_PARSER_EOF_TC, APP_LAYER_PARSER_EOF_TS, APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
 };
+use suricata::applayer::{AppLayerResultRust, StreamSliceRust};
 use suricata::conf::conf_get;
-use suricata::core::{ALPROTO_UNKNOWN, IPPROTO_TCP};
+use suricata::core::IPPROTO_TCP;
 use suricata::{build_slice, cast_pointer, export_state_data_get, export_tx_data_get};
 use suricata_ffi::{SCLogError, SCLogNotice};
+use suricata_sys::sys::AppProtoEnum::ALPROTO_UNKNOWN;
 use suricata_sys::sys::{
-    AppLayerParserState, AppProto, Flow, SCAppLayerParserConfParserEnabled,
-    SCAppLayerParserRegisterLogger, SCAppLayerParserStateIssetFlag,
-    SCAppLayerProtoDetectConfProtoDetectionEnabled,
+    AppLayerParser, AppLayerParserState, AppLayerProtocolDetect, AppLayerResult, AppLayerStateData,
+    AppProto, Flow, SCAppLayerParserConfParserEnabled, SCAppLayerParserRegisterLogger,
+    SCAppLayerParserStateIssetFlag, SCAppLayerProtoDetectConfProtoDetectionEnabled,
+    SCAppLayerRegisterParser, SCAppLayerRegisterProtocolDetection, StreamSlice,
 };
 
 static mut TEMPLATE_MAX_TX: usize = 256;
 
-pub(super) static mut ALPROTO_TEMPLATE: AppProto = ALPROTO_UNKNOWN;
+pub(super) static mut ALPROTO_TEMPLATE: AppProto = ALPROTO_UNKNOWN as AppProto;
 
 #[derive(AppLayerEvent)]
 enum TemplateEvent {
@@ -280,7 +280,7 @@ unsafe extern "C" fn template_probing_parser(
             return ALPROTO_TEMPLATE;
         }
     }
-    return ALPROTO_UNKNOWN;
+    return ALPROTO_UNKNOWN as AppProto;
 }
 
 extern "C" fn template_state_new(_orig_state: *mut c_void, _orig_proto: AppProto) -> *mut c_void {
@@ -375,47 +375,56 @@ const PARSER_NAME: &[u8] = b"altemplate\0";
 
 pub(super) unsafe extern "C" fn template_register_parser() {
     let default_port = CString::new("[7000]").unwrap();
-    let parser = RustParser {
+    let parser = AppLayerParser {
         name: PARSER_NAME.as_ptr() as *const c_char,
         default_port: default_port.as_ptr(),
-        ipproto: IPPROTO_TCP,
-        probe_ts: Some(template_probing_parser),
-        probe_tc: Some(template_probing_parser),
+        ip_proto: IPPROTO_TCP,
+        ProbeTS: Some(template_probing_parser),
+        ProbeTC: Some(template_probing_parser),
         min_depth: 0,
         max_depth: 16,
-        state_new: template_state_new,
-        state_free: template_state_free,
-        tx_free: template_state_tx_free,
-        parse_ts: template_parse_request,
-        parse_tc: template_parse_response,
-        get_tx_count: template_state_get_tx_count,
-        get_tx: template_state_get_tx,
-        tx_comp_st_ts: 1,
-        tx_comp_st_tc: 1,
-        tx_get_progress: template_tx_get_alstate_progress,
-        get_eventinfo: Some(TemplateEvent::get_event_info),
-        get_eventinfo_byid: Some(TemplateEvent::get_event_info_by_id),
-        localstorage_new: None,
-        localstorage_free: None,
-        get_tx_files: None,
-        get_tx_iterator: Some(state_get_tx_iterator::<TemplateState, TemplateTransaction>),
-        get_tx_data: template_get_tx_data,
-        get_state_data: template_get_state_data,
-        apply_tx_config: None,
+        StateAlloc: Some(template_state_new),
+        StateFree: Some(template_state_free),
+        StateTransactionFree: Some(template_state_tx_free),
+        ParseTS: Some(template_parse_request),
+        ParseTC: Some(template_parse_response),
+        StateGetTxCnt: Some(template_state_get_tx_count),
+        StateGetTx: Some(template_state_get_tx),
+        complete_ts: 1,
+        complete_tc: 1,
+        StateGetProgress: Some(template_tx_get_alstate_progress),
+        StateGetEventInfo: Some(TemplateEvent::get_event_info),
+        StateGetEventInfoById: Some(TemplateEvent::get_event_info_by_id),
+        LocalStorageAlloc: None,
+        LocalStorageFree: None,
+        GetTxFiles: None,
+        GetTxIterator: Some(state_get_tx_iterator::<TemplateState, TemplateTransaction>),
+        GetTxData: Some(template_get_tx_data),
+        GetStateData: Some(template_get_state_data),
+        ApplyTxConfig: None,
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
-        get_frame_id_by_name: None,
-        get_frame_name_by_id: None,
-        get_state_id_by_name: None,
-        get_state_name_by_id: None,
+        GetFrameIdByName: None,
+        GetFrameNameById: None,
+        GetStateIdByName: None,
+        GetStateNameById: None,
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();
 
     if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
-        let alproto = applayer_register_protocol_detection(&parser, 1);
+        let parser_detect = AppLayerProtocolDetect {
+            name: parser.name,
+            default_port: parser.default_port,
+            ip_proto: parser.ip_proto,
+            ProbeTS: parser.ProbeTS,
+            ProbeTC: parser.ProbeTC,
+            min_depth: parser.min_depth,
+            max_depth: parser.max_depth,
+        };
+        let alproto = SCAppLayerRegisterProtocolDetection(&parser_detect, 1);
         ALPROTO_TEMPLATE = alproto;
         if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
-            let _ = AppLayerRegisterParser(&parser, alproto);
+            let _ = SCAppLayerRegisterParser(&parser, alproto);
         }
         if let Some(val) = conf_get("app-layer.protocols.template.max-tx") {
             if let Ok(v) = val.parse::<usize>() {
