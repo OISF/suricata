@@ -36,8 +36,8 @@ pub const STREAM_MIDSTREAM:u8 = 0x40;
 pub const ALPROTO_UNKNOWN : AppProto = AppProtoEnum::ALPROTO_UNKNOWN as AppProto;
 pub const ALPROTO_FAILED : AppProto = AppProtoEnum::ALPROTO_FAILED as AppProto;
 
-pub const IPPROTO_TCP : u8 = 6;
-pub const IPPROTO_UDP : u8 = 17;
+pub use suricata_ffi::IPPROTO_TCP;
+pub use suricata_ffi::IPPROTO_UDP;
 
 
 macro_rules!BIT_U8 {
