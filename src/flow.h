@@ -343,6 +343,8 @@ typedef uint16_t FlowThreadId;
  *  of a flow. This is why we can access those without protection of the lock.
  */
 
+struct PcapFileFileVars_;
+
 typedef struct Flow_
 {
     /* flow "header", used for hashing and flow lookup. Static after init,
@@ -388,8 +390,13 @@ typedef struct Flow_
      *  the flow_id. */
     uint32_t flow_hash;
 
-    /** Incoming interface */
-    struct LiveDevice_ *livedev;
+    /** Incoming interface (live) or source pcap file vars (pcap-file-recursive).
+     *  These run modes are mutually exclusive; use FlowGetLiveDev() /
+     *  FlowGetPcapFileVars() rather than accessing the union directly. */
+    union {
+        struct LiveDevice_ *livedev;
+        struct PcapFileFileVars_ *pcap_file_vars;
+    };
 
     struct Flow_ *next; /* (hash) list next */
 
