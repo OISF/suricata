@@ -25,8 +25,8 @@ use crate::detect::uint::{
     SCDetectU8Parse,
 };
 use crate::detect::{
-    helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer, SIGMATCH_INFO_UINT32,
-    SIGMATCH_INFO_UINT8,
+    helper_keyword_register_multi_buffer, helper_keyword_register_sticky_buffer,
+    SigTableElmtStickyBuffer, SIGMATCH_INFO_UINT32, SIGMATCH_INFO_UINT8,
 };
 use crate::ike::ike::*;
 use std::ffi::CStr;
@@ -35,8 +35,8 @@ use std::ptr;
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, SCDetectBufferSetActiveList,
     SCDetectHelperBufferMpmRegister, SCDetectHelperBufferRegister, SCDetectHelperKeywordRegister,
-    SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList, SCSigTableAppLiteElmt, SigMatchCtx,
-    Signature,
+    SCDetectHelperMultiBufferMpmRegister, SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList,
+    SCSigTableAppLiteElmt, SigMatchCtx, Signature,
 };
 
 unsafe extern "C" fn ike_get_nonce_data(
@@ -71,8 +71,7 @@ unsafe extern "C" fn ike_tx_get_key_exchange(
     return false;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn SCIkeTxGetVendor(
+unsafe extern "C" fn ike_tx_get_vendor(
     _de: *mut DetectEngineThreadCtx, tx: *const c_void, _flags: u8, i: u32, buf: *mut *const u8,
     len: *mut u32,
 ) -> bool {
@@ -340,6 +339,7 @@ unsafe extern "C" fn ike_nonce_payload_setup(
 static mut G_IKE_SPI_INITIATOR_BUFFER_ID: c_int = 0;
 static mut G_IKE_SPI_RESPONDER_BUFFER_ID: c_int = 0;
 static mut G_IKE_KEY_EXCHANGE_BUFFER_ID: c_int = 0;
+static mut G_IKE_VENDOR_BUFFER_ID: c_int = 0;
 static mut G_IKE_EXCHTYPE_KW_ID: u16 = 0;
 static mut G_IKE_EXCHTYPE_BUFFER_ID: c_int = 0;
 static mut G_IKE_PAYLOAD_LEN_KW_ID: u16 = 0;
@@ -456,6 +456,20 @@ pub unsafe extern "C" fn SCDetectIkeRegister() {
         STREAM_TOSERVER | STREAM_TOCLIENT,
         Some(ike_tx_get_key_exchange),
     );
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("ike.vendor"),
+        desc: String::from("match IKE Vendor"),
+        url: String::from("/rules/ike-keywords.html#ike-vendor"),
+        setup: ike_vendor_setup,
+    };
+    helper_keyword_register_multi_buffer(&kw);
+    G_IKE_VENDOR_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
+        b"ike.vendor.dn\0".as_ptr() as *const libc::c_char,
+        b"Like vendor\0".as_ptr() as *const libc::c_char,
+        ALPROTO_IKE,
+        STREAM_TOSERVER,
+        Some(ike_tx_get_vendor),
+    );
 }
 
 unsafe extern "C" fn ike_spi_initiator_setup(
@@ -490,6 +504,18 @@ unsafe extern "C" fn ike_key_exchange_setup(
     de_ctx: *mut DetectEngineCtx, s: *mut Signature, _str: *const c_char,
 ) -> c_int {
     if SCDetectBufferSetActiveList(de_ctx, s, G_IKE_KEY_EXCHANGE_BUFFER_ID) < 0 {
+        return -1;
+    }
+    if SCDetectSignatureSetAppProto(s, ALPROTO_IKE) < 0 {
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn ike_vendor_setup(
+    de_ctx: *mut DetectEngineCtx, s: *mut Signature, _str: *const c_char,
+) -> c_int {
+    if SCDetectBufferSetActiveList(de_ctx, s, G_IKE_VENDOR_BUFFER_ID) < 0 {
         return -1;
     }
     if SCDetectSignatureSetAppProto(s, ALPROTO_IKE) < 0 {
