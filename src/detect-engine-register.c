@@ -233,7 +233,6 @@
 #include "detect-dnp3.h"
 #include "detect-ike-vendor.h"
 #include "detect-ike-chosen-sa.h"
-#include "detect-ike-key-exchange-payload-length.h"
 #include "detect-ike-nonce-payload-length.h"
 #include "detect-ike-nonce-payload.h"
 #include "detect-ike-key-exchange-payload.h"
@@ -590,7 +589,6 @@ void SigTableSetup(void)
 
     DetectIkeVendorRegister();
     DetectIkeChosenSaRegister();
-    DetectIkeKeyExchangePayloadLengthRegister();
     DetectIkeNoncePayloadLengthRegister();
     DetectIkeNonceRegister();
     DetectIkeKeyExchangeRegister();
