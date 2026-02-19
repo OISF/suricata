@@ -1007,7 +1007,19 @@ void OutputJsonBuilderBuffer(
     }
 
     if (file_ctx->is_pcap_offline) {
-        SCJbSetString(js, "pcap_filename", PcapFileGetFilename());
+        /* Use the per-packet filename to avoid a race where the RX thread
+         * has already moved to the next pcap file while workers still
+         * process packets from the previous one.
+         * Flow/netflow events pass p == NULL; for those the global is fine
+         * as they are emitted synchronously on the RX thread. */
+        const char *filename;
+        if (p != NULL) {
+            BUG_ON(p->pcap_v.pfv == NULL);
+            filename = p->pcap_v.pfv->filename;
+        } else {
+            filename = PcapFileGetFilename();
+        }
+        SCJbSetString(js, "pcap_filename", filename);
     }
 
     SCEveRunCallbacks(tv, p, f, js);
