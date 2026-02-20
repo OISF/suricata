@@ -11,7 +11,6 @@ nom7 = { version="7.0", package="nom" }
 libc = "~0.2.82"
 suricata = { path = "../../../rust/" }
 suricata-sys = { path = "../../../rust/sys" }
-suricata-ffi = { path = "../../../rust/ffi" }
 
 [features]
 default = ["suricata8"]

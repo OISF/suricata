@@ -35,8 +35,9 @@ use suricata::applayer::{
 };
 use suricata::conf::conf_get;
 use suricata::core::{ALPROTO_UNKNOWN, IPPROTO_TCP};
-use suricata::{build_slice, cast_pointer, export_state_data_get, export_tx_data_get};
-use suricata_ffi::{SCLogError, SCLogNotice};
+use suricata::{
+    build_slice, cast_pointer, export_state_data_get, export_tx_data_get, SCLogError, SCLogNotice,
+};
 use suricata_sys::sys::{
     AppLayerParserState, AppProto, Flow, SCAppLayerParserConfParserEnabled,
     SCAppLayerParserRegisterLogger, SCAppLayerParserStateIssetFlag,
