@@ -683,8 +683,11 @@ static int PatternDatabaseGetCached(
         return 0;
     } else if (cache_dir_path) {
         pd_cached = *pd;
-        uint64_t db_lookup_hash = HSHashDb(pd_cached);
-        if (HSLoadCache(&pd_cached->hs_db, db_lookup_hash, cache_dir_path) == 0) {
+        char hs_db_hash[SC_SHA256_LEN * 2 + 1]; // * 2 for hex +1 for nul terminator
+        if (HSHashDb(pd_cached, hs_db_hash, ARRAY_SIZE(hs_db_hash)) != 0) {
+            return -1;
+        }
+        if (HSLoadCache(&pd_cached->hs_db, hs_db_hash, cache_dir_path) == 0) {
             pd_cached->ref_cnt = 1;
             pd_cached->cached = true;
             if (HSScratchAlloc(pd_cached->hs_db) != 0) {
@@ -832,16 +835,51 @@ static int SCHSCacheRuleset(MpmConfig *mpm_conf)
                 mpm_conf->cache_dir_path);
         return -1;
     }
-    PatternDatabaseCache pd_stats = { 0 };
-    struct HsIteratorData iter_data = { .pd_stats = &pd_stats,
+    PatternDatabaseCache *pd_stats = mpm_conf->cache_stats;
+    struct HsIteratorData iter_data = { .pd_stats = pd_stats,
         .cache_path = mpm_conf->cache_dir_path };
     SCMutexLock(&g_db_table_mutex);
     HashTableIterate(g_db_table, HSSaveCacheIterator, &iter_data);
     SCMutexUnlock(&g_db_table_mutex);
-    SCLogNotice("Rule group caching - loaded: %u newly cached: %u total cacheable: %u",
-            pd_stats.hs_dbs_cache_loaded_cnt, pd_stats.hs_dbs_cache_saved_cnt,
-            pd_stats.hs_cacheable_dbs_cnt);
     return 0;
+}
+
+static uint32_t FilenameTableHash(HashTable *ht, void *data, uint16_t len)
+{
+    const char *fname = data;
+    uint32_t hash = hashlittle_safe(data, strlen(fname), 0);
+    hash %= ht->array_size;
+    return hash;
+}
+
+static void FilenameTableFree(void *data)
+{
+    SCFree(data);
+}
+
+static int SCHSCachePrune(MpmConfig *mpm_conf)
+{
+    if (!mpm_conf || !mpm_conf->cache_dir_path) {
+        return -1;
+    }
+
+    SCLogDebug("Pruning the Hyperscan cache folder %s", mpm_conf->cache_dir_path);
+    // we need to initialize hash map of in-use cache files
+    HashTable *inuse_caches =
+            HashTableInit(INIT_DB_HASH_SIZE, FilenameTableHash, NULL, FilenameTableFree);
+    if (inuse_caches == NULL) {
+        return -1;
+    }
+    struct HsInUseCacheFilesIteratorData iter_data = { .tbl = inuse_caches,
+        .cache_path = mpm_conf->cache_dir_path };
+
+    SCMutexLock(&g_db_table_mutex);
+    HashTableIterate(g_db_table, HSCacheFilenameUsedIterator, &iter_data);
+    SCMutexUnlock(&g_db_table_mutex);
+
+    int r = SCHSCachePruneEvaluate(mpm_conf, inuse_caches);
+    HashTableFree(inuse_caches);
+    return r;
 }
 
 /**
@@ -1175,7 +1213,11 @@ void MpmHSRegister(void)
     mpm_table[MPM_HS].AddPattern = SCHSAddPatternCS;
     mpm_table[MPM_HS].AddPatternNocase = SCHSAddPatternCI;
     mpm_table[MPM_HS].Prepare = SCHSPreparePatterns;
+    mpm_table[MPM_HS].CacheStatsInit = SCHSCacheStatsInit;
+    mpm_table[MPM_HS].CacheStatsPrint = SCHSCacheStatsPrint;
+    mpm_table[MPM_HS].CacheStatsDeinit = SCHSCacheStatsDeinit;
     mpm_table[MPM_HS].CacheRuleset = SCHSCacheRuleset;
+    mpm_table[MPM_HS].CachePrune = SCHSCachePrune;
     mpm_table[MPM_HS].Search = SCHSSearch;
     mpm_table[MPM_HS].PrintCtx = SCHSPrintInfo;
     mpm_table[MPM_HS].PrintThreadCtx = SCHSPrintSearchStats;
