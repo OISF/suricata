@@ -94,6 +94,8 @@ typedef struct PatternDatabaseCache_ {
     uint32_t hs_dbs_cache_loaded_cnt;
     uint32_t hs_dbs_cache_saved_cnt;
     uint32_t hs_dbs_cache_pruned_cnt;
+    uint32_t hs_dbs_cache_pruned_by_age_cnt;
+    uint32_t hs_dbs_cache_pruned_by_version_cnt;
     uint32_t hs_dbs_cache_pruned_considered_cnt;
     time_t hs_dbs_cache_pruned_cutoff;
     uint64_t cache_max_age_seconds;
