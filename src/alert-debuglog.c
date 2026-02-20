@@ -484,7 +484,6 @@ void AlertDebugLogRegister(void)
 {
     OutputPacketLoggerFunctions output_logger_functions = {
         .LogFunc = AlertDebugLogLogger,
-        .FlushFunc = NULL,
         .ConditionFunc = AlertDebugLogCondition,
         .ThreadInitFunc = AlertDebugLogThreadInit,
         .ThreadDeinitFunc = AlertDebugLogThreadDeinit,

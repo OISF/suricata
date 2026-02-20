@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -67,6 +67,11 @@ typedef struct LogFileTypeCtx_ {
     void *init_data;
     void *thread_data;
 } LogFileTypeCtx;
+
+typedef struct LogFileFlushEntry_ {
+    struct LogFileCtx_ *ctx;
+    TAILQ_ENTRY(LogFileFlushEntry_) entries;
+} LogFileFlushEntry;
 
 /** Global structure for Output Context */
 typedef struct LogFileCtx_ {
@@ -183,5 +188,10 @@ LogFileCtx *LogFileEnsureExists(ThreadId thread_id, LogFileCtx *lf_ctx);
 int SCConfLogOpenGeneric(SCConfNode *conf, LogFileCtx *, const char *, int);
 int SCConfLogReopen(LogFileCtx *);
 bool SCLogOpenThreadedFile(const char *log_path, const char *append, LogFileCtx *parent_ctx);
+
+/* Flush list management functions */
+void LogFileRegisterForFlush(LogFileCtx *ctx);
+void LogFileUnregisterForFlush(LogFileCtx *ctx);
+void LogFileFlushAll(void);
 
 #endif /* SURICATA_UTIL_LOGOPENFILE_H */
