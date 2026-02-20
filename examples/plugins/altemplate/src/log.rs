@@ -24,7 +24,7 @@
 use super::template::TemplateTransaction;
 use std::ffi::CString;
 use suricata::cast_pointer;
-use suricata_sys::sys::{SCJbClose, SCJbOpenObject, SCJbSetString, SCJsonBuilder};
+use suricata_sys::jsonbuilder::{SCJbClose, SCJbOpenObject, SCJbSetString, SCJsonBuilder};
 
 use std;
 

@@ -21,4 +21,5 @@
 #![allow(clippy::all)]
 #![allow(unpredictable_function_pointer_comparisons)]
 
+pub mod jsonbuilder;
 pub mod sys;
