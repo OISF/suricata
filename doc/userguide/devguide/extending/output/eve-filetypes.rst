@@ -15,9 +15,9 @@ EVE Filetype Life Cycle
 ***********************
 
 The life-cycle of an EVE filetype along with the callbacks are
-discussed in ``output-eve-bindgen.h``:
+discussed in ``output-eve.h``:
 
-.. literalinclude:: ../../../../../src/output-eve-bindgen.h
+.. literalinclude:: ../../../../../src/output-eve.h
    :language: c
    :start-at: /** \brief Structure used to define an EVE output
    :end-at: } SCEveFileType;

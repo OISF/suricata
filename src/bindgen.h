@@ -37,8 +37,6 @@
 // do not export struct fields only used for debug validation
 // do this after suricata-plugin.h which needs autoconf.h to define SC_PACKAGE_VERSION
 #undef DEBUG_VALIDATION
-#include "conf.h"
-
 #include "output-eve-bindgen.h"
 #include "detect-engine-register.h"
 #include "detect-engine-buffer.h"
@@ -47,6 +45,8 @@
 #include "detect-parse.h"
 
 #include "util-debug.h"
+
+#include "conf.h"
 
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
