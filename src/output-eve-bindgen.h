@@ -189,6 +189,4 @@ typedef struct SCEveFileType_ {
     TAILQ_ENTRY(SCEveFileType_) entries;
 } SCEveFileType;
 
-bool SCRegisterEveFileType(SCEveFileType *);
-
 #endif /* ! SURICATA_OUTPUT_EVE_BINDGEN_H */
