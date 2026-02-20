@@ -3511,14 +3511,32 @@
             "type": "object",
             "additionalProperties": false,
             "properties": {
-                "entropy": {
-                    "type": "object",
-                    "additionalProperties": true,
-                    "suricata": {
-                        "keywords": [
-                            "entropy"
-                        ]
-                    }
+            "entropy": {
+                "type": "array",
+                "items": {
+                    "anyOf": [
+                        {
+                            "type": "object",
+                            "properties": {
+                              "buffer": { "type": "string" },
+                              "instance": { "type": "integer" },
+                              "sid": { "type": "integer" },
+                              "value": { "type": "number" }
+                        },
+                        "required": ["sid", "buffer", "instance", "value"],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "buffer": { "type": "string" },
+                          "value": { "type": "number" }
+                        },
+                        "required": ["buffer", "value"],
+                        "additionalProperties": false
+                      }
+                    ]
+                  }
                 },
                 "flowbits": {
                     "type": "array",
