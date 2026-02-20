@@ -33,7 +33,6 @@
 #include "suricata-common.h"
 #include "rust.h"
 #include "conf.h"
-#include "output-eve-bindgen.h"
 
 typedef uint32_t ThreadId;
 
