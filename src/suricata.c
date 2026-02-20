@@ -262,7 +262,13 @@ void EngineModeSetFirewall(void)
 
 void EngineModeSetIPS(void)
 {
-    g_engine_mode = ENGINE_MODE_IPS;
+#ifndef UNITTESTS
+    if (g_engine_mode == ENGINE_MODE_UNKNOWN)
+        g_engine_mode = ENGINE_MODE_IPS;
+#else
+    if (RunmodeIsUnittests() || g_engine_mode == ENGINE_MODE_UNKNOWN)
+        g_engine_mode = ENGINE_MODE_IPS;
+#endif
 }
 
 void EngineModeSetIDS(void)
