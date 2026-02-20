@@ -3333,6 +3333,10 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
         if (det_ctx->match_array == NULL) {
             return TM_ECODE_FAILED;
         }
+        det_ctx->replace = SCCalloc(de_ctx->sig_array_len, sizeof(Signature *));
+        if (det_ctx->replace == NULL) {
+            return TM_ECODE_FAILED;
+        }
 
         RuleMatchCandidateTxArrayInit(det_ctx, de_ctx->sig_array_len);
     }
@@ -3585,6 +3589,8 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
     }
     if (det_ctx->match_array != NULL)
         SCFree(det_ctx->match_array);
+    if (det_ctx->replace != NULL)
+        SCFree(det_ctx->replace);
 
     RuleMatchCandidateTxArrayFree(det_ctx);
 
