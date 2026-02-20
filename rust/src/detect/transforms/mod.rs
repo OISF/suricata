@@ -20,6 +20,7 @@
 pub mod base64;
 pub mod casechange;
 pub mod compress_whitespace;
+pub mod decompress;
 pub mod domain;
 pub mod dotprefix;
 pub mod hash;
