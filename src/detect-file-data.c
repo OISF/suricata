@@ -68,10 +68,10 @@ int PrefilterMpmFiledataRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, Mpm
 
 // file protocols with common file handling
 typedef struct {
-    AppProto alproto;
     int direction;
-    int to_client_progress;
-    int to_server_progress;
+    AppProto alproto;
+    uint8_t to_client_progress;
+    uint8_t to_server_progress;
 } DetectFileHandlerProtocol_t;
 
 /* Table with all filehandler registrations */
@@ -97,7 +97,7 @@ DetectFileHandlerProtocol_t al_protocols[ALPROTO_WITHFILES_MAX] = {
 };
 
 void DetectFileRegisterProto(
-        AppProto alproto, int direction, int to_client_progress, int to_server_progress)
+        AppProto alproto, int direction, uint8_t to_client_progress, uint8_t to_server_progress)
 {
     size_t i = 0;
     while (i < ALPROTO_WITHFILES_MAX && al_protocols[i].alproto != ALPROTO_UNKNOWN) {
@@ -491,7 +491,7 @@ uint8_t DetectEngineInspectFiledata(DetectEngineCtx *de_ctx, DetectEngineThreadC
     }
     if (ffc->head == NULL) {
         const bool eof = (AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) >
-                          engine->progress);
+                          engine->max_progress);
         if (eof && engine->match_on_null) {
             return DETECT_ENGINE_INSPECT_SIG_MATCH;
         }
