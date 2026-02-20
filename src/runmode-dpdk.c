@@ -1672,6 +1672,8 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
         SCReturnInt(retval);
     }
 
+    iconf->is_pcap_iface = strcmp(dev_info.driver_name, "net_pcap") == 0;
+
     if (iconf->nb_rx_queues > dev_info.max_rx_queues) {
         SCLogError("%s: configured RX queues %u is higher than device maximum (%" PRIu16 ")",
                 iconf->iface, iconf->nb_rx_queues, dev_info.max_rx_queues);
@@ -1829,6 +1831,10 @@ static void *ParseDpdkConfigAndConfigureDevice(const char *iface)
     }
     SC_ATOMIC_RESET(iconf->workers_sync->worker_checked_in);
     iconf->workers_sync->worker_cnt = iconf->threads;
+    if (iconf->is_pcap_iface) {
+        SC_ATOMIC_INIT(iconf->workers_sync->pcap_workers_left);
+        SC_ATOMIC_SET(iconf->workers_sync->pcap_workers_left, iconf->threads);
+    }
 
     // initialize LiveDev DPDK values
     LiveDevice *ldev_instance = LiveGetDevice(iface);
