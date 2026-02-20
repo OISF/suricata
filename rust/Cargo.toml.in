@@ -13,7 +13,6 @@ members = [
     "suricatactl",
     "suricatasc",
     "sys",
-    "ffi",
     "htp",
 ]
 
