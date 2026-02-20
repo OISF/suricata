@@ -307,6 +307,7 @@ noinst_HEADERS = \
 	detect-uricontent.h \
 	detect-urilen.h \
 	detect-vlan.h \
+	detect-windows-pe.h \
 	detect-within.h \
 	detect-xbits.h \
 	detect.h \
@@ -884,6 +885,7 @@ libsuricata_c_a_SOURCES = \
 	detect-uricontent.c \
 	detect-urilen.c \
 	detect-vlan.c \
+	detect-windows-pe.c \
 	detect-within.c \
 	detect-xbits.c \
 	detect.c \
