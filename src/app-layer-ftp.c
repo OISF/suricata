@@ -967,10 +967,6 @@ static int FTPRegisterPatternsForProtocolDetection(void)
     }
 
     if (SCAppLayerProtoDetectPMRegisterPatternCI(
-                IPPROTO_TCP, ALPROTO_FTP, "PASS ", 5, 0, STREAM_TOSERVER) < 0) {
-        return -1;
-    }
-    if (SCAppLayerProtoDetectPMRegisterPatternCI(
                 IPPROTO_TCP, ALPROTO_FTP, "PORT ", 5, 0, STREAM_TOSERVER) < 0) {
         return -1;
     }
