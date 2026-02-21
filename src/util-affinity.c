@@ -660,8 +660,7 @@ static int HwLocDeviceNumaGet(hwloc_topology_t topo, hwloc_obj_t obj)
         return nodes[0]->logical_index;
     }
     return -1;
-#endif /* HWLOC_VERSION_MAJOR >= 2 && HWLOC_VERSION_MINOR >= 5 */
-
+#else
     hwloc_obj_t non_io_ancestor = hwloc_get_non_io_ancestor_obj(topo, obj);
     if (non_io_ancestor == NULL) {
         return -1;
@@ -676,6 +675,7 @@ static int HwLocDeviceNumaGet(hwloc_topology_t topo, hwloc_obj_t obj)
     }
 
     return -1;
+#endif /* ! HWLOC_VERSION_MAJOR >= 2 && HWLOC_VERSION_MINOR >= 5 */
 }
 
 static hwloc_obj_t HwLocDeviceGetByKernelName(hwloc_topology_t topo, const char *interface_name)

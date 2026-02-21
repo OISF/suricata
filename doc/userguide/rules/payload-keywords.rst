@@ -271,6 +271,70 @@ You can also use the negation (!) before isdataat.
 
 .. image:: payload-keywords/isdataat1.png
 
+absolute vs relative values
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The absolute ``isdataat`` checks will succeed if the offset used is
+**less than** the size of the inspection buffer.
+
+For *relative* ``isdataat`` checks, there is a **1 byte difference** vs
+the absolute handling.
+
+Matching will succeed if the relative offset is **less than or equal to**
+the size of the inspection buffer. This is different from absolute
+``isdataat`` checks.
+
+As an example, consider a 32 byte payload:
+
++---------------------------+--------+
+| rule statement            | Match? |
++---------------------------+--------+
+| ``isdataat:31;``          | Yes    |
++---------------------------+--------+
+| ``isdataat:32;``          | No     |
++---------------------------+--------+
+| ``isdataat:31,relative;`` | Yes    |
++---------------------------+--------+
+| ``isdataat:32,relative;`` | Yes    |
++---------------------------+--------+
+| ``isdataat:33,relative;`` | No     |
++---------------------------+--------+
+
+Another example, consider the following payload:
+
++-------+---+---+---+---+---+---+---+---+
+| Index | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
++-------+---+---+---+---+---+---+---+---+
+| Value | a | b | c | d | e | f | g | h |
++-------+---+---+---+---+---+---+---+---+
+
+Then the following rules match the payload as follows:
+
++----------------------------------------+--------+
+| Rule statement                         | Match? |
++----------------------------------------+--------+
+| ``isdataat:7;``                        | Yes    |
++----------------------------------------+--------+
+| ``isdataat:8;``                        | No     |
++----------------------------------------+--------+
+| ``isdataat:7,relative;``               | Yes    |
++----------------------------------------+--------+
+| ``isdataat:8,relative;``               | Yes    |
++----------------------------------------+--------+
+| ``isdataat:9,relative;``               | No     |
++----------------------------------------+--------+
+| ``payload:"c"; isdataat:4,relative;``  | Yes    |
++----------------------------------------+--------+
+| ``payload:"c"; isdataat:5,relative;``  | Yes    |
++----------------------------------------+--------+
+| ``payload:"c"; isdataat:6,relative;``  | No     |
++----------------------------------------+--------+
+
+These differences are also discussed in :doc:`differences-from-snort`.
+
+A discussion of this difference can be found at
+https://redmine.openinfosecfoundation.org/issues/8031
+
 absent
 ------
 
