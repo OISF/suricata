@@ -1045,17 +1045,21 @@ void IPOnlyMatchPacket(ThreadVars *tv, const DetectEngineCtx *de_ctx,
             if (bitarray & 0x01) {
                 const Signature *s = de_ctx->sig_array[io_ctx->sig_mapping[u * 8 + i]];
 
-                if ((s->proto.flags & DETECT_PROTO_IPV4) && !PacketIsIPv4(p)) {
-                    SCLogDebug("ip version didn't match");
-                    continue;
-                }
-                if ((s->proto.flags & DETECT_PROTO_IPV6) && !PacketIsIPv6(p)) {
-                    SCLogDebug("ip version didn't match");
-                    continue;
-                }
-                if (DetectProtoContainsProto(&s->proto, PacketGetIPProto(p)) == 0) {
-                    SCLogDebug("proto didn't match");
-                    continue;
+                if (s->proto) {
+                    // TODO sig flag?
+                    if ((s->proto->flags & DETECT_PROTO_IPV4) && !PacketIsIPv4(p)) {
+                        SCLogDebug("ip version didn't match");
+                        continue;
+                    }
+                    if ((s->proto->flags & DETECT_PROTO_IPV6) && !PacketIsIPv6(p)) {
+                        SCLogDebug("ip version didn't match");
+                        continue;
+                    }
+
+                    if (DetectProtoContainsProto(s->proto, PacketGetIPProto(p)) == 0) {
+                        SCLogDebug("proto didn't match");
+                        continue;
+                    }
                 }
 
                 /* check the source & dst port in the sig */
