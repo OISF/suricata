@@ -98,6 +98,8 @@ Match on the numeric value of the reason code that is used in MQTT 5.0 for some 
 
 mqtt.reason_code uses an :ref:`unsigned 8-bits integer <rules-integer-keywords>`.
 
+mqtt.reason_code is also a :ref:`multi-integer <multi-integers>`.
+
 Examples::
 
   # match on attempts to unsubscribe from a non-subscribed topic
