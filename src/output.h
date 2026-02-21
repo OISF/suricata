@@ -164,7 +164,7 @@ int SCRegisterOnLoggingReady(SCOnLoggingReadyCallback callback, void *arg);
 void SCOnLoggingReady(void);
 
 void OutputRegisterRootLogger(ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
-        OutputLogFunc LogFunc, OutputGetActiveCountFunc ActiveCntFunc);
+        OutputLogFunc LogFunc, OutputFlushFunc FlushFunc, OutputGetActiveCountFunc ActiveCntFunc);
 void TmModuleLoggerRegister(void);
 
 TmEcode OutputLoggerLog(ThreadVars *, Packet *, void *);
