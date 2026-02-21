@@ -462,7 +462,7 @@ time_t SCMkTimeUtc (struct tm *tp)
     result += tp->tm_min;
     result *= 60;
     result += tp->tm_sec;
-#ifndef OS_WIN32
+#if !defined(OS_WIN32) && !defined(__sun)
     if (tp->tm_gmtoff)
         result -= tp->tm_gmtoff;
 #endif
@@ -497,7 +497,7 @@ int SCStringPatternToTime (char *string, const char **patterns, int num_patterns
         tp->tm_hour = tp->tm_min = tp->tm_sec = 0;
         tp->tm_year = tp->tm_mon = tp->tm_mday = tp->tm_wday = INT_MIN;
         tp->tm_isdst = -1;
-#ifndef OS_WIN32
+#if !defined(OS_WIN32) && !defined(__sun)
         tp->tm_gmtoff = 0;
         tp->tm_zone = NULL;
 #endif
