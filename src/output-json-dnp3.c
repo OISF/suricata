@@ -347,9 +347,19 @@ static TmEcode JsonDNP3LogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
+static int JsonDNP3LoggerFlush(ThreadVars *tv, void *thread_data, const Packet *p)
+{
+    LogDNP3LogThread *td = (LogDNP3LogThread *)thread_data;
+    if (td && td->ctx) {
+        SCLogDebug("%s flushing %s", tv->name, ((LogFileCtx *)(td->ctx->file_ctx))->filename);
+        OutputJsonFlush(td->ctx);
+    }
+    return 0;
+}
+
 void JsonDNP3LogRegister(void)
 {
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonDNP3Log", "eve-log.dnp3",
-            OutputDNP3LogInitSub, ALPROTO_DNP3, JsonDNP3Logger, JsonDNP3LogThreadInit,
-            JsonDNP3LogThreadDeinit);
+            OutputDNP3LogInitSub, ALPROTO_DNP3, JsonDNP3Logger, JsonDNP3LoggerFlush,
+            JsonDNP3LogThreadInit, JsonDNP3LogThreadDeinit);
 }

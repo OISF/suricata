@@ -33,6 +33,9 @@
 /** \brief Transaction logger function pointer type. */
 typedef int (*TxLogger)(ThreadVars *, void *thread_data, const Packet *, Flow *f, void *state, void *tx, uint64_t tx_id);
 
+/** \brief Transaction logger flush function pointer type. */
+typedef int (*TxLoggerFlush)(ThreadVars *, void *thread_data, const Packet *);
+
 /** \brief Transaction logger condition function pointer type.
  *
  * If a TxLoggerCondition is provided to the registration function,
@@ -55,6 +58,8 @@ typedef bool (*TxLoggerCondition)(
  *
  * \param LogFunc A pointer to the logging function.
  *
+ * \param FlushFunc A pointer to the flush function.
+ *
  * \param initdata Initialization data that will be provided to the
  *     ThreadInit callback.
  *
@@ -75,8 +80,8 @@ typedef bool (*TxLoggerCondition)(
  *     function for cleanup.
  */
 int SCOutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto, TxLogger LogFunc,
-        void *, int tc_log_progress, int ts_log_progress, TxLoggerCondition LogCondition,
-        ThreadInitFunc, ThreadDeinitFunc);
+        TxLoggerFlush FlushFunc, void *, int tc_log_progress, int ts_log_progress,
+        TxLoggerCondition LogCondition, ThreadInitFunc, ThreadDeinitFunc);
 
 /** Internal function: private API. */
 void OutputTxLoggerRegister (void);
