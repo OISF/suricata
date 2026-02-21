@@ -389,7 +389,7 @@ extern enum ExceptionPolicy g_applayerparser_error_policy;
  */
 static int TCPProtoDetect(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         AppLayerThreadCtx *app_tctx, Packet *p, Flow *f, TcpSession *ssn, TcpStream **stream,
-        uint8_t *data, uint32_t data_len, uint8_t flags, enum StreamUpdateDir app_update_dir)
+        const uint8_t *data, uint32_t data_len, uint8_t flags, enum StreamUpdateDir app_update_dir)
 {
     AppProto *alproto;
     AppProto *alproto_otherdir;
@@ -558,7 +558,7 @@ static int TCPProtoDetect(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                 flags, data, data_len);
         PACKET_PROFILING_APP_END(app_tctx);
         p->app_update_direction = (uint8_t)app_update_dir;
-        if (r != 1) {
+        if (r <= 0) {
             StreamTcpUpdateAppLayerProgress(ssn, direction, data_len);
         }
         if (r == 0) {
@@ -578,6 +578,7 @@ static int TCPProtoDetect(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         if (r < 0) {
             goto parser_error;
         }
+        SCReturnInt(r);
     } else {
         /* if the ssn is midstream, we may end up with a case where the
          * start of an HTTP request is missing. We won't detect HTTP based
@@ -775,9 +776,13 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, Packet
     if (alproto == ALPROTO_UNKNOWN && (flags & STREAM_START)) {
         DEBUG_VALIDATE_BUG_ON(FlowChangeProto(f));
         /* run protocol detection */
-        if (TCPProtoDetect(tv, ra_ctx, app_tctx, p, f, ssn, stream, data, data_len, flags,
-                    app_update_dir) != 0) {
+        int rd = TCPProtoDetect(
+                tv, ra_ctx, app_tctx, p, f, ssn, stream, data, data_len, flags, app_update_dir);
+        if (rd < 0) {
             goto failure;
+        }
+        if (rd == 2) {
+            SCReturnInt(1);
         }
     } else if (alproto != ALPROTO_UNKNOWN && FlowChangeProto(f)) {
         SCLogDebug("protocol change, old %s", AppProtoToString(f->alproto_orig));
@@ -1072,6 +1077,7 @@ static void AppLayerNamesSetup(void)
     AppProtoRegisterProtoString(ALPROTO_LDAP, "ldap");
     AppProtoRegisterProtoString(ALPROTO_DOH2, "doh2");
     AppProtoRegisterProtoString(ALPROTO_MDNS, "mdns");
+    AppProtoRegisterProtoString(ALPROTO_SSLPROXY, "sslproxy");
     AppProtoRegisterProtoString(ALPROTO_TEMPLATE, "template");
     AppProtoRegisterProtoString(ALPROTO_RDP, "rdp");
     AppProtoRegisterProtoString(ALPROTO_HTTP2, "http2");

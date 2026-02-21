@@ -38,14 +38,15 @@ pub enum AppProtoEnum {
     ALPROTO_WEBSOCKET = 29,
     ALPROTO_LDAP = 30,
     ALPROTO_DOH2 = 31,
-    ALPROTO_TEMPLATE = 32,
-    ALPROTO_RDP = 33,
-    ALPROTO_HTTP2 = 34,
-    ALPROTO_BITTORRENT_DHT = 35,
-    ALPROTO_POP3 = 36,
-    ALPROTO_MDNS = 37,
-    ALPROTO_HTTP = 38,
-    ALPROTO_MAX_STATIC = 39,
+    ALPROTO_SSLPROXY = 32,
+    ALPROTO_TEMPLATE = 33,
+    ALPROTO_RDP = 34,
+    ALPROTO_HTTP2 = 35,
+    ALPROTO_BITTORRENT_DHT = 36,
+    ALPROTO_POP3 = 37,
+    ALPROTO_MDNS = 38,
+    ALPROTO_HTTP = 39,
+    ALPROTO_MAX_STATIC = 40,
 }
 pub type AppProto = u16;
 extern "C" {
@@ -1052,6 +1053,9 @@ extern "C" {
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {
+    pub fn SCAppLayerRequestProtocolChangeUnknown(f: *mut Flow, dp: u16) -> bool;
+}
+extern "C" {
     pub fn SCAppLayerRequestProtocolTLSUpgrade(f: *mut Flow) -> bool;
 }
 extern "C" {
@@ -1732,6 +1736,11 @@ extern "C" {
 }
 extern "C" {
     pub fn SCFlowGetDestinationPort(flow: *const Flow) -> u16;
+}
+extern "C" {
+    pub fn SCFlowSetDecrypted(
+        f: *mut Flow, proto: u8, src_ip: u32, sp: u16, dest_ip: u32, dp: u16,
+    ) -> ::std::os::raw::c_int;
 }
 extern "C" {
     pub fn SCSRepCatGetByShortname(shortname: *const ::std::os::raw::c_char) -> u8;

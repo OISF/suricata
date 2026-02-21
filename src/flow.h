@@ -121,6 +121,9 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 /** next packet in toserver direction will act on updated app-layer state */
 #define FLOW_TS_APP_UPDATE_NEXT BIT_U64(31)
 
+/** decrypted flow */
+#define FLOW_IS_DECRYPTED BIT_U64(32)
+
 /* File flags */
 
 #define FLOWFILE_INIT                   0
@@ -323,6 +326,25 @@ typedef unsigned short FlowStateType;
 /** Local Thread ID */
 typedef uint16_t FlowThreadId;
 
+typedef struct FlowTuple {
+    FlowAddress src, dst;
+    union {
+        Port sp; /**< tcp/udp source port */
+        struct {
+            uint8_t type; /**< icmp type */
+            uint8_t code; /**< icmp code */
+        } icmp_s;
+    };
+    union {
+        Port dp; /**< tcp/udp destination port */
+        struct {
+            uint8_t type; /**< icmp type */
+            uint8_t code; /**< icmp code */
+        } icmp_d;
+    };
+    uint8_t proto;
+} __attribute__((__packed__)) FlowTuple;
+
 #include "util-storage.h"
 
 /**
@@ -489,6 +511,9 @@ typedef struct Flow_
     uint32_t tosrcpktcnt;
     uint64_t todstbytecnt;
     uint64_t tosrcbytecnt;
+
+    // TODO could be using storage?
+    FlowTuple *translate;
 
     Storage storage[];
 } Flow;

@@ -110,16 +110,31 @@ static inline Packet *FlowPseudoPacketSetup(
     direction ^= ((f->flags & FLOW_DIR_REVERSED) != 0);
 
     if (FLOW_IS_IPV4(f)) {
-        if (direction == 0) {
-            FLOW_COPY_IPV4_ADDR_TO_PACKET(&f->src, &p->src);
-            FLOW_COPY_IPV4_ADDR_TO_PACKET(&f->dst, &p->dst);
-            p->sp = f->sp;
-            p->dp = f->dp;
+        if ((f->flags & FLOW_IS_DECRYPTED) != 0 && f->translate) {
+            if (direction == 0) {
+                FLOW_COPY_IPV4_ADDR_TO_PACKET(&f->translate->src, &p->src);
+                FLOW_COPY_IPV4_ADDR_TO_PACKET(&f->translate->dst, &p->dst);
+                p->sp = f->translate->sp;
+                p->dp = f->translate->dp;
+            } else {
+                FLOW_COPY_IPV4_ADDR_TO_PACKET(&f->translate->src, &p->dst);
+                FLOW_COPY_IPV4_ADDR_TO_PACKET(&f->translate->dst, &p->src);
+                p->sp = f->translate->dp;
+                p->dp = f->translate->sp;
+            }
+
         } else {
-            FLOW_COPY_IPV4_ADDR_TO_PACKET(&f->src, &p->dst);
-            FLOW_COPY_IPV4_ADDR_TO_PACKET(&f->dst, &p->src);
-            p->sp = f->dp;
-            p->dp = f->sp;
+            if (direction == 0) {
+                FLOW_COPY_IPV4_ADDR_TO_PACKET(&f->src, &p->src);
+                FLOW_COPY_IPV4_ADDR_TO_PACKET(&f->dst, &p->dst);
+                p->sp = f->sp;
+                p->dp = f->dp;
+            } else {
+                FLOW_COPY_IPV4_ADDR_TO_PACKET(&f->src, &p->dst);
+                FLOW_COPY_IPV4_ADDR_TO_PACKET(&f->dst, &p->src);
+                p->sp = f->dp;
+                p->dp = f->sp;
+            }
         }
 
         /* Check if we have enough room in direct data. We need ipv4 hdr + tcp hdr.

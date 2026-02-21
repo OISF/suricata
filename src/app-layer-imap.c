@@ -29,6 +29,11 @@
 static int IMAPRegisterPatternsForProtocolDetection(void)
 {
     if (SCAppLayerProtoDetectPMRegisterPatternCI(
+                IPPROTO_TCP, ALPROTO_IMAP, "+ \r\n", 4, 0, STREAM_TOCLIENT) < 0) {
+        return -1;
+    }
+
+    if (SCAppLayerProtoDetectPMRegisterPatternCI(
                 IPPROTO_TCP, ALPROTO_IMAP, "* OK ", 5, 0, STREAM_TOCLIENT) < 0) {
         return -1;
     }
@@ -77,7 +82,18 @@ static int IMAPRegisterPatternsForProtocolDetection(void)
                 17 /*6 for max tag len + space + len(CAPABILITY)*/, 0, STREAM_TOSERVER) < 0) {
         return -1;
     }
-
+    if (SCAppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_IMAP, " authenticate",
+                17 /*6 for max tag len + space + len(authenticate PLAIN)*/, 0,
+                STREAM_TOSERVER) < 0) {
+        return -1;
+    }
+#if 0
+    if (SCAppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_IMAP, " authenticate PLAIN",
+                25 /*6 for max tag len + space + len(authenticate PLAIN)*/, 0,
+                STREAM_TOSERVER) < 0) {
+        return -1;
+    }
+#endif
     return 0;
 }
 

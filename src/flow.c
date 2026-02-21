@@ -543,6 +543,19 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
         DecodeSetNoPayloadInspectionFlag(p);
     }
 
+    if ((f->flags & FLOW_IS_DECRYPTED) != 0 && f->translate) {
+        if (FlowGetPacketDirection(f, p) == TOSERVER) {
+            memcpy(&p->src.address, &f->translate->src.address, 16);
+            memcpy(&p->dst.address, &f->translate->dst.address, 16);
+            p->sp = f->translate->sp;
+            p->dp = f->translate->dp;
+        } else {
+            memcpy(&p->src.address, &f->translate->dst.address, 16);
+            memcpy(&p->dst.address, &f->translate->src.address, 16);
+            p->sp = f->translate->dp;
+            p->dp = f->translate->sp;
+        }
+    }
     SCFlowRunUpdateCallbacks(tv, f, p);
 }
 
@@ -1205,6 +1218,32 @@ void FlowUpdateState(Flow *f, const enum FlowState s)
 #ifdef UNITTESTS
     }
 #endif
+}
+
+/**
+ * \retval 1 ok
+ * \retval 0 already set up as decrypte
+ * \retval -1 error
+ */
+int SCFlowSetDecrypted(
+        Flow *f, uint8_t proto, uint32_t src_ip, uint16_t sp, uint32_t dest_ip, uint16_t dp)
+{
+    if (f->flags & FLOW_IS_DECRYPTED)
+        return 0;
+    if (f->translate != NULL)
+        return 0;
+    FlowTuple *ft = SCCalloc(1, sizeof(*ft));
+    if (ft) {
+        ft->proto = f->proto;
+        ft->sp = sp;
+        ft->dp = dp;
+        memcpy(&ft->src, &src_ip, sizeof(src_ip));
+        memcpy(&ft->dst, &dest_ip, sizeof(dest_ip));
+        f->translate = ft;
+        f->flags |= FLOW_IS_DECRYPTED;
+        return 1;
+    }
+    return -1;
 }
 
 /**
