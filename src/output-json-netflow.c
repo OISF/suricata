@@ -49,6 +49,7 @@
 #include "output-json-netflow.h"
 
 #include "stream-tcp-private.h"
+#include "flow-util.h"
 
 static SCJsonBuilder *CreateEveHeaderFromNetFlow(const Flow *f, int dir)
 {
@@ -105,8 +106,9 @@ static SCJsonBuilder *CreateEveHeaderFromNetFlow(const Flow *f, int dir)
 #endif
 
     /* input interface */
-    if (f->livedev) {
-        SCJbSetString(js, "in_iface", f->livedev->dev);
+    struct LiveDevice_ *ldev = FlowGetLiveDev(f);
+    if (ldev != NULL) {
+        SCJbSetString(js, "in_iface", ldev->dev);
     }
 
     JB_SET_STRING(js, "event_type", "netflow");
