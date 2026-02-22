@@ -285,6 +285,12 @@ const SigGroupHead *SigMatchSignaturesGetSgh(const DetectEngineCtx *de_ctx,
     SCEnter();
     SigGroupHead *sgh = NULL;
 
+    /* use ethernet non-IP sgh if we're ethernet but have no (valid) IP layer on top of it. */
+    if (PacketIsEthernet(p) && p->proto == 0 && de_ctx->eth_non_ip_sgh != NULL) {
+        SCLogDebug("using eth_non_ip_sgh %p", de_ctx->eth_non_ip_sgh);
+        SCReturnPtr(de_ctx->eth_non_ip_sgh, "SigGroupHead");
+    }
+
     /* if the packet proto is 0 (not set), we're inspecting it against
      * the decoder events sgh we have. */
     if (p->proto == 0 && p->events.cnt > 0) {
@@ -536,7 +542,16 @@ static inline bool DetectRunInspectRuleHeader(
         }
         if (DetectProtoContainsProto(s->proto, PacketGetIPProto(p)) == 0) {
             SCLogDebug("proto didn't match");
-            return false;
+            if (PacketIsEthernet(p) &&
+                    (s_proto_flags & (DETECT_PROTO_ETHERNET | DETECT_PROTO_ARP))) {
+                SCLogDebug("checking ether/arp protocol");
+                if ((s_proto_flags & DETECT_PROTO_ARP) && !PacketIsARP(p)) {
+                    return false;
+                }
+                SCLogDebug("checking eth protocol: match!");
+            } else {
+                return false;
+            }
         }
     }
 

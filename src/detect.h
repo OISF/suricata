@@ -1021,6 +1021,9 @@ typedef struct DetectEngineCtx_ {
      *  we can't lookup by proto, address, port as we don't have these */
     struct SigGroupHead_ *decoder_event_sgh;
 
+    /** sgh for `alert ether` / `alert arp` etc. */
+    struct SigGroupHead_ *eth_non_ip_sgh;
+
     /* Maximum size of the buffer for decoded base64 data. */
     uint16_t base64_decode_max_len;
 

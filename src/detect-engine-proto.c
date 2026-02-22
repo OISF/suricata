@@ -50,21 +50,25 @@ struct {
     uint8_t proto2;
     uint8_t flags;
 } proto_table[] = {
-    { "tcp", IPPROTO_TCP, 0, 0 },
-    { "tcp-pkt", IPPROTO_TCP, 0, DETECT_PROTO_ONLY_PKT },
-    { "tcp-stream", IPPROTO_TCP, 0, DETECT_PROTO_ONLY_STREAM },
-    { "udp", IPPROTO_UDP, 0, 0 },
-    { "icmpv4", IPPROTO_ICMP, 0, 0 },
-    { "icmpv6", IPPROTO_ICMPV6, 0, 0 },
-    { "icmp", IPPROTO_ICMP, IPPROTO_ICMPV6, 0 },
-    { "igmp", IPPROTO_IGMP, 0, 0 },
-    { "sctp", IPPROTO_SCTP, 0, 0 },
-    { "ipv4", 0, 0, DETECT_PROTO_IPV4 | DETECT_PROTO_ANY },
-    { "ip4", 0, 0, DETECT_PROTO_IPV4 | DETECT_PROTO_ANY },
-    { "ipv6", 0, 0, DETECT_PROTO_IPV6 | DETECT_PROTO_ANY },
-    { "ip6", 0, 0, DETECT_PROTO_IPV6 | DETECT_PROTO_ANY },
-    { "ip", 0, 0, DETECT_PROTO_ANY },
-    { "pkthdr", 0, 0, DETECT_PROTO_ANY },
+    // clang-format off
+    { "tcp", IPPROTO_TCP, 0, 0, },
+    { "tcp-pkt", IPPROTO_TCP, 0, DETECT_PROTO_ONLY_PKT, },
+    { "tcp-stream", IPPROTO_TCP, 0, DETECT_PROTO_ONLY_STREAM, },
+    { "udp", IPPROTO_UDP, 0, 0, },
+    { "icmpv4", IPPROTO_ICMP, 0, 0, },
+    { "icmpv6", IPPROTO_ICMPV6, 0, 0, },
+    { "icmp", IPPROTO_ICMP, IPPROTO_ICMPV6, 0, },
+    { "igmp", IPPROTO_IGMP, 0, 0, },
+    { "sctp", IPPROTO_SCTP, 0, 0, },
+    { "ipv4", 0, 0, DETECT_PROTO_IPV4 | DETECT_PROTO_ANY, },
+    { "ip4", 0, 0, DETECT_PROTO_IPV4 | DETECT_PROTO_ANY, },
+    { "ipv6", 0, 0, DETECT_PROTO_IPV6 | DETECT_PROTO_ANY, },
+    { "ip6", 0, 0, DETECT_PROTO_IPV6 | DETECT_PROTO_ANY, },
+    { "ip", 0, 0, DETECT_PROTO_ANY, },
+    { "pkthdr", 0, 0, DETECT_PROTO_ANY, },
+    { "ether", 0, 0, DETECT_PROTO_ETHERNET, },
+    { "arp", 0, 0, DETECT_PROTO_ARP | DETECT_PROTO_ETHERNET, },
+    // clang-format on
 };
 
 void DetectEngineProtoList(void)
@@ -96,6 +100,7 @@ int DetectProtoParse(DetectProto *dp, const char *str)
             if (proto_table[i].flags & DETECT_PROTO_ANY)
                 memset(dp->proto, 0xff, sizeof(dp->proto));
             found = 0;
+            SCLogDebug("protocol %s: flags %02x", str, dp->flags);
             break;
         }
     }
