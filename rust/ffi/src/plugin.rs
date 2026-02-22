@@ -22,7 +22,7 @@ use suricata_sys::sys::{SCLogGetLogLevel, SCPlugin, SC_API_VERSION, SC_PACKAGE_V
 
 pub fn init() {
     unsafe {
-        crate::debug::set_log_level(SCLogGetLogLevel());
+        crate::ndebug::set_log_level(SCLogGetLogLevel());
     }
 }
 

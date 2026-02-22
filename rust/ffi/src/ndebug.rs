@@ -118,8 +118,8 @@ macro_rules! function {
 macro_rules! do_log {
     ($level:expr, $($arg:tt)*) => {
         #[allow(unused_unsafe)]
-        if unsafe { $crate::debug::LEVEL as i32 } >= $level as i32 {
-            $crate::debug::sclog($level, file!(), line!(), $crate::function!(),
+        if unsafe { $crate::ndebug::LEVEL as i32 } >= $level as i32 {
+            $crate::ndebug::sclog($level, file!(), line!(), $crate::function!(),
                   &(format!($($arg)*)));
         }
     }
@@ -188,6 +188,6 @@ macro_rules! SCLogDebug {
 #[macro_export]
 macro_rules! SCFatalErrorOnInit {
     ($($arg:tt)*) => {
-        $crate::debug::fatalerror(&format!($($arg)*));
+        $crate::ndebug::fatalerror(&format!($($arg)*));
     }
 }

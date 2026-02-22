@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-pub mod debug;
+pub mod ndebug;
 pub mod eve;
 pub mod jsonbuilder;
 pub mod plugin;
