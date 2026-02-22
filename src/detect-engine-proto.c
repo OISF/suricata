@@ -49,22 +49,25 @@ struct {
     uint8_t proto;
     uint8_t proto2;
     uint8_t flags;
+    uint16_t ether_type; /**< 0 means "any ether type" */
 } proto_table[] = {
-    { "tcp", IPPROTO_TCP, 0, 0 },
-    { "tcp-pkt", IPPROTO_TCP, 0, DETECT_PROTO_ONLY_PKT },
-    { "tcp-stream", IPPROTO_TCP, 0, DETECT_PROTO_ONLY_STREAM },
-    { "udp", IPPROTO_UDP, 0, 0 },
-    { "icmpv4", IPPROTO_ICMP, 0, 0 },
-    { "icmpv6", IPPROTO_ICMPV6, 0, 0 },
-    { "icmp", IPPROTO_ICMP, IPPROTO_ICMPV6, 0 },
-    { "igmp", IPPROTO_IGMP, 0, 0 },
-    { "sctp", IPPROTO_SCTP, 0, 0 },
-    { "ipv4", 0, 0, DETECT_PROTO_IPV4 | DETECT_PROTO_ANY },
-    { "ip4", 0, 0, DETECT_PROTO_IPV4 | DETECT_PROTO_ANY },
-    { "ipv6", 0, 0, DETECT_PROTO_IPV6 | DETECT_PROTO_ANY },
-    { "ip6", 0, 0, DETECT_PROTO_IPV6 | DETECT_PROTO_ANY },
-    { "ip", 0, 0, DETECT_PROTO_ANY },
-    { "pkthdr", 0, 0, DETECT_PROTO_ANY },
+    { "tcp", IPPROTO_TCP, 0, 0, 0 },
+    { "tcp-pkt", IPPROTO_TCP, 0, DETECT_PROTO_ONLY_PKT, 0 },
+    { "tcp-stream", IPPROTO_TCP, 0, DETECT_PROTO_ONLY_STREAM, 0 },
+    { "udp", IPPROTO_UDP, 0, 0, 0 },
+    { "icmpv4", IPPROTO_ICMP, 0, 0, 0 },
+    { "icmpv6", IPPROTO_ICMPV6, 0, 0, 0 },
+    { "icmp", IPPROTO_ICMP, IPPROTO_ICMPV6, 0, 0 },
+    { "igmp", IPPROTO_IGMP, 0, 0, 0 },
+    { "sctp", IPPROTO_SCTP, 0, 0, 0 },
+    { "ipv4", 0, 0, DETECT_PROTO_IPV4 | DETECT_PROTO_ANY, 0 },
+    { "ip4", 0, 0, DETECT_PROTO_IPV4 | DETECT_PROTO_ANY, 0 },
+    { "ipv6", 0, 0, DETECT_PROTO_IPV6 | DETECT_PROTO_ANY, 0 },
+    { "ip6", 0, 0, DETECT_PROTO_IPV6 | DETECT_PROTO_ANY, 0 },
+    { "ip", 0, 0, DETECT_PROTO_ANY, 0 },
+    { "pkthdr", 0, 0, DETECT_PROTO_ANY, 0 },
+    { "ether", 0, 0, DETECT_PROTO_ETHERNET, 0 },
+    { "arp", 0, 0, DETECT_PROTO_ETHERNET, ETHERNET_TYPE_ARP },
 };
 
 void DetectEngineProtoList(void)
@@ -95,6 +98,7 @@ int DetectProtoParse(DetectProto *dp, const char *str)
             dp->flags |= proto_table[i].flags;
             if (proto_table[i].flags & DETECT_PROTO_ANY)
                 memset(dp->proto, 0xff, sizeof(dp->proto));
+            dp->ether_type = proto_table[i].ether_type;
             found = 0;
             break;
         }
