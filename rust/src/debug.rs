@@ -58,7 +58,7 @@ pub fn sc_log_message(
     level: SCLogLevel, filename: &str, line: std::os::raw::c_uint, function: &str, module: &str,
     message: &str,
 ) -> SCError {
-    suricata_ffi::debug::log_message(level, filename, line, function, module, message)
+    suricata_ffi::ndebug::log_message(level, filename, line, function, module, message)
 }
 
 #[cfg(test)]
@@ -170,7 +170,7 @@ macro_rules! SCLogDebug {
 #[macro_export]
 macro_rules!SCFatalErrorOnInit {
     ($($arg:tt)*) => {
-        suricata_ffi::debug::fatalerror(&format!($($arg)*));
+        suricata_ffi::ndebug::fatalerror(&format!($($arg)*));
     }
 }
 
