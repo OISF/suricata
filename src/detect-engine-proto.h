@@ -30,6 +30,8 @@
 #define DETECT_PROTO_ONLY_STREAM       BIT_U8(2) /**< Indicate that we only care about stream payloads. */
 #define DETECT_PROTO_IPV4              BIT_U8(3) /**< IPv4 only */
 #define DETECT_PROTO_IPV6              BIT_U8(4) /**< IPv6 only */
+#define DETECT_PROTO_ETHERNET          BIT_U8(5) /**< Like ANY, but for Ethernet */
+#define DETECT_PROTO_ARP               BIT_U8(6) /**< ARP packets over for Ethernet, can have VLAN(s) in between */
 // clang-format on
 
 typedef struct DetectProto_ {
