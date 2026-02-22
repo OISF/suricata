@@ -2806,6 +2806,23 @@ static int SigValidateFileHandling(const Signature *s)
     SCReturnInt(1);
 }
 
+static bool SigValidateEthernet(const Signature *s)
+{
+    if (s->init_data->proto.flags & DETECT_PROTO_ETHERNET) {
+        if ((s->flags & (SIG_FLAG_SP_ANY | SIG_FLAG_DP_ANY)) !=
+                (SIG_FLAG_SP_ANY | SIG_FLAG_DP_ANY)) {
+            SCLogError("can't use ports with ethernet rule");
+            return false;
+        }
+    } else {
+        if (s->init_data->proto.ether_type != 0) {
+            SCLogError("can't set ether_type with non-ethernet rule");
+            return false;
+        }
+    }
+    return true;
+}
+
 /**
  *  \internal
  *  \brief validate and consolidate parsed signature
@@ -2825,6 +2842,10 @@ static int SigValidateConsolidate(
         SCReturnInt(0);
 
     if (SigValidatePacketStream(s) == 0) {
+        SCReturnInt(0);
+    }
+
+    if (!SigValidateEthernet(s)) {
         SCReturnInt(0);
     }
 
