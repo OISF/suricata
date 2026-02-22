@@ -4,6 +4,9 @@ codecov:
     after_n_builds: 6
   disable_default_path_fixes: true
 
+fixes:
+  - "/__w/suricata/suricata/::"
+
 coverage:
   precision: 2
   round: down
