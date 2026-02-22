@@ -903,11 +903,22 @@ jobs:
         run: python3 ./suricata-verify/run.py -q --debug-failed --aggressive-cleanup
       - run: llvm-profdata merge -o default.profdata $(find suricata-verify/tests/ -name '*.profraw')
       - run: llvm-cov show ./src/suricata -instr-profile=default.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
+      - run: llvm-cov export ./src/suricata -instr-profile=default.profdata -format=lcov --ignore-filename-regex="^/root/.*" > coverage.lcov
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de
         with:
           fail_ci_if_error: false
+          files: coverage.lcov
           flags: suricata-verify
+      - name: Upload coverage to Coveralls
+        uses: coverallsapp/github-action@5cbfd81b66ca5d10c19b062c04de0199c215fb6e
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          files: coverage.lcov
+          format: lcov
+          flag-name: suricata-verify
+          parallel: true
+          fail-on-error: false
 
   # Fedora build using Clang.
   fedora-43-clang:
@@ -1592,6 +1603,7 @@ jobs:
       - run: llvm-profdata-19 merge -o dumpconfig.profdata /tmp/dumpconfig.profraw
       - run: llvm-profdata-19 merge -o combined.profdata $(find /tmp/ -name '*.profraw')
       - run: llvm-cov-19 show ./src/suricata -instr-profile=combined.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
+      - run: llvm-cov-19 export ./src/suricata -instr-profile=combined.profdata -format=lcov --ignore-filename-regex="^/root/.*" > coverage.lcov
       - run: |
           cd rust
           cargo test --no-run
@@ -1606,11 +1618,22 @@ jobs:
           CARGO_INCREMENTAL: 0
       - run: llvm-profdata-19 merge -o ct.profdata /tmp/ct.profraw
       - run: llvm-cov-19 show $(find rust/target/debug/deps/ -type f -regex 'rust/target/debug/deps/suricata\-[a-z0-9]+$') -instr-profile=ct.profdata --show-instantiations --ignore-filename-regex="^/root/.*" >> coverage.txt
+      - run: llvm-cov-19 export $(find rust/target/debug/deps/ -type f -regex 'rust/target/debug/deps/suricata\-[a-z0-9]+$') -instr-profile=ct.profdata -format=lcov --ignore-filename-regex="^/root/.*" >> coverage.lcov
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de
         with:
           fail_ci_if_error: false
+          files: coverage.lcov
           flags: unittests
+      - name: Upload coverage to Coveralls
+        uses: coverallsapp/github-action@5cbfd81b66ca5d10c19b062c04de0199c215fb6e
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          files: coverage.lcov
+          format: lcov
+          flag-name: unittests
+          parallel: true
+          fail-on-error: false
 
   ubuntu-22-04-cov-pcapunix:
     name: Ubuntu 22.04 (unix socket mode coverage)
@@ -1713,11 +1736,22 @@ jobs:
           LLVM_PROFILE_FILE: "/tmp/unix.profraw"
       - run: llvm-profdata-15 merge -o default.profdata $(find /tmp/ -name '*.profraw')
       - run: llvm-cov-15 show ./src/suricata -instr-profile=default.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
+      - run: llvm-cov-15 export ./src/suricata -instr-profile=default.profdata -format=lcov --ignore-filename-regex="^/root/.*" > coverage.lcov
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de
         with:
           fail_ci_if_error: false
+          files: coverage.lcov
           flags: pcap
+      - name: Upload coverage to Coveralls
+        uses: coverallsapp/github-action@5cbfd81b66ca5d10c19b062c04de0199c215fb6e
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          files: coverage.lcov
+          format: lcov
+          flag-name: pcap
+          parallel: true
+          fail-on-error: false
 
   ubuntu-22-04-cov-afpdpdk:
     name: Ubuntu 22.04 (afpacket and dpdk coverage)
@@ -1855,11 +1889,22 @@ jobs:
           LLVM_PROFILE_FILE: "/tmp/mt-autofp.profraw"
       - run: llvm-profdata-15 merge -o default.profdata $(find /tmp/ -name '*.profraw')
       - run: llvm-cov-15 show ./src/suricata -instr-profile=default.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
+      - run: llvm-cov-15 export ./src/suricata -instr-profile=default.profdata -format=lcov --ignore-filename-regex="^/root/.*" > coverage.lcov
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de
         with:
           fail_ci_if_error: false
+          files: coverage.lcov
           flags: livemode
+      - name: Upload coverage to Coveralls
+        uses: coverallsapp/github-action@5cbfd81b66ca5d10c19b062c04de0199c215fb6e
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          files: coverage.lcov
+          format: lcov
+          flag-name: livemode
+          parallel: true
+          fail-on-error: false
 
   ubuntu-24-04-pcap-unix:
     name: Ubuntu 24.04 (pcap unix socket ASAN)
@@ -2081,12 +2126,23 @@ jobs:
 
       - run: llvm-profdata-19 merge -o combined.profdata afp-ips.profdata nfq-ips.profdata afp-ips-autofp.profdata nfq-ips-workers.profdata afp-ips-bond1.profdata afp-ips-bond2.profdata
       - run: llvm-cov-19 show ./src/suricata -instr-profile=combined.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
+      - run: llvm-cov-19 export ./src/suricata -instr-profile=combined.profdata -format=lcov --ignore-filename-regex="^/root/.*" > coverage.lcov
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de
         with:
           fail_ci_if_error: false
+          files: coverage.lcov
           flags: netns
           verbose: true
+      - name: Upload coverage to Coveralls
+        uses: coverallsapp/github-action@5cbfd81b66ca5d10c19b062c04de0199c215fb6e
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          files: coverage.lcov
+          format: lcov
+          flag-name: netns
+          parallel: true
+          fail-on-error: false
 
   ubuntu-24-04-asan-afpdpdk:
     name: Ubuntu 24.04 (afpacket and dpdk live tests with ASAN)
@@ -2292,11 +2348,41 @@ jobs:
       - run: ./qa/run-ossfuzz-corpus.sh
       - run: llvm-profdata-15 merge -o default.profdata $(find /tmp/ -name '*.profraw')
       - run: llvm-cov-15 show ./src/suricata -instr-profile=default.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
+      - run: llvm-cov-15 export ./src/suricata -instr-profile=default.profdata -format=lcov --ignore-filename-regex="^/root/.*" > coverage.lcov
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de
         with:
           fail_ci_if_error: false
+          files: coverage.lcov
           flags: fuzzcorpus
+      - name: Upload coverage to Coveralls
+        uses: coverallsapp/github-action@5cbfd81b66ca5d10c19b062c04de0199c215fb6e
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          files: coverage.lcov
+          format: lcov
+          flag-name: fuzzcorpus
+          parallel: true
+          fail-on-error: false
+
+  coveralls-finish:
+    name: Coveralls finish
+    runs-on: ubuntu-latest
+    if: ${{ always() }}
+    needs:
+      - fedora-43-sv-codecov
+      - ubuntu-24-04-cov-ut
+      - ubuntu-22-04-cov-pcapunix
+      - ubuntu-22-04-cov-afpdpdk
+      - ubuntu-latest-namespace-ips
+      - ubuntu-22-04-cov-fuzz
+    steps:
+      - name: Finalize Coveralls parallel build
+        uses: coverallsapp/github-action@5cbfd81b66ca5d10c19b062c04de0199c215fb6e
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          parallel-finished: true
+          fail-on-error: false
 
   ubuntu-20-04-ndebug:
     name: Ubuntu 20.04 (-DNDEBUG)
