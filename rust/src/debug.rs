@@ -17,11 +17,11 @@
 
 //! Logging and debug utilities, like util-debug.c.
 
-use std::path::Path;
+use std::{ffi::CString, path::Path};
 
-use suricata_sys::sys::SCLogLevel;
+use suricata_sys::sys::{SCFatalErrorOnInitStatic, SCLogLevel};
 #[cfg(not(test))]
-use suricata_sys::sys::SCError;
+use suricata_sys::sys::{SCError, SCLogMessage};
 
 pub static mut LEVEL: SCLogLevel = SCLogLevel::SC_LOG_NOTSET;
 
@@ -44,6 +44,12 @@ fn basename(filename: &str) -> &str {
     return filename;
 }
 
+pub fn fatalerror(message: &str) {
+    unsafe {
+        SCFatalErrorOnInitStatic(to_safe_cstring(message).as_ptr());
+    }
+}
+
 pub fn sclog(level: SCLogLevel, file: &str, line: u32, function: &str, message: &str) {
     let filename = basename(file);
     let noext = &filename[0..filename.len() - 3];
@@ -58,7 +64,16 @@ pub fn sc_log_message(
     level: SCLogLevel, filename: &str, line: std::os::raw::c_uint, function: &str, module: &str,
     message: &str,
 ) -> SCError {
-    suricata_ffi::debug::log_message(level, filename, line, function, module, message)
+    unsafe {
+        return SCLogMessage(
+            level,
+            to_safe_cstring(filename).as_ptr(),
+            line,
+            to_safe_cstring(function).as_ptr(),
+            to_safe_cstring(module).as_ptr(),
+            to_safe_cstring(message).as_ptr(),
+        );
+    }
 }
 
 #[cfg(test)]
@@ -75,6 +90,20 @@ pub fn sc_log_message(
     // unix time.
     println!("{}:{} <{:?}> -- {}", filename, line, level, message);
     return 0;
+}
+
+// Convert a &str into a CString by first stripping NUL bytes.
+fn to_safe_cstring(val: &str) -> CString {
+    let mut safe = Vec::with_capacity(val.len());
+    for c in val.as_bytes() {
+        if *c != 0 {
+            safe.push(*c);
+        }
+    }
+    match CString::new(safe) {
+        Ok(cstr) => cstr,
+        _ => CString::new("<failed to encode string>").unwrap(),
+    }
 }
 
 // This macro returns the function name.
@@ -170,7 +199,7 @@ macro_rules! SCLogDebug {
 #[macro_export]
 macro_rules!SCFatalErrorOnInit {
     ($($arg:tt)*) => {
-        suricata_ffi::debug::fatalerror(&format!($($arg)*));
+        $crate::debug::fatalerror(&format!($($arg)*));
     }
 }
 
