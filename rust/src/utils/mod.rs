@@ -17,3 +17,4 @@
 
 pub mod base64;
 pub mod datalink;
+pub mod ipaddr;

@@ -292,7 +292,7 @@ static int FrameJsonUdp(ThreadVars *tv, JsonFrameLogThread *aft, const Packet *p
 
         /* First initialize the address info (5-tuple). */
         JsonAddrInfo addr = json_addr_info_zero;
-        JsonAddrInfoInit(p, LOG_DIR_PACKET, &addr);
+        JsonAddrInfoInit(p, LOG_DIR_PACKET, &addr, &json_output_ctx->eve_ctx->cfg);
 
         SCJsonBuilder *jb =
                 CreateEveHeader(p, LOG_DIR_PACKET, "frame", &addr, json_output_ctx->eve_ctx);
@@ -366,7 +366,7 @@ static int FrameJson(ThreadVars *tv, JsonFrameLogThread *aft, const Packet *p)
 
             /* First initialize the address info (5-tuple). */
             JsonAddrInfo addr = json_addr_info_zero;
-            JsonAddrInfoInit(p, LOG_DIR_PACKET, &addr);
+            JsonAddrInfoInit(p, LOG_DIR_PACKET, &addr, &json_output_ctx->eve_ctx->cfg);
 
             SCJsonBuilder *jb =
                     CreateEveHeader(p, LOG_DIR_PACKET, "frame", &addr, json_output_ctx->eve_ctx);

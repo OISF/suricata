@@ -50,6 +50,9 @@ outputs:
       # include the name of the input pcap file in pcap file processing mode
       pcap-file: false
 
+      # Shorten IPv6 addresses per RFC5952 as they are added to the eve-log. The default is no.
+      # ipv6-addr-shorten: no
+
       # Community Flow ID
       # Adds a 'community-id' field to EVE records. These are meant to give
       # records a predictable flow ID that can be used to match records to

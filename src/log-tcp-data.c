@@ -83,8 +83,10 @@ static int LogTcpDataLoggerDir(ThreadVars *tv, void *thread_data, const Flow *f,
             PrintInet(AF_INET, (const void *)&f->src.addr_data32[0], srcip, sizeof(srcip));
             PrintInet(AF_INET, (const void *)&f->dst.addr_data32[0], dstip, sizeof(dstip));
         } else if (FLOW_IS_IPV6(f)) {
-            PrintInet(AF_INET6, (const void *)f->src.addr_data32, srcip, sizeof(srcip));
-            PrintInet(AF_INET6, (const void *)f->dst.addr_data32, dstip, sizeof(dstip));
+            PrintInetIPv6((const void *)f->src.addr_data32, srcip, sizeof(srcip),
+                    td->file_ctx->shorten_ipv6);
+            PrintInetIPv6((const void *)f->dst.addr_data32, dstip, sizeof(dstip),
+                    td->file_ctx->shorten_ipv6);
         }
 
         char name[PATH_MAX];
@@ -126,8 +128,10 @@ static int LogTcpDataLoggerFile(ThreadVars *tv, void *thread_data, const Flow *f
             PrintInet(AF_INET, (const void *)&f->src.addr_data32[0], srcip, sizeof(srcip));
             PrintInet(AF_INET, (const void *)&f->dst.addr_data32[0], dstip, sizeof(dstip));
         } else if (FLOW_IS_IPV6(f)) {
-            PrintInet(AF_INET6, (const void *)f->src.addr_data32, srcip, sizeof(srcip));
-            PrintInet(AF_INET6, (const void *)f->dst.addr_data32, dstip, sizeof(dstip));
+            PrintInetIPv6((const void *)f->src.addr_data32, srcip, sizeof(srcip),
+                    td->file_ctx->shorten_ipv6);
+            PrintInetIPv6((const void *)f->dst.addr_data32, dstip, sizeof(dstip),
+                    td->file_ctx->shorten_ipv6);
         }
 
         char name[PATH_MAX];
