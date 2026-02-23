@@ -903,6 +903,11 @@ jobs:
         run: python3 ./suricata-verify/run.py -q --debug-failed --aggressive-cleanup
       - run: llvm-profdata merge -o default.profdata $(find suricata-verify/tests/ -name '*.profraw')
       - run: llvm-cov export ./src/suricata -instr-profile=default.profdata -format=lcov --ignore-filename-regex="^/root/.*" > coverage.lcov
+      - name: Upload coverage.lcov artifact
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: coverage-lcov-${{ github.job }}
+          path: coverage.lcov
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de
         with:
@@ -1607,6 +1612,11 @@ jobs:
           CARGO_INCREMENTAL: 0
       - run: llvm-profdata-19 merge -o ct.profdata /tmp/ct.profraw
       - run: llvm-cov-19 export $(find rust/target/debug/deps/ -type f -regex 'rust/target/debug/deps/suricata\-[a-z0-9]+$') -instr-profile=ct.profdata -format=lcov --ignore-filename-regex="^/root/.*" >> coverage.lcov
+      - name: Upload coverage.lcov artifact
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: coverage-lcov-${{ github.job }}
+          path: coverage.lcov
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de
         with:
@@ -1715,6 +1725,11 @@ jobs:
           LLVM_PROFILE_FILE: "/tmp/unix.profraw"
       - run: llvm-profdata-15 merge -o default.profdata $(find /tmp/ -name '*.profraw')
       - run: llvm-cov-15 export ./src/suricata -instr-profile=default.profdata -format=lcov --ignore-filename-regex="^/root/.*" > coverage.lcov
+      - name: Upload coverage.lcov artifact
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: coverage-lcov-${{ github.job }}
+          path: coverage.lcov
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de
         with:
@@ -1858,6 +1873,11 @@ jobs:
           LLVM_PROFILE_FILE: "/tmp/mt-autofp.profraw"
       - run: llvm-profdata-15 merge -o default.profdata $(find /tmp/ -name '*.profraw')
       - run: llvm-cov-15 export ./src/suricata -instr-profile=default.profdata -format=lcov --ignore-filename-regex="^/root/.*" > coverage.lcov
+      - name: Upload coverage.lcov artifact
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: coverage-lcov-${{ github.job }}
+          path: coverage.lcov
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de
         with:
@@ -2085,6 +2105,11 @@ jobs:
 
       - run: llvm-profdata-19 merge -o combined.profdata afp-ips.profdata nfq-ips.profdata afp-ips-autofp.profdata nfq-ips-workers.profdata afp-ips-bond1.profdata afp-ips-bond2.profdata
       - run: llvm-cov-19 export ./src/suricata -instr-profile=combined.profdata -format=lcov --ignore-filename-regex="^/github/home/.cargo/.*" > coverage.lcov
+      - name: Upload coverage.lcov artifact
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: coverage-lcov-${{ github.job }}
+          path: coverage.lcov
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de
         with:
@@ -2297,6 +2322,11 @@ jobs:
       - run: ./qa/run-ossfuzz-corpus.sh
       - run: llvm-profdata-15 merge -o default.profdata $(find /tmp/ -name '*.profraw')
       - run: llvm-cov-15 export ./src/suricata -instr-profile=default.profdata -format=lcov --ignore-filename-regex="^/root/.*" > coverage.lcov
+      - name: Upload coverage.lcov artifact
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: coverage-lcov-${{ github.job }}
+          path: coverage.lcov
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de
         with:
