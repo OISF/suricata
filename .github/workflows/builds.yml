@@ -909,6 +909,11 @@ jobs:
           fail_ci_if_error: false
           files: coverage.lcov
           flags: suricata-verify
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: coverage-suricata-verify
+          path: coverage.lcov
 
   # Fedora build using Clang.
   fedora-43-clang:
@@ -1613,6 +1618,11 @@ jobs:
           fail_ci_if_error: false
           files: coverage.lcov
           flags: unittests
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: coverage-unittests
+          path: coverage.lcov
 
   ubuntu-22-04-cov-pcapunix:
     name: Ubuntu 22.04 (unix socket mode coverage)
@@ -1721,6 +1731,11 @@ jobs:
           fail_ci_if_error: false
           files: coverage.lcov
           flags: pcap
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: coverage-pcap
+          path: coverage.lcov
 
   ubuntu-22-04-cov-afpdpdk:
     name: Ubuntu 22.04 (afpacket and dpdk coverage)
@@ -1864,6 +1879,11 @@ jobs:
           fail_ci_if_error: false
           files: coverage.lcov
           flags: livemode
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: coverage-livemode
+          path: coverage.lcov
 
   ubuntu-24-04-pcap-unix:
     name: Ubuntu 24.04 (pcap unix socket ASAN)
@@ -2092,6 +2112,11 @@ jobs:
           files: coverage.lcov
           flags: netns
           verbose: true
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: coverage-netns
+          path: coverage.lcov
 
   ubuntu-24-04-asan-afpdpdk:
     name: Ubuntu 24.04 (afpacket and dpdk live tests with ASAN)
@@ -2303,6 +2328,11 @@ jobs:
           fail_ci_if_error: false
           files: coverage.lcov
           flags: fuzzcorpus
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: coverage-fuzzcorpus
+          path: coverage.lcov
 
   ubuntu-20-04-ndebug:
     name: Ubuntu 20.04 (-DNDEBUG)
