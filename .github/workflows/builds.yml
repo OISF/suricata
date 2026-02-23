@@ -2126,7 +2126,7 @@ jobs:
 
       - run: llvm-profdata-19 merge -o combined.profdata afp-ips.profdata nfq-ips.profdata afp-ips-autofp.profdata nfq-ips-workers.profdata afp-ips-bond1.profdata afp-ips-bond2.profdata
       - run: llvm-cov-19 show ./src/suricata -instr-profile=combined.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
-      - run: llvm-cov-19 export ./src/suricata -instr-profile=combined.profdata -format=lcov --ignore-filename-regex="^/root/.*" > coverage.lcov
+      - run: llvm-cov-19 export ./src/suricata -instr-profile=combined.profdata -format=lcov --ignore-filename-regex="^/github/home/cargo/.*" > coverage.lcov
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de
         with:
