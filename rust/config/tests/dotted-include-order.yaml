@@ -1,0 +1,9 @@
+%YAML 1.1
+---
+vars.address-groups.HOME_NET: "1.1.1.1"
+vars:
+  address-groups:
+    HOME_NET: "2.2.2.2"
+
+# Comes last, so its dotted override wins.
+include: dotted-include-order-override.yaml

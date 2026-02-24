@@ -1,0 +1,7 @@
+%YAML 1.1
+---
+# Include paths are relative to the top-level config directory, not to
+# the directory of this file.
+from-one: one
+from-tag: !include nested/tagged.yaml
+include: nested/two.yaml

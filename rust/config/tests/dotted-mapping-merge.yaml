@@ -1,0 +1,10 @@
+%YAML 1.1
+---
+vars:
+  address-groups:
+    HOME_NET: "[192.168.0.0/16]"
+    EXTERNAL_NET: "!$HOME_NET"
+
+# A dotted key with a mapping value merges into the existing mapping.
+vars.address-groups:
+  HOME_NET: "10.10.10.10/32"

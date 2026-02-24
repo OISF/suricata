@@ -1,0 +1,5 @@
+%YAML 1.1
+---
+vars:
+  address-groups:
+    HOME_NET: "3.3.3.3"

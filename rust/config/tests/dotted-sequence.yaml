@@ -1,0 +1,11 @@
+%YAML 1.1
+---
+outputs:
+  - fast:
+      enabled: yes
+  - eve-log:
+      enabled: yes
+      filetype: regular
+
+# Override a value inside the second sequence entry by index.
+outputs.1.eve-log.enabled: no
