@@ -190,7 +190,7 @@ static int HSSaveCache(hs_database_t *hs_db, const char *hs_db_hash, const char 
                 hash_file_static);
     }
 
-    FILE *db_cache_out = fopen(hash_file_static, "w");
+    FILE *db_cache_out = fopen(hash_file_static, "wb");
     if (!db_cache_out) {
         if (!notified) {
             SCLogWarning("Failed to create Hyperscan cache file, make sure the folder exist and is "
@@ -202,14 +202,11 @@ static int HSSaveCache(hs_database_t *hs_db, const char *hs_db_hash, const char 
         goto cleanup;
     }
     size_t r = fwrite(db_stream, sizeof(db_stream[0]), db_size, db_cache_out);
-    if (r > 0 && (size_t)r != db_size) {
+    if (r != db_size) {
         SCLogWarning("Failed to write to file: %s", hash_file_static);
-        if (r != db_size) {
-            // possibly a corrupted DB cache was created
-            r = remove(hash_file_static);
-            if (r != 0) {
-                SCLogWarning("Failed to remove corrupted cache file: %s", hash_file_static);
-            }
+        // possibly a corrupted DB cache was created
+        if (remove(hash_file_static) != 0) {
+            SCLogWarning("Failed to remove corrupted cache file: %s", hash_file_static);
         }
     }
     ret = fclose(db_cache_out);
