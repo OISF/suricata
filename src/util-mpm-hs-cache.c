@@ -133,38 +133,30 @@ int HSLoadCache(hs_database_t **hs_db, const char *hs_db_hash, const char *dirpa
     if (!SCPathExists(hash_file_static))
         return -1;
 
-    FILE *db_cache = fopen(hash_file_static, "r");
     char *buffer = NULL;
-    if (db_cache) {
-        size_t buffer_size;
-        buffer = HSReadStream(hash_file_static, &buffer_size);
-        if (!buffer) {
-            SCLogWarning("Hyperscan cached DB file %s cannot be read", hash_file_static);
-            ret = -1;
-            goto freeup;
-        }
+    size_t buffer_size;
+    buffer = HSReadStream(hash_file_static, &buffer_size);
+    if (!buffer) {
+        SCLogWarning("Hyperscan cached DB file %s cannot be read", hash_file_static);
+        return -1;
+    }
 
-        hs_error_t error = hs_deserialize_database(buffer, buffer_size, hs_db);
-        if (error != HS_SUCCESS) {
-            SCLogWarning("Failed to deserialize Hyperscan database of %s: %s", hash_file_static,
-                    HSErrorToStr(error));
-            ret = -1;
-            goto freeup;
-        }
-
-        ret = 0;
-        /* Touch file to update modification time so active caches are retained. */
-        if (SCTouchFile(hash_file_static) != 0) {
-            SCLogDebug("Failed to update mtime for %s", hash_file_static);
-        }
+    hs_error_t error = hs_deserialize_database(buffer, buffer_size, hs_db);
+    if (error != HS_SUCCESS) {
+        SCLogWarning("Failed to deserialize Hyperscan database of %s: %s", hash_file_static,
+                HSErrorToStr(error));
+        ret = -1;
         goto freeup;
     }
 
+    ret = 0;
+    /* Touch file to update modification time so active caches are retained. */
+    if (SCTouchFile(hash_file_static) != 0) {
+        SCLogDebug("Failed to update mtime for %s", hash_file_static);
+    }
+
 freeup:
-    if (db_cache)
-        fclose(db_cache);
-    if (buffer)
-        SCFree(buffer);
+    SCFree(buffer);
     return ret;
 }
 
