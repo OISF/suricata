@@ -37,6 +37,7 @@
 #include <rte_mempool.h>
 #include <rte_mbuf.h>
 #include <rte_flow.h>
+#include <rte_kvargs.h>
 #include <rte_version.h>
 
 #if RTE_VERSION < RTE_VERSION_NUM(22, 0, 0, 0)
