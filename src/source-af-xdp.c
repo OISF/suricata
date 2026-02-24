@@ -423,7 +423,7 @@ static TmEcode ConfigureBusyPolling(AFXDPThreadVars *ptv)
 
 static void AFXDPSwitchState(AFXDPThreadVars *ptv, int state)
 {
-    ptv->afxdp_state = state;
+    ptv->afxdp_state = (uint8_t)state;
 }
 
 static TmEcode OpenXSKSocket(AFXDPThreadVars *ptv)

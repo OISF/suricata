@@ -34,7 +34,7 @@ typedef struct AFXDPIfaceConfig {
 
     /* misc use flags */
     uint32_t mode;
-    uint32_t bind_flags;
+    uint16_t bind_flags;
     int mem_alignment;
     bool enable_busy_poll;
     uint32_t busy_poll_time;
