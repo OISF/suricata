@@ -1858,7 +1858,7 @@ jobs:
           RUSTFLAGS: "-C instrument-coverage"
       # IDS config
       - run: |
-          ./.github/workflows/live/dpdk.sh ".github/workflows/dpdk/suricata-null-ids.yaml"
+          ./.github/workflows/live/dpdk.sh "qa/live/dpdk/suricata-null-ids.yaml"
         env:
           LLVM_PROFILE_FILE: "/tmp/dpdk-ids.profraw"
       # IPS config
@@ -1866,6 +1866,10 @@ jobs:
           ./.github/workflows/live/dpdk.sh ".github/workflows/dpdk/suricata-null-ips.yaml"
         env:
           LLVM_PROFILE_FILE: "/tmp/dpdk-ips.profraw"
+      # DPDK configuration checks
+      - run: ./qa/live/dpdk/dpdk-testsuite.sh
+        env:
+          LLVM_PROFILE_FILE: "/tmp/dpdk-testsuite-%p.profraw"
       # AF_PACKET tests
       - run: |
           ./.github/workflows/live/afp-ids.sh "2" "autofp"
@@ -2247,10 +2251,12 @@ jobs:
           CC: "clang-18"
       # IDS config
       - run: |
-          ./.github/workflows/live/dpdk.sh ".github/workflows/dpdk/suricata-null-ids.yaml"
+          ./.github/workflows/live/dpdk.sh "qa/live/dpdk/suricata-null-ids.yaml"
       # IPS config
       - run: |
           ./.github/workflows/live/dpdk.sh ".github/workflows/dpdk/suricata-null-ips.yaml"
+      # DPDK configuration checks
+      - run: ./qa/live/dpdk/dpdk-testsuite.sh
       # AF_PACKET tests
       - run: |
           ./.github/workflows/live/afp-ids.sh "2" "autofp"
@@ -2937,10 +2943,12 @@ jobs:
       - run: make check
       # IDS config
       - run: |
-          ./.github/workflows/live/dpdk.sh ".github/workflows/dpdk/suricata-null-ids.yaml"
+          ./.github/workflows/live/dpdk.sh "qa/live/dpdk/suricata-null-ids.yaml"
       # IPS config
       - run: |
           ./.github/workflows/live/dpdk.sh ".github/workflows/dpdk/suricata-null-ips.yaml"
+      # DPDK configuration checks
+      - run: ./qa/live/dpdk/dpdk-testsuite.sh
 
   debian-12:
     name: Debian 12 (xdp)
