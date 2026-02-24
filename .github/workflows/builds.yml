@@ -2152,7 +2152,13 @@ jobs:
           LLVM_PROFILE_FILE: "/tmp/nfq-ips-workers.profraw"
       - run: llvm-profdata-19 merge -o nfq-ips-workers.profdata /tmp/nfq-ips-workers.profraw
 
-      - run: llvm-profdata-19 merge -o combined.profdata afp-ips.profdata nfq-ips.profdata afp-ips-autofp.profdata nfq-ips-workers.profdata afp-ips-bond1.profdata afp-ips-bond2.profdata
+      - run: |
+          ./qa/live/netns/afp-fw-netns-bridge.sh "2" "workers" "qa/live/netns/fw-netns.yaml"
+        env:
+          LLVM_PROFILE_FILE: "/tmp/afp-fw-netns-bridge.profraw"
+      - run: llvm-profdata-19 merge -o afp-fw-netns-bridge.profdata /tmp/afp-fw-netns-bridge.profraw
+
+      - run: llvm-profdata-19 merge -o combined.profdata afp-ips.profdata nfq-ips.profdata afp-ips-autofp.profdata nfq-ips-workers.profdata afp-ips-bond1.profdata afp-ips-bond2.profdata afp-fw-netns-bridge.profdata
       - run: llvm-cov-19 export ./src/suricata -instr-profile=combined.profdata -format=lcov --ignore-filename-regex="^(/github/home/.cargo/.*|/usr/.*|/rustc/.*)" --skip-branches > coverage.lcov
       - name: Upload coverage.lcov artifact
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
