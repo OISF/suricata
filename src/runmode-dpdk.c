@@ -1454,8 +1454,11 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
     // +4 for VLAN header
     uint16_t mtu_size = iconf->mtu + RTE_ETHER_CRC_LEN + RTE_ETHER_HDR_LEN + 4;
     uint16_t mbuf_size = ROUNDUP(mtu_size, 1024) + RTE_PKTMBUF_HEADROOM;
-    // ceil the div so e.g. mp_size of 262144 and 262143 both lead to 65535 on 4 rx queues
-    uint32_t q_mp_sz = (iconf->mempool_size + iconf->nb_rx_queues - 1) / iconf->nb_rx_queues - 1;
+    // Follows DPDK recommendation of having a mempool size that is a power of 2 minus one.
+    // So e.g. mp_size of 262144 and 262143 both lead to 65535 on 4 rx queues
+    uint32_t raw = iconf->mempool_size / iconf->nb_rx_queues;
+    uint32_t next_p2 = rte_align32pow2(raw + 1);
+    uint32_t q_mp_sz = (next_p2 == raw + 1) ? raw : (next_p2 >> 1) - 1;
     uint32_t q_mp_cache_sz = iconf->mempool_cache_size_auto ? MempoolCacheSizeCalculate(q_mp_sz)
                                                             : iconf->mempool_cache_size;
     SCLogInfo("%s: creating %u packet mempools of size %u, cache size %u, mbuf size %u",
