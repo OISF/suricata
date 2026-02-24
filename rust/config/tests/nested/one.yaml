@@ -1,0 +1,5 @@
+%YAML 1.1
+---
+from-one: one
+from-tag: !include tagged.yaml
+include: two.yaml

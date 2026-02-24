@@ -1,0 +1,5 @@
+%YAML 1.1
+---
+- fast:
+    enabled: yes
+    filename: fast.log

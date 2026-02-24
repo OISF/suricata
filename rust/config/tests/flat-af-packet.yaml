@@ -1,0 +1,8 @@
+%YAML 1.1
+---
+
+af-packet:
+  - interface: enp10s0
+    cluster-id: 99
+    cluster-type: cluster_flow
+    defrag: yes
