@@ -1,0 +1,42 @@
+%YAML 1.1
+---
+
+outputs:
+  - eve-log:
+      enabled: yes
+      filetype: regular
+      append: false
+      filename: eve.json
+      level: Info
+      types:
+        - stats:
+            totals: yes
+dpdk:
+  eal-params:
+    proc-type: primary
+    vdev: ["net_null0", "net_null1", "net_bonding0,member=net_null0,member=net_null1,mode=0"]
+    no-huge:
+    no-pci:
+    m: 256
+
+  interfaces:
+    - interface: net_bonding0
+      threads: 1
+      mempool-size: auto
+      mempool-cache-size: auto
+      rx-descriptors: 16
+      tx-descriptors: 16
+      copy-mode: none
+      copy-iface: none
+
+threading:
+  set-cpu-affinity: yes
+  cpu-affinity:
+    - management-cpu-set:
+        cpu: [ 0 ]
+    - worker-cpu-set:
+        cpu: [ "all" ]
+        mode: "exclusive"
+
+unix-command:
+  enabled: auto
