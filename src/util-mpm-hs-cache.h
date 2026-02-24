@@ -53,6 +53,7 @@ int SCHSCachePruneEvaluate(MpmConfig *mpm_conf, HashTable *inuse_caches);
 void *SCHSCacheStatsInit(void);
 void SCHSCacheStatsPrint(void *data);
 void SCHSCacheStatsDeinit(void *data);
+void SCHSCacheDeinit(void);
 #endif /* BUILD_HYPERSCAN */
 
 #endif /* SURICATA_UTIL_MPM_HS_CACHE__H */

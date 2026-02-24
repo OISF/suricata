@@ -1251,6 +1251,8 @@ void MpmHSGlobalCleanup(void)
         g_db_table = NULL;
     }
     SCMutexUnlock(&g_db_table_mutex);
+
+    SCHSCacheDeinit();
 }
 
 /*************************************Unittests********************************/

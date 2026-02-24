@@ -40,6 +40,9 @@
 #define HS_CACHE_FILE_VERSION "2"
 #define HS_CACHE_FILE_SUFFIX  "_v" HS_CACHE_FILE_VERSION ".hs"
 
+static SCMutex g_hs_ref_info_mutex = SCMUTEX_INITIALIZER;
+static char *g_hs_ref_info = NULL;
+
 static int16_t HSCacheConstructFPath(
         const char *dir_path, const char *db_hash, char *out_path, uint16_t out_path_size)
 {
@@ -120,6 +123,43 @@ static void SCHSCachePatternHash(const SCHSPattern *p, SCSha256 *sha256)
     SCSha256Update(sha256, (const uint8_t *)p->sids, p->sids_size * sizeof(SigIntId));
 }
 
+/**
+ * \brief Get the hs_database_info string for a reference BLOCK-mode database
+ * compiled with the current Hyperscan installation.
+ *
+ * Compiled lazily on the first call and cached. Thread-safe.
+ *
+ * \retval Pointer to info string, or NULL on failure. Do not free the ptr.
+ */
+static const char *HSGetReferenceDbInfo(void)
+{
+    SCMutexLock(&g_hs_ref_info_mutex);
+    if (g_hs_ref_info != NULL) {
+        SCMutexUnlock(&g_hs_ref_info_mutex);
+        return g_hs_ref_info;
+    }
+
+    hs_database_t *ref_db = NULL;
+    hs_compile_error_t *compile_err = NULL;
+    hs_error_t err = hs_compile("Suricata suricatta is the scientific name for the meerkat",
+            HS_FLAG_SINGLEMATCH, HS_MODE_BLOCK, NULL, &ref_db, &compile_err);
+    if (err == HS_SUCCESS && ref_db != NULL) {
+        if (hs_database_info(ref_db, &g_hs_ref_info) != HS_SUCCESS) {
+            if (g_hs_ref_info)
+                SCFree(g_hs_ref_info);
+            g_hs_ref_info = NULL;
+        }
+        hs_free_database(ref_db);
+    }
+    if (compile_err != NULL) {
+        SCLogInfo("Failed to compile reference Hyperscan database: %s", compile_err->message);
+        hs_free_compile_error(compile_err);
+    }
+
+    SCMutexUnlock(&g_hs_ref_info_mutex);
+    return g_hs_ref_info;
+}
+
 int HSLoadCache(hs_database_t **hs_db, const char *hs_db_hash, const char *dirpath)
 {
     char hash_file_static[PATH_MAX];
@@ -133,6 +173,7 @@ int HSLoadCache(hs_database_t **hs_db, const char *hs_db_hash, const char *dirpa
     if (!SCPathExists(hash_file_static))
         return -1;
 
+    char *db_info = NULL;
     char *buffer = NULL;
     size_t buffer_size;
     buffer = HSReadStream(hash_file_static, &buffer_size);
@@ -149,6 +190,25 @@ int HSLoadCache(hs_database_t **hs_db, const char *hs_db_hash, const char *dirpa
         goto freeup;
     }
 
+    // Verify the loaded database is compatible with the current Hyperscan
+    // If both the loaded DB and the reference DB fail to load, consider the cache.
+    const char *ref_info = HSGetReferenceDbInfo();
+    if (ref_info != NULL) {
+        if (hs_database_info(*hs_db, &db_info) != HS_SUCCESS || db_info == NULL) {
+            SCLogDebug("Failed to query info for loaded Hyperscan database %s: %s",
+                    hash_file_static, HSErrorToStr(error));
+            ret = -1;
+            goto freeup;
+        }
+        if (strcmp(db_info, ref_info) != 0) {
+            SCLogDebug("Loaded Hyperscan database %s is incompatible with the current "
+                       "Hyperscan installation and will be ignored",
+                    hash_file_static);
+            ret = -1;
+            goto freeup;
+        }
+    }
+
     ret = 0;
     /* Touch file to update modification time so active caches are retained. */
     if (SCTouchFile(hash_file_static) != 0) {
@@ -156,6 +216,12 @@ int HSLoadCache(hs_database_t **hs_db, const char *hs_db_hash, const char *dirpa
     }
 
 freeup:
+    if (ret != 0 && *hs_db != NULL) {
+        hs_free_database(*hs_db);
+        *hs_db = NULL;
+    }
+    if (db_info)
+        SCFree(db_info);
     SCFree(buffer);
     return ret;
 }
@@ -458,6 +524,16 @@ void SCHSCacheStatsDeinit(void *data)
     }
     PatternDatabaseCache *pd_cache_stats = (PatternDatabaseCache *)data;
     SCFree(pd_cache_stats);
+}
+
+void SCHSCacheDeinit(void)
+{
+    SCMutexLock(&g_hs_ref_info_mutex);
+    if (g_hs_ref_info != NULL) {
+        SCFree(g_hs_ref_info);
+        g_hs_ref_info = NULL;
+    }
+    SCMutexUnlock(&g_hs_ref_info_mutex);
 }
 
 #endif /* BUILD_HYPERSCAN */
