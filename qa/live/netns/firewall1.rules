@@ -1,0 +1,15 @@
+accept:packet arp:all any any -> any any (alert; sid:200;)
+
+# allow session setup
+accept:hook tcp:all any any <> any 80 (flow:not_established; alert; sid:1021;)
+
+# pass rest of the flow to 
+accept:hook tcp:all any any <> any 80 (flow:established; alert; sid:1023;)
+#accept:hook ip:all any any <> any any (alert; sid:1024;)
+
+# default drop
+
+accept:hook http1:request_started any any -> any any (alert; sid:100;)
+accept:hook http1:request_line any any -> any any (http.method; content:"GET"; http.uri; content:"/"; alert; sid:101;)
+accept:tx http1:request_headers any any -> any any (http.user_agent; content:"wget"; nocase; alert; sid:102;)
+
