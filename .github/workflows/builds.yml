@@ -1995,6 +1995,7 @@ jobs:
       - run: llvm-profdata-19 merge -o nfq-fw-netns-route.profdata /tmp/nfq-fw-netns-route.profraw
 
       - run: llvm-profdata-19 merge -o combined.profdata nfq-fw-netns-route.profdata
+
       - run: llvm-cov-19 export ./src/suricata -instr-profile=combined.profdata -format=lcov --ignore-filename-regex="^(/github/home/.cargo/.*|/usr/.*|/rustc/.*)" --skip-branches > coverage.lcov
       - name: Upload coverage.lcov artifact
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
