@@ -81,6 +81,78 @@ uint16_t BondingMemberDevicesGet(
 #endif
 }
 
+/**
+ * \brief Callback for rte_kvargs_process that increments a counter.
+ */
+static int BondingMemberCountCb(
+        const char *key __rte_unused, const char *value __rte_unused, void *opaque)
+{
+    uint16_t *cnt = opaque;
+    (*cnt)++;
+    return 0;
+}
+
+/**
+ * \brief Count bonding member devices from the device's devargs.
+ *
+ * Bonding members are only attached when rte_eth_dev_configure() is called
+ * (inside bond_ethdev_configure), so rte_eth_bond_members_get() returns 0
+ * during early config. Instead, parse the devargs stored during device probe
+ * to count member/slave entries.
+ *
+ * \param dev_info device info (must be non-NULL)
+ * \return number of member devices found, 0 on any failure
+ */
+static uint16_t BondingMemberDevCountFromDevargs(const struct rte_eth_dev_info *dev_info)
+{
+    if (dev_info->device == NULL) {
+        return 0;
+    }
+
+#if RTE_VERSION >= RTE_VERSION_NUM(22, 11, 0, 0)
+    const struct rte_devargs *devargs = rte_dev_devargs(dev_info->device);
+#else
+    const struct rte_devargs *devargs = dev_info->device->devargs;
+#endif
+    if (devargs == NULL || devargs->args == NULL) {
+        return 0;
+    }
+
+    struct rte_kvargs *kvargs = rte_kvargs_parse(devargs->args, NULL);
+    if (kvargs == NULL) {
+        return 0;
+    }
+
+    uint16_t count = 0;
+#if RTE_VERSION >= RTE_VERSION_NUM(23, 11, 0, 0)
+    rte_kvargs_process(kvargs, "member", BondingMemberCountCb, &count);
+#else
+    rte_kvargs_process(kvargs, "slave", BondingMemberCountCb, &count);
+#endif
+
+    rte_kvargs_free(kvargs);
+    return count;
+}
+
+uint32_t BondingMempoolSizeCalculate(
+        uint16_t bond_pid, const struct rte_eth_dev_info *dev_info, uint32_t curr_mempool_size)
+{
+    if (curr_mempool_size == 0) {
+        return 0;
+    }
+
+    uint16_t cnt = BondingMemberDevCountFromDevargs(dev_info);
+    if (cnt == 0) {
+        // don't adjust if unable to determine the number of bonded devices
+        return curr_mempool_size;
+    } else if (curr_mempool_size > UINT32_MAX / cnt) {
+        FatalError("%s: mempool size too large to adjust for %u bonded devices",
+                DPDKGetPortNameByPortID(bond_pid), cnt);
+    }
+
+    return curr_mempool_size * cnt;
+}
+
 int32_t BondingAllDevicesSameDriver(uint16_t bond_pid)
 {
     uint16_t bonded_devs[RTE_MAX_ETHPORTS] = { 0 };
