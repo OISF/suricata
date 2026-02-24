@@ -1606,7 +1606,7 @@ jobs:
           LLVM_PROFILE_FILE: "/tmp/dumpconfig.profraw"
       - run: llvm-profdata-19 merge -o dumpconfig.profdata /tmp/dumpconfig.profraw
       - run: llvm-profdata-19 merge -o combined.profdata $(find /tmp/ -name '*.profraw')
-      - run: llvm-cov-19 export ./src/suricata -instr-profile=combined.profdata -format=lcov --ignore-filename-regex="^/(root|usr|rustc|github)/.*" > coverage.lcov
+      - run: llvm-cov-19 export ./src/suricata -instr-profile=combined.profdata -format=lcov --ignore-filename-regex="^/(root|usr|rustc|github)/.*" --skip-branches > coverage.lcov
       - run: |
           cd rust
           cargo test --no-run
@@ -1620,7 +1620,7 @@ jobs:
           LLVM_PROFILE_FILE: "/tmp/ct.profraw"
           CARGO_INCREMENTAL: 0
       - run: llvm-profdata-19 merge -o ct.profdata /tmp/ct.profraw
-      - run: llvm-cov-19 export $(find rust/target/debug/deps/ -type f -regex 'rust/target/debug/deps/suricata\-[a-z0-9]+$') -instr-profile=ct.profdata -format=lcov --ignore-filename-regex="^/(root|usr|rustc|github)/.*" >> coverage.lcov
+      - run: llvm-cov-19 export $(find rust/target/debug/deps/ -type f -regex 'rust/target/debug/deps/suricata\-[a-z0-9]+$') -instr-profile=ct.profdata -format=lcov --ignore-filename-regex="^/(root|usr|rustc|github)/.*" --skip-branches >> coverage.lcov
       - name: Upload coverage.lcov artifact
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
@@ -1642,11 +1642,11 @@ jobs:
           parallel: true
           fail-on-error: false
 
-  ubuntu-22-04-cov-pcapunix:
-    name: Ubuntu 22.04 (unix socket mode coverage)
+  ubuntu-24-04-cov-pcapunix:
+    name: Ubuntu 24.04 (unix socket mode coverage)
     runs-on: ubuntu-latest
     container:
-      image: ubuntu:22.04
+      image: ubuntu:24.04
       options: --privileged
     needs: [prepare-deps, prepare-cbindgen]
     steps:
@@ -1667,8 +1667,8 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
-                llvm-15-dev \
-                clang-15 \
+                llvm-19-dev \
+                clang-19 \
                 git \
                 hwloc \
                 libhwloc-dev \
@@ -1693,7 +1693,6 @@ jobs:
                 libjansson-dev \
                 libevent-dev \
                 libevent-pthreads-2.1-7 \
-                libpython2.7 \
                 make \
                 parallel \
                 python3-yaml \
@@ -1708,7 +1707,7 @@ jobs:
                 wget
       # specific version to match up to the llvm version in ubuntu below
       - name: Install Rust
-        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.75.0 -y
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.85.1 -y
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
@@ -1725,8 +1724,8 @@ jobs:
       - run: ./autogen.sh
       - run: ./configure --with-gnu-ld --disable-shared --enable-gccprotect --localstatedir=/var --prefix=/usr --sysconfdir=/etc
         env:
-          CC: "clang-15"
-          CXX: "clang++-15"
+          CC: "clang-19"
+          CXX: "clang++-19"
           RUSTFLAGS: "-C instrument-coverage"
           CFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0 -g -fno-strict-aliasing"
           CXXFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0 -g -fno-strict-aliasing"
@@ -1734,15 +1733,15 @@ jobs:
           ac_cv_func_realloc_0_nonnull: "yes"
       - run: make -j ${{ env.CPUS }}
         env:
-          CC: "clang-15"
-          CXX: "clang++-15"
+          CC: "clang-19"
+          CXX: "clang++-19"
           RUSTFLAGS: "-C instrument-coverage"
       - run: |
           ./qa/unix.sh "suricata-verify/"
         env:
           LLVM_PROFILE_FILE: "/tmp/unix.profraw"
-      - run: llvm-profdata-15 merge -o default.profdata $(find /tmp/ -name '*.profraw')
-      - run: llvm-cov-15 export ./src/suricata -instr-profile=default.profdata -format=lcov --ignore-filename-regex="^/(root|usr|rustc|github)/.*" > coverage.lcov
+      - run: llvm-profdata-19 merge -o default.profdata $(find /tmp/ -name '*.profraw')
+      - run: llvm-cov-19 export ./src/suricata -instr-profile=default.profdata -format=lcov --ignore-filename-regex="^/(root|usr|rustc|github)/.*" --skip-branches > coverage.lcov
       - name: Upload coverage.lcov artifact
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
@@ -1764,11 +1763,11 @@ jobs:
           parallel: true
           fail-on-error: false
 
-  ubuntu-22-04-cov-afpdpdk:
-    name: Ubuntu 22.04 (afpacket and dpdk coverage)
+  ubuntu-24-04-cov-afpdpdk:
+    name: Ubuntu 24.04 (afpacket and dpdk coverage)
     runs-on: ubuntu-latest
     container:
-      image: ubuntu:22.04
+      image: ubuntu:24.04
       options: --privileged
     needs: [prepare-deps, prepare-cbindgen]
     steps:
@@ -1788,8 +1787,8 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
-                llvm-15-dev \
-                clang-15 \
+                llvm-19-dev \
+                clang-19 \
                 git \
                 hwloc \
                 libhwloc-dev \
@@ -1814,7 +1813,6 @@ jobs:
                 libjansson-dev \
                 libevent-dev \
                 libevent-pthreads-2.1-7 \
-                libpython2.7 \
                 make \
                 parallel \
                 python3-yaml \
@@ -1830,7 +1828,7 @@ jobs:
                 dpdk-dev
       # specific version to match up to the llvm version in ubuntu below
       - name: Install Rust
-        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.75.0 -y
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.85.1 -y
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
@@ -1846,8 +1844,8 @@ jobs:
       - run: ./autogen.sh
       - run: ./configure --with-gnu-ld --enable-dpdk --disable-shared --enable-gccprotect --localstatedir=/var --prefix=/usr --sysconfdir=/etc
         env:
-          CC: "clang-15"
-          CXX: "clang++-15"
+          CC: "clang-19"
+          CXX: "clang++-19"
           RUSTFLAGS: "-C instrument-coverage"
           CFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0 -g -fno-strict-aliasing"
           CXXFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0 -g -fno-strict-aliasing"
@@ -1855,8 +1853,8 @@ jobs:
           ac_cv_func_realloc_0_nonnull: "yes"
       - run: make -j ${{ env.CPUS }}
         env:
-          CC: "clang-15"
-          CXX: "clang++-15"
+          CC: "clang-19"
+          CXX: "clang++-19"
           RUSTFLAGS: "-C instrument-coverage"
       # IDS config
       - run: |
@@ -1898,8 +1896,8 @@ jobs:
           ./.github/workflows/live/multi-tenant.sh "autofp"
         env:
           LLVM_PROFILE_FILE: "/tmp/mt-autofp.profraw"
-      - run: llvm-profdata-15 merge -o default.profdata $(find /tmp/ -name '*.profraw')
-      - run: llvm-cov-15 export ./src/suricata -instr-profile=default.profdata -format=lcov --ignore-filename-regex="^/(root|usr|rustc|github)/.*" > coverage.lcov
+      - run: llvm-profdata-19 merge -o default.profdata $(find /tmp/ -name '*.profraw')
+      - run: llvm-cov-19 export ./src/suricata -instr-profile=default.profdata -format=lcov --ignore-filename-regex="^/(root|usr|rustc|github)/.*" --skip-branches > coverage.lcov
       - name: Upload coverage.lcov artifact
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
@@ -2140,7 +2138,7 @@ jobs:
       - run: llvm-profdata-19 merge -o nfq-ips-workers.profdata /tmp/nfq-ips-workers.profraw
 
       - run: llvm-profdata-19 merge -o combined.profdata afp-ips.profdata nfq-ips.profdata afp-ips-autofp.profdata nfq-ips-workers.profdata afp-ips-bond1.profdata afp-ips-bond2.profdata
-      - run: llvm-cov-19 export ./src/suricata -instr-profile=combined.profdata -format=lcov --ignore-filename-regex="^(/github/home/.cargo/.*|/usr/.*|/rustc/.*)" > coverage.lcov
+      - run: llvm-cov-19 export ./src/suricata -instr-profile=combined.profdata -format=lcov --ignore-filename-regex="^(/github/home/.cargo/.*|/usr/.*|/rustc/.*)" --skip-branches > coverage.lcov
       - name: Upload coverage.lcov artifact
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
@@ -2269,11 +2267,11 @@ jobs:
       - run: |
           ./.github/workflows/live/multi-tenant.sh "autofp"
 
-  ubuntu-22-04-cov-fuzz:
-    name: Ubuntu 22.04 (fuzz corpus coverage)
+  ubuntu-24-04-cov-fuzz:
+    name: Ubuntu 24.04 (fuzz corpus coverage)
     runs-on: ubuntu-latest
     container:
-      image: ubuntu:22.04
+      image: ubuntu:24.04
       options: --privileged
     needs: [prepare-deps, prepare-cbindgen]
     steps:
@@ -2293,8 +2291,8 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
-                llvm-15-dev \
-                clang-15 \
+                llvm-19-dev \
+                clang-19 \
                 git \
                 hwloc \
                 libhwloc-dev \
@@ -2318,7 +2316,6 @@ jobs:
                 libjansson-dev \
                 libevent-dev \
                 libevent-pthreads-2.1-7 \
-                libpython2.7 \
                 make \
                 parallel \
                 python3-yaml \
@@ -2334,7 +2331,7 @@ jobs:
                 dpdk-dev
       # packaged Rust version is too old for coverage, so get from rustup
       - name: Install Rust
-        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.75.0 -y
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.85.1 -y
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
@@ -2351,8 +2348,8 @@ jobs:
       - run: ./configure --enable-warnings --with-gnu-ld --enable-fuzztargets --disable-shared --enable-gccprotect
         env:
           LIB_FUZZING_ENGINE: "fail_to_onefile_driver"
-          CC: "clang-15"
-          CXX: "clang++-15"
+          CC: "clang-19"
+          CXX: "clang++-19"
           RUSTFLAGS: "-C instrument-coverage"
           CFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0 -g -fno-strict-aliasing -fsanitize=address -fno-omit-frame-pointer -fPIC -Wno-unused-parameter -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1 -Wimplicit-int-float-conversion -Wimplicit-int-conversion -Werror"
           CXXFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0 -g -fno-strict-aliasing -fsanitize=address -fno-omit-frame-pointer -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1 -stdlib=libc++ -Wimplicit-int-float-conversion -Wimplicit-int-conversion"
@@ -2360,13 +2357,13 @@ jobs:
           ac_cv_func_realloc_0_nonnull: "yes"
       - run: make -j ${{ env.CPUS }}
         env:
-          CC: "clang-15"
-          CXX: "clang++-15"
+          CC: "clang-19"
+          CXX: "clang++-19"
           RUSTFLAGS: "-C instrument-coverage"
           SURICATA_LUA_SYS_CFLAGS: "-fsanitize=address"
       - run: ./qa/run-ossfuzz-corpus.sh
-      - run: llvm-profdata-15 merge -o default.profdata $(find /tmp/ -name '*.profraw')
-      - run: llvm-cov-15 export ./src/suricata -instr-profile=default.profdata -format=lcov --ignore-filename-regex="^/(root|usr|rustc|github)/.*" > coverage.lcov
+      - run: llvm-profdata-19 merge -o default.profdata $(find /tmp/ -name '*.profraw')
+      - run: llvm-cov-19 export ./src/suricata -instr-profile=default.profdata -format=lcov --ignore-filename-regex="^/(root|usr|rustc|github)/.*" --skip-branches > coverage.lcov
       - name: Upload coverage.lcov artifact
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
@@ -2395,10 +2392,10 @@ jobs:
     needs:
       - fedora-43-sv-codecov
       - ubuntu-24-04-cov-ut
-      - ubuntu-22-04-cov-pcapunix
-      - ubuntu-22-04-cov-afpdpdk
+      - ubuntu-24-04-cov-pcapunix
+      - ubuntu-24-04-cov-afpdpdk
       - ubuntu-latest-namespace-ips
-      - ubuntu-22-04-cov-fuzz
+      - ubuntu-24-04-cov-fuzz
     steps:
       - name: Finalize Coveralls parallel build
         uses: coverallsapp/github-action@648a8eb78e6d50909eff900e4ec85cab4524a45b
