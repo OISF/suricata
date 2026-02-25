@@ -1810,15 +1810,43 @@ detect:
   custom-values:
     toclient-groups: 3
     toserver-groups: 25
-  sgh-mpm-context: auto
-  # Cache MPM contexts to the disk to avoid rule compilation at the startup.
-  # Cache files are created in the standard library directory.
-  sgh-mpm-caching: yes
-  sgh-mpm-caching-path: @e_sghcachedir@
-  # Maximum age for cached MPM databases before they are pruned.
-  # Accepts a combination of time units (s,m,h,d,w,y).
-  # Omit to use the default, 0 to disable.
-  # sgh-mpm-caching-max-age: 7d
+  mpm:
+    # Select the multi pattern algorithm you want to run for scan/search
+    # in the engine.
+    #
+    # The supported algorithms are:
+    # "ac"      - Aho-Corasick, default implementation
+    # "ac-ks"   - Aho-Corasick, "Ken Steele" variant
+    # "hs"      - Hyperscan, available when built with Hyperscan support
+    #
+    # The default value of "auto" will use "hs" if Hyperscan is
+    # available, "ac" otherwise.
+    #
+    # The mpm you choose also decides the distribution of mpm contexts for
+    # signature groups, specified by the conf - "detect.mpm.sgh-context".
+    # Selecting "ac" as the mpm would require "detect.mpm.sgh-context"
+    # to be set to "single", because of ac's memory requirements, unless the
+    # ruleset is small enough to fit in memory, in which case one can
+    # use "full" with "ac".  The rest of the mpms can be run in "full" mode.
+    algo: auto
+    sgh-context: auto
+    cache:
+      # Cache MPM contexts to the disk to avoid rule compilation at the startup.
+      # Cache files are created in the standard library directory.
+      enabled: yes
+      path: @e_sghcachedir@
+      # Maximum age for cached MPM databases before they are pruned.
+      # Accepts a combination of time units (s,m,h,d,w,y).
+      # Omit to use the default, 0 to disable.
+      # max-age: 7d
+  spm:
+    # Select the matching algorithm you want to use for single-pattern searches.
+    #
+    # Supported algorithms are "bm" (Boyer-Moore) and "hs" (Hyperscan, only
+    # available if Suricata has been built with Hyperscan support).
+    #
+    # The default of "auto" will use "hs" if available, otherwise "bm".
+    algo: auto
   # inspection-recursion-limit: 3000
   # maximum number of times a tx will get logged for rules without app-layer keywords
   # stream-tx-log-limit: 4
@@ -1860,35 +1888,6 @@ detect:
       dump-to-disk: false
       include-rules: false      # very verbose
       include-mpm-stats: false
-
-# Select the multi pattern algorithm you want to run for scan/search the
-# in the engine.
-#
-# The supported algorithms are:
-# "ac"      - Aho-Corasick, default implementation
-# "ac-ks"   - Aho-Corasick, "Ken Steele" variant
-# "hs"      - Hyperscan, available when built with Hyperscan support
-#
-# The default mpm-algo value of "auto" will use "hs" if Hyperscan is
-# available, "ac" otherwise.
-#
-# The mpm you choose also decides the distribution of mpm contexts for
-# signature groups, specified by the conf - "detect.sgh-mpm-context".
-# Selecting "ac" as the mpm would require "detect.sgh-mpm-context"
-# to be set to "single", because of ac's memory requirements, unless the
-# ruleset is small enough to fit in memory, in which case one can
-# use "full" with "ac".  The rest of the mpms can be run in "full" mode.
-
-mpm-algo: auto
-
-# Select the matching algorithm you want to use for single-pattern searches.
-#
-# Supported algorithms are "bm" (Boyer-Moore) and "hs" (Hyperscan, only
-# available if Suricata has been built with Hyperscan support).
-#
-# The default of "auto" will use "hs" if available, otherwise "bm".
-
-spm-algo: auto
 
 # Suricata is multi-threaded. Here the threading can be influenced.
 threading:
