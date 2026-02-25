@@ -102,7 +102,11 @@ that you are interested in working on `ticket number` on our `Developer's
 channel on Discord <https://discord.com/channels/864648830553292840/
 888087709002891324>`_.
 
-If a ticket is already assigned to someone, please reach out on the ticket or
+.. attention:: If you submit work for a ticket without it being assigned to you,
+    **we may close your PR and request you to do so**. Please, communicate with us
+    when before working on an issue. Comment on the ticket, assign it to yourself.
+
+**If a ticket is already assigned to someone:** please reach out on the ticket or
 ask the person first.
 
 You can reach out to other community members via `Suricata's Discord server
