@@ -191,6 +191,7 @@
 #include "detect-tcphdr.h"
 #include "detect-tcpmss.h"
 #include "detect-udphdr.h"
+#include "detect-ethhdr.h"
 #include "detect-icmpv6hdr.h"
 #include "detect-icmpv6-mtu.h"
 #include "detect-ipv4hdr.h"
@@ -699,6 +700,7 @@ void SigTableSetup(void)
     DetectICMPv6hdrRegister();
     DetectICMPv6mtuRegister();
     DetectIPAddrBufferRegister();
+    DetectEthhdrRegister();
     DetectIpv4hdrRegister();
     DetectIpv6hdrRegister();
     DetectKrb5CNameRegister();

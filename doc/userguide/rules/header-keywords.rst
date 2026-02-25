@@ -1,5 +1,19 @@
 .. role:: example-rule-emphasis
 
+Ethernet Keywords
+-----------------
+
+eth.hdr
+^^^^^^^
+
+Sticky buffer to match on the whole Ethernet header.
+
+Example rule:
+
+.. container:: example-rule
+
+   alert ether any any -> any any (msg:"ARP packet"; :example-rule-emphasis:`eth.hdr; content:"|08 06|"; offset:12; depth:2;` sid:1234; rev:5;)
+
 IP Keywords
 -----------
 
