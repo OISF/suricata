@@ -294,6 +294,12 @@ int HSHashDb(const PatternDatabase *pd, char *hash, size_t hash_len)
         SCLogDebug("sha256 hashing failed");
         return -1;
     }
+
+    const char *ref_info = HSGetReferenceDbInfo();
+    if (ref_info != NULL) {
+        SCSha256Update(hasher, (const uint8_t *)ref_info, strlen(ref_info));
+    }
+
     SCSha256Update(hasher, (const uint8_t *)&pd->pattern_cnt, sizeof(pd->pattern_cnt));
     for (uint32_t i = 0; i < pd->pattern_cnt; i++) {
         SCHSCachePatternHash(pd->parray[i], hasher);
