@@ -466,6 +466,7 @@ static TmEcode DecodePcapFile(ThreadVars *tv, Packet *p, void *data)
 #ifdef DEBUG
         BUG_ON(p->pkt_src != PKT_SRC_WIRE && p->pkt_src != PKT_SRC_FFR);
 #endif
+        DEBUG_VALIDATE_BUG_ON(p->proto != PacketGetIPProto(p));
 
         PacketDecodeFinalize(tv, dtv, p);
 
