@@ -1523,7 +1523,7 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
             }
             SCLogDebug("rule %u: add ethernet rule to IP group", s->id);
         }
-        /* Protocol does not match the Signature protocol and is neither IP or pkthdr */
+        /* Protocol does not match the Signature protocol and is non of IP, pkthdr or any */
         if (!DetectProtoContainsProto(&s->init_data->proto, ipproto))
             goto next;
         /* Direction does not match Signature direction */
@@ -1962,7 +1962,8 @@ int SigPrepareStage2(DetectEngineCtx *de_ctx)
         }
 
         /* add ethernet sigs and decoder events to the ethernet sgh */
-        if ((s->type == SIG_TYPE_PKT && SigIsEthernetAddToNonIP(s)) || s->type == SIG_TYPE_DEONLY) {
+        if ((s->type == SIG_TYPE_PKT && SigIsEthernetAddToNonIP(s)) || s->type == SIG_TYPE_DEONLY ||
+                (s->init_data->proto.flags & DETECT_PROTO_L2_ANY)) {
             // ethernet
             SCLogNotice("rule: %u: add to non-IP", s->id);
             DetectEngineAddEthernetSig(de_ctx, s);
