@@ -112,5 +112,78 @@ int DecodeERSPAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
 }
 
 /**
+ * \brief ERSPAN Type III
+ */
+#if 0
+typedef struct Erspan3Hdr_ {
+    uint16_t ver_vlan;
+    uint16_t flags_spanid;
+    uint32_t timestamp;
+    uint16_t sgt;
+    uint16_t flags;
+} __attribute__((__packed__)) Erspan3Hdr;
+#endif
+
+int DecodeERSPANTypeIII(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
+                      const uint8_t *pkt, uint32_t len)
+{
+    DEBUG_VALIDATE_BUG_ON(pkt == NULL);
+
+    StatsCounterIncr(&tv->stats, dtv->counter_erspan);
+
+    if (len < sizeof(Erspan3Hdr)) {
+	ENGINE_SET_EVENT(p,ERSPAN_HEADER_TOO_SMALL);
+	return TM_ECODE_FAILED;
+    }
+    if (!PacketIncreaseCheckLayers(p)) {
+	return TM_ECODE_FAILED;
+    }
+
+    const Erspan3Hdr *ehdr = (const Erspan3Hdr *)pkt;
+    uint16_t version = SCNtohs(ehdr->ver_vlan) >> 12;
+    uint16_t vlan_id = SCNtohs(ehdr->ver_vlan) & 0x0fff;
+    uint16_t flags = SCNtohs(ehdr->flags);
+
+    pkt += sizeof(Erspan3Hdr);
+    len -= sizeof(Erspan3Hdr);
+
+    if (version != 2) {
+	ENGINE_SET_EVENT(p,ERSPAN_UNSUPPORTED_VERSION);
+	return TM_ECODE_FAILED;
+    }
+
+    /* If O flag is set, then the optional platform specific header is present.
+     * We need to skip past it.
+     */
+#define PLATFORM_SPECIFIC_HDR_SIZE 8
+    if (flags & 0x0001) {
+	    if (len < PLATFORM_SPECIFIC_HDR_SIZE) {
+		ENGINE_SET_EVENT(p,ERSPAN_HEADER_TOO_SMALL);
+		return TM_ECODE_FAILED;
+	    }
+
+	    pkt += PLATFORM_SPECIFIC_HDR_SIZE;
+	    len -= PLATFORM_SPECIFIC_HDR_SIZE;
+    }
+
+    if (vlan_id > 0) {
+	if (p->vlan_idx > VLAN_MAX_LAYER_IDX) {
+	    ENGINE_SET_EVENT(p,ERSPAN_TOO_MANY_VLAN_LAYERS);
+	    return TM_ECODE_FAILED;
+	}
+	p->vlan_id[p->vlan_idx] = vlan_id;
+	p->vlan_idx++;
+    }
+
+    switch ((flags & 0x7c00) >> 10) {
+    case 0x00: /* ethernet */
+	    return DecodeEthernet(tv, dtv, p, pkt, len);
+    default:
+	    ENGINE_SET_EVENT(p,ERSPAN_UNSUPPORTED_ENCAPSULATION);
+	    return TM_ECODE_FAILED;
+    }
+}
+
+/**
  * @}
  */

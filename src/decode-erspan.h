@@ -31,5 +31,13 @@ typedef struct ErspanHdr_ {
     uint32_t padding;
 } __attribute__((__packed__)) ErspanHdr;
 
+typedef struct Erspan3Hdr_ {
+    uint16_t ver_vlan;
+    uint16_t flags_spanid;
+    uint32_t timestamp;
+    uint16_t sgt;
+    uint16_t flags;
+} __attribute__((__packed__)) Erspan3Hdr;
+
 void DecodeERSPANConfig(void);
 #endif /* SURICATA_DECODE_ERSPAN_H */

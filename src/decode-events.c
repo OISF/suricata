@@ -575,6 +575,10 @@ const struct DecodeEvents_ DEvents[] = {
             "decoder.erspan.too_many_vlan_layers",
             ERSPAN_TOO_MANY_VLAN_LAYERS,
     },
+    {
+            "decoder.erspan.unsupported_encapsulation",
+            ERSPAN_UNSUPPORTED_ENCAPSULATION,
+    },
 
     /* Cisco Fabric Path/DCE events. */
     {
