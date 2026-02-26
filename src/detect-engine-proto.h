@@ -32,6 +32,7 @@
 #define DETECT_PROTO_IPV6              BIT_U8(4) /**< IPv6 only */
 #define DETECT_PROTO_ETHERNET          BIT_U8(5) /**< Like ANY, but for Ethernet */
 #define DETECT_PROTO_ARP               BIT_U8(6) /**< ARP packets over for Ethernet, can have VLAN(s) in between */
+#define DETECT_PROTO_L2_ANY            BIT_U8(7) /**< Like ANY, but for any L2 proto. */
 // clang-format on
 
 typedef struct DetectProto_ {

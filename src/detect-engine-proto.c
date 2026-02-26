@@ -65,7 +65,7 @@ struct {
     { "ipv6", 0, 0, DETECT_PROTO_IPV6 | DETECT_PROTO_ANY, },
     { "ip6", 0, 0, DETECT_PROTO_IPV6 | DETECT_PROTO_ANY, },
     { "ip", 0, 0, DETECT_PROTO_ANY, },
-    { "pkthdr", 0, 0, DETECT_PROTO_ANY, },
+    { "pkthdr", 0, 0, DETECT_PROTO_L2_ANY, },
     { "ether", 0, 0, DETECT_PROTO_ETHERNET, },
     { "arp", 0, 0, DETECT_PROTO_ARP | DETECT_PROTO_ETHERNET, },
     // clang-format on
@@ -114,7 +114,7 @@ int DetectProtoParse(DetectProto *dp, const char *str)
  *  \retval 1 protocol is in the set */
 int DetectProtoContainsProto(const DetectProto *dp, int proto)
 {
-    if (dp == NULL || dp->flags & DETECT_PROTO_ANY)
+    if (dp == NULL || dp->flags & (DETECT_PROTO_ANY | DETECT_PROTO_L2_ANY))
         return 1;
 
     if (dp->proto[proto / 8] & (1<<(proto % 8)))
@@ -132,7 +132,7 @@ int DetectProtoContainsProto(const DetectProto *dp, int proto)
  *  \retval true protocol is in the set */
 bool DetectProtoHasExplicitProto(const DetectProto *dp, const uint8_t proto)
 {
-    if (dp == NULL || dp->flags & DETECT_PROTO_ANY)
+    if (dp == NULL || dp->flags & (DETECT_PROTO_ANY | DETECT_PROTO_L2_ANY))
         return false;
 
     return ((dp->proto[proto / 8] & (1 << (proto % 8))));
