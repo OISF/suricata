@@ -1962,7 +1962,8 @@ int SigPrepareStage2(DetectEngineCtx *de_ctx)
         }
 
         /* add ethernet sigs and decoder events to the ethernet sgh */
-        if ((s->type == SIG_TYPE_PKT && SigIsEthernetAddToNonIP(s)) || s->type == SIG_TYPE_DEONLY) {
+        if ((s->type == SIG_TYPE_PKT && SigIsEthernetAddToNonIP(s)) || s->type == SIG_TYPE_DEONLY ||
+                (s->init_data->proto.flags & DETECT_PROTO_L2_ANY)) {
             // ethernet
             SCLogNotice("rule: %u: add to non-IP", s->id);
             DetectEngineAddEthernetSig(de_ctx, s);
