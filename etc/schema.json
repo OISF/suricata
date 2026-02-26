@@ -6425,6 +6425,10 @@
                                             "type": "integer",
                                             "description": "Number of packets with too many VLAN layers for ERSPAN"
                                         },
+                                        "unsupported_encapsulation": {
+                                            "type": "integer",
+                                            "description": "Number of packets with unsupported encapsulation for ERSPAN"
+                                        },
                                         "unsupported_version": {
                                             "type": "integer",
                                             "description": "Number of packets with unsupported version for ERSPAN"
