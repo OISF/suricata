@@ -1997,15 +1997,10 @@ static int ThreadingAffinityTest27(void)
                          "    - worker-cpu-set:\n" // Deprecated format
                          "        cpu: [ 1, 2 ]\n";
 
-    SCConfYamlLoadString(config, strlen(config));
+    FAIL_IF(SCConfYamlLoadString(config, strlen(config)) != -1);
     AffinitySetupLoadFromConfig();
 
-    ThreadsAffinityType *mgmt_taf = &thread_affinity[MANAGEMENT_CPU_SET];
-    ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
-    // The first format should be picked-up and the other should be ignored
-    // For ignored formats, CPU_SET is initliazed as all cores
-    FAIL_IF(CPU_COUNT(&mgmt_taf->cpu_set) != 1 ||
-            CPU_COUNT(&worker_taf->cpu_set) != UtilCpuGetNumProcessorsOnline());
+    FAIL_IF_NOT_NULL(SCConfGetNode("threading"));
 
     SCConfDeInit();
     SCConfRestoreContextBackup();
