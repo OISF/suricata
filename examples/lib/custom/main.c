@@ -30,6 +30,9 @@
 
 static int worker_id = 1;
 
+/* ThreadVars created during runmode setup, before thread sealing. */
+static ThreadVars *g_worker_tv = NULL;
+
 /**
  * Struct to pass arguments into a worker thread.
  */
@@ -154,6 +157,26 @@ static uint8_t RateFilterCallback(const Packet *p, const uint32_t sid, const uin
     return new_action;
 }
 
+/**
+ * Application runmode setup that creates ThreadVars before thread
+ * sealing.  This follows the pattern used by other runmodes (e.g.,
+ * pcap-file) where threads are registered during the runmode
+ * callback.
+ */
+static int AppRunModeSetup(void)
+{
+    /* This example uses pcap files, so set time mode to offline. */
+    TimeModeSetOffline();
+
+    g_worker_tv = SCRunModeLibCreateThreadVars(worker_id++);
+    if (!g_worker_tv) {
+        SCLogError("Failed to create ThreadVars");
+        return -1;
+    }
+
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
     SuricataPreInit(argv[0]);
@@ -208,8 +231,13 @@ int main(int argc, char **argv)
      * loaded. */
     SCEnableDefaultSignalHandlers();
 
-    /* Set "offline" runmode to replay a pcap in library mode. */
-    if (!SCConfSetFromString("runmode=offline", 1)) {
+    /* Register our own library run mode. At this time, the ThreadVars
+     * for each capture thread need to be created in the provided
+     * callback to meet thread synchronization requirements. */
+    RunModeRegisterNewRunMode(
+            RUNMODE_LIB, "custom", "Custom application run mode", AppRunModeSetup, NULL);
+
+    if (!SCConfSetFromString("runmode=custom", 1)) {
         exit(EXIT_FAILURE);
     }
 
@@ -221,20 +249,16 @@ int main(int argc, char **argv)
         exit(1);
     }
 
+    /* SuricataInit will call our AppRunModeSetup, when it returns our
+     * ThreadVars will be ready. */
     SuricataInit();
 
     SCDetectEngineRegisterRateFilterCallback(RateFilterCallback, NULL);
 
-    /* Create and start worker on its own thread, passing the PCAP
-     * file as argument. This needs to be done in between SuricataInit
-     * and SuricataPostInit. */
+    /* Spawn our worker threads. */
     pthread_t worker;
-    ThreadVars *tv = SCRunModeLibCreateThreadVars(worker_id++);
-    if (!tv) {
-        FatalError("Failed to create ThreadVars");
-    }
     struct WorkerArgs args = {
-        .tv = tv,
+        .tv = g_worker_tv,
         .pcap_filename = argv[argc - 1],
     };
     if (pthread_create(&worker, NULL, SimpleWorker, &args) != 0) {
