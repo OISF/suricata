@@ -84,6 +84,15 @@ Other Changes
   ``app-layer.protocols.sip.tcp.enabled`` would be read and preferred over
   ``app-layer.protocols.sip.enabled``.
 
+Changes for Library Users and Plugin Developers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- The built-in library run-mode has been removed. If your application
+  is relying on this run-mode, it should implement its own application
+  specific run-mode. See the example, ``examples/lib/custom`` for an
+  example. For more details, see
+  https://redmine.openinfosecfoundation.org/issues/8259.
+
 Upgrading to 8.0.1
 ------------------
 
