@@ -1332,6 +1332,9 @@ typedef struct DetectEngineThreadCtx_ {
     /** array of signature pointers we're going to inspect in the detection
      *  loop. */
     Signature **match_array;
+    /** temporary array of signature pointers we're going to inspect in the
+     *   detection loop. */
+    const Signature **replace;
     /** size of the array in items (mem size if * sizeof(Signature *)
      *  Only used during initialization. */
     uint32_t match_array_len;

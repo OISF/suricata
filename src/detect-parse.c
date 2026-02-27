@@ -1889,6 +1889,10 @@ static int SigParse(DetectEngineCtx *de_ctx, Signature *s, const char *sigstr,
     /* we can have no options, so make sure we have them */
     if (strlen(parser->opts) > 0) {
         size_t buffer_size = strlen(parser->opts) + 1;
+        if (buffer_size > UINT16_MAX) {
+            SCLogError("Too long options for signature : %zu>%d", buffer_size, UINT16_MAX);
+            SCReturnInt(-1);
+        }
         char input[buffer_size];
         char output[buffer_size];
         memset(input, 0x00, buffer_size);

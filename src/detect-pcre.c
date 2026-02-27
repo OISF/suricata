@@ -469,6 +469,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
         }
     }
 
+    DEBUG_VALIDATE_BUG_ON(slen > UINT16_MAX);
     char re[slen];
 
     match = pcre2_match_data_create_from_pattern(parse_regex->regex, NULL);
@@ -857,6 +858,7 @@ static int DetectPcreParseCapture(const char *regexstr, DetectEngineCtx *de_ctx,
     /* take the size of the whole input as buffer size for the string we will
      * extract below. Add 1 to please Coverity's alloc_strlen test. */
     size_t cap_buffer_len = strlen(regexstr) + 1;
+    DEBUG_VALIDATE_BUG_ON(cap_buffer_len > UINT16_MAX);
     char capture_str[cap_buffer_len];
     memset(capture_str, 0x00, cap_buffer_len);
 
