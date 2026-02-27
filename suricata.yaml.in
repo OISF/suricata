@@ -925,6 +925,8 @@ pcap-file:
 # The option "enabled" takes 3 values - "yes", "no", "detection-only".
 # "yes" enables both detection and the parser, "no" disables both, and
 # "detection-only" enables protocol detection only (parser disabled).
+# This option is first evaluated per carrier protocol e.g. sip.tcp.enabled will be
+# evaluated first and if it is not found then, sip.enabled will be checked.
 app-layer:
   # error-policy: ignore
   protocols:

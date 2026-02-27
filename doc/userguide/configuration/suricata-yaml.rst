@@ -1535,6 +1535,14 @@ the default behavior).
 
 Each supported protocol has a dedicated subsection under ``protocols``.
 
+.. note:: All applayer parsers can be enabled or disabled for specific carrier
+   protocols. Suricata first looks for carrier protocol specific setting and
+   if not found, falls back to the common enabled setting. e.g. if ``sip`` is
+   being registered, Suricata will first look if ``app-layer.protocols.sip.tcp.enabled``
+   and ``app-layer.protocols.sip.udp.enabled`` are set. If not, then a search would be
+   made for ``app-layer.protocols.sip.enabled`` and that setting would apply to both
+   SIP/TCP as well as SIP/UDP.
+
 Asn1_max_frames
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
