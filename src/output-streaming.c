@@ -431,7 +431,7 @@ static uint32_t OutputStreamingLoggerGetActiveCount(void)
 
 void OutputStreamingLoggerRegister(void) {
     OutputRegisterRootLogger(OutputStreamingLogThreadInit, OutputStreamingLogThreadDeinit,
-            OutputStreamingLog, OutputStreamingLoggerGetActiveCount);
+            OutputStreamingLog, NULL, OutputStreamingLoggerGetActiveCount);
 }
 
 void OutputStreamingShutdown(void)

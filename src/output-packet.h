@@ -60,7 +60,8 @@ typedef bool (*PacketLogCondition)(ThreadVars *, void *thread_data, const Packet
  * \retval 0 on success, -1 on failure.
  */
 int SCOutputRegisterPacketLogger(LoggerId logger_id, const char *name, PacketLogger LogFunc,
-        PacketLogCondition ConditionFunc, void *initdata, ThreadInitFunc, ThreadDeinitFunc);
+        PacketLogCondition ConditionFunc, PacketLogger FlushFunc, void *initdata, ThreadInitFunc,
+        ThreadDeinitFunc);
 
 /** Internal function: private API. */
 void OutputPacketLoggerRegister(void);
