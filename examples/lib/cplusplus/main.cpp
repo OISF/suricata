@@ -1,7 +1,21 @@
-#include "suricata-common.h"
+/* Copyright (C) 2024 Open Information Security Foundation
+ *
+ * You can copy, redistribute or modify this Program under the terms of
+ * the GNU General Public License version 2 as published by the Free
+ * Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * version 2 along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+ * 02110-1301, USA.
+ */
+
 #include "suricata.h"
-#include "conf.h"
-#include "util-device.h"
 
 int main(int argc, char **argv)
 {
@@ -10,24 +24,6 @@ int main(int argc, char **argv)
     /* Parse command line options. This is optional, you could
      * directly configure Suricata through the Conf API. */
     SCParseCommandLine(argc, argv);
-
-    /* Find our list of pcap files, after the "--". */
-    while (argc) {
-        bool end = strncmp(argv[0], "--", 2) == 0;
-        argv++;
-        argc--;
-        if (end) {
-            break;
-        }
-    }
-    if (argc == 0) {
-        fprintf(stderr, "ERROR: No PCAP files provided\n");
-        return 1;
-    }
-
-    /* Set the runmode to library mode. Perhaps in the future this
-     * should be done in some library bootstrap function. */
-    SCRunmodeSet(RUNMODE_LIB);
 
     /* Validate/finalize the runmode. */
     if (SCFinalizeRunMode() != TM_ECODE_OK) {
@@ -51,20 +47,19 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    /* Set "offline" runmode to replay a pcap in library mode. */
-    if (!SCConfSetFromString("runmode=offline", 1)) {
-        exit(EXIT_FAILURE);
-    }
-
-    /* Force logging to the current directory. */
-    SCConfSetFromString("default-log-dir=.", 1);
-
-    if (LiveRegisterDevice("lib0") < 0) {
-        fprintf(stderr, "LiveRegisterDevice failed");
-        exit(1);
-    }
+    /* Enable default signal handlers just like Suricata. */
+    SCEnableDefaultSignalHandlers();
 
     SuricataInit();
+    SuricataPostInit();
 
-    return 0;
+    /* Suricata is now running, but we enter a loop to keep it running
+     * until it shouldn't be running anymore. */
+    SuricataMainLoop();
+
+    /* Shutdown engine. */
+    SuricataShutdown();
+    GlobalsDestroy();
+
+    return EXIT_SUCCESS;
 }
