@@ -30,7 +30,7 @@ int main(int argc, char **argv)
     SCRunmodeSet(RUNMODE_LIB);
 
     /* Validate/finalize the runmode. */
-    if (SCFinalizeRunMode() != TM_ECODE_OK) {
+    if (SCFinalizeRunMode(argc) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
 
