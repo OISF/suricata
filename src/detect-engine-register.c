@@ -734,6 +734,7 @@ void SigTableSetup(void)
     DetectTransformLuaxformRegister();
     DetectTransformGunzipRegister();
     DetectTransformZlibDeflateRegister();
+    DetectTransformSubsliceRegister();
 
     DetectFileHandlerRegister();
 
