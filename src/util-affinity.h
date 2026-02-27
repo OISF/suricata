@@ -96,27 +96,47 @@ typedef struct ThreadsAffinityType_ {
 extern ThreadsAffinityType thread_affinity[MAX_CPU_SET];
 #endif
 
+void TopologyDestroy(void);
+
 char *AffinityGetYamlPath(ThreadsAffinityType *taf);
-void AffinitySetupLoadFromConfig(void);
-ThreadsAffinityType *GetOrAllocAffinityTypeForIfaceOfName(
-        const char *name, const char *interface_name);
-ThreadsAffinityType *GetAffinityTypeForNameAndIface(const char *name, const char *interface_name);
-ThreadsAffinityType *FindAffinityByInterface(
+void AffinityLoadFromConfig(void);
+
+ThreadsAffinityType *AffinityTypeGetOrCreateByIfaceOrCpuset(
+        const char *affinity_set_name, const char *interface_name);
+ThreadsAffinityType *AffinityTypeGetByIfaceOrCpuset(
+        const char *affinity_set_name, const char *interface_name);
+ThreadsAffinityType *AffinityTypeGetChildTypeByIface(
         ThreadsAffinityType *parent, const char *interface_name);
 
-void TopologyDestroy(void);
 uint16_t AffinityGetNextCPU(ThreadVars *tv, ThreadsAffinityType *taf);
-uint16_t UtilAffinityGetAffinedCPUNum(ThreadsAffinityType *taf);
+uint16_t AffinityGetAffinedCPUNum(ThreadsAffinityType *taf);
+bool AffinityCPUConfigIsCompatible(void);
 #ifdef HAVE_DPDK
-uint16_t UtilAffinityCpusOverlap(ThreadsAffinityType *taf1, ThreadsAffinityType *taf2);
-void UtilAffinityCpusExclude(ThreadsAffinityType *mod_taf, ThreadsAffinityType *static_taf);
+bool AffinityCpusOverlap(ThreadsAffinityType *taf1, ThreadsAffinityType *taf2);
+void AffinityCpusSubtract(ThreadsAffinityType *mod_taf, ThreadsAffinityType *static_taf);
 #endif /* HAVE_DPDK */
 
-int BuildCpusetWithCallback(
+int AffinityBuildCpusetWithCallback(
         const char *name, SCConfNode *node, void (*Callback)(int i, void *data), void *data);
 
 #ifdef UNITTESTS
-void ThreadingAffinityRegisterTests(void);
+void AffinityRegisterTests(void);
+int AffinityVerifyCPURequirement(void);
+void AffinityReset(void);
+
+#define SKIP_INCOMPATIBLE_ENVIRONMENT(callbacks, len)                                              \
+    do {                                                                                           \
+        int ret = AffinityVerifyCPURequirement();                                                  \
+        FAIL_IF(ret < 0);                                                                          \
+        if (ret != 0) {                                                                            \
+            for (size_t i = 0; i < (len); i++) {                                                   \
+                if ((callbacks)[i] != NULL) {                                                      \
+                    (callbacks)[i]();                                                              \
+                }                                                                                  \
+            }                                                                                      \
+            return ret;                                                                            \
+        }                                                                                          \
+    } while (0)
 #endif
 
 #endif /* SURICATA_UTIL_AFFINITY_H */

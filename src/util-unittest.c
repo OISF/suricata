@@ -188,7 +188,7 @@ void UtListTests(const char *regex_arg)
 uint32_t UtRunTests(const char *regex_arg)
 {
     UtTest *ut;
-    uint32_t good = 0, bad = 0, matchcnt = 0;
+    uint32_t good = 0, skip = 0, bad = 0, matchcnt = 0;
     int ret = 0, rcomp = 0;
 
     StreamTcpInitMemuse();
@@ -225,22 +225,28 @@ uint32_t UtRunTests(const char *regex_arg)
                     ret = 0;
                 }
 
-                printf("%s\n", ret ? "pass" : "FAILED");
-
                 if (!ret) {
                     if (unittests_fatal == 1) {
                         fprintf(stderr, "ERROR: unittest failed.\n");
                         exit(EXIT_FAILURE);
                     }
                     bad++;
+                    printf("FAILED\n");
+                } else if (ret == 2) {
+                    skip++;
+                    printf("skip\n");
                 } else {
                     good++;
+                    printf("pass\n");
                 }
             }
         }
         if(matchcnt > 0){
             printf("==== TEST RESULTS ====\n");
             printf("PASSED: %" PRIu32 "\n", good);
+            if (skip > 0) {
+                printf("SKIPPED: %" PRIu32 "\n", skip);
+            }
             printf("FAILED: %" PRIu32 "\n", bad);
             printf("======================\n");
         } else {
