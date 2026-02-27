@@ -50,6 +50,10 @@
 static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, const char *append,
         ThreadLogFileHashEntry *entry);
 
+static bool LogUnixSocketNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, int sock_type,
+        ThreadLogFileHashEntry *entry);
+
+
 // Threaded eve.json identifier
 static SC_ATOMIC_DECL_AND_INIT_WITH_VAL(uint16_t, eve_file_id, 1);
 
@@ -240,7 +244,9 @@ static int SCLogFileWriteNoLock(const char *buffer, int buffer_len, LogFileCtx *
 {
     int ret = 0;
 
-    DEBUG_VALIDATE_BUG_ON(log_ctx->is_sock);
+    if (log_ctx->is_sock) {
+        return SCLogFileWriteSocket(buffer, buffer_len, log_ctx);
+    }
 
     HandleLogRotation(log_ctx);
 
@@ -406,6 +412,24 @@ error_exit:
         SCFree(parent_ctx->threads);
         parent_ctx->threads = NULL;
         return false;
+}
+
+static bool SCLogOpenThreadedUnixSocket(const char *log_path, int sock_type, LogFileCtx *parent_ctx)
+{
+        parent_ctx->threads = SCCalloc(1, sizeof(LogThreadedFileCtx));
+        if (!parent_ctx->threads) {
+            SCLogError("Unable to allocate threads container");
+            return false;
+        }
+
+        parent_ctx->threads->ht = HashTableInit(255, ThreadLogFileHashFunc,
+                ThreadLogFileHashCompareFunc, ThreadLogFileHashFreeFunc);
+        if (!parent_ctx->threads->ht) {
+            FatalError("Unable to initialize thread/entry hash table");
+        }
+
+        SCMutexInit(&parent_ctx->threads->mutex, NULL);
+        return true;
 }
 
 /** \brief open the indicated file, logging any errors
@@ -595,7 +619,7 @@ int SCConfLogOpenGeneric(
 
 #ifdef BUILD_WITH_UNIXSOCKET
     if (log_ctx->threaded) {
-        if (strcasecmp(filetype, "unix_stream") == 0 || strcasecmp(filetype, "unix_dgram") == 0) {
+        if (strcasecmp(filetype, "unix_stream") == 0) {
             FatalError("Socket file types do not support threaded output");
         }
     }
@@ -619,7 +643,16 @@ int SCConfLogOpenGeneric(
         /* Don't bail. May be able to connect later. */
         log_ctx->is_sock = 1;
         log_ctx->sock_type = SOCK_DGRAM;
-        log_ctx->fp = SCLogOpenUnixSocketFp(log_path, SOCK_DGRAM, 1);
+        if (!log_ctx->threaded) {
+            log_ctx->fp = SCLogOpenUnixSocketFp(log_path, SOCK_DGRAM, 1);
+            if (log_ctx->fp == NULL)
+                return -1; // Error already logged by Open...Fp routine
+        } else {
+            SCLogInfo("Opening thread unix socket");
+            if (!SCLogOpenThreadedUnixSocket(log_path, SOCK_DGRAM, log_ctx)) {
+                return -1;
+            }
+        }
 #else
         return -1;
 #endif
@@ -771,16 +804,33 @@ LogFileCtx *LogFileEnsureExists(ThreadId thread_id, LogFileCtx *parent_ctx)
     bool new = entry->isopen;
     /* has it been opened yet? */
     if (!new) {
-        SCLogDebug("%s: Opening new file for thread/id %d to file %s [ctx %p]", t_thread_name,
+        if (parent_ctx->is_sock) {
+            SCLogInfo("%s: Opening new socket for thread/id %ld to file %s [ctx %p]", t_thread_name,
                 thread_id, parent_ctx->filename, parent_ctx);
-        if (LogFileNewThreadedCtx(
-                    parent_ctx, parent_ctx->filename, parent_ctx->threads->append, entry)) {
-            entry->isopen = true;
-            ret_ctx = entry->ctx;
-        } else {
-            SCLogDebug(
-                    "Unable to open slot %d for file %s", entry->slot_number, parent_ctx->filename);
-            (void)HashTableRemove(parent_ctx->threads->ht, entry, 0);
+
+            if (LogUnixSocketNewThreadedCtx(
+                        parent_ctx, parent_ctx->filename, parent_ctx->sock_type, entry)) {
+                ret_ctx = entry->ctx;
+                entry->isopen = true;
+            } else {
+                SCLogError(
+                        "Unable to open slot %d for file %s", entry->slot_number, parent_ctx->filename);
+                (void)HashTableRemove(parent_ctx->threads->ht, entry, 0);
+            }
+        }
+        else {
+            SCLogDebug("%s: Opening new file for thread/id %ld to file %s [ctx %p]", t_thread_name,
+                thread_id, parent_ctx->filename, parent_ctx);
+
+            if (LogFileNewThreadedCtx(
+                        parent_ctx, parent_ctx->filename, parent_ctx->threads->append, entry)) {
+                ret_ctx = entry->ctx;
+                entry->isopen = true;
+            } else {
+                SCLogError(
+                        "Unable to open slot %d for file %s", entry->slot_number, parent_ctx->filename);
+                (void)HashTableRemove(parent_ctx->threads->ht, entry, 0);
+            }
         }
     } else {
         ret_ctx = entry->ctx;
@@ -905,6 +955,54 @@ error:
         if (thread->fp) {
             thread->Close(thread);
         }
+    }
+
+    if (thread) {
+        SCFree(thread);
+    }
+    return false;
+}
+
+static bool LogUnixSocketNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, int sock_type,
+        ThreadLogFileHashEntry *entry)
+{
+    LogFileCtx *thread = SCCalloc(1, sizeof(LogFileCtx));
+    if (!thread) {
+        SCLogError("Unable to allocate thread file context entry %p", entry);
+        return false;
+    }
+
+    *thread = *parent_ctx;
+
+    char fname[LOGFILE_NAME_MAX];
+    if (!LogFileThreadedName(log_path, fname, sizeof(fname), SC_ATOMIC_ADD(eve_file_id, 1))) {
+        SCLogError("Unable to create threaded filename for log");
+        goto error;
+    }
+    SCLogInfo("Thread open -- using name %s [replaces %s]", fname, log_path);
+    thread->fp = SCLogOpenUnixSocketFp(fname, sock_type, 1);
+    if (thread->fp == NULL) {
+        goto error;
+    }
+    thread->filename = SCStrdup(fname);
+    if (!thread->filename) {
+        SCLogError("Unable to duplicate filename for context entry %p", entry);
+        goto error;
+    }
+    thread->is_regular = true;
+    thread->Write = SCLogFileWriteNoLock;
+    thread->Close = SCLogFileCloseNoLock;
+    thread->threaded = false;
+    thread->parent = parent_ctx;
+    thread->entry = entry;
+    entry->ctx = thread;
+
+    return true;
+
+error:
+    SC_ATOMIC_SUB(eve_file_id, 1);
+    if (thread->fp) {
+        thread->Close(thread);
     }
 
     if (thread) {
