@@ -499,6 +499,16 @@ static TmEcode LogDnsLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
+static int JsonDnsLoggerFlush(ThreadVars *tv, void *thread_data, const Packet *p)
+{
+    LogDnsLogThread *td = (LogDnsLogThread *)thread_data;
+    if (td && td->ctx) {
+        SCLogDebug("%s flushing %s", tv->name, ((LogFileCtx *)(td->ctx->file_ctx))->filename);
+        OutputJsonFlush(td->ctx);
+    }
+    return 0;
+}
+
 static void LogDnsLogDeInitCtxSub(OutputCtx *output_ctx)
 {
     SCLogDebug("cleaning up sub output_ctx %p", output_ctx);
@@ -688,13 +698,13 @@ static OutputInitResult JsonDnsLogInitCtxSub(SCConfNode *conf, OutputCtx *parent
 void JsonDnsLogRegister (void)
 {
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", MODULE_NAME, "eve-log.dns",
-            JsonDnsLogInitCtxSub, ALPROTO_DNS, JsonDnsLogger, LogDnsLogThreadInit,
-            LogDnsLogThreadDeinit);
+            JsonDnsLogInitCtxSub, ALPROTO_DNS, JsonDnsLogger, JsonDnsLoggerFlush,
+            LogDnsLogThreadInit, LogDnsLogThreadDeinit);
 }
 
 void JsonDoh2LogRegister(void)
 {
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonDoH2Log", "eve-log.doh2",
-            JsonDnsLogInitCtxSub, ALPROTO_DOH2, JsonDoh2Logger, LogDnsLogThreadInit,
-            LogDnsLogThreadDeinit);
+            JsonDnsLogInitCtxSub, ALPROTO_DOH2, JsonDoh2Logger, JsonDnsLoggerFlush,
+            LogDnsLogThreadInit, LogDnsLogThreadDeinit);
 }
