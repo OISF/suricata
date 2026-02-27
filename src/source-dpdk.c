@@ -42,6 +42,7 @@
 #include "tmqh-packetpool.h"
 #include "util-privs.h"
 #include "util-device-private.h"
+#include "util-dpdk-threading.h"
 #include "action-globals.h"
 
 #ifndef HAVE_DPDK
@@ -258,6 +259,8 @@ void TmModuleReceiveDPDKRegister(void)
     tmm_modules[TMM_RECEIVEDPDK].PktAcqBreakLoop = NULL;
     tmm_modules[TMM_RECEIVEDPDK].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_RECEIVEDPDK].ThreadDeinit = ReceiveDPDKThreadDeinit;
+    tmm_modules[TMM_RECEIVEDPDK].ThreadSpawn = DpdkThreadSpawn;
+    tmm_modules[TMM_RECEIVEDPDK].ThreadJoin = DpdkThreadJoin;
     tmm_modules[TMM_RECEIVEDPDK].cap_flags = SC_CAP_NET_RAW;
     tmm_modules[TMM_RECEIVEDPDK].flags = TM_FLAG_RECEIVE_TM;
 }
