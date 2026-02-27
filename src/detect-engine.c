@@ -56,6 +56,8 @@
 #include "detect-engine-payload.h"
 #include "detect-fast-pattern.h"
 #include "detect-byte-extract.h"
+#include "detect-multi.h"
+#include "detect-engine-uint.h"
 #include "detect-content.h"
 #include "detect-uricontent.h"
 #include "detect-tcphdr.h"
@@ -2156,6 +2158,81 @@ uint8_t DetectEngineInspectMultiBufferGeneric(DetectEngineCtx *de_ctx,
         transforms = engine->v2.transforms;
     }
 
+    bool stop_on_first_match = true;
+    const bool eof =
+            (AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) > engine->progress);
+    SigMatchData *smd = engine->smd;
+    DetectUintIndexPrecise *prec;
+    switch (smd->type) {
+        case DETECT_MULTI_COUNT:
+            // count should always be first and only
+            if (!DetectCountDoMatch(
+                        det_ctx, f, flags, txv, engine->v2.GetMultiData, smd->ctx, eof)) {
+                return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+            } else {
+                // only count
+                return DETECT_ENGINE_INSPECT_SIG_MATCH;
+            }
+        case DETECT_MULTI_ALL:
+            // fallthrough
+        case DETECT_MULTI_ALL_OR_ABSENT:
+            if (!eof) {
+                return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+            }
+            stop_on_first_match = false;
+            smd++;
+            break;
+        case DETECT_MULTI_NB:
+            if (!eof) {
+                DetectU32Data *du32 = (DetectU32Data *)smd->ctx;
+                if (du32->mode != DETECT_UINT_GTE && du32->mode != DETECT_UINT_GT) {
+                    return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+                }
+            }
+            stop_on_first_match = false;
+            smd++;
+            break;
+        case DETECT_MULTI_INDEX:
+            prec = (DetectUintIndexPrecise *)smd->ctx;
+            if (prec->pos < 0) {
+                if (!eof) {
+                    return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+                }
+                uint32_t count = 0;
+                if (!engine->v2.GetMultiData(
+                            det_ctx, txv, flags, DETECT_COUNT_INDEX, NULL, &count)) {
+                    return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+                }
+                local_id = count + prec->pos;
+            } else {
+                local_id = prec->pos;
+            }
+            // get the buffer
+            InspectionBuffer *buffer = DetectGetMultiData(det_ctx, transforms, f, flags, txv,
+                    engine->sm_list, local_id, engine->v2.GetMultiData);
+            if (buffer == NULL || buffer->inspect == NULL) {
+                // no buffer
+                if (eof) {
+                    // no more buffers coming
+                    if (prec->oob) {
+                        // match as out of bounds
+                        return DETECT_ENGINE_INSPECT_SIG_MATCH;
+                    }
+                    // will never match
+                    return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
+                }
+                // wait for more buffers
+                return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+            }
+            const bool match = DetectEngineContentInspectionBuffer(de_ctx, det_ctx, s, smd, NULL, f,
+                    buffer, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
+            if (match) {
+                return DETECT_ENGINE_INSPECT_SIG_MATCH;
+            }
+            return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
+    }
+
+    uint32_t nb_matches = 0;
     do {
         InspectionBuffer *buffer = DetectGetMultiData(det_ctx, transforms, f, flags, txv,
                 engine->sm_list, local_id, engine->v2.GetMultiData);
@@ -2165,17 +2242,33 @@ uint8_t DetectEngineInspectMultiBufferGeneric(DetectEngineCtx *de_ctx,
 
         // The GetData functions set buffer->flags to DETECT_CI_FLAGS_SINGLE
         // This is not meant for streaming buffers
-        const bool match = DetectEngineContentInspectionBuffer(de_ctx, det_ctx, s, engine->smd,
-                NULL, f, buffer, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
+        const bool match = DetectEngineContentInspectionBuffer(de_ctx, det_ctx, s, smd, NULL, f,
+                buffer, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
         if (match) {
-            return DETECT_ENGINE_INSPECT_SIG_MATCH;
+            if (stop_on_first_match)
+                return DETECT_ENGINE_INSPECT_SIG_MATCH;
+            nb_matches++;
         }
         local_id++;
     } while (1);
+    if (!stop_on_first_match) {
+        switch (engine->smd->type) {
+            case DETECT_MULTI_ALL:
+                if (nb_matches == local_id && nb_matches > 0)
+                    return DETECT_ENGINE_INSPECT_SIG_MATCH;
+                break;
+            case DETECT_MULTI_ALL_OR_ABSENT:
+                if (nb_matches == local_id)
+                    return DETECT_ENGINE_INSPECT_SIG_MATCH;
+                break;
+            case DETECT_MULTI_NB:
+                if (DetectU32Match(nb_matches, (DetectU32Data *)engine->smd->ctx))
+                    return DETECT_ENGINE_INSPECT_SIG_MATCH;
+        }
+        return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+    }
     if (local_id == 0) {
         // That means we did not get even one buffer value from the multi-buffer
-        const bool eof = (AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) >
-                          engine->progress);
         if (eof && engine->match_on_null) {
             return DETECT_ENGINE_INSPECT_SIG_MATCH;
         }
