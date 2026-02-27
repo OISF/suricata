@@ -52,6 +52,9 @@ esec       IP Extended Security
 lsrr       Loose Source Routing
 ssrr       Strict Source Routing
 satid      Stream Identifier
+qs         Quick-Start
+rtralt     Router Alert
+cipso      Commercial Security
 any        any IP options are set
 =========  =============================
 
@@ -793,3 +796,59 @@ Example rule:
 .. container:: example-rule
 
     alert ip $EXTERNAL_NET any -> $HOME_NET any (:example-rule-emphasis:`icmpv6.mtu:<1280;` sid:1234; rev:5;)
+
+
+IGMP keywords
+-------------
+
+The Internet Group Management Protocol (IGMP) is the protocol used by IPv4
+systems to report their IP multicast group memberships to neighboring
+multicast routers [RFC 9776].
+
+Additionally, the RGMP protocol is a dialect of IGMP. The keywords below
+also apply to RGMP. RGMP is defined in RFC 3488.
+
+igmp.hdr
+^^^^^^^^
+
+Sticky buffer to match on the whole IGMP header.
+
+Example rule:
+
+.. container:: example-rule
+
+   alert igmp any any -> any any (:example-rule-emphasis:`igmp.hdr; content:"|22|"; startswith;` sid:1234; rev:5;)
+
+
+igmp.type
+^^^^^^^^^
+
+Match on the IGMP type field.
+
+``igmp.type`` uses an :ref:`unsigned 8-bit integer <rules-integer-keywords>`.
+
+Format::
+
+  igmp.type:0x11;
+
+
+Example rule:
+
+.. container:: example-rule
+
+   alert igmp any any -> any any (:example-rule-emphasis:`igmp.type:0x22;` sid:1234; rev:5;)
+
+
+igmp-csum
+^^^^^^^^^
+
+Match on the validity of the checksum field.
+
+Format::
+
+  igmp-csum:valid;
+  igmp-csum:invalid;
+
+.. container:: example-rule
+
+   alert igmp any any -> any any (:example-rule-emphasis:`igmp-csum:invalid;` sid:1234; rev:5;)

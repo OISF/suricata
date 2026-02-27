@@ -924,6 +924,21 @@ SCJsonBuilder *CreateEveHeader(const Packet *p, enum SCOutputJsonLogDirection di
                 SCJbSetUint(js, "icmp_code", PacketGetICMPv6(p)->code);
             }
             break;
+        case IPPROTO_IGMP:
+            if (PacketIsIGMP(p)) {
+                SCLogDebug("rgmp %s", BOOL2STR(p->l4.vars.igmp.rgmp));
+                if (!p->l4.vars.igmp.rgmp) {
+                    SCJbOpenObject(js, "igmp");
+                    SCJbSetUint(js, "type", PacketGetIGMP(p)->type);
+                    SCJbSetUint(js, "version", p->l4.vars.igmp.version);
+                    SCJbClose(js);
+                } else {
+                    SCJbOpenObject(js, "rgmp");
+                    SCJbSetUint(js, "type", PacketGetIGMP(p)->type);
+                    SCJbClose(js);
+                }
+            }
+            break;
     }
 
     SCJbSetString(js, "pkt_src", PktSrcToString(p->pkt_src));
