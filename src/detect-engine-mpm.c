@@ -89,7 +89,7 @@ static int g_mpm_list_cnt[DETECT_BUFFER_MPM_TYPE_SIZE] = { 0, 0, 0 };
 static void RegisterInternal(const char *name, int direction, int priority,
         PrefilterRegisterFunc PrefilterRegister, InspectionBufferGetDataPtr GetData,
         InspectionSingleBufferGetDataPtr GetDataSingle,
-        InspectionMultiBufferGetDataPtr GetMultiData, AppProto alproto, int tx_min_progress)
+        InspectionMultiBufferGetDataPtr GetMultiData, AppProto alproto, uint8_t tx_min_progress)
 {
     SCLogDebug("registering %s/%d/%d/%p/%p/%u/%d", name, direction, priority,
             PrefilterRegister, GetData, alproto, tx_min_progress);
@@ -151,7 +151,7 @@ static void RegisterInternal(const char *name, int direction, int priority,
 
 void DetectAppLayerMpmRegister(const char *name, int direction, int priority,
         PrefilterRegisterFunc PrefilterRegister, InspectionBufferGetDataPtr GetData,
-        AppProto alproto, int tx_min_progress)
+        AppProto alproto, uint8_t tx_min_progress)
 {
     RegisterInternal(name, direction, priority, PrefilterRegister, GetData, NULL, NULL, alproto,
             tx_min_progress);
@@ -159,7 +159,7 @@ void DetectAppLayerMpmRegister(const char *name, int direction, int priority,
 
 void DetectAppLayerMpmRegisterSingle(const char *name, int direction, int priority,
         PrefilterRegisterFunc PrefilterRegister, InspectionSingleBufferGetDataPtr GetData,
-        AppProto alproto, int tx_min_progress)
+        AppProto alproto, uint8_t tx_min_progress)
 {
     RegisterInternal(name, direction, priority, PrefilterRegister, NULL, GetData, NULL, alproto,
             tx_min_progress);
@@ -167,7 +167,7 @@ void DetectAppLayerMpmRegisterSingle(const char *name, int direction, int priori
 
 void DetectAppLayerMpmMultiRegister(const char *name, int direction, int priority,
         PrefilterRegisterFunc PrefilterRegister, InspectionMultiBufferGetDataPtr GetData,
-        AppProto alproto, int tx_min_progress)
+        AppProto alproto, uint8_t tx_min_progress)
 {
     RegisterInternal(name, direction, priority, PrefilterRegister, NULL, NULL, GetData, alproto,
             tx_min_progress);
