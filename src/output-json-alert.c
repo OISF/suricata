@@ -64,6 +64,7 @@
 #include "util-optimize.h"
 #include "util-buffer.h"
 #include "util-reference-config.h"
+#include "util-streaming-buffer.h"
 #include "util-validate.h"
 
 #include "action-globals.h"
@@ -483,6 +484,10 @@ static void AlertAddFiles(const Packet *p, SCJsonBuilder *jb, const uint64_t tx_
             }
             SCJbStartObject(jb);
             EveFileInfo(jb, file, tx_id, file->flags);
+
+            /* Log PE metadata if this file starts with MZ */
+            EveFilePeMetadataLog(file, jb);
+
             SCJbClose(jb);
             file = file->next;
         }

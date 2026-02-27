@@ -22,6 +22,7 @@ pub mod byte_math;
 pub mod datasets;
 pub mod entropy;
 pub mod error;
+pub mod windows_pe;
 pub mod float;
 pub mod flow;
 pub mod fragbits;
@@ -104,6 +105,13 @@ pub fn helper_keyword_register_multi_buffer(kw: &SigTableElmtStickyBuffer) -> u1
     return helper_keyword_register_buffer_flags(
         kw,
         SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_INFO_MULTI_BUFFER,
+    );
+}
+
+pub fn helper_keyword_register_multi_buffer_with_options(kw: &SigTableElmtStickyBuffer) -> u16 {
+    return helper_keyword_register_buffer_flags(
+        kw,
+        SIGMATCH_OPTIONAL_OPT | SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_INFO_MULTI_BUFFER,
     );
 }
 

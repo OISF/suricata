@@ -25,6 +25,8 @@
 #include "output.h"
 #include "output-json.h"
 #include "util-buffer.h"
+#include "util-file.h"
+#include "util-streaming-buffer.h"
 
 OutputJsonThreadCtx *CreateEveThreadCtx(ThreadVars *t, OutputJsonCtx *ctx)
 {
@@ -134,4 +136,30 @@ TmEcode JsonLogThreadDeinit(ThreadVars *t, void *data)
     OutputJsonThreadCtx *thread = (OutputJsonThreadCtx *)data;
     FreeEveThreadCtx(thread);
     return TM_ECODE_OK;
+}
+
+/**
+ * \brief Log PE metadata if file starts with MZ header
+ *
+ * Checks if the file has PE header data (MZ signature) and logs
+ * the PE metadata using the Rust SCPeLogJson function.
+ *
+ * \param file The File object to check for PE metadata
+ * \param jb The JSON builder to append PE metadata to
+ */
+void EveFilePeMetadataLog(const File *file, SCJsonBuilder *jb)
+{
+    if (file == NULL || file->sb == NULL) {
+        return;
+    }
+
+    const uint8_t *data = NULL;
+    uint32_t data_len = 0;
+    uint64_t offset = 0;
+    StreamingBufferGetData(file->sb, &data, &data_len, &offset);
+
+    /* Only log PE metadata if we have the start of the file and it has MZ signature */
+    if (offset == 0 && data != NULL && data_len >= 64 && data[0] == 'M' && data[1] == 'Z') {
+        SCPeLogJson(data, data_len, jb);
+    }
 }

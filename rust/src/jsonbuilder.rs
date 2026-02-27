@@ -708,6 +708,34 @@ impl JsonBuilder {
         Ok(self)
     }
 
+    /// Set a key and an unsigned integer value formatted as a hex string on an object.
+    ///
+    /// The value is written as a JSON string in `"0x%x"` form, e.g. `"0x014c"`.
+    pub fn set_uint_as_hex<T>(&mut self, key: &str, val: T) -> Result<&mut Self, JsonError>
+    where
+        T: Unsigned + Into<u64>,
+    {
+        let val: u64 = val.into();
+        match self.current_state() {
+            State::ObjectNth => {
+                self.push(',')?;
+            }
+            State::ObjectFirst => {
+                self.set_state(State::ObjectNth);
+            }
+            _ => {
+                debug_validate_fail!("invalid state");
+                return Err(JsonError::InvalidState);
+            }
+        }
+        self.push('"')?;
+        self.push_str(key)?;
+        self.push_str("\":\"0x")?;
+        self.push_str(&format!("{:x}", val))?;
+        self.push('"')?;
+        Ok(self)
+    }
+
     /// Set a key and a signed integer type on an object.
     pub fn set_int(&mut self, key: &str, val: i64) -> Result<&mut Self, JsonError> {
         match self.current_state() {
@@ -1582,6 +1610,63 @@ mod test {
         jb.append_float(f64::NEG_INFINITY).unwrap();
         jb.close().unwrap();
         assert_eq!(jb.buf, r#"[null]"#);
+    }
+
+    #[test]
+    fn test_set_uint_as_hex_single() -> Result<(), JsonError> {
+        let mut jb = JsonBuilder::try_new_object().unwrap();
+        jb.set_uint_as_hex("machine", 0x014cu16)?;
+        jb.close()?;
+        assert_eq!(jb.buf, r#"{"machine":"0x14c"}"#);
+        Ok(())
+    }
+
+    #[test]
+    fn test_set_uint_as_hex_multiple_keys() -> Result<(), JsonError> {
+        let mut jb = JsonBuilder::try_new_object().unwrap();
+        jb.set_uint_as_hex("a", 0x014cu16)?;
+        jb.set_uint_as_hex("b", 0x8664u16)?;
+        jb.close()?;
+        assert_eq!(jb.buf, r#"{"a":"0x14c","b":"0x8664"}"#);
+        Ok(())
+    }
+
+    #[test]
+    fn test_set_uint_as_hex_zero() -> Result<(), JsonError> {
+        let mut jb = JsonBuilder::try_new_object().unwrap();
+        jb.set_uint_as_hex("val", 0u16)?;
+        jb.close()?;
+        assert_eq!(jb.buf, r#"{"val":"0x0"}"#);
+        Ok(())
+    }
+
+    #[test]
+    fn test_set_uint_as_hex_u32() -> Result<(), JsonError> {
+        let mut jb = JsonBuilder::try_new_object().unwrap();
+        jb.set_uint_as_hex("addr", 0xdeadbeefu32)?;
+        jb.close()?;
+        assert_eq!(jb.buf, r#"{"addr":"0xdeadbeef"}"#);
+        Ok(())
+    }
+
+    #[test]
+    fn test_set_uint_as_hex_u64_max() -> Result<(), JsonError> {
+        let mut jb = JsonBuilder::try_new_object().unwrap();
+        jb.set_uint_as_hex("big", u64::MAX)?;
+        jb.close()?;
+        assert_eq!(jb.buf, r#"{"big":"0xffffffffffffffff"}"#);
+        Ok(())
+    }
+
+    #[test]
+    #[cfg(not(feature = "debug-validate"))]
+    fn test_set_uint_as_hex_invalid_state() {
+        // Calling set_uint_as_hex on an array (not an object) must return InvalidState.
+        let mut jb = JsonBuilder::try_new_array().unwrap();
+        assert_eq!(
+            jb.set_uint_as_hex("key", 1u16).err().unwrap(),
+            JsonError::InvalidState
+        );
     }
 }
 

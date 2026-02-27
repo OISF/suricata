@@ -19,7 +19,8 @@
                 "context": {
                     "type": "object",
                     "additionalProperties": true,
-                    "description": "Extra context data created by keywords such as dataset with JSON"
+                    "description":
+                            "Extra context data created by keywords such as dataset with JSON"
                 },
                 "gid": {
                     "type": "integer"
@@ -183,14 +184,16 @@
         },
         "app_proto_expected": {
             "type": "string",
-            "description": "In case of a protocol change to a specific protocol, and this specific protocol was not recognised, this field will have the value of the expected protocol",
+            "description":
+                    "In case of a protocol change to a specific protocol, and this specific protocol was not recognised, this field will have the value of the expected protocol",
             "suricata": {
                 "$comment": "TODO implement keyword app-layer-protocol option"
             }
         },
         "app_proto_orig": {
             "type": "string",
-            "description": "Original application layer protocol of the flow after a protocol change",
+            "description":
+                    "Original application layer protocol of the flow after a protocol change",
             "suricata": {
                 "keywords": [
                     "app-layer-protocol"
@@ -1872,6 +1875,108 @@
         "event_type": {
             "type": "string"
         },
+        "executable": {
+            "type": "object",
+            "description": "[optional] Metadata from Windows Portable Executable (PE) files",
+            "additionalProperties": false,
+            "properties": {
+                "architecture": {
+                    "type": "string",
+                    "description":
+                            "Machine type/architecture as hex string (e.g., \"0x14c\" for x86, \"0x8664\" for x86_64, \"0x1c0\" for ARM, \"0xaa64\" for ARM64)",
+                    "suricata": {
+                        "keywords": [
+                            "windows_pe"
+                        ]
+                    }
+                },
+                "architecture_name": {
+                    "type": "string",
+                    "description":
+                            "Human-readable architecture name derived from machine type (e.g., x86, x86-64, ARM, ARM64, or unknown)"
+                },
+                "sections": {
+                    "type": "integer",
+                    "description": "Number of sections in the PE file",
+                    "suricata": {
+                        "keywords": [
+                            "windows_pe"
+                        ]
+                    }
+                },
+                "subsystem": {
+                    "type": "string",
+                    "description": "PE subsystem (e.g., WINDOWS_GUI, WINDOWS_CUI, NATIVE)"
+                },
+                "subsystem_id": {
+                    "type": "integer",
+                    "description": "Numeric subsystem ID (2=GUI, 3=Console, 1=Native, etc.)",
+                    "suricata": {
+                        "keywords": [
+                            "windows_pe"
+                        ]
+                    }
+                },
+                "characteristics": {
+                    "type": "integer",
+                    "description":
+                            "COFF characteristics flags (e.g., 0x0002 for EXECUTABLE_IMAGE, 0x2000 for DLL)",
+                    "suricata": {
+                        "keywords": [
+                            "windows_pe"
+                        ]
+                    }
+                },
+                "characteristics_names": {
+                    "type": "array",
+                    "description":
+                            "Human-readable COFF characteristics (EXECUTABLE_IMAGE, DLL, LARGE_ADDRESS_AWARE, 32BIT_MACHINE)",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "dll_characteristics": {
+                    "type": "integer",
+                    "description":
+                            "DLL characteristics flags / security features (e.g., 0x0040 for ASLR, 0x0100 for DEP)",
+                    "suricata": {
+                        "keywords": [
+                            "windows_pe"
+                        ]
+                    }
+                },
+                "security_features": {
+                    "type": "array",
+                    "description":
+                            "Human-readable security features (HIGH_ENTROPY_VA, DYNAMIC_BASE, NX_COMPAT, NO_SEH, GUARD_CF)",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "entry_point": {
+                    "type": "integer",
+                    "description": "AddressOfEntryPoint RVA (Relative Virtual Address)",
+                    "suricata": {
+                        "keywords": [
+                            "windows_pe"
+                        ]
+                    }
+                },
+                "size_of_image": {
+                    "type": "integer",
+                    "description": "SizeOfImage field (total mapped size of the PE)",
+                    "suricata": {
+                        "keywords": [
+                            "windows_pe"
+                        ]
+                    }
+                },
+                "pe_offset": {
+                    "type": "integer",
+                    "description": "Offset to the PE signature in the file"
+                }
+            }
+        },
         "fileinfo": {
             "type": "object",
             "additionalProperties": false,
@@ -1939,7 +2044,8 @@
                 },
                 "storing": {
                     "type": "boolean",
-                    "description": "Indicates whether the file is in the process of being stored; true when not yet stored"
+                    "description":
+                            "Indicates whether the file is in the process of being stored; true when not yet stored"
                 },
                 "tx_id": {
                     "type": "integer",
@@ -1968,6 +2074,54 @@
                     },
                     "magic": {
                         "type": "string"
+                    },
+                    "executable": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "architecture": {
+                                "type": "string"
+                            },
+                            "architecture_name": {
+                                "type": "string"
+                            },
+                            "sections": {
+                                "type": "integer"
+                            },
+                            "subsystem": {
+                                "type": "string"
+                            },
+                            "subsystem_id": {
+                                "type": "integer"
+                            },
+                            "characteristics": {
+                                "type": "integer"
+                            },
+                            "characteristics_names": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "dll_characteristics": {
+                                "type": "integer"
+                            },
+                            "security_features": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "entry_point": {
+                                "type": "integer"
+                            },
+                            "size_of_image": {
+                                "type": "integer"
+                            },
+                            "pe_offset": {
+                                "type": "integer"
+                            }
+                        }
                     },
                     "md5": {
                         "type": "string"
@@ -2275,7 +2429,8 @@
                     "description": "The domain name of the server, the Host header",
                     "suricata": {
                         "keywords": [
-                            "http.host", "http.host.raw"
+                            "http.host",
+                            "http.host.raw"
                         ]
                     }
                 },
@@ -2366,7 +2521,8 @@
                 },
                 "http_content_type": {
                     "type": "string",
-                    "description": "The media type of the resource or data, the Content-Type header",
+                    "description":
+                            "The media type of the resource or data, the Content-Type header",
                     "suricata": {
                         "keywords": [
                             "http.content_type"
@@ -2388,7 +2544,8 @@
                 },
                 "http_refer": {
                     "type": "string",
-                    "description": "An absolute or partial address of the web page that makes the request, the Referer header",
+                    "description":
+                            "An absolute or partial address of the web page that makes the request, the Referer header",
                     "suricata": {
                         "keywords": [
                             "http.referer"
@@ -2409,13 +2566,15 @@
                     "description": "The ascii-printable characters of the response body",
                     "suricata": {
                         "keywords": [
-                            "http.response_body", "file.data"
+                            "http.response_body",
+                            "file.data"
                         ]
                     }
                 },
                 "http_user_agent": {
                     "type": "string",
-                    "description": "A characteristic string that lets servers and network peers identify the application, operating system, vendor, and/or version of the requesting user agent, the User-Agent header",
+                    "description":
+                            "A characteristic string that lets servers and network peers identify the application, operating system, vendor, and/or version of the requesting user agent, the User-Agent header",
                     "suricata": {
                         "keywords": [
                             "http.user_agent"
@@ -2515,7 +2674,9 @@
                     "description": "The HTTP request URI",
                     "suricata": {
                         "keywords": [
-                            "http.uri", "http.uri.raw", "urilen"
+                            "http.uri",
+                            "http.uri.raw",
+                            "urilen"
                         ]
                     }
                 },
@@ -2525,7 +2686,8 @@
                 },
                 "xff": {
                     "type": "string",
-                    "description": "A de-facto standard header for identifying the originating IP address of a client connecting to a web server through a proxy server, the X-Forwarded-For header request header"
+                    "description":
+                            "A de-facto standard header for identifying the originating IP address of a client connecting to a web server through a proxy server, the X-Forwarded-For header request header"
                 }
             }
         },
@@ -2573,7 +2735,10 @@
                                 ]
                             },
                             "raw": {
-                                "type": ["string", "number"]
+                                "type": [
+                                    "string",
+                                    "number"
+                                ]
                             },
                             "value": {
                                 "type": "string"
@@ -2642,7 +2807,10 @@
                                                 ]
                                             },
                                             "raw": {
-                                                "type": ["string", "number"]
+                                                "type": [
+                                                    "string",
+                                                    "number"
+                                                ]
                                             },
                                             "value": {
                                                 "type": "string"
@@ -2814,7 +2982,8 @@
                 },
                 "weak_encryption": {
                     "type": "boolean",
-                    "description": "Whether the encryption used in AS-REP or TGS-REP is a weak cipher",
+                    "description":
+                            "Whether the encryption used in AS-REP or TGS-REP is a weak cipher",
                     "suricata": {
                         "$comment": "TODO add keyword (rather option for encryption keyword)"
                     }
@@ -3336,7 +3505,8 @@
                             "rrname_truncated": {
                                 "description": "Name was truncated by Suricata due to length",
                                 "type": "boolean",
-                                "$comment": "keyword: app-layer-event:mdns.name_too_long (https://redmine.openinfosecfoundation.org/issues/7784)"
+                                "$comment":
+                                        "keyword: app-layer-event:mdns.name_too_long (https://redmine.openinfosecfoundation.org/issues/7784)"
                             },
                             "txt": {
                                 "type": "array",
@@ -3380,7 +3550,8 @@
                             "rrname_truncated": {
                                 "description": "Name was truncated by Suricata due to length",
                                 "type": "boolean",
-                                "$comment": "keyword: app-layer-event:mdns.name_too_long (https://redmine.openinfosecfoundation.org/issues/7784)"
+                                "$comment":
+                                        "keyword: app-layer-event:mdns.name_too_long (https://redmine.openinfosecfoundation.org/issues/7784)"
                             },
                             "txt": {
                                 "type": "array",
@@ -3414,7 +3585,8 @@
                             "rrname_truncated": {
                                 "description": "Name was truncated by Suricata due to length",
                                 "type": "boolean",
-                                "$comment": "keyword: app-layer-event:mdns.name_too_long (https://redmine.openinfosecfoundation.org/issues/7784)"
+                                "$comment":
+                                        "keyword: app-layer-event:mdns.name_too_long (https://redmine.openinfosecfoundation.org/issues/7784)"
                             }
                         }
                     }
@@ -3484,10 +3656,11 @@
                             "rrname_truncated": {
                                 "description": "Name was truncated by Suricata due to length",
                                 "type": "boolean",
-                                "$comment": "keyword: app-layer-event:mdns.name_too_long (https://redmine.openinfosecfoundation.org/issues/7784)"
+                                "$comment":
+                                        "keyword: app-layer-event:mdns.name_too_long (https://redmine.openinfosecfoundation.org/issues/7784)"
                             },
                             "rrtype": {
-                                "type": "string", 
+                                "type": "string",
                                 "description": "Type of resource being requested"
                             }
                         }
@@ -4335,7 +4508,8 @@
             "properties": {
                 "age": {
                     "type": "integer",
-                    "description": "Duration of the flow (measured from timestamp of last packet and first packet)",
+                    "description":
+                            "Duration of the flow (measured from timestamp of last packet and first packet)",
                     "suricata": {
                         "keywords": [
                             "flow.age"
@@ -4382,7 +4556,8 @@
                 },
                 "tx_cnt": {
                     "type": "integer",
-                    "description": "Number of transactions seen in the flow (only present if flow has an application layer)"
+                    "description":
+                            "Number of transactions seen in the flow (only present if flow has an application layer)"
                 }
             },
             "optional": true
@@ -4529,11 +4704,13 @@
                             "properties": {
                                 "data_size": {
                                     "type": "integer",
-                                    "description": "Accumulated data size of all CopyData messages sent"
+                                    "description":
+                                            "Accumulated data size of all CopyData messages sent"
                                 },
                                 "msg_count": {
                                     "type": "integer",
-                                    "description": "How many CopyData messages were sent (does not necessarily match number of rows from the query)"
+                                    "description":
+                                            "How many CopyData messages were sent (does not necessarily match number of rows from the query)"
                                 }
                             }
                         },
@@ -4634,7 +4811,8 @@
                             "properties": {
                                 "data_size": {
                                     "type": "integer",
-                                    "description": "Accumulated data size of all CopyData messages sent"
+                                    "description":
+                                            "Accumulated data size of all CopyData messages sent"
                                 },
                                 "row_count": {
                                     "type": "integer",
@@ -4649,7 +4827,8 @@
                             "properties": {
                                 "columns": {
                                     "type": "integer",
-                                    "description": "Number of columns that will be copied in the CopyData message"
+                                    "description":
+                                            "Number of columns that will be copied in the CopyData message"
                                 }
                             }
                         },
@@ -4660,7 +4839,8 @@
                             "properties": {
                                 "columns": {
                                     "type": "integer",
-                                    "description": "Number of columns that will be copied in the CopyData message"
+                                    "description":
+                                            "Number of columns that will be copied in the CopyData message"
                                 }
                             }
                         },
@@ -5719,7 +5899,8 @@
             "properties": {
                 "app_layer": {
                     "type": "object",
-                    "description": "Module with observational and performance-related statistics from application layer protocol parsers and flows",
+                    "description":
+                            "Module with observational and performance-related statistics from application layer protocol parsers and flows",
                     "additionalProperties": false,
                     "properties": {
                         "error": {
@@ -6257,7 +6438,7 @@
                 },
                 "capture": {
                     "type": "object",
-                    "description":"Observational statistics for packet capture module",
+                    "description": "Observational statistics for packet capture module",
                     "additionalProperties": false,
                     "properties": {
                         "afpacket": {
@@ -6290,7 +6471,8 @@
                         },
                         "errors": {
                             "type": "integer",
-                            "description": "Number of Suricata errors reported while reading capture module"
+                            "description":
+                                    "Number of Suricata errors reported while reading capture module"
                         },
                         "kernel_drops": {
                             "type": "integer",
@@ -6365,7 +6547,8 @@
                                     "properties": {
                                         "invalid_hardware_size": {
                                             "type": "integer",
-                                            "description": "Number of ARP packets with invalid hardware size (valid size is 6)"
+                                            "description":
+                                                    "Number of ARP packets with invalid hardware size (valid size is 6)"
                                         },
                                         "invalid_pkt": {
                                             "type": "integer",
@@ -6373,23 +6556,28 @@
                                         },
                                         "invalid_protocol_size": {
                                             "type": "integer",
-                                            "description": "Number of ARP packets with invalid protocol size (valid size is 4)"
+                                            "description":
+                                                    "Number of ARP packets with invalid protocol size (valid size is 4)"
                                         },
                                         "pkt_too_small": {
                                             "type": "integer",
-                                            "description": "Number of ARP packets with header length too small"
+                                            "description":
+                                                    "Number of ARP packets with header length too small"
                                         },
                                         "unsupported_hardware": {
                                             "type": "integer",
-                                            "description": "Number of ARP packets with unsupported hardware"
+                                            "description":
+                                                    "Number of ARP packets with unsupported hardware"
                                         },
                                         "unsupported_opcode": {
                                             "type": "integer",
-                                            "description": "Number of ARP packets with unsupported Operation Codes"
+                                            "description":
+                                                    "Number of ARP packets with unsupported Operation Codes"
                                         },
                                         "unsupported_protocol": {
                                             "type": "integer",
-                                            "description": "Number of ARP packets with unsupported protocol"
+                                            "description":
+                                                    "Number of ARP packets with unsupported protocol"
                                         }
                                     }
                                 },
@@ -6419,15 +6607,18 @@
                                     "properties": {
                                         "header_too_small": {
                                             "type": "integer",
-                                            "description": "Number of packets with header too small for ERSPAN"
+                                            "description":
+                                                    "Number of packets with header too small for ERSPAN"
                                         },
                                         "too_many_vlan_layers": {
                                             "type": "integer",
-                                            "description": "Number of packets with too many VLAN layers for ERSPAN"
+                                            "description":
+                                                    "Number of packets with too many VLAN layers for ERSPAN"
                                         },
                                         "unsupported_version": {
                                             "type": "integer",
-                                            "description": "Number of packets with unsupported version for ERSPAN"
+                                            "description":
+                                                    "Number of packets with unsupported version for ERSPAN"
                                         }
                                     }
                                 },
@@ -6447,11 +6638,13 @@
                                     "properties": {
                                         "header_too_small": {
                                             "type": "integer",
-                                            "description": "Number of packets with header too small for ETAG"
+                                            "description":
+                                                    "Number of packets with header too small for ETAG"
                                         },
                                         "unknown_type": {
                                             "type": "integer",
-                                            "description": "Number of ETAG packets with unknown type"
+                                            "description":
+                                                    "Number of ETAG packets with unknown type"
                                         }
                                     }
                                 },
@@ -6461,11 +6654,13 @@
                                     "properties": {
                                         "pkt_too_small": {
                                             "type": "integer",
-                                            "description": "Number of packets too small for Ethernet"
+                                            "description":
+                                                    "Number of packets too small for Ethernet"
                                         },
                                         "unknown_ethertype": {
                                             "type": "integer",
-                                            "description": "Number of packets with Unkonwn Ethertype for Ethernet"
+                                            "description":
+                                                    "Number of packets with Unkonwn Ethertype for Ethernet"
                                         }
                                     }
                                 },
@@ -6475,7 +6670,8 @@
                                     "properties": {
                                         "unknown_payload_type": {
                                             "type": "integer",
-                                            "description": "Number of packets with unknown payload type for Geneve"
+                                            "description":
+                                                    "Number of packets with unknown payload type for Geneve"
                                         }
                                     }
                                 },
@@ -6489,59 +6685,73 @@
                                         },
                                         "version0_flags": {
                                             "type": "integer",
-                                            "description": "Number of packets with version 0 flags set for GRE"
+                                            "description":
+                                                    "Number of packets with version 0 flags set for GRE"
                                         },
                                         "version0_hdr_too_big": {
                                             "type": "integer",
-                                            "description": "Number of packets with version 0 and header too big for GRE"
+                                            "description":
+                                                    "Number of packets with version 0 and header too big for GRE"
                                         },
                                         "version0_malformed_sre_hdr": {
                                             "type": "integer",
-                                            "description": "Number of packets of with version 0 and malformed SRE header for GRE"
+                                            "description":
+                                                    "Number of packets of with version 0 and malformed SRE header for GRE"
                                         },
                                         "version0_recur": {
                                             "type": "integer",
-                                            "description": "Number of packets with version 0 and flag recursion control set for GRE"
+                                            "description":
+                                                    "Number of packets with version 0 and flag recursion control set for GRE"
                                         },
                                         "version1_chksum": {
                                             "type": "integer",
-                                            "description": "Number of packets with version 1 and checksum flag set for GRE"
+                                            "description":
+                                                    "Number of packets with version 1 and checksum flag set for GRE"
                                         },
                                         "version1_flags": {
                                             "type": "integer",
-                                            "description": "Number of packets with version 1 flags set for GRE"
+                                            "description":
+                                                    "Number of packets with version 1 flags set for GRE"
                                         },
                                         "version1_hdr_too_big": {
                                             "type": "integer",
-                                            "description": "Number of packets with version 1 and header too big for GRE"
+                                            "description":
+                                                    "Number of packets with version 1 and header too big for GRE"
                                         },
                                         "version1_malformed_sre_hdr": {
                                             "type": "integer",
-                                            "description": "Number of packets with version 1 and malformed SRE header for GRE"
+                                            "description":
+                                                    "Number of packets with version 1 and malformed SRE header for GRE"
                                         },
                                         "version1_no_key": {
                                             "type": "integer",
-                                            "description": "Number of packets with version 1 and no key flag set for GRE"
+                                            "description":
+                                                    "Number of packets with version 1 and no key flag set for GRE"
                                         },
                                         "version1_recur": {
                                             "type": "integer",
-                                            "description": "Number of packets with version 1 and flag recursion control set for GRE"
+                                            "description":
+                                                    "Number of packets with version 1 and flag recursion control set for GRE"
                                         },
                                         "version1_route": {
                                             "type": "integer",
-                                            "description": "Number of packets with version 1 and flag route set for GRE"
+                                            "description":
+                                                    "Number of packets with version 1 and flag route set for GRE"
                                         },
                                         "version1_ssr": {
                                             "type": "integer",
-                                            "description": "Number of packets with version 1 and flag SSR set for GRE"
+                                            "description":
+                                                    "Number of packets with version 1 and flag SSR set for GRE"
                                         },
                                         "version1_wrong_protocol": {
                                             "type": "integer",
-                                            "description": "Number of packets with version 1 and wrong protocol set for GRE"
+                                            "description":
+                                                    "Number of packets with version 1 and wrong protocol set for GRE"
                                         },
                                         "wrong_version": {
                                             "type": "integer",
-                                            "description": "Number of packets with wrong version set for GRE"
+                                            "description":
+                                                    "Number of packets with wrong version set for GRE"
                                         }
                                     }
                                 },
@@ -6555,7 +6765,8 @@
                                         },
                                         "ipv4_unknown_ver": {
                                             "type": "integer",
-                                            "description": "Number of ICMPv4 packets with unknown version"
+                                            "description":
+                                                    "Number of ICMPv4 packets with unknown version"
                                         },
                                         "pkt_too_small": {
                                             "type": "integer",
@@ -6563,11 +6774,13 @@
                                         },
                                         "unknown_code": {
                                             "type": "integer",
-                                            "description": "Number of ICMPv4 packets with unknown code"
+                                            "description":
+                                                    "Number of ICMPv4 packets with unknown code"
                                         },
                                         "unknown_type": {
                                             "type": "integer",
-                                            "description": "Number of ICMPv4 packets with unknown type"
+                                            "description":
+                                                    "Number of ICMPv4 packets with unknown type"
                                         }
                                     }
                                 },
@@ -6577,7 +6790,8 @@
                                     "properties": {
                                         "experimentation_type": {
                                             "type": "integer",
-                                            "description": "Number of ICMPv6 packets with private experimentation type"
+                                            "description":
+                                                    "Number of ICMPv6 packets with private experimentation type"
                                         },
                                         "ipv6_trunc_pkt": {
                                             "type": "integer",
@@ -6585,11 +6799,13 @@
                                         },
                                         "ipv6_unknown_version": {
                                             "type": "integer",
-                                            "description": "Number of ICMPv6 packets with unknown version"
+                                            "description":
+                                                    "Number of ICMPv6 packets with unknown version"
                                         },
                                         "mld_message_with_invalid_hl": {
                                             "type": "integer",
-                                            "description": "Number of ICMPv6 packets with MLD messages and invalid HL (not 1)"
+                                            "description":
+                                                    "Number of ICMPv6 packets with MLD messages and invalid HL (not 1)"
                                         },
                                         "pkt_too_small": {
                                             "type": "integer",
@@ -6597,15 +6813,18 @@
                                         },
                                         "unassigned_type": {
                                             "type": "integer",
-                                            "description": "Number of ICMPv6 packets with unassigned type"
+                                            "description":
+                                                    "Number of ICMPv6 packets with unassigned type"
                                         },
                                         "unknown_code": {
                                             "type": "integer",
-                                            "description": "Number of ICMPv6 packets with unknown code"
+                                            "description":
+                                                    "Number of ICMPv6 packets with unknown code"
                                         },
                                         "unknown_type": {
                                             "type": "integer",
-                                            "description": "Number of ICMPv6 packets with unknown type"
+                                            "description":
+                                                    "Number of ICMPv6 packets with unknown type"
                                         }
                                     }
                                 },
@@ -6615,7 +6834,8 @@
                                     "properties": {
                                         "header_too_small": {
                                             "type": "integer",
-                                            "description": "Number of IEEE802.1ah packets with header too small"
+                                            "description":
+                                                    "Number of IEEE802.1ah packets with header too small"
                                         }
                                     }
                                 },
@@ -6625,7 +6845,8 @@
                                     "properties": {
                                         "invalid_ip_version": {
                                             "type": "integer",
-                                            "description": "Number of RAW packets with invalid IP version"
+                                            "description":
+                                                    "Number of RAW packets with invalid IP version"
                                         }
                                     }
                                 },
@@ -6635,71 +6856,88 @@
                                     "properties": {
                                         "frag_ignored": {
                                             "type": "integer",
-                                            "description": "Number of IPv6 fragments ignored due to resource allocation errors"
+                                            "description":
+                                                    "Number of IPv6 fragments ignored due to resource allocation errors"
                                         },
                                         "frag_overlap": {
                                             "type": "integer",
-                                            "description": "Number of IPv4 fragments with overlapping data"
+                                            "description":
+                                                    "Number of IPv4 fragments with overlapping data"
                                         },
                                         "frag_pkt_too_large": {
                                             "type": "integer",
-                                            "description": "Number of IPv4 fragments ignored due to being too large"
+                                            "description":
+                                                    "Number of IPv4 fragments ignored due to being too large"
                                         },
                                         "hlen_too_small": {
                                             "type": "integer",
-                                            "description": "Number of IPv4 packets flagged invalid due to header smaller than minimum size"
+                                            "description":
+                                                    "Number of IPv4 packets flagged invalid due to header smaller than minimum size"
                                         },
                                         "icmpv6": {
                                             "type": "integer",
-                                            "description": "Number of IPv4 packets flagged invalid due to having an ICMPV6 header"
+                                            "description":
+                                                    "Number of IPv4 packets flagged invalid due to having an ICMPV6 header"
                                         },
                                         "iplen_smaller_than_hlen": {
                                             "type": "integer",
-                                            "description": "Number of IPv4 packets flagged invalid due to length being smaller than IP header size"
+                                            "description":
+                                                    "Number of IPv4 packets flagged invalid due to length being smaller than IP header size"
                                         },
                                         "opt_duplicate": {
                                             "type": "integer",
-                                            "description": "Number of IPv4 packets with duplicated IP options"
+                                            "description":
+                                                    "Number of IPv4 packets with duplicated IP options"
                                         },
                                         "opt_eol_required": {
                                             "type": "integer",
-                                            "description": "Number of IPv4 packets with 'end of list' option not present, but required, in IP options"
+                                            "description":
+                                                    "Number of IPv4 packets with 'end of list' option not present, but required, in IP options"
                                         },
                                         "opt_invalid": {
                                             "type": "integer",
-                                            "description": "Number of IPv4 packets with invalid IP options"
+                                            "description":
+                                                    "Number of IPv4 packets with invalid IP options"
                                         },
                                         "opt_invalid_len": {
                                             "type": "integer",
-                                            "description": "Number of IPv4 packets flagged invalid due to IP options with invalid length"
+                                            "description":
+                                                    "Number of IPv4 packets flagged invalid due to IP options with invalid length"
                                         },
                                         "opt_malformed": {
                                             "type": "integer",
-                                            "description": "Number of IPv4 packets flagged invalid due to malformed IP options"
+                                            "description":
+                                                    "Number of IPv4 packets flagged invalid due to malformed IP options"
                                         },
                                         "opt_pad_required": {
                                             "type": "integer",
-                                            "description": "Number of IPv4 packets with padding bytes required in IP options"
+                                            "description":
+                                                    "Number of IPv4 packets with padding bytes required in IP options"
                                         },
                                         "opt_unknown": {
                                             "type": "integer",
-                                            "description": "Number of IPv4 packets flagged invalid due to unknown IP option"
+                                            "description":
+                                                    "Number of IPv4 packets flagged invalid due to unknown IP option"
                                         },
                                         "pkt_too_small": {
                                             "type": "integer",
-                                            "description": "Number of IPv4 packets flagged invalid due to size smaller than minimum header size"
+                                            "description":
+                                                    "Number of IPv4 packets flagged invalid due to size smaller than minimum header size"
                                         },
                                         "trunc_pkt": {
                                             "type": "integer",
-                                            "description": "Number of IPv4 packets flagged invalid due to truncated packet"
+                                            "description":
+                                                    "Number of IPv4 packets flagged invalid due to truncated packet"
                                         },
                                         "unknown_protocol": {
                                             "type": "integer",
-                                            "description": "Number of IPv4 packets with unknown protocol"
+                                            "description":
+                                                    "Number of IPv4 packets with unknown protocol"
                                         },
                                         "wrong_ip_version": {
                                             "type": "integer",
-                                            "description": "Number of IPv4 packets flagged invalid due to having wrong IP version in IP options"
+                                            "description":
+                                                    "Number of IPv4 packets flagged invalid due to having wrong IP version in IP options"
                                         }
                                     }
                                 },
@@ -6709,127 +6947,158 @@
                                     "properties": {
                                         "data_after_none_header": {
                                             "type": "integer",
-                                            "description": "Number of IPv6 packets with data after the 'none' header"
+                                            "description":
+                                                    "Number of IPv6 packets with data after the 'none' header"
                                         },
                                         "dstopts_only_padding": {
                                             "type": "integer",
-                                            "description": "Number of IPv6 packets with all DST options as only padding"
+                                            "description":
+                                                    "Number of IPv6 packets with all DST options as only padding"
                                         },
                                         "dstopts_unknown_opt": {
                                             "type": "integer",
-                                            "description": "Number of IPv6 packets with unknown DST option"
+                                            "description":
+                                                    "Number of IPv6 packets with unknown DST option"
                                         },
                                         "exthdr_ah_res_not_null": {
                                             "type": "integer",
-                                            "description": "Number of IPv6 packets with AH header reserved fields not null"
+                                            "description":
+                                                    "Number of IPv6 packets with AH header reserved fields not null"
                                         },
                                         "exthdr_dupl_ah": {
                                             "type": "integer",
-                                            "description": "Number of IPv6 packets with duplicated 'authentication' header in IPv6 extension headers"
+                                            "description":
+                                                    "Number of IPv6 packets with duplicated 'authentication' header in IPv6 extension headers"
                                         },
                                         "exthdr_dupl_dh": {
                                             "type": "integer",
-                                            "description": "Number of IPv6 packets with duplicated 'destination' header in IPv6 extension headers"
+                                            "description":
+                                                    "Number of IPv6 packets with duplicated 'destination' header in IPv6 extension headers"
                                         },
                                         "exthdr_dupl_eh": {
                                             "type": "integer",
-                                            "description": "Number of IPv6 packets with duplicated 'ESP' header in IPv6 extension headers"
+                                            "description":
+                                                    "Number of IPv6 packets with duplicated 'ESP' header in IPv6 extension headers"
                                         },
                                         "exthdr_dupl_fh": {
                                             "type": "integer",
-                                            "description": "Number of IPv6 packets with duplicated 'fragment' header in IPv6 extension headers"
+                                            "description":
+                                                    "Number of IPv6 packets with duplicated 'fragment' header in IPv6 extension headers"
                                         },
                                         "exthdr_dupl_hh": {
                                             "type": "integer",
-                                            "description": "Number of IPv6 packets with duplicated 'hop-by-hop' header in IPv6 extension headers"
+                                            "description":
+                                                    "Number of IPv6 packets with duplicated 'hop-by-hop' header in IPv6 extension headers"
                                         },
                                         "exthdr_dupl_rh": {
                                             "type": "integer",
-                                            "description": "Number of IPv6 packets with duplicated'routing' header in IPv6 extension headers"
+                                            "description":
+                                                    "Number of IPv6 packets with duplicated'routing' header in IPv6 extension headers"
                                         },
                                         "exthdr_invalid_optlen": {
                                             "type": "integer",
-                                            "description": "Number of IPv6 packets flagged invalid due to invalid option length in a hop or dst extended header"
+                                            "description":
+                                                    "Number of IPv6 packets flagged invalid due to invalid option length in a hop or dst extended header"
                                         },
                                         "exthdr_useless_fh": {
                                             "type": "integer",
-                                            "description": "Number of IPv6 packets with useless 'fragment header' in the extended headers"
+                                            "description":
+                                                    "Number of IPv6 packets with useless 'fragment header' in the extended headers"
                                         },
                                         "fh_non_zero_reserved_field": {
                                             "type": "integer",
-                                            "description": "Number of IPv6 packets with 'fragment header' with non-zero reserved field"
+                                            "description":
+                                                    "Number of IPv6 packets with 'fragment header' with non-zero reserved field"
                                         },
                                         "frag_ignored": {
                                             "type": "integer",
-                                            "description": "Number of IPv6 fragments ignored due to resource allocation errors"
+                                            "description":
+                                                    "Number of IPv6 fragments ignored due to resource allocation errors"
                                         },
                                         "frag_invalid_length": {
                                             "type": "integer",
-                                            "description": "Number of IPv6 fragments with invalid length"
+                                            "description":
+                                                    "Number of IPv6 fragments with invalid length"
                                         },
                                         "frag_overlap": {
                                             "type": "integer",
-                                            "description": "Number of IPv6 fragments with overlapping data"
+                                            "description":
+                                                    "Number of IPv6 fragments with overlapping data"
                                         },
                                         "frag_pkt_too_large": {
                                             "type": "integer",
-                                            "description": "Number of IPv6 fragments ignored due to being too large"
+                                            "description":
+                                                    "Number of IPv6 fragments ignored due to being too large"
                                         },
                                         "hopopts_only_padding": {
                                             "type": "integer",
-                                            "description": "Number of IPv6 packets with all HOP options as only padding"
+                                            "description":
+                                                    "Number of IPv6 packets with all HOP options as only padding"
                                         },
                                         "hopopts_unknown_opt": {
                                             "type": "integer",
-                                            "description": "Number of IPv6 packets with unknown HOP option"
+                                            "description":
+                                                    "Number of IPv6 packets with unknown HOP option"
                                         },
                                         "icmpv4": {
                                             "type": "integer",
-                                            "description": "Number of IPv6 packets with ICMPv4 header"
+                                            "description":
+                                                    "Number of IPv6 packets with ICMPv4 header"
                                         },
                                         "ipv4_in_ipv6_too_small": {
                                             "type": "integer",
-                                            "description":"Number of IPv4-in-IPv6 packets flagged invalid due to being too small"
+                                            "description":
+                                                    "Number of IPv4-in-IPv6 packets flagged invalid due to being too small"
                                         },
                                         "ipv4_in_ipv6_wrong_version": {
                                             "type": "integer",
-                                            "description": "Number of IPv4-in-IPv6 packets with wrong IP version"
+                                            "description":
+                                                    "Number of IPv4-in-IPv6 packets with wrong IP version"
                                         },
                                         "ipv6_in_ipv6_too_small": {
                                             "type": "integer",
-                                            "description": "Number of IPv6-in-IPv6 packets flagged invalid due to being too small"
+                                            "description":
+                                                    "Number of IPv6-in-IPv6 packets flagged invalid due to being too small"
                                         },
                                         "ipv6_in_ipv6_wrong_version": {
                                             "type": "integer",
-                                            "description": "Number of IPv6-in-IPv6 packets with wrong IP version"
+                                            "description":
+                                                    "Number of IPv6-in-IPv6 packets with wrong IP version"
                                         },
                                         "pkt_too_small": {
                                             "type": "integer",
-                                            "description": "Number of IPv6 packets flagged invalid due to size smaller than minimum header size"
+                                            "description":
+                                                    "Number of IPv6 packets flagged invalid due to size smaller than minimum header size"
                                         },
                                         "rh_type_0": {
                                             "type": "integer",
-                                            "description": "Number of IPv6 packets with extended header 'routing' with type 0"
+                                            "description":
+                                                    "Number of IPv6 packets with extended header 'routing' with type 0"
                                         },
                                         "trunc_exthdr": {
                                             "type": "integer",
-                                            "description": "Number of IPv6 packets flagged invalid due to truncated extension header"
+                                            "description":
+                                                    "Number of IPv6 packets flagged invalid due to truncated extension header"
                                         },
                                         "trunc_pkt": {
                                             "type": "integer",
-                                            "description": "Number of IPv6 packets flagged invalid due to truncated packet"
+                                            "description":
+                                                    "Number of IPv6 packets flagged invalid due to truncated packet"
                                         },
                                         "unknown_next_header": {
                                             "type": "integer",
-                                            "description": "Number of IPv6 packets with unknown next header"
+                                            "description":
+                                                    "Number of IPv6 packets with unknown next header"
                                         },
                                         "wrong_ip_version": {
                                             "type": "integer",
-                                            "description": "Number of IPv6 packets flagged invalid due to wrong IP version"
+                                            "description":
+                                                    "Number of IPv6 packets flagged invalid due to wrong IP version"
                                         },
                                         "zero_len_padn": {
                                             "type": "integer",
-                                            "description": "Number of IPv6 packets with PadN option without data (length zero)"
+                                            "description":
+                                                    "Number of IPv6 packets with PadN option without data (length zero)"
                                         }
                                     }
                                 },
@@ -6947,7 +7216,8 @@
                                     "properties": {
                                         "pkt_too_small": {
                                             "type": "integer",
-                                            "description": "Number of SLL decoded packets that were too small"
+                                            "description":
+                                                    "Number of SLL decoded packets that were too small"
                                         }
                                     }
                                 },
@@ -6957,7 +7227,8 @@
                                     "properties": {
                                         "pkt_too_small": {
                                             "type": "integer",
-                                            "description": "The number of times the SLL2 header was too small to be valid"
+                                            "description":
+                                                    "The number of times the SLL2 header was too small to be valid"
                                         }
                                     }
                                 },
@@ -7088,11 +7359,13 @@
                         },
                         "max_mac_addrs_dst": {
                             "type": "integer",
-                            "description": "Maximum amount of destination MAC addresses seen per flow (only if ethernet header logging enabled)"
+                            "description":
+                                    "Maximum amount of destination MAC addresses seen per flow (only if ethernet header logging enabled)"
                         },
                         "max_mac_addrs_src": {
                             "type": "integer",
-                            "description": "Maximum amount of source MAC addresses seen per flow (only if ethernet header logging enabled)"
+                            "description":
+                                    "Maximum amount of source MAC addresses seen per flow (only if ethernet header logging enabled)"
                         },
                         "max_pkt_size": {
                             "type": "integer",
@@ -7148,7 +7421,8 @@
                         },
                         "too_many_layers": {
                             "type": "integer",
-                            "description": "Number of decoded packets that reach maximum layers for the engine"
+                            "description":
+                                    "Number of decoded packets that reach maximum layers for the engine"
                         },
                         "udp": {
                             "type": "integer",
@@ -7270,11 +7544,13 @@
                         },
                         "alert_queue_overflow": {
                             "type": "integer",
-                            "description": "Count of alerts discarded due to alert queue overflow or a drop in firewall mode"
+                            "description":
+                                    "Count of alerts discarded due to alert queue overflow or a drop in firewall mode"
                         },
                         "alerts_suppressed": {
                             "type": "integer",
-                            "description": "Count of alerts not logged due to noalert keyword usage or thresholding"
+                            "description":
+                                    "Count of alerts not logged due to noalert keyword usage or thresholding"
                         },
                         "engines": {
                             "type": "array",
@@ -7289,7 +7565,8 @@
                                     },
                                     "last_reload": {
                                         "type": "string",
-                                        "description": "Last time the rules were reloaded, in TimeString format"
+                                        "description":
+                                                "Last time the rules were reloaded, in TimeString format"
                                     },
                                     "rules_failed": {
                                         "type": "integer",
@@ -7301,7 +7578,8 @@
                                     },
                                     "rules_skipped": {
                                         "type": "integer",
-                                        "description": "Count of rules that were skipped due to missing requirements"
+                                        "description":
+                                                "Count of rules that were skipped due to missing requirements"
                                     }
                                 }
                             }
@@ -7332,11 +7610,13 @@
                         },
                         "match_list": {
                             "type": "integer",
-                            "description": "If profiling is enabled, average count of signature matched against a packet"
+                            "description":
+                                    "If profiling is enabled, average count of signature matched against a packet"
                         },
                         "mpm_list": {
                             "type": "integer",
-                            "description": "If profiling is enabled, average count of signatures in the mpm prefilter list"
+                            "description":
+                                    "If profiling is enabled, average count of signatures in the mpm prefilter list"
                         },
                         "thresholds": {
                             "type": "object",
@@ -7373,8 +7653,8 @@
                             "properties": {
                                 "error": {
                                     "description":
-                                        "Consolidated stats on how many times app-layer error exception policy was applied, and which one",
-                                        "$ref": "#/$defs/exceptionPolicy"
+                                            "Consolidated stats on how many times app-layer error exception policy was applied, and which one",
+                                    "$ref": "#/$defs/exceptionPolicy"
                                 }
                             }
                         },
@@ -7384,8 +7664,8 @@
                             "properties": {
                                 "memcap": {
                                     "description":
-                                        "How many times defrag memcap exception policy was applied, and which one",
-                                        "$ref": "#/$defs/exceptionPolicy"
+                                            "How many times defrag memcap exception policy was applied, and which one",
+                                    "$ref": "#/$defs/exceptionPolicy"
                                 }
                             }
                         },
@@ -7395,8 +7675,8 @@
                             "properties": {
                                 "memcap": {
                                     "description":
-                                        "How many times flow memcap exception policy was applied, and which one",
-                                        "$ref": "#/$defs/exceptionPolicy"
+                                            "How many times flow memcap exception policy was applied, and which one",
+                                    "$ref": "#/$defs/exceptionPolicy"
                                 }
                             }
                         },
@@ -7406,18 +7686,18 @@
                             "properties": {
                                 "midstream": {
                                     "description":
-                                        "How many times midstream exception policy was applied, and which one",
-                                        "$ref": "#/$defs/exceptionPolicy"
+                                            "How many times midstream exception policy was applied, and which one",
+                                    "$ref": "#/$defs/exceptionPolicy"
                                 },
                                 "reassembly": {
                                     "description":
-                                        "How many times reassembly memcap exception policy was applied, and which one",
-                                        "$ref": "#/$defs/exceptionPolicy"
+                                            "How many times reassembly memcap exception policy was applied, and which one",
+                                    "$ref": "#/$defs/exceptionPolicy"
                                 },
                                 "ssn_memcap": {
                                     "description":
-                                        "How many times session memcap exception policy was applied, and which one",
-                                        "$ref": "#/$defs/exceptionPolicy"
+                                            "How many times session memcap exception policy was applied, and which one",
+                                    "$ref": "#/$defs/exceptionPolicy"
                                 }
                             }
                         }
@@ -7478,29 +7758,35 @@
                                     "properties": {
                                         "capture_bypassed": {
                                             "type": "integer",
-                                            "description": "Number of flows bypassed at the capture level -- counted at the time of flow end"
+                                            "description":
+                                                    "Number of flows bypassed at the capture level -- counted at the time of flow end"
                                         },
                                         "closed": {
                                             "type": "integer",
-                                            "description": "Number of flows in 'closed' state at the time of flow end"
+                                            "description":
+                                                    "Number of flows in 'closed' state at the time of flow end"
                                         },
                                         "established": {
                                             "type": "integer",
-                                            "description": "Number of flows in 'established' state at the time of flow end"
+                                            "description":
+                                                    "Number of flows in 'established' state at the time of flow end"
                                         },
                                         "local_bypassed": {
                                             "type": "integer",
-                                            "description": "Number of flows bypassed internally -- counted at the time of flow end"
+                                            "description":
+                                                    "Number of flows bypassed internally -- counted at the time of flow end"
                                         },
                                         "new": {
                                             "type": "integer",
-                                            "description": "Number of flows in 'new' state at the time of flow end"
+                                            "description":
+                                                    "Number of flows in 'new' state at the time of flow end"
                                         }
                                     }
                                 },
                                 "tcp_liberal": {
                                     "type": "integer",
-                                    "description": "Number of TCP flows ended that had liberal state"
+                                    "description":
+                                            "Number of TCP flows ended that had liberal state"
                                 },
                                 "tcp_state": {
                                     "type": "object",
@@ -7508,7 +7794,8 @@
                                     "properties": {
                                         "close_wait": {
                                             "type": "integer",
-                                            "description": "Number of TCP sessions in CLOSE_WAIT state"
+                                            "description":
+                                                    "Number of TCP sessions in CLOSE_WAIT state"
                                         },
                                         "closed": {
                                             "type": "integer",
@@ -7520,19 +7807,23 @@
                                         },
                                         "established": {
                                             "type": "integer",
-                                            "description": "Number of TCP sessions in ESTABLISHED state"
+                                            "description":
+                                                    "Number of TCP sessions in ESTABLISHED state"
                                         },
                                         "fin_wait1": {
                                             "type": "integer",
-                                            "description": "Number of TCP sessions in FIN_WAIT_1 state"
+                                            "description":
+                                                    "Number of TCP sessions in FIN_WAIT_1 state"
                                         },
                                         "fin_wait2": {
                                             "type": "integer",
-                                            "description": "Number of TCP sessions in FIN_WAIT_2 state"
+                                            "description":
+                                                    "Number of TCP sessions in FIN_WAIT_2 state"
                                         },
                                         "last_ack": {
                                             "type": "integer",
-                                            "description": "Number of TCP sessions in LAST_ACK state"
+                                            "description":
+                                                    "Number of TCP sessions in LAST_ACK state"
                                         },
                                         "none": {
                                             "type": "integer",
@@ -7540,15 +7831,18 @@
                                         },
                                         "syn_recv": {
                                             "type": "integer",
-                                            "description": "Number of TCP sessions in SYN_RECV state"
+                                            "description":
+                                                    "Number of TCP sessions in SYN_RECV state"
                                         },
                                         "syn_sent": {
                                             "type": "integer",
-                                            "description": "Number of TCP sessions in SYN_SENT state"
+                                            "description":
+                                                    "Number of TCP sessions in SYN_SENT state"
                                         },
                                         "time_wait": {
                                             "type": "integer",
-                                            "description": "Number of TCP sessions in TIME_WAIT state"
+                                            "description":
+                                                    "Number of TCP sessions in TIME_WAIT state"
                                         }
                                     }
                                 }
@@ -7688,35 +7982,43 @@
                                 },
                                 "flows_evicted_needs_work": {
                                     "type": "integer",
-                                    "description": "Number of TCP flows that were returned to the workers in case reassembly, detection, logging still needs work"
+                                    "description":
+                                            "Number of TCP flows that were returned to the workers in case reassembly, detection, logging still needs work"
                                 },
                                 "flows_evicted_pkt_inject": {
                                     "type": "integer",
-                                    "description": "Number of pseudo packets injected into worker threads to complete flows' processing. For any flow this can be between 0-2, this is the total for all flows."
+                                    "description":
+                                            "Number of pseudo packets injected into worker threads to complete flows' processing. For any flow this can be between 0-2, this is the total for all flows."
                                 },
                                 "flows_injected": {
                                     "type": "integer",
-                                    "description": "Number of flows injected into the worker thread from another thread"
+                                    "description":
+                                            "Number of flows injected into the worker thread from another thread"
                                 },
                                 "flows_injected_max": {
                                     "type": "integer",
-                                    "description": "Maximum number of flows injected into the worker thread from another thread"
+                                    "description":
+                                            "Maximum number of flows injected into the worker thread from another thread"
                                 },
                                 "spare_sync": {
                                     "type": "integer",
-                                    "description": "Number of times the engine attempted to fetch flows from the master flow pool/spare queue"
+                                    "description":
+                                            "Number of times the engine attempted to fetch flows from the master flow pool/spare queue"
                                 },
                                 "spare_sync_avg": {
                                     "type": "integer",
-                                    "description": "Average number of flows a thread could fetch from the master flow pool/spare queue"
+                                    "description":
+                                            "Average number of flows a thread could fetch from the master flow pool/spare queue"
                                 },
                                 "spare_sync_empty": {
                                     "type": "integer",
-                                    "description": "Number of times the master spare pool was empty when requesting flows from it"
+                                    "description":
+                                            "Number of times the master spare pool was empty when requesting flows from it"
                                 },
                                 "spare_sync_incomplete": {
                                     "type": "integer",
-                                    "description": "Number of times spare flow syncs were incomplete (fetched with less than 100 flows in sync)"
+                                    "description":
+                                            "Number of times spare flow syncs were incomplete (fetched with less than 100 flows in sync)"
                                 }
                             }
                         }
@@ -7752,7 +8054,8 @@
                 },
                 "ftp": {
                     "type": "object",
-                    "description": "Performance statistics for global memory use and memory capacity for FTP app-layer parser",
+                    "description":
+                            "Performance statistics for global memory use and memory capacity for FTP app-layer parser",
                     "additionalProperties": false,
                     "properties": {
                         "memcap": {
@@ -7767,7 +8070,8 @@
                 },
                 "host": {
                     "type": "object",
-                    "description": "Performance statistics for global memory use and memory capacity for Host table",
+                    "description":
+                            "Performance statistics for global memory use and memory capacity for Host table",
                     "additionalProperties": false,
                     "properties": {
                         "memcap": {
@@ -7782,7 +8086,8 @@
                 },
                 "http": {
                     "type": "object",
-                    "description": "Performance statistics for global memory use and memory capacity for HTTP app-layer parser",
+                    "description":
+                            "Performance statistics for global memory use and memory capacity for HTTP app-layer parser",
                     "additionalProperties": false,
                     "properties": {
                         "byterange": {
@@ -7791,7 +8096,8 @@
                             "properties": {
                                 "memcap": {
                                     "type": "integer",
-                                    "description": "Global memory capacity reached for Byte Range containers"
+                                    "description":
+                                            "Global memory capacity reached for Byte Range containers"
                                 },
                                 "memuse": {
                                     "type": "integer",
@@ -7811,7 +8117,8 @@
                 },
                 "ippair": {
                     "type": "object",
-                    "description": "Performance statistics for global memory use and memory capacity for IP Pair table",
+                    "description":
+                            "Performance statistics for global memory use and memory capacity for IP Pair table",
                     "additionalProperties": false,
                     "properties": {
                         "memcap": {
@@ -7982,7 +8289,7 @@
                         }
                     }
                 },
-               "stream": {
+                "stream": {
                     "type": "object",
                     "description": "Observational statistics on TCP stream events",
                     "additionalProperties": false,
