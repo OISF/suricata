@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2022 Open Information Security Foundation
+/* Copyright (C) 2017-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -348,7 +348,7 @@ impl SMBTransactionSetFilePathInfo {
 }
 
 impl SMBState {
-    pub fn new_setfileinfo_tx(&mut self, filename: Vec<u8>, fid: Vec<u8>,
+    pub fn new_setfileinfo_tx(&mut self, flow: *mut Flow, filename: Vec<u8>, fid: Vec<u8>,
             subcmd: u16, loi: u16, delete_on_close: bool)
         -> &mut SMBTransaction
     {
@@ -358,15 +358,15 @@ impl SMBState {
                     SMBTransactionSetFilePathInfo::new(
                         filename, fid, subcmd, loi, delete_on_close)));
         tx.request_done = true;
+        sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
         tx.response_done = self.tc_trunc; // no response expected if tc is truncated
-
         SCLogDebug!("SMB: TX SETFILEPATHINFO created: ID {}", tx.id);
         self.transactions.push_back(tx);
         let tx_ref = self.transactions.back_mut();
         return tx_ref.unwrap();
     }
 
-    pub fn new_setpathinfo_tx(&mut self, filename: Vec<u8>,
+    pub fn new_setpathinfo_tx(&mut self, flow: *mut Flow, filename: Vec<u8>,
             subcmd: u16, loi: u16, delete_on_close: bool)
         -> &mut SMBTransaction
     {
@@ -377,6 +377,7 @@ impl SMBState {
                     SMBTransactionSetFilePathInfo::new(filename, fid,
                         subcmd, loi, delete_on_close)));
         tx.request_done = true;
+        sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
         tx.response_done = self.tc_trunc; // no response expected if tc is truncated
 
         SCLogDebug!("SMB: TX SETFILEPATHINFO created: ID {}", tx.id);
@@ -402,7 +403,7 @@ impl SMBTransactionRename {
 }
 
 impl SMBState {
-    pub fn new_rename_tx(&mut self, fuid: Vec<u8>, oldname: Vec<u8>, newname: Vec<u8>)
+    pub fn new_rename_tx(&mut self, flow: *mut Flow, fuid: Vec<u8>, oldname: Vec<u8>, newname: Vec<u8>)
         -> &mut SMBTransaction
     {
         let mut tx = self.new_tx();
@@ -410,6 +411,7 @@ impl SMBState {
         tx.type_data = Some(SMBTransactionTypeData::RENAME(
                     SMBTransactionRename::new(fuid, oldname, newname)));
         tx.request_done = true;
+        sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
         tx.response_done = self.tc_trunc; // no response expected if tc is truncated
 
         SCLogDebug!("SMB: TX RENAME created: ID {}", tx.id);
@@ -923,7 +925,7 @@ impl SMBState {
     /* generic TX has no type_data and is only used to
      * track a single cmd request/reply pair. */
 
-    pub fn new_generic_tx(&mut self, smb_ver: u8, smb_cmd: u16, key: SMBCommonHdr)
+    pub fn new_generic_tx(&mut self, flow: *mut Flow, smb_ver: u8, smb_cmd: u16, key: SMBCommonHdr)
         -> &mut SMBTransaction
     {
         let mut tx = self.new_tx();
@@ -937,6 +939,7 @@ impl SMBState {
         tx.request_done = true;
         tx.response_done = self.tc_trunc; // no response expected if tc is truncated
         tx.hdr = key;
+        sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
 
         SCLogDebug!("SMB: TX GENERIC created: ID {} tx list {} {:?}",
                 tx.id, self.transactions.len(), &tx);
@@ -998,7 +1001,7 @@ impl SMBState {
         return None;
     }
 
-    pub fn new_negotiate_tx(&mut self, smb_ver: u8)
+    pub fn new_negotiate_tx(&mut self, flow: *mut Flow, smb_ver: u8)
         -> &mut SMBTransaction
     {
         let mut tx = self.new_tx();
@@ -1012,6 +1015,7 @@ impl SMBState {
                     SMBTransactionNegotiate::new(smb_ver)));
         tx.request_done = true;
         tx.response_done = self.tc_trunc; // no response expected if tc is truncated
+        sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
 
         SCLogDebug!("SMB: TX NEGOTIATE created: ID {} SMB ver {}", tx.id, smb_ver);
         self.transactions.push_back(tx);
@@ -1073,7 +1077,7 @@ impl SMBState {
         return None;
     }
 
-    pub fn new_create_tx(&mut self, file_name: &[u8],
+    pub fn new_create_tx(&mut self, flow: *mut Flow, file_name: &[u8],
             disposition: u32, del: bool, dir: bool,
             hdr: SMBCommonHdr)
         -> &mut SMBTransaction
@@ -1085,6 +1089,7 @@ impl SMBState {
                                 file_name.to_vec(), disposition,
                                 del, dir)));
         tx.request_done = true;
+        sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
         tx.response_done = self.tc_trunc; // no response expected if tc is truncated
 
         self.transactions.push_back(tx);
@@ -1124,7 +1129,7 @@ impl SMBState {
         (name, is_dcerpc)
     }
 
-    fn post_gap_housekeeping_for_files(&mut self)
+    fn post_gap_housekeeping_for_files(&mut self, flow: *mut Flow)
     {
         let mut post_gap_txs = false;
         for tx in &mut self.transactions {
@@ -1132,7 +1137,9 @@ impl SMBState {
                 if f.post_gap_ts > 0 {
                     if self.ts > f.post_gap_ts {
                         tx.request_done = true;
+                        sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
                         tx.response_done = true;
+                        sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
                         filetracker_trunc(&mut f.file_tracker);
                     } else {
                         post_gap_txs = true;
@@ -1148,7 +1155,7 @@ impl SMBState {
      * can handle gaps. For the file transactions we set the current
      * (flow) time and prune them in 60 seconds if no update for them
      * was received. */
-    fn post_gap_housekeeping(&mut self, dir: Direction)
+    fn post_gap_housekeeping(&mut self, flow: *mut Flow, dir: Direction)
     {
         if self.ts_ssn_gap && dir == Direction::ToServer {
             for tx in &mut self.transactions {
@@ -1166,6 +1173,7 @@ impl SMBState {
                 } else {
                     SCLogDebug!("post_gap_housekeeping: tx {} marked as done TS", tx.id);
                     tx.request_done = true;
+                    sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
                 }
             }
         } else if self.tc_ssn_gap && dir == Direction::ToClient {
@@ -1184,7 +1192,9 @@ impl SMBState {
                 } else {
                     SCLogDebug!("post_gap_housekeeping: tx {} marked as done TC", tx.id);
                     tx.request_done = true;
+                    sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
                     tx.response_done = true;
+                    sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
                 }
             }
 
@@ -1308,7 +1318,7 @@ impl SMBState {
                 if let Ok((_, ref hdr)) = parse_nbss_record_partial(input) {
                     if !hdr.is_smb() {
                         SCLogDebug!("partial NBSS, not SMB and no known msg type {}", hdr.message_type);
-                        self.trunc_ts();
+                        self.trunc_ts(flow);
                         return 0;
                     }
                 }
@@ -1340,7 +1350,7 @@ impl SMBState {
                                 // So that we can check that further parsed offsets and lengths
                                 // stay within the NBSS record.
                                 let nbss_remaining = nbss_part_hdr.length - nbss_part_hdr.data.len() as u32;
-                                smb1_write_request_record(self, r, SMB1_HEADER_SIZE, SMB1_COMMAND_WRITE_ANDX, nbss_remaining);
+                                smb1_write_request_record(self, flow, r, SMB1_HEADER_SIZE, SMB1_COMMAND_WRITE_ANDX, nbss_remaining);
 
                                 self.add_nbss_ts_frames(flow, stream_slice, input, nbss_part_hdr.length as i64);
                                 self.add_smb1_ts_pdu_frame(flow, stream_slice, nbss_part_hdr.data, nbss_part_hdr.length as i64);
@@ -1360,7 +1370,7 @@ impl SMBState {
                                 // So that we can check that further parsed offsets and lengths
                                 // stay within the NBSS record.
                                 let nbss_remaining = nbss_part_hdr.length - nbss_part_hdr.data.len() as u32;
-                                smb2_write_request_record(self, smb_record, nbss_remaining);
+                                smb2_write_request_record(self, flow, smb_record, nbss_remaining);
 
                                 self.add_nbss_ts_frames(flow, stream_slice, input, nbss_part_hdr.length as i64);
                                 self.add_smb2_ts_pdu_frame(flow, stream_slice, nbss_part_hdr.data, nbss_part_hdr.length as i64);
@@ -1457,7 +1467,7 @@ impl SMBState {
                                             let pdu_frame = self.add_smb1_ts_pdu_frame(flow, stream_slice, nbss_hdr.data, nbss_hdr.length as i64);
                                             self.add_smb1_ts_hdr_data_frames(flow, stream_slice, nbss_hdr.data, nbss_hdr.length as i64);
                                             if smb_record.is_request() {
-                                                smb1_request_record(self, smb_record);
+                                                smb1_request_record(self, flow, smb_record);
                                             } else {
                                                 // If we received a response when expecting a request, set an event
                                                 // on the PDU frame instead of handling the response.
@@ -1486,7 +1496,7 @@ impl SMBState {
                                                 self.add_smb2_ts_hdr_data_frames(flow, stream_slice, nbss_data, record_len, smb_record.header_len as i64);
                                                 SCLogDebug!("nbss_data_rem {}", nbss_data_rem.len());
                                                 if smb_record.is_request() {
-                                                    smb2_request_record(self, smb_record);
+                                                    smb2_request_record(self, flow, smb_record);
                                                 } else {
                                                     // If we received a response when expecting a request, set an event
                                                     // on the PDU frame instead of handling the response.
@@ -1572,9 +1582,9 @@ impl SMBState {
             }
         };
 
-        self.post_gap_housekeeping(Direction::ToServer);
+        self.post_gap_housekeeping(flow, Direction::ToServer);
         if self.check_post_gap_file_txs && !self.post_gap_files_checked {
-            self.post_gap_housekeeping_for_files();
+            self.post_gap_housekeeping_for_files(flow);
             self.post_gap_files_checked = true;
         }
         AppLayerResult::ok()
@@ -1644,7 +1654,7 @@ impl SMBState {
                 if let Ok((_, ref hdr)) = parse_nbss_record_partial(input) {
                     if !hdr.is_smb() {
                         SCLogDebug!("partial NBSS, not SMB and no known msg type {}", hdr.message_type);
-                        self.trunc_tc();
+                        self.trunc_tc(flow);
                         return 0;
                     }
                 }
@@ -1683,7 +1693,7 @@ impl SMBState {
                                 // So that we can check that further parsed offsets and lengths
                                 // stay within the NBSS record.
                                 let nbss_remaining = nbss_part_hdr.length - nbss_part_hdr.data.len() as u32;
-                                smb1_read_response_record(self, r, SMB1_HEADER_SIZE, nbss_remaining);
+                                smb1_read_response_record(self, flow, r, SMB1_HEADER_SIZE, nbss_remaining);
                                 let consumed = input.len() - output.len();
                                 return consumed;
                             }
@@ -1795,7 +1805,7 @@ impl SMBState {
                                             // see https://github.com/rust-lang/rust-clippy/issues/15158
                                             #[allow(clippy::collapsible_else_if)]
                                             if smb_record.is_response() {
-                                                smb1_response_record(self, smb_record);
+                                                smb1_response_record(self, flow, smb_record);
                                             } else {
                                                 SCLogDebug!("SMB1 request seen from server to client");
                                                 if let Some(frame) = pdu_frame {
@@ -1901,9 +1911,9 @@ impl SMBState {
                 },
             }
         };
-        self.post_gap_housekeeping(Direction::ToClient);
+        self.post_gap_housekeeping(flow, Direction::ToClient);
         if self.check_post_gap_file_txs && !self.post_gap_files_checked {
-            self.post_gap_housekeeping_for_files();
+            self.post_gap_housekeeping_for_files(flow);
             self.post_gap_files_checked = true;
         }
         self._debug_tx_stats();
@@ -1974,7 +1984,7 @@ impl SMBState {
         return AppLayerResult::ok();
     }
 
-    pub fn trunc_ts(&mut self) {
+    pub fn trunc_ts(&mut self, flow: *mut Flow) {
         SCLogDebug!("TRUNC TS");
         self.ts_trunc = true;
 
@@ -1982,10 +1992,11 @@ impl SMBState {
             if !tx.request_done {
                 SCLogDebug!("TRUNCATING TX {} in TOSERVER direction", tx.id);
                 tx.request_done = true;
+                sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
             }
        }
     }
-    pub fn trunc_tc(&mut self) {
+    pub fn trunc_tc(&mut self, flow: *mut Flow) {
         SCLogDebug!("TRUNC TC");
         self.tc_trunc = true;
 
@@ -1993,6 +2004,7 @@ impl SMBState {
             if !tx.response_done {
                 SCLogDebug!("TRUNCATING TX {} in TOCLIENT direction", tx.id);
                 tx.response_done = true;
+                sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
             }
         }
     }
