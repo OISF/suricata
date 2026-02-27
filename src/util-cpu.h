@@ -33,4 +33,8 @@ void UtilCpuPrintSummary(void);
 
 uint64_t UtilCpuGetTicks(void);
 
+#if defined(__ARM_FEATURE_SVE)
+int UtilCpuArmSVEWidth(void);
+#endif
+
 #endif /* SURICATA_UTIL_CPU_H */
