@@ -43,7 +43,7 @@ const ABSOLUTE_MAX_SIZE: u32 = 16 * 1024 * 1024;
 fn decompress_parse_do(s: &str) -> Option<DetectTransformDecompressData> {
     let mut max_size_parsed = None;
     for p in s.split(',') {
-        let kv: Vec<&str> = p.split('=').collect();
+        let kv: Vec<&str> = p.split(' ').collect();
         if kv.len() != 2 {
             SCLogError!("Bad key value for decompress transform {}", p);
             return None;
@@ -257,12 +257,12 @@ mod tests {
     #[test]
     fn test_decompress_parse() {
         assert!(decompress_parse_do("keywithoutvalue").is_none());
-        assert!(decompress_parse_do("unknown=1").is_none());
-        assert!(decompress_parse_do("max-size=0").is_none());
-        assert!(decompress_parse_do("max-size=1,max-size=1").is_none());
-        assert!(decompress_parse_do("max-size=toto").is_none());
+        assert!(decompress_parse_do("unknown 1").is_none());
+        assert!(decompress_parse_do("max-size 0").is_none());
+        assert!(decompress_parse_do("max-size 1,max-size 1").is_none());
+        assert!(decompress_parse_do("max-size toto").is_none());
         assert_eq!(
-            decompress_parse_do("max-size=1MiB"),
+            decompress_parse_do("max-size 1MiB"),
             Some(DetectTransformDecompressData {
                 max_size: 1024 * 1024
             })
