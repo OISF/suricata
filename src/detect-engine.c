@@ -703,7 +703,8 @@ static void AppendPacketInspectEngine(DetectEngineCtx *de_ctx,
 
 static void AppendAppInspectEngine(DetectEngineCtx *de_ctx,
         const DetectEngineAppInspectionEngine *t, Signature *s, SigMatchData *smd,
-        const int mpm_list, const int files_id, uint8_t *last_id, bool *head_is_mpm)
+        const int mpm_list, const int files_id, uint8_t *last_id, bool *head_is_mpm,
+        bool delay_postmatch)
 {
     if (t->alproto == ALPROTO_UNKNOWN) {
         /* special case, inspect engine applies to all protocols */
@@ -740,6 +741,9 @@ static void AppendAppInspectEngine(DetectEngineCtx *de_ctx,
     new_engine->smd = smd;
     new_engine->match_on_null = smd ? DetectContentInspectionMatchOnAbsentBuffer(smd) : false;
     new_engine->progress = t->progress;
+    if (delay_postmatch)
+        new_engine->progress = (int16_t)AppLayerParserGetStateProgressCompletionStatus(
+                t->alproto, t->dir == 0 ? STREAM_TOSERVER : STREAM_TOCLIENT);
     new_engine->v2 = t->v2;
     SCLogDebug("sm_list %d new_engine->v2 %p/%p/%p", new_engine->sm_list, new_engine->v2.Callback,
             new_engine->v2.GetData, new_engine->v2.transforms);
@@ -846,8 +850,8 @@ int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature
                             continue;
                         }
                     }
-                    AppendAppInspectEngine(
-                            de_ctx, t, s, smd, mpm_list, files_id, &last_id, &head_is_mpm);
+                    AppendAppInspectEngine(de_ctx, t, s, smd, mpm_list, files_id, &last_id,
+                            &head_is_mpm, s->init_data->buffers[x].delay_postmatch);
                 }
             }
         }
@@ -881,7 +885,8 @@ int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature
             .sm_list_base = (uint16_t)s->init_data->hook.sm_list,
             .dir = dir,
         };
-        AppendAppInspectEngine(de_ctx, &t, s, NULL, mpm_list, files_id, &last_id, &head_is_mpm);
+        AppendAppInspectEngine(
+                de_ctx, &t, s, NULL, mpm_list, files_id, &last_id, &head_is_mpm, false);
     }
 
     if ((s->init_data->init_flags & SIG_FLAG_INIT_STATE_MATCH) &&
@@ -2156,6 +2161,7 @@ uint8_t DetectEngineInspectMultiBufferGeneric(DetectEngineCtx *de_ctx,
         transforms = engine->v2.transforms;
     }
 
+    uint8_t r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
     do {
         InspectionBuffer *buffer = DetectGetMultiData(det_ctx, transforms, f, flags, txv,
                 engine->sm_list, local_id, engine->v2.GetMultiData);
@@ -2165,10 +2171,14 @@ uint8_t DetectEngineInspectMultiBufferGeneric(DetectEngineCtx *de_ctx,
 
         // The GetData functions set buffer->flags to DETECT_CI_FLAGS_SINGLE
         // This is not meant for streaming buffers
-        const bool match = DetectEngineContentInspectionBuffer(de_ctx, det_ctx, s, engine->smd,
-                NULL, f, buffer, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
-        if (match) {
-            return DETECT_ENGINE_INSPECT_SIG_MATCH;
+        int match = DetectEngineContentInspectionBufferMulti(
+                de_ctx, det_ctx, s, engine->smd, f, buffer, local_id);
+        switch (match) {
+            case DETECT_ENGINE_INSPECT_SIG_MATCH:
+                return DETECT_ENGINE_INSPECT_SIG_MATCH;
+            case DETECT_ENGINE_INSPECT_SIG_MATCH_MORE_BUF:
+                r = DETECT_ENGINE_INSPECT_SIG_MATCH;
+                break;
         }
         local_id++;
     } while (1);
@@ -2180,7 +2190,7 @@ uint8_t DetectEngineInspectMultiBufferGeneric(DetectEngineCtx *de_ctx,
             return DETECT_ENGINE_INSPECT_SIG_MATCH;
         }
     }
-    return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+    return r;
 }
 
 /**
