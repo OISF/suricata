@@ -40,7 +40,9 @@ typedef struct DetectProto_ {
 /* prototypes */
 int DetectProtoParse(DetectProto *dp, const char *str);
 int DetectProtoContainsProto(const DetectProto *, int);
+bool DetectProtoHasExplicitProto(const DetectProto *dp, const uint8_t proto);
 void DetectEngineProtoList(void);
+int DetectProtoFinalizeSignature(struct Signature_ *s);
 
 void DetectProtoTests(void);
 

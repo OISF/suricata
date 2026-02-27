@@ -237,9 +237,9 @@ static int DetectAppLayerEventSetup(DetectEngineCtx *de_ctx, Signature *s, const
         }
 
         uint8_t ipproto = 0;
-        if (s->proto.proto[IPPROTO_TCP / 8] & 1 << (IPPROTO_TCP % 8)) {
+        if (DetectProtoContainsProto(&s->init_data->proto, IPPROTO_TCP)) {
             ipproto = IPPROTO_TCP;
-        } else if (s->proto.proto[IPPROTO_UDP / 8] & 1 << (IPPROTO_UDP % 8)) {
+        } else if (DetectProtoContainsProto(&s->init_data->proto, IPPROTO_UDP)) {
             ipproto = IPPROTO_UDP;
         } else {
             SCLogError("protocol %s is disabled", alproto_name);

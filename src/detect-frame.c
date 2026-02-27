@@ -67,8 +67,8 @@ static int DetectFrameSetup(DetectEngineCtx *de_ctx, Signature *s, const char *s
     strlcpy(value, str, sizeof(value));
     char buffer_name[512] = ""; // for registering in detect API we always need <proto>.<frame>.
 
-    const bool is_tcp = DetectProtoContainsProto(&s->proto, IPPROTO_TCP);
-    const bool is_udp = DetectProtoContainsProto(&s->proto, IPPROTO_UDP);
+    const bool is_tcp = DetectProtoContainsProto(&s->init_data->proto, IPPROTO_TCP);
+    const bool is_udp = DetectProtoContainsProto(&s->init_data->proto, IPPROTO_UDP);
     if (!(is_tcp || is_udp)) {
         SCLogError("'frame' keyword only supported for TCP and UDP");
         return -1;
@@ -144,6 +144,7 @@ static int DetectFrameSetup(DetectEngineCtx *de_ctx, Signature *s, const char *s
         return -1;
 
     FrameConfigEnable(keyword_alproto, frame_type);
+    s->init_data->init_flags |= SIG_FLAG_INIT_FRAME;
     return 0;
 }
 

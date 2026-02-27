@@ -81,7 +81,7 @@ void DetectIpv6hdrRegister(void)
  */
 static int DetectIpv6hdrSetup (DetectEngineCtx *de_ctx, Signature *s, const char *_unused)
 {
-    s->proto.flags |= DETECT_PROTO_IPV6; // TODO
+    s->init_data->proto.flags |= DETECT_PROTO_IPV6; // TODO
 
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
