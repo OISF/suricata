@@ -43,17 +43,17 @@ interface in a DCERPC header.
 The format of the keyword::
 
   dcerpc.opnum:<u16>;
-  dcerpc.opnum:[>,<,!,=]<u16>;
   dcerpc.opnum:<u16>,<u16>,<u16>....;
   dcerpc.opnum:<u16>-<u16>;
 
 Examples::
 
   dcerpc.opnum:15;
-  dcerpc.opnum:>10;
   dcerpc.opnum:12,24,62,61;
   dcerpc.opnum:12,18-24,5;
   dcerpc.opnum:12-14,12,121,62-78;
+
+.. note:: earlier versions of the documentation incorrectly stated that greater than, less than, etc. notation was supported. This may be added later, see #8179.
 
 dcerpc.stub_data
 ----------------
