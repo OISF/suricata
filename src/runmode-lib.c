@@ -26,36 +26,6 @@
 #include "runmodes.h"
 #include "tm-threads.h"
 
-/** \brief register runmodes for suricata as a library */
-void SCRunModeLibIdsRegister(void)
-{
-    RunModeRegisterNewRunMode(RUNMODE_LIB, "offline", "Library offline mode (pcap replaying)",
-            SCRunModeLibIdsOffline, NULL);
-    RunModeRegisterNewRunMode(RUNMODE_LIB, "live", "Library live mode", SCRunModeLibIdsLive, NULL);
-    return;
-}
-
-/** \brief runmode for offline packet processing (pcap files) */
-int SCRunModeLibIdsOffline(void)
-{
-    TimeModeSetOffline();
-
-    return 0;
-}
-
-/** \brief runmode for live packet processing */
-int SCRunModeLibIdsLive(void)
-{
-    TimeModeSetLive();
-
-    return 0;
-}
-
-const char *SCRunModeLibGetDefaultMode(void)
-{
-    return "live";
-}
-
 ThreadVars *SCRunModeLibCreateThreadVars(int worker_id)
 {
     char tname[TM_THREAD_NAME_MAX];
