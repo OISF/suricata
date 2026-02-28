@@ -141,6 +141,24 @@ uint8_t FlowGetProtoMapping(uint8_t);
 void FlowInit(ThreadVars *, Flow *, const Packet *);
 uint8_t FlowGetReverseProtoMapping(uint8_t rproto);
 
+/**
+ * \brief Return the pcap file vars for a flow, or NULL.
+ *
+ * Returns f->pcap_file_vars only when running in an offline (pcap-file) run
+ * mode.  In live-capture modes the union slot holds a LiveDevice pointer, so
+ * callers must never interpret it as a PcapFileFileVars without this guard.
+ */
+struct PcapFileFileVars_ *FlowGetPcapFileVars(const Flow *f);
+
+/**
+ * \brief Return the live device for a flow, or NULL.
+ *
+ * Returns f->livedev only in live-capture run modes.  In offline (pcap-file)
+ * mode the same union slot holds a PcapFileFileVars pointer, so callers must
+ * never interpret it as a LiveDevice without this guard.
+ */
+struct LiveDevice_ *FlowGetLiveDev(const Flow *f);
+
 /* flow end counter logic */
 
 typedef struct FlowEndCounters_ {
