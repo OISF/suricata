@@ -110,6 +110,7 @@ int AppLayerProtoDetectSetup(void);
 void AppLayerProtoDetectReset(Flow *);
 
 bool AppLayerRequestProtocolChange(Flow *f, uint16_t dp, AppProto expect_proto);
+bool SCAppLayerRequestProtocolChangeUnknown(Flow *f, uint16_t dp);
 bool SCAppLayerRequestProtocolTLSUpgrade(Flow *f);
 
 void SCAppLayerForceProtocolChange(Flow *f, AppProto new_proto);
