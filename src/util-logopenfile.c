@@ -510,6 +510,12 @@ int SCConfLogOpenGeneric(
         snprintf(log_path, PATH_MAX, "%s/%s", log_dir, filename);
     }
 
+    /* Compress IPv6 addresses */
+    const char *compress = SCConfNodeLookupChildValue(conf, "ipv6-compress");
+    log_ctx->compress_ipv6 = false;
+    if (compress != NULL && SCConfValIsTrue(compress))
+        log_ctx->compress_ipv6 = true;
+
     /* Rotate log file based on time */
     const char *rotate_int = SCConfNodeLookupChildValue(conf, "rotate-interval");
     if (rotate_int != NULL) {

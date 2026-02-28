@@ -98,7 +98,7 @@ SCJsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, void *tx
     }
 
     JsonAddrInfo addr = json_addr_info_zero;
-    JsonAddrInfoInit(p, fdir, &addr);
+    JsonAddrInfoInit(p, fdir, &addr, &eve_ctx->cfg);
 
     /* Overwrite address info with XFF if needed. */
     int have_xff_ip = 0;

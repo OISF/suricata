@@ -50,7 +50,8 @@
 
 #include "stream-tcp-private.h"
 
-static SCJsonBuilder *CreateEveHeaderFromNetFlow(const Flow *f, int dir)
+static SCJsonBuilder *CreateEveHeaderFromNetFlow(
+        const Flow *f, int dir, OutputJsonCommonSettings *cfg)
 {
     char timebuf[64];
     char srcip[46] = {0}, dstip[46] = {0};
@@ -77,11 +78,15 @@ static SCJsonBuilder *CreateEveHeaderFromNetFlow(const Flow *f, int dir)
         }
     } else if (FLOW_IS_IPV6(f)) {
         if (dir == 0) {
-            PrintInet(AF_INET6, (const void *)&(f->src.address), srcip, sizeof(srcip));
-            PrintInet(AF_INET6, (const void *)&(f->dst.address), dstip, sizeof(dstip));
+            PrintInetIPv6(
+                    (const void *)&(f->src.address), srcip, sizeof(srcip), cfg->compress_ipv6);
+            PrintInetIPv6(
+                    (const void *)&(f->dst.address), dstip, sizeof(dstip), cfg->compress_ipv6);
         } else {
-            PrintInet(AF_INET6, (const void *)&(f->dst.address), srcip, sizeof(srcip));
-            PrintInet(AF_INET6, (const void *)&(f->src.address), dstip, sizeof(dstip));
+            PrintInetIPv6(
+                    (const void *)&(f->dst.address), srcip, sizeof(srcip), cfg->compress_ipv6);
+            PrintInetIPv6(
+                    (const void *)&(f->src.address), dstip, sizeof(dstip), cfg->compress_ipv6);
         }
     }
 
@@ -284,7 +289,7 @@ static int JsonNetFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
     SCEnter();
     OutputJsonThreadCtx *jhl = thread_data;
 
-    SCJsonBuilder *jb = CreateEveHeaderFromNetFlow(f, 0);
+    SCJsonBuilder *jb = CreateEveHeaderFromNetFlow(f, 0, &jhl->ctx->cfg);
     if (unlikely(jb == NULL))
         return TM_ECODE_OK;
     NetFlowLogEveToServer(jb, f);
@@ -294,7 +299,7 @@ static int JsonNetFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
 
     /* only log a response record if we actually have seen response packets */
     if (f->tosrcpktcnt) {
-        jb = CreateEveHeaderFromNetFlow(f, 1);
+        jb = CreateEveHeaderFromNetFlow(f, 1, &jhl->ctx->cfg);
         if (unlikely(jb == NULL))
             return TM_ECODE_OK;
         NetFlowLogEveToClient(jb, f);
