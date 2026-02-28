@@ -67,6 +67,7 @@
 #include "util-validate.h"
 
 #include "action-globals.h"
+#include "util-hash-string.h"
 
 #define MODULE_NAME "JsonAlertLog"
 
@@ -103,6 +104,7 @@ typedef struct AlertJsonOutputCtx_ {
     HttpXFFCfg *xff_cfg;
     HttpXFFCfg *parent_xff_cfg;
     OutputJsonCtx *eve_ctx;
+    HashTable *payload_classtype_filter;
 } AlertJsonOutputCtx;
 
 typedef struct JsonAlertLogThread_ {
@@ -642,6 +644,29 @@ static bool AlertJsonStreamData(const AlertJsonOutputCtx *json_output_ctx, JsonA
     return false;
 }
 
+/**
+ * \brief Check if alert's classtype matches the payload extraction filter if filtering is
+ * configured \param filter HashTable of classtype names to check (can be NULL) \param pa
+ * PacketAlert containing the signature \return true if payload should be extracted, false otherwise
+ */
+static bool ShouldDumpPayloadInAlert(const HashTable *filter, const PacketAlert *pa)
+{
+    // No filter configured = always extract based on payload flags (default behavior)
+    if (filter == NULL) {
+        return true;
+    }
+
+    // No classtype in alert, yet filtering is configured -> no extraction
+    if (pa->s == NULL || pa->s->classtype == NULL) {
+        return false;
+    }
+
+    // Check if classtype in alert matches any in the filter hash table
+    const char *alert_classtype = pa->s->classtype;
+    size_t len = strlen(alert_classtype);
+    return HashTableLookup(filter, alert_classtype, (uint16_t)len) != NULL;
+}
+
 static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 {
     AlertJsonOutputCtx *json_output_ctx = aft->json_output_ctx;
@@ -747,9 +772,13 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             }
         }
 
+        bool should_dump_payload =
+                ShouldDumpPayloadInAlert(json_output_ctx->payload_classtype_filter, pa);
+
         /* payload */
-        if (json_output_ctx->flags &
-                (LOG_JSON_PAYLOAD | LOG_JSON_PAYLOAD_BASE64 | LOG_JSON_PAYLOAD_LENGTH)) {
+        if (should_dump_payload &&
+                json_output_ctx->flags &
+                        (LOG_JSON_PAYLOAD | LOG_JSON_PAYLOAD_BASE64 | LOG_JSON_PAYLOAD_LENGTH)) {
             int stream = (p->proto == IPPROTO_TCP) ?
                          (pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_STREAM_MATCH) ?
                          1 : 0) : 0;
@@ -944,9 +973,77 @@ static void JsonAlertLogDeInitCtxSub(OutputCtx *output_ctx)
         if (xff_cfg != NULL) {
             SCFree(xff_cfg);
         }
+        if (json_output_ctx->payload_classtype_filter != NULL) {
+            HashTableFree(json_output_ctx->payload_classtype_filter);
+        }
         SCFree(json_output_ctx);
     }
     SCFree(output_ctx);
+}
+
+/**
+ * \brief Parse payload-only-classtypes filter from YAML
+ * \param conf Configuration node
+ * \return HashTable* on success, NULL if not configured or empty
+ */
+static HashTable *JsonAlertParsePayloadClasstypeFilter(SCConfNode *conf)
+{
+    if (conf == NULL) {
+        return NULL;
+    }
+
+    SCConfNode *payload_extraction_node = SCConfNodeLookupChild(conf, "payload-only-classtypes");
+    if (payload_extraction_node == NULL) {
+        return NULL;
+    }
+
+    if (!SCConfNodeIsSequence(payload_extraction_node)) {
+        SCLogError("payload-only-classtypes must be a list of classtype names");
+        return NULL;
+    }
+
+    SCConfNode *item;
+    uint32_t count = 0;
+    TAILQ_FOREACH (item, &payload_extraction_node->head, next) {
+        if (item->val != NULL && strlen(item->val) > 0) {
+            count++;
+        }
+    }
+
+    if (count == 0) {
+        SCLogDebug("payload_extraction is empty - treating as not configured");
+        return NULL;
+    }
+
+    HashTable *ht = HashTableInit(256, StringHashFunc, StringHashCompareFunc, StringHashFreeFunc);
+    if (ht == NULL) {
+        return NULL;
+    }
+
+    uint32_t idx = 0;
+    TAILQ_FOREACH (item, &payload_extraction_node->head, next) {
+        if (item->val == NULL || strlen(item->val) == 0) {
+            continue;
+        }
+
+        char *classtype = SCStrdup(item->val);
+        if (classtype == NULL) {
+            HashTableFree(ht);
+            return NULL;
+        }
+
+        if (HashTableAdd(ht, classtype, (uint16_t)strlen(classtype)) < 0) {
+            SCLogDebug("HashTable Add failed for classtype filtering");
+            SCFree(classtype);
+            HashTableFree(ht);
+            return NULL;
+        }
+        idx++;
+    }
+
+    SCLogInfo("payload_extraction filter enabled for %u classtype(s)", idx);
+
+    return ht;
 }
 
 static void SetFlag(const SCConfNode *conf, const char *name, uint16_t flag, uint16_t *out_flags)
@@ -998,6 +1095,8 @@ static void JsonAlertLogSetupMetadata(AlertJsonOutputCtx *json_output_ctx, SCCon
         SetFlag(conf, "websocket-payload", LOG_JSON_WEBSOCKET_PAYLOAD_BASE64, &flags);
         SetFlag(conf, "verdict", LOG_JSON_VERDICT, &flags);
         SetFlag(conf, "payload-length", LOG_JSON_PAYLOAD_LENGTH, &flags);
+
+        json_output_ctx->payload_classtype_filter = JsonAlertParsePayloadClasstypeFilter(conf);
 
         /* Check for obsolete flags and warn that they have no effect. */
         static const char *deprecated_flags[] = { "http", "tls", "ssh", "smtp", "dnp3", "app-layer",
