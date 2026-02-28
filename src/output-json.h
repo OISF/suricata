@@ -66,6 +66,7 @@ typedef struct OutputJsonCommonSettings_ {
     bool include_community_id;
     bool include_ethernet;
     bool include_suricata_version;
+    bool geoip_enabled;
     uint16_t community_id_seed;
 } OutputJsonCommonSettings;
 
@@ -117,5 +118,9 @@ OutputJsonThreadCtx *CreateEveThreadCtx(ThreadVars *t, OutputJsonCtx *ctx);
 void FreeEveThreadCtx(OutputJsonThreadCtx *ctx);
 void JSONFormatAndAddMACAddr(SCJsonBuilder *js, const char *key, const uint8_t *val, bool is_array);
 void OutputJsonFlush(OutputJsonThreadCtx *ctx);
+
+#ifdef HAVE_GEOIP
+void SCGeoIPGet(SCJsonBuilder *js, const char *ip_address, const char *key);
+#endif
 
 #endif /* SURICATA_OUTPUT_JSON_H */
