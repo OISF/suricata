@@ -52,6 +52,8 @@ enum DetectThresholdUniqueOn {
     DF_UNIQUE_NONE = 0,
     DF_UNIQUE_SRC_PORT,
     DF_UNIQUE_DST_PORT,
+    DF_UNIQUE_SRC_IP,
+    DF_UNIQUE_DST_IP,
 };
 
 /**
