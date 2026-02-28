@@ -3043,6 +3043,8 @@ int InitGlobal(void)
 
 void SuricataPreInit(const char *progname)
 {
+    UtilCpuEnableSparcMisalignEmulation();
+
     SCInstanceInit(&suricata, progname);
 
     if (InitGlobal() != 0) {
@@ -3177,7 +3179,7 @@ void SuricataPostInit(void)
 #endif
 
     if (limit_nproc) {
-#if defined(HAVE_SYS_RESOURCE_H)
+#if defined(HAVE_SYS_RESOURCE_H) && defined(RLIMIT_NPROC)
 #ifdef linux
         if (geteuid() == 0) {
             SCLogWarning("setrlimit has no effect when running as root.");

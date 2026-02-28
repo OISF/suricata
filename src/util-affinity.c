@@ -65,7 +65,7 @@ ThreadsAffinityType thread_affinity[MAX_CPU_SET] = {
 
 int thread_affinity_init_done = 0;
 
-#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun
+#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined __sun
 #ifdef HAVE_HWLOC
 static hwloc_topology_t topology = NULL;
 #endif /* HAVE_HWLOC */
@@ -206,7 +206,7 @@ ThreadsAffinityType *GetOrAllocAffinityTypeForIfaceOfName(
     return parent_affinity;
 }
 
-#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun
+#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined __sun
 static void AffinitySetupInit(void)
 {
     int i, j;
@@ -587,7 +587,7 @@ static bool AffinityConfigIsLegacy(void)
  */
 void AffinitySetupLoadFromConfig(void)
 {
-#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun
+#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined __sun
     if (thread_affinity_init_done == 0) {
         AffinitySetupInit();
         AffinityConfigIsLegacy();
@@ -643,7 +643,7 @@ void AffinitySetupLoadFromConfig(void)
 #endif /* OS_WIN32 and __OpenBSD__ */
 }
 
-#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun
+#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined __sun
 #ifdef HAVE_HWLOC
 static int HwLocDeviceNumaGet(hwloc_topology_t topo, hwloc_obj_t obj)
 {
@@ -1006,7 +1006,7 @@ static bool AutopinEnabled(void)
 uint16_t AffinityGetNextCPU(ThreadVars *tv, ThreadsAffinityType *taf)
 {
     uint16_t ncpu = 0;
-#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun
+#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined __sun
     int iface_numa = -1;
     if (AutopinEnabled()) {
 #ifdef HAVE_HWLOC
@@ -1043,7 +1043,7 @@ uint16_t AffinityGetNextCPU(ThreadVars *tv, ThreadsAffinityType *taf)
 uint16_t UtilAffinityGetAffinedCPUNum(ThreadsAffinityType *taf)
 {
     uint16_t ncpu = 0;
-#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun
+#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined __sun
     SCMutexLock(&taf->taf_mutex);
     for (int i = UtilCpuGetNumProcessorsOnline(); i >= 0; i--)
         if (CPU_ISSET(i, &taf->cpu_set)) {
