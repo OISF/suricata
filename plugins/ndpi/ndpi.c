@@ -58,31 +58,74 @@ typedef struct DetectnDPIRiskData_ {
     bool negated;
 } DetectnDPIRiskData;
 
+/**
+ * Safe helper to get nDPI thread context. Returns NULL if storage
+ * is not available (e.g. thread storage not yet initialized).
+ */
+static inline struct NdpiThreadContext *NdpiGetThreadContext(ThreadVars *tv)
+{
+    if (unlikely(tv == NULL || thread_storage_id.id < 0))
+        return NULL;
+    return ThreadGetStorageById(tv, thread_storage_id);
+}
+
+/**
+ * Safe helper to get nDPI flow context. Returns NULL if the flow
+ * or its storage is not available. Guards against the case where
+ * f->storage is NULL (uninitialized flow) which would crash inside
+ * StorageGetById.
+ */
+static inline struct NdpiFlowContext *NdpiGetFlowContext(const Flow *f)
+{
+    if (unlikely(f == NULL || flow_storage_id.id < 0))
+        return NULL;
+    if (unlikely(f->storage == NULL))
+        return NULL;
+    return FlowGetStorageById(f, flow_storage_id);
+}
+
 static void ThreadStorageFree(void *ptr)
 {
     SCLogDebug("Free'ing nDPI thread storage");
     struct NdpiThreadContext *context = ptr;
-    ndpi_exit_detection_module(context->ndpi);
+    if (context == NULL)
+        return;
+    if (context->ndpi != NULL)
+        ndpi_exit_detection_module(context->ndpi);
     SCFree(context);
 }
 
 static void FlowStorageFree(void *ptr)
 {
     struct NdpiFlowContext *ctx = ptr;
-    ndpi_flow_free(ctx->ndpi_flow);
+    if (ctx == NULL)
+        return;
+    if (ctx->ndpi_flow != NULL)
+        ndpi_flow_free(ctx->ndpi_flow);
     SCFree(ctx);
 }
 
 static void OnFlowInit(ThreadVars *tv, Flow *f, const Packet *p, void *_data)
 {
+    if (unlikely(f == NULL))
+        return;
+
+    if (unlikely(f->storage == NULL)) {
+        SCLogDebug("Flow %p has no storage, skipping nDPI init", f);
+        return;
+    }
+
     struct NdpiFlowContext *flowctx = SCCalloc(1, sizeof(*flowctx));
     if (flowctx == NULL) {
-        FatalError("Failed to allocate nDPI flow context");
+        SCLogError("Failed to allocate nDPI flow context");
+        return;
     }
 
     flowctx->ndpi_flow = ndpi_flow_malloc(SIZEOF_FLOW_STRUCT);
     if (flowctx->ndpi_flow == NULL) {
-        FatalError("Failed to allocate nDPI flow");
+        SCLogError("Failed to allocate nDPI flow");
+        SCFree(flowctx);
+        return;
     }
 
     memset(flowctx->ndpi_flow, 0, SIZEOF_FLOW_STRUCT);
@@ -100,12 +143,13 @@ static void OnFlowUpdate(ThreadVars *tv, Flow *f, Packet *p, void *_data)
 
     uint16_t ip_len = 0;
     void *ip_ptr = NULL;
-    struct NdpiThreadContext *threadctx = ThreadGetStorageById(tv, thread_storage_id);
-    struct NdpiFlowContext *flowctx = FlowGetStorageById(f, flow_storage_id);
+    struct NdpiThreadContext *threadctx = NdpiGetThreadContext(tv);
+    struct NdpiFlowContext *flowctx = NdpiGetFlowContext(f);
 
-    if (!threadctx->ndpi || !flowctx->ndpi_flow) {
+    if (threadctx == NULL || threadctx->ndpi == NULL)
         return;
-    }
+    if (flowctx == NULL || flowctx->ndpi_flow == NULL)
+        return;
 
     if (PacketIsIPv4(p)) {
         const IPV4Hdr *ip4h = PacketGetIPv4(p);
@@ -189,7 +233,7 @@ static int DetectnDPIProtocolPacketMatch(
         SCReturnInt(0);
     }
 
-    struct NdpiFlowContext *flowctx = FlowGetStorageById(f, flow_storage_id);
+    struct NdpiFlowContext *flowctx = NdpiGetFlowContext(f);
     if (flowctx == NULL) {
         SCLogDebug("packet %" PRIu64 ": no flowctx", PcapPacketCntGet(p));
         SCReturnInt(0);
@@ -324,7 +368,7 @@ static int DetectnDPIRiskPacketMatch(
         SCReturnInt(0);
     }
 
-    struct NdpiFlowContext *flowctx = FlowGetStorageById(f, flow_storage_id);
+    struct NdpiFlowContext *flowctx = NdpiGetFlowContext(f);
     if (flowctx == NULL) {
         SCLogDebug("packet %" PRIu64 ": no flowctx", PcapPacketCntGet(p));
         SCReturnInt(0);
@@ -334,6 +378,11 @@ static int DetectnDPIRiskPacketMatch(
 
     if (!flowctx->detection_completed) {
         SCLogDebug("packet %" PRIu64 ": ndpi risks not yet detected", PcapPacketCntGet(p));
+        SCReturnInt(0);
+    }
+
+    if (flowctx->ndpi_flow == NULL) {
+        SCLogDebug("packet %" PRIu64 ": ndpi_flow is NULL", PcapPacketCntGet(p));
         SCReturnInt(0);
     }
 
@@ -382,6 +431,7 @@ static DetectnDPIRiskData *DetectnDPIRiskParse(const char *arg, bool negate)
                     SCLogError("unrecognized risk '%s', "
                                "please check ndpiReader -H for valid risk codes",
                             token);
+                    SCFree(dup);
                     return NULL;
                 }
                 NDPI_SET_BIT(risk_mask, risk_id);
@@ -454,23 +504,36 @@ static void EveCallback(ThreadVars *tv, const Packet *p, Flow *f, SCJsonBuilder 
         return;
     }
 
-    struct NdpiThreadContext *threadctx = ThreadGetStorageById(tv, thread_storage_id);
-    struct NdpiFlowContext *flowctx = FlowGetStorageById(f, flow_storage_id);
+    struct NdpiThreadContext *threadctx = NdpiGetThreadContext(tv);
+    if (threadctx == NULL || threadctx->ndpi == NULL) {
+        return;
+    }
+
+    struct NdpiFlowContext *flowctx = NdpiGetFlowContext(f);
+    if (flowctx == NULL || flowctx->ndpi_flow == NULL) {
+        return;
+    }
+
     ndpi_serializer serializer;
     char *buffer;
     uint32_t buffer_len;
 
     SCLogDebug("EveCallback: tv=%p, p=%p, f=%p", tv, p, f);
 
-    ndpi_init_serializer(&serializer, ndpi_serialization_format_inner_json);
+    if (ndpi_init_serializer(&serializer, ndpi_serialization_format_inner_json) != 0) {
+        SCLogDebug("Failed to initialize nDPI serializer");
+        return;
+    }
 
     /* Use ndpi_dpi2json to get a JSON with nDPI metadata */
     ndpi_dpi2json(threadctx->ndpi, flowctx->ndpi_flow, flowctx->detected_l7_protocol, &serializer);
 
     buffer = ndpi_serializer_get_buffer(&serializer, &buffer_len);
 
-    /* Inject the nDPI JSON to the JsonBuilder */
-    SCJbSetFormatted(jb, buffer);
+    if (buffer != NULL && buffer_len > 0) {
+        /* Inject the nDPI JSON to the JsonBuilder */
+        SCJbSetFormatted(jb, buffer);
+    }
 
     ndpi_term_serializer(&serializer);
 }
