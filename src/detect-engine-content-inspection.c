@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2023 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -30,8 +30,11 @@
 #include "detect.h"
 #include "detect-engine.h"
 #include "detect-parse.h"
+#include "detect-engine-state.h"
 
 #include "rust.h"
+
+#include "app-layer-parser.h"
 
 #include "detect-asn1.h"
 #include "detect-content.h"
@@ -76,6 +79,48 @@ struct DetectEngineContentInspectionCtx {
     } recursion;
 };
 
+static inline AppLayerTxData *DetectEngineContentInspectionRestoreByteValues(
+        DetectEngineThreadCtx *det_ctx, Flow *f)
+{
+    if (!likely(det_ctx->tx_id_set && f != NULL && f->alstate != NULL))
+        return NULL;
+
+    void *tx = AppLayerParserGetTx(f->proto, f->alproto, f->alstate, det_ctx->tx_id);
+    if (!likely(tx != NULL))
+        return NULL;
+
+    AppLayerTxData *tx_data = AppLayerParserGetTxData(f->proto, f->alproto, tx);
+    if (tx_data != NULL && tx_data->de_state != NULL) {
+        DetectEngineStateRestoreByteValues(det_ctx, tx_data->de_state);
+    }
+
+    return tx_data;
+}
+
+static inline void DetectEngineStateSaveByteValueFromTx(DetectEngineThreadCtx *det_ctx, Flow *f,
+        AppLayerTxData **tx_data, uint32_t local_id, uint64_t value)
+{
+    if (tx_data == NULL || det_ctx == NULL)
+        return;
+
+    if (*tx_data == NULL && likely(det_ctx->tx_id_set && f != NULL && f->alstate != NULL)) {
+        void *tx = AppLayerParserGetTx(f->proto, f->alproto, f->alstate, det_ctx->tx_id);
+        if (likely(tx != NULL)) {
+            *tx_data = AppLayerParserGetTxData(f->proto, f->alproto, tx);
+        }
+    }
+
+    if (likely(*tx_data != NULL)) {
+        if (unlikely((*tx_data)->de_state == NULL)) {
+            (*tx_data)->de_state = DetectEngineStateAlloc();
+        }
+        if (likely((*tx_data)->de_state != NULL)) {
+            DetectEngineStateSaveByteValue(
+                    (*tx_data)->de_state, local_id, value, det_ctx->byte_values_len);
+        }
+    }
+}
+
 /**
  * \brief Run the actual payload match functions
  *
@@ -112,6 +157,14 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
 {
     SCEnter();
     KEYWORD_PROFILING_START;
+
+    /* Restore byte keyword values from detection state at the top level only.
+     * Only needed for bidirectional rules; unidirectional rules inspect all
+     * buffers together per-TX so det_ctx->byte_values is never clobbered. */
+    AppLayerTxData *tx_data = NULL;
+    if (ctx->recursion.count == 0 && (s->flags & SIG_FLAG_TXBOTHDIR)) {
+        tx_data = DetectEngineContentInspectionRestoreByteValues(det_ctx, f);
+    }
 
     ctx->recursion.count++;
     if (unlikely(ctx->recursion.count == ctx->recursion.limit)) {
@@ -594,6 +647,13 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
 
         SCLogDebug("[BE] Fetched value for index %d: %"PRIu64,
                    bed->local_id, det_ctx->byte_values[bed->local_id]);
+        /* Save byte keyword value to detection state for cross-buffer use.
+         * Only needed for bidirectional rules where toserver and toclient
+         * buffers are inspected separately across all TXs. */
+        if (s->flags & SIG_FLAG_TXBOTHDIR) {
+            DetectEngineStateSaveByteValueFromTx(
+                    det_ctx, f, &tx_data, bed->local_id, det_ctx->byte_values[bed->local_id]);
+        }
         goto match;
 
     } else if (smd->type == DETECT_BYTEMATH) {
@@ -630,6 +690,13 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
 
         SCLogDebug("[BM] Fetched value for index %d: %"PRIu64,
                    bmd->local_id, det_ctx->byte_values[bmd->local_id]);
+        /* Save byte keyword value to detection state for cross-buffer use.
+         * Only needed for bidirectional rules where toserver and toclient
+         * buffers are inspected separately across all TXs. */
+        if (s->flags & SIG_FLAG_TXBOTHDIR) {
+            DetectEngineStateSaveByteValueFromTx(
+                    det_ctx, f, &tx_data, bmd->local_id, det_ctx->byte_values[bmd->local_id]);
+        }
         goto match;
 
     } else if (smd->type == DETECT_BSIZE) {
