@@ -67,12 +67,44 @@ struct DetectIpOpts_ {
     uint16_t code;   /**< ip option flag value */
 } ipopts[] = {
     {
+            "ts",
+            IPV4_OPT_FLAG_TS,
+    },
+    {
             "rr",
             IPV4_OPT_FLAG_RR,
     },
     {
+            "qs",
+            IPV4_OPT_FLAG_QS,
+    },
+    {
+            "sec",
+            IPV4_OPT_FLAG_SEC,
+    },
+    {
             "lsrr",
             IPV4_OPT_FLAG_LSRR,
+    },
+    {
+            "esec",
+            IPV4_OPT_FLAG_ESEC,
+    },
+    {
+            "cipso",
+            IPV4_OPT_FLAG_CIPSO,
+    },
+    {
+            "satid",
+            IPV4_OPT_FLAG_SID,
+    },
+    {
+            "ssrr",
+            IPV4_OPT_FLAG_SSRR,
+    },
+    {
+            "rtralt",
+            IPV4_OPT_FLAG_RTRALT,
     },
     {
             "eol",
@@ -81,26 +113,6 @@ struct DetectIpOpts_ {
     {
             "nop",
             IPV4_OPT_FLAG_NOP,
-    },
-    {
-            "ts",
-            IPV4_OPT_FLAG_TS,
-    },
-    {
-            "sec",
-            IPV4_OPT_FLAG_SEC,
-    },
-    {
-            "esec",
-            IPV4_OPT_FLAG_ESEC,
-    },
-    {
-            "ssrr",
-            IPV4_OPT_FLAG_SSRR,
-    },
-    {
-            "satid",
-            IPV4_OPT_FLAG_SID,
     },
     {
             "any",
@@ -117,24 +129,30 @@ struct DetectIpOpts_ {
 const char *IpOptsFlagToString(uint16_t flag)
 {
     switch (flag) {
+        case IPV4_OPT_FLAG_TS:
+            return "ts";
         case IPV4_OPT_FLAG_RR:
             return "rr";
+        case IPV4_OPT_FLAG_QS:
+            return "qs";
+        case IPV4_OPT_FLAG_SEC:
+            return "sec";
         case IPV4_OPT_FLAG_LSRR:
             return "lsrr";
+        case IPV4_OPT_FLAG_ESEC:
+            return "esec";
+        case IPV4_OPT_FLAG_CIPSO:
+            return "cipso";
+        case IPV4_OPT_FLAG_SID:
+            return "satid";
+        case IPV4_OPT_FLAG_SSRR:
+            return "ssrr";
+        case IPV4_OPT_FLAG_RTRALT:
+            return "rtralt";
         case IPV4_OPT_FLAG_EOL:
             return "eol";
         case IPV4_OPT_FLAG_NOP:
             return "nop";
-        case IPV4_OPT_FLAG_TS:
-            return "ts";
-        case IPV4_OPT_FLAG_SEC:
-            return "sec";
-        case IPV4_OPT_FLAG_ESEC:
-            return "esec";
-        case IPV4_OPT_FLAG_SSRR:
-            return "ssrr";
-        case IPV4_OPT_FLAG_SID:
-            return "satid";
         case 0xffff:
             return "any";
         default:
