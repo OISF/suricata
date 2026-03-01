@@ -3345,8 +3345,8 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
     AlertQueueInit(det_ctx);
 
     /* byte_extract storage */
-    det_ctx->byte_values = SCMalloc(sizeof(*det_ctx->byte_values) *
-                                  (de_ctx->byte_extract_max_local_id + 1));
+    det_ctx->byte_values_len = (uint32_t)(de_ctx->byte_extract_max_local_id + 1);
+    det_ctx->byte_values = SCMalloc(sizeof(*det_ctx->byte_values) * det_ctx->byte_values_len);
     if (det_ctx->byte_values == NULL) {
         return TM_ECODE_FAILED;
     }

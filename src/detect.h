@@ -1278,6 +1278,7 @@ typedef struct DetectEngineThreadCtx_ {
 
     /* byte_* values */
     uint64_t *byte_values;
+    uint32_t byte_values_len; /**< number of elements allocated in byte_values */
 
     SigJsonContent *json_content;
     uint8_t json_content_capacity;
