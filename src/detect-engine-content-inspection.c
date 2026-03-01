@@ -30,8 +30,12 @@
 #include "detect.h"
 #include "detect-engine.h"
 #include "detect-parse.h"
+#include "detect-engine-state.h"
 
 #include "rust.h"
+
+#include "stream.h"
+#include "app-layer-parser.h"
 
 #include "detect-asn1.h"
 #include "detect-content.h"
@@ -76,6 +80,49 @@ struct DetectEngineContentInspectionCtx {
     } recursion;
 };
 
+static inline AppLayerTxData *DetectEngineContentInspectionRestoreByteValues(
+        DetectEngineThreadCtx *det_ctx, Flow *f)
+{
+    if (!likely(det_ctx->tx_id_set && f != NULL && f->alstate != NULL))
+        return NULL;
+
+    void *tx = AppLayerParserGetTx(f->proto, f->alproto, f->alstate, det_ctx->tx_id);
+    if (!likely(tx != NULL))
+        return NULL;
+
+    AppLayerTxData *tx_data = AppLayerParserGetTxData(f->proto, f->alproto, tx);
+    if (tx_data != NULL && tx_data->de_state != NULL) {
+        /* Restore byte keyword values from both directions - values are merged */
+        DetectEngineStateRestoreByteValues(det_ctx, tx_data->de_state, STREAM_TOSERVER);
+        DetectEngineStateRestoreByteValues(det_ctx, tx_data->de_state, STREAM_TOCLIENT);
+    }
+
+    return tx_data;
+}
+
+static inline void DetectEngineStateSaveByteValueFromTx(DetectEngineThreadCtx *det_ctx, Flow *f,
+        AppLayerTxData **tx_data, uint32_t local_id, uint64_t value)
+{
+    if (tx_data == NULL || det_ctx == NULL)
+        return;
+
+    if (*tx_data == NULL && likely(det_ctx->tx_id_set && f != NULL && f->alstate != NULL)) {
+        void *tx = AppLayerParserGetTx(f->proto, f->alproto, f->alstate, det_ctx->tx_id);
+        if (likely(tx != NULL)) {
+            *tx_data = AppLayerParserGetTxData(f->proto, f->alproto, tx);
+        }
+    }
+
+    if (likely(*tx_data != NULL)) {
+        if (unlikely((*tx_data)->de_state == NULL)) {
+            (*tx_data)->de_state = DetectEngineStateAlloc();
+        }
+        if (likely((*tx_data)->de_state != NULL)) {
+            DetectEngineStateSaveByteValue((*tx_data)->de_state, local_id, value);
+        }
+    }
+}
+
 /**
  * \brief Run the actual payload match functions
  *
@@ -112,6 +159,13 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
 {
     SCEnter();
     KEYWORD_PROFILING_START;
+
+    /* Restore byte keyword values from detection state at the top level only.
+     * Recursive calls share the same det_ctx->byte_values already populated. */
+    AppLayerTxData *tx_data = NULL;
+    if (ctx->recursion.count == 0) {
+        tx_data = DetectEngineContentInspectionRestoreByteValues(det_ctx, f);
+    }
 
     ctx->recursion.count++;
     if (unlikely(ctx->recursion.count == ctx->recursion.limit)) {
@@ -594,6 +648,9 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
 
         SCLogDebug("[BE] Fetched value for index %d: %"PRIu64,
                    bed->local_id, det_ctx->byte_values[bed->local_id]);
+        /* Save byte keyword value to detection state for cross-buffer use */
+        DetectEngineStateSaveByteValueFromTx(
+                det_ctx, f, &tx_data, bed->local_id, det_ctx->byte_values[bed->local_id]);
         goto match;
 
     } else if (smd->type == DETECT_BYTEMATH) {
@@ -630,6 +687,9 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
 
         SCLogDebug("[BM] Fetched value for index %d: %"PRIu64,
                    bmd->local_id, det_ctx->byte_values[bmd->local_id]);
+        /* Save byte keyword value to detection state for cross-buffer use */
+        DetectEngineStateSaveByteValueFromTx(
+                det_ctx, f, &tx_data, bmd->local_id, det_ctx->byte_values[bmd->local_id]);
         goto match;
 
     } else if (smd->type == DETECT_BSIZE) {

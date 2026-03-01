@@ -37,6 +37,7 @@
  */
 
 #include "suricata-common.h"
+#include "util-validate.h"
 
 #include "decode.h"
 
@@ -173,6 +174,9 @@ void SCDetectEngineStateFree(DetectEngineState *state)
     int i = 0;
 
     for (i = 0; i < 2; i++) {
+        if (state->dir_state[i].byte_values != NULL) {
+            SCFree(state->dir_state[i].byte_values);
+        }
         store = state->dir_state[i].head;
         while (store != NULL) {
             store_next = store->next;
@@ -236,6 +240,88 @@ void DetectRunStoreStateTx(
     SCLogDebug("Stored for TX %"PRIu64, tx_id);
 }
 
+/**
+ * \brief Save a byte keyword value to detection state for cross-buffer use.
+ *
+ * Values are stored in both direction slots so they are available regardless
+ * of which buffer direction the consuming keyword runs in.
+ *
+ * \param state    The detection engine state (must not be NULL)
+ * \param local_id The parse-time sequential index of the byte variable
+ * \param value    The extracted value to save
+ */
+void DetectEngineStateSaveByteValue(DetectEngineState *state, uint32_t local_id, uint64_t value)
+{
+    DEBUG_VALIDATE_BUG_ON(state == NULL);
+    if (unlikely(state == NULL))
+        return;
+
+    /* Save to both directions for cross-buffer availability */
+    for (int dir_idx = 0; dir_idx < 2; dir_idx++) {
+        DetectEngineStateDirection *dir_state = &state->dir_state[dir_idx];
+
+        /* Grow the per-tx cache array if needed */
+        if (unlikely(dir_state->byte_values == NULL || local_id >= dir_state->byte_values_size)) {
+            uint32_t new_size = dir_state->byte_values_size;
+            if (new_size == 0) {
+                new_size = 8;
+            } else {
+                new_size = new_size * 2;
+                if (local_id >= new_size) {
+                    new_size = local_id + (local_id / 2) + 1;
+                }
+            }
+            uint64_t *new_array = SCRealloc(dir_state->byte_values, new_size * sizeof(uint64_t));
+            if (unlikely(new_array == NULL)) {
+                continue;
+            }
+            memset(new_array + dir_state->byte_values_size, 0,
+                    (new_size - dir_state->byte_values_size) * sizeof(uint64_t));
+            dir_state->byte_values = new_array;
+            dir_state->byte_values_size = new_size;
+        }
+
+        dir_state->byte_values[local_id] = value;
+        SCLogDebug("Saved byte value: dir=%d local_id=%u value=%" PRIu64, dir_idx, local_id, value);
+    }
+}
+
+/**
+ * \brief Retrieve byte keyword values from detection state
+ *
+ * \param det_ctx Thread detection context
+ * \param state The detection engine state
+ * \param direction Flow direction
+ */
+void DetectEngineStateRestoreByteValues(
+        DetectEngineThreadCtx *det_ctx, const DetectEngineState *state, uint8_t direction)
+{
+    DEBUG_VALIDATE_BUG_ON(state == NULL || det_ctx == NULL);
+    if (unlikely(state == NULL || det_ctx == NULL))
+        return;
+
+    const DetectEngineStateDirection *dir_state =
+            &state->dir_state[(direction & STREAM_TOSERVER) ? 0 : 1];
+
+    if (dir_state->byte_values == NULL || dir_state->byte_values_size == 0) {
+        SCLogDebug("DetectEngineStateRestoreByteValues: no saved values (direction=%s)",
+                (direction & STREAM_TOSERVER) ? "toserver" : "toclient");
+        return;
+    }
+
+    /* det_ctx->byte_values is preallocated at engine startup (detect-engine.c)
+     * and must never be NULL here. */
+    DEBUG_VALIDATE_BUG_ON(det_ctx->byte_values == NULL);
+
+    for (uint32_t i = 0; i < dir_state->byte_values_size; i++) {
+        if (dir_state->byte_values[i] != 0) {
+            det_ctx->byte_values[i] = dir_state->byte_values[i];
+        }
+    }
+    SCLogDebug("Restored byte values from state (direction=%s)",
+            (direction & STREAM_TOSERVER) ? "toserver" : "toclient");
+}
+
 static inline void ResetTxState(DetectEngineState *s)
 {
     if (s) {
@@ -244,12 +330,14 @@ static inline void ResetTxState(DetectEngineState *s)
         s->dir_state[0].flags = 0;
         /* reset 'cur' back to the list head */
         s->dir_state[0].cur = s->dir_state[0].head;
+        /* Note: byte_values are kept for potential reuse across packets */
 
         s->dir_state[1].cnt = 0;
         s->dir_state[1].filestore_cnt = 0;
         s->dir_state[1].flags = 0;
         /* reset 'cur' back to the list head */
         s->dir_state[1].cur = s->dir_state[1].head;
+        /* Note: byte_values are kept for potential reuse across packets */
     }
 }
 

@@ -34,6 +34,9 @@
 #ifndef SURICATA_DETECT_ENGINE_STATE_H
 #define SURICATA_DETECT_ENGINE_STATE_H
 
+// forward declarations
+typedef struct DetectEngineThreadCtx_ DetectEngineThreadCtx;
+
 // forward declaration for bindgen
 #define SigIntId uint32_t
 
@@ -90,6 +93,10 @@ typedef struct DetectEngineStateDirection_ {
     uint16_t filestore_cnt;
     uint8_t flags;
     /* coccinelle: DetectEngineStateDirection:flags:DETECT_ENGINE_STATE_FLAG_ */
+
+    /** Storage for byte_extract values across buffers */
+    uint64_t *byte_values;
+    uint32_t byte_values_size;
 } DetectEngineStateDirection;
 
 typedef struct DetectEngineState_ {
@@ -109,6 +116,11 @@ DetectEngineState *DetectEngineStateAlloc(void);
  * \param state DetectEngineState instance to free.
  */
 void SCDetectEngineStateFree(DetectEngineState *state);
+
+void DetectEngineStateSaveByteValue(DetectEngineState *state, uint32_t local_id, uint64_t value);
+
+void DetectEngineStateRestoreByteValues(
+        DetectEngineThreadCtx *det_ctx, const DetectEngineState *state, uint8_t direction);
 
 #endif /* SURICATA_DETECT_ENGINE_STATE_H */
 
