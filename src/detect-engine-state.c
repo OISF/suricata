@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -37,6 +37,7 @@
  */
 
 #include "suricata-common.h"
+#include "util-validate.h"
 
 #include "decode.h"
 
@@ -172,6 +173,7 @@ void SCDetectEngineStateFree(DetectEngineState *state)
     DeStateStore *store_next;
     int i = 0;
 
+    SCFree(state->byte_values);
     for (i = 0; i < 2; i++) {
         store = state->dir_state[i].head;
         while (store != NULL) {
@@ -236,6 +238,64 @@ void DetectRunStoreStateTx(
     SCLogDebug("Stored for TX %"PRIu64, tx_id);
 }
 
+/**
+ * \brief Save a byte keyword value to detection state for cross-buffer use.
+ *
+ * \param state    The detection engine state (must not be NULL)
+ * \param local_id The parse-time sequential index of the byte variable
+ * \param value    The extracted value to save
+ */
+void DetectEngineStateSaveByteValue(
+        DetectEngineState *state, uint32_t local_id, uint64_t value, uint32_t byte_values_len)
+{
+    DEBUG_VALIDATE_BUG_ON(state == NULL);
+    if (unlikely(state == NULL))
+        return;
+
+    DEBUG_VALIDATE_BUG_ON(local_id >= byte_values_len);
+    if (unlikely(local_id >= byte_values_len))
+        return;
+
+    /* Allocate the per-tx cache array on first use, matching det_ctx size */
+    if (unlikely(state->byte_values == NULL)) {
+        state->byte_values = SCCalloc(byte_values_len, sizeof(uint64_t));
+        if (unlikely(state->byte_values == NULL)) {
+            return;
+        }
+        state->byte_values_size = byte_values_len;
+    }
+
+    state->byte_values[local_id] = value;
+    SCLogDebug("Saved byte value: local_id=%u value=%" PRIu64, local_id, value);
+}
+
+/**
+ * \brief Retrieve byte keyword values from detection state
+ *
+ * \param det_ctx Thread detection context
+ * \param state The detection engine state
+ */
+void DetectEngineStateRestoreByteValues(DetectEngineThreadCtx *det_ctx, DetectEngineState *state)
+{
+    DEBUG_VALIDATE_BUG_ON(state == NULL || det_ctx == NULL);
+    if (unlikely(state == NULL || det_ctx == NULL))
+        return;
+
+    if (state->byte_values == NULL || state->byte_values_size == 0)
+        return;
+
+    /* det_ctx->byte_values is preallocated at engine startup (detect-engine.c)
+     * and must never be NULL here. Both arrays are the same size. */
+    DEBUG_VALIDATE_BUG_ON(det_ctx->byte_values == NULL);
+    DEBUG_VALIDATE_BUG_ON(state->byte_values_size != det_ctx->byte_values_len);
+
+    /* Copy the per-tx cache into the worker scratch buffer. Each side keeps
+     * its own allocation so that values remain correct across multiple
+     * packets: a pointer swap would rotate ownership on every packet and
+     * leave each TX reading another TX's values on the second packet. */
+    memcpy(det_ctx->byte_values, state->byte_values, state->byte_values_size * sizeof(uint64_t));
+}
+
 static inline void ResetTxState(DetectEngineState *s)
 {
     if (s) {
@@ -250,6 +310,14 @@ static inline void ResetTxState(DetectEngineState *s)
         s->dir_state[1].flags = 0;
         /* reset 'cur' back to the list head */
         s->dir_state[1].cur = s->dir_state[1].head;
+        /* Free byte_values on reload: local_ids and byte_values_len may
+         * change with the new ruleset, so the next Save reallocates at
+         * the current det_ctx->byte_values_len. */
+        if (s->byte_values != NULL) {
+            SCFree(s->byte_values);
+            s->byte_values = NULL;
+            s->byte_values_size = 0;
+        }
     }
 }
 

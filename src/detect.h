@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2025 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1012,7 +1012,7 @@ typedef struct DetectEngineCtx_ {
     int32_t sgh_mpm_context_stream;
 
     /* the max local id used amongst all sigs */
-    int32_t byte_extract_max_local_id;
+    uint32_t byte_extract_max_local_id;
 
     /** version of the detect engine. The version is incremented on reloads */
     uint32_t version;
@@ -1283,9 +1283,6 @@ typedef struct DetectEngineThreadCtx_ {
      * prototype held by DetectEngineCtx. */
     SpmThreadCtx *spm_thread_ctx;
 
-    /* byte_* values */
-    uint64_t *byte_values;
-
     SigJsonContent *json_content;
     uint8_t json_content_capacity;
     uint8_t json_content_len;
@@ -1350,6 +1347,10 @@ typedef struct DetectEngineThreadCtx_ {
 
     RuleMatchCandidateTx *tx_candidates;
     uint32_t tx_candidates_size;
+
+    /* byte_* values */
+    uint32_t byte_values_len; /**< number of elements allocated in byte_values */
+    uint64_t *byte_values;
 
     MpmThreadCtx mtc; /**< thread ctx for the mpm */
     /* work queue for post-rule matching affecting prefilter */
