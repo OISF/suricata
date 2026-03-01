@@ -129,6 +129,11 @@ static void SCHSCachePatternHash(const SCHSPattern *p, SCSha256 *sha256)
  *
  * Compiled lazily on the first call and cached. Thread-safe.
  *
+ * coverity[missing_lock] -- g_hs_ref_info is only set once and never modified after. If a thread
+ * sees a non-NULL value it is guaranteed to be valid. If multiple threads call this at the same
+ * time, the first one that gets the lock will set g_hs_ref_info and the others will just read it
+ * after they get the lock.
+ *
  * \retval Pointer to info string, or NULL on failure. Do not free the ptr.
  */
 static const char *HSGetReferenceDbInfo(void)
@@ -136,6 +141,7 @@ static const char *HSGetReferenceDbInfo(void)
     SCMutexLock(&g_hs_ref_info_mutex);
     if (g_hs_ref_info != NULL) {
         SCMutexUnlock(&g_hs_ref_info_mutex);
+        /* coverity[missing_lock] */
         return g_hs_ref_info;
     }
 
@@ -157,6 +163,7 @@ static const char *HSGetReferenceDbInfo(void)
     }
 
     SCMutexUnlock(&g_hs_ref_info_mutex);
+    /* coverity[missing_lock] */
     return g_hs_ref_info;
 }
 
