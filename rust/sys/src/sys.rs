@@ -898,6 +898,9 @@ pub type DetectEngineStateDirection = DetectEngineStateDirection_;
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct DetectEngineState_ {
     pub dir_state: [DetectEngineStateDirection; 2usize],
+    #[doc = " Storage for byte_extract values across buffers (direction-independent)"]
+    pub byte_values: *mut u64,
+    pub byte_values_size: u32,
 }
 impl Default for DetectEngineState_ {
     fn default() -> Self {
