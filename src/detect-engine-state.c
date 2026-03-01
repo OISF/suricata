@@ -37,6 +37,7 @@
  */
 
 #include "suricata-common.h"
+#include "util-validate.h"
 
 #include "decode.h"
 
@@ -172,6 +173,7 @@ void SCDetectEngineStateFree(DetectEngineState *state)
     DeStateStore *store_next;
     int i = 0;
 
+    SCFree(state->byte_values);
     for (i = 0; i < 2; i++) {
         store = state->dir_state[i].head;
         while (store != NULL) {
@@ -236,6 +238,68 @@ void DetectRunStoreStateTx(
     SCLogDebug("Stored for TX %"PRIu64, tx_id);
 }
 
+/**
+ * \brief Save a byte keyword value to detection state for cross-buffer use.
+ *
+ * \param state    The detection engine state (must not be NULL)
+ * \param local_id The parse-time sequential index of the byte variable
+ * \param value    The extracted value to save
+ */
+void DetectEngineStateSaveByteValue(DetectEngineState *state, uint32_t local_id, uint64_t value)
+{
+    DEBUG_VALIDATE_BUG_ON(state == NULL);
+    if (unlikely(state == NULL))
+        return;
+
+    /* Grow the per-tx cache array if needed */
+    if (unlikely(state->byte_values == NULL || local_id >= state->byte_values_size)) {
+        uint32_t new_size = state->byte_values_size;
+        if (new_size == 0) {
+            new_size = 8;
+        } else {
+            new_size = new_size * 2;
+            if (local_id >= new_size) {
+                new_size = local_id + (local_id / 2) + 1;
+            }
+        }
+        uint64_t *new_array = SCRealloc(state->byte_values, new_size * sizeof(uint64_t));
+        if (unlikely(new_array == NULL)) {
+            return;
+        }
+        memset(new_array + state->byte_values_size, 0,
+                (new_size - state->byte_values_size) * sizeof(uint64_t));
+        state->byte_values = new_array;
+        state->byte_values_size = new_size;
+    }
+
+    state->byte_values[local_id] = value;
+    SCLogDebug("Saved byte value: local_id=%u value=%" PRIu64, local_id, value);
+}
+
+/**
+ * \brief Retrieve byte keyword values from detection state
+ *
+ * \param det_ctx Thread detection context
+ * \param state The detection engine state
+ */
+void DetectEngineStateRestoreByteValues(
+        DetectEngineThreadCtx *det_ctx, const DetectEngineState *state)
+{
+    DEBUG_VALIDATE_BUG_ON(state == NULL || det_ctx == NULL);
+    if (unlikely(state == NULL || det_ctx == NULL))
+        return;
+
+    if (state->byte_values == NULL || state->byte_values_size == 0)
+        return;
+
+    /* det_ctx->byte_values is preallocated at engine startup (detect-engine.c)
+     * and must never be NULL here. */
+    DEBUG_VALIDATE_BUG_ON(det_ctx->byte_values == NULL);
+
+    uint32_t count = MIN(state->byte_values_size, det_ctx->byte_values_len);
+    memcpy(det_ctx->byte_values, state->byte_values, count * sizeof(uint64_t));
+}
+
 static inline void ResetTxState(DetectEngineState *s)
 {
     if (s) {
@@ -250,6 +314,7 @@ static inline void ResetTxState(DetectEngineState *s)
         s->dir_state[1].flags = 0;
         /* reset 'cur' back to the list head */
         s->dir_state[1].cur = s->dir_state[1].head;
+        /* Note: byte_values are kept for potential reuse across packets */
     }
 }
 
