@@ -7362,6 +7362,10 @@
                         }
                     }
                 },
+                "established_seen": {
+                    "type": "integer",
+                    "description": "Number of flows reaching ESTABLISHED state"
+                },
                 "exception_policy": {
                     "type": "object",
                     "description": "Statistics on exception policies hit and applied",
@@ -7638,6 +7642,10 @@
                                 }
                             }
                         },
+                        "new_seen": {
+                            "type": "integer",
+                            "description": "Number of flows reaching NEW state"
+                        },
                         "recycler": {
                             "type": "object",
                             "additionalProperties": false,
@@ -7682,6 +7690,10 @@
                             "description": "Flow worker threads stats",
                             "additionalProperties": false,
                             "properties": {
+                                "flows_established": {
+                                    "type": "integer",
+                                    "description": "Number of flows reaching ESTABLISHED state"
+                                },
                                 "flows_evicted": {
                                     "type": "integer",
                                     "description": "Number of flows that were evicted"
@@ -7702,6 +7714,10 @@
                                     "type": "integer",
                                     "description": "Maximum number of flows injected into the worker thread from another thread"
                                 },
+                                "flows_new": {
+                                    "type": "integer",
+                                    "description": "Number of flows reaching NEW state"
+                                },
                                 "spare_sync": {
                                     "type": "integer",
                                     "description": "Number of times the engine attempted to fetch flows from the master flow pool/spare queue"
@@ -7719,6 +7735,72 @@
                                     "description": "Number of times spare flow syncs were incomplete (fetched with less than 100 flows in sync)"
                                 }
                             }
+                        },
+                        "flood": {
+                            "type": "object",
+                            "properties": {
+                                "holding": {
+                                    "type": "object",
+                                    "properties": {
+                                        "stored": {
+                                            "description": "number of packets queued to waiting zone",
+                                            "type": "integer"
+                                        },
+                                        "passed": {
+                                            "description": "number of packets forwarded to regular analysis",
+                                            "type": "integer"
+                                        },
+                                        "dropped": {
+                                            "description": "number of packets dropped by flood protection",
+                                            "type": "integer"
+                                        }
+                                    }
+                                },
+                                "prefilter": {
+                                    "type": "object",
+                                    "properties": {
+                                        "hits": {
+                                            "description": "number of packets transmitted by flood protection prefilter",
+                                            "type": "integer"
+                                        },
+                                        "misses": {
+                                            "description": "number of packets queued by flood protection prefilter",
+                                            "type": "integer"
+                                        }
+                                    }
+                                },
+                                "one_way": {
+                                    "type": "object",
+                                    "properties": {
+                                        "pkts": {
+                                            "description": "number of dropped packets belonging to a one way flow",
+                                            "type": "integer"
+                                        },
+                                        "bytes": {
+                                            "description": "number of dropped bytes seen on one way flows",
+                                            "type": "integer"
+                                        },
+                                        "flows": {
+                                            "description": "number of one way flows",
+                                            "type": "integer"
+                                        }
+                                    }
+                                },
+                                "syn_only": {
+                                    "type": "object",
+                                    "properties": {
+                                        "pkts": {
+                                            "description": "number of dropped packets belonging to a syn only flow",
+                                            "type": "integer"
+                                        },
+                                        "bytes": {
+                                            "description": "number of bytes seen on syn only flows",
+                                            "type": "integer"
+                                        }
+                                    }
+                                }
+                            },
+                            "additionalProperties": false
                         }
                     }
                 },

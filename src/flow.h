@@ -545,7 +545,7 @@ typedef struct FlowLookupStruct_ // TODO name
  *  and calc the hash value to be used in the lookup and autofp flow
  *  balancing. */
 void FlowSetupPacket(Packet *p);
-void FlowHandlePacket (ThreadVars *, FlowLookupStruct *, Packet *);
+void FlowHandlePacket(ThreadVars *, FlowLookupStruct *, Packet *, bool get_new);
 void FlowInitConfig(bool);
 void FlowReset(void);
 void FlowShutdown(void);
@@ -571,6 +571,8 @@ int FlowSetMemcap(uint64_t size);
 uint64_t FlowGetMemcap(void);
 uint64_t FlowGetMemuse(void);
 enum ExceptionPolicy FlowGetMemcapExceptionPolicy(void);
+
+uint32_t FlowGetHashSize(void);
 
 FlowStorageId GetFlowBypassInfoID(void);
 void RegisterFlowBypassInfo(void);
