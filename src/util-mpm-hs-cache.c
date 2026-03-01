@@ -133,9 +133,7 @@ static void SCHSCachePatternHash(const SCHSPattern *p, SCSha256 *sha256)
  */
 static const char *HSGetReferenceDbInfo(void)
 {
-    SCMutexLock(&g_hs_ref_info_mutex);
     if (g_hs_ref_info != NULL) {
-        SCMutexUnlock(&g_hs_ref_info_mutex);
         return g_hs_ref_info;
     }
 
@@ -156,7 +154,6 @@ static const char *HSGetReferenceDbInfo(void)
         hs_free_compile_error(compile_err);
     }
 
-    SCMutexUnlock(&g_hs_ref_info_mutex);
     return g_hs_ref_info;
 }
 
@@ -192,12 +189,14 @@ int HSLoadCache(hs_database_t **hs_db, const char *hs_db_hash, const char *dirpa
 
     // Verify the loaded database is compatible with the current Hyperscan
     // If both the loaded DB and the reference DB fail to load, consider the cache.
+    SCMutexLock(&g_hs_ref_info_mutex);
     const char *ref_info = HSGetReferenceDbInfo();
     if (ref_info != NULL) {
         if (hs_database_info(*hs_db, &db_info) != HS_SUCCESS || db_info == NULL) {
             SCLogDebug("Failed to query info for loaded Hyperscan database %s: %s",
                     hash_file_static, HSErrorToStr(error));
             ret = -1;
+            SCMutexUnlock(&g_hs_ref_info_mutex);
             goto freeup;
         }
         if (strcmp(db_info, ref_info) != 0) {
@@ -205,10 +204,11 @@ int HSLoadCache(hs_database_t **hs_db, const char *hs_db_hash, const char *dirpa
                        "Hyperscan installation and will be ignored",
                     hash_file_static);
             ret = -1;
+            SCMutexUnlock(&g_hs_ref_info_mutex);
             goto freeup;
         }
     }
-
+    SCMutexUnlock(&g_hs_ref_info_mutex);
     ret = 0;
     /* Touch file to update modification time so active caches are retained. */
     if (SCTouchFile(hash_file_static) != 0) {
@@ -295,10 +295,12 @@ int HSHashDb(const PatternDatabase *pd, char *hash, size_t hash_len)
         return -1;
     }
 
+    SCMutexLock(&g_hs_ref_info_mutex);
     const char *ref_info = HSGetReferenceDbInfo();
     if (ref_info != NULL) {
         SCSha256Update(hasher, (const uint8_t *)ref_info, strlen(ref_info));
     }
+    SCMutexUnlock(&g_hs_ref_info_mutex);
 
     SCSha256Update(hasher, (const uint8_t *)&pd->pattern_cnt, sizeof(pd->pattern_cnt));
     for (uint32_t i = 0; i < pd->pattern_cnt; i++) {
