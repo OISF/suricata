@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2025 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -3512,6 +3512,9 @@ static Signature *SigInitHelper(
         sig->init_data->init_flags & SIG_FLAG_INIT_PACKET ? "set" : "not set");
 
     SigBuildAddressMatchArray(sig);
+
+    /* init_data goes away after the build, the detect run needs the count */
+    sig->byte_var_count = (uint16_t)sig->init_data->byte_var_next_id;
 
     /* run buffer type callbacks if any */
     for (uint32_t x = 0; x < DETECT_SM_LIST_MAX; x++) {

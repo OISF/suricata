@@ -997,9 +997,16 @@ impl Default for DetectEngineStateDirection_ {
 }
 pub type DetectEngineStateDirection = DetectEngineStateDirection_;
 #[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct DeStateByteVars_ {
+    _unused: [u8; 0],
+}
+#[repr(C)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct DetectEngineState_ {
     pub dir_state: [DetectEngineStateDirection; 2usize],
+    #[doc = " byte variable values, one entry per signature that produced any on\n  this transaction. Not tied to a direction."]
+    pub byte_vars: *mut DeStateByteVars_,
 }
 impl Default for DetectEngineState_ {
     fn default() -> Self {
