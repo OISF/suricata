@@ -850,7 +850,6 @@ impl DCERPCState {
             }
             cmp::Ordering::Greater => {}
         }
-
         // rem == bytes consumed to move past gap; so those were not a part of the fragment
         if rem < fraglen as u32 {
             SCLogDebug!("Possibly fragmented data, waiting for more..");
@@ -859,10 +858,10 @@ impl DCERPCState {
 
         let hdrtype = hdr.hdrtype;
 
-        let _hdr = Frame::new(flow, &stream_slice, &cur_i[consumed as usize..], DCERPC_HDR_LEN as i64, DCERPCFrameType::Hdr as u8, None);
-        let _pdu = Frame::new(flow, &stream_slice, &cur_i[consumed as usize..], fraglen as i64, DCERPCFrameType::Pdu as u8, None);
-        if fraglen >= DCERPC_HDR_LEN && rem > DCERPC_HDR_LEN as u32 {
-            let _data = Frame::new(flow, &stream_slice, &cur_i[(consumed + DCERPC_HDR_LEN as u32) as usize..], (fraglen - DCERPC_HDR_LEN) as i64, DCERPCFrameType::Data as u8, None);
+        let _hdr = Frame::new(flow, &stream_slice, cur_i, parsed as i64, DCERPCFrameType::Hdr as u8, None);
+        let _pdu = Frame::new(flow, &stream_slice, cur_i, fraglen as i64, DCERPCFrameType::Pdu as u8, None);
+        if fraglen >= DCERPC_HDR_LEN && cur_i.len() > DCERPC_HDR_LEN as usize {
+            let _data = Frame::new(flow, &stream_slice, &cur_i[DCERPC_HDR_LEN as usize..], (fraglen - DCERPC_HDR_LEN) as i64, DCERPCFrameType::Data as u8, None);
         }
         let current_call_id = hdr.call_id;
 
