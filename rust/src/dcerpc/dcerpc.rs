@@ -766,6 +766,7 @@ impl DCERPCState {
         let retval;
         let mut cur_i = stream_slice.as_slice();
         let mut consumed = 0u32;
+        let mut rem = cur_i.len() as u32;
 
         // Skip the record since this means that its in the middle of a known length record
         if (self.ts_gap && direction == Direction::ToServer) || (self.tc_gap && direction == Direction::ToClient) {
@@ -798,6 +799,7 @@ impl DCERPCState {
                 },
             }
         }
+        rem -= consumed;
 
         let mut flow = std::ptr::null_mut();
         if let Some(f) = self.flow {
@@ -848,8 +850,8 @@ impl DCERPCState {
             }
             cmp::Ordering::Greater => {}
         }
-
-        if cur_i.len() < fraglen as usize {
+        // rem == bytes consumed to move past gap; so those were not a part of the fragment
+        if rem < fraglen as u32 {
             SCLogDebug!("Possibly fragmented data, waiting for more..");
             return AppLayerResult::incomplete(consumed, fraglen.into());
         }
