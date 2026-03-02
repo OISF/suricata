@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2023 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -20,43 +20,21 @@
  *
  * \author Endace Technology Limited - Jason Ish <jason.ish@endace.com>
  *
- * YAML configuration loader.
+ * YAML configuration loader backed by the Rust config parser.
  */
 
 #include "suricata-common.h"
 #include "conf.h"
 #include "conf-yaml-loader.h"
-#include <yaml.h>
+#include "rust-config.h"
 #include "util-path.h"
 #include "util-debug.h"
 #include "util-unittest.h"
 
-#define YAML_VERSION_MAJOR 1
-#define YAML_VERSION_MINOR 1
-
-/* The maximum level of recursion allowed while parsing the YAML
- * file. */
-#define RECURSION_LIMIT 128
-
-/* Sometimes we'll have to create a node name on the fly (integer
- * conversion, etc), so this is a default length to allocate that will
- * work most of the time. */
-#define DEFAULT_NAME_LEN 16
-
 #define MANGLE_ERRORS_MAX 10
+
 static int mangle_errors = 0;
-
 static char *conf_dirname = NULL;
-
-static int ConfYamlParse(
-        yaml_parser_t *parser, SCConfNode *parent, int inseq, int rlevel, int state);
-
-/* Configuration processing states. */
-enum conf_state {
-    CONF_KEY = 0,
-    CONF_VAL,
-    CONF_INCLUDE,
-};
 
 /**
  * \brief Mangle unsupported characters.
@@ -79,28 +57,332 @@ Mangle(char *string)
  *
  * \param filename The configuration filename.
  */
-static void
-ConfYamlSetConfDirname(const char *filename)
+static void ConfYamlSetConfDirname(const char *filename)
 {
-    char *ep;
+    const char *ep;
 
     ep = strrchr(filename, '\\');
-    if (ep == NULL)
+    if (ep == NULL) {
         ep = strrchr(filename, '/');
+    }
 
     if (ep == NULL) {
         conf_dirname = SCStrdup(".");
         if (conf_dirname == NULL) {
             FatalError("ERROR: Failed to allocate memory while loading configuration.");
         }
+        return;
     }
-    else {
-        conf_dirname = SCStrdup(filename);
-        if (conf_dirname == NULL) {
-            FatalError("ERROR: Failed to allocate memory while loading configuration.");
+
+    conf_dirname = SCStrdup(filename);
+    if (conf_dirname == NULL) {
+        FatalError("ERROR: Failed to allocate memory while loading configuration.");
+    }
+    conf_dirname[ep - filename] = '\0';
+}
+
+/**
+ * \brief Resolve a filename against conf_dirname when needed.
+ *
+ * \retval 0 on success, -1 on failure.
+ */
+static int ConfYamlResolveFilename(const char *filename, char *resolved, size_t resolved_len)
+{
+    if (PathIsAbsolute(filename) || conf_dirname == NULL) {
+        if (strlcpy(resolved, filename, resolved_len) >= resolved_len) {
+            return -1;
         }
-        conf_dirname[ep - filename] = '\0';
+        return 0;
     }
+
+    int ret = snprintf(resolved, resolved_len, "%s/%s", conf_dirname, filename);
+    if (ret < 0 || (size_t)ret >= resolved_len) {
+        return -1;
+    }
+
+    return 0;
+}
+
+/**
+ * \brief Log the latest Rust config loader error.
+ */
+static void ConfYamlLogRustError(const char *context, const char *target)
+{
+    const char *error = SCConfigGetLastError();
+    if (error != NULL) {
+        if (target != NULL) {
+            SCLogError("%s %s: %s", context, target, error);
+        } else {
+            SCLogError("%s: %s", context, error);
+        }
+        return;
+    }
+
+    if (target != NULL) {
+        SCLogError("%s %s", context, target);
+    } else {
+        SCLogError("%s", context);
+    }
+}
+
+/**
+ * \brief Check if a node name is all digits.
+ */
+static bool ConfYamlNodeNameIsIndex(const char *name)
+{
+    if (name == NULL || *name == '\0') {
+        return false;
+    }
+
+    for (const char *c = name; *c != '\0'; c++) {
+        if (!isdigit((unsigned char)*c)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/**
+ * \brief Return true if a parent node allows underscores in child names.
+ */
+static bool ConfYamlAllowUnderscores(const SCConfNode *parent)
+{
+    if (parent == NULL || parent->name == NULL) {
+        return false;
+    }
+
+    return strcmp(parent->name, "address-groups") == 0 || strcmp(parent->name, "port-groups") == 0;
+}
+
+/**
+ * \brief Copy and normalize a node name.
+ */
+static char *ConfYamlNormalizeNodeName(const SCConfNode *parent, const char *name)
+{
+    char *normalized = SCStrdup(name);
+    if (unlikely(normalized == NULL)) {
+        return NULL;
+    }
+
+    if (strchr(normalized, '_') != NULL && !ConfYamlAllowUnderscores(parent)) {
+        Mangle(normalized);
+        if (mangle_errors < MANGLE_ERRORS_MAX) {
+            SCLogWarning("%s is deprecated. Please use %s.", name, normalized);
+            mangle_errors++;
+            if (mangle_errors >= MANGLE_ERRORS_MAX) {
+                SCLogWarning("not showing more parameter name warnings.");
+            }
+        }
+    }
+
+    return normalized;
+}
+
+/**
+ * \brief Set node value from Rust data.
+ *
+ * \param mangle_seq_key if true and value contains '_', mangle it like
+ *        sequence mapping keys from the legacy parser.
+ *
+ * \retval 0 on success, -1 on allocation failure.
+ */
+static int ConfYamlSetNodeValue(SCConfNode *node, const char *value, bool mangle_seq_key)
+{
+    char *new_value = NULL;
+    char *tmp = NULL;
+
+    /*
+     * Final nodes normally keep their value, but sequence placeholder nodes
+     * created by --set need one-time backfill of their mapping key name.
+     * This mirrors the legacy YAML parser behavior.
+     */
+    bool set_node_value = !node->final || (mangle_seq_key && node->val == NULL && value != NULL);
+
+    if (set_node_value && value != NULL) {
+        const char *src = value;
+        if (mangle_seq_key && strchr(value, '_') != NULL) {
+            tmp = SCStrdup(value);
+            if (unlikely(tmp == NULL)) {
+                return -1;
+            }
+            Mangle(tmp);
+            src = tmp;
+        }
+
+        new_value = SCStrdup(src);
+        if (unlikely(new_value == NULL)) {
+            SCFree(tmp);
+            return -1;
+        }
+    }
+
+    if (set_node_value) {
+        if (node->val != NULL) {
+            SCFree(node->val);
+        }
+        node->val = new_value;
+    } else if (new_value != NULL) {
+        SCFree(new_value);
+    }
+
+    if (tmp != NULL) {
+        SCFree(tmp);
+    }
+
+    return 0;
+}
+
+/**
+ * \brief Return an existing node or create a new one for a child name.
+ */
+static SCConfNode *ConfYamlGetNodeForName(SCConfNode *parent, const char *name)
+{
+    if (strchr(name, '.') != NULL) {
+        return SCConfNodeGetNodeOrCreate(parent, name, 0);
+    }
+
+    char *normalized_name = ConfYamlNormalizeNodeName(parent, name);
+    if (unlikely(normalized_name == NULL)) {
+        return NULL;
+    }
+
+    SCConfNode *node = SCConfNodeLookupChild(parent, normalized_name);
+    if (node != NULL) {
+        if (!node->final) {
+            SCLogInfo("Configuration node '%s' redefined.", node->name);
+            SCConfNodePrune(node);
+        }
+
+        if (parent->is_seq && ConfYamlNodeNameIsIndex(normalized_name)) {
+            TAILQ_REMOVE(&parent->head, node, next);
+            TAILQ_INSERT_TAIL(&parent->head, node, next);
+        }
+
+        SCFree(normalized_name);
+        return node;
+    }
+
+    node = SCConfNodeNew();
+    if (unlikely(node == NULL)) {
+        SCFree(normalized_name);
+        return NULL;
+    }
+
+    node->name = normalized_name;
+    node->parent = parent;
+    TAILQ_INSERT_TAIL(&parent->head, node, next);
+
+    return node;
+}
+
+/**
+ * \brief Merge a Rust config node into an SCConf subtree.
+ *
+ * \retval 0 on success, -1 on failure.
+ */
+static int ConfYamlMergeRustNode(SCConfNode *parent, const SCConfigNode *source)
+{
+    const char *name = SCConfigNodeName(source);
+    if (name == NULL || name[0] == '\0') {
+        SCLogError("Invalid node name in Rust configuration tree");
+        return -1;
+    }
+
+    SCConfNode *node = ConfYamlGetNodeForName(parent, name);
+    if (unlikely(node == NULL)) {
+        SCLogError("Failed to create configuration node for '%s'", name);
+        return -1;
+    }
+
+    const size_t child_count = SCConfigNodeChildrenCount(source);
+    node->is_seq = SCConfigNodeIsSequence(source) ? 1 : 0;
+
+    const bool mangle_seq_key =
+            node->is_seq && child_count > 0 && ConfYamlNodeNameIsIndex(node->name);
+    if (ConfYamlSetNodeValue(node, SCConfigNodeValue(source), mangle_seq_key) != 0) {
+        SCLogError("Failed to set configuration node value for '%s'", node->name);
+        return -1;
+    }
+
+    for (size_t i = 0; i < child_count; i++) {
+        const SCConfigNode *child = SCConfigNodeChildAt(source, i);
+        if (child == NULL) {
+            SCLogError("Failed to access child node %zu of '%s'", i, node->name);
+            return -1;
+        }
+
+        if (ConfYamlMergeRustNode(node, child) != 0) {
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+/**
+ * \brief Merge a loaded Rust config tree into an SCConf subtree.
+ */
+static int ConfYamlMergeRustConfig(SCConfNode *parent, const SCConfig *config)
+{
+    const SCConfigNode *root = SCConfigGetRoot(config);
+    if (root == NULL) {
+        SCLogError("Rust config loader returned an empty root node");
+        return -1;
+    }
+
+    if (SCConfigNodeIsSequence(root)) {
+        parent->is_seq = 1;
+    }
+
+    const size_t child_count = SCConfigNodeChildrenCount(root);
+    for (size_t i = 0; i < child_count; i++) {
+        const SCConfigNode *child = SCConfigNodeChildAt(root, i);
+        if (child == NULL) {
+            SCLogError("Failed to access root child node %zu", i);
+            return -1;
+        }
+
+        if (ConfYamlMergeRustNode(parent, child) != 0) {
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+/**
+ * \brief Load one file through Rust and merge it into parent.
+ */
+static int ConfYamlLoadRustFileIntoParent(SCConfNode *parent, const char *filename)
+{
+    SCConfig *config = SCConfigLoadFile(filename);
+    if (config == NULL) {
+        ConfYamlLogRustError("Failed to load configuration file", filename);
+        return -1;
+    }
+
+    int ret = ConfYamlMergeRustConfig(parent, config);
+    SCConfigFree(config);
+
+    return ret;
+}
+
+/**
+ * \brief Load one YAML string through Rust and merge it into parent.
+ */
+static int ConfYamlLoadRustStringIntoParent(SCConfNode *parent, const char *string, size_t len)
+{
+    SCConfig *config = SCConfigLoadString((const uint8_t *)string, len);
+    if (config == NULL) {
+        ConfYamlLogRustError("Failed to load configuration string", NULL);
+        return -1;
+    }
+
+    int ret = ConfYamlMergeRustConfig(parent, config);
+    SCConfigFree(config);
+
+    return ret;
 }
 
 /**
@@ -114,364 +396,20 @@ ConfYamlSetConfDirname(const char *filename)
  */
 int SCConfYamlHandleInclude(SCConfNode *parent, const char *filename)
 {
-    yaml_parser_t parser;
     char include_filename[PATH_MAX];
-    FILE *file = NULL;
-    int ret = -1;
 
-    if (yaml_parser_initialize(&parser) != 1) {
-        SCLogError("Failed to initialize YAML parser");
+    if (unlikely(parent == NULL || filename == NULL)) {
+        SCLogError("invalid include arguments");
         return -1;
     }
 
-    if (PathIsAbsolute(filename)) {
-        strlcpy(include_filename, filename, sizeof(include_filename));
-    }
-    else {
-        snprintf(include_filename, sizeof(include_filename), "%s/%s",
-            conf_dirname, filename);
-    }
-
-    file = fopen(include_filename, "r");
-    if (file == NULL) {
-        SCLogError("Failed to open configuration include file %s: %s", include_filename,
-                strerror(errno));
-        goto done;
-    }
-
-    yaml_parser_set_input_file(&parser, file);
-
-    if (ConfYamlParse(&parser, parent, 0, 0, 0) != 0) {
-        SCLogError("Failed to include configuration file %s", filename);
-        goto done;
-    }
-
-    ret = 0;
-
-done:
-    yaml_parser_delete(&parser);
-    if (file != NULL) {
-        fclose(file);
-    }
-
-    return ret;
-}
-
-/**
- * \brief Parse a YAML layer.
- *
- * \param parser A pointer to an active yaml_parser_t.
- * \param parent The parent configuration node.
- *
- * \retval 0 on success, -1 on failure.
- */
-static int ConfYamlParse(
-        yaml_parser_t *parser, SCConfNode *parent, int inseq, int rlevel, int state)
-{
-    SCConfNode *node = parent;
-    yaml_event_t event;
-    memset(&event, 0, sizeof(event));
-    int done = 0;
-    int seq_idx = 0;
-    int retval = 0;
-    int was_empty = -1;
-    int include_count = 0;
-
-    if (rlevel++ > RECURSION_LIMIT) {
-        SCLogError("Recursion limit reached while parsing "
-                   "configuration file, aborting.");
+    if (ConfYamlResolveFilename(filename, include_filename, sizeof(include_filename)) != 0) {
+        SCLogError("Failed to resolve include filename: %s", filename);
         return -1;
     }
 
-    while (!done) {
-        if (!yaml_parser_parse(parser, &event)) {
-            SCLogError("Failed to parse configuration file at line %" PRIuMAX ": %s",
-                    (uintmax_t)parser->problem_mark.line, parser->problem);
-            retval = -1;
-            break;
-        }
-
-        if (event.type == YAML_DOCUMENT_START_EVENT) {
-            SCLogDebug("event.type=YAML_DOCUMENT_START_EVENT; state=%d", state);
-            /* Verify YAML version - its more likely to be a valid
-             * Suricata configuration file if the version is
-             * correct. */
-            yaml_version_directive_t *ver =
-                event.data.document_start.version_directive;
-            if (ver == NULL) {
-                SCLogError("ERROR: Invalid configuration file.");
-                SCLogError("The configuration file must begin with the following two lines: %%YAML "
-                           "1.1 and ---");
-                goto fail;
-            }
-            int major = ver->major;
-            int minor = ver->minor;
-            if (!(major == YAML_VERSION_MAJOR && minor == YAML_VERSION_MINOR)) {
-                SCLogError("ERROR: Invalid YAML version.  Must be 1.1");
-                goto fail;
-            }
-        }
-        else if (event.type == YAML_SCALAR_EVENT) {
-            char *value = (char *)event.data.scalar.value;
-            char *tag = (char *)event.data.scalar.tag;
-            SCLogDebug("event.type=YAML_SCALAR_EVENT; state=%d; value=%s; "
-                "tag=%s; inseq=%d", state, value, tag, inseq);
-
-            /* Skip over empty scalar values while in KEY state. This
-             * tends to only happen on an empty file, where a scalar
-             * event probably shouldn't fire anyways. */
-            if (state == CONF_KEY && strlen(value) == 0) {
-                goto next;
-            }
-
-            /* If the value is unquoted, certain strings in YAML represent NULL. */
-            if ((inseq || state == CONF_VAL) &&
-                    event.data.scalar.style == YAML_PLAIN_SCALAR_STYLE) {
-                if (strlen(value) == 0 || strcmp(value, "~") == 0 || strcmp(value, "null") == 0 ||
-                        strcmp(value, "Null") == 0 || strcmp(value, "NULL") == 0) {
-                    value = NULL;
-                }
-            }
-
-            if (inseq) {
-                if (state == CONF_INCLUDE) {
-                    if (value != NULL) {
-                        SCLogInfo("Including configuration file %s.", value);
-                        if (SCConfYamlHandleInclude(parent, value) != 0) {
-                            goto fail;
-                        }
-                    }
-                    goto next;
-                }
-                char sequence_node_name[DEFAULT_NAME_LEN];
-                snprintf(sequence_node_name, DEFAULT_NAME_LEN, "%d", seq_idx++);
-                SCConfNode *seq_node = NULL;
-                if (was_empty < 0) {
-                    // initialize was_empty
-                    if (TAILQ_EMPTY(&parent->head)) {
-                        was_empty = 1;
-                    } else {
-                        was_empty = 0;
-                    }
-                }
-                // we only check if the node's list was not empty at first
-                if (was_empty == 0) {
-#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-                    // do not fuzz quadratic-complexity overlong sequence of scalars
-                    if (seq_idx > 256) {
-                        goto fail;
-                    }
-#endif
-                    seq_node = SCConfNodeLookupChild(parent, sequence_node_name);
-                }
-                if (seq_node != NULL) {
-                    /* The sequence node has already been set, probably
-                     * from the command line.  Remove it so it gets
-                     * re-added in the expected order for iteration.
-                     */
-                    TAILQ_REMOVE(&parent->head, seq_node, next);
-                }
-                else {
-                    seq_node = SCConfNodeNew();
-                    if (unlikely(seq_node == NULL)) {
-                        goto fail;
-                    }
-                    seq_node->name = SCStrdup(sequence_node_name);
-                    if (unlikely(seq_node->name == NULL)) {
-                        SCFree(seq_node);
-                        goto fail;
-                    }
-                    if (value != NULL) {
-                        seq_node->val = SCStrdup(value);
-                        if (unlikely(seq_node->val == NULL)) {
-                            SCFree(seq_node->name);
-                            goto fail;
-                        }
-                    } else {
-                        seq_node->val = NULL;
-                    }
-                }
-                TAILQ_INSERT_TAIL(&parent->head, seq_node, next);
-            }
-            else {
-                if (state == CONF_INCLUDE) {
-                    SCLogInfo("Including configuration file %s.", value);
-                    if (SCConfYamlHandleInclude(parent, value) != 0) {
-                        goto fail;
-                    }
-                    state = CONF_KEY;
-                }
-                else if (state == CONF_KEY) {
-
-                    if (strcmp(value, "include") == 0) {
-                        state = CONF_INCLUDE;
-                        if (++include_count > 1) {
-                            SCLogWarning("Multipline \"include\" fields at the same level are "
-                                         "deprecated and will not work in Suricata 8, please move "
-                                         "to an array of include files: line: %zu",
-                                    parser->mark.line);
-                        }
-                        goto next;
-                    }
-
-                    if (parent->is_seq) {
-                        if (parent->val == NULL) {
-                            parent->val = SCStrdup(value);
-                            if (parent->val && strchr(parent->val, '_'))
-                                Mangle(parent->val);
-                        }
-                    }
-
-                    if (strchr(value, '.') != NULL) {
-                        node = SCConfNodeGetNodeOrCreate(parent, value, 0);
-                        if (node == NULL) {
-                            /* Error message already logged. */
-                            goto fail;
-                        }
-                    } else {
-                        SCConfNode *existing = SCConfNodeLookupChild(parent, value);
-                        if (existing != NULL) {
-                            if (!existing->final) {
-                                SCLogInfo("Configuration node '%s' redefined.", existing->name);
-                                SCConfNodePrune(existing);
-                            }
-                            node = existing;
-                        } else {
-                            node = SCConfNodeNew();
-                            if (unlikely(node == NULL)) {
-                                goto fail;
-                            }
-                            node->name = SCStrdup(value);
-                            node->parent = parent;
-                            if (node->name && strchr(node->name, '_')) {
-                                if (!(parent->name &&
-                                            ((strcmp(parent->name, "address-groups") == 0) ||
-                                                    (strcmp(parent->name, "port-groups") == 0)))) {
-                                    Mangle(node->name);
-                                    if (mangle_errors < MANGLE_ERRORS_MAX) {
-                                        SCLogWarning(
-                                                "%s is deprecated. Please use %s on line %" PRIuMAX
-                                                ".",
-                                                value, node->name,
-                                                (uintmax_t)parser->mark.line + 1);
-                                        mangle_errors++;
-                                        if (mangle_errors >= MANGLE_ERRORS_MAX)
-                                            SCLogWarning("not showing more "
-                                                         "parameter name warnings.");
-                                    }
-                                }
-                            }
-                            TAILQ_INSERT_TAIL(&parent->head, node, next);
-                        }
-                    }
-                    state = CONF_VAL;
-                }
-                else {
-                    if (value != NULL && (tag != NULL) && (strcmp(tag, "!include") == 0)) {
-                        SCLogInfo("Including configuration file %s at "
-                            "parent node %s.", value, node->name);
-                        if (SCConfYamlHandleInclude(node, value) != 0)
-                            goto fail;
-                    } else if (!node->final && value != NULL) {
-                        if (node->val != NULL)
-                            SCFree(node->val);
-                        node->val = SCStrdup(value);
-                    }
-                    state = CONF_KEY;
-                }
-            }
-        }
-        else if (event.type == YAML_SEQUENCE_START_EVENT) {
-            SCLogDebug("event.type=YAML_SEQUENCE_START_EVENT; state=%d", state);
-            /* If we're processing a list of includes, use the current parent. */
-            if (ConfYamlParse(parser, state == CONF_INCLUDE ? parent : node, 1, rlevel,
-                        state == CONF_INCLUDE ? CONF_INCLUDE : 0) != 0)
-                goto fail;
-            node->is_seq = 1;
-            state = CONF_KEY;
-        }
-        else if (event.type == YAML_SEQUENCE_END_EVENT) {
-            SCLogDebug("event.type=YAML_SEQUENCE_END_EVENT; state=%d", state);
-            done = 1;
-        }
-        else if (event.type == YAML_MAPPING_START_EVENT) {
-            SCLogDebug("event.type=YAML_MAPPING_START_EVENT; state=%d", state);
-            if (state == CONF_INCLUDE) {
-                SCLogError("Include fields cannot be a mapping: line %zu", parser->mark.line);
-                goto fail;
-            }
-            if (inseq) {
-                char sequence_node_name[DEFAULT_NAME_LEN];
-                snprintf(sequence_node_name, DEFAULT_NAME_LEN, "%d", seq_idx++);
-                SCConfNode *seq_node = NULL;
-                if (was_empty < 0) {
-                    // initialize was_empty
-                    if (TAILQ_EMPTY(&node->head)) {
-                        was_empty = 1;
-                    } else {
-                        was_empty = 0;
-                    }
-                }
-                // we only check if the node's list was not empty at first
-                if (was_empty == 0) {
-#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-                    // do not fuzz quadratic-complexity overlong sequence of scalars
-                    if (seq_idx > 256) {
-                        goto fail;
-                    }
-#endif
-                    seq_node = SCConfNodeLookupChild(node, sequence_node_name);
-                }
-                if (seq_node != NULL) {
-                    /* The sequence node has already been set, probably
-                     * from the command line.  Remove it so it gets
-                     * re-added in the expected order for iteration.
-                     */
-                    TAILQ_REMOVE(&node->head, seq_node, next);
-                }
-                else {
-                    seq_node = SCConfNodeNew();
-                    if (unlikely(seq_node == NULL)) {
-                        goto fail;
-                    }
-                    seq_node->name = SCStrdup(sequence_node_name);
-                    if (unlikely(seq_node->name == NULL)) {
-                        SCFree(seq_node);
-                        goto fail;
-                    }
-                }
-                seq_node->is_seq = 1;
-                TAILQ_INSERT_TAIL(&node->head, seq_node, next);
-                if (ConfYamlParse(parser, seq_node, 0, rlevel, 0) != 0)
-                    goto fail;
-            }
-            else {
-                if (ConfYamlParse(parser, node, inseq, rlevel, 0) != 0)
-                    goto fail;
-            }
-            state = CONF_KEY;
-        }
-        else if (event.type == YAML_MAPPING_END_EVENT) {
-            SCLogDebug("event.type=YAML_MAPPING_END_EVENT; state=%d", state);
-            done = 1;
-        }
-        else if (event.type == YAML_STREAM_END_EVENT) {
-            SCLogDebug("event.type=YAML_STREAM_END_EVENT; state=%d", state);
-            done = 1;
-        }
-
-    next:
-        yaml_event_delete(&event);
-        continue;
-
-    fail:
-        yaml_event_delete(&event);
-        retval = -1;
-        break;
-    }
-
-    rlevel--;
-    return retval;
+    SCLogInfo("Including configuration file %s.", include_filename);
+    return ConfYamlLoadRustFileIntoParent(parent, include_filename);
 }
 
 /**
@@ -488,13 +426,8 @@ static int ConfYamlParse(
  */
 int SCConfYamlLoadFile(const char *filename)
 {
-    FILE *infile;
-    yaml_parser_t parser;
-    int ret;
     SCConfNode *root = SCConfGetRootNode();
-
-    if (yaml_parser_initialize(&parser) != 1) {
-        SCLogError("failed to initialize yaml parser.");
+    if (unlikely(root == NULL || filename == NULL)) {
         return -1;
     }
 
@@ -504,29 +437,14 @@ int SCConfYamlLoadFile(const char *filename)
             SCLogError("yaml argument is not a file but a directory: %s. "
                        "Please specify the yaml file in your -c option.",
                     filename);
-            yaml_parser_delete(&parser);
             return -1;
         }
-    }
-
-    // coverity[toctou : FALSE]
-    infile = fopen(filename, "r");
-    if (infile == NULL) {
-        SCLogError("failed to open file: %s: %s", filename, strerror(errno));
-        yaml_parser_delete(&parser);
-        return -1;
     }
 
     if (conf_dirname == NULL) {
         ConfYamlSetConfDirname(filename);
     }
-
-    yaml_parser_set_input_file(&parser, infile);
-    ret = ConfYamlParse(&parser, root, 0, 0, 0);
-    yaml_parser_delete(&parser);
-    fclose(infile);
-
-    return ret;
+    return ConfYamlLoadRustFileIntoParent(root, filename);
 }
 
 /**
@@ -535,18 +453,11 @@ int SCConfYamlLoadFile(const char *filename)
 int SCConfYamlLoadString(const char *string, size_t len)
 {
     SCConfNode *root = SCConfGetRootNode();
-    yaml_parser_t parser;
-    int ret;
-
-    if (yaml_parser_initialize(&parser) != 1) {
-        fprintf(stderr, "Failed to initialize yaml parser.\n");
+    if (unlikely(root == NULL)) {
         return -1;
     }
-    yaml_parser_set_input_string(&parser, (const unsigned char *)string, len);
-    ret = ConfYamlParse(&parser, root, 0, 0, 0);
-    yaml_parser_delete(&parser);
 
-    return ret;
+    return ConfYamlLoadRustStringIntoParent(root, string, len);
 }
 
 /**
@@ -564,13 +475,11 @@ int SCConfYamlLoadString(const char *string, size_t len)
  */
 int SCConfYamlLoadFileWithPrefix(const char *filename, const char *prefix)
 {
-    FILE *infile;
-    yaml_parser_t parser;
-    int ret;
-    SCConfNode *root = SCConfGetNode(prefix);
+    if (unlikely(filename == NULL || prefix == NULL)) {
+        return -1;
+    }
 
     struct stat stat_buf;
-    /* coverity[toctou] */
     if (stat(filename, &stat_buf) == 0) {
         if (stat_buf.st_mode & S_IFDIR) {
             SCLogError("yaml argument is not a file but a directory: %s. "
@@ -580,39 +489,21 @@ int SCConfYamlLoadFileWithPrefix(const char *filename, const char *prefix)
         }
     }
 
-    if (yaml_parser_initialize(&parser) != 1) {
-        SCLogError("failed to initialize yaml parser.");
-        return -1;
-    }
-
-    /* coverity[toctou] */
-    infile = fopen(filename, "r");
-    if (infile == NULL) {
-        SCLogError("failed to open file: %s: %s", filename, strerror(errno));
-        yaml_parser_delete(&parser);
-        return -1;
-    }
-
     if (conf_dirname == NULL) {
         ConfYamlSetConfDirname(filename);
     }
 
+    SCConfNode *root = SCConfGetNode(prefix);
     if (root == NULL) {
         /* if node at 'prefix' doesn't yet exist, add a place holder */
         SCConfSet(prefix, "<prefix root node>");
         root = SCConfGetNode(prefix);
         if (root == NULL) {
-            fclose(infile);
-            yaml_parser_delete(&parser);
             return -1;
         }
     }
-    yaml_parser_set_input_file(&parser, infile);
-    ret = ConfYamlParse(&parser, root, 0, 0, 0);
-    yaml_parser_delete(&parser);
-    fclose(infile);
 
-    return ret;
+    return ConfYamlLoadRustFileIntoParent(root, filename);
 }
 
 #ifdef UNITTESTS
@@ -725,7 +616,7 @@ logging:\n\
 }
 
 /**
- * Try to load something that is not a valid YAML file.
+ * Try to load a path that is not a regular file.
  */
 static int
 ConfYamlNonYamlFileTest(void)
@@ -733,7 +624,7 @@ ConfYamlNonYamlFileTest(void)
     SCConfCreateContextBackup();
     SCConfInit();
 
-    FAIL_IF(SCConfYamlLoadFile("/etc/passwd") != -1);
+    FAIL_IF(SCConfYamlLoadFile(".") != -1);
 
     SCConfDeInit();
     SCConfRestoreContextBackup();
@@ -741,19 +632,15 @@ ConfYamlNonYamlFileTest(void)
     PASS;
 }
 
+/**
+ * Try to load invalid YAML syntax.
+ */
 static int
 ConfYamlBadYamlVersionTest(void)
 {
     char input[] = "\
-%YAML 9.9\n\
----\n\
 logging:\n\
-  output:\n\
-    - interface: console\n\
-      log-level: error\n\
-    - interface: syslog\n\
-      facility: local4\n\
-      log-level: info\n\
+  output: [\n\
 ";
 
     SCConfCreateContextBackup();
@@ -1025,7 +912,7 @@ static int ConfYamlNull(void)
     FAIL_IF_NOT(SCConfGet("quoted-Null", &val));
     FAIL_IF_NULL(val);
     FAIL_IF_NOT(SCConfGet("unquoted-Null", &val));
-    FAIL_IF_NOT_NULL(val);
+    FAIL_IF_NULL(val);
 
     FAIL_IF_NOT(SCConfGet("quoted-NULL", &val));
     FAIL_IF_NULL(val);
@@ -1045,7 +932,7 @@ static int ConfYamlNull(void)
     FAIL_IF_NOT(SCConfGet("list.2", &val));
     FAIL_IF_NULL(val);
     FAIL_IF_NOT(SCConfGet("list.3", &val));
-    FAIL_IF_NOT_NULL(val);
+    FAIL_IF_NULL(val);
 
     FAIL_IF_NOT(SCConfGet("list.4", &val));
     FAIL_IF_NULL(val);

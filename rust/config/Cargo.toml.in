@@ -1,0 +1,15 @@
+[package]
+name = "suricata-config"
+version = "@PACKAGE_VERSION@"
+edition = "2021"
+license = "GPL-2.0-only"
+description = "Suricata configuration tooling"
+rust-version = "1.75.0"
+
+[[bin]]
+name = "suricata-config"
+
+[dependencies]
+clap = { version = "4.5.39", default-features = false, features = ["std", "derive", "help", "usage"] }
+saphyr = { version = "0.0.6" }
+thiserror = "2.0.12"

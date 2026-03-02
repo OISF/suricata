@@ -381,6 +381,9 @@ jobs:
       # The ffi crate is cargo fmt clean.
       - run: cargo fmt --check
         working-directory: rust/ffi
+      # The config crate is cargo fmt clean.
+      - run: cargo fmt --check
+        working-directory: rust/config
 
       - run: make -j ${{ env.CPUS }} distcheck
         env:

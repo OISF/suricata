@@ -1,0 +1,11 @@
+%YAML 1.1
+---
+
+# This will override an existing variable.
+vars.address-groups.HOME_NET: "10.10.10.10/32"
+
+# This create a new variable under port-groups.
+vars.port-groups.FTP_PORTS: "[21,2121]"
+
+# And another custom var.
+vars.port-groups.DEV_SERVER_PORTS: "[3000,4200]"

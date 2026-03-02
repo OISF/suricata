@@ -1,0 +1,6 @@
+%YAML 1.1
+---
+stats:
+  enabled: yes
+  interval: 8
+host-mode: auto

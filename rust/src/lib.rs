@@ -139,7 +139,7 @@ pub mod ldap;
 pub mod flow;
 pub mod direction;
 
-#[allow(unused_imports)]
+// Re-exports for C linkage.
 pub use suricata_lua_sys;
-//Re-export htp symbols
+pub use suricata_config;
 pub use htp::c_api::*;
