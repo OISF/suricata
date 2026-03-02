@@ -766,7 +766,6 @@ impl DCERPCState {
         let retval;
         let mut cur_i = stream_slice.as_slice();
         let mut consumed = 0u32;
-        let mut rem = cur_i.len() as u32;
 
         // Skip the record since this means that its in the middle of a known length record
         if (self.ts_gap && direction == Direction::ToServer) || (self.tc_gap && direction == Direction::ToClient) {
@@ -799,7 +798,6 @@ impl DCERPCState {
                 },
             }
         }
-        rem -= consumed;
 
         let mut flow = std::ptr::null_mut();
         if let Some(f) = self.flow {
@@ -851,18 +849,17 @@ impl DCERPCState {
             cmp::Ordering::Greater => {}
         }
 
-        // rem == bytes consumed to move past gap; so those were not a part of the fragment
-        if rem < fraglen as u32 {
+        if cur_i.len() < fraglen as usize {
             SCLogDebug!("Possibly fragmented data, waiting for more..");
             return AppLayerResult::incomplete(consumed, fraglen.into());
         }
 
         let hdrtype = hdr.hdrtype;
 
-        let _hdr = Frame::new(flow, &stream_slice, &cur_i[consumed as usize..], DCERPC_HDR_LEN as i64, DCERPCFrameType::Hdr as u8, None);
-        let _pdu = Frame::new(flow, &stream_slice, &cur_i[consumed as usize..], fraglen as i64, DCERPCFrameType::Pdu as u8, None);
-        if fraglen >= DCERPC_HDR_LEN && rem > DCERPC_HDR_LEN as u32 {
-            let _data = Frame::new(flow, &stream_slice, &cur_i[(consumed + DCERPC_HDR_LEN as u32) as usize..], (fraglen - DCERPC_HDR_LEN) as i64, DCERPCFrameType::Data as u8, None);
+        let _hdr = Frame::new(flow, &stream_slice, cur_i, parsed as i64, DCERPCFrameType::Hdr as u8, None);
+        let _pdu = Frame::new(flow, &stream_slice, cur_i, fraglen as i64, DCERPCFrameType::Pdu as u8, None);
+        if fraglen >= DCERPC_HDR_LEN && cur_i.len() > DCERPC_HDR_LEN as usize {
+            let _data = Frame::new(flow, &stream_slice, &cur_i[DCERPC_HDR_LEN as usize..], (fraglen - DCERPC_HDR_LEN) as i64, DCERPCFrameType::Data as u8, None);
         }
         let current_call_id = hdr.call_id;
 
