@@ -33,9 +33,9 @@ typedef struct DetectBase64Decode_ {
     uint8_t relative;
 } DetectBase64Decode;
 
-static const char decode_pattern[] = "\\s*(bytes\\s+(\\d+),?)?"
+static const char decode_pattern[] = "^\\s*(bytes\\s+(\\d+),?)?"
     "\\s*(offset\\s+(\\d+),?)?"
-    "\\s*(\\w+)?";
+    "\\s*(\\w+)?$";
 
 static DetectParseRegex decode_pcre;
 
