@@ -44,7 +44,7 @@
 #include "detect-engine-event.h"
 #include "util-unittest.h"
 
-#define PARSE_REGEX "\\S[0-9A-z_]+[.][A-z0-9_+.]+$"
+#define PARSE_REGEX "^\\S[0-9A-z_]+[.][A-z0-9_+.]+$"
 
 static DetectParseRegex parse_regex;
 
