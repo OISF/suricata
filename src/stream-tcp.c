@@ -1243,6 +1243,7 @@ static int StreamTcpPacketStateNone(
         if (stream_config.async_oneside) {
             SCLogDebug("ssn %p: =~ ASYNC", ssn);
             ssn->flags |= STREAMTCP_FLAG_ASYNC;
+            StatsCounterIncr(&tv->stats, stt->counter_tcp_async_stream);
         }
 
         /** window scaling for midstream pickups, we can't do much other
@@ -1343,6 +1344,7 @@ static int StreamTcpPacketStateNone(
         if (stream_config.async_oneside) {
             SCLogDebug("ssn %p: =~ ASYNC", ssn);
             ssn->flags |= STREAMTCP_FLAG_ASYNC;
+            StatsCounterIncr(&tv->stats, stt->counter_tcp_async_stream);
         }
 
         /* sequence number & window */
@@ -1507,6 +1509,7 @@ static int StreamTcpPacketStateNone(
         if (stream_config.async_oneside) {
             SCLogDebug("ssn %p: =~ ASYNC", ssn);
             ssn->flags |= STREAMTCP_FLAG_ASYNC;
+            StatsCounterIncr(&tv->stats, stt->counter_tcp_async_stream);
         }
 
         /** window scaling for midstream pickups, we can't do much other
@@ -2395,6 +2398,8 @@ static int StreamTcpPacketStateSynSent(
            same host, which sent the SYN, this suggests the ASYNC streams.*/
         if (!stream_config.async_oneside)
             return 0;
+
+        StatsCounterIncr(&tv->stats, stt->counter_tcp_async_stream);
 
         /* we are in ASYNC (one side) mode now. */
 
@@ -6180,6 +6185,7 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     stt->counter_tcp_wrong_thread = StatsRegisterCounter("tcp.pkt_on_wrong_thread", &tv->stats);
     stt->counter_tcp_ack_unseen_data = StatsRegisterCounter("tcp.ack_unseen_data", &tv->stats);
+    stt->counter_tcp_async_stream = StatsRegisterCounter("tcp.async_stream", &tv->stats);
 
     /* init reassembly ctx */
     stt->ra_ctx = StreamTcpReassembleInitThreadCtx(tv);

@@ -8266,6 +8266,10 @@
                         "active_sessions": {
                             "type": "integer"
                         },
+                        "async_stream": {
+                            "type": "integer",
+                            "description": "Number of times the engine inspected an asynchronous TCP stream (if stream.async-oneside enabled)"
+                        },
                         "insert_data_normal_fail": {
                             "type": "integer"
                         },
