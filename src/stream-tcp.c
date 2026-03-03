@@ -1202,6 +1202,14 @@ static int StreamTcpPacketIsRetransmission(TcpStream *stream, Packet *p)
     SCReturnInt(0);
 }
 
+static void StreamTcpAsyncSessionsIncr(ThreadVars *tv, StreamTcpThread *stt, TcpSession *ssn)
+{
+    if (!ssn->async_oneside_tracking) {
+        StatsCounterIncr(&tv->stats, stt->counter_tcp_async_sessions);
+        ssn->async_oneside_tracking = true;
+    }
+}
+
 /**
  *  \internal
  *  \brief  Function to handle the TCP_CLOSED or NONE state. The function handles
@@ -1263,6 +1271,7 @@ static int StreamTcpPacketStateNone(
         if (stream_config.async_oneside) {
             SCLogDebug("ssn %p: =~ ASYNC", ssn);
             ssn->flags |= STREAMTCP_FLAG_ASYNC;
+            StreamTcpAsyncSessionsIncr(tv, stt, ssn);
         }
 
         /** window scaling for midstream pickups, we can't do much other
@@ -1363,6 +1372,7 @@ static int StreamTcpPacketStateNone(
         if (stream_config.async_oneside) {
             SCLogDebug("ssn %p: =~ ASYNC", ssn);
             ssn->flags |= STREAMTCP_FLAG_ASYNC;
+            StreamTcpAsyncSessionsIncr(tv, stt, ssn);
         }
 
         /* sequence number & window */
@@ -1532,6 +1542,7 @@ static int StreamTcpPacketStateNone(
         if (stream_config.async_oneside) {
             SCLogDebug("ssn %p: =~ ASYNC", ssn);
             ssn->flags |= STREAMTCP_FLAG_ASYNC;
+            StreamTcpAsyncSessionsIncr(tv, stt, ssn);
         }
 
         /** window scaling for midstream pickups, we can't do much other
@@ -2439,6 +2450,8 @@ static int StreamTcpPacketStateSynSent(
         }
 
         ssn->flags |= STREAMTCP_FLAG_ASYNC;
+        StreamTcpAsyncSessionsIncr(tv, stt, ssn);
+
         StreamTcpPacketSetState(p, ssn, TCP_ESTABLISHED);
         SCLogDebug("ssn %p: =~ ssn state is now TCP_ESTABLISHED", ssn);
         StreamTcp3wsFreeQueue(ssn);
@@ -5727,6 +5740,11 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
         {
             SCLogDebug("ssn %p: removing ASYNC flag as we have packets on both sides", ssn);
             ssn->flags &= ~STREAMTCP_FLAG_ASYNC;
+            if (ssn->async_oneside_tracking) {
+                /* since the session isn't really asymmetric, decrease the counter */
+                StatsCounterDecr(&tv->stats, stt->counter_tcp_async_sessions);
+                ssn->async_oneside_tracking = false;
+            }
         }
     }
 
@@ -6210,6 +6228,7 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     stt->counter_tcp_wrong_thread = StatsRegisterCounter("tcp.pkt_on_wrong_thread", &tv->stats);
     stt->counter_tcp_ack_unseen_data = StatsRegisterCounter("tcp.ack_unseen_data", &tv->stats);
+    stt->counter_tcp_async_sessions = StatsRegisterCounter("tcp.async_sessions", &tv->stats);
 
     /* init reassembly ctx */
     stt->ra_ctx = StreamTcpReassembleInitThreadCtx(tv);

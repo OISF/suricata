@@ -293,6 +293,7 @@ typedef struct TcpSession_ {
     uint8_t pstate:4;                       /**< previous state */
     uint8_t queue_len;                      /**< length of queue list below */
     int8_t data_first_seen_dir;
+    bool async_oneside_tracking; /**< flagged as async and counted as async in stats */
     /** track all the tcp flags we've seen */
     uint8_t tcp_packet_flags;
     uint16_t urg_offset_ts;            /**< SEQ offset from accepted OOB urg bytes */
