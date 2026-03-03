@@ -1473,7 +1473,11 @@
             echo
             exit 1
         fi
-        CFLAGS="${CFLAGS} `pkg-config --cflags libdpdk`"
+        DPDK_INCLUDES="`pkg-config --cflags-only-I libdpdk`"
+        DPDK_OTHER="`pkg-config --cflags-only-other libdpdk | sed 's/-march=[[^ ]]*//'`"
+        # remove double spaces
+        DPDK_FLAGS="`echo ${DPDK_INCLUDES} ${DPDK_OTHER} | sed 's/  */ /g;s/^ *//;s/ *$//'`"
+        CFLAGS="${CFLAGS} ${DPDK_FLAGS}"
         LIBS="${LIBS} -lnuma `pkg-config --libs libdpdk`"
 
         if test ! -z "$(ldconfig -p | grep librte_net_bond)"; then
