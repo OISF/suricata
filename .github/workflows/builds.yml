@@ -564,7 +564,7 @@ jobs:
           - almalinux:9
           - fedora:43
     env:
-      skip: true
+      skip: false
     steps:
       - name: Cache cargo registry
         uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb
