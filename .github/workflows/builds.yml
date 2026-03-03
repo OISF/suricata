@@ -902,7 +902,7 @@ jobs:
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py -q --debug-failed --aggressive-cleanup
       - run: llvm-profdata merge -o default.profdata $(find suricata-verify/tests/ -name '*.profraw')
-      - run: llvm-cov export ./src/suricata -instr-profile=default.profdata -format=lcov --ignore-filename-regex="^/(root|usr|rustc|github)/.*" > coverage.lcov
+      - run: llvm-cov export ./src/suricata -instr-profile=default.profdata -format=lcov --ignore-filename-regex="^/(root|usr|rustc|github)/.*" --skip-branches > coverage.lcov
       - name: Upload coverage.lcov artifact
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
