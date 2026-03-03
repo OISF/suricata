@@ -487,6 +487,7 @@ noinst_HEADERS = \
 	util-dpdk-ixgbe.h \
 	util-dpdk-mlx5.h \
 	util-dpdk-rss.h \
+	util-dpdk-threading.h \
 	util-dpdk.h \
 	util-ebpf.h \
 	util-enum.h \
@@ -1050,6 +1051,7 @@ libsuricata_c_a_SOURCES = \
 	util-dpdk-ixgbe.c \
 	util-dpdk-mlx5.c \
 	util-dpdk-rss.c \
+	util-dpdk-threading.c \
 	util-dpdk.c \
 	util-ebpf.c \
 	util-enum.c \

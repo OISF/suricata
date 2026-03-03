@@ -47,6 +47,10 @@ typedef void (*ThreadExitPrintStatsFunc)(ThreadVars *, void *);
 typedef struct TmModule_ {
     const char *name;
 
+    /** thread management, if unspecified, falls back to pthreads */
+    void (*ThreadSpawn)(ThreadVars *);
+    void (*ThreadJoin)(ThreadVars *);
+
     /** thread handling */
     TmEcode (*ThreadInit)(ThreadVars *, const void *, void **);
     void (*ThreadExitPrintStats)(ThreadVars *, void *);
