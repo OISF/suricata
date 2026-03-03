@@ -214,6 +214,7 @@ macro_rules!export_state_data_get {
 
 pub trait AppLayerResultRust {
     fn ok() -> Self;
+    fn ok_partial_continue(consumed: u32) -> Self;
     fn err() -> Self;
     fn incomplete(consumed: u32, needed: u32) -> Self;
     fn is_ok(&self) -> bool;
@@ -225,6 +226,15 @@ impl AppLayerResultRust for AppLayerResult {
     /// parser has successfully processed in the input, and has consumed all of it
     fn ok() -> Self {
         Default::default()
+    }
+    /// parser has successfully processed input, but not all. The rest should be
+    /// immediately be processed.
+    fn ok_partial_continue(consumed: u32) -> Self {
+        return Self {
+            status: 2,
+            consumed,
+            needed: 0,
+        };
     }
     /// parser has hit an unrecoverable error. Returning this to the API
     /// leads to no further calls to the parser.

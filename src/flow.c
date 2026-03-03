@@ -543,6 +543,22 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
         DecodeSetNoPayloadInspectionFlag(p);
     }
 
+    if ((f->flags & FLOW_IS_TRANSLATED) != 0) {
+        const FlowTuple *ft = SCFlowGetTranslated(f);
+        if (ft != NULL) {
+            if (FlowGetPacketDirection(f, p) == TOSERVER) {
+                memcpy(&p->src.address, &ft->src.address, 16);
+                memcpy(&p->dst.address, &ft->dst.address, 16);
+                p->sp = ft->sp;
+                p->dp = ft->dp;
+            } else {
+                memcpy(&p->src.address, &ft->dst.address, 16);
+                memcpy(&p->dst.address, &ft->src.address, 16);
+                p->sp = ft->dp;
+                p->dp = ft->sp;
+            }
+        }
+    }
     SCFlowRunUpdateCallbacks(tv, f, p);
 }
 
@@ -1205,6 +1221,60 @@ void FlowUpdateState(Flow *f, const enum FlowState s)
 #ifdef UNITTESTS
     }
 #endif
+}
+
+static FlowStorageId g_flow_translate_id = { .id = -1 };
+
+static void FlowTranslationFree(void *ptr)
+{
+    SCFree(ptr);
+}
+
+void SCFlowEnableTranslation(const char *name)
+{
+    g_flow_translate_id =
+            FlowStorageRegister("translation", sizeof(void *), NULL, FlowTranslationFree);
+    SCLogNotice("translation tracking %s by %s",
+            g_flow_translate_id.id != -1 ? "enabled" : "failed to enable", name);
+}
+
+const FlowTuple *SCFlowGetTranslated(const Flow *f)
+{
+    if (g_flow_translate_id.id == -1)
+        return NULL;
+    if (!(f->flags & FLOW_IS_TRANSLATED))
+        return NULL;
+    const FlowTuple *ft = FlowGetStorageById(f, g_flow_translate_id);
+    return ft;
+}
+
+/**
+ * \retval 1 ok
+ * \retval 0 already set up as translated
+ * \retval -1 error
+ */
+int SCFlowSetTranslated(
+        Flow *f, uint8_t proto, uint32_t src_ip, uint16_t sp, uint32_t dest_ip, uint16_t dp)
+{
+    /* flow storage not registered */
+    if (g_flow_translate_id.id == -1)
+        return -1;
+    if (f->flags & FLOW_IS_TRANSLATED)
+        return 0;
+    FlowTuple *ft = SCCalloc(1, sizeof(*ft));
+    if (ft) {
+        ft->proto = f->proto;
+        ft->sp = sp;
+        ft->dp = dp;
+        memcpy(&ft->src, &src_ip, sizeof(src_ip));
+        memcpy(&ft->dst, &dest_ip, sizeof(dest_ip));
+        if (FlowSetStorageById(f, g_flow_translate_id, (void *)ft) != 0) {
+            return -1;
+        }
+        f->flags |= FLOW_IS_TRANSLATED;
+        return 1;
+    }
+    return -1;
 }
 
 /**
