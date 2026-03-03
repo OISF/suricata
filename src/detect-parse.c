@@ -4808,26 +4808,15 @@ static int SigParseTestNegation01 (void)
  */
 static int SigParseTestNegation02 (void)
 {
-    int result = 0;
-    DetectEngineCtx *de_ctx;
-    Signature *s=NULL;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-
-    s = SigInit(de_ctx,"alert tcp any !any -> any any (msg:\"SigTest41-02 src ip is !any \"; classtype:misc-activity; sid:410002; rev:1;)");
-    if (s != NULL) {
-        SigFree(de_ctx, s);
-        goto end;
-    }
-
-    result = 1;
-end:
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-    return result;
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any !any -> any any (msg:\"SigTest41-02 src ip is !any \"; "
+            "classtype:misc-activity; sid:410002; rev:1;)");
+    FAIL_IF_NOT_NULL(s);
+    DetectEngineCtxFree(de_ctx);
+    PASS;
 }
 /**
  * \test check that we don't allow invalid negation options
