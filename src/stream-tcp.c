@@ -1425,11 +1425,6 @@ static int StreamTcpPacketStateNone(
         StreamTcpPacketSetState(p, ssn, TCP_SYN_SENT);
         SCLogDebug("ssn %p: =~ ssn state is now TCP_SYN_SENT", ssn);
 
-        if (stream_config.async_oneside) {
-            SCLogDebug("ssn %p: =~ ASYNC", ssn);
-            ssn->flags |= STREAMTCP_FLAG_ASYNC;
-        }
-
         /* set the sequence numbers and window */
         ssn->client.isn = TCP_GET_RAW_SEQ(tcph);
         STREAMTCP_SET_RA_BASE_SEQ(&ssn->client, ssn->client.isn);
