@@ -1,6 +1,7 @@
 SUBDIRS =	ffi \
 		htp \
 		sys \
+		config \
 		suricatasc \
 		suricatactl
 
@@ -12,9 +13,11 @@ EXTRA_DIST =	.cargo/config.toml.in \
 		derive/Cargo.toml \
 		dist/htp/htp_rs.h \
 		dist/rust-bindings.h \
+		dist/rust-config.h \
 		ffi \
 		htp \
 		src \
+		config \
 		suricatactl \
 		suricatasc \
 		sys \
@@ -82,6 +85,7 @@ all-local: Cargo.toml
 			$(RUST_SURICATA_LIBDIR)/${RUST_SURICATA_LIBNAME}; \
 	fi
 	$(MAKE) gen/rust-bindings.h
+	$(MAKE) gen/rust-config.h
 	$(MAKE) gen/htp/htp_rs.h
 	if test -e Cargo.lock.in; then \
 		cp Cargo.lock Cargo.lock.in; \
@@ -175,6 +179,15 @@ gen/rust-bindings.h:
 endif
 
 if HAVE_CBINDGEN
+gen/rust-config.h: $(RUST_SURICATA_LIB) config/cbindgen.toml
+	cd $(abs_top_srcdir)/rust && \
+		CARGO=$(CARGO) $(CBINDGEN) --config $(abs_top_srcdir)/rust/config/cbindgen.toml \
+		--quiet --verify --output $(abs_top_builddir)/rust/gen/rust-config.h config || true
+else
+gen/rust-config.h:
+endif
+
+if HAVE_CBINDGEN
 gen/htp/htp_rs.h: $(RUST_SURICATA_LIB) htp/cbindgen.toml
 	cd $(abs_top_srcdir)/rust/htp && \
 		CARGO=$(CARGO) $(CBINDGEN) --config $(abs_top_srcdir)/rust/htp/cbindgen.toml \
@@ -192,6 +205,15 @@ dist/rust-bindings.h:
 		--quiet --output $(abs_top_builddir)/rust/dist/rust-bindings.h
 else
 dist/rust-bindings.h:
+endif
+
+if HAVE_CBINDGEN
+dist/rust-config.h:
+	cd $(abs_top_srcdir)/rust && \
+	CARGO=$(CARGO) $(CBINDGEN) --config $(abs_top_srcdir)/rust/config/cbindgen.toml \
+		--quiet --output $(abs_top_builddir)/rust/dist/rust-config.h config
+else
+dist/rust-config.h:
 endif
 
 if HAVE_CBINDGEN

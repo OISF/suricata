@@ -11,6 +11,7 @@ use clap::Parser;
 use clap::Subcommand;
 use tracing::Level;
 
+mod config;
 mod filestore;
 
 const CLAP_STYLING: Styles = Styles::styled()
@@ -44,6 +45,9 @@ struct Cli {
 enum Commands {
     /// Filestore management commands
     Filestore(FilestoreCommand),
+
+    /// Suricata configuration commands
+    Config(config::ConfigCommand),
 }
 
 #[derive(Parser, Debug)]
@@ -84,5 +88,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Commands::Filestore(filestore) => match filestore.command {
             FilestoreCommands::Prune(args) => crate::filestore::prune::prune(args),
         },
+        Commands::Config(config) => crate::config::run(config),
     }
 }
