@@ -31,6 +31,7 @@ typedef struct StreamSlice StreamSlice;
 #include "detect.h"
 
 #include "rust-bindings.h"
+#include "rust-config.h"
 
 #define JB_SET_STRING(jb, key, val) SCJbSetFormatted((jb), "\"" key "\":\"" val "\"")
 #define JB_SET_TRUE(jb, key)        SCJbSetFormatted((jb), "\"" key "\":true")

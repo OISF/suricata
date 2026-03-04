@@ -1,0 +1,4 @@
+%YAML 1.1
+---
+HOME_NET: "[192.168.0.0/16]"
+EXTERNAL_NET: any

@@ -1,0 +1,12 @@
+%YAML 1.1
+---
+stats:
+  enabled: no
+include:
+  - include-root.yaml
+  - include-override.yaml
+outputs: !include include-outputs.yaml
+vars:
+  address-groups:
+    include: include-address-groups.yaml
+    HOME_NET: "[10.10.10.0/24]"
