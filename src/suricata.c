@@ -865,6 +865,12 @@ static void PrintBuildInfo(void)
 #if defined(__SSE2__)
     strlcat(features, "SSE_2 ", sizeof(features));
 #endif
+#if defined(__ARM_FEATURE_SVE)
+    strlcat(features, "SVE ", sizeof(features));
+#endif
+#if defined(__ARM_NEON)
+    strlcat(features, "NEON ", sizeof(features));
+#endif
     if (strlen(features) == 0) {
         strlcat(features, "none", sizeof(features));
     }
