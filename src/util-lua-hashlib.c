@@ -123,13 +123,12 @@ static int LuaHashLibSha256Digest(lua_State *L)
     size_t buf_len;
     const char *input = luaL_checklstring(L, 1, &buf_len);
 
-    uint32_t output_len = SC_SHA256_LEN;
-    uint8_t output[output_len];
-    if (!SCSha256HashBuffer((uint8_t *)input, (uint32_t)buf_len, output, output_len)) {
+    uint8_t output[SC_SHA256_LEN];
+    if (!SCSha256HashBuffer((uint8_t *)input, (uint32_t)buf_len, output, SC_SHA256_LEN)) {
         return luaL_error(L, "sha256 hashing failed");
     }
 
-    lua_pushlstring(L, (const char *)output, output_len);
+    lua_pushlstring(L, (const char *)output, SC_SHA256_LEN);
 
     return 1;
 }
