@@ -2823,6 +2823,16 @@ static bool SigValidateEthernet(const Signature *s)
     return true;
 }
 
+/* `pkthdr` is meant to allow matching on "any" packet with a decoder event. */
+static bool SigValidateProtoPkthdr(const Signature *s)
+{
+    if ((s->init_data->proto.flags & DETECT_PROTO_L2_ANY) && s->type != SIG_TYPE_DEONLY) {
+        SCLogError("protocol 'pkthdr' is for decoder-events only");
+        return false;
+    }
+    return true;
+}
+
 /**
  *  \internal
  *  \brief validate and consolidate parsed signature
@@ -2865,6 +2875,10 @@ static int SigValidateConsolidate(
 
     SignatureSetType(de_ctx, s);
     DetectRuleSetTable(s);
+
+    if (!SigValidateProtoPkthdr(s)) {
+        SCReturnInt(0);
+    }
 
     if (DetectProtoFinalizeSignature(s) != 0)
         SCReturnInt(0);
