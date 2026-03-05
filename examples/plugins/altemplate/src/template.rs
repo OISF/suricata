@@ -32,8 +32,8 @@ use suricata::applayer::{
 };
 use suricata::applayer::{AppLayerResultRust, StreamSliceRust};
 use suricata::conf::conf_get;
-use suricata::{build_slice, export_state_data_get, export_tx_data_get};
-use suricata_ffi::{cast_pointer, SCLogError, SCLogNotice, IPPROTO_TCP};
+use suricata::{export_state_data_get, export_tx_data_get};
+use suricata_ffi::{build_slice, cast_pointer, SCLogError, SCLogNotice, IPPROTO_TCP};
 use suricata_sys::sys::AppProtoEnum::ALPROTO_UNKNOWN;
 use suricata_sys::sys::{
     AppLayerParser, AppLayerParserState, AppLayerProtocolDetect, AppLayerResult, AppLayerStateData,

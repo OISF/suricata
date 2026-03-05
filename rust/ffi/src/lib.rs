@@ -30,3 +30,11 @@ pub const IPPROTO_UDP: u8 = 17;
 macro_rules! cast_pointer {
     ($ptr:ident, $ty:ty) => ( &mut *($ptr as *mut $ty) );
 }
+
+/// Create a slice, given a buffer and a length
+///
+/// UNSAFE !
+#[macro_export]
+macro_rules! build_slice {
+    ($buf:ident, $len:expr) => ( std::slice::from_raw_parts($buf, $len) );
+}
