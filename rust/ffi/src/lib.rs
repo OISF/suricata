@@ -32,3 +32,13 @@ macro_rules! cast_pointer {
         &mut *($ptr as *mut $ty)
     };
 }
+
+/// Create a slice, given a buffer and a length
+///
+/// UNSAFE !
+#[macro_export]
+macro_rules! build_slice {
+    ($buf:ident, $len:expr) => {
+        std::slice::from_raw_parts($buf, $len)
+    };
+}

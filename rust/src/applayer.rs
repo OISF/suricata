@@ -332,14 +332,6 @@ pub struct RustParser {
     pub get_state_name_by_id: Option<GetStateNameById>,
 }
 
-/// Create a slice, given a buffer and a length
-///
-/// UNSAFE !
-#[macro_export]
-macro_rules! build_slice {
-    ($buf:ident, $len:expr) => ( std::slice::from_raw_parts($buf, $len) );
-}
-
 pub trait AppLayerGetFileStateRust {
     fn err() -> Self;
 }
