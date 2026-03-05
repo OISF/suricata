@@ -21,7 +21,7 @@
 // use the plugin-facing FFI JsonBuilder wrapper
 
 use super::template::TemplateTransaction;
-use suricata::cast_pointer;
+use suricata_ffi::cast_pointer;
 use suricata_ffi::jsonbuilder::{Error as JsonError, JsonBuilder};
 use suricata_sys::sys::SCJsonBuilder;
 

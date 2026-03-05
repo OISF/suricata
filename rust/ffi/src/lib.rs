@@ -22,3 +22,11 @@ pub mod plugin;
 
 pub const IPPROTO_TCP: u8 = 6;
 pub const IPPROTO_UDP: u8 = 17;
+
+/// Cast pointer to a variable, as a mutable reference to an object
+///
+/// UNSAFE !
+#[macro_export]
+macro_rules! cast_pointer {
+    ($ptr:ident, $ty:ty) => ( &mut *($ptr as *mut $ty) );
+}

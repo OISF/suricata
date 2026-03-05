@@ -54,6 +54,8 @@
 #![allow(unknown_lints)]
 
 #[macro_use]
+extern crate suricata_ffi;
+#[macro_use]
 extern crate bitflags;
 extern crate byteorder;
 extern crate crc;
