@@ -1662,8 +1662,9 @@ flow-timeouts:
 #     memcap-policy: ignore     # The exception policy value can be "drop-flow",
 #                               # "pass-flow", "bypass", "drop-packet", "pass-packet",
 #                               # "reject" or "ignore" default is "ignore"
-#     depth: 1 MiB               # Can be specified in KiB, MiB, GiB.  Just a number
+#     depth: 1 MiB              # Can be specified in KiB, MiB, GiB.  Just a number
 #                               # indicates it's in bytes.
+#                               # if the field is absent, value 0 (meaning "unlimited") is used
 #     toserver-chunk-size: 2560 # inspect raw stream in chunks of at least
 #                               # this size.  Can be specified in KiB, MiB, GiB.
 #                               # Just a number indicates it's in bytes.
