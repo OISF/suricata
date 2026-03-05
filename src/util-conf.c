@@ -65,9 +65,14 @@ TmEcode ConfigCheckLogDirectoryExists(const char *log_dir)
 
 TmEcode ConfigSetDataDirectory(char *name)
 {
-    if (strlen(name) == 0)
+    size_t name_len = strlen(name);
+    if (name_len == 0)
         return TM_ECODE_OK;
 
+    if (name_len > PATH_MAX) {
+        SCLogError("Too long name for data directory");
+        return TM_ECODE_FAILED;
+    }
     size_t size = strlen(name) + 1;
     char tmp[size];
     strlcpy(tmp, name, size);
