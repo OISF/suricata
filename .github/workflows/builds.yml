@@ -2383,7 +2383,6 @@ jobs:
           hiredis \
           jansson \
           jq \
-          libmagic \
           libnet \
           libtool \
           libyaml \
