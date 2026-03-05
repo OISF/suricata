@@ -655,7 +655,7 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
         uint16_t dyn_port;
         switch (state->command) {
             case FTP_COMMAND_AUTH_TLS:
-                if (line.len >= 4 && SCMemcmp("234 ", line.buf, 4) == 0) {
+                if (line.len >= 4 && SCMemcmp((const uint8_t *)"234 ", line.buf, 4) == 0) {
                     SCAppLayerRequestProtocolTLSUpgrade(f);
                 }
                 break;
@@ -685,13 +685,13 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
                 break;
 
             case FTP_COMMAND_PASV:
-                if (line.len >= 4 && SCMemcmp("227 ", line.buf, 4) == 0) {
+                if (line.len >= 4 && SCMemcmp((const uint8_t *)"227 ", line.buf, 4) == 0) {
                     FTPParsePassiveResponse(ftp_state, line.buf, line.len);
                 }
                 break;
 
             case FTP_COMMAND_EPSV:
-                if (line.len >= 4 && SCMemcmp("229 ", line.buf, 4) == 0) {
+                if (line.len >= 4 && SCMemcmp((const uint8_t *)"229 ", line.buf, 4) == 0) {
                     FTPParsePassiveResponseV6(ftp_state, line.buf, line.len);
                 }
                 break;

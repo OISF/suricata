@@ -975,7 +975,7 @@ static int SMTPProcessReply(
     } else if (state->parser_state & SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
         /* we check if the server is indicating pipelining support */
         if (reply_code == SMTP_REPLY_250 && line->len == 14 &&
-                SCMemcmpLowercase("pipelining", line->buf + 4, 10) == 0) {
+                SCMemcmpLowercase((const uint8_t *)"pipelining", line->buf + 4, 10) == 0) {
             state->parser_state |= SMTP_PARSER_STATE_PIPELINING_SERVER;
         }
     }
@@ -1106,9 +1106,10 @@ static int SMTPParseCommandRCPTTO(SMTPState *state, const SMTPLine *line)
 static int NoNewTx(SMTPState *state, const SMTPLine *line)
 {
     if (!(state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
-        if (line->len >= 4 && SCMemcmpLowercase("rset", line->buf, 4) == 0) {
+        if (line->len >= 4 && SCMemcmpLowercase((const uint8_t *)"rset", line->buf, 4) == 0) {
             return 1;
-        } else if (line->len >= 4 && SCMemcmpLowercase("quit", line->buf, 4) == 0) {
+        } else if (line->len >= 4 &&
+                   SCMemcmpLowercase((const uint8_t *)"quit", line->buf, 4) == 0) {
             return 1;
         }
     }
@@ -1189,9 +1190,10 @@ static int SMTPProcessRequest(
         int r = 0;
         SCAppLayerParserTriggerRawStreamInspection(f, STREAM_TOSERVER);
 
-        if (line->len >= 8 && SCMemcmpLowercase("starttls", line->buf, 8) == 0) {
+        if (line->len >= 8 && SCMemcmpLowercase((const uint8_t *)"starttls", line->buf, 8) == 0) {
             state->current_command = SMTP_COMMAND_STARTTLS;
-        } else if (line->len >= 4 && SCMemcmpLowercase("data", line->buf, 4) == 0) {
+        } else if (line->len >= 4 &&
+                   SCMemcmpLowercase((const uint8_t *)"data", line->buf, 4) == 0) {
             state->current_command = SMTP_COMMAND_DATA;
             if (state->curr_tx->is_data) {
                 // We did not receive a confirmation from server
@@ -1227,33 +1229,38 @@ static int SMTPProcessRequest(
             if (state->parser_state & SMTP_PARSER_STATE_PIPELINING_SERVER) {
                 state->parser_state |= SMTP_PARSER_STATE_COMMAND_DATA_MODE;
             }
-        } else if (line->len >= 4 && SCMemcmpLowercase("bdat", line->buf, 4) == 0) {
+        } else if (line->len >= 4 &&
+                   SCMemcmpLowercase((const uint8_t *)"bdat", line->buf, 4) == 0) {
             r = SMTPParseCommandBDAT(state, line);
             if (r == -1) {
                 SCReturnInt(-1);
             }
             state->current_command = SMTP_COMMAND_BDAT;
             state->parser_state |= SMTP_PARSER_STATE_COMMAND_DATA_MODE;
-        } else if (line->len >= 4 && ((SCMemcmpLowercase("helo", line->buf, 4) == 0) ||
-                                             SCMemcmpLowercase("ehlo", line->buf, 4) == 0)) {
+        } else if (line->len >= 4 &&
+                   ((SCMemcmpLowercase((const uint8_t *)"helo", line->buf, 4) == 0) ||
+                           SCMemcmpLowercase((const uint8_t *)"ehlo", line->buf, 4) == 0)) {
             r = SMTPParseCommandHELO(state, line);
             if (r == -1) {
                 SCReturnInt(-1);
             }
             state->current_command = SMTP_COMMAND_OTHER_CMD;
-        } else if (line->len >= 9 && SCMemcmpLowercase("mail from", line->buf, 9) == 0) {
+        } else if (line->len >= 9 &&
+                   SCMemcmpLowercase((const uint8_t *)"mail from", line->buf, 9) == 0) {
             r = SMTPParseCommandMAILFROM(state, line);
             if (r == -1) {
                 SCReturnInt(-1);
             }
             state->current_command = SMTP_COMMAND_OTHER_CMD;
-        } else if (line->len >= 7 && SCMemcmpLowercase("rcpt to", line->buf, 7) == 0) {
+        } else if (line->len >= 7 &&
+                   SCMemcmpLowercase((const uint8_t *)"rcpt to", line->buf, 7) == 0) {
             r = SMTPParseCommandRCPTTO(state, line);
             if (r == -1) {
                 SCReturnInt(-1);
             }
             state->current_command = SMTP_COMMAND_OTHER_CMD;
-        } else if (line->len >= 4 && SCMemcmpLowercase("rset", line->buf, 4) == 0) {
+        } else if (line->len >= 4 &&
+                   SCMemcmpLowercase((const uint8_t *)"rset", line->buf, 4) == 0) {
             // Resets chunk index in case of connection reuse
             state->bdat_chunk_idx = 0;
             state->current_command = SMTP_COMMAND_RSET;
