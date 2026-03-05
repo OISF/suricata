@@ -502,7 +502,10 @@ unsafe extern "C" fn krb5_parse_request_tcp(
             state.record_ts = 0;
         } else {
             // more fragments required
-            return AppLayerResult::incomplete((start_len - cur_i.len()) as u32, state.record_ts as u32);
+            return AppLayerResult::incomplete(
+                (start_len - cur_i.len()) as u32,
+                (state.record_ts - cur_i.len()) as u32,
+            );
         }
     }
     AppLayerResult::ok()
@@ -539,7 +542,10 @@ unsafe extern "C" fn krb5_parse_response_tcp(
             state.record_tc = 0;
         } else {
             // more fragments required
-            return AppLayerResult::incomplete((start_len - cur_i.len()) as u32, state.record_tc as u32);
+            return AppLayerResult::incomplete(
+                (start_len - cur_i.len()) as u32,
+                (state.record_tc - cur_i.len()) as u32,
+            );
         }
     }
     AppLayerResult::ok()
