@@ -4263,7 +4263,6 @@ end:
  *        any other packet of the stream */
 static int SigTestDropFlow03(void)
 {
-    int result = 0;
     Flow f;
     HtpState *http_state = NULL;
     uint8_t http_buf1[] = "POST /one HTTP/1.0\r\n"
@@ -4282,7 +4281,6 @@ static int SigTestDropFlow03(void)
     TcpSession ssn;
     Packet *p1 = NULL;
     Packet *p2 = NULL;
-    Signature *s = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -4314,107 +4312,62 @@ static int SigTestDropFlow03(void)
     StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "drop tcp any any -> any 80 "
-                                   "(msg:\"Test proto match\"; uricontent:\"one\";"
-                                   "sid:1;)");
-    if (s == NULL) {
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx, "drop tcp any any -> any 80 "
+                                                 "(msg:\"Test proto match\"; uricontent:\"one\";"
+                                                 "sid:1;)");
+    FAIL_IF_NULL(s);
 
     /* the no inspection flag should be set after the first sig gets triggered,
      * so the second packet should not match the next sig (because of no inspection) */
-    s = de_ctx->sig_list->next = SigInit(de_ctx, "alert tcp any any -> any 80 "
-                                   "(msg:\"Test proto match\"; uricontent:\"two\";"
-                                   "sid:2;)");
-    if (s == NULL) {
-        goto end;
-    }
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any 80 "
+                                      "(msg:\"Test proto match\"; uricontent:\"two\";"
+                                      "sid:2;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf1, http_buf1_len);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
+    FAIL_IF(r != 0);
 
     http_state = f.alstate;
-    if (http_state == NULL) {
-        printf("no http state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(http_state);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p1);
-
-    if (!PacketAlertCheck(p1, 1)) {
-        printf("sig 1 didn't alert on p1, but it should: ");
-        goto end;
-    }
-
-    if ( !(p1->flow->flags & FLOW_ACTION_DROP)) {
-        printf("sig 1 alerted but flow was not flagged correctly: ");
-        goto end;
-    }
+    FAIL_IF(!PacketAlertCheck(p1, 1));
+    FAIL_IF(!(p1->flow->flags & FLOW_ACTION_DROP));
 
     /* Second part.. Let's feed with another packet */
-    if (StreamTcpCheckFlowDrops(p2) == 1) {
-        SCLogDebug("This flow/stream triggered a drop rule");
-        DecodeSetNoPacketInspectionFlag(p2);
-        StreamTcpDisableAppLayer(p2->flow);
-        p2->action |= ACTION_DROP;
-        /* return the segments to the pool */
-        StreamTcpSessionPktFree(p2);
-    }
+    FAIL_IF_NOT(StreamTcpCheckFlowDrops(p2) == 1);
 
+    SCLogDebug("This flow/stream triggered a drop rule");
+    DecodeSetNoPacketInspectionFlag(p2);
+    StreamTcpDisableAppLayer(p2->flow);
+    p2->action |= ACTION_DROP;
+    /* return the segments to the pool */
+    StreamTcpSessionPktFree(p2);
 
-    if ( !(p2->flags & PKT_NOPACKET_INSPECTION)) {
-        printf("The packet was not flagged with no-inspection: ");
-        goto end;
-    }
+    FAIL_IF(!(p2->flags & PKT_NOPACKET_INSPECTION));
 
     r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf2, http_buf2_len);
-    if (r != 0) {
-        printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
+    FAIL_IF(r != 0);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p2);
 
-    if (PacketAlertCheck(p2, 1)) {
-        printf("sig 1 alerted, but it should not since the no pkt inspection should be set: ");
-        goto end;
-    }
+    FAIL_IF(PacketAlertCheck(p2, 1));
+    FAIL_IF(PacketAlertCheck(p2, 2));
+    FAIL_IF(!(PacketTestAction(p2, ACTION_DROP)));
 
-    if (PacketAlertCheck(p2, 2)) {
-        printf("sig 2 alerted, but it should not since the no pkt inspection should be set: ");
-        goto end;
-    }
-
-    if (!(PacketTestAction(p2, ACTION_DROP))) {
-        printf("A \"drop\" action should be set from the flow to the packet: ");
-        goto end;
-    }
-
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&tv, det_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
@@ -4425,7 +4378,7 @@ end:
     /* Restore mode to IDS */
     EngineModeSetIDS();
     StatsThreadCleanup(&tv.stats);
-    return result;
+    PASS;
 }
 
 /** \test ICMP packet shouldn't be matching port based sig
