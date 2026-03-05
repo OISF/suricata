@@ -215,7 +215,6 @@ static InspectionBuffer *GetRandomTimeData(DetectEngineThreadCtx *det_ctx,
             if (!(ssl_state->flags & TLS_TC_RANDOM_SET))
                 return NULL;
         }
-        const uint32_t data_len = DETECT_TLS_RANDOM_TIME_LEN;
         const uint8_t *data;
         if (flow_flags & STREAM_TOSERVER) {
             data = ssl_state->client_connp.random;
@@ -223,7 +222,7 @@ static InspectionBuffer *GetRandomTimeData(DetectEngineThreadCtx *det_ctx,
             data = ssl_state->server_connp.random;
         }
         InspectionBufferSetupAndApplyTransforms(
-                det_ctx, list_id, buffer, data, data_len, transforms);
+                det_ctx, list_id, buffer, data, DETECT_TLS_RANDOM_TIME_LEN, transforms);
     }
     return buffer;
 }
@@ -242,7 +241,6 @@ static InspectionBuffer *GetRandomBytesData(DetectEngineThreadCtx *det_ctx,
             if (!(ssl_state->flags & TLS_TC_RANDOM_SET))
                 return NULL;
         }
-        const uint32_t data_len = DETECT_TLS_RANDOM_BYTES_LEN;
         const uint8_t *data;
         if (flow_flags & STREAM_TOSERVER) {
             data = ssl_state->client_connp.random + DETECT_TLS_RANDOM_TIME_LEN;
@@ -250,7 +248,7 @@ static InspectionBuffer *GetRandomBytesData(DetectEngineThreadCtx *det_ctx,
             data = ssl_state->server_connp.random + DETECT_TLS_RANDOM_TIME_LEN;
         }
         InspectionBufferSetupAndApplyTransforms(
-                det_ctx, list_id, buffer, data, data_len, transforms);
+                det_ctx, list_id, buffer, data, DETECT_TLS_RANDOM_BYTES_LEN, transforms);
     }
     return buffer;
 }
@@ -269,7 +267,6 @@ static InspectionBuffer *GetRandomData(DetectEngineThreadCtx *det_ctx,
             if (!(ssl_state->flags & TLS_TC_RANDOM_SET))
                 return NULL;
         }
-        const uint32_t data_len = TLS_RANDOM_LEN;
         const uint8_t *data;
         if (flow_flags & STREAM_TOSERVER) {
             data = ssl_state->client_connp.random;
@@ -277,7 +274,7 @@ static InspectionBuffer *GetRandomData(DetectEngineThreadCtx *det_ctx,
             data = ssl_state->server_connp.random;
         }
         InspectionBufferSetupAndApplyTransforms(
-                det_ctx, list_id, buffer, data, data_len, transforms);
+                det_ctx, list_id, buffer, data, TLS_RANDOM_LEN, transforms);
     }
     return buffer;
 }
