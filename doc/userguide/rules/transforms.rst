@@ -401,6 +401,7 @@ gunzip
 Takes the buffer, applies gunzip decompression.
 
 This transform takes an optional argument which is a comma-separated list of key-values.
+Key and value are separated by a space.
 The only key being interperted is ``max-size``, which is the max output size.
 Default for max-size is 1024.
 If the decompressed data were to be larger than max-size,
@@ -413,7 +414,7 @@ Example::
     alert http any any -> any any (msg:"from_base64 + gunzip";
             http.uri; content:"/gzb64?value="; fast_pattern;
             from_base64: offset 13 ;
-            gunzip; content:"This is compressed then base64-encoded"; startswith; endswith;
+            gunzip: max-size 1024; content:"This is compressed then base64-encoded"; startswith; endswith;
             sid:2; rev:1;)
 
 zlib_deflate
@@ -422,6 +423,7 @@ zlib_deflate
 Takes the buffer, applies zlib decompression.
 
 This transform takes an optional argument which is a comma-separated list of key-values.
+Key and value are separated by a space.
 The only key being interperted is ``max-size``, which is the max output size.
 Default for max-size is 1024.
 If the decompressed data were to be larger than max-size,
