@@ -343,6 +343,7 @@ outputs:
         - quic
         - ldap
         - pop3
+        #- modbus
         - arp:
             enabled: no        # Many events can be logged. Disabled by default
         - dhcp:
