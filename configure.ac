@@ -441,7 +441,21 @@
 
     #enable gcc march=native gcc 4.2 or later
     AC_ARG_ENABLE(gccmarch_native,
-           AS_HELP_STRING([--enable-gccmarch-native], [Enable gcc march=native gcc 4.2 and later only]),[enable_gccmarch_native=$enableval],[enable_gccmarch_native=yes])
+           AS_HELP_STRING([--enable-gccmarch-native], [Enable gcc march=native gcc 4.2 and later only]),[enable_gccmarch_native=$enableval],[enable_gccmarch_native=auto])
+
+    # auto: add -march=native only if no -march= is already in CFLAGS
+    # yes:  always add -march=native
+    # no:   never add -march=native
+    AS_IF([test "x$enable_gccmarch_native" = "xauto"], [
+        case "$CFLAGS" in
+            *-march=*)
+                enable_gccmarch_native=no
+                ;;
+            *)
+                enable_gccmarch_native=yes
+                ;;
+        esac
+    ])
     AS_IF([test "x$enable_gccmarch_native" = "xyes"], [
         case "$host" in
             *powerpc*)
