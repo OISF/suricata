@@ -735,6 +735,7 @@ void StreamTcpInitConfig(bool quiet)
             exit(EXIT_FAILURE);
         }
     } else {
+        SCLogNotice("stream.reassembly.depth absent is unlimited");
         stream_config.reassembly_depth = 0;
     }
 
