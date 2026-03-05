@@ -3099,7 +3099,6 @@ jobs:
           hwloc \
           jansson \
           jq \
-          libmagic \
           libnet \
           libtool \
           libyaml \
