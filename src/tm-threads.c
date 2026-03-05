@@ -701,7 +701,7 @@ void TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, const void *data)
     }
 }
 
-#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun
+#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined __sun
 static int SetCPUAffinitySet(cpu_set_t *cs)
 {
 #if defined OS_FREEBSD
@@ -735,7 +735,7 @@ static int SetCPUAffinitySet(cpu_set_t *cs)
  */
 static int SetCPUAffinity(uint16_t cpuid)
 {
-#if defined __OpenBSD__ || defined sun
+#if defined __OpenBSD__ || defined __sun
     return 0;
 #else
     int cpu = (int)cpuid;
@@ -871,7 +871,7 @@ TmEcode TmThreadSetupOptions(ThreadVars *tv)
         SetCPUAffinity(tv->cpu_affinity);
     }
 
-#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun
+#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined __sun
     if (tv->thread_setup_flags & THREAD_SET_PRIORITY)
         TmThreadSetPrio(tv);
     if (tv->thread_setup_flags & THREAD_SET_AFFTYPE) {
