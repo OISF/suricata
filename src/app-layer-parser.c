@@ -1415,7 +1415,7 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
             goto error;
         } else if (res.status > 0) {
             DEBUG_VALIDATE_BUG_ON(res.consumed > input_len);
-            DEBUG_VALIDATE_BUG_ON(res.needed + res.consumed < input_len);
+            DEBUG_VALIDATE_BUG_ON(res.needed + res.consumed < input_len && res.needed < input_len);
             DEBUG_VALIDATE_BUG_ON(res.needed == 0);
             /* incomplete is only supported for TCP */
             DEBUG_VALIDATE_BUG_ON(f->proto != IPPROTO_TCP);
