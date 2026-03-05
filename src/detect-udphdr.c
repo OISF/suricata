@@ -109,11 +109,8 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
             return NULL;
         }
 
-        const uint32_t data_len = UDP_HEADER_LEN;
-        const uint8_t *data = (const uint8_t *)udph;
-
         InspectionBufferSetupAndApplyTransforms(
-                det_ctx, list_id, buffer, data, data_len, transforms);
+                det_ctx, list_id, buffer, (const uint8_t *)udph, UDP_HEADER_LEN, transforms);
     }
 
     return buffer;
