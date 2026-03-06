@@ -118,4 +118,9 @@ OutputJsonThreadCtx *CreateEveThreadCtx(ThreadVars *t, OutputJsonCtx *ctx);
 void FreeEveThreadCtx(OutputJsonThreadCtx *ctx);
 void JSONFormatAndAddMACAddr(SCJsonBuilder *js, const char *key, const uint8_t *val, bool is_array);
 
+/* PE metadata logging */
+bool SCPeLogJsonByFile(const File *file, const uint8_t *data, uint32_t data_len, uint64_t offset,
+        SCJsonBuilder *jb);
+void EveFilePeMetadataLog(const File *file, SCJsonBuilder *jb);
+
 #endif /* SURICATA_OUTPUT_JSON_H */
