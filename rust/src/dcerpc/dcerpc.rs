@@ -264,6 +264,8 @@ pub struct DCERPCUuidEntry {
     pub version: u16,
     pub versionminor: u16,
     pub flags: u16,
+    pub call_id: u32,
+    pub acked: bool,
 }
 
 impl DCERPCUuidEntry {
@@ -327,8 +329,7 @@ pub struct DCERPCBindAck {
 #[derive(Default, Debug)]
 pub struct DCERPCState {
     pub header: Option<DCERPCHdr>,
-    pub bind: Option<DCERPCBind>,
-    pub bindack: Option<DCERPCBindAck>,
+    pub interface_uuids: Vec<DCERPCUuidEntry>,
     pub transactions: VecDeque<DCERPCTransaction>,
     tx_index_completed: usize,
     pub pad: u8,
@@ -612,13 +613,14 @@ impl DCERPCState {
         }
     }
 
-    pub fn handle_bindctxitem(&mut self, input: &[u8], uuid_internal_id: u16) -> i32 {
+    pub fn handle_bindctxitem(&mut self, input: &[u8], uuid_internal_id: u16, call_id: u32) -> i32 {
         let endianness = self.get_endianness();
         match parser::parse_bindctx_item(input, endianness) {
             Ok((leftover_bytes, ctxitem)) => {
                 let mut uuidentry = DCERPCUuidEntry::new();
                 uuidentry.uuid = ctxitem.uuid;
                 uuidentry.internal_id = uuid_internal_id;
+                uuidentry.call_id = call_id;
                 uuidentry.ctxid = ctxitem.ctxid;
                 uuidentry.version = ctxitem.version;
                 uuidentry.versionminor = ctxitem.versionminor;
@@ -628,9 +630,15 @@ impl DCERPCState {
                 if pfcflags & PFC_FIRST_FRAG > 0 {
                     uuidentry.flags |= DCERPC_UUID_ENTRY_FLAG_FF;
                 }
-                if let Some(ref mut bind) = self.bind {
-                    SCLogDebug!("DCERPC BIND CtxItem: Pushing uuid: {:?}", uuidentry);
-                    bind.uuid_list.push(uuidentry);
+                for uuid in self.interface_uuids.iter_mut() {
+                    if uuid.ctxid == uuidentry.ctxid {
+                        *uuid = uuidentry;
+                        return (input.len() - leftover_bytes.len()) as i32;
+                    }
+                }
+                // arbitrary bound
+                if self.interface_uuids.len() < 64 {
+                    self.interface_uuids.push(uuidentry);
                 }
                 (input.len() - leftover_bytes.len()) as i32
             }
@@ -653,16 +661,15 @@ impl DCERPCState {
         match parser::parse_dcerpc_bind(input) {
             Ok((leftover_bytes, header)) => {
                 let numctxitems = header.numctxitems;
-                self.bind = Some(header);
+                let call_id = self.get_hdr_call_id().unwrap_or(0);
                 for i in 0..numctxitems {
-                    retval = self.handle_bindctxitem(&input[idx as usize..], i as u16);
+                    retval = self.handle_bindctxitem(&input[idx as usize..], i as u16, call_id);
                     if retval == -1 {
                         SCLogDebug!("Error handling BindCtxItem");
                         return -1;
                     }
                     idx += retval;
                 }
-                let call_id = self.get_hdr_call_id().unwrap_or(0);
                 let mut tx = self.create_tx(call_id);
                 tx.req_cmd = self.get_hdr_type().unwrap_or(0);
                 tx.req_done = true;
@@ -688,23 +695,19 @@ impl DCERPCState {
         }
     }
 
-    pub fn process_bindack_pdu(&mut self, input: &[u8]) -> i32 {
+    pub fn process_bindack_pdu(&mut self, input: &[u8], call_id: u32) -> i32 {
         match parser::parse_dcerpc_bindack(input) {
-            Ok((leftover_bytes, mut back)) => {
-                if let Some(ref mut bind) = self.bind {
-                    for (uuid_internal_id, r) in back.ctxitems.iter().enumerate() {
-                        for uuid in bind.uuid_list.iter_mut() {
-                            if uuid.internal_id == uuid_internal_id as u16 {
-                                uuid.result = r.ack_result;
-                                if uuid.result != 0 {
-                                    break;
-                                }
-                                back.accepted_uuid_list.push(uuid.clone());
+            Ok((leftover_bytes, back)) => {
+                for (uuid_internal_id, r) in back.ctxitems.iter().enumerate() {
+                    for uuid in self.interface_uuids.iter_mut().rev() {
+                        if uuid.internal_id == uuid_internal_id as u16 && uuid.call_id == call_id{
+                            uuid.result = r.ack_result;
+                            uuid.acked = true;
+                            if uuid.result == 0 {
                                 SCLogDebug!("DCERPC BINDACK accepted UUID: {:?}", uuid);
                             }
                         }
                     }
-                    self.bindack = Some(back);
                 }
                 (input.len() - leftover_bytes.len()) as i32
             }
@@ -950,7 +953,7 @@ impl DCERPCState {
                     }
                 }
                 DCERPC_TYPE_BINDACK | DCERPC_TYPE_ALTER_CONTEXT_RESP => {
-                    let retval = self.process_bindack_pdu(&cur_i[parsed as usize..]);
+                    let retval = self.process_bindack_pdu(&cur_i[parsed as usize..], current_call_id);
                     if retval == -1 {
                         return AppLayerResult::err();
                     }
@@ -1430,7 +1433,7 @@ mod tests {
         ];
         let mut dcerpc_state = DCERPCState::new();
         assert_eq!(16, dcerpc_state.process_header(header));
-        assert_eq!(44, dcerpc_state.handle_bindctxitem(bind, 0));
+        assert_eq!(44, dcerpc_state.handle_bindctxitem(bind, 0, 0));
     }
 
     #[test]
@@ -1564,14 +1567,21 @@ mod tests {
         let mut dcerpc_state = DCERPCState::new();
         assert_eq!(16, dcerpc_state.process_header(bind));
         assert_eq!(1068, dcerpc_state.process_bind_pdu(&bind[16..]));
-        assert_eq!(604, dcerpc_state.process_bindack_pdu(bindack));
-        if let Some(back) = dcerpc_state.bindack {
-            assert_eq!(1, back.accepted_uuid_list.len());
-            assert_eq!(
-                vec!(57, 25, 40, 106, 177, 12, 17, 208, 155, 168, 0, 192, 79, 217, 46, 245),
-                back.accepted_uuid_list[0].uuid
-            );
-            assert_eq!(11, back.accepted_uuid_list[0].internal_id);
+        let call_id = dcerpc_state.get_hdr_call_id().unwrap();
+        assert_eq!(604, dcerpc_state.process_bindack_pdu(bindack, call_id));
+        assert_eq!(24, dcerpc_state.interface_uuids.len());
+        for i in 0..24 {
+            assert!(dcerpc_state.interface_uuids[i].acked);
+            if i == 11 {
+                assert_eq!(
+                    vec!(57, 25, 40, 106, 177, 12, 17, 208, 155, 168, 0, 192, 79, 217, 46, 245),
+                    dcerpc_state.interface_uuids[11].uuid
+                );
+                assert_eq!(11, dcerpc_state.interface_uuids[11].internal_id);
+                assert_eq!(0, dcerpc_state.interface_uuids[11].result);
+            } else {
+                assert_ne!(0, dcerpc_state.interface_uuids[i].result);
+            }
         }
     }
 
@@ -1804,19 +1814,17 @@ mod tests {
             AppLayerResult::ok(),
             dcerpc_state.handle_input_data(StreamSlice::from_slice(bindbuf, STREAM_TOSERVER, 0), Direction::ToServer)
         );
-        if let Some(ref bind) = dcerpc_state.bind {
-            let bind_uuid = &bind.uuid_list[0].uuid;
-            assert_eq!(1, bind.uuid_list.len());
-            assert_eq!(
-                cmp::Ordering::Equal,
-                bind_uuid
-                    .iter()
-                    .zip(expected_uuid)
-                    .map(|(x, y)| x.cmp(y))
-                    .find(|&ord| ord != cmp::Ordering::Equal)
-                    .unwrap_or_else(|| bind_uuid.len().cmp(&expected_uuid.len()))
-            );
-        }
+        assert_eq!(1, dcerpc_state.interface_uuids.len());
+        let bind_uuid = &dcerpc_state.interface_uuids[0].uuid;
+        assert_eq!(
+            cmp::Ordering::Equal,
+            bind_uuid
+                .iter()
+                .zip(expected_uuid)
+                .map(|(x, y)| x.cmp(y))
+                .find(|&ord| ord != cmp::Ordering::Equal)
+                .unwrap_or_else(|| bind_uuid.len().cmp(&expected_uuid.len()))
+        );
     }
 
     #[test]
@@ -2072,11 +2080,9 @@ mod tests {
             AppLayerResult::ok(),
             dcerpc_state.handle_input_data(StreamSlice::from_slice(bind_ack1, STREAM_TOSERVER, 0), Direction::ToServer)
         );
-        if let Some(ref back) = dcerpc_state.bindack {
-            assert_eq!(1, back.accepted_uuid_list.len());
-            assert_eq!(12, back.accepted_uuid_list[0].ctxid);
-            assert_eq!(expected_uuid1, back.accepted_uuid_list[0].uuid);
-        }
+        assert_eq!(13, dcerpc_state.interface_uuids.len());
+        assert_eq!(12, dcerpc_state.interface_uuids[12].ctxid);
+        assert_eq!(expected_uuid1, dcerpc_state.interface_uuids[12].uuid);
         assert_eq!(
             AppLayerResult::ok(),
             dcerpc_state.handle_input_data(StreamSlice::from_slice(bind2, STREAM_TOSERVER, 0), Direction::ToServer)
@@ -2085,11 +2091,9 @@ mod tests {
             AppLayerResult::ok(),
             dcerpc_state.handle_input_data(StreamSlice::from_slice(bind_ack2, STREAM_TOSERVER, 0), Direction::ToServer)
         );
-        if let Some(ref back) = dcerpc_state.bindack {
-            assert_eq!(1, back.accepted_uuid_list.len());
-            assert_eq!(15, back.accepted_uuid_list[0].ctxid);
-            assert_eq!(expected_uuid2, back.accepted_uuid_list[0].uuid);
-        }
+        assert_eq!(16, dcerpc_state.interface_uuids.len());
+        assert_eq!(15, dcerpc_state.interface_uuids[15].ctxid);
+        assert_eq!(expected_uuid2, dcerpc_state.interface_uuids[15].uuid);
         assert_eq!(
             AppLayerResult::ok(),
             dcerpc_state.handle_input_data(StreamSlice::from_slice(bind3, STREAM_TOSERVER, 0), Direction::ToServer)
@@ -2098,11 +2102,9 @@ mod tests {
             AppLayerResult::ok(),
             dcerpc_state.handle_input_data(StreamSlice::from_slice(bind_ack3, STREAM_TOSERVER, 0), Direction::ToServer)
         );
-        if let Some(ref back) = dcerpc_state.bindack {
-            assert_eq!(1, back.accepted_uuid_list.len());
-            assert_eq!(11, back.accepted_uuid_list[0].ctxid);
-            assert_eq!(expected_uuid3, back.accepted_uuid_list[0].uuid);
-        }
+        assert_eq!(16, dcerpc_state.interface_uuids.len());
+        assert_eq!(11, dcerpc_state.interface_uuids[11].ctxid);
+        assert_eq!(expected_uuid3, dcerpc_state.interface_uuids[11].uuid);
     }
 
     #[test]
@@ -2154,11 +2156,9 @@ mod tests {
             AppLayerResult::ok(),
             dcerpc_state.handle_input_data(StreamSlice::from_slice(bindack, STREAM_TOSERVER, 0), Direction::ToServer)
         );
-        if let Some(ref back) = dcerpc_state.bindack {
-            assert_eq!(1, back.accepted_uuid_list.len());
-            assert_eq!(0, back.accepted_uuid_list[0].ctxid);
-            assert_eq!(expected_uuid1, back.accepted_uuid_list[0].uuid);
-        }
+        assert_eq!(1, dcerpc_state.interface_uuids.len());
+        assert_eq!(0, dcerpc_state.interface_uuids[0].ctxid);
+        assert_eq!(expected_uuid1, dcerpc_state.interface_uuids[0].uuid);
         assert_eq!(
             AppLayerResult::ok(),
             dcerpc_state.handle_input_data(StreamSlice::from_slice(alter_context, STREAM_TOSERVER, 0), Direction::ToServer)
@@ -2167,10 +2167,8 @@ mod tests {
             AppLayerResult::ok(),
             dcerpc_state.handle_input_data(StreamSlice::from_slice(alter_context_resp, STREAM_TOSERVER, 0), Direction::ToServer)
         );
-        if let Some(ref back) = dcerpc_state.bindack {
-            assert_eq!(1, back.accepted_uuid_list.len());
-            assert_eq!(1, back.accepted_uuid_list[0].ctxid);
-            assert_eq!(expected_uuid2, back.accepted_uuid_list[0].uuid);
-        }
+        assert_eq!(2, dcerpc_state.interface_uuids.len());
+        assert_eq!(1, dcerpc_state.interface_uuids[1].ctxid);
+        assert_eq!(expected_uuid2, dcerpc_state.interface_uuids[1].uuid);
     }
 }
