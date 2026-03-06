@@ -1,0 +1,3665 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+        "suricata-bool": {
+            "enum": [
+                true,
+                false,
+                "yes",
+                "no"
+            ]
+        }
+    },
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "action-order": {
+            "items": {
+                "type": "string"
+            },
+            "type": "array"
+        },
+        "af-packet": {
+            "items": {
+                "additionalProperties": false,
+                "properties": {
+                    "cluster-id": {
+                        "type": "integer"
+                    },
+                    "cluster-type": {
+                        "type": "string"
+                    },
+                    "defrag": {
+                        "$ref": "#/$defs/suricata-bool"
+                    },
+                    "interface": {
+                        "type": "string"
+                    },
+                    "tpacket-v3": {
+                        "$ref": "#/$defs/suricata-bool"
+                    }
+                },
+                "type": "object"
+            },
+            "type": "array"
+        },
+        "af-xdp": {
+            "items": {
+                "additionalProperties": false,
+                "properties": {
+                    "interface": {
+                        "type": "string"
+                    },
+                    "threads": {
+                        "anyOf": [
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    }
+                },
+                "type": "object"
+            },
+            "type": "array"
+        },
+        "app-layer": {
+            "additionalProperties": false,
+            "properties": {
+                "protocols": {
+                    "additionalProperties": false,
+                    "properties": {
+                        "bittorrent-dht": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "enabled": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "dcerpc": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "enabled": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "dhcp": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "enabled": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "dnp3": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "detection-ports": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "dp": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "type": "object"
+                                },
+                                "enabled": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                },
+                                "max-objects": {
+                                    "type": "integer"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "dns": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "enabled": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                },
+                                "tcp": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "detection-ports": {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "dp": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "enabled": {
+                                            "$ref": "#/$defs/suricata-bool"
+                                        }
+                                    },
+                                    "type": "object"
+                                },
+                                "udp": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "detection-ports": {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "dp": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "enabled": {
+                                            "$ref": "#/$defs/suricata-bool"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "doh2": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "enabled": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "enip": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "detection-ports": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "dp": {
+                                            "type": "integer"
+                                        },
+                                        "sp": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "type": "object"
+                                },
+                                "enabled": {
+                                    "anyOf": [
+                                        {
+                                            "$ref": "#/$defs/suricata-bool"
+                                        },
+                                        {
+                                            "const": "detection-only"
+                                        }
+                                    ]
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "ftp": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "enabled": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                },
+                                "max-line-length": {
+                                    "type": "string"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "http": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "enabled": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                },
+                                "libhtp": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "default-config": {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "double-decode-path": {
+                                                    "$ref": "#/$defs/suricata-bool"
+                                                },
+                                                "double-decode-query": {
+                                                    "$ref": "#/$defs/suricata-bool"
+                                                },
+                                                "http-body-inline": {
+                                                    "type": "string"
+                                                },
+                                                "personality": {
+                                                    "type": "string"
+                                                },
+                                                "request-body-inspect-window": {
+                                                    "type": "string"
+                                                },
+                                                "request-body-limit": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "integer"
+                                                        },
+                                                        {
+                                                            "type": "string"
+                                                        }
+                                                    ]
+                                                },
+                                                "request-body-minimal-inspect-size": {
+                                                    "type": "string"
+                                                },
+                                                "response-body-decompress-layer-limit": {
+                                                    "type": "integer"
+                                                },
+                                                "response-body-inspect-window": {
+                                                    "type": "string"
+                                                },
+                                                "response-body-limit": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "integer"
+                                                        },
+                                                        {
+                                                            "type": "string"
+                                                        }
+                                                    ]
+                                                },
+                                                "response-body-minimal-inspect-size": {
+                                                    "type": "string"
+                                                },
+                                                "swf-decompression": {
+                                                    "additionalProperties": false,
+                                                    "properties": {
+                                                        "compress-depth": {
+                                                            "type": "string"
+                                                        },
+                                                        "decompress-depth": {
+                                                            "type": "string"
+                                                        },
+                                                        "enabled": {
+                                                            "$ref": "#/$defs/suricata-bool"
+                                                        },
+                                                        "type": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "server-config": {
+                                            "type": "null"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "http2": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "enabled": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "ike": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "enabled": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "imap": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "enabled": {
+                                    "type": "string"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "krb5": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "enabled": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "ldap": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "tcp": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "detection-ports": {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "dp": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "enabled": {
+                                            "$ref": "#/$defs/suricata-bool"
+                                        }
+                                    },
+                                    "type": "object"
+                                },
+                                "udp": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "detection-ports": {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "dp": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "enabled": {
+                                            "$ref": "#/$defs/suricata-bool"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "mdns": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "enabled": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "modbus": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "detection-ports": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "dp": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "type": "object"
+                                },
+                                "enabled": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                },
+                                "stream-depth": {
+                                    "type": "integer"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "mqtt": {
+                            "anyOf": [
+                                {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "enabled": {
+                                            "$ref": "#/$defs/suricata-bool"
+                                        },
+                                        "max-msg-length": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "integer"
+                                                },
+                                                {
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "type": "object"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ]
+                        },
+                        "msn": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "enabled": {
+                                    "anyOf": [
+                                        {
+                                            "$ref": "#/$defs/suricata-bool"
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
+                                    ]
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "nfs": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "enabled": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                },
+                                "max-tx": {
+                                    "type": "integer"
+                                },
+                                "tcp": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "enabled": {
+                                            "$ref": "#/$defs/suricata-bool"
+                                        }
+                                    },
+                                    "type": "object"
+                                },
+                                "udp": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "enabled": {
+                                            "$ref": "#/$defs/suricata-bool"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "ntp": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "enabled": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "pgsql": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "enabled": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                },
+                                "stream-depth": {
+                                    "type": "integer"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "pop3": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "detection-ports": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "dp": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "type": "object"
+                                },
+                                "enabled": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                },
+                                "stream-depth": {
+                                    "type": "integer"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "quic": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "enabled": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "rdp": {
+                            "anyOf": [
+                                {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "enabled": {
+                                            "$ref": "#/$defs/suricata-bool"
+                                        }
+                                    },
+                                    "type": "object"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ]
+                        },
+                        "rfb": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "detection-ports": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "dp": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "integer"
+                                                },
+                                                {
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "type": "object"
+                                },
+                                "enabled": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "sip": {
+                            "anyOf": [
+                                {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "detection-ports": {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "dp": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "integer"
+                                                        },
+                                                        {
+                                                            "type": "string"
+                                                        }
+                                                    ]
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "enabled": {
+                                            "$ref": "#/$defs/suricata-bool"
+                                        }
+                                    },
+                                    "type": "object"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ]
+                        },
+                        "smb": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "detection-ports": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "dp": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "integer"
+                                                },
+                                                {
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "type": "object"
+                                },
+                                "enabled": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "smtp": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "enabled": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                },
+                                "inspected-tracker": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "content-inspect-min-size": {
+                                            "type": "integer"
+                                        },
+                                        "content-inspect-window": {
+                                            "type": "integer"
+                                        },
+                                        "content-limit": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "type": "object"
+                                },
+                                "mime": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "body-md5": {
+                                            "anyOf": [
+                                                {
+                                                    "$ref": "#/$defs/suricata-bool"
+                                                },
+                                                {
+                                                    "const": "auto"
+                                                }
+                                            ]
+                                        },
+                                        "decode-base64": {
+                                            "$ref": "#/$defs/suricata-bool"
+                                        },
+                                        "decode-mime": {
+                                            "$ref": "#/$defs/suricata-bool"
+                                        },
+                                        "decode-quoted-printable": {
+                                            "$ref": "#/$defs/suricata-bool"
+                                        },
+                                        "extract-urls": {
+                                            "$ref": "#/$defs/suricata-bool"
+                                        },
+                                        "extract-urls-schemes": {
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "type": "array"
+                                        },
+                                        "header-value-depth": {
+                                            "type": "integer"
+                                        },
+                                        "log-url-scheme": {
+                                            "$ref": "#/$defs/suricata-bool"
+                                        }
+                                    },
+                                    "type": "object"
+                                },
+                                "raw-extraction": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "snmp": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "enabled": {
+                                    "anyOf": [
+                                        {
+                                            "$ref": "#/$defs/suricata-bool"
+                                        },
+                                        {
+                                            "const": "detection-only"
+                                        }
+                                    ]
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "ssh": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "enabled": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                },
+                                "hassh": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "telnet": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "enabled": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "template": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "detection-ports": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "dp": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "type": "object"
+                                },
+                                "enabled": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "tftp": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "enabled": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "tls": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "detection-ports": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "dp": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "type": "object"
+                                },
+                                "enabled": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                },
+                                "encrypt-handling": {
+                                    "type": "string"
+                                },
+                                "ja3-fingerprints": {
+                                    "anyOf": [
+                                        {
+                                            "$ref": "#/$defs/suricata-bool"
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
+                                    ]
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "websocket": {
+                            "type": "null"
+                        }
+                    },
+                    "type": "object"
+                }
+            },
+            "type": "object"
+        },
+        "asn1-max-frames": {
+            "type": "integer"
+        },
+        "capture": {
+            "type": "null"
+        },
+        "classification-file": {
+            "type": "string"
+        },
+        "coredump": {
+            "additionalProperties": false,
+            "properties": {
+                "max-dump": {
+                    "type": "string"
+                }
+            },
+            "type": "object"
+        },
+        "cuda": {
+            "type": "object"
+        },
+        "datasets": {
+            "additionalProperties": {
+                "additionalProperties": false,
+                "properties": {
+                    "hashsize": {
+                        "type": "integer"
+                    },
+                    "load": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "items": {
+                                    "type": "string"
+                                },
+                                "type": "array"
+                            }
+                        ]
+                    },
+                    "memcap": {
+                        "type": "string"
+                    },
+                    "state": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "type": "string"
+                    }
+                },
+                "type": "object"
+            },
+            "properties": {
+                "defaults": {
+                    "anyOf": [
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "hashsize": {
+                                    "type": "integer"
+                                },
+                                "memcap": {
+                                    "type": "string"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "limits": {
+                    "type": "null"
+                },
+                "rules": {
+                    "anyOf": [
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "allow-absolute-filenames": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                },
+                                "allow-write": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                }
+            },
+            "type": "object"
+        },
+        "decoder": {
+            "additionalProperties": false,
+            "properties": {
+                "geneve": {
+                    "additionalProperties": false,
+                    "properties": {
+                        "enabled": {
+                            "$ref": "#/$defs/suricata-bool"
+                        },
+                        "ports": {
+                            "type": "string"
+                        }
+                    },
+                    "type": "object"
+                },
+                "ipv4": {
+                    "additionalProperties": false,
+                    "properties": {
+                        "ipip": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "enabled": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                },
+                                "track-parent-flow": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                }
+                            },
+                            "type": "object"
+                        }
+                    },
+                    "type": "object"
+                },
+                "ipv6": {
+                    "additionalProperties": false,
+                    "properties": {
+                        "ipip-ipv4": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "track-parent-flow": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "ipip-ipv6": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "track-parent-flow": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                }
+                            },
+                            "type": "object"
+                        }
+                    },
+                    "type": "object"
+                },
+                "recursion-level": {
+                    "additionalProperties": false,
+                    "properties": {
+                        "use-for-tracking": {
+                            "$ref": "#/$defs/suricata-bool"
+                        }
+                    },
+                    "type": "object"
+                },
+                "teredo": {
+                    "additionalProperties": false,
+                    "properties": {
+                        "enabled": {
+                            "$ref": "#/$defs/suricata-bool"
+                        },
+                        "ports": {
+                            "type": "string"
+                        }
+                    },
+                    "type": "object"
+                },
+                "vxlan": {
+                    "additionalProperties": false,
+                    "properties": {
+                        "enabled": {
+                            "$ref": "#/$defs/suricata-bool"
+                        },
+                        "ports": {
+                            "type": "string"
+                        },
+                        "reserved-bits-check": {
+                            "type": "string"
+                        }
+                    },
+                    "type": "object"
+                }
+            },
+            "type": "object"
+        },
+        "default-log-dir": {
+            "type": "string"
+        },
+        "default-rule-path": {
+            "type": "string"
+        },
+        "defrag": {
+            "additionalProperties": false,
+            "properties": {
+                "hash-size": {
+                    "type": "integer"
+                },
+                "max-frags": {
+                    "type": "integer"
+                },
+                "memcap": {
+                    "type": "string"
+                },
+                "prealloc": {
+                    "$ref": "#/$defs/suricata-bool"
+                },
+                "timeout": {
+                    "type": "integer"
+                },
+                "trackers": {
+                    "type": "integer"
+                }
+            },
+            "type": "object"
+        },
+        "detect": {
+            "additionalProperties": false,
+            "properties": {
+                "custom-values": {
+                    "additionalProperties": false,
+                    "properties": {
+                        "toclient-groups": {
+                            "type": "integer"
+                        },
+                        "toserver-groups": {
+                            "type": "integer"
+                        }
+                    },
+                    "type": "object"
+                },
+                "grouping": {
+                    "type": "null"
+                },
+                "guess-applayer-tx": {
+                    "$ref": "#/$defs/suricata-bool"
+                },
+                "inspection-recursion-limit": {
+                    "type": "integer"
+                },
+                "prefilter": {
+                    "additionalProperties": false,
+                    "properties": {
+                        "default": {
+                            "type": "string"
+                        }
+                    },
+                    "type": "object"
+                },
+                "profile": {
+                    "type": "string"
+                },
+                "profiling": {
+                    "additionalProperties": false,
+                    "properties": {
+                        "grouping": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "dump-to-disk": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                },
+                                "include-mpm-stats": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                },
+                                "include-rules": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                }
+                            },
+                            "type": "object"
+                        }
+                    },
+                    "type": "object"
+                },
+                "sgh-mpm-caching": {
+                    "$ref": "#/$defs/suricata-bool"
+                },
+                "sgh-mpm-caching-path": {
+                    "type": "string"
+                },
+                "sgh-mpm-context": {
+                    "type": "string"
+                },
+                "stream-tx-log-limit": {
+                    "type": "integer"
+                },
+                "thresholds": {
+                    "additionalProperties": false,
+                    "properties": {
+                        "hash-size": {
+                            "type": "integer"
+                        },
+                        "memcap": {
+                            "type": "string"
+                        }
+                    },
+                    "type": "object"
+                }
+            },
+            "type": "object"
+        },
+        "dpdk": {
+            "additionalProperties": false,
+            "properties": {
+                "eal-params": {
+                    "additionalProperties": false,
+                    "properties": {
+                        "proc-type": {
+                            "type": "string"
+                        }
+                    },
+                    "type": "object"
+                },
+                "interfaces": {
+                    "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                            "checksum-checks": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "checksum-checks-offload": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "copy-iface": {
+                                "type": "string"
+                            },
+                            "copy-mode": {
+                                "type": "string"
+                            },
+                            "interface": {
+                                "type": "string"
+                            },
+                            "linkup-timeout": {
+                                "type": "integer"
+                            },
+                            "mempool-cache-size": {
+                                "type": "string"
+                            },
+                            "mempool-size": {
+                                "type": "string"
+                            },
+                            "mtu": {
+                                "type": "integer"
+                            },
+                            "multicast": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "promisc": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "rss-hash-functions": {
+                                "type": "string"
+                            },
+                            "rx-descriptors": {
+                                "type": "string"
+                            },
+                            "threads": {
+                                "type": "string"
+                            },
+                            "tx-descriptors": {
+                                "type": "string"
+                            },
+                            "vlan-strip-offload": {
+                                "$ref": "#/$defs/suricata-bool"
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "type": "array"
+                }
+            },
+            "type": "object"
+        },
+        "engine-analysis": {
+            "additionalProperties": false,
+            "properties": {
+                "rules": {
+                    "$ref": "#/$defs/suricata-bool"
+                },
+                "rules-fast-pattern": {
+                    "$ref": "#/$defs/suricata-bool"
+                }
+            },
+            "type": "object"
+        },
+        "exception-policy": {
+            "type": "string"
+        },
+        "firewall": {
+            "anyOf": [
+                {
+                    "additionalProperties": false,
+                    "properties": {
+                        "enabled": {
+                            "$ref": "#/$defs/suricata-bool"
+                        },
+                        "rule-files": {
+                            "anyOf": [
+                                {
+                                    "items": {
+                                        "type": "string"
+                                    },
+                                    "type": "array"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ]
+                        },
+                        "rule-path": {
+                            "type": "string"
+                        }
+                    },
+                    "type": "object"
+                },
+                {
+                    "type": "null"
+                }
+            ]
+        },
+        "flow": {
+            "additionalProperties": false,
+            "properties": {
+                "emergency-recovery": {
+                    "type": "integer"
+                },
+                "hash-size": {
+                    "type": "integer"
+                },
+                "memcap": {
+                    "type": "string"
+                },
+                "prealloc": {
+                    "type": "integer"
+                },
+                "rate-tracking": {
+                    "additionalProperties": false,
+                    "properties": {
+                        "bytes": {
+                            "type": "string"
+                        },
+                        "interval": {
+                            "type": "integer"
+                        }
+                    },
+                    "type": "object"
+                }
+            },
+            "type": "object"
+        },
+        "flow-timeouts": {
+            "additionalProperties": false,
+            "properties": {
+                "default": {
+                    "additionalProperties": false,
+                    "properties": {
+                        "bypassed": {
+                            "type": "integer"
+                        },
+                        "closed": {
+                            "type": "integer"
+                        },
+                        "emergency-bypassed": {
+                            "type": "integer"
+                        },
+                        "emergency-closed": {
+                            "type": "integer"
+                        },
+                        "emergency-established": {
+                            "type": "integer"
+                        },
+                        "emergency-new": {
+                            "type": "integer"
+                        },
+                        "established": {
+                            "type": "integer"
+                        },
+                        "new": {
+                            "type": "integer"
+                        }
+                    },
+                    "type": "object"
+                },
+                "icmp": {
+                    "additionalProperties": false,
+                    "properties": {
+                        "bypassed": {
+                            "type": "integer"
+                        },
+                        "emergency-bypassed": {
+                            "type": "integer"
+                        },
+                        "emergency-established": {
+                            "type": "integer"
+                        },
+                        "emergency-new": {
+                            "type": "integer"
+                        },
+                        "established": {
+                            "type": "integer"
+                        },
+                        "new": {
+                            "type": "integer"
+                        }
+                    },
+                    "type": "object"
+                },
+                "tcp": {
+                    "additionalProperties": false,
+                    "properties": {
+                        "bypassed": {
+                            "type": "integer"
+                        },
+                        "closed": {
+                            "type": "integer"
+                        },
+                        "emergency-bypassed": {
+                            "type": "integer"
+                        },
+                        "emergency-closed": {
+                            "type": "integer"
+                        },
+                        "emergency-established": {
+                            "type": "integer"
+                        },
+                        "emergency-new": {
+                            "type": "integer"
+                        },
+                        "established": {
+                            "type": "integer"
+                        },
+                        "new": {
+                            "type": "integer"
+                        }
+                    },
+                    "type": "object"
+                },
+                "udp": {
+                    "additionalProperties": false,
+                    "properties": {
+                        "bypassed": {
+                            "type": "integer"
+                        },
+                        "emergency-bypassed": {
+                            "type": "integer"
+                        },
+                        "emergency-established": {
+                            "type": "integer"
+                        },
+                        "emergency-new": {
+                            "type": "integer"
+                        },
+                        "established": {
+                            "type": "integer"
+                        },
+                        "new": {
+                            "type": "integer"
+                        }
+                    },
+                    "type": "object"
+                }
+            },
+            "type": "object"
+        },
+        "foobar": {
+            "type": "object"
+        },
+        "geoip-database": {
+            "type": "string"
+        },
+        "heartbeat": {
+            "type": "null"
+        },
+        "host": {
+            "additionalProperties": false,
+            "properties": {
+                "hash-size": {
+                    "type": "integer"
+                },
+                "memcap": {
+                    "type": "string"
+                },
+                "prealloc": {
+                    "type": "integer"
+                }
+            },
+            "type": "object"
+        },
+        "host-mode": {
+            "type": "string"
+        },
+        "host-os-policy": {
+            "additionalProperties": false,
+            "properties": {
+                "bsd": {
+                    "items": {},
+                    "type": "array"
+                },
+                "bsd-right": {
+                    "items": {},
+                    "type": "array"
+                },
+                "hpux10": {
+                    "items": {},
+                    "type": "array"
+                },
+                "hpux11": {
+                    "items": {},
+                    "type": "array"
+                },
+                "irix": {
+                    "items": {},
+                    "type": "array"
+                },
+                "linux": {
+                    "items": {},
+                    "type": "array"
+                },
+                "macos": {
+                    "items": {},
+                    "type": "array"
+                },
+                "old-linux": {
+                    "items": {},
+                    "type": "array"
+                },
+                "old-solaris": {
+                    "items": {},
+                    "type": "array"
+                },
+                "solaris": {
+                    "items": {},
+                    "type": "array"
+                },
+                "vista": {
+                    "items": {},
+                    "type": "array"
+                },
+                "windows": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": "array"
+                },
+                "windows2k3": {
+                    "items": {},
+                    "type": "array"
+                }
+            },
+            "type": "object"
+        },
+        "ipfw": {
+            "type": "null"
+        },
+        "legacy": {
+            "additionalProperties": false,
+            "properties": {
+                "uricontent": {
+                    "type": "string"
+                }
+            },
+            "type": "object"
+        },
+        "livedev": {
+            "additionalProperties": false,
+            "properties": {
+                "use-for-tracking": {
+                    "$ref": "#/$defs/suricata-bool"
+                }
+            },
+            "type": "object"
+        },
+        "logging": {
+            "additionalProperties": false,
+            "properties": {
+                "default-log-level": {
+                    "type": "string"
+                },
+                "default-output-filter": {
+                    "type": "null"
+                },
+                "outputs": {
+                    "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                            "console": {
+                                "additionalProperties": false,
+                                "properties": {
+                                    "enabled": {
+                                        "$ref": "#/$defs/suricata-bool"
+                                    }
+                                },
+                                "type": "object"
+                            },
+                            "file": {
+                                "additionalProperties": false,
+                                "properties": {
+                                    "enabled": {
+                                        "$ref": "#/$defs/suricata-bool"
+                                    },
+                                    "filename": {
+                                        "type": "string"
+                                    },
+                                    "level": {
+                                        "type": "string"
+                                    },
+                                    "type": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            },
+                            "syslog": {
+                                "additionalProperties": false,
+                                "properties": {
+                                    "enabled": {
+                                        "$ref": "#/$defs/suricata-bool"
+                                    },
+                                    "facility": {
+                                        "type": "string"
+                                    },
+                                    "format": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "type": "array"
+                }
+            },
+            "type": "object"
+        },
+        "luajit": {
+            "additionalProperties": false,
+            "properties": {
+                "states": {
+                    "type": "integer"
+                }
+            },
+            "type": "object"
+        },
+        "mpipe": {
+            "type": "object"
+        },
+        "mpm-algo": {
+            "type": "string"
+        },
+        "multi-detect": {
+            "additionalProperties": true,
+            "properties": {
+                "config-path": {
+                    "type": "string"
+                },
+                "default": {
+                    "$ref": "#/$defs/suricata-bool"
+                },
+                "enabled": {
+                    "$ref": "#/$defs/suricata-bool"
+                },
+                "loaders": {
+                    "type": "integer"
+                },
+                "mappings": {
+                    "items": {
+                        "anyOf": [
+                            {
+                                "additionalProperties": false,
+                                "properties": {
+                                    "device": {
+                                        "anyOf": [
+                                            {
+                                                "type": "string"
+                                            },
+                                            {
+                                                "type": "null"
+                                            }
+                                        ]
+                                    },
+                                    "tenant-id": {
+                                        "anyOf": [
+                                            {
+                                                "type": "integer"
+                                            },
+                                            {
+                                                "type": "string"
+                                            }
+                                        ]
+                                    },
+                                    "vlan": {
+                                        "type": "null"
+                                    },
+                                    "vlan-id": {
+                                        "anyOf": [
+                                            {
+                                                "type": "integer"
+                                            },
+                                            {
+                                                "type": "string"
+                                            }
+                                        ]
+                                    }
+                                },
+                                "type": "object"
+                            },
+                            {
+                                "additionalProperties": false,
+                                "properties": {
+                                    "device": {
+                                        "additionalProperties": false,
+                                        "properties": {
+                                            "device": {
+                                                "type": "string"
+                                            },
+                                            "tenant-id": {
+                                                "anyOf": [
+                                                    {
+                                                        "type": "integer"
+                                                    },
+                                                    {
+                                                        "type": "string"
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                },
+                                "type": "object"
+                            },
+                            {
+                                "additionalProperties": false,
+                                "properties": {
+                                    "vlan": {
+                                        "additionalProperties": false,
+                                        "properties": {
+                                            "tenant-id": {
+                                                "anyOf": [
+                                                    {
+                                                        "type": "integer"
+                                                    },
+                                                    {
+                                                        "type": "string"
+                                                    }
+                                                ]
+                                            },
+                                            "vlan-id": {
+                                                "anyOf": [
+                                                    {
+                                                        "type": "integer"
+                                                    },
+                                                    {
+                                                        "type": "string"
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        ]
+                    },
+                    "type": "array"
+                },
+                "selector": {
+                    "type": "string"
+                },
+                "tenants": {
+                    "items": {
+                        "anyOf": [
+                            {
+                                "additionalProperties": false,
+                                "properties": {
+                                    "id": {
+                                        "anyOf": [
+                                            {
+                                                "type": "integer"
+                                            },
+                                            {
+                                                "type": "string"
+                                            }
+                                        ]
+                                    },
+                                    "tenant": {
+                                        "type": "null"
+                                    },
+                                    "yaml": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            },
+                            {
+                                "additionalProperties": false,
+                                "properties": {
+                                    "tenant": {
+                                        "additionalProperties": false,
+                                        "properties": {
+                                            "id": {
+                                                "anyOf": [
+                                                    {
+                                                        "type": "integer"
+                                                    },
+                                                    {
+                                                        "type": "string"
+                                                    }
+                                                ]
+                                            },
+                                            "yaml": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        ]
+                    },
+                    "type": "array"
+                }
+            },
+            "type": "object"
+        },
+        "napatech": {
+            "additionalProperties": false,
+            "properties": {
+                "auto-config": {
+                    "$ref": "#/$defs/suricata-bool"
+                },
+                "enable-stream-stats": {
+                    "$ref": "#/$defs/suricata-bool"
+                },
+                "hardware-bypass": {
+                    "$ref": "#/$defs/suricata-bool"
+                },
+                "hashmode": {
+                    "type": "string"
+                },
+                "hba": {
+                    "type": "integer"
+                },
+                "inline": {
+                    "$ref": "#/$defs/suricata-bool"
+                },
+                "ports": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": "array"
+                },
+                "streams": {
+                    "items": {
+                        "anyOf": [
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "type": "array"
+                },
+                "use-all-streams": {
+                    "$ref": "#/$defs/suricata-bool"
+                }
+            },
+            "type": "object"
+        },
+        "netmap": {
+            "items": {
+                "additionalProperties": false,
+                "properties": {
+                    "interface": {
+                        "type": "string"
+                    },
+                    "threads": {
+                        "anyOf": [
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    }
+                },
+                "type": "object"
+            },
+            "type": "array"
+        },
+        "nflog": {
+            "items": {
+                "additionalProperties": false,
+                "properties": {
+                    "buffer-size": {
+                        "type": "integer"
+                    },
+                    "group": {
+                        "anyOf": [
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "max-size": {
+                        "type": "integer"
+                    },
+                    "qthreshold": {
+                        "type": "integer"
+                    },
+                    "qtimeout": {
+                        "type": "integer"
+                    }
+                },
+                "type": "object"
+            },
+            "type": "array"
+        },
+        "nfq": {
+            "type": "null"
+        },
+        "outputs": {
+            "items": {
+                "additionalProperties": false,
+                "properties": {
+                    "alert-debug": {
+                        "additionalProperties": false,
+                        "properties": {
+                            "append": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "enabled": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "filename": {
+                                "type": "string"
+                            },
+                            "filetype": {
+                                "type": "string"
+                            },
+                            "ipv6-compress": {
+                                "$ref": "#/$defs/suricata-bool"
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "alert-prelude": {
+                        "additionalProperties": false,
+                        "properties": {
+                            "enabled": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "log-packet-content": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "log-packet-header": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "profile": {
+                                "type": "string"
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "dns-log": {
+                        "additionalProperties": false,
+                        "properties": {
+                            "append": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "enabled": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "filename": {
+                                "type": "string"
+                            },
+                            "filetype": {
+                                "type": "string"
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "drop": {
+                        "additionalProperties": false,
+                        "properties": {
+                            "append": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "enabled": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "filename": {
+                                "type": "string"
+                            },
+                            "filetype": {
+                                "type": "string"
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "eve-log": {
+                        "additionalProperties": false,
+                        "properties": {
+                            "buffer-size": {
+                                "type": "integer"
+                            },
+                            "community-id": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "community-id-seed": {
+                                "type": "integer"
+                            },
+                            "enabled": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "ethernet": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "facility": {
+                                "type": "string"
+                            },
+                            "filename": {
+                                "type": "string"
+                            },
+                            "filetype": {
+                                "type": "string"
+                            },
+                            "identity": {
+                                "type": "string"
+                            },
+                            "ipv6-compress": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "level": {
+                                "type": "string"
+                            },
+                            "metadata": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "pcap-file": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "prefix": {
+                                "type": "string"
+                            },
+                            "redis": {
+                                "additionalProperties": false,
+                                "properties": {
+                                    "async": {
+                                        "$ref": "#/$defs/suricata-bool"
+                                    },
+                                    "key": {
+                                        "type": "string"
+                                    },
+                                    "mode": {
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "type": "null"
+                                    },
+                                    "pipelining": {
+                                        "additionalProperties": false,
+                                        "properties": {
+                                            "batch-size": {
+                                                "type": "integer"
+                                            },
+                                            "enabled": {
+                                                "$ref": "#/$defs/suricata-bool"
+                                            }
+                                        },
+                                        "type": "object"
+                                    },
+                                    "port": {
+                                        "type": "integer"
+                                    },
+                                    "server": {
+                                        "type": "string"
+                                    },
+                                    "stream-maxlen": {
+                                        "type": "integer"
+                                    },
+                                    "stream-trim-exact": {
+                                        "$ref": "#/$defs/suricata-bool"
+                                    },
+                                    "username": {
+                                        "type": "null"
+                                    }
+                                },
+                                "type": "object"
+                            },
+                            "suricata-version": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "threaded": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "types": {
+                                "items": {
+                                    "anyOf": [
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "alert": {
+                                                    "anyOf": [
+                                                        {
+                                                            "additionalProperties": false,
+                                                            "properties": {
+                                                                "dnp3": {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                },
+                                                                "enabled": {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                },
+                                                                "http": {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                },
+                                                                "http-body": {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                },
+                                                                "http-body-printable": {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                },
+                                                                "metadata": {
+                                                                    "anyOf": [
+                                                                        {
+                                                                            "$ref": "#/$defs/suricata-bool"
+                                                                        },
+                                                                        {
+                                                                            "additionalProperties": false,
+                                                                            "properties": {
+                                                                                "app-layer": {
+                                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                                },
+                                                                                "flow": {
+                                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                                },
+                                                                                "rule": {
+                                                                                    "additionalProperties": false,
+                                                                                    "properties": {
+                                                                                        "metadata": {
+                                                                                            "$ref": "#/$defs/suricata-bool"
+                                                                                        },
+                                                                                        "raw": {
+                                                                                            "$ref": "#/$defs/suricata-bool"
+                                                                                        },
+                                                                                        "reference": {
+                                                                                            "$ref": "#/$defs/suricata-bool"
+                                                                                        }
+                                                                                    },
+                                                                                    "type": "object"
+                                                                                }
+                                                                            },
+                                                                            "type": "object"
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                "packet": {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                },
+                                                                "payload": {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                },
+                                                                "payload-buffer-size": {
+                                                                    "type": "string"
+                                                                },
+                                                                "payload-length": {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                },
+                                                                "payload-printable": {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                },
+                                                                "reference": {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                },
+                                                                "smtp": {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                },
+                                                                "ssh": {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                },
+                                                                "tagged-packets": {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                },
+                                                                "tls": {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                },
+                                                                "verdict": {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                },
+                                                                "websocket-payload": {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                },
+                                                                "websocket-payload-printable": {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                },
+                                                                "xff": {
+                                                                    "additionalProperties": false,
+                                                                    "properties": {
+                                                                        "deployment": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "enabled": {
+                                                                            "$ref": "#/$defs/suricata-bool"
+                                                                        },
+                                                                        "header": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "mode": {
+                                                                            "type": "string"
+                                                                        }
+                                                                    },
+                                                                    "type": "object"
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "anomaly": {
+                                                    "anyOf": [
+                                                        {
+                                                            "additionalProperties": false,
+                                                            "properties": {
+                                                                "enabled": {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                },
+                                                                "packethdr": {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                },
+                                                                "types": {
+                                                                    "anyOf": [
+                                                                        {
+                                                                            "additionalProperties": false,
+                                                                            "properties": {
+                                                                                "applayer": {
+                                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                                },
+                                                                                "decode": {
+                                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                                },
+                                                                                "packethdr": {
+                                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                                },
+                                                                                "stream": {
+                                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                                }
+                                                                            },
+                                                                            "type": "object"
+                                                                        },
+                                                                        {
+                                                                            "type": "null"
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "dnp3": {
+                                                    "type": "null"
+                                                },
+                                                "dns": {
+                                                    "anyOf": [
+                                                        {
+                                                            "additionalProperties": false,
+                                                            "properties": {
+                                                                "answer": {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                },
+                                                                "enabled": {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                },
+                                                                "formats": {
+                                                                    "anyOf": [
+                                                                        {
+                                                                            "items": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "type": "array"
+                                                                        },
+                                                                        {
+                                                                            "type": "null"
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                "query": {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                },
+                                                                "requests": {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                },
+                                                                "responses": {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                },
+                                                                "types": {
+                                                                    "items": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "type": "array"
+                                                                },
+                                                                "version": {
+                                                                    "type": "integer"
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "drop": {
+                                                    "additionalProperties": false,
+                                                    "properties": {
+                                                        "alerts": {
+                                                            "$ref": "#/$defs/suricata-bool"
+                                                        },
+                                                        "flows": {
+                                                            "type": "string"
+                                                        },
+                                                        "verdict": {
+                                                            "$ref": "#/$defs/suricata-bool"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "files": {
+                                                    "anyOf": [
+                                                        {
+                                                            "additionalProperties": false,
+                                                            "properties": {
+                                                                "force-hash": {
+                                                                    "items": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "type": "array"
+                                                                },
+                                                                "force-magic": {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                },
+                                                                "force-md5": {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "flow": {
+                                                    "anyOf": [
+                                                        {
+                                                            "additionalProperties": false,
+                                                            "properties": {
+                                                                "exception-policy": {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "force-hash": {
+                                                    "items": {
+                                                        "type": "string"
+                                                    },
+                                                    "type": "array"
+                                                },
+                                                "force-magic": {
+                                                    "$ref": "#/$defs/suricata-bool"
+                                                },
+                                                "frame": {
+                                                    "additionalProperties": false,
+                                                    "properties": {
+                                                        "enabled": {
+                                                            "$ref": "#/$defs/suricata-bool"
+                                                        },
+                                                        "payload-buffer-size": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "http": {
+                                                    "anyOf": [
+                                                        {
+                                                            "additionalProperties": false,
+                                                            "properties": {
+                                                                "custom": {
+                                                                    "items": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "type": "array"
+                                                                },
+                                                                "dump-all-headers": {
+                                                                    "type": "string"
+                                                                },
+                                                                "enabled": {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                },
+                                                                "extended": {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                },
+                                                                "tagged-packets": {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "mdns": {
+                                                    "type": "null"
+                                                },
+                                                "quic": {
+                                                    "anyOf": [
+                                                        {
+                                                            "additionalProperties": false,
+                                                            "properties": {
+                                                                "enabled": {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                },
+                                                                "ja4": {
+                                                                    "anyOf": [
+                                                                        {
+                                                                            "$ref": "#/$defs/suricata-bool"
+                                                                        },
+                                                                        {
+                                                                            "type": "string"
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "smtp": {
+                                                    "anyOf": [
+                                                        {
+                                                            "additionalProperties": false,
+                                                            "properties": {
+                                                                "custom": {
+                                                                    "items": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "type": "array"
+                                                                },
+                                                                "extended": {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                },
+                                                                "md5": {
+                                                                    "items": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "type": "array"
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "stream": {
+                                                    "additionalProperties": false,
+                                                    "properties": {
+                                                        "all": {
+                                                            "$ref": "#/$defs/suricata-bool"
+                                                        },
+                                                        "event-set": {
+                                                            "$ref": "#/$defs/suricata-bool"
+                                                        },
+                                                        "spurious-retransmission": {
+                                                            "$ref": "#/$defs/suricata-bool"
+                                                        },
+                                                        "state-update": {
+                                                            "$ref": "#/$defs/suricata-bool"
+                                                        }
+                                                    },
+                                                    "type": [
+                                                        "object",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "tls": {
+                                                    "additionalProperties": false,
+                                                    "properties": {
+                                                        "custom": {
+                                                            "items": {
+                                                                "type": "string"
+                                                            },
+                                                            "type": "array"
+                                                        },
+                                                        "enabled": {
+                                                            "$ref": "#/$defs/suricata-bool"
+                                                        },
+                                                        "extended": {
+                                                            "$ref": "#/$defs/suricata-bool"
+                                                        },
+                                                        "ja4": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                },
+                                                                {
+                                                                    "type": "string"
+                                                                }
+                                                            ]
+                                                        },
+                                                        "session-resumption": {
+                                                            "$ref": "#/$defs/suricata-bool"
+                                                        }
+                                                    },
+                                                    "type": [
+                                                        "object",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "type": "string"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "smb": {
+                                                    "anyOf": [
+                                                        {
+                                                            "additionalProperties": false,
+                                                            "properties": {
+                                                                "types": {
+                                                                    "items": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "type": "array"
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "arp": {
+                                                    "additionalProperties": false,
+                                                    "properties": {
+                                                        "enabled": {
+                                                            "$ref": "#/$defs/suricata-bool"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "dhcp": {
+                                                    "additionalProperties": false,
+                                                    "properties": {
+                                                        "enabled": {
+                                                            "$ref": "#/$defs/suricata-bool"
+                                                        },
+                                                        "extended": {
+                                                            "$ref": "#/$defs/suricata-bool"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "mqtt": {
+                                                    "anyOf": [
+                                                        {
+                                                            "additionalProperties": false,
+                                                            "properties": {
+                                                                "passwords": {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                },
+                                                                "string-log-limit": {
+                                                                    "anyOf": [
+                                                                        {
+                                                                            "type": "integer"
+                                                                        },
+                                                                        {
+                                                                            "type": "string"
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "pgsql": {
+                                                    "additionalProperties": false,
+                                                    "properties": {
+                                                        "enabled": {
+                                                            "$ref": "#/$defs/suricata-bool"
+                                                        },
+                                                        "passwords": {
+                                                            "$ref": "#/$defs/suricata-bool"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "deltas": {
+                                                    "$ref": "#/$defs/suricata-bool"
+                                                },
+                                                "enabled": {
+                                                    "$ref": "#/$defs/suricata-bool"
+                                                },
+                                                "filename": {
+                                                    "type": "string"
+                                                },
+                                                "null-values": {
+                                                    "$ref": "#/$defs/suricata-bool"
+                                                },
+                                                "stats": {
+                                                    "anyOf": [
+                                                        {
+                                                            "additionalProperties": false,
+                                                            "properties": {
+                                                                "deltas": {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                },
+                                                                "enabled": {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                },
+                                                                "filename": {
+                                                                    "type": "string"
+                                                                },
+                                                                "null-values": {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                },
+                                                                "threads": {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                },
+                                                                "totals": {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "threads": {
+                                                    "$ref": "#/$defs/suricata-bool"
+                                                },
+                                                "totals": {
+                                                    "$ref": "#/$defs/suricata-bool"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "tftp": {
+                                                    "anyOf": [
+                                                        {
+                                                            "additionalProperties": false,
+                                                            "properties": {
+                                                                "enabled": {
+                                                                    "$ref": "#/$defs/suricata-bool"
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    ]
+                                },
+                                "type": "array"
+                            },
+                            "xff": {
+                                "additionalProperties": false,
+                                "properties": {
+                                    "deployment": {
+                                        "type": "string"
+                                    },
+                                    "enabled": {
+                                        "$ref": "#/$defs/suricata-bool"
+                                    },
+                                    "header": {
+                                        "type": "string"
+                                    },
+                                    "mode": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "fast": {
+                        "additionalProperties": false,
+                        "properties": {
+                            "append": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "enabled": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "filename": {
+                                "type": "string"
+                            },
+                            "filetype": {
+                                "type": "string"
+                            },
+                            "ipv6-compress": {
+                                "$ref": "#/$defs/suricata-bool"
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "file-log": {
+                        "additionalProperties": false,
+                        "properties": {
+                            "append": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "enabled": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "filename": {
+                                "type": "string"
+                            },
+                            "filetype": {
+                                "type": "string"
+                            },
+                            "force-hash": {
+                                "items": {
+                                    "type": "string"
+                                },
+                                "type": "array"
+                            },
+                            "force-magic": {
+                                "$ref": "#/$defs/suricata-bool"
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "file-store": {
+                        "additionalProperties": false,
+                        "properties": {
+                            "dir": {
+                                "type": "string"
+                            },
+                            "enabled": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "force-filestore": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "force-hash": {
+                                "items": {
+                                    "type": "string"
+                                },
+                                "type": "array"
+                            },
+                            "force-magic": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "log-dir": {
+                                "type": "string"
+                            },
+                            "max-open-files": {
+                                "type": "integer"
+                            },
+                            "stream-depth": {
+                                "type": "integer"
+                            },
+                            "version": {
+                                "type": "integer"
+                            },
+                            "waldo": {
+                                "type": "string"
+                            },
+                            "write-fileinfo": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "write-meta": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "xff": {
+                                "additionalProperties": false,
+                                "properties": {
+                                    "deployment": {
+                                        "type": "string"
+                                    },
+                                    "enabled": {
+                                        "$ref": "#/$defs/suricata-bool"
+                                    },
+                                    "header": {
+                                        "type": "string"
+                                    },
+                                    "mode": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "http-body-data": {
+                        "additionalProperties": false,
+                        "properties": {
+                            "enabled": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "filename": {
+                                "type": "string"
+                            },
+                            "type": {
+                                "type": "string"
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "http-log": {
+                        "additionalProperties": false,
+                        "properties": {
+                            "append": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "custom": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "customformat": {
+                                "type": "string"
+                            },
+                            "enabled": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "extended": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "filename": {
+                                "type": "string"
+                            },
+                            "filetype": {
+                                "type": "string"
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "lua": {
+                        "additionalProperties": false,
+                        "properties": {
+                            "cpath": {
+                                "type": "string"
+                            },
+                            "enabled": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "path": {
+                                "type": "string"
+                            },
+                            "scripts": {
+                                "anyOf": [
+                                    {
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "type": "array"
+                                    },
+                                    {
+                                        "type": "null"
+                                    }
+                                ]
+                            },
+                            "scripts-dir": {
+                                "type": "string"
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "pcap-log": {
+                        "additionalProperties": false,
+                        "properties": {
+                            "bpf-filter": {
+                                "anyOf": [
+                                    {
+                                        "type": "string"
+                                    },
+                                    {
+                                        "type": "null"
+                                    }
+                                ]
+                            },
+                            "compression": {
+                                "type": "string"
+                            },
+                            "conditional": {
+                                "type": "string"
+                            },
+                            "dir": {
+                                "type": "string"
+                            },
+                            "enabled": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "filename": {
+                                "type": "string"
+                            },
+                            "honor-pass-rules": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "limit": {
+                                "type": "string"
+                            },
+                            "lz4-checksum": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "lz4-level": {
+                                "type": "integer"
+                            },
+                            "max-files": {
+                                "type": "integer"
+                            },
+                            "mode": {
+                                "type": "string"
+                            },
+                            "ts-format": {
+                                "type": "string"
+                            },
+                            "use-stream-depth": {
+                                "$ref": "#/$defs/suricata-bool"
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "stats": {
+                        "additionalProperties": false,
+                        "properties": {
+                            "append": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "enabled": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "filename": {
+                                "type": "string"
+                            },
+                            "null-values": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "threads": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "totals": {
+                                "$ref": "#/$defs/suricata-bool"
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "syslog": {
+                        "additionalProperties": false,
+                        "properties": {
+                            "enabled": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "facility": {
+                                "type": "string"
+                            },
+                            "identity": {
+                                "type": "string"
+                            },
+                            "level": {
+                                "type": "string"
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "tcp-data": {
+                        "additionalProperties": false,
+                        "properties": {
+                            "enabled": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "filename": {
+                                "type": "string"
+                            },
+                            "ipv6-compress": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "type": {
+                                "type": "string"
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "tls-log": {
+                        "additionalProperties": false,
+                        "properties": {
+                            "append": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "custom": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "customformat": {
+                                "type": "string"
+                            },
+                            "enabled": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "extended": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "filename": {
+                                "type": "string"
+                            },
+                            "filetype": {
+                                "type": "string"
+                            },
+                            "session-resumption": {
+                                "$ref": "#/$defs/suricata-bool"
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "tls-store": {
+                        "additionalProperties": false,
+                        "properties": {
+                            "certs-log-dir": {
+                                "type": "string"
+                            },
+                            "enabled": {
+                                "$ref": "#/$defs/suricata-bool"
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "unified2-alert": {
+                        "additionalProperties": false,
+                        "properties": {
+                            "enabled": {
+                                "$ref": "#/$defs/suricata-bool"
+                            },
+                            "filename": {
+                                "type": "string"
+                            },
+                            "xff": {
+                                "additionalProperties": false,
+                                "properties": {
+                                    "deployment": {
+                                        "type": "string"
+                                    },
+                                    "enabled": {
+                                        "$ref": "#/$defs/suricata-bool"
+                                    },
+                                    "header": {
+                                        "type": "string"
+                                    },
+                                    "mode": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "anyOf": [
+                {
+                    "type": "array"
+                },
+                {
+                    "type": "null"
+                }
+            ]
+        },
+        "packet-alert-max": {
+            "type": "integer"
+        },
+        "pcap": {
+            "items": {
+                "additionalProperties": false,
+                "properties": {
+                    "interface": {
+                        "type": "string"
+                    }
+                },
+                "type": "object"
+            },
+            "type": "array"
+        },
+        "pcap-file": {
+            "additionalProperties": false,
+            "properties": {
+                "checksum-checks": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/suricata-bool"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ]
+                },
+                "delete-when-done": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/suricata-bool"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ]
+                }
+            },
+            "type": "object"
+        },
+        "pcre": {
+            "additionalProperties": false,
+            "properties": {
+                "match-limit": {
+                    "type": "integer"
+                },
+                "match-limit-recursion": {
+                    "type": "integer"
+                }
+            },
+            "type": "object"
+        },
+        "pfring": {
+            "items": {
+                "additionalProperties": false,
+                "properties": {
+                    "cluster-id": {
+                        "type": "integer"
+                    },
+                    "cluster-type": {
+                        "type": "string"
+                    },
+                    "interface": {
+                        "type": "string"
+                    },
+                    "threads": {
+                        "anyOf": [
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    }
+                },
+                "type": "object"
+            },
+            "type": "array"
+        },
+        "plugins": {
+            "anyOf": [
+                {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": "array"
+                },
+                {
+                    "type": "null"
+                }
+            ]
+        },
+        "profiling": {
+            "additionalProperties": false,
+            "properties": {
+                "keywords": {
+                    "additionalProperties": false,
+                    "properties": {
+                        "append": {
+                            "$ref": "#/$defs/suricata-bool"
+                        },
+                        "enabled": {
+                            "$ref": "#/$defs/suricata-bool"
+                        },
+                        "filename": {
+                            "type": "string"
+                        }
+                    },
+                    "type": "object"
+                },
+                "locks": {
+                    "additionalProperties": false,
+                    "properties": {
+                        "append": {
+                            "$ref": "#/$defs/suricata-bool"
+                        },
+                        "enabled": {
+                            "$ref": "#/$defs/suricata-bool"
+                        },
+                        "filename": {
+                            "type": "string"
+                        }
+                    },
+                    "type": "object"
+                },
+                "packets": {
+                    "additionalProperties": false,
+                    "properties": {
+                        "append": {
+                            "$ref": "#/$defs/suricata-bool"
+                        },
+                        "csv": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "enabled": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                },
+                                "filename": {
+                                    "type": "string"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "enabled": {
+                            "$ref": "#/$defs/suricata-bool"
+                        },
+                        "filename": {
+                            "type": "string"
+                        }
+                    },
+                    "type": "object"
+                },
+                "pcap-log": {
+                    "additionalProperties": false,
+                    "properties": {
+                        "append": {
+                            "$ref": "#/$defs/suricata-bool"
+                        },
+                        "enabled": {
+                            "$ref": "#/$defs/suricata-bool"
+                        },
+                        "filename": {
+                            "type": "string"
+                        }
+                    },
+                    "type": "object"
+                },
+                "prefilter": {
+                    "additionalProperties": false,
+                    "properties": {
+                        "append": {
+                            "$ref": "#/$defs/suricata-bool"
+                        },
+                        "enabled": {
+                            "$ref": "#/$defs/suricata-bool"
+                        },
+                        "filename": {
+                            "type": "string"
+                        }
+                    },
+                    "type": "object"
+                },
+                "rulegroups": {
+                    "additionalProperties": false,
+                    "properties": {
+                        "append": {
+                            "$ref": "#/$defs/suricata-bool"
+                        },
+                        "enabled": {
+                            "$ref": "#/$defs/suricata-bool"
+                        },
+                        "filename": {
+                            "type": "string"
+                        }
+                    },
+                    "type": "object"
+                },
+                "rules": {
+                    "additionalProperties": false,
+                    "properties": {
+                        "append": {
+                            "$ref": "#/$defs/suricata-bool"
+                        },
+                        "enabled": {
+                            "$ref": "#/$defs/suricata-bool"
+                        },
+                        "filename": {
+                            "type": "string"
+                        },
+                        "json": {
+                            "$ref": "#/$defs/suricata-bool"
+                        },
+                        "limit": {
+                            "type": "integer"
+                        },
+                        "sort": {
+                            "type": "string"
+                        }
+                    },
+                    "type": "object"
+                }
+            },
+            "type": "object"
+        },
+        "reference-config-file": {
+            "type": "string"
+        },
+        "reputation-categories-file": {
+            "type": "string"
+        },
+        "reputation-files": {
+            "anyOf": [
+                {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": "array"
+                },
+                {
+                    "type": "null"
+                }
+            ]
+        },
+        "rule-files": {
+            "anyOf": [
+                {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": "array"
+                },
+                {
+                    "type": "null"
+                }
+            ]
+        },
+        "security": {
+            "additionalProperties": false,
+            "properties": {
+                "landlock": {
+                    "additionalProperties": false,
+                    "properties": {
+                        "directories": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "read": {
+                                    "items": {
+                                        "type": "string"
+                                    },
+                                    "type": "array"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "enabled": {
+                            "$ref": "#/$defs/suricata-bool"
+                        }
+                    },
+                    "type": "object"
+                },
+                "limit-noproc": {
+                    "$ref": "#/$defs/suricata-bool"
+                },
+                "lua": {
+                    "anyOf": [
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "allow-rules": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                }
+            },
+            "type": "object"
+        },
+        "spm-algo": {
+            "type": "string"
+        },
+        "stats": {
+            "additionalProperties": false,
+            "properties": {
+                "decoder-events": {
+                    "$ref": "#/$defs/suricata-bool"
+                },
+                "decoder-events-prefix": {
+                    "type": "string"
+                },
+                "enabled": {
+                    "$ref": "#/$defs/suricata-bool"
+                },
+                "exception-policy": {
+                    "anyOf": [
+                        {
+                            "additionalProperties": false,
+                            "properties": {
+                                "global-stats": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                },
+                                "per-app-proto-errors": {
+                                    "$ref": "#/$defs/suricata-bool"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "interval": {
+                    "type": "integer"
+                },
+                "stream-events": {
+                    "$ref": "#/$defs/suricata-bool"
+                }
+            },
+            "type": "object"
+        },
+        "stream": {
+            "additionalProperties": false,
+            "properties": {
+                "checksum-validation": {
+                    "$ref": "#/$defs/suricata-bool"
+                },
+                "inline": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/suricata-bool"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ]
+                },
+                "memcap": {
+                    "type": "string"
+                },
+                "midstream": {
+                    "$ref": "#/$defs/suricata-bool"
+                },
+                "reassembly": {
+                    "additionalProperties": false,
+                    "properties": {
+                        "depth": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "integer"
+                                }
+                            ]
+                        },
+                        "memcap": {
+                            "type": "string"
+                        },
+                        "randomize-chunk-size": {
+                            "$ref": "#/$defs/suricata-bool"
+                        },
+                        "toclient-chunk-size": {
+                            "type": "integer"
+                        },
+                        "toserver-chunk-size": {
+                            "type": "integer"
+                        },
+                        "urgent": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "oob-limit-policy": {
+                                    "type": "string"
+                                },
+                                "policy": {
+                                    "type": "string"
+                                }
+                            },
+                            "type": "object"
+                        }
+                    },
+                    "type": "object"
+                }
+            },
+            "type": "object"
+        },
+        "suricata-version": {
+            "type": "string",
+            "pattern": "^\\d+\\.\\d+(\\.\\d+)?$"
+        },
+        "threading": {
+            "additionalProperties": false,
+            "properties": {
+                "autopin": {
+                    "$ref": "#/$defs/suricata-bool"
+                },
+                "cpu-affinity": {
+                    "additionalProperties": false,
+                    "properties": {
+                        "management-cpu-set": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "cpu": {
+                                    "items": {
+                                        "type": "integer"
+                                    },
+                                    "type": "array"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "receive-cpu-set": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "cpu": {
+                                    "items": {
+                                        "type": "integer"
+                                    },
+                                    "type": "array"
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "worker-cpu-set": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "cpu": {
+                                    "items": {
+                                        "type": "string"
+                                    },
+                                    "type": "array"
+                                },
+                                "interface-specific-cpu-set": {
+                                    "items": {
+                                        "additionalProperties": false,
+                                        "properties": {
+                                            "cpu": {
+                                                "items": {
+                                                    "type": "integer"
+                                                },
+                                                "type": "array"
+                                            },
+                                            "interface": {
+                                                "type": "string"
+                                            },
+                                            "mode": {
+                                                "type": "string"
+                                            },
+                                            "prio": {
+                                                "additionalProperties": false,
+                                                "properties": {
+                                                    "default": {
+                                                        "type": "string"
+                                                    },
+                                                    "high": {
+                                                        "items": {
+                                                            "type": "string"
+                                                        },
+                                                        "type": "array"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "type": "object"
+                                    },
+                                    "type": "array"
+                                },
+                                "mode": {
+                                    "type": "string"
+                                },
+                                "prio": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "default": {
+                                            "type": "string"
+                                        },
+                                        "high": {
+                                            "items": {
+                                                "type": "integer"
+                                            },
+                                            "type": "array"
+                                        },
+                                        "low": {
+                                            "items": {
+                                                "type": "integer"
+                                            },
+                                            "type": "array"
+                                        },
+                                        "medium": {
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "type": "array"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            },
+                            "type": "object"
+                        }
+                    },
+                    "type": [
+                        "object",
+                        "array"
+                    ]
+                },
+                "detect-thread-ratio": {
+                    "type": "number"
+                },
+                "set-cpu-affinity": {
+                    "$ref": "#/$defs/suricata-bool"
+                }
+            },
+            "type": "object"
+        },
+        "threshold-file": {
+            "type": "string"
+        },
+        "unix-command": {
+            "additionalProperties": false,
+            "properties": {
+                "enabled": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/suricata-bool"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ]
+                },
+                "filename": {
+                    "type": "string"
+                }
+            },
+            "type": "object"
+        },
+        "vars": {
+            "additionalProperties": false,
+            "properties": {
+                "address-groups": {
+                    "additionalProperties": false,
+                    "patternProperties": {
+                        "^[A-Z0-9_]+$": {
+                            "type": "string"
+                        }
+                    },
+                    "type": "object",
+                    "properties": {}
+                },
+                "port-groups": {
+                    "additionalProperties": false,
+                    "patternProperties": {
+                        "^[A-Z0-9_]+$": {
+                            "anyOf": [
+                                {
+                                    "type": "integer"
+                                },
+                                {
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    "type": "object",
+                    "properties": {}
+                }
+            },
+            "type": "object"
+        },
+        "vlan": {
+            "additionalProperties": false,
+            "properties": {
+                "use-for-tracking": {
+                    "$ref": "#/$defs/suricata-bool"
+                }
+            },
+            "type": "object"
+        }
+    }
+}

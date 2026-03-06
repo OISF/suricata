@@ -2,8 +2,10 @@
 // SPDX-License-Identifier: GPL-2.0-only
 
 pub mod loader;
+pub mod validate;
 
 pub use loader::{load_file, load_string, LoadError};
+pub use validate::{load_schema_file, validate_json_schema, LoadSchemaError, ValidationError};
 
 use saphyr::MappingOwned;
 use saphyr::Yaml;
@@ -24,6 +26,14 @@ pub type Config = YamlOwned;
 
 /// Limit for nesting depth. Fuzzing can easily reach this.
 const MAX_YAML_NESTING_DEPTH: usize = 255;
+
+/// Embedded default JSON Schema for Suricata YAML configuration.
+pub const SURICATA_YAML_SCHEMA: &str = include_str!("../suricata-yaml.schema.json");
+
+/// Parse and return the embedded default JSON Schema.
+pub fn embedded_schema() -> Result<JsonValue, serde_json::Error> {
+    serde_json::from_str(SURICATA_YAML_SCHEMA)
+}
 
 /// Errors returned while parsing a configuration document.
 #[derive(Debug, Error)]
@@ -128,7 +138,9 @@ pub fn print_json(config: &Config) -> Result<String, serde_json::Error> {
     serde_json::to_string_pretty(&config_to_json(config))
 }
 
-fn config_to_json(node: &YamlOwned) -> JsonValue {
+/// Convert a parsed Suricata config tree into JSON values used by printing and
+/// schema validation.
+pub fn config_to_json(node: &YamlOwned) -> JsonValue {
     let node = untagged_node(node);
 
     if node.is_null() {
@@ -158,7 +170,7 @@ fn config_to_json(node: &YamlOwned) -> JsonValue {
         YamlOwned::Mapping(mapping) => {
             let mut object = JsonMap::with_capacity(mapping.len());
             for (key, value) in mapping {
-                object.insert(scalar_to_string(key), config_to_json(value));
+                object.insert(mapping_key_to_string(key), config_to_json(value));
             }
             JsonValue::Object(object)
         }
@@ -170,6 +182,35 @@ fn config_to_json(node: &YamlOwned) -> JsonValue {
         YamlOwned::BadValue => JsonValue::Null,
         YamlOwned::Tagged(_, _) => unreachable!("tagged nodes are unwrapped before conversion"),
         _ => JsonValue::Null,
+    }
+}
+
+fn mapping_key_to_string(node: &YamlOwned) -> String {
+    let node = untagged_node(node);
+
+    if node.is_null() {
+        return "null".into();
+    }
+
+    if let Some(value) = node.as_str() {
+        return value.to_string();
+    }
+
+    if let Some(value) = node.as_integer() {
+        return value.to_string();
+    }
+
+    if let Some(value) = node.as_floating_point() {
+        return value.to_string();
+    }
+
+    if let Some(value) = node.as_bool() {
+        return value.to_string();
+    }
+
+    match config_to_json(node) {
+        JsonValue::String(value) => value,
+        value => value.to_string(),
     }
 }
 
@@ -291,6 +332,7 @@ fn untagged_node(mut node: &YamlOwned) -> &YamlOwned {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     fn count_matching_lines(output: &str, expected: &str) -> usize {
         output.lines().filter(|line| *line == expected).count()
@@ -328,6 +370,16 @@ mod tests {
     fn test_parse_config_empty_document() {
         let config = parse_yaml("---\n").expect("empty document should parse");
         assert!(matches!(&config, YamlOwned::Mapping(mapping) if mapping.is_empty()));
+    }
+
+    #[test]
+    fn test_embedded_schema_declares_draft_2020_12() {
+        let schema = embedded_schema().expect("embedded schema should parse");
+
+        assert_eq!(
+            schema["$schema"].as_str(),
+            Some("https://json-schema.org/draft/2020-12/schema")
+        );
     }
 
     #[test]
@@ -706,5 +758,40 @@ quoted_off: 'off'
         assert_eq!(config["quoted_no"].as_str(), Some("no"));
         assert_eq!(config["quoted_on"].as_str(), Some("on"));
         assert_eq!(config["quoted_off"].as_str(), Some("off"));
+    }
+
+    #[test]
+    fn test_validate_json_schema_reports_invalid_schema() {
+        let errors = validate_json_schema(
+            &json!({}),
+            &json!({
+                "type": 7
+            }),
+        );
+
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0].path, "/");
+        assert!(errors[0].message.starts_with("invalid schema:"));
+    }
+
+    #[test]
+    fn test_validate_json_schema_dedupes_duplicate_errors() {
+        let errors = validate_json_schema(
+            &json!({ "value": "not-an-integer" }),
+            &json!({
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "anyOf": [
+                            { "type": "integer" },
+                            { "type": "integer" }
+                        ]
+                    }
+                }
+            }),
+        );
+
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0].path, "/value");
     }
 }
