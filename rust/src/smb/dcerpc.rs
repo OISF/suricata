@@ -74,11 +74,12 @@ pub struct DCERPCIface {
 }
 
 impl DCERPCIface {
-    pub fn new(uuid: Vec<u8>, ver: u16, ver_min: u16) -> Self {
+    pub fn new(uuid: Vec<u8>, ver: u16, ver_min: u16, context_id: u16) -> Self {
         Self {
             uuid,
             ver,
             ver_min,
+            context_id,
             ..Default::default()
         }
     }
@@ -293,7 +294,7 @@ pub fn smb_write_dcerpc_record(state: &mut SMBState,
                                     };
                                     let uuid_str = uuid::Uuid::from_slice(&x.clone());
                                     let _uuid_str = uuid_str.map(|uuid_str| uuid_str.to_hyphenated().to_string()).unwrap();
-                                    let d = DCERPCIface::new(x,i.ver,i.ver_min);
+                                    let d = DCERPCIface::new(x,i.ver,i.ver_min,i.ctx_id);
                                     SCLogDebug!("UUID {} version {}/{} bytes {:?}",
                                             _uuid_str,
                                             i.ver, i.ver_min,i.iface);
