@@ -38,7 +38,6 @@
 
 #include "suricata-common.h"
 #include "detect-windows-pe.h"
-#include "util-file.h"
 #include "rust.h"
 
 /* Forward declaration for Rust FFI */
@@ -47,28 +46,4 @@ extern void SCDetectWindowsPERegister(void);
 void DetectWindowsPERegister(void)
 {
     SCDetectWindowsPERegister();
-}
-
-/* Stub implementations for File PE metadata caching.
- * These satisfy the linker until util-file.c provides the real
- * implementations backed by pe_meta/pe_imports fields on File. */
-
-typedef struct SCFilePeMeta SCFilePeMeta;
-
-bool FilePeMetaGet(const File *file, SCFilePeMeta *meta)
-{
-    return false;
-}
-
-void FilePeMetaSet(File *file, const SCFilePeMeta *meta)
-{
-}
-
-const void *FilePeImportsGet(const File *file)
-{
-    return NULL;
-}
-
-void FilePeImportsSet(File *file, void *imports)
-{
 }
