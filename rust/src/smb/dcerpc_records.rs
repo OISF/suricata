@@ -71,13 +71,14 @@ pub fn parse_dcerpc_request_record(i:&[u8], frag_len: u16, little: bool)
 
 #[derive(Debug,PartialEq, Eq)]
 pub struct DceRpcBindIface<'a> {
+    pub ctx_id: u16,
     pub iface: &'a[u8],
     pub ver: u16,
     pub ver_min: u16,
 }
 
 pub fn parse_dcerpc_bind_iface(i: &[u8]) -> IResult<&[u8], DceRpcBindIface<'_>> {
-    let (i, _ctx_id) = le_u16(i)?;
+    let (i, ctx_id) = le_u16(i)?;
     let (i, _num_trans_items) = le_u8(i)?;
     let (i, _) = take(1_usize)(i)?; // reserved
     let (i, interface) = take(16_usize)(i)?;
@@ -85,6 +86,7 @@ pub fn parse_dcerpc_bind_iface(i: &[u8]) -> IResult<&[u8], DceRpcBindIface<'_>> 
     let (i, ver_min) = le_u16(i)?;
     let (i, _) = take(20_usize)(i)?;
     let res = DceRpcBindIface {
+        ctx_id,
         iface:interface,
         ver,
         ver_min,
@@ -93,7 +95,7 @@ pub fn parse_dcerpc_bind_iface(i: &[u8]) -> IResult<&[u8], DceRpcBindIface<'_>> 
 }
 
 pub fn parse_dcerpc_bind_iface_big(i: &[u8]) -> IResult<&[u8], DceRpcBindIface<'_>> {
-    let (i, _ctx_id) = le_u16(i)?;
+    let (i, ctx_id) = le_u16(i)?;
     let (i, _num_trans_items) = le_u8(i)?;
     let (i, _) = take(1_usize)(i)?; // reserved
     let (i, interface) = take(16_usize)(i)?;
@@ -101,6 +103,7 @@ pub fn parse_dcerpc_bind_iface_big(i: &[u8]) -> IResult<&[u8], DceRpcBindIface<'
     let (i, ver) = be_u16(i)?;
     let (i, _) = take(20_usize)(i)?;
     let res = DceRpcBindIface {
+        ctx_id,
         iface:interface,
         ver,
         ver_min,
