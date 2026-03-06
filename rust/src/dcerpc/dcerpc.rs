@@ -896,7 +896,6 @@ impl DCERPCState {
         &mut self, stream_slice: StreamSlice, direction: Direction,
     ) -> AppLayerResult {
         let mut parsed = 0;
-        let retval;
         let mut cur_i = stream_slice.as_slice();
         let mut consumed = 0u32;
 
@@ -939,129 +938,138 @@ impl DCERPCState {
         if let Some(f) = self.flow {
             flow = f;
         }
-        // Check if header data was complete. In case of EoF or incomplete data, wait for more
-        // data else return error
-        if self.header.is_none() && !cur_i.is_empty() {
-            parsed = self.process_header(cur_i);
-            if parsed == -1 {
-                return AppLayerResult::incomplete(consumed, DCERPC_HDR_LEN as u32);
+        while !cur_i.is_empty() {
+            // Check if header data was complete. In case of EoF or incomplete data, wait for more
+            // data else return error
+            if self.header.is_none() && !cur_i.is_empty() {
+                parsed = self.process_header(cur_i);
+                if parsed == -1 {
+                    return AppLayerResult::incomplete(consumed, DCERPC_HDR_LEN as u32);
+                }
+                if parsed < 0 {
+                    return AppLayerResult::err();
+                }
+            } else {
+                frag_bytes_consumed = DCERPC_HDR_LEN;
             }
-            if parsed < 0 {
-                return AppLayerResult::err();
+
+            let fraglen = self.get_hdr_fraglen().unwrap_or(0);
+
+            if (cur_i.len() + frag_bytes_consumed as usize) < fraglen as usize {
+                SCLogDebug!("Possibly fragmented data, waiting for more..");
+                return AppLayerResult::incomplete(
+                    consumed + parsed as u32,
+                    fraglen as u32 - parsed as u32,
+                );
             }
-        } else {
-            frag_bytes_consumed = DCERPC_HDR_LEN;
-        }
 
-        let fraglen = self.get_hdr_fraglen().unwrap_or(0);
-
-        if (cur_i.len() + frag_bytes_consumed as usize) < fraglen as usize {
-            SCLogDebug!("Possibly fragmented data, waiting for more..");
-            return AppLayerResult::incomplete(
-                consumed + parsed as u32,
-                fraglen as u32 - parsed as u32,
-            );
-        }
-
-        let _hdr = Frame::new(
-            flow,
-            &stream_slice,
-            cur_i,
-            parsed as i64,
-            DCERPCFrameType::Hdr as u8,
-            None,
-        );
-        let _pdu = Frame::new(
-            flow,
-            &stream_slice,
-            cur_i,
-            fraglen as i64,
-            DCERPCFrameType::Pdu as u8,
-            None,
-        );
-        if fraglen >= DCERPC_HDR_LEN && cur_i.len() > DCERPC_HDR_LEN as usize {
-            let _data = Frame::new(
+            let _hdr = Frame::new(
                 flow,
                 &stream_slice,
-                &cur_i[DCERPC_HDR_LEN as usize..],
-                (fraglen - DCERPC_HDR_LEN) as i64,
-                DCERPCFrameType::Data as u8,
+                cur_i,
+                parsed as i64,
+                DCERPCFrameType::Hdr as u8,
                 None,
             );
-        }
-        let current_call_id = self.get_hdr_call_id().unwrap_or(0);
+            let _pdu = Frame::new(
+                flow,
+                &stream_slice,
+                cur_i,
+                fraglen as i64,
+                DCERPCFrameType::Pdu as u8,
+                None,
+            );
+            if fraglen >= DCERPC_HDR_LEN && cur_i.len() > DCERPC_HDR_LEN as usize {
+                let _data = Frame::new(
+                    flow,
+                    &stream_slice,
+                    &cur_i[DCERPC_HDR_LEN as usize..],
+                    (fraglen - DCERPC_HDR_LEN) as i64,
+                    DCERPCFrameType::Data as u8,
+                    None,
+                );
+            }
+            let current_call_id = self.get_hdr_call_id().unwrap_or(0);
 
-        match self.get_hdr_type() {
-            Some(x) => match x {
-                DCERPC_TYPE_BIND | DCERPC_TYPE_ALTER_CONTEXT => {
-                    retval = self.process_bind_pdu(&cur_i[parsed as usize..]);
-                    if retval == -1 {
-                        return AppLayerResult::err();
-                    }
-                }
-                DCERPC_TYPE_BINDACK | DCERPC_TYPE_ALTER_CONTEXT_RESP => {
-                    retval = self.process_bindack_pdu(&cur_i[parsed as usize..]);
-                    if retval == -1 {
-                        return AppLayerResult::err();
-                    }
-                    let tx = if let Some(tx) =
-                        self.get_tx_by_call_id(current_call_id, Direction::ToClient)
-                    {
-                        tx.resp_cmd = x;
-                        tx
-                    } else {
-                        let mut tx = self.create_tx(current_call_id);
-                        tx.resp_cmd = x;
-                        self.transactions.push_back(tx);
-                        self.transactions.back_mut().unwrap()
-                    };
-                    tx.resp_done = true;
-                    tx.frag_cnt_tc = 1;
-                    if let Some(flow) = self.flow {
-                        sc_app_layer_parser_trigger_raw_stream_inspection(
-                            flow,
-                            Direction::ToClient as i32,
-                        );
-                    }
-                }
-                DCERPC_TYPE_REQUEST => {
-                    retval = self.process_request_pdu(&cur_i[parsed as usize..]);
-                    if retval < 0 {
-                        return AppLayerResult::err();
-                    }
-                    // In case the response came first, the transaction would complete later when
-                    // the corresponding request also comes through
-                }
-                DCERPC_TYPE_RESPONSE => {
-                    let transaction = self.get_tx_by_call_id(current_call_id, Direction::ToClient);
-                    match transaction {
-                        Some(tx) => {
-                            tx.resp_cmd = x;
+            match self.get_hdr_type() {
+                Some(x) => match x {
+                    DCERPC_TYPE_BIND | DCERPC_TYPE_ALTER_CONTEXT => {
+                        let retval = self.process_bind_pdu(&cur_i[parsed as usize..]);
+                        if retval == -1 {
+                            return AppLayerResult::err();
                         }
-                        None => {
+                    }
+                    DCERPC_TYPE_BINDACK | DCERPC_TYPE_ALTER_CONTEXT_RESP => {
+                        let retval = self.process_bindack_pdu(&cur_i[parsed as usize..]);
+                        if retval == -1 {
+                            return AppLayerResult::err();
+                        }
+                        let tx = if let Some(tx) =
+                            self.get_tx_by_call_id(current_call_id, Direction::ToClient)
+                        {
+                            tx.resp_cmd = x;
+                            tx
+                        } else {
                             let mut tx = self.create_tx(current_call_id);
                             tx.resp_cmd = x;
                             self.transactions.push_back(tx);
+                            self.transactions.back_mut().unwrap()
+                        };
+                        tx.resp_done = true;
+                        tx.frag_cnt_tc = 1;
+                        if let Some(flow) = self.flow {
+                            sc_app_layer_parser_trigger_raw_stream_inspection(
+                                flow,
+                                Direction::ToClient as i32,
+                            );
                         }
-                    };
-                    retval =
-                        self.handle_common_stub(&cur_i[parsed as usize..], 0, Direction::ToClient);
-                    if retval < 0 {
-                        return AppLayerResult::err();
                     }
+                    DCERPC_TYPE_REQUEST => {
+                        let retval = self.process_request_pdu(&cur_i[parsed as usize..]);
+                        if retval < 0 {
+                            return AppLayerResult::err();
+                        }
+                        // In case the response came first, the transaction would complete later when
+                        // the corresponding request also comes through
+                    }
+                    DCERPC_TYPE_RESPONSE => {
+                        let transaction =
+                            self.get_tx_by_call_id(current_call_id, Direction::ToClient);
+                        match transaction {
+                            Some(tx) => {
+                                tx.resp_cmd = x;
+                            }
+                            None => {
+                                let mut tx = self.create_tx(current_call_id);
+                                tx.resp_cmd = x;
+                                self.transactions.push_back(tx);
+                            }
+                        };
+                        let retval = self.handle_common_stub(
+                            &cur_i[parsed as usize..],
+                            0,
+                            Direction::ToClient,
+                        );
+                        if retval < 0 {
+                            return AppLayerResult::err();
+                        }
+                    }
+                    _ => {
+                        SCLogDebug!("Unrecognized packet type: {:?}", x);
+                        // skip unrecognized packet types such as AUTH3
+                    }
+                },
+                None => {
+                    return AppLayerResult::err();
                 }
-                _ => {
-                    SCLogDebug!("Unrecognized packet type: {:?}", x);
-                    // skip unrecognized packet types such as AUTH3
-                }
-            },
-            None => {
-                return AppLayerResult::err();
             }
+            self.header = None;
+            consumed += (fraglen - frag_bytes_consumed) as u32;
+            cur_i = &cur_i[(fraglen - frag_bytes_consumed) as usize..];
+            frag_bytes_consumed = 0;
         }
 
         self.post_gap_housekeeping(direction);
-        self.header = None;
         return AppLayerResult::ok();
     }
 }
