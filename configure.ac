@@ -498,7 +498,11 @@
                     AC_SUBST(LLC)
                   ],
                   [AC_MSG_ERROR([clang needed to build ebpf files])])
-            AC_MSG_CHECKING([libbpf has bpf/bpf_helpers.h])
+            AC_ARG_WITH(ebpf_includes,
+                    [  --with-ebpf-includes=DIR  include directory for building eBPF programs],
+                    [AC_SUBST([ebpf_includes],["$withval"])],
+                    [AC_SUBST([ebpf_includes],["/usr/include/${build_alias}"])])
+	    AC_MSG_CHECKING([libbpf has bpf/bpf_helpers.h])
             AC_COMPILE_IFELSE(
                 [AC_LANG_PROGRAM(
                     [
