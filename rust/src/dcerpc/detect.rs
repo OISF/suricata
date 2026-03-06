@@ -63,8 +63,8 @@ fn match_backuuid(
     tx: &DCERPCTransaction, state: &mut DCERPCState, if_data: &mut DCEIfaceData,
 ) -> u8 {
     let mut ret = 0;
-    if let Some(ref bindack) = state.bindack {
-        for uuidentry in bindack.accepted_uuid_list.iter() {
+    if !state.interface_uuids.is_empty() {
+        for uuidentry in &state.interface_uuids {
             ret = 1;
             // if any_frag is not enabled, we need to match only against the first fragment
             if if_data.any_frag == 0 && (uuidentry.flags & DCERPC_UUID_ENTRY_FLAG_FF == 0) {
@@ -72,7 +72,8 @@ fn match_backuuid(
                 continue;
             }
             // if the uuid has been rejected(uuidentry->result == 1), we skip to the next uuid
-            if uuidentry.result != 0 {
+            if !uuidentry.acked || uuidentry.result != 0 {
+                ret = 0;
                 SCLogDebug!("Skipping to next UUID");
                 continue;
             }
