@@ -482,6 +482,7 @@ struct PacketL4 {
         ICMPV4Vars icmpv4;
         ICMPV6Vars icmpv6;
         IGMPVars igmp;
+        SCTPVars sctp;
     } vars;
 };
 
@@ -1014,6 +1015,11 @@ typedef struct DecodeThreadVars_
     StatsCounterId counter_raw;
     StatsCounterId counter_null;
     StatsCounterId counter_sctp;
+    StatsCounterId counter_sctp_init;
+    StatsCounterId counter_sctp_init_ack;
+    StatsCounterId counter_sctp_data;
+    StatsCounterId counter_sctp_abort;
+    StatsCounterId counter_sctp_shutdown;
     StatsCounterId counter_esp;
     StatsCounterId counter_ppp;
     StatsCounterId counter_geneve;
