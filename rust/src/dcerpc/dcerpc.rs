@@ -923,7 +923,7 @@ impl DCERPCState {
             }
             _ => {
                 SCLogDebug!("Unrecognized packet type: {:?}", hdrtype);
-                return AppLayerResult::err();
+                // skip unrecognized packet types such as AUTH3
             }
         }
 
