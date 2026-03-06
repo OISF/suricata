@@ -23,6 +23,7 @@ pub mod datasets;
 pub mod entropy;
 pub mod error;
 pub mod windows_pe;
+pub mod windows_pe_logger;
 pub mod float;
 pub mod flow;
 pub mod fragbits;
