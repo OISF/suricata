@@ -867,7 +867,6 @@ impl DCERPCState {
 
     pub fn handle_input_data(&mut self, stream_slice: StreamSlice, direction: Direction) -> AppLayerResult {
         let mut parsed = 0;
-        let retval;
         let mut cur_i = stream_slice.as_slice();
         let mut consumed = 0u32;
 
@@ -908,9 +907,10 @@ impl DCERPCState {
         if let Some(f) = self.flow {
             flow = f;
         }
+        while !cur_i.is_empty() {
         // Check if header data was complete. In case of EoF or incomplete data, wait for more
         // data else return error
-        if self.header.is_none() && !cur_i.is_empty() {
+        if self.header.is_none() {
             parsed = self.process_header(cur_i);
             if parsed == -1 {
                 return AppLayerResult::incomplete(consumed, DCERPC_HDR_LEN as u32);
@@ -923,6 +923,10 @@ impl DCERPCState {
         }
 
         let fraglen = self.get_hdr_fraglen().unwrap_or(0);
+        if fraglen < DCERPC_HDR_LEN {
+            SCLogDebug!("Erroneous fragment length");
+            return AppLayerResult::err();
+        }
 
         if (cur_i.len() + frag_bytes_consumed as usize) < fraglen as usize {
             SCLogDebug!("Possibly fragmented data, waiting for more..");
@@ -939,13 +943,13 @@ impl DCERPCState {
         match self.get_hdr_type() {
             Some(x) => match x {
                 DCERPC_TYPE_BIND | DCERPC_TYPE_ALTER_CONTEXT => {
-                    retval = self.process_bind_pdu(&cur_i[parsed as usize..]);
+                    let retval = self.process_bind_pdu(&cur_i[parsed as usize..]);
                     if retval == -1 {
                         return AppLayerResult::err();
                     }
                 }
                 DCERPC_TYPE_BINDACK | DCERPC_TYPE_ALTER_CONTEXT_RESP => {
-                    retval = self.process_bindack_pdu(&cur_i[parsed as usize..]);
+                    let retval = self.process_bindack_pdu(&cur_i[parsed as usize..]);
                     if retval == -1 {
                         return AppLayerResult::err();
                     }
@@ -965,7 +969,7 @@ impl DCERPCState {
                     }
                 }
                 DCERPC_TYPE_REQUEST => {
-                    retval = self.process_request_pdu(&cur_i[parsed as usize..]);
+                    let retval = self.process_request_pdu(&cur_i[parsed as usize..]);
                     if retval < 0 {
                         return AppLayerResult::err();
                     }
@@ -984,7 +988,7 @@ impl DCERPCState {
                             self.transactions.push_back(tx);
                         }
                     };
-                    retval = self.handle_common_stub(
+                    let retval = self.handle_common_stub(
                         &cur_i[parsed as usize..],
                         0,
                         Direction::ToClient,
@@ -1002,9 +1006,13 @@ impl DCERPCState {
                 return AppLayerResult::err();
             }
         }
+        self.header = None;
+        consumed += (fraglen - frag_bytes_consumed) as u32;
+        cur_i = &cur_i[(fraglen - frag_bytes_consumed) as usize..];
+        frag_bytes_consumed = 0;
+        }
 
         self.post_gap_housekeeping(direction);
-        self.header = None;
         return AppLayerResult::ok();
     }
 }
