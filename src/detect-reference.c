@@ -46,7 +46,7 @@
 /* Breakout key and scheme (optional) and domain/path (mandatory) */
 #define PARSE_REGEX                                                                                \
     "^\\s*([A-Za-z0-9]+)\\s*,\"?\\s*\"?\\s*([a-zA-Z]+:\\/\\/)?([a-zA-Z0-9\\-_\\.\\/"               \
-    "\\?\\=]+)\"?\\s*\"?"
+    "\\?\\=]+)\"?\\s*\"?$"
 
 static DetectParseRegex parse_regex;
 
