@@ -82,6 +82,9 @@ typedef struct PcapFileFileVars_
     struct bpf_program filter;
 
     PcapFileSharedVars *shared;
+    /** Cached copy of shared->delete_mode, valid even after shared is freed
+     *  (deferred cleanup path). Set in InitPcapFile. */
+    PcapFileDeleteMode delete_mode;
 
     SC_ATOMIC_DECLARE(uint64_t, alerts_count);
     /* Reference count for outstanding users (e.g., pseudo packets created
@@ -150,6 +153,9 @@ void PcapFileSetCurrentPfv(PcapFileFileVars *pfv);
 PcapFileFileVars *PcapFileGetCurrentPfv(void);
 
 void PcapFileInstallCaptureHooks(void);
+
+void PcapFileRef(PcapFileFileVars *pfv);
+void PcapFileUnref(PcapFileFileVars *pfv);
 
 #ifdef UNITTESTS
 void SourcePcapFileHelperRegisterTests(void);
