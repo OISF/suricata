@@ -143,6 +143,11 @@ typedef enum FileState_ {
     FILE_STATE_MAX
 } FileState;
 
+/* SCFilePeMeta is defined in Rust (detect/windows_pe.rs) and exported
+ * via cbindgen into rust-bindings.h.  Only a forward declaration is
+ * needed here because the File struct stores a pointer. */
+typedef struct SCFilePeMeta SCFilePeMeta;
+
 typedef struct File_ {
     uint16_t flags;
     uint16_t name_len;
@@ -172,10 +177,50 @@ typedef struct File_ {
     uint64_t start;
     uint64_t end;
 
+    /* Cached Windows PE metadata (parsed once per file, heap-allocated).
+     * NULL until first PE parse; freed in FileFree. */
+    SCFilePeMeta *pe_meta;
+
+    /* Cached PE import DLL names (opaque, owned by Rust).
+     * NULL until first import-table parse; freed in FileFree via
+     * SCFilePeImportsFree(). */
+    void *pe_imports;
+
     uint32_t *sid; /* signature id of a rule that triggered the filestore event */
     uint32_t sid_cnt;
     uint32_t sid_max;
 } File;
+
+/**
+ * \brief Read cached PE metadata from File.
+ *
+ * \retval true if metadata has been parsed (valid or invalid)
+ * \retval false if no metadata cache exists yet
+ */
+bool FilePeMetaGet(const File *file, SCFilePeMeta *meta);
+
+/**
+ * \brief Store cached PE metadata in File.
+ *
+ * Stores metadata and marks it as parsed.
+ */
+void FilePeMetaSet(File *file, const SCFilePeMeta *meta);
+
+/**
+ * \brief Get cached PE import names from File (opaque pointer).
+ * \retval opaque pointer (NULL if not yet cached)
+ */
+const void *FilePeImportsGet(const File *file);
+
+/**
+ * \brief Store cached PE import names in File (takes ownership).
+ */
+void FilePeImportsSet(File *file, void *imports);
+
+/**
+ * \brief Free cached PE import names (Rust-allocated).
+ */
+void SCFilePeImportsFree(void *imports);
 
 FileContainer *FileContainerAlloc(void);
 void FileContainerFree(FileContainer *, const StreamingBufferConfig *cfg);
