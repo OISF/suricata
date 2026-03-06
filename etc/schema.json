@@ -6922,8 +6922,29 @@
                                     "type": "object",
                                     "additionalProperties": false,
                                     "properties": {
+                                        "chunk_len_invalid": {
+                                            "type": "integer",
+                                            "description": "SCTP chunk length < 4 or exceeds remaining packet"
+                                        },
+                                        "chunk_too_small": {
+                                            "type": "integer",
+                                            "description": "Remaining data too small for SCTP chunk header"
+                                        },
+                                        "data_with_zero_vtag": {
+                                            "type": "integer",
+                                            "description": "SCTP DATA chunk with verification tag == 0"
+                                        },
+                                        "init_chunk_not_alone": {
+                                            "type": "integer",
+                                            "description": "SCTP INIT/INIT_ACK bundled with other chunks"
+                                        },
+                                        "init_with_non_zero_vtag": {
+                                            "type": "integer",
+                                            "description": "SCTP INIT with verification tag != 0"
+                                        },
                                         "pkt_too_small": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "SCTP packet smaller than minimum size"
                                         }
                                     }
                                 },
@@ -7969,6 +7990,33 @@
                         "written": {
                             "type": "integer",
                             "description": "Number of packets written"
+                        }
+                    }
+                },
+               "sctp": {
+                    "type": "object",
+                    "description": "Statistics on SCTP chunk types",
+                    "additionalProperties": false,
+                    "properties": {
+                        "abort": {
+                            "type": "integer",
+                            "description": "Number of SCTP packets with ABORT chunk"
+                        },
+                        "data": {
+                            "type": "integer",
+                            "description": "Number of SCTP packets with DATA chunk"
+                        },
+                        "init": {
+                            "type": "integer",
+                            "description": "Number of SCTP packets with INIT or INIT_ACK chunk"
+                        },
+                        "init_ack": {
+                            "type": "integer",
+                            "description": "Number of SCTP packets with INIT_ACK chunk"
+                        },
+                        "shutdown": {
+                            "type": "integer",
+                            "description": "Number of SCTP packets with SHUTDOWN chunk"
                         }
                     }
                 },

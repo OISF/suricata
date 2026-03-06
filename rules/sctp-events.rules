@@ -1,0 +1,8 @@
+# SCTP decoder event rules.
+# SID's fall in the 2200000+ range. See http://doc.emergingthreats.net/bin/view/Main/SidAllocation
+alert sctp any any -> any any (msg:"SURICATA SCTP packet too small"; decode-event:sctp.pkt_too_small; classtype:protocol-command-decode; sid:2200130; rev:1;)
+alert sctp any any -> any any (msg:"SURICATA SCTP chunk too small"; decode-event:sctp.chunk_too_small; classtype:protocol-command-decode; sid:2200131; rev:1;)
+alert sctp any any -> any any (msg:"SURICATA SCTP chunk length invalid"; decode-event:sctp.chunk_len_invalid; classtype:protocol-command-decode; sid:2200132; rev:1;)
+alert sctp any any -> any any (msg:"SURICATA SCTP INIT chunk not alone"; decode-event:sctp.init_chunk_not_alone; classtype:protocol-command-decode; sid:2200133; rev:1;)
+alert sctp any any -> any any (msg:"SURICATA SCTP INIT with non-zero vtag"; decode-event:sctp.init_with_non_zero_vtag; classtype:protocol-command-decode; sid:2200134; rev:1;)
+alert sctp any any -> any any (msg:"SURICATA SCTP DATA with zero vtag"; decode-event:sctp.data_with_zero_vtag; classtype:protocol-command-decode; sid:2200135; rev:1;)

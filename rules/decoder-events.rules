@@ -165,5 +165,5 @@ alert igmp any any -> any any (msg:"SURICATA IGMPv3 packet too small"; decode-ev
 alert igmp any any -> any any (msg:"SURICATA IGMP malformed packet"; decode-event:igmp.malformed; classtype:protocol-command-decode; sid:2200129; rev:1;)
 
 alert ipv4 any any -> any any (msg:"SURICATA IPv4 unknown protocol"; decode-event:ipv4.unknown_protocol; threshold: type limit, track by_src, seconds 60, count 1;classtype:protocol-command-decode; sid:2200125;)
-# next sid is 2200130
+# next sid is 2200136
 
