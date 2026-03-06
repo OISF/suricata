@@ -504,7 +504,7 @@ unsafe extern "C" fn krb5_parse_request_tcp(
             // more fragments required
             return AppLayerResult::incomplete(
                 (start_len - cur_i.len()) as u32,
-                (state.record_ts - cur_i.len()) as u32,
+                state.record_ts as u32,
             );
         }
     }
@@ -544,7 +544,7 @@ unsafe extern "C" fn krb5_parse_response_tcp(
             // more fragments required
             return AppLayerResult::incomplete(
                 (start_len - cur_i.len()) as u32,
-                (state.record_tc - cur_i.len()) as u32,
+                state.record_tc as u32,
             );
         }
     }
