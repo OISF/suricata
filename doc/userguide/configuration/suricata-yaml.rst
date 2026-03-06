@@ -1389,7 +1389,7 @@ is hit: 'drop-flow', 'drop-packet', 'pass-flow', 'pass-packet',  'bypass',
 Reassembling a stream is an expensive operation. With the option depth
 you can control how far into a stream reassembly is done. The default
 provided suricata.yaml is set to 1MB, but if the field is absent from the
-configuration, value 0/unlimited is used.
+configuration, value 0 (meaning "unlimited") is used.
 This setting can be overridden per stream by the protocol
 parsers that do file extraction.
 
