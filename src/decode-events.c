@@ -467,6 +467,26 @@ const struct DecodeEvents_ DEvents[] = {
             "decoder.sctp.pkt_too_small",
             SCTP_PKT_TOO_SMALL,
     },
+    {
+            "decoder.sctp.chunk_too_small",
+            SCTP_CHUNK_TOO_SMALL,
+    },
+    {
+            "decoder.sctp.chunk_len_invalid",
+            SCTP_CHUNK_LEN_INVALID,
+    },
+    {
+            "decoder.sctp.init_chunk_not_alone",
+            SCTP_INIT_CHUNK_NOT_ALONE,
+    },
+    {
+            "decoder.sctp.init_with_non_zero_vtag",
+            SCTP_INIT_WITH_NON_ZERO_VTAG,
+    },
+    {
+            "decoder.sctp.data_with_zero_vtag",
+            SCTP_DATA_WITH_ZERO_VTAG,
+    },
 
     /* ESP EVENTS */
     {
