@@ -21,16 +21,19 @@ use crate::dcerpc::dcerpc_udp::*;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 
 fn log_bind_interfaces(jsb: &mut JsonBuilder, state: &DCERPCState) -> Result<(), JsonError> {
-    if let Some(bind) = &state.bind {
+    if !state.interface_uuids.is_empty() {
         jsb.open_array("interfaces")?;
-        for uuid in &bind.uuid_list {
+        for uuid in &state.interface_uuids {
             jsb.start_object()?;
             let ifstr = Uuid::from_slice(uuid.uuid.as_slice());
             let ifstr = ifstr.map(|uuid| uuid.to_hyphenated().to_string()).unwrap();
             jsb.set_string("uuid", &ifstr)?;
             let vstr = format!("{}.{}", uuid.version, uuid.versionminor);
             jsb.set_string("version", &vstr)?;
-            jsb.set_uint("ack_result", uuid.result as u64)?;
+            // TODO? log only the interface for the right ctxid jsb.set_uint("ctxid", uuid.ctxid as u64)?;
+            if uuid.acked {
+                jsb.set_uint("ack_result", uuid.result as u64)?;
+            }
             jsb.close()?;
         }
         jsb.close()?;
