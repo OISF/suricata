@@ -660,6 +660,106 @@ range `start` and `end` value are replicated in the ``fileinfo`` fields::
         fileinfo.start: 500
         fileinfo.end: 1000
 
+.. _eve-format-executable:
+
+Executable metadata
+^^^^^^^^^^^^^^^^^^^
+
+When a file is identified as a Windows PE executable, an ``executable`` object
+is added as a sibling to the ``fileinfo`` object in the event. This metadata is
+produced automatically for any file beginning with the ``MZ`` DOS header and
+containing a valid PE signature.
+
+Fields:
+
+* "type": Executable format identifier (always ``"windows_pe"``)
+* "arch": Machine type as a lowercase hex string (e.g., ``"0x014c"``, ``"0x8664"``)
+* "arch_name": Human-readable architecture (``"x86"``, ``"x86-64"``, ``"ARM"``, ``"ARM64"``, or ``"unknown"``)
+* "sections": Number of sections in the PE file
+* "subsystem": Human-readable subsystem name (``"WINDOWS_GUI"``, ``"WINDOWS_CUI"``, ``"NATIVE"``, etc.)
+* "subsystem_id": Numeric subsystem value
+* "characteristics": Raw COFF characteristics value
+* "characteristics_names": [optional] Array of decoded characteristic flags (``"EXECUTABLE_IMAGE"``, ``"DLL"``, ``"LARGE_ADDRESS_AWARE"``, ``"32BIT_MACHINE"``)
+* "dll_characteristics": Raw DLL characteristics value
+* "security_features": [optional] Array of decoded security feature names (``"HIGH_ENTROPY_VA"``, ``"DYNAMIC_BASE"``, ``"NX_COMPAT"``, ``"NO_SEH"``, ``"GUARD_CF"``)
+* "entry_point": AddressOfEntryPoint RVA
+* "size_of_image": Total mapped image size in bytes
+* "pe_offset": Offset of the PE signature within the file
+* "pe_type": PE format type (``"PE32"`` for 32-bit, ``"PE32+"`` for 64-bit)
+* "magic": Optional header magic value (267 for PE32, 523 for PE32+)
+* "timestamp": COFF TimeDateStamp (Unix epoch seconds)
+* "checksum": Optional header checksum (0 when not set)
+* "size_of_headers": Combined size of headers
+* "num_imports": Number of imported DLLs
+* "num_exports": Number of exported functions
+* "has_wx_section": Boolean, true if any section has both WRITE and EXECUTE permissions
+* "export_name": [optional] Internal DLL name from the export directory
+* "imports": [optional] Array of imported DLL names (lowercase)
+* "sections_detail": [optional] Array of per-section objects, each containing:
+
+  * "name": Section name (e.g., ``.text``, ``.data``)
+  * "virtual_size": Size when loaded into memory
+  * "virtual_address": RVA of the section
+  * "raw_data_size": Size on disk
+  * "characteristics": Raw section characteristics flags
+  * "wx": Boolean, true if the section is both writable and executable
+
+Example ``fileinfo`` event with ``executable`` metadata::
+
+    {
+      "event_type": "fileinfo",
+      "fileinfo": {
+        "filename": "sample.exe",
+        "size": 45056,
+        "state": "CLOSED",
+        "stored": false,
+        "gaps": false,
+        "tx_id": 0
+      },
+      "executable": {
+        "type": "windows_pe",
+        "arch": "0x014c",
+        "arch_name": "x86",
+        "sections": 3,
+        "subsystem": "WINDOWS_CUI",
+        "subsystem_id": 3,
+        "characteristics": 258,
+        "characteristics_names": ["EXECUTABLE_IMAGE", "32BIT_MACHINE"],
+        "dll_characteristics": 352,
+        "security_features": ["HIGH_ENTROPY_VA", "DYNAMIC_BASE", "NX_COMPAT"],
+        "entry_point": 4096,
+        "size_of_image": 45056,
+        "pe_offset": 64,
+        "pe_type": "PE32",
+        "magic": 267,
+        "timestamp": 1709856000,
+        "checksum": 0,
+        "size_of_headers": 512,
+        "num_imports": 3,
+        "num_exports": 0,
+        "has_wx_section": false,
+        "imports": ["kernel32.dll", "user32.dll", "ws2_32.dll"],
+        "sections_detail": [
+          {"name": ".text", "virtual_size": 8192, "virtual_address": 4096,
+           "raw_data_size": 8192, "characteristics": 1610612768, "wx": false},
+          {"name": ".rdata", "virtual_size": 4096, "virtual_address": 12288,
+           "raw_data_size": 4096, "characteristics": 1073741888, "wx": false},
+          {"name": ".data", "virtual_size": 4096, "virtual_address": 16384,
+           "raw_data_size": 4096, "characteristics": 3221225536, "wx": false}
+        ]
+      }
+    }
+
+.. note::
+
+   The ``imports``, ``sections_detail``, and ``export_name`` fields require
+   access to the raw file data at logging time. When the streaming buffer has
+   been pruned before logging, only the cached scalar metadata fields are
+   included.
+
+See also :ref:`windows_pe keyword <File Rule Keywords>` for detection rule
+syntax and options.
+
 .. _eve-format-http:
 
 Event type: HTTP
