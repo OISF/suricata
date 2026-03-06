@@ -1,0 +1,11 @@
+# SCTP decoder event rules.
+# SID's fall in the 2239000+ range. See rules/README.md
+
+alert sctp any any -> any any (msg:"SURICATA SCTP packet too small"; decode-event:sctp.pkt_too_small; classtype:protocol-command-decode; sid:2239001; rev:1;)
+alert sctp any any -> any any (msg:"SURICATA SCTP chunk too small"; decode-event:sctp.chunk_too_small; classtype:protocol-command-decode; sid:2239002; rev:1;)
+alert sctp any any -> any any (msg:"SURICATA SCTP chunk length invalid"; decode-event:sctp.chunk_len_invalid; classtype:protocol-command-decode; sid:2239003; rev:1;)
+alert sctp any any -> any any (msg:"SURICATA SCTP INIT chunk not alone"; decode-event:sctp.init_chunk_not_alone; classtype:protocol-command-decode; sid:2239004; rev:1;)
+alert sctp any any -> any any (msg:"SURICATA SCTP INIT with non-zero vtag"; decode-event:sctp.init_with_non_zero_vtag; classtype:protocol-command-decode; sid:2239005; rev:1;)
+alert sctp any any -> any any (msg:"SURICATA SCTP DATA with zero vtag"; decode-event:sctp.data_with_zero_vtag; classtype:protocol-command-decode; sid:2239006; rev:1;)
+alert sctp any any -> any any (msg:"SURICATA SCTP too many chunks"; decode-event:sctp.too_many_chunks; classtype:protocol-command-decode; sid:2239007; rev:1;)
+alert sctp any any -> any any (msg:"SURICATA SCTP too many data chunks"; decode-event:sctp.too_many_data_chunks; classtype:protocol-command-decode; sid:2239008; rev:1;)
