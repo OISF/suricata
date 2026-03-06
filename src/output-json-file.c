@@ -65,8 +65,10 @@
 #include "app-layer-htp.h"
 #include "app-layer-htp-xff.h"
 #include "util-memcmp.h"
+#include "util-streaming-buffer.h"
 #include "stream-tcp-reassemble.h"
 #include "flow-bindgen.h"
+#include "rust.h"
 
 typedef struct OutputFileCtx_ {
     uint32_t file_cnt;
@@ -201,6 +203,9 @@ SCJsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, void *tx
         EveFileInfo(js, ff, tx_id, ff->flags);
     }
     SCJbClose(js);
+
+    /* Log PE metadata if this file starts with MZ */
+    EveFilePeMetadataLog(ff, js);
 
     /* xff header */
     if (have_xff_ip && xff_cfg->flags & XFF_EXTRADATA) {

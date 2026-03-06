@@ -35,6 +35,8 @@ pub mod transforms;
 pub mod uint;
 pub mod uri;
 pub mod vlan;
+pub mod windows_pe;
+pub mod windows_pe_logger;
 
 use std::ffi::{c_void, CString};
 
@@ -59,8 +61,8 @@ pub trait EnumString<T> {
 }
 
 pub use suricata_ffi::detect::{
-    helper_keyword_register_multi_buffer, helper_keyword_register_sticky_buffer,
-    SigTableElmtStickyBuffer,
+    helper_keyword_register_multi_buffer, helper_keyword_register_multi_buffer_with_options,
+    helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer,
 };
 
 #[repr(C)]
