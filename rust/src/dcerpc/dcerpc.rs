@@ -995,7 +995,7 @@ impl DCERPCState {
                 }
                 _ => {
                     SCLogDebug!("Unrecognized packet type: {:?}", x);
-                    return AppLayerResult::err();
+                    // skip unrecognized packet types such as AUTH3
                 }
             },
             None => {
