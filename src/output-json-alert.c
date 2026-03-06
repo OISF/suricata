@@ -717,7 +717,9 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                 }
             }
 
-            EveAddAppProto(p->flow, jb);
+            if (json_output_ctx->eve_ctx->cfg.eve_version < EVE_VERSION_GLOBAL_APP_PROTO) {
+                EveAddAppProto(p->flow, jb);
+            }
 
             if (p->flowflags & FLOW_PKT_TOSERVER) {
                 SCJbSetString(jb, "direction", "to_server");

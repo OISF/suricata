@@ -8866,6 +8866,10 @@
         "tx_id": {
             "type": "integer"
         },
+        "v": {
+            "type": "integer",
+            "description": "Version of EVE in the event"
+        },
         "verdict": {
             "$ref": "#/$defs/verdict_type"
         },
