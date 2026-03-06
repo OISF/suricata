@@ -89,6 +89,9 @@ uint64_t ThresholdGetBitmapAllocFail(void)
 #define DF_PORT_BYTE_IDX(p) ((uint32_t)((p) >> 3))
 #define DF_PORT_BIT_MASK(p) ((uint8_t)(1u << ((p)&7u)))
 
+/* hash table settings for distinct counting of IPs */
+#define DF_IP_HASH_INIT_BUCKETS 64u
+
 struct Thresholds {
     THashTableContext *thash;
 } ctx;
@@ -163,8 +166,11 @@ typedef struct ThresholdEntry_ {
             SCTime_t tv1;  /**< Var for time control */
             Address addr;  /* used for src/dst/either tracking */
             Address addr2; /* used for both tracking */
-            /* distinct counting state (for detection_filter unique_on ports) */
-            uint8_t *distinct_bitmap_union; /* 8192 bytes (65536 bits) */
+            /* distinct counting state (for detection_filter unique_on) */
+            uint8_t *distinct_bitmap_union; /* 8192 bytes for ports (65536 bits) */
+            /* Hash table for unique IPs. Memory: ~552 bytes + (24 * num_unique_ips).
+             * Example: 100 unique IPs ≈ 3 KB (vs 8 KB port bitmap). */
+            HashTable *distinct_ip_hash;
         };
     };
 
@@ -186,42 +192,74 @@ static void ThresholdDistinctInit(ThresholdEntry *te, const DetectThresholdData 
     }
     DEBUG_VALIDATE_BUG_ON(td->seconds == 0);
 
-    const uint32_t bitmap_size = DF_PORT_BITMAP_SIZE;
     te->current_count = 0;
 #ifdef UNITTESTS
     if (g_threshold_force_alloc_fail) {
         SC_ATOMIC_ADD(threshold_bitmap_alloc_fail, 1);
         te->distinct_bitmap_union = NULL;
+        te->distinct_ip_hash = NULL;
         return;
     }
 #endif
-    /* Check memcap before allocating bitmap.
-     * Bitmap memory is bounded by detect.thresholds.memcap via thash.
+
+    /* Allocate tracking structure for distinct counting (bitmap for ports, hash table for IPs).
+     * Memory is bounded by detect.thresholds.memcap via thash.
      * Note: if ctx.thash is NULL (e.g. init failed or unittests), we bypass
      * the memcap check but still attempt allocation unless forced to fail. */
-    if (ctx.thash != NULL && !THASH_CHECK_MEMCAP(ctx.thash, bitmap_size)) {
-        SC_ATOMIC_ADD(threshold_bitmap_alloc_fail, 1);
-        te->distinct_bitmap_union = NULL;
-        return;
-    }
 
-    te->distinct_bitmap_union = SCCalloc(1, bitmap_size);
-    if (te->distinct_bitmap_union == NULL) {
-        SC_ATOMIC_ADD(threshold_bitmap_alloc_fail, 1);
-    } else {
-        /* Track bitmap memory in thash memuse for proper accounting */
-        if (ctx.thash != NULL) {
-            (void)SC_ATOMIC_ADD(ctx.thash->memuse, bitmap_size);
+    /* Port-based distinct counting uses bitmap */
+    if (td->unique_on == DF_UNIQUE_SRC_PORT || td->unique_on == DF_UNIQUE_DST_PORT) {
+        const uint32_t bitmap_size = DF_PORT_BITMAP_SIZE;
+        if (ctx.thash != NULL && !THASH_CHECK_MEMCAP(ctx.thash, bitmap_size)) {
+            SC_ATOMIC_ADD(threshold_bitmap_alloc_fail, 1);
+            te->distinct_bitmap_union = NULL;
+            return;
         }
-        SC_ATOMIC_ADD(threshold_bitmap_memuse, bitmap_size);
+
+        te->distinct_bitmap_union = SCCalloc(1, bitmap_size);
+        if (te->distinct_bitmap_union == NULL) {
+            SC_ATOMIC_ADD(threshold_bitmap_alloc_fail, 1);
+        } else {
+            if (ctx.thash != NULL) {
+                (void)SC_ATOMIC_ADD(ctx.thash->memuse, bitmap_size);
+            }
+            SC_ATOMIC_ADD(threshold_bitmap_memuse, bitmap_size);
+        }
+    }
+    /* IP-based distinct counting uses hash table */
+    else if (td->unique_on == DF_UNIQUE_SRC_IP || td->unique_on == DF_UNIQUE_DST_IP) {
+        const uint32_t init_size = DF_IP_HASH_INIT_BUCKETS * sizeof(void *);
+        if (ctx.thash != NULL && !THASH_CHECK_MEMCAP(ctx.thash, init_size)) {
+            SC_ATOMIC_ADD(threshold_bitmap_alloc_fail, 1);
+            te->distinct_ip_hash = NULL;
+            return;
+        }
+
+        te->distinct_ip_hash = HashTableInit(
+                DF_IP_HASH_INIT_BUCKETS, HashTableGenericHash, HashTableDefaultCompare, NULL);
+        if (te->distinct_ip_hash == NULL) {
+            SC_ATOMIC_ADD(threshold_bitmap_alloc_fail, 1);
+        } else {
+            if (ctx.thash != NULL) {
+                (void)SC_ATOMIC_ADD(ctx.thash->memuse, init_size);
+            }
+            SC_ATOMIC_ADD(threshold_bitmap_memuse, init_size);
+        }
     }
 }
 
 static void ThresholdDistinctReset(ThresholdEntry *te)
 {
-    const uint32_t bitmap_size = DF_PORT_BITMAP_SIZE;
+    /* Reset port bitmap */
     if (te->distinct_bitmap_union) {
+        const uint32_t bitmap_size = DF_PORT_BITMAP_SIZE;
         memset(te->distinct_bitmap_union, 0x00, bitmap_size);
+    }
+    /* Reset IP hash table */
+    if (te->distinct_ip_hash) {
+        HashTableFree(te->distinct_ip_hash);
+        te->distinct_ip_hash = HashTableInit(
+                DF_IP_HASH_INIT_BUCKETS, HashTableGenericHash, HashTableDefaultCompare, NULL);
     }
     te->current_count = 0;
 }
@@ -240,6 +278,55 @@ static inline void ThresholdDistinctAddPort(ThresholdEntry *te, uint16_t port)
     }
 }
 
+static inline void ThresholdDistinctAddIP(ThresholdEntry *te, const Address *addr)
+{
+    if (te->distinct_ip_hash == NULL) {
+        return;
+    }
+
+    /* Create a key from the address bytes */
+    uint16_t key_size;
+    if (addr->family == AF_INET) {
+        key_size = 4;
+    } else if (addr->family == AF_INET6) {
+        key_size = 16;
+    } else {
+        return;
+    }
+
+    /* Check if this IP is already in the hash table */
+    void *found = HashTableLookup(te->distinct_ip_hash, (void *)addr->addr_data32, key_size);
+    if (found == NULL) {
+        /* New IP, add to hash and increment count */
+        if (HashTableAdd(te->distinct_ip_hash, (void *)addr->addr_data32, key_size) == 0) {
+            te->current_count++;
+        }
+    }
+}
+
+/**
+ * \brief Try to add a distinct value (port or IP) based on unique_on type.
+ * \return true if distinct tracking is active (bitmap/hash allocated), false if fallback needed
+ */
+static inline bool ThresholdDistinctAdd(
+        ThresholdEntry *te, const DetectThresholdData *td, const Packet *p)
+{
+    if (td->unique_on == DF_UNIQUE_SRC_PORT || td->unique_on == DF_UNIQUE_DST_PORT) {
+        if (te->distinct_bitmap_union) {
+            uint16_t port = (td->unique_on == DF_UNIQUE_SRC_PORT) ? p->sp : p->dp;
+            ThresholdDistinctAddPort(te, port);
+            return true;
+        }
+    } else if (td->unique_on == DF_UNIQUE_SRC_IP || td->unique_on == DF_UNIQUE_DST_IP) {
+        if (te->distinct_ip_hash) {
+            const Address *addr = (td->unique_on == DF_UNIQUE_SRC_IP) ? &p->src : &p->dst;
+            ThresholdDistinctAddIP(te, addr);
+            return true;
+        }
+    }
+    return false;
+}
+
 static void ThresholdEntryFree(void *ptr)
 {
     if (ptr == NULL)
@@ -255,6 +342,15 @@ static void ThresholdEntryFree(void *ptr)
         SC_ATOMIC_SUB(threshold_bitmap_memuse, bitmap_size);
         SCFree(e->distinct_bitmap_union);
         e->distinct_bitmap_union = NULL;
+    }
+    if (e->distinct_ip_hash) {
+        const uint32_t init_size = DF_IP_HASH_INIT_BUCKETS * sizeof(void *);
+        if (ctx.thash != NULL) {
+            (void)SC_ATOMIC_SUB(ctx.thash->memuse, init_size);
+        }
+        SC_ATOMIC_SUB(threshold_bitmap_memuse, init_size);
+        HashTableFree(e->distinct_ip_hash);
+        e->distinct_ip_hash = NULL;
     }
 }
 
@@ -828,16 +924,12 @@ static int ThresholdSetup(const DetectThresholdData *td, ThresholdEntry *te, con
             te->tv1 = p->ts;
             te->tv_timeout = SCTIME_INITIALIZER;
             ThresholdDistinctInit(te, td);
-            /* If unique_on is enabled, we must add the current packet's port to the bitmap.
-             * ThresholdDistinctInit resets current_count to 0, so we must add the port
+            /* If unique_on is enabled, we must add the current packet's port/IP to the structure.
+             * ThresholdDistinctInit resets current_count to 0, so we must add the value
              * or restore the count if allocation failed. */
             if (td->type == TYPE_DETECTION && td->unique_on != DF_UNIQUE_NONE) {
-                if (te->distinct_bitmap_union) {
-                    uint16_t port = (td->unique_on == DF_UNIQUE_SRC_PORT) ? p->sp : p->dp;
-                    ThresholdDistinctAddPort(te, port);
-                } else {
-                    /* Allocation failed (or test mode), fallback to classic counting.
-                     * We must set current_count to 1 for this first packet. */
+                /* Try distinct tracking; if allocation failed, fallback to classic counting */
+                if (!ThresholdDistinctAdd(te, td, p)) {
                     te->current_count = 1;
                 }
             }
@@ -941,27 +1033,27 @@ static int ThresholdCheckUpdate(const DetectEngineCtx *de_ctx, const DetectThres
 
             if (SCTIME_CMP_LTE(p->ts, entry)) {
                 /* within timeout */
-                if (td->unique_on != DF_UNIQUE_NONE && te->distinct_bitmap_union) {
-                    uint16_t port = (td->unique_on == DF_UNIQUE_SRC_PORT) ? p->sp : p->dp;
-                    ThresholdDistinctAddPort(te, port);
-                    if (te->current_count > td->count) {
-                        ret = 1;
+                if (td->unique_on != DF_UNIQUE_NONE) {
+                    if (!ThresholdDistinctAdd(te, td, p)) {
+                        /* Fallback to classic counting */
+                        te->current_count++;
                     }
                 } else {
                     te->current_count++;
-                    if (te->current_count > td->count) {
-                        ret = 1;
-                    }
+                }
+                if (te->current_count > td->count) {
+                    ret = 1;
                 }
             } else {
                 /* expired, reset to new window starting now */
                 te->tv1 = p->ts;
                 ThresholdDistinctReset(te);
 
-                /* record current packet's distinct port as the first in the new window */
-                if (td->unique_on != DF_UNIQUE_NONE && te->distinct_bitmap_union) {
-                    uint16_t port = (td->unique_on == DF_UNIQUE_SRC_PORT) ? p->sp : p->dp;
-                    ThresholdDistinctAddPort(te, port);
+                /* record current packet's distinct value as the first in the new window */
+                if (td->unique_on != DF_UNIQUE_NONE) {
+                    if (!ThresholdDistinctAdd(te, td, p)) {
+                        te->current_count = 1;
+                    }
                 } else {
                     te->current_count = 1;
                 }
