@@ -29,6 +29,8 @@
 
 // type from flow.h with only forward declarations for bindgen
 typedef struct Flow_ Flow;
+// type from util-file.h
+typedef struct File_ File;
 // types from detect.h with only forward declarations for bindgen
 // could be #ifndef SURICATA_BINDGEN_H #include "detect.h" #endif
 typedef struct DetectEngineCtx_ DetectEngineCtx;
@@ -94,5 +96,22 @@ int SCDetectHelperMultiBufferProgressMpmRegister(const char *name, const char *d
 int SCDetectHelperTransformRegister(const SCTransformTableElmt *kw);
 
 void SCDetectRegisterBufferLowerMd5Callbacks(const char *name);
+
+/** Lite keyword registration struct for file-match keywords. */
+typedef struct SCSigTableFileLiteElmt_ {
+    const char *name;
+    const char *desc;
+    const char *url;
+    uint32_t flags;
+    int (*FileMatch)(DetectEngineThreadCtx *, Flow *, uint8_t flags, File *, const Signature *,
+            const SigMatchCtx *);
+    int (*Setup)(DetectEngineCtx *, Signature *, const char *);
+    void (*Free)(DetectEngineCtx *, void *);
+} SCSigTableFileLiteElmt;
+
+uint16_t SCDetectHelperFileKeywordRegister(const SCSigTableFileLiteElmt *kw);
+int SCDetectHelperGetFilesBufferId(void);
+const uint8_t *SCFileGetData(const File *file, uint32_t *data_len_out, uint64_t *offset_out);
+void SCDetectSignatureSetFileInspect(Signature *s);
 
 #endif /* SURICATA_DETECT_ENGINE_HELPER_H */

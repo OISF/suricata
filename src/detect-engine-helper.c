@@ -29,6 +29,8 @@
 #include "detect-engine-prefilter.h"
 #include "detect-parse.h"
 #include "detect-engine-content-inspection.h"
+#include "util-file.h"
+#include "util-streaming-buffer.h"
 #include "rust.h"
 
 int SCDetectHelperBufferRegister(const char *name, AppProto alproto, uint8_t direction)
@@ -174,4 +176,60 @@ void SCDetectRegisterBufferLowerMd5Callbacks(const char *name)
 {
     DetectBufferTypeRegisterSetupCallback(name, DetectLowerSetupCallback);
     DetectBufferTypeRegisterValidateCallback(name, DetectMd5ValidateCallback);
+}
+
+uint16_t SCDetectHelperFileKeywordRegister(const SCSigTableFileLiteElmt *kw)
+{
+    int keyword_id = SCDetectHelperNewKeywordId();
+    if (keyword_id < 0) {
+        return (uint16_t)-1;
+    }
+
+    sigmatch_table[keyword_id].name = kw->name;
+    sigmatch_table[keyword_id].desc = kw->desc;
+    sigmatch_table[keyword_id].url = kw->url;
+    sigmatch_table[keyword_id].flags = kw->flags;
+    sigmatch_table[keyword_id].FileMatch = kw->FileMatch;
+    sigmatch_table[keyword_id].Setup =
+            (int (*)(DetectEngineCtx *de, Signature *s, const char *raw))kw->Setup;
+    sigmatch_table[keyword_id].Free = (void (*)(DetectEngineCtx *de, void *ptr))kw->Free;
+
+    return (uint16_t)keyword_id;
+}
+
+int SCDetectHelperGetFilesBufferId(void)
+{
+    return DetectBufferTypeRegister("files");
+}
+
+const uint8_t *SCFileGetData(const File *file, uint32_t *data_len_out, uint64_t *offset_out)
+{
+    if (data_len_out == NULL || offset_out == NULL) {
+        return NULL;
+    }
+    if (file == NULL || file->sb == NULL) {
+        *data_len_out = 0;
+        *offset_out = 0;
+        return NULL;
+    }
+
+    const uint8_t *data = NULL;
+    uint32_t len = 0;
+    uint64_t offset = 0;
+
+    StreamingBufferGetData(file->sb, &data, &len, &offset);
+    if (data == NULL) {
+        *data_len_out = 0;
+        *offset_out = offset;
+        return NULL;
+    }
+
+    *data_len_out = len;
+    *offset_out = offset;
+    return data;
+}
+
+void SCDetectSignatureSetFileInspect(Signature *s)
+{
+    s->file_flags |= FILE_SIG_NEED_FILE | FILE_SIG_NEED_FILECONTENT;
 }
