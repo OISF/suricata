@@ -21,7 +21,7 @@ use std::ffi::{c_int, CString};
 use suricata_sys::sys::{
     DetectEngineCtx, SCDetectHelperKeywordRegister, SCDetectHelperKeywordSetCleanCString,
     SCSigTableAppLiteElmt, Signature, SIGMATCH_INFO_MULTI_BUFFER, SIGMATCH_INFO_STICKY_BUFFER,
-    SIGMATCH_NOOPT,
+    SIGMATCH_NOOPT, SIGMATCH_OPTIONAL_OPT,
 };
 
 /// Rust app-layer light version of SigTableElmt for simple sticky buffer
@@ -73,4 +73,11 @@ pub fn helper_keyword_register_multi_buffer(kw: &SigTableElmtStickyBuffer) -> u1
 
 pub fn helper_keyword_register_sticky_buffer(kw: &SigTableElmtStickyBuffer) -> u16 {
     helper_keyword_register_buffer_flags(kw, SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER)
+}
+
+pub fn helper_keyword_register_multi_buffer_with_options(kw: &SigTableElmtStickyBuffer) -> u16 {
+    return helper_keyword_register_buffer_flags(
+        kw,
+        SIGMATCH_OPTIONAL_OPT | SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_INFO_MULTI_BUFFER,
+    );
 }
