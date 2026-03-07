@@ -439,33 +439,6 @@
         CFLAGS="${CFLAGS} -pg"
     ])
 
-    #enable gcc march=native gcc 4.2 or later
-    AC_ARG_ENABLE(gccmarch_native,
-           AS_HELP_STRING([--enable-gccmarch-native], [Enable gcc march=native gcc 4.2 and later only]),[enable_gccmarch_native=$enableval],[enable_gccmarch_native=yes])
-    AS_IF([test "x$enable_gccmarch_native" = "xyes"], [
-        case "$host" in
-            *powerpc*)
-                ;;
-            *)
-            OFLAGS="$CFLAGS"
-            CFLAGS="$CFLAGS -march=native"
-            AC_MSG_CHECKING([checking if $CC supports -march=native])
-            AC_COMPILE_IFELSE(  [AC_LANG_PROGRAM([[#include <stdlib.h>]])],
-                        [
-                          AC_MSG_RESULT([yes])
-                          OPTIMIZATION_CFLAGS="-march=native"
-                          AC_SUBST(OPTIMIZATION_CFLAGS)
-                        ],
-                        [
-                          AC_MSG_RESULT([no])
-                          CFLAGS="$OFLAGS"
-                          enable_gccmarch_native=no
-                        ]
-                     )
-                ;;
-        esac
-    ])
-
 # options
 
 
@@ -2424,6 +2397,34 @@ return 0;
     ])
 
     AM_CONDITIONAL([HAS_FUZZLDFLAGS], [test "x$has_sanitizefuzzer" = "xyes"])
+
+#enable gcc march=native gcc 4.2 or later
+    AC_ARG_ENABLE(gccmarch_native,
+           AS_HELP_STRING([--enable-gccmarch-native], [Enable gcc march=native gcc 4.2 and later only]),[enable_gccmarch_native=$enableval],[enable_gccmarch_native=yes])
+    AS_IF([test "x$enable_gccmarch_native" = "xyes"], [
+        case "$host" in
+            *powerpc*)
+                ;;
+            *)
+            OFLAGS="$CFLAGS"
+            CFLAGS="$CFLAGS -march=native"
+            AC_MSG_CHECKING([checking if $CC supports -march=native])
+            AC_COMPILE_IFELSE(  [AC_LANG_PROGRAM([[#include <stdlib.h>]])],
+                        [
+                          AC_MSG_RESULT([yes])
+                          OPTIMIZATION_CFLAGS="-march=native"
+                          AC_SUBST(OPTIMIZATION_CFLAGS)
+                        ],
+                        [
+                          AC_MSG_RESULT([no])
+                          CFLAGS="$OFLAGS"
+                          enable_gccmarch_native=no
+                        ]
+                     )
+                ;;
+        esac
+    ])
+
 
 # get git revision and last commit date
     AC_PATH_PROG(HAVE_GIT_CMD, git, "no")
