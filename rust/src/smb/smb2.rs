@@ -18,6 +18,7 @@
 use nom8::Err;
 
 use crate::direction::Direction;
+use crate::flow::Flow;
 use crate::smb::smb::*;
 use crate::smb::smb2_records::*;
 use crate::smb::smb2_session::*;
@@ -269,7 +270,7 @@ pub fn smb2_read_response_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
     }
 }
 
-pub fn smb2_write_request_record(state: &mut SMBState, r: &Smb2Record, nbss_remaining: u32)
+pub fn smb2_write_request_record(state: &mut SMBState, flow: *mut Flow, r: &Smb2Record, nbss_remaining: u32)
 {
     let max_queue_size = unsafe { SMB_CFG_MAX_WRITE_QUEUE_SIZE };
     let max_queue_cnt = unsafe { SMB_CFG_MAX_WRITE_QUEUE_CNT };
@@ -277,7 +278,7 @@ pub fn smb2_write_request_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
     SCLogDebug!("SMBv2/WRITE: request record");
     if smb2_create_new_tx(r.command) {
         let tx_key = SMBCommonHdr::from2(r, SMBHDR_TYPE_GENERICTX);
-        let tx = state.new_generic_tx(2, r.command, tx_key);
+        let tx = state.new_generic_tx(flow, 2, r.command, tx_key);
         tx.request_done = true;
     }
     match parse_smb2_request_write(r.data) {
@@ -407,7 +408,7 @@ pub fn smb2_write_request_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
     }
 }
 
-pub fn smb2_request_record(state: &mut SMBState, r: &Smb2Record)
+pub fn smb2_request_record(state: &mut SMBState, flow: *mut Flow, r: &Smb2Record)
 {
     SCLogDebug!("SMBv2 request record, command {} tree {} session {}",
             &smb2_command_string(r.command), r.tree_id, r.session_id);
@@ -430,7 +431,7 @@ pub fn smb2_request_record(state: &mut SMBState, r: &Smb2Record)
                                 Some(n) => { n.to_vec() },
                                 None => { b"<unknown>".to_vec() },
                             };
-                            let tx = state.new_rename_tx(rd.guid.to_vec(), oldname, newname);
+                            let tx = state.new_rename_tx(flow, rd.guid.to_vec(), oldname, newname);
                             tx.hdr = tx_hdr;
                             tx.request_done = true;
                             tx.vercmd.set_smb2_cmd(SMB2_COMMAND_SET_INFO);
@@ -454,7 +455,7 @@ pub fn smb2_request_record(state: &mut SMBState, r: &Smb2Record)
                                     }
                                 },
                             };
-                            let tx = state.new_setfileinfo_tx(fname, rd.guid.to_vec(), rd.class as u16, rd.infolvl as u16, dis.delete);
+                            let tx = state.new_setfileinfo_tx(flow, fname, rd.guid.to_vec(), rd.class as u16, rd.infolvl as u16, dis.delete);
                             tx.hdr = tx_hdr;
                             tx.request_done = true;
                             tx.vercmd.set_smb2_cmd(SMB2_COMMAND_SET_INFO);
@@ -478,7 +479,7 @@ pub fn smb2_request_record(state: &mut SMBState, r: &Smb2Record)
             have_si_tx
         },
         SMB2_COMMAND_IOCTL => {
-            smb2_ioctl_request_record(state, r);
+            smb2_ioctl_request_record(state, flow, r);
             true
         },
         SMB2_COMMAND_TREE_DISCONNECT => {
@@ -496,7 +497,7 @@ pub fn smb2_request_record(state: &mut SMBState, r: &Smb2Record)
                 }
 
                 if state.get_negotiate_tx(2).is_none() {
-                    let tx = state.new_negotiate_tx(2);
+                    let tx = state.new_negotiate_tx(flow, 2);
                     if let Some(SMBTransactionTypeData::NEGOTIATE(ref mut tdn)) = tx.type_data {
                         tdn.dialects2 = dialects;
                         tdn.client_guid = Some(rd.client_guid.to_vec());
@@ -560,7 +561,7 @@ pub fn smb2_request_record(state: &mut SMBState, r: &Smb2Record)
                 state.ssn2vec_cache.put(name_key, cr.data.to_vec());
 
                 let tx_hdr = SMBCommonHdr::from2(r, SMBHDR_TYPE_GENERICTX);
-                let tx = state.new_create_tx(cr.data, cr.disposition, del, dir, tx_hdr);
+                let tx = state.new_create_tx(flow, cr.data, cr.disposition, del, dir, tx_hdr);
                 tx.vercmd.set_smb2_cmd(r.command);
                 SCLogDebug!("TS CREATE TX {} created", tx.id);
                 true
@@ -570,7 +571,7 @@ pub fn smb2_request_record(state: &mut SMBState, r: &Smb2Record)
             }
         },
         SMB2_COMMAND_WRITE => {
-            smb2_write_request_record(state, r, 0);
+            smb2_write_request_record(state, flow, r, 0);
             true // write handling creates both file tx and generic tx
         },
         SMB2_COMMAND_CLOSE => {
@@ -618,7 +619,7 @@ pub fn smb2_request_record(state: &mut SMBState, r: &Smb2Record)
     /* if we don't have a tx, create it here (maybe) */
     if !have_tx && smb2_create_new_tx(r.command) {
         let tx_key = SMBCommonHdr::from2(r, SMBHDR_TYPE_GENERICTX);
-        let tx = state.new_generic_tx(2, r.command, tx_key);
+        let tx = state.new_generic_tx(flow, 2, r.command, tx_key);
         SCLogDebug!("TS TX {} command {} created with session_id {} tree_id {} message_id {}",
                 tx.id, r.command, r.session_id, r.tree_id, r.message_id);
         tx.set_events(events);
