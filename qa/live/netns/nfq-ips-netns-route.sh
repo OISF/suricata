@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script to test live IPS capabilities for AF_PACKET using bonded network interfaces.
+# Script to test live IPS capabilities for NFQUEUE.
 #
 # Uses 3 network namespaces:
 # - client
@@ -9,27 +9,26 @@
 #
 # Dut is where Suricata will run:
 #
-# [ client ]$clientif1 - bond - $dutclientif1[ dut ]$dutserverif1 - bond - $serverif1[ server ]
-# [        ]$clientif2 /      \ $dutclientif2[     ]$dutserverif2 /      \ $serverif2[        ]
+# [ client ]$clientif - $dutclientif[ dut ]$dutserverif - $serverif[ server ]
 #
-# By copying packets between the dut interfaces, Suricata becomes the bridge.
+# By routing packets between the dut interfaces, Suricata becomes the router.
+# Packets will be forwarded by the kernel, sent to Suricata via iptables NFQUEUE
+# which can then verdict them.
 
 # Call with following arguments:
-# 1st: "2" or "3" to indicate the tpacket version.
-# 2nd: runmode string (single/autofp/workers)
-# 3rd: suricata yaml to use
+# 1st: runmode string (single/autofp/workers)
+# 2nd: suricata yaml to use
 
 set -e
 set -x
 
-if [ $# -ne "3" ]; then
-    echo "ERROR call with 3 args: tpacket version (2/3), runmode (single/autofp/workers) and yaml"
+if [ $# -ne "2" ]; then
+    echo "ERROR call with 2 args: runmode (single/autofp/workers) and yaml"
     exit 1;
 fi
 
-TPACKET=$1
-RUNMODE=$2
-YAML=$3
+RUNMODE=$1
+YAML=$2
 
 # dump some info
 echo "* printing some diagnostics..."
@@ -41,13 +40,16 @@ echo "* printing some diagnostics... done"
 clientns=client
 serverns=server
 dutns=dut
-clientip="10.10.10.10/24"
-serverip='10.10.10.20/24'
+clientip="10.10.10.2/24"
+clientnet="10.10.10.0/24"
+serverip='10.10.20.2/24'
+servernet="10.10.20.0/24"
+dutclientip="10.10.10.1/24"
+dutserverip='10.10.20.1/24'
 clientif=client
 serverif=server
 dutclientif=dut_client
 dutserverif=dut_server
-mtu=9000
 
 echo "* removing old namespaces..."
 NAMESPACES=$(ip netns list|cut -d' ' -f1)
@@ -89,10 +91,8 @@ echo "* list namespaces... done"
 # create virtual ethernet link between client-dut and server-dut
 # These are not yet mapped to a namespace
 echo "* creating virtual ethernet devices..."
-ip link add ptp-a$clientif type veth peer name ptp-a$dutclientif
-ip link add ptp-b$clientif type veth peer name ptp-b$dutclientif
-ip link add ptp-a$serverif type veth peer name ptp-a$dutserverif
-ip link add ptp-b$serverif type veth peer name ptp-b$dutserverif
+ip link add ptp-$clientif type veth peer name ptp-$dutclientif
+ip link add ptp-$serverif type veth peer name ptp-$dutserverif
 echo "* creating virtual ethernet devices...done"
 
 echo "* list interface in global namespace..."
@@ -100,51 +100,11 @@ ip link
 echo "* list interface in global namespace... done"
 
 echo "* map virtual ethernet interfaces to their namespaces..."
-ip link set ptp-a$clientif netns $clientns
-ip link set ptp-b$clientif netns $clientns
-
-ip link set ptp-a$serverif netns $serverns
-ip link set ptp-b$serverif netns $serverns
-
-ip link set ptp-a$dutclientif netns $dutns
-ip link set ptp-b$dutclientif netns $dutns
-ip link set ptp-a$dutserverif netns $dutns
-ip link set ptp-b$dutserverif netns $dutns
+ip link set ptp-$clientif netns $clientns
+ip link set ptp-$serverif netns $serverns
+ip link set ptp-$dutclientif netns $dutns
+ip link set ptp-$dutserverif netns $dutns
 echo "* map virtual ethernet interfaces to their namespaces... done"
-
-echo "* setting mtu to $mtu"
-ip netns exec $clientns ip link set ptp-a$clientif mtu $mtu
-ip netns exec $clientns ip link set ptp-b$clientif mtu $mtu
-ip netns exec $serverns ip link set ptp-a$serverif mtu $mtu
-ip netns exec $serverns ip link set ptp-b$serverif mtu $mtu
-ip netns exec $dutns ip link set ptp-a$dutclientif mtu $mtu
-ip netns exec $dutns ip link set ptp-b$dutclientif mtu $mtu
-ip netns exec $dutns ip link set ptp-a$dutserverif mtu $mtu
-ip netns exec $dutns ip link set ptp-b$dutserverif mtu $mtu
-echo "* setting mtu to $mtu... done"
-
-# bonds need to be created in the namespace
-echo "* creating bonds..."
-ip netns exec $clientns ip link add bond-$clientif type bond mode active-backup
-ip netns exec $clientns ip link set ptp-a$clientif master bond-$clientif
-ip netns exec $clientns ip link set ptp-b$clientif master bond-$clientif
-ip netns exec $clientns ip link set bond-$clientif mtu $mtu
-
-ip netns exec $dutns ip link add bond-$dutclientif type bond mode active-backup
-ip netns exec $dutns ip link set ptp-a$dutclientif master bond-$dutclientif
-ip netns exec $dutns ip link set ptp-b$dutclientif master bond-$dutclientif
-ip netns exec $dutns ip link set bond-$dutclientif mtu $mtu
-
-ip netns exec $serverns ip link add bond-$serverif type bond mode active-backup
-ip netns exec $serverns ip link set ptp-a$serverif master bond-$serverif
-ip netns exec $serverns ip link set ptp-b$serverif master bond-$serverif
-ip netns exec $serverns ip link set bond-$serverif mtu $mtu
-
-ip netns exec $dutns ip link add bond-$dutserverif type bond mode active-backup
-ip netns exec $dutns ip link set ptp-a$dutserverif master bond-$dutserverif
-ip netns exec $dutns ip link set ptp-b$dutserverif master bond-$dutserverif
-ip netns exec $dutns ip link set bond-$dutserverif mtu $mtu
-echo "* creating bonds... done"
 
 echo "* list namespaces and interfaces within them..."
 ip netns list
@@ -153,30 +113,45 @@ ip netns exec $serverns ip ad
 ip netns exec $dutns ip ad
 echo "* list namespaces and interfaces within them... done"
 
-# bring up interfaces. Client and server get IP's.
-# Disable rx and tx csum offload on all sides.
+# bring up interfaces. All interfaces get IP's.
 
 echo "* setup client interface..."
-ip netns exec $clientns ip addr add $clientip dev bond-$clientif
-ip netns exec $clientns ethtool -K bond-$clientif rx off tx off
-ip netns exec $clientns ip link set bond-$clientif up
+ip netns exec $clientns ip addr add $clientip dev ptp-$clientif
+ip netns exec $clientns ip link set ptp-$clientif up
 echo "* setup client interface... done"
 
 echo "* setup server interface..."
-ip netns exec $serverns ip addr add $serverip dev bond-$serverif
-ip netns exec $serverns ethtool -K bond-$serverif rx off tx off
-ip netns exec $serverns ip link set bond-$serverif up
+ip netns exec $serverns ip addr add $serverip dev ptp-$serverif
+ip netns exec $serverns ip link set ptp-$serverif up
 echo "* setup server interface... done"
 
 echo "* setup dut interfaces..."
-ip netns exec $dutns ethtool -K bond-$dutclientif rx off tx off
-ip netns exec $dutns ethtool -K bond-$dutserverif rx off tx off
-ip netns exec $dutns ip link set bond-$dutclientif up
-ip netns exec $dutns ip link set bond-$dutserverif up
+ip netns exec $dutns ip addr add $dutclientip dev ptp-$dutclientif
+ip netns exec $dutns ip addr add $dutserverip dev ptp-$dutserverif
+ip netns exec $dutns ip link set ptp-$dutclientif up
+ip netns exec $dutns ip link set ptp-$dutserverif up
 echo "* setup dut interfaces... done"
 
+echo "* setup client/server routes..."
+# routes:
+#
+# client can reach servernet through the client side ip of the dut
+via_ip=$(echo $dutclientip|cut -f1 -d'/')
+ip netns exec $clientns ip route add $servernet via $via_ip dev ptp-$clientif
+#
+# server can reach clientnet through the server side ip of the dut
+via_ip=$(echo $dutserverip|cut -f1 -d'/')
+ip netns exec $serverns ip route add $clientnet via $via_ip dev ptp-$serverif
+echo "* setup client/server routes... done"
+
+echo "* enabling forwarding in the dut..."
+# forward all
+ip netns exec $dutns sysctl net.ipv4.ip_forward=1
+ip netns exec $dutns iptables -I FORWARD 1 -j NFQUEUE
+echo "* enabling forwarding in the dut... done"
+
 # set first rule file
-cp .github/workflows/netns/drop-icmp.rules suricata.rules
+cp qa/live/netns/drop-icmp.rules suricata.rules
 RULES="suricata.rules"
 
 echo "* starting Suricata in the \"dut\" namespace..."
@@ -184,7 +159,7 @@ echo "* starting Suricata in the \"dut\" namespace..."
 # close it earlier through the unix socket.
 timeout --kill-after=300 --preserve-status 240 \
     ip netns exec $dutns \
-        ./src/suricata -c $YAML -l ./ --af-packet -v \
+        ./src/suricata -c $YAML -l ./ -q 0 -v \
             --set default-rule-path=. --runmode=$RUNMODE -S $RULES &
 SURIPID=$!
 sleep 10
@@ -193,7 +168,7 @@ echo "* starting Suricata... done"
 echo "* starting tshark on in the server namespace..."
 timeout --kill-after=240 --preserve-status 180 \
     ip netns exec $serverns \
-        tshark -i bond-$serverif -T json > tshark-server.json &
+        tshark -i ptp-$serverif -T json > tshark-server.json &
 TSHARKSERVERPID=$!
 sleep 5
 echo "* starting tshark on in the server namespace... done, pid $TSHARKSERVERPID"
@@ -202,26 +177,26 @@ echo "* starting Caddy..."
 # Start Caddy in the server namespace
 timeout --kill-after=240 --preserve-status 120 \
     ip netns exec $serverns \
-        caddy file-server --domain 10.10.10.20 --browse &
+        caddy file-server --domain 10.10.20.2 --browse &
 CADDYPID=$!
 sleep 10
 echo "* starting Caddy in the \"server\" namespace... done"
 
 echo "* running curl in the \"client\" namespace..."
 ip netns exec $clientns \
-    curl -O https://10.10.10.20/index.html
+    curl -O https://10.10.20.2/index.html
 echo "* running curl in the \"client\" namespace... done"
 
 echo "* running wget in the \"client\" namespace..."
 ip netns exec $clientns \
-    wget https://10.10.10.20/index.html
+    wget https://10.10.20.2/index.html
 echo "* running wget in the \"client\" namespace... done"
 
 ping_ip=$(echo $serverip|cut -f1 -d'/')
-echo "* running hping3 $ping_ip in the \"client\" namespace..."
+echo "* running ping $ping_ip in the \"client\" namespace..."
 set +e
 ip netns exec $clientns \
-    hping3 -c 10 -1 -f -d 15000 $ping_ip
+    ping -c 10 $ping_ip
 PINGRES=$?
 set -e
 echo "* running ping in the \"client\" namespace... done"
@@ -240,17 +215,12 @@ kill -INT $TSHARKSERVERPID
 wait $TSHARKSERVERPID
 echo "* shutting down tshark... done"
 
+# check stats and alerts
 ACCEPTED=$(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.ips.accepted')
 BLOCKED=$(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.ips.blocked')
-KERNEL_PACKETS=$(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.capture.kernel_packets')
-echo "ACCEPTED $ACCEPTED BLOCKED $BLOCKED KERNEL_PACKETS $KERNEL_PACKETS"
-
-if [ $KERNEL_PACKETS -eq 0 ]; then
-    echo "ERROR no packets captured"
-    RES=1
-fi
+echo "ACCEPTED $ACCEPTED BLOCKED $BLOCKED"
 if [ $ACCEPTED -eq 0 ]; then
-    echo "ERROR should have seen non-0 accepted"
+    echo "ERROR no packets captured"
     RES=1
 fi
 if [ $BLOCKED -lt 10 ]; then
@@ -287,9 +257,7 @@ fi
 echo "* dumping some stats..."
 cat ./eve.json | jq -c 'select(.tls)'|tail -n1|jq
 cat ./eve.json | jq -c 'select(.stats)|.stats.ips'|tail -n1|jq
-cat ./eve.json | jq -c 'select(.stats)|.stats.capture'|tail -n1|jq
 echo "* dumping some stats... done"
-
 
 echo "* done: $RES"
 exit $RES
