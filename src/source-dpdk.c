@@ -571,6 +571,9 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
     SCEnter();
     DPDKThreadVars *ptv = (DPDKThreadVars *)data;
     ptv->slot = ((TmSlot *)slot)->slot_next;
+    uint32_t mp_sz = ptv->livedev->dpdk_vars->pkt_mp[ptv->queue_id]->size;
+    uint16_t burst_size = (uint16_t)MIN(BURST_SIZE, mp_sz);
+
     TmEcode ret = ReceiveDPDKLoopInit(tv, ptv);
     if (ret != TM_ECODE_OK) {
         SCReturnInt(ret);
@@ -582,7 +585,7 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
         }
 
         uint16_t nb_rx =
-                rte_eth_rx_burst(ptv->port_id, ptv->queue_id, ptv->received_mbufs, BURST_SIZE);
+                rte_eth_rx_burst(ptv->port_id, ptv->queue_id, ptv->received_mbufs, burst_size);
         if (RXPacketCountHeuristic(tv, ptv, nb_rx)) {
             continue;
         }
