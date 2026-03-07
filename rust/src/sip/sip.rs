@@ -1,4 +1,4 @@
-/* Copyright (C) 2019-2022 Open Information Security Foundation
+/* Copyright (C) 2019-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -20,7 +20,8 @@
 use crate::applayer::{self, *};
 use crate::core;
 use crate::core::{
-    sc_app_layer_parser_trigger_raw_stream_inspection, ALPROTO_UNKNOWN, IPPROTO_TCP, IPPROTO_UDP,
+    sc_app_layer_parser_trigger_raw_stream_inspection, ALPROTO_FAILED, ALPROTO_UNKNOWN,
+    IPPROTO_TCP, IPPROTO_UDP,
 };
 use crate::direction::Direction;
 use crate::flow::Flow;
@@ -34,6 +35,7 @@ use suricata_sys::sys::{
     AppLayerParserState, AppProto, SCAppLayerParserConfParserEnabled,
     SCAppLayerParserRegisterLogger, SCAppLayerParserStateIssetFlag,
     SCAppLayerProtoDetectConfProtoDetectionEnabled, SCAppLayerProtoDetectPMRegisterPatternCS,
+    SCAppLayerProtoDetectPMRegisterPatternCSwPP,
 };
 
 // app-layer-frame-documentation tag start: FrameType enum
@@ -492,21 +494,41 @@ unsafe extern "C" fn sip_parse_response_tcp(
     state.parse_response_tcp(flow, stream_slice)
 }
 
+unsafe extern "C" fn sip_probing_parser(
+    _f: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
+) -> AppProto {
+    if input.is_null() || input_len == 0 {
+        return ALPROTO_UNKNOWN;
+    }
+    let buf = std::slice::from_raw_parts(input, input_len as usize);
+    match sip_probe_protocol(buf) {
+        Ok(_) => ALPROTO_SIP,
+        Err(Err::Incomplete(_)) => ALPROTO_UNKNOWN,
+        Err(_) => ALPROTO_FAILED,
+    }
+}
+
 fn register_pattern_probe(proto: u8) -> i8 {
+    let methods_with_probe: Vec<&str> = vec![
+        "ACK\0",
+        "INFO\0",
+        "NOTIFY\0",
+        "SUBSCRIBE\0",
+        "OPTIONS\0",
+        "UPDATE\0",
+    ];
+
     let methods: Vec<&str> = vec![
         "REGISTER\0",
         "INVITE\0",
-        "ACK\0",
         "BYE\0",
         "CANCEL\0",
         "REFER\0",
         "PRACK\0",
-        "SUBSCRIBE\0",
-        "NOTIFY\0",
         "PUBLISH\0",
         "MESSAGE\0",
-        "INFO\0",
     ];
+
     let mut r = 0;
     unsafe {
         for method in methods {
@@ -520,6 +542,22 @@ fn register_pattern_probe(proto: u8) -> i8 {
                 Direction::ToServer as u8,
             );
         }
+
+        for method in methods_with_probe {
+            let depth = (method.len() - 1) as u16;
+            r |= SCAppLayerProtoDetectPMRegisterPatternCSwPP(
+                proto,
+                ALPROTO_SIP,
+                method.as_ptr() as *const std::os::raw::c_char,
+                depth,
+                0,
+                Direction::ToServer as u8,
+                Some(sip_probing_parser),
+                0,
+                0,
+            );
+        }
+
         r |= SCAppLayerProtoDetectPMRegisterPatternCS(
             proto,
             ALPROTO_SIP,
@@ -528,16 +566,6 @@ fn register_pattern_probe(proto: u8) -> i8 {
             0,
             Direction::ToClient as u8,
         );
-        if proto == core::IPPROTO_UDP {
-            r |= SCAppLayerProtoDetectPMRegisterPatternCS(
-                proto,
-                ALPROTO_SIP,
-                "UPDATE\0".as_ptr() as *const std::os::raw::c_char,
-                "UPDATE".len() as u16,
-                0,
-                Direction::ToServer as u8,
-            );
-        }
     }
 
     if r == 0 {
