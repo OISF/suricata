@@ -100,7 +100,7 @@ static int DetectIGMPTypeMatch(
  */
 static int DetectIGMPTypeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    if (!(DetectProtoContainsProto(&s->proto, IPPROTO_IGMP)))
+    if (!(DetectProtoContainsProto(&s->init_data->proto, IPPROTO_IGMP)))
         return -1;
 
     DetectU8Data *itd = DetectU8Parse(str);
@@ -112,7 +112,7 @@ static int DetectIGMPTypeSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         DetectIGMPTypeFree(de_ctx, itd);
         return -1;
     }
-    s->proto.flags |= DETECT_PROTO_IPV4;
+    s->init_data->proto.flags |= DETECT_PROTO_IPV4;
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;

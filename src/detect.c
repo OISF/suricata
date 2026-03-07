@@ -285,6 +285,12 @@ const SigGroupHead *SigMatchSignaturesGetSgh(const DetectEngineCtx *de_ctx,
     SCEnter();
     SigGroupHead *sgh = NULL;
 
+    /* use ethernet non-IP sgh if we're ethernet but have no (valid) IP layer on top of it. */
+    if (PacketIsEthernet(p) && p->proto == 0 && de_ctx->eth_non_ip_sgh != NULL) {
+        SCLogDebug("using eth_non_ip_sgh %p", de_ctx->eth_non_ip_sgh);
+        SCReturnPtr(de_ctx->eth_non_ip_sgh, "SigGroupHead");
+    }
+
     /* if the packet proto is 0 (not set), we're inspecting it against
      * the decoder events sgh we have. */
     if (p->proto == 0 && p->events.cnt > 0) {
@@ -505,8 +511,8 @@ static void DetectRunInspectIPOnly(ThreadVars *tv, const DetectEngineCtx *de_ctx
 /** \internal
  *  \brief inspect the rule header: protocol, ports, etc
  *  \retval bool false if no match, true if match */
-static inline bool DetectRunInspectRuleHeader(const Packet *p, const Flow *f, const Signature *s,
-        const uint32_t sflags, const uint8_t s_proto_flags)
+static inline bool DetectRunInspectRuleHeader(
+        const Packet *p, const Flow *f, const Signature *s, const uint32_t sflags)
 {
     /* check if this signature has a requirement for flowvars of some type
      * and if so, if we actually have any in the flow. If not, the sig
@@ -523,18 +529,32 @@ static inline bool DetectRunInspectRuleHeader(const Packet *p, const Flow *f, co
         }
     }
 
-    if ((s_proto_flags & DETECT_PROTO_IPV4) && !PacketIsIPv4(p)) {
-        SCLogDebug("ip version didn't match");
-        return false;
-    }
-    if ((s_proto_flags & DETECT_PROTO_IPV6) && !PacketIsIPv6(p)) {
-        SCLogDebug("ip version didn't match");
-        return false;
-    }
-
-    if (DetectProtoContainsProto(&s->proto, PacketGetIPProto(p)) == 0) {
-        SCLogDebug("proto didn't match");
-        return false;
+    if (!(s->proto == NULL)) {
+        const uint8_t s_proto_flags = s->proto->flags;
+        /* TODO does it make sense to move these flags to s->flags? */
+        if ((s_proto_flags & DETECT_PROTO_IPV4) && !PacketIsIPv4(p)) {
+            SCLogDebug("ip version didn't match");
+            return false;
+        }
+        if ((s_proto_flags & DETECT_PROTO_IPV6) && !PacketIsIPv6(p)) {
+            SCLogDebug("ip version didn't match");
+            return false;
+        }
+        if (DetectProtoContainsProto(s->proto, PacketGetIPProto(p)) == 0) {
+            SCLogDebug("proto didn't match");
+            if (PacketIsEthernet(p) && (s_proto_flags & DETECT_PROTO_ETHERNET)) {
+                SCLogNotice("checking eth protocol");
+                const EthernetHdr *ethh = PacketGetEthernet(p);
+                if (s->proto->ether_type != 0 && s->proto->ether_type != SCNtohs(ethh->eth_type)) {
+                    SCLogNotice(
+                            "no match %02x != %02x", s->proto->ether_type, SCNtohs(ethh->eth_type));
+                    return false;
+                }
+                SCLogNotice("checking eth protocol: match!");
+            } else {
+                return false;
+            }
+        }
     }
 
     /* check the source & dst port in the sig */
@@ -695,7 +715,6 @@ static inline uint8_t DetectRulePacketRules(ThreadVars *const tv,
             next_s = *match_array++;
             next_sflags = next_s->flags;
         }
-        const uint8_t s_proto_flags = s->proto.flags;
 
         SCLogDebug("packet %" PRIu64 ": inspecting signature id %" PRIu32 "", PcapPacketCntGet(p),
                 s->id);
@@ -747,7 +766,7 @@ static inline uint8_t DetectRulePacketRules(ThreadVars *const tv,
             }
         }
 
-        if (!DetectRunInspectRuleHeader(p, pflow, s, sflags, s_proto_flags)) {
+        if (DetectRunInspectRuleHeader(p, pflow, s, sflags) == false) {
             goto next;
         }
 
@@ -1202,7 +1221,7 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
     /* for a new inspection we inspect pkt header and packet matches */
     if (likely(stored_flags == NULL)) {
         TRACE_SID_TXS(s->id, tx, "first inspect, run packet matches");
-        if (!DetectRunInspectRuleHeader(p, f, s, s->flags, s->proto.flags)) {
+        if (DetectRunInspectRuleHeader(p, f, s, s->flags) == false) {
             TRACE_SID_TXS(s->id, tx, "DetectRunInspectRuleHeader() no match");
             return false;
         }
@@ -2200,8 +2219,8 @@ static void DetectRunFrames(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngin
 
             /* call individual rule inspection */
             RULE_PROFILING_START(p);
-            bool r = DetectRunInspectRuleHeader(p, f, s, s->flags, s->proto.flags);
-            if (r) {
+            bool r = DetectRunInspectRuleHeader(p, f, s, s->flags);
+            if (r == true) {
                 r = DetectRunFrameInspectRule(tv, det_ctx, s, f, p, frames, frame);
                 if (r) {
                     /* match */

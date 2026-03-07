@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script to test live IPS capabilities for AF_PACKET.
+# Script to test live IPS capabilities for AF_PACKET using bonded network interfaces.
 #
 # Uses 3 network namespaces:
 # - client
@@ -9,7 +9,8 @@
 #
 # Dut is where Suricata will run:
 #
-# [ client ]$clientif - $dutclientif[ dut ]$dutserverif - $serverif[ server ]
+# [ client ]$clientif1 - bond - $dutclientif1[ dut ]$dutserverif1 - bond - $serverif1[ server ]
+# [        ]$clientif2 /      \ $dutclientif2[     ]$dutserverif2 /      \ $serverif2[        ]
 #
 # By copying packets between the dut interfaces, Suricata becomes the bridge.
 
@@ -46,6 +47,7 @@ clientif=client
 serverif=server
 dutclientif=dut_client
 dutserverif=dut_server
+mtu=9000
 
 echo "* removing old namespaces..."
 NAMESPACES=$(ip netns list|cut -d' ' -f1)
@@ -87,8 +89,10 @@ echo "* list namespaces... done"
 # create virtual ethernet link between client-dut and server-dut
 # These are not yet mapped to a namespace
 echo "* creating virtual ethernet devices..."
-ip link add ptp-$clientif type veth peer name ptp-$dutclientif
-ip link add ptp-$serverif type veth peer name ptp-$dutserverif
+ip link add ptp-a$clientif type veth peer name ptp-a$dutclientif
+ip link add ptp-b$clientif type veth peer name ptp-b$dutclientif
+ip link add ptp-a$serverif type veth peer name ptp-a$dutserverif
+ip link add ptp-b$serverif type veth peer name ptp-b$dutserverif
 echo "* creating virtual ethernet devices...done"
 
 echo "* list interface in global namespace..."
@@ -96,11 +100,51 @@ ip link
 echo "* list interface in global namespace... done"
 
 echo "* map virtual ethernet interfaces to their namespaces..."
-ip link set ptp-$clientif netns $clientns
-ip link set ptp-$serverif netns $serverns
-ip link set ptp-$dutclientif netns $dutns
-ip link set ptp-$dutserverif netns $dutns
+ip link set ptp-a$clientif netns $clientns
+ip link set ptp-b$clientif netns $clientns
+
+ip link set ptp-a$serverif netns $serverns
+ip link set ptp-b$serverif netns $serverns
+
+ip link set ptp-a$dutclientif netns $dutns
+ip link set ptp-b$dutclientif netns $dutns
+ip link set ptp-a$dutserverif netns $dutns
+ip link set ptp-b$dutserverif netns $dutns
 echo "* map virtual ethernet interfaces to their namespaces... done"
+
+echo "* setting mtu to $mtu"
+ip netns exec $clientns ip link set ptp-a$clientif mtu $mtu
+ip netns exec $clientns ip link set ptp-b$clientif mtu $mtu
+ip netns exec $serverns ip link set ptp-a$serverif mtu $mtu
+ip netns exec $serverns ip link set ptp-b$serverif mtu $mtu
+ip netns exec $dutns ip link set ptp-a$dutclientif mtu $mtu
+ip netns exec $dutns ip link set ptp-b$dutclientif mtu $mtu
+ip netns exec $dutns ip link set ptp-a$dutserverif mtu $mtu
+ip netns exec $dutns ip link set ptp-b$dutserverif mtu $mtu
+echo "* setting mtu to $mtu... done"
+
+# bonds need to be created in the namespace
+echo "* creating bonds..."
+ip netns exec $clientns ip link add bond-$clientif type bond mode active-backup
+ip netns exec $clientns ip link set ptp-a$clientif master bond-$clientif
+ip netns exec $clientns ip link set ptp-b$clientif master bond-$clientif
+ip netns exec $clientns ip link set bond-$clientif mtu $mtu
+
+ip netns exec $dutns ip link add bond-$dutclientif type bond mode active-backup
+ip netns exec $dutns ip link set ptp-a$dutclientif master bond-$dutclientif
+ip netns exec $dutns ip link set ptp-b$dutclientif master bond-$dutclientif
+ip netns exec $dutns ip link set bond-$dutclientif mtu $mtu
+
+ip netns exec $serverns ip link add bond-$serverif type bond mode active-backup
+ip netns exec $serverns ip link set ptp-a$serverif master bond-$serverif
+ip netns exec $serverns ip link set ptp-b$serverif master bond-$serverif
+ip netns exec $serverns ip link set bond-$serverif mtu $mtu
+
+ip netns exec $dutns ip link add bond-$dutserverif type bond mode active-backup
+ip netns exec $dutns ip link set ptp-a$dutserverif master bond-$dutserverif
+ip netns exec $dutns ip link set ptp-b$dutserverif master bond-$dutserverif
+ip netns exec $dutns ip link set bond-$dutserverif mtu $mtu
+echo "* creating bonds... done"
 
 echo "* list namespaces and interfaces within them..."
 ip netns list
@@ -113,26 +157,26 @@ echo "* list namespaces and interfaces within them... done"
 # Disable rx and tx csum offload on all sides.
 
 echo "* setup client interface..."
-ip netns exec $clientns ip addr add $clientip dev ptp-$clientif
-ip netns exec $clientns ethtool -K ptp-$clientif rx off tx off
-ip netns exec $clientns ip link set ptp-$clientif up
+ip netns exec $clientns ip addr add $clientip dev bond-$clientif
+ip netns exec $clientns ethtool -K bond-$clientif rx off tx off
+ip netns exec $clientns ip link set bond-$clientif up
 echo "* setup client interface... done"
 
 echo "* setup server interface..."
-ip netns exec $serverns ip addr add $serverip dev ptp-$serverif
-ip netns exec $serverns ethtool -K ptp-$serverif rx off tx off
-ip netns exec $serverns ip link set ptp-$serverif up
+ip netns exec $serverns ip addr add $serverip dev bond-$serverif
+ip netns exec $serverns ethtool -K bond-$serverif rx off tx off
+ip netns exec $serverns ip link set bond-$serverif up
 echo "* setup server interface... done"
 
 echo "* setup dut interfaces..."
-ip netns exec $dutns ethtool -K ptp-$dutclientif rx off tx off
-ip netns exec $dutns ethtool -K ptp-$dutserverif rx off tx off
-ip netns exec $dutns ip link set ptp-$dutclientif up
-ip netns exec $dutns ip link set ptp-$dutserverif up
+ip netns exec $dutns ethtool -K bond-$dutclientif rx off tx off
+ip netns exec $dutns ethtool -K bond-$dutserverif rx off tx off
+ip netns exec $dutns ip link set bond-$dutclientif up
+ip netns exec $dutns ip link set bond-$dutserverif up
 echo "* setup dut interfaces... done"
 
 # set first rule file
-cp .github/workflows/netns/drop-icmp.rules suricata.rules
+cp qa/live/netns/drop-icmp.rules suricata.rules
 RULES="suricata.rules"
 
 echo "* starting Suricata in the \"dut\" namespace..."
@@ -149,7 +193,7 @@ echo "* starting Suricata... done"
 echo "* starting tshark on in the server namespace..."
 timeout --kill-after=240 --preserve-status 180 \
     ip netns exec $serverns \
-        tshark -i ptp-$serverif -T json > tshark-server.json &
+        tshark -i bond-$serverif -T json > tshark-server.json &
 TSHARKSERVERPID=$!
 sleep 5
 echo "* starting tshark on in the server namespace... done, pid $TSHARKSERVERPID"
@@ -174,10 +218,10 @@ ip netns exec $clientns \
 echo "* running wget in the \"client\" namespace... done"
 
 ping_ip=$(echo $serverip|cut -f1 -d'/')
-echo "* running ping $ping_ip in the \"client\" namespace..."
+echo "* running hping3 $ping_ip in the \"client\" namespace..."
 set +e
 ip netns exec $clientns \
-    ping -c 10 $ping_ip
+    hping3 -c 10 -1 -f -d 15000 $ping_ip
 PINGRES=$?
 set -e
 echo "* running ping in the \"client\" namespace... done"

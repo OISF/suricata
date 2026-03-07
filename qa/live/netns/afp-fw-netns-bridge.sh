@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script to test live IPS capabilities for NFQUEUE.
+# Script to test live Firewall capabilities for AF_PACKET.
 #
 # Uses 3 network namespaces:
 # - client
@@ -11,24 +11,24 @@
 #
 # [ client ]$clientif - $dutclientif[ dut ]$dutserverif - $serverif[ server ]
 #
-# By routing packets between the dut interfaces, Suricata becomes the router.
-# Packets will be forwarded by the kernel, sent to Suricata via iptables NFQUEUE
-# which can then verdict them.
+# By copying packets between the dut interfaces, Suricata becomes the bridge.
 
 # Call with following arguments:
-# 1st: runmode string (single/autofp/workers)
-# 2nd: suricata yaml to use
+# 1st: "2" or "3" to indicate the tpacket version.
+# 2nd: runmode string (single/autofp/workers)
+# 3rd: suricata yaml to use
 
 set -e
 set -x
 
-if [ $# -ne "2" ]; then
-    echo "ERROR call with 2 args: runmode (single/autofp/workers) and yaml"
+if [ $# -ne "3" ]; then
+    echo "ERROR call with 3 args: tpacket version (2/3), runmode (single/autofp/workers) and yaml"
     exit 1;
 fi
 
-RUNMODE=$1
-YAML=$2
+TPACKET=$1
+RUNMODE=$2
+YAML=$3
 
 # dump some info
 echo "* printing some diagnostics..."
@@ -40,12 +40,8 @@ echo "* printing some diagnostics... done"
 clientns=client
 serverns=server
 dutns=dut
-clientip="10.10.10.2/24"
-clientnet="10.10.10.0/24"
-serverip='10.10.20.2/24'
-servernet="10.10.20.0/24"
-dutclientip="10.10.10.1/24"
-dutserverip='10.10.20.1/24'
+clientip="10.10.10.10/24"
+serverip='10.10.10.20/24'
 clientif=client
 serverif=server
 dutclientif=dut_client
@@ -113,54 +109,48 @@ ip netns exec $serverns ip ad
 ip netns exec $dutns ip ad
 echo "* list namespaces and interfaces within them... done"
 
-# bring up interfaces. All interfaces get IP's.
+# bring up interfaces. Client and server get IP's.
+# Disable rx and tx csum offload on all sides.
 
 echo "* setup client interface..."
-ip netns exec $clientns ip addr add $clientip dev ptp-$clientif
-ip netns exec $clientns ip link set ptp-$clientif up
+iface=ptp-$clientif
+ip netns exec $clientns ip addr add $clientip dev $iface
+ip netns exec $clientns ethtool -K $iface rx off tx off
+ip netns exec $clientns sysctl -w net.ipv6.conf.$iface.disable_ipv6=1
+ip netns exec $clientns ip link set $iface up
 echo "* setup client interface... done"
 
 echo "* setup server interface..."
-ip netns exec $serverns ip addr add $serverip dev ptp-$serverif
-ip netns exec $serverns ip link set ptp-$serverif up
+iface=ptp-$serverif
+ip netns exec $serverns ip addr add $serverip dev $iface
+ip netns exec $serverns ethtool -K $iface rx off tx off
+ip netns exec $serverns sysctl -w net.ipv6.conf.$iface.disable_ipv6=1
+ip netns exec $serverns ip link set $iface up
 echo "* setup server interface... done"
 
 echo "* setup dut interfaces..."
-ip netns exec $dutns ip addr add $dutclientip dev ptp-$dutclientif
-ip netns exec $dutns ip addr add $dutserverip dev ptp-$dutserverif
+ip netns exec $dutns ethtool -K ptp-$dutclientif rx off tx off
+ip netns exec $dutns ethtool -K ptp-$dutserverif rx off tx off
+ip netns exec $dutns sysctl -w net.ipv6.conf.ptp-$dutclientif.disable_ipv6=1
+ip netns exec $dutns sysctl -w net.ipv6.conf.ptp-$dutserverif.disable_ipv6=1
 ip netns exec $dutns ip link set ptp-$dutclientif up
 ip netns exec $dutns ip link set ptp-$dutserverif up
 echo "* setup dut interfaces... done"
 
-echo "* setup client/server routes..."
-# routes:
-#
-# client can reach servernet through the client side ip of the dut
-via_ip=$(echo $dutclientip|cut -f1 -d'/')
-ip netns exec $clientns ip route add $servernet via $via_ip dev ptp-$clientif
-#
-# server can reach clientnet through the server side ip of the dut
-via_ip=$(echo $dutserverip|cut -f1 -d'/')
-ip netns exec $serverns ip route add $clientnet via $via_ip dev ptp-$serverif
-echo "* setup client/server routes... done"
-
-echo "* enabling forwarding in the dut..."
-# forward all
-ip netns exec $dutns sysctl net.ipv4.ip_forward=1
-ip netns exec $dutns iptables -I FORWARD 1 -j NFQUEUE
-echo "* enabling forwarding in the dut... done"
-
 # set first rule file
-cp .github/workflows/netns/drop-icmp.rules suricata.rules
-RULES="suricata.rules"
+cp qa/live/netns/firewall1.rules firewall.rules
+RULES="firewall.rules"
+
+cat firewall.rules
 
 echo "* starting Suricata in the \"dut\" namespace..."
 # Start Suricata in the dut namespace, then SIGINT after 240 secords. Will
 # close it earlier through the unix socket.
 timeout --kill-after=300 --preserve-status 240 \
     ip netns exec $dutns \
-        ./src/suricata -c $YAML -l ./ -q 0 -v \
-            --set default-rule-path=. --runmode=$RUNMODE -S $RULES &
+        ./src/suricata -c $YAML -l ./ --af-packet -v \
+	    --set firewall.rule-path=. \
+            --set default-rule-path=. --runmode=$RUNMODE &
 SURIPID=$!
 sleep 10
 echo "* starting Suricata... done"
@@ -177,19 +167,27 @@ echo "* starting Caddy..."
 # Start Caddy in the server namespace
 timeout --kill-after=240 --preserve-status 120 \
     ip netns exec $serverns \
-        caddy file-server --domain 10.10.20.2 --browse &
+        caddy file-server --browse &
 CADDYPID=$!
 sleep 10
 echo "* starting Caddy in the \"server\" namespace... done"
 
 echo "* running curl in the \"client\" namespace..."
-ip netns exec $clientns \
-    curl -O https://10.10.20.2/index.html
-echo "* running curl in the \"client\" namespace... done"
+set +e
+timeout --kill-after=30 --preserve-status 15 \
+    ip netns exec $clientns \
+        curl -O http://10.10.10.20/index.html
+CURLRES=$?
+set -e
+echo "* running curl in the \"client\" namespace... done: $CURLRES"
 
 echo "* running wget in the \"client\" namespace..."
-ip netns exec $clientns \
-    wget https://10.10.20.2/index.html
+set +e
+timeout --kill-after=30 --preserve-status 15 \
+    ip netns exec $clientns \
+        wget http://10.10.10.20/index.html
+WGETRES=$?
+set -e
 echo "* running wget in the \"client\" namespace... done"
 
 ping_ip=$(echo $serverip|cut -f1 -d'/')
@@ -215,12 +213,17 @@ kill -INT $TSHARKSERVERPID
 wait $TSHARKSERVERPID
 echo "* shutting down tshark... done"
 
-# check stats and alerts
 ACCEPTED=$(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.ips.accepted')
 BLOCKED=$(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.ips.blocked')
-echo "ACCEPTED $ACCEPTED BLOCKED $BLOCKED"
-if [ $ACCEPTED -eq 0 ]; then
+KERNEL_PACKETS=$(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.capture.kernel_packets')
+echo "ACCEPTED $ACCEPTED BLOCKED $BLOCKED KERNEL_PACKETS $KERNEL_PACKETS"
+
+if [ $KERNEL_PACKETS -eq 0 ]; then
     echo "ERROR no packets captured"
+    RES=1
+fi
+if [ $ACCEPTED -eq 0 ]; then
+    echo "ERROR should have seen non-0 accepted"
     RES=1
 fi
 if [ $BLOCKED -lt 10 ]; then
@@ -255,9 +258,11 @@ if [ $CADDYRES -ne 0 ]; then
 fi
 
 echo "* dumping some stats..."
-cat ./eve.json | jq -c 'select(.tls)'|tail -n1|jq
+cat ./eve.json | jq -c 'select(.http)'|tail -n1|jq
 cat ./eve.json | jq -c 'select(.stats)|.stats.ips'|tail -n1|jq
+cat ./eve.json | jq -c 'select(.stats)|.stats.capture'|tail -n1|jq
 echo "* dumping some stats... done"
+
 
 echo "* done: $RES"
 exit $RES

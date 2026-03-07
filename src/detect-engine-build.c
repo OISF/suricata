@@ -652,7 +652,7 @@ static SCJsonBuilder *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx,
             continue;
 
         int any = 0;
-        if (s->proto.flags & DETECT_PROTO_ANY) {
+        if (s->proto == NULL || s->proto->flags & DETECT_PROTO_ANY) {
             any++;
         }
         if (s->flags & SIG_FLAG_DST_ANY) {
@@ -972,7 +972,8 @@ static int RulesGroupByIPProto(DetectEngineCtx *de_ctx)
             if (p == IPPROTO_TCP || p == IPPROTO_UDP) {
                 continue;
             }
-            if (!(s->proto.proto[p / 8] & (1<<(p % 8)) || (s->proto.flags & DETECT_PROTO_ANY))) {
+
+            if (!DetectProtoContainsProto(&s->init_data->proto, p)) {
                 continue;
             }
 
@@ -1469,6 +1470,33 @@ static inline int CreatePortList(DetectEngineCtx *de_ctx, const uint8_t *unique_
     return 0;
 }
 
+static bool SigIsEthernet(const Signature *s)
+{
+    return ((s->init_data->proto.flags & DETECT_PROTO_ETHERNET));
+}
+
+static bool SigIsEthernetAddToIP(const Signature *s)
+{
+    if (SigIsEthernet(s) && (s->init_data->proto.ether_type == 0 ||
+                                    s->init_data->proto.ether_type == ETHERNET_TYPE_IP ||
+                                    s->init_data->proto.ether_type == ETHERNET_TYPE_IPV6)) {
+        return true;
+    }
+    return false;
+}
+
+static bool SigIsEthernetAddToNonIP(const Signature *s)
+{
+    if (SigIsEthernet(s)) {
+        if (s->init_data->proto.ether_type == 0 ||
+                !(s->init_data->proto.ether_type == ETHERNET_TYPE_IP ||
+                        s->init_data->proto.ether_type == ETHERNET_TYPE_IPV6)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, uint32_t direction)
 {
     /* step 1: create a hash of 'DetectPort' objects based on all the
@@ -1488,8 +1516,16 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
         /* IP Only rules are handled separately */
         if (s->type == SIG_TYPE_IPONLY)
             goto next;
-        /* Protocol does not match the Signature protocol and is neither IP or pkthdr */
-        if (!(s->proto.proto[ipproto / 8] & (1<<(ipproto % 8)) || (s->proto.flags & DETECT_PROTO_ANY)))
+        SCLogDebug("rule: %u: ether_type %02x", s->id, s->init_data->proto.ether_type);
+        if (SigIsEthernet(s)) {
+            if (!SigIsEthernetAddToIP(s)) {
+                SCLogDebug("rule %u: not for IP", s->id);
+                goto next;
+            }
+            SCLogDebug("rule %u: add ethernet rule to IP group", s->id);
+        }
+        /* Protocol does not match the Signature protocol and is non of IP, pkthdr or any */
+        if (!DetectProtoContainsProto(&s->init_data->proto, ipproto))
             goto next;
         /* Direction does not match Signature direction */
         if (direction == SIG_FLAG_TOSERVER) {
@@ -1653,8 +1689,11 @@ void SignatureSetType(DetectEngineCtx *de_ctx, Signature *s)
         SCReturn;
     }
 
-    /* see if the sig is dp only */
-    if (SignatureIsPDOnly(de_ctx, s) == 1) {
+    if (s->init_data->proto.flags & DETECT_PROTO_ETHERNET) {
+        s->type = SIG_TYPE_PKT;
+
+        /* see if the sig is dp only */
+    } else if (SignatureIsPDOnly(de_ctx, s) == 1) {
         s->type = SIG_TYPE_PDONLY;
 
         /* see if the sig is ip only */
@@ -1787,7 +1826,7 @@ int SigPrepareStage1(DetectEngineCtx *de_ctx)
             if (copresent && colen == 1) {
                 SCLogDebug("signature %8u content maxlen 1", s->id);
                 for (int proto = 0; proto < 256; proto++) {
-                    if (s->proto.proto[(proto/8)] & (1<<(proto%8)))
+                    if (s->init_data->proto.proto[(proto / 8)] & (1 << (proto % 8)))
                         SCLogDebug("=> proto %" PRId32 "", proto);
                 }
             }
@@ -1857,6 +1896,12 @@ static void DetectEngineAddDecoderEventSig(DetectEngineCtx *de_ctx, Signature *s
     SigGroupHeadAppendSig(de_ctx, &de_ctx->decoder_event_sgh, s);
 }
 
+static void DetectEngineAddEthernetSig(DetectEngineCtx *de_ctx, Signature *s)
+{
+    SCLogDebug("adding signature %" PRIu32 " to the eth non ip sgh", s->id);
+    SigGroupHeadAppendSig(de_ctx, &de_ctx->eth_non_ip_sgh, s);
+}
+
 static void DetectEngineAddSigToPreStreamHook(DetectEngineCtx *de_ctx, Signature *s)
 {
     SCLogDebug("adding signature %" PRIu32 " to the pre_stream hook sgh", s->id);
@@ -1916,6 +1961,14 @@ int SigPrepareStage2(DetectEngineCtx *de_ctx)
                    s->init_data->hook.t.pkt.ph == SIGNATURE_HOOK_PKT_PRE_FLOW) {
             DetectEngineAddSigToPreFlowHook(de_ctx, s);
         }
+
+        /* add ethernet sigs and decoder events to the ethernet sgh */
+        if ((s->type == SIG_TYPE_PKT && SigIsEthernetAddToNonIP(s)) || s->type == SIG_TYPE_DEONLY ||
+                (s->init_data->proto.flags & DETECT_PROTO_L2_ANY)) {
+            // ethernet
+            SCLogNotice("rule: %u: add to non-IP", s->id);
+            DetectEngineAddEthernetSig(de_ctx, s);
+        }
     }
 
     IPOnlyPrepare(de_ctx);
@@ -1963,6 +2016,16 @@ static void DetectEngineBuildPreFlowHookSghs(DetectEngineCtx *de_ctx)
     }
 }
 
+static void DetectEngineBuildEthernetNonIPSgh(DetectEngineCtx *de_ctx)
+{
+    if (de_ctx->eth_non_ip_sgh != NULL) {
+        const uint32_t max_idx = DetectEngineGetMaxSigId(de_ctx);
+        SigGroupHeadSetSigCnt(de_ctx->eth_non_ip_sgh, max_idx);
+        SigGroupHeadBuildMatchArray(de_ctx, de_ctx->eth_non_ip_sgh, max_idx);
+        PrefilterSetupRuleGroup(de_ctx, de_ctx->eth_non_ip_sgh);
+    }
+}
+
 int SigPrepareStage3(DetectEngineCtx *de_ctx)
 {
     /* prepare the decoder event sgh */
@@ -1974,6 +2037,9 @@ int SigPrepareStage3(DetectEngineCtx *de_ctx)
     /* pre_stream hook sghs */
     DetectEngineBuildPreStreamHookSghs(de_ctx);
 
+    /* Ethernet Non IP */
+    DetectEngineBuildEthernetNonIPSgh(de_ctx);
+
     return 0;
 }
 
@@ -1983,6 +2049,8 @@ int SigAddressCleanupStage1(DetectEngineCtx *de_ctx)
 
     SCLogDebug("cleaning up signature grouping structure...");
 
+    if (de_ctx->eth_non_ip_sgh)
+        SigGroupHeadFree(de_ctx, de_ctx->eth_non_ip_sgh);
     if (de_ctx->decoder_event_sgh)
         SigGroupHeadFree(de_ctx, de_ctx->decoder_event_sgh);
     de_ctx->decoder_event_sgh = NULL;

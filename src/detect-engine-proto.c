@@ -49,22 +49,25 @@ struct {
     uint8_t proto;
     uint8_t proto2;
     uint8_t flags;
+    uint16_t ether_type; /**< 0 means "any ether type" */
 } proto_table[] = {
-    { "tcp", IPPROTO_TCP, 0, 0 },
-    { "tcp-pkt", IPPROTO_TCP, 0, DETECT_PROTO_ONLY_PKT },
-    { "tcp-stream", IPPROTO_TCP, 0, DETECT_PROTO_ONLY_STREAM },
-    { "udp", IPPROTO_UDP, 0, 0 },
-    { "icmpv4", IPPROTO_ICMP, 0, 0 },
-    { "icmpv6", IPPROTO_ICMPV6, 0, 0 },
-    { "icmp", IPPROTO_ICMP, IPPROTO_ICMPV6, 0 },
-    { "igmp", IPPROTO_IGMP, 0, 0 },
-    { "sctp", IPPROTO_SCTP, 0, 0 },
-    { "ipv4", 0, 0, DETECT_PROTO_IPV4 | DETECT_PROTO_ANY },
-    { "ip4", 0, 0, DETECT_PROTO_IPV4 | DETECT_PROTO_ANY },
-    { "ipv6", 0, 0, DETECT_PROTO_IPV6 | DETECT_PROTO_ANY },
-    { "ip6", 0, 0, DETECT_PROTO_IPV6 | DETECT_PROTO_ANY },
-    { "ip", 0, 0, DETECT_PROTO_ANY },
-    { "pkthdr", 0, 0, DETECT_PROTO_ANY },
+    { "tcp", IPPROTO_TCP, 0, 0, 0 },
+    { "tcp-pkt", IPPROTO_TCP, 0, DETECT_PROTO_ONLY_PKT, 0 },
+    { "tcp-stream", IPPROTO_TCP, 0, DETECT_PROTO_ONLY_STREAM, 0 },
+    { "udp", IPPROTO_UDP, 0, 0, 0 },
+    { "icmpv4", IPPROTO_ICMP, 0, 0, 0 },
+    { "icmpv6", IPPROTO_ICMPV6, 0, 0, 0 },
+    { "icmp", IPPROTO_ICMP, IPPROTO_ICMPV6, 0, 0 },
+    { "igmp", IPPROTO_IGMP, 0, 0, 0 },
+    { "sctp", IPPROTO_SCTP, 0, 0, 0 },
+    { "ipv4", 0, 0, DETECT_PROTO_IPV4 | DETECT_PROTO_ANY, 0 },
+    { "ip4", 0, 0, DETECT_PROTO_IPV4 | DETECT_PROTO_ANY, 0 },
+    { "ipv6", 0, 0, DETECT_PROTO_IPV6 | DETECT_PROTO_ANY, 0 },
+    { "ip6", 0, 0, DETECT_PROTO_IPV6 | DETECT_PROTO_ANY, 0 },
+    { "ip", 0, 0, DETECT_PROTO_ANY, 0 },
+    { "pkthdr", 0, 0, DETECT_PROTO_L2_ANY, 0 },
+    { "ether", 0, 0, DETECT_PROTO_ETHERNET, 0 },
+    { "arp", 0, 0, DETECT_PROTO_ETHERNET, ETHERNET_TYPE_ARP },
 };
 
 void DetectEngineProtoList(void)
@@ -95,6 +98,7 @@ int DetectProtoParse(DetectProto *dp, const char *str)
             dp->flags |= proto_table[i].flags;
             if (proto_table[i].flags & DETECT_PROTO_ANY)
                 memset(dp->proto, 0xff, sizeof(dp->proto));
+            dp->ether_type = proto_table[i].ether_type;
             found = 0;
             break;
         }
@@ -109,12 +113,80 @@ int DetectProtoParse(DetectProto *dp, const char *str)
  *  \retval 1 protocol is in the set */
 int DetectProtoContainsProto(const DetectProto *dp, int proto)
 {
-    if (dp->flags & DETECT_PROTO_ANY)
+    if (dp == NULL || dp->flags & (DETECT_PROTO_ANY | DETECT_PROTO_L2_ANY))
         return 1;
 
     if (dp->proto[proto / 8] & (1<<(proto % 8)))
         return 1;
 
+    return 0;
+}
+
+/** \brief see if a DetectProto explicitly a certain proto
+ *  Explicit means the protocol was explicitly set, so "any"
+ *  doesn't qualify.
+ *  \param dp detect proto to inspect
+ *  \param proto protocol (such as IPPROTO_TCP) to look for
+ *  \retval false protocol not in the set
+ *  \retval true protocol is in the set */
+bool DetectProtoHasExplicitProto(const DetectProto *dp, const uint8_t proto)
+{
+    if (dp == NULL || dp->flags & (DETECT_PROTO_ANY | DETECT_PROTO_L2_ANY))
+        return false;
+
+    return ((dp->proto[proto / 8] & (1 << (proto % 8))));
+}
+
+/* return true if protocols enabled are only TCP and/or UDP */
+static int DetectProtoIsOnlyTCPUDP(const DetectProto *dp)
+{
+    uint8_t protos[256 / 8];
+    memset(protos, 0x00, sizeof(protos));
+    protos[IPPROTO_TCP / 8] |= (1 << (IPPROTO_TCP % 8));
+    protos[IPPROTO_UDP / 8] |= (1 << (IPPROTO_UDP % 8));
+
+    int cnt = 0;
+    for (size_t i = 0; i < sizeof(protos); i++) {
+        if ((dp->proto[i] & protos[i]) != 0)
+            cnt++;
+    }
+    return cnt != 0;
+}
+
+int DetectProtoFinalizeSignature(Signature *s)
+{
+    BUG_ON(s->proto);
+    /* IP-only sigs are not per SGH, so need full proto */
+    if (s->type == SIG_TYPE_IPONLY && !(s->init_data->proto.flags & DETECT_PROTO_ANY))
+        goto full;
+    /* Frames like the dns.pdu are registered for UDP and TCP, and share a MPM. So
+     * a UDP rule can become a match candidate for a TCP sgh, meaning we need to
+     * evaluate the rule's proto. */
+    if ((s->init_data->init_flags & SIG_FLAG_INIT_FRAME) != 0 &&
+            !(s->init_data->proto.flags & DETECT_PROTO_ANY))
+        goto full;
+
+    /* for now, we use the full protocol logic for DETECT_PROTO_IPV4/DETECT_PROTO_IPV6,
+     * but we should address that as well. */
+    if (s->init_data->proto.flags & (DETECT_PROTO_IPV4 | DETECT_PROTO_IPV6)) {
+        SCLogDebug("sid %u has IPV4 or IPV6 flag set, so need full protocol", s->id);
+        goto full;
+    }
+
+    /* no need to set up Signature::proto if sig needs any protocol,
+     * or only TCP and/or UDP, as for those the SGH is per TCP/UDP */
+    if ((s->init_data->proto.flags & DETECT_PROTO_ANY) ||
+            DetectProtoIsOnlyTCPUDP(&s->init_data->proto)) {
+        s->proto = NULL;
+        return 0;
+    }
+
+full:
+    s->proto = SCCalloc(1, sizeof(*s->proto));
+    if (s->proto == NULL)
+        return -1;
+
+    memcpy(s->proto, &s->init_data->proto, sizeof(*s->proto));
     return 0;
 }
 
@@ -298,10 +370,10 @@ static int DetectProtoTestSetup01(void)
     FAIL_IF_NOT(DetectProtoInitTest(&de_ctx, &sig, &dp, "tcp"));
 
     /* The signature proto should be TCP */
-    FAIL_IF_NOT(sig->proto.proto[(IPPROTO_TCP / 8)] & (1 << (IPPROTO_TCP % 8)));
+    FAIL_IF_NOT(sig->init_data->proto.proto[(IPPROTO_TCP / 8)] & (1 << (IPPROTO_TCP % 8)));
 
     for (i = 2; i < 256 / 8; i++) {
-        FAIL_IF(sig->proto.proto[i] != 0);
+        FAIL_IF(sig->init_data->proto.proto[i] != 0);
     }
 
     DetectEngineCtxFree(de_ctx);
@@ -327,11 +399,12 @@ static int DetectProtoTestSetup02(void)
     FAIL_IF(DetectProtoInitTest(&de_ctx, &sig_icmpv6, &dp, "icmpv6") == 0);
     FAIL_IF(DetectProtoInitTest(&de_ctx, &sig_icmp, &dp, "icmp") == 0);
 
-    FAIL_IF_NOT(sig_icmpv4->proto.proto[IPPROTO_ICMP / 8] & (1 << (IPPROTO_ICMP % 8)));
-    FAIL_IF_NOT(sig_icmpv6->proto.proto[IPPROTO_ICMPV6 / 8] & (1 << (IPPROTO_ICMPV6 % 8)));
+    FAIL_IF_NOT(sig_icmpv4->init_data->proto.proto[IPPROTO_ICMP / 8] & (1 << (IPPROTO_ICMP % 8)));
+    FAIL_IF_NOT(
+            sig_icmpv6->init_data->proto.proto[IPPROTO_ICMPV6 / 8] & (1 << (IPPROTO_ICMPV6 % 8)));
 
-    FAIL_IF_NOT(sig_icmp->proto.proto[IPPROTO_ICMP / 8] & (1 << (IPPROTO_ICMP % 8)));
-    FAIL_IF_NOT(sig_icmp->proto.proto[IPPROTO_ICMPV6 / 8] & (1 << (IPPROTO_ICMPV6 % 8)));
+    FAIL_IF_NOT(sig_icmp->init_data->proto.proto[IPPROTO_ICMP / 8] & (1 << (IPPROTO_ICMP % 8)));
+    FAIL_IF_NOT(sig_icmp->init_data->proto.proto[IPPROTO_ICMPV6 / 8] & (1 << (IPPROTO_ICMPV6 % 8)));
 
     DetectEngineCtxFree(de_ctx);
 

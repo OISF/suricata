@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2019 Open Information Security Foundation
+/* Copyright (C) 2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -17,9 +17,6 @@
 
 /**
  * \file
- *
- * \author Victor Julien <victor@inliniac.net>
- *
  */
 
 #include "suricata-common.h"
@@ -32,45 +29,45 @@
 #include "detect-engine-prefilter.h"
 #include "detect-engine-content-inspection.h"
 #include "detect-fast-pattern.h"
-#include "detect-ipv4hdr.h"
+#include "detect-ethhdr.h"
 
 /* prototypes */
-static int DetectIpv4hdrSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectEthhdrSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
-void DetectIpv4hdrRegisterTests (void);
+void DetectEthhdrRegisterTests(void);
 #endif
 
-static int g_ipv4hdr_buffer_id = 0;
+static int g_ethhdr_buffer_id = 0;
 
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Packet *p, const int list_id);
 
 /**
- * \brief Registration function for ipv4.hdr: keyword
+ * \brief Registration function for eth.hdr: keyword
  */
-void DetectIpv4hdrRegister(void)
+void DetectEthhdrRegister(void)
 {
-    sigmatch_table[DETECT_IPV4HDR].name = "ipv4.hdr";
-    sigmatch_table[DETECT_IPV4HDR].desc = "sticky buffer to match on the IPV4 header";
-    sigmatch_table[DETECT_IPV4HDR].url = "/rules/header-keywords.html#ipv4hdr";
-    sigmatch_table[DETECT_IPV4HDR].Setup = DetectIpv4hdrSetup;
-    sigmatch_table[DETECT_IPV4HDR].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_ETHHDR].name = "eth.hdr";
+    sigmatch_table[DETECT_ETHHDR].desc = "sticky buffer to match on the Ethernet header";
+    sigmatch_table[DETECT_ETHHDR].url = "/rules/header-keywords.html#ethhdr";
+    sigmatch_table[DETECT_ETHHDR].Setup = DetectEthhdrSetup;
+    sigmatch_table[DETECT_ETHHDR].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_IPV4HDR].RegisterTests = DetectIpv4hdrRegisterTests;
+    sigmatch_table[DETECT_ETHHDR].RegisterTests = DetectEthhdrRegisterTests;
 #endif
 
-    g_ipv4hdr_buffer_id = DetectBufferTypeRegister("ipv4.hdr");
-    BUG_ON(g_ipv4hdr_buffer_id < 0);
+    g_ethhdr_buffer_id = DetectBufferTypeRegister("eth.hdr");
+    BUG_ON(g_ethhdr_buffer_id < 0);
 
-    DetectBufferTypeSupportsPacket("ipv4.hdr");
+    DetectBufferTypeSupportsPacket("eth.hdr");
 
-    DetectPktMpmRegister("ipv4.hdr", 2, PrefilterGenericMpmPktRegister, GetData);
+    DetectPktMpmRegister("eth.hdr", 2, PrefilterGenericMpmPktRegister, GetData);
 
-    DetectPktInspectEngineRegister("ipv4.hdr", GetData, DetectEngineInspectPktBufferGeneric);
+    DetectPktInspectEngineRegister("eth.hdr", GetData, DetectEngineInspectPktBufferGeneric);
 }
 
 /**
- * \brief setup ipv4.hdr sticky buffer
+ * \brief setup eth.hdr sticky buffer
  *
  * \param de_ctx pointer to the Detection Engine Context
  * \param s pointer to the Current Signature
@@ -79,13 +76,12 @@ void DetectIpv4hdrRegister(void)
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectIpv4hdrSetup (DetectEngineCtx *de_ctx, Signature *s, const char *_unused)
+static int DetectEthhdrSetup(DetectEngineCtx *de_ctx, Signature *s, const char *_unused)
 {
-    s->init_data->proto.flags |= DETECT_PROTO_IPV4; // TODO
-
+    s->init_data->proto.flags |= DETECT_PROTO_ETHERNET;
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
-    if (SCDetectBufferSetActiveList(de_ctx, s, g_ipv4hdr_buffer_id) < 0)
+    if (SCDetectBufferSetActiveList(de_ctx, s, g_ethhdr_buffer_id) < 0)
         return -1;
 
     return 0;
@@ -98,21 +94,22 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
 
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
-        if (!PacketIsIPv4(p)) {
-            // DETECT_PROTO_IPV4 does not prefilter
+        if (!PacketIsEthernet(p)) {
+            // DETECT_PROTO_ETHERNET does not prefilter
             return NULL;
         }
-        const IPV4Hdr *ip4h = PacketGetIPv4(p);
-        uint32_t hlen = IPV4_GET_RAW_HLEN(ip4h);
-        if (((uint8_t *)ip4h + (ptrdiff_t)hlen) >
+        const EthernetHdr *ethh = PacketGetEthernet(p);
+        if (((uint8_t *)ethh + (ptrdiff_t)ETHERNET_HEADER_LEN) >
                 ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p))) {
-            SCLogDebug("data out of range: %p > %p", ((uint8_t *)ip4h + (ptrdiff_t)hlen),
+            SCLogDebug("data out of range: %p > %p",
+                    ((uint8_t *)ethh + (ptrdiff_t)ETHERNET_HEADER_LEN),
                     ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p)));
             return NULL;
         }
 
-        const uint32_t data_len = hlen;
-        const uint8_t *data = (const uint8_t *)ip4h;
+        const uint32_t data_len = (uint32_t)ETHERNET_HEADER_LEN;
+        const uint8_t *data = (const uint8_t *)ethh;
+        SCLogDebug("inspect data %p / %u", data, data_len);
 
         InspectionBufferSetupAndApplyTransforms(
                 det_ctx, list_id, buffer, data, data_len, transforms);
@@ -122,5 +119,5 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
 }
 
 #ifdef UNITTESTS
-#include "tests/detect-ipv4hdr.c"
+#include "tests/detect-ethhdr.c"
 #endif

@@ -1406,14 +1406,14 @@ static int SigParseProto(Signature *s, const char *protostr)
         return -1;
     }
 
-    int r = DetectProtoParse(&s->proto, p);
+    int r = DetectProtoParse(&s->init_data->proto, (char *)p);
     if (r < 0) {
         s->alproto = AppLayerGetProtoByName(p);
         /* indicate that the signature is app-layer */
         if (s->alproto != ALPROTO_UNKNOWN) {
             s->flags |= SIG_FLAG_APPLAYER;
 
-            AppLayerProtoDetectSupportedIpprotos(s->alproto, s->proto.proto);
+            AppLayerProtoDetectSupportedIpprotos(s->alproto, s->init_data->proto.proto);
 
             if (h) {
                 if (SigParseProtoHookApp(s, protostr, p, h) < 0) {
@@ -1442,9 +1442,9 @@ static int SigParseProto(Signature *s, const char *protostr)
 
     /* if any of these flags are set they are set in a mutually exclusive
      * manner */
-    if (s->proto.flags & DETECT_PROTO_ONLY_PKT) {
+    if (s->init_data->proto.flags & DETECT_PROTO_ONLY_PKT) {
         s->flags |= SIG_FLAG_REQUIRE_PACKET;
-    } else if (s->proto.flags & DETECT_PROTO_ONLY_STREAM) {
+    } else if (s->init_data->proto.flags & DETECT_PROTO_ONLY_STREAM) {
         s->flags |= SIG_FLAG_REQUIRE_STREAM;
     }
 
@@ -2117,6 +2117,9 @@ void SigFree(DetectEngineCtx *de_ctx, Signature *s)
     if (s->dp != NULL) {
         DetectPortCleanupList(NULL, s->dp);
     }
+    if (s->proto) {
+        SCFree(s->proto);
+    }
 
     if (s->msg != NULL)
         SCFree(s->msg);
@@ -2729,7 +2732,7 @@ static void SigConsolidateTcpBuffer(Signature *s)
      * - pkt vs stream vs depth/offset
      * - pkt vs stream vs stream_size
      */
-    if (s->proto.proto[IPPROTO_TCP / 8] & (1 << (IPPROTO_TCP % 8))) {
+    if (DetectProtoContainsProto(&s->init_data->proto, IPPROTO_TCP)) {
         if (s->init_data->smlists[DETECT_SM_LIST_PMATCH]) {
             if (!(s->flags & (SIG_FLAG_REQUIRE_PACKET | SIG_FLAG_REQUIRE_STREAM))) {
                 s->flags |= SIG_FLAG_REQUIRE_STREAM;
@@ -2803,6 +2806,32 @@ static int SigValidateFileHandling(const Signature *s)
     SCReturnInt(1);
 }
 
+static bool SigValidateEthernet(const Signature *s)
+{
+    if (s->init_data->proto.flags & DETECT_PROTO_ETHERNET) {
+        if ((s->flags & (SIG_FLAG_SP_ANY | SIG_FLAG_DP_ANY)) == 0) {
+            SCLogError("can't use ports with ethernet rule");
+            return false;
+        }
+    } else {
+        if (s->init_data->proto.ether_type != 0) {
+            SCLogError("can't set ether_type with non-ethernet rule");
+            return false;
+        }
+    }
+    return true;
+}
+
+/* `pkthdr` is meant to allow matching on "any" packet with a decoder event. */
+static bool SigValidateProtoPkthdr(const Signature *s)
+{
+    if ((s->init_data->proto.flags & DETECT_PROTO_L2_ANY) && s->type != SIG_TYPE_DEONLY) {
+        SCLogError("protocol 'pkthdr' is for decoder-events only");
+        return false;
+    }
+    return true;
+}
+
 /**
  *  \internal
  *  \brief validate and consolidate parsed signature
@@ -2825,6 +2854,10 @@ static int SigValidateConsolidate(
         SCReturnInt(0);
     }
 
+    if (!SigValidateEthernet(s)) {
+        SCReturnInt(0);
+    }
+
     int ts_excl = 0;
     int tc_excl = 0;
     int dir_amb = 0;
@@ -2841,6 +2874,13 @@ static int SigValidateConsolidate(
 
     SignatureSetType(de_ctx, s);
     DetectRuleSetTable(s);
+
+    if (!SigValidateProtoPkthdr(s)) {
+        SCReturnInt(0);
+    }
+
+    if (DetectProtoFinalizeSignature(s) != 0)
+        SCReturnInt(0);
 
     int r = SigValidateFileHandling(s);
     if (r == 0) {
@@ -2936,15 +2976,15 @@ static Signature *SigInitHelper(
 
     if (sig->alproto != ALPROTO_UNKNOWN) {
         int override_needed = 0;
-        if (sig->proto.flags & DETECT_PROTO_ANY) {
-            sig->proto.flags &= ~DETECT_PROTO_ANY;
-            memset(sig->proto.proto, 0x00, sizeof(sig->proto.proto));
+        if (sig->init_data->proto.flags & DETECT_PROTO_ANY) {
+            sig->init_data->proto.flags &= ~DETECT_PROTO_ANY;
+            memset(sig->init_data->proto.proto, 0x00, sizeof(sig->init_data->proto.proto));
             override_needed = 1;
         } else {
             override_needed = 1;
             size_t s = 0;
-            for (s = 0; s < sizeof(sig->proto.proto); s++) {
-                if (sig->proto.proto[s] != 0x00) {
+            for (s = 0; s < sizeof(sig->init_data->proto.proto); s++) {
+                if (sig->init_data->proto.proto[s] != 0x00) {
                     override_needed = 0;
                     break;
                 }
@@ -2955,7 +2995,7 @@ static Signature *SigInitHelper(
          * overridden, we use the ip proto that has been configured
          * against the app proto in use. */
         if (override_needed)
-            AppLayerProtoDetectSupportedIpprotos(sig->alproto, sig->proto.proto);
+            AppLayerProtoDetectSupportedIpprotos(sig->alproto, sig->init_data->proto.proto);
     }
 
     /* set the packet and app layer flags, but only if the
