@@ -181,6 +181,16 @@ static TmEcode JsonPgsqlLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
+static int JsonPgsqlLoggerFlush(ThreadVars *tv, void *thread_data, const Packet *p)
+{
+    LogPgsqlLogThread *td = (LogPgsqlLogThread *)thread_data;
+    if (td && td->ctx) {
+        SCLogDebug("%s flushing %s", tv->name, ((LogFileCtx *)(td->ctx->file_ctx))->filename);
+        OutputJsonFlush(td->ctx);
+    }
+    return 0;
+}
+
 void JsonPgsqlLogRegister(void)
 {
     /* PGSQL_START_REMOVE */
@@ -191,8 +201,8 @@ void JsonPgsqlLogRegister(void)
     /* PGSQL_END_REMOVE */
     /* Register as an eve sub-module. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonPgsqlLog", "eve-log.pgsql",
-            OutputPgsqlLogInitSub, ALPROTO_PGSQL, JsonPgsqlLogger, JsonPgsqlLogThreadInit,
-            JsonPgsqlLogThreadDeinit);
+            OutputPgsqlLogInitSub, ALPROTO_PGSQL, JsonPgsqlLogger, JsonPgsqlLoggerFlush,
+            JsonPgsqlLogThreadInit, JsonPgsqlLogThreadDeinit);
 
     SCLogDebug("PostgreSQL JSON logger registered.");
 }

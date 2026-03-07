@@ -49,6 +49,7 @@ typedef struct OutputTxLoggerThreadData_ {
 typedef struct OutputTxLogger_ {
     AppProto alproto;
     TxLogger LogFunc;
+    TxLoggerFlush FlushFunc;
     TxLoggerCondition LogCondition;
     void *initdata;
     struct OutputTxLogger_ *next;
@@ -64,8 +65,8 @@ typedef struct OutputTxLogger_ {
 static OutputTxLogger **list = NULL;
 
 int SCOutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto, TxLogger LogFunc,
-        void *initdata, int tc_log_progress, int ts_log_progress, TxLoggerCondition LogCondition,
-        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
+        TxLoggerFlush FlushFunc, void *initdata, int tc_log_progress, int ts_log_progress,
+        TxLoggerCondition LogCondition, ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
 {
     if (list == NULL) {
         list = SCCalloc(g_alproto_max, sizeof(OutputTxLogger *));
@@ -86,6 +87,7 @@ int SCOutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto, Tx
 
     op->alproto = alproto;
     op->LogFunc = LogFunc;
+    op->FlushFunc = FlushFunc;
     op->LogCondition = LogCondition;
     op->initdata = initdata;
     op->name = name;
@@ -536,6 +538,43 @@ end:
     return TM_ECODE_OK;
 }
 
+static TmEcode OutputTxFlush(ThreadVars *tv, Packet *p, void *thread_data)
+{
+    DEBUG_VALIDATE_BUG_ON(thread_data == NULL);
+
+    if (list == NULL) {
+        /* No child loggers. */
+        return TM_ECODE_OK;
+    }
+
+    OutputTxLoggerThreadData *op_thread_data = (OutputTxLoggerThreadData *)thread_data;
+
+    for (AppProto alproto = 0; alproto < g_alproto_max; alproto++) {
+        OutputTxLogger *logger = list[alproto];
+        OutputLoggerThreadStore *store = op_thread_data->store[alproto];
+
+        DEBUG_VALIDATE_BUG_ON(logger == NULL && store != NULL);
+        DEBUG_VALIDATE_BUG_ON(logger != NULL && store == NULL);
+
+        while (logger && store) {
+            DEBUG_VALIDATE_BUG_ON(logger->alproto != alproto);
+
+            if (logger->FlushFunc) {
+                SCLogDebug("%s: calling flush func for alproto %d", tv->name, alproto);
+                logger->FlushFunc(tv, store->thread_data, p);
+            }
+
+            logger = logger->next;
+            store = store->next;
+
+            DEBUG_VALIDATE_BUG_ON(logger == NULL && store != NULL);
+            DEBUG_VALIDATE_BUG_ON(logger != NULL && store == NULL);
+        }
+    }
+
+    return TM_ECODE_OK;
+}
+
 /** \brief thread init for the tx logger
  *  This will run the thread init functions for the individual registered
  *  loggers */
@@ -661,7 +700,7 @@ void OutputTxLoggerRegister (void)
         FatalError("Failed to allocate OutputTx list");
     }
     OutputRegisterRootLogger(OutputTxLogThreadInit, OutputTxLogThreadDeinit, OutputTxLog,
-            OutputTxLoggerGetActiveCount);
+            OutputTxFlush, OutputTxLoggerGetActiveCount);
 }
 
 void OutputTxShutdown(void)

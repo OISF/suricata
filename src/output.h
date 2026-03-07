@@ -69,6 +69,7 @@ typedef struct OutputModule_ {
     PacketLogger PacketFlushFunc;
     PacketLogCondition PacketConditionFunc;
     TxLogger TxLogFunc;
+    TxLoggerFlush TxFlushFunc;
     TxLoggerCondition TxLogCondition;
     SCFileLogger FileLogFunc;
     SCFiledataLogger FiledataLogFunc;
@@ -108,7 +109,7 @@ void OutputRegisterTxModule(LoggerId id, const char *name, const char *conf_name
         ThreadDeinitFunc ThreadDeinit);
 void OutputRegisterTxSubModule(LoggerId id, const char *parent_name, const char *name,
         const char *conf_name, OutputInitSubFunc InitFunc, AppProto alproto, TxLogger TxLogFunc,
-        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit);
+        TxLoggerFlush TxFlushFunc, ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit);
 
 void OutputRegisterTxModuleWithCondition(LoggerId id, const char *name, const char *conf_name,
         OutputInitFunc InitFunc, AppProto alproto, TxLogger TxLogFunc,
@@ -122,8 +123,8 @@ void OutputRegisterTxModuleWithProgress(LoggerId id, const char *name, const cha
         int ts_log_progress, ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit);
 void OutputRegisterTxSubModuleWithProgress(LoggerId id, const char *parent_name, const char *name,
         const char *conf_name, OutputInitSubFunc InitFunc, AppProto alproto, TxLogger TxLogFunc,
-        int tc_log_progress, int ts_log_progress, ThreadInitFunc ThreadInit,
-        ThreadDeinitFunc ThreadDeinit);
+        TxLoggerFlush TxFlushFunc, int tc_log_progress, int ts_log_progress,
+        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit);
 
 void OutputRegisterFileSubModule(LoggerId id, const char *parent_name, const char *name,
         const char *conf_name, OutputInitSubFunc InitFunc, SCFileLogger FileLogFunc,
@@ -164,7 +165,7 @@ int SCRegisterOnLoggingReady(SCOnLoggingReadyCallback callback, void *arg);
 void SCOnLoggingReady(void);
 
 void OutputRegisterRootLogger(ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
-        OutputLogFunc LogFunc, OutputGetActiveCountFunc ActiveCntFunc);
+        OutputLogFunc LogFunc, OutputFlushFunc FlushFunc, OutputGetActiveCountFunc ActiveCntFunc);
 void TmModuleLoggerRegister(void);
 
 TmEcode OutputLoggerLog(ThreadVars *, Packet *, void *);

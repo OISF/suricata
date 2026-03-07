@@ -152,9 +152,19 @@ static OutputInitResult DnsLogInitCtxSub(SCConfNode *conf, OutputCtx *parent_ctx
     return result;
 }
 
+static int JsonMDnsLoggerFlush(ThreadVars *tv, void *thread_data, const Packet *p)
+{
+    SCDnsLogThread *td = (SCDnsLogThread *)thread_data;
+    if (td && td->ctx) {
+        SCLogDebug("%s flushing %s", tv->name, ((LogFileCtx *)(td->ctx->file_ctx))->filename);
+        OutputJsonFlush(td->ctx);
+    }
+    return 0;
+}
+
 void JsonMdnsLogRegister(void)
 {
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonMdnsLog", "eve-log.mdns",
-            DnsLogInitCtxSub, ALPROTO_MDNS, JsonMdnsLogger, SCDnsLogThreadInit,
+            DnsLogInitCtxSub, ALPROTO_MDNS, JsonMdnsLogger, JsonMDnsLoggerFlush, SCDnsLogThreadInit,
             SCDnsLogThreadDeinit);
 }
