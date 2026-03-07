@@ -28,3 +28,4 @@ pub mod http_headers;
 pub mod strip_whitespace;
 pub mod urldecode;
 pub mod xor;
+pub mod subslice;
