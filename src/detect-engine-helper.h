@@ -95,4 +95,21 @@ int SCDetectHelperTransformRegister(const SCTransformTableElmt *kw);
 
 void SCDetectRegisterBufferLowerMd5Callbacks(const char *name);
 
+/** Lite keyword registration struct for file-match keywords. */
+typedef struct SCSigTableFileLiteElmt_ {
+    const char *name;
+    const char *desc;
+    const char *url;
+    uint32_t flags;
+    int (*FileMatch)(DetectEngineThreadCtx *, Flow *, uint8_t flags, File *, const Signature *,
+            const SigMatchCtx *);
+    int (*Setup)(DetectEngineCtx *, Signature *, const char *);
+    void (*Free)(DetectEngineCtx *, void *);
+} SCSigTableFileLiteElmt;
+
+uint16_t SCDetectHelperFileKeywordRegister(const SCSigTableFileLiteElmt *kw);
+int SCDetectHelperGetFilesBufferId(void);
+const uint8_t *SCFileGetData(const File *file, uint32_t *data_len_out, uint64_t *offset_out);
+void SCDetectSignatureSetFileInspect(Signature *s);
+
 #endif /* SURICATA_DETECT_ENGINE_HELPER_H */

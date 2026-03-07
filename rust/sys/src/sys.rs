@@ -753,6 +753,47 @@ impl Default for SCSigTableAppLiteElmt {
     }
 }
 #[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct SCSigTableFileLiteElmt {
+    pub name: *const ::std::os::raw::c_char,
+    pub desc: *const ::std::os::raw::c_char,
+    pub url: *const ::std::os::raw::c_char,
+    pub flags: u32,
+    pub FileMatch: ::std::option::Option<
+        unsafe extern "C" fn(
+            arg1: *mut DetectEngineThreadCtx,
+            arg2: *mut Flow,
+            flags: u8,
+            file: *mut File,
+            arg3: *const Signature,
+            arg4: *const SigMatchCtx,
+        ) -> ::std::os::raw::c_int,
+    >,
+    pub Setup: ::std::option::Option<
+        unsafe extern "C" fn(
+            arg1: *mut DetectEngineCtx,
+            arg2: *mut Signature,
+            arg3: *const ::std::os::raw::c_char,
+        ) -> ::std::os::raw::c_int,
+    >,
+    pub Free: ::std::option::Option<
+        unsafe extern "C" fn(arg1: *mut DetectEngineCtx, arg2: *mut ::std::os::raw::c_void),
+    >,
+}
+impl Default for SCSigTableFileLiteElmt {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+
+pub const SIGMATCH_OPTIONAL_OPT: u32 = 1 << 4;
+pub const FILE_SIG_NEED_FILE: u16 = 0x01;
+pub const FILE_SIG_NEED_FILECONTENT: u16 = 0x08;
+#[repr(C)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct SCTransformTableElmt {
     pub name: *const ::std::os::raw::c_char,
@@ -808,6 +849,24 @@ extern "C" {
 }
 extern "C" {
     pub fn SCDetectHelperKeywordAliasRegister(kwid: u16, alias: *const ::std::os::raw::c_char);
+}
+extern "C" {
+    pub fn SCDetectHelperFileKeywordRegister(kw: *const SCSigTableFileLiteElmt) -> u16;
+}
+extern "C" {
+    pub fn SCDetectHelperGetFilesBufferId() -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCFileGetData(
+        file: *const File, data_len_out: *mut u32, offset_out: *mut u64,
+    ) -> *const u8;
+}
+// SCFilePeMeta struct and SC_FILE_PE_META_F_* constants are defined in
+// detect::windows_pe (Rust-authoritative, exported via cbindgen).
+// FilePeMetaGet, FilePeMetaSet, FilePeImportsGet, FilePeImportsSet are
+// C functions (util-file.c) declared as extern "C" in detect::windows_pe.
+extern "C" {
+    pub fn SCDetectSignatureSetFileInspect(s: *mut Signature);
 }
 extern "C" {
     pub fn SCDetectHelperBufferRegister(

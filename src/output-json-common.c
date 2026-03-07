@@ -25,6 +25,8 @@
 #include "output.h"
 #include "output-json.h"
 #include "util-buffer.h"
+#include "util-file.h"
+#include "util-streaming-buffer.h"
 
 OutputJsonThreadCtx *CreateEveThreadCtx(ThreadVars *t, OutputJsonCtx *ctx)
 {
@@ -134,4 +136,29 @@ TmEcode JsonLogThreadDeinit(ThreadVars *t, void *data)
     OutputJsonThreadCtx *thread = (OutputJsonThreadCtx *)data;
     FreeEveThreadCtx(thread);
     return TM_ECODE_OK;
+}
+
+/**
+ * \brief Log PE metadata for a file.
+ *
+ * Extracts raw file data from the streaming buffer and delegates to
+ * the Rust SCPeLogJsonByFile function, which handles PE validation,
+ * parsing, and JSON output.
+ *
+ * \param file The File object
+ * \param jb The JSON builder to append PE metadata to
+ */
+void EveFilePeMetadataLog(const File *file, SCJsonBuilder *jb)
+{
+    if (file == NULL || file->sb == NULL) {
+        return;
+    }
+
+    const uint8_t *data = NULL;
+    uint32_t data_len = 0;
+    uint64_t offset = 0;
+    StreamingBufferGetData(file->sb, &data, &data_len, &offset);
+
+    /* Log PE metadata: try direct parse first, fall back to File cache if buffer was pruned */
+    SCPeLogJsonByFile(file, data, data_len, offset, jb);
 }
