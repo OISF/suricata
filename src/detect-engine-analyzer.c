@@ -1142,11 +1142,14 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
     if (s->mask & SIG_MASK_REQUIRE_FLOW) {
         SCJbAppendString(ctx.js, "flow");
     }
-    if (s->mask & SIG_MASK_REQUIRE_FLAGS_INITDEINIT) {
-        SCJbAppendString(ctx.js, "tcp_flags_init_deinit");
+    if (s->mask & SIG_MASK_REQUIRE_FLAGS_DEINIT) {
+        SCJbAppendString(ctx.js, "tcp_flags_deinit");
     }
     if (s->mask & SIG_MASK_REQUIRE_FLAGS_UNUSUAL) {
         SCJbAppendString(ctx.js, "tcp_flags_unusual");
+    }
+    if (s->mask & SIG_MASK_REQUIRE_FLAGS_SYN) {
+        SCJbAppendString(ctx.js, "tcp_flags_syn");
     }
     if (s->mask & SIG_MASK_REQUIRE_ENGINE_EVENT) {
         SCJbAppendString(ctx.js, "engine_event");
