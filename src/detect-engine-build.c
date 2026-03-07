@@ -652,7 +652,7 @@ static SCJsonBuilder *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx,
             continue;
 
         int any = 0;
-        if (s->proto.flags & DETECT_PROTO_ANY) {
+        if (s->proto == NULL || s->proto->flags & DETECT_PROTO_ANY) {
             any++;
         }
         if (s->flags & SIG_FLAG_DST_ANY) {
@@ -972,7 +972,8 @@ static int RulesGroupByIPProto(DetectEngineCtx *de_ctx)
             if (p == IPPROTO_TCP || p == IPPROTO_UDP) {
                 continue;
             }
-            if (!(s->proto.proto[p / 8] & (1<<(p % 8)) || (s->proto.flags & DETECT_PROTO_ANY))) {
+
+            if (!DetectProtoContainsProto(&s->init_data->proto, p)) {
                 continue;
             }
 
@@ -1489,7 +1490,7 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
         if (s->type == SIG_TYPE_IPONLY)
             goto next;
         /* Protocol does not match the Signature protocol and is neither IP or pkthdr */
-        if (!(s->proto.proto[ipproto / 8] & (1<<(ipproto % 8)) || (s->proto.flags & DETECT_PROTO_ANY)))
+        if (!DetectProtoContainsProto(&s->init_data->proto, ipproto))
             goto next;
         /* Direction does not match Signature direction */
         if (direction == SIG_FLAG_TOSERVER) {
@@ -1787,7 +1788,7 @@ int SigPrepareStage1(DetectEngineCtx *de_ctx)
             if (copresent && colen == 1) {
                 SCLogDebug("signature %8u content maxlen 1", s->id);
                 for (int proto = 0; proto < 256; proto++) {
-                    if (s->proto.proto[(proto/8)] & (1<<(proto%8)))
+                    if (s->init_data->proto.proto[(proto / 8)] & (1 << (proto % 8)))
                         SCLogDebug("=> proto %" PRId32 "", proto);
                 }
             }
