@@ -51,7 +51,6 @@ typedef struct OutputInitResult_ {
 typedef OutputInitResult (*OutputInitFunc)(SCConfNode *);
 typedef OutputInitResult (*OutputInitSubFunc)(SCConfNode *, OutputCtx *);
 typedef TmEcode (*OutputLogFunc)(ThreadVars *, Packet *, void *);
-typedef TmEcode (*OutputFlushFunc)(ThreadVars *, Packet *, void *);
 typedef uint32_t (*OutputGetActiveCountFunc)(void);
 
 typedef struct OutputModule_ {
@@ -66,7 +65,6 @@ typedef struct OutputModule_ {
     ThreadDeinitFunc ThreadDeinit;
 
     PacketLogger PacketLogFunc;
-    PacketLogger PacketFlushFunc;
     PacketLogCondition PacketConditionFunc;
     TxLogger TxLogFunc;
     TxLoggerCondition TxLogCondition;
@@ -86,7 +84,6 @@ typedef struct OutputModule_ {
 /* struct for packet module and packet sub-module registration */
 typedef struct OutputPacketLoggerFunctions_ {
     PacketLogger LogFunc;
-    PacketLogger FlushFunc;
     PacketLogCondition ConditionFunc;
     ThreadInitFunc ThreadInitFunc;
     ThreadDeinitFunc ThreadDeinitFunc;
@@ -168,7 +165,6 @@ void OutputRegisterRootLogger(ThreadInitFunc ThreadInit, ThreadDeinitFunc Thread
 void TmModuleLoggerRegister(void);
 
 TmEcode OutputLoggerLog(ThreadVars *, Packet *, void *);
-TmEcode OutputLoggerFlush(ThreadVars *, Packet *, void *);
 TmEcode OutputLoggerThreadInit(ThreadVars *, const void *, void **);
 TmEcode OutputLoggerThreadDeinit(ThreadVars *, void *);
 void OutputLoggerExitPrintStats(ThreadVars *, void *);
