@@ -65,6 +65,7 @@ static int DetectHttpUASetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectHttpUARegisterTests(void);
 #endif
 static int g_http_ua_buffer_id = 0;
+static int g_http2_thread_id = 0;
 static int DetectHttpUserAgentSetup(DetectEngineCtx *, Signature *, const char *);
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms,
@@ -114,6 +115,9 @@ void DetectHttpUARegister(void)
 
     DetectBufferTypeSetDescriptionByName("http_user_agent",
             "http user agent");
+
+    g_http2_thread_id = DetectRegisterThreadCtxGlobalFuncs(
+            "http_user_agent", SCHttp2ThreadBufDataInit, NULL, SCHttp2ThreadBufDataFree);
 
     g_http_ua_buffer_id = DetectBufferTypeGetByName("http_user_agent");
 }
@@ -192,8 +196,10 @@ static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
     if (buffer->inspect == NULL) {
         uint32_t b_len = 0;
         const uint8_t *b = NULL;
-
-        if (SCHttp2TxGetUserAgent(txv, &b, &b_len) != 1)
+        void *thread_buf = DetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, g_http2_thread_id);
+        if (thread_buf == NULL)
+            return NULL;
+        if (SCHttp2TxGetUserAgent(txv, &b, &b_len, thread_buf) != 1)
             return NULL;
         if (b == NULL || b_len == 0)
             return NULL;
