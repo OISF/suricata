@@ -1,4 +1,4 @@
-/* Copyright (C) 2019-2022 Open Information Security Foundation
+/* Copyright (C) 2019-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,10 +18,11 @@
 // written by Giuseppe Longo <giuseppe@glongo.it>
 
 use crate::sdp::parser::{sdp_parse_message, SdpMessage};
-use nom7::bytes::streaming::{tag, take, take_while, take_while1};
+use nom7::bytes::streaming::{tag, take, take_until, take_while, take_while1};
 use nom7::character::streaming::{char, crlf};
 use nom7::character::{is_alphabetic, is_alphanumeric, is_digit, is_space};
 use nom7::combinator::{map, map_res, opt};
+use nom7::error::{Error, ErrorKind};
 use nom7::sequence::delimited;
 use nom7::{Err, IResult, Needed};
 use std;
@@ -110,6 +111,21 @@ fn expand_header_name(h: &str) -> &str {
         "t" => "To",
         "v" => "Via",
         _ => h,
+    }
+}
+
+pub fn sip_probe_protocol(input: &[u8]) -> IResult<&[u8], ()> {
+    let len = std::cmp::min(input.len(), 65536);
+    let i = &input[..len];
+
+    if tag::<_, _, Error<&[u8]>>("SIP/")(i).is_ok() {
+        return Ok((input, ()));
+    }
+
+    if take_until::<_, _, Error<&[u8]>>("SIP/")(i).is_ok() {
+        Ok((input, ()))
+    } else {
+        Err(Err::Error(Error::new(i, ErrorKind::Tag)))
     }
 }
 
@@ -358,6 +374,18 @@ mod tests {
 
         let (_rem, result) = parse_version(buf).unwrap();
         assert_eq!(result, "SIP/2.0");
+    }
+
+    #[test]
+    fn test_probe_sip_request() {
+        let buf = b"REGISTER sip:sip.example.com SIP/2.0\r\n";
+        assert!(sip_probe_protocol(buf).is_ok());
+    }
+
+    #[test]
+    fn test_probe_sip_response() {
+        let buf = b"SIP/2.0 200 OK\r\n";
+        assert!(sip_probe_protocol(buf).is_ok());
     }
 
     #[test]
