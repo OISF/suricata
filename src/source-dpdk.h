@@ -81,6 +81,7 @@ typedef struct DPDKIfaceConfig_ {
     SC_ATOMIC_DECLARE(uint16_t, queue_id);
     SC_ATOMIC_DECLARE(uint16_t, inconsistent_numa_cnt);
     DPDKWorkerSync *workers_sync;
+    bool is_pcap_iface;
     void (*DerefFunc)(void *);
 
     struct rte_flow *flow[100];
@@ -101,5 +102,6 @@ typedef struct DPDKPacketVars_ {
 
 void TmModuleReceiveDPDKRegister(void);
 void TmModuleDecodeDPDKRegister(void);
+void DPDKPcapWorkersSync(uint16_t workers);
 
 #endif /* SURICATA_SOURCE_DPDK_H */
