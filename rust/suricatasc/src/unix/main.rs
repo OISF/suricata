@@ -5,12 +5,23 @@ use crate::unix::client::{Client, ClientError, Response};
 use crate::unix::commands::CommandParser;
 use crate::unix::commands::Commands;
 use crate::unix::rustyprompt::RustyPrompt;
+use clap::builder::styling::{AnsiColor, Effects, Styles};
 use clap::Parser;
 use serde_json::json;
+
+const CLAP_STYLING: Styles = Styles::styled()
+    .header(AnsiColor::Green.on_default().effects(Effects::BOLD))
+    .usage(AnsiColor::Green.on_default().effects(Effects::BOLD))
+    .literal(AnsiColor::Cyan.on_default().effects(Effects::BOLD))
+    .placeholder(AnsiColor::Cyan.on_default())
+    .error(AnsiColor::Red.on_default().effects(Effects::BOLD))
+    .valid(AnsiColor::Cyan.on_default().effects(Effects::BOLD))
+    .invalid(AnsiColor::Yellow.on_default().effects(Effects::BOLD));
 
 const DEFAULT_SC_PATH: &str = "/var/run/suricata/suricata-command.socket";
 
 #[derive(Parser, Debug)]
+#[command(styles = CLAP_STYLING)]
 struct Args {
     /// Enable verbose output
     #[arg(long, short)]

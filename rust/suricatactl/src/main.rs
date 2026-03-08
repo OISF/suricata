@@ -6,13 +6,25 @@
 #![allow(clippy::let_and_return)]
 #![allow(clippy::uninlined_format_args)]
 
+use clap::builder::styling::{AnsiColor, Effects, Styles};
 use clap::Parser;
 use clap::Subcommand;
 use tracing::Level;
 
+mod config;
 mod filestore;
 
+const CLAP_STYLING: Styles = Styles::styled()
+    .header(AnsiColor::Green.on_default().effects(Effects::BOLD))
+    .usage(AnsiColor::Green.on_default().effects(Effects::BOLD))
+    .literal(AnsiColor::Cyan.on_default().effects(Effects::BOLD))
+    .placeholder(AnsiColor::Cyan.on_default())
+    .error(AnsiColor::Red.on_default().effects(Effects::BOLD))
+    .valid(AnsiColor::Cyan.on_default().effects(Effects::BOLD))
+    .invalid(AnsiColor::Yellow.on_default().effects(Effects::BOLD));
+
 #[derive(Parser, Debug)]
+#[command(styles = CLAP_STYLING)]
 struct Cli {
     #[arg(long, short, global = true, action = clap::ArgAction::Count)]
     verbose: u8,
@@ -33,6 +45,9 @@ struct Cli {
 enum Commands {
     /// Filestore management commands
     Filestore(FilestoreCommand),
+
+    /// Suricata configuration commands
+    Config(config::ConfigCommand),
 }
 
 #[derive(Parser, Debug)]
@@ -73,5 +88,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Commands::Filestore(filestore) => match filestore.command {
             FilestoreCommands::Prune(args) => crate::filestore::prune::prune(args),
         },
+        Commands::Config(config) => crate::config::run(config),
     }
 }
