@@ -103,6 +103,12 @@ TmEcode NoDPDKSupportExit(ThreadVars *tv, const void *initdata, void **data)
 #define STANDARD_SLEEP_TIME_US       100U
 #define MAX_EPOLL_TIMEOUT_MS         500U
 static rte_spinlock_t intr_lock[RTE_MAX_ETHPORTS];
+static SC_ATOMIC_DECL_AND_INIT(uint16_t, pcap_workers_left);
+
+void DPDKPcapWorkersSync(uint16_t workers)
+{
+    SC_ATOMIC_ADD(pcap_workers_left, workers);
+}
 
 /**
  * \brief Structure to hold thread specific variables.
@@ -115,6 +121,7 @@ typedef struct DPDKThreadVars_ {
     LiveDevice *livedev;
     ChecksumValidationMode checksum_mode;
     bool intr_enabled;
+    bool is_pcap_iface;
     /* references to packet and drop counters */
     StatsCounterId capture_dpdk_packets;
     StatsCounterId capture_dpdk_rx_errs;
@@ -612,6 +619,91 @@ static void PeriodicDPDKDumpCounters(DPDKThreadVars *ptv)
     }
 }
 
+static inline TmEcode ReceiveDPDKPkts(DPDKThreadVars *ptv, uint16_t nb_rx)
+{
+    ptv->pkts += (uint64_t)nb_rx;
+    for (uint16_t i = 0; i < nb_rx; i++) {
+        Packet *p = PacketInitFromMbuf(ptv, ptv->received_mbufs[i]);
+        if (p == NULL) {
+            rte_pktmbuf_free(ptv->received_mbufs[i]);
+            continue;
+        }
+
+        if (likely(rte_pktmbuf_is_contiguous(p->dpdk_v.mbuf))) {
+            PacketSetData(p, rte_pktmbuf_mtod(p->dpdk_v.mbuf, uint8_t *),
+                    rte_pktmbuf_pkt_len(p->dpdk_v.mbuf));
+        } else {
+            DPDKSegmentedMbufWarning();
+            if (DPDKSegmentedMbufHandle(p, p->dpdk_v.mbuf) != 0) {
+                TmqhOutputPacketpool(ptv->tv, p);
+                continue;
+            }
+        }
+
+        if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
+            TmqhOutputPacketpool(ptv->tv, p);
+            DPDKFreeMbufArray(ptv->received_mbufs, nb_rx - i - 1, i + 1);
+            return TM_ECODE_FAILED;
+        }
+    }
+    return TM_ECODE_OK;
+}
+
+static TmEcode ReceiveDPDKLoopLive(ThreadVars *tv, DPDKThreadVars *ptv, uint16_t burst_size)
+{
+    while (true) {
+        if (unlikely(suricata_ctl_flags != 0)) {
+            HandleShutdown(ptv);
+            break;
+        }
+
+        uint16_t nb_rx =
+                rte_eth_rx_burst(ptv->port_id, ptv->queue_id, ptv->received_mbufs, burst_size);
+        if (RXPacketCountHeuristic(tv, ptv, nb_rx)) {
+            continue;
+        }
+
+        if (ReceiveDPDKPkts(ptv, nb_rx) != TM_ECODE_OK) {
+            SCReturnInt(EXIT_FAILURE);
+        }
+
+        PeriodicDPDKDumpCounters(ptv);
+        StatsSyncCountersIfSignalled(&tv->stats);
+    }
+
+    SCReturnInt(TM_ECODE_OK);
+}
+
+static TmEcode ReceiveDPDKLoopPcap(ThreadVars *tv, DPDKThreadVars *ptv, uint16_t burst_size)
+{
+    while (true) {
+        if (unlikely(suricata_ctl_flags != 0)) {
+            HandleShutdown(ptv);
+            break;
+        }
+
+        uint16_t nb_rx =
+                rte_eth_rx_burst(ptv->port_id, ptv->queue_id, ptv->received_mbufs, burst_size);
+        if (nb_rx == 0) {
+            SCLogNotice("%s: PCAP end of file", ptv->livedev->dev);
+            if (SC_ATOMIC_SUB(pcap_workers_left, 1) == 1) {
+                EngineStop();
+            }
+            HandleShutdown(ptv);
+            break;
+        }
+
+        if (ReceiveDPDKPkts(ptv, nb_rx) != TM_ECODE_OK) {
+            SCReturnInt(EXIT_FAILURE);
+        }
+
+        PeriodicDPDKDumpCounters(ptv);
+        StatsSyncCountersIfSignalled(&tv->stats);
+    }
+
+    SCReturnInt(TM_ECODE_DONE);
+}
+
 /**
  *  \brief Main DPDK reading Loop function
  */
@@ -627,50 +719,10 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
     if (ret != TM_ECODE_OK) {
         SCReturnInt(ret);
     }
-    while (true) {
-        if (unlikely(suricata_ctl_flags != 0)) {
-            HandleShutdown(ptv);
-            break;
-        }
 
-        uint16_t nb_rx =
-                rte_eth_rx_burst(ptv->port_id, ptv->queue_id, ptv->received_mbufs, burst_size);
-        if (RXPacketCountHeuristic(tv, ptv, nb_rx)) {
-            continue;
-        }
-
-        ptv->pkts += (uint64_t)nb_rx;
-        for (uint16_t i = 0; i < nb_rx; i++) {
-            Packet *p = PacketInitFromMbuf(ptv, ptv->received_mbufs[i]);
-            if (p == NULL) {
-                rte_pktmbuf_free(ptv->received_mbufs[i]);
-                continue;
-            }
-
-            if (likely(rte_pktmbuf_is_contiguous(p->dpdk_v.mbuf))) {
-                PacketSetData(p, rte_pktmbuf_mtod(p->dpdk_v.mbuf, uint8_t *),
-                        rte_pktmbuf_pkt_len(p->dpdk_v.mbuf));
-            } else {
-                /* Slow path: segmented mbuf, needs linearization or copy */
-                DPDKSegmentedMbufWarning();
-                if (DPDKSegmentedMbufHandle(p, p->dpdk_v.mbuf) != 0) {
-                    TmqhOutputPacketpool(ptv->tv, p);
-                    continue;
-                }
-            }
-
-            if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
-                TmqhOutputPacketpool(ptv->tv, p);
-                DPDKFreeMbufArray(ptv->received_mbufs, nb_rx - i - 1, i + 1);
-                SCReturnInt(EXIT_FAILURE);
-            }
-        }
-
-        PeriodicDPDKDumpCounters(ptv);
-        StatsSyncCountersIfSignalled(&tv->stats);
-    }
-
-    SCReturnInt(TM_ECODE_OK);
+    if (ptv->is_pcap_iface)
+        return ReceiveDPDKLoopPcap(tv, ptv, burst_size);
+    return ReceiveDPDKLoopLive(tv, ptv, burst_size);
 }
 
 /**
@@ -716,6 +768,7 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
 
     ptv->threads = dpdk_config->threads;
     ptv->intr_enabled = (dpdk_config->flags & DPDK_IRQ_MODE) ? true : false;
+    ptv->is_pcap_iface = dpdk_config->is_pcap_iface;
     ptv->port_id = dpdk_config->port_id;
     ptv->out_port_id = dpdk_config->out_port_id;
     ptv->port_socket_id = dpdk_config->socket_id;
