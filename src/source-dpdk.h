@@ -48,6 +48,7 @@ void DPDKSetTimevalOfMachineStart(void);
 typedef struct DPDKWorkerSync_ {
     uint16_t worker_cnt;
     SC_ATOMIC_DECLARE(uint16_t, worker_checked_in);
+    SC_ATOMIC_DECLARE(uint16_t, pcap_workers_left);
 } DPDKWorkerSync;
 
 typedef struct DPDKIfaceConfig_ {
@@ -81,6 +82,7 @@ typedef struct DPDKIfaceConfig_ {
     SC_ATOMIC_DECLARE(uint16_t, queue_id);
     SC_ATOMIC_DECLARE(uint16_t, inconsistent_numa_cnt);
     DPDKWorkerSync *workers_sync;
+    bool is_pcap_iface;
     void (*DerefFunc)(void *);
 
     struct rte_flow *flow[100];
