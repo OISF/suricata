@@ -509,6 +509,7 @@ fn tx_is_complete(op: &ProtocolOp, dir: Direction) -> bool {
     match dir {
         Direction::ToServer => match op {
             ProtocolOp::UnbindRequest => true,
+            ProtocolOp::AbandonRequest(_) => true,
             _ => false,
         },
         Direction::ToClient => match op {
