@@ -1,4 +1,4 @@
-/* Copyright (C) 2022 Open Information Security Foundation
+/* Copyright (C) 2022-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -96,6 +96,7 @@ pub use suricata_sys::sys::{
     SIGMATCH_INFO_MULTI_UINT, SIGMATCH_INFO_STICKY_BUFFER, SIGMATCH_INFO_UINT16,
     SIGMATCH_INFO_UINT32, SIGMATCH_INFO_UINT64, SIGMATCH_INFO_UINT8, SIGMATCH_NOOPT,
     SIGMATCH_OPTIONAL_OPT, SIGMATCH_QUOTES_MANDATORY, SIGMATCH_SUPPORT_FIREWALL,
+    SIGMATCH_TRANSFORM_CAN_FAIL,
 };
 
 #[derive(Default)]
