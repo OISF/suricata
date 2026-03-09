@@ -24,6 +24,8 @@ pub const SIGMATCH_INFO_ENUM_UINT: u32 = 524288;
 pub const SIGMATCH_INFO_BITFLAGS_UINT: u32 = 1048576;
 pub const SIGMATCH_BAN_FIREWALL_RULE: u32 = 2097152;
 pub const SIGMATCH_BAN_FIREWALL_MODE: u32 = 4194304;
+pub const SIGMATCH_TRANSFORM_CAN_FAIL: u32 = 8388608;
+pub const DETECT_CI_FLAGS_ERROR: u8 = 1 << 4;
 pub type __intmax_t = ::std::os::raw::c_long;
 pub type intmax_t = __intmax_t;
 #[repr(u32)]
