@@ -1700,6 +1700,8 @@ typedef struct SigGroupHead_ {
 #define SIGMATCH_INFO_ENUM_UINT BIT_U32(20)
 /** keyword is an uint with bitflags */
 #define SIGMATCH_INFO_BITFLAGS_UINT BIT_U32(21)
+/** transform can produce errors (e.g. decode failures) */
+#define SIGMATCH_TRANSFORM_CAN_FAIL BIT_U32(22)
 
 enum DetectEngineTenantSelectors
 {

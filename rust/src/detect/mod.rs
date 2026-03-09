@@ -143,6 +143,7 @@ pub const SIGMATCH_INFO_UINT64: u32 = 0x40000; // BIT_U32(18)
 pub const SIGMATCH_INFO_MULTI_UINT: u32 = 0x80000; // BIT_U32(19)
 pub const SIGMATCH_INFO_ENUM_UINT: u32 = 0x100000; // BIT_U32(20)
 pub const SIGMATCH_INFO_BITFLAGS_UINT: u32 = 0x200000; // BIT_U32(21)
+pub const SIGMATCH_TRANSFORM_CAN_FAIL: u32 = 0x400000; // BIT_U32(22)
 
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
