@@ -19,20 +19,15 @@
 
 use crate::detect::error::RuleParseError;
 use crate::detect::parser::{parse_var, take_until_whitespace, ResultValue};
-use crate::detect::SIGMATCH_OPTIONAL_OPT;
+use crate::detect::{SIGMATCH_OPTIONAL_OPT, SIGMATCH_TRANSFORM_CAN_FAIL};
 use crate::ffi::base64::{SCBase64Decode, SCBase64Mode};
 use crate::utils::base64::get_decoded_buffer_size;
 
-#[cfg(test)]
-use crate::detect::transforms::base64::tests::{
-    SCInspectionBufferCheckAndExpand, SCInspectionBufferTruncate,
-};
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, InspectionBuffer, SCDetectHelperTransformRegister,
-    SCDetectSignatureAddTransform, SCTransformTableElmt, Signature,
+    SCDetectSignatureAddTransform, SCInspectionBufferCheckAndExpand, SCInspectionBufferSetError,
+    SCInspectionBufferTruncate, SCTransformTableElmt, Signature,
 };
-#[cfg(not(test))]
-use suricata_sys::sys::{SCInspectionBufferCheckAndExpand, SCInspectionBufferTruncate};
 
 use nom8::bytes::complete::tag;
 use nom8::character::complete::multispace0;
@@ -237,42 +232,82 @@ unsafe extern "C" fn base64_id(data: *mut *const u8, length: *mut u32, ctx: *con
     *length = std::mem::size_of::<DetectTransformFromBase64Data>() as u32;
 }
 
+/// Outcome of a base64 decode against an input slice.
+///
+/// The pure decode logic is separated from the FFI shim so tests can drive
+/// it directly with a `&[u8]` and assert against a plain Rust value, rather
+/// than mocking the InspectionBuffer helpers.
+#[derive(Debug, PartialEq, Eq)]
+enum Base64TransformOutcome {
+    /// No decode was attempted: empty input, offset past end, or nbytes
+    /// covers all remaining input. The inspection buffer is left untouched.
+    Skip,
+    /// Decoder produced at least one byte. The FFI shim copies these into
+    /// the inspection buffer scratch and calls `SCInspectionBufferTruncate`.
+    Decoded(Vec<u8>),
+    /// Decoder produced zero bytes from a non-empty input. The FFI shim
+    /// calls `SCInspectionBufferSetError` to signal the failure.
+    Error,
+}
+
+fn base64_transform_pure(
+    input: &[u8], ctx: &DetectTransformFromBase64Data,
+) -> Base64TransformOutcome {
+    if input.is_empty() {
+        return Base64TransformOutcome::Skip;
+    }
+    let mut slice = input;
+    if ctx.offset > 0 {
+        if ctx.offset as usize >= slice.len() {
+            return Base64TransformOutcome::Skip;
+        }
+        slice = &slice[ctx.offset as usize..];
+    }
+    if ctx.nbytes > 0 {
+        if ctx.nbytes as usize >= slice.len() {
+            return Base64TransformOutcome::Skip;
+        }
+        slice = &slice[..ctx.nbytes as usize];
+    }
+    let output_len = get_decoded_buffer_size(slice.len() as u32) as usize;
+    let mut output = vec![0u8; output_len];
+    // SAFETY: SCBase64Decode is a Rust implementation exported to C. We
+    // pass valid pointers and lengths derived from live slices.
+    let num_decoded = unsafe {
+        SCBase64Decode(slice.as_ptr(), slice.len(), ctx.mode, output.as_mut_ptr())
+    } as usize;
+    if num_decoded == 0 {
+        return Base64TransformOutcome::Error;
+    }
+    output.truncate(num_decoded);
+    Base64TransformOutcome::Decoded(output)
+}
+
 unsafe extern "C" fn base64_transform(
     _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, ctx: *const c_void,
 ) {
-    let input = (*buffer).inspect;
+    let input_ptr = (*buffer).inspect;
     let input_len = (*buffer).inspect_len;
-    if input.is_null() || input_len == 0 {
+    if input_ptr.is_null() {
         return;
     }
-    let mut input = build_slice!(input, input_len as usize);
-
+    let input = build_slice!(input_ptr, input_len as usize);
     let ctx = cast_pointer!(ctx, DetectTransformFromBase64Data);
 
-    if ctx.offset > 0 {
-        if ctx.offset >= input_len {
-            return;
+    match base64_transform_pure(input, ctx) {
+        Base64TransformOutcome::Skip => {}
+        Base64TransformOutcome::Decoded(decoded) => {
+            let scratch = SCInspectionBufferCheckAndExpand(buffer, decoded.len() as u32);
+            if scratch.is_null() {
+                // allocation failure
+                return;
+            }
+            std::ptr::copy_nonoverlapping(decoded.as_ptr(), scratch, decoded.len());
+            SCInspectionBufferTruncate(buffer, decoded.len() as u32);
         }
-        input = &input[ctx.offset as usize..];
-    }
-    if ctx.nbytes > 0 {
-        if ctx.nbytes as usize >= input.len() {
-            return;
+        Base64TransformOutcome::Error => {
+            SCInspectionBufferSetError(buffer);
         }
-        input = &input[..ctx.nbytes as usize];
-    }
-
-    let output_len = get_decoded_buffer_size(input.len() as u32);
-    // no realloc, we only can shrink
-    let output = SCInspectionBufferCheckAndExpand(buffer, output_len);
-    if output.is_null() {
-        // allocation failure
-        return;
-    }
-
-    let num_decoded = SCBase64Decode(input.as_ptr(), input.len(), ctx.mode, output);
-    if num_decoded > 0 {
-        SCInspectionBufferTruncate(buffer, num_decoded);
     }
 }
 
@@ -283,7 +318,7 @@ pub unsafe extern "C" fn DetectTransformFromBase64DecodeRegister() {
         desc: b"convert the base64 decode of the buffer\0".as_ptr() as *const libc::c_char,
         url: b"/rules/transforms.html#from-base64\0".as_ptr() as *const libc::c_char,
         Setup: Some(base64_setup),
-        flags: SIGMATCH_OPTIONAL_OPT,
+        flags: SIGMATCH_OPTIONAL_OPT | SIGMATCH_TRANSFORM_CAN_FAIL,
         Transform: Some(base64_transform),
         Free: Some(base64_free),
         TransformValidate: None,
@@ -398,77 +433,79 @@ mod tests {
         assert!(parse_transform_base64("bytes var, offset 3933, mode rfc4648").is_err());
     }
 
-    // Test/mock versions to keep tests in rust
-    #[allow(non_snake_case)]
-    pub(crate) unsafe fn SCInspectionBufferCheckAndExpand(
-        buffer: *mut InspectionBuffer, min_size: u32,
-    ) -> *mut u8 {
-        assert!(min_size <= (*buffer).inspect_len);
-        return (*buffer).inspect as *mut u8;
-    }
-
-    #[allow(non_snake_case)]
-    pub(crate) unsafe fn SCInspectionBufferTruncate(buffer: *mut InspectionBuffer, buf_len: u32) {
-        (*buffer).inspect_len = buf_len;
-    }
-
-    fn test_base64_sample(sig: &str, buf: &[u8], out: &[u8]) {
-        let mut ibuf: InspectionBuffer = unsafe { std::mem::zeroed() };
-        let mut input = Vec::new();
-        // we will overwrite it, so do not create it const
-        input.extend_from_slice(buf);
-        ibuf.inspect = input.as_ptr();
-        ibuf.inspect_len = input.len() as u32;
-        let (_, mut ctx) = parse_transform_base64(sig).unwrap();
-        unsafe {
-            base64_transform(
-                std::ptr::null_mut(),
-                &mut ibuf as *mut InspectionBuffer,
-                &mut ctx as *mut DetectTransformFromBase64Data as *mut c_void,
-            );
-        }
-        let ibufi = ibuf.inspect;
-        let output = unsafe { build_slice!(ibufi, ibuf.inspect_len as usize) };
-        assert_eq!(output, out);
+    /// Parse `sig`, run the pure decode against `buf`, and assert the outcome.
+    fn assert_outcome(sig: &str, buf: &[u8], expected: Base64TransformOutcome) {
+        let (_, ctx) = parse_transform_base64(sig).unwrap();
+        assert_eq!(base64_transform_pure(buf, &ctx), expected);
     }
 
     #[test]
     fn test_base64_transform() {
-        /* Simple success case -- check buffer */
-        test_base64_sample("", b"VGhpcyBpcyBTdXJpY2F0YQ==", b"This is Suricata");
-        /* Simple success case with RFC2045 -- check buffer */
-        test_base64_sample("mode rfc2045", b"Zm 9v Ym Fy", b"foobar");
-        /* Decode failure case -- ensure no change to buffer */
-        test_base64_sample("mode strict", b"This is Suricata\n", b"This is Suricata\n");
-        /* bytes > len so --> no transform */
-        test_base64_sample(
-            "bytes 25",
+        use Base64TransformOutcome::*;
+
+        /* Simple success case */
+        assert_outcome(
+            "",
             b"VGhpcyBpcyBTdXJpY2F0YQ==",
-            b"VGhpcyBpcyBTdXJpY2F0YQ==",
+            Decoded(b"This is Suricata".to_vec()),
         );
-        /* offset > len so --> no transform */
-        test_base64_sample(
-            "offset 25",
-            b"VGhpcyBpcyBTdXJpY2F0YQ==",
-            b"VGhpcyBpcyBTdXJpY2F0YQ==",
-        );
+        /* Simple success case with RFC2045 */
+        assert_outcome("mode rfc2045", b"Zm 9v Ym Fy", Decoded(b"foobar".to_vec()));
+        /* Decode failure case -- should signal error */
+        assert_outcome("mode strict", b"This is Suricata\n", Error);
+        /* bytes >= len so --> skip */
+        assert_outcome("bytes 25", b"VGhpcyBpcyBTdXJpY2F0YQ==", Skip);
+        /* offset >= len so --> skip */
+        assert_outcome("offset 25", b"VGhpcyBpcyBTdXJpY2F0YQ==", Skip);
         /* partial transform */
-        test_base64_sample("bytes 12", b"VGhpcyBpcyBTdXJpY2F0YQ==", b"This is S");
+        assert_outcome(
+            "bytes 12",
+            b"VGhpcyBpcyBTdXJpY2F0YQ==",
+            Decoded(b"This is S".to_vec()),
+        );
         /* transform from non-zero offset */
-        test_base64_sample("offset 4", b"VGhpcyBpcyBTdXJpY2F0YQ==", b"s is Suricata");
+        assert_outcome(
+            "offset 4",
+            b"VGhpcyBpcyBTdXJpY2F0YQ==",
+            Decoded(b"s is Suricata".to_vec()),
+        );
         /* partial decode */
-        test_base64_sample(
+        assert_outcome(
             "mode rfc2045, bytes 15",
             b"SGVs bG8 gV29y bGQ=",
-            b"Hello Wor",
+            Decoded(b"Hello Wor".to_vec()),
         );
-        /* input is not base64 encoded */
-        test_base64_sample(
+        /* rfc2045 partial decode: valid prefix decoded, invalid suffix skipped */
+        assert_outcome(
             "mode rfc2045",
-            b"This is not base64-encoded",
-            &[
-                78, 24, 172, 138, 201, 232, 181, 182, 172, 123, 174, 30, 157, 202, 29,
-            ],
+            b"ABCD!!!!",
+            Decoded(b"\x00\x10\x83".to_vec()),
         );
+        /* input is not base64 encoded: decoder returns 0 -> Error */
+        assert_outcome("mode rfc2045", b"!!!!", Error);
+    }
+
+    #[test]
+    fn test_base64_transform_decode_error() {
+        use Base64TransformOutcome::*;
+        assert_outcome("mode strict", b"!!!!", Error);
+        assert_outcome("mode rfc4648", b"!!!!", Error);
+    }
+
+    /// An empty (non-absent) buffer is neither a decode success nor a decode
+    /// failure: the pure core returns Skip so the FFI shim leaves the
+    /// inspection buffer untouched.
+    #[test]
+    fn test_base64_transform_empty_buffer_is_skip() {
+        assert_outcome("", b"", Base64TransformOutcome::Skip);
+    }
+
+    /// offset past end and nbytes covering remaining input are both Skip;
+    /// neither a decode success nor an error.
+    #[test]
+    fn test_base64_transform_offset_and_nbytes_short_circuit() {
+        use Base64TransformOutcome::*;
+        assert_outcome("offset 10", b"YWJj", Skip);
+        assert_outcome("bytes 10", b"YWJj", Skip);
     }
 }
