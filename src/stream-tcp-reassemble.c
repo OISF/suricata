@@ -1581,8 +1581,8 @@ void StreamReassembleRawUpdateProgress(TcpSession *ssn, Packet *p, const uint64_
         stream->flags &= ~STREAMTCP_STREAM_FLAG_TRIGGER_RAW;
 
     } else {
-        SCLogDebug("PcapPacketCntGet(p) %" PRIu64 ": progress %" PRIu64 " app %" PRIu64
-                   " raw %" PRIu64 " tcp win %" PRIu32,
+        SCLogDebug("pcap_cnt %" PRIu64 ": progress %" PRIu64 " app %" PRIu64 " raw %" PRIu64
+                   " tcp win %" PRIu32,
                 PcapPacketCntGet(p), progress, STREAM_APP_PROGRESS(stream),
                 STREAM_RAW_PROGRESS(stream), stream->window);
     }

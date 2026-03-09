@@ -112,7 +112,7 @@ static void DetectRun(ThreadVars *th_v,
         Packet *p)
 {
     SCEnter();
-    SCLogDebug("PcapPacketCntGet(p) %" PRIu64 " direction %s pkt_src %s", PcapPacketCntGet(p),
+    SCLogDebug("pcap_cnt %" PRIu64 " direction %s pkt_src %s", PcapPacketCntGet(p),
             p->flow ? (FlowGetPacketDirection(p->flow, p) == TOSERVER ? "toserver" : "toclient")
                     : "noflow",
             PktSrcToString(p->pkt_src));
@@ -212,7 +212,7 @@ static void DetectRunPacketHook(ThreadVars *th_v, const DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh, Packet *p)
 {
     SCEnter();
-    SCLogDebug("PcapPacketCntGet(p) %" PRIu64 " direction %s pkt_src %s", PcapPacketCntGet(p),
+    SCLogDebug("pcap_cnt %" PRIu64 " direction %s pkt_src %s", PcapPacketCntGet(p),
             p->flow ? (FlowGetPacketDirection(p->flow, p) == TOSERVER ? "toserver" : "toclient")
                     : "noflow",
             PktSrcToString(p->pkt_src));

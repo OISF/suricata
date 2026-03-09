@@ -5683,7 +5683,7 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
 
     DEBUG_ASSERT_FLOW_LOCKED(p->flow);
 
-    SCLogDebug("PcapPacketCntGet(p) %" PRIu64, PcapPacketCntGet(p));
+    SCLogDebug("pcap_cnt %" PRIu64, PcapPacketCntGet(p));
 
     TcpSession *ssn = (TcpSession *)p->flow->protoctx;
     const TCPHdr *tcph = PacketGetTCP(p);
@@ -6118,7 +6118,7 @@ TmEcode StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueueNoLock *pq)
 
     StreamTcpThread *stt = (StreamTcpThread *)data;
 
-    SCLogDebug("PcapPacketCntGet(p) %" PRIu64 " direction %s pkt_src %s", PcapPacketCntGet(p),
+    SCLogDebug("pcap_cnt %" PRIu64 " direction %s pkt_src %s", PcapPacketCntGet(p),
             p->flow ? (FlowGetPacketDirection(p->flow, p) == TOSERVER ? "toserver" : "toclient")
                     : "noflow",
             PktSrcToString(p->pkt_src));
