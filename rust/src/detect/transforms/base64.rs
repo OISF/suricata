@@ -255,10 +255,10 @@ unsafe extern "C" fn base64_transform(
         input = &input[ctx.offset as usize..];
     }
     if ctx.nbytes > 0 {
-        if ctx.nbytes as usize >= input.len() {
-            return;
+        let nbytes = ctx.nbytes as usize;
+        if nbytes < input.len() {
+            input = &input[..nbytes];
         }
-        input = &input[..ctx.nbytes as usize];
     }
 
     let output_len = get_decoded_buffer_size(input.len() as u32);
@@ -439,12 +439,8 @@ mod tests {
         test_base64_sample("mode rfc2045", b"Zm 9v Ym Fy", b"foobar");
         /* Decode failure case -- ensure no change to buffer */
         test_base64_sample("mode strict", b"This is Suricata\n", b"This is Suricata\n");
-        /* bytes > len so --> no transform */
-        test_base64_sample(
-            "bytes 25",
-            b"VGhpcyBpcyBTdXJpY2F0YQ==",
-            b"VGhpcyBpcyBTdXJpY2F0YQ==",
-        );
+        /* bytes > len so --> decode full input */
+        test_base64_sample("bytes 25", b"VGhpcyBpcyBTdXJpY2F0YQ==", b"This is Suricata");
         /* offset > len so --> no transform */
         test_base64_sample(
             "offset 25",
