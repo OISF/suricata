@@ -99,7 +99,7 @@ void DecodeIPV6FragHeader(Packet *p, const uint8_t *pkt,
     int frag_morefrags   = (*(pkt + 2) << 8 | *(pkt + 3)) & 0x0001;
 
     p->l3.vars.ip6.eh.fh_offset = frag_offset;
-    p->l3.vars.ip6.eh.fh_more_frags_set = frag_morefrags ? true : false;
+    p->l3.vars.ip6.eh.fh_more_frags_set = frag_morefrags;
     p->l3.vars.ip6.eh.fh_nh = *pkt;
 
     uint32_t fh_id;

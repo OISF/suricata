@@ -397,11 +397,7 @@ static bool HSPruneFileByVersion(const char *filename)
     }
 
     const char *underscore = strrchr(filename, '_');
-    if (underscore == NULL || strcmp(underscore, HS_CACHE_FILE_SUFFIX) != 0) {
-        return true;
-    }
-
-    return false;
+    return underscore == NULL || strcmp(underscore, HS_CACHE_FILE_SUFFIX) != 0;
 }
 
 int SCHSCachePruneEvaluate(MpmConfig *mpm_conf, HashTable *inuse_caches)

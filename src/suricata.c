@@ -1379,9 +1379,7 @@ static int ParseCommandLinePcapLive(SCInstance *suri, const char *in_arg)
  */
 static bool IsLogDirectoryWritable(const char* str)
 {
-    if (access(str, W_OK) == 0)
-        return true;
-    return false;
+    return access(str, W_OK) == 0;
 }
 
 extern int g_skip_prefilter;

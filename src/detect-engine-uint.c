@@ -98,9 +98,7 @@ void PrefilterPacketU8Set(PrefilterPacketHeaderValue *v, void *smctx)
 bool PrefilterPacketU8Compare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectUintData_u8 *a = smctx;
-    if (v.u8[0] == a->mode && v.u8[1] == a->arg1 && v.u8[2] == a->arg2)
-        return true;
-    return false;
+    return v.u8[0] == a->mode && v.u8[1] == a->arg1 && v.u8[2] == a->arg2;
 }
 
 // same as u32 but with u16
@@ -134,9 +132,7 @@ void PrefilterPacketU16Set(PrefilterPacketHeaderValue *v, void *smctx)
 bool PrefilterPacketU16Compare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectUintData_u16 *a = smctx;
-    if (v.u8[0] == a->mode && v.u16[1] == a->arg1 && v.u16[2] == a->arg2)
-        return true;
-    return false;
+    return v.u8[0] == a->mode && v.u16[1] == a->arg1 && v.u16[2] == a->arg2;
 }
 
 int DetectU64Match(const uint64_t parg, const DetectUintData_u64 *du64)
