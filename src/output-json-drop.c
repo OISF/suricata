@@ -129,12 +129,12 @@ static int DropLogJSON(ThreadVars *tv, JsonDropLogThread *aft, const Packet *p)
                 SCJbSetUint(js, "tcpseq", TCP_GET_RAW_SEQ(tcph));
                 SCJbSetUint(js, "tcpack", TCP_GET_RAW_ACK(tcph));
                 SCJbSetUint(js, "tcpwin", TCP_GET_RAW_WINDOW(tcph));
-                SCJbSetBool(js, "syn", TCP_ISSET_FLAG_RAW_SYN(tcph) ? true : false);
-                SCJbSetBool(js, "ack", TCP_ISSET_FLAG_RAW_ACK(tcph) ? true : false);
-                SCJbSetBool(js, "psh", TCP_ISSET_FLAG_RAW_PUSH(tcph) ? true : false);
-                SCJbSetBool(js, "rst", TCP_ISSET_FLAG_RAW_RST(tcph) ? true : false);
-                SCJbSetBool(js, "urg", TCP_ISSET_FLAG_RAW_URG(tcph) ? true : false);
-                SCJbSetBool(js, "fin", TCP_ISSET_FLAG_RAW_FIN(tcph) ? true : false);
+                SCJbSetBool(js, "syn", TCP_ISSET_FLAG_RAW_SYN(tcph));
+                SCJbSetBool(js, "ack", TCP_ISSET_FLAG_RAW_ACK(tcph));
+                SCJbSetBool(js, "psh", TCP_ISSET_FLAG_RAW_PUSH(tcph));
+                SCJbSetBool(js, "rst", TCP_ISSET_FLAG_RAW_RST(tcph));
+                SCJbSetBool(js, "urg", TCP_ISSET_FLAG_RAW_URG(tcph));
+                SCJbSetBool(js, "fin", TCP_ISSET_FLAG_RAW_FIN(tcph));
                 SCJbSetUint(js, "tcpres", TCP_GET_RAW_X2(tcph));
                 SCJbSetUint(js, "tcpurgp", TCP_GET_RAW_URG_POINTER(tcph));
             }

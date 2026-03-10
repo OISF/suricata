@@ -119,11 +119,8 @@ static void PrefilterPacketFlowPktsSet(PrefilterPacketHeaderValue *v, void *smct
 static bool PrefilterPacketFlowPktsCompare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectFlowPkts *df = smctx;
-    if (v.u8[0] == df->pkt_data.mode && v.u8[1] == df->dir && v.u32[1] == df->pkt_data.arg1 &&
-            v.u32[2] == df->pkt_data.arg2) {
-        return true;
-    }
-    return false;
+    return v.u8[0] == df->pkt_data.mode && v.u8[1] == df->dir && v.u32[1] == df->pkt_data.arg1 &&
+           v.u32[2] == df->pkt_data.arg2;
 }
 
 static void PrefilterPacketFlowPktsMatch(

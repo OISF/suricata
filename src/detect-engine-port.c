@@ -623,11 +623,7 @@ bool DetectPortListsAreEqual(DetectPort *list1, DetectPort *list2)
     }
 
     // Are the lists of the same size?
-    if (!(item == NULL && it == NULL)) {
-        return false;
-    }
-
-    return true;
+    return item == NULL && it == NULL;
 }
 
 /******************* parsing routines ************************/
@@ -1249,10 +1245,7 @@ error:
  */
 static bool DetectPortIsValidRange(char *port, uint16_t *port_val)
 {
-    if (StringParseUint16(port_val, 10, 0, (const char *)port) < 0)
-        return false;
-
-    return true;
+    return StringParseUint16(port_val, 10, 0, (const char *)port) >= 0;
 }
 
 /********************** End parsing routines ********************/

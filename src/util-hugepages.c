@@ -54,9 +54,7 @@ static OSHugepageAction SystemHugepageDetermineOS(void)
 
 static bool SystemHugepageSupported(void)
 {
-    if (SystemHugepageDetermineOS() != OS_UNKNOWN)
-        return true;
-    return false;
+    return SystemHugepageDetermineOS() != OS_UNKNOWN;
 }
 
 /**

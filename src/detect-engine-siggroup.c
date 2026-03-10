@@ -477,10 +477,7 @@ bool SigGroupHeadEqual(const SigGroupHead *sgha, const SigGroupHead *sghb)
     if (sgha->init->max_sig_id != sghb->init->max_sig_id)
         return false;
 
-    if (SCMemcmp(sgha->init->sig_array, sghb->init->sig_array, sgha->init->sig_size) != 0)
-        return false;
-
-    return true;
+    return SCMemcmp(sgha->init->sig_array, sghb->init->sig_array, sgha->init->sig_size) == 0;
 }
 
 void SigGroupHeadSetProtoAndDirection(SigGroupHead *sgh,
