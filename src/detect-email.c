@@ -194,10 +194,7 @@ static bool GetMimeEmailUrlData(DetectEngineThreadCtx *det_ctx, const void *txv,
         return false;
     }
 
-    if (SCDetectMimeEmailGetUrl(tx->mime_state, buf, buf_len, idx) != 1) {
-        return false;
-    }
-    return true;
+    return SCDetectMimeEmailGetUrl(tx->mime_state, buf, buf_len, idx) == 1;
 }
 
 static int DetectMimeEmailReceivedSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
@@ -220,10 +217,7 @@ static bool GetMimeEmailReceivedData(DetectEngineThreadCtx *det_ctx, const void 
         return false;
     }
 
-    if (SCDetectMimeEmailGetDataArray(tx->mime_state, buf, buf_len, "received", idx) != 1) {
-        return false;
-    }
-    return true;
+    return SCDetectMimeEmailGetDataArray(tx->mime_state, buf, buf_len, "received", idx) == 1;
 }
 
 int DETECT_EMAIL_BODY_MD5 = 0;

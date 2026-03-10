@@ -373,9 +373,7 @@ static bool
 PrefilterPacketAppProtoCompare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectAppLayerProtocolData *a = smctx;
-    if (v.u16[0] == a->alproto && v.u8[2] == (uint8_t)a->negated && v.u8[3] == a->mode)
-        return true;
-    return false;
+    return v.u16[0] == a->alproto && v.u8[2] == (uint8_t)a->negated && v.u8[3] == a->mode;
 }
 
 static int PrefilterSetupAppProto(DetectEngineCtx *de_ctx, SigGroupHead *sgh)

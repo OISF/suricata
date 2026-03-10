@@ -656,7 +656,7 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
     ptv->checksum_mode = dpdk_config->checksum_mode;
 
     ptv->threads = dpdk_config->threads;
-    ptv->intr_enabled = (dpdk_config->flags & DPDK_IRQ_MODE) ? true : false;
+    ptv->intr_enabled = (dpdk_config->flags & DPDK_IRQ_MODE) != 0;
     ptv->port_id = dpdk_config->port_id;
     ptv->out_port_id = dpdk_config->out_port_id;
     ptv->port_socket_id = dpdk_config->socket_id;

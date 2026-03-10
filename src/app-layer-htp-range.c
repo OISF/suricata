@@ -119,10 +119,7 @@ static bool ContainerUrlRangeCompare(void *a, void *b)
         return false;
     }
 
-    if (SCBufferCmp(as->key, as->len, bs->key, bs->len) == 0) {
-        return true;
-    }
-    return false;
+    return SCBufferCmp(as->key, as->len, bs->key, bs->len) == 0;
 }
 
 static uint32_t ContainerUrlRangeHash(uint32_t hash_seed, void *s)

@@ -790,7 +790,7 @@ static int DetectTagTestPacket02 (void)
 
         /* see if the PKT_HAS_TAG is set on the packet if needed */
         bool expect = (i == 1 || i == 4);
-        FAIL_IF(((p[i]->flags & PKT_HAS_TAG) ? true : false) != expect);
+        FAIL_IF(((p[i]->flags & PKT_HAS_TAG) != 0) != expect);
     }
 
     UTHFreePackets(p, 7);
@@ -892,7 +892,7 @@ static int DetectTagTestPacket03 (void)
 
         /* see if the PKT_HAS_TAG is set on the packet if needed */
         bool expect = (i == 1 || i == 2 || i == 4);
-        FAIL_IF(((p[i]->flags & PKT_HAS_TAG) ? true : false) != expect);
+        FAIL_IF(((p[i]->flags & PKT_HAS_TAG) != 0) != expect);
     }
 
     UTHFreePackets(p, 7);
@@ -1006,7 +1006,7 @@ static int DetectTagTestPacket04 (void)
         SCLogDebug("packet %d flag %s", i, p[i]->flags & PKT_HAS_TAG ? "true" : "false");
         /* see if the PKT_HAS_TAG is set on the packet if needed */
         bool expect = (i == 1 || i == 2 || i == 3);
-        FAIL_IF(((p[i]->flags & PKT_HAS_TAG) ? true : false) != expect);
+        FAIL_IF(((p[i]->flags & PKT_HAS_TAG) != 0) != expect);
     }
 
     UTHFreePackets(p, 7);
@@ -1132,7 +1132,7 @@ static int DetectTagTestPacket05 (void)
         SCLogDebug("packet %d flag %s", i, p[i]->flags & PKT_HAS_TAG ? "true" : "false");
         /* see if the PKT_HAS_TAG is set on the packet if needed */
         bool expect = (i == 1 || i == 2 || i == 3 || i == 4);
-        FAIL_IF(((p[i]->flags & PKT_HAS_TAG) ? true : false) != expect);
+        FAIL_IF(((p[i]->flags & PKT_HAS_TAG) != 0) != expect);
     }
 
     UTHFreePackets(p, 7);
@@ -1254,7 +1254,7 @@ static int DetectTagTestPacket06 (void)
 
         /* see if the PKT_HAS_TAG is set on the packet if needed */
         bool expect = (i == 1 || i == 2);
-        FAIL_IF(((p[i]->flags & PKT_HAS_TAG) ? true : false) != expect);
+        FAIL_IF(((p[i]->flags & PKT_HAS_TAG) != 0) != expect);
     }
 
     UTHFreePackets(p, 7);
@@ -1375,7 +1375,7 @@ static int DetectTagTestPacket07 (void)
 
         /* see if the PKT_HAS_TAG is set on the packet if needed */
         bool expect = (i == 1 || i == 2 || i == 3 || i == 4 || i == 5);
-        FAIL_IF(((p[i]->flags & PKT_HAS_TAG) ? true : false) != expect);
+        FAIL_IF(((p[i]->flags & PKT_HAS_TAG) != 0) != expect);
     }
 
     UTHFreePackets(p, 7);

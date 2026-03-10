@@ -225,10 +225,7 @@ static void EveAddPacketVars(const Packet *p, SCJsonBuilder *js_vars)
  */
 static bool SCStringHasPrefix(const char *s, const char *prefix)
 {
-    if (strncmp(s, prefix, strlen(prefix)) == 0) {
-        return true;
-    }
-    return false;
+    return strncmp(s, prefix, strlen(prefix)) == 0;
 }
 
 static void EveAddFlowVars(const Flow *f, SCJsonBuilder *js_root, SCJsonBuilder **js_traffic)
