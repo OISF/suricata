@@ -233,7 +233,7 @@ static int DetectnDPIProtocolPacketMatch(
 
     struct NdpiFlowContext *flowctx = NdpiGetFlowContext(f);
     if (flowctx == NULL) {
-        SCLogDebug("packet %" PRIu64 ": no flowctx", PcapPacketCntGet(p));
+        SCLogDebug("packet %" PRIu64 ": no flowctx", p->pcap_cnt);
         SCReturnInt(0);
     }
 
@@ -380,7 +380,7 @@ static int DetectnDPIRiskPacketMatch(
     }
 
     if (flowctx->ndpi_flow == NULL) {
-        SCLogDebug("packet %" PRIu64 ": ndpi_flow is NULL", PcapPacketCntGet(p));
+        SCLogDebug("packet %" PRIu64 ": ndpi_flow is NULL", p->pcap_cnt);
         SCReturnInt(0);
     }
 
