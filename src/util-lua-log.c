@@ -24,10 +24,7 @@
 
 static bool LuaGetAr(lua_State *L, lua_Debug *ar)
 {
-    if (lua_getstack(L, 1, ar) && lua_getinfo(L, "nSl", ar)) {
-        return true;
-    }
-    return false;
+    return lua_getstack(L, 1, ar) && lua_getinfo(L, "nSl", ar);
 }
 
 static int LuaLogInfo(lua_State *L)

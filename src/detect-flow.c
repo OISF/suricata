@@ -497,10 +497,7 @@ static bool
 PrefilterPacketFlowCompare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectFlowData *fb = smctx;
-    if (v.u16[0] == fb->flags && v.u16[1] == fb->match_cnt) {
-        return true;
-    }
-    return false;
+    return v.u16[0] == fb->flags && v.u16[1] == fb->match_cnt;
 }
 
 static int PrefilterSetupFlow(DetectEngineCtx *de_ctx, SigGroupHead *sgh)

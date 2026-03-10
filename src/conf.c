@@ -807,10 +807,7 @@ void SCConfDump(void)
  */
 bool SCConfNodeHasChildren(const SCConfNode *node)
 {
-    if (TAILQ_EMPTY(&node->head)) {
-        return false;
-    }
-    return true;
+    return !TAILQ_EMPTY(&node->head);
 }
 
 /**

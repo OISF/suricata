@@ -1131,13 +1131,8 @@ error:
 
 static bool IsBuiltIn(const char *n)
 {
-    if (strcmp(n, "request_started") == 0 || strcmp(n, "response_started") == 0) {
-        return true;
-    }
-    if (strcmp(n, "request_complete") == 0 || strcmp(n, "response_complete") == 0) {
-        return true;
-    }
-    return false;
+    return strcmp(n, "request_started") == 0 || strcmp(n, "response_started") == 0 ||
+           strcmp(n, "request_complete") == 0 || strcmp(n, "response_complete") == 0;
 }
 
 /** \brief register app hooks as generic lists

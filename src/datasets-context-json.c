@@ -72,10 +72,7 @@ static bool IsFloat(const char *in, size_t ins)
         return true;
     }
     /* if value is 0 then we need to check if some parsing has been done */
-    if (val == 0 && (endptr == in)) {
-        return false;
-    }
-    return true;
+    return val != 0 || endptr != in;
 }
 
 static int ParseJsonLine(const char *in, size_t ins, DataJsonType *rep_out)

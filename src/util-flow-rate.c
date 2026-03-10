@@ -64,7 +64,7 @@ void FlowRateRegisterFlowStorage(void)
         return;
 
     bool track_flow = false;
-    track_flow = SCConfNodeLookupChild(root, "rate-tracking") != NULL ? true : false;
+    track_flow = SCConfNodeLookupChild(root, "rate-tracking") != NULL;
     if (!track_flow)
         return;
 
@@ -227,10 +227,7 @@ void FlowRateStoreUpdate(FlowRateStore *frs, SCTime_t p_ts, uint32_t pkt_len, in
 
 bool FlowRateIsExceeding(FlowRateStore *frs, int direction)
 {
-    if (frs->dir[direction].sum >= flow_rate_config.bytes) {
-        return true;
-    }
-    return false;
+    return frs->dir[direction].sum >= flow_rate_config.bytes;
 }
 
 #ifdef UNITTESTS

@@ -141,10 +141,7 @@ static inline bool RegionsIntersect(const StreamingBufferConfig *cfg,
      * re < reg_o or if reg_re < offset (one segment is strictly before the other)
      * trusting that offset<=re and reg_o<=reg_re
      */
-    if (re < reg_o || reg_re < offset) {
-        return false;
-    }
-    return true;
+    return re >= reg_o && reg_re >= offset;
 }
 
 /** \internal

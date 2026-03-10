@@ -183,10 +183,7 @@ int SCCreateDirectoryTree(const char *path, const bool final)
 bool SCPathExists(const char *path)
 {
     struct stat sb;
-    if (stat(path, &sb) == 0) {
-        return true;
-    }
-    return false;
+    return stat(path, &sb) == 0;
 }
 
 /**

@@ -150,9 +150,7 @@ static inline bool STREAM_LASTACK_GT_BASESEQ(const TcpStream *stream)
         return false;
 #endif
     }
-    if (SEQ_GT(stream->last_ack, stream->base_seq))
-        return true;
-    return false;
+    return SEQ_GT(stream->last_ack, stream->base_seq);
 }
 
 uint32_t StreamDataAvailableForProtoDetect(TcpStream *stream);

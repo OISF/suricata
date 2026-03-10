@@ -114,9 +114,7 @@ static void PrefilterPacketFlowElephantSet(PrefilterPacketHeaderValue *v, void *
 static bool PrefilterPacketFlowElephantCompare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectFlowDir *a = smctx;
-    if (v.u8[0] == *a)
-        return true;
-    return false;
+    return v.u8[0] == *a;
 }
 
 static int PrefilterSetupFlowElephant(DetectEngineCtx *de_ctx, SigGroupHead *sgh)

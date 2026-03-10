@@ -165,12 +165,9 @@ static DetectAppLayerEventData *DetectAppLayerEventParsePkt(const char *arg,
 
 static bool OutdatedEvent(const char *raw)
 {
-    if (strcmp(raw, "tls.certificate_missing_element") == 0 ||
-            strcmp(raw, "tls.certificate_unknown_element") == 0 ||
-            strcmp(raw, "tls.certificate_invalid_string") == 0) {
-        return true;
-    }
-    return false;
+    return strcmp(raw, "tls.certificate_missing_element") == 0 ||
+           strcmp(raw, "tls.certificate_unknown_element") == 0 ||
+           strcmp(raw, "tls.certificate_invalid_string") == 0;
 }
 
 static AppProto AppLayerEventGetProtoByName(char *alproto_name)

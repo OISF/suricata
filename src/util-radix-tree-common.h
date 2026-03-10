@@ -949,8 +949,7 @@ static bool CompareTreesSub(
         if (!CompareTreesSub(n1->left, n2->left, Callback))
             return false;
     if (n1->right && n2->right)
-        if (!CompareTreesSub(n1->right, n2->right, Callback))
-            return false;
+        return CompareTreesSub(n1->right, n2->right, Callback);
 
     return true;
 }

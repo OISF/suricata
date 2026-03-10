@@ -762,10 +762,7 @@ bool DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCt
 #ifdef UNITTESTS
     ut_inspection_recursion_counter = ctx.recursion.count;
 #endif
-    if (r == 1)
-        return true;
-    else
-        return false;
+    return (r == 1);
 }
 
 /** \brief wrapper around DetectEngineContentInspectionInternal to return true/false only
@@ -786,10 +783,7 @@ bool DetectEngineContentInspectionBuffer(DetectEngineCtx *de_ctx, DetectEngineTh
 #ifdef UNITTESTS
     ut_inspection_recursion_counter = ctx.recursion.count;
 #endif
-    if (r == 1)
-        return true;
-    else
-        return false;
+    return (r == 1);
 }
 
 bool DetectContentInspectionMatchOnAbsentBuffer(const SigMatchData *smd)

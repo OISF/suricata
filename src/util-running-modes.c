@@ -71,13 +71,8 @@ int ListRuleProtocols(const char *conf_filename)
 
 static bool IsBuiltIn(const char *n)
 {
-    if (strcmp(n, "request_started") == 0 || strcmp(n, "response_started") == 0) {
-        return true;
-    }
-    if (strcmp(n, "request_complete") == 0 || strcmp(n, "response_complete") == 0) {
-        return true;
-    }
-    return false;
+    return strcmp(n, "request_started") == 0 || strcmp(n, "response_started") == 0 ||
+           strcmp(n, "request_complete") == 0 || strcmp(n, "response_complete") == 0;
 }
 
 int ListAppLayerHooks(const char *conf_filename)

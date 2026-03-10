@@ -224,9 +224,7 @@ static bool
 PrefilterPacketFlagsCompare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectU8Data *a = smctx;
-    if (v.u8[0] == a->mode && v.u8[1] == a->arg1 && v.u8[2] == a->arg2)
-        return true;
-    return false;
+    return v.u8[0] == a->mode && v.u8[1] == a->arg1 && v.u8[2] == a->arg2;
 }
 
 static int PrefilterSetupTcpFlags(DetectEngineCtx *de_ctx, SigGroupHead *sgh)

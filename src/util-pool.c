@@ -58,10 +58,7 @@ static int PoolMemset(void *pitem, void *initdata)
 static bool PoolDataPreAllocated(Pool *p, void *data)
 {
     ptrdiff_t delta = data - p->data_buffer;
-    if ((delta < 0) || (delta > p->data_buffer_size)) {
-        return false;
-    }
-    return true;
+    return delta >= 0 && delta <= p->data_buffer_size;
 }
 
 /** \brief Init a Pool

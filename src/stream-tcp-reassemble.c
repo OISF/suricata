@@ -634,7 +634,7 @@ bool StreamTcpReassembleDepthReached(Packet *p)
             stream = &ssn->server;
         }
 
-        return (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) ? true : false;
+        return (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) != 0;
     }
 
     return false;
@@ -1099,11 +1099,8 @@ static inline bool GapAhead(const TcpStream *stream, StreamingBufferBlock *cur_b
     StreamingBufferBlock *nblk = SBB_RB_NEXT(cur_blk);
     /* only if the stream has been ack'd, consider a gap for sure
      * otherwise there may still be a chance of pkts coming in */
-    if (nblk && (cur_blk->offset + cur_blk->len < nblk->offset) &&
-            GetAbsLastAck(stream) > (cur_blk->offset + cur_blk->len)) {
-        return true;
-    }
-    return false;
+    return nblk && (cur_blk->offset + cur_blk->len < nblk->offset) &&
+           GetAbsLastAck(stream) > (cur_blk->offset + cur_blk->len);
 }
 
 /** \internal

@@ -342,9 +342,7 @@ static void JsonTlsLogChain(SCJsonBuilder *js, SSLStateConnp *connp)
 
 static bool HasClientCert(SSLStateConnp *connp)
 {
-    if (connp->cert0_subject || connp->cert0_issuerdn)
-        return true;
-    return false;
+    return connp->cert0_subject || connp->cert0_issuerdn;
 }
 
 static void JsonTlsLogClientCert(

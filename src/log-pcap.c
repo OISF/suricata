@@ -259,10 +259,7 @@ static bool PcapLogCondition(ThreadVars *tv, void *thread_data, const Packet *p)
         return false;
     }
 
-    if (PacketIsTunnelChild(p)) {
-        return false;
-    }
-    return true;
+    return !PacketIsTunnelChild(p);
 }
 
 /**

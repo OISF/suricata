@@ -204,9 +204,7 @@ static void PrefilterPacketStreamSizeSet(PrefilterPacketHeaderValue *v, void *sm
 static bool PrefilterPacketStreamSizeCompare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectStreamSizeData *a = smctx;
-    if (v.u8[0] == a->du32.mode && v.u8[1] == a->flags && v.u32[2] == a->du32.arg1)
-        return true;
-    return false;
+    return v.u8[0] == a->du32.mode && v.u8[1] == a->flags && v.u32[2] == a->du32.arg1;
 }
 
 static int PrefilterSetupStreamSize(DetectEngineCtx *de_ctx, SigGroupHead *sgh)

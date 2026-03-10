@@ -361,11 +361,7 @@ bool DetectAddressListsAreEqual(DetectAddress *list1, DetectAddress *list2)
     }
 
     // Are the lists of the same size?
-    if (!(item == NULL && it == NULL)) {
-        return false;
-    }
-
-    return true;
+    return item == NULL && it == NULL;
 }
 
 /**

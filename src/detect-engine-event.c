@@ -186,10 +186,7 @@ static int DetectEngineEventMatch (DetectEngineThreadCtx *det_ctx,
 
 static bool OutdatedEvent(const char *raw)
 {
-    if (strcmp(raw, "decoder.udp.hlen_invalid") == 0) {
-        return true;
-    }
-    return false;
+    return strcmp(raw, "decoder.udp.hlen_invalid") == 0;
 }
 
 /**

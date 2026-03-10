@@ -906,7 +906,7 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
     if (retval != 1) {
         irq_enable = DPDK_CONFIG_DEFAULT_INTERRUPT_MODE;
     } else {
-        irq_enable = entry_bool ? true : false;
+        irq_enable = entry_bool;
     }
     retval = ConfigSetInterruptMode(iconf, irq_enable);
     if (retval != true)

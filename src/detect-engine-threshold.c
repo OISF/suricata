@@ -327,10 +327,7 @@ static bool ThresholdEntryExpire(void *data, const SCTime_t ts)
 {
     const ThresholdEntry *e = data;
     const SCTime_t entry = SCTIME_ADD_SECS(e->tv1, e->seconds);
-    if (SCTIME_CMP_GT(ts, entry)) {
-        return true;
-    }
-    return false;
+    return SCTIME_CMP_GT(ts, entry);
 }
 
 static int ThresholdsInit(struct Thresholds *t)

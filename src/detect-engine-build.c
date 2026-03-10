@@ -569,9 +569,7 @@ static void SigInitStandardMpmFactoryContexts(DetectEngineCtx *de_ctx)
 /** \brief Pure-PCRE or bytetest rule */
 static bool RuleInspectsPayloadHasNoMpm(const Signature *s)
 {
-    if (s->init_data->mpm_sm == NULL && s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL)
-        return true;
-    return false;
+    return s->init_data->mpm_sm == NULL && s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL;
 }
 
 static int RuleGetMpmPatternSize(const Signature *s)
@@ -599,7 +597,7 @@ static bool RuleMpmIsNegated(const Signature *s)
     const DetectContentData *cd = (const DetectContentData *)s->init_data->mpm_sm->ctx;
     if (cd == NULL)
         return false;
-    return (cd->flags & DETECT_CONTENT_NEGATED) ? true : false;
+    return (cd->flags & DETECT_CONTENT_NEGATED) != 0;
 }
 
 static SCJsonBuilder *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx,
