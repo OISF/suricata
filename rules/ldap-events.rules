@@ -1,0 +1,8 @@
+# LDAP app layer event rules
+#
+# SID's fall in the 2237000+ range.
+
+alert ldap any any -> any any (msg:"SURICATA LDAP too many transactions"; app-layer-event:ldap.too_many_transactions; classtype:protocol-command-decode; sid:2237000; rev:1;)
+alert ldap any any -> any any (msg:"SURICATA LDAP invalid data"; app-layer-event:ldap.invalid_data; classtype:protocol-command-decode; sid:2237001; rev:1;)
+alert ldap any any -> any any (msg:"SURICATA LDAP request not found"; app-layer-event:ldap.request_not_found; classtype:protocol-command-decode; sid:2237002; rev:1;)
+
