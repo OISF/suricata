@@ -245,7 +245,7 @@ static int LogCustomFormatTest01(void)
     tm.tm_year = 114;
     tm.tm_wday = 1;
     tm.tm_yday = 13;
-    tm.tm_isdst = 0;
+    tm.tm_isdst = -1;
     SCTime_t ts = SCTIME_FROM_SECS(mktime(&tm));
 
     MemBuffer *buffer = MemBufferCreateNew(62);
