@@ -14,6 +14,9 @@ your console/terminal window:
 
 Write your rule, see :doc:`../rules/intro` and save it.
 
+.. tip:: To ensure that there are no duplicated SIDs, check rule SID ranges read
+   more about `sid` at :ref:`suricata-rules-sids`.
+
 Update the Suricata configuration file so your rule is included. Use
 one of the following examples:
 
