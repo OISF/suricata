@@ -330,7 +330,7 @@ This rule cannot have the ``fast_pattern`` to client, as ``file.data`` is a stre
 
 .. container:: example-rule
 
-    alert http any any => any any (file.data: to_server; content: "123";  http.stat_code; content: "500"; fast_patten;)
+    alert http any any => any any (file.data: to_server; content: "123";  http.stat_code; content: "500"; fast_pattern;)
 
 If not explicit, a transactional rule will choose a fast_pattern to server by default.
 
