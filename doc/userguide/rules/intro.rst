@@ -320,7 +320,6 @@ Transactional rules can use direction-ambiguous keywords, by specifying the dire
 
 Transactional rules have some limitations :
 
-* They cannot use direction-ambiguous keywords
 * They are only meant to work on transactions with first a request to the server,
   and then a response to the client, and not the other way around (not tested).
 * They cannot have ``fast_pattern`` or ``prefilter`` the direction to client
