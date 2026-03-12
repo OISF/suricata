@@ -1,3 +1,21 @@
+7.0.15 -- 2026-03-12
+
+Security #8365:  stream: quadratic complexity in stream inspection (7.0.x backport)(HIGH - CVE 2026-31933)
+Security #8307: krb5: internal request/response buffering leads to quadratic complexity (7.0.x backport)(HIGH - CVE 2026-31932)
+Security #8304: dcerpc: internal buffering logic leads to quadratic complexity(HIGH - CVE 2026-31937)
+Security #8296: http2: unbounded number of http2 frames per transaction (7.0.x backport)(CRITICAL - CVE 2026-31935)
+Security #8288: krb5: TCP parser never advances past the first record in a multi-record segment (7.0.x backport)
+Bug #8363: http2: detection should use a better architecture than the Vec escaped (7.0.x backport)
+Bug #8253: dpdk: (x)stats are only accessible before port stop (7.0.x backport)
+Bug #8231: detect/app-layer-event: alert generated for the wrong packet (7.0.x backport)
+Bug #8220: base64: base64_data with relative match after base64_decode:relative fails (7.0.x backport)
+Bug #8168: utils-spm-hs: missing deallocators on hs_compile failure (7.0.x backport)
+Bug #7851: http: FP alerts on http.host and http.host.raw
+Documentation #8332: doc: explain dcerpc.opnum doesn't support operators >,<,!,= (7.0.x backport)
+Documentation #8264: doc/userguide: fix within-distance pointer graphics in payload-keywords doc (7.0.x backport)
+Documentation #8241: isdataat: document different semantics between absolute and relative modes (7.0.x backport)
+Documentation #8218: rules/endswith: doc wrong for offset/distance/within warning (7.0.x backport)
+
 7.0.14 -- 2026-01-09
 
 Security #8209: eve/alert: http xff handling can lead to denial of service (7.0.x backport)(LOW - CVE 2026-22261)
