@@ -76,7 +76,7 @@ run_test "IDS: static mempool=1023, auto cache (1 thread)" \
     --interface-cfg-set net_null0.threads=1 \
     --interface-cfg-set net_null0.mempool-size=1023 \
     --interface-cfg-set net_null0.mempool-cache-size=auto \
-    --suricata-log-check-grep "1 packet mempools of size 1023, cache size 341" \
+    --suricata-log-check-grep "1 packet mempools of size 1022, cache size 511" \
     --expect-start \
     "$IDS_YAML"
 
@@ -162,7 +162,7 @@ run_test "Bond: static mempool=1023, auto cache (1 thread)" \
     --interface-cfg-set net_bonding0.threads=1 \
     --interface-cfg-set net_bonding0.mempool-size=1023 \
     --interface-cfg-set net_bonding0.mempool-cache-size=auto \
-    --suricata-log-check-grep "1 packet mempools of size 1023, cache size 341" \
+    --suricata-log-check-grep "1 packet mempools of size 1022, cache size 511" \
     --expect-start \
     "$BOND_YAML"
 
