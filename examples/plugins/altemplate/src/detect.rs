@@ -23,7 +23,6 @@
 use super::template::{TemplateTransaction, ALPROTO_TEMPLATE};
 use std::os::raw::{c_int, c_void};
 use suricata::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
-use suricata::direction::Direction;
 use suricata_ffi::{cast_pointer, STREAM_TOCLIENT, STREAM_TOSERVER};
 use suricata_sys::sys::{
     DetectEngineCtx, SCDetectBufferSetActiveList, SCDetectHelperBufferMpmRegister,
@@ -49,7 +48,7 @@ unsafe extern "C" fn template_buffer_get(
     tx: *const c_void, flags: u8, buf: *mut *const u8, len: *mut u32,
 ) -> bool {
     let tx = cast_pointer!(tx, TemplateTransaction);
-    if flags & Direction::ToClient as u8 != 0 {
+    if flags & STREAM_TOCLIENT != 0 {
         if let Some(ref response) = tx.response {
             *len = response.len() as u32;
             *buf = response.as_ptr();
