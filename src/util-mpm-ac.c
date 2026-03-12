@@ -723,7 +723,10 @@ int SCACPreparePatterns(MpmConfig *mpm_conf, MpmCtx *mpm_ctx)
     mpm_ctx->memory_cnt--;
     mpm_ctx->memory_size -= (mpm_ctx->pattern_cnt * sizeof(MpmPattern *));
 
-    ctx->pattern_id_bitarray_size = (mpm_ctx->max_pat_id / 8) + 1;
+    if ((mpm_ctx->max_pat_id / 8) + 1 > UINT16_MAX) {
+        FatalError("Too many patterns : %" PRIu32 ", max 524279", mpm_ctx->max_pat_id);
+    }
+    ctx->pattern_id_bitarray_size = (uint16_t)((mpm_ctx->max_pat_id / 8) + 1);
     SCLogDebug("ctx->pattern_id_bitarray_size %u", ctx->pattern_id_bitarray_size);
 
     return 0;
