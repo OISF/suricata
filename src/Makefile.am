@@ -1228,6 +1228,12 @@ install-headers:
 	if test -e ../rust/gen/rust-bindings.h; then \
 		$(INSTALL_DATA) ../rust/gen/rust-bindings.h "$(DESTDIR)${includedir}/suricata"; \
 	fi
+	if test -e ../rust/dist/rust-ffi.h; then \
+		$(INSTALL_DATA) ../rust/dist/rust-ffi.h "$(DESTDIR)${includedir}/suricata"; \
+	fi
+	if test -e ../rust/gen/rust-ffi.h; then \
+		$(INSTALL_DATA) ../rust/gen/rust-ffi.h "$(DESTDIR)${includedir}/suricata"; \
+	fi
 
 # Until we can remove autoconf.h from our headers, we need to to
 # provide this for library/plugin users.
