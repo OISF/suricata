@@ -37,11 +37,11 @@
  *  Convert haystack data to lowercase before inspecting it with
  *  `memmem`. Do this in a sliding window manner. */
 static const uint8_t *SCMemimem(const uint8_t *haystack, uint32_t haystack_len,
-        const uint8_t *needle, const uint32_t needle_len)
+        const uint8_t *needle, const uint16_t needle_len)
 {
     if (needle_len > haystack_len)
         return NULL;
-    uint32_t slice_size = MAX(MIN(haystack_len, 128), needle_len * 3);
+    uint32_t slice_size = MAX(MIN(haystack_len, 128), (uint32_t)needle_len * 3);
     uint8_t slice[slice_size];
     uint32_t o = 0;
     do {
