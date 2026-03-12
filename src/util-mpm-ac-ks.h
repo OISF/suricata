@@ -133,7 +133,7 @@ typedef struct SCACTileSearchCtx_ {
     SCACTilePatternList *pattern_list;
 
     /* Number of bytes in the array of bits. One bit per pattern in this MPM. */
-    uint32_t mpm_bitarray_size;
+    uint16_t mpm_bitarray_size;
 
     /* Number of states used */
     uint32_t state_count;

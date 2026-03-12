@@ -796,9 +796,12 @@ static void SCACTilePrepareSearch(MpmCtx *mpm_ctx)
     search_ctx->pattern_list = ctx->pattern_list;
     ctx->pattern_list = NULL;
     search_ctx->pattern_cnt = mpm_ctx->pattern_cnt;
+    if ((mpm_ctx->pattern_cnt + 7) / 8 > UINT16_MAX) {
+        FatalError("Too many patterns : %" PRIu32 ", max 524280", mpm_ctx->pattern_cnt);
+    }
 
     /* One bit per pattern, rounded up to the next byte size. */
-    search_ctx->mpm_bitarray_size = (mpm_ctx->pattern_cnt + 7) / 8;
+    search_ctx->mpm_bitarray_size = (uint16_t)((mpm_ctx->pattern_cnt + 7) / 8);
 
     /* Can now free the Initialization data */
     SCACTileDestroyInitCtx(mpm_ctx);
