@@ -1338,7 +1338,8 @@ pub enum SCPacketTunnelProto {
     DECODE_TUNNEL_PPP = 8,
     DECODE_TUNNEL_NSH = 9,
     DECODE_TUNNEL_ARP = 10,
-    DECODE_TUNNEL_UNSET = 11,
+    DECODE_TUNNEL_ERSPANIII = 11,
+    DECODE_TUNNEL_UNSET = 12,
 }
 pub type ProbingParserFPtr = ::std::option::Option<
     unsafe extern "C" fn(
