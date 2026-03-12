@@ -23,6 +23,14 @@ pub mod plugin;
 pub const IPPROTO_TCP: u8 = 6;
 pub const IPPROTO_UDP: u8 = 17;
 
+pub const STREAM_START: u8 = 0x01;
+pub const STREAM_EOF: u8 = 0x02;
+pub const STREAM_TOSERVER: u8 = 0x04;
+pub const STREAM_TOCLIENT: u8 = 0x08;
+pub const STREAM_GAP: u8 = 0x10;
+pub const STREAM_DEPTH: u8 = 0x20;
+pub const STREAM_MIDSTREAM: u8 = 0x40;
+
 /// Cast pointer to a variable, as a mutable reference to an object
 ///
 /// UNSAFE !
