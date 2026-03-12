@@ -73,12 +73,7 @@ documentation_style = "doxy"
 #
 # default: []
 include = [
-    "RdpState",
-    "SIPState",
     "ModbusState",
-    "CMark",
-    "QuicState",
-    "QuicTransaction",
     "FtpEvent",
     "FtpRequestCommand",
     "FtpStateValues",
