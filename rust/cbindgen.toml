@@ -91,8 +91,6 @@ include = [
 # default: []
 exclude = [
     "CLuaState",
-    "FileContainer",
-    "HttpRangeContainerBlock",
     "SIGMATCH_NOOPT",
     "SIGMATCH_INFO_STICKY_BUFFER",
     "SIGMATCH_INFO_MULTI_BUFFER",
