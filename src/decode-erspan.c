@@ -41,6 +41,12 @@
 #include "util-debug.h"
 #include "conf.h"
 
+typedef struct ErspanHdr_ {
+    uint16_t ver_vlan;
+    uint16_t flags_spanid;
+    uint32_t padding;
+} __attribute__((__packed__)) ErspanHdr;
+
 /**
  * \brief Functions to decode ERSPAN Type I and II packets
  */
