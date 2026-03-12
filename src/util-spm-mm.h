@@ -26,7 +26,7 @@
 #ifdef HAVE_MEMMEM
 
 typedef struct SpmMmCtx_ {
-    uint32_t needle_len;
+    uint16_t needle_len;
     int nocase;
     uint8_t needle[];
 } SpmMmCtx;
