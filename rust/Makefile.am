@@ -12,6 +12,7 @@ EXTRA_DIST =	.cargo/config.toml.in \
 		derive/Cargo.toml \
 		dist/htp/htp_rs.h \
 		dist/rust-bindings.h \
+		dist/rust-ffi.h \
 		ffi \
 		htp \
 		src \
@@ -84,6 +85,7 @@ all-local: Cargo.toml
 			$(RUST_SURICATA_LIBDIR)/${RUST_SURICATA_LIBNAME}; \
 	fi
 	$(MAKE) gen/rust-bindings.h
+	$(MAKE) gen/rust-ffi.h
 	$(MAKE) gen/htp/htp_rs.h
 	if test -e Cargo.lock.in; then \
 		cp Cargo.lock Cargo.lock.in; \
@@ -186,6 +188,15 @@ else
 gen/htp/htp_rs.h:
 endif
 
+if HAVE_CBINDGEN
+gen/rust-ffi.h: $(RUST_SURICATA_LIB) ffi/cbindgen.toml
+	cd $(abs_top_srcdir)/rust/ffi && \
+		CARGO=$(CARGO) $(CBINDGEN) --config $(abs_top_srcdir)/rust/ffi/cbindgen.toml \
+		--quiet --verify --output $(abs_top_builddir)/rust/gen/rust-ffi.h || true
+else
+gen/rust-ffi.h:
+endif
+
 doc:
 	$(CARGO_ENV) $(CARGO) doc --all-features --no-deps
 
@@ -204,6 +215,15 @@ dist/htp/htp_rs.h:
 		--quiet --output $(abs_top_builddir)/rust/dist/htp/htp_rs.h
 else
 dist/htp/htp_rs.h:
+endif
+
+if HAVE_CBINDGEN
+dist/rust-ffi.h:
+	cd $(abs_top_srcdir)/rust/ffi && \
+	CARGO=$(CARGO) $(CBINDGEN) --config cbindgen.toml \
+		--quiet --output $(abs_top_builddir)/rust/dist/rust-ffi.h
+else
+dist/rust-ffi.h:
 endif
 
 Cargo.toml: Cargo.toml.in

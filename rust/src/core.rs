@@ -25,13 +25,13 @@ use crate::flow::Flow;
 
 pub use suricata_sys::sys::AppLayerEventType;
 
-pub const STREAM_START:    u8 = 0x01;
-pub const STREAM_EOF:      u8 = 0x02;
-pub const STREAM_TOSERVER: u8 = 0x04;
-pub const STREAM_TOCLIENT: u8 = 0x08;
-pub const STREAM_GAP:      u8 = 0x10;
-pub const STREAM_DEPTH:    u8 = 0x20;
-pub const STREAM_MIDSTREAM:u8 = 0x40;
+pub use suricata_ffi::STREAM_START;
+pub use suricata_ffi::STREAM_EOF;
+pub use suricata_ffi::STREAM_TOSERVER;
+pub use suricata_ffi::STREAM_TOCLIENT;
+pub use suricata_ffi::STREAM_GAP;
+pub use suricata_ffi::STREAM_DEPTH;
+pub use suricata_ffi::STREAM_MIDSTREAM;
 
 pub const ALPROTO_UNKNOWN : AppProto = AppProtoEnum::ALPROTO_UNKNOWN as AppProto;
 pub const ALPROTO_FAILED : AppProto = AppProtoEnum::ALPROTO_FAILED as AppProto;

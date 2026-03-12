@@ -22,10 +22,9 @@
 
 use super::template::{TemplateTransaction, ALPROTO_TEMPLATE};
 use std::os::raw::{c_int, c_void};
-use suricata::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use suricata::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
 use suricata::direction::Direction;
-use suricata_ffi::cast_pointer;
+use suricata_ffi::{cast_pointer, STREAM_TOCLIENT, STREAM_TOSERVER};
 use suricata_sys::sys::{
     DetectEngineCtx, SCDetectBufferSetActiveList, SCDetectHelperBufferMpmRegister,
     SCDetectSignatureSetAppProto, Signature,
