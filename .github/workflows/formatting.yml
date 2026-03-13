@@ -48,7 +48,7 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
-                cargo \
+                cargo-1.89 \
                 cbindgen \
                 clang-format-14 \
                 git \
@@ -132,6 +132,10 @@ jobs:
         shell: bash {0}
       - run: ./autogen.sh
       - run: ./configure --enable-warnings --enable-unittests
+        env:
+          RUSTC: rustc-1.89
+          CARGO: cargo-1.89
+          RUSTDOC: rustdoc-1.89
       - name: Check formatting
         run: |
           ./scripts/clang-format.sh check-branch --diffstat --show-commits  >> check_formatting_log.txt 2>&1
