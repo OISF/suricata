@@ -256,9 +256,12 @@ See :doc:`http-keywords` for all HTTP keywords.
    ``byte_extract`` from ``http_*`` buffers, including
    ``http_header`` which does not always work as expected in Snort.
 
--  In Suricata, variables extracted using ``byte_extract`` must be used
-   in the same buffer, otherwise they will have the value "0" (zero). Snort
-   does allow cross-buffer byte extraction and usage.
+-  Suricata supports cross-buffer usage of variables produced by
+   ``byte_extract`` and ``byte_math``. A variable produced in one buffer
+   can be consumed by ``byte_test``, ``byte_jump``, ``byte_math``, or
+   ``isdataat`` in a different buffer, including across direction
+   boundaries in bidirectional (``=>``) rules. Produced values are cached
+   per transaction so they persist across buffer and direction transitions.
 
 -  Be sure to always positively and negatively test Suricata rules that
    use ``byte_extract`` and ``byte_test`` to verify that they

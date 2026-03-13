@@ -303,6 +303,41 @@ And in Rust:
         return 0;
     }
 
+Per-Transaction Byte Value Cache
+================================
+
+When a rule uses ``byte_extract`` or ``byte_math`` in one buffer and consumes the
+result in a different buffer (cross-buffer usage), the extracted values must survive
+across buffer transitions. This is especially important for bidirectional rules
+(``=>``), where toserver buffers are inspected for all transactions before toclient
+buffers. Without caching, a later transaction's extraction can overwrite
+``det_ctx->byte_values`` before an earlier transaction's consumer runs.
+
+To solve this, ``DetectEngineState`` (the per-TX detection state, ``de_state``)
+stores a ``byte_values`` array that mirrors ``det_ctx->byte_values``:
+
+- **Save**: After ``byte_extract`` or ``byte_math`` executes successfully during
+  content inspection, the value is written to the TX's ``de_state->byte_values``.
+- **Restore**: At the start of each content inspection pass (when
+  ``recursion.count == 0``), cached values are swapped from
+  ``de_state->byte_values`` into ``det_ctx->byte_values``.
+- **Lifetime**: The cache is cleared on detect engine reload (``ResetTxState``)
+  since byte variable local IDs may change with the new ruleset. The cache is
+  freed when ``DetectEngineState`` is destroyed.
+
+The cache is only active for bidirectional rules (``SIG_FLAG_TXBOTHDIR`` / ``=>``).
+Unidirectional rules (``->``) inspect all buffers together per-TX, so
+``det_ctx->byte_values`` is never clobbered by another TX between the producer
+and consumer buffers. The ``SIG_FLAG_TXBOTHDIR`` check avoids the save, restore,
+and allocation overhead for the common case of unidirectional rules.
+
+Key functions:
+
+- ``DetectEngineStateSaveByteValue()`` in ``detect-engine-state.c``
+- ``DetectEngineStateRestoreByteValues()`` in ``detect-engine-state.c``
+- ``DetectEngineContentInspectionRestoreByteValues()`` in ``detect-engine-content-inspection.c``
+- ``DetectEngineStateSaveByteValueFromTx()`` in ``detect-engine-content-inspection.c``
+
 Work In Progress changes
 ========================
 
