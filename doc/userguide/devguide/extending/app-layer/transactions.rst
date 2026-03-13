@@ -303,6 +303,54 @@ And in Rust:
         return 0;
     }
 
+Per-Transaction Byte Value Cache
+================================
+
+A rule can produce a value with ``byte_extract`` or ``byte_math`` in one
+buffer and then use it in another — for example, pull a length out of
+``http.request_header`` and feed it to a ``byte_test`` in ``file.data``.
+For that to work, the value has to stick around long enough for the
+consumer to see it, which isn't guaranteed: ``det_ctx->byte_values`` is
+per-worker, shared across every transaction the worker touches, and it
+gets clobbered easily.
+
+Two common ways it gets clobbered:
+
+- **Bidirectional (``=>``) rules with pipelined HTTP.** Suricata inspects
+  every transaction's toserver buffers before it touches any toclient
+  buffer, so a later TX's ``byte_extract`` happily overwrites an earlier
+  TX's value before the earlier TX's toclient consumer ever runs.
+- **Unidirectional rules split across packets.** If the producer and
+  consumer sit at different progress levels, the consumer may not run
+  until a later packet. In between, another TX on the same worker can
+  land and stomp on ``det_ctx->byte_values``. The detect engine won't
+  re-run the producer's inspect engine either — once it's done, its ID
+  is recorded in the sig's ``inspect_flags`` and it's skipped on resume.
+
+To keep values safe, the per-TX ``DetectEngineState`` carries its own
+``byte_values`` array that mirrors ``det_ctx->byte_values``:
+
+- **Save.** After ``byte_extract`` or ``byte_math`` runs, the value is
+  copied into the TX's cache.
+- **Restore.** At the top of each content inspection pass
+  (``recursion.count == 0``), the cached values are swapped back into
+  ``det_ctx->byte_values``.
+- **Reset.** The cache is cleared on detect engine reload
+  (``ResetTxState``), since byte variable local IDs can shift with a new
+  ruleset. It's freed when the ``DetectEngineState`` is destroyed.
+
+The cache is on for any rule that uses byte variables, unidirectional
+included. Save only fires when an extraction actually runs, and restore
+early-returns on an empty cache, so rules that never touch byte
+variables don't pay a measurable cost.
+
+Key functions:
+
+- ``DetectEngineStateSaveByteValue()`` in ``detect-engine-state.c``
+- ``DetectEngineStateRestoreByteValues()`` in ``detect-engine-state.c``
+- ``DetectEngineContentInspectionRestoreByteValues()`` in ``detect-engine-content-inspection.c``
+- ``DetectEngineStateSaveByteValueFromTx()`` in ``detect-engine-content-inspection.c``
+
 Work In Progress changes
 ========================
 
