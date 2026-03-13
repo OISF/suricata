@@ -2429,10 +2429,10 @@ jobs:
           parallel-finished: true
           fail-on-error: false
 
-  ubuntu-20-04-ndebug:
-    name: Ubuntu 20.04 (-DNDEBUG)
+  ubuntu-24-04-ndebug:
+    name: Ubuntu 24.04 (-DNDEBUG)
     runs-on: ubuntu-latest
-    container: ubuntu:20.04
+    container: ubuntu:24.04
     needs: [prepare-deps, prepare-cbindgen]
     steps:
       - name: Cache ~/.cargo
@@ -2473,7 +2473,6 @@ jobs:
                 libjansson-dev \
                 libevent-dev \
                 libevent-pthreads-2.1-7 \
-                libpython2.7 \
                 libpcre2-dev \
                 make \
                 parallel \
