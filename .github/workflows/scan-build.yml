@@ -36,7 +36,7 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
-                cargo \
+                cargo-1.85 \
                 cbindgen \
                 clang-20 \
                 clang-tools-20 \
@@ -65,7 +65,6 @@ jobs:
                 llvm-20-dev \
                 make \
                 python3-yaml \
-                rustc \
                 software-properties-common \
                 zlib1g \
                 zlib1g-dev
@@ -76,6 +75,9 @@ jobs:
       - run: scan-build-20 ./configure --enable-warnings --enable-dpdk --enable-nfqueue --enable-nflog
         env:
           CC: clang-20
+          RUSTC: rustc-1.85
+          CARGO: cargo-1.85
+          RUSTDOC: rustdoc-1.85
       # disable security.insecureAPI.DeprecatedOrUnsafeBufferHandling explicitly as
       # this will require significant effort to address.
       - run: |
