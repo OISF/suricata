@@ -601,6 +601,12 @@ Example::
     byte_test: 2, =, var, 13; \
     msg:"Byte extract and byte math with byte test verification";)
 
+.. note::
+
+   Like ``byte_extract``, the result variable from ``byte_math`` can be
+   used across different buffers and direction boundaries. The computed
+   value is cached per transaction.
+
 
 byte_jump
 ---------
@@ -731,6 +737,20 @@ Example::
 	 (msg:"Byte_Extract Example Comparing Bytes"; \
 	 flow:established,to_server; content:"|00 FF|"; \
 	 byte_extract:2,0,cmp_ver,relative; content:"FooBar"; distance:0; byte_test:2,=,cmp_ver,0; sid:3;)
+
+.. note::
+
+   Variables produced by ``byte_extract`` or ``byte_math`` can be used
+   across different buffers, including across direction boundaries in
+   bidirectional (``=>``) rules. Produced values are cached per transaction
+   so they persist when the engine switches between buffers or directions.
+   For example, a value extracted from ``http.uri`` (toserver) can be
+   consumed by ``byte_test`` in ``http.stat_code`` (toclient)::
+
+     alert http any any => any any \
+       (msg:"Cross-buffer byte_extract"; flow:established; \
+       http.uri; content:"/data/"; byte_extract:2,0,uri_val,relative,string,dec; \
+       http.stat_code; content:"2"; byte_test:1,>,uri_val,0,relative; sid:4;)
 
 .. _keyword_entropy:
 

@@ -303,6 +303,34 @@ And in Rust:
         return 0;
     }
 
+Per-Transaction Byte Value Cache
+================================
+
+When a rule uses ``byte_extract`` or ``byte_math`` in one buffer and consumes the
+result in a different buffer (cross-buffer usage), the extracted values must survive
+across buffer transitions. This is especially important for bidirectional rules
+(``=>``), where toserver buffers are inspected for all transactions before toclient
+buffers. Without caching, a later transaction's extraction can overwrite
+``det_ctx->byte_values`` before an earlier transaction's consumer runs.
+
+To solve this, ``DetectEngineState`` (the per-TX detection state, ``de_state``)
+stores a ``byte_values`` array that mirrors ``det_ctx->byte_values``:
+
+- **Save**: After ``byte_extract`` or ``byte_math`` executes successfully during
+  content inspection, the value is written to the TX's ``de_state->byte_values``.
+- **Restore**: At the start of each content inspection pass (when
+  ``recursion.count == 0``), cached values are copied from
+  ``de_state->byte_values`` back into ``det_ctx->byte_values``.
+- **Lifetime**: The cache is not cleared on TX state resets (values remain valid
+  across re-inspections) and is freed when ``DetectEngineState`` is destroyed.
+
+Key functions:
+
+- ``DetectEngineStateSaveByteValue()`` in ``detect-engine-state.c``
+- ``DetectEngineStateRestoreByteValues()`` in ``detect-engine-state.c``
+- ``DetectEngineContentInspectionRestoreByteValues()`` in ``detect-engine-content-inspection.c``
+- ``DetectEngineStateSaveByteValueFromTx()`` in ``detect-engine-content-inspection.c``
+
 Work In Progress changes
 ========================
 
