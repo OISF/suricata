@@ -1368,7 +1368,7 @@ jobs:
                 autoconf \
                 automake \
                 build-essential \
-                cargo \
+                cargo-1.89 \
                 cbindgen \
                 clang-14 \
                 coccinelle \
@@ -1400,7 +1400,6 @@ jobs:
                 parallel \
                 python-is-python3 \
                 python3-yaml \
-                rustc \
                 software-properties-common \
                 zlib1g \
                 zlib1g-dev
@@ -1414,6 +1413,10 @@ jobs:
       - run: tar xf prep/suricata-verify.tar.gz
       - run: ./autogen.sh
       - run: ./configure --enable-unittests --enable-coccinelle
+        env:
+          RUSTC: rustc-1.89
+          CARGO: cargo-1.89
+          RUSTDOC: rustdoc-1.89
       - run: make -j ${{ env.CPUS }}
       - run: CONCURRENCY_LEVEL=${{ env.CPUS }} make check
       - run: python3 ./suricata-verify/run.py -q --debug-failed
@@ -1959,7 +1962,7 @@ jobs:
                 autoconf \
                 automake \
                 llvm-18-dev \
-                cargo \
+                cargo-1.89 \
                 cbindgen \
                 clang-18 \
                 git \
@@ -2016,6 +2019,9 @@ jobs:
           CFLAGS: "-g -fsanitize=address -fno-omit-frame-pointer"
           ac_cv_func_malloc_0_nonnull: "yes"
           ac_cv_func_realloc_0_nonnull: "yes"
+          RUSTC: rustc-1.89
+          CARGO: cargo-1.89
+          RUSTDOC: rustdoc-1.89
       - run: make -j ${{ env.CPUS }}
         env:
           CC: "clang-18"
@@ -2201,7 +2207,7 @@ jobs:
                 autoconf \
                 automake \
                 llvm-18-dev \
-                cargo \
+                cargo-1.89 \
                 cbindgen \
                 clang-18 \
                 git \
@@ -2231,7 +2237,6 @@ jobs:
                 make \
                 parallel \
                 python3-yaml \
-                rustc \
                 software-properties-common \
                 sudo \
                 zlib1g \
@@ -2257,6 +2262,9 @@ jobs:
           CFLAGS: "-g -fsanitize=address -fno-omit-frame-pointer"
           ac_cv_func_malloc_0_nonnull: "yes"
           ac_cv_func_realloc_0_nonnull: "yes"
+          RUSTC: rustc-1.89
+          CARGO: cargo-1.89
+          RUSTDOC: rustdoc-1.89
       - run: make -j ${{ env.CPUS }}
         env:
           CC: "clang-18"
@@ -2443,7 +2451,7 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
-                cargo \
+                cargo-1.89 \
                 git \
                 hwloc \
                 libhwloc-dev \
@@ -2470,7 +2478,6 @@ jobs:
                 make \
                 parallel \
                 python3-yaml \
-                rustc \
                 software-properties-common \
                 zlib1g \
                 zlib1g-dev \
@@ -2486,6 +2493,10 @@ jobs:
       - uses: ./.github/actions/install-cbindgen
       - run: ./autogen.sh
       - run: CFLAGS="$DEFAULT_CFLAGS -DNDEBUG" ./configure --enable-warnings --enable-unittests
+        env:
+          RUSTC: rustc-1.89
+          CARGO: cargo-1.89
+          RUSTDOC: rustdoc-1.89
       - run: make -j ${{ env.CPUS }}
       - run: make check
       - run: make dist
@@ -2598,7 +2609,7 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
-                cargo \
+                cargo-1.89 \
                 git \
                 hwloc \
                 libhwloc-dev \
@@ -2623,7 +2634,6 @@ jobs:
                 make \
                 parallel \
                 python3-yaml \
-                rustc \
                 software-properties-common \
                 sudo \
                 zlib1g \
@@ -2648,6 +2658,9 @@ jobs:
           LDFLAGS: "-fsanitize=address" 
           ac_cv_func_malloc_0_nonnull: "yes"
           ac_cv_func_realloc_0_nonnull: "yes"
+          RUSTC: rustc-1.89
+          CARGO: cargo-1.89
+          RUSTDOC: rustdoc-1.89
       - run: make -j ${{ env.CPUS }}
       - run: make check
       - name: Extracting suricata-verify
@@ -2683,7 +2696,7 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
-                cargo \
+                cargo-1.89 \
                 git \
                 hwloc \
                 libhwloc-dev \
@@ -2703,7 +2716,6 @@ jobs:
                 libjansson-dev \
                 libpython2.7 \
                 make \
-                rustc \
                 software-properties-common \
                 zlib1g \
                 zlib1g-dev
@@ -2717,6 +2729,10 @@ jobs:
       - uses: ./.github/actions/install-cbindgen
       - run: ./autogen.sh
       - run: AFL_HARDEN=1 ac_cv_func_realloc_0_nonnull=yes ac_cv_func_malloc_0_nonnull=yes CFLAGS="-fsanitize=address -fno-omit-frame-pointer" CXXFLAGS=$CFLAGS CC=afl-clang-fast CXX=afl-clang-fast++ LDFLAGS="-fsanitize=address" ./configure --enable-warnings --enable-fuzztargets --disable-shared
+        env:
+          RUSTC: rustc-1.89
+          CARGO: cargo-1.89
+          RUSTDOC: rustdoc-1.89
       - run: AFL_HARDEN=1 make -j ${{ env.CPUS }}
 
   ubuntu-22-04-netmap-build:
@@ -2884,7 +2900,7 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
-                cargo \
+                cargo-1.89 \
                 git \
                 hwloc \
                 libhwloc-dev \
@@ -2909,7 +2925,6 @@ jobs:
                 make \
                 parallel \
                 python3-yaml \
-                rustc \
                 software-properties-common \
                 zlib1g \
                 zlib1g-dev \
@@ -2950,6 +2965,10 @@ jobs:
       - uses: ./.github/actions/install-cbindgen
       - run: ./autogen.sh
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-warnings --enable-dpdk --enable-hwloc
+        env:
+          RUSTC: rustc-1.89
+          CARGO: cargo-1.89
+          RUSTDOC: rustdoc-1.89
       - run: make -j ${{ env.CPUS }}
       - run: make check
       # IDS config
@@ -3165,7 +3184,7 @@ jobs:
               autoconf \
               automake \
               build-essential \
-              cargo \
+              cargo-1.89 \
               cmake \
               curl \
               git \
@@ -3193,7 +3212,6 @@ jobs:
               pkg-config \
               python3 \
               python3-yaml \
-              rustc \
               sphinx-doc \
               sphinx-common \
               texlive-latex-base \
@@ -3202,6 +3220,7 @@ jobs:
               texlive-latex-extra \
               zlib1g \
               zlib1g-dev
+      - run: echo "/usr/lib/rust-1.89/bin" >> $GITHUB_PATH
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3
