@@ -59,8 +59,6 @@
 
 #define BPF_MAP_MAX_COUNT 16
 
-#define BYPASSED_FLOW_TIMEOUT   60
-
 static LiveDevStorageId g_livedev_storage_id = { .id = -1 };
 static FlowStorageId g_flow_storage_id = { .id = -1 };
 
