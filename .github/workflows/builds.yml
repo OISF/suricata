@@ -3025,7 +3025,7 @@ jobs:
       - uses: ./.github/actions/install-cbindgen
       - run: tar xf prep/suricata-verify.tar.gz
       - run: ./autogen.sh
-      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-warnings --enable-unittests --enable-ebpf --enable-ebpf-build
+      - run: CFLAGS="${DEFAULT_CFLAGS} -DAFPACKET_TEST_REPLAY" ./configure --enable-warnings --enable-unittests --enable-ebpf --enable-ebpf-build
       - run: make -j ${{ env.CPUS }}
       - run: make check
       - name: Running suricata-verify
