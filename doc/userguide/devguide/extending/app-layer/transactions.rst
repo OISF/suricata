@@ -316,10 +316,13 @@ gets clobbered easily.
 
 Two common ways it gets clobbered:
 
-- **Bidirectional (``=>``) rules with pipelined HTTP.** Suricata inspects
-  every transaction's toserver buffers before it touches any toclient
-  buffer, so a later TX's ``byte_extract`` happily overwrites an earlier
-  TX's value before the earlier TX's toclient consumer ever runs.
+- **Bidirectional (``=>``) rules with pipelined HTTP.** HTTP/1.1
+  pipelining allows multiple requests to be issued before any response
+  arrives, creating several transactions in the same flow. The detect
+  engine inspects each transaction toserver-first: every TX's toserver
+  buffers are inspected before any toclient buffer is touched. TX2's
+  ``byte_extract`` therefore runs after TX1's but before TX1's toclient
+  consumer, overwriting the value TX1 produced.
 - **Unidirectional rules split across packets.** If the producer and
   consumer sit at different progress levels, the consumer may not run
   until a later packet. In between, another TX on the same worker can
@@ -333,9 +336,9 @@ To keep values safe, the per-TX ``DetectEngineState`` carries its own
 - **Save.** After ``byte_extract`` or ``byte_math`` runs, the value is
   copied into the TX's cache.
 - **Restore.** At the top of each content inspection pass
-  (``recursion.count == 0``), the cached values are copied into
-  ``det_ctx->byte_values``. Each side keeps its own allocation so that
-  values remain stable across multiple packets.
+  (``recursion.count == 0``), the TX cache is memcpy'd into
+  ``det_ctx->byte_values`` so keywords in that pass see the correct
+  values for this transaction.
 - **Reset.** The cache is cleared on detect engine reload
   (``ResetTxState``), since byte variable local IDs can shift with a new
   ruleset. It's freed when the ``DetectEngineState`` is destroyed.

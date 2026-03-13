@@ -637,6 +637,15 @@ Format::
     byte_test: 2, =, var, 13; \
     msg:"Byte extract and byte math with byte test verification"; sid: 1;)
 
+.. note::
+
+   Like ``byte_extract``, the result variable from ``byte_math`` can be
+   used across different buffers and direction boundaries. Produced values
+   are cached per transaction. For cross-direction use, a bidirectional
+   (``=>``) rule is required. For same-direction use, the producing buffer
+   must be at a lower progress level than the consuming buffer so it is
+   inspected first.
+
 
 byte_jump
 ---------
@@ -777,6 +786,28 @@ Format::
 	 (msg:"Byte_Extract Example Comparing Bytes"; \
 	 flow:established,to_server; content:"\|00 FF\|"; \
 	 byte_extract:2,0,cmp_ver,relative; content:"FooBar"; distance:0; byte_test:2,=,cmp_ver,0; sid:3;)
+
+.. note::
+
+   Variables produced by ``byte_extract`` or ``byte_math`` can be used
+   across different buffers and direction boundaries. Produced values are
+   cached per transaction so they persist when the engine switches between
+   buffers or directions. For cross-direction use, a bidirectional (``=>``)
+   rule is required. For same-direction use, the producing buffer must be
+   at a lower progress level than the consuming buffer so it is inspected
+   first.
+
+   For example, a three-digit decimal threshold embedded in the
+   ``http.uri`` path (toserver) can be checked against the numeric value
+   of ``http.stat_code`` (toclient). Given a request URI of
+   ``/threshold/100``, the rule below alerts when the HTTP status code
+   exceeds 100::
+
+     alert http any any => any any \
+       (msg:"Cross-buffer byte_extract"; flow:established; \
+       http.uri; content:"/threshold/"; \
+       byte_extract:3,0,thresh,relative,string,dec; \
+       http.stat_code; byte_test:3,>,thresh,0,string,dec; sid:4;)
 
 .. _keyword_entropy:
 
