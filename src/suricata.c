@@ -830,6 +830,9 @@ static void PrintBuildInfo(void)
 #ifdef HAVE_PACKET_EBPF
     strlcat(features, "EBPF ", sizeof(features));
 #endif
+#ifdef AFPACKET_TEST_REPLAY
+    strlcat(features, "AFPACKET_TEST_REPLAY ", sizeof(features));
+#endif
 #ifdef PROFILE_LOCKING
     strlcat(features, "PROFILE_LOCKING ", sizeof(features));
 #endif
