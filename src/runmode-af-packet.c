@@ -596,7 +596,13 @@ static void *ParseAFPConfig(const char *iface)
         SCLogError("%s: XDP support is not built-in", iface);
 #endif
     }
-
+#ifdef AFPACKET_TEST_REPLAY
+    if ((SCConfGetChildValueIntWithDefault(if_root, if_default, "max-packets", &value)) == 1) {
+        aconf->max_packets = (uint32_t)value;
+    } else {
+        aconf->max_packets = 0;
+    }
+#endif
     if ((SCConfGetChildValueIntWithDefault(if_root, if_default, "buffer-size", &value)) == 1) {
         aconf->buffer_size = (int)value;
     } else {
