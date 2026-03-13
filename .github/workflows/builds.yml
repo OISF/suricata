@@ -1428,7 +1428,7 @@ jobs:
                 autoconf \
                 automake \
                 build-essential \
-                cargo-1.82 \
+                cargo-1.85 \
                 cbindgen \
                 clang-14 \
                 dpdk-dev \
@@ -1472,7 +1472,7 @@ jobs:
       - run: tar xf prep/suricata-update.tar.gz
       - run: tar xf prep/suricata-verify.tar.gz
       - run: ./autogen.sh
-      - run: CARGO=cargo-1.82 RUSTC=rustc-1.82 RUSTDOC=rustdoc-1.82 ./configure --enable-unittests
+      - run: CARGO=cargo-1.85 RUSTC=rustc-1.85 RUSTDOC=rustdoc-1.85 ./configure --enable-unittests
       - run: make -j ${{ env.CPUS }}
       - run: make check
       - run: python3 ./suricata-verify/run.py -q --debug-failed
