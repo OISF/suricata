@@ -70,13 +70,7 @@ pub struct DetectIPRepData {
 }
 
 pub fn is_alphanumeric_or_slash(chr: char) -> bool {
-    if chr.is_ascii_alphanumeric() {
-        return true;
-    }
-    if chr == '_' || chr == '-' {
-        return true;
-    }
-    return false;
+    return chr.is_ascii_alphanumeric() || chr == '_' || chr == '-';
 }
 
 pub fn detect_parse_iprep(i: &str) -> IResult<&str, DetectIPRepData, RuleParseError<&str>> {
