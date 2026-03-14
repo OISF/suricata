@@ -78,11 +78,7 @@ pub fn conf_get(key: &str) -> Option<&str> {
 // Return the value of key as a boolean. A value that is not set is
 // the same as having it set to false.
 pub fn conf_get_bool(key: &str) -> bool {
-    if let Some("1" | "yes" | "true" | "on") = conf_get(key) {
-        return true;
-    }
-
-    return false;
+    matches!(conf_get(key), Some("1" | "yes" | "true" | "on"))
 }
 
 /// Wrap a Suricata ConfNode and expose some of its methods with a
@@ -161,10 +157,7 @@ impl ConfNode {
             }
         }
 
-        if vptr == 1 {
-            return true;
-        }
-        return false;
+        return vptr == 1;
     }
 }
 
