@@ -64,10 +64,7 @@ impl MessageCode {
 
 #[inline]
 fn is_not_lineend(b: u8) -> bool {
-    if b == 10 || b == 13 {
-        return false;
-    }
-    return true;
+    return b != 10 && b != 13;
 }
 
 //may leave \r at the end to be removed
