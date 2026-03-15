@@ -78,7 +78,7 @@ jobs:
               autoconf \
               automake \
               build-essential \
-              cargo \
+              cargo-1.89 \
               cmake \
               curl \
               git \
@@ -104,7 +104,6 @@ jobs:
               pkg-config \
               python3 \
               python3-yaml \
-              rustc \
               sphinx-doc \
               sphinx-common \
               texlive-latex-base \
@@ -129,6 +128,8 @@ jobs:
           cp prep/cbindgen $HOME/.cargo/bin
           chmod 755 $HOME/.cargo/bin/cbindgen
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - name: Add Rust 1.89 to path
+        run: echo "/usr/lib/rust-1.89/bin" >> $GITHUB_PATH
       - run: tar xf prep/suricata-update.tar.gz
       - run: ./autogen.sh
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure
