@@ -49,13 +49,15 @@ if RUST_CROSS_COMPILE
 RUST_TARGET = --target $(host_triplet)
 endif
 
+CARGO_ENV =	RUSTC="$(RUSTC)" RUSTDOC="$(RUSTDOC)"
+
 if HAVE_CYGPATH
-CARGO_ENV =	@rustup_home@ \
+CARGO_ENV +=	@rustup_home@ \
 		CARGO_HOME="$(CARGO_HOME)" \
 		CARGO_TARGET_DIR="$(e_rustdir)/target" \
 		SURICATA_LUA_SYS_HEADER_DST="$(e_rustdir)/gen"
 else
-CARGO_ENV =	@rustup_home@ \
+CARGO_ENV +=	@rustup_home@ \
 		CARGO_HOME="$(CARGO_HOME)" \
 		CARGO_TARGET_DIR="$(abs_top_builddir)/rust/target" \
 		SURICATA_LUA_SYS_HEADER_DST="$(abs_top_builddir)/rust/gen"
@@ -126,7 +128,7 @@ endif
 
 check:
 	cd $(abs_top_srcdir)/rust && \
-		$(CARGO_ENV) RUSTDOC=$(RUSTDOC) \
+		$(CARGO_ENV) \
 		$(CARGO) test --all $(RELEASE) --features "$(RUST_FEATURES)"
 	$(MAKE) check-bindgen-bindings
 
@@ -135,7 +137,8 @@ vendor:
 
 update-bindings:
 if HAVE_BINDGEN
-	CARGO=$(CARGO) $(CBINDGEN) --quiet --config cbindgen.toml src/jsonbuilder.rs -o gen/jsonbuilder.h
+	$(CARGO_ENV) CARGO=$(CARGO) $(CBINDGEN) --quiet --config cbindgen.toml \
+		src/jsonbuilder.rs -o gen/jsonbuilder.h
 	$(BINDGEN) \
 		-o sys/src/sys.rs.tmp \
 		--rust-target 1.68 \
@@ -168,7 +171,7 @@ endif
 if HAVE_CBINDGEN
 gen/rust-bindings.h: $(RUST_SURICATA_LIB) cbindgen.toml
 	cd $(abs_top_srcdir)/rust && \
-		CARGO=$(CARGO) $(CBINDGEN) --config $(abs_top_srcdir)/rust/cbindgen.toml \
+		$(CARGO_ENV) CARGO=$(CARGO) $(CBINDGEN) --config $(abs_top_srcdir)/rust/cbindgen.toml \
 		--quiet --verify --output $(abs_top_builddir)/rust/gen/rust-bindings.h || true
 else
 gen/rust-bindings.h:
@@ -177,18 +180,18 @@ endif
 if HAVE_CBINDGEN
 gen/htp/htp_rs.h: $(RUST_SURICATA_LIB) htp/cbindgen.toml
 	cd $(abs_top_srcdir)/rust/htp && \
-		CARGO=$(CARGO) $(CBINDGEN) --config $(abs_top_srcdir)/rust/htp/cbindgen.toml \
+		$(CARGO_ENV) CARGO=$(CARGO) $(CBINDGEN) --config $(abs_top_srcdir)/rust/htp/cbindgen.toml \
 		--quiet --verify --output $(abs_top_builddir)/rust/gen/htp/htp_rs.h || true
 else
 gen/htp/htp_rs.h:
 endif
 
 doc:
-	CARGO_HOME=$(CARGO_HOME) RUSTDOC=$(RUSTDOC) $(CARGO) doc --all-features --no-deps
+	$(CARGO_ENV) $(CARGO) doc --all-features --no-deps
 
 if HAVE_CBINDGEN
 dist/rust-bindings.h:
-	CARGO=$(CARGO) $(CBINDGEN) --config $(abs_top_srcdir)/rust/cbindgen.toml \
+	$(CARGO_ENV) CARGO=$(CARGO) $(CBINDGEN) --config $(abs_top_srcdir)/rust/cbindgen.toml \
 		--quiet --output $(abs_top_builddir)/rust/dist/rust-bindings.h
 else
 dist/rust-bindings.h:
@@ -197,7 +200,7 @@ endif
 if HAVE_CBINDGEN
 dist/htp/htp_rs.h:
 	cd $(abs_top_srcdir)/rust/htp && \
-	CARGO=$(CARGO) $(CBINDGEN) --config cbindgen.toml \
+	$(CARGO_ENV) CARGO=$(CARGO) $(CBINDGEN) --config cbindgen.toml \
 		--quiet --output $(abs_top_builddir)/rust/dist/htp/htp_rs.h
 else
 dist/htp/htp_rs.h:
@@ -206,5 +209,5 @@ endif
 Cargo.toml: Cargo.toml.in
 
 update-lock: Cargo.toml
-	$(CARGO) update
+	$(CARGO_ENV) $(CARGO) update
 	mv Cargo.lock Cargo.lock.in
