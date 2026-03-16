@@ -433,8 +433,7 @@ static inline bool CmpFlowKey(const Flow *f, const FlowKey *k)
     return CmpAddrsAndPorts(f_src, f_dst, f->sp, f->dp, k_src, k_dst, k->sp, k->dp) &&
            f->proto == k->proto &&
            (f->recursion_level == k->recursion_level || g_recurlvl_mask == 0) &&
-           CmpVlanIds(f->vlan_id, k->vlan_id) &&
-           CmpLiveDevIds(f->capture.livedev, k->livedev_id);
+           CmpVlanIds(f->vlan_id, k->vlan_id) && CmpLiveDevIds(f->capture.livedev, k->livedev_id);
 }
 
 static inline bool CmpAddrsAndICMPTypes(const uint32_t src1[4],

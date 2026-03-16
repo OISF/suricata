@@ -40,7 +40,7 @@
         (f)->sp = 0;                                                                               \
         (f)->dp = 0;                                                                               \
         (f)->proto = 0;                                                                            \
-        (f)->capture.livedev = NULL;                                                                \
+        (f)->capture.livedev = NULL;                                                               \
         (f)->timeout_policy = 0;                                                                   \
         (f)->vlan_idx = 0;                                                                         \
         (f)->next = NULL;                                                                          \
@@ -83,7 +83,7 @@
         (f)->sp = 0;                                                                               \
         (f)->dp = 0;                                                                               \
         (f)->proto = 0;                                                                            \
-        (f)->capture.livedev = NULL;                                                                \
+        (f)->capture.livedev = NULL;                                                               \
         (f)->vlan_idx = 0;                                                                         \
         (f)->ffr = 0;                                                                              \
         (f)->next = NULL;                                                                          \
