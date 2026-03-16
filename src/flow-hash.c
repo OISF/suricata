@@ -420,7 +420,8 @@ static inline bool CmpFlowPacket(const Flow *f, const Packet *p)
     return CmpAddrsAndPorts(f_src, f_dst, f->sp, f->dp, p_src, p_dst, p->sp, p->dp) &&
            f->proto == p->proto &&
            (f->recursion_level == p->recursion_level || g_recurlvl_mask == 0) &&
-           CmpVlanIds(f->vlan_id, p->vlan_id) && (f->livedev == p->livedev || g_livedev_mask == 0);
+           CmpVlanIds(f->vlan_id, p->vlan_id) &&
+           (f->capture.livedev == p->livedev || g_livedev_mask == 0);
 }
 
 static inline bool CmpFlowKey(const Flow *f, const FlowKey *k)
@@ -432,7 +433,8 @@ static inline bool CmpFlowKey(const Flow *f, const FlowKey *k)
     return CmpAddrsAndPorts(f_src, f_dst, f->sp, f->dp, k_src, k_dst, k->sp, k->dp) &&
            f->proto == k->proto &&
            (f->recursion_level == k->recursion_level || g_recurlvl_mask == 0) &&
-           CmpVlanIds(f->vlan_id, k->vlan_id) && CmpLiveDevIds(f->livedev, k->livedev_id);
+           CmpVlanIds(f->vlan_id, k->vlan_id) &&
+           CmpLiveDevIds(f->capture.livedev, k->livedev_id);
 }
 
 static inline bool CmpAddrsAndICMPTypes(const uint32_t src1[4],
@@ -459,7 +461,8 @@ static inline bool CmpFlowICMPPacket(const Flow *f, const Packet *p)
                    p->icmp_s.type, p->icmp_d.type) &&
            f->proto == p->proto &&
            (f->recursion_level == p->recursion_level || g_recurlvl_mask == 0) &&
-           CmpVlanIds(f->vlan_id, p->vlan_id) && (f->livedev == p->livedev || g_livedev_mask == 0);
+           CmpVlanIds(f->vlan_id, p->vlan_id) &&
+           (f->capture.livedev == p->livedev || g_livedev_mask == 0);
 }
 
 /**
@@ -484,7 +487,7 @@ static inline int FlowCompareICMPv4(Flow *f, const Packet *p)
                 f->proto == ICMPV4_GET_EMB_PROTO(p) &&
                 (f->recursion_level == p->recursion_level || g_recurlvl_mask == 0) &&
                 CmpVlanIds(f->vlan_id, p->vlan_id) &&
-                (f->livedev == p->livedev || g_livedev_mask == 0)) {
+                (f->capture.livedev == p->livedev || g_livedev_mask == 0)) {
             return 1;
 
         /* check the less likely case where the ICMP error was a response to
@@ -495,7 +498,7 @@ static inline int FlowCompareICMPv4(Flow *f, const Packet *p)
                    f->proto == ICMPV4_GET_EMB_PROTO(p) &&
                    (f->recursion_level == p->recursion_level || g_recurlvl_mask == 0) &&
                    CmpVlanIds(f->vlan_id, p->vlan_id) &&
-                   (f->livedev == p->livedev || g_livedev_mask == 0)) {
+                   (f->capture.livedev == p->livedev || g_livedev_mask == 0)) {
             return 1;
         }
 
@@ -527,7 +530,7 @@ static inline int FlowCompareESP(Flow *f, const Packet *p)
     return CmpAddrs(f_src, p_src) && CmpAddrs(f_dst, p_dst) && f->proto == p->proto &&
            (f->recursion_level == p->recursion_level || g_recurlvl_mask == 0) &&
            CmpVlanIds(f->vlan_id, p->vlan_id) && f->esp.spi == ESP_GET_SPI(PacketGetESP(p)) &&
-           (f->livedev == p->livedev || g_livedev_mask == 0);
+           (f->capture.livedev == p->livedev || g_livedev_mask == 0);
 }
 
 void FlowSetupPacket(Packet *p)
@@ -1127,7 +1130,7 @@ Flow *FlowGetFromFlowKey(FlowKey *key, struct timespec *ttime, const uint32_t ha
     f->sp = key->sp;
     f->dp = key->dp;
     f->recursion_level = 0;
-    // f->livedev is set by caller EBPFCreateFlowForKey
+    // f->capture.livedev is set by caller EBPFCreateFlowForKey
     f->flow_hash = hash;
     if (key->src.family == AF_INET) {
         f->flags |= FLOW_IPV4;
