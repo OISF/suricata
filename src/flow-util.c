@@ -24,6 +24,7 @@
  */
 
 #include "suricata-common.h"
+#include "suricata.h"
 #include "threads.h"
 
 #include "flow.h"
@@ -45,6 +46,8 @@
 #include "decode-icmpv4.h"
 
 #include "util-validate.h"
+#include "source-pcap-file-helper.h"
+#include "runmodes.h"
 
 /** \brief allocate a flow
  *
@@ -214,7 +217,26 @@ void FlowInit(ThreadVars *tv, Flow *f, const Packet *p)
 
     SCFlowRunInitCallbacks(tv, f, p);
 
+    PcapFileFileVars *pfv = FlowGetPcapFileVars(f);
+    if (pfv != NULL) {
+        PcapFileRef(pfv);
+    }
+
     SCReturn;
+}
+
+struct PcapFileFileVars_ *FlowGetPcapFileVars(const Flow *f)
+{
+    if (IsRunModeOffline(SCRunmodeGet()))
+        return f->pcap_file_vars;
+    return NULL;
+}
+
+struct LiveDevice_ *FlowGetLiveDev(const Flow *f)
+{
+    if (!IsRunModeOffline(SCRunmodeGet()))
+        return f->livedev;
+    return NULL;
 }
 
 FlowStorageId g_bypass_info_id = { .id = -1 };
