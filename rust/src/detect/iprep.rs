@@ -69,10 +69,6 @@ pub struct DetectIPRepData {
     pub isnotset: bool, // if true, ignores `du8`
 }
 
-pub fn is_alphanumeric_or_slash(chr: char) -> bool {
-    return chr.is_ascii_alphanumeric() || chr == '_' || chr == '-';
-}
-
 pub fn detect_parse_iprep(i: &str) -> IResult<&str, DetectIPRepData, RuleParseError<&str>> {
     // Inner utility function for easy error creation.
     fn make_error(reason: String) -> nom8::Err<RuleParseError<&'static str>> {
