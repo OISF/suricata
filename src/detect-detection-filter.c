@@ -574,22 +574,14 @@ static int DetectDetectionFilterDistinctAllocFailFallback(void)
     Packet *p2 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
     Packet *p3 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
 
-    int result = 0;
-
     /* Classic detection_filter alerts when current_count > count (i.e., 3rd packet) */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-    if (PacketAlertCheck(p1, 27))
-        goto end;
+    FAIL_IF(PacketAlertCheck(p1, 27));
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-    if (PacketAlertCheck(p2, 27))
-        goto end;
+    FAIL_IF(PacketAlertCheck(p2, 27));
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p3);
-    if (!PacketAlertCheck(p3, 27))
-        goto end;
+    FAIL_IF_NOT(PacketAlertCheck(p3, 27));
 
-    result = 1;
-
-end:
     /* cleanup and restore hook */
     ThresholdForceAllocFail(0);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
@@ -599,7 +591,7 @@ end:
     UTHFreePackets(&p3, 1);
     ThresholdDestroy();
     StatsThreadCleanup(&th_v.stats);
-    return result;
+    PASS;
 }
 
 /**
