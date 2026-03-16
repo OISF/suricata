@@ -51,7 +51,7 @@
     "^\\s*(track|count|seconds)\\s+(by_src|by_dst|by_flow|\\d+)\\s*,\\s*(track|count|seconds)\\s+" \
     "(by_src|"                                                                                     \
     "by_dst|by_flow|\\d+)\\s*,\\s*(track|count|seconds)\\s+(by_src|by_dst|by_flow|\\d+)"           \
-    "(?:\\s*,\\s*unique_on\\s+(src_port|dst_port))?\\s*$"
+    "(?:\\s*,\\s*unique_on\\s+(src_port|dst_port|src_ip|dst_ip))?\\s*$"
 
 /* minimum number of PCRE submatches expected for detection_filter parse */
 #define DF_PARSE_MIN_SUBMATCHES 5
@@ -173,10 +173,21 @@ static DetectThresholdData *DetectDetectionFilterParse(const char *rawstr)
             count_pos = i + 1;
         if (strncasecmp(args[i], "seconds", strlen("seconds")) == 0)
             seconds_pos = i + 1;
-        if (strcasecmp(args[i], "src_port") == 0)
-            df->unique_on = DF_UNIQUE_SRC_PORT;
-        if (strcasecmp(args[i], "dst_port") == 0)
-            df->unique_on = DF_UNIQUE_DST_PORT;
+        if (strcasecmp(args[i], "src_port") == 0 || strcasecmp(args[i], "dst_port") == 0 ||
+                strcasecmp(args[i], "src_ip") == 0 || strcasecmp(args[i], "dst_ip") == 0) {
+            if (df->unique_on != DF_UNIQUE_NONE) {
+                SCLogError("detection_filter: only one unique_on is allowed");
+                goto error;
+            }
+            if (strcasecmp(args[i], "src_port") == 0)
+                df->unique_on = DF_UNIQUE_SRC_PORT;
+            else if (strcasecmp(args[i], "dst_port") == 0)
+                df->unique_on = DF_UNIQUE_DST_PORT;
+            else if (strcasecmp(args[i], "src_ip") == 0)
+                df->unique_on = DF_UNIQUE_SRC_IP;
+            else
+                df->unique_on = DF_UNIQUE_DST_IP;
+        }
     }
 
     if (args[count_pos] == NULL || args[seconds_pos] == NULL) {
@@ -252,13 +263,14 @@ static int DetectDetectionFilterSetup(DetectEngineCtx *de_ctx, Signature *s, con
     if (df == NULL)
         goto error;
 
-    /* unique_on requires a ported L4 protocol: tcp/udp/sctp */
-    if (df->unique_on != DF_UNIQUE_NONE) {
+    /* unique_on src_port/dst_port requires a ported L4 protocol: tcp/udp/sctp */
+    if (df->unique_on == DF_UNIQUE_SRC_PORT || df->unique_on == DF_UNIQUE_DST_PORT) {
         const int has_tcp = DetectProtoContainsProto(&s->proto, IPPROTO_TCP);
         const int has_udp = DetectProtoContainsProto(&s->proto, IPPROTO_UDP);
         const int has_sctp = DetectProtoContainsProto(&s->proto, IPPROTO_SCTP);
         if (!(has_tcp || has_udp || has_sctp) || (s->proto.flags & DETECT_PROTO_ANY)) {
-            SCLogError("detection_filter unique_on requires protocol tcp/udp/sctp");
+            SCLogError(
+                    "detection_filter unique_on src_port/dst_port requires protocol tcp/udp/sctp");
             goto error;
         }
     }
@@ -428,6 +440,38 @@ static int DetectDetectionFilterTestParseUnique01(void)
     FAIL_IF_NOT(df->count == 10);
     FAIL_IF_NOT(df->seconds == 60);
     FAIL_IF_NOT(df->unique_on == DF_UNIQUE_DST_PORT);
+    DetectDetectionFilterFree(NULL, df);
+    PASS;
+}
+
+/**
+ * \test DetectDetectionFilterTestParseUniqueIP01 tests parsing unique_on src_ip
+ */
+static int DetectDetectionFilterTestParseUniqueIP01(void)
+{
+    DetectThresholdData *df =
+            DetectDetectionFilterParse("track by_dst, count 10, seconds 60, unique_on src_ip");
+    FAIL_IF_NULL(df);
+    FAIL_IF_NOT(df->track == TRACK_DST);
+    FAIL_IF_NOT(df->count == 10);
+    FAIL_IF_NOT(df->seconds == 60);
+    FAIL_IF_NOT(df->unique_on == DF_UNIQUE_SRC_IP);
+    DetectDetectionFilterFree(NULL, df);
+    PASS;
+}
+
+/**
+ * \test DetectDetectionFilterTestParseUniqueIP02 tests parsing unique_on dst_ip
+ */
+static int DetectDetectionFilterTestParseUniqueIP02(void)
+{
+    DetectThresholdData *df =
+            DetectDetectionFilterParse("track by_src, count 5, seconds 30, unique_on dst_ip");
+    FAIL_IF_NULL(df);
+    FAIL_IF_NOT(df->track == TRACK_SRC);
+    FAIL_IF_NOT(df->count == 5);
+    FAIL_IF_NOT(df->seconds == 30);
+    FAIL_IF_NOT(df->unique_on == DF_UNIQUE_DST_IP);
     DetectDetectionFilterFree(NULL, df);
     PASS;
 }
@@ -994,6 +1038,159 @@ static int DetectDetectionFilterDistinctBitmapExpiry(void)
     PASS;
 }
 
+/**
+ * \test When hash table alloc fails, unique_on falls back to classic counting (> count)
+ */
+static int DetectDetectionFilterDistinctIPAllocFailFallback(void)
+{
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+
+    ThresholdInit();
+    memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v.stats);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    /* Force allocation failure for distinct IP hash */
+    ThresholdForceAllocFail(1);
+
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert ip any any -> any any (msg:\"DF alloc fail fallback IP\"; "
+            "detection_filter: track by_dst, count 2, seconds 60, unique_on src_ip; sid:28;)");
+    FAIL_IF_NULL(s);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    Packet *p1 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    Packet *p2 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    Packet *p3 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    /* For fallback (classic) counting, we need 3 packets from SAME source to trigger alert (>2)
+     * If distinct counting was working, these would count as 1 distinct IP and NOT alert.
+     * So alerting here proves we fell back to classic counting. */
+
+    /* Classic detection_filter alerts when current_count > count (i.e., 3rd packet) */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    FAIL_IF(PacketAlertCheck(p1, 28));
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    FAIL_IF(PacketAlertCheck(p2, 28));
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p3);
+    FAIL_IF_NOT(PacketAlertCheck(p3, 28));
+
+    /* cleanup and restore hook */
+    ThresholdForceAllocFail(0);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
+    UTHFreePackets(&p3, 1);
+    ThresholdDestroy();
+    StatsThreadCleanup(&th_v.stats);
+    PASS;
+}
+
+/**
+ * \test Verify IP hash memory is tracked and pre-sized to count
+ */
+static int DetectDetectionFilterDistinctIPHashMemuseTracking(void)
+{
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+
+    ThresholdInit();
+    memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v.stats);
+
+    uint64_t baseline_memuse = ThresholdGetBitmapMemuse();
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert ip any any -> any any (msg:\"DF IP hash memuse\"; "
+            "detection_filter: track by_dst, count 5, seconds 60, unique_on src_ip; sid:34;)");
+    FAIL_IF_NULL(s);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    Packet *p1 = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+
+    /* Hash table pre-sized to count (5) buckets: 5 * sizeof(void *) = 40 bytes */
+    uint64_t after_memuse = ThresholdGetBitmapMemuse();
+    FAIL_IF_NOT(after_memuse == baseline_memuse + 5 * sizeof(void *));
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    UTHFreePackets(&p1, 1);
+    ThresholdDestroy();
+
+    uint64_t final_memuse = ThresholdGetBitmapMemuse();
+    FAIL_IF_NOT(final_memuse == baseline_memuse);
+
+    StatsThreadCleanup(&th_v.stats);
+    PASS;
+}
+
+/**
+ * \test Test IPv6 distinct counting
+ */
+static int DetectDetectionFilterDistinctIPv6(void)
+{
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+
+    ThresholdInit();
+    memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v.stats);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert ip any any -> any any (msg:\"DF IPv6\"; "
+            "detection_filter: track by_dst, count 2, seconds 60, unique_on src_ip; sid:29;)");
+    FAIL_IF_NULL(s);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    /* 3 packets from different IPv6 sources */
+    Packet *p1 =
+            UTHBuildPacketIPV6Real(NULL, 0, IPPROTO_TCP, "2001:db8::1", "2001:db8::99", 1024, 80);
+    Packet *p2 =
+            UTHBuildPacketIPV6Real(NULL, 0, IPPROTO_TCP, "2001:db8::2", "2001:db8::99", 1024, 80);
+    Packet *p3 =
+            UTHBuildPacketIPV6Real(NULL, 0, IPPROTO_TCP, "2001:db8::3", "2001:db8::99", 1024, 80);
+
+    /* 1st packet: distinct count 1 */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    FAIL_IF(PacketAlertCheck(p1, 29));
+
+    /* 2nd packet: distinct count 2 */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    FAIL_IF(PacketAlertCheck(p2, 29));
+
+    /* 3rd packet: distinct count 3 -> ALERT (>2) */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p3);
+    FAIL_IF_NOT(PacketAlertCheck(p3, 29));
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
+    UTHFreePackets(&p3, 1);
+    ThresholdDestroy();
+    StatsThreadCleanup(&th_v.stats);
+    PASS;
+}
+
 static void DetectDetectionFilterRegisterTests(void)
 {
     UtRegisterTest("DetectDetectionFilterTestParse01", DetectDetectionFilterTestParse01);
@@ -1004,6 +1201,10 @@ static void DetectDetectionFilterRegisterTests(void)
     UtRegisterTest("DetectDetectionFilterTestParse06", DetectDetectionFilterTestParse06);
     UtRegisterTest(
             "DetectDetectionFilterTestParseUnique01", DetectDetectionFilterTestParseUnique01);
+    UtRegisterTest(
+            "DetectDetectionFilterTestParseUniqueIP01", DetectDetectionFilterTestParseUniqueIP01);
+    UtRegisterTest(
+            "DetectDetectionFilterTestParseUniqueIP02", DetectDetectionFilterTestParseUniqueIP02);
     UtRegisterTest("DetectDetectionFilterTestSig1", DetectDetectionFilterTestSig1);
     UtRegisterTest("DetectDetectionFilterTestSig2", DetectDetectionFilterTestSig2);
     UtRegisterTest("DetectDetectionFilterTestSig3", DetectDetectionFilterTestSig3);
@@ -1013,6 +1214,11 @@ static void DetectDetectionFilterRegisterTests(void)
             "DetectDetectionFilterDistinctWindowReset", DetectDetectionFilterDistinctWindowReset);
     UtRegisterTest("DetectDetectionFilterDistinctAllocFailFallback",
             DetectDetectionFilterDistinctAllocFailFallback);
+    UtRegisterTest("DetectDetectionFilterDistinctIPAllocFailFallback",
+            DetectDetectionFilterDistinctIPAllocFailFallback);
+    UtRegisterTest("DetectDetectionFilterDistinctIPHashMemuseTracking",
+            DetectDetectionFilterDistinctIPHashMemuseTracking);
+    UtRegisterTest("DetectDetectionFilterDistinctIPv6", DetectDetectionFilterDistinctIPv6);
     UtRegisterTest("DetectDetectionFilterUniqueOnProtoValidationFail",
             DetectDetectionFilterUniqueOnProtoValidationFail);
     UtRegisterTest("DetectDetectionFilterDistinctBitmapMemuseTracking",

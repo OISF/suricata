@@ -179,18 +179,22 @@ internal counter and alert each time the threshold has been reached.
 
 Syntax::
 
-  detection_filter: track <by_src|by_dst|by_rule|by_both|by_flow>, count <N>, seconds <T>[, unique_on <src_port|dst_port>]
+  detection_filter: track <by_src|by_dst|by_rule|by_both|by_flow>, count <N>, seconds <T>[, unique_on <src_port|dst_port|src_ip|dst_ip>]
 
 ``unique_on`` (optional) enables distinct counting on a field within the time window:
 
 - ``unique_on dst_port``: count distinct destination ports
 - ``unique_on src_port``: count distinct source ports
+- ``unique_on src_ip``: count distinct source IP addresses
+- ``unique_on dst_ip``: count distinct destination IP addresses
 
 .. note::
 
-   ``unique_on`` requires a transport protocol with ports. Use it only with
+   ``unique_on src_port|dst_port`` requires a transport protocol with ports. Use it only with
    TCP, UDP or SCTP rules. For non-ported protocols (or ``ip`` rules), Suricata
-   rejects ``unique_on`` during rule parsing.
+   rejects port-based ``unique_on`` during rule parsing.
+
+   ``unique_on src_ip|dst_ip`` works with any IP protocol.
 
 When ``unique_on`` is specified, alerts start when the number of distinct values
 exceeds ``count`` during the ``seconds`` window, scoped by ``track``.
@@ -210,6 +214,18 @@ Examples:
   flow:stateless;
   :example-rule-emphasis:`detection_filter: track by_dst, count 20, seconds 30, unique_on src_port;`
   classtype:attempted-recon; sid:100002; rev:1;)
+
+.. container:: example-rule
+
+  alert ip any any -> $HOME_NET any (msg:"Multiple sources: >=5 distinct src IPs in 60s";
+  :example-rule-emphasis:`detection_filter: track by_dst, count 5, seconds 60, unique_on src_ip;`
+  classtype:attempted-recon; sid:100003; rev:1;)
+
+.. container:: example-rule
+
+  alert ip $HOME_NET any -> any any (msg:"Host contacting many destinations: >=10 distinct dst IPs in 30s";
+  :example-rule-emphasis:`detection_filter: track by_src, count 10, seconds 30, unique_on dst_ip;`
+  classtype:attempted-recon; sid:100004; rev:1;)
 
 Without ``unique_on``, the classic behavior applies:
 
