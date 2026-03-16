@@ -1300,7 +1300,7 @@ jobs:
     name: AlmaLinux 9 (Minimal/Recommended Build)
     runs-on: ubuntu-latest
     container: almalinux:9
-    needs: [prepare-deps, prepare-cbindgen]
+    needs: [ubuntu-22-04-dist]
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
@@ -1312,36 +1312,24 @@ jobs:
       - name: Determine number of CPUs
         run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
-      - name: Install git dependencies
-        run: |
-          dnf -y install \
-            sudo \
-            git \
-            libtool \
-            which
+      - name: Download suricata.tar.gz
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3
+        with:
+          name: dist
+      - run: tar xf suricata-*.tar.gz --strip-components=1
 
-      - name: Install Almalinux 9 extra repositories
-        run : |
+      - name: Update packages and install sudo
+        run: dnf -y update && dnf install -y sudo
+
+      - name: Install AlmaLinux 9 extra repositories
+        run: |
           dnf -y update
-          dnf -y install dnf-plugins-core epel-release
+          dnf -y install dnf-plugins-core epel-release sudo
           dnf config-manager --set-enabled crb
 
-
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-      - uses: ./.github/actions/install-cbindgen
-      - run: git config --global --add safe.directory /__w/suricata/suricata
-      - uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3
-      
       - name: Install minimal dependencies
         run: ./scripts/docs-almalinux9-minimal-build.sh
 
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-      - run: git config --global --add safe.directory /__w/suricata/suricata
-      - uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3
-        with:
-          name: prep
-          path: prep
-      - run: ./autogen.sh
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure
       - run: make -j ${{ env.CPUS }}
       - run: ./src/suricata --build-info # check if we can run Suricata
