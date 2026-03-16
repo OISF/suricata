@@ -1049,6 +1049,63 @@ static int SourcePcapFileHelperTest15(void)
 }
 
 /**
+ * \test Verify that per-packet pfv->filename is independent of the global
+ *       pcap_filename -- simulates the race condition from ticket #5255.
+ */
+static int SourcePcapFileHelperTest16(void)
+{
+    /* Set global to "file_B.pcap" (as if RX thread moved on) */
+    extern char pcap_filename[PATH_MAX];
+    strlcpy(pcap_filename, "file_B.pcap", sizeof(pcap_filename));
+
+    /* Create a pfv for "file_A.pcap" (the file this packet actually belongs to) */
+    PcapFileFileVars *pfv = SCCalloc(1, sizeof(*pfv));
+    FAIL_IF_NULL(pfv);
+    pfv->filename = SCStrdup("file_A.pcap");
+    FAIL_IF_NULL(pfv->filename);
+    SC_ATOMIC_INIT(pfv->ref_cnt);
+    SC_ATOMIC_SET(pfv->ref_cnt, 0);
+    SC_ATOMIC_INIT(pfv->alerts_count);
+    SC_ATOMIC_SET(pfv->alerts_count, 0);
+
+    Packet *p = PacketGetFromAlloc();
+    FAIL_IF_NULL(p);
+    p->pcap_v.pfv = pfv;
+
+    /* Per-packet filename must be "file_A.pcap" even though global says B */
+    FAIL_IF_NOT(strcmp(p->pcap_v.pfv->filename, "file_A.pcap") == 0);
+    FAIL_IF_NOT(strcmp(PcapFileGetFilename(), "file_B.pcap") == 0);
+
+    /* Cleanup */
+    PacketFreeOrRelease(p);
+    CleanupPcapFileFileVars(pfv);
+    strlcpy(pcap_filename, "unknown", sizeof(pcap_filename));
+    PASS;
+}
+
+/**
+ * \test Verify the global fallback: when both p == NULL and f == NULL
+ *       (e.g. stats events), PcapFileGetFilename() is used.
+ */
+static int SourcePcapFileHelperTest17(void)
+{
+    extern char pcap_filename[PATH_MAX];
+    strlcpy(pcap_filename, "current_file.pcap", sizeof(pcap_filename));
+
+    /* With no packet and no flow (stats events), the global is the
+     * correct source of truth. */
+    FAIL_IF_NOT(strcmp(PcapFileGetFilename(), "current_file.pcap") == 0);
+
+    /* Verify the global tracks file changes correctly */
+    strlcpy(pcap_filename, "next_file.pcap", sizeof(pcap_filename));
+    FAIL_IF_NOT(strcmp(PcapFileGetFilename(), "next_file.pcap") == 0);
+
+    /* Cleanup */
+    strlcpy(pcap_filename, "unknown", sizeof(pcap_filename));
+    PASS;
+}
+
+/**
  * \test Verify that PcapFileShouldDeletePcapFile uses the cached pfv->delete_mode
  *       and does not touch pfv->shared, which may be NULL (freed) in the deferred
  *       cleanup path (Bug 2 regression test).
@@ -1159,6 +1216,8 @@ void SourcePcapFileHelperRegisterTests(void)
     UtRegisterTest("SourcePcapFileHelperTest13", SourcePcapFileHelperTest13);
     UtRegisterTest("SourcePcapFileHelperTest14", SourcePcapFileHelperTest14);
     UtRegisterTest("SourcePcapFileHelperTest15", SourcePcapFileHelperTest15);
+    UtRegisterTest("SourcePcapFileHelperTest16", SourcePcapFileHelperTest16);
+    UtRegisterTest("SourcePcapFileHelperTest17", SourcePcapFileHelperTest17);
     UtRegisterTest("SourcePcapFileHelperTest18", SourcePcapFileHelperTest18);
     UtRegisterTest("SourcePcapFileHelperTest19", SourcePcapFileHelperTest19);
 }
