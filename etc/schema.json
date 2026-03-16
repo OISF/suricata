@@ -2744,7 +2744,9 @@
             "optional": true
         },
         "in_iface": {
-            "type": "string"
+            "type": "string",
+            "description": "Input interface for live capture; not present in pcap-file mode",
+            "optional": true
         },
         "ip_v": {
             "type": "integer",
