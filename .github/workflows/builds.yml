@@ -2819,8 +2819,9 @@ jobs:
 
   ubuntu-22-04-minimal-recommended-build:
     name: Ubuntu 22.04 (Minimal/Recommended Build)
-    needs: [prepare-deps, prepare-cbindgen]
+    needs: [ubuntu-22-04-dist]
     runs-on: ubuntu-22.04
+    container: ubuntu:22.04
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
@@ -2832,23 +2833,15 @@ jobs:
       - name: Determine number of CPUs
         run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
-      - name: Install git dependencies
-        run: |
-          sudo apt update
-          sudo apt -y install \
-            git \
-            libtool
-
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-      - run: git config --global --add safe.directory /__w/suricata/suricata
-      - uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3
+      - name: Download suricata.tar.gz
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3
         with:
-          name: prep
-          path: prep
-      - run: tar xf prep/suricata-update.tar.gz
-      - run: tar xf prep/suricata-verify.tar.gz
-      - run: ./autogen.sh
-      
+          name: dist
+      - run: tar xvf suricata-*.tar.gz --strip-components=1
+
+      # Install packages required by the install script.
+      - run: apt update -y && apt install -y sudo
+
       - name: Install minimal dependencies
         run: ./scripts/docs-ubuntu-debian-minimal-build.sh
 
