@@ -60,6 +60,7 @@
 #include "flow-var.h"
 #include "flow-bit.h"
 #include "flow-storage.h"
+#include "flow-util.h"
 
 #include "source-pcap-file-helper.h"
 
@@ -970,6 +971,8 @@ int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer)
     }
 
     if (file_ctx->is_pcap_offline) {
+        /* Only stats events use this legacy path (OutputStatsLog);
+         * all other EVE events go through OutputJsonBuilderBuffer. */
         json_object_set_new(js, "pcap_filename", json_string(PcapFileGetFilename()));
     }
 
@@ -1001,7 +1004,23 @@ void OutputJsonBuilderBuffer(
     }
 
     if (file_ctx->is_pcap_offline) {
-        SCJbSetString(js, "pcap_filename", PcapFileGetFilename());
+        /* Use the per-packet filename to avoid a race where the RX thread
+         * has already moved to the next pcap file while workers still
+         * process packets from the previous one.
+         * Flow/netflow events pass p == NULL; use the pfv stored in the flow
+         * so they report the correct file even after the RX thread has moved
+         * on to the next file.  Fall back to the global only when both p and
+         * f are NULL, which happens for stats events (OutputStatsLog) that
+         * carry neither a packet nor a flow. */
+        const char *filename;
+        if (p != NULL) {
+            BUG_ON(p->pcap_v.pfv == NULL);
+            filename = p->pcap_v.pfv->filename;
+        } else {
+            PcapFileFileVars *pfv = (f != NULL) ? FlowGetPcapFileVars(f) : NULL;
+            filename = pfv ? pfv->filename : PcapFileGetFilename();
+        }
+        SCJbSetString(js, "pcap_filename", filename);
     }
 
     SCEveRunCallbacks(tv, p, f, js);
