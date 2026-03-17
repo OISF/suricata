@@ -98,7 +98,8 @@ fn parse_byteextract(input: &str) -> IResult<&str, SCDetectByteExtractData, Rule
     let (_, values) = nom8::multi::separated_list1(
         tag(","),
         preceded(multispace0, nom8::bytes::complete::is_not(",")),
-    ).parse(input)?;
+    )
+    .parse(input)?;
 
     if values.len() < DETECT_BYTE_EXTRACT_FIXED_PARAM_COUNT
         || values.len() > DETECT_BYTE_EXTRACT_MAX_PARAM_COUNT

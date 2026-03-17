@@ -18,25 +18,25 @@
 // written by Juliana Fajardini <jufajardini@oisf.net>
 
 use super::pgsql::{PgsqlTransaction, ALPROTO_PGSQL};
-use crate::pgsql::parser::PgsqlFEMessage;
-use crate::core::{STREAM_TOSERVER};
+use crate::core::STREAM_TOSERVER;
 use crate::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
-use suricata_sys::sys::{
-    DetectEngineCtx, SCDetectBufferSetActiveList, SCDetectHelperBufferMpmRegister, SCDetectSignatureSetAppProto,
-    Signature,
-};
+use crate::pgsql::parser::PgsqlFEMessage;
 use std::os::raw::{c_int, c_void};
+use suricata_sys::sys::{
+    DetectEngineCtx, SCDetectBufferSetActiveList, SCDetectHelperBufferMpmRegister,
+    SCDetectSignatureSetAppProto, Signature,
+};
 
 static mut G_PGSQL_QUERY_BUFFER_ID: c_int = 0;
 
 unsafe extern "C" fn pgsql_detect_query_setup(
-    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,) -> c_int
-{
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
+) -> c_int {
     if SCDetectSignatureSetAppProto(s, ALPROTO_PGSQL) != 0 {
-        return - 1;
+        return -1;
     }
     if SCDetectBufferSetActiveList(de, s, G_PGSQL_QUERY_BUFFER_ID) < 0 {
-        return - 1;
+        return -1;
     }
     0
 }

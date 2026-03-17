@@ -99,7 +99,8 @@ fn parse_transform_base64(
     let (_, values) = nom8::multi::separated_list1(
         tag(","),
         preceded(multispace0, nom8::bytes::complete::is_not(",")),
-    ).parse(input)?;
+    )
+    .parse(input)?;
 
     // Too many options?
     if values.len() > DETECT_TRANSFORM_BASE64_MAX_PARAM_COUNT {

@@ -19,13 +19,13 @@
 
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
+use crate::x509::GeneralName;
 use nom7::Err;
 use std;
 use std::fmt;
 use x509_parser::prelude::*;
-use crate::x509::GeneralName;
-mod time;
 mod log;
+mod time;
 
 #[repr(u32)]
 pub enum X509DecodeError {
@@ -54,7 +54,7 @@ impl fmt::Display for SCGeneralName<'_> {
             GeneralName::DNSName(s) => write!(f, "{}", s),
             GeneralName::URI(s) => write!(f, "{}", s),
             GeneralName::IPAddress(s) => write!(f, "{:?}", s),
-            _ => write!(f, "{}", self.0)
+            _ => write!(f, "{}", self.0),
         }
     }
 }
@@ -66,9 +66,7 @@ impl fmt::Display for SCGeneralName<'_> {
 /// input must be a valid buffer of at least input_len bytes
 #[no_mangle]
 pub unsafe extern "C" fn SCX509Decode(
-    input: *const u8,
-    input_len: u32,
-    err_code: *mut u32,
+    input: *const u8, input_len: u32, err_code: *mut u32,
 ) -> *mut X509 {
     let slice = std::slice::from_raw_parts(input, input_len as usize);
     let res = X509Certificate::from_der(slice);
@@ -83,7 +81,9 @@ pub unsafe extern "C" fn SCX509Decode(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCX509GetSubject(ptr: *const X509, subject_name: *mut *mut u8, subject_len: *mut u32) {
+pub unsafe extern "C" fn SCX509GetSubject(
+    ptr: *const X509, subject_name: *mut *mut u8, subject_len: *mut u32,
+) {
     if ptr.is_null() {
         *subject_len = 0;
         *subject_name = std::ptr::null_mut();
@@ -113,7 +113,9 @@ pub unsafe extern "C" fn SCX509GetSubjectAltNameLen(ptr: *const X509) -> u16 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCX509GetSubjectAltNameAt(ptr: *const X509, idx: u16, san: *mut *mut u8, san_len: *mut u32) {
+pub unsafe extern "C" fn SCX509GetSubjectAltNameAt(
+    ptr: *const X509, idx: u16, san: *mut *mut u8, san_len: *mut u32,
+) {
     if ptr.is_null() {
         *san_len = 0;
         *san = std::ptr::null_mut();
@@ -131,7 +133,9 @@ pub unsafe extern "C" fn SCX509GetSubjectAltNameAt(ptr: *const X509, idx: u16, s
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCX509GetIssuer(ptr: *const X509, issuer_name: *mut *mut u8, issuer_len: *mut u32) {
+pub unsafe extern "C" fn SCX509GetIssuer(
+    ptr: *const X509, issuer_name: *mut *mut u8, issuer_len: *mut u32,
+) {
     if ptr.is_null() {
         *issuer_len = 0;
         *issuer_name = std::ptr::null_mut();
@@ -145,7 +149,9 @@ pub unsafe extern "C" fn SCX509GetIssuer(ptr: *const X509, issuer_name: *mut *mu
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCX509GetSerial(ptr: *const X509, serial_num: *mut *mut u8, serial_len: *mut u32) {
+pub unsafe extern "C" fn SCX509GetSerial(
+    ptr: *const X509, serial_num: *mut *mut u8, serial_len: *mut u32,
+) {
     if ptr.is_null() {
         *serial_len = 0;
         *serial_num = std::ptr::null_mut();
@@ -166,9 +172,7 @@ pub unsafe extern "C" fn SCX509GetSerial(ptr: *const X509, serial_num: *mut *mut
 /// ptr must be a valid object obtained using `SCX509Decode`
 #[no_mangle]
 pub unsafe extern "C" fn SCX509GetValidity(
-    ptr: *const X509,
-    not_before: *mut i64,
-    not_after: *mut i64,
+    ptr: *const X509, not_before: *mut i64, not_after: *mut i64,
 ) -> i32 {
     if ptr.is_null() {
         return -1;
@@ -199,7 +203,10 @@ pub unsafe extern "C" fn SCX509ArrayFree(ptr: *mut u8, len: u32) {
     if ptr.is_null() {
         return;
     }
-    drop(Box::from_raw(std::ptr::slice_from_raw_parts_mut(ptr, len as usize)));
+    drop(Box::from_raw(std::ptr::slice_from_raw_parts_mut(
+        ptr,
+        len as usize,
+    )));
 }
 
 fn x509_parse_error_to_errcode(e: &Err<X509Error>) -> X509DecodeError {

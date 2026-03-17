@@ -194,7 +194,7 @@ pub extern "C" fn SCTLSHandshakeNew() -> *mut HandshakeParams {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCTLSHandshakeIsEmpty(hs: & HandshakeParams) -> bool {
+pub unsafe extern "C" fn SCTLSHandshakeIsEmpty(hs: &HandshakeParams) -> bool {
     *hs == HandshakeParams::default()
 }
 
@@ -233,48 +233,58 @@ pub unsafe extern "C" fn SCTLSHandshakeFree(hs: &mut HandshakeParams) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCTLSHandshakeLogVersion(hs: &HandshakeParams, js: *mut JsonBuilder) -> bool {
+pub unsafe extern "C" fn SCTLSHandshakeLogVersion(
+    hs: &HandshakeParams, js: *mut JsonBuilder,
+) -> bool {
     if js.is_null() {
         return false;
     }
-    return hs.log_version(js.as_mut().unwrap()).is_ok()
+    return hs.log_version(js.as_mut().unwrap()).is_ok();
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCTLSHandshakeLogCiphers(hs: &HandshakeParams, js: *mut JsonBuilder) -> bool {
+pub unsafe extern "C" fn SCTLSHandshakeLogCiphers(
+    hs: &HandshakeParams, js: *mut JsonBuilder,
+) -> bool {
     if js.is_null() {
         return false;
     }
-    return hs.log_ciphers(js.as_mut().unwrap()).is_ok()
+    return hs.log_ciphers(js.as_mut().unwrap()).is_ok();
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCTLSHandshakeLogFirstCipher(hs: &HandshakeParams, js: *mut JsonBuilder) -> bool {
+pub unsafe extern "C" fn SCTLSHandshakeLogFirstCipher(
+    hs: &HandshakeParams, js: *mut JsonBuilder,
+) -> bool {
     if js.is_null() {
         return false;
     }
-    return hs.log_first_cipher(js.as_mut().unwrap()).is_ok()
+    return hs.log_first_cipher(js.as_mut().unwrap()).is_ok();
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCTLSHandshakeLogExtensions(hs: &HandshakeParams, js: *mut JsonBuilder) -> bool {
+pub unsafe extern "C" fn SCTLSHandshakeLogExtensions(
+    hs: &HandshakeParams, js: *mut JsonBuilder,
+) -> bool {
     if js.is_null() {
         return false;
     }
-    return hs.log_exts(js.as_mut().unwrap()).is_ok()
+    return hs.log_exts(js.as_mut().unwrap()).is_ok();
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCTLSHandshakeLogSigAlgs(hs: &HandshakeParams, js: *mut JsonBuilder) -> bool {
+pub unsafe extern "C" fn SCTLSHandshakeLogSigAlgs(
+    hs: &HandshakeParams, js: *mut JsonBuilder,
+) -> bool {
     if js.is_null() {
         return false;
     }
-    return hs.log_sig_algs(js.as_mut().unwrap()).is_ok()
+    return hs.log_sig_algs(js.as_mut().unwrap()).is_ok();
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn SCTLSHandshakeLogALPNs(
-    hs: &HandshakeParams, js: *mut JsonBuilder, ptr: *const c_char
+    hs: &HandshakeParams, js: *mut JsonBuilder, ptr: *const c_char,
 ) -> bool {
     if js.is_null() {
         return false;

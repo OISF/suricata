@@ -48,7 +48,6 @@ mod real {
     use std::ffi::CString;
     use suricata_sys::sys::{SCRequiresFeature, SCSigTableHasKeyword};
 
-
     /// Check for a feature returning true if found.
     pub fn requires(feature: &str) -> bool {
         if let Ok(feature) = CString::new(feature) {

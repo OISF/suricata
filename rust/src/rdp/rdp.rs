@@ -609,7 +609,10 @@ mod tests {
     fn test_parse_ts_other() {
         let buf: &[u8] = &[0x03, 0x00, 0x00, 0x01, 0x00];
         let mut state = RdpState::new();
-        assert_eq!(AppLayerResult::err(), state.parse_ts(std::ptr::null_mut(), buf));
+        assert_eq!(
+            AppLayerResult::err(),
+            state.parse_ts(std::ptr::null_mut(), buf)
+        );
     }
 
     #[test]
@@ -637,7 +640,10 @@ mod tests {
     fn test_parse_tc_other() {
         let buf: &[u8] = &[0x03, 0x00, 0x00, 0x01, 0x00];
         let mut state = RdpState::new();
-        assert_eq!(AppLayerResult::err(), state.parse_tc(std::ptr::null_mut(), buf));
+        assert_eq!(
+            AppLayerResult::err(),
+            state.parse_tc(std::ptr::null_mut(), buf)
+        );
     }
 
     #[test]

@@ -125,10 +125,7 @@ fn parse_i32_number(input: &str) -> IResult<&str, i32> {
 pub(super) fn asn1_parse_rule(input: &str) -> IResult<&str, DetectAsn1Data> {
     // If nothing to parse, return
     if input.is_empty() {
-        return Err(Err::Error(make_error(
-            input,
-            ErrorKind::Eof,
-        )));
+        return Err(Err::Error(make_error(input, ErrorKind::Eof)));
     }
 
     // Rule parsing functions
@@ -155,7 +152,8 @@ pub(super) fn asn1_parse_rule(input: &str) -> IResult<&str, DetectAsn1Data> {
             verify(parse_i32_number, |v| {
                 *v >= -i32::from(u16::MAX) && *v <= i32::from(u16::MAX)
             }),
-        ).parse(i)
+        )
+        .parse(i)
     }
 
     let mut data = DetectAsn1Data::default();
@@ -183,7 +181,8 @@ pub(super) fn asn1_parse_rule(input: &str) -> IResult<&str, DetectAsn1Data> {
             opt(absolute_offset),
             opt(relative_offset),
             opt(alt((multispace1, tag(",")))),
-        ).parse(rest)?;
+        )
+            .parse(rest)?;
 
         if bitstring_overflow.is_some() {
             data.bitstring_overflow = true;
@@ -196,10 +195,7 @@ pub(super) fn asn1_parse_rule(input: &str) -> IResult<&str, DetectAsn1Data> {
         } else if let Some((_, v)) = relative_offset {
             data.relative_offset = Some(v);
         } else {
-            return Err(Err::Error(make_error(
-                rest,
-                ErrorKind::Verify,
-            )));
+            return Err(Err::Error(make_error(rest, ErrorKind::Verify)));
         }
 
         rest = new_rest;
