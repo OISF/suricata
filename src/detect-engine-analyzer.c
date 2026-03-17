@@ -506,6 +506,7 @@ void SetupEngineAnalysis(DetectEngineCtx *de_ctx, bool *fp_analysis, bool *rule_
         if (ea->analyzer_items)
             SCFree(ea->analyzer_items);
         SCFree(ea);
+        de_ctx->ea = NULL;
     }
 }
 
@@ -1493,6 +1494,9 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
             smd = s->sm_arrays[mpm_list];
         }
         do {
+            if (smd == NULL) {
+                break;
+            }
             switch (smd->type) {
                 case DETECT_CONTENT: {
                     const DetectContentData *cd = (const DetectContentData *)smd->ctx;

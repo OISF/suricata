@@ -1862,6 +1862,9 @@ void AppLayerParserRegisterProtocolParsers(void)
 /* coccinelle: SCAppLayerParserStateSetFlag():2,2:APP_LAYER_PARSER_ */
 void SCAppLayerParserStateSetFlag(AppLayerParserState *pstate, uint16_t flag)
 {
+    if (pstate == NULL) {
+        return;
+    }
     SCEnter();
     pstate->flags |= flag;
     SCReturn;
@@ -1871,7 +1874,7 @@ void SCAppLayerParserStateSetFlag(AppLayerParserState *pstate, uint16_t flag)
 uint16_t SCAppLayerParserStateIssetFlag(AppLayerParserState *pstate, uint16_t flag)
 {
     SCEnter();
-    SCReturnUInt(pstate->flags & flag);
+    SCReturnUInt(pstate && (pstate->flags & flag));
 }
 
 /***** Unittests *****/

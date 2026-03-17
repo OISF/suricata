@@ -190,10 +190,13 @@ static void DetectRun(ThreadVars *th_v,
         DetectRunTx(th_v, de_ctx, det_ctx, p, pflow, &scratch);
         PACKET_PROFILING_DETECT_END(p, PROF_DETECT_TX);
         /* see if we need to increment the inspect_id and reset the de_state */
-        PACKET_PROFILING_DETECT_START(p, PROF_DETECT_TX_UPDATE);
-        AppLayerParserSetTransactionInspectId(
-                pflow, pflow->alparser, pflow->alstate, scratch.flow_flags, (scratch.sgh == NULL));
-        PACKET_PROFILING_DETECT_END(p, PROF_DETECT_TX_UPDATE);
+        /* pflow->alparser can be NULL */
+        if (pflow->alparser != NULL) {
+            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_TX_UPDATE);
+            AppLayerParserSetTransactionInspectId(
+                    pflow, pflow->alparser, pflow->alstate, scratch.flow_flags, (scratch.sgh == NULL));
+            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_TX_UPDATE);
+        }
     } else {
         SCLogDebug("packet %" PRIu64 ": no flow / app-layer", PcapPacketCntGet(p));
         DetectRunAppendDefaultAccept(det_ctx, p);
