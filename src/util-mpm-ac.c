@@ -862,8 +862,10 @@ uint32_t SCACSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
     /* \todo Change it for stateful MPM.  Supply the state using mpm_thread_ctx */
     const SCACPatternList *pid_pat_list = ctx->pid_pat_list;
 
-    uint8_t bitarray[ctx->pattern_id_bitarray_size];
-    memset(bitarray, 0, ctx->pattern_id_bitarray_size);
+    uint8_t *bitarray = SCCalloc(ctx->pattern_id_bitarray_size, sizeof(uint8_t));
+    if (bitarray == NULL) {
+        return matches;
+    }
 
     if (ctx->state_count < 32767) {
         register SC_AC_STATE_TYPE_U16 state = 0;
@@ -959,6 +961,7 @@ uint32_t SCACSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
             }
         }
     }
+    SCFree(bitarray);
     return matches;
 }
 
