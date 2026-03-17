@@ -197,6 +197,7 @@ static int DetectClasstypeSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     if (real_ct && update_ct) {
         s->class_id = ct->classtype_id;
         s->class_msg = ct->classtype_desc;
+        s->classtype = ct->classtype;
     }
     return 0;
 }
