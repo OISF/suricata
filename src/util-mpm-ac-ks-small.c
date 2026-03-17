@@ -48,8 +48,10 @@ uint32_t FUNC_NAME(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
     uint32_t i = 0;
     int matches = 0;
 
-    uint8_t mpm_bitarray[ctx->mpm_bitarray_size];
-    memset(mpm_bitarray, 0, ctx->mpm_bitarray_size);
+    uint8_t *mpm_bitarray = SCCalloc(ctx->mpm_bitarray_size, sizeof(uint8_t));
+    if (mpm_bitarray == NULL) {
+        return matches;
+    }
 
     const uint8_t* restrict xlate = ctx->translate_table;
     STYPE *state_table = (STYPE*)ctx->state_table;
@@ -106,6 +108,7 @@ uint32_t FUNC_NAME(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
         }
     } /* for (i = 0; i < buflen; i++) */
 
+    SCFree(mpm_bitarray);
     return matches;
 }
 
