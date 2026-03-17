@@ -78,7 +78,7 @@ The protocol value will limit what protocol(s) the signature will be applied to:
 * icmpv6
 * ipv4/ip4 - just IPv4
 * ipv6/ip6 - just IPv6
-* pkthdr (for inspecting packets w/o invalid headers)
+* pkthdr (for matching on packets with decoder events)
 
 There are a couple of additional TCP related protocol options:
 
@@ -132,6 +132,20 @@ is enabled in the configuration file, suricata.yaml.
 
 If you have a signature with the protocol declared as 'http', Suricata makes
 sure the signature will only match if the TCP stream contains http traffic.
+
+Matching on non-IP packets
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Traditionally the rule language was only about matching on IP packets. For packets
+that caused decoder events in the layers before IP a special protocol `pkthdr` was
+added.
+
+.. container:: example-rule
+
+    alert :example-rule-emphasis:`pkthdr` any any -> any any (msg:"SURICATA IPv4 packet too small"; decode-event:ipv4.pkt_too_small; classtype:protocol-command-decode; sid:2200000; rev:2;)
+
+Up until Suricata 8 this protocol was an alias for `alert ip`, but in Suricata 9 it
+is only to be used in decoder event rules.
 
 Explicit rule hooks
 ~~~~~~~~~~~~~~~~~~~
