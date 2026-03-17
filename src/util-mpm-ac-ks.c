@@ -1138,8 +1138,10 @@ uint32_t SCACTileSearchLarge(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thr
     uint32_t i = 0;
     int matches = 0;
 
-    uint8_t mpm_bitarray[ctx->mpm_bitarray_size];
-    memset(mpm_bitarray, 0, ctx->mpm_bitarray_size);
+    uint8_t *mpm_bitarray = SCCalloc(ctx->mpm_bitarray_size, sizeof(uint8_t));
+    if (mpm_bitarray == NULL) {
+        return matches;
+    }
 
     const uint8_t* restrict xlate = ctx->translate_table;
     register int state = 0;
@@ -1151,6 +1153,7 @@ uint32_t SCACTileSearchLarge(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thr
             matches = CheckMatch(ctx, pmq, buf, buflen, (uint16_t)state, i, matches, mpm_bitarray);
         }
     } /* for (i = 0; i < buflen; i++) */
+    SCFree(mpm_bitarray);
 
     return matches;
 }
