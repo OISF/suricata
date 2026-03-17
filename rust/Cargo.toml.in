@@ -12,6 +12,7 @@ members = [
     "derive",
     "suricatactl",
     "suricatasc",
+    "config",
     "sys",
     "ffi",
     "htp",
@@ -88,6 +89,7 @@ time = "=0.3.41"
 suricata-derive = { path = "./derive", version = "@PACKAGE_VERSION@" }
 suricata-sys = { path = "./sys", version = "@PACKAGE_VERSION@" }
 suricata-ffi = { path = "./ffi", version = "@PACKAGE_VERSION@" }
+suricata-config = { path = "./config", version = "@PACKAGE_VERSION@" }
 
 suricata-lua-sys = { version = "5.4.8002" }
 

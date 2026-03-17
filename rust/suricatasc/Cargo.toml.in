@@ -10,7 +10,7 @@ readme = "README.md"
 name = "suricatasc"
 
 [dependencies]
-clap = { version = "4.5.39", default-features = false, features = ["std", "derive", "help", "usage"] }
+clap = { version = "4.5.39", default-features = false, features = ["std", "derive", "help", "usage", "color"] }
 
 once_cell = { version = "1.21.3" }
 

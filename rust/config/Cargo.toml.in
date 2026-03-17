@@ -1,0 +1,16 @@
+[package]
+name = "suricata-config"
+version = "@PACKAGE_VERSION@"
+edition = "2021"
+license = "GPL-2.0-only"
+description = "Suricata configuration tooling"
+rust-version = "1.75.0"
+
+[dependencies]
+jsonschema = { version = "0.14.0", default-features = false, features = ["draft202012"] }
+# Pinned back to support Rust 1.75.0. Not used directly by us, but by jsonschema.
+url = { version = "=2.5.2" }
+saphyr = { version = "0.0.6" }
+saphyr-parser = { version = "0.0.6" }
+serde_json = { version = "1.0.140", default-features = false, features = ["std", "preserve_order"] }
+thiserror = "2.0.12"

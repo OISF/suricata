@@ -1,0 +1,5 @@
+%YAML 1.1
+---
+foobar:
+  - include: include-root.yaml
+  - include: include-override.yaml

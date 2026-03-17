@@ -1,0 +1,5 @@
+%YAML 1.1
+---
+stats:
+  interval: 30
+host-mode: pcap

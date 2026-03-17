@@ -13,4 +13,5 @@ regex = "~1.5.6"
 tracing = "0.1"
 tracing-subscriber = "0.3"
 once_cell = { version = "1.21.3" }
-clap = { version = "4.5.39", default-features = false, features = ["std", "derive", "help", "usage"] }
+clap = { version = "4.5.39", default-features = false, features = ["std", "derive", "help", "usage", "color"] }
+suricata-config = { path = "../config", version = "@PACKAGE_VERSION@" }
