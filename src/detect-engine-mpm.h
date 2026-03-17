@@ -41,7 +41,7 @@ uint32_t PatternStrength(uint8_t *, uint16_t);
 uint8_t PatternMatchDefaultMatcher(void);
 
 void PatternMatchPrepare(MpmCtx *, uint16_t);
-void PatternMatchThreadPrepare(MpmThreadCtx *, uint16_t type);
+void PatternMatchThreadPrepare(MpmThreadCtx *, DetectEngineCtx *);
 
 void PatternMatchDestroy(MpmCtx *, uint16_t);
 void PatternMatchThreadDestroy(MpmThreadCtx *mpm_thread_ctx, uint16_t);
