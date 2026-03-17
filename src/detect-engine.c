@@ -3317,7 +3317,7 @@ error:
  */
 static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx)
 {
-    PatternMatchThreadPrepare(&det_ctx->mtc, de_ctx->mpm_matcher);
+    PatternMatchThreadPrepare(&det_ctx->mtc, NULL, de_ctx->mpm_matcher);
 
     PmqSetup(&det_ctx->pmq);
 
@@ -3579,7 +3579,7 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
 
     /** \todo get rid of this static */
     if (det_ctx->de_ctx != NULL) {
-        PatternMatchThreadDestroy(&det_ctx->mtc, det_ctx->de_ctx->mpm_matcher);
+        PatternMatchThreadDestroy(&det_ctx->mtc, NULL, det_ctx->de_ctx->mpm_matcher);
     }
 
     PmqFree(&det_ctx->pmq);
