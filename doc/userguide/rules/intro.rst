@@ -78,7 +78,7 @@ The protocol value will limit what protocol(s) the signature will be applied to:
 * icmpv6
 * ipv4/ip4 - just IPv4
 * ipv6/ip6 - just IPv6
-* pkthdr (for inspecting packets w/o invalid headers)
+* pkthdr (for matching on packets with decoder events)
 
 There are a couple of additional TCP related protocol options:
 
