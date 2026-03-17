@@ -84,6 +84,9 @@ Other Changes
   ``app-layer.protocols.sip.tcp.enabled`` would be read and preferred over
   ``app-layer.protocols.sip.enabled``.
 
+- `alert pkthdr` is now only available for decoder event rules. Previously it acted
+  like `alert ip`.
+
 Changes for Library Users and Plugin Developers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
