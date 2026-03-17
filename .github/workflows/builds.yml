@@ -1318,9 +1318,6 @@ jobs:
           name: dist
       - run: tar xf suricata-*.tar.gz --strip-components=1
 
-      - name: Update packages and install sudo
-        run: dnf -y update && dnf install -y sudo
-
       - name: Install AlmaLinux 9 extra repositories
         run: |
           dnf -y update
