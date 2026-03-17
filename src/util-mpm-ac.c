@@ -861,8 +861,15 @@ uint32_t SCACSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
      * to dig deeper */
     /* \todo Change it for stateful MPM.  Supply the state using mpm_thread_ctx */
     const SCACPatternList *pid_pat_list = ctx->pid_pat_list;
-
-    uint8_t bitarray[ctx->pattern_id_bitarray_size];
+    uint8_t *bitarray = (uint8_t *)mpm_thread_ctx->ctx;
+    if (ctx->pattern_id_bitarray_size > mpm_thread_ctx->memory_size) {
+        bitarray = SCRealloc(bitarray, ctx->pattern_id_bitarray_size);
+        if (bitarray == NULL) {
+            return 0;
+        }
+        mpm_thread_ctx->ctx = bitarray;
+        mpm_thread_ctx->memory_size = ctx->pattern_id_bitarray_size;
+    }
     memset(bitarray, 0, ctx->pattern_id_bitarray_size);
 
     if (ctx->state_count < 32767) {
@@ -1029,6 +1036,39 @@ void SCACPrintInfo(MpmCtx *mpm_ctx)
     printf("\n");
 }
 
+/**
+ * \brief Init the mpm thread context.
+ *
+ * \param mpm_ctx        Pointer to the mpm context.
+ * \param mpm_thread_ctx Pointer to the mpm thread context.
+ */
+static void SCACInitThreadCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx)
+{
+    if (mpm_ctx == NULL)
+        return;
+
+    const SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+
+    uint8_t *bitarray = SCCalloc(ctx->pattern_id_bitarray_size, sizeof(uint8_t));
+    if (bitarray == NULL) {
+        exit(EXIT_FAILURE);
+    }
+    mpm_thread_ctx->ctx = bitarray;
+    mpm_thread_ctx->memory_cnt++;
+    mpm_thread_ctx->memory_size += ctx->pattern_id_bitarray_size;
+}
+
+static void SCACDestroyThreadCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx)
+{
+    if (mpm_ctx == NULL)
+        return;
+
+    const SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+    mpm_thread_ctx->memory_cnt--;
+    mpm_thread_ctx->memory_size -= ctx->pattern_id_bitarray_size;
+    SCFree(mpm_thread_ctx->ctx);
+    mpm_thread_ctx->ctx = NULL;
+}
 
 /************************** Mpm Registration ***************************/
 
@@ -1049,6 +1089,8 @@ void MpmACRegister(void)
     mpm_table[MPM_AC].CacheRuleset = NULL;
     mpm_table[MPM_AC].Search = SCACSearch;
     mpm_table[MPM_AC].PrintCtx = SCACPrintInfo;
+    mpm_table[MPM_AC].InitThreadCtx = SCACInitThreadCtx;
+    mpm_table[MPM_AC].DestroyThreadCtx = SCACDestroyThreadCtx;
 #ifdef UNITTESTS
     mpm_table[MPM_AC].RegisterUnittests = SCACRegisterTests;
 #endif
