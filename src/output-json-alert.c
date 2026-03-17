@@ -646,8 +646,10 @@ static bool AlertJsonStreamData(const AlertJsonOutputCtx *json_output_ctx, JsonA
 
 /**
  * \brief Check if alert's classtype matches the payload extraction filter if filtering is
- * configured \param filter HashTable of classtype names to check (can be NULL) \param pa
- * PacketAlert containing the signature \return true if payload should be extracted, false otherwise
+ * configured
+ * \param filter HashTable of classtype names to check (can be NULL)
+ * \param pa PacketAlert containing the signature
+ * \return true if payload should be extracted, false otherwise
  */
 static bool ShouldDumpPayloadInAlert(const HashTable *filter, const PacketAlert *pa)
 {
