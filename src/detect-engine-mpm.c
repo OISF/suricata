@@ -960,15 +960,15 @@ void PatternMatchDestroy(MpmCtx *mpm_ctx, uint16_t mpm_matcher)
     mpm_table[mpm_matcher].DestroyCtx(mpm_ctx);
 }
 
-void PatternMatchThreadDestroy(MpmThreadCtx *mpm_thread_ctx, uint16_t mpm_matcher)
+void PatternMatchThreadDestroy(MpmThreadCtx *mpm_thread_ctx, MpmCtx *mpm_ctx, uint16_t mpm_matcher)
 {
     SCLogDebug("mpm_thread_ctx %p, mpm_matcher %"PRIu16"", mpm_thread_ctx, mpm_matcher);
-    MpmDestroyThreadCtx(mpm_thread_ctx, mpm_matcher);
+    MpmDestroyThreadCtx(mpm_thread_ctx, mpm_ctx, mpm_matcher);
 }
-void PatternMatchThreadPrepare(MpmThreadCtx *mpm_thread_ctx, uint16_t mpm_matcher)
+void PatternMatchThreadPrepare(MpmThreadCtx *mpm_thread_ctx, MpmCtx *mpm_ctx, uint16_t mpm_matcher)
 {
     SCLogDebug("mpm_thread_ctx %p, type %"PRIu16, mpm_thread_ctx, mpm_matcher);
-    MpmInitThreadCtx(mpm_thread_ctx, mpm_matcher);
+    MpmInitThreadCtx(mpm_thread_ctx, mpm_ctx, mpm_matcher);
 }
 
 /** \brief Predict a strength value for patterns

@@ -192,17 +192,17 @@ void MpmFactoryDeRegisterAllMpmCtxProfiles(DetectEngineCtx *de_ctx)
     de_ctx->mpm_ctx_factory_container = NULL;
 }
 
-void MpmInitThreadCtx(MpmThreadCtx *mpm_thread_ctx, uint16_t matcher)
+void MpmInitThreadCtx(MpmThreadCtx *mpm_thread_ctx, MpmCtx *mpm_ctx, uint16_t matcher)
 {
     if (mpm_table[matcher].InitThreadCtx != NULL) {
-        mpm_table[matcher].InitThreadCtx(NULL, mpm_thread_ctx);
+        mpm_table[matcher].InitThreadCtx(mpm_ctx, mpm_thread_ctx);
     }
 }
 
-void MpmDestroyThreadCtx(MpmThreadCtx *mpm_thread_ctx, const uint16_t matcher)
+void MpmDestroyThreadCtx(MpmThreadCtx *mpm_thread_ctx, MpmCtx *mpm_ctx, const uint16_t matcher)
 {
     if (mpm_table[matcher].DestroyThreadCtx != NULL) {
-        mpm_table[matcher].DestroyThreadCtx(NULL, mpm_thread_ctx);
+        mpm_table[matcher].DestroyThreadCtx(mpm_ctx, mpm_thread_ctx);
     }
 }
 

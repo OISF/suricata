@@ -84,6 +84,8 @@ static void SCACRegisterTests(void);
 #define AC_PID_MASK     0x7FFFFFFF
 #define AC_CASE_BIT     31
 
+SC_ATOMIC_DECLARE(uint32_t, g_max_bitarray_size);
+
 static int construct_both_16_and_32_state_tables = 0;
 
 /**
@@ -725,6 +727,9 @@ int SCACPreparePatterns(MpmConfig *mpm_conf, MpmCtx *mpm_ctx)
 
     ctx->pattern_id_bitarray_size = (mpm_ctx->max_pat_id / 8) + 1;
     SCLogDebug("ctx->pattern_id_bitarray_size %u", ctx->pattern_id_bitarray_size);
+    if (ctx->pattern_id_bitarray_size > SC_ATOMIC_GET(g_max_bitarray_size)) {
+        SC_ATOMIC_SET(g_max_bitarray_size, ctx->pattern_id_bitarray_size);
+    }
 
     return 0;
 
@@ -861,8 +866,7 @@ uint32_t SCACSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
      * to dig deeper */
     /* \todo Change it for stateful MPM.  Supply the state using mpm_thread_ctx */
     const SCACPatternList *pid_pat_list = ctx->pid_pat_list;
-
-    uint8_t bitarray[ctx->pattern_id_bitarray_size];
+    uint8_t *bitarray = (uint8_t *)mpm_thread_ctx->ctx;
     memset(bitarray, 0, ctx->pattern_id_bitarray_size);
 
     if (ctx->state_count < 32767) {
@@ -1029,6 +1033,38 @@ void SCACPrintInfo(MpmCtx *mpm_ctx)
     printf("\n");
 }
 
+/**
+ * \brief Init the mpm thread context.
+ *
+ * \param mpm_ctx        Pointer to the mpm context.
+ * \param mpm_thread_ctx Pointer to the mpm thread context.
+ */
+static void SCACInitThreadCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx)
+{
+    size_t size;
+    if (mpm_ctx == NULL) {
+        size = SC_ATOMIC_GET(g_max_bitarray_size);
+    } else {
+        const SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+        size = ctx->pattern_id_bitarray_size;
+    }
+
+    uint8_t *bitarray = SCCalloc(size, sizeof(uint8_t));
+    if (bitarray == NULL) {
+        exit(EXIT_FAILURE);
+    }
+    mpm_thread_ctx->ctx = bitarray;
+    mpm_thread_ctx->memory_cnt++;
+    mpm_thread_ctx->memory_size += size;
+}
+
+static void SCACDestroyThreadCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx)
+{
+    mpm_thread_ctx->memory_cnt--;
+    mpm_thread_ctx->memory_size = 0;
+    SCFree(mpm_thread_ctx->ctx);
+    mpm_thread_ctx->ctx = NULL;
+}
 
 /************************** Mpm Registration ***************************/
 
@@ -1049,6 +1085,8 @@ void MpmACRegister(void)
     mpm_table[MPM_AC].CacheRuleset = NULL;
     mpm_table[MPM_AC].Search = SCACSearch;
     mpm_table[MPM_AC].PrintCtx = SCACPrintInfo;
+    mpm_table[MPM_AC].InitThreadCtx = SCACInitThreadCtx;
+    mpm_table[MPM_AC].DestroyThreadCtx = SCACDestroyThreadCtx;
 #ifdef UNITTESTS
     mpm_table[MPM_AC].RegisterUnittests = SCACRegisterTests;
 #endif
