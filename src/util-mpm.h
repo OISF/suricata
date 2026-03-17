@@ -208,7 +208,7 @@ void MpmTableSetup(void);
 void MpmRegisterTests(void);
 
 void MpmInitCtx(MpmCtx *mpm_ctx, uint8_t matcher);
-void MpmInitThreadCtx(MpmThreadCtx *mpm_thread_ctx, uint16_t);
+void MpmInitThreadCtx(MpmThreadCtx *mpm_thread_ctx, MpmCtx *mpm_ctx, uint16_t);
 void MpmDestroyThreadCtx(MpmThreadCtx *mpm_thread_ctx, const uint16_t matcher);
 
 int MpmAddPatternCS(struct MpmCtx_ *mpm_ctx, uint8_t *pat, uint16_t patlen,
