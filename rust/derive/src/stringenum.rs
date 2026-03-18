@@ -112,7 +112,8 @@ where
                         let fnameu = fname.to_ascii_uppercase();
                         names_upper.push(fnameu);
                     }
-                    "" => { // snake_case
+                    "" => {
+                        // snake_case
                         let fname = transform_name(&v.ident.to_string());
                         let fnameu = fname.to_ascii_uppercase();
                         names.push(fname);
