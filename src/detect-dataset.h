@@ -31,6 +31,7 @@ typedef struct DetectDatasetData_ {
     Dataset *set;
     uint8_t cmd;
     DatasetFormats format;
+    bool match_subdomain; /* walk up domain hierarchy on lookup */
     DataJsonType json;
     char json_key[SIG_JSON_CONTENT_KEY_LEN];
     void *id; /* pointer to the triggering signature */

@@ -61,6 +61,21 @@ void DetectDatasetRegister (void)
     sigmatch_table[DETECT_DATASET].Free  = DetectDatasetFree;
 }
 
+/** \brief walk up the domain hierarchy looking for a match in a JSON dataset */
+static DataJsonResultType DatajsonLookupSubdomain(
+        Dataset *set, const uint8_t *data, const uint32_t data_len)
+{
+    DataJsonResultType r = { .found = false, .json = { .value = NULL, .len = 0 }, .hashdata = NULL };
+    for (uint32_t i = 1; i < data_len; i++) {
+        if (data[i] == '.') {
+            r = DatajsonLookup(set, data + i, data_len - i);
+            if (r.found)
+                return r;
+        }
+    }
+    return r;
+}
+
 /*
     1 match
     0 no match
@@ -76,6 +91,9 @@ static int DetectDatajsonBufferMatch(DetectEngineThreadCtx *det_ctx, const Detec
             // PrintRawDataFp(stdout, data, data_len);
             DataJsonResultType r = DatajsonLookup(sd->set, data, data_len);
             SCLogDebug("r found: %d, len: %u", r.found, r.json.len);
+            if (!r.found && sd->match_subdomain) {
+                r = DatajsonLookupSubdomain(sd->set, data, data_len);
+            }
             if (!r.found)
                 return 0;
             if (r.json.len > 0) {
@@ -101,6 +119,9 @@ static int DetectDatajsonBufferMatch(DetectEngineThreadCtx *det_ctx, const Detec
             // PrintRawDataFp(stdout, data, data_len);
             DataJsonResultType r = DatajsonLookup(sd->set, data, data_len);
             SCLogDebug("r found: %d, len: %u", r.found, r.json.len);
+            if (!r.found && sd->match_subdomain) {
+                r = DatajsonLookupSubdomain(sd->set, data, data_len);
+            }
             if (r.found) {
                 DatajsonUnlockElt(&r);
                 return 0;
@@ -109,6 +130,19 @@ static int DetectDatajsonBufferMatch(DetectEngineThreadCtx *det_ctx, const Detec
         }
         default:
             DEBUG_VALIDATE_BUG_ON("unknown dataset with json command");
+    }
+    return 0;
+}
+
+/** \brief walk up the domain hierarchy looking for a match in a dataset */
+static int DatasetLookupSubdomain(Dataset *set, const uint8_t *data, const uint32_t data_len)
+{
+    for (uint32_t i = 1; i < data_len; i++) {
+        if (data[i] == '.') {
+            int r = DatasetLookup(set, data + i, data_len - i);
+            if (r == 1)
+                return 1;
+        }
     }
     return 0;
 }
@@ -132,6 +166,9 @@ int DetectDatasetBufferMatch(DetectEngineThreadCtx *det_ctx,
         case DETECT_DATASET_CMD_ISSET: {
             //PrintRawDataFp(stdout, data, data_len);
             int r = DatasetLookup(sd->set, data, data_len);
+            if (r != 1 && sd->match_subdomain) {
+                r = DatasetLookupSubdomain(sd->set, data, data_len);
+            }
             SCLogDebug("r %d", r);
             if (r == 1)
                 return 1;
@@ -140,6 +177,9 @@ int DetectDatasetBufferMatch(DetectEngineThreadCtx *det_ctx,
         case DETECT_DATASET_CMD_ISNOTSET: {
             //PrintRawDataFp(stdout, data, data_len);
             int r = DatasetLookup(sd->set, data, data_len);
+            if (r != 1 && sd->match_subdomain) {
+                r = DatasetLookupSubdomain(sd->set, data, data_len);
+            }
             SCLogDebug("r %d", r);
             if (r < 1)
                 return 1;
@@ -168,7 +208,7 @@ static int DetectDatasetParse(const char *str, char *cmd, int cmd_len, char *nam
         enum DatasetTypes *type, char *load, size_t load_size, char *save, size_t save_size,
         uint64_t *memcap, uint32_t *hashsize, DatasetFormats *format, char *value_key,
         size_t value_key_size, char *array_key, size_t array_key_size, char *enrichment_key,
-        size_t enrichment_key_size, bool *remove_key)
+        size_t enrichment_key_size, bool *remove_key, bool *match_subdomain)
 {
     bool cmd_set = false;
     bool name_set = false;
@@ -220,6 +260,13 @@ static int DetectDatasetParse(const char *str, char *cmd, int cmd_len, char *nam
                     *remove_key = true;
                 } else
                     return -1;
+            } else if (strcmp(key, "match") == 0) {
+                if (strcmp(val, "subdomain") == 0) {
+                    *match_subdomain = true;
+                } else {
+                    SCLogError("unknown match mode '%s'", val);
+                    return -1;
+                }
             } else if (strcmp(key, "type") == 0) {
                 SCLogDebug("type %s", val);
 
@@ -473,6 +520,7 @@ int DetectDatasetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     char array_key[SIG_JSON_CONTENT_KEY_LEN] = "";
     char enrichment_key[SIG_JSON_CONTENT_KEY_LEN] = "";
     bool remove_key = false;
+    bool match_subdomain = false;
 
     if (DetectBufferGetActiveList(de_ctx, s) == -1) {
         SCLogError("datasets are only supported for sticky buffers");
@@ -488,7 +536,7 @@ int DetectDatasetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     if (!DetectDatasetParse(rawstr, cmd_str, sizeof(cmd_str), name, sizeof(name), &type, load,
                 sizeof(load), save, sizeof(save), &memcap, &hashsize, &format, value_key,
                 sizeof(value_key), array_key, sizeof(array_key), enrichment_key,
-                sizeof(enrichment_key), &remove_key)) {
+                sizeof(enrichment_key), &remove_key, &match_subdomain)) {
         return -1;
     }
 
@@ -511,6 +559,17 @@ int DetectDatasetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     } else {
         SCLogError("dataset action \"%s\" is not supported.", cmd_str);
         return -1;
+    }
+
+    if (match_subdomain) {
+        if (cmd != DETECT_DATASET_CMD_ISSET && cmd != DETECT_DATASET_CMD_ISNOTSET) {
+            SCLogError("'match subdomain' only supports isset/isnotset commands");
+            return -1;
+        }
+        if (type != DATASET_TYPE_STRING) {
+            SCLogError("'match subdomain' only supports type string");
+            return -1;
+        }
     }
 
     if ((format == DATASET_FORMAT_JSON) || (format == DATASET_FORMAT_NDJSON)) {
@@ -571,6 +630,7 @@ int DetectDatasetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     cd->set = set;
     cd->cmd = cmd;
     cd->format = format;
+    cd->match_subdomain = match_subdomain;
     if ((format == DATASET_FORMAT_JSON) || (format == DATASET_FORMAT_NDJSON)) {
         strlcpy(cd->json_key, enrichment_key, sizeof(cd->json_key));
     }
