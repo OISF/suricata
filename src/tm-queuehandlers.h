@@ -24,6 +24,8 @@
 #ifndef SURICATA_TM_QUEUEHANDLERS_H
 #define SURICATA_TM_QUEUEHANDLERS_H
 
+#include "packet-queue.h"
+
 enum {
     TMQH_NOT_SET,
     TMQH_SIMPLE,
@@ -35,7 +37,7 @@ enum {
 
 typedef struct Tmqh_ {
     const char *name;
-    Packet *(*InHandler)(ThreadVars *);
+    PacketQueueNoLock (*InHandler)(ThreadVars *);
     void (*InShutdownHandler)(ThreadVars *);
     void (*OutHandler)(ThreadVars *, Packet *);
     void *(*OutHandlerCtxSetup)(const char *);

@@ -40,7 +40,7 @@
 #include "conf.h"
 #include "util-unittest.h"
 
-Packet *TmqhInputFlow(ThreadVars *t);
+PacketQueueNoLock TmqhInputFlow(ThreadVars *t);
 void TmqhOutputFlowHash(ThreadVars *t, Packet *p);
 void TmqhOutputFlowIPPair(ThreadVars *t, Packet *p);
 static void TmqhOutputFlowFTPHash(ThreadVars *t, Packet *p);
@@ -98,27 +98,21 @@ void TmqhFlowPrintAutofpHandler(void)
 }
 
 /* same as 'simple' */
-Packet *TmqhInputFlow(ThreadVars *tv)
+PacketQueueNoLock TmqhInputFlow(ThreadVars *tv)
 {
-    PacketQueue *q = tv->inq->pq;
-
     StatsSyncCountersIfSignalled(&tv->stats);
 
+    PacketQueue *q = tv->inq->pq;
     SCMutexLock(&q->mutex_q);
     if (q->len == 0) {
         /* if we have no packets in queue, wait... */
         SCCondWait(&q->cond_q, &q->mutex_q);
     }
-
-    if (q->len > 0) {
-        Packet *p = PacketDequeue(q);
-        SCMutexUnlock(&q->mutex_q);
-        return p;
-    } else {
-        /* return NULL if we have no pkt. Should only happen on signals. */
-        SCMutexUnlock(&q->mutex_q);
-        return NULL;
-    }
+    PacketQueueNoLock pq = { .top = q->top, .bot = q->bot, q->len };
+    q->bot = q->top = NULL;
+    q->len = 0;
+    SCMutexUnlock(&q->mutex_q);
+    return pq;
 }
 
 static int StoreQueueId(TmqhFlowCtx *ctx, char *name)

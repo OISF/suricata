@@ -489,39 +489,43 @@ static void *TmThreadsSlotVar(void *td)
     s = (TmSlot *)tv->tm_slots;
 
     while (run) {
-        /* input a packet */
-        p = tv->TmqhInFn(tv);
+        /* get packet(s) from the queue. Can get more than one so should loop
+         * over it. */
+        PacketQueueNoLock q = tv->TmqhInFn(tv);
+        do {
+            p = PacketDequeueNoLock(&q);
 
-        /* if we didn't get a packet see if we need to do some housekeeping */
-        if (unlikely(p == NULL)) {
-            if (tv->flow_queue && SC_ATOMIC_GET(tv->flow_queue->non_empty)) {
-                p = PacketGetFromQueueOrAlloc();
-                if (p != NULL) {
-                    p->flags |= PKT_PSEUDO_STREAM_END;
-                    PKT_SET_SRC(p, PKT_SRC_CAPTURE_TIMEOUT);
+            /* if we didn't get a packet see if we need to do some housekeeping */
+            if (unlikely(p == NULL)) {
+                if (tv->flow_queue && SC_ATOMIC_GET(tv->flow_queue->non_empty)) {
+                    p = PacketGetFromQueueOrAlloc();
+                    if (p != NULL) {
+                        p->flags |= PKT_PSEUDO_STREAM_END;
+                        PKT_SET_SRC(p, PKT_SRC_CAPTURE_TIMEOUT);
+                    }
                 }
             }
-        }
 
-        if (p != NULL) {
-            /* run the thread module(s) */
-            r = TmThreadsSlotVarRun(tv, p, s);
-            if (r == TM_ECODE_FAILED) {
-                TmqhOutputPacketpool(tv, p);
-                TmThreadsSetFlag(tv, THV_FAILED);
-                break;
+            if (p != NULL) {
+                /* run the thread module(s) */
+                r = TmThreadsSlotVarRun(tv, p, s);
+                if (r == TM_ECODE_FAILED) {
+                    TmqhOutputPacketpool(tv, p);
+                    TmThreadsSetFlag(tv, THV_FAILED);
+                    break;
+                }
+
+                /* output the packet */
+                tv->TmqhOutFn(tv, p);
+
+                /* now handle the stream pq packets */
+                TmThreadsHandleInjectedPackets(tv);
             }
 
-            /* output the packet */
-            tv->TmqhOutFn(tv, p);
-
-            /* now handle the stream pq packets */
-            TmThreadsHandleInjectedPackets(tv);
-        }
-
-        if (TmThreadsCheckFlag(tv, (THV_KILL | THV_REQ_FLOW_LOOP))) {
-            run = false;
-        }
+            if (TmThreadsCheckFlag(tv, (THV_KILL | THV_REQ_FLOW_LOOP))) {
+                run = false;
+            }
+        } while (q.len != 0);
     }
     if (!SCTmThreadsSlotPacketLoopFinish(tv)) {
         goto error;
