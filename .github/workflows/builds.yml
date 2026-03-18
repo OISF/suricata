@@ -2828,7 +2828,43 @@ jobs:
       - run: apt update -y && apt install -y sudo
 
       - name: Install minimal dependencies
-        run: ./scripts/docs-ubuntu-debian-minimal-build.sh
+        run: ./scripts/docs-ubuntu-minimal-build.sh
+
+      # Set the path, the export in the example script does not work
+      # in GitHub actions.
+      - run: echo "/usr/lib/rust-1.89/bin:$PATH" >> $GITHUB_PATH
+
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure
+      - run: make -j ${{ env.CPUS }}
+      - run: ./src/suricata --build-info # check if we can run Suricata
+
+  debian-13-minimal-recommended-build:
+    name: Debian 13 (Minimal/Recommended Build)
+    needs: [ubuntu-22-04-dist]
+    runs-on: ubuntu-latest
+    container: debian:13
+    steps:
+      # Cache Rust stuff.
+      - name: Cache cargo registry
+        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb
+        with:
+          path: ~/.cargo/registry
+          key: cargo-registry
+
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
+
+      - name: Download suricata.tar.gz
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3
+        with:
+          name: dist
+      - run: tar xvf suricata-*.tar.gz --strip-components=1
+
+      # Install packages required by the install script.
+      - run: apt update -y && apt install -y sudo
+
+      - name: Install minimal dependencies
+        run: ./scripts/docs-debian-minimal-build.sh
 
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure
       - run: make -j ${{ env.CPUS }}

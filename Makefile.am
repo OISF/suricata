@@ -9,7 +9,8 @@ EXTRA_DIST = ChangeLog COPYING LICENSE suricata.yaml.in \
 	     acsite.m4 \
 	     scripts/generate-images.sh \
 	     scripts/docs-almalinux9-minimal-build.sh \
-	     scripts/docs-ubuntu-debian-minimal-build.sh \
+	     scripts/docs-debian-minimal-build.sh \
+	     scripts/docs-ubuntu-minimal-build.sh \
        scripts/evedoc.py \
 	     examples/plugins
 SUBDIRS = rust src plugins qa rules doc etc python ebpf \
