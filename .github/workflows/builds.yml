@@ -1326,6 +1326,8 @@ jobs:
     runs-on: ubuntu-latest
     container: ubuntu:24.04
     needs: [prepare-deps]
+    env:
+      RV: "1.89"
     steps:
       - name: Cache ~/.cargo
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
@@ -1343,7 +1345,7 @@ jobs:
                 autoconf \
                 automake \
                 build-essential \
-                cargo \
+                cargo-${RV} \
                 cbindgen \
                 clang-14 \
                 coccinelle \
@@ -1375,10 +1377,10 @@ jobs:
                 parallel \
                 python-is-python3 \
                 python3-yaml \
-                rustc \
                 software-properties-common \
                 zlib1g \
                 zlib1g-dev
+      - run: echo "/usr/lib/rust-${RV}/bin" >> $GITHUB_PATH
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
@@ -1700,6 +1702,7 @@ jobs:
       # specific version to match up to the llvm version in ubuntu below
       - name: Install Rust
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.85.1 -y
+      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
@@ -1904,6 +1907,8 @@ jobs:
       image: ubuntu:24.04
       options: --privileged
     needs: [prepare-deps, prepare-cbindgen]
+    env:
+      RV: "1.89"
     steps:
       - name: Cache ~/.cargo
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
@@ -1922,7 +1927,7 @@ jobs:
                 autoconf \
                 automake \
                 llvm-18-dev \
-                cargo \
+                cargo-${RV} \
                 cbindgen \
                 clang-18 \
                 git \
@@ -1951,7 +1956,6 @@ jobs:
                 make \
                 parallel \
                 python3-yaml \
-                rustc \
                 software-properties-common \
                 sudo \
                 zlib1g \
@@ -1962,6 +1966,7 @@ jobs:
                 time \
                 wget \
                 dpdk-dev
+      - run: echo "/usr/lib/rust-${RV}/bin" >> $GITHUB_PATH
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
@@ -2149,6 +2154,8 @@ jobs:
       image: ubuntu:24.04
       options: --privileged
     needs: [prepare-deps, prepare-cbindgen]
+    env:
+      RV: "1.89"
     steps:
       - name: Cache ~/.cargo
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
@@ -2167,7 +2174,7 @@ jobs:
                 autoconf \
                 automake \
                 llvm-18-dev \
-                cargo \
+                cargo-${RV} \
                 cbindgen \
                 clang-18 \
                 git \
@@ -2197,7 +2204,6 @@ jobs:
                 make \
                 parallel \
                 python3-yaml \
-                rustc \
                 software-properties-common \
                 sudo \
                 zlib1g \
@@ -2208,6 +2214,7 @@ jobs:
                 time \
                 wget \
                 dpdk-dev
+      - run: echo "/usr/lib/rust-${RV}/bin" >> $GITHUB_PATH
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
@@ -2359,11 +2366,13 @@ jobs:
           files: coverage.lcov
           flags: fuzzcorpus
 
-  ubuntu-20-04-ndebug:
-    name: Ubuntu 20.04 (-DNDEBUG)
+  ubuntu-24-04-ndebug:
+    name: Ubuntu 24.04 (-DNDEBUG)
     runs-on: ubuntu-latest
-    container: ubuntu:20.04
+    container: ubuntu:24.04
     needs: [prepare-deps, prepare-cbindgen]
+    env:
+      RV: "1.89"
     steps:
       - name: Cache ~/.cargo
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
@@ -2381,7 +2390,7 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
-                cargo \
+                cargo-${RV} \
                 git \
                 hwloc \
                 libhwloc-dev \
@@ -2403,17 +2412,16 @@ jobs:
                 libjansson-dev \
                 libevent-dev \
                 libevent-pthreads-2.1-7 \
-                libpython2.7 \
                 libpcre2-dev \
                 make \
                 parallel \
                 python3-yaml \
-                rustc \
                 software-properties-common \
                 zlib1g \
                 zlib1g-dev \
                 exuberant-ctags \
                 dpdk-dev
+      - run: echo "/usr/lib/rust-${RV}/bin" >> $GITHUB_PATH
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
@@ -2516,6 +2524,8 @@ jobs:
       image: ubuntu:22.04
       options: --privileged
     needs: [prepare-deps, prepare-cbindgen]
+    env:
+      RV: "1.89"
     steps:
 
       # Cache Rust stuff.
@@ -2536,7 +2546,7 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
-                cargo \
+                cargo-${RV} \
                 git \
                 hwloc \
                 libhwloc-dev \
@@ -2561,12 +2571,12 @@ jobs:
                 make \
                 parallel \
                 python3-yaml \
-                rustc \
                 software-properties-common \
                 sudo \
                 zlib1g \
                 zlib1g-dev \
                 exuberant-ctags
+      - run: echo "/usr/lib/rust-${RV}/bin" >> $GITHUB_PATH
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
@@ -2599,6 +2609,8 @@ jobs:
     runs-on: ubuntu-22.04
     container: ubuntu:22.04
     needs: [prepare-deps, prepare-cbindgen]
+    env:
+      RV: "1.89"
     steps:
 
       # Cache Rust stuff.
@@ -2621,7 +2633,7 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
-                cargo \
+                cargo-${RV} \
                 git \
                 hwloc \
                 libhwloc-dev \
@@ -2645,7 +2657,7 @@ jobs:
                 software-properties-common \
                 zlib1g \
                 zlib1g-dev
-      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - run: echo "/usr/lib/rust-${RV}/bin:$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
@@ -2831,6 +2843,8 @@ jobs:
     strategy:
       matrix:
         dpdk_version: [ 24.11.3, 23.11.5, 22.11.10, 21.11.9 ]
+    env:
+      RV: "1.89"
     steps:
 
       # Cache Rust stuff.
@@ -2851,7 +2865,7 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
-                cargo \
+                cargo-${RV} \
                 git \
                 hwloc \
                 libhwloc-dev \
@@ -2876,7 +2890,6 @@ jobs:
                 make \
                 parallel \
                 python3-yaml \
-                rustc \
                 software-properties-common \
                 zlib1g \
                 zlib1g-dev \
@@ -2908,6 +2921,7 @@ jobs:
           ninja -C build install
           ldconfig
           cd $HOME
+      - run: echo "/usr/lib/rust-${RV}/bin" >> $GITHUB_PATH
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
@@ -3117,6 +3131,8 @@ jobs:
     runs-on: ubuntu-latest
     container: ubuntu:22.04
     needs: [prepare-deps, prepare-cbindgen]
+    env:
+      RV: "1.89"
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
@@ -3134,7 +3150,7 @@ jobs:
               autoconf \
               automake \
               build-essential \
-              cargo \
+              cargo-${RV} \
               cmake \
               curl \
               git \
@@ -3162,7 +3178,6 @@ jobs:
               pkg-config \
               python3 \
               python3-yaml \
-              rustc \
               sphinx-doc \
               sphinx-common \
               texlive-latex-base \
@@ -3171,6 +3186,7 @@ jobs:
               texlive-latex-extra \
               zlib1g \
               zlib1g-dev
+      - run: echo "/usr/lib/rust-${RV}/bin" >> $GITHUB_PATH
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
