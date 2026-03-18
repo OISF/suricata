@@ -377,6 +377,8 @@ jobs:
         working-directory: rust/suricatasc
       - run: cargo fmt --check
         working-directory: rust/sys
+      - run: cargo fmt --check
+        working-directory: rust/derive
       - name: Check if Cargo.lock.in is up to date
         run: |
           cp rust/Cargo.lock rust/Cargo.lock.in
