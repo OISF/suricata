@@ -213,6 +213,18 @@ This example alerts if ``http.request_line`` contains ``/dropper.php``:
     alert http any any -> any any (msg:"HTTP with pcrexform"; http.request_line; \
         pcrexform:"[a-zA-Z]+\s+(.*)\s+HTTP"; content:"/dropper.php"; sid:1;)
 
+This example uses pass-through semantics: ``pcrexform`` extracts the top-level domain from a
+subdomain (e.g., ``www.example.com`` → ``example.com``), or the original query is preserved
+when there is no subdomain. Either way, ``content:"example.com"`` matches::
+
+    alert dns any any -> any any (msg:"TLD match"; \
+        dns.query; pcrexform:"\.([^\.]+\.[^\.]+)$"; content:"example.com"; sid:1;)
+
+This example alerts if ``pcrexform`` fails to match (e.g., unexpected request line format)::
+
+    alert http any any -> any any (msg:"pcrexform match failure"; http.request_line; \
+        pcrexform:"[a-zA-Z]+\s+(.*)\s+HTTP"; absent: must_error; sid:2;)
+
 url_decode
 ----------
 
