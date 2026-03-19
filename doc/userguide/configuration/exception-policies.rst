@@ -13,7 +13,7 @@ configuration setting (:ref:`read more<eps_stats>`). Some configuration is
 available directly via the :ref:`stats settings<suricata_yaml_outputs>`.
 
 For developers or for researching purposes, there are also simulation options
-exposed in debug mode and passed via command-line. These exist to force or
+exposed in ``qa-simulation`` mode and passed via command-line. These exist to force or
 simulate failures or errors and understand Suricata behavior under such conditions.
 See :any:`command-line-exception-policies` for those.
 
@@ -329,6 +329,9 @@ Command-line Options for Simulating Exceptions
 
 It is also possible to force specific exception scenarios, to check engine
 behavior under failure or error conditions.
+
+To enable these, you must build Suricata with ``qa-simulation`` enabled
+(``--enable-qa-simulation``).
 
 The available command-line options are:
 
