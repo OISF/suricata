@@ -168,12 +168,20 @@ Takes the buffer, applies the required regular expression, and outputs the *firs
 
 .. note:: this transform requires a mandatory option string containing a regular expression.
 
+If the regular expression does not match the buffer content, the transform signals an error.
+This allows the use of ``absent: error_or`` or ``absent: must_error`` to detect when the
+pattern fails to match.
 
 This example alerts if ``http.request_line`` contains ``/dropper.php``
 Example::
 
     alert http any any -> any any (msg:"HTTP with pcrexform"; http.request_line; \
         pcrexform:"[a-zA-Z]+\s+(.*)\s+HTTP"; content:"/dropper.php"; sid:1;)
+
+This example alerts if ``pcrexform`` fails to match (e.g., unexpected request line format)::
+
+    alert http any any -> any any (msg:"pcrexform match failure"; http.request_line; \
+        pcrexform:"[a-zA-Z]+\s+(.*)\s+HTTP"; absent: must_error; sid:2;)
 
 url_decode
 ----------
