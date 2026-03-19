@@ -1,4 +1,4 @@
-/* Copyright (C) 2020 Open Information Security Foundation
+/* Copyright (C) 2020-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -71,7 +71,8 @@ void DetectTransformPcrexformRegister(void)
 #ifdef UNITTESTS
     sigmatch_table[DETECT_TRANSFORM_PCREXFORM].RegisterTests = DetectTransformPcrexformRegisterTests;
 #endif
-    sigmatch_table[DETECT_TRANSFORM_PCREXFORM].flags |= SIGMATCH_QUOTES_MANDATORY;
+    sigmatch_table[DETECT_TRANSFORM_PCREXFORM].flags |=
+            SIGMATCH_QUOTES_MANDATORY | SIGMATCH_TRANSFORM_CAN_FAIL;
 }
 
 static void DetectTransformPcrexformFree(DetectEngineCtx *de_ctx, void *ptr)
@@ -174,7 +175,11 @@ static void DetectTransformPcrexform(
         if (ret >= 0) {
             InspectionBufferCopy(buffer, (uint8_t *)str, (uint32_t)caplen);
             pcre2_substring_free((PCRE2_UCHAR8 *)str);
+        } else {
+            SCInspectionBufferSetError(buffer);
         }
+    } else {
+        SCInspectionBufferSetError(buffer);
     }
     pcre2_match_data_free(match);
 }
