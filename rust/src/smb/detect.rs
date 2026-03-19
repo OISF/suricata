@@ -92,9 +92,13 @@ pub unsafe extern "C" fn SCSmbTxGetStubData(
     return 0;
 }
 
-#[no_mangle]
-pub extern "C" fn SCSmbTxMatchDceOpnum(tx: &SMBTransaction, dce_data: &mut DCEOpnumData) -> u8 {
-    SCLogDebug!("SCSmbTxMatchDceOpnum: start");
+pub(crate) unsafe extern "C" fn smb_tx_match_dce_opnum(
+    tx: *mut c_void, ctx: *const SigMatchCtx,
+) -> u8 {
+    let tx = cast_pointer!(tx, SMBTransaction);
+    let dce_data = cast_pointer!(ctx, DCEOpnumData);
+
+    SCLogDebug!("smb_tx_match_dce_opnum: start");
     if let Some(SMBTransactionTypeData::DCERPC(ref x)) = tx.type_data {
         if x.req_cmd == DCERPC_TYPE_REQUEST {
             for range in dce_data.data.iter() {
