@@ -101,13 +101,22 @@ pub(crate) unsafe extern "C" fn smb_tx_match_dce_opnum(
     SCLogDebug!("smb_tx_match_dce_opnum: start");
     if let Some(SMBTransactionTypeData::DCERPC(ref x)) = tx.type_data {
         if x.req_cmd == DCERPC_TYPE_REQUEST {
-            for range in dce_data.data.iter() {
-                if range.range2 == DETECT_DCE_OPNUM_RANGE_UNINITIALIZED {
-                    if range.range1 == x.opnum as u32 {
+            match dce_data {
+                DCEOpnumData::Num(ref num_data) => {
+                    if detect_match_uint(num_data, x.opnum) {
                         return 1;
                     }
-                } else if range.range1 <= x.opnum as u32 && range.range2 >= x.opnum as u32 {
-                    return 1;
+                }
+                DCEOpnumData::Ranges(ref ranges_data) => {
+                    for range in ranges_data.data.iter() {
+                        if range.range2 == DETECT_DCE_OPNUM_RANGE_UNINITIALIZED {
+                            if range.range1 == x.opnum as u32 {
+                                return 1;
+                            }
+                        } else if range.range1 <= x.opnum as u32 && range.range2 >= x.opnum as u32 {
+                            return 1;
+                        }
+                    }
                 }
             }
         }
