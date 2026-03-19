@@ -168,12 +168,28 @@ Takes the buffer, applies the required regular expression, and outputs the *firs
 
 .. note:: this transform requires a mandatory option string containing a regular expression.
 
+If the regular expression does not match the buffer content, the transform signals an error
+and the original buffer content is preserved. This means content keywords following a failed
+``pcrexform`` match against the original (un-transformed) data, providing pass-through semantics.
+``absent: error_or`` or ``absent: must_error`` can also be used to detect when the pattern fails.
 
 This example alerts if ``http.request_line`` contains ``/dropper.php``
 Example::
 
     alert http any any -> any any (msg:"HTTP with pcrexform"; http.request_line; \
         pcrexform:"[a-zA-Z]+\s+(.*)\s+HTTP"; content:"/dropper.php"; sid:1;)
+
+This example uses pass-through semantics: ``pcrexform`` extracts the top-level domain from a
+subdomain (e.g., ``www.example.com`` → ``example.com``), or the original query is preserved
+when there is no subdomain. Either way, ``content:"example.com"`` matches::
+
+    alert dns any any -> any any (msg:"TLD match"; \
+        dns.query; pcrexform:"\.([^\.]+\.[^\.]+)$"; content:"example.com"; sid:1;)
+
+This example alerts if ``pcrexform`` fails to match (e.g., unexpected request line format)::
+
+    alert http any any -> any any (msg:"pcrexform match failure"; http.request_line; \
+        pcrexform:"[a-zA-Z]+\s+(.*)\s+HTTP"; absent: must_error; sid:2;)
 
 url_decode
 ----------
@@ -268,8 +284,10 @@ line breaks, and any non base64 alphabet.
 Mode ``strict`` will fail if an invalid character is found in the encoded bytes.
 
 .. note:: When ``from_base64`` encounters data it cannot decode (e.g., in ``strict`` mode
-   or invalid base64 data in ``rfc4648`` mode), it sets an error flag on the inspection buffer.
-   This error can be detected using the ``absent: error_or`` or ``absent: must_error`` keywords.
+   or invalid base64 data in ``rfc4648`` mode), it sets an error flag on the inspection buffer
+   and the original buffer content is preserved. Content keywords following a failed decode
+   therefore match against the original (un-decoded) data. This error can also be detected
+   using the ``absent: error_or`` or ``absent: must_error`` keywords.
 
 The following examples will alert when the buffer contents match (see the
 last ``content`` value for the expected strings).
