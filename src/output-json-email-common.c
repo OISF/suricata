@@ -51,6 +51,7 @@
 
 #include "output-json.h"
 #include "output-json-email-common.h"
+#include "flow-bindgen.h"
 
 #define LOG_EMAIL_DEFAULT       0
 #define LOG_EMAIL_EXTENDED      (1<<0)
@@ -141,7 +142,7 @@ static bool EveEmailLogJsonData(
     MimeStateSMTP *mime_state;
 
     /* check if we have SMTP state or not */
-    AppProto proto = FlowGetAppProtocol(f);
+    AppProto proto = SCFlowGetAppProtocol(f);
     switch (proto) {
         case ALPROTO_SMTP:
             smtp_state = (SMTPState *)state;

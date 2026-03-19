@@ -1231,6 +1231,11 @@ uint16_t SCFlowGetSourcePort(const Flow *flow)
     return flow->sp;
 }
 
+AppProto SCFlowGetAppProtocol(const Flow *f)
+{
+    return f->alproto;
+}
+
 /**
  * \brief Get flow destination port.
  *

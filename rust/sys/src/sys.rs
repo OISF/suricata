@@ -1734,6 +1734,9 @@ extern "C" {
     pub fn SCFlowGetDestinationPort(flow: *const Flow) -> u16;
 }
 extern "C" {
+    pub fn SCFlowGetAppProtocol(f: *const Flow) -> AppProto;
+}
+extern "C" {
     pub fn SCSRepCatGetByShortname(shortname: *const ::std::os::raw::c_char) -> u8;
 }
 extern "C" {

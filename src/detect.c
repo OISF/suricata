@@ -29,6 +29,7 @@
 #include "decode.h"
 #include "packet.h"
 #include "flow.h"
+#include "flow-bindgen.h"
 #include "stream-tcp.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
@@ -996,7 +997,7 @@ static DetectRunScratchpad DetectRunSetup(const DetectEngineCtx *de_ctx,
         {
             /* update flow flags with knowledge on disruptions */
             flow_flags = FlowGetDisruptionFlags(pflow, flow_flags);
-            alproto = FlowGetAppProtocol(pflow);
+            alproto = SCFlowGetAppProtocol(pflow);
             if (p->proto == IPPROTO_TCP && pflow->protoctx &&
                     StreamReassembleRawHasDataReady(pflow->protoctx, p)) {
                 p->flags |= PKT_DETECT_HAS_STREAMDATA;
