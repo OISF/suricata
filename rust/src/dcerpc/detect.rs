@@ -64,8 +64,14 @@ impl DCEOpnumRange {
 }
 
 #[derive(Debug)]
-pub struct DCEOpnumData {
+pub(crate) struct DCEOpnumDataRanges {
     pub data: Vec<DCEOpnumRange>,
+}
+
+#[derive(Debug)]
+pub(crate) enum DCEOpnumData {
+    Ranges(DCEOpnumDataRanges),
+    Num(DetectUintData<u16>),
 }
 
 fn match_backuuid(
@@ -173,7 +179,7 @@ fn convert_str_to_u32(arg: &str) -> Result<u32, ()> {
     }
 }
 
-fn parse_opnum_data(arg: &str) -> Result<DCEOpnumData, ()> {
+fn parse_opnum_data_ranges(arg: &str) -> Result<DCEOpnumData, ()> {
     let split_args: Vec<&str> = arg.split(',').collect();
     let mut dce_opnum_data: Vec<DCEOpnumRange> = Vec::new();
     for range in split_args.iter() {
@@ -206,9 +212,19 @@ fn parse_opnum_data(arg: &str) -> Result<DCEOpnumData, ()> {
         dce_opnum_data.push(opnum_range);
     }
 
-    Ok(DCEOpnumData {
+    Ok(DCEOpnumData::Ranges(DCEOpnumDataRanges {
         data: dce_opnum_data,
-    })
+    }))
+}
+
+fn parse_opnum_data(arg: &str) -> Result<DCEOpnumData, ()> {
+    if let Ok(r) = parse_opnum_data_ranges(arg) {
+        return Ok(r);
+    }
+    if let Ok((_, du16)) = detect_parse_uint::<u16>(arg) {
+        return Ok(DCEOpnumData::Num(du16));
+    }
+    return Err(());
 }
 
 #[no_mangle]
@@ -261,13 +277,22 @@ unsafe extern "C" fn dcerpc_tx_match_dce_opnum(tx: *mut c_void, ctx: *const SigM
         return 0;
     }
     let opnum = tx.get_req_opnum();
-    for range in opnum_data.data.iter() {
-        if range.range2 == DETECT_DCE_OPNUM_RANGE_UNINITIALIZED {
-            if range.range1 == opnum as u32 {
+    match opnum_data {
+        DCEOpnumData::Num(ref num_data) => {
+            if detect_match_uint(num_data, opnum) {
                 return 1;
             }
-        } else if range.range1 <= opnum as u32 && range.range2 >= opnum as u32 {
-            return 1;
+        }
+        DCEOpnumData::Ranges(ref ranges_data) => {
+            for range in ranges_data.data.iter() {
+                if range.range2 == DETECT_DCE_OPNUM_RANGE_UNINITIALIZED {
+                    if range.range1 == opnum as u32 {
+                        return 1;
+                    }
+                } else if range.range1 <= opnum as u32 && range.range2 >= opnum as u32 {
+                    return 1;
+                }
+            }
         }
     }
 
@@ -501,6 +526,9 @@ mod test {
     fn test_parse_opnum_data() {
         let arg = "12";
         let opnum_data = parse_opnum_data(arg).unwrap();
+        let DCEOpnumData::Ranges(opnum_data) = opnum_data else {
+            panic!("Result should have been ranges.");
+        };
         assert_eq!(1, opnum_data.data.len());
         assert_eq!(12, opnum_data.data[0].range1);
         assert_eq!(
@@ -510,12 +538,18 @@ mod test {
 
         let arg = "12,24";
         let opnum_data = parse_opnum_data(arg).unwrap();
+        let DCEOpnumData::Ranges(opnum_data) = opnum_data else {
+            panic!("Result should have been ranges.");
+        };
         assert_eq!(2, opnum_data.data.len());
         assert_eq!(12, opnum_data.data[0].range1);
         assert_eq!(24, opnum_data.data[1].range1);
 
         let arg = "12,12-24";
         let opnum_data = parse_opnum_data(arg).unwrap();
+        let DCEOpnumData::Ranges(opnum_data) = opnum_data else {
+            panic!("Result should have been ranges.");
+        };
         assert_eq!(2, opnum_data.data.len());
         assert_eq!(12, opnum_data.data[0].range1);
         assert_eq!(12, opnum_data.data[1].range1);
@@ -523,6 +557,9 @@ mod test {
 
         let arg = "12-14,12,121,62-78";
         let opnum_data = parse_opnum_data(arg).unwrap();
+        let DCEOpnumData::Ranges(opnum_data) = opnum_data else {
+            panic!("Result should have been ranges.");
+        };
         assert_eq!(4, opnum_data.data.len());
         assert_eq!(12, opnum_data.data[0].range1);
         assert_eq!(14, opnum_data.data[0].range2);
@@ -531,6 +568,9 @@ mod test {
 
         let arg = "12,26,62,61,6513-6666";
         let opnum_data = parse_opnum_data(arg).unwrap();
+        let DCEOpnumData::Ranges(opnum_data) = opnum_data else {
+            panic!("Result should have been ranges.");
+        };
         assert_eq!(5, opnum_data.data.len());
         assert_eq!(61, opnum_data.data[3].range1);
         assert_eq!(6513, opnum_data.data[4].range1);
