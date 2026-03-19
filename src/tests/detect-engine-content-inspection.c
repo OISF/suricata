@@ -402,6 +402,100 @@ static int DetectEngineContentInspectionTest19(void)
     PASS;
 }
 
+/** \test pcrexform flags an error and keeps the input when it cannot get room
+ *        for the capture */
+static int DetectEngineContentInspectionTest20(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
+                                                 "(http.uri; pcrexform:\"^/(.*)$\"; "
+                                                 "content:\"foo\"; sid:1;)");
+    FAIL_IF_NULL(s);
+    const DetectBufferType *map =
+            DetectEngineBufferTypeGetById(de_ctx, s->init_data->buffers[0].id);
+    FAIL_IF_NULL(map);
+    FAIL_IF_NOT(map->transforms.cnt == 1);
+
+    const uint8_t data[] = "/foobar";
+    const uint32_t data_len = sizeof(data) - 1;
+    InspectionBuffer buffer;
+    memset(&buffer, 0, sizeof(buffer));
+#ifdef DEBUG_VALIDATION
+    buffer.multi = true;
+#endif
+    /* as in DetectEngineContentInspectionTest19, a NULL buf with a large
+     * enough size stands in for a failed SCRealloc */
+    buffer.size = 4096;
+
+    InspectionBufferSetupMulti(NULL, &buffer, &map->transforms, data, data_len);
+    FAIL_IF_NOT(buffer.flags & DETECT_CI_FLAGS_ERROR);
+    FAIL_IF_NOT(buffer.inspect == data);
+    FAIL_IF_NOT(buffer.inspect_len == data_len);
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
+/** \brief set up a buffer with data and run the transforms of the first
+ *         buffer in the rule over it */
+static InspectionBuffer *ContentInspectionTestTransform(DetectEngineCtx *de_ctx, const char *rule,
+        InspectionBuffer *buffer, const uint8_t *data, uint32_t data_len)
+{
+    Signature *s = DetectEngineAppendSig(de_ctx, rule);
+    if (s == NULL)
+        return NULL;
+    const DetectBufferType *map =
+            DetectEngineBufferTypeGetById(de_ctx, s->init_data->buffers[0].id);
+    if (map == NULL)
+        return NULL;
+    memset(buffer, 0, sizeof(*buffer));
+#ifdef DEBUG_VALIDATION
+    buffer->multi = true;
+#endif
+    InspectionBufferSetupMulti(NULL, buffer, &map->transforms, data, data_len);
+    return buffer;
+}
+
+/** \test pcrexform with an empty capture leaves an empty buffer and no error */
+static int DetectEngineContentInspectionTest21(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+    const uint8_t data[] = "/";
+    InspectionBuffer buffer;
+    FAIL_IF_NULL(ContentInspectionTestTransform(de_ctx,
+            "alert http any any -> any any (http.uri; pcrexform:\"^/(.*)$\"; "
+            "content:\"x\"; sid:1;)",
+            &buffer, data, sizeof(data) - 1));
+    FAIL_IF_NOT(buffer.inspect_len == 0);
+    FAIL_IF(buffer.flags & DETECT_CI_FLAGS_ERROR);
+    InspectionBufferFree(&buffer);
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
+/** \test pcrexform leaves an empty buffer alone and flags no error */
+static int DetectEngineContentInspectionTest22(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+    const uint8_t data[] = "";
+    InspectionBuffer buffer;
+    FAIL_IF_NULL(ContentInspectionTestTransform(de_ctx,
+            "alert http any any -> any any (http.uri; pcrexform:\"^(x.*)$\"; "
+            "content:\"x\"; sid:1;)",
+            &buffer, data, 0));
+    FAIL_IF_NOT(buffer.inspect_len == 0);
+    FAIL_IF(buffer.flags & DETECT_CI_FLAGS_ERROR);
+    InspectionBufferFree(&buffer);
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
 void DetectEngineContentInspectionRegisterTests(void)
 {
     UtRegisterTest("DetectEngineContentInspectionTest01",
@@ -438,6 +532,12 @@ void DetectEngineContentInspectionRegisterTests(void)
             "DetectEngineContentInspectionTest18 error flag", DetectEngineContentInspectionTest18);
     UtRegisterTest("DetectEngineContentInspectionTest19 from_base64 allocation failure",
             DetectEngineContentInspectionTest19);
+    UtRegisterTest("DetectEngineContentInspectionTest20 pcrexform allocation failure",
+            DetectEngineContentInspectionTest20);
+    UtRegisterTest("DetectEngineContentInspectionTest21 pcrexform empty capture",
+            DetectEngineContentInspectionTest21);
+    UtRegisterTest("DetectEngineContentInspectionTest22 pcrexform empty input",
+            DetectEngineContentInspectionTest22);
 }
 
 #undef TEST_HEADER
