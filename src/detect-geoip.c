@@ -38,6 +38,7 @@
 #include "util-mem.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
+#include "action-globals.h"
 
 #ifndef HAVE_GEOIP
 
@@ -250,8 +251,6 @@ static int DetectGeoipMatch(DetectEngineThreadCtx *det_ctx,
     const DetectGeoipData *geoipdata = (const DetectGeoipData *)ctx;
     int matches = 0;
 
-    DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
-
     if (PacketIsIPv4(p)) {
         if (geoipdata->flags & ( GEOIP_MATCH_SRC_FLAG | GEOIP_MATCH_BOTH_FLAG ))
         {
@@ -416,7 +415,9 @@ static int DetectGeoipSetup(DetectEngineCtx *de_ctx, Signature *s, const char *o
                 de_ctx, s, DETECT_GEOIP, (SigMatchCtx *)geoipdata, DETECT_SM_LIST_MATCH) == NULL) {
         goto error;
     }
-    s->flags |= SIG_FLAG_REQUIRE_PACKET;
+    if (s->action != ACTION_PASS && s->action != ACTION_ACCEPT) {
+        s->flags |= SIG_FLAG_REQUIRE_PACKET;
+    }
 
     return 0;
 
