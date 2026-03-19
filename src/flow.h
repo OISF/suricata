@@ -576,12 +576,6 @@ SCFlowStorageId GetFlowBypassInfoID(void);
 void RegisterFlowBypassInfo(void);
 
 /** ----- Inline functions ----- */
-
-static inline AppProto FlowGetAppProtocol(const Flow *f)
-{
-    return f->alproto;
-}
-
 static inline void *FlowGetAppState(const Flow *f)
 {
     return f->alstate;
@@ -648,7 +642,6 @@ static inline bool FlowIsBypassed(const Flow *f)
 
 int FlowClearMemory(Flow *,uint8_t );
 
-AppProto FlowGetAppProtocol(const Flow *f);
 void *FlowGetAppState(const Flow *f);
 uint8_t FlowGetDisruptionFlags(const Flow *f, uint8_t flags);
 

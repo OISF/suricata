@@ -66,6 +66,7 @@
 #include "app-layer-htp-xff.h"
 #include "util-memcmp.h"
 #include "stream-tcp-reassemble.h"
+#include "flow-bindgen.h"
 
 typedef struct OutputFileCtx_ {
     uint32_t file_cnt;
@@ -104,7 +105,7 @@ SCJsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, void *tx
     int have_xff_ip = 0;
     char xff_buffer[XFF_MAXLEN];
     if ((xff_cfg != NULL) && !(xff_cfg->flags & XFF_DISABLED)) {
-        if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP1) {
+        if (SCFlowGetAppProtocol(p->flow) == ALPROTO_HTTP1) {
             have_xff_ip = HttpXFFGetIPFromTx(p->flow, tx_id, xff_cfg, xff_buffer, XFF_MAXLEN);
         }
         if (have_xff_ip && xff_cfg->flags & XFF_OVERWRITE) {
