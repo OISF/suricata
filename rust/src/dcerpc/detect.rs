@@ -16,12 +16,21 @@
  */
 
 use super::dcerpc::{
-    DCERPCState, DCERPCTransaction, DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE,
+    DCERPCState, DCERPCTransaction, ALPROTO_DCERPC, DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE,
     DCERPC_UUID_ENTRY_FLAG_FF,
 };
+use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{detect_match_uint, detect_parse_uint, DetectUintData};
+use crate::smb::detect::smb_tx_match_dce_opnum;
+use crate::smb::smb::ALPROTO_SMB;
 use std::ffi::CStr;
-use std::os::raw::{c_char, c_void};
+use std::os::raw::{c_char, c_int, c_void};
+use suricata_sys::sys::{
+    DetectEngineCtx, DetectEngineThreadCtx, SCDetectHelperBufferRegister,
+    SCDetectHelperKeywordAliasRegister, SCDetectHelperKeywordRegister,
+    SCDetectSignatureSetAppProto, SCFlowGetAppProtocol, SCSigMatchAppendSMToList,
+    SCSigTableAppLiteElmt, SigMatchCtx, Signature,
+};
 use uuid::Uuid;
 
 pub const DETECT_DCE_OPNUM_RANGE_UNINITIALIZED: u32 = 100000;
@@ -212,7 +221,7 @@ pub extern "C" fn SCDcerpcIfaceMatch(
     }
 
     if !(tx.req_cmd == DCERPC_TYPE_REQUEST || tx.resp_cmd == DCERPC_TYPE_RESPONSE) {
-            return 0;
+        return 0;
     }
 
     return match_backuuid(tx, state, if_data);
@@ -243,10 +252,10 @@ pub unsafe extern "C" fn SCDcerpcIfaceFree(ptr: *mut c_void) {
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn SCDcerpcOpnumMatch(
-    tx: &DCERPCTransaction, opnum_data: &mut DCEOpnumData,
-) -> u8 {
+unsafe extern "C" fn dcerpc_tx_match_dce_opnum(tx: *mut c_void, ctx: *const SigMatchCtx) -> c_int {
+    let tx = cast_pointer!(tx, DCERPCTransaction);
+    let opnum_data = cast_pointer!(ctx, DCEOpnumData);
+
     let first_req_seen = tx.get_first_req_seen();
     if first_req_seen == 0 {
         return 0;
@@ -265,29 +274,91 @@ pub unsafe extern "C" fn SCDcerpcOpnumMatch(
     0
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn SCDcerpcOpnumParse(carg: *const c_char) -> *mut c_void {
-    if carg.is_null() {
-        return std::ptr::null_mut();
+unsafe extern "C" fn dcerpc_opnum_parse(carg: *const c_char) -> *mut c_void {
+    if let Ok(arg) = CStr::from_ptr(carg).to_str() {
+        return match parse_opnum_data(arg) {
+            Ok(detect) => Box::into_raw(Box::new(detect)) as *mut _,
+            Err(_) => std::ptr::null_mut(),
+        };
     }
-    let arg = match CStr::from_ptr(carg).to_str() {
-        Ok(arg) => arg,
-        _ => {
-            return std::ptr::null_mut();
-        }
-    };
-
-    match parse_opnum_data(arg) {
-        Ok(detect) => Box::into_raw(Box::new(detect)) as *mut _,
-        Err(_) => std::ptr::null_mut(),
-    }
+    return std::ptr::null_mut();
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn SCDcerpcOpnumFree(ptr: *mut c_void) {
+unsafe extern "C" fn dcerpc_opnum_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_DCERPC) != 0 {
+        return -1;
+    }
+    let ctx = dcerpc_opnum_parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_DCERPC_OPNUM_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_DCERPC_OPNUM_BUFFER_ID,
+    )
+    .is_null()
+    {
+        dcerpc_opnum_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn dcerpc_opnum_match(
+    _de: *mut DetectEngineThreadCtx, f: *mut crate::flow::Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
+) -> c_int {
+    if SCFlowGetAppProtocol(f) == ALPROTO_DCERPC {
+        return dcerpc_tx_match_dce_opnum(tx, ctx);
+    }
+    if smb_tx_match_dce_opnum(tx, ctx) != 1 {
+        return 0;
+    }
+
+    return 1;
+}
+
+unsafe extern "C" fn dcerpc_opnum_free(_de: *mut DetectEngineCtx, ptr: *mut c_void) {
     if !ptr.is_null() {
         std::mem::drop(Box::from_raw(ptr as *mut DCEOpnumData));
     }
+}
+
+static mut G_DCERPC_OPNUM_KW_ID: u16 = 0;
+static mut G_DCERPC_OPNUM_BUFFER_ID: c_int = 0;
+
+#[no_mangle]
+pub unsafe extern "C" fn SCDetectDcerpcRegister() {
+    let kw = SCSigTableAppLiteElmt {
+        name: b"dcerpc.opnum\0".as_ptr() as *const libc::c_char,
+        desc: b"match on one or many operation numbers within the interface in a DCERPC header\0"
+            .as_ptr() as *const libc::c_char,
+        url: b"/rules/dcerpc-keywords.html#dcerpc-opnum\0".as_ptr() as *const libc::c_char,
+        AppLayerTxMatch: Some(dcerpc_opnum_match),
+        Setup: Some(dcerpc_opnum_setup),
+        Free: Some(dcerpc_opnum_free),
+        flags: 0,
+    };
+    G_DCERPC_OPNUM_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    G_DCERPC_OPNUM_BUFFER_ID = SCDetectHelperBufferRegister(
+        b"dcerpc_opnum\0".as_ptr() as *const libc::c_char,
+        ALPROTO_DCERPC,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+    );
+    _ = SCDetectHelperBufferRegister(
+        b"dcerpc_opnum\0".as_ptr() as *const libc::c_char,
+        ALPROTO_SMB,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+    );
+    SCDetectHelperKeywordAliasRegister(
+        G_DCERPC_OPNUM_KW_ID,
+        b"dce_opnum\0".as_ptr() as *const libc::c_char,
+    );
 }
 
 #[cfg(test)]
