@@ -144,6 +144,7 @@ uint32_t SCACTileSearchTiny8(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thr
 
 static void SCACTileDestroyInitCtx(MpmCtx *mpm_ctx);
 
+SC_ATOMIC_DECLARE(uint32_t, g_max_acks_bitarray_size);
 
 /* a placeholder to denote a failure transition in the goto table */
 #define SC_AC_TILE_FAIL (-1)
@@ -799,6 +800,9 @@ static void SCACTilePrepareSearch(MpmCtx *mpm_ctx)
 
     /* One bit per pattern, rounded up to the next byte size. */
     search_ctx->mpm_bitarray_size = (mpm_ctx->pattern_cnt + 7) / 8;
+    if (search_ctx->mpm_bitarray_size > SC_ATOMIC_GET(g_max_acks_bitarray_size)) {
+        SC_ATOMIC_SET(g_max_acks_bitarray_size, search_ctx->mpm_bitarray_size);
+    }
 
     /* Can now free the Initialization data */
     SCACTileDestroyInitCtx(mpm_ctx);
@@ -1138,7 +1142,7 @@ uint32_t SCACTileSearchLarge(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thr
     uint32_t i = 0;
     int matches = 0;
 
-    uint8_t mpm_bitarray[ctx->mpm_bitarray_size];
+    uint8_t *mpm_bitarray = (uint8_t *)mpm_thread_ctx->ctx;
     memset(mpm_bitarray, 0, ctx->mpm_bitarray_size);
 
     const uint8_t* restrict xlate = ctx->translate_table;
@@ -1337,6 +1341,39 @@ void SCACTilePrintInfo(MpmCtx *mpm_ctx)
     printf("\n");
 }
 
+/**
+ * \brief Init the mpm thread context.
+ *
+ * \param mpm_ctx        Pointer to the mpm context.
+ * \param mpm_thread_ctx Pointer to the mpm thread context.
+ */
+static void SCACTileInitThreadCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx)
+{
+    size_t size;
+    if (mpm_ctx == NULL) {
+        size = SC_ATOMIC_GET(g_max_acks_bitarray_size);
+    } else {
+        const SCACTileSearchCtx *ctx = (SCACTileSearchCtx *)mpm_ctx->ctx;
+        size = ctx->mpm_bitarray_size;
+    }
+
+    uint8_t *bitarray = SCCalloc(size, sizeof(uint8_t));
+    if (bitarray == NULL) {
+        exit(EXIT_FAILURE);
+    }
+    mpm_thread_ctx->ctx = bitarray;
+    mpm_thread_ctx->memory_cnt++;
+    mpm_thread_ctx->memory_size += size;
+}
+
+static void SCACTileDestroyThreadCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx)
+{
+    mpm_thread_ctx->memory_cnt--;
+    mpm_thread_ctx->memory_size = 0;
+    SCFree(mpm_thread_ctx->ctx);
+    mpm_thread_ctx->ctx = NULL;
+}
+
 /************************** Mpm Registration ***************************/
 
 /**
@@ -1357,6 +1394,8 @@ void MpmACTileRegister(void)
     mpm_table[MPM_AC_KS].CacheRuleset = NULL;
     mpm_table[MPM_AC_KS].Search = SCACTileSearch;
     mpm_table[MPM_AC_KS].PrintCtx = SCACTilePrintInfo;
+    mpm_table[MPM_AC_KS].InitThreadCtx = SCACTileInitThreadCtx;
+    mpm_table[MPM_AC_KS].DestroyThreadCtx = SCACTileDestroyThreadCtx;
 #ifdef UNITTESTS
     mpm_table[MPM_AC_KS].RegisterUnittests = SCACTileRegisterTests;
 #endif
