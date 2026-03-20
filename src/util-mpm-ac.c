@@ -1114,6 +1114,7 @@ static int SCACTest01(void)
     PmqSetup(&pmq);
 
     SCACPreparePatterns(NULL, &mpm_ctx);
+    SCACInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "abcdefghjiklmnopqrstuvwxyz";
 
@@ -1146,6 +1147,7 @@ static int SCACTest02(void)
     PmqSetup(&pmq);
 
     SCACPreparePatterns(NULL, &mpm_ctx);
+    SCACInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "abcdefghjiklmnopqrstuvwxyz";
     uint32_t cnt = SCACSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
@@ -1181,6 +1183,7 @@ static int SCACTest03(void)
     PmqSetup(&pmq);
 
     SCACPreparePatterns(NULL, &mpm_ctx);
+    SCACInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "abcdefghjiklmnopqrstuvwxyz";
     uint32_t cnt = SCACSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
@@ -1213,6 +1216,7 @@ static int SCACTest04(void)
     PmqSetup(&pmq);
 
     SCACPreparePatterns(NULL, &mpm_ctx);
+    SCACInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "abcdefghjiklmnopqrstuvwxyz";
     uint32_t cnt = SCACSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
@@ -1245,6 +1249,7 @@ static int SCACTest05(void)
     PmqSetup(&pmq);
 
     SCACPreparePatterns(NULL, &mpm_ctx);
+    SCACInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "abcdefghjiklmnopqrstuvwxyz";
     uint32_t cnt = SCACSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
@@ -1275,6 +1280,7 @@ static int SCACTest06(void)
     PmqSetup(&pmq);
 
     SCACPreparePatterns(NULL, &mpm_ctx);
+    SCACInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "abcd";
     uint32_t cnt = SCACSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
@@ -1317,6 +1323,7 @@ static int SCACTest07(void)
     /* total matches: 135: unique matches: 6 */
 
     SCACPreparePatterns(NULL, &mpm_ctx);
+    SCACInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
     uint32_t cnt = SCACSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
@@ -1344,6 +1351,7 @@ static int SCACTest08(void)
     PmqSetup(&pmq);
 
     SCACPreparePatterns(NULL, &mpm_ctx);
+    SCACInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     uint32_t cnt = SCACSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
                                (uint8_t *)"a", 1);
@@ -1374,6 +1382,7 @@ static int SCACTest09(void)
     PmqSetup(&pmq);
 
     SCACPreparePatterns(NULL, &mpm_ctx);
+    SCACInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     uint32_t cnt = SCACSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
                                (uint8_t *)"ab", 2);
@@ -1404,6 +1413,7 @@ static int SCACTest10(void)
     PmqSetup(&pmq);
 
     SCACPreparePatterns(NULL, &mpm_ctx);
+    SCACInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "01234567890123456789012345678901234567890123456789"
                 "01234567890123456789012345678901234567890123456789"
@@ -1447,6 +1457,8 @@ static int SCACTest11(void)
     if (SCACPreparePatterns(NULL, &mpm_ctx) == -1)
         goto end;
 
+    SCACInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
+
     result = 1;
 
     const char *buf = "he";
@@ -1486,6 +1498,7 @@ static int SCACTest12(void)
     PmqSetup(&pmq);
 
     SCACPreparePatterns(NULL, &mpm_ctx);
+    SCACInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "abcdefghijklmnopqrstuvwxyz";
     uint32_t cnt = SCACSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
@@ -1518,6 +1531,7 @@ static int SCACTest13(void)
     PmqSetup(&pmq);
 
     SCACPreparePatterns(NULL, &mpm_ctx);
+    SCACInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "abcdefghijklmnopqrstuvwxyzABCD";
     uint32_t cnt = SCACSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
@@ -1550,6 +1564,7 @@ static int SCACTest14(void)
     PmqSetup(&pmq);
 
     SCACPreparePatterns(NULL, &mpm_ctx);
+    SCACInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "abcdefghijklmnopqrstuvwxyzABCDE";
     uint32_t cnt = SCACSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
@@ -1582,6 +1597,7 @@ static int SCACTest15(void)
     PmqSetup(&pmq);
 
     SCACPreparePatterns(NULL, &mpm_ctx);
+    SCACInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "abcdefghijklmnopqrstuvwxyzABCDEF";
     uint32_t cnt = SCACSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
@@ -1614,6 +1630,7 @@ static int SCACTest16(void)
     PmqSetup(&pmq);
 
     SCACPreparePatterns(NULL, &mpm_ctx);
+    SCACInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "abcdefghijklmnopqrstuvwxyzABC";
     uint32_t cnt = SCACSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
@@ -1646,6 +1663,7 @@ static int SCACTest17(void)
     PmqSetup(&pmq);
 
     SCACPreparePatterns(NULL, &mpm_ctx);
+    SCACInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "abcdefghijklmnopqrstuvwxyzAB";
     uint32_t cnt = SCACSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
@@ -1683,6 +1701,7 @@ static int SCACTest18(void)
     PmqSetup(&pmq);
 
     SCACPreparePatterns(NULL, &mpm_ctx);
+    SCACInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "abcde""fghij""klmno""pqrst""uvwxy""z";
     uint32_t cnt = SCACSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
@@ -1715,6 +1734,7 @@ static int SCACTest19(void)
     PmqSetup(&pmq);
 
     SCACPreparePatterns(NULL, &mpm_ctx);
+    SCACInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
     uint32_t cnt = SCACSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
@@ -1753,6 +1773,7 @@ static int SCACTest20(void)
     PmqSetup(&pmq);
 
     SCACPreparePatterns(NULL, &mpm_ctx);
+    SCACInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "AAAAA""AAAAA""AAAAA""AAAAA""AAAAA""AAAAA""AA";
     uint32_t cnt = SCACSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
@@ -1784,6 +1805,7 @@ static int SCACTest21(void)
     PmqSetup(&pmq);
 
     SCACPreparePatterns(NULL, &mpm_ctx);
+    SCACInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     uint32_t cnt = SCACSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
                               (uint8_t *)"AA", 2);
@@ -1816,6 +1838,7 @@ static int SCACTest22(void)
     PmqSetup(&pmq);
 
     SCACPreparePatterns(NULL, &mpm_ctx);
+    SCACInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "abcdefghijklmnopqrstuvwxyz";
     uint32_t cnt = SCACSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
@@ -1847,6 +1870,7 @@ static int SCACTest23(void)
     PmqSetup(&pmq);
 
     SCACPreparePatterns(NULL, &mpm_ctx);
+    SCACInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     uint32_t cnt = SCACSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
                               (uint8_t *)"aa", 2);
@@ -1877,6 +1901,7 @@ static int SCACTest24(void)
     PmqSetup(&pmq);
 
     SCACPreparePatterns(NULL, &mpm_ctx);
+    SCACInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     uint32_t cnt = SCACSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
                               (uint8_t *)"aa", 2);
@@ -1908,6 +1933,7 @@ static int SCACTest25(void)
     PmqSetup(&pmq);
 
     SCACPreparePatterns(NULL, &mpm_ctx);
+    SCACInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     uint32_t cnt = SCACSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
@@ -1939,6 +1965,7 @@ static int SCACTest26(void)
     PmqSetup(&pmq);
 
     SCACPreparePatterns(NULL, &mpm_ctx);
+    SCACInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "works";
     uint32_t cnt = SCACSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
@@ -1970,6 +1997,7 @@ static int SCACTest27(void)
     PmqSetup(&pmq);
 
     SCACPreparePatterns(NULL, &mpm_ctx);
+    SCACInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "tone";
     uint32_t cnt = SCACSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
@@ -2000,6 +2028,7 @@ static int SCACTest28(void)
     PmqSetup(&pmq);
 
     SCACPreparePatterns(NULL, &mpm_ctx);
+    SCACInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "tONE";
     uint32_t cnt = SCACSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
@@ -2068,6 +2097,7 @@ static int SCACTest30(void)
     PmqSetup(&pmq);
 
     SCACPreparePatterns(NULL, &mpm_ctx);
+    SCACInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf1 = "abcdefghijklmnopqrstuvwxyz";
     uint32_t cnt = SCACSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf1, strlen(buf1));
