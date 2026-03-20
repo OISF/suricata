@@ -81,7 +81,7 @@ Syntax::
     dataset:<set|unset|isset|isnotset>,<name> \
         [, type <string|md5|sha256|ipv4|ip>, save <file name>, load <file name>, state <file name>, memcap <size>, hashsize <size>
          , format <csv|json|ndjson>, context_key <output_key>, value_key <json_key>, array_key <json_path>,
-         remove_key];
+         remove_key, match subdomain];
 
 type <type>
   the data type: string, md5, sha256, ipv4, ip
@@ -112,7 +112,11 @@ array_key <key>
 remove_key
   if set, the JSON object pointed by value key will be removed
   from the alert event
-
+match subdomain
+  if set to ``subdomain``, enables hierarchical domain matching.
+  On lookup, the dataset walks up the domain label hierarchy until
+  a match is found. Only valid with ``isset``/``isnotset`` commands
+  and ``type string``. Best used with the ``dotprefix`` transform.
 
 .. note:: 'type' is mandatory and needs to be set.
 
@@ -136,6 +140,28 @@ Following image is a pictorial representation of how the ``pcrexform`` works
 on domain names to find TLDs in the dataset ``dns-tld-seen``:
 
 .. image:: dataset-examples/detect-unique-tlds.png
+
+3. Block domains and all their subdomains using a blocklist dataset:
+
+.. container:: example-rule
+
+    reject dns any any -> any any (msg:"Blocked domain"; dns.query; dotprefix; dataset:isset,blocked-domains, type string, match subdomain, load blocked-domains.lst; sid:8000003; rev:1;)
+
+The ``match subdomain`` option walks up the domain hierarchy on each
+lookup. Combined with ``dotprefix``, a query for ``mail.evil.com``
+becomes ``.mail.evil.com`` and is checked against the dataset as:
+``.mail.evil.com``, ``.evil.com``, ``.com``. If ``.evil.com`` is in the
+dataset, the rule matches.
+
+The dataset file should contain entries with a leading dot::
+
+    LmV2aWwuY29tCg==
+
+which is the base64 encoding of ``.evil.com``.
+
+When using ``ndjson`` format, use the raw dotted value in the JSON::
+
+    {"domain": ".evil.com"}
 
 Notice how it is not possible to do certain operations alone with datasets
 (example 2 above), but, it is possible to use a combination of other rule
@@ -184,7 +210,7 @@ Syntax::
 
     dataset:<isset|isnotset>,<name> \
         [, type <string|md5|sha256|ipv4|ip>, load <file name>, format <json|ndjson>, memcap <size>, hashsize <size>, context_key <json_key> \
-         , value_key <json_key>, array_key <json_path>];
+         , value_key <json_key>, array_key <json_path>, match subdomain];
 
 Example rules could look like::
 
