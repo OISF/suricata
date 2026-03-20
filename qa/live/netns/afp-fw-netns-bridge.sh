@@ -165,7 +165,7 @@ echo "* starting tshark on in the server namespace... done, pid $TSHARKSERVERPID
 
 echo "* starting Caddy..."
 # Start Caddy in the server namespace
-timeout --kill-after=240 --preserve-status 120 \
+timeout --kill-after=480 --preserve-status 240 \
     ip netns exec $serverns \
         caddy file-server --browse &
 CADDYPID=$!
@@ -205,13 +205,48 @@ if [ $PINGRES != 1 ]; then
     RES=1
 fi
 
+# first rulefile:
+# expecting 2 of 101 because of the curl and wget requests
+# expecting 1 of 102 because only wget is accepted
+SID101=$(jq -c 'select(.alert.signature_id==101)' ./eve.json | wc -l)
+SID102=$(jq -c 'select(.alert.signature_id==102)' ./eve.json | wc -l)
+echo "SID101 $SID101 SID102 $SID102"
+if [ $SID101 -ne 2 ]; then
+    echo "ERROR wrong alert count for sid 101: $SID101"
+    RES=1
+fi
+if [ $SID102 -ne 1 ]; then
+    echo "ERROR wrong alert count for sid 102: $SID102"
+    RES=1
+fi
+
+cp qa/live/netns/firewall2.rules firewall.rules
+ip netns exec $dutns \
+    ${SURICATASC} -c "reload-rules" /var/run/suricata/suricata-command.socket
+
 # give stats time to get updated
+sleep 10
+
+echo "* running wget in the \"client\" namespace..."
+set +e
+timeout --kill-after=30 --preserve-status 15 \
+    ip netns exec $clientns \
+        wget http://10.10.10.20/index.html
+WGETRES=$?
+set -e
+echo "* running wget in the \"client\" namespace... done"
+
 sleep 10
 
 echo "* shutting down tshark..."
 kill -INT $TSHARKSERVERPID
 wait $TSHARKSERVERPID
 echo "* shutting down tshark... done"
+
+# second rulefile (after reload)
+SID201=$(jq -c 'select(.alert.signature_id==201)' ./eve.json | wc -l)
+SID202=$(jq -c 'select(.alert.signature_id==202)' ./eve.json | wc -l)
+echo "SID201 $SID201 SID202 $SID202"
 
 ACCEPTED=$(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.ips.accepted')
 BLOCKED=$(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.ips.blocked')
@@ -228,6 +263,14 @@ if [ $ACCEPTED -eq 0 ]; then
 fi
 if [ $BLOCKED -lt 10 ]; then
     echo "ERROR should have seen 10+ blocked"
+    RES=1
+fi
+if [ $SID201 -ne 1 ]; then
+    echo "ERROR wrong alert count for sid 201: $SID201"
+    RES=1
+fi
+if [ $SID202 -ne 1 ]; then
+    echo "ERROR wrong alert count for sid 202: $SID202"
     RES=1
 fi
 
