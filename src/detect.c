@@ -1273,7 +1273,9 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
                             "engine->mpm: t->tx_progress %u == engine->progress %u, so set "
                             "mpm_in_progress",
                             tx->tx_progress, engine->progress);
-                    mpm_in_progress = true;
+                    if ((p->flags & PKT_PSEUDO_DETECTLOG_FLUSH) == 0) {
+                        mpm_in_progress = true;
+                    }
                 }
             }
 
