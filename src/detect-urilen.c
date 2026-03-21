@@ -69,6 +69,7 @@ void DetectUrilenRegister(void)
 #ifdef UNITTESTS
     sigmatch_table[DETECT_URILEN].RegisterTests = DetectUrilenRegisterTests;
 #endif
+    sigmatch_table[DETECT_URILEN].flags = SIGMATCH_SUPPORT_FIREWALL;
 
     g_http_uri_buffer_id = DetectBufferTypeRegister("http_uri");
     g_http_raw_uri_buffer_id = DetectBufferTypeRegister("http_raw_uri");
