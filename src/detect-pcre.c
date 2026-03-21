@@ -105,7 +105,8 @@ void DetectPcreRegister (void)
 #ifdef UNITTESTS
     sigmatch_table[DETECT_PCRE].RegisterTests  = DetectPcreRegisterTests;
 #endif
-    sigmatch_table[DETECT_PCRE].flags = (SIGMATCH_QUOTES_OPTIONAL|SIGMATCH_HANDLE_NEGATION);
+    sigmatch_table[DETECT_PCRE].flags =
+            (SIGMATCH_QUOTES_OPTIONAL | SIGMATCH_HANDLE_NEGATION | SIGMATCH_SUPPORT_FIREWALL);
 
     intmax_t val = 0;
 
