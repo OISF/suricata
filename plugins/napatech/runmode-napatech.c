@@ -132,12 +132,21 @@ static int NapatechRegisterDeviceStreams(void)
     num_configured_streams = stream_cnt;
     SCLogDebug("Configuring %d Napatech Streams...", stream_cnt);
 
+    // We will use zero-padding so the names sort properly alphanumerically
+    // Note: Napatech stream count is currently limited to 128 and is expected to not
+    // exceed 3 digits in the future.
+    // Stream count         Example
+    //    4                 nt1, nt4
+    //    12                nt01, nt04, nt11
+    //    104               nt001, nt004, nt011, nt103
+    int width = (stream_cnt >= 100) ? 3 : (stream_cnt >= 10) ? 2 : 0;
+
     for (uint16_t inst = 0; inst < stream_cnt; ++inst) {
         char *plive_dev_buf = SCCalloc(1, 9);
         if (unlikely(plive_dev_buf == NULL)) {
             FatalError("Failed to allocate memory for NAPATECH stream counter.");
         }
-        snprintf(plive_dev_buf, 9, "nt%d", stream_config[inst].stream_id);
+        snprintf(plive_dev_buf, 9, "nt%0*d", width, stream_config[inst].stream_id);
 
         if (auto_config) {
             if (stream_config[inst].is_active) {
