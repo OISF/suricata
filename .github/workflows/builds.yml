@@ -1221,7 +1221,7 @@ jobs:
       - run: src/suricata -h | grep '\-\-list\-app\-layer\-hooks' &> /dev/null
         working-directory: /home/suricata/suricata
 
-  # Test that ./configure fails out of libjansson is not available.
+  # Test that ./configure fails out if libjansson is not available.
   almalinux-9-no-jansson:
     name: AlmaLinux 9 (no jansson)
     runs-on: ubuntu-latest
