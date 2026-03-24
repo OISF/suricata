@@ -14,3 +14,8 @@ for testing capture plugin loading and registration in CI.
 
 An app-layer template plugin with logging and detection.
 Most code copied from rust/src/applayertemplate
+
+## rust
+
+A pure Rust plugin example intended to grow into an omnibus plugin example.
+Currently demonstrates plugin initialization and EVE callback registration.
