@@ -33,6 +33,9 @@
 /** max number of chunks tracked per packet for detection/logging */
 #define SCTP_MAX_TRACKED_CHUNKS 16
 
+/** DATA chunk overhead before user data (chunk hdr + TSN + SID + SSN + PPID) */
+#define SCTP_DATA_CHUNK_HDR_LEN 16
+
 /* SCTP chunk types (RFC 4960 sec 3.2) */
 #define SCTP_CHUNK_TYPE_DATA              0x00
 #define SCTP_CHUNK_TYPE_INIT              0x01
@@ -68,6 +71,8 @@ typedef struct SCTPVars_ {
     uint16_t hlen;        /**< total header length (common header + chunks) */
     uint8_t chunk_cnt;    /**< number of chunks parsed */
     uint8_t chunk_types[SCTP_MAX_TRACKED_CHUNKS]; /**< types of first N chunks */
+    uint16_t data_offset; /**< offset of first DATA user data from L4 start, 0 if none */
+    uint16_t data_len;    /**< length of first DATA user data, 0 if none */
     bool has_init : 1;
     bool has_init_ack : 1;
     bool has_data : 1;
