@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2024 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -134,6 +134,10 @@ void ThresholdRegisterGlobalCounters(void)
     StatsRegisterGlobalCounter("detect.thresholds.bitmap_memuse", ThresholdBitmapMemuseCounter);
     StatsRegisterGlobalCounter(
             "detect.thresholds.bitmap_alloc_fail", ThresholdBitmapAllocFailCounter);
+    StatsRegisterGlobalCounterWithContext(
+            "detect.thresholds.max_bucket_depth", THashGetterMaxBucketDepth, ctx.thash);
+    StatsRegisterGlobalCounterWithContext(
+            "detect.thresholds.avg_bucket_depth", THashGetterAvgBucketDepth, ctx.thash);
 }
 
 void ThresholdDestroy(void)
