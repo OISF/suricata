@@ -247,8 +247,7 @@
                     "type": "string",
                     "description": "Physical address of the sender"
                 }
-            },
-            "optional": true
+            }
         },
         "bittorrent_dht": {
             "type": "object",
@@ -2740,8 +2739,7 @@
                 "version_minor": {
                     "type": "integer"
                 }
-            },
-            "optional": true
+            }
         },
         "in_iface": {
             "type": "string"
@@ -2836,8 +2834,7 @@
                         "$comment": "TODO add keyword (rather option for encryption keyword)"
                     }
                 }
-            },
-            "optional": true
+            }
         },
         "ldap": {
             "type": "object",
@@ -2854,8 +2851,7 @@
                                 "message_id": {
                                     "type": "integer"
                                 }
-                            },
-                            "optional": "true"
+                            }
                         },
                         "add_request": {
                             "type": "object",
@@ -2884,8 +2880,7 @@
                                 "entry": {
                                     "type": "string"
                                 }
-                            },
-                            "optional": "true"
+                            }
                         },
                         "bind_request": {
                             "type": "object",
@@ -2899,20 +2894,17 @@
                                     "additionalProperties": false,
                                     "properties": {
                                         "credentials": {
-                                            "type": "string",
-                                            "optional": "true"
+                                            "type": "string"
                                         },
                                         "mechanism": {
                                             "type": "string"
                                         }
-                                    },
-                                    "optional": "true"
+                                    }
                                 },
                                 "version": {
                                     "type": "integer"
                                 }
-                            },
-                            "optional": "true"
+                            }
                         },
                         "compare_request": {
                             "type": "object",
@@ -2933,8 +2925,7 @@
                                 "entry": {
                                     "type": "string"
                                 }
-                            },
-                            "optional": "true"
+                            }
                         },
                         "del_request": {
                             "type": "object",
@@ -2943,8 +2934,7 @@
                                 "dn": {
                                     "type": "string"
                                 }
-                            },
-                            "optional": "true"
+                            }
                         },
                         "extended_request": {
                             "type": "object",
@@ -2954,11 +2944,9 @@
                                     "type": "string"
                                 },
                                 "value": {
-                                    "type": "string",
-                                    "optional": "true"
+                                    "type": "string"
                                 }
-                            },
-                            "optional": "true"
+                            }
                         },
                         "message_id": {
                             "type": "integer"
@@ -2977,11 +2965,9 @@
                                     "type": "string"
                                 },
                                 "new_superior": {
-                                    "type": "string",
-                                    "optional": "true"
+                                    "type": "string"
                                 }
-                            },
-                            "optional": "true"
+                            }
                         },
                         "modify_request": {
                             "type": "object",
@@ -3019,8 +3005,7 @@
                                 "object": {
                                     "type": "string"
                                 }
-                            },
-                            "optional": "true"
+                            }
                         },
                         "operation": {
                             "type": "string",
@@ -3059,14 +3044,12 @@
                                 "types_only": {
                                     "type": "boolean"
                                 }
-                            },
-                            "optional": "true"
+                            }
                         }
                     }
                 },
                 "responses": {
                     "type": "array",
-                    "optional": "true",
                     "minItems": 1,
                     "suricata": {
                         "keywords": [
@@ -3095,8 +3078,7 @@
                                             ]
                                         }
                                     }
-                                },
-                                "optional": "true"
+                                }
                             },
                             "bind_response": {
                                 "type": "object",
@@ -3117,11 +3099,9 @@
                                         }
                                     },
                                     "server_sasl_creds": {
-                                        "type": "string",
-                                        "optional": "true"
+                                        "type": "string"
                                     }
-                                },
-                                "optional": "true"
+                                }
                             },
                             "compare_response": {
                                 "type": "object",
@@ -3141,8 +3121,7 @@
                                             ]
                                         }
                                     }
-                                },
-                                "optional": "true"
+                                }
                             },
                             "del_response": {
                                 "type": "object",
@@ -3162,8 +3141,7 @@
                                             ]
                                         }
                                     }
-                                },
-                                "optional": "true"
+                                }
                             },
                             "extended_response": {
                                 "type": "object",
@@ -3189,8 +3167,7 @@
                                     "value": {
                                         "type": "string"
                                     }
-                                },
-                                "optional": "true"
+                                }
                             },
                             "intermediate_response": {
                                 "type": "object",
@@ -3202,8 +3179,7 @@
                                     "value": {
                                         "type": "string"
                                     }
-                                },
-                                "optional": "true"
+                                }
                             },
                             "message_id": {
                                 "type": "integer"
@@ -3226,8 +3202,7 @@
                                             ]
                                         }
                                     }
-                                },
-                                "optional": "true"
+                                }
                             },
                             "modify_response": {
                                 "type": "object",
@@ -3247,8 +3222,7 @@
                                             ]
                                         }
                                     }
-                                },
-                                "optional": "true"
+                                }
                             },
                             "operation": {
                                 "type": "string",
@@ -3276,8 +3250,7 @@
                                             ]
                                         }
                                     }
-                                },
-                                "optional": "true"
+                                }
                             },
                             "search_result_entry": {
                                 "type": "object",
@@ -3306,14 +3279,12 @@
                                     "base_object": {
                                         "type": "string"
                                     }
-                                },
-                                "optional": "true"
+                                }
                             }
                         }
                     }
                 }
-            },
-            "optional": true
+            }
         },
         "log_level": {
             "type": "string"
@@ -3593,8 +3564,7 @@
                         "additionalProperties": true
                     }
                 }
-            },
-            "optional": true
+            }
         },
         "modbus": {
             "type": "object",
@@ -3771,8 +3741,7 @@
                         }
                     }
                 }
-            },
-            "optional": true
+            }
         },
         "mqtt": {
             "type": "object",
@@ -4338,8 +4307,7 @@
                         }
                     }
                 }
-            },
-            "optional": true
+            }
         },
         "ndpi": {
             "type": "object",
@@ -4401,8 +4369,7 @@
                     "type": "integer",
                     "description": "Number of transactions seen in the flow (only present if flow has an application layer)"
                 }
-            },
-            "optional": true
+            }
         },
         "nfs": {
             "type": "object",
@@ -4444,8 +4411,7 @@
                         "last_xid": {
                             "type": "integer"
                         }
-                    },
-                    "optional": true
+                    }
                 },
                 "rename": {
                     "type": "object",
@@ -4457,8 +4423,7 @@
                         "to": {
                             "type": "string"
                         }
-                    },
-                    "optional": true
+                    }
                 },
                 "status": {
                     "type": "string"
@@ -4490,11 +4455,9 @@
                         "last_xid": {
                             "type": "integer"
                         }
-                    },
-                    "optional": true
+                    }
                 }
-            },
-            "optional": true
+            }
         },
         "packet": {
             "type": "string"
@@ -4510,8 +4473,7 @@
                     "type": "string",
                     "description": "The descriptive name of the linktype"
                 }
-            },
-            "optional": true
+            }
         },
         "parent_id": {
             "type": "integer"
@@ -4765,8 +4727,7 @@
                 "tx_id": {
                     "type": "integer"
                 }
-            },
-            "optional": true
+            }
         },
         "pkt_src": {
             "type": "string"
@@ -4790,8 +4751,7 @@
                             "type": "string",
                             "description": "A pop3 command, for example `USER` or `STAT`"
                         }
-                    },
-                    "optional": true
+                    }
                 },
                 "response": {
                     "type": "object",
@@ -4814,11 +4774,9 @@
                             "type": "boolean",
                             "description": "Response indicated positive status ie +OK"
                         }
-                    },
-                    "optional": true
+                    }
                 }
-            },
-            "optional": true
+            }
         },
         "proto": {
             "type": "string"
@@ -4887,8 +4845,7 @@
                             "description": "JA3 string representation"
                         }
                     },
-                    "description": "JA3 from client, as in TLS",
-                    "optional": true
+                    "description": "JA3 from client, as in TLS"
                 },
                 "ja3s": {
                     "type": "object",
@@ -4903,8 +4860,7 @@
                             "description": "JA3s string representation"
                         }
                     },
-                    "description": "JA3 from server, as in TLS",
-                    "optional": true
+                    "description": "JA3 from server, as in TLS"
                 },
                 "ja4": {
                     "type": "string",
@@ -4926,8 +4882,7 @@
                     "type": "string",
                     "description": "Quic protocol version"
                 }
-            },
-            "optional": true
+            }
         },
         "rdp": {
             "type": "object",
@@ -4995,8 +4950,7 @@
                 "tx_id": {
                     "type": "integer"
                 }
-            },
-            "optional": true
+            }
         },
         "response_icmp_code": {
             "type": "integer"
@@ -5120,8 +5074,7 @@
                         }
                     }
                 }
-            },
-            "optional": true
+            }
         },
         "rgmp": {
             "type": "object",
@@ -5157,8 +5110,7 @@
                         "uid": {
                             "type": "integer"
                         }
-                    },
-                    "optional": true
+                    }
                 },
                 "status": {
                     "type": "string"
@@ -5166,8 +5118,7 @@
                 "xid": {
                     "type": "integer"
                 }
-            },
-            "optional": true
+            }
         },
         "sip": {
             "type": "object",
@@ -5194,7 +5145,6 @@
                     "properties": {
                         "attributes": {
                             "type": "array",
-                            "optional": true,
                             "description": "A list of attributes to extend SDP",
                             "minItems": 1,
                             "items": {
@@ -5204,7 +5154,6 @@
                         },
                         "bandwidths": {
                             "type": "array",
-                            "optional": true,
                             "description": "Proposed bandwidths to be used by the session or media",
                             "minItems": 1,
                             "items": {
@@ -5213,18 +5162,15 @@
                         },
                         "connection_data": {
                             "type": "string",
-                            "optional": true,
                             "description": "Connection data"
                         },
                         "email": {
                             "type": "string",
-                            "optional": true,
                             "description":
                                     "Email address for the person responsible for the conference"
                         },
                         "encryption_key": {
                             "type": "string",
-                            "optional": true,
                             "description":
                                     "Field used to convey encryption keys if SDP is used over a secure channel"
                         },
@@ -5240,7 +5186,6 @@
                                         "type": "array",
                                         "description":
                                                 "A list of attributes specified for a media description",
-                                        "optional": true,
                                         "minItems": 1,
                                         "items": {
                                             "type": "string",
@@ -5249,7 +5194,6 @@
                                     },
                                     "bandwidths": {
                                         "type": "array",
-                                        "optional": true,
                                         "description": "A list of bandwidth proposed for a media",
                                         "minItems": 1,
                                         "items": {
@@ -5258,12 +5202,10 @@
                                     },
                                     "connection_data": {
                                         "type": "string",
-                                        "optional": true,
                                         "description": "Connection data per media description"
                                     },
                                     "encryption_key": {
                                         "type": "string",
-                                        "optional": true,
                                         "description":
                                                 "Field used to convey encryption keys if SDP is used over a secure channel"
                                     },
@@ -5273,12 +5215,10 @@
                                     },
                                     "media_info": {
                                         "type": "string",
-                                        "optional": true,
                                         "description":
                                                 "Media information primarily intended for labelling media streams"
                                     }
-                                },
-                                "optional": true
+                                }
                             }
                         },
                         "origin": {
@@ -5287,13 +5227,11 @@
                         },
                         "phone_number": {
                             "type": "string",
-                            "optional": true,
                             "description":
                                     "Phone number for the person responsible for the conference"
                         },
                         "session_info": {
                             "type": "string",
-                            "optional": true,
                             "description": "Textual information about the session"
                         },
                         "session_name": {
@@ -5310,27 +5248,22 @@
                                 "properties": {
                                     "repeat_time": {
                                         "type": "string",
-                                        "optional": true,
                                         "description": "Specify repeat times for a session"
                                     },
                                     "time": {
                                         "type": "string",
-                                        "optional": true,
                                         "description": "Start and stop times for a session"
                                     }
-                                },
-                                "optional": true
+                                }
                             }
                         },
                         "timezone": {
                             "type": "string",
-                            "optional": true,
                             "description":
                                     "Timezone to specify adjustments for times and offsets from the base time"
                         },
                         "uri": {
                             "type": "string",
-                            "optional": true,
                             "description": "A pointer to additional information about the session"
                         },
                         "version": {
@@ -5338,8 +5271,7 @@
                             "description": "SDP protocol version"
                         }
                     },
-                    "description": "SDP message body",
-                    "optional": true
+                    "description": "SDP message body"
                 },
                 "uri": {
                     "type": "string"
@@ -5347,8 +5279,7 @@
                 "version": {
                     "type": "string"
                 }
-            },
-            "optional": true
+            }
         },
         "smb": {
             "type": "object",
@@ -5405,8 +5336,7 @@
                                     "version": {
                                         "type": "string"
                                     }
-                                },
-                                "optional": true
+                                }
                             }
                         },
                         "opnum": {
@@ -5422,8 +5352,7 @@
                                 "stub_data_size": {
                                     "type": "integer"
                                 }
-                            },
-                            "optional": true
+                            }
                         },
                         "request": {
                             "type": "string"
@@ -5438,14 +5367,12 @@
                                 "stub_data_size": {
                                     "type": "integer"
                                 }
-                            },
-                            "optional": true
+                            }
                         },
                         "response": {
                             "type": "string"
                         }
-                    },
-                    "optional": true
+                    }
                 },
                 "dialect": {
                     "type": "string"
@@ -5482,8 +5409,7 @@
                                 "type": "string"
                             }
                         }
-                    },
-                    "optional": true
+                    }
                 },
                 "level_of_interest": {
                     "type": "string"
@@ -5514,14 +5440,12 @@
                             "type": "string"
                         },
                         "version": {
-                            "type": "string",
-                            "optional": true
+                            "type": "string"
                         },
                         "warning": {
                             "type": "boolean"
                         }
-                    },
-                    "optional": true
+                    }
                 },
                 "rename": {
                     "type": "object",
@@ -5533,8 +5457,7 @@
                         "to": {
                             "type": "string"
                         }
-                    },
-                    "optional": true
+                    }
                 },
                 "request": {
                     "type": "object",
@@ -5546,8 +5469,7 @@
                         "native_os": {
                             "type": "string"
                         }
-                    },
-                    "optional": true
+                    }
                 },
                 "request_done": {
                     "type": "boolean"
@@ -5562,8 +5484,7 @@
                         "native_os": {
                             "type": "string"
                         }
-                    },
-                    "optional": true
+                    }
                 },
                 "response_done": {
                     "type": "boolean"
@@ -5581,8 +5502,7 @@
                         "response": {
                             "type": "string"
                         }
-                    },
-                    "optional": true
+                    }
                 },
                 "session_id": {
                     "type": "integer"
@@ -5597,8 +5517,7 @@
                         "info_level": {
                             "type": "string"
                         }
-                    },
-                    "optional": true
+                    }
                 },
                 "share": {
                     "type": "string"
@@ -5621,8 +5540,7 @@
                 "tree_id": {
                     "type": "integer"
                 }
-            },
-            "optional": true
+            }
         },
         "smtp": {
             "type": "object",
@@ -5641,8 +5559,7 @@
                         "type": "string"
                     }
                 }
-            },
-            "optional": true
+            }
         },
         "snmp": {
             "type": "object",
@@ -5677,8 +5594,7 @@
                         ]
                     }
                 }
-            },
-            "optional": true
+            }
         },
         "spi": {
             "type": "integer"
@@ -5741,8 +5657,7 @@
                         }
                     }
                 }
-            },
-            "optional": true
+            }
         },
         "stats": {
             "type": "object",
@@ -8350,7 +8265,6 @@
                     "description": "Suricata engine's uptime"
                 }
             },
-            "optional": true,
             "suricata": {
                 "keywords": false
             }
