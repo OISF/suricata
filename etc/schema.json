@@ -5128,6 +5128,66 @@
                 }
             }
         },
+        "sctp": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "chunk_cnt": {
+                    "type": "integer",
+                    "suricata": {
+                        "keywords": [
+                            "sctp.chunk_cnt"
+                        ]
+                    }
+                },
+                "chunk_types": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    },
+                    "suricata": {
+                        "keywords": [
+                            "sctp.chunk_type"
+                        ]
+                    }
+                },
+                "has_abort": {
+                    "type": "boolean",
+                    "suricata": {
+                        "keywords": [
+                            "sctp.has_abort"
+                        ]
+                    }
+                },
+                "has_data": {
+                    "type": "boolean",
+                    "suricata": {
+                        "keywords": [
+                            "sctp.has_data"
+                        ]
+                    }
+                },
+                "has_init": {
+                    "type": "boolean",
+                    "suricata": {
+                        "keywords": [
+                            "sctp.has_init"
+                        ]
+                    }
+                },
+                "has_init_ack": {
+                    "type": "boolean"
+                },
+                "vtag": {
+                    "type": "integer",
+                    "suricata": {
+                        "keywords": [
+                            "sctp.vtag"
+                        ]
+                    }
+                }
+            }
+        },
         "sip": {
             "type": "object",
             "additionalProperties": false,
