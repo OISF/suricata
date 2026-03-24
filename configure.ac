@@ -512,7 +512,7 @@
 
   # enable qa-simulation mode -- disabled by default
     AC_ARG_ENABLE(qa-simulation,
-           AS_HELP_STRING([--enable-qa-simulation], [Enable qa-simulation mode]))
+           AS_HELP_STRING([--enable-qa-simulation], [Enable qa-simulation mode]), [enable_qa_simulation=$enableval],[enable_qa_simulation=no])
     AS_IF([test "x$enable_qa_simulation" = "xyes"], [
         AC_DEFINE([QA_SIMULATION],[1],[Enable qa-simulation mode])
     ])
