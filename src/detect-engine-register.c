@@ -162,6 +162,7 @@
 #include "detect-sctp-vtag.h"
 #include "detect-sctp-has-init.h"
 #include "detect-sctp-has-data.h"
+#include "detect-sctp-has-abort.h"
 #include "detect-dce-iface.h"
 #include "detect-dce-opnum.h"
 #include "detect-dce-stub-data.h"
@@ -681,6 +682,7 @@ void SigTableSetup(void)
     DetectSCTPVtagRegister();
     DetectSCTPHasInitRegister();
     DetectSCTPHasDataRegister();
+    DetectSCTPHasAbortRegister();
     DetectDceIfaceRegister();
     DetectDceOpnumRegister();
     DetectDceStubDataRegister();
