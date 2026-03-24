@@ -9,15 +9,16 @@ optionally the `--with-libpfring-includes` and
 ## Running
 ```
 /usr/local/suricata/bin/suricata \
-    --set plugins.0=/usr/local/lib/suricata/pfring.so \
-    --capture-plugin=pfring-plugin \
+    --plugin /usr/local/lib/suricata/pfring.so \
+    --capture-plugin=pfring \
     --set pfring.0.interface=eno1
 ```
 
-### --set plugins.0=/usr/local/lib/suricata/pfring.so
+### --plugin /usr/local/lib/suricata/pfring.so
 
-This command line option tells Suricata about this plugin. This could also
-be done in `suricata.yaml` with the following section:
+This command line option tells Suricata about this plugin in addition to any
+plugins listed in `suricata.yaml`. This could also be done in `suricata.yaml`
+with the following section:
 ```
 plugins:
   - /usr/local/lib/suricata/pfring.so
