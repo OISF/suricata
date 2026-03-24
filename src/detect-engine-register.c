@@ -155,6 +155,7 @@
 #include "detect-icmpv4hdr.h"
 #include "detect-igmphdr.h"
 #include "detect-igmp-type.h"
+#include "detect-sctphdr.h"
 #include "detect-urilen.h"
 #include "detect-bsize.h"
 #include "detect-detection-filter.h"
@@ -664,6 +665,7 @@ void SigTableSetup(void)
     DetectIcmpv4HdrRegister();
     DetectIGMPHdrRegister();
     DetectIGMPTypeRegister();
+    DetectSCTPHdrRegister();
     DetectTlsRegister();
     DetectTlsValidityRegister();
     DetectTlsVersionRegister();
