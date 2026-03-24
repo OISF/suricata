@@ -159,6 +159,7 @@
 #include "detect-sctphdr.h"
 #include "detect-sctp-chunk-type.h"
 #include "detect-sctp-chunk-cnt.h"
+#include "detect-sctp-vtag.h"
 #include "detect-dce-iface.h"
 #include "detect-dce-opnum.h"
 #include "detect-dce-stub-data.h"
@@ -674,6 +675,7 @@ void SigTableSetup(void)
     DetectSCTPHdrRegister();
     DetectSCTPChunkTypeRegister();
     DetectSCTPChunkCntRegister();
+    DetectSCTPVtagRegister();
     DetectDceIfaceRegister();
     DetectDceOpnumRegister();
     DetectDceStubDataRegister();
