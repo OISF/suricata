@@ -158,6 +158,7 @@
 #include "detect-sctphdr.h"
 #include "detect-sctp-chunk-type.h"
 #include "detect-sctp-chunk-cnt.h"
+#include "detect-sctp-vtag.h"
 #include "detect-urilen.h"
 #include "detect-bsize.h"
 #include "detect-detection-filter.h"
@@ -670,6 +671,7 @@ void SigTableSetup(void)
     DetectSCTPHdrRegister();
     DetectSCTPChunkTypeRegister();
     DetectSCTPChunkCntRegister();
+    DetectSCTPVtagRegister();
     DetectTlsRegister();
     DetectTlsValidityRegister();
     DetectTlsVersionRegister();
