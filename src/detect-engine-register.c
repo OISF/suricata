@@ -156,6 +156,7 @@
 #include "detect-igmphdr.h"
 #include "detect-igmp-type.h"
 #include "detect-sctphdr.h"
+#include "detect-sctp-chunk-type.h"
 #include "detect-urilen.h"
 #include "detect-bsize.h"
 #include "detect-detection-filter.h"
@@ -666,6 +667,7 @@ void SigTableSetup(void)
     DetectIGMPHdrRegister();
     DetectIGMPTypeRegister();
     DetectSCTPHdrRegister();
+    DetectSCTPChunkTypeRegister();
     DetectTlsRegister();
     DetectTlsValidityRegister();
     DetectTlsVersionRegister();

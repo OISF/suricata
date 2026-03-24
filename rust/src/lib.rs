@@ -136,6 +136,7 @@ pub mod lzma;
 pub mod util;
 pub mod ffi;
 pub mod feature;
+pub mod sctp;
 pub mod sdp;
 pub mod ldap;
 pub mod flow;
