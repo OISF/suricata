@@ -176,6 +176,7 @@ typedef struct SCInstance_ {
     const char *progname; /**< pointer to argv[0] */
     const char *conf_filename;
     const char **additional_configs;
+    const char **additional_plugins;
     char *strict_rule_parsing_string;
 
     const char *capture_plugin_name;

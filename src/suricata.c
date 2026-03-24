@@ -644,6 +644,7 @@ static void PrintUsage(const char *progname)
     printf("\t--runmode <runmode_id>               : specific runmode modification the engine should run.  The argument\n"
            "\t                                       supplied should be the id for the runmode obtained by running\n"
            "\t                                       --list-runmodes\n");
+    printf("\t--plugin <path>                      : load plugin in addition to config\n");
 
     printf("\n  Capture and IPS:\n");
 
@@ -1382,6 +1383,38 @@ static bool IsLogDirectoryWritable(const char* str)
     return access(str, W_OK) == 0;
 }
 
+/**
+ * Helper functions to append option values to an array where the
+ * option is allowed multiple times.  For example:
+ *   - --include
+ *   - --plugin
+ */
+static void AddCommandLineOptionValue(
+        const char ***values, const char *value, const char *description)
+{
+    if (*values == NULL) {
+        *values = SCCalloc(2, sizeof(char *));
+        if (*values == NULL) {
+            FatalError("Failed to allocate memory for %s: %s", description, strerror(errno));
+        }
+        (*values)[0] = value;
+    } else {
+        for (int i = 0;; i++) {
+            if ((*values)[i] == NULL) {
+                const char **new_values = SCRealloc(*values, (i + 2) * sizeof(char *));
+                if (new_values == NULL) {
+                    FatalError(
+                            "Failed to allocate memory for %s: %s", description, strerror(errno));
+                }
+                *values = new_values;
+                (*values)[i] = value;
+                (*values)[i + 1] = NULL;
+                break;
+            }
+        }
+    }
+}
+
 extern int g_skip_prefilter;
 
 TmEcode SCParseCommandLine(int argc, char **argv)
@@ -1434,6 +1467,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
         {"no-random", 0, &g_disable_randomness, 1},
         {"strict-rule-keywords", optional_argument, 0, 0},
 
+        {"plugin", required_argument, 0, 0},
         {"capture-plugin", required_argument, 0, 0},
         {"capture-plugin-args", required_argument, 0, 0},
 
@@ -1550,6 +1584,8 @@ TmEcode SCParseCommandLine(int argc, char **argv)
                            "to pass --enable-pfring to configure when building.");
                 return TM_ECODE_FAILED;
 #endif /* HAVE_PFRING */
+            } else if (strcmp((long_opts[option_index]).name, "plugin") == 0) {
+                AddCommandLineOptionValue(&suri->additional_plugins, optarg, "additional plugins");
             } else if (strcmp((long_opts[option_index]).name, "capture-plugin") == 0) {
                 suri->run_mode = RUNMODE_PLUGIN;
                 suri->capture_plugin_name = optarg;
@@ -1870,32 +1906,8 @@ TmEcode SCParseCommandLine(int argc, char **argv)
                     FatalError("failed to duplicate 'strict' string");
                 }
             } else if (strcmp((long_opts[option_index]).name, "include") == 0) {
-                if (suri->additional_configs == NULL) {
-                    suri->additional_configs = SCCalloc(2, sizeof(char *));
-                    if (suri->additional_configs == NULL) {
-                        FatalError(
-                                "Failed to allocate memory for additional configuration files: %s",
-                                strerror(errno));
-                    }
-                    suri->additional_configs[0] = optarg;
-                } else {
-                    for (int i = 0;; i++) {
-                        if (suri->additional_configs[i] == NULL) {
-                            const char **additional_configs =
-                                    SCRealloc(suri->additional_configs, (i + 2) * sizeof(char *));
-                            if (additional_configs == NULL) {
-                                FatalError("Failed to allocate memory for additional configuration "
-                                           "files: %s",
-                                        strerror(errno));
-                            } else {
-                                suri->additional_configs = additional_configs;
-                            }
-                            suri->additional_configs[i] = optarg;
-                            suri->additional_configs[i + 1] = NULL;
-                            break;
-                        }
-                    }
-                }
+                AddCommandLineOptionValue(
+                        &suri->additional_configs, optarg, "additional configuration files");
             } else if (strcmp((long_opts[option_index]).name, "firewall-rules-exclusive") == 0) {
                 if (suri->firewall_rule_file != NULL) {
                     SCLogError("can't have multiple --firewall-rules-exclusive options");
@@ -2828,7 +2840,7 @@ int PostConfLoadedSetup(SCInstance *suri)
     SigTableInit();
 
 #ifdef HAVE_PLUGINS
-    SCPluginsLoad(suri->capture_plugin_name, suri->capture_plugin_args);
+    SCPluginsLoad(suri->capture_plugin_name, suri->capture_plugin_args, suri->additional_plugins);
 #endif
 
     LiveDeviceFinalize(); // must be after EBPF extension registration

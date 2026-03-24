@@ -272,6 +272,14 @@
 
 .. Advanced options.
 
+.. option:: --plugin <path>
+
+   Load a plugin from *path* in addition to the plugins listed in the
+   configuration file. This option can be specified multiple times.
+
+   If *path* is a directory, Suricata will attempt to load each
+   ``.so`` file in that directory.
+
 .. option:: --set <key>=<value>
 
    Set a configuration value. Useful for overriding basic
