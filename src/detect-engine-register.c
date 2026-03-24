@@ -161,6 +161,7 @@
 #include "detect-sctp-vtag.h"
 #include "detect-sctp-has-init.h"
 #include "detect-sctp-has-data.h"
+#include "detect-sctp-has-abort.h"
 #include "detect-urilen.h"
 #include "detect-bsize.h"
 #include "detect-detection-filter.h"
@@ -676,6 +677,7 @@ void SigTableSetup(void)
     DetectSCTPVtagRegister();
     DetectSCTPHasInitRegister();
     DetectSCTPHasDataRegister();
+    DetectSCTPHasAbortRegister();
     DetectTlsRegister();
     DetectTlsValidityRegister();
     DetectTlsVersionRegister();
