@@ -76,7 +76,7 @@ bool RegisterPlugin(SCPlugin *plugin, void *lib)
     return true;
 }
 
-static void InitPlugin(char *path)
+static void InitPlugin(const char *path)
 {
     void *lib = dlopen(path, RTLD_NOW);
     if (lib == NULL) {
@@ -99,37 +99,48 @@ static void InitPlugin(char *path)
     }
 }
 
-void SCPluginsLoad(const char *capture_plugin_name, const char *capture_plugin_args)
+static void LoadPluginsFromPath(const char *plugin_path)
 {
-    SCConfNode *conf = SCConfGetNode("plugins");
-    if (conf == NULL) {
+    struct stat statbuf;
+    if (stat(plugin_path, &statbuf) == -1) {
+        SCLogError("Bad plugin path: %s: %s", plugin_path, strerror(errno));
         return;
     }
-    SCConfNode *plugin = NULL;
-    TAILQ_FOREACH(plugin, &conf->head, next) {
-        struct stat statbuf;
-        if (stat(plugin->val, &statbuf) == -1) {
-            SCLogError("Bad plugin path: %s: %s", plugin->val, strerror(errno));
-            continue;
+    if (S_ISDIR(statbuf.st_mode)) {
+        // coverity[toctou : FALSE]
+        DIR *dir = opendir(plugin_path);
+        if (dir == NULL) {
+            SCLogError("Failed to open plugin directory %s: %s", plugin_path, strerror(errno));
+            return;
         }
-        if (S_ISDIR(statbuf.st_mode)) {
-            // coverity[toctou : FALSE]
-            DIR *dir = opendir(plugin->val);
-            if (dir == NULL) {
-                SCLogError("Failed to open plugin directory %s: %s", plugin->val, strerror(errno));
-                continue;
+        struct dirent *entry = NULL;
+        char path[PATH_MAX];
+        while ((entry = readdir(dir)) != NULL) {
+            if (strstr(entry->d_name, ".so") != NULL) {
+                snprintf(path, sizeof(path), "%s/%s", plugin_path, entry->d_name);
+                InitPlugin(path);
             }
-            struct dirent *entry = NULL;
-            char path[PATH_MAX];
-            while ((entry = readdir(dir)) != NULL) {
-                if (strstr(entry->d_name, ".so") != NULL) {
-                    snprintf(path, sizeof(path), "%s/%s", plugin->val, entry->d_name);
-                    InitPlugin(path);
-                }
-            }
-            closedir(dir);
-        } else {
-            InitPlugin(plugin->val);
+        }
+        closedir(dir);
+    } else {
+        InitPlugin(plugin_path);
+    }
+}
+
+void SCPluginsLoad(const char *capture_plugin_name, const char *capture_plugin_args,
+        const char **additional_plugins)
+{
+    SCConfNode *conf = SCConfGetNode("plugins");
+    if (conf != NULL) {
+        SCConfNode *plugin = NULL;
+        TAILQ_FOREACH (plugin, &conf->head, next) {
+            LoadPluginsFromPath(plugin->val);
+        }
+    }
+
+    if (additional_plugins != NULL) {
+        for (int i = 0; additional_plugins[i] != NULL; i++) {
+            LoadPluginsFromPath(additional_plugins[i]);
         }
     }
 
