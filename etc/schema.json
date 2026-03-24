@@ -5641,6 +5641,59 @@
                 }
             }
         },
+        "sctp": {
+            "type": "object",
+            "description": "SCTP protocol information",
+            "additionalProperties": false,
+            "properties": {
+                "chunk_cnt": {
+                    "type": "integer",
+                    "description": "Number of SCTP chunks in the packet",
+                    "suricata": {
+                        "keywords": [
+                            "sctp.chunk_cnt"
+                        ]
+                    }
+                },
+                "chunk_types": {
+                    "type": "array",
+                    "description": "Array of SCTP chunk type names present in the packet",
+                    "items": {
+                        "type": "string"
+                    },
+                    "suricata": {
+                        "keywords": [
+                            "sctp.chunk_type"
+                        ]
+                    }
+                },
+                "has_abort": {
+                    "type": "boolean",
+                    "description": "Whether the packet contains an ABORT chunk"
+                },
+                "has_data": {
+                    "type": "boolean",
+                    "description": "Whether the packet contains a DATA chunk"
+                },
+                "has_init": {
+                    "type": "boolean",
+                    "description": "Whether the packet contains an INIT chunk"
+                },
+                "has_init_ack": {
+                    "type": "boolean",
+                    "description": "Whether the packet contains an INIT_ACK chunk"
+                },
+                "vtag": {
+                    "type": "integer",
+                    "description": "SCTP verification tag",
+                    "suricata": {
+                        "keywords": [
+                            "sctp.vtag"
+                        ]
+                    }
+                }
+            }
+        },
         "sip": {
             "type": "object",
             "additionalProperties": false,
