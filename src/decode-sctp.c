@@ -64,6 +64,8 @@ static int DecodeSCTPChunks(Packet *p, const uint8_t *pkt, uint32_t len)
     bool has_init = false;
     bool has_data = false;
     bool has_abort = false;
+    uint16_t data_payload_offset = 0;
+    uint16_t data_payload_len = 0;
 
     while (offset < len) {
         /* need at least a chunk header */
@@ -102,6 +104,11 @@ static int DecodeSCTPChunks(Packet *p, const uint8_t *pkt, uint32_t len)
                 }
                 break;
             case SCTP_CHUNK_TYPE_DATA:
+                if (!has_data && chunk_len >= SCTP_DATA_CHUNK_HDR_LEN) {
+                    data_payload_offset =
+                            (uint16_t)(SCTP_HEADER_LEN + offset + SCTP_DATA_CHUNK_HDR_LEN);
+                    data_payload_len = chunk_len - SCTP_DATA_CHUNK_HDR_LEN;
+                }
                 has_data = true;
                 /* DATA chunks must not have vtag == 0 */
                 if (vtag == 0) {
@@ -132,6 +139,8 @@ static int DecodeSCTPChunks(Packet *p, const uint8_t *pkt, uint32_t len)
     p->l4.vars.sctp.hlen = (uint16_t)(SCTP_HEADER_LEN + ((offset < len) ? offset : len));
     p->l4.vars.sctp.first_chunk = first_chunk;
     p->l4.vars.sctp.chunk_cnt = chunk_cnt;
+    p->l4.vars.sctp.data_offset = data_payload_offset;
+    p->l4.vars.sctp.data_len = data_payload_len;
     p->l4.vars.sctp.has_init = has_init;
     p->l4.vars.sctp.has_data = has_data;
     p->l4.vars.sctp.has_abort = has_abort;
@@ -159,6 +168,13 @@ static int DecodeSCTPPacket(ThreadVars *tv, Packet *p, const uint8_t *pkt, uint1
 
     if (p->payload_len > 0) {
         DecodeSCTPChunks(p, pkt + SCTP_HEADER_LEN, p->payload_len);
+
+        if (p->l4.vars.sctp.data_len > 0) {
+            p->payload = (uint8_t *)pkt + p->l4.vars.sctp.data_offset;
+            p->payload_len = p->l4.vars.sctp.data_len;
+        } else {
+            p->payload_len = 0;
+        }
     } else {
         p->l4.vars.sctp.hlen = SCTP_HEADER_LEN;
     }
@@ -473,6 +489,180 @@ static int SCTPDecodeInitNotAloneTest07(void)
     PASS;
 }
 
+/** \test DATA chunk payload extraction - p->payload points to user data */
+static int SCTPDecodeDataPayloadTest08(void)
+{
+    uint8_t raw_sctp[] = {
+        0x04, 0xd2, 0x00, 0x50, /* sport=1234, dport=80 */
+        0x00, 0x00, 0x00, 0x01, /* vtag=1 */
+        0x00, 0x00, 0x00, 0x00, /* checksum=0 */
+        /* DATA chunk: type=0x00, flags=0x03, len=20 (16 hdr + 4 data) */
+        0x00, 0x03, 0x00, 0x14, 0x00, 0x00, 0x00, 0x01, /* TSN=1 */
+        0x00, 0x01, 0x00, 0x00,                         /* stream_id=1, stream_seq=0 */
+        0x00, 0x00, 0x00, 0x00,                         /* PPID=0 */
+        0x41, 0x42, 0x43, 0x44,                         /* data="ABCD" */
+    };
+
+    Packet *p = PacketGetFromAlloc();
+    FAIL_IF_NULL(p);
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+
+    FlowInitConfig(FLOW_QUIET);
+    DecodeSCTP(&tv, &dtv, p, raw_sctp, sizeof(raw_sctp));
+    FAIL_IF_NOT(PacketIsSCTP(p));
+
+    FAIL_IF(p->payload_len != 4);
+    FAIL_IF(memcmp(p->payload, "ABCD", 4) != 0);
+
+    PacketFree(p);
+    FlowShutdown();
+    PASS;
+}
+
+/** \test INIT-only packet - payload_len must be 0 (no application data) */
+static int SCTPDecodeNoDataPayloadTest09(void)
+{
+    uint8_t raw_sctp[] = {
+        0x04, 0xd2, 0x00, 0x50, /* sport=1234, dport=80 */
+        0x00, 0x00, 0x00, 0x00, /* vtag=0 */
+        0x00, 0x00, 0x00, 0x00, /* checksum=0 */
+        0x01, 0x00, 0x00, 0x14, /* chunk: INIT, flags=0, len=20 */
+        0x00, 0x00, 0x00, 0x01, /* initiate_tag=1 */
+        0x00, 0x01, 0x00, 0x00, /* a_rwnd=65536 */
+        0x00, 0x01, 0x00, 0x01, /* num_outbound=1, num_inbound=1 */
+        0x00, 0x00, 0x00, 0x01, /* initial_tsn=1 */
+    };
+
+    Packet *p = PacketGetFromAlloc();
+    FAIL_IF_NULL(p);
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+
+    FlowInitConfig(FLOW_QUIET);
+    DecodeSCTP(&tv, &dtv, p, raw_sctp, sizeof(raw_sctp));
+    FAIL_IF_NOT(PacketIsSCTP(p));
+
+    FAIL_IF(p->payload_len != 0);
+
+    PacketFree(p);
+    FlowShutdown();
+    PASS;
+}
+
+/** \test Verify data_offset and data_len in SCTPVars */
+static int SCTPDecodeDataOffsetTest10(void)
+{
+    uint8_t raw_sctp[] = {
+        0x04, 0xd2, 0x00, 0x50, /* sport=1234, dport=80 */
+        0x00, 0x00, 0x00, 0x01, /* vtag=1 */
+        0x00, 0x00, 0x00, 0x00, /* checksum=0 */
+        /* DATA chunk: type=0x00, flags=0x03, len=20 (16 hdr + 4 data) */
+        0x00, 0x03, 0x00, 0x14, 0x00, 0x00, 0x00, 0x01, /* TSN=1 */
+        0x00, 0x01, 0x00, 0x00,                         /* stream_id=1, stream_seq=0 */
+        0x00, 0x00, 0x00, 0x00,                         /* PPID=0 */
+        0x41, 0x42, 0x43, 0x44,                         /* data="ABCD" */
+    };
+
+    Packet *p = PacketGetFromAlloc();
+    FAIL_IF_NULL(p);
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+
+    FlowInitConfig(FLOW_QUIET);
+    DecodeSCTP(&tv, &dtv, p, raw_sctp, sizeof(raw_sctp));
+    FAIL_IF_NOT(PacketIsSCTP(p));
+
+    /* data_offset = SCTP_HEADER_LEN(12) + chunk_offset(0) + DATA_CHUNK_HDR_LEN(16) = 28 */
+    FAIL_IF(p->l4.vars.sctp.data_offset != 28);
+    FAIL_IF(p->l4.vars.sctp.data_len != 4);
+
+    PacketFree(p);
+    FlowShutdown();
+    PASS;
+}
+
+/** \test Two DATA chunks - payload is first DATA's user data only */
+static int SCTPDecodeMultiDataFirstOnlyTest11(void)
+{
+    uint8_t raw_sctp[] = {
+        0x04, 0xd2, 0x00, 0x50, /* sport=1234, dport=80 */
+        0x00, 0x00, 0x00, 0x01, /* vtag=1 */
+        0x00, 0x00, 0x00, 0x00, /* checksum=0 */
+        /* DATA chunk 1: type=0x00, flags=0x02, len=20 (16 hdr + 4 data) */
+        0x00, 0x02, 0x00, 0x14, 0x00, 0x00, 0x00, 0x01, /* TSN=1 */
+        0x00, 0x01, 0x00, 0x00,                         /* stream_id=1, stream_seq=0 */
+        0x00, 0x00, 0x00, 0x00,                         /* PPID=0 */
+        0x41, 0x42, 0x43, 0x44,                         /* data="ABCD" */
+        /* DATA chunk 2: type=0x00, flags=0x01, len=20 (16 hdr + 4 data) */
+        0x00, 0x01, 0x00, 0x14, 0x00, 0x00, 0x00, 0x02, /* TSN=2 */
+        0x00, 0x01, 0x00, 0x01,                         /* stream_id=1, stream_seq=1 */
+        0x00, 0x00, 0x00, 0x00,                         /* PPID=0 */
+        0x45, 0x46, 0x47, 0x48,                         /* data="EFGH" */
+    };
+
+    Packet *p = PacketGetFromAlloc();
+    FAIL_IF_NULL(p);
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+
+    FlowInitConfig(FLOW_QUIET);
+    DecodeSCTP(&tv, &dtv, p, raw_sctp, sizeof(raw_sctp));
+    FAIL_IF_NOT(PacketIsSCTP(p));
+
+    FAIL_IF(p->l4.vars.sctp.chunk_cnt != 2);
+    FAIL_IF(p->payload_len != 4);
+    FAIL_IF(memcmp(p->payload, "ABCD", 4) != 0);
+
+    PacketFree(p);
+    FlowShutdown();
+    PASS;
+}
+
+/** \test DATA chunk with chunk_len < 16 - malformed, payload_len must be 0 */
+static int SCTPDecodeSmallDataChunkTest12(void)
+{
+    uint8_t raw_sctp[] = {
+        0x04, 0xd2, 0x00, 0x50, /* sport=1234, dport=80 */
+        0x00, 0x00, 0x00, 0x01, /* vtag=1 */
+        0x00, 0x00, 0x00, 0x00, /* checksum=0 */
+        /* DATA chunk: type=0x00, flags=0x00, len=8 (< 16, malformed) */
+        0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00,
+        0x00, /* 4 bytes of value (not enough for DATA header) */
+    };
+
+    Packet *p = PacketGetFromAlloc();
+    FAIL_IF_NULL(p);
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+
+    FlowInitConfig(FLOW_QUIET);
+    DecodeSCTP(&tv, &dtv, p, raw_sctp, sizeof(raw_sctp));
+    FAIL_IF_NOT(PacketIsSCTP(p));
+
+    FAIL_IF(p->l4.vars.sctp.data_len != 0);
+    FAIL_IF(p->payload_len != 0);
+
+    PacketFree(p);
+    FlowShutdown();
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 void DecodeSCTPRegisterTests(void)
@@ -485,6 +675,11 @@ void DecodeSCTPRegisterTests(void)
     UtRegisterTest("SCTPDecodeInitNonZeroVtagTest05", SCTPDecodeInitNonZeroVtagTest05);
     UtRegisterTest("SCTPDecodeMultiChunkTest06", SCTPDecodeMultiChunkTest06);
     UtRegisterTest("SCTPDecodeInitNotAloneTest07", SCTPDecodeInitNotAloneTest07);
+    UtRegisterTest("SCTPDecodeDataPayloadTest08", SCTPDecodeDataPayloadTest08);
+    UtRegisterTest("SCTPDecodeNoDataPayloadTest09", SCTPDecodeNoDataPayloadTest09);
+    UtRegisterTest("SCTPDecodeDataOffsetTest10", SCTPDecodeDataOffsetTest10);
+    UtRegisterTest("SCTPDecodeMultiDataFirstOnlyTest11", SCTPDecodeMultiDataFirstOnlyTest11);
+    UtRegisterTest("SCTPDecodeSmallDataChunkTest12", SCTPDecodeSmallDataChunkTest12);
 #endif
 }
 /**
