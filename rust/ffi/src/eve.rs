@@ -16,10 +16,13 @@
  */
 
 use std::ffi::CString;
+use std::os::raw::c_void;
 
+pub use suricata_sys::sys::{Flow, Packet, SCEveUserCallbackFn, SCJsonBuilder, ThreadVars};
 use suricata_sys::sys::{
     SCEveFileType, SCEveFileTypeDeinitFunc, SCEveFileTypeInitFunc, SCEveFileTypeThreadDeinitFunc,
-    SCEveFileTypeThreadInitFunc, SCEveFileTypeWriteFunc, SCRegisterEveFileType,
+    SCEveFileTypeThreadInitFunc, SCEveFileTypeWriteFunc, SCEveRegisterCallback,
+    SCRegisterEveFileType,
 };
 
 pub struct EveFileType {
@@ -65,5 +68,88 @@ impl EveFileType {
         } else {
             Err("Failed to register EveFileType")
         }
+    }
+}
+
+/// Register an EVE callback.
+///
+/// The callback is invoked just before the top-level EVE JSON object
+/// is closed. New fields may be added at that point, but objects and
+/// fields already written to the `JsonBuilder` cannot be altered.
+///
+/// The callback receives:
+/// - `tv`: the `ThreadVars` for the thread performing the logging
+/// - `p`: the `Packet`, if available
+/// - `f`: the `Flow`, if available
+/// - `jb`: the JSON builder for the current EVE record
+///
+/// This API is intended for plugin and library users.
+///
+/// # Example
+///
+/// ```no_run
+/// use suricata_ffi::eve;
+///
+/// eve::register_callback(|_tv, _p, _f, jb| {
+///     jb.open_object("my_plugin")?;
+///     jb.set_string("key", "value")?;
+///     jb.close()?;
+///     Ok(())
+/// }).expect("failed to register EVE callback");
+/// ```
+///
+/// If the callback returns `Err`, any JSON emitted by that callback
+/// is discarded by restoring the builder to its initial mark.
+///
+/// # Safety
+///
+/// The callback receives raw pointers from Suricata. These pointers
+/// are only valid for the duration of the callback invocation and
+/// must not be stored.
+///
+/// The callback must not panic.
+pub fn register_callback<F>(callback: F) -> Result<(), &'static str>
+where
+    F: Fn(
+            *mut ThreadVars,
+            *const Packet,
+            *mut Flow,
+            &mut crate::jsonbuilder::JsonBuilder,
+        ) -> Result<(), crate::jsonbuilder::Error>
+        + Send
+        + Sync
+        + 'static,
+{
+    let user = Box::into_raw(Box::new(callback)) as *mut c_void;
+    if unsafe { SCEveRegisterCallback(Some(callback_wrapper::<F>), user) } {
+        Ok(())
+    } else {
+        unsafe {
+            drop(Box::from_raw(user as *mut F));
+        }
+        Err("Failed to register EVE callback")
+    }
+}
+
+/// Internal wrapper used to adapt the C EVE callback to a Rust
+/// closure callback.
+unsafe extern "C" fn callback_wrapper<F>(
+    tv: *mut ThreadVars, p: *const Packet, f: *mut Flow, jb: *mut SCJsonBuilder, user: *mut c_void,
+) where
+    F: Fn(
+            *mut ThreadVars,
+            *const Packet,
+            *mut Flow,
+            &mut crate::jsonbuilder::JsonBuilder,
+        ) -> Result<(), crate::jsonbuilder::Error>
+        + Send
+        + Sync
+        + 'static,
+{
+    let callback = &*(user as *const F);
+    let mut jb = crate::jsonbuilder::JsonBuilder::from_raw(jb);
+    let mark = jb.get_mark();
+    if callback(tv, p, f, &mut jb).is_err() {
+        let _ = jb.restore_mark(&mark);
     }
 }
