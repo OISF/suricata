@@ -231,6 +231,7 @@ noinst_HEADERS = \
 	detect-id.h \
 	detect-igmphdr.h \
 	detect-igmp-type.h \
+	detect-sctphdr.h \
 	detect-ipaddr.h \
 	detect-ipopts.h \
 	detect-ipproto.h \
@@ -812,6 +813,7 @@ libsuricata_c_a_SOURCES = \
 	detect-id.c \
 	detect-igmphdr.c \
 	detect-igmp-type.c \
+	detect-sctphdr.c \
 	detect-ipaddr.c \
 	detect-ipopts.c \
 	detect-ipproto.c \
@@ -1216,7 +1218,8 @@ EXTRA_DIST = \
 	tests/detect-ipaddr.c \
 	tests/detect.c \
 	tests/stream-tcp.c \
-	tests/output-json-stats.c
+	tests/output-json-stats.c \
+	tests/detect-sctphdr.c
 
 EXTRA_CFLAGS =
 
