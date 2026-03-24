@@ -38,6 +38,12 @@
  *  though in practice most packets contain only a few chunks. */
 #define SCTP_MAX_TRACKED_CHUNKS 16
 
+/** max number of DATA chunk payloads tracked per packet */
+#define SCTP_MAX_DATA_CHUNKS 16
+
+/** DATA chunk overhead before user data (chunk hdr + TSN + SID + SSN + PPID) */
+#define SCTP_DATA_CHUNK_HDR_LEN 16
+
 /* SCTP chunk types (RFC 4960 sec 3.2) */
 #define SCTP_CHUNK_TYPE_DATA              0x00
 #define SCTP_CHUNK_TYPE_INIT              0x01
@@ -74,10 +80,13 @@ typedef struct SCTPVars_ {
     uint8_t chunk_cnt;         /**< number of chunks parsed */
     uint8_t tracked_chunk_cnt; /**< number of chunks tracked (capped at SCTP_MAX_TRACKED_CHUNKS) */
     uint8_t chunk_types[SCTP_MAX_TRACKED_CHUNKS]; /**< types of first N chunks */
+    uint8_t data_chunk_cnt;                       /**< number of DATA chunk payloads tracked */
     bool has_init : 1;
     bool has_init_ack : 1;
     bool has_data : 1;
     bool has_abort : 1;
+    uint16_t data_offsets[SCTP_MAX_DATA_CHUNKS]; /**< offsets of DATA user data from L4 start */
+    uint16_t data_lens[SCTP_MAX_DATA_CHUNKS];    /**< lengths of DATA user data */
 } SCTPVars;
 
 #define SCTP_GET_RAW_SRC_PORT(sctph) SCNtohs((sctph)->sh_sport)
