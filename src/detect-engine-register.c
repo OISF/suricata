@@ -157,6 +157,7 @@
 #include "detect-igmphdr.h"
 #include "detect-igmp-type.h"
 #include "detect-sctphdr.h"
+#include "detect-sctp-chunk-type.h"
 #include "detect-dce-iface.h"
 #include "detect-dce-opnum.h"
 #include "detect-dce-stub-data.h"
@@ -671,6 +672,7 @@ void SigTableSetup(void)
     DetectIGMPHdrRegister();
     DetectIGMPTypeRegister();
     DetectSCTPHdrRegister();
+    DetectSCTPChunkTypeRegister();
     DetectDceIfaceRegister();
     DetectDceOpnumRegister();
     DetectDceStubDataRegister();
