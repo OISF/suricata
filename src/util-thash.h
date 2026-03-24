@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2024 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -99,6 +99,7 @@ typedef struct THashHashRow_ {
     HRLOCK_TYPE lock;
     THashData *head;
     THashData *tail;
+    uint32_t len; /**< current number of entries in this bucket */
 } __attribute__((aligned(CLS))) THashHashRow;
 
 typedef struct THashDataQueue_
@@ -138,6 +139,10 @@ typedef struct THashDataConfig_ {
 
 #define THASH_DATA_SIZE(ctx) (sizeof(THashData) + (ctx)->config.data_size)
 
+/** Maximum tracked bucket depth for the histogram. Depths beyond this
+ *  are clamped to THASH_MAX_BUCKET_DEPTH - 1. */
+#define THASH_MAX_BUCKET_DEPTH 256
+
 typedef struct THashTableContext_ {
     /* array of rows indexed by the hash value % hash size */
     THashHashRow *array;
@@ -145,6 +150,13 @@ typedef struct THashTableContext_ {
     SC_ATOMIC_DECLARE(uint64_t, memuse);
     SC_ATOMIC_DECLARE(uint32_t, counter);
     SC_ATOMIC_DECLARE(uint32_t, prune_idx);
+    SC_ATOMIC_DECLARE(uint32_t, nonempty_buckets);
+
+    /** depth_hist[d] = number of buckets currently at depth d.
+     *  Used to maintain max_bucket_depth in amortized O(1). */
+    _Atomic(uint32_t) depth_hist[THASH_MAX_BUCKET_DEPTH];
+    /** Current maximum bucket depth (derived from depth_hist). */
+    SC_ATOMIC_DECLARE(uint32_t, max_bucket_depth);
 
     THashDataQueue spare_q;
 
@@ -175,6 +187,9 @@ THashTableContext *THashInit(const char *cnf_prefix, uint32_t data_size,
         uint32_t (*DataHash)(uint32_t, void *), bool (*DataCompare)(void *, void *),
         bool (*DataExpired)(void *, SCTime_t), uint32_t (*DataSize)(void *), bool reset_memcap,
         uint64_t memcap, uint32_t hashsize);
+
+uint64_t THashGetterMaxBucketDepth(void *ctx);
+uint64_t THashGetterAvgBucketDepth(void *ctx);
 
 void THashShutdown(THashTableContext *ctx);
 
