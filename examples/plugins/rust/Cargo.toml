@@ -1,0 +1,12 @@
+[package]
+name = "suricata-rust-plugin"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+path = "src/mod.rs"
+crate-type = ["cdylib"]
+
+[dependencies]
+suricata-sys = { path = "../../../rust/sys" }
+suricata-ffi = { path = "../../../rust/ffi" }
