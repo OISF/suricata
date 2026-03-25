@@ -2399,18 +2399,13 @@
                     "description": "Base64 of the response body",
                     "suricata": {
                         "keywords": [
-                            "file.data"
+                            "http.response_body", "file.data"
                         ]
                     }
                 },
                 "http_response_body_printable": {
                     "type": "string",
-                    "description": "The ascii-printable characters of the response body",
-                    "suricata": {
-                        "keywords": [
-                            "http.response_body", "file.data"
-                        ]
-                    }
+                    "description": "The ascii-printable characters of the response body"
                 },
                 "http_user_agent": {
                     "type": "string",
