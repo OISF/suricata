@@ -2394,6 +2394,19 @@
                         ]
                     }
                 },
+                "http_request_body": {
+                    "type": "string",
+                    "description": "Base64 of the request body",
+                    "suricata": {
+                        "keywords": [
+                            "http.request_body", "file.data"
+                        ]
+                    }
+                },
+                "http_request_body_printable": {
+                    "type": "string",
+                    "description": "The ascii-printable characters of the request body"
+                },
                 "http_response_body": {
                     "type": "string",
                     "description": "Base64 of the response body",
