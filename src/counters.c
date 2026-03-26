@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2025 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -608,6 +608,72 @@ static uint16_t GetIdByName(const StatsPublicThreadContext *pctx, const char *na
     return 0;
 }
 
+/** \internal
+ *  Find a counter by name in \a pctx. If found, writes its id to \a *existing_id
+ *  and returns NULL. Otherwise allocates and appends a new counter (with id,
+ *  type, and short_name filled in) and returns it so the caller can populate
+ *  type-specific fields (Func, did1/did2, FuncWithCtx, etc.). */
+static StatsCounter *StatsFindOrAllocCounter(const char *name, StatsPublicThreadContext *pctx,
+        enum StatsType type_q, uint16_t *existing_id)
+{
+    *existing_id = 0;
+
+    if (name == NULL || pctx == NULL) {
+        SCLogDebug("Counter name, StatsPublicThreadContext NULL");
+        return NULL;
+    }
+
+    StatsCounter *prev = NULL;
+    for (StatsCounter *temp = pctx->head; temp != NULL; temp = temp->next) {
+        if (strcmp(name, temp->name) == 0) {
+            *existing_id = temp->id;
+            return NULL;
+        }
+        prev = temp;
+    }
+
+    StatsCounter *pc = SCCalloc(1, sizeof(StatsCounter));
+    if (pc == NULL)
+        return NULL;
+
+    /* ids start at 1, not 0 */
+    if (type_q == STATS_TYPE_DERIVE_DIV) {
+        pc->id = ++pctx->derive_id;
+    } else {
+        pc->id = ++(pctx->curr_id);
+    }
+    /* AVG counters use 2 table slots: one for values, one for update counts */
+    if (type_q == STATS_TYPE_AVERAGE)
+        ++(pctx->curr_id);
+
+    pc->name = name;
+    pc->type = type_q;
+
+    const char *dot = strrchr(name, '.');
+    if (dot != NULL)
+        pc->short_name = dot + 1;
+
+    if (prev == NULL)
+        pctx->head = pc;
+    else
+        prev->next = pc;
+
+    return pc;
+}
+
+static uint16_t StatsRegisterQualifiedCounterWithCtx(const char *name,
+        StatsPublicThreadContext *pctx, int type_q, uint64_t (*Func)(void *), void *ctx)
+{
+    uint16_t existing_id;
+    StatsCounter *pc = StatsFindOrAllocCounter(name, pctx, type_q, &existing_id);
+    if (pc == NULL)
+        return existing_id;
+
+    pc->FuncWithCtx = Func;
+    pc->FuncCtx = ctx;
+    return pc->id;
+}
+
 /**
  * \brief Registers a counter.
  *
@@ -622,74 +688,23 @@ static uint16_t GetIdByName(const StatsPublicThreadContext *pctx, const char *na
 static uint16_t StatsRegisterQualifiedCounter(const char *name, StatsPublicThreadContext *pctx,
         enum StatsType type_q, uint64_t (*Func)(void), const char *dname1, const char *dname2)
 {
-    StatsCounter **head = &pctx->head;
-    StatsCounter *temp = NULL;
-    StatsCounter *prev = NULL;
-    StatsCounter *pc = NULL;
-
-    if (name == NULL || pctx == NULL) {
-        SCLogDebug("Counter name, StatsPublicThreadContext NULL");
-        return 0;
-    }
-
-    temp = prev = *head;
-    while (temp != NULL) {
-        prev = temp;
-
-        if (strcmp(name, temp->name) == 0) {
-            break;
-        }
-
-        temp = temp->next;
-    }
-
-    /* We already have a counter registered by this name */
-    if (temp != NULL)
-        return(temp->id);
-
     uint16_t did1 = 0;
     uint16_t did2 = 0;
     if (type_q == STATS_TYPE_DERIVE_DIV) {
         did1 = GetIdByName(pctx, dname1);
         did2 = GetIdByName(pctx, dname2);
-        if (did1 == 0 || did2 == 0) {
+        if (did1 == 0 || did2 == 0)
             return 0;
-        }
     }
 
-    /* if we reach this point we don't have a counter registered by this name */
-    if ((pc = SCCalloc(1, sizeof(StatsCounter))) == NULL)
-        return 0;
+    uint16_t existing_id;
+    StatsCounter *pc = StatsFindOrAllocCounter(name, pctx, type_q, &existing_id);
+    if (pc == NULL)
+        return existing_id;
 
-    /* assign a unique id to this StatsCounter.  The id is local to this
-     * thread context.  Please note that the id start from 1, and not 0 */
-    if (type_q == STATS_TYPE_DERIVE_DIV) {
-        pc->id = ++pctx->derive_id;
-    } else {
-        pc->id = ++(pctx->curr_id);
-    }
-    /* for AVG counters we use 2 indices into the tables: one for values,
-     * the other to track updates. */
-    if (type_q == STATS_TYPE_AVERAGE)
-        ++(pctx->curr_id);
-    pc->name = name;
-
-    /* Precalculate the short name */
-    if (strrchr(name, '.') != NULL) {
-        pc->short_name = &name[strrchr(name, '.') - name + 1];
-    }
-
-    pc->type = type_q;
     pc->Func = Func;
     pc->did1 = did1;
     pc->did2 = did2;
-
-    /* we now add the counter to the list */
-    if (prev == NULL)
-        *head = pc;
-    else
-        prev->next = pc;
-
     return pc->id;
 }
 
@@ -790,7 +805,9 @@ static int StatsOutput(ThreadVars *tv)
 
             switch (pc->type) {
                 case STATS_TYPE_FUNC:
-                    if (pc->Func != NULL)
+                    if (pc->FuncWithCtx != NULL)
+                        thread_table[pc->gid].value = pc->FuncWithCtx(pc->FuncCtx);
+                    else if (pc->Func != NULL)
                         thread_table[pc->gid].value = pc->Func();
                     break;
                 case STATS_TYPE_AVERAGE:
@@ -1129,6 +1146,35 @@ StatsCounterDeriveId StatsRegisterDeriveDivCounter(
 #endif
     uint16_t id = StatsRegisterQualifiedCounter(
             name, &stats->pub, STATS_TYPE_DERIVE_DIV, NULL, dname1, dname2);
+    s.id = id;
+    return s;
+}
+
+/**
+ * \brief Registers a global counter backed by a context-aware getter function.
+ *
+ * Like StatsRegisterGlobalCounter() but passes \a ctx to \a Func on each poll,
+ * allowing multiple independent instances to share a single getter without
+ * requiring per-instance wrapper functions.
+ *
+ * \param name  Name of the counter.
+ * \param Func  Function returning the counter value given \a ctx.
+ * \param ctx   Context pointer passed to \a Func on every poll.
+ *
+ * \retval id Counter id for the newly registered counter.
+ */
+StatsCounterGlobalId StatsRegisterGlobalCounterWithContext(
+        const char *name, uint64_t (*Func)(void *), void *ctx)
+{
+    StatsCounterGlobalId s = { .id = 0 };
+#if defined(UNITTESTS) || defined(FUZZ)
+    if (stats_ctx == NULL)
+        return s;
+#else
+    BUG_ON(stats_ctx == NULL);
+#endif
+    uint16_t id = StatsRegisterQualifiedCounterWithCtx(
+            name, &(stats_ctx->global_counter_ctx), STATS_TYPE_FUNC, Func, ctx);
     s.id = id;
     return s;
 }
