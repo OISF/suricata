@@ -234,6 +234,7 @@ noinst_HEADERS = \
 	detect-sctphdr.h \
 	detect-sctp-chunk-cnt.h \
 	detect-sctp-chunk-type.h \
+	detect-sctp-data.h \
 	detect-sctp-has-abort.h \
 	detect-sctp-has-data.h \
 	detect-sctp-has-init.h \
@@ -822,6 +823,7 @@ libsuricata_c_a_SOURCES = \
 	detect-sctphdr.c \
 	detect-sctp-chunk-cnt.c \
 	detect-sctp-chunk-type.c \
+	detect-sctp-data.c \
 	detect-sctp-has-abort.c \
 	detect-sctp-has-data.c \
 	detect-sctp-has-init.c \
@@ -1237,7 +1239,8 @@ EXTRA_DIST = \
 	tests/detect-sctp-vtag.c \
 	tests/detect-sctp-has-init.c \
 	tests/detect-sctp-has-data.c \
-	tests/detect-sctp-has-abort.c
+	tests/detect-sctp-has-abort.c \
+	tests/detect-sctp-data.c
 
 EXTRA_CFLAGS =
 
