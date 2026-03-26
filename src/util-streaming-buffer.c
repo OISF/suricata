@@ -60,11 +60,11 @@ static void *CallocFunc(const size_t nm, const size_t sz)
 /* memory handling wrappers. If config doesn't define it's own set of
  * functions, use the defaults */
 // TODO the default allocators don't set `sc_errno` yet.
-#define CALLOC(cfg, n, s) (cfg)->Calloc ? (cfg)->Calloc((n), (s)) : CallocFunc((n), (s))
+#define CALLOC(cfg, n, s) ((cfg) && (cfg)->Calloc) ? (cfg)->Calloc((n), (s)) : CallocFunc((n), (s))
 #define REALLOC(cfg, ptr, orig_s, s)                                                               \
-    (cfg)->Realloc ? (cfg)->Realloc((ptr), (orig_s), (s)) : ReallocFunc((ptr), (s))
+    ((cfg) && (cfg)->Realloc) ? (cfg)->Realloc((ptr), (orig_s), (s)) : ReallocFunc((ptr), (s))
 #define FREE(cfg, ptr, s) \
-    (cfg)->Free ? (cfg)->Free((ptr), (s)) : SCFree((ptr))
+    ((cfg) && (cfg)->Free) ? (cfg)->Free((ptr), (s)) : SCFree((ptr))
 
 static void SBBFree(StreamingBuffer *sb, const StreamingBufferConfig *cfg);
 

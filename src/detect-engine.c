@@ -5157,6 +5157,9 @@ void DetectLowerSetupCallback(
 void SCDetectEngineRegisterRateFilterCallback(SCDetectRateFilterFunc fn, void *arg)
 {
     DetectEngineCtx *de_ctx = DetectEngineGetCurrent();
+    if (de_ctx == NULL) {
+        return;
+    }
     de_ctx->RateFilterCallback = fn;
     de_ctx->rate_filter_callback_arg = arg;
     DetectEngineDeReference(&de_ctx);

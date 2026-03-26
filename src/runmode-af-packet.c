@@ -310,7 +310,8 @@ static void *ParseAFPConfig(const char *iface)
 
     if (SCConfGetChildValueBoolWithDefault(if_root, if_default, "tpacket-v3", &boolval) == 1) {
         if (boolval) {
-            if (strcasecmp(RunmodeGetActive(), "workers") == 0) {
+            char *active_runmode = RunmodeGetActive();
+            if (active_runmode && strcasecmp(active_runmode, "workers") == 0) {
                 SCLogConfig("%s: enabling tpacket v3", aconf->iface);
                 aconf->flags |= AFP_TPACKET_V3;
             } else {

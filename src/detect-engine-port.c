@@ -83,7 +83,7 @@ void DetectPortFree(const DetectEngineCtx *de_ctx, DetectPort *dp)
         return;
 
     /* only free the head if we have the original */
-    if (dp->sh != NULL && !(dp->flags & PORT_SIGGROUPHEAD_COPY)) {
+    if (de_ctx != NULL && dp->sh != NULL && !(dp->flags & PORT_SIGGROUPHEAD_COPY)) {
         SigGroupHeadFree(de_ctx, dp->sh);
     }
     dp->sh = NULL;

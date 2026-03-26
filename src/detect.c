@@ -518,7 +518,7 @@ static inline bool DetectRunInspectRuleHeader(const Packet *p, const Flow *f, co
         DEBUG_VALIDATE_BUG_ON(f == NULL);
 
         /* no flowvars? skip this sig */
-        const bool fv = f->flowvar != NULL;
+        const bool fv = f && (f->flowvar != NULL);
         if (!fv) {
             SCLogDebug("skipping sig as the flow has no flowvars and sig "
                     "has SIG_FLAG_REQUIRE_FLOWVAR flag set.");
