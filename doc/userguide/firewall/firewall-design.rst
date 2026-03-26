@@ -263,3 +263,23 @@ One can optionally, also load firewall rules exclusively from commandline using 
 
 Firewall rules are available in the file ``firewall.json`` as a part of the output
 of :ref:`engine analysis<config:engine-analysis>`.
+
+Bridge vs router
+================
+
+The firewall mode can be used with capture methods in bridge and router mode. When using
+the bridge mode, the default drop policy will also apply to non-IP protocols, like ARP.
+
+For ARP to work, a rule to accept it is required:
+
+::
+
+    accept:packet arp:all any any -> any any (sid:200;)
+
+Other ethernet types can be accepted by using generic ethernet rules, with the ``ether.hdr`` keyword.
+
+The example below accept ARP again, using this mechanism.
+
+::
+
+    accept:packet ether:all any any -> any any (ether.hdr; content:"|08 06|"; offset:12; depth:2; sid:1;)
