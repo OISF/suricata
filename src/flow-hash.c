@@ -952,7 +952,11 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, FlowLookupStruct *fls, Packet *p, Flow
         if (our_flow || timeout_check) {
             FLOWLOCK_WRLOCK(f);
             const bool timedout = (timeout_check && FlowIsTimedOut(tv_id, f, p->ts, emerg));
+#ifdef CAPTURE_OFFLOAD
+            if (timedout && f->flow_state != FLOW_STATE_CAPTURE_BYPASSED) {
+#else
             if (timedout) {
+#endif /* CAPTURE_OFFLOAD */
                 next_f = f->next;
                 MoveToWorkQueue(tv, fls, fb, f, prev_f);
                 FLOWLOCK_UNLOCK(f);
