@@ -35,6 +35,7 @@
  *  flows for new flows and/or it's memcap limit it reached. In this state the
  *  flow engine with evaluate flows with lower timeout settings. */
 #define FLOW_EMERGENCY   0x01
+#define FLOW_SHUTDOWN    0x02
 
 /* Flow Time out values */
 #define FLOW_DEFAULT_NEW_TIMEOUT 30
