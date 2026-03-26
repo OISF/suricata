@@ -220,7 +220,7 @@ impl WebSocketState {
                         (&mut self.c2s_buf, &mut self.c2s_dec)
                     };
                     let mut compress = pdu.compress;
-                    if !buf.data.is_empty() || !pdu.fin {
+                    if pdu.opcode < 8 && (!buf.data.is_empty() || !pdu.fin) {
                         if buf.data.is_empty() {
                             buf.compress = pdu.compress;
                         }
@@ -234,7 +234,7 @@ impl WebSocketState {
                         }
                     }
                     tx.pdu = pdu;
-                    if tx.pdu.fin && !buf.data.is_empty() {
+                    if tx.pdu.opcode < 8 && tx.pdu.fin && !buf.data.is_empty() {
                         // the final PDU gets the full reassembled payload
                         compress = buf.compress;
                         std::mem::swap(&mut tx.pdu.payload, &mut buf.data);
