@@ -40,8 +40,9 @@ use super::types::*;
 use ldap_parser::ldap::*;
 
 static LDAP_MAX_TX_DEFAULT: usize = 256;
-
 static mut LDAP_MAX_TX: usize = LDAP_MAX_TX_DEFAULT;
+
+static mut LDAP_MAX_RESPONSES: usize = 1024;
 
 pub(super) static mut ALPROTO_LDAP: AppProto = ALPROTO_UNKNOWN;
 
@@ -58,6 +59,7 @@ enum LdapEvent {
     InvalidData,
     RequestNotFound,
     IncompleteData,
+    TooManyResponses,
 }
 
 #[derive(Debug)]
@@ -85,6 +87,9 @@ impl LdapTransaction {
             complete: false,
             tx_data: AppLayerTxData::new(),
         }
+    }
+    fn set_event(&mut self, e: LdapEvent) {
+        self.tx_data.set_event(e as u8);
     }
 }
 
@@ -313,7 +318,11 @@ impl LdapState {
                         tx.complete |= tx_is_complete(&response.protocol_op, Direction::ToClient);
                         let tx_id = tx.id();
                         tx.tx_data.0.updated_tc = true;
-                        tx.responses.push(response.to_static());
+                        if tx.responses.len() < unsafe { LDAP_MAX_RESPONSES } {
+                            tx.responses.push(response.to_static());
+                        } else {
+                            tx.set_event(LdapEvent::TooManyResponses);
+                        }
                         sc_app_layer_parser_trigger_raw_stream_inspection(
                             flow,
                             Direction::ToClient as i32,
@@ -375,6 +384,7 @@ impl LdapState {
 
     fn parse_request_udp(&mut self, flow: *mut Flow, stream_slice: StreamSlice) -> AppLayerResult {
         let input = stream_slice.as_slice();
+
         let _pdu = Frame::new(
             flow,
             &stream_slice,
@@ -433,7 +443,11 @@ impl LdapState {
                     if let Some(tx) = self.find_request(response.message_id) {
                         tx.complete |= tx_is_complete(&response.protocol_op, Direction::ToClient);
                         let tx_id = tx.id();
-                        tx.responses.push(response.to_static());
+                        if tx.responses.len() < unsafe { LDAP_MAX_RESPONSES } {
+                            tx.responses.push(response.to_static());
+                        } else {
+                            tx.set_event(LdapEvent::TooManyResponses);
+                        }
                         let consumed = start.len() - rem.len();
                         self.set_frame_tc(flow, tx_id, consumed as i64);
                     } else if let ProtocolOp::ExtendedResponse(_) = response.protocol_op {
@@ -715,6 +729,13 @@ pub unsafe extern "C" fn SCRegisterLdapTcpParser() {
                 SCLogError!("Invalid value for ldap.max-tx");
             }
         }
+        if let Some(val) = conf_get("app-layer.protocols.ldap.max-responses") {
+            if let Ok(v) = val.parse::<usize>() {
+                LDAP_MAX_RESPONSES = v;
+            } else {
+                SCLogWarning!("Invalid value for ldap.max-responses");
+            }
+        }
         SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_LDAP);
     } else {
         SCLogDebug!("Protocol detection and parser disabled for LDAP/TCP.");
@@ -772,6 +793,13 @@ pub unsafe extern "C" fn SCRegisterLdapUdpParser() {
                 }
             } else {
                 SCLogError!("Invalid value for ldap.max-tx");
+            }
+        }
+        if let Some(val) = conf_get("app-layer.protocols.ldap.max-responses") {
+            if let Ok(v) = val.parse::<usize>() {
+                LDAP_MAX_RESPONSES = v;
+            } else {
+                SCLogWarning!("Invalid value for ldap.max-responses");
             }
         }
         SCAppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_LDAP);

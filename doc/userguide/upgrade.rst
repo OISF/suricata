@@ -92,6 +92,8 @@ Other Changes
 
 - `alert pkthdr` is now only available for decoder event rules. Previously it acted
   like `alert ip`.
+- ``ldap`` has bound the maximum number of responses per transaction
+  to 1024 by default.
 
 Changes for Library Users and Plugin Developers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
