@@ -1150,7 +1150,11 @@ impl HTTP2State {
                             );
                         } else {
                             self.set_event(HTTP2Event::LongFrameData);
-                            self.request_frame_size = head.length - (rem.len() as u32);
+                            if dir == Direction::ToServer {
+                                self.request_frame_size = head.length - (rem.len() as u32);
+                            } else {
+                                self.response_frame_size = head.length - (rem.len() as u32);
+                            }
                         }
                     }
 
