@@ -259,7 +259,8 @@ Firewall rules are loaded first and separately from the following section of ``s
     - fw.rules
 
 One can optionally, also load firewall rules exclusively from commandline using the
-``--firewall-rules-exclusive`` option.
+``--firewall-rules-exclusive`` option. Note that this option blocks hot rule reloads, just like
+the ``-S`` option in thread detection rules.
 
 Firewall rules are available in the file ``firewall.json`` as a part of the output
 of :ref:`engine analysis<config:engine-analysis>`.
