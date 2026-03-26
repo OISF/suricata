@@ -162,6 +162,7 @@
 #include "detect-sctp-has-init.h"
 #include "detect-sctp-has-data.h"
 #include "detect-sctp-has-abort.h"
+#include "detect-sctp-chunk-data.h"
 #include "detect-urilen.h"
 #include "detect-bsize.h"
 #include "detect-detection-filter.h"
@@ -678,6 +679,7 @@ void SigTableSetup(void)
     DetectSCTPHasInitRegister();
     DetectSCTPHasDataRegister();
     DetectSCTPHasAbortRegister();
+    DetectSCTPChunkDataRegister();
     DetectTlsRegister();
     DetectTlsValidityRegister();
     DetectTlsVersionRegister();
