@@ -1,4 +1,4 @@
-/* Copyright (C) 2013-2024 Open Information Security Foundation
+/* Copyright (C) 2013-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -86,6 +86,7 @@
 #include "util-spm.h"
 #include "util-hash.h"
 #include "util-hashlist.h"
+#include "util-thash.h"
 #include "util-pool.h"
 #include "util-byte.h"
 #include "util-file.h"
@@ -145,6 +146,7 @@ static void RegisterUnittests(void)
     SigTableRegisterTests();
     HashTableRegisterTests();
     HashListTableRegisterTests();
+    THashRegisterTests();
     PoolRegisterTests();
     ByteRegisterTests();
     MpmRegisterTests();

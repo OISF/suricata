@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2024 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -299,6 +299,87 @@ static int THashInitConfig(THashTableContext *ctx, const char *cnf_prefix)
     return 0;
 }
 
+/* Sentinel marking a consumed cache slot. Bucket depths, entry counts,
+ * and non-empty-bucket counts never reach UINT32_MAX in practice, so the
+ * value is free to use as a marker. */
+#define THASH_BUCKET_STATS_SENTINEL UINT32_MAX
+
+/* Single combined scan that refills all four cached values from one
+ * snapshot, so consumers see internally consistent telemetry within a
+ * poll cycle: avg == entries / nonempty (truncated). Takes each bucket
+ * lock briefly to read a stable hb->len. Cross-bucket atomicity is not
+ * guaranteed, but per-bucket values are consistent with the hot path.
+ *
+ * entries is the sum of hb->len rather than ctx->counter, because
+ * ctx->counter is not decremented when THashGetUsed() recycles an entry
+ * or THashRemoveFromHash() frees one.
+ *
+ * The bucket_stats_* fields are touched only from the stats output
+ * thread, which invokes the getters sequentially. No atomics are
+ * needed. */
+static void THashRefreshBucketStats(THashTableContext *t)
+{
+    uint32_t entries = 0;
+    uint32_t max = 0;
+    uint32_t nonempty = 0;
+    for (uint32_t i = 0; i < t->config.hash_size; i++) {
+        THashHashRow *hb = &t->array[i];
+        HRLOCK_LOCK(hb);
+        uint32_t len = hb->len;
+        HRLOCK_UNLOCK(hb);
+        if (len > 0) {
+            entries += len;
+            nonempty++;
+            if (len > max)
+                max = len;
+        }
+    }
+    t->bucket_stats_entries = entries;
+    t->bucket_stats_max = max;
+    t->bucket_stats_nonempty = nonempty;
+    t->bucket_stats_avg = (nonempty == 0) ? 0 : entries / nonempty;
+}
+
+uint64_t THashGetterMaxBucketDepth(void *ctx)
+{
+    THashTableContext *t = ctx;
+    if (t->bucket_stats_max == THASH_BUCKET_STATS_SENTINEL)
+        THashRefreshBucketStats(t);
+    uint32_t v = t->bucket_stats_max;
+    t->bucket_stats_max = THASH_BUCKET_STATS_SENTINEL;
+    return v;
+}
+
+uint64_t THashGetterAvgBucketDepth(void *ctx)
+{
+    THashTableContext *t = ctx;
+    if (t->bucket_stats_avg == THASH_BUCKET_STATS_SENTINEL)
+        THashRefreshBucketStats(t);
+    uint32_t v = t->bucket_stats_avg;
+    t->bucket_stats_avg = THASH_BUCKET_STATS_SENTINEL;
+    return v;
+}
+
+uint64_t THashGetterNonEmptyBuckets(void *ctx)
+{
+    THashTableContext *t = ctx;
+    if (t->bucket_stats_nonempty == THASH_BUCKET_STATS_SENTINEL)
+        THashRefreshBucketStats(t);
+    uint32_t v = t->bucket_stats_nonempty;
+    t->bucket_stats_nonempty = THASH_BUCKET_STATS_SENTINEL;
+    return v;
+}
+
+uint64_t THashGetterCounter(void *ctx)
+{
+    THashTableContext *t = ctx;
+    if (t->bucket_stats_entries == THASH_BUCKET_STATS_SENTINEL)
+        THashRefreshBucketStats(t);
+    uint32_t v = t->bucket_stats_entries;
+    t->bucket_stats_entries = THASH_BUCKET_STATS_SENTINEL;
+    return v;
+}
+
 THashTableContext *THashInit(const char *cnf_prefix, uint32_t data_size,
         int (*DataSet)(void *, void *), void (*DataFree)(void *),
         uint32_t (*DataHash)(uint32_t, void *), bool (*DataCompare)(void *, void *),
@@ -331,12 +412,17 @@ THashTableContext *THashInit(const char *cnf_prefix, uint32_t data_size,
     SC_ATOMIC_INIT(ctx->counter);
     SC_ATOMIC_INIT(ctx->memuse);
     SC_ATOMIC_INIT(ctx->prune_idx);
+    ctx->bucket_stats_entries = THASH_BUCKET_STATS_SENTINEL;
+    ctx->bucket_stats_max = THASH_BUCKET_STATS_SENTINEL;
+    ctx->bucket_stats_avg = THASH_BUCKET_STATS_SENTINEL;
+    ctx->bucket_stats_nonempty = THASH_BUCKET_STATS_SENTINEL;
     THashDataQueueInit(&ctx->spare_q);
 
     if (THashInitConfig(ctx, cnf_prefix) < 0) {
         THashShutdown(ctx);
-        ctx = NULL;
+        return NULL;
     }
+
     return ctx;
 }
 
@@ -468,6 +554,7 @@ uint32_t THashExpire(THashTableContext *ctx, const SCTime_t ts)
                     hb->head = h->next;
                 if (hb->tail == h)
                     hb->tail = h->prev;
+                hb->len--;
                 h->next = NULL;
                 h->prev = NULL;
                 SCLogDebug("timeout: removing data %p", h);
@@ -522,6 +609,7 @@ void THashCleanup(THashTableContext *ctx)
                     hb->head = h->next;
                 if (hb->tail == h)
                     hb->tail = h->prev;
+                hb->len--;
                 h->next = NULL;
                 h->prev = NULL;
                 if (ctx->config.DataSize) {
@@ -656,6 +744,7 @@ THashGetFromHash (THashTableContext *ctx, void *data)
         /* data is locked */
         hb->head = h;
         hb->tail = h;
+        hb->len++;
 
         /* initialize and return */
         (void) THashIncrUsecnt(h);
@@ -688,6 +777,7 @@ THashGetFromHash (THashTableContext *ctx, void *data)
                 /* data is locked */
 
                 h->prev = ph;
+                hb->len++;
 
                 /* initialize and return */
                 (void) THashIncrUsecnt(h);
@@ -858,6 +948,7 @@ static THashData *THashGetUsed(THashTableContext *ctx, uint32_t data_size)
             hb->head = h->next;
         if (hb->tail == h)
             hb->tail = h->prev;
+        hb->len--;
 
         h->next = NULL;
         h->prev = NULL;
@@ -919,6 +1010,7 @@ int THashRemoveFromHash (THashTableContext *ctx, void *data)
             hb->head = h->next;
         if (hb->tail == h)
             hb->tail = h->prev;
+        hb->len--;
 
         h->next = NULL;
         h->prev = NULL;
@@ -932,4 +1024,329 @@ int THashRemoveFromHash (THashTableContext *ctx, void *data)
     HRLOCK_UNLOCK(hb);
     SCLogDebug("data not found");
     return -1;
+}
+
+#ifdef UNITTESTS
+#include "util-unittest.h"
+
+/* The tests use uint32_t keys and a hash that ignores the per-table seed,
+ * so the bucket for a key is key % hash_size and the layout is known. */
+#define THASH_UT_HASHSIZE 256
+
+static bool thash_ut_expire_min_set = false;
+static uint32_t thash_ut_expire_min = 0;
+
+static int THashUtSet(void *dst, void *src)
+{
+    memcpy(dst, src, sizeof(uint32_t));
+    return 0;
+}
+
+static void THashUtFree(void *data)
+{
+}
+
+static uint32_t THashUtHash(uint32_t seed, void *data)
+{
+    return *(uint32_t *)data;
+}
+
+static bool THashUtCompare(void *a, void *b)
+{
+    return *(uint32_t *)a == *(uint32_t *)b;
+}
+
+/* expire every key >= thash_ut_expire_min */
+static bool THashUtExpired(void *data, SCTime_t ts)
+{
+    return thash_ut_expire_min_set && *(uint32_t *)data >= thash_ut_expire_min;
+}
+
+static THashTableContext *THashUtInit(uint64_t memcap)
+{
+    thash_ut_expire_min_set = false;
+    return THashInit("thash-unittest", sizeof(uint32_t), THashUtSet, THashUtFree, THashUtHash,
+            THashUtCompare, THashUtExpired, NULL, false, memcap, THASH_UT_HASHSIZE);
+}
+
+/* Insert key (or find it) and release it, so it can be removed later. */
+static bool THashUtAdd(THashTableContext *ctx, uint32_t key)
+{
+    struct THashDataGetResult r = THashGetFromHash(ctx, &key);
+    if (r.data == NULL)
+        return false;
+    THashDecrUsecnt(r.data);
+    THashDataUnlock(r.data);
+    return true;
+}
+
+/* Poll the getters in the order the stats code registers them and compare
+ * the results. Returns true on a match. */
+static bool THashUtCheck(
+        THashTableContext *ctx, uint64_t entries, uint64_t nonempty, uint64_t max, uint64_t avg)
+{
+    uint64_t e = THashGetterCounter(ctx);
+    uint64_t n = THashGetterNonEmptyBuckets(ctx);
+    uint64_t m = THashGetterMaxBucketDepth(ctx);
+    uint64_t a = THashGetterAvgBucketDepth(ctx);
+    if (e != entries || n != nonempty || m != max || a != avg) {
+        SCLogNotice("got entries %" PRIu64 " nonempty %" PRIu64 " max %" PRIu64 " avg %" PRIu64
+                    ", expected %" PRIu64 "/%" PRIu64 "/%" PRIu64 "/%" PRIu64,
+                e, n, m, a, entries, nonempty, max, avg);
+        return false;
+    }
+    return true;
+}
+
+/** \test empty table reports zero for all four values */
+static int THashBucketStatsTest01(void)
+{
+    THashTableContext *ctx = THashUtInit(0);
+    FAIL_IF_NULL(ctx);
+    FAIL_IF_NOT(THashUtCheck(ctx, 0, 0, 0, 0));
+    THashShutdown(ctx);
+    PASS;
+}
+
+/** \test one entry, then the same key again does not add an entry */
+static int THashBucketStatsTest02(void)
+{
+    THashTableContext *ctx = THashUtInit(0);
+    FAIL_IF_NULL(ctx);
+    FAIL_IF_NOT(THashUtAdd(ctx, 7));
+    FAIL_IF_NOT(THashUtCheck(ctx, 1, 1, 1, 1));
+    FAIL_IF_NOT(THashUtAdd(ctx, 7));
+    FAIL_IF_NOT(THashUtCheck(ctx, 1, 1, 1, 1));
+    THashShutdown(ctx);
+    PASS;
+}
+
+/** \test five keys in one bucket: first insert into an empty bucket, the
+ *        rest appended to a non-empty one */
+static int THashBucketStatsTest03(void)
+{
+    THashTableContext *ctx = THashUtInit(0);
+    FAIL_IF_NULL(ctx);
+    for (uint32_t i = 0; i < 5; i++) {
+        FAIL_IF_NOT(THashUtAdd(ctx, 3 + i * THASH_UT_HASHSIZE));
+    }
+    FAIL_IF_NOT(THashUtCheck(ctx, 5, 1, 5, 5));
+    THashShutdown(ctx);
+    PASS;
+}
+
+/** \test 3 + 2 keys in two buckets; the average is truncated to 2 */
+static int THashBucketStatsTest04(void)
+{
+    THashTableContext *ctx = THashUtInit(0);
+    FAIL_IF_NULL(ctx);
+    const uint32_t keys[] = { 0, 256, 512, 1, 257 };
+    for (size_t i = 0; i < ARRAY_SIZE(keys); i++) {
+        FAIL_IF_NOT(THashUtAdd(ctx, keys[i]));
+    }
+    FAIL_IF_NOT(THashUtCheck(ctx, 5, 2, 3, 2));
+    THashShutdown(ctx);
+    PASS;
+}
+
+/** \test lookups of existing keys, including the move-to-front of a key
+ *        that is not at the head of its bucket, do not change the counts */
+static int THashBucketStatsTest05(void)
+{
+    THashTableContext *ctx = THashUtInit(0);
+    FAIL_IF_NULL(ctx);
+    const uint32_t keys[] = { 0, 256, 512 };
+    for (size_t i = 0; i < ARRAY_SIZE(keys); i++) {
+        FAIL_IF_NOT(THashUtAdd(ctx, keys[i]));
+    }
+    uint32_t key = 512;
+    THashData *h = THashLookupFromHash(ctx, &key);
+    FAIL_IF_NULL(h);
+    THashDecrUsecnt(h);
+    THashDataUnlock(h);
+    key = 0;
+    h = THashLookupFromHash(ctx, &key);
+    FAIL_IF_NULL(h);
+    THashDecrUsecnt(h);
+    THashDataUnlock(h);
+    FAIL_IF_NOT(THashUtAdd(ctx, 256));
+    FAIL_IF_NOT(THashUtCheck(ctx, 3, 1, 3, 3));
+    THashShutdown(ctx);
+    PASS;
+}
+
+/** \test THashRemoveFromHash lowers the counts; a key that is in use or
+ *        missing is not removed */
+static int THashBucketStatsTest06(void)
+{
+    THashTableContext *ctx = THashUtInit(0);
+    FAIL_IF_NULL(ctx);
+    const uint32_t keys[] = { 0, 256, 512, 1, 257 };
+    for (size_t i = 0; i < ARRAY_SIZE(keys); i++) {
+        FAIL_IF_NOT(THashUtAdd(ctx, keys[i]));
+    }
+
+    /* in use: not removed */
+    uint32_t key = 256;
+    struct THashDataGetResult r = THashGetFromHash(ctx, &key);
+    FAIL_IF_NULL(r.data);
+    THashDataUnlock(r.data);
+    FAIL_IF_NOT(THashRemoveFromHash(ctx, &key) == 0);
+    FAIL_IF_NOT(THashUtCheck(ctx, 5, 2, 3, 2));
+    THashDecrUsecnt(r.data);
+
+    /* missing: not removed */
+    key = 999;
+    FAIL_IF_NOT(THashRemoveFromHash(ctx, &key) == -1);
+    FAIL_IF_NOT(THashUtCheck(ctx, 5, 2, 3, 2));
+
+    key = 256;
+    FAIL_IF_NOT(THashRemoveFromHash(ctx, &key) == 1);
+    FAIL_IF_NOT(THashUtCheck(ctx, 4, 2, 2, 2));
+    key = 1;
+    FAIL_IF_NOT(THashRemoveFromHash(ctx, &key) == 1);
+    key = 257;
+    FAIL_IF_NOT(THashRemoveFromHash(ctx, &key) == 1);
+    FAIL_IF_NOT(THashUtCheck(ctx, 2, 1, 2, 2));
+    THashShutdown(ctx);
+    PASS;
+}
+
+/** \test THashExpire lowers the counts and skips an entry that is in use */
+static int THashBucketStatsTest07(void)
+{
+    THashTableContext *ctx = THashUtInit(0);
+    FAIL_IF_NULL(ctx);
+    const uint32_t keys[] = { 0, 256, 512, 1, 257 };
+    for (size_t i = 0; i < ARRAY_SIZE(keys); i++) {
+        FAIL_IF_NOT(THashUtAdd(ctx, keys[i]));
+    }
+
+    /* hold 512 so it is not expired */
+    uint32_t key = 512;
+    struct THashDataGetResult r = THashGetFromHash(ctx, &key);
+    FAIL_IF_NULL(r.data);
+    THashDataUnlock(r.data);
+
+    thash_ut_expire_min_set = true;
+    thash_ut_expire_min = 256;
+    SCTime_t ts = { 0 };
+    FAIL_IF_NOT(THashExpire(ctx, ts) == 2);
+    FAIL_IF_NOT(THashUtCheck(ctx, 3, 2, 2, 1));
+
+    THashDecrUsecnt(r.data);
+    FAIL_IF_NOT(THashExpire(ctx, ts) == 1);
+    FAIL_IF_NOT(THashUtCheck(ctx, 2, 2, 1, 1));
+    THashShutdown(ctx);
+    PASS;
+}
+
+/** \test THashCleanup removes every entry that is not in use */
+static int THashBucketStatsTest08(void)
+{
+    THashTableContext *ctx = THashUtInit(0);
+    FAIL_IF_NULL(ctx);
+    const uint32_t keys[] = { 0, 256, 512, 1, 257 };
+    for (size_t i = 0; i < ARRAY_SIZE(keys); i++) {
+        FAIL_IF_NOT(THashUtAdd(ctx, keys[i]));
+    }
+
+    uint32_t key = 257;
+    struct THashDataGetResult r = THashGetFromHash(ctx, &key);
+    FAIL_IF_NULL(r.data);
+    THashDataUnlock(r.data);
+
+    THashCleanup(ctx);
+    FAIL_IF_NOT(THashUtCheck(ctx, 1, 1, 1, 1));
+
+    THashDecrUsecnt(r.data);
+    THashCleanup(ctx);
+    FAIL_IF_NOT(THashUtCheck(ctx, 0, 0, 0, 0));
+    THashShutdown(ctx);
+    PASS;
+}
+
+/** \test at memcap, THashGetUsed recycles entries; entries must report what
+ *        is in the table, not the number of inserts */
+static int THashBucketStatsTest09(void)
+{
+    /* room for the hash rows and the preallocated entries, nothing more */
+    const uint32_t n = THASH_DEFAULT_PREALLOC;
+    const uint64_t memcap = (uint64_t)THASH_UT_HASHSIZE * sizeof(THashHashRow) +
+                            (uint64_t)n * (sizeof(THashData) + sizeof(uint32_t));
+    THashTableContext *ctx = THashUtInit(memcap);
+    FAIL_IF_NULL(ctx);
+
+    for (uint32_t i = 0; i < n; i++) {
+        FAIL_IF_NOT(THashUtAdd(ctx, i));
+    }
+    FAIL_IF(SC_ATOMIC_GET(ctx->memcap_reached));
+    FAIL_IF_NOT(THashGetterCounter(ctx) == n);
+    (void)THashGetterNonEmptyBuckets(ctx);
+    (void)THashGetterMaxBucketDepth(ctx);
+    (void)THashGetterAvgBucketDepth(ctx);
+
+    /* 10 more keys, each recycling an existing entry */
+    for (uint32_t i = n; i < n + 10; i++) {
+        FAIL_IF_NOT(THashUtAdd(ctx, i));
+    }
+    FAIL_IF_NOT(SC_ATOMIC_GET(ctx->memcap_reached));
+    uint64_t entries = THashGetterCounter(ctx);
+    uint64_t nonempty = THashGetterNonEmptyBuckets(ctx);
+    (void)THashGetterMaxBucketDepth(ctx);
+    (void)THashGetterAvgBucketDepth(ctx);
+    FAIL_IF_NOT(entries == n);
+    FAIL_IF_NOT(nonempty == THASH_UT_HASHSIZE);
+    THashShutdown(ctx);
+    PASS;
+}
+
+/** \test one scan serves a poll of all four getters, whichever getter is
+ *        called first; the next poll scans again and sees changes made in
+ *        between */
+static int THashBucketStatsTest10(void)
+{
+    uint64_t (*const getters[])(void *) = { THashGetterCounter, THashGetterNonEmptyBuckets,
+        THashGetterMaxBucketDepth, THashGetterAvgBucketDepth };
+
+    THashTableContext *ctx = THashUtInit(0);
+    FAIL_IF_NULL(ctx);
+    FAIL_IF_NOT(THashUtAdd(ctx, 0));
+
+    /* All keys go to bucket 0, so with n entries the values are
+     * entries n, nonempty 1, max n, avg n. In each poll the first getter
+     * scans, then a key is added; the other three getters must still
+     * report the values from that scan. */
+    for (uint32_t first = 0; first < ARRAY_SIZE(getters); first++) {
+        const uint64_t n = first + 1;
+        const uint64_t expect[] = { n, 1, n, n };
+        FAIL_IF_NOT(getters[first](ctx) == expect[first]);
+        FAIL_IF_NOT(THashUtAdd(ctx, (first + 1) * THASH_UT_HASHSIZE));
+        for (uint32_t g = 0; g < ARRAY_SIZE(getters); g++) {
+            if (g != first) {
+                FAIL_IF_NOT(getters[g](ctx) == expect[g]);
+            }
+        }
+    }
+
+    FAIL_IF_NOT(THashUtCheck(ctx, 5, 1, 5, 5));
+    THashShutdown(ctx);
+    PASS;
+}
+#endif /* UNITTESTS */
+
+void THashRegisterTests(void)
+{
+#ifdef UNITTESTS
+    UtRegisterTest("THashBucketStatsTest01", THashBucketStatsTest01);
+    UtRegisterTest("THashBucketStatsTest02", THashBucketStatsTest02);
+    UtRegisterTest("THashBucketStatsTest03", THashBucketStatsTest03);
+    UtRegisterTest("THashBucketStatsTest04", THashBucketStatsTest04);
+    UtRegisterTest("THashBucketStatsTest05", THashBucketStatsTest05);
+    UtRegisterTest("THashBucketStatsTest06", THashBucketStatsTest06);
+    UtRegisterTest("THashBucketStatsTest07", THashBucketStatsTest07);
+    UtRegisterTest("THashBucketStatsTest08", THashBucketStatsTest08);
+    UtRegisterTest("THashBucketStatsTest09", THashBucketStatsTest09);
+    UtRegisterTest("THashBucketStatsTest10", THashBucketStatsTest10);
+#endif
 }
