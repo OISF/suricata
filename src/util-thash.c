@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2024 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -299,6 +299,123 @@ static int THashInitConfig(THashTableContext *ctx, const char *cnf_prefix)
     return 0;
 }
 
+/* --- bucket depth telemetry --- */
+
+/** \brief Return the current maximum bucket depth.
+ *
+ *  O(1): reads the atomic maintained by the depth histogram.
+ */
+uint64_t THashGetterMaxBucketDepth(void *ctx)
+{
+    return (uint64_t)SC_ATOMIC_GET(((const THashTableContext *)ctx)->max_bucket_depth);
+}
+
+/** \brief Return the average depth of non-empty buckets.
+ *
+ *  O(1): uses ctx->counter (total entries) and ctx->nonempty_buckets, both
+ *  maintained incrementally on every insert and remove.  Empty buckets are
+ *  excluded from the denominator so the result reflects actual collision
+ *  pressure rather than table occupancy.
+ */
+uint64_t THashGetterAvgBucketDepth(void *ctx)
+{
+    const THashTableContext *t = ctx;
+    uint32_t nonempty = SC_ATOMIC_GET(t->nonempty_buckets);
+    if (nonempty == 0)
+        return 0;
+    return (uint64_t)SC_ATOMIC_GET(t->counter) / nonempty;
+}
+
+/** \brief Clamp a bucket depth to the histogram range. */
+static inline uint32_t THashClampDepth(uint32_t depth)
+{
+    return (depth < THASH_MAX_BUCKET_DEPTH) ? depth : THASH_MAX_BUCKET_DEPTH - 1;
+}
+
+/** \brief Update the depth histogram and max after a bucket insert.
+ *
+ *  Called after hb->len has been incremented (old_depth = hb->len - 1).
+ *  Bucket lock is held by the caller so hb->len is stable.
+ */
+static inline void THashBucketDepthIncr(THashTableContext *ctx, uint32_t new_depth)
+{
+    uint32_t old_idx = THashClampDepth(new_depth - 1);
+    uint32_t new_idx = THashClampDepth(new_depth);
+
+    if (new_depth > 1) /* depth was >0 before, so old slot occupied */
+        (void)atomic_fetch_sub(&ctx->depth_hist[old_idx], 1);
+    (void)atomic_fetch_add(&ctx->depth_hist[new_idx], 1);
+
+    /* Update max via CAS if new_depth exceeds it. */
+    uint32_t old_max;
+    do {
+        old_max = SC_ATOMIC_GET(ctx->max_bucket_depth);
+        if (new_idx <= old_max)
+            break;
+    } while (!SC_ATOMIC_CAS(&ctx->max_bucket_depth, old_max, new_idx));
+}
+
+/** \brief Update the depth histogram and max after a bucket removal.
+ *
+ *  Called after hb->len has been decremented (old_depth = hb->len + 1).
+ *  Bucket lock is held by the caller so hb->len is stable.
+ */
+static inline void THashBucketDepthDecr(THashTableContext *ctx, uint32_t new_depth)
+{
+    uint32_t old_idx = THashClampDepth(new_depth + 1);
+    uint32_t new_idx = THashClampDepth(new_depth);
+
+    (void)atomic_fetch_sub(&ctx->depth_hist[old_idx], 1);
+    if (new_depth > 0) /* bucket still non-empty */
+        (void)atomic_fetch_add(&ctx->depth_hist[new_idx], 1);
+
+    /* If we removed from the max depth and that slot is now empty,
+     * walk down to find the new max. Amortized O(1). */
+    if (old_idx == SC_ATOMIC_GET(ctx->max_bucket_depth) &&
+            atomic_load(&ctx->depth_hist[old_idx]) == 0) {
+        uint32_t m = old_idx;
+        while (m > 0 && atomic_load(&ctx->depth_hist[m]) == 0)
+            m--;
+        /* A concurrent insert may have repopulated old_idx between
+         * our initial check and the end of the walk-down. Re-check
+         * before lowering max to avoid underreporting. */
+        if (atomic_load(&ctx->depth_hist[old_idx]) != 0)
+            return;
+        /* CAS: another thread may have already lowered it, or a
+         * concurrent insert may have raised it past old_idx. */
+        uint32_t cur;
+        do {
+            cur = SC_ATOMIC_GET(ctx->max_bucket_depth);
+            if (cur <= m)
+                break;
+        } while (!SC_ATOMIC_CAS(&ctx->max_bucket_depth, cur, m));
+    }
+}
+
+/** \brief Track a bucket insert: update len, nonempty_buckets, and depth histogram.
+ *
+ *  Must be called while the bucket lock is held.
+ */
+static inline void THashBucketInsert(THashTableContext *ctx, THashHashRow *hb)
+{
+    hb->len++;
+    if (hb->len == 1)
+        (void)SC_ATOMIC_ADD(ctx->nonempty_buckets, 1);
+    THashBucketDepthIncr(ctx, hb->len);
+}
+
+/** \brief Track a bucket removal: update len, nonempty_buckets, and depth histogram.
+ *
+ *  Must be called while the bucket lock is held.
+ */
+static inline void THashBucketRemove(THashTableContext *ctx, THashHashRow *hb)
+{
+    hb->len--;
+    THashBucketDepthDecr(ctx, hb->len);
+    if (hb->len == 0)
+        (void)SC_ATOMIC_SUB(ctx->nonempty_buckets, 1);
+}
+
 THashTableContext *THashInit(const char *cnf_prefix, uint32_t data_size,
         int (*DataSet)(void *, void *), void (*DataFree)(void *),
         uint32_t (*DataHash)(uint32_t, void *), bool (*DataCompare)(void *, void *),
@@ -331,12 +448,17 @@ THashTableContext *THashInit(const char *cnf_prefix, uint32_t data_size,
     SC_ATOMIC_INIT(ctx->counter);
     SC_ATOMIC_INIT(ctx->memuse);
     SC_ATOMIC_INIT(ctx->prune_idx);
+    SC_ATOMIC_INIT(ctx->nonempty_buckets);
+    for (uint32_t i = 0; i < THASH_MAX_BUCKET_DEPTH; i++)
+        atomic_init(&ctx->depth_hist[i], 0);
+    SC_ATOMIC_INIT(ctx->max_bucket_depth);
     THashDataQueueInit(&ctx->spare_q);
 
     if (THashInitConfig(ctx, cnf_prefix) < 0) {
         THashShutdown(ctx);
-        ctx = NULL;
+        return NULL;
     }
+
     return ctx;
 }
 
@@ -468,6 +590,7 @@ uint32_t THashExpire(THashTableContext *ctx, const SCTime_t ts)
                     hb->head = h->next;
                 if (hb->tail == h)
                     hb->tail = h->prev;
+                THashBucketRemove(ctx, hb);
                 h->next = NULL;
                 h->prev = NULL;
                 SCLogDebug("timeout: removing data %p", h);
@@ -522,6 +645,7 @@ void THashCleanup(THashTableContext *ctx)
                     hb->head = h->next;
                 if (hb->tail == h)
                     hb->tail = h->prev;
+                THashBucketRemove(ctx, hb);
                 h->next = NULL;
                 h->prev = NULL;
                 if (ctx->config.DataSize) {
@@ -656,6 +780,7 @@ THashGetFromHash (THashTableContext *ctx, void *data)
         /* data is locked */
         hb->head = h;
         hb->tail = h;
+        THashBucketInsert(ctx, hb);
 
         /* initialize and return */
         (void) THashIncrUsecnt(h);
@@ -688,6 +813,7 @@ THashGetFromHash (THashTableContext *ctx, void *data)
                 /* data is locked */
 
                 h->prev = ph;
+                THashBucketInsert(ctx, hb);
 
                 /* initialize and return */
                 (void) THashIncrUsecnt(h);
@@ -858,6 +984,7 @@ static THashData *THashGetUsed(THashTableContext *ctx, uint32_t data_size)
             hb->head = h->next;
         if (hb->tail == h)
             hb->tail = h->prev;
+        THashBucketRemove(ctx, hb);
 
         h->next = NULL;
         h->prev = NULL;
@@ -919,6 +1046,7 @@ int THashRemoveFromHash (THashTableContext *ctx, void *data)
             hb->head = h->next;
         if (hb->tail == h)
             hb->tail = h->prev;
+        THashBucketRemove(ctx, hb);
 
         h->next = NULL;
         h->prev = NULL;
