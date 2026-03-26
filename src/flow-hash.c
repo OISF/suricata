@@ -851,6 +851,10 @@ static inline bool FlowIsTimedOut(
         const FlowThreadId ftid, const Flow *f, const SCTime_t pktts, const bool emerg)
 {
     SCTime_t timesout_at;
+#ifdef CAPTURE_OFFLOAD
+    if (f->flow_state == FLOW_STATE_CAPTURE_BYPASSED)
+        return false;
+#endif /* CAPTURE_OFFLOAD */
     if (emerg) {
         extern FlowProtoTimeout flow_timeouts_emerg[FLOW_PROTO_MAX];
         timesout_at = SCTIME_ADD_SECS(f->lastts,
