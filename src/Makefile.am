@@ -231,6 +231,7 @@ noinst_HEADERS = \
 	detect-sctphdr.h \
 	detect-sctp-chunk-cnt.h \
 	detect-sctp-chunk-type.h \
+	detect-sctp-chunk-data.h \
 	detect-sctp-vtag.h \
 	detect-ipaddr.h \
 	detect-ipopts.h \
@@ -811,6 +812,7 @@ libsuricata_c_a_SOURCES = \
 	detect-sctphdr.c \
 	detect-sctp-chunk-cnt.c \
 	detect-sctp-chunk-type.c \
+	detect-sctp-chunk-data.c \
 	detect-sctp-vtag.c \
 	detect-ipaddr.c \
 	detect-ipopts.c \
