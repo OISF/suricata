@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2024 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -99,6 +99,7 @@ typedef struct THashHashRow_ {
     HRLOCK_TYPE lock;
     THashData *head;
     THashData *tail;
+    uint32_t len; /**< current number of entries in this bucket */
 } __attribute__((aligned(CLS))) THashHashRow;
 
 typedef struct THashDataQueue_
@@ -146,6 +147,13 @@ typedef struct THashTableContext_ {
     SC_ATOMIC_DECLARE(uint32_t, counter);
     SC_ATOMIC_DECLARE(uint32_t, prune_idx);
 
+    /** Cached bucket-depth telemetry. Each getter consumes its slot by
+     *  resetting it to UINT32_MAX; whichever getter sees the sentinel on
+     *  the next poll triggers a single combined scan that refills both.
+     *  Only accessed from the stats management thread, so no atomics. */
+    uint32_t bucket_stats_max;
+    uint32_t bucket_stats_nonempty;
+
     THashDataQueue spare_q;
 
     THashConfig config;
@@ -175,6 +183,9 @@ THashTableContext *THashInit(const char *cnf_prefix, uint32_t data_size,
         uint32_t (*DataHash)(uint32_t, void *), bool (*DataCompare)(void *, void *),
         bool (*DataExpired)(void *, SCTime_t), uint32_t (*DataSize)(void *), bool reset_memcap,
         uint64_t memcap, uint32_t hashsize);
+
+uint64_t THashGetterMaxBucketDepth(void *ctx);
+uint64_t THashGetterAvgBucketDepth(void *ctx);
 
 void THashShutdown(THashTableContext *ctx);
 
