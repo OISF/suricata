@@ -1270,6 +1270,8 @@ app-layer:
           dp: 389, 3268
       # Maximum number of live LDAP transactions per flow
       # max-tx: 1024
+      # Maximum number of responses per LDAP transaction
+      # max-responses: 1024
 
     mdns:
       enabled: yes

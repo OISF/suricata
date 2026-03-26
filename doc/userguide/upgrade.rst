@@ -53,6 +53,9 @@ Other Changes
   ``OutputJsonLogFlush``, ``OutputLoggerFlush``). Periodic heartbeat flushing is
   specific to EVE output types and handled entirely within the EVE logic.
 
+- ``ldap`` has bound the maximum number of responses per transaction
+  to 1024 by default.
+
 Upgrading to 8.0.3
 ------------------
 
