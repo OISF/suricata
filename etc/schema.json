@@ -7374,6 +7374,10 @@
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
+                                "avg_bucket_depth": {
+                                    "type": "integer",
+                                    "description": "Average depth of non-empty buckets in threshold hash table"
+                                },
                                 "bitmap_alloc_fail": {
                                     "type": "integer",
                                     "description": "Count of bitmap allocation failures"
@@ -7381,6 +7385,10 @@
                                 "bitmap_memuse": {
                                     "type": "integer",
                                     "description": "Memory usage by detection_filter bitmaps"
+                                },
+                                "max_bucket_depth": {
+                                    "type": "integer",
+                                    "description": "Current maximum bucket depth in threshold hash table"
                                 },
                                 "memcap": {
                                     "type": "integer",
