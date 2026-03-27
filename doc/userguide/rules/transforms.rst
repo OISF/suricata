@@ -186,14 +186,39 @@ xor
 
 Takes the buffer, applies xor decoding.
 
-.. note:: this transform requires a mandatory option which is the hexadecimal encoded xor key.
+The key can be specified as a hexadecimal string or as a ``byte_extract``
+variable name. When a ``byte_extract`` variable is used, the key bytes are
+read directly from the inspection buffer at the variable's offset. Only
+``byte_extract`` variables with absolute (non-relative) offsets are supported.
 
+An optional ``offset`` parameter specifies where in the buffer XOR decoding
+begins. Bytes before this offset are copied unchanged. This is useful when
+the key is embedded in the buffer and should be skipped during decoding.
 
-This example alerts if ``http.uri`` contains ``password=`` xored with 4-bytes key ``0d0ac8ff``
-Example::
+Syntax::
+
+    xor:"<hex_key>"
+    xor:"<byte_extract_variable>"
+    xor:offset <N>,"<hex_key>"
+    xor:offset <N>,"<byte_extract_variable>"
+
+This example alerts if ``http.uri`` contains ``password=`` xored with 4-bytes key ``0d0ac8ff``::
 
     alert http any any -> any any (msg:"HTTP with xor"; http.uri; \
         xor:"0d0ac8ff"; content:"password="; sid:1;)
+
+This example extracts a 1-byte XOR key from offset 0 of the request body,
+then decodes the buffer starting at offset 1 (skipping the key byte) and
+matches ``infected`` in the decoded data::
+
+    alert http any any -> any any (msg:"XOR with variable key"; \
+        http.request_body; byte_extract:1,0,xor_key; \
+        xor:offset 1,"xor_key"; content:"infected"; sid:2;)
+
+.. note:: When using a ``byte_extract`` variable whose name is also a valid
+   hexadecimal string (e.g. ``aabb``), the transform first checks for a
+   matching variable and falls back to interpreting the value as a hex key.
+   To avoid ambiguity, use descriptive variable names.
 
 header_lowercase
 ----------------
