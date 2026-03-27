@@ -133,7 +133,7 @@ pub unsafe extern "C" fn SCDetectSigMatchNamesFree(kw: &mut SCSigTableNamesElmt)
 // TODO bindgen these
 pub const SIGMATCH_NOOPT: u32 = 1; // BIT_U16(0) in detect.h
 pub(crate) const SIGMATCH_OPTIONAL_OPT: u32 = 0x10; // BIT_U16(4) in detect.h
-pub(crate) const SIGMATCH_QUOTES_MANDATORY: u32 = 0x40; // BIT_U16(6) in detect.h
+pub(crate) const SIGMATCH_QUOTES_OPTIONAL: u32 = 0x20; // BIT_U32(5) in detect.h
 pub const SIGMATCH_INFO_STICKY_BUFFER: u32 = 0x200; // BIT_U16(9)
 pub const SIGMATCH_INFO_MULTI_BUFFER: u32 = 0x4000; // BIT_U16(14)
 pub const SIGMATCH_INFO_UINT8: u32 = 0x8000; // BIT_U32(15)
