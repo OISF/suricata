@@ -252,8 +252,8 @@ static inline bool FlowBypassedTimeout(Flow *f, SCTime_t ts, FlowTimeoutCounters
             bytes_tosrc = fc->tosrcbytecnt - bytes_tosrc;
             pkts_todst = fc->todstpktcnt - pkts_todst;
             bytes_todst = fc->todstbytecnt - bytes_todst;
-            if (f->livedev) {
-                SC_ATOMIC_ADD(f->livedev->bypassed,
+            if (f->capture.livedev) {
+                SC_ATOMIC_ADD(f->capture.livedev->bypassed,
                         pkts_tosrc + pkts_todst);
             }
             counters->bypassed_pkts += pkts_tosrc + pkts_todst;
@@ -261,11 +261,11 @@ static inline bool FlowBypassedTimeout(Flow *f, SCTime_t ts, FlowTimeoutCounters
             return false;
         }
         SCLogDebug("No new packet, dead flow %" PRIu64 "", FlowGetId(f));
-        if (f->livedev) {
+        if (f->capture.livedev) {
             if (FLOW_IS_IPV4(f)) {
-                LiveDevSubBypassStats(f->livedev, 1, AF_INET);
+                LiveDevSubBypassStats(f->capture.livedev, 1, AF_INET);
             } else if (FLOW_IS_IPV6(f)) {
-                LiveDevSubBypassStats(f->livedev, 1, AF_INET6);
+                LiveDevSubBypassStats(f->capture.livedev, 1, AF_INET6);
             }
         }
         counters->bypassed_count++;

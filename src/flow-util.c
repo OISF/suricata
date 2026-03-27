@@ -156,7 +156,7 @@ void FlowInit(ThreadVars *tv, Flow *f, const Packet *p)
 
     f->thread_id[0] = (FlowThreadId)tv->id;
 
-    f->livedev = p->livedev;
+    f->capture.livedev = p->livedev;
 
     if (PacketIsIPv4(p)) {
         const IPV4Hdr *ip4h = PacketGetIPv4(p);

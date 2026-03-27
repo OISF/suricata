@@ -42,7 +42,6 @@
 #include "flow-timeout.h"
 #include "pkt-var.h"
 #include "host.h"
-
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
 #include "stream-tcp.h"
@@ -92,7 +91,7 @@ static inline Packet *FlowPseudoPacketSetup(
     p->flags |= PKT_PSEUDO_STREAM_END;
     memcpy(&p->vlan_id[0], &f->vlan_id[0], sizeof(p->vlan_id));
     p->vlan_idx = f->vlan_idx;
-    p->livedev = (struct LiveDevice_ *)f->livedev;
+    p->livedev = (struct LiveDevice_ *)f->capture.livedev;
 
     if (f->flags & FLOW_NOPAYLOAD_INSPECTION) {
         DecodeSetNoPayloadInspectionFlag(p);
