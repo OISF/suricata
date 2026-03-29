@@ -37,11 +37,6 @@ int ThreadSetStorageById(ThreadVars *tv, ThreadStorageId id, void *ptr)
     return StorageSetById(tv->storage, storage_type, id.id, ptr);
 }
 
-void *ThreadAllocStorageById(ThreadVars *tv, ThreadStorageId id)
-{
-    return StorageAllocByIdPrealloc(tv->storage, storage_type, id.id);
-}
-
 void ThreadFreeStorageById(ThreadVars *tv, ThreadStorageId id)
 {
     StorageFreeById(tv->storage, storage_type, id.id);
@@ -53,20 +48,15 @@ void ThreadFreeStorage(ThreadVars *tv)
         StorageFreeAll(tv->storage, storage_type);
 }
 
-ThreadStorageId ThreadStorageRegister(const char *name, const unsigned int size,
-        void *(*Alloc)(unsigned int), void (*Free)(void *))
+ThreadStorageId ThreadStorageRegister(
+        const char *name, const unsigned int size, void (*Free)(void *))
 {
-    int id = StorageRegister(storage_type, name, size, Alloc, Free);
+    int id = StorageRegister(storage_type, name, size, Free);
     ThreadStorageId tsi = { .id = id };
     return tsi;
 }
 
 #ifdef UNITTESTS
-
-static void *StorageTestAlloc(unsigned int size)
-{
-    return SCCalloc(1, size);
-}
 
 static void StorageTestFree(void *x)
 {
@@ -78,14 +68,13 @@ static int ThreadStorageTest01(void)
     StorageCleanup();
     StorageInit();
 
-    ThreadStorageId id1 = ThreadStorageRegister("test", 8, StorageTestAlloc, StorageTestFree);
+    ThreadStorageId id1 = ThreadStorageRegister("test", sizeof(void *), StorageTestFree);
     FAIL_IF(id1.id < 0);
 
-    ThreadStorageId id2 = ThreadStorageRegister("variable", 24, StorageTestAlloc, StorageTestFree);
+    ThreadStorageId id2 = ThreadStorageRegister("variable", sizeof(void *), StorageTestFree);
     FAIL_IF(id2.id < 0);
 
-    ThreadStorageId id3 =
-            ThreadStorageRegister("store", sizeof(void *), StorageTestAlloc, StorageTestFree);
+    ThreadStorageId id3 = ThreadStorageRegister("store", sizeof(void *), StorageTestFree);
     FAIL_IF(id3.id < 0);
 
     FAIL_IF(StorageFinalize() < 0);
@@ -102,14 +91,17 @@ static int ThreadStorageTest01(void)
     ptr = ThreadGetStorageById(tv, id3);
     FAIL_IF_NOT_NULL(ptr);
 
-    void *ptr1a = ThreadAllocStorageById(tv, id1);
+    void *ptr1a = SCMalloc(8);
     FAIL_IF_NULL(ptr1a);
+    FAIL_IF(ThreadSetStorageById(tv, id1, ptr1a) != 0);
 
-    void *ptr2a = ThreadAllocStorageById(tv, id2);
+    void *ptr2a = SCMalloc(24);
     FAIL_IF_NULL(ptr2a);
+    FAIL_IF(ThreadSetStorageById(tv, id2, ptr2a) != 0);
 
-    void *ptr3a = ThreadAllocStorageById(tv, id3);
+    void *ptr3a = SCMalloc(16);
     FAIL_IF_NULL(ptr3a);
+    FAIL_IF(ThreadSetStorageById(tv, id3, ptr3a) != 0);
 
     void *ptr1b = ThreadGetStorageById(tv, id1);
     FAIL_IF(ptr1a != ptr1b);
@@ -131,7 +123,7 @@ static int ThreadStorageTest02(void)
     StorageCleanup();
     StorageInit();
 
-    ThreadStorageId id1 = ThreadStorageRegister("test", sizeof(void *), NULL, StorageTestFree);
+    ThreadStorageId id1 = ThreadStorageRegister("test", sizeof(void *), StorageTestFree);
     FAIL_IF(id1.id < 0);
 
     FAIL_IF(StorageFinalize() < 0);
@@ -161,13 +153,13 @@ static int ThreadStorageTest03(void)
     StorageCleanup();
     StorageInit();
 
-    ThreadStorageId id1 = ThreadStorageRegister("test1", sizeof(void *), NULL, StorageTestFree);
+    ThreadStorageId id1 = ThreadStorageRegister("test1", sizeof(void *), StorageTestFree);
     FAIL_IF(id1.id < 0);
 
-    ThreadStorageId id2 = ThreadStorageRegister("test2", sizeof(void *), NULL, StorageTestFree);
+    ThreadStorageId id2 = ThreadStorageRegister("test2", sizeof(void *), StorageTestFree);
     FAIL_IF(id2.id < 0);
 
-    ThreadStorageId id3 = ThreadStorageRegister("test3", 32, StorageTestAlloc, StorageTestFree);
+    ThreadStorageId id3 = ThreadStorageRegister("test3", sizeof(void *), StorageTestFree);
     FAIL_IF(id3.id < 0);
 
     FAIL_IF(StorageFinalize() < 0);
@@ -188,8 +180,9 @@ static int ThreadStorageTest03(void)
 
     ThreadSetStorageById(tv, id2, ptr2a);
 
-    void *ptr3a = ThreadAllocStorageById(tv, id3);
+    void *ptr3a = SCMalloc(32);
     FAIL_IF_NULL(ptr3a);
+    ThreadSetStorageById(tv, id3, ptr3a);
 
     void *ptr1b = ThreadGetStorageById(tv, id1);
     FAIL_IF(ptr1a != ptr1b);

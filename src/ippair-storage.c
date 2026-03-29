@@ -42,32 +42,22 @@ int IPPairSetStorageById(IPPair *h, IPPairStorageId id, void *ptr)
     return StorageSetById(h->storage, STORAGE_IPPAIR, id.id, ptr);
 }
 
-void *IPPairAllocStorageById(IPPair *h, IPPairStorageId id)
-{
-    return StorageAllocByIdPrealloc(h->storage, STORAGE_IPPAIR, id.id);
-}
-
 void IPPairFreeStorage(IPPair *h)
 {
     if (IPPairStorageSize() > 0)
         StorageFreeAll(h->storage, STORAGE_IPPAIR);
 }
 
-IPPairStorageId IPPairStorageRegister(const char *name, const unsigned int size,
-        void *(*Alloc)(unsigned int), void (*Free)(void *))
+IPPairStorageId IPPairStorageRegister(
+        const char *name, const unsigned int size, void (*Free)(void *))
 {
-    int id = StorageRegister(STORAGE_IPPAIR, name, size, Alloc, Free);
+    int id = StorageRegister(STORAGE_IPPAIR, name, size, Free);
     IPPairStorageId ippsi = { .id = id };
     return ippsi;
 }
 
 #ifdef UNITTESTS
 
-static void *StorageTestAlloc(unsigned int size)
-{
-    void *x = SCMalloc(size);
-    return x;
-}
 static void StorageTestFree(void *x)
 {
     if (x)
@@ -79,12 +69,11 @@ static int IPPairStorageTest01(void)
     StorageCleanup();
     StorageInit();
 
-    IPPairStorageId id1 = IPPairStorageRegister("test", 8, StorageTestAlloc, StorageTestFree);
+    IPPairStorageId id1 = IPPairStorageRegister("test", sizeof(void *), StorageTestFree);
     FAIL_IF(id1.id < 0);
-    IPPairStorageId id2 = IPPairStorageRegister("variable", 24, StorageTestAlloc, StorageTestFree);
+    IPPairStorageId id2 = IPPairStorageRegister("variable", sizeof(void *), StorageTestFree);
     FAIL_IF(id2.id < 0);
-    IPPairStorageId id3 =
-            IPPairStorageRegister("store", sizeof(void *), StorageTestAlloc, StorageTestFree);
+    IPPairStorageId id3 = IPPairStorageRegister("store", sizeof(void *), StorageTestFree);
     FAIL_IF(id3.id < 0);
 
     FAIL_IF(StorageFinalize() < 0);
@@ -108,12 +97,15 @@ static int IPPairStorageTest01(void)
     ptr = IPPairGetStorageById(h, id3);
     FAIL_IF_NOT_NULL(ptr);
 
-    void *ptr1a = IPPairAllocStorageById(h, id1);
+    void *ptr1a = SCMalloc(8);
     FAIL_IF(ptr1a == NULL);
-    void *ptr2a = IPPairAllocStorageById(h, id2);
+    FAIL_IF(IPPairSetStorageById(h, id1, ptr1a) != 0);
+    void *ptr2a = SCMalloc(24);
     FAIL_IF(ptr2a == NULL);
-    void *ptr3a = IPPairAllocStorageById(h, id3);
+    FAIL_IF(IPPairSetStorageById(h, id2, ptr2a) != 0);
+    void *ptr3a = SCMalloc(16);
     FAIL_IF(ptr3a == NULL);
+    FAIL_IF(IPPairSetStorageById(h, id3, ptr3a) != 0);
 
     void *ptr1b = IPPairGetStorageById(h, id1);
     FAIL_IF(ptr1a != ptr1b);
@@ -133,7 +125,7 @@ static int IPPairStorageTest02(void)
     StorageCleanup();
     StorageInit();
 
-    IPPairStorageId id1 = IPPairStorageRegister("test", sizeof(void *), NULL, StorageTestFree);
+    IPPairStorageId id1 = IPPairStorageRegister("test", sizeof(void *), StorageTestFree);
     FAIL_IF(id1.id < 0);
 
     FAIL_IF(StorageFinalize() < 0);
@@ -172,11 +164,11 @@ static int IPPairStorageTest03(void)
     StorageCleanup();
     StorageInit();
 
-    IPPairStorageId id1 = IPPairStorageRegister("test1", sizeof(void *), NULL, StorageTestFree);
+    IPPairStorageId id1 = IPPairStorageRegister("test1", sizeof(void *), StorageTestFree);
     FAIL_IF(id1.id < 0);
-    IPPairStorageId id2 = IPPairStorageRegister("test2", sizeof(void *), NULL, StorageTestFree);
+    IPPairStorageId id2 = IPPairStorageRegister("test2", sizeof(void *), StorageTestFree);
     FAIL_IF(id2.id < 0);
-    IPPairStorageId id3 = IPPairStorageRegister("test3", 32, StorageTestAlloc, StorageTestFree);
+    IPPairStorageId id3 = IPPairStorageRegister("test3", sizeof(void *), StorageTestFree);
     FAIL_IF(id3.id < 0);
 
     FAIL_IF(StorageFinalize() < 0);
@@ -206,8 +198,9 @@ static int IPPairStorageTest03(void)
 
     IPPairSetStorageById(h, id2, ptr2a);
 
-    void *ptr3a = IPPairAllocStorageById(h, id3);
+    void *ptr3a = SCMalloc(32);
     FAIL_IF(ptr3a == NULL);
+    IPPairSetStorageById(h, id3, ptr3a);
 
     void *ptr1b = IPPairGetStorageById(h, id1);
     FAIL_IF(ptr1a != ptr1b);

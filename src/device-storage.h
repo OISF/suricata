@@ -39,7 +39,7 @@ int LiveDevSetStorageById(LiveDevice *d, LiveDevStorageId id, void *ptr);
 
 void LiveDevFreeStorage(LiveDevice *d);
 
-LiveDevStorageId LiveDevStorageRegister(const char *name, const unsigned int size,
-        void *(*Alloc)(unsigned int), void (*Free)(void *));
+LiveDevStorageId LiveDevStorageRegister(
+        const char *name, const unsigned int size, void (*Free)(void *));
 
 #endif /* SURICATA_DEVICE_STORAGE_H */

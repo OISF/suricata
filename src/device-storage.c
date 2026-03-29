@@ -49,8 +49,7 @@ unsigned int LiveDevStorageSize(void)
  * \brief Register a LiveDevice storage
  *
  * \param name the name of the storage
- * \param size integer coding the size of the stored value (sizeof(void *) is best choice here)
- * \param Alloc allocation function for the storage (can be null)
+ * \param size integer coding the size of the stored value (sizeof(void *) is expected here)
  * \param Free free function for the new storage
  *
  * \retval The ID of the newly register storage that will be used to access data
@@ -58,10 +57,10 @@ unsigned int LiveDevStorageSize(void)
  * It has to be called once during the init of the sub system
  */
 
-LiveDevStorageId LiveDevStorageRegister(const char *name, const unsigned int size,
-        void *(*Alloc)(unsigned int), void (*Free)(void *))
+LiveDevStorageId LiveDevStorageRegister(
+        const char *name, const unsigned int size, void (*Free)(void *))
 {
-    int id = StorageRegister(STORAGE_DEVICE, name, size, Alloc, Free);
+    int id = StorageRegister(STORAGE_DEVICE, name, size, Free);
     LiveDevStorageId ldsi = { .id = id };
     return ldsi;
 }

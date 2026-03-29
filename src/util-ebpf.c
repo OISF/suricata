@@ -929,8 +929,8 @@ int EBPFCheckBypassedFlowCreate(ThreadVars *th_v, struct timespec *curtime, void
 
 void EBPFRegisterExtension(void)
 {
-    g_livedev_storage_id = LiveDevStorageRegister("bpfmap", sizeof(void *), NULL, BpfMapsInfoFree);
-    g_flow_storage_id = FlowStorageRegister("bypassedlist", sizeof(void *), NULL, BypassedListFree);
+    g_livedev_storage_id = LiveDevStorageRegister("bpfmap", sizeof(void *), BpfMapsInfoFree);
+    g_flow_storage_id = FlowStorageRegister("bypassedlist", sizeof(void *), BypassedListFree);
 }
 
 

@@ -73,7 +73,7 @@ void MacSetRegisterFlowStorage(void)
                             SCConfNodeLookupChildValue(node->head.tqh_first, "ethernet");
                     if (ethernet != NULL && SCConfValIsTrue(ethernet)) {
                         g_macset_storage_id = FlowStorageRegister(
-                                "macset", sizeof(void *), NULL, (void (*)(void *))MacSetFree);
+                                "macset", sizeof(void *), (void (*)(void *))MacSetFree);
                         return;
                     }
                 }

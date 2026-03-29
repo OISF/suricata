@@ -47,8 +47,7 @@ unsigned int HostStorageSize(void)
  * \brief Register a Host storage
  *
  * \param name the name of the storage
- * \param size integer coding the size of the stored value (sizeof(void *) is best choice here)
- * \param Alloc allocation function for the storage (can be null)
+ * \param size integer coding the size of the stored value (sizeof(void *) is expected here)
  * \param Free free function for the new storage
  *
  * \retval The ID of the newly register storage that will be used to access data
@@ -56,10 +55,9 @@ unsigned int HostStorageSize(void)
  * It has to be called once during the init of the sub system
  */
 
-HostStorageId HostStorageRegister(const char *name, const unsigned int size,
-        void *(*Alloc)(unsigned int), void (*Free)(void *))
+HostStorageId HostStorageRegister(const char *name, const unsigned int size, void (*Free)(void *))
 {
-    int id = StorageRegister(STORAGE_HOST, name, size, Alloc, Free);
+    int id = StorageRegister(STORAGE_HOST, name, size, Free);
     HostStorageId hsi = { .id = id };
     return hsi;
 }
@@ -96,11 +94,6 @@ void *HostGetStorageById(Host *h, HostStorageId id)
 
 /* Start of "private" function */
 
-void *HostAllocStorageById(Host *h, HostStorageId id)
-{
-    return StorageAllocByIdPrealloc(h->storage, STORAGE_HOST, id.id);
-}
-
 void HostFreeStorage(Host *h)
 {
     if (HostStorageSize() > 0)
@@ -110,11 +103,6 @@ void HostFreeStorage(Host *h)
 
 #ifdef UNITTESTS
 
-static void *StorageTestAlloc(unsigned int size)
-{
-    void *x = SCMalloc(size);
-    return x;
-}
 static void StorageTestFree(void *x)
 {
     if (x)
@@ -126,12 +114,11 @@ static int HostStorageTest01(void)
     StorageCleanup();
     StorageInit();
 
-    HostStorageId id1 = HostStorageRegister("test", 8, StorageTestAlloc, StorageTestFree);
+    HostStorageId id1 = HostStorageRegister("test", sizeof(void *), StorageTestFree);
     FAIL_IF(id1.id < 0);
-    HostStorageId id2 = HostStorageRegister("variable", 24, StorageTestAlloc, StorageTestFree);
+    HostStorageId id2 = HostStorageRegister("variable", sizeof(void *), StorageTestFree);
     FAIL_IF(id2.id < 0);
-    HostStorageId id3 =
-            HostStorageRegister("store", sizeof(void *), StorageTestAlloc, StorageTestFree);
+    HostStorageId id3 = HostStorageRegister("store", sizeof(void *), StorageTestFree);
     FAIL_IF(id3.id < 0);
 
     FAIL_IF(StorageFinalize() < 0);
@@ -152,12 +139,15 @@ static int HostStorageTest01(void)
     ptr = HostGetStorageById(h, id3);
     FAIL_IF_NOT_NULL(ptr);
 
-    void *ptr1a = HostAllocStorageById(h, id1);
+    void *ptr1a = SCMalloc(8);
     FAIL_IF_NULL(ptr1a);
-    void *ptr2a = HostAllocStorageById(h, id2);
+    FAIL_IF(HostSetStorageById(h, id1, ptr1a) != 0);
+    void *ptr2a = SCMalloc(24);
     FAIL_IF_NULL(ptr2a);
-    void *ptr3a = HostAllocStorageById(h, id3);
+    FAIL_IF(HostSetStorageById(h, id2, ptr2a) != 0);
+    void *ptr3a = SCMalloc(16);
     FAIL_IF_NULL(ptr3a);
+    FAIL_IF(HostSetStorageById(h, id3, ptr3a) != 0);
 
     void *ptr1b = HostGetStorageById(h, id1);
     FAIL_IF(ptr1a != ptr1b);
@@ -178,7 +168,7 @@ static int HostStorageTest02(void)
     StorageCleanup();
     StorageInit();
 
-    HostStorageId id1 = HostStorageRegister("test", sizeof(void *), NULL, StorageTestFree);
+    HostStorageId id1 = HostStorageRegister("test", sizeof(void *), StorageTestFree);
     FAIL_IF(id1.id < 0);
 
     FAIL_IF(StorageFinalize() < 0);
@@ -214,11 +204,11 @@ static int HostStorageTest03(void)
     StorageCleanup();
     StorageInit();
 
-    HostStorageId id1 = HostStorageRegister("test1", sizeof(void *), NULL, StorageTestFree);
+    HostStorageId id1 = HostStorageRegister("test1", sizeof(void *), StorageTestFree);
     FAIL_IF(id1.id < 0);
-    HostStorageId id2 = HostStorageRegister("test2", sizeof(void *), NULL, StorageTestFree);
+    HostStorageId id2 = HostStorageRegister("test2", sizeof(void *), StorageTestFree);
     FAIL_IF(id2.id < 0);
-    HostStorageId id3 = HostStorageRegister("test3", 32, StorageTestAlloc, StorageTestFree);
+    HostStorageId id3 = HostStorageRegister("test3", sizeof(void *), StorageTestFree);
     FAIL_IF(id3.id < 0);
 
     FAIL_IF(StorageFinalize() < 0);
@@ -243,8 +233,9 @@ static int HostStorageTest03(void)
     FAIL_IF_NULL(ptr2a);
     HostSetStorageById(h, id2, ptr2a);
 
-    void *ptr3a = HostAllocStorageById(h, id3);
+    void *ptr3a = SCMalloc(32);
     FAIL_IF_NULL(ptr3a);
+    HostSetStorageById(h, id3, ptr3a);
 
     void *ptr1b = HostGetStorageById(h, id1);
     FAIL_IF(ptr1a != ptr1b);
