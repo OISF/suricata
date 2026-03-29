@@ -304,6 +304,56 @@ extern int DETECT_TBLSIZE;
 extern int DETECT_TBLSIZE_IDX;
 // step for reallocating sigmatch_table
 #define DETECT_TBLSIZE_STEP 256
+
+/** sigmatch has no options, so the parser shouldn't expect any */
+#define SIGMATCH_NOOPT 1
+/** sigmatch is compatible with a ip only rule */
+#define SIGMATCH_IPONLY_COMPAT 2
+/** sigmatch is compatible with a decode event only rule */
+#define SIGMATCH_DEONLY_COMPAT 4
+/** sigmatch may have options, so the parser should be ready to
+ *  deal with both cases */
+#define SIGMATCH_OPTIONAL_OPT 8
+/** input may be wrapped in double quotes. They will be stripped before
+ *  input data is passed to keyword parser */
+#define SIGMATCH_QUOTES_OPTIONAL 0x10
+/** input MUST be wrapped in double quotes. They will be stripped before
+ *  input data is passed to keyword parser. Missing double quotes lead to
+ *  error and signature invalidation. */
+#define SIGMATCH_QUOTES_MANDATORY 0x20
+/** negation parsing is handled by the rule parser. Signature::init_data::negated
+ *  will be set to true or false prior to calling the keyword parser. Exclamation
+ *  mark is stripped from the input to the keyword parser. */
+#define SIGMATCH_HANDLE_NEGATION 0x40
+/** keyword is a content modifier */
+#define SIGMATCH_INFO_CONTENT_MODIFIER 0x80
+/** keyword is a sticky buffer */
+#define SIGMATCH_INFO_STICKY_BUFFER 0x100
+/** keyword is deprecated: used to suggest an alternative */
+#define SIGMATCH_INFO_DEPRECATED 0x200
+/** strict parsing is enabled */
+#define SIGMATCH_STRICT_PARSING 0x400
+/** keyword supported by firewall rules */
+#define SIGMATCH_SUPPORT_FIREWALL 0x800
+/** keyword supporting setting an optional direction */
+#define SIGMATCH_SUPPORT_DIR 0x1000
+/** keyword is a multi buffer */
+#define SIGMATCH_INFO_MULTI_BUFFER 0x2000
+/** keyword is a unsigned 8-bit integer */
+#define SIGMATCH_INFO_UINT8 0x4000
+/** keyword is a unsigned 16-bit integer */
+#define SIGMATCH_INFO_UINT16 0x8000
+/** keyword is a unsigned 32-bit integer */
+#define SIGMATCH_INFO_UINT32 0x10000
+/** keyword is a unsigned 64-bit integer */
+#define SIGMATCH_INFO_UINT64 0x20000
+/** keyword is a multi uint */
+#define SIGMATCH_INFO_MULTI_UINT 0x40000
+/** keyword is an uint with enumeration stringer */
+#define SIGMATCH_INFO_ENUM_UINT 0x80000
+/** keyword is an uint with bitflags */
+#define SIGMATCH_INFO_BITFLAGS_UINT 0x100000
+
 int SigTableList(const char *keyword);
 void SigTableCleanup(void);
 void SigTableInit(void);
