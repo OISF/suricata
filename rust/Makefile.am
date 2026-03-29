@@ -156,6 +156,7 @@ if HAVE_BINDGEN
 		--no-copy 'AppLayerTxData' \
 		--allowlist-function 'SC.*' \
 		--allowlist-var 'SC.*' \
+		--allowlist-var 'SIGMATCH.*' \
 		--opaque-type 'SCConfNode' \
 		--allowlist-type 'ThreadVars.?' \
 		--opaque-type 'ThreadVars.?' \

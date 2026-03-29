@@ -130,19 +130,12 @@ pub unsafe extern "C" fn SCDetectSigMatchNamesFree(kw: &mut SCSigTableNamesElmt)
     let _ = CString::from_raw(kw.url);
 }
 
-// TODO bindgen these
-pub const SIGMATCH_NOOPT: u32 = 1; // BIT_U16(0) in detect.h
-pub(crate) const SIGMATCH_OPTIONAL_OPT: u32 = 0x10; // BIT_U16(4) in detect.h
-pub(crate) const SIGMATCH_QUOTES_MANDATORY: u32 = 0x40; // BIT_U16(6) in detect.h
-pub const SIGMATCH_INFO_STICKY_BUFFER: u32 = 0x200; // BIT_U16(9)
-pub const SIGMATCH_INFO_MULTI_BUFFER: u32 = 0x4000; // BIT_U16(14)
-pub const SIGMATCH_INFO_UINT8: u32 = 0x8000; // BIT_U32(15)
-pub const SIGMATCH_INFO_UINT16: u32 = 0x10000; // BIT_U32(16)
-pub const SIGMATCH_INFO_UINT32: u32 = 0x20000; // BIT_U32(17)
-pub const SIGMATCH_INFO_UINT64: u32 = 0x40000; // BIT_U32(18)
-pub const SIGMATCH_INFO_MULTI_UINT: u32 = 0x80000; // BIT_U32(19)
-pub const SIGMATCH_INFO_ENUM_UINT: u32 = 0x100000; // BIT_U32(20)
-pub const SIGMATCH_INFO_BITFLAGS_UINT: u32 = 0x200000; // BIT_U32(21)
+pub use suricata_sys::sys::{
+    SIGMATCH_INFO_BITFLAGS_UINT, SIGMATCH_INFO_ENUM_UINT, SIGMATCH_INFO_MULTI_BUFFER,
+    SIGMATCH_INFO_MULTI_UINT, SIGMATCH_INFO_STICKY_BUFFER, SIGMATCH_INFO_UINT16,
+    SIGMATCH_INFO_UINT32, SIGMATCH_INFO_UINT64, SIGMATCH_INFO_UINT8, SIGMATCH_NOOPT,
+    SIGMATCH_OPTIONAL_OPT, SIGMATCH_QUOTES_MANDATORY,
+};
 
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
