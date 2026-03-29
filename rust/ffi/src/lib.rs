@@ -16,6 +16,7 @@
  */
 
 pub mod debug;
+pub mod detect;
 pub mod eve;
 pub mod jsonbuilder;
 pub mod plugin;
