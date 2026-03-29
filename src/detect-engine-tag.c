@@ -53,11 +53,11 @@ void TagInitCtx(void)
 {
     SC_ATOMIC_INIT(num_tags);
 
-    host_tag_id = HostStorageRegister("tag", sizeof(void *), DetectTagDataListFree);
+    host_tag_id = HostStorageRegister("tag", DetectTagDataListFree);
     if (host_tag_id.id == -1) {
         FatalError("Can't initiate host storage for tag");
     }
-    flow_tag_id = FlowStorageRegister("tag", sizeof(void *), DetectTagDataListFree);
+    flow_tag_id = FlowStorageRegister("tag", DetectTagDataListFree);
     if (flow_tag_id.id == -1) {
         FatalError("Can't initiate flow storage for tag");
     }

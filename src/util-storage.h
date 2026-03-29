@@ -48,14 +48,9 @@ void StorageCleanup(void);
  *
  *  \param type type from StorageEnum
  *  \param name name
- *  \param size size of the per instance storage
  *  \param Free free function for per instance storage
- *
- *  \note if size == ptr size (so sizeof(void *)) and Alloc == NULL the API just
- *        gives the caller a ptr to store something it alloc'ed itself.
  */
-int StorageRegister(
-        const StorageEnum type, const char *name, const unsigned int size, void (*Free)(void *));
+int StorageRegister(const StorageEnum type, const char *name, void (*Free)(void *));
 int StorageFinalize(void);
 
 unsigned int StorageGetCnt(const StorageEnum type);

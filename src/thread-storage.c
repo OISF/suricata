@@ -48,10 +48,9 @@ void ThreadFreeStorage(ThreadVars *tv)
         StorageFreeAll(tv->storage, storage_type);
 }
 
-ThreadStorageId ThreadStorageRegister(
-        const char *name, const unsigned int size, void (*Free)(void *))
+ThreadStorageId ThreadStorageRegister(const char *name, void (*Free)(void *))
 {
-    int id = StorageRegister(storage_type, name, size, Free);
+    int id = StorageRegister(storage_type, name, Free);
     ThreadStorageId tsi = { .id = id };
     return tsi;
 }
@@ -68,13 +67,13 @@ static int ThreadStorageTest01(void)
     StorageCleanup();
     StorageInit();
 
-    ThreadStorageId id1 = ThreadStorageRegister("test", sizeof(void *), StorageTestFree);
+    ThreadStorageId id1 = ThreadStorageRegister("test", StorageTestFree);
     FAIL_IF(id1.id < 0);
 
-    ThreadStorageId id2 = ThreadStorageRegister("variable", sizeof(void *), StorageTestFree);
+    ThreadStorageId id2 = ThreadStorageRegister("variable", StorageTestFree);
     FAIL_IF(id2.id < 0);
 
-    ThreadStorageId id3 = ThreadStorageRegister("store", sizeof(void *), StorageTestFree);
+    ThreadStorageId id3 = ThreadStorageRegister("store", StorageTestFree);
     FAIL_IF(id3.id < 0);
 
     FAIL_IF(StorageFinalize() < 0);
@@ -123,7 +122,7 @@ static int ThreadStorageTest02(void)
     StorageCleanup();
     StorageInit();
 
-    ThreadStorageId id1 = ThreadStorageRegister("test", sizeof(void *), StorageTestFree);
+    ThreadStorageId id1 = ThreadStorageRegister("test", StorageTestFree);
     FAIL_IF(id1.id < 0);
 
     FAIL_IF(StorageFinalize() < 0);
@@ -153,13 +152,13 @@ static int ThreadStorageTest03(void)
     StorageCleanup();
     StorageInit();
 
-    ThreadStorageId id1 = ThreadStorageRegister("test1", sizeof(void *), StorageTestFree);
+    ThreadStorageId id1 = ThreadStorageRegister("test1", StorageTestFree);
     FAIL_IF(id1.id < 0);
 
-    ThreadStorageId id2 = ThreadStorageRegister("test2", sizeof(void *), StorageTestFree);
+    ThreadStorageId id2 = ThreadStorageRegister("test2", StorageTestFree);
     FAIL_IF(id2.id < 0);
 
-    ThreadStorageId id3 = ThreadStorageRegister("test3", sizeof(void *), StorageTestFree);
+    ThreadStorageId id3 = ThreadStorageRegister("test3", StorageTestFree);
     FAIL_IF(id3.id < 0);
 
     FAIL_IF(StorageFinalize() < 0);

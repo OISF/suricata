@@ -58,9 +58,9 @@ void FlowFreeStorage(Flow *f)
         StorageFreeAll(f->storage, STORAGE_FLOW);
 }
 
-FlowStorageId FlowStorageRegister(const char *name, const unsigned int size, void (*Free)(void *))
+FlowStorageId FlowStorageRegister(const char *name, void (*Free)(void *))
 {
-    int id = StorageRegister(STORAGE_FLOW, name, size, Free);
+    int id = StorageRegister(STORAGE_FLOW, name, Free);
     FlowStorageId fsi = { .id = id };
     return fsi;
 }
@@ -78,11 +78,11 @@ static int FlowStorageTest01(void)
     StorageCleanup();
     StorageInit();
 
-    FlowStorageId id1 = FlowStorageRegister("test", sizeof(void *), StorageTestFree);
+    FlowStorageId id1 = FlowStorageRegister("test", StorageTestFree);
     FAIL_IF(id1.id < 0);
-    FlowStorageId id2 = FlowStorageRegister("variable", sizeof(void *), StorageTestFree);
+    FlowStorageId id2 = FlowStorageRegister("variable", StorageTestFree);
     FAIL_IF(id2.id < 0);
-    FlowStorageId id3 = FlowStorageRegister("store", sizeof(void *), StorageTestFree);
+    FlowStorageId id3 = FlowStorageRegister("store", StorageTestFree);
     FAIL_IF(id3.id < 0);
 
     FAIL_IF(StorageFinalize() < 0);
@@ -128,7 +128,7 @@ static int FlowStorageTest02(void)
     StorageCleanup();
     StorageInit();
 
-    FlowStorageId id1 = FlowStorageRegister("test", sizeof(void *), StorageTestFree);
+    FlowStorageId id1 = FlowStorageRegister("test", StorageTestFree);
     FAIL_IF(id1.id < 0);
 
     FAIL_IF(StorageFinalize() < 0);
@@ -159,11 +159,11 @@ static int FlowStorageTest03(void)
     StorageCleanup();
     StorageInit();
 
-    FlowStorageId id1 = FlowStorageRegister("test1", sizeof(void *), StorageTestFree);
+    FlowStorageId id1 = FlowStorageRegister("test1", StorageTestFree);
     FAIL_IF(id1.id < 0);
-    FlowStorageId id2 = FlowStorageRegister("test2", sizeof(void *), StorageTestFree);
+    FlowStorageId id2 = FlowStorageRegister("test2", StorageTestFree);
     FAIL_IF(id2.id < 0);
-    FlowStorageId id3 = FlowStorageRegister("test3", sizeof(void *), StorageTestFree);
+    FlowStorageId id3 = FlowStorageRegister("test3", StorageTestFree);
     FAIL_IF(id3.id < 0);
 
     FAIL_IF(StorageFinalize() < 0);
