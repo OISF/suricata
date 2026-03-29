@@ -37,12 +37,6 @@ pub mod uri;
 pub mod vlan;
 
 use std::ffi::CString;
-use std::os::raw::c_int;
-
-use suricata_sys::sys::{
-    DetectEngineCtx, SCDetectHelperKeywordRegister, SCDetectHelperKeywordSetCleanCString,
-    SCSigTableAppLiteElmt, Signature,
-};
 
 /// EnumString trait that will be implemented on enums that
 /// derive StringEnum.
@@ -64,52 +58,10 @@ pub trait EnumString<T> {
         Self: Sized;
 }
 
-/// Rust app-layer light version of SigTableElmt for simple sticky buffer
-pub struct SigTableElmtStickyBuffer {
-    /// keyword name
-    pub name: String,
-    /// keyword description
-    pub desc: String,
-    /// keyword documentation url
-    pub url: String,
-    /// function callback to parse and setup keyword in rule
-    pub setup: unsafe extern "C" fn(
-        de: *mut DetectEngineCtx,
-        s: *mut Signature,
-        raw: *const std::os::raw::c_char,
-    ) -> c_int,
-}
-
-fn helper_keyword_register_buffer_flags(kw: &SigTableElmtStickyBuffer, flags: u32) -> u16 {
-    let name = CString::new(kw.name.as_bytes()).unwrap().into_raw();
-    let desc = CString::new(kw.desc.as_bytes()).unwrap().into_raw();
-    let url = CString::new(kw.url.as_bytes()).unwrap().into_raw();
-    let st = SCSigTableAppLiteElmt {
-        name,
-        desc,
-        url,
-        Setup: Some(kw.setup),
-        flags,
-        AppLayerTxMatch: None,
-        Free: None,
-    };
-    unsafe {
-        let r = SCDetectHelperKeywordRegister(&st);
-        SCDetectHelperKeywordSetCleanCString(r);
-        return r;
-    }
-}
-
-pub fn helper_keyword_register_multi_buffer(kw: &SigTableElmtStickyBuffer) -> u16 {
-    return helper_keyword_register_buffer_flags(
-        kw,
-        SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_INFO_MULTI_BUFFER,
-    );
-}
-
-pub fn helper_keyword_register_sticky_buffer(kw: &SigTableElmtStickyBuffer) -> u16 {
-    return helper_keyword_register_buffer_flags(kw, SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER);
-}
+pub use suricata_ffi::detect::{
+    helper_keyword_register_multi_buffer, helper_keyword_register_sticky_buffer,
+    SigTableElmtStickyBuffer,
+};
 
 #[repr(C)]
 #[allow(non_snake_case)]

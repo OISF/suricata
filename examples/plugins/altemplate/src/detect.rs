@@ -22,7 +22,7 @@
 
 use super::template::{TemplateTransaction, ALPROTO_TEMPLATE};
 use std::os::raw::{c_int, c_void};
-use suricata::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
+use suricata_ffi::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
 use suricata_ffi::{cast_pointer, STREAM_TOCLIENT, STREAM_TOSERVER};
 use suricata_sys::sys::{
     DetectEngineCtx, SCDetectBufferSetActiveList, SCDetectHelperBufferMpmRegister,
