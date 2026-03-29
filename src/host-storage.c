@@ -47,7 +47,6 @@ unsigned int HostStorageSize(void)
  * \brief Register a Host storage
  *
  * \param name the name of the storage
- * \param size integer coding the size of the stored value (sizeof(void *) is expected here)
  * \param Free free function for the new storage
  *
  * \retval The ID of the newly register storage that will be used to access data
@@ -55,9 +54,9 @@ unsigned int HostStorageSize(void)
  * It has to be called once during the init of the sub system
  */
 
-HostStorageId HostStorageRegister(const char *name, const unsigned int size, void (*Free)(void *))
+HostStorageId HostStorageRegister(const char *name, void (*Free)(void *))
 {
-    int id = StorageRegister(STORAGE_HOST, name, size, Free);
+    int id = StorageRegister(STORAGE_HOST, name, Free);
     HostStorageId hsi = { .id = id };
     return hsi;
 }
@@ -114,11 +113,11 @@ static int HostStorageTest01(void)
     StorageCleanup();
     StorageInit();
 
-    HostStorageId id1 = HostStorageRegister("test", sizeof(void *), StorageTestFree);
+    HostStorageId id1 = HostStorageRegister("test", StorageTestFree);
     FAIL_IF(id1.id < 0);
-    HostStorageId id2 = HostStorageRegister("variable", sizeof(void *), StorageTestFree);
+    HostStorageId id2 = HostStorageRegister("variable", StorageTestFree);
     FAIL_IF(id2.id < 0);
-    HostStorageId id3 = HostStorageRegister("store", sizeof(void *), StorageTestFree);
+    HostStorageId id3 = HostStorageRegister("store", StorageTestFree);
     FAIL_IF(id3.id < 0);
 
     FAIL_IF(StorageFinalize() < 0);
@@ -168,7 +167,7 @@ static int HostStorageTest02(void)
     StorageCleanup();
     StorageInit();
 
-    HostStorageId id1 = HostStorageRegister("test", sizeof(void *), StorageTestFree);
+    HostStorageId id1 = HostStorageRegister("test", StorageTestFree);
     FAIL_IF(id1.id < 0);
 
     FAIL_IF(StorageFinalize() < 0);
@@ -204,11 +203,11 @@ static int HostStorageTest03(void)
     StorageCleanup();
     StorageInit();
 
-    HostStorageId id1 = HostStorageRegister("test1", sizeof(void *), StorageTestFree);
+    HostStorageId id1 = HostStorageRegister("test1", StorageTestFree);
     FAIL_IF(id1.id < 0);
-    HostStorageId id2 = HostStorageRegister("test2", sizeof(void *), StorageTestFree);
+    HostStorageId id2 = HostStorageRegister("test2", StorageTestFree);
     FAIL_IF(id2.id < 0);
-    HostStorageId id3 = HostStorageRegister("test3", sizeof(void *), StorageTestFree);
+    HostStorageId id3 = HostStorageRegister("test3", StorageTestFree);
     FAIL_IF(id3.id < 0);
 
     FAIL_IF(StorageFinalize() < 0);

@@ -41,6 +41,6 @@ void HostFreeStorage(Host *h);
 
 void RegisterHostStorageTests(void);
 
-HostStorageId HostStorageRegister(const char *name, const unsigned int size, void (*Free)(void *));
+HostStorageId HostStorageRegister(const char *name, void (*Free)(void *));
 
 #endif /* SURICATA_HOST_STORAGE_H */

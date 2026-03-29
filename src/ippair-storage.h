@@ -41,7 +41,6 @@ void IPPairFreeStorage(IPPair *h);
 
 void RegisterIPPairStorageTests(void);
 
-IPPairStorageId IPPairStorageRegister(
-        const char *name, const unsigned int size, void (*Free)(void *));
+IPPairStorageId IPPairStorageRegister(const char *name, void (*Free)(void *));
 
 #endif /* SURICATA_IPPAIR_STORAGE_H */

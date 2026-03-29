@@ -31,7 +31,6 @@
 typedef struct StorageMapping_ {
     const char *name;
     StorageEnum type; // host, flow, tx, stream, ssn, etc
-    unsigned int size;
     void (*Free)(void *);
 } StorageMapping;
 
@@ -98,14 +97,12 @@ void StorageCleanup(void)
     storage_list = NULL;
 }
 
-int StorageRegister(
-        const StorageEnum type, const char *name, const unsigned int size, void (*Free)(void *))
+int StorageRegister(const StorageEnum type, const char *name, void (*Free)(void *))
 {
     if (storage_registration_closed)
         return -1;
 
-    if (type >= STORAGE_MAX || name == NULL || strlen(name) == 0 || size == 0 ||
-            size != sizeof(void *) || Free == NULL)
+    if (type >= STORAGE_MAX || name == NULL || strlen(name) == 0 || Free == NULL)
         return -1;
 
     StorageList *list = storage_list;
@@ -126,7 +123,6 @@ int StorageRegister(
 
     entry->map.type = type;
     entry->map.name = name;
-    entry->map.size = size;
     entry->map.Free = Free;
 
     entry->id = storage_max_id[type]++;
@@ -168,7 +164,6 @@ int StorageFinalize(void)
         if (storage_map[entry->map.type] != NULL) {
             storage_map[entry->map.type][entry->id].name = entry->map.name;
             storage_map[entry->map.type][entry->id].type = entry->map.type;
-            storage_map[entry->map.type][entry->id].size = entry->map.size;
             storage_map[entry->map.type][entry->id].Free = entry->map.Free;
         }
 
@@ -186,8 +181,7 @@ int StorageFinalize(void)
         int j;
         for (j = 0; j < storage_max_id[i]; j++) {
             StorageMapping *m = &storage_map[i][j];
-            SCLogDebug("type \"%s\" name \"%s\" size \"%"PRIuMAX"\"",
-                    StoragePrintType(m->type), m->name, (uintmax_t)m->size);
+            SCLogDebug("type \"%s\" name \"%s\"", StoragePrintType(m->type), m->name);
         }
     }
 #endif

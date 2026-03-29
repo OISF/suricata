@@ -42,6 +42,6 @@ void FlowFreeStorage(Flow *h);
 
 void RegisterFlowStorageTests(void);
 
-FlowStorageId FlowStorageRegister(const char *name, const unsigned int size, void (*Free)(void *));
+FlowStorageId FlowStorageRegister(const char *name, void (*Free)(void *));
 
 #endif /* SURICATA_FLOW_STORAGE_H */

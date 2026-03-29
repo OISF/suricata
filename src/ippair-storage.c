@@ -48,10 +48,9 @@ void IPPairFreeStorage(IPPair *h)
         StorageFreeAll(h->storage, STORAGE_IPPAIR);
 }
 
-IPPairStorageId IPPairStorageRegister(
-        const char *name, const unsigned int size, void (*Free)(void *))
+IPPairStorageId IPPairStorageRegister(const char *name, void (*Free)(void *))
 {
-    int id = StorageRegister(STORAGE_IPPAIR, name, size, Free);
+    int id = StorageRegister(STORAGE_IPPAIR, name, Free);
     IPPairStorageId ippsi = { .id = id };
     return ippsi;
 }
@@ -69,11 +68,11 @@ static int IPPairStorageTest01(void)
     StorageCleanup();
     StorageInit();
 
-    IPPairStorageId id1 = IPPairStorageRegister("test", sizeof(void *), StorageTestFree);
+    IPPairStorageId id1 = IPPairStorageRegister("test", StorageTestFree);
     FAIL_IF(id1.id < 0);
-    IPPairStorageId id2 = IPPairStorageRegister("variable", sizeof(void *), StorageTestFree);
+    IPPairStorageId id2 = IPPairStorageRegister("variable", StorageTestFree);
     FAIL_IF(id2.id < 0);
-    IPPairStorageId id3 = IPPairStorageRegister("store", sizeof(void *), StorageTestFree);
+    IPPairStorageId id3 = IPPairStorageRegister("store", StorageTestFree);
     FAIL_IF(id3.id < 0);
 
     FAIL_IF(StorageFinalize() < 0);
@@ -125,7 +124,7 @@ static int IPPairStorageTest02(void)
     StorageCleanup();
     StorageInit();
 
-    IPPairStorageId id1 = IPPairStorageRegister("test", sizeof(void *), StorageTestFree);
+    IPPairStorageId id1 = IPPairStorageRegister("test", StorageTestFree);
     FAIL_IF(id1.id < 0);
 
     FAIL_IF(StorageFinalize() < 0);
@@ -164,11 +163,11 @@ static int IPPairStorageTest03(void)
     StorageCleanup();
     StorageInit();
 
-    IPPairStorageId id1 = IPPairStorageRegister("test1", sizeof(void *), StorageTestFree);
+    IPPairStorageId id1 = IPPairStorageRegister("test1", StorageTestFree);
     FAIL_IF(id1.id < 0);
-    IPPairStorageId id2 = IPPairStorageRegister("test2", sizeof(void *), StorageTestFree);
+    IPPairStorageId id2 = IPPairStorageRegister("test2", StorageTestFree);
     FAIL_IF(id2.id < 0);
-    IPPairStorageId id3 = IPPairStorageRegister("test3", sizeof(void *), StorageTestFree);
+    IPPairStorageId id3 = IPPairStorageRegister("test3", StorageTestFree);
     FAIL_IF(id3.id < 0);
 
     FAIL_IF(StorageFinalize() < 0);

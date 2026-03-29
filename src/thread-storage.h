@@ -38,7 +38,6 @@ void ThreadFreeStorage(ThreadVars *tv);
 
 void RegisterThreadStorageTests(void);
 
-ThreadStorageId ThreadStorageRegister(
-        const char *name, const unsigned int size, void (*Free)(void *));
+ThreadStorageId ThreadStorageRegister(const char *name, void (*Free)(void *));
 
 #endif /* SURICATA_THREAD_STORAGE_H */
