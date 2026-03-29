@@ -32,7 +32,6 @@ typedef struct StorageMapping_ {
     const char *name;
     StorageEnum type; // host, flow, tx, stream, ssn, etc
     unsigned int size;
-    void *(*Alloc)(unsigned int);
     void (*Free)(void *);
 } StorageMapping;
 
@@ -99,13 +98,14 @@ void StorageCleanup(void)
     storage_list = NULL;
 }
 
-int StorageRegister(const StorageEnum type, const char *name, const unsigned int size, void *(*Alloc)(unsigned int), void (*Free)(void *))
+int StorageRegister(
+        const StorageEnum type, const char *name, const unsigned int size, void (*Free)(void *))
 {
     if (storage_registration_closed)
         return -1;
 
-    if (type >= STORAGE_MAX || name == NULL || strlen(name) == 0 ||
-            size == 0 || (size != sizeof(void *) && Alloc == NULL) || Free == NULL)
+    if (type >= STORAGE_MAX || name == NULL || strlen(name) == 0 || size == 0 ||
+            size != sizeof(void *) || Free == NULL)
         return -1;
 
     StorageList *list = storage_list;
@@ -127,7 +127,6 @@ int StorageRegister(const StorageEnum type, const char *name, const unsigned int
     entry->map.type = type;
     entry->map.name = name;
     entry->map.size = size;
-    entry->map.Alloc = Alloc;
     entry->map.Free = Free;
 
     entry->id = storage_max_id[type]++;
@@ -170,7 +169,6 @@ int StorageFinalize(void)
             storage_map[entry->map.type][entry->id].name = entry->map.name;
             storage_map[entry->map.type][entry->id].type = entry->map.type;
             storage_map[entry->map.type][entry->id].size = entry->map.size;
-            storage_map[entry->map.type][entry->id].Alloc = entry->map.Alloc;
             storage_map[entry->map.type][entry->id].Free = entry->map.Free;
         }
 
@@ -233,24 +231,6 @@ int StorageSetById(Storage *storage, const StorageEnum type, const int id, void 
         return -1;
     storage[id].ptr = ptr;
     return 0;
-}
-
-void *StorageAllocByIdPrealloc(Storage *storage, StorageEnum type, int id)
-{
-#ifdef DEBUG
-    BUG_ON(!storage_registration_closed);
-#endif
-    SCLogDebug("storage %p id %d", storage, id);
-
-    StorageMapping *map = &storage_map[type][id];
-    if (storage[id].ptr == NULL && map->Alloc != NULL) {
-        storage[id].ptr = map->Alloc(map->size);
-        if (storage[id].ptr == NULL) {
-            return NULL;
-        }
-    }
-
-    return storage[id].ptr;
 }
 
 void StorageFreeById(Storage *storage, StorageEnum type, int id)

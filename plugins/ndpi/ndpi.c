@@ -573,13 +573,13 @@ static void NdpiInit(void)
     SCLogDebug("Initializing nDPI plugin");
 
     /* Register thread storage. */
-    thread_storage_id = ThreadStorageRegister("ndpi", sizeof(void *), NULL, ThreadStorageFree);
+    thread_storage_id = ThreadStorageRegister("ndpi", sizeof(void *), ThreadStorageFree);
     if (thread_storage_id.id < 0) {
         FatalError("Failed to register nDPI thread storage");
     }
 
     /* Register flow storage. */
-    flow_storage_id = FlowStorageRegister("ndpi", sizeof(void *), NULL, FlowStorageFree);
+    flow_storage_id = FlowStorageRegister("ndpi", sizeof(void *), FlowStorageFree);
     if (flow_storage_id.id < 0) {
         FatalError("Failed to register nDPI flow storage");
     }

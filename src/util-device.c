@@ -484,8 +484,8 @@ static void LiveDevExtensionFree(void *x)
  */
 void LiveDevRegisterExtension(void)
 {
-    g_bypass_storage_id = LiveDevStorageRegister("bypass_stats", sizeof(void *),
-                                                 NULL, LiveDevExtensionFree);
+    g_bypass_storage_id =
+            LiveDevStorageRegister("bypass_stats", sizeof(void *), LiveDevExtensionFree);
 }
 
 /**

@@ -48,7 +48,7 @@ static void XBitFreeAll(void *store)
 
 void IPPairBitInitCtx(void)
 {
-    g_ippair_bit_storage_id = IPPairStorageRegister("bit", sizeof(void *), NULL, XBitFreeAll);
+    g_ippair_bit_storage_id = IPPairStorageRegister("bit", sizeof(void *), XBitFreeAll);
     if (g_ippair_bit_storage_id.id == -1) {
         FatalError("Can't initiate ippair storage for bits");
     }

@@ -48,7 +48,7 @@ static void HostBitFreeAll(void *store)
 
 void HostBitInitCtx(void)
 {
-    host_bit_id = HostStorageRegister("bit", sizeof(void *), NULL, HostBitFreeAll);
+    host_bit_id = HostStorageRegister("bit", sizeof(void *), HostBitFreeAll);
     if (host_bit_id.id == -1) {
         FatalError("Can't initiate host storage for bits");
     }

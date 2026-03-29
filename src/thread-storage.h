@@ -32,14 +32,13 @@ unsigned int ThreadStorageSize(void);
 
 void *ThreadGetStorageById(const ThreadVars *tv, ThreadStorageId id);
 int ThreadSetStorageById(ThreadVars *tv, ThreadStorageId id, void *ptr);
-void *ThreadAllocStorageById(ThreadVars *tv, ThreadStorageId id);
 
 void ThreadFreeStorageById(ThreadVars *tv, ThreadStorageId id);
 void ThreadFreeStorage(ThreadVars *tv);
 
 void RegisterThreadStorageTests(void);
 
-ThreadStorageId ThreadStorageRegister(const char *name, const unsigned int size,
-        void *(*Alloc)(unsigned int), void (*Free)(void *));
+ThreadStorageId ThreadStorageRegister(
+        const char *name, const unsigned int size, void (*Free)(void *));
 
 #endif /* SURICATA_THREAD_STORAGE_H */

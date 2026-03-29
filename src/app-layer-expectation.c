@@ -146,9 +146,8 @@ uint64_t ExpectationGetCounter(void)
 void AppLayerExpectationSetup(void)
 {
     g_ippair_expectation_id =
-            IPPairStorageRegister("expectation", sizeof(void *), NULL, ExpectationListFree);
-    g_flow_expectation_id =
-            FlowStorageRegister("expectation", sizeof(void *), NULL, ExpectationDataFree);
+            IPPairStorageRegister("expectation", sizeof(void *), ExpectationListFree);
+    g_flow_expectation_id = FlowStorageRegister("expectation", sizeof(void *), ExpectationDataFree);
     SC_ATOMIC_INIT(expectation_count);
 }
 

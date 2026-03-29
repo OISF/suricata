@@ -90,8 +90,7 @@ void FlowRateRegisterFlowStorage(void)
     }
     flow_rate_config.interval = SCTIME_ADD_SECS(interval, secs);
 
-    g_flowrate_storage_id =
-            FlowStorageRegister("flowrate", sizeof(void *), NULL, FlowRateStoreFree);
+    g_flowrate_storage_id = FlowStorageRegister("flowrate", sizeof(void *), FlowRateStoreFree);
 }
 
 bool FlowRateStorageEnabled(void)

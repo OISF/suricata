@@ -239,8 +239,7 @@ static void FlowBypassFree(void *x)
 
 void RegisterFlowBypassInfo(void)
 {
-    g_bypass_info_id = FlowStorageRegister("bypass_counters", sizeof(void *),
-                                              NULL, FlowBypassFree);
+    g_bypass_info_id = FlowStorageRegister("bypass_counters", sizeof(void *), FlowBypassFree);
 }
 
 void FlowEndCountersRegister(ThreadVars *t, FlowEndCounters *fec)
