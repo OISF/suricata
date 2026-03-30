@@ -79,6 +79,8 @@ The protocol value will limit what protocol(s) the signature will be applied to:
 * ipv4/ip4 - just IPv4
 * ipv6/ip6 - just IPv6
 * pkthdr (for matching on packets with decoder events)
+* ether - Ethernet packets
+* arp - ARP packets specifically
 
 There are a couple of additional TCP related protocol options:
 
