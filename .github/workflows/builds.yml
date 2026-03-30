@@ -534,7 +534,7 @@ jobs:
           name: dist
       - run: tar zxvf suricata-*.tar.gz --strip-components=1
       - name: ./configure
-        run: CFLAGS="${DEFAULT_CFLAGS}" ./configure
+        run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-qa-simulation
       - run: make -j ${{ env.CPUS }}
       - run: make install
       - run: make install-conf
@@ -636,7 +636,7 @@ jobs:
       - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - run: ./autogen.sh
-      - run: ./configure --disable-shared
+      - run: ./configure --disable-shared --enable-qa-simulation
         env:
           CC: "clang"
           RUSTFLAGS: "-C instrument-coverage"
@@ -737,7 +737,7 @@ jobs:
       - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow" ./configure --disable-shared
       - run: make check
       - run: make distclean
-      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue --enable-lua
+      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue --enable-lua --enable-qa-simulation
         env:
           LDFLAGS: "-fsanitize=address"
           ac_cv_func_realloc_0_nonnull: "yes"
@@ -831,7 +831,7 @@ jobs:
       - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - run: ./autogen.sh
-      - run: ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue
+      - run: ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue --enable-qa-simulation
         env:
           CFLAGS: "${{ env.DEFAULT_CFLAGS }} -Wshadow -fsanitize=address -fno-omit-frame-pointer -flto=auto -O2"
           LDFLAGS: "-fsanitize=address"
@@ -927,7 +927,7 @@ jobs:
       - run: sudo -u suricata -s ./autogen.sh
         working-directory: /home/suricata/suricata
 
-      - run: sudo -u suricata -s env PATH="/home/suricata/.cargo/bin:$PATH" ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue
+      - run: sudo -u suricata -s env PATH="/home/suricata/.cargo/bin:$PATH" ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue --enable-qa-simulation
         working-directory: /home/suricata/suricata
         env:
           ac_cv_func_realloc_0_nonnull: "yes"
@@ -1141,7 +1141,7 @@ jobs:
       - run: tar xf prep/suricata-update.tar.gz
       - run: tar xf prep/suricata-verify.tar.gz
       - run: ./autogen.sh
-      - run: ./configure --enable-unittests --enable-coccinelle
+      - run: ./configure --enable-unittests --enable-coccinelle --enable-qa-simulation
       - run: make -j ${{ env.CPUS }}
       - run: CONCURRENCY_LEVEL=${{ env.CPUS }} make check
       - run: python3 ./suricata-verify/run.py -q --debug-failed
@@ -1651,7 +1651,7 @@ jobs:
       # using leading to random crashes: https://github.com/actions/runner-images/issues/9491
         run: sudo sysctl vm.mmap_rnd_bits=28
       - run: ./autogen.sh
-      - run: ./configure --enable-debug-validation
+      - run: ./configure --enable-debug-validation --enable-qa-simulation
         env:
           CFLAGS: "${{ env.DEFAULT_CFLAGS }} -Wshadow -fsanitize=address -fno-omit-frame-pointer"
           LDFLAGS: "-fsanitize=address" 
@@ -2023,7 +2023,7 @@ jobs:
       - run: tar xf prep/suricata-update.tar.gz
       - run: tar xf prep/suricata-verify.tar.gz
       - run: ./autogen.sh
-      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-warnings --enable-unittests --enable-ebpf --enable-ebpf-build
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-warnings --enable-unittests --enable-ebpf --enable-ebpf-build --enable-qa-simulation
       - run: make -j2
       - run: make check
         # -j2 caused random failures during cargo vendor
@@ -2113,7 +2113,7 @@ jobs:
       - run: tar xf prep/suricata-update.tar.gz
       - run: tar xf prep/suricata-verify.tar.gz
       - run: ./autogen.sh
-      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-warnings --enable-unittests --enable-ebpf --enable-ebpf-build
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-warnings --enable-unittests --enable-ebpf --enable-ebpf-build --enable-qa-simulation
       - run: make -j ${{ env.CPUS }}
       - run: make check
         # -j2 caused random failures during cargo vendor
@@ -2281,7 +2281,7 @@ jobs:
       - run: tar xf prep/suricata-update.tar.gz
       - run: tar xf prep/suricata-verify.tar.gz
       - run: ./autogen.sh
-      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --enable-debug --enable-lua --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --enable-debug --enable-lua --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk --enable-qa-simulation
       - run: make -j2
       - run: make check
       - name: Building Rust documentation
