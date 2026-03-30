@@ -70,10 +70,10 @@ Protocol
 
 The protocol value will limit what protocol(s) the signature will be applied to:
 
-* ip (ip stands for 'all' or 'any')
-* tcp (for tcp-traffic)
+* ip (ip stands for 'all IP packets' or 'any IP packet')
+* tcp (for TCP traffic)
 * udp
-* icmp (both icmpv4 and icmpv6)
+* icmp (both ICMPv4 and ICMPv6)
 * icmpv4
 * icmpv6
 * ipv4/ip4 - just IPv4
