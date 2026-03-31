@@ -2805,6 +2805,26 @@ use of.
     vista: []
     windows2k3: []
 
+Suricata as a Firewall options (experimental)
+---------------------------------------------
+
+It is possible to run Suricata as a firewall.
+Please read :ref:`Firewall Mode Design <firewall mode design>` before using this.
+The existing yaml configuration options are listed below. If the engine is run as a firewall, dedicated stats counters will be added to the stats logs.
+
+   firewall:
+     # toggle to enable firewall mode
+     #enabled: no
+     # Firewall rule file are in their own path and are not managed
+     # by Suricata-Update.
+     #rule-path: /etc/suricata/firewall/
+
+     # List of files with firewall rules. Order matters, files are loaded
+     # in order and rules are applied in that order (per state, see docs)
+     #rule-files:
+     #  - firewall.rules
+
+
 Engine analysis and profiling
 -----------------------------
 
