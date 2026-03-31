@@ -284,10 +284,10 @@ int main(int argc, char **argv)
     /* Register our own library run mode. At this time, the ThreadVars
      * for each capture thread need to be created in the provided
      * callback to meet thread synchronization requirements. */
-    RunModeRegisterNewRunMode(
-            RUNMODE_LIB, "live", "Live capture application run mode", AppRunModeSetup, NULL);
+    RunModeRegisterNewRunMode(RUNMODE_LIB, "live-example", "Live capture application run mode",
+            AppRunModeSetup, NULL);
 
-    if (!SCConfSetFromString("runmode=live", 1)) {
+    if (!SCConfSetFromString("runmode=live-example", 1)) {
         exit(EXIT_FAILURE);
     }
 
