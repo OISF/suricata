@@ -4276,7 +4276,7 @@ static int SigTestDropFlow03(void)
     uint32_t http_buf2_len = sizeof(http_buf1) - 1;
 
     /* Set the engine mode to IPS */
-    EngineModeSetIPS();
+    EngineModeSetIPS(ENGINE_HOST_IS_ROUTER);
 
     TcpSession ssn;
     Packet *p1 = NULL;
