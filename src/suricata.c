@@ -181,7 +181,7 @@ static enum EngineMode g_engine_mode = ENGINE_MODE_UNKNOWN;
 
 /** Host mode: set if box is sniffing only
  * or is a router */
-uint8_t host_mode = SURI_HOST_IS_SNIFFER_ONLY;
+enum EngineHostMode g_engine_host_mode = ENGINE_HOST_IS_SNIFFER_ONLY;
 
 /** Maximum packets to simultaneously process. */
 uint32_t max_pending_packets;
@@ -255,13 +255,15 @@ int EngineModeIsIDS(void)
     return (g_engine_mode == ENGINE_MODE_IDS);
 }
 
-void EngineModeSetFirewall(void)
+void EngineModeSetFirewall(const enum EngineHostMode mode)
 {
+    g_engine_host_mode = mode;
     g_engine_mode = ENGINE_MODE_FIREWALL;
 }
 
-void EngineModeSetIPS(void)
+void EngineModeSetIPS(const enum EngineHostMode mode)
 {
+    g_engine_host_mode = mode;
 #ifndef UNITTESTS
     if (g_engine_mode == ENGINE_MODE_UNKNOWN)
         g_engine_mode = ENGINE_MODE_IPS;
@@ -274,6 +276,16 @@ void EngineModeSetIPS(void)
 void EngineModeSetIDS(void)
 {
     g_engine_mode = ENGINE_MODE_IDS;
+}
+
+bool EngineHostModeIsSniffer(void)
+{
+    return (g_engine_host_mode == ENGINE_HOST_IS_SNIFFER_ONLY);
+}
+
+bool EngineHostModeIsBridge(void)
+{
+    return (g_engine_host_mode == ENGINE_HOST_IS_BRIDGE);
 }
 
 #ifdef UNITTESTS
@@ -1611,7 +1623,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
                 }
             } else if (strcmp((long_opts[option_index]).name, "simulate-ips") == 0) {
                 SCLogInfo("Setting IPS mode");
-                EngineModeSetIPS();
+                EngineModeSetIPS(ENGINE_HOST_IS_ROUTER);
             } else if (strcmp((long_opts[option_index]).name, "init-errors-fatal") == 0) {
                 if (SCConfSetFinal("engine.init-failure-fatal", "1") != 1) {
                     SCLogError("failed to set engine init-failure-fatal");
@@ -1995,7 +2007,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
 #ifdef NFQ
             if (suri->run_mode == RUNMODE_UNKNOWN) {
                 suri->run_mode = RUNMODE_NFQ;
-                EngineModeSetIPS();
+                EngineModeSetIPS(ENGINE_HOST_IS_ROUTER);
                 if (NFQParseAndRegisterQueues(optarg) == -1)
                     return TM_ECODE_FAILED;
             } else if (suri->run_mode == RUNMODE_NFQ) {
@@ -2017,7 +2029,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
 #ifdef IPFW
             if (suri->run_mode == RUNMODE_UNKNOWN) {
                 suri->run_mode = RUNMODE_IPFW;
-                EngineModeSetIPS();
+                EngineModeSetIPS(ENGINE_HOST_IS_ROUTER);
                 if (IPFWRegisterQueue(optarg) == -1)
                     return TM_ECODE_FAILED;
             } else if (suri->run_mode == RUNMODE_IPFW) {
@@ -2711,26 +2723,38 @@ static void PostConfLoadedSetupHostMode(void)
 
     if (SCConfGet("host-mode", &hostmode) == 1) {
         if (!strcmp(hostmode, "router")) {
-            host_mode = SURI_HOST_IS_ROUTER;
+            g_engine_host_mode = ENGINE_HOST_IS_ROUTER;
+        } else if (!strcmp(hostmode, "bridge")) {
+            g_engine_host_mode = ENGINE_HOST_IS_BRIDGE;
         } else if (!strcmp(hostmode, "sniffer-only")) {
-            host_mode = SURI_HOST_IS_SNIFFER_ONLY;
+            g_engine_host_mode = ENGINE_HOST_IS_SNIFFER_ONLY;
         } else {
             if (strcmp(hostmode, "auto") != 0) {
                 WarnInvalidConfEntry("host-mode", "%s", "auto");
             }
             if (EngineModeIsIPS()) {
-                host_mode = SURI_HOST_IS_ROUTER;
+                /* only set if not already set by the runmode */
+                if (g_engine_host_mode == ENGINE_HOST_IS_SNIFFER_ONLY) {
+                    SCLogDebug("host mode set to %u setting to %u", g_engine_host_mode,
+                            ENGINE_HOST_IS_ROUTER);
+                    g_engine_host_mode = ENGINE_HOST_IS_ROUTER;
+                }
             } else {
-                host_mode = SURI_HOST_IS_SNIFFER_ONLY;
+                g_engine_host_mode = ENGINE_HOST_IS_SNIFFER_ONLY;
             }
         }
     } else {
         if (EngineModeIsIPS()) {
-            host_mode = SURI_HOST_IS_ROUTER;
-            SCLogInfo("No 'host-mode': suricata is in IPS mode, using "
-                      "default setting 'router'");
+            /* only set if not already set by the runmode */
+            if (g_engine_host_mode == ENGINE_HOST_IS_SNIFFER_ONLY) {
+                SCLogDebug("host mode set to %u setting to %u", g_engine_host_mode,
+                        ENGINE_HOST_IS_ROUTER);
+                g_engine_host_mode = ENGINE_HOST_IS_ROUTER;
+                SCLogInfo("No 'host-mode': suricata is in IPS mode, using "
+                          "default setting 'router'");
+            }
         } else {
-            host_mode = SURI_HOST_IS_SNIFFER_ONLY;
+            g_engine_host_mode = ENGINE_HOST_IS_SNIFFER_ONLY;
             SCLogInfo("No 'host-mode': suricata is in IDS mode, using "
                       "default setting 'sniffer-only'");
         }
@@ -2774,7 +2798,7 @@ int PostConfLoadedSetup(SCInstance *suri)
     }
     if (suri->is_firewall) {
         SCLogWarning("firewall mode is EXPERIMENTAL and subject to change");
-        EngineModeSetFirewall();
+        EngineModeSetFirewall(g_engine_host_mode);
     }
 
     /* load the pattern matchers */

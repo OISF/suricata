@@ -1386,10 +1386,12 @@ security:
 coredump:
   max-dump: unlimited
 
-# If the Suricata box is a router for the sniffed networks, set it to 'router'. If
-# it is a pure sniffing setup, set it to 'sniffer-only'.
-# If set to auto, the variable is internally switched to 'router' in IPS mode
-# and 'sniffer-only' in IDS mode.
+# If Suricata acts as a router for the network, set it to 'router'. If
+# it is a pure sniffing setup, set it to 'sniffer-only'. For 'bridge' setups like
+# AF_PACKET IPS, use 'bridge'.
+# If set to auto, the mode is 'sniffer-only' in IDS mode, and 'router' or 'bridge'
+# for IPS modes, depending on which is used. E.g. AF_PACKET IPS uses the bridge
+# mode, while NFQ uses the router mode.
 # This feature is currently only used by the reject* keywords.
 host-mode: auto
 
