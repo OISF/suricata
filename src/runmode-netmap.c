@@ -119,7 +119,7 @@ static int NetmapRunModeEnableIPS(void)
     int r = NetmapRunModeIsIPS();
     if (r == 1) {
         SCLogInfo("Netmap: Setting IPS mode");
-        EngineModeSetIPS();
+        EngineModeSetIPS(ENGINE_HOST_IS_BRIDGE);
     }
     return r;
 }

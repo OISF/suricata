@@ -125,7 +125,7 @@ static int AFPRunModeEnableIPS(void)
     bool r = AFPRunModeIsIPS();
     if (r) {
         SCLogInfo("Setting IPS mode");
-        EngineModeSetIPS();
+        EngineModeSetIPS(ENGINE_HOST_IS_BRIDGE);
     }
     return r;
 }
