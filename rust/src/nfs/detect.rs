@@ -19,7 +19,7 @@
 
 use suricata_sys::sys::AppProtoEnum::ALPROTO_NFS;
 use suricata_sys::sys::{
-    AppProto, DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectHelperBufferRegister,
+    AppProto, DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectHelperBufferProgressRegister,
     SCDetectHelperKeywordRegister, SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList,
     SCSigTableAppLiteElmt, SigMatchCtx, Signature,
 };
@@ -171,10 +171,11 @@ pub unsafe extern "C" fn SCDetectNfsProcedureRegister() {
         flags: SIGMATCH_INFO_UINT32 | SIGMATCH_INFO_MULTI_UINT | SIGMATCH_INFO_ENUM_UINT,
     };
     G_NFS_PROCEDURE_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_NFS_PROCEDURE_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_NFS_PROCEDURE_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"nfs_procedure\0".as_ptr() as *const libc::c_char,
         ALPROTO_NFS as AppProto,
         STREAM_TOSERVER,
+        0,
     );
 }
 

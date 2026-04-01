@@ -31,15 +31,16 @@
 #include "detect-engine-content-inspection.h"
 #include "rust.h"
 
-int SCDetectHelperBufferRegister(const char *name, AppProto alproto, uint8_t direction)
+int SCDetectHelperBufferProgressRegister(
+        const char *name, AppProto alproto, uint8_t direction, int progress)
 {
     if (direction & STREAM_TOSERVER) {
         DetectAppLayerInspectEngineRegister(
-                name, alproto, SIG_FLAG_TOSERVER, 0, DetectEngineInspectGenericList, NULL);
+                name, alproto, SIG_FLAG_TOSERVER, progress, DetectEngineInspectGenericList, NULL);
     }
     if (direction & STREAM_TOCLIENT) {
         DetectAppLayerInspectEngineRegister(
-                name, alproto, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectGenericList, NULL);
+                name, alproto, SIG_FLAG_TOCLIENT, progress, DetectEngineInspectGenericList, NULL);
     }
     return DetectBufferTypeRegister(name);
 }

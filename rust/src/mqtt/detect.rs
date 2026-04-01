@@ -30,7 +30,7 @@ use crate::detect::{
 };
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
-    SCDetectHelperBufferMpmRegister, SCDetectHelperBufferRegister, SCDetectHelperKeywordRegister,
+    SCDetectHelperBufferMpmRegister, SCDetectHelperBufferProgressRegister, SCDetectHelperKeywordRegister,
     SCDetectHelperMultiBufferMpmRegister, SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList,
     SCSigTableAppLiteElmt, SigMatchCtx, Signature,
 };
@@ -934,10 +934,11 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_MULTI_UINT | SIGMATCH_INFO_ENUM_UINT,
     };
     G_MQTT_TYPE_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_MQTT_TYPE_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_MQTT_TYPE_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"mqtt.type\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
         STREAM_TOSERVER | STREAM_TOCLIENT,
+        0,
     );
 
     let keyword_name = b"mqtt.subscribe.topic\0".as_ptr() as *const libc::c_char;
@@ -974,10 +975,11 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_MULTI_UINT,
     };
     G_MQTT_REASON_CODE_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_MQTT_REASON_CODE_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_MQTT_REASON_CODE_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"mqtt.reason_code\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
         STREAM_TOSERVER | STREAM_TOCLIENT,
+        0,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"mqtt.connack.session_present\0".as_ptr() as *const libc::c_char,
@@ -990,10 +992,11 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         flags: 0,
     };
     G_MQTT_CONNACK_SESSIONPRESENT_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_MQTT_CONNACK_SESSIONPRESENT_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_MQTT_CONNACK_SESSIONPRESENT_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"mqtt.connack.session_present\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
         STREAM_TOCLIENT,
+        0,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"mqtt.qos\0".as_ptr() as *const libc::c_char,
@@ -1006,10 +1009,11 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         flags: 0,
     };
     G_MQTT_QOS_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_MQTT_QOS_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_MQTT_QOS_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"mqtt.qos\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
         STREAM_TOSERVER,
+        0,
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("mqtt.publish.topic"),
@@ -1049,10 +1053,11 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         flags: SIGMATCH_INFO_UINT8,
     };
     G_MQTT_PROTOCOL_VERSION_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_MQTT_PROTOCOL_VERSION_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_MQTT_PROTOCOL_VERSION_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"mqtt.protocol_version\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
         STREAM_TOSERVER,
+        0,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"mqtt.flags\0".as_ptr() as *const libc::c_char,
@@ -1064,10 +1069,11 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_MULTI_UINT | SIGMATCH_INFO_BITFLAGS_UINT,
     };
     G_MQTT_FLAGS_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_MQTT_FLAGS_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_MQTT_FLAGS_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"mqtt.flags\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
         STREAM_TOSERVER,
+        0,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"mqtt.connect.flags\0".as_ptr() as *const libc::c_char,
@@ -1079,10 +1085,11 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_MULTI_UINT | SIGMATCH_INFO_BITFLAGS_UINT,
     };
     G_MQTT_CONN_FLAGS_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_MQTT_CONN_FLAGS_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_MQTT_CONN_FLAGS_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"mqtt.connect.flags\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
         STREAM_TOSERVER,
+        0,
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("mqtt.connect.willtopic"),
