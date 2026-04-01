@@ -17,10 +17,12 @@
 
 // written by Victor Julien
 
+use lru::LruCache;
 use std;
 use std::cmp;
 use std::collections::HashMap;
 use std::ffi::CString;
+use std::num::NonZeroUsize;
 
 use nom7::{Err, Needed};
 use suricata_sys::sys::{
@@ -98,6 +100,8 @@ static mut ALPROTO_NFS: AppProto = ALPROTO_UNKNOWN;
  * NFSTransaction where they can be looked up per handle as part of the
  * Transaction lookup.
  */
+
+pub static mut NFS_CFG_MAX_REQ: usize = 512;
 
 #[derive(AppLayerFrameType)]
 pub enum NFSFrameType {
@@ -357,7 +361,7 @@ pub struct NFSState {
     state_data: AppLayerStateData,
 
     /// map xid to procedure so replies can lookup the procedure
-    pub requestmap: HashMap<u32, NFSRequestXidMap>,
+    pub requestmap: LruCache<u32, NFSRequestXidMap>,
 
     /// map file handle (1) to name (2)
     pub namemap: HashMap<Vec<u8>, Vec<u8>>,
@@ -418,7 +422,7 @@ impl NFSState {
     pub fn new() -> NFSState {
         NFSState {
             state_data: AppLayerStateData::new(),
-            requestmap: HashMap::new(),
+            requestmap: LruCache::new(NonZeroUsize::new(unsafe { NFS_CFG_MAX_REQ }).unwrap()),
             namemap: HashMap::new(),
             transactions: Vec::new(),
             ts_chunk_xid: 0,
@@ -1068,7 +1072,7 @@ impl NFSState {
 
         let mut xidmap = NFSRequestXidMap::new(r.progver, r.procedure, 0);
         xidmap.file_handle = w.handle.value.to_vec();
-        self.requestmap.insert(r.hdr.xid, xidmap);
+        self.requestmap.put(r.hdr.xid, xidmap);
 
         return self.process_write_record(flow, r, w);
     }
@@ -1077,7 +1081,7 @@ impl NFSState {
         &mut self, flow: *mut Flow, stream_slice: &StreamSlice, r: &RpcReplyPacket,
     ) -> u32 {
         let mut xidmap;
-        match self.requestmap.remove(&r.hdr.xid) {
+        match self.requestmap.pop(&r.hdr.xid) {
             Some(p) => {
                 xidmap = p;
             }
@@ -1166,7 +1170,7 @@ impl NFSState {
                 self.tc_chunk_xid = 0;
 
                 // chunk done, remove requestmap entry
-                match self.requestmap.remove(&xid) {
+                match self.requestmap.pop(&xid) {
                     None => {
                         SCLogDebug!("no file handle found for XID {:04X}", xid);
                         return 0;
@@ -2403,6 +2407,18 @@ pub unsafe extern "C" fn SCRegisterNfsParser() {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
         SCLogDebug!("Rust nfs parser registered.");
+        let retval = conf_get("app-layer.protocols.nfs.max-requests");
+        if let Some(val) = retval {
+            if let Ok(v) = val.parse::<usize>() {
+                if v > 0 {
+                    NFS_CFG_MAX_REQ = v;
+                } else {
+                    SCLogError!("Invalid max-requests value, must be >0");
+                }
+            } else {
+                SCLogError!("Invalid max-requests value");
+            }
+        }
     } else {
         SCLogDebug!("Protocol detector and parser disabled for nfs.");
     }

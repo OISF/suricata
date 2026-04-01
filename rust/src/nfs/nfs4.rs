@@ -317,7 +317,7 @@ impl NFSState {
             };
         }
 
-        self.requestmap.insert(r.hdr.xid, xidmap);
+        self.requestmap.put(r.hdr.xid, xidmap);
     }
 
     fn compound_response<'b>(
