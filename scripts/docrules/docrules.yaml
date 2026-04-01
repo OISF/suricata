@@ -1,0 +1,30 @@
+%YAML 1.1
+---
+
+# This yaml configuration is used by scripts/check-doc-rules.py
+# It is minimal to be able to load every rule in the documentation.
+
+vars:
+  address-groups:
+    HOME_NET: "[192.168.0.0/16,10.0.0.0/8,172.16.0.0/12]"
+    EXTERNAL_NET: "!$HOME_NET"
+
+
+datasets:
+  ua-seen:
+    type: string
+    state: ua-seen.lst
+  dns-sha256-seen:
+    type: sha256
+    state: dns-sha256-seen.lst
+
+app-layer:
+  protocols:
+    pgsql:
+      enabled: yes
+
+reputation-categories-file: scripts/docrules/docrulesrep.lst
+reputation-files:
+
+classification-file: etc/classification.config
+reference-config-file: etc/reference.config
