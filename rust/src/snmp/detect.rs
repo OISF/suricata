@@ -24,7 +24,7 @@ use crate::detect::uint::{
 };
 use crate::detect::{
     helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer, SIGMATCH_INFO_ENUM_UINT,
-    SIGMATCH_INFO_UINT32,
+    SIGMATCH_INFO_UINT32, SIGMATCH_SUPPORT_FIREWALL,
 };
 use std::ffi::CStr;
 use std::os::raw::{c_int, c_void};
@@ -195,7 +195,7 @@ pub(super) unsafe extern "C" fn detect_snmp_register() {
         AppLayerTxMatch: Some(snmp_detect_version_match),
         Setup: Some(snmp_detect_version_setup),
         Free: Some(snmp_detect_version_free),
-        flags: SIGMATCH_INFO_UINT32,
+        flags: SIGMATCH_INFO_UINT32 | SIGMATCH_SUPPORT_FIREWALL,
     };
     G_SNMP_VERSION_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_SNMP_VERSION_BUFFER_ID = SCDetectHelperBufferProgressRegister(
@@ -212,7 +212,7 @@ pub(super) unsafe extern "C" fn detect_snmp_register() {
         AppLayerTxMatch: Some(snmp_detect_pdutype_match),
         Setup: Some(snmp_detect_pdutype_setup),
         Free: Some(snmp_detect_pdutype_free),
-        flags: SIGMATCH_INFO_UINT32 | SIGMATCH_INFO_ENUM_UINT,
+        flags: SIGMATCH_INFO_UINT32 | SIGMATCH_INFO_ENUM_UINT | SIGMATCH_SUPPORT_FIREWALL,
     };
     G_SNMP_PDUTYPE_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_SNMP_PDUTYPE_BUFFER_ID = SCDetectHelperBufferProgressRegister(
