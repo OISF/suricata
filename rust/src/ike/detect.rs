@@ -38,7 +38,7 @@ use std::os::raw::{c_char, c_int, c_void};
 use std::ptr;
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, SCDetectBufferSetActiveList,
-    SCDetectHelperBufferMpmRegister, SCDetectHelperBufferRegister, SCDetectHelperKeywordRegister,
+    SCDetectHelperBufferMpmRegister, SCDetectHelperBufferProgressRegister, SCDetectHelperKeywordRegister,
     SCDetectHelperMultiBufferMpmRegister, SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList,
     SCSigTableAppLiteElmt, SigMatchCtx, Signature,
 };
@@ -437,10 +437,11 @@ pub unsafe extern "C" fn SCDetectIkeRegister() {
         flags: SIGMATCH_INFO_UINT32,
     };
     G_IKE_NONCE_PAYLOAD_LENGTH_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_IKE_NONCE_PAYLOAD_LENGTH_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_IKE_NONCE_PAYLOAD_LENGTH_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"ike.nonce_payload_length\0".as_ptr() as *const libc::c_char,
         ALPROTO_IKE,
         STREAM_TOSERVER | STREAM_TOCLIENT,
+        1,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"ike.exchtype\0".as_ptr() as *const libc::c_char,
@@ -452,10 +453,11 @@ pub unsafe extern "C" fn SCDetectIkeRegister() {
         flags: SIGMATCH_INFO_UINT8,
     };
     G_IKE_EXCHTYPE_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_IKE_EXCHTYPE_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_IKE_EXCHTYPE_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"ike.exchtype\0".as_ptr() as *const libc::c_char,
         ALPROTO_IKE,
         STREAM_TOSERVER | STREAM_TOCLIENT,
+        1,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"ike.chosen_sa_attribute\0".as_ptr() as *const libc::c_char,
@@ -467,10 +469,11 @@ pub unsafe extern "C" fn SCDetectIkeRegister() {
         flags: 0,
     };
     G_IKE_CHOSEN_SA_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_IKE_CHOSEN_SA_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_IKE_CHOSEN_SA_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"ike.chosen_sa_attribute\0".as_ptr() as *const libc::c_char,
         ALPROTO_IKE,
         STREAM_TOCLIENT,
+        1,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"ike.key_exchange_payload_length\0".as_ptr() as *const libc::c_char,
@@ -483,10 +486,11 @@ pub unsafe extern "C" fn SCDetectIkeRegister() {
         flags: SIGMATCH_INFO_UINT32,
     };
     G_IKE_PAYLOAD_LEN_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_IKE_PAYLOAD_LEN_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_IKE_PAYLOAD_LEN_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"ike.key_exchange_payload_length\0".as_ptr() as *const libc::c_char,
         ALPROTO_IKE,
         STREAM_TOSERVER | STREAM_TOCLIENT,
+        1,
     );
     let kw_initiator = SigTableElmtStickyBuffer {
         name: String::from("ike.init_spi"),

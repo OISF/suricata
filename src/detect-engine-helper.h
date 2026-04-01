@@ -80,7 +80,8 @@ int SCDetectHelperNewKeywordId(void);
 
 uint16_t SCDetectHelperKeywordRegister(const SCSigTableAppLiteElmt *kw);
 void SCDetectHelperKeywordAliasRegister(uint16_t kwid, const char *alias);
-int SCDetectHelperBufferRegister(const char *name, AppProto alproto, uint8_t direction);
+int SCDetectHelperBufferProgressRegister(
+        const char *name, AppProto alproto, uint8_t direction, int progress);
 
 int SCDetectHelperBufferMpmRegister(const char *name, const char *desc, AppProto alproto,
         uint8_t direction, InspectionSingleBufferGetDataPtr GetData);

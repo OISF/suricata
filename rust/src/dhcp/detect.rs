@@ -25,7 +25,7 @@ use crate::detect::uint::{DetectUintData, SCDetectU64Free, SCDetectU64Match, SCD
 use crate::detect::SIGMATCH_INFO_UINT64;
 use std::os::raw::{c_int, c_void};
 use suricata_sys::sys::{
-    DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectHelperBufferRegister,
+    DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectHelperBufferProgressRegister,
     SCDetectHelperKeywordRegister, SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList,
     SCSigTableAppLiteElmt, SigMatchCtx, Signature,
 };
@@ -177,10 +177,11 @@ pub unsafe extern "C" fn SCDetectDHCPRegister() {
         flags: SIGMATCH_INFO_UINT64,
     };
     G_DHCP_LEASE_TIME_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_DHCP_LEASE_TIME_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_DHCP_LEASE_TIME_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"dhcp.leasetime\0".as_ptr() as *const libc::c_char,
         ALPROTO_DHCP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
+        1,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"dhcp.rebinding_time\0".as_ptr() as *const libc::c_char,
@@ -192,10 +193,11 @@ pub unsafe extern "C" fn SCDetectDHCPRegister() {
         flags: SIGMATCH_INFO_UINT64,
     };
     G_DHCP_REBINDING_TIME_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_DHCP_REBINDING_TIME_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_DHCP_REBINDING_TIME_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"dhcp.rebinding-time\0".as_ptr() as *const libc::c_char,
         ALPROTO_DHCP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
+        1,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"dhcp.renewal_time\0".as_ptr() as *const libc::c_char,
@@ -207,9 +209,10 @@ pub unsafe extern "C" fn SCDetectDHCPRegister() {
         flags: SIGMATCH_INFO_UINT64,
     };
     G_DHCP_RENEWAL_TIME_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_DHCP_RENEWAL_TIME_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_DHCP_RENEWAL_TIME_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"dhcp.renewal-time\0".as_ptr() as *const libc::c_char,
         ALPROTO_DHCP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
+        1,
     );
 }
