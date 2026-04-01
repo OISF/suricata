@@ -100,7 +100,7 @@ impl NFSState {
         }
 
         SCLogDebug!("NFSv2: TS creating xidmap {}", r.hdr.xid);
-        self.requestmap.insert(r.hdr.xid, xidmap);
+        self.requestmap.put(r.hdr.xid, xidmap);
     }
 
     pub fn process_reply_record_v2(&mut self, flow: *mut Flow, r: &RpcReplyPacket, xidmap: &NFSRequestXidMap) {

@@ -193,7 +193,7 @@ impl NFSState {
             }
         }
 
-        self.requestmap.insert(r.hdr.xid, xidmap);
+        self.requestmap.put(r.hdr.xid, xidmap);
     }
 
     pub fn process_reply_record_v3(&mut self, flow: *mut Flow, r: &RpcReplyPacket, xidmap: &mut NFSRequestXidMap) {
