@@ -209,7 +209,7 @@ impl NFSState {
 
                 SCLogDebug!("LOOKUP handle {:?}", rd.handle);
                 self.namemap
-                    .insert(rd.handle.value.to_vec(), xidmap.file_name.to_vec());
+                    .put(rd.handle.value.to_vec(), xidmap.file_name.to_vec());
                 resp_handle = rd.handle.value.to_vec();
             } else {
                 self.set_event(NFSEvent::MalformedData);
@@ -223,7 +223,7 @@ impl NFSState {
                 if let Some(h) = rd.handle {
                     SCLogDebug!("handle {:?}", h);
                     self.namemap
-                        .insert(h.value.to_vec(), xidmap.file_name.to_vec());
+                        .put(h.value.to_vec(), xidmap.file_name.to_vec());
                     resp_handle = h.value.to_vec();
                 }
             } else {
@@ -256,7 +256,7 @@ impl NFSState {
                             SCLogDebug!("e {:?}", e);
                             if let Some(ref h) = e.handle {
                                 SCLogDebug!("h {:?}", h);
-                                self.namemap.insert(h.value.to_vec(), e.name_vec.to_vec());
+                                self.namemap.put(h.value.to_vec(), e.name_vec.to_vec());
                             }
                         }
                     }
