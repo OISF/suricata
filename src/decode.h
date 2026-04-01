@@ -248,8 +248,9 @@ struct PacketContextData {
  * found in this packet */
 typedef struct PacketAlert_ {
     SigIntId iid;   /* Internal ID, used for sorting */
-    uint8_t action; /* Internal num, used for thresholding */
+    uint8_t action; /* Rule or threshold action to be applied to packet */
     uint8_t flags;
+    bool is_fw_alert;
     const struct Signature_ *s;
     uint64_t tx_id; /* Used for sorting */
     int64_t frame_id;
@@ -287,6 +288,7 @@ extern uint16_t packet_alert_max;
 typedef struct PacketAlerts_ {
     uint16_t cnt;
     uint16_t discarded;
+    uint16_t firewall_discarded;
     uint16_t suppressed;
     PacketAlert *alerts;
     /* single pa used when we're dropping,
@@ -394,12 +396,16 @@ enum PacketDropReason {
     PKT_DROP_REASON_STREAM_MIDSTREAM,
     PKT_DROP_REASON_STREAM_REASSEMBLY,
     PKT_DROP_REASON_STREAM_URG,
-    PKT_DROP_REASON_NFQ_ERROR,             /**< no nfq verdict, must be error */
-    PKT_DROP_REASON_INNER_PACKET,          /**< drop issued by inner (tunnel) packet */
-    PKT_DROP_REASON_DEFAULT_PACKET_POLICY, /**< drop issued by default packet policy */
-    PKT_DROP_REASON_DEFAULT_APP_POLICY,    /**< drop issued by default app policy */
-    PKT_DROP_REASON_STREAM_PRE_HOOK,       /**< drop issued in the pre_stream hook */
-    PKT_DROP_REASON_FLOW_PRE_HOOK,         /**< drop issued in the pre_flow hook */
+    PKT_DROP_REASON_NFQ_ERROR,                /**< no nfq verdict, must be error */
+    PKT_DROP_REASON_INNER_PACKET,             /**< drop issued by inner (tunnel) packet */
+    PKT_DROP_REASON_STREAM_PRE_HOOK,          /**< drop issued in the pre_stream hook */
+    PKT_DROP_REASON_FLOW_PRE_HOOK,            /**< drop issued in the pre_flow hook */
+    /** Firewall-related reasons only */
+    PKT_DROP_REASON_FW_RULES,
+    PKT_DROP_REASON_FW_DEFAULT_PACKET_POLICY, /**< drop issued by default packet policy */
+    PKT_DROP_REASON_FW_DEFAULT_APP_POLICY,    /**< drop issued by default app policy */
+    PKT_DROP_REASON_FW_STREAM_PRE_HOOK,       /**< drop issued in the pre_stream hook */
+    PKT_DROP_REASON_FW_FLOW_PRE_HOOK,         /**< drop issued in the pre_flow hook */
     PKT_DROP_REASON_MAX,
 };
 

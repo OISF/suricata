@@ -923,6 +923,10 @@ const char *PktSrcToString(enum PktSrcEnum pkt_src)
 
 const char *PacketDropReasonToString(enum PacketDropReason r)
 {
+    // TODOs
+    // Declare the a char[] first
+    // add the drop reason to it, based on case
+    // add prefix "ips.drop_reason" or "ips.drop_reason.firewall" accordingly
     switch (r) {
         case PKT_DROP_REASON_DECODE_ERROR:
             return "decode error";
@@ -950,20 +954,26 @@ const char *PacketDropReasonToString(enum PacketDropReason r)
             return "applayer memcap";
         case PKT_DROP_REASON_RULES:
             return "rules";
+        case PKT_DROP_REASON_FW_RULES:
+            return "firewall rules";
         case PKT_DROP_REASON_RULES_THRESHOLD:
             return "threshold detection_filter";
         case PKT_DROP_REASON_NFQ_ERROR:
             return "nfq error";
         case PKT_DROP_REASON_INNER_PACKET:
             return "tunnel packet drop";
-        case PKT_DROP_REASON_DEFAULT_PACKET_POLICY:
-            return "default packet policy";
-        case PKT_DROP_REASON_DEFAULT_APP_POLICY:
-            return "default app policy";
+        case PKT_DROP_REASON_FW_DEFAULT_PACKET_POLICY:
+            return "firewall default packet policy";
+        case PKT_DROP_REASON_FW_DEFAULT_APP_POLICY:
+            return "firewall default app policy";
         case PKT_DROP_REASON_STREAM_PRE_HOOK:
             return "pre stream hook";
+        case PKT_DROP_REASON_FW_STREAM_PRE_HOOK:
+            return "firewall pre stream hook";
         case PKT_DROP_REASON_FLOW_PRE_HOOK:
             return "pre flow hook";
+        case PKT_DROP_REASON_FW_FLOW_PRE_HOOK:
+            return "firewall pre flow hook";
         case PKT_DROP_REASON_NOT_SET:
         case PKT_DROP_REASON_MAX:
             return NULL;
@@ -973,6 +983,10 @@ const char *PacketDropReasonToString(enum PacketDropReason r)
 
 static const char *PacketDropReasonToJsonString(enum PacketDropReason r)
 {
+    // TODOs
+    // Declare the a char[] first
+    // add the drop reason to it, based on case
+    // add prefix "ips.drop_reason" or "ips.drop_reason.firewall" accordingly
     switch (r) {
         case PKT_DROP_REASON_DECODE_ERROR:
             return "ips.drop_reason.decode_error";
@@ -1006,14 +1020,20 @@ static const char *PacketDropReasonToJsonString(enum PacketDropReason r)
             return "ips.drop_reason.nfq_error";
         case PKT_DROP_REASON_INNER_PACKET:
             return "ips.drop_reason.tunnel_packet_drop";
-        case PKT_DROP_REASON_DEFAULT_PACKET_POLICY:
-            return "ips.drop_reason.default_packet_policy";
-        case PKT_DROP_REASON_DEFAULT_APP_POLICY:
-            return "ips.drop_reason.default_app_policy";
         case PKT_DROP_REASON_STREAM_PRE_HOOK:
             return "ips.drop_reason.pre_stream_hook";
         case PKT_DROP_REASON_FLOW_PRE_HOOK:
             return "ips.drop_reason.pre_flow_hook";
+        case PKT_DROP_REASON_FW_RULES:
+            return "firewall.drop_reason.rules";
+        case PKT_DROP_REASON_FW_STREAM_PRE_HOOK:
+            return "firewall.drop_reason.pre_stream_hook";
+        case PKT_DROP_REASON_FW_FLOW_PRE_HOOK:
+            return "firewall.drop_reason.pre_flow_hook";
+        case PKT_DROP_REASON_FW_DEFAULT_PACKET_POLICY:
+            return "firewall.drop_reason.default_packet_policy";
+        case PKT_DROP_REASON_FW_DEFAULT_APP_POLICY:
+            return "firewall.drop_reason.default_app_policy";
         case PKT_DROP_REASON_NOT_SET:
         case PKT_DROP_REASON_MAX:
             return NULL;
@@ -1026,6 +1046,9 @@ typedef struct CaptureStats_ {
     StatsCounterId counter_ips_blocked;
     StatsCounterId counter_ips_rejected;
     StatsCounterId counter_ips_replaced;
+    StatsCounterId counter_fw_accepted;
+    StatsCounterId counter_fw_blocked;
+    StatsCounterId counter_fw_rejected;
 
     StatsCounterId counter_drop_reason[PKT_DROP_REASON_MAX];
 } CaptureStats;
@@ -1038,15 +1061,38 @@ void CaptureStatsUpdate(ThreadVars *tv, const Packet *p)
         return;
 
     CaptureStats *s = &t_capture_stats;
-    if (unlikely(PacketCheckAction(p, ACTION_REJECT_ANY))) {
-        StatsCounterIncr(&tv->stats, s->counter_ips_rejected);
-    } else if (unlikely(PacketCheckAction(p, ACTION_DROP))) {
-        StatsCounterIncr(&tv->stats, s->counter_ips_blocked);
-    } else if (unlikely(p->flags & PKT_STREAM_MODIFIED)) {
-        StatsCounterIncr(&tv->stats, s->counter_ips_replaced);
+    if (EngineModeIsFirewall()) {
+        /* even in firewall mode, we can get actions from IPS only */
+        bool is_source_firewall = PacketDropIsSourceFirewall(p);
+        if (unlikely(PacketCheckAction(p, ACTION_REJECT_ANY))) {
+            if (is_source_firewall ||
+                    (p->drop_reason == PKT_DROP_REASON_FW_DEFAULT_APP_POLICY ||
+                            p->drop_reason == PKT_DROP_REASON_FW_DEFAULT_PACKET_POLICY)) {
+                StatsCounterIncr(&tv->stats, s->counter_fw_rejected);
+            } else {
+                StatsCounterIncr(&tv->stats, s->counter_fw_accepted);
+                StatsCounterIncr(&tv->stats, s->counter_ips_rejected);
+            }
+        } else if ((PacketCheckAction(p, ACTION_DROP))) {
+            if (is_source_firewall || (p->drop_reason >= PKT_DROP_REASON_FW_RULES &&
+                                              p->drop_reason < PKT_DROP_REASON_MAX)) {
+                StatsCounterIncr(&tv->stats, s->counter_fw_blocked);
+            }
+        } else if (PacketCheckAction(p, ACTION_ACCEPT)) {
+            StatsCounterIncr(&tv->stats, s->counter_fw_accepted);
+        }
     } else {
-        StatsCounterIncr(&tv->stats, s->counter_ips_accepted);
+        if (unlikely(PacketCheckAction(p, ACTION_REJECT_ANY))) {
+            StatsCounterIncr(&tv->stats, s->counter_ips_rejected);
+        } else if (unlikely(PacketCheckAction(p, ACTION_DROP))) {
+            StatsCounterIncr(&tv->stats, s->counter_ips_blocked);
+        } else if (unlikely(p->flags & PKT_STREAM_MODIFIED)) {
+            StatsCounterIncr(&tv->stats, s->counter_ips_replaced);
+        } else {
+            StatsCounterIncr(&tv->stats, s->counter_ips_accepted);
+        }
     }
+
     if (p->drop_reason != PKT_DROP_REASON_NOT_SET) {
         StatsCounterIncr(&tv->stats, s->counter_drop_reason[p->drop_reason]);
     }
@@ -1060,10 +1106,20 @@ void CaptureStatsSetup(ThreadVars *tv)
         s->counter_ips_blocked = StatsRegisterCounter("ips.blocked", &tv->stats);
         s->counter_ips_rejected = StatsRegisterCounter("ips.rejected", &tv->stats);
         s->counter_ips_replaced = StatsRegisterCounter("ips.replaced", &tv->stats);
-        for (int i = PKT_DROP_REASON_NOT_SET; i < PKT_DROP_REASON_MAX; i++) {
+        for (int i = PKT_DROP_REASON_NOT_SET; i < PKT_DROP_REASON_FW_RULES; i++) {
             const char *name = PacketDropReasonToJsonString(i);
             if (name != NULL)
                 s->counter_drop_reason[i] = StatsRegisterCounter(name, &tv->stats);
+        }
+        if (EngineModeIsFirewall()) {
+            s->counter_fw_accepted = StatsRegisterCounter("firewall.accepted", &tv->stats);
+            s->counter_fw_blocked = StatsRegisterCounter("firewall.blocked", &tv->stats);
+            s->counter_fw_rejected = StatsRegisterCounter("firewall.rejected", &tv->stats);
+            for (int i = PKT_DROP_REASON_FW_RULES; i < PKT_DROP_REASON_MAX; i++) {
+                const char *name = PacketDropReasonToJsonString(i);
+                if (name != NULL)
+                    s->counter_drop_reason[i] = StatsRegisterCounter(name, &tv->stats);
+            }
         }
     }
 }

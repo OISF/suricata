@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -64,6 +64,15 @@ uint8_t PacketGetAction(const Packet *p)
         return p->action;
     } else {
         return p->action | p->root->action;
+    }
+}
+
+bool PacketDropIsSourceFirewall(const Packet *p)
+{
+    if(likely(p->root == NULL)) {
+        return (p->alerts.drop.is_fw_alert);
+    } else {
+        return (p->root->alerts.drop.is_fw_alert);
     }
 }
 
@@ -136,6 +145,8 @@ void PacketReinit(Packet *p)
 #define RESET_PKT_LEN(p) ((p)->pktlen = 0)
     RESET_PKT_LEN(p);
     p->alerts.discarded = 0;
+    p->alerts.firewall_discarded = 0;
+    p->alerts.drop.is_fw_alert = 0;
     p->alerts.suppressed = 0;
     p->alerts.drop.action = 0;
     if (p->alerts.cnt > 0) {

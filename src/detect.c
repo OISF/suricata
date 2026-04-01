@@ -697,9 +697,9 @@ static uint8_t DetectRunApplyPacketPolicy(const DetectEngineCtx *de_ctx,
     DEBUG_VALIDATE_BUG_ON(de_ctx->fw_policies == NULL);
     const struct DetectFirewallPolicy *pol = &de_ctx->fw_policies->pkt[policy];
     if (pol->action & ACTION_DROP) {
-        SCLogDebug("packet %" PRIu64 ": drop PKT_DROP_REASON_DEFAULT_PACKET_POLICY",
+        SCLogDebug("packet %" PRIu64 ": drop PKT_DROP_REASON_FW_DEFAULT_PACKET_POLICY",
                 PcapPacketCntGet(p));
-        PacketDrop(p, pol->action, PKT_DROP_REASON_DEFAULT_PACKET_POLICY);
+        PacketDrop(p, pol->action, PKT_DROP_REASON_FW_DEFAULT_PACKET_POLICY);
     } else if (pol->action & ACTION_ACCEPT) {
         SCLogDebug("packet %" PRIu64 ": accept", PcapPacketCntGet(p));
         if (pol->action_scope == ACTION_SCOPE_PACKET) {
@@ -1012,6 +1012,7 @@ static DetectRunScratchpad DetectRunSetup(const DetectEngineCtx *de_ctx,
 
     det_ctx->alert_queue_size = 0;
     p->alerts.drop.action = 0;
+    p->alerts.firewall_discarded = 0;
 
 #ifdef DEBUG
     if (p->flags & PKT_STREAM_ADD) {
@@ -1103,6 +1104,10 @@ static inline void DetectRunPostRules(ThreadVars *tv, const DetectEngineCtx *de_
     if (p->alerts.discarded > 0) {
         StatsCounterAddI64(
                 &tv->stats, det_ctx->counter_alerts_overflow, (uint64_t)p->alerts.discarded);
+    }
+    if (p->alerts.firewall_discarded > 0) {
+        StatsCounterAddI64(&tv->stats, det_ctx->counter_firewall_discarded_alerts,
+                (uint64_t)p->alerts.firewall_discarded);
     }
     if (p->alerts.suppressed > 0) {
         StatsCounterAddI64(
@@ -1649,8 +1654,8 @@ static const struct DetectFirewallPolicy *DetectFirewallApplyDefaultAppPolicy(
     }
 
     if (policy->action & ACTION_DROP) {
-        SCLogDebug("dropping packet PKT_DROP_REASON_DEFAULT_APP_POLICY");
-        PacketDrop(p, policy->action, PKT_DROP_REASON_DEFAULT_APP_POLICY);
+        SCLogDebug("dropping packet PKT_DROP_REASON_FW_DEFAULT_APP_POLICY");
+        PacketDrop(p, policy->action, PKT_DROP_REASON_FW_DEFAULT_APP_POLICY);
         if (policy->action_scope == ACTION_SCOPE_FLOW) {
             SCLogDebug("dropping flow");
             p->flow->flags |= FLOW_ACTION_DROP;
@@ -2332,7 +2337,7 @@ static void DetectRunTx(ThreadVars *tv,
                         }
                     } else if (s->action & ACTION_DROP) {
                         SCLogDebug("drop packet because of rule with drop action");
-                        PacketDrop(p, s->action, PKT_DROP_REASON_RULES);
+                        PacketDrop(p, s->action, PKT_DROP_REASON_FW_RULES);
                         if (s->action_scope == ACTION_SCOPE_FLOW) {
                             SCLogDebug("drop flow because of rule with drop action");
                             f->flags |= FLOW_ACTION_DROP;
