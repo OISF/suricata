@@ -135,6 +135,7 @@ void PacketReinit(Packet *p)
 #define RESET_PKT_LEN(p) ((p)->pktlen = 0)
     RESET_PKT_LEN(p);
     p->alerts.discarded = 0;
+    p->alerts.firewall_discarded = 0;
     p->alerts.suppressed = 0;
     p->alerts.drop.action = 0;
     if (p->alerts.cnt > 0) {

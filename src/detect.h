@@ -1297,6 +1297,8 @@ typedef struct DetectEngineThreadCtx_ {
     StatsCounterId counter_alerts;
     /** id for discarded alerts counter */
     StatsCounterId counter_alerts_overflow;
+    /** id for firewall discarded alerts counter */
+    StatsCounterId counter_firewall_discarded_alerts;
     /** id for suppressed alerts counter */
     StatsCounterId counter_alerts_suppressed;
 #ifdef PROFILING
