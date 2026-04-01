@@ -90,7 +90,7 @@ ssh.hassh
 
 Match on hassh (md5 of hassh algorithms of client).
 
-Example::
+.. container:: example-rule
 
   alert ssh any any -> any any (msg:"match hassh"; \
       ssh.hassh; content:"ec7378c1a92f5a8dde7e8b7a1ddf33d1";\
@@ -105,7 +105,7 @@ ssh.hassh.string
 
 Match on Hassh string (hassh algorithms of client).
 
-Example::
+.. container:: example-rule
 
   alert ssh any any -> any any (msg:"match hassh-string"; \
       ssh.hassh.string; content:"none,zlib@openssh.com,zlib"; \
@@ -120,7 +120,7 @@ ssh.hassh.server
 
 Match on hassh (md5 of hassh algorithms of server).
 
-Example::
+.. container:: example-rule
 
   alert ssh any any -> any any (msg:"match SSH hash-server"; \
       ssh.hassh.server; content:"b12d2871a1189eff20364cf5333619ee"; \
@@ -135,7 +135,7 @@ ssh.hassh.server.string
 
 Match on hassh string (hassh algorithms of server).
 
-Example::
+.. container:: example-rule
 
   alert ssh any any -> any any (msg:"match SSH hash-server-string"; \
       ssh.hassh.server.string; content:"umac-64-etm@openssh.com,umac-128-etm@openssh.com"; \
