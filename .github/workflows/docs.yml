@@ -141,3 +141,6 @@ jobs:
         run: ./scripts/schema-sort.py --check ./etc/schema.json
       - name: Check EVE schema has all additionalProperties
         run: test $(cat etc/schema.json | jq 'paths( objects | (.type == "object" and (has("additionalProperties") | not) )) | join(".")' | wc -l) = "0"
+      - run: make -j ${{ env.CPUS }}
+      - name: Check rules in doc
+        run: python3 scripts/check-doc-rules.py
