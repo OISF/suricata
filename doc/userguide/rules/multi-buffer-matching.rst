@@ -15,7 +15,7 @@ Example rule:
 
 .. container:: example-rule
 
-    `alert dns $HOME_NET any -> $EXTERNAL_NET any (msg:"DNS Multiple Question Example Rule"; dns.query; content:"example"; dns.query; content:".com"; classtype:misc-activity; sid:1; rev:1;)`
+    alert dns $HOME_NET any -> $EXTERNAL_NET any (msg:"DNS Multiple Question Example Rule"; dns.query; content:"example"; dns.query; content:".com"; classtype:misc-activity; sid:1; rev:1;)
 
 Within the single DNS query transaction, there are two queries
 and Suricata will set up two instances of a dns.query buffer.
@@ -32,7 +32,7 @@ new functionality would look like:
 
 .. container:: example-rule
 
-    `alert http2 any any -> any any (msg:"HTTP2 Multiple Header Buffer Example"; flow:established,to_server; http.request_header; content:"method|3a 20|GET"; http.request_header; content:"authority|3a 20|example.com"; classtype:misc-activity; sid:1; rev:1;)`
+    alert http2 any any -> any any (msg:"HTTP2 Multiple Header Buffer Example"; flow:established,to_server; http.request_header; content:"method|3a 20|GET"; http.request_header; content:"authority|3a 20|example.com"; classtype:misc-activity; sid:1; rev:1;)
 
 With HTTP2 there are multiple headers seen in the same flow record.
 We now have a way to write a rule in a more efficient way using the
@@ -45,7 +45,7 @@ Example rule:
 
 .. container:: example-rule
 
-   `alert dns $HOME_NET any -> $EXTERNAL_NET any (msg:"DNS Query Sticky Buffer Classic Example Rule"; dns.query; content:"example"; content:".net"; classtype:misc-activity; sid:1; rev:1;)`
+   alert dns $HOME_NET any -> $EXTERNAL_NET any (msg:"DNS Query Sticky Buffer Classic Example Rule"; dns.query; content:"example"; content:".net"; classtype:misc-activity; sid:1; rev:1;)
 
 The above rule will alert on a single dns query containing
 "example.net" or "example.domain.net" since the rule content
