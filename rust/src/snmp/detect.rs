@@ -30,7 +30,7 @@ use std::ffi::CStr;
 use std::os::raw::{c_int, c_void};
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
-    SCDetectHelperBufferMpmRegister, SCDetectHelperBufferRegister, SCDetectHelperKeywordRegister,
+    SCDetectHelperBufferMpmRegister, SCDetectHelperBufferProgressRegister, SCDetectHelperKeywordRegister,
     SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList, SCSigTableAppLiteElmt, SigMatchCtx,
     Signature,
 };
@@ -198,10 +198,11 @@ pub(super) unsafe extern "C" fn detect_snmp_register() {
         flags: SIGMATCH_INFO_UINT32,
     };
     G_SNMP_VERSION_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_SNMP_VERSION_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_SNMP_VERSION_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"snmp.version\0".as_ptr() as *const libc::c_char,
         ALPROTO_SNMP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
+        1,
     );
 
     let kw = SCSigTableAppLiteElmt {
@@ -214,10 +215,11 @@ pub(super) unsafe extern "C" fn detect_snmp_register() {
         flags: SIGMATCH_INFO_UINT32 | SIGMATCH_INFO_ENUM_UINT,
     };
     G_SNMP_PDUTYPE_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_SNMP_PDUTYPE_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_SNMP_PDUTYPE_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"snmp.pdu_type\0".as_ptr() as *const libc::c_char,
         ALPROTO_SNMP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
+        1,
     );
 
     let kw = SigTableElmtStickyBuffer {

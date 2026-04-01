@@ -831,8 +831,9 @@ extern "C" {
     pub fn SCDetectHelperKeywordAliasRegister(kwid: u16, alias: *const ::std::os::raw::c_char);
 }
 extern "C" {
-    pub fn SCDetectHelperBufferRegister(
+    pub fn SCDetectHelperBufferProgressRegister(
         name: *const ::std::os::raw::c_char, alproto: AppProto, direction: u8,
+        progress: ::std::os::raw::c_int,
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {

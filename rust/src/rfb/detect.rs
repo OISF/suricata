@@ -32,7 +32,7 @@ use std::os::raw::{c_int, c_void};
 use std::ptr;
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
-    SCDetectHelperBufferMpmRegister, SCDetectHelperBufferRegister, SCDetectHelperKeywordRegister,
+    SCDetectHelperBufferMpmRegister, SCDetectHelperBufferProgressRegister, SCDetectHelperKeywordRegister,
     SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList, SCSigTableAppLiteElmt, SigMatchCtx,
     Signature,
 };
@@ -209,10 +209,11 @@ pub unsafe extern "C" fn SCDetectRfbRegister() {
         flags: SIGMATCH_INFO_UINT32,
     };
     G_RFB_SEC_TYPE_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_RFB_SEC_TYPE_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_RFB_SEC_TYPE_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"rfb.sectype\0".as_ptr() as *const libc::c_char,
         ALPROTO_RFB,
         STREAM_TOSERVER,
+        0,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"rfb.secresult\0".as_ptr() as *const libc::c_char,
@@ -224,10 +225,11 @@ pub unsafe extern "C" fn SCDetectRfbRegister() {
         flags: SIGMATCH_INFO_UINT32 | SIGMATCH_INFO_ENUM_UINT,
     };
     G_RFB_SEC_RESULT_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_RFB_SEC_RESULT_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_RFB_SEC_RESULT_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"rfb.secresult\0".as_ptr() as *const libc::c_char,
         ALPROTO_RFB,
         STREAM_TOCLIENT,
+        0,
     );
 }
 

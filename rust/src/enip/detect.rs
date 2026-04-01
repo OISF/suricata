@@ -42,7 +42,7 @@ use crate::detect::{
 };
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
-    SCDetectHelperBufferMpmRegister, SCDetectHelperBufferRegister, SCDetectHelperKeywordRegister,
+    SCDetectHelperBufferMpmRegister, SCDetectHelperBufferProgressRegister, SCDetectHelperKeywordRegister,
     SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList, SCSigTableAppLiteElmt, SigMatchCtx,
     Signature,
 };
@@ -1357,10 +1357,11 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         flags: 0,
     };
     G_ENIP_CIPSERVICE_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_ENIP_CIPSERVICE_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_ENIP_CIPSERVICE_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"cip\0".as_ptr() as *const libc::c_char,
         ALPROTO_ENIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
+        0,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"enip.capabilities\0".as_ptr() as *const libc::c_char,
@@ -1372,10 +1373,11 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         flags: SIGMATCH_INFO_UINT16,
     };
     G_ENIP_CAPABILITIES_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_ENIP_CAPABILITIES_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_ENIP_CAPABILITIES_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"enip.capabilities\0".as_ptr() as *const libc::c_char,
         ALPROTO_ENIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
+        0,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"enip.cip_attribute\0".as_ptr() as *const libc::c_char,
@@ -1387,10 +1389,11 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         flags: SIGMATCH_INFO_UINT32 | SIGMATCH_INFO_MULTI_UINT,
     };
     G_ENIP_CIP_ATTRIBUTE_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_ENIP_CIP_ATTRIBUTE_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_ENIP_CIP_ATTRIBUTE_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"enip.cip_attribute\0".as_ptr() as *const libc::c_char,
         ALPROTO_ENIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
+        0,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"enip.cip_class\0".as_ptr() as *const libc::c_char,
@@ -1402,10 +1405,11 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         flags: SIGMATCH_INFO_UINT32 | SIGMATCH_INFO_MULTI_UINT,
     };
     G_ENIP_CIP_CLASS_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_ENIP_CIP_CLASS_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_ENIP_CIP_CLASS_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"enip.cip_class\0".as_ptr() as *const libc::c_char,
         ALPROTO_ENIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
+        0,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"enip.vendor_id\0".as_ptr() as *const libc::c_char,
@@ -1417,10 +1421,11 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         flags: SIGMATCH_INFO_UINT16,
     };
     G_ENIP_VENDOR_ID_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_ENIP_VENDOR_ID_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_ENIP_VENDOR_ID_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"enip.vendor_id\0".as_ptr() as *const libc::c_char,
         ALPROTO_ENIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
+        0,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"enip.status\0".as_ptr() as *const libc::c_char,
@@ -1432,10 +1437,11 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         flags: SIGMATCH_INFO_UINT32 | SIGMATCH_INFO_ENUM_UINT,
     };
     G_ENIP_STATUS_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_ENIP_STATUS_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_ENIP_STATUS_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"enip.status\0".as_ptr() as *const libc::c_char,
         ALPROTO_ENIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
+        0,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"enip.state\0".as_ptr() as *const libc::c_char,
@@ -1447,10 +1453,11 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         flags: SIGMATCH_INFO_UINT8,
     };
     G_ENIP_STATE_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_ENIP_STATE_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_ENIP_STATE_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"enip.state\0".as_ptr() as *const libc::c_char,
         ALPROTO_ENIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
+        0,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"enip.serial\0".as_ptr() as *const libc::c_char,
@@ -1462,10 +1469,11 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         flags: SIGMATCH_INFO_UINT32,
     };
     G_ENIP_SERIAL_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_ENIP_SERIAL_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_ENIP_SERIAL_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"enip.serial\0".as_ptr() as *const libc::c_char,
         ALPROTO_ENIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
+        0,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"enip.revision\0".as_ptr() as *const libc::c_char,
@@ -1477,10 +1485,11 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         flags: SIGMATCH_INFO_UINT16,
     };
     G_ENIP_REVISION_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_ENIP_REVISION_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_ENIP_REVISION_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"enip.revision\0".as_ptr() as *const libc::c_char,
         ALPROTO_ENIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
+        0,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"enip.protocol_version\0".as_ptr() as *const libc::c_char,
@@ -1492,10 +1501,11 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         flags: SIGMATCH_INFO_UINT16,
     };
     G_ENIP_PROTOCOL_VERSION_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_ENIP_PROTOCOL_VERSION_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_ENIP_PROTOCOL_VERSION_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"enip.protocol_version\0".as_ptr() as *const libc::c_char,
         ALPROTO_ENIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
+        0,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"enip.product_code\0".as_ptr() as *const libc::c_char,
@@ -1507,10 +1517,11 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         flags: SIGMATCH_INFO_UINT16,
     };
     G_ENIP_PRODUCT_CODE_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_ENIP_PRODUCT_CODE_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_ENIP_PRODUCT_CODE_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"enip.product_code\0".as_ptr() as *const libc::c_char,
         ALPROTO_ENIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
+        0,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"enip_command\0".as_ptr() as *const libc::c_char,
@@ -1522,10 +1533,11 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         flags: SIGMATCH_INFO_UINT16 | SIGMATCH_INFO_ENUM_UINT,
     };
     G_ENIP_COMMAND_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_ENIP_COMMAND_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_ENIP_COMMAND_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"enip.command\0".as_ptr() as *const libc::c_char,
         ALPROTO_ENIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
+        0,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"enip.identity_status\0".as_ptr() as *const libc::c_char,
@@ -1537,10 +1549,11 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         flags: SIGMATCH_INFO_UINT16,
     };
     G_ENIP_IDENTITY_STATUS_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_ENIP_IDENTITY_STATUS_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_ENIP_IDENTITY_STATUS_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"enip.identity_status\0".as_ptr() as *const libc::c_char,
         ALPROTO_ENIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
+        0,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"enip.device_type\0".as_ptr() as *const libc::c_char,
@@ -1552,10 +1565,11 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         flags: SIGMATCH_INFO_UINT16,
     };
     G_ENIP_DEVICE_TYPE_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_ENIP_DEVICE_TYPE_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_ENIP_DEVICE_TYPE_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"enip.device_type\0".as_ptr() as *const libc::c_char,
         ALPROTO_ENIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
+        0,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"enip.cip_status\0".as_ptr() as *const libc::c_char,
@@ -1567,10 +1581,11 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_MULTI_UINT,
     };
     G_ENIP_CIP_STATUS_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_ENIP_CIP_STATUS_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_ENIP_CIP_STATUS_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"enip.cip_status\0".as_ptr() as *const libc::c_char,
         ALPROTO_ENIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
+        0,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"enip.cip_instance\0".as_ptr() as *const libc::c_char,
@@ -1582,10 +1597,11 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         flags: SIGMATCH_INFO_UINT32 | SIGMATCH_INFO_MULTI_UINT,
     };
     G_ENIP_CIP_INSTANCE_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_ENIP_CIP_INSTANCE_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_ENIP_CIP_INSTANCE_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"enip.cip_instance\0".as_ptr() as *const libc::c_char,
         ALPROTO_ENIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
+        0,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"enip.cip_extendedstatus\0".as_ptr() as *const libc::c_char,
@@ -1598,10 +1614,11 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         flags: SIGMATCH_INFO_UINT16 | SIGMATCH_INFO_MULTI_UINT,
     };
     G_ENIP_CIP_EXTENDEDSTATUS_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_ENIP_CIP_EXTENDEDSTATUS_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_ENIP_CIP_EXTENDEDSTATUS_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"enip.cip_extendedstatus\0".as_ptr() as *const libc::c_char,
         ALPROTO_ENIP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
+        0,
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("enip.product_name"),

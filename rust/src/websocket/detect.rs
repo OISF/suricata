@@ -28,7 +28,7 @@ use crate::detect::{
 use crate::websocket::parser::WebSocketOpcode;
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
-    SCDetectHelperBufferMpmRegister, SCDetectHelperBufferRegister, SCDetectHelperKeywordRegister,
+    SCDetectHelperBufferMpmRegister, SCDetectHelperBufferProgressRegister, SCDetectHelperKeywordRegister,
     SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList, SCSigTableAppLiteElmt, SigMatchCtx,
     Signature,
 };
@@ -235,10 +235,11 @@ pub unsafe extern "C" fn SCDetectWebsocketRegister() {
         flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_ENUM_UINT,
     };
     G_WEBSOCKET_OPCODE_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_WEBSOCKET_OPCODE_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_WEBSOCKET_OPCODE_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"websocket.opcode\0".as_ptr() as *const libc::c_char,
         ALPROTO_WEBSOCKET,
         STREAM_TOSERVER | STREAM_TOCLIENT,
+        1,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"websocket.mask\0".as_ptr() as *const libc::c_char,
@@ -250,10 +251,11 @@ pub unsafe extern "C" fn SCDetectWebsocketRegister() {
         flags: SIGMATCH_INFO_UINT32,
     };
     G_WEBSOCKET_MASK_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_WEBSOCKET_MASK_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_WEBSOCKET_MASK_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"websocket.mask\0".as_ptr() as *const libc::c_char,
         ALPROTO_WEBSOCKET,
         STREAM_TOSERVER | STREAM_TOCLIENT,
+        1,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"websocket.flags\0".as_ptr() as *const libc::c_char,
@@ -265,10 +267,11 @@ pub unsafe extern "C" fn SCDetectWebsocketRegister() {
         flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_BITFLAGS_UINT,
     };
     G_WEBSOCKET_FLAGS_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_WEBSOCKET_FLAGS_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_WEBSOCKET_FLAGS_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"websocket.flags\0".as_ptr() as *const libc::c_char,
         ALPROTO_WEBSOCKET,
         STREAM_TOSERVER | STREAM_TOCLIENT,
+        1,
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("websocket.payload"),
