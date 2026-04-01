@@ -121,6 +121,9 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 /** next packet in toserver direction will act on updated app-layer state */
 #define FLOW_TS_APP_UPDATE_NEXT BIT_U64(31)
 
+/** Flow action issued by firewall */
+#define FLOW_ACTION_BY_FIREWALL BIT_U64(32)
+
 /* File flags */
 
 #define FLOWFILE_INIT                   0

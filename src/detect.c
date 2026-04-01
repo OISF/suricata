@@ -915,7 +915,7 @@ next:
     if (have_fw_rules && scratch->default_action == ACTION_DROP) {
         if (!fw_verdict) {
             DEBUG_VALIDATE_BUG_ON(action & ACTION_DROP);
-            PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_DEFAULT_PACKET_POLICY);
+            PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_FW_DEFAULT_PACKET_POLICY);
             action |= ACTION_DROP;
         } else {
             /* apply fw action */
@@ -945,6 +945,7 @@ static DetectRunScratchpad DetectRunSetup(const DetectEngineCtx *de_ctx,
     if (RunmodeIsUnittests()) {
         p->alerts.cnt = 0;
         p->alerts.discarded = 0;
+        p->alerts.firewall_discarded = 0;
         p->alerts.suppressed = 0;
     }
 #endif
@@ -1048,6 +1049,10 @@ static inline void DetectRunPostRules(ThreadVars *tv, const DetectEngineCtx *de_
         StatsCounterAddI64(
                 &tv->stats, det_ctx->counter_alerts_overflow, (uint64_t)p->alerts.discarded);
     }
+    if (p->alerts.firewall_discarded > 0) {
+        StatsCounterAddI64(&tv->stats, det_ctx->counter_firewall_discarded_alerts,
+                (uint64_t)p->alerts.firewall_discarded);
+    }
     if (p->alerts.suppressed > 0) {
         StatsCounterAddI64(
                 &tv->stats, det_ctx->counter_alerts_suppressed, (uint64_t)p->alerts.suppressed);
@@ -1061,7 +1066,7 @@ static inline void DetectRunPostRules(ThreadVars *tv, const DetectEngineCtx *de_
             scratch->default_action == ACTION_DROP) {
         SCLogDebug("packet %" PRIu64 ": droppit as no ACCEPT set %02x (pkt %s)",
                 PcapPacketCntGet(p), p->action, PktSrcToString(p->pkt_src));
-        PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_DEFAULT_PACKET_POLICY);
+        PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_FW_DEFAULT_PACKET_POLICY);
     }
 }
 
@@ -1697,7 +1702,7 @@ static bool ApplyAccept(Packet *p, const uint8_t flow_flags, const Signature *s,
         if (fw_next_progress_missing) {
             SCLogDebug("%" PRIu64 ": %s default drop for progress", PcapPacketCntGet(p),
                     flow_flags & STREAM_TOSERVER ? "toserver" : "toclient");
-            PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_DEFAULT_APP_POLICY);
+            PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_FW_DEFAULT_APP_POLICY);
             p->flow->flags |= FLOW_ACTION_DROP;
             return true;
         }
@@ -2016,7 +2021,7 @@ static void DetectRunTx(ThreadVars *tv,
                             flow_flags & STREAM_TOSERVER ? "toserver" : "toclient");
                     /* if this rule was the last for our progress state, and it didn't match,
                      * we have to invoke the default drop policy. */
-                    PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_DEFAULT_APP_POLICY);
+                    PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_FW_DEFAULT_APP_POLICY);
                     p->flow->flags |= FLOW_ACTION_DROP;
                     break_out_of_app_filter = true;
                     tx_fw_verdict = true;
@@ -2106,7 +2111,7 @@ static void DetectRunTx(ThreadVars *tv,
     if (tx_inspected && have_fw_rules && tx_inspected != fw_verdicted) {
         SCLogDebug("%" PRIu64 ": %s default drop", PcapPacketCntGet(p),
                 flow_flags & STREAM_TOSERVER ? "toserver" : "toclient");
-        PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_DEFAULT_APP_POLICY);
+        PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_FW_DEFAULT_APP_POLICY);
         p->flow->flags |= FLOW_ACTION_DROP;
         return;
     }
