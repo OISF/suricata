@@ -63,9 +63,6 @@ pub struct Ikev2Container {
     /// The connection state
     pub connection_state: IKEV2ConnectionState,
 
-    /// The transforms proposed by the initiator
-    pub client_transforms: Vec<Vec<IkeV2Transform>>,
-
     /// The encryption algorithm selected by the responder
     pub alg_enc: IkeTransformEncType,
     /// The authentication algorithm selected by the responder
@@ -85,7 +82,6 @@ impl Default for Ikev2Container {
         Ikev2Container {
             connection_state: IKEV2ConnectionState::Init,
             dh_group: IkeTransformDHType::None,
-            client_transforms: Vec::new(),
             alg_enc: IkeTransformEncType::ENCR_NULL,
             alg_auth: IkeTransformAuthType::NONE,
             alg_prf: IkeTransformPRFType::PRF_NULL,
@@ -301,9 +297,6 @@ fn add_proposals(
                 _ => {}
             });
             SCLogDebug!("Selected transforms: {:?}", transforms);
-        } else {
-            SCLogDebug!("Proposed transforms: {:?}", transforms);
-            state.ikev2_container.client_transforms.push(transforms);
         }
     }
 }
