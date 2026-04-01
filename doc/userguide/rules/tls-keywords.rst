@@ -72,10 +72,10 @@ tls.cert_serial
 
 Match on the serial number in a certificate.
 
-Example::
+.. container:: example-rule
 
-  alert tls any any -> any any (msg:"match cert serial"; \
-    tls.cert_serial; content:"5C:19:B7:B1:32:3B:1C:A1"; sid:200012;)
+  alert tls any any -> any any (msg:"match cert serial";
+  tls.cert_serial; content:"5C:19:B7:B1:32:3B:1C:A1"; sid:200012;)
 
 ``tls.cert_serial`` is a 'sticky buffer'.
 
@@ -90,12 +90,12 @@ tls.cert_fingerprint
 
 Match on the SHA-1 fingerprint of the certificate.
 
-Example::
+.. container:: example-rule
 
-  alert tls any any -> any any (msg:"match cert fingerprint"; \
-    tls.cert_fingerprint; \
-    content:"4a:a3:66:76:82:cb:6b:23:bb:c3:58:47:23:a4:63:a7:78:a4:a1:18"; \
-    sid:200023;)
+  alert tls any any -> any any (msg:"match cert fingerprint";
+  tls.cert_fingerprint;
+  content:"4a:a3:66:76:82:cb:6b:23:bb:c3:58:47:23:a4:63:a7:78:a4:a1:18";
+  sid:200023;)
 
 ``tls.cert_fingerprint`` is a 'sticky buffer'.
 
@@ -143,7 +143,7 @@ tls_cert_notbefore
 
 Match on the NotBefore field in a certificate.
 
-Example::
+.. container:: example-rule
 
   alert tls any any -> any any (msg:"match cert NotBefore"; \
     tls_cert_notbefore:1998-05-01<>2008-05-01; sid:200005;)
@@ -153,7 +153,7 @@ tls_cert_notafter
 
 Match on the NotAfter field in a certificate.
 
-Example::
+.. container:: example-rule
 
   alert tls any any -> any any (msg:"match cert NotAfter"; \
     tls_cert_notafter:>2015; sid:200006;)
@@ -190,10 +190,10 @@ tls.certs
 
 Do a "raw" match on each of the certificates in the TLS certificate chain.
 
-Example::
+.. container:: example-rule
 
   alert tls any any -> any any (msg:"match bytes in TLS cert"; tls.certs; \
-    content:"|06 09 2a 86|"; sid:200070;)
+    content:"\|06 09 2a 86\|"; sid:200070;)
 
 ``tls.certs`` is a 'sticky buffer'.
 
@@ -225,14 +225,14 @@ Match version of SSL/TLS record.
 
 Supported values "sslv2", "sslv3", "tls1.0", "tls1.1", "tls1.2", "tls1.3"
 
-Example::
+.. container:: example-rule
 
   alert tls any any -> any any (msg:"match TLSv1.2"; \
     ssl_version:tls1.2; sid:200030;)
 
 It is also possible to match on several versions at the same time.
 
-Example::
+.. container:: example-rule
 
   alert tls any any -> any any (msg:"match SSLv2 and SSLv3"; \
     ssl_version:sslv2,sslv3; sid:200031;)
@@ -275,10 +275,10 @@ tls.random
 
 Matches on the 32 bytes of the TLS random field from the client hello or server hello records.
 
-Example::
+.. container:: example-rule
 
   alert tls any any -> any any (msg:"TLS random test"; \
-    tls.random; content:"|9b ce 7a 5e 57 5d 77 02 07 c2 9d be 24 01 cc f0 5d cd e1 d2 a5 86 9c 4a 3e ee 38 db 55 1a d9 bc|"; sid: 200074;)
+    tls.random; content:"\|9b ce 7a 5e 57 5d 77 02 07 c2 9d be 24 01 cc f0 5d cd e1 d2 a5 86 9c 4a 3e ee 38 db 55 1a d9 bc\|"; sid: 200074;)
 
 ``tls.random`` is a sticky buffer.
 
@@ -287,10 +287,10 @@ tls.random_time
 
 Matches on the first 4 bytes of the TLS random field from the client hello or server hello records.
 
-Example::
+.. container:: example-rule
 
   alert tls any any -> any any (msg:"TLS random_time test"; \
-    tls.random_time; content:"|9b ce 7a 5e|"; sid: 200075;)
+    tls.random_time; content:"\|9b ce 7a 5e\|"; sid: 200075;)
 
 ``tls.random_time`` is a sticky buffer.
 
@@ -299,10 +299,10 @@ tls.random_bytes
 
 Matches on the last 28 bytes of the TLS random field from the client hello or server hello records.
 
-Example::
+.. container:: example-rule
 
   alert tls any any -> any any (msg:"TLS random_bytes test"; \
-    tls.random_bytes; content:"|57 5d 77 02 07 c2 9d be 24 01 cc f0 5d cd e1 d2 a5 86 9c 4a 3e ee 38 db 55 1a d9 bc|"; sid: 200076;)
+    tls.random_bytes; content:"\|57 5d 77 02 07 c2 9d be 24 01 cc f0 5d cd e1 d2 a5 86 9c 4a 3e ee 38 db 55 1a d9 bc\|"; sid: 200076;)
 
 ``tls.random_bytes`` is a sticky buffer.
 
@@ -315,29 +315,37 @@ tls.cert_chain_len uses an :ref:`unsigned 32-bit integer <rules-integer-keywords
 
 tls.cert_chain_len supports `<, >, <>, !` and using an exact value.
 
-Example::
+.. container:: example-rule
 
   alert tls any any -> any any (msg:"cert chain exact value"; \
- tls.cert_chain_len:1; classtype:misc-activity; sid:1; rev:1;)
+  tls.cert_chain_len:1; classtype:misc-activity; sid:1; rev:1;)
+
+.. container:: example-rule
 
   alert tls any any -> any any (msg:"cert chain less than value"; \
- tls.cert_chain_len:<2; classtype:misc-activity; sid:2; rev:1;)
+  tls.cert_chain_len:<2; classtype:misc-activity; sid:2; rev:1;)
+
+.. container:: example-rule
 
   alert tls any any -> any any (msg:"cert chain greater than value"; \
- tls.cert_chain_len:>0; classtype:misc-activity; sid:2; rev:1;)
+  tls.cert_chain_len:>0; classtype:misc-activity; sid:2; rev:1;)
+
+.. container:: example-rule
 
   alert tls any any -> any any (msg:"cert chain greater than less than value";\
- tls.cert_chain_len:0<>2; classtype:misc-activity; sid:3; rev:1;)
+  tls.cert_chain_len:0<>2; classtype:misc-activity; sid:3; rev:1;)
+
+.. container:: example-rule
 
   alert tls any any -> any any (msg:"cert chain not value"; \
- tls.cert_chain_len:!2; classtype:misc-activity; sid:4; rev:1;)
+  tls.cert_chain_len:!2; classtype:misc-activity; sid:4; rev:1;)
 
 tls.alpn
 --------
 
 Matches on the ALPN buffers.
 
-Example::
+.. container:: example-rule
 
   alert tls any any -> any any (msg:"TLS ALPN test"; \
     tls.alpn; content:"http/1.1"; sid:1;)

@@ -30,7 +30,7 @@ Syntax::
 
  smtp.helo; content:"localhost";
 
-Signature example::
+.. container:: example-rule
 
  alert smtp any any -> any any (msg:"SMTP helo localhost"; smtp.helo; content:"localhost"; sid:2; rev:1;)
 
@@ -49,7 +49,7 @@ Syntax::
 
  smtp.mail_from; content:"spam";
 
-Signature example::
+.. container:: example-rule
 
  alert smtp any any -> any any (msg:"SMTP mail from spam"; smtp.mail_from; content:"spam"; sid:2; rev:1;)
 
@@ -68,7 +68,7 @@ Syntax::
 
  smtp.rcpt_to; content:"sensitive@target";
 
-Signature example::
+.. container:: example-rule
 
  alert smtp any any -> any any (msg:"SMTP rcpt to sensitive"; smtp.rcpt_to; content:"sensitive@target"; sid:2; rev:1;)
 
