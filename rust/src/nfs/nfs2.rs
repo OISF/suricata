@@ -89,7 +89,9 @@ impl NFSState {
         }
 
         SCLogDebug!("NFSv2: TS creating xidmap {}", r.hdr.xid);
-        self.requestmap.insert(r.hdr.xid, xidmap);
+        if self.requestmap.len() < unsafe { NFS_CFG_MAX_REQ } {
+            self.requestmap.insert(r.hdr.xid, xidmap);
+        }
     }
 
     pub fn process_reply_record_v2(&mut self, r: &RpcReplyPacket, xidmap: &NFSRequestXidMap) {

@@ -303,7 +303,9 @@ impl NFSState {
             };
         }
 
-        self.requestmap.insert(r.hdr.xid, xidmap);
+        if self.requestmap.len() < unsafe { NFS_CFG_MAX_REQ } {
+            self.requestmap.insert(r.hdr.xid, xidmap);
+        }
     }
 
     fn compound_response<'b>(

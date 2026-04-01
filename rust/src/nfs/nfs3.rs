@@ -187,7 +187,9 @@ impl NFSState {
             }
         }
 
-        self.requestmap.insert(r.hdr.xid, xidmap);
+        if self.requestmap.len() < unsafe { NFS_CFG_MAX_REQ } {
+            self.requestmap.insert(r.hdr.xid, xidmap);
+        }
     }
 
     pub fn process_reply_record_v3(&mut self, r: &RpcReplyPacket, xidmap: &mut NFSRequestXidMap) {
