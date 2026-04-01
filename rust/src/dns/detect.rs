@@ -33,7 +33,7 @@ use std::ffi::CStr;
 use std::os::raw::{c_int, c_void};
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
-    SCDetectHelperBufferRegister, SCDetectHelperKeywordAliasRegister,
+    SCDetectHelperBufferProgressRegister, SCDetectHelperKeywordAliasRegister,
     SCDetectHelperKeywordRegister, SCDetectHelperMultiBufferProgressMpmRegister,
     SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList, SCSigTableAppLiteElmt, SigMatchCtx,
     Signature,
@@ -382,10 +382,11 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         flags: SIGMATCH_INFO_UINT8,
     };
     G_DNS_OPCODE_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_DNS_OPCODE_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_DNS_OPCODE_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"dns.opcode\0".as_ptr() as *const libc::c_char,
         ALPROTO_DNS,
         STREAM_TOSERVER | STREAM_TOCLIENT,
+        1,
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("dns.query.name"),
@@ -414,10 +415,11 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         flags: SIGMATCH_INFO_UINT16 | SIGMATCH_INFO_ENUM_UINT,
     };
     G_DNS_RCODE_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_DNS_RCODE_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_DNS_RCODE_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"dns.rcode\0".as_ptr() as *const libc::c_char,
         ALPROTO_DNS,
         STREAM_TOSERVER | STREAM_TOCLIENT,
+        1,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"dns.rrtype\0".as_ptr() as *const libc::c_char,
@@ -429,10 +431,11 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         flags: SIGMATCH_INFO_UINT16 | SIGMATCH_INFO_MULTI_UINT | SIGMATCH_INFO_ENUM_UINT,
     };
     G_DNS_RRTYPE_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_DNS_RRTYPE_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_DNS_RRTYPE_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"dns.rrtype\0".as_ptr() as *const libc::c_char,
         ALPROTO_DNS,
         STREAM_TOSERVER | STREAM_TOCLIENT,
+        1,
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("dns.query"),

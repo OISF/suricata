@@ -31,7 +31,7 @@ use crate::ldap::types::*;
 use ldap_parser::ldap::{LdapMessage, ProtocolOp};
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
-    SCDetectHelperBufferMpmRegister, SCDetectHelperBufferRegister, SCDetectHelperKeywordRegister,
+    SCDetectHelperBufferMpmRegister, SCDetectHelperBufferProgressRegister, SCDetectHelperKeywordRegister,
     SCDetectHelperMultiBufferMpmRegister, SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList,
     SCSigTableAppLiteElmt, SigMatchCtx, Signature,
 };
@@ -523,10 +523,11 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_ENUM_UINT,
     };
     G_LDAP_REQUEST_OPERATION_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_LDAP_REQUEST_OPERATION_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_LDAP_REQUEST_OPERATION_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"ldap.request.operation\0".as_ptr() as *const libc::c_char,
         ALPROTO_LDAP,
         STREAM_TOSERVER,
+        0,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"ldap.responses.operation\0".as_ptr() as *const libc::c_char,
@@ -539,10 +540,11 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_MULTI_UINT | SIGMATCH_INFO_ENUM_UINT,
     };
     G_LDAP_RESPONSES_OPERATION_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_LDAP_RESPONSES_OPERATION_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_LDAP_RESPONSES_OPERATION_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"ldap.responses.operation\0".as_ptr() as *const libc::c_char,
         ALPROTO_LDAP,
         STREAM_TOCLIENT,
+        0,
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"ldap.responses.count\0".as_ptr() as *const libc::c_char,
@@ -554,10 +556,11 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         flags: SIGMATCH_INFO_UINT32,
     };
     G_LDAP_RESPONSES_COUNT_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_LDAP_RESPONSES_COUNT_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_LDAP_RESPONSES_COUNT_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"ldap.responses.count\0".as_ptr() as *const libc::c_char,
         ALPROTO_LDAP,
         STREAM_TOCLIENT,
+        0,
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("ldap.request.dn"),
@@ -598,10 +601,11 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         flags: SIGMATCH_INFO_UINT32 | SIGMATCH_INFO_MULTI_UINT | SIGMATCH_INFO_ENUM_UINT,
     };
     G_LDAP_RESPONSES_RESULT_CODE_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_LDAP_RESPONSES_RESULT_CODE_BUFFER_ID = SCDetectHelperBufferRegister(
+    G_LDAP_RESPONSES_RESULT_CODE_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"ldap.responses.result_code\0".as_ptr() as *const libc::c_char,
         ALPROTO_LDAP,
         STREAM_TOCLIENT,
+        0,
     );
     let kw = SigTableElmtStickyBuffer {
         name: String::from("ldap.responses.message"),
