@@ -17,7 +17,7 @@ A rule that specifies ``noalert`` will not generate an alert when it matches, bu
 
 .. container:: example-rule
 
-   alert http any any -> any any (http.user_agent; content:"Mozilla/5.0"; startwith; endswith; \
+   alert http any any -> any any (http.user_agent; content:"Mozilla/5.0"; startswith; endswith; \
    flowbits:set,mozilla-ua; :example-rule-options:`noalert;` sid:1;)
 
 This example sets a flowbit "mozilla-ua" on matching, but does not generate an alert due to the presence of ``noalert``.
@@ -33,7 +33,7 @@ This keyword can be used to implement an "alert then pass"-logic.
 
 .. container:: example-rule
 
-   pass http any any -> any any (http.user_agent; content:"Mozilla/5.0"; startwith; endswith; \
+   pass http any any -> any any (http.user_agent; content:"Mozilla/5.0"; startswith; endswith; \
    :example-rule-options:`alert;` sid:1;)
 
 This example would pass the rest of the HTTP flow with the Mozilla/5.0 user-agent, generating an alert for the "pass" event.

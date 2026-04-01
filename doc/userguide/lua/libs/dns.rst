@@ -31,7 +31,7 @@ transaction state. Available states are ``request_complete`` and
 
 .. container:: example-rule
 
-  alert dns::example-rule-emphasis:`request_complete` any any -> any any (...
+  alert dns::example-rule-emphasis:`request_complete` any any -> any any (sid: 1;)
 
 Then to initialize the script::
 

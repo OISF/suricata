@@ -122,7 +122,7 @@ Example Duplicate HTTP Header::
 
 .. container:: example-rule
 
-  alert http $HOME_NET -> $EXTERNAL_NET (msg:"Example Duplicate Header"; \
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"Example Duplicate Header"; \
   flow:established,to_server; :example-rule-options:`http.user_agent; \
   content:"Mozilla/5.0, Chrome/121.0.0";` classtype:bad-unknown; sid:103; \
   rev:1;)
@@ -612,9 +612,13 @@ and show the different ``urilen`` options.
   flow:established,to_server; :example-rule-options:`urilen:>10;` \
   classtype:bad-unknown; sid:41; rev:1;)
 
+.. container:: example-rule
+
   alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"urilen less than 12"; \
   flow:established,to_server; :example-rule-options:`urilen:<12;` \
   classtype:bad-unknown; sid:42; rev:1;)
+
+.. container:: example-rule
 
   alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"urilen greater/less than \
   example"; flow:established,to_server; :example-rule-options:`urilen:10<>12;` \
@@ -964,6 +968,8 @@ Example HTTP Response::
   Example"; flow:established,to_server; :example-rule-options:`http.content_len; \
   content:"100";` bsize:3; classtype:bad-unknown; sid:97; rev:1;)
 
+.. container:: example-rule
+
   alert http $EXTERNAL_NET any -> $HOME_NET any (msg:"HTTP Content-Length Response \
   Example"; flow:established,to_client; :example-rule-options:`http.content_len; \
   content:"20";` bsize:2; classtype:bad-unknown; sid:98; rev:1;)
@@ -1017,6 +1023,8 @@ Example HTTP Response::
   content:"multipart/form-data|3b 20|";` startswith; classtype:bad-unknown; \
   sid:95; rev:1;)
 
+.. container:: example-rule
+
   alert http $EXTERNAL_NET any -> $HOME_NET any (msg:"HTTP Content-Type Response \
   Example"; flow:established,to_client; :example-rule-options:`http.content_type; \
   content:"text/html";` bsize:9; classtype:bad-unknown; sid:96; rev:1;)
@@ -1050,7 +1058,7 @@ Example HTTP Request::
 
   alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Cookie Example"; \
   flow:established,to_server; :example-rule-emphasis:`http.cookie; \
-  content:"PHPSESSIONID=123";` bsize:14; classtype:bad-unknown; sid:80; rev:1;)
+  content:"PHPSESSIONID=123";` bsize:16; classtype:bad-unknown; sid:80; rev:1;)
 
 .. note:: Cookies are passed in HTTP headers but Suricata extracts the cookie
   data to ``http.cookie`` and will not match cookie content put in the
@@ -1100,10 +1108,14 @@ Example HTTP Request::
   content:"User-Agent|3a 20|Mozilla/5.0|0d 0a|";` classtype:bad-unknown; \
   sid:70; rev:1;)
 
+.. container:: example-rule
+
   alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Header Example 2"; \
   flow:established,to_server; :example-rule-options:`http.header; \
   content:"Host|3a 20|suricata.io|0d 0a|";` classtype:bad-unknown; \
   sid:71; rev:1;)
+
+.. container:: example-rule
 
   alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Header Example 3"; \
   flow:established,to_server; :example-rule-options:`http.header; \
@@ -1176,6 +1188,8 @@ Examples to match exactly on header order:
   content:"|0d 0a|Host|0d 0a|Connection|0d 0a 0d 0a|";` bsize:22; \
   classtype:bad-unknown; sid:110; rev:1;)
 
+.. container:: example-rule
+
   alert http $EXTERNAL_NET any -> $HOME_NET any (msg:"HTTP Header Names Response \
   Example"; flow:established,to_client; :example-rule-options:`http.header_names; \
   content:"|0d 0a|Content-Type|0d 0a|Server|0d 0a 0d a0|";` bsize:26; \
@@ -1189,6 +1203,8 @@ Examples to match on header existence:
   Example 2"; flow:established,to_server; :example-rule-options:`http.header_names; \
   content:"|0d 0a|Host|0d 0a|";` classtype:bad-unknown; sid:112; rev:1;)
 
+.. container:: example-rule
+
   alert http $EXTERNAL_NET any -> $HOME_NET any (msg:"HTTP Header Names Response \
   Example 2"; flow:established,to_client; :example-rule-options:`http.header_names; \
   content:"|0d 0a|Content-Type|0d 0a|";` classtype:bad-unknown; sid:113; rev:1;)
@@ -1200,6 +1216,8 @@ Examples to match on header absence:
   alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Header Names Request \
   Example 3"; flow:established,to_server; :example-rule-options:`http.header_names; \
   content:!"|0d 0a|User-Agent|0d 0a|";` classtype:bad-unknown; sid:114; rev:1;)
+
+.. container:: example-rule
 
   alert http $EXTERNAL_NET any -> $HOME_NET any (msg:"HTTP Header Names Response \
   Example 3"; flow:established,to_client; :example-rule-options:`http.header_names; \
@@ -1279,6 +1297,8 @@ Example HTTP Response::
   Example"; flow:established,to_server; :example-rule-options:`http.start; \
   content:"POST / HTTP/1.1|0d 0a|Host|0d 0a|Connection|0d 0a 0d 0a|";` \
   classtype:bad-unknown; sid:101; rev:1;)
+
+.. container:: example-rule
 
   alert http $EXTERNAL_NET any -> $HOME_NET any (msg:"HTTP Start Response \
   Example"; flow:established,to_client; :example-rule-options:`http.start; \

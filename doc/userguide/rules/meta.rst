@@ -120,7 +120,7 @@ In the part [1:123], the first 1 is the gid (123 is the sid and 1 is the rev).
 
 .. container:: example-rule
 
-    07/12/2022-21:59:26.713297  [**] [:example-rule-emphasis:`1`:123:1] HTTP GET Request Containing Rule in URI [**] [Classification: Potentially Bad Traffic] [Priority: 2] {TCP} 192.168.225.121:12407 -> 172.16.105.84:80
+    alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP GET Request Containing Rule in URI"; flow:established,to_server; http.method; content:"GET"; http.uri; content:"rule"; fast_pattern; classtype:bad-unknown; sid:123; :example-rule-emphasis:`gid:123;`)
 
 .. _classtype:
 
