@@ -336,7 +336,6 @@ Transactional rules can use direction-ambiguous keywords, by specifying the dire
 
 Transactional rules have some limitations :
 
-* They cannot use direction-ambiguous keywords
 * They are only meant to work on transactions with first a request to the server,
   and then a response to the client, and not the other way around (not tested).
 * They cannot have ``fast_pattern`` or ``prefilter`` the direction to client
@@ -344,10 +343,7 @@ Transactional rules have some limitations :
 * They will refuse to load if a single directional rule is enough.
 
 This rule cannot have the ``fast_pattern`` to client, as ``file.data`` is a streaming buffer and will refuse to load.
-
-.. container:: example-rule
-
-    alert http any any => any any (file.data: to_server; content: "123";  http.stat_code; content: "500"; fast_pattern; sid: 1;)
+``alert http any any => any any (file.data: to_server; content: "123";  http.stat_code; content: "500"; fast_pattern; sid: 1;)```
 
 If not explicit, a transactional rule will choose a fast_pattern to server by default.
 
