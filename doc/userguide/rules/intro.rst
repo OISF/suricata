@@ -347,7 +347,7 @@ This rule cannot have the ``fast_pattern`` to client, as ``file.data`` is a stre
 
 .. container:: example-rule
 
-    alert http any any => any any (file.data: to_server; content: "123";  http.stat_code; content: "500"; fast_patten;)
+    alert http any any => any any (file.data: to_server; content: "123";  http.stat_code; content: "500"; fast_pattern; sid: 1;)
 
 If not explicit, a transactional rule will choose a fast_pattern to server by default.
 
@@ -405,6 +405,8 @@ The following rules demonstrate ``noalert`` with a familiar pattern:
 
     :example-rule-action:`alert` :example-rule-header:`http any any -> $HOME_NET any` :example-rule-options:`(msg:"noalert example: set state"; flow:established,to_server; xbits:set,SC.EXAMPLE,track ip_dst, expire 10; noalert; http.method; content:"GET"; sid:1; )`
 
+.. container:: example-rule
+
     :example-rule-action:`alert` :example-rule-header:`http any any -> $HOME_NET any` :example-rule-options:`(msg:"noalert example: state use"; flow:established,to_server; xbits:isset,SC.EXAMPLE,track ip_dst; http.method; content:"POST"; sid: 2; )`
 
 In IPS mode, ``noalert`` is commonly used in when Suricata should `drop` network packets
@@ -413,7 +415,7 @@ showing how ``noalert`` could be used with IPS deployments to drop inbound SSH r
 
 .. container:: example-rule
 
-    :example-rule-action:`drop` :example-rule-header:`tcp any any -> any 22` :example-rule-options:`(msg:"Drop inbound SSH traffic"; noalert; sid: 3)`
+    :example-rule-action:`drop` :example-rule-header:`tcp any any -> any 22` :example-rule-options:`(msg:"Drop inbound SSH traffic"; noalert; sid: 3;)`
 
 .. _rules-modifiers:
 

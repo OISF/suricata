@@ -386,13 +386,23 @@ Examples of ``bsize`` in a rule:
 
    alert dns any any -> any any (msg:"bsize exact buffer size"; dns.query; content:"google.com"; bsize:10; sid:1; rev:1;)
 
+.. container:: example-rule
+
    alert dns any any -> any any (msg:"bsize less than value"; dns.query; content:"google.com"; bsize:<25; sid:2; rev:1;)
+
+.. container:: example-rule
 
    alert dns any any -> any any (msg:"bsize buffer less than or equal value"; dns.query; content:"google.com"; bsize:<=20; sid:3; rev:1;)
 
+.. container:: example-rule
+
    alert dns any any -> any any (msg:"bsize buffer greater than value"; dns.query; content:"google.com"; bsize:>8; sid:4; rev:1;)
 
+.. container:: example-rule
+
    alert dns any any -> any any (msg:"bsize buffer greater than or equal value"; dns.query; content:"google.com"; bsize:>=8; sid:5; rev:1;)
+
+.. container:: example-rule
 
    alert dns any any -> any any (msg:"bsize buffer range value"; dns.query; content:"google.com"; bsize:8<>20; sid:6; rev:1;)
 
@@ -435,15 +445,27 @@ Examples of dsize values:
 
    alert tcp any any -> any any (msg:"dsize exact size"; dsize:10; sid:1; rev:1;)
 
+.. container:: example-rule
+
    alert tcp any any -> any any (msg:"dsize less than value"; dsize:<10; sid:2; rev:1;)
+
+.. container:: example-rule
 
    alert tcp any any -> any any (msg:"dsize less than or equal value"; dsize:<=10; sid:3; rev:1;)
 
+.. container:: example-rule
+
    alert tcp any any -> any any (msg:"dsize greater than value"; dsize:>8; sid:4; rev:1;)
+
+.. container:: example-rule
 
    alert tcp any any -> any any (msg:"dsize greater than or equal value"; dsize:>=10; sid:5; rev:1;)
 
+.. container:: example-rule
+
    alert tcp any any -> any any (msg:"dsize range value"; dsize:8<>20; sid:6; rev:1;)
+
+.. container:: example-rule
 
    alert tcp any any -> any any (msg:"dsize not equal value"; dsize:!9; sid:7; rev:1;)
 

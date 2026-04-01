@@ -76,6 +76,9 @@ Signature Example:
   alert smb $HOME_NET any -> any any (msg:"SMBv1 version rule"; \
   :example-rule-options:`smb.version:1;` sid:1;)
   
+
+.. container:: example-rule
+
   alert smb $HOME_NET any -> any any (msg:"SMBv2 version rule"; \
   :example-rule-options:`smb.version:2;` sid:2;)
 

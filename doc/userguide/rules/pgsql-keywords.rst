@@ -30,4 +30,4 @@ Examples
 .. container:: example-rule
 
     alert pgsql any any -> any any (msg:"Simple delete rule";
-    :example-rule-emphasis:`pgsql.query; content:"delete"; nocase` sid:2;)
+    :example-rule-emphasis:`pgsql.query; content:"delete"; nocase;` sid:2;)
