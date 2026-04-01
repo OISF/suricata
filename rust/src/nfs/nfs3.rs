@@ -125,7 +125,11 @@ impl NFSState {
                 if let Some(tx) = self.get_file_tx_by_handle(&file_handle, Direction::ToServer) {
                     if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                         tdf.chunk_count += 1;
-                        tdf.file_additional_procs.push(NFSPROC3_COMMIT);
+                        // only caller pushing
+                        // so we just need to know we saw this procedure
+                        if tdf.file_additional_procs.is_empty() {
+                            tdf.file_additional_procs.push(NFSPROC3_COMMIT);
+                        }
                         filetracker_close(&mut tdf.file_tracker);
                         tdf.file_last_xid = r.hdr.xid;
                         tx.is_last = true;
