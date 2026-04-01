@@ -363,7 +363,7 @@ impl NFSState {
                     insert_filename_with_getfh = true;
                 }
                 Nfs4ResponseContent::GetFH(_s, Some(ref rd)) => {
-                    if insert_filename_with_getfh {
+                    if insert_filename_with_getfh && self.namemap.len() < unsafe { NFS_CFG_MAX_NAMES } {
                         self.namemap
                             .insert(rd.value.to_vec(), xidmap.file_name.to_vec());
                     }

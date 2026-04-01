@@ -92,6 +92,7 @@ static mut ALPROTO_NFS: AppProto = ALPROTO_UNKNOWN;
  */
 
 pub static mut NFS_CFG_MAX_REQ: usize = 512;
+pub static mut NFS_CFG_MAX_NAMES: usize = 512;
 
 #[derive(AppLayerFrameType)]
 pub enum NFSFrameType {
@@ -2051,6 +2052,18 @@ pub unsafe extern "C" fn rs_nfs_register_parser() {
                 }
             } else {
                 SCLogError!("Invalid max-requests value");
+            }
+        }
+        let retval = conf_get("app-layer.protocols.nfs.max-names");
+        if let Some(val) = retval {
+            if let Ok(v) = val.parse::<usize>() {
+                if v > 0 {
+                    NFS_CFG_MAX_NAMES = v;
+                } else {
+                    SCLogError!("Invalid max-names value, must be >0");
+                }
+            } else {
+                SCLogError!("Invalid max-names value");
             }
         }
     } else {
