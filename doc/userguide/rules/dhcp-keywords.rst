@@ -18,7 +18,7 @@ The time can be matched exactly, or compared using the _op_ setting::
  dhcp.leasetime:<3   # smaller than 3
  dhcp.leasetime:>=2  # greater or equal than 2
 
-Signature example::
+.. container:: example-rule
 
  alert dhcp any any -> any any (msg:"small DHCP lease time (<3)"; dhcp.leasetime:<3; sid:1; rev:1;)
 
@@ -39,7 +39,7 @@ The time can be matched exactly, or compared using the _op_ setting::
  dhcp.rebinding_time:<3   # smaller than 3
  dhcp.rebinding_time:>=2  # greater or equal than 2
 
-Signature example::
+.. container:: example-rule
 
  alert dhcp any any -> any any (msg:"small DHCP rebinding time (<3)"; dhcp.rebinding_time:<3; sid:1; rev:1;)
 
@@ -60,6 +60,6 @@ The time can be matched exactly, or compared using the _op_ setting::
  dhcp.renewal_time:<3   # smaller than 3
  dhcp.renewal_time:>=2  # greater or equal than 2
 
-Signature example::
+.. container:: example-rule
 
  alert dhcp any any -> any any (msg:"small DHCP renewal time (<3)"; dhcp.renewal_time:<3; sid:1; rev:1;)
