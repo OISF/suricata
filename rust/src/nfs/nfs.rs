@@ -20,7 +20,6 @@
 use lru::LruCache;
 use std;
 use std::cmp;
-use std::collections::HashMap;
 use std::ffi::CString;
 use std::num::NonZeroUsize;
 
@@ -102,6 +101,7 @@ static mut ALPROTO_NFS: AppProto = ALPROTO_UNKNOWN;
  */
 
 pub static mut NFS_CFG_MAX_REQ: usize = 512;
+pub static mut NFS_CFG_MAX_NAMES: usize = 512;
 
 #[derive(AppLayerFrameType)]
 pub enum NFSFrameType {
@@ -364,7 +364,7 @@ pub struct NFSState {
     pub requestmap: LruCache<u32, NFSRequestXidMap>,
 
     /// map file handle (1) to name (2)
-    pub namemap: HashMap<Vec<u8>, Vec<u8>>,
+    pub namemap: LruCache<Vec<u8>, Vec<u8>>,
 
     /// transactions list
     pub transactions: Vec<NFSTransaction>,
@@ -423,7 +423,7 @@ impl NFSState {
         NFSState {
             state_data: AppLayerStateData::new(),
             requestmap: LruCache::new(NonZeroUsize::new(unsafe { NFS_CFG_MAX_REQ }).unwrap()),
-            namemap: HashMap::new(),
+            namemap: LruCache::new(NonZeroUsize::new(unsafe { NFS_CFG_MAX_NAMES }).unwrap()),
             transactions: Vec::new(),
             ts_chunk_xid: 0,
             tc_chunk_xid: 0,
@@ -2417,6 +2417,18 @@ pub unsafe extern "C" fn SCRegisterNfsParser() {
                 }
             } else {
                 SCLogError!("Invalid max-requests value");
+            }
+        }
+        let retval = conf_get("app-layer.protocols.nfs.max-names");
+        if let Some(val) = retval {
+            if let Ok(v) = val.parse::<usize>() {
+                if v > 0 {
+                    NFS_CFG_MAX_NAMES = v;
+                } else {
+                    SCLogError!("Invalid max-names value, must be >0");
+                }
+            } else {
+                SCLogError!("Invalid max-names value");
             }
         }
     } else {

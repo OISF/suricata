@@ -377,7 +377,7 @@ impl NFSState {
                 Nfs4ResponseContent::GetFH(_s, Some(ref rd)) => {
                     if insert_filename_with_getfh {
                         self.namemap
-                            .insert(rd.value.to_vec(), xidmap.file_name.to_vec());
+                            .put(rd.value.to_vec(), xidmap.file_name.to_vec());
                     }
                 }
                 Nfs4ResponseContent::PutRootFH(s) => {
