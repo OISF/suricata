@@ -18,7 +18,7 @@ The version can be matched exactly, or compared using the _op_ setting::
  snmp.version:<3   # smaller than 3
  snmp.version:>=2  # greater or equal than 2
 
-Signature example::
+.. container:: example-rule
 
  alert snmp any any -> any any (msg:"old SNMP version (<3)"; snmp.version:<3; sid:1; rev:1;)
 
@@ -38,7 +38,7 @@ Syntax::
 
  snmp.community; content:"private";
 
-Signature example::
+.. container:: example-rule
 
  alert snmp any any -> any any (msg:"SNMP community private"; snmp.community; content:"private"; sid:2; rev:1;)
 
@@ -58,7 +58,7 @@ Syntax::
 
  snmp.usm; content:"admin";
 
-Signature example::
+.. container:: example-rule
 
  alert snmp any any -> any any (msg:"SNMP usm admin"; snmp.usm; content:"admin"; sid:2; rev:1;)
 
@@ -93,7 +93,7 @@ Syntax::
 
  snmp.pdu_type:(mode) <number or string>
 
-Signature example::
+.. container:: example-rule
 
  alert snmp any any -> any any (msg:"SNMP response"; snmp.pdu_type:2; sid:3; rev:1;)
 
