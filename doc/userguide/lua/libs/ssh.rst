@@ -22,7 +22,7 @@ For example:
 
 .. container:: example-rule
 
-  alert ssh::example-rule-emphasis:`response_banner_done` any any -> any any (...
+  alert ssh::example-rule-emphasis:`response_banner_done` any any -> any any (sid: 1;)
 
 Setup
 ^^^^^

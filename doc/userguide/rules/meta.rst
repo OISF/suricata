@@ -118,7 +118,7 @@ has no technical implications, the value is only noted in alert data.
 Example of the gid value in an alert entry in the fast.log file.
 In the part [1:123], the first 1 is the gid (123 is the sid and 1 is the rev).
 
-.. container:: example-rule
+.. note::
 
     07/12/2022-21:59:26.713297  [**] [:example-rule-emphasis:`1`:123:1] HTTP GET Request Containing Rule in URI [**] [Classification: Potentially Bad Traffic] [Priority: 2] {TCP} 192.168.225.121:12407 -> 172.16.105.84:80
 
