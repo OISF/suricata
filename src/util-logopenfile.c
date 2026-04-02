@@ -33,7 +33,7 @@
 #include "util-path.h"
 #include "util-misc.h"
 #include "util-time.h"
-#include "log-flush.h"
+#include "log-maintenance.h"
 
 #if defined(HAVE_SYS_UN_H) && defined(HAVE_SYS_SOCKET_H) && defined(HAVE_SYS_TYPES_H)
 #define BUILD_WITH_UNIXSOCKET
@@ -54,10 +54,9 @@ static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, 
 // Threaded eve.json identifier
 static SC_ATOMIC_DECL_AND_INIT_WITH_VAL(uint16_t, eve_file_id, 1);
 
-/* Flush list for heartbeat-triggered flushing */
-static SCMutex log_file_flush_mutex = SCMUTEX_INITIALIZER;
-static TAILQ_HEAD(, LogFileFlushEntry_) log_file_flush_list = TAILQ_HEAD_INITIALIZER(
-        log_file_flush_list);
+/* Log file list for heartbeat-triggered flushing and rotation */
+static SCMutex log_file_list_mutex = SCMUTEX_INITIALIZER;
+static TAILQ_HEAD(, LogFileEntry_) log_file_list = TAILQ_HEAD_INITIALIZER(log_file_list);
 
 #ifdef BUILD_WITH_UNIXSOCKET
 /** \brief connect to the indicated local stream socket, logging any errors
@@ -250,7 +249,7 @@ static int SCLogFileWriteNoLock(const char *buffer, int buffer_len, LogFileCtx *
 
     HandleLogRotation(log_ctx);
 
-    if (log_ctx->fp) {
+    if (buffer_len > 0 && log_ctx->fp) {
         SCClearErrUnlocked(log_ctx->fp);
         if (1 != SCFwriteUnlocked(buffer, buffer_len, 1, log_ctx->fp)) {
             /* Only the first error is logged */
@@ -652,9 +651,9 @@ int SCConfLogOpenGeneric(
         if (rotate) {
             OutputRegisterFileRotationFlag(&log_ctx->rotation_flag);
         }
-        /* Register non-threaded regular files for direct heartbeat flushing */
+        /* Register non-threaded regular files for heartbeat maintenance */
         if (!log_ctx->threaded && log_ctx->is_regular) {
-            LogFileRegisterForFlush(log_ctx);
+            LogFileRegister(log_ctx);
         }
     } else {
         SCLogError("Invalid entry for "
@@ -906,7 +905,7 @@ static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, 
             thread->Close = SCLogFileCloseNoLock;
         }
         OutputRegisterFileRotationFlag(&thread->rotation_flag);
-        LogFileRegisterForFlush(thread);
+        LogFileRegister(thread);
     } else if (parent_ctx->type == LOGFILE_TYPE_FILETYPE) {
         entry->slot_number = SC_ATOMIC_ADD(eve_file_id, 1);
         SCLogDebug("%s - thread %d [slot %d]", log_path, entry->internal_thread_id,
@@ -948,7 +947,7 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
     /* Unregister from flush list first, before closing files.
      * This ensures the heartbeat thread won't try to flush a context
      * that's being destroyed. */
-    LogFileUnregisterForFlush(lf_ctx);
+    LogFileUnregister(lf_ctx);
 
     if (lf_ctx->type == LOGFILE_TYPE_FILETYPE && lf_ctx->filetype.filetype->ThreadDeinit) {
         lf_ctx->filetype.filetype->ThreadDeinit(
@@ -1016,83 +1015,90 @@ void LogFileFlush(LogFileCtx *file_ctx)
 }
 
 /**
- * \brief Register a LogFileCtx for flush operations
+ * \brief Register a LogFileCtx for maintenance operations
  *
- * Adds a LogFileCtx to the global flush list so the heartbeat thread
- * can flush it directly without using pseudo packets.
+ * Adds a LogFileCtx to the global log file list so the heartbeat thread
+ * can perform flush and rotation on it.
  *
  * \param ctx The LogFileCtx to register (must be LOGFILE_TYPE_FILE)
  */
-void LogFileRegisterForFlush(LogFileCtx *ctx)
+void LogFileRegister(LogFileCtx *ctx)
 {
-    if (!OutputFlushInterval()) {
-        SCLogDebug("heartbeat disabled; skipping flush registration");
-        return;
-    }
-
     if (ctx == NULL || ctx->type != LOGFILE_TYPE_FILE) {
         return;
     }
 
-    LogFileFlushEntry *entry = SCMalloc(sizeof(LogFileFlushEntry));
+    LogFileEntry *entry = SCMalloc(sizeof(LogFileEntry));
     if (entry == NULL) {
-        SCLogError("Unable to allocate memory for flush entry");
+        SCLogError("Unable to allocate memory for log file entry");
         return;
     }
 
     entry->ctx = ctx;
 
-    SCMutexLock(&log_file_flush_mutex);
-    TAILQ_INSERT_TAIL(&log_file_flush_list, entry, entries);
-    SCMutexUnlock(&log_file_flush_mutex);
+    SCMutexLock(&log_file_list_mutex);
+    TAILQ_INSERT_TAIL(&log_file_list, entry, entries);
+    SCMutexUnlock(&log_file_list_mutex);
 }
 
 /**
- * \brief Unregister a LogFileCtx from flush operations
+ * \brief Unregister a LogFileCtx from maintenance operations
  *
- * Removes a LogFileCtx from the global flush list.
+ * Removes a LogFileCtx from the global log file list.
  *
  * \param ctx The LogFileCtx to unregister
  */
-void LogFileUnregisterForFlush(LogFileCtx *ctx)
+void LogFileUnregister(LogFileCtx *ctx)
 {
-    if (!OutputFlushInterval()) {
-        SCLogDebug("heartbeat disabled; skipping flush deregistration");
-        return;
-    }
-
     if (ctx == NULL) {
         return;
     }
 
-    SCMutexLock(&log_file_flush_mutex);
-    LogFileFlushEntry *entry, *safe;
-    TAILQ_FOREACH_SAFE (entry, &log_file_flush_list, entries, safe) {
+    SCMutexLock(&log_file_list_mutex);
+    LogFileEntry *entry, *safe;
+    TAILQ_FOREACH_SAFE (entry, &log_file_list, entries, safe) {
         if (entry->ctx == ctx) {
-            TAILQ_REMOVE(&log_file_flush_list, entry, entries);
+            TAILQ_REMOVE(&log_file_list, entry, entries);
             SCFree(entry);
             break;
         }
     }
-    SCMutexUnlock(&log_file_flush_mutex);
+    SCMutexUnlock(&log_file_list_mutex);
 }
 
 /**
  * \brief Flush all registered LogFileCtx instances
  *
- * Called by the heartbeat thread to flush all active file-based loggers.
- * Iterates through the flush list and calls LogFileFlush on each context.
+ * Called by the maintenance thread to flush all active file-based loggers.
  */
 void LogFileFlushAll(void)
 {
-    SCMutexLock(&log_file_flush_mutex);
-    LogFileFlushEntry *entry;
-    TAILQ_FOREACH (entry, &log_file_flush_list, entries) {
+    SCMutexLock(&log_file_list_mutex);
+    LogFileEntry *entry;
+    TAILQ_FOREACH (entry, &log_file_list, entries) {
         if (entry->ctx != NULL) {
             LogFileFlush(entry->ctx);
         }
     }
-    SCMutexUnlock(&log_file_flush_mutex);
+    SCMutexUnlock(&log_file_list_mutex);
+}
+
+/**
+ * \brief Check rotation for all registered LogFileCtx instances
+ *
+ * Called by the maintenance thread to trigger rotation checks on all
+ * registered log contexts during zero-traffic periods.
+ */
+void LogFileRotateAll(void)
+{
+    SCMutexLock(&log_file_list_mutex);
+    LogFileEntry *entry;
+    TAILQ_FOREACH (entry, &log_file_list, entries) {
+        if (entry->ctx != NULL) {
+            entry->ctx->Write("", 0, entry->ctx);
+        }
+    }
+    SCMutexUnlock(&log_file_list_mutex);
 }
 
 int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer)
