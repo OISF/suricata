@@ -30,17 +30,17 @@
 
 typedef struct HostStorageId_ {
     int id;
-} HostStorageId;
+} SCHostStorageId;
 
-unsigned int HostStorageSize(void);
+unsigned int SCHostStorageSize(void);
 
-void *HostGetStorageById(Host *h, HostStorageId id);
-int HostSetStorageById(Host *h, HostStorageId id, void *ptr);
+void *SCHostGetStorageById(Host *h, SCHostStorageId id);
+int SCHostSetStorageById(Host *h, SCHostStorageId id, void *ptr);
 
-void HostFreeStorage(Host *h);
+void SCHostFreeStorage(Host *h);
 
-void RegisterHostStorageTests(void);
+void SCRegisterHostStorageTests(void);
 
-HostStorageId HostStorageRegister(const char *name, void (*Free)(void *));
+SCHostStorageId SCHostStorageRegister(const char *name, void (*Free)(void *));
 
 #endif /* SURICATA_HOST_STORAGE_H */

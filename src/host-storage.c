@@ -27,7 +27,7 @@
 #include "host-storage.h"
 #include "util-unittest.h"
 
-unsigned int HostStorageSize(void)
+unsigned int SCHostStorageSize(void)
 {
     return StorageGetSize(STORAGE_HOST);
 }
@@ -37,9 +37,9 @@ unsigned int HostStorageSize(void)
  * The Host storage API is a per-host storage. It is a mean to extend
  * the Host structure with arbitrary data.
  *
- * You have first to register the storage via HostStorageRegister() during
- * the init of your module. Then you can attach data via HostSetStorageById()
- * and access them via HostGetStorageById().
+ * You have first to register the storage via SCHostStorageRegister() during
+ * the init of your module. Then you can attach data via SCHostSetStorageById()
+ * and access them via SCHostGetStorageById().
  * @{
  */
 
@@ -54,10 +54,10 @@ unsigned int HostStorageSize(void)
  * It has to be called once during the init of the sub system
  */
 
-HostStorageId HostStorageRegister(const char *name, void (*Free)(void *))
+SCHostStorageId SCHostStorageRegister(const char *name, void (*Free)(void *))
 {
     int id = StorageRegister(STORAGE_HOST, name, Free);
-    HostStorageId hsi = { .id = id };
+    SCHostStorageId hsi = { .id = id };
     return hsi;
 }
 
@@ -65,11 +65,11 @@ HostStorageId HostStorageRegister(const char *name, void (*Free)(void *))
  * \brief Store a pointer in a given Host storage
  *
  * \param h a pointer to the Host
- * \param id the id of the storage (return of HostStorageRegister() call)
+ * \param id the id of the storage (return of SCHostStorageRegister() call)
  * \param ptr pointer to the data to store
  */
 
-int HostSetStorageById(Host *h, HostStorageId id, void *ptr)
+int SCHostSetStorageById(Host *h, SCHostStorageId id, void *ptr)
 {
     return StorageSetById(h->storage, STORAGE_HOST, id.id, ptr);
 }
@@ -78,11 +78,11 @@ int HostSetStorageById(Host *h, HostStorageId id, void *ptr)
  * \brief Get a value from a given Host storage
  *
  * \param h a pointer to the Host
- * \param id the id of the storage (return of HostStorageRegister() call)
+ * \param id the id of the storage (return of SCHostStorageRegister() call)
  *
  */
 
-void *HostGetStorageById(Host *h, HostStorageId id)
+void *SCHostGetStorageById(Host *h, SCHostStorageId id)
 {
     return StorageGetById(h->storage, STORAGE_HOST, id.id);
 }
@@ -93,9 +93,9 @@ void *HostGetStorageById(Host *h, HostStorageId id)
 
 /* Start of "private" function */
 
-void HostFreeStorage(Host *h)
+void SCHostFreeStorage(Host *h)
 {
-    if (HostStorageSize() > 0)
+    if (SCHostStorageSize() > 0)
         StorageFreeAll(h->storage, STORAGE_HOST);
 }
 
@@ -113,11 +113,11 @@ static int HostStorageTest01(void)
     StorageCleanup();
     StorageInit();
 
-    HostStorageId id1 = HostStorageRegister("test", StorageTestFree);
+    SCHostStorageId id1 = SCHostStorageRegister("test", StorageTestFree);
     FAIL_IF(id1.id < 0);
-    HostStorageId id2 = HostStorageRegister("variable", StorageTestFree);
+    SCHostStorageId id2 = SCHostStorageRegister("variable", StorageTestFree);
     FAIL_IF(id2.id < 0);
-    HostStorageId id3 = HostStorageRegister("store", StorageTestFree);
+    SCHostStorageId id3 = SCHostStorageRegister("store", StorageTestFree);
     FAIL_IF(id3.id < 0);
 
     FAIL_IF(StorageFinalize() < 0);
@@ -131,28 +131,28 @@ static int HostStorageTest01(void)
     Host *h = HostGetHostFromHash(&a);
     FAIL_IF_NULL(h);
 
-    void *ptr = HostGetStorageById(h, id1);
+    void *ptr = SCHostGetStorageById(h, id1);
     FAIL_IF_NOT_NULL(ptr);
-    ptr = HostGetStorageById(h, id2);
+    ptr = SCHostGetStorageById(h, id2);
     FAIL_IF_NOT_NULL(ptr);
-    ptr = HostGetStorageById(h, id3);
+    ptr = SCHostGetStorageById(h, id3);
     FAIL_IF_NOT_NULL(ptr);
 
     void *ptr1a = SCMalloc(8);
     FAIL_IF_NULL(ptr1a);
-    FAIL_IF(HostSetStorageById(h, id1, ptr1a) != 0);
+    FAIL_IF(SCHostSetStorageById(h, id1, ptr1a) != 0);
     void *ptr2a = SCMalloc(24);
     FAIL_IF_NULL(ptr2a);
-    FAIL_IF(HostSetStorageById(h, id2, ptr2a) != 0);
+    FAIL_IF(SCHostSetStorageById(h, id2, ptr2a) != 0);
     void *ptr3a = SCMalloc(16);
     FAIL_IF_NULL(ptr3a);
-    FAIL_IF(HostSetStorageById(h, id3, ptr3a) != 0);
+    FAIL_IF(SCHostSetStorageById(h, id3, ptr3a) != 0);
 
-    void *ptr1b = HostGetStorageById(h, id1);
+    void *ptr1b = SCHostGetStorageById(h, id1);
     FAIL_IF(ptr1a != ptr1b);
-    void *ptr2b = HostGetStorageById(h, id2);
+    void *ptr2b = SCHostGetStorageById(h, id2);
     FAIL_IF(ptr2a != ptr2b);
-    void *ptr3b = HostGetStorageById(h, id3);
+    void *ptr3b = SCHostGetStorageById(h, id3);
     FAIL_IF(ptr3a != ptr3b);
 
     HostRelease(h);
@@ -167,7 +167,7 @@ static int HostStorageTest02(void)
     StorageCleanup();
     StorageInit();
 
-    HostStorageId id1 = HostStorageRegister("test", StorageTestFree);
+    SCHostStorageId id1 = SCHostStorageRegister("test", StorageTestFree);
     FAIL_IF(id1.id < 0);
 
     FAIL_IF(StorageFinalize() < 0);
@@ -181,14 +181,14 @@ static int HostStorageTest02(void)
     Host *h = HostGetHostFromHash(&a);
     FAIL_IF_NULL(h);
 
-    void *ptr = HostGetStorageById(h, id1);
+    void *ptr = SCHostGetStorageById(h, id1);
     FAIL_IF_NOT_NULL(ptr);
 
     void *ptr1a = SCMalloc(128);
     FAIL_IF_NULL(ptr1a);
-    HostSetStorageById(h, id1, ptr1a);
+    SCHostSetStorageById(h, id1, ptr1a);
 
-    void *ptr1b = HostGetStorageById(h, id1);
+    void *ptr1b = SCHostGetStorageById(h, id1);
     FAIL_IF(ptr1a != ptr1b);
 
     HostRelease(h);
@@ -203,11 +203,11 @@ static int HostStorageTest03(void)
     StorageCleanup();
     StorageInit();
 
-    HostStorageId id1 = HostStorageRegister("test1", StorageTestFree);
+    SCHostStorageId id1 = SCHostStorageRegister("test1", StorageTestFree);
     FAIL_IF(id1.id < 0);
-    HostStorageId id2 = HostStorageRegister("test2", StorageTestFree);
+    SCHostStorageId id2 = SCHostStorageRegister("test2", StorageTestFree);
     FAIL_IF(id2.id < 0);
-    HostStorageId id3 = HostStorageRegister("test3", StorageTestFree);
+    SCHostStorageId id3 = SCHostStorageRegister("test3", StorageTestFree);
     FAIL_IF(id3.id < 0);
 
     FAIL_IF(StorageFinalize() < 0);
@@ -221,26 +221,26 @@ static int HostStorageTest03(void)
     Host *h = HostGetHostFromHash(&a);
     FAIL_IF_NULL(h);
 
-    void *ptr = HostGetStorageById(h, id1);
+    void *ptr = SCHostGetStorageById(h, id1);
     FAIL_IF_NOT_NULL(ptr);
 
     void *ptr1a = SCMalloc(128);
     FAIL_IF_NULL(ptr1a);
-    HostSetStorageById(h, id1, ptr1a);
+    SCHostSetStorageById(h, id1, ptr1a);
 
     void *ptr2a = SCMalloc(256);
     FAIL_IF_NULL(ptr2a);
-    HostSetStorageById(h, id2, ptr2a);
+    SCHostSetStorageById(h, id2, ptr2a);
 
     void *ptr3a = SCMalloc(32);
     FAIL_IF_NULL(ptr3a);
-    HostSetStorageById(h, id3, ptr3a);
+    SCHostSetStorageById(h, id3, ptr3a);
 
-    void *ptr1b = HostGetStorageById(h, id1);
+    void *ptr1b = SCHostGetStorageById(h, id1);
     FAIL_IF(ptr1a != ptr1b);
-    void *ptr2b = HostGetStorageById(h, id2);
+    void *ptr2b = SCHostGetStorageById(h, id2);
     FAIL_IF(ptr2a != ptr2b);
-    void *ptr3b = HostGetStorageById(h, id3);
+    void *ptr3b = SCHostGetStorageById(h, id3);
     FAIL_IF(ptr3a != ptr3b);
 
     HostRelease(h);
@@ -251,7 +251,7 @@ static int HostStorageTest03(void)
 }
 #endif
 
-void RegisterHostStorageTests(void)
+void SCRegisterHostStorageTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("HostStorageTest01", HostStorageTest01);
