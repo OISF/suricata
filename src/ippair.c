@@ -149,8 +149,8 @@ error:
 
 void IPPairClearMemory(IPPair *h)
 {
-    if (IPPairStorageSize() > 0)
-        IPPairFreeStorage(h);
+    if (SCIPPairStorageSize() > 0)
+        SCIPPairFreeStorage(h);
 }
 
 #define IPPAIR_DEFAULT_HASHSIZE 4096
@@ -162,9 +162,9 @@ void IPPairClearMemory(IPPair *h)
 void IPPairInitConfig(bool quiet)
 {
     SCLogDebug("initializing ippair engine...");
-    if (IPPairStorageSize() > 0) {
-        DEBUG_VALIDATE_BUG_ON(sizeof(IPPair) + IPPairStorageSize() > UINT16_MAX);
-        g_ippair_size = (uint16_t)(sizeof(IPPair) + IPPairStorageSize());
+    if (SCIPPairStorageSize() > 0) {
+        DEBUG_VALIDATE_BUG_ON(sizeof(IPPair) + SCIPPairStorageSize() > UINT16_MAX);
+        g_ippair_size = (uint16_t)(sizeof(IPPair) + SCIPPairStorageSize());
     }
 
     memset(&ippair_config,  0, sizeof(ippair_config));
@@ -334,7 +334,7 @@ void IPPairCleanup(void)
             while (h) {
                 if ((SC_ATOMIC_GET(h->use_cnt) > 0)) {
                     /* iprep is attached to ippair only clear local storage */
-                    IPPairFreeStorage(h);
+                    SCIPPairFreeStorage(h);
                     h = h->hnext;
                 } else {
                     IPPair *n = h->hnext;
@@ -751,5 +751,5 @@ static IPPair *IPPairGetUsedIPPair(void)
 
 void IPPairRegisterUnittests(void)
 {
-    RegisterIPPairStorageTests();
+    SCRegisterIPPairStorageTests();
 }

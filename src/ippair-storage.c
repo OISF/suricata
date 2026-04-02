@@ -27,31 +27,31 @@
 #include "ippair-storage.h"
 #include "util-unittest.h"
 
-unsigned int IPPairStorageSize(void)
+unsigned int SCIPPairStorageSize(void)
 {
     return StorageGetSize(STORAGE_IPPAIR);
 }
 
-void *IPPairGetStorageById(IPPair *h, IPPairStorageId id)
+void *SCIPPairGetStorageById(IPPair *h, SCIPPairStorageId id)
 {
     return StorageGetById(h->storage, STORAGE_IPPAIR, id.id);
 }
 
-int IPPairSetStorageById(IPPair *h, IPPairStorageId id, void *ptr)
+int SCIPPairSetStorageById(IPPair *h, SCIPPairStorageId id, void *ptr)
 {
     return StorageSetById(h->storage, STORAGE_IPPAIR, id.id, ptr);
 }
 
-void IPPairFreeStorage(IPPair *h)
+void SCIPPairFreeStorage(IPPair *h)
 {
-    if (IPPairStorageSize() > 0)
+    if (SCIPPairStorageSize() > 0)
         StorageFreeAll(h->storage, STORAGE_IPPAIR);
 }
 
-IPPairStorageId IPPairStorageRegister(const char *name, void (*Free)(void *))
+SCIPPairStorageId SCIPPairStorageRegister(const char *name, void (*Free)(void *))
 {
     int id = StorageRegister(STORAGE_IPPAIR, name, Free);
-    IPPairStorageId ippsi = { .id = id };
+    SCIPPairStorageId ippsi = { .id = id };
     return ippsi;
 }
 
@@ -68,11 +68,11 @@ static int IPPairStorageTest01(void)
     StorageCleanup();
     StorageInit();
 
-    IPPairStorageId id1 = IPPairStorageRegister("test", StorageTestFree);
+    SCIPPairStorageId id1 = SCIPPairStorageRegister("test", StorageTestFree);
     FAIL_IF(id1.id < 0);
-    IPPairStorageId id2 = IPPairStorageRegister("variable", StorageTestFree);
+    SCIPPairStorageId id2 = SCIPPairStorageRegister("variable", StorageTestFree);
     FAIL_IF(id2.id < 0);
-    IPPairStorageId id3 = IPPairStorageRegister("store", StorageTestFree);
+    SCIPPairStorageId id3 = SCIPPairStorageRegister("store", StorageTestFree);
     FAIL_IF(id3.id < 0);
 
     FAIL_IF(StorageFinalize() < 0);
@@ -89,28 +89,28 @@ static int IPPairStorageTest01(void)
     IPPair *h = IPPairGetIPPairFromHash(&a, &b);
     FAIL_IF_NULL(h);
 
-    void *ptr = IPPairGetStorageById(h, id1);
+    void *ptr = SCIPPairGetStorageById(h, id1);
     FAIL_IF_NOT_NULL(ptr);
-    ptr = IPPairGetStorageById(h, id2);
+    ptr = SCIPPairGetStorageById(h, id2);
     FAIL_IF_NOT_NULL(ptr);
-    ptr = IPPairGetStorageById(h, id3);
+    ptr = SCIPPairGetStorageById(h, id3);
     FAIL_IF_NOT_NULL(ptr);
 
     void *ptr1a = SCMalloc(8);
     FAIL_IF(ptr1a == NULL);
-    FAIL_IF(IPPairSetStorageById(h, id1, ptr1a) != 0);
+    FAIL_IF(SCIPPairSetStorageById(h, id1, ptr1a) != 0);
     void *ptr2a = SCMalloc(24);
     FAIL_IF(ptr2a == NULL);
-    FAIL_IF(IPPairSetStorageById(h, id2, ptr2a) != 0);
+    FAIL_IF(SCIPPairSetStorageById(h, id2, ptr2a) != 0);
     void *ptr3a = SCMalloc(16);
     FAIL_IF(ptr3a == NULL);
-    FAIL_IF(IPPairSetStorageById(h, id3, ptr3a) != 0);
+    FAIL_IF(SCIPPairSetStorageById(h, id3, ptr3a) != 0);
 
-    void *ptr1b = IPPairGetStorageById(h, id1);
+    void *ptr1b = SCIPPairGetStorageById(h, id1);
     FAIL_IF(ptr1a != ptr1b);
-    void *ptr2b = IPPairGetStorageById(h, id2);
+    void *ptr2b = SCIPPairGetStorageById(h, id2);
     FAIL_IF(ptr2a != ptr2b);
-    void *ptr3b = IPPairGetStorageById(h, id3);
+    void *ptr3b = SCIPPairGetStorageById(h, id3);
     FAIL_IF(ptr3a != ptr3b);
 
     IPPairRelease(h);
@@ -124,7 +124,7 @@ static int IPPairStorageTest02(void)
     StorageCleanup();
     StorageInit();
 
-    IPPairStorageId id1 = IPPairStorageRegister("test", StorageTestFree);
+    SCIPPairStorageId id1 = SCIPPairStorageRegister("test", StorageTestFree);
     FAIL_IF(id1.id < 0);
 
     FAIL_IF(StorageFinalize() < 0);
@@ -141,15 +141,15 @@ static int IPPairStorageTest02(void)
     IPPair *h = IPPairGetIPPairFromHash(&a, &b);
     FAIL_IF(h == NULL);
 
-    void *ptr = IPPairGetStorageById(h, id1);
+    void *ptr = SCIPPairGetStorageById(h, id1);
     FAIL_IF_NOT_NULL(ptr);
 
     void *ptr1a = SCMalloc(128);
     FAIL_IF(ptr1a == NULL);
 
-    IPPairSetStorageById(h, id1, ptr1a);
+    SCIPPairSetStorageById(h, id1, ptr1a);
 
-    void *ptr1b = IPPairGetStorageById(h, id1);
+    void *ptr1b = SCIPPairGetStorageById(h, id1);
     FAIL_IF(ptr1a != ptr1b);
 
     IPPairRelease(h);
@@ -163,11 +163,11 @@ static int IPPairStorageTest03(void)
     StorageCleanup();
     StorageInit();
 
-    IPPairStorageId id1 = IPPairStorageRegister("test1", StorageTestFree);
+    SCIPPairStorageId id1 = SCIPPairStorageRegister("test1", StorageTestFree);
     FAIL_IF(id1.id < 0);
-    IPPairStorageId id2 = IPPairStorageRegister("test2", StorageTestFree);
+    SCIPPairStorageId id2 = SCIPPairStorageRegister("test2", StorageTestFree);
     FAIL_IF(id2.id < 0);
-    IPPairStorageId id3 = IPPairStorageRegister("test3", StorageTestFree);
+    SCIPPairStorageId id3 = SCIPPairStorageRegister("test3", StorageTestFree);
     FAIL_IF(id3.id < 0);
 
     FAIL_IF(StorageFinalize() < 0);
@@ -184,28 +184,28 @@ static int IPPairStorageTest03(void)
     IPPair *h = IPPairGetIPPairFromHash(&a, &b);
     FAIL_IF(h == NULL);
 
-    void *ptr = IPPairGetStorageById(h, id1);
+    void *ptr = SCIPPairGetStorageById(h, id1);
     FAIL_IF_NOT_NULL(ptr);
 
     void *ptr1a = SCMalloc(128);
     FAIL_IF(ptr1a == NULL);
 
-    IPPairSetStorageById(h, id1, ptr1a);
+    SCIPPairSetStorageById(h, id1, ptr1a);
 
     void *ptr2a = SCMalloc(256);
     FAIL_IF(ptr2a == NULL);
 
-    IPPairSetStorageById(h, id2, ptr2a);
+    SCIPPairSetStorageById(h, id2, ptr2a);
 
     void *ptr3a = SCMalloc(32);
     FAIL_IF(ptr3a == NULL);
-    IPPairSetStorageById(h, id3, ptr3a);
+    SCIPPairSetStorageById(h, id3, ptr3a);
 
-    void *ptr1b = IPPairGetStorageById(h, id1);
+    void *ptr1b = SCIPPairGetStorageById(h, id1);
     FAIL_IF(ptr1a != ptr1b);
-    void *ptr2b = IPPairGetStorageById(h, id2);
+    void *ptr2b = SCIPPairGetStorageById(h, id2);
     FAIL_IF(ptr2a != ptr2b);
-    void *ptr3b = IPPairGetStorageById(h, id3);
+    void *ptr3b = SCIPPairGetStorageById(h, id3);
     FAIL_IF(ptr3a != ptr3b);
 
     IPPairRelease(h);
@@ -215,7 +215,7 @@ static int IPPairStorageTest03(void)
 }
 #endif
 
-void RegisterIPPairStorageTests(void)
+void SCRegisterIPPairStorageTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("IPPairStorageTest01", IPPairStorageTest01);
