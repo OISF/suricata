@@ -34,3 +34,8 @@ alert dnp3 any any -> any any (msg:"SURICATA DNP3 Too many points in message"; \
 alert dnp3 any any -> any any (msg:"SURICATA DNP3 Too many objects"; \
       app-layer-event:dnp3.too_many_objects; \
       classtype:protocol-command-decode; sid:2270006; rev:1;)
+
+# Too long reassembly.
+alert dnp3 any any -> any any (msg:"SURICATA DNP3 Too long reassembly"; \
+      app-layer-event:dnp3.too_long_reassembly; \
+      classtype:protocol-command-decode; sid:2270007; rev:1;)
