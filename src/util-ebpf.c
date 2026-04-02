@@ -60,7 +60,7 @@
 
 #define BYPASSED_FLOW_TIMEOUT   60
 
-static LiveDevStorageId g_livedev_storage_id = { .id = -1 };
+static SCLiveDevStorageId g_livedev_storage_id = { .id = -1 };
 static SCFlowStorageId g_flow_storage_id = { .id = -1 };
 
 struct bpf_map_item {
@@ -134,7 +134,7 @@ static struct bpf_maps_info *EBPFGetBpfMap(const char *iface)
     LiveDevice *livedev = LiveGetDevice(iface);
     if (livedev == NULL)
         return NULL;
-    void *data = LiveDevGetStorageById(livedev, g_livedev_storage_id);
+    void *data = SCLiveDevGetStorageById(livedev, g_livedev_storage_id);
 
     return (struct bpf_maps_info *)data;
 }
@@ -268,7 +268,7 @@ static int EBPFLoadPinnedMaps(LiveDevice *livedev, struct ebpf_timeout_config *c
     }
 
     /* Attach the bpf_maps_info to the LiveDevice via the device storage */
-    LiveDevSetStorageById(livedev, g_livedev_storage_id, bpf_map_data);
+    SCLiveDevSetStorageById(livedev, g_livedev_storage_id, bpf_map_data);
     /* Declare that device will use bypass stats */
     LiveDevUseBypass(livedev);
 
@@ -457,7 +457,7 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
     }
 
     /* Attach the bpf_maps_info to the LiveDevice via the device storage */
-    LiveDevSetStorageById(livedev, g_livedev_storage_id, bpf_map_data);
+    SCLiveDevSetStorageById(livedev, g_livedev_storage_id, bpf_map_data);
     LiveDevUseBypass(livedev);
 
     /* Finally we get the file descriptor for our eBPF program. We will use
@@ -929,7 +929,7 @@ int EBPFCheckBypassedFlowCreate(ThreadVars *th_v, struct timespec *curtime, void
 
 void EBPFRegisterExtension(void)
 {
-    g_livedev_storage_id = LiveDevStorageRegister("bpfmap", BpfMapsInfoFree);
+    g_livedev_storage_id = SCLiveDevStorageRegister("bpfmap", BpfMapsInfoFree);
     g_flow_storage_id = SCFlowStorageRegister("bypassedlist", BypassedListFree);
 }
 
