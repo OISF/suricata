@@ -107,6 +107,7 @@ SCEnumCharMap dnp3_decoder_event_table[] = {
     { "UNKNOWN_OBJECT", DNP3_DECODER_EVENT_UNKNOWN_OBJECT },
     { "TOO_MANY_POINTS", DNP3_DECODER_EVENT_TOO_MANY_POINTS },
     { "TOO_MANY_OBJECTS", DNP3_DECODER_EVENT_TOO_MANY_OBJECTS },
+    { "TOO_LONG_REASSEMBLY", DNP3_DECODER_EVENT_TOO_LONG_REASS },
     { NULL, -1 },
 };
 
@@ -938,6 +939,13 @@ static void DNP3HandleUserDataRequest(
 
         /* Malformed, set event and mark as done. */
         DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_MALFORMED);
+        tx->done = 1;
+        return;
+    }
+    // a data link frame has its size on one byte,
+    // and transport layer has sequence in 0-63
+    if (tx->buffer_len > 63 * 0xff) {
+        DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_TOO_LONG_REASS);
         tx->done = 1;
         return;
     }
