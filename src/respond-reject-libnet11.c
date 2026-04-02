@@ -99,11 +99,13 @@ static inline libnet_t *GetCtx(const Packet *p, int injection_type)
             devname = g_reject_dev;
             store_ctx = true;
         } else {
-            devname = p->livedev ? p->livedev->dev : NULL;
+            LiveDevice *dev = LiveDeviceGetById(p->livedev_id);
+            devname = dev ? dev->dev : NULL;
         }
         SCLogDebug("sniffer: devname %s", devname);
     } else if (EngineHostModeIsBridge()) {
-        devname = p->livedev ? p->livedev->dev : NULL;
+        LiveDevice *dev = LiveDeviceGetById(p->livedev_id);
+        devname = dev ? dev->dev : NULL;
         SCLogDebug("bridge: devname %s", devname);
     } else {
         SCLogDebug("router: devname %s", devname);
