@@ -389,7 +389,7 @@ typedef struct Flow_
     uint32_t flow_hash;
 
     /** Incoming interface */
-    struct LiveDevice_ *livedev;
+    uint16_t livedev_id;
 
     struct Flow_ *next; /* (hash) list next */
 
