@@ -29,7 +29,6 @@ use std::os::raw::c_char;
 use std::os::raw::c_int;
 use std::ptr;
 use std::str;
-use suricata_sys::sys::SCConfGet;
 use suricata_sys::sys::SCConfGetChildValue;
 use suricata_sys::sys::SCConfGetChildValueBool;
 use suricata_sys::sys::SCConfGetNode;
@@ -54,26 +53,7 @@ pub fn conf_get_node(key: &str) -> Option<ConfNode> {
     }
 }
 
-// Return the string value of a configuration value.
-pub fn conf_get(key: &str) -> Option<&str> {
-    let mut vptr: *const c_char = ptr::null_mut();
-
-    unsafe {
-        let s = CString::new(key).unwrap();
-        if SCConfGet(s.as_ptr(), &mut vptr) != 1 {
-            SCLogDebug!("Failed to find value for key {}", key);
-            return None;
-        }
-    }
-
-    if vptr.is_null() {
-        return None;
-    }
-
-    let value = str::from_utf8(unsafe { CStr::from_ptr(vptr).to_bytes() }).unwrap();
-
-    return Some(value);
-}
+pub use suricata_ffi::conf::conf_get;
 
 // Return the value of key as a boolean. A value that is not set is
 // the same as having it set to false.
