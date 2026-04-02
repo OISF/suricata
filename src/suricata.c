@@ -2813,7 +2813,7 @@ int PostConfLoadedSetup(SCInstance *suri)
         SCConfSet("runmode", suri->runmode_custom_mode);
     }
 
-    StorageInit();
+    SCStorageInit();
 #ifdef HAVE_PACKET_EBPF
     if (suri->run_mode == RUNMODE_AFP_DEV) {
         EBPFRegisterExtension();
@@ -2915,7 +2915,7 @@ int PostConfLoadedSetup(SCInstance *suri)
     RegisterAllModules();
     AppLayerHtpNeedFileInspection();
 
-    StorageFinalize();
+    SCStorageFinalize();
 
     TmModuleRunInit();
 

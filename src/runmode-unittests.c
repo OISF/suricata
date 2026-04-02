@@ -248,7 +248,7 @@ void RunUnittests(int list_unittests, const char *regex_arg)
     MpmTableSetup();
     SpmTableSetup();
 
-    StorageInit();
+    SCStorageInit();
     AppLayerSetup();
 
     /* hardcoded initialization code */
@@ -269,7 +269,7 @@ void RunUnittests(int list_unittests, const char *regex_arg)
 
     HostBitInitCtx();
 
-    StorageFinalize();
+    SCStorageFinalize();
 
     AppLayerHtpEnableRequestBodyCallback();
     AppLayerHtpNeedFileInspection();

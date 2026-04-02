@@ -31,7 +31,7 @@
 
 unsigned int SCLiveDevStorageSize(void)
 {
-    return StorageGetSize(STORAGE_DEVICE);
+    return SCStorageGetSize(STORAGE_DEVICE);
 }
 
 /** \defgroup devicestorage Device storage API
@@ -58,7 +58,7 @@ unsigned int SCLiveDevStorageSize(void)
 
 SCLiveDevStorageId SCLiveDevStorageRegister(const char *name, void (*Free)(void *))
 {
-    int id = StorageRegister(STORAGE_DEVICE, name, Free);
+    int id = SCStorageRegister(STORAGE_DEVICE, name, Free);
     SCLiveDevStorageId ldsi = { .id = id };
     return ldsi;
 }
@@ -73,7 +73,7 @@ SCLiveDevStorageId SCLiveDevStorageRegister(const char *name, void (*Free)(void 
 
 int SCLiveDevSetStorageById(LiveDevice *d, SCLiveDevStorageId id, void *ptr)
 {
-    return StorageSetById(d->storage, STORAGE_DEVICE, id.id, ptr);
+    return SCStorageSetById(d->storage, STORAGE_DEVICE, id.id, ptr);
 }
 
 /**
@@ -86,7 +86,7 @@ int SCLiveDevSetStorageById(LiveDevice *d, SCLiveDevStorageId id, void *ptr)
 
 void *SCLiveDevGetStorageById(LiveDevice *d, SCLiveDevStorageId id)
 {
-    return StorageGetById(d->storage, STORAGE_DEVICE, id.id);
+    return SCStorageGetById(d->storage, STORAGE_DEVICE, id.id);
 }
 
 /**
@@ -98,7 +98,7 @@ void *SCLiveDevGetStorageById(LiveDevice *d, SCLiveDevStorageId id)
 void SCLiveDevFreeStorage(LiveDevice *d)
 {
     if (SCLiveDevStorageSize() > 0)
-        StorageFreeAll(d->storage, STORAGE_DEVICE);
+        SCStorageFreeAll(d->storage, STORAGE_DEVICE);
 }
 
 

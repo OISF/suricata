@@ -447,11 +447,11 @@ static void DetectXbitFree (DetectEngineCtx *de_ctx, void *ptr)
 
 static void XBitsTestSetup(void)
 {
-    StorageCleanup();
-    StorageInit();
+    SCStorageCleanup();
+    SCStorageInit();
     HostBitInitCtx();
     IPPairBitInitCtx();
-    StorageFinalize();
+    SCStorageFinalize();
     HostInitConfig(true);
     IPPairInitConfig(true);
 }
@@ -460,7 +460,7 @@ static void XBitsTestShutdown(void)
 {
     HostShutdown();
     IPPairShutdown();
-    StorageCleanup();
+    SCStorageCleanup();
 }
 
 

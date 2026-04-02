@@ -65,7 +65,7 @@ static const char *StoragePrintType(StorageEnum type)
     return "invalid";
 }
 
-void StorageInit(void)
+void SCStorageInit(void)
 {
     memset(&storage_max_id, 0x00, sizeof(storage_max_id));
     storage_list = NULL;
@@ -73,7 +73,7 @@ void StorageInit(void)
     storage_registration_closed = 0;
 }
 
-void StorageCleanup(void)
+void SCStorageCleanup(void)
 {
     if (storage_map) {
         int i;
@@ -97,7 +97,7 @@ void StorageCleanup(void)
     storage_list = NULL;
 }
 
-int StorageRegister(const StorageEnum type, const char *name, void (*Free)(void *))
+int SCStorageRegister(const StorageEnum type, const char *name, void (*Free)(void *))
 {
     if (storage_registration_closed)
         return -1;
@@ -132,7 +132,7 @@ int StorageRegister(const StorageEnum type, const char *name, void (*Free)(void 
     return entry->id;
 }
 
-int StorageFinalize(void)
+int SCStorageFinalize(void)
 {
     int count = 0;
     int i;
@@ -188,7 +188,7 @@ int StorageFinalize(void)
     return 0;
 }
 
-unsigned int StorageGetCnt(StorageEnum type)
+unsigned int SCStorageGetCnt(StorageEnum type)
 {
     return storage_max_id[type];
 }
@@ -199,12 +199,12 @@ unsigned int StorageGetCnt(StorageEnum type)
  *
  *  \todo we could return -1 when registration isn't closed yet, however
  *        this will break lots of tests currently, so not doing it now */
-unsigned int StorageGetSize(StorageEnum type)
+unsigned int SCStorageGetSize(StorageEnum type)
 {
     return storage_max_id[type] * sizeof(void *);
 }
 
-void *StorageGetById(const Storage *storage, const StorageEnum type, const int id)
+void *SCStorageGetById(const Storage *storage, const StorageEnum type, const int id)
 {
 #ifdef DEBUG
     BUG_ON(!storage_registration_closed);
@@ -215,7 +215,7 @@ void *StorageGetById(const Storage *storage, const StorageEnum type, const int i
     return storage[id].ptr;
 }
 
-int StorageSetById(Storage *storage, const StorageEnum type, const int id, void *ptr)
+int SCStorageSetById(Storage *storage, const StorageEnum type, const int id, void *ptr)
 {
 #ifdef DEBUG
     BUG_ON(!storage_registration_closed);
@@ -227,7 +227,7 @@ int StorageSetById(Storage *storage, const StorageEnum type, const int id, void 
     return 0;
 }
 
-void StorageFreeById(Storage *storage, StorageEnum type, int id)
+void SCStorageFreeById(Storage *storage, StorageEnum type, int id)
 {
 #ifdef DEBUG
     BUG_ON(!storage_registration_closed);
@@ -249,7 +249,7 @@ void StorageFreeById(Storage *storage, StorageEnum type, int id)
     }
 }
 
-void StorageFreeAll(Storage *storage, StorageEnum type)
+void SCStorageFreeAll(Storage *storage, StorageEnum type)
 {
     if (storage == NULL)
         return;

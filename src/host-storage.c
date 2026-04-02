@@ -29,7 +29,7 @@
 
 unsigned int SCHostStorageSize(void)
 {
-    return StorageGetSize(STORAGE_HOST);
+    return SCStorageGetSize(STORAGE_HOST);
 }
 
 /** \defgroup hoststorage Host storage API
@@ -56,7 +56,7 @@ unsigned int SCHostStorageSize(void)
 
 SCHostStorageId SCHostStorageRegister(const char *name, void (*Free)(void *))
 {
-    int id = StorageRegister(STORAGE_HOST, name, Free);
+    int id = SCStorageRegister(STORAGE_HOST, name, Free);
     SCHostStorageId hsi = { .id = id };
     return hsi;
 }
@@ -71,7 +71,7 @@ SCHostStorageId SCHostStorageRegister(const char *name, void (*Free)(void *))
 
 int SCHostSetStorageById(Host *h, SCHostStorageId id, void *ptr)
 {
-    return StorageSetById(h->storage, STORAGE_HOST, id.id, ptr);
+    return SCStorageSetById(h->storage, STORAGE_HOST, id.id, ptr);
 }
 
 /**
@@ -84,7 +84,7 @@ int SCHostSetStorageById(Host *h, SCHostStorageId id, void *ptr)
 
 void *SCHostGetStorageById(Host *h, SCHostStorageId id)
 {
-    return StorageGetById(h->storage, STORAGE_HOST, id.id);
+    return SCStorageGetById(h->storage, STORAGE_HOST, id.id);
 }
 
 /**
@@ -96,7 +96,7 @@ void *SCHostGetStorageById(Host *h, SCHostStorageId id)
 void SCHostFreeStorage(Host *h)
 {
     if (SCHostStorageSize() > 0)
-        StorageFreeAll(h->storage, STORAGE_HOST);
+        SCStorageFreeAll(h->storage, STORAGE_HOST);
 }
 
 
@@ -110,8 +110,8 @@ static void StorageTestFree(void *x)
 
 static int HostStorageTest01(void)
 {
-    StorageCleanup();
-    StorageInit();
+    SCStorageCleanup();
+    SCStorageInit();
 
     SCHostStorageId id1 = SCHostStorageRegister("test", StorageTestFree);
     FAIL_IF(id1.id < 0);
@@ -120,7 +120,7 @@ static int HostStorageTest01(void)
     SCHostStorageId id3 = SCHostStorageRegister("store", StorageTestFree);
     FAIL_IF(id3.id < 0);
 
-    FAIL_IF(StorageFinalize() < 0);
+    FAIL_IF(SCStorageFinalize() < 0);
 
     HostInitConfig(1);
 
@@ -158,19 +158,19 @@ static int HostStorageTest01(void)
     HostRelease(h);
 
     HostShutdown();
-    StorageCleanup();
+    SCStorageCleanup();
     PASS;
 }
 
 static int HostStorageTest02(void)
 {
-    StorageCleanup();
-    StorageInit();
+    SCStorageCleanup();
+    SCStorageInit();
 
     SCHostStorageId id1 = SCHostStorageRegister("test", StorageTestFree);
     FAIL_IF(id1.id < 0);
 
-    FAIL_IF(StorageFinalize() < 0);
+    FAIL_IF(SCStorageFinalize() < 0);
 
     HostInitConfig(1);
 
@@ -194,14 +194,14 @@ static int HostStorageTest02(void)
     HostRelease(h);
 
     HostShutdown();
-    StorageCleanup();
+    SCStorageCleanup();
     PASS;
 }
 
 static int HostStorageTest03(void)
 {
-    StorageCleanup();
-    StorageInit();
+    SCStorageCleanup();
+    SCStorageInit();
 
     SCHostStorageId id1 = SCHostStorageRegister("test1", StorageTestFree);
     FAIL_IF(id1.id < 0);
@@ -210,7 +210,7 @@ static int HostStorageTest03(void)
     SCHostStorageId id3 = SCHostStorageRegister("test3", StorageTestFree);
     FAIL_IF(id3.id < 0);
 
-    FAIL_IF(StorageFinalize() < 0);
+    FAIL_IF(SCStorageFinalize() < 0);
 
     HostInitConfig(1);
 
@@ -246,7 +246,7 @@ static int HostStorageTest03(void)
     HostRelease(h);
 
     HostShutdown();
-    StorageCleanup();
+    SCStorageCleanup();
     PASS;
 }
 #endif
