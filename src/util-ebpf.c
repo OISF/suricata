@@ -537,7 +537,7 @@ static bool EBPFCreateFlowForKey(struct flows_stats *flowstats, LiveDevice *dev,
             fc->BypassFree = EBPFBypassFree;
             fc->todstpktcnt = pkts_cnt;
             fc->todstbytecnt = bytes_cnt;
-            f->livedev = dev;
+            f->livedev_id = dev->id;
             EBPFBypassData *eb = SCCalloc(1, sizeof(EBPFBypassData));
             if (eb == NULL) {
                 SCFree(fc);
@@ -583,7 +583,7 @@ static bool EBPFCreateFlowForKey(struct flows_stats *flowstats, LiveDevice *dev,
         memcpy(mkey, key, skey);
         eb->key[1] = mkey;
     }
-    f->livedev = dev;
+    f->livedev_id = dev->id;
     FLOWLOCK_UNLOCK(f);
     return false;
 }
