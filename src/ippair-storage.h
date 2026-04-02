@@ -28,19 +28,19 @@
 
 #include "ippair.h"
 
-typedef struct IPPairStorageId {
+typedef struct SCIPPairStorageId {
     int id;
-} IPPairStorageId;
+} SCIPPairStorageId;
 
-unsigned int IPPairStorageSize(void);
+unsigned int SCIPPairStorageSize(void);
 
-void *IPPairGetStorageById(IPPair *h, IPPairStorageId id);
-int IPPairSetStorageById(IPPair *h, IPPairStorageId id, void *ptr);
+void *SCIPPairGetStorageById(IPPair *h, SCIPPairStorageId id);
+int SCIPPairSetStorageById(IPPair *h, SCIPPairStorageId id, void *ptr);
 
-void IPPairFreeStorage(IPPair *h);
+void SCIPPairFreeStorage(IPPair *h);
 
-void RegisterIPPairStorageTests(void);
+void SCRegisterIPPairStorageTests(void);
 
-IPPairStorageId IPPairStorageRegister(const char *name, void (*Free)(void *));
+SCIPPairStorageId SCIPPairStorageRegister(const char *name, void (*Free)(void *));
 
 #endif /* SURICATA_IPPAIR_STORAGE_H */
