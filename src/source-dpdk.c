@@ -431,7 +431,7 @@ static inline Packet *PacketInitFromMbuf(DPDKThreadVars *ptv, struct rte_mbuf *m
     p->dpdk_v.copy_mode = ptv->copy_mode;
     p->dpdk_v.out_port_id = ptv->out_port_id;
     p->dpdk_v.out_queue_id = ptv->queue_id;
-    p->livedev = ptv->livedev;
+    p->livedev_id = ptv->livedev->id;
 
     if (ptv->checksum_mode == CHECKSUM_VALIDATION_DISABLE) {
         p->flags |= PKT_IGNORE_CHECKSUM;
@@ -643,7 +643,12 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
     ptv->tv = tv;
     ptv->pkts = 0;
     ptv->bytes = 0;
+
     ptv->livedev = LiveGetDevice(dpdk_config->iface);
+    if (unlikely(ptv->livedev == NULL)) {
+        SCLogError("Unable to allocate memory for livedev %s", dpdk_config->iface);
+        goto fail;
+    }
 
     ptv->capture_dpdk_packets = StatsRegisterCounter("capture.packets", &ptv->tv->stats);
     ptv->capture_dpdk_rx_errs = StatsRegisterCounter("capture.rx_errors", &ptv->tv->stats);
