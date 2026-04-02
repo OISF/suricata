@@ -61,7 +61,7 @@
 #define BYPASSED_FLOW_TIMEOUT   60
 
 static LiveDevStorageId g_livedev_storage_id = { .id = -1 };
-static FlowStorageId g_flow_storage_id = { .id = -1 };
+static SCFlowStorageId g_flow_storage_id = { .id = -1 };
 
 struct bpf_map_item {
     char iface[IFNAMSIZ];
@@ -527,12 +527,12 @@ static bool EBPFCreateFlowForKey(struct flows_stats *flowstats, LiveDevice *dev,
      * serve them if we already have something from server to client. We need
      * these numbers as we will use it to see if we have new traffic coming
      * on the flow */
-    FlowBypassInfo *fc = FlowGetStorageById(f, GetFlowBypassInfoID());
+    FlowBypassInfo *fc = SCFlowGetStorageById(f, GetFlowBypassInfoID());
     if (fc == NULL) {
         fc = SCCalloc(sizeof(FlowBypassInfo), 1);
         if (fc) {
             FlowUpdateState(f, FLOW_STATE_CAPTURE_BYPASSED);
-            FlowSetStorageById(f, GetFlowBypassInfoID(), fc);
+            SCFlowSetStorageById(f, GetFlowBypassInfoID(), fc);
             fc->BypassUpdate = EBPFBypassUpdate;
             fc->BypassFree = EBPFBypassFree;
             fc->todstpktcnt = pkts_cnt;
@@ -659,7 +659,7 @@ bool EBPFBypassUpdate(Flow *f, void *data, time_t tsec)
     if (eb == NULL) {
         return false;
     }
-    FlowBypassInfo *fc = FlowGetStorageById(f, GetFlowBypassInfoID());
+    FlowBypassInfo *fc = SCFlowGetStorageById(f, GetFlowBypassInfoID());
     if (fc == NULL) {
         return false;
     }
@@ -930,7 +930,7 @@ int EBPFCheckBypassedFlowCreate(ThreadVars *th_v, struct timespec *curtime, void
 void EBPFRegisterExtension(void)
 {
     g_livedev_storage_id = LiveDevStorageRegister("bpfmap", BpfMapsInfoFree);
-    g_flow_storage_id = FlowStorageRegister("bypassedlist", BypassedListFree);
+    g_flow_storage_id = SCFlowStorageRegister("bypassedlist", BypassedListFree);
 }
 
 
@@ -1049,14 +1049,14 @@ int EBPFSetPeerIface(const char *iface, const char *out_iface)
 
 int EBPFUpdateFlow(Flow *f, Packet *p, void *data)
 {
-    BypassedIfaceList *ifl = (BypassedIfaceList *)FlowGetStorageById(f, g_flow_storage_id);
+    BypassedIfaceList *ifl = (BypassedIfaceList *)SCFlowGetStorageById(f, g_flow_storage_id);
     if (ifl == NULL) {
         ifl = SCCalloc(1, sizeof(*ifl));
         if (ifl == NULL) {
             return 0;
         }
         ifl->dev = p->livedev;
-        FlowSetStorageById(f, g_flow_storage_id, ifl);
+        SCFlowSetStorageById(f, g_flow_storage_id, ifl);
         return 1;
     }
     /* Look for packet iface in the list */
@@ -1077,7 +1077,7 @@ int EBPFUpdateFlow(Flow *f, Packet *p, void *data)
     }
     nifl->dev = p->livedev;
     nifl->next = ifl;
-    FlowSetStorageById(f, g_flow_storage_id, nifl);
+    SCFlowSetStorageById(f, g_flow_storage_id, nifl);
     return 1;
 }
 

@@ -271,7 +271,7 @@ void FlowSwap(Flow *f)
     SWAP_VARS(uint64_t, f->todstbytecnt, f->tosrcbytecnt);
 
     if (MacSetFlowStorageEnabled()) {
-        MacSet *ms = FlowGetStorageById(f, MacSetGetFlowStorageID());
+        MacSet *ms = SCFlowGetStorageById(f, MacSetGetFlowStorageID());
         if (ms != NULL) {
             MacSetSwap(ms);
         }
@@ -362,7 +362,7 @@ static inline void FlowUpdateFlowRate(
             return;
         if ((dir == TOCLIENT) && (f->flags & FLOW_IS_ELEPHANT_TOCLIENT))
             return;
-        FlowRateStore *frs = FlowGetStorageById(f, FlowRateGetStorageID());
+        FlowRateStore *frs = SCFlowGetStorageById(f, FlowRateGetStorageID());
         if (frs != NULL) {
             FlowRateStoreUpdate(frs, p->ts, GET_PKT_LEN(p), dir);
             bool fr_exceeds = FlowRateIsExceeding(frs, dir);
@@ -397,7 +397,7 @@ static inline void FlowUpdateEthernet(
 {
     if (PacketIsEthernet(p) && MacSetFlowStorageEnabled()) {
         const EthernetHdr *ethh = PacketGetEthernet(p);
-        MacSet *ms = FlowGetStorageById(f, MacSetGetFlowStorageID());
+        MacSet *ms = SCFlowGetStorageById(f, MacSetGetFlowStorageID());
         if (ms != NULL) {
             if (toserver) {
                 MacSetAddWithCtr(ms, ethh->eth_src, ethh->eth_dst, tv,
@@ -688,7 +688,7 @@ void FlowInitConfig(bool quiet)
 
     FlowInitFlowProto();
 
-    uint32_t sz = sizeof(Flow) + FlowStorageSize();
+    uint32_t sz = sizeof(Flow) + SCFlowStorageSize();
     SCLogConfig("flow size %u, memcap allows for %" PRIu64 " flows. Per hash row in perfect "
                 "conditions %" PRIu64,
             sz, flow_memcap_copy / sz, (flow_memcap_copy / sz) / flow_config.hash_size);
@@ -1131,7 +1131,7 @@ int FlowClearMemory(Flow* f, uint8_t proto_map)
         flow_freefuncs[proto_map].Freefunc(f->protoctx);
     }
 
-    FlowFreeStorage(f);
+    SCFlowFreeStorage(f);
 
     FLOW_RECYCLE(f);
 
@@ -1479,6 +1479,6 @@ void FlowRegisterTests (void)
     UtRegisterTest("FlowTest09 -- Test flow Allocations when it reach memcap",
                    FlowTest09);
 
-    RegisterFlowStorageTests();
+    SCRegisterFlowStorageTests();
 #endif /* UNITTESTS */
 }

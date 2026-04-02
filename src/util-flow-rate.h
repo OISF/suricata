@@ -53,7 +53,7 @@ extern FlowRateConfig flow_rate_config;
 bool FlowRateStorageEnabled(void);
 void FlowRateRegisterFlowStorage(void);
 FlowRateStore *FlowRateStoreInit(void);
-FlowStorageId FlowRateGetStorageID(void);
+SCFlowStorageId FlowRateGetStorageID(void);
 void FlowRateStoreUpdate(FlowRateStore *, SCTime_t, uint32_t, int);
 bool FlowRateIsExceeding(FlowRateStore *, int);
 

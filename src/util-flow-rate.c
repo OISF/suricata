@@ -34,7 +34,7 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
-FlowStorageId g_flowrate_storage_id = { .id = -1 };
+SCFlowStorageId g_flowrate_storage_id = { .id = -1 };
 
 FlowRateConfig flow_rate_config;
 
@@ -90,7 +90,7 @@ void FlowRateRegisterFlowStorage(void)
     }
     flow_rate_config.interval = SCTIME_ADD_SECS(interval, secs);
 
-    g_flowrate_storage_id = FlowStorageRegister("flowrate", FlowRateStoreFree);
+    g_flowrate_storage_id = SCFlowStorageRegister("flowrate", FlowRateStoreFree);
 }
 
 bool FlowRateStorageEnabled(void)
@@ -130,7 +130,7 @@ FlowRateStore *FlowRateStoreInit(void)
     return frs;
 }
 
-FlowStorageId FlowRateGetStorageID(void)
+SCFlowStorageId FlowRateGetStorageID(void)
 {
     return g_flowrate_storage_id;
 }
