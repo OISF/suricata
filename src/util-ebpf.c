@@ -1055,14 +1055,14 @@ int EBPFUpdateFlow(Flow *f, Packet *p, void *data)
         if (ifl == NULL) {
             return 0;
         }
-        ifl->dev = p->livedev;
+        ifl->dev = LiveDeviceGetById(p->livedev_id);
         SCFlowSetStorageById(f, g_flow_storage_id, ifl);
         return 1;
     }
     /* Look for packet iface in the list */
     BypassedIfaceList *ldev = ifl;
     while (ldev) {
-        if (p->livedev == ldev->dev) {
+        if (p->livedev_id == LiveDeviceGetId(ldev->dev)) {
             return 1;
         }
         ldev = ldev->next;
@@ -1075,7 +1075,7 @@ int EBPFUpdateFlow(Flow *f, Packet *p, void *data)
     if (nifl == NULL) {
         return 0;
     }
-    nifl->dev = p->livedev;
+    nifl->dev = LiveDeviceGetById(p->livedev_id);
     nifl->next = ifl;
     SCFlowSetStorageById(f, g_flow_storage_id, nifl);
     return 1;
