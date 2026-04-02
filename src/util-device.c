@@ -138,7 +138,8 @@ int LiveRegisterDevice(const char *dev)
         return -1;
     }
 
-    int id = LiveGetDeviceCount();
+    /* +1 as the id space starts at 1 */
+    int id = LiveGetDeviceCount() + 1;
     if (id > UINT16_MAX) {
         SCFree(pd);
         return -1;
@@ -475,8 +476,9 @@ LiveDevice *LiveDeviceForEach(LiveDevice **ldev, LiveDevice **ndev)
 static void LiveDeviceFinalizeBuildArray(void)
 {
     BUG_ON(g_livedev_array);
-    int max_id = LiveGetDeviceCount();
-    if (max_id <= 0)
+    /* +1 as the id space starts at 1 */
+    int max_id = LiveGetDeviceCount() + 1;
+    if (max_id <= 1)
         return;
 
     g_livedev_array = SCCalloc(max_id + 1, sizeof(LiveDevice *));
