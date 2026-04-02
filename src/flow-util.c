@@ -44,6 +44,7 @@
 
 #include "decode-icmpv4.h"
 
+#include "util-device-private.h"
 #include "util-validate.h"
 
 /** \brief allocate a flow
@@ -156,7 +157,8 @@ void FlowInit(ThreadVars *tv, Flow *f, const Packet *p)
 
     f->thread_id[0] = (FlowThreadId)tv->id;
 
-    f->livedev = p->livedev;
+    LiveDevice *packet_ld = p->livedev;
+    f->livedev_id = packet_ld ? packet_ld->id : 0;
 
     if (PacketIsIPv4(p)) {
         const IPV4Hdr *ip4h = PacketGetIPv4(p);

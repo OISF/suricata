@@ -106,8 +106,9 @@ static SCJsonBuilder *CreateEveHeaderFromFlow(const Flow *f, OutputJsonCommonSet
 #endif
 
     /* input interface */
-    if (f->livedev) {
-        SCJbSetString(jb, "in_iface", f->livedev->dev);
+    LiveDevice *dev = LiveDeviceGetById(f->livedev_id);
+    if (dev) {
+        SCJbSetString(jb, "in_iface", dev->dev);
     }
 
     JB_SET_STRING(jb, "event_type", "flow");
