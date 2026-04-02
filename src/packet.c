@@ -41,7 +41,7 @@ void PacketDrop(Packet *p, const uint8_t action, enum PacketDropReason r)
     if (p->root) {
         p->root->action |= action;
         if (p->root->drop_reason == PKT_DROP_REASON_NOT_SET) {
-            p->root->drop_reason = PKT_DROP_REASON_INNER_PACKET;
+            p->root->drop_reason = (uint8_t)r;
         }
     }
     p->action |= action;

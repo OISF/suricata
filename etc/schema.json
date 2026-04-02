@@ -7908,11 +7908,6 @@
                                     "type": "integer",
                                     "description":
                                             "Number of packets dropped due to threshold detection filter"
-                                },
-                                "tunnel_packet_drop": {
-                                    "type": "integer",
-                                    "description":
-                                            "Number of packets dropped due to inner tunnel packet being dropped"
                                 }
                             },
                             "description": "Number of dropped packets, grouped by drop reason"
