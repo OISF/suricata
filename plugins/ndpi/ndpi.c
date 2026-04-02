@@ -33,7 +33,7 @@
 
 #include "ndpi_api.h"
 
-static ThreadStorageId thread_storage_id = { .id = -1 };
+static SCThreadStorageId thread_storage_id = { .id = -1 };
 static SCFlowStorageId flow_storage_id = { .id = -1 };
 static int ndpi_protocol_keyword_id = -1;
 static int ndpi_risk_keyword_id = -1;
@@ -66,7 +66,7 @@ static inline struct NdpiThreadContext *NdpiGetThreadContext(ThreadVars *tv)
 {
     if (unlikely(tv == NULL || thread_storage_id.id < 0))
         return NULL;
-    return ThreadGetStorageById(tv, thread_storage_id);
+    return SCThreadGetStorageById(tv, thread_storage_id);
 }
 
 /**
@@ -217,7 +217,7 @@ static void OnThreadInit(ThreadVars *tv, void *_data)
     NDPI_BITMASK_SET_ALL(protos);
     ndpi_set_protocol_detection_bitmask2(context->ndpi, &protos);
     ndpi_finalize_initialization(context->ndpi);
-    ThreadSetStorageById(tv, thread_storage_id, context);
+    SCThreadSetStorageById(tv, thread_storage_id, context);
 }
 
 static int DetectnDPIProtocolPacketMatch(
@@ -573,7 +573,7 @@ static void NdpiInit(void)
     SCLogDebug("Initializing nDPI plugin");
 
     /* Register thread storage. */
-    thread_storage_id = ThreadStorageRegister("ndpi", ThreadStorageFree);
+    thread_storage_id = SCThreadStorageRegister("ndpi", ThreadStorageFree);
     if (thread_storage_id.id < 0) {
         FatalError("Failed to register nDPI thread storage");
     }
