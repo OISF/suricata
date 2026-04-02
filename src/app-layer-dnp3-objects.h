@@ -1455,9 +1455,8 @@ typedef struct DNP3ObjectG122V2_ {
 
 /* END GENERATED CODE */
 
-int DNP3DecodeObject(int group, int variation, const uint8_t **buf,
-    uint32_t *len, uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *);
+int DNP3DecodeObject(int group, int variation, const uint8_t **buf, uint16_t *len,
+        uint8_t prefix_code, uint32_t start, uint32_t count, DNP3PointList *);
 DNP3PointList *DNP3PointListAlloc(void);
 void DNP3FreeObjectPointList(int group, int variation, DNP3PointList *);
 

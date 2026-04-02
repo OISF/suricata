@@ -181,12 +181,12 @@ static uint16_t DNP3ComputeCRC(const uint8_t *buf, uint32_t len)
  *
  * \retval 1 if CRC is OK, otherwise 0.
  */
-static int DNP3CheckCRC(const uint8_t *block, uint32_t len)
+static int DNP3CheckCRC(const uint8_t *block, uint16_t len)
 {
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     return 1;
 #endif
-    uint32_t crc_offset;
+    uint16_t crc_offset;
     uint16_t crc;
 
     /* Need at least one byte plus the CRC. */
@@ -224,10 +224,10 @@ static int DNP3CheckLinkHeaderCRC(const DNP3LinkHeader *header)
  *
  * \retval 1 if CRCs are OK, otherwise 0.
  */
-static int DNP3CheckUserDataCRCs(const uint8_t *data, uint32_t len)
+static int DNP3CheckUserDataCRCs(const uint8_t *data, uint16_t len)
 {
-    uint32_t offset = 0;
-    uint32_t block_size;
+    uint16_t offset = 0;
+    uint16_t block_size;
 
     while (offset < len) {
         if (len - offset >= DNP3_BLOCK_SIZE + DNP3_CRC_LEN) {
@@ -336,7 +336,7 @@ static uint16_t DNP3ProbingParser(
  *
  * \retval The length of the buffer after CRCs are removed.
  */
-static int DNP3CalculateTransportLengthWithoutCRCs(uint32_t input_len)
+static int DNP3CalculateTransportLengthWithoutCRCs(uint16_t input_len)
 {
     /* Too small. */
     if (input_len < DNP3_CRC_LEN) {
@@ -379,8 +379,8 @@ static int DNP3CalculateTransportLengthWithoutCRCs(uint32_t input_len)
  *
  * \retval 1 if reassembly was successful, otherwise 0.
  */
-static int DNP3ReassembleApplicationLayer(const uint8_t *input,
-    uint32_t input_len, uint8_t **output, uint32_t *output_len)
+static int DNP3ReassembleApplicationLayer(
+        const uint8_t *input, uint16_t input_len, uint8_t **output, uint16_t *output_len)
 {
     int len = DNP3CalculateTransportLengthWithoutCRCs(input_len);
 
@@ -408,8 +408,8 @@ static int DNP3ReassembleApplicationLayer(const uint8_t *input,
         *output = ptr;
     }
 
-    int offset = 0, block_size;
-    while ((uint32_t)offset < input_len) {
+    uint16_t offset = 0, block_size;
+    while (offset < input_len) {
         if (input_len - offset > DNP3_BLOCK_SIZE + DNP3_CRC_LEN) {
             block_size = DNP3_BLOCK_SIZE + DNP3_CRC_LEN;
         }
@@ -536,9 +536,9 @@ static DNP3Transaction *DNP3TxAlloc(DNP3State *dnp3, bool request)
  * \retval The length of the frame with CRCs included or 0 if the length isn't
  *    long enough to be a valid DNP3 frame.
  */
-static uint32_t DNP3CalculateLinkLength(uint8_t length)
+static uint16_t DNP3CalculateLinkLength(uint8_t length)
 {
-    uint32_t frame_len = 0;
+    uint16_t frame_len = 0;
     int rem;
 
     /* Fail early if the length is less than the minimum size. */
@@ -703,8 +703,8 @@ static DNP3Object *DNP3ObjectAlloc(void)
  * \retval 1 if all objects decoded, 0 if all objects could not be decoded (
  *    unknown group/variations)
  */
-static int DNP3DecodeApplicationObjects(DNP3Transaction *tx, const uint8_t *buf,
-    uint32_t len, DNP3ObjectList *objects)
+static int DNP3DecodeApplicationObjects(
+        DNP3Transaction *tx, const uint8_t *buf, uint16_t len, DNP3ObjectList *objects)
 {
     int retval = 0;
     uint64_t point_count = 0;
@@ -715,7 +715,7 @@ static int DNP3DecodeApplicationObjects(DNP3Transaction *tx, const uint8_t *buf,
     }
 
     while (len) {
-        uint32_t offset = 0;
+        uint16_t offset = 0;
 
         if (len < sizeof(DNP3ObjHeader)) {
             goto done;
@@ -880,7 +880,7 @@ done:
  * \param input_len length of the input frame
  */
 static void DNP3HandleUserDataRequest(
-        Flow *f, DNP3State *dnp3, const uint8_t *input, uint32_t input_len)
+        Flow *f, DNP3State *dnp3, const uint8_t *input, uint16_t input_len)
 {
     DNP3LinkHeader *lh;
     DNP3TransportHeader th;
@@ -967,14 +967,14 @@ static void DNP3HandleUserDataRequest(
 }
 
 static void DNP3HandleUserDataResponse(
-        Flow *f, DNP3State *dnp3, const uint8_t *input, uint32_t input_len)
+        Flow *f, DNP3State *dnp3, const uint8_t *input, uint16_t input_len)
 {
     DNP3LinkHeader *lh;
     DNP3TransportHeader th;
     DNP3ApplicationHeader *ah;
     DNP3InternalInd *iin;
     DNP3Transaction *tx = NULL, *ttx;
-    uint32_t offset = 0;
+    uint16_t offset = 0;
 
     lh = (DNP3LinkHeader *)input;
     offset += sizeof(DNP3LinkHeader);
@@ -1073,7 +1073,7 @@ static int DNP3HandleRequestLinkLayer(
             goto error;
         }
 
-        uint32_t frame_len = DNP3CalculateLinkLength(header->len);
+        uint16_t frame_len = DNP3CalculateLinkLength(header->len);
         if (frame_len == 0) {
             DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_LEN_TOO_SMALL);
             goto error;
@@ -1209,7 +1209,7 @@ static int DNP3HandleResponseLinkLayer(
         }
 
         /* Calculate the number of bytes needed to for this frame. */
-        uint32_t frame_len = DNP3CalculateLinkLength(header->len);
+        uint16_t frame_len = DNP3CalculateLinkLength(header->len);
         if (frame_len == 0) {
             DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_LEN_TOO_SMALL);
             goto error;
@@ -1899,7 +1899,7 @@ static int DNP3ParserCheckLinkHeaderCRC(void)
  */
 static int DNP3ReassembleApplicationLayerTest01(void)
 {
-    uint32_t reassembled_len = 0;
+    uint16_t reassembled_len = 0;
     uint8_t *output = NULL;
 
     uint8_t payload[] = {

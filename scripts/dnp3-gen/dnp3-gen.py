@@ -337,7 +337,7 @@ def gen_object_decoders(context):
 
 {% for object in objects %}
 {% if object.packed %}
-static int DNP3DecodeObjectG{{object.group}}V{{object.variation}}(const uint8_t **buf, uint32_t *len,
+static int DNP3DecodeObjectG{{object.group}}V{{object.variation}}(const uint8_t **buf, uint16_t *len,
     uint8_t prefix_code, uint32_t start, uint32_t count,
     DNP3PointList *points)
 {
@@ -393,7 +393,7 @@ error:
 }
 
 {% else %}
-static int DNP3DecodeObjectG{{object.group}}V{{object.variation}}(const uint8_t **buf, uint32_t *len,
+static int DNP3DecodeObjectG{{object.group}}V{{object.variation}}(const uint8_t **buf, uint16_t *len,
     uint8_t prefix_code, uint32_t start, uint32_t count,
     DNP3PointList *points)
 {
@@ -614,7 +614,7 @@ void DNP3FreeObjectPoint(int group, int variation, void *point)
  *     to a DNP3 application layer event will be returned.
  */
 int DNP3DecodeObject(int group, int variation, const uint8_t **buf,
-    uint32_t *len, uint8_t prefix_code, uint32_t start,
+    uint16_t *len, uint8_t prefix_code, uint32_t start,
     uint32_t count, DNP3PointList *points)
 {
     int rc = 0;
