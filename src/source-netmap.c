@@ -678,7 +678,7 @@ static void NetmapProcessPacket(NetmapThreadVars *ntv, const struct nm_pkthdr *p
     }
 
     PKT_SET_SRC(p, PKT_SRC_WIRE);
-    p->livedev = ntv->livedev;
+    p->livedev_id = ntv->livedev->id;
     p->datalink = LINKTYPE_ETHERNET;
     p->ts = SCTIME_FROM_TIMEVAL(&ph->ts);
     ntv->pkts++;
