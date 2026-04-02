@@ -550,11 +550,11 @@ void PacketBypassCallback(Packet *p)
 
         FlowBypassInfo *fc;
 
-        fc = FlowGetStorageById(p->flow, GetFlowBypassInfoID());
+        fc = SCFlowGetStorageById(p->flow, GetFlowBypassInfoID());
         if (fc == NULL) {
             fc = SCCalloc(sizeof(FlowBypassInfo), 1);
             if (fc) {
-                FlowSetStorageById(p->flow, GetFlowBypassInfoID(), fc);
+                SCFlowSetStorageById(p->flow, GetFlowBypassInfoID(), fc);
             } else {
                 return;
             }

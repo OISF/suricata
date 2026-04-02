@@ -2200,7 +2200,7 @@ static int AFPInsertHalfFlow(int mapd, void *key, unsigned int nr_cpus)
 static int AFPSetFlowStorage(Packet *p, int map_fd, void *key0, void* key1,
                              int family)
 {
-    FlowBypassInfo *fc = FlowGetStorageById(p->flow, GetFlowBypassInfoID());
+    FlowBypassInfo *fc = SCFlowGetStorageById(p->flow, GetFlowBypassInfoID());
     if (fc) {
         if (fc->bypass_data != NULL) {
             // bypass already activated

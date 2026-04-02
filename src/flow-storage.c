@@ -32,36 +32,36 @@
 #include "util-storage.h"
 #include "util-unittest.h"
 
-unsigned int FlowStorageSize(void)
+unsigned int SCFlowStorageSize(void)
 {
     return StorageGetSize(STORAGE_FLOW);
 }
 
-void *FlowGetStorageById(const Flow *f, FlowStorageId id)
+void *SCFlowGetStorageById(const Flow *f, SCFlowStorageId id)
 {
     return StorageGetById(f->storage, STORAGE_FLOW, id.id);
 }
 
-int FlowSetStorageById(Flow *f, FlowStorageId id, void *ptr)
+int SCFlowSetStorageById(Flow *f, SCFlowStorageId id, void *ptr)
 {
     return StorageSetById(f->storage, STORAGE_FLOW, id.id, ptr);
 }
 
-void FlowFreeStorageById(Flow *f, FlowStorageId id)
+void SCFlowFreeStorageById(Flow *f, SCFlowStorageId id)
 {
     StorageFreeById(f->storage, STORAGE_FLOW, id.id);
 }
 
-void FlowFreeStorage(Flow *f)
+void SCFlowFreeStorage(Flow *f)
 {
-    if (FlowStorageSize() > 0)
+    if (SCFlowStorageSize() > 0)
         StorageFreeAll(f->storage, STORAGE_FLOW);
 }
 
-FlowStorageId FlowStorageRegister(const char *name, void (*Free)(void *))
+SCFlowStorageId SCFlowStorageRegister(const char *name, void (*Free)(void *))
 {
     int id = StorageRegister(STORAGE_FLOW, name, Free);
-    FlowStorageId fsi = { .id = id };
+    SCFlowStorageId fsi = { .id = id };
     return fsi;
 }
 
@@ -78,11 +78,11 @@ static int FlowStorageTest01(void)
     StorageCleanup();
     StorageInit();
 
-    FlowStorageId id1 = FlowStorageRegister("test", StorageTestFree);
+    SCFlowStorageId id1 = SCFlowStorageRegister("test", StorageTestFree);
     FAIL_IF(id1.id < 0);
-    FlowStorageId id2 = FlowStorageRegister("variable", StorageTestFree);
+    SCFlowStorageId id2 = SCFlowStorageRegister("variable", StorageTestFree);
     FAIL_IF(id2.id < 0);
-    FlowStorageId id3 = FlowStorageRegister("store", StorageTestFree);
+    SCFlowStorageId id3 = SCFlowStorageRegister("store", StorageTestFree);
     FAIL_IF(id3.id < 0);
 
     FAIL_IF(StorageFinalize() < 0);
@@ -92,28 +92,28 @@ static int FlowStorageTest01(void)
     Flow *f = FlowAlloc();
     FAIL_IF_NULL(f);
 
-    void *ptr = FlowGetStorageById(f, id1);
+    void *ptr = SCFlowGetStorageById(f, id1);
     FAIL_IF_NOT_NULL(ptr);
-    ptr = FlowGetStorageById(f, id2);
+    ptr = SCFlowGetStorageById(f, id2);
     FAIL_IF_NOT_NULL(ptr);
-    ptr = FlowGetStorageById(f, id3);
+    ptr = SCFlowGetStorageById(f, id3);
     FAIL_IF_NOT_NULL(ptr);
 
     void *ptr1a = SCMalloc(8);
     FAIL_IF_NULL(ptr1a);
-    FAIL_IF(FlowSetStorageById(f, id1, ptr1a) != 0);
+    FAIL_IF(SCFlowSetStorageById(f, id1, ptr1a) != 0);
     void *ptr2a = SCMalloc(24);
     FAIL_IF_NULL(ptr2a);
-    FAIL_IF(FlowSetStorageById(f, id2, ptr2a) != 0);
+    FAIL_IF(SCFlowSetStorageById(f, id2, ptr2a) != 0);
     void *ptr3a = SCMalloc(16);
     FAIL_IF_NULL(ptr3a);
-    FAIL_IF(FlowSetStorageById(f, id3, ptr3a) != 0);
+    FAIL_IF(SCFlowSetStorageById(f, id3, ptr3a) != 0);
 
-    void *ptr1b = FlowGetStorageById(f, id1);
+    void *ptr1b = SCFlowGetStorageById(f, id1);
     FAIL_IF(ptr1a != ptr1b);
-    void *ptr2b = FlowGetStorageById(f, id2);
+    void *ptr2b = SCFlowGetStorageById(f, id2);
     FAIL_IF(ptr2a != ptr2b);
-    void *ptr3b = FlowGetStorageById(f, id3);
+    void *ptr3b = SCFlowGetStorageById(f, id3);
     FAIL_IF(ptr3a != ptr3b);
 
     FlowClearMemory(f, 0);
@@ -128,7 +128,7 @@ static int FlowStorageTest02(void)
     StorageCleanup();
     StorageInit();
 
-    FlowStorageId id1 = FlowStorageRegister("test", StorageTestFree);
+    SCFlowStorageId id1 = SCFlowStorageRegister("test", StorageTestFree);
     FAIL_IF(id1.id < 0);
 
     FAIL_IF(StorageFinalize() < 0);
@@ -137,14 +137,14 @@ static int FlowStorageTest02(void)
     Flow *f = FlowAlloc();
     FAIL_IF_NULL(f);
 
-    void *ptr = FlowGetStorageById(f, id1);
+    void *ptr = SCFlowGetStorageById(f, id1);
     FAIL_IF_NOT_NULL(ptr);
 
     void *ptr1a = SCMalloc(128);
     FAIL_IF_NULL(ptr1a);
-    FlowSetStorageById(f, id1, ptr1a);
+    SCFlowSetStorageById(f, id1, ptr1a);
 
-    void *ptr1b = FlowGetStorageById(f, id1);
+    void *ptr1b = SCFlowGetStorageById(f, id1);
     FAIL_IF(ptr1a != ptr1b);
 
     FlowClearMemory(f, 0);
@@ -159,11 +159,11 @@ static int FlowStorageTest03(void)
     StorageCleanup();
     StorageInit();
 
-    FlowStorageId id1 = FlowStorageRegister("test1", StorageTestFree);
+    SCFlowStorageId id1 = SCFlowStorageRegister("test1", StorageTestFree);
     FAIL_IF(id1.id < 0);
-    FlowStorageId id2 = FlowStorageRegister("test2", StorageTestFree);
+    SCFlowStorageId id2 = SCFlowStorageRegister("test2", StorageTestFree);
     FAIL_IF(id2.id < 0);
-    FlowStorageId id3 = FlowStorageRegister("test3", StorageTestFree);
+    SCFlowStorageId id3 = SCFlowStorageRegister("test3", StorageTestFree);
     FAIL_IF(id3.id < 0);
 
     FAIL_IF(StorageFinalize() < 0);
@@ -172,26 +172,26 @@ static int FlowStorageTest03(void)
     Flow *f = FlowAlloc();
     FAIL_IF_NULL(f);
 
-    void *ptr = FlowGetStorageById(f, id1);
+    void *ptr = SCFlowGetStorageById(f, id1);
     FAIL_IF_NOT_NULL(ptr);
 
     void *ptr1a = SCMalloc(128);
     FAIL_IF_NULL(ptr1a);
-    FlowSetStorageById(f, id1, ptr1a);
+    SCFlowSetStorageById(f, id1, ptr1a);
 
     void *ptr2a = SCMalloc(256);
     FAIL_IF_NULL(ptr2a);
-    FlowSetStorageById(f, id2, ptr2a);
+    SCFlowSetStorageById(f, id2, ptr2a);
 
     void *ptr3a = SCMalloc(32);
     FAIL_IF_NULL(ptr3a);
-    FlowSetStorageById(f, id3, ptr3a);
+    SCFlowSetStorageById(f, id3, ptr3a);
 
-    void *ptr1b = FlowGetStorageById(f, id1);
+    void *ptr1b = SCFlowGetStorageById(f, id1);
     FAIL_IF(ptr1a != ptr1b);
-    void *ptr2b = FlowGetStorageById(f, id2);
+    void *ptr2b = SCFlowGetStorageById(f, id2);
     FAIL_IF(ptr2a != ptr2b);
-    void *ptr3b = FlowGetStorageById(f, id3);
+    void *ptr3b = SCFlowGetStorageById(f, id3);
     FAIL_IF(ptr3a != ptr3b);
 
     FlowClearMemory(f, 0);
@@ -202,7 +202,7 @@ static int FlowStorageTest03(void)
 }
 #endif
 
-void RegisterFlowStorageTests(void)
+void SCRegisterFlowStorageTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("FlowStorageTest01", FlowStorageTest01);

@@ -56,7 +56,7 @@ struct MacSet_ {
     int size, last[2];
 };
 
-FlowStorageId g_macset_storage_id = { .id = -1 };
+SCFlowStorageId g_macset_storage_id = { .id = -1 };
 
 void MacSetRegisterFlowStorage(void)
 {
@@ -73,7 +73,7 @@ void MacSetRegisterFlowStorage(void)
                             SCConfNodeLookupChildValue(node->head.tqh_first, "ethernet");
                     if (ethernet != NULL && SCConfValIsTrue(ethernet)) {
                         g_macset_storage_id =
-                                FlowStorageRegister("macset", (void (*)(void *))MacSetFree);
+                                SCFlowStorageRegister("macset", (void (*)(void *))MacSetFree);
                         return;
                     }
                 }
@@ -110,7 +110,7 @@ MacSet *MacSetInit(int size)
     return ms;
 }
 
-FlowStorageId MacSetGetFlowStorageID(void)
+SCFlowStorageId MacSetGetFlowStorageID(void)
 {
     return g_macset_storage_id;
 }

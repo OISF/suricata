@@ -47,7 +47,7 @@ SC_ATOMIC_DECLARE(unsigned int, num_tags);  /**< Atomic counter, to know if we
                                                  have tagged hosts/sessions,
                                                  to avoid locking */
 static HostStorageId host_tag_id = { .id = -1 }; /**< Host storage id for tags */
-static FlowStorageId flow_tag_id = { .id = -1 }; /**< Flow storage id for tags */
+static SCFlowStorageId flow_tag_id = { .id = -1 }; /**< Flow storage id for tags */
 
 void TagInitCtx(void)
 {
@@ -57,7 +57,7 @@ void TagInitCtx(void)
     if (host_tag_id.id == -1) {
         FatalError("Can't initiate host storage for tag");
     }
-    flow_tag_id = FlowStorageRegister("tag", DetectTagDataListFree);
+    flow_tag_id = SCFlowStorageRegister("tag", DetectTagDataListFree);
     if (flow_tag_id.id == -1) {
         FatalError("Can't initiate flow storage for tag");
     }
@@ -121,7 +121,7 @@ int TagFlowAdd(Packet *p, DetectTagDataEntry *tde)
     if (p->flow == NULL)
         return 1;
 
-    iter = FlowGetStorageById(p->flow, flow_tag_id);
+    iter = SCFlowGetStorageById(p->flow, flow_tag_id);
     if (iter != NULL) {
         /* First iterate installed entries searching a duplicated sid/gid */
         for (; iter != NULL; iter = iter->next) {
@@ -148,8 +148,8 @@ int TagFlowAdd(Packet *p, DetectTagDataEntry *tde)
     if (updated == 0 && tag_cnt < DETECT_TAG_MAX_TAGS) {
         DetectTagDataEntry *new_tde = DetectTagDataCopy(tde);
         if (new_tde != NULL) {
-            new_tde->next = FlowGetStorageById(p->flow, flow_tag_id);
-            FlowSetStorageById(p->flow, flow_tag_id, new_tde);
+            new_tde->next = SCFlowGetStorageById(p->flow, flow_tag_id);
+            SCFlowSetStorageById(p->flow, flow_tag_id, new_tde);
             SCLogDebug(
                     "adding tag with first_ts %" PRIu64, (uint64_t)SCTIME_SECS(new_tde->first_ts));
             (void) SC_ATOMIC_ADD(num_tags, 1);
@@ -245,12 +245,12 @@ int TagHashAddTag(DetectTagDataEntry *tde, Packet *p)
 
 static void TagHandlePacketFlow(Flow *f, Packet *p)
 {
-    if (FlowGetStorageById(f, flow_tag_id) == NULL)
+    if (SCFlowGetStorageById(f, flow_tag_id) == NULL)
         return;
 
     DetectTagDataEntry *tde = NULL;
     DetectTagDataEntry *prev = NULL;
-    DetectTagDataEntry *iter = FlowGetStorageById(f, flow_tag_id);
+    DetectTagDataEntry *iter = SCFlowGetStorageById(f, flow_tag_id);
     uint8_t flag_added = 0;
 
     while (iter != NULL) {
@@ -286,7 +286,7 @@ static void TagHandlePacketFlow(Flow *f, Packet *p)
                             (void) SC_ATOMIC_SUB(num_tags, 1);
                             continue;
                         } else {
-                            FlowSetStorageById(p->flow, flow_tag_id, iter->next);
+                            SCFlowSetStorageById(p->flow, flow_tag_id, iter->next);
                             tde = iter;
                             iter = iter->next;
                             SCFree(tde);
@@ -313,7 +313,7 @@ static void TagHandlePacketFlow(Flow *f, Packet *p)
                             (void) SC_ATOMIC_SUB(num_tags, 1);
                             continue;
                         } else {
-                            FlowSetStorageById(p->flow, flow_tag_id, iter->next);
+                            SCFlowSetStorageById(p->flow, flow_tag_id, iter->next);
                             tde = iter;
                             iter = iter->next;
                             SCFree(tde);
@@ -347,7 +347,7 @@ static void TagHandlePacketFlow(Flow *f, Packet *p)
                             (void) SC_ATOMIC_SUB(num_tags, 1);
                             continue;
                         } else {
-                            FlowSetStorageById(p->flow, flow_tag_id, iter->next);
+                            SCFlowSetStorageById(p->flow, flow_tag_id, iter->next);
                             tde = iter;
                             iter = iter->next;
                             SCFree(tde);

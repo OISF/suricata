@@ -30,7 +30,7 @@ void AppLayerExpectationSetup(void);
 int AppLayerExpectationCreate(Flow *f, int direction, Port src, Port dst,
                               AppProto alproto, void *data);
 AppProto AppLayerExpectationHandle(Flow *f, uint8_t flags);
-FlowStorageId AppLayerExpectationGetFlowId(void);
+SCFlowStorageId AppLayerExpectationGetFlowId(void);
 
 void AppLayerExpectationClean(Flow *f);
 

@@ -201,7 +201,7 @@ void EveAddAppProto(Flow *f, SCJsonBuilder *js)
 
 void EveAddFlow(Flow *f, SCJsonBuilder *js)
 {
-    FlowBypassInfo *fc = FlowGetStorageById(f, GetFlowBypassInfoID());
+    FlowBypassInfo *fc = SCFlowGetStorageById(f, GetFlowBypassInfoID());
     if (fc) {
         SCJbSetUint(js, "pkts_toserver", f->todstpktcnt + fc->todstpktcnt);
         SCJbSetUint(js, "pkts_toclient", f->tosrcpktcnt + fc->tosrcpktcnt);

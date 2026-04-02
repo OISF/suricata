@@ -38,7 +38,7 @@
  * AppLayerExpectationGetDataId():
  *
  * ```
- * data = (char *)FlowGetStorageById(f, AppLayerExpectationGetFlowId());
+ * data = (char *)SCFlowGetStorageById(f, AppLayerExpectationGetFlowId());
  * ```
  * This storage can be used to store information that are only available in the
  * parent connection and could be useful in the parent connection. For instance
@@ -63,7 +63,7 @@
 #include "util-print.h"
 
 static IPPairStorageId g_ippair_expectation_id = { .id = -1 };
-static FlowStorageId g_flow_expectation_id = { .id = -1 };
+static SCFlowStorageId g_flow_expectation_id = { .id = -1 };
 
 SC_ATOMIC_DECLARE(uint32_t, expectation_count);
 
@@ -146,7 +146,7 @@ uint64_t ExpectationGetCounter(void)
 void AppLayerExpectationSetup(void)
 {
     g_ippair_expectation_id = IPPairStorageRegister("expectation", ExpectationListFree);
-    g_flow_expectation_id = FlowStorageRegister("expectation", ExpectationDataFree);
+    g_flow_expectation_id = SCFlowStorageRegister("expectation", ExpectationDataFree);
     SC_ATOMIC_INIT(expectation_count);
 }
 
@@ -283,7 +283,7 @@ error:
  *
  * \return expectation data identifier
  */
-FlowStorageId AppLayerExpectationGetFlowId(void)
+SCFlowStorageId AppLayerExpectationGetFlowId(void)
 {
     return g_flow_expectation_id;
 }
@@ -325,13 +325,13 @@ AppProto AppLayerExpectationHandle(Flow *f, uint8_t flags)
             if (f->alproto_tc == ALPROTO_UNKNOWN) {
                 f->alproto_tc = alproto;
             }
-            void *fdata = FlowGetStorageById(f, g_flow_expectation_id);
+            void *fdata = SCFlowGetStorageById(f, g_flow_expectation_id);
             if (fdata) {
                 /* We already have an expectation so let's clean this one */
                 ExpectationDataFree(exp->data);
             } else {
                 /* Transfer ownership of Expectation data to the Flow */
-                if (FlowSetStorageById(f, g_flow_expectation_id, exp->data) != 0) {
+                if (SCFlowSetStorageById(f, g_flow_expectation_id, exp->data) != 0) {
                     SCLogDebug("Unable to set flow storage");
                 }
             }

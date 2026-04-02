@@ -1021,7 +1021,7 @@ static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
     SCLogDebug("FTP-DATA flags %04x dir %d", flags, direction);
     if (input_len && ftpdata_state->files == NULL) {
         FtpTransferCmd *data =
-                (FtpTransferCmd *)FlowGetStorageById(f, AppLayerExpectationGetFlowId());
+                (FtpTransferCmd *)SCFlowGetStorageById(f, AppLayerExpectationGetFlowId());
         if (data == NULL) {
             SCReturnStruct(APP_LAYER_ERROR);
         }
@@ -1038,7 +1038,7 @@ static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
 
         ftpdata_state->files = FileContainerAlloc();
         if (ftpdata_state->files == NULL) {
-            FlowFreeStorageById(f, AppLayerExpectationGetFlowId());
+            SCFlowFreeStorageById(f, AppLayerExpectationGetFlowId());
             SCReturnStruct(APP_LAYER_ERROR);
         }
 
@@ -1072,7 +1072,7 @@ static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
             SCLogDebug("Can't open file");
             ret = -1;
         }
-        FlowFreeStorageById(f, AppLayerExpectationGetFlowId());
+        SCFlowFreeStorageById(f, AppLayerExpectationGetFlowId());
         ftpdata_state->tx_data.files_opened = 1;
     } else {
         if (ftpdata_state->state == FTPDATA_STATE_FINISHED) {

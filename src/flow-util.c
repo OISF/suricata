@@ -56,7 +56,7 @@
 Flow *FlowAlloc(void)
 {
     Flow *f;
-    size_t size = sizeof(Flow) + FlowStorageSize();
+    size_t size = sizeof(Flow) + SCFlowStorageSize();
 
     if (!(FLOW_CHECK_MEMCAP(size))) {
         return NULL;
@@ -86,7 +86,7 @@ void FlowFree(Flow *f)
     FLOW_DESTROY(f);
     SCFree(f);
 
-    size_t size = sizeof(Flow) + FlowStorageSize();
+    size_t size = sizeof(Flow) + SCFlowStorageSize();
     (void) SC_ATOMIC_SUB(flow_memuse, size);
 }
 
@@ -201,15 +201,15 @@ void FlowInit(ThreadVars *tv, Flow *f, const Packet *p)
     f->timeout_policy = FlowGetTimeoutPolicy(f);
 
     if (MacSetFlowStorageEnabled()) {
-        DEBUG_VALIDATE_BUG_ON(FlowGetStorageById(f, MacSetGetFlowStorageID()) != NULL);
+        DEBUG_VALIDATE_BUG_ON(SCFlowGetStorageById(f, MacSetGetFlowStorageID()) != NULL);
         MacSet *ms = MacSetInit(10);
-        FlowSetStorageById(f, MacSetGetFlowStorageID(), ms);
+        SCFlowSetStorageById(f, MacSetGetFlowStorageID(), ms);
     }
 
     if (FlowRateStorageEnabled()) {
-        DEBUG_VALIDATE_BUG_ON(FlowGetStorageById(f, FlowRateGetStorageID()) != NULL);
+        DEBUG_VALIDATE_BUG_ON(SCFlowGetStorageById(f, FlowRateGetStorageID()) != NULL);
         FlowRateStore *frs = FlowRateStoreInit();
-        FlowSetStorageById(f, FlowRateGetStorageID(), frs);
+        SCFlowSetStorageById(f, FlowRateGetStorageID(), frs);
     }
 
     SCFlowRunInitCallbacks(tv, f, p);
@@ -217,9 +217,9 @@ void FlowInit(ThreadVars *tv, Flow *f, const Packet *p)
     SCReturn;
 }
 
-FlowStorageId g_bypass_info_id = { .id = -1 };
+SCFlowStorageId g_bypass_info_id = { .id = -1 };
 
-FlowStorageId GetFlowBypassInfoID(void)
+SCFlowStorageId GetFlowBypassInfoID(void)
 {
     return g_bypass_info_id;
 }
@@ -239,7 +239,7 @@ static void FlowBypassFree(void *x)
 
 void RegisterFlowBypassInfo(void)
 {
-    g_bypass_info_id = FlowStorageRegister("bypass_counters", FlowBypassFree);
+    g_bypass_info_id = SCFlowStorageRegister("bypass_counters", FlowBypassFree);
 }
 
 void FlowEndCountersRegister(ThreadVars *t, FlowEndCounters *fec)

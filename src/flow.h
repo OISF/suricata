@@ -25,7 +25,7 @@
 #define SURICATA_FLOW_H
 
 /* forward declaration for macset include */
-typedef struct FlowStorageId FlowStorageId;
+typedef struct SCFlowStorageId SCFlowStorageId;
 
 #include "decode.h"
 #include "util-time.h"
@@ -572,7 +572,7 @@ uint64_t FlowGetMemcap(void);
 uint64_t FlowGetMemuse(void);
 enum ExceptionPolicy FlowGetMemcapExceptionPolicy(void);
 
-FlowStorageId GetFlowBypassInfoID(void);
+SCFlowStorageId GetFlowBypassInfoID(void);
 void RegisterFlowBypassInfo(void);
 
 /** ----- Inline functions ----- */

@@ -238,7 +238,7 @@ static inline bool FlowBypassedTimeout(Flow *f, SCTime_t ts, FlowTimeoutCounters
         return true;
     }
 
-    FlowBypassInfo *fc = FlowGetStorageById(f, GetFlowBypassInfoID());
+    FlowBypassInfo *fc = SCFlowGetStorageById(f, GetFlowBypassInfoID());
     if (fc && fc->BypassUpdate) {
         /* flow will be possibly updated */
         uint64_t pkts_tosrc = fc->tosrcpktcnt;
