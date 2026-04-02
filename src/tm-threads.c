@@ -948,7 +948,7 @@ ThreadVars *TmThreadCreate(const char *name, const char *inq_name, const char *i
     SCLogDebug("creating thread \"%s\"...", name);
 
     /* XXX create separate function for this: allocate a thread container */
-    tv = SCCalloc(1, sizeof(ThreadVars) + ThreadStorageSize());
+    tv = SCCalloc(1, sizeof(ThreadVars) + SCThreadStorageSize());
     if (unlikely(tv == NULL))
         goto error;
 
@@ -1642,7 +1642,7 @@ static void TmThreadFree(ThreadVars *tv)
 
     SCLogDebug("Freeing thread '%s'.", tv->name);
 
-    ThreadFreeStorage(tv);
+    SCThreadFreeStorage(tv);
 
     if (tv->flow_queue) {
         BUG_ON(tv->flow_queue->qlen != 0);

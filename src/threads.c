@@ -147,6 +147,6 @@ void ThreadMacrosRegisterTests(void)
     UtRegisterTest("ThreadMacrosTest03RWLocks", ThreadMacrosTest03RWLocks);
     UtRegisterTest("ThreadMacrosTest04RWLocks", ThreadMacrosTest04RWLocks);
 //    UtRegisterTest("ThreadMacrosTest05RWLocks", ThreadMacrosTest05RWLocks);
-    RegisterThreadStorageTests();
+    SCRegisterThreadStorageTests();
 #endif /* UNIT TESTS */
 }
