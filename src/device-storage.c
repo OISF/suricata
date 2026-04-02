@@ -67,7 +67,7 @@ LiveDevStorageId LiveDevStorageRegister(const char *name, void (*Free)(void *))
  * \brief Store a pointer in a given LiveDevice storage
  *
  * \param d a pointer to the LiveDevice
- * \param id the id of the storage (return of HostStorageRegister() call)
+ * \param id the id of the storage (return of SCHostStorageRegister() call)
  * \param ptr pointer to the data to store
  */
 

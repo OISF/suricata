@@ -38,7 +38,7 @@
 #include "util-unittest.h"
 #include "host-storage.h"
 
-static HostStorageId host_bit_id = { .id = -1 }; /**< Host storage id for bits */
+static SCHostStorageId host_bit_id = { .id = -1 }; /**< Host storage id for bits */
 
 static void HostBitFreeAll(void *store)
 {
@@ -48,7 +48,7 @@ static void HostBitFreeAll(void *store)
 
 void HostBitInitCtx(void)
 {
-    host_bit_id = HostStorageRegister("bit", HostBitFreeAll);
+    host_bit_id = SCHostStorageRegister("bit", HostBitFreeAll);
     if (host_bit_id.id == -1) {
         FatalError("Can't initiate host storage for bits");
     }
@@ -59,14 +59,14 @@ int HostHasHostBits(Host *host)
 {
     if (host == NULL)
         return 0;
-    return HostGetStorageById(host, host_bit_id) ? 1 : 0;
+    return SCHostGetStorageById(host, host_bit_id) ? 1 : 0;
 }
 
 /** \retval 1 host timed out wrt xbits
   * \retval 0 host still has active (non-expired) xbits */
 int HostBitsTimedoutCheck(Host *h, SCTime_t ts)
 {
-    GenericVar *gv = HostGetStorageById(h, host_bit_id);
+    GenericVar *gv = SCHostGetStorageById(h, host_bit_id);
     for ( ; gv != NULL; gv = gv->next) {
         if (gv->type == DETECT_XBITS) {
             XBit *xb = (XBit *)gv;
@@ -80,7 +80,7 @@ int HostBitsTimedoutCheck(Host *h, SCTime_t ts)
 /* get the bit with idx from the host */
 static XBit *HostBitGet(Host *h, uint32_t idx)
 {
-    GenericVar *gv = HostGetStorageById(h, host_bit_id);
+    GenericVar *gv = SCHostGetStorageById(h, host_bit_id);
     for ( ; gv != NULL; gv = gv->next) {
         if (gv->type == DETECT_XBITS && gv->idx == idx) {
             return (XBit *)gv;
@@ -104,11 +104,11 @@ static void HostBitAdd(Host *h, uint32_t idx, SCTime_t expire)
         fb->next = NULL;
         fb->expire = expire;
 
-        GenericVar *gv = HostGetStorageById(h, host_bit_id);
+        GenericVar *gv = SCHostGetStorageById(h, host_bit_id);
         GenericVarAppend(&gv, (GenericVar *)fb);
-        HostSetStorageById(h, host_bit_id, gv);
+        SCHostSetStorageById(h, host_bit_id, gv);
 
-    // bit already set, lets update it's time
+        // bit already set, lets update it's time
     } else {
         fb->expire = expire;
     }
@@ -120,11 +120,11 @@ static void HostBitRemove(Host *h, uint32_t idx)
     if (fb == NULL)
         return;
 
-    GenericVar *gv = HostGetStorageById(h, host_bit_id);
+    GenericVar *gv = SCHostGetStorageById(h, host_bit_id);
     if (gv) {
         GenericVarRemove(&gv, (GenericVar *)fb);
         XBitFree(fb);
-        HostSetStorageById(h, host_bit_id, gv);
+        SCHostSetStorageById(h, host_bit_id, gv);
     }
 }
 
@@ -185,7 +185,7 @@ int HostBitList(Host *h, XBit **iter)
 {
     GenericVar *gv = (GenericVar *)*iter;
     if (gv == NULL) {
-        gv = HostGetStorageById(h, host_bit_id);
+        gv = SCHostGetStorageById(h, host_bit_id);
     } else {
         gv = gv->next;
     }
