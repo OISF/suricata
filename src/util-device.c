@@ -1,4 +1,4 @@
-/* Copyright (C) 2011-2021 Open Information Security Foundation
+/* Copyright (C) 2011-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -68,7 +68,7 @@ typedef struct BypassInfo_ {
 /** if set to 0 when we don't have real devices */
 static int live_devices_stats = 1;
 
-
+static void LiveDeviceFreeArray(void);
 static int LiveSafeDeviceName(const char *devname,
                               char *newdevname, size_t destlen);
 
@@ -334,6 +334,7 @@ void LiveDeviceHasNoStats(void)
 int LiveDeviceListClean(void)
 {
     SCEnter();
+    LiveDeviceFreeArray();
     LiveDevice *pd, *tpd;
 
     /* dpdk: need to close all devices before freeing them. */
@@ -437,6 +438,24 @@ TmEcode LiveDeviceIfaceList(json_t *cmd, json_t *answer, void *data)
 
 #endif /* BUILD_UNIX_SOCKET */
 
+static LiveDevice **g_livedev_array = NULL;
+static int g_livedev_array_size = 0;
+
+static void LiveDeviceFreeArray(void)
+{
+    if (g_livedev_array)
+        SCFree(g_livedev_array);
+    g_livedev_array_size = 0;
+}
+
+LiveDevice *LiveDeviceGetById(const int id)
+{
+    if (g_livedev_array != NULL && id < g_livedev_array_size) {
+        return g_livedev_array[id];
+    }
+    return NULL;
+}
+
 LiveDevice *LiveDeviceForEach(LiveDevice **ldev, LiveDevice **ndev)
 {
     if (*ldev == NULL) {
@@ -451,6 +470,24 @@ LiveDevice *LiveDeviceForEach(LiveDevice **ldev, LiveDevice **ndev)
         return *ldev;
     }
     return NULL;
+}
+
+static void LiveDeviceFinalizeBuildArray(void)
+{
+    BUG_ON(g_livedev_array);
+    int max_id = LiveGetDeviceCount();
+    if (max_id <= 0)
+        return;
+
+    g_livedev_array = SCCalloc(max_id + 1, sizeof(LiveDevice *));
+    if (g_livedev_array == NULL)
+        FatalError("failed to alloc livedev array");
+    g_livedev_array_size = max_id + 1;
+
+    LiveDevice *ldev = NULL, *ndev = NULL;
+    while (LiveDeviceForEach(&ldev, &ndev)) {
+        g_livedev_array[ldev->id] = ldev;
+    }
 }
 
 /**
@@ -471,6 +508,7 @@ void LiveDeviceFinalize(void)
         }
         SCFree(ld);
     }
+    LiveDeviceFinalizeBuildArray();
 }
 
 static void LiveDevExtensionFree(void *x)
