@@ -185,7 +185,7 @@ static inline void PfringProcessPacket(void *user, struct pfring_pkthdr *h, Pack
 
     ptv->bytes += h->caplen;
     ptv->pkts++;
-    p->livedev = ptv->livedev;
+    p->livedev_id = LiveDeviceGetId(ptv->livedev);
 
     /* PF_RING may fail to set timestamp */
     if (h->ts.tv_sec == 0) {

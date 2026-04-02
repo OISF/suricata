@@ -619,7 +619,7 @@ typedef struct Packet_
     uint8_t *ext_pkt;
 
     /* Incoming interface */
-    struct LiveDevice_ *livedev;
+    uint16_t livedev_id;
 
     PacketAlerts alerts;
 

@@ -5909,8 +5909,9 @@ static inline int StreamTcpValidateChecksum(Packet *p)
 
     if (p->l4.csum != 0) {
         ret = 0;
-        if (p->livedev) {
-            (void) SC_ATOMIC_ADD(p->livedev->invalid_checksums, 1);
+        LiveDevice *dev = LiveDeviceGetById(p->livedev_id);
+        if (dev) {
+            (void)SC_ATOMIC_ADD(dev->invalid_checksums, 1);
         } else if (PcapPacketCntGet(p)) {
             PcapIncreaseInvalidChecksum();
         }
@@ -6935,7 +6936,7 @@ static void StreamTcpPseudoPacketCreateDetectLogFlush(ThreadVars *tv,
     np->flags |= PKT_PSEUDO_DETECTLOG_FLUSH;
     memcpy(&np->vlan_id[0], &f->vlan_id[0], sizeof(np->vlan_id));
     np->vlan_idx = f->vlan_idx;
-    np->livedev = LiveDeviceGetById(f->livedev_id);
+    np->livedev_id = f->livedev_id;
 
     if (parent->flags & PKT_NOPACKET_INSPECTION) {
         DecodeSetNoPacketInspectionFlag(np);

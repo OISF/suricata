@@ -839,8 +839,9 @@ SCJsonBuilder *CreateEveHeader(const Packet *p, enum SCOutputJsonLogDirection di
     }
 
     /* input interface */
-    if (p->livedev) {
-        SCJbSetString(js, "in_iface", p->livedev->dev);
+    LiveDevice *dev = LiveDeviceGetById(p->livedev_id);
+    if (dev) {
+        SCJbSetString(js, "in_iface", dev->dev);
     }
 
     /* pcap_cnt */
