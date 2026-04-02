@@ -767,7 +767,7 @@ static void AFPReadFromRingSetupPacket(
      * acts as an indicator that we've reached a frame that is not yet released by
      * us in autofp mode. It will be cleared when the frame gets released to the kernel. */
     h.h2->tp_status |= TP_STATUS_USER_BUSY;
-    p->livedev = ptv->livedev;
+    p->livedev_id = ptv->livedev->id;
     p->datalink = ptv->datalink;
     ptv->pkts++;
 
@@ -966,7 +966,7 @@ static inline int AFPParsePacketV3(AFPThreadVars *ptv, struct tpacket_block_desc
     AFPReadApplyBypass(ptv, p);
 
     ptv->pkts++;
-    p->livedev = ptv->livedev;
+    p->livedev_id = ptv->livedev->id;
     p->datalink = ptv->datalink;
 
     if ((ptv->flags & AFP_VLAN_IN_HEADER) &&
@@ -2200,6 +2200,7 @@ static int AFPInsertHalfFlow(int mapd, void *key, unsigned int nr_cpus)
 static int AFPSetFlowStorage(Packet *p, int map_fd, void *key0, void* key1,
                              int family)
 {
+    LiveDevice *dev = LiveDeviceGetById(p->livedev_id);
     FlowBypassInfo *fc = FlowGetStorageById(p->flow, GetFlowBypassInfoID());
     if (fc) {
         if (fc->bypass_data != NULL) {
@@ -2212,7 +2213,7 @@ static int AFPSetFlowStorage(Packet *p, int map_fd, void *key0, void* key1,
         if (eb == NULL) {
             EBPFDeleteKey(map_fd, key0);
             EBPFDeleteKey(map_fd, key1);
-            LiveDevAddBypassFail(p->livedev, 1, family);
+            LiveDevAddBypassFail(dev, 1, family);
             SCFree(key0);
             SCFree(key1);
             return 0;
@@ -2227,14 +2228,14 @@ static int AFPSetFlowStorage(Packet *p, int map_fd, void *key0, void* key1,
     } else {
         EBPFDeleteKey(map_fd, key0);
         EBPFDeleteKey(map_fd, key1);
-        LiveDevAddBypassFail(p->livedev, 1, family);
+        LiveDevAddBypassFail(dev, 1, family);
         SCFree(key0);
         SCFree(key1);
         return 0;
     }
 
-    LiveDevAddBypassStats(p->livedev, 1, family);
-    LiveDevAddBypassSuccess(p->livedev, 1, family);
+    LiveDevAddBypassStats(dev, 1, family);
+    LiveDevAddBypassSuccess(dev, 1, family);
     return 1;
 }
 
@@ -2272,6 +2273,7 @@ static int AFPBypassCallback(Packet *p)
     if (PacketIsTunnel(p)) {
         return 0;
     }
+    LiveDevice *dev = LiveDeviceGetById(p->livedev_id);
     if (PacketIsIPv4(p)) {
         SCLogDebug("add an IPv4");
         if (p->afp_v.v4_map_fd == -1) {
@@ -2296,14 +2298,14 @@ static int AFPBypassCallback(Packet *p)
         }
         if (AFPInsertHalfFlow(p->afp_v.v4_map_fd, keys[0],
                               p->afp_v.nr_cpus) == 0) {
-            LiveDevAddBypassFail(p->livedev, 1, AF_INET);
+            LiveDevAddBypassFail(dev, 1, AF_INET);
             SCFree(keys[0]);
             return 0;
         }
         keys[1]= SCCalloc(1, sizeof(struct flowv4_keys));
         if (keys[1] == NULL) {
             EBPFDeleteKey(p->afp_v.v4_map_fd, keys[0]);
-            LiveDevAddBypassFail(p->livedev, 1, AF_INET);
+            LiveDevAddBypassFail(dev, 1, AF_INET);
             SCFree(keys[0]);
             return 0;
         }
@@ -2318,7 +2320,7 @@ static int AFPBypassCallback(Packet *p)
         if (AFPInsertHalfFlow(p->afp_v.v4_map_fd, keys[1],
                               p->afp_v.nr_cpus) == 0) {
             EBPFDeleteKey(p->afp_v.v4_map_fd, keys[0]);
-            LiveDevAddBypassFail(p->livedev, 1, AF_INET);
+            LiveDevAddBypassFail(dev, 1, AF_INET);
             SCFree(keys[0]);
             SCFree(keys[1]);
             return 0;
@@ -2336,7 +2338,7 @@ static int AFPBypassCallback(Packet *p)
         struct flowv6_keys *keys[2];
         keys[0] = SCCalloc(1, sizeof(struct flowv6_keys));
         if (keys[0] == NULL) {
-            LiveDevAddBypassFail(p->livedev, 1, AF_INET6);
+            LiveDevAddBypassFail(dev, 1, AF_INET6);
             return 0;
         }
         for (i = 0; i < 4; i++) {
@@ -2355,14 +2357,14 @@ static int AFPBypassCallback(Packet *p)
         }
         if (AFPInsertHalfFlow(p->afp_v.v6_map_fd, keys[0],
                               p->afp_v.nr_cpus) == 0) {
-            LiveDevAddBypassFail(p->livedev, 1, AF_INET6);
+            LiveDevAddBypassFail(dev, 1, AF_INET6);
             SCFree(keys[0]);
             return 0;
         }
         keys[1]= SCCalloc(1, sizeof(struct flowv6_keys));
         if (keys[1] == NULL) {
             EBPFDeleteKey(p->afp_v.v6_map_fd, keys[0]);
-            LiveDevAddBypassFail(p->livedev, 1, AF_INET6);
+            LiveDevAddBypassFail(dev, 1, AF_INET6);
             SCFree(keys[0]);
             return 0;
         }
@@ -2379,7 +2381,7 @@ static int AFPBypassCallback(Packet *p)
         if (AFPInsertHalfFlow(p->afp_v.v6_map_fd, keys[1],
                               p->afp_v.nr_cpus) == 0) {
             EBPFDeleteKey(p->afp_v.v6_map_fd, keys[0]);
-            LiveDevAddBypassFail(p->livedev, 1, AF_INET6);
+            LiveDevAddBypassFail(dev, 1, AF_INET6);
             SCFree(keys[0]);
             SCFree(keys[1]);
             return 0;
@@ -2422,11 +2424,12 @@ static int AFPXDPBypassCallback(Packet *p)
     if (PacketIsTunnel(p)) {
         return 0;
     }
+    LiveDevice *dev = LiveDeviceGetById(p->livedev_id);
     if (PacketIsIPv4(p)) {
         struct flowv4_keys *keys[2];
         keys[0]= SCCalloc(1, sizeof(struct flowv4_keys));
         if (keys[0] == NULL) {
-            LiveDevAddBypassFail(p->livedev, 1, AF_INET);
+            LiveDevAddBypassFail(dev, 1, AF_INET);
             return 0;
         }
         if (p->afp_v.v4_map_fd == -1) {
@@ -2448,14 +2451,14 @@ static int AFPXDPBypassCallback(Packet *p)
         }
         if (AFPInsertHalfFlow(p->afp_v.v4_map_fd, keys[0],
                               p->afp_v.nr_cpus) == 0) {
-            LiveDevAddBypassFail(p->livedev, 1, AF_INET);
+            LiveDevAddBypassFail(dev, 1, AF_INET);
             SCFree(keys[0]);
             return 0;
         }
         keys[1]= SCCalloc(1, sizeof(struct flowv4_keys));
         if (keys[1] == NULL) {
             EBPFDeleteKey(p->afp_v.v4_map_fd, keys[0]);
-            LiveDevAddBypassFail(p->livedev, 1, AF_INET);
+            LiveDevAddBypassFail(dev, 1, AF_INET);
             SCFree(keys[0]);
             return 0;
         }
@@ -2469,7 +2472,7 @@ static int AFPXDPBypassCallback(Packet *p)
         if (AFPInsertHalfFlow(p->afp_v.v4_map_fd, keys[1],
                               p->afp_v.nr_cpus) == 0) {
             EBPFDeleteKey(p->afp_v.v4_map_fd, keys[0]);
-            LiveDevAddBypassFail(p->livedev, 1, AF_INET);
+            LiveDevAddBypassFail(dev, 1, AF_INET);
             SCFree(keys[0]);
             SCFree(keys[1]);
             return 0;
@@ -2504,14 +2507,14 @@ static int AFPXDPBypassCallback(Packet *p)
         }
         if (AFPInsertHalfFlow(p->afp_v.v6_map_fd, keys[0],
                               p->afp_v.nr_cpus) == 0) {
-            LiveDevAddBypassFail(p->livedev, 1, AF_INET6);
+            LiveDevAddBypassFail(dev, 1, AF_INET6);
             SCFree(keys[0]);
             return 0;
         }
         keys[1]= SCCalloc(1, sizeof(struct flowv6_keys));
         if (keys[1] == NULL) {
             EBPFDeleteKey(p->afp_v.v6_map_fd, keys[0]);
-            LiveDevAddBypassFail(p->livedev, 1, AF_INET6);
+            LiveDevAddBypassFail(dev, 1, AF_INET6);
             SCFree(keys[0]);
             return 0;
         }
@@ -2527,7 +2530,7 @@ static int AFPXDPBypassCallback(Packet *p)
         if (AFPInsertHalfFlow(p->afp_v.v6_map_fd, keys[1],
                               p->afp_v.nr_cpus) == 0) {
             EBPFDeleteKey(p->afp_v.v6_map_fd, keys[0]);
-            LiveDevAddBypassFail(p->livedev, 1, AF_INET6);
+            LiveDevAddBypassFail(dev, 1, AF_INET6);
             SCFree(keys[0]);
             SCFree(keys[1]);
             return 0;
