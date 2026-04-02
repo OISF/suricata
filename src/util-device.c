@@ -28,7 +28,7 @@
 
 #define MAX_DEVNAME 10
 
-static LiveDevStorageId g_bypass_storage_id = { .id = -1 };
+static SCLiveDevStorageId g_bypass_storage_id = { .id = -1 };
 
 /**
  * \file
@@ -133,7 +133,7 @@ int LiveRegisterDevice(const char *dev)
 {
     LiveDevice *pd = NULL;
 
-    pd = SCCalloc(1, sizeof(LiveDevice) + LiveDevStorageSize());
+    pd = SCCalloc(1, sizeof(LiveDevice) + SCLiveDevStorageSize());
     if (unlikely(pd == NULL)) {
         return -1;
     }
@@ -356,7 +356,7 @@ int LiveDeviceListClean(void)
 
         if (pd->dev)
             SCFree(pd->dev);
-        LiveDevFreeStorage(pd);
+        SCLiveDevFreeStorage(pd);
         SCFree(pd);
     }
 
@@ -484,7 +484,7 @@ static void LiveDevExtensionFree(void *x)
  */
 void LiveDevRegisterExtension(void)
 {
-    g_bypass_storage_id = LiveDevStorageRegister("bypass_stats", LiveDevExtensionFree);
+    g_bypass_storage_id = SCLiveDevStorageRegister("bypass_stats", LiveDevExtensionFree);
 }
 
 /**
@@ -501,7 +501,7 @@ int LiveDevUseBypass(LiveDevice *dev)
     SC_ATOMIC_INIT(bpinfo->ipv4_hash_count);
     SC_ATOMIC_INIT(bpinfo->ipv4_hash_count);
 
-    LiveDevSetStorageById(dev, g_bypass_storage_id, bpinfo);
+    SCLiveDevSetStorageById(dev, g_bypass_storage_id, bpinfo);
     return 0;
 }
 
@@ -514,7 +514,7 @@ int LiveDevUseBypass(LiveDevice *dev)
  */
 void LiveDevAddBypassStats(LiveDevice *dev, uint64_t cnt, int family)
 {
-    BypassInfo *bpfdata = LiveDevGetStorageById(dev, g_bypass_storage_id);
+    BypassInfo *bpfdata = SCLiveDevGetStorageById(dev, g_bypass_storage_id);
     if (bpfdata) {
         if (family == AF_INET) {
             SC_ATOMIC_ADD(bpfdata->ipv4_hash_count, cnt);
@@ -533,7 +533,7 @@ void LiveDevAddBypassStats(LiveDevice *dev, uint64_t cnt, int family)
  */
 void LiveDevSubBypassStats(LiveDevice *dev, uint64_t cnt, int family)
 {
-    BypassInfo *bpfdata = LiveDevGetStorageById(dev, g_bypass_storage_id);
+    BypassInfo *bpfdata = SCLiveDevGetStorageById(dev, g_bypass_storage_id);
     if (bpfdata) {
         if (family == AF_INET) {
             SC_ATOMIC_SUB(bpfdata->ipv4_hash_count, cnt);
@@ -552,7 +552,7 @@ void LiveDevSubBypassStats(LiveDevice *dev, uint64_t cnt, int family)
  */
 void LiveDevAddBypassFail(LiveDevice *dev, uint64_t cnt, int family)
 {
-    BypassInfo *bpfdata = LiveDevGetStorageById(dev, g_bypass_storage_id);
+    BypassInfo *bpfdata = SCLiveDevGetStorageById(dev, g_bypass_storage_id);
     if (bpfdata) {
         if (family == AF_INET) {
             SC_ATOMIC_ADD(bpfdata->ipv4_fail, cnt);
@@ -571,7 +571,7 @@ void LiveDevAddBypassFail(LiveDevice *dev, uint64_t cnt, int family)
  */
 void LiveDevAddBypassSuccess(LiveDevice *dev, uint64_t cnt, int family)
 {
-    BypassInfo *bpfdata = LiveDevGetStorageById(dev, g_bypass_storage_id);
+    BypassInfo *bpfdata = SCLiveDevGetStorageById(dev, g_bypass_storage_id);
     if (bpfdata) {
         if (family == AF_INET) {
             SC_ATOMIC_ADD(bpfdata->ipv4_success, cnt);
@@ -591,7 +591,7 @@ TmEcode LiveDeviceGetBypassedStats(json_t *cmd, json_t *answer, void *data)
     LiveDevice *ldev = NULL, *ndev = NULL;
     json_t *ifaces = NULL;
     while(LiveDeviceForEach(&ldev, &ndev)) {
-        BypassInfo *bpinfo = LiveDevGetStorageById(ldev, g_bypass_storage_id);
+        BypassInfo *bpinfo = SCLiveDevGetStorageById(ldev, g_bypass_storage_id);
         if (bpinfo) {
             uint64_t ipv4_hash_count = SC_ATOMIC_GET(bpinfo->ipv4_hash_count);
             uint64_t ipv6_hash_count = SC_ATOMIC_GET(bpinfo->ipv6_hash_count);

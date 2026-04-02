@@ -30,15 +30,15 @@
 
 typedef struct LiveDevStorageId_ {
     int id;
-} LiveDevStorageId;
+} SCLiveDevStorageId;
 
-unsigned int LiveDevStorageSize(void);
+unsigned int SCLiveDevStorageSize(void);
 
-void *LiveDevGetStorageById(LiveDevice *d, LiveDevStorageId id);
-int LiveDevSetStorageById(LiveDevice *d, LiveDevStorageId id, void *ptr);
+void *SCLiveDevGetStorageById(LiveDevice *d, SCLiveDevStorageId id);
+int SCLiveDevSetStorageById(LiveDevice *d, SCLiveDevStorageId id, void *ptr);
 
-void LiveDevFreeStorage(LiveDevice *d);
+void SCLiveDevFreeStorage(LiveDevice *d);
 
-LiveDevStorageId LiveDevStorageRegister(const char *name, void (*Free)(void *));
+SCLiveDevStorageId SCLiveDevStorageRegister(const char *name, void (*Free)(void *));
 
 #endif /* SURICATA_DEVICE_STORAGE_H */
