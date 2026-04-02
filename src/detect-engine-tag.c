@@ -660,10 +660,10 @@ static int DetectTagTestPacket01 (void)
                               {0, 0, 0, 0, 0},
                               {0, 0, 0, 0, 0}
                              };
-    StorageCleanup();
-    StorageInit();
+    SCStorageCleanup();
+    SCStorageInit();
     TagInitCtx();
-    StorageFinalize();
+    SCStorageFinalize();
     HostInitConfig(1);
 
     SCLogDebug("running tests");
@@ -695,7 +695,7 @@ static int DetectTagTestPacket01 (void)
 
     HostShutdown();
     TagDestroyCtx();
-    StorageCleanup();
+    SCStorageCleanup();
     PASS;
 }
 
@@ -716,10 +716,10 @@ static int DetectTagTestPacket02 (void)
     memset(&th_v, 0, sizeof(th_v));
     StatsThreadInit(&th_v.stats);
 
-    StorageCleanup();
-    StorageInit();
+    SCStorageCleanup();
+    SCStorageInit();
     TagInitCtx();
-    StorageFinalize();
+    SCStorageFinalize();
     HostInitConfig(1);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -799,7 +799,7 @@ static int DetectTagTestPacket02 (void)
 
     HostShutdown();
     TagDestroyCtx();
-    StorageCleanup();
+    SCStorageCleanup();
     StatsThreadCleanup(&th_v.stats);
     PASS;
 }
@@ -821,10 +821,10 @@ static int DetectTagTestPacket03 (void)
     memset(&th_v, 0, sizeof(th_v));
     StatsThreadInit(&th_v.stats);
 
-    StorageCleanup();
-    StorageInit();
+    SCStorageCleanup();
+    SCStorageInit();
     TagInitCtx();
-    StorageFinalize();
+    SCStorageFinalize();
     HostInitConfig(1);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -901,7 +901,7 @@ static int DetectTagTestPacket03 (void)
 
     HostShutdown();
     TagDestroyCtx();
-    StorageCleanup();
+    SCStorageCleanup();
     StatsThreadCleanup(&th_v.stats);
     PASS;
 }
@@ -919,10 +919,10 @@ static int DetectTagTestPacket04 (void)
     TcpSession ssn;
     memset(&ssn, 0, sizeof(ssn));
 
-    StorageCleanup();
-    StorageInit();
+    SCStorageCleanup();
+    SCStorageInit();
     TagInitCtx();
-    StorageFinalize();
+    SCStorageFinalize();
     HostInitConfig(1);
     FlowInitConfig(1);
 
@@ -1022,7 +1022,7 @@ static int DetectTagTestPacket04 (void)
     FlowShutdown();
     HostShutdown();
     TagDestroyCtx();
-    StorageCleanup();
+    SCStorageCleanup();
     StatsThreadCleanup(&th_v.stats);
     PASS;
 }
@@ -1040,10 +1040,10 @@ static int DetectTagTestPacket05 (void)
     TcpSession ssn;
     memset(&ssn, 0, sizeof(ssn));
 
-    StorageCleanup();
-    StorageInit();
+    SCStorageCleanup();
+    SCStorageInit();
     TagInitCtx();
-    StorageFinalize();
+    SCStorageFinalize();
     HostInitConfig(1);
     FlowInitConfig(1);
 
@@ -1148,7 +1148,7 @@ static int DetectTagTestPacket05 (void)
     FlowShutdown();
     HostShutdown();
     TagDestroyCtx();
-    StorageCleanup();
+    SCStorageCleanup();
     StatsThreadCleanup(&th_v.stats);
     PASS;
 }
@@ -1166,10 +1166,10 @@ static int DetectTagTestPacket06 (void)
     TcpSession ssn;
     memset(&ssn, 0, sizeof(ssn));
 
-    StorageCleanup();
-    StorageInit();
+    SCStorageCleanup();
+    SCStorageInit();
     TagInitCtx();
-    StorageFinalize();
+    SCStorageFinalize();
     HostInitConfig(1);
     FlowInitConfig(1);
 
@@ -1270,7 +1270,7 @@ static int DetectTagTestPacket06 (void)
     FlowShutdown();
     HostShutdown();
     TagDestroyCtx();
-    StorageCleanup();
+    SCStorageCleanup();
     StatsThreadCleanup(&th_v.stats);
     PASS;
 }
@@ -1288,10 +1288,10 @@ static int DetectTagTestPacket07 (void)
     TcpSession ssn;
     memset(&ssn, 0, sizeof(ssn));
 
-    StorageCleanup();
-    StorageInit();
+    SCStorageCleanup();
+    SCStorageInit();
     TagInitCtx();
-    StorageFinalize();
+    SCStorageFinalize();
     HostInitConfig(1);
     FlowInitConfig(1);
 
@@ -1391,7 +1391,7 @@ static int DetectTagTestPacket07 (void)
     FlowShutdown();
     HostShutdown();
     TagDestroyCtx();
-    StorageCleanup();
+    SCStorageCleanup();
     StatsThreadCleanup(&th_v.stats);
     PASS;
 }

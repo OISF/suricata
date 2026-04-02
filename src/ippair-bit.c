@@ -188,10 +188,10 @@ int IPPairBitIsnotset(IPPair *h, uint32_t idx, SCTime_t ts)
 #ifdef UNITTESTS
 static int IPPairBitTest01 (void)
 {
-    StorageCleanup();
-    StorageInit();
+    SCStorageCleanup();
+    SCStorageInit();
     IPPairBitInitCtx();
-    StorageFinalize();
+    SCStorageFinalize();
     IPPairInitConfig(true);
     IPPair *h = IPPairAlloc();
     FAIL_IF_NULL(h);
@@ -203,16 +203,16 @@ static int IPPairBitTest01 (void)
 
     IPPairFree(h);
     IPPairShutdown();
-    StorageCleanup();
+    SCStorageCleanup();
     PASS;
 }
 
 static int IPPairBitTest02 (void)
 {
-    StorageCleanup();
-    StorageInit();
+    SCStorageCleanup();
+    SCStorageInit();
     IPPairBitInitCtx();
-    StorageFinalize();
+    SCStorageFinalize();
     IPPairInitConfig(true);
     IPPair *h = IPPairAlloc();
     FAIL_IF_NULL(h);
@@ -222,16 +222,16 @@ static int IPPairBitTest02 (void)
 
     IPPairFree(h);
     IPPairShutdown();
-    StorageCleanup();
+    SCStorageCleanup();
     PASS;
 }
 
 static int IPPairBitTest03 (void)
 {
-    StorageCleanup();
-    StorageInit();
+    SCStorageCleanup();
+    SCStorageInit();
     IPPairBitInitCtx();
-    StorageFinalize();
+    SCStorageFinalize();
     IPPairInitConfig(true);
     IPPair *h = IPPairAlloc();
     FAIL_IF_NULL(h);
@@ -248,16 +248,16 @@ static int IPPairBitTest03 (void)
 
     IPPairFree(h);
     IPPairShutdown();
-    StorageCleanup();
+    SCStorageCleanup();
     PASS;
 }
 
 static int IPPairBitTest04 (void)
 {
-    StorageCleanup();
-    StorageInit();
+    SCStorageCleanup();
+    SCStorageInit();
     IPPairBitInitCtx();
-    StorageFinalize();
+    SCStorageFinalize();
     IPPairInitConfig(true);
     IPPair *h = IPPairAlloc();
     FAIL_IF_NULL(h);
@@ -272,16 +272,16 @@ static int IPPairBitTest04 (void)
 
     IPPairFree(h);
     IPPairShutdown();
-    StorageCleanup();
+    SCStorageCleanup();
     PASS;
 }
 
 static int IPPairBitTest05 (void)
 {
-    StorageCleanup();
-    StorageInit();
+    SCStorageCleanup();
+    SCStorageInit();
     IPPairBitInitCtx();
-    StorageFinalize();
+    SCStorageFinalize();
     IPPairInitConfig(true);
     IPPair *h = IPPairAlloc();
     FAIL_IF_NULL(h);
@@ -296,16 +296,16 @@ static int IPPairBitTest05 (void)
 
     IPPairFree(h);
     IPPairShutdown();
-    StorageCleanup();
+    SCStorageCleanup();
     PASS;
 }
 
 static int IPPairBitTest06 (void)
 {
-    StorageCleanup();
-    StorageInit();
+    SCStorageCleanup();
+    SCStorageInit();
     IPPairBitInitCtx();
-    StorageFinalize();
+    SCStorageFinalize();
     IPPairInitConfig(true);
     IPPair *h = IPPairAlloc();
     FAIL_IF_NULL(h);
@@ -320,16 +320,16 @@ static int IPPairBitTest06 (void)
 
     IPPairFree(h);
     IPPairShutdown();
-    StorageCleanup();
+    SCStorageCleanup();
     PASS;
 }
 
 static int IPPairBitTest07 (void)
 {
-    StorageCleanup();
-    StorageInit();
+    SCStorageCleanup();
+    SCStorageInit();
     IPPairBitInitCtx();
-    StorageFinalize();
+    SCStorageFinalize();
     IPPairInitConfig(true);
     IPPair *h = IPPairAlloc();
     FAIL_IF_NULL(h);
@@ -344,16 +344,16 @@ static int IPPairBitTest07 (void)
 
     IPPairFree(h);
     IPPairShutdown();
-    StorageCleanup();
+    SCStorageCleanup();
     PASS;
 }
 
 static int IPPairBitTest08 (void)
 {
-    StorageCleanup();
-    StorageInit();
+    SCStorageCleanup();
+    SCStorageInit();
     IPPairBitInitCtx();
-    StorageFinalize();
+    SCStorageFinalize();
     IPPairInitConfig(true);
     IPPair *h = IPPairAlloc();
     FAIL_IF_NULL(h);
@@ -373,16 +373,16 @@ static int IPPairBitTest08 (void)
 
     IPPairFree(h);
     IPPairShutdown();
-    StorageCleanup();
+    SCStorageCleanup();
     PASS;
 }
 
 static int IPPairBitTest09 (void)
 {
-    StorageCleanup();
-    StorageInit();
+    SCStorageCleanup();
+    SCStorageInit();
     IPPairBitInitCtx();
-    StorageFinalize();
+    SCStorageFinalize();
     IPPairInitConfig(true);
     IPPair *h = IPPairAlloc();
     FAIL_IF_NULL(h);
@@ -402,16 +402,16 @@ static int IPPairBitTest09 (void)
 
     IPPairFree(h);
     IPPairShutdown();
-    StorageCleanup();
+    SCStorageCleanup();
     PASS;
 }
 
 static int IPPairBitTest10 (void)
 {
-    StorageCleanup();
-    StorageInit();
+    SCStorageCleanup();
+    SCStorageInit();
     IPPairBitInitCtx();
-    StorageFinalize();
+    SCStorageFinalize();
     IPPairInitConfig(true);
     IPPair *h = IPPairAlloc();
     FAIL_IF_NULL(h);
@@ -431,16 +431,16 @@ static int IPPairBitTest10 (void)
 
     IPPairFree(h);
     IPPairShutdown();
-    StorageCleanup();
+    SCStorageCleanup();
     PASS;
 }
 
 static int IPPairBitTest11 (void)
 {
-    StorageCleanup();
-    StorageInit();
+    SCStorageCleanup();
+    SCStorageInit();
     IPPairBitInitCtx();
-    StorageFinalize();
+    SCStorageFinalize();
     IPPairInitConfig(true);
     IPPair *h = IPPairAlloc();
     FAIL_IF_NULL(h);
@@ -460,7 +460,7 @@ static int IPPairBitTest11 (void)
 
     IPPairFree(h);
     IPPairShutdown();
-    StorageCleanup();
+    SCStorageCleanup();
     PASS;
 }
 

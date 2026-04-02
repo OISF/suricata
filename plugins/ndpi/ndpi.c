@@ -73,7 +73,7 @@ static inline struct NdpiThreadContext *NdpiGetThreadContext(ThreadVars *tv)
  * Safe helper to get nDPI flow context. Returns NULL if the flow
  * or its storage is not available. Guards against the case where
  * f->storage is NULL (uninitialized flow) which would crash inside
- * StorageGetById.
+ * SCStorageGetById.
  */
 static inline struct NdpiFlowContext *NdpiGetFlowContext(const Flow *f)
 {

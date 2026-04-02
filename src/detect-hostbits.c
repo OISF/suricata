@@ -461,17 +461,17 @@ void DetectHostbitFree (DetectEngineCtx *de_ctx, void *ptr)
 
 static void HostBitsTestSetup(void)
 {
-    StorageCleanup();
-    StorageInit();
+    SCStorageCleanup();
+    SCStorageInit();
     HostBitInitCtx();
-    StorageFinalize();
+    SCStorageFinalize();
     HostInitConfig(true);
 }
 
 static void HostBitsTestShutdown(void)
 {
     HostShutdown();
-    StorageCleanup();
+    SCStorageCleanup();
 }
 
 static int HostBitsTestParse01(void)

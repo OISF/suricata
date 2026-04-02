@@ -29,28 +29,28 @@
 
 unsigned int SCIPPairStorageSize(void)
 {
-    return StorageGetSize(STORAGE_IPPAIR);
+    return SCStorageGetSize(STORAGE_IPPAIR);
 }
 
 void *SCIPPairGetStorageById(IPPair *h, SCIPPairStorageId id)
 {
-    return StorageGetById(h->storage, STORAGE_IPPAIR, id.id);
+    return SCStorageGetById(h->storage, STORAGE_IPPAIR, id.id);
 }
 
 int SCIPPairSetStorageById(IPPair *h, SCIPPairStorageId id, void *ptr)
 {
-    return StorageSetById(h->storage, STORAGE_IPPAIR, id.id, ptr);
+    return SCStorageSetById(h->storage, STORAGE_IPPAIR, id.id, ptr);
 }
 
 void SCIPPairFreeStorage(IPPair *h)
 {
     if (SCIPPairStorageSize() > 0)
-        StorageFreeAll(h->storage, STORAGE_IPPAIR);
+        SCStorageFreeAll(h->storage, STORAGE_IPPAIR);
 }
 
 SCIPPairStorageId SCIPPairStorageRegister(const char *name, void (*Free)(void *))
 {
-    int id = StorageRegister(STORAGE_IPPAIR, name, Free);
+    int id = SCStorageRegister(STORAGE_IPPAIR, name, Free);
     SCIPPairStorageId ippsi = { .id = id };
     return ippsi;
 }
@@ -65,8 +65,8 @@ static void StorageTestFree(void *x)
 
 static int IPPairStorageTest01(void)
 {
-    StorageCleanup();
-    StorageInit();
+    SCStorageCleanup();
+    SCStorageInit();
 
     SCIPPairStorageId id1 = SCIPPairStorageRegister("test", StorageTestFree);
     FAIL_IF(id1.id < 0);
@@ -75,7 +75,7 @@ static int IPPairStorageTest01(void)
     SCIPPairStorageId id3 = SCIPPairStorageRegister("store", StorageTestFree);
     FAIL_IF(id3.id < 0);
 
-    FAIL_IF(StorageFinalize() < 0);
+    FAIL_IF(SCStorageFinalize() < 0);
 
     IPPairInitConfig(1);
 
@@ -115,19 +115,19 @@ static int IPPairStorageTest01(void)
 
     IPPairRelease(h);
     IPPairShutdown();
-    StorageCleanup();
+    SCStorageCleanup();
     PASS;
 }
 
 static int IPPairStorageTest02(void)
 {
-    StorageCleanup();
-    StorageInit();
+    SCStorageCleanup();
+    SCStorageInit();
 
     SCIPPairStorageId id1 = SCIPPairStorageRegister("test", StorageTestFree);
     FAIL_IF(id1.id < 0);
 
-    FAIL_IF(StorageFinalize() < 0);
+    FAIL_IF(SCStorageFinalize() < 0);
 
     IPPairInitConfig(1);
 
@@ -154,14 +154,14 @@ static int IPPairStorageTest02(void)
 
     IPPairRelease(h);
     IPPairShutdown();
-    StorageCleanup();
+    SCStorageCleanup();
     PASS;
 }
 
 static int IPPairStorageTest03(void)
 {
-    StorageCleanup();
-    StorageInit();
+    SCStorageCleanup();
+    SCStorageInit();
 
     SCIPPairStorageId id1 = SCIPPairStorageRegister("test1", StorageTestFree);
     FAIL_IF(id1.id < 0);
@@ -170,7 +170,7 @@ static int IPPairStorageTest03(void)
     SCIPPairStorageId id3 = SCIPPairStorageRegister("test3", StorageTestFree);
     FAIL_IF(id3.id < 0);
 
-    FAIL_IF(StorageFinalize() < 0);
+    FAIL_IF(SCStorageFinalize() < 0);
 
     IPPairInitConfig(1);
 
@@ -210,7 +210,7 @@ static int IPPairStorageTest03(void)
 
     IPPairRelease(h);
     IPPairShutdown();
-    StorageCleanup();
+    SCStorageCleanup();
     PASS;
 }
 #endif
