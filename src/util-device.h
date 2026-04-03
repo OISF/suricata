@@ -56,6 +56,7 @@ int LiveGetDeviceCountWithoutAssignedThreading(void);
 int LiveGetDeviceCount(void);
 const char *LiveGetDeviceName(int number);
 LiveDevice *LiveGetDevice(const char *dev);
+uint16_t LiveDeviceGetId(const LiveDevice *dev);
 LiveDevice *LiveDeviceGetById(const int id);
 const char *LiveGetShortName(const char *dev);
 int LiveBuildDeviceList(const char *base);

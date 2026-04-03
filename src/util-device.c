@@ -449,6 +449,14 @@ static void LiveDeviceFreeArray(void)
     g_livedev_array_size = 0;
 }
 
+uint16_t LiveDeviceGetId(const LiveDevice *dev)
+{
+    if (dev) {
+        return dev->id;
+    }
+    return 0;
+}
+
 LiveDevice *LiveDeviceGetById(const int id)
 {
     if (g_livedev_array != NULL && id < g_livedev_array_size) {
