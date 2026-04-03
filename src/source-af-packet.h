@@ -134,14 +134,14 @@ typedef struct AFPPeer_ {
     SC_ATOMIC_DECLARE(int, socket);
     SC_ATOMIC_DECLARE(int, sock_usage);
     SC_ATOMIC_DECLARE(int, if_idx);
-    SC_ATOMIC_DECLARE(uint64_t, send_errors);
     int flags;
-    SCMutex sock_protect;
+    SC_ATOMIC_DECLARE(uint64_t, send_errors);
     int turn; /**< Field used to store initialisation order. */
     SC_ATOMIC_DECLARE(uint8_t, state);
     struct AFPPeer_ *peer;
     TAILQ_ENTRY(AFPPeer_) next;
     char iface[AFP_IFACE_NAME_LENGTH];
+    SCMutex sock_protect;
 } AFPPeer;
 
 /**
