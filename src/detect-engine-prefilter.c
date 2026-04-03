@@ -153,10 +153,13 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
                     engine->ctx.tx_min_progress, AppProtoToString(engine->alproto), pname,
                     det_ctx->pmq.rule_id_array_cnt - old);
 
-            if (tx->tx_progress > engine->ctx.tx_min_progress && engine->is_last_for_progress) {
+            if (tx->tx_progress > engine->ctx.tx_min_progress && engine->is_last_for_progress &&
+                    tx->tx_ptr == tx_ptr) {
                 /* track with an offset of one, so that tx->progress 0 complete is tracked
                  * as 1, progress 1 as 2, etc. This is to allow 0 to mean: nothing tracked, even
                  * though a parser may use 0 as a valid value. */
+                // tx->tx_ptr == tx_ptr ensures we do not use a dns engine progress
+                // to update a HTTP2 tx detect_progress in case of DOH2
                 tx->detect_progress = engine->ctx.tx_min_progress + 1;
                 SCLogDebug("tx->tx_progress %d engine->ctx.tx_min_progress %d "
                            "engine->is_last_for_progress %d => tx->detect_progress updated to %02x",
