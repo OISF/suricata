@@ -120,12 +120,12 @@ void DetectHttpCookieRegister(void)
             GetResponseData, ALPROTO_HTTP1, HTP_REQUEST_PROGRESS_HEADERS);
 
     DetectAppLayerInspectEngineRegister("http_cookie", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
-            HTTP2StateDataClient, DetectEngineInspectBufferGeneric, GetRequestData2);
+            HTTP2StateOpen, DetectEngineInspectBufferGeneric, GetRequestData2);
     DetectAppLayerInspectEngineRegister("http_cookie", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
             HTTP2StateDataServer, DetectEngineInspectBufferGeneric, GetResponseData2);
 
     DetectAppLayerMpmRegister("http_cookie", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
-            GetRequestData2, ALPROTO_HTTP2, HTTP2StateDataClient);
+            GetRequestData2, ALPROTO_HTTP2, HTTP2StateOpen);
     DetectAppLayerMpmRegister("http_cookie", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
             GetResponseData2, ALPROTO_HTTP2, HTTP2StateDataServer);
 
