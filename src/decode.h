@@ -620,6 +620,8 @@ typedef struct Packet_
 
     /* Incoming interface */
     uint16_t livedev_id;
+    /* Outgoing interface (bridge modes) */
+    uint16_t livedev_dst_id;
 
     PacketAlerts alerts;
 
