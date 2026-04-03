@@ -116,9 +116,9 @@ void DetectHttpRequestLineRegister(void)
             PrefilterGenericMpmRegister, GetData, ALPROTO_HTTP1, HTP_REQUEST_LINE);
 
     DetectAppLayerInspectEngineRegister2("http_request_line", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
-            HTTP2StateDataClient, DetectEngineInspectBufferGeneric, GetData2);
+            HTTP2StateOpen, DetectEngineInspectBufferGeneric, GetData2);
     DetectAppLayerMpmRegister2("http_request_line", SIG_FLAG_TOSERVER, 2,
-            PrefilterGenericMpmRegister, GetData2, ALPROTO_HTTP2, HTTP2StateDataClient);
+            PrefilterGenericMpmRegister, GetData2, ALPROTO_HTTP2, HTTP2StateOpen);
 
     DetectBufferTypeSetDescriptionByName("http_request_line",
             "http request line");
