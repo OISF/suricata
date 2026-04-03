@@ -507,6 +507,10 @@ static TmEcode AFPPeersListAdd(AFPThreadVars *ptv)
     (void)SC_ATOMIC_SET(peer->sock_usage, 0);
     (void)SC_ATOMIC_SET(peer->state, AFP_STATE_DOWN);
     strlcpy(peer->iface, ptv->iface, AFP_IFACE_NAME_LENGTH);
+
+    peer->livedev_id = LiveDeviceGetId(ptv->livedev);
+    SCLogDebug("mpeer livedev id %u (%s)", peer->livedev_id, peer->iface);
+
     ptv->mpeer = peer;
     /* add element to iface list */
     TAILQ_INSERT_TAIL(&peerslist.peers, peer, next);
@@ -798,6 +802,11 @@ static void AFPReadFromRingSetupPacket(
     }
     p->afp_v.copy_mode = ptv->copy_mode;
     p->afp_v.peer = (p->afp_v.copy_mode == AFP_COPY_MODE_NONE) ? NULL : ptv->mpeer->peer;
+
+    if (p->afp_v.copy_mode != AFP_COPY_MODE_NONE) {
+        p->afp_v.peer = ptv->mpeer->peer;
+        p->livedev_dst_id = ptv->mpeer->peer->livedev_id;
+    }
 
     /* Timestamp */
     p->ts = (SCTime_t){ .secs = h.h2->tp_sec, .usecs = h.h2->tp_nsec / 1000 };
