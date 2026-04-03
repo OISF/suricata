@@ -138,6 +138,7 @@ typedef struct AFPPeer_ {
     SC_ATOMIC_DECLARE(uint64_t, send_errors);
     int turn; /**< Field used to store initialisation order. */
     SC_ATOMIC_DECLARE(uint8_t, state);
+    uint16_t livedev_id; /**< livedev id for this interface */
     struct AFPPeer_ *peer;
     TAILQ_ENTRY(AFPPeer_) next;
     char iface[AFP_IFACE_NAME_LENGTH];
