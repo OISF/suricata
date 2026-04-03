@@ -75,6 +75,7 @@ void PacketInit(Packet *p)
     SCSpinInit(&p->persistent.tunnel_lock, 0);
     p->alerts.alerts = PacketAlertCreate();
     p->livedev_id = 0;
+    p->livedev_dst_id = 0;
 }
 
 void PacketReleaseRefs(Packet *p)
@@ -151,6 +152,7 @@ void PacketReinit(Packet *p)
     p->tunnel_verdicted = false;
     p->root = NULL;
     p->livedev_id = 0;
+    p->livedev_dst_id = 0;
     PACKET_PROFILING_RESET(p);
     p->tenant_id = 0;
     p->nb_decoded_layers = 0;
