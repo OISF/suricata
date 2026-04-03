@@ -110,8 +110,9 @@ static SCJsonBuilder *CreateEveHeaderFromNetFlow(
 #endif
 
     /* input interface */
-    if (f->livedev) {
-        SCJbSetString(js, "in_iface", f->livedev->dev);
+    LiveDevice *dev = LiveDeviceGetById(f->livedev_id);
+    if (dev) {
+        SCJbSetString(js, "in_iface", dev->dev);
     }
 
     JB_SET_STRING(js, "event_type", "netflow");

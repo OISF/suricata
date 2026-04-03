@@ -92,16 +92,23 @@ static inline libnet_t *GetCtx(const Packet *p, int injection_type)
     /* slow path: setup a new ctx */
     bool store_ctx = false;
     const char *devname = NULL;
-    extern uint8_t host_mode;
-    if (IS_SURI_HOST_MODE_SNIFFER_ONLY(host_mode)) {
+    if (EngineHostModeIsSniffer()) {
         if (g_reject_dev != NULL) {
             if (p->datalink == LINKTYPE_ETHERNET)
                 injection_type = t_inject_mode = LIBNET_LINK;
             devname = g_reject_dev;
             store_ctx = true;
         } else {
-            devname = p->livedev ? p->livedev->dev : NULL;
+            LiveDevice *dev = LiveDeviceGetById(p->livedev_id);
+            devname = dev ? dev->dev : NULL;
         }
+        SCLogDebug("sniffer: devname %s", devname);
+    } else if (EngineHostModeIsBridge()) {
+        LiveDevice *dev = LiveDeviceGetById(p->livedev_id);
+        devname = dev ? dev->dev : NULL;
+        SCLogDebug("bridge: devname %s", devname);
+    } else {
+        SCLogDebug("router: devname %s", devname);
     }
 
     char ebuf[LIBNET_ERRBUF_SIZE];

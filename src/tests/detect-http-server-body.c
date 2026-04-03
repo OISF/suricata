@@ -93,7 +93,7 @@ static int RunTest(struct TestSteps *steps, const char *sig, const char *yaml)
 
         SCConfYamlLoadString(yaml, strlen(yaml));
         HTPConfigure();
-        EngineModeSetIPS();
+        EngineModeSetIPS(ENGINE_HOST_IS_ROUTER);
     }
 
     StreamTcpInitConfig(true);
