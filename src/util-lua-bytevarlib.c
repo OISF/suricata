@@ -16,6 +16,7 @@
  */
 
 #include "suricata-common.h"
+#include "detect.h"
 #include "detect-byte.h"
 #include "util-lua-common.h"
 #include "util-lua-bytevarlib.h"
