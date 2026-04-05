@@ -192,17 +192,41 @@ xor
 
 Takes the buffer, applies xor decoding.
 
-.. note:: this transform requires a mandatory option which is the hexadecimal encoded xor key.
+The key can be a hexadecimal string or a variable specified inline using
+``var <nbytes> <offset>``. When a variable key is used, the engine reads
+``<nbytes>`` bytes starting at ``<offset>`` in the raw inspection buffer
+at transform time.
 
+An optional ``offset`` parameter specifies the byte position in the buffer
+where XOR decoding starts. Bytes before this position are left as-is.
+For example, if the first byte of the buffer is the XOR key, use
+``offset 1`` so decoding begins after that key byte.
+
+Syntax::
+
+    xor:"<hex_key>"
+    xor:var <nbytes> <offset>
+    xor:offset <N>,"<hex_key>"
+    xor:offset <N>,var <nbytes> <offset>
 
 Quotes around a hex key are optional; ``xor:0d0ac8ff`` and ``xor:"0d0ac8ff"``
 are equivalent.
 
-This example alerts if ``http.uri`` contains ``password=`` xored with 4-bytes key ``0d0ac8ff``
+This example alerts if ``http.uri`` contains ``password=`` xored with 4-bytes key ``0d0ac8ff``:
+
 .. container:: example-rule
 
     alert http any any -> any any (msg:"HTTP with xor"; http.uri; \
         xor:"0d0ac8ff"; content:"password="; sid:1;)
+
+This example reads a 1-byte XOR key from offset 0 of the request body,
+then decodes the buffer starting at offset 1 (skipping the key byte) and
+matches ``infected`` in the decoded data:
+
+.. container:: example-rule
+
+    alert http any any -> any any (msg:"XOR with variable key"; \
+        http.request_body; xor:offset 1,var 1 0; content:"infected"; sid:2;)
 
 header_lowercase
 ----------------
