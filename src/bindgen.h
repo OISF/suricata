@@ -44,6 +44,7 @@
 #include "detect-engine-buffer.h"
 #include "detect-engine-helper.h"
 #include "detect-engine-state.h"
+#include "detect-byte.h"
 #include "detect-parse.h"
 
 #include "util-debug.h"

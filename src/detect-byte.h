@@ -23,10 +23,15 @@
 
 #ifndef SURICATA_DETECT_BYTE_H
 #define SURICATA_DETECT_BYTE_H
-#include "detect.h"
+
+typedef struct Signature_ Signature;
 
 typedef uint8_t DetectByteIndexType;
 
 bool DetectByteRetrieveSMVar(const char *, const Signature *, int sm_list, DetectByteIndexType *);
+
+bool SCDetectByteRetrieveVarInfo(const char *name, const Signature *s, DetectByteIndexType *index);
+bool SCDetectByteExtractGetBufferOffset(
+        const char *name, const Signature *s, int16_t *offset, uint8_t *nbytes);
 
 #endif /* SURICATA_DETECT_BYTE_H */
