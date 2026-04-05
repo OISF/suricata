@@ -5,3 +5,4 @@ Firewall Mode
 
    firewall-design
    firewall-example
+   firewall-stats

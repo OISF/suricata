@@ -2812,6 +2812,8 @@ It is possible to run Suricata as a firewall.
 Please read :ref:`Firewall Mode Design <firewall mode design>` before using this.
 The existing yaml configuration options are listed below. If the engine is run as a firewall, dedicated stats counters will be added to the stats logs.
 
+To see the stats reported for the firewall mode, refer to :ref:`firewall mode stats`.
+
    firewall:
      # toggle to enable firewall mode
      #enabled: no
