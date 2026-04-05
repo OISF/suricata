@@ -2815,6 +2815,8 @@ in firewall mode, dedicated stats counters will be added to the stats logs.
 
 To see the stats counters reported for the firewall, refer to :ref:`firewall mode stats`.
 
+To see the stats reported for the firewall mode, refer to :ref:`firewall mode stats`.
+
    firewall:
      # toggle to enable firewall mode
      #enabled: no
