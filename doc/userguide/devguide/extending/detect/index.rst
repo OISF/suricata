@@ -1,6 +1,11 @@
 Detection
 #########
 
+.. toctree::
+   :maxdepth: 1
+
+   transforms.rst
+
 Rate Filter Callback
 ********************
 
