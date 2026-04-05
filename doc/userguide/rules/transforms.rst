@@ -186,14 +186,43 @@ xor
 
 Takes the buffer, applies xor decoding.
 
-.. note:: this transform requires a mandatory option which is the hexadecimal encoded xor key.
+The key can be a hexadecimal string or a ``byte_extract`` variable. Use the
+``var`` keyword to reference a variable by name. When a variable is used, the
+key bytes are read directly from the inspection buffer at the variable's
+offset. Only ``byte_extract`` variables with absolute (non-relative) offsets
+are supported.
 
+An optional ``offset`` parameter specifies the byte position in the buffer
+where XOR decoding starts. Bytes before this position are left as-is.
+For example, if the first byte of the buffer is the XOR key, use
+``offset 1`` so decoding begins after that key byte.
 
-This example alerts if ``http.uri`` contains ``password=`` xored with 4-bytes key ``0d0ac8ff``
-Example::
+.. note:: Transforms run during both prefilter (MPM) and full inspection.
+   When a ``byte_extract`` variable is used as the key, the key bytes are
+   read directly from the raw buffer at the variable's configured offset —
+   not from the populated variable value — because ``byte_extract`` has not
+   yet executed at transform time. This is why only ``byte_extract`` variables
+   with absolute offsets on the same buffer are supported.
+
+Syntax::
+
+    xor:"<hex_key>"
+    xor:var "<variable>"
+    xor:offset <N>,"<hex_key>"
+    xor:offset <N>,var "<variable>"
+
+This example alerts if ``http.uri`` contains ``password=`` xored with 4-bytes key ``0d0ac8ff``::
 
     alert http any any -> any any (msg:"HTTP with xor"; http.uri; \
         xor:"0d0ac8ff"; content:"password="; sid:1;)
+
+This example extracts a 1-byte XOR key from offset 0 of the request body,
+then decodes the buffer starting at offset 1 (skipping the key byte) and
+matches ``infected`` in the decoded data::
+
+    alert http any any -> any any (msg:"XOR with variable key"; \
+        http.request_body; byte_extract:1,0,xor_key; \
+        xor:offset 1,var "xor_key"; content:"infected"; sid:2;)
 
 header_lowercase
 ----------------
