@@ -23,6 +23,7 @@
 
 #include "suricata-common.h"
 #include "rust.h"
+#include "detect.h"
 #include "detect-byte.h"
 #include "detect-byte-extract.h"
 #include "detect-bytemath.h"
@@ -51,6 +52,71 @@ bool DetectByteRetrieveSMVar(
     if (bmd_sm != NULL) {
         *index = ((DetectByteMathData *)bmd_sm->ctx)->local_id;
         return true;
+    }
+    return false;
+}
+
+/**
+ * \brief Resolve a byte_extract or byte_math variable by name.
+ *
+ * Wrapper around DetectByteRetrieveSMVar that searches all buffers.
+ *
+ * \param name Variable name to look up
+ * \param s The signature containing the variable
+ * \param index Output: local_id index into byte_values
+ *
+ * \retval true if the variable was found
+ * \retval false otherwise
+ */
+bool SCDetectByteRetrieveVarInfo(const char *name, const Signature *s, DetectByteIndexType *index)
+{
+    return DetectByteRetrieveSMVar(name, s, -1, index);
+}
+
+/**
+ * \brief Get a byte_extract variable's buffer offset for pre-transform extraction.
+ *
+ * Searches only the current buffer (s->init_data->curbuf) to ensure the
+ * byte_extract variable is on the same buffer as the transform referencing it.
+ *
+ * Returns the byte_extract's absolute buffer offset so the xor transform
+ * can read key bytes directly from the inspection buffer. This is a
+ * workaround until a general pre-transform extraction phase is added
+ * to the detection engine.
+ *
+ * Only works for byte_extract variables with absolute (non-relative) offsets
+ * on the same buffer as the calling transform.
+ *
+ * \param name Variable name to look up
+ * \param s The signature being set up (uses curbuf for buffer matching)
+ * \param offset Output: the absolute buffer offset
+ * \param nbytes Output: the number of bytes to extract
+ *
+ * \retval true if the variable was found on the current buffer with an absolute offset
+ * \retval false otherwise
+ */
+bool SCDetectByteExtractGetBufferOffset(
+        const char *name, const Signature *s, int16_t *offset, uint8_t *nbytes)
+{
+    if (s->init_data == NULL || s->init_data->curbuf == NULL)
+        return false;
+
+    /* Search only the current buffer's SigMatch chain to ensure the
+     * byte_extract variable is on the same buffer as the transform. */
+    SigMatch *sm = s->init_data->curbuf->head;
+    while (sm != NULL) {
+        if (sm->type == DETECT_BYTE_EXTRACT) {
+            const SCDetectByteExtractData *bed = (const SCDetectByteExtractData *)sm->ctx;
+            if (strcmp(bed->name, name) == 0) {
+                if (bed->flags & DETECT_BYTE_EXTRACT_FLAG_RELATIVE) {
+                    return false;
+                }
+                *offset = bed->offset;
+                *nbytes = bed->nbytes;
+                return true;
+            }
+        }
+        sm = sm->next;
     }
     return false;
 }

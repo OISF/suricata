@@ -934,6 +934,17 @@ extern "C" {
     #[doc = " \\brief Frees a DetectEngineState object.\n\n \\param state DetectEngineState instance to free."]
     pub fn SCDetectEngineStateFree(state: *mut DetectEngineState);
 }
+pub type DetectByteIndexType = u8;
+extern "C" {
+    pub fn SCDetectByteRetrieveVarInfo(
+        name: *const ::std::os::raw::c_char, s: *const Signature, index: *mut DetectByteIndexType,
+    ) -> bool;
+}
+extern "C" {
+    pub fn SCDetectByteExtractGetBufferOffset(
+        name: *const ::std::os::raw::c_char, s: *const Signature, offset: *mut i16, nbytes: *mut u8,
+    ) -> bool;
+}
 extern "C" {
     pub fn SCSigMatchAppendSMToList(
         arg1: *mut DetectEngineCtx, arg2: *mut Signature, arg3: u16, arg4: *mut SigMatchCtx,
