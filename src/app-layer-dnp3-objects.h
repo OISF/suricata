@@ -1199,9 +1199,9 @@ typedef struct DNP3ObjectG70V1_ {
     uint32_t group_id;
     uint8_t file_function_code;
     uint8_t status_code;
-    char filename[65535];
+    char filename[65536];
     uint16_t data_size;
-    char data[65535];
+    char data[65536];
 } DNP3ObjectG70V1;
 
 typedef struct DNP3ObjectG70V2_ {
@@ -1210,8 +1210,8 @@ typedef struct DNP3ObjectG70V2_ {
     uint16_t password_offset;
     uint16_t password_size;
     uint32_t authentication_key;
-    char username[65535];
-    char password[65535];
+    char username[65536];
+    char password[65536];
 } DNP3ObjectG70V2;
 
 typedef struct DNP3ObjectG70V3_ {
@@ -1224,7 +1224,7 @@ typedef struct DNP3ObjectG70V3_ {
     uint16_t operational_mode;
     uint16_t maximum_block_size;
     uint16_t request_id;
-    char filename[65535];
+    char filename[65536];
 } DNP3ObjectG70V3;
 
 typedef struct DNP3ObjectG70V4_ {
@@ -1233,14 +1233,14 @@ typedef struct DNP3ObjectG70V4_ {
     uint16_t maximum_block_size;
     uint16_t request_id;
     uint8_t status_code;
-    char optional_text[255];
+    char optional_text[256];
     uint8_t optional_text_len;
 } DNP3ObjectG70V4;
 
 typedef struct DNP3ObjectG70V5_ {
     uint32_t file_handle;
     uint32_t block_number;
-    char file_data[255];
+    char file_data[256];
     uint8_t file_data_len;
 } DNP3ObjectG70V5;
 
@@ -1248,7 +1248,7 @@ typedef struct DNP3ObjectG70V6_ {
     uint32_t file_handle;
     uint32_t block_number;
     uint8_t status_code;
-    char optional_text[255];
+    char optional_text[256];
     uint8_t optional_text_len;
 } DNP3ObjectG70V6;
 
@@ -1260,11 +1260,11 @@ typedef struct DNP3ObjectG70V7_ {
     uint64_t created_timestamp;
     uint16_t permissions;
     uint16_t request_id;
-    char filename[65535];
+    char filename[65536];
 } DNP3ObjectG70V7;
 
 typedef struct DNP3ObjectG70V8_ {
-    char file_specification[65535];
+    char file_specification[65536];
     uint16_t file_specification_len;
 } DNP3ObjectG70V8;
 
@@ -1351,7 +1351,7 @@ typedef struct DNP3ObjectG120V7_ {
     uint16_t association_id;
     uint8_t error_code;
     uint64_t time_of_error;
-    char error_text[65535];
+    char error_text[65536];
     uint16_t error_text_len;
 } DNP3ObjectG120V7;
 
@@ -1376,7 +1376,7 @@ typedef struct DNP3ObjectG120V10_ {
     uint16_t username_len;
     uint16_t user_public_key_len;
     uint16_t certification_data_len;
-    char username[65535];
+    char username[65536];
     uint8_t *user_public_key;
     uint8_t *certification_data;
 } DNP3ObjectG120V10;
@@ -1385,7 +1385,7 @@ typedef struct DNP3ObjectG120V11_ {
     uint8_t key_change_method;
     uint16_t username_len;
     uint16_t master_challenge_data_len;
-    char username[65535];
+    char username[65536];
     uint8_t *master_challenge_data;
 } DNP3ObjectG120V11;
 
