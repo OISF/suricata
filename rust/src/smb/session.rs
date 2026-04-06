@@ -18,6 +18,7 @@
 use crate::kerberos::*;
 use crate::smb::smb::*;
 use crate::smb::smb1_session::*;
+use crate::smb::smb1_records::SessionSetupRequest;
 use crate::smb::auth::*;
 
 #[derive(Default, Debug)]
