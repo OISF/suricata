@@ -2343,13 +2343,13 @@ objects:
         name: status_code
       - type: chararray
         name: filename
-        size: 65535
+        size: 65536
         len_field: filename_size
       - type: uint16
         name: data_size
       - type: chararray
         name: data
-        size: 65535
+        size: 65536
         len_field: data_size
 
   - group: 70
@@ -2367,11 +2367,11 @@ objects:
         name: authentication_key
       - type: chararray
         name: username
-        size: 65535
+        size: 65536
         len_field: username_size
       - type: chararray
         name: password
-        size: 65535
+        size: 65536
         len_field: password_size
 
   - group: 70
@@ -2398,7 +2398,7 @@ objects:
         name: request_id
       - type: chararray
         name: filename
-        size: 65535
+        size: 65536
         len_field: filename_size
 
   # Checked.
@@ -2422,7 +2422,7 @@ objects:
         name: status_code
       - type: chararray
         name: optional_text
-        size: 0xff
+        size: 256
         len_from_prefix: true
         len_field: optional_text_len
 
@@ -2441,7 +2441,7 @@ objects:
         name: block_number # Includes "last" flag.
       - type: chararray
         name: file_data
-        size: 0xff
+        size: 256
         len_from_prefix: true
         len_field: file_data_len
 
@@ -2462,7 +2462,7 @@ objects:
         name: status_code
       - type: chararray
         name: optional_text
-        size: 0xff
+        size: 256
         len_from_prefix: true
         len_field: optional_text_len
 
@@ -2486,7 +2486,7 @@ objects:
         name: request_id
       - type: chararray
         name: filename
-        size: 0xffff
+        size: 65536
         len_field: filename_size
 
   # Checked.
@@ -2500,7 +2500,7 @@ objects:
     fields:
       - type: chararray
         name: file_specification
-        size: 0xffff
+        size: 65536
         len_from_prefix: true
         len_field: file_specification_len
 
@@ -2764,7 +2764,7 @@ objects:
         name: time_of_error
       - type: chararray
         name: error_text
-        size: 65535
+        size: 65536
         len_from_prefix: true
         len_field: error_text_len
 
@@ -2822,7 +2822,7 @@ objects:
         name: certification_data_len
       - type: chararray
         name: username
-        size: 65535
+        size: 65536
         len_field: username_len
       - type: bytearray
         name: user_public_key
@@ -2844,7 +2844,7 @@ objects:
       - type: uint16
         name: master_challenge_data_len
       - type: chararray
-        size: 65535
+        size: 65536
         name: username
         len_field: username_len
       - type: bytearray

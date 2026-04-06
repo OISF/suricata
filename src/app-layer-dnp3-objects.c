@@ -7153,7 +7153,7 @@ static int DNP3DecodeObjectG70V4(const uint8_t **buf, uint32_t *len,
         if (!DNP3ReadUint8(buf, len, &object->status_code)) {
             goto error;
         }
-        if (prefix - (offset - *len) >= 255 || prefix < (offset - *len)) {
+        if (prefix - (offset - *len) >= 256 || prefix < (offset - *len)) {
             goto error;
         }
         object->optional_text_len = (uint8_t)(prefix - (offset - *len));
@@ -7220,7 +7220,7 @@ static int DNP3DecodeObjectG70V5(const uint8_t **buf, uint32_t *len,
         if (!DNP3ReadUint32(buf, len, &object->block_number)) {
             goto error;
         }
-        if (prefix - (offset - *len) >= 255 || prefix < (offset - *len)) {
+        if (prefix - (offset - *len) >= 256 || prefix < (offset - *len)) {
             goto error;
         }
         object->file_data_len = (uint8_t)(prefix - (offset - *len));
@@ -7290,7 +7290,7 @@ static int DNP3DecodeObjectG70V6(const uint8_t **buf, uint32_t *len,
         if (!DNP3ReadUint8(buf, len, &object->status_code)) {
             goto error;
         }
-        if (prefix - (offset - *len) >= 255 || prefix < (offset - *len)) {
+        if (prefix - (offset - *len) >= 256 || prefix < (offset - *len)) {
             goto error;
         }
         object->optional_text_len = (uint8_t)(prefix - (offset - *len));
@@ -7422,7 +7422,7 @@ static int DNP3DecodeObjectG70V8(const uint8_t **buf, uint32_t *len,
 
         offset = *len;
 
-        if (prefix - (offset - *len) >= 65535 || prefix < (offset - *len)) {
+        if (prefix - (offset - *len) >= 65536 || prefix < (offset - *len)) {
             goto error;
         }
         object->file_specification_len = (uint16_t)(prefix - (offset - *len));
@@ -8182,7 +8182,7 @@ static int DNP3DecodeObjectG120V7(const uint8_t **buf, uint32_t *len,
         if (!DNP3ReadUint48(buf, len, &object->time_of_error)) {
             goto error;
         }
-        if (prefix - (offset - *len) >= 65535 || prefix < (offset - *len)) {
+        if (prefix - (offset - *len) >= 65536 || prefix < (offset - *len)) {
             goto error;
         }
         object->error_text_len = (uint16_t)(prefix - (offset - *len));
