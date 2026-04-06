@@ -56,17 +56,17 @@ fn helper_keyword_register_buffer_flags(kw: &SigTableElmtStickyBuffer, flags: u3
     unsafe {
         let r = SCDetectHelperKeywordRegister(&st);
         SCDetectHelperKeywordSetCleanCString(r);
-        return r;
+        r
     }
 }
 
 pub fn helper_keyword_register_multi_buffer(kw: &SigTableElmtStickyBuffer) -> u16 {
-    return helper_keyword_register_buffer_flags(
+    helper_keyword_register_buffer_flags(
         kw,
         SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_INFO_MULTI_BUFFER,
-    );
+    )
 }
 
 pub fn helper_keyword_register_sticky_buffer(kw: &SigTableElmtStickyBuffer) -> u16 {
-    return helper_keyword_register_buffer_flags(kw, SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER);
+    helper_keyword_register_buffer_flags(kw, SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER)
 }
