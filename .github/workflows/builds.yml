@@ -366,7 +366,7 @@ jobs:
               echo "::error ::Clippy --fix made changes, please fix"
               exit 1
           fi
-      - run: cargo clippy --all-features --all-targets
+      - run: cargo clippy --workspace --all-features --all-targets -- -D warnings
         working-directory: rust
       # especially without debug feature
       - run: cargo clippy
