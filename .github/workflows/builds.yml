@@ -357,7 +357,7 @@ jobs:
               echo "::error ::Bindgen bindings appear to be out of date"
               exit 1
           fi
-      - run: cargo clippy --all-features --fix --allow-no-vcs
+      - run: cargo clippy --workspace --all-features --fix --allow-no-vcs
         working-directory: rust
       - run: |
           diff=$(git diff)
