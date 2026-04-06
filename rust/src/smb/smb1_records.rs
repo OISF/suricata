@@ -446,16 +446,115 @@ pub fn parse_smb_trans_response_record(i: &[u8]) -> IResult<&[u8], SmbRecordTran
 #[derive(Debug,PartialEq, Eq)]
 pub struct SmbRecordSetupAndX<'a> {
     pub sec_blob: &'a[u8],
+    pub request_host: SessionSetupRequest,
 }
 
-pub fn parse_smb_setup_andx_record(i: &[u8]) -> IResult<&[u8], SmbRecordSetupAndX<'_>> {
-    let (i, _skip1) = take(15_usize).parse(i)?;
-    let (i, sec_blob_len) = le_u16.parse(i)?;
-    let (i, _skip2) = take(8_usize).parse(i)?;
-    let (i, _bcc) = le_u16.parse(i)?;
-    let (i, sec_blob) = take(sec_blob_len).parse(i)?;
-    let record = SmbRecordSetupAndX { sec_blob };
-    Ok((i, record))
+#[derive(Debug,PartialEq, Eq)]
+pub struct SessionSetupRequest {
+    pub native_os: Vec<u8>,
+    pub native_lm: Vec<u8>,
+    pub primary_domain: Vec<u8>,
+}
+
+pub fn smb1_session_setup_request_host_info(r: &SmbRecord, blob: &[u8]) -> SessionSetupRequest
+{
+    if blob.len() > 1 && r.has_unicode_support() {
+        let offset = r.data.len() - blob.len();
+        let blob = if offset % 2 == 1 { &blob[1..] } else { blob };
+        let (native_os, native_lm, primary_domain) = match smb_get_unicode_string(blob) {
+            Ok((rem, n1)) => {
+                match smb_get_unicode_string(rem) {
+                    Ok((rem, n2)) => {
+                        match smb_get_unicode_string(rem) {
+                            Ok((_, n3)) => { (n1, n2, n3) },
+                                _ => { (n1, n2, Vec::new()) },
+                        }
+                    },
+                        _ => { (n1, Vec::new(), Vec::new()) },
+                }
+            },
+                _ => { (Vec::new(), Vec::new(), Vec::new()) },
+        };
+
+        SCLogDebug!("name1 {:?} name2 {:?} name3 {:?}", native_os,native_lm,primary_domain);
+        SessionSetupRequest {
+            native_os,
+            native_lm,
+            primary_domain,
+        }
+    } else {
+        let (native_os, native_lm, primary_domain) = match smb_get_ascii_string(blob) {
+            Ok((rem, n1)) => {
+                match smb_get_ascii_string(rem) {
+                    Ok((rem, n2)) => {
+                        match smb_get_ascii_string(rem) {
+                            Ok((_, n3)) => { (n1, n2, n3) },
+                                _ => { (n1, n2, Vec::new()) },
+                        }
+                    },
+                        _ => { (n1, Vec::new(), Vec::new()) },
+                }
+            },
+                _ => { (Vec::new(), Vec::new(), Vec::new()) },
+        };
+
+        SCLogDebug!("session_setup_request_host_info: not unicode");
+        SessionSetupRequest {
+            native_os,
+            native_lm,
+            primary_domain,
+        }
+    }
+}
+
+pub fn smb1_session_setup_parse_wct13<'a>(r: &'a SmbRecord, blob: &'a [u8]) -> (&'a [u8], SessionSetupRequest) {
+    if let Ok((rem, primary_domain)) = smb1_get_string(blob, r, 0) {
+        if let Ok((rem, native_os)) = smb1_get_string(rem, r, 0) {
+            if let Ok((rem, native_lm)) = smb1_get_string(rem, r, 0) {
+                return (rem, SessionSetupRequest {
+                    native_os,
+                    native_lm,
+                    primary_domain,
+                });
+            }
+        }
+    }
+    return (blob, SessionSetupRequest {
+        native_os: Vec::new(),
+        native_lm: Vec::new(),
+        primary_domain: Vec::new(),
+    });
+}
+
+pub fn parse_smb_setup_andx_record<'a>(i: &'a [u8], r: &'a SmbRecord) -> IResult<&'a [u8], SmbRecordSetupAndX<'a>> {
+    let (i, wct) = le_u8.parse(i)?;
+    if wct == 12 {
+        let (i, _skip1) = take(14_usize).parse(i)?;
+        let (i, sec_blob_len) = le_u16.parse(i)?;
+        let (i, _skip2) = take(8_usize).parse(i)?;
+        let (i, _bcc) = le_u16.parse(i)?;
+        let (i, sec_blob) = take(sec_blob_len).parse(i)?;
+        let record = SmbRecordSetupAndX { sec_blob, request_host: smb1_session_setup_request_host_info(r, i) };
+        Ok((i, record))
+    } else if wct == 13 {
+        let (i, _skip1) = take(14_usize).parse(i)?;
+        let (i, oem_pass_len) = le_u16.parse(i)?;
+        let (i, uni_pass_len) = le_u16.parse(i)?;
+        let (i, _skip2) = take(8_usize).parse(i)?;
+        let (i, _bcc) = le_u16.parse(i)?;
+        let (i, _oem_pass) = take(oem_pass_len).parse(i)?;
+        let (i, _uni_pass) = take(uni_pass_len).parse(i)?;
+        let (i, _pad) = cond((oem_pass_len + uni_pass_len) % 2 == 1, le_u8).parse(i)?;
+        if let Ok((i, _account_name)) = smb1_get_string(i, r, 0) {
+            let (i, request_host) = smb1_session_setup_parse_wct13(r, i);
+            let record = SmbRecordSetupAndX { sec_blob: &[], request_host };
+            Ok((i, record))
+        } else {
+            Err(Err::Error(make_error(i, ErrorKind::LengthValue)))
+        }
+    } else {
+        return Err(Err::Error(make_error(i, ErrorKind::LengthValue)));
+    }
 }
 
 #[derive(Debug,PartialEq, Eq)]
