@@ -192,7 +192,7 @@ endif
 if HAVE_CBINDGEN
 gen/rust-ffi.h: $(RUST_SURICATA_LIB) ffi/cbindgen.toml
 	cd $(abs_top_srcdir)/rust/ffi && \
-		CARGO=$(CARGO) $(CBINDGEN) --config $(abs_top_srcdir)/rust/ffi/cbindgen.toml \
+		$(CARGO_ENV) CARGO=$(CARGO) $(CBINDGEN) --config $(abs_top_srcdir)/rust/ffi/cbindgen.toml \
 		--quiet --verify --output $(abs_top_builddir)/rust/gen/rust-ffi.h || true
 else
 gen/rust-ffi.h:
