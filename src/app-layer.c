@@ -1240,7 +1240,16 @@ void AppLayerSetupCounters(void)
         for (AppProto alproto = 0; alproto < g_alproto_max; alproto++) {
             if (alprotos[alproto] == 1) {
                 const char *tx_str = "app_layer.tx.";
-                const char *alproto_str = AppLayerGetProtoName(alproto);
+                const char *alproto_raw = AppLayerGetProtoName(alproto);
+                char alproto_str[32];
+                for (size_t i = 0; i < 32; i++) {
+                    alproto_str[i] = alproto_raw[i];
+                    if (alproto_str[i] == 0) {
+                        break;
+                    } else if (alproto_str[i] == '-') {
+                        alproto_str[i] = '_';
+                    }
+                }
 
                 memset(ipprotos_all, 0, sizeof(ipprotos_all));
                 AppLayerProtoDetectSupportedIpprotos(alproto, ipprotos_all);
