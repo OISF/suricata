@@ -233,3 +233,11 @@ pub unsafe extern "C" fn SCDhcpLoggerDoLog(extended: bool, tx: *mut std::os::raw
     let tx = cast_pointer!(tx, DHCPTransaction);
     do_log(extended, tx)
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn SCDhcpLogJson(
+    tx: *mut std::os::raw::c_void, js: &mut JsonBuilder,
+) -> bool {
+    let tx = cast_pointer!(tx, DHCPTransaction);
+    log(true, tx, js).is_ok()
+}
