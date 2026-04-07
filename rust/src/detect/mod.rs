@@ -79,7 +79,9 @@ pub struct SCSigTableNamesElmt {
 pub unsafe extern "C" fn SCDetectSigMatchNamesFree(kw: &mut SCSigTableNamesElmt) {
     let _ = CString::from_raw(kw.name);
     let _ = CString::from_raw(kw.desc);
-    let _ = CString::from_raw(kw.url);
+    if !kw.url.is_null() {
+        let _ = CString::from_raw(kw.url);
+    }
 }
 
 pub use suricata_sys::sys::{

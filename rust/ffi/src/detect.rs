@@ -43,7 +43,11 @@ pub struct SigTableElmtStickyBuffer {
 fn helper_keyword_register_buffer_flags(kw: &SigTableElmtStickyBuffer, flags: u32) -> u16 {
     let name = CString::new(kw.name.as_bytes()).unwrap().into_raw();
     let desc = CString::new(kw.desc.as_bytes()).unwrap().into_raw();
-    let url = CString::new(kw.url.as_bytes()).unwrap().into_raw();
+    let url = if kw.url.is_empty() {
+        std::ptr::null_mut()
+    } else {
+        CString::new(kw.url.as_bytes()).unwrap().into_raw()
+    };
     let st = SCSigTableAppLiteElmt {
         name,
         desc,

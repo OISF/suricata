@@ -239,7 +239,8 @@ pub unsafe extern "C" fn SCDetectQuicRegister() {
     let kw = SigTableElmtStickyBuffer {
         name: String::from("quic.sni"),
         desc: String::from("match Quic sni"),
-        url: String::from("/rules/quic-keywords.html#quic-sni"),
+        // TODO write doc or deprecate keyword
+        url: String::from(""),
         setup: quic_sni_setup,
     };
     helper_keyword_register_sticky_buffer(&kw);
@@ -254,7 +255,8 @@ pub unsafe extern "C" fn SCDetectQuicRegister() {
     let kw = SigTableElmtStickyBuffer {
         name: String::from("quic.ua"),
         desc: String::from("match Quic ua"),
-        url: String::from("/rules/quic-keywords.html#quic-ua"),
+        // TODO write doc or deprecate keyword
+        url: String::from(""),
         setup: quic_ua_setup,
     };
     helper_keyword_register_sticky_buffer(&kw);

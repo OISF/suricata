@@ -94,8 +94,7 @@ void DetectHttpHHRegister(void)
     /* http_host content modifier */
     sigmatch_table[DETECT_HTTP_HOST_CM].name = "http_host";
     sigmatch_table[DETECT_HTTP_HOST_CM].desc = "content modifier to match on the HTTP hostname";
-    sigmatch_table[DETECT_HTTP_HOST_CM].url =
-            "/rules/http-keywords.html#http-host-and-http-raw-host";
+    // no doc url for this obsolete keyword, see http.host
     sigmatch_table[DETECT_HTTP_HOST_CM].Setup = DetectHttpHHSetup;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_HTTP_HOST_CM].RegisterTests = DetectHttpHHRegisterTests;
@@ -137,8 +136,7 @@ void DetectHttpHHRegister(void)
     sigmatch_table[DETECT_HTTP_RAW_HOST].name = "http_raw_host";
     sigmatch_table[DETECT_HTTP_RAW_HOST].desc = "content modifier to match on the HTTP host header "
                                                 "or the raw hostname from the HTTP uri";
-    sigmatch_table[DETECT_HTTP_RAW_HOST].url =
-            "/rules/http-keywords.html#http-host-and-http-raw-host";
+    // no doc url for this obsolete keyword, see http.host.raw
     sigmatch_table[DETECT_HTTP_RAW_HOST].Setup = DetectHttpHRHSetup;
     sigmatch_table[DETECT_HTTP_RAW_HOST].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_CONTENT_MODIFIER;
     sigmatch_table[DETECT_HTTP_RAW_HOST].alternative = DETECT_HTTP_HOST_RAW;
