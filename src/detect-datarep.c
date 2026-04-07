@@ -54,7 +54,7 @@ void DetectDatarepRegister (void)
 {
     sigmatch_table[DETECT_DATAREP].name = "datarep";
     sigmatch_table[DETECT_DATAREP].desc = "operate on datasets (experimental)";
-    sigmatch_table[DETECT_DATAREP].url = "/rules/dataset-keywords.html#datarep";
+    sigmatch_table[DETECT_DATAREP].url = "/rules/datasets.html#datarep";
     sigmatch_table[DETECT_DATAREP].Setup = DetectDatarepSetup;
     sigmatch_table[DETECT_DATAREP].Free  = DetectDatarepFree;
 

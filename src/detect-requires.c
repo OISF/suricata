@@ -45,6 +45,6 @@ void DetectRequiresRegister(void)
 {
     sigmatch_table[DETECT_REQUIRES].name = "requires";
     sigmatch_table[DETECT_REQUIRES].desc = "require Suricata version or features";
-    sigmatch_table[DETECT_REQUIRES].url = "/rules/meta-keywords.html#requires";
+    sigmatch_table[DETECT_REQUIRES].url = "/rules/meta.html#requires";
     sigmatch_table[DETECT_REQUIRES].Setup = DetectRequiresSetup;
 }
