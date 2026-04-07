@@ -71,9 +71,9 @@ typedef struct SCTransformTableElmt {
     uint32_t flags;
     int (*Setup)(DetectEngineCtx *, Signature *, const char *);
     void (*Free)(DetectEngineCtx *, void *);
-    void (*Transform)(DetectEngineThreadCtx *, InspectionBuffer *, void *context);
-    bool (*TransformValidate)(const uint8_t *content, uint16_t content_len, void *context);
-    void (*TransformId)(const uint8_t **id_data, uint32_t *id_length, void *context);
+    void (*Transform)(DetectEngineThreadCtx *, InspectionBuffer *, const void *context);
+    bool (*TransformValidate)(const uint8_t *content, uint16_t content_len, const void *context);
+    void (*TransformId)(const uint8_t **id_data, uint32_t *id_length, const void *context);
 } SCTransformTableElmt;
 
 int SCDetectHelperNewKeywordId(void);

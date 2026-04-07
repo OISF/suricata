@@ -40,7 +40,7 @@
 static int DetectTransformLuaxformSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectTransformLuaxformFree(DetectEngineCtx *de_ctx, void *ptr);
 static void TransformLuaxform(
-        DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer, void *options);
+        DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer, const void *options);
 
 #define LUAXFORM_MAX_ARGS 10
 
@@ -61,7 +61,7 @@ typedef struct DetectLuaxformThreadData {
     lua_State *luastate;
 } DetectLuaxformThreadData;
 
-static void DetectTransformLuaxformId(const uint8_t **data, uint32_t *length, void *context)
+static void DetectTransformLuaxformId(const uint8_t **data, uint32_t *length, const void *context)
 {
     if (context) {
         DetectLuaxformData *lua = (DetectLuaxformData *)context;
@@ -302,13 +302,13 @@ error:
 }
 
 static void TransformLuaxform(
-        DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer, void *options)
+        DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer, const void *options)
 {
     if (buffer->inspect_len == 0) {
         return;
     }
 
-    DetectLuaxformData *lua = options;
+    const DetectLuaxformData *lua = options;
     DetectLuaThreadData *tlua =
             (DetectLuaThreadData *)DetectThreadCtxGetKeywordThreadCtx(det_ctx, lua->thread_ctx_id);
     if (tlua == NULL) {
