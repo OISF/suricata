@@ -144,3 +144,5 @@ jobs:
       - run: make -j ${{ env.CPUS }}
       - name: Check rules in doc
         run: python3 scripts/check-doc-rules.py
+      - name: Checking doc links
+        run: python3 scripts/check_keyword_doc_links.py
