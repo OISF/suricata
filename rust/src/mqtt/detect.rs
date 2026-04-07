@@ -1136,7 +1136,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
     let kw = SigTableElmtStickyBuffer {
         name: String::from("mqtt.connect.protocol_string"),
         desc: String::from("sticky buffer to match on the MQTT CONNECT protocol string"),
-        url: String::from("/rules/mqtt-keywords.html#mqtt-connect-protocol_string"),
+        url: String::from("/rules/mqtt-keywords.html#mqtt-connect-protocol-string"),
         setup: mqtt_conn_protocolstring_setup,
     };
     let _g_mqtt_conn_protostr_kw_id = helper_keyword_register_sticky_buffer(&kw);

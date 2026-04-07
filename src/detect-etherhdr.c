@@ -49,7 +49,7 @@ void DetectEtherhdrRegister(void)
 {
     sigmatch_table[DETECT_ETHERHDR].name = "ether.hdr";
     sigmatch_table[DETECT_ETHERHDR].desc = "sticky buffer to match on the Ethernet header";
-    sigmatch_table[DETECT_ETHERHDR].url = "/rules/header-keywords.html#etherhdr";
+    sigmatch_table[DETECT_ETHERHDR].url = "/rules/header-keywords.html#ether-hdr";
     sigmatch_table[DETECT_ETHERHDR].Setup = DetectEtherhdrSetup;
     sigmatch_table[DETECT_ETHERHDR].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 #ifdef UNITTESTS

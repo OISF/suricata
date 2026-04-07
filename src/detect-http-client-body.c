@@ -88,7 +88,7 @@ void DetectHttpClientBodyRegister(void)
     sigmatch_table[DETECT_HTTP_CLIENT_BODY].name = "http_client_body";
     sigmatch_table[DETECT_HTTP_CLIENT_BODY].desc =
             "content modifier to match only on HTTP request-body";
-    sigmatch_table[DETECT_HTTP_CLIENT_BODY].url = "/rules/http-keywords.html#http-client-body";
+    sigmatch_table[DETECT_HTTP_CLIENT_BODY].url = "/rules/http-keywords.html#http-request-body";
     sigmatch_table[DETECT_HTTP_CLIENT_BODY].Setup = DetectHttpClientBodySetup;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_HTTP_CLIENT_BODY].RegisterTests = DetectHttpClientBodyRegisterTests;
@@ -100,7 +100,7 @@ void DetectHttpClientBodyRegister(void)
     /* http.request_body sticky buffer */
     sigmatch_table[DETECT_HTTP_REQUEST_BODY].name = "http.request_body";
     sigmatch_table[DETECT_HTTP_REQUEST_BODY].desc = "sticky buffer to match the HTTP request body buffer";
-    sigmatch_table[DETECT_HTTP_REQUEST_BODY].url = "/rules/http-keywords.html#http-client-body";
+    sigmatch_table[DETECT_HTTP_REQUEST_BODY].url = "/rules/http-keywords.html#http-request-body";
     sigmatch_table[DETECT_HTTP_REQUEST_BODY].Setup = DetectHttpClientBodySetupSticky;
     sigmatch_table[DETECT_HTTP_REQUEST_BODY].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_HTTP_REQUEST_BODY].flags |= SIGMATCH_INFO_STICKY_BUFFER;

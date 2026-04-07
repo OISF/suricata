@@ -44,7 +44,7 @@
 #include "detect-ftp-command-data.h"
 
 #define KEYWORD_NAME "ftp.command_data"
-#define KEYWORD_DOC  "ftp-keywords.html#ftp-command_data"
+#define KEYWORD_DOC  "ftp-keywords.html#ftp-command-data"
 #define BUFFER_NAME  "ftp.command_data"
 #define BUFFER_DESC  "ftp command_data"
 

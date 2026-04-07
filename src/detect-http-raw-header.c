@@ -98,7 +98,7 @@ void DetectHttpRawHeaderRegister(void)
     /* http.header.raw sticky buffer */
     sigmatch_table[DETECT_HTTP_RAW_HEADER].name = "http.header.raw";
     sigmatch_table[DETECT_HTTP_RAW_HEADER].desc = "sticky buffer to match the raw HTTP header buffer";
-    sigmatch_table[DETECT_HTTP_RAW_HEADER].url = "/rules/http-keywords.html#http-header-and-http-raw-header";
+    sigmatch_table[DETECT_HTTP_RAW_HEADER].url = "/rules/http-keywords.html#http-header-raw";
     sigmatch_table[DETECT_HTTP_RAW_HEADER].Setup = DetectHttpRawHeaderSetupSticky;
     sigmatch_table[DETECT_HTTP_RAW_HEADER].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 

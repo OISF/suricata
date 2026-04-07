@@ -80,7 +80,7 @@ pub unsafe extern "C" fn DetectTransformHeaderLowercaseRegister() {
     let kw = SCTransformTableElmt {
         name: b"header_lowercase\0".as_ptr() as *const libc::c_char,
         desc: b"modify buffer via lowercaseing header names\0".as_ptr() as *const libc::c_char,
-        url: b"/rules/transforms.html#header_lowercase\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/transforms.html#header-lowercase\0".as_ptr() as *const libc::c_char,
         Setup: Some(header_lowersetup),
         flags: SIGMATCH_NOOPT,
         Transform: Some(header_lowertransform),
@@ -145,7 +145,7 @@ pub unsafe extern "C" fn DetectTransformStripPseudoHeadersRegister() {
     let kw = SCTransformTableElmt {
         name: b"strip_pseudo_headers\0".as_ptr() as *const libc::c_char,
         desc: b"modify buffer via stripping pseudo headers\0".as_ptr() as *const libc::c_char,
-        url: b"/rules/transforms.html#strip_pseudo_headers\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/transforms.html#strip-pseudo-headers\0".as_ptr() as *const libc::c_char,
         Setup: Some(strip_pseudo_setup),
         flags: SIGMATCH_NOOPT,
         Transform: Some(strip_pseudo_transform),

@@ -139,10 +139,10 @@ static int Register(const char *keyword, const char *desc, const char *doc,
 void DetectDnsNameRegister(void)
 {
     query_buffer_id = Register("dns.queries.rrname", "DNS query rrname sticky buffer",
-            "/rules/dns-keywords.html#dns.queries.rrname", SetupQueryBuffer, SCDnsTxGetQueryName,
+            "/rules/dns-keywords.html#dns-queries-rrname", SetupQueryBuffer, SCDnsTxGetQueryName,
             ALPROTO_DNS);
     answer_buffer_id = Register("dns.answers.rrname", "DNS answer rrname sticky buffer",
-            "/rules/dns-keywords.html#dns.answers.rrname", SetupAnswerBuffer, SCDnsTxGetAnswerName,
+            "/rules/dns-keywords.html#dns-answers-rrname", SetupAnswerBuffer, SCDnsTxGetAnswerName,
             ALPROTO_DNS);
     additional_buffer_id =
             Register("dns.additionals.rrname", "DNS additionals rrname sticky buffer",
@@ -153,10 +153,10 @@ void DetectDnsNameRegister(void)
             SCDnsTxGetAuthorityName, ALPROTO_DNS);
 
     mdns_query_buffer_id = Register("mdns.queries.rrname", "mDNS query rrname sticky buffer",
-            "/rules/mdns-keywords.html#mdns.queries.rrname", SetupQueryBufferMdns,
+            "/rules/mdns-keywords.html#mdns-queries-rrname", SetupQueryBufferMdns,
             SCDnsTxGetQueryName, ALPROTO_MDNS);
     mdns_answer_buffer_id = Register("mdns.answers.rrname", "mDNS answer rrname sticky buffer",
-            "/rules/mdns-keywords.html#mdns.answers.rrname", SetupAnswerBufferMdns,
+            "/rules/mdns-keywords.html#mdns-answers-rrname", SetupAnswerBufferMdns,
             SCMdnsTxGetAnswerName, ALPROTO_MDNS);
     mdns_additional_buffer_id =
             Register("mdns.additionals.rrname", "mDNS additionals rrname sticky buffer",

@@ -103,7 +103,7 @@ void DetectHttpUriRegister (void)
     sigmatch_table[DETECT_HTTP_URI].name = "http.uri";
     sigmatch_table[DETECT_HTTP_URI].alias = "http.uri.normalized";
     sigmatch_table[DETECT_HTTP_URI].desc = "sticky buffer to match specifically and only on the normalized HTTP URI buffer";
-    sigmatch_table[DETECT_HTTP_URI].url = "/rules/http-keywords.html#http-uri-and-http-uri-raw";
+    sigmatch_table[DETECT_HTTP_URI].url = "/rules/http-keywords.html#http-uri";
     sigmatch_table[DETECT_HTTP_URI].Setup = DetectHttpUriSetupSticky;
     sigmatch_table[DETECT_HTTP_URI].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
@@ -140,7 +140,7 @@ void DetectHttpUriRegister (void)
     /* http.uri.raw sticky buffer */
     sigmatch_table[DETECT_HTTP_URI_RAW].name = "http.uri.raw";
     sigmatch_table[DETECT_HTTP_URI_RAW].desc = "sticky buffer to match specifically and only on the raw HTTP URI buffer";
-    sigmatch_table[DETECT_HTTP_URI_RAW].url = "/rules/http-keywords.html#http-uri-and-http-raw-uri";
+    sigmatch_table[DETECT_HTTP_URI_RAW].url = "/rules/http-keywords.html#http-uri-raw";
     sigmatch_table[DETECT_HTTP_URI_RAW].Setup = DetectHttpRawUriSetupSticky;
     sigmatch_table[DETECT_HTTP_URI_RAW].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 

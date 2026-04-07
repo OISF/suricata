@@ -358,7 +358,7 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
     let kw = SigTableElmtStickyBuffer {
         name: String::from("dns.answer.name"),
         desc: String::from("DNS answer name sticky buffer"),
-        url: String::from("/rules/dns-keywords.html#dns-answer-name"),
+        url: String::from("/rules/dns-keywords.html#dns-answers-rrname"),
         setup: dns_detect_answer_name_setup,
     };
     let _g_dns_answer_name_kw_id = helper_keyword_register_multi_buffer(&kw);
@@ -391,7 +391,7 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
     let kw = SigTableElmtStickyBuffer {
         name: String::from("dns.query.name"),
         desc: String::from("DNS query name sticky buffer"),
-        url: String::from("/rules/dns-keywords.html#dns-query-name"),
+        url: String::from("/rules/dns-keywords.html#dns-queries-rrname"),
         setup: dns_detect_query_name_setup,
     };
     let _g_dns_query_name_kw_id = helper_keyword_register_multi_buffer(&kw);
