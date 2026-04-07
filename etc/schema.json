@@ -5736,7 +5736,7 @@
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
-                                "bittorrent-dht": {
+                                "bittorrent_dht": {
                                     "description":
                                             "Errors encountered parsing BitTorrent DHT protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
@@ -5784,7 +5784,7 @@
                                     "description": "Errors encountered parsing FTP",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
-                                "ftp-data": {
+                                "ftp_data": {
                                     "description": "Errors encountered parsing FTP data",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
@@ -5914,7 +5914,7 @@
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
-                                "bittorrent-dht": {
+                                "bittorrent_dht": {
                                     "type": "integer",
                                     "description": "Number of flows for BitTorrent DHT protocol"
                                 },
@@ -5965,7 +5965,7 @@
                                     "type": "integer",
                                     "description": "Number of flows for FTP"
                                 },
-                                "ftp-data": {
+                                "ftp_data": {
                                     "type": "integer",
                                     "description": "Number of flows for FTP data protocol"
                                 },
@@ -6093,7 +6093,7 @@
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
-                                "bittorrent-dht": {
+                                "bittorrent_dht": {
                                     "type": "integer",
                                     "description":
                                             "Number of transactions for BitTorrent DHT protocol"
@@ -6137,7 +6137,7 @@
                                     "type": "integer",
                                     "description": "Number of transactions for FTP"
                                 },
-                                "ftp-data": {
+                                "ftp_data": {
                                     "type": "integer",
                                     "description": "Number of transactions for FTP data protocol"
                                 },
