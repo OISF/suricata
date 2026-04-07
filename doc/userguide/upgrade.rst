@@ -57,6 +57,10 @@ Logging Changes
 
 - Alert verdict key is changed from to ``reject-target`` to ``reject_target``
 
+- App-layer stats protocols names replace dash by underscore, meaning
+  ``stats.app_layer.*.ftp-data`` becomes ``stats.app_layer.*.ftp_data``,
+  and same for bittorrent_dht
+
 Other Changes
 ~~~~~~~~~~~~~
 - ``engine-analysis`` output has been changed for keywords that now use the generic integers framework
