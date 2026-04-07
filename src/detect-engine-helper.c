@@ -128,7 +128,9 @@ uint16_t SCDetectHelperKeywordRegister(const SCSigTableAppLiteElmt *kw)
 
     sigmatch_table[keyword_id].name = kw->name;
     sigmatch_table[keyword_id].desc = kw->desc;
-    sigmatch_table[keyword_id].url = kw->url;
+    if (kw->url && strlen(kw->url) > 0) {
+        sigmatch_table[keyword_id].url = kw->url;
+    }
     sigmatch_table[keyword_id].flags = kw->flags;
     sigmatch_table[keyword_id].AppLayerTxMatch =
             (int (*)(DetectEngineThreadCtx * det_ctx, Flow * f, uint8_t flags, void *alstate,

@@ -91,7 +91,7 @@ void DetectHttpUriRegister (void)
     sigmatch_table[DETECT_HTTP_URI_CM].name = "http_uri";
     sigmatch_table[DETECT_HTTP_URI_CM].desc =
             "content modifier to match specifically and only on the HTTP uri-buffer";
-    sigmatch_table[DETECT_HTTP_URI_CM].url = "/rules/http-keywords.html#http-uri-and-http-uri-raw";
+    // no doc url for this obsolete keyword, see http.uri
     sigmatch_table[DETECT_HTTP_URI_CM].Setup = DetectHttpUriSetup;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_HTTP_URI_CM].RegisterTests = DetectHttpUriRegisterTests;
@@ -132,7 +132,7 @@ void DetectHttpUriRegister (void)
     /* http_raw_uri content modifier */
     sigmatch_table[DETECT_HTTP_RAW_URI].name = "http_raw_uri";
     sigmatch_table[DETECT_HTTP_RAW_URI].desc = "content modifier to match on the raw HTTP uri";
-    sigmatch_table[DETECT_HTTP_RAW_URI].url = "/rules/http-keywords.html#http_uri-and-http_raw-uri";
+    // no doc url for this obsolete keyword, see http.uri.raw
     sigmatch_table[DETECT_HTTP_RAW_URI].Setup = DetectHttpRawUriSetup;
     sigmatch_table[DETECT_HTTP_RAW_URI].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_CONTENT_MODIFIER;
     sigmatch_table[DETECT_HTTP_RAW_URI].alternative = DETECT_HTTP_URI_RAW;
