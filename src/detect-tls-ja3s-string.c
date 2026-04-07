@@ -81,7 +81,7 @@ void DetectTlsJa3SStringRegister(void)
 {
     sigmatch_table[DETECT_TLS_JA3S_STRING].name = "ja3s.string";
     sigmatch_table[DETECT_TLS_JA3S_STRING].desc = "sticky buffer to match the JA3S string buffer";
-    sigmatch_table[DETECT_TLS_JA3S_STRING].url = "/rules/ja3-keywords.html#ja3s-string";
+    sigmatch_table[DETECT_TLS_JA3S_STRING].url = "/rules/ja-keywords.html#ja3s-string";
 #ifdef HAVE_JA3
     sigmatch_table[DETECT_TLS_JA3S_STRING].Setup = DetectTlsJa3SStringSetup;
 #else  /* HAVE_JA3 */

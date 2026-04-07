@@ -84,7 +84,7 @@ void DetectLuaRegister(void)
 {
     sigmatch_table[DETECT_LUA].name = "lua";
     sigmatch_table[DETECT_LUA].desc = "match via a lua script";
-    sigmatch_table[DETECT_LUA].url = "/rules/rule-lua-scripting.html";
+    sigmatch_table[DETECT_LUA].url = "/rules/lua-detection.html";
     sigmatch_table[DETECT_LUA].Match = DetectLuaMatch;
     sigmatch_table[DETECT_LUA].AppLayerTxMatch = DetectLuaAppTxMatch;
     sigmatch_table[DETECT_LUA].Setup = DetectLuaSetup;

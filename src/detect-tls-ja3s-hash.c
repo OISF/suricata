@@ -80,7 +80,7 @@ void DetectTlsJa3SHashRegister(void)
 {
     sigmatch_table[DETECT_TLS_JA3S_HASH].name = "ja3s.hash";
     sigmatch_table[DETECT_TLS_JA3S_HASH].desc = "sticky buffer to match the JA3S hash buffer";
-    sigmatch_table[DETECT_TLS_JA3S_HASH].url = "/rules/ja3-keywords.html#ja3s-hash";
+    sigmatch_table[DETECT_TLS_JA3S_HASH].url = "/rules/ja-keywords.html#ja3s-hash";
 #ifdef HAVE_JA3
     sigmatch_table[DETECT_TLS_JA3S_HASH].Setup = DetectTlsJa3SHashSetup;
 #else  /* HAVE_JA3 */
