@@ -41,7 +41,7 @@ fn tolower_transform_do(input: &[u8], output: &mut [u8]) {
 }
 
 unsafe extern "C" fn tolower_transform(
-    _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, _ctx: *mut c_void,
+    _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, _ctx: *const c_void,
 ) {
     let input = (*buffer).inspect;
     let input_len = (*buffer).inspect_len;
@@ -62,7 +62,7 @@ unsafe extern "C" fn tolower_transform(
     SCInspectionBufferTruncate(buffer, input_len);
 }
 
-unsafe extern "C" fn tolower_validate(content: *const u8, len: u16, _ctx: *mut c_void) -> bool {
+unsafe extern "C" fn tolower_validate(content: *const u8, len: u16, _ctx: *const c_void) -> bool {
     let input = build_slice!(content, len as usize);
     for &c in input {
         if c.is_ascii_uppercase() {
@@ -104,7 +104,7 @@ fn toupper_transform_do(input: &[u8], output: &mut [u8]) {
 }
 
 unsafe extern "C" fn toupper_transform(
-    _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, _ctx: *mut c_void,
+    _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, _ctx: *const c_void,
 ) {
     let input = (*buffer).inspect;
     let input_len = (*buffer).inspect_len;
@@ -125,7 +125,7 @@ unsafe extern "C" fn toupper_transform(
     SCInspectionBufferTruncate(buffer, input_len);
 }
 
-unsafe extern "C" fn toupper_validate(content: *const u8, len: u16, _ctx: *mut c_void) -> bool {
+unsafe extern "C" fn toupper_validate(content: *const u8, len: u16, _ctx: *const c_void) -> bool {
     let input = build_slice!(content, len as usize);
     for &c in input {
         if c.is_ascii_lowercase() {

@@ -82,7 +82,7 @@ fn xor_transform_do(input: &[u8], output: &mut [u8], ctx: &DetectTransformXorDat
 }
 
 unsafe extern "C" fn xor_transform(
-    _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, ctx: *mut c_void,
+    _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, ctx: *const c_void,
 ) {
     let input = (*buffer).inspect;
     let input_len = (*buffer).inspect_len;
@@ -108,7 +108,7 @@ unsafe extern "C" fn xor_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     std::mem::drop(Box::from_raw(ctx as *mut DetectTransformXorData));
 }
 
-unsafe extern "C" fn xor_id(data: *mut *const u8, length: *mut u32, ctx: *mut c_void) {
+unsafe extern "C" fn xor_id(data: *mut *const u8, length: *mut u32, ctx: *const c_void,) {
     if data.is_null() || length.is_null() || ctx.is_null() {
         return;
     }

@@ -88,7 +88,7 @@ fn url_decode_transform_do(input: &[u8], output: &mut [u8]) -> u32 {
 }
 
 unsafe extern "C" fn url_decode_transform(
-    _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, _ctx: *mut c_void,
+    _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, _ctx: *const c_void,
 ) {
     let input = (*buffer).inspect;
     let input_len = (*buffer).inspect_len;

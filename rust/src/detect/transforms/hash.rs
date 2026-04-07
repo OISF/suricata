@@ -52,7 +52,7 @@ fn md5_transform_do(input: &[u8], output: &mut [u8]) {
 }
 
 unsafe extern "C" fn md5_transform(
-    _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, _ctx: *mut c_void,
+    _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, _ctx: *const c_void,
 ) {
     let input = (*buffer).inspect;
     let input_len = (*buffer).inspect_len;
@@ -107,7 +107,7 @@ fn sha1_transform_do(input: &[u8], output: &mut [u8]) {
 }
 
 unsafe extern "C" fn sha1_transform(
-    _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, _ctx: *mut c_void,
+    _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, _ctx: *const c_void,
 ) {
     let input = (*buffer).inspect;
     let input_len = (*buffer).inspect_len;
@@ -162,7 +162,7 @@ fn sha256_transform_do(input: &[u8], output: &mut [u8]) {
 }
 
 unsafe extern "C" fn sha256_transform(
-    _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, _ctx: *mut c_void,
+    _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, _ctx: *const c_void,
 ) {
     let input = (*buffer).inspect;
     let input_len = (*buffer).inspect_len;

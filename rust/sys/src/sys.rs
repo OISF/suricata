@@ -794,21 +794,21 @@ pub struct SCTransformTableElmt {
         unsafe extern "C" fn(
             arg1: *mut DetectEngineThreadCtx,
             arg2: *mut InspectionBuffer,
-            context: *mut ::std::os::raw::c_void,
+            context: *const ::std::os::raw::c_void,
         ),
     >,
     pub TransformValidate: ::std::option::Option<
         unsafe extern "C" fn(
             content: *const u8,
             content_len: u16,
-            context: *mut ::std::os::raw::c_void,
+            context: *const ::std::os::raw::c_void,
         ) -> bool,
     >,
     pub TransformId: ::std::option::Option<
         unsafe extern "C" fn(
             id_data: *mut *const u8,
             id_length: *mut u32,
-            context: *mut ::std::os::raw::c_void,
+            context: *const ::std::os::raw::c_void,
         ),
     >,
 }

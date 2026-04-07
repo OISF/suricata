@@ -43,7 +43,7 @@ fn dot_prefix_transform_do(input: &[u8], output: &mut [u8]) {
 }
 
 unsafe extern "C" fn dot_prefix_transform(
-    _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, _ctx: *mut c_void,
+    _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, _ctx: *const c_void,
 ) {
     let input_len = (*buffer).inspect_len;
     if input_len == 0 {
