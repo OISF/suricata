@@ -69,7 +69,7 @@ void DetectJa4HashRegister(void)
     sigmatch_table[DETECT_JA4_HASH].name = "ja4.hash";
     sigmatch_table[DETECT_JA4_HASH].alias = "ja4_hash";
     sigmatch_table[DETECT_JA4_HASH].desc = "sticky buffer to match the JA4 hash buffer";
-    sigmatch_table[DETECT_JA4_HASH].url = "/rules/ja4-keywords.html#ja4-hash";
+    sigmatch_table[DETECT_JA4_HASH].url = "/rules/ja-keywords.html#ja4-hash";
 #ifdef HAVE_JA4
     sigmatch_table[DETECT_JA4_HASH].Setup = DetectJa4HashSetup;
 #ifdef UNITTESTS

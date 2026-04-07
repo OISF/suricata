@@ -1014,7 +1014,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
     let kw = SigTableElmtStickyBuffer {
         name: String::from("mqtt.publish.topic"),
         desc: String::from("sticky buffer to match on the MQTT PUBLISH topic"),
-        url: String::from("mqtt-keywords.html#mqtt-publish-topic"),
+        url: String::from("/rules/mqtt-keywords.html#mqtt-publish-topic"),
         setup: mqtt_pub_topic_setup,
     };
     let _g_mqtt_pub_topic_kw_id = helper_keyword_register_sticky_buffer(&kw);
@@ -1028,7 +1028,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
     let kw = SigTableElmtStickyBuffer {
         name: String::from("mqtt.publish.message"),
         desc: String::from("sticky buffer to match on the MQTT PUBLISH message"),
-        url: String::from("mqtt-keywords.html#mqtt-publish-message"),
+        url: String::from("/rules/mqtt-keywords.html#mqtt-publish-message"),
         setup: mqtt_pub_msg_setup,
     };
     let _g_mqtt_pub_msg_kw_id = helper_keyword_register_sticky_buffer(&kw);
@@ -1087,7 +1087,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
     let kw = SigTableElmtStickyBuffer {
         name: String::from("mqtt.connect.willtopic"),
         desc: String::from("sticky buffer to match on the MQTT CONNECT will topic"),
-        url: String::from("mqtt-keywords.html#mqtt-connect-willtopic"),
+        url: String::from("/rules/mqtt-keywords.html#mqtt-connect-willtopic"),
         setup: mqtt_conn_willtopic_setup,
     };
     let _g_mqtt_conn_willtopic_kw_id = helper_keyword_register_sticky_buffer(&kw);
@@ -1101,7 +1101,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
     let kw = SigTableElmtStickyBuffer {
         name: String::from("mqtt.connect.willmessage"),
         desc: String::from("sticky buffer to match on the MQTT CONNECT will message"),
-        url: String::from("mqtt-keywords.html#mqtt-connect-willmessage"),
+        url: String::from("/rules/mqtt-keywords.html#mqtt-connect-willmessage"),
         setup: mqtt_conn_willmsg_setup,
     };
     let _g_mqtt_conn_willmsg_kw_id = helper_keyword_register_sticky_buffer(&kw);
@@ -1115,7 +1115,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
     let kw = SigTableElmtStickyBuffer {
         name: String::from("mqtt.connect.username"),
         desc: String::from("sticky buffer to match on the MQTT CONNECT username"),
-        url: String::from("mqtt-keywords.html#mqtt-connect-username"),
+        url: String::from("/rules/mqtt-keywords.html#mqtt-connect-username"),
         setup: mqtt_conn_username_setup,
     };
     let _g_mqtt_conn_username_kw_id = helper_keyword_register_sticky_buffer(&kw);
@@ -1129,7 +1129,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
     let kw = SigTableElmtStickyBuffer {
         name: String::from("mqtt.connect.protocol_string"),
         desc: String::from("sticky buffer to match on the MQTT CONNECT protocol string"),
-        url: String::from("mqtt-keywords.html#mqtt-connect-protocol_string"),
+        url: String::from("/rules/mqtt-keywords.html#mqtt-connect-protocol_string"),
         setup: mqtt_conn_protocolstring_setup,
     };
     let _g_mqtt_conn_protostr_kw_id = helper_keyword_register_sticky_buffer(&kw);
@@ -1143,7 +1143,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
     let kw = SigTableElmtStickyBuffer {
         name: String::from("mqtt.connect.password"),
         desc: String::from("sticky buffer to match on the MQTT CONNECT password"),
-        url: String::from("mqtt-keywords.html#mqtt-connect-password"),
+        url: String::from("/rules/mqtt-keywords.html#mqtt-connect-password"),
         setup: mqtt_conn_password_setup,
     };
     let _g_mqtt_conn_password_kw_id = helper_keyword_register_sticky_buffer(&kw);
@@ -1157,7 +1157,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
     let kw = SigTableElmtStickyBuffer {
         name: String::from("mqtt.connect.clientid"),
         desc: String::from("sticky buffer to match on the MQTT CONNECT clientid"),
-        url: String::from("mqtt-keywords.html#mqtt-connect-clientid"),
+        url: String::from("/rules/mqtt-keywords.html#mqtt-connect-clientid"),
         setup: mqtt_conn_clientid_setup,
     };
     let _g_mqtt_conn_password_kw_id = helper_keyword_register_sticky_buffer(&kw);

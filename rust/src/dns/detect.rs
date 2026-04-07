@@ -375,7 +375,7 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
     let kw = SCSigTableAppLiteElmt {
         name: b"dns.opcode\0".as_ptr() as *const libc::c_char,
         desc: b"Match the DNS header opcode flag.\0".as_ptr() as *const libc::c_char,
-        url: b"rules/dns-keywords.html#dns-opcode\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/dns-keywords.html#dns-opcode\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(dns_opcode_match),
         Setup: Some(dns_opcode_setup),
         Free: Some(dns_opcode_free),
@@ -407,7 +407,7 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
     let kw = SCSigTableAppLiteElmt {
         name: b"dns.rcode\0".as_ptr() as *const libc::c_char,
         desc: b"Match the DNS header rcode flag.\0".as_ptr() as *const libc::c_char,
-        url: b"rules/dns-keywords.html#dns-rcode\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/dns-keywords.html#dns-rcode\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(dns_rcode_match),
         Setup: Some(dns_rcode_setup),
         Free: Some(dns_rcode_free),
@@ -422,7 +422,7 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
     let kw = SCSigTableAppLiteElmt {
         name: b"dns.rrtype\0".as_ptr() as *const libc::c_char,
         desc: b"Match the DNS rrtype in message body.\0".as_ptr() as *const libc::c_char,
-        url: b"rules/dns-keywords.html#dns-rrtype\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/dns-keywords.html#dns-rrtype\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(dns_rrtype_match),
         Setup: Some(dns_rrtype_setup),
         Free: Some(dns_rrtype_free),
