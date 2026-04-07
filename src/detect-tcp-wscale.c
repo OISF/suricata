@@ -48,7 +48,7 @@ void DetectTcpWscaleRegister(void)
 {
     sigmatch_table[DETECT_TCP_WSCALE].name = "tcp.wscale";
     sigmatch_table[DETECT_TCP_WSCALE].desc = "match on TCP WSCALE option field";
-    sigmatch_table[DETECT_TCP_WSCALE].url = "/rules/header-keywords.html#tcpwscale";
+    sigmatch_table[DETECT_TCP_WSCALE].url = "/rules/header-keywords.html#tcp-wscale";
     sigmatch_table[DETECT_TCP_WSCALE].Match = DetectTcpWscaleMatch;
     sigmatch_table[DETECT_TCP_WSCALE].Setup = DetectTcpWscaleSetup;
     sigmatch_table[DETECT_TCP_WSCALE].Free = DetectTcpWscaleFree;

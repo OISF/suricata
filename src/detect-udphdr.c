@@ -51,7 +51,7 @@ void DetectUdphdrRegister(void)
 {
     sigmatch_table[DETECT_UDPHDR].name = "udp.hdr";
     sigmatch_table[DETECT_UDPHDR].desc = "sticky buffer to match on the UDP header";
-    sigmatch_table[DETECT_UDPHDR].url = "/rules/header-keywords.html#udphdr";
+    sigmatch_table[DETECT_UDPHDR].url = "/rules/header-keywords.html#udp-hdr";
     sigmatch_table[DETECT_UDPHDR].Setup = DetectUdphdrSetup;
     sigmatch_table[DETECT_UDPHDR].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 #ifdef UNITTESTS

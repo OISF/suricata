@@ -52,7 +52,7 @@ void DetectIGMPTypeRegister(void)
 {
     sigmatch_table[DETECT_IGMP_TYPE].name = "igmp.type";
     sigmatch_table[DETECT_IGMP_TYPE].desc = "match on a specific IGMP type";
-    sigmatch_table[DETECT_IGMP_TYPE].url = "/rules/header-keywords.html#igmp.type";
+    sigmatch_table[DETECT_IGMP_TYPE].url = "/rules/header-keywords.html#igmp-type";
     sigmatch_table[DETECT_IGMP_TYPE].Match = DetectIGMPTypeMatch;
     sigmatch_table[DETECT_IGMP_TYPE].Setup = DetectIGMPTypeSetup;
     sigmatch_table[DETECT_IGMP_TYPE].Free = DetectIGMPTypeFree;

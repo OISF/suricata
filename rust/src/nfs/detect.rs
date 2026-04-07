@@ -164,7 +164,7 @@ pub unsafe extern "C" fn SCDetectNfsProcedureRegister() {
     let kw = SCSigTableAppLiteElmt {
         name: b"nfs_procedure\0".as_ptr() as *const libc::c_char,
         desc: b"match NFS procedure\0".as_ptr() as *const libc::c_char,
-        url: b"/rules/nfs-keywords.html#procedure\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/nfs-keywords.html#nfs-procedure\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(nfs_procedure_match),
         Setup: Some(nfs_procedure_setup),
         Free: Some(nfs_procedure_free),

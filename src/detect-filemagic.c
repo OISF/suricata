@@ -75,7 +75,7 @@ void DetectFilemagicRegister(void)
 {
     sigmatch_table[DETECT_FILEMAGIC].name = "filemagic";
     sigmatch_table[DETECT_FILEMAGIC].desc = "match on the information libmagic returns about a file";
-    sigmatch_table[DETECT_FILEMAGIC].url = "/rules/file-keywords.html#filemagic";
+    sigmatch_table[DETECT_FILEMAGIC].url = "/rules/file-keywords.html#file-magic";
     sigmatch_table[DETECT_FILEMAGIC].Setup = DetectFilemagicSetupNoSupport;
     sigmatch_table[DETECT_FILEMAGIC].flags = SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION;
 }
@@ -105,14 +105,14 @@ void DetectFilemagicRegister(void)
 {
     sigmatch_table[DETECT_FILEMAGIC].name = "filemagic";
     sigmatch_table[DETECT_FILEMAGIC].desc = "match on the information libmagic returns about a file";
-    sigmatch_table[DETECT_FILEMAGIC].url = "/rules/file-keywords.html#filemagic";
+    sigmatch_table[DETECT_FILEMAGIC].url = "/rules/file-keywords.html#file-magic";
     sigmatch_table[DETECT_FILEMAGIC].Setup = DetectFilemagicSetup;
     sigmatch_table[DETECT_FILEMAGIC].flags = SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION;
     sigmatch_table[DETECT_FILEMAGIC].alternative = DETECT_FILE_MAGIC;
 
     sigmatch_table[DETECT_FILE_MAGIC].name = "file.magic";
     sigmatch_table[DETECT_FILE_MAGIC].desc = "sticky buffer to match on the file magic";
-    sigmatch_table[DETECT_FILE_MAGIC].url = "/rules/file-keywords.html#filemagic";
+    sigmatch_table[DETECT_FILE_MAGIC].url = "/rules/file-keywords.html#file-magic";
     sigmatch_table[DETECT_FILE_MAGIC].Setup = DetectFilemagicSetupSticky;
     sigmatch_table[DETECT_FILE_MAGIC].flags = SIGMATCH_OPTIONAL_OPT | SIGMATCH_INFO_STICKY_BUFFER |
                                               SIGMATCH_SUPPORT_DIR | SIGMATCH_INFO_MULTI_BUFFER;

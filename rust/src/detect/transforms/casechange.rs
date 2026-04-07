@@ -77,7 +77,7 @@ pub unsafe extern "C" fn DetectTransformToLowerRegister() {
     let kw = SCTransformTableElmt {
         name: b"to_lowercase\0".as_ptr() as *const libc::c_char,
         desc: b"convert buffer to lowercase\0".as_ptr() as *const libc::c_char,
-        url: b"/rules/transforms.html#to_lowercase\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/transforms.html#to-lowercase\0".as_ptr() as *const libc::c_char,
         Setup: Some(tolower_setup),
         flags: SIGMATCH_NOOPT,
         Transform: Some(tolower_transform),
@@ -140,7 +140,7 @@ pub unsafe extern "C" fn DetectTransformToUpperRegister() {
     let kw = SCTransformTableElmt {
         name: b"to_uppercase\0".as_ptr() as *const libc::c_char,
         desc: b"convert buffer to uppercase\0".as_ptr() as *const libc::c_char,
-        url: b"/rules/transforms.html#to_uppercase\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/transforms.html#to-uppercase\0".as_ptr() as *const libc::c_char,
         Setup: Some(toupper_setup),
         flags: SIGMATCH_NOOPT,
         Transform: Some(toupper_transform),
