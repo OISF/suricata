@@ -40,7 +40,7 @@
 #include "util-debug.h"
 
 #define KEYWORD_NAME "ftp.completion_code"
-#define KEYWORD_DOC  "ftp-keywords.html#ftp-completion_code"
+#define KEYWORD_DOC  "ftp-keywords.html#ftp-completion-code"
 #define BUFFER_NAME  "ftp.completion_code"
 #define BUFFER_DESC  "ftp completion code"
 

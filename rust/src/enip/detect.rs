@@ -1350,7 +1350,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         name: b"cip_service\0".as_ptr() as *const libc::c_char,
         desc: b"match on CIP Service, and optionnally class and attribute\0".as_ptr()
             as *const libc::c_char,
-        url: b"/rules/enip-keyword.html#cip_service\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/enip-keyword.html#cip-service\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(cipservice_match),
         Setup: Some(cipservice_setup),
         Free: Some(cipservice_free),
@@ -1526,7 +1526,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
     let kw = SCSigTableAppLiteElmt {
         name: b"enip_command\0".as_ptr() as *const libc::c_char,
         desc: b"rules for detecting EtherNet/IP command\0".as_ptr() as *const libc::c_char,
-        url: b"/rules/enip-keyword.html#enip_command\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/enip-keyword.html#enip-command\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(command_match),
         Setup: Some(command_setup),
         Free: Some(command_free),

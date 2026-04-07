@@ -60,7 +60,7 @@ void DetectTransformPcrexformRegister(void)
     sigmatch_table[DETECT_TRANSFORM_PCREXFORM].name = "pcrexform";
     sigmatch_table[DETECT_TRANSFORM_PCREXFORM].desc =
         "modify buffer via PCRE before inspection";
-    sigmatch_table[DETECT_TRANSFORM_PCREXFORM].url = "/rules/transforms.html#pcre-xform";
+    sigmatch_table[DETECT_TRANSFORM_PCREXFORM].url = "/rules/transforms.html#pcrexform";
     sigmatch_table[DETECT_TRANSFORM_PCREXFORM].Transform =
         DetectTransformPcrexform;
     sigmatch_table[DETECT_TRANSFORM_PCREXFORM].TransformId = DetectTransformPcrexformId;

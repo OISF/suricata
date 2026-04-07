@@ -280,7 +280,7 @@ pub unsafe extern "C" fn DetectTransformFromBase64DecodeRegister() {
     let kw = SCTransformTableElmt {
         name: b"from_base64\0".as_ptr() as *const libc::c_char,
         desc: b"convert the base64 decode of the buffer\0".as_ptr() as *const libc::c_char,
-        url: b"/rules/transforms.html#from_base64\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/transforms.html#from-base64\0".as_ptr() as *const libc::c_char,
         Setup: Some(base64_setup),
         flags: SIGMATCH_OPTIONAL_OPT,
         Transform: Some(base64_transform),

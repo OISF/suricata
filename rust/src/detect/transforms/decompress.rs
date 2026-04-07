@@ -234,7 +234,7 @@ pub unsafe extern "C" fn DetectTransformZlibDeflateRegister() {
     let kw = SCTransformTableElmt {
         name: b"zlib_deflate\0".as_ptr() as *const libc::c_char,
         desc: b"modify buffer via zlib decompression\0".as_ptr() as *const libc::c_char,
-        url: b"/rules/transforms.html#zlib_deflate\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/transforms.html#zlib-deflate\0".as_ptr() as *const libc::c_char,
         Setup: Some(zlib_deflate_setup),
         flags: SIGMATCH_OPTIONAL_OPT,
         Transform: Some(zlib_deflate_transform),

@@ -754,7 +754,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sdp.time"),
         desc: String::from("sticky buffer to match on the SDP time field"),
-        url: String::from("/rules/sdp-keywords.html#time"),
+        url: String::from("/rules/sdp-keywords.html#sdp-time"),
         setup: sdp_time_setup,
     };
     let _ = helper_keyword_register_multi_buffer(&kw);
@@ -768,7 +768,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sdp.repeat_time"),
         desc: String::from("sticky buffer to match on the SDP repeat time field"),
-        url: String::from("/rules/sdp-keywords.html#repeat-time"),
+        url: String::from("/rules/sdp-keywords.html#sdp-repeat-time"),
         setup: sdp_repeat_time_setup,
     };
     let _ = helper_keyword_register_multi_buffer(&kw);
@@ -782,7 +782,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sdp.timezone"),
         desc: String::from("sticky buffer to match on the SDP timezone field"),
-        url: String::from("/rules/sdp-keywords.html#timezone"),
+        url: String::from("/rules/sdp-keywords.html#sdp-timezone"),
         setup: sdp_timezone_setup,
     };
     let _ = helper_keyword_register_sticky_buffer(&kw);
@@ -796,7 +796,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sdp.encryption_key"),
         desc: String::from("sticky buffer to match on the SDP encryption key field"),
-        url: String::from("/rules/sdp-keywords.html#encryption-key"),
+        url: String::from("/rules/sdp-keywords.html#sdp-encryption-key"),
         setup: sdp_encryption_key_setup,
     };
     let _ = helper_keyword_register_sticky_buffer(&kw);
@@ -826,7 +826,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
         desc: String::from(
             "sticky buffer to match on the SDP media subfield of the media_description field",
         ),
-        url: String::from("/rules/sdp-keywords.html#media-description-media"),
+        url: String::from("/rules/sdp-keywords.html#sdp-media-media"),
         setup: sdp_media_desc_media_setup,
     };
     let _ = helper_keyword_register_multi_buffer(&kw);
@@ -840,7 +840,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sdp.media.media_info"),
         desc: String::from("sticky buffer to match on the SDP session info subfield of the media_description field"),
-        url: String::from("/rules/sdp-keywords.html#sdp-media-description-session-info"),
+        url: String::from("/rules/sdp-keywords.html#sdp-media-session-info"),
         setup: sdp_media_desc_session_info_setup,
     };
     let _ = helper_keyword_register_multi_buffer(&kw);
@@ -854,7 +854,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sdp.media.connection_data"),
         desc: String::from("sticky buffer to match on the SDP connection data subfield of the media_description field"),
-        url: String::from("/rules/sdp-keywords.html#sdp-media-description-connection-data"),
+        url: String::from("/rules/sdp-keywords.html#sdp-media-connection-data"),
         setup: sdp_media_desc_connection_data_setup,
     };
     let _ = helper_keyword_register_multi_buffer(&kw);
@@ -868,7 +868,7 @@ pub unsafe extern "C" fn SCDetectSdpRegister() {
     let kw = SigTableElmtStickyBuffer {
         name: String::from("sdp.media.encryption_key"),
         desc: String::from("sticky buffer to match on the SDP encryption key subfield of the media_description field"),
-        url: String::from("/rules/sdp-keywords.html#sdp-media-description-encryption-key"),
+        url: String::from("/rules/sdp-keywords.html#sdp-media-encryption-key"),
         setup: sdp_media_desc_encryption_key_setup,
     };
     let _ = helper_keyword_register_multi_buffer(&kw);

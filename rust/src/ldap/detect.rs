@@ -516,7 +516,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
     let kw = SCSigTableAppLiteElmt {
         name: b"ldap.request.operation\0".as_ptr() as *const libc::c_char,
         desc: b"match LDAP request operation\0".as_ptr() as *const libc::c_char,
-        url: b"/rules/ldap-keywords.html#ldap.request.operation\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/ldap-keywords.html#ldap-request-operation\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(ldap_detect_request_operation_match),
         Setup: Some(ldap_detect_request_operation_setup),
         Free: Some(ldap_detect_request_free),
@@ -532,7 +532,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
     let kw = SCSigTableAppLiteElmt {
         name: b"ldap.responses.operation\0".as_ptr() as *const libc::c_char,
         desc: b"match LDAP responses operation\0".as_ptr() as *const libc::c_char,
-        url: b"/rules/ldap-keywords.html#ldap.responses.operation\0".as_ptr()
+        url: b"/rules/ldap-keywords.html#ldap-responses-operation\0".as_ptr()
             as *const libc::c_char,
         AppLayerTxMatch: Some(ldap_detect_responses_operation_match),
         Setup: Some(ldap_detect_responses_operation_setup),
@@ -549,7 +549,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
     let kw = SCSigTableAppLiteElmt {
         name: b"ldap.responses.count\0".as_ptr() as *const libc::c_char,
         desc: b"match number of LDAP responses\0".as_ptr() as *const libc::c_char,
-        url: b"/rules/ldap-keywords.html#ldap.responses.count\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/ldap-keywords.html#ldap-responses-count\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(ldap_detect_responses_count_match),
         Setup: Some(ldap_detect_responses_count_setup),
         Free: Some(ldap_detect_responses_count_free),
@@ -565,7 +565,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
     let kw = SigTableElmtStickyBuffer {
         name: String::from("ldap.request.dn"),
         desc: String::from("match request LDAPDN"),
-        url: String::from("/rules/ldap-keywords.html#ldap.request.dn"),
+        url: String::from("/rules/ldap-keywords.html#ldap-request-dn"),
         setup: ldap_detect_request_dn_setup,
     };
     let _g_ldap_request_dn_kw_id = helper_keyword_register_sticky_buffer(&kw);
@@ -579,7 +579,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
     let kw = SigTableElmtStickyBuffer {
         name: String::from("ldap.responses.dn"),
         desc: String::from("match responses LDAPDN"),
-        url: String::from("/rules/ldap-keywords.html#ldap.responses.dn"),
+        url: String::from("/rules/ldap-keywords.html#ldap-responses-dn"),
         setup: ldap_detect_responses_dn_setup,
     };
     let _g_ldap_responses_dn_kw_id = helper_keyword_register_multi_buffer(&kw);
@@ -593,7 +593,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
     let kw = SCSigTableAppLiteElmt {
         name: b"ldap.responses.result_code\0".as_ptr() as *const libc::c_char,
         desc: b"match LDAPResult code\0".as_ptr() as *const libc::c_char,
-        url: b"/rules/ldap-keywords.html#ldap.responses.result_code\0".as_ptr()
+        url: b"/rules/ldap-keywords.html#ldap-responses-result-code\0".as_ptr()
             as *const libc::c_char,
         AppLayerTxMatch: Some(ldap_detect_responses_result_code_match),
         Setup: Some(ldap_detect_responses_result_code_setup),
@@ -610,7 +610,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
     let kw = SigTableElmtStickyBuffer {
         name: String::from("ldap.responses.message"),
         desc: String::from("match LDAPResult message for responses"),
-        url: String::from("/rules/ldap-keywords.html#ldap.responses.message"),
+        url: String::from("/rules/ldap-keywords.html#ldap-responses-message"),
         setup: ldap_detect_responses_msg_setup,
     };
     let _g_ldap_responses_dn_kw_id = helper_keyword_register_multi_buffer(&kw);
@@ -624,7 +624,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
     let kw = SigTableElmtStickyBuffer {
         name: String::from("ldap.request.attribute_type"),
         desc: String::from("match request LDAP attribute type"),
-        url: String::from("/rules/ldap-keywords.html#ldap.request.attribute_type"),
+        url: String::from("/rules/ldap-keywords.html#ldap-request-attribute-type"),
         setup: ldap_detect_request_attibute_type_setup,
     };
     let _g_ldap_request_attribute_type_kw_id = helper_keyword_register_multi_buffer(&kw);
@@ -638,7 +638,7 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
     let kw = SigTableElmtStickyBuffer {
         name: String::from("ldap.responses.attribute_type"),
         desc: String::from("match LDAP responses attribute type"),
-        url: String::from("/rules/ldap-keywords.html#ldap.responses.attribute_type"),
+        url: String::from("/rules/ldap-keywords.html#ldap-responses-attribute-type"),
         setup: ldap_detect_responses_attibute_type_setup,
     };
     let _g_ldap_responses_attribute_type_kw_id = helper_keyword_register_multi_buffer(&kw);

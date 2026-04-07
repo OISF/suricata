@@ -122,7 +122,7 @@ void DetectFtpReplyReceivedRegister(void)
 {
     sigmatch_table[DETECT_FTP_REPLY_RECEIVED].name = "ftp.reply_received";
     sigmatch_table[DETECT_FTP_REPLY_RECEIVED].desc = "match on FTP whether a reply was received";
-    sigmatch_table[DETECT_FTP_REPLY_RECEIVED].url = "/rules/ftp-keywords.html#ftp.reply_received";
+    sigmatch_table[DETECT_FTP_REPLY_RECEIVED].url = "/rules/ftp-keywords.html#ftp-reply-received";
     sigmatch_table[DETECT_FTP_REPLY_RECEIVED].AppLayerTxMatch = DetectFtpReplyReceivedMatch;
     sigmatch_table[DETECT_FTP_REPLY_RECEIVED].Setup = DetectFtpReplyReceivedSetup;
     sigmatch_table[DETECT_FTP_REPLY_RECEIVED].Free = DetectFtpReplyReceivedFree;

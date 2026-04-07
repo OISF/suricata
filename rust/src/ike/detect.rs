@@ -413,7 +413,7 @@ pub unsafe extern "C" fn SCDetectIkeRegister() {
     let kw_nonce = SigTableElmtStickyBuffer {
         name: String::from("ike.nonce_payload"),
         desc: String::from("sticky buffer to match on the IKE nonce_payload"),
-        url: String::from("/rules/ike-keywords.html#ike-nonce_payload"),
+        url: String::from("/rules/ike-keywords.html#ike-nonce-payload"),
         setup: ike_nonce_payload_setup,
     };
     helper_keyword_register_sticky_buffer(&kw_nonce);
@@ -462,7 +462,7 @@ pub unsafe extern "C" fn SCDetectIkeRegister() {
     let kw = SCSigTableAppLiteElmt {
         name: b"ike.chosen_sa_attribute\0".as_ptr() as *const libc::c_char,
         desc: b"match IKE chosen SA Attribute\0".as_ptr() as *const libc::c_char,
-        url: b"/rules/ike-keywords.html#ike-chosen_sa_attribute\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/ike-keywords.html#ike-chosen-sa-attribute\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(ike_detect_chosen_sa_match),
         Setup: Some(ike_detect_chosen_sa_setup),
         Free: Some(ike_detect_chosen_sa_free),
@@ -495,7 +495,7 @@ pub unsafe extern "C" fn SCDetectIkeRegister() {
     let kw_initiator = SigTableElmtStickyBuffer {
         name: String::from("ike.init_spi"),
         desc: String::from("sticky buffer to match on the IKE spi initiator"),
-        url: String::from("/rules/ike-keywords.html#ike-init_spi"),
+        url: String::from("/rules/ike-keywords.html#ike-init-spi-ike-resp-spi"),
         setup: ike_spi_initiator_setup,
     };
     helper_keyword_register_sticky_buffer(&kw_initiator);
@@ -510,7 +510,7 @@ pub unsafe extern "C" fn SCDetectIkeRegister() {
     let kw_responder = SigTableElmtStickyBuffer {
         name: String::from("ike.resp_spi"),
         desc: String::from("sticky buffer to match on the IKE spi responder"),
-        url: String::from("/rules/ike-keywords.html#ike-resp_spi"),
+        url: String::from("/rules/ike-keywords.html#ike-init-spi-ike-resp-spi"),
         setup: ike_spi_responder_setup,
     };
     helper_keyword_register_sticky_buffer(&kw_responder);
@@ -525,7 +525,7 @@ pub unsafe extern "C" fn SCDetectIkeRegister() {
     let kw = SigTableElmtStickyBuffer {
         name: String::from("ike.key_exchange_payload"),
         desc: String::from("sticky buffer to match on the IKE key_exchange_payload"),
-        url: String::from("/rules/ike-keywords.html#ike-key_exchange_payload"),
+        url: String::from("/rules/ike-keywords.html#ike-key-exchange-payload"),
         setup: ike_key_exchange_setup,
     };
     helper_keyword_register_sticky_buffer(&kw);

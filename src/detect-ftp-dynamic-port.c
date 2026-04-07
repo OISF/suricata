@@ -43,7 +43,7 @@
 #include "detect-ftp-dynamic-port.h"
 
 #define KEYWORD_NAME "ftp.dynamic_port"
-#define KEYWORD_DOC  "ftp-keywords.html#ftp-dynamic_port"
+#define KEYWORD_DOC  "ftp-keywords.html#ftp-dynamic-port"
 #define BUFFER_NAME  "ftp.dynamic_port"
 #define BUFFER_DESC  "ftp dynamic_port"
 
