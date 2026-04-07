@@ -553,11 +553,11 @@ void EveAddVerdict(SCJsonBuilder *jb, const Packet *p, const uint8_t alert_actio
             JB_SET_STRING(jb, "action", "alert");
         }
         if (packet_action & ACTION_REJECT) {
-            JB_SET_STRING(jb, "reject-target", "to_client");
+            JB_SET_STRING(jb, "reject_target", "to_client");
         } else if (packet_action & ACTION_REJECT_DST) {
-            JB_SET_STRING(jb, "reject-target", "to_server");
+            JB_SET_STRING(jb, "reject_target", "to_server");
         } else if (packet_action & ACTION_REJECT_BOTH) {
-            JB_SET_STRING(jb, "reject-target", "both");
+            JB_SET_STRING(jb, "reject_target", "both");
         }
         SCJbOpenArray(jb, "reject");
         switch (p->proto) {

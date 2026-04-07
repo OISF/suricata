@@ -9025,7 +9025,7 @@
                         ]
                     }
                 },
-                "reject-target": {
+                "reject_target": {
                     "type": "string",
                     "oneOf": [
                         {
