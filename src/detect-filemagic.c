@@ -75,7 +75,7 @@ void DetectFilemagicRegister(void)
 {
     sigmatch_table[DETECT_FILEMAGIC].name = "filemagic";
     sigmatch_table[DETECT_FILEMAGIC].desc = "match on the information libmagic returns about a file";
-    sigmatch_table[DETECT_FILEMAGIC].url = "/rules/file-keywords.html#filemagic";
+    sigmatch_table[DETECT_FILEMAGIC].url = "/rules/file-keywords.html#file-magic";
     sigmatch_table[DETECT_FILEMAGIC].Setup = DetectFilemagicSetupNoSupport;
     sigmatch_table[DETECT_FILEMAGIC].flags = SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION;
 }

@@ -105,7 +105,7 @@ void DetectHttp2Register(void)
 {
     sigmatch_table[DETECT_HTTP2_FRAMETYPE].name = "http2.frametype";
     sigmatch_table[DETECT_HTTP2_FRAMETYPE].desc = "match on HTTP2 frame type field";
-    sigmatch_table[DETECT_HTTP2_FRAMETYPE].url = "/rules/http2-keywords.html#frametype";
+    sigmatch_table[DETECT_HTTP2_FRAMETYPE].url = "/rules/http2-keywords.html#http2-frametype";
     sigmatch_table[DETECT_HTTP2_FRAMETYPE].Match = NULL;
     sigmatch_table[DETECT_HTTP2_FRAMETYPE].AppLayerTxMatch = DetectHTTP2frametypeMatch;
     sigmatch_table[DETECT_HTTP2_FRAMETYPE].Setup = DetectHTTP2frametypeSetup;
@@ -118,7 +118,7 @@ void DetectHttp2Register(void)
 
     sigmatch_table[DETECT_HTTP2_ERRORCODE].name = "http2.errorcode";
     sigmatch_table[DETECT_HTTP2_ERRORCODE].desc = "match on HTTP2 error code field";
-    sigmatch_table[DETECT_HTTP2_ERRORCODE].url = "/rules/http2-keywords.html#errorcode";
+    sigmatch_table[DETECT_HTTP2_ERRORCODE].url = "/rules/http2-keywords.html#http2-errorcode";
     sigmatch_table[DETECT_HTTP2_ERRORCODE].Match = NULL;
     sigmatch_table[DETECT_HTTP2_ERRORCODE].AppLayerTxMatch = DetectHTTP2errorcodeMatch;
     sigmatch_table[DETECT_HTTP2_ERRORCODE].Setup = DetectHTTP2errorcodeSetup;
@@ -131,7 +131,7 @@ void DetectHttp2Register(void)
 
     sigmatch_table[DETECT_HTTP2_PRIORITY].name = "http2.priority";
     sigmatch_table[DETECT_HTTP2_PRIORITY].desc = "match on HTTP2 priority weight field";
-    sigmatch_table[DETECT_HTTP2_PRIORITY].url = "/rules/http2-keywords.html#priority";
+    sigmatch_table[DETECT_HTTP2_PRIORITY].url = "/rules/http2-keywords.html#http2-priority";
     sigmatch_table[DETECT_HTTP2_PRIORITY].Match = NULL;
     sigmatch_table[DETECT_HTTP2_PRIORITY].AppLayerTxMatch = DetectHTTP2priorityMatch;
     sigmatch_table[DETECT_HTTP2_PRIORITY].Setup = DetectHTTP2prioritySetup;
@@ -143,7 +143,7 @@ void DetectHttp2Register(void)
 
     sigmatch_table[DETECT_HTTP2_WINDOW].name = "http2.window";
     sigmatch_table[DETECT_HTTP2_WINDOW].desc = "match on HTTP2 window update size increment field";
-    sigmatch_table[DETECT_HTTP2_WINDOW].url = "/rules/http2-keywords.html#window";
+    sigmatch_table[DETECT_HTTP2_WINDOW].url = "/rules/http2-keywords.html#http2-window";
     sigmatch_table[DETECT_HTTP2_WINDOW].Match = NULL;
     sigmatch_table[DETECT_HTTP2_WINDOW].AppLayerTxMatch = DetectHTTP2windowMatch;
     sigmatch_table[DETECT_HTTP2_WINDOW].Setup = DetectHTTP2windowSetup;
@@ -155,7 +155,7 @@ void DetectHttp2Register(void)
 
     sigmatch_table[DETECT_HTTP2_SIZEUPDATE].name = "http2.size_update";
     sigmatch_table[DETECT_HTTP2_SIZEUPDATE].desc = "match on HTTP2 dynamic headers table size update";
-    sigmatch_table[DETECT_HTTP2_SIZEUPDATE].url = "/rules/http2-keywords.html#sizeupdate";
+    sigmatch_table[DETECT_HTTP2_SIZEUPDATE].url = "/rules/http2-keywords.html#http2-size-update";
     sigmatch_table[DETECT_HTTP2_SIZEUPDATE].Match = NULL;
     sigmatch_table[DETECT_HTTP2_SIZEUPDATE].AppLayerTxMatch = DetectHTTP2sizeUpdateMatch;
     sigmatch_table[DETECT_HTTP2_SIZEUPDATE].Setup = DetectHTTP2sizeUpdateSetup;
@@ -167,7 +167,7 @@ void DetectHttp2Register(void)
 
     sigmatch_table[DETECT_HTTP2_SETTINGS].name = "http2.settings";
     sigmatch_table[DETECT_HTTP2_SETTINGS].desc = "match on HTTP2 settings identifier and value fields";
-    sigmatch_table[DETECT_HTTP2_SETTINGS].url = "/rules/http2-keywords.html#settings";
+    sigmatch_table[DETECT_HTTP2_SETTINGS].url = "/rules/http2-keywords.html#http2-settings";
     sigmatch_table[DETECT_HTTP2_SETTINGS].Match = NULL;
     sigmatch_table[DETECT_HTTP2_SETTINGS].AppLayerTxMatch = DetectHTTP2settingsMatch;
     sigmatch_table[DETECT_HTTP2_SETTINGS].Setup = DetectHTTP2settingsSetup;
@@ -178,7 +178,7 @@ void DetectHttp2Register(void)
 
     sigmatch_table[DETECT_HTTP2_HEADERNAME].name = "http2.header_name";
     sigmatch_table[DETECT_HTTP2_HEADERNAME].desc = "sticky buffer to match on one HTTP2 header name";
-    sigmatch_table[DETECT_HTTP2_HEADERNAME].url = "/rules/http2-keywords.html#header_name";
+    sigmatch_table[DETECT_HTTP2_HEADERNAME].url = "/rules/http2-keywords.html#http2-header-name";
     sigmatch_table[DETECT_HTTP2_HEADERNAME].Setup = DetectHTTP2headerNameSetup;
     sigmatch_table[DETECT_HTTP2_HEADERNAME].flags |=
             SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_INFO_MULTI_BUFFER;

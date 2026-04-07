@@ -52,7 +52,7 @@ void DetectTcpmssRegister(void)
 {
     sigmatch_table[DETECT_TCPMSS].name = "tcp.mss";
     sigmatch_table[DETECT_TCPMSS].desc = "match on TCP MSS option field";
-    sigmatch_table[DETECT_TCPMSS].url = "/rules/header-keywords.html#tcpmss";
+    sigmatch_table[DETECT_TCPMSS].url = "/rules/header-keywords.html#tcp-mss";
     sigmatch_table[DETECT_TCPMSS].Match = DetectTcpmssMatch;
     sigmatch_table[DETECT_TCPMSS].Setup = DetectTcpmssSetup;
     sigmatch_table[DETECT_TCPMSS].Free = DetectTcpmssFree;

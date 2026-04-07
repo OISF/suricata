@@ -382,7 +382,7 @@ void DetectHttpHeaderRegister(void)
     /* http.header sticky buffer */
     sigmatch_table[DETECT_HTTP_HEADER].name = "http.header";
     sigmatch_table[DETECT_HTTP_HEADER].desc = "sticky buffer to match on the normalized HTTP header-buffer";
-    sigmatch_table[DETECT_HTTP_HEADER].url = "/rules/http-keywords.html#http-header-and-http-raw-header";
+    sigmatch_table[DETECT_HTTP_HEADER].url = "/rules/http-keywords.html#http-header";
     sigmatch_table[DETECT_HTTP_HEADER].Setup = DetectHttpHeaderSetupSticky;
     sigmatch_table[DETECT_HTTP_HEADER].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_HTTP_HEADER].flags |= SIGMATCH_INFO_STICKY_BUFFER;
@@ -569,7 +569,8 @@ void DetectHttpRequestHeaderRegister(void)
     sigmatch_table[DETECT_HTTP_REQUEST_HEADER].name = "http.request_header";
     sigmatch_table[DETECT_HTTP_REQUEST_HEADER].desc =
             "sticky buffer to match on only one HTTP header name and value";
-    sigmatch_table[DETECT_HTTP_REQUEST_HEADER].url = "/rules/http-keywords.html#request_header";
+    sigmatch_table[DETECT_HTTP_REQUEST_HEADER].url =
+            "/rules/http-keywords.html#http-request-header";
     sigmatch_table[DETECT_HTTP_REQUEST_HEADER].Setup = DetectHTTPRequestHeaderSetup;
     sigmatch_table[DETECT_HTTP_REQUEST_HEADER].flags |=
             SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_INFO_MULTI_BUFFER;
@@ -604,7 +605,8 @@ void DetectHttpResponseHeaderRegister(void)
     sigmatch_table[DETECT_HTTP_RESPONSE_HEADER].name = "http.response_header";
     sigmatch_table[DETECT_HTTP_RESPONSE_HEADER].desc =
             "sticky buffer to match on only one HTTP header name and value";
-    sigmatch_table[DETECT_HTTP_RESPONSE_HEADER].url = "/rules/http2-keywords.html#response_header";
+    sigmatch_table[DETECT_HTTP_RESPONSE_HEADER].url =
+            "/rules/http-keywords.html#http-response-header";
     sigmatch_table[DETECT_HTTP_RESPONSE_HEADER].Setup = DetectHTTPResponseHeaderSetup;
     sigmatch_table[DETECT_HTTP_RESPONSE_HEADER].flags |=
             SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_INFO_MULTI_BUFFER;

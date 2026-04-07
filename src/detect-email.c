@@ -256,7 +256,7 @@ void DetectEmailRegister(void)
 
     kw.name = "email.from";
     kw.desc = "'From' field from an email";
-    kw.url = "/rules/email-keywords.html#email.from";
+    kw.url = "/rules/email-keywords.html#email-from";
     kw.Setup = DetectMimeEmailFromSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
     SCDetectHelperKeywordRegister(&kw);
@@ -265,7 +265,7 @@ void DetectEmailRegister(void)
 
     kw.name = "email.subject";
     kw.desc = "'Subject' field from an email";
-    kw.url = "/rules/email-keywords.html#email.subject";
+    kw.url = "/rules/email-keywords.html#email-subject";
     kw.Setup = DetectMimeEmailSubjectSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
     SCDetectHelperKeywordRegister(&kw);
@@ -274,7 +274,7 @@ void DetectEmailRegister(void)
 
     kw.name = "email.to";
     kw.desc = "'To' field from an email";
-    kw.url = "/rules/email-keywords.html#email.to";
+    kw.url = "/rules/email-keywords.html#email-to";
     kw.Setup = DetectMimeEmailToSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
     SCDetectHelperKeywordRegister(&kw);
@@ -283,7 +283,7 @@ void DetectEmailRegister(void)
 
     kw.name = "email.cc";
     kw.desc = "'Cc' field from an email";
-    kw.url = "/rules/email-keywords.html#email.cc";
+    kw.url = "/rules/email-keywords.html#email-cc";
     kw.Setup = DetectMimeEmailCcSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
     SCDetectHelperKeywordRegister(&kw);
@@ -292,7 +292,7 @@ void DetectEmailRegister(void)
 
     kw.name = "email.date";
     kw.desc = "'Date' field from an email";
-    kw.url = "/rules/email-keywords.html#email.date";
+    kw.url = "/rules/email-keywords.html#email-date";
     kw.Setup = DetectMimeEmailDateSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
     SCDetectHelperKeywordRegister(&kw);
@@ -301,7 +301,7 @@ void DetectEmailRegister(void)
 
     kw.name = "email.message_id";
     kw.desc = "'Message-Id' field from an email";
-    kw.url = "/rules/email-keywords.html#email.message_id";
+    kw.url = "/rules/email-keywords.html#email-message-id";
     kw.Setup = DetectMimeEmailMessageIdSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
     SCDetectHelperKeywordRegister(&kw);
@@ -310,7 +310,7 @@ void DetectEmailRegister(void)
 
     kw.name = "email.x_mailer";
     kw.desc = "'X-Mailer' field from an email";
-    kw.url = "/rules/email-keywords.html#email.x_mailer";
+    kw.url = "/rules/email-keywords.html#email-x-mailer";
     kw.Setup = DetectMimeEmailXMailerSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
     SCDetectHelperKeywordRegister(&kw);
@@ -319,7 +319,7 @@ void DetectEmailRegister(void)
 
     kw.name = "email.url";
     kw.desc = "'Url' extracted from an email";
-    kw.url = "/rules/email-keywords.html#email.url";
+    kw.url = "/rules/email-keywords.html#email-url";
     kw.Setup = DetectMimeEmailUrlSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_INFO_MULTI_BUFFER;
     SCDetectHelperKeywordRegister(&kw);
@@ -328,7 +328,7 @@ void DetectEmailRegister(void)
 
     kw.name = "email.received";
     kw.desc = "'Received' field from an email";
-    kw.url = "/rules/email-keywords.html#email.received";
+    kw.url = "/rules/email-keywords.html#email-received";
     kw.Setup = DetectMimeEmailReceivedSetup;
     kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_INFO_MULTI_BUFFER;
     SCDetectHelperKeywordRegister(&kw);
@@ -339,7 +339,7 @@ void DetectEmailRegister(void)
         // do not register the keyword if explicitly disabled
         kw.name = "email.body_md5";
         kw.desc = "'md5' hash generated from an email body";
-        kw.url = "/rules/email-keywords.html#email.body_md5";
+        kw.url = "/rules/email-keywords.html#email-body-md5";
         kw.Setup = DetectMimeEmailBodyMd5Setup;
         kw.flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
         DETECT_EMAIL_BODY_MD5 = SCDetectHelperKeywordRegister(&kw);

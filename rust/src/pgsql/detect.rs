@@ -64,7 +64,7 @@ pub unsafe extern "C" fn SCDetectPgsqlRegister() {
     let kw = SigTableElmtStickyBuffer {
         name: String::from("pgsql.query"),
         desc: String::from("match PGSQL  query request content"),
-        url: String::from("/rules/pgsql-keywords.html#pgsql.query"),
+        url: String::from("/rules/pgsql-keywords.html#pgsql-query"),
         setup: pgsql_detect_query_setup,
     };
     let _g_pgsql_query_kw_id = helper_keyword_register_sticky_buffer(&kw);
