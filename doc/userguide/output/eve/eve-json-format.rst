@@ -487,7 +487,7 @@ Example:
 
     "verdict": {
        "action": "drop",
-       "reject-target": "to_client",
+       "reject_target": "to_client",
        "reject": "[icmp-prohib]"
      }
 
