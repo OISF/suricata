@@ -46,7 +46,7 @@
 
 
 typedef struct LogDHCPFileCtx_ {
-    void       *rs_logger;
+    bool extended;
     OutputJsonCtx *eve_ctx;
 } LogDHCPFileCtx;
 
@@ -61,7 +61,7 @@ static int JsonDHCPLogger(ThreadVars *tv, void *thread_data,
     LogDHCPLogThread *thread = thread_data;
     LogDHCPFileCtx *ctx = thread->dhcplog_ctx;
 
-    if (!SCDhcpLoggerDoLog(ctx->rs_logger, tx)) {
+    if (!SCDhcpLoggerDoLog(ctx->extended, tx)) {
         return TM_ECODE_OK;
     }
 
@@ -70,7 +70,7 @@ static int JsonDHCPLogger(ThreadVars *tv, void *thread_data,
         return TM_ECODE_FAILED;
     }
 
-    SCDhcpLoggerLog(ctx->rs_logger, tx, js);
+    SCDhcpLoggerLog(ctx->extended, tx, js);
 
     OutputJsonBuilderBuffer(tv, p, p->flow, js, thread->thread);
     SCJbFree(js);
@@ -81,7 +81,6 @@ static int JsonDHCPLogger(ThreadVars *tv, void *thread_data,
 static void OutputDHCPLogDeInitCtxSub(OutputCtx *output_ctx)
 {
     LogDHCPFileCtx *dhcplog_ctx = (LogDHCPFileCtx *)output_ctx->data;
-    SCDhcpLoggerFree(dhcplog_ctx->rs_logger);
     SCFree(dhcplog_ctx);
     SCFree(output_ctx);
 }
@@ -104,7 +103,9 @@ static OutputInitResult OutputDHCPLogInitSub(SCConfNode *conf, OutputCtx *parent
     output_ctx->data = dhcplog_ctx;
     output_ctx->DeInit = OutputDHCPLogDeInitCtxSub;
 
-    dhcplog_ctx->rs_logger = SCDhcpLoggerNew(conf);
+    int extended = 0;
+    (void)SCConfGetChildValueBool(conf, "extended", &extended);
+    dhcplog_ctx->extended = extended;
 
     SCAppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_DHCP);
 
