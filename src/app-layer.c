@@ -1241,8 +1241,8 @@ void AppLayerSetupCounters(void)
             if (alprotos[alproto] == 1) {
                 const char *tx_str = "app_layer.tx.";
                 const char *alproto_raw = AppLayerGetProtoName(alproto);
-                char alproto_str[256];
-                for (size_t i = 0; i < 256; i++) {
+                char alproto_str[MAX_COUNTER_SIZE];
+                for (size_t i = 0; i < MAX_COUNTER_SIZE; i++) {
                     alproto_str[i] = alproto_raw[i];
                     if (alproto_str[i] == 0) {
                         break;
