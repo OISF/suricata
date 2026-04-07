@@ -85,8 +85,7 @@ void DetectHttpRawHeaderRegister(void)
     sigmatch_table[DETECT_HTTP_RAW_HEADER_CM].name = "http_raw_header";
     sigmatch_table[DETECT_HTTP_RAW_HEADER_CM].desc =
             "content modifier to match the raw HTTP header buffer";
-    sigmatch_table[DETECT_HTTP_RAW_HEADER_CM].url =
-            "/rules/http-keywords.html#http-header-and-http-raw-header";
+    // no doc url for this obsolete keyword, see http.header.raw
     sigmatch_table[DETECT_HTTP_RAW_HEADER_CM].Setup = DetectHttpRawHeaderSetup;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_HTTP_RAW_HEADER_CM].RegisterTests = DetectHttpRawHeaderRegisterTests;

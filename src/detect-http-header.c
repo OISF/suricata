@@ -369,8 +369,7 @@ void DetectHttpHeaderRegister(void)
     sigmatch_table[DETECT_HTTP_HEADER_CM].name = "http_header";
     sigmatch_table[DETECT_HTTP_HEADER_CM].desc =
             "content modifier to match only on the HTTP header-buffer";
-    sigmatch_table[DETECT_HTTP_HEADER_CM].url =
-            "/rules/http-keywords.html#http-header-and-http-raw-header";
+    // no doc url for this obsolete keyword, see http.header
     sigmatch_table[DETECT_HTTP_HEADER_CM].Setup = DetectHttpHeaderSetup;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_HTTP_HEADER_CM].RegisterTests = DetectHttpHeaderRegisterTests;
