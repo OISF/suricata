@@ -986,6 +986,8 @@ typedef struct DecodeThreadVars_
     /** stats/counters */
     StatsCounterId counter_pkts;
     StatsCounterId counter_bytes;
+    StatsCounterTimedId counter_pkts_per_sec;
+    StatsCounterTimedId counter_bytes_per_sec;
     StatsCounterDeriveId counter_avg_pkt_size;
     StatsCounterMaxId counter_max_pkt_size;
     StatsCounterMaxId counter_max_mac_addrs_src;

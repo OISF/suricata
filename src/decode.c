@@ -636,6 +636,8 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
     /* register counters */
     dtv->counter_pkts = StatsRegisterCounter("decoder.pkts", &tv->stats);
     dtv->counter_bytes = StatsRegisterCounter("decoder.bytes", &tv->stats);
+    dtv->counter_pkts_per_sec = StatsRegisterTimedCounter("decoder.pkts_per_sec", &tv->stats);
+    dtv->counter_bytes_per_sec = StatsRegisterTimedCounter("decoder.bytes_per_sec", &tv->stats);
     dtv->counter_invalid = StatsRegisterCounter("decoder.invalid", &tv->stats);
     dtv->counter_ipv4 = StatsRegisterCounter("decoder.ipv4", &tv->stats);
     dtv->counter_ipv6 = StatsRegisterCounter("decoder.ipv6", &tv->stats);
@@ -795,6 +797,8 @@ void DecodeUpdatePacketCounters(ThreadVars *tv,
 {
     StatsCounterIncr(&tv->stats, dtv->counter_pkts);
     StatsCounterAddI64(&tv->stats, dtv->counter_bytes, GET_PKT_LEN(p));
+    StatsCounterTimedIncr(&tv->stats, dtv->counter_pkts_per_sec);
+    StatsCounterTimedAddI64(&tv->stats, dtv->counter_bytes_per_sec, GET_PKT_LEN(p));
     StatsCounterMaxUpdateI64(&tv->stats, dtv->counter_max_pkt_size, GET_PKT_LEN(p));
 }
 
