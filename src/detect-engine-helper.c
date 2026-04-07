@@ -157,7 +157,7 @@ int SCDetectHelperTransformRegister(const SCTransformTableElmt *kw)
     sigmatch_table[transform_id].url = kw->url;
     sigmatch_table[transform_id].flags = kw->flags;
     sigmatch_table[transform_id].Transform = (void (*)(DetectEngineThreadCtx * det_ctx,
-            InspectionBuffer * buffer, const void *options))kw->Transform;
+            InspectionBuffer * buffer, const void *options)) kw->Transform;
     sigmatch_table[transform_id].TransformValidate = kw->TransformValidate;
     sigmatch_table[transform_id].Setup =
             (int (*)(DetectEngineCtx * de, Signature * s, const char *raw)) kw->Setup;
