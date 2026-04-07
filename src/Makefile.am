@@ -285,7 +285,6 @@ noinst_HEADERS = \
 	detect-tcphdr.h \
 	detect-tcpmss.h \
 	detect-template.h \
-	detect-template2.h \
 	detect-threshold.h \
 	detect-tls-alpn.h \
 	detect-tls-cert-fingerprint.h \
@@ -866,7 +865,6 @@ libsuricata_c_a_SOURCES = \
 	detect-tcphdr.c \
 	detect-tcpmss.c \
 	detect-template.c \
-	detect-template2.c \
 	detect-threshold.c \
 	detect-tls-alpn.c \
 	detect-tls-cert-fingerprint.c \

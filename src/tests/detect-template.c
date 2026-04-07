@@ -29,9 +29,9 @@
 
 static int DetectTemplateParseTest01 (void)
 {
-    DetectTemplateData *templated = DetectTemplateParse("1,10");
+    DetectU8Data *templated = DetectU8Parse("10");
     FAIL_IF_NULL(templated);
-    FAIL_IF(!(templated->arg1 == 1 && templated->arg2 == 10));
+    FAIL_IF(!(templated->arg1 == 10 && templated->mode == DetectUintModeEqual));
     DetectTemplateFree(NULL, templated);
     PASS;
 }
@@ -45,7 +45,8 @@ static int DetectTemplateSignatureTest01 (void)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    Signature *sig = DetectEngineAppendSig(de_ctx, "alert ip any any -> any any (template:1,10; sid:1; rev:1;)");
+    Signature *sig = DetectEngineAppendSig(
+            de_ctx, "alert ip any any -> any any (template:<10; sid:1; rev:1;)");
     FAIL_IF_NULL(sig);
 
     DetectEngineCtxFree(de_ctx);

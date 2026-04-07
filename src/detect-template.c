@@ -1,4 +1,4 @@
-/* Copyright (C) 2015-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,166 +18,70 @@
 /**
  * \file
  *
- * \author XXX Yourname <youremail@yourdomain>
+ * \author XXX
  *
  * XXX Short description of the purpose of this keyword
  */
 
 #include "suricata-common.h"
-#include "util-unittest.h"
-#include "util-byte.h"
 
+#include "detect.h"
 #include "detect-parse.h"
-#include "detect-engine.h"
+#include "detect-engine-prefilter-common.h"
+#include "detect-engine-uint.h"
 
 #include "detect-template.h"
 
-/**
- * \brief Regex for parsing our keyword options
- */
-#define PARSE_REGEX  "^\\s*([0-9]+)?\\s*,s*([0-9]+)?\\s*$"
-static DetectParseRegex parse_regex;
-
-/* Prototypes of functions registered in DetectTemplateRegister below */
-static int DetectTemplateMatch (DetectEngineThreadCtx *,
-        Packet *, const Signature *, const SigMatchCtx *);
-static int DetectTemplateSetup (DetectEngineCtx *, Signature *, const char *);
-static void DetectTemplateFree (DetectEngineCtx *, void *);
 #ifdef UNITTESTS
 static void DetectTemplateRegisterTests (void);
 #endif
 
 /**
- * \brief Registration function for template: keyword
- *
- * This function is called once in the 'lifetime' of the engine.
- */
-void DetectTemplateRegister(void) {
-    /* keyword name: this is how the keyword is used in a rule */
-    sigmatch_table[DETECT_TEMPLATE].name = "template";
-    /* description: listed in "suricata --list-keywords=all" */
-    sigmatch_table[DETECT_TEMPLATE].desc = "give an introduction into how a detection module works";
-    /* link to further documentation of the keyword. Normally on the Suricata redmine/wiki */
-    sigmatch_table[DETECT_TEMPLATE].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Suricata_Developers_Guide";
-    /* match function is called when the signature is inspected on a packet */
-    sigmatch_table[DETECT_TEMPLATE].Match = DetectTemplateMatch;
-    /* setup function is called during signature parsing, when the template
-     * keyword is encountered in the rule */
-    sigmatch_table[DETECT_TEMPLATE].Setup = DetectTemplateSetup;
-    /* free function is called when the detect engine is freed. Normally at
-     * shutdown, but also during rule reloads. */
-    sigmatch_table[DETECT_TEMPLATE].Free = DetectTemplateFree;
-#ifdef UNITTESTS
-    /* registers unittests into the system */
-    sigmatch_table[DETECT_TEMPLATE].RegisterTests = DetectTemplateRegisterTests;
-#endif
-    /* set up the PCRE for keyword parsing */
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
-}
-
-/**
- * \brief This function is used to match TEMPLATE rule option on a packet
+ * \brief This function is used to match TEMPLATE rule option on a packet with those passed via
+ * template:
  *
  * \param t pointer to thread vars
  * \param det_ctx pointer to the pattern matcher thread
  * \param p pointer to the current packet
- * \param m pointer to the sigmatch with context that we will cast into DetectTemplateData
+ * \param m pointer to the sigmatch that we will cast into DetectU8Data
  *
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectTemplateMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
-                                const Signature *s, const SigMatchCtx *ctx)
+static int DetectTemplateMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
-    int ret = 0;
-    const DetectTemplateData *templated = (const DetectTemplateData *) ctx;
-#if 0
-    if (PKT_IS_PSEUDOPKT(p)) {
-        /* fake pkt */
-    }
+    DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
 
+    /* TODO replace this */
+    uint8_t ptemplate;
     if (PacketIsIPv4(p)) {
-        /* ipv4 pkt */
+        const IPV4Hdr *ip4h = PacketGetIPv4(p);
+        ptemplate = IPV4_GET_RAW_IPTTL(ip4h);
     } else if (PacketIsIPv6(p)) {
-        /* ipv6 pkt */
+        const IPV6Hdr *ip6h = PacketGetIPv6(p);
+        ptemplate = IPV6_GET_RAW_HLIM(ip6h);
     } else {
-        SCLogDebug("packet is of not IPv4 or IPv6");
-        return ret;
-    }
-#endif
-    /* packet payload access */
-    if (p->payload != NULL && p->payload_len > 0) {
-        if (templated->arg1 == p->payload[0] &&
-            templated->arg2 == p->payload[p->payload_len - 1])
-        {
-            ret = 1;
-        }
+        SCLogDebug("Packet is of not IPv4 or IPv6");
+        return 0;
     }
 
-    return ret;
+    const DetectU8Data *templated = (const DetectU8Data *)ctx;
+    return DetectU8Match(ptemplate, templated);
 }
 
 /**
- * \brief This function is used to parse template options passed via template: keyword
+ * \brief this function will free memory associated with DetectU8Data
  *
- * \param templatestr Pointer to the user provided template options
- *
- * \retval templated pointer to DetectTemplateData on success
- * \retval NULL on failure
+ * \param ptr pointer to DetectU8Data
  */
-static DetectTemplateData *DetectTemplateParse (const char *templatestr)
+static void DetectTemplateFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    char arg1[4] = "";
-    char arg2[4] = "";
-
-    pcre2_match_data *match = NULL;
-    int ret = DetectParsePcreExec(&parse_regex, &match, templatestr, 0, 0);
-    if (ret != 3) {
-        SCLogError("parse error, ret %" PRId32 "", ret);
-        goto error;
-    }
-
-    size_t pcre2len = sizeof(arg1);
-    ret = pcre2_substring_copy_bynumber(match, 1, (PCRE2_UCHAR8 *)arg1, &pcre2len);
-    if (ret < 0) {
-        SCLogError("pcre2_substring_copy_bynumber failed");
-        goto error;
-    }
-    SCLogDebug("Arg1 \"%s\"", arg1);
-
-    pcre2len = sizeof(arg2);
-    ret = pcre2_substring_copy_bynumber(match, 2, (PCRE2_UCHAR8 *)arg2, &pcre2len);
-    if (ret < 0) {
-        SCLogError("pcre2_substring_copy_bynumber failed");
-        goto error;
-    }
-    SCLogDebug("Arg2 \"%s\"", arg2);
-
-    DetectTemplateData *templated = SCMalloc(sizeof (DetectTemplateData));
-    if (unlikely(templated == NULL))
-        goto error;
-
-    if (ByteExtractStringUint8(&templated->arg1, 10, 0, (const char *)arg1) < 0) {
-        SCFree(templated);
-        goto error;
-    }
-    if (ByteExtractStringUint8(&templated->arg2, 10, 0, (const char *)arg2) < 0) {
-        SCFree(templated);
-        goto error;
-    }
-    pcre2_match_data_free(match);
-    return templated;
-
-error:
-    if (match) {
-        pcre2_match_data_free(match);
-    }
-    return NULL;
+    SCDetectU8Free(ptr);
 }
 
 /**
- * \brief parse the options from the 'template' keyword in the rule into
- *        the Signature data structure.
+ * \brief this function is used to add the parsed template data into the current signature
  *
  * \param de_ctx pointer to the Detection Engine Context
  * \param s pointer to the Current Signature
@@ -188,7 +92,7 @@ error:
  */
 static int DetectTemplateSetup (DetectEngineCtx *de_ctx, Signature *s, const char *templatestr)
 {
-    DetectTemplateData *templated = DetectTemplateParse(templatestr);
+    DetectU8Data *templated = DetectU8Parse(templatestr);
     if (templated == NULL)
         return -1;
 
@@ -202,18 +106,82 @@ static int DetectTemplateSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
     return 0;
 }
 
-/**
- * \brief this function will free memory associated with DetectTemplateData
- *
- * \param ptr pointer to DetectTemplateData
- */
-static void DetectTemplateFree(DetectEngineCtx *de_ctx, void *ptr)
+/* prefilter code */
+
+static void PrefilterPacketTemplateMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
 {
-    DetectTemplateData *templated = (DetectTemplateData *)ptr;
+    DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
 
-    /* do more specific cleanup here, if needed */
+    uint8_t ptemplate;
+    /* TODO update */
+    if (PacketIsIPv4(p)) {
+        const IPV4Hdr *ip4h = PacketGetIPv4(p);
+        ptemplate = IPV4_GET_RAW_IPTTL(ip4h);
+    } else if (PacketIsIPv6(p)) {
+        const IPV6Hdr *ip6h = PacketGetIPv6(p);
+        ptemplate = IPV6_GET_RAW_HLIM(ip6h);
+    } else {
+        SCLogDebug("Packet is of not IPv4 or IPv6");
+        return;
+    }
 
-    SCFree(templated);
+    /* during setup Suricata will automatically see if there is another
+     * check that can be added: alproto, sport or dport */
+    const PrefilterPacketHeaderCtx *ctx = pectx;
+    if (!PrefilterPacketHeaderExtraMatch(ctx, p))
+        return;
+
+    DetectU8Data du8;
+    du8.mode = ctx->v1.u8[0];
+    du8.arg1 = ctx->v1.u8[1];
+    du8.arg2 = ctx->v1.u8[2];
+    /* if we match, add all the sigs that use this prefilter. This means
+     * that these will be inspected further */
+    if (DetectU8Match(ptemplate, &du8)) {
+        SCLogDebug("packet matches template/hl %u", ptemplate);
+        PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
+    }
+}
+
+static int PrefilterSetupTemplate(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
+{
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_TEMPLATE, SIG_MASK_REQUIRE_REAL_PKT,
+            PrefilterPacketU8Set, PrefilterPacketU8Compare, PrefilterPacketTemplateMatch);
+}
+
+static bool PrefilterTemplateIsPrefilterable(const Signature *s)
+{
+    return PrefilterIsPrefilterableById(s, DETECT_TEMPLATE);
+}
+
+/**
+ * \brief Registration function for template: keyword
+ */
+
+void DetectTemplateRegister(void)
+{
+    /* keyword name: this is how the keyword is used in a rule */
+    sigmatch_table[DETECT_TEMPLATE].name = "template";
+    /* description: listed in "suricata --list-keywords=all" */
+    sigmatch_table[DETECT_TEMPLATE].desc = "TODO describe the keyword";
+    /* link to further documentation of the keyword. */
+    sigmatch_table[DETECT_TEMPLATE].url = "/rules/header-keywords.html#template";
+    /* match function is called when the signature is inspected on a packet */
+    sigmatch_table[DETECT_TEMPLATE].Match = DetectTemplateMatch;
+    /* setup function is called during signature parsing, when the template
+     * keyword is encountered in the rule */
+    sigmatch_table[DETECT_TEMPLATE].Setup = DetectTemplateSetup;
+    /* free function is called when the detect engine is freed. Normally at
+     * shutdown, but also during rule reloads. */
+    sigmatch_table[DETECT_TEMPLATE].Free = DetectTemplateFree;
+    sigmatch_table[DETECT_TEMPLATE].SupportsPrefilter = PrefilterTemplateIsPrefilterable;
+    sigmatch_table[DETECT_TEMPLATE].SetupPrefilter = PrefilterSetupTemplate;
+    sigmatch_table[DETECT_TEMPLATE].flags = SIGMATCH_INFO_UINT8;
+#ifdef UNITTESTS
+    /* registers unittests into the system */
+    sigmatch_table[DETECT_TEMPLATE].RegisterTests = DetectTemplateRegisterTests;
+#endif
 }
 
 #ifdef UNITTESTS
