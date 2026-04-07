@@ -57,6 +57,7 @@ enum StatsType {
     STATS_TYPE_MAXIMUM = 3,
     STATS_TYPE_FUNC = 4,
     STATS_TYPE_DERIVE_DIV = 5,
+    STATS_TYPE_TIMED = 6,
 };
 
 /**
@@ -172,6 +173,32 @@ void StatsCounterIncr(StatsThreadContext *stats, StatsCounterId id)
     BUG_ON((id.id < 1) || (id.id > pca->size));
 #endif
     pca->head[id.id].v++;
+}
+
+void StatsCounterTimedIncr(StatsThreadContext *stats, StatsCounterTimedId id)
+{
+    StatsPrivateThreadContext *pca = &stats->priv;
+#if defined(UNITTESTS) || defined(FUZZ)
+    if (pca->initialized == 0)
+        return;
+#endif
+#ifdef DEBUG
+    BUG_ON((id.id < 1) || (id.id > pca->size));
+#endif
+    pca->head[id.id].v++;
+}
+
+void StatsCounterTimedAddI64(StatsThreadContext *stats, StatsCounterTimedId id, int64_t x)
+{
+    StatsPrivateThreadContext *pca = &stats->priv;
+#if defined(UNITTESTS) || defined(FUZZ)
+    if (pca->initialized == 0)
+        return;
+#endif
+#ifdef DEBUG
+    BUG_ON((id.id < 1) || (id.id > pca->size));
+#endif
+    pca->head[id.id].v += x;
 }
 
 /**
@@ -831,6 +858,7 @@ static int StatsOutput(ThreadVars *tv)
                     merge_table[c].value = e->value;
                     break;
                 case STATS_TYPE_AVERAGE:
+                case STATS_TYPE_TIMED:
                 default:
                     merge_table[c].value += e->value;
                     break;
@@ -863,6 +891,13 @@ static int StatsOutput(ThreadVars *tv)
                         r->value = (uint64_t)(e->value / e->updates);
                     }
                     break;
+                case STATS_TYPE_TIMED:
+                    r->counter_pvalue = r->counter_value;
+                    r->counter_value = e->value;
+                    if (stats_tts > 0) {
+                        r->value = (r->counter_value - r->counter_pvalue) / stats_tts;
+                    }
+                    break;
                 default:
                     r->value = e->value;
                     break;
@@ -891,6 +926,13 @@ static int StatsOutput(ThreadVars *tv)
             case STATS_TYPE_DERIVE_DIV:
                 if (m->value > 0 && m->updates > 0) {
                     table[x].value = (uint64_t)(m->value / m->updates);
+                }
+                break;
+            case STATS_TYPE_TIMED:
+                table[x].counter_pvalue = table[x].counter_value;
+                table[x].counter_value = m->value;
+                if (stats_tts > 0) {
+                    table[x].value = (table[x].counter_value - table[x].counter_pvalue) / stats_tts;
                 }
                 break;
             default:
@@ -1077,6 +1119,24 @@ StatsCounterMaxId StatsRegisterMaxCounter(const char *name, StatsThreadContext *
     uint16_t id =
             StatsRegisterQualifiedCounter(name, &stats->pub, STATS_TYPE_MAXIMUM, NULL, NULL, NULL);
     StatsCounterMaxId s = { .id = id };
+    return s;
+}
+
+/**
+ * \brief Registers a counter whose display value is the rate of change per
+ *        second, computed as (current_raw - previous_raw) / stats_interval.
+ *
+ * \param name  Name of the counter, to be registered
+ * \param stats Pointer to the StatsThreadContext for this thread
+ *
+ * \retval id Counter id for the newly registered counter, or the already
+ *            present counter
+ */
+StatsCounterTimedId StatsRegisterTimedCounter(const char *name, StatsThreadContext *stats)
+{
+    uint16_t id =
+            StatsRegisterQualifiedCounter(name, &stats->pub, STATS_TYPE_TIMED, NULL, NULL, NULL);
+    StatsCounterTimedId s = { .id = id };
     return s;
 }
 

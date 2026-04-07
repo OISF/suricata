@@ -49,6 +49,10 @@ typedef struct StatsCounterDeriveId {
     uint16_t id;
 } StatsCounterDeriveId;
 
+typedef struct StatsCounterTimedId {
+    uint16_t id;
+} StatsCounterTimedId;
+
 /**
  * \brief Container to hold the counter variable
  */
@@ -152,6 +156,11 @@ StatsCounterGlobalId StatsRegisterGlobalCounter(const char *cname, uint64_t (*Fu
 
 StatsCounterDeriveId StatsRegisterDeriveDivCounter(
         const char *cname, const char *dname1, const char *dname2, StatsThreadContext *);
+StatsCounterTimedId StatsRegisterTimedCounter(const char *, StatsThreadContext *);
+
+/* functions used to update timed counter values */
+void StatsCounterTimedIncr(StatsThreadContext *, StatsCounterTimedId);
+void StatsCounterTimedAddI64(StatsThreadContext *, StatsCounterTimedId, int64_t);
 
 /* functions used to update local counter values */
 void StatsCounterAddI64(StatsThreadContext *, StatsCounterId, int64_t);
