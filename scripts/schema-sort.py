@@ -60,6 +60,10 @@ def check_properties_sorted(obj, path=""):
                     errors.append(f"  Should be: {sorted_keys}")
 
                 for prop_key, prop_value in value.items():
+                    if '-' in prop_key:
+                        errors.append(f"Property with dash at: {current_path} {prop_key}")
+                    if '.' in prop_key:
+                        errors.append(f"Property with dot at: {current_path} {prop_key}")
                     errors.extend(
                         check_properties_sorted(
                             prop_value, f"{current_path}.{prop_key}"
