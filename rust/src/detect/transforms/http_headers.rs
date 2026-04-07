@@ -54,7 +54,7 @@ fn header_lowertransform_do(input: &[u8], output: &mut [u8]) {
 }
 
 unsafe extern "C" fn header_lowertransform(
-    _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, _ctx: *mut c_void,
+    _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, _ctx: *const c_void,
 ) {
     let input = (*buffer).inspect;
     let input_len = (*buffer).inspect_len;
@@ -119,7 +119,7 @@ fn strip_pseudo_transform_do(input: &[u8], output: &mut [u8]) -> u32 {
 }
 
 unsafe extern "C" fn strip_pseudo_transform(
-    _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, _ctx: *mut c_void,
+    _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, _ctx: *const c_void,
 ) {
     let input = (*buffer).inspect;
     let input_len = (*buffer).inspect_len;

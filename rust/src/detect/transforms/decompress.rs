@@ -160,7 +160,7 @@ unsafe fn decompress_transform(
 }
 
 unsafe extern "C" fn gunzip_transform(
-    _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, ctx: *mut c_void,
+    _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, ctx: *const c_void,
 ) {
     let ctx = cast_pointer!(ctx, DetectTransformDecompressData);
     decompress_transform(buffer, ctx, gunzip_transform_do);
@@ -170,7 +170,7 @@ unsafe extern "C" fn decompress_free(_de: *mut DetectEngineCtx, ctx: *mut c_void
     std::mem::drop(Box::from_raw(ctx as *mut DetectTransformDecompressData));
 }
 
-unsafe extern "C" fn decompress_id(data: *mut *const u8, length: *mut u32, ctx: *mut c_void) {
+unsafe extern "C" fn decompress_id(data: *mut *const u8, length: *mut u32, ctx: *const c_void) {
     if data.is_null() || length.is_null() || ctx.is_null() {
         return;
     }
@@ -202,7 +202,7 @@ fn zlib_deflate_transform_do(input: &[u8], output: &mut [u8]) -> Option<u32> {
 }
 
 unsafe extern "C" fn zlib_deflate_transform(
-    _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, ctx: *mut c_void,
+    _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, ctx: *const c_void,
 ) {
     let ctx = cast_pointer!(ctx, DetectTransformDecompressData);
     decompress_transform(buffer, ctx, zlib_deflate_transform_do);

@@ -48,7 +48,7 @@ fn strip_whitespace_transform_do(input: &[u8], output: &mut [u8]) -> u32 {
 }
 
 unsafe extern "C" fn strip_whitespace_transform(
-    _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, _ctx: *mut c_void,
+    _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, _ctx: *const c_void,
 ) {
     let input = (*buffer).inspect;
     let input_len = (*buffer).inspect_len;
@@ -70,7 +70,7 @@ unsafe extern "C" fn strip_whitespace_transform(
 }
 
 unsafe extern "C" fn strip_whitespace_validate(
-    content: *const u8, len: u16, _ctx: *mut c_void,
+    content: *const u8, len: u16, _ctx: *const c_void,
 ) -> bool {
     let input = build_slice!(content, len as usize);
     for &c in input {
