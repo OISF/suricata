@@ -808,8 +808,7 @@ static inline uint8_t DetectRulePacketRules(ThreadVars *const tv,
 
             if (det_ctx->pmq.rule_id_array_cnt > 0) {
                 /* undo "prefetch" */
-                if (next_s)
-                    match_array--;
+                match_array--;
                 SCLogDebug("sig_array_len %u det_ctx->pmq.rule_id_array_cnt %u",
                         de_ctx->sig_array_len, det_ctx->pmq.rule_id_array_cnt);
                 const Signature **r = det_ctx->replace;
