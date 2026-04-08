@@ -1192,7 +1192,7 @@ Examples to match exactly on header order:
 
   alert http $EXTERNAL_NET any -> $HOME_NET any (msg:"HTTP Header Names Response \
   Example"; flow:established,to_client; :example-rule-options:`http.header_names; \
-  content:"|0d 0a|Content-Type|0d 0a|Server|0d 0a 0d a0|";` bsize:26; \
+  content:"|0d 0a|Content-Type|0d 0a|Server|0d 0a 0d 0a|";` bsize:26; \
   classtype:bad-unknown; sid:111; rev:1;)
 
 Examples to match on header existence:
@@ -1302,7 +1302,7 @@ Example HTTP Response::
 
   alert http $EXTERNAL_NET any -> $HOME_NET any (msg:"HTTP Start Response \
   Example"; flow:established,to_client; :example-rule-options:`http.start; \
-  content:"HTTP/1.1 200 OK|0d 0a|Content-Type|0d 0a|Server|0d 0a 0d a0|";` \
+  content:"HTTP/1.1 200 OK|0d 0a|Content-Type|0d 0a|Server|0d 0a 0d 0a|";` \
   classtype:bad-unknown; sid:102; rev:1;)
 
 .. note:: ``http.start`` contains the normalized headers and is terminated by
