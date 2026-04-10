@@ -82,7 +82,7 @@ Mangle(char *string)
 static void
 ConfYamlSetConfDirname(const char *filename)
 {
-    char *ep;
+    const char *ep;
 
     ep = strrchr(filename, '\\');
     if (ep == NULL)
