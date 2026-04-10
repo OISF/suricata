@@ -59,6 +59,7 @@ void DetectDatasetRegister (void)
     sigmatch_table[DETECT_DATASET].url = "/rules/datasets.html#dataset";
     sigmatch_table[DETECT_DATASET].Setup = DetectDatasetSetup;
     sigmatch_table[DETECT_DATASET].Free  = DetectDatasetFree;
+    sigmatch_table[DETECT_DATASET].flags = SIGMATCH_SUPPORT_FIREWALL;
 }
 
 /*
