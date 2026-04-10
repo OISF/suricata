@@ -387,7 +387,8 @@ static int ConfYamlParse(
             if (ConfYamlParse(parser, state == CONF_INCLUDE ? parent : node, 1, rlevel,
                         state == CONF_INCLUDE ? CONF_INCLUDE : 0) != 0)
                 goto fail;
-            node->is_seq = 1;
+            if (state != CONF_INCLUDE)
+                node->is_seq = 1;
             state = CONF_KEY;
         }
         else if (event.type == YAML_SEQUENCE_END_EVENT) {
