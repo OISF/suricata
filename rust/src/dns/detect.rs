@@ -36,7 +36,7 @@ use suricata_sys::sys::{
     SCDetectHelperBufferProgressRegister, SCDetectHelperKeywordAliasRegister,
     SCDetectHelperKeywordRegister, SCDetectHelperMultiBufferProgressMpmRegister,
     SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList, SCSigTableAppLiteElmt, SigMatchCtx,
-    Signature,
+    Signature, SIGMATCH_SUPPORT_FIREWALL,
 };
 
 /// Perform the DNS opcode match.
@@ -381,7 +381,7 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         AppLayerTxMatch: Some(dns_opcode_match),
         Setup: Some(dns_opcode_setup),
         Free: Some(dns_opcode_free),
-        flags: SIGMATCH_INFO_UINT8,
+        flags: SIGMATCH_INFO_UINT8 | SIGMATCH_SUPPORT_FIREWALL,
     };
     G_DNS_OPCODE_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_DNS_OPCODE_BUFFER_ID = SCDetectHelperBufferProgressRegister(
