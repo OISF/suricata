@@ -57,6 +57,7 @@ void DetectDatarepRegister (void)
     sigmatch_table[DETECT_DATAREP].url = "/rules/dataset-keywords.html#datarep";
     sigmatch_table[DETECT_DATAREP].Setup = DetectDatarepSetup;
     sigmatch_table[DETECT_DATAREP].Free  = DetectDatarepFree;
+    sigmatch_table[DETECT_DATAREP].flags = SIGMATCH_SUPPORT_FIREWALL;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
