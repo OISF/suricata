@@ -66,14 +66,14 @@ void DetectFlagsRegister (void)
     sigmatch_table[DETECT_FLAGS].url = "/rules/header-keywords.html#tcp-flags";
     sigmatch_table[DETECT_FLAGS].Match = DetectFlagsMatch;
     sigmatch_table[DETECT_FLAGS].Setup = DetectFlagsSetup;
-    sigmatch_table[DETECT_FLAGS].Free  = DetectFlagsFree;
-    sigmatch_table[DETECT_FLAGS].flags = SIGMATCH_SUPPORT_FIREWALL;
+    sigmatch_table[DETECT_FLAGS].Free = DetectFlagsFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_FLAGS].RegisterTests = FlagsRegisterTests;
 #endif
     sigmatch_table[DETECT_FLAGS].SupportsPrefilter = PrefilterTcpFlagsIsPrefilterable;
     sigmatch_table[DETECT_FLAGS].SetupPrefilter = PrefilterSetupTcpFlags;
-    sigmatch_table[DETECT_FLAGS].flags = SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_BITFLAGS_UINT;
+    sigmatch_table[DETECT_FLAGS].flags =
+            SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_BITFLAGS_UINT | SIGMATCH_SUPPORT_FIREWALL;
 }
 
 /**
