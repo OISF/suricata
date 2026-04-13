@@ -66,7 +66,7 @@ extern bool sc_set_caps;
 
 #include <libnet.h>
 
-thread_local libnet_t *t_c = NULL;
+thread_local libnet_t *t_c[2] = { NULL, NULL };
 thread_local int t_inject_mode = -1;
 
 typedef struct Libnet11Packet_ {
@@ -83,30 +83,31 @@ typedef struct Libnet11Packet_ {
     const uint8_t *smac, *dmac;
 } Libnet11Packet;
 
-static inline libnet_t *GetCtx(const Packet *p, int injection_type)
+static inline libnet_t *GetCtx(const Packet *p, int injection_type, enum RejectDirection dir)
 {
     /* fast path: use cache ctx */
-    if (t_c)
-        return t_c;
+    if (t_c[dir])
+        return t_c[dir];
 
     /* slow path: setup a new ctx */
     bool store_ctx = false;
     const char *devname = NULL;
-    if (EngineHostModeIsSniffer()) {
-        if (g_reject_dev != NULL) {
-            if (p->datalink == LINKTYPE_ETHERNET)
-                injection_type = t_inject_mode = LIBNET_LINK;
-            devname = g_reject_dev;
-            store_ctx = true;
-        } else {
-            LiveDevice *dev = LiveDeviceGetById(p->livedev_id);
-            devname = dev ? dev->dev : NULL;
-        }
-        SCLogDebug("sniffer: devname %s", devname);
-    } else if (EngineHostModeIsBridge()) {
+    if (g_reject_dev != NULL) {
+        if (p->datalink == LINKTYPE_ETHERNET)
+            injection_type = t_inject_mode = LIBNET_LINK;
+        devname = g_reject_dev;
+        store_ctx = true;
+        SCLogDebug("dedicated dev: devname %s", devname);
+    } else if (EngineHostModeIsSniffer()) {
         LiveDevice *dev = LiveDeviceGetById(p->livedev_id);
         devname = dev ? dev->dev : NULL;
+        SCLogDebug("sniffer: devname %s", devname);
+    } else if (EngineHostModeIsBridge()) {
+        uint16_t livedev_id = (dir == REJECT_DIR_SRC) ? p->livedev_id : p->livedev_dst_id;
+        LiveDevice *dev = LiveDeviceGetById(livedev_id);
+        devname = dev ? dev->dev : NULL;
         SCLogDebug("bridge: devname %s", devname);
+        store_ctx = true;
     } else {
         SCLogDebug("router: devname %s", devname);
     }
@@ -117,14 +118,14 @@ static inline libnet_t *GetCtx(const Packet *p, int injection_type)
         SCLogError("libnet_init failed: %s", ebuf);
     }
     if (store_ctx) {
-        t_c = c;
+        t_c[dir] = c;
     }
     return c;
 }
 
-static inline void ClearCtx(libnet_t *c)
+static inline void ClearCtx(libnet_t *c, enum RejectDirection dir)
 {
-    if (t_c == c)
+    if (t_c[dir] == c)
         libnet_clear_packet(c);
     else
         libnet_destroy(c);
@@ -132,9 +133,13 @@ static inline void ClearCtx(libnet_t *c)
 
 void FreeCachedCtx(void)
 {
-    if (t_c) {
-        libnet_destroy(t_c);
-        t_c = NULL;
+    if (t_c[0]) {
+        libnet_destroy(t_c[0]);
+        t_c[0] = NULL;
+    }
+    if (t_c[1]) {
+        libnet_destroy(t_c[1]);
+        t_c[1] = NULL;
     }
 }
 
@@ -294,7 +299,7 @@ int RejectSendLibnet11IPv4TCP(ThreadVars *tv, Packet *p, void *data, enum Reject
     if (!PacketIsTCP(p))
         return 1;
 
-    libnet_t *c = GetCtx(p, LIBNET_RAW4);
+    libnet_t *c = GetCtx(p, LIBNET_RAW4, dir);
     if (c == NULL)
         return 1;
 
@@ -342,7 +347,7 @@ int RejectSendLibnet11IPv4TCP(ThreadVars *tv, Packet *p, void *data, enum Reject
     }
 
 cleanup:
-    ClearCtx(c);
+    ClearCtx(c, dir);
     return 0;
 }
 
@@ -365,7 +370,7 @@ int RejectSendLibnet11IPv4ICMP(ThreadVars *tv, Packet *p, void *data, enum Rejec
     }
     lpacket.dsize = lpacket.len - (LIBNET_IPV4_H + LIBNET_ICMPV4_H);
 
-    libnet_t *c = GetCtx(p, LIBNET_RAW4);
+    libnet_t *c = GetCtx(p, LIBNET_RAW4, dir);
     if (c == NULL)
         return 1;
 
@@ -419,7 +424,7 @@ int RejectSendLibnet11IPv4ICMP(ThreadVars *tv, Packet *p, void *data, enum Rejec
     }
 
 cleanup:
-    ClearCtx(c);
+    ClearCtx(c, dir);
     return 0;
 }
 
@@ -437,7 +442,7 @@ int RejectSendLibnet11IPv6TCP(ThreadVars *tv, Packet *p, void *data, enum Reject
     if (!PacketIsTCP(p))
         return 1;
 
-    libnet_t *c = GetCtx(p, LIBNET_RAW6);
+    libnet_t *c = GetCtx(p, LIBNET_RAW6, dir);
     if (c == NULL)
         return 1;
 
@@ -483,7 +488,7 @@ int RejectSendLibnet11IPv6TCP(ThreadVars *tv, Packet *p, void *data, enum Reject
     }
 
 cleanup:
-    ClearCtx(c);
+    ClearCtx(c, dir);
     return 0;
 }
 
@@ -507,7 +512,7 @@ int RejectSendLibnet11IPv6ICMP(ThreadVars *tv, Packet *p, void *data, enum Rejec
     }
     lpacket.dsize = lpacket.len - LIBNET_ICMPV6_H;
 
-    libnet_t *c = GetCtx(p, LIBNET_RAW6);
+    libnet_t *c = GetCtx(p, LIBNET_RAW6, dir);
     if (c == NULL)
         return 1;
 
@@ -560,7 +565,7 @@ int RejectSendLibnet11IPv6ICMP(ThreadVars *tv, Packet *p, void *data, enum Rejec
     }
 
 cleanup:
-    ClearCtx(c);
+    ClearCtx(c, dir);
     return 0;
 }
 
