@@ -89,6 +89,8 @@ jobs:
           IGNORES+=(--ignore RUSTSEC-2019-0036)
           # time crate update
           IGNORES+=(--ignore RUSTSEC-2026-0009)
+          # rand, vla tls-parser
+          IGNORES+=(--ignore RUSTSEC-2026-0097)
 
           cargo audit -D warnings "${IGNORES[@]}"
 
