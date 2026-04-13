@@ -69,7 +69,7 @@ uint8_t PacketGetAction(const Packet *p)
 
 bool PacketDropIsSourceFirewall(const Packet *p)
 {
-    if(likely(p->root == NULL)) {
+    if (likely(p->root == NULL)) {
         return (p->alerts.drop.is_fw_alert);
     } else {
         return (p->root->alerts.drop.is_fw_alert);
@@ -147,6 +147,7 @@ void PacketReinit(Packet *p)
     p->alerts.drop.is_fw_alert = 0;
     p->alerts.suppressed = 0;
     p->alerts.drop.action = 0;
+    p->alerts.drop.is_fw_alert = false;
     if (p->alerts.cnt > 0) {
         if (pflags & PKT_ALERT_CTX_USED)
             PacketAlertRecycle(p->alerts.alerts, p->alerts.cnt);
