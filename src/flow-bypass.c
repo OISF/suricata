@@ -85,7 +85,7 @@ static TmEcode BypassedFlowManager(ThreadVars *th_v, void *thread_data)
     /* check if we have a periodic check function */
     bool found = false;
     for (i = 0; i < g_bypassed_func_max_index; i++) {
-        if (bypassedfunclist[i].FuncInit) {
+        if (bypassedfunclist[i].Func) {
             found = true;
             break;
         }
