@@ -5565,6 +5565,15 @@
                         ]
                     }
                 },
+                "trap_address": {
+                    "type": "string"
+                },
+                "trap_oid": {
+                    "type": "string"
+                },
+                "trap_type": {
+                    "type": "string"
+                },
                 "usm": {
                     "type": "string"
                 },
