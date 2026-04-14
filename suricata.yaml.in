@@ -997,6 +997,7 @@ app-layer:
 
     ftp:
       enabled: yes
+      # max-tx: 1024
       # memcap: 64 MiB
     websocket:
       #enabled: yes
