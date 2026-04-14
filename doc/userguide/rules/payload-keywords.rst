@@ -754,7 +754,7 @@ This results in the calculated entropy value being compared with
 
 Example::
 
-  entropy: 7.01
+  entropy: value 7.01
 
 A match occurs when the calculated entropy and specified entropy values agree.
 This is determined by calculating the entropy value and comparing it with the
@@ -762,7 +762,7 @@ value from the rule using the specified operator.
 
 Example::
 
-  entropy: <7.01
+  entropy: value <7.01
 
 Options have default values:
 - bytes is equal to the current content length
