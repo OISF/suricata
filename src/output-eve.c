@@ -18,7 +18,6 @@
 #include "suricata-common.h"
 #include "output-eve.h"
 #include "util-debug.h"
-#include "rust.h"
 
 typedef struct EveUserCallback_ {
     SCEveUserCallbackFn Callback;
