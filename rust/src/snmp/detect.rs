@@ -161,7 +161,7 @@ unsafe extern "C" fn snmp_detect_pdutype_parse(
     if let Ok(s) = ft_name.to_str() {
         if let Some(ctx) = detect_parse_uint_enum::<u32, SnmpPduType>(s) {
             let boxed = Box::new(ctx);
-            return Box::into_raw(boxed) as *mut _;
+            return Box::into_raw(boxed);
         }
     }
     return std::ptr::null_mut();
