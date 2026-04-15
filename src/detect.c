@@ -1607,6 +1607,7 @@ static int DetectRunTxCheckFirewallPolicy(DetectEngineThreadCtx *det_ctx, Packet
                 SCLogDebug("peek: there are no rules to allow the state after this rule");
                 *fw_next_progress_missing = true;
             }
+            *last_for_progress = true;
         }
 
         if ((*skip_fw_hook) == true) {
