@@ -1000,6 +1000,7 @@ app-layer:
     ftp:
       enabled: yes
       # memcap: 64 MiB
+      # max-tx: 1024
     websocket:
       #enabled: yes
       # Maximum used payload size, the rest is skipped
