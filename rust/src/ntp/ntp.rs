@@ -19,6 +19,7 @@
 
 extern crate ntp_parser;
 use self::ntp_parser::*;
+use super::detect::detect_ntp_register;
 use super::log::ntp_log_json;
 use crate::applayer::{self, *};
 use crate::core;
@@ -33,7 +34,7 @@ use suricata_sys::sys::{
     AppLayerParserState, AppProto, EveJsonTxLoggerRegistrationData,
     SCAppLayerParserConfParserEnabled, SCAppLayerParserRegisterLogger,
     SCAppLayerProtoDetectConfProtoDetectionEnabled, SCOutputEvePreRegisterLogger,
-    SCOutputJsonLogDirection,
+    SCOutputJsonLogDirection, SCSigTablePreRegister,
 };
 
 #[derive(AppLayerEvent)]
@@ -240,7 +241,7 @@ extern "C" fn ntp_tx_get_alstate_progress(
     1
 }
 
-static mut ALPROTO_NTP: AppProto = ALPROTO_UNKNOWN;
+pub(super) static mut ALPROTO_NTP: AppProto = ALPROTO_UNKNOWN;
 
 extern "C" fn ntp_probing_parser(
     _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
@@ -317,6 +318,7 @@ pub unsafe extern "C" fn SCRegisterNtpParser() {
             LogTx: Some(ntp_log_json),
         };
         SCOutputEvePreRegisterLogger(reg_data);
+        SCSigTablePreRegister(Some(detect_ntp_register));
         if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, ALPROTO_NTP);
         }
