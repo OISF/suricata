@@ -61,6 +61,10 @@ pub struct NTPTransaction {
     /// The NTP reference ID
     pub reference_id: u32,
 
+    pub version: u8,
+    pub mode: u8,
+    pub stratum: u8,
+
     /// The internal transaction id
     id: u64,
 
@@ -97,14 +101,23 @@ impl NTPState {
         match parse_ntp(i) {
             Ok((_, ref msg)) => {
                 // SCLogDebug!("parse_ntp: {:?}",msg);
-                let (mode, ref_id) = match msg {
-                    NtpPacket::V3(pkt) => (pkt.mode, pkt.ref_id),
-                    NtpPacket::V4(pkt) => (pkt.mode, pkt.ref_id),
+                let tx = match msg {
+                    NtpPacket::V3(p) => {
+                        let mut tx = self.new_tx(direction, p.ref_id);
+                        tx.version = 3;
+                        tx.mode = p.mode.0;
+                        tx.stratum = p.stratum;
+                        tx
+                    }
+                    NtpPacket::V4(p) => {
+                        let mut tx = self.new_tx(direction, p.ref_id);
+                        tx.version = 4;
+                        tx.mode = p.mode.0;
+                        tx.stratum = p.stratum;
+                        tx
+                    }
                 };
-                if mode == NtpMode::SymmetricActive || mode == NtpMode::Client {
-                    let tx = self.new_tx(direction, ref_id);
-                    self.transactions.push(tx);
-                }
+                self.transactions.push(tx);
                 0
             }
             Err(Err::Incomplete(_)) => {
@@ -158,6 +171,7 @@ impl NTPTransaction {
             reference_id,
             id,
             tx_data: applayer::AppLayerTxData::for_direction(direction),
+            ..Default::default()
         }
     }
 }

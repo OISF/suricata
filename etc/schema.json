@@ -4471,9 +4471,21 @@
             "type": "object",
             "additionalProperties": false,
             "properties": {
+                "mode": {
+                    "type": "integer",
+                    "description": "The mode of the NTP message"
+                },
                 "reference_id": {
                     "type": "integer",
                     "description": "Identifies specific server or reference clock"
+                },
+                "stratum": {
+                    "type": "integer",
+                    "description": "Indicates distance from the reference clock"
+                },
+                "version": {
+                    "type": "integer",
+                    "description": "The NTP version number, typically 3 or 4"
                 }
             }
         },
