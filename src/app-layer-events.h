@@ -1,4 +1,4 @@
-/* Copyright (C) 2014-2022 Open Information Security Foundation
+/* Copyright (C) 2014-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -49,6 +49,7 @@ enum {
     APPLAYER_PROTO_DETECTION_SKIPPED,
     APPLAYER_NO_TLS_AFTER_STARTTLS,
     APPLAYER_UNEXPECTED_PROTOCOL,
+    APPLAYER_EVENT_PKT_COUNT, /**< sentinel: first usable ID for detect engine events */
 };
 
 typedef enum AppLayerEventType {
