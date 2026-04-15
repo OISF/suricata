@@ -328,6 +328,8 @@ outputs:
         - ftp
         - rdp
         - nfs
+        #- ntp:
+        #    enabled: no
         - smb:
             # restrict to only certain types in the following list
             #types: [file, tree_connect, negotiate, dcerpc, create,

@@ -4467,6 +4467,16 @@
                 }
             }
         },
+        "ntp": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "reference_id": {
+                    "type": "integer",
+                    "description": "Identifies specific server or reference clock"
+                }
+            }
+        },
         "packet": {
             "type": "string"
         },

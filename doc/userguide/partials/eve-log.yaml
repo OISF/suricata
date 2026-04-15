@@ -240,6 +240,8 @@ outputs:
         - ssh
         - arp:
             enabled: no
+        - ntp:
+            enabled: no
         - snmp
         - rfb
         - sip
