@@ -97,3 +97,27 @@ Syntax::
 
  alert snmp any any -> any any (msg:"SNMP response"; snmp.pdu_type:2; sid:3; rev:1;)
 
+snmp.trap_type
+--------------
+
+SNMP Trap type (integer).
+
+snmp.trap_type uses an, :ref:` unsigned 8-bits integer <rules-integer-keywords>`.
+
+You can specify the value as an integer or a string:
+
+ - 0: coldstart
+ - 1: warmstart
+ - 2: linkdown
+ - 3: linkup
+ - 4: authenticationfailure
+ - 5: egpneighborloss
+ - 6: enterprisespecific
+
+Syntax::
+
+ snmp.trap_type:(mode) <number or string>
+
+Signature example::
+
+ alert snmp any any -> any 162 (msg:"SNMP trap cold start"; snmp.pdu_type:trap_v1; snmp.trap_type:coldstart; sid:3; rev:1;)
