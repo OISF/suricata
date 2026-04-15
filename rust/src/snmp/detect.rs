@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2019 Open Information Security Foundation
+/* Copyright (C) 2017-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -21,10 +21,11 @@ use super::snmp::{SNMPTransaction, SnmpPduType, ALPROTO_SNMP};
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{
     detect_parse_uint_enum, DetectUintData, SCDetectU32Free, SCDetectU32Match, SCDetectU32Parse,
+    SCDetectU8Free, SCDetectU8Match,
 };
 use crate::detect::{
     helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer, SIGMATCH_INFO_ENUM_UINT,
-    SIGMATCH_INFO_UINT32, SIGMATCH_SUPPORT_FIREWALL,
+    SIGMATCH_INFO_UINT32, SIGMATCH_INFO_UINT8, SIGMATCH_SUPPORT_FIREWALL,
 };
 use std::ffi::CStr;
 use std::os::raw::{c_int, c_void};
@@ -41,6 +42,8 @@ static mut G_SNMP_PDUTYPE_KW_ID: u16 = 0;
 static mut G_SNMP_PDUTYPE_BUFFER_ID: c_int = 0;
 static mut G_SNMP_USM_BUFFER_ID: c_int = 0;
 static mut G_SNMP_COMMUNITY_BUFFER_ID: c_int = 0;
+static mut G_SNMP_TRAPTYPE_KW_ID: u16 = 0;
+static mut G_SNMP_TRAPTYPE_BUFFER_ID: c_int = 0;
 
 unsafe extern "C" fn snmp_detect_version_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
@@ -80,6 +83,77 @@ unsafe extern "C" fn snmp_detect_version_free(_de: *mut DetectEngineCtx, ctx: *m
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u32>);
     SCDetectU32Free(ctx);
+}
+
+#[repr(u8)]
+#[derive(Copy, Clone, FromPrimitive, EnumStringU8)]
+#[allow(non_camel_case_types)]
+pub enum SnmpTrapType {
+    COLDSTART = 0,
+    WARMSTART = 1,
+    LINKDOWN = 2,
+    LINKUP = 3,
+    AUTHENTICATIONFAILURE = 4,
+    EGPNEIGHBORLOSS = 5,
+    ENTERPRISESPECIFIC = 6,
+}
+
+unsafe extern "C" fn snmp_detect_traptype_parse(
+    ustr: *const std::os::raw::c_char,
+) -> *mut DetectUintData<u32> {
+    let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
+    if let Ok(s) = ft_name.to_str() {
+        if let Some(ctx) = detect_parse_uint_enum::<u8, SnmpTrapType>(s) {
+            let boxed = Box::new(ctx);
+            return Box::into_raw(boxed) as *mut _;
+        }
+    }
+    return std::ptr::null_mut();
+}
+
+unsafe extern "C" fn snmp_detect_traptype_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_SNMP) != 0 {
+        return -1;
+    }
+    let ctx = snmp_detect_traptype_parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_SNMP_TRAPTYPE_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_SNMP_TRAPTYPE_BUFFER_ID,
+    )
+    .is_null()
+    {
+        snmp_detect_traptype_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn snmp_detect_traptype_match(
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
+) -> c_int {
+    let tx = cast_pointer!(tx, SNMPTransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u8>);
+    if let Some(ref info) = tx.info {
+        if let Some((trap_type, _, _)) = info.trap_type {
+            return SCDetectU8Match(trap_type.0, ctx);
+        }
+    }
+    return 0;
+}
+
+unsafe extern "C" fn snmp_detect_traptype_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
+    // Just unbox...
+    let ctx = cast_pointer!(ctx, DetectUintData<u8>);
+    SCDetectU8Free(ctx);
 }
 
 unsafe extern "C" fn snmp_detect_pdutype_parse(
@@ -251,6 +325,23 @@ pub(super) unsafe extern "C" fn detect_snmp_register() {
         ALPROTO_SNMP,
         STREAM_TOSERVER | STREAM_TOCLIENT,
         Some(snmp_detect_community_get_data),
+        1,
+    );
+
+    let kw = SCSigTableAppLiteElmt {
+        name: b"snmp.trap_type\0".as_ptr() as *const libc::c_char,
+        desc: b"match SNMP Trap type\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/snmp-keywords.html#snmp-trap-type\0".as_ptr() as *const libc::c_char,
+        AppLayerTxMatch: Some(snmp_detect_traptype_match),
+        Setup: Some(snmp_detect_traptype_setup),
+        Free: Some(snmp_detect_traptype_free),
+        flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_ENUM_UINT | SIGMATCH_SUPPORT_FIREWALL,
+    };
+    G_SNMP_TRAPTYPE_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    G_SNMP_TRAPTYPE_BUFFER_ID = SCDetectHelperBufferProgressRegister(
+        b"snmp.trap_type\0".as_ptr() as *const libc::c_char,
+        ALPROTO_SNMP,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
         1,
     );
 }
