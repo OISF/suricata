@@ -5591,7 +5591,12 @@
                     "type": "string"
                 },
                 "trap_type": {
-                    "type": "string"
+                    "type": "string",
+                    "suricata": {
+                        "keywords": [
+                            "snmp.trap_type"
+                        ]
+                    }
                 },
                 "usm": {
                     "type": "string"
