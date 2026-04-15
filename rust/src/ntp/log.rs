@@ -20,6 +20,9 @@ use crate::jsonbuilder::{JsonBuilder, JsonError};
 
 fn log(jb: &mut JsonBuilder, tx: &NTPTransaction) -> Result<(), JsonError> {
     jb.open_object("ntp")?;
+    jb.set_uint("version", tx.version)?;
+    jb.set_uint("mode", tx.mode)?;
+    jb.set_uint("stratum", tx.stratum)?;
     jb.set_uint("reference_id", tx.reference_id)?;
     jb.close()?;
     Ok(())
