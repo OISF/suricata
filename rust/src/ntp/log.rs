@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,9 +15,20 @@
  * 02110-1301, USA.
  */
 
-//! NTP application layer, parser and logger module.
+use super::ntp::NTPTransaction;
+use crate::jsonbuilder::{JsonBuilder, JsonError};
 
-// written by Pierre Chifflier  <chifflier@wzdftpd.net>
+fn log(jb: &mut JsonBuilder, tx: &NTPTransaction) -> Result<(), JsonError> {
+    jb.open_object("ntp")?;
+    jb.set_uint("reference_id", tx.reference_id)?;
+    jb.close()?;
+    Ok(())
+}
 
-pub mod log;
-pub mod ntp;
+pub(super) unsafe extern "C" fn ntp_log_json(
+    tx: *const std::os::raw::c_void, jb: *mut std::os::raw::c_void,
+) -> bool {
+    let tx = cast_pointer!(tx, NTPTransaction);
+    let jb = cast_pointer!(jb, JsonBuilder);
+    log(jb, tx).is_ok()
+}
