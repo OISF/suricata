@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2025 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -32,6 +32,7 @@
 #include "detect-metadata.h"
 #include "detect-engine-register.h"
 #include "detect-engine-inspect-buffer.h"
+#include "app-layer-events.h"
 
 #include "util-prefilter.h"
 #include "util-mpm.h"
@@ -1474,9 +1475,10 @@ typedef struct SigTableElmt_ {
     void (*Cleanup)(struct SigTableElmt_ *);
 } SigTableElmt;
 
-/* event code */
+/* event code -- starts after APPLAYER_EVENT_PKT_COUNT to avoid ID collision
+ * with app-layer packet events when transferred to p->app_layer_events */
 enum {
-    FILE_DECODER_EVENT_NO_MEM,
+    FILE_DECODER_EVENT_NO_MEM = APPLAYER_EVENT_PKT_COUNT,
     FILE_DECODER_EVENT_INVALID_SWF_LENGTH,
     FILE_DECODER_EVENT_INVALID_SWF_VERSION,
     FILE_DECODER_EVENT_Z_DATA_ERROR,
