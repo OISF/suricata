@@ -954,6 +954,7 @@ jobs:
                 ccache \
                 clang \
                 diffutils \
+                dpdk-devel \
                 file-devel \
                 gcc \
                 gcc-c++ \
@@ -978,6 +979,7 @@ jobs:
                 libtool \
                 lz4-devel \
                 make \
+                numactl-devel \
                 parallel \
                 pcre2-devel \
                 pkgconfig \
@@ -998,7 +1000,7 @@ jobs:
       - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow" ./configure --disable-shared
       - run: make check
       - run: make distclean
-      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-warnings --enable-debug --enable-qa-simulation --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue
+      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-warnings --enable-debug --enable-qa-simulation --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue --enable-dpdk
         env:
           LDFLAGS: "-fsanitize=address"
           ac_cv_func_realloc_0_nonnull: "yes"
