@@ -296,8 +296,12 @@ static OutputInitResult JsonDropLogInitCtxSub(SCConfNode *conf, OutputCtx *paren
                              "'flow' are 'start' and 'all'");
             }
         }
+
         extended = SCConfNodeLookupChildValue(conf, "verdict");
-        if (extended != NULL) {
+
+        if (EngineModeIsFirewall()) {
+            drop_ctx->flags |= LOG_DROP_VERDICT;
+        } else if (extended != NULL) {
             if (SCConfValIsTrue(extended)) {
                 drop_ctx->flags |= LOG_DROP_VERDICT;
             }
