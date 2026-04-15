@@ -27,6 +27,7 @@ use suricata_sys::sys::{
 };
 
 static mut G_NTP_VERSION_KW_ID: u16 = 0;
+static mut G_NTP_STRATUM_KW_ID: u16 = 0;
 static mut G_NTP_GENERIC_BUFFER_ID: c_int = 0;
 
 unsafe extern "C" fn ntp_detect_version_setup(
@@ -48,7 +49,7 @@ unsafe extern "C" fn ntp_detect_version_setup(
     )
     .is_null()
     {
-        ntp_detect_version_free(std::ptr::null_mut(), ctx);
+        ntp_detect_u8_free(std::ptr::null_mut(), ctx);
         return -1;
     }
     return 0;
@@ -63,9 +64,43 @@ unsafe extern "C" fn ntp_detect_version_match(
     return SCDetectU8Match(tx.version, ctx);
 }
 
-unsafe extern "C" fn ntp_detect_version_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
+unsafe extern "C" fn ntp_detect_u8_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     let ctx = cast_pointer!(ctx, DetectUintData<u8>);
     SCDetectU8Free(ctx);
+}
+
+unsafe extern "C" fn ntp_detect_stratum_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_NTP) != 0 {
+        return -1;
+    }
+    let ctx = SCDetectU8Parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_NTP_STRATUM_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_NTP_GENERIC_BUFFER_ID,
+    )
+    .is_null()
+    {
+        ntp_detect_u8_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn ntp_detect_stratum_match(
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
+) -> c_int {
+    let tx = cast_pointer!(tx, NTPTransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u8>);
+    return SCDetectU8Match(tx.stratum, ctx);
 }
 
 pub(super) unsafe extern "C" fn detect_ntp_register() {
@@ -75,7 +110,7 @@ pub(super) unsafe extern "C" fn detect_ntp_register() {
         url: b"/rules/ntp-keywords.html#ntp-version\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: Some(ntp_detect_version_match),
         Setup: Some(ntp_detect_version_setup),
-        Free: Some(ntp_detect_version_free),
+        Free: Some(ntp_detect_u8_free),
         flags: SIGMATCH_INFO_UINT8,
     };
     G_NTP_VERSION_KW_ID = SCDetectHelperKeywordRegister(&kw);
@@ -85,4 +120,15 @@ pub(super) unsafe extern "C" fn detect_ntp_register() {
         STREAM_TOSERVER | STREAM_TOCLIENT,
         1,
     );
+
+    let kw = SCSigTableAppLiteElmt {
+        name: b"ntp.stratum\0".as_ptr() as *const libc::c_char,
+        desc: b"match NTP stratum\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/ntp-keywords.html#ntp-stratum\0".as_ptr() as *const libc::c_char,
+        AppLayerTxMatch: Some(ntp_detect_stratum_match),
+        Setup: Some(ntp_detect_stratum_setup),
+        Free: Some(ntp_detect_u8_free),
+        flags: SIGMATCH_INFO_UINT8,
+    };
+    G_NTP_STRATUM_KW_ID = SCDetectHelperKeywordRegister(&kw);
 }
