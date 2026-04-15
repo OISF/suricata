@@ -40,8 +40,6 @@ use suricata_sys::sys::{
 pub enum NTPEvent {
     UnsolicitedResponse,
     MalformedData,
-    NotRequest,
-    NotResponse,
 }
 
 #[derive(Default)]
