@@ -37,13 +37,11 @@ use suricata_sys::sys::{
 };
 
 static mut G_SNMP_VERSION_KW_ID: u16 = 0;
-static mut G_SNMP_VERSION_BUFFER_ID: c_int = 0;
 static mut G_SNMP_PDUTYPE_KW_ID: u16 = 0;
-static mut G_SNMP_PDUTYPE_BUFFER_ID: c_int = 0;
 static mut G_SNMP_USM_BUFFER_ID: c_int = 0;
 static mut G_SNMP_COMMUNITY_BUFFER_ID: c_int = 0;
 static mut G_SNMP_TRAPTYPE_KW_ID: u16 = 0;
-static mut G_SNMP_TRAPTYPE_BUFFER_ID: c_int = 0;
+static mut G_SNMP_GENERIC_BUFFER_ID: c_int = 0;
 
 unsafe extern "C" fn snmp_detect_version_setup(
     de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
@@ -60,7 +58,7 @@ unsafe extern "C" fn snmp_detect_version_setup(
         s,
         G_SNMP_VERSION_KW_ID,
         ctx as *mut SigMatchCtx,
-        G_SNMP_VERSION_BUFFER_ID,
+        G_SNMP_GENERIC_BUFFER_ID,
     )
     .is_null()
     {
@@ -126,7 +124,7 @@ unsafe extern "C" fn snmp_detect_traptype_setup(
         s,
         G_SNMP_TRAPTYPE_KW_ID,
         ctx as *mut SigMatchCtx,
-        G_SNMP_TRAPTYPE_BUFFER_ID,
+        G_SNMP_GENERIC_BUFFER_ID,
     )
     .is_null()
     {
@@ -184,7 +182,7 @@ unsafe extern "C" fn snmp_detect_pdutype_setup(
         s,
         G_SNMP_PDUTYPE_KW_ID,
         ctx as *mut SigMatchCtx,
-        G_SNMP_PDUTYPE_BUFFER_ID,
+        G_SNMP_GENERIC_BUFFER_ID,
     )
     .is_null()
     {
@@ -262,6 +260,12 @@ unsafe extern "C" fn snmp_detect_community_get_data(
 }
 
 pub(super) unsafe extern "C" fn detect_snmp_register() {
+    G_SNMP_GENERIC_BUFFER_ID = SCDetectHelperBufferProgressRegister(
+        b"snmp.generic\0".as_ptr() as *const libc::c_char,
+        ALPROTO_SNMP,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        1,
+    );
     let kw = SCSigTableAppLiteElmt {
         name: b"snmp.version\0".as_ptr() as *const libc::c_char,
         desc: b"match SNMP version\0".as_ptr() as *const libc::c_char,
@@ -272,12 +276,6 @@ pub(super) unsafe extern "C" fn detect_snmp_register() {
         flags: SIGMATCH_INFO_UINT32 | SIGMATCH_SUPPORT_FIREWALL,
     };
     G_SNMP_VERSION_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_SNMP_VERSION_BUFFER_ID = SCDetectHelperBufferProgressRegister(
-        b"snmp.version\0".as_ptr() as *const libc::c_char,
-        ALPROTO_SNMP,
-        STREAM_TOSERVER | STREAM_TOCLIENT,
-        1,
-    );
 
     let kw = SCSigTableAppLiteElmt {
         name: b"snmp.pdu_type\0".as_ptr() as *const libc::c_char,
@@ -289,12 +287,6 @@ pub(super) unsafe extern "C" fn detect_snmp_register() {
         flags: SIGMATCH_INFO_UINT32 | SIGMATCH_INFO_ENUM_UINT | SIGMATCH_SUPPORT_FIREWALL,
     };
     G_SNMP_PDUTYPE_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_SNMP_PDUTYPE_BUFFER_ID = SCDetectHelperBufferProgressRegister(
-        b"snmp.pdu_type\0".as_ptr() as *const libc::c_char,
-        ALPROTO_SNMP,
-        STREAM_TOSERVER | STREAM_TOCLIENT,
-        1,
-    );
 
     let kw = SigTableElmtStickyBuffer {
         name: String::from("snmp.usm"),
@@ -338,10 +330,4 @@ pub(super) unsafe extern "C" fn detect_snmp_register() {
         flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_ENUM_UINT | SIGMATCH_SUPPORT_FIREWALL,
     };
     G_SNMP_TRAPTYPE_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_SNMP_TRAPTYPE_BUFFER_ID = SCDetectHelperBufferProgressRegister(
-        b"snmp.trap_type\0".as_ptr() as *const libc::c_char,
-        ALPROTO_SNMP,
-        STREAM_TOSERVER | STREAM_TOCLIENT,
-        1,
-    );
 }
