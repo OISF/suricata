@@ -19,5 +19,6 @@
 
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
+pub mod detect;
 pub mod log;
 pub mod ntp;

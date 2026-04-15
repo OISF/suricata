@@ -28,6 +28,7 @@ Suricata Rules
    kerberos-keywords
    smb-keywords
    snmp-keywords
+   ntp-keywords
    base64-keywords
    sip-keywords
    sdp-keywords
