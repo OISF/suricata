@@ -3,6 +3,39 @@ NTP Keywords
 
 .. role:: example-rule-options
 
+ntp.mode
+********
+
+NTP mode. This keyword accepts either an integer or one of the known mode
+names.
+
+``ntp.mode`` uses an :ref:`unsigned 8-bit integer <rules-integer-keywords>`.
+
+Syntax::
+
+  ntp.mode:[op]<number>
+  ntp.mode:[!]reserved
+  ntp.mode:[!]symmetric_active
+  ntp.mode:[!]symmetric_passive
+  ntp.mode:[!]client
+  ntp.mode:[!]server
+  ntp.mode:[!]broadcast
+  ntp.mode:[!]control
+  ntp.mode:[!]private
+
+Examples::
+
+  ntp.mode:3
+  ntp.mode:>3
+  ntp.mode:client
+  ntp.mode:!server
+
+Signature Example:
+
+.. container:: example-rule
+
+  alert ntp any any -> any any (msg:"NTP client mode"; :example-rule-options:`ntp.mode:client;` sid:1; rev:1;)
+
 ntp.stratum
 ***********
 
@@ -24,7 +57,7 @@ Signature Example:
 
 .. container:: example-rule
 
-  alert ntp any any -> any any (msg:"NTP stratum 2"; :example-rule-options:`ntp.stratum:2;` sid:1; rev:1;)
+  alert ntp any any -> any any (msg:"NTP stratum 2"; :example-rule-options:`ntp.stratum:2;` sid:2; rev:1;)
 
 ntp.version
 ***********
@@ -47,4 +80,4 @@ Signature Example:
 
 .. container:: example-rule
 
-  alert ntp any any -> any any (msg:"NTP version 4"; :example-rule-options:`ntp.version:4;` sid:2; rev:1;)
+  alert ntp any any -> any any (msg:"NTP version 4"; :example-rule-options:`ntp.version:4;` sid:3; rev:1;)
