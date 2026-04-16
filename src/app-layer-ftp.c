@@ -223,7 +223,10 @@ static FTPTransaction *FTPTransactionCreate(FtpState *state)
     SCEnter();
     FTPTransaction *firsttx = TAILQ_FIRST(&state->tx_list);
     if (firsttx && state->tx_cnt - firsttx->tx_id > ftp_config_maxtx) {
-        // FTP does not set events yet...
+        FTPTransaction *event_tx = state->curr_tx ? state->curr_tx : firsttx;
+        event_tx->done = true;
+        event_tx->tx_data.updated_ts = true;
+        SCAppLayerDecoderEventsSetEventRaw(&event_tx->tx_data.events, FtpEventTooManyTransactions);
         return NULL;
     }
     FTPTransaction *tx = FTPCalloc(1, sizeof(*tx));
