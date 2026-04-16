@@ -20,10 +20,14 @@ use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{
     detect_parse_uint_enum, DetectUintData, SCDetectU8Free, SCDetectU8Match, SCDetectU8Parse,
 };
+use crate::detect::{
+    helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer,
+};
 use std::ffi::CStr;
 use std::os::raw::{c_int, c_void};
 use suricata_sys::sys::{
-    DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectHelperBufferProgressRegister,
+    DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
+    SCDetectHelperBufferProgressMpmRegister, SCDetectHelperBufferProgressRegister,
     SCDetectHelperKeywordRegister, SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList,
     SCSigTableAppLiteElmt, SigMatchCtx, Signature,
 };
@@ -32,6 +36,7 @@ static mut G_NTP_VERSION_KW_ID: u16 = 0;
 static mut G_NTP_MODE_KW_ID: u16 = 0;
 static mut G_NTP_STRATUM_KW_ID: u16 = 0;
 static mut G_NTP_GENERIC_BUFFER_ID: c_int = 0;
+static mut G_NTP_REFERENCE_ID_BUFFER_ID: c_int = 0;
 
 #[derive(Clone, Debug, PartialEq, EnumStringU8)]
 #[repr(u8)]
@@ -164,6 +169,27 @@ unsafe extern "C" fn ntp_detect_stratum_match(
     return SCDetectU8Match(tx.stratum, ctx);
 }
 
+unsafe extern "C" fn ntp_detect_reference_id_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_NTP) != 0 {
+        return -1;
+    }
+    if SCDetectBufferSetActiveList(de, s, G_NTP_REFERENCE_ID_BUFFER_ID) < 0 {
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn ntp_detect_reference_id_get_data(
+    tx: *const c_void, _flow_flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> bool {
+    let tx = cast_pointer!(tx, NTPTransaction);
+    *buffer = tx.reference_id.as_ptr();
+    *buffer_len = tx.reference_id.len() as u32;
+    true
+}
+
 pub(super) unsafe extern "C" fn detect_ntp_register() {
     let kw = SCSigTableAppLiteElmt {
         name: b"ntp.version\0".as_ptr() as *const libc::c_char,
@@ -203,6 +229,22 @@ pub(super) unsafe extern "C" fn detect_ntp_register() {
         flags: 0,
     };
     G_NTP_STRATUM_KW_ID = SCDetectHelperKeywordRegister(&kw);
+
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("ntp.reference_id"),
+        desc: String::from("sticky buffer to match on the NTP reference ID"),
+        url: String::from("/rules/ntp-keywords.html#ntp-reference-id"),
+        setup: ntp_detect_reference_id_setup,
+    };
+    let _g_ntp_reference_id_kw_id = helper_keyword_register_sticky_buffer(&kw);
+    G_NTP_REFERENCE_ID_BUFFER_ID = SCDetectHelperBufferProgressMpmRegister(
+        b"ntp.reference_id\0".as_ptr() as *const libc::c_char,
+        b"NTP reference ID\0".as_ptr() as *const libc::c_char,
+        ALPROTO_NTP,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        Some(ntp_detect_reference_id_get_data),
+        1,
+    );
 }
 
 #[cfg(test)]
