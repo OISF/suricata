@@ -60,7 +60,7 @@ pub struct NTPState {
 #[derive(Debug, Default)]
 pub struct NTPTransaction {
     /// The NTP reference ID
-    pub reference_id: u32,
+    pub reference_id: [u8; 4],
 
     pub version: u8,
     pub mode: u8,
@@ -169,7 +169,7 @@ impl NTPState {
 impl NTPTransaction {
     pub fn new(direction: Direction, id: u64, reference_id: u32) -> NTPTransaction {
         NTPTransaction {
-            reference_id,
+            reference_id: reference_id.to_be_bytes(),
             id,
             tx_data: applayer::AppLayerTxData::for_direction(direction),
             ..Default::default()

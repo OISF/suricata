@@ -36,6 +36,23 @@ Signature Example:
 
   alert ntp any any -> any any (msg:"NTP client mode"; :example-rule-options:`ntp.mode:client;` sid:1; rev:1;)
 
+ntp.reference_id
+****************
+
+``ntp.reference_id`` is a sticky buffer exposing the 4-byte NTP
+reference ID.
+
+Examples::
+
+  ntp.reference_id; content:"RATE";
+  ntp.reference_id; content:"|0a 00 00 01|";
+
+Signature Example:
+
+.. container:: example-rule
+
+  alert ntp any any -> any any (msg:"NTP reference ID RATE"; :example-rule-emphasis:`ntp.reference_id; content:"RATE";` sid:4; rev:1;)
+
 ntp.stratum
 ***********
 
