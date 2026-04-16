@@ -23,7 +23,13 @@ fn log(jb: &mut JsonBuilder, tx: &NTPTransaction) -> Result<(), JsonError> {
     jb.set_uint("version", tx.version)?;
     jb.set_uint("mode", tx.mode)?;
     jb.set_uint("stratum", tx.stratum)?;
-    jb.set_uint("reference_id", tx.reference_id)?;
+    jb.set_string(
+        "reference_id",
+        &format!(
+            "{:02x}:{:02x}:{:02x}:{:02x}",
+            tx.reference_id[0], tx.reference_id[1], tx.reference_id[2], tx.reference_id[3]
+        ),
+    )?;
     jb.close()?;
     Ok(())
 }
