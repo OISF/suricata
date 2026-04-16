@@ -4476,8 +4476,8 @@
                     "description": "The mode of the NTP message"
                 },
                 "reference_id": {
-                    "type": "integer",
-                    "description": "Identifies specific server or reference clock"
+                    "type": "string",
+                    "description": "Identifies specific server or reference clock as a colon-separated 4-byte hex string"
                 },
                 "stratum": {
                     "type": "integer",
