@@ -21,7 +21,7 @@ use crate::detect::uint::{
     detect_parse_uint_enum, DetectUintData, SCDetectU8Free, SCDetectU8Match, SCDetectU8Parse,
 };
 use crate::detect::{
-    helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer,
+    helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer, SIGMATCH_SUPPORT_FIREWALL,
 };
 use std::ffi::CStr;
 use std::os::raw::{c_int, c_void};
@@ -198,7 +198,7 @@ pub(super) unsafe extern "C" fn detect_ntp_register() {
         AppLayerTxMatch: Some(ntp_detect_version_match),
         Setup: Some(ntp_detect_version_setup),
         Free: Some(ntp_detect_u8_free),
-        flags: 0,
+        flags: SIGMATCH_SUPPORT_FIREWALL,
     };
     G_NTP_VERSION_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_NTP_GENERIC_BUFFER_ID = SCDetectHelperBufferProgressRegister(
@@ -215,7 +215,7 @@ pub(super) unsafe extern "C" fn detect_ntp_register() {
         AppLayerTxMatch: Some(ntp_detect_mode_match),
         Setup: Some(ntp_detect_mode_setup),
         Free: Some(ntp_detect_u8_free),
-        flags: 0,
+        flags: SIGMATCH_SUPPORT_FIREWALL,
     };
     G_NTP_MODE_KW_ID = SCDetectHelperKeywordRegister(&kw);
 
@@ -226,7 +226,7 @@ pub(super) unsafe extern "C" fn detect_ntp_register() {
         AppLayerTxMatch: Some(ntp_detect_stratum_match),
         Setup: Some(ntp_detect_stratum_setup),
         Free: Some(ntp_detect_u8_free),
-        flags: 0,
+        flags: SIGMATCH_SUPPORT_FIREWALL,
     };
     G_NTP_STRATUM_KW_ID = SCDetectHelperKeywordRegister(&kw);
 
