@@ -522,7 +522,7 @@ static void FBAnalyzerArrayFree(struct FBAnalyze *array, const uint32_t array_si
     }
 }
 
-static void FBAnalyzerFree(struct FBAnalyzer *fba)
+void FBAnalyzerFree(struct FBAnalyzer *fba)
 {
     if (fba && fba->array) {
         FBAnalyzerArrayFree(fba->array, fba->array_size);
@@ -532,13 +532,13 @@ static void FBAnalyzerFree(struct FBAnalyzer *fba)
 }
 
 #define MAX_iidS 8
-static bool CheckExpand(const uint32_t iids_idx, uint32_t **iids, uint32_t *iids_size)
+static bool CheckExpand(const uint32_t iids_idx, SigIdentifier **iids, uint32_t *iids_size)
 {
     if (iids_idx >= *iids_size) {
         const uint32_t old_size = *iids_size;
         const uint32_t new_size = MAX(2 * old_size, MAX_iidS);
 
-        void *ptr = SCRealloc(*iids, new_size * sizeof(uint32_t));
+        void *ptr = SCRealloc(*iids, new_size * sizeof(SigIdentifier));
         if (ptr == NULL)
             return false;
         *iids_size = new_size;
@@ -547,7 +547,7 @@ static bool CheckExpand(const uint32_t iids_idx, uint32_t **iids, uint32_t *iids
     return true;
 }
 
-static int DetectFlowbitsAnalyzeSignature(const Signature *s, struct FBAnalyzer *fba)
+int DetectFlowbitsAnalyzeSignature(const Signature *s, struct FBAnalyzer *fba)
 {
     struct FBAnalyze *array = fba->array;
     if (array == NULL)
@@ -571,13 +571,15 @@ static int DetectFlowbitsAnalyzeSignature(const Signature *s, struct FBAnalyzer 
             if (fb->cmd == DETECT_FLOWBITS_CMD_ISSET) {
                 if (!CheckExpand(fa->isset_iids_idx, &fa->isset_iids, &fa->isset_iids_size))
                     return -1;
-                fa->isset_iids[fa->isset_iids_idx] = s->iid;
+                fa->isset_iids[fa->isset_iids_idx].iid = s->iid;
+                fa->isset_iids[fa->isset_iids_idx].sid = s->id;
                 fa->isset_iids_idx++;
             } else if (fb->cmd == DETECT_FLOWBITS_CMD_ISNOTSET) {
                 if (!CheckExpand(
                             fa->isnotset_iids_idx, &fa->isnotset_iids, &fa->isnotset_iids_size))
                     return -1;
-                fa->isnotset_iids[fa->isnotset_iids_idx] = s->iid;
+                fa->isnotset_iids[fa->isnotset_iids_idx].iid = s->iid;
+                fa->isnotset_iids[fa->isnotset_iids_idx].sid = s->id;
                 fa->isnotset_iids_idx++;
             }
         }
@@ -589,13 +591,15 @@ static int DetectFlowbitsAnalyzeSignature(const Signature *s, struct FBAnalyzer 
             if (fb->cmd == DETECT_FLOWBITS_CMD_ISSET) {
                 if (!CheckExpand(fa->isset_iids_idx, &fa->isset_iids, &fa->isset_iids_size))
                     return -1;
-                fa->isset_iids[fa->isset_iids_idx] = s->iid;
+                fa->isset_iids[fa->isset_iids_idx].iid = s->iid;
+                fa->isset_iids[fa->isset_iids_idx].sid = s->id;
                 fa->isset_iids_idx++;
             } else if (fb->cmd == DETECT_FLOWBITS_CMD_ISNOTSET) {
                 if (!CheckExpand(
                             fa->isnotset_iids_idx, &fa->isnotset_iids, &fa->isnotset_iids_size))
                     return -1;
-                fa->isnotset_iids[fa->isnotset_iids_idx] = s->iid;
+                fa->isnotset_iids[fa->isnotset_iids_idx].iid = s->iid;
+                fa->isnotset_iids[fa->isnotset_iids_idx].sid = s->id;
                 fa->isnotset_iids_idx++;
             }
         }
@@ -613,17 +617,20 @@ static int DetectFlowbitsAnalyzeSignature(const Signature *s, struct FBAnalyzer 
         if (fb->cmd == DETECT_FLOWBITS_CMD_SET) {
             if (!CheckExpand(fa->set_iids_idx, &fa->set_iids, &fa->set_iids_size))
                 return -1;
-            fa->set_iids[fa->set_iids_idx] = s->iid;
+            fa->set_iids[fa->set_iids_idx].iid = s->iid;
+            fa->set_iids[fa->set_iids_idx].sid = s->id;
             fa->set_iids_idx++;
         } else if (fb->cmd == DETECT_FLOWBITS_CMD_UNSET) {
             if (!CheckExpand(fa->unset_iids_idx, &fa->unset_iids, &fa->unset_iids_size))
                 return -1;
-            fa->unset_iids[fa->unset_iids_idx] = s->iid;
+            fa->unset_iids[fa->unset_iids_idx].iid = s->iid;
+            fa->unset_iids[fa->unset_iids_idx].sid = s->id;
             fa->unset_iids_idx++;
         } else if (fb->cmd == DETECT_FLOWBITS_CMD_TOGGLE) {
             if (!CheckExpand(fa->toggle_iids_idx, &fa->toggle_iids, &fa->toggle_iids_size))
                 return -1;
-            fa->toggle_iids[fa->toggle_iids_idx] = s->iid;
+            fa->toggle_iids[fa->toggle_iids_idx].iid = s->iid;
+            fa->toggle_iids[fa->toggle_iids_idx].sid = s->id;
             fa->toggle_iids_idx++;
         }
     }
@@ -672,7 +679,7 @@ int DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
             array[i].cnts[DETECT_FLOWBITS_CMD_TOGGLE] == 0 &&
             array[i].cnts[DETECT_FLOWBITS_CMD_SET] == 0) {
 
-            const Signature *s = de_ctx->sig_array[array[i].isset_iids[0]];
+            const Signature *s = de_ctx->sig_array[array[i].isset_iids[0].iid];
             SCLogWarning("flowbit '%s' is checked but not "
                          "set. Checked in %u and %u other sigs",
                     varname, s->id, array[i].isset_iids_idx - 1);
@@ -702,13 +709,13 @@ int DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
                 array[i].state_cnts[DETECT_FLOWBITS_CMD_UNSET], array[i].state_cnts[DETECT_FLOWBITS_CMD_ISNOTSET],
                 array[i].state_cnts[DETECT_FLOWBITS_CMD_ISSET]);
         for (uint32_t x = 0; x < array[i].set_iids_idx; x++) {
-            SCLogDebug("SET flowbit %s/%u: sid %u", varname, i,
-                    de_ctx->sig_array[array[i].set_iids[x]]->id);
+            SCLogDebug("SET flowbit %s/%u: iid %u", varname, i,
+                    de_ctx->sig_array[array[i].set_iids[x].iid]->id);
         }
         if (to_state) {
             for (uint32_t x = 0; x < array[i].isset_iids_idx; x++) {
-                Signature *s = de_ctx->sig_array[array[i].isset_iids[x]];
-                SCLogDebug("GET flowbit %s/%u: sid %u", varname, i, s->id);
+                Signature *s = de_ctx->sig_array[array[i].isset_iids[x].iid];
+                SCLogDebug("GET flowbit %s/%u: iid %u", varname, i, s->id);
 
                 s->init_data->init_flags |= SIG_FLAG_INIT_STATE_MATCH;
                 s->init_data->is_rule_state_dependant = true;
@@ -765,7 +772,7 @@ int DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
                     if (idx < array[i].set_iids_idx) {
                         s->init_data->rule_state_dependant_sids_array
                                 [s->init_data->rule_state_dependant_sids_idx] =
-                                de_ctx->sig_array[array[i].set_iids[idx]]->id;
+                                de_ctx->sig_array[array[i].set_iids[idx].iid]->id;
                         s->init_data->rule_state_dependant_sids_idx++;
                     }
                 }
@@ -809,7 +816,7 @@ static struct FBAnalyzer DetectFlowbitsAnalyzeForGroup(
         SCLogError("Unable to allocate flowbit analyze array");
         return fba;
     }
-    SCLogDebug(
+    SCLogNotice(
             "fb analyzer array size: %" PRIu64, (uint64_t)(array_size * sizeof(struct FBAnalyze)));
     fba.array = array;
     fba.array_size = array_size;
@@ -860,10 +867,10 @@ static struct FBAnalyzer DetectFlowbitsAnalyzeForGroup(
                 array[i].state_cnts[DETECT_FLOWBITS_CMD_ISSET]);
         for (uint32_t x = 0; x < array[i].set_iids_idx; x++) {
             SCLogDebug("SET flowbit %s/%u: sid %u", varname, i,
-                    de_ctx->sig_array[array[i].set_iids[x]]->id);
+                    de_ctx->sig_array[array[i].set_iids[x].iid]->id);
         }
         for (uint32_t x = 0; x < array[i].isset_iids_idx; x++) {
-            Signature *s = de_ctx->sig_array[array[i].isset_iids[x]];
+            Signature *s = de_ctx->sig_array[array[i].isset_iids[x].iid];
             SCLogDebug("GET flowbit %s/%u: sid %u", varname, i, s->id);
 
             if (to_state) {
@@ -907,7 +914,7 @@ static void DetectFlowbitsAnalyzeDump(const DetectEngineCtx *de_ctx,
         if (e->cnts[DETECT_FLOWBITS_CMD_SET]) {
             SCJbOpenArray(js, "sets");
             for (uint32_t i = 0; i < e->set_iids_idx; i++) {
-                const Signature *s = de_ctx->sig_array[e->set_iids[i]];
+                const Signature *s = de_ctx->sig_array[e->set_iids[i].iid];
                 SCJbAppendUint(js, s->id);
             }
             SCJbClose(js);
@@ -916,7 +923,7 @@ static void DetectFlowbitsAnalyzeDump(const DetectEngineCtx *de_ctx,
         if (e->cnts[DETECT_FLOWBITS_CMD_ISSET]) {
             SCJbOpenArray(js, "isset");
             for (uint32_t i = 0; i < e->isset_iids_idx; i++) {
-                const Signature *s = de_ctx->sig_array[e->isset_iids[i]];
+                const Signature *s = de_ctx->sig_array[e->isset_iids[i].iid];
                 SCJbAppendUint(js, s->id);
             }
             SCJbClose(js);
@@ -925,7 +932,7 @@ static void DetectFlowbitsAnalyzeDump(const DetectEngineCtx *de_ctx,
         if (e->cnts[DETECT_FLOWBITS_CMD_ISNOTSET]) {
             SCJbOpenArray(js, "isnotset");
             for (uint32_t i = 0; i < e->isnotset_iids_idx; i++) {
-                const Signature *s = de_ctx->sig_array[e->isnotset_iids[i]];
+                const Signature *s = de_ctx->sig_array[e->isnotset_iids[i].iid];
                 SCJbAppendUint(js, s->id);
             }
             SCJbClose(js);
@@ -934,7 +941,7 @@ static void DetectFlowbitsAnalyzeDump(const DetectEngineCtx *de_ctx,
         if (e->cnts[DETECT_FLOWBITS_CMD_UNSET]) {
             SCJbOpenArray(js, "unset");
             for (uint32_t i = 0; i < e->unset_iids_idx; i++) {
-                const Signature *s = de_ctx->sig_array[e->unset_iids[i]];
+                const Signature *s = de_ctx->sig_array[e->unset_iids[i].iid];
                 SCJbAppendUint(js, s->id);
             }
             SCJbClose(js);
@@ -943,7 +950,7 @@ static void DetectFlowbitsAnalyzeDump(const DetectEngineCtx *de_ctx,
         if (e->cnts[DETECT_FLOWBITS_CMD_TOGGLE]) {
             SCJbOpenArray(js, "toggle");
             for (uint32_t i = 0; i < e->toggle_iids_idx; i++) {
-                const Signature *s = de_ctx->sig_array[e->toggle_iids[i]];
+                const Signature *s = de_ctx->sig_array[e->toggle_iids[i].iid];
                 SCJbAppendUint(js, s->id);
             }
             SCJbClose(js);
@@ -1191,7 +1198,7 @@ static int AddIssetiidsForBit(const DetectEngineCtx *de_ctx, const struct FBAnal
 {
     int added = 0;
     for (uint32_t i = 0; i < fba->array[fb->idx].isset_iids_idx; i++) {
-        const uint32_t sig_iid = fba->array[fb->idx].isset_iids[i];
+        const uint32_t sig_iid = fba->array[fb->idx].isset_iids[i].iid;
         const Signature *s = de_ctx->sig_array[sig_iid];
         SCLogDebug("flowbit: %u => coniidering iid %u (iid:%u)", fb->idx, s->id, s->iid);
 
