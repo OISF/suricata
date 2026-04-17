@@ -32,6 +32,36 @@
 #define DETECT_FLOWBITS_CMD_ISSET    4
 #define DETECT_FLOWBITS_CMD_MAX      5
 
+struct FBAnalyzer {
+    struct FBAnalyze *array;
+    uint32_t array_size;
+};
+
+struct FBAnalyze {
+    uint16_t cnts[DETECT_FLOWBITS_CMD_MAX];
+    uint16_t state_cnts[DETECT_FLOWBITS_CMD_MAX];
+
+    uint32_t *set_iids;
+    uint32_t set_iids_idx;
+    uint32_t set_iids_size;
+
+    uint32_t *isset_iids;
+    uint32_t isset_iids_idx;
+    uint32_t isset_iids_size;
+
+    uint32_t *isnotset_iids;
+    uint32_t isnotset_iids_idx;
+    uint32_t isnotset_iids_size;
+
+    uint32_t *unset_iids;
+    uint32_t unset_iids_idx;
+    uint32_t unset_iids_size;
+
+    uint32_t *toggle_iids;
+    uint32_t toggle_iids_idx;
+    uint32_t toggle_iids_size;
+};
+
 typedef struct DetectFlowbitsData_ {
     uint32_t idx;
     uint8_t cmd;

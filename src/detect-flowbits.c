@@ -504,36 +504,6 @@ void DetectFlowbitFree (DetectEngineCtx *de_ctx, void *ptr)
     SCFree(fd);
 }
 
-struct FBAnalyzer {
-    struct FBAnalyze *array;
-    uint32_t array_size;
-};
-
-struct FBAnalyze {
-    uint16_t cnts[DETECT_FLOWBITS_CMD_MAX];
-    uint16_t state_cnts[DETECT_FLOWBITS_CMD_MAX];
-
-    uint32_t *set_sids;
-    uint32_t set_sids_idx;
-    uint32_t set_sids_size;
-
-    uint32_t *isset_sids;
-    uint32_t isset_sids_idx;
-    uint32_t isset_sids_size;
-
-    uint32_t *isnotset_sids;
-    uint32_t isnotset_sids_idx;
-    uint32_t isnotset_sids_size;
-
-    uint32_t *unset_sids;
-    uint32_t unset_sids_idx;
-    uint32_t unset_sids_size;
-
-    uint32_t *toggle_sids;
-    uint32_t toggle_sids_idx;
-    uint32_t toggle_sids_size;
-};
-
 extern bool rule_engine_analysis_set;
 static void DetectFlowbitsAnalyzeDump(const DetectEngineCtx *de_ctx,
         struct FBAnalyze *array, uint32_t elements);
@@ -542,11 +512,11 @@ static void FBAnalyzerArrayFree(struct FBAnalyze *array, const uint32_t array_si
 {
     if (array) {
         for (uint32_t i = 0; i < array_size; i++) {
-            SCFree(array[i].set_sids);
-            SCFree(array[i].unset_sids);
-            SCFree(array[i].isset_sids);
-            SCFree(array[i].isnotset_sids);
-            SCFree(array[i].toggle_sids);
+            SCFree(array[i].set_iids);
+            SCFree(array[i].unset_iids);
+            SCFree(array[i].isset_iids);
+            SCFree(array[i].isnotset_iids);
+            SCFree(array[i].toggle_iids);
         }
         SCFree(array);
     }
@@ -561,18 +531,18 @@ static void FBAnalyzerFree(struct FBAnalyzer *fba)
     }
 }
 
-#define MAX_SIDS 8
-static bool CheckExpand(const uint32_t sids_idx, uint32_t **sids, uint32_t *sids_size)
+#define MAX_iidS 8
+static bool CheckExpand(const uint32_t iids_idx, uint32_t **iids, uint32_t *iids_size)
 {
-    if (sids_idx >= *sids_size) {
-        const uint32_t old_size = *sids_size;
-        const uint32_t new_size = MAX(2 * old_size, MAX_SIDS);
+    if (iids_idx >= *iids_size) {
+        const uint32_t old_size = *iids_size;
+        const uint32_t new_size = MAX(2 * old_size, MAX_iidS);
 
-        void *ptr = SCRealloc(*sids, new_size * sizeof(uint32_t));
+        void *ptr = SCRealloc(*iids, new_size * sizeof(uint32_t));
         if (ptr == NULL)
             return false;
-        *sids_size = new_size;
-        *sids = ptr;
+        *iids_size = new_size;
+        *iids = ptr;
     }
     return true;
 }
@@ -599,16 +569,16 @@ static int DetectFlowbitsAnalyzeSignature(const Signature *s, struct FBAnalyzer 
             fa->state_cnts[fb->cmd] += has_state;
 
             if (fb->cmd == DETECT_FLOWBITS_CMD_ISSET) {
-                if (!CheckExpand(fa->isset_sids_idx, &fa->isset_sids, &fa->isset_sids_size))
+                if (!CheckExpand(fa->isset_iids_idx, &fa->isset_iids, &fa->isset_iids_size))
                     return -1;
-                fa->isset_sids[fa->isset_sids_idx] = s->iid;
-                fa->isset_sids_idx++;
+                fa->isset_iids[fa->isset_iids_idx] = s->iid;
+                fa->isset_iids_idx++;
             } else if (fb->cmd == DETECT_FLOWBITS_CMD_ISNOTSET) {
                 if (!CheckExpand(
-                            fa->isnotset_sids_idx, &fa->isnotset_sids, &fa->isnotset_sids_size))
+                            fa->isnotset_iids_idx, &fa->isnotset_iids, &fa->isnotset_iids_size))
                     return -1;
-                fa->isnotset_sids[fa->isnotset_sids_idx] = s->iid;
-                fa->isnotset_sids_idx++;
+                fa->isnotset_iids[fa->isnotset_iids_idx] = s->iid;
+                fa->isnotset_iids_idx++;
             }
         }
         if (fb->or_list_size == 0) {
@@ -617,16 +587,16 @@ static int DetectFlowbitsAnalyzeSignature(const Signature *s, struct FBAnalyzer 
             fa->state_cnts[fb->cmd] += has_state;
 
             if (fb->cmd == DETECT_FLOWBITS_CMD_ISSET) {
-                if (!CheckExpand(fa->isset_sids_idx, &fa->isset_sids, &fa->isset_sids_size))
+                if (!CheckExpand(fa->isset_iids_idx, &fa->isset_iids, &fa->isset_iids_size))
                     return -1;
-                fa->isset_sids[fa->isset_sids_idx] = s->iid;
-                fa->isset_sids_idx++;
+                fa->isset_iids[fa->isset_iids_idx] = s->iid;
+                fa->isset_iids_idx++;
             } else if (fb->cmd == DETECT_FLOWBITS_CMD_ISNOTSET) {
                 if (!CheckExpand(
-                            fa->isnotset_sids_idx, &fa->isnotset_sids, &fa->isnotset_sids_size))
+                            fa->isnotset_iids_idx, &fa->isnotset_iids, &fa->isnotset_iids_size))
                     return -1;
-                fa->isnotset_sids[fa->isnotset_sids_idx] = s->iid;
-                fa->isnotset_sids_idx++;
+                fa->isnotset_iids[fa->isnotset_iids_idx] = s->iid;
+                fa->isnotset_iids_idx++;
             }
         }
     }
@@ -641,20 +611,20 @@ static int DetectFlowbitsAnalyzeSignature(const Signature *s, struct FBAnalyzer 
         fa->state_cnts[fb->cmd] += has_state;
 
         if (fb->cmd == DETECT_FLOWBITS_CMD_SET) {
-            if (!CheckExpand(fa->set_sids_idx, &fa->set_sids, &fa->set_sids_size))
+            if (!CheckExpand(fa->set_iids_idx, &fa->set_iids, &fa->set_iids_size))
                 return -1;
-            fa->set_sids[fa->set_sids_idx] = s->iid;
-            fa->set_sids_idx++;
+            fa->set_iids[fa->set_iids_idx] = s->iid;
+            fa->set_iids_idx++;
         } else if (fb->cmd == DETECT_FLOWBITS_CMD_UNSET) {
-            if (!CheckExpand(fa->unset_sids_idx, &fa->unset_sids, &fa->unset_sids_size))
+            if (!CheckExpand(fa->unset_iids_idx, &fa->unset_iids, &fa->unset_iids_size))
                 return -1;
-            fa->unset_sids[fa->unset_sids_idx] = s->iid;
-            fa->unset_sids_idx++;
+            fa->unset_iids[fa->unset_iids_idx] = s->iid;
+            fa->unset_iids_idx++;
         } else if (fb->cmd == DETECT_FLOWBITS_CMD_TOGGLE) {
-            if (!CheckExpand(fa->toggle_sids_idx, &fa->toggle_sids, &fa->toggle_sids_size))
+            if (!CheckExpand(fa->toggle_iids_idx, &fa->toggle_iids, &fa->toggle_iids_size))
                 return -1;
-            fa->toggle_sids[fa->toggle_sids_idx] = s->iid;
-            fa->toggle_sids_idx++;
+            fa->toggle_iids[fa->toggle_iids_idx] = s->iid;
+            fa->toggle_iids_idx++;
         }
     }
     return 0;
@@ -702,10 +672,10 @@ int DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
             array[i].cnts[DETECT_FLOWBITS_CMD_TOGGLE] == 0 &&
             array[i].cnts[DETECT_FLOWBITS_CMD_SET] == 0) {
 
-            const Signature *s = de_ctx->sig_array[array[i].isset_sids[0]];
+            const Signature *s = de_ctx->sig_array[array[i].isset_iids[0]];
             SCLogWarning("flowbit '%s' is checked but not "
                          "set. Checked in %u and %u other sigs",
-                    varname, s->id, array[i].isset_sids_idx - 1);
+                    varname, s->id, array[i].isset_iids_idx - 1);
         }
         if (array[i].state_cnts[DETECT_FLOWBITS_CMD_ISSET] &&
             array[i].state_cnts[DETECT_FLOWBITS_CMD_SET] == 0)
@@ -731,24 +701,24 @@ int DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
                 array[i].state_cnts[DETECT_FLOWBITS_CMD_SET], array[i].state_cnts[DETECT_FLOWBITS_CMD_TOGGLE],
                 array[i].state_cnts[DETECT_FLOWBITS_CMD_UNSET], array[i].state_cnts[DETECT_FLOWBITS_CMD_ISNOTSET],
                 array[i].state_cnts[DETECT_FLOWBITS_CMD_ISSET]);
-        for (uint32_t x = 0; x < array[i].set_sids_idx; x++) {
-            SCLogDebug("SET flowbit %s/%u: SID %u", varname, i,
-                    de_ctx->sig_array[array[i].set_sids[x]]->id);
+        for (uint32_t x = 0; x < array[i].set_iids_idx; x++) {
+            SCLogDebug("SET flowbit %s/%u: sid %u", varname, i,
+                    de_ctx->sig_array[array[i].set_iids[x]]->id);
         }
         if (to_state) {
-            for (uint32_t x = 0; x < array[i].isset_sids_idx; x++) {
-                Signature *s = de_ctx->sig_array[array[i].isset_sids[x]];
-                SCLogDebug("GET flowbit %s/%u: SID %u", varname, i, s->id);
+            for (uint32_t x = 0; x < array[i].isset_iids_idx; x++) {
+                Signature *s = de_ctx->sig_array[array[i].isset_iids[x]];
+                SCLogDebug("GET flowbit %s/%u: sid %u", varname, i, s->id);
 
                 s->init_data->init_flags |= SIG_FLAG_INIT_STATE_MATCH;
                 s->init_data->is_rule_state_dependant = true;
 
-                uint32_t sids_array_size = array[i].set_sids_idx;
+                uint32_t iids_array_size = array[i].set_iids_idx;
 
                 // save information about flowbits that affect this rule's state
                 if (s->init_data->rule_state_dependant_sids_array == NULL) {
                     s->init_data->rule_state_dependant_sids_array =
-                            SCCalloc(sids_array_size, sizeof(uint32_t));
+                            SCCalloc(iids_array_size, sizeof(uint32_t));
                     if (s->init_data->rule_state_dependant_sids_array == NULL) {
                         SCLogError("Failed to allocate memory for rule_state_dependant_ids");
                         goto error;
@@ -760,14 +730,14 @@ int DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
                         SCLogError("Failed to allocate memory for rule_state_variable_idx");
                         goto error;
                     }
-                    s->init_data->rule_state_dependant_sids_size = sids_array_size;
+                    s->init_data->rule_state_dependant_sids_size = iids_array_size;
                     SCLogDebug("alloc'ed array for rule dependency and fbs idx array, sid %u, "
                                "sizes are %u and %u",
                             s->id, s->init_data->rule_state_dependant_sids_size,
                             s->init_data->rule_state_flowbits_ids_size);
                 } else {
                     uint32_t new_array_size =
-                            s->init_data->rule_state_dependant_sids_size + sids_array_size;
+                            s->init_data->rule_state_dependant_sids_size + iids_array_size;
                     void *tmp_ptr = SCRealloc(s->init_data->rule_state_dependant_sids_array,
                             new_array_size * sizeof(uint32_t));
                     if (tmp_ptr == NULL) {
@@ -792,10 +762,10 @@ int DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
                     s->init_data->rule_state_flowbits_ids_size = new_fb_array_size;
                 }
                 for (uint32_t idx = 0; idx < s->init_data->rule_state_dependant_sids_size; idx++) {
-                    if (idx < array[i].set_sids_idx) {
+                    if (idx < array[i].set_iids_idx) {
                         s->init_data->rule_state_dependant_sids_array
                                 [s->init_data->rule_state_dependant_sids_idx] =
-                                de_ctx->sig_array[array[i].set_sids[idx]]->id;
+                                de_ctx->sig_array[array[i].set_iids[idx]]->id;
                         s->init_data->rule_state_dependant_sids_idx++;
                     }
                 }
@@ -805,8 +775,9 @@ int DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
                 s->init_data->rule_state_flowbits_ids_size += 1;
                 // flowbit info saving for rule made stateful rule work finished
 
-                SCLogDebug("made SID %u stateful because it depends on "
-                        "stateful rules that set flowbit %s", s->id, varname);
+                SCLogDebug("made sid %u stateful because it depends on "
+                           "stateful rules that set flowbit %s",
+                        s->id, varname);
             }
         }
     }
@@ -887,17 +858,17 @@ static struct FBAnalyzer DetectFlowbitsAnalyzeForGroup(
                 array[i].state_cnts[DETECT_FLOWBITS_CMD_UNSET],
                 array[i].state_cnts[DETECT_FLOWBITS_CMD_ISNOTSET],
                 array[i].state_cnts[DETECT_FLOWBITS_CMD_ISSET]);
-        for (uint32_t x = 0; x < array[i].set_sids_idx; x++) {
-            SCLogDebug("SET flowbit %s/%u: SID %u", varname, i,
-                    de_ctx->sig_array[array[i].set_sids[x]]->id);
+        for (uint32_t x = 0; x < array[i].set_iids_idx; x++) {
+            SCLogDebug("SET flowbit %s/%u: sid %u", varname, i,
+                    de_ctx->sig_array[array[i].set_iids[x]]->id);
         }
-        for (uint32_t x = 0; x < array[i].isset_sids_idx; x++) {
-            Signature *s = de_ctx->sig_array[array[i].isset_sids[x]];
-            SCLogDebug("GET flowbit %s/%u: SID %u", varname, i, s->id);
+        for (uint32_t x = 0; x < array[i].isset_iids_idx; x++) {
+            Signature *s = de_ctx->sig_array[array[i].isset_iids[x]];
+            SCLogDebug("GET flowbit %s/%u: sid %u", varname, i, s->id);
 
             if (to_state) {
                 s->init_data->init_flags |= SIG_FLAG_INIT_STATE_MATCH;
-                SCLogDebug("made SID %u stateful because it depends on "
+                SCLogDebug("made sid %u stateful because it depends on "
                            "stateful rules that set flowbit %s",
                         s->id, varname);
             }
@@ -935,8 +906,8 @@ static void DetectFlowbitsAnalyzeDump(const DetectEngineCtx *de_ctx,
         // sets
         if (e->cnts[DETECT_FLOWBITS_CMD_SET]) {
             SCJbOpenArray(js, "sets");
-            for (uint32_t i = 0; i < e->set_sids_idx; i++) {
-                const Signature *s = de_ctx->sig_array[e->set_sids[i]];
+            for (uint32_t i = 0; i < e->set_iids_idx; i++) {
+                const Signature *s = de_ctx->sig_array[e->set_iids[i]];
                 SCJbAppendUint(js, s->id);
             }
             SCJbClose(js);
@@ -944,8 +915,8 @@ static void DetectFlowbitsAnalyzeDump(const DetectEngineCtx *de_ctx,
         // gets
         if (e->cnts[DETECT_FLOWBITS_CMD_ISSET]) {
             SCJbOpenArray(js, "isset");
-            for (uint32_t i = 0; i < e->isset_sids_idx; i++) {
-                const Signature *s = de_ctx->sig_array[e->isset_sids[i]];
+            for (uint32_t i = 0; i < e->isset_iids_idx; i++) {
+                const Signature *s = de_ctx->sig_array[e->isset_iids[i]];
                 SCJbAppendUint(js, s->id);
             }
             SCJbClose(js);
@@ -953,8 +924,8 @@ static void DetectFlowbitsAnalyzeDump(const DetectEngineCtx *de_ctx,
         // isnotset
         if (e->cnts[DETECT_FLOWBITS_CMD_ISNOTSET]) {
             SCJbOpenArray(js, "isnotset");
-            for (uint32_t i = 0; i < e->isnotset_sids_idx; i++) {
-                const Signature *s = de_ctx->sig_array[e->isnotset_sids[i]];
+            for (uint32_t i = 0; i < e->isnotset_iids_idx; i++) {
+                const Signature *s = de_ctx->sig_array[e->isnotset_iids[i]];
                 SCJbAppendUint(js, s->id);
             }
             SCJbClose(js);
@@ -962,8 +933,8 @@ static void DetectFlowbitsAnalyzeDump(const DetectEngineCtx *de_ctx,
         // unset
         if (e->cnts[DETECT_FLOWBITS_CMD_UNSET]) {
             SCJbOpenArray(js, "unset");
-            for (uint32_t i = 0; i < e->unset_sids_idx; i++) {
-                const Signature *s = de_ctx->sig_array[e->unset_sids[i]];
+            for (uint32_t i = 0; i < e->unset_iids_idx; i++) {
+                const Signature *s = de_ctx->sig_array[e->unset_iids[i]];
                 SCJbAppendUint(js, s->id);
             }
             SCJbClose(js);
@@ -971,8 +942,8 @@ static void DetectFlowbitsAnalyzeDump(const DetectEngineCtx *de_ctx,
         // toggle
         if (e->cnts[DETECT_FLOWBITS_CMD_TOGGLE]) {
             SCJbOpenArray(js, "toggle");
-            for (uint32_t i = 0; i < e->toggle_sids_idx; i++) {
-                const Signature *s = de_ctx->sig_array[e->toggle_sids[i]];
+            for (uint32_t i = 0; i < e->toggle_iids_idx; i++) {
+                const Signature *s = de_ctx->sig_array[e->toggle_iids[i]];
                 SCJbAppendUint(js, s->id);
             }
             SCJbClose(js);
@@ -1212,17 +1183,17 @@ static uint32_t NextMultiple(const uint32_t v, const uint32_t m)
 
 /** \internal
  *  \brief adds sids for 'isset' prefilter flowbits
- *  \retval int 1 if we added sid(s), 0 if we didn't, -1 on error */
+ *  \retval int 1 if we added iid(s), 0 if we didn't, -1 on error */
 // TODO skip sids that aren't set by this sgh
 // TODO skip sids that doesn't have a isset in the same direction
-static int AddIssetSidsForBit(const DetectEngineCtx *de_ctx, const struct FBAnalyzer *fba,
+static int AddIssetiidsForBit(const DetectEngineCtx *de_ctx, const struct FBAnalyzer *fba,
         const DetectFlowbitsData *fb, PrefilterFlowbit *add)
 {
     int added = 0;
-    for (uint32_t i = 0; i < fba->array[fb->idx].isset_sids_idx; i++) {
-        const uint32_t sig_iid = fba->array[fb->idx].isset_sids[i];
+    for (uint32_t i = 0; i < fba->array[fb->idx].isset_iids_idx; i++) {
+        const uint32_t sig_iid = fba->array[fb->idx].isset_iids[i];
         const Signature *s = de_ctx->sig_array[sig_iid];
-        SCLogDebug("flowbit: %u => considering sid %u (iid:%u)", fb->idx, s->id, s->iid);
+        SCLogDebug("flowbit: %u => coniidering iid %u (iid:%u)", fb->idx, s->id, s->iid);
 
         /* Skip sids that aren't prefilter. These would just run all the time. */
         if (s->init_data->prefilter_sm == NULL ||
@@ -1296,15 +1267,15 @@ static int AddBitSetToggle(const DetectEngineCtx *de_ctx, struct FBAnalyzer *fba
             return -1;
 
         add->id = fb->idx;
-        add->rule_id_size = NextMultiple(fba->array[fb->idx].isset_sids_idx, BLOCK_SIZE);
+        add->rule_id_size = NextMultiple(fba->array[fb->idx].isset_iids_idx, BLOCK_SIZE);
         add->rule_id = SCCalloc(1, add->rule_id_size * sizeof(uint32_t));
         if (add->rule_id == NULL) {
             SCFree(add);
             return -1;
         }
 
-        if (AddIssetSidsForBit(de_ctx, fba, fb, add) != 1) {
-            SCLogDebug("no sids added");
+        if (AddIssetiidsForBit(de_ctx, fba, fb, add) != 1) {
+            SCLogDebug("no iids added");
             SCFree(add->rule_id);
             SCFree(add);
             return 0;
@@ -1315,11 +1286,11 @@ static int AddBitSetToggle(const DetectEngineCtx *de_ctx, struct FBAnalyzer *fba
     } else {
         SCLogDebug("found! pfb %p id %u", pfb, pfb->id);
 
-        int r = AddIssetSidsForBit(de_ctx, fba, fb, pfb);
+        int r = AddIssetiidsForBit(de_ctx, fba, fb, pfb);
         if (r < 0) {
             return -1;
         } else if (r == 0) {
-            SCLogDebug("no sids added");
+            SCLogDebug("no iids added");
             return 0;
         }
     }
@@ -1375,8 +1346,8 @@ static int PrefilterSetupFlowbits(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
                 continue;
             }
 
-            if (fb_analysis.array[fb->idx].isnotset_sids_idx ||
-                    fb_analysis.array[fb->idx].unset_sids_idx) {
+            if (fb_analysis.array[fb->idx].isnotset_iids_idx ||
+                    fb_analysis.array[fb->idx].unset_iids_idx) {
                 SCLogDebug("flowbit %u not supported: unset in use", fb->idx);
                 continue;
             }
@@ -1408,8 +1379,8 @@ static int PrefilterSetupFlowbits(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         }
 
         const DetectFlowbitsData *fb = (DetectFlowbitsData *)s->init_data->prefilter_sm->ctx;
-        if (fb_analysis.array[fb->idx].isnotset_sids_idx ||
-                fb_analysis.array[fb->idx].unset_sids_idx) {
+        if (fb_analysis.array[fb->idx].isnotset_iids_idx ||
+                fb_analysis.array[fb->idx].unset_iids_idx) {
             SCLogDebug("flowbit %u not supported: toggle or unset in use", fb->idx);
             s->init_data->prefilter_sm = NULL;
             s->flags &= ~SIG_FLAG_PREFILTER;
