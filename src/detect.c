@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2025 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -953,6 +953,9 @@ static DetectRunScratchpad DetectRunSetup(const DetectEngineCtx *de_ctx,
     det_ctx->raw_stream_progress = 0;
     det_ctx->match_array_cnt = 0;
     det_ctx->json_content_len = 0;
+    if (det_ctx->decoder_events != NULL) {
+        AppLayerDecoderEventsResetEvents(det_ctx->decoder_events);
+    }
 
     det_ctx->alert_queue_size = 0;
     p->alerts.drop.action = 0;
@@ -1069,6 +1072,15 @@ static void DetectRunCleanup(DetectEngineThreadCtx *det_ctx,
         Packet *p, Flow * const pflow)
 {
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_CLEANUP);
+
+    /* transfer detect engine events to packet for EVE logging */
+    if (det_ctx->decoder_events != NULL && det_ctx->decoder_events->cnt > 0) {
+        for (uint8_t i = 0; i < det_ctx->decoder_events->cnt; i++) {
+            SCAppLayerDecoderEventsSetEventRaw(
+                    &p->app_layer_events, det_ctx->decoder_events->events[i]);
+        }
+    }
+
     InspectionBufferClean(det_ctx);
 
     if (pflow != NULL) {
