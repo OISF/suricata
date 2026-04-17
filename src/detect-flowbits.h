@@ -37,27 +37,32 @@ struct FBAnalyzer {
     uint32_t array_size;
 };
 
+typedef struct SigIdentifier_ {
+    uint32_t iid;
+    uint32_t sid;
+} SigIdentifier;
+
 struct FBAnalyze {
     uint16_t cnts[DETECT_FLOWBITS_CMD_MAX];
     uint16_t state_cnts[DETECT_FLOWBITS_CMD_MAX];
 
-    uint32_t *set_iids;
+    SigIdentifier *set_iids;
     uint32_t set_iids_idx;
     uint32_t set_iids_size;
 
-    uint32_t *isset_iids;
+    SigIdentifier *isset_iids;
     uint32_t isset_iids_idx;
     uint32_t isset_iids_size;
 
-    uint32_t *isnotset_iids;
+    SigIdentifier *isnotset_iids;
     uint32_t isnotset_iids_idx;
     uint32_t isnotset_iids_size;
 
-    uint32_t *unset_iids;
+    SigIdentifier *unset_iids;
     uint32_t unset_iids_idx;
     uint32_t unset_iids_size;
 
-    uint32_t *toggle_iids;
+    SigIdentifier *toggle_iids;
     uint32_t toggle_iids_idx;
     uint32_t toggle_iids_size;
 };
@@ -75,4 +80,6 @@ typedef struct DetectFlowbitsData_ {
 /* prototypes */
 void DetectFlowbitsRegister (void);
 
+int DetectFlowbitsAnalyzeSignature(const Signature *, struct FBAnalyzer *);
+void FBAnalyzerFree(struct FBAnalyzer *);
 #endif /* SURICATA_DETECT_FLOWBITS_H */
