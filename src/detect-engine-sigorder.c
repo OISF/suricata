@@ -557,38 +557,51 @@ static SCSigSignatureWrapper *SCSigOrder(SCSigSignatureWrapper *sw,
 {
     DEBUG_VALIDATE_BUG_ON(sw == NULL);
 
+    if (sw->next == NULL) {
+        /* only one element in the list */
+        return sw;
+    }
+
     SCSigSignatureWrapper *subA = NULL;
     SCSigSignatureWrapper *subB = NULL;
-    SCSigSignatureWrapper *first;
-    SCSigSignatureWrapper *second;
     SCSigSignatureWrapper *result = NULL;
     SCSigSignatureWrapper *last = NULL;
     SCSigSignatureWrapper *new = NULL;
 
-    /* Divide input list into two sub-lists. */
-    while (sw != NULL) {
-        first = sw;
-        sw = sw->next;
-        /* Push the first element onto sub-list A */
-        first->next = subA;
-        subA = first;
 
-        if (sw == NULL)
-            break;
-        second = sw;
-        sw = sw->next;
-        /* Push the second element onto sub-list B */
-        second->next = subB;
-        subB = second;
+    /* Divide input list into two sub-lists using Tortoise and Hare algorithm */
+    SCSigSignatureWrapper *slow = sw;
+    SCSigSignatureWrapper *fast = sw; /* 2x faster pointer */
+    SCSigSignatureWrapper *prev = NULL;
+
+    while (fast != NULL && fast->next != NULL) {
+        prev = slow;
+        slow = slow->next;
+        fast = fast->next->next;
     }
-    if (subB == NULL) {
-        /* Only zero or one element on the list. */
-        return subA;
-    }
+
+    prev->next = NULL;  /* Cut the first half */
+    subA = sw;          /* First half */
+    subB = slow;        /* Second half */
+
+    SCLogDebug("subA is: %d; subB is: %d", subA->sig->id, subB->sig->id);
+
     DEBUG_VALIDATE_BUG_ON(subA == NULL);
+    DEBUG_VALIDATE_BUG_ON(subB == NULL);
 
-    /* Now sort each list */
+#ifdef DEBUG
+    SCLogDebug("subA:");
+    for (SCSigSignatureWrapper *sigw = subA; sigw != NULL; sigw = sigw->next) {
+        SCLogDebug("sig_id: %d", sigw->sig->id);
+    }
+#endif
     subA = SCSigOrder(subA, cmp_func_list);
+#ifdef DEBUG
+    SCLogDebug("subB:");
+    for (SCSigSignatureWrapper *sigw = subB; sigw != NULL; sigw = sigw->next) {
+        SCLogDebug("sig_id: %d", sigw->sig->id);
+    }
+#endif
     subB = SCSigOrder(subB, cmp_func_list);
     DEBUG_VALIDATE_BUG_ON(subA == NULL);
     DEBUG_VALIDATE_BUG_ON(subB == NULL);
