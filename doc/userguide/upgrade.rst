@@ -110,6 +110,9 @@ Other Changes
   like `alert ip`.
 - ``ldap`` has bound the maximum number of responses per transaction
   to 1024 by default.
+- flowbits with invalid command combinations in the same signature will now error out.
+  This includes: set + isset, unset + isnotset, isset + isnotset, set + unset commands.
+
 
 Changes for Library Users and Plugin Developers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
