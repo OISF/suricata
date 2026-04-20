@@ -1927,6 +1927,28 @@ static void DetectRunTx(ThreadVars *tv,
                 /* threat detect rules will be inspected */
             }
 
+            /* firewall: if we have no rules for `request_started`, but we do get a rule for
+             * `request_complete`, we should apply default policy on `request_started`.
+             * We do so by checking if `tx.detect_progress` has been set. If it is below the
+             * rule currently in inspection, we know we're missing rules for this hook. */
+            if (have_fw_rules && (s->flags & SIG_FLAG_FIREWALL)) {
+                SCLogDebug("fw check for earlier states: tx.detect_progress %u app_progress %u",
+                        tx.detect_progress, s->app_progress_hook);
+                if (tx.detect_progress < s->app_progress_hook) {
+                    SCLogNotice("tx.detect_progress %u app_progress %u", tx.detect_progress,
+                            s->app_progress_hook);
+
+                    SCLogDebug("%" PRIu64 ": %s default drop for progress", PcapPacketCntGet(p),
+                            flow_flags & STREAM_TOSERVER ? "toserver" : "toclient");
+                    /* if this rule was after the state we expected meaning that there are no
+                     * rules for that state. Invoke the default drop policy. */
+                    PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_DEFAULT_APP_POLICY);
+                    p->flow->flags |= FLOW_ACTION_DROP;
+                    tx_fw_verdict = true;
+                    break;
+                }
+            }
+
             SCLogDebug("%p/%" PRIu64 " inspecting: sid %u (%u), flags %08x", tx.tx_ptr, tx.tx_id,
                     s->id, s->iid, inspect_flags ? *inspect_flags : 0);
 
