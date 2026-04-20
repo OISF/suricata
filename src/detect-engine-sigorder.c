@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2024 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -40,6 +40,7 @@
 #include "action-globals.h"
 #include "flow-util.h"
 #include "util-validate.h"
+#include "rust.h"
 
 #define DETECT_FLOWVAR_NOT_USED      1
 #define DETECT_FLOWVAR_TYPE_READ     2
@@ -621,6 +622,210 @@ static SCSigSignatureWrapper *SCSigOrder(SCSigSignatureWrapper *sw,
     return result;
 }
 
+static int CreateGraphFromFlowbitAnalyzer(
+        void *graph, SCSigSignatureWrapper *sw, uint32_t max_fb_id)
+{
+    SCSigSignatureWrapper *tmp = sw;
+    if (max_fb_id == 0)
+        return 0;
+
+    struct FBAnalyzer fba = { .array = NULL, .array_size = 0 };
+    const uint32_t array_size = max_fb_id + 1;
+    struct FBAnalyze *array = SCCalloc(array_size, sizeof(struct FBAnalyze));
+    if (array == NULL) {
+        SCLogError("Unable to allocate flowbit analyze array");
+        return -1;
+    }
+    fba.array = array;
+    fba.array_size = array_size;
+
+    SCLogDebug(
+            "fb analyzer array size: %" PRIu64, (uint64_t)(array_size * sizeof(struct FBAnalyze)));
+
+    /* fill flowbit array, updating counters per sig */
+    while (tmp != NULL) {
+        const Signature *s = tmp->sig;
+
+        int64_t node = SCGetOrCreateNodeGraph(graph, s->id);
+        if (node < 0) {
+            FatalError("Couldn't create or get a node in the graph for sid: %d", s->id);
+        }
+        SCLogDebug("added node: %ld", node);
+
+        int r = DetectFlowbitsAnalyzeSignature(s, &fba);
+        if (r < 0) {
+            FBAnalyzerFree(&fba);
+            return -1;
+        }
+        tmp = tmp->next;
+    }
+
+    // varnamestore ids start at 1
+    for (uint32_t x = 1; x < array_size; x++) {
+        for (uint8_t i = 0; i < fba.array[x].isset_iids_idx; i++) {
+            SCLogDebug("Getting or creating node for sid: %d", fba.array[x].isset_iids[i].sid);
+            int64_t to = SCGetOrCreateNodeGraph(graph, fba.array[x].isset_iids[i].sid);
+            if (to < 0) {
+                FatalError("Couldn't create or get a node in the graph for sid: %d",
+                        fba.array[x].isset_iids[i].sid);
+            }
+            SCLogDebug("added node: %ld", to);
+            for (uint32_t y = 0; y < fba.array[x].set_iids_idx; y++) {
+                SCLogDebug("Getting or creating node for iid: %d", fba.array[x].set_iids[y].sid);
+                int64_t from = SCGetOrCreateNodeGraph(graph, fba.array[x].set_iids[y].sid);
+                if (from < 0) {
+                    FatalError("Couldn't create or get a node in the graph for sid: %d",
+                            fba.array[x].set_iids[y].sid);
+                }
+                SCLogDebug("added node: %ld", from);
+                if (SCCreateNodeEdgeDirectedGraph(graph, from, to, DETECT_FLOWBITS_CMD_SET) < 0) {
+                    FatalError(
+                            "Flowbits signatures that are unsatisfiable at runtime found: %d, %d",
+                            fba.array[x].isset_iids[i].sid, fba.array[x].set_iids[y].sid);
+                }
+            }
+            for (uint32_t y = 0; y < fba.array[x].toggle_iids_idx; y++) {
+                SCLogDebug("Getting or creating node for sid: %d", fba.array[x].toggle_iids[y].sid);
+                int64_t from = SCGetOrCreateNodeGraph(graph, fba.array[x].toggle_iids[y].sid);
+                if (from < 0) {
+                    FatalError("Couldn't create or get a node in the graph for sid: %d",
+                            fba.array[x].toggle_iids[y].sid);
+                }
+                SCLogDebug("added node: %ld", from);
+                if (SCCreateNodeEdgeDirectedGraph(graph, from, to, DETECT_FLOWBITS_CMD_TOGGLE) <
+                        0) {
+                    FatalError(
+                            "Flowbits signatures that are unsatisfiable at runtime found: %d, %d",
+                            fba.array[x].isset_iids[i].sid, fba.array[x].toggle_iids[y].sid);
+                }
+            }
+        }
+    }
+
+    // STODO is it ok to use the same graph?
+    for (uint32_t x = 1; x < array_size; x++) {
+        for (uint8_t i = 0; i < fba.array[x].isnotset_iids_idx; i++) {
+            int64_t to = SCGetOrCreateNodeGraph(graph, fba.array[x].isnotset_iids[i].sid);
+            if (to < 0) {
+                FatalError("Couldn't create or get a node in the graph for sid: %d",
+                        fba.array[x].isnotset_iids[i].sid);
+            }
+            SCLogDebug("added node: %ld", to);
+            for (uint32_t y = 0; y < fba.array[x].unset_iids_idx; y++) {
+                int64_t from = SCGetOrCreateNodeGraph(graph, fba.array[x].unset_iids[y].sid);
+                if (from < 0) {
+                    FatalError("Couldn't create or get a node in the graph for sid: %d",
+                            fba.array[x].unset_iids[y].sid);
+                }
+                SCLogDebug("added node: %ld", from);
+                if (SCCreateNodeEdgeDirectedGraph(graph, from, to, DETECT_FLOWBITS_CMD_UNSET) < 0) {
+                    FatalError(
+                            "Flowbits signatures that are unsatisfiable at runtime found: %d, %d",
+                            fba.array[x].isnotset_iids[i].sid, fba.array[x].unset_iids[y].sid);
+                }
+            }
+            for (uint32_t y = 0; y < fba.array[x].toggle_iids_idx; y++) {
+                int64_t from = SCGetOrCreateNodeGraph(graph, fba.array[x].toggle_iids[y].sid);
+                if (from < 0) {
+                    FatalError("Couldn't create or get a node in the graph for sid: %d",
+                            fba.array[x].toggle_iids[y].sid);
+                }
+                SCLogDebug("added node: %ld", from);
+                if (SCCreateNodeEdgeDirectedGraph(graph, from, to, DETECT_FLOWBITS_CMD_TOGGLE) <
+                        0) {
+                    FatalError(
+                            "Flowbits signatures that are unsatisfiable at runtime found: %d, %d",
+                            fba.array[x].isnotset_iids[i].sid, fba.array[x].toggle_iids[y].sid);
+                }
+            }
+        }
+    }
+
+    FBAnalyzerFree(&fba);
+    return 0;
+}
+
+/**
+ * \brief Function to Resolve dependencies among flowbits
+ *
+ * \param arg_sw Signature Wrapper containing all flowbits of SET_READ type
+ *
+ * \return SCSigSignatureWrapper list post dependency resolution
+ */
+static SCSigSignatureWrapper *SCSigResolveFlowbitDependencies(
+        SCSigSignatureWrapper *head, uint32_t max_fb_id)
+{
+    uint32_t sig_cnt = 0;
+    uint32_t *sorted_siids = NULL;
+    SCSigSignatureWrapper *tmp = NULL;
+
+    if (head == NULL) {
+        return NULL;
+    }
+    tmp = head;
+    while (tmp != NULL) {
+        ++sig_cnt;
+        tmp = tmp->next;
+    }
+    SCLogDebug("sig_cnt: %d", sig_cnt);
+
+    DEBUG_VALIDATE_BUG_ON(max_fb_id == 0);
+    DEBUG_VALIDATE_BUG_ON(sig_cnt == 0);
+    void *graph = SCCreateDirectedGraph();
+    if (CreateGraphFromFlowbitAnalyzer(graph, head, max_fb_id) < 0) {
+        FatalError("Could not create Flowbit Analyzer Graph");
+    }
+
+    sorted_siids = SCCalloc(sig_cnt, sizeof(uint32_t));
+    if (sorted_siids == NULL) {
+        goto error;
+    }
+    if (SCResolveFlowbitDependencies(graph, sorted_siids, sig_cnt) < 0) {
+        goto error;
+    }
+
+    SCSigSignatureWrapper *fin = NULL;
+    tmp = NULL;
+
+    for (uint32_t i = 0; i < sig_cnt; i++) {
+        SCSigSignatureWrapper *prev = NULL;
+        SCSigSignatureWrapper *cur = head;
+
+        while (cur != NULL) {
+            if (sorted_siids[i] == cur->sig->id) {
+                if (prev == NULL) {
+                    head = cur->next;
+                } else {
+                    prev->next = cur->next;
+                }
+
+                cur->next = NULL;
+                if (tmp != NULL) {
+                    tmp->next = cur;
+                } else {
+                    fin = cur;
+                }
+                tmp = cur;
+                break;
+            }
+            prev = cur;
+            cur = cur->next;
+        }
+    }
+
+    SCFree(sorted_siids); /* No longer needed */
+    SCFreeDirectedGraph(graph);
+    return fin;
+
+error:
+    SCLogError("Error resolving flowbit dependencies");
+    if (sorted_siids != NULL) {
+        SCFree(sorted_siids);
+    }
+    SCFreeDirectedGraph(graph);
+    return NULL;
+}
+
 /**
  * \brief Orders an incoming Signature based on its action
  *
@@ -810,12 +1015,17 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
 
     SCLogDebug("ordering signatures in memory");
     SCSigSignatureWrapper *sigw = NULL;
-    SCSigSignatureWrapper *td_sigw_list = NULL; /* unified td list */
+
+    SCSigSignatureWrapper *td_sigw_list_start = NULL; /* unified td list start */
+    SCSigSignatureWrapper *td_sigw_list_end = NULL;   /* unified td list end */
+
+    SCSigSignatureWrapper *fb_sigw_list_start = NULL; /* flowbits list start */
 
     SCSigSignatureWrapper *fw_pf_sigw_list = NULL; /* hook: packet_filter */
     SCSigSignatureWrapper *fw_af_sigw_list = NULL; /* hook: app_filter */
 
     Signature *sig = de_ctx->sig_list;
+
     while (sig != NULL) {
         sigw = SCSigAllocSignatureWrapper(sig);
         /* Push signature wrapper onto a list, order doesn't matter here. */
@@ -829,11 +1039,26 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
                 fw_af_sigw_list = sigw;
             }
         } else {
-            sigw->next = td_sigw_list;
-            td_sigw_list = sigw;
+            /* Flowbit specific handling. Store the three types of flowbit signatures
+             * separately for an easy merge of the lists by priority later on */
+            if (sigw->user[DETECT_SIGORDER_FLOWBITS] > DETECT_FLOWBITS_NOT_USED) {
+                sigw->next = fb_sigw_list_start;
+                fb_sigw_list_start = sigw;
+            } else {
+                sigw->next = td_sigw_list_start;
+                if (!td_sigw_list_end)
+                    td_sigw_list_end = sigw;
+                td_sigw_list_start = sigw;
+            }
         }
         sig = sig->next;
     }
+#if 1
+    SCLogDebug("Initial list:");
+    for (sigw = fb_sigw_list_start; sigw != NULL; sigw = sigw->next) {
+        SCLogDebug("sig id: %d, iid: %d", sigw->sig->id, sigw->sig->iid);
+    }
+#endif
 
     /* despite having Append in the name, the new Sig/Rule funcs actually prepend with some special
      * logic around bidir sigs. So to respect the firewall rule order, we sort this part of the list
@@ -846,10 +1071,31 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
         SCSigOrderFunc OrderFn = { .SWCompare = SCSigOrderByAppFirewall, .next = NULL };
         fw_af_sigw_list = SCSigOrder(fw_af_sigw_list, &OrderFn);
     }
-    if (td_sigw_list) {
-        /* Sort the list */
-        td_sigw_list = SCSigOrder(td_sigw_list, de_ctx->sc_sig_order_funcs);
+    if (fb_sigw_list_start) {
+        /* Resolve any complex dependencies, if possible, or roll back to the original ruleset */
+        fb_sigw_list_start = SCSigResolveFlowbitDependencies(fb_sigw_list_start, de_ctx->max_fb_id);
+        if (fb_sigw_list_start == NULL) {
+            FatalError("Flowbits have circular dependencies that cannot be met at runtime");
+        }
     }
+
+#if 1
+    SCLogDebug("Right BEFORE SigOrder:");
+    for (sigw = fb_sigw_list_start; sigw != NULL; sigw = sigw->next) {
+        SCLogDebug("sig id: %d", sigw->sig->id);
+    }
+#endif
+
+    if (td_sigw_list_end) {
+        td_sigw_list_end->next = fb_sigw_list_start;
+    } else if (fb_sigw_list_start) {
+        DEBUG_VALIDATE_BUG_ON(td_sigw_list_start != NULL);
+        td_sigw_list_start = fb_sigw_list_start;
+    }
+    if (td_sigw_list_start) {
+        td_sigw_list_start = SCSigOrder(td_sigw_list_start, de_ctx->sc_sig_order_funcs);
+    }
+
     /* Recreate the sig list in order */
     de_ctx->sig_list = NULL;
 
@@ -888,7 +1134,7 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
         SCFree(sigw_to_free);
     }
     /* threat detect list for hook app_td */
-    for (sigw = td_sigw_list; sigw != NULL;) {
+    for (sigw = td_sigw_list_start; sigw != NULL;) {
         sigw->sig->next = NULL;
         if (de_ctx->sig_list == NULL) {
             /* First entry on the list */
@@ -903,6 +1149,13 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
         sigw = sigw->next;
         SCFree(sigw_to_free);
     }
+
+#if 1
+    SCLogDebug("FINAL ORDER:");
+    for (Signature *s = de_ctx->sig_list; s != NULL; s = s->next) {
+        SCLogDebug("sig_id: %d", s->id);
+    }
+#endif
 }
 
 /**
