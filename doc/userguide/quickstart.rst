@@ -120,7 +120,7 @@ Alerting
 To test the IDS functionality of Suricata it's best to test with a signature. The signature with
 ID ``2100498`` from the ET Open ruleset is written specific for such test cases.
 
-2100498::
+.. container:: example-rule
 
     alert ip any any -> any any (msg:"GPL ATTACK_RESPONSE id check returned root"; content:"uid=0|28|root|29|"; classtype:bad-unknown; sid:2100498; rev:7; metadata:created_at 2010_09_23, updated_at 2010_09_23;)
 

@@ -18,7 +18,7 @@ resource name, for example "host.local".
 
 ``mdns.queries.rrname`` supports :doc:`multi-buffer-matching`.
 
-Example::
+.. container:: example-rule
 
   alert udp any any -> any 5353 (msg:"mDNS query for .local domain"; \
       mdns.queries.rrname; content:".local"; sid:1;)
@@ -34,7 +34,7 @@ resource name, for example "printer.local".
 
 ``mdns.answers.rrname`` supports :doc:`multi-buffer-matching`.
 
-Example::
+.. container:: example-rule
 
   alert udp any 5353 -> any any (msg:"mDNS answer for printer.local"; \
       mdns.answers.rrname; content:"printer.local"; sid:2;)
@@ -50,7 +50,7 @@ resource name, for example "device.local".
 
 ``mdns.authorities.rrname`` supports :doc:`multi-buffer-matching`.
 
-Example::
+.. container:: example-rule
 
   alert udp any 5353 -> any any (msg:"mDNS authority record check"; \
       mdns.authorities.rrname; content:"auth.local"; sid:3;)
@@ -66,7 +66,7 @@ resource name, for example "service.local".
 
 ``mdns.additionals.rrname`` supports :doc:`multi-buffer-matching`.
 
-Example::
+.. container:: example-rule
 
   alert udp any any -> any 5353 (msg:"mDNS additional record check"; \
       mdns.additionals.rrname; content:"_companion-link._tcp.local"; nocase; sid:4;)
@@ -87,7 +87,7 @@ fields that have the same format as an rrname (hostname).
 * NS
 * SOA
 
-Example::
+.. container:: example-rule
 
   alert udp any 5353 -> any any (msg:"mDNS answer data match"; \
       mdns.response.rrname; content:"Apple TV"; sid:5;)

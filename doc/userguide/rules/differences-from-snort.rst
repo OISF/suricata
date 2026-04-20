@@ -354,7 +354,7 @@ See :doc:`http-keywords` for all HTTP keywords.
    end of the URI; to do the same thing in the normalized URI buffer in
    Snort you would have to use a PCRE – ``pcre:"/\x2Eexe$/U";``
 
-   ::
+   .. container:: example-rule
 
        alert http $HOME_NET any -> $EXTERNAL_NET any (msg:".EXE File Download Request"; flow:established,to_server; content:"GET"; http_method; content:".exe"; http_uri; isdataat:!1,relative; priority:3; sid:18332111;)
 

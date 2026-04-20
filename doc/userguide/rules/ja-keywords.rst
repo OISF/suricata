@@ -19,7 +19,7 @@ ja3.hash
 
 Match on JA3 hash (md5).
 
-Example::
+.. container:: example-rule
 
   alert tls any any -> any any (msg:"match JA3 hash"; \
       ja3.hash; content:"e7eca2baf4458d095b7f45da28c16c34"; \
@@ -38,7 +38,7 @@ ja3.string
 
 Match on JA3 string.
 
-Example::
+.. container:: example-rule
 
   alert tls any any -> any any (msg:"match JA3 string"; \
       ja3.string; content:"19-20-21-22"; \
@@ -57,7 +57,7 @@ ja3s.hash
 
 Match on JA3S hash (md5).
 
-Example::
+.. container:: example-rule
 
   alert tls any any -> any any (msg:"match JA3S hash"; \
       ja3s.hash; content:"b26c652e0a402a24b5ca2a660e84f9d5"; \
@@ -72,7 +72,7 @@ ja3s.string
 
 Match on JA3S string.
 
-Example::
+.. container:: example-rule
 
   alert tls any any -> any any (msg:"match on JA3S string"; \
       ja3s.string; content:"771,23-35"; sid:100004;)
@@ -86,7 +86,7 @@ ja4.hash
 
 Match on JA4 hash (e.g. ``q13d0310h3_55b375c5d22e_cd85d2d88918``).
 
-Example::
+.. container:: example-rule
 
   alert quic any any -> any any (msg:"match JA4 hash"; \
       ja4.hash; content:"q13d0310h3_55b375c5d22e_cd85d2d88918"; \

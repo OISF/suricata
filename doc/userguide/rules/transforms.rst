@@ -4,7 +4,7 @@ Transformations
 Transformation keywords turn the data at a sticky buffer into something else. Some transformations
 support options for greater control over the transformation process
 
-Example::
+.. container:: example-rule
 
     alert http any any -> any any (file_data; strip_whitespace; \
         content:"window.navigate("; sid:1;)
@@ -15,10 +15,10 @@ the ``navigate`` and ``(``.
 The transforms can be chained. They are processed in the order in which they
 appear in a rule. Each transform's output acts as input for the next one.
 
-Example::
+.. container:: example-rule
 
     alert http any any -> any any (http_request_line; compress_whitespace; to_sha256; \
-        content:"|54A9 7A8A B09C 1B81 3725 2214 51D3 F997 F015 9DD7 049E E5AD CED3 945A FC79 7401|"; sid:1;)
+        content:"\|54A9 7A8A B09C 1B81 3725 2214 51D3 F997 F015 9DD7 049E E5AD CED3 945A FC79 7401\|"; sid:1;)
 
 .. note:: not all sticky buffers support transformations yet
 
@@ -29,7 +29,7 @@ Takes the buffer, and prepends a ``.`` character to help facilitate concise doma
 an input string of ``hello.google.com`` would be modified and become ``.hello.google.com``. Additionally,
 adding the dot allows ``google.com`` to match against ``content:".google.com"``
 
-Example::
+.. container:: example-rule
 
     alert dns any any -> any any (dns.query; dotprefix; \
         content:".microsoft.com"; sid:1;)
@@ -37,7 +37,9 @@ Example::
 This example will match on ``windows.update.microsoft.com`` and
 ``maps.microsoft.com.au`` but not ``windows.update.fakemicrosoft.com``.
 
-This rule can be used to match on the domain only; example::
+This rule can be used to match on the domain only; example:
+
+.. container:: example-rule
 
     alert dns any any -> any any (dns.query; dotprefix; \
         content:".microsoft.com"; endswith; sid:1;)
@@ -45,7 +47,9 @@ This rule can be used to match on the domain only; example::
 This example will match on ``windows.update.microsoft.com`` but not
 ``windows.update.microsoft.com.au``.
 
-Finally, this rule can be used to match on the TLD only; example::
+Finally, this rule can be used to match on the TLD only; example:
+
+.. container:: example-rule
 
     alert dns any any -> any any (dns.query; dotprefix; \
         content:".co.uk"; endswith; sid:1;)
@@ -94,7 +98,7 @@ strip_whitespace
 
 Strips all whitespace as considered by the ``isspace()`` call in C.
 
-Example::
+.. container:: example-rule
 
     alert http any any -> any any (file_data; strip_whitespace; \
         content:"window.navigate("; sid:1;)
@@ -111,7 +115,7 @@ Converts the buffer to lowercase and passes the value on.
 
 This example alerts if ``http.uri`` contains ``this text has been converted to lowercase``
 
-Example::
+.. container:: example-rule
 
     alert http any any -> any any (http.uri; to_lowercase; \
         content:"this text has been converted to lowercase"; sid:1;)
@@ -122,10 +126,10 @@ to_md5
 Takes the buffer, calculates the MD5 hash and passes the raw hash value
 on.
 
-Example::
+.. container:: example-rule
 
     alert http any any -> any any (http_request_line; to_md5; \
-        content:"|54 A9 7A 8A B0 9C 1B 81 37 25 22 14 51 D3 F9 97|"; sid:1;)
+        content:"\|54 A9 7A 8A B0 9C 1B 81 37 25 22 14 51 D3 F9 97\|"; sid:1;)
 
 to_uppercase
 ------------
@@ -134,7 +138,7 @@ Converts the buffer to uppercase and passes the value on.
 
 This example alerts if ``http.uri`` contains ``THIS TEXT HAS BEEN CONVERTED TO UPPERCASE``
 
-Example::
+.. container:: example-rule
 
     alert http any any -> any any (http.uri; to_uppercase; \
         content:"THIS TEXT HAS BEEN CONVERTED TO UPPERCASE"; sid:1;)
@@ -145,10 +149,10 @@ to_sha1
 Takes the buffer, calculates the SHA-1 hash and passes the raw hash value
 on.
 
-Example::
+.. container:: example-rule
 
     alert http any any -> any any (http_request_line; to_sha1; \
-        content:"|54A9 7A8A B09C 1B81 3725 2214 51D3 F997 F015 9DD7|"; sid:1;)
+        content:"\|54A9 7A8A B09C 1B81 3725 2214 51D3 F997 F015 9DD7\|"; sid:1;)
 
 to_sha256
 ---------
@@ -156,10 +160,10 @@ to_sha256
 Takes the buffer, calculates the SHA-256 hash and passes the raw hash value
 on.
 
-Example::
+.. container:: example-rule
 
     alert http any any -> any any (http_request_line; to_sha256; \
-        content:"|54A9 7A8A B09C 1B81 3725 2214 51D3 F997 F015 9DD7 049E E5AD CED3 945A FC79 7401|"; sid:1;)
+        content:"\|54A9 7A8A B09C 1B81 3725 2214 51D3 F997 F015 9DD7 049E E5AD CED3 945A FC79 7401\|"; sid:1;)
 
 pcrexform
 ---------
@@ -170,7 +174,7 @@ Takes the buffer, applies the required regular expression, and outputs the *firs
 
 
 This example alerts if ``http.request_line`` contains ``/dropper.php``
-Example::
+.. container:: example-rule
 
     alert http any any -> any any (msg:"HTTP with pcrexform"; http.request_line; \
         pcrexform:"[a-zA-Z]+\s+(.*)\s+HTTP"; content:"/dropper.php"; sid:1;)
@@ -190,7 +194,7 @@ Takes the buffer, applies xor decoding.
 
 
 This example alerts if ``http.uri`` contains ``password=`` xored with 4-bytes key ``0d0ac8ff``
-Example::
+.. container:: example-rule
 
     alert http any any -> any any (msg:"HTTP with xor"; http.uri; \
         xor:"0d0ac8ff"; content:"password="; sid:1;)
@@ -206,7 +210,7 @@ The implementation uses a state machine :
 - it does not change until it finds a new line and switch back to first state
 
 This example alerts for both HTTP/1 and HTTP/2 with a authorization header
-Example::
+.. container:: example-rule
 
     alert http any any -> any any (msg:"HTTP authorization"; http.header_names; \
         header_lowercase; content:"authorization:"; sid:1;)
@@ -220,10 +224,10 @@ It strips HTTP2 pseudo-headers (names and values).
 The implementation just strips every line beginning by ``:``.
 
 This example alerts for both HTTP/1 and HTTP/2 with only a user agent
-Example::
+.. container:: example-rule
 
     alert http any any -> any any (msg:"HTTP ua only"; http.header_names; \
-       bsize:16; content:"|0d 0a|User-Agent|0d 0a 0d 0a|"; nocase; sid:1;)
+       bsize:16; content:"\|0d 0a\|User-Agent\|0d 0a 0d 0a\|"; nocase; sid:1;)
 
 .. _from_base64:
 
@@ -409,7 +413,7 @@ the transform will decompress data up to max-size.
 Value 0 is forbidden for max-size (there is no unlimited value).
 
 This example alerts if ``http.uri`` contains base64-encoded gzipped value
-Example::
+.. container:: example-rule
 
     alert http any any -> any any (msg:"from_base64 + gunzip";
             http.uri; content:"/gzb64?value="; fast_pattern;
@@ -431,7 +435,7 @@ the transform will decompress data up to max-size.
 Value 0 is forbidden for max-size (there is no unlimited value).
 
 This example alerts if ``http.uri`` contains base64-encoded zlib-compressed value
-Example::
+.. container:: example-rule
 
     alert http any any -> any any (msg:"from_base64 + gunzip";
             http.uri; content:"/zb64?value="; fast_pattern;

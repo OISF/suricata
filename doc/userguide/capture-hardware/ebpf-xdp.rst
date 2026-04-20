@@ -160,8 +160,13 @@ Another solution is to use a set of signatures using the ``bypass`` keyword to o
 a selective bypass. Suricata traffic ID defines flowbits that can be used in other signatures.
 For instance one could use ::
 
- alert ip any any -> any any (msg:"bypass video"; flowbits:isset,traffic/label/video; noalert; bypass; sid:1000000; rev:1;)
- alert ip any any -> any any (msg:"bypass Skype"; flowbits:isset,traffic/id/skype; noalert; bypass; sid:1000001; rev:1;)
+.. container:: example-rule
+
+  alert ip any any -> any any (msg:"bypass video"; flowbits:isset,traffic/label/video; noalert; bypass; sid:1000000; rev:1;)
+
+.. container:: example-rule
+
+  alert ip any any -> any any (msg:"bypass Skype"; flowbits:isset,traffic/id/skype; noalert; bypass; sid:1000001; rev:1;)
 
 Setup eBPF filter
 -----------------
