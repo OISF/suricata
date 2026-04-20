@@ -17,6 +17,7 @@
 
 // Author: Shivani Bhardwaj <shivani@oisf.net>
 
+use crate::jsonbuilder::*;
 use petgraph::algo::{is_cyclic_directed, tarjan_scc, toposort};
 use petgraph::graph::{GraphError, NodeIndex};
 use petgraph::stable_graph::StableDiGraph;
@@ -108,6 +109,44 @@ pub unsafe extern "C" fn SCCreateNodeEdgeDirectedGraph(
     }
 
     return 0;
+}
+
+fn log_graph(
+    js: &mut JsonBuilder, graph: &mut StableDiGraph<SCGNode, u8>,
+) -> Result<(), JsonError> {
+    SCLogDebug!("Starting the logging..");
+    for node in graph.node_weights() {
+        SCLogDebug!("{:?}", node.nidx.index());
+        js.open_object(&node.sid.to_string())?;
+        js.open_array("in")?;
+        for edge in graph.edges_directed(node.nidx, Direction::Incoming) {
+            js.start_object()?;
+            js.set_uint("id", edge.source().index() as u64)?;
+            js.set_uint("weight", *edge.weight() as u64)?;
+            js.set_uint("sid", graph[edge.source()].sid as u64)?;
+            js.close()?;
+        }
+        js.close()?;
+        js.open_array("out")?;
+        for edge in graph.edges_directed(node.nidx, Direction::Outgoing) {
+            js.start_object()?;
+            js.set_uint("id", edge.target().index() as u64)?;
+            js.set_uint("weight", *edge.weight() as u64)?;
+            js.set_uint("sid", graph[edge.target()].sid as u64)?;
+            js.close()?;
+        }
+        js.close()?;
+        js.close()?;
+    }
+    Ok(())
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCDebugLogFlowbitGraph(
+    jsb: &mut JsonBuilder, fss_void: *mut c_void,
+) -> bool {
+    let fss = &mut *(fss_void as *mut FlowbitSidStore);
+    log_graph(jsb, &mut fss.graph).is_ok()
 }
 
 fn check_cycle_update_graph(graph: &mut StableDiGraph<SCGNode, u8>) -> i8 {
