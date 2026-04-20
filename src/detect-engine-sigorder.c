@@ -37,6 +37,7 @@
 #include "util-unittest-helper.h"
 #include "util-debug.h"
 #include "util-action.h"
+#include "util-conf.h"
 #include "action-globals.h"
 #include "flow-util.h"
 #include "util-validate.h"
@@ -67,6 +68,9 @@
 #define DETECT_XBITS_TYPE_READ     2
 #define DETECT_XBITS_TYPE_SET_READ 3
 #define DETECT_XBITS_TYPE_SET      4
+
+extern bool rule_engine_analysis_set;
+SCMutex g_flowbits_graph_dump_write_m = SCMUTEX_INITIALIZER;
 
 /**
  * \brief Different kinds of helper data that can be used by the signature
@@ -630,6 +634,30 @@ static SCSigSignatureWrapper *SCSigOrder(SCSigSignatureWrapper *sw,
     return result;
 }
 
+static inline void SCLogFlowbitsGraph(void *graph)
+{
+    SCJsonBuilder *jb = SCJbNewObject();
+    if (jb == NULL)
+        return;
+
+    SCDebugLogFlowbitGraph(jb, graph);
+    SCJbClose(jb);
+    const char *filename = "flowbits_dependency_graph.json";
+    const char *log_dir = SCConfigGetLogDirectory();
+    char log_path[PATH_MAX] = "";
+    snprintf(log_path, sizeof(log_path), "%s/%s", log_dir, filename);
+
+    SCMutexLock(&g_flowbits_graph_dump_write_m);
+    FILE *fp = fopen(log_path, "w");
+    if (fp != NULL) {
+        fwrite(SCJbPtr(jb), SCJbLen(jb), 1, fp);
+        fprintf(fp, "\n");
+        fclose(fp);
+    }
+    SCMutexUnlock(&g_flowbits_graph_dump_write_m);
+    SCJbFree(jb);
+}
+
 static int CreateGraphFromFlowbitAnalyzer(
         void *graph, SCSigSignatureWrapper *sw, uint32_t max_fb_id)
 {
@@ -690,6 +718,9 @@ static int CreateGraphFromFlowbitAnalyzer(
                 SCLogDebug("added node: %ld", from);
                 if (SCCreateNodeEdgeDirectedGraph(
                             graph, (uint32_t)from, (uint32_t)to, DETECT_FLOWBITS_CMD_SET) < 0) {
+                    if (rule_engine_analysis_set) {
+                        SCLogFlowbitsGraph(graph);
+                    }
                     FatalErrorOnInit(
                             "Flowbits signatures that are unsatisfiable at runtime found: %d, %d",
                             fba.array[x].isset_iids[i].sid, fba.array[x].set_iids[y].sid);
@@ -717,6 +748,9 @@ static int CreateGraphFromFlowbitAnalyzer(
                 SCLogDebug("added node: %ld", from);
                 if (SCCreateNodeEdgeDirectedGraph(
                             graph, (uint32_t)from, (uint32_t)to, DETECT_FLOWBITS_CMD_UNSET) < 0) {
+                    if (rule_engine_analysis_set) {
+                        SCLogFlowbitsGraph(graph);
+                    }
                     FatalErrorOnInit(
                             "Flowbits signatures that are unsatisfiable at runtime found: %d, %d",
                             fba.array[x].isnotset_iids[i].sid, fba.array[x].unset_iids[y].sid);
@@ -776,6 +810,9 @@ static SCSigSignatureWrapper *SCSigResolveFlowbitDependencies(
     sorted_iids = SCCalloc(sig_cnt, sizeof(uint32_t));
     if (sorted_iids == NULL) {
         goto error;
+    }
+    if (rule_engine_analysis_set) {
+        SCLogFlowbitsGraph(graph);
     }
     int ret = SCResolveFlowbitDependencies(graph, sorted_iids, sig_cnt);
     if (ret < 0) {
