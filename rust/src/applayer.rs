@@ -41,56 +41,6 @@ use suricata_sys::sys::SCAppLayerDecoderEventsSetEventRaw;
 
 pub use suricata_ffi::cast_pointer;
 
-pub trait StreamSliceRust {
-    #[cfg(test)]
-    fn from_slice(slice: &[u8], flags: u8, offset: u64) -> Self;
-    fn is_gap(&self) -> bool;
-    fn gap_size(&self) -> u32;
-    fn as_slice(&self) -> &[u8];
-    fn is_empty(&self) -> bool;
-    fn len(&self) -> u32;
-    fn offset_from(&self, slice: &[u8]) -> u32;
-    fn flags(&self) -> u8;
-}
-
-impl StreamSliceRust for StreamSlice {
-    /// Create a StreamSlice from a Rust slice. Useful in unit tests.
-    #[cfg(test)]
-    fn from_slice(slice: &[u8], flags: u8, offset: u64) -> Self {
-        Self {
-            input: slice.as_ptr(),
-            input_len: slice.len() as u32,
-            flags,
-            offset
-        }
-    }
-
-    fn is_gap(&self) -> bool {
-        self.input.is_null() && self.input_len > 0
-    }
-    fn gap_size(&self) -> u32 {
-        self.input_len
-    }
-    fn as_slice(&self) -> &[u8] {
-        if self.input.is_null() && self.input_len == 0 {
-            return &[];
-        }
-        unsafe { std::slice::from_raw_parts(self.input, self.input_len as usize) }
-    }
-    fn is_empty(&self) -> bool {
-        self.input_len == 0
-    }
-    fn len(&self) -> u32 {
-        self.input_len
-    }
-    fn offset_from(&self, slice: &[u8]) -> u32 {
-        self.len() - slice.len() as u32
-    }
-    fn flags(&self) -> u8 {
-        self.flags
-    }
-}
-
 #[derive(Debug, Default, Eq, PartialEq)]
 pub struct AppLayerTxData(pub suricata_sys::sys::AppLayerTxData);
 
@@ -184,54 +134,7 @@ pub unsafe extern "C" fn SCTxDataUpdateFileFlags(txd: &mut suricata_sys::sys::Ap
 
 pub use suricata_ffi::{export_tx_data_get, export_state_data_get};
 
-pub trait AppLayerResultRust {
-    fn ok() -> Self;
-    fn err() -> Self;
-    fn incomplete(consumed: u32, needed: u32) -> Self;
-    fn is_ok(&self) -> bool;
-    fn is_err(&self) -> bool;
-    fn is_incomplete(&self) -> bool;
-}
-
-impl AppLayerResultRust for AppLayerResult {
-    /// parser has successfully processed in the input, and has consumed all of it
-    fn ok() -> Self {
-        Default::default()
-    }
-    /// parser has hit an unrecoverable error. Returning this to the API
-    /// leads to no further calls to the parser.
-    fn err() -> Self {
-        return AppLayerResult{
-            status: -1,
-            ..Default::default()
-        };
-    }
-
-    /// parser needs more data. Through 'consumed' it will indicate how many
-    /// of the input bytes it has consumed. Through 'needed' it will indicate
-    /// how many more bytes it needs before getting called again.
-    /// Note: consumed should never be more than the input len
-    ///       needed + consumed should be more than the input len
-    fn incomplete(consumed: u32, needed: u32) -> Self {
-        return Self {
-            status: 1,
-            consumed,
-            needed,
-        };
-    }
-
-    fn is_ok(&self) -> bool {
-        self.status == 0
-    }
-
-    fn is_err(&self) -> bool {
-        self.status == -1
-    }
-
-    fn is_incomplete(&self) -> bool {
-        self.status == 1
-    }
-}
+pub use suricata_ffi::applayer::{AppLayerResultRust, StreamSliceRust};
 
 /// Rust parser declaration
 #[repr(C)]
