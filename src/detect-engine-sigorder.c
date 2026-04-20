@@ -547,6 +547,14 @@ static int SCSigLessThan(SCSigSignatureWrapper *sw1,
 
         funcs = funcs->next;
     }
+
+    // Special handling for flowbits, do not touch the order if the comparison fn
+    // calculates two signatures to be equal
+    if ((sw1->user[DETECT_SIGORDER_FLOWBITS] > DETECT_FLOWBITS_NOT_USED) &&
+            (sw1->user[DETECT_SIGORDER_FLOWBITS] == DETECT_FLOWBITS_TYPE_SET_READ) &&
+            (sw1->user[DETECT_SIGORDER_FLOWBITS] == sw2->user[DETECT_SIGORDER_FLOWBITS]))
+        return 1;
+
     // They are equal, so use sid as the final decider.
     return sw1->sig->id < sw2->sig->id;
 }
