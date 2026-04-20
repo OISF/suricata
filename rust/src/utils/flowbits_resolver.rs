@@ -216,6 +216,7 @@ fn try_resolve_one_cycle(graph: &mut StableDiGraph<SCGNode, u8>) -> bool {
 pub unsafe extern "C" fn SCResolveFlowbitDependencies(
     graph: *mut c_void, sorted_iid_list: *mut u32, sorted_iid_list_len: u32,
 ) -> i8 {
+    SCLogInfo!("Attempting to resolve flowbit dependencies");
     let g = &mut *(graph as *mut StableDiGraph<SCGNode, u8>);
 
     let r = check_cycle_update_graph(g);
