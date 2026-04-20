@@ -113,8 +113,7 @@ SCEnumCharMap flowbit_cmds[] = {
     { "isset", DETECT_FLOWBITS_CMD_ISSET },
 };
 
-static inline int DetectFlowbitValidateDo(
-        Signature *s, uint8_t cmd, uint8_t cmd2, uint32_t idx, bool err)
+static inline int DetectFlowbitValidateDo(Signature *s, uint8_t cmd, uint8_t cmd2, uint32_t idx)
 {
     bool postmatch = DetectFlowbitIsPostmatch(cmd);
     SigMatch *list = postmatch ? s->init_data->smlists[DETECT_SM_LIST_POSTMATCH]
@@ -126,16 +125,10 @@ static inline int DetectFlowbitValidateDo(
 
         DetectFlowbitsData *fd = (DetectFlowbitsData *)sm->ctx;
         if ((fd->idx == idx) && (fd->cmd == cmd)) {
-            if (err) {
-                SCLogError("invalid flowbit command combination in the same signature: isset and "
-                           "isnotset");
-                return -1;
-            }
-            SCLogWarning(
-                    "inconsequential flowbit command combination in the same signature: %s and %s",
+            SCLogError("invalid flowbit command combination in the same signature: %s and %s",
                     SCMapEnumValueToName(cmd, flowbit_cmds),
                     SCMapEnumValueToName(cmd2, flowbit_cmds));
-            return 0;
+            return -1;
         }
     }
 
@@ -148,33 +141,30 @@ static int DetectFlowbitValidate(Signature *s, DetectFlowbitsData *fd)
     struct DetectFlowbitInvalidCmdMap_ {
         uint8_t cmd1;
         uint8_t cmd2;
-        bool err; /* Error out if rule is unsatisfiable at runtime */
     };
 
     struct DetectFlowbitInvalidCmdMap_ icmds_map[] = {
         /* POSTMATCH, MATCH combinations */
-        { DETECT_FLOWBITS_CMD_UNSET, DETECT_FLOWBITS_CMD_ISNOTSET, false },
-        { DETECT_FLOWBITS_CMD_SET, DETECT_FLOWBITS_CMD_ISSET, false },
+        { DETECT_FLOWBITS_CMD_UNSET, DETECT_FLOWBITS_CMD_ISNOTSET },
+        { DETECT_FLOWBITS_CMD_SET, DETECT_FLOWBITS_CMD_ISSET },
         /* POSTMATCH, POSTMATCH combinations */
-        { DETECT_FLOWBITS_CMD_SET, DETECT_FLOWBITS_CMD_TOGGLE, false },
-        { DETECT_FLOWBITS_CMD_UNSET, DETECT_FLOWBITS_CMD_TOGGLE, false },
-        { DETECT_FLOWBITS_CMD_SET, DETECT_FLOWBITS_CMD_UNSET, false },
+        { DETECT_FLOWBITS_CMD_SET, DETECT_FLOWBITS_CMD_TOGGLE },
+        { DETECT_FLOWBITS_CMD_UNSET, DETECT_FLOWBITS_CMD_TOGGLE },
+        { DETECT_FLOWBITS_CMD_SET, DETECT_FLOWBITS_CMD_UNSET },
         /* MATCH, MATCH combinations */
-        { DETECT_FLOWBITS_CMD_ISSET, DETECT_FLOWBITS_CMD_ISNOTSET, true },
+        { DETECT_FLOWBITS_CMD_ISSET, DETECT_FLOWBITS_CMD_ISNOTSET },
     };
 
     int ret = 0;
 
     for (uint8_t i = 0; i < ARRAY_SIZE(icmds_map); i++) {
         if (fd->cmd == icmds_map[i].cmd1) {
-            ret = DetectFlowbitValidateDo(
-                    s, icmds_map[i].cmd2, icmds_map[i].cmd1, fd->idx, icmds_map[i].err);
+            ret = DetectFlowbitValidateDo(s, icmds_map[i].cmd2, icmds_map[i].cmd1, fd->idx);
             if (ret != 1) {
                 return ret;
             }
         } else if (fd->cmd == icmds_map[i].cmd2) {
-            ret = DetectFlowbitValidateDo(
-                    s, icmds_map[i].cmd1, icmds_map[i].cmd2, fd->idx, icmds_map[i].err);
+            ret = DetectFlowbitValidateDo(s, icmds_map[i].cmd1, icmds_map[i].cmd2, fd->idx);
             if (ret != 1) {
                 return ret;
             }
