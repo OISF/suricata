@@ -4,7 +4,7 @@ Config Rules
 Config rules are rules that when matching, will change the configuration of
 Suricata for a flow, transaction, packet or other unit.
 
-Example::
+.. container:: example-rule
 
   config dns any any -> any any (dns.query; content:"suricata"; config: logging disable, type tx, scope tx; sid:1;)
 
@@ -12,7 +12,7 @@ This example will detect if a DNS query contains the string `suricata` and if
 so disable the DNS transaction logging. This means that `eve.json` records,
 but also Lua output, will not be generated/triggered for this DNS transaction.
 
-Example::
+.. container:: example-rule
 
   config tcp:pre_flow any any <> any 666 (config: tracking disable, type flow, scope packet; sid:1;)
 

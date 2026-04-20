@@ -110,7 +110,9 @@ dns.query
 ---------
 
 ``dns.query`` is a sticky buffer that is used to inspect DNS query
-names in DNS request messages. Example::
+names in DNS request messages. 
+
+.. container:: example-rule
 
   alert dns any any -> any any (msg:"Test dns.query option"; dns.query; content:"google"; nocase; sid:1;)
 
@@ -223,7 +225,9 @@ dns.response.rrname
 ``dns.response.rrname`` is a sticky buffer that is used to look at all name
 and rdata fields of DNS response (answer) resource records that are
 represented as a resource name (hostname). It supports inspecting all
-DNS response sections. Example::
+DNS response sections.
+
+.. container:: example-rule
 
   alert dns any any -> any any (msg:"Test dns.response.rrname option"; \
       dns.response.rrname; content:"google"; nocase; sid:1;)
