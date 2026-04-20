@@ -1555,6 +1555,59 @@ static inline void RuleMatchCandidateMergeStateRules(
     // and come before any other element later in the list
 }
 
+/** \internal
+ *  \brief run pre-rule inspection firewall policy checks
+ *
+ *  Check if:
+ *  - check if we're in accept:tx mode
+ *  - check for missing accept hooks
+ *
+ * \retval DETECT_TX_FW_FC_OK no action needed
+ * \retval DETECT_TX_FW_FC_BREAK rest of rules shouldn't inspected
+ * \retval DETECT_TX_FW_FC_SKIP skip this rule
+ */
+static enum DetectTxFirewallFlowControl DetectRunTxPreCheckFirewallPolicy(
+        DetectEngineThreadCtx *det_ctx, Packet *p, DetectTransaction *tx, const Signature *s,
+        const uint32_t can_idx, bool *tx_fw_verdict, const bool last_tx)
+{
+    /* skip fw rules if we're in accept:tx mode */
+    if (tx->tx_data_ptr->flags & APP_LAYER_TX_ACCEPT) {
+        /* append a blank accept:packet action for the APP_LAYER_TX_ACCEPT,
+         * if this is the last tx */
+        if (!*tx_fw_verdict) {
+            const bool accept_tx_applies_to_packet = last_tx;
+            if (accept_tx_applies_to_packet) {
+                SCLogDebug("accept:(tx|hook): should be applied to the packet");
+                DetectRunAppendDefaultAccept(det_ctx, p);
+            }
+            *tx_fw_verdict = true;
+        }
+
+        if (s->flags & SIG_FLAG_FIREWALL) {
+            SCLogDebug("APP_LAYER_TX_ACCEPT, so skip rule");
+            return DETECT_TX_FW_FC_SKIP;
+        }
+
+        /* threat detect rules will be inspected */
+    } else if (s->flags & SIG_FLAG_FIREWALL) {
+        /* if our first rule is beyond the starting state, we need to check if
+         * there are rules missing for states in between. */
+        if (s->app_progress_hook > tx->detect_progress_orig && can_idx == 0) {
+            SCLogDebug("missing fw rules at list start: sid %u, progress %u (%u:%u)", s->id,
+                    s->app_progress_hook, tx->detect_progress, tx->detect_progress_orig);
+
+            /* if this rule was after the state we expected meaning that there are
+             * no rules for that state. Invoke the default drop policy. */
+            PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_DEFAULT_APP_POLICY);
+            p->flow->flags |= FLOW_ACTION_DROP;
+            *tx_fw_verdict = true;
+            SCLogDebug("default app drop");
+            return DETECT_TX_FW_FC_BREAK;
+        }
+    }
+    return DETECT_TX_FW_FC_OK;
+}
+
 /**
  * \internal
  * \brief Check and update firewall rules state.
@@ -1901,6 +1954,15 @@ static void DetectRunTx(ThreadVars *tv,
                     flow_flags & STREAM_TOSERVER ? "toserver" : "toclient", tx.tx_progress,
                     tx.detect_progress, tx.detect_progress_orig, s->app_progress_hook);
 
+            if (have_fw_rules) {
+                const enum DetectTxFirewallFlowControl fw_r = DetectRunTxPreCheckFirewallPolicy(
+                        det_ctx, p, &tx, s, i, &tx_fw_verdict, (total_txs == tx.tx_id + 1));
+                if (fw_r == DETECT_TX_FW_FC_SKIP)
+                    continue;
+                else if (fw_r == DETECT_TX_FW_FC_BREAK)
+                    break;
+            }
+
             /* deduplicate: rules_array is sorted, but not deduplicated:
              * both mpm and stored state could give us the same sid.
              * As they are back to back in that case we can check for it
@@ -1911,27 +1973,6 @@ static void DetectRunTx(ThreadVars *tv,
                 SCLogDebug("%p/%" PRIu64 " inspecting SKIP NEXT: sid %u (%u), flags %08x",
                         tx.tx_ptr, tx.tx_id, s->id, s->iid, inspect_flags ? *inspect_flags : 0);
                 i++;
-            }
-
-            /* skip fw rules if we're in accept:tx mode */
-            if (have_fw_rules && (tx.tx_data_ptr->flags & APP_LAYER_TX_ACCEPT)) {
-                /* append a blank accept:packet action for the APP_LAYER_TX_ACCEPT,
-                 * if this is the last tx */
-                if (!tx_fw_verdict) {
-                    const bool accept_tx_applies_to_packet = total_txs == tx.tx_id + 1;
-                    if (accept_tx_applies_to_packet) {
-                        SCLogDebug("accept:(tx|hook): should be applied to the packet");
-                        DetectRunAppendDefaultAccept(det_ctx, p);
-                    }
-                }
-                tx_fw_verdict = true;
-
-                if (s->flags & SIG_FLAG_FIREWALL) {
-                    SCLogDebug("APP_LAYER_TX_ACCEPT, so skip rule");
-                    continue;
-                }
-
-                /* threat detect rules will be inspected */
             }
 
             SCLogDebug("%p/%" PRIu64 " inspecting: sid %u (%u), flags %08x", tx.tx_ptr, tx.tx_id,
