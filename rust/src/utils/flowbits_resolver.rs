@@ -217,7 +217,6 @@ pub unsafe extern "C" fn SCResolveFlowbitDependencies(
 ) -> i8 {
     SCLogDebug!("Attempting to resolve flowbit dependencies");
     let fss = &mut *(fss_void as *mut FlowbitSidStore);
-
     let r = check_cycle_update_graph(&mut fss.graph);
     if r == -1 {
         SCLogError!("Couldn't do anything to fix the graph. Retreating..");
