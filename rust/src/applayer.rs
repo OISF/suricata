@@ -182,29 +182,7 @@ pub unsafe extern "C" fn SCTxDataUpdateFileFlags(txd: &mut suricata_sys::sys::Ap
     }
 }
 
-#[macro_export]
-macro_rules!export_tx_data_get {
-    ($name:ident, $type:ty) => {
-        unsafe extern "C" fn $name(tx: *mut std::os::raw::c_void)
-            -> *mut suricata_sys::sys::AppLayerTxData
-        {
-            let tx = &mut *(tx as *mut $type);
-            &mut tx.tx_data.0
-        }
-    }
-}
-
-#[macro_export]
-macro_rules!export_state_data_get {
-    ($name:ident, $type:ty) => {
-        unsafe extern "C" fn $name(state: *mut std::os::raw::c_void)
-            -> *mut $crate::applayer::AppLayerStateData
-        {
-            let state = &mut *(state as *mut $type);
-            &mut state.state_data
-        }
-    }
-}
+pub use suricata_ffi::{export_tx_data_get, export_state_data_get};
 
 pub trait AppLayerResultRust {
     fn ok() -> Self;
