@@ -25,6 +25,7 @@ use petgraph::Direction;
 use std::collections::{HashMap, HashSet};
 use std::os::raw::c_void;
 use std::cmp::Ordering;
+use crate::jsonbuilder::*;
 
 /// Special Graph Node storing flowbit or signature
 #[derive(Debug, Copy, Clone)]
@@ -101,6 +102,42 @@ pub unsafe extern "C" fn SCCreateNodeEdgeDirectedGraph(
     return 0;
 }
 
+fn log_graph(js: &mut JsonBuilder, graph: &mut StableDiGraph<SCGNode, u8>) -> Result<(), JsonError>
+{
+    SCLogNotice!("Starting the logging..");
+    for node in graph.node_weights() {
+        SCLogNotice!("{:?}", node.nidx.index());
+        js.open_object(&node.sid.to_string())?;
+        js.open_array("in")?;
+        for edge in graph.edges_directed(node.nidx, Direction::Incoming) {
+            js.start_object()?;
+            js.set_uint("id", edge.source().index() as u64)?;
+            js.set_uint("weight", *edge.weight() as u64)?;
+            js.set_uint("sid",  graph[edge.source()].sid as u64)?;
+            js.close()?;
+        }
+        js.close()?;
+        js.open_array("out")?;
+        for edge in graph.edges_directed(node.nidx, Direction::Outgoing) {
+            js.start_object()?;
+            js.set_uint("id", edge.target().index() as u64)?;
+            js.set_uint("weight", *edge.weight() as u64)?;
+            js.set_uint("sid", graph[edge.target()].sid as u64)?;
+            js.close()?;
+        }
+        js.close()?;
+        js.close()?;
+    }
+    Ok(())
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCDebugLogFlowbitGraph(
+    jsb: &mut JsonBuilder, graph: *mut c_void
+) -> bool {
+    let g = &mut *(graph as *mut StableDiGraph<SCGNode, u8>);
+    log_graph(jsb, g).is_ok()
+}
 
 fn check_cycle_update_graph(graph: &mut StableDiGraph<SCGNode, u8>) -> i8 {
     const MAX_STACK_SIZE: usize = 100;
