@@ -53,13 +53,7 @@ pub fn conf_get_node(key: &str) -> Option<ConfNode> {
     }
 }
 
-pub use suricata_ffi::conf::conf_get;
-
-// Return the value of key as a boolean. A value that is not set is
-// the same as having it set to false.
-pub fn conf_get_bool(key: &str) -> bool {
-    matches!(conf_get(key), Some("1" | "yes" | "true" | "on"))
-}
+pub use suricata_ffi::conf::{conf_get, conf_get_bool};
 
 /// Wrap a Suricata ConfNode and expose some of its methods with a
 /// Rust friendly interface.
