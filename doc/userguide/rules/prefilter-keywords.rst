@@ -74,7 +74,7 @@ The prefilter engines for other non-MPM keywords can be enabled in specific rule
 
 In the following rule the TTL test will be used in prefiltering instead of the single byte pattern:
 
-::
+.. container:: example-rule
 
   alert ip any any -> any any (ttl:123; prefilter; content:"a"; sid:1;)
 

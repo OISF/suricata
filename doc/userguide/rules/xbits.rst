@@ -103,15 +103,22 @@ The first 2 rules match on a SSH software version often used in bots.
 They drop the traffic and create an 'xbit' 'badssh' for the source ip.
 It expires in an hour::
 
+.. container:: example-rule
+
     drop ssh any any -> $MYSERVER 22 (msg:"DROP libssh incoming";   \
       flow:to_server,established; ssh.software; content:"libssh";     \
       xbits:set, badssh, track ip_src, expire 3600; sid:4000000005;)
+
+.. container:: example-rule
+
     drop ssh any any -> $MYSERVER 22 (msg:"DROP PUTTY incoming";    \
       flow:to_server,established; ssh.software; content:"PUTTY";      \
       xbits:set, badssh, track ip_src, expire 3600; sid:4000000007;)
 
 Then the following rule simply drops any incoming traffic to that server
 that is on that 'badssh' list::
+
+.. container:: example-rule
 
     drop ssh any any -> $MYSERVER 22 (msg:"DROP BLACKLISTED";       \
       xbits:isset, badssh, track ip_src; sid:4000000006;)

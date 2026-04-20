@@ -76,10 +76,12 @@ Legend:
 
 It is possible to use the ! for exceptions in contents as well.
 
-For example::
+For example:
+
+.. container:: example-rule
 
   alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"Outdated Firefox on
-  Windows"; content:"User-Agent|3A| Mozilla/5.0 |28|Windows|3B| ";
+  Windows"; content:"User-Agent\|3A\| Mozilla/5.0 \|28\|Windows\|3B\| ";
   content:"Firefox/3."; distance:0; content:!"Firefox/3.6.13";
   distance:-10; sid:9000000; rev:1;)
 
@@ -521,30 +523,40 @@ Format::
 +----------------+------------------------------------------------------------------------------+
 
 
-Example::
+.. container:: example-rule
 
   alert tcp any any -> any any \
 	 (msg:"Byte_Test Example - Num = Value"; \
-	 content:"|00 01 00 02|"; byte_test:2,=,0x01,0;)
+	 content:"\|00 01 00 02\|"; byte_test:2,=,0x01,0;)
+
+.. container:: example-rule
 
   alert tcp any any -> any any \
 	 (msg:"Byte_Test Example - Num = Value relative to content"; \
-	 content:"|00 01 00 02|"; byte_test:2,=,0x03,2,relative;)
+	 content:"\|00 01 00 02\|"; byte_test:2,=,0x03,2,relative;)
+
+.. container:: example-rule
 
   alert tcp any any -> any any \
-	 (msg:"Byte_Test Example - Num != Value"; content:"|00 01 00 02|"; \
+	 (msg:"Byte_Test Example - Num != Value"; content:"\|00 01 00 02\|"; \
 	 byte_test:2,!=,0x06,0;)
 
+.. container:: example-rule
+
   alert tcp any any -> any any \ 
-         (msg:"Byte_Test Example - Detect Large Values"; content:"|00 01 00 02|"; \
-         byte_test:2,>,1000,1,relative;)
+         (msg:"Byte_Test Example - Detect Large Values"; content:"\|00 01 00 02\|"; \
+         byte_test:2,>,1000,1,relative; sid:1;)
+
+.. container:: example-rule
 
   alert tcp any any -> any any \
 	 (msg:"Byte_Test Example - Lowest bit is set"; \
-	 content:"|00 01 00 02|"; byte_test:2,&,0x01,12,relative;)
+	 content:"\|00 01 00 02\|"; byte_test:2,&,0x01,12,relative;)
+
+.. container:: example-rule
 
   alert tcp any any -> any any (msg:"Byte_Test Example - Compare to String"; \
- 	 content:"foobar"; byte_test:4,=,1337,1,relative,string,dec;)
+ 	 content:"foobar"; byte_test:4,=,1337,1,relative,string,dec; sid:1;)
 
 
 byte_math
@@ -608,20 +620,22 @@ Format::
 +-----------------------+-----------------------------------------------------------------------+
 
 
-Example::
+.. container:: example-rule
 
   alert tcp any any -> any any \
     (msg:"Testing bytemath_body"; \
-    content:"|00 04 93 F3|"; \
-    content:"|00 00 00 07|"; distance:4; within:4; \
+    content:"\|00 04 93 F3\|"; \
+    content:"\|00 00 00 07\|"; distance:4; within:4; \
     byte_math:bytes 4, offset 0, oper +, rvalue \
-    248, result var, relative;)
+    248, result var, relative; sid: 1;)
+
+.. container:: example-rule
 
   alert udp any any -> any any \
     (byte_extract: 1, 0, extracted_val, relative; \
     byte_math: bytes 1, offset 1, oper +, rvalue extracted_val, result var; \
     byte_test: 2, =, var, 13; \
-    msg:"Byte extract and byte math with byte test verification";)
+    msg:"Byte extract and byte math with byte test verification"; sid: 1;)
 
 
 byte_jump
@@ -675,20 +689,24 @@ Format::
 +-----------------------+-----------------------------------------------------------------------+
 
 
-Example::
+.. container:: example-rule
 
   alert tcp any any -> any any \
 	(msg:"Byte_Jump Example"; \
 	content:"Alice"; byte_jump:2,0; content:"Bob";)
 
+.. container:: example-rule
+
   alert tcp any any -> any any \
 	(msg:"Byte_Jump Multiple Jumps"; \
 	byte_jump:2,0; byte_jump:2,0,relative; content:"foobar"; distance:0; within:6;)
 
+.. container:: example-rule
+
   alert tcp any any -> any any \
 	(msg:"Byte_Jump From the End -8 Bytes"; \
 	byte_jump:0,0, from_end, post_offset -8; \
-	content:"|6c 33 33 74|"; distance:0 within:4;)
+	content:"\|6c 33 33 74\|"; distance:0 within:4;)
 
 
 byte_extract
@@ -740,18 +758,24 @@ Format::
  isdataat	offset				
 ==============	==================================
 
-Example::
+.. container:: example-rule
 
   alert tcp any any -> any any \
 	 (msg:"Byte_Extract Example Using distance"; \
 	 content:"Alice"; byte_extract:2,0,size; content:"Bob"; distance:size; within:3; sid:1;)
+
+.. container:: example-rule
+  
   alert tcp any any -> any any \
 	 (msg:"Byte_Extract Example Using within"; \
-	 flow:established,to_server; content:"|00 FF|"; \
-	 byte_extract:1,0,len,relative; content:"|5c 00|"; distance:2; within:len; sid:2;)
+	 flow:established,to_server; content:"\|00 FF\|"; \
+	 byte_extract:1,0,len,relative; content:"\|5c 00\|"; distance:2; within:len; sid:2;)
+
+.. container:: example-rule
+
   alert tcp any any -> any any \
 	 (msg:"Byte_Extract Example Comparing Bytes"; \
-	 flow:established,to_server; content:"|00 FF|"; \
+	 flow:established,to_server; content:"\|00 FF\|"; \
 	 byte_extract:2,0,cmp_ver,relative; content:"FooBar"; distance:0; byte_test:2,=,cmp_ver,0; sid:3;)
 
 .. _keyword_entropy:

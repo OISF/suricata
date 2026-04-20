@@ -795,7 +795,7 @@ The prefilter engines for other non-MPM keywords can then be enabled in specific
 
 E.g.
 
-::
+.. container:: example-rule
 
   alert ip any any -> any any (ttl:123; prefilter; sid:1;)
 

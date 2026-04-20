@@ -23,9 +23,7 @@ side to check: <any|src|dst|both>
 
 ``reputation score``: 0-127
 
-Example:
-
-::
+.. container:: example-rule
 
   alert ip $HOME_NET any -> any any (msg:"IPREP internal host talking to CnC server"; flow:to_server; iprep:dst,CnC,>,30; sid:1; rev:1;)
 
@@ -66,8 +64,7 @@ Compatibility with IP-only
 
 The "iprep" keyword is compatible with "IP-only" rules. This means that a rule like:
 
-::
-
+.. container:: example-rule
 
   alert ip any any -> any any (msg:"IPREP High Value CnC"; iprep:src,CnC,>,100; sid:1; rev:1;)
 
