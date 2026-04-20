@@ -15,4 +15,23 @@ alert tcp any any -> any any (msg:"SURICATA Applayer No TLS after STARTTLS"; flo
 # unexpected protocol in protocol upgrade
 alert tcp any any -> any any (msg:"SURICATA Applayer Unexpected protocol"; flow:established; app-layer-event:applayer_unexpected_protocol; flowint:applayer.anomaly.count,+,1; classtype:protocol-command-decode; sid:2260005; rev:1;)
 
-#next sid is 2260006
+# File decoder events (SWF decompression failures)
+alert ip any any -> any any (msg:"SURICATA File decoder no memory"; app-layer-event:file.NO_MEMORY; classtype:protocol-command-decode; sid:2260006; rev:1;)
+alert ip any any -> any any (msg:"SURICATA File decoder invalid SWF length"; app-layer-event:file.INVALID_SWF_LENGTH; classtype:protocol-command-decode; sid:2260007; rev:1;)
+alert ip any any -> any any (msg:"SURICATA File decoder invalid SWF version"; app-layer-event:file.INVALID_SWF_VERSION; classtype:protocol-command-decode; sid:2260008; rev:1;)
+alert ip any any -> any any (msg:"SURICATA File decoder zlib data error"; app-layer-event:file.Z_DATA_ERROR; classtype:protocol-command-decode; sid:2260009; rev:1;)
+alert ip any any -> any any (msg:"SURICATA File decoder zlib stream error"; app-layer-event:file.Z_STREAM_ERROR; classtype:protocol-command-decode; sid:2260010; rev:1;)
+alert ip any any -> any any (msg:"SURICATA File decoder zlib buf error"; app-layer-event:file.Z_BUF_ERROR; classtype:protocol-command-decode; sid:2260011; rev:1;)
+alert ip any any -> any any (msg:"SURICATA File decoder zlib unknown error"; app-layer-event:file.Z_UNKNOWN_ERROR; classtype:protocol-command-decode; sid:2260012; rev:1;)
+alert ip any any -> any any (msg:"SURICATA File decoder LZMA IO error"; app-layer-event:file.LZMA_IO_ERROR; classtype:protocol-command-decode; sid:2260013; rev:1;)
+alert ip any any -> any any (msg:"SURICATA File decoder LZMA header too short"; app-layer-event:file.LZMA_HEADER_TOO_SHORT_ERROR; classtype:protocol-command-decode; sid:2260014; rev:1;)
+alert ip any any -> any any (msg:"SURICATA File decoder LZMA decoder error"; app-layer-event:file.LZMA_DECODER_ERROR; classtype:protocol-command-decode; sid:2260015; rev:1;)
+alert ip any any -> any any (msg:"SURICATA File decoder LZMA memlimit error"; app-layer-event:file.LZMA_MEMLIMIT_ERROR; classtype:protocol-command-decode; sid:2260016; rev:1;)
+alert ip any any -> any any (msg:"SURICATA File decoder LZMA XZ error"; app-layer-event:file.LZMA_XZ_ERROR; classtype:protocol-command-decode; sid:2260017; rev:1;)
+alert ip any any -> any any (msg:"SURICATA File decoder LZMA unknown error"; app-layer-event:file.LZMA_UNKNOWN_ERROR; classtype:protocol-command-decode; sid:2260018; rev:1;)
+
+# Detect engine events
+alert ip any any -> any any (msg:"SURICATA Detect too many buffers"; detect-event:TOO_MANY_BUFFERS; classtype:protocol-command-decode; sid:2260019; rev:1;)
+alert ip any any -> any any (msg:"SURICATA Detect post match queue failed"; detect-event:POST_MATCH_QUEUE_FAILED; classtype:protocol-command-decode; sid:2260020; rev:1;)
+
+#next sid is 2260021
