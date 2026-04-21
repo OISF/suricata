@@ -2032,26 +2032,25 @@ static void DetectRunTx(ThreadVars *tv,
                 /* match */
                 DetectRunPostMatch(tv, det_ctx, p, s);
 
-                /* see if we need to apply tx/hook accept to the packet. This can be needed when
-                 * we've completed the inspection so far for an incomplete tx, and an accept:tx or
-                 * accept:hook is the last match.*/
-                const bool fw_accept_to_packet = ApplyAcceptToPacket(last_tx, &tx, s);
-
                 uint8_t alert_flags = (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_TX);
-                if (fw_accept_to_packet) {
-                    SCLogDebug("accept:(tx|hook): should be applied to the packet");
-                    alert_flags |= PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET;
-                }
-
                 SCLogDebug(
                         "%p/%" PRIu64 " sig %u (%u) matched", tx.tx_ptr, tx.tx_id, s->id, s->iid);
-                AlertQueueAppend(det_ctx, s, p, tx.tx_id, alert_flags);
 
                 if ((s->flags & SIG_FLAG_FIREWALL) && (s->action & ACTION_ACCEPT)) {
                     break_out_of_app_filter = ApplyAccept(p, flow_flags, s, &tx, tx_end_state,
                             fw_next_progress_missing, &tx_fw_verdict, &skip_fw_hook,
                             &skip_before_progress);
+                    /* see if we need to apply tx/hook accept to the packet. This can be needed when
+                     * we've completed the inspection so far for an incomplete tx, and an accept:tx
+                     * or accept:hook is the last match.*/
+                    const bool fw_accept_to_packet = ApplyAcceptToPacket(last_tx, &tx, s);
+                    if (fw_accept_to_packet) {
+                        SCLogDebug("accept:(tx|hook): should be applied to the packet");
+                        alert_flags |= PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET;
+                    }
                 }
+                AlertQueueAppend(det_ctx, s, p, tx.tx_id, alert_flags);
+
             } else if (last_for_progress) {
                 SCLogDebug("sid %u: not a match: %s rule, last_for_progress %s", s->id,
                         (s->flags & SIG_FLAG_FIREWALL) ? "firewall" : "regular",
