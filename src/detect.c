@@ -1707,7 +1707,7 @@ static inline void DetectRunAppendDefaultAccept(DetectEngineThreadCtx *det_ctx, 
  * \brief see if the accept rule needs to apply to the packet
  */
 static inline bool ApplyAcceptToPacket(
-        const uint64_t total_txs, const DetectTransaction *tx, const Signature *s)
+        const bool last_tx, const DetectTransaction *tx, const Signature *s)
 {
     if ((s->flags & SIG_FLAG_FIREWALL) == 0) {
         return false;
@@ -1720,7 +1720,7 @@ static inline bool ApplyAcceptToPacket(
      * - packet will only be accepted if this is set on the last tx
      */
     if (s->action_scope == ACTION_SCOPE_TX) {
-        if (total_txs == tx->tx_id + 1) {
+        if (last_tx) {
             return true;
         }
     }
@@ -1728,8 +1728,7 @@ static inline bool ApplyAcceptToPacket(
      * - packet will only be accepted if this is set on the last tx
      * - the hook accepted should be the last progress available. */
     if (s->action_scope == ACTION_SCOPE_HOOK) {
-        if ((total_txs == tx->tx_id + 1) && /* last tx */
-                (s->app_progress_hook == tx->tx_progress)) {
+        if (last_tx && (s->app_progress_hook == tx->tx_progress)) {
             return true;
         }
     }
@@ -1818,6 +1817,7 @@ static void DetectRunTx(ThreadVars *tv,
         }
         tx_id_min = tx.tx_id + 1; // next look for cur + 1
         tx_inspected++;
+        const bool last_tx = (total_txs == tx.tx_id + 1);
 
         SCLogDebug("%p/%" PRIu64 " txd flags %02x", tx.tx_ptr, tx_id_min, tx.tx_data_ptr->flags);
 
@@ -1935,7 +1935,7 @@ static void DetectRunTx(ThreadVars *tv,
             fw_verdicted++;
 
             /* current tx is the last we have, append a blank accept:packet */
-            if (total_txs == tx.tx_id + 1) {
+            if (last_tx) {
                 DetectRunAppendDefaultAccept(det_ctx, p);
                 return;
             }
@@ -1956,7 +1956,7 @@ static void DetectRunTx(ThreadVars *tv,
 
             if (have_fw_rules) {
                 const enum DetectTxFirewallFlowControl fw_r = DetectRunTxPreCheckFirewallPolicy(
-                        det_ctx, p, &tx, s, i, &tx_fw_verdict, (total_txs == tx.tx_id + 1));
+                        det_ctx, p, &tx, s, i, &tx_fw_verdict, last_tx);
                 if (fw_r == DETECT_TX_FW_FC_SKIP)
                     continue;
                 else if (fw_r == DETECT_TX_FW_FC_BREAK)
@@ -1988,7 +1988,7 @@ static void DetectRunTx(ThreadVars *tv,
                      * match, we need to apply the same accept */
                     if (have_fw_rules && (s->flags & SIG_FLAG_FIREWALL) &&
                             (s->action & ACTION_ACCEPT) && s->app_progress_hook == tx.tx_progress) {
-                        const bool fw_accept_to_packet = ApplyAcceptToPacket(total_txs, &tx, s);
+                        const bool fw_accept_to_packet = ApplyAcceptToPacket(last_tx, &tx, s);
                         break_out_of_app_filter = ApplyAccept(p, flow_flags, s, &tx, tx_end_state,
                                 fw_next_progress_missing, &tx_fw_verdict, &skip_fw_hook,
                                 &skip_before_progress);
@@ -2035,7 +2035,7 @@ static void DetectRunTx(ThreadVars *tv,
                 /* see if we need to apply tx/hook accept to the packet. This can be needed when
                  * we've completed the inspection so far for an incomplete tx, and an accept:tx or
                  * accept:hook is the last match.*/
-                const bool fw_accept_to_packet = ApplyAcceptToPacket(total_txs, &tx, s);
+                const bool fw_accept_to_packet = ApplyAcceptToPacket(last_tx, &tx, s);
 
                 uint8_t alert_flags = (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_TX);
                 if (fw_accept_to_packet) {
