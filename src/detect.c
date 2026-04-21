@@ -1083,6 +1083,12 @@ static void DetectRunCleanup(DetectEngineThreadCtx *det_ctx,
     SCReturn;
 }
 
+enum DetectTxFirewallFlowControl {
+    DETECT_TX_FW_FC_OK = 0,    /**< continue to next rule */
+    DETECT_TX_FW_FC_SKIP = 1,  /**< skip this rule, continue to next */
+    DETECT_TX_FW_FC_BREAK = 2, /**< break rule loop */
+};
+
 void RuleMatchCandidateTxArrayInit(DetectEngineThreadCtx *det_ctx, uint32_t size)
 {
     DEBUG_VALIDATE_BUG_ON(det_ctx->tx_candidates);
@@ -1564,14 +1570,14 @@ static inline void RuleMatchCandidateMergeStateRules(
  * \param fw_next_progress_missing[out] set to true if the next fw rule does not target the next
  * progress value, or there is no fw rule for that value.
  *
- * \retval 0 no action needed
- * \retval 1 rest of rules shouldn't inspected
- * \retval -1 skip this rule
+ * \retval DETECT_TX_FW_FC_OK no action needed
+ * \retval DETECT_TX_FW_FC_BREAK rest of rules shouldn't inspected
+ * \retval DETECT_TX_FW_FC_SKIP skip this rule
  */
-static int DetectRunTxCheckFirewallPolicy(DetectEngineThreadCtx *det_ctx, Packet *p, Flow *f,
-        DetectTransaction *tx, const Signature *s, const uint32_t can_idx, const uint32_t can_size,
-        bool *skip_fw_hook, const uint8_t skip_before_progress, bool *last_for_progress,
-        bool *fw_next_progress_missing)
+static enum DetectTxFirewallFlowControl DetectRunTxCheckFirewallPolicy(
+        DetectEngineThreadCtx *det_ctx, Packet *p, Flow *f, DetectTransaction *tx,
+        const Signature *s, const uint32_t can_idx, const uint32_t can_size, bool *skip_fw_hook,
+        const uint8_t skip_before_progress, bool *last_for_progress, bool *fw_next_progress_missing)
 {
     if (s->flags & SIG_FLAG_FIREWALL) {
         /* check if the next sig is on the same progress hook. If not, we need to apply our
@@ -1613,7 +1619,7 @@ static int DetectRunTxCheckFirewallPolicy(DetectEngineThreadCtx *det_ctx, Packet
 
         if ((*skip_fw_hook) == true) {
             if (s->app_progress_hook <= skip_before_progress) {
-                return -1;
+                return DETECT_TX_FW_FC_SKIP;
             }
             *skip_fw_hook = false;
         }
@@ -1623,10 +1629,10 @@ static int DetectRunTxCheckFirewallPolicy(DetectEngineThreadCtx *det_ctx, Packet
          * - packet pass (e.g. exception policy) */
         if (p->flags & PKT_NOPACKET_INSPECTION || (f->flags & (FLOW_ACTION_PASS))) {
             SCLogDebug("skipping firewall rule %u", s->id);
-            return 1;
+            return DETECT_TX_FW_FC_BREAK;
         }
     }
-    return 0;
+    return DETECT_TX_FW_FC_OK;
 }
 
 // TODO move into det_ctx?
@@ -1970,12 +1976,12 @@ static void DetectRunTx(ThreadVars *tv,
 
             bool last_for_progress = false;
             if (have_fw_rules) {
-                int fw_r = DetectRunTxCheckFirewallPolicy(det_ctx, p, f, &tx, s, i, array_idx,
-                        &skip_fw_hook, skip_before_progress, &last_for_progress,
-                        &fw_next_progress_missing);
-                if (fw_r == -1)
+                const enum DetectTxFirewallFlowControl fw_r = DetectRunTxCheckFirewallPolicy(
+                        det_ctx, p, f, &tx, s, i, array_idx, &skip_fw_hook, skip_before_progress,
+                        &last_for_progress, &fw_next_progress_missing);
+                if (fw_r == DETECT_TX_FW_FC_SKIP)
                     continue;
-                if (fw_r == 1)
+                else if (fw_r == DETECT_TX_FW_FC_BREAK)
                     break;
             }
 
