@@ -2005,9 +2005,7 @@ static void DetectRunTx(ThreadVars *tv,
                             tx.tx_ptr, tx.tx_id, s->id, s->iid, *inspect_flags);
                     continue;
                 }
-            }
 
-            if (inspect_flags) {
                 /* continue previous inspection */
                 SCLogDebug("%p/%" PRIu64 " Continuing sid %u", tx.tx_ptr, tx.tx_id, s->id);
             } else {
