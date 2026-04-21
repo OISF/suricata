@@ -223,11 +223,17 @@ static FTPTransaction *FTPTransactionCreate(FtpState *state)
     SCEnter();
     FTPTransaction *firsttx = TAILQ_FIRST(&state->tx_list);
     if (firsttx && state->tx_cnt - firsttx->tx_id > ftp_config_maxtx) {
-        FTPTransaction *event_tx = state->curr_tx ? state->curr_tx : firsttx;
-        event_tx->done = true;
-        event_tx->tx_data.updated_ts = true;
-        SCAppLayerDecoderEventsSetEventRaw(&event_tx->tx_data.events, FtpEventTooManyTransactions);
-        return NULL;
+        FTPTransaction *tx_old;
+        TAILQ_FOREACH (tx_old, &state->tx_list, next) {
+            if (!tx_old->done) {
+                tx_old->done = true;
+                tx_old->tx_data.updated_ts = true;
+                tx_old->tx_data.updated_tc = true;
+                SCAppLayerDecoderEventsSetEventRaw(
+                        &tx_old->tx_data.events, FtpEventTooManyTransactions);
+                break;
+            }
+        }
     }
     FTPTransaction *tx = FTPCalloc(1, sizeof(*tx));
     if (tx == NULL) {
