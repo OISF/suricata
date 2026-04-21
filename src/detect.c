@@ -1556,6 +1556,22 @@ static inline void RuleMatchCandidateMergeStateRules(
 }
 
 /** \internal
+ *  \brief apply default policy
+ *  \param p packet to apply policy to
+ *  \param alproto app proto
+ *  \param progress hook / progress value to apply the policy to
+ *
+ *  \note alproto and progress are unused right now, will be used
+ *        to look up configurable default policies later
+ */
+static void DetectFirewallApplyDefaultPolicy(
+        Packet *p, const AppProto alproto, const uint8_t progress)
+{
+    PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_DEFAULT_APP_POLICY);
+    p->flow->flags |= FLOW_ACTION_DROP;
+}
+
+/** \internal
  *  \brief run pre-rule inspection firewall policy checks
  *
  *  Check if:
@@ -1598,8 +1614,7 @@ static enum DetectTxFirewallFlowControl DetectRunTxPreCheckFirewallPolicy(
 
             /* if this rule was after the state we expected meaning that there are
              * no rules for that state. Invoke the default drop policy. */
-            PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_DEFAULT_APP_POLICY);
-            p->flow->flags |= FLOW_ACTION_DROP;
+            DetectFirewallApplyDefaultPolicy(p, s->alproto, tx->detect_progress_orig);
             *tx_fw_verdict = true;
             SCLogDebug("default app drop");
             return DETECT_TX_FW_FC_BREAK;
@@ -1755,8 +1770,7 @@ static bool ApplyAccept(Packet *p, const uint8_t flow_flags, const Signature *s,
         if (fw_next_progress_missing) {
             SCLogDebug("%" PRIu64 ": %s default drop for progress", PcapPacketCntGet(p),
                     flow_flags & STREAM_TOSERVER ? "toserver" : "toclient");
-            PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_DEFAULT_APP_POLICY);
-            p->flow->flags |= FLOW_ACTION_DROP;
+            DetectFirewallApplyDefaultPolicy(p, s->alproto, s->app_progress_hook + 1);
             return true;
         }
         return false;
@@ -2060,8 +2074,7 @@ static void DetectRunTx(ThreadVars *tv,
                             flow_flags & STREAM_TOSERVER ? "toserver" : "toclient");
                     /* if this rule was the last for our progress state, and it didn't match,
                      * we have to invoke the default drop policy. */
-                    PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_DEFAULT_APP_POLICY);
-                    p->flow->flags |= FLOW_ACTION_DROP;
+                    DetectFirewallApplyDefaultPolicy(p, s->alproto, s->app_progress_hook);
                     break_out_of_app_filter = true;
                     tx_fw_verdict = true;
                 }
@@ -2150,8 +2163,8 @@ static void DetectRunTx(ThreadVars *tv,
     if (tx_inspected && have_fw_rules && tx_inspected != fw_verdicted) {
         SCLogDebug("%" PRIu64 ": %s default drop", PcapPacketCntGet(p),
                 flow_flags & STREAM_TOSERVER ? "toserver" : "toclient");
-        PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_DEFAULT_APP_POLICY);
-        p->flow->flags |= FLOW_ACTION_DROP;
+        DetectFirewallApplyDefaultPolicy(
+                p, ALPROTO_UNKNOWN, 0); // TODO can we assign this to a hook?
         return;
     }
     /* if all tables have been bypassed, we accept:packet */
