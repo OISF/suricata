@@ -341,7 +341,7 @@ static void DPDKDerefConfig(void *conf)
     DPDKIfaceConfig *iconf = (DPDKIfaceConfig *)conf;
 
     if (SC_ATOMIC_SUB(iconf->ref, 1) == 1) {
-        DPDKDeviceResourcesDeinit(&iconf->pkt_mempools);
+        DPDKDeviceResourcesDeinit(&iconf->dpdk_dev_resources);
         iconf->RteRulesFree(&iconf->drop_filter);
         SCFree(iconf);
     }
@@ -1495,7 +1495,7 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
     struct rte_eth_rxconf rxq_conf;
     struct rte_eth_txconf txq_conf;
 
-    retval = DPDKDeviceResourcesInit(&(iconf->pkt_mempools), iconf->nb_rx_queues);
+    retval = DPDKDeviceResourcesInit(&(iconf->dpdk_dev_resources), iconf->nb_rx_queues);
     if (retval < 0) {
         goto cleanup;
     }
@@ -1511,9 +1511,9 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
     for (int i = 0; i < iconf->nb_rx_queues; i++) {
         char mempool_name[64];
         snprintf(mempool_name, sizeof(mempool_name), "mp_%d_%.20s", i, iconf->iface);
-        iconf->pkt_mempools->pkt_mp[i] = rte_pktmbuf_pool_create(mempool_name,
+        iconf->dpdk_dev_resources->pkt_mp[i] = rte_pktmbuf_pool_create(mempool_name,
                 iconf->queue_mempool_size, q_mp_cache_sz, 0, mbuf_size, (int)iconf->socket_id);
-        if (iconf->pkt_mempools->pkt_mp[i] == NULL) {
+        if (iconf->dpdk_dev_resources->pkt_mp[i] == NULL) {
             retval = -rte_errno;
             SCLogError("%s: rte_pktmbuf_pool_create failed with code %d (mempool: %s) - %s",
                     iconf->iface, rte_errno, mempool_name, rte_strerror(rte_errno));
@@ -1537,7 +1537,8 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
                 rxq_conf.rx_free_thresh, rxq_conf.rx_drop_en);
 
         retval = rte_eth_rx_queue_setup(iconf->port_id, queue_id, iconf->nb_rx_desc,
-                (unsigned int)iconf->socket_id, &rxq_conf, iconf->pkt_mempools->pkt_mp[queue_id]);
+                (unsigned int)iconf->socket_id, &rxq_conf,
+                iconf->dpdk_dev_resources->pkt_mp[queue_id]);
         if (retval < 0) {
             SCLogError("%s: failed to setup RX queue %u: %s", iconf->iface, queue_id,
                     rte_strerror(-retval));
@@ -1568,7 +1569,7 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
     SCReturnInt(0);
 
 cleanup:
-    DPDKDeviceResourcesDeinit(&iconf->pkt_mempools);
+    DPDKDeviceResourcesDeinit(&iconf->dpdk_dev_resources);
     SCReturnInt(retval);
 }
 
@@ -1885,8 +1886,8 @@ static void *ParseDpdkConfigAndConfigureDevice(const char *iface)
     if (ldev_instance == NULL) {
         FatalError("Device %s is not registered as a live device", iface);
     }
-    ldev_instance->dpdk_vars = iconf->pkt_mempools;
-    iconf->pkt_mempools = NULL;
+    ldev_instance->dpdk_vars = iconf->dpdk_dev_resources;
+    iconf->dpdk_dev_resources = NULL;
     return iconf;
 }
 
