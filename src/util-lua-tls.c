@@ -163,8 +163,18 @@ static int GetCertInfo(lua_State *luastate, const Flow *f, int direction)
 
     int r = LuaPushStringBuffer(luastate, (uint8_t *)ssl_version, strlen(ssl_version));
     r += LuaPushStringBuffer(luastate, (uint8_t *)connp->cert0_subject, strlen(connp->cert0_subject));
-    r += LuaPushStringBuffer(luastate, (uint8_t *)connp->cert0_issuerdn, strlen(connp->cert0_issuerdn));
-    r += LuaPushStringBuffer(luastate, (uint8_t *)connp->cert0_fingerprint, strlen(connp->cert0_fingerprint));
+    if (connp->cert0_issuerdn) {
+        r += LuaPushStringBuffer(
+                luastate, (uint8_t *)connp->cert0_issuerdn, strlen(connp->cert0_issuerdn));
+    } else {
+        r += LuaPushStringBuffer(luastate, NULL, 0);
+    }
+    if (connp->cert0_fingerprint) {
+        r += LuaPushStringBuffer(
+                luastate, (uint8_t *)connp->cert0_fingerprint, strlen(connp->cert0_fingerprint));
+    } else {
+        r += LuaPushStringBuffer(luastate, NULL, 0);
+    }
     return r;
 }
 
