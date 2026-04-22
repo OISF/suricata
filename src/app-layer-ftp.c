@@ -1075,11 +1075,6 @@ static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
         SCFlowFreeStorageById(f, AppLayerExpectationGetFlowId());
         ftpdata_state->tx_data.files_opened = 1;
     } else {
-        if (ftpdata_state->state == FTPDATA_STATE_FINISHED) {
-            SCLogDebug("state is already finished");
-            DEBUG_VALIDATE_BUG_ON(input_len); // data after state finished is a bug.
-            SCReturnStruct(APP_LAYER_OK);
-        }
         if ((direction & ftpdata_state->direction) == 0) {
             if (input_len) {
                 // TODO set event for data in wrong direction
@@ -1088,6 +1083,11 @@ static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
                     (direction & STREAM_TOSERVER) ? "toserver" : "toclient",
                     ftpdata_state->command == FTP_COMMAND_STOR ? "STOR" : "RETR",
                     (ftpdata_state->direction & STREAM_TOSERVER) ? "toserver" : "toclient");
+            SCReturnStruct(APP_LAYER_OK);
+        }
+        if (ftpdata_state->state == FTPDATA_STATE_FINISHED) {
+            SCLogDebug("state is already finished");
+            DEBUG_VALIDATE_BUG_ON(input_len); // data after state finished is a bug.
             SCReturnStruct(APP_LAYER_OK);
         }
         if (input_len != 0) {
