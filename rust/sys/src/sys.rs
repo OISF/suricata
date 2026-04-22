@@ -363,6 +363,12 @@ extern "C" {
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {
+    pub fn SCDetectHelperBufferProgressRegister(
+        name: *const ::std::os::raw::c_char, alproto: AppProto, direction: u8,
+        progress: ::std::os::raw::c_int,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
     pub fn SCDetectHelperBufferMpmRegister(
         name: *const ::std::os::raw::c_char, desc: *const ::std::os::raw::c_char,
         alproto: AppProto, direction: u8, GetData: InspectionSingleBufferGetDataPtr,
