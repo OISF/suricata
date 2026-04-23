@@ -24,7 +24,7 @@
 #include "util-device.h"
 #include "queue.h"
 #include "util-storage.h"
-#include "util-dpdk-common.h"
+#include "util-dpdk.h"
 
 #define MAX_DEVNAME 10
 
