@@ -2489,6 +2489,25 @@ static bool DetectFirewallRuleValidate(const DetectEngineCtx *de_ctx, const Sign
                 s->id);
         return false;
     }
+    if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_APP) {
+        switch (s->action_scope) {
+            case ACTION_SCOPE_PACKET:
+                if (!(DetectProtoContainsProto(&s->init_data->proto, IPPROTO_UDP))) {
+                    if (s->action & (ACTION_ACCEPT | ACTION_DROP)) {
+                        SCLogError("rule %u uses action scope \"packet\" for an non-UDP app hook",
+                                s->id);
+                        return false;
+                    }
+                }
+                break;
+            case ACTION_SCOPE_FLOW:
+            case ACTION_SCOPE_AUTO:
+            case ACTION_SCOPE_TX:
+            case ACTION_SCOPE_HOOK:
+                // supported for app hooks
+                break;
+        }
+    }
     return true;
 }
 
