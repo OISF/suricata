@@ -106,6 +106,8 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
         const struct rte_eth_conf *port_conf);
 static int DeviceValidateOutIfaceConfig(DPDKIfaceConfig *iconf);
 static int DeviceConfigureIPS(DPDKIfaceConfig *iconf);
+static int DeviceConfigureDynamicBypass(
+        DPDKIfaceConfig *iconf, const struct rte_eth_dev_info *dev_info);
 static int DeviceConfigure(DPDKIfaceConfig *iconf);
 static void *ParseDpdkConfigAndConfigureDevice(const char *iface);
 static void DPDKDerefConfig(void *conf);
@@ -145,6 +147,7 @@ DPDKIfaceConfigAttributes dpdk_yaml = {
     .copy_mode = "copy-mode",
     .copy_iface = "copy-iface",
     .drop_filter = "drop-filter",
+    .capture_bypass = "capture-bypass",
 };
 
 /**
@@ -327,6 +330,13 @@ static void DPDKDerefConfig(void *conf)
     DPDKIfaceConfig *iconf = (DPDKIfaceConfig *)conf;
 
     if (SC_ATOMIC_SUB(iconf->ref, 1) == 1) {
+        if (iconf->dpdk_dev_resources != NULL &&
+                iconf->dpdk_dev_resources->rte_flow_bypass_data != NULL) {
+            if (iconf->dpdk_dev_resources->rte_flow_bypass_data->bypass_mp != NULL) {
+                rte_mempool_free(iconf->dpdk_dev_resources->rte_flow_bypass_data->bypass_mp);
+                iconf->dpdk_dev_resources->rte_flow_bypass_data->bypass_mp = NULL;
+            }
+        }
         DPDKDeviceResourcesDeinit(&iconf->dpdk_dev_resources);
         iconf->RteRulesFree(&iconf->drop_filter);
         SCFree(iconf);
@@ -1054,6 +1064,11 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
     if (retval < 0)
         SCReturnInt(retval);
 
+    /* Global flag dpdk.capture-bypass is set to each interface */
+    retval = ConfigSetCaptureBypass(iconf);
+    if (retval < 0)
+        SCReturnInt(retval);
+
     SCReturnInt(0);
 }
 
@@ -1476,7 +1491,7 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
     if (retval < 0) {
         goto cleanup;
     }
-
+    iconf->dpdk_dev_resources->port_id = iconf->port_id;
     // +4 for VLAN header
     uint16_t mtu_size = iconf->mtu + RTE_ETHER_CRC_LEN + RTE_ETHER_HDR_LEN + 4;
     uint16_t mbuf_size = ROUNDUP(mtu_size, 1024) + RTE_PKTMBUF_HEADROOM;
@@ -1637,6 +1652,23 @@ static int DeviceConfigureIPS(DPDKIfaceConfig *iconf)
     SCReturnInt(0);
 }
 
+static int DeviceConfigureDynamicBypass(
+        DPDKIfaceConfig *iconf, const struct rte_eth_dev_info *dev_info)
+{
+    SCEnter();
+    int retval = 0;
+    if (!(iconf->capture_bypass_enabled)) {
+        SCReturnInt(retval);
+    }
+    const char *driver_name = dev_info->driver_name;
+    if (strcmp(driver_name, "mlx5_pci") == 0) {
+        retval = RteBypassInit(iconf, driver_name);
+    }
+
+    if (retval == 0)
+        SCLogConfig("%s rte_flow capture bypass enabled", iconf->iface);
+    SCReturnInt(retval);
+}
 /**
  * Function verifies changes in e.g. device info after configuration has
  * happened. Sometimes (e.g. DPDK Bond PMD with Intel NICs i40e/ixgbe) change
@@ -1814,6 +1846,10 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
         SCReturnInt(retval);
     }
 
+    retval = DeviceConfigureDynamicBypass(iconf, &dev_info);
+    if (retval < 0) {
+        SCReturnInt(retval);
+    }
     SCReturnInt(0);
 }
 

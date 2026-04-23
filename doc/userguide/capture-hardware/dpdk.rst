@@ -307,3 +307,46 @@ Below is a sample configuration that demonstrates how to filter a specific flow 
           drop-filter:
             - rule: "pattern eth / ipv4 src is 192.11.120.50 / tcp / end"
             - rule: "pattern eth / ipv4 src is 170.22.40.0 src mask 255.255.255.0 / tcp / end"
+
+Dynamic bypass
+--------------
+
+Suricata in IDS mode supports hardware accelerated flow bypass directly in the NIC.
+The capabilities of the bypass, such as how many flows can be bypassed in the hardware before 
+switching to software bypass, depend on the underlying hardware and the Poll Mode Driver.
+
+The DPDK hardware bypass can be enabled/disabled in the suricata.yaml file, via the ``capture-bypass`` option.
+The ``dpdk.bypass-info-mp-size`` option sets the number of flows that can be bypassed at once. 
+By default, this number is set to the maximum capabilities of the NIC in use, which can be in order of millions of flows.
+The ``auto`` option also sets this value to maximum.
+As the memory for bypassed flows is preallocated, in the case the expected number of bypassed flows is not high,
+it is possible to save memory by lowering this value, although it is recommended to set 
+the number to a power of 2 for efficiency reasons.
+
+The global bypass statistics are gathered in eve.json (in the flow section) and stats.log (flow_bypassed.*).
+
+Limitations:
+
+* Mellanox NICs with the mlx5_core PMD are currently the only supported NICs for this feature.
+
+* Mellanox NICs support offload of around 2 million flows at once, after the limit is reached, 
+  Suricata switches to software bypass. Although the NIC can handle more than 4 million hardware rules,
+  we need 2 rules for each direction of the flow.
+
+* The underlying hardware rules are taken from the same resources as the rules for `drop-filter`, meaning
+  defining more rules in the `drop-filter` decreases the capacity of rules for hardware bypass.
+
+* The feature can be used on multiple interfaces at the same time, but only if the interfaces are on the same NIC.
+  The capacity of the bypassed flows is shared across the interfaces.
+
+
+Below is an example configuration with bypass enabled and the capacity of bypassed flows set to maximum: 
+::
+
+  ...
+  dpdk:
+      eal-params:
+        proc-type: primary
+
+      capture-bypass: yes
+      bypass-info-mp-size: auto 
