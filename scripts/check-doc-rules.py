@@ -19,10 +19,6 @@ from typing import Iterable, Iterator, List, Optional, Tuple
 ROLE_RE = re.compile(
     r"`?:example-rule-(?:action|header|options|emphasis):`([^`]*)`"
 )
-RULE_START_RE = re.compile(
-    r"^(alert|drop|pass|reject|rejectsrc|rejectdst|rejectboth)\b", re.IGNORECASE
-)
-
 
 RuleWithOrigin = Tuple[str, Path, int]
 
@@ -124,7 +120,6 @@ def check_rule_with_suricata(
             str(suricata_bin),
             "-T",
             "-c", str(suricata_yaml),
-            "--set", "app-layer.protocols.pgsql.enabled=true",
             "--data-dir="+tmpdir,
             "-S", str(rule_file),
             "-l", tmpdir,
