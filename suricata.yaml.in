@@ -810,6 +810,11 @@ dpdk:
     proc-type: primary
 
   # DPDK capture support
+  # Toggle support of hardware accelerated flow bypass
+  capture-bypass: no
+  # Configures how many flows the NIC can offload at once
+  # Set only with 'capture-bypass: yes'
+  # bypass-info-mp-size: auto
   # RX queues (and TX queues in IPS mode) are assigned to cores in 1:1 ratio
   interfaces:
     - interface: 0000:3b:00.0 # PCIe address of the NIC port

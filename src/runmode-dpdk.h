@@ -41,6 +41,7 @@ typedef struct DPDKIfaceConfigAttributes_ {
     const char *copy_mode;
     const char *copy_iface;
     const char *drop_filter;
+    const char *capture_bypass;
 } DPDKIfaceConfigAttributes;
 
 int RunModeIdsDpdkWorkers(void);

@@ -489,6 +489,7 @@ noinst_HEADERS = \
 	util-dpdk.h \
 	util-dpdk-rte-flow.h \
 	util-dpdk-rte-flow-pattern.h \
+	util-dpdk-rte-flow-structs.h \
 	util-ebpf.h \
 	util-enum.h \
 	util-error.h \

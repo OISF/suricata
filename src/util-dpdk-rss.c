@@ -35,6 +35,7 @@
 #include "util-debug.h"
 
 #ifdef HAVE_DPDK
+#define RTE_JUMP_GROUP 1
 
 uint8_t RSS_HKEY[] = {
     0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A,
@@ -105,6 +106,8 @@ int DPDKCreateRSSFlowGeneric(
 
     attr.ingress = 1;
     attr.priority = 1;
+    attr.group = RTE_JUMP_GROUP;
+
     action[0].type = RTE_FLOW_ACTION_TYPE_RSS;
     action[0].conf = &rss_conf;
     action[1].type = RTE_FLOW_ACTION_TYPE_END;

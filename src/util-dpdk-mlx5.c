@@ -39,9 +39,6 @@
 #ifdef HAVE_DPDK
 
 #define MLX5_RSS_HKEY_LEN 40
-/* Although 2^16 rules are supported on mlx5 in rte_flow group 0,
-   rules in approximately top 10% of the capacity do not support counters */
-#define MLX5_MAX_RTE_FLOW_RULES 57000
 
 int mlx5DeviceSetRSS(int port_id, uint16_t nb_rx_queues, char *port_name)
 {
@@ -75,11 +72,11 @@ int mlx5DeviceSetRSS(int port_id, uint16_t nb_rx_queues, char *port_name)
 
 int mlx5DeviceCheckDropFilterLimits(uint32_t rte_flow_rule_count, char **err_msg)
 {
-    if (rte_flow_rule_count > MLX5_MAX_RTE_FLOW_RULES) {
+    if (rte_flow_rule_count > MLX5_RTE_FLOW_RULES_CAPACITY) {
         static char msg_buffer[1024];
         snprintf(msg_buffer, sizeof(msg_buffer),
                 "Maximum number of rte_flow rules reached, curr: %i, max %i", rte_flow_rule_count,
-                MLX5_MAX_RTE_FLOW_RULES);
+                MLX5_RTE_FLOW_RULES_CAPACITY);
         *err_msg = msg_buffer;
         return -ENOSPC;
     }
