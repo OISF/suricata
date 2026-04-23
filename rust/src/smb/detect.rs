@@ -129,10 +129,13 @@ pub(crate) unsafe extern "C" fn smb_tx_match_dce_opnum(
  * - match on REQUEST (so not on BIND/BINDACK (probably for mixing with
  *                     dce_opnum and dce_stub_data)
  * - only match on approved ifaces (so ack_result == 0) */
-#[no_mangle]
-pub extern "C" fn SCSmbTxGetDceIface(
-    state: &mut SMBState, tx: &SMBTransaction, dce_data: &mut DCEIfaceData,
-) -> u8 {
+pub(crate) unsafe fn smb_tx_match_dce_iface(
+    state: *mut c_void, tx: *mut c_void, dce_data: *const SigMatchCtx,
+) -> c_int {
+    let tx = cast_pointer!(tx, SMBTransaction);
+    let state = cast_pointer!(state, SMBState);
+    let dce_data = cast_pointer!(dce_data, DCEIfaceData);
+
     let if_uuid = dce_data.if_uuid.as_slice();
     let is_dcerpc_request = match tx.type_data {
         Some(SMBTransactionTypeData::DCERPC(ref x)) => x.req_cmd == DCERPC_TYPE_REQUEST,
