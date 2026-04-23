@@ -27,6 +27,47 @@
 #include "util-debug.h"
 #include "util-device-private.h"
 
+int DPDKDeviceResourcesInit(DPDKDeviceResources **dpdk_vars, uint16_t mp_cnt)
+{
+    SCEnter();
+    *dpdk_vars = SCCalloc(1, sizeof(*dpdk_vars[0]));
+    if (*dpdk_vars == NULL) {
+        SCLogError("failed to allocate memory for packet mempools structure");
+        SCReturnInt(-ENOMEM);
+    }
+
+    (*dpdk_vars)->pkt_mp = SCCalloc(mp_cnt, sizeof((*dpdk_vars)->pkt_mp[0]));
+    if ((*dpdk_vars)->pkt_mp == NULL) {
+        SCLogError("failed to allocate memory for packet mempools");
+        SCReturnInt(-ENOMEM);
+    }
+    (*dpdk_vars)->pkt_mp_capa = mp_cnt;
+    (*dpdk_vars)->pkt_mp_cnt = 0;
+
+    SCReturnInt(0);
+}
+
+void DPDKDeviceResourcesDeinit(DPDKDeviceResources **dpdk_vars)
+{
+#ifdef HAVE_DPDK
+    if ((*dpdk_vars) != NULL) {
+        if ((*dpdk_vars)->pkt_mp != NULL) {
+            for (int j = 0; j < (*dpdk_vars)->pkt_mp_capa; j++) {
+                if ((*dpdk_vars)->pkt_mp[j] != NULL) {
+                    rte_mempool_free((*dpdk_vars)->pkt_mp[j]);
+                }
+            }
+            SCFree((*dpdk_vars)->pkt_mp);
+            (*dpdk_vars)->pkt_mp_capa = 0;
+            (*dpdk_vars)->pkt_mp_cnt = 0;
+            (*dpdk_vars)->pkt_mp = NULL;
+        }
+        SCFree(*dpdk_vars);
+        *dpdk_vars = NULL;
+    }
+#endif /* HAVE_DPDK */
+}
+
 void DPDKCleanupEAL(void)
 {
 #ifdef HAVE_DPDK
