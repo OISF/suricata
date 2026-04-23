@@ -27,43 +27,27 @@
 
 #ifdef HAVE_DPDK
 
-int DPDKDeviceResourcesInit(DPDKDeviceResources **dpdk_vars, uint16_t mp_cnt)
+/**
+ * \brief Input is a number of which we want to find the greatest divisor up to max_num (inclusive).
+ * The divisor is returned.
+ */
+static int GreatestDivisorUpTo(uint32_t num, uint32_t max_num)
 {
-    SCEnter();
-    *dpdk_vars = SCCalloc(1, sizeof(*dpdk_vars[0]));
-    if (*dpdk_vars == NULL) {
-        SCLogError("failed to allocate memory for packet mempools structure");
-        SCReturnInt(-ENOMEM);
+    for (int i = max_num; i >= 2; i--) {
+        if (num % i == 0) {
+            return i;
+        }
     }
-
-    (*dpdk_vars)->pkt_mp = SCCalloc(mp_cnt, sizeof((*dpdk_vars)->pkt_mp[0]));
-    if ((*dpdk_vars)->pkt_mp == NULL) {
-        SCLogError("failed to allocate memory for packet mempools");
-        SCReturnInt(-ENOMEM);
-    }
-    (*dpdk_vars)->pkt_mp_capa = mp_cnt;
-    (*dpdk_vars)->pkt_mp_cnt = 0;
-
-    SCReturnInt(0);
+    return 1;
 }
 
-void DPDKDeviceResourcesDeinit(DPDKDeviceResources **dpdk_vars)
+uint32_t MempoolCacheSizeCalculate(uint32_t mp_sz)
 {
-    if ((*dpdk_vars) != NULL) {
-        if ((*dpdk_vars)->pkt_mp != NULL) {
-            for (int j = 0; j < (*dpdk_vars)->pkt_mp_capa; j++) {
-                if ((*dpdk_vars)->pkt_mp[j] != NULL) {
-                    rte_mempool_free((*dpdk_vars)->pkt_mp[j]);
-                }
-            }
-            SCFree((*dpdk_vars)->pkt_mp);
-            (*dpdk_vars)->pkt_mp_capa = 0;
-            (*dpdk_vars)->pkt_mp_cnt = 0;
-            (*dpdk_vars)->pkt_mp = NULL;
-        }
-        SCFree(*dpdk_vars);
-        *dpdk_vars = NULL;
-    }
+    // It is advised to have mempool cache size lower or equal to:
+    //   RTE_MEMPOOL_CACHE_MAX_SIZE (by default 512) and "mempool-size / 1.5"
+    // and at the same time "mempool-size modulo cache_size == 0".
+    uint32_t max_cache_size = MIN(RTE_MEMPOOL_CACHE_MAX_SIZE, mp_sz / 1.5);
+    return GreatestDivisorUpTo(mp_sz, max_cache_size);
 }
 
 #endif /* HAVE_DPDK */

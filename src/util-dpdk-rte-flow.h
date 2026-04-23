@@ -36,7 +36,7 @@
 #ifdef HAVE_DPDK
 
 #include "conf.h"
-#include "util-dpdk.h"
+#include "util-dpdk-common.h"
 
 typedef struct RteFlowRuleStorage_ {
     uint32_t rule_cnt;

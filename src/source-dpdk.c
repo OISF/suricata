@@ -679,7 +679,7 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
     ptv->capture_dpdk_rx_no_mbufs = StatsRegisterCounter("capture.dpdk.no_mbufs", &ptv->tv->stats);
     ptv->capture_dpdk_ierrors = StatsRegisterCounter("capture.dpdk.ierrors", &ptv->tv->stats);
     ptv->capture_dpdk_rte_flow_filtered =
-            StatsRegisterCounter("capture.dpdk.rte_flow_filtered", &ptv->tv);
+            StatsRegisterCounter("capture.dpdk.rte_flow_filtered", &ptv->tv->stats);
 
     ptv->copy_mode = dpdk_config->copy_mode;
     ptv->checksum_mode = dpdk_config->checksum_mode;
