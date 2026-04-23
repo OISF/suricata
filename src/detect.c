@@ -1943,17 +1943,30 @@ static void DetectRunTx(ThreadVars *tv,
         uint8_t skip_before_progress = 0;
         bool fw_next_progress_missing = false;
 
-        /* if there are no rules / rule candidates, make sure we don't
-         * invoke the default drop */
-        if (have_fw_rules && array_idx == 0 && (tx.tx_data_ptr->flags & APP_LAYER_TX_ACCEPT)) {
-            fw_verdicted++;
+        SCLogDebug("%s: tx_progress %u tx %p have_fw_rules %s array_idx %u detect_progress_orig %u "
+                   "cur detect_progress %u",
+                flow_flags & STREAM_TOSERVER ? "toserver" : "toclient", tx.tx_progress,
+                tx.tx_data_ptr, BOOL2STR(have_fw_rules), array_idx, tx.detect_progress_orig,
+                tx.detect_progress);
 
-            /* current tx is the last we have, append a blank accept:packet */
-            if (last_tx) {
-                DetectRunAppendDefaultAccept(det_ctx, p);
-                return;
+        /* if there are no rules / rule candidates, handling invoking the default
+         * policy. */
+        if (have_fw_rules && array_idx == 0) {
+            if (tx.tx_data_ptr->flags & APP_LAYER_TX_ACCEPT) {
+                fw_verdicted++;
+
+                /* current tx is the last we have, append a blank accept:packet */
+                if (last_tx) {
+                    DetectRunAppendDefaultAccept(det_ctx, p);
+                    return;
+                }
+                goto next;
+            } else {
+                /* use last inspected progress */
+                DetectFirewallApplyDefaultPolicy(p, alproto, tx.detect_progress_orig);
+                fw_verdicted++;
+                break;
             }
-            goto next;
         }
 
         bool tx_fw_verdict = false;
