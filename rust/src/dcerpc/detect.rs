@@ -21,7 +21,7 @@ use super::dcerpc::{
 };
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{detect_match_uint, detect_parse_uint, DetectUintData};
-use crate::smb::detect::smb_tx_match_dce_opnum;
+use crate::smb::detect::{smb_tx_match_dce_iface, smb_tx_match_dce_opnum};
 use crate::smb::smb::ALPROTO_SMB;
 use std::ffi::CStr;
 use std::os::raw::{c_char, c_int, c_void};
@@ -76,7 +76,7 @@ pub(crate) enum DCEOpnumData {
 
 fn match_backuuid(
     tx: &DCERPCTransaction, state: &mut DCERPCState, if_data: &mut DCEIfaceData,
-) -> u8 {
+) -> c_int {
     let mut ret = 0;
     if !state.interface_uuids.is_empty() {
         for uuidentry in &state.interface_uuids {
@@ -101,7 +101,7 @@ fn match_backuuid(
                 }
             }
             let ctxid = tx.get_req_ctxid();
-            ret &= (uuidentry.ctxid == ctxid) as u8;
+            ret &= (uuidentry.ctxid == ctxid) as c_int;
             if ret == 0 {
                 SCLogDebug!("CTX IDs/UUIDs do not match");
                 continue;
@@ -228,10 +228,13 @@ fn parse_opnum_data(arg: &str) -> Result<DCEOpnumData, ()> {
     return Err(());
 }
 
-#[no_mangle]
-pub extern "C" fn SCDcerpcIfaceMatch(
-    tx: &DCERPCTransaction, state: &mut DCERPCState, if_data: &mut DCEIfaceData,
-) -> u8 {
+unsafe fn dcerpc_tx_match_dce_iface(
+    tx: *mut c_void, state: *mut c_void, if_data: *const SigMatchCtx,
+) -> c_int {
+    let tx = cast_pointer!(tx, DCERPCTransaction);
+    let state = cast_pointer!(state, DCERPCState);
+    let if_data = cast_pointer!(if_data, DCEIfaceData);
+
     let first_req_seen = tx.get_first_req_seen();
     if first_req_seen == 0 {
         return 0;
@@ -244,11 +247,21 @@ pub extern "C" fn SCDcerpcIfaceMatch(
     return match_backuuid(tx, state, if_data);
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn SCDcerpcIfaceParse(carg: *const c_char) -> *mut c_void {
-    if carg.is_null() {
-        return std::ptr::null_mut();
+unsafe extern "C" fn dcerpc_iface_match(
+    _de: *mut DetectEngineThreadCtx, f: *mut crate::flow::Flow, _flags: u8, state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
+) -> c_int {
+    if SCFlowGetAppProtocol(f) == ALPROTO_DCERPC {
+        return dcerpc_tx_match_dce_iface(tx, state, ctx);
     }
+    if smb_tx_match_dce_iface(state, tx, ctx) != 1 {
+        return 0;
+    }
+
+    return 1;
+}
+
+unsafe fn dcerpc_iface_parse(carg: *const c_char) -> *mut c_void {
     let arg = match CStr::from_ptr(carg).to_str() {
         Ok(arg) => arg,
         _ => {
@@ -262,8 +275,32 @@ pub unsafe extern "C" fn SCDcerpcIfaceParse(carg: *const c_char) -> *mut c_void 
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn SCDcerpcIfaceFree(ptr: *mut c_void) {
+unsafe extern "C" fn dcerpc_iface_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_DCERPC) != 0 {
+        return -1;
+    }
+    let ctx = dcerpc_iface_parse(raw);
+    if ctx.is_null() {
+        return -1;
+    }
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_DCERPC_IFACE_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_DCERPC_IFACE_BUFFER_ID,
+    )
+    .is_null()
+    {
+        dcerpc_iface_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn dcerpc_iface_free(_de: *mut DetectEngineCtx, ptr: *mut c_void) {
     if !ptr.is_null() {
         std::mem::drop(Box::from_raw(ptr as *mut DCEIfaceData));
     }
@@ -357,6 +394,8 @@ unsafe extern "C" fn dcerpc_opnum_free(_de: *mut DetectEngineCtx, ptr: *mut c_vo
 
 static mut G_DCERPC_OPNUM_KW_ID: u16 = 0;
 static mut G_DCERPC_OPNUM_BUFFER_ID: c_int = 0;
+static mut G_DCERPC_IFACE_KW_ID: u16 = 0;
+static mut G_DCERPC_IFACE_BUFFER_ID: c_int = 0;
 
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectDcerpcRegister() {
@@ -386,6 +425,34 @@ pub unsafe extern "C" fn SCDetectDcerpcRegister() {
     SCDetectHelperKeywordAliasRegister(
         G_DCERPC_OPNUM_KW_ID,
         b"dce_opnum\0".as_ptr() as *const libc::c_char,
+    );
+
+    let kw = SCSigTableAppLiteElmt {
+        name: b"dcerpc.iface\0".as_ptr() as *const libc::c_char,
+        desc: b"match on the value of the interface UUID in a DCERPC header\0".as_ptr()
+            as *const libc::c_char,
+        url: b"/rules/dcerpc-keywords.html#dcerpc-iface\0".as_ptr() as *const libc::c_char,
+        AppLayerTxMatch: Some(dcerpc_iface_match),
+        Setup: Some(dcerpc_iface_setup),
+        Free: Some(dcerpc_iface_free),
+        flags: 0,
+    };
+    G_DCERPC_IFACE_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    G_DCERPC_IFACE_BUFFER_ID = SCDetectHelperBufferProgressRegister(
+        b"dce_generic\0".as_ptr() as *const libc::c_char,
+        ALPROTO_DCERPC,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        0,
+    );
+    _ = SCDetectHelperBufferProgressRegister(
+        b"dce_generic\0".as_ptr() as *const libc::c_char,
+        ALPROTO_SMB,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        0,
+    );
+    SCDetectHelperKeywordAliasRegister(
+        G_DCERPC_IFACE_KW_ID,
+        b"dce_iface\0".as_ptr() as *const libc::c_char,
     );
 }
 

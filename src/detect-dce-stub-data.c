@@ -47,7 +47,6 @@
 #include "stream-tcp-reassemble.h"
 
 #include "detect-dce-stub-data.h"
-#include "detect-dce-iface.h"
 
 #include "util-debug.h"
 
