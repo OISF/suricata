@@ -156,7 +156,6 @@
 #include "detect-icmpv4hdr.h"
 #include "detect-igmphdr.h"
 #include "detect-igmp-type.h"
-#include "detect-dce-iface.h"
 #include "detect-dce-stub-data.h"
 #include "detect-urilen.h"
 #include "detect-bsize.h"
@@ -667,7 +666,6 @@ void SigTableSetup(void)
     DetectIcmpv4HdrRegister();
     DetectIGMPHdrRegister();
     DetectIGMPTypeRegister();
-    DetectDceIfaceRegister();
     DetectDceStubDataRegister();
     DetectTlsRegister();
     DetectTlsValidityRegister();

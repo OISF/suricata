@@ -49,8 +49,6 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
-#include "detect-dce-iface.h"
-
 static int g_dce_stub_data_buffer_id = 0;
 
 
