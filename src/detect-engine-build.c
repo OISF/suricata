@@ -1897,7 +1897,7 @@ static void DetectEngineAddDecoderEventSig(DetectEngineCtx *de_ctx, Signature *s
 
 static void DetectEngineAddEthernetSig(DetectEngineCtx *de_ctx, Signature *s)
 {
-    SCLogNotice("adding signature %" PRIu32 " to the eth non ip sgh", s->id);
+    SCLogDebug("adding signature %" PRIu32 " to the eth non ip sgh", s->id);
     SigGroupHeadAppendSig(de_ctx, &de_ctx->eth_non_ip_sgh, s);
 }
 
@@ -1965,7 +1965,7 @@ int SigPrepareStage2(DetectEngineCtx *de_ctx)
         if ((s->type == SIG_TYPE_PKT && SigIsEthernetAddToNonIP(s)) || s->type == SIG_TYPE_DEONLY ||
                 (s->init_data->proto.flags & DETECT_PROTO_L2_ANY)) {
             // ethernet
-            SCLogNotice("rule: %u: add to non-IP", s->id);
+            SCLogDebug("rule: %u: add to non-IP", s->id);
             DetectEngineAddEthernetSig(de_ctx, s);
         }
     }
