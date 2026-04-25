@@ -44,6 +44,7 @@ Major Changes
   be ``bypass``, ``track-only`` or ``full``.
 - Default value for ``stream.reassembly.depth`` when the value is not specified in
   suricata.yaml is now 1 MiB instead of 0/unlimited.
+- LLMNR protocol parser and logger are implemented.
 
 Logging Changes
 ~~~~~~~~~~~~~~~

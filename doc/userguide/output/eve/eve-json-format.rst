@@ -995,6 +995,85 @@ Example of a DNS answer with "grouped" format::
       }
   }
 
+Event type: LLMNR
+-----------------
+
+LLMNR (Link-Local Multicast Name Resolution, RFC 4795) is a protocol
+that allows hosts on the same local link to perform name resolution.
+It uses DNS message format, but operates on multicast (224.0.0.252 for
+IPv4, ff02::1:3 for IPv6) over UDP and TCP port 5355.
+
+Suricata logs both requests and responses as separate events. For UDP,
+queries are sent to multicast and responses come back as unicast from
+the responder's IP, resulting in separate flows.
+
+Fields
+~~~~~~
+
+Outline of fields seen in LLMNR events:
+
+* "type": Indicating LLMNR message type, can be "request" or "response"
+* "tx_id": Internal Suricata transaction ID
+* "id": On-wire LLMNR transaction identifier
+* "flags": LLMNR header flags in hexadecimal (ex: 8000)
+* "c": Conflict flag, set when a responder detects a conflict (ex: true if set)
+* "tc": Truncated flag, set when the message was truncated (ex: true if set)
+* "t": Tentative flag, set when the name is tentative (ex: true if set)
+* "opcode": LLMNR opcode value, should be 0 for standard queries
+* "queries": A list of query objects, each containing "rrname" and "rrtype"
+* "answers": A list of answer objects, each containing "rrname", "rrtype", "ttl" and "rdata"
+* "authorities": A list of authority objects
+* "additionals": A list of additional objects
+* "grouped": Answers aggregated by record type (A, AAAA, CNAME, etc.)
+
+Examples
+~~~~~~~~
+
+Example of an LLMNR request for the A record of "hs2011"::
+
+  "llmnr": {
+      "type": "request",
+      "tx_id": 0,
+      "id": 49985,
+      "flags": "0",
+      "opcode": 0,
+      "queries": [
+        {
+          "rrname": "hs2011",
+          "rrtype": "A"
+        }
+      ]
+  }
+
+Example of an LLMNR response with an A record answer::
+
+  "llmnr": {
+      "type": "response",
+      "tx_id": 0,
+      "id": 49985,
+      "flags": "8000",
+      "opcode": 0,
+      "queries": [
+        {
+          "rrname": "hs2011",
+          "rrtype": "A"
+        }
+      ],
+      "answers": [
+        {
+          "rrname": "HS2011",
+          "rrtype": "A",
+          "ttl": 30,
+          "rdata": "192.168.10.101"
+        }
+      ],
+      "grouped": {
+        "A": [
+          "192.168.10.101"
+        ]
+      }
+  }
+
 Event type: FTP
 ---------------
 
