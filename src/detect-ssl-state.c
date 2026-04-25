@@ -268,7 +268,7 @@ static DetectSslStateData *DetectSslStateParse(const char *arg)
             goto error;
         }
 
-        memcpy(str1, str2, sizeof(str1));
+        strlcpy(str1, str2, sizeof(str1));
         pcre2_match_data_free(match2);
     }
 
