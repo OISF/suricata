@@ -51,9 +51,6 @@ typedef struct AppLayerGetFileState AppLayerGetFileState;
 #define APP_LAYER_PARSER_SFRAME_TS             BIT_U16(9)
 #define APP_LAYER_PARSER_SFRAME_TC             BIT_U16(10)
 
-/* Flags for AppLayerParserProtoCtx. */
-#define APP_LAYER_PARSER_OPT_ACCEPT_GAPS BIT_U32(0)
-
 #define APP_LAYER_PARSER_INT_STREAM_DEPTH_SET   BIT_U32(0)
 
 /* for use with the detect_progress_ts|detect_progress_tc fields */
