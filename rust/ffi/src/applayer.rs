@@ -43,6 +43,9 @@ macro_rules! export_state_data_get {
     };
 }
 
+/* Flags for AppLayerParserProtoCtx. */
+pub const APP_LAYER_PARSER_OPT_ACCEPT_GAPS: u32 = 1 << 0;
+
 pub trait AppLayerResultRust {
     fn ok() -> Self;
     fn err() -> Self;

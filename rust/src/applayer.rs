@@ -326,7 +326,7 @@ pub const APP_LAYER_PARSER_BYPASS_READY : u16 = BIT_U16!(4);
 pub const APP_LAYER_PARSER_EOF_TS : u16 = BIT_U16!(5);
 pub const APP_LAYER_PARSER_EOF_TC : u16 = BIT_U16!(6);
 
-pub const APP_LAYER_PARSER_OPT_ACCEPT_GAPS: u32 = BIT_U32!(0);
+pub use suricata_ffi::applayer::APP_LAYER_PARSER_OPT_ACCEPT_GAPS;
 
 pub const APP_LAYER_TX_SKIP_INSPECT_TS: u8 = BIT_U8!(0);
 pub const APP_LAYER_TX_SKIP_INSPECT_TC: u8 = BIT_U8!(1);
