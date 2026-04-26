@@ -17,7 +17,10 @@
 
 //! App-layer utils.
 
-use suricata_sys::sys::{AppLayerResult, StreamSlice};
+use crate::cast_pointer;
+use suricata_sys::sys::{
+    AppLayerGetTxIterState, AppLayerGetTxIterTuple, AppLayerResult, AppProto, StreamSlice,
+};
 
 #[macro_export]
 macro_rules! export_tx_data_get {
@@ -153,4 +156,74 @@ impl StreamSliceRust for StreamSlice {
     fn flags(&self) -> u8 {
         self.flags
     }
+}
+
+trait AppLayerGetTxIterTupleRust {
+    fn with_values(tx_ptr: *mut std::os::raw::c_void, tx_id: u64, has_next: bool) -> Self;
+    fn not_found() -> Self;
+}
+
+impl AppLayerGetTxIterTupleRust for AppLayerGetTxIterTuple {
+    fn with_values(
+        tx_ptr: *mut std::os::raw::c_void, tx_id: u64, has_next: bool,
+    ) -> AppLayerGetTxIterTuple {
+        AppLayerGetTxIterTuple {
+            tx_ptr,
+            tx_id,
+            has_next,
+        }
+    }
+    fn not_found() -> AppLayerGetTxIterTuple {
+        AppLayerGetTxIterTuple {
+            tx_ptr: std::ptr::null_mut(),
+            tx_id: 0,
+            has_next: false,
+        }
+    }
+}
+
+/// Transaction trait.
+///
+/// This trait defines methods that a Transaction struct must implement
+/// in order to define some generic helper functions.
+pub trait Transaction {
+    fn id(&self) -> u64;
+}
+
+pub trait State<Tx: Transaction> {
+    /// Return the number of transactions in the state's transaction collection.
+    fn get_transaction_count(&self) -> usize;
+
+    /// Return a transaction by its index in the container.
+    fn get_transaction_by_index(&self, index: usize) -> Option<&Tx>;
+
+    fn get_transaction_iterator(&self, min_tx_id: u64, state: &mut u64) -> AppLayerGetTxIterTuple {
+        let mut index = *state as usize;
+        let len = self.get_transaction_count();
+        while index < len {
+            let tx = self.get_transaction_by_index(index).unwrap();
+            if tx.id() < min_tx_id + 1 {
+                index += 1;
+                continue;
+            }
+            *state = index as u64;
+            return AppLayerGetTxIterTuple::with_values(
+                tx as *const _ as *mut _,
+                tx.id() - 1,
+                len - index > 1,
+            );
+        }
+        AppLayerGetTxIterTuple::not_found()
+    }
+}
+
+/// # Safety
+///
+/// state variable must be a valid state pointer from Suricata.
+pub unsafe extern "C" fn state_get_tx_iterator<S: State<Tx>, Tx: Transaction>(
+    _ipproto: u8, _alproto: AppProto, state: *mut std::os::raw::c_void, min_tx_id: u64,
+    _max_tx_id: u64, istate: *mut AppLayerGetTxIterState,
+) -> AppLayerGetTxIterTuple {
+    let state = cast_pointer!(state, S);
+    state.get_transaction_iterator(min_tx_id, &mut (*istate).un.u64_)
 }
