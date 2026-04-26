@@ -156,6 +156,14 @@
 #include "detect-icmpv4hdr.h"
 #include "detect-igmphdr.h"
 #include "detect-igmp-type.h"
+#include "detect-sctphdr.h"
+#include "detect-sctp-chunk-type.h"
+#include "detect-sctp-chunk-cnt.h"
+#include "detect-sctp-vtag.h"
+#include "detect-sctp-has-init.h"
+#include "detect-sctp-has-data.h"
+#include "detect-sctp-has-abort.h"
+#include "detect-sctp-data.h"
 #include "detect-dce-iface.h"
 #include "detect-dce-stub-data.h"
 #include "detect-urilen.h"
@@ -667,6 +675,14 @@ void SigTableSetup(void)
     DetectIcmpv4HdrRegister();
     DetectIGMPHdrRegister();
     DetectIGMPTypeRegister();
+    DetectSCTPHdrRegister();
+    DetectSCTPChunkTypeRegister();
+    DetectSCTPChunkCntRegister();
+    DetectSCTPVtagRegister();
+    DetectSCTPHasInitRegister();
+    DetectSCTPHasDataRegister();
+    DetectSCTPHasAbortRegister();
+    DetectSCTPDataRegister();
     DetectDceIfaceRegister();
     DetectDceStubDataRegister();
     DetectTlsRegister();

@@ -230,6 +230,14 @@ noinst_HEADERS = \
 	detect-id.h \
 	detect-igmphdr.h \
 	detect-igmp-type.h \
+	detect-sctphdr.h \
+	detect-sctp-chunk-cnt.h \
+	detect-sctp-chunk-type.h \
+	detect-sctp-data.h \
+	detect-sctp-has-abort.h \
+	detect-sctp-has-data.h \
+	detect-sctp-has-init.h \
+	detect-sctp-vtag.h \
 	detect-ipaddr.h \
 	detect-ipopts.h \
 	detect-ipproto.h \
@@ -809,6 +817,14 @@ libsuricata_c_a_SOURCES = \
 	detect-id.c \
 	detect-igmphdr.c \
 	detect-igmp-type.c \
+	detect-sctphdr.c \
+	detect-sctp-chunk-cnt.c \
+	detect-sctp-chunk-type.c \
+	detect-sctp-data.c \
+	detect-sctp-has-abort.c \
+	detect-sctp-has-data.c \
+	detect-sctp-has-init.c \
+	detect-sctp-vtag.c \
 	detect-ipaddr.c \
 	detect-ipopts.c \
 	detect-ipproto.c \
@@ -1212,7 +1228,15 @@ EXTRA_DIST = \
 	tests/detect-ipaddr.c \
 	tests/detect.c \
 	tests/stream-tcp.c \
-	tests/output-json-stats.c
+	tests/output-json-stats.c \
+	tests/detect-sctphdr.c \
+	tests/detect-sctp-chunk-type.c \
+	tests/detect-sctp-chunk-cnt.c \
+	tests/detect-sctp-vtag.c \
+	tests/detect-sctp-has-init.c \
+	tests/detect-sctp-has-data.c \
+	tests/detect-sctp-has-abort.c \
+	tests/detect-sctp-data.c
 
 EXTRA_CFLAGS =
 

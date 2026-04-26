@@ -924,6 +924,25 @@ SCJsonBuilder *CreateEveHeader(const Packet *p, enum SCOutputJsonLogDirection di
                 }
             }
             break;
+        case IPPROTO_SCTP:
+            if (PacketIsSCTP(p)) {
+                SCJbOpenObject(js, "sctp");
+                SCJbSetUint(js, "vtag", SCTP_GET_RAW_VTAG(PacketGetSCTP(p)));
+                SCJbSetUint(js, "chunk_cnt", p->l4.vars.sctp.chunk_cnt);
+                const uint8_t cnt =
+                        MIN(p->l4.vars.sctp.chunk_cnt, SCTP_MAX_TRACKED_CHUNKS);
+                SCJbOpenArray(js, "chunk_types");
+                for (uint8_t i = 0; i < cnt; i++) {
+                    SCJbAppendUint(js, p->l4.vars.sctp.chunk_types[i]);
+                }
+                SCJbClose(js);
+                SCJbSetBool(js, "has_init", p->l4.vars.sctp.has_init);
+                SCJbSetBool(js, "has_init_ack", p->l4.vars.sctp.has_init_ack);
+                SCJbSetBool(js, "has_data", p->l4.vars.sctp.has_data);
+                SCJbSetBool(js, "has_abort", p->l4.vars.sctp.has_abort);
+                SCJbClose(js);
+            }
+            break;
     }
 
     SCJbSetString(js, "pkt_src", PktSrcToString(p->pkt_src));
