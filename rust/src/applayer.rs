@@ -317,16 +317,11 @@ pub fn applayer_register_protocol_detection(parser: &RustParser, enable_default:
     unsafe {SCAppLayerRegisterProtocolDetection(&det, enable_default) }
 }
 
-
-// Defined in app-layer-parser.h
-pub const APP_LAYER_PARSER_NO_INSPECTION : u16 = BIT_U16!(1);
-pub const APP_LAYER_PARSER_NO_REASSEMBLY : u16 = BIT_U16!(2);
-pub const APP_LAYER_PARSER_NO_INSPECTION_PAYLOAD : u16 = BIT_U16!(3);
-pub const APP_LAYER_PARSER_BYPASS_READY : u16 = BIT_U16!(4);
-pub const APP_LAYER_PARSER_EOF_TS : u16 = BIT_U16!(5);
-pub const APP_LAYER_PARSER_EOF_TC : u16 = BIT_U16!(6);
-
-pub use suricata_ffi::applayer::APP_LAYER_PARSER_OPT_ACCEPT_GAPS;
+pub use suricata_ffi::applayer::{
+    APP_LAYER_PARSER_BYPASS_READY, APP_LAYER_PARSER_EOF_TC, APP_LAYER_PARSER_EOF_TS,
+    APP_LAYER_PARSER_NO_INSPECTION, APP_LAYER_PARSER_NO_INSPECTION_PAYLOAD,
+    APP_LAYER_PARSER_NO_REASSEMBLY, APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
+};
 
 pub const APP_LAYER_TX_SKIP_INSPECT_TS: u8 = BIT_U8!(0);
 pub const APP_LAYER_TX_SKIP_INSPECT_TC: u8 = BIT_U8!(1);

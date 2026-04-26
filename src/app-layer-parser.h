@@ -39,18 +39,6 @@ typedef enum LoggerId LoggerId;
 // Forward declarations from util-file.h
 typedef struct AppLayerGetFileState AppLayerGetFileState;
 
-/* Flags for AppLayerParserState. */
-// flag available                               BIT_U16(0)
-#define APP_LAYER_PARSER_NO_INSPECTION         BIT_U16(1)
-#define APP_LAYER_PARSER_NO_REASSEMBLY         BIT_U16(2)
-#define APP_LAYER_PARSER_NO_INSPECTION_PAYLOAD BIT_U16(3)
-#define APP_LAYER_PARSER_BYPASS_READY          BIT_U16(4)
-#define APP_LAYER_PARSER_EOF_TS                BIT_U16(5)
-#define APP_LAYER_PARSER_EOF_TC                BIT_U16(6)
-/* 2x vacancy */
-#define APP_LAYER_PARSER_SFRAME_TS             BIT_U16(9)
-#define APP_LAYER_PARSER_SFRAME_TC             BIT_U16(10)
-
 #define APP_LAYER_PARSER_INT_STREAM_DEPTH_SET   BIT_U32(0)
 
 /* for use with the detect_progress_ts|detect_progress_tc fields */

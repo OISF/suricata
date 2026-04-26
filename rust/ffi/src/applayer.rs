@@ -43,6 +43,18 @@ macro_rules! export_state_data_get {
     };
 }
 
+/* Flags for AppLayerParserState. */
+// flag available                               BIT_U16(0)
+pub const APP_LAYER_PARSER_NO_INSPECTION: u16 = 1 << 1;
+pub const APP_LAYER_PARSER_NO_REASSEMBLY: u16 = 1 << 2;
+pub const APP_LAYER_PARSER_NO_INSPECTION_PAYLOAD: u16 = 1 << 3;
+pub const APP_LAYER_PARSER_BYPASS_READY: u16 = 1 << 4;
+pub const APP_LAYER_PARSER_EOF_TS: u16 = 1 << 5;
+pub const APP_LAYER_PARSER_EOF_TC: u16 = 1 << 6;
+/* 2x vacancy */
+pub const APP_LAYER_PARSER_SFRAME_TS: u16 = 1 << 9;
+pub const APP_LAYER_PARSER_SFRAME_TC: u16 = 1 << 10;
+
 /* Flags for AppLayerParserProtoCtx. */
 pub const APP_LAYER_PARSER_OPT_ACCEPT_GAPS: u32 = 1 << 0;
 
