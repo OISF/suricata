@@ -28,10 +28,10 @@ use std::ffi::CString;
 use std::os::raw::{c_char, c_int, c_void};
 use suricata::applayer::{
     state_get_tx_iterator, AppLayerEvent, AppLayerTxData, State, Transaction,
-    APP_LAYER_PARSER_EOF_TC, APP_LAYER_PARSER_EOF_TS,
 };
 use suricata_ffi::applayer::{
-    AppLayerResultRust, StreamSliceRust, APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
+    AppLayerResultRust, StreamSliceRust, APP_LAYER_PARSER_EOF_TC, APP_LAYER_PARSER_EOF_TS,
+    APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
 };
 use suricata_ffi::conf::conf_get;
 use suricata_ffi::{
