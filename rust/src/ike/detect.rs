@@ -38,9 +38,10 @@ use std::os::raw::{c_char, c_int, c_void};
 use std::ptr;
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, SCDetectBufferSetActiveList,
-    SCDetectHelperBufferMpmRegister, SCDetectHelperBufferProgressRegister, SCDetectHelperKeywordRegister,
-    SCDetectHelperMultiBufferMpmRegister, SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList,
-    SCSigTableAppLiteElmt, SigMatchCtx, Signature,
+    SCDetectHelperBufferMpmRegister, SCDetectHelperBufferProgressRegister,
+    SCDetectHelperKeywordRegister, SCDetectHelperMultiBufferMpmRegister,
+    SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList, SCSigTableAppLiteElmt, SigMatchCtx,
+    Signature,
 };
 
 unsafe extern "C" fn ike_get_nonce_data(
@@ -191,37 +192,29 @@ unsafe extern "C" fn ike_detect_chosen_sa_match(
     } else if tx.ike_version == 2 {
         for attr in tx.hdr.ikev2_transforms.iter() {
             match attr {
-                IkeV2Transform::Encryption(e) => {
-                    if ctx.attribute == AttributeType::AlgEnc {
-                        if detect_match_uint(&ctx.value, e.0.into()) {
-                            return 1;
-                        }
-                        return 0;
+                IkeV2Transform::Encryption(e) if ctx.attribute == AttributeType::AlgEnc => {
+                    if detect_match_uint(&ctx.value, e.0.into()) {
+                        return 1;
                     }
+                    return 0;
                 }
-                IkeV2Transform::Auth(e) => {
-                    if ctx.attribute == AttributeType::AlgAuth {
-                        if detect_match_uint(&ctx.value, e.0.into()) {
-                            return 1;
-                        }
-                        return 0;
+                IkeV2Transform::Auth(e) if ctx.attribute == AttributeType::AlgAuth => {
+                    if detect_match_uint(&ctx.value, e.0.into()) {
+                        return 1;
                     }
+                    return 0;
                 }
-                IkeV2Transform::PRF(ref e) => {
-                    if ctx.attribute == AttributeType::AlgPrf {
-                        if detect_match_uint(&ctx.value, e.0.into()) {
-                            return 1;
-                        }
-                        return 0;
+                IkeV2Transform::PRF(ref e) if ctx.attribute == AttributeType::AlgPrf => {
+                    if detect_match_uint(&ctx.value, e.0.into()) {
+                        return 1;
                     }
+                    return 0;
                 }
-                IkeV2Transform::DH(ref e) => {
-                    if ctx.attribute == AttributeType::AlgDh {
-                        if detect_match_uint(&ctx.value, e.0.into()) {
-                            return 1;
-                        }
-                        return 0;
+                IkeV2Transform::DH(ref e) if ctx.attribute == AttributeType::AlgDh => {
+                    if detect_match_uint(&ctx.value, e.0.into()) {
+                        return 1;
                     }
+                    return 0;
                 }
                 _ => (),
             }
@@ -326,10 +319,12 @@ unsafe extern "C" fn ike_detect_nonce_payload_length_match(
 ) -> c_int {
     let tx = cast_pointer!(tx, IKETransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u32>);
-    if tx.ike_version == 1 && !tx.hdr.ikev1_header.nonce.is_empty()
-        && detect_match_uint(ctx, tx.hdr.ikev1_header.nonce.len() as u32) {
-            return 1;
-        }
+    if tx.ike_version == 1
+        && !tx.hdr.ikev1_header.nonce.is_empty()
+        && detect_match_uint(ctx, tx.hdr.ikev1_header.nonce.len() as u32)
+    {
+        return 1;
+    }
     return 0;
 }
 
@@ -371,10 +366,12 @@ unsafe extern "C" fn ike_detect_payload_len_match(
 ) -> c_int {
     let tx = cast_pointer!(tx, IKETransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u32>);
-    if tx.ike_version == 1 && !tx.hdr.ikev1_header.key_exchange.is_empty()
-        && detect_match_uint(ctx, tx.hdr.ikev1_header.key_exchange.len() as u32) {
-            return 1;
-        }
+    if tx.ike_version == 1
+        && !tx.hdr.ikev1_header.key_exchange.is_empty()
+        && detect_match_uint(ctx, tx.hdr.ikev1_header.key_exchange.len() as u32)
+    {
+        return 1;
+    }
     return 0;
 }
 

@@ -32,10 +32,8 @@ fn get_type(tx: &DHCPTransaction) -> Option<u8> {
             {
                 #[allow(clippy::single_match)]
                 match code {
-                    DHCP_OPT_TYPE => {
-                        if !option.data.is_empty() {
-                            return Some(option.data[0]);
-                        }
+                    DHCP_OPT_TYPE if !option.data.is_empty() => {
+                        return Some(option.data[0]);
                     }
                     _ => {}
                 }
@@ -90,15 +88,11 @@ fn log(extended: bool, tx: &DHCPTransaction, js: &mut JsonBuilder) -> Result<(),
                 js.set_string("client_id", &format_addr_hex(&clientid.data))?;
             }
             DHCPOptionWrapper::TimeValue(ref time_value) => match code {
-                DHCP_OPT_ADDRESS_TIME => {
-                    if extended {
-                        js.set_uint("lease_time", time_value.seconds as u64)?;
-                    }
+                DHCP_OPT_ADDRESS_TIME if extended => {
+                    js.set_uint("lease_time", time_value.seconds as u64)?;
                 }
-                DHCP_OPT_REBINDING_TIME => {
-                    if extended {
-                        js.set_uint("rebinding_time", time_value.seconds as u64)?;
-                    }
+                DHCP_OPT_REBINDING_TIME if extended => {
+                    js.set_uint("rebinding_time", time_value.seconds as u64)?;
                 }
                 DHCP_OPT_RENEWAL_TIME => {
                     js.set_uint("renewal_time", time_value.seconds as u64)?;
@@ -106,43 +100,29 @@ fn log(extended: bool, tx: &DHCPTransaction, js: &mut JsonBuilder) -> Result<(),
                 _ => {}
             },
             DHCPOptionWrapper::Generic(ref option) => match code {
-                DHCP_OPT_SUBNET_MASK => {
-                    if extended {
-                        js.set_string("subnet_mask", &dns_print_addr(&option.data))?;
-                    }
+                DHCP_OPT_SUBNET_MASK if extended => {
+                    js.set_string("subnet_mask", &dns_print_addr(&option.data))?;
                 }
-                DHCP_OPT_HOSTNAME => {
-                    if !option.data.is_empty() {
-                        js.set_string_from_bytes("hostname", &option.data)?;
-                    }
+                DHCP_OPT_HOSTNAME if !option.data.is_empty() => {
+                    js.set_string_from_bytes("hostname", &option.data)?;
                 }
                 DHCP_OPT_TYPE => {
                     log_opt_type(js, option)?;
                 }
-                DHCP_OPT_REQUESTED_IP => {
-                    if extended {
-                        js.set_string("requested_ip", &dns_print_addr(&option.data))?;
-                    }
+                DHCP_OPT_REQUESTED_IP if extended => {
+                    js.set_string("requested_ip", &dns_print_addr(&option.data))?;
                 }
-                DHCP_OPT_PARAMETER_LIST => {
-                    if extended {
-                        log_opt_parameters(js, option)?;
-                    }
+                DHCP_OPT_PARAMETER_LIST if extended => {
+                    log_opt_parameters(js, option)?;
                 }
-                DHCP_OPT_DNS_SERVER => {
-                    if extended {
-                        log_opt_dns_server(js, option)?;
-                    }
+                DHCP_OPT_DNS_SERVER if extended => {
+                    log_opt_dns_server(js, option)?;
                 }
-                DHCP_OPT_ROUTERS => {
-                    if extended {
-                        log_opt_routers(js, option)?;
-                    }
+                DHCP_OPT_ROUTERS if extended => {
+                    log_opt_routers(js, option)?;
                 }
-                DHCP_OPT_VENDOR_CLASS_ID => {
-                    if extended && !option.data.is_empty() {
-                        js.set_string_from_bytes("vendor_class_identifier", &option.data)?;
-                    }
+                DHCP_OPT_VENDOR_CLASS_ID if extended && !option.data.is_empty() => {
+                    js.set_string_from_bytes("vendor_class_identifier", &option.data)?;
                 }
                 _ => {}
             },
