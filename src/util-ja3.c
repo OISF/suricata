@@ -119,6 +119,7 @@ int Ja3BufferAppendBuffer(JA3Buffer **buffer1, JA3Buffer **buffer2)
         (*buffer1)->used = (*buffer2)->used;
         (*buffer1)->size = (*buffer2)->size;
         SCFree(*buffer2);
+        *buffer2 = NULL;
         return 0;
     }
 
