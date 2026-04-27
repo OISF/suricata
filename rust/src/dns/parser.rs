@@ -440,7 +440,8 @@ pub fn dns_parse_body<'a>(
     let (i, queries) = count(
         |b| dns_parse_query(b, message, &mut flags),
         header.questions as usize,
-    ).parse(i)?;
+    )
+    .parse(i)?;
     let (i, answers) = dns_parse_answer(i, message, header.answer_rr as usize, &mut flags)?;
 
     let mut invalid_authorities = false;
