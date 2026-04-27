@@ -39,7 +39,8 @@ fn getu16(i: &[u8]) -> IResult<&[u8], u16> {
     map_res(
         map_res(delimited(multispace0, digit1, multispace0), str::from_utf8),
         FromStr::from_str,
-    ).parse(i)
+    )
+    .parse(i)
 }
 
 fn parse_u16(i: &[u8]) -> IResult<&[u8], u16> {
@@ -58,7 +59,8 @@ fn ftp_active_port(i: &[u8]) -> IResult<&[u8], u16> {
         tag(","),
         digit1,
         tag(","),
-    ).parse(i)?;
+    )
+        .parse(i)?;
     let (i, part1) = verify(parse_u16, |&v| v <= u8::MAX as u16).parse(i)?;
     let (i, _) = tag(",").parse(i)?;
     let (i, part2) = verify(parse_u16, |&v| v <= u8::MAX as u16).parse(i)?;
@@ -79,7 +81,8 @@ fn ftp_pasv_response(i: &[u8]) -> IResult<&[u8], u16> {
         tag(","),
         digit1,
         tag(","),
-    ).parse(i)?;
+    )
+        .parse(i)?;
     let (i, part1) = verify(getu16, |&v| v <= u8::MAX as u16).parse(i)?;
     let (i, _) = tag(",").parse(i)?;
     let (i, part2) = verify(getu16, |&v| v <= u8::MAX as u16).parse(i)?;
