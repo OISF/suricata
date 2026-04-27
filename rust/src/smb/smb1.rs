@@ -718,51 +718,46 @@ fn smb1_response_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, an
             state.ssn2tree_cache.pop(&tree_key);
             false
         },
-        SMB1_COMMAND_NT_CREATE_ANDX => {
-            SCLogDebug!("SMB1_COMMAND_NT_CREATE_ANDX response {:08x}", r.nt_status);
-            if r.nt_status == SMB_NTSTATUS_SUCCESS {
-                match parse_smb_create_andx_response_record(&r.data[*andx_offset-SMB1_HEADER_SIZE..]) {
-                    Ok((_, cr)) => {
-                        SCLogDebug!("Create AndX {:?}", cr);
+        SMB1_COMMAND_NT_CREATE_ANDX if r.nt_status == SMB_NTSTATUS_SUCCESS => {
+            match parse_smb_create_andx_response_record(&r.data[*andx_offset-SMB1_HEADER_SIZE..]) {
+                Ok((_, cr)) => {
+                    SCLogDebug!("Create AndX {:?}", cr);
 
-                        let guid_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_FILENAME);
-                        if let Some(mut p) = state.ssn2vec_cache.pop(&guid_key) {
-                            p.retain(|&i|i != 0x00);
+                    let guid_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_FILENAME);
+                    if let Some(mut p) = state.ssn2vec_cache.pop(&guid_key) {
+                        p.retain(|&i|i != 0x00);
 
-                            let mut fid = cr.fid.to_vec();
-                            fid.extend_from_slice(&u32_as_bytes(r.ssn_id));
-                            SCLogDebug!("SMB1_COMMAND_NT_CREATE_ANDX fid {:?}", fid);
-                            SCLogDebug!("fid {:?} name {:?}", fid, p);
-                            _ = state.guid2name_cache.put(fid, p);
-                        } else {
-                            SCLogDebug!("SMBv1 response: GUID NOT FOUND");
+                        let mut fid = cr.fid.to_vec();
+                        fid.extend_from_slice(&u32_as_bytes(r.ssn_id));
+                        SCLogDebug!("SMB1_COMMAND_NT_CREATE_ANDX fid {:?}", fid);
+                        SCLogDebug!("fid {:?} name {:?}", fid, p);
+                        _ = state.guid2name_cache.put(fid, p);
+                    } else {
+                        SCLogDebug!("SMBv1 response: GUID NOT FOUND");
+                    }
+
+                    let tx_hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
+                    if let Some(tx) = state.get_generic_tx(1, command as u16, &tx_hdr) {
+                        SCLogDebug!("tx {} with {}/{} marked as done",
+                                tx.id, command, &smb1_command_string(command));
+                        tx.set_status(r.nt_status, false);
+                        tx.response_done = true;
+
+                        if let Some(SMBTransactionTypeData::CREATE(ref mut tdn)) = tx.type_data {
+                            tdn.create_ts = cr.create_ts.as_unix();
+                            tdn.last_access_ts = cr.last_access_ts.as_unix();
+                            tdn.last_write_ts = cr.last_write_ts.as_unix();
+                            tdn.last_change_ts = cr.last_change_ts.as_unix();
+                            tdn.size = cr.file_size;
+                            tdn.guid = cr.fid.to_vec();
                         }
-
-                        let tx_hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
-                        if let Some(tx) = state.get_generic_tx(1, command as u16, &tx_hdr) {
-                            SCLogDebug!("tx {} with {}/{} marked as done",
-                                    tx.id, command, &smb1_command_string(command));
-                            tx.set_status(r.nt_status, false);
-                            tx.response_done = true;
-
-                            if let Some(SMBTransactionTypeData::CREATE(ref mut tdn)) = tx.type_data {
-                                tdn.create_ts = cr.create_ts.as_unix();
-                                tdn.last_access_ts = cr.last_access_ts.as_unix();
-                                tdn.last_write_ts = cr.last_write_ts.as_unix();
-                                tdn.last_change_ts = cr.last_change_ts.as_unix();
-                                tdn.size = cr.file_size;
-                                tdn.guid = cr.fid.to_vec();
-                            }
-                        }
-                        true
-                    },
-                    _ => {
-                        events.push(SMBEvent::MalformedData);
-                        false
-                    },
-                }
-            } else {
-                false
+                    }
+                    true
+                },
+                _ => {
+                    events.push(SMBEvent::MalformedData);
+                    false
+                },
             }
         },
         SMB1_COMMAND_CLOSE => {

@@ -135,11 +135,8 @@ pub fn handle_ikev2(
                         add_proposals(state, &mut tx, prop, direction);
                         // }
                     }
-                    IkeV2PayloadContent::KE(ref kex) => {
-                        SCLogDebug!("KEX {:?}", kex.dh_group);
-                        if direction == Direction::ToClient {
-                            state.ikev2_container.dh_group = kex.dh_group;
-                        }
+                    IkeV2PayloadContent::KE(ref kex) if direction == Direction::ToClient => {
+                        state.ikev2_container.dh_group = kex.dh_group;
                     }
                     IkeV2PayloadContent::Nonce(ref _n) => {
                         SCLogDebug!("Nonce: {:?}", _n);
