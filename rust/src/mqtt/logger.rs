@@ -77,11 +77,7 @@ fn log_mqtt(
                         js.set_string_limited("topic", will_topic, max_log_len)?;
                     }
                     if let Some(will_message) = &conn.will_message {
-                        js.set_string_from_bytes_limited(
-                            "message",
-                            will_message,
-                            max_log_len,
-                        )?;
+                        js.set_string_from_bytes_limited("message", will_message, max_log_len)?;
                     }
                     if let Some(will_properties) = &conn.will_properties {
                         js.open_object("properties")?;
@@ -122,11 +118,7 @@ fn log_mqtt(
                 if let Some(message_id) = publish.message_id {
                     js.set_uint("message_id", message_id as u64)?;
                 }
-                js.set_string_from_bytes_limited(
-                    "message",
-                    &publish.message,
-                    max_log_len,
-                )?;
+                js.set_string_from_bytes_limited("message", &publish.message, max_log_len)?;
                 if let Some(properties) = &publish.properties {
                     js.open_object("properties")?;
                     for prop in properties {
@@ -205,7 +197,7 @@ fn log_mqtt(
                 log_mqtt_header(js, &msg.header)?;
                 js.set_uint("message_id", subs.message_id as u64)?;
                 js.open_array("topics")?;
-                let mut topic_chars : usize = 0;
+                let mut topic_chars: usize = 0;
                 // We only log topics until the length of the concatenation of
                 // the topic names exceed the log limit set.
                 for t in &subs.topics {
