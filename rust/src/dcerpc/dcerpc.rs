@@ -622,7 +622,7 @@ impl DCERPCState {
             Ok((leftover_bytes, back)) => {
                 for (uuid_internal_id, r) in back.ctxitems.iter().enumerate() {
                     for uuid in self.interface_uuids.iter_mut().rev() {
-                        if uuid.internal_id == uuid_internal_id as u16 && uuid.call_id == call_id{
+                        if uuid.internal_id == uuid_internal_id as u16 && uuid.call_id == call_id {
                             uuid.result = r.ack_result;
                             uuid.acked = true;
                             if uuid.result == 0 {
@@ -944,8 +944,10 @@ impl DCERPCState {
                     }
                 }
                 DCERPC_TYPE_BINDACK | DCERPC_TYPE_ALTER_CONTEXT_RESP => {
-                    let retval =
-                        self.process_bindack_pdu(&cur_i[parsed as usize..fraglen as usize], hdr.call_id);
+                    let retval = self.process_bindack_pdu(
+                        &cur_i[parsed as usize..fraglen as usize],
+                        hdr.call_id,
+                    );
                     if retval == -1 {
                         return AppLayerResult::err();
                     }
