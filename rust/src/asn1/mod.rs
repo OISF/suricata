@@ -107,9 +107,7 @@ impl<'a> Asn1<'a> {
                 && obj.header.is_primitive())
         {
             if let BerObjectContent::BitString(bits, _v) = &obj.content {
-                if len > 0
-                    && *bits as usize > len.saturating_mul(8)
-                {
+                if len > 0 && *bits as usize > len.saturating_mul(8) {
                     return Some(Asn1Check::BitstringOverflow);
                 }
             }
@@ -226,7 +224,7 @@ pub unsafe extern "C" fn SCAsn1Decode(
 
     let slice = build_slice!(input, input_len as usize);
 
-    let ad = &*ad_ptr ;
+    let ad = &*ad_ptr;
 
     let res = asn1_decode(slice, buffer_offset, ad);
 
