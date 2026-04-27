@@ -49,6 +49,9 @@
 // just due to FFI.
 #![allow(clippy::missing_safety_doc)]
 
+// Allow at least until https://github.com/rust-lang/rust-clippy/issues/16916 is fixed
+#![allow(clippy::collapsible_match)]
+
 // Allow /// cbindgen:ignore comments on extern blocks
 // cf https://github.com/mozilla/cbindgen/issues/709
 #![allow(unused_doc_comments)]
