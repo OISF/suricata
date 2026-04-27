@@ -111,8 +111,9 @@ pub fn get_decoded_buffer_size(encoded_len: u32) -> u32 {
     return ((encoded_len * 3) + (encoded_len % 4)) / 4;
 }
 
-pub fn decode_rfc4648(decoder: &mut Decoder, input: &[u8], output: &mut [u8], decoded_bytes: &mut u32) -> Result<()>
-{
+pub fn decode_rfc4648(
+    decoder: &mut Decoder, input: &[u8], output: &mut [u8], decoded_bytes: &mut u32,
+) -> Result<()> {
     let mut i = input;
     let mut offset = 0;
     let mut stop = false;
@@ -122,9 +123,7 @@ pub fn decode_rfc4648(decoder: &mut Decoder, input: &[u8], output: &mut [u8], de
                 decoder.tmp[decoder.nb as usize] = i[0];
                 decoder.nb += 1;
             } else {
-                while decoder.nb > 0
-                    && decoder.nb < 4
-                {
+                while decoder.nb > 0 && decoder.nb < 4 {
                     decoder.tmp[decoder.nb as usize] = b'=';
                     decoder.nb += 1;
                 }
@@ -165,8 +164,9 @@ pub fn decode_rfc4648(decoder: &mut Decoder, input: &[u8], output: &mut [u8], de
     return Ok(());
 }
 
-pub fn decode_rfc2045(decoder: &mut Decoder, input: &[u8], output: &mut [u8], decoded_bytes: &mut u32) -> Result<()>
-{
+pub fn decode_rfc2045(
+    decoder: &mut Decoder, input: &[u8], output: &mut [u8], decoded_bytes: &mut u32,
+) -> Result<()> {
     let mut i = input;
     let mut offset = 0;
 
