@@ -637,9 +637,7 @@ impl DNSState {
         }
     }
 
-    pub(crate) fn parse_request_udp(
-        &mut self, flow: *mut Flow, stream_slice: StreamSlice,
-    ) -> bool {
+    pub(crate) fn parse_request_udp(&mut self, flow: *mut Flow, stream_slice: StreamSlice) -> bool {
         let input = stream_slice.as_slice();
         let frame = Frame::new(
             flow,
@@ -701,9 +699,7 @@ impl DNSState {
     /// prefix.
     ///
     /// Returns the number of messages parsed.
-    fn parse_request_tcp(
-        &mut self, flow: *mut Flow, stream_slice: StreamSlice,
-    ) -> AppLayerResult {
+    fn parse_request_tcp(&mut self, flow: *mut Flow, stream_slice: StreamSlice) -> AppLayerResult {
         let input = stream_slice.as_slice();
         if self.gap {
             let (is_dns, _, is_incomplete) = probe_tcp(input);
@@ -765,9 +761,7 @@ impl DNSState {
     /// prefix.
     ///
     /// Returns the number of messages parsed.
-    fn parse_response_tcp(
-        &mut self, flow: *mut Flow, stream_slice: StreamSlice,
-    ) -> AppLayerResult {
+    fn parse_response_tcp(&mut self, flow: *mut Flow, stream_slice: StreamSlice) -> AppLayerResult {
         let input = stream_slice.as_slice();
         if self.gap {
             let (is_dns, _, is_incomplete) = probe_tcp(input);
