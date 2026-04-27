@@ -85,7 +85,9 @@ fn parse_uint_index_nb(s: &str) -> IResult<&str, DetectUintIndex> {
 }
 
 fn parse_uint_index_val(s: &str) -> Option<DetectUintIndex> {
-    let (_s, arg1) = alt((parse_uint_index_precise, parse_uint_index_nb)).parse(s).ok()?;
+    let (_s, arg1) = alt((parse_uint_index_precise, parse_uint_index_nb))
+        .parse(s)
+        .ok()?;
     Some(arg1)
 }
 
@@ -386,7 +388,9 @@ pub fn detect_parse_uint_bitflags<T1: DetectIntType, T2: EnumString<T1>>(
     }
     // otherwise, try strings for bitmask
     let (s, modifier) = parse_bitchars_modifier(s, defmod).ok()?;
-    let (s, _) = take_while::<_, &str, Error<_>>(|c| c == ' ' || c == '\t').parse(s).ok()?;
+    let (s, _) = take_while::<_, &str, Error<_>>(|c| c == ' ' || c == '\t')
+        .parse(s)
+        .ok()?;
     if let Ok((rem, l)) = parse_flag_list::<T1, T2>(s, singlechar) {
         if !rem.is_empty() {
             SCLogError!("junk at the end of bitflags");
@@ -528,7 +532,8 @@ pub fn detect_parse_uint_unit(i: &str) -> IResult<&str, u64> {
         value(1024 * 1024, tag_no_case("mb")),
         value(1024 * 1024 * 1024, tag_no_case("gib")),
         value(1024 * 1024 * 1024, tag_no_case("gb")),
-    )).parse(i)?;
+    ))
+    .parse(i)?;
     return Ok((i, unit));
 }
 
@@ -587,7 +592,8 @@ pub fn detect_parse_uint_start_interval<T: DetectIntType>(
     let (i, _) = opt(is_a(" ")).parse(i)?;
     let (i, arg2) = verify(detect_parse_uint_value, |x| {
         x > &arg1 && *x - arg1 > T::one()
-    }).parse(i)?;
+    })
+    .parse(i)?;
     let mode = if neg.is_some() {
         DetectUintMode::DetectUintModeNegRg
     } else {
@@ -628,7 +634,8 @@ fn detect_parse_uint_start_interval_inclusive<T: DetectIntType>(
     let (i, _) = opt(is_a(" ")).parse(i)?;
     let (i, arg2) = verify(detect_parse_uint_value::<T>, |x| {
         *x > arg1 && *x < T::max_value()
-    }).parse(i)?;
+    })
+    .parse(i)?;
     let mode = if neg.is_some() {
         DetectUintMode::DetectUintModeNegRg
     } else {
@@ -653,7 +660,8 @@ pub fn detect_parse_uint_mode(i: &str) -> IResult<&str, DetectUintMode> {
         value(DetectUintMode::DetectUintModeNe, tag("!=")),
         value(DetectUintMode::DetectUintModeNe, tag("!")),
         value(DetectUintMode::DetectUintModeEqual, tag("=")),
-    )).parse(i)?;
+    ))
+    .parse(i)?;
     return Ok((i, mode));
 }
 
@@ -770,7 +778,8 @@ pub(crate) fn detect_parse_uint_notending<T: DetectIntType>(
         detect_parse_uint_start_interval,
         detect_parse_uint_start_equal,
         detect_parse_uint_start_symbol,
-    )).parse(i)?;
+    ))
+    .parse(i)?;
     Ok((i, uint))
 }
 
@@ -786,7 +795,8 @@ pub fn detect_parse_uint_inclusive<T: DetectIntType>(i: &str) -> IResult<&str, D
         detect_parse_uint_start_interval_inclusive,
         detect_parse_uint_start_equal,
         detect_parse_uint_start_symbol,
-    )).parse(i)?;
+    ))
+    .parse(i)?;
     let (i, _) = all_consuming(take_while(|c| c == ' ')).parse(i)?;
     Ok((i, uint))
 }
