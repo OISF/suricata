@@ -309,8 +309,7 @@ impl QuicState {
                     if self.hello_tc && self.hello_ts {
                         let flags = match unsafe { ENCRYPTION_BYPASS_ENABLED } {
                             EncryptionHandling::ENCRYPTION_HANDLING_BYPASS => {
-                                APP_LAYER_PARSER_NO_INSPECTION
-                                    | APP_LAYER_PARSER_BYPASS_READY
+                                APP_LAYER_PARSER_NO_INSPECTION | APP_LAYER_PARSER_BYPASS_READY
                             }
                             EncryptionHandling::ENCRYPTION_HANDLING_TRACK_ONLY => {
                                 APP_LAYER_PARSER_NO_INSPECTION
@@ -576,9 +575,7 @@ pub unsafe extern "C" fn SCRegisterQuicParser() {
         localstorage_new: None,
         localstorage_free: None,
         get_tx_files: None,
-        get_tx_iterator: Some(
-            applayer::state_get_tx_iterator::<QuicState, QuicTransaction>,
-        ),
+        get_tx_iterator: Some(applayer::state_get_tx_iterator::<QuicState, QuicTransaction>),
         get_tx_data: quic_get_tx_data,
         get_state_data: quic_get_state_data,
         apply_tx_config: None,
