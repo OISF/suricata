@@ -383,6 +383,7 @@ jobs:
         working-directory: rust/sys
       - run: cargo fmt --check
         working-directory: rust/derive
+      - run: rustfmt --check rust/src/dns/*.rs
       - name: Check if Cargo.lock.in is up to date
         run: |
           cp rust/Cargo.lock rust/Cargo.lock.in
