@@ -19,9 +19,9 @@
 
 use std::path::Path;
 
-use suricata_sys::sys::SCLogLevel;
 #[cfg(not(test))]
 use suricata_sys::sys::SCError;
+use suricata_sys::sys::SCLogLevel;
 
 pub static mut LEVEL: SCLogLevel = SCLogLevel::SC_LOG_NOTSET;
 

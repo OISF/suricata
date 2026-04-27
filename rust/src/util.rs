@@ -41,7 +41,8 @@ fn is_alphanumeric_or_hyphen(chr: u8) -> bool {
 fn parse_domain_label(i: &[u8]) -> IResult<&[u8], ()> {
     let (i, _) = verify(take_while1(is_alphanumeric_or_hyphen), |x: &[u8]| {
         x[0].is_alpha() && x[x.len() - 1] != b'-'
-    }).parse(i)?;
+    })
+    .parse(i)?;
     return Ok((i, ()));
 }
 

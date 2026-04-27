@@ -17,45 +17,51 @@
 
 //! This module exposes items from the core "C" code to Rust.
 
-use suricata_sys::sys::{AppProto, AppProtoEnum};
 #[cfg(not(test))]
 use suricata_sys::sys::SCAppLayerParserTriggerRawStreamInspection;
+use suricata_sys::sys::{AppProto, AppProtoEnum};
 
 use crate::flow::Flow;
 
 pub use suricata_sys::sys::AppLayerEventType;
 
-pub use suricata_ffi::STREAM_START;
-pub use suricata_ffi::STREAM_EOF;
-pub use suricata_ffi::STREAM_TOSERVER;
-pub use suricata_ffi::STREAM_TOCLIENT;
-pub use suricata_ffi::STREAM_GAP;
 pub use suricata_ffi::STREAM_DEPTH;
+pub use suricata_ffi::STREAM_EOF;
+pub use suricata_ffi::STREAM_GAP;
 pub use suricata_ffi::STREAM_MIDSTREAM;
+pub use suricata_ffi::STREAM_START;
+pub use suricata_ffi::STREAM_TOCLIENT;
+pub use suricata_ffi::STREAM_TOSERVER;
 
-pub const ALPROTO_UNKNOWN : AppProto = AppProtoEnum::ALPROTO_UNKNOWN as AppProto;
-pub const ALPROTO_FAILED : AppProto = AppProtoEnum::ALPROTO_FAILED as AppProto;
+pub const ALPROTO_UNKNOWN: AppProto = AppProtoEnum::ALPROTO_UNKNOWN as AppProto;
+pub const ALPROTO_FAILED: AppProto = AppProtoEnum::ALPROTO_FAILED as AppProto;
 
 pub use suricata_ffi::IPPROTO_TCP;
 pub use suricata_ffi::IPPROTO_UDP;
 
-
-macro_rules!BIT_U8 {
-    ($x:expr) => (1 << $x);
+macro_rules! BIT_U8 {
+    ($x:expr) => {
+        1 << $x
+    };
 }
 
-macro_rules!BIT_U16 {
-    ($x:expr) => (1 << $x);
+macro_rules! BIT_U16 {
+    ($x:expr) => {
+        1 << $x
+    };
 }
 
-macro_rules!BIT_U32 {
-    ($x:expr) => (1 << $x);
+macro_rules! BIT_U32 {
+    ($x:expr) => {
+        1 << $x
+    };
 }
 
-macro_rules!BIT_U64 {
-    ($x:expr) => (1 << $x);
+macro_rules! BIT_U64 {
+    ($x:expr) => {
+        1 << $x
+    };
 }
-
 
 //
 // Function types for calls into C.
@@ -77,4 +83,7 @@ pub(crate) fn sc_app_layer_parser_trigger_raw_stream_inspection(flow: *mut Flow,
 }
 
 #[cfg(test)]
-pub(crate) fn sc_app_layer_parser_trigger_raw_stream_inspection(_flow: *const Flow, _direction: i32) {}
+pub(crate) fn sc_app_layer_parser_trigger_raw_stream_inspection(
+    _flow: *const Flow, _direction: i32,
+) {
+}
