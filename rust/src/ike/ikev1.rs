@@ -52,9 +52,7 @@ impl Ikev1ParticipantData {
         self.transform.clear();
     }
 
-    pub fn update(
-        &mut self, key_exchange: &str, nonce: &str, transforms: &[Vec<SaAttribute>],
-    ) {
+    pub fn update(&mut self, key_exchange: &str, nonce: &str, transforms: &[Vec<SaAttribute>]) {
         self.key_exchange = key_exchange.to_string();
         self.nonce = nonce.to_string();
         if self.nb_transforms == 0 && !transforms.is_empty() {
@@ -103,7 +101,9 @@ pub fn handle_ikev1(
                         &mut tx.hdr.ikev1_transforms,
                         &mut tx.hdr.ikev1_header.vendor_ids,
                         &mut payload_types,
-                    ).is_err() {
+                    )
+                    .is_err()
+                    {
                         SCLogDebug!("Error while parsing IKEV1 payloads");
                         return AppLayerResult::err();
                     }
