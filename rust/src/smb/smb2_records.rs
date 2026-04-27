@@ -201,7 +201,9 @@ pub struct Smb2SessionSetupRequestRecord<'a> {
     pub data: &'a [u8],
 }
 
-pub fn parse_smb2_request_session_setup(i: &[u8]) -> IResult<&[u8], Smb2SessionSetupRequestRecord<'_>> {
+pub fn parse_smb2_request_session_setup(
+    i: &[u8],
+) -> IResult<&[u8], Smb2SessionSetupRequestRecord<'_>> {
     let (i, _struct_size) = take(2_usize).parse(i)?;
     let (i, _flags) = le_u8.parse(i)?;
     let (i, _security_mode) = le_u8.parse(i)?;
@@ -220,7 +222,9 @@ pub struct Smb2TreeConnectRequestRecord<'a> {
     pub share_name: &'a [u8],
 }
 
-pub fn parse_smb2_request_tree_connect(i: &[u8]) -> IResult<&[u8], Smb2TreeConnectRequestRecord<'_>> {
+pub fn parse_smb2_request_tree_connect(
+    i: &[u8],
+) -> IResult<&[u8], Smb2TreeConnectRequestRecord<'_>> {
     let (i, _struct_size) = take(2_usize).parse(i)?;
     let (i, _offset_length) = take(4_usize).parse(i)?;
     let (i, data) = rest.parse(i)?;
@@ -363,7 +367,9 @@ pub struct Smb2SetInfoRequestDispoRecord {
     pub delete: bool,
 }
 
-pub fn parse_smb2_request_setinfo_disposition(i: &[u8]) -> IResult<&[u8], Smb2SetInfoRequestData<'_>> {
+pub fn parse_smb2_request_setinfo_disposition(
+    i: &[u8],
+) -> IResult<&[u8], Smb2SetInfoRequestData<'_>> {
     let (i, info) = le_u8.parse(i)?;
     let record = Smb2SetInfoRequestData::DISPOSITION(Smb2SetInfoRequestDispoRecord {
         delete: info & 1 != 0,
@@ -415,7 +421,8 @@ pub fn parse_smb2_request_setinfo(i: &[u8]) -> IResult<&[u8], Smb2SetInfoRequest
     let (i, guid) = take(16_usize).parse(i)?;
     let (i, data) = map_parser(take(setinfo_size), |b| {
         parse_smb2_request_setinfo_data(b, class, infolvl)
-    }).parse(i)?;
+    })
+    .parse(i)?;
     let record = Smb2SetInfoRequestRecord {
         guid,
         class,
