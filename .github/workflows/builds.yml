@@ -384,7 +384,7 @@ jobs:
       - run: cargo fmt --check
         working-directory: rust/derive
       - run: rustfmt --check rust/src/dns/*.rs rust/src/applayertemplate/*.rs rust/src/asn1/*.rs
-              rust/src/bittorrent_dht/*.rs rust/src/enip/*.rs rust/src/ffi/*.rs
+              rust/src/bittorrent_dht/*.rs rust/src/enip/*.rs rust/src/ffi/*.rs rust/src/ftp/*.rs
       - name: Check if Cargo.lock.in is up to date
         run: |
           cp rust/Cargo.lock rust/Cargo.lock.in
