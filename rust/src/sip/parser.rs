@@ -211,7 +211,12 @@ fn header_value(i: &[u8]) -> IResult<&[u8], &str> {
 
 #[inline]
 fn hcolon(i: &[u8]) -> IResult<&[u8], char> {
-    delimited(take_while(|c: u8| c.is_space()), char(':'), take_while(|c: u8| c.is_space())).parse(i)
+    delimited(
+        take_while(|c: u8| c.is_space()),
+        char(':'),
+        take_while(|c: u8| c.is_space()),
+    )
+    .parse(i)
 }
 
 fn message_header(i: &[u8]) -> IResult<&[u8], Header> {
