@@ -161,8 +161,20 @@ static inline void RuleActionToFlow(const uint8_t action, Flow *f)
         SCLogDebug("setting flow action pass");
     }
 
-    // TODO pass and accept could be set at the same time?
-    if (action & (ACTION_DROP | ACTION_REJECT_ANY | ACTION_PASS)) {
+    /* pass:flow can be set if accept:flow is present */
+    if (action & ACTION_PASS) {
+        if (f->flags & (FLOW_ACTION_DROP | FLOW_ACTION_PASS)) {
+            /* drop or pass already set. First to set wins. */
+            SCLogDebug("not setting %s flow already set to %s",
+                    (action & ACTION_PASS) ? "pass" : "drop",
+                    (f->flags & FLOW_ACTION_DROP) ? "drop" : "pass");
+        } else {
+            f->flags |= FLOW_ACTION_PASS;
+            SCLogDebug("setting flow action pass");
+        }
+
+        // TODO firewall drop:flow should override FLOW_ACTION_PASS
+    } else if (action & (ACTION_DROP | ACTION_REJECT_ANY)) {
         if (f->flags & (FLOW_ACTION_DROP | FLOW_ACTION_PASS | FLOW_ACTION_ACCEPT)) {
             /* drop or pass already set. First to set wins. */
             SCLogDebug("not setting %s flow already set to %s",
@@ -172,10 +184,6 @@ static inline void RuleActionToFlow(const uint8_t action, Flow *f)
             if (action & (ACTION_DROP | ACTION_REJECT_ANY)) {
                 f->flags |= FLOW_ACTION_DROP;
                 SCLogDebug("setting flow action drop");
-            }
-            if (action & ACTION_PASS) {
-                f->flags |= FLOW_ACTION_PASS;
-                SCLogDebug("setting flow action pass");
             }
         }
     }
@@ -218,10 +226,7 @@ static void PacketApplySignatureActions(Packet *p, const Signature *s, const Pac
 
         DEBUG_VALIDATE_BUG_ON(!PacketCheckAction(p, ACTION_DROP));
     } else {
-        if (pa->action & ACTION_PASS) {
-            SCLogDebug("[packet %p][PASS sid %u]", p, s->id);
-            // nothing to set in the packet
-        } else if (pa->action & ACTION_ACCEPT) {
+        if (pa->action & ACTION_ACCEPT) {
             const enum ActionScope as = pa->s->action_scope;
             SCLogDebug("packet %" PRIu64 ": ACCEPT %u as:%u flags:%02x", PcapPacketCntGet(p), s->id,
                     as, pa->flags);
@@ -231,6 +236,9 @@ static void PacketApplySignatureActions(Packet *p, const Signature *s, const Pac
                 p->action |= ACTION_ACCEPT;
             }
         } else if (pa->action & (ACTION_ALERT | ACTION_CONFIG)) {
+            // nothing to set in the packet
+        } else if (pa->action & ACTION_PASS) {
+            SCLogDebug("[packet %p][PASS sid %u]", p, s->id);
             // nothing to set in the packet
         } else if (pa->action != 0) {
             DEBUG_VALIDATE_BUG_ON(1); // should be unreachable

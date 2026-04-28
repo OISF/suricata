@@ -1554,7 +1554,7 @@ static uint8_t ActionStringToFlags(const char *action)
  *            Signature.
  * \retval -1 On failure.
  */
-static int SigParseAction(Signature *s, const char *action_in)
+static int SigParseActionDo(Signature *s, const char *action_in, const int idx)
 {
     char action[32];
     strlcpy(action, action_in, sizeof(action));
@@ -1577,6 +1577,23 @@ static int SigParseAction(Signature *s, const char *action_in)
     if (flags == 0)
         return -1;
 
+    if (s->init_data->firewall_rule) {
+        if (idx == 0 &&
+                !(flags & (ACTION_ACCEPT | ACTION_DROP | ACTION_REJECT_ANY | ACTION_CONFIG))) {
+            SCLogError("only accept, config, drop and reject actions allowed as primary action "
+                       "firewall "
+                       "rules");
+            return -1;
+        }
+        if (idx > 0 &&
+                (flags & (ACTION_ACCEPT | ACTION_DROP | ACTION_REJECT_ANY | ACTION_CONFIG))) {
+            SCLogError("accept, config, drop and reject actions not allowed as secondary action "
+                       "firewall "
+                       "rules");
+            return -1;
+        }
+    }
+
     /* parse scope, if any */
     if (o) {
         uint8_t scope_flags = 0;
@@ -1591,7 +1608,6 @@ static int SigParseAction(Signature *s, const char *action_in)
                         o, action_in);
                 return -1;
             }
-            s->action_scope = scope_flags;
         } else if (flags & (ACTION_ACCEPT)) {
             if (strcmp(o, "packet") == 0) {
                 scope_flags = (uint8_t)ACTION_SCOPE_PACKET;
@@ -1608,7 +1624,6 @@ static int SigParseAction(Signature *s, const char *action_in)
                         o, action_in);
                 return -1;
             }
-            s->action_scope = scope_flags;
         } else if (flags & (ACTION_CONFIG)) {
             if (strcmp(o, "packet") == 0) {
                 scope_flags = (uint8_t)ACTION_SCOPE_PACKET;
@@ -1617,13 +1632,17 @@ static int SigParseAction(Signature *s, const char *action_in)
                         action_in);
                 return -1;
             }
-            s->action_scope = scope_flags;
         } else {
             SCLogError("invalid action scope '%s' in action '%s': scope only supported for actions "
                        "'drop', 'pass' and 'reject'",
                     o, action_in);
             return -1;
         }
+        if (s->action_scope != 0 && s->action_scope != scope_flags) {
+            SCLogError("multi-action rules cannot use different action scopes");
+            return -1;
+        }
+        s->action_scope = scope_flags;
     }
 
     /* require explicit action scope for fw rules */
@@ -1636,14 +1655,37 @@ static int SigParseAction(Signature *s, const char *action_in)
         SCLogError("'accept' action only supported for firewall rules");
         return -1;
     }
+    s->action |= flags;
+    return 0;
+}
 
-    if (s->init_data->firewall_rule && (flags & ACTION_PASS)) {
-        SCLogError("'pass' action not supported for firewall rules");
-        return -1;
+static int SigParseAction(Signature *s, const char *action_in)
+{
+    /* multi-action rules are only supported for firewall rules at this time. */
+    if (!s->init_data->firewall_rule)
+        return SigParseActionDo(s, action_in, 0);
+
+    int r = 0;
+    char *copy = SCStrdup(action_in);
+    if (copy == NULL)
+        FatalError("could not duplicate opt string");
+
+    int i = 0;
+    char *xsaveptr = NULL;
+    char *a = strtok_r(copy, ",", &xsaveptr);
+    while (a != NULL) {
+        if (SigParseActionDo(s, a, i) < 0) {
+            r = -1;
+            break;
+        }
+        a = strtok_r(NULL, ",", &xsaveptr);
+        i++;
     }
 
-    s->action = flags;
-    return 0;
+    SCFree(copy);
+
+    SCLogDebug("s->action %02x", s->action);
+    return r;
 }
 
 /**
