@@ -21,15 +21,18 @@ use super::dcerpc::{
 };
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{detect_match_uint, detect_parse_uint, DetectUintData};
-use crate::smb::detect::{smb_tx_match_dce_iface, smb_tx_match_dce_opnum};
+use crate::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
+use crate::smb::detect::{smb_tx_get_stub_data, smb_tx_match_dce_iface, smb_tx_match_dce_opnum};
 use crate::smb::smb::ALPROTO_SMB;
 use std::ffi::CStr;
 use std::os::raw::{c_char, c_int, c_void};
 use suricata_sys::sys::{
-    DetectEngineCtx, DetectEngineThreadCtx, SCDetectHelperBufferProgressRegister,
-    SCDetectHelperKeywordAliasRegister, SCDetectHelperKeywordRegister,
-    SCDetectSignatureSetAppProto, SCFlowGetAppProtocol, SCSigMatchAppendSMToList,
-    SCSigTableAppLiteElmt, SigMatchCtx, Signature,
+    DetectEngineCtx, DetectEngineThreadCtx, DetectEngineTransforms, Flow, InspectionBuffer,
+    SCDetectBufferSetActiveList, SCDetectHelperBufferMpmRegister,
+    SCDetectHelperBufferProgressRegister, SCDetectHelperKeywordAliasRegister,
+    SCDetectHelperKeywordRegister, SCDetectRegisterMpmGeneric, SCDetectSignatureSetAppProto,
+    SCFlowGetAppProtocol, SCInspectionBufferGet, SCInspectionBufferSetupAndApplyTransforms,
+    SCSigMatchAppendSMToList, SCSigTableAppLiteElmt, SigMatchCtx, Signature,
 };
 use uuid::Uuid;
 
@@ -392,9 +395,57 @@ unsafe extern "C" fn dcerpc_opnum_free(_de: *mut DetectEngineCtx, ptr: *mut c_vo
     }
 }
 
+unsafe extern "C" fn dcerpc_stub_data_setup(
+    de_ctx: *mut DetectEngineCtx, s: *mut Signature, _str: *const c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0 {
+        return -1;
+    }
+    if SCDetectBufferSetActiveList(de_ctx, s, G_DCERPC_STUB_BUFFER_ID) < 0 {
+        return -1;
+    }
+    return 0;
+}
+
+pub const DETECT_CI_FLAGS_DCE_LE: u8 = 1 << 2;
+pub const DETECT_CI_FLAGS_DCE_BE: u8 = 1 << 3;
+
+
+unsafe extern "C" fn dcerpc_tx_get_stub_data(
+    det_ctx: *mut DetectEngineThreadCtx, transforms: *const DetectEngineTransforms,
+    _flow: *mut Flow, dir: u8, tx: *mut c_void, list_id: c_int,
+) -> *mut InspectionBuffer {
+    let tx = cast_pointer!(tx, DCERPCTransaction);
+    let buffer = SCInspectionBufferGet(det_ctx, list_id);
+    if !(*buffer).initialized {
+        let (data, data_len) = if (dir & STREAM_TOSERVER) != 0 {
+            (
+                tx.stub_data_buffer_ts.as_ptr(),
+                tx.stub_data_buffer_ts.len() as u32,
+            )
+        } else {
+            (
+                tx.stub_data_buffer_tc.as_ptr(),
+                tx.stub_data_buffer_tc.len() as u32,
+            )
+        };
+        if tx.endianness > 0 {
+            (*buffer).flags |= DETECT_CI_FLAGS_DCE_LE;
+        } else {
+            (*buffer).flags |= DETECT_CI_FLAGS_DCE_BE;
+        }
+
+        SCInspectionBufferSetupAndApplyTransforms(
+            det_ctx, list_id, buffer, data, data_len, transforms,
+        );
+    }
+    return buffer;
+}
+
 static mut G_DCERPC_OPNUM_KW_ID: u16 = 0;
 static mut G_DCERPC_GENERIC_BUFFER_ID: c_int = 0;
 static mut G_DCERPC_IFACE_KW_ID: u16 = 0;
+static mut G_DCERPC_STUB_BUFFER_ID: c_int = 0;
 
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectDcerpcRegister() {
@@ -440,6 +491,33 @@ pub unsafe extern "C" fn SCDetectDcerpcRegister() {
     SCDetectHelperKeywordAliasRegister(
         G_DCERPC_IFACE_KW_ID,
         b"dce_iface\0".as_ptr() as *const libc::c_char,
+    );
+
+    let kw_stub = SigTableElmtStickyBuffer {
+        name: String::from("dcerpc.stub_data"),
+        desc: String::from("match on the stub data in a DCERPC packet"),
+        url: String::from("/rules/dcerpc-keywords.html#dcerpc-stub-data"),
+        setup: dcerpc_stub_data_setup,
+    };
+    let stub_kw_id = helper_keyword_register_sticky_buffer(&kw_stub);
+
+    G_DCERPC_STUB_BUFFER_ID = SCDetectRegisterMpmGeneric(
+        b"dce_stub_data\0".as_ptr() as *const libc::c_char,
+        b"dcerpc stub data\0".as_ptr() as *const libc::c_char,
+        ALPROTO_DCERPC,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        Some(dcerpc_tx_get_stub_data),
+    );
+    G_DCERPC_STUB_BUFFER_ID = SCDetectHelperBufferMpmRegister(
+        b"dce_stub_data\0".as_ptr() as *const libc::c_char,
+        b"dcerpc stub data\0".as_ptr() as *const libc::c_char,
+        ALPROTO_SMB,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        Some(smb_tx_get_stub_data),
+    );
+    SCDetectHelperKeywordAliasRegister(
+        stub_kw_id,
+        b"dce_stub_data\0".as_ptr() as *const libc::c_char,
     );
 }
 

@@ -241,10 +241,6 @@ impl DCERPCTransaction {
     pub fn get_req_opnum(&self) -> u16 {
         self.opnum
     }
-
-    pub fn get_endianness(&self) -> u8 {
-        self.endianness
-    }
 }
 
 #[derive(Debug)]
@@ -1145,25 +1141,6 @@ unsafe extern "C" fn get_tx_data(
 ) -> *mut suricata_sys::sys::AppLayerTxData {
     let tx = cast_pointer!(tx, DCERPCTransaction);
     return &mut tx.tx_data.0;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn SCDcerpcGetStubData(
-    tx: &mut DCERPCTransaction, buf: *mut *const u8, len: *mut u32, endianness: *mut u8, dir: u8,
-) {
-    match dir.into() {
-        Direction::ToServer => {
-            *len = tx.stub_data_buffer_ts.len() as u32;
-            *buf = tx.stub_data_buffer_ts.as_ptr();
-            SCLogDebug!("DCERPC Request stub buffer: Setting buffer to: {:?}", *buf);
-        }
-        Direction::ToClient => {
-            *len = tx.stub_data_buffer_tc.len() as u32;
-            *buf = tx.stub_data_buffer_tc.as_ptr();
-            SCLogDebug!("DCERPC Response stub buffer: Setting buffer to: {:?}", *buf);
-        }
-    }
-    *endianness = tx.get_endianness();
 }
 
 /// Probe input to see if it looks like DCERPC.
