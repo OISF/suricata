@@ -70,10 +70,10 @@ unsafe extern "C" fn smb_tx_get_named_pipe(
     return false;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn SCSmbTxGetStubData(
-    tx: &SMBTransaction, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
-) -> u8 {
+pub(crate) unsafe extern "C" fn smb_tx_get_stub_data(
+    tx: *const c_void, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> bool {
+    let tx = cast_pointer!(tx, SMBTransaction);
     if let Some(SMBTransactionTypeData::DCERPC(ref x)) = tx.type_data {
         let vref = if direction == Direction::ToServer as u8 {
             &x.stub_data_ts
@@ -83,13 +83,13 @@ pub unsafe extern "C" fn SCSmbTxGetStubData(
         if !vref.is_empty() {
             *buffer = vref.as_ptr();
             *buffer_len = vref.len() as u32;
-            return 1;
+            return true;
         }
     }
 
     *buffer = ptr::null();
     *buffer_len = 0;
-    return 0;
+    return false;
 }
 
 pub(crate) unsafe extern "C" fn smb_tx_match_dce_opnum(
