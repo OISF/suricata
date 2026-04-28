@@ -35,7 +35,6 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-sigorder.h"
 #include "detect-engine-payload.h"
-#include "detect-engine-dcepayload.h"
 #include "detect-engine-state.h"
 #include "detect-engine-tag.h"
 #include "detect-fast-pattern.h"
@@ -192,7 +191,6 @@ static void RegisterUnittests(void)
     SCThresholdConfRegisterTests();
     SCRConfRegisterTests();
     PayloadRegisterTests();
-    DcePayloadRegisterTests();
 #ifdef PROFILING
     SCProfilingRegisterTests();
 #endif
