@@ -45,7 +45,6 @@
 #include "rust.h"
 
 #include "detect-engine-payload.h"
-#include "detect-engine-dcepayload.h"
 #include "detect-dns-name.h"
 #include "detect-dns-response.h"
 #include "detect-tls-sni.h"
