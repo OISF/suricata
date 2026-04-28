@@ -201,7 +201,7 @@ static void PrefilterMpmHttpRequestBodyFree(void *ptr)
 static inline InspectionBuffer *HttpRequestBodyXformsGetDataCallback(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, const int list_id, InspectionBuffer *base_buffer)
 {
-    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    InspectionBuffer *buffer = SCInspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect != NULL)
         return buffer;
 
@@ -218,7 +218,7 @@ static InspectionBuffer *HttpRequestBodyGetDataCallback(DetectEngineThreadCtx *d
 {
     SCEnter();
 
-    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, base_id);
+    InspectionBuffer *buffer = SCInspectionBufferGet(det_ctx, base_id);
     if (base_id != list_id && buffer->inspect != NULL)
         return HttpRequestBodyXformsGetDataCallback(det_ctx, transforms, list_id, buffer);
     else if (buffer->inspect != NULL)

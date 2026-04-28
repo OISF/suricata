@@ -121,7 +121,7 @@ static int DetectDestIPAddrBufferSetup(DetectEngineCtx *de_ctx, Signature *s, co
 static InspectionBuffer *GetDataSrc(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Packet *p, const int list_id)
 {
-    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    InspectionBuffer *buffer = SCInspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
         if (PacketIsIPv4(p)) {
             /* Suricata stores the IPv4 at the beginning of the field */
@@ -145,7 +145,7 @@ static InspectionBuffer *GetDataSrc(DetectEngineThreadCtx *det_ctx,
 static InspectionBuffer *GetDataDst(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Packet *p, const int list_id)
 {
-    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    InspectionBuffer *buffer = SCInspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
         if (PacketIsIPv4(p)) {
             /* Suricata stores the IPv4 at the beginning of the field */

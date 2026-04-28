@@ -97,7 +97,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         SCReturnPtr(NULL, "InspectionBuffer");
     }
 
-    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    InspectionBuffer *buffer = SCInspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
         const IGMPHdr *igmph = PacketGetIGMP(p);
         const uint16_t hlen = p->l4.vars.igmp.hlen;
@@ -111,7 +111,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const uint32_t data_len = hlen;
         const uint8_t *data = (const uint8_t *)igmph;
 
-        InspectionBufferSetupAndApplyTransforms(
+        SCInspectionBufferSetupAndApplyTransforms(
                 det_ctx, list_id, buffer, data, data_len, transforms);
     }
 
