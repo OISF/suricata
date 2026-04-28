@@ -458,8 +458,12 @@ static inline int DefragTrackerCompare(DefragTracker *t, Packet *p)
 {
     uint32_t id;
     if (PKT_IS_IPV4(p)) {
+        if (t->af != AF_INET)
+            return 0;
         id = (uint32_t)IPV4_GET_IPID(p);
     } else {
+        if (t->af != AF_INET6)
+            return 0;
         id = IPV6_EXTHDR_GET_FH_ID(p);
     }
 
