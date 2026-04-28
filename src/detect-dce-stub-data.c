@@ -64,7 +64,7 @@ static InspectionBuffer *GetSMBData(DetectEngineThreadCtx *det_ctx,
         Flow *_f, const uint8_t flow_flags,
         void *txv, const int list_id)
 {
-    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    InspectionBuffer *buffer = SCInspectionBufferGet(det_ctx, list_id);
     if (!buffer->initialized) {
         uint32_t data_len = 0;
         const uint8_t *data = NULL;
@@ -73,7 +73,7 @@ static InspectionBuffer *GetSMBData(DetectEngineThreadCtx *det_ctx,
             return NULL;
         SCLogDebug("have data!");
 
-        InspectionBufferSetupAndApplyTransforms(
+        SCInspectionBufferSetupAndApplyTransforms(
                 det_ctx, list_id, buffer, data, data_len, transforms);
     }
     return buffer;
@@ -84,7 +84,7 @@ static InspectionBuffer *GetDCEData(DetectEngineThreadCtx *det_ctx,
         Flow *_f, const uint8_t flow_flags,
         void *txv, const int list_id)
 {
-    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    InspectionBuffer *buffer = SCInspectionBufferGet(det_ctx, list_id);
     if (!buffer->initialized) {
         uint32_t data_len = 0;
         const uint8_t *data = NULL;
@@ -99,7 +99,7 @@ static InspectionBuffer *GetDCEData(DetectEngineThreadCtx *det_ctx,
         } else {
             buffer->flags |= DETECT_CI_FLAGS_DCE_BE;
         }
-        InspectionBufferSetupAndApplyTransforms(
+        SCInspectionBufferSetupAndApplyTransforms(
                 det_ctx, list_id, buffer, data, data_len, transforms);
     }
     return buffer;

@@ -100,7 +100,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
 {
     SCEnter();
 
-    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    InspectionBuffer *buffer = SCInspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
         if (!PacketIsICMPv6(p)) {
             // DETECT_PROTO_IPV6 does not prefilter
@@ -115,7 +115,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
             SCReturnPtr(NULL, "InspectionBuffer");
         }
 
-        InspectionBufferSetupAndApplyTransforms(
+        SCInspectionBufferSetupAndApplyTransforms(
                 det_ctx, list_id, buffer, (const uint8_t *)icmpv6h, ICMPV6_HEADER_LEN, transforms);
     }
 

@@ -53,12 +53,12 @@ void InspectionBufferClean(DetectEngineThreadCtx *det_ctx)
     det_ctx->multi_inspect.to_clear_idx = 0;
 }
 
-InspectionBuffer *InspectionBufferGet(DetectEngineThreadCtx *det_ctx, const int list_id)
+InspectionBuffer *SCInspectionBufferGet(DetectEngineThreadCtx *det_ctx, const int list_id)
 {
     return &det_ctx->inspect.buffers[list_id];
 }
 
-static InspectionBufferMultipleForList *InspectionBufferGetMulti(
+static InspectionBufferMultipleForList *SCInspectionBufferGetMulti(
         DetectEngineThreadCtx *det_ctx, const int list_id)
 {
     InspectionBufferMultipleForList *buffer = &det_ctx->multi_inspect.buffers[list_id];
@@ -81,7 +81,7 @@ InspectionBuffer *InspectionBufferMultipleForListGet(
         return NULL;
     }
 
-    InspectionBufferMultipleForList *fb = InspectionBufferGetMulti(det_ctx, list_id);
+    InspectionBufferMultipleForList *fb = SCInspectionBufferGetMulti(det_ctx, list_id);
 
     if (local_id >= fb->size) {
         uint32_t old_size = fb->size;
@@ -173,7 +173,7 @@ static inline void InspectionBufferSetupInternal(DetectEngineThreadCtx *det_ctx,
 {
 #ifdef DEBUG_VALIDATION
     DEBUG_VALIDATE_BUG_ON(buffer->multi);
-    DEBUG_VALIDATE_BUG_ON(buffer != InspectionBufferGet(det_ctx, list_id));
+    DEBUG_VALIDATE_BUG_ON(buffer != SCInspectionBufferGet(det_ctx, list_id));
 #endif
     if (buffer->inspect == NULL) {
 #ifdef UNITTESTS
@@ -194,7 +194,7 @@ void InspectionBufferSetup(DetectEngineThreadCtx *det_ctx, const int list_id,
 }
 
 /** \brief setup the buffer with our initial data */
-void InspectionBufferSetupAndApplyTransforms(DetectEngineThreadCtx *det_ctx, const int list_id,
+void SCInspectionBufferSetupAndApplyTransforms(DetectEngineThreadCtx *det_ctx, const int list_id,
         InspectionBuffer *buffer, const uint8_t *data, const uint32_t data_len,
         const DetectEngineTransforms *transforms)
 {

@@ -2109,7 +2109,7 @@ InspectionBuffer *DetectGetSingleData(struct DetectEngineThreadCtx_ *det_ctx,
         const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
         const int list_id, InspectionSingleBufferGetDataPtr GetBuf)
 {
-    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    InspectionBuffer *buffer = SCInspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
         const uint8_t *b = NULL;
         uint32_t b_len = 0;
@@ -2117,7 +2117,7 @@ InspectionBuffer *DetectGetSingleData(struct DetectEngineThreadCtx_ *det_ctx,
         if (!GetBuf(txv, flow_flags, &b, &b_len))
             return NULL;
 
-        InspectionBufferSetupAndApplyTransforms(det_ctx, list_id, buffer, b, b_len, transforms);
+        SCInspectionBufferSetupAndApplyTransforms(det_ctx, list_id, buffer, b, b_len, transforms);
     }
     return buffer;
 }

@@ -151,14 +151,14 @@ static InspectionBuffer *GetBuffer1ForTX(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
         const int list_id)
 {
-    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    InspectionBuffer *buffer = SCInspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
         uint32_t rawdata_len = 0;
         uint8_t *rawdata = GetBufferForTX(txv, det_ctx, flow_flags, &rawdata_len);
         if (rawdata_len == 0)
             return NULL;
 
-        InspectionBufferSetupAndApplyTransforms(
+        SCInspectionBufferSetupAndApplyTransforms(
                 det_ctx, list_id, buffer, rawdata, rawdata_len, transforms);
     }
 

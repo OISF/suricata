@@ -695,6 +695,18 @@ pub struct DetectEngineThreadCtx_ {
     _unused: [u8; 0],
 }
 pub type DetectEngineThreadCtx = DetectEngineThreadCtx_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct DetectEngineTransforms {
+    _unused: [u8; 0],
+}
+extern "C" {
+    pub fn SCInspectionBufferSetupAndApplyTransforms(
+        det_ctx: *mut DetectEngineThreadCtx, list_id: ::std::os::raw::c_int,
+        buffer: *mut InspectionBuffer, data: *const u8, data_len: u32,
+        transforms: *const DetectEngineTransforms,
+    );
+}
 extern "C" {
     pub fn SCInspectionBufferCheckAndExpand(
         buffer: *mut InspectionBuffer, min_size: u32,
@@ -703,12 +715,27 @@ extern "C" {
 extern "C" {
     pub fn SCInspectionBufferTruncate(buffer: *mut InspectionBuffer, buf_len: u32);
 }
+extern "C" {
+    pub fn SCInspectionBufferGet(
+        det_ctx: *mut DetectEngineThreadCtx, list_id: ::std::os::raw::c_int,
+    ) -> *mut InspectionBuffer;
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct SigMatchCtx_ {
     _unused: [u8; 0],
 }
 pub type SigMatchCtx = SigMatchCtx_;
+pub type InspectionBufferGetDataPtr = ::std::option::Option<
+    unsafe extern "C" fn(
+        det_ctx: *mut DetectEngineThreadCtx_,
+        transforms: *const DetectEngineTransforms,
+        f: *mut Flow,
+        flow_flags: u8,
+        txv: *mut ::std::os::raw::c_void,
+        list_id: ::std::os::raw::c_int,
+    ) -> *mut InspectionBuffer,
+>;
 pub type InspectionMultiBufferGetDataPtr = ::std::option::Option<
     unsafe extern "C" fn(
         det_ctx: *mut DetectEngineThreadCtx_,
@@ -840,6 +867,12 @@ extern "C" {
     pub fn SCDetectHelperBufferMpmRegister(
         name: *const ::std::os::raw::c_char, desc: *const ::std::os::raw::c_char,
         alproto: AppProto, direction: u8, GetData: InspectionSingleBufferGetDataPtr,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCDetectRegisterMpmGeneric(
+        name: *const ::std::os::raw::c_char, desc: *const ::std::os::raw::c_char,
+        alproto: AppProto, direction: u8, GetData: InspectionBufferGetDataPtr,
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {

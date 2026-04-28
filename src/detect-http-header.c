@@ -147,7 +147,7 @@ static InspectionBuffer *GetBuffer2ForTX(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f, const uint8_t flow_flags, void *txv,
         const int list_id)
 {
-    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    InspectionBuffer *buffer = SCInspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
         uint32_t b_len = 0;
         const uint8_t *b = NULL;
@@ -160,7 +160,7 @@ static InspectionBuffer *GetBuffer2ForTX(DetectEngineThreadCtx *det_ctx,
         if (b == NULL || b_len == 0)
             return NULL;
 
-        InspectionBufferSetupAndApplyTransforms(det_ctx, list_id, buffer, b, b_len, transforms);
+        SCInspectionBufferSetupAndApplyTransforms(det_ctx, list_id, buffer, b, b_len, transforms);
     }
 
     return buffer;
@@ -170,11 +170,11 @@ static InspectionBuffer *GetData1(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f, const uint8_t flags, void *txv,
         const int list_id)
 {
-    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    InspectionBuffer *buffer = SCInspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
         uint32_t data_len = 0;
         uint8_t *data = GetBufferForTX(txv, det_ctx, flags, &data_len);
-        InspectionBufferSetupAndApplyTransforms(
+        SCInspectionBufferSetupAndApplyTransforms(
                 det_ctx, list_id, buffer, data, data_len, transforms);
     }
 
@@ -205,7 +205,7 @@ static void PrefilterMpmHttpHeader(DetectEngineThreadCtx *det_ctx, const void *p
     SCLogDebug("running on list %d", ctx->list_id);
 
     const int list_id = ctx->list_id;
-    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    InspectionBuffer *buffer = SCInspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
         uint32_t rawdata_len = 0;
         uint8_t *rawdata = GetBufferForTX(txv, det_ctx, flags, &rawdata_len);
@@ -213,7 +213,7 @@ static void PrefilterMpmHttpHeader(DetectEngineThreadCtx *det_ctx, const void *p
             return;
 
         /* setup buffer and apply transforms */
-        InspectionBufferSetupAndApplyTransforms(
+        SCInspectionBufferSetupAndApplyTransforms(
                 det_ctx, list_id, buffer, rawdata, rawdata_len, ctx->transforms);
     }
 

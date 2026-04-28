@@ -205,7 +205,7 @@ static InspectionBuffer *GetRandomTimeData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
         const int list_id)
 {
-    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    InspectionBuffer *buffer = SCInspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
         const SSLState *ssl_state = (SSLState *)f->alstate;
         if (flow_flags & STREAM_TOSERVER) {
@@ -221,7 +221,7 @@ static InspectionBuffer *GetRandomTimeData(DetectEngineThreadCtx *det_ctx,
         } else {
             data = ssl_state->server_connp.random;
         }
-        InspectionBufferSetupAndApplyTransforms(
+        SCInspectionBufferSetupAndApplyTransforms(
                 det_ctx, list_id, buffer, data, DETECT_TLS_RANDOM_TIME_LEN, transforms);
     }
     return buffer;
@@ -231,7 +231,7 @@ static InspectionBuffer *GetRandomBytesData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
         const int list_id)
 {
-    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    InspectionBuffer *buffer = SCInspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
         const SSLState *ssl_state = (SSLState *)f->alstate;
         if (flow_flags & STREAM_TOSERVER) {
@@ -247,7 +247,7 @@ static InspectionBuffer *GetRandomBytesData(DetectEngineThreadCtx *det_ctx,
         } else {
             data = ssl_state->server_connp.random + DETECT_TLS_RANDOM_TIME_LEN;
         }
-        InspectionBufferSetupAndApplyTransforms(
+        SCInspectionBufferSetupAndApplyTransforms(
                 det_ctx, list_id, buffer, data, DETECT_TLS_RANDOM_BYTES_LEN, transforms);
     }
     return buffer;
@@ -257,7 +257,7 @@ static InspectionBuffer *GetRandomData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
         const int list_id)
 {
-    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    InspectionBuffer *buffer = SCInspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
         const SSLState *ssl_state = (SSLState *)f->alstate;
         if (flow_flags & STREAM_TOSERVER) {
@@ -273,7 +273,7 @@ static InspectionBuffer *GetRandomData(DetectEngineThreadCtx *det_ctx,
         } else {
             data = ssl_state->server_connp.random;
         }
-        InspectionBufferSetupAndApplyTransforms(
+        SCInspectionBufferSetupAndApplyTransforms(
                 det_ctx, list_id, buffer, data, TLS_RANDOM_LEN, transforms);
     }
     return buffer;

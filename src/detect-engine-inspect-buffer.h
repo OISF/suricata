@@ -56,7 +56,7 @@ typedef struct SigMatch_ SigMatch;
 void InspectionBufferInit(InspectionBuffer *buffer, uint32_t initial_size);
 void InspectionBufferSetup(DetectEngineThreadCtx *det_ctx, const int list_id,
         InspectionBuffer *buffer, const uint8_t *data, const uint32_t data_len);
-void InspectionBufferSetupAndApplyTransforms(DetectEngineThreadCtx *det_ctx, const int list_id,
+void SCInspectionBufferSetupAndApplyTransforms(DetectEngineThreadCtx *det_ctx, const int list_id,
         InspectionBuffer *buffer, const uint8_t *data, const uint32_t data_len,
         const DetectEngineTransforms *transforms);
 void InspectionBufferFree(InspectionBuffer *buffer);
@@ -66,7 +66,7 @@ void InspectionBufferCopy(InspectionBuffer *buffer, uint8_t *buf, uint32_t buf_l
 void InspectionBufferApplyTransforms(DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer,
         const DetectEngineTransforms *transforms);
 void InspectionBufferClean(DetectEngineThreadCtx *det_ctx);
-InspectionBuffer *InspectionBufferGet(DetectEngineThreadCtx *det_ctx, const int list_id);
+InspectionBuffer *SCInspectionBufferGet(DetectEngineThreadCtx *det_ctx, const int list_id);
 void InspectionBufferSetupMultiEmpty(InspectionBuffer *buffer);
 void InspectionBufferSetupMulti(DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer,
         const DetectEngineTransforms *transforms, const uint8_t *data, const uint32_t data_len);

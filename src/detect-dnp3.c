@@ -56,7 +56,7 @@ static InspectionBuffer *GetDNP3Data(DetectEngineThreadCtx *det_ctx,
         void *txv, const int list_id)
 {
     SCLogDebug("list_id %d", list_id);
-    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    InspectionBuffer *buffer = SCInspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
         DNP3Transaction *tx = (DNP3Transaction *)txv;
         SCLogDebug("tx %p", tx);
@@ -71,7 +71,7 @@ static InspectionBuffer *GetDNP3Data(DetectEngineThreadCtx *det_ctx,
         }
 
         SCLogDebug("tx %p data %p data_len %u", tx, tx->buffer, tx->buffer_len);
-        InspectionBufferSetupAndApplyTransforms(
+        SCInspectionBufferSetupAndApplyTransforms(
                 det_ctx, list_id, buffer, tx->buffer, tx->buffer_len, transforms);
     }
     return buffer;

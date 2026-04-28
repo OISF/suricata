@@ -96,7 +96,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
 {
     SCEnter();
 
-    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    InspectionBuffer *buffer = SCInspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
         if (!PacketIsUDP(p)) {
             return NULL;
@@ -109,7 +109,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
             return NULL;
         }
 
-        InspectionBufferSetupAndApplyTransforms(
+        SCInspectionBufferSetupAndApplyTransforms(
                 det_ctx, list_id, buffer, (const uint8_t *)udph, UDP_HEADER_LEN, transforms);
     }
 
