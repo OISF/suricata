@@ -64,6 +64,13 @@ static void *LuaAlloc(void *ud, void *ptr, size_t osize, size_t nsize)
         return NULL;
     } else if (ptr == NULL) {
         /* Allocating new data. */
+        if (ctx->alloc_limit != 0 && ctx->alloc_bytes + nsize > ctx->alloc_limit) {
+            /* This request will exceed the allocation limit. Act as
+             * though allocation failed. */
+            ctx->memory_limit_error = true;
+            return NULL;
+        }
+
         void *nptr = SCRealloc(ptr, nsize);
         if (nptr != NULL) {
             ctx->alloc_bytes += nsize;
