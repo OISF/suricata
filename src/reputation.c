@@ -373,8 +373,6 @@ int SRepLoadCatFileFromFD(FILE *fp)
         if (line[0] == '\n' || line [0] == '\r' || line[0] == ' ' || line[0] == '#' || line[0] == '\t')
             continue;
 
-        while (isspace((unsigned char)line[--len]));
-
         /* Check if we have a trailing newline, and remove it */
         len = strlen(line);
         if (len == 0)
@@ -432,8 +430,6 @@ int SRepLoadFileFromFD(SRepCIDRTree *cidr_ctx, FILE *fp)
         /* ignore comments and empty lines */
         if (line[0] == '\n' || line [0] == '\r' || line[0] == ' ' || line[0] == '#' || line[0] == '\t')
             continue;
-
-        while (isspace((unsigned char)line[--len]));
 
         /* Check if we have a trailing newline, and remove it */
         len = strlen(line);
