@@ -51,7 +51,6 @@ pub enum SIPFrameType {
 
 #[derive(AppLayerEvent)]
 pub enum SIPEvent {
-    IncompleteData,
     InvalidData,
 }
 
@@ -147,7 +146,6 @@ impl SIPState {
             }
             // app-layer-frame-documentation tag end: parse_request
             Err(Err::Incomplete(_)) => {
-                self.set_event(SIPEvent::IncompleteData);
                 return AppLayerResult::err();
             }
             Err(_) => {
@@ -246,7 +244,6 @@ impl SIPState {
                 return AppLayerResult::ok();
             }
             Err(Err::Incomplete(_)) => {
-                self.set_event(SIPEvent::IncompleteData);
                 return AppLayerResult::err();
             }
             Err(_) => {
