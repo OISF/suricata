@@ -354,6 +354,17 @@ static int SRepLoadCatFile(const char *filename)
     return r;
 }
 
+static inline size_t GetEffectiveLineLen(const char *line)
+{
+    size_t len = strlen(line);
+    /* ignore comments and empty lines */
+    if (len == 0 || line[0] == '\n' || line[0] == '\r' || line[0] == ' ' || line[0] == '#' ||
+            line[0] == '\t')
+        return 0;
+
+    return len;
+}
+
 int SRepLoadCatFileFromFD(FILE *fp)
 {
     char line[8192] = "";
@@ -365,19 +376,11 @@ int SRepLoadCatFileFromFD(FILE *fp)
     BUG_ON(SRepGetVersion() > 0);
 
     while(fgets(line, (int)sizeof(line), fp) != NULL) {
-        size_t len = strlen(line);
+        size_t len = GetEffectiveLineLen(line);
         if (len == 0)
-            continue;
-
-        /* ignore comments and empty lines */
-        if (line[0] == '\n' || line [0] == '\r' || line[0] == ' ' || line[0] == '#' || line[0] == '\t')
             continue;
 
         /* Check if we have a trailing newline, and remove it */
-        len = strlen(line);
-        if (len == 0)
-            continue;
-
         if (line[len - 1] == '\n' || line[len - 1] == '\r') {
             line[len - 1] = '\0';
         }
@@ -423,19 +426,11 @@ int SRepLoadFileFromFD(SRepCIDRTree *cidr_ctx, FILE *fp)
     char line[8192] = "";
 
     while(fgets(line, (int)sizeof(line), fp) != NULL) {
-        size_t len = strlen(line);
+        size_t len = GetEffectiveLineLen(line);
         if (len == 0)
-            continue;
-
-        /* ignore comments and empty lines */
-        if (line[0] == '\n' || line [0] == '\r' || line[0] == ' ' || line[0] == '#' || line[0] == '\t')
             continue;
 
         /* Check if we have a trailing newline, and remove it */
-        len = strlen(line);
-        if (len == 0)
-            continue;
-
         if (line[len - 1] == '\n' || line[len - 1] == '\r') {
             line[len - 1] = '\0';
         }
