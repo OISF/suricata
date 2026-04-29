@@ -4473,19 +4473,39 @@
             "properties": {
                 "mode": {
                     "type": "integer",
-                    "description": "The mode of the NTP message"
+                    "description": "The mode of the NTP message",
+                    "suricata": {
+                        "keywords": [
+                            "ntp.mode"
+                        ]
+                    }
                 },
                 "reference_id": {
                     "type": "string",
-                    "description": "Identifies specific server or reference clock as a colon-separated 4-byte hex string"
+                    "description": "Identifies specific server or reference clock as a colon-separated 4-byte hex string",
+                    "suricata": {
+                        "keywords": [
+                            "ntp.reference_id"
+                        ]
+                    }
                 },
                 "stratum": {
                     "type": "integer",
-                    "description": "Indicates distance from the reference clock"
+                    "description": "Indicates distance from the reference clock",
+                    "suricata": {
+                        "keywords": [
+                            "ntp.stratum"
+                        ]
+                    }
                 },
                 "version": {
                     "type": "integer",
-                    "description": "The NTP version number, typically 3 or 4"
+                    "description": "The NTP version number, typically 3 or 4",
+                    "suricata": {
+                        "keywords": [
+                            "ntp.version"
+                        ]
+                    }
                 }
             }
         },
