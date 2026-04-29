@@ -1,0 +1,7 @@
+# BitTorrent DHT app layer event rules
+#
+# SID's fall in the 2243000+ range. See https://redmine.openinfosecfoundation.org/projects/suricata/wiki/AppLayer
+#
+# These sigs fire at most once per connection.
+#
+alert bittorrent-dht any any -> any any (msg:"SURICATA BitTorrent DHT malformed packet"; app-layer-event:bittorrent-dht.malformed_packet; classtype:protocol-command-decode; sid:2243000; rev:1;)
