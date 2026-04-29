@@ -1,0 +1,9 @@
+# SNMP app layer event rules
+#
+# SID's fall in the 2238000+ range. See https://redmine.openinfosecfoundation.org/projects/suricata/wiki/AppLayer
+#
+# These sigs fire at most once per connection.
+#
+alert snmp any any -> any any (msg:"SURICATA SNMP malformed data"; app-layer-event:snmp.malformed_data; classtype:protocol-command-decode; sid:2238000; rev:1;)
+alert snmp any any -> any any (msg:"SURICATA SNMP unknown security model"; app-layer-event:snmp.unknown_security_model; classtype:protocol-command-decode; sid:2238001; rev:1;)
+alert snmp any any -> any any (msg:"SURICATA SNMP version mismatch"; app-layer-event:snmp.version_mismatch; classtype:protocol-command-decode; sid:2238002; rev:1;)

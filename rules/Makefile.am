@@ -25,6 +25,7 @@ quic-events.rules \
 rfb-events.rules \
 smb-events.rules \
 smtp-events.rules \
+snmp-events.rules \
 ssh-events.rules \
 stream-events.rules \
 tls-events.rules \
