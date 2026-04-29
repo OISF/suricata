@@ -1633,7 +1633,8 @@ static enum DetectTxFirewallFlowControl DetectRunTxPreCheckFirewallPolicy(
  * \param skip_before_progress progress value to skip rules before.
  * Only used if `skip_fw_hook` is set.
  *
- * \param last_for_progress[out] set to true if this is the last rule for a progress value
+ * \param fw_last_for_progress[out] set to true if this is the last firewall rule for a progress
+ * value
  *
  * \param fw_next_progress_missing[out] set to true if the next fw rule does not target the next
  * progress value, or there is no fw rule for that value.
@@ -1645,7 +1646,8 @@ static enum DetectTxFirewallFlowControl DetectRunTxPreCheckFirewallPolicy(
 static enum DetectTxFirewallFlowControl DetectRunTxCheckFirewallPolicy(
         DetectEngineThreadCtx *det_ctx, Packet *p, Flow *f, DetectTransaction *tx,
         const Signature *s, const uint32_t can_idx, const uint32_t can_size, bool *skip_fw_hook,
-        const uint8_t skip_before_progress, bool *last_for_progress, bool *fw_next_progress_missing)
+        const uint8_t skip_before_progress, bool *fw_last_for_progress,
+        bool *fw_next_progress_missing)
 {
     if (s->flags & SIG_FLAG_FIREWALL) {
         /* check if the next sig is on the same progress hook. If not, we need to apply our
@@ -1664,7 +1666,7 @@ static enum DetectTxFirewallFlowControl DetectRunTxCheckFirewallPolicy(
                     SCLogDebug("peek: next sid progress %u != current progress %u, so current "
                                "is last for progress",
                             next_s->app_progress_hook, s->app_progress_hook);
-                    *last_for_progress = true;
+                    *fw_last_for_progress = true;
 
                     if (next_s->app_progress_hook - s->app_progress_hook > 1) {
                         SCLogDebug("peek: missing progress, so we'll drop that unless we get a "
@@ -1674,7 +1676,7 @@ static enum DetectTxFirewallFlowControl DetectRunTxCheckFirewallPolicy(
                 }
             } else {
                 SCLogDebug("peek: next sid not a fw rule, so current is last for progress");
-                *last_for_progress = true;
+                *fw_last_for_progress = true;
             }
         } else {
             SCLogDebug("peek: no peek beyond last rule");
@@ -1682,7 +1684,7 @@ static enum DetectTxFirewallFlowControl DetectRunTxCheckFirewallPolicy(
                 SCLogDebug("peek: there are no rules to allow the state after this rule");
                 *fw_next_progress_missing = true;
             }
-            *last_for_progress = true;
+            *fw_last_for_progress = true;
         }
 
         if ((*skip_fw_hook) == true) {
@@ -2040,11 +2042,11 @@ static void DetectRunTx(ThreadVars *tv,
                 SCLogDebug("%p/%"PRIu64" Start sid %u", tx.tx_ptr, tx.tx_id, s->id);
             }
 
-            bool last_for_progress = false;
+            bool fw_last_for_progress = false;
             if (have_fw_rules) {
                 const enum DetectTxFirewallFlowControl fw_r = DetectRunTxCheckFirewallPolicy(
                         det_ctx, p, f, &tx, s, i, array_idx, &skip_fw_hook, skip_before_progress,
-                        &last_for_progress, &fw_next_progress_missing);
+                        &fw_last_for_progress, &fw_next_progress_missing);
                 if (fw_r == DETECT_TX_FW_FC_SKIP)
                     continue;
                 else if (fw_r == DETECT_TX_FW_FC_BREAK)
@@ -2078,10 +2080,10 @@ static void DetectRunTx(ThreadVars *tv,
                 }
                 AlertQueueAppend(det_ctx, s, p, tx.tx_id, alert_flags);
 
-            } else if (last_for_progress) {
-                SCLogDebug("sid %u: not a match: %s rule, last_for_progress %s", s->id,
+            } else if (fw_last_for_progress) {
+                SCLogDebug("sid %u: not a match: %s rule, fw_last_for_progress %s", s->id,
                         (s->flags & SIG_FLAG_FIREWALL) ? "firewall" : "regular",
-                        BOOL2STR(last_for_progress));
+                        BOOL2STR(fw_last_for_progress));
                 if (s->flags & SIG_FLAG_FIREWALL) {
                     SCLogDebug("%" PRIu64 ": %s default drop for progress", PcapPacketCntGet(p),
                             flow_flags & STREAM_TOSERVER ? "toserver" : "toclient");
