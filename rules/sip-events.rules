@@ -1,0 +1,7 @@
+# SIP app layer event rules
+#
+# SID's fall in the 2239000+ range. See https://redmine.openinfosecfoundation.org/projects/suricata/wiki/AppLayer
+#
+# These sigs fire at most once per connection.
+#
+alert sip any any -> any any (msg:"SURICATA SIP invalid data"; app-layer-event:sip.invalid_data; classtype:protocol-command-decode; sid:2239000; rev:1;)
