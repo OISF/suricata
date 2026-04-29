@@ -23,6 +23,7 @@ pgsql-events.rules \
 pop3-events.rules \
 quic-events.rules \
 rfb-events.rules \
+sip-events.rules \
 smb-events.rules \
 smtp-events.rules \
 snmp-events.rules \
