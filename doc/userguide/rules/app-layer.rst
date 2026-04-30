@@ -181,7 +181,43 @@ file.LZMA_UNKNOWN_ERROR
 
 LZMA decompression failed with an unrecognised error code.
 
+.. _rule-keyword-detect-event:
 
+detect-event
+------------
+
+Match on events raised by the detect engine itself.  Unlike
+``app-layer-event``, these events are not tied to an application-layer
+protocol and can fire on any traffic, including flows where no app-layer
+parser is active (e.g. bare SCTP).
+
+Syntax::
+
+  detect-event:<event name>;
+
+Examples::
+
+    detect-event:TOO_MANY_BUFFERS;
+    detect-event:POST_MATCH_QUEUE_FAILED;
+
+Event names are case-insensitive.
+
+These events are transient: they are reset at the start of every detection
+run and do not persist across packets.  A rule using ``detect-event`` stays
+eligible for re-evaluation on every subsequent packet in the flow.
+
+TOO_MANY_BUFFERS
+~~~~~~~~~~~~~~~~
+
+The detect engine reached its per-packet limit on the number of inspection
+buffers.  This can indicate an unusually complex or adversarially crafted
+request that is stressing the detection engine.
+
+POST_MATCH_QUEUE_FAILED
+~~~~~~~~~~~~~~~~~~~~~~~
+
+A post-match action (e.g. storing a file or marking a flow) could not be
+queued because the internal post-match queue is full.
 
 app-layer-state
 ---------------
