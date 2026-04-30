@@ -1311,7 +1311,7 @@ endif
 # force usage of CXX for linker
 nodist_EXTRA_fuzz_applayerparserparse_SOURCES = force-cxx-linking.cxx
 
-fuzz_siginit_SOURCES = tests/fuzz/fuzz_siginit.c
+fuzz_siginit_SOURCES = tests/fuzz/fuzz_siginit.c tests/fuzz/confyaml.c
 fuzz_siginit_LDFLAGS = $(LDFLAGS_FUZZ)
 fuzz_siginit_LDADD = $(LDADD_FUZZ)
 fuzz_siginit_DEPENDENCIES = libsuricata_c.a $(RUST_SURICATA_LIB)
