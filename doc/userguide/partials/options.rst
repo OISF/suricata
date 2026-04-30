@@ -216,11 +216,12 @@
 
 .. option:: --strict-rule-keywords[=all|<keyword>|<keywords(csv)]
 
-   Applies to: classtype, reference and app-layer-event.
+   Applies to: classtype, reference, app-layer-event and detect-event.
 
    By default missing reference or classtype values are warnings and
-   not errors. Additionally, loading outdated app-layer-event events are
-   also not treated as errors, but as warnings instead.
+   not errors. Additionally, loading outdated or unknown app-layer-event
+   and detect-event events are also not treated as errors, but as warnings
+   instead.
 
    If this option is enabled these warnings are considered errors.
 
