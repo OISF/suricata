@@ -35,7 +35,7 @@ pub enum FtpEvent {
 pub unsafe extern "C" fn ftp_get_event_info(
     event_name: *const c_char, event_id: *mut u8, event_type: *mut AppLayerEventType,
 ) -> c_int {
-    crate::applayer::get_event_info::<FtpEvent>(event_name, event_id, event_type)
+    suricata_ffi::applayer::get_event_info::<FtpEvent>(event_name, event_id, event_type)
 }
 
 /// Wrapper around the Rust generic function for get_event_info_by_id.
@@ -46,5 +46,5 @@ pub unsafe extern "C" fn ftp_get_event_info(
 pub unsafe extern "C" fn ftp_get_event_info_by_id(
     event_id: u8, event_name: *mut *const c_char, event_type: *mut AppLayerEventType,
 ) -> c_int {
-    crate::applayer::get_event_info_by_id::<FtpEvent>(event_id, event_name, event_type) as c_int
+    suricata_ffi::applayer::get_event_info_by_id::<FtpEvent>(event_id, event_name, event_type) as c_int
 }
