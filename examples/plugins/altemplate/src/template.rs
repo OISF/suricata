@@ -26,9 +26,9 @@ use std;
 use std::collections::VecDeque;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_int, c_void};
-use suricata::applayer::{AppLayerEvent, AppLayerTxData};
+use suricata::applayer::AppLayerTxData;
 use suricata_ffi::applayer::{
-    state_get_tx_iterator, AppLayerResultRust, State, StreamSliceRust, Transaction,
+    state_get_tx_iterator, AppLayerEvent, AppLayerResultRust, State, StreamSliceRust, Transaction,
     APP_LAYER_PARSER_EOF_TC, APP_LAYER_PARSER_EOF_TS, APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
 };
 use suricata_ffi::conf::conf_get;

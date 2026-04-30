@@ -1595,6 +1595,7 @@ dependencies = [
 name = "suricata-ffi"
 version = "9.0.0-dev"
 dependencies = [
+ "suricata-derive",
  "suricata-sys",
 ]
 

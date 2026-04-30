@@ -7,6 +7,8 @@ description = "Nice wrappers around Suricata C interface"
 
 [dependencies]
 suricata-sys = { path = "../sys" }
+suricata-derive = { path = "../derive" }
 
 [features]
 debug = []
+debug-validate = []
