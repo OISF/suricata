@@ -8,6 +8,13 @@ If you believe you found a vulnerability, please report it to us as described
 in this document.
 
 
+## Support Status of affected code
+
+4 levels are defined: *Tier 1*, *Tier 2*, *Community* and *Unmaintained*.
+
+These are documented in https://docs.suricata.io/en/latest/support-status.html
+
+
 ## Severity Levels
 
 We will determine the severity of each issue, taking into account our
@@ -40,9 +47,11 @@ backported to older versions that are still getting updates. These will be
 part of the Changelog as a security ticket, but they may not trigger new
 releases.
 
-Note that we'll be refining the levels based on our experiences with applying them
+[!NOTE]
+We'll be refining the levels based on our experiences with applying them
 to actual issues.
 
+[!NOTE]
 We will review the security level considering both IDS and IPS scenarios.
 
 ## CVE ID's and Github Security Advisories (GHSA)
@@ -50,17 +59,10 @@ We will review the security level considering both IDS and IPS scenarios.
 We will request a CVE ID for an issue if appropriate. Note that multiple
 issues may share the same CVE ID.
 
-We work with the Github CNA, through the Github Security Advisory (GHSA) facility.
+We work with the GitHub CNA, through the GitHub Security Advisory (GHSA) facility.
 
 The GHSA's will be published at least 2 weeks after the public release addressing
-the issue, together with the redmine security tickets.
-
-## Support Status of affected code
-
-4 levels are defined: Tier 1, Tier 2, Community and Unmaintained.
-
-These are documented in https://docs.suricata.io/en/latest/support-status.html
-
+the issue, together with the Redmine security tickets.
 
 ## Scope
 
@@ -87,7 +89,7 @@ a public release addressing the issue.
 
 We will acknowledge you in the release notes, release announcement and GHSA. If you
 do not want this, please clearly state this. For the GHSA credits, please give us
-your github handle.
+your GitHub handle.
 
 Do not request a CVE ID. We will do it after confirming the issue.
 
