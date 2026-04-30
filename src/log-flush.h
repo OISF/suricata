@@ -23,4 +23,5 @@
 #ifndef SURICATA_LOG_FLUSH_H__
 #define SURICATA_LOG_FLUSH_H__
 void LogFlushThreads(void);
+int OutputFlushInterval(void);
 #endif /* SURICATA_LOG_FLUSH_H__ */
