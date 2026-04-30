@@ -53,6 +53,8 @@ static void DetectPktDataTestRegister(void);
 void DetectPktDataRegister(void)
 {
     sigmatch_table[DETECT_PKT_DATA].name = "pkt_data";
+    sigmatch_table[DETECT_PKT_DATA].desc = "reset the detection cursor to the raw packet data";
+    sigmatch_table[DETECT_PKT_DATA].url = "/rules/payload-keywords.html#pkt-data";
     sigmatch_table[DETECT_PKT_DATA].Setup = DetectPktDataSetup;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_PKT_DATA].RegisterTests = DetectPktDataTestRegister;

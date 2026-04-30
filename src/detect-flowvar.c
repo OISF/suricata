@@ -54,6 +54,8 @@ static void DetectFlowvarDataFree(DetectEngineCtx *, void *ptr);
 void DetectFlowvarRegister (void)
 {
     sigmatch_table[DETECT_FLOWVAR].name = "flowvar";
+    sigmatch_table[DETECT_FLOWVAR].desc = "match on or store a flow-associated named variable";
+    sigmatch_table[DETECT_FLOWVAR].url = "/rules/flow-keywords.html#flowvar";
     sigmatch_table[DETECT_FLOWVAR].Match = DetectFlowvarMatch;
     sigmatch_table[DETECT_FLOWVAR].Setup = DetectFlowvarSetup;
     sigmatch_table[DETECT_FLOWVAR].Free  = DetectFlowvarDataFree;

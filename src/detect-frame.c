@@ -191,6 +191,7 @@ void DetectFrameRegister(void)
 {
     sigmatch_table[DETECT_FRAME].name = "frame";
     sigmatch_table[DETECT_FRAME].desc = "sticky buffer for inspecting app-layer frames";
+    sigmatch_table[DETECT_FRAME].url = "/rules/app-layer.html#frame";
     sigmatch_table[DETECT_FRAME].Setup = DetectFrameSetup;
     sigmatch_table[DETECT_FRAME].flags = SIGMATCH_INFO_STICKY_BUFFER;
 #ifdef UNITTESTS
