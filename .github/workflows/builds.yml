@@ -387,6 +387,7 @@ jobs:
               rust/src/bittorrent_dht/*.rs rust/src/enip/*.rs rust/src/ffi/*.rs rust/src/ftp/*.rs
               rust/src/ldap/*.rs rust/src/mime/*.rs rust/src/ntp/*.rs rust/src/quic/*.rs
               rust/src/rfb/*.rs rust/src/ssh/*.rs rust/src/utils/*.rs rust/src/websocket/*.rs
+              rust/src/dhcp/*.rs rust/src/krb/*.rs rust/src/mdns/*.rs rust/src/pop3/*.rs
       - name: Check if Cargo.lock.in is up to date
         run: |
           cp rust/Cargo.lock rust/Cargo.lock.in
