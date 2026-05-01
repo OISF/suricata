@@ -130,6 +130,11 @@ static int DetectFrameSetup(DetectEngineCtx *de_ctx, Signature *s, const char *s
         strlcpy(buffer_name, str, sizeof(buffer_name));
         SCLogDebug("long name: %s", buffer_name);
     }
+    // make sure the buffer name is lowercase
+    // even if the protocol accepted case-insensitive frame name
+    for (size_t i = 0; i < sizeof(buffer_name) && buffer_name[i]; i++) {
+        buffer_name[i] = u8_tolower(buffer_name[i]);
+    }
 
     uint8_t frame_type = (uint8_t)raw_frame_type;
     /* TODO we can have TS and TC specific frames */
