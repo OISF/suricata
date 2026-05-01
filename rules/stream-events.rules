@@ -1,6 +1,6 @@
 # Stream events -- rules for matching on TCP stream engine events.
 #
-# SID's fall in the 2210000+ range. See http://doc.emergingthreats.net/bin/view/Main/SidAllocation
+# SID's fall in the 2210000+ range. See rules/README.md
 #
 alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake with ack in wrong dir"; stream-event:3whs_ack_in_wrong_dir; threshold:type backoff, track by_flow, count 1, multiplier 2; classtype:protocol-command-decode; sid:2210000; rev:3;)
 alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake async wrong sequence"; stream-event:3whs_async_wrong_seq; threshold:type backoff, track by_flow, count 1, multiplier 2; classtype:protocol-command-decode; sid:2210001; rev:3;)

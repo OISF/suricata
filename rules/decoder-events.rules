@@ -1,5 +1,6 @@
 # Decoder event signatures for Suricata.
-# SID's fall in the 2200000+ range. See http://doc.emergingthreats.net/bin/view/Main/SidAllocation
+# SID's fall in the 2200000+ range. See rules/README.md
+
 alert pkthdr any any -> any any (msg:"SURICATA IPv4 packet too small"; decode-event:ipv4.pkt_too_small; classtype:protocol-command-decode; sid:2200000; rev:2;)
 alert pkthdr any any -> any any (msg:"SURICATA IPv4 header size too small"; decode-event:ipv4.hlen_too_small; classtype:protocol-command-decode; sid:2200001; rev:2;)
 alert pkthdr any any -> any any (msg:"SURICATA IPv4 total length smaller than header size"; decode-event:ipv4.iplen_smaller_than_hlen; classtype:protocol-command-decode; sid:2200002; rev:2;)

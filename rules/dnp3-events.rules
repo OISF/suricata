@@ -1,7 +1,6 @@
 # DNP3 application decoder event rules.
 #
-# This SIDs fall in the 2270000+ range. See:
-#    http://doc.emergingthreats.net/bin/view/Main/SidAllocation
+# This SIDs fall in the 2270000+ range. See rules/README.md
 
 # Flooded.
 alert dnp3 any any -> any any (msg:"SURICATA DNP3 Request flood detected"; \

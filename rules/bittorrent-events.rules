@@ -1,6 +1,6 @@
 # BitTorrent DHT app layer event rules
 #
-# SID's fall in the 2243000+ range. See https://redmine.openinfosecfoundation.org/projects/suricata/wiki/AppLayer
+# SID's fall in the 2243000+ range. See rules/README.md
 #
 # These sigs fire at most once per connection.
 #

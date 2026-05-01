@@ -1,6 +1,6 @@
 # POP3 app-layer event rules
 #
-# SID's fall in the 2236000+ range. See https://redmine.openinfosecfoundation.org/projects/suricata/wiki/AppLayer
+# SID's fall in the 2236000+ range. See rules/README.md
 #
 alert pop3 any any -> any any (msg:"SURICATA POP3 Too many transactions"; app-layer-event:pop3.too_many_transactions; sid:2236000; rev:1;)
 alert pop3 any any -> any any (msg:"SURICATA POP3 Request Too Long"; app-layer-event:pop3.request_too_long; flow:to_server; sid:2236001; rev:1;)

@@ -1,5 +1,7 @@
 # Suricata Reserved SID Allocations
 
+See https://sidallocation.org/ for more information.
+
 Unless otherwise noted, each component or protocol is allocated 1000
 signature IDs.
 

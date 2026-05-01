@@ -1,6 +1,6 @@
 # App layer event rules
 #
-# SID's fall in the 2260000+ range. See http://doc.emergingthreats.net/bin/view/Main/SidAllocation
+# SID's fall in the 2260000+ range. See rules/README.md
 #
 # These sigs fire at most once per connection.
 #

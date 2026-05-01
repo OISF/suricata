@@ -1,8 +1,6 @@
 # MQTT app-layer event rules.
 #
-# These SIDs fall in the 2228000+ range. See:
-#    http://doc.emergingthreats.net/bin/view/Main/SidAllocation and
-#    https://redmine.openinfosecfoundation.org/projects/suricata/wiki/AppLayer
+# These SIDs fall in the 2228000+ range. See rules/README.md
 
 alert mqtt any any -> any any (msg:"SURICATA MQTT CONNECT not seen before CONNACK"; app-layer-event:mqtt.missing_connect; classtype:protocol-command-decode; sid:2229000; rev:1;)
 alert mqtt any any -> any any (msg:"SURICATA MQTT PUBLISH not seen before PUBACK/PUBREL/PUBREC/PUBCOMP"; app-layer-event:mqtt.missing_publish; classtype:protocol-command-decode; sid:2229001; rev:1;)
