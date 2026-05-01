@@ -62,7 +62,7 @@ jobs:
           cargo install --target x86_64-unknown-linux-musl --debug cbindgen
           cp $HOME/.cargo/bin/cbindgen .
       - name: Uploading prep archive
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: cbindgen
           path: .
@@ -632,13 +632,13 @@ jobs:
       # container name directly in an artifact, as artifacts can't
       # have ':' in the name.
       - if: ${{ matrix.container == 'fedora:43' &&  env.skip != 'true' }}
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         name: Uploading RPMs
         with:
           name: rpms-fedora-43
           path: suricata-rpms/devel/rpms
       - if: ${{ matrix.container == 'almalinux:9' && env.skip != 'true' }}
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         name: Uploading RPMs
         with:
           name: rpms-epel-9
@@ -922,7 +922,7 @@ jobs:
       - run: llvm-profdata merge -o default.profdata $(find suricata-verify/tests/ -name '*.profraw')
       - run: llvm-cov export ./src/suricata -instr-profile=default.profdata -format=lcov --ignore-filename-regex="^/(root|usr|rustc|github)/.*" --skip-branches > coverage.lcov
       - name: Upload coverage.lcov artifact
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: coverage-lcov-${{ github.job }}
           path: coverage.lcov
@@ -1624,7 +1624,7 @@ jobs:
       - run: llvm-profdata-19 merge -o ct.profdata /tmp/ct.profraw
       - run: llvm-cov-19 export $(find rust/target/debug/deps/ -type f -regex 'rust/target/debug/deps/suricata\-[a-z0-9]+$') -instr-profile=ct.profdata -format=lcov --ignore-filename-regex="^/(root|usr|rustc|github)/.*" --skip-branches >> coverage.lcov
       - name: Upload coverage.lcov artifact
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: coverage-lcov-${{ github.job }}
           path: coverage.lcov
@@ -1736,7 +1736,7 @@ jobs:
       - run: llvm-profdata-19 merge -o default.profdata $(find /tmp/ -name '*.profraw')
       - run: llvm-cov-19 export ./src/suricata -instr-profile=default.profdata -format=lcov --ignore-filename-regex="^/(root|usr|rustc|github)/.*" --skip-branches > coverage.lcov
       - name: Upload coverage.lcov artifact
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: coverage-lcov-${{ github.job }}
           path: coverage.lcov
@@ -1887,7 +1887,7 @@ jobs:
       - run: llvm-profdata-19 merge -o default.profdata $(find /tmp/ -name '*.profraw')
       - run: llvm-cov-19 export ./src/suricata -instr-profile=default.profdata -format=lcov --ignore-filename-regex="^/(root|usr|rustc|github)/.*" --skip-branches > coverage.lcov
       - name: Upload coverage.lcov artifact
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: coverage-lcov-${{ github.job }}
           path: coverage.lcov
@@ -2131,7 +2131,7 @@ jobs:
       - run: llvm-profdata-19 merge -o combined.profdata afp-ips.profdata nfq-ips.profdata afp-ips-autofp.profdata nfq-ips-workers.profdata afp-ips-bond1.profdata afp-ips-bond2.profdata afp-fw-netns-bridge.profdata nfq-fw-netns-route.profdata
       - run: llvm-cov-19 export ./src/suricata -instr-profile=combined.profdata -format=lcov --ignore-filename-regex="^(/github/home/.cargo/.*|/usr/.*|/rustc/.*)" --skip-branches > coverage.lcov
       - name: Upload coverage.lcov artifact
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: coverage-lcov-${{ github.job }}
           path: coverage.lcov
@@ -2349,7 +2349,7 @@ jobs:
       - run: llvm-profdata-19 merge -o default.profdata $(find /tmp/ -name '*.profraw')
       - run: llvm-cov-19 export ./src/suricata -instr-profile=default.profdata -format=lcov --ignore-filename-regex="^/(root|usr|rustc|github)/.*" --skip-branches > coverage.lcov
       - name: Upload coverage.lcov artifact
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: coverage-lcov-${{ github.job }}
           path: coverage.lcov
@@ -3151,7 +3151,7 @@ jobs:
         run: |
           mkdir dist
           mv suricata-*.tar.gz dist
-      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         name: Uploading distribution
         with:
           name: dist
