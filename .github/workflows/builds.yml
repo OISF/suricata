@@ -3064,6 +3064,7 @@ jobs:
       - run: make distcheck
         env:
           DISTCHECK_CONFIGURE_FLAGS: "--enable-unittests --enable-debug --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk --enable-ebpf --enable-ebpf-build"
+      - run: python3 scripts/check-dist-rules.py
       - run: test -e doc/userguide/suricata.1
       - run: test -e doc/userguide/userguide.pdf
       - name: Building Rust documentation

@@ -21,7 +21,15 @@ datasets:
 
 app-layer:
   protocols:
+    dnp3:
+      enabled: yes
+      detection-ports:
+        dp: 20000
     pgsql:
+      enabled: yes
+    enip:
+      enabled: yes
+    modbus:
       enabled: yes
 
 reputation-categories-file: scripts/docrules/docrulesrep.lst
