@@ -79,6 +79,7 @@ pub struct DetectUintArrayData<T> {
 
 fn parse_uint_index_precise(s: &str) -> IResult<&str, DetectUintIndex> {
     let (s, oob) = opt(tag("oob_or")).parse(s)?;
+    let (s, _explicit) = opt(tag("index")).parse(s)?;
     let (s, _) = opt(is_a(" ")).parse(s)?;
     let (s, i32_index) = nom_i32.parse(s)?;
     Ok((
@@ -91,7 +92,7 @@ fn parse_uint_index_precise(s: &str) -> IResult<&str, DetectUintIndex> {
 }
 
 fn parse_uint_index_nb(s: &str) -> IResult<&str, DetectUintIndex> {
-    let (s, _) = tag("nb").parse(s)?;
+    let (s, _) = alt((tag("nb"), tag("matches"))).parse(s)?;
     let (s, _) = opt(is_a(" ")).parse(s)?;
     let (s, du32) = detect_parse_uint::<u32>(s)?;
     Ok((s, DetectUintIndex::NumberMatches(du32)))
@@ -1068,6 +1069,7 @@ fn parse_multi_index(s: &str) -> Option<DetectUintIndex> {
         "all_or_absent" => Some(DetectUintIndex::AllOrAbsent),
         "any" => Some(DetectUintIndex::Any),
         "absent_or" => Some(DetectUintIndex::OrAbsent),
+        "any_or_absent" => Some(DetectUintIndex::OrAbsent),
         // not only a literal, but some numeric value
         _ => return parse_uint_index_val(s),
     }
