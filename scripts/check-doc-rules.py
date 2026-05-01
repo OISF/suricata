@@ -122,6 +122,7 @@ def check_rule_with_suricata(
             "-c", str(suricata_yaml),
             "--data-dir="+tmpdir,
             "-S", str(rule_file),
+            '--strict-rule-keywords=all',
             "-l", tmpdir,
         ]
         proc = subprocess.run(
