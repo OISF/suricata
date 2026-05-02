@@ -156,7 +156,7 @@ static int DatasetLoadIPv4(Dataset *set)
 int DatasetParseIpv6String(Dataset *set, const char *line, struct in6_addr *in6)
 {
     /* Checking IPv6 case */
-    char *got_colon = strchr(line, ':');
+    const char *got_colon = strchr(line, ':');
     if (got_colon) {
         uint32_t ip6addr[4];
         if (inet_pton(AF_INET6, line, in6) != 1) {
