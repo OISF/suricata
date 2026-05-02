@@ -248,7 +248,7 @@ const char *SCBasename(const char *path)
     if (!path || strlen(path) == 0)
         return NULL;
 
-    char *final = strrchr(path, DIRECTORY_SEPARATOR);
+    const char *final = strrchr(path, DIRECTORY_SEPARATOR);
     if (!final)
         return path;
 
