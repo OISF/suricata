@@ -764,7 +764,7 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
             }
 
             char name[256];
-            char *dot = strchr(DEvents[i].event_name, '.');
+            const char *dot = strchr(DEvents[i].event_name, '.');
             BUG_ON(!dot);
             snprintf(name, sizeof(name), "%s.%s",
                     stats_decoder_events_prefix, dot+1);
