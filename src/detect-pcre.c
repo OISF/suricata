@@ -416,9 +416,9 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
     bool apply_match_limit = false;
 
     int cut_capture = 0;
-    char *fcap = strstr(regexstr, "flow:");
-    char *pcap = strstr(regexstr, "pkt:");
-    char *acap = strstr(regexstr, "alert:");
+    const char *fcap = strstr(regexstr, "flow:");
+    const char *pcap = strstr(regexstr, "pkt:");
+    const char *acap = strstr(regexstr, "alert:");
     /* take the size of the whole input as buffer size for the regex we will
      * extract below. Add 1 to please Coverity's alloc_strlen test. */
     size_t slen = strlen(regexstr) + 1;
