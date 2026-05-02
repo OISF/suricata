@@ -663,7 +663,7 @@ static AppLayerResult SMTPGetLine(
     if (input->len <= 0)
         return APP_LAYER_ERROR;
 
-    uint8_t *lf_idx = memchr(input->buf + input->consumed, 0x0a, input->len);
+    const uint8_t *lf_idx = memchr(input->buf + input->consumed, 0x0a, input->len);
     bool discard_till_lf = (direction == 0) ? state->discard_till_lf_ts : state->discard_till_lf_tc;
 
     if (lf_idx == NULL) {
