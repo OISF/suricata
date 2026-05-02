@@ -563,7 +563,7 @@ static AppLayerResult SMTPGetLine(Flow *f, StreamSlice *slice, SMTPState *state,
     }
     SCLogDebug("frame %p", frame);
 
-    uint8_t *lf_idx = memchr(input->buf + input->consumed, 0x0a, input->len);
+    const uint8_t *lf_idx = memchr(input->buf + input->consumed, 0x0a, input->len);
     bool discard_till_lf = (direction == 0) ? state->discard_till_lf_ts : state->discard_till_lf_tc;
 
     if (lf_idx == NULL) {
