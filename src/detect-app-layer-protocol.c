@@ -157,7 +157,7 @@ static DetectAppLayerProtocolData *DetectAppLayerProtocolParse(const char *arg, 
     AppProto alproto = ALPROTO_UNKNOWN;
 
     char alproto_copy[MAX_ALPROTO_NAME];
-    char *sep = strchr(arg, ',');
+    const char *sep = strchr(arg, ',');
     char *alproto_name;
     if (sep && sep - arg < MAX_ALPROTO_NAME) {
         strlcpy(alproto_copy, arg, sep - arg + 1);
