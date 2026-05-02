@@ -275,7 +275,7 @@ static AppLayerResult FTPGetLineForDirection(
     if (input->len <= 0)
         return APP_LAYER_ERROR;
 
-    uint8_t *lf_idx = memchr(input->buf + input->consumed, 0x0a, input->len);
+    const uint8_t *lf_idx = memchr(input->buf + input->consumed, 0x0a, input->len);
 
     if (lf_idx == NULL) {
         if (!(*current_line_truncated) && (uint32_t)input->len >= ftp_max_line_len) {
@@ -1389,7 +1389,7 @@ uint16_t JsonGetNextLineFromBuffer(const char *buffer, const uint16_t len)
         return UINT16_MAX;
     }
 
-    char *c = strchr(buffer, '\n');
+    const char *c = strchr(buffer, '\n');
     return c == NULL ? len : (uint16_t)(c - buffer + 1);
 }
 
