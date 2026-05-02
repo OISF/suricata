@@ -818,7 +818,7 @@ static bool LogFileThreadedName(
     }
 
     /* Check if basename has an extension */
-    char *dot = strrchr(base, '.');
+    const char *dot = strrchr(base, '.');
     if (dot) {
         char *tname = SCStrdup(original_name);
         if (!tname) {
