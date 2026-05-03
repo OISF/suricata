@@ -21,7 +21,7 @@ use super::parser;
 use super::range;
 
 use crate::applayer::{self, *};
-use crate::conf::conf_get;
+use crate::conf::{conf_get, get_memval};
 use crate::core::*;
 use crate::filecontainer::*;
 use crate::filetracker::*;
@@ -67,6 +67,7 @@ pub static mut HTTP2_MAX_TABLESIZE: u32 = 65536; // 0x10000
 static mut HTTP2_MAX_REASS: usize = 102400;
 static mut HTTP2_MAX_STREAMS: usize = 4096; // 0x1000
 static mut HTTP2_MAX_FRAMES: usize = 65536;
+pub(super) static mut HTTP2_COMPRESSION_BOMB_LIMIT: u64 = 1_048_576;
 
 #[repr(u8)]
 #[derive(Copy, Clone, PartialOrd, PartialEq, Eq, Debug)]
@@ -394,8 +395,12 @@ impl HTTP2Transaction {
                 if padded && !rem.is_empty() && usize::from(rem[0]) < hlsafe {
                     dinput = &rem[1..hlsafe - usize::from(rem[0])];
                 }
-                if self.decompress(dinput, dir, sfcm, over, flow).is_err() {
-                    self.set_event(HTTP2Event::FailedDecompression);
+                if let Err(e) = self.decompress(dinput, dir, sfcm, over, flow) {
+                    if e.kind() == io::ErrorKind::OutOfMemory {
+                        self.set_event(HTTP2Event::CompressionBomb);
+                    } else {
+                        self.set_event(HTTP2Event::FailedDecompression);
+                    }
                 }
             }
             None => panic!("no SURICATA_HTTP2_FILE_CONFIG"),
@@ -433,6 +438,7 @@ pub enum HTTP2Event {
     ReassemblyLimitReached,
     DataStreamZero,
     TooManyFrames,
+    CompressionBomb,
 }
 
 pub struct HTTP2DynTable {
@@ -475,6 +481,9 @@ pub struct HTTP2State {
     transactions: VecDeque<HTTP2Transaction>,
     progress: HTTP2ConnectionState,
 
+    comp_len: u64,
+    decomp_len: u64,
+
     c2s_buf: HTTP2HeaderReassemblyBuffer,
     s2c_buf: HTTP2HeaderReassemblyBuffer,
 }
@@ -509,6 +518,8 @@ impl HTTP2State {
             dynamic_headers_tc: HTTP2DynTable::new(),
             transactions: VecDeque::new(),
             progress: HTTP2ConnectionState::Http2StateInit,
+            comp_len: 0,
+            decomp_len: 0,
             c2s_buf: HTTP2HeaderReassemblyBuffer::default(),
             s2c_buf: HTTP2HeaderReassemblyBuffer::default(),
         }
@@ -1081,6 +1092,7 @@ impl HTTP2State {
                         &mut reass_limit_reached,
                     );
 
+                    let (comp_len, decomp_len) = (self.comp_len, self.decomp_len);
                     let tx = self.find_or_create_tx(&head, &txdata, dir);
                     if tx.is_none() {
                         return AppLayerResult::err();
@@ -1111,6 +1123,28 @@ impl HTTP2State {
                         tx.tx_data.set_event(HTTP2Event::DataStreamZero as u8);
                     } else if ftype == parser::HTTP2FrameType::Data as u8 && sid > 0 {
                         tx.handle_data_frame(rem, hlsafe, dir, flow, padded, over);
+                        let (il, ol) = if dir == Direction::ToClient {
+                            (
+                                tx.decoder.decoder_tc.input_len,
+                                tx.decoder.decoder_tc.output_len,
+                            )
+                        } else {
+                            (
+                                tx.decoder.decoder_ts.input_len,
+                                tx.decoder.decoder_ts.output_len,
+                            )
+                        };
+                        let (il, ol) = (il + comp_len, ol + decomp_len);
+                        if ol > decompression::DEFAULT_BOMB_RATIO * il {
+                            if ol > unsafe { HTTP2_COMPRESSION_BOMB_LIMIT } {
+                                tx.set_event(HTTP2Event::CompressionBomb);
+                                return AppLayerResult::err();
+                            }
+                            if over {
+                                self.comp_len += il;
+                                self.decomp_len += ol;
+                            }
+                        }
                     }
                     input = &rem[hlsafe..];
                 }
@@ -1414,6 +1448,13 @@ pub unsafe extern "C" fn rs_http2_register_parser() {
                 HTTP2_MAX_REASS = v as usize;
             } else {
                 SCLogError!("Invalid value for http2.max-reassembly-size");
+            }
+        }
+        if let Some(val) = conf_get("app-layer.protocols.http2.compression-bomb-limit") {
+            if let Ok(v) = get_memval(val) {
+                HTTP2_COMPRESSION_BOMB_LIMIT = v;
+            } else {
+                SCLogWarning!("Invalid value for http2.compression-bomb-limit");
             }
         }
         SCLogDebug!("Rust http2 parser registered.");
