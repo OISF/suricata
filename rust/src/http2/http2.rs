@@ -22,7 +22,7 @@ use super::range;
 
 use super::range::{SCHTPFileCloseHandleRange, SCHttpRangeFreeBlock};
 use crate::applayer::{self, *};
-use crate::conf::conf_get;
+use crate::conf::{conf_get, get_memval};
 use crate::core::*;
 use crate::direction::Direction;
 use crate::dns::dns::DnsVariant;
@@ -81,6 +81,7 @@ pub static mut HTTP2_MAX_TABLESIZE: u32 = 65536; // 0x10000
 static mut HTTP2_MAX_REASS: usize = 102400;
 static mut HTTP2_MAX_STREAMS: usize = 4096; // 0x1000
 static mut HTTP2_MAX_FRAMES: usize = 65536;
+pub(super) static mut HTTP2_COMPRESSION_BOMB_LIMIT: u64 = 1_048_576;
 
 #[derive(AppLayerFrameType)]
 pub enum Http2FrameType {
@@ -519,8 +520,12 @@ impl HTTP2Transaction {
                             self.handle_dns_data(dir, flow);
                         }
                     }
-                    _ => {
-                        self.set_event(HTTP2Event::FailedDecompression);
+                    Err(e) => {
+                        if e.kind() == io::ErrorKind::OutOfMemory {
+                            self.set_event(HTTP2Event::CompressionBomb);
+                        } else {
+                            self.set_event(HTTP2Event::FailedDecompression);
+                        }
                     }
                 }
             }
@@ -561,6 +566,7 @@ pub enum HTTP2Event {
     DnsResponseTooLong,
     DataStreamZero,
     TooManyFrames,
+    CompressionBomb,
 }
 
 pub struct HTTP2DynTable {
@@ -603,6 +609,9 @@ pub struct HTTP2State {
     transactions: VecDeque<HTTP2Transaction>,
     progress: HTTP2ConnectionState,
 
+    comp_len: u64,
+    decomp_len: u64,
+
     c2s_buf: HTTP2HeaderReassemblyBuffer,
     s2c_buf: HTTP2HeaderReassemblyBuffer,
 }
@@ -637,6 +646,8 @@ impl HTTP2State {
             dynamic_headers_tc: HTTP2DynTable::new(),
             transactions: VecDeque::new(),
             progress: HTTP2ConnectionState::Http2StateInit,
+            comp_len: 0,
+            decomp_len: 0,
             c2s_buf: HTTP2HeaderReassemblyBuffer::default(),
             s2c_buf: HTTP2HeaderReassemblyBuffer::default(),
         }
@@ -1234,6 +1245,7 @@ impl HTTP2State {
                         &mut reass_limit_reached,
                     );
 
+                    let (comp_len, decomp_len) = (self.comp_len, self.decomp_len);
                     let tx = self.find_or_create_tx(&head, &txdata, dir);
                     if tx.is_none() {
                         return AppLayerResult::err();
@@ -1290,6 +1302,28 @@ impl HTTP2State {
                         tx.tx_data.set_event(HTTP2Event::DataStreamZero as u8);
                     } else if ftype == parser::HTTP2FrameType::Data as u8 && sid > 0 {
                         tx.handle_data_frame(rem, hlsafe, dir, flow, padded, over);
+                        let (il, ol) = if dir == Direction::ToClient {
+                            (
+                                tx.decoder.decoder_tc.input_len,
+                                tx.decoder.decoder_tc.output_len,
+                            )
+                        } else {
+                            (
+                                tx.decoder.decoder_ts.input_len,
+                                tx.decoder.decoder_ts.output_len,
+                            )
+                        };
+                        let (il, ol) = (il + comp_len, ol + decomp_len);
+                        if ol > decompression::DEFAULT_BOMB_RATIO * il {
+                            if ol > unsafe { HTTP2_COMPRESSION_BOMB_LIMIT } {
+                                tx.set_event(HTTP2Event::CompressionBomb);
+                                return AppLayerResult::err();
+                            }
+                            if over {
+                                self.comp_len += il;
+                                self.decomp_len += ol;
+                            }
+                        }
                     }
                     sc_app_layer_parser_trigger_raw_stream_inspection(flow, dir as i32);
                     input = &rem[hlsafe..];
@@ -1598,6 +1632,13 @@ pub unsafe extern "C" fn SCRegisterHttp2Parser() {
                 HTTP2_MAX_REASS = v as usize;
             } else {
                 SCLogError!("Invalid value for http2.max-reassembly-size");
+            }
+        }
+        if let Some(val) = conf_get("app-layer.protocols.http2.compression-bomb-limit") {
+            if let Ok(v) = get_memval(val) {
+                HTTP2_COMPRESSION_BOMB_LIMIT = v;
+            } else {
+                SCLogWarning!("Invalid value for http2.compression-bomb-limit");
             }
         }
         SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_HTTP2);
