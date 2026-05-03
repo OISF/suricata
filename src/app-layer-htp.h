@@ -145,6 +145,7 @@ typedef struct HtpBody_ {
 #define HTP_FILENAME_SET        BIT_U8(3)    /**< filename is registered in the flow */
 #define HTP_DONTSTORE           BIT_U8(4)    /**< not storing this file */
 #define HTP_STREAM_DEPTH_SET    BIT_U8(5)    /**< stream-depth is set */
+#define HTP_RESP_BODY_SEEN      BIT_U8(6)    /**< response body was seen at least once */
 
 /** Now the Body Chunks will be stored per transaction, at
   * the tx user data */

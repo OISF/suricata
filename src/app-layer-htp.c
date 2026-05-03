@@ -1270,7 +1270,11 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud, const ht
      * we check for htp_tx_response_line(tx) in case of junk
      * interpreted as body before response line
      */
-    if (!(htud->tcflags & HTP_FILENAME_SET)) {
+    if (!(htud->tcflags & HTP_RESP_BODY_SEEN)) {
+        // make sure we run this only once per tx
+        // so that we do not retry/refail to parse Content-Disposition header
+        // which may be expensive if we do it for every packet...
+        htud->tcflags |= HTP_RESP_BODY_SEEN;
         SCLogDebug("setting up file name");
 
         const uint8_t *filename = NULL;
