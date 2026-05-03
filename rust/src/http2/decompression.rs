@@ -15,6 +15,7 @@
 * 02110-1301, USA.
 */
 
+use super::http2::HTTP2_COMPRESSION_BOMB_LIMIT;
 use crate::direction::Direction;
 use brotli;
 use flate2::read::{DeflateDecoder, GzDecoder};
@@ -23,6 +24,8 @@ use std::io;
 use std::io::{Cursor, Read, Write};
 
 pub const HTTP2_DECOMPRESSION_CHUNK_SIZE: usize = 0x1000; // 4096
+
+pub(super) const DEFAULT_BOMB_RATIO: u64 = 2048;
 
 #[repr(u8)]
 #[derive(Copy, Clone, PartialOrd, PartialEq, Eq, Debug)]
@@ -102,9 +105,11 @@ impl std::fmt::Debug for HTTP2Decompresser {
 }
 
 #[derive(Debug)]
-struct HTTP2DecoderHalf {
+pub(super) struct HTTP2DecoderHalf {
     encoding: HTTP2ContentEncoding,
     decoder: HTTP2Decompresser,
+    pub input_len: u64,
+    pub output_len: u64,
 }
 
 pub trait GetMutCursor {
@@ -141,6 +146,7 @@ fn http2_decompress<'a>(
     let mut offset = 0;
     decoder.get_mut().set_position(0);
     output.resize(HTTP2_DECOMPRESSION_CHUNK_SIZE, 0);
+    let max_len = DEFAULT_BOMB_RATIO * input.len() as u64;
     loop {
         match decoder.read(&mut output[offset..]) {
             Ok(0) => {
@@ -149,6 +155,14 @@ fn http2_decompress<'a>(
             Ok(n) => {
                 offset += n;
                 if offset == output.len() {
+                    if output.len() + HTTP2_DECOMPRESSION_CHUNK_SIZE > max_len as usize
+                        && output.len() > unsafe { HTTP2_COMPRESSION_BOMB_LIMIT as usize }
+                    {
+                        return Err(io::Error::new(
+                            io::ErrorKind::OutOfMemory,
+                            "Decompression bomb detected",
+                        ));
+                    }
                     output.resize(output.len() + HTTP2_DECOMPRESSION_CHUNK_SIZE, 0);
                 }
             }
@@ -170,6 +184,8 @@ impl HTTP2DecoderHalf {
         HTTP2DecoderHalf {
             encoding: HTTP2ContentEncoding::Unknown,
             decoder: HTTP2Decompresser::Unassigned,
+            input_len: 0,
+            output_len: 0,
         }
     }
 
@@ -202,23 +218,41 @@ impl HTTP2DecoderHalf {
         match self.decoder {
             HTTP2Decompresser::Gzip(ref mut gzip_decoder) => {
                 let r = http2_decompress(&mut *gzip_decoder.as_mut(), input, output);
-                if r.is_err() {
-                    self.decoder = HTTP2Decompresser::Unassigned;
+                match r {
+                    Err(_) => {
+                        self.decoder = HTTP2Decompresser::Unassigned;
+                    }
+                    Ok(o) => {
+                        self.output_len += o.len() as u64;
+                    }
                 }
+                self.input_len += input.len() as u64;
                 return r;
             }
             HTTP2Decompresser::Brotli(ref mut br_decoder) => {
                 let r = http2_decompress(&mut *br_decoder.as_mut(), input, output);
-                if r.is_err() {
-                    self.decoder = HTTP2Decompresser::Unassigned;
+                match r {
+                    Err(_) => {
+                        self.decoder = HTTP2Decompresser::Unassigned;
+                    }
+                    Ok(o) => {
+                        self.output_len += o.len() as u64;
+                    }
                 }
+                self.input_len += input.len() as u64;
                 return r;
             }
             HTTP2Decompresser::Deflate(ref mut df_decoder) => {
                 let r = http2_decompress(&mut *df_decoder.as_mut(), input, output);
-                if r.is_err() {
-                    self.decoder = HTTP2Decompresser::Unassigned;
+                match r {
+                    Err(_) => {
+                        self.decoder = HTTP2Decompresser::Unassigned;
+                    }
+                    Ok(o) => {
+                        self.output_len += o.len() as u64;
+                    }
                 }
+                self.input_len += input.len() as u64;
                 return r;
             }
             _ => {}
@@ -228,9 +262,9 @@ impl HTTP2DecoderHalf {
 }
 
 #[derive(Debug)]
-pub struct HTTP2Decoder {
-    decoder_tc: HTTP2DecoderHalf,
-    decoder_ts: HTTP2DecoderHalf,
+pub(super) struct HTTP2Decoder {
+    pub decoder_tc: HTTP2DecoderHalf,
+    pub decoder_ts: HTTP2DecoderHalf,
 }
 
 impl HTTP2Decoder {
