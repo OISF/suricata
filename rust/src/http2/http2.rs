@@ -378,6 +378,29 @@ impl HTTP2Transaction {
             _ => {}
         }
     }
+
+    fn handle_data_frame(
+        &mut self, rem: &[u8], hlsafe: usize, dir: Direction, flow: *const Flow, padded: bool,
+        over: bool,
+    ) {
+        match unsafe { SURICATA_HTTP2_FILE_CONFIG } {
+            Some(sfcm) => {
+                if dir == Direction::ToServer {
+                    self.ft_tc.tx_id = self.tx_id - 1;
+                } else {
+                    self.ft_ts.tx_id = self.tx_id - 1;
+                };
+                let mut dinput = &rem[..hlsafe];
+                if padded && !rem.is_empty() && usize::from(rem[0]) < hlsafe {
+                    dinput = &rem[1..hlsafe - usize::from(rem[0])];
+                }
+                if self.decompress(dinput, dir, sfcm, over, flow).is_err() {
+                    self.set_event(HTTP2Event::FailedDecompression);
+                }
+            }
+            None => panic!("no SURICATA_HTTP2_FILE_CONFIG"),
+        }
+    }
 }
 
 impl Drop for HTTP2Transaction {
@@ -1087,33 +1110,7 @@ impl HTTP2State {
                     if ftype == parser::HTTP2FrameType::Data as u8 && sid == 0 {
                         tx.tx_data.set_event(HTTP2Event::DataStreamZero as u8);
                     } else if ftype == parser::HTTP2FrameType::Data as u8 && sid > 0 {
-                        match unsafe { SURICATA_HTTP2_FILE_CONFIG } {
-                            Some(sfcm) => {
-                                //borrow checker forbids to reuse directly tx
-                                let index = self.find_tx_index(sid);
-                                if index > 0 {
-                                    let tx_same = &mut self.transactions[index - 1];
-                                    if dir == Direction::ToServer {
-                                        tx_same.ft_tc.tx_id = tx_same.tx_id - 1;
-                                    } else {
-                                        tx_same.ft_ts.tx_id = tx_same.tx_id - 1;
-                                    };
-                                    let mut dinput = &rem[..hlsafe];
-                                    if padded && !rem.is_empty() && usize::from(rem[0]) < hlsafe{
-                                        dinput = &rem[1..hlsafe - usize::from(rem[0])];
-                                    }
-                                    if tx_same.decompress(
-                                        dinput,
-                                        dir,
-                                        sfcm,
-                                        over,
-                                        flow).is_err() {
-                                        self.set_event(HTTP2Event::FailedDecompression);
-                                    }
-                                }
-                            }
-                            None => panic!("no SURICATA_HTTP2_FILE_CONFIG"),
-                        }
+                        tx.handle_data_frame(rem, hlsafe, dir, flow, padded, over);
                     }
                     input = &rem[hlsafe..];
                 }
