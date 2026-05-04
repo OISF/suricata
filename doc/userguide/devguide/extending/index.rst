@@ -12,3 +12,4 @@ Extending Suricata
    output/index.rst
    output/eve-filetypes.rst
    output/eve-hooks.rst
+   flow-lifecycle-callbacks.rst
