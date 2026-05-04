@@ -50,6 +50,8 @@
 #include <glob.h>
 #endif
 
+#include "app-layer-parser.h"
+
 extern int rule_reload;
 extern int engine_analysis;
 static bool fp_engine_analysis_set = false;
@@ -294,6 +296,8 @@ static int ProcessSigFiles(DetectEngineCtx *de_ctx, char *pattern, SigFileLoader
 
 static int LoadFirewallRuleFiles(DetectEngineCtx *de_ctx)
 {
+    DetectFirewallLoadDefaultPolicies(de_ctx);
+
     if (de_ctx->firewall_rule_file_exclusive) {
         int32_t good_sigs = 0;
         int32_t bad_sigs = 0;
