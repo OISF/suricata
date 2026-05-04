@@ -1791,6 +1791,58 @@ extern "C" {
 extern "C" {
     pub fn SCFlowGetAppProtocol(f: *const Flow) -> AppProto;
 }
+#[doc = " \\brief Function type for flow initialization callbacks.\n\n Once registered with SCFlowRegisterInitCallback, this function will\n be called every time a flow is initialized, or in other words,\n every time Suricata picks up a flow.\n\n \\param tv The ThreadVars data structure for the thread creating the\n     flow.\n \\param f The newly initialized flow.\n \\param p The packet related to creating the new flow.\n \\param user The user data provided during callback registration."]
+pub type SCFlowInitCallbackFn = ::std::option::Option<
+    unsafe extern "C" fn(
+        tv: *mut ThreadVars,
+        f: *mut Flow,
+        p: *const Packet,
+        user: *mut ::std::os::raw::c_void,
+    ),
+>;
+extern "C" {
+    #[doc = " \\brief Register a flow init callback.\n\n Register a user provided function to be called every time a flow is\n initialized for use.\n\n \\param fn Pointer to function to be called\n \\param user Additional user data to be passed to callback\n\n \\returns true if callback was registered, otherwise false if the\n     callback could not be registered due to memory allocation error."]
+    pub fn SCFlowRegisterInitCallback(
+        fn_: SCFlowInitCallbackFn, user: *mut ::std::os::raw::c_void,
+    ) -> bool;
+}
+extern "C" {
+    #[doc = " \\internal\n\n Run all registered flow init callbacks."]
+    pub fn SCFlowRunInitCallbacks(tv: *mut ThreadVars, f: *mut Flow, p: *const Packet);
+}
+#[doc = " \\brief Function type for flow update callbacks.\n\n Once registered with SCFlowRegisterUpdateCallback, this function\n will be called every time a flow is updated by a packet (basically\n everytime a packet is seen on a flow).\n\n \\param tv The ThreadVars data structure for the thread updating the\n     flow.\n \\param f The flow being updated.\n \\param p The packet responsible for the flow update.\n \\param user The user data provided during callback registration."]
+pub type SCFlowUpdateCallbackFn = ::std::option::Option<
+    unsafe extern "C" fn(
+        tv: *mut ThreadVars,
+        f: *mut Flow,
+        p: *mut Packet,
+        user: *mut ::std::os::raw::c_void,
+    ),
+>;
+extern "C" {
+    #[doc = " \\brief Register a flow update callback.\n\n Register a user provided function to be called everytime a flow is\n updated.\n\n \\param fn Pointer to function to be called\n \\param user Additional user data to be passed to callback\n\n \\returns true if callback was registered, otherwise false if the\n     callback could not be registered due to memory allocation error."]
+    pub fn SCFlowRegisterUpdateCallback(
+        fn_: SCFlowUpdateCallbackFn, user: *mut ::std::os::raw::c_void,
+    ) -> bool;
+}
+extern "C" {
+    #[doc = " \\internal\n\n Run all registered flow update callbacks."]
+    pub fn SCFlowRunUpdateCallbacks(tv: *mut ThreadVars, f: *mut Flow, p: *mut Packet);
+}
+#[doc = " \\brief Function type for flow finish callbacks.\n\n Once registered with SCFlowRegisterFinshCallback, this function\n will be called when Suricata is done with a flow.\n\n \\param tv The ThreadVars data structure for the thread finishing\n     the flow.\n \\param f The flow being finshed.\n \\param user The user data provided during callback registration."]
+pub type SCFlowFinishCallbackFn = ::std::option::Option<
+    unsafe extern "C" fn(tv: *mut ThreadVars, f: *mut Flow, user: *mut ::std::os::raw::c_void),
+>;
+extern "C" {
+    #[doc = " \\brief Register a flow init callback.\n\n Register a user provided function to be called every time a flow is\n finished.\n\n \\param fn Pointer to function to be called\n \\param user Additional user data to be passed to callback\n\n \\returns true if callback was registered, otherwise false if the\n     callback could not be registered due to memory allocation error."]
+    pub fn SCFlowRegisterFinishCallback(
+        fn_: SCFlowFinishCallbackFn, user: *mut ::std::os::raw::c_void,
+    ) -> bool;
+}
+extern "C" {
+    #[doc = " \\internal\n\n Run all registered flow init callbacks."]
+    pub fn SCFlowRunFinishCallbacks(tv: *mut ThreadVars, f: *mut Flow);
+}
 extern "C" {
     pub fn SCSRepCatGetByShortname(shortname: *const ::std::os::raw::c_char) -> u8;
 }

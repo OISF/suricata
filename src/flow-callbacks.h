@@ -18,8 +18,9 @@
 #ifndef SURICATA_FLOW_CALLBACKS_H
 #define SURICATA_FLOW_CALLBACKS_H
 
-#include "suricata-common.h"
+#ifndef SURICATA_BINDGEN_H
 #include "flow.h"
+#endif
 
 /** \brief Function type for flow initialization callbacks.
  *

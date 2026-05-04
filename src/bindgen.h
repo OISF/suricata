@@ -62,6 +62,7 @@
 #include "util-spm-bs.h"
 
 #include "flow-bindgen.h"
+#include "flow-callbacks.h"
 
 #include "reputation.h"
 #include "feature.h"
