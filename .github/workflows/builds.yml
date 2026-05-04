@@ -92,6 +92,7 @@ jobs:
                 automake \
                 cargo-vendor \
                 cbindgen \
+                clippy \
                 diffutils \
                 numactl-devel \
                 dpdk-devel \
@@ -120,6 +121,7 @@ jobs:
                 python3-devel \
                 python3-sphinx \
                 python3-yaml \
+                rustfmt \
                 rust-toolset \
                 sudo \
                 which \
@@ -212,9 +214,12 @@ jobs:
         working-directory: examples/plugins/c-custom-loggers
         run: make clean all
 
-      - name: Build Rust example plugin
+      - name: Check and build Rust example plugin
         working-directory: examples/plugins/rust
-        run: cargo build
+        run: |
+          cargo fmt --check
+          cargo clippy -- -D warnings
+          cargo build
 
       - name: Install Suricata and library
         run: make install install-headers install-library
