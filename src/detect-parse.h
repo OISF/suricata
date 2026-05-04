@@ -114,4 +114,6 @@ int SC_Pcre2SubstringGet(pcre2_match_data *match_data, uint32_t number, PCRE2_UC
 void DetectRegisterAppLayerHookLists(void);
 void DetectListSupportedProtocols(void);
 
+int DetectFirewallLoadDefaultPolicies(DetectEngineCtx *);
+
 #endif /* SURICATA_DETECT_PARSE_H */
