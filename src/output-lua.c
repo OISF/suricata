@@ -525,6 +525,8 @@ static int LuaScriptInit(const char *filename, LogLuaScriptOptions *options, Log
             options->alproto = ALPROTO_SSH;
         else if (strcmp(k,"protocol") == 0 && strcmp(v, "smtp") == 0)
             options->alproto = ALPROTO_SMTP;
+        else if (strcmp(k, "protocol") == 0 && strcmp(v, "ntp") == 0)
+            options->alproto = ALPROTO_NTP;
         else if (strcmp(k, "type") == 0 && strcmp(v, "packet") == 0)
             options->packet = 1;
         else if (strcmp(k, "filter") == 0 && strcmp(v, "alerts") == 0)
@@ -812,6 +814,12 @@ static OutputInitResult OutputLuaLogInit(SCConfNode *conf)
             om->ts_log_progress = -1;
             om->tc_log_progress = -1;
             SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_SMTP);
+        } else if (opts.alproto == ALPROTO_NTP) {
+            om->TxLogFunc = LuaTxLogger;
+            om->alproto = ALPROTO_NTP;
+            om->ts_log_progress = -1;
+            om->tc_log_progress = -1;
+            SCAppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_NTP);
         } else if (opts.packet && opts.alerts) {
             om->PacketLogFunc = LuaPacketLoggerAlerts;
             om->PacketConditionFunc = LuaPacketConditionAlerts;

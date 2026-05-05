@@ -20,6 +20,7 @@ environment without access to additional modules.
    hashlib
    http
    log
+   ntp
    packetlib
    rule
    smtp
