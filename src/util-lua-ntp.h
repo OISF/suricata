@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,11 +15,11 @@
  * 02110-1301, USA.
  */
 
-//! NTP application layer, parser and logger module.
+#ifndef SURICATA_UTIL_LUA_NTP_H
+#define SURICATA_UTIL_LUA_NTP_H
 
-// written by Pierre Chifflier  <chifflier@wzdftpd.net>
+#include "lua.h"
 
-pub mod detect;
-pub mod log;
-pub mod lua;
-pub mod ntp;
+int SCLuaLoadNtpLib(lua_State *L);
+
+#endif /* SURICATA_UTIL_LUA_NTP_H */
