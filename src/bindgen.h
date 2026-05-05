@@ -63,6 +63,7 @@
 
 #include "flow-bindgen.h"
 #include "flow-callbacks.h"
+#include "flow-storage.h"
 
 #include "reputation.h"
 #include "feature.h"
