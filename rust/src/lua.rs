@@ -57,6 +57,12 @@ impl LuaState {
         }
     }
 
+    pub fn pushbytes(&self, val: &[u8]) {
+        unsafe {
+            lua_pushlstring(self.lua, val.as_ptr() as *const c_char, val.len());
+        }
+    }
+
     pub fn pushinteger(&self, val: i64) {
         unsafe {
             lua_pushinteger(self.lua, val);
