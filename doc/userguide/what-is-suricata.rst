@@ -1,7 +1,7 @@
 What is Suricata
 ================
 
-Suricata is a high‑performance engine that provides Network Intrusion Detection (IDS), Intrusion Prevention (IPS), and Network Security Monitoring (NSM). Suricata is open source and is maintained and developed by the Open Information Security Foundation (OISF), a community‑run non‑profit organization.
+Suricata is a high‑performance engine that provides Network Intrusion Detection (IDS), Intrusion Prevention (IPS), and Network Security Monitoring (NSM). Suricata is open source and is maintained and developed by the Open Information Security Foundation (OISF,https://oisf.net), a community‑run non‑profit organization.
 
 About the Open Information Security Foundation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
