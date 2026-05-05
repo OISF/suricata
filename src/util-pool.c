@@ -43,6 +43,7 @@
 #include "util-pool-thread.h"
 #include "util-unittest.h"
 #include "util-debug.h"
+#include "util-validate.h"
 
 static int PoolMemset(void *pitem, void *initdata)
 {
@@ -54,6 +55,7 @@ static int PoolMemset(void *pitem, void *initdata)
 
 /**
  * \brief Check if data is preallocated
+ * \note make sure to call with nonnull pointers
  * \retval false if not inside the prealloc'd block, true if inside */
 static bool PoolDataPreAllocated(Pool *p, void *data)
 {
@@ -78,9 +80,9 @@ static bool PoolDataPreAllocated(Pool *p, void *data)
  * \param Free free func
  * \retval the allocated Pool
  */
-Pool *PoolInit(uint32_t size, uint32_t prealloc_size, uint32_t elt_size,
-        void *(*Alloc)(void), int (*Init)(void *, void *), void *InitData,
-        void (*Cleanup)(void *), void (*Free)(void *))
+Pool *PoolInit(const uint32_t size, const uint32_t prealloc_size, const uint32_t elt_size,
+        void *(*Alloc)(void), int (*Init)(void *, void *), void *InitData, void (*Cleanup)(void *),
+        void (*Free)(void *))
 {
     sc_errno = SC_OK;
 
@@ -125,33 +127,31 @@ Pool *PoolInit(uint32_t size, uint32_t prealloc_size, uint32_t elt_size,
     }
 
     /* alloc the buckets and place them in the empty list */
-    uint32_t u32 = 0;
     if (size > 0) {
+        p->data_buffer = SCCalloc(prealloc_size, elt_size);
+        if (p->data_buffer == NULL) {
+            sc_errno = SC_ENOMEM;
+            goto error;
+        }
+
         PoolBucket *pb = SCCalloc(size, sizeof(PoolBucket));
         if (unlikely(pb == NULL)) {
             sc_errno = SC_ENOMEM;
             goto error;
         }
-        memset(pb, 0, size * sizeof(PoolBucket));
         p->pb_buffer = pb;
-        for (u32 = 0; u32 < size; u32++) {
-            /* populate pool */
-            pb->next = p->empty_stack;
-            pb->flags |= POOL_BUCKET_PREALLOCATED;
-            p->empty_stack = pb;
-            p->empty_stack_size++;
-            pb++;
-        }
+        PoolBucket *b = pb;
 
-        p->data_buffer = SCCalloc(prealloc_size, elt_size);
-        /* FIXME better goto */
-        if (p->data_buffer == NULL) {
-            sc_errno = SC_ENOMEM;
-            goto error;
+        for (uint32_t i = 0; i < size; i++) {
+            /* populate pool */
+            b[i].next = p->empty_stack;
+            b[i].flags |= POOL_BUCKET_PREALLOCATED;
+            p->empty_stack = &b[i];
+            p->empty_stack_size++;
         }
     }
     /* prealloc the buckets and requeue them to the alloc list */
-    for (u32 = 0; u32 < prealloc_size; u32++) {
+    for (uint32_t i = 0; i < prealloc_size; i++) {
         if (size == 0) { /* unlimited */
             PoolBucket *pb = SCCalloc(1, sizeof(PoolBucket));
             if (unlikely(pb == NULL)) {
@@ -190,7 +190,7 @@ Pool *PoolInit(uint32_t size, uint32_t prealloc_size, uint32_t elt_size,
                 goto error;
             }
 
-            pb->data = (char *)p->data_buffer + u32 * elt_size;
+            pb->data = (char *)p->data_buffer + i * elt_size;
             if (p->Init(pb->data, p->InitData) != 1) {
                 pb->data = NULL;
                 sc_errno = SC_EINVAL;
@@ -225,15 +225,18 @@ void PoolFree(Pool *p)
     while (p->alloc_stack != NULL) {
         PoolBucket *pb = p->alloc_stack;
         p->alloc_stack = pb->next;
-        if (p->Cleanup)
-            p->Cleanup(pb->data);
-        if (!PoolDataPreAllocated(p, pb->data)) {
-            if (p->Free)
-                p->Free(pb->data);
-            else
-                SCFree(pb->data);
+        if (pb->data != NULL) {
+            if (p->Cleanup)
+                p->Cleanup(pb->data);
+            if (p->data_buffer == NULL || !PoolDataPreAllocated(p, pb->data)) {
+                DEBUG_VALIDATE_BUG_ON(p->data_buffer == pb->data);
+                if (p->Free)
+                    p->Free(pb->data);
+                else
+                    SCFree(pb->data);
+            }
+            pb->data = NULL;
         }
-        pb->data = NULL;
         if (!(pb->flags & POOL_BUCKET_PREALLOCATED)) {
             SCFree(pb);
         }
@@ -242,10 +245,11 @@ void PoolFree(Pool *p)
     while (p->empty_stack != NULL) {
         PoolBucket *pb = p->empty_stack;
         p->empty_stack = pb->next;
-        if (pb->data!= NULL) {
+        if (pb->data != NULL) {
             if (p->Cleanup)
                 p->Cleanup(pb->data);
-            if (!PoolDataPreAllocated(p, pb->data)) {
+            if (p->data_buffer == NULL || !PoolDataPreAllocated(p, pb->data)) {
+                DEBUG_VALIDATE_BUG_ON(p->data_buffer == pb->data);
                 if (p->Free)
                     p->Free(pb->data);
                 else
@@ -334,14 +338,17 @@ void PoolReturn(Pool *p, void *data)
     if (pb == NULL) {
         p->allocated--;
         p->outstanding--;
-        if (p->Cleanup != NULL) {
-            p->Cleanup(data);
-        }
-        if (!PoolDataPreAllocated(p, data)) {
-            if (p->Free)
-                p->Free(data);
-            else
-                SCFree(data);
+        if (data) {
+            if (p->Cleanup != NULL) {
+                p->Cleanup(data);
+            }
+            if (p->data_buffer == NULL || !PoolDataPreAllocated(p, data)) {
+                DEBUG_VALIDATE_BUG_ON(p->data_buffer == data);
+                if (p->Free)
+                    p->Free(data);
+                else
+                    SCFree(data);
+            }
         }
 
         SCLogDebug("tried to return data %p to the pool %p, but no more "
