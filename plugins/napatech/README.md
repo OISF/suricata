@@ -8,9 +8,7 @@ optionally the `--with-napatech-includes` and
 
 ## Running
 ```
-/usr/local/suricata/bin/suricata \
-    --plugin /usr/local/lib/suricata/napatech.so \
-    --capture-plugin=napatech
+/usr/local/suricata/bin/suricata --capture-plugin=napatech -c /usr/local/etc/suricata/suricata.yaml
 ```
 
 ### --plugin /usr/local/lib/suricata/napatech.so
