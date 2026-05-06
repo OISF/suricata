@@ -127,6 +127,8 @@ static int PrefilterSetupDecodeEvent(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 void DetectEngineEventRegister (void)
 {
     sigmatch_table[DETECT_ENGINE_EVENT].name = "engine-event";
+    sigmatch_table[DETECT_ENGINE_EVENT].desc = "match on events triggered by anomalies detected by the Suricata engine";
+    sigmatch_table[DETECT_ENGINE_EVENT].url = "/rules/decode-layer.html#engine-event";
     sigmatch_table[DETECT_ENGINE_EVENT].Match = DetectEngineEventMatch;
     sigmatch_table[DETECT_ENGINE_EVENT].Setup = DetectEngineEventSetup;
     sigmatch_table[DETECT_ENGINE_EVENT].Free  = DetectEngineEventFree;
@@ -151,6 +153,7 @@ void DetectEngineEventRegister (void)
     sigmatch_table[DETECT_STREAM_EVENT].Free  = DetectEngineEventFree;
     sigmatch_table[DETECT_STREAM_EVENT].desc =
             "match on events triggered by anomalies during TCP streaming";
+    sigmatch_table[DETECT_STREAM_EVENT].url = "/rules/decode-layer.html#stream-event";
     sigmatch_table[DETECT_STREAM_EVENT].SupportsPrefilter = PrefilterStreamEventIsPrefilterable;
     sigmatch_table[DETECT_STREAM_EVENT].SetupPrefilter = PrefilterSetupStreamEvent;
 

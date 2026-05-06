@@ -149,6 +149,7 @@ void DetectCsumRegister (void)
     sigmatch_table[DETECT_IPV4_CSUM].Setup = DetectIPV4CsumSetup;
     sigmatch_table[DETECT_IPV4_CSUM].Free  = DetectIPV4CsumFree;
     sigmatch_table[DETECT_IPV4_CSUM].desc = "match on IPv4 checksum";
+    sigmatch_table[DETECT_IPV4_CSUM].url = "/rules/header-keywords.html#ipv4-csum";
 #ifdef UNITTESTS
     sigmatch_table[DETECT_IPV4_CSUM].RegisterTests = DetectCsumRegisterTests;
 #endif
@@ -158,36 +159,42 @@ void DetectCsumRegister (void)
     sigmatch_table[DETECT_TCPV4_CSUM].Setup = DetectTCPV4CsumSetup;
     sigmatch_table[DETECT_TCPV4_CSUM].Free  = DetectTCPV4CsumFree;
     sigmatch_table[DETECT_TCPV4_CSUM].desc = "match on IPv4/TCP checksum";
+    sigmatch_table[DETECT_TCPV4_CSUM].url = "/rules/header-keywords.html#tcpv4-csum";
 
     sigmatch_table[DETECT_TCPV6_CSUM].name = "tcpv6-csum";
     sigmatch_table[DETECT_TCPV6_CSUM].Match = DetectTCPV6CsumMatch;
     sigmatch_table[DETECT_TCPV6_CSUM].Setup = DetectTCPV6CsumSetup;
     sigmatch_table[DETECT_TCPV6_CSUM].Free  = DetectTCPV6CsumFree;
     sigmatch_table[DETECT_TCPV6_CSUM].desc = "match on IPv6/TCP checksum";
+    sigmatch_table[DETECT_TCPV6_CSUM].url = "/rules/header-keywords.html#tcpv6-csum";
 
     sigmatch_table[DETECT_UDPV4_CSUM].name = "udpv4-csum";
     sigmatch_table[DETECT_UDPV4_CSUM].Match = DetectUDPV4CsumMatch;
     sigmatch_table[DETECT_UDPV4_CSUM].Setup = DetectUDPV4CsumSetup;
     sigmatch_table[DETECT_UDPV4_CSUM].Free  = DetectUDPV4CsumFree;
     sigmatch_table[DETECT_UDPV4_CSUM].desc = "match on IPv4/UDP checksum";
+    sigmatch_table[DETECT_UDPV4_CSUM].url = "/rules/header-keywords.html#udpv4-csum";
 
     sigmatch_table[DETECT_UDPV6_CSUM].name = "udpv6-csum";
     sigmatch_table[DETECT_UDPV6_CSUM].Match = DetectUDPV6CsumMatch;
     sigmatch_table[DETECT_UDPV6_CSUM].Setup = DetectUDPV6CsumSetup;
     sigmatch_table[DETECT_UDPV6_CSUM].Free  = DetectUDPV6CsumFree;
     sigmatch_table[DETECT_UDPV6_CSUM].desc = "match on IPv6/UDP checksum";
+    sigmatch_table[DETECT_UDPV6_CSUM].url = "/rules/header-keywords.html#udpv6-csum";
 
     sigmatch_table[DETECT_ICMPV4_CSUM].name = "icmpv4-csum";
     sigmatch_table[DETECT_ICMPV4_CSUM].Match = DetectICMPV4CsumMatch;
     sigmatch_table[DETECT_ICMPV4_CSUM].Setup = DetectICMPV4CsumSetup;
     sigmatch_table[DETECT_ICMPV4_CSUM].Free  = DetectICMPV4CsumFree;
     sigmatch_table[DETECT_ICMPV4_CSUM].desc = "match on IPv4/ICMP checksum";
+    sigmatch_table[DETECT_ICMPV4_CSUM].url = "/rules/header-keywords.html#icmpv4-csum";
 
     sigmatch_table[DETECT_ICMPV6_CSUM].name = "icmpv6-csum";
     sigmatch_table[DETECT_ICMPV6_CSUM].Match = DetectICMPV6CsumMatch;
     sigmatch_table[DETECT_ICMPV6_CSUM].Setup = DetectICMPV6CsumSetup;
     sigmatch_table[DETECT_ICMPV6_CSUM].Free  = DetectICMPV6CsumFree;
     sigmatch_table[DETECT_ICMPV6_CSUM].desc = "match on IPv6/ICMPv6 checksum";
+    sigmatch_table[DETECT_ICMPV6_CSUM].url = "/rules/header-keywords.html#icmpv6-csum";
 
     sigmatch_table[DETECT_IGMP_CSUM].name = "igmp-csum";
     sigmatch_table[DETECT_IGMP_CSUM].Match = DetectIGMPCsumMatch;

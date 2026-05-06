@@ -417,3 +417,59 @@ Syntax::
 
  alert tcp any any -> any any (msg:"Flow is elephant in toserver dir"; flow.elephant:toserver; sid:1;)
 
+.. _flowvar:
+
+flowvar
+-------
+
+Set or match on a named string variable associated with the current flow.
+
+Syntax::
+
+  flowvar:<name>,<value>;
+
+Example:
+
+.. container:: example-rule
+
+  alert http any any -> any any (msg:"flowvar match"; :example-rule-options:`flowvar:myvar,"example";` sid:1;)
+
+.. _pktvar:
+
+pktvar
+------
+
+Set or match on a named string variable associated with the current packet.
+Unlike ``flowvar``, the variable only exists for the duration of that packet.
+
+Syntax::
+
+  pktvar:<name>,<value>;
+
+Example:
+
+.. container:: example-rule
+
+  alert http any any -> any any (msg:"pktvar match"; :example-rule-options:`pktvar:myvar,"example";` sid:1;)
+
+.. _hostbits:
+
+hostbits
+--------
+
+Set, unset, toggle and check flags stored per host IP address.
+Unlike ``flowbits``, flags persist across flows to the same IP.
+
+Syntax::
+
+  hostbits:<set|unset|isset|isnotset|toggle>,<name>[,<src|dst|both>[,<expire in seconds>]];
+
+Example:
+
+.. container:: example-rule
+
+  alert tcp any any -> $HOME_NET 22 (msg:"SSH scanner flagged"; :example-rule-options:`hostbits:isset,scanner,src;` sid:1;)
+
+.. note:: ``hostbits`` per host is equivalent to ``xbits`` with ``track ip_src``
+   or ``track ip_dst``. See :doc:`xbits` for YAML settings and unix socket
+   management.

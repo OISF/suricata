@@ -1134,3 +1134,53 @@ PCRE expressions.
   no error and giving an empty string. If the behavior of some use
   case is no longer the expected one, please let us know.
 
+.. _pkt-data:
+
+pkt_data
+--------
+
+Reset the detection cursor to the raw packet data. Used after a sticky
+buffer keyword to switch back to the raw packet payload.
+
+``pkt_data`` takes no arguments.
+
+Example:
+
+.. container:: example-rule
+
+   alert http any any -> any any (msg:"pkt_data example"; file_data; content:"malware"; :example-rule-emphasis:`pkt_data;` content:"in pkt data"; sid:1;)
+
+.. _asn1:
+
+asn1
+----
+
+Decode ASN.1 data from the payload and check specific properties.
+
+Syntax::
+
+  asn1:<option>[,<option>,...];
+
+Options:
+
+``absolute_offset <value>``
+  Start decoding at this byte offset from the start of the buffer.
+
+``relative_offset <value>``
+  Start decoding at this offset relative to the last pattern match.
+
+``oversize_length <value>``
+  Match if any ASN.1 length field exceeds this value.
+
+``bitstring_overflow``
+  Match on a known ASN.1 bitstring encoder overflow.
+
+``double_overflow``
+  Match on a known double conversion overflow.
+
+Example:
+
+.. container:: example-rule
+
+   alert ip any any -> any any (msg:"ASN1 oversize"; :example-rule-emphasis:`asn1:oversize_length 500, absolute_offset 0;` sid:1;)
+

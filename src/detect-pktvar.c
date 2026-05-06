@@ -48,6 +48,8 @@ static void DetectPktvarFree(DetectEngineCtx *, void *data);
 void DetectPktvarRegister (void)
 {
     sigmatch_table[DETECT_PKTVAR].name = "pktvar";
+    sigmatch_table[DETECT_PKTVAR].desc = "match on or store a packet-associated named variable";
+    sigmatch_table[DETECT_PKTVAR].url = "/rules/flow-keywords.html#pktvar";
     sigmatch_table[DETECT_PKTVAR].Match = DetectPktvarMatch;
     sigmatch_table[DETECT_PKTVAR].Setup = DetectPktvarSetup;
     sigmatch_table[DETECT_PKTVAR].Free  = DetectPktvarFree;
