@@ -53,21 +53,25 @@
 #define MAX_ALPROTO_NAME 50
 
 typedef struct DetectAppLayerEventData_ {
-    AppProto alproto;
+    AppProto alproto; /**< ALPROTO_UNKNOWN for file/detect events in det_ctx->decoder_events */
     uint8_t event_id;
 } DetectAppLayerEventData;
 
 static int DetectAppLayerEventPktMatch(DetectEngineThreadCtx *det_ctx,
                                        Packet *p, const Signature *s, const SigMatchCtx *ctx);
 static int DetectAppLayerEventSetup(DetectEngineCtx *, Signature *, const char *);
+static int DetectDetectEventSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectAppLayerEventFree(DetectEngineCtx *, void *);
 static uint8_t DetectEngineAptEventInspect(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
         uint8_t flags, void *alstate, void *tx, uint64_t tx_id);
 static int g_applayer_events_list_id = 0;
+#ifdef UNITTESTS
+void DetectAppLayerEventRegisterTests(void);
+#endif
 
 /**
- * \brief Registers the keyword handlers for the "app-layer-event" keyword.
+ * \brief Registers the keyword handlers for the "app-layer-event" and "detect-event" keywords.
  */
 void DetectAppLayerEventRegister(void)
 {
@@ -78,6 +82,16 @@ void DetectAppLayerEventRegister(void)
     sigmatch_table[DETECT_APP_LAYER_EVENT].Match = DetectAppLayerEventPktMatch;
     sigmatch_table[DETECT_APP_LAYER_EVENT].Setup = DetectAppLayerEventSetup;
     sigmatch_table[DETECT_APP_LAYER_EVENT].Free = DetectAppLayerEventFree;
+#ifdef UNITTESTS
+    sigmatch_table[DETECT_APP_LAYER_EVENT].RegisterTests = DetectAppLayerEventRegisterTests;
+#endif
+
+    sigmatch_table[DETECT_DETECT_EVENT].name = "detect-event";
+    sigmatch_table[DETECT_DETECT_EVENT].desc =
+            "match on events raised by the detect engine itself (e.g. resource limits)";
+    sigmatch_table[DETECT_DETECT_EVENT].url = "/rules/app-layer.html#detect-event";
+    sigmatch_table[DETECT_DETECT_EVENT].Setup = DetectDetectEventSetup;
+    sigmatch_table[DETECT_DETECT_EVENT].Free = DetectAppLayerEventFree;
 
     DetectAppLayerInspectEngineRegister("app-layer-events", ALPROTO_UNKNOWN, SIG_FLAG_TOSERVER, 0,
             DetectEngineAptEventInspect, NULL);
@@ -92,18 +106,24 @@ static uint8_t DetectEngineAptEventInspect(DetectEngineCtx *de_ctx, DetectEngine
         uint8_t flags, void *alstate, void *tx, uint64_t tx_id)
 {
     int r = 0;
+    bool uses_detctx = false;
     const AppProto alproto = f->alproto;
     const AppLayerDecoderEvents *decoder_events =
             AppLayerParserGetEventsByTx(f->proto, alproto, tx);
-    if (decoder_events == NULL) {
-        goto end;
-    }
     const SigMatchData *smd = engine->smd;
     while (1) {
         const DetectAppLayerEventData *aled = (const DetectAppLayerEventData *)smd->ctx;
         KEYWORD_PROFILING_START;
 
-        if (AppLayerDecoderEventsIsEventSet(decoder_events, aled->event_id)) {
+        const AppLayerDecoderEvents *events_to_check;
+        if (aled->alproto == ALPROTO_UNKNOWN) {
+            events_to_check = det_ctx->decoder_events;
+            uses_detctx = true;
+        } else {
+            events_to_check = decoder_events;
+        }
+
+        if (AppLayerDecoderEventsIsEventSet(events_to_check, aled->event_id)) {
             KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
 
             if (smd->is_last)
@@ -122,6 +142,11 @@ static uint8_t DetectEngineAptEventInspect(DetectEngineCtx *de_ctx, DetectEngine
     if (r == 1) {
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
     } else {
+        /* det_ctx events are transient (per-packet), so don't mark as CANT_MATCH
+         * which would permanently prevent future matching in this flow */
+        if (uses_detctx) {
+            return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+        }
         if (AppLayerParserGetStateProgress(f->proto, alproto, tx, flags) ==
             AppLayerParserGetStateProgressCompletionStatus(alproto, flags))
         {
@@ -216,6 +241,11 @@ static int DetectAppLayerEventSetup(DetectEngineCtx *de_ctx, Signature *s, const
         if (alproto == ALPROTO_UNKNOWN) {
             if (!strcmp(alproto_name, "file")) {
                 needs_detctx = true;
+            } else if (!strcmp(alproto_name, "detect")) {
+                SCLogError("app-layer-event keyword does not support detect engine events; "
+                           "use detect-event:%s instead",
+                        event_name);
+                return -1;
             } else {
                 SCLogError("app-layer-event keyword "
                            "supplied with unknown protocol \"%s\"",
@@ -233,19 +263,18 @@ static int DetectAppLayerEventSetup(DetectEngineCtx *de_ctx, Signature *s, const
             }
         }
 
-        uint8_t ipproto = 0;
-        if (DetectProtoContainsProto(&s->init_data->proto, IPPROTO_TCP)) {
-            ipproto = IPPROTO_TCP;
-        } else if (DetectProtoContainsProto(&s->init_data->proto, IPPROTO_UDP)) {
-            ipproto = IPPROTO_UDP;
-        } else {
-            SCLogError("protocol %s is disabled", alproto_name);
-            return -1;
-        }
-
         int r;
         uint8_t event_id = 0;
         if (!needs_detctx) {
+            uint8_t ipproto = 0;
+            if (DetectProtoContainsProto(&s->init_data->proto, IPPROTO_TCP)) {
+                ipproto = IPPROTO_TCP;
+            } else if (DetectProtoContainsProto(&s->init_data->proto, IPPROTO_UDP)) {
+                ipproto = IPPROTO_UDP;
+            } else {
+                SCLogError("protocol %s is disabled", alproto_name);
+                return -1;
+            }
             r = AppLayerParserGetEventInfo(ipproto, alproto, event_name, &event_id, &event_type);
         } else {
             r = DetectEngineGetEventInfo(event_name, &event_id, &event_type);
@@ -277,8 +306,11 @@ static int DetectAppLayerEventSetup(DetectEngineCtx *de_ctx, Signature *s, const
             goto error;
         }
     } else {
-        if (SCDetectSignatureSetAppProto(s, data->alproto) != 0)
-            goto error;
+        /* file/detect events are protocol-agnostic, skip alproto restriction */
+        if (data->alproto != ALPROTO_UNKNOWN) {
+            if (SCDetectSignatureSetAppProto(s, data->alproto) != 0)
+                goto error;
+        }
 
         if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_APP_LAYER_EVENT, (SigMatchCtx *)data,
                     g_applayer_events_list_id) == NULL) {
@@ -300,3 +332,186 @@ static void DetectAppLayerEventFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     SCFree(ptr);
 }
+
+/**
+ * \brief Setup for the "detect-event" keyword.
+ *
+ * Accepts unprefixed detect engine event names (e.g. TOO_MANY_BUFFERS).
+ * File decoder events are handled by app-layer-event:file.* instead.
+ */
+static int DetectDetectEventSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
+{
+    if (arg == NULL || *arg == '\0') {
+        SCLogError("detect-event keyword requires an event name argument");
+        return -1;
+    }
+
+    uint8_t event_id = 0;
+    AppLayerEventType event_type;
+    if (DetectEngineGetEventInfo(arg, &event_id, &event_type) < 0 ||
+            event_id < FILE_DECODER_EVENT_COUNT) {
+        if (SigMatchStrictEnabled(DETECT_DETECT_EVENT)) {
+            SCLogError("detect-event keyword: unknown detect engine event \"%s\"", arg);
+            return -1;
+        } else {
+            SCLogWarning("detect-event keyword: unknown detect engine event \"%s\"", arg);
+            return -3;
+        }
+    }
+
+    DetectAppLayerEventData *data = SCCalloc(1, sizeof(*data));
+    if (unlikely(data == NULL))
+        return -1;
+    data->alproto = ALPROTO_UNKNOWN;
+    data->event_id = event_id;
+
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_DETECT_EVENT, (SigMatchCtx *)data,
+                g_applayer_events_list_id) == NULL) {
+        SCFree(data);
+        return -1;
+    }
+    s->flags |= SIG_FLAG_APPLAYER;
+    return 0;
+}
+
+#ifdef UNITTESTS
+
+#include "detect-engine.h"
+
+static int DetectAppLayerEventFileTest01(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                                                 "(msg:\"test file event\"; "
+                                                 "app-layer-event:file.Z_DATA_ERROR; sid:1;)");
+    FAIL_IF_NULL(s);
+    FAIL_IF_NOT(s->flags & SIG_FLAG_APPLAYER);
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
+/**
+ * \test Verify that all file decoder events parse successfully via app-layer-event
+ */
+static int DetectAppLayerEventFileTest02(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    const char *events[] = {
+        "file.NO_MEMORY",
+        "file.INVALID_SWF_LENGTH",
+        "file.INVALID_SWF_VERSION",
+        "file.Z_DATA_ERROR",
+        "file.Z_STREAM_ERROR",
+        "file.Z_BUF_ERROR",
+        "file.Z_UNKNOWN_ERROR",
+        "file.LZMA_IO_ERROR",
+        "file.LZMA_HEADER_TOO_SHORT_ERROR",
+        "file.LZMA_DECODER_ERROR",
+        "file.LZMA_MEMLIMIT_ERROR",
+        "file.LZMA_XZ_ERROR",
+        "file.LZMA_UNKNOWN_ERROR",
+        NULL,
+    };
+
+    for (int i = 0; events[i] != NULL; i++) {
+        char rule[256];
+        snprintf(rule, sizeof(rule),
+                "alert tcp any any -> any any "
+                "(msg:\"test\"; app-layer-event:%s; sid:%d;)",
+                events[i], i + 1);
+        Signature *s = DetectEngineAppendSig(de_ctx, rule);
+        FAIL_IF_NULL(s);
+    }
+
+    /* detect.* events must be rejected by app-layer-event */
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any "
+            "(msg:\"test\"; app-layer-event:detect.TOO_MANY_BUFFERS; sid:100;)");
+    FAIL_IF_NOT_NULL(s);
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
+/**
+ * \test Verify that detect-event keyword accepts detect engine events
+ *       and rejects file decoder events
+ */
+static int DetectDetectEventTest01(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any "
+            "(msg:\"test detect event\"; detect-event:TOO_MANY_BUFFERS; sid:1;)");
+    FAIL_IF_NULL(s);
+    FAIL_IF_NOT(s->flags & SIG_FLAG_APPLAYER);
+
+    s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any "
+            "(msg:\"test detect event lc\"; detect-event:too_many_buffers; sid:2;)");
+    FAIL_IF_NULL(s);
+
+    s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any "
+            "(msg:\"test detect event 2\"; detect-event:POST_MATCH_QUEUE_FAILED; sid:3;)");
+    FAIL_IF_NULL(s);
+
+    /* file events must be rejected by detect-event */
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                                      "(msg:\"test\"; detect-event:Z_DATA_ERROR; sid:99;)");
+    FAIL_IF_NOT_NULL(s);
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
+static int DetectAppLayerEventFileTest03(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+
+    DetectEngineThreadCtx *det_ctx = NULL;
+    ThreadVars tv;
+    memset(&tv, 0, sizeof(tv));
+    StatsThreadInit(&tv.stats);
+    int r = DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+    FAIL_IF(r != TM_ECODE_OK);
+    FAIL_IF_NULL(det_ctx);
+
+    DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_Z_DATA_ERROR);
+    FAIL_IF_NULL(det_ctx->decoder_events);
+    FAIL_IF(det_ctx->decoder_events->cnt != 1);
+    FAIL_IF_NOT(AppLayerDecoderEventsIsEventSet(
+            det_ctx->decoder_events, FILE_DECODER_EVENT_Z_DATA_ERROR));
+    FAIL_IF(AppLayerDecoderEventsIsEventSet(det_ctx->decoder_events, FILE_DECODER_EVENT_NO_MEM));
+
+    DetectEngineSetEvent(det_ctx, DETECT_EVENT_TOO_MANY_BUFFERS);
+    FAIL_IF(det_ctx->decoder_events->cnt != 2);
+    FAIL_IF_NOT(AppLayerDecoderEventsIsEventSet(
+            det_ctx->decoder_events, DETECT_EVENT_TOO_MANY_BUFFERS));
+
+    DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    StatsThreadCleanup(&tv.stats);
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
+void DetectAppLayerEventRegisterTests(void)
+{
+    UtRegisterTest("DetectAppLayerEventFileTest01", DetectAppLayerEventFileTest01);
+    UtRegisterTest("DetectAppLayerEventFileTest02", DetectAppLayerEventFileTest02);
+    UtRegisterTest("DetectAppLayerEventFileTest03", DetectAppLayerEventFileTest03);
+    UtRegisterTest("DetectDetectEventTest01", DetectDetectEventTest01);
+}
+
+#endif /* UNITTESTS */

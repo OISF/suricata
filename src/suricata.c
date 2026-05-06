@@ -712,6 +712,8 @@ static void PrintUsage(const char *progname)
     printf("\t-S <path>                            : path to signature file loaded exclusively "
            "(optional)\n");
     printf("\t--disable-detection                  : disable detection engine\n");
+    printf("\t--strict-rule-keywords[=all|<kword>] : treat unknown or outdated rule keyword "
+           "values as errors\n");
     printf("\t--engine-analysis                    : print reports on analysis of different "
            "sections in the engine and exit.\n"
            "\t                                       Please have a look at the conf parameter "
