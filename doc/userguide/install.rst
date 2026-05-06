@@ -63,13 +63,24 @@ Common configure options
 Dependencies and compilation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Ubuntu/Debian
-"""""""""""""
+Debian 13+
+""""""""""
 
 .. note:: The following instructions require ``sudo`` to be installed.
 
-.. literalinclude:: ../../scripts/docs-ubuntu-debian-minimal-build.sh
-    :caption: Minimal dependencies for Ubuntu/Debian
+.. literalinclude:: ../../scripts/docs-debian-minimal-build.sh
+    :caption: Minimal dependencies for Debian
+    :language: bash
+    :start-after: # install-guide-documentation tag start: Minimal dependencies
+    :end-before: # install-guide-documentation tag end: Minimal dependencies
+
+Ubuntu
+""""""
+
+.. note:: The following instructions require ``sudo`` to be installed.
+
+.. literalinclude:: ../../scripts/docs-ubuntu-minimal-build.sh
+    :caption: Minimal dependencies for Ubuntu
     :language: bash
     :start-after: # install-guide-documentation tag start: Minimal dependencies
     :end-before: # install-guide-documentation tag end: Minimal dependencies

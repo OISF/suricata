@@ -21,6 +21,8 @@ jobs:
     name: Scan-build
     runs-on: ubuntu-latest
     container: ubuntu:25.04
+    env:
+      RV: "1.85"
     steps:
       - name: Cache scan-build
         uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb
@@ -36,7 +38,7 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
-                cargo \
+                cargo-${RV} \
                 cbindgen \
                 clang-20 \
                 clang-tools-20 \
@@ -65,7 +67,6 @@ jobs:
                 llvm-20-dev \
                 make \
                 python3-yaml \
-                rustc \
                 software-properties-common \
                 zlib1g \
                 zlib1g-dev
@@ -73,7 +74,7 @@ jobs:
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - run: ./scripts/bundle.sh
       - run: ./autogen.sh
-      - run: scan-build-20 ./configure --enable-warnings --enable-dpdk --enable-nfqueue --enable-nflog
+      - run: PATH="/usr/lib/rust-${RV}/bin:$PATH" scan-build-20 ./configure --enable-warnings --enable-dpdk --enable-nfqueue --enable-nflog
         env:
           CC: clang-20
       # disable security.insecureAPI.DeprecatedOrUnsafeBufferHandling explicitly as
