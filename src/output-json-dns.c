@@ -39,9 +39,6 @@
 #include "output-json-dns.h"
 #include "rust.h"
 
-#define LOG_QUERIES    BIT_U64(0)
-#define LOG_ANSWERS    BIT_U64(1)
-
 #define LOG_A          BIT_U64(2)
 #define LOG_NS         BIT_U64(3)
 #define LOG_MD         BIT_U64(4)
@@ -100,13 +97,6 @@
 #define LOG_MAILA      BIT_U64(57)
 #define LOG_ANY        BIT_U64(58)
 #define LOG_URI        BIT_U64(59)
-
-#define LOG_FORMAT_GROUPED     BIT_U64(60)
-#define LOG_FORMAT_DETAILED    BIT_U64(61)
-#define LOG_HTTPS              BIT_U64(62)
-
-#define LOG_FORMAT_ALL (LOG_FORMAT_GROUPED|LOG_FORMAT_DETAILED)
-#define LOG_ALL_RRTYPES (~(uint64_t)(LOG_QUERIES|LOG_ANSWERS|LOG_FORMAT_DETAILED|LOG_FORMAT_GROUPED))
 
 typedef enum {
     DNS_RRTYPE_A = 0,
@@ -238,11 +228,11 @@ static struct {
     // clang-format on
 };
 
-typedef struct LogDnsFileCtx_ {
+struct LogDnsFileCtx_ {
     uint64_t flags; /** Store mode */
     OutputJsonCtx *eve_ctx;
     uint8_t version;
-} LogDnsFileCtx;
+};
 
 typedef struct LogDnsLogThread_ {
     LogDnsFileCtx *dnslog_ctx;
@@ -507,8 +497,8 @@ static void LogDnsLogDeInitCtxSub(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-static void JsonDnsLogParseConfig(LogDnsFileCtx *dnslog_ctx, SCConfNode *conf,
-        const char *query_key, const char *answer_key, const char *answer_types_key)
+void JsonDnsLogParseConfig(LogDnsFileCtx *dnslog_ctx, SCConfNode *conf, const char *query_key,
+        const char *answer_key, const char *answer_types_key)
 {
     const char *query = SCConfNodeLookupChildValue(conf, query_key);
     if (query != NULL) {
@@ -610,10 +600,8 @@ static uint8_t JsonDnsCheckVersion(SCConfNode *conf)
     return default_version;
 }
 
-static void JsonDnsLogInitFilters(LogDnsFileCtx *dnslog_ctx, SCConfNode *conf)
+void JsonDnsLogInitFilters(LogDnsFileCtx *dnslog_ctx, SCConfNode *conf)
 {
-    dnslog_ctx->flags = ~0ULL;
-
     if (conf) {
         JsonDnsLogParseConfig(dnslog_ctx, conf, "requests", "responses", "types");
         if (dnslog_ctx->flags & LOG_ANSWERS) {
@@ -661,6 +649,7 @@ static OutputInitResult JsonDnsLogInitCtxSub(SCConfNode *conf, OutputCtx *parent
 
     dnslog_ctx->eve_ctx = ojc;
     dnslog_ctx->version = JsonDnsCheckVersion(conf);
+    dnslog_ctx->flags = ~0ULL;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {

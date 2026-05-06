@@ -83,6 +83,7 @@
 #include "app-layer-parser.h"
 #include "output-filestore.h"
 #include "output-json-arp.h"
+#include "output-json-llmnr.h"
 
 typedef struct RootLogger_ {
     OutputLogFunc LogFunc;
@@ -1225,6 +1226,8 @@ void OutputRegisterLoggers(void)
     }
     /* ARP JSON logger */
     JsonArpLogRegister();
+    /* LLMNR JSON logger */
+    JsonLLMNRLogRegister();
 
     for (size_t i = 0; i < preregistered_loggers_nb; i++) {
         OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", preregistered_loggers[i].logname,

@@ -65,8 +65,9 @@ pub enum AppProtoEnum {
     ALPROTO_BITTORRENT_DHT = 35,
     ALPROTO_POP3 = 36,
     ALPROTO_MDNS = 37,
-    ALPROTO_HTTP = 38,
-    ALPROTO_MAX_STATIC = 39,
+    ALPROTO_LLMNR = 38,
+    ALPROTO_HTTP = 39,
+    ALPROTO_MAX_STATIC = 40,
 }
 pub type AppProto = u16;
 extern "C" {

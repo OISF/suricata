@@ -345,6 +345,7 @@ outputs:
         - quic
         - ldap
         - pop3
+        - llmnr
         #- modbus
         - arp:
             enabled: no        # Many events can be logged. Disabled by default
@@ -1290,6 +1291,12 @@ app-layer:
 
     mdns:
       enabled: yes
+
+    llmnr:
+      enabled: yes
+      detection-ports:
+        dp: 5355
+        sp: 5355
 
 # Limit for the maximum number of asn1 frames to decode (default 256)
 asn1-max-frames: 256
