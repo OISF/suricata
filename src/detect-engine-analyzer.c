@@ -506,6 +506,7 @@ void SetupEngineAnalysis(DetectEngineCtx *de_ctx, bool *fp_analysis, bool *rule_
         if (ea->analyzer_items)
             SCFree(ea->analyzer_items);
         SCFree(ea);
+        de_ctx->ea = NULL;
     }
 }
 
